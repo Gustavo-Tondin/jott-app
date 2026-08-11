@@ -1,0 +1,67 @@
+/* menu.css — the reusable dropdown (Menu.svelte). The trigger is the caller's;
+ * this styles the popup list only. */
+
+@layer components {
+  .menu {
+    position: relative;
+    display: inline-flex;
+  }
+  /* Floating and anchored by the shared .theme-popover; what is the menu's own
+     is the width it needs and the list reset. */
+  .menu__list {
+    min-width: 11rem;
+    margin: 0;
+    padding: var(--theme-space-4);
+    list-style: none;
+  }
+  /* The qualifier before the name: present so the row is unambiguous, quiet so
+     the name is what the eye lands on. Same idea as the page header's context. */
+  .menu__context {
+    color: var(--theme-ink-faint);
+  }
+  .menu__link {
+    display: block;
+    width: 100%;
+    padding: var(--theme-space-6) var(--theme-space-10);
+    background: none;
+    border: none;
+    border-radius: var(--theme-radius-xs);
+    color: var(--theme-ink);
+    font: inherit;
+    font-size: var(--theme-text-13);
+    text-align: start;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+  /* A row that opens a submenu: the caret sits at the far end, and the panel
+     it opens is the same list, placed beside the row by keepOnScreen. */
+  .menu__link--sub {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--theme-space-10);
+  }
+  .menu__link--sub[aria-expanded="true"] {
+    background: var(--theme-surface-sunken);
+  }
+  .menu__link:hover {
+    background: var(--theme-surface-sunken);
+  }
+  .menu__link:disabled {
+    color: var(--theme-ink-faint);
+    cursor: default;
+  }
+}
+
+/* The right-click menu (ContextMenu.svelte): the same list, anchored to the
+   pointer instead of to a trigger — so it is fixed to the viewport rather than
+   absolute inside a wrapper, and it places itself. Everything it draws inside
+   is the `menu__*` above. */
+@layer components {
+  .context-menu {
+    position: fixed;
+    top: 0;
+    inset-inline-start: 0;
+    z-index: 200;
+  }
+}

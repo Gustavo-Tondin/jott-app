@@ -1,0 +1,34 @@
+/* workspace-view.css — the visual layer of WorkspaceView.svelte.
+ * Markup: src/lib/screens/WorkspaceView.svelte. Faithful to the widget
+ * wireframes (2026-07-30): a centred cyan workspace title, widgets stacked,
+ * and a dashed "add widget" card. Selectors are the stable BEM hooks a theme
+ * may restyle; components read tokens only. */
+
+@layer components {
+  /* The heading is the shared .theme-title--lg; only its spacing below is the
+     screen's business. */
+  .workspace-view__title {
+    margin-block-end: var(--theme-space-24);
+  }
+  .workspace-view__badge {
+    color: var(--theme-danger);
+    font-weight: normal;
+    font-size: var(--theme-text-12);
+    margin-inline-start: var(--theme-space-8);
+  }
+
+  .workspace-view__widget {
+    margin-block-end: var(--theme-space-24);
+  }
+  /* The soft line the wireframe draws under each widget, before the next one
+     (or the "New widget" card): short, centred, rounded. */
+  .workspace-view__divider {
+    inline-size: 72%;
+    block-size: 0.1875rem;
+    margin: var(--theme-space-32) auto;
+    border: none;
+    background: var(--theme-line-soft);
+    border-radius: var(--theme-radius-pill);
+  }
+
+}

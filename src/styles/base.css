@@ -1,0 +1,22 @@
+/* base.css — element defaults that read tokens: what a bare tag looks like
+   before any component class touches it. */
+
+@layer base {
+  /* A control is grabbed and clicked, never selected: dragging a selection over
+     a button, tab or nav item leaves an ugly highlight box. Content text
+     (task/note bodies) stays selectable because only controls are covered. */
+  button,
+  [role="tab"],
+  summary {
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  /* Keep the focus ring for keyboard users, drop the box a mouse click leaves
+     behind — the "interactive box" that made everything look heavy. Text
+     inputs keep their ring (they are always focus-visible while editable). */
+  :focus:not(:focus-visible) {
+    outline: none;
+  }
+}

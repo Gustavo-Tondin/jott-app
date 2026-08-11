@@ -1,0 +1,136 @@
+/* task-row.css — the visual layer of TaskRow.svelte.
+ * Markup: src/lib/components/TaskRow.svelte. Selectors are the stable BEM hooks a theme
+ * may restyle; components read tokens only. */
+
+@layer components {
+  .task-row {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: var(--theme-space-12);
+    padding: var(--theme-space-10) var(--theme-space-12);
+    background: var(--theme-surface-sunken);
+    border: 0.0625rem solid var(--theme-line);
+    border-radius: var(--theme-radius-md);
+    cursor: pointer;
+    /* The whole card is the drag handle (no grip since 2026-08-04): a drag
+       must never start a text selection along the way. */
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .task-row--selected {
+    background: var(--theme-brand-weak);
+    border-color: var(--theme-brand-outline);
+  }
+
+  /* The box is the shared .theme-checkbox at its large size (--lg, 20px) — a
+     done card's box is just the checked state (brand fill, no distinct
+     border; user call 2026-08-04), so nothing to add here. */
+
+  .task-row__body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--theme-space-4);
+  }
+  .task-row__top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--theme-space-8);
+  }
+  .task-row__title {
+    flex: 1;
+    min-width: 0;
+    text-align: left;
+    background: none;
+    border: none;
+    padding: 0;
+    font: inherit;
+    font-size: var(--theme-text-16);
+    color: var(--theme-ink);
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  /* No box or border on hover — at most the text goes a touch lighter, so the
+     card stays calm (the rename input is borderless too, via --plain). */
+  .task-row__title:hover:not(:disabled) {
+    color: var(--theme-ink-muted);
+  }
+  .task-row--selected .task-row__title {
+    font-weight: var(--theme-weight-semibold);
+  }
+  .task-row--done .task-row__title {
+    color: var(--theme-ink-muted);
+    text-decoration: line-through;
+  }
+  .task-row__edit {
+    flex: 1;
+    min-width: 0;
+    font: inherit;
+    font-size: var(--theme-text-16);
+  }
+  /* The bookmark pins the task to the top of its list. Quiet until it is on:
+     an unpinned card should read as a card, not as a row of controls. */
+  .task-row__bookmark {
+    flex-shrink: 0;
+    padding: var(--theme-space-2);
+    color: var(--theme-ink-faint);
+  }
+  /* Pinned is the filled glyph, in the card's own ink — the shape carries the
+     state, so no colour is spent on it. */
+  .task-row__bookmark--on {
+    color: var(--theme-ink);
+  }
+
+  .task-row__meta {
+    display: flex;
+    align-items: center;
+    gap: var(--theme-space-12);
+    color: var(--theme-ink-muted);
+  }
+  .task-row__field {
+    font-size: var(--theme-text-10);
+    color: var(--theme-ink-muted);
+    white-space: nowrap;
+  }
+  /* Priority marks are coloured by level: ! low (green), !! medium (amber),
+     !!! high (red). The base falls back to red for any out-of-range value. */
+  .task-row__field--priority {
+    color: var(--theme-danger);
+    font-weight: var(--theme-weight-semibold);
+  }
+  .task-row__field--p1 {
+    color: var(--theme-danger);
+  }
+  .task-row__field--p2 {
+    color: var(--theme-warning);
+  }
+  .task-row__field--p3 {
+    color: var(--theme-success);
+  }
+  /* An overdue due date reads as a warning, not a quiet note. */
+  .task-row__field--overdue {
+    color: var(--theme-danger);
+    font-weight: 600;
+  }
+  /* A tag is shown as a coloured pill, not text — the colour is the tag. That
+     pill is the shared .theme-tag-pill (controls.css); the `task-row__tag`
+     hook stays on the markup, ruleless, so a theme can single out the pill on
+     a task card without touching the control everywhere else. */
+
+  /* The per-screen actions (pull to day/week, remove) that some lists slot in.
+     Home passes none, so its cards stay as clean as the wireframe.
+     Only the slot's arrangement lives here: each screen slots in the shared
+     quiet button (.theme-btn--outline.theme-btn--xs). This used to restyle a
+     bare `button` descendant instead — which no theme could reach by class,
+     and which silently styled ListView's buttons from another file. */
+  .task-row__actions {
+    flex-shrink: 0;
+    display: flex;
+    gap: var(--theme-space-4);
+  }
+}

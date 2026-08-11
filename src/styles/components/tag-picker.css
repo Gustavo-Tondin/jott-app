@@ -1,0 +1,81 @@
+/* tag-picker.css — the visual layer of TagPicker.svelte. @layer components. */
+@layer components {
+  .tag-picker {
+    position: relative;
+    display: inline-flex;
+  }
+  .tag-picker__trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--theme-space-4);
+    padding: var(--theme-space-2) var(--theme-space-8);
+    background: var(--theme-surface-sunken);
+    border: 0.0625rem dashed var(--theme-line);
+    border-radius: var(--theme-radius-pill);
+    color: var(--theme-ink-muted);
+    font: inherit;
+    font-size: var(--theme-text-12);
+    cursor: pointer;
+  }
+  .tag-picker__trigger:hover {
+    color: var(--theme-ink);
+    border-color: var(--theme-brand-outline);
+  }
+
+  /* Floating by the shared .theme-popover; the stack inside is its own. */
+  .tag-picker__panel {
+    min-inline-size: 12rem;
+    display: flex;
+    flex-direction: column;
+    gap: var(--theme-space-4);
+    padding: var(--theme-space-6);
+  }
+  .tag-picker__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    max-block-size: 12rem;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: var(--theme-space-2);
+  }
+  .tag-picker__option {
+    display: flex;
+    align-items: center;
+    gap: var(--theme-space-6);
+    inline-size: 100%;
+    padding: var(--theme-space-4) var(--theme-space-6);
+    background: none;
+    border: none;
+    border-radius: var(--theme-radius-sm);
+    color: var(--theme-ink);
+    font: inherit;
+    font-size: var(--theme-text-13);
+    text-align: start;
+    cursor: pointer;
+  }
+  .tag-picker__option:hover {
+    background: var(--theme-surface-sunken);
+  }
+  /* The dot is the shared .theme-swatch. */
+  .tag-picker__create {
+    display: flex;
+    align-items: center;
+    gap: var(--theme-space-4);
+  }
+  .tag-picker__color {
+    inline-size: var(--theme-space-24);
+    block-size: var(--theme-space-24);
+    padding: 0;
+    border: 0.0625rem solid var(--theme-line);
+    border-radius: var(--theme-radius-sm);
+    background: none;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .tag-picker__name {
+    flex: 1;
+    min-inline-size: 0;
+  }
+}

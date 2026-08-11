@@ -1,0 +1,54 @@
+/* reset.css — browser normalisation, nothing visual. Layer `reset` is the
+   weakest in the cascade (see app.css). */
+
+@layer reset {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  /* Media never overflows its box, and behaves like a block. */
+  img,
+  picture,
+  svg,
+  video {
+    display: block;
+    max-width: 100%;
+  }
+
+  /* Form controls inherit the app's font instead of the browser's — the single
+     most common thing every component used to repeat by hand. */
+  input,
+  button,
+  textarea,
+  select {
+    font: inherit;
+    color: inherit;
+  }
+
+  textarea {
+    resize: vertical;
+  }
+
+  :root {
+    color-scheme: light;
+  }
+
+  html,
+  body,
+  #app {
+    height: 100%;
+  }
+
+  body {
+    margin: 0;
+    font-family: var(--theme-font-sans);
+    /* Frameless window: the page is transparent ONLY so the rounded corners of
+       the .window frame reveal the desktop through them — GNOME/Wayland draws
+       no decoration of its own. The app's edge is the OS window's edge; there
+       is no gutter and no webview-drawn shadow (semi-transparent pixels
+       accumulate alpha on WebKitGTK repaints and darken over time). */
+    background: transparent;
+  }
+}

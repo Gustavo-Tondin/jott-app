@@ -1,0 +1,43 @@
+/* trash-view.css — the visual layer of TrashView.svelte. @layer components. */
+@layer components {
+  .trash-view {
+    display: flex;
+    flex-direction: column;
+    gap: var(--theme-space-8);
+    max-inline-size: 44rem;
+    margin-inline: auto;
+  }
+  .trash-view__hint,
+  .trash-view__empty {
+    margin: 0;
+    color: var(--theme-ink-muted);
+    font-size: var(--theme-text-14);
+  }
+  .trash-view__list {
+    list-style: none;
+    margin: var(--theme-space-8) 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--theme-space-4);
+  }
+  /* The row itself is the shared .theme-row; only what is specific to a
+     trashed item lives below. */
+  .trash-view__label {
+    font-weight: var(--theme-weight-medium);
+    color: var(--theme-ink);
+  }
+  .trash-view__origin {
+    flex: 1;
+    min-inline-size: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--theme-ink-muted);
+    font-size: var(--theme-text-12);
+  }
+  .trash-view__date {
+    color: var(--theme-ink-faint);
+    font-size: var(--theme-text-12);
+  }
+}

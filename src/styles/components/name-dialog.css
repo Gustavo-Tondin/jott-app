@@ -1,0 +1,13 @@
+/* The app's own name prompt (replaces window.prompt). @layer components.
+ * Markup: src/lib/components/NameDialog.svelte.
+ *
+ * The dialog's shape — the dimmed backdrop, the centred card, the title and
+ * the action row — is the shared .theme-modal* of controls.css since
+ * 2026-08-06, when the new-task popup became the second dialog drawing it.
+ * What is left here is only what belongs to THIS prompt, plus the hooks a
+ * theme uses to reach it in particular. */
+@layer components {
+  .name-dialog__input {
+    inline-size: 100%;
+  }
+}

@@ -1,0 +1,86 @@
+/* date-picker.css — the visual layer of DatePicker.svelte.
+ * Markup: src/lib/components/DatePicker.svelte. The trigger reuses the shared
+ * .theme-input--filled pill; only the popup calendar is bespoke. */
+
+@layer components {
+  .date-picker {
+    position: relative;
+    display: inline-flex;
+  }
+  /* The trigger is a filled pill (like the old field), but a button. */
+  .date-picker__value {
+    cursor: pointer;
+    text-align: center;
+  }
+
+  /* The popup floats below the field, anchored to its right edge. The right
+     panel is ~240px and the inspector clips overflow (its overflow-y:auto
+     forces overflow-x to clip too), so the popup has to fit inside that width
+     — 13rem leaves the Sunday column room instead of being cut off. */
+  .date-picker__pop {
+    width: 13rem;
+    padding: var(--theme-space-6);
+  }
+
+  .date-picker__head {
+    display: flex;
+    align-items: center;
+    gap: var(--theme-space-2);
+    margin-bottom: var(--theme-space-6);
+  }
+  .date-picker__month {
+    flex: 1;
+    text-align: center;
+    font-size: var(--theme-text-13);
+    font-weight: var(--theme-weight-semibold);
+    color: var(--theme-ink);
+  }
+  /* The close × sits a hair apart from the month arrows. */
+  .date-picker__close {
+    margin-inline-start: var(--theme-space-2);
+    color: var(--theme-ink-faint);
+  }
+
+  .date-picker__grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: var(--theme-space-2);
+  }
+  .date-picker__weekday {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 1.5rem;
+    font-size: var(--theme-text-10);
+    color: var(--theme-ink-faint);
+  }
+  .date-picker__day {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    aspect-ratio: 1;
+    border: none;
+    border-radius: var(--theme-radius-xs);
+    background: none;
+    color: var(--theme-ink);
+    font: inherit;
+    font-size: var(--theme-text-12);
+    cursor: pointer;
+  }
+  .date-picker__day:hover:not(.date-picker__day--empty) {
+    background: var(--theme-surface-sunken);
+  }
+  .date-picker__day--empty {
+    cursor: default;
+  }
+  /* Today is outlined; the chosen day is filled with the brand. */
+  .date-picker__day--today {
+    box-shadow: inset 0 0 0 0.0625rem var(--theme-brand-outline);
+  }
+  .date-picker__day--selected,
+  .date-picker__day--selected:hover {
+    background: var(--theme-brand);
+    color: var(--theme-on-brand);
+    font-weight: var(--theme-weight-semibold);
+  }
+}

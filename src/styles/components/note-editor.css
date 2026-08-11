@@ -1,0 +1,9 @@
+/* note-editor.css — the visual layer of NoteEditor.svelte.
+ * Markup: src/lib/components/NoteEditor.svelte. Selectors are the stable BEM hooks a theme
+ * may restyle; components read tokens only. */
+
+@layer components {
+  .note-editor__body {
+    min-height: 60vh;
+  }
+}

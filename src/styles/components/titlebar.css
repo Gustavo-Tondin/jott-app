@@ -1,0 +1,76 @@
+/* titlebar.css — the visual layer of TitleBar.svelte.
+ * Markup: src/lib/shell/TitleBar.svelte. Selectors are the stable BEM hooks a theme
+ * may restyle; components read tokens only. */
+
+@layer components {
+  /* Flex, not a three-column grid: only the brand column has a width to match
+     (the sidebar's, rail included). The tabs take the rest up to the window
+     controls, which are as wide as the system asked for — and on whichever
+     side it asked for (2026-08-06). */
+  .titlebar {
+    display: flex;
+    align-items: center;
+    height: var(--theme-titlebar-height);
+    flex-shrink: 0;
+    background: var(--theme-bg);
+    /* The bar is a drag surface; text selection while dragging looks broken. */
+    user-select: none;
+  }
+
+  /* ---- brand ---- */
+  .titlebar__brand {
+    flex: 0 0 var(--theme-sidebar-left);
+    display: flex;
+    align-items: center;
+    gap: var(--theme-space-10);
+    padding-inline: var(--theme-space-12);
+    min-width: 0;
+    /* The same easing the sidebar's own width uses, so the two edges travel
+       together instead of the bar snapping ahead of the panel. */
+    transition: flex-basis var(--theme-transition-medium);
+  }
+  /* Rail: the column narrows with the sidebar, and the wordmark is gone from
+     the markup — 3.5rem holds the mark and nothing else.
+     ONLY the width changes. Re-centring the mark (or dropping the padding)
+     would snap it sideways on the first frame while the width was still
+     travelling, which read as a jump (user report, 2026-08-06); keeping the
+     left padding means the mark holds its x, exactly like the sidebar's icons
+     below it. */
+  .titlebar--rail .titlebar__brand {
+    flex-basis: var(--theme-sidebar-rail);
+  }
+  .titlebar__mark {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* Non-interactive labels: let clicks fall through to the brand container,
+       which is the drag region — otherwise grabbing the name/logo would not
+       move the window. */
+    pointer-events: none;
+    height: 1.125rem;
+    padding-inline: var(--theme-space-6);
+    background: var(--theme-brand);
+    border-radius: var(--theme-radius-xs);
+    color: var(--theme-on-brand);
+    font-weight: var(--theme-weight-bold);
+    font-size: var(--theme-text-16);
+    letter-spacing: var(--theme-tracking-wide);
+  }
+  .titlebar__wordmark {
+    pointer-events: none;
+    color: var(--theme-brand);
+    font-weight: var(--theme-weight-bold);
+    font-size: var(--theme-text-16);
+    letter-spacing: var(--theme-tracking-wide);
+    white-space: nowrap;
+  }
+
+  /* ---- tabs zone (the centre column; TabBar renders inside) ---- */
+  .titlebar__tabs {
+    flex: 1 1 0;
+    min-width: 0;
+    height: 100%;
+    display: flex;
+    align-items: center;
+  }
+}

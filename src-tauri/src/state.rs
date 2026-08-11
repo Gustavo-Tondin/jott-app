@@ -1,0 +1,123 @@
+//! What the shell holds between `invoke()` calls.
+//!
+//! Exactly one thing: which notebook is open, plus the watcher keeping an eye
+//! on it. Everything else is read from disk on demand — the files are the
+//! source of truth, and caching them here would be a second one.
+
+use std::sync::Mutex;
+
+use jott_core::{Notebook, NotebookWatcher};
+use tauri::{AppHandle, Emitter, Runtime};
+
+use crate::error::{CommandError, CommandResult};
+
+/// Event emitted when the notebook changes outside the app.
+pub const NOTEBOOK_CHANGED_EVENT: &str = "notebook://changed";
+
+#[derive(Default)]
+pub struct AppState {
+    inner: Mutex<Option<OpenNotebook>>,
+}
+
+struct OpenNotebook {
+    notebook: Notebook,
+    /// Dropping this stops the watcher thread, which is exactly what should
+    /// happen when another notebook is opened.
+    _watcher: WatcherHandle,
+}
+
+impl AppState {
+    /// Runs `f` against the open notebook, or fails if there is none.
+    pub fn with_notebook<T>(
+        &self,
+        f: impl FnOnce(&Notebook) -> CommandResult<T>,
+    ) -> CommandResult<T> {
+        let guard = self.lock()?;
+        let open = guard.as_ref().ok_or_else(CommandError::no_notebook)?;
+        f(&open.notebook)
+    }
+
+    /// Same, but for the operations that change the notebook itself (its
+    /// config), which need `&mut`.
+    pub fn with_notebook_mut<T>(
+        &self,
+        f: impl FnOnce(&mut Notebook) -> CommandResult<T>,
+    ) -> CommandResult<T> {
+        let mut guard = self.lock()?;
+        let open = guard.as_mut().ok_or_else(CommandError::no_notebook)?;
+        f(&mut open.notebook)
+    }
+
+    /// Replaces the open notebook and starts watching it.
+    pub fn open<R: Runtime>(&self, app: &AppHandle<R>, notebook: Notebook) -> CommandResult<()> {
+        let watcher = WatcherHandle::start(app.clone(), &notebook)?;
+        let mut guard = self.lock()?;
+        *guard = Some(OpenNotebook {
+            notebook,
+            _watcher: watcher,
+        });
+        Ok(())
+    }
+
+    pub fn is_open(&self) -> bool {
+        self.lock().map(|guard| guard.is_some()).unwrap_or(false)
+    }
+
+    fn lock(&self) -> CommandResult<std::sync::MutexGuard<'_, Option<OpenNotebook>>> {
+        // A poisoned mutex means a command panicked while holding it. Failing
+        // the call is better than papering over an unknown state.
+        self.inner
+            .lock()
+            .map_err(|_| CommandError::new("poisoned", "notebook state is unusable"))
+    }
+}
+
+/// Owns the watcher thread and stops it on drop.
+struct WatcherHandle {
+    stop: std::sync::Arc<std::sync::atomic::AtomicBool>,
+}
+
+impl WatcherHandle {
+    fn start<R: Runtime>(app: AppHandle<R>, notebook: &Notebook) -> CommandResult<Self> {
+        let watcher: NotebookWatcher = notebook.watch()?;
+        let stop = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let flag = stop.clone();
+
+        std::thread::spawn(move || {
+            use std::sync::atomic::Ordering;
+            use std::time::Duration;
+
+            // Polling with a timeout instead of blocking forever is what lets
+            // the thread notice it should stop.
+            while !flag.load(Ordering::Relaxed) {
+                let Some(first) = watcher.next_within(Duration::from_millis(250)) else {
+                    continue;
+                };
+
+                // A single external save fires several OS events; collapse the
+                // burst so the UI reloads once.
+                std::thread::sleep(Duration::from_millis(50));
+                let mut changes = vec![first];
+                for change in watcher.drain() {
+                    if !changes.contains(&change) {
+                        changes.push(change);
+                    }
+                }
+
+                for change in changes {
+                    if let Err(e) = app.emit(NOTEBOOK_CHANGED_EVENT, &change) {
+                        eprintln!("[jott] could not emit change event: {e}");
+                    }
+                }
+            }
+        });
+
+        Ok(Self { stop })
+    }
+}
+
+impl Drop for WatcherHandle {
+    fn drop(&mut self) {
+        self.stop.store(true, std::sync::atomic::Ordering::Relaxed);
+    }
+}

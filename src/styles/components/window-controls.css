@@ -1,0 +1,54 @@
+/* window-controls.css — the visual layer of WindowControls.svelte.
+ * Markup: src/lib/shell/WindowControls.svelte.
+ *
+ * Adwaita's shape (2026-08-06): a filled grey disc with a dark glyph, darker
+ * on hover, darker still while pressed — not the outlined circles this app
+ * drew before, which matched nothing on the desktop. Only `close` breaks the
+ * greyscale, and only on hover, which is GNOME's own rule.
+ * Selectors are the stable BEM hooks a theme may restyle. */
+
+@layer components {
+  .window-controls {
+    display: flex;
+    align-items: center;
+    gap: var(--theme-space-8);
+    padding-inline: var(--theme-space-12);
+  }
+
+  .window-controls__button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    inline-size: 1.5rem;
+    block-size: 1.5rem;
+    padding: 0;
+    background: var(--theme-surface-sunken);
+    border: none;
+    border-radius: var(--theme-radius-pill);
+    color: var(--theme-ink);
+    cursor: pointer;
+    transition:
+      background var(--theme-transition-fast),
+      color var(--theme-transition-fast);
+  }
+  .window-controls__button:hover {
+    background: var(--theme-hover);
+  }
+  .window-controls__button:active {
+    background: color-mix(in srgb, var(--theme-ink) 16%, transparent);
+  }
+  /* The one coloured state on the whole bar, and only under the pointer. */
+  .window-controls__button--close:hover {
+    background: var(--theme-danger);
+    color: var(--theme-on-brand);
+  }
+
+  .window-controls__glyph {
+    inline-size: 1rem;
+    block-size: 1rem;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.4;
+    stroke-linecap: round;
+  }
+}

@@ -1,0 +1,722 @@
+/* =============================================================================
+   controls.css — the reusable, themeable form controls.
+
+   These `.theme-*` classes are the app's STABLE HOOKS: a component applies them
+   instead of restyling each control, so every input/button/toggle looks the
+   same everywhere, and a theme can restyle them in one place. They read only
+   tokens (`--theme-*`), never raw values.
+
+   Prefix is `theme-`, deliberately NOT the product name (`memo-`): the name is
+   provisional and these class names are meant to outlive it — same reasoning as
+   the tokens. See docs/project-strategy.md 4.6.
+
+   Live reference of every control: `styleguide.html` (served by Vite at
+   /styleguide.html during `npm run dev`).
+   ============================================================================= */
+
+@layer components {
+  /* ---------------------------------------------------------------------------
+     Text fields: input, textarea, select
+     --------------------------------------------------------------------------- */
+  .theme-input,
+  .theme-textarea,
+  .theme-select {
+    width: 100%;
+    padding: var(--theme-space-8) var(--theme-space-12);
+    background: var(--theme-surface);
+    color: var(--theme-ink);
+    border: 0.0625rem solid var(--theme-line);
+    border-radius: var(--theme-radius-md);
+    font-size: var(--theme-text-14);
+    font-family: inherit;
+    line-height: var(--theme-leading-normal);
+  }
+  .theme-input::placeholder,
+  .theme-textarea::placeholder {
+    color: var(--theme-ink-faint);
+  }
+  .theme-input:hover:not(:disabled):not(:focus),
+  .theme-textarea:hover:not(:disabled):not(:focus),
+  .theme-select:hover:not(:disabled) {
+    border-color: var(--theme-brand-outline);
+  }
+  .theme-input:focus-visible,
+  .theme-textarea:focus-visible,
+  .theme-select:focus-visible {
+    outline: none;
+    border-color: var(--theme-brand);
+    box-shadow: 0 0 0 0.1875rem var(--theme-brand-weak);
+  }
+  .theme-input:disabled,
+  .theme-textarea:disabled,
+  .theme-select:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  .theme-textarea {
+    min-height: 5rem;
+    resize: vertical;
+  }
+
+  /* Native arrow off, our own caret on — so the select matches everywhere. */
+  .theme-select {
+    appearance: none;
+    -webkit-appearance: none;
+    padding-right: var(--theme-space-32);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 4.5 6 8l3.5-3.5' fill='none' stroke='%235a7087' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right var(--theme-space-12) center;
+    background-size: 0.75rem;
+    cursor: pointer;
+  }
+
+  /* The native date/time picker button — tint it to match, not the OS default. */
+  .theme-input::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    opacity: 0.55;
+  }
+  .theme-input::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
+  }
+
+  /* --- Size modifier: compact controls (inspector inline values, steppers) --- */
+  .theme-input--sm,
+  .theme-select--sm {
+    padding: var(--theme-space-4) var(--theme-space-8);
+    font-size: var(--theme-text-13);
+    border-radius: var(--theme-radius-sm);
+  }
+  .theme-select--sm {
+    padding-right: var(--theme-space-24);
+    background-position: right var(--theme-space-8) center;
+  }
+
+  /* --- Bare select: no caret, compact, sunken fill. For tight rows where the
+     dropdown arrow would only cost space (inspector fields). --- */
+  .theme-select--bare {
+    width: auto;
+    padding: var(--theme-space-4) var(--theme-space-6);
+    background-image: none;
+    background-color: var(--theme-surface-sunken);
+    border-color: transparent;
+    border-radius: var(--theme-radius-sm);
+    font-size: var(--theme-text-12);
+  }
+
+  /* --- Number field: the tiny "Repeat every [1]" box; no native spinners --- */
+  .theme-number {
+    width: 3.25rem;
+    text-align: center;
+    appearance: textfield;
+    -moz-appearance: textfield;
+  }
+  .theme-number::-webkit-outer-spin-button,
+  .theme-number::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  /* --- Inline value: borderless until hovered/focused (inspector rows) --- */
+  .theme-input--inline {
+    width: auto;
+    min-width: 0;
+    background: transparent;
+    border-color: transparent;
+    text-align: end;
+    color: var(--theme-ink-muted);
+  }
+  .theme-input--inline:hover:not(:disabled):not(:focus) {
+    /* The same blue every field hovers with — one language (user call,
+       2026-08-04), just quieter than the base because the field is inline. */
+    border-color: var(--theme-brand-outline);
+  }
+
+  /* --- Filled value: a small sunken pill (a date/number value in a row) --- */
+  .theme-input--filled {
+    width: auto;
+    padding: var(--theme-space-4) var(--theme-space-6);
+    background: var(--theme-surface-sunken);
+    border-color: transparent;
+    border-radius: var(--theme-radius-sm);
+    font-size: var(--theme-text-12);
+  }
+  .theme-input--filled:hover:not(:disabled):not(:focus) {
+    border-color: var(--theme-brand-outline);
+  }
+
+  /* --- Plain: borderless, inherits the surrounding font/colour. An inline
+     editable title or list item (inspector name / subtask). --- */
+  .theme-input--plain {
+    width: auto;
+    padding: var(--theme-space-4) var(--theme-space-2);
+    background: none;
+    border-color: transparent;
+    color: inherit;
+    font: inherit;
+  }
+  /* A plain field is an inline editable label, not a box: it must never grow a
+     border or a ring, in any state. Without this, the base .theme-input hover
+     rule paints a brand-outline border that clips the text corners. */
+  .theme-input--plain:hover:not(:disabled):not(:focus),
+  .theme-input--plain:focus,
+  .theme-input--plain:focus-visible {
+    outline: none;
+    box-shadow: none;
+    border-color: transparent;
+  }
+
+  /* --- Search field: a leading magnifier baked in (single input, no wrapper) --- */
+  .theme-input--search {
+    padding-left: var(--theme-space-32);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='7' cy='7' r='4.5' fill='none' stroke='%23a2b5c3' stroke-width='1.5'/%3E%3Cpath d='M10.5 10.5 14 14' fill='none' stroke='%23a2b5c3' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: left var(--theme-space-10) center;
+    background-size: 1rem;
+  }
+
+  /* ---------------------------------------------------------------------------
+     Checkbox and radio (native inputs, restyled — kept native for the keyboard)
+     --------------------------------------------------------------------------- */
+  .theme-checkbox,
+  .theme-radio {
+    appearance: none;
+    -webkit-appearance: none;
+    flex-shrink: 0;
+    width: 1.125rem;
+    height: 1.125rem;
+    margin: 0;
+    border: 0.09375rem solid var(--theme-ink);
+    background: none;
+    cursor: pointer;
+    position: relative;
+  }
+  .theme-checkbox {
+    border-radius: var(--theme-radius-xs);
+  }
+  .theme-radio {
+    border-radius: var(--theme-radius-pill);
+  }
+  .theme-checkbox:checked {
+    background: var(--theme-brand);
+    border-color: var(--theme-brand);
+  }
+  .theme-checkbox:checked::after {
+    content: "";
+    position: absolute;
+    left: 0.3125rem;
+    top: 0.125rem;
+    width: 0.3125rem;
+    height: 0.5625rem;
+    border: solid var(--theme-on-brand);
+    border-width: 0 0.125rem 0.125rem 0;
+    transform: rotate(45deg);
+  }
+  /* Bigger, for a checkbox that anchors a card rather than a row (a task). */
+  .theme-checkbox--lg {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+  .theme-checkbox--lg:checked::after {
+    left: 0.375rem;
+    top: 0.125rem;
+    width: 0.3125rem;
+    height: 0.625rem;
+    border-width: 0 0.125rem 0.125rem 0;
+  }
+  /* Smaller still, for a nested list like the inspector's subtasks. */
+  .theme-checkbox--sm {
+    width: 0.9375rem;
+    height: 0.9375rem;
+  }
+  .theme-checkbox--sm:checked::after {
+    left: 0.25rem;
+    top: 0.0625rem;
+    width: 0.25rem;
+    height: 0.5rem;
+    border-width: 0 0.09375rem 0.09375rem 0;
+  }
+  .theme-radio:checked {
+    border-color: var(--theme-brand);
+  }
+  .theme-radio:checked::after {
+    content: "";
+    position: absolute;
+    inset: 0.1875rem;
+    border-radius: var(--theme-radius-pill);
+    background: var(--theme-brand);
+  }
+  .theme-checkbox:focus-visible,
+  .theme-radio:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 0.1875rem var(--theme-brand-weak);
+  }
+  .theme-checkbox:disabled,
+  .theme-radio:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  /* ---------------------------------------------------------------------------
+     Switch / toggle (a native checkbox drawn as a track + knob)
+     --------------------------------------------------------------------------- */
+  .theme-switch {
+    appearance: none;
+    -webkit-appearance: none;
+    flex-shrink: 0;
+    width: 2.25rem;
+    height: 1.25rem;
+    margin: 0;
+    border: none;
+    border-radius: var(--theme-radius-pill);
+    background: var(--theme-ink-faint);
+    cursor: pointer;
+    position: relative;
+    transition: background var(--theme-transition-fast);
+  }
+  .theme-switch::after {
+    content: "";
+    position: absolute;
+    top: 0.125rem;
+    left: 0.125rem;
+    width: 1rem;
+    height: 1rem;
+    border-radius: var(--theme-radius-pill);
+    background: var(--theme-on-brand);
+    transition: transform var(--theme-transition-fast);
+  }
+  .theme-switch:checked {
+    background: var(--theme-brand);
+  }
+  .theme-switch:checked::after {
+    transform: translateX(1rem);
+  }
+  .theme-switch:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 0.1875rem var(--theme-brand-weak);
+  }
+  .theme-switch:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  /* ---------------------------------------------------------------------------
+     Buttons
+     --------------------------------------------------------------------------- */
+  .theme-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--theme-space-8);
+    padding: var(--theme-space-8) var(--theme-space-16);
+    border: 0.0625rem solid transparent;
+    border-radius: var(--theme-radius-md);
+    background: none;
+    color: var(--theme-ink);
+    font-size: var(--theme-text-13);
+    font-weight: var(--theme-weight-medium);
+    font-family: inherit;
+    white-space: nowrap;
+    cursor: pointer;
+    transition:
+      background var(--theme-transition-fast),
+      color var(--theme-transition-fast),
+      filter var(--theme-transition-fast);
+  }
+  .theme-btn:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 0.1875rem var(--theme-brand-weak);
+  }
+  .theme-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  .theme-btn--primary {
+    background: var(--theme-brand);
+    color: var(--theme-on-brand);
+  }
+  .theme-btn--primary:hover:not(:disabled) {
+    filter: brightness(1.06);
+  }
+  .theme-btn--ghost {
+    color: var(--theme-ink-muted);
+  }
+  .theme-btn--ghost:hover:not(:disabled) {
+    background: var(--theme-surface-sunken);
+    color: var(--theme-ink);
+  }
+  .theme-btn--outline {
+    border-color: var(--theme-line);
+    color: var(--theme-ink-muted);
+  }
+  /* Hovers to the RAISED surface, not the sunken one: an outline button is a
+     quiet action sitting on sunken ground (a task card, a suggestion row), so
+     lifting is what reads as hover there. */
+  .theme-btn--outline:hover:not(:disabled) {
+    background: var(--theme-surface);
+    color: var(--theme-ink);
+  }
+  .theme-btn--danger {
+    background: var(--theme-danger);
+    color: var(--theme-on-brand);
+  }
+  .theme-btn--danger:hover:not(:disabled) {
+    filter: brightness(1.06);
+  }
+  /* Icon-only button (a lone glyph, e.g. the •••, the gear, every ×).
+     Self-sufficient on purpose: it carries its own reset, so it works with or
+     without .theme-btn — used alone it must never fall back to the browser's
+     bordered grey box (which is exactly how the widget ⋮ shipped broken).
+     THE app-wide contract for icon buttons: transparent at rest, and hover
+     shows the rounded slightly-darker plate behind the glyph. */
+  .theme-btn--icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--theme-space-6);
+    background: none;
+    border: none;
+    border-radius: var(--theme-radius-xs);
+    color: var(--theme-ink-muted);
+    cursor: pointer;
+    transition:
+      background var(--theme-transition-fast),
+      color var(--theme-transition-fast);
+  }
+  .theme-btn--icon:hover:not(:disabled) {
+    /* The hover veil, not a solid grey: it must read on the grey sidebar and
+       inside popovers just as well as on a white surface. */
+    background: var(--theme-hover);
+    color: var(--theme-ink);
+  }
+  .theme-btn--icon:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  /* Compact and full-width size modifiers. */
+  .theme-btn--sm {
+    padding: var(--theme-space-4) var(--theme-space-10);
+    border-radius: var(--theme-radius-sm);
+  }
+  /* Tiniest: the per-row action that must not compete with the row's own text
+     (pull into the day, remove from the period). Regular weight on purpose —
+     it is an affordance, not a call to action. */
+  .theme-btn--xs {
+    padding: var(--theme-space-2) var(--theme-space-8);
+    border-radius: var(--theme-radius-xs);
+    font-size: var(--theme-text-12);
+    font-weight: var(--theme-weight-regular);
+  }
+  .theme-btn--block {
+    display: flex;
+    width: 100%;
+  }
+
+  /* ---------------------------------------------------------------------------
+     Chip (a small toggle/label, e.g. Completed / Suggestions)
+     --------------------------------------------------------------------------- */
+  .theme-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--theme-space-6);
+    padding: var(--theme-space-6) var(--theme-space-10);
+    background: var(--theme-surface-sunken);
+    border: 0.0625rem solid transparent;
+    border-radius: var(--theme-radius-xs);
+    color: var(--theme-ink-muted);
+    font-size: var(--theme-text-12);
+    cursor: pointer;
+  }
+  .theme-chip--accent {
+    background: var(--theme-brand-weak);
+    border-color: var(--theme-brand-outline);
+    color: var(--theme-brand);
+  }
+
+  /* ---------------------------------------------------------------------------
+     Segmented control (a pill group, e.g. Inbox / Today / Week)
+     --------------------------------------------------------------------------- */
+  .theme-segmented {
+    display: inline-flex;
+    gap: var(--theme-space-2);
+    padding: var(--theme-space-2);
+    background-color: var(--theme-bg);
+    border-radius: var(--theme-radius-md);
+
+  }
+  /* Each item is a filled rounded rectangle, not an outline pill (2026-08-06,
+     from the Tasks screen shot): with a plain outline the group read as three
+     loose links, and the active one had to shout to be told apart. Filled and
+     quiet, the blue of the active one is enough. */
+  .theme-segmented__item {
+    padding: var(--theme-space-6) var(--theme-space-16);
+    border: 0.0625rem solid var(--theme-line-soft);
+    border-radius: var(--theme-radius-sm);
+    background: var(--theme-surface-sunken);
+    color: var(--theme-ink-muted);
+    font-size: var(--theme-text-14);
+    font-weight: var(--theme-weight-semibold);
+    cursor: pointer;
+  }
+  .theme-segmented__item:hover:not(.theme-segmented__item--active) {
+    color: var(--theme-ink);
+  }
+  .theme-segmented__item--active {
+    background: var(--theme-brand-weak);
+    border-color: var(--theme-brand-outline);
+    color: var(--theme-brand);
+    font-weight: var(--theme-weight-semibold);
+  }
+
+  /* ---------------------------------------------------------------------------
+     Tag pill (a colour standing in for a tag — no text; colour is the tag)
+     --------------------------------------------------------------------------- */
+  .theme-tag-pill {
+    display: inline-block;
+    flex-shrink: 0;
+    width: 1.25rem;
+    height: 0.375rem;
+    border-radius: var(--theme-radius-pill);
+    background: var(--tag-color, var(--theme-brand));
+  }
+
+  /* The same colour, as a dot — for places that show the tag NEXT TO its name
+     (the picker, the tag manager) rather than standing in for it. */
+  .theme-swatch {
+    display: inline-block;
+    flex-shrink: 0;
+    inline-size: var(--theme-space-10);
+    block-size: var(--theme-space-10);
+    border-radius: var(--theme-radius-pill);
+    background: var(--tag-color, var(--theme-brand));
+  }
+  .theme-swatch--lg {
+    inline-size: var(--theme-space-16);
+    block-size: var(--theme-space-16);
+  }
+
+  /* ---------------------------------------------------------------------------
+     Popover — a transient surface floating under whatever opened it: the
+     dropdown menu, the workspace palette, the tag picker, the calendar. Four
+     of them declared the same six properties, and three different raw shadows.
+     Pair it with the `dismissable` action, which is the behaviour half.
+
+     Anchoring is the modifier: --end pins the panel's right edge to the
+     trigger's (the default for a menu opened from a ⋮ near the right), --start
+     its left. The panel's own size stays with the component: only it knows
+     that a calendar needs 13rem to fit seven columns.
+     --------------------------------------------------------------------------- */
+  .theme-popover {
+    position: absolute;
+    top: calc(100% + var(--theme-space-4));
+    /* Above the modal (z-index 100), not just above the page: `keepOnScreen`
+       re-parents a popover to <body>, so one opened from inside a dialog is a
+       SIBLING of it and lost the stacking fight it should always win — a panel
+       is on top of whatever opened it, by definition (2026-08-06). */
+    z-index: 200;
+    background: var(--theme-surface);
+    border: 0.0625rem solid var(--theme-line);
+    border-radius: var(--theme-radius-md);
+    box-shadow: var(--theme-shadow-popover);
+  }
+  .theme-popover--end {
+    inset-inline-end: 0;
+  }
+  .theme-popover--start {
+    inset-inline-start: 0;
+  }
+
+  /* ---------------------------------------------------------------------------
+     Title — what names a block or a screen: the brand-coloured heading above a
+     list of tasks, notes, tags, trashed items. Seven of these were declared
+     separately, five of them identical; the two that differed did so by
+     accident (a missing letter-spacing), not by design.
+     --------------------------------------------------------------------------- */
+  .theme-title {
+    margin: 0;
+    font-size: var(--theme-text-24);
+    font-weight: var(--theme-weight-bold);
+    letter-spacing: var(--theme-tracking-wide);
+    color: var(--theme-brand);
+  }
+  /* A widget's own heading, one step down from the screen it sits in. */
+  .theme-title--sm {
+    font-size: var(--theme-text-20);
+  }
+  /* The workspace name: the largest thing on the screen, centred, and in the
+     accent rather than the brand — it names the place, not a block in it. */
+  .theme-title--lg {
+    font-size: var(--theme-text-32);
+    text-align: center;
+    color: var(--theme-accent);
+  }
+
+  /* ---------------------------------------------------------------------------
+     Row — one entry in a list of things: a sunken bar holding a label and a
+     couple of trailing details. What the Tags and Trash screens are made of,
+     and what any future list of records (attachments, history) should reuse
+     instead of restating these five declarations.
+     --------------------------------------------------------------------------- */
+  .theme-row {
+    display: flex;
+    align-items: center;
+    gap: var(--theme-space-12);
+    padding: var(--theme-space-8) var(--theme-space-12);
+    background: var(--theme-surface-sunken);
+    border-radius: var(--theme-radius-md);
+  }
+
+  /* ---------------------------------------------------------------------------
+     Divider — one horizontal rule, shared by the sidebar and the inspector so
+     the line between blocks is defined once. Put it on an <hr> (no default
+     border) or any element.
+     --------------------------------------------------------------------------- */
+  .theme-divider {
+    width: 100%;
+    height: 0;
+    margin: 0;
+    border: none;
+    border-top: 0.0625rem solid var(--theme-line);
+  }
+
+  /* ---------------------------------------------------------------------------
+     Task list — the column of task cards, wherever tasks are drawn (Home, a
+     list screen, a tasks widget). It was the same five declarations copied into
+     four block sheets; components/TaskCards.svelte is the markup half.
+     --------------------------------------------------------------------------- */
+  .theme-task-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--theme-space-4);
+  }
+
+  /* The hairline under the pinned cards (2026-08-05): a list item of its own,
+     so it rides along with the cards it separates. */
+  .theme-pin-divider {
+    height: 0.0625rem;
+    margin-block: var(--theme-space-4);
+    background: var(--theme-line);
+  }
+  /* During a drag the line is the boundary being aimed at — dropping above it
+     pins the card, below it unpins — so it steps forward. */
+  .theme-task-list[data-reordering] > .theme-pin-divider {
+    background: var(--theme-brand);
+  }
+
+  /* ---------------------------------------------------------------------------
+     Empty card — "No tasks yet" / "No notes yet": a quiet pill, centred, where
+     a list would be. The wireframe draws the same card in every block, and the
+     Home printed a bare <p> while the widget drew the card. It is a container,
+     not just a label: the Home's empty tasks card holds the Suggestions pill.
+     --------------------------------------------------------------------------- */
+  .theme-empty-card {
+    align-self: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--theme-space-8);
+    margin: 0;
+    padding: var(--theme-space-8) var(--theme-space-16);
+    background: var(--theme-surface-sunken);
+    border-radius: var(--theme-radius-md);
+    color: var(--theme-ink-muted);
+    font-size: var(--theme-text-14);
+  }
+
+  /* ---------------------------------------------------------------------------
+     Modal — a dialog centred over a dimmed page (wireframe "New task popup",
+     2026-08-06). The backdrop is the click-outside target and the dimmer; the
+     card is the surface. Two dialogs draw this now (the name prompt and the new
+     task composer), so it belongs here rather than in either one's sheet.
+
+     Unlike .theme-popover, this one is NOT anchored to a trigger: it is the
+     shape for "answer this before going back", not for "a panel next to what
+     you clicked".
+     --------------------------------------------------------------------------- */
+  .theme-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: grid;
+    place-items: center;
+    background: color-mix(in srgb, var(--theme-ink) 32%, transparent);
+  }
+  .theme-modal {
+    display: flex;
+    flex-direction: column;
+    gap: var(--theme-space-8);
+    inline-size: min(24rem, calc(100vw - var(--theme-space-32)));
+    padding: var(--theme-space-16);
+    background: var(--theme-surface);
+    border: 0.0625rem solid var(--theme-line);
+    border-radius: var(--theme-radius-lg);
+    box-shadow: var(--theme-shadow-popover);
+  }
+  /* The composer dialog is a row of controls, so it needs more room than a
+     single name field does. */
+  .theme-modal--wide {
+    inline-size: min(43rem, calc(100vw - var(--theme-space-32)));
+  }
+  /* Title on the left, the close on the right — a head, not two stacked
+     blocks (user call, 2026-08-06). */
+  .theme-modal__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--theme-space-8);
+  }
+  .theme-modal__title {
+    margin: 0;
+    font-size: var(--theme-text-14);
+    font-weight: var(--theme-weight-semibold);
+    color: var(--theme-ink);
+  }
+  .theme-modal__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--theme-space-8);
+  }
+
+  /* ---------------------------------------------------------------------------
+     Pane chrome — the head and foot shared by the side panes (the sidebar and
+     the inspector). Each is a fixed row at its edge of the pane (flex-shrink:0,
+     so it never scrolls away while the middle scrolls), carrying the hairline
+     divider toward the content. Defined once so both panes read and behave the
+     same: chrome pinned at the edges, content scrolling between them.
+
+     The layout pact each pane must keep: be a flex column, with the head first,
+     a `flex:1; overflow-y:auto` middle, and the foot last. Then the head stays
+     glued at the top and the foot glued at the bottom, both always visible.
+     --------------------------------------------------------------------------- */
+  .theme-pane-head,
+  .theme-pane-foot {
+    flex-shrink: 0;
+  }
+  .theme-pane-head {
+    border-bottom: 0.0625rem solid var(--theme-line);
+  }
+  .theme-pane-foot {
+    border-top: 0.0625rem solid var(--theme-line);
+  }
+
+  /* ---------------------------------------------------------------------------
+     Field wrapper (a label above/beside a control)
+     --------------------------------------------------------------------------- */
+  .theme-field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--theme-space-4);
+  }
+  .theme-field--row {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--theme-space-16);
+  }
+  .theme-field__label {
+    font-size: var(--theme-text-12);
+    color: var(--theme-ink-muted);
+  }
+}

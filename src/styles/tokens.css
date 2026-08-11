@@ -1,0 +1,151 @@
+/* =============================================================================
+   tokens.css — the single source of design values for the whole app.
+
+   TWO TIERS, and the split is the whole point of this file:
+
+     1. --palette-*   Raw values (the Figma scale). Named after what they ARE
+                      (blue, gray-mute). A component must NEVER read these.
+     2. --theme-*     Semantic roles. Named after what they DO (bg, ink, line,
+                      brand). Components read ONLY these.
+
+   The COLOUR roles (--theme-bg/ink/line/brand/danger…) do NOT live here — they
+   are the factory theme and live in themes/default.css, unlayered, so a theme
+   is genuinely "one file that redefines the colour roles". What stays here is
+   the shared vocabulary every theme builds FROM: the palette a theme points at,
+   plus the structural scales (spacing, radius, type, layout, motion) that are
+   metrics, not look. See docs/project-strategy.md 4.6.
+
+   Prefix is `theme-` (not `memo-`): the product name is provisional, and these
+   names are meant to outlive it. When the user picks a custom font or a
+   community theme drops in, this is the surface it touches.
+
+   EVERY LENGTH IS IN `rem` (2026-08-06, user call). 1rem = 16px at the default
+   root size, so the design's px values are simply divided by 16 — but a reader
+   who raises their browser/OS font size now scales the whole interface with it,
+   instead of getting bigger text inside boxes that stayed put. The token names
+   keep their px numbers (`--theme-space-16`), because the design speaks in
+   those; only the values are relative. The one exception is a real device
+   measurement — a media-query breakpoint, or a pointer distance in JS — which
+   is about the screen, not the type.
+   ============================================================================= */
+
+/* Inter, self-hosted (local-first: no font CDN at runtime). Variable weight,
+   latin subset — one file covers 400/500/600/700 used across the design. */
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url("../assets/fonts/Inter-latin-wght-normal.woff2") format("woff2");
+}
+
+@layer tokens {
+  :root {
+    /* ---------------------------------------------------------------------
+       TIER 1 — primitives (the Figma palette). Do not read these from a
+       component; they exist so the semantic layer below has something to
+       point at, and so a theme can re-scale the palette if it wants.
+       --------------------------------------------------------------------- */
+    --palette-blue: #0080ff;
+    --palette-blue-light: #dbe6fd;
+    --palette-blue-outline: #99b6f4;
+    --palette-dark: #212c3b;
+    --palette-dark-mute: #5a7087;
+    --palette-gray: #f1f5f8;
+    --palette-gray-divider: #d8e3e9;
+    --palette-gray-mute: #a2b5c3;
+    --palette-light: #fcfdfd;
+    --palette-red: #f86f76;
+    --palette-amber: #eaa317;
+    --palette-green: #8cec71;
+
+    /* TIER 2 — the semantic COLOUR roles are NOT here. They are the factory
+       theme and live, unlayered, in themes/default.css. Everything below is
+       the structural vocabulary (metrics, not look) that themes build from. */
+
+    /* ---------------------------------------------------------------------
+       SPACING — the design's real values (not the global Fibonacci scale:
+       this is a specific Figma design, fidelity wins). Named by px.
+       --------------------------------------------------------------------- */
+    --theme-space-2: 0.125rem; /*  2px */
+    --theme-space-4: 0.25rem; /*  4px */
+    --theme-space-6: 0.375rem; /*  6px */
+    --theme-space-8: 0.5rem; /*  8px */
+    --theme-space-10: 0.625rem; /* 10px */
+    --theme-space-12: 0.75rem; /* 12px */
+    --theme-space-16: 1rem; /* 16px */
+    --theme-space-24: 1.5rem; /* 24px */
+    --theme-space-32: 2rem; /* 32px */
+    --theme-space-40: 2.5rem; /* 40px */
+    --theme-space-48: 3rem; /* 48px */
+    --theme-space-64: 4rem; /* 64px */
+
+    /* ---------------------------------------------------------------------
+       RADIUS
+       --------------------------------------------------------------------- */
+    --theme-radius-xs: 0.375rem;
+    --theme-radius-sm: 0.5rem;
+    --theme-radius-md: 0.625rem;
+    --theme-radius-lg: 0.75rem;
+    /* The pill: any value past half the tallest control rounds it fully. */
+    --theme-radius-pill: 62.5rem;
+
+    /* ---------------------------------------------------------------------
+       TYPOGRAPHY
+       --------------------------------------------------------------------- */
+    --theme-font-sans: "Inter", system-ui, sans-serif;
+
+    --theme-text-8: 0.5rem; /*  8px — tag pill */
+    --theme-text-10: 0.625rem; /* 10px — task meta date */
+    --theme-text-12: 0.75rem; /* 12px — right panel, breadcrumb */
+    --theme-text-13: 0.8125rem; /* 13px — primary button */
+    --theme-text-14: 0.875rem; /* 14px — tabs, nav labels, body small */
+    --theme-text-16: 1rem; /* 16px — task title, nav, base body */
+    --theme-text-18: 1.125rem; /* 18px — nav-arrow icons */
+    --theme-text-20: 1.25rem; /* 20px — widget title */
+    --theme-text-24: 1.5rem; /* 24px — block heading */
+    --theme-text-32: 2rem; /* 32px — workspace title */
+
+    --theme-weight-light: 300;
+    --theme-weight-regular: 400;
+    --theme-weight-medium: 500;
+    --theme-weight-semibold: 600;
+    --theme-weight-bold: 700;
+
+    --theme-tracking-tight: -0.01em;
+    --theme-tracking-normal: 0;
+    --theme-tracking-wide: 0.06em; /* the letter-spacing:1px of headings/labels */
+    --theme-tracking-wider: 0.12em; /* breadcrumb / group titles (letter-spacing:2px) */
+
+    --theme-leading-tight: 1.2;
+    --theme-leading-normal: 1.5;
+    --theme-leading-loose: 1.6; /* note body */
+
+    /* ---------------------------------------------------------------------
+       LAYOUT — the shell's fixed dimensions. Shared by the title bar and the
+       three-panel row so the tab strip aligns with the centre panel by
+       construction. Likely to change; changing them here moves both.
+       --------------------------------------------------------------------- */
+    --theme-sidebar-left: 13.75rem;
+    --theme-sidebar-rail: 3.5rem; /* the left sidebar collapsed to an icon rail */
+    --theme-sidebar-right: 15rem;
+    --theme-titlebar-height: 2.375rem;
+    --theme-content-max: 45rem;
+
+    /* ---------------------------------------------------------------------
+       MOTION
+       --------------------------------------------------------------------- */
+    --theme-transition-fast: 0.15s ease;
+    --theme-transition-medium: 0.25s ease;
+
+    /* ---------------------------------------------------------------------
+       WINDOW — frameless chrome the app draws itself (GNOME/Wayland gives no
+       rounding to an undecorated window). Kept as a token so a theme can
+       soften or square the corners. There is no shadow token: the app's edge
+       IS the OS window's edge (no transparent gutter), so a webview-drawn
+       shadow has nowhere to render — and on WebKitGTK it accumulated alpha
+       on every repaint until it turned into a black ring.
+       --------------------------------------------------------------------- */
+    --theme-window-radius: 0.75rem;
+  }
+}

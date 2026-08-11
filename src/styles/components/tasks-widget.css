@@ -1,0 +1,118 @@
+/* tasks-widget.css — the visual layer of TasksWidget.svelte.
+ * Markup: src/lib/widgets/TasksWidget.svelte. Faithful to the widget wireframe
+ * (2026-07-30): a titled block like Home — a brand-blue title + a "New task"
+ * button, the widget's tasks as cards, and a collapsible "Completed N".
+ * Selectors are the stable BEM hooks a theme may restyle. */
+
+@layer components {
+  .tasks-widget {
+    display: flex;
+    flex-direction: column;
+    gap: var(--theme-space-12);
+  }
+  .tasks-widget__header {
+    display: flex;
+    align-items: center;
+    gap: var(--theme-space-8);
+    min-block-size: 2rem;
+  }
+  /* New task + the widget's ⋮, together on the right. `auto` rather than
+     `space-between` on the header: with no title (the Tasks screen) the tools
+     still have to hug the right edge, and with a host toolbar in the middle
+     they must not steal its room. */
+  .tasks-widget__tools {
+    display: flex;
+    align-items: center;
+    gap: var(--theme-space-4);
+    flex-shrink: 0;
+    margin-inline-start: auto;
+  }
+  /* Selection mode: the picked count in the bulk header. */
+  .tasks-widget__picked {
+    color: var(--theme-ink-muted);
+    font-size: var(--theme-text-13);
+    white-space: nowrap;
+  }
+  .tasks-widget__move {
+    max-inline-size: 14rem;
+  }
+
+  /* The hidden twin of the tools (see the markup): it takes the same room on
+     the left, so a host's centred strip sits on the panel's centre line. It
+     shrinks away before the strip does, so a narrow panel gives up the
+     centring rather than the content. */
+  .tasks-widget__mirror {
+    display: inline-flex;
+    visibility: hidden;
+    min-inline-size: 0;
+    flex-shrink: 1;
+  }
+
+  /* Both header buttons are .theme-btn--icon. The × on a completed card
+     (wireframe) only adds the danger tint on hover. */
+  /* Taking a card out of the day/week — an × for now; the roadmap has the
+     struck-through sun that should replace it. */
+  .tasks-widget__unpull {
+    color: var(--theme-ink-faint);
+  }
+  .tasks-widget__unpull:hover {
+    color: var(--theme-ink);
+  }
+
+  .tasks-widget__remove {
+    color: var(--theme-ink-faint);
+  }
+  .tasks-widget__remove:hover {
+    color: var(--theme-danger);
+  }
+
+  /* The card column and the pinned hairline are the shared .theme-task-list /
+     .theme-pin-divider (controls.css); these hooks stay for a theme to reach
+     this widget's list in particular. */
+
+  /* The empty state is the shared .theme-empty-card (controls.css) — a quiet
+     centred card that, in a period, also holds the Suggestions pill. The hook
+     stays for a theme to reach this widget's in particular. */
+
+  /* The row under the cards: "Completed N" on the left, and in a period the
+     Suggestions pill on the right (wireframe 2026-08-06). */
+  .tasks-widget__completed-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--theme-space-8);
+    margin-top: var(--theme-space-4);
+  }
+  /* The toggle is anchored left and the pill right, whether or not the other
+     one is there — `space-between` alone would send a lone toggle to the right
+     edge on a plain list (user call, 2026-08-06). */
+  .tasks-widget__completed-row > .suggestions-pill {
+    margin-inline-start: auto;
+  }
+
+  /* The "Completed N" toggle: a quiet pill with a caret. */
+  .tasks-widget__completed-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--theme-space-6);
+    padding: var(--theme-space-4) var(--theme-space-10);
+    background: var(--theme-surface-sunken);
+    border: none;
+    border-radius: var(--theme-radius-md);
+    color: var(--theme-ink-muted);
+    font: inherit;
+    font-size: var(--theme-text-13);
+    cursor: pointer;
+  }
+  .tasks-widget__completed-toggle:hover {
+    color: var(--theme-ink);
+  }
+
+  .tasks-widget__note {
+    color: var(--theme-ink-muted);
+    font-size: var(--theme-text-14);
+  }
+  .tasks-widget__note--warn {
+    color: var(--theme-danger);
+  }
+}

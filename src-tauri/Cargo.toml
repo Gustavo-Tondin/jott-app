@@ -1,0 +1,27 @@
+[package]
+name = "jott"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Jott — local-first tasks and notes"
+default-run = "jott"
+
+[lib]
+name = "jott_lib"
+crate-type = ["lib", "cdylib", "staticlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dev-dependencies]
+# The mock runtime lets the bridge be tested without opening a window.
+tauri = { version = "2", features = ["test"] }
+tempfile = "3.14"
+chrono.workspace = true
+
+[dependencies]
+jott-core = { path = "../core" }
+tauri = { version = "2", features = [] }
+tauri-plugin-dialog = "2"
+serde.workspace = true
+serde_json.workspace = true

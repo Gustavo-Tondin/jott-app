@@ -1,0 +1,788 @@
+//! The notebook's `.jott/config.json`.
+//!
+//! Holds the preferences that belong to the *notebook* and therefore travel
+//! with it when it syncs. Machine preferences (last window, last notebook
+//! opened) live in the OS config folder instead, and never here.
+//!
+//! Reading is deliberately forgiving (spec 3.4): a missing key takes the
+//! default, a malformed value takes the default, and an unreadable file is
+//! recreated. What is never forgiven is *losing* data — an unknown key
+//! written by another version of the app survives a rewrite untouched.
+
+use std::collections::BTreeMap;
+use std::path::Path;
+
+use serde_json::{Map, Value};
+
+use crate::clock::{TurnOffset, WeekStart};
+use crate::error::Result;
+
+/// Schema version this build understands. A notebook declaring more than this
+/// was written by a newer app and opens read-only.
+pub const SUPPORTED_SCHEMA_VERSION: u64 = 1;
+
+/// What happens to unfinished tasks when the period turns.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum RolloverMode {
+    /// Empty the state; unfinished tasks go back to being suggestions.
+    ///
+    /// The default, because the day and the week are an active choice of what
+    /// to do in that period — not a queue that piles up on its own.
+    #[default]
+    Reset,
+    /// Keep the pulled references, so they show up already pulled.
+    Carry,
+}
+
+impl RolloverMode {
+    pub fn parse_or_default(text: &str) -> Self {
+        match text.trim().to_ascii_lowercase().as_str() {
+            "carry" => Self::Carry,
+            _ => Self::Reset,
+        }
+    }
+
+    pub fn render(self) -> &'static str {
+        match self {
+            Self::Reset => "reset",
+            Self::Carry => "carry",
+        }
+    }
+}
+
+/// Rollover preferences for the day.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct DailyRollover {
+    pub mode: RolloverMode,
+    pub at: TurnOffset,
+}
+
+/// Rollover preferences for the week. Independent from the day, on purpose.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct WeeklyRollover {
+    pub mode: RolloverMode,
+    pub at: TurnOffset,
+    pub starts_on: WeekStart,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct Rollover {
+    pub daily: DailyRollover,
+    pub weekly: WeeklyRollover,
+}
+
+/// How a date is shown. The file always stores ISO; this is display only.
+///
+/// A closed set rather than a free pattern, for the same reason the repeat
+/// field is a select: a value the app cannot parse would have to fall back
+/// silently, and a date shown wrong is worse than a date shown plainly.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum DateFormat {
+    /// `07/25/2026` — the default since 2026-08-06 (user call).
+    #[default]
+    MonthDayYear,
+    /// `25/07/2026`
+    DayMonthYear,
+    /// `2026/07/25` — ISO order, drawn with the same separator as the rest.
+    YearMonthDay,
+}
+
+impl DateFormat {
+    /// The shapes on offer all use `/` (user call, 2026-08-06): mixing `-`
+    /// and `/` in the same picker read as two unrelated settings. The hyphen
+    /// spellings a notebook may already carry still parse, so nobody's config
+    /// silently changes meaning — they just land on the matching slash shape.
+    pub fn parse_or_default(text: &str) -> Self {
+        match text.trim().to_ascii_lowercase().as_str() {
+            "dd/mm/yyyy" | "dd-mm-yyyy" => Self::DayMonthYear,
+            "yyyy/mm/dd" | "yyyy-mm-dd" => Self::YearMonthDay,
+            _ => Self::MonthDayYear,
+        }
+    }
+
+    pub fn render(self) -> &'static str {
+        match self {
+            Self::MonthDayYear => "mm/dd/yyyy",
+            Self::DayMonthYear => "dd/mm/yyyy",
+            Self::YearMonthDay => "yyyy/mm/dd",
+        }
+    }
+
+    /// Formats a date for display.
+    pub fn format(self, date: chrono::NaiveDate) -> String {
+        use chrono::Datelike;
+        let (d, m, y) = (date.day(), date.month(), date.year());
+        match self {
+            Self::MonthDayYear => format!("{m:02}/{d:02}/{y}"),
+            Self::DayMonthYear => format!("{d:02}/{m:02}/{y}"),
+            Self::YearMonthDay => format!("{y}/{m:02}/{d:02}"),
+        }
+    }
+}
+
+/// A notebook's config file, in memory.
+#[derive(Debug, Clone)]
+pub struct Config {
+    schema_version: u64,
+    pub rollover: Rollover,
+    /// Reopen on the screen the user left, instead of always landing on Today.
+    ///
+    /// Off by default: landing somewhere temporally relevant is the more
+    /// predictable behaviour, and this is the kind of thing people want only
+    /// once they have a habit. The *preference* lives here so it applies on
+    /// every machine; the screen it points at is machine-specific and lives in
+    /// the OS config folder.
+    pub restore_last_screen: bool,
+    /// Show how many open tasks each list has, in the navigation.
+    pub show_list_counts: bool,
+    /// Treat a task due today or overdue as urgent, without being told.
+    ///
+    /// On by default, but switchable: some people find an interface that
+    /// paints deadlines red on its own more stressful than useful. The
+    /// `#urgent` tag written by hand always counts, either way.
+    pub auto_urgent_by_date: bool,
+    /// How dates are shown. The file always stores ISO.
+    pub date_display_format: DateFormat,
+    /// Close the task panel when clicking outside it.
+    ///
+    /// Off by default, and that default is a decision: it shipped on, fired
+    /// too easily, and losing a half-typed task cost more than the shortcut
+    /// was worth (2026-07-21). Kept as an option because the gesture is
+    /// muscle memory for some people.
+    pub close_inspector_on_click_away: bool,
+    /// Where the Home's quick capture writes, relative to the notes widget.
+    pub quick_note_folder: String,
+    /// How many days a trashed item waits in `.jott/trash/` before the reaper
+    /// clears it for good (reestruturação 2026-07-30).
+    pub trash_retention_days: i64,
+    /// How many days a completed task stays in its folder's `Completed.md`
+    /// before the reaper files it away (2026-08-06). It is not destroyed: it
+    /// goes to `.jott/trash/`, where `trash_retention_days` then applies.
+    /// `0` means never — the Completed keeps growing, which is a valid choice.
+    pub completed_retention_days: i64,
+    /// Manual ordering the user set by dragging, keyed by a namespace string
+    /// (`"workspaces"`, `"lists:<folder>"`, …) → the item names in order. It
+    /// lives here, not in the files, because on disk items sort by whatever the
+    /// user's filter chooses; a hand-arranged order is an app preference.
+    /// Reusable: [`Config::apply_order`] applies any namespace to any list.
+    pub order: BTreeMap<String, Vec<String>>,
+    /// How the Day and the Week are arranged (`"day"`/`"week"` → `name` /
+    /// `created` / `completed`). A period has no `.workspace.json` to keep its
+    /// own preference in — it is not a folder — so its arrangement lives with
+    /// the notebook, next to the manual `order` (2026-08-06). Absent means the
+    /// order the tasks were pulled in, which is the state file's own order.
+    pub period_sort: BTreeMap<String, String>,
+    /// Which parts of the app the user has an OPINION about (`tasks`, `notes`,
+    /// and the task fields under them — 2026-08-06, princípio 3 / backlog I6).
+    ///
+    /// **Absent means "the default", and the core does not know what that is.**
+    /// It cannot: the defaults are a product decision that differs per feature
+    /// (Week, Remind me, Description and Add files start off), and duplicating
+    /// that table in Rust and in JS would be two tables to keep in step. So
+    /// this map holds only what was deliberately changed, and
+    /// `src/lib/services/features.js` owns the defaults — one list, which is
+    /// also the one the settings screen draws itself from.
+    pub features: BTreeMap<String, bool>,
+    /// How the sidebar arranges the user's workspaces and groups: `name` for
+    /// alphabetical, anything else (the default) for the hand-dragged `order`
+    /// (2026-08-06).
+    pub workspaces_sort: String,
+    /// The document exactly as it was read, so keys this build does not know
+    /// about are written back instead of being silently dropped. This is what
+    /// protects a notebook opened by two different app versions.
+    raw: Map<String, Value>,
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            schema_version: SUPPORTED_SCHEMA_VERSION,
+            rollover: Rollover::default(),
+            restore_last_screen: false,
+            show_list_counts: true,
+            auto_urgent_by_date: true,
+            date_display_format: DateFormat::default(),
+            close_inspector_on_click_away: false,
+            quick_note_folder: crate::notefolder::NOTES_INBOX.to_string(),
+            trash_retention_days: 30,
+            completed_retention_days: 30,
+            order: BTreeMap::new(),
+            period_sort: BTreeMap::new(),
+            features: BTreeMap::new(),
+            workspaces_sort: String::new(),
+            raw: Map::new(),
+        }
+    }
+}
+
+impl Config {
+    pub fn schema_version(&self) -> u64 {
+        self.schema_version
+    }
+
+    /// True when the file came from a newer app than this one.
+    ///
+    /// Spec 3.4: open read-only rather than risk corrupting a file written by
+    /// a version that knows fields we do not.
+    pub fn is_read_only(&self) -> bool {
+        self.schema_version > SUPPORTED_SCHEMA_VERSION
+    }
+
+    /// Reorders `items` in place by the manual order stored under `namespace`:
+    /// named items come first in the stored order, and everything else keeps
+    /// its current relative order, after them. A no-op when nothing is stored
+    /// for the namespace, so new items and untracked lists behave as before.
+    ///
+    /// One helper for every draggable list — workspaces, a folder's lists, and
+    /// whatever comes next — so the "manual order in the config" rule lives in
+    /// exactly one place.
+    pub fn apply_order<T>(&self, namespace: &str, items: &mut [T], name_of: impl Fn(&T) -> &str) {
+        let Some(order) = self.order.get(namespace) else {
+            return;
+        };
+        let rank = |name: &str| order.iter().position(|o| o == name);
+        items.sort_by(|a, b| match (rank(name_of(a)), rank(name_of(b))) {
+            (Some(x), Some(y)) => x.cmp(&y),
+            (Some(_), None) => std::cmp::Ordering::Less,
+            (None, Some(_)) => std::cmp::Ordering::Greater,
+            // Leave the rest as the caller sorted them (sort_by is stable).
+            (None, None) => std::cmp::Ordering::Equal,
+        });
+    }
+
+    /// What the user said about a feature, if anything. `None` means they
+    /// never touched it, and the answer is its default — which the interface
+    /// knows and the core deliberately does not.
+    pub fn feature(&self, key: &str) -> Option<bool> {
+        self.features.get(key).copied()
+    }
+
+    /// Records an opinion, or **forgets** one: `None` removes the key, which
+    /// is what the interface sends when a switch returns to its default. The
+    /// file only ever carries what differs from how the app ships.
+    pub fn set_feature(&mut self, key: &str, on: Option<bool>) {
+        match on {
+            Some(value) => {
+                self.features.insert(key.to_string(), value);
+            }
+            None => {
+                self.features.remove(key);
+            }
+        }
+    }
+
+    /// Records the manual order for `namespace`. An empty list clears it, so the
+    /// namespace falls back to the on-disk (filter) order.
+    pub fn set_order(&mut self, namespace: &str, names: Vec<String>) {
+        if names.is_empty() {
+            self.order.remove(namespace);
+        } else {
+            self.order.insert(namespace.to_string(), names);
+        }
+    }
+
+    /// Reads the config. A missing or unreadable file yields the defaults —
+    /// same treatment `Inbox.md` gets, and for the same reason: a broken
+    /// preference file must never stop someone from opening their notebook.
+    pub fn load(path: impl AsRef<Path>) -> Self {
+        Self::from_doc(crate::jsondoc::load(path))
+    }
+
+    pub fn parse(text: &str) -> Self {
+        Self::from_doc(crate::jsondoc::parse(text))
+    }
+
+    fn from_doc(raw: crate::jsondoc::Doc) -> Self {
+        let schema_version = crate::jsondoc::schema_version(&raw, SUPPORTED_SCHEMA_VERSION);
+
+        let rollover = raw
+            .get("rollover")
+            .and_then(Value::as_object)
+            .map(parse_rollover)
+            .unwrap_or_default();
+
+        let defaults = Self::default();
+        Self {
+            schema_version,
+            rollover,
+            restore_last_screen: flag(&raw, "restoreLastScreen", defaults.restore_last_screen),
+            show_list_counts: flag(&raw, "showListCounts", defaults.show_list_counts),
+            auto_urgent_by_date: flag(&raw, "autoUrgentByDate", defaults.auto_urgent_by_date),
+            date_display_format: string(&raw, "dateDisplayFormat")
+                .as_deref()
+                .map(DateFormat::parse_or_default)
+                .unwrap_or_default(),
+            close_inspector_on_click_away: flag(
+                &raw,
+                "closeInspectorOnClickAway",
+                defaults.close_inspector_on_click_away,
+            ),
+            quick_note_folder: string(&raw, "quickNoteFolder")
+                .unwrap_or(defaults.quick_note_folder),
+            trash_retention_days: raw
+                .get("trashRetentionDays")
+                .and_then(Value::as_i64)
+                .filter(|days| *days >= 0)
+                .unwrap_or(defaults.trash_retention_days),
+            completed_retention_days: raw
+                .get("completedRetentionDays")
+                .and_then(Value::as_i64)
+                .filter(|days| *days >= 0)
+                .unwrap_or(defaults.completed_retention_days),
+            period_sort: raw
+                .get("periodSort")
+                .and_then(Value::as_object)
+                .map(|obj| {
+                    obj.iter()
+                        .filter_map(|(key, value)| {
+                            Some((key.clone(), value.as_str()?.to_string()))
+                        })
+                        .collect()
+                })
+                .unwrap_or_default(),
+            features: raw
+                .get("features")
+                .and_then(Value::as_object)
+                .map(|obj| {
+                    obj.iter()
+                        // A value that is not a bool is not an answer; the
+                        // default (on) is safer than guessing at it.
+                        .filter_map(|(key, value)| Some((key.clone(), value.as_bool()?)))
+                        .collect()
+                })
+                .unwrap_or_default(),
+            workspaces_sort: string(&raw, "workspacesSort").unwrap_or_default(),
+            order: raw
+                .get("order")
+                .and_then(Value::as_object)
+                .map(|obj| {
+                    obj.iter()
+                        .filter_map(|(key, value)| {
+                            let names = value
+                                .as_array()?
+                                .iter()
+                                .filter_map(|v| v.as_str().map(str::to_string))
+                                .collect();
+                            Some((key.clone(), names))
+                        })
+                        .collect()
+                })
+                .unwrap_or_default(),
+            raw,
+        }
+    }
+
+    /// Renders the document: the file as it was read, with the keys this
+    /// build owns written over it.
+    pub fn render(&self) -> String {
+        let mut owned = crate::jsondoc::owned([
+            ("schemaVersion", Value::from(self.schema_version)),
+            ("rollover", render_rollover(&self.rollover)),
+            ("restoreLastScreen", Value::from(self.restore_last_screen)),
+            ("showListCounts", Value::from(self.show_list_counts)),
+            ("autoUrgentByDate", Value::from(self.auto_urgent_by_date)),
+            (
+                "dateDisplayFormat",
+                Value::from(self.date_display_format.render()),
+            ),
+            (
+                "closeInspectorOnClickAway",
+                Value::from(self.close_inspector_on_click_away),
+            ),
+            ("quickNoteFolder", Value::from(self.quick_note_folder.clone())),
+            ("trashRetentionDays", Value::from(self.trash_retention_days)),
+            (
+                "completedRetentionDays",
+                Value::from(self.completed_retention_days),
+            ),
+        ]);
+        // Both are written only once the user has arranged something, so an
+        // untouched notebook stays free of an empty `"order": {}` — and
+        // clearing an arrangement has to *remove* the key, or a stale one in
+        // `raw` survives the rewrite.
+        let mut cleared: Vec<&str> = Vec::new();
+        // The sidebar's arrangement: absent means the dragged order, which is
+        // the default, so an untouched notebook says nothing about it.
+        if self.workspaces_sort.is_empty() {
+            cleared.push("workspacesSort");
+        } else {
+            owned.insert(
+                "workspacesSort".to_string(),
+                Value::from(self.workspaces_sort.clone()),
+            );
+        }
+        for (key, value) in [
+            ("order", serde_json::to_value(&self.order).unwrap_or_default()),
+            (
+                "features",
+                serde_json::to_value(&self.features).unwrap_or_default(),
+            ),
+            (
+                "periodSort",
+                serde_json::to_value(&self.period_sort).unwrap_or_default(),
+            ),
+        ] {
+            let empty = value.as_object().is_none_or(|o| o.is_empty());
+            if empty {
+                cleared.push(key);
+            } else {
+                owned.insert(key.to_string(), value);
+            }
+        }
+        crate::jsondoc::render(&self.raw, owned, &cleared)
+    }
+
+    /// Writes the config atomically. Refuses when the notebook is read-only.
+    pub fn save(&self, path: impl AsRef<Path>) -> Result<()> {
+        crate::error::guard_schema(self.schema_version, SUPPORTED_SCHEMA_VERSION)?;
+        write_atomically(path.as_ref(), self.render().as_bytes())
+    }
+}
+
+fn parse_rollover(block: &Map<String, Value>) -> Rollover {
+    let daily = block.get("daily").and_then(Value::as_object);
+    let weekly = block.get("weekly").and_then(Value::as_object);
+
+    Rollover {
+        daily: DailyRollover {
+            mode: read_mode(daily),
+            at: read_at(daily),
+        },
+        weekly: WeeklyRollover {
+            mode: read_mode(weekly),
+            at: read_at(weekly),
+            starts_on: weekly
+                .and_then(|w| w.get("startsOn"))
+                .and_then(Value::as_str)
+                .map(WeekStart::parse_or_default)
+                .unwrap_or_default(),
+        },
+    }
+}
+
+fn read_mode(block: Option<&Map<String, Value>>) -> RolloverMode {
+    block
+        .and_then(|b| b.get("mode"))
+        .and_then(Value::as_str)
+        .map(RolloverMode::parse_or_default)
+        .unwrap_or_default()
+}
+
+fn read_at(block: Option<&Map<String, Value>>) -> TurnOffset {
+    block
+        .and_then(|b| b.get("at"))
+        .and_then(Value::as_str)
+        .map(TurnOffset::parse_or_default)
+        .unwrap_or_default()
+}
+
+fn render_rollover(rollover: &Rollover) -> Value {
+    let daily = Map::from_iter([
+        ("mode".to_string(), Value::from(rollover.daily.mode.render())),
+        ("at".to_string(), Value::from(rollover.daily.at.render())),
+    ]);
+    let weekly = Map::from_iter([
+        (
+            "mode".to_string(),
+            Value::from(rollover.weekly.mode.render()),
+        ),
+        ("at".to_string(), Value::from(rollover.weekly.at.render())),
+        (
+            "startsOn".to_string(),
+            Value::from(rollover.weekly.starts_on.render()),
+        ),
+    ]);
+
+    Value::Object(Map::from_iter([
+        ("daily".to_string(), Value::Object(daily)),
+        ("weekly".to_string(), Value::Object(weekly)),
+    ]))
+}
+
+/// The atomic write moved to [`crate::fsio`], where every kind of file shares
+/// it. Kept as a thin alias so existing callers read naturally.
+pub(crate) use crate::fsio::write_atomically;
+
+/// The tolerant readers moved to [`crate::jsondoc`], where every config file
+/// shares them — including the deep merge that keeps an unknown key alive.
+use crate::jsondoc::{flag, string};
+
+/// Sorted view of a JSON object, for stable assertions in tests.
+#[cfg(test)]
+fn keys_of(text: &str) -> std::collections::BTreeMap<String, Value> {
+    let Ok(Value::Object(map)) = serde_json::from_str::<Value>(text) else {
+        panic!("not a json object: {text}");
+    };
+    map.into_iter().collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::error::Error;
+
+    #[test]
+    fn the_new_toggles_round_trip_and_tolerate_garbage() {
+        let mut config = Config::default();
+        assert!(!config.restore_last_screen, "off by default");
+        assert!(config.show_list_counts, "on by default");
+
+        config.restore_last_screen = true;
+        config.show_list_counts = false;
+        let reparsed = Config::parse(&config.render());
+        assert!(reparsed.restore_last_screen);
+        assert!(!reparsed.show_list_counts);
+
+        // Wrong type falls back to the default instead of failing to open.
+        let broken = Config::parse(
+            r#"{ "schemaVersion": 1, "restoreLastScreen": "yes", "showListCounts": 3 }"#,
+        );
+        assert!(!broken.restore_last_screen);
+        assert!(broken.show_list_counts);
+    }
+
+    #[test]
+    fn defaults_match_the_spec() {
+        let config = Config::default();
+        assert_eq!(config.schema_version(), 1);
+        assert!(!config.restore_last_screen);
+        assert!(config.show_list_counts);
+        assert_eq!(config.rollover.daily.mode, RolloverMode::Reset);
+        assert_eq!(config.rollover.daily.at, TurnOffset::MIDNIGHT);
+        assert_eq!(config.rollover.weekly.mode, RolloverMode::Reset);
+        assert_eq!(config.rollover.weekly.starts_on, WeekStart::Monday);
+        assert!(!config.is_read_only());
+    }
+
+    #[test]
+    fn reads_the_documented_example() {
+        let config = Config::parse(
+            r#"{
+              "schemaVersion": 1,
+              "rollover": {
+                "daily":  { "mode": "carry", "at": "-02:00" },
+                "weekly": { "mode": "reset", "at": "02:00", "startsOn": "sunday" }
+              }
+            }"#,
+        );
+
+        assert_eq!(config.rollover.daily.mode, RolloverMode::Carry);
+        assert_eq!(config.rollover.daily.at, TurnOffset::from_minutes(-120));
+        assert_eq!(config.rollover.weekly.at, TurnOffset::from_minutes(120));
+        assert_eq!(config.rollover.weekly.starts_on, WeekStart::Sunday);
+    }
+
+    #[test]
+    fn missing_keys_take_the_defaults() {
+        let config = Config::parse(r#"{ "schemaVersion": 1 }"#);
+        assert_eq!(config.rollover, Rollover::default());
+    }
+
+    #[test]
+    fn malformed_values_take_the_defaults_without_erroring() {
+        let config = Config::parse(
+            r#"{
+              "schemaVersion": 1,
+              "rollover": {
+                "daily": { "mode": "banana", "at": "25:99" },
+                "weekly": { "startsOn": 42 }
+              }
+            }"#,
+        );
+        assert_eq!(config.rollover, Rollover::default());
+    }
+
+    #[test]
+    fn garbage_file_falls_back_to_defaults() {
+        for text in ["", "not json", "[]", "null", "{"] {
+            let config = Config::parse(text);
+            assert_eq!(config.rollover, Rollover::default(), "{text:?}");
+        }
+    }
+
+    #[test]
+    fn unknown_top_level_keys_survive_a_rewrite() {
+        // The scenario this protects: the notebook is synced between two app
+        // versions, and the older one must not delete the newer one's data.
+        let config = Config::parse(
+            r#"{ "schemaVersion": 1, "futureFeature": { "deep": [1, 2] } }"#,
+        );
+        let written = keys_of(&config.render());
+
+        assert_eq!(
+            written.get("futureFeature").unwrap(),
+            &serde_json::json!({ "deep": [1, 2] })
+        );
+    }
+
+    #[test]
+    fn unknown_keys_nested_inside_rollover_also_survive() {
+        let config = Config::parse(
+            r#"{
+              "schemaVersion": 1,
+              "rollover": {
+                "daily": { "mode": "carry", "unknownKnob": true },
+                "monthly": { "mode": "reset" }
+              }
+            }"#,
+        );
+        let written = keys_of(&config.render());
+        let rollover = written.get("rollover").unwrap();
+
+        assert_eq!(rollover["daily"]["unknownKnob"], serde_json::json!(true));
+        assert_eq!(rollover["daily"]["mode"], serde_json::json!("carry"));
+        assert_eq!(rollover["monthly"]["mode"], serde_json::json!("reset"));
+    }
+
+    #[test]
+    fn render_round_trips() {
+        let mut config = Config::default();
+        config.rollover.daily.mode = RolloverMode::Carry;
+        config.rollover.daily.at = TurnOffset::from_minutes(-120);
+        config.rollover.weekly.starts_on = WeekStart::Sunday;
+
+        let reparsed = Config::parse(&config.render());
+        assert_eq!(reparsed.rollover, config.rollover);
+        assert_eq!(reparsed.schema_version(), config.schema_version());
+    }
+
+    #[test]
+    fn a_newer_schema_version_opens_read_only() {
+        let config = Config::parse(r#"{ "schemaVersion": 99 }"#);
+        assert!(config.is_read_only());
+
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("config.json");
+        let err = config.save(&path).unwrap_err();
+
+        assert!(matches!(err, Error::ReadOnlyNotebook { found: 99, .. }));
+        assert!(!path.exists(), "read-only config must not be written");
+    }
+
+    #[test]
+    fn saves_and_loads_from_disk() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("nested").join("config.json");
+
+        let mut config = Config::default();
+        config.rollover.weekly.at = TurnOffset::from_minutes(90);
+        config.save(&path).unwrap();
+
+        let loaded = Config::load(&path);
+        assert_eq!(loaded.rollover.weekly.at, TurnOffset::from_minutes(90));
+    }
+
+    #[test]
+    fn the_phase_nine_keys_round_trip_and_tolerate_garbage() {
+        let mut config = Config::default();
+        assert_eq!(config.date_display_format, DateFormat::MonthDayYear);
+        assert!(!config.close_inspector_on_click_away, "off by default");
+        assert_eq!(config.quick_note_folder, "Inbox");
+
+        config.date_display_format = DateFormat::YearMonthDay;
+        config.close_inspector_on_click_away = true;
+        config.quick_note_folder = "Clientes".into();
+
+        let reparsed = Config::parse(&config.render());
+        assert_eq!(reparsed.date_display_format, DateFormat::YearMonthDay);
+        assert!(reparsed.close_inspector_on_click_away);
+        assert_eq!(reparsed.quick_note_folder, "Clientes");
+
+        // A pattern the app cannot render falls back rather than showing a
+        // date wrong, and an empty folder is not a folder.
+        let broken = Config::parse(
+            r#"{ "schemaVersion": 1, "dateDisplayFormat": "banana",
+                 "quickNoteFolder": "  ", "closeInspectorOnClickAway": 7 }"#,
+        );
+        assert_eq!(broken.date_display_format, DateFormat::MonthDayYear);
+        assert_eq!(broken.quick_note_folder, "Inbox");
+        assert!(!broken.close_inspector_on_click_away);
+    }
+
+    #[test]
+    fn a_feature_records_an_opinion_and_forgets_it_when_asked_to() {
+        // The core stores what the user SAID; it does not know the defaults —
+        // those differ per feature and live with the interface, which is also
+        // where the settings screen reads them (2026-08-06). So an untouched
+        // notebook says nothing about features at all.
+        let mut config = Config::default();
+        assert_eq!(config.feature("tasks"), None);
+        assert!(!config.render().contains("features"));
+
+        config.set_feature("repeat", Some(false));
+        let text = config.render();
+        assert!(text.contains("repeat"));
+        let mut back = Config::parse(&text);
+        assert_eq!(back.feature("repeat"), Some(false));
+        assert_eq!(back.feature("tasks"), None, "one opinion is not an opinion on all");
+
+        // A switch put back the way it ships is FORGOTTEN, not written as
+        // `true` — the file carries only what differs.
+        back.set_feature("repeat", None);
+        assert_eq!(back.feature("repeat"), None);
+        assert!(!back.render().contains("\"repeat\""));
+
+        // Turning ON something that ships off is an opinion too, and is kept.
+        back.set_feature("week", Some(true));
+        assert_eq!(Config::parse(&back.render()).feature("week"), Some(true));
+
+        // A value that is not a bool is not an opinion.
+        let broken = Config::parse(r#"{ "schemaVersion": 1, "features": { "tasks": "no" } }"#);
+        assert_eq!(broken.feature("tasks"), None);
+    }
+
+    #[test]
+    fn the_sidebar_sort_survives_a_rewrite_and_clears_out_of_the_file() {
+        // Like `order` and `periodSort`: an untouched notebook says nothing
+        // about it, and clearing has to REMOVE the key or a stale one in `raw`
+        // outlives the change (2026-08-06).
+        let mut config = Config::default();
+        assert_eq!(config.workspaces_sort, "");
+        assert!(!config.render().contains("workspacesSort"));
+
+        config.workspaces_sort = "name".into();
+        let text = config.render();
+        assert!(text.contains("workspacesSort"));
+        assert_eq!(Config::parse(&text).workspaces_sort, "name");
+
+        let mut back = Config::parse(&text);
+        back.workspaces_sort = String::new();
+        assert!(!back.render().contains("workspacesSort"));
+    }
+
+    #[test]
+    fn dates_render_in_every_offered_shape() {
+        // All three use `/` (user call, 2026-08-06); only the order differs.
+        let date = chrono::NaiveDate::from_ymd_opt(2026, 7, 5).unwrap();
+        assert_eq!(DateFormat::MonthDayYear.format(date), "07/05/2026");
+        assert_eq!(DateFormat::DayMonthYear.format(date), "05/07/2026");
+        assert_eq!(DateFormat::YearMonthDay.format(date), "2026/07/05");
+
+        // Every offered value survives the config round trip.
+        for shape in [
+            DateFormat::MonthDayYear,
+            DateFormat::DayMonthYear,
+            DateFormat::YearMonthDay,
+        ] {
+            assert_eq!(DateFormat::parse_or_default(shape.render()), shape);
+        }
+
+        // A notebook written before the change still means what it said: the
+        // hyphen spellings land on the matching order.
+        assert_eq!(
+            DateFormat::parse_or_default("dd-mm-yyyy"),
+            DateFormat::DayMonthYear
+        );
+        assert_eq!(
+            DateFormat::parse_or_default("yyyy-mm-dd"),
+            DateFormat::YearMonthDay
+        );
+    }
+
+    #[test]
+    fn a_missing_file_loads_the_defaults() {
+        let dir = tempfile::tempdir().unwrap();
+        let config = Config::load(dir.path().join("absent.json"));
+        assert_eq!(config.rollover, Rollover::default());
+    }
+}

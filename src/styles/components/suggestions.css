@@ -1,0 +1,155 @@
+/* suggestions.css — the visual layer of SuggestionsPane.svelte and of the pill
+ * that opens it (markup: components/SuggestionsPane.svelte and the
+ * `suggestPill` snippet of widgets/TasksWidget.svelte).
+ *
+ * The list moved out of a popover and into the right panel on 2026-08-06
+ * (user call): something you read through and act on several times wants the
+ * panel, not a card floating over the tasks you are comparing it against.
+ * Selectors are the stable BEM hooks a theme may restyle. */
+
+@layer components {
+  /* ---- the pill that opens it (wireframe "Suggestions 💡") ---- */
+  .suggestions-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--theme-space-6);
+    padding: var(--theme-space-4) var(--theme-space-10);
+    background: var(--theme-brand-weak);
+    border: 0.0625rem solid var(--theme-brand-outline);
+    border-radius: var(--theme-radius-sm);
+    color: var(--theme-brand);
+    font: inherit;
+    font-size: var(--theme-text-13);
+    cursor: pointer;
+  }
+  .suggestions-pill:hover {
+    filter: brightness(0.97);
+  }
+
+  /* ---- the panel ----
+     Keeps the pane pact of controls.css: flex column, fixed head, scrolling
+     middle. It shares the right panel with the inspector, so it has to behave
+     the same way in it. */
+  .suggestions-pane {
+    display: flex;
+    flex-direction: column;
+    min-block-size: 0;
+    block-size: 100%;
+    inline-size: 100%;
+  }
+  .suggestions-pane__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--theme-space-8);
+    padding: var(--theme-space-8) var(--theme-space-12);
+  }
+  .suggestions-pane__title {
+    font-size: var(--theme-text-14);
+    font-weight: var(--theme-weight-semibold);
+    color: var(--theme-ink);
+  }
+
+  .suggestions-pane__scroll {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--theme-space-8) var(--theme-space-12) var(--theme-space-16);
+  }
+
+  .suggestions-pane__empty {
+    margin: 0;
+    color: var(--theme-ink-muted);
+    font-size: var(--theme-text-14);
+  }
+
+  .suggestions-pane__group + .suggestions-pane__group {
+    margin-block-start: var(--theme-space-12);
+  }
+  /* Every heading folds its section away (2026-08-06) — with one section per
+     list the panel gets long, and the list you are not pulling from should be
+     one click out of the way. */
+  .suggestions-pane__group-title {
+    inline-size: 100%;
+    display: flex;
+    align-items: center;
+    gap: var(--theme-space-6);
+    margin: 0 0 var(--theme-space-4);
+    padding: var(--theme-space-4) var(--theme-space-6);
+    background: none;
+    border: none;
+    border-radius: var(--theme-radius-sm);
+    font: inherit;
+    font-size: var(--theme-text-12);
+    font-weight: var(--theme-weight-semibold);
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: var(--theme-ink-muted);
+    text-align: start;
+    cursor: pointer;
+  }
+  .suggestions-pane__group-title:hover {
+    background: var(--theme-hover);
+    color: var(--theme-ink);
+  }
+  /* The workspace before a list's name, quieter — the same two tones the list
+     pickers use. */
+  .suggestions-pane__group-context {
+    color: var(--theme-ink-faint);
+    font-weight: var(--theme-weight-regular);
+  }
+  .suggestions-pane__count {
+    margin-inline-start: auto;
+    font-weight: var(--theme-weight-regular);
+    color: var(--theme-ink-faint);
+  }
+
+  /* Between "what is pressing" and "where to pull from": two different
+     questions, so a rule rather than just more space. */
+  .suggestions-pane__rule {
+    margin-block: var(--theme-space-16);
+  }
+
+  .suggestions-pane__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--theme-space-2);
+  }
+
+  /* One row: the task, and its date at the end. The list it comes from is the
+     heading above it now, so the second line the row used to carry is gone. */
+  .suggestions-pane__item {
+    inline-size: 100%;
+    display: flex;
+    align-items: baseline;
+    gap: var(--theme-space-8);
+    padding: var(--theme-space-6) var(--theme-space-8);
+    background: none;
+    border: none;
+    border-radius: var(--theme-radius-sm);
+    font: inherit;
+    text-align: start;
+    cursor: pointer;
+  }
+  .suggestions-pane__item:hover {
+    background: var(--theme-hover);
+  }
+  .suggestions-pane__text {
+    flex: 1;
+    min-width: 0;
+    font-size: var(--theme-text-14);
+    color: var(--theme-ink);
+  }
+  .suggestions-pane__meta {
+    flex-shrink: 0;
+    display: flex;
+    gap: var(--theme-space-8);
+    font-size: var(--theme-text-10);
+    color: var(--theme-ink-muted);
+  }
+  .suggestions-pane__due {
+    color: var(--theme-ink-muted);
+  }
+}

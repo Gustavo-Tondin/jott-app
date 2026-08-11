@@ -1,0 +1,94 @@
+/* home.css — the visual layer of HomeView.svelte.
+ * Markup: src/lib/screens/HomeView.svelte. Selectors are the stable BEM hooks a theme
+ * may restyle; components read tokens only. */
+
+@layer components {
+  .home {
+    display: flex;
+    flex-direction: column;
+    gap: var(--theme-space-32);
+  }
+  .home__block {
+    display: flex;
+    flex-direction: column;
+    gap: var(--theme-space-12);
+  }
+  .home__block-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--theme-space-8);
+  }
+  /* The New task / New note buttons wear the shared .theme-btn--primary; the
+     hook stays for a theme to target this specific button if it wants. */
+  /* .home__task-list is the shared .theme-task-list (controls.css). */
+  .home__divider {
+    padding-inline: var(--theme-space-32);
+  }
+  .home__divider hr {
+    border: none;
+    border-top: 0.125rem solid var(--theme-line);
+    margin: 0;
+  }
+  .home__capture {
+    display: flex;
+    gap: var(--theme-space-8);
+    align-items: flex-end;
+  }
+  /* Look comes from .theme-textarea; here it only fills the row and stays a
+     two-line quick box rather than the control's default 5rem tall. */
+  .home__capture-input {
+    flex: 1 1 auto;
+    width: auto;
+    min-height: auto;
+  }
+  .home__capture-label {
+    display: flex;
+    align-items: center;
+    gap: var(--theme-space-4);
+    font-size: var(--theme-text-12);
+    color: var(--theme-ink-muted);
+  }
+  /* The inline "Save to" select sizes to its content, not the full row. */
+  .home__capture-label .theme-select {
+    width: auto;
+    min-width: 8rem;
+  }
+  .home__notes {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
+    gap: var(--theme-space-12);
+    align-items: start;
+  }
+  .home__note {
+    display: flex;
+    flex-direction: column;
+    gap: var(--theme-space-8);
+    text-align: left;
+    padding: var(--theme-space-12);
+    background: var(--theme-surface);
+    border: 0.0625rem solid var(--theme-line-soft);
+    border-radius: var(--theme-radius-md);
+    font: inherit;
+    cursor: pointer;
+    transition: border-color var(--theme-transition-fast);
+  }
+  .home__note:hover {
+    border-color: var(--theme-ink-faint);
+  }
+  .home__note-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--theme-space-8);
+    color: var(--theme-ink-muted);
+  }
+  .home__note-title {
+    font-size: var(--theme-text-14);
+    font-weight: var(--theme-weight-bold);
+    color: var(--theme-ink);
+  }
+  /* The empty state is the shared .theme-empty-card (controls.css) — the same
+     card the widget draws, which is what the wireframe shows in both blocks.
+     The hook stays for a theme to reach this one in particular. */
+}

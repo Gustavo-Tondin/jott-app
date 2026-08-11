@@ -1,0 +1,19 @@
+[package]
+name = "jott-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Business logic for Jott. Pure Rust: no Tauri dependency allowed here."
+
+[dev-dependencies]
+tempfile = "3.14"
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+chrono.workspace = true
+notify.workspace = true
+thiserror.workspace = true
+# `trash = "5.2.6"` was dropped on 2026-08-04: the notebook keeps its own trash
+# in `.jott/trash/`, which restores, syncs with the notebook and exists on
+# Android — none of which the desktop trash does.

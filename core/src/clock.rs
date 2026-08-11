@@ -1,0 +1,359 @@
+//! Logical day and week.
+//!
+//! The turn of the day is a user preference, not midnight: someone who plans
+//! tomorrow before going to bed wants it at 22:00, someone who works late
+//! wants it at 02:00. The `at` field expresses that as an offset from the
+//! midnight that opens the new period, negative values moving the turn back
+//! into the previous evening.
+//!
+//! Hard rule: this module is the ONLY place in the core allowed to read the
+//! system clock. Calling `Local::now().date_naive()` anywhere else silently
+//! ignores the configured turn, and the bug only shows up in the hours around
+//! midnight — exactly when nobody is testing.
+
+use chrono::{DateTime, Datelike, Duration, Local, NaiveDate, NaiveDateTime, TimeZone};
+
+/// Offset of the period turn from midnight, in minutes.
+///
+/// `+120` is 02:00 (the previous day only ends at 2am), `-120` is 22:00 of
+/// the evening before.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct TurnOffset(i32);
+
+/// Largest offset that still keeps the turn inside a single day either way.
+const MAX_OFFSET_MINUTES: i32 = 23 * 60 + 59;
+
+impl TurnOffset {
+    pub const MIDNIGHT: Self = Self(0);
+
+    pub fn minutes(self) -> i32 {
+        self.0
+    }
+
+    /// Builds an offset, clamping to ±23:59 so a nonsense config can never
+    /// push the turn into another day and stall the rollover.
+    pub fn from_minutes(minutes: i32) -> Self {
+        Self(minutes.clamp(-MAX_OFFSET_MINUTES, MAX_OFFSET_MINUTES))
+    }
+
+    /// Parses `"HH:MM"`, `"+HH:MM"` or `"-HH:MM"`. Returns `None` when the
+    /// string is not a valid offset — callers fall back to the default rather
+    /// than failing to open the notebook.
+    pub fn parse(text: &str) -> Option<Self> {
+        let text = text.trim();
+        let (sign, digits) = match text.strip_prefix('-') {
+            Some(rest) => (-1, rest),
+            None => (1, text.strip_prefix('+').unwrap_or(text)),
+        };
+
+        let (hours, minutes) = digits.split_once(':')?;
+        let hours: i32 = hours.parse().ok()?;
+        let minutes: i32 = minutes.parse().ok()?;
+        if !(0..=59).contains(&minutes) || hours < 0 {
+            return None;
+        }
+
+        let total = hours.checked_mul(60)?.checked_add(minutes)?;
+        if total > MAX_OFFSET_MINUTES {
+            return None;
+        }
+        Some(Self(sign * total))
+    }
+
+    /// Parses, falling back to midnight. Spec 3.3: a missing, malformed or
+    /// unknown value takes the default without an error and without blocking
+    /// the notebook from opening.
+    pub fn parse_or_default(text: &str) -> Self {
+        Self::parse(text).unwrap_or_default()
+    }
+
+    /// Renders back to the `"HH:MM"` / `"-HH:MM"` form used in the config.
+    pub fn render(self) -> String {
+        let sign = if self.0 < 0 { "-" } else { "" };
+        let total = self.0.abs();
+        format!("{sign}{:02}:{:02}", total / 60, total % 60)
+    }
+}
+
+/// Which weekday opens the week.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum WeekStart {
+    #[default]
+    Monday,
+    Sunday,
+}
+
+impl WeekStart {
+    pub fn parse_or_default(text: &str) -> Self {
+        match text.trim().to_ascii_lowercase().as_str() {
+            "sunday" | "domingo" => Self::Sunday,
+            _ => Self::Monday,
+        }
+    }
+
+    pub fn render(self) -> &'static str {
+        match self {
+            Self::Monday => "monday",
+            Self::Sunday => "sunday",
+        }
+    }
+
+    /// How many days `date` is into its week.
+    fn days_since_start(self, date: NaiveDate) -> u32 {
+        match self {
+            Self::Monday => date.weekday().num_days_from_monday(),
+            Self::Sunday => date.weekday().num_days_from_sunday(),
+        }
+    }
+}
+
+/// The logical day containing `now`.
+///
+/// Pure on purpose: the tests pin an instant instead of depending on when the
+/// suite happens to run.
+pub fn logical_date_at(now: DateTime<Local>, offset: TurnOffset) -> NaiveDate {
+    shift(now.naive_local(), offset).date()
+}
+
+/// First day of the logical week containing `now`.
+pub fn logical_week_start_at(
+    now: DateTime<Local>,
+    offset: TurnOffset,
+    starts_on: WeekStart,
+) -> NaiveDate {
+    week_start_of(logical_date_at(now, offset), starts_on)
+}
+
+/// First day of the week containing `date`.
+pub fn week_start_of(date: NaiveDate, starts_on: WeekStart) -> NaiveDate {
+    date - Duration::days(starts_on.days_since_start(date) as i64)
+}
+
+/// Today's logical date, by the system clock.
+pub fn today(offset: TurnOffset) -> NaiveDate {
+    logical_date_at(Local::now(), offset)
+}
+
+/// Today's civil date (no rollover offset), by the system clock. Used for
+/// wall-clock stamps like a trash item's deletion date, where the notebook's
+/// day/week offset is irrelevant.
+pub fn civil_today() -> NaiveDate {
+    Local::now().date_naive()
+}
+
+/// This logical week's first day, by the system clock.
+pub fn this_week(offset: TurnOffset, starts_on: WeekStart) -> NaiveDate {
+    logical_week_start_at(Local::now(), offset, starts_on)
+}
+
+/// When the next daily turn happens, from the system clock.
+///
+/// The `_at` variants take the instant for the tests; these two exist so no
+/// caller outside this module ever needs `Local::now()` — which is the whole
+/// invariant (see `core/tests/invariants.rs`).
+pub fn next_daily_turn(offset: TurnOffset) -> DateTime<Local> {
+    next_daily_turn_at(Local::now(), offset)
+}
+
+/// When the next weekly turn happens, from the system clock.
+pub fn next_weekly_turn(offset: TurnOffset, starts_on: WeekStart) -> DateTime<Local> {
+    next_weekly_turn_at(Local::now(), offset, starts_on)
+}
+
+/// When the next daily turn happens, so a running app can schedule a timer
+/// instead of only rolling over when the notebook is opened.
+pub fn next_daily_turn_at(now: DateTime<Local>, offset: TurnOffset) -> DateTime<Local> {
+    let next_day = logical_date_at(now, offset) + Duration::days(1);
+    to_local(unshift(next_day, offset))
+}
+
+/// When the next weekly turn happens.
+pub fn next_weekly_turn_at(
+    now: DateTime<Local>,
+    offset: TurnOffset,
+    starts_on: WeekStart,
+) -> DateTime<Local> {
+    let next_week = logical_week_start_at(now, offset, starts_on) + Duration::days(7);
+    to_local(unshift(next_week, offset))
+}
+
+/// Wall clock → logical timeline.
+fn shift(naive: NaiveDateTime, offset: TurnOffset) -> NaiveDateTime {
+    naive - Duration::minutes(offset.minutes() as i64)
+}
+
+/// Logical date → the wall clock instant that opens it.
+fn unshift(date: NaiveDate, offset: TurnOffset) -> NaiveDateTime {
+    date.and_hms_opt(0, 0, 0)
+        .expect("midnight is always a valid time")
+        + Duration::minutes(offset.minutes() as i64)
+}
+
+/// Resolves a local wall clock time to an instant.
+///
+/// DST makes this partial: on a spring-forward night the configured turn may
+/// not exist at all, and on a fall-back night it happens twice. Taking the
+/// earliest match, and stepping forward until the clock exists, keeps the
+/// rollover firing once on those two nights a year instead of never.
+fn to_local(naive: NaiveDateTime) -> DateTime<Local> {
+    for extra_minutes in 0..=120 {
+        let candidate = naive + Duration::minutes(extra_minutes);
+        if let Some(resolved) = Local.from_local_datetime(&candidate).earliest() {
+            return resolved;
+        }
+    }
+    Local::now()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::NaiveTime;
+
+    /// Builds a local instant for a test, skipping any DST hole.
+    fn at(date: (i32, u32, u32), time: (u32, u32)) -> DateTime<Local> {
+        let naive = NaiveDate::from_ymd_opt(date.0, date.1, date.2)
+            .unwrap()
+            .and_time(NaiveTime::from_hms_opt(time.0, time.1, 0).unwrap());
+        to_local(naive)
+    }
+
+    fn ymd(y: i32, m: u32, d: u32) -> NaiveDate {
+        NaiveDate::from_ymd_opt(y, m, d).unwrap()
+    }
+
+    #[test]
+    fn midnight_offset_matches_the_civil_date() {
+        let now = at((2026, 7, 20), (13, 0));
+        assert_eq!(logical_date_at(now, TurnOffset::MIDNIGHT), ymd(2026, 7, 20));
+    }
+
+    #[test]
+    fn positive_offset_keeps_the_previous_day_until_the_turn() {
+        // at = 02:00 — someone who works late. 01:00 still belongs to the 19th.
+        let offset = TurnOffset::from_minutes(120);
+        assert_eq!(
+            logical_date_at(at((2026, 7, 20), (1, 0)), offset),
+            ymd(2026, 7, 19)
+        );
+        assert_eq!(
+            logical_date_at(at((2026, 7, 20), (2, 0)), offset),
+            ymd(2026, 7, 20)
+        );
+    }
+
+    #[test]
+    fn negative_offset_starts_the_day_the_evening_before() {
+        // at = -02:00, i.e. 22:00 — someone who plans tomorrow before bed.
+        let offset = TurnOffset::from_minutes(-120);
+        assert_eq!(
+            logical_date_at(at((2026, 7, 19), (21, 59)), offset),
+            ymd(2026, 7, 19)
+        );
+        assert_eq!(
+            logical_date_at(at((2026, 7, 19), (22, 0)), offset),
+            ymd(2026, 7, 20)
+        );
+    }
+
+    #[test]
+    fn parses_the_documented_offsets() {
+        assert_eq!(TurnOffset::parse("00:00"), Some(TurnOffset::MIDNIGHT));
+        assert_eq!(TurnOffset::parse("02:00"), Some(TurnOffset::from_minutes(120)));
+        assert_eq!(
+            TurnOffset::parse("-02:00"),
+            Some(TurnOffset::from_minutes(-120))
+        );
+        assert_eq!(TurnOffset::parse("+01:30"), Some(TurnOffset::from_minutes(90)));
+    }
+
+    #[test]
+    fn malformed_offset_falls_back_to_midnight() {
+        // Spec 3.3: never fail to open the notebook over a bad preference.
+        for bad in ["", "banana", "25:00", "01:70", "1", "01:00:00", "--01:00"] {
+            assert_eq!(TurnOffset::parse(bad), None, "{bad:?} should not parse");
+            assert_eq!(TurnOffset::parse_or_default(bad), TurnOffset::MIDNIGHT);
+        }
+    }
+
+    #[test]
+    fn offset_round_trips_through_the_config_format() {
+        for text in ["00:00", "02:00", "-02:00", "23:59", "-23:59"] {
+            assert_eq!(TurnOffset::parse(text).unwrap().render(), text);
+        }
+    }
+
+    #[test]
+    fn week_starts_on_the_configured_weekday() {
+        // 2026-07-20 is a Monday.
+        let monday = ymd(2026, 7, 20);
+        assert_eq!(week_start_of(monday, WeekStart::Monday), monday);
+        assert_eq!(week_start_of(monday, WeekStart::Sunday), ymd(2026, 7, 19));
+
+        let saturday = ymd(2026, 7, 25);
+        assert_eq!(week_start_of(saturday, WeekStart::Monday), monday);
+        assert_eq!(week_start_of(saturday, WeekStart::Sunday), ymd(2026, 7, 19));
+
+        let sunday = ymd(2026, 7, 26);
+        assert_eq!(week_start_of(sunday, WeekStart::Monday), monday);
+        assert_eq!(week_start_of(sunday, WeekStart::Sunday), sunday);
+    }
+
+    #[test]
+    fn week_start_respects_the_daily_offset() {
+        // Sunday 22:00 with at = -02:00 already belongs to Monday's week.
+        let offset = TurnOffset::from_minutes(-120);
+        let now = at((2026, 7, 19), (22, 0));
+        assert_eq!(
+            logical_week_start_at(now, offset, WeekStart::Monday),
+            ymd(2026, 7, 20)
+        );
+    }
+
+    #[test]
+    fn parses_week_start_tolerantly() {
+        assert_eq!(WeekStart::parse_or_default("sunday"), WeekStart::Sunday);
+        assert_eq!(WeekStart::parse_or_default("SUNDAY"), WeekStart::Sunday);
+        assert_eq!(WeekStart::parse_or_default("monday"), WeekStart::Monday);
+        assert_eq!(WeekStart::parse_or_default("banana"), WeekStart::Monday);
+    }
+
+    #[test]
+    fn next_daily_turn_is_in_the_future_and_opens_the_next_day() {
+        let offset = TurnOffset::from_minutes(-120);
+        let now = at((2026, 7, 20), (10, 0));
+        let next = next_daily_turn_at(now, offset);
+
+        assert!(next > now);
+        // The instant that opens the next logical day belongs to it already.
+        assert_eq!(
+            logical_date_at(next, offset),
+            logical_date_at(now, offset) + Duration::days(1)
+        );
+    }
+
+    #[test]
+    fn next_weekly_turn_opens_the_following_week() {
+        let offset = TurnOffset::MIDNIGHT;
+        let now = at((2026, 7, 22), (10, 0));
+        let next = next_weekly_turn_at(now, offset, WeekStart::Monday);
+
+        assert!(next > now);
+        assert_eq!(
+            logical_week_start_at(next, offset, WeekStart::Monday),
+            ymd(2026, 7, 27)
+        );
+    }
+
+    #[test]
+    fn extreme_offsets_are_clamped_instead_of_wrapping() {
+        assert_eq!(
+            TurnOffset::from_minutes(10_000).minutes(),
+            MAX_OFFSET_MINUTES
+        );
+        assert_eq!(
+            TurnOffset::from_minutes(-10_000).minutes(),
+            -MAX_OFFSET_MINUTES
+        );
+    }
+}

@@ -1,0 +1,50 @@
+/* tasks-view.css — the visual layer of TasksView.svelte.
+ * Markup: src/lib/screens/TasksView.svelte. Selectors are the stable BEM hooks a theme
+ * may restyle; components read tokens only. */
+
+@layer components {
+  .tasks-view {
+    display: flex;
+    flex-direction: column;
+    gap: var(--theme-space-16);
+    /* The pact that puts the composing bar at the bottom of the PANEL: this
+       screen fills the scrollport (its parent .shell__content-inner is a full
+       height flex column), the widget fills this, and the bar takes the slack
+       with `margin-block-start: auto`. */
+    flex: 1;
+    min-block-size: 0;
+  }
+  .tasks-view > .tasks-widget,
+  .tasks-view > .period-view {
+    flex: 1;
+  }
+
+  /* The strip lives ON the widget's top row (2026-08-06), to the left of its ⋮.
+     Three columns with equal outer ones keep the segmented centred whatever the
+     span reads, and the span sits at the right of the row — next to the ⋮, as
+     asked. */
+  .tasks-view__bar {
+    flex: 1;
+    min-width: 0;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: var(--theme-space-8);
+  }
+  .tasks-view__bar > .theme-segmented {
+    grid-column: 2;
+  }
+  .tasks-view__range {
+    grid-column: 3;
+    justify-self: end;
+    font-size: var(--theme-text-14);
+    color: var(--theme-ink-muted);
+  }
+
+  /* The Inbox / Today / Week strip IS the shared segmented control
+     (.theme-segmented in controls.css) — this screen used to spell out the
+     same declarations again, value for value. The `tasks-view__subs` /
+     `__sub` / `__sub--active` hooks stay on the markup with no rules of their
+     own, so a theme can still target this particular strip without having to
+     restyle every segmented control in the app. */
+}

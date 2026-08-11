@@ -1,0 +1,426 @@
+/* shell.css — the `shell` block: the three-panel arrangement, the sidebar,
+ * the centre panel and the onboarding screen. Markup lives in App.svelte and
+ * lib/shell/Sidebar.svelte; everything visual about it lives here, globally,
+ * so a theme can restyle any hook without fighting Svelte's scoping. */
+
+@layer components {
+  .shell__main {
+    flex: 1;
+    min-height: 0;
+    font-family: var(--theme-font-sans);
+  }
+
+  .shell__onboarding {
+    max-width: 32rem;
+    margin: 4rem auto;
+    padding: 1rem;
+  }
+
+  /* Flex, not grid: each side panel is a flex item whose width animates
+     (the left rail collapses, the right inspector slides in/out). Grid was
+     dropped because toggling its column count mid-transition auto-placed the
+     transitioning panel into the first free cell — a one-frame flash on the
+     left. Flex just grows the centre as a panel shrinks. */
+  .shell {
+    display: flex;
+    height: 100%;
+    min-height: 0;
+  }
+
+  /* ---- sidebar ---- */
+  /* The pane: pinned head, scrolling middle, pinned footer — the same layout
+     pact the inspector keeps (.theme-pane-head/-foot). No gap/padding here: the
+     chrome borders and the scroll region own the spacing. */
+  .shell__sidebar {
+    flex: 0 0 var(--theme-sidebar-left);
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    /* Clip the labels as the rail narrows, and animate that width. */
+    overflow: hidden;
+    transition: flex-basis var(--theme-transition-medium);
+  }
+
+  /* ---- head: hamburger (left) + collapse toggle (right) ---- */
+  .shell__sidebar-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--theme-space-8) var(--theme-space-12);
+  }
+  /* The head buttons are plain .theme-btn--icon; nothing extra to say. */
+
+  /* ---- rail: the collapsed sidebar. Only the labels go away — every icon
+     keeps the exact position it had, so collapsing reads as the panel
+     narrowing over the same column of icons, never as items jumping to a new
+     alignment mid-animation (minimized screen.pdf). ---- */
+  .shell__sidebar--rail {
+    flex-basis: var(--theme-sidebar-rail);
+  }
+  /* Railed: only the expand toggle stays; the hamburger waits for the full
+     sidebar. */
+  .shell__sidebar--rail .shell__menu {
+    display: none;
+  }
+  .shell__sidebar--rail .shell__nav-label,
+  .shell__sidebar--rail .shell__count,
+  .shell__sidebar--rail .shell__group-title,
+  .shell__sidebar--rail .shell__notebook,
+  .shell__sidebar--rail .shell__badge {
+    display: none;
+  }
+  .shell__sidebar-scroll {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    /* Never sideways: the rail is narrow and anything peeking past it must be
+       clipped, not become a horizontal scrollbar. */
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: var(--theme-space-8);
+    /* Block padding keeps the groups off the head/footer borders; the inline
+       wall gap sits the group bar between the wall and the button. */
+    padding: var(--theme-space-12) var(--theme-space-4);
+  }
+  /* Rail: the right-hand chrome gives way so the 56px column fits the icon
+     band without overflowing (minimized screen.pdf); the LEFT paddings stay,
+     so every icon keeps its x. The member indent resets for the same reason.
+     The "new workspace/group" affordances wait for the full sidebar. */
+  .shell__sidebar--rail .shell__sidebar-scroll{
+    padding-inline-end: 0;
+  }
+  .shell__sidebar--rail .shell__nav-item--secondary {
+    display: none;
+  }
+
+  .shell__sidebar--rail .shell__nav-item {
+    padding: var(--theme-space-12);
+  }
+  /* A workspace/group row is a DIV with the opening BUTTON inside it, so its
+     inline padding lands on top of the row's — the icon ended up one whole
+     step right of the fixed entries' (user report, 2026-08-06). In the rail the
+     row already spaces it; the button adds nothing. */
+  .shell__sidebar--rail .shell__nav-open {
+    padding-inline: 0;
+  }
+  /* A group is marked by a 2px bar in the wall gap. The fixed group is the
+     theme blue; a user workspace overrides --group-color with its own colour
+     (Fase 13, set inline per workspace). */
+  .shell__group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--theme-space-2);
+    border-left: 0.125rem solid var(--group-color, var(--theme-brand));
+    padding-inline: var(--theme-space-4);
+  }
+  /* The wrapper the workspaces reorder within — reproduces the gap they had as
+     loose scroll children. */
+  .shell__workspaces {
+    display: flex;
+    flex-direction: column;
+    /* Tight (user call, 2026-08-11): the column reads as one list of places,
+       not as a stack of separated sections. */
+    gap: var(--theme-space-2);
+  }
+  /* A level inside a group (they nest, 2026-08-11). The indent is the
+     CONTAINER's, not the row's, so it compounds with depth on its own — and a
+     row does not have to know how deep it is. */
+  .shell__workspaces--nested {
+    padding-inline-start: var(--theme-space-12);
+  }
+  /* The rail is 56px of icon column: every icon keeps its x, at any depth. */
+  .shell__sidebar--rail .shell__workspaces--nested {
+    padding-inline-start: 0;
+  }
+
+  /* ---- workspace colour system ----
+     From the workspace's own --group-color (its accent, falling back to the
+     theme brand) two roles are derived: STRONG for text/icon/bar and WEAK
+     (semi-transparent) for the selected row's fill. So a red workspace reads
+     red when selected, not the default blue. */
+  .shell__group--workspace {
+    --gc-strong: var(--group-color, var(--theme-brand));
+    --gc-weak: color-mix(
+      in srgb,
+      var(--group-color, var(--theme-brand)) 14%,
+      transparent
+    );
+    border-left-color: var(--gc-strong);
+  }
+  /* Dark theme lifts the alpha so the tint still reads on a dark canvas. */
+  @media (prefers-color-scheme: dark) {
+    .shell__group--workspace {
+      --gc-weak: color-mix(
+        in srgb,
+        var(--group-color, var(--theme-brand)) 26%,
+        transparent
+      );
+    }
+  }
+  :root[data-theme="dark"] .shell__group--workspace {
+    --gc-weak: color-mix(
+      in srgb,
+      var(--group-color, var(--theme-brand)) 26%,
+      transparent
+    );
+  }
+
+  /* Selected workspace: the fixed entries' quiet fill, tinted with the
+     colour inherited from its .shell__group--workspace section (its own for
+     a loose one, the group's for a member) — no outline (user call). */
+  .shell__group--workspace .shell__nav-item--active {
+    background: var(--gc-weak);
+    color: var(--gc-strong);
+  }
+  /* Where the colour/icon popup hangs. The ⋮ that used to live here is gone
+     (user call, 2026-08-06): it only showed on hover, it ate the end of every
+     name, and the right button carries the same menu without costing a pixel.
+     The wrapper is only in the DOM while the popup is open. */
+  .shell__ws-tools {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--theme-space-2);
+    flex-shrink: 0;
+    padding-inline-end: var(--theme-space-4);
+    opacity: 0;
+    transition: opacity 120ms ease;
+  }
+  .shell__nav-item--row:hover .shell__ws-tools,
+  .shell__nav-item--active .shell__ws-tools,
+  /* Opened from the right-click menu, which can happen without the pointer
+     resting on the row — it has to show regardless. */
+  .shell__ws-tools--open {
+    opacity: 1;
+  }
+  /* The rail has no room for a popup anchored inside a 3.5rem row. */
+  .shell__sidebar--rail .shell__ws-tools {
+    display: none;
+  }
+  /* A carried sidebar item needs a solid backdrop while it rides over its
+     neighbours (the sidebar itself is transparent). */
+  .shell__nav-item.reorder-item--carried,
+  .shell__entry.reorder-item--carried,
+  .shell__group--workspace.reorder-item--carried {
+    background: var(--theme-surface);
+    border-radius: var(--theme-radius-xs);
+  }
+  /* ---- the sidebar row ----
+     One row of the navigation: a 42px band holding an icon and a label —
+     `.shell__nav-item`, whether it is a fixed entry (a button) or a
+     workspace/group row (the `--row` div variant further down, whose inner
+     `.shell__nav-open` opens so the ⋮ can sit INSIDE the highlight). The
+     band is written once. */
+  .shell__nav-item {
+    display: flex;
+    align-items: center;
+    gap: var(--theme-space-8);
+    height: 2.625rem;
+    padding: var(--theme-space-12) var(--theme-space-8);
+    background: none;
+    border: none;
+    border-radius: var(--theme-radius-xs);
+    color: var(--theme-ink-muted);
+    font: inherit;
+    font-size: var(--theme-text-16);
+    text-align: left;
+    cursor: pointer;
+  }
+  .shell__nav-item:hover {
+    background: var(--theme-hover);
+  }
+  .shell__nav-item--active {
+    background: var(--theme-brand-weak);
+    color: var(--theme-brand);
+    font-weight: var(--theme-weight-semibold);
+  }
+  .shell__nav-label {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .shell__nav-item--secondary {
+    height: auto;
+    padding-block: var(--theme-space-8);
+    font-size: var(--theme-text-14);
+    color: var(--theme-ink-faint);
+  }
+
+  /* ---- workspace/group rows (2026-08-04): the SAME .shell__nav-item band
+     the fixed entries use, so these come AFTER it — they are its modifiers,
+     and being written before it was exactly why `--member` never got its
+     shorter height (same specificity, the base won on order; 2026-08-05).
+     `--row` is the div variant whose inner .shell__nav-open button opens (so
+     the ⋮ sits inside the highlight); `--head` is the group head, which
+     collapses its members; `--member` is a workspace inside a group —
+     shorter, icon-less, following the group's colour, gone in the rail. ---- */
+  .shell__nav-item--row {
+    padding: 0;
+    position: relative;
+  }
+  .shell__nav-open {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: var(--theme-space-8);
+    height: 100%;
+    padding-block: 0;
+    padding-inline: var(--theme-space-8);
+    background: none;
+    border: none;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+  /* The indent belongs to the level's container (`--nested`), not here: at two
+     levels deep a row would have to know how deep it is. */
+  .shell__nav-item--member {
+    height: 1.875rem;
+    font-size: var(--theme-text-14);
+  }
+  /* The rail keeps the members (user call, 2026-08-06): with the icon back
+     they are still readable there, and hiding them made a grouped workspace
+     unreachable without expanding the sidebar. Nothing to say here — the
+     rail's own `.shell__nav-item` padding already wins over the member's
+     indent (two classes to one), so their icons land in the same column as
+     every other one. */
+  /* The pane foot: pinned at the bottom, always visible. The top-border divider
+     comes from .theme-pane-foot — the same chrome the inspector's foot uses. */
+  .shell__sidebar-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--theme-space-8);
+    padding: var(--theme-space-10) var(--theme-space-12);
+  }
+  .shell__notebook {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: baseline;
+    gap: var(--theme-space-6);
+    background: none;
+    border: none;
+    font: inherit;
+    font-size: var(--theme-text-14);
+    font-weight: var(--theme-weight-semibold);
+    color: var(--theme-ink-muted);
+    cursor: pointer;
+    text-align: left;
+  }
+  .shell__notebook-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  /* A .theme-btn--icon; the active state adds the brand colour. */
+  .shell__settings {
+    flex-shrink: 0;
+    padding: var(--theme-space-4);
+  }
+  .shell__settings--active {
+    color: var(--theme-brand);
+  }
+  .shell__badge {
+    color: var(--theme-danger);
+    font-size: var(--theme-text-10);
+  }
+  .shell__count {
+    flex-shrink: 0;
+    color: var(--theme-ink-faint);
+    font-size: var(--theme-text-12);
+    font-weight: var(--theme-weight-regular);
+  }
+  .shell__group-title {
+    color: var(--theme-ink-faint);
+    font-size: var(--theme-text-12);
+    text-transform: uppercase;
+    letter-spacing: var(--theme-tracking-wide);
+    padding: var(--theme-space-8) var(--theme-space-8) var(--theme-space-4);
+  }
+
+
+  /* ---- centre panel: takes whatever the two side panels leave. ---- */
+  .shell__centre {
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    background: var(--theme-surface);
+    border-radius: var(--theme-radius-lg);
+    overflow: hidden;
+  }
+
+  /* ---- right panel: the inspector's wrapper (App.svelte). Clips its fixed-
+     width child so the Svelte slide reveals/hides it without reflowing the
+     content inside. ---- */
+  .shell__panel {
+    flex: 0 0 auto;
+    display: flex;
+    min-height: 0;
+    overflow: hidden;
+  }
+  /* Whatever the panel is showing keeps the same fixed width, so the slide
+     clips its content instead of reflowing it mid-animation. */
+  .shell__panel > .inspector,
+  .shell__panel > .suggestions-pane {
+    flex: 1;
+    width: var(--theme-sidebar-right);
+    min-height: 0;
+  }
+
+  .shell__content {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: var(--theme-space-12) var(--theme-space-16) var(--theme-space-40);
+  }
+  /* Every widget's content is capped here, once, and centred — so a screen
+     never has to know the width itself. */
+  .shell__content-inner {
+    max-width: var(--theme-content-max);
+    margin-inline: auto;
+    /* A flex column that fills the scrollport, so a screen can push something
+       to the BOTTOM of the panel (the Tasks screen's composing bar) instead of
+       to the bottom of its own content. `min-block-size: 100%` resolves here
+       because .shell__content is a flex item with a definite height, and the
+       padding lives on the parent, so nothing overflows. */
+    display: flex;
+    flex-direction: column;
+    min-block-size: 100%;
+  }
+  .shell__empty {
+    color: var(--theme-ink-muted);
+  }
+
+  /* ---- state boxes (raw values on purpose: the error/conflict design is
+     Fase 10 lote 10 "Estados"; they become tokens with it) ---- */
+  .shell__error {
+    background: #fee;
+    border: 0.0625rem solid #f99;
+    padding: 0.5rem;
+    border-radius: 0.25rem;
+  }
+  .shell__conflict {
+    background: #fff8e1;
+    border: 0.0625rem solid #e6c34a;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.25rem;
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+  }
+  .shell__conflict-list {
+    margin: 0.5rem 0 0;
+    padding-left: 1.2rem;
+  }
+  .shell__conflict-path {
+    word-break: break-all;
+    font-size: 0.8rem;
+  }
+}

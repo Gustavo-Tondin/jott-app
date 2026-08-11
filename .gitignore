@@ -1,0 +1,31 @@
+# --- Rust ---
+target/
+**/*.rs.bk
+*.pdb
+
+# --- Node / frontend ---
+node_modules/
+dist/
+.vite/
+*.log
+npm-debug.log*
+
+# --- Tauri ---
+src-tauri/target/
+src-tauri/gen/
+
+# --- Test notebooks (never version user content) ---
+test-vault/
+test-notebook/
+**/.jott/
+**/.memo/
+
+# --- Internal working docs (kept local, not published) ---
+CLAUDE.md
+docs/
+
+# --- OS / editor ---
+.DS_Store
+.idea/
+.vscode/
+*.swp

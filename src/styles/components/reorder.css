@@ -1,0 +1,62 @@
+/* reorder.css — the shared look of a drag-to-reorder, driven by the
+ * `reorderable` action (lib/actions/reorder.js). The action toggles these two
+ * classes on the items while a drag is live; each component keeps its own
+ * shape, this only governs how they move. */
+
+@layer components {
+  /* Any item in a live reorder: its transform glides, so the others make room
+     for the carried one like Chrome tabs. Only present during a drag. */
+  .reorder-item {
+    transition: transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    will-change: transform;
+  }
+
+  /* The one being carried: it tracks the pointer 1:1 (no transition), lifts a
+     little, and rides above its neighbours as it passes them. */
+  .reorder-item--carried {
+    transition: none;
+    position: relative;
+    z-index: 3;
+    opacity: 0.9;
+    cursor: grabbing;
+  }
+
+  /* The item the drop will go INTO, rather than next to (`onDropInto`,
+     2026-08-06): a ring instead of a gap, because nothing is making room —
+     the carried item is about to become part of this one. */
+  .reorder-item--into {
+    outline: 0.125rem solid var(--theme-brand);
+    outline-offset: 0.0625rem;
+    border-radius: var(--theme-radius-xs);
+  }
+
+  /* Carried clear of its list: it is about to LEAVE it (a workspace dragged
+     out of a group). A dashed edge rather than the solid ring of `--into` —
+     one says "this receives it", the other says "this is on its way out". */
+  .reorder-item--leaving {
+    outline: 0.125rem dashed var(--theme-brand);
+    outline-offset: 0.125rem;
+    border-radius: var(--theme-radius-xs);
+    opacity: 0.75;
+  }
+
+  /* A grip: the handle a row is dragged by (rows, unlike tabs, are clicked to
+     open, so the drag needs its own surface). Hidden until its row is hovered —
+     each row reveals it in its own stylesheet (`.<row>:hover .reorder-grip`),
+     since the row class differs and top-level hooks stay class-first here. */
+  .reorder-grip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: var(--theme-ink-faint);
+    cursor: grab;
+    opacity: 0;
+    transition: opacity 120ms ease, color 120ms ease;
+    touch-action: none;
+  }
+  .reorder-grip:hover {
+    color: var(--theme-ink-muted);
+    opacity: 1;
+  }
+}

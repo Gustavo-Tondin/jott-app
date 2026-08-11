@@ -1,0 +1,87 @@
+/* settings.css — the visual layer of SettingsView.svelte.
+ * Markup: src/lib/screens/SettingsView.svelte. Selectors are the stable BEM hooks a theme
+ * may restyle; components read tokens only. */
+
+@layer components {
+  .settings__section {
+    margin-bottom: var(--theme-space-24);
+    max-width: 34rem;
+  }
+  .settings__section-title {
+    font-size: var(--theme-text-12);
+    letter-spacing: var(--theme-tracking-wide);
+    text-transform: uppercase;
+    color: var(--theme-ink-muted);
+    margin: 0 0 var(--theme-space-8);
+    border-bottom: 0.0625rem solid var(--theme-line);
+    padding-bottom: var(--theme-space-4);
+  }
+  .settings__row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--theme-space-16);
+    padding: var(--theme-space-6) 0;
+    margin: 0;
+  }
+  /* The controls wear the shared .theme-input / .theme-select; the row only
+     keeps them at a readable fixed width instead of filling all the space. */
+  .settings__row .theme-input,
+  .settings__row .theme-select {
+    width: auto;
+    min-width: 12rem;
+  }
+  .settings__hint {
+    margin: 0 0 var(--theme-space-10);
+    font-size: var(--theme-text-13);
+    color: var(--theme-ink-faint);
+  }
+  .settings__path {
+    font-size: var(--theme-text-13);
+    color: var(--theme-ink-muted);
+    word-break: break-all;
+  }
+  .settings__notice {
+    background: var(--theme-surface-sunken);
+    border: 0.0625rem solid var(--theme-line);
+    padding: var(--theme-space-8) var(--theme-space-12);
+    border-radius: var(--theme-radius-sm);
+    color: var(--theme-ink);
+  }
+  .settings__saved {
+    color: var(--theme-brand);
+    font-size: var(--theme-text-13);
+  }
+}
+
+/* App functions (2026-08-06): a sub-option is indented under the switch it
+   belongs to, and reads quieter — it is a detail of that one, not a peer. */
+@layer components {
+  .settings__row--sub {
+    padding-inline-start: var(--theme-space-24);
+    font-size: var(--theme-text-14);
+    color: var(--theme-ink-muted);
+  }
+
+  /* A hairline between rows, so the eye can tell which switch belongs to which
+     name (user report, 2026-08-06 — a column of labels and a column of
+     switches with nothing between them is a column of guesses). It is the
+     faintest line the theme has: this is a reading aid, not a division. */
+  .settings__section--features .settings__row + .settings__row {
+    border-top: 0.0625rem solid var(--theme-line-soft);
+  }
+  /* The line follows the indent, so it reads as belonging to the group. */
+  .settings__section--features .settings__row--sub {
+    margin-inline-start: var(--theme-space-24);
+    padding-inline-start: 0;
+  }
+
+  /* A big switch that follows the small ones (Notes, after the task fields)
+     gets air instead of a hairline: it is not one more detail of Tasks. */
+  .settings__section--features
+    .settings__row--sub
+    + .settings__row:not(.settings__row--sub) {
+    margin-block-start: var(--theme-space-16);
+    border-top: none;
+  }
+}

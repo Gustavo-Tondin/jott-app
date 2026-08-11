@@ -1,0 +1,100 @@
+/* task-composer.css — the visual layer of TaskComposer.svelte.
+ * Markup: src/lib/components/TaskComposer.svelte. Faithful to the wireframes
+ * "Tasks Screen Writing.pdf" and "New task popup.pdf" (2026-08-06): one wide
+ * rounded row, a ＋ on the left, and the quick fields tucked to the right.
+ * Selectors are the stable BEM hooks a theme may restyle. */
+
+@layer components {
+  .task-composer {
+    display: flex;
+    align-items: center;
+    gap: var(--theme-space-8);
+    padding: var(--theme-space-8) var(--theme-space-12);
+    background: var(--theme-surface);
+    border: 0.0625rem solid var(--theme-line);
+    border-radius: var(--theme-radius-md);
+  }
+
+  /* The bar variant is pinned to the bottom of the scrolling content and the
+     cards pass UNDERNEATH it (user call, 2026-08-06) — hence the opaque
+     surface and the shadow, which is what tells the two layers apart. The
+     margin above keeps it from touching the last card. */
+  .task-composer--bar {
+    position: sticky;
+    bottom: 0;
+    z-index: 5;
+    /* `auto` pushes it to the bottom of the panel even when the list is
+       short — the wireframe draws it there, not floating under two cards. */
+    margin-block-start: auto;
+    /* Small on purpose: the shadow is only here to say "the cards pass under
+       this", not to lift the bar off the page (user call, 2026-08-06). */
+    box-shadow: 0 -0.0625rem 0.25rem color-mix(in srgb, var(--theme-ink) 8%, transparent);
+  }
+
+  /* Inside the dialog the row is the whole point, so it sits flush. */
+  .task-composer--dialog {
+    background: var(--theme-surface-sunken);
+    border-color: transparent;
+  }
+
+  .task-composer__add {
+    flex-shrink: 0;
+    color: var(--theme-ink-faint);
+  }
+  .task-composer__add:not(:disabled) {
+    color: var(--theme-brand);
+  }
+
+  /* Plain input: the row already IS the box, so a second border inside it
+     would draw a field within a field. */
+  .task-composer__input {
+    flex: 1 1 auto;
+    width: auto;
+    min-width: 0;
+  }
+
+  .task-composer__fields {
+    display: flex;
+    align-items: center;
+    gap: var(--theme-space-2);
+    flex-shrink: 0;
+  }
+
+  /* The destination chip — the one field that always carries a value. */
+  .task-composer__list {
+    max-inline-size: 12rem;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  /* Date / remind / repeat: quiet until they hold something, then brand — the
+     icon carries its own state, so nothing has to be spelled out in the row. */
+  .task-composer__field {
+    color: var(--theme-ink-faint);
+  }
+  .task-composer__field--set {
+    color: var(--theme-brand);
+  }
+
+  .task-composer__repeat {
+    position: relative;
+    display: inline-flex;
+  }
+  .task-composer__repeat-panel {
+    display: flex;
+    align-items: center;
+    gap: var(--theme-space-6);
+    padding: var(--theme-space-8);
+    white-space: nowrap;
+  }
+  .task-composer__repeat-label {
+    font-size: var(--theme-text-13);
+    color: var(--theme-ink-muted);
+  }
+  /* The same height as the unit beside it: it wears the shared `--sm` size,
+     and only its width is its own. */
+  .task-composer__repeat-every {
+    inline-size: 3rem;
+  }
+}

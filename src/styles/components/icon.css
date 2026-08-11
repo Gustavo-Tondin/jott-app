@@ -1,0 +1,18 @@
+/* icon.css — the visual layer of Icon.svelte.
+ * Markup: src/lib/components/Icon.svelte. Selectors are the stable BEM hooks a theme
+ * may restyle; components read tokens only. */
+
+@layer components {
+  .theme-icon {
+    display: inline-flex;
+    width: var(--icon-size);
+    height: var(--icon-size);
+    line-height: 0;
+    flex-shrink: 0;
+  }
+  .theme-icon svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+}

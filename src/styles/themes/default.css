@@ -1,0 +1,64 @@
+/* themes/default.css — the factory theme.
+ *
+ * A theme is a CSS file that redefines the semantic COLOUR roles (--theme-*).
+ * This file IS the default one: it maps each role onto a palette primitive
+ * (defined in tokens.css). A dark theme, or any community theme, is a sibling
+ * file with the same shape — the same roles pointing at different values.
+ *
+ * It is imported UNLAYERED (no @layer), after every layered style, so anything
+ * here wins over the app's own styles without a specificity fight. That is the
+ * whole mechanism: `@layer tokens` in tokens.css holds the palette + metrics;
+ * this unlayered `:root` holds the colours and always beats it.
+ *
+ * What is NOT here (stays in tokens.css): the --palette-* primitives, and the
+ * structural scales (spacing, radius, type, layout, motion, window-radius) —
+ * those are shared metrics, not look. A theme that wants a new colour points a
+ * role straight at its own value; it never needs to touch the palette.
+ *
+ * A theme may also go further and restyle the stable BEM hooks
+ * (`.titlebar__*`, `.task-row__*`, `.theme-btn`…). Themes are CSS, never
+ * JavaScript (project-strategy.md 4.6). Post-v1 the app loads user themes from
+ * `.jott/themes/<name>.css` exactly like this file.
+ *
+ * To make a dark theme: copy this block into themes/dark.css and re-point the
+ * roles (e.g. --theme-bg: #1e2228; --theme-ink: #e6e9ee; …).
+ */
+
+:root {
+  /* surfaces, from furthest-back to closest */
+  --theme-bg: var(--palette-gray); /* the window canvas behind everything */
+  --theme-surface: var(--palette-light); /* raised: content panel, tabs, cards, fields */
+  --theme-surface-sunken: var(--palette-gray); /* inset on a surface: task cards, chips, groups */
+  /* The hover veil: a translucent darkening that reads on ANY ground (white
+     surface, grey sidebar) — what every icon button and nav row hovers with. */
+  --theme-hover: color-mix(in srgb, var(--theme-ink) 8%, transparent);
+
+  /* text and icons, by emphasis */
+  --theme-ink: var(--palette-dark); /* primary text */
+  --theme-ink-muted: var(--palette-dark-mute); /* secondary text, most icons */
+  --theme-ink-faint: var(--palette-gray-mute); /* placeholder, disabled, close × */
+  --theme-on-brand: var(--palette-light); /* text/icon sitting on a brand fill */
+
+  /* lines */
+  --theme-line: var(--palette-gray-divider); /* dividers, card borders */
+  --theme-line-soft: var(--palette-gray); /* the faintest border (note cards) */
+
+  /* brand (the blue) */
+  --theme-brand: var(--palette-blue);
+  --theme-brand-weak: var(--palette-blue-light); /* active-nav bg, highlighted task */
+  --theme-brand-outline: var(--palette-blue-outline); /* border of a highlighted item */
+  /* accent (the cyan of a workspace title, wireframe #3DB7E7) */
+  --theme-accent: #3db7e7;
+
+  /* elevation — the one shadow in the app: what lifts a transient surface (a
+     menu, a picker, a dialog) off the page. It is a colour role, so it lives
+     with the theme: a dark theme needs a deeper, colder lift, and until this
+     existed the four popups each carried their own raw rgba(). */
+  --theme-shadow-popover: 0 0.375rem 1.25rem
+    color-mix(in srgb, var(--theme-ink) 18%, transparent);
+
+  /* status */
+  --theme-danger: var(--palette-red); /* overdue date, destructive action, high priority */
+  --theme-warning: var(--palette-amber); /* medium priority */
+  --theme-success: var(--palette-green); /* a finished progress bar, low priority */
+}

@@ -1,0 +1,32 @@
+/* editor.css — the visual layer of Editor.svelte.
+ * Markup: src/lib/components/Editor.svelte. Selectors are the stable BEM hooks a theme
+ * may restyle; components read tokens only. */
+
+@layer components {
+  .editor {
+    height: 100%;
+  }
+  /* CodeMirror renders into our subtree, so these need :global. */
+  .editor .cm-editor {
+    height: 100%;
+    font: inherit;
+  }
+  .editor .cm-editor.cm-focused {
+    outline: none;
+  }
+  .editor .cm-content {
+    padding: 0.5rem 0;
+    line-height: 1.6;
+    caret-color: #222;
+  }
+  .editor .cm-line {
+    padding: 0 0.2rem;
+  }
+  .editor .cm-task-checkbox {
+    margin-right: 0.35rem;
+    vertical-align: middle;
+  }
+  .editor .cm-placeholder {
+    color: #999;
+  }
+}

@@ -1,0 +1,100 @@
+/* window.css — the frameless window's own frame.
+ *
+ * The OS gives no rounding to an undecorated window on GNOME/Wayland, so the
+ * app draws its own. `overflow: hidden` clips the content to the rounded
+ * corners; the transparent page behind (reset.css) lets the corners show
+ * through. The app's edge is the OS window's edge — no gutter, no
+ * webview-drawn shadow (it accumulated alpha on WebKitGTK repaints until it
+ * turned into a black ring). The hairline border is what separates the app
+ * from whatever is behind it. */
+
+@layer components {
+  .window {
+    position: relative; /* anchors the resize grips */
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: var(--theme-bg);
+    border-radius: var(--theme-window-radius);
+    overflow: hidden;
+    border: 0.0625rem solid var(--theme-line);
+  }
+
+  /* Maximized/fullscreen: the window IS the screen — square corners, no
+     hairline, no dead pixels at the edges. */
+  .window--flush {
+    border-radius: 0;
+    border: none;
+  }
+
+  /* ---- resize grips (ResizeHandles.svelte) ----
+     Eight invisible strips over the window's edges and corners. The layer
+     itself lets clicks through; only the strips catch the pointer, each with
+     the cursor that says which way it resizes. App renders them only when the
+     window is not flush. */
+  .window__resize {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 50;
+  }
+  .window__resize-grip {
+    position: absolute;
+    pointer-events: auto;
+  }
+  /* edges: thin strips */
+  .window__resize-grip--n,
+  .window__resize-grip--s {
+    left: 0;
+    right: 0;
+    height: 0.25rem;
+    cursor: ns-resize;
+  }
+  .window__resize-grip--e,
+  .window__resize-grip--w {
+    top: 0;
+    bottom: 0;
+    width: 0.25rem;
+    cursor: ew-resize;
+  }
+  .window__resize-grip--n {
+    top: 0;
+  }
+  .window__resize-grip--s {
+    bottom: 0;
+  }
+  .window__resize-grip--w {
+    left: 0;
+  }
+  .window__resize-grip--e {
+    right: 0;
+  }
+  /* corners: small squares that sit above the edge strips */
+  .window__resize-grip--nw,
+  .window__resize-grip--ne,
+  .window__resize-grip--sw,
+  .window__resize-grip--se {
+    width: 0.75rem;
+    height: 0.75rem;
+  }
+  .window__resize-grip--nw {
+    top: 0;
+    left: 0;
+    cursor: nwse-resize;
+  }
+  .window__resize-grip--se {
+    bottom: 0;
+    right: 0;
+    cursor: nwse-resize;
+  }
+  .window__resize-grip--ne {
+    top: 0;
+    right: 0;
+    cursor: nesw-resize;
+  }
+  .window__resize-grip--sw {
+    bottom: 0;
+    left: 0;
+    cursor: nesw-resize;
+  }
+}
