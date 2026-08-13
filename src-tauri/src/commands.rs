@@ -46,6 +46,13 @@ pub struct NotebookLayout {
     pub date_display_format: String,
     pub close_inspector_on_click_away: bool,
     pub quick_note_folder: String,
+    /// Which of the seven the app is accented with, and which theme is on,
+    /// both by name (2026-08-13). They ride in the layout rather than the
+    /// settings because the shell needs them on the FIRST paint — both are
+    /// attributes on the document root, and waiting for a second round trip
+    /// would flash the wrong colours. Empty means what the app ships as.
+    pub accent_color: String,
+    pub theme: String,
     /// Which parts of the app are switched on (2026-08-06). Only what was
     /// switched OFF is listed; the frontend's `services/features.js` reads a
     /// missing key as on, and applies a child's parent for it.
@@ -95,6 +102,8 @@ impl NotebookInfo {
                     .config()
                     .close_inspector_on_click_away,
                 quick_note_folder: notebook.config().quick_note_folder.clone(),
+                accent_color: notebook.config().accent_color.clone(),
+                theme: notebook.config().theme.clone(),
                 features: notebook.config().features.clone(),
             },
         })
@@ -123,6 +132,10 @@ pub struct NotebookSettings {
     pub show_list_counts: Option<bool>,
     pub auto_urgent_by_date: Option<bool>,
     pub date_display_format: Option<String>,
+    /// One of the seven, by name; empty goes back to the app's own.
+    pub accent_color: Option<String>,
+    /// A theme name; empty goes back to the app's own.
+    pub theme: Option<String>,
     pub close_inspector_on_click_away: Option<bool>,
     pub quick_note_folder: Option<String>,
     /// Days a completed task stays in its `Completed.md` before the reaper
@@ -333,6 +346,8 @@ pub fn notebook_settings(state: State<'_, AppState>) -> CommandResult<NotebookSe
             show_list_counts: Some(config.show_list_counts),
             auto_urgent_by_date: Some(config.auto_urgent_by_date),
             date_display_format: Some(config.date_display_format.render().to_string()),
+            accent_color: Some(config.accent_color.clone()),
+            theme: Some(config.theme.clone()),
             close_inspector_on_click_away: Some(config.close_inspector_on_click_away),
             quick_note_folder: Some(config.quick_note_folder.clone()),
             completed_retention_days: Some(config.completed_retention_days),
@@ -381,6 +396,15 @@ pub fn set_notebook_settings(
         }
         if let Some(v) = &settings.date_display_format {
             config.date_display_format = jott_core::config::DateFormat::parse_or_default(v);
+        }
+        // Not validated here: the seven colours and the list of themes are the
+        // interface's, and a name this build does not know must round-trip
+        // (core/src/config.rs).
+        if let Some(v) = &settings.accent_color {
+            config.accent_color = v.trim().to_string();
+        }
+        if let Some(v) = &settings.theme {
+            config.theme = v.trim().to_string();
         }
         if let Some(v) = settings.close_inspector_on_click_away {
             config.close_inspector_on_click_away = v;
@@ -1089,7 +1113,7 @@ pub fn rename_workspace(
     folder: String,
     name: String,
 ) -> CommandResult<()> {
-    state.with_notebook(|nb| Ok(nb.rename_workspace(&folder, &name)?))
+    state.with_notebook_mut(|nb| Ok(nb.rename_workspace(&folder, &name)?))
 }
 
 /// Sets a workspace's accent colour and icon (either empty clears it).
@@ -1152,7 +1176,10 @@ fn groups_of(nb: &Notebook) -> CommandResult<Vec<GroupInfo>> {
     let mut out = Vec::new();
     for g in nb.groups()? {
         out.push(GroupInfo {
-            name: g.config.name.clone().unwrap_or_else(|| g.folder.clone()),
+            // The FOLDER is the name (2026-08-13), for a group exactly as for
+            // a workspace: no second copy in the marker to drift away from it,
+            // and renaming the folder outside the app renames the group here.
+            name: g.folder.clone(),
             color: g.config.color.clone(),
             icon: g.config.icon.clone(),
             folder: g.folder,
@@ -1186,12 +1213,12 @@ pub fn move_group(
     name: String,
     into_group: Option<String>,
 ) -> CommandResult<()> {
-    state.with_notebook(|nb| Ok(nb.move_group(&name, into_group.as_deref())?))
+    state.with_notebook_mut(|nb| Ok(nb.move_group(&name, into_group.as_deref())?))
 }
 
 #[tauri::command]
 pub fn rename_group(state: State<'_, AppState>, folder: String, name: String) -> CommandResult<()> {
-    state.with_notebook(|nb| Ok(nb.rename_group(&folder, &name)?))
+    state.with_notebook_mut(|nb| Ok(nb.rename_group(&folder, &name)?))
 }
 
 #[tauri::command]
@@ -1206,7 +1233,7 @@ pub fn set_group_appearance(
 
 #[tauri::command]
 pub fn delete_group(state: State<'_, AppState>, folder: String) -> CommandResult<()> {
-    state.with_notebook(|nb| Ok(nb.delete_group(&folder)?))
+    state.with_notebook_mut(|nb| Ok(nb.delete_group(&folder)?))
 }
 
 #[tauri::command]
@@ -1215,7 +1242,7 @@ pub fn move_workspace(
     name: String,
     into_group: Option<String>,
 ) -> CommandResult<()> {
-    state.with_notebook(|nb| Ok(nb.move_workspace(&name, into_group.as_deref())?))
+    state.with_notebook_mut(|nb| Ok(nb.move_workspace(&name, into_group.as_deref())?))
 }
 
 #[tauri::command]

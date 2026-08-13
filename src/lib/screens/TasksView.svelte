@@ -26,7 +26,7 @@
     clock,
     lists = [],
     tags = [],
-    completedName = "Completed",
+    completedName = "completed",
     /// What is pulled into the Day, so an Inbox card can say it is in today.
     dayRefs = null,
     /// `(key) => boolean` — is this part of the app switched on?

@@ -7,7 +7,7 @@
   // reorders the FILE rather than a config.
   import { api } from "../services/api.js";
   import { ensureTaskId } from "../services/taskId.js";
-  import { listName } from "../services/paths.js";
+  import { listTitle } from "../services/paths.js";
   import { S } from "../services/strings.js";
   import { makeAct } from "../services/act.js";
   import { taskActions, isSelectedTask } from "../services/taskActions.js";
@@ -103,7 +103,7 @@
 
 <div class="list-view">
   <header class="list-view__header">
-    <h2 class="theme-title list-view__title">{listName(list)}</h2>
+    <h2 class="theme-title list-view__title">{listTitle(list)}</h2>
   </header>
 
   {#if tasks.length === 0}

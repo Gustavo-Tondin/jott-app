@@ -17,21 +17,9 @@
     display: flex;
     gap: var(--theme-space-6);
   }
-  .palette__swatch {
-    width: 1.25rem;
-    height: 1.25rem;
-    padding: 0;
-    border: 0.125rem solid transparent;
-    border-radius: 50%;
-    background: var(--dot, var(--theme-surface-sunken));
-    cursor: pointer;
-  }
-  .palette__swatch--clear {
-    background: var(--theme-surface-sunken);
-  }
-  .palette__swatch--on {
-    border-color: var(--theme-ink);
-  }
+  /* The colour swatches moved out to the shared AccentPicker (2026-08-13) —
+     three screens were drawing the same row. See components/accent-picker.css.
+     What stays here is the icon row, which is this popup's alone. */
   .palette__icon {
     display: inline-flex;
     align-items: center;

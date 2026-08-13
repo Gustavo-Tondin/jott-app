@@ -16,6 +16,13 @@
     gap: var(--theme-space-8);
     min-block-size: 2rem;
   }
+  /* The Home (2026-08-13): the title takes the whole row and centres in it,
+     with the mirrored ⋮ balancing the real one at the other end. */
+  .tasks-widget__header--center .tasks-widget__title {
+    flex: 1;
+    min-width: 0;
+    text-align: center;
+  }
   /* New task + the widget's ⋮, together on the right. `auto` rather than
      `space-between` on the header: with no title (the Tasks screen) the tools
      still have to hug the right edge, and with a host toolbar in the middle

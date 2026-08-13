@@ -40,7 +40,7 @@ fn completing_moves_the_task_to_completed_with_its_origin() {
     assert!(task.done);
     assert_eq!(task.origin.as_deref(), Some("Compras"));
 
-    let completed = read(dir.path().join("jott.tasks/Completed.md"));
+    let completed = read(dir.path().join("jott.tasks/completed.md"));
     assert!(completed.contains("- [x] Comprar leite"));
     assert!(completed.contains(&format!("id:{id}")));
     assert!(completed.contains("origin:Compras"));
@@ -59,32 +59,32 @@ fn creating_stamps_created_and_completing_stamps_completed() {
     let today = jott_core::clock::civil_today();
 
     let position = notebook
-        .create_task("jott.tasks/Tasks.md", "Comprar leite")
+        .create_task("jott.tasks/task-list.md", "Comprar leite")
         .unwrap();
     assert!(
-        read(dir.path().join("jott.tasks/Tasks.md")).contains(&format!("created:{today}")),
+        read(dir.path().join("jott.tasks/task-list.md")).contains(&format!("created:{today}")),
         "a created task is stamped with today's date"
     );
 
     // Creating from Today/This Week goes through the same stamp.
     notebook.add_task_in_period(Period::Day, "Da tela de hoje").unwrap();
-    let inbox = read(dir.path().join("jott.tasks/Tasks.md"));
+    let inbox = read(dir.path().join("jott.tasks/task-list.md"));
     assert_eq!(inbox.matches(&format!("created:{today}")).count(), 2);
 
-    let id = notebook.ensure_task_id("jott.tasks/Tasks.md", position).unwrap();
-    let done = notebook.complete_task("jott.tasks/Tasks.md", &id).unwrap();
+    let id = notebook.ensure_task_id("jott.tasks/task-list.md", position).unwrap();
+    let done = notebook.complete_task("jott.tasks/task-list.md", &id).unwrap();
     assert_eq!(done.completed, Some(today));
     assert!(
-        read(dir.path().join("jott.tasks/Completed.md"))
+        read(dir.path().join("jott.tasks/completed.md"))
             .contains(&format!("completed:{today}")),
         "completing stamps the completion date"
     );
 
     let undone = notebook
-        .uncomplete_task("jott.tasks/Completed.md", &id)
+        .uncomplete_task("jott.tasks/completed.md", &id)
         .unwrap();
     assert_eq!(undone.completed, None, "undo clears the stamp");
-    assert!(!read(dir.path().join("jott.tasks/Tasks.md")).contains("completed:"));
+    assert!(!read(dir.path().join("jott.tasks/task-list.md")).contains("completed:"));
 }
 
 #[test]
@@ -95,16 +95,16 @@ fn undoing_keeps_the_spawn_and_recompleting_does_not_duplicate() {
     // finds its occurrence still alive and does not generate another.
     let dir = tempfile::tempdir().unwrap();
     let notebook = Notebook::init(dir.path()).unwrap();
-    let inbox_path = dir.path().join("jott.tasks/Tasks.md");
+    let inbox_path = dir.path().join("jott.tasks/task-list.md");
     std::fs::write(
         &inbox_path,
         "- [ ] Regar as plantas <!--id:a1-->\n  @2026-07-25\n  repeat: every-week\n",
     )
     .unwrap();
 
-    notebook.complete_task("jott.tasks/Tasks.md", "a1").unwrap();
+    notebook.complete_task("jott.tasks/task-list.md", "a1").unwrap();
     notebook
-        .uncomplete_task("jott.tasks/Completed.md", "a1")
+        .uncomplete_task("jott.tasks/completed.md", "a1")
         .unwrap();
     let inbox = read(&inbox_path);
     assert_eq!(
@@ -117,7 +117,7 @@ fn undoing_keeps_the_spawn_and_recompleting_does_not_duplicate() {
         "the restored original keeps its pointer:\n{inbox}"
     );
 
-    notebook.complete_task("jott.tasks/Tasks.md", "a1").unwrap();
+    notebook.complete_task("jott.tasks/task-list.md", "a1").unwrap();
     let inbox = read(&inbox_path);
     assert_eq!(
         inbox.matches("Regar as plantas").count(),
@@ -135,26 +135,26 @@ fn recompleting_after_the_chain_moved_on_does_not_regrow_it() {
     // already been completed, so re-completing generated it a second time.
     let dir = tempfile::tempdir().unwrap();
     let notebook = Notebook::init(dir.path()).unwrap();
-    let inbox_path = dir.path().join("jott.tasks/Tasks.md");
+    let inbox_path = dir.path().join("jott.tasks/task-list.md");
     std::fs::write(
         &inbox_path,
         "- [ ] repeat <!--id:a1-->\n  @2026-07-31\n  repeat: every-day\n",
     )
     .unwrap();
 
-    notebook.complete_task("jott.tasks/Tasks.md", "a1").unwrap();
-    let spawn_id = notebook.ensure_task_id("jott.tasks/Tasks.md", 0).unwrap();
+    notebook.complete_task("jott.tasks/task-list.md", "a1").unwrap();
+    let spawn_id = notebook.ensure_task_id("jott.tasks/task-list.md", 0).unwrap();
     notebook
-        .complete_task("jott.tasks/Tasks.md", &spawn_id)
+        .complete_task("jott.tasks/task-list.md", &spawn_id)
         .unwrap();
 
     notebook
-        .uncomplete_task("jott.tasks/Completed.md", "a1")
+        .uncomplete_task("jott.tasks/completed.md", "a1")
         .unwrap();
-    notebook.complete_task("jott.tasks/Tasks.md", "a1").unwrap();
+    notebook.complete_task("jott.tasks/task-list.md", "a1").unwrap();
 
     let inbox = read(&inbox_path);
-    let completed = read(dir.path().join("jott.tasks/Completed.md"));
+    let completed = read(dir.path().join("jott.tasks/completed.md"));
     assert_eq!(
         inbox.matches("@2026-08-01").count(),
         0,
@@ -179,7 +179,7 @@ fn a_legacy_completion_without_the_pointer_still_does_not_duplicate() {
     // the list or already completed — before generating anything.
     let dir = tempfile::tempdir().unwrap();
     let notebook = Notebook::init(dir.path()).unwrap();
-    let inbox_path = dir.path().join("jott.tasks/Tasks.md");
+    let inbox_path = dir.path().join("jott.tasks/task-list.md");
     std::fs::write(
         &inbox_path,
         "- [ ] Regar as plantas <!--id:a1-->\n  @2026-07-25\n  repeat: every-week\n\
@@ -187,7 +187,7 @@ fn a_legacy_completion_without_the_pointer_still_does_not_duplicate() {
     )
     .unwrap();
 
-    notebook.complete_task("jott.tasks/Tasks.md", "a1").unwrap();
+    notebook.complete_task("jott.tasks/task-list.md", "a1").unwrap();
 
     let inbox = read(&inbox_path);
     assert_eq!(
@@ -195,7 +195,7 @@ fn a_legacy_completion_without_the_pointer_still_does_not_duplicate() {
         1,
         "the twin already scheduled @08-01 — no second copy:\n{inbox}"
     );
-    let completed = read(dir.path().join("jott.tasks/Completed.md"));
+    let completed = read(dir.path().join("jott.tasks/completed.md"));
     assert!(
         completed.contains("spawned:b2"),
         "the completion adopts the twin as its spawn:\n{completed}"
@@ -210,18 +210,18 @@ fn completing_keeps_the_task_in_today_and_this_week_pointing_at_completed() {
     let dir = tempfile::tempdir().unwrap();
     let (notebook, id) = notebook_with_task(dir.path(), "Ligar pro dentista");
 
-    notebook.pull_into(Period::Day, "jott.tasks/Tasks.md", &id).unwrap();
-    notebook.pull_into(Period::Week, "jott.tasks/Tasks.md", &id).unwrap();
+    notebook.pull_into(Period::Day, "jott.tasks/task-list.md", &id).unwrap();
+    notebook.pull_into(Period::Week, "jott.tasks/task-list.md", &id).unwrap();
 
-    notebook.complete_task("jott.tasks/Tasks.md", &id).unwrap();
+    notebook.complete_task("jott.tasks/task-list.md", &id).unwrap();
 
     for period in [Period::Day, Period::Week] {
         let state = notebook.open_state(period).unwrap().state;
         assert!(
-            state.contains("jott.tasks/Completed.md", &id),
+            state.contains("jott.tasks/completed.md", &id),
             "{period:?} follows the task into Completed: {state:?}"
         );
-        assert!(!state.contains("jott.tasks/Tasks.md", &id));
+        assert!(!state.contains("jott.tasks/task-list.md", &id));
     }
 
     // And the period still resolves it — as a done task, which is what the
@@ -229,12 +229,12 @@ fn completing_keeps_the_task_in_today_and_this_week_pointing_at_completed() {
     let listed = notebook.period_tasks(Period::Day).unwrap();
     assert_eq!(listed.len(), 1);
     assert!(listed[0].task.done);
-    assert_eq!(listed[0].path, "jott.tasks/Completed.md");
+    assert_eq!(listed[0].path, "jott.tasks/completed.md");
 
     // Undoing brings it back to the open list, reference and all.
-    notebook.uncomplete_task("jott.tasks/Completed.md", &id).unwrap();
+    notebook.uncomplete_task("jott.tasks/completed.md", &id).unwrap();
     let state = notebook.open_state(Period::Day).unwrap().state;
-    assert!(state.contains("jott.tasks/Tasks.md", &id), "{state:?}");
+    assert!(state.contains("jott.tasks/task-list.md", &id), "{state:?}");
 }
 
 #[test]
@@ -246,11 +246,11 @@ fn moving_a_task_to_another_list_takes_its_period_references_along() {
     let (notebook, id) = notebook_with_task(dir.path(), "Comprar leite");
     notebook.create_list("jott.tasks", "Compras").unwrap();
 
-    notebook.pull_into(Period::Day, "jott.tasks/Tasks.md", &id).unwrap();
+    notebook.pull_into(Period::Day, "jott.tasks/task-list.md", &id).unwrap();
     notebook
         .move_task(
             &id,
-            "jott.tasks/Tasks.md",
+            "jott.tasks/task-list.md",
             "jott.tasks/Compras.md",
             jott_core::notebook::OriginAction::Clear,
         )
@@ -276,13 +276,13 @@ fn a_period_keeps_the_order_the_user_dragged_and_its_own_sort() {
         .collect();
     inbox.save().unwrap();
     for id in &ids {
-        notebook.pull_into(Period::Day, "jott.tasks/Tasks.md", id).unwrap();
+        notebook.pull_into(Period::Day, "jott.tasks/task-list.md", id).unwrap();
     }
 
     let refs = |order: [usize; 3]| {
         order
             .iter()
-            .map(|i| jott_core::state::TaskRef::new("jott.tasks/Tasks.md", &ids[*i]))
+            .map(|i| jott_core::state::TaskRef::new("jott.tasks/task-list.md", &ids[*i]))
             .collect::<Vec<_>>()
     };
     notebook.set_period_order(Period::Day, &refs([2, 0, 1])).unwrap();
@@ -300,14 +300,14 @@ fn a_period_keeps_the_order_the_user_dragged_and_its_own_sort() {
     let mut extra = notebook.inbox().unwrap();
     let late = extra.add_text_with_id("tardia");
     extra.save().unwrap();
-    notebook.pull_into(Period::Day, "jott.tasks/Tasks.md", &late).unwrap();
+    notebook.pull_into(Period::Day, "jott.tasks/task-list.md", &late).unwrap();
     notebook.set_period_order(Period::Day, &refs([1, 0, 2])).unwrap();
     assert_eq!(notebook.open_state(Period::Day).unwrap().state.len(), 4);
     assert!(notebook
         .open_state(Period::Day)
         .unwrap()
         .state
-        .contains("jott.tasks/Tasks.md", &late));
+        .contains("jott.tasks/task-list.md", &late));
 
     // And the sorting round-trips through the config, clearing back to none.
     assert_eq!(notebook.period_sort(Period::Day), None);
@@ -329,12 +329,12 @@ fn write_completed(dir: &Path, dates: &[(&str, &str)]) {
             "- [x] task {id} <!--id:{id} completed:{date} origin:Inbox-->\n"
         ));
     }
-    std::fs::write(dir.join("jott.tasks/Completed.md"), text).unwrap();
+    std::fs::write(dir.join("jott.tasks/completed.md"), text).unwrap();
 }
 
 fn completed_ids(notebook: &Notebook) -> Vec<String> {
     notebook
-        .open_list("jott.tasks/Completed.md")
+        .open_list("jott.tasks/completed.md")
         .unwrap()
         .tasks()
         .filter_map(|task| task.id.clone())
@@ -390,7 +390,7 @@ fn a_completed_task_with_no_stamp_is_never_reaped() {
     let dir = tempfile::tempdir().unwrap();
     let notebook = Notebook::init(dir.path()).unwrap();
     std::fs::write(
-        dir.path().join("jott.tasks/Completed.md"),
+        dir.path().join("jott.tasks/completed.md"),
         "- [x] escrita à mão <!--id:aa origin:Inbox-->\n",
     )
     .unwrap();
@@ -410,14 +410,14 @@ fn undoing_sends_the_task_back_to_its_origin_list() {
     compras.save().unwrap();
 
     notebook.complete_task("jott.tasks/Compras.md", &id).unwrap();
-    let task = notebook.uncomplete_task("jott.tasks/Completed.md", &id).unwrap();
+    let task = notebook.uncomplete_task("jott.tasks/completed.md", &id).unwrap();
 
     assert!(!task.done);
     assert_eq!(task.origin, None, "origin is consumed by the undo");
 
     let compras = read(dir.path().join("jott.tasks/Compras.md"));
     assert!(compras.contains("- [ ] Comprar leite"));
-    assert!(!read(dir.path().join("jott.tasks/Completed.md")).contains("Comprar leite"));
+    assert!(!read(dir.path().join("jott.tasks/completed.md")).contains("Comprar leite"));
 }
 
 #[test]
@@ -435,7 +435,7 @@ fn undoing_recreates_an_origin_list_that_was_deleted_outside_the_app() {
     // Completed.
     std::fs::remove_file(dir.path().join("jott.tasks/Compras.md")).unwrap();
 
-    notebook.uncomplete_task("jott.tasks/Completed.md", &id).unwrap();
+    notebook.uncomplete_task("jott.tasks/completed.md", &id).unwrap();
     assert!(read(dir.path().join("jott.tasks/Compras.md")).contains("Comprar leite"));
 }
 
@@ -446,13 +446,13 @@ fn undoing_a_task_without_a_usable_origin_falls_back_to_the_inbox() {
 
     // Written by hand in Obsidian: done, with an id, but no origin.
     std::fs::write(
-        dir.path().join("jott.tasks/Completed.md"),
+        dir.path().join("jott.tasks/completed.md"),
         "- [x] Pagar internet <!--id:abc123-->\n",
     )
     .unwrap();
 
-    notebook.uncomplete_task("jott.tasks/Completed.md", "abc123").unwrap();
-    assert!(read(dir.path().join("jott.tasks/Tasks.md")).contains("Pagar internet"));
+    notebook.uncomplete_task("jott.tasks/completed.md", "abc123").unwrap();
+    assert!(read(dir.path().join("jott.tasks/task-list.md")).contains("Pagar internet"));
 }
 
 #[test]
@@ -460,7 +460,7 @@ fn undoing_an_unknown_id_fails_without_touching_anything() {
     let dir = tempfile::tempdir().unwrap();
     let notebook = Notebook::init(dir.path()).unwrap();
 
-    let err = notebook.uncomplete_task("jott.tasks/Completed.md", "nope").unwrap_err();
+    let err = notebook.uncomplete_task("jott.tasks/completed.md", "nope").unwrap_err();
     assert!(matches!(err, Error::TaskNotFound(_)));
 }
 
@@ -474,20 +474,20 @@ fn reading_a_hand_written_list_leaves_the_file_exactly_as_it_was() {
     let dir = tempfile::tempdir().unwrap();
     let notebook = Notebook::init(dir.path()).unwrap();
     let original = "# Minha lista\n\n- [ ] escrita no Obsidian\n";
-    std::fs::write(dir.path().join("jott.tasks/Tasks.md"), original).unwrap();
+    std::fs::write(dir.path().join("jott.tasks/task-list.md"), original).unwrap();
 
-    let tasks = notebook.tasks_in("jott.tasks/Tasks.md").unwrap();
+    let tasks = notebook.tasks_in("jott.tasks/task-list.md").unwrap();
     assert_eq!(tasks.len(), 1);
     assert_eq!(tasks[0].id, None);
-    assert_eq!(read(dir.path().join("jott.tasks/Tasks.md")), original);
+    assert_eq!(read(dir.path().join("jott.tasks/task-list.md")), original);
 
     // Acting on it is what makes it addressable — and the heading survives.
-    let id = notebook.ensure_task_id("jott.tasks/Tasks.md", 0).unwrap();
-    let on_disk = read(dir.path().join("jott.tasks/Tasks.md"));
+    let id = notebook.ensure_task_id("jott.tasks/task-list.md", 0).unwrap();
+    let on_disk = read(dir.path().join("jott.tasks/task-list.md"));
     assert!(on_disk.contains(&format!("id:{id}")));
     assert!(on_disk.contains("# Minha lista"));
 
-    notebook.complete_task("jott.tasks/Tasks.md", &id).unwrap();
+    notebook.complete_task("jott.tasks/task-list.md", &id).unwrap();
 }
 
 #[test]
@@ -497,12 +497,12 @@ fn a_line_copy_pasted_with_its_id_gets_a_fresh_one() {
     let dir = tempfile::tempdir().unwrap();
     let notebook = Notebook::init(dir.path()).unwrap();
     std::fs::write(
-        dir.path().join("jott.tasks/Tasks.md"),
+        dir.path().join("jott.tasks/task-list.md"),
         "- [ ] Comprar leite <!--id:abc123-->\n- [ ] Comprar leite <!--id:abc123-->\n",
     )
     .unwrap();
 
-    let tasks = notebook.tasks_in("jott.tasks/Tasks.md").unwrap();
+    let tasks = notebook.tasks_in("jott.tasks/task-list.md").unwrap();
 
     assert_eq!(tasks.len(), 2, "both lines must survive");
     let first = tasks[0].id.clone().unwrap();
@@ -511,8 +511,8 @@ fn a_line_copy_pasted_with_its_id_gets_a_fresh_one() {
     assert_ne!(second, first, "the second copy gets its own");
 
     // Both are now independently addressable.
-    notebook.complete_task("jott.tasks/Tasks.md", &second).unwrap();
-    let left = notebook.tasks_in("jott.tasks/Tasks.md").unwrap();
+    notebook.complete_task("jott.tasks/task-list.md", &second).unwrap();
+    let left = notebook.tasks_in("jott.tasks/task-list.md").unwrap();
     assert_eq!(left.len(), 1);
     assert_eq!(left[0].id.as_deref(), Some(first.as_str()));
 }
@@ -523,16 +523,16 @@ fn a_reference_keeps_pointing_at_the_task_it_was_created_for() {
     // then duplicate its line by hand.
     let dir = tempfile::tempdir().unwrap();
     let (notebook, id) = notebook_with_task(dir.path(), "Comprar leite");
-    notebook.pull_into(Period::Day, "jott.tasks/Tasks.md", &id).unwrap();
+    notebook.pull_into(Period::Day, "jott.tasks/task-list.md", &id).unwrap();
 
     let line = format!("- [ ] Comprar leite <!--id:{id}-->");
     std::fs::write(
-        dir.path().join("jott.tasks/Tasks.md"),
+        dir.path().join("jott.tasks/task-list.md"),
         format!("{line}\n{line}\n"),
     )
     .unwrap();
 
-    let tasks = notebook.tasks_in("jott.tasks/Tasks.md").unwrap();
+    let tasks = notebook.tasks_in("jott.tasks/task-list.md").unwrap();
     assert_eq!(tasks.len(), 2);
     assert_eq!(
         tasks[0].id.as_deref(),
@@ -554,7 +554,7 @@ fn moving_a_task_into_a_list_that_already_uses_its_id() {
     notebook.create_list("jott.tasks", "Compras").unwrap();
 
     std::fs::write(
-        dir.path().join("jott.tasks/Tasks.md"),
+        dir.path().join("jott.tasks/task-list.md"),
         "- [ ] Da Inbox <!--id:mesmo1-->\n",
     )
     .unwrap();
@@ -564,10 +564,10 @@ fn moving_a_task_into_a_list_that_already_uses_its_id() {
     )
     .unwrap();
 
-    notebook.complete_task("jott.tasks/Tasks.md", "mesmo1").unwrap();
+    notebook.complete_task("jott.tasks/task-list.md", "mesmo1").unwrap();
     notebook.complete_task("jott.tasks/Compras.md", "mesmo1").unwrap();
 
-    let completed = notebook.tasks_in("jott.tasks/Completed.md").unwrap();
+    let completed = notebook.tasks_in("jott.tasks/completed.md").unwrap();
     assert_eq!(completed.len(), 2, "neither task may be swallowed");
 
     let ids: std::collections::HashSet<_> =
@@ -579,7 +579,7 @@ fn moving_a_task_into_a_list_that_already_uses_its_id() {
         completed.iter().map(|t| t.origin.clone().unwrap()).collect();
     assert_eq!(
         origins,
-        ["Tasks".to_string(), "Compras".to_string()].into_iter().collect()
+        ["task-list".to_string(), "Compras".to_string()].into_iter().collect()
     );
 }
 
@@ -588,7 +588,7 @@ fn reading_a_read_only_notebook_does_not_adopt_ids() {
     let dir = tempfile::tempdir().unwrap();
     Notebook::init(dir.path()).unwrap();
     std::fs::write(
-        dir.path().join("jott.tasks/Tasks.md"),
+        dir.path().join("jott.tasks/task-list.md"),
         "- [ ] sem id\n",
     )
     .unwrap();
@@ -599,11 +599,11 @@ fn reading_a_read_only_notebook_does_not_adopt_ids() {
     .unwrap();
 
     let notebook = Notebook::open(dir.path()).unwrap();
-    let tasks = notebook.tasks_in("jott.tasks/Tasks.md").unwrap();
+    let tasks = notebook.tasks_in("jott.tasks/task-list.md").unwrap();
 
     assert_eq!(tasks.len(), 1);
     assert!(tasks[0].id.is_none(), "read-only must not write ids");
-    assert_eq!(read(dir.path().join("jott.tasks/Tasks.md")), "- [ ] sem id\n");
+    assert_eq!(read(dir.path().join("jott.tasks/task-list.md")), "- [ ] sem id\n");
 }
 
 // ------------------------------------------------------------------ lists
@@ -626,13 +626,13 @@ fn renaming_a_list_repoints_completed_origins_and_states() {
 
     assert!(dir.path().join("jott.tasks/Mercado.md").is_file());
     assert!(!dir.path().join("jott.tasks/Compras.md").exists());
-    assert!(read(dir.path().join("jott.tasks/Completed.md")).contains("origin:Mercado"));
+    assert!(read(dir.path().join("jott.tasks/completed.md")).contains("origin:Mercado"));
 
     let state = notebook.open_state(Period::Day).unwrap();
     assert!(state.state.contains("jott.tasks/Mercado.md", &pulled_id));
 
     // The undo still works, which is the whole point of repointing origins.
-    notebook.uncomplete_task("jott.tasks/Completed.md", &done_id).unwrap();
+    notebook.uncomplete_task("jott.tasks/completed.md", &done_id).unwrap();
     assert!(read(dir.path().join("jott.tasks/Mercado.md")).contains("Comprar leite"));
 }
 
@@ -641,7 +641,7 @@ fn default_lists_cannot_be_renamed_or_deleted() {
     let dir = tempfile::tempdir().unwrap();
     let notebook = Notebook::init(dir.path()).unwrap();
 
-    for path in ["jott.tasks/Tasks.md", "jott.tasks/Completed.md"] {
+    for path in ["jott.tasks/task-list.md", "jott.tasks/completed.md"] {
         assert!(matches!(
             notebook.rename_list(path, "Outra").unwrap_err(),
             Error::Protected(_)
@@ -683,13 +683,13 @@ fn deleting_a_list_rescues_its_tasks_into_the_inbox() {
     assert_eq!(rescued, 2);
     assert!(!dir.path().join("jott.tasks/Compras.md").exists());
 
-    let inbox = read(dir.path().join("jott.tasks/Tasks.md"));
+    let inbox = read(dir.path().join("jott.tasks/task-list.md"));
     assert!(inbox.contains("Comprar leite"));
     assert!(inbox.contains("Comprar pão"));
 
     // A task that was pulled into Today stays pulled, now via the Inbox.
     let state = notebook.open_state(Period::Day).unwrap();
-    assert!(state.state.contains("jott.tasks/Tasks.md", &id));
+    assert!(state.state.contains("jott.tasks/task-list.md", &id));
 }
 
 #[test]
@@ -709,7 +709,7 @@ fn deleting_a_list_rescues_tasks_that_never_earned_an_id() {
     let rescued = notebook.delete_list("jott.tasks/Compras.md").unwrap();
 
     assert_eq!(rescued, 2);
-    let inbox = read(dir.path().join("jott.tasks/Tasks.md"));
+    let inbox = read(dir.path().join("jott.tasks/task-list.md"));
     assert!(inbox.contains("sem id nenhum"));
     assert!(inbox.contains("outra sem id"));
     assert!(inbox.contains("@2026-07-25 #casa"), "campos vêm junto");
@@ -733,7 +733,7 @@ fn pulling_a_task_writes_a_reference_not_a_copy() {
     let dir = tempfile::tempdir().unwrap();
     let (notebook, id) = notebook_with_task(dir.path(), "Comprar leite");
 
-    assert!(notebook.pull_into(Period::Week, "jott.tasks/Tasks.md", &id).unwrap());
+    assert!(notebook.pull_into(Period::Week, "jott.tasks/task-list.md", &id).unwrap());
 
     let state = read(dir.path().join(".jott/weekly-state.json"));
     assert!(state.contains(&id));
@@ -746,8 +746,8 @@ fn pulling_the_same_task_twice_is_idempotent() {
     let dir = tempfile::tempdir().unwrap();
     let (notebook, id) = notebook_with_task(dir.path(), "Comprar leite");
 
-    assert!(notebook.pull_into(Period::Day, "jott.tasks/Tasks.md", &id).unwrap());
-    assert!(!notebook.pull_into(Period::Day, "jott.tasks/Tasks.md", &id).unwrap());
+    assert!(notebook.pull_into(Period::Day, "jott.tasks/task-list.md", &id).unwrap());
+    assert!(!notebook.pull_into(Period::Day, "jott.tasks/task-list.md", &id).unwrap());
     assert_eq!(notebook.open_state(Period::Day).unwrap().state.len(), 1);
 }
 
@@ -756,7 +756,7 @@ fn pulling_a_task_that_does_not_exist_is_refused() {
     let dir = tempfile::tempdir().unwrap();
     let notebook = Notebook::init(dir.path()).unwrap();
 
-    let err = notebook.pull_into(Period::Day, "jott.tasks/Tasks.md", "ghost").unwrap_err();
+    let err = notebook.pull_into(Period::Day, "jott.tasks/task-list.md", "ghost").unwrap_err();
     assert!(matches!(err, Error::TaskNotFound(_)));
     assert!(!dir.path().join(".jott/daily-state.json").exists());
 }
@@ -766,11 +766,11 @@ fn removing_from_a_period_leaves_the_task_alone() {
     let dir = tempfile::tempdir().unwrap();
     let (notebook, id) = notebook_with_task(dir.path(), "Comprar leite");
 
-    notebook.pull_into(Period::Day, "jott.tasks/Tasks.md", &id).unwrap();
-    assert!(notebook.remove_from(Period::Day, "jott.tasks/Tasks.md", &id).unwrap());
+    notebook.pull_into(Period::Day, "jott.tasks/task-list.md", &id).unwrap();
+    assert!(notebook.remove_from(Period::Day, "jott.tasks/task-list.md", &id).unwrap());
 
     assert!(notebook.open_state(Period::Day).unwrap().state.is_empty());
-    assert!(read(dir.path().join("jott.tasks/Tasks.md")).contains("Comprar leite"));
+    assert!(read(dir.path().join("jott.tasks/task-list.md")).contains("Comprar leite"));
 }
 
 #[test]
@@ -783,19 +783,19 @@ fn a_task_created_in_today_is_physically_written_to_the_inbox() {
         .add_task_in_period(Period::Day, "Responder e-mail")
         .unwrap();
 
-    let inbox = read(dir.path().join("jott.tasks/Tasks.md"));
+    let inbox = read(dir.path().join("jott.tasks/task-list.md"));
     assert!(inbox.contains("- [ ] Responder e-mail"));
     assert!(inbox.contains(&format!("id:{id}")));
 
     let state = notebook.open_state(Period::Day).unwrap();
-    assert!(state.state.contains("jott.tasks/Tasks.md", &id));
+    assert!(state.state.contains("jott.tasks/task-list.md", &id));
 }
 
 #[test]
 fn the_state_rolls_over_when_the_notebook_is_reopened_later() {
     let dir = tempfile::tempdir().unwrap();
     let (notebook, id) = notebook_with_task(dir.path(), "Comprar leite");
-    notebook.pull_into(Period::Day, "jott.tasks/Tasks.md", &id).unwrap();
+    notebook.pull_into(Period::Day, "jott.tasks/task-list.md", &id).unwrap();
 
     // Simulate the app having been closed since an old day, by rewriting the
     // state's date the way it would look on disk.
@@ -812,7 +812,7 @@ fn the_state_rolls_over_when_the_notebook_is_reopened_later() {
     assert!(rolled.state.is_empty());
     assert_eq!(rolled.state.date, reopened.today());
     // ...and the task itself is untouched, back to being a suggestion.
-    assert!(read(dir.path().join("jott.tasks/Tasks.md")).contains("Comprar leite"));
+    assert!(read(dir.path().join("jott.tasks/task-list.md")).contains("Comprar leite"));
 }
 
 #[test]
@@ -824,7 +824,7 @@ fn carry_mode_keeps_the_pulled_tasks_across_the_turn() {
     config.rollover.daily.mode = RolloverMode::Carry;
     notebook.set_config(config).unwrap();
 
-    notebook.pull_into(Period::Day, "jott.tasks/Tasks.md", &id).unwrap();
+    notebook.pull_into(Period::Day, "jott.tasks/task-list.md", &id).unwrap();
 
     let path = dir.path().join(".jott/daily-state.json");
     let mut state: serde_json::Value = serde_json::from_str(&read(&path)).unwrap();
@@ -834,7 +834,7 @@ fn carry_mode_keeps_the_pulled_tasks_across_the_turn() {
     let reopened = Notebook::open(dir.path()).unwrap();
     let rolled = reopened.open_state(Period::Day).unwrap();
 
-    assert!(rolled.state.contains("jott.tasks/Tasks.md", &id));
+    assert!(rolled.state.contains("jott.tasks/task-list.md", &id));
     assert_eq!(rolled.state.date, reopened.today());
 }
 
@@ -875,7 +875,7 @@ fn a_task_already_pulled_is_not_suggested_again() {
     let (notebook, id) = notebook_with_task(dir.path(), "Comprar leite");
 
     assert_eq!(notebook.suggestions_for(Period::Day).unwrap().len(), 1);
-    notebook.pull_into(Period::Day, "jott.tasks/Tasks.md", &id).unwrap();
+    notebook.pull_into(Period::Day, "jott.tasks/task-list.md", &id).unwrap();
     assert!(notebook.suggestions_for(Period::Day).unwrap().is_empty());
 }
 
@@ -884,7 +884,7 @@ fn completed_tasks_are_never_suggested() {
     let dir = tempfile::tempdir().unwrap();
     let (notebook, id) = notebook_with_task(dir.path(), "Comprar leite");
 
-    notebook.complete_task("jott.tasks/Tasks.md", &id).unwrap();
+    notebook.complete_task("jott.tasks/task-list.md", &id).unwrap();
 
     assert!(notebook.suggestions_for(Period::Day).unwrap().is_empty());
     assert!(notebook.suggestions_for(Period::Week).unwrap().is_empty());
@@ -897,7 +897,7 @@ fn the_week_suggests_from_the_lists_only() {
     let dir = tempfile::tempdir().unwrap();
     let (notebook, id) = notebook_with_task(dir.path(), "Comprar leite");
 
-    notebook.pull_into(Period::Day, "jott.tasks/Tasks.md", &id).unwrap();
+    notebook.pull_into(Period::Day, "jott.tasks/task-list.md", &id).unwrap();
 
     let week = notebook.suggestions_for(Period::Week).unwrap();
     assert_eq!(week.len(), 1);
@@ -926,10 +926,10 @@ fn a_reference_to_a_task_deleted_elsewhere_is_skipped() {
     // The notebook is shared with other editors; a stale reference is normal.
     let dir = tempfile::tempdir().unwrap();
     let (notebook, id) = notebook_with_task(dir.path(), "Comprar leite");
-    notebook.pull_into(Period::Day, "jott.tasks/Tasks.md", &id).unwrap();
+    notebook.pull_into(Period::Day, "jott.tasks/task-list.md", &id).unwrap();
 
     // Someone deletes the line in Obsidian.
-    std::fs::write(dir.path().join("jott.tasks/Tasks.md"), "").unwrap();
+    std::fs::write(dir.path().join("jott.tasks/task-list.md"), "").unwrap();
 
     assert!(notebook.period_tasks(Period::Day).unwrap().is_empty());
 }
@@ -1003,7 +1003,7 @@ fn the_urgent_tag_counts_as_much_as_a_date() {
     let dir = tempfile::tempdir().unwrap();
     let notebook = Notebook::init(dir.path()).unwrap();
     std::fs::write(
-        dir.path().join("jott.tasks/Tasks.md"),
+        dir.path().join("jott.tasks/task-list.md"),
         "- [ ] Sem data, mas urgente\n  #urgent\n",
     )
     .unwrap();
@@ -1034,7 +1034,7 @@ fn the_automatic_urgency_can_be_switched_off() {
 
     // The hand-written tag still counts.
     std::fs::write(
-        dir.path().join("jott.tasks/Tasks.md"),
+        dir.path().join("jott.tasks/task-list.md"),
         "- [ ] Vencida ontem\n  #urgent\n",
     )
     .unwrap();
@@ -1063,20 +1063,20 @@ fn completing_a_repeating_task_leaves_the_next_one_behind() {
     let dir = tempfile::tempdir().unwrap();
     let notebook = Notebook::init(dir.path()).unwrap();
     std::fs::write(
-        dir.path().join("jott.tasks/Tasks.md"),
+        dir.path().join("jott.tasks/task-list.md"),
         "- [ ] Pagar aluguel <!--id:rent01-->\n  @2026-07-01 #casa\n  repeat: every-month\n",
     )
     .unwrap();
 
-    notebook.complete_task("jott.tasks/Tasks.md", "rent01").unwrap();
+    notebook.complete_task("jott.tasks/task-list.md", "rent01").unwrap();
 
     // The finished one moved out, with its date and tag intact...
-    let completed = read(dir.path().join("jott.tasks/Completed.md"));
+    let completed = read(dir.path().join("jott.tasks/completed.md"));
     assert!(completed.contains("- [x] Pagar aluguel"));
     assert!(completed.contains("@2026-07-01"));
 
     // ...and next month's is waiting, anchored on the 1st, not on today.
-    let inbox = read(dir.path().join("jott.tasks/Tasks.md"));
+    let inbox = read(dir.path().join("jott.tasks/task-list.md"));
     assert!(inbox.contains("- [ ] Pagar aluguel"), "inbox:\n{inbox}");
     assert!(inbox.contains("@2026-08-01"), "inbox:\n{inbox}");
     assert!(inbox.contains("#casa"));
@@ -1098,9 +1098,9 @@ fn completing_a_normal_task_leaves_nothing_behind() {
     let dir = tempfile::tempdir().unwrap();
     let (notebook, id) = notebook_with_task(dir.path(), "Comprar leite");
 
-    notebook.complete_task("jott.tasks/Tasks.md", &id).unwrap();
+    notebook.complete_task("jott.tasks/task-list.md", &id).unwrap();
 
-    assert!(notebook.tasks_in("jott.tasks/Tasks.md").unwrap().is_empty());
+    assert!(notebook.tasks_in("jott.tasks/task-list.md").unwrap().is_empty());
 }
 
 // ------------------------------------------------------------- contagem
@@ -1120,9 +1120,9 @@ fn counts_only_the_open_tasks_of_each_list() {
     let counts = notebook.open_task_counts().unwrap();
 
     assert_eq!(counts.get("jott.tasks/Compras.md"), Some(&1), "só a tarefa em aberto");
-    assert_eq!(counts.get("jott.tasks/Tasks.md"), Some(&0));
+    assert_eq!(counts.get("jott.tasks/task-list.md"), Some(&0));
     assert_eq!(
-        counts.get("jott.tasks/Completed.md"),
+        counts.get("jott.tasks/completed.md"),
         None,
         "a lista de concluídas não tem contagem — tudo nela está feito"
     );
@@ -1135,10 +1135,10 @@ fn counting_does_not_write_to_the_notebook() {
     let dir = tempfile::tempdir().unwrap();
     let notebook = Notebook::init(dir.path()).unwrap();
     let original = "- [ ] escrita à mão, sem id\n";
-    std::fs::write(dir.path().join("jott.tasks/Tasks.md"), original).unwrap();
+    std::fs::write(dir.path().join("jott.tasks/task-list.md"), original).unwrap();
 
-    assert_eq!(notebook.open_task_counts().unwrap().get("jott.tasks/Tasks.md"), Some(&1));
-    assert_eq!(read(dir.path().join("jott.tasks/Tasks.md")), original);
+    assert_eq!(notebook.open_task_counts().unwrap().get("jott.tasks/task-list.md"), Some(&1));
+    assert_eq!(read(dir.path().join("jott.tasks/task-list.md")), original);
 }
 
 #[test]
@@ -1170,29 +1170,29 @@ fn write_conflict(dir: &Path, list: &str, contents: &str) -> std::path::PathBuf 
 #[test]
 fn a_conflict_copy_is_not_shown_as_a_list() {
     // The bug this prevents: the leftover file used to appear in the sidebar
-    // as a list called "Tasks.sync-conflict-20260720-143000-K3F7NLM".
+    // as a list called "task-list.sync-conflict-20260720-143000-K3F7NLM".
     let dir = tempfile::tempdir().unwrap();
     let notebook = Notebook::init(dir.path()).unwrap();
-    write_conflict(dir.path(), "Tasks", "- [ ] versão do celular\n");
+    write_conflict(dir.path(), "task-list", "- [ ] versão do celular\n");
 
     let names: Vec<String> = notebook.lists().unwrap().into_iter().map(|l| l.name).collect();
-    assert_eq!(names, vec!["Completed", "Tasks"]);
+    assert_eq!(names, vec!["completed", "task-list"]);
 }
 
 #[test]
 fn conflicts_are_reported_with_the_list_they_belong_to() {
     let dir = tempfile::tempdir().unwrap();
     let notebook = Notebook::init(dir.path()).unwrap();
-    let path = write_conflict(dir.path(), "Tasks", "- [ ] versão do celular\n");
+    let path = write_conflict(dir.path(), "task-list", "- [ ] versão do celular\n");
 
     let conflicts = notebook.conflicts().unwrap();
 
     assert_eq!(conflicts.len(), 1);
     assert_eq!(conflicts[0].path, path);
-    assert_eq!(conflicts[0].list.as_deref(), Some("Tasks"));
+    assert_eq!(conflicts[0].list.as_deref(), Some("task-list"));
     assert_eq!(
         conflicts[0].original,
-        Some(dir.path().join("jott.tasks/Tasks.md")),
+        Some(dir.path().join("jott.tasks/task-list.md")),
         "the user needs to know which file it conflicts with"
     );
 }
@@ -1231,7 +1231,7 @@ fn the_conflicting_copy_is_left_untouched() {
     let path = write_conflict(dir.path(), "Inbox", "- [ ] versão do celular\n");
 
     notebook.conflicts().unwrap();
-    notebook.tasks_in("jott.tasks/Tasks.md").unwrap();
+    notebook.tasks_in("jott.tasks/task-list.md").unwrap();
 
     assert_eq!(read(&path), "- [ ] versão do celular\n");
 }
@@ -1257,9 +1257,9 @@ fn a_notebook_from_a_newer_app_refuses_every_write() {
     assert_eq!(notebook.inbox().unwrap().tasks().count(), 1);
 
     // Writing does not, so a newer app's fields are never destroyed.
-    assert!(notebook.complete_task("jott.tasks/Tasks.md", &id).is_err());
+    assert!(notebook.complete_task("jott.tasks/task-list.md", &id).is_err());
     assert!(notebook.create_list("jott.tasks", "Compras").is_err());
-    assert!(notebook.pull_into(Period::Day, "jott.tasks/Tasks.md", &id).is_err());
+    assert!(notebook.pull_into(Period::Day, "jott.tasks/task-list.md", &id).is_err());
     assert!(notebook.add_task_in_period(Period::Day, "nova").is_err());
     assert!(notebook.delete_list("jott.tasks/Compras.md").is_err());
 
@@ -1297,23 +1297,23 @@ fn the_whole_phase_two_scenario_end_to_end() {
 
     notebook.complete_task("jott.tasks/Compras.md", &id).unwrap();
 
-    assert!(read(dir.path().join("jott.tasks/Completed.md")).contains("- [x] Comprar leite"));
+    assert!(read(dir.path().join("jott.tasks/completed.md")).contains("- [x] Comprar leite"));
     // The references followed it into Completed rather than being dropped.
     for period in [Period::Day, Period::Week] {
         assert!(notebook
             .open_state(period)
             .unwrap()
             .state
-            .contains("jott.tasks/Completed.md", &id));
+            .contains("jott.tasks/completed.md", &id));
     }
 
-    notebook.uncomplete_task("jott.tasks/Completed.md", &id).unwrap();
+    notebook.uncomplete_task("jott.tasks/completed.md", &id).unwrap();
 
     let compras = TaskList::load(dir.path().join("jott.tasks/Compras.md")).unwrap();
     let task = compras.find(&id).unwrap();
     assert_eq!(task.text, "Comprar leite");
     assert!(!task.done);
-    assert!(read(dir.path().join("jott.tasks/Completed.md")).trim().is_empty());
+    assert!(read(dir.path().join("jott.tasks/completed.md")).trim().is_empty());
 }
 
 // ------------------------------------------------------------------
@@ -1333,13 +1333,13 @@ fn completing_and_undoing_in_a_spaced_list_round_trips() {
 
     notebook.complete_task("jott.tasks/Meu Mercado.md", &id).unwrap();
     let completed =
-        std::fs::read_to_string(dir.path().join("jott.tasks/Completed.md")).unwrap();
+        std::fs::read_to_string(dir.path().join("jott.tasks/completed.md")).unwrap();
     assert!(
         completed.contains("origin:\"Meu Mercado\""),
         "the spaced origin must be quoted on disk: {completed}"
     );
 
-    notebook.uncomplete_task("jott.tasks/Completed.md", &id).unwrap();
+    notebook.uncomplete_task("jott.tasks/completed.md", &id).unwrap();
     let back = notebook.open_list("jott.tasks/Meu Mercado.md").unwrap();
     assert!(
         back.find(&id).is_some(),
@@ -1380,7 +1380,7 @@ fn a_deleted_list_keeps_the_prose_the_rescue_cannot_carry() {
 
     let rescued = notebook.delete_list("jott.tasks/Obra.md").unwrap();
     assert_eq!(rescued, 1, "the task moved to the Inbox");
-    assert!(std::fs::read_to_string(dir.path().join("jott.tasks/Tasks.md"))
+    assert!(std::fs::read_to_string(dir.path().join("jott.tasks/task-list.md"))
         .unwrap()
         .contains("Cimento"));
 
@@ -1458,7 +1458,7 @@ fn completed_aggregates_across_widgets_and_writes_the_index() {
     let mut inbox = nb.inbox().unwrap();
     let id1 = inbox.add_text_with_id("pessoal");
     inbox.save().unwrap();
-    nb.complete_task("jott.tasks/Tasks.md", &id1).unwrap();
+    nb.complete_task("jott.tasks/task-list.md", &id1).unwrap();
 
     std::fs::write(dir.path().join("Project/Project.md"), "- [ ] projeto\n").unwrap();
     let id2 = nb.ensure_task_id("Project/Project.md", 0).unwrap();
@@ -1470,7 +1470,7 @@ fn completed_aggregates_across_widgets_and_writes_the_index() {
     assert!(texts.contains(&"projeto"));
 
     let index = std::fs::read_to_string(dir.path().join(".jott/completed.json")).unwrap();
-    assert!(index.contains("Project/Completed.md"));
+    assert!(index.contains("Project/completed.md"));
 }
 
 #[test]
@@ -1481,8 +1481,8 @@ fn a_deleted_task_restores_as_a_real_task_not_raw_text() {
     let id = inbox.add_text_with_id("task 1");
     inbox.save().unwrap();
 
-    nb.delete_task("jott.tasks/Tasks.md", &id).unwrap();
-    assert!(!read(dir.path().join("jott.tasks/Tasks.md")).contains("task 1"));
+    nb.delete_task("jott.tasks/task-list.md", &id).unwrap();
+    assert!(!read(dir.path().join("jott.tasks/task-list.md")).contains("task 1"));
 
     let entries = nb.trash_entries();
     assert_eq!(entries.len(), 1);
@@ -1490,7 +1490,7 @@ fn a_deleted_task_restores_as_a_real_task_not_raw_text() {
 
     // Back as a proper task — text "task 1", not a task whose text is the
     // whole "- [ ] task 1" markdown line.
-    let restored = nb.tasks_in("jott.tasks/Tasks.md").unwrap();
+    let restored = nb.tasks_in("jott.tasks/task-list.md").unwrap();
     assert_eq!(restored.len(), 1);
     assert_eq!(restored[0].text, "task 1");
     assert!(!restored[0].text.contains("- [ ]"));

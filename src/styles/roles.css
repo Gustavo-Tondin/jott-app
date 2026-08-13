@@ -1,0 +1,113 @@
+/* =============================================================================
+   roles.css — the two things a THEME does not have to repeat.
+
+   ---------------------------------------------------------------------------
+   THE RULE THIS FILE EXISTS TO PROTECT (2026-08-13)
+   ---------------------------------------------------------------------------
+
+   **A `--theme-*` role is assigned a `--palette-*` value, or a `color-mix` of
+   one. Never another role.**
+
+   One hop, always: component → role → palette → literal. Before this the
+   chain was role → ground → palette (and role → accent → accent-name →
+   palette for the brand), and reading a colour meant opening three files to
+   find out what it actually was.
+
+   There is exactly ONE exception, at the bottom of this file: which of the
+   seven `--theme-brand` points at. That one is chosen by the user at runtime,
+   so it cannot be written into the theme — the theme names all seven, and the
+   `data-accent` attribute picks. Two hops on that branch, and nowhere else.
+
+   ---------------------------------------------------------------------------
+   WHAT IS HERE, AND WHY IT IS NOT IN THE THEMES
+   ---------------------------------------------------------------------------
+
+   1. The roles that are the SAME in every theme and every region — the warm
+      grey that belongs to no mode, at the three alphas the app uses. A theme
+      may still override any of them; it just does not have to write them six
+      times to say nothing.
+   2. The accent choice, above.
+
+   Everything else — the neutrals, the ink, the seven, the status colours — is
+   the theme's, spelled out per region in `themes/<name>.css`.
+   ============================================================================= */
+
+@layer base {
+  /* A REGION is a part of the app with its own ground: `data-region="chrome"`
+     on the window (title bar, tabs, sidebar, right panel) and
+     `data-region="canvas"` on the content panel (App.svelte). A popover
+     portaled to <body> carries the region it was opened from
+     (actions/keepOnScreen.js). */
+  [data-region] {
+    /* The one neutral that belongs to neither mode: a warm grey, used at low
+       alpha so a single value reads on a white canvas and a black sidebar
+       alike. Hence three roles from one palette entry, and no theme has ever
+       wanted to change them. */
+    --theme-ink-faint: var(--palette-gray);
+    --theme-line: color-mix(in srgb, var(--palette-gray) 30%, transparent);
+    --theme-line-soft: color-mix(in srgb, var(--palette-gray) 16%, transparent);
+    /* The third step, and the only one that goes the other way: a well pressed
+       INTO a raised surface, for the one control that needs a track behind it
+       (the segmented group). */
+    --theme-well: color-mix(in srgb, var(--palette-gray) 30%, transparent);
+
+    /* A region carries its own ink, so anything inside it starts readable —
+       including text a component forgot to colour. */
+    color: var(--theme-ink);
+  }
+
+  /* ---------------------------------------------------------------------------
+     THE APP ACCENT — the one runtime choice, and the one place a role reads
+     something other than the palette.
+
+     The theme names all seven for each region (`--accent-blue` and its
+     `-tint`, already resolved to the half that reads on that region's ground).
+     `data-accent` on <html>, from the notebook's `accentColor` setting, picks
+     which one is the brand. No attribute, or one this build does not know,
+     is blue — what the app ships as.
+
+     Seven rules rather than one, because a custom property cannot compose the
+     name of another. Written as a descendant selector so one attribute reaches
+     both regions:  <html data-accent> … [data-region="chrome"] … ="canvas"
+     --------------------------------------------------------------------------- */
+  [data-region] {
+    --theme-brand: var(--accent-blue);
+    --theme-brand-weak: var(--accent-blue-tint);
+    --theme-brand-outline: color-mix(in srgb, var(--accent-blue) 45%, transparent);
+  }
+  [data-accent="yellow"] [data-region] {
+    --theme-brand: var(--accent-yellow);
+    --theme-brand-weak: var(--accent-yellow-tint);
+    --theme-brand-outline: color-mix(in srgb, var(--accent-yellow) 45%, transparent);
+  }
+  [data-accent="orange"] [data-region] {
+    --theme-brand: var(--accent-orange);
+    --theme-brand-weak: var(--accent-orange-tint);
+    --theme-brand-outline: color-mix(in srgb, var(--accent-orange) 45%, transparent);
+  }
+  [data-accent="pink"] [data-region] {
+    --theme-brand: var(--accent-pink);
+    --theme-brand-weak: var(--accent-pink-tint);
+    --theme-brand-outline: color-mix(in srgb, var(--accent-pink) 45%, transparent);
+  }
+  [data-accent="green"] [data-region] {
+    --theme-brand: var(--accent-green);
+    --theme-brand-weak: var(--accent-green-tint);
+    --theme-brand-outline: color-mix(in srgb, var(--accent-green) 45%, transparent);
+  }
+  [data-accent="blue"] [data-region] {
+    --theme-brand: var(--accent-blue);
+    --theme-brand-weak: var(--accent-blue-tint);
+    --theme-brand-outline: color-mix(in srgb, var(--accent-blue) 45%, transparent);
+  }
+  [data-accent="red"] [data-region] {
+    --theme-brand: var(--accent-red);
+    --theme-brand-weak: var(--accent-red-tint);
+    --theme-brand-outline: color-mix(in srgb, var(--accent-red) 45%, transparent);
+  }
+  [data-accent="purple"] [data-region] {
+    --theme-brand: var(--accent-purple);
+    --theme-brand-weak: var(--accent-purple-tint);
+    --theme-brand-outline: color-mix(in srgb, var(--accent-purple) 45%, transparent);
+  }
+}

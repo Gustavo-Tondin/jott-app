@@ -15,18 +15,26 @@
     outline: none;
   }
   .editor .cm-content {
-    padding: 0.5rem 0;
-    line-height: 1.6;
-    caret-color: #222;
+    padding: var(--theme-space-8) 0;
+    line-height: var(--theme-leading-loose);
+    /* CodeMirror does not inherit the caret from the region; without this the
+       cursor stayed near-black and disappeared on a dark ground. */
+    caret-color: var(--theme-ink);
+    color: var(--theme-ink);
   }
   .editor .cm-line {
-    padding: 0 0.2rem;
+    padding: 0 var(--theme-space-4);
   }
   .editor .cm-task-checkbox {
-    margin-right: 0.35rem;
+    margin-right: var(--theme-space-6);
     vertical-align: middle;
   }
   .editor .cm-placeholder {
-    color: #999;
+    color: var(--theme-ink-faint);
+  }
+  /* The text cursor's own highlight, for the same reason as the caret. */
+  .editor .cm-selectionBackground,
+  .editor .cm-editor ::selection {
+    background: var(--theme-brand-weak);
   }
 }

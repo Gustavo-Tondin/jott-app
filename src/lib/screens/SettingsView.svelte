@@ -13,6 +13,9 @@
   import { api } from "../services/api.js";
   import { S } from "../services/strings.js";
   import { FEATURES, on, stored } from "../services/features.js";
+  import { DEFAULT_ACCENT } from "../services/accent.js";
+  import { THEMES, DEFAULT_THEME } from "../services/themes.js";
+  import AccentPicker from "../components/AccentPicker.svelte";
 
   let {
     notebook,
@@ -168,6 +171,42 @@
 
   <section class="settings__section">
     <h2 class="settings__section-title">{S.sectionDisplay}</h2>
+
+    <!-- The theme leads the section: it decides the ground everything else is
+         drawn on, including which half of the accent shows. A segmented group
+         rather than a select — there are three, and each is a look you want to
+         see the name of side by side. -->
+    <div class="settings__row">
+      <span class="settings__label">{S.theme}</span>
+      <div class="theme-segmented" role="group" aria-label={S.theme}>
+        {#each THEMES as option (option.key)}
+          <button
+            type="button"
+            class="theme-segmented__item"
+            class:theme-segmented__item--active={(form.theme || DEFAULT_THEME) ===
+              option.key}
+            aria-pressed={(form.theme || DEFAULT_THEME) === option.key}
+            title={option.hint()}
+            disabled={readOnly}
+            onclick={() => put({ theme: option.key })}>{option.label()}</button
+          >
+        {/each}
+      </div>
+    </div>
+
+    <!-- Not a <label>: the picker is a group of buttons, and a label wrapping
+         them would claim the first one for its own click. -->
+    <div class="settings__row">
+      <span class="settings__label">{S.accentColor}</span>
+      <AccentPicker
+        value={form.accentColor || DEFAULT_ACCENT}
+        clearable={false}
+        label={S.accentColor}
+        disabled={readOnly}
+        onPick={(c) => put({ accentColor: c })}
+      />
+    </div>
+    <p class="settings__hint">{S.accentColorHint}</p>
 
     <label class="settings__row">
       <span class="settings__label">{S.dateFormat}</span>

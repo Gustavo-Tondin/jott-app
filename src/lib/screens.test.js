@@ -77,6 +77,7 @@ const { default: TasksView } = await import("./screens/TasksView.svelte");
 const { default: PageHeader } = await import("./shell/PageHeader.svelte");
 const { default: TabBar } = await import("./shell/TabBar.svelte");
 const { default: SettingsView } = await import("./screens/SettingsView.svelte");
+const { default: NewTaskDialog } = await import("./components/NewTaskDialog.svelte");
 
 const task = (id, text, extra = {}) => ({
   id,
@@ -378,10 +379,10 @@ describe("PeriodView", () => {
     period: "day",
     clock: { today: "2026-07-20", weekStart: "2026-07-20" },
     lists: [
-      { path: "jott.tasks/Tasks.md", name: "Inbox" },
-      { path: "jott.tasks/Completed.md", name: "Completed" },
+      { path: "jott.tasks/task-list.md", name: "Inbox" },
+      { path: "jott.tasks/completed.md", name: "Completed" },
     ],
-    inbox: "jott.tasks/Tasks.md",
+    inbox: "jott.tasks/task-list.md",
     readOnly: false,
     onChanged: noop,
     onError: noop,
@@ -427,14 +428,14 @@ describe("PeriodView", () => {
 
     await waitFor(() =>
       expect(invoke).toHaveBeenCalledWith("create_task", {
-        list: "jott.tasks/Tasks.md",
+        list: "jott.tasks/task-list.md",
         text: "Responder e-mail",
       }),
     );
     await waitFor(() =>
       expect(invoke).toHaveBeenCalledWith("pull_into_period", {
         period: "day",
-        list: "jott.tasks/Tasks.md",
+        list: "jott.tasks/task-list.md",
         id: "novo",
       }),
     );
@@ -554,7 +555,7 @@ describe("CompletedView", () => {
     // have nothing to address.
     bridge({
       completed_tasks: [
-        { path: "jott.tasks/Completed.md", task: task(null, "Escrita à mão", { done: true }) },
+        { path: "jott.tasks/completed.md", task: task(null, "Escrita à mão", { done: true }) },
       ],
     });
 
@@ -571,7 +572,7 @@ describe("CompletedView", () => {
     // inside a user workspace never showed up here.
     bridge({
       completed_tasks: [
-        { path: "jott.tasks/Completed.md", task: task("a1", "Da Inbox", { done: true }) },
+        { path: "jott.tasks/completed.md", task: task("a1", "Da Inbox", { done: true }) },
         { path: "Space 1/Tasks 1/Completed.md", task: task("b2", "Do space", { done: true }) },
       ],
     });
@@ -989,15 +990,15 @@ describe("App", () => {
     readOnly: false,
     lists: [
       { path: "jott.tasks/Inbox.md", name: "Inbox" },
-      { path: "jott.tasks/Completed.md", name: "Completed" },
+      { path: "jott.tasks/completed.md", name: "Completed" },
     ],
     // The on-disk addresses travel with the notebook since the snapshot
     // command; since phase 7 they are paths, not names.
     layout: {
       inbox: "jott.tasks/Inbox.md",
-      completed: "jott.tasks/Completed.md",
+      completed: "jott.tasks/completed.md",
       tasksFolder: "jott.tasks",
-      completedName: "Completed",
+      completedName: "completed",
       notesFolder: "jott.notes",
       notesInbox: "Inbox",
       dateDisplayFormat: "mm/dd/yyyy",
@@ -1020,12 +1021,14 @@ describe("App", () => {
     groups,
   });
 
+  // `path` is the identity (2026-08-13); `folderName` rides along for anything
+  // that still wants the leaf.
   const aWorkspace = {
     folderName: "Space",
+    path: "Space",
     name: "Space",
     fixed: false,
     readOnly: false,
-    widgets: [],
   };
 
   const shell = (extra = {}) =>
@@ -1034,7 +1037,7 @@ describe("App", () => {
       open_notebook: notebook,
       // One round trip for everything the shell shows after any change.
       notebook_snapshot: snapshot(),
-      screen_to_restore: "list:jott.tasks/Tasks.md",
+      screen_to_restore: "list:jott.tasks/task-list.md",
       note_folders: ["Inbox"],
       notes_created_today: [],
       list_tasks: [task("a1", "Comprar leite"), task("b2", "Pagar boleto")],
@@ -1179,7 +1182,7 @@ describe("App", () => {
       ...notebook,
       lists: [
         { path: "jott.tasks/Inbox.md", name: "Inbox" },
-        { path: "jott.tasks/Completed.md", name: "Completed" },
+        { path: "jott.tasks/completed.md", name: "Completed" },
         { path: "jott.tasks/Alpha.md", name: "Alpha" },
         { path: "jott.tasks/Beta.md", name: "Beta" },
       ],
@@ -1199,7 +1202,7 @@ describe("App", () => {
         conflicts: [],
         workspaces: [],
       },
-      screen_to_restore: "list:jott.tasks/Tasks.md",
+      screen_to_restore: "list:jott.tasks/task-list.md",
       note_folders: ["Inbox"],
       notes_created_today: [],
       list_tasks: [],
@@ -1288,7 +1291,12 @@ describe("App", () => {
         [inner],
         [
           { folder: "Design", parent: null, name: "Design", workspaces: [] },
-          { folder: "Clients", parent: "Design", name: "Clients", workspaces: ["Acme"] },
+          {
+            folder: "Design/Clients",
+            parent: "Design",
+            name: "Clients",
+            workspaces: ["Design/Clients/Acme"],
+          },
         ],
       ),
     });
@@ -1352,10 +1360,12 @@ describe("WorkspaceView", () => {
     order: [],
   };
 
+  // Fixed file names in every tasks workspace (2026-08-13): the FOLDER says
+  // which workspace this is, the file never does.
   const lists = [
-    { path: "Project A/Project A.md", name: "Project A" },
-    { path: "Project A/Completed.md", name: "Completed" },
-    { path: "jott.tasks/Tasks.md", name: "Tasks" },
+    { path: "Project A/task-list.md", name: "task-list", workspace: "Project A" },
+    { path: "Project A/completed.md", name: "completed", workspace: "Project A" },
+    { path: "jott.tasks/task-list.md", name: "task-list", workspace: "Tasks" },
   ];
 
   test("renders the workspace's own screen by its type", async () => {
@@ -1399,7 +1409,7 @@ describe("WorkspaceView", () => {
   test("the screen arranges its cards by the sort the config declares", async () => {
     bridge({
       list_tasks: (args) =>
-        args.list.endsWith("Completed.md")
+        args.list.endsWith("completed.md")
           ? []
           : [task("b", "banana"), task("a", "Amora")],
     });
@@ -1424,7 +1434,7 @@ describe("WorkspaceView", () => {
     // and a completed card has no top to sit at, so it does not draw one.
     bridge({
       list_tasks: (args) =>
-        args.list.endsWith("Completed.md")
+        args.list.endsWith("completed.md")
           ? [{ ...task("z", "Feita"), done: true }]
           : [{ ...task("b", "banana"), pinned: true }, task("a", "Amora")],
       set_task_pinned: null,
@@ -1452,7 +1462,7 @@ describe("WorkspaceView", () => {
     await userEvent.click(screen.getAllByLabelText("Unpin")[0]);
     await waitFor(() => {
       expect(invoke).toHaveBeenCalledWith("set_task_pinned", {
-        list: "Project A/Project A.md",
+        list: "Project A/task-list.md",
         id: "b",
         pinned: false,
       });
@@ -1467,7 +1477,7 @@ describe("WorkspaceView", () => {
   test("dragging a card saves the arrangement in the widget's config", async () => {
     bridge({
       list_tasks: (args) =>
-        args.list.endsWith("Completed.md")
+        args.list.endsWith("completed.md")
           ? []
           : [task("a1", "Primeira"), task("b2", "Segunda")],
     });
@@ -1509,7 +1519,7 @@ describe("WorkspaceView", () => {
     // what the card becomes.
     bridge({
       list_tasks: (args) =>
-        args.list.endsWith("Completed.md")
+        args.list.endsWith("completed.md")
           ? []
           : [{ ...task("a1", "Primeira"), pinned: true }, task("b2", "Segunda")],
       set_task_pinned: null,
@@ -1541,7 +1551,7 @@ describe("WorkspaceView", () => {
 
     await waitFor(() => {
       expect(invoke).toHaveBeenCalledWith("set_task_pinned", {
-        list: "Project A/Project A.md",
+        list: "Project A/task-list.md",
         id: "a1",
         pinned: false,
       });
@@ -1551,7 +1561,7 @@ describe("WorkspaceView", () => {
   test("the ⋮'s select mode moves several tasks at once", async () => {
     bridge({
       list_tasks: (args) =>
-        args.list.endsWith("Completed.md")
+        args.list.endsWith("completed.md")
           ? []
           : [task("a1", "Primeira"), task("b2", "Segunda")],
       move_task: {},
@@ -1577,19 +1587,19 @@ describe("WorkspaceView", () => {
 
     await userEvent.selectOptions(
       screen.getByLabelText("Move to…"),
-      "jott.tasks/Tasks.md",
+      "jott.tasks/task-list.md",
     );
 
     await waitFor(() => {
       expect(invoke).toHaveBeenCalledWith("move_task", {
-        from: "Project A/Project A.md",
+        from: "Project A/task-list.md",
         id: "a1",
-        to: "jott.tasks/Tasks.md",
+        to: "jott.tasks/task-list.md",
       });
       expect(invoke).toHaveBeenCalledWith("move_task", {
-        from: "Project A/Project A.md",
+        from: "Project A/task-list.md",
         id: "b2",
-        to: "jott.tasks/Tasks.md",
+        to: "jott.tasks/task-list.md",
       });
     });
   });
@@ -1602,15 +1612,15 @@ describe("App with a user workspace", () => {
     name: "n",
     readOnly: false,
     lists: [
-      { path: "jott.tasks/Tasks.md", name: "Tasks" },
-      { path: "jott.tasks/Completed.md", name: "Completed" },
+      { path: "jott.tasks/task-list.md", name: "Tasks" },
+      { path: "jott.tasks/completed.md", name: "Completed" },
       { path: "Project A/Sprint.md", name: "Sprint" },
     ],
     layout: {
-      inbox: "jott.tasks/Tasks.md",
-      completed: "jott.tasks/Completed.md",
+      inbox: "jott.tasks/task-list.md",
+      completed: "jott.tasks/completed.md",
       tasksFolder: "jott.tasks",
-      completedName: "Completed",
+      completedName: "completed",
       notesFolder: "jott.notes",
       notesInbox: "Inbox",
       dateDisplayFormat: "mm/dd/yyyy",
@@ -2033,10 +2043,10 @@ describe("HomeView", () => {
     onOpenNote: noop,
     onSelectTask: noop,
     lists: [
-      { path: "jott.tasks/Tasks.md", name: "Inbox" },
-      { path: "jott.tasks/Completed.md", name: "Completed" },
+      { path: "jott.tasks/task-list.md", name: "Inbox" },
+      { path: "jott.tasks/completed.md", name: "Completed" },
     ],
-    inbox: "jott.tasks/Tasks.md",
+    inbox: "jott.tasks/task-list.md",
     reloadKey: 0,
     ...extra,
   });
@@ -2064,23 +2074,77 @@ describe("HomeView", () => {
     expect(invoke).toHaveBeenCalledWith("notes_created_today", { folder: "jott.notes" });
   });
 
-  test("the quick note goes to the chosen folder, in one call", async () => {
-    bridge({ period_tasks: [], notes_created_today: [], quick_capture_note: "Inbox/x.md" });
+  test("the capture box writes a note where the notes ⋮ points", async () => {
+    // ONE box for both halves (2026-08-13): the segmented control says where
+    // what you typed goes, and the notes block's ⋮ says into which folder.
+    bridge({ period_tasks: [], notes_created_today: [], quick_capture_note: "Clientes/x.md" });
 
     render(HomeView, { props: props() });
+
+    await userEvent.click(await screen.findByLabelText("notes options"));
+    await userEvent.click(await screen.findByText("Clientes"));
+
+    await userEvent.click(screen.getByRole("button", { name: "Note" }));
     // Enter saves; Shift+Enter would be a new line.
     await userEvent.type(
-      await screen.findByLabelText("Quick note…"),
+      await screen.findByPlaceholderText("New note…"),
       "Comprar cimento{Enter}",
     );
 
     await waitFor(() =>
       expect(invoke).toHaveBeenCalledWith("quick_capture_note", {
         folder: "jott.notes",
-        inFolder: "Inbox",
+        inFolder: "Clientes",
         text: "Comprar cimento",
       }),
     );
+  });
+
+  test("the capture box writes a task and pulls it into the day", async () => {
+    // Armed on Task by default, because that is what the day's screen is for.
+    // The task joins the day: one captured on the day's screen that did not
+    // show up there would read as the box having swallowed it.
+    bridge({
+      period_tasks: [],
+      notes_created_today: [],
+      create_task: 0,
+      ensure_task_id: "novo",
+      pull_into_period: true,
+    });
+
+    render(HomeView, { props: props() });
+
+    await userEvent.type(
+      await screen.findByPlaceholderText("New task…"),
+      "Comprar cimento{Enter}",
+    );
+
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("create_task", {
+        list: "jott.tasks/task-list.md",
+        text: "Comprar cimento",
+      }),
+    );
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("pull_into_period", {
+        period: "day",
+        list: "jott.tasks/task-list.md",
+        id: "novo",
+      }),
+    );
+    // And nothing was written as a note.
+    expect(invoke.mock.calls.some(([cmd]) => cmd === "quick_capture_note")).toBe(false);
+  });
+
+  test("the day's block offers no second way to write", async () => {
+    // The blue "New task" in the tasks header went into the capture box
+    // (2026-08-13): two controls doing one thing, a hand's width apart.
+    bridge({ period_tasks: [], notes_created_today: [] });
+
+    render(HomeView, { props: props() });
+
+    await screen.findByText("No tasks yet");
+    expect(screen.queryByRole("button", { name: "New task" })).toBeNull();
   });
 
   test("the day's tasks are the widget — Completed section and Suggestions pill", async () => {
@@ -2092,7 +2156,7 @@ describe("HomeView", () => {
       period_tasks: [
         { path: "jott.tasks/Inbox.md", task: task("a1", "Arrumar site") },
         {
-          path: "jott.tasks/Completed.md",
+          path: "jott.tasks/completed.md",
           task: task("b2", "Comprar leite", { done: true }),
         },
       ],
@@ -2161,64 +2225,47 @@ describe("HomeView", () => {
     render(HomeView, { props: props({ readOnly: true }) });
 
     await screen.findByText("No tasks yet");
-    expect(screen.queryByLabelText("Quick note…")).toBeNull();
+    expect(screen.queryByPlaceholderText("New task…")).toBeNull();
+    expect(screen.queryByText("What do you want to capture?")).toBeNull();
   });
 });
 
 describe("the New task popup", () => {
   // The blue button opens a centred dialog over a dimmed page (wireframe
-  // "New task popup.pdf"). It is mounted once by App, like the name prompt,
-  // and it only COMPOSES — the caller writes, which is why the same dialog
-  // can pull into the day from Home and not from a workspace widget.
-  const notebook = {
-    path: "/n",
-    name: "n",
-    readOnly: false,
+  // "New task popup.pdf"). It only COMPOSES — the caller writes, which is why
+  // the same dialog can pull into the day from a period screen and not from a
+  // workspace widget.
+  //
+  // It is driven by a STORE (services/dialog.js), so the dialog and the screen
+  // that opens it are mounted side by side here rather than through App. Home
+  // no longer opens it at all: its blue button became the capture box
+  // (2026-08-13), and what that button used to guarantee is now asserted in
+  // the HomeView block above.
+  const props = {
+    period: "day",
+    clock: { today: "2026-07-21", weekStart: "2026-07-20" },
     lists: [
-      { path: "jott.tasks/Tasks.md", name: "Inbox" },
-      { path: "jott.tasks/Completed.md", name: "Completed" },
+      { path: "jott.tasks/task-list.md", name: "Inbox" },
+      { path: "jott.tasks/completed.md", name: "Completed" },
     ],
-    layout: {
-      inbox: "jott.tasks/Tasks.md",
-      completed: "jott.tasks/Completed.md",
-      tasksFolder: "jott.tasks",
-      completedName: "Completed",
-      notesFolder: "jott.notes",
-      notesInbox: "",
-      dateDisplayFormat: "mm/dd/yyyy",
-      closeInspectorOnClickAway: false,
-      quickNoteFolder: "Inbox",
-    },
+    inbox: "jott.tasks/task-list.md",
+    readOnly: false,
+    onChanged: noop,
+    onError: noop,
+    reloadKey: 0,
   };
 
-  const onHome = (extra = {}) =>
-    bridge({
-      last_notebook: "/n",
-      open_notebook: notebook,
-      notebook_snapshot: {
-        info: notebook,
-        clock: {
-          today: "2026-07-21",
-          weekStart: "2026-07-20",
-          nextDailyTurn: "2026-07-22T00:00:00Z",
-          nextWeeklyTurn: "2026-07-27T00:00:00Z",
-        },
-        counts: {},
-        conflicts: [],
-        workspaces: [],
-      },
-      screen_to_restore: "home",
-      note_folders: [],
-      notes_created_today: [],
-      period_tasks: [],
-      grouped_suggestions: [],
-      list_tasks: [],
-      ...extra,
-    });
+  const openOn = (extra = {}) => {
+    bridge({ period_tasks: [], period_sort: null, ...extra });
+    render(NewTaskDialog);
+    // `compose="button"` is the widget's default everywhere except the Tasks
+    // screen, which pins a bar instead; PeriodView passes the host's choice
+    // through, so the screen has to ask for the button explicitly.
+    render(PeriodView, { props: { ...props, compose: "button" } });
+  };
 
-  test("Home's blue button composes a task and pulls it into the day", async () => {
-    onHome({ create_task: 0, ensure_task_id: "novo", pull_into_period: true });
-    render(App);
+  test("the blue button composes a task and pulls it into the period", async () => {
+    openOn({ create_task: 0, ensure_task_id: "novo", pull_into_period: true });
 
     await userEvent.click(await screen.findByText("New task"));
 
@@ -2228,7 +2275,7 @@ describe("the New task popup", () => {
 
     await waitFor(() =>
       expect(invoke).toHaveBeenCalledWith("create_task", {
-        list: "jott.tasks/Tasks.md",
+        list: "jott.tasks/task-list.md",
         text: "Comprar cimento",
       }),
     );
@@ -2237,7 +2284,7 @@ describe("the New task popup", () => {
     await waitFor(() =>
       expect(invoke).toHaveBeenCalledWith("pull_into_period", {
         period: "day",
-        list: "jott.tasks/Tasks.md",
+        list: "jott.tasks/task-list.md",
         id: "novo",
       }),
     );
@@ -2246,8 +2293,7 @@ describe("the New task popup", () => {
   });
 
   test("closing it writes nothing", async () => {
-    onHome({ create_task: 0 });
-    render(App);
+    openOn({ create_task: 0 });
 
     await userEvent.click(await screen.findByText("New task"));
     await screen.findByPlaceholderText("Create a task…");
@@ -2266,14 +2312,14 @@ describe("App functions — switching a part of the app off", () => {
       name: "n",
       readOnly: false,
       lists: [
-        { path: "jott.tasks/Tasks.md", name: "Inbox" },
-        { path: "jott.tasks/Completed.md", name: "Completed" },
+        { path: "jott.tasks/task-list.md", name: "Inbox" },
+        { path: "jott.tasks/completed.md", name: "Completed" },
       ],
       layout: {
-        inbox: "jott.tasks/Tasks.md",
-        completed: "jott.tasks/Completed.md",
+        inbox: "jott.tasks/task-list.md",
+        completed: "jott.tasks/completed.md",
         tasksFolder: "jott.tasks",
-        completedName: "Completed",
+        completedName: "completed",
         notesFolder: "jott.notes",
         notesInbox: "",
         dateDisplayFormat: "mm/dd/yyyy",
@@ -2366,18 +2412,18 @@ describe("App functions — switching a part of the app off", () => {
     bridge({
       last_notebook: "/n",
       open_notebook: { path: "/n", name: "n", readOnly: false, lists: [], layout: {
-        inbox: "jott.tasks/Tasks.md", completed: "jott.tasks/Completed.md",
-        tasksFolder: "jott.tasks", completedName: "Completed",
+        inbox: "jott.tasks/task-list.md", completed: "jott.tasks/completed.md",
+        tasksFolder: "jott.tasks", completedName: "completed",
         notesFolder: "jott.notes", notesInbox: "", dateDisplayFormat: "mm/dd/yyyy",
         closeInspectorOnClickAway: false, quickNoteFolder: "Inbox",
         features: { priority: false },
       }},
       notebook_snapshot: {
         info: { path: "/n", name: "n", readOnly: false,
-          lists: [{ path: "jott.tasks/Tasks.md", name: "Inbox" }],
+          lists: [{ path: "jott.tasks/task-list.md", name: "Inbox" }],
           layout: {
-            inbox: "jott.tasks/Tasks.md", completed: "jott.tasks/Completed.md",
-            tasksFolder: "jott.tasks", completedName: "Completed",
+            inbox: "jott.tasks/task-list.md", completed: "jott.tasks/completed.md",
+            tasksFolder: "jott.tasks", completedName: "completed",
             notesFolder: "jott.notes", notesInbox: "",
             dateDisplayFormat: "mm/dd/yyyy", closeInspectorOnClickAway: false,
             quickNoteFolder: "Inbox", features: { priority: false },
@@ -2386,7 +2432,7 @@ describe("App functions — switching a part of the app off", () => {
           nextDailyTurn: "2026-07-22T00:00:00Z", nextWeeklyTurn: "2026-07-27T00:00:00Z" },
         counts: {}, conflicts: [], workspaces: [], groups: [], tags: [], day: [],
       },
-      screen_to_restore: "list:jott.tasks/Tasks.md",
+      screen_to_restore: "list:jott.tasks/task-list.md",
       note_folders: [],
       list_tasks: [task("a1", "Pagar boleto", { priority: 2 })],
       set_task_fields: null,
@@ -2411,14 +2457,14 @@ describe("the sun that says a task is in today", () => {
       name: "n",
       readOnly: false,
       lists: [
-        { path: "jott.tasks/Tasks.md", name: "Inbox" },
-        { path: "jott.tasks/Completed.md", name: "Completed" },
+        { path: "jott.tasks/task-list.md", name: "Inbox" },
+        { path: "jott.tasks/completed.md", name: "Completed" },
       ],
       layout: {
-        inbox: "jott.tasks/Tasks.md",
-        completed: "jott.tasks/Completed.md",
+        inbox: "jott.tasks/task-list.md",
+        completed: "jott.tasks/completed.md",
         tasksFolder: "jott.tasks",
-        completedName: "Completed",
+        completedName: "completed",
         notesFolder: "jott.notes",
         notesInbox: "",
         dateDisplayFormat: "mm/dd/yyyy",
@@ -2443,9 +2489,9 @@ describe("the sun that says a task is in today", () => {
         groups: [],
         tags: [],
         // "Comprar leite" is in today; "Pagar boleto" is not.
-        day: [{ path: "jott.tasks/Tasks.md", id: "a1" }],
+        day: [{ path: "jott.tasks/task-list.md", id: "a1" }],
       },
-      screen_to_restore: "list:jott.tasks/Tasks.md",
+      screen_to_restore: "list:jott.tasks/task-list.md",
       note_folders: [],
       list_tasks: [task("a1", "Comprar leite"), task("b2", "Pagar boleto")],
       remove_from_period: true,
@@ -2468,7 +2514,7 @@ describe("the sun that says a task is in today", () => {
     await waitFor(() =>
       expect(invoke).toHaveBeenCalledWith("remove_from_period", {
         period: "day",
-        list: "jott.tasks/Tasks.md",
+        list: "jott.tasks/task-list.md",
         id: "a1",
       }),
     );
@@ -2484,14 +2530,14 @@ describe("the suggestions panel", () => {
     name: "n",
     readOnly: false,
     lists: [
-      { path: "jott.tasks/Tasks.md", name: "Inbox" },
-      { path: "jott.tasks/Completed.md", name: "Completed" },
+      { path: "jott.tasks/task-list.md", name: "Inbox" },
+      { path: "jott.tasks/completed.md", name: "Completed" },
     ],
     layout: {
-      inbox: "jott.tasks/Tasks.md",
-      completed: "jott.tasks/Completed.md",
+      inbox: "jott.tasks/task-list.md",
+      completed: "jott.tasks/completed.md",
       tasksFolder: "jott.tasks",
-      completedName: "Completed",
+      completedName: "completed",
       notesFolder: "jott.notes",
       notesInbox: "",
       dateDisplayFormat: "mm/dd/yyyy",
@@ -2603,13 +2649,13 @@ describe("TasksView", () => {
   // own Inbox widget, Today and Week over a period. What the screen changes is
   // only where a new task comes from — the pinned bar, not the blue button.
   const props = (extra = {}) => ({
-    inbox: "jott.tasks/Tasks.md",
+    inbox: "jott.tasks/task-list.md",
     clock: { today: "2026-07-20", weekStart: "2026-07-20" },
     lists: [
-      { path: "jott.tasks/Tasks.md", name: "Inbox" },
-      { path: "jott.tasks/Completed.md", name: "Completed" },
+      { path: "jott.tasks/task-list.md", name: "Inbox" },
+      { path: "jott.tasks/completed.md", name: "Completed" },
     ],
-    completedName: "Completed",
+    completedName: "completed",
     readOnly: false,
     reloadKey: 0,
     onChanged: noop,
@@ -2621,7 +2667,7 @@ describe("TasksView", () => {
   test("Index shows the Inbox widget's list and its Completed, with no New task button", async () => {
     bridge({
       list_tasks: (args) =>
-        args.list === "jott.tasks/Tasks.md"
+        args.list === "jott.tasks/task-list.md"
           ? [task("a1", "Comprar leite")]
           : [task("b2", "Pagar boleto", { done: true })],
     });
@@ -2646,7 +2692,7 @@ describe("TasksView", () => {
 
     await waitFor(() =>
       expect(invoke).toHaveBeenCalledWith("create_task", {
-        list: "jott.tasks/Tasks.md",
+        list: "jott.tasks/task-list.md",
         text: "Ligar pro dentista",
       }),
     );
@@ -2691,13 +2737,13 @@ describe("App shell with tabs", () => {
     lists: [
       { path: "jott.tasks/Inbox.md", name: "Inbox" },
       { path: "jott.tasks/Compras.md", name: "Compras" },
-      { path: "jott.tasks/Completed.md", name: "Completed" },
+      { path: "jott.tasks/completed.md", name: "Completed" },
     ],
     layout: {
       inbox: "jott.tasks/Inbox.md",
-      completed: "jott.tasks/Completed.md",
+      completed: "jott.tasks/completed.md",
       tasksFolder: "jott.tasks",
-      completedName: "Completed",
+      completedName: "completed",
       notesFolder: "jott.notes",
       notesInbox: "Inbox",
       dateDisplayFormat: "mm/dd/yyyy",
@@ -3022,6 +3068,8 @@ describe("SettingsView", () => {
     dateDisplayFormat: "mm/dd/yyyy",
     closeInspectorOnClickAway: false,
     quickNoteFolder: "Inbox",
+    accentColor: "",
+    theme: "",
   };
 
   const notebook = { path: "/n", name: "n", readOnly: false };
@@ -3033,6 +3081,47 @@ describe("SettingsView", () => {
     onChanged: noop,
     onError: noop,
     ...extra,
+  });
+
+  test("the theme and the accent are chosen here, and stored by name", async () => {
+    // Both are a NAME, never colours (2026-08-13): the theme picks which CSS
+    // file dresses the app, the accent which of the seven the brand is. Absent
+    // means the one the app ships as, so the default reads as chosen without
+    // the notebook having to say so.
+    bridge({ notebook_settings: settings, set_notebook_settings: null });
+    render(SettingsView, { props: props() });
+
+    const jott = await screen.findByRole("button", { name: "Jott" });
+    expect(jott.getAttribute("aria-pressed")).toBe("true");
+
+    await userEvent.click(screen.getByRole("button", { name: "Dark" }));
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("set_notebook_settings", {
+        settings: { theme: "dark" },
+      }),
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "orange" }));
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("set_notebook_settings", {
+        settings: { accentColor: "orange" },
+      }),
+    );
+  });
+
+  test("a read-only notebook offers neither", async () => {
+    bridge({ notebook_settings: settings });
+    render(SettingsView, {
+      props: props({ notebook: { ...notebook, readOnly: true } }),
+    });
+
+    const dark = await screen.findByRole("button", { name: "Dark" });
+    expect(dark.hasAttribute("disabled")).toBe(true);
+    // Disabled on the button, not merely ignored by the handler: a control
+    // that looks pressable and does nothing reads as broken.
+    expect(screen.getByRole("button", { name: "orange" }).hasAttribute("disabled")).toBe(
+      true,
+    );
   });
 
   test("shows every documented key with its stored value", async () => {

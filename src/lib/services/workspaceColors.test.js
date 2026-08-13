@@ -3,9 +3,9 @@ import { workspaceColors } from "./workspaceColors.js";
 
 describe("workspaceColors", () => {
   const workspaces = [
-    { folderName: "Space 1", color: "#ff0000" },
-    { folderName: "Space 2", color: null },
-    { folderName: "Space 3", color: "#00ff00" },
+    { path: "Space 1", color: "#ff0000" },
+    { path: "Space 2", color: null },
+    { path: "Space 3", color: "#00ff00" },
   ];
 
   it("keeps a loose workspace's own colour", () => {

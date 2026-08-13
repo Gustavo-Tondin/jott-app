@@ -33,13 +33,11 @@
     flex: 1;
     color: var(--theme-ink);
   }
-  .tags-view__color {
-    inline-size: var(--theme-space-32);
-    block-size: var(--theme-space-24);
-    padding: 0;
-    border: 0.0625rem solid var(--theme-line);
-    border-radius: var(--theme-radius-sm);
-    background: none;
-    cursor: pointer;
+  /* The colour is chosen from the shared seven (components/accent-picker.css);
+     the OS colour input this row used to carry is gone. */
+  /* The trash is the shared .theme-btn--icon; only the danger tint on hover is
+     this row's, matching every other destructive glyph in the app. */
+  .tags-view__delete:hover:not(:disabled) {
+    color: var(--theme-danger);
   }
 }

@@ -7,6 +7,9 @@
   import { S } from "../services/strings.js";
   import { askName } from "../services/dialog.js";
   import { makeAct } from "../services/act.js";
+  import { accentColor } from "../services/accent.js";
+  import AccentPicker from "../components/AccentPicker.svelte";
+  import Icon from "../components/Icon.svelte";
 
   let { tags = [], onChanged, onError } = $props();
 
@@ -42,18 +45,30 @@
         <li class="theme-row tags-view__item">
           <span
             class="theme-swatch theme-swatch--lg tags-view__swatch"
-            style={`--tag-color: ${tag.color || "var(--theme-brand)"}`}
+            style={`--tag-color: ${accentColor(tag.color) ?? "var(--theme-brand)"}`}
           ></span>
-          <span class="tags-view__name">#{tag.name}</span>
-          <input
-            type="color"
-            class="tags-view__color"
-            value={tag.color || "#0080ff"}
-            aria-label={`${tag.name} colour`}
-            onchange={(e) => setColor(tag.name, e.currentTarget.value)}
+          <span class="tags-view__name">{tag.name}</span>
+          <!-- The seven, not the OS colour dialog (2026-08-13). The native
+               picker offered sixteen million colours the app cannot place on a
+               ground: a hex has no light half and no dark half, so a tag chosen
+               there would keep one value on the white canvas and the black
+               sidebar and lose its contrast on one of them. -->
+          <AccentPicker
+            value={tag.color}
+            label={`${tag.name} colour`}
+            onPick={(c) => setColor(tag.name, c || null)}
           />
-          <button class="theme-btn tags-view__delete" onclick={() => remove(tag.name)}>
-            {S.deleteTag}
+          <!-- The same trash the inspector's footer wears (user call,
+               2026-08-13): one glyph for "throw this away", wherever the app
+               offers it. As a worded button it was the widest thing in the row
+               and read as the row's main action. -->
+          <button
+            class="theme-btn--icon tags-view__delete"
+            onclick={() => remove(tag.name)}
+            aria-label={S.deleteTag}
+            title={S.deleteTag}
+          >
+            <Icon name="trash" size="1.125rem" />
           </button>
         </li>
       {/each}

@@ -1,0 +1,41 @@
+/* accent-picker.css — the visual layer of AccentPicker.svelte: the row of
+ * seven swatches, wherever a colour is chosen (workspace popup, tag manager,
+ * settings). Markup: src/lib/components/AccentPicker.svelte. */
+
+@layer components {
+  .accent-picker {
+    display: flex;
+    align-items: center;
+    gap: var(--theme-space-6);
+  }
+  .accent-picker__swatch {
+    inline-size: 1.25rem;
+    block-size: 1.25rem;
+    padding: 0;
+    /* The ring is always there, transparent until chosen: a border appearing on
+       selection would shift the whole row by 2px. */
+    border: 0.125rem solid transparent;
+    border-radius: var(--theme-radius-pill);
+    background: var(--dot, var(--theme-surface));
+    cursor: pointer;
+  }
+  /* "No colour of its own" — the raised step, so it reads as an empty slot
+     rather than as a grey option among the seven. */
+  .accent-picker__swatch--clear {
+    background: var(--theme-surface);
+    border-color: var(--theme-line);
+  }
+  /* Chosen: the region's ink, which contrasts with every one of the seven on
+     either ground — an accent-coloured ring would vanish on its own swatch. */
+  .accent-picker__swatch--on {
+    border-color: var(--theme-ink);
+  }
+  .accent-picker__swatch:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  .accent-picker__swatch:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 0.1875rem var(--theme-brand-weak);
+  }
+}

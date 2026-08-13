@@ -67,21 +67,24 @@
     grid-template-columns: 1fr;
   }
 
-  /* One note: the same card the Home shows (.home__note) — a raised surface
-     with a hairline that firms up on hover. */
+  /* One note: the same card the Home shows (.home__note) — a raised surface,
+     borderless, dimming on hover. It follows the task cards (2026-08-13): the
+     ground step is the card, and a hairline on top of it outlined every item
+     in the grid. */
   .notes-widget__item {
     position: relative;
     background: var(--theme-surface);
-    border: 0.0625rem solid var(--theme-line-soft);
+    border: none;
     border-radius: var(--theme-radius-md);
-    transition: border-color var(--theme-transition-fast);
+    transition: opacity var(--theme-transition-fast);
   }
   .notes-widget__item:hover {
-    border-color: var(--theme-ink-faint);
+    opacity: 0.7;
   }
-  /* Pinned: the star's own colour, so the card says so without a second cue. */
+  /* Pinned: the star's own colour, so the card says so without a second cue.
+     The one card that keeps an outline, because here it MEANS something. */
   .notes-widget__item--pinned {
-    border-color: var(--theme-warning);
+    border: 0.0625rem solid var(--theme-warning);
   }
   .notes-widget__card {
     display: flex;

@@ -143,6 +143,24 @@ pub struct Config {
     pub auto_urgent_by_date: bool,
     /// How dates are shown. The file always stores ISO.
     pub date_display_format: DateFormat,
+    /// Which of the app's seven complementary colours is the accent — the
+    /// colour of the open sidebar row, the primary button, a focus ring
+    /// (2026-08-13). A NAME (`"orange"`), never a hex: each of the seven has a
+    /// light half and a dark half, and which one is shown depends on the
+    /// ground it lands on, which only the interface knows.
+    ///
+    /// The core does not police the value. It is a look, the list of names is
+    /// a product decision that lives with the interface (like `features`), and
+    /// a notebook written by a newer build must round-trip a name this one has
+    /// never heard of instead of silently resetting it. Empty means "whatever
+    /// the app ships as".
+    pub accent_color: String,
+    /// Which theme is on — `default`, `light`, `dark` (2026-08-13). Same
+    /// covenant as `accent_color` in every respect: a NAME, never colours; not
+    /// policed here, because the list of themes is the interface's and a
+    /// notebook written by a newer build must keep a theme this one cannot
+    /// draw. Empty means the one the app ships as.
+    pub theme: String,
     /// Close the task panel when clicking outside it.
     ///
     /// Off by default, and that default is a decision: it shipped on, fired
@@ -202,6 +220,8 @@ impl Default for Config {
             show_list_counts: true,
             auto_urgent_by_date: true,
             date_display_format: DateFormat::default(),
+            accent_color: String::new(),
+            theme: String::new(),
             close_inspector_on_click_away: false,
             quick_note_folder: crate::notefolder::NOTES_INBOX.to_string(),
             trash_retention_days: 30,
@@ -281,6 +301,61 @@ impl Config {
         }
     }
 
+    /// Repoints every stored arrangement after a folder moved or was renamed.
+    /// Returns true when something changed.
+    ///
+    /// The arrangements are addressed by folder, in two different shapes, and
+    /// both go stale on a rename — silently, which is the worst kind: the
+    /// workspace simply falls to the end of a hand-dragged column and nobody
+    /// can see why. So:
+    ///
+    /// - the `lists:<dir>` namespace KEY carries a root-relative path, and any
+    ///   key under the moved dir moves with it;
+    /// - the sidebar's `workspaces` order holds bare folder names, so an entry
+    ///   equal to the old leaf becomes the new one. Safe to do across every
+    ///   namespace because a folder name is unique in the notebook (spec 3.5).
+    ///
+    /// It matters most for a GROUP rename, where the group's own leaf changes
+    /// and every `lists:` key beneath it changes with it.
+    pub fn relocate_orders(&mut self, from_rel: &str, to_rel: &str) -> bool {
+        if from_rel == to_rel {
+            return false;
+        }
+        let from_leaf = from_rel.rsplit('/').next().unwrap_or(from_rel).to_string();
+        let to_leaf = to_rel.rsplit('/').next().unwrap_or(to_rel).to_string();
+
+        let mut changed = false;
+        let rekeyed: Vec<(String, String)> = self
+            .order
+            .keys()
+            .filter_map(|key| {
+                let dir = key.strip_prefix("lists:")?;
+                let rest = dir
+                    .strip_prefix(from_rel)
+                    .filter(|rest| rest.is_empty() || rest.starts_with('/'))?;
+                Some((key.clone(), format!("lists:{to_rel}{rest}")))
+            })
+            .collect();
+        for (old, new) in rekeyed {
+            if let Some(value) = self.order.remove(&old) {
+                self.order.insert(new, value);
+                changed = true;
+            }
+        }
+
+        if from_leaf != to_leaf {
+            for names in self.order.values_mut() {
+                for name in names.iter_mut() {
+                    if *name == from_leaf {
+                        *name = to_leaf.clone();
+                        changed = true;
+                    }
+                }
+            }
+        }
+        changed
+    }
+
     /// Reads the config. A missing or unreadable file yields the defaults —
     /// same treatment `Inbox.md` gets, and for the same reason: a broken
     /// preference file must never stop someone from opening their notebook.
@@ -312,6 +387,8 @@ impl Config {
                 .as_deref()
                 .map(DateFormat::parse_or_default)
                 .unwrap_or_default(),
+            accent_color: string(&raw, "accentColor").unwrap_or(defaults.accent_color),
+            theme: string(&raw, "theme").unwrap_or(defaults.theme),
             close_inspector_on_click_away: flag(
                 &raw,
                 "closeInspectorOnClickAway",
@@ -410,6 +487,17 @@ impl Config {
                 "workspacesSort".to_string(),
                 Value::from(self.workspaces_sort.clone()),
             );
+        }
+        // The accent and the theme, same rule: absent means what the app ships
+        // as, so a notebook that never had one chosen says nothing about it,
+        // and going back to the default REMOVES the key rather than writing
+        // the default name into the file.
+        for (key, value) in [("accentColor", &self.accent_color), ("theme", &self.theme)] {
+            if value.is_empty() {
+                cleared.push(key);
+            } else {
+                owned.insert(key.to_string(), Value::from(value.clone()));
+            }
         }
         for (key, value) in [
             ("order", serde_json::to_value(&self.order).unwrap_or_default()),
@@ -697,6 +785,109 @@ mod tests {
         assert_eq!(broken.date_display_format, DateFormat::MonthDayYear);
         assert_eq!(broken.quick_note_folder, "Inbox");
         assert!(!broken.close_inspector_on_click_away);
+    }
+
+    #[test]
+    fn the_theme_round_trips_and_absent_means_the_app_default() {
+        // Same covenant as the accent: a name, not policed here, and absent
+        // means the one the app ships as — so an untouched notebook says
+        // nothing about how it looks.
+        let config = Config::default();
+        assert_eq!(config.theme, "");
+        assert!(!config.render().contains("\"theme\""));
+
+        let mut chosen = Config::default();
+        chosen.theme = "dark".into();
+        let reparsed = Config::parse(&chosen.render());
+        assert_eq!(reparsed.theme, "dark");
+
+        let mut back = reparsed;
+        back.theme = String::new();
+        assert!(!back.render().contains("\"theme\""));
+
+        // A theme this build cannot draw survives: the list is the interface's.
+        let future = Config::parse(r#"{ "schemaVersion": 1, "theme": "solarized" }"#);
+        assert_eq!(future.theme, "solarized");
+        assert!(future.render().contains("solarized"));
+    }
+
+    #[test]
+    fn the_accent_colour_round_trips_and_absent_means_the_app_default() {
+        // Nothing chosen: the key is not in the file at all, so a notebook the
+        // user never themed says nothing about the theme.
+        let config = Config::default();
+        assert_eq!(config.accent_color, "");
+        assert!(
+            !config.render().contains("accentColor"),
+            "an untouched notebook writes no accent key"
+        );
+
+        let mut chosen = Config::default();
+        chosen.accent_color = "orange".into();
+        let reparsed = Config::parse(&chosen.render());
+        assert_eq!(reparsed.accent_color, "orange");
+
+        // Back to the default REMOVES the key — a stale one left in `raw`
+        // would outlive the choice that cleared it.
+        let mut back = reparsed;
+        back.accent_color = String::new();
+        let rendered = back.render();
+        assert!(!rendered.contains("accentColor"), "{rendered}");
+
+        // A name this build has never heard of survives: the list of colours
+        // is the interface's, and a newer app's choice is not ours to reset.
+        let future = Config::parse(r#"{ "schemaVersion": 1, "accentColor": "teal" }"#);
+        assert_eq!(future.accent_color, "teal");
+        assert!(future.render().contains("teal"));
+    }
+
+    #[test]
+    fn a_renamed_folder_carries_its_arrangements_with_it() {
+        // Renaming a workspace moves its folder now (2026-08-13), and both
+        // shapes of stored arrangement are addressed by folder. Left stale,
+        // they fail silently: the workspace simply drops to the end of a
+        // column the user dragged, with nothing on screen to explain it.
+        let mut config = Config::default();
+        config.set_order("workspaces", vec!["Work".into(), "Mercado".into()]);
+        config.set_order("lists:Design/Work", vec!["a".into()]);
+        config.set_order("lists:Other", vec!["b".into()]);
+
+        assert!(config.relocate_orders("Design/Work", "Design/Tasks"));
+        assert_eq!(
+            config.order.get("workspaces"),
+            Some(&vec!["Tasks".to_string(), "Mercado".to_string()]),
+            "the sidebar order holds bare folder names"
+        );
+        assert_eq!(
+            config.order.get("lists:Design/Tasks"),
+            Some(&vec!["a".to_string()])
+        );
+        assert!(config.order.get("lists:Design/Work").is_none());
+        assert_eq!(
+            config.order.get("lists:Other"),
+            Some(&vec!["b".to_string()]),
+            "an unrelated namespace is left alone"
+        );
+
+        // A GROUP rename moves everything beneath it, keys included.
+        let mut nested = Config::default();
+        nested.set_order("lists:Design/Work", vec!["a".into()]);
+        nested.set_order("lists:Designer/Work", vec!["c".into()]);
+        assert!(nested.relocate_orders("Design", "Brand"));
+        assert_eq!(
+            nested.order.get("lists:Brand/Work"),
+            Some(&vec!["a".to_string()])
+        );
+        assert_eq!(
+            nested.order.get("lists:Designer/Work"),
+            Some(&vec!["c".to_string()]),
+            "a key that merely STARTS with the old name is not under it"
+        );
+
+        // Moving without renaming touches no key and reports nothing changed.
+        let mut same = Config::default();
+        same.set_order("workspaces", vec!["Work".into()]);
+        assert!(!same.relocate_orders("Work", "Work"));
     }
 
     #[test]

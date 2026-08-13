@@ -45,37 +45,50 @@
     /* No vertical padding: the fixed height plus align-items:center is what
        keeps the label centred in the bar. */
     padding-inline: var(--theme-space-10);
-    background: var(--theme-surface);
-    border: 0.0625rem solid var(--theme-line-soft);
+    /* The strip belongs to the PANEL, not to the frame it is drawn in
+       (2026-08-13 wireframes). An open tab is the panel's top edge showing
+       through the chrome — literally the canvas ground — and a closed one sits
+       exactly halfway between the two grounds, so the row reads as documents
+       rising out of the frame toward the one that is open. In the factory
+       theme that midpoint is the grey between black and white; in the all-light
+       and all-dark themes the two grounds are a step apart, so the same rule
+       produces a whisper instead of a jump. One formula, three themes. */
+    background: color-mix(in srgb, var(--canvas-ground) 55%, var(--theme-bg));
+    border: none;
     border-radius: var(--theme-radius-xs);
-    color: var(--theme-ink-faint);
+    /* The CANVAS's ink, muted — not the chrome's faint grey (user report,
+       2026-08-13: unreadable). The tab is made of canvas material, and in the
+       factory theme that material is light, so the frame's pale ink landed
+       grey-on-grey. Reading the ink from the same ground the fill comes from
+       is what keeps the label legible in all three themes. */
+    color: color-mix(in srgb, var(--canvas-ink) 60%, transparent);
   }
   .tabs__item--active {
-    color: var(--theme-ink);
+    background: var(--canvas-ground);
+    /* And its ink is the CANVAS's, because that is what it is made of now. */
+    color: var(--canvas-ink);
     font-weight: var(--theme-weight-bold);
   }
 
   /* The workspace dot: the colour of the workspace the tab's view comes from
      (per-tab --tab-color, set inline), the theme brand when it comes from a
-     fixed one. Strong on the active tab, faded on the rest. */
+     fixed one. Full strength on every tab (2026-08-13 wireframe) — the dot is
+     the only thing naming WHERE a closed tab comes from, and fading it left
+     the row of closed tabs looking identical.
+     NOTE it reads --tab-color, which TabBar resolves against the CHROME (the
+     strip's region), while the tab's fill comes from the canvas. On a mid-grey
+     closed tab that is the readable half. */
   .tabs__dot {
     flex-shrink: 0;
     width: var(--theme-space-6);
     height: var(--theme-space-6);
     border-radius: 50%;
-    background: color-mix(
-      in srgb,
-      var(--tab-color, var(--theme-brand)) 35%,
-      transparent
-    );
-  }
-  .tabs__item--active .tabs__dot {
     background: var(--tab-color, var(--theme-brand));
   }
   /* The carried tab: the motion (no transition, lift, z-index) comes from the
      shared .reorder-item--carried; this adds the tab's own shadow. */
   .tabs__item.reorder-item--carried {
-    box-shadow: 0 0.25rem 0.625rem rgba(33, 44, 59, 0.18);
+    box-shadow: var(--theme-shadow-popover);
   }
   .tabs__item.reorder-item--carried .tabs__label {
     cursor: grabbing;
@@ -99,13 +112,19 @@
 
   /* Both are .theme-btn--icon; only their tight-fit sizing is their own
      (the shared padding would outgrow the 28px tab strip). */
+  /* Both × read against the CANVAS, for the same reason the label does: they
+     are inside a tab, and a tab is made of the panel's material. */
   .tabs__close {
     flex-shrink: 0;
     padding: var(--theme-space-2);
-    color: var(--theme-ink-faint);
+    color: color-mix(in srgb, var(--canvas-ink) 50%, transparent);
+  }
+  .tabs__close:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--canvas-ink) 10%, transparent);
+    color: var(--canvas-ink);
   }
   .tabs__item--active .tabs__close {
-    color: var(--theme-ink-muted);
+    color: color-mix(in srgb, var(--canvas-ink) 60%, transparent);
   }
 
   .tabs__add {

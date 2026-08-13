@@ -13,46 +13,36 @@
     flex-direction: column;
     gap: var(--theme-space-12);
   }
+  /* Centred heading with the ⋮ at the far right, matching the tasks block
+     above it (2026-08-13 wireframe). The mirrored ⋮ on the left is what makes
+     "centred" mean centred on the PANEL — see the markup. */
   .home__block-header {
     display: flex;
     align-items: center;
-    justify-content: space-between;
     gap: var(--theme-space-8);
   }
-  /* The New task / New note buttons wear the shared .theme-btn--primary; the
-     hook stays for a theme to target this specific button if it wants. */
+  .home__block-title {
+    flex: 1;
+    min-width: 0;
+    text-align: center;
+  }
+  .home__mirror {
+    display: inline-flex;
+    visibility: hidden;
+    min-inline-size: 0;
+    flex-shrink: 1;
+  }
   /* .home__task-list is the shared .theme-task-list (controls.css). */
+
+  /* The rule between the two halves. Inset rather than full-bleed: it separates
+     two blocks of one screen, and edge to edge it read as the end of the page. */
   .home__divider {
     padding-inline: var(--theme-space-32);
   }
   .home__divider hr {
     border: none;
-    border-top: 0.125rem solid var(--theme-line);
+    border-top: 0.125rem solid var(--theme-ink-faint);
     margin: 0;
-  }
-  .home__capture {
-    display: flex;
-    gap: var(--theme-space-8);
-    align-items: flex-end;
-  }
-  /* Look comes from .theme-textarea; here it only fills the row and stays a
-     two-line quick box rather than the control's default 5rem tall. */
-  .home__capture-input {
-    flex: 1 1 auto;
-    width: auto;
-    min-height: auto;
-  }
-  .home__capture-label {
-    display: flex;
-    align-items: center;
-    gap: var(--theme-space-4);
-    font-size: var(--theme-text-12);
-    color: var(--theme-ink-muted);
-  }
-  /* The inline "Save to" select sizes to its content, not the full row. */
-  .home__capture-label .theme-select {
-    width: auto;
-    min-width: 8rem;
   }
   .home__notes {
     display: grid;
@@ -60,6 +50,9 @@
     gap: var(--theme-space-12);
     align-items: start;
   }
+  /* A note card is the raised step, borderless — the same card the task rows
+     wear, so the two halves of Home are made of one material (2026-08-13). The
+     per-note colours the wireframe shows are the notes redesign, not this one. */
   .home__note {
     display: flex;
     flex-direction: column;
@@ -67,14 +60,14 @@
     text-align: left;
     padding: var(--theme-space-12);
     background: var(--theme-surface);
-    border: 0.0625rem solid var(--theme-line-soft);
+    border: none;
     border-radius: var(--theme-radius-md);
     font: inherit;
     cursor: pointer;
-    transition: border-color var(--theme-transition-fast);
+    transition: opacity var(--theme-transition-fast);
   }
   .home__note:hover {
-    border-color: var(--theme-ink-faint);
+    opacity: 0.7;
   }
   .home__note-head {
     display: flex;

@@ -10,7 +10,10 @@
     gap: var(--theme-space-12);
     padding: var(--theme-space-10) var(--theme-space-12);
     background: var(--theme-surface-sunken);
-    border: 0.0625rem solid var(--theme-line);
+    /* No border (user call, 2026-08-13). The card already differs from the
+       panel by a whole ground step; a hairline on top of that outlined every
+       row in a list of a dozen and turned a calm column into a grid. */
+    border: none;
     border-radius: var(--theme-radius-md);
     cursor: pointer;
     /* The whole card is the drag handle (no grip since 2026-08-04): a drag
@@ -18,9 +21,10 @@
     user-select: none;
     -webkit-user-select: none;
   }
+  /* Selected: the accent tint alone carries it — no outline, for the same
+     reason the card has no border. */
   .task-row--selected {
     background: var(--theme-brand-weak);
-    border-color: var(--theme-brand-outline);
   }
 
   /* The box is the shared .theme-checkbox at its large size (--lg, 20px) — a

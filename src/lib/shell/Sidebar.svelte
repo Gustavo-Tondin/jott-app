@@ -17,6 +17,7 @@
   } from "../services/sidebarOrder.js";
   import { reorderable } from "../actions/reorder.js";
   import { workspaceIcon } from "../services/workspaceIcon.js";
+  import { accentStyle } from "../services/accent.js";
 
   let {
     notebook,
@@ -61,7 +62,7 @@
     onToggleRail,
   } = $props();
 
-  // Which workspace's appearance popup is open (folderName, or null). Opened
+  // Which workspace's appearance popup is open (its path, or null). Opened
   // from that workspace's ⋮ menu.
   let appearanceOpen = $state(null);
 
@@ -110,7 +111,7 @@
     // One level up: the root, or the group this one sits in.
     const target = parent.group.parent ?? null;
     if (child.kind === "group") onMoveGroup?.(child.group.folder, target);
-    else onMoveWorkspace?.(child.ws.folderName, target);
+    else onMoveWorkspace?.(child.ws.path, target);
   }
 
   /// Dropped on a group's head, wherever that group is in the column: the
@@ -121,14 +122,14 @@
     const folder = zone.dataset.groupDrop;
     if (!entry || !folder) return;
     if (entry.kind === "group") onMoveGroup?.(entry.group.folder, folder);
-    else onMoveWorkspace?.(entry.ws.folderName, folder);
+    else onMoveWorkspace?.(entry.ws.path, folder);
   }
 
   function dropAt(list, from, into) {
     const meaning = dropMeaning(list, from, into);
     if (!meaning) return;
     if (meaning.kind === "intoGroup") {
-      onMoveWorkspace?.(meaning.workspace.folderName, meaning.group.folder);
+      onMoveWorkspace?.(meaning.workspace.path, meaning.group.folder);
     } else if (meaning.kind === "groupIntoGroup") {
       onMoveGroup?.(meaning.moving.folder, meaning.group.folder);
     } else {
@@ -214,32 +215,32 @@
   const groupOf = (name) => groups.find((group) => group.workspaces.includes(name)) ?? null;
 
   function workspaceMenu(ws) {
-    const holder = groupOf(ws.folderName);
+    const holder = groupOf(ws.path);
     const items = [
-      { label: S.renameWorkspace, run: () => onRenameWorkspace?.(ws.folderName, ws.name) },
+      { label: S.renameWorkspace, run: () => onRenameWorkspace?.(ws.path, ws.name) },
     ];
     // A member picks its ICON but not its colour: the colour is the group's.
     items.push({
       label: holder ? S.iconOnly : S.workspaceAppearance,
-      run: () => (appearanceOpen = ws.folderName),
+      run: () => (appearanceOpen = ws.path),
     });
     if (holder) {
       // Out to whatever holds the group — one level up, not all the way to the
       // root: with groups nesting, "out" means out of THIS one.
       items.push({
         label: S.removeFromGroup,
-        run: () => onMoveWorkspace?.(ws.folderName, holder.parent ?? null),
+        run: () => onMoveWorkspace?.(ws.path, holder.parent ?? null),
       });
     }
     for (const g of groups) {
-      if (!g.workspaces.includes(ws.folderName)) {
+      if (!g.workspaces.includes(ws.path)) {
         items.push({
           label: `${S.moveToGroup}: ${g.name}`,
-          run: () => onMoveWorkspace?.(ws.folderName, g.folder),
+          run: () => onMoveWorkspace?.(ws.path, g.folder),
         });
       }
     }
-    items.push({ label: S.deleteWorkspace, run: () => onDeleteWorkspace?.(ws.folderName, ws.name) });
+    items.push({ label: S.deleteWorkspace, run: () => onDeleteWorkspace?.(ws.path, ws.name) });
     return items;
   }
 </script>
@@ -297,10 +298,11 @@
         onclick={() => onOpen({ kind: "home" })}
         onauxclick={(e) => middleOpen(e, { kind: "home" })}
       >
-        <Icon
-          name={isOpen({ kind: "home" }) ? "house-fill" : "house"}
-          size="1.125rem"
-        />
+        <!-- One glyph, open or not (user call, 2026-08-13): Home was the only
+             entry that swapped to its filled variant when selected, so the
+             icon changed SHAPE under the pointer while every other row just
+             took the accent pill. The pill already says where you are. -->
+        <Icon name="house" size="1.125rem" />
         <span class="shell__nav-label">{S.home}</span>
       </button>
       {#if f("tasks")}
@@ -374,13 +376,13 @@
       <div
         class="shell__nav-item shell__nav-item--row"
         class:shell__nav-item--member={grouped}
-        class:shell__nav-item--active={isOpen({ kind: "workspace", ws: ws.folderName })}
+        class:shell__nav-item--active={isOpen({ kind: "workspace", ws: ws.path })}
         oncontextmenu={(e) => openRowMenu(e, workspaceMenu(ws))}
       >
         <button
           class="shell__nav-open"
-          onclick={() => onOpen({ kind: "workspace", ws: ws.folderName })}
-          onauxclick={(e) => middleOpen(e, { kind: "workspace", ws: ws.folderName })}
+          onclick={() => onOpen({ kind: "workspace", ws: ws.path })}
+          onauxclick={(e) => middleOpen(e, { kind: "workspace", ws: ws.path })}
         >
           <!-- A member draws its icon too (user call, 2026-08-06), a size
                down — it keeps the rail usable, where the label is gone and the
@@ -391,7 +393,7 @@
         </button>
         <!-- The colour/icon popup still needs somewhere to hang; it is only in
              the DOM while it is open, so nothing marks the row otherwise. -->
-        {#if appearanceOpen === ws.folderName}
+        {#if appearanceOpen === ws.path}
           <span class="shell__ws-tools shell__ws-tools--open">
             <WorkspaceAppearance
               open
@@ -399,8 +401,8 @@
               color={ws.color}
               icon={ws.icon}
               onClose={() => (appearanceOpen = null)}
-              onColor={(c) => onSetWorkspaceAppearance?.(ws.folderName, c, ws.icon)}
-              onIcon={(i) => onSetWorkspaceAppearance?.(ws.folderName, ws.color, i)}
+              onColor={(c) => onSetWorkspaceAppearance?.(ws.path, c, ws.icon)}
+              onIcon={(i) => onSetWorkspaceAppearance?.(ws.path, ws.color, i)}
             />
           </span>
         {/if}
@@ -440,7 +442,10 @@
           {#if entry.kind === "group"}
             <div
               class="shell__entry shell__group shell__group--workspace"
-              style={entry.group.color ? `--group-color: ${entry.group.color}` : undefined}
+              style={accentStyle(entry.group.color, {
+                color: "--group-color",
+                tint: "--group-tint",
+              }) || undefined}
             >
               <!-- svelte-ignore a11y_no_static_element_interactions -->
               <div
@@ -456,6 +461,15 @@
                 >
                   <Icon name={entry.group.icon || "folders"} size="1.125rem" />
                   <span class="shell__nav-label">{entry.group.name}</span>
+                  <!-- The head is a toggle, and nothing said so: it looked like
+                       every other row and behaved differently (user call,
+                       2026-08-13). The caret points where the members are. -->
+                  <span class="shell__group-caret">
+                    <Icon
+                      name={isCollapsed(entry.group.folder) ? "caret-right" : "caret-down"}
+                      size="0.875rem"
+                    />
+                  </span>
                 </button>
                 {#if appearanceOpen === `group:${entry.group.folder}`}
                   <span class="shell__ws-tools shell__ws-tools--open">
@@ -484,7 +498,12 @@
               class="shell__entry"
               class:shell__group={!parent}
               class:shell__group--workspace={!parent}
-              style={!parent && entry.ws.color ? `--group-color: ${entry.ws.color}` : undefined}
+              style={(!parent &&
+                accentStyle(entry.ws.color, {
+                  color: "--group-color",
+                  tint: "--group-tint",
+                })) ||
+                undefined}
             >
               {@render workspaceRow(entry.ws, !!parent)}
             </div>

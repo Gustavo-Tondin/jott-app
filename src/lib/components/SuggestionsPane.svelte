@@ -14,7 +14,7 @@
   // from Today to Week underneath must not leave a stale list here.
   import { api } from "../services/api.js";
   import { S } from "../services/strings.js";
-  import { listName } from "../services/paths.js";
+  import { listName, splitLabel } from "../services/paths.js";
   import { formatDate } from "../services/dates.js";
   import { ensureTaskId } from "../services/taskId.js";
   import { makeAct } from "../services/act.js";
@@ -89,14 +89,15 @@
       if (!out.has(entry.path)) out.set(entry.path, []);
       out.get(entry.path).push(entry);
     }
-    return [...out].map(([path, items]) => ({
-      key: `list:${path}`,
-      label: listName(path),
-      // The name the core hands over, never the folder: the fixed workspaces
-      // are filed as `jott.*` and read as Home, Tasks and Notes.
-      context: items[0]?.workspace ?? "",
-      items,
-    }));
+    return [...out].map(([path, items]) => {
+      // The address the core hands over, never the folder or the file stem:
+      // the fixed workspaces are filed as `jott.*` and read as Home, Tasks and
+      // Notes, and since 2026-08-13 every tasks list is called `task-list.md`,
+      // so the stem names nothing. Split so the heading can draw the group in
+      // the quieter grey and the workspace in the louder one.
+      const { context, name } = splitLabel(items[0] ?? { path });
+      return { key: `list:${path}`, label: name, context, items };
+    });
   });
 
   // Folded shut by clicking the heading. Local to the panel, like the sidebar's

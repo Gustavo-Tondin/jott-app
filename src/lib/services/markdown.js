@@ -179,10 +179,14 @@ export const markdownLook = HighlightStyle.define([
   { tag: tags.strong, fontWeight: "700" },
   { tag: tags.emphasis, fontStyle: "italic" },
   { tag: tags.strikethrough, textDecoration: "line-through" },
-  { tag: tags.link, color: "#2f6fed", textDecoration: "underline" },
-  { tag: tags.url, color: "#2f6fed" },
+  // Tokens, not hexes: the editor renders on whatever ground its region has,
+  // and a fixed blue link that read on white vanished on the dark canvas of
+  // the dark theme. `var()` resolves against the element CodeMirror is mounted
+  // in, so a link is the accent of the place it is written in.
+  { tag: tags.link, color: "var(--theme-brand)", textDecoration: "underline" },
+  { tag: tags.url, color: "var(--theme-brand)" },
   { tag: tags.monospace, fontFamily: "ui-monospace, monospace" },
-  { tag: tags.quote, color: "#555", fontStyle: "italic" },
+  { tag: tags.quote, color: "var(--theme-ink-muted)", fontStyle: "italic" },
   { tag: tags.list, color: "inherit" },
 ]);
 

@@ -230,8 +230,24 @@ impl Workspace {
         &self.folder_name
     }
 
-    /// What the UI shows: the configured name, or the folder's.
+    /// What the UI shows: **the folder name** (user call, 2026-08-13).
+    ///
+    /// The marker's `name` used to win, and that made the name a second copy
+    /// of something the filesystem already stores. Two copies drift: renaming
+    /// a workspace in the app wrote the marker and left the folder — and the
+    /// list file inside it — under the old name, so the sidebar and the disk
+    /// disagreed. It also went one way only: renaming the folder in a file
+    /// manager changed nothing on screen.
+    ///
+    /// The **app's own folders are the exception**, and the only one. They are
+    /// called `jott.tasks`, `jott.notes`, `jott.home` precisely so the plain
+    /// words stay free for the user, so their folder name is an identifier and
+    /// not a label; their marker carries the name the interface reads. A user
+    /// workspace cannot take that route — there, the folder IS the name.
     pub fn display_name(&self) -> &str {
+        if !is_app_folder(&self.folder_name) {
+            return &self.folder_name;
+        }
         self.config
             .name
             .as_deref()
@@ -270,6 +286,13 @@ pub fn marker_dirs(parent: &Path, marker: &str) -> Result<Vec<PathBuf>> {
         .collect();
     found.sort_by_key(|dir| folder_name_of(dir));
     Ok(found)
+}
+
+/// True for a folder the APP owns and named — `jott.tasks`, `jott.notes`,
+/// `jott.home`. Only these may carry a display name in their marker: their
+/// folder name is an identifier, everyone else's folder name is the name.
+pub fn is_app_folder(folder: &str) -> bool {
+    folder.starts_with("jott.")
 }
 
 /// The last component of a path, as an owned string.
@@ -407,18 +430,43 @@ mod tests {
     }
 
     #[test]
-    fn the_display_name_falls_back_to_the_folder() {
+    fn the_folder_is_the_name_and_only_the_app_folders_may_say_otherwise() {
+        // 2026-08-13: the marker's `name` stopped being a second copy of the
+        // folder. It drifted — renaming in the app wrote the marker and left
+        // the folder — and it only ever went one way, so renaming the folder
+        // in a file manager changed nothing on screen.
         let dir = tempfile::tempdir().unwrap();
         let ws = workspace_at(&dir.path().join("Trabalho"), r#"{ "schemaVersion": 1 }"#);
         assert_eq!(ws.display_name(), "Trabalho");
         assert_eq!(ws.folder_name(), "Trabalho");
 
+        // A user workspace carrying a stale `name` shows its FOLDER. The key
+        // itself is not destroyed (the unknown-key promise still holds); it is
+        // simply no longer what the interface reads.
         let named = workspace_at(
             &dir.path().join("pasta-feia"),
             r#"{ "schemaVersion": 1, "name": "Project A" }"#,
         );
-        assert_eq!(named.display_name(), "Project A");
+        assert_eq!(named.display_name(), "pasta-feia");
         assert_eq!(named.folder_name(), "pasta-feia");
+
+        // The exception, and the only one: the app's own folders are called
+        // `jott.*` precisely so the plain words stay free for the user, so
+        // their folder name is an identifier and their marker holds the label.
+        let fixed = workspace_at(
+            &dir.path().join("jott.tasks"),
+            r#"{ "schemaVersion": 1, "type": "tasks", "name": "Tasks" }"#,
+        );
+        assert_eq!(fixed.display_name(), "Tasks");
+        assert_eq!(fixed.folder_name(), "jott.tasks");
+
+        // And a fixed one with no label falls back to its folder rather than
+        // showing nothing.
+        let bare = workspace_at(
+            &dir.path().join("jott.notes"),
+            r#"{ "schemaVersion": 1, "type": "notes" }"#,
+        );
+        assert_eq!(bare.display_name(), "jott.notes");
     }
 
     #[test]

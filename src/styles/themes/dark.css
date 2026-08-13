@@ -1,0 +1,61 @@
+/* themes/dark.css — everything dark. Wireframe: "home screen - dark".
+ *
+ * How a theme is written, and the one rule every value obeys (a role reads the
+ * PALETTE, never another role): themes/default.css.
+ *
+ * The mirror of light.css. Both regions are on a dark ground and share their
+ * ink and all seven accents — the `-light` half of each, tinted with
+ * `-dark-bg`; the two neutrals swap order between them.
+ *
+ * Note which way round: here the chrome is the LIGHTER of the two (#2B2B2B)
+ * and the canvas the deeper black, so the panel recedes and the frame comes
+ * forward — the opposite of the factory theme, where the frame is the deepest
+ * thing on screen.
+ */
+
+[data-theme="dark"] {
+  --canvas-ground: var(--palette-black);
+  --canvas-ink: var(--palette-white);
+}
+
+/* ---- the two neutrals, in opposite order ------------------------------- */
+[data-theme="dark"] [data-region="chrome"] {
+  --theme-bg: var(--palette-black-tint);
+  --theme-surface: var(--palette-black);
+  --theme-surface-sunken: var(--palette-black);
+}
+[data-theme="dark"] [data-region="canvas"] {
+  --theme-bg: var(--palette-black);
+  --theme-surface: var(--palette-black-tint);
+  --theme-surface-sunken: var(--palette-black-tint);
+}
+
+/* ---- everything a dark ground shares ----------------------------------- */
+[data-theme="dark"] [data-region="chrome"],
+[data-theme="dark"] [data-region="canvas"] {
+  --theme-ink: var(--palette-white);
+  --theme-ink-muted: color-mix(in srgb, var(--palette-white) 55%, transparent);
+  --theme-on-brand: var(--palette-black);
+  --theme-hover: color-mix(in srgb, var(--palette-white) 8%, transparent);
+  --theme-shadow-popover: 0 0.375rem 1.25rem
+    color-mix(in srgb, var(--palette-white) 18%, transparent);
+
+  --accent-yellow: var(--palette-yellow-light);
+  --accent-yellow-tint: var(--palette-yellow-dark-bg);
+  --accent-orange: var(--palette-orange-light);
+  --accent-orange-tint: var(--palette-orange-dark-bg);
+  --accent-pink: var(--palette-pink-light);
+  --accent-pink-tint: var(--palette-pink-dark-bg);
+  --accent-green: var(--palette-green-light);
+  --accent-green-tint: var(--palette-green-dark-bg);
+  --accent-blue: var(--palette-blue-light);
+  --accent-blue-tint: var(--palette-blue-dark-bg);
+  --accent-red: var(--palette-red-light);
+  --accent-red-tint: var(--palette-red-dark-bg);
+  --accent-purple: var(--palette-purple-light);
+  --accent-purple-tint: var(--palette-purple-dark-bg);
+
+  --theme-danger: var(--palette-red-light);
+  --theme-warning: var(--palette-yellow-light);
+  --theme-success: var(--palette-green-light);
+}

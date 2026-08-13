@@ -7,6 +7,7 @@
   import { currentView } from "./tabs.js";
   import { reorderable } from "../actions/reorder.js";
   import Icon from "../components/Icon.svelte";
+  import { accentColor } from "../services/accent.js";
 
   let {
     tabs = [],
@@ -80,7 +81,7 @@
     use:reorderable={{ axis: "x", item: ".tabs__item", onReorder: onMove }}
   >
     {#each tabs as tab, i (i)}
-      {@const dotColor = colorOf?.(currentView(tab)) ?? null}
+      {@const dotColor = accentColor(colorOf?.(currentView(tab)))}
       <!-- svelte-ignore a11y_no_static_element_interactions -->
       <div
         class="tabs__item"

@@ -60,14 +60,25 @@ pub const NOTES_DIR: &str = "jott.notes";
 /// Directory of the fixed Home workspace (views only, no files of its own).
 pub const HOME_DIR: &str = "jott.home";
 
-/// The fixed tasks workspace's list. A workspace's list is normally named
-/// after its folder; this one keeps the plain name, because it is the file
-/// the user opens in another editor — `jott.tasks/Tasks.md` reads as theirs,
-/// `jott.tasks/jott.tasks.md` reads as the app's.
-pub const FIXED_TASKS_LIST: &str = "Tasks";
+// A tasks workspace's two files have FIXED names (user call, 2026-08-13).
+//
+// They used to be named after the folder — `Work/` held `Work.md` — which
+// made the file name a second copy of the workspace's name, and a copy drifts:
+// renaming the workspace in the app left `Work.md` behind, and from then on
+// the app showed one name and the disk another. There is no rename dance now
+// and nothing to guess: the FOLDER names the workspace, the files never move.
+//
+// The cost, deliberately accepted: every tasks workspace has a `task-list.md`,
+// so ten of them are ten identically-named files in an editor's tab bar or
+// fuzzy finder — the folder is what tells them apart. The name is hyphenated
+// and lowercase to read as the app's structure rather than as a title the user
+// wrote.
+
+/// The single list of a tasks workspace, in every one of them.
+pub const MAIN_LIST: &str = "task-list";
 
 /// List holding completed tasks, recreated whenever the notebook is opened.
-pub const COMPLETED_LIST: &str = "Completed";
+pub const COMPLETED_LIST: &str = "completed";
 
 /// The names these used to have, before the app settled on English in
 /// 2026-07-20. Kept so [`notebook::Notebook::open`] can *recognize* a legacy
@@ -98,8 +109,8 @@ mod tests {
         assert_eq!(TASKS_DIR, "jott.tasks");
         assert_eq!(NOTES_DIR, "jott.notes");
         assert_eq!(HOME_DIR, "jott.home");
-        assert_eq!(FIXED_TASKS_LIST, "Tasks");
-        assert_eq!(COMPLETED_LIST, "Completed");
+        assert_eq!(MAIN_LIST, "task-list");
+        assert_eq!(COMPLETED_LIST, "completed");
         // The app's own folders are named so, and are NOT hidden: a leading
         // dot would take the user's tasks out of their own file manager.
         for dir in [TASKS_DIR, NOTES_DIR, HOME_DIR] {

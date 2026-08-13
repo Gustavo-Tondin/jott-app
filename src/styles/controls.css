@@ -8,7 +8,7 @@
 
    Prefix is `theme-`, deliberately NOT the product name (`memo-`): the name is
    provisional and these class names are meant to outlive it — same reasoning as
-   the tokens. See docs/project-strategy.md 4.6.
+   the tokens. See docs/project-strategy.md 4.5.
 
    Live reference of every control: `styleguide.html` (served by Vite at
    /styleguide.html during `npm run dev`).
@@ -63,7 +63,7 @@
     appearance: none;
     -webkit-appearance: none;
     padding-right: var(--theme-space-32);
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 4.5 6 8l3.5-3.5' fill='none' stroke='%235a7087' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 4.5 6 8l3.5-3.5' fill='none' stroke='%23a39f9b' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right var(--theme-space-12) center;
     background-size: 0.75rem;
@@ -91,13 +91,17 @@
     background-position: right var(--theme-space-8) center;
   }
 
-  /* --- Bare select: no caret, compact, sunken fill. For tight rows where the
-     dropdown arrow would only cost space (inspector fields). --- */
+  /* --- Bare select: no caret, compact, filled with the WELL. For tight rows
+     where the dropdown arrow would only cost space (inspector fields).
+     The well and not the raised step (2026-08-13): these pills sit ON a row
+     that is already the raised step, so painting them the same colour made the
+     value vanish into its own row. The translucent grey is the one fill that
+     steps away from a surface on either ground. --- */
   .theme-select--bare {
     width: auto;
     padding: var(--theme-space-4) var(--theme-space-6);
     background-image: none;
-    background-color: var(--theme-surface-sunken);
+    background-color: var(--theme-well);
     border-color: transparent;
     border-radius: var(--theme-radius-sm);
     font-size: var(--theme-text-12);
@@ -131,11 +135,12 @@
     border-color: var(--theme-brand-outline);
   }
 
-  /* --- Filled value: a small sunken pill (a date/number value in a row) --- */
+  /* --- Filled value: a small pill in the WELL (a date/number value in a row).
+     Same reasoning as --bare above. --- */
   .theme-input--filled {
     width: auto;
     padding: var(--theme-space-4) var(--theme-space-6);
-    background: var(--theme-surface-sunken);
+    background: var(--theme-well);
     border-color: transparent;
     border-radius: var(--theme-radius-sm);
     font-size: var(--theme-text-12);
@@ -168,7 +173,7 @@
   /* --- Search field: a leading magnifier baked in (single input, no wrapper) --- */
   .theme-input--search {
     padding-left: var(--theme-space-32);
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='7' cy='7' r='4.5' fill='none' stroke='%23a2b5c3' stroke-width='1.5'/%3E%3Cpath d='M10.5 10.5 14 14' fill='none' stroke='%23a2b5c3' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='7' cy='7' r='4.5' fill='none' stroke='%23a39f9b' stroke-width='1.5'/%3E%3Cpath d='M10.5 10.5 14 14' fill='none' stroke='%23a39f9b' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: left var(--theme-space-10) center;
     background-size: 1rem;
@@ -439,9 +444,11 @@
     display: inline-flex;
     gap: var(--theme-space-2);
     padding: var(--theme-space-2);
-    background-color: var(--theme-bg);
+    /* The track is a WELL, not the page ground: the control sits on a raised
+       card (the capture box, a screen's toolbar), so reading --theme-bg there
+       painted it in the colour of a panel it is not on. */
+    background-color: var(--theme-well);
     border-radius: var(--theme-radius-md);
-
   }
   /* Each item is a filled rounded rectangle, not an outline pill (2026-08-06,
      from the Tasks screen shot): with a plain outline the group read as three
@@ -449,9 +456,9 @@
      quiet, the blue of the active one is enough. */
   .theme-segmented__item {
     padding: var(--theme-space-6) var(--theme-space-16);
-    border: 0.0625rem solid var(--theme-line-soft);
+    border: none;
     border-radius: var(--theme-radius-sm);
-    background: var(--theme-surface-sunken);
+    background: none;
     color: var(--theme-ink-muted);
     font-size: var(--theme-text-14);
     font-weight: var(--theme-weight-semibold);
@@ -460,10 +467,13 @@
   .theme-segmented__item:hover:not(.theme-segmented__item--active) {
     color: var(--theme-ink);
   }
+  /* The active one is a SOLID accent pill on the well (2026-08-13 wireframes),
+     not a tint with an outline: at this size a tinted fill and a tinted border
+     were two quiet signals saying the same thing, and neither carried across
+     the black chrome and the white canvas. Filled, the accent does it alone. */
   .theme-segmented__item--active {
-    background: var(--theme-brand-weak);
-    border-color: var(--theme-brand-outline);
-    color: var(--theme-brand);
+    background: var(--theme-brand);
+    color: var(--theme-on-brand);
     font-weight: var(--theme-weight-semibold);
   }
 
@@ -531,23 +541,30 @@
      separately, five of them identical; the two that differed did so by
      accident (a missing letter-spacing), not by design.
      --------------------------------------------------------------------------- */
+  /* Ink, not the accent (2026-08-13 wireframes): a block heading names what is
+     under it, and colouring every one of them brand-blue spent the accent on
+     the thing that needed it least — while the one control that must be found
+     (the + that captures) was the same blue three inches below. The accent now
+     marks what you can act on; a title is read, not clicked. */
   .theme-title {
     margin: 0;
     font-size: var(--theme-text-24);
     font-weight: var(--theme-weight-bold);
     letter-spacing: var(--theme-tracking-wide);
-    color: var(--theme-brand);
+    color: var(--theme-ink);
   }
   /* A widget's own heading, one step down from the screen it sits in. */
   .theme-title--sm {
     font-size: var(--theme-text-20);
   }
   /* The workspace name: the largest thing on the screen, centred, and in the
-     accent rather than the brand — it names the place, not a block in it. */
+     accent — it names the place, not a block in it. (It read `--theme-accent`,
+     a role that was always equal to `--theme-brand`; two names for one colour
+     is one name too many.) */
   .theme-title--lg {
     font-size: var(--theme-text-32);
     text-align: center;
-    color: var(--theme-accent);
+    color: var(--theme-brand);
   }
 
   /* ---------------------------------------------------------------------------

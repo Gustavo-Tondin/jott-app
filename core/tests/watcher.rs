@@ -39,15 +39,15 @@ fn reports_a_list_edited_outside_the_app() {
     let watcher = notebook.watch().unwrap();
 
     std::fs::write(
-        dir.path().join("jott.tasks/Tasks.md"),
+        dir.path().join("jott.tasks/task-list.md"),
         "- [ ] escrita externa\n",
     )
     .unwrap();
 
-    let change = wait_for(&watcher, |c| c.list_name().as_deref() == Some("Tasks"));
+    let change = wait_for(&watcher, |c| c.list_name().as_deref() == Some("task-list"));
     assert!(
         matches!(change, Some(Change::List { .. })),
-        "expected a change to the Tasks list, got {change:?}"
+        "expected a change to the task list, got {change:?}"
     );
 }
 
@@ -135,7 +135,7 @@ fn drain_deduplicates_repeated_events_for_the_same_file() {
     let notebook = Notebook::init(dir.path()).unwrap();
     let watcher = notebook.watch().unwrap();
 
-    let path = dir.path().join("jott.tasks/Tasks.md");
+    let path = dir.path().join("jott.tasks/task-list.md");
     for i in 0..5 {
         std::fs::write(&path, format!("- [ ] escrita {i}\n")).unwrap();
     }

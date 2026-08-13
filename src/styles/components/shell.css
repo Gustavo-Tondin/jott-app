@@ -104,14 +104,20 @@
   .shell__sidebar--rail .shell__nav-open {
     padding-inline: 0;
   }
-  /* A group is marked by a 2px bar in the wall gap. The fixed group is the
-     theme blue; a user workspace overrides --group-color with its own colour
-     (Fase 13, set inline per workspace). */
+  /* Every section of the sidebar is marked by a 2px bar in the wall gap. */
   .shell__group {
+    /* --gc-strong / --gc-weak are the section's colour, declared HERE so every
+       section has them — the fixed entries (Home/Tasks/Notes) and the user
+       lists included. They were only on `--workspace` until 2026-08-13, which
+       is why the fixed entries' icons came out muted grey instead of wearing
+       the theme (user report). A section with no colour of its own IS the
+       theme accent; that is not a fallback, it is the answer. */
+    --gc-strong: var(--theme-brand);
+    --gc-weak: var(--theme-brand-weak);
     display: flex;
     flex-direction: column;
     gap: var(--theme-space-2);
-    border-left: 0.125rem solid var(--group-color, var(--theme-brand));
+    border-left: 0.125rem solid var(--gc-strong);
     padding-inline: var(--theme-space-4);
   }
   /* The wrapper the workspaces reorder within — reproduces the gap they had as
@@ -135,43 +141,60 @@
   }
 
   /* ---- workspace colour system ----
-     From the workspace's own --group-color (its accent, falling back to the
-     theme brand) two roles are derived: STRONG for text/icon/bar and WEAK
-     (semi-transparent) for the selected row's fill. So a red workspace reads
-     red when selected, not the default blue. */
+     A workspace (or the group it belongs to) picks one of the seven, and
+     Sidebar.svelte writes the pair the choice resolves to — --group-color for
+     the bar/text/icon, --group-tint for the selected row's fill. Both already
+     follow the region's ground (services/accent.js → styles/themes/*.css), so
+     the same orange is the light half here on the black sidebar and the dark
+     half on the white canvas. No colour is mixed at this level any more, and
+     the old dark-theme alpha bump is gone with it: the tint is a real token,
+     not a guess at how much of a hex survives on a darker ground.
+
+     Unset means "no colour of its own" and the fallbacks put the row back on
+     the theme accent. */
   .shell__group--workspace {
     --gc-strong: var(--group-color, var(--theme-brand));
-    --gc-weak: color-mix(
-      in srgb,
-      var(--group-color, var(--theme-brand)) 14%,
-      transparent
-    );
-    border-left-color: var(--gc-strong);
-  }
-  /* Dark theme lifts the alpha so the tint still reads on a dark canvas. */
-  @media (prefers-color-scheme: dark) {
-    .shell__group--workspace {
-      --gc-weak: color-mix(
-        in srgb,
-        var(--group-color, var(--theme-brand)) 26%,
-        transparent
-      );
-    }
-  }
-  :root[data-theme="dark"] .shell__group--workspace {
-    --gc-weak: color-mix(
-      in srgb,
-      var(--group-color, var(--theme-brand)) 26%,
-      transparent
-    );
+    --gc-weak: var(--group-tint, var(--theme-brand-weak));
   }
 
-  /* Selected workspace: the fixed entries' quiet fill, tinted with the
-     colour inherited from its .shell__group--workspace section (its own for
-     a loose one, the group's for a member) — no outline (user call). */
-  .shell__group--workspace .shell__nav-item--active {
-    background: var(--gc-weak);
+  /* Selected: the solid pill, in whatever colour the section carries — its own
+     for a coloured workspace, the group's for a member, the theme accent for
+     the fixed entries. One shape for "this is the open place", whatever it is,
+     and no outline (user call). */
+  .shell__group .shell__nav-item--active {
+    background: var(--gc-strong);
+    color: var(--theme-on-brand);
+  }
+
+  /* ---- how far the colour reaches (user call, 2026-08-13) ----
+     The ICON always wears it, at every level: it is the mark of which place a
+     row belongs to, and on a column of a dozen rows it is what you scan.
+     The LABEL wears it only on a group HEAD — the group is the thing being
+     named by the colour, and colouring its members' names too turned a section
+     into a solid block of one hue with nothing standing out in it. So: heads
+     read as coloured titles, everything under them as plain rows with a
+     coloured mark. */
+  .shell__group .theme-icon {
     color: var(--gc-strong);
+  }
+  .shell__nav-item--head > .shell__nav-open > .shell__nav-label {
+    color: var(--gc-strong);
+  }
+  /* On the open row the pill IS the colour, so both go back to the ink that
+     reads on it — a coloured glyph on its own colour is invisible. */
+  .shell__group .shell__nav-item--active > .shell__nav-open > .shell__nav-label,
+  .shell__group .shell__nav-item--active .theme-icon {
+    color: var(--theme-on-brand);
+  }
+
+  /* The caret at the end of a group head: the one affordance saying the head
+     is a toggle and not a place to open (user call, 2026-08-13). It points
+     down when the group is open, right when it is folded — the direction the
+     members will go. */
+  .shell__group-caret {
+    flex-shrink: 0;
+    margin-inline-start: auto;
+    opacity: 0.7;
   }
   /* Where the colour/icon popup hangs. The ⋮ that used to live here is gone
      (user call, 2026-08-06): it only showed on hover, it ate the end of every
@@ -229,10 +252,32 @@
   .shell__nav-item:hover {
     background: var(--theme-hover);
   }
+  /* The open place is a SOLID accent pill (2026-08-13 wireframes). On the black
+     chrome the tint step is a near-black navy — enough to see, not enough to
+     say "you are here" across a column of a dozen rows. Filled, it is the one
+     thing in the sidebar that is not a shade of the ground. The label rides on
+     --theme-on-brand, which is the region's own ground, so it stays legible
+     whichever half of the accent the ground picked. */
   .shell__nav-item--active {
-    background: var(--theme-brand-weak);
-    color: var(--theme-brand);
+    background: var(--theme-brand);
+    color: var(--theme-on-brand);
     font-weight: var(--theme-weight-semibold);
+    transition: opacity var(--theme-transition-fast);
+  }
+  /* Hovering the row you are already on (user call, 2026-08-13): it DIMS, it
+     does not veil. The base `:hover` paints --theme-hover, a translucent grey
+     — over a solid accent pill that reads as a smudge on the colour rather
+     than as feedback, and it wins on specificity, so the pill lost its colour
+     under the pointer. Fading the whole row keeps the colour and still answers
+     the pointer. Both selectors are needed: a workspace row repaints the
+     background with its own colour further down. */
+  .shell__nav-item--active:hover {
+    background: var(--theme-brand);
+    opacity: 0.7;
+  }
+  .shell__group .shell__nav-item--active:hover {
+    background: var(--gc-strong);
+    opacity: 0.7;
   }
   .shell__nav-label {
     flex: 1;
@@ -345,14 +390,17 @@
   }
 
 
-  /* ---- centre panel: takes whatever the two side panels leave. ---- */
+  /* ---- centre panel: takes whatever the two side panels leave.
+     It is the CANVAS region (data-region in App.svelte), so it paints its own
+     ground — in the factory theme, white inside the black frame. Everything it
+     holds raises off that with --theme-surface. ---- */
   .shell__centre {
     flex: 1 1 0;
     min-width: 0;
     display: flex;
     flex-direction: column;
     min-height: 0;
-    background: var(--theme-surface);
+    background: var(--theme-bg);
     border-radius: var(--theme-radius-lg);
     overflow: hidden;
   }
@@ -386,6 +434,10 @@
   .shell__content-inner {
     max-width: var(--theme-content-max);
     margin-inline: auto;
+    /* The measuring stick every screen inside reads with a container query: a
+       block has to answer to the COLUMN it is in, which narrows when the right
+       panel opens, not to the window. */
+    container-type: inline-size;
     /* A flex column that fills the scrollport, so a screen can push something
        to the BOTTOM of the panel (the Tasks screen's composing bar) instead of
        to the bottom of its own content. `min-block-size: 100%` resolves here
@@ -399,21 +451,25 @@
     color: var(--theme-ink-muted);
   }
 
-  /* ---- state boxes (raw values on purpose: the error/conflict design is
-     Fase 10 lote 10 "Estados"; they become tokens with it) ---- */
+  /* ---- state boxes ----
+     The last two raw hexes in the app, and the last places a theme could not
+     recolour (2026-08-13). They are now the palette's red and yellow: a tinted
+     fill, the colour itself as the hairline, and the region's ink for the text
+     — so an error reads as an error on the white canvas and on the black
+     onboarding screen alike, in whatever theme is on. ---- */
   .shell__error {
-    background: #fee;
-    border: 0.0625rem solid #f99;
-    padding: 0.5rem;
-    border-radius: 0.25rem;
+    background: var(--accent-red-tint);
+    border: 0.0625rem solid var(--accent-red);
+    padding: var(--theme-space-8);
+    border-radius: var(--theme-radius-xs);
   }
   .shell__conflict {
-    background: #fff8e1;
-    border: 0.0625rem solid #e6c34a;
-    padding: 0.5rem 0.75rem;
-    border-radius: 0.25rem;
-    margin-bottom: 1rem;
-    font-size: 0.9rem;
+    background: var(--accent-yellow-tint);
+    border: 0.0625rem solid var(--accent-yellow);
+    padding: var(--theme-space-8) var(--theme-space-12);
+    border-radius: var(--theme-radius-xs);
+    margin-bottom: var(--theme-space-16);
+    font-size: var(--theme-text-14);
   }
   .shell__conflict-list {
     margin: 0.5rem 0 0;

@@ -9,7 +9,11 @@ import {
   dropMeaning,
 } from "./sidebarOrder.js";
 
-const ws = (folderName) => ({ folderName, name: folderName });
+// A workspace is addressed by its root-relative PATH (2026-08-13): two groups
+// may each hold a `Tasks/`, and by leaf name they were the same entry — the
+// sidebar highlighted both at once (user report). The helper takes the path
+// and reads the name off its last segment, exactly as the app does.
+const ws = (path) => ({ path, name: path.split("/").pop() });
 const group = (folder, workspaces, parent = null) => ({
   folder,
   name: folder,
@@ -29,7 +33,7 @@ describe("sidebarEntries", () => {
 
   test("a grouped workspace is not also drawn loose", () => {
     const entries = sidebarEntries(WORKSPACES, GROUPS);
-    expect(entries.filter((e) => e.kind === "workspace").map((e) => e.ws.folderName))
+    expect(entries.filter((e) => e.kind === "workspace").map((e) => e.ws.path))
       .toEqual(["A", "C"]);
   });
 
@@ -44,7 +48,7 @@ describe("sidebarEntries", () => {
     // of 2026-08-11 — the drag inside a group did nothing.
     const dragged = ["C", "A", "B"].map(ws);
     const entries = sidebarEntries(dragged, [group("Study", ["C", "A"])]);
-    expect(entries[0].children.map((c) => c.ws.folderName)).toEqual(["C", "A"]);
+    expect(entries[0].children.map((c) => c.ws.path)).toEqual(["C", "A"]);
   });
 
   test("an empty group waits at the end rather than jumping to the top", () => {
@@ -122,8 +126,8 @@ describe("dropMeaning", () => {
     expect(meaning.kind).toBe("groupWith");
     // The one that stayed put is the host — it is what the suggested name
     // comes from, and the one being carried joins it.
-    expect(meaning.host.folderName).toBe("A");
-    expect(meaning.workspace.folderName).toBe("C");
+    expect(meaning.host.path).toBe("A");
+    expect(meaning.workspace.path).toBe("C");
   });
 
   test("a group onto a group joins it — groups nest now", () => {

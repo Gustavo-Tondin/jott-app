@@ -19,7 +19,7 @@
   // It collects an INTENT and hands it over; writing it is `taskCompose`'s job,
   // because the same three bridge calls serve every caller.
   import { S } from "../services/strings.js";
-  import { listName } from "../services/paths.js";
+  import { listTitle, splitLabel } from "../services/paths.js";
   import { emptyIntent } from "../services/taskCompose.js";
   import { dismissable } from "../actions/dismissable.js";
   import { keepOnScreen } from "../actions/keepOnScreen.js";
@@ -51,12 +51,13 @@
   /// that a default arriving later does not overwrite the user's pick.
   let target = $derived(intent.list ?? defaultList ?? lists[0]?.path ?? null);
 
-  // Workspace in grey, list in ink: `Tasks/`**Inbox**. The bare name would not
-  // tell two "Inbox" apart, and the whole address reads as a file path.
+  // The group in grey, the workspace in ink: `Design/`**Tasks**. The bare
+  // name would not tell two "Tasks" apart, and the whole address reads as a
+  // file path (services/paths.js).
   let listMenu = $derived(
     lists.map((entry) => ({
-      context: entry.workspace,
-      label: listName(entry.path),
+      context: splitLabel(entry).context,
+      label: splitLabel(entry).name,
       run: () => (intent.list = entry.path),
     })),
   );
@@ -149,7 +150,7 @@
             aria-label={S.moveToList}
           >
             <Icon name="folder" size="0.875rem" />
-            <span>{target ? listName(target) : "—"}</span>
+            <span>{target ? listTitle(target) : "—"}</span>
           </button>
         {/snippet}
       </Menu>

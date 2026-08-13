@@ -5,6 +5,7 @@
   // unsupported card, with the folder left untouched (spec 3.5).
   import { S } from "../services/strings.js";
   import { widgetComponent } from "../widgets/registry.js";
+  import { accentColor } from "../services/accent.js";
 
   let {
     workspace,
@@ -14,7 +15,7 @@
     lists = [],
     counts = {},
     tags = [],
-    completedName = "Completed",
+    completedName = "completed",
     notesInbox = "Inbox",
     today = null,
     dateFormat = "mm/dd/yyyy",
@@ -40,7 +41,7 @@
   let source = $derived({
     kind: workspace.kind,
     known: workspace.known,
-    folder: workspace.path ?? workspace.folderName,
+    folder: workspace.path,
     name: null,
     sort: workspace.sort ?? null,
     order: workspace.order ?? [],
@@ -51,7 +52,7 @@
 
 <h2
   class="theme-title theme-title--lg workspace-view__title"
-  style={color ? `color: ${color}` : ""}
+  style={accentColor(color) ? `color: ${accentColor(color)}` : ""}
 >
   {workspace.name}
   {#if workspace.readOnly}<small class="workspace-view__badge"

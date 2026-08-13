@@ -56,9 +56,12 @@
     font-size: var(--theme-text-16);
     letter-spacing: var(--theme-tracking-wide);
   }
+  /* Ink, not the accent (2026-08-13 wireframes): the badge beside it is
+     already the accent, and the two together made the corner shout in a colour
+     the user is free to change. The mark carries the brand, the word reads. */
   .titlebar__wordmark {
     pointer-events: none;
-    color: var(--theme-brand);
+    color: var(--theme-ink);
     font-weight: var(--theme-weight-bold);
     font-size: var(--theme-text-16);
     letter-spacing: var(--theme-tracking-wide);

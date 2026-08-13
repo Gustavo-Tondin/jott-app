@@ -140,7 +140,7 @@ fn opening_a_notebook_reports_it_and_creates_the_layout() {
     assert_eq!(info["readOnly"], json!(false));
     assert_eq!(
         info["lists"],
-        json!([{"path": "jott.tasks/Completed.md", "name": "Completed", "workspace": "Tasks"}, {"path": "jott.tasks/Tasks.md", "name": "Tasks", "workspace": "Tasks"}]),
+        json!([{"path": "jott.tasks/completed.md", "name": "completed", "workspace": "Tasks"}, {"path": "jott.tasks/task-list.md", "name": "task-list", "workspace": "Tasks"}]),
         "default lists should exist and be sorted"
     );
     assert!(dir.path().join(".jott/config.json").is_file());
@@ -186,15 +186,15 @@ fn the_full_task_lifecycle_over_the_bridge() {
         json!({ "list": "jott.tasks/Compras.md", "id": id }),
     );
     let state = ok(&app, "period_state", json!({ "period": "day" }));
-    assert_eq!(state["items"][0]["path"], "jott.tasks/Completed.md");
+    assert_eq!(state["items"][0]["path"], "jott.tasks/completed.md");
     let pulled = ok(&app, "period_tasks", json!({ "period": "day" }));
     assert_eq!(pulled[0]["task"]["done"], json!(true));
 
-    let completed = std::fs::read_to_string(dir.path().join("jott.tasks/Completed.md")).unwrap();
+    let completed = std::fs::read_to_string(dir.path().join("jott.tasks/completed.md")).unwrap();
     assert!(completed.contains("- [x] Comprar leite integral"));
     assert!(completed.contains("origin:Compras"));
 
-    ok(&app, "uncomplete_task", json!({ "list": "jott.tasks/Completed.md", "id": id }));
+    ok(&app, "uncomplete_task", json!({ "list": "jott.tasks/completed.md", "id": id }));
     let tasks = ok(&app, "list_tasks", json!({ "list": "jott.tasks/Compras.md" }));
     assert_eq!(tasks[0]["done"], json!(false));
 }
@@ -210,18 +210,18 @@ fn creating_a_task_from_today_writes_it_to_the_inbox() {
     );
     let id = id.as_str().unwrap();
 
-    let inbox = std::fs::read_to_string(dir.path().join("jott.tasks/Tasks.md")).unwrap();
+    let inbox = std::fs::read_to_string(dir.path().join("jott.tasks/task-list.md")).unwrap();
     assert!(inbox.contains("Responder e-mail"));
 
     let state = ok(&app, "period_state", json!({ "period": "day" }));
-    assert_eq!(state["items"][0]["path"], "jott.tasks/Tasks.md");
+    assert_eq!(state["items"][0]["path"], "jott.tasks/task-list.md");
     assert_eq!(state["items"][0]["id"], id);
 
     assert_eq!(
         ok(
             &app,
             "remove_from_period",
-            json!({ "period": "day", "list": "jott.tasks/Tasks.md", "id": id })
+            json!({ "period": "day", "list": "jott.tasks/task-list.md", "id": id })
         ),
         json!(true)
     );
@@ -248,7 +248,7 @@ fn list_management_over_the_bridge() {
     // Deleting rescues the task into the Inbox rather than dropping it.
     let rescued = ok(&app, "delete_list", json!({ "name": "jott.tasks/Mercado.md" }));
     assert_eq!(rescued, json!(1));
-    assert!(std::fs::read_to_string(dir.path().join("jott.tasks/Tasks.md"))
+    assert!(std::fs::read_to_string(dir.path().join("jott.tasks/task-list.md"))
         .unwrap()
         .contains("Comprar leite"));
 }
@@ -260,13 +260,13 @@ fn errors_arrive_typed_so_the_ui_can_branch_on_them() {
     let err = invoke(
         &app,
         "complete_task",
-        json!({ "list": "jott.tasks/Tasks.md", "id": "nao-existe" }),
+        json!({ "list": "jott.tasks/task-list.md", "id": "nao-existe" }),
     )
     .unwrap_err();
     assert_eq!(err["kind"], "taskNotFound");
     assert!(err["message"].as_str().unwrap().contains("nao-existe"));
 
-    let err = invoke(&app, "delete_list", json!({ "name": "jott.tasks/Tasks.md" })).unwrap_err();
+    let err = invoke(&app, "delete_list", json!({ "name": "jott.tasks/task-list.md" })).unwrap_err();
     assert_eq!(err["kind"], "protected");
 
     let err = invoke(&app, "create_list", json!({ "folder": "jott.tasks", "name": "../fuga" })).unwrap_err();
@@ -312,7 +312,7 @@ fn the_snapshot_carries_what_is_pulled_into_the_day() {
     // Every screen that draws a card marks the ones in today (2026-08-06);
     // asking per screen is the fan-out this snapshot exists to avoid.
     let (_lock, app, _dir) = app_with_notebook();
-    let list = "jott.tasks/Tasks.md";
+    let list = "jott.tasks/task-list.md";
     let id = task_with_id(&app, list, "Comprar leite");
     task_with_id(&app, list, "Pagar boleto");
 
@@ -330,7 +330,7 @@ fn the_snapshot_carries_what_is_pulled_into_the_day() {
 #[test]
 fn switching_a_feature_off_reaches_the_layout_and_touches_nothing_else() {
     let (_lock, app, dir) = app_with_notebook();
-    let list = "jott.tasks/Tasks.md";
+    let list = "jott.tasks/task-list.md";
     task_with_id(&app, list, "Comprar leite");
 
     // Nothing is said about features until something is switched off.
@@ -381,7 +381,7 @@ fn the_sidebar_sort_round_trips() {
 #[test]
 fn a_period_can_be_sorted_and_dragged_over_the_bridge() {
     let (_lock, app, _dir) = app_with_notebook();
-    let list = "jott.tasks/Tasks.md";
+    let list = "jott.tasks/task-list.md";
     let a = task_with_id(&app, list, "um");
     let b = task_with_id(&app, list, "dois");
     for id in [&a, &b] {
@@ -533,7 +533,7 @@ fn the_day_offers_the_week_first_then_the_rest() {
     let (_lock, app, _dir) = app_with_notebook();
     ok(&app, "create_list", json!({ "folder": "jott.tasks", "name": "Compras" }));
 
-    let solta = task_with_id(&app, "jott.tasks/Tasks.md", "Tarefa solta");
+    let solta = task_with_id(&app, "jott.tasks/task-list.md", "Tarefa solta");
     let semana = task_with_id(&app, "jott.tasks/Compras.md", "Escolhida pra semana");
     ok(
         &app,
@@ -579,19 +579,19 @@ fn sync_conflicts_reach_the_frontend() {
     assert!(conflicts[0]["original"].as_str().unwrap().ends_with("Compras.md"));
 
     // And it must not have become a list in the sidebar.
-    assert_eq!(ok(&app, "list_names", json!({})), json!([{"path": "jott.tasks/Completed.md", "name": "Completed", "workspace": "Tasks"}, {"path": "jott.tasks/Compras.md", "name": "Compras", "workspace": "Tasks"}, {"path": "jott.tasks/Tasks.md", "name": "Tasks", "workspace": "Tasks"}]));
+    assert_eq!(ok(&app, "list_names", json!({})), json!([{"path": "jott.tasks/Compras.md", "name": "Compras", "workspace": "Tasks"}, {"path": "jott.tasks/completed.md", "name": "completed", "workspace": "Tasks"}, {"path": "jott.tasks/task-list.md", "name": "task-list", "workspace": "Tasks"}]));
 }
 
 #[test]
 fn the_rich_fields_round_trip_through_the_bridge() {
     let (_lock, app, dir) = app_with_notebook();
-    let id = task_with_id(&app, "jott.tasks/Tasks.md", "Comprar material");
+    let id = task_with_id(&app, "jott.tasks/task-list.md", "Comprar material");
 
     ok(
         &app,
         "set_task_fields",
         json!({
-            "list": "jott.tasks/Tasks.md",
+            "list": "jott.tasks/task-list.md",
             "id": id,
             "fields": {
                 "due": "2026-07-25",
@@ -604,7 +604,7 @@ fn the_rich_fields_round_trip_through_the_bridge() {
         }),
     );
 
-    let on_disk = std::fs::read_to_string(dir.path().join("jott.tasks/Tasks.md")).unwrap();
+    let on_disk = std::fs::read_to_string(dir.path().join("jott.tasks/task-list.md")).unwrap();
     assert!(on_disk.contains("@2026-07-25"), "{on_disk}");
     assert!(on_disk.contains("#casa"));
     assert!(on_disk.contains("!2"));
@@ -612,7 +612,7 @@ fn the_rich_fields_round_trip_through_the_bridge() {
     assert!(on_disk.contains("repeat: every-week"));
     assert!(on_disk.contains("  - [ ] Cimento"));
 
-    let tasks = ok(&app, "list_tasks", json!({ "list": "jott.tasks/Tasks.md" }));
+    let tasks = ok(&app, "list_tasks", json!({ "list": "jott.tasks/task-list.md" }));
     assert_eq!(tasks[0]["due"], "2026-07-25");
     assert_eq!(tasks[0]["priority"], json!(2));
     assert_eq!(tasks[0]["subtasks"][0]["text"], "Cimento");
@@ -621,12 +621,12 @@ fn the_rich_fields_round_trip_through_the_bridge() {
 #[test]
 fn a_field_can_be_cleared_but_only_when_mentioned() {
     let (_lock, app, _dir) = app_with_notebook();
-    let id = task_with_id(&app, "jott.tasks/Tasks.md", "Tarefa");
+    let id = task_with_id(&app, "jott.tasks/task-list.md", "Tarefa");
 
     ok(
         &app,
         "set_task_fields",
-        json!({ "list": "jott.tasks/Tasks.md", "id": id,
+        json!({ "list": "jott.tasks/task-list.md", "id": id,
                 "fields": { "due": "2026-07-25", "priority": 1 } }),
     );
 
@@ -634,9 +634,9 @@ fn a_field_can_be_cleared_but_only_when_mentioned() {
     ok(
         &app,
         "set_task_fields",
-        json!({ "list": "jott.tasks/Tasks.md", "id": id, "fields": { "priority": 3 } }),
+        json!({ "list": "jott.tasks/task-list.md", "id": id, "fields": { "priority": 3 } }),
     );
-    let tasks = ok(&app, "list_tasks", json!({ "list": "jott.tasks/Tasks.md" }));
+    let tasks = ok(&app, "list_tasks", json!({ "list": "jott.tasks/task-list.md" }));
     assert_eq!(tasks[0]["due"], "2026-07-25", "não mencionado, preservado");
     assert_eq!(tasks[0]["priority"], json!(3));
 
@@ -644,9 +644,9 @@ fn a_field_can_be_cleared_but_only_when_mentioned() {
     ok(
         &app,
         "set_task_fields",
-        json!({ "list": "jott.tasks/Tasks.md", "id": id, "fields": { "due": null } }),
+        json!({ "list": "jott.tasks/task-list.md", "id": id, "fields": { "due": null } }),
     );
-    let tasks = ok(&app, "list_tasks", json!({ "list": "jott.tasks/Tasks.md" }));
+    let tasks = ok(&app, "list_tasks", json!({ "list": "jott.tasks/task-list.md" }));
     assert_eq!(tasks[0]["due"], Value::Null);
 }
 
@@ -654,16 +654,16 @@ fn a_field_can_be_cleared_but_only_when_mentioned() {
 fn reordering_rewrites_the_file_in_the_new_order() {
     let (_lock, app, dir) = app_with_notebook();
     for text in ["Primeira", "Segunda", "Terceira"] {
-        ok(&app, "create_task", json!({ "list": "jott.tasks/Tasks.md", "text": text }));
+        ok(&app, "create_task", json!({ "list": "jott.tasks/task-list.md", "text": text }));
     }
 
     ok(
         &app,
         "move_task_to",
-        json!({ "list": "jott.tasks/Tasks.md", "from": 2, "to": 0 }),
+        json!({ "list": "jott.tasks/task-list.md", "from": 2, "to": 0 }),
     );
 
-    let on_disk = std::fs::read_to_string(dir.path().join("jott.tasks/Tasks.md")).unwrap();
+    let on_disk = std::fs::read_to_string(dir.path().join("jott.tasks/task-list.md")).unwrap();
     // Each created task carries its creation stamp in the hidden comment
     // (2026-08-04); the order test only cares about the visible text.
     let order: Vec<&str> = on_disk
@@ -682,15 +682,15 @@ fn reordering_rewrites_the_file_in_the_new_order() {
 fn moving_a_task_relists_it_keeping_its_id() {
     let (_lock, app, _dir) = app_with_notebook();
     ok(&app, "create_list", json!({ "folder": "jott.tasks", "name": "Compras" }));
-    let id = task_with_id(&app, "jott.tasks/Tasks.md", "Comprar leite");
+    let id = task_with_id(&app, "jott.tasks/task-list.md", "Comprar leite");
 
     ok(
         &app,
         "move_task",
-        json!({ "from": "jott.tasks/Tasks.md", "id": id, "to": "jott.tasks/Compras.md" }),
+        json!({ "from": "jott.tasks/task-list.md", "id": id, "to": "jott.tasks/Compras.md" }),
     );
 
-    let inbox = ok(&app, "list_tasks", json!({ "list": "jott.tasks/Tasks.md" }));
+    let inbox = ok(&app, "list_tasks", json!({ "list": "jott.tasks/task-list.md" }));
     let compras = ok(&app, "list_tasks", json!({ "list": "jott.tasks/Compras.md" }));
     assert!(
         inbox.as_array().unwrap().is_empty(),
@@ -705,7 +705,7 @@ fn suggestions_arrive_grouped() {
     let (_lock, app, dir) = app_with_notebook();
     let today = chrono::Local::now().date_naive();
     std::fs::write(
-        dir.path().join("jott.tasks/Tasks.md"),
+        dir.path().join("jott.tasks/task-list.md"),
         format!("- [ ] Vencida\n  @{}\n- [ ] Tranquila\n", today - chrono::Duration::days(1)),
     )
     .unwrap();
@@ -752,7 +752,7 @@ fn list_counts_follow_the_setting() {
 
     let counts = ok(&app, "list_counts", json!({}));
     assert_eq!(counts["jott.tasks/Compras.md"], json!(1));
-    assert_eq!(counts["jott.tasks/Tasks.md"], json!(0));
+    assert_eq!(counts["jott.tasks/task-list.md"], json!(0));
 
     // Turned off, the command answers empty — the frontend does not need to
     // know the rule, it just renders what it gets.
@@ -806,7 +806,7 @@ fn external_changes_reach_the_frontend_as_events() {
     });
 
     std::fs::write(
-        dir.path().join("jott.tasks/Tasks.md"),
+        dir.path().join("jott.tasks/task-list.md"),
         "- [ ] escrita por outro app\n",
     )
     .unwrap();
@@ -817,7 +817,7 @@ fn external_changes_reach_the_frontend_as_events() {
 
     let change: Value = serde_json::from_str(&payload).unwrap();
     assert_eq!(change["kind"], "list");
-    assert!(change["path"].as_str().unwrap().ends_with("Tasks.md"));
+    assert!(change["path"].as_str().unwrap().ends_with("task-list.md"));
 }
 
 #[test]
@@ -830,7 +830,7 @@ fn opening_a_second_notebook_switches_the_open_one() {
 
     let info = ok(&app, "current_notebook", json!({}));
     assert_eq!(info["path"], json!(second.path()));
-    assert_eq!(info["lists"], json!([{"path": "jott.tasks/Completed.md", "name": "Completed", "workspace": "Tasks"}, {"path": "jott.tasks/Tasks.md", "name": "Tasks", "workspace": "Tasks"}]));
+    assert_eq!(info["lists"], json!([{"path": "jott.tasks/completed.md", "name": "completed", "workspace": "Tasks"}, {"path": "jott.tasks/task-list.md", "name": "task-list", "workspace": "Tasks"}]));
 
     // The first notebook is untouched on disk, just no longer open.
     assert!(first.path().join("jott.tasks/SoNoPrimeiro.md").is_file());
@@ -857,9 +857,9 @@ fn the_snapshot_answers_everything_in_one_call() {
 
     let snap = ok(&app, "notebook_snapshot", json!({}));
 
-    assert_eq!(snap["info"]["lists"], json!([{"path": "jott.tasks/Completed.md", "name": "Completed", "workspace": "Tasks"}, {"path": "jott.tasks/Compras.md", "name": "Compras", "workspace": "Tasks"}, {"path": "jott.tasks/Tasks.md", "name": "Tasks", "workspace": "Tasks"}]));
-    assert_eq!(snap["info"]["layout"]["inbox"], "jott.tasks/Tasks.md");
-    assert_eq!(snap["info"]["layout"]["completed"], "jott.tasks/Completed.md");
+    assert_eq!(snap["info"]["lists"], json!([{"path": "jott.tasks/Compras.md", "name": "Compras", "workspace": "Tasks"}, {"path": "jott.tasks/completed.md", "name": "completed", "workspace": "Tasks"}, {"path": "jott.tasks/task-list.md", "name": "task-list", "workspace": "Tasks"}]));
+    assert_eq!(snap["info"]["layout"]["inbox"], "jott.tasks/task-list.md");
+    assert_eq!(snap["info"]["layout"]["completed"], "jott.tasks/completed.md");
     assert_eq!(snap["counts"]["jott.tasks/Compras.md"], json!(1));
     assert_eq!(snap["conflicts"].as_array().unwrap().len(), 1);
     assert_eq!(snap["clock"]["today"].as_str().unwrap().len(), 10);
@@ -875,10 +875,10 @@ fn a_spaced_list_survives_complete_and_undo_over_the_bridge() {
 
     ok(&app, "complete_task", json!({ "list": "jott.tasks/Meu Mercado.md", "id": id }));
     let completed =
-        std::fs::read_to_string(dir.path().join("jott.tasks/Completed.md")).unwrap();
+        std::fs::read_to_string(dir.path().join("jott.tasks/completed.md")).unwrap();
     assert!(completed.contains("origin:\"Meu Mercado\""), "{completed}");
 
-    ok(&app, "uncomplete_task", json!({ "list": "jott.tasks/Completed.md", "id": id }));
+    ok(&app, "uncomplete_task", json!({ "list": "jott.tasks/completed.md", "id": id }));
     let tasks = ok(&app, "list_tasks", json!({ "list": "jott.tasks/Meu Mercado.md" }));
     assert_eq!(tasks[0]["text"], "Comprar arroz");
     assert!(
@@ -893,12 +893,12 @@ fn hostile_fields_are_normalized_by_the_core_not_trusted_to_the_ui() {
     // description on the next read — silently deleting the date with it. The
     // rule lives in the core so every client is covered, not just our UI.
     let (_lock, app, _dir) = app_with_notebook();
-    let id = task_with_id(&app, "jott.tasks/Tasks.md", "Comprar material");
+    let id = task_with_id(&app, "jott.tasks/task-list.md", "Comprar material");
 
     ok(
         &app,
         "set_task_fields",
-        json!({ "list": "jott.tasks/Tasks.md", "id": id, "fields": {
+        json!({ "list": "jott.tasks/task-list.md", "id": id, "fields": {
             "due": "2026-07-25",
             "tags": ["casa nova", "#urgent", "casa nova", "  "],
             "text": "Comprar\nmaterial",
@@ -906,7 +906,7 @@ fn hostile_fields_are_normalized_by_the_core_not_trusted_to_the_ui() {
         }}),
     );
 
-    let tasks = ok(&app, "list_tasks", json!({ "list": "jott.tasks/Tasks.md" }));
+    let tasks = ok(&app, "list_tasks", json!({ "list": "jott.tasks/task-list.md" }));
     assert_eq!(tasks[0]["tags"], json!(["casa-nova", "urgent"]));
     assert_eq!(tasks[0]["due"], "2026-07-25", "the date must survive the tag");
     assert_eq!(tasks[0]["text"], "Comprar material");
@@ -1036,10 +1036,10 @@ fn a_new_workspace_is_born_usable_over_the_bridge() {
         json!({ "name": "Journal", "kind": "notes" }),
     );
 
-    assert!(dir.path().join("Errands/Errands.md").is_file());
-    assert!(dir.path().join("Errands/Completed.md").is_file());
+    assert!(dir.path().join("Errands/task-list.md").is_file());
+    assert!(dir.path().join("Errands/completed.md").is_file());
     assert!(dir.path().join("Journal/.workspace.json").is_file());
-    assert!(!dir.path().join("Journal/Journal.md").exists());
+    assert!(!dir.path().join("Journal/task-list.md").exists());
 
     // An unknown type is refused at the door.
     assert!(invoke(
@@ -1055,7 +1055,7 @@ fn pinning_a_task_over_the_bridge_writes_the_hidden_field() {
     // The card's bookmark: pinning is filing, so it rides in the comment and
     // never becomes a `#pinned` tag.
     let (_lock, app, dir) = app_with_notebook();
-    let list = "jott.tasks/Tasks.md";
+    let list = "jott.tasks/task-list.md";
     ok(&app, "create_task", json!({ "list": list, "text": "Pagar boleto" }));
     let id = ok(&app, "ensure_task_id", json!({ "list": list, "position": 0 }));
     let id = id.as_str().unwrap().to_string();
@@ -1303,14 +1303,17 @@ fn groups_nest_and_report_their_parent_over_the_bridge() {
     // in, and the members it holds directly — in the notebook's own order.
     let (_lock, app, dir) = app_with_notebook();
 
+    // Groups and workspaces are addressed by their root-relative PATH
+    // (2026-08-13): two groups may each hold a `Tasks/`, and by leaf name they
+    // were the same address.
     ok(&app, "create_group", json!({ "name": "Design" }));
     ok(&app, "create_group", json!({ "name": "Clients", "group": "Design" }));
     ok(
         &app,
         "create_workspace_in",
-        json!({ "name": "Acme", "kind": "tasks", "group": "Clients" }),
+        json!({ "name": "Acme", "kind": "tasks", "group": "Design/Clients" }),
     );
-    assert!(dir.path().join("Design/Clients/Acme/Acme.md").is_file());
+    assert!(dir.path().join("Design/Clients/Acme/task-list.md").is_file());
 
     let groups = ok(&app, "groups", json!({}));
     let of = |folder: &str| {
@@ -1323,14 +1326,14 @@ fn groups_nest_and_report_their_parent_over_the_bridge() {
             .clone()
     };
     assert_eq!(of("Design")["parent"], Value::Null);
-    assert_eq!(of("Clients")["parent"], "Design");
+    assert_eq!(of("Design/Clients")["parent"], "Design");
     // Acme belongs to Clients, not to the group above it.
     assert_eq!(of("Design")["workspaces"], json!([]));
-    assert_eq!(of("Clients")["workspaces"], json!(["Acme"]));
+    assert_eq!(of("Design/Clients")["workspaces"], json!(["Design/Clients/Acme"]));
 
     // Moving the branch out to the root carries everything under it.
-    ok(&app, "move_group", json!({ "name": "Clients", "intoGroup": null }));
-    assert!(dir.path().join("Clients/Acme/Acme.md").is_file());
+    ok(&app, "move_group", json!({ "name": "Design/Clients", "intoGroup": null }));
+    assert!(dir.path().join("Clients/Acme/task-list.md").is_file());
     let groups = ok(&app, "groups", json!({}));
     let clients = groups
         .as_array()
@@ -1357,17 +1360,17 @@ fn a_workspace_moved_into_a_group_keeps_its_pulled_tasks() {
     ok(&app, "create_group", json!({ "name": "Design" }));
     ok(&app, "create_workspace", json!({ "name": "Acme", "kind": "tasks" }));
 
-    let id = task_with_id(&app, "Acme/Acme.md", "call the client");
+    let id = task_with_id(&app, "Acme/task-list.md", "call the client");
     ok(
         &app,
         "pull_into_period",
-        json!({ "period": "day", "list": "Acme/Acme.md", "id": id }),
+        json!({ "period": "day", "list": "Acme/task-list.md", "id": id }),
     );
 
     ok(&app, "move_workspace", json!({ "name": "Acme", "intoGroup": "Design" }));
 
     let state = ok(&app, "period_state", json!({ "period": "day" }));
-    assert_eq!(state["items"][0]["path"], "Design/Acme/Acme.md");
+    assert_eq!(state["items"][0]["path"], "Design/Acme/task-list.md");
     assert_eq!(
         ok(&app, "period_tasks", json!({ "period": "day" }))
             .as_array()

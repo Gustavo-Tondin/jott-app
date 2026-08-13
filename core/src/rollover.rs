@@ -157,8 +157,8 @@ mod tests {
             ymd(2026, 7, 20),
             &[
                 ("Tasks/Inbox/Inbox.md", "a"),
-                ("Tasks/Inbox/Completed.md", "b"),
-                ("Space/Work/Completed.md", "c"),
+                ("Tasks/Inbox/completed.md", "b"),
+                ("Space/Work/completed.md", "c"),
             ],
         );
         let rolled = apply(&mut state, ymd(2026, 7, 21), RolloverMode::Carry);

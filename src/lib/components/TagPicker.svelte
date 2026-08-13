@@ -8,12 +8,15 @@
   import { dismissable } from "../actions/dismissable.js";
   import { keepOnScreen } from "../actions/keepOnScreen.js";
   import { S } from "../services/strings.js";
+  import { accentColor, DEFAULT_ACCENT } from "../services/accent.js";
+  import AccentPicker from "./AccentPicker.svelte";
 
   let { tags = [], applied = [], onPick, onCreate } = $props();
 
   let open = $state(false);
   let name = $state("");
-  let color = $state("#0080ff");
+  /// One of the seven, by name — never a hex (services/accent.js).
+  let color = $state(DEFAULT_ACCENT);
 
   let available = $derived(tags.filter((t) => !applied.includes(t.name)));
 
@@ -62,9 +65,9 @@
               >
                 <span
                   class="theme-swatch tag-picker__swatch"
-                  style={`--tag-color: ${t.color || "var(--theme-brand)"}`}
+                  style={`--tag-color: ${accentColor(t.color) ?? "var(--theme-brand)"}`}
                 ></span>
-                #{t.name}
+                {t.name}
               </button>
             </li>
           {/each}
@@ -73,17 +76,18 @@
       {/if}
       <form class="tag-picker__create" onsubmit={(e) => (e.preventDefault(), create())}>
         <input
-          type="color"
-          class="tag-picker__color"
-          bind:value={color}
-          aria-label={S.color}
-        />
-        <input
           class="theme-input theme-input--sm tag-picker__name"
           placeholder={S.newTagName}
           bind:value={name}
         />
         <button class="theme-btn theme-btn--primary" type="submit">{S.create}</button>
+        <!-- Below the name, not beside it: the seven need a row of their own,
+             and a new tag is named first and coloured second. -->
+        <AccentPicker
+          value={color}
+          clearable={false}
+          onPick={(c) => (color = c || DEFAULT_ACCENT)}
+        />
       </form>
     </div>
   {/if}

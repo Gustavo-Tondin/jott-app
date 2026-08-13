@@ -63,31 +63,11 @@ and Completed.md come back automatically.
 #[derive(Debug, Clone)]
 pub struct TaskFolder {
     dir: PathBuf,
-    /// The name of the list this folder is built around, when it is not the
-    /// folder's own. See [`TaskFolder::with_main`].
-    main: Option<String>,
 }
 
 impl TaskFolder {
     pub fn new(dir: impl Into<PathBuf>) -> Self {
-        Self {
-            dir: dir.into(),
-            main: None,
-        }
-    }
-
-    /// A folder whose main list is **not** named after it.
-    ///
-    /// Only the fixed Tasks workspace: its folder carries the app's `jott.`
-    /// prefix, while its list keeps the plain name the user opens in another
-    /// editor. Saying which is the main list beats guessing — with two lists
-    /// in the folder there is nothing in the names to guess FROM, and the
-    /// rescue of a deleted list would invent a third file (2026-08-11).
-    pub fn with_main(dir: impl Into<PathBuf>, main: impl Into<String>) -> Self {
-        Self {
-            dir: dir.into(),
-            main: Some(main.into()),
-        }
+        Self { dir: dir.into() }
     }
 
     pub fn dir(&self) -> &Path {
@@ -151,41 +131,27 @@ impl TaskFolder {
         Ok(counts)
     }
 
-    /// The folder's main list — spec 3.5: the `.md` named after the folder
-    /// (or after `main`, when the folder was built with one), or — when the
-    /// user renamed it by hand — "the single `.md` that is not
-    /// `Completed.md`". Extra hand-made lists never steal the title: with
-    /// more than one candidate and none carrying the expected name, the
-    /// expected name wins (and `ensure_default_lists` recreates it).
+    /// The folder's main list — spec 3.5: a tasks workspace is ONE list, and
+    /// since 2026-08-13 that list has the same name in every workspace.
+    ///
+    /// It used to be derived: the `.md` named after the folder, falling back
+    /// to "the single `.md` that is not the Completed one" when the user had
+    /// renamed it by hand. Both halves of that rule existed to survive a name
+    /// drifting away from its folder, and a fixed name means it cannot drift.
+    /// Kept as a method rather than inlining the constant so every call site
+    /// still reads as a question about this folder.
     pub fn main_list_name(&self) -> String {
-        let own = self
-            .main
-            .clone()
-            .unwrap_or_else(|| crate::workspace::folder_name_of(&self.dir));
-        let others: Vec<String> = self
-            .list_names()
-            .unwrap_or_default()
-            .into_iter()
-            .filter(|name| name != COMPLETED_LIST)
-            .collect();
-        if others.iter().any(|name| *name == own) {
-            return own;
-        }
-        match others.as_slice() {
-            [single] => single.clone(),
-            _ => own,
-        }
+        crate::MAIN_LIST.to_string()
     }
 
-    /// Recreates the main list and `Completed.md` when missing. Called on
-    /// every open: the user may have deleted them, and the app must not
-    /// break. When a list is already there, it *is* the main list and
-    /// nothing extra is created — `main` only names the file when the folder
-    /// has none, so recreating it twice never invents a second list.
+    /// Recreates `task-list.md` and `completed.md` when missing. Called on
+    /// every open: the user may have deleted them, and the app must not break.
+    /// With fixed names this can no longer invent a third file — recreating a
+    /// deleted list writes back exactly the name that was deleted.
     pub fn ensure_default_lists(&self) -> Result<()> {
         std::fs::create_dir_all(&self.dir).ctx(&self.dir)?;
-        for name in [self.main_list_name(), COMPLETED_LIST.to_string()] {
-            let path = self.list_path(&name)?;
+        for name in [crate::MAIN_LIST, COMPLETED_LIST] {
+            let path = self.list_path(name)?;
             if !path.exists() {
                 crate::fsio::write_atomically(&path, b"")?;
             }

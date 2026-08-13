@@ -105,11 +105,15 @@ pub struct ListEntry {
     pub path: String,
     /// The file stem (`Compras`) — what the user reads.
     pub name: String,
-    /// The workspace holding it, as the user reads it: its **display name**,
-    /// never its folder. The three fixed workspaces live in `jott.*` folders
-    /// so the plain names stay free for the user, and the interface has
-    /// always called them Home, Tasks and Notes — deriving this from the path
-    /// in the frontend would put the folder on screen (2026-08-11).
+    /// Where it lives, as the user reads it: the workspace's **readable
+    /// address** — `Design/Tasks` inside a group, `Mercado` when loose, and
+    /// `Tasks` for the fixed one whose folder is `jott.tasks` (2026-08-13).
+    ///
+    /// Never derived in the frontend. The three fixed workspaces live in
+    /// `jott.*` folders so the plain names stay free for the user, and the
+    /// interface has always called them Home, Tasks and Notes — deriving this
+    /// from the path on the other side would put the folder on screen
+    /// (2026-08-11).
     pub workspace: String,
 }
 
@@ -371,7 +375,7 @@ impl Notebook {
     /// The root-relative address of the fixed Tasks workspace's list — where
     /// quick-captured tasks land.
     pub fn inbox_path() -> String {
-        format!("{TASKS_DIR}/{}.md", crate::FIXED_TASKS_LIST)
+        format!("{TASKS_DIR}/{}.md", crate::MAIN_LIST)
     }
 
     /// The address of the Completed list that serves `list_path` — the one in
@@ -391,15 +395,13 @@ impl Notebook {
         Ok((self.task_folder(self.root.join(dir)), name.to_string()))
     }
 
-    /// A tasks folder for `dir`, told which list is the main one when the
-    /// folder's own name does not say it: the fixed Tasks workspace lives in
-    /// `jott.tasks/` but its list is `Tasks.md`.
+    /// A tasks folder for `dir`. Every one of them is the same shape now
+    /// (2026-08-13): `task-list.md` beside `completed.md`, whatever the folder
+    /// is called. The fixed Tasks workspace used to be the exception — it
+    /// lives in `jott.tasks/` and had to be TOLD its list was `Tasks.md`,
+    /// because the folder name could not say it.
     fn task_folder(&self, dir: PathBuf) -> crate::folder::TaskFolder {
-        if dir == self.root.join(TASKS_DIR) {
-            crate::folder::TaskFolder::with_main(dir, crate::FIXED_TASKS_LIST)
-        } else {
-            crate::folder::TaskFolder::new(dir)
-        }
+        crate::folder::TaskFolder::new(dir)
     }
 
     /// Every tasks workspace's folder in the notebook, with its root-relative
@@ -659,10 +661,10 @@ impl Notebook {
             &config.render(),
         )?;
         if kind == "tasks" {
-            // One list, named after the folder, plus the Completed beside it.
-            let task_dir = crate::folder::TaskFolder::new(parent.join(&folder));
-            crate::fsio::write_atomically(&task_dir.list_path(&folder)?, b"")?;
-            crate::fsio::write_atomically(&task_dir.list_path(COMPLETED_LIST)?, b"")?;
+            // Born usable: its one list and the Completed beside it, under the
+            // names every tasks workspace uses (2026-08-13).
+            let dir = self.resolve_workspace_path(&folder)?;
+            crate::folder::TaskFolder::new(dir).ensure_default_lists()?;
         }
         Ok(folder)
     }
@@ -683,21 +685,31 @@ impl Notebook {
     ) -> Result<String> {
         let folder = name.trim();
         Self::check_workspace_name(folder)?;
-        // `Completed` is refused: a tasks workspace's list is named after its
-        // folder, and that name would collide with its own `Completed.md`.
+        // A workspace called `completed` used to be refused, because its list
+        // was named after its folder and would have collided with its own
+        // `completed.md`. Fixed file names removed the collision, but the name
+        // is still refused: a folder and a file called the same thing inside it
+        // is a trap for whoever opens the notebook without the app.
         if Self::is_fixed_workspace(folder)
-            || folder == COMPLETED_LIST
-            || self.name_is_taken(folder)?
+            || folder.eq_ignore_ascii_case(COMPLETED_LIST)
+            || folder.eq_ignore_ascii_case(crate::MAIN_LIST)
         {
-            return Err(Error::InvalidWorkspaceName(format!("{folder} already exists")));
+            return Err(Error::InvalidWorkspaceName(format!("{folder} is reserved")));
         }
+        // Free HERE, not notebook-wide (2026-08-13). A name had to be unique
+        // across the whole notebook while the leaf was the identity; now the
+        // PATH is, so two groups may each hold a `Tasks/` — which is exactly
+        // what a user builds on purpose. The only collision left is the real
+        // one: a sibling of the same name.
         let dir = parent.join(folder);
         if dir.exists() {
             return Err(Error::InvalidWorkspaceName(format!("{folder} already exists")));
         }
         std::fs::create_dir_all(&dir).ctx(&dir)?;
         crate::fsio::write_atomically(&dir.join(marker), body.as_bytes())?;
-        Ok(folder.to_string())
+        // The PATH, not the leaf: it is the address the caller will open the
+        // new workspace by, and inside a group the leaf is not enough.
+        Ok(crate::relpath::relative_slash(&self.root, &dir))
     }
 
     /// Changes a workspace's own `.workspace.json`, through the same tolerant
@@ -734,30 +746,27 @@ impl Notebook {
     }
 
     /// Opens an existing user workspace by its folder name.
-    fn open_workspace(&self, folder: &str) -> Result<crate::workspace::Workspace> {
-        Self::check_workspace_name(folder)?;
-        // A workspace is addressed by its leaf name (unique across the notebook),
-        // so it may sit at the root or one level inside a group.
-        let at_root = self.root.join(folder);
-        if crate::workspace::Workspace::is_workspace(&at_root) {
-            return crate::workspace::Workspace::open(at_root);
-        }
-        for group_dir in self.group_dirs()? {
-            let candidate = group_dir.join(folder);
-            if crate::workspace::Workspace::is_workspace(&candidate) {
-                return crate::workspace::Workspace::open(candidate);
-            }
-        }
-        crate::workspace::Workspace::open(at_root)
+    /// Opens a workspace by its **root-relative path** (`Mercado`,
+    /// `Design/Tasks`).
+    ///
+    /// The path, not the leaf name (2026-08-13). The leaf used to be the
+    /// identity, "unique across the notebook", and that invariant died the
+    /// moment the folder became the name: two groups may each hold a `Tasks/`,
+    /// which is exactly the arrangement a user builds on purpose. The old
+    /// lookup searched the root and then every group for a matching leaf, so
+    /// with two matches it silently opened the first — and the sidebar
+    /// highlighted BOTH, because both answered to the same address (user
+    /// report, screen recording 2026-08-13).
+    fn open_workspace(&self, path: &str) -> Result<crate::workspace::Workspace> {
+        let dir = self.resolve_workspace_path(path)?;
+        crate::workspace::Workspace::open(dir)
     }
 
-    /// True when a folder name is already taken by a workspace or a group,
-    /// anywhere in the notebook. Names are the identity, so they are unique.
-    fn name_is_taken(&self, name: &str) -> Result<bool> {
-        if self.workspaces()?.iter().any(|w| w.folder_name() == name) {
-            return Ok(true);
-        }
-        Ok(self.groups()?.iter().any(|g| g.folder == name))
+    /// A root-relative path resolved against the notebook, refusing anything
+    /// that climbs, hides, or is not a single safe run of components.
+    fn resolve_workspace_path(&self, path: &str) -> Result<PathBuf> {
+        crate::relpath::safe_join(&self.root, path)
+            .ok_or_else(|| Error::InvalidWorkspaceName(path.to_string()))
     }
 
     /// Creates an empty group (a folder with a `.group.json`) at the root. The
@@ -778,10 +787,18 @@ impl Notebook {
     }
 
     /// Renames a group's display name (`.group.json` `name`); empty clears it.
-    pub fn rename_group(&self, folder: &str, new_display: &str) -> Result<()> {
+    /// Renames a group by renaming its FOLDER — the same rule as a workspace
+    /// (2026-08-13). Everything under it moves with it, so the Day/Week
+    /// references and the stored arrangements are repointed by `relocate`.
+    pub fn rename_group(&mut self, folder: &str, new_name: &str) -> Result<()> {
         self.ensure_writable()?;
-        let path = self.group_config_path(folder)?;
-        edit_marked_config(path, |config| config.name = cleared_to_none(new_display))
+        let name = new_name.trim();
+        Self::check_workspace_name(name)?;
+        let (from, _) = self.open_group(folder)?;
+        let parent = from.parent().unwrap_or(&self.root).to_path_buf();
+        self.relocate(&from, &parent, name)?;
+        let moved = parent.join(name).join(crate::workspace::GROUP_CONFIG_FILE);
+        edit_marked_config(moved, |config| config.name = None)
     }
 
     /// Sets a group's accent colour and icon; an empty string clears each.
@@ -809,7 +826,7 @@ impl Notebook {
 
     /// Sends a group to the trash after handing what it held to its own parent
     /// (the root, or the group it sat in), so nothing is ever lost with it.
-    pub fn delete_group(&self, folder: &str) -> Result<()> {
+    pub fn delete_group(&mut self, folder: &str) -> Result<()> {
         self.ensure_writable()?;
         let (dir, _) = self.open_group(folder)?;
         let parent = self.parent_group_of(&dir);
@@ -819,13 +836,13 @@ impl Notebook {
         let mut members = Vec::new();
         self.collect_workspaces(&dir, &mut members)?;
         for ws in members {
-            let name = ws.folder_name().to_string();
-            self.move_workspace(&name, parent.as_deref())?;
+            let path = crate::relpath::relative_slash(&self.root, ws.root());
+            self.move_workspace(&path, parent.as_deref())?;
         }
         // Child groups the same way — deleting a group is not deleting a branch.
         for child in crate::workspace::marker_dirs(&dir, crate::workspace::GROUP_CONFIG_FILE)? {
-            let name = crate::workspace::folder_name_of(&child);
-            self.move_group(&name, parent.as_deref())?;
+            let path = crate::relpath::relative_slash(&self.root, &child);
+            self.move_group(&path, parent.as_deref())?;
         }
         self.trash_path(&dir)?;
         Ok(())
@@ -835,7 +852,7 @@ impl Notebook {
     /// renaming its folder. Identity is the leaf name, which never changes, so
     /// nothing addressing the workspace *by name* breaks — but its lists are
     /// addressed by PATH, and the path is exactly what a move changes.
-    pub fn move_workspace(&self, name: &str, into_group: Option<&str>) -> Result<()> {
+    pub fn move_workspace(&mut self, name: &str, into_group: Option<&str>) -> Result<()> {
         self.ensure_writable()?;
         if Self::is_fixed_workspace(name) {
             return Err(Error::Protected(name.to_string()));
@@ -846,20 +863,24 @@ impl Notebook {
             Some(group) => self.open_group(group)?.0,
             None => self.root.clone(),
         };
-        self.relocate(&from, &target_parent, name)
+        // `relocate` is told the LEAF to land under; `name` is a path now.
+        let leaf = crate::workspace::folder_name_of(&from);
+        self.relocate(&from, &target_parent, &leaf)
     }
 
     /// Moves a group — with everything under it — into another group (`Some`)
     /// or back to the root (`None`).
-    pub fn move_group(&self, name: &str, into_group: Option<&str>) -> Result<()> {
+    pub fn move_group(&mut self, name: &str, into_group: Option<&str>) -> Result<()> {
         self.ensure_writable()?;
         let (from, _) = self.open_group(name)?;
         let target_parent = match into_group {
-            Some(group) if group == name => {
-                return Err(Error::InvalidWorkspaceName(format!("{name} cannot hold itself")))
-            }
             Some(group) => {
                 let (dir, _) = self.open_group(group)?;
+                if dir == from {
+                    return Err(Error::InvalidWorkspaceName(format!(
+                        "{name} cannot hold itself"
+                    )));
+                }
                 // A group cannot move inside its own subtree: the branch would
                 // be carrying itself, and everything under it would leave the
                 // notebook with the move.
@@ -872,7 +893,8 @@ impl Notebook {
             }
             None => self.root.clone(),
         };
-        self.relocate(&from, &target_parent, name)
+        let leaf = crate::workspace::folder_name_of(&from);
+        self.relocate(&from, &target_parent, &leaf)
     }
 
     /// Moves a marked folder under a new parent, keeping its name.
@@ -881,7 +903,7 @@ impl Notebook {
     /// follow — a reference left pointing at the old path reads as a task that
     /// vanished. (It is the same repointing a moved widget used to do; a moved
     /// workspace never did it, which is the bug this closes.)
-    fn relocate(&self, from: &Path, target_parent: &Path, name: &str) -> Result<()> {
+    fn relocate(&mut self, from: &Path, target_parent: &Path, name: &str) -> Result<()> {
         let to = target_parent.join(name);
         if from == to {
             return Ok(());
@@ -896,6 +918,14 @@ impl Notebook {
         std::fs::rename(from, &to).ctx(&to)?;
 
         self.update_states(|state| state.rename_prefix(&from_rel, &to_rel))?;
+        // The hand-dragged arrangements are addressed by folder too, and a
+        // stale one fails silently: the workspace just falls to the end of a
+        // column the user arranged (services/sidebarOrder.js reads what is
+        // stored, and what is stored no longer names anything).
+        let mut config = self.config.clone();
+        if config.relocate_orders(&from_rel, &to_rel) {
+            self.set_config(config)?;
+        }
         // The aggregated index holds paths too; it is reconstructible, so a
         // failure here must not fail the move.
         let _ = self.refresh_completed_index();
@@ -907,31 +937,53 @@ impl Notebook {
         dir.parent()
             .filter(|parent| *parent != self.root.as_path())
             .filter(|parent| crate::workspace::Group::is_group(parent))
-            .map(crate::workspace::folder_name_of)
+            .map(|parent| crate::relpath::relative_slash(&self.root, parent))
     }
 
     /// Opens a group by folder name — at the root or nested in another group —
     /// returning its dir and config.
-    fn open_group(&self, folder: &str) -> Result<(PathBuf, crate::workspace::WorkspaceConfig)> {
-        Self::check_workspace_name(folder)?;
+    fn open_group(&self, path: &str) -> Result<(PathBuf, crate::workspace::WorkspaceConfig)> {
+        let wanted = self.resolve_workspace_path(path)?;
         let dir = self
             .group_dirs()?
             .into_iter()
-            .find(|dir| crate::workspace::folder_name_of(dir) == folder)
-            .ok_or_else(|| Error::InvalidWorkspaceName(format!("{folder} is not a group")))?;
+            .find(|dir| *dir == wanted)
+            .ok_or_else(|| Error::InvalidWorkspaceName(format!("{path} is not a group")))?;
         let config = crate::workspace::WorkspaceConfig::load(
             dir.join(crate::workspace::GROUP_CONFIG_FILE),
         );
         Ok((dir, config))
     }
 
-    /// Sets a workspace's display name (`.workspace.json` `name`); an empty
-    /// name clears it, falling back to the folder. The folder — the identity —
-    /// never moves, so nothing that addresses the workspace breaks.
-    pub fn rename_workspace(&self, folder: &str, new_display: &str) -> Result<()> {
+    /// Renames a workspace by renaming its **FOLDER** (user call, 2026-08-13).
+    ///
+    /// It used to write a `name` into the marker and leave the folder alone,
+    /// which kept the identity stable but made the name a second copy of it —
+    /// and the two drifted the moment anything was renamed. The folder is the
+    /// name now, in both directions: rename it here and the disk follows;
+    /// rename it in a file manager and the sidebar follows.
+    ///
+    /// The app's own `jott.*` workspaces cannot take that route — their folder
+    /// name is an identifier the app recreates — so those, and only those,
+    /// still keep their label in the marker.
+    pub fn rename_workspace(&mut self, folder: &str, new_name: &str) -> Result<()> {
         self.ensure_writable()?;
-        let path = self.open_workspace(folder)?.config_path();
-        edit_marked_config(path, |config| config.name = cleared_to_none(new_display))
+        let ws = self.open_workspace(folder)?;
+        if crate::workspace::is_app_folder(folder) {
+            return edit_marked_config(ws.config_path(), |config| {
+                config.name = cleared_to_none(new_name)
+            });
+        }
+        let name = new_name.trim();
+        Self::check_workspace_name(name)?;
+        let from = ws.root().to_path_buf();
+        let parent = from.parent().unwrap_or(&self.root).to_path_buf();
+        self.relocate(&from, &parent, name)?;
+        // The marker's `name` is dead weight from here on: it is no longer
+        // read for a user workspace, and leaving it would show up in a diff as
+        // a name that disagrees with the folder.
+        let moved = parent.join(name).join(crate::workspace::WORKSPACE_CONFIG_FILE);
+        edit_marked_config(moved, |config| config.name = None)
     }
 
     /// Sets a workspace's accent colour and icon; an empty string clears each.
@@ -1194,7 +1246,12 @@ impl Notebook {
         for group_dir in self.group_dirs()? {
             self.collect_workspaces(&group_dir, &mut found)?;
         }
-        found.sort_by(|a, b| a.folder_name().cmp(b.folder_name()));
+        // By PATH, so a workspace sorts under the group it belongs to and two
+        // workspaces sharing a leaf name are two different entries.
+        let path_of = |ws: &crate::workspace::Workspace| {
+            crate::relpath::relative_slash(&self.root, ws.root())
+        };
+        found.sort_by(|a, b| path_of(a).cmp(&path_of(b)));
         // `name` sorts by what the user READS, which is not the folder name a
         // workspace was created under (2026-08-06). Anything else — including
         // the default — is the hand-dragged order; fixed workspaces are not
@@ -1206,8 +1263,12 @@ impl Notebook {
                     .cmp(&b.display_name().to_lowercase())
             });
         } else {
+            let keys: Vec<String> = found.iter().map(path_of).collect();
+            let mut zipped: Vec<(String, crate::workspace::Workspace)> =
+                keys.into_iter().zip(found.drain(..)).collect();
             self.config
-                .apply_order("workspaces", &mut found, |w| w.folder_name());
+                .apply_order("workspaces", &mut zipped, |entry| &entry.0);
+            found = zipped.into_iter().map(|(_, ws)| ws).collect();
         }
         Ok(found)
     }
@@ -1221,10 +1282,22 @@ impl Notebook {
             .workspaces()?
             .into_iter()
             .map(|ws| {
-                (
-                    crate::relpath::relative_slash(&self.root, ws.root()),
-                    ws.display_name().to_string(),
-                )
+                let path = crate::relpath::relative_slash(&self.root, ws.root());
+                // The label is the workspace's READABLE ADDRESS, not just its
+                // name (user call, 2026-08-13): `Design/Tasks` for one inside a
+                // group, `Mercado` for a loose one. Two workspaces called Tasks
+                // in two different groups are a normal thing to have, and named
+                // alone they were the same word twice in the same picker.
+                //
+                // Building it from the path costs nothing now that a group's
+                // name IS its folder — there is no second name to look up. Only
+                // the leaf can differ from its folder, and only for the app's
+                // own `jott.*` workspaces, so only the leaf is substituted.
+                let mut parts: Vec<&str> = path.split('/').collect();
+                if let Some(last) = parts.last_mut() {
+                    *last = ws.display_name();
+                }
+                (path.clone(), parts.join("/"))
             })
             .collect())
     }
@@ -1265,8 +1338,11 @@ impl Notebook {
     }
 
     /// The groups of the notebook, each with the group it sits in (if any) and
-    /// the leaf names of the workspaces it holds **directly** — a workspace in
-    /// a child group belongs to that child, not to this one.
+    /// the **root-relative paths** of the workspaces it holds directly — a
+    /// workspace in a child group belongs to that child, not to this one.
+    ///
+    /// Paths, not leaf names, since 2026-08-13: two groups may each hold a
+    /// `Tasks/`, and by leaf they were indistinguishable.
     ///
     /// The members come out in the notebook's own workspace order, not
     /// alphabetically: the sidebar reads a group's place off its members, and
@@ -1276,14 +1352,14 @@ impl Notebook {
         let ordered = self.workspaces()?;
         let mut groups = Vec::new();
         for dir in self.group_dirs()? {
-            let folder = crate::workspace::folder_name_of(&dir);
+            let folder = crate::relpath::relative_slash(&self.root, &dir);
             let config = crate::workspace::WorkspaceConfig::load(
                 dir.join(crate::workspace::GROUP_CONFIG_FILE),
             );
             let workspaces: Vec<String> = ordered
                 .iter()
                 .filter(|ws| ws.root().parent() == Some(dir.as_path()))
-                .map(|ws| ws.folder_name().to_string())
+                .map(|ws| crate::relpath::relative_slash(&self.root, ws.root()))
                 .collect();
             groups.push(crate::workspace::GroupEntry {
                 folder,

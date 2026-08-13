@@ -27,8 +27,8 @@ fn init_creates_the_documented_layout() {
     assert!(dir.path().join(".jott").is_dir());
     assert!(dir.path().join("jott.tasks").is_dir());
     assert!(dir.path().join("jott.notes").is_dir());
-    assert!(dir.path().join("jott.tasks/Tasks.md").is_file());
-    assert!(dir.path().join("jott.tasks/Completed.md").is_file());
+    assert!(dir.path().join("jott.tasks/task-list.md").is_file());
+    assert!(dir.path().join("jott.tasks/completed.md").is_file());
     assert!(Notebook::is_notebook(notebook.root()));
 }
 
@@ -54,13 +54,13 @@ fn open_recreates_default_lists_deleted_from_outside() {
     let dir = tempfile::tempdir().unwrap();
     Notebook::init(dir.path()).unwrap();
 
-    std::fs::remove_file(dir.path().join("jott.tasks/Tasks.md")).unwrap();
-    std::fs::remove_file(dir.path().join("jott.tasks/Completed.md")).unwrap();
+    std::fs::remove_file(dir.path().join("jott.tasks/task-list.md")).unwrap();
+    std::fs::remove_file(dir.path().join("jott.tasks/completed.md")).unwrap();
 
     Notebook::open(dir.path()).unwrap();
 
-    assert!(dir.path().join("jott.tasks/Tasks.md").is_file());
-    assert!(dir.path().join("jott.tasks/Completed.md").is_file());
+    assert!(dir.path().join("jott.tasks/task-list.md").is_file());
+    assert!(dir.path().join("jott.tasks/completed.md").is_file());
 }
 
 #[test]
@@ -68,7 +68,7 @@ fn open_does_not_touch_lists_that_already_have_content() {
     let dir = tempfile::tempdir().unwrap();
     Notebook::init(dir.path()).unwrap();
 
-    let inbox_path = dir.path().join("jott.tasks/Tasks.md");
+    let inbox_path = dir.path().join("jott.tasks/task-list.md");
     let content = "- [ ] Comprar leite <!--id:a1b2c3-->\n";
     std::fs::write(&inbox_path, content).unwrap();
 
@@ -85,7 +85,7 @@ fn adding_a_task_writes_it_to_the_file_with_an_id() {
     let id = inbox.add_text_with_id("Comprar leite");
     inbox.save().unwrap();
 
-    let on_disk = read(dir.path().join("jott.tasks/Tasks.md"));
+    let on_disk = read(dir.path().join("jott.tasks/task-list.md"));
     assert!(on_disk.contains("- [ ] Comprar leite"));
     assert!(on_disk.contains(&format!("id:{id}")));
 
@@ -133,7 +133,7 @@ fn moving_a_task_preserves_the_id_and_records_the_origin() {
     compras.save().unwrap();
 
     let moved = notebook
-        .move_task(&id, "jott.tasks/Compras.md", "jott.tasks/Completed.md", OriginAction::Record)
+        .move_task(&id, "jott.tasks/Compras.md", "jott.tasks/completed.md", OriginAction::Record)
         .unwrap();
 
     assert_eq!(moved.id.as_deref(), Some(id.as_str()));
@@ -141,12 +141,12 @@ fn moving_a_task_preserves_the_id_and_records_the_origin() {
 
     // Gone from the source, present in the target, both on disk.
     assert!(notebook.open_list("jott.tasks/Compras.md").unwrap().find(&id).is_none());
-    let completed = notebook.open_list("jott.tasks/Completed.md").unwrap();
+    let completed = notebook.open_list("jott.tasks/completed.md").unwrap();
     let task = completed.find(&id).unwrap();
     assert_eq!(task.text, "Comprar leite");
     assert_eq!(task.origin.as_deref(), Some("Compras"));
 
-    assert!(read(dir.path().join("jott.tasks/Completed.md")).contains("origin:Compras"));
+    assert!(read(dir.path().join("jott.tasks/completed.md")).contains("origin:Compras"));
 }
 
 #[test]
@@ -160,14 +160,14 @@ fn moving_a_task_back_can_clear_the_origin() {
     compras.save().unwrap();
 
     notebook
-        .move_task(&id, "jott.tasks/Compras.md", "jott.tasks/Completed.md", OriginAction::Record)
+        .move_task(&id, "jott.tasks/Compras.md", "jott.tasks/completed.md", OriginAction::Record)
         .unwrap();
     let back = notebook
-        .move_task(&id, "jott.tasks/Completed.md", "jott.tasks/Compras.md", OriginAction::Clear)
+        .move_task(&id, "jott.tasks/completed.md", "jott.tasks/Compras.md", OriginAction::Clear)
         .unwrap();
 
     assert_eq!(back.origin, None);
-    assert!(notebook.open_list("jott.tasks/Completed.md").unwrap().find(&id).is_none());
+    assert!(notebook.open_list("jott.tasks/completed.md").unwrap().find(&id).is_none());
     assert!(notebook.open_list("jott.tasks/Compras.md").unwrap().find(&id).is_some());
     assert!(!read(dir.path().join("jott.tasks/Compras.md")).contains("origin:"));
 }
@@ -177,7 +177,7 @@ fn moving_a_task_does_not_disturb_the_other_lines() {
     let dir = tempfile::tempdir().unwrap();
     let notebook = Notebook::init(dir.path()).unwrap();
 
-    let inbox_path = dir.path().join("jott.tasks/Tasks.md");
+    let inbox_path = dir.path().join("jott.tasks/task-list.md");
     std::fs::write(
         &inbox_path,
         "# Inbox\n\
@@ -188,7 +188,7 @@ fn moving_a_task_does_not_disturb_the_other_lines() {
     .unwrap();
 
     notebook
-        .move_task("bbb222", "jott.tasks/Tasks.md", "jott.tasks/Completed.md", OriginAction::Record)
+        .move_task("bbb222", "jott.tasks/task-list.md", "jott.tasks/completed.md", OriginAction::Record)
         .unwrap();
 
     let inbox = read(&inbox_path);
@@ -207,7 +207,7 @@ fn creating_and_listing_lists() {
 
     let names = notebook.lists().unwrap();
     let names: Vec<String> = names.into_iter().map(|l| l.name).collect();
-    assert_eq!(names, vec!["Completed", "Compras", "Projeto Y", "Tasks"]);
+    assert_eq!(names, vec!["Compras", "Projeto Y", "completed", "task-list"]);
 
     assert!(dir.path().join("jott.tasks/Projeto Y.md").is_file());
     assert!(
@@ -258,25 +258,25 @@ fn a_task_earns_an_id_only_when_something_needs_to_address_it() {
     let dir = tempfile::tempdir().unwrap();
     let notebook = Notebook::init(dir.path()).unwrap();
 
-    let inbox_path = dir.path().join("jott.tasks/Tasks.md");
+    let inbox_path = dir.path().join("jott.tasks/task-list.md");
     let original = "- [ ] escrita no Obsidian\n- [ ] já tinha id <!--id:aaa111-->\n";
     std::fs::write(&inbox_path, original).unwrap();
 
     // Reading changes nothing.
-    let tasks = notebook.tasks_in("jott.tasks/Tasks.md").unwrap();
+    let tasks = notebook.tasks_in("jott.tasks/task-list.md").unwrap();
     assert_eq!(tasks[0].id, None, "a plain line stays plain");
     assert_eq!(tasks[1].id.as_deref(), Some("aaa111"));
     assert_eq!(std::fs::read_to_string(&inbox_path).unwrap(), original);
 
     // Acting on it does.
-    let id = notebook.ensure_task_id("jott.tasks/Tasks.md", 0).unwrap();
+    let id = notebook.ensure_task_id("jott.tasks/task-list.md", 0).unwrap();
     assert!(!id.is_empty());
     assert!(std::fs::read_to_string(&inbox_path).unwrap().contains(&id));
 
     // And asking twice gives the same id, without rewriting anything.
-    assert_eq!(notebook.ensure_task_id("jott.tasks/Tasks.md", 0).unwrap(), id);
+    assert_eq!(notebook.ensure_task_id("jott.tasks/task-list.md", 0).unwrap(), id);
     assert!(
-        notebook.open_list("jott.tasks/Tasks.md").unwrap().find("aaa111").is_some(),
+        notebook.open_list("jott.tasks/task-list.md").unwrap().find("aaa111").is_some(),
         "the existing id must not be regenerated"
     );
 }
@@ -312,16 +312,16 @@ fn a_full_round_trip_through_the_notebook() {
 
     // complete
     notebook
-        .move_task(&id, "jott.tasks/Compras.md", "jott.tasks/Completed.md", OriginAction::Record)
+        .move_task(&id, "jott.tasks/Compras.md", "jott.tasks/completed.md", OriginAction::Record)
         .unwrap();
-    let mut completed = notebook.open_list("jott.tasks/Completed.md").unwrap();
+    let mut completed = notebook.open_list("jott.tasks/completed.md").unwrap();
     completed.set_done(&id, true).unwrap();
     completed.save().unwrap();
-    assert!(read(dir.path().join("jott.tasks/Completed.md")).contains("- [x] Comprar leite"));
+    assert!(read(dir.path().join("jott.tasks/completed.md")).contains("- [x] Comprar leite"));
 
     // undo, back to the recorded origin
     let origin = notebook
-        .open_list("jott.tasks/Completed.md")
+        .open_list("jott.tasks/completed.md")
         .unwrap()
         .find(&id)
         .unwrap()
@@ -335,7 +335,7 @@ fn a_full_round_trip_through_the_notebook() {
     notebook
         .move_task(
             &id,
-            "jott.tasks/Completed.md",
+            "jott.tasks/completed.md",
             &format!("jott.tasks/{origin}.md"),
             OriginAction::Clear,
         )
@@ -346,7 +346,7 @@ fn a_full_round_trip_through_the_notebook() {
 
     let final_state = read(dir.path().join("jott.tasks/Compras.md"));
     assert!(final_state.contains("- [ ] Comprar leite"));
-    assert!(read(dir.path().join("jott.tasks/Completed.md")).trim().is_empty());
+    assert!(read(dir.path().join("jott.tasks/completed.md")).trim().is_empty());
 }
 
 #[test]
@@ -375,18 +375,18 @@ fn duplicate_task_inserts_an_idless_copy_right_after() {
     let dir = tempfile::tempdir().unwrap();
     let nb = Notebook::init(dir.path()).unwrap();
 
-    let mut list = nb.open_list("jott.tasks/Tasks.md").unwrap();
+    let mut list = nb.open_list("jott.tasks/task-list.md").unwrap();
     list.add_text("Buy milk");
     list.add_text("Call mom");
     let id = list.ensure_id_at(0).unwrap();
     list.save().unwrap();
 
-    nb.duplicate_task("jott.tasks/Tasks.md", &id).unwrap();
+    nb.duplicate_task("jott.tasks/task-list.md", &id).unwrap();
 
     // Read the file faithfully (no id adoption): the copy sits right after the
     // original, carries its text, keeps no id of its own, and the original id
     // is untouched.
-    let out = nb.open_list("jott.tasks/Tasks.md").unwrap();
+    let out = nb.open_list("jott.tasks/task-list.md").unwrap();
     let tasks: Vec<&Task> = out.tasks().collect();
     assert_eq!(tasks.len(), 3);
     assert_eq!(tasks[0].text, "Buy milk");
@@ -410,7 +410,7 @@ fn manual_order_arranges_lists_and_survives_a_reopen() {
         nb.lists()
             .unwrap()
             .into_iter()
-            .filter(|l| l.name != "Tasks" && l.name != "Completed")
+            .filter(|l| l.name != "task-list" && l.name != "completed")
             .map(|l| l.name)
             .collect()
     };
@@ -427,7 +427,7 @@ fn manual_order_arranges_lists_and_survives_a_reopen() {
     // the arranged ones — which is what leaves Inbox and Completed alone
     // instead of shuffling them somewhere the user never put them.
     let all: Vec<String> = nb.lists().unwrap().into_iter().map(|l| l.name).collect();
-    assert_eq!(all, vec!["Gamma", "Alpha", "Beta", "Completed", "Tasks"]);
+    assert_eq!(all, vec!["Gamma", "Alpha", "Beta", "completed", "task-list"]);
 
     // The order lives in the config on disk, so a fresh open keeps it.
     let reopened = Notebook::open(dir.path()).unwrap();

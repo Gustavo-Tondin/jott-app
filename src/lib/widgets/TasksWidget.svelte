@@ -25,10 +25,11 @@
   import { S } from "../services/strings.js";
   import { askTask } from "../services/dialog.js";
   import { ensureTaskId } from "../services/taskId.js";
-  import { listName, taskWidgetPaths } from "../services/paths.js";
+  import { listName, listLabel, taskWidgetPaths } from "../services/paths.js";
   import { makeAct } from "../services/act.js";
   import { taskActions, isSelectedTask } from "../services/taskActions.js";
   import { widgetMenu } from "../services/widgetMenu.js";
+  import { tagColors as tagColorMap } from "../services/accent.js";
   import { composeTask } from "../services/taskCompose.js";
   import { arrange, pinnedFirst, planReorder } from "../services/widgetOrder.js";
   import TaskCards from "../components/TaskCards.svelte";
@@ -40,7 +41,7 @@
     widget,
     lists = [],
     tags = [],
-    completedName = "Completed",
+    completedName = "completed",
     today = null,
     dateFormat = "mm/dd/yyyy",
     /// `"<list>#<id>"` for everything pulled into the Day, from the snapshot.
@@ -56,12 +57,20 @@
     period = null,
     /// Whether to draw the titled header (title + New task + ⋮).
     header = true,
+    /// Where the title sits on that row: `"start"` (a block inside a screen
+    /// that has other blocks) or `"center"` (the Home, 2026-08-13 — the block
+    /// IS the screen there, and a centred heading over a centred column reads
+    /// as one thing instead of a label stuck to the left of it).
+    align = "start",
     /// Controls the HOST wants on the widget's top row, between the title and
     /// the ⋮ — the Tasks screen's Index/Today/Week strip and week span. They
     /// go in the row rather than above it so the ⋮ stays at the far right of
     /// the same line (user call, 2026-08-06).
     toolbar,
-    /// `"button"` (the blue New task) or `"bar"` (the pinned composer).
+    /// `"button"` (the blue New task), `"bar"` (the pinned composer) or
+    /// `"none"` — the Home, where the capture box above the block is where
+    /// everything is written and a second New task next to it was two ways to
+    /// do one thing (2026-08-13).
     compose = "button",
     /// Where a composed task goes by default when the widget has no list of
     /// its own — the notebook's Inbox, for a period source.
@@ -80,9 +89,7 @@
   // period source, which owns no folder.
   let paths = $derived(taskWidgetPaths(widget, lists, completedName));
 
-  let tagColors = $derived(
-    Object.fromEntries((tags ?? []).filter((t) => t.color).map((t) => [t.name, t.color])),
-  );
+  let tagColors = $derived(tagColorMap(tags));
 
   // Everything below works in ENTRIES — `{ task, list }` — because a period
   // draws tasks from several lists at once and each card has to know which
@@ -362,24 +369,28 @@
          of every widget (user call, 2026-08-06) — `header` only decides whether
          the block is titled. On the Tasks screen the strip above already names
          the place, so the row carries the ⋮ alone. -->
-      <header class="tasks-widget__header">
-        {#if header}
-          <h3 class="theme-title theme-title--sm tasks-widget__title">
-            {widget.name || listName(widget.folder)}
-          </h3>
-        {/if}
-        {#if toolbar}
-          <!-- An invisible twin of the ⋮, so the host's centred controls are
-               centred on the PANEL and not on what is left of the row. A hidden
-               copy rather than a guessed width: whatever the tools grow into,
-               the two sides stay equal (user call, 2026-08-06). -->
+      <header
+        class="tasks-widget__header"
+        class:tasks-widget__header--center={align === "center"}
+      >
+        {#if toolbar || align === "center"}
+          <!-- An invisible twin of the ⋮, so whatever is centred on this row —
+               the host's controls, or the title itself — is centred on the
+               PANEL and not on what is left of the row. A hidden copy rather
+               than a guessed width: whatever the tools grow into, the two
+               sides stay equal (user call, 2026-08-06). -->
           <span class="tasks-widget__mirror" aria-hidden="true">
             <span class="theme-btn--icon">
               <Icon name="dots-three-vertical" size="1rem" />
             </span>
           </span>
-          {@render toolbar()}
         {/if}
+        {#if header}
+          <h3 class="theme-title tasks-widget__title" class:theme-title--sm={align !== "center"}>
+            {widget.name || listName(widget.folder)}
+          </h3>
+        {/if}
+        {#if toolbar}{@render toolbar()}{/if}
         {#if picking}
           <!-- Selection mode: the header turns into the bulk actions. -->
           <div class="tasks-widget__tools">
@@ -396,12 +407,11 @@
             >
               <option value="" disabled selected>{S.moveTo}</option>
               {#each listTargets as target (target.path)}
-                <!-- Workspace and list, like the other two pickers. A <select>
-                     cannot show the two in different greys, but it can at
+                <!-- The workspace's readable address, like the other two
+                     pickers (services/paths.js). A <select> cannot show the
+                     group and the workspace in different greys, but it can at
                      least stop reading like a file path. -->
-                <option value={target.path}
-                  >{target.workspace}/{listName(target.path)}</option
-                >
+                <option value={target.path}>{listLabel(target)}</option>
               {/each}
             </select>
             <button

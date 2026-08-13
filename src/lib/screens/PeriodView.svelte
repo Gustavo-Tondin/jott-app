@@ -18,7 +18,7 @@
     /// Every list of the notebook, for the composer's destination chip.
     lists = [],
     tags = [],
-    completedName = "Completed",
+    completedName = "completed",
     /// Where a task composed here is written before joining the period.
     inbox = null,
     readOnly = false,

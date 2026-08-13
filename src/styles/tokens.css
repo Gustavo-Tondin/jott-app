@@ -8,12 +8,11 @@
      2. --theme-*     Semantic roles. Named after what they DO (bg, ink, line,
                       brand). Components read ONLY these.
 
-   The COLOUR roles (--theme-bg/ink/line/brand/danger…) do NOT live here — they
-   are the factory theme and live in themes/default.css, unlayered, so a theme
-   is genuinely "one file that redefines the colour roles". What stays here is
-   the shared vocabulary every theme builds FROM: the palette a theme points at,
-   plus the structural scales (spacing, radius, type, layout, motion) that are
-   metrics, not look. See docs/project-strategy.md 4.6.
+   The COLOUR roles (--theme-bg/ink/line/brand/danger…) do NOT live here — a
+   theme assigns them, per region, in themes/<name>.css. What stays here is the
+   shared vocabulary every theme builds FROM: the palette a theme reads, plus
+   the structural scales (spacing, radius, type, layout, motion) that are
+   metrics, not look. See docs/project-strategy.md 4.5.
 
    Prefix is `theme-` (not `memo-`): the product name is provisional, and these
    names are meant to outlive it. When the user picks a custom font or a
@@ -42,26 +41,82 @@
 @layer tokens {
   :root {
     /* ---------------------------------------------------------------------
-       TIER 1 — primitives (the Figma palette). Do not read these from a
-       component; they exist so the semantic layer below has something to
-       point at, and so a theme can re-scale the palette if it wants.
-       --------------------------------------------------------------------- */
-    --palette-blue: #0080ff;
-    --palette-blue-light: #dbe6fd;
-    --palette-blue-outline: #99b6f4;
-    --palette-dark: #212c3b;
-    --palette-dark-mute: #5a7087;
-    --palette-gray: #f1f5f8;
-    --palette-gray-divider: #d8e3e9;
-    --palette-gray-mute: #a2b5c3;
-    --palette-light: #fcfdfd;
-    --palette-red: #f86f76;
-    --palette-amber: #eaa317;
-    --palette-green: #8cec71;
+       TIER 1 — JOTT'S OWN COLOURS (the Figma palette, "Mode 1.tokens.json").
+       Do not read these from a component.
 
-    /* TIER 2 — the semantic COLOUR roles are NOT here. They are the factory
-       theme and live, unlayered, in themes/default.css. Everything below is
-       the structural vocabulary (metrics, not look) that themes build from. */
+       They are **not a layer every theme must build from**: they are the
+       colour list of the three themes that ship here, which share them because
+       they are one design. A theme with colours of its own writes them inline
+       and never mentions this block — the only rule a theme obeys is that no
+       role reads another role (styles/themes/default.css).
+
+       NEUTRALS — two per mode, and the design never uses a third. `-tint` is
+       the step AWAY from the pure one: darker on light, lighter on dark. A
+       region is painted with the pair, in whichever order its ground says
+       (styles/themes/*.css).
+       --------------------------------------------------------------------- */
+    --palette-white: #fbfbfb;
+    --palette-white-tint: #ecebea;
+    --palette-black: #1e1e1e;
+    --palette-black-tint: #2b2b2b;
+    /* The one neutral that belongs to NEITHER mode: a warm grey used at low
+       alpha for hairlines, tracks and disabled ink, so a single value reads on
+       a white canvas and on a black sidebar alike. */
+    --palette-gray: #a39f9b;
+
+    /* ---------------------------------------------------------------------
+       THE SEVEN — the complementary colours the user picks from, for the app
+       accent, a workspace and a tag. Four steps each, in two opposed pairs:
+
+         -light      the fill/ink that reads on a DARK ground
+         -light-bg   the tint that reads on a LIGHT ground
+         -dark       the fill/ink that reads on a LIGHT ground
+         -dark-bg    the tint that reads on a DARK ground
+
+       So the same colour is one hex on the black sidebar and another on the
+       white canvas — always the half that contrasts with what it sits on. A
+       ground picks the pair; nothing else in the app chooses between them.
+       --------------------------------------------------------------------- */
+    --palette-yellow-light-bg: #fbf3d5;
+    --palette-yellow-light: #ffdb4d;
+    --palette-yellow-dark: #e4b301;
+    --palette-yellow-dark-bg: #2d2a1f;
+
+    --palette-orange-light-bg: #fae2d4;
+    --palette-orange-light: #fa8e51;
+    --palette-orange-dark: #d95026;
+    --palette-orange-dark-bg: #3b1c13;
+
+    --palette-pink-light-bg: #fbe8f6;
+    --palette-pink-light: #fb50b4;
+    --palette-pink-dark: #c85195;
+    --palette-pink-dark-bg: #371528;
+
+    --palette-green-light-bg: #e7f6eb;
+    --palette-green-light: #66e685;
+    --palette-green-dark: #40bf5f;
+    --palette-green-dark-bg: #283c30;
+
+    --palette-blue-light-bg: #e5ecf9;
+    --palette-blue-light: #66a3ff;
+    --palette-blue-dark: #386dc7;
+    --palette-blue-dark-bg: #1f2f4a;
+
+    --palette-red-light-bg: #fbe0e0;
+    --palette-red-light: #fe4e50;
+    --palette-red-dark: #d42b33;
+    --palette-red-dark-bg: #421316;
+
+    --palette-purple-light-bg: #efe3fb;
+    --palette-purple-light: #9d52fa;
+    --palette-purple-dark: #7e33ce;
+    --palette-purple-dark-bg: #37234c;
+
+    /* TIER 2 — the semantic COLOUR roles are NOT here. They are assigned once
+       per REGION, in styles/themes/<name>.css — and the rule there is
+       that a role reads one of these and nothing else, so a colour is always
+       one hop from its literal. Everything below is the structural vocabulary
+       (metrics, not look) that themes build from. */
 
     /* ---------------------------------------------------------------------
        SPACING — the design's real values (not the global Fibonacci scale:

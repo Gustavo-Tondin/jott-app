@@ -17,7 +17,8 @@
   import { ensureTaskId } from "../services/taskId.js";
   import { completionBeat } from "../services/pace.js";
   import { S } from "../services/strings.js";
-  import { listName } from "../services/paths.js";
+  import { listTitle, splitLabel } from "../services/paths.js";
+  import { tagColors as tagColorMap } from "../services/accent.js";
   import { reorderable } from "../actions/reorder.js";
   import Menu from "./Menu.svelte";
   import Icon from "./Icon.svelte";
@@ -196,9 +197,7 @@
   }
 
   // Name → colour, from the catalogue, so a pill shows the user's chosen colour.
-  let tagColors = $derived(
-    Object.fromEntries((tags ?? []).filter((t) => t.color).map((t) => [t.name, t.color])),
-  );
+  let tagColors = $derived(tagColorMap(tags));
 
   function addTagName(name) {
     const tag = cleanTag(name);
@@ -478,7 +477,7 @@
           class="inspector__tag"
           style={tagColors[tag] ? `--tag-color: ${tagColors[tag]}` : ""}
         >
-          #{tag}
+          {tag}
           {#if !readOnly}
             <button
               class="inspector__tag-remove"
@@ -635,16 +634,17 @@
     {#if readOnly || lists.length <= 1}
       <span class="inspector__origin">
         <Icon name="tray" size="1rem" />
-        {listName(list)}
+        {listTitle(list)}
       </span>
     {:else}
       <Menu
         align="start"
         items={lists.map((l) => ({
-          // Workspace in grey, list in ink — the notebook can hold several
-          // lists called "Inbox", and the composer's chip says it the same way.
-          context: l.workspace,
-          label: listName(l.path),
+          // The group in grey, the workspace in ink — `Design/`**Tasks**. Two
+          // workspaces called Tasks in two groups are a normal thing to have,
+          // and the composer's chip says it the same way (services/paths.js).
+          context: splitLabel(l).context,
+          label: splitLabel(l).name,
           disabled: l.path === list,
           run: () => moveList(l.path),
         }))}
@@ -657,7 +657,7 @@
             title={S.moveToList}
           >
             <Icon name="tray" size="1rem" />
-            <span class="inspector__origin-name">{listName(list)}</span>
+            <span class="inspector__origin-name">{listTitle(list)}</span>
           </button>
         {/snippet}
       </Menu>

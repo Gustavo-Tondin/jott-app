@@ -1,5 +1,5 @@
 <script>
-  import { listName } from "../services/paths.js";
+  import { listTitle } from "../services/paths.js";
   import { formatDate } from "../services/dates.js";
   import { S } from "../services/strings.js";
   import Icon from "./Icon.svelte";
@@ -216,7 +216,7 @@
             title={`#${tag}`}
             style={tagColors[tag] ? `--tag-color: ${tagColors[tag]}` : ""}
           ></span>{/each}
-        {#if showList}<span class="task-row__field">{listName(list)}</span>{/if}
+        {#if showList}<span class="task-row__field">{listTitle(list)}</span>{/if}
       </div>
     {/if}
 

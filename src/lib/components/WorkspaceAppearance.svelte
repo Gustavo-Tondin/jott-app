@@ -5,6 +5,7 @@
   // back to the default. Stays open across picks so both can be set at once;
   // closes on outside pointer or Escape (swallowed) via onClose.
   import Icon from "./Icon.svelte";
+  import AccentPicker from "./AccentPicker.svelte";
   import { dismissable } from "../actions/dismissable.js";
   import { keepOnScreen } from "../actions/keepOnScreen.js";
   import { S } from "../services/strings.js";
@@ -21,9 +22,10 @@
     colors = true,
   } = $props();
 
-  const COLORS = [
-    "#2f6fed", "#16a34a", "#eaa317", "#e5484d", "#8b5cf6", "#0d9488", "#db2777",
-  ];
+  // The colour row is the shared AccentPicker — the same seven the tag manager
+  // and the settings screen offer (2026-08-13). The icons stay here: they are
+  // this popup's own vocabulary.
+  //
   // The two type defaults lead the row (services/workspaceIcon.js), so the
   // icon a list or a notepad already wears is also the one to pick again.
   const ICONS = [
@@ -37,23 +39,7 @@
   {#if open}
     <div class="theme-popover theme-popover--end palette__panel" use:keepOnScreen>
       {#if colors}
-      <div class="palette__row" role="group" aria-label={S.color}>
-        <button
-          class="palette__swatch palette__swatch--clear"
-          class:palette__swatch--on={!color}
-          aria-label={S.defaultAppearance}
-          onclick={() => onColor?.("")}
-        ></button>
-        {#each COLORS as c (c)}
-          <button
-            class="palette__swatch"
-            class:palette__swatch--on={color === c}
-            style={`--dot: ${c}`}
-            aria-label={c}
-            onclick={() => onColor?.(c)}
-          ></button>
-        {/each}
-      </div>
+        <AccentPicker value={color} onPick={(c) => onColor?.(c)} />
       {/if}
       <div class="palette__row" role="group" aria-label={S.icon}>
         {#each ICONS as name (name)}

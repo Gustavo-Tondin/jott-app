@@ -42,8 +42,14 @@
 </script>
 
 {#if $nameRequest}
+  <!-- Both dialogs are mounted OUTSIDE the window (App.svelte), so they sit in
+       no region and would inherit no colour role at all. They declare the
+       CANVAS: a dialog is content — naming a place, composing a task — and it
+       opens over the panel, so it is made of the panel's material and not of
+       the frame's (styles/themes/default.css). -->
   <div
     class="theme-modal-backdrop name-dialog__backdrop"
+    data-region="canvas"
     role="presentation"
     onpointerdown={(e) => e.target === e.currentTarget && settle(null)}
   >

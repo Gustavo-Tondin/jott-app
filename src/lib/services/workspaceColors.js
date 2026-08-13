@@ -20,8 +20,8 @@ export function workspaceColors(workspaces = [], groups = []) {
   }
   const colors = {};
   for (const ws of workspaces) {
-    colors[ws.folderName] = fromGroup.has(ws.folderName)
-      ? fromGroup.get(ws.folderName)
+    colors[ws.path] = fromGroup.has(ws.path)
+      ? fromGroup.get(ws.path)
       : (ws.color ?? null);
   }
   return colors;

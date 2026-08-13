@@ -29,15 +29,15 @@ const byRank = (a, b) => (a.rank === b.rank ? 0 : a.rank < b.rank ? -1 : 1);
 /// each group carries the group it sits in (`parent`) and the leaf names it
 /// holds directly.
 export function sidebarEntries(workspaces = [], groups = []) {
-  const rankOf = new Map(workspaces.map((ws, i) => [ws.folderName, i]));
-  const byName = new Map(workspaces.map((ws) => [ws.folderName, ws]));
+  const rankOf = new Map(workspaces.map((ws, i) => [ws.path, i]));
+  const byName = new Map(workspaces.map((ws) => [ws.path, ws]));
   const grouped = new Set(groups.flatMap((group) => group.workspaces));
 
   const wsEntry = (ws) => ({
     kind: "workspace",
-    key: `ws:${ws.folderName}`,
+    key: `ws:${ws.path}`,
     ws,
-    rank: rankOf.get(ws.folderName) ?? Infinity,
+    rank: rankOf.get(ws.path) ?? Infinity,
   });
 
   const groupEntry = (group) => {
@@ -58,14 +58,14 @@ export function sidebarEntries(workspaces = [], groups = []) {
 
   return [
     ...groups.filter((group) => (group.parent ?? null) === null).map(groupEntry),
-    ...workspaces.filter((ws) => !grouped.has(ws.folderName)).map(wsEntry),
+    ...workspaces.filter((ws) => !grouped.has(ws.path)).map(wsEntry),
   ].sort(byRank);
 }
 
 /// The names an entry contributes to the running order, in order — a group
 /// speaks for everything under it, however deep.
 export function namesOf(entry) {
-  return entry.kind === "group" ? entry.children.flatMap(namesOf) : [entry.ws.folderName];
+  return entry.kind === "group" ? entry.children.flatMap(namesOf) : [entry.ws.path];
 }
 
 /// The flat list of names after dragging `from` to `to` **within one level** —
@@ -83,7 +83,7 @@ export function reorderedAt(tree, parentKey, from, to) {
   };
   const walk = (entries, key) =>
     (key === parentKey ? moved(entries) : entries).flatMap((entry) =>
-      entry.kind === "group" ? walk(entry.children, entry.key) : [entry.ws.folderName],
+      entry.kind === "group" ? walk(entry.children, entry.key) : [entry.ws.path],
     );
   return walk(tree, null);
 }

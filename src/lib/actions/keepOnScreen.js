@@ -26,6 +26,14 @@ export function keepOnScreen(node, params) {
   // which edge of the anchor the panel grows from.
   const endAligned = node.classList.contains("theme-popover--end");
 
+  // The portal drops the panel into <body>, out of the region it was opened
+  // from — and with it every colour role, which is inherited (styles/themes/*.css).
+  // A menu opened on the white canvas would come back painted in the black
+  // chrome's ink. Carrying the anchor's region across is what keeps a panel
+  // looking like the thing that opened it.
+  const region = anchor?.closest?.("[data-region]")?.dataset.region;
+  if (region) node.dataset.region = region;
+
   // Portal. Svelte tears the node down by detaching the node itself, so it
   // leaves cleanly from <body> too.
   node.dataset.popout = "";

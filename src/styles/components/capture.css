@@ -1,0 +1,139 @@
+/* capture.css — the visual layer of CaptureBox.svelte, the Home's opening
+ * block. Markup: src/lib/components/CaptureBox.svelte.
+ *
+ * A raised card on the canvas, with everything you type on the left and the
+ * one button that commits it on the right. The card is the only thing above
+ * the fold, so it is generous where the rest of the screen is tight. */
+
+@layer components {
+  .capture {
+    display: flex;
+    align-items: stretch;
+    gap: var(--theme-space-16);
+    padding: var(--theme-space-24);
+    background: var(--theme-surface);
+    border-radius: var(--theme-radius-lg);
+  }
+  .capture__body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--theme-space-12);
+  }
+
+  /* The question, and the day it is being asked on. */
+  .capture__head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--theme-space-16);
+  }
+  .capture__question {
+    margin: 0;
+    font-size: var(--theme-text-24);
+    font-weight: var(--theme-weight-medium);
+    letter-spacing: var(--theme-tracking-tight);
+    color: var(--theme-ink);
+  }
+  .capture__date {
+    flex-shrink: 0;
+    font-size: var(--theme-text-14);
+    color: var(--theme-ink-muted);
+  }
+
+  /* The typing row: the mark of what is being made, then the field. */
+  .capture__field {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--theme-space-12);
+    color: var(--theme-ink-muted);
+  }
+  /* An empty checkbox, drawn rather than input: it says "this becomes a task",
+     and a real one would offer to tick something that does not exist yet. Its
+     size and stroke match .theme-checkbox--lg so the row reads as the first
+     card of the list below it. */
+  .capture__mark {
+    flex-shrink: 0;
+    inline-size: 1.25rem;
+    block-size: 1.25rem;
+    margin-block-start: 0.125rem;
+    border: 0.09375rem solid var(--theme-ink);
+    border-radius: var(--theme-radius-xs);
+  }
+  /* A textarea, not an input, so a long capture wraps instead of scrolling
+     sideways — but with none of a textarea's chrome: the card IS the field. */
+  .capture__input {
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+    padding: 0;
+    background: none;
+    border: none;
+    resize: none;
+    color: var(--theme-ink);
+    font: inherit;
+    font-size: var(--theme-text-16);
+    line-height: var(--theme-leading-normal);
+    field-sizing: content;
+  }
+  .capture__input:focus,
+  .capture__input:focus-visible {
+    outline: none;
+  }
+  .capture__input::placeholder {
+    color: var(--theme-ink-faint);
+  }
+
+  .capture__kinds {
+    align-self: flex-start;
+  }
+
+  /* The verb. Square, accent-filled, aligned to the bottom of the card so it
+     sits on the same line as the Task/Note choice it acts on. */
+  .capture__submit {
+    flex-shrink: 0;
+    align-self: flex-end;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    inline-size: 3.25rem;
+    block-size: 3.25rem;
+    padding: 0;
+    border: none;
+    border-radius: var(--theme-radius-md);
+    background: var(--theme-brand);
+    color: var(--theme-on-brand);
+    cursor: pointer;
+    transition:
+      opacity var(--theme-transition-fast),
+      filter var(--theme-transition-fast);
+  }
+  .capture__submit:hover:not(:disabled) {
+    filter: brightness(1.06);
+  }
+  /* Dimmed, not greyed: an empty box is the resting state, not an error, and
+     turning the one coloured thing on the screen grey every time it is empty
+     made the block flicker as you typed. */
+  .capture__submit:disabled {
+    opacity: 0.45;
+    cursor: default;
+  }
+  .capture__submit:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 0.1875rem var(--theme-brand-weak);
+  }
+
+  /* Narrow panel (the inspector open on a small window): the button drops
+     under the field rather than squeezing the question into two lines. */
+  @container (max-width: 30rem) {
+    .capture {
+      flex-direction: column;
+    }
+    .capture__submit {
+      align-self: stretch;
+      inline-size: auto;
+      block-size: 2.75rem;
+    }
+  }
+}

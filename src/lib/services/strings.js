@@ -67,6 +67,10 @@ export const S = {
   cancel: "Cancel",
   create: "Create",
   newTask: "New task",
+  // What the single list of a tasks workspace is CALLED. Its file is
+  // `task-list.md` in every workspace — a structural name, never meant to be
+  // read (services/paths.js → listTitle).
+  mainList: "Inbox",
   noTasksYet: "No tasks yet",
   // The widget's own ⋮ menu: arrangement and bulk selection (Etapa 1).
   widgetOptions: "widget options",
@@ -103,7 +107,8 @@ export const S = {
   tagsTitle: "Tags",
   tagsEmpty: "No tags yet. Add one from a task.",
   newTagName: "New tag name",
-  deleteTag: "Delete",
+  // A label now, not a caption: the control is the trash glyph.
+  deleteTag: "Delete tag",
   deleteTask: "Delete task",
 
   // App Functions (2026-08-06): which parts of the app are switched on.
@@ -141,6 +146,16 @@ export const S = {
   monday: "Monday",
   sunday: "Sunday",
   dateFormat: "Date format",
+  theme: "Theme",
+  themeDefault: "Jott",
+  themeDefaultHint: "Black frame, white page.",
+  themeLight: "Light",
+  themeLightHint: "Light throughout.",
+  themeDark: "Dark",
+  themeDarkHint: "Dark throughout.",
+  accentColor: "Accent colour",
+  accentColorHint:
+    "The colour of the open place, the primary button and every focus ring. Each of the seven has a light and a dark half; the app picks the one that reads on whatever it lands on.",
   restoreLastScreen: "Reopen on the last screen",
   restoreLastScreenHint:
     "Off by default: landing on Today is more predictable.",
@@ -182,6 +197,20 @@ export const S = {
   newNoteAction: "New note",
   quickNote: "Quick note…",
   quickNoteTo: "to",
+  // The Home's capture box (2026-08-13). It asks ONE question and both halves
+  // of the app answer it.
+  captureQuestion: "What do you want to capture?",
+  task: "Task",
+  note: "Note",
+  newTaskPlaceholder: "New task…",
+  newNotePlaceholder: "New note…",
+  // Its own label, not the widget's: with both blocks centred and each ending
+  // in a ⋮, "widget options" twice named two different menus the same thing.
+  notesOptions: "notes options",
+  // The + itself. It says the VERB, while the field says what is being made —
+  // sharing "New task" between the two made the box announce the same name
+  // twice and left a screen reader with no way to tell them apart.
+  captureAction: (kind) => (kind === "note" ? "capture note" : "capture task"),
   noNotesToday: "No notes written today.",
   openSettings: "settings",
   collapseSidebar: "collapse sidebar",

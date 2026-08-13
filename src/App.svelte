@@ -30,9 +30,11 @@
   import ResizeHandles from "./lib/shell/ResizeHandles.svelte";
   import Sidebar from "./lib/shell/Sidebar.svelte";
   import PageHeader from "./lib/shell/PageHeader.svelte";
-  import { listName } from "./lib/services/paths.js";
+  import { listName, listTitle } from "./lib/services/paths.js";
   import { formatDate } from "./lib/services/dates.js";
   import { workspaceColors } from "./lib/services/workspaceColors.js";
+  import { tagColors as tagColorMap } from "./lib/services/accent.js";
+  import { themeAttribute } from "./lib/services/themes.js";
   import { reader } from "./lib/services/features.js";
   import { S } from "./lib/services/strings.js";
   import * as Tabs from "./lib/shell/tabs.js";
@@ -49,11 +51,10 @@
   let workspaces = $state([]);
   let groups = $state([]);
   let tags = $state([]);
-  // Name → colour, from the tag catalogue: the map every screen hands to
-  // TaskRow so a card pill shows the tag's chosen colour, not the default.
-  let tagColors = $derived(
-    Object.fromEntries((tags ?? []).filter((t) => t.color).map((t) => [t.name, t.color])),
-  );
+  // Name → the CSS value its pill is painted with, from the tag catalogue: the
+  // map every screen hands to TaskRow so a card pill shows the tag's chosen
+  // colour, not the default (services/accent.js).
+  let tagColors = $derived(tagColorMap(tags));
   let noteFolders = $state([]);
   /// What is pulled into the Day, as `"<list>#<id>"` — the set every card asks
   /// "am I in today?". It rides along with the snapshot rather than being
@@ -220,18 +221,33 @@
   // longer existed.
   let layout = $derived(
     notebook?.layout ?? {
-      inbox: "Tasks/Inbox.md",
-      completed: "Tasks/Completed.md",
-      tasksFolder: "Tasks",
-      completedName: "Completed",
-      notesFolder: "Notes",
+      inbox: "jott.tasks/task-list.md",
+      completed: "jott.tasks/completed.md",
+      tasksFolder: "jott.tasks",
+      completedName: "completed",
+      notesFolder: "jott.notes",
       notesInbox: "Inbox",
       dateDisplayFormat: "mm/dd/yyyy",
       closeInspectorOnClickAway: false,
       quickNoteFolder: "Inbox",
+      accentColor: "",
+      theme: "",
       features: {},
     },
   );
+
+  // Theme and accent are ATTRIBUTES on the document root, because that is where
+  // they reach both regions at once — the chrome and the canvas each resolve
+  // them to their own values (styles/themes/*.css, styles/roles.css). All three
+  // themes are loaded, each scoped to its own name, so switching is this one
+  // attribute: no dynamic import and no flash. Both ride in the layout, so they
+  // are set on a notebook's first paint rather than after a second round trip.
+  $effect(() => {
+    const root = document.documentElement;
+    root.dataset.theme = themeAttribute(layout.theme);
+    if (layout.accentColor) root.dataset.accent = layout.accentColor;
+    else delete root.dataset.accent;
+  });
 
   /// Is this part of the app switched on? (App Functions, 2026-08-06.) One
   /// reader for the whole shell; screens get it as a prop or through the
@@ -312,12 +328,12 @@
       case "trash":
         return S.trash;
       case "list":
-        return listName(v.list);
+        return listTitle(v.list);
       case "note":
         return listName(v.path);
       case "workspace":
         return (
-          workspaces.find((w) => w.folderName === v.ws)?.name ?? v.ws
+          workspaces.find((w) => w.path === v.ws)?.name ?? v.ws
         );
       default:
         return S.untitled;
@@ -327,14 +343,20 @@
   /// The colour of the workspace a view comes from — feeds the tab dot. A
   /// view of a fixed workspace (or of no workspace at all) returns null and
   /// the dot falls back to the theme brand in CSS.
+  ///
+  /// The workspace of a file address is everything ABOVE the file, not the
+  /// first segment: `Design/Tasks/task-list.md` lives in `Design/Tasks`, and
+  /// taking the first segment answered "Design" — a group, which owns no
+  /// colour of its own in this map (2026-08-13).
+  const holderOf = (path) => (path ?? "").split("/").slice(0, -1).join("/");
   function colorOf(v) {
     const folder =
       v?.kind === "workspace"
         ? v.ws
         : v?.kind === "list"
-          ? v.list?.split("/")[0]
+          ? holderOf(v.list)
           : v?.kind === "note"
-            ? v.folder?.split("/")[0]
+            ? v.folder
             : null;
     return (folder && wsColors[folder]) ?? null;
   }
@@ -518,8 +540,11 @@
     if (!name?.trim()) return;
     try {
       const folder = await api.createGroup(name.trim());
-      await api.moveWorkspace(host.folderName, folder);
-      await api.moveWorkspace(moving.folderName, folder);
+      // Paths, both sides: the new group's and the two workspaces' — moving
+      // one names it by the address it has RIGHT NOW, and the first move
+      // changes the second one's parent, not its own address.
+      await api.moveWorkspace(host.path, folder);
+      await api.moveWorkspace(moving.path, folder);
       await refreshNotebook();
     } catch (e) {
       fail(e);
@@ -699,13 +724,13 @@
   async function deleteCurrentList() {
     if (view.kind !== "list") return;
     const list = view.list;
-    if (!confirm(S.confirmDeleteList(listName(list)))) return;
+    if (!confirm(S.confirmDeleteList(listTitle(list)))) return;
     try {
       const rescued = await api.deleteList(list);
       await refreshNotebook();
       goTo({ kind: "list", list: layout.inbox });
       reload();
-      if (rescued > 0) error = S.tasksRescued(rescued, listName(list));
+      if (rescued > 0) error = S.tasksRescued(rescued, listTitle(list));
     } catch (e) {
       fail(e);
     }
@@ -773,7 +798,10 @@
 <!-- The window is frameless: this bar draws the brand, the document tabs and
      the min/max/close controls itself, and is the only handle to move or close
      the window — so it renders even before a notebook is open. -->
-<div class="window" class:window--flush={flush}>
+<!-- `data-region` is what gives an element its colour ground (styles/themes/*.css):
+     the whole window is the CHROME, and the content panel below overrides it
+     with the CANVAS. In the factory theme that is black around white. -->
+<div class="window" class:window--flush={flush} data-region="chrome">
   <!-- Frameless: draw our own resize grips at the edges. Not while flush —
        a maximized window has nothing to resize into. -->
   {#if !flush}
@@ -843,7 +871,7 @@
 
       <!-- CENTRE: page header, then the screen itself. The tabs moved up into
            the title bar; the header keeps the back/forward, title and ••• menu. -->
-      <section class="shell__centre">
+      <section class="shell__centre" data-region="canvas">
         <PageHeader
           title={view.kind === "tasks" && tasksSub ? tasksSub : titleOf(view)}
           context={view.kind === "tasks" && tasksSub ? S.tasks : ""}
@@ -910,6 +938,7 @@
               onSuggest={suggest}
               selectedTask={selected?.task ?? null}
               today={clock?.today}
+              todayLabel={formatDate(clock?.today ?? "", layout.dateDisplayFormat)}
               {f}
             />
           {:else if view.kind === "tasks"}
@@ -977,11 +1006,11 @@
               onError={fail}
             />
           {:else if view.kind === "workspace"}
-            {@const current = userWorkspaces.find((w) => w.folderName === view.ws)}
+            {@const current = userWorkspaces.find((w) => w.path === view.ws)}
             {#if current}
               <WorkspaceView
                 workspace={current}
-                color={wsColors[current.folderName] ?? null}
+                color={wsColors[current.path] ?? null}
                 lists={notebook.lists}
                 {counts}
                 {tags}

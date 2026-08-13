@@ -1,64 +1,148 @@
-/* themes/default.css — the factory theme.
+/* themes/default.css — the factory theme: black chrome, white canvas.
  *
- * A theme is a CSS file that redefines the semantic COLOUR roles (--theme-*).
- * This file IS the default one: it maps each role onto a palette primitive
- * (defined in tokens.css). A dark theme, or any community theme, is a sibling
- * file with the same shape — the same roles pointing at different values.
+ * =============================================================================
+ * HOW TO WRITE A THEME
+ * =============================================================================
  *
- * It is imported UNLAYERED (no @layer), after every layered style, so anything
- * here wins over the app's own styles without a specificity fight. That is the
- * whole mechanism: `@layer tokens` in tokens.css holds the palette + metrics;
- * this unlayered `:root` holds the colours and always beats it.
+ * A theme is one file that assigns colour roles for two REGIONS. That is all.
  *
- * What is NOT here (stays in tokens.css): the --palette-* primitives, and the
- * structural scales (spacing, radius, type, layout, motion, window-radius) —
- * those are shared metrics, not look. A theme that wants a new colour points a
- * role straight at its own value; it never needs to touch the palette.
+ *   [data-region="chrome"]   title bar · tab strip · sidebar · right panel
+ *   [data-region="canvas"]   the content panel in the middle
  *
- * A theme may also go further and restyle the stable BEM hooks
- * (`.titlebar__*`, `.task-row__*`, `.theme-btn`…). Themes are CSS, never
- * JavaScript (project-strategy.md 4.6). Post-v1 the app loads user themes from
- * `.jott/themes/<name>.css` exactly like this file.
+ * ONE RULE, and the whole design depends on it:
  *
- * To make a dark theme: copy this block into themes/dark.css and re-point the
- * roles (e.g. --theme-bg: #1e2228; --theme-ink: #e6e9ee; …).
+ *   **no role reads another role.**
+ *
+ * A role that reads a role is a chain, and a chain means opening three files
+ * to find out what a colour actually is. Reading any line here tells you the
+ * answer instead.
+ *
+ * A value may be a literal (`#1e1e1e`), a `--palette-*` entry, or a
+ * `color-mix` of either. **`--palette-*` is not a layer a theme must build
+ * from** — it is Jott's own colour list (styles/tokens.css), shared by the
+ * three themes that ship here because they are one design. A theme with
+ * colours of its own writes them inline and never mentions the palette; the
+ * palette then simply goes unread, which costs nothing (custom properties are
+ * inherited strings, not work). Only the chain is forbidden.
+ *
+ * WHAT A REGION MUST ASSIGN (the list is short, and it is the whole list):
+ *
+ *   --theme-bg              the region's own fill
+ *   --theme-surface         the step off it: cards, chips, fields, popovers
+ *   --theme-surface-sunken  same value; the name survives from a three-neutral
+ *                           design and is spelled in a hundred rules
+ *   --theme-ink             text that reads on --theme-bg
+ *   --theme-ink-muted       …the same ink at 55%
+ *   --theme-on-brand        text/icon ON a filled accent — the region's own
+ *                           ground, so a bright accent takes dark ink and a
+ *                           deep one takes light ink
+ *   --theme-hover           the veil a row darkens/lightens with: ink at 8%
+ *   --theme-shadow-popover  what lifts a menu off the page: ink at 18%
+ *   --accent-<name>         each of the seven, in the half that reads here
+ *   --accent-<name>-tint    …and its quiet fill (a selected row)
+ *   --theme-danger/-warning/-success   three of the seven, straight from the
+ *                           palette so a status pill lives in the same world
+ *
+ * NOT here, because they are the same everywhere: --theme-ink-faint, --line,
+ * --line-soft, --well (styles/roles.css). Nor --theme-brand: the user chooses
+ * which of the seven it is at runtime, and roles.css does the picking.
+ *
+ * The seven come in opposed pairs (tokens.css), so a region is either:
+ *
+ *   ON A DARK GROUND  → ink `--palette-white`, accents `-light`, tints `-dark-bg`
+ *   ON A LIGHT GROUND → ink `--palette-black`, accents `-dark`, tints `-light-bg`
+ *
+ * To add a theme: copy this file, change the name in every selector, add it to
+ * app.css and to THEMES in src/lib/services/themes.js. Post-v1 the app loads
+ * user themes from `.jott/themes/<name>.css`, which is why the selectors are
+ * keyed on `data-theme` — every theme ships at once and the attribute picks.
+ *
+ * -----------------------------------------------------------------------------
+ * WHAT MAKES THIS ONE THE DEFAULT
+ * -----------------------------------------------------------------------------
+ * Black chrome around a white canvas. The two regions are not one step apart,
+ * they are opposite — that contrast IS the app's face, and it is why the
+ * chrome takes the deepest black (#1E1E1E) rather than the softer #2B2B2B the
+ * all-dark theme uses for the same panels. Wireframe: "Home screen - default".
+ *
+ * `:root:not([data-theme])` rides along in every selector so the app is
+ * already dressed before the notebook's setting has been read.
  */
 
-:root {
-  /* surfaces, from furthest-back to closest */
-  --theme-bg: var(--palette-gray); /* the window canvas behind everything */
-  --theme-surface: var(--palette-light); /* raised: content panel, tabs, cards, fields */
-  --theme-surface-sunken: var(--palette-gray); /* inset on a surface: task cards, chips, groups */
-  /* The hover veil: a translucent darkening that reads on ANY ground (white
-     surface, grey sidebar) — what every icon button and nav row hovers with. */
-  --theme-hover: color-mix(in srgb, var(--theme-ink) 8%, transparent);
+/* The canvas, named at the root: the CHROME needs it too, because the tab
+   strip is drawn in the frame but belongs to the panel — an open tab is the
+   panel's top edge showing through, and a closed one is the exact midpoint
+   between the two grounds (components/tabs.css). Every theme declares these. */
+[data-theme="default"],
+:root:not([data-theme]) {
+  --canvas-ground: var(--palette-white);
+  --canvas-ink: var(--palette-black);
+}
 
-  /* text and icons, by emphasis */
-  --theme-ink: var(--palette-dark); /* primary text */
-  --theme-ink-muted: var(--palette-dark-mute); /* secondary text, most icons */
-  --theme-ink-faint: var(--palette-gray-mute); /* placeholder, disabled, close × */
-  --theme-on-brand: var(--palette-light); /* text/icon sitting on a brand fill */
+/* ---- chrome: on a dark ground, at its deepest -------------------------- */
+[data-theme="default"] [data-region="chrome"],
+:root:not([data-theme]) [data-region="chrome"] {
+  --theme-bg: var(--palette-black);
+  --theme-surface: var(--palette-black-tint);
+  --theme-surface-sunken: var(--palette-black-tint);
 
-  /* lines */
-  --theme-line: var(--palette-gray-divider); /* dividers, card borders */
-  --theme-line-soft: var(--palette-gray); /* the faintest border (note cards) */
-
-  /* brand (the blue) */
-  --theme-brand: var(--palette-blue);
-  --theme-brand-weak: var(--palette-blue-light); /* active-nav bg, highlighted task */
-  --theme-brand-outline: var(--palette-blue-outline); /* border of a highlighted item */
-  /* accent (the cyan of a workspace title, wireframe #3DB7E7) */
-  --theme-accent: #3db7e7;
-
-  /* elevation — the one shadow in the app: what lifts a transient surface (a
-     menu, a picker, a dialog) off the page. It is a colour role, so it lives
-     with the theme: a dark theme needs a deeper, colder lift, and until this
-     existed the four popups each carried their own raw rgba(). */
+  --theme-ink: var(--palette-white);
+  --theme-ink-muted: color-mix(in srgb, var(--palette-white) 55%, transparent);
+  --theme-on-brand: var(--palette-black);
+  --theme-hover: color-mix(in srgb, var(--palette-white) 8%, transparent);
   --theme-shadow-popover: 0 0.375rem 1.25rem
-    color-mix(in srgb, var(--theme-ink) 18%, transparent);
+    color-mix(in srgb, var(--palette-white) 18%, transparent);
 
-  /* status */
-  --theme-danger: var(--palette-red); /* overdue date, destructive action, high priority */
-  --theme-warning: var(--palette-amber); /* medium priority */
-  --theme-success: var(--palette-green); /* a finished progress bar, low priority */
+  --accent-yellow: var(--palette-yellow-light);
+  --accent-yellow-tint: var(--palette-yellow-dark-bg);
+  --accent-orange: var(--palette-orange-light);
+  --accent-orange-tint: var(--palette-orange-dark-bg);
+  --accent-pink: var(--palette-pink-light);
+  --accent-pink-tint: var(--palette-pink-dark-bg);
+  --accent-green: var(--palette-green-light);
+  --accent-green-tint: var(--palette-green-dark-bg);
+  --accent-blue: var(--palette-blue-light);
+  --accent-blue-tint: var(--palette-blue-dark-bg);
+  --accent-red: var(--palette-red-light);
+  --accent-red-tint: var(--palette-red-dark-bg);
+  --accent-purple: var(--palette-purple-light);
+  --accent-purple-tint: var(--palette-purple-dark-bg);
+
+  --theme-danger: var(--palette-red-light);
+  --theme-warning: var(--palette-yellow-light);
+  --theme-success: var(--palette-green-light);
+}
+
+/* ---- canvas: on a light ground ----------------------------------------- */
+[data-theme="default"] [data-region="canvas"],
+:root:not([data-theme]) [data-region="canvas"] {
+  --theme-bg: var(--palette-white);
+  --theme-surface: var(--palette-white-tint);
+  --theme-surface-sunken: var(--palette-white-tint);
+
+  --theme-ink: var(--palette-black);
+  --theme-ink-muted: color-mix(in srgb, var(--palette-black) 55%, transparent);
+  --theme-on-brand: var(--palette-white);
+  --theme-hover: color-mix(in srgb, var(--palette-black) 8%, transparent);
+  --theme-shadow-popover: 0 0.375rem 1.25rem
+    color-mix(in srgb, var(--palette-black) 18%, transparent);
+
+  --accent-yellow: var(--palette-yellow-dark);
+  --accent-yellow-tint: var(--palette-yellow-light-bg);
+  --accent-orange: var(--palette-orange-dark);
+  --accent-orange-tint: var(--palette-orange-light-bg);
+  --accent-pink: var(--palette-pink-dark);
+  --accent-pink-tint: var(--palette-pink-light-bg);
+  --accent-green: var(--palette-green-dark);
+  --accent-green-tint: var(--palette-green-light-bg);
+  --accent-blue: var(--palette-blue-dark);
+  --accent-blue-tint: var(--palette-blue-light-bg);
+  --accent-red: var(--palette-red-dark);
+  --accent-red-tint: var(--palette-red-light-bg);
+  --accent-purple: var(--palette-purple-dark);
+  --accent-purple-tint: var(--palette-purple-light-bg);
+
+  --theme-danger: var(--palette-red-dark);
+  --theme-warning: var(--palette-yellow-dark);
+  --theme-success: var(--palette-green-dark);
 }
