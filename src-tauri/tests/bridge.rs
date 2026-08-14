@@ -710,11 +710,43 @@ fn suggestions_arrive_grouped() {
     )
     .unwrap();
 
+    // What is under test is the GROUPING. Since 2026-08-14 a dated task is
+    // already in the day and so is not suggested at all — this asks the
+    // question the old way round, with dates that only rank.
+    ok(
+        &app,
+        "set_notebook_settings",
+        json!({ "settings": { "datedTasksJoinPeriod": false } }),
+    );
+
     let suggestions = ok(&app, "grouped_suggestions", json!({ "period": "day" }));
 
     assert_eq!(suggestions[0]["task"]["text"], "Vencida");
     assert_eq!(suggestions[0]["group"], "urgent");
     assert_eq!(suggestions[1]["group"], "lists");
+}
+
+#[test]
+fn a_dated_task_reaches_the_day_over_the_bridge() {
+    // On by default: a task written for today shows up in Today without being
+    // pulled, and nothing is written into the day's state to make it happen.
+    let (_lock, app, dir) = app_with_notebook();
+    let today = chrono::Local::now().date_naive();
+    std::fs::write(
+        dir.path().join("jott.tasks/task-list.md"),
+        format!("- [ ] Para hoje\n  @{today}\n- [ ] Sem data\n"),
+    )
+    .unwrap();
+
+    let day = ok(&app, "period_tasks", json!({ "period": "day" }));
+    assert_eq!(day.as_array().unwrap().len(), 1);
+    assert_eq!(day[0]["task"]["text"], "Para hoje");
+
+    let state = ok(&app, "period_state", json!({ "period": "day" }));
+    assert!(
+        state["items"].as_array().map(|i| i.is_empty()).unwrap_or(true),
+        "nothing is written into the day's state"
+    );
 }
 
 #[test]

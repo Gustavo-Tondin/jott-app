@@ -961,7 +961,13 @@ fn suggestions_come_grouped_by_why_they_are_offered() {
     use jott_core::notebook::SuggestionGroup;
 
     let dir = tempfile::tempdir().unwrap();
-    let notebook = Notebook::init(dir.path()).unwrap();
+    let mut notebook = Notebook::init(dir.path()).unwrap();
+    // What is under test is how a suggestion is GROUPED, and since 2026-08-14 a
+    // dated task is already in the day and therefore not suggested at all. So
+    // this asks the question the old way round: dates that only rank.
+    let mut config = notebook.config().clone();
+    config.dated_tasks_join_period = false;
+    notebook.set_config(config).unwrap();
     write_dated_list(
         dir.path(),
         "Inbox",
@@ -1023,6 +1029,9 @@ fn the_automatic_urgency_can_be_switched_off() {
 
     let mut config = notebook.config().clone();
     config.auto_urgent_by_date = false;
+    // Same reason as the grouping test: a dated task is in the day now, and
+    // this one is about whether a date FLAGS, not about where it lands.
+    config.dated_tasks_join_period = false;
     notebook.set_config(config).unwrap();
 
     let suggestions = notebook.grouped_suggestions(Period::Day).unwrap();
@@ -1043,17 +1052,84 @@ fn the_automatic_urgency_can_be_switched_off() {
 }
 
 #[test]
-fn a_date_never_pulls_a_task_into_the_day_by_itself() {
-    // The product decision this protects: the day is a deliberate choice.
+fn a_dated_task_joins_the_day_without_ever_being_written_into_it() {
+    // The rule flipped on 2026-08-14 (spec 3.3.1): a date used to change only
+    // the ORDER of the suggestions, so a task written for today sat in a list
+    // until the user went looking for it — the app quietly failing at the one
+    // thing a date is for.
+    //
+    // What did NOT change: the state file. The task is added when the period is
+    // READ, so the turn of the day has nothing to clean up and un-dating a task
+    // takes it straight back out.
     let dir = tempfile::tempdir().unwrap();
     let notebook = Notebook::init(dir.path()).unwrap();
     write_dated_list(dir.path(), "Inbox", &[("Vencida ontem", -1)]);
 
+    let day = notebook.period_tasks(Period::Day).unwrap();
+    assert_eq!(day.len(), 1, "uma tarefa com data entra no dia sozinha");
+    assert_eq!(day[0].task.text, "Vencida ontem");
+
     assert!(
         notebook.open_state(Period::Day).unwrap().state.is_empty(),
-        "nada entra no dia sem o usuário mandar"
+        "e entra sem nada ser gravado no estado"
     );
+    // It is in the day, so it is no longer something to suggest putting there.
+    assert_eq!(notebook.grouped_suggestions(Period::Day).unwrap().len(), 0);
+}
+
+#[test]
+fn switching_the_option_off_gives_the_manual_day_back() {
+    // The old rule is still there for whoever wants it: the day as a 100%
+    // deliberate choice.
+    let dir = tempfile::tempdir().unwrap();
+    let mut notebook = Notebook::init(dir.path()).unwrap();
+    let mut config = notebook.config().clone();
+    config.dated_tasks_join_period = false;
+    notebook.set_config(config).unwrap();
+    write_dated_list(dir.path(), "Inbox", &[("Vencida ontem", -1)]);
+
+    assert!(notebook.period_tasks(Period::Day).unwrap().is_empty());
     assert_eq!(notebook.grouped_suggestions(Period::Day).unwrap().len(), 1);
+}
+
+#[test]
+fn a_task_dated_later_this_week_joins_the_week_but_not_the_day() {
+    let dir = tempfile::tempdir().unwrap();
+    let notebook = Notebook::init(dir.path()).unwrap();
+    // Far enough ahead to be another day, close enough to still be this week
+    // only when it is — the week's own end is what decides.
+    let ahead = (jott_core::Notebook::current_week(&notebook) + chrono::Duration::days(6)
+        - notebook.today())
+    .num_days();
+    write_dated_list(dir.path(), "Inbox", &[("Entrega", ahead as i64)]);
+
+    let day: Vec<String> = notebook
+        .period_tasks(Period::Day)
+        .unwrap()
+        .into_iter()
+        .map(|listed| listed.task.text)
+        .collect();
+    let week: Vec<String> = notebook
+        .period_tasks(Period::Week)
+        .unwrap()
+        .into_iter()
+        .map(|listed| listed.task.text)
+        .collect();
+
+    assert!(!day.contains(&"Entrega".to_string()) || ahead == 0);
+    assert!(week.contains(&"Entrega".to_string()));
+}
+
+#[test]
+fn a_completed_dated_task_stays_out_of_the_day() {
+    // A date on a finished task is history, not a plan.
+    let dir = tempfile::tempdir().unwrap();
+    let notebook = Notebook::init(dir.path()).unwrap();
+    write_dated_list(dir.path(), "Inbox", &[("Vencida ontem", -1)]);
+    let id = notebook.ensure_task_id("jott.tasks/Inbox.md", 0).unwrap();
+    notebook.complete_task("jott.tasks/Inbox.md", &id).unwrap();
+
+    assert!(notebook.period_tasks(Period::Day).unwrap().is_empty());
 }
 
 // ----------------------------------------------------------- recorrência

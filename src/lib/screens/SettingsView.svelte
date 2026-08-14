@@ -167,6 +167,19 @@
         <option value="sunday">{S.sunday}</option>
       </select>
     </label>
+
+    <label class="settings__row">
+      <span class="settings__label">{S.datedTasksJoinPeriod}</span>
+      <input
+        class="theme-checkbox"
+        type="checkbox"
+        bind:checked={form.datedTasksJoinPeriod}
+        disabled={readOnly}
+        aria-label={S.datedTasksJoinPeriod}
+        onchange={(e) => put({ datedTasksJoinPeriod: e.currentTarget.checked })}
+      />
+    </label>
+    <p class="settings__hint">{S.datedTasksJoinPeriodHint}</p>
   </section>
 
   <section class="settings__section">

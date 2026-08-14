@@ -135,6 +135,19 @@ pub struct Config {
     pub restore_last_screen: bool,
     /// Show how many open tasks each list has, in the navigation.
     pub show_list_counts: bool,
+    /// A task with a date shows up in the Day (and in the Week) on its own,
+    /// without being pulled by hand.
+    ///
+    /// On by default (2026-08-14). Until then Day and Week were 100% manual,
+    /// and a date only changed the ORDER of the suggestions — which meant a
+    /// task written for today sat in a list until the user went looking for
+    /// it, and the app quietly failed at the one thing a date is for.
+    ///
+    /// This never writes to the state: a dated task is added when the period
+    /// is READ, so nothing has to be cleaned up when the day turns, un-dating
+    /// a task takes it straight back out, and a task pulled by hand keeps
+    /// being pulled by hand.
+    pub dated_tasks_join_period: bool,
     /// Treat a task due today or overdue as urgent, without being told.
     ///
     /// On by default, but switchable: some people find an interface that
@@ -218,6 +231,7 @@ impl Default for Config {
             rollover: Rollover::default(),
             restore_last_screen: false,
             show_list_counts: true,
+            dated_tasks_join_period: true,
             auto_urgent_by_date: true,
             date_display_format: DateFormat::default(),
             accent_color: String::new(),
@@ -382,6 +396,11 @@ impl Config {
             rollover,
             restore_last_screen: flag(&raw, "restoreLastScreen", defaults.restore_last_screen),
             show_list_counts: flag(&raw, "showListCounts", defaults.show_list_counts),
+            dated_tasks_join_period: flag(
+                &raw,
+                "datedTasksJoinPeriod",
+                defaults.dated_tasks_join_period,
+            ),
             auto_urgent_by_date: flag(&raw, "autoUrgentByDate", defaults.auto_urgent_by_date),
             date_display_format: string(&raw, "dateDisplayFormat")
                 .as_deref()
@@ -457,6 +476,10 @@ impl Config {
             ("rollover", render_rollover(&self.rollover)),
             ("restoreLastScreen", Value::from(self.restore_last_screen)),
             ("showListCounts", Value::from(self.show_list_counts)),
+            (
+                "datedTasksJoinPeriod",
+                Value::from(self.dated_tasks_join_period),
+            ),
             ("autoUrgentByDate", Value::from(self.auto_urgent_by_date)),
             (
                 "dateDisplayFormat",

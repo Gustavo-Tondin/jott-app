@@ -130,6 +130,7 @@ pub struct NotebookSettings {
     pub week_starts_on: Option<String>,
     pub restore_last_screen: Option<bool>,
     pub show_list_counts: Option<bool>,
+    pub dated_tasks_join_period: Option<bool>,
     pub auto_urgent_by_date: Option<bool>,
     pub date_display_format: Option<String>,
     /// One of the seven, by name; empty goes back to the app's own.
@@ -344,6 +345,7 @@ pub fn notebook_settings(state: State<'_, AppState>) -> CommandResult<NotebookSe
             week_starts_on: Some(rollover.weekly.starts_on.render().to_string()),
             restore_last_screen: Some(config.restore_last_screen),
             show_list_counts: Some(config.show_list_counts),
+            dated_tasks_join_period: Some(config.dated_tasks_join_period),
             auto_urgent_by_date: Some(config.auto_urgent_by_date),
             date_display_format: Some(config.date_display_format.render().to_string()),
             accent_color: Some(config.accent_color.clone()),
@@ -390,6 +392,9 @@ pub fn set_notebook_settings(
         }
         if let Some(v) = settings.show_list_counts {
             config.show_list_counts = v;
+        }
+        if let Some(v) = settings.dated_tasks_join_period {
+            config.dated_tasks_join_period = v;
         }
         if let Some(v) = settings.auto_urgent_by_date {
             config.auto_urgent_by_date = v;

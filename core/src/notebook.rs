@@ -1574,6 +1574,64 @@ impl Notebook {
                 });
             }
         }
+
+        // A task with a date joins the period on its own (2026-08-14), unless
+        // the user switched that off. Added on READ, never written to the
+        // state: un-dating a task takes it back out, the turn of the day has
+        // nothing to clean up, and what the user pulled by hand stays exactly
+        // as pulled.
+        if self.config.dated_tasks_join_period {
+            for candidate in self.tasks_due_in(period)? {
+                let already = out.iter().any(|listed| {
+                    listed.path == candidate.path
+                        && match (listed.task.id.as_deref(), candidate.task.id.as_deref()) {
+                            (Some(a), Some(b)) => a == b,
+                            // An id is handed out only when something needs to
+                            // address the task, so two id-less tasks are the
+                            // same one when their text is.
+                            _ => listed.task.text == candidate.task.text,
+                        }
+                });
+                if !already {
+                    out.push(candidate);
+                }
+            }
+        }
+
+        Ok(out)
+    }
+
+    /// Open tasks whose due date falls inside `period` — today for the Day,
+    /// the current week for the Week (a date earlier than either counts too:
+    /// overdue is still due).
+    fn tasks_due_in(&self, period: Period) -> Result<Vec<ListedTask>> {
+        let last_day = match period {
+            Period::Day => self.today(),
+            Period::Week => self.current_week() + chrono::Duration::days(6),
+        };
+
+        let mut out = Vec::new();
+        for (prefix, folder) in self.task_folders()? {
+            for name in folder.list_names()? {
+                // Completed lists are where finished tasks go; a date on one of
+                // them is history, not a plan.
+                if name == COMPLETED_LIST {
+                    continue;
+                }
+                let path = format!("{prefix}/{name}.md");
+                for task in self.open_list(&path)?.tasks() {
+                    if task.done {
+                        continue;
+                    }
+                    if task.due.is_some_and(|due| due <= last_day) {
+                        out.push(ListedTask {
+                            path: path.clone(),
+                            task: task.clone(),
+                        });
+                    }
+                }
+            }
+        }
         Ok(out)
     }
 
@@ -1735,20 +1793,31 @@ impl Notebook {
     /// Anything already pulled into the period is left out, and so are
     /// completed tasks and the `Completas` list itself.
     pub fn suggestions_for(&self, period: Period) -> Result<Vec<ListedTask>> {
-        let pulled = self.open_state(period)?.state;
+        // What the period ALREADY shows — not just what was pulled into its
+        // state. Since 2026-08-14 a dated task joins the period on its own, and
+        // suggesting something the user is already looking at is noise.
+        let showing = self.period_tasks(period)?;
         let mut out: Vec<ListedTask> = Vec::new();
 
+        let is_showing = |candidate: &ListedTask| {
+            showing.iter().any(|listed| {
+                listed.path == candidate.path
+                    && match (listed.task.id.as_deref(), candidate.task.id.as_deref()) {
+                        (Some(a), Some(b)) => a == b,
+                        // Most tasks have no id — one is handed out only when
+                        // something needs to address the task — so two id-less
+                        // tasks in the same list are the same one when their
+                        // text is.
+                        _ => listed.task.text == candidate.task.text,
+                    }
+            })
+        };
+
         let push = |candidate: ListedTask, out: &mut Vec<ListedTask>| {
-            if candidate.task.done {
+            if candidate.task.done || is_showing(&candidate) {
                 return;
             }
-            // Most tasks have no id — one is handed out only when something
-            // needs to address the task. A task without an id has never been
-            // pulled anywhere, so it is always still a suggestion.
             if let Some(id) = candidate.task.id.as_deref() {
-                if pulled.contains(&candidate.path, id) {
-                    return;
-                }
                 let already = out
                     .iter()
                     .any(|t| t.path == candidate.path && t.task.id.as_deref() == Some(id));

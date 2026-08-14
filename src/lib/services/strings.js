@@ -143,6 +143,12 @@ export const S = {
   rolloverAt: "Turn at",
   rolloverAtHint: "Offset from midnight. -02:00 means 22:00 the evening before.",
   weekStartsOn: "Week starts on",
+  datedTasksJoinPeriod: "A task with a date joins the day",
+  datedTasksJoinPeriodHint:
+    "On by default: a task written for today shows up in Today on its own, " +
+    "and in the Week when its date falls inside it. Nothing is written to the " +
+    "notebook — take the date away and it leaves. Off, the day is a 100% " +
+    "deliberate choice and a date only ranks the suggestions.",
   monday: "Monday",
   sunday: "Sunday",
   dateFormat: "Date format",
