@@ -39,34 +39,36 @@
   .titlebar--rail .titlebar__brand {
     flex-basis: var(--theme-sidebar-rail);
   }
-  .titlebar__mark {
+  /* Both brand slots hold an inline SVG whose paths are `currentColor`, so the
+     logo is drawn in the frame's ink and follows every theme. Sized by height
+     alone — the drawing keeps its own proportion. */
+  .titlebar__mark,
+  .titlebar__wordmark {
     display: flex;
     align-items: center;
-    justify-content: center;
-    /* Non-interactive labels: let clicks fall through to the brand container,
-       which is the drag region — otherwise grabbing the name/logo would not
-       move the window. */
-    pointer-events: none;
-    height: 1.125rem;
-    padding-inline: var(--theme-space-6);
-    background: var(--theme-brand);
-    border-radius: var(--theme-radius-xs);
-    color: var(--theme-on-brand);
-    font-weight: var(--theme-weight-bold);
-    font-size: var(--theme-text-16);
-    letter-spacing: var(--theme-tracking-wide);
-  }
-  /* Ink, not the accent (2026-08-13 wireframes): the badge beside it is
-     already the accent, and the two together made the corner shout in a colour
-     the user is free to change. The mark carries the brand, the word reads. */
-  .titlebar__wordmark {
+    /* Non-interactive: let clicks fall through to the brand container, which
+       is the drag region — otherwise grabbing the logo would not move the
+       window. */
     pointer-events: none;
     color: var(--theme-ink);
-    font-weight: var(--theme-weight-bold);
-    font-size: var(--theme-text-16);
-    letter-spacing: var(--theme-tracking-wide);
-    white-space: nowrap;
   }
+  .titlebar__mark :global(svg),
+  .titlebar__wordmark :global(svg) {
+    display: block;
+    inline-size: auto;
+    max-inline-size: 100%;
+  }
+  /* The J alone, on the rail. */
+  .titlebar__mark :global(svg) {
+    block-size: 1rem;
+  }
+  /* Mark + word. Shorter than the mark on purpose: the full logo carries the
+     descender of the J, so matching heights would make it look bigger than
+     the rail's. */
+  .titlebar__wordmark :global(svg) {
+    block-size: 0.875rem;
+  }
+
 
   /* ---- tabs zone (the centre column; TabBar renders inside) ---- */
   .titlebar__tabs {

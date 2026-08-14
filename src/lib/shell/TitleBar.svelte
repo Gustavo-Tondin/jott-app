@@ -14,6 +14,11 @@
   // open. Empty areas carry `data-tauri-drag-region`: the OS drags the window
   // by them and double-click maximizes, exactly like a native title bar.
   import WindowControls from "./WindowControls.svelte";
+  // The drawn logo, not a letter in the UI font (2026-08-14). Both files are
+  // authored white and rewritten to `fill: currentColor`, so the brand takes
+  // the ink of whatever theme is on instead of only reading on a black frame.
+  import mark from "../../assets/brand/mark.svg?raw";
+  import wordmark from "../../assets/brand/wordmark.svg?raw";
 
   let {
     children,
@@ -27,9 +32,15 @@
 </script>
 
 <header class="titlebar" class:titlebar--rail={rail} data-tauri-drag-region>
-  <div class="titlebar__brand" data-tauri-drag-region>
-    <span class="titlebar__mark">J</span>
-    {#if !rail}<span class="titlebar__wordmark">Jott</span>{/if}
+  <!-- Full logo when there is room, the mark alone on the rail: the wordmark
+       does not fit in 3.5rem, and the J is the same shape either way. One or
+       the other, never both — the word is already inside the full one. -->
+  <div class="titlebar__brand" data-tauri-drag-region aria-label="Jott">
+    {#if rail}
+      <span class="titlebar__mark" aria-hidden="true">{@html mark}</span>
+    {:else}
+      <span class="titlebar__wordmark" aria-hidden="true">{@html wordmark}</span>
+    {/if}
   </div>
 
   <WindowControls buttons={buttons.left} />
