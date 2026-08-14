@@ -339,13 +339,18 @@
       await api.deleteTask(entry.list, id);
     });
 
-  const swipeUnpull = period
-    ? (entry) =>
-        act(async () => {
-          const id = await ensureTaskId(entry.list, entry.task);
-          await api.removeFrom(period, entry.list, id);
-        })
-    : null;
+  // Derived, not computed once: the same component instance serves Today and
+  // the Week, and a screen that stops being a period has to lose the gesture
+  // with it.
+  const swipeUnpull = $derived(
+    period
+      ? (entry) =>
+          act(async () => {
+            const id = await ensureTaskId(entry.list, entry.task);
+            await api.removeFrom(period, entry.list, id);
+          })
+      : null,
+  );
 
   // Whether the row under the cards is drawn: it carries the Completed toggle
   // and, in a period, the Suggestions pill the wireframe puts on that line.

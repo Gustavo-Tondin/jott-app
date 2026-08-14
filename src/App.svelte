@@ -27,6 +27,7 @@
   import SettingsView from "./lib/screens/SettingsView.svelte";
   import TabBar from "./lib/shell/TabBar.svelte";
   import TitleBar from "./lib/shell/TitleBar.svelte";
+  import { buttonLayout } from "./lib/shell/windowButtons.js";
   import ResizeHandles from "./lib/shell/ResizeHandles.svelte";
   import Sidebar from "./lib/shell/Sidebar.svelte";
   import PageHeader from "./lib/shell/PageHeader.svelte";
@@ -70,10 +71,10 @@
   /// Which window buttons the desktop wants, and where. Read once: there is no
   /// live signal for it, and the fallback is the standard set, so the worst
   /// case is a restart after changing the setting.
-  let windowButtons = $state({ left: [], right: ["minimize", "maximize", "close"] });
+  let windowButtons = $state(buttonLayout(null));
   $effect(() => {
     api.windowButtonLayout().then(
-      (layout) => (windowButtons = layout),
+      (layout) => (windowButtons = buttonLayout(layout)),
       () => {},
     );
   });

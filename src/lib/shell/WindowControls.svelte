@@ -25,7 +25,10 @@
     close: { label: () => S.closeWindow, run: () => win.close() },
   };
 
-  let shown = $derived(buttons.filter((name) => name in ACTIONS));
+  // Guarded: this bar is the only way to close a frameless window, so a caller
+  // handing over something that is not a list draws nothing instead of
+  // throwing and taking the whole title bar with it.
+  let shown = $derived((Array.isArray(buttons) ? buttons : []).filter((name) => name in ACTIONS));
 </script>
 
 {#if shown.length > 0}

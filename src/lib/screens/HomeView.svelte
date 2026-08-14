@@ -74,7 +74,8 @@
 
   async function load() {
     try {
-      notes = notesFolder ? await api.notesCreatedToday(notesFolder) : [];
+      // `?? []`: the bridge answering with nothing is not a list of notes.
+      notes = (notesFolder ? await api.notesCreatedToday(notesFolder) : []) ?? [];
     } catch (e) {
       onError?.(e);
     }
