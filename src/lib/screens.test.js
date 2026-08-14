@@ -1098,6 +1098,47 @@ describe("App", () => {
     await waitFor(() => expect(screen.queryByPlaceholderText("Create a task…")).toBeNull());
   });
 
+  test("Ctrl+F searches the whole notebook and opens what was picked", async () => {
+    shell({
+      search: {
+        tasks: [
+          {
+            kind: "task",
+            path: "jott.tasks/Compras.md",
+            folder: "",
+            id: "a1",
+            title: "Comprar cimento",
+            snippet: "",
+            workspace: "Tasks",
+            container: "Compras",
+            done: false,
+          },
+        ],
+        notes: [],
+        truncated: false,
+      },
+    });
+    render(App);
+
+    await screen.findByText("Comprar leite");
+    await userEvent.keyboard("{Control>}f{/Control}");
+    await userEvent.type(await screen.findByPlaceholderText("Search tasks and notes…"), "cimento");
+
+    // The core decides what matches; the dialog only asks and draws.
+    await waitFor(() =>
+      expect(
+        invoke.mock.calls.some(([cmd, args]) => cmd === "search" && args.query === "cimento"),
+      ).toBe(true),
+    );
+
+    // Picking a hit goes there and closes the dialog.
+    await userEvent.click(await screen.findByText("Comprar cimento"));
+    await waitFor(() =>
+      expect(screen.queryByPlaceholderText("Search tasks and notes…")).toBeNull(),
+    );
+    expect(invoke).toHaveBeenCalledWith("list_tasks", { list: "jott.tasks/Compras.md" });
+  });
+
   test("Ctrl+N asks for a note title and opens what it created", async () => {
     shell({ create_note: "Inbox/Ideia.md" });
     render(App);

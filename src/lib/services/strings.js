@@ -342,4 +342,16 @@ export const S = {
   repeatDays: "day",
   repeatWeeks: "week",
   repeatMonths: "month",
+
+  // Notebook-wide search (2026-08-14). Prefixed `find*` because `search*`
+  // already names the notes board's own box, and two different boxes sharing a
+  // label would be a bug waiting to happen.
+  findTitle: "Search",
+  findPlaceholder: "Search tasks and notes…",
+  findHint: "Type to search the whole notebook.",
+  findNothing: (query) => `Nothing found for “${query}”.`,
+  findTasks: "Tasks",
+  findNotes: "Notes",
+  findMore: "Showing the first matches only — narrow the search to see the rest.",
+  findDone: "completed",
 };

@@ -1,0 +1,117 @@
+/* The notebook-wide search dialog. @layer components.
+ * Markup: src/lib/components/SearchDialog.svelte.
+ *
+ * The card, the dimmed backdrop and the rows are the shared .theme-modal* and
+ * .theme-row of controls.css. What is here is only what belongs to a SEARCH:
+ * it opens near the top instead of dead centre (the answer grows downwards,
+ * and a centred card would jump on every keystroke), and its result area
+ * scrolls on its own so the field never leaves the screen. */
+@layer components {
+  .search__backdrop {
+    /* Top-aligned, with the card hanging a fifth of the way down: the list
+       below it grows without moving the field the user is typing into. */
+    align-items: start;
+    padding-block-start: 12vh;
+  }
+
+  .search {
+    max-block-size: min(32rem, 70vh);
+    gap: var(--theme-space-12);
+  }
+
+  .search__field {
+    display: flex;
+    align-items: center;
+    gap: var(--theme-space-8);
+    color: var(--theme-ink-muted);
+  }
+
+  .search__input {
+    flex: 1;
+    min-inline-size: 0;
+    font-size: var(--theme-text-14);
+  }
+
+  .search__results {
+    display: flex;
+    flex-direction: column;
+    gap: var(--theme-space-2);
+    overflow-y: auto;
+    /* Room for the focus ring of the last row. */
+    padding-block-end: var(--theme-space-2);
+  }
+
+  .search__hint {
+    margin: 0;
+    padding: var(--theme-space-8) var(--theme-space-4);
+    font-size: var(--theme-text-12);
+    color: var(--theme-ink-muted);
+  }
+  .search__hint--more {
+    padding-block-start: var(--theme-space-12);
+  }
+
+  /* The kind of thing found — "Tasks", "Notes". Reads as a label of the run
+     below it, not as a heading competing with the hits. */
+  .search__section {
+    margin: 0;
+    padding: var(--theme-space-12) var(--theme-space-4) var(--theme-space-4);
+    font-size: var(--theme-text-10);
+    font-weight: var(--theme-weight-semibold);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--theme-ink-muted);
+  }
+
+  .search__hit {
+    inline-size: 100%;
+    justify-content: space-between;
+    border: none;
+    text-align: start;
+    cursor: pointer;
+    color: inherit;
+    font: inherit;
+  }
+  .search__hit:hover,
+  .search__hit:focus-visible {
+    background: var(--theme-hover);
+  }
+
+  .search__hit-main {
+    display: flex;
+    flex-direction: column;
+    gap: var(--theme-space-2);
+    /* Without this the long title refuses to shrink and pushes the place out
+       of the row. */
+    min-inline-size: 0;
+  }
+
+  .search__hit-title {
+    font-size: var(--theme-text-13);
+    color: var(--theme-ink);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .search__hit-title--done {
+    text-decoration: line-through;
+    color: var(--theme-ink-muted);
+  }
+
+  /* Why this hit matched, when the title alone does not show it. */
+  .search__hit-snippet {
+    font-size: var(--theme-text-10);
+    color: var(--theme-ink-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Where it lives — `Tasks · Inbox`. */
+  .search__hit-place {
+    flex: none;
+    font-size: var(--theme-text-10);
+    color: var(--theme-ink-muted);
+    white-space: nowrap;
+  }
+}

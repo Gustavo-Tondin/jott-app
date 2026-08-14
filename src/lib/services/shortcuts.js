@@ -37,6 +37,12 @@ export function shortcutFor(event) {
       return "newTask";
     case "n":
       return "newNote";
+    // Both, because both are muscle memory: Ctrl+F is "find in this app" and
+    // Ctrl+K is the command box every recent app opens. They lead to the same
+    // place, and the app has nothing else to bind them to.
+    case "f":
+    case "k":
+      return "search";
     default:
       return null;
   }

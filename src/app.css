@@ -52,6 +52,7 @@
 @import "./styles/components/task-row.css";
 
 @import "./styles/components/capture.css";
+@import "./styles/components/search.css";
 @import "./styles/components/home.css";
 @import "./styles/components/tasks-view.css";
 @import "./styles/components/list-view.css";

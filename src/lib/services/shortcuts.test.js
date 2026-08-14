@@ -36,7 +36,14 @@ describe("keyboard shortcuts", () => {
     expect(shortcutFor(press("t", { ctrlKey: true, shiftKey: true }))).toBe(null);
     expect(shortcutFor(press("t", { ctrlKey: true, altKey: true }))).toBe(null);
     expect(shortcutFor(press("t", { ctrlKey: true, metaKey: true }))).toBe(null);
-    expect(shortcutFor(press("k", { ctrlKey: true }))).toBe(null);
+    expect(shortcutFor(press("j", { ctrlKey: true }))).toBe(null);
+  });
+
+  it("opens the search on both keys people reach for", () => {
+    // Ctrl+F is "find in this app"; Ctrl+K is the command box every recent app
+    // opens. The app has nothing else to bind either one to.
+    expect(shortcutFor(press("f", { ctrlKey: true }))).toBe("search");
+    expect(shortcutFor(press("k", { ctrlKey: true }))).toBe("search");
   });
 
   it("yields to whatever answered nearer the keyboard", () => {

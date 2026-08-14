@@ -55,6 +55,7 @@ pub fn configure<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builde
             commands::set_tag,
             commands::remove_tag,
             commands::completed_tasks,
+            commands::search,
             // notebook
             commands::pick_notebook_folder,
             commands::open_notebook,

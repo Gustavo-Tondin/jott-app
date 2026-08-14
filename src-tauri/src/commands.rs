@@ -1340,6 +1340,23 @@ pub fn remove_tag(state: State<'_, AppState>, name: String) -> CommandResult<()>
     state.with_notebook(|nb| Ok(nb.remove_tag(&name)?))
 }
 
+// ---- search ----
+
+/// Everything in the notebook matching `query`, as two answers (tasks, notes).
+///
+/// `limit` is optional: the screen that opens the box does not have an opinion
+/// about how many hits fit, and the core's own default is the answer when it
+/// says nothing.
+#[tauri::command]
+pub fn search(
+    state: State<'_, AppState>,
+    query: String,
+    limit: Option<usize>,
+) -> CommandResult<jott_core::SearchResults> {
+    let limit = limit.unwrap_or(jott_core::search::DEFAULT_LIMIT);
+    state.with_notebook(|nb| Ok(nb.search(&query, limit)?))
+}
+
 // ---- completed (aggregated across widgets) ----
 
 #[tauri::command]

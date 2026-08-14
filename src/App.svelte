@@ -22,6 +22,7 @@
   import TaskInspector from "./lib/components/TaskInspector.svelte";
   import SuggestionsPane from "./lib/components/SuggestionsPane.svelte";
   import NewTaskDialog from "./lib/components/NewTaskDialog.svelte";
+  import SearchDialog from "./lib/components/SearchDialog.svelte";
   import WorkspaceView from "./lib/screens/WorkspaceView.svelte";
   import NotesWidget from "./lib/widgets/NotesWidget.svelte";
   import NoteEditor from "./lib/components/NoteEditor.svelte";
@@ -163,6 +164,11 @@
         event.preventDefault();
         quickNote();
         return;
+      case "search":
+        if (!notebook) return;
+        event.preventDefault();
+        searching = true;
+        return;
       case "dismiss":
         if (suggesting) {
           suggesting = null;
@@ -177,6 +183,9 @@
       default:
     }
   }
+
+  /// The search dialog is open over whatever screen is showing.
+  let searching = $state(false);
 
   // ---- the two capture shortcuts (Ctrl+T / Ctrl+N) ----
   // They answer from any screen, which is why they live here and not in the
@@ -1160,3 +1169,14 @@
 <!-- The app's own name prompt (window.prompt is broken in WebKitGTK). -->
 <NameDialog />
 <NewTaskDialog />
+
+<!-- Ctrl+F / Ctrl+K, over whatever screen is open: a search is a question
+     asked in passing, and answering it should not cost the place you were in. -->
+{#if searching}
+  <SearchDialog
+    onClose={() => (searching = false)}
+    onOpenList={(path) => showList(path)}
+    onOpenNote={(path, folder) => showNote(path, folder)}
+    onError={fail}
+  />
+{/if}

@@ -50,6 +50,7 @@ import sidebarSimple from "../../assets/icons/phosphor/regular/sidebar-simple.sv
 import flag from "../../assets/icons/phosphor/regular/flag.svg?raw";
 import dotsSixVertical from "../../assets/icons/phosphor/regular/dots-six-vertical.svg?raw";
 import list from "../../assets/icons/phosphor/regular/list.svg?raw";
+import magnifyingGlass from "../../assets/icons/phosphor/regular/magnifying-glass.svg?raw";
 import lightbulb from "../../assets/icons/phosphor/regular/lightbulb.svg?raw";
 
 export const ICONS = {
@@ -95,4 +96,5 @@ export const ICONS = {
   flag,
   "dots-six-vertical": dotsSixVertical,
   list,
+  "magnifying-glass": magnifyingGlass,
 };

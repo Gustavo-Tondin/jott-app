@@ -24,6 +24,11 @@ export const api = {
   windowButtonLayout: () => invoke("window_button_layout"),
   rememberScreen: (screen) => invoke("remember_screen", { screen }),
 
+  // search
+  // Two answers (tasks, notes) plus whether anything was left out. `limit` is
+  // the core's own when the caller has no opinion.
+  search: (query, limit = null) => invoke("search", { query, limit }),
+
   // lists
   listNames: () => invoke("list_names"),
   listCounts: () => invoke("list_counts"),

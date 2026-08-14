@@ -34,6 +34,7 @@ use crate::config::{Config, RolloverMode};
 use crate::error::{Error, IoContext, Result};
 use crate::list::TaskList;
 use crate::rollover;
+use crate::search::{HitKind, SearchHit, SearchResults};
 use crate::state::{Period, StateFile, TaskRef};
 use crate::task::Task;
 use crate::{COMPLETED_LIST, NOTEBOOK_CONFIG_DIR, NOTES_DIR, TASKS_DIR};
@@ -1300,6 +1301,82 @@ impl Notebook {
                 (path.clone(), parts.join("/"))
             })
             .collect())
+    }
+
+    /// Everything in the notebook that matches `query` — tasks and notes, kept
+    /// as two answers (see [`crate::search`] for why).
+    ///
+    /// Reads through `open_list`, never `tasks_in`: typing into a search box
+    /// must not rewrite a single file. An empty query finds nothing.
+    pub fn search(&self, query: &str, limit: usize) -> Result<SearchResults> {
+        let needle = crate::search::needle(query);
+        let mut results = SearchResults::default();
+        if needle.is_empty() {
+            return Ok(results);
+        }
+
+        let labels = self.workspace_labels()?;
+        let label_of = |prefix: &String| labels.get(prefix).cloned().unwrap_or_else(|| prefix.clone());
+
+        for (prefix, folder) in self.task_folders()? {
+            let workspace = label_of(&prefix);
+            for name in folder.list_names()? {
+                let path = format!("{prefix}/{name}.md");
+                for task in self.open_list(&path)?.tasks() {
+                    let Some(snippet) = crate::search::task_match(task, &needle) else {
+                        continue;
+                    };
+                    if results.tasks.len() >= limit {
+                        results.truncated = true;
+                        break;
+                    }
+                    results.tasks.push(SearchHit {
+                        kind: HitKind::Task,
+                        path: path.clone(),
+                        folder: String::new(),
+                        id: task.id.clone(),
+                        title: task.text.clone(),
+                        snippet,
+                        workspace: workspace.clone(),
+                        container: name.clone(),
+                        done: task.done,
+                    });
+                }
+            }
+        }
+        // Open tasks first: a search is nearly always about what is still to
+        // do. Within each half the walk order (workspace, then list) stands.
+        results.tasks.sort_by_key(|hit| hit.done);
+
+        for (prefix, folder) in self.note_folders()? {
+            let workspace = label_of(&prefix);
+            for entry in folder.search(&needle)? {
+                if results.notes.len() >= limit {
+                    results.truncated = true;
+                    break;
+                }
+                // The title already matching is the match; otherwise the body
+                // did, and the hit has to show where.
+                let snippet = if crate::search::contains(&entry.title, &needle) {
+                    String::new()
+                } else {
+                    crate::search::snippet_around(&folder.read(&entry.path)?.body, &needle)
+                };
+                results.notes.push(SearchHit {
+                    kind: HitKind::Note,
+                    path: entry.path,
+                    folder: prefix.clone(),
+                    id: None,
+                    title: entry.title,
+                    snippet,
+                    workspace: workspace.clone(),
+                    container: entry.folder,
+                    done: false,
+                });
+            }
+        }
+
+        Ok(results)
     }
 
     /// Collects the workspace subfolders directly inside `dir`.
