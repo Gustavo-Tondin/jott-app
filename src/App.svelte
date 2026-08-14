@@ -187,6 +187,24 @@
   /// The search dialog is open over whatever screen is showing.
   let searching = $state(false);
 
+  /// Goes to a task found by the search: its list opens, and the task itself
+  /// opens in the panel — what was searched for is the task, not the list it
+  /// happens to live in.
+  ///
+  /// A task with no id cannot be addressed (an id is handed out only when
+  /// something needs to address it), so that one just opens its list. Same if
+  /// the read fails: the list is already open, and the panel is the bonus.
+  async function showFoundTask(path, id) {
+    showList(path);
+    if (!id) return;
+    try {
+      const found = (await api.listTasks(path))?.find((task) => task.id === id);
+      if (found) select(path, found);
+    } catch {
+      // The list is open; that is the part that mattered.
+    }
+  }
+
   // ---- the two capture shortcuts (Ctrl+T / Ctrl+N) ----
   // They answer from any screen, which is why they live here and not in the
   // screen that happens to be open: the notebook's own Inbox is the one
@@ -1175,7 +1193,7 @@
 {#if searching}
   <SearchDialog
     onClose={() => (searching = false)}
-    onOpenList={(path) => showList(path)}
+    onOpenList={showFoundTask}
     onOpenNote={(path, folder) => showNote(path, folder)}
     onError={fail}
   />

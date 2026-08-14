@@ -1137,6 +1137,8 @@ describe("App", () => {
       expect(screen.queryByPlaceholderText("Search tasks and notes…")).toBeNull(),
     );
     expect(invoke).toHaveBeenCalledWith("list_tasks", { list: "jott.tasks/Compras.md" });
+    // And the TASK opens, not just the list it happens to live in.
+    expect(await screen.findByLabelText("task name")).toBeTruthy();
   });
 
   test("Ctrl+N asks for a note title and opens what it created", async () => {

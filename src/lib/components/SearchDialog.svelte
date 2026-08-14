@@ -15,7 +15,7 @@
   let {
     /// Called when the dialog wants to go away.
     onClose,
-    /// Takes a task hit's list address.
+    /// Takes a task hit's list address and its id, when it has one.
     onOpenList,
     /// Takes a note hit's `(path, folder)`.
     onOpenNote,
@@ -64,7 +64,7 @@
 
   function open(hit) {
     if (hit.kind === "note") onOpenNote?.(hit.path, hit.folder);
-    else onOpenList?.(hit.path);
+    else onOpenList?.(hit.path, hit.id);
     onClose?.();
   }
 
