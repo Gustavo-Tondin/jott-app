@@ -10,6 +10,7 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/sve
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { pace } from "./services/pace.js";
+import { nameRequest, taskRequest } from "./services/dialog.js";
 
 // Svelte 5 transitions (the inspector's slide) drive the Web Animations API,
 // which jsdom does not implement. A no-op that reports "already finished" — and
@@ -104,6 +105,10 @@ beforeEach(() => {
   invoke.mockReset();
   // The completion beat is a real-user pause; tests stay instant.
   pace.completionMs = 0;
+  // The two dialog requests are module-level stores: a test that leaves one
+  // open would put every test after it behind a modal.
+  nameRequest.set(null);
+  taskRequest.set(null);
 });
 
 describe("ListView", () => {
@@ -1067,6 +1072,45 @@ describe("App", () => {
     expect(screen.getByText("Completed")).toBeTruthy();
     expect(screen.getByText("Tags management")).toBeTruthy();
     expect(screen.getByText("Trash")).toBeTruthy();
+  });
+
+  test("Ctrl+T opens the new task popup from any screen", async () => {
+    // The app is a capture tool: reaching for the mouse to write down the
+    // thing you just thought of is the cost it exists to remove.
+    shell();
+    render(App);
+
+    await screen.findByText("Comprar leite");
+    await userEvent.keyboard("{Control>}t{/Control}");
+
+    // The popup composes an intent; writing it is `composeTask`'s job.
+    const field = await screen.findByPlaceholderText("Create a task…");
+    await userEvent.type(field, "Ligar para o cliente{Enter}");
+
+    await waitFor(() =>
+      expect(
+        invoke.mock.calls.some(
+          ([cmd, args]) => cmd === "create_task" && args.text === "Ligar para o cliente",
+        ),
+      ).toBe(true),
+    );
+    // And it closes itself, so the next screen is not behind a dialog.
+    await waitFor(() => expect(screen.queryByPlaceholderText("Create a task…")).toBeNull());
+  });
+
+  test("Ctrl+N asks for a note title and opens what it created", async () => {
+    shell({ create_note: "Inbox/Ideia.md" });
+    render(App);
+
+    await screen.findByText("Comprar leite");
+    await userEvent.keyboard("{Control>}n{/Control}");
+
+    await userEvent.type(await screen.findByDisplayValue("New note"), "Ideia");
+    await userEvent.click(screen.getByRole("button", { name: "Create" }));
+
+    await waitFor(() =>
+      expect(invoke.mock.calls.some(([cmd]) => cmd === "create_note")).toBe(true),
+    );
   });
 
   test("saving a task leaves the inspector open", async () => {

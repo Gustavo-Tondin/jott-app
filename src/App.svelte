@@ -10,7 +10,9 @@
   import { listen } from "@tauri-apps/api/event";
   import { slide } from "svelte/transition";
   import { api, describeError } from "./lib/services/api.js";
-  import { askName } from "./lib/services/dialog.js";
+  import { askName, askTask } from "./lib/services/dialog.js";
+  import { composeTask } from "./lib/services/taskCompose.js";
+  import { shortcutFor } from "./lib/services/shortcuts.js";
   import NameDialog from "./lib/components/NameDialog.svelte";
   import ListView from "./lib/screens/ListView.svelte";
   import TasksView from "./lib/screens/TasksView.svelte";
@@ -143,22 +145,73 @@
   $effect(() => watchWindowState((v) => (flush = v)));
 
   function onKeydown(event) {
-    if (event.key === "F11") {
-      event.preventDefault();
-      toggleFullscreen().catch(() => {});
-      return;
+    switch (shortcutFor(event)) {
+      case "fullscreen":
+        event.preventDefault();
+        toggleFullscreen().catch(() => {});
+        return;
+      case "newTask":
+        // Only where there is a notebook to write into: before that the app is
+        // an onboarding screen, and a dialog over it would have nowhere to put
+        // what the user typed.
+        if (!notebook) return;
+        event.preventDefault();
+        quickTask();
+        return;
+      case "newNote":
+        if (!notebook || !f("notes")) return;
+        event.preventDefault();
+        quickNote();
+        return;
+      case "dismiss":
+        if (suggesting) {
+          suggesting = null;
+          return;
+        }
+        if (!selected) return;
+        // The date picker catches Escape itself (capture phase) while its
+        // calendar is open, so an Escape that reaches here means nothing else
+        // is capturing it — closing the panel is the right response.
+        selected = null;
+        return;
+      default:
     }
-    if (event.key !== "Escape") return;
-    if (suggesting) {
-      suggesting = null;
-      return;
-    }
-    if (!selected) return;
-    // The date picker catches Escape itself (capture phase) while its calendar
-    // is open, so an Escape that reaches here means nothing else is capturing
-    // it — closing the panel is the right response.
-    selected = null;
   }
+
+  // ---- the two capture shortcuts (Ctrl+T / Ctrl+N) ----
+  // They answer from any screen, which is why they live here and not in the
+  // screen that happens to be open: the notebook's own Inbox is the one
+  // destination that exists no matter what is on screen.
+
+  const quickTask = async () => {
+    try {
+      const intent = await askTask({
+        lists: moveTargets,
+        defaultList: layout.inbox,
+        dateFormat: layout.dateDisplayFormat,
+        f,
+      });
+      if (!intent) return;
+      await composeTask(intent);
+      reload();
+      await refreshNotebook();
+    } catch (e) {
+      fail(e);
+    }
+  };
+
+  const quickNote = async () => {
+    try {
+      const title = await askName(S.promptNewNote, S.newNoteTitle, { confirm: S.create });
+      if (!title) return;
+      const path = await api.createNote(layout.notesFolder, layout.notesInbox, title.trim());
+      reload();
+      await refreshNotebook();
+      showNote(path);
+    } catch (e) {
+      fail(e);
+    }
+  };
 
   /// Which period's suggestions the right panel is showing, or null.
   ///
