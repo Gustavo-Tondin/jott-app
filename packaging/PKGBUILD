@@ -31,8 +31,29 @@ _root="$(cd "$startdir/.." && pwd)"
 build() {
   cd "$_root"
   npm ci --no-audit --no-fund
-  npm run build
-  cargo build --release --locked --manifest-path src-tauri/Cargo.toml
+  # Through the Tauri CLI, NOT `cargo build --release` — the CLI is what bakes
+  # the built frontend into the binary. A plain cargo build leaves the app
+  # pointing at the dev server, and the installed program opens on
+  # "Could not connect to localhost" (found the hard way, 2026-08-14).
+  # `--no-bundle` stops at the binary: the .deb and AppImage are not wanted
+  # here, packaging is what this file is for.
+  npx tauri build --no-bundle
+}
+
+# Guards exactly the mistake above: a binary with no frontend inside it is
+# useless, and it looks perfectly fine until the window opens.
+check() {
+  cd "$_root"
+  # The bundle name carries a content hash, so asking for THIS one also proves
+  # the binary carries the frontend just built, not one from an older run.
+  local asset
+  asset="$(basename "$(ls -1 dist/assets/index-*.js | head -n 1)")"
+  if ! grep -qa "$asset" "target/release/jott"; then
+    echo "==> ERRO: o binário não carrega o frontend ($asset)." >&2
+    echo "    Sinal de build sem o CLI do Tauri: o app abriria em" >&2
+    echo "    \"Could not connect to localhost\"." >&2
+    return 1
+  fi
 }
 
 package() {
