@@ -24,6 +24,12 @@ test-notebook/
 CLAUDE.md
 docs/
 
+# --- makepkg (packaging/) ---
+packaging/pkg/
+packaging/src/
+packaging/*.pkg.tar.zst
+packaging/*.log
+
 # --- OS / editor ---
 .DS_Store
 .idea/

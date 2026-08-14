@@ -2106,23 +2106,35 @@ impl Notebook {
                 std::fs::rename(&source, &final_dest).ctx(&final_dest)?;
             }
             crate::trash::TrashKind::Task => {
-                // A deleted task goes back to its origin list. The stored lines
-                // are already valid Markdown (the task as it was rendered), so
-                // they are appended raw — `add_text` would wrap `- [ ] foo` as
-                // a task whose *text* is `- [ ] foo`. Position-exact restore is
-                // a later refinement; recover it to the list end.
+                // A deleted task goes back to its origin list, **at the line it
+                // sat on** (2026-08-14) — the trash always recorded the index,
+                // and restoring to the end quietly reshuffled a list the user
+                // had arranged by hand.
+                //
+                // The stored lines are the task as it was rendered, so they are
+                // parsed back into a task rather than pasted as text:
+                // `add_text` would wrap `- [ ] foo` into a task whose own TEXT
+                // is `- [ ] foo`.
                 if let Some(lines) = &entry.content {
-                    let (folder, name) = self.resolve_list(&entry.origin)?;
-                    let path = folder.list_path(&name)?;
-                    let mut text = std::fs::read_to_string(&path).unwrap_or_default();
-                    if !text.is_empty() && !text.ends_with('\n') {
-                        text.push('\n');
+                    let mut list = self.open_list(&entry.origin)?;
+                    let restored = TaskList::from_str(&lines.join("\n"));
+                    let mut at = entry.index.unwrap_or(usize::MAX);
+                    for line in restored.lines() {
+                        match line {
+                            crate::list::Line::Task(task) => {
+                                list.insert_line_at(at, task.clone());
+                                at = at.saturating_add(1);
+                            }
+                            // A line the parser did not read as a task cannot be
+                            // put back through the task API; dropping it would
+                            // lose the user's text, so it goes back as it was.
+                            crate::list::Line::Raw(raw) => {
+                                list.insert_raw_at(at, raw.clone());
+                                at = at.saturating_add(1);
+                            }
+                        }
                     }
-                    for line in lines {
-                        text.push_str(line);
-                        text.push('\n');
-                    }
-                    crate::fsio::write_atomically(&path, text.as_bytes())?;
+                    list.save()?;
                 }
             }
         }

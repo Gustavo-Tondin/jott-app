@@ -1491,6 +1491,57 @@ fn a_trashed_list_can_be_restored() {
 }
 
 #[test]
+fn a_restored_task_comes_back_where_it_was() {
+    // Restoring used to append to the end (2026-08-14): the trash always
+    // recorded the index, and putting the task back anywhere else quietly
+    // reshuffled a list the user had arranged by hand.
+    let dir = tempfile::tempdir().unwrap();
+    let nb = jott_core::Notebook::init(dir.path()).unwrap();
+    let list = "jott.tasks/task-list.md";
+    std::fs::write(
+        dir.path().join(list),
+        "- [ ] Primeira\n- [ ] Do meio <!--id:mid001-->\n  Uma descrição\n- [ ] Última\n",
+    )
+    .unwrap();
+
+    nb.delete_task(list, "mid001").unwrap();
+    let texts: Vec<String> = nb.tasks_in(list).unwrap().into_iter().map(|t| t.text).collect();
+    assert_eq!(texts, ["Primeira", "Última"]);
+
+    let entry = nb.trash_entries().into_iter().next().unwrap();
+    nb.restore_from_trash(&entry.id).unwrap();
+
+    let restored = nb.tasks_in(list).unwrap();
+    let texts: Vec<&str> = restored.iter().map(|t| t.text.as_str()).collect();
+    assert_eq!(texts, ["Primeira", "Do meio", "Última"], "de volta ao meio");
+    // And whole: the description came back with it.
+    assert_eq!(restored[1].description, vec!["Uma descrição".to_string()]);
+    assert_eq!(restored[1].id.as_deref(), Some("mid001"));
+}
+
+#[test]
+fn restoring_a_task_into_a_shorter_list_appends_instead_of_failing() {
+    // The file may have been edited by hand while the task sat in the trash.
+    let dir = tempfile::tempdir().unwrap();
+    let nb = jott_core::Notebook::init(dir.path()).unwrap();
+    let list = "jott.tasks/task-list.md";
+    std::fs::write(
+        dir.path().join(list),
+        "- [ ] Uma\n- [ ] Duas\n- [ ] Três <!--id:c003-->\n",
+    )
+    .unwrap();
+
+    nb.delete_task(list, "c003").unwrap();
+    std::fs::write(dir.path().join(list), "- [ ] Uma\n").unwrap();
+
+    let entry = nb.trash_entries().into_iter().next().unwrap();
+    nb.restore_from_trash(&entry.id).unwrap();
+
+    let texts: Vec<String> = nb.tasks_in(list).unwrap().into_iter().map(|t| t.text).collect();
+    assert_eq!(texts, ["Uma", "Três"]);
+}
+
+#[test]
 fn the_reaper_clears_items_past_the_retention_window() {
     use jott_core::trash::Trash;
     let dir = tempfile::tempdir().unwrap();

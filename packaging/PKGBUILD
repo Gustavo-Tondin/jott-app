@@ -1,0 +1,49 @@
+# Maintainer: Gustavo Tondin <gus.tondin@gmail.com>
+#
+# Builds Jott from the working tree and installs it the way the system expects:
+# one binary, one desktop entry, icons in the hicolor theme. On Arch this beats
+# the AppImage for daily use — it lands in the application menu, updates with
+# the rest of the system, and does not carry a copy of GTK with it.
+#
+#   cd packaging && makepkg -si
+#
+# `makedepends` names the pacman packages. With a toolchain installed some other
+# way — rustup for Rust, nvm for Node — makepkg cannot see it, so add `-d` to
+# skip the check: `makepkg -sid`.
+#
+pkgname=jott
+pkgver=0.6.0
+pkgrel=1
+pkgdesc="Local-first tasks and notes in plain Markdown files"
+arch=('x86_64')
+url="https://github.com/gustavotondin/jott-app"
+license=('MIT')
+# webkit2gtk-4.1 is what Tauri v2 draws the window with; the rest is what the
+# webview itself pulls in at runtime.
+depends=('webkit2gtk-4.1' 'gtk3' 'libayatana-appindicator')
+makedepends=('rust' 'cargo' 'nodejs' 'npm')
+options=('!strip' '!debug')
+
+# Built from the checkout this file sits in, not from a release tarball: there
+# is no release yet, and the whole point right now is packaging what is on disk.
+_root="$(cd "$startdir/.." && pwd)"
+
+build() {
+  cd "$_root"
+  npm ci --no-audit --no-fund
+  npm run build
+  cargo build --release --locked --manifest-path src-tauri/Cargo.toml
+}
+
+package() {
+  cd "$_root"
+  install -Dm755 "target/release/jott" "$pkgdir/usr/bin/jott"
+  install -Dm644 "packaging/jott.desktop" "$pkgdir/usr/share/applications/jott.desktop"
+
+  for size in 32 128; do
+    install -Dm644 "src-tauri/icons/${size}x${size}.png" \
+      "$pkgdir/usr/share/icons/hicolor/${size}x${size}/apps/jott.png"
+  done
+  install -Dm644 "src-tauri/icons/128x128@2x.png" \
+    "$pkgdir/usr/share/icons/hicolor/256x256/apps/jott.png"
+}

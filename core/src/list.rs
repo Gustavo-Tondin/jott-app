@@ -132,15 +132,34 @@ impl TaskList {
     /// between lists can collide with one already living there. A task that
     /// already had an id was addressable, and must stay addressable —
     /// otherwise completing it would quietly break its undo.
-    pub fn add(&mut self, mut task: Task) -> usize {
+    pub fn add(&mut self, task: Task) -> usize {
+        self.insert_line_at(self.lines.len(), task);
+        self.tasks().count() - 1
+    }
+
+    /// Puts a task back among the file's lines at `index`, counting lines and
+    /// not tasks — the index the trash recorded when the task was removed.
+    ///
+    /// Restoring is why this exists: a task deleted from the middle of a list
+    /// should come back where it was, not at the end. An index past the end
+    /// appends, which is what a shorter file (edited by hand meanwhile) means.
+    pub fn insert_line_at(&mut self, index: usize, mut task: Task) {
+        // Same collision rule as `add`: ids are unique per file, and a task
+        // coming back from the trash can land on one taken since.
         if let Some(id) = &task.id {
             let taken = self.taken_ids();
             if taken.contains(id) {
                 task.id = Some(id::generate_unique(&taken));
             }
         }
-        self.lines.push(Line::Task(task));
-        self.tasks().count() - 1
+        self.lines.insert(index.min(self.lines.len()), Line::Task(task));
+    }
+
+    /// Puts a non-task line back at `index`, exactly as it was. The other half
+    /// of restoring: whatever the parser did not read as a task is still the
+    /// user's text, and dropping it would lose it.
+    pub fn insert_raw_at(&mut self, index: usize, line: String) {
+        self.lines.insert(index.min(self.lines.len()), Line::Raw(line));
     }
 
     /// Adds a task from its text alone — the common case.

@@ -95,8 +95,25 @@ de sistema `webkit2gtk-4.1`, `gtk3` e `libsoup3`.
 npm install          # dependências do frontend
 npm run tauri dev    # roda o app
 cargo test           # testes da lógica de negócio
-npm run tauri build  # gera AppImage / deb
+npm test             # testes do frontend
+npm run package      # gera AppImage / deb
 ```
+
+### Instalar
+
+**Arch e derivados** — o jeito nativo, que põe o app no menu de aplicativos:
+
+```bash
+cd packaging && makepkg -sid    # -d se o Rust/Node vier do rustup ou do nvm
+```
+
+**Qualquer distribuição** — o AppImage sai em
+`target/release/bundle/appimage/` depois do `npm run package`.
+
+> **Nota do AppImage:** o empacotamento usa `NO_STRIP=1` (é o que o script
+> `package` faz). O `strip` que vem dentro do `linuxdeploy` é antigo demais
+> para a seção ELF `.relr.dyn` que as distribuições atuais usam, e sem isso o
+> bundle falha em toda biblioteca do sistema.
 
 Estrutura:
 

@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Jott
+GenericName=Tasks and notes
+Comment=Local-first tasks and notes in plain Markdown files
+Exec=jott
+Icon=jott
+Terminal=false
+Categories=Utility;Office;ProjectManagement;
+Keywords=tasks;todo;notes;markdown;
+StartupWMClass=jott
+StartupNotify=true
