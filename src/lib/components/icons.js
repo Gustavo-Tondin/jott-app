@@ -11,10 +11,7 @@
 
 import xBold from "../../assets/icons/phosphor/bold/x.svg?raw";
 import plusBold from "../../assets/icons/phosphor/bold/plus.svg?raw";
-import caretDownBold from "../../assets/icons/phosphor/bold/caret-down.svg?raw";
 
-import houseFill from "../../assets/icons/phosphor/fill/house.svg?raw";
-import checkSquareFill from "../../assets/icons/phosphor/fill/check-square.svg?raw";
 import bookmarkSimpleFill from "../../assets/icons/phosphor/fill/bookmark-simple.svg?raw";
 
 import plus from "../../assets/icons/phosphor/regular/plus.svg?raw";
@@ -23,9 +20,7 @@ import checkSquare from "../../assets/icons/phosphor/regular/check-square.svg?ra
 import note from "../../assets/icons/phosphor/regular/note.svg?raw";
 import folder from "../../assets/icons/phosphor/regular/folder.svg?raw";
 import folders from "../../assets/icons/phosphor/regular/folders.svg?raw";
-import folderPlus from "../../assets/icons/phosphor/regular/folder-plus.svg?raw";
 import gear from "../../assets/icons/phosphor/regular/gear.svg?raw";
-import square from "../../assets/icons/phosphor/regular/square.svg?raw";
 import bookmarkSimple from "../../assets/icons/phosphor/regular/bookmark-simple.svg?raw";
 import arrowClockwise from "../../assets/icons/phosphor/regular/arrow-clockwise.svg?raw";
 import sparkle from "../../assets/icons/phosphor/regular/sparkle.svg?raw";
@@ -57,9 +52,6 @@ export const ICONS = {
   // weighted variants
   "x-bold": xBold,
   "plus-bold": plusBold,
-  "caret-down-bold": caretDownBold,
-  "house-fill": houseFill,
-  "check-square-fill": checkSquareFill,
   "bookmark-simple-fill": bookmarkSimpleFill,
   // regular
   plus,
@@ -68,9 +60,7 @@ export const ICONS = {
   note,
   folder,
   folders,
-  "folder-plus": folderPlus,
   gear,
-  square,
   "bookmark-simple": bookmarkSimple,
   "arrow-clockwise": arrowClockwise,
   sparkle,

@@ -10,8 +10,8 @@
    provisional and these class names are meant to outlive it — same reasoning as
    the tokens. See docs/project-strategy.md 4.5.
 
-   Live reference of every control: `styleguide.html` (served by Vite at
-   /styleguide.html during `npm run dev`).
+   Nothing here is a one-off: a class earns its place by being worn in more than
+   one component. When the last wearer of one goes, the class goes with it.
    ============================================================================= */
 
 @layer components {
@@ -120,21 +120,6 @@
     margin: 0;
   }
 
-  /* --- Inline value: borderless until hovered/focused (inspector rows) --- */
-  .theme-input--inline {
-    width: auto;
-    min-width: 0;
-    background: transparent;
-    border-color: transparent;
-    text-align: end;
-    color: var(--theme-ink-muted);
-  }
-  .theme-input--inline:hover:not(:disabled):not(:focus) {
-    /* The same blue every field hovers with — one language (user call,
-       2026-08-04), just quieter than the base because the field is inline. */
-    border-color: var(--theme-brand-outline);
-  }
-
   /* --- Filled value: a small pill in the WELL (a date/number value in a row).
      Same reasoning as --bare above. --- */
   .theme-input--filled {
@@ -180,10 +165,9 @@
   }
 
   /* ---------------------------------------------------------------------------
-     Checkbox and radio (native inputs, restyled — kept native for the keyboard)
+     Checkbox (a native input, restyled — kept native for the keyboard)
      --------------------------------------------------------------------------- */
-  .theme-checkbox,
-  .theme-radio {
+  .theme-checkbox {
     appearance: none;
     -webkit-appearance: none;
     flex-shrink: 0;
@@ -191,15 +175,10 @@
     height: 1.125rem;
     margin: 0;
     border: 0.09375rem solid var(--theme-ink);
+    border-radius: var(--theme-radius-xs);
     background: none;
     cursor: pointer;
     position: relative;
-  }
-  .theme-checkbox {
-    border-radius: var(--theme-radius-xs);
-  }
-  .theme-radio {
-    border-radius: var(--theme-radius-pill);
   }
   .theme-checkbox:checked {
     background: var(--theme-brand);
@@ -240,23 +219,11 @@
     height: 0.5rem;
     border-width: 0 0.09375rem 0.09375rem 0;
   }
-  .theme-radio:checked {
-    border-color: var(--theme-brand);
-  }
-  .theme-radio:checked::after {
-    content: "";
-    position: absolute;
-    inset: 0.1875rem;
-    border-radius: var(--theme-radius-pill);
-    background: var(--theme-brand);
-  }
-  .theme-checkbox:focus-visible,
-  .theme-radio:focus-visible {
+  .theme-checkbox:focus-visible {
     outline: none;
     box-shadow: 0 0 0 0.1875rem var(--theme-brand-weak);
   }
-  .theme-checkbox:disabled,
-  .theme-radio:disabled {
+  .theme-checkbox:disabled {
     opacity: 0.5;
     cursor: not-allowed;
   }
@@ -342,13 +309,6 @@
   .theme-btn--primary:hover:not(:disabled) {
     filter: brightness(1.06);
   }
-  .theme-btn--ghost {
-    color: var(--theme-ink-muted);
-  }
-  .theme-btn--ghost:hover:not(:disabled) {
-    background: var(--theme-surface-sunken);
-    color: var(--theme-ink);
-  }
   .theme-btn--outline {
     border-color: var(--theme-line);
     color: var(--theme-ink-muted);
@@ -411,11 +371,6 @@
     font-size: var(--theme-text-12);
     font-weight: var(--theme-weight-regular);
   }
-  .theme-btn--block {
-    display: flex;
-    width: 100%;
-  }
-
   /* ---------------------------------------------------------------------------
      Chip (a small toggle/label, e.g. Completed / Suggestions)
      --------------------------------------------------------------------------- */
@@ -430,11 +385,6 @@
     color: var(--theme-ink-muted);
     font-size: var(--theme-text-12);
     cursor: pointer;
-  }
-  .theme-chip--accent {
-    background: var(--theme-brand-weak);
-    border-color: var(--theme-brand-outline);
-    color: var(--theme-brand);
   }
 
   /* ---------------------------------------------------------------------------
@@ -716,24 +666,5 @@
   }
   .theme-pane-foot {
     border-top: 0.0625rem solid var(--theme-line);
-  }
-
-  /* ---------------------------------------------------------------------------
-     Field wrapper (a label above/beside a control)
-     --------------------------------------------------------------------------- */
-  .theme-field {
-    display: flex;
-    flex-direction: column;
-    gap: var(--theme-space-4);
-  }
-  .theme-field--row {
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--theme-space-16);
-  }
-  .theme-field__label {
-    font-size: var(--theme-text-12);
-    color: var(--theme-ink-muted);
   }
 }

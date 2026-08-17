@@ -70,7 +70,6 @@
   }
   .shell__sidebar--rail .shell__nav-label,
   .shell__sidebar--rail .shell__count,
-  .shell__sidebar--rail .shell__group-title,
   .shell__sidebar--rail .shell__notebook,
   .shell__sidebar--rail .shell__badge {
     display: none;
@@ -393,14 +392,6 @@
     font-size: var(--theme-text-12);
     font-weight: var(--theme-weight-regular);
   }
-  .shell__group-title {
-    color: var(--theme-ink-faint);
-    font-size: var(--theme-text-12);
-    text-transform: uppercase;
-    letter-spacing: var(--theme-tracking-wide);
-    padding: var(--theme-space-8) var(--theme-space-8) var(--theme-space-4);
-  }
-
 
   /* ---- the sidebar's edge, as a handle (user call, 2026-08-17) ----
      A flex item of its own rather than something floating over the panel: the

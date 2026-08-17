@@ -10,7 +10,6 @@ export const S = {
     "Choose a folder to be your notebook. If it is not one yet, Jott creates " +
     "the structure inside it — your files stay plain .md, readable in any editor.",
   chooseFolder: "Choose notebook folder…",
-  switchNotebook: "switch notebook…",
   today: "Today",
   week: "Week",
   completed: "Completed",
@@ -18,10 +17,6 @@ export const S = {
   menu: "menu",
   tagsManagement: "Tags management",
   trash: "Trash",
-  tagsSoon: "Managing tags — name and colour — is coming soon.",
-  trashSoon:
-    "Restoring deleted spaces, tasks and notes from here is coming soon. " +
-    "Deletions already go to the system trash in the meantime.",
   readOnly: "read-only",
   renameList: "rename list",
   deleteList: "delete list",
@@ -56,7 +51,6 @@ export const S = {
   spaceAppearance: "Colour & icon",
   // A space inside a group picks only its icon — the colour is the group's.
   iconOnly: "Icon",
-  appearance: "appearance",
   color: "colour",
   icon: "icon",
   defaultAppearance: "default",
@@ -143,7 +137,6 @@ export const S = {
   rolloverMode: "Unfinished tasks",
   rolloverModeReset: "go back to suggestions",
   rolloverModeCarry: "stay pulled",
-  rolloverAt: "Turn at",
   rolloverAtHint: "Offset from midnight. -02:00 means 22:00 the evening before.",
   weekStartsOn: "Week starts on",
   datedTasksJoinPeriod: "A task with a date joins the day",
@@ -209,7 +202,6 @@ export const S = {
   todaysTasks: "Today tasks",
   todaysNotes: "Today notes",
   newNoteAction: "New note",
-  quickNote: "Quick note…",
   quickNoteTo: "to",
   // The Home's capture box (2026-08-13). It asks ONE question and both halves
   // of the app answer it.
@@ -226,7 +218,6 @@ export const S = {
   // twice and left a screen reader with no way to tell them apart.
   captureAction: (kind) => (kind === "note" ? "capture note" : "capture task"),
   noNotesToday: "No notes written today.",
-  openSettings: "settings",
   collapseSidebar: "collapse sidebar",
   expandSidebar: "expand sidebar",
   untitled: "Untitled",
@@ -257,10 +248,6 @@ export const S = {
   pinned: "pinned",
   deleteNote: "delete",
   renameNote: "rename",
-  moveNote: "move to…",
-  promptMoveNote: (folders) =>
-    `Move to which folder?\n\nAvailable: ${folders || "(root)"}`,
-  backToNotes: "← notes",
   noteBodyPlaceholder: "Write here…",
   gridView: "grid",
   treeView: "folders",
@@ -274,7 +261,6 @@ export const S = {
 
   // Today / Week
   weekTitle: "This week",
-  weekOf: (start) => `week of ${start}`,
   /// The week's span, shown beside the Index/Today/Week strip.
   weekRange: (from, to) => `${from} - ${to}`,
   suggestionsTitle: "Suggestions",
@@ -288,7 +274,6 @@ export const S = {
   // Was in Today or the Week and left — taken out by hand, or dropped when the
   // period turned (2026-08-17).
   groupRecent: "Pulled recently",
-  groupLists: "From the lists",
   pull: "pull",
   removeFromPeriod: "remove",
 
@@ -300,7 +285,6 @@ export const S = {
   complete: "complete",
   uncheck: "uncheck",
   taskRowHint: "click to open, double-click to rename",
-  repeatsHint: "repeats",
   taskName: "task name",
   closePanel: "close",
   collapsePanel: "collapse panel",
@@ -317,12 +301,10 @@ export const S = {
   comingSoon: "coming soon",
   deleteTask: "delete task",
   moveToList: "move to list",
-  subtasksTitle: "Subtasks",
   subtaskLabel: (text) => `subtask: ${text}`,
   newSubtaskPlaceholder: "New subtask…",
   removeSubtask: "remove subtask",
   tagsTitle: "Tags",
-  newTagPlaceholder: "New tag…",
   removeTag: (tag) => `remove #${tag}`,
   descriptionTitle: "Description",
   dueDateLabel: "Due date",

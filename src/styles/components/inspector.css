@@ -142,10 +142,6 @@
     font-size: var(--theme-text-10);
     font-weight: var(--theme-weight-semibold);
   }
-  .inspector__tag-add {
-    flex: 1;
-    min-width: 6rem;
-  }
   /* Small × inside a pill or a value — takes the colour of what holds it. */
   .inspector__tag-remove {
     display: inline-flex;

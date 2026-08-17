@@ -20,15 +20,4 @@
   .space-view__widget {
     margin-block-end: var(--theme-space-24);
   }
-  /* The soft line the wireframe draws under each widget, before the next one
-     (or the "New widget" card): short, centred, rounded. */
-  .space-view__divider {
-    inline-size: 72%;
-    block-size: 0.1875rem;
-    margin: var(--theme-space-32) auto;
-    border: none;
-    background: var(--theme-line-soft);
-    border-radius: var(--theme-radius-pill);
-  }
-
 }
