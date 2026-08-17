@@ -292,7 +292,7 @@ impl Notebook {
             .collect();
         let doc = serde_json::json!({ "schemaVersion": 1, "items": items });
         crate::fsio::write_atomically(
-            &self.config_dir().join("completed.json"),
+            self.config_dir().join("completed.json"),
             crate::fsio::pretty_json(&doc).as_bytes(),
         )
     }

@@ -835,8 +835,10 @@ mod tests {
         assert_eq!(config.theme, "");
         assert!(!config.render().contains("\"theme\""));
 
-        let mut chosen = Config::default();
-        chosen.theme = "dark".into();
+        let chosen = Config {
+            theme: "dark".into(),
+            ..Config::default()
+        };
         let reparsed = Config::parse(&chosen.render());
         assert_eq!(reparsed.theme, "dark");
 
@@ -861,8 +863,10 @@ mod tests {
             "an untouched notebook writes no accent key"
         );
 
-        let mut chosen = Config::default();
-        chosen.accent_color = "orange".into();
+        let chosen = Config {
+            accent_color: "orange".into(),
+            ..Config::default()
+        };
         let reparsed = Config::parse(&chosen.render());
         assert_eq!(reparsed.accent_color, "orange");
 
@@ -889,8 +893,10 @@ mod tests {
         assert_eq!(config.heading_color, "");
         assert!(!config.render().contains("headingColor"));
 
-        let mut chosen = Config::default();
-        chosen.heading_color = "ink".into();
+        let chosen = Config {
+            heading_color: "ink".into(),
+            ..Config::default()
+        };
         let reparsed = Config::parse(&chosen.render());
         assert_eq!(reparsed.heading_color, "ink");
 
@@ -926,7 +932,7 @@ mod tests {
             config.order.get("lists:Design/Tasks"),
             Some(&vec!["a".to_string()])
         );
-        assert!(config.order.get("lists:Design/Work").is_none());
+        assert!(!config.order.contains_key("lists:Design/Work"));
         assert_eq!(
             config.order.get("lists:Other"),
             Some(&vec!["b".to_string()]),

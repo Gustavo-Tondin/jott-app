@@ -15,7 +15,7 @@ fn ymd(y: i32, m: u32, d: u32) -> NaiveDate {
 
 /// Parses a list from text, without touching the disk.
 fn list(content: &str) -> TaskList {
-    TaskList::from_str(content)
+    TaskList::from_text(content)
 }
 
 fn only_task(content: &str) -> jott_core::Task {
@@ -383,7 +383,7 @@ fn an_origin_with_spaces_survives_the_comment_round_trip() {
         "a spaced value must be quoted: {rendered}"
     );
 
-    let reread = jott_core::TaskList::from_str(&rendered);
+    let reread = jott_core::TaskList::from_text(&rendered);
     let back = reread.tasks().next().unwrap();
     assert_eq!(back.origin.as_deref(), Some("Meu Mercado"));
     assert_eq!(back.id.as_deref(), Some("a1"));
@@ -427,7 +427,7 @@ fn a_normalized_tag_round_trips_without_eating_the_metadata_line() {
     task.priority = Some(2);
     task.tags = vec![jott_core::task::normalize_tag("casa nova").unwrap()];
 
-    let reread = jott_core::TaskList::from_str(&task.render_block());
+    let reread = jott_core::TaskList::from_text(&task.render_block());
     let back = reread.tasks().next().unwrap();
     assert_eq!(back.due, task.due, "the date must survive");
     assert_eq!(back.priority, Some(2), "the priority must survive");
@@ -442,7 +442,7 @@ fn task_text_is_collapsed_to_a_single_line() {
     let task = jott_core::Task::new("Comprar\nleite  integral");
     assert_eq!(task.text, "Comprar leite integral");
 
-    let reread = jott_core::TaskList::from_str(&task.render_block());
+    let reread = jott_core::TaskList::from_text(&task.render_block());
     assert_eq!(reread.tasks().count(), 1);
 }
 

@@ -183,7 +183,7 @@ impl Trash {
 
     fn save(&self) -> Result<()> {
         std::fs::create_dir_all(&self.dir).ctx(&self.dir)?;
-        crate::fsio::write_atomically(&self.index_path(), render_index(&self.entries).as_bytes())
+        crate::fsio::write_atomically(self.index_path(), render_index(&self.entries).as_bytes())
     }
 }
 

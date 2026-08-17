@@ -13,6 +13,12 @@ use crate::id;
 use crate::task::Task;
 
 /// One line of a list file.
+///
+/// A `Task` is far bigger than a `Raw`, so every line of a file costs what a
+/// task costs. Boxing it would save that, and is deliberately not done: a list
+/// is read to be shown, so most lines ARE tasks, and the pointer chase would be
+/// paid on the common case to save memory on the rare one.
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug, Clone, PartialEq)]
 pub enum Line {
     Task(Task),
@@ -45,7 +51,7 @@ impl TaskList {
 
     /// Parses a list from text, with no file behind it. Saving one of these
     /// would write to an empty path, so it is for reading and for tests.
-    pub fn from_str(content: &str) -> Self {
+    pub fn from_text(content: &str) -> Self {
         Self::from_content(PathBuf::new(), content)
     }
 

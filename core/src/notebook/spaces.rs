@@ -39,7 +39,7 @@ impl Notebook {
         let path_of = |sp: &crate::space::Space| {
             crate::relpath::relative_slash(&self.root, sp.root())
         };
-        found.sort_by(|a, b| path_of(a).cmp(&path_of(b)));
+        found.sort_by_key(path_of);
         // `name` sorts by what the user READS, which is not the folder name a
         // space was created under (2026-08-06). Anything else — including
         // the default — is the hand-dragged order; fixed spaces are not
@@ -232,7 +232,7 @@ impl Notebook {
             return Err(Error::InvalidSpaceName(format!("{folder} already exists")));
         }
         std::fs::create_dir_all(&dir).ctx(&dir)?;
-        crate::fsio::write_atomically(&dir.join(marker), body.as_bytes())?;
+        crate::fsio::write_atomically(dir.join(marker), body.as_bytes())?;
         // The PATH, not the leaf: it is the address the caller will open the
         // new space by, and inside a group the leaf is not enough.
         Ok(crate::relpath::relative_slash(&self.root, &dir))

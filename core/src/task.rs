@@ -349,6 +349,12 @@ struct Metadata {
 impl Metadata {
     /// Parses a line made **only** of metadata tokens. Any loose word makes it
     /// description instead — that is what lets a description start with `#`.
+    ///
+    /// The chain reads as the rule it implements: a token is a date, a tag, a
+    /// priority, or the line is not metadata. Clippy would fold the last arm
+    /// into a `?`, which hides the "or else this is not metadata" behind an
+    /// operator — the one thing this function exists to say.
+    #[allow(clippy::question_mark)]
     fn parse(line: &str) -> Option<Self> {
         let mut metadata = Self::default();
         let mut found = false;

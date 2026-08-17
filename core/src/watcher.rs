@@ -9,7 +9,7 @@
 //! what changed; deciding to reload a view belongs to the app.
 
 use std::path::{Path, PathBuf};
-use std::sync::mpsc::{channel, Receiver, RecvTimeoutError, TryRecvError};
+use std::sync::mpsc::{channel, Receiver};
 use std::time::Duration;
 
 use notify::{Event, RecommendedWatcher, RecursiveMode, Watcher as _};
@@ -129,18 +129,12 @@ impl NotebookWatcher {
 
     /// Next change, if one is already queued.
     pub fn try_next(&self) -> Option<Change> {
-        match self.events.try_recv() {
-            Ok(change) => Some(change),
-            Err(TryRecvError::Empty | TryRecvError::Disconnected) => None,
-        }
+        self.events.try_recv().ok()
     }
 
     /// Waits up to `timeout` for the next change.
     pub fn next_within(&self, timeout: Duration) -> Option<Change> {
-        match self.events.recv_timeout(timeout) {
-            Ok(change) => Some(change),
-            Err(RecvTimeoutError::Timeout | RecvTimeoutError::Disconnected) => None,
-        }
+        self.events.recv_timeout(timeout).ok()
     }
 
     /// Drains everything queued, deduplicated.

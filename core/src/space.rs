@@ -395,13 +395,10 @@ mod tests {
 
     #[test]
     fn unknown_top_level_keys_survive_the_rewrite() {
-        for text in [
-            r#"{ "schemaVersion": 1, "futureFeature": { "deep": [1] } }"#,
-        ] {
-            let sp = SpaceConfig::parse(text);
-            let reparsed = SpaceConfig::parse(&sp.render());
-            assert_eq!(reparsed.raw["futureFeature"], serde_json::json!({ "deep": [1] }));
-        }
+        let text = r#"{ "schemaVersion": 1, "futureFeature": { "deep": [1] } }"#;
+        let sp = SpaceConfig::parse(text);
+        let reparsed = SpaceConfig::parse(&sp.render());
+        assert_eq!(reparsed.raw["futureFeature"], serde_json::json!({ "deep": [1] }));
     }
 
     #[test]

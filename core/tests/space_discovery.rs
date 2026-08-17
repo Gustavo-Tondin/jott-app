@@ -22,7 +22,7 @@ fn make_space(root: &std::path::Path, name: &str, config: &str) {
 
 #[test]
 fn only_marked_folders_are_spaces() {
-    let (dir, mut nb) = notebook();
+    let (dir, nb) = notebook();
     make_space(dir.path(), "Project A", r#"{ "schemaVersion": 1, "type": "tasks" }"#);
 
     // Folders without the marker — however plausible — are not interface.
@@ -44,7 +44,7 @@ fn only_marked_folders_are_spaces() {
 
 #[test]
 fn the_fixed_spaces_are_born_typed_and_usable() {
-    let (dir, mut nb) = notebook();
+    let (dir, nb) = notebook();
     let kinds: Vec<(String, String)> = nb
         .spaces()
         .unwrap()
@@ -65,7 +65,7 @@ fn the_fixed_spaces_are_born_typed_and_usable() {
 
 #[test]
 fn the_config_folder_is_never_a_space() {
-    let (dir, mut nb) = notebook();
+    let (dir, nb) = notebook();
     // Even sabotaged with a marker, a hidden folder stays invisible.
     std::fs::write(
         dir.path().join(".jott/.space.json"),
@@ -84,7 +84,7 @@ fn the_config_folder_is_never_a_space() {
 
 #[test]
 fn spaces_come_back_sorted_by_folder_name() {
-    let (dir, mut nb) = notebook();
+    let (dir, nb) = notebook();
     for name in ["Zeta", "Alpha", "Meu Espaço"] {
         make_space(dir.path(), name, r#"{ "schemaVersion": 1, "type": "notes" }"#);
     }
@@ -105,7 +105,7 @@ fn spaces_come_back_sorted_by_folder_name() {
 fn a_template_from_the_future_opens_but_stays_untouchable() {
     // The community-template scenario end to end: unzip a folder written by
     // a newer version into the notebook, and nothing breaks, nothing is lost.
-    let (dir, mut nb) = notebook();
+    let (dir, nb) = notebook();
     make_space(
         dir.path(),
         "Do Futuro",
@@ -143,7 +143,7 @@ fn a_second_tasks_space_feeds_lists_counts_and_suggestions() {
     // folder; the fixed one is `Tasks/Tasks.md`.)
     use jott_core::state::Period;
 
-    let (dir, mut nb) = notebook();
+    let (dir, nb) = notebook();
     nb.create_space("Project A", "tasks").unwrap();
 
     std::fs::write(
@@ -202,7 +202,7 @@ fn a_second_tasks_space_feeds_lists_counts_and_suggestions() {
 
 #[test]
 fn a_space_keeps_its_colour_and_unknown_keys_through_a_rewrite() {
-    let (dir, mut nb) = notebook();
+    let (dir, nb) = notebook();
     make_space(
         dir.path(),
         "Project A",
@@ -225,7 +225,7 @@ fn a_space_keeps_its_colour_and_unknown_keys_through_a_rewrite() {
 
 #[test]
 fn a_new_space_is_born_typed_and_usable() {
-    let (dir, mut nb) = notebook();
+    let (dir, nb) = notebook();
     let folder = nb.create_space("My Project", "tasks").unwrap();
     assert_eq!(folder, "My Project");
     assert!(dir.path().join("My Project/.space.json").is_file());
@@ -307,7 +307,7 @@ fn a_fixed_space_is_renamed_in_its_marker_not_on_disk() {
 
 #[test]
 fn space_appearance_persists_and_clears() {
-    let (dir, mut nb) = notebook();
+    let (dir, nb) = notebook();
     nb.create_space("proj", "tasks").unwrap();
     nb.set_space_appearance("proj", Some("#8b5cf6".into()), Some("flag".into()))
         .unwrap();
@@ -340,7 +340,7 @@ fn space_appearance_persists_and_clears() {
 
 #[test]
 fn delete_space_trashes_it_and_refuses_the_fixed_ones() {
-    let (dir, mut nb) = notebook();
+    let (dir, nb) = notebook();
     nb.create_space("proj", "tasks").unwrap();
     assert!(dir.path().join("proj").is_dir());
 
@@ -417,7 +417,7 @@ fn the_same_hostile_names_are_refused_at_every_door() {
     // (`relpath::is_safe_leaf`), so one table: whatever climbs, hides or
     // carries a separator is refused wherever it is typed, and each door
     // still answers with its own error.
-    let (_dir, mut nb) = notebook();
+    let (_dir, nb) = notebook();
 
     for hostile in [
         "",
@@ -486,7 +486,7 @@ fn a_group_renames_and_restyles_exactly_like_a_space() {
 fn a_space_keeps_its_sort_and_dragged_order_in_its_own_config() {
     // The arrangement is an app preference, so it lives in the space's
     // `.space.json` — never in the content files.
-    let (dir, mut nb) = notebook();
+    let (dir, nb) = notebook();
     nb.create_space("Space 1", "tasks").unwrap();
 
     let space = |nb: &Notebook| {
@@ -559,7 +559,7 @@ fn a_groups_members_come_back_in_the_order_the_user_dragged() {
 
 #[test]
 fn groups_nest_and_a_group_can_be_created_inside_another() {
-    let (dir, mut nb) = notebook();
+    let (dir, nb) = notebook();
     nb.create_group("Design", None).unwrap();
     nb.create_group("Clients", Some("Design")).unwrap();
     assert!(dir.path().join("Design/Clients/.group.json").is_file());

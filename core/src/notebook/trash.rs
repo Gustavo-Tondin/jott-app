@@ -78,7 +78,7 @@ impl Notebook {
                 // is `- [ ] foo`.
                 if let Some(lines) = &entry.content {
                     let mut list = self.open_list(&entry.origin)?;
-                    let restored = TaskList::from_str(&lines.join("\n"));
+                    let restored = TaskList::from_text(&lines.join("\n"));
                     let mut at = entry.index.unwrap_or(usize::MAX);
                     for line in restored.lines() {
                         match line {
