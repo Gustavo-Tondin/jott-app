@@ -12,6 +12,7 @@
   import { api, describeError } from "./lib/services/api.js";
   import { askName, askTask } from "./lib/services/dialog.js";
   import { composeTask } from "./lib/services/taskCompose.js";
+  import { makeAct } from "./lib/services/act.js";
   import { shortcutFor } from "./lib/services/shortcuts.js";
   import NameDialog from "./lib/components/NameDialog.svelte";
   import ContextMenu from "./lib/components/ContextMenu.svelte";
@@ -32,14 +33,9 @@
   import TabBar from "./lib/shell/TabBar.svelte";
   import TitleBar from "./lib/shell/TitleBar.svelte";
   import { buttonLayout } from "./lib/shell/windowButtons.js";
-  import {
-    clampWidth,
-    draggedWidth,
-    DEFAULT_SIDEBAR,
-    SIDEBAR,
-    PANEL,
-  } from "./lib/shell/sidebarWidth.js";
+  import { clampWidth, SIDEBAR, PANEL } from "./lib/shell/sidebarWidth.js";
   import ResizeHandles from "./lib/shell/ResizeHandles.svelte";
+  import PanelResizer from "./lib/shell/PanelResizer.svelte";
   import Sidebar from "./lib/shell/Sidebar.svelte";
   import PageHeader from "./lib/shell/PageHeader.svelte";
   import { folderOf, listName, listTitle } from "./lib/services/paths.js";
@@ -50,6 +46,7 @@
   import { reader } from "./lib/services/features.js";
   import { S } from "./lib/services/strings.js";
   import * as Tabs from "./lib/shell/tabs.js";
+  import { reachable, spaceOfView, titleOf, viewFromId } from "./lib/shell/views.js";
   import { watchWindowState, toggleFullscreen } from "./lib/shell/windowState.js";
 
   let notebook = $state(null);
@@ -95,79 +92,6 @@
     api.panelWidth().then((w) => (panelWidth = clampWidth(w, PANEL)), () => {});
   });
 
-  /// The two edges, as one gesture written once.
-  ///
-  /// The only differences are which neighbour is being measured, which way the
-  /// pointer's travel counts (the right panel's handle is on the side its
-  /// width grows away from), and where the result is kept.
-  const EDGES = {
-    sidebar: {
-      limits: SIDEBAR,
-      sign: 1,
-      neighbour: (handle) => handle.previousElementSibling,
-      get: () => sidebarWidth,
-      set: (w) => (sidebarWidth = w),
-      remember: (w) => api.rememberSidebarWidth(w),
-    },
-    panel: {
-      limits: PANEL,
-      sign: -1,
-      neighbour: (handle) => handle.nextElementSibling,
-      get: () => panelWidth,
-      set: (w) => (panelWidth = w),
-      remember: (w) => api.rememberPanelWidth(w),
-    },
-  };
-
-  /// Grabs an edge. The pointer is captured by the handle, so the drag
-  /// survives the pointer crossing into the panel it is resizing.
-  function startResize(event, which) {
-    if (event.button !== 0) return;
-    event.preventDefault();
-    const edge = EDGES[which];
-    const handle = event.currentTarget;
-    // Where it starts is how wide the panel ACTUALLY is right now — measured,
-    // not assumed, because until the first drag the width comes from the
-    // stylesheet.
-    const startWidth =
-      edge.neighbour(handle)?.getBoundingClientRect().width ?? edge.limits.default;
-    const startX = event.clientX;
-    handle.setPointerCapture?.(event.pointerId);
-    resizing = true;
-
-    const move = (e) =>
-      edge.set(draggedWidth(startWidth, edge.sign * (e.clientX - startX), edge.limits));
-    const stop = () => {
-      handle.removeEventListener("pointermove", move);
-      handle.removeEventListener("pointerup", stop);
-      handle.removeEventListener("pointercancel", stop);
-      resizing = false;
-      // Once per drag, on release — not on every pointer move.
-      const width = edge.get();
-      if (width) edge.remember(width).catch(() => {});
-    };
-    handle.addEventListener("pointermove", move);
-    handle.addEventListener("pointerup", stop);
-    handle.addEventListener("pointercancel", stop);
-  }
-
-  /// The same handles from the keyboard: a separator that can be focused has
-  /// to be operable, or it is a control only a mouse can reach.
-  function nudgeResize(event, which) {
-    const step = event.shiftKey ? 32 : 8;
-    const by = event.key === "ArrowLeft" ? -step : event.key === "ArrowRight" ? step : 0;
-    if (!by) return;
-    event.preventDefault();
-    const edge = EDGES[which];
-    const next = draggedWidth(
-      edge.get() ?? edge.limits.default,
-      edge.sign * by,
-      edge.limits,
-    );
-    edge.set(next);
-    if (next) edge.remember(next).catch(() => {});
-  }
-
   /// Which window buttons the desktop wants, and where. Read once: there is no
   /// live signal for it, and the fallback is the standard set, so the worst
   /// case is a restart after changing the setting.
@@ -186,31 +110,9 @@
   let active = $state(0);
   let rawView = $derived(Tabs.currentView(tabs[active]) ?? { kind: "home" });
 
-  /// Is this view still somewhere the app goes? A part switched off takes its
-  /// screens with it, and a tab left pointing at one (restored from the last
-  /// session, or open when the switch flipped) falls back to Home rather than
-  /// showing a dead panel.
-  function reachable(v) {
-    switch (v?.kind) {
-      case "tasks":
-      case "list":
-      case "completed":
-        return f("tasks");
-      case "period":
-        return f(v.period === "week" ? "week" : "myDay");
-      case "notes":
-      case "note":
-        return f("notes");
-      case "tags":
-        return f("taskTags");
-      default:
-        return true;
-    }
-  }
-
-  // Nothing is closed behind the user's back: the tab stays, it just shows the
-  // Home until the feature comes back.
-  let view = $derived(reachable(rawView) ? rawView : { kind: "home" });
+  // A view whose part of the app was switched off shows the Home instead
+  // (shell/views.js); nothing is closed behind the user's back.
+  let view = $derived(reachable(rawView, f) ? rawView : { kind: "home" });
 
   /// Opens a view in its own tab (focusing it if already open).
   function openTab(next) {
@@ -315,33 +217,26 @@
   // destination that exists no matter what is on screen.
 
   const quickTask = async () => {
-    try {
-      const intent = await askTask({
-        lists: moveTargets,
-        defaultList: layout.inbox,
-        dateFormat: layout.dateDisplayFormat,
-        f,
-      });
-      if (!intent) return;
-      await composeTask(intent);
-      reload();
-      await refreshNotebook();
-    } catch (e) {
-      fail(e);
-    }
+    const intent = await askTask({
+      lists: moveTargets,
+      defaultList: layout.inbox,
+      dateFormat: layout.dateDisplayFormat,
+      f,
+    });
+    if (!intent) return;
+    change(() => composeTask(intent), reload);
   };
 
   const quickNote = async () => {
-    try {
-      const title = await askName(S.promptNewNote, S.newNoteTitle, { confirm: S.create });
-      if (!title) return;
-      const path = await api.createNote(layout.notesFolder, layout.notesInbox, title.trim());
-      reload();
-      await refreshNotebook();
-      showNote(path);
-    } catch (e) {
-      fail(e);
-    }
+    const title = await askName(S.promptNewNote, S.newNoteTitle, { confirm: S.create });
+    if (!title) return;
+    change(
+      () => api.createNote(layout.notesFolder, layout.notesInbox, title.trim()),
+      (path) => {
+        reload();
+        showNote(path);
+      },
+    );
   };
 
   /// Which period's suggestions the right panel is showing, or null.
@@ -383,22 +278,6 @@
     const id = Tabs.viewId(view);
     if (notebook) api.rememberScreen(id).catch(() => {});
   });
-
-  function restoreView(id) {
-    if (!id) return null;
-    if (id === "day" || id === "week") return { kind: "period", period: id };
-    if (
-      id === "home" ||
-      id === "completed" ||
-      id === "notes" ||
-      id === "tasks" ||
-      id === "settings"
-    )
-      return { kind: id };
-    if (id.startsWith("list:")) return { kind: "list", list: id.slice(5) };
-    if (id.startsWith("sp:")) return { kind: "space", sp: id.slice(3) };
-    return null;
-  }
 
   // The addresses the core creates travel with the notebook. The frontend
   // used to mirror them in a names.js, and when the core renamed the
@@ -499,79 +378,22 @@
     (notebook?.lists ?? []).filter((entry) => entry.name !== layout.completedName),
   );
 
-  /// What a tab calls itself. Titles are derived, never stored: renaming a
-  /// list has to reach the tab showing it.
-  function titleOf(v) {
-    switch (v?.kind) {
-      case "home":
-        return S.home;
-      case "period":
-        return v.period === "day" ? S.today : S.week;
-      case "tasks":
-        return S.tasks;
-      case "notes":
-        return S.notes;
-      case "settings":
-        return S.settings;
-      case "completed":
-        return S.completed;
-      case "tags":
-        return S.tagsManagement;
-      case "trash":
-        return S.trash;
-      case "list":
-        return listTitle(v.list);
-      case "note":
-        return listName(v.path);
-      case "space":
-        return (
-          spaces.find((w) => w.path === v.sp)?.name ?? v.sp
-        );
-      default:
-        return S.untitled;
-    }
-  }
+  /// What a tab calls itself (shell/views.js), with the notebook's own display
+  /// names for the spaces.
+  const title = (v) => titleOf(v, spaces);
 
-  /// The colour of the space a view comes from — feeds the tab dot. A
-  /// view of a fixed space (or of no space at all) returns null and
-  /// the dot falls back to the theme brand in CSS.
-  ///
-  function colorOf(v) {
-    const folder =
-      v?.kind === "space"
-        ? v.sp
-        : v?.kind === "list"
-          ? folderOf(v.list)
-          : v?.kind === "note"
-            ? v.folder
-            : null;
-    return (folder && spColors[folder]) ?? null;
-  }
+  /// The colour of the space a view comes from — feeds the tab dot. A fixed
+  /// space carries none, so its tab falls back to the theme brand in CSS.
+  const colorOf = (v) => spColors[spaceOfView(v, layout)] ?? null;
 
   // ---- what can be done to the SCREEN itself (2026-08-17) ----
   // Four actions that make sense wherever the user is, so they are written
   // once and served twice: from the page ⋮ and from a right-click on the empty
   // canvas. Which ones apply is decided by the view, never by the caller.
 
-  /// The space the current screen lives in, as a root-relative path — null on
-  /// a screen that is not inside one (Home, Settings, the Trash).
-  let currentSpace = $derived.by(() => {
-    switch (view.kind) {
-      case "space":
-        return view.sp;
-      case "list":
-        return folderOf(view.list);
-      case "note":
-        return view.folder;
-      case "tasks":
-      case "completed":
-        return layout.tasksFolder;
-      case "notes":
-        return layout.notesFolder;
-      default:
-        return null;
-    }
-  });
+  /// The space the current screen lives in (shell/views.js) — null on a screen
+  /// that is inside none.
+  let currentSpace = $derived(spaceOfView(view, layout));
 
   /// The user space being looked at, when it is one — the fixed three are the
   /// app's own folders and are not renamed from here (`userSpaces` is already
@@ -583,7 +405,7 @@
   /// What "here" is called, for the menu label and the search box.
   let hereLabel = $derived(
     view.kind === "note"
-      ? openNote.title || titleOf(view)
+      ? openNote.title || title(view)
       : currentSpace
         ? (spaces.find((sp) => sp.path === currentSpace)?.name ?? currentSpace)
         : S.thisNotebook,
@@ -691,18 +513,13 @@
 
   let noteEditor = $state(null);
 
-  async function noteAction(fn) {
-    try {
-      // Anything still being typed goes out first: renaming or deleting
-      // underneath a pending write would lose it.
+  /// Anything still being typed goes out first: renaming or deleting
+  /// underneath a pending write would lose it.
+  const noteAction = (fn) =>
+    change(async () => {
       await noteEditor?.flushPending();
       await fn();
-      await refreshNotebook();
-      reload();
-    } catch (e) {
-      fail(e);
-    }
-  }
+    }, reload);
 
   const toggleNotePin = () =>
     noteAction(async () => {
@@ -765,7 +582,7 @@
       notebook = await api.openNotebook(path);
       await refreshNotebook();
 
-      const restored = restoreView(await api.screenToRestore());
+      const restored = viewFromId(await api.screenToRestore());
       if (restored) goTo(restored);
 
       scheduleTurn();
@@ -787,6 +604,20 @@
   }
 
 
+  // ---- changing the notebook ----
+  // Every one of these takes the same shape: do it, re-read the snapshot, and
+  // route a failure to the error banner instead of an unhandled rejection —
+  // which is exactly the `act` every screen already uses (services/act.js).
+  // The shell was the one caller writing it out by hand, eighteen times over.
+  // `change(fn, after)` runs `after` on the RELOADED notebook, which is what
+  // lets a new space be opened once the snapshot carries it.
+  const change = makeAct({ load: refreshNotebook, onError: fail });
+
+  /// Only where there is somewhere to write. A read-only notebook still
+  /// reorders nothing, and the sidebar's own guard is not enough: a drop can
+  /// also come from a drag that started before the notebook was reopened.
+  const canWrite = () => !notebook?.readOnly;
+
   // Sidebar drag-to-reorder (the shared `reorderable` action reports from→to).
   // The order is a notebook preference kept in the config, never a change to
   // the files: lists and spaces sort by it, everything else stays put.
@@ -797,16 +628,18 @@
     return next;
   };
 
-  async function reorderLists(from, to) {
-    if (notebook.readOnly) return;
-    const names = moveItem(userLists.map((l) => l.name), from, to);
-    try {
-      await api.setOrder(`lists:${layout.tasksFolder}`, names);
-      await refreshNotebook();
-    } catch (e) {
-      fail(e);
-    }
-  }
+  const reorderLists = (from, to) =>
+    canWrite() &&
+    change(() =>
+      api.setOrder(
+        `lists:${layout.tasksFolder}`,
+        moveItem(
+          userLists.map((l) => l.name),
+          from,
+          to,
+        ),
+      ),
+    );
 
   /// The sidebar's whole running order — groups and loose spaces alike,
   /// flattened to names. One namespace orders both: a group's members are
@@ -816,45 +649,26 @@
   /// It used to renumber `userSpaces` from indices that came from the
   /// LOOSE ones — so with any group in the notebook the drag reordered the
   /// wrong things, and a group could not be dragged at all.
-  async function reorderEntries(names) {
-    if (notebook.readOnly) return;
-    try {
-      await api.setOrder("spaces", names);
-      await refreshNotebook();
-    } catch (e) {
-      fail(e);
-    }
-  }
+  const reorderEntries = (names) => canWrite() && change(() => api.setOrder("spaces", names));
 
   /// Two spaces dropped one on the other become a group. The name is asked
   /// for, and cancelling leaves everything where it was — a gesture that
   /// silently reorganises the sidebar is a gesture nobody trusts.
   async function groupWith(host, moving) {
-    if (notebook.readOnly) return;
+    if (!canWrite()) return;
     const name = await askName(S.nameGroup, host.name, { confirm: S.create });
     if (!name?.trim()) return;
-    try {
+    change(async () => {
       const folder = await api.createGroup(name.trim());
       // Paths, both sides: the new group's and the two spaces' — moving
       // one names it by the address it has RIGHT NOW, and the first move
       // changes the second one's parent, not its own address.
       await api.moveSpace(host.path, folder);
       await api.moveSpace(moving.path, folder);
-      await refreshNotebook();
-    } catch (e) {
-      fail(e);
-    }
+    });
   }
 
-  async function setSpacesSort(sort) {
-    if (notebook.readOnly) return;
-    try {
-      await api.setSpacesSort(sort);
-      await refreshNotebook();
-    } catch (e) {
-      fail(e);
-    }
-  }
+  const setSpacesSort = (sort) => canWrite() && change(() => api.setSpacesSort(sort));
 
   // ---- space management (Fase 11) ----
   // A space has one function, chosen at creation (spec 3.5): the caller
@@ -866,135 +680,70 @@
       "",
       { confirm: S.create },
     );
-    if (!name || !name.trim()) return;
-    try {
-      const folder = group
-        ? await api.createSpaceIn(name.trim(), kind, group)
-        : await api.createSpace(name.trim(), kind);
-      await refreshNotebook();
-      openTab({ kind: "space", sp: folder });
-    } catch (e) {
-      fail(e);
-    }
+    if (!name?.trim()) return;
+    change(
+      () =>
+        group
+          ? api.createSpaceIn(name.trim(), kind, group)
+          : api.createSpace(name.trim(), kind),
+      (folder) => openTab({ kind: "space", sp: folder }),
+    );
   }
 
   async function renameSpaceTo(folder, current) {
     const to = await askName(S.promptRenameSpace(current), current);
     if (to == null) return;
-    try {
-      await api.renameSpace(folder, to.trim());
-      await refreshNotebook();
-    } catch (e) {
-      fail(e);
-    }
+    change(() => api.renameSpace(folder, to.trim()));
   }
 
-  async function setSpaceAppearance(folder, color, icon) {
-    try {
-      await api.setSpaceAppearance(folder, color ?? null, icon ?? null);
-      await refreshNotebook();
-    } catch (e) {
-      fail(e);
-    }
-  }
+  const setSpaceAppearance = (folder, color, icon) =>
+    change(() => api.setSpaceAppearance(folder, color ?? null, icon ?? null));
 
-  async function deleteSpaceAt(folder, name) {
+  function deleteSpaceAt(folder, name) {
     if (!confirm(S.confirmDeleteSpace(name))) return;
-    try {
-      await api.deleteSpace(folder);
-      await refreshNotebook();
+    change(
+      () => api.deleteSpace(folder),
       // If we were looking at it, it is gone — go Home.
-      if (view.kind === "space" && view.sp === folder) goTo({ kind: "home" });
-    } catch (e) {
-      fail(e);
-    }
+      () => view.kind === "space" && view.sp === folder && goTo({ kind: "home" }),
+    );
   }
 
   // ---- groups (reestruturação 2026-07-30; they nest since 2026-08-11) ----
   async function createGroup(group = null) {
     const name = await askName(S.nameGroup, "", { confirm: S.create });
     if (!name) return;
-    try {
-      await api.createGroup(name, group);
-      await refreshNotebook();
-    } catch (e) {
-      fail(e);
-    }
+    change(() => api.createGroup(name, group));
   }
 
   /// A group moved into another group, or back out of one (`null`).
-  async function moveGroupTo(name, intoGroup) {
-    try {
-      await api.moveGroup(name, intoGroup);
-      await refreshNotebook();
-    } catch (e) {
-      fail(e);
-    }
-  }
+  const moveGroupTo = (name, intoGroup) => change(() => api.moveGroup(name, intoGroup));
 
   async function renameGroupTo(folder, current) {
     const to = await askName(S.renameGroup, current);
     if (to == null) return;
-    try {
-      await api.renameGroup(folder, to);
-      await refreshNotebook();
-    } catch (e) {
-      fail(e);
-    }
+    change(() => api.renameGroup(folder, to));
   }
 
   // The group's colour and icon — the group is where the colour is chosen
   // now; a space inside one follows it (user call, 2026-08-04).
-  async function setGroupAppearanceAt(folder, color, icon) {
-    try {
-      await api.setGroupAppearance(folder, color, icon);
-      await refreshNotebook();
-    } catch (e) {
-      fail(e);
-    }
-  }
+  const setGroupAppearanceAt = (folder, color, icon) =>
+    change(() => api.setGroupAppearance(folder, color, icon));
 
-  async function deleteGroupAt(folder, name) {
+  function deleteGroupAt(folder, name) {
     if (!confirm(S.confirmDeleteGroup(name))) return;
-    try {
-      await api.deleteGroup(folder);
-      await refreshNotebook();
-    } catch (e) {
-      fail(e);
-    }
+    change(() => api.deleteGroup(folder));
   }
 
-  async function moveSpaceTo(name, intoGroup) {
-    try {
-      await api.moveSpace(name, intoGroup);
-      await refreshNotebook();
-    } catch (e) {
-      fail(e);
-    }
-  }
+  const moveSpaceTo = (name, intoGroup) => change(() => api.moveSpace(name, intoGroup));
 
   // A space's arrangement lives in its own .space.json. The refresh
   // brings the new sort/order back through the snapshot, which is what
   // re-arranges the cards on screen.
-  async function setSpaceSort(sort) {
-    if (view.kind !== "space") return;
-    try {
-      await api.setSpaceSort(view.sp, sort);
-      await refreshNotebook();
-    } catch (e) {
-      fail(e);
-    }
-  }
+  const setSpaceSort = (sort) =>
+    view.kind === "space" && change(() => api.setSpaceSort(view.sp, sort));
 
-  async function setSpaceOrder(order) {
-    if (view.kind !== "space") return;
-    try {
-      await api.setSpaceOrder(view.sp, order);
-      await refreshNotebook();
-    } catch (e) {
-      fail(e);
-    }
-  }
+  const setSpaceOrder = (order) =>
+    view.kind === "space" && change(() => api.setSpaceOrder(view.sp, order));
 
   async function renameCurrentList() {
     if (view.kind !== "list") return;
@@ -1002,32 +751,30 @@
     const current = listName(from);
     const to = await askName(S.promptRenameList(current), current);
     if (!to || to.trim() === current) return;
-    try {
-      await api.renameList(from, to.trim());
-      await refreshNotebook();
-      // A rename never changes the folder: swap only the file name, and let
-      // the tab follow the file instead of pointing at a name that is gone.
-      const next = { kind: "list", list: `${folderOf(from)}/${to.trim()}.md` };
-      tabs = Tabs.replaceView(tabs, Tabs.viewId({ kind: "list", list: from }), next);
-      reload();
-    } catch (e) {
-      fail(e);
-    }
+    change(
+      () => api.renameList(from, to.trim()),
+      () => {
+        // A rename never changes the folder: swap only the file name, and let
+        // the tab follow the file instead of pointing at a name that is gone.
+        const next = { kind: "list", list: `${folderOf(from)}/${to.trim()}.md` };
+        tabs = Tabs.replaceView(tabs, Tabs.viewId({ kind: "list", list: from }), next);
+        reload();
+      },
+    );
   }
 
-  async function deleteCurrentList() {
+  function deleteCurrentList() {
     if (view.kind !== "list") return;
     const list = view.list;
     if (!confirm(S.confirmDeleteList(listTitle(list)))) return;
-    try {
-      const rescued = await api.deleteList(list);
-      await refreshNotebook();
-      goTo({ kind: "list", list: layout.inbox });
-      reload();
-      if (rescued > 0) error = S.tasksRescued(rescued, listTitle(list));
-    } catch (e) {
-      fail(e);
-    }
+    change(
+      () => api.deleteList(list),
+      (rescued) => {
+        goTo({ kind: "list", list: layout.inbox });
+        reload();
+        if (rescued > 0) error = S.tasksRescued(rescued, listTitle(list));
+      },
+    );
   }
 
   // The rollover has to happen with the app open too, not only when the
@@ -1128,7 +875,7 @@
       <TabBar
         {tabs}
         {active}
-        {titleOf}
+        titleOf={title}
         {colorOf}
         onSelect={(i) => (active = i)}
         onClose={closeTab}
@@ -1194,29 +941,21 @@
            preference. A focusable separator, so the width is also reachable
            from the keyboard. -->
       {#if !railed}
-        <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-        <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
-        <!-- A separator that can be MOVED is a widget, and the ARIA spec has a
-             name for it: a focusable separator, which takes a value and the
-             arrow keys. The linter only knows the static kind. -->
-        <div
-          class="shell__resizer"
-          role="separator"
-          aria-orientation="vertical"
-          aria-label={S.resizeSidebar}
-          aria-valuenow={sidebarWidth ?? DEFAULT_SIDEBAR}
-          aria-valuetext={S.sidebarWidthValue(sidebarWidth ?? DEFAULT_SIDEBAR)}
-          tabindex="0"
-          onpointerdown={(e) => startResize(e, "sidebar")}
-          onkeydown={(e) => nudgeResize(e, "sidebar")}
-        ></div>
+        <PanelResizer
+          limits={SIDEBAR}
+          width={sidebarWidth}
+          label={S.resizeSidebar}
+          onWidth={(w) => (sidebarWidth = w)}
+          onCommit={(w) => api.rememberSidebarWidth(w).catch(() => {})}
+          onResizing={(on) => (resizing = on)}
+        />
       {/if}
 
       <!-- CENTRE: page header, then the screen itself. The tabs moved up into
            the title bar; the header keeps the back/forward, title and ••• menu. -->
       <section class="shell__centre" data-region="canvas">
         <PageHeader
-          title={view.kind === "tasks" && tasksSub ? tasksSub : titleOf(view)}
+          title={view.kind === "tasks" && tasksSub ? tasksSub : title(view)}
           context={view.kind === "tasks" && tasksSub ? S.tasks : ""}
           subtitle={view.kind === "home"
             ? formatDate(clock?.today ?? "", layout.dateDisplayFormat)
@@ -1265,6 +1004,17 @@
             </div>
           {/if}
 
+          <!-- The screens, each handed what it needs, one prop at a time.
+               TRIED AND REVERTED (2026-08-18): gathering the five or six props
+               they share into one `$derived` object and spreading it. It reads
+               shorter and it is wrong — a spread makes every prop of the child
+               a getter over ONE object, so a screen's `$effect(() => { list;
+               reloadKey; load(); })` re-runs whenever anything else in that
+               object changes. Selecting a task re-read the whole list from
+               disk, and the fresh objects lost the identity the selection is
+               matched by, so the card stopped being highlighted. The test
+               "an opened task is highlighted even with no id yet" is what
+               caught it; it is still the one that would catch it again. -->
           {#if view.kind === "home"}
             <HomeView
               dateFormat={layout.dateDisplayFormat}
@@ -1292,7 +1042,7 @@
             <TasksView
               dateFormat={layout.dateDisplayFormat}
               inbox={layout.inbox}
-              inboxWidget={inboxWidget}
+              {inboxWidget}
               lists={notebook.lists}
               {tags}
               completedName={layout.completedName}
@@ -1412,19 +1162,17 @@
            Only while there is a panel to resize; the same separator the
            sidebar's edge is, mirrored. -->
       {#if suggesting || selected}
-        <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-        <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
-        <div
-          class="shell__resizer"
-          role="separator"
-          aria-orientation="vertical"
-          aria-label={S.resizePanel}
-          aria-valuenow={panelWidth ?? PANEL.default}
-          aria-valuetext={S.sidebarWidthValue(panelWidth ?? PANEL.default)}
-          tabindex="0"
-          onpointerdown={(e) => startResize(e, "panel")}
-          onkeydown={(e) => nudgeResize(e, "panel")}
-        ></div>
+        <!-- Its own handle, on the side the panel opens from: the same
+             separator, mirrored (`sign`). -->
+        <PanelResizer
+          limits={PANEL}
+          sign={-1}
+          width={panelWidth}
+          label={S.resizePanel}
+          onWidth={(w) => (panelWidth = w)}
+          onCommit={(w) => api.rememberPanelWidth(w).catch(() => {})}
+          onResizing={(on) => (resizing = on)}
+        />
       {/if}
 
       {#if suggesting}

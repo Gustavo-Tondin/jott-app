@@ -1166,6 +1166,27 @@ describe("App", () => {
     expect(await screen.findByLabelText("resize panel")).toBeTruthy();
   });
 
+  test("the two handles answer the arrow keys in opposite directions", async () => {
+    // One gesture, mirrored (shell/PanelResizer.svelte): the right panel's
+    // handle sits on the side its width grows AWAY from, so the same key that
+    // narrows the sidebar widens the panel. A separator that can be moved has
+    // to be operable from the keyboard, or the width is mouse-only.
+    shell({ sidebar_width: 300, panel_width: 320, remember_panel_width: null });
+    render(App);
+    await screen.findByText("Comprar leite");
+    await userEvent.click(await screen.findByText("Comprar leite"));
+
+    const sidebar = await screen.findByLabelText("resize sidebar");
+    sidebar.focus();
+    await userEvent.keyboard("{ArrowLeft}");
+    expect(sidebar.getAttribute("aria-valuenow")).toBe("292");
+
+    const panel = await screen.findByLabelText("resize panel");
+    panel.focus();
+    await userEvent.keyboard("{ArrowLeft}");
+    expect(panel.getAttribute("aria-valuenow")).toBe("328");
+  });
+
   test("an absurd stored width is clamped instead of taking over the window", async () => {
     shell({ sidebar_width: 9000 });
     render(App);
