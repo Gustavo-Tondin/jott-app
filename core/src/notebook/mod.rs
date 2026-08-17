@@ -55,7 +55,7 @@ pub enum OriginAction {
 /// Day and Week show tasks from several lists at once, so the list's address
 /// has to travel with the task — without it the UI could not tell the core
 /// which file to act on. `path` is relative to the notebook root
-/// (`Tasks/Compras.md`); the display name is the file stem, derived by
+/// (`jott.tasks/Compras.md`); the display name is the file stem, derived by
 /// whoever shows it.
 #[derive(Debug, Clone, PartialEq, serde::Serialize)]
 pub struct ListedTask {
@@ -84,9 +84,6 @@ pub enum SuggestionGroup {
     /// Everything else, in the order the lists have it.
     Lists,
 }
-
-/// How many days ahead still counts as "soon".
-const SOON_WINDOW_DAYS: i64 = 3;
 
 /// A task offered for a period, and the reason it is being offered.
 #[derive(Debug, Clone, PartialEq, serde::Serialize)]
@@ -121,7 +118,7 @@ pub struct ListEntry {
 }
 
 /// Splits a root-relative list address into folder part and list name:
-/// `Tasks/Compras.md` → (`Tasks`, `Compras`).
+/// `jott.tasks/Compras.md` → (`jott.tasks`, `Compras`).
 ///
 /// Rejects everything that could escape the notebook — the address arrives
 /// from user input and config files. Note the inversion from the old

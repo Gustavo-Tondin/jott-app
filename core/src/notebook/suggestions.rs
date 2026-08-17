@@ -11,6 +11,9 @@ use crate::COMPLETED_LIST;
 
 use super::*;
 
+/// How many days ahead still counts as "soon".
+const SOON_WINDOW_DAYS: i64 = 3;
+
 impl Notebook {
     /// Open tasks whose due date falls inside `period` — today for the Day,
     /// the current week for the Week (a date earlier than either counts too:
