@@ -1,18 +1,18 @@
-/* unsupported-widget.css — the visual layer of UnsupportedWidget.svelte.
- * Markup: src/lib/widgets/UnsupportedWidget.svelte. Selectors are the stable BEM hooks a theme
+/* unsupported-space.css — the visual layer of UnsupportedSpace.svelte.
+ * Markup: src/lib/spaces/UnsupportedSpace.svelte. Selectors are the stable BEM hooks a theme
  * may restyle; components read tokens only. */
 
 @layer components {
-  /* A dashed card, the same gesture the "add a widget" card uses: something
+  /* A dashed card: something
      that is not content yet, or not content this build understands. */
-  .unsupported-widget {
+  .unsupported-space {
     border: 0.0625rem dashed var(--theme-line);
     border-radius: var(--theme-radius-md);
     padding: var(--theme-space-12) var(--theme-space-16);
     color: var(--theme-ink-muted);
     font-size: var(--theme-text-14);
   }
-  .unsupported-widget__body {
+  .unsupported-space__body {
     margin: var(--theme-space-4) 0 0;
   }
 }

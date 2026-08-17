@@ -79,10 +79,3 @@ export function stored(key, value) {
 export function reader(features) {
   return (key) => on(features, key);
 }
-
-/// The widget types the notebook offers right now. A type switched off is not
-/// drawn AND cannot be added; a type the app does not KNOW is a different
-/// thing entirely (it gets the unsupported card, and its folder is left alone).
-export function enabledWidgetKinds(features) {
-  return ["tasks", "notes"].filter((kind) => on(features, kind));
-}

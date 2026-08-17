@@ -1,5 +1,5 @@
 // The actions a task card offers, wherever it is drawn — Home, a list screen
-// or a tasks widget. Each of them repeated the same four bodies, and each copy
+// or a tasks space. Each of them repeated the same four bodies, and each copy
 // had to remember the two rules that are easy to lose:
 //
 //  1. the id is LAZY, so every action resolves one first (`ensureTaskId`) —

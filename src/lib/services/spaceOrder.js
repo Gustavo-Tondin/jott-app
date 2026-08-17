@@ -1,5 +1,5 @@
-// How a widget arranges its items — the one implementation both the tasks
-// and the notes widget read (princípio 7).
+// How a space arranges its items — the one implementation both the tasks
+// screen and the notepad read (princípio 7).
 //
 // The preference lives in the space's own `.space.json` (`sort` + `order`,
 // Etapa 1 2026-08-04); the content files never carry it. This module is pure:

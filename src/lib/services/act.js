@@ -1,10 +1,11 @@
-// The one shape every screen and widget uses to change the notebook: do it,
+// The one shape every screen uses to change the notebook: do it,
 // reload what is on screen, tell the shell — and route a failure to the error
 // banner instead of an unhandled rejection.
 //
 // It was written six times over (ListView, PeriodView, HomeView, TagsView and
-// both widgets), each copy slightly its own. Princípio 7: the behaviour that
-// shows up everywhere is a capability, not a snippet to paste.
+// both space screens), each copy slightly its own — and a seventh time in the
+// shell, eighteen times over. Princípio 7: the behaviour that shows up
+// everywhere is a capability, not a snippet to paste.
 
 /// Builds the `act(fn, after)` of a screen.
 ///

@@ -71,7 +71,7 @@ const { default: CompletedView } = await import("./screens/CompletedView.svelte"
 const { default: TaskInspector } = await import("./components/TaskInspector.svelte");
 const { default: App } = await import("../App.svelte");
 const { default: SpaceView } = await import("./screens/SpaceView.svelte");
-const { default: NotesWidget } = await import("./widgets/NotesWidget.svelte");
+const { default: NotesSpace } = await import("./spaces/NotesSpace.svelte");
 const { default: NoteEditor } = await import("./components/NoteEditor.svelte");
 const { default: HomeView } = await import("./screens/HomeView.svelte");
 const { default: TasksView } = await import("./screens/TasksView.svelte");
@@ -1610,7 +1610,7 @@ describe("SpaceView", () => {
     render(SpaceView, {
       props: { space: future, lists, counts: {}, onSelectTask: noop },
     });
-    expect(await screen.findByText('"hologram" widget')).toBeTruthy();
+    expect(await screen.findByText('"hologram" space')).toBeTruthy();
   });
 
   test("the ⋮ menu offers the orderings and persists the choice", async () => {
@@ -1628,7 +1628,7 @@ describe("SpaceView", () => {
     await screen.findAllByText("Project A");
 
     // The orderings live one level in, behind "Sort" (2026-08-05).
-    await userEvent.click(screen.getByLabelText("widget options"));
+    await userEvent.click(screen.getByLabelText("space options"));
     await userEvent.click(await screen.findByText("Sort"));
     await userEvent.click(await screen.findByText(/Sort by name/));
 
@@ -1685,7 +1685,7 @@ describe("SpaceView", () => {
         el.textContent.trim(),
       );
     expect(titles()).toEqual(["banana", "Amora"]);
-    expect(document.querySelector(".tasks-widget__pin-divider")).toBeTruthy();
+    expect(document.querySelector(".tasks-space__pin-divider")).toBeTruthy();
 
     // Unpinning the pinned one goes through the bridge with a real id.
     await userEvent.click(screen.getAllByLabelText("Unpin")[0]);
@@ -1722,7 +1722,7 @@ describe("SpaceView", () => {
     });
     await screen.findByText("Primeira");
 
-    const rows = container.querySelectorAll(".tasks-widget__list .task-row");
+    const rows = container.querySelectorAll(".tasks-space__list .task-row");
     rows.forEach((el, i) => {
       el.getBoundingClientRect = () => ({
         left: 0, right: 200, width: 200,
@@ -1765,7 +1765,7 @@ describe("SpaceView", () => {
     });
     await screen.findByText("Primeira");
 
-    const rows = container.querySelectorAll(".tasks-widget__list .task-row");
+    const rows = container.querySelectorAll(".tasks-space__list .task-row");
     rows.forEach((el, i) => {
       el.getBoundingClientRect = () => ({
         left: 0, right: 200, width: 200,
@@ -1806,7 +1806,7 @@ describe("SpaceView", () => {
     });
     await screen.findByText("Primeira");
 
-    await userEvent.click(screen.getByLabelText("widget options"));
+    await userEvent.click(screen.getByLabelText("space options"));
     await userEvent.click(await screen.findByText("Select tasks…"));
 
     // Clicking a card now picks it instead of opening the inspector.
@@ -1973,8 +1973,8 @@ describe("App with a user space", () => {
   });
 });
 
-describe("NotesWidget", () => {
-  const widget = { kind: "notes", folder: "Notes", invalidFolder: false, options: null };
+describe("NotesSpace", () => {
+  const source = { kind: "notes", folder: "Notes", invalidFolder: false, options: null };
 
   const entry = (title, extra = {}) => ({
     path: `Inbox/${title}.md`,
@@ -1987,7 +1987,7 @@ describe("NotesWidget", () => {
   });
 
   const props = (extra = {}) => ({
-    widget,
+    source,
     readOnly: false,
     notesInbox: "Inbox",
     onChanged: noop,
@@ -1999,7 +1999,7 @@ describe("NotesWidget", () => {
   test("lists the notes of its own folder", async () => {
     bridge({ list_notes: [entry("Ideia")], note_folders: ["Inbox"] });
 
-    render(NotesWidget, { props: props() });
+    render(NotesSpace, { props: props() });
 
     expect(await screen.findByText("Ideia")).toBeTruthy();
     expect(screen.getByText("preview of Ideia")).toBeTruthy();
@@ -2014,7 +2014,7 @@ describe("NotesWidget", () => {
     // filter a list it happens to have in memory.
     bridge({ list_notes: [], note_folders: [] });
 
-    render(NotesWidget, { props: props() });
+    render(NotesSpace, { props: props() });
     await userEvent.type(await screen.findByLabelText("Search notes…"), "cimento");
 
     await waitFor(() =>
@@ -2028,7 +2028,7 @@ describe("NotesWidget", () => {
   test("an empty search says so differently from an empty notebook", async () => {
     bridge({ list_notes: [], note_folders: [] });
 
-    render(NotesWidget, { props: props() });
+    render(NotesSpace, { props: props() });
     expect(await screen.findByText("No notes yet.")).toBeTruthy();
 
     await userEvent.type(screen.getByLabelText("Search notes…"), "nada");
@@ -2038,7 +2038,7 @@ describe("NotesWidget", () => {
   test("pinning goes through the core and reloads", async () => {
     bridge({ list_notes: [entry("Ideia")], note_folders: [], set_note_pinned: null });
 
-    render(NotesWidget, { props: props() });
+    render(NotesSpace, { props: props() });
     await userEvent.click(await screen.findByLabelText("pin"));
 
     await waitFor(() =>
@@ -2056,7 +2056,7 @@ describe("NotesWidget", () => {
     const opened = [];
     bridge({ list_notes: [entry("Ideia")], note_folders: [] });
 
-    render(NotesWidget, {
+    render(NotesSpace, {
       props: props({ onOpenNote: (path, folder) => opened.push([path, folder]) }),
     });
     await userEvent.click(await screen.findByText("Ideia"));
@@ -2074,7 +2074,7 @@ describe("NotesWidget", () => {
       note_folders: ["Clientes", "Inbox"],
     });
 
-    render(NotesWidget, { props: props() });
+    render(NotesSpace, { props: props() });
     await userEvent.click(await screen.findByText("folders"));
     // The folder chip, not the card footer that also names the folder.
     await userEvent.click(screen.getByRole("button", { name: "Clientes" }));
@@ -2086,7 +2086,7 @@ describe("NotesWidget", () => {
   test("a read-only notebook offers no way to write", async () => {
     bridge({ list_notes: [entry("Ideia")], note_folders: [] });
 
-    render(NotesWidget, { props: props({ readOnly: true }) });
+    render(NotesSpace, { props: props({ readOnly: true }) });
 
     await screen.findByText("Ideia");
     expect(screen.queryByText("+ new note")).toBeNull();
@@ -2195,11 +2195,11 @@ describe("NoteEditor", () => {
   });
 });
 
-describe("NotesWidget folder management", () => {
-  const widget = { kind: "notes", folder: "Notes", invalidFolder: false, options: null };
+describe("NotesSpace folder management", () => {
+  const source = { kind: "notes", folder: "Notes", invalidFolder: false, options: null };
 
   const props = (extra = {}) => ({
-    widget,
+    source,
     readOnly: false,
     notesInbox: "Inbox",
     onChanged: noop,
@@ -2224,7 +2224,7 @@ describe("NotesWidget folder management", () => {
 
   test("folder actions appear only when a folder is open", async () => {
     withFolders();
-    render(NotesWidget, { props: props() });
+    render(NotesSpace, { props: props() });
 
     // On the board there is no folder to act on, so no actions are offered.
     await screen.findByText("grid");
@@ -2243,7 +2243,7 @@ describe("NotesWidget folder management", () => {
     const { nameRequest } = await import("./services/dialog.js");
     const { get } = await import("svelte/store");
 
-    render(NotesWidget, { props: props() });
+    render(NotesSpace, { props: props() });
     await openClientes();
     await userEvent.click(screen.getByText("rename folder"));
 
@@ -2266,7 +2266,7 @@ describe("NotesWidget folder management", () => {
     withFolders();
     vi.spyOn(window, "confirm").mockReturnValue(true);
 
-    render(NotesWidget, {
+    render(NotesSpace, {
       props: props({ onError: (e) => messages.push(e.message) }),
     });
     await openClientes();
@@ -2289,7 +2289,7 @@ describe("NotesWidget folder management", () => {
     withFolders();
     vi.spyOn(window, "confirm").mockReturnValue(false);
 
-    render(NotesWidget, { props: props() });
+    render(NotesSpace, { props: props() });
     await openClientes();
     await userEvent.click(screen.getByText("delete folder"));
 
@@ -2299,7 +2299,7 @@ describe("NotesWidget folder management", () => {
 
   test("a read-only notebook offers no folder actions", async () => {
     withFolders();
-    render(NotesWidget, { props: props({ readOnly: true }) });
+    render(NotesSpace, { props: props({ readOnly: true }) });
 
     await openClientes();
     expect(screen.queryByText("delete folder")).toBeNull();
@@ -2477,7 +2477,7 @@ describe("HomeView", () => {
     render(HomeView, { props: props() });
 
     await screen.findByText("Arrumar site");
-    await userEvent.click(screen.getByLabelText("widget options"));
+    await userEvent.click(screen.getByLabelText("space options"));
     await userEvent.click(await screen.findByText("Sort"));
     await userEvent.click(await screen.findByText("Sort by name"));
 

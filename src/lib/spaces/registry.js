@@ -1,0 +1,24 @@
+// The single registry of space types (phase 7.5).
+//
+// This is THE extension point of the product: a new type of space is a new
+// entry here plus its screen — never another `{#if}` in App.svelte, never a
+// screen that has to learn about it. Community types, when they come, plug
+// into the same table.
+//
+// A kind missing from the table falls back to the "unsupported" card: the
+// space is shown, named, and its folder is left untouched — a notebook
+// written by a future version must degrade politely, never break or erase.
+
+import TasksSpace from "./TasksSpace.svelte";
+import NotesSpace from "./NotesSpace.svelte";
+import UnsupportedSpace from "./UnsupportedSpace.svelte";
+
+const REGISTRY = {
+  tasks: TasksSpace,
+  notes: NotesSpace,
+};
+
+/// The component that renders `kind`, or the unsupported card.
+export function spaceComponent(kind) {
+  return REGISTRY[kind] ?? UnsupportedSpace;
+}

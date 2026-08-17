@@ -1,5 +1,5 @@
 <script>
-  // Completed tasks, aggregated across every widget of the notebook — the
+  // Completed tasks, aggregated across every space of the notebook — the
   // Completed screen is a view over all the `Completed.md` files, not one of
   // them (spec 3.5). Unchecking sends the task back to the list it came from;
   // the core reads that from the `origin` recorded in the file.
@@ -10,7 +10,7 @@
   let { readOnly, onChanged, onError, reloadKey } = $props();
 
   /// `{ path, task }` pairs — the path is the Completed list the task sits
-  /// in, and is what uncompleting must address (there is one per widget).
+  /// in, and is what uncompleting must address (there is one per space).
   let items = $state([]);
 
   $effect(() => {

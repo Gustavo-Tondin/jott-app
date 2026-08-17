@@ -7,7 +7,7 @@
   //
   // It does not write anything: it hands back the intent, and the caller passes
   // it to `taskCompose`. So the blue button on Home can pull the fresh task into
-  // the day while the same dialog inside a space widget does not.
+  // the day while the same dialog inside a space does not.
   import { taskRequest } from "../services/dialog.js";
   import { S } from "../services/strings.js";
   import Modal from "./Modal.svelte";

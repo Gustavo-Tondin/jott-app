@@ -11,7 +11,7 @@
   import { S } from "../services/strings.js";
   import { makeAct } from "../services/act.js";
   import { taskActions, isSelectedTask } from "../services/taskActions.js";
-  import { pinnedFirst, planReorder } from "../services/widgetOrder.js";
+  import { pinnedFirst, planReorder } from "../services/spaceOrder.js";
   import TaskCards from "../components/TaskCards.svelte";
 
   let {
@@ -35,8 +35,8 @@
   const inDay = (entry) =>
     !!entry.task.id && !!dayRefs?.has(`${entry.list}#${entry.task.id}`);
 
-  // Swiping a card left deletes it — the same gesture the widget offers, and
-  // it has to work in any list, not only the ones a widget draws. No
+  // Swiping a card left deletes it — the same gesture a space's screen offers,
+  // and it has to work in any list, not only the ones a space draws. No
   // confirmation: it goes to the notebook's own trash, so it is recoverable.
   const swipeDelete = (entry) =>
     act(async () => {

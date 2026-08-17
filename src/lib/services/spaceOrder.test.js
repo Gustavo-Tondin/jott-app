@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
-import { arrange, pinnedFirst, landsPinned, planReorder } from "./widgetOrder.js";
+import { arrange, pinnedFirst, landsPinned, planReorder } from "./spaceOrder.js";
 
-// The accessors a tasks widget uses; notes swap in title/created.
+// The accessors a tasks space uses; a notepad swaps in title/created.
 const accessors = {
   nameOf: (t) => t.text,
   createdOf: (t) => t.created,

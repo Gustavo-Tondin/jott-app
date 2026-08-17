@@ -5,10 +5,10 @@
   // template — the exact failure spec 3.5 forbids.
   import { S } from "../services/strings.js";
 
-  let { widget } = $props();
+  let { source } = $props();
 </script>
 
-<section class="unsupported-widget">
-  <strong>{S.unsupportedWidgetTitle(widget.kind)}</strong>
-  <p class="unsupported-widget__body">{S.unsupportedWidgetBody}</p>
+<section class="unsupported-space">
+  <strong>{S.unsupportedSpaceTitle(source.kind)}</strong>
+  <p class="unsupported-space__body">{S.unsupportedSpaceBody}</p>
 </section>

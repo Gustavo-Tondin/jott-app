@@ -7,7 +7,7 @@
 
 import { S } from "./strings.js";
 
-/// The sortings a widget may offer, in display order. `null` is the file
+/// The sortings a space's screen may offer, in display order. `null` is the file
 /// order; `custom` is the arrangement the user dragged.
 export const SORT_LABELS = {
   null: () => S.sortFileOrder,
@@ -17,15 +17,15 @@ export const SORT_LABELS = {
   custom: () => S.sortCustom,
 };
 
-/// Builds the items of a widget's ⋮ menu (the shape `Menu.svelte` takes).
+/// Builds the items of a screen's ⋮ menu (the shape `Menu.svelte` takes).
 ///
 /// - `lead`: the type's own entries, above the shared ones;
 /// - `sorts`: which orderings this type understands (a note has no completion
-///   date, so the notes widget leaves that one out);
+///   date, so a notepad leaves that one out);
 /// - `sort` / `hasOrder`: what the space's `.space.json` currently
 ///   says — the active one is ticked, and "custom" is dead until something
 ///   was dragged.
-export function widgetMenu({
+export function spaceMenu({
   lead = [],
   sorts = [null, "name", "created", "custom"],
   sort = null,

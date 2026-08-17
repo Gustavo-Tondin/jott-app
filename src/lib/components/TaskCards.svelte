@@ -1,6 +1,6 @@
 <script>
   // A list of task cards — the one implementation Home, a list screen and a
-  // tasks widget draw their tasks through.
+  // tasks space draw their tasks through.
   //
   // The three of them had copied the same twenty lines of markup, and with it
   // the rule that is easy to get subtly wrong: the hairline that separates the
@@ -8,7 +8,7 @@
   // so the reorder action never counts it as a slot (2026-08-05).
   //
   // The block hooks come in as classes rather than being built from a name, so
-  // a grep for `.tasks-widget__list` still finds both the markup and the CSS.
+  // a grep for `.tasks-space__list` still finds both the markup and the CSS.
   import TaskRow from "./TaskRow.svelte";
   import { reorderable } from "../actions/reorder.js";
   import { swipe } from "../actions/swipe.js";

@@ -1,13 +1,13 @@
 <script>
-  // The `tasks` widget — the one block of tasks this app draws, anywhere it
+  // The `tasks` source — the one block of tasks this app draws, anywhere it
   // draws tasks: inside a space, as the Home's "Today tasks", and as each
   // tab of the fixed Tasks screen.
   //
   // Three props are what let the fixed screens host it instead of copying it
   // (2026-08-06):
   //
-  //   • `period`  — the source. Without it the widget shows its OWN folder's
-  //                 list (spec 3.5: a tasks widget is one list). With it, the
+  //   • `period`  — the source. Without it the source shows its OWN folder's
+  //                 list (spec 3.5: a tasks source is one list). With it, the
   //                 source is the Day or the Week, which spans lists, has no
   //                 arrangement of its own, and offers suggestions.
   //   • `header`  — whether the titled row is drawn. The Tasks screen has the
@@ -20,25 +20,25 @@
   // same in more than one place, so each lives in components/ or services/.
   // Suggestions are not here either — the pill only asks the shell to open the
   // right-hand panel on them (2026-08-06), because that panel outlives this
-  // widget and is where a list you act on repeatedly belongs.
+  // source and is where a list you act on repeatedly belongs.
   import { api } from "../services/api.js";
   import { S } from "../services/strings.js";
   import { askTask } from "../services/dialog.js";
   import { ensureTaskId } from "../services/taskId.js";
-  import { listName, listLabel, taskWidgetPaths } from "../services/paths.js";
+  import { listName, listLabel, taskSpacePaths } from "../services/paths.js";
   import { makeAct } from "../services/act.js";
   import { taskActions, isSelectedTask } from "../services/taskActions.js";
-  import { widgetMenu } from "../services/widgetMenu.js";
+  import { spaceMenu } from "../services/spaceMenu.js";
   import { tagColors as tagColorMap } from "../services/accent.js";
   import { composeTask } from "../services/taskCompose.js";
-  import { arrange, pinnedFirst, planReorder } from "../services/widgetOrder.js";
+  import { arrange, pinnedFirst, planReorder } from "../services/spaceOrder.js";
   import TaskCards from "../components/TaskCards.svelte";
   import TaskComposer from "../components/TaskComposer.svelte";
   import Menu from "../components/Menu.svelte";
   import Icon from "../components/Icon.svelte";
 
   let {
-    widget,
+    source,
     lists = [],
     tags = [],
     completedName = "completed",
@@ -53,7 +53,7 @@
     selectedTask = null,
     onSelectTask,
     /// `"day"` / `"week"` — the source is the period state instead of the
-    /// widget's own folder.
+    /// source's own folder.
     period = null,
     /// Whether to draw the titled header (title + New task + ⋮).
     header = true,
@@ -62,7 +62,7 @@
     /// IS the screen there, and a centred heading over a centred column reads
     /// as one thing instead of a label stuck to the left of it).
     align = "start",
-    /// Controls the HOST wants on the widget's top row, between the title and
+    /// Controls the HOST wants on the source's top row, between the title and
     /// the ⋮ — the Tasks screen's Index/Today/Week strip and week span. They
     /// go in the row rather than above it so the ⋮ stays at the far right of
     /// the same line (user call, 2026-08-06).
@@ -72,11 +72,11 @@
     /// everything is written and a second New task next to it was two ways to
     /// do one thing (2026-08-13).
     compose = "button",
-    /// Where a composed task goes by default when the widget has no list of
+    /// Where a composed task goes by default when the source has no list of
     /// its own — the notebook's Inbox, for a period source.
     defaultList = null,
-    // Persist the widget's arrangement in its `.space.json` (the host binds
-    // these to the widget's folder; the widget only reports).
+    // Persist the source's arrangement in its `.space.json` (the host binds
+    // these to the source's folder; the source only reports).
     onSetSort,
     onSetOrder,
     /// Asks the shell to show this period's suggestions in the right panel.
@@ -85,9 +85,9 @@
     onError,
   } = $props();
 
-  // The widget's own list, and the Completed file beside it. Both null for a
+  // The source's own list, and the Completed file beside it. Both null for a
   // period source, which owns no folder.
-  let paths = $derived(taskWidgetPaths(widget, lists, completedName));
+  let paths = $derived(taskSpacePaths(source, lists, completedName));
 
   let tagColors = $derived(tagColorMap(tags));
 
@@ -98,7 +98,7 @@
   let done = $state([]);
   let showCompleted = $state(false);
   /// A period's arrangement: it has no `.space.json`, so the notebook keeps it
-  /// (2026-08-06) and the widget reads it with the tasks.
+  /// (2026-08-06) and the source reads it with the tasks.
   let periodSort = $state(null);
 
   $effect(() => {
@@ -159,7 +159,7 @@
   // Same shape whatever the source; only where the preference is kept differs.
   // A period's "file order" is the order things were pulled in — the state
   // file's own — and dragging rewrites exactly that, so a period never needs
-  // the `custom` ordering the folder widget keeps in its `.space.json`.
+  // the `custom` ordering the folder source keeps in its `.space.json`.
   const accessors = {
     nameOf: (entry) => entry.task.text,
     createdOf: (entry) => entry.task.created,
@@ -168,8 +168,8 @@
   };
   const isPinned = (entry) => !!entry.task.pinned;
 
-  let sort = $derived(period ? periodSort : (widget.sort ?? null));
-  let order = $derived(period ? [] : (widget.order ?? []));
+  let sort = $derived(period ? periodSort : (source.sort ?? null));
+  let order = $derived(period ? [] : (source.order ?? []));
 
   // Pinning outranks the sort: whatever ordering is on, a pinned card is at
   // the top, with a divider under the last one.
@@ -177,11 +177,11 @@
   let shownCompleted = $derived(arrange(done, sort, order, accessors));
 
   // A period has no `.space.json` and no folder, so it offers neither an
-  // arrangement nor a move — `widgetMenu` leaves out what it is not given.
+  // arrangement nor a move — `spaceMenu` leaves out what it is not given.
   let sortMenu = $derived(
-    widgetMenu({
+    spaceMenu({
       lead: [{ label: S.selectTasks, run: () => (picking = true), disabled: readOnly }],
-      // `custom` is the folder widget's saved arrangement; a period has none,
+      // `custom` is the folder source's saved arrangement; a period has none,
       // because dragging it rewrites the state file itself.
       sorts: period
         ? [null, "name", "created", "completed"]
@@ -193,7 +193,7 @@
   );
 
   // ---- composing ----
-  // Every list a task may be written into. A widget with a list of its own
+  // Every list a task may be written into. A source with a list of its own
   // opens the chip on it; a period opens it on the notebook's Inbox.
   let composeTargets = $derived(lists.filter((entry) => entry.name !== completedName));
   let composeList = $derived(paths.list ?? defaultList ?? null);
@@ -366,17 +366,17 @@
   </button>
 {/snippet}
 
-<section class="tasks-widget">
-  {#if !period && !widget.folder}
-    <p class="tasks-widget__note tasks-widget__note--warn">{S.widgetNoLists}</p>
+<section class="tasks-space">
+  {#if !period && !source.folder}
+    <p class="tasks-space__note tasks-space__note--warn">{S.spaceNoLists}</p>
   {:else}
     <!-- The header row is ALWAYS drawn, because the ⋮ belongs in the top right
-         of every widget (user call, 2026-08-06) — `header` only decides whether
+         of every source (user call, 2026-08-06) — `header` only decides whether
          the block is titled. On the Tasks screen the strip above already names
          the place, so the row carries the ⋮ alone. -->
       <header
-        class="tasks-widget__header"
-        class:tasks-widget__header--center={align === "center"}
+        class="tasks-space__header"
+        class:tasks-space__header--center={align === "center"}
       >
         {#if toolbar || align === "center"}
           <!-- An invisible twin of the ⋮, so whatever is centred on this row —
@@ -384,24 +384,24 @@
                PANEL and not on what is left of the row. A hidden copy rather
                than a guessed width: whatever the tools grow into, the two
                sides stay equal (user call, 2026-08-06). -->
-          <span class="tasks-widget__mirror" aria-hidden="true">
+          <span class="tasks-space__mirror" aria-hidden="true">
             <span class="theme-btn--icon">
               <Icon name="dots-three-vertical" size="1rem" />
             </span>
           </span>
         {/if}
         {#if header}
-          <h3 class="theme-title tasks-widget__title" class:theme-title--sm={align !== "center"}>
-            {widget.name || listName(widget.folder)}
+          <h3 class="theme-title tasks-space__title" class:theme-title--sm={align !== "center"}>
+            {source.name || listName(source.folder)}
           </h3>
         {/if}
         {#if toolbar}{@render toolbar()}{/if}
         {#if picking}
           <!-- Selection mode: the header turns into the bulk actions. -->
-          <div class="tasks-widget__tools">
-            <span class="tasks-widget__picked">{S.selectedCount(picked.size)}</span>
+          <div class="tasks-space__tools">
+            <span class="tasks-space__picked">{S.selectedCount(picked.size)}</span>
             <select
-              class="theme-select theme-select--sm tasks-widget__move"
+              class="theme-select theme-select--sm tasks-space__move"
               aria-label={S.moveTo}
               disabled={picked.size === 0}
               onchange={(e) => {
@@ -434,9 +434,9 @@
             </button>
           </div>
         {:else}
-          <div class="tasks-widget__tools">
+          <div class="tasks-space__tools">
             {#if !readOnly && compose === "button"}
-              <button class="theme-btn theme-btn--primary tasks-widget__new" onclick={newTask}>
+              <button class="theme-btn theme-btn--primary tasks-space__new" onclick={newTask}>
                 <span>{S.newTask}</span>
                 <Icon name="plus-bold" size="1rem" />
               </button>
@@ -444,10 +444,10 @@
             <Menu items={sortMenu}>
               {#snippet trigger({ toggle })}
                 <button
-                  class="theme-btn--icon tasks-widget__more"
+                  class="theme-btn--icon tasks-space__more"
                   onclick={toggle}
-                  aria-label={S.widgetOptions}
-                  title={S.widgetOptions}
+                  aria-label={S.spaceOptions}
+                  title={S.spaceOptions}
                 >
                   <Icon name="dots-three-vertical" size="1rem" />
                 </button>
@@ -460,15 +460,15 @@
     {#if shown.length === 0}
       <!-- The wireframe's empty card holds the Suggestions pill, so an empty
            day offers a way forward instead of only saying it is empty. -->
-      <div class="theme-empty-card tasks-widget__empty">
+      <div class="theme-empty-card tasks-space__empty">
         <span>{S.noTasksYet}</span>
         {#if period && !readOnly}{@render suggestPill()}{/if}
       </div>
     {:else}
       <TaskCards
         items={shown}
-        listClass="tasks-widget__list"
-        dividerClass="tasks-widget__pin-divider"
+        listClass="tasks-space__list"
+        dividerClass="tasks-space__pin-divider"
         pinned={!period}
         showList={!!period}
         {inDay}
@@ -490,7 +490,7 @@
             <!-- An × for now. The right glyph is a struck-through sun ("take
                  this out of my day"), which has to be drawn — see the roadmap. -->
             <button
-              class="theme-btn--icon tasks-widget__unpull"
+              class="theme-btn--icon tasks-space__unpull"
               aria-label={S.removeFromPeriod}
               title={S.removeFromPeriod}
               onclick={() => removeFromPeriod(entry.list, entry.task.id)}
@@ -503,10 +503,10 @@
     {/if}
 
     {#if hasCompletedRow}
-      <div class="tasks-widget__completed-row">
+      <div class="tasks-space__completed-row">
         {#if done.length > 0}
           <button
-            class="tasks-widget__completed-toggle"
+            class="tasks-space__completed-toggle"
             onclick={() => (showCompleted = !showCompleted)}
           >
             <Icon name={showCompleted ? "caret-down" : "caret-right"} size="0.875rem" />
@@ -520,7 +520,7 @@
     {#if showCompleted && done.length > 0}
       <TaskCards
         items={shownCompleted}
-        listClass="tasks-widget__list tasks-widget__list--completed"
+        listClass="tasks-space__list tasks-space__list--completed"
         showList={!!period}
         {f}
         {isSelected}
@@ -534,7 +534,7 @@
         {#snippet actions(entry)}
           {#if !readOnly && entry.task.id}
             <button
-              class="theme-btn--icon tasks-widget__remove"
+              class="theme-btn--icon tasks-space__remove"
               aria-label={S.deleteTask}
               title={S.deleteTask}
               onclick={() => removeCompleted(entry.list, entry.task)}

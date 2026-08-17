@@ -1,5 +1,5 @@
-/* notes-widget.css — the visual layer of NotesWidget.svelte.
- * Markup: src/lib/widgets/NotesWidget.svelte. Selectors are the stable BEM hooks a theme
+/* notes-space.css — the visual layer of NotesSpace.svelte.
+ * Markup: src/lib/spaces/NotesSpace.svelte. Selectors are the stable BEM hooks a theme
  * may restyle; components read tokens only.
  *
  * Tokenised on 2026-08-04. This was the last block in the app still written in
@@ -10,35 +10,35 @@
  * the Home already shows (home.css .home__note), since they are the same card. */
 
 @layer components {
-  .notes-widget__bar {
+  .notes-space__bar {
     display: flex;
     align-items: center;
     gap: var(--theme-space-8);
     margin-block-end: var(--theme-space-12);
   }
   /* The look comes from .theme-input--search; here it only fills the row. */
-  .notes-widget__search {
+  .notes-space__search {
     flex: 1;
     width: auto;
   }
   /* The chosen layout reads as chosen. */
-  .notes-widget__bar-button--active {
+  .notes-space__bar-button--active {
     font-weight: var(--theme-weight-semibold);
   }
-  /* The widget's ⋮ is a plain .theme-btn--icon at the end of the bar. */
+  /* The screen's ⋮ is a plain .theme-btn--icon at the end of the bar. */
 
-  .notes-widget__folders {
+  .notes-space__folders {
     flex-wrap: wrap;
     margin-block-end: var(--theme-space-12);
   }
 
-  .notes-widget__folder-actions {
+  .notes-space__folder-actions {
     display: flex;
     gap: var(--theme-space-8);
     margin: calc(var(--theme-space-6) * -1) 0 var(--theme-space-12);
     font-size: var(--theme-text-13);
   }
-  .notes-widget__folder-action {
+  .notes-space__folder-action {
     background: none;
     border: none;
     padding: 0;
@@ -48,13 +48,13 @@
     text-decoration: underline;
     cursor: pointer;
   }
-  .notes-widget__folder-action:hover {
+  .notes-space__folder-action:hover {
     color: var(--theme-ink);
   }
 
   /* The grid is a board of cards; the tree view is one column, since it is
      already filtered to a folder. */
-  .notes-widget__board {
+  .notes-space__board {
     list-style: none;
     margin: 0;
     padding: 0;
@@ -63,7 +63,7 @@
     gap: var(--theme-space-12);
     align-items: start;
   }
-  .notes-widget__board--tree {
+  .notes-space__board--tree {
     grid-template-columns: 1fr;
   }
 
@@ -71,22 +71,22 @@
      borderless, dimming on hover. It follows the task cards (2026-08-13): the
      ground step is the card, and a hairline on top of it outlined every item
      in the grid. */
-  .notes-widget__item {
+  .notes-space__item {
     position: relative;
     background: var(--theme-surface);
     border: none;
     border-radius: var(--theme-radius-md);
     transition: opacity var(--theme-transition-fast);
   }
-  .notes-widget__item:hover {
+  .notes-space__item:hover {
     opacity: 0.7;
   }
   /* Pinned: the star's own colour, so the card says so without a second cue.
      The one card that keeps an outline, because here it MEANS something. */
-  .notes-widget__item--pinned {
+  .notes-space__item--pinned {
     border: 0.0625rem solid var(--theme-warning);
   }
-  .notes-widget__card {
+  .notes-space__card {
     display: flex;
     flex-direction: column;
     gap: var(--theme-space-4);
@@ -98,24 +98,24 @@
     text-align: left;
     cursor: pointer;
   }
-  .notes-widget__card-title {
+  .notes-space__card-title {
     font-size: var(--theme-text-14);
     font-weight: var(--theme-weight-bold);
     color: var(--theme-ink);
   }
-  .notes-widget__preview {
+  .notes-space__preview {
     color: var(--theme-ink-muted);
     font-size: var(--theme-text-13);
     line-height: var(--theme-leading-normal);
     max-height: 5.4em;
     overflow: hidden;
   }
-  .notes-widget__meta {
+  .notes-space__meta {
     color: var(--theme-ink-faint);
     font-size: var(--theme-text-12);
   }
 
-  .notes-widget__pin {
+  .notes-space__pin {
     position: absolute;
     top: var(--theme-space-4);
     inset-inline-end: var(--theme-space-6);
@@ -126,14 +126,14 @@
     font-size: var(--theme-text-14);
     cursor: pointer;
   }
-  .notes-widget__pin:hover {
+  .notes-space__pin:hover {
     color: var(--theme-ink-muted);
   }
-  .notes-widget__item--pinned .notes-widget__pin {
+  .notes-space__item--pinned .notes-space__pin {
     color: var(--theme-warning);
   }
 
-  .notes-widget__empty {
+  .notes-space__empty {
     color: var(--theme-ink-muted);
   }
 }

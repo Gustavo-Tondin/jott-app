@@ -123,16 +123,16 @@ export const api = {
   setTag: (name, color) => invoke("set_tag", { name, color }),
   removeTag: (name) => invoke("remove_tag", { name }),
 
-  // Completed tasks aggregated across every widget, for the Completed tab.
+  // Completed tasks aggregated across every space, for the Completed tab.
   completedTasks: () => invoke("completed_tasks"),
   ensureTaskId: (list, position) => invoke("ensure_task_id", { list, position }),
   completeTask: (list, id) => invoke("complete_task", { list, id }),
-  // `list` is the Completed list the task sits in — one per widget.
+  // `list` is the Completed list the task sits in — one per space.
   uncompleteTask: (list, id) => invoke("uncomplete_task", { list, id }),
 
   // notes
-  // `folder` is a notes widget's address ("Notes"); `path` is relative to it
-  // ("Inbox/ideia.md") — the widget owns its subtree.
+  // `folder` is a notes space's address ("Notes"); `path` is relative to it
+  // ("Inbox/ideia.md") — the space owns its subtree.
   listNotes: (folder, query) => invoke("list_notes", { folder, query }),
   noteFolders: (folder) => invoke("note_folders", { folder }),
   notesCreatedToday: (folder) => invoke("notes_created_today", { folder }),

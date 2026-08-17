@@ -7,10 +7,10 @@ import {
   listTitle,
   listLabel,
   splitLabel,
-  taskWidgetPaths,
+  taskSpacePaths,
 } from "./paths.js";
 
-describe("taskWidgetPaths", () => {
+describe("taskSpacePaths", () => {
   const lists = [
     { path: "Work/task-list.md", name: "task-list", space: "Work" },
     { path: "Work/completed.md", name: "completed", space: "Work" },
@@ -18,14 +18,14 @@ describe("taskWidgetPaths", () => {
   ];
 
   test("the space's one list, and the Completed beside it", () => {
-    expect(taskWidgetPaths({ folder: "Work" }, lists)).toEqual({
+    expect(taskSpacePaths({ folder: "Work" }, lists)).toEqual({
       list: "Work/task-list.md",
       completed: "Work/completed.md",
     });
   });
 
   test("a folder that is missing answers with nothing", () => {
-    expect(taskWidgetPaths({ folder: null }, lists).list).toBeNull();
+    expect(taskSpacePaths({ folder: null }, lists).list).toBeNull();
   });
 });
 

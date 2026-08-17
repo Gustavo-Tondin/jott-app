@@ -19,7 +19,7 @@
 // subtree's names are contiguous in it.
 //
 // Pure on purpose: what a drag MEANS is a decision, and decisions are testable
-// without a DOM (same reason `widgetOrder.planReorder` exists).
+// without a DOM (same reason `spaceOrder.planReorder` exists).
 
 /// Rank compare that survives two `Infinity`s (which subtract to NaN, and a
 /// NaN comparator silently keeps whatever order it was handed).

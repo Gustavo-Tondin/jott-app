@@ -9,17 +9,17 @@
     gap: var(--theme-space-16);
     /* The pact that puts the composing bar at the bottom of the PANEL: this
        screen fills the scrollport (its parent .shell__content-inner is a full
-       height flex column), the widget fills this, and the bar takes the slack
+       height flex column), the tasks screen fills this, and the bar takes the slack
        with `margin-block-start: auto`. */
     flex: 1;
     min-block-size: 0;
   }
-  .tasks-view > .tasks-widget,
+  .tasks-view > .tasks-space,
   .tasks-view > .period-view {
     flex: 1;
   }
 
-  /* The strip lives ON the widget's top row (2026-08-06), to the left of its ⋮.
+  /* The strip lives ON the screen's top row (2026-08-06), to the left of its ⋮.
      Three columns with equal outer ones keep the segmented centred whatever the
      span reads, and the span sits at the right of the row — next to the ⋮, as
      asked. */

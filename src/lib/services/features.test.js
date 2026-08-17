@@ -11,7 +11,6 @@ import {
   defaultOf,
   stored,
   reader,
-  enabledWidgetKinds,
 } from "./features.js";
 
 describe("on", () => {
@@ -91,17 +90,6 @@ describe("reader", () => {
     expect(f("notes")).toBe(true);
   });
 });
-
-describe("enabledWidgetKinds", () => {
-  test("lists what the notebook offers right now", () => {
-    expect(enabledWidgetKinds({})).toEqual(["tasks", "notes"]);
-    expect(enabledWidgetKinds({ tasks: false })).toEqual(["notes"]);
-    // Switching both off is allowed (user call, 2026-08-06): nothing is lost
-    // and it comes back.
-    expect(enabledWidgetKinds({ tasks: false, notes: false })).toEqual([]);
-  });
-});
-
 describe("FEATURES", () => {
   test("every sub-option names a parent that exists", () => {
     const keys = new Set(FEATURES.map((f) => f.key));

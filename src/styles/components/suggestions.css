@@ -1,6 +1,6 @@
 /* suggestions.css — the visual layer of SuggestionsPane.svelte and of the pill
  * that opens it (markup: components/SuggestionsPane.svelte and the
- * `suggestPill` snippet of widgets/TasksWidget.svelte).
+ * `suggestPill` snippet of spaces/TasksSpace.svelte).
  *
  * The list moved out of a popover and into the right panel on 2026-08-06
  * (user call): something you read through and act on several times wants the

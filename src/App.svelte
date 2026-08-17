@@ -26,7 +26,7 @@
   import NewTaskDialog from "./lib/components/NewTaskDialog.svelte";
   import SearchDialog from "./lib/components/SearchDialog.svelte";
   import SpaceView from "./lib/screens/SpaceView.svelte";
-  import NotesWidget from "./lib/widgets/NotesWidget.svelte";
+  import NotesSpace from "./lib/spaces/NotesSpace.svelte";
   import NoteEditor from "./lib/components/NoteEditor.svelte";
   import HomeView from "./lib/screens/HomeView.svelte";
   import SettingsView from "./lib/screens/SettingsView.svelte";
@@ -322,7 +322,7 @@
 
   /// Is this part of the app switched on? (App Functions, 2026-08-06.) One
   /// reader for the whole shell; screens get it as a prop or through the
-  /// widget context, the same way `dayRefs` travels.
+  /// space's screen, the same way `dayRefs` travels.
   let f = $derived(reader(layout.features ?? {}));
 
   let userLists = $derived(
@@ -342,7 +342,7 @@
   /// The fixed Tasks space, in the shape the tasks screen reads, so the
   /// Tasks screen hosts the notebook's own source (arrangement and all)
   /// instead of a stand-in. The folder is the space's own path.
-  let inboxWidget = $derived.by(() => {
+  let inboxSource = $derived.by(() => {
     const folder = folderOf(layout.inbox);
     const sp = spaces.find((sp) => sp.kind === "tasks" && sp.path === folder);
     return sp
@@ -369,10 +369,10 @@
   // Where the open task can move: ANY tasks list of the notebook, minus the
   // Completed files (moving into Completed is what completing a task does).
   //
-  // It used to be the folder's siblings only, and a widget is one list (spec
+  // It used to be the folder's siblings only, and a tasks space is one list (spec
   // 3.5) — so the footer button had a single entry, itself, and reading as a
   // dead control was the honest outcome of offering nothing (user report,
-  // 2026-08-06). The bulk "Move to…" in the widget already offered the whole
+  // 2026-08-06). The bulk "Move to…" in the space already offered the whole
   // notebook; these two are the same move and now say the same thing.
   let moveTargets = $derived(
     (notebook?.lists ?? []).filter((entry) => entry.name !== layout.completedName),
@@ -477,7 +477,7 @@
         { label: S.deleteNote, run: deleteCurrentNote },
       );
     }
-    // Lists are created inside a space's widget now, not from here.
+    // Lists are created inside the space itself now, not from here.
     // Renaming or deleting a list the app recreates on every open would only
     // confuse — the core refuses it anyway, so the menu must not offer it.
     if (
@@ -1042,7 +1042,7 @@
             <TasksView
               dateFormat={layout.dateDisplayFormat}
               inbox={layout.inbox}
-              {inboxWidget}
+              {inboxSource}
               lists={notebook.lists}
               {tags}
               completedName={layout.completedName}
@@ -1075,8 +1075,8 @@
               {f}
             />
           {:else if view.kind === "notes"}
-            <NotesWidget
-              widget={{ kind: "notes", folder: layout.notesFolder }}
+            <NotesSpace
+              source={{ kind: "notes", folder: layout.notesFolder }}
               readOnly={notebook.readOnly}
               notesInbox={layout.notesInbox}
               {reloadKey}

@@ -470,7 +470,7 @@
     overflow-y: auto;
     padding: var(--theme-space-12) var(--theme-space-16) var(--theme-space-40);
   }
-  /* Every widget's content is capped here, once, and centred — so a screen
+  /* Every screen's content is capped here, once, and centred — so a screen
      never has to know the width itself. */
   .shell__content-inner {
     max-width: var(--theme-content-max);

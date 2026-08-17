@@ -1,7 +1,7 @@
 /* space-view.css — the visual layer of SpaceView.svelte.
- * Markup: src/lib/screens/SpaceView.svelte. Faithful to the widget
- * wireframes (2026-07-30): a centred cyan space title, widgets stacked,
- * and a dashed "add widget" card. Selectors are the stable BEM hooks a theme
+ * Markup: src/lib/screens/SpaceView.svelte. A centred space title in the
+ * space's own colour, and under it the one screen its type asks for
+ * (2026-08-11). Selectors are the stable BEM hooks a theme
  * may restyle; components read tokens only. */
 
 @layer components {
@@ -17,7 +17,7 @@
     margin-inline-start: var(--theme-space-8);
   }
 
-  .space-view__widget {
+  .space-view__screen {
     margin-block-end: var(--theme-space-24);
   }
 }

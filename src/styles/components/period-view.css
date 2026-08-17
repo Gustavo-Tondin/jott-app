@@ -2,11 +2,11 @@
  * Markup: src/lib/screens/PeriodView.svelte.
  *
  * Almost nothing is left here on purpose (2026-08-06): Today and This Week
- * became the tasks widget over a period, so the cards, the suggestions popover
+ * became the tasks screen over a period, so the cards, the suggestions popover
  * and the add-a-task form all moved to pieces that more than one screen draws
- * (tasks-widget.css, suggestions.css, task-composer.css). What remains is the
+ * (tasks-space.css, suggestions.css, task-composer.css). What remains is the
  * frame — and the pact that lets the composing bar sit at the bottom: be a
- * flex column, and let the widget fill it. */
+ * flex column, and let that screen fill it. */
 
 @layer components {
   .period-view {
@@ -15,7 +15,7 @@
     flex: 1;
     min-block-size: 0;
   }
-  .period-view > .tasks-widget {
+  .period-view > .tasks-space {
     flex: 1;
   }
 }

@@ -54,13 +54,13 @@ export const S = {
   color: "colour",
   icon: "icon",
   defaultAppearance: "default",
-  unsupportedWidgetTitle: (kind) =>
-    kind ? `"${kind}" widget` : "Space without a type",
-  unsupportedWidgetBody:
+  unsupportedSpaceTitle: (kind) =>
+    kind ? `"${kind}" space` : "Space without a type",
+  unsupportedSpaceBody:
     "This version of Jott does not know how to show this space. " +
     "Its files are untouched — a newer version may support it.",
-  widgetNoLists: "No list in this space yet.",
-  // Reestruturação 2026-07-30 — inline naming, widget flow, groups, trash, tags.
+  spaceNoLists: "No list in this space yet.",
+  // Reestruturação 2026-07-30 — inline naming, groups, trash, tags.
   cancel: "Cancel",
   create: "Create",
   newTask: "New task",
@@ -69,8 +69,8 @@ export const S = {
   // read (services/paths.js → listTitle).
   mainList: "Inbox",
   noTasksYet: "No tasks yet",
-  // The widget's own ⋮ menu: arrangement and bulk selection (Etapa 1).
-  widgetOptions: "widget options",
+  // The ⋮ of a space's own screen: arrangement and bulk selection (Etapa 1).
+  spaceOptions: "space options",
   selectTasks: "Select tasks…",
   selectedCount: (n) => `${n} selected`,
   moveTo: "Move to…",
@@ -210,8 +210,8 @@ export const S = {
   note: "Note",
   newTaskPlaceholder: "New task…",
   newNotePlaceholder: "New note…",
-  // Its own label, not the widget's: with both blocks centred and each ending
-  // in a ⋮, "widget options" twice named two different menus the same thing.
+  // Its own label, not the tasks block's: with both blocks centred and each
+  // ending in a ⋮, one name for both menus named two different things.
   notesOptions: "notes options",
   // The + itself. It says the VERB, while the field says what is being made —
   // sharing "New task" between the two made the box announce the same name

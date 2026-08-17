@@ -1,25 +1,25 @@
 <script>
-  // The `notes` widget: a board of note cards, or a folder tree, plus search.
+  // The `notes` source: a board of note cards, or a folder tree, plus search.
   //
   // Same note in both views — the layout is a preference, never a change to
   // the file (spec 5). Opening a note hands over to the editor; this screen
   // only ever lists.
   //
-  // Etapa 1 (2026-08-04): the widget owns its arrangement — `sort` + `order`
+  // Etapa 1 (2026-08-04): the source owns its arrangement — `sort` + `order`
   // in its `.space.json`, chosen in the ⋮ menu or by dragging a card on the
-  // board (the same contract the tasks widget keeps).
+  // board (the same contract the tasks source keeps).
   import { api } from "../services/api.js";
   import { S } from "../services/strings.js";
   import { askName } from "../services/dialog.js";
   import { makeAct } from "../services/act.js";
-  import { widgetMenu } from "../services/widgetMenu.js";
-  import { arrange, planReorder } from "../services/widgetOrder.js";
+  import { spaceMenu } from "../services/spaceMenu.js";
+  import { arrange, planReorder } from "../services/spaceOrder.js";
   import { reorderable } from "../actions/reorder.js";
   import Menu from "../components/Menu.svelte";
   import Icon from "../components/Icon.svelte";
 
   let {
-    widget,
+    source,
     readOnly = false,
     notesInbox = "Inbox",
     onSetSort,
@@ -30,8 +30,8 @@
     reloadKey = 0,
   } = $props();
 
-  // The widget's folder is its address for every notes command.
-  let folder = $derived(widget?.folder ?? null);
+  // The source's folder is its address for every notes command.
+  let folder = $derived(source?.folder ?? null);
 
   let notes = $state([]);
   let folders = $state([]);
@@ -40,11 +40,11 @@
   ///
   /// The config option picks the starting layout and the user's choice wins
   /// from then on — hence a null-until-chosen override rather than a state
-  /// seeded from the prop, which would freeze on the value the widget had
+  /// seeded from the prop, which would freeze on the value the source had
   /// when it first rendered.
   let chosenLayout = $state(null);
   let layout = $derived(
-    chosenLayout ?? (widget?.options?.layout === "tree" ? "tree" : "grid"),
+    chosenLayout ?? (source?.options?.layout === "tree" ? "tree" : "grid"),
   );
   let openFolder = $state(null);
 
@@ -129,7 +129,7 @@
     completedOf: () => undefined,
     keyOf: (n) => n.path,
   };
-  let sort = $derived(widget?.sort ?? null);
+  let sort = $derived(source?.sort ?? null);
 
   // In the tree view, only the notes of the folder being looked at.
   let shown = $derived(
@@ -138,18 +138,18 @@
         ? notes.filter((n) => n.folder === openFolder)
         : notes,
       sort,
-      widget?.order ?? [],
+      source?.order ?? [],
       accessors,
     ),
   );
 
-  // The same ⋮ every widget carries (services/widgetMenu.js), minus the
+  // The same ⋮ every source carries (services/spaceMenu.js), minus the
   // completion date: a note has none, so that sorting would be a dead entry.
   let sortMenu = $derived(
-    widgetMenu({
+    spaceMenu({
       sorts: [null, "name", "created", "custom"],
       sort,
-      hasOrder: (widget?.order ?? []).length > 0,
+      hasOrder: (source?.order ?? []).length > 0,
       onSetSort,
     }),
   );
@@ -177,37 +177,37 @@
 
 <!-- Opening a note is the shell's business: it becomes a document tab, the
      same as a list. This screen only ever lists. -->
-<div class="notes-widget">
-  <div class="notes-widget__bar">
+<div class="notes-space">
+  <div class="notes-space__bar">
     <input
-      class="theme-input theme-input--sm theme-input--search notes-widget__search"
+      class="theme-input theme-input--sm theme-input--search notes-space__search"
       placeholder={S.searchNotes}
       aria-label={S.searchNotes}
       bind:value={query}
     />
     <button
-      class="theme-btn theme-btn--outline theme-btn--sm notes-widget__bar-button"
-      class:notes-widget__bar-button--active={layout === "grid"}
+      class="theme-btn theme-btn--outline theme-btn--sm notes-space__bar-button"
+      class:notes-space__bar-button--active={layout === "grid"}
       onclick={() => (chosenLayout = "grid")}>{S.gridView}</button
     >
     <button
-      class="theme-btn theme-btn--outline theme-btn--sm notes-widget__bar-button"
-      class:notes-widget__bar-button--active={layout === "tree"}
+      class="theme-btn theme-btn--outline theme-btn--sm notes-space__bar-button"
+      class:notes-space__bar-button--active={layout === "tree"}
       onclick={() => (chosenLayout = "tree")}>{S.treeView}</button
     >
     {#if !readOnly}
-      <button class="theme-btn theme-btn--primary theme-btn--sm notes-widget__bar-button" onclick={create}>{S.newNote}</button>
-      <button class="theme-btn theme-btn--outline theme-btn--sm notes-widget__bar-button" onclick={createFolder}
+      <button class="theme-btn theme-btn--primary theme-btn--sm notes-space__bar-button" onclick={create}>{S.newNote}</button>
+      <button class="theme-btn theme-btn--outline theme-btn--sm notes-space__bar-button" onclick={createFolder}
         >{S.newNoteFolder}</button
       >
     {/if}
     <Menu items={sortMenu}>
       {#snippet trigger({ toggle })}
         <button
-          class="theme-btn--icon notes-widget__more"
+          class="theme-btn--icon notes-space__more"
           onclick={toggle}
-          aria-label={S.widgetOptions}
-          title={S.widgetOptions}
+          aria-label={S.spaceOptions}
+          title={S.spaceOptions}
         >
           <Icon name="dots-three-vertical" size="1rem" />
         </button>
@@ -216,18 +216,18 @@
   </div>
 
   {#if layout === "tree"}
-    <nav class="theme-segmented notes-widget__folders">
+    <nav class="theme-segmented notes-space__folders">
       <button
-        class="theme-segmented__item notes-widget__folder"
+        class="theme-segmented__item notes-space__folder"
         class:theme-segmented__item--active={openFolder === null}
-        class:notes-widget__folder--active={openFolder === null}
+        class:notes-space__folder--active={openFolder === null}
         onclick={() => (openFolder = null)}>{S.allNotes}</button
       >
       {#each folders as name (name)}
         <button
-          class="theme-segmented__item notes-widget__folder"
+          class="theme-segmented__item notes-space__folder"
           class:theme-segmented__item--active={openFolder === name}
-          class:notes-widget__folder--active={openFolder === name}
+          class:notes-space__folder--active={openFolder === name}
           onclick={() => (openFolder = name)}>{name}</button
         >
       {/each}
@@ -237,11 +237,11 @@
          one is open — a folder is not deletable from the board view, where
          nothing says which one you mean. -->
     {#if !readOnly && openFolder}
-      <p class="notes-widget__folder-actions">
-        <button class="notes-widget__folder-action" onclick={renameFolder}
+      <p class="notes-space__folder-actions">
+        <button class="notes-space__folder-action" onclick={renameFolder}
           >{S.renameFolder}</button
         >
-        <button class="notes-widget__folder-action" onclick={deleteFolder}
+        <button class="notes-space__folder-action" onclick={deleteFolder}
           >{S.deleteFolder}</button
         >
       </p>
@@ -249,38 +249,38 @@
   {/if}
 
   {#if shown.length === 0}
-    <p class="notes-widget__empty">{query.trim() ? S.noNotesFound : S.noNotes}</p>
+    <p class="notes-space__empty">{query.trim() ? S.noNotesFound : S.noNotes}</p>
   {:else}
     <ul
-      class="notes-widget__board"
-      class:notes-widget__board--tree={layout === "tree"}
+      class="notes-space__board"
+      class:notes-space__board--tree={layout === "tree"}
       use:reorderable={{
         axis: "grid",
         // A selector that matches nothing disables the drag entirely (no
         // half-drag animation on a filtered board).
-        item: canDrag ? ".notes-widget__item" : ".notes-widget__never",
+        item: canDrag ? ".notes-space__item" : ".notes-space__never",
         onReorder: reorderNotes,
       }}
     >
       {#each shown as entry (entry.path)}
         <li
-          class="notes-widget__item"
-          class:notes-widget__item--pinned={entry.pinned}
+          class="notes-space__item"
+          class:notes-space__item--pinned={entry.pinned}
         >
           <button
-            class="notes-widget__card"
+            class="notes-space__card"
             onclick={() => onOpenNote?.(entry.path, folder)}
           >
-            <strong class="notes-widget__card-title">{entry.title}</strong>
-            <span class="notes-widget__preview">{entry.preview || S.emptyNote}</span>
-            <small class="notes-widget__meta">
+            <strong class="notes-space__card-title">{entry.title}</strong>
+            <span class="notes-space__preview">{entry.preview || S.emptyNote}</span>
+            <small class="notes-space__meta">
               {entry.folder}
               {#if entry.pinned}· {S.pinned}{/if}
             </small>
           </button>
           {#if !readOnly}
             <button
-              class="notes-widget__pin"
+              class="notes-space__pin"
               onclick={() => togglePin(entry)}
               aria-label={entry.pinned ? S.unpin : S.pin}>★</button
             >

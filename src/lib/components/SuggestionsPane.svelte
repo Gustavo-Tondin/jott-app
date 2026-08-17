@@ -10,7 +10,7 @@
   // scrolling middle, and nothing else.
   //
   // It loads its own suggestions. The alternative was threading them down from
-  // whichever widget opened it, and the panel outlives that widget: switching
+  // whichever screen opened it, and the panel outlives that screen: switching
   // from Today to Week underneath must not leave a stale list here.
   import { api } from "../services/api.js";
   import { S } from "../services/strings.js";

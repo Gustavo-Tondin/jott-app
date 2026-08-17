@@ -4,7 +4,7 @@
   // with the component for the type; an unknown type still renders, as the
   // unsupported card, with the folder left untouched (spec 3.5).
   import { S } from "../services/strings.js";
-  import { widgetComponent } from "../widgets/registry.js";
+  import { spaceComponent } from "../spaces/registry.js";
   import { accentStrong } from "../services/accent.js";
 
   let {
@@ -47,7 +47,7 @@
     order: space.order ?? [],
   });
 
-  let Screen = $derived(widgetComponent(space.kind));
+  let Screen = $derived(spaceComponent(space.kind));
 </script>
 
 <!-- The screen's H1, so the title takes the STRONG step of the colour rather
@@ -68,9 +68,9 @@
      the unsupported card so nobody mistakes it for something the app
      deleted. -->
 {#if f(space.kind)}
-  <div class="space-view__widget">
+  <div class="space-view__screen">
     <Screen
-      widget={source}
+      {source}
       {lists}
       {counts}
       {tags}

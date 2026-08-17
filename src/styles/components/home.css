@@ -82,6 +82,6 @@
     color: var(--theme-ink);
   }
   /* The empty state is the shared .theme-empty-card (controls.css) — the same
-     card the widget draws, which is what the wireframe shows in both blocks.
+     card the tasks block draws, which is what the wireframe shows in both.
      The hook stays for a theme to reach this one in particular. */
 }

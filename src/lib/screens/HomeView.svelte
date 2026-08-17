@@ -3,9 +3,9 @@
   // below — the wireframe's opening screen ("Home screen - default", 2026-08-13).
   //
   // It owns almost nothing. Since 2026-08-06 the tasks half is not even its own
-  // markup: it is THE tasks widget, hosted over the day (`period: "day"`), so
+  // markup: it is THE tasks screen, hosted over the day (`period: "day"`), so
   // Home shows exactly what a space shows — same cards, same "Completed N"
-  // — plus the Suggestions pill the widget adds when its source is a period.
+  // — plus the Suggestions pill it adds when its source is a period.
   // The home-grown block it had before was a partial copy, and it kept falling
   // behind.
   //
@@ -21,7 +21,7 @@
   import { S } from "../services/strings.js";
   import { makeAct } from "../services/act.js";
   import { composeTask } from "../services/taskCompose.js";
-  import TasksWidget from "../widgets/TasksWidget.svelte";
+  import TasksSpace from "../spaces/TasksSpace.svelte";
   import CaptureBox from "../components/CaptureBox.svelte";
   import Menu from "../components/Menu.svelte";
   import Icon from "../components/Icon.svelte";
@@ -31,7 +31,7 @@
     notesInbox = "Inbox",
     quickNoteFolder = null,
     folders = [],
-    /// Every list of the notebook, for the widget and its composer.
+    /// Every list of the notebook, for the screen and its composer.
     lists = [],
     tags = [],
     completedName = "completed",
@@ -56,7 +56,7 @@
 
   // The tasks block IS the tasks screen hosted over the day — no source
   // folder of its own, so no arrangement to persist.
-  const DAY_WIDGET = { kind: "tasks", folder: null, name: S.todaysTasks };
+  const DAY_SOURCE = { kind: "tasks", folder: null, name: S.todaysTasks };
 
   let notes = $state([]);
   /// Where the capture box's notes land. Null until the user picks it in the
@@ -92,7 +92,7 @@
   /// The capture box's one output. A note is written where the notes ⋮ points;
   /// a task goes to the notebook's inbox AND is pulled into the day, because a
   /// task captured from the day's screen that did not appear on it would read
-  /// as the box having swallowed it (the same call the widget's own composer
+  /// as the box having swallowed it (the same call the screen's own composer
   /// makes — services/taskCompose.js).
   const capture = ({ kind, text }) =>
     act(async () => {
@@ -134,8 +134,8 @@
        2026-08-06) — there is no day left to show. -->
   {#if f("myDay")}
     <section class="home__block">
-      <TasksWidget
-        widget={DAY_WIDGET}
+      <TasksSpace
+        source={DAY_SOURCE}
         period="day"
         align="center"
         compose="none"
@@ -166,7 +166,7 @@
       <header class="home__block-header">
         <!-- The mirrored ⋮ that balances the real one, so the heading is
              centred on the panel and not on what is left of the row — the same
-             trick the tasks block uses (widgets/TasksWidget.svelte). -->
+             trick the tasks block uses (spaces/TasksSpace.svelte). -->
         <span class="home__mirror" aria-hidden="true">
           <span class="theme-btn--icon">
             <Icon name="dots-three-vertical" size="1rem" />

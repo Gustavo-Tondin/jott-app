@@ -503,7 +503,7 @@
     letter-spacing: var(--theme-tracking-wide);
     color: var(--theme-ink);
   }
-  /* A widget's own heading, one step down from the screen it sits in. */
+  /* A block's own heading, one step down from the screen it sits in. */
   .theme-title--sm {
     font-size: var(--theme-text-20);
   }
@@ -547,7 +547,7 @@
 
   /* ---------------------------------------------------------------------------
      Task list — the column of task cards, wherever tasks are drawn (Home, a
-     list screen, a tasks widget). It was the same five declarations copied into
+     list screen, a tasks space). It was the same five declarations copied into
      four block sheets; components/TaskCards.svelte is the markup half.
      --------------------------------------------------------------------------- */
   .theme-task-list {
@@ -575,7 +575,7 @@
   /* ---------------------------------------------------------------------------
      Empty card — "No tasks yet" / "No notes yet": a quiet pill, centred, where
      a list would be. The wireframe draws the same card in every block, and the
-     Home printed a bare <p> while the widget drew the card. It is a container,
+     Home printed a bare <p> while the space drew the card. It is a container,
      not just a label: the Home's empty tasks card holds the Suggestions pill.
      --------------------------------------------------------------------------- */
   .theme-empty-card {

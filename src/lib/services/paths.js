@@ -83,8 +83,8 @@ export function splitLabel(entry) {
 /// Read from the lists the snapshot already carries, never fetched. A source
 /// whose folder is missing answers with two nulls, and the screen draws its
 /// warning instead of a broken list.
-export function taskWidgetPaths(widget, lists = [], completedName = "completed") {
-  const folder = widget?.folder;
+export function taskSpacePaths(source, lists = [], completedName = "completed") {
+  const folder = source?.folder;
   if (!folder) return { list: null, completed: null };
   const prefix = `${folder}/`;
   const list =

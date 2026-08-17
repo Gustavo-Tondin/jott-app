@@ -9,21 +9,21 @@
   // between the three is looking around inside one document, so it must not
   // open a tab or fill the back history.
   //
-  // All three ARE the tasks widget (2026-08-06). Index hosts the real widget
-  // of `Tasks/Inbox` — the one the notebook creates — so it comes with that
-  // folder's "Completed N"; Today and Week host the same widget over a period.
-  // The only thing this screen changes is where a new task comes from: not the
-  // blue button, but the bar the widget pins to the bottom (`compose="bar"`).
+  // All three ARE the tasks screen (2026-08-06). Index hosts the notebook's
+  // own Tasks space — the one it creates — so it comes with that folder's
+  // "Completed N"; Today and Week host the same screen over a period. The only
+  // thing this screen changes is where a new task comes from: not the blue
+  // button, but the bar it pins to the bottom (`compose="bar"`).
   import { S } from "../services/strings.js";
   import { folderOf } from "../services/paths.js";
   import { formatDayMonth } from "../services/dates.js";
   import PeriodView from "./PeriodView.svelte";
-  import TasksWidget from "../widgets/TasksWidget.svelte";
+  import TasksSpace from "../spaces/TasksSpace.svelte";
 
   let {
-    /// The Inbox list's address, and the widget that owns it.
+    /// The Inbox list's address, and the space that owns it.
     inbox,
-    inboxWidget = null,
+    inboxSource = null,
     clock,
     lists = [],
     tags = [],
@@ -65,8 +65,8 @@
   /// The folder holding the Inbox list — `jott.tasks/task-list.md` →
   /// `jott.tasks`. That folder IS a tasks space, so the Index tab hosts it
   /// rather than inventing a second way to show the same list.
-  let widget = $derived(
-    inboxWidget ?? { kind: "tasks", folder: folderOf(inbox), name: S.inboxTab },
+  let source = $derived(
+    inboxSource ?? { kind: "tasks", folder: folderOf(inbox), name: S.inboxTab },
   );
 
   /// What the open tab is looking at, drawn beside the strip: the day for
@@ -93,7 +93,7 @@
 </script>
 
 <div class="tasks-view">
-  <!-- The strip rides on the WIDGET's top row (2026-08-06), so the ⋮ ends up at
+  <!-- The strip rides on the SCREEN's top row (2026-08-06), so the ⋮ ends up at
        the far right of the same line, with the day or the week's span just
        before it — instead of a bar of its own with the ⋮ orphaned below. -->
   {#snippet toolbar()}
@@ -117,8 +117,8 @@
   {/snippet}
 
   {#if sub === "inbox"}
-    <TasksWidget
-      {widget}
+    <TasksSpace
+      {source}
       {toolbar}
       header={false}
       compose="bar"
