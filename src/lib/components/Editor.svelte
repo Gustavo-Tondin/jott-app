@@ -8,6 +8,16 @@
   import { Compartment, EditorState } from "@codemirror/state";
   import { EditorView, keymap, placeholder as placeholderExt } from "@codemirror/view";
   import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
+  // Find and replace inside the open note (2026-08-17). CodeMirror's own
+  // panel: it is the same shape VSCode's is — a field, a replace field, and
+  // the match count — and reusing it means the app is not maintaining a
+  // second search engine for one screen.
+  import {
+    highlightSelectionMatches,
+    openSearchPanel,
+    search,
+    searchKeymap,
+  } from "@codemirror/search";
   import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
   import { markdownPreview } from "../services/markdown.js";
 
@@ -33,7 +43,15 @@
         doc: value,
         extensions: [
           history(),
-          keymap.of([...defaultKeymap, ...historyKeymap]),
+          // The panel sits at the TOP, where the document's own header is —
+          // at the bottom it lands on the window edge, under the status of
+          // nothing.
+          search({ top: true }),
+          highlightSelectionMatches(),
+          // `searchKeymap` before the rest so Ctrl+F inside the editor is the
+          // note's own search: the app-wide Ctrl+F (services/shortcuts.js)
+          // yields to whatever answered closer to the keyboard.
+          keymap.of([...searchKeymap, ...defaultKeymap, ...historyKeymap]),
           // `markdownLanguage` rather than the commonmark default: it is the
           // one that understands task lists and strikethrough, which a note
           // of the day uses constantly.
@@ -58,6 +76,30 @@
   });
 
   onDestroy(() => view?.destroy());
+
+  /// Opens the find/replace panel from outside — the page ⋮ and the canvas
+  /// menu ask for it by name (2026-08-17).
+  ///
+  /// There is one panel: the replace fields are part of it, and CodeMirror
+  /// shows them whenever the document is editable. So "Find" and "Replace" are
+  /// the same door, and a read-only note simply gets the find half.
+  export function openFind() {
+    if (!view) return;
+    view.focus();
+    openSearchPanel(view);
+  }
+
+  /// The same panel, with the cursor already in the replace field — which is
+  /// the only difference between "find" and "replace" as questions.
+  export function openReplace() {
+    openFind();
+    // After the panel is in the DOM: it is created by the dispatch above.
+    queueMicrotask(() => {
+      const field = view?.dom.querySelector('.cm-search input[name="replace"]');
+      field?.focus();
+      field?.select?.();
+    });
+  }
 
   // Read-only follows the prop, which flips as soon as the note has loaded.
   $effect(() => {

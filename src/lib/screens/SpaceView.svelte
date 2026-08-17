@@ -5,7 +5,7 @@
   // unsupported card, with the folder left untouched (spec 3.5).
   import { S } from "../services/strings.js";
   import { widgetComponent } from "../widgets/registry.js";
-  import { accentColor } from "../services/accent.js";
+  import { accentStrong } from "../services/accent.js";
 
   let {
     space,
@@ -50,9 +50,11 @@
   let Screen = $derived(widgetComponent(space.kind));
 </script>
 
+<!-- The screen's H1, so the title takes the STRONG step of the colour rather
+     than the base — the same emphasis a note's own H1 gets (2026-08-17). -->
 <h2
   class="theme-title theme-title--lg space-view__title"
-  style={accentColor(color) ? `color: ${accentColor(color)}` : ""}
+  style={accentStrong(color) ? `color: ${accentStrong(color)}` : ""}
 >
   {space.name}
   {#if space.readOnly}<small class="space-view__badge"

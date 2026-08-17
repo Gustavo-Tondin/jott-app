@@ -60,6 +60,9 @@
     // Collapsed to an icon rail? Owned by the shell, toggled by the button here.
     rail = false,
     onToggleRail,
+    /// Opens the notebook-wide search box (the shell owns the dialog, because
+    /// it opens over whatever screen is showing).
+    onSearch,
   } = $props();
 
   // Which space's appearance popup is open (its path, or null). Opened
@@ -272,6 +275,33 @@
         </button>
       {/snippet}
     </Menu>
+    <!-- Search and + (user call, 2026-08-17). Both were only reachable by
+         shortcut or by right-clicking the empty column — which is nowhere at
+         all once the column is full. They keep the hamburger's company on the
+         left and, like it, wait for the full sidebar: 3.5rem of rail holds one
+         glyph per row, and that row is the expand toggle. -->
+    <button
+      class="theme-btn--icon shell__head-action"
+      onclick={() => onSearch?.()}
+      aria-label={S.search}
+      title={S.findTitle}
+    >
+      <Icon name="magnifying-glass" size="1.125rem" />
+    </button>
+    {#if !notebook.readOnly}
+      <Menu align="start" items={createMenu(null)}>
+        {#snippet trigger({ toggle })}
+          <button
+            class="theme-btn--icon shell__head-action"
+            onclick={toggle}
+            aria-label={S.newEntry}
+            title={S.newEntry}
+          >
+            <Icon name="plus" size="1.125rem" />
+          </button>
+        {/snippet}
+      </Menu>
+    {/if}
     <button
       class="theme-btn--icon shell__collapse"
       onclick={() => onToggleRail?.()}

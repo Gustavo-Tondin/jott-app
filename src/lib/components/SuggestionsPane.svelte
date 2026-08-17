@@ -71,6 +71,9 @@
     { key: "urgent", label: S.groupUrgent },
     { key: "soon", label: S.groupSoon },
     { key: "thisWeek", label: S.groupThisWeek },
+    // What was in the period and left it (2026-08-17) — after the week's own
+    // choices, because this is a way back to an old decision, not a live one.
+    { key: "recent", label: S.groupRecent },
   ];
 
   let reasons = $derived(

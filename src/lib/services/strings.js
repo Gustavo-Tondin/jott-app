@@ -164,7 +164,12 @@ export const S = {
   themeDarkHint: "Dark throughout.",
   accentColor: "Accent colour",
   accentColorHint:
-    "The colour of the open place, the primary button and every focus ring. Each of the seven has a light and a dark half; the app picks the one that reads on whatever it lands on.",
+    "The colour of the open place, the primary button and every focus ring. Each colour runs from light to dark; the app picks the step that reads on whatever it lands on.",
+  headingColor: "Headings",
+  headingColorAccent: "Accent",
+  headingColorAccentHint: "Titles take the colour of the place they live in.",
+  headingColorInk: "Ink",
+  headingColorInkHint: "Titles in plain text colour, like a document.",
   restoreLastScreen: "Reopen on the last screen",
   restoreLastScreenHint:
     "Off by default: landing on Today is more predictable.",
@@ -280,6 +285,9 @@ export const S = {
   groupUrgent: "Urgent",
   groupSoon: "Soon",
   groupThisWeek: "This week",
+  // Was in Today or the Week and left — taken out by hand, or dropped when the
+  // period turned (2026-08-17).
+  groupRecent: "Pulled recently",
   groupLists: "From the lists",
   pull: "pull",
   removeFromPeriod: "remove",
@@ -363,4 +371,25 @@ export const S = {
   findNotes: "Notes",
   findMore: "Showing the first matches only — narrow the search to see the rest.",
   findDone: "completed",
+  // The same box, narrowed to one space (2026-08-17). It says which one, or
+  // the user cannot tell why the notebook seems to have gone quiet.
+  findIn: (place) => `Search in ${place}…`,
+  findHintIn: (place) => `Type to search ${place}.`,
+  findNothingIn: (query, place) => `Nothing found for “${query}” in ${place}.`,
+
+  // The page ⋮ and the canvas right-click menu (2026-08-17): what can be done
+  // to the SCREEN itself, wherever the pointer is.
+  renameThisSpace: "Rename space",
+  openInFileManager: "Open in file manager",
+  findInPlace: (place) => `Find in ${place}`,
+  findInNote: "Find in note",
+  replaceInNote: "Replace in note",
+  thisNotebook: "this notebook",
+
+  // The sidebar head (2026-08-17): search, and the + that makes things.
+  search: "search",
+  newEntry: "new list, notepad or group",
+  resizeSidebar: "resize sidebar",
+  resizePanel: "resize panel",
+  sidebarWidthValue: (px) => `sidebar width: ${px} pixels`,
 };

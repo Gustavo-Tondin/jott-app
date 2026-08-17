@@ -95,10 +95,18 @@
 
   /// Sends anything still pending, so the shell can rename or delete safely.
   export const flushPending = () => flush();
+
+  // The find/replace panel belongs to the editor engine; the shell opens it
+  // from the page ⋮ and from the canvas menu, which is why it travels back up
+  // through here (2026-08-17).
+  let editor = $state(null);
+  export const openFind = () => editor?.openFind();
+  export const openReplace = () => editor?.openReplace();
 </script>
 
 <div class="note-editor__body" aria-label={S.noteBodyPlaceholder}>
   <Editor
+    bind:this={editor}
     value={body}
     readOnly={readOnly || loading}
     placeholder={S.noteBodyPlaceholder}

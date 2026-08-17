@@ -14,6 +14,7 @@
   import { composeTask } from "./lib/services/taskCompose.js";
   import { shortcutFor } from "./lib/services/shortcuts.js";
   import NameDialog from "./lib/components/NameDialog.svelte";
+  import ContextMenu from "./lib/components/ContextMenu.svelte";
   import ListView from "./lib/screens/ListView.svelte";
   import TasksView from "./lib/screens/TasksView.svelte";
   import CompletedView from "./lib/screens/CompletedView.svelte";
@@ -31,6 +32,13 @@
   import TabBar from "./lib/shell/TabBar.svelte";
   import TitleBar from "./lib/shell/TitleBar.svelte";
   import { buttonLayout } from "./lib/shell/windowButtons.js";
+  import {
+    clampWidth,
+    draggedWidth,
+    DEFAULT_SIDEBAR,
+    SIDEBAR,
+    PANEL,
+  } from "./lib/shell/sidebarWidth.js";
   import ResizeHandles from "./lib/shell/ResizeHandles.svelte";
   import Sidebar from "./lib/shell/Sidebar.svelte";
   import PageHeader from "./lib/shell/PageHeader.svelte";
@@ -71,6 +79,95 @@
   /// Left sidebar collapsed to an icon rail. Local to the session (not a
   /// notebook setting — new config keys wait until they are really needed).
   let railed = $state(false);
+  /// How wide the sidebar was dragged, in pixels — null while it is whatever
+  /// the stylesheet says (2026-08-17). Unlike the rail, this one IS remembered,
+  /// and on the machine rather than in the notebook: it answers to a monitor,
+  /// not to a set of files (src-tauri/src/prefs.rs).
+  let sidebarWidth = $state(null);
+  /// The same for the right panel — the inspector and the suggestions share
+  /// one width, because they share one panel.
+  let panelWidth = $state(null);
+  /// True only while an edge is being dragged, so the widths can stop
+  /// animating for the length of the gesture.
+  let resizing = $state(false);
+  $effect(() => {
+    api.sidebarWidth().then((w) => (sidebarWidth = clampWidth(w, SIDEBAR)), () => {});
+    api.panelWidth().then((w) => (panelWidth = clampWidth(w, PANEL)), () => {});
+  });
+
+  /// The two edges, as one gesture written once.
+  ///
+  /// The only differences are which neighbour is being measured, which way the
+  /// pointer's travel counts (the right panel's handle is on the side its
+  /// width grows away from), and where the result is kept.
+  const EDGES = {
+    sidebar: {
+      limits: SIDEBAR,
+      sign: 1,
+      neighbour: (handle) => handle.previousElementSibling,
+      get: () => sidebarWidth,
+      set: (w) => (sidebarWidth = w),
+      remember: (w) => api.rememberSidebarWidth(w),
+    },
+    panel: {
+      limits: PANEL,
+      sign: -1,
+      neighbour: (handle) => handle.nextElementSibling,
+      get: () => panelWidth,
+      set: (w) => (panelWidth = w),
+      remember: (w) => api.rememberPanelWidth(w),
+    },
+  };
+
+  /// Grabs an edge. The pointer is captured by the handle, so the drag
+  /// survives the pointer crossing into the panel it is resizing.
+  function startResize(event, which) {
+    if (event.button !== 0) return;
+    event.preventDefault();
+    const edge = EDGES[which];
+    const handle = event.currentTarget;
+    // Where it starts is how wide the panel ACTUALLY is right now — measured,
+    // not assumed, because until the first drag the width comes from the
+    // stylesheet.
+    const startWidth =
+      edge.neighbour(handle)?.getBoundingClientRect().width ?? edge.limits.default;
+    const startX = event.clientX;
+    handle.setPointerCapture?.(event.pointerId);
+    resizing = true;
+
+    const move = (e) =>
+      edge.set(draggedWidth(startWidth, edge.sign * (e.clientX - startX), edge.limits));
+    const stop = () => {
+      handle.removeEventListener("pointermove", move);
+      handle.removeEventListener("pointerup", stop);
+      handle.removeEventListener("pointercancel", stop);
+      resizing = false;
+      // Once per drag, on release — not on every pointer move.
+      const width = edge.get();
+      if (width) edge.remember(width).catch(() => {});
+    };
+    handle.addEventListener("pointermove", move);
+    handle.addEventListener("pointerup", stop);
+    handle.addEventListener("pointercancel", stop);
+  }
+
+  /// The same handles from the keyboard: a separator that can be focused has
+  /// to be operable, or it is a control only a mouse can reach.
+  function nudgeResize(event, which) {
+    const step = event.shiftKey ? 32 : 8;
+    const by = event.key === "ArrowLeft" ? -step : event.key === "ArrowRight" ? step : 0;
+    if (!by) return;
+    event.preventDefault();
+    const edge = EDGES[which];
+    const next = draggedWidth(
+      edge.get() ?? edge.limits.default,
+      edge.sign * by,
+      edge.limits,
+    );
+    edge.set(next);
+    if (next) edge.remember(next).catch(() => {});
+  }
+
   /// Which window buttons the desktop wants, and where. Read once: there is no
   /// live signal for it, and the fallback is the standard set, so the worst
   /// case is a restart after changing the setting.
@@ -167,6 +264,9 @@
       case "search":
         if (!notebook) return;
         event.preventDefault();
+        // The shortcut always asks the whole notebook, whatever the last
+        // scoped search was.
+        searchScope = null;
         searching = true;
         return;
       case "dismiss":
@@ -186,6 +286,10 @@
 
   /// The search dialog is open over whatever screen is showing.
   let searching = $state(false);
+  /// Which space that search is narrowed to, or null for the whole notebook.
+  /// Ctrl+F and the sidebar's magnifier ask the notebook; a screen's own menu
+  /// asks the screen (2026-08-17).
+  let searchScope = $state(null);
 
   /// Goes to a task found by the search: its list opens, and the task itself
   /// opens in the panel — what was searched for is the task, not the list it
@@ -313,21 +417,28 @@
       quickNoteFolder: "Inbox",
       accentColor: "",
       theme: "",
+      headingColor: "",
       features: {},
     },
   );
 
-  // Theme and accent are ATTRIBUTES on the document root, because that is where
-  // they reach both regions at once — the chrome and the canvas each resolve
-  // them to their own values (styles/themes/*.css, styles/roles.css). All three
-  // themes are loaded, each scoped to its own name, so switching is this one
-  // attribute: no dynamic import and no flash. Both ride in the layout, so they
-  // are set on a notebook's first paint rather than after a second round trip.
+  // Theme, accent and heading colour are ATTRIBUTES on the document root,
+  // because that is where they reach both regions at once — the chrome and the
+  // canvas each resolve them to their own values (styles/themes/*.css,
+  // styles/roles.css). All three themes are loaded, each scoped to its own
+  // name, so switching is this one attribute: no dynamic import and no flash.
+  // All three ride in the layout, so they are set on a notebook's first paint
+  // rather than after a second round trip.
+  //
+  // Only `ink` is written for the headings: the accent is what the app ships
+  // as, and an absent attribute is what the default rule in roles.css answers.
   $effect(() => {
     const root = document.documentElement;
     root.dataset.theme = themeAttribute(layout.theme);
     if (layout.accentColor) root.dataset.accent = layout.accentColor;
     else delete root.dataset.accent;
+    if (layout.headingColor === "ink") root.dataset.headings = "ink";
+    else delete root.dataset.headings;
   });
 
   /// Is this part of the app switched on? (App Functions, 2026-08-06.) One
@@ -442,35 +553,143 @@
     return (folder && spColors[folder]) ?? null;
   }
 
+  // ---- what can be done to the SCREEN itself (2026-08-17) ----
+  // Four actions that make sense wherever the user is, so they are written
+  // once and served twice: from the page ⋮ and from a right-click on the empty
+  // canvas. Which ones apply is decided by the view, never by the caller.
+
+  /// The space the current screen lives in, as a root-relative path — null on
+  /// a screen that is not inside one (Home, Settings, the Trash).
+  let currentSpace = $derived.by(() => {
+    switch (view.kind) {
+      case "space":
+        return view.sp;
+      case "list":
+        return holderOf(view.list);
+      case "note":
+        return view.folder;
+      case "tasks":
+      case "completed":
+        return layout.tasksFolder;
+      case "notes":
+        return layout.notesFolder;
+      default:
+        return null;
+    }
+  });
+
+  /// The user space being looked at, when it is one — the fixed three are the
+  /// app's own folders and are not renamed from here (`userSpaces` is already
+  /// the list without them).
+  let renamableSpace = $derived(
+    view.kind === "space" ? (userSpaces.find((sp) => sp.path === view.sp) ?? null) : null,
+  );
+
+  /// What "here" is called, for the menu label and the search box.
+  let hereLabel = $derived(
+    view.kind === "note"
+      ? openNote.title || titleOf(view)
+      : currentSpace
+        ? (spaces.find((sp) => sp.path === currentSpace)?.name ?? currentSpace)
+        : S.thisNotebook,
+  );
+
+  /// The address whose FOLDER the file manager should open: the document when
+  /// there is one, the space otherwise, the notebook root when neither.
+  let hereAddress = $derived(
+    view.kind === "note"
+      ? `${view.folder}/${view.path}`
+      : view.kind === "list"
+        ? view.list
+        : currentSpace,
+  );
+
+  const revealHere = () =>
+    api.openInFileManager(hereAddress || null).catch(fail);
+
+  /// Search, narrowed to where the user is. In a note that is the note itself
+  /// — the editor's own panel, which is also where replacing lives; anywhere
+  /// else it is the space, asked of the same box Ctrl+F opens.
+  function findHere() {
+    if (view.kind === "note") {
+      noteEditor?.openFind();
+      return;
+    }
+    searchScope = currentSpace;
+    searching = true;
+  }
+
+  /// The four screen actions, in the order both menus show them.
+  let screenActions = $derived.by(() => {
+    if (notebook?.readOnly) {
+      // Reading is still reading: finding and opening the folder cost nothing.
+      return [
+        { label: S.findInPlace(hereLabel), run: findHere },
+        { label: S.openInFileManager, run: revealHere },
+      ];
+    }
+    const items = [];
+    if (renamableSpace) {
+      items.push({
+        label: S.renameThisSpace,
+        run: () => renameSpaceTo(renamableSpace.path, renamableSpace.name),
+      });
+    }
+    items.push({ label: S.openInFileManager, run: revealHere });
+    items.push(
+      view.kind === "note"
+        ? { label: S.findInNote, run: findHere }
+        : { label: S.findInPlace(hereLabel), run: findHere },
+    );
+    // Replacing is a note's own gesture: a task list is rows in a screen, not
+    // a document with a body to rewrite.
+    if (view.kind === "note") {
+      items.push({ label: S.replaceInNote, run: () => noteEditor?.openReplace() });
+    }
+    return items;
+  });
+
   /// The page menu of the current screen — the `•••` of the wireframe.
   let pageMenu = $derived.by(() => {
-    if (notebook?.readOnly) return [];
-
     // A note's own actions belong here, not to a second bar inside the page.
-    if (view.kind === "note") {
-      return [
+    const own = [];
+    if (!notebook?.readOnly && view.kind === "note") {
+      own.push(
         { label: openNote.pinned ? S.unpin : S.pin, run: toggleNotePin },
         { label: S.renameNote, run: renameCurrentNote },
         { label: S.deleteNote, run: deleteCurrentNote },
-      ];
+      );
     }
-
     // Lists are created inside a space's widget now, not from here.
     // Renaming or deleting a list the app recreates on every open would only
     // confuse — the core refuses it anyway, so the menu must not offer it.
-    const items = [];
     if (
+      !notebook?.readOnly &&
       view.kind === "list" &&
       view.list !== layout.inbox &&
       view.list !== layout.completed
     ) {
-      items.push(
+      own.push(
         { label: S.renameList, run: renameCurrentList },
         { label: S.deleteList, run: deleteCurrentList },
       );
     }
-    return items;
+    return [...own, ...screenActions];
   });
+
+  // ---- the canvas's own right-click menu ----
+  // The same actions, at the pointer. Only the EMPTY canvas: a click on a task
+  // row, a card or a button has its own meaning, and stealing it would make
+  // the right button unpredictable (the sidebar keeps the same pact).
+  let canvasMenuAt = $state(null);
+
+  function openCanvasMenu(event) {
+    if (event.target.closest("button, a, input, textarea, .cm-editor, [role='menu']"))
+      return;
+    if (screenActions.length === 0) return;
+    event.preventDefault();
+    canvasMenuAt = { x: event.clientX, y: event.clientY };
+  }
 
   // --- the open note's document actions, owned by the shell because each
   // one changes what the tab points at ---
@@ -889,7 +1108,22 @@
 <!-- `data-region` is what gives an element its colour ground (styles/themes/*.css):
      the whole window is the CHROME, and the content panel below overrides it
      with the CANVAS. In the factory theme that is black around white. -->
-<div class="window" class:window--flush={flush} data-region="chrome">
+<!-- The dragged sidebar width is written HERE, not on the panel: the title
+     bar's brand column is as wide as the sidebar and lives outside the shell,
+     so both edges have to read the same variable. Unset means the token in
+     tokens.css stands, which keeps the stylesheet the source of the default. -->
+<div
+  class="window"
+  class:window--flush={flush}
+  class:window--resizing={resizing}
+  style={[
+    sidebarWidth ? `--theme-sidebar-left: ${sidebarWidth}px` : "",
+    panelWidth ? `--theme-sidebar-right: ${panelWidth}px` : "",
+  ]
+    .filter(Boolean)
+    .join("; ") || undefined}
+  data-region="chrome"
+>
   <!-- Frameless: draw our own resize grips at the edges. Not while flush —
        a maximized window has nothing to resize into. -->
   {#if !flush}
@@ -955,7 +1189,34 @@
         onSetGroupAppearance={setGroupAppearanceAt}
         onDeleteGroup={deleteGroupAt}
         onMoveSpace={moveSpaceTo}
+        onSearch={() => {
+          searchScope = null;
+          searching = true;
+        }}
       />
+
+      <!-- The edge between the two panels is a handle (user call, 2026-08-17).
+           Gone with the rail, whose width is the app's answer, not a
+           preference. A focusable separator, so the width is also reachable
+           from the keyboard. -->
+      {#if !railed}
+        <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+        <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+        <!-- A separator that can be MOVED is a widget, and the ARIA spec has a
+             name for it: a focusable separator, which takes a value and the
+             arrow keys. The linter only knows the static kind. -->
+        <div
+          class="shell__resizer"
+          role="separator"
+          aria-orientation="vertical"
+          aria-label={S.resizeSidebar}
+          aria-valuenow={sidebarWidth ?? DEFAULT_SIDEBAR}
+          aria-valuetext={S.sidebarWidthValue(sidebarWidth ?? DEFAULT_SIDEBAR)}
+          tabindex="0"
+          onpointerdown={(e) => startResize(e, "sidebar")}
+          onkeydown={(e) => nudgeResize(e, "sidebar")}
+        ></div>
+      {/if}
 
       <!-- CENTRE: page header, then the screen itself. The tabs moved up into
            the title bar; the header keeps the back/forward, title and ••• menu. -->
@@ -978,7 +1239,11 @@
 
         <!-- svelte-ignore a11y_no_static_element_interactions -->
         <!-- svelte-ignore a11y_click_events_have_key_events -->
-        <div class="shell__content" onclick={clickedAway}>
+        <div
+          class="shell__content"
+          onclick={clickedAway}
+          oncontextmenu={openCanvasMenu}
+        >
           <div class="shell__content-inner">
           {#if error}
             <p class="shell__error">
@@ -1149,6 +1414,25 @@
            so both side panels move the same way (no grid flicker, since the
            shell is flex). The inner panel keeps a fixed width so its content is
            clipped, not reflowed, while it slides. -->
+      <!-- Its own handle, on the side it opens from (user call, 2026-08-17).
+           Only while there is a panel to resize; the same separator the
+           sidebar's edge is, mirrored. -->
+      {#if suggesting || selected}
+        <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+        <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+        <div
+          class="shell__resizer"
+          role="separator"
+          aria-orientation="vertical"
+          aria-label={S.resizePanel}
+          aria-valuenow={panelWidth ?? PANEL.default}
+          aria-valuetext={S.sidebarWidthValue(panelWidth ?? PANEL.default)}
+          tabindex="0"
+          onpointerdown={(e) => startResize(e, "panel")}
+          onkeydown={(e) => nudgeResize(e, "panel")}
+        ></div>
+      {/if}
+
       {#if suggesting}
         <div class="shell__panel" transition:slide={{ axis: "x", duration: 200 }}>
           <SuggestionsPane
@@ -1197,9 +1481,25 @@
 
 <!-- Ctrl+F / Ctrl+K, over whatever screen is open: a search is a question
      asked in passing, and answering it should not cost the place you were in. -->
+<!-- The canvas's own menu (2026-08-17): the screen's actions, at the pointer.
+     Outside the panel in the markup so the popup is never clipped by the
+     scrolling content it was opened over. -->
+<ContextMenu
+  at={canvasMenuAt}
+  items={screenActions}
+  onClose={() => (canvasMenuAt = null)}
+/>
+
 {#if searching}
   <SearchDialog
-    onClose={() => (searching = false)}
+    scope={searchScope}
+    scopeLabel={searchScope
+      ? (spaces.find((sp) => sp.path === searchScope)?.name ?? searchScope)
+      : ""}
+    onClose={() => {
+      searching = false;
+      searchScope = null;
+    }}
     onOpenList={showFoundTask}
     onOpenNote={(path, folder) => showNote(path, folder)}
     onError={fail}

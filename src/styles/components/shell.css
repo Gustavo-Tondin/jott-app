@@ -41,11 +41,15 @@
     transition: flex-basis var(--theme-transition-medium);
   }
 
-  /* ---- head: hamburger (left) + collapse toggle (right) ---- */
+  /* ---- head: hamburger · search · + (left), collapse toggle (right) ---- */
+  /* Four controls, evenly spread across the head (user call, 2026-08-17):
+     hamburger · search · + · collapse, the first and the last on the walls.
+     They read as one row of tools rather than as three-and-one. */
   .shell__sidebar-head {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: var(--theme-space-2);
     padding: var(--theme-space-8) var(--theme-space-12);
   }
   /* The head buttons are plain .theme-btn--icon; nothing extra to say. */
@@ -57,9 +61,11 @@
   .shell__sidebar--rail {
     flex-basis: var(--theme-sidebar-rail);
   }
-  /* Railed: only the expand toggle stays; the hamburger waits for the full
-     sidebar. */
-  .shell__sidebar--rail .shell__menu {
+  /* Railed: only the expand toggle stays; the hamburger, the search and the +
+     wait for the full sidebar — 3.5rem is one glyph wide, and that glyph has
+     to be the way back out. */
+  .shell__sidebar--rail .shell__menu,
+  .shell__sidebar--rail .shell__head-action {
     display: none;
   }
   .shell__sidebar--rail .shell__nav-label,
@@ -195,6 +201,12 @@
     flex-shrink: 0;
     margin-inline-start: auto;
     opacity: 0.7;
+  }
+  /* Not on the rail (user report, 2026-08-17): with the label gone, the caret
+     sat beside the icon as a second glyph in a column that holds one, and it
+     pointed at members nobody can read there anyway. */
+  .shell__sidebar--rail .shell__group-caret {
+    display: none;
   }
   /* Where the colour/icon popup hangs. The ⋮ that used to live here is gone
      (user call, 2026-08-06): it only showed on hover, it ate the end of every
@@ -389,6 +401,44 @@
     padding: var(--theme-space-8) var(--theme-space-8) var(--theme-space-4);
   }
 
+
+  /* ---- the sidebar's edge, as a handle (user call, 2026-08-17) ----
+     A flex item of its own rather than something floating over the panel: the
+     column it takes is a column nothing else wants, and a real box is what
+     makes the grab area bigger than the hairline it draws. It disappears with
+     the rail, whose width is not the user's to choose. */
+  /* Invisible (user call, 2026-08-17): it drew a line and lit up accent under
+     the pointer, which put a loud blue bar between the two panels for a
+     control nobody needs pointed out. The cursor changing IS the affordance.
+     The grab area stays 4px wide — it is the hit target, not a decoration. */
+  .shell__resizer {
+    flex: 0 0 var(--theme-space-4);
+    align-self: stretch;
+    cursor: col-resize;
+    background: none;
+    /* The drag is a pointer gesture; the browser's own touch panning would
+       fight it. */
+    touch-action: none;
+  }
+  /* Keyboard focus still has to be visible — that is the one state where
+     nothing else says where you are (global rule). Never on hover. */
+  .shell__resizer:focus-visible {
+    outline: 0.125rem solid var(--theme-brand);
+    outline-offset: -0.125rem;
+  }
+  /* While dragging, the two edges that follow the sidebar's width must not
+     also be animating towards it — the panel would lag a frame behind the
+     pointer the whole way. */
+  .window--resizing .shell__sidebar,
+  .window--resizing .titlebar__brand,
+  .window--resizing .shell__panel > .inspector,
+  .window--resizing .shell__panel > .suggestions-pane {
+    transition: none;
+  }
+  .window--resizing {
+    cursor: col-resize;
+    user-select: none;
+  }
 
   /* ---- centre panel: takes whatever the two side panels leave.
      It is the CANVAS region (data-region in App.svelte), so it paints its own

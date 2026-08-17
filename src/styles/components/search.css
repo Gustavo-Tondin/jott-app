@@ -2,17 +2,17 @@
  * Markup: src/lib/components/SearchDialog.svelte.
  *
  * The card, the dimmed backdrop and the rows are the shared .theme-modal* and
- * .theme-row of controls.css. What is here is only what belongs to a SEARCH:
- * it opens near the top instead of dead centre (the answer grows downwards,
- * and a centred card would jump on every keystroke), and its result area
- * scrolls on its own so the field never leaves the screen. */
+ * .theme-row of controls.css — including where it opens, which is the centre
+ * of the screen. What is here is only what belongs to a SEARCH: a wider card,
+ * and a result area that scrolls on its own so the field never leaves the
+ * screen however many hits there are. */
 @layer components {
-  .search__backdrop {
-    /* Top-aligned, with the card hanging a fifth of the way down: the list
-       below it grows without moving the field the user is typing into. */
-    align-items: start;
-    padding-block-start: 12vh;
-  }
+  /* Dead centre, like every other dialog in the app (user call, 2026-08-17).
+     It used to hang a fifth of the way down so the results could grow without
+     moving the field — but a box that opens somewhere no other box opens
+     reads as misplaced, and the field is a fifth of a screen from where the
+     eye already is. The cost is that the card grows from the middle; that is
+     what a modal does here. */
 
   .search {
     max-block-size: min(32rem, 70vh);

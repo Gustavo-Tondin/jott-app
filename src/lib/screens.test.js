@@ -1091,6 +1091,76 @@ describe("App", () => {
     expect(opened).not.toHaveBeenCalled();
   });
 
+  test("the sidebar head carries search and a + that makes things", async () => {
+    // Both were only reachable by shortcut or by right-clicking empty column
+    // — which stops existing as soon as the column is full (user call,
+    // 2026-08-17).
+    shell();
+    render(App);
+    await screen.findByText("Comprar leite");
+
+    await userEvent.click(screen.getByLabelText("new list, notepad or group"));
+    // Inside the dropdown: an empty column also offers its own two buttons,
+    // and both say the same words.
+    const made = within(document.querySelector(".menu__list"));
+    expect(made.getByText("New list")).toBeTruthy();
+    expect(made.getByText("New notepad")).toBeTruthy();
+    expect(made.getByText("New group")).toBeTruthy();
+
+    await userEvent.click(screen.getByLabelText("search"));
+    // The whole notebook, the same box Ctrl+F opens.
+    expect(await screen.findByPlaceholderText("Search tasks and notes…")).toBeTruthy();
+  });
+
+  test("the sidebar reopens as wide as it was left", async () => {
+    // A machine preference, not a notebook one: it answers to a monitor.
+    shell({ sidebar_width: 300 });
+    render(App);
+    await screen.findByText("Comprar leite");
+
+    await waitFor(() =>
+      expect(document.querySelector(".window").getAttribute("style")).toContain(
+        "--theme-sidebar-left: 300px",
+      ),
+    );
+
+    // And the edge between the panels is a handle that says how wide it is.
+    const handle = screen.getByLabelText("resize sidebar");
+    expect(handle.getAttribute("aria-valuenow")).toBe("300");
+  });
+
+  test("the right panel is resizable too, and keeps its own width", async () => {
+    shell({
+      panel_width: 320,
+      period_tasks: [],
+      grouped_suggestions: [],
+    });
+    render(App);
+    await screen.findByText("Comprar leite");
+
+    await waitFor(() =>
+      expect(document.querySelector(".window").getAttribute("style")).toContain(
+        "--theme-sidebar-right: 320px",
+      ),
+    );
+    // The handle exists only while a panel does.
+    expect(screen.queryByLabelText("resize panel")).toBeNull();
+    await userEvent.click(await screen.findByText("Comprar leite"));
+    expect(await screen.findByLabelText("resize panel")).toBeTruthy();
+  });
+
+  test("an absurd stored width is clamped instead of taking over the window", async () => {
+    shell({ sidebar_width: 9000 });
+    render(App);
+    await screen.findByText("Comprar leite");
+
+    await waitFor(() =>
+      expect(document.querySelector(".window").getAttribute("style")).toContain(
+        "--theme-sidebar-left: 480px",
+      ),
+    );
+  });
+
   test("Completed lives in the right-rail menu, not among the lists", async () => {
     // It is created by the app on every open, so it never sits among the user's
     // lists; it moved to the hamburger's lesser pages.
@@ -1802,6 +1872,51 @@ describe("App with a user space", () => {
 
     // Its lists are not flattened into the fixed sidebar.
     expect(screen.queryByRole("button", { name: /^Sprint/ })).toBeNull();
+  });
+
+  test("the page ⋮ acts on the screen: rename, folder, find", async () => {
+    // 2026-08-17. Renaming is offered only for a space the USER made — the
+    // fixed three are the app's own folders.
+    shell();
+    render(App);
+    await userEvent.click(await screen.findByText("Project A"));
+
+    await userEvent.click(screen.getByLabelText("page menu"));
+    expect(screen.getByText("Rename space")).toBeTruthy();
+    expect(screen.getByText("Find in Project A")).toBeTruthy();
+
+    await userEvent.click(screen.getByText("Open in file manager"));
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("open_in_file_manager", {
+        path: "Project A",
+      }),
+    );
+  });
+
+  test("the same actions answer the right button on the empty canvas", async () => {
+    shell();
+    render(App);
+    await userEvent.click(await screen.findByText("Project A"));
+
+    await fireEvent.contextMenu(document.querySelector(".shell__content"));
+
+    const menu = document.querySelector(".context-menu");
+    expect(menu).not.toBeNull();
+    expect(within(menu).getByText("Rename space")).toBeTruthy();
+    expect(within(menu).getByText("Open in file manager")).toBeTruthy();
+
+    await userEvent.click(within(menu).getByText("Find in Project A"));
+    // Scoped to the space, so the box says where it is looking and the core
+    // is told to stay there.
+    const box = await screen.findByPlaceholderText("Search in Project A…");
+    await userEvent.type(box, "cimento");
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("search", {
+        query: "cimento",
+        limit: null,
+        scope: "Project A",
+      }),
+    );
   });
 
   test("opening a space loads its own list", async () => {
@@ -2736,6 +2851,41 @@ describe("the suggestions panel", () => {
     );
     // Pulling keeps the panel open — pulling several in a row is the gesture.
     expect(screen.queryByText("Suggestions for today")).not.toBeNull();
+  });
+
+  test("what left the day comes back under its own heading", async () => {
+    // 2026-08-17: the core answers `recent` for a task that WAS in Today or
+    // the Week and left. The panel gives it a section of its own, after the
+    // week's live choices and before the plain lists.
+    onHome({
+      period_tasks: [],
+      grouped_suggestions: [
+        ...suggestions,
+        {
+          path: "jott.tasks/Compras.md",
+          space: "Tasks",
+          task: task("d4", "Tirei do dia ontem"),
+          group: "recent",
+        },
+      ],
+    });
+    render(App);
+
+    await userEvent.click(await screen.findByText("Suggestions"));
+    await screen.findByText("Suggestions for today");
+
+    const pane = document.querySelector(".suggestions-pane");
+    expect(within(pane).getByText("Pulled recently")).toBeTruthy();
+    expect(within(pane).getByText("Tirei do dia ontem")).toBeTruthy();
+    // It is NOT filed under its list: it is being offered for a different
+    // reason than "it exists in a list somewhere".
+    const headings = [...pane.querySelectorAll(".suggestions-pane__group-title")].map(
+      (b) => b.textContent,
+    );
+    const at = (label) => headings.findIndex((h) => h.includes(label));
+    expect(at("Pulled recently")).toBeGreaterThan(at("Urgent"));
+    // And before the plain lists, which are the last thing offered.
+    expect(at("Pulled recently")).toBeLessThan(at("Compras"));
   });
 
   test("opening a task takes the panel back, and Escape closes it", async () => {

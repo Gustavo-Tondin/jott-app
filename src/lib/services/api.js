@@ -29,8 +29,24 @@ export const api = {
 
   // search
   // Two answers (tasks, notes) plus whether anything was left out. `limit` is
-  // the core's own when the caller has no opinion.
-  search: (query, limit = null) => invoke("search", { query, limit }),
+  // the core's own when the caller has no opinion. `scope` is a space's path
+  // — the whole notebook when it is null (2026-08-17).
+  search: (query, limit = null, scope = null) =>
+    invoke("search", { query, limit, scope }),
+
+  // The notebook is plain folders, and this is the door to them: `path` is a
+  // root-relative address (a space, a list, a note), empty for the root. What
+  // opens is always the FOLDER around it, never the document.
+  openInFileManager: (path = null) => invoke("open_in_file_manager", { path }),
+
+  // How wide the sidebar was dragged. A machine preference (the monitor
+  // decides, not the notebook), so it lives beside the last notebook.
+  sidebarWidth: () => invoke("sidebar_width"),
+  rememberSidebarWidth: (width) => invoke("remember_sidebar_width", { width }),
+  // The right panel keeps its own; the inspector and the suggestions share it,
+  // because they share the panel.
+  panelWidth: () => invoke("panel_width"),
+  rememberPanelWidth: (width) => invoke("remember_panel_width", { width }),
 
   // lists
   listNames: () => invoke("list_names"),

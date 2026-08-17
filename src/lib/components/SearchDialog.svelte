@@ -13,6 +13,13 @@
   import Icon from "./Icon.svelte";
 
   let {
+    /// Narrow the question to one space, by its root-relative path — what the
+    /// page ⋮ asks (2026-08-17). Null is the whole notebook, which is Ctrl+F.
+    scope = null,
+    /// How that space is called on screen, for the box to say where it is
+    /// looking. The shell knows the readable name; this dialog never derives
+    /// one from a path.
+    scopeLabel = "",
     /// Called when the dialog wants to go away.
     onClose,
     /// Takes a task hit's list address and its id, when it has one.
@@ -34,8 +41,15 @@
   const DEBOUNCE_MS = 150;
   let timer = null;
 
+  /// What the box calls the place it is searching — empty when it is the whole
+  /// notebook, which needs no saying.
+  let scopeName = $derived(scope ? scopeLabel || scope : "");
+
   $effect(() => {
     const asked = query;
+    // Re-runs when the scope changes too: the same words asked of another
+    // place are another question.
+    scope;
     clearTimeout(timer);
     if (!asked.trim()) {
       results = { tasks: [], notes: [], truncated: false };
@@ -45,7 +59,7 @@
     asking = true;
     timer = setTimeout(async () => {
       try {
-        const answer = await api.search(asked);
+        const answer = await api.search(asked, null, scope);
         // A slower earlier query must not overwrite a newer answer.
         if (asked !== query) return;
         results = answer ?? { tasks: [], notes: [], truncated: false };
@@ -99,8 +113,8 @@
         type="text"
         autofocus
         bind:value={query}
-        placeholder={S.findPlaceholder}
-        aria-label={S.findTitle}
+        placeholder={scopeName ? S.findIn(scopeName) : S.findPlaceholder}
+        aria-label={scopeName ? S.findIn(scopeName) : S.findTitle}
       />
       <button class="theme-btn--icon" aria-label={S.cancel} title={S.cancel} onclick={() => onClose?.()}>
         <Icon name="x" size="1rem" />
@@ -109,9 +123,13 @@
 
     <div class="search__results">
       {#if !query.trim()}
-        <p class="search__hint">{S.findHint}</p>
+        <p class="search__hint">{scopeName ? S.findHintIn(scopeName) : S.findHint}</p>
       {:else if empty}
-        <p class="search__hint">{S.findNothing(query.trim())}</p>
+        <p class="search__hint">
+          {scopeName
+            ? S.findNothingIn(query.trim(), scopeName)
+            : S.findNothing(query.trim())}
+        </p>
       {:else}
         {#each [{ label: S.findTasks, hits: results.tasks }, { label: S.findNotes, hits: results.notes }] as section (section.label)}
           {#if section.hits.length > 0}

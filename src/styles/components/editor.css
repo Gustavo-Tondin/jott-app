@@ -37,4 +37,75 @@
   .editor .cm-editor ::selection {
     background: var(--theme-brand-weak);
   }
+
+  /* ---- find and replace (2026-08-17) ----
+     CodeMirror's own panel, dressed in the app's tokens. It ships with a
+     light-only look of its own, which on the dark themes was white text in a
+     white box. Everything here is the panel taking the region's ground, the
+     app's controls and the app's accent — the behaviour is untouched. */
+  .editor .cm-panels {
+    background: var(--theme-surface);
+    color: var(--theme-ink);
+    border-color: var(--theme-line);
+  }
+  .editor .cm-panels.cm-panels-top {
+    border-bottom: 0.0625rem solid var(--theme-line);
+  }
+  .editor .cm-panel.cm-search {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--theme-space-6);
+    padding: var(--theme-space-8);
+    font-size: var(--theme-text-14);
+  }
+  .editor .cm-panel.cm-search input[type="text"] {
+    flex: 1 1 8rem;
+    min-inline-size: 0;
+    padding: var(--theme-space-4) var(--theme-space-8);
+    background: var(--theme-bg);
+    color: var(--theme-ink);
+    border: 0.0625rem solid var(--theme-line);
+    border-radius: var(--theme-radius-xs);
+    font: inherit;
+  }
+  .editor .cm-panel.cm-search input[type="text"]:focus-visible {
+    outline: 0.125rem solid var(--theme-brand);
+    outline-offset: 0.0625rem;
+  }
+  .editor .cm-panel.cm-search button:not([name="close"]) {
+    padding: var(--theme-space-4) var(--theme-space-8);
+    background: var(--theme-bg);
+    color: var(--theme-ink);
+    border: 0.0625rem solid var(--theme-line);
+    border-radius: var(--theme-radius-xs);
+    background-image: none;
+    font: inherit;
+    cursor: pointer;
+  }
+  .editor .cm-panel.cm-search button:not([name="close"]):hover {
+    background: var(--theme-hover);
+  }
+  .editor .cm-panel.cm-search label {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--theme-space-4);
+    color: var(--theme-ink-muted);
+  }
+  .editor .cm-panel.cm-search [name="close"] {
+    color: var(--theme-ink-muted);
+    background: none;
+    border: none;
+    cursor: pointer;
+  }
+  /* The matches themselves: the one the cursor is on wears the accent, the
+     others its tint — the same pair the rest of the app uses to say "this one"
+     and "these too". */
+  .editor .cm-searchMatch {
+    background: var(--theme-brand-weak);
+  }
+  .editor .cm-searchMatch-selected {
+    background: var(--theme-brand);
+    color: var(--theme-on-brand);
+  }
 }
