@@ -21,6 +21,7 @@
   import { S } from "../services/strings.js";
   import { listTitle, splitLabel } from "../services/paths.js";
   import { emptyIntent } from "../services/taskCompose.js";
+  import { PRIORITIES, REPEAT_UNITS } from "../services/taskFields.js";
   import { dismissable } from "../actions/dismissable.js";
   import { keepOnScreen } from "../actions/keepOnScreen.js";
   import Icon from "./Icon.svelte";
@@ -64,15 +65,9 @@
 
   let repeating = $state(false);
 
-  const PRIORITIES = [
-    { value: "", label: S.priorityNone },
-    { value: "3", label: S.priorityLow },
-    { value: "2", label: S.priorityMedium },
-    { value: "1", label: S.priorityHigh },
-  ];
   let priorityMenu = $derived(
     PRIORITIES.map((option) => ({
-      label: (intent.priority === option.value ? "✓ " : "  ") + option.label,
+      label: (intent.priority === option.value ? "✓ " : "  ") + option.label(),
       run: () => (intent.priority = option.value),
     })),
   );
@@ -248,10 +243,9 @@
               bind:value={intent.repeatUnit}
               aria-label={S.repeatLabel}
             >
-              <option value="">{S.noRepeat}</option>
-              <option value="day">{S.repeatDays}</option>
-              <option value="week">{S.repeatWeeks}</option>
-              <option value="month">{S.repeatMonths}</option>
+              {#each REPEAT_UNITS as unit (unit.value)}
+                <option value={unit.value}>{unit.label()}</option>
+              {/each}
             </select>
           </div>
         {/if}

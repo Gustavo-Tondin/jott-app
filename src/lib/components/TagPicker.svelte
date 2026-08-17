@@ -9,6 +9,7 @@
   import { keepOnScreen } from "../actions/keepOnScreen.js";
   import { S } from "../services/strings.js";
   import { accentColor, DEFAULT_ACCENT } from "../services/accent.js";
+  import { cleanTagName } from "../services/taskFields.js";
   import AccentPicker from "./AccentPicker.svelte";
 
   let { tags = [], applied = [], onPick, onCreate } = $props();
@@ -26,7 +27,7 @@
   }
 
   function create() {
-    const clean = name.trim().replace(/^#+/, "").replace(/\s+/g, "-");
+    const clean = cleanTagName(name);
     if (!clean) return;
     onCreate?.(clean, color);
     close();

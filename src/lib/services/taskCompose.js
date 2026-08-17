@@ -13,28 +13,11 @@
 // file without a comment on its line.
 
 import { api } from "./api.js";
+import { repeatText } from "./taskFields.js";
 
 /// A blank intent, pointed at `list`.
 export function emptyIntent(list = null) {
   return { text: "", list, due: "", priority: "", repeatEvery: 1, repeatUnit: "" };
-}
-
-/// Whether the intent carries anything beyond its text.
-export function hasFields(intent) {
-  return !!(intent?.due || intent?.repeatUnit || intent?.priority);
-}
-
-/// The `repeat:` value the core parses, or null when there is no repetition.
-///
-/// Built rather than typed, for the same reason the inspector builds it: the
-/// core silently drops a `repeat:` it cannot parse, so an invalid one must
-/// never be possible to express.
-export function repeatText(intent) {
-  if (!intent?.repeatUnit) return null;
-  const every = Math.max(1, Number(intent.repeatEvery) || 1);
-  return every === 1
-    ? `every-${intent.repeatUnit}`
-    : `every-${every}-${intent.repeatUnit}s`;
 }
 
 /// Writes the intent. Returns the new task's id, or null when it needed none.

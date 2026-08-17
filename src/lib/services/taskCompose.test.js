@@ -10,7 +10,7 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
 const invoke = vi.fn();
 vi.mock("@tauri-apps/api/core", () => ({ invoke: (...args) => invoke(...args) }));
 
-const { composeTask, repeatText, emptyIntent, hasFields } = await import(
+const { composeTask, emptyIntent } = await import(
   "./taskCompose.js"
 );
 
@@ -99,26 +99,5 @@ describe("composeTask", () => {
     expect(await composeTask({ ...emptyIntent("Tasks/Inbox/Inbox.md"), text: "   " })).toBeNull();
     expect(await composeTask({ ...emptyIntent(null), text: "Pão" })).toBeNull();
     expect(calls()).toEqual([]);
-  });
-});
-
-describe("repeatText", () => {
-  test("builds only what the core can parse", () => {
-    // The core drops a `repeat:` it cannot read, so an invalid one must never
-    // be expressible — the same reason the inspector builds it from a select.
-    expect(repeatText({ repeatUnit: "", repeatEvery: 3 })).toBeNull();
-    expect(repeatText({ repeatUnit: "week", repeatEvery: 1 })).toBe("every-week");
-    expect(repeatText({ repeatUnit: "day", repeatEvery: 3 })).toBe("every-3-days");
-    // Nonsense in the number falls back to 1 rather than writing "every-NaN".
-    expect(repeatText({ repeatUnit: "month", repeatEvery: "" })).toBe("every-month");
-    expect(repeatText({ repeatUnit: "month", repeatEvery: 0 })).toBe("every-month");
-  });
-});
-
-describe("hasFields", () => {
-  test("is true only once something beyond the text is set", () => {
-    expect(hasFields(emptyIntent("x.md"))).toBe(false);
-    expect(hasFields({ ...emptyIntent("x.md"), due: "2026-08-15" })).toBe(true);
-    expect(hasFields({ ...emptyIntent("x.md"), repeatUnit: "week" })).toBe(true);
   });
 });

@@ -42,7 +42,7 @@
   import ResizeHandles from "./lib/shell/ResizeHandles.svelte";
   import Sidebar from "./lib/shell/Sidebar.svelte";
   import PageHeader from "./lib/shell/PageHeader.svelte";
-  import { listName, listTitle } from "./lib/services/paths.js";
+  import { folderOf, listName, listTitle } from "./lib/services/paths.js";
   import { formatDate } from "./lib/services/dates.js";
   import { spaceColors } from "./lib/services/spaceColors.js";
   import { tagColors as tagColorMap } from "./lib/services/accent.js";
@@ -464,7 +464,7 @@
   /// Tasks screen hosts the notebook's own source (arrangement and all)
   /// instead of a stand-in. The folder is the space's own path.
   let inboxWidget = $derived.by(() => {
-    const folder = layout.inbox.slice(0, layout.inbox.lastIndexOf("/"));
+    const folder = folderOf(layout.inbox);
     const sp = spaces.find((sp) => sp.kind === "tasks" && sp.path === folder);
     return sp
       ? {
@@ -536,17 +536,12 @@
   /// view of a fixed space (or of no space at all) returns null and
   /// the dot falls back to the theme brand in CSS.
   ///
-  /// The space of a file address is everything ABOVE the file, not the
-  /// first segment: `Design/Tasks/task-list.md` lives in `Design/Tasks`, and
-  /// taking the first segment answered "Design" — a group, which owns no
-  /// colour of its own in this map (2026-08-13).
-  const holderOf = (path) => (path ?? "").split("/").slice(0, -1).join("/");
   function colorOf(v) {
     const folder =
       v?.kind === "space"
         ? v.sp
         : v?.kind === "list"
-          ? holderOf(v.list)
+          ? folderOf(v.list)
           : v?.kind === "note"
             ? v.folder
             : null;
@@ -565,7 +560,7 @@
       case "space":
         return view.sp;
       case "list":
-        return holderOf(view.list);
+        return folderOf(view.list);
       case "note":
         return view.folder;
       case "tasks":
@@ -1012,8 +1007,7 @@
       await refreshNotebook();
       // A rename never changes the folder: swap only the file name, and let
       // the tab follow the file instead of pointing at a name that is gone.
-      const dir = from.slice(0, from.lastIndexOf("/"));
-      const next = { kind: "list", list: `${dir}/${to.trim()}.md` };
+      const next = { kind: "list", list: `${folderOf(from)}/${to.trim()}.md` };
       tabs = Tabs.replaceView(tabs, Tabs.viewId({ kind: "list", list: from }), next);
       reload();
     } catch (e) {

@@ -10,6 +10,7 @@
   // the day while the same dialog inside a space widget does not.
   import { taskRequest } from "../services/dialog.js";
   import { S } from "../services/strings.js";
+  import Modal from "./Modal.svelte";
   import TaskComposer from "./TaskComposer.svelte";
   import Icon from "./Icon.svelte";
 
@@ -18,52 +19,36 @@
     taskRequest.set(null);
     request?.resolve(result ?? null);
   }
-
-  function onKey(event) {
-    if (event.key !== "Escape") return;
-    event.preventDefault();
-    // Swallowed, or the shell's Escape closes the inspector underneath too.
-    event.stopPropagation();
-    settle(null);
-  }
 </script>
 
 {#if $taskRequest}
-  <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-  <!-- Both dialogs are mounted OUTSIDE the window (App.svelte), so they sit in
-       no region and would inherit no colour role at all. They declare the
-       CANVAS: a dialog is content — naming a place, composing a task — and it
-       opens over the panel, so it is made of the panel's material and not of
-       the frame's (styles/themes/default.css). -->
-  <div
-    class="theme-modal-backdrop new-task__backdrop"
-    data-region="canvas"
-    role="presentation"
-    onpointerdown={(e) => e.target === e.currentTarget && settle(null)}
-    onkeydown={onKey}
+  <Modal
+    label={S.newTask}
+    wide
+    backdropClass="new-task__backdrop"
+    panelClass="new-task"
+    onClose={() => settle(null)}
   >
-    <div class="theme-modal theme-modal--wide new-task" role="dialog" aria-label={S.newTask}>
-      <div class="theme-modal__head new-task__head">
-        <p class="theme-modal__title new-task__title">{S.newTask}</p>
-        <button
-          class="theme-btn--icon"
-          aria-label={S.cancel}
-          title={S.cancel}
-          onclick={() => settle(null)}
-        >
-          <Icon name="x" size="1rem" />
-        </button>
-      </div>
-
-      <TaskComposer
-        variant="dialog"
-        autofocus
-        lists={$taskRequest.lists}
-        defaultList={$taskRequest.defaultList}
-        dateFormat={$taskRequest.dateFormat}
-        f={$taskRequest.f ?? (() => true)}
-        onSubmit={settle}
-      />
+    <div class="theme-modal__head new-task__head">
+      <p class="theme-modal__title new-task__title">{S.newTask}</p>
+      <button
+        class="theme-btn--icon"
+        aria-label={S.cancel}
+        title={S.cancel}
+        onclick={() => settle(null)}
+      >
+        <Icon name="x" size="1rem" />
+      </button>
     </div>
-  </div>
+
+    <TaskComposer
+      variant="dialog"
+      autofocus
+      lists={$taskRequest.lists}
+      defaultList={$taskRequest.defaultList}
+      dateFormat={$taskRequest.dateFormat}
+      f={$taskRequest.f ?? (() => true)}
+      onSubmit={settle}
+    />
+  </Modal>
 {/if}

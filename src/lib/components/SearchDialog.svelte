@@ -11,6 +11,7 @@
   import { api } from "../services/api.js";
   import { S } from "../services/strings.js";
   import Icon from "./Icon.svelte";
+  import Modal from "./Modal.svelte";
 
   let {
     /// Narrow the question to one space, by its root-relative path — what the
@@ -82,79 +83,66 @@
     onClose?.();
   }
 
-  function onKey(event) {
-    if (event.key !== "Escape") return;
-    event.preventDefault();
-    // Swallowed: the shell's own Escape would close the inspector underneath.
-    event.stopPropagation();
-    onClose?.();
-  }
-
   /// Where a hit lives, as one readable line: `Tasks · Inbox`.
   const place = (hit) => [hit.space, hit.container].filter(Boolean).join(" · ");
 </script>
 
-<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-<!-- Mounted outside the window (App.svelte), so it declares its own ground:
-     a dialog is content, and opens over the panel — canvas, not chrome. -->
-<div
-  class="theme-modal-backdrop search__backdrop"
-  data-region="canvas"
-  role="presentation"
-  onpointerdown={(e) => e.target === e.currentTarget && onClose?.()}
-  onkeydown={onKey}
+<Modal
+  label={S.findTitle}
+  wide
+  backdropClass="search__backdrop"
+  panelClass="search"
+  onClose={() => onClose?.()}
 >
-  <div class="theme-modal theme-modal--wide search" role="dialog" aria-label={S.findTitle}>
-    <div class="search__field">
-      <Icon name="magnifying-glass" size="1rem" />
-      <!-- svelte-ignore a11y_autofocus -->
-      <input
-        class="theme-input search__input"
-        type="text"
-        autofocus
-        bind:value={query}
-        placeholder={scopeName ? S.findIn(scopeName) : S.findPlaceholder}
-        aria-label={scopeName ? S.findIn(scopeName) : S.findTitle}
-      />
-      <button class="theme-btn--icon" aria-label={S.cancel} title={S.cancel} onclick={() => onClose?.()}>
-        <Icon name="x" size="1rem" />
-      </button>
-    </div>
-
-    <div class="search__results">
-      {#if !query.trim()}
-        <p class="search__hint">{scopeName ? S.findHintIn(scopeName) : S.findHint}</p>
-      {:else if empty}
-        <p class="search__hint">
-          {scopeName
-            ? S.findNothingIn(query.trim(), scopeName)
-            : S.findNothing(query.trim())}
-        </p>
-      {:else}
-        {#each [{ label: S.findTasks, hits: results.tasks }, { label: S.findNotes, hits: results.notes }] as section (section.label)}
-          {#if section.hits.length > 0}
-            <p class="search__section">{section.label}</p>
-            {#each section.hits as hit (`${hit.folder}/${hit.path}/${hit.id ?? hit.title}`)}
-              <button class="theme-row search__hit" onclick={() => open(hit)}>
-                <span class="search__hit-main">
-                  <span class="search__hit-title" class:search__hit-title--done={hit.done}>
-                    {hit.title}
-                  </span>
-                  {#if hit.snippet}
-                    <span class="search__hit-snippet">{hit.snippet}</span>
-                  {/if}
-                </span>
-                <span class="search__hit-place">
-                  {place(hit)}{#if hit.done}&nbsp;· {S.findDone}{/if}
-                </span>
-              </button>
-            {/each}
-          {/if}
-        {/each}
-        {#if results.truncated}
-          <p class="search__hint search__hint--more">{S.findMore}</p>
-        {/if}
-      {/if}
-    </div>
+  <div class="search__field">
+    <Icon name="magnifying-glass" size="1rem" />
+    <!-- svelte-ignore a11y_autofocus -->
+    <input
+      class="theme-input search__input"
+      type="text"
+      autofocus
+      bind:value={query}
+      placeholder={scopeName ? S.findIn(scopeName) : S.findPlaceholder}
+      aria-label={scopeName ? S.findIn(scopeName) : S.findTitle}
+    />
+    <button class="theme-btn--icon" aria-label={S.cancel} title={S.cancel} onclick={() => onClose?.()}>
+      <Icon name="x" size="1rem" />
+    </button>
   </div>
-</div>
+
+  <div class="search__results">
+    {#if !query.trim()}
+      <p class="search__hint">{scopeName ? S.findHintIn(scopeName) : S.findHint}</p>
+    {:else if empty}
+      <p class="search__hint">
+        {scopeName
+          ? S.findNothingIn(query.trim(), scopeName)
+          : S.findNothing(query.trim())}
+      </p>
+    {:else}
+      {#each [{ label: S.findTasks, hits: results.tasks }, { label: S.findNotes, hits: results.notes }] as section (section.label)}
+        {#if section.hits.length > 0}
+          <p class="search__section">{section.label}</p>
+          {#each section.hits as hit (`${hit.folder}/${hit.path}/${hit.id ?? hit.title}`)}
+            <button class="theme-row search__hit" onclick={() => open(hit)}>
+              <span class="search__hit-main">
+                <span class="search__hit-title" class:search__hit-title--done={hit.done}>
+                  {hit.title}
+                </span>
+                {#if hit.snippet}
+                  <span class="search__hit-snippet">{hit.snippet}</span>
+                {/if}
+              </span>
+              <span class="search__hit-place">
+                {place(hit)}{#if hit.done}&nbsp;· {S.findDone}{/if}
+              </span>
+            </button>
+          {/each}
+        {/if}
+      {/each}
+      {#if results.truncated}
+        <p class="search__hint search__hint--more">{S.findMore}</p>
+      {/if}
+    {/if}
+  </div>
+</Modal>

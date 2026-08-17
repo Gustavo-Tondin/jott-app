@@ -1,7 +1,14 @@
 // Reading a list's address, and how it is named on screen.
 
 import { describe, expect, test } from "vitest";
-import { listName, listTitle, listLabel, splitLabel, taskWidgetPaths } from "./paths.js";
+import {
+  folderOf,
+  listName,
+  listTitle,
+  listLabel,
+  splitLabel,
+  taskWidgetPaths,
+} from "./paths.js";
 
 describe("taskWidgetPaths", () => {
   const lists = [
@@ -59,6 +66,22 @@ describe("listLabel", () => {
       context: "",
       name: "Mercado",
     });
+  });
+});
+
+describe("folderOf", () => {
+  test("the folder holding a file, however deep", () => {
+    expect(folderOf("Design/Tasks/task-list.md")).toBe("Design/Tasks");
+    expect(folderOf("jott.tasks/completed.md")).toBe("jott.tasks");
+  });
+
+  test("nothing above it is an empty address, not a slice of the name", () => {
+    // The root case: a space at the top of the notebook has no holder, and
+    // `slice(0, -1)` on a slash-less string would have answered with the name
+    // minus its last letter.
+    expect(folderOf("Mercado")).toBe("");
+    expect(folderOf("")).toBe("");
+    expect(folderOf(null)).toBe("");
   });
 });
 

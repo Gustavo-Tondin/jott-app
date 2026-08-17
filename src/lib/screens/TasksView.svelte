@@ -15,6 +15,7 @@
   // The only thing this screen changes is where a new task comes from: not the
   // blue button, but the bar the widget pins to the bottom (`compose="bar"`).
   import { S } from "../services/strings.js";
+  import { folderOf } from "../services/paths.js";
   import { formatDayMonth } from "../services/dates.js";
   import PeriodView from "./PeriodView.svelte";
   import TasksWidget from "../widgets/TasksWidget.svelte";
@@ -61,12 +62,11 @@
     onSub?.(SUBS.find((item) => item.key === sub)?.label ?? "");
   });
 
-  /// The folder holding the Inbox list — `Tasks/Inbox/Inbox.md` → `Tasks/Inbox`.
-  /// That folder IS a tasks widget, so the Index tab hosts it rather than
-  /// inventing a second way to show the same list.
-  let inboxFolder = $derived((inbox ?? "").slice(0, (inbox ?? "").lastIndexOf("/")));
+  /// The folder holding the Inbox list — `jott.tasks/task-list.md` →
+  /// `jott.tasks`. That folder IS a tasks space, so the Index tab hosts it
+  /// rather than inventing a second way to show the same list.
   let widget = $derived(
-    inboxWidget ?? { kind: "tasks", folder: inboxFolder, name: S.inboxTab },
+    inboxWidget ?? { kind: "tasks", folder: folderOf(inbox), name: S.inboxTab },
   );
 
   /// What the open tab is looking at, drawn beside the strip: the day for

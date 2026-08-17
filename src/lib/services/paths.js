@@ -15,6 +15,18 @@ export function listName(path) {
   return (path ?? "").split("/").pop().replace(/\.md$/, "");
 }
 
+/// What HOLDS an address — everything above the last segment.
+/// `Design/Tasks/task-list.md` → `Design/Tasks`, `Tasks` → `""`.
+///
+/// The space of a file is its folder, never the first segment: taking the
+/// first answered "Design", which is a group (the bug of 2026-08-13). Five
+/// callers were slicing at `lastIndexOf("/")` by hand, each with its own
+/// answer for an address that has no slash at all.
+export function folderOf(path) {
+  const cut = (path ?? "").lastIndexOf("/");
+  return cut < 0 ? "" : path.slice(0, cut);
+}
+
 /// The file name every tasks space's single list carries (core's
 /// `MAIN_LIST`). Since 2026-08-13 it is the same in all of them, so it says
 /// nothing about WHICH list this is and never belongs on screen.

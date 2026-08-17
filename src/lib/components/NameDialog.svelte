@@ -5,6 +5,7 @@
   // styles/components/name-dialog.css (frontend architecture invariant).
   import { nameRequest } from "../services/dialog.js";
   import { S } from "../services/strings.js";
+  import Modal from "./Modal.svelte";
 
   let value = $state("");
   let input = $state(null);
@@ -29,45 +30,35 @@
     settle(text ? text : null);
   }
 
+  // Enter only: Escape belongs to the frame, which swallows it so the shell
+  // does not also close the inspector behind the dialog.
   function onKey(event) {
-    if (event.key === "Enter") {
-      event.preventDefault();
-      confirm();
-    } else if (event.key === "Escape") {
-      event.preventDefault();
-      event.stopPropagation();
-      settle(null);
-    }
+    if (event.key !== "Enter") return;
+    event.preventDefault();
+    confirm();
   }
 </script>
 
 {#if $nameRequest}
-  <!-- Both dialogs are mounted OUTSIDE the window (App.svelte), so they sit in
-       no region and would inherit no colour role at all. They declare the
-       CANVAS: a dialog is content — naming a place, composing a task — and it
-       opens over the panel, so it is made of the panel's material and not of
-       the frame's (styles/themes/default.css). -->
-  <div
-    class="theme-modal-backdrop name-dialog__backdrop"
-    data-region="canvas"
-    role="presentation"
-    onpointerdown={(e) => e.target === e.currentTarget && settle(null)}
+  <Modal
+    label={$nameRequest.title}
+    backdropClass="name-dialog__backdrop"
+    panelClass="name-dialog"
+    onClose={() => settle(null)}
   >
-    <div class="theme-modal name-dialog" role="dialog" aria-label={$nameRequest.title}>
-      <p class="theme-modal__title name-dialog__title">{$nameRequest.title}</p>
-      <input
-        bind:this={input}
-        bind:value
-        class="theme-input name-dialog__input"
-        placeholder={$nameRequest.placeholder}
-        onkeydown={onKey}
-      />
-      <div class="theme-modal__actions name-dialog__actions">
-        <button class="theme-btn" onclick={() => settle(null)}>{S.cancel}</button>
-        <button class="theme-btn--primary name-dialog__confirm" onclick={confirm}>
-          {$nameRequest.confirm}
-        </button>
-      </div>
+    <p class="theme-modal__title name-dialog__title">{$nameRequest.title}</p>
+    <input
+      bind:this={input}
+      bind:value
+      class="theme-input name-dialog__input"
+      placeholder={$nameRequest.placeholder}
+      onkeydown={onKey}
+    />
+    <div class="theme-modal__actions name-dialog__actions">
+      <button class="theme-btn" onclick={() => settle(null)}>{S.cancel}</button>
+      <button class="theme-btn--primary name-dialog__confirm" onclick={confirm}>
+        {$nameRequest.confirm}
+      </button>
     </div>
-  </div>
+  </Modal>
 {/if}

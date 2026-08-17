@@ -814,6 +814,23 @@ describe("TaskInspector", () => {
     await waitFor(() => expect(lastSave().fields.tags).toEqual(["casa-nova"]));
   });
 
+  test("the priority a task already has is the one showing", async () => {
+    // The draft holds the option's own string (services/taskFields.js): a
+    // `<select>` matches its options by string, so a numeric draft would leave
+    // the row blank on a task that HAS a priority — and the next save would
+    // then clear it. What goes back over the bridge is the number.
+    bridge({ set_task_fields: null });
+
+    render(TaskInspector, {
+      props: props(task("a1", "Pagar boleto", { priority: 2 })),
+    });
+
+    const select = await screen.findByDisplayValue("medium");
+    await userEvent.selectOptions(select, "high");
+
+    await waitFor(() => expect(lastSave().fields.priority).toBe(1));
+  });
+
   test("repeat travels in the written form, never as an object", async () => {
     // The bridge hands back { every, unit } but only parses `every-2-weeks`.
     bridge({ set_task_fields: null });
@@ -2537,6 +2554,23 @@ describe("the New task popup", () => {
 
     await waitFor(() => expect(screen.queryByPlaceholderText("Create a task…")).toBeNull());
     expect(invoke.mock.calls.some(([cmd]) => cmd === "create_task")).toBe(false);
+  });
+
+  test("Escape closes it, and nothing behind it hears the key", async () => {
+    // The three dialogs share one frame (components/Modal.svelte), and the
+    // rule that frame exists to keep is this one: Escape is SWALLOWED. Without
+    // it the shell's own Escape closes the task inspector at the same time —
+    // one key, two things dismissed.
+    openOn({ create_task: 0 });
+    const heard = [];
+    window.addEventListener("keydown", (e) => heard.push(e.key));
+
+    await userEvent.click(await screen.findByText("New task"));
+    const composer = await screen.findByPlaceholderText("Create a task…");
+    await fireEvent.keyDown(composer, { key: "Escape", bubbles: true });
+
+    await waitFor(() => expect(screen.queryByPlaceholderText("Create a task…")).toBeNull());
+    expect(heard).not.toContain("Escape");
   });
 });
 

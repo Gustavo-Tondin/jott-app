@@ -5,6 +5,7 @@
   // the core reads that from the `origin` recorded in the file.
   import { api } from "../services/api.js";
   import { S } from "../services/strings.js";
+  import { folderOf } from "../services/paths.js";
 
   let { readOnly, onChanged, onError, reloadKey } = $props();
 
@@ -35,9 +36,6 @@
     }
   }
 
-  // Where the task lives, readable: the widget folder of its Completed list
-  // ("Space 1/Tasks 1"), which is how the wireframe names places.
-  const homeOf = (path) => path.replace(/\/[^/]+$/, "");
 </script>
 
 <h2 class="theme-title completed-view__title">{S.completed}</h2>
@@ -59,8 +57,10 @@
           aria-label={S.uncheck}
         />
         <span class="completed-view__text">{item.task.text}</span>
+        <!-- Where the task lives, readable: the space folder of its Completed
+             list ("Design/Tasks"), which is how the wireframe names places. -->
         <small class="completed-view__origin">
-          {homeOf(item.path)}{#if item.task.origin}
+          {folderOf(item.path)}{#if item.task.origin}
             · {S.goesBackTo(item.task.origin)}{/if}
         </small>
       </li>

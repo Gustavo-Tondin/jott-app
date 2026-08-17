@@ -18,6 +18,12 @@
   import { completionBeat } from "../services/pace.js";
   import { S } from "../services/strings.js";
   import { listTitle, splitLabel } from "../services/paths.js";
+  import {
+    PRIORITIES,
+    REPEAT_UNITS,
+    cleanTagName,
+    repeatText,
+  } from "../services/taskFields.js";
   import { tagColors as tagColorMap } from "../services/accent.js";
   import { reorderable } from "../actions/reorder.js";
   import Menu from "./Menu.svelte";
@@ -154,7 +160,7 @@
         .split("\n")
         .map((line) => line.trim())
         .filter(Boolean),
-      repeat: repeatText(),
+      repeat: repeatText(draft),
       subtasks: draft.subtasks.map((s) => ({ text: s.text, done: s.done })),
     };
   }
@@ -164,7 +170,11 @@
       text: t?.text ?? "",
       // `<input type="date">` speaks ISO, which is what the file stores too.
       due: t?.due ?? "",
-      priority: t?.priority ?? 0,
+      // As the STRING the shared table offers (services/taskFields.js) — a
+      // `<select>` compares its options by string, so a numeric draft would
+      // never match its own value and the row would show blank on a task that
+      // has a priority. `fields()` sends the number.
+      priority: t?.priority ? String(t.priority) : "",
       tags: [...(t?.tags ?? [])],
       description: (t?.description ?? []).join("\n"),
       repeatEvery: t?.repeat?.every ?? 1,
@@ -173,34 +183,17 @@
     };
   }
 
-  /// The bridge hands back `{ every, unit }`, but `set_task_fields` takes the
-  /// written form. Building it here keeps an invalid value impossible: the
-  /// core silently drops a `repeat:` it cannot parse.
-  function repeatText() {
-    if (!draft.repeatUnit) return null;
-    const every = Math.max(1, Number(draft.repeatEvery) || 1);
-    if (every === 1) return `every-${draft.repeatUnit}`;
-    return `every-${every}-${draft.repeatUnit}s`;
-  }
-
   /// Removing a date needs its own control: the picker can set a day but has no
   /// gesture for "none", so the inspector keeps its own × to clear it.
   function clearDate() {
     draft.due = "";
   }
 
-  /// A tag with a space in it would break the metadata line on the next read:
-  /// the loose word stops the line from being all-tokens, and the whole thing
-  /// turns into a description. Cheaper to fix the tag than to lose the fields.
-  function cleanTag(raw) {
-    return raw.trim().replace(/^#+/, "").replace(/\s+/g, "-");
-  }
-
   // Name → colour, from the catalogue, so a pill shows the user's chosen colour.
   let tagColors = $derived(tagColorMap(tags));
 
   function addTagName(name) {
-    const tag = cleanTag(name);
+    const tag = cleanTagName(name);
     if (tag && !draft.tags.includes(tag)) draft.tags = [...draft.tags, tag];
   }
 
@@ -237,55 +230,53 @@
     draft.subtasks = next;
   }
 
+  /// The shape EVERY action of this panel takes, in the order that matters:
+  ///
+  ///   1. send whatever is being typed, addressed to the task it was typed
+  ///      into — completing or moving takes the task to another file, and a
+  ///      write still in flight would land in the old one;
+  ///   2. earn an id, since opening a task never hands one out;
+  ///   3. do the thing, and tell the shell.
+  ///
+  /// Five actions wrote those three steps out, and each copy had to remember
+  /// all three every time one of them changed.
+  async function onTask(run, { close = false } = {}) {
+    if (readOnly) return;
+    await flush();
+    const target = slot;
+    if (!target) return;
+    try {
+      if (!target.id) target.id = await ensureTaskId(target.list, target.task);
+      await run(target);
+      onSaved?.();
+      // The task just left this list, so the panel is pointing at nothing.
+      if (close) onClose?.();
+    } catch (e) {
+      onError?.(e);
+    }
+  }
+
   /// The sun in the toolbar: into My Day, or back out of it (2026-08-06).
-  /// Any typing goes out first (and an id is earned) so the reference points
-  /// at a real id.
-  async function myDay() {
-    if (readOnly) return;
-    await flush();
-    const target = slot;
-    try {
-      if (!target.id) target.id = await ensureTaskId(target.list, target.task);
-      if (inDay) await api.removeFrom("day", target.list, target.id);
-      else await api.pullInto("day", target.list, target.id);
-      onSaved?.();
-    } catch (e) {
-      onError?.(e);
-    }
-  }
+  const myDay = () =>
+    onTask((task) =>
+      inDay
+        ? api.removeFrom("day", task.list, task.id)
+        : api.pullInto("day", task.list, task.id),
+    );
 
-  /// The footer's list picker: move this task to another list. Pending edits
-  /// flush to the old list first; the id is earned before the move so the task
-  /// stays addressable. On success the shell re-points at the new list.
-  async function moveList(to) {
-    if (readOnly || !to || to === slot.list) return;
-    await flush();
-    const target = slot;
-    try {
-      if (!target.id) target.id = await ensureTaskId(target.list, target.task);
-      await api.moveTask(target.list, target.id, to);
-      onMoved?.(to);
-      onSaved?.();
-    } catch (e) {
-      onError?.(e);
-    }
-  }
+  /// The footer's list picker: move this task to another list. On success the
+  /// shell re-points at the new list.
+  const moveList = (to) =>
+    to && to !== slot?.list
+      ? onTask(async (task) => {
+          await api.moveTask(task.list, task.id, to);
+          onMoved?.(to);
+        })
+      : undefined;
 
-  /// The ⋮ menu's "Duplicate task": flush pending edits, make the task
-  /// addressable, then ask the core to drop a copy right after it. The panel
-  /// stays on the original; the copy shows up when the list reloads.
-  async function duplicate() {
-    if (readOnly) return;
-    await flush();
-    const target = slot;
-    try {
-      if (!target.id) target.id = await ensureTaskId(target.list, target.task);
-      await api.duplicateTask(target.list, target.id);
-      onSaved?.();
-    } catch (e) {
-      onError?.(e);
-    }
-  }
+  /// The ⋮ menu's "Duplicate task": the core drops a copy right after it. The
+  /// panel stays on the original; the copy shows up when the list reloads.
+  const duplicate = () => onTask((task) => api.duplicateTask(task.list, task.id));
 
   // The ⋮ menu items. More (the global field-visibility preference) land here
   // later; for now it is the one honest action.
@@ -293,42 +284,20 @@
     { label: S.duplicateTask, run: duplicate, disabled: readOnly },
   ]);
 
-  /// The footer's trash: send this task to the internal trash. Flush pending
-  /// edits and earn an id first (delete addresses the task by id), then close —
-  /// the panel is pointing at a task that no longer exists.
-  async function removeTask() {
-    if (readOnly) return;
-    await flush();
-    const target = slot;
-    try {
-      if (!target.id) target.id = await ensureTaskId(target.list, target.task);
-      await api.deleteTask(target.list, target.id);
-      onSaved?.();
-      onClose?.();
-    } catch (e) {
-      onError?.(e);
-    }
-  }
+  /// The footer's trash: the task goes to the notebook's own trash — never
+  /// destroyed — and the panel closes, since it pointed at it.
+  const removeTask = () =>
+    onTask((task) => api.deleteTask(task.list, task.id), { close: true });
 
-  async function complete() {
-    if (readOnly) return;
-    // Any typing goes out first, and is waited for: completing moves the task
-    // to another file, and two writes racing would both try to hand out the
-    // id — the loser failing on a task that no longer has one to claim.
-    await flush();
-    const target = slot;
-    try {
-      if (!target.id) target.id = await ensureTaskId(target.list, target.task);
-      await api.completeTask(target.list, target.id);
-      // Let the tick be seen before the list rearranges.
-      await completionBeat();
-      onSaved?.();
-      // The task just left this list, so the panel is pointing at nothing.
-      onClose?.();
-    } catch (e) {
-      onError?.(e);
-    }
-  }
+  const complete = () =>
+    onTask(
+      async (task) => {
+        await api.completeTask(task.list, task.id);
+        // Let the tick be seen before the list rearranges.
+        await completionBeat();
+      },
+      { close: true },
+    );
 </script>
 
 <aside class="inspector">
@@ -542,15 +511,18 @@
           <Icon name="flag" size="1rem" />
           {S.priorityLabel}
         </span>
+        <!-- The values are the file's own, from the shared table
+             (services/taskFields.js): the draft holds the string a control
+             gives, and `fields()` is what turns it into the number the bridge
+             takes. -->
         <select
           class="theme-select theme-select--bare"
           bind:value={draft.priority}
           disabled={readOnly}
         >
-          <option value={0}>{S.priorityNone}</option>
-          <option value={3}>{S.priorityLow}</option>
-          <option value={2}>{S.priorityMedium}</option>
-          <option value={1}>{S.priorityHigh}</option>
+          {#each PRIORITIES as option (option.value)}
+            <option value={option.value}>{option.label()}</option>
+          {/each}
         </select>
       </div>
       {/if}
@@ -588,10 +560,9 @@
             bind:value={draft.repeatUnit}
             disabled={readOnly}
           >
-            <option value="">{S.noRepeat}</option>
-            <option value="day">{S.repeatDays}</option>
-            <option value="week">{S.repeatWeeks}</option>
-            <option value="month">{S.repeatMonths}</option>
+            {#each REPEAT_UNITS as unit (unit.value)}
+              <option value={unit.value}>{unit.label()}</option>
+            {/each}
           </select>
         </span>
       </div>
