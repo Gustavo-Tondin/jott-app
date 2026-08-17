@@ -52,20 +52,25 @@
     pointer-events: none;
     color: var(--theme-ink);
   }
-  .titlebar__mark :global(svg),
-  .titlebar__wordmark :global(svg) {
+  /* Plain `svg`, not `:global(svg)` (user report, 2026-08-17): `:global()` is
+     Svelte's syntax for a component's own <style> block, and this file is
+     ordinary CSS. The browser read it as an unknown pseudo-class and threw
+     the WHOLE rule away — so the logo had no height, and a logo with no
+     height is a logo nobody has ever seen. Guarded by architecture.test.js. */
+  .titlebar__mark svg,
+  .titlebar__wordmark svg {
     display: block;
     inline-size: auto;
     max-inline-size: 100%;
   }
   /* The J alone, on the rail. */
-  .titlebar__mark :global(svg) {
+  .titlebar__mark svg {
     block-size: 1rem;
   }
   /* Mark + word. Shorter than the mark on purpose: the full logo carries the
      descender of the J, so matching heights would make it look bigger than
      the rail's. */
-  .titlebar__wordmark :global(svg) {
+  .titlebar__wordmark svg {
     block-size: 0.875rem;
   }
 

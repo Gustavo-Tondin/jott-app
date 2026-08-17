@@ -29,6 +29,23 @@ describe("frontend architecture", () => {
     expect(offenders).toEqual([]);
   });
 
+  test("no plain stylesheet uses Svelte's :global()", () => {
+    // 2026-08-17, from a user report: the title bar's logo was invisible
+    // because titlebar.css sized it through `.titlebar__wordmark
+    // :global(svg)`. `:global()` only means something inside a component's
+    // own <style> block — which this project has none of. To a browser it is
+    // an unknown pseudo-class, and the WHOLE rule is dropped, silently. The
+    // logo had no height and nobody had ever seen it.
+    // Comments stripped first: the file that caused this test explains the
+    // mistake by name, and a rule about selectors must not fire on prose.
+    const offenders = [...walk(join(src, "styles"), ".css"), join(src, "app.css")]
+      .filter((f) =>
+        readFileSync(f, "utf8").replace(/\/\*[\s\S]*?\*\//g, "").includes(":global("),
+      )
+      .map((f) => basename(f));
+    expect(offenders).toEqual([]);
+  });
+
   test("every component stylesheet is imported by the aggregator", () => {
     const app = readFileSync(join(src, "app.css"), "utf8");
     const missing = readdirSync(join(src, "styles", "components"))
