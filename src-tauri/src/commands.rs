@@ -5,7 +5,7 @@
 //! dates belongs in the core instead — see the architecture rule in
 //! `CLAUDE.md`.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use jott_core::config::{Config, RolloverMode};
 use jott_core::state::{Period, PeriodState};
@@ -17,7 +17,7 @@ use tauri::{AppHandle, Runtime, State};
 #[cfg(not(target_os = "android"))]
 use tauri_plugin_dialog::DialogExt;
 
-use crate::error::CommandResult;
+use crate::error::{CommandError, CommandResult};
 use crate::state::AppState;
 
 /// The addresses the core creates, so the frontend never hard-codes them.
@@ -382,6 +382,31 @@ pub fn remember_screen<R: Runtime>(
         }
         Ok(())
     })
+}
+
+/// How wide the sidebar was left last time, in CSS pixels — `None` when it was
+/// never dragged. It needs no notebook: the panel is drawn before one is open.
+#[tauri::command]
+pub fn sidebar_width<R: Runtime>(app: AppHandle<R>) -> Option<f64> {
+    crate::prefs::sidebar_width(&app)
+}
+
+/// Remembers it, once per drag.
+#[tauri::command]
+pub fn remember_sidebar_width<R: Runtime>(app: AppHandle<R>, width: f64) {
+    crate::prefs::remember_sidebar_width(&app, width);
+}
+
+/// The same pair for the right panel — the inspector and the suggestions
+/// share one width, because they share one panel.
+#[tauri::command]
+pub fn panel_width<R: Runtime>(app: AppHandle<R>) -> Option<f64> {
+    crate::prefs::panel_width(&app)
+}
+
+#[tauri::command]
+pub fn remember_panel_width<R: Runtime>(app: AppHandle<R>, width: f64) {
+    crate::prefs::remember_panel_width(&app, width);
 }
 
 #[tauri::command]
@@ -1404,14 +1429,99 @@ pub fn remove_tag(state: State<'_, AppState>, name: String) -> CommandResult<()>
 /// `limit` is optional: the screen that opens the box does not have an opinion
 /// about how many hits fit, and the core's own default is the answer when it
 /// says nothing.
+///
+/// `scope` narrows the question to one space, by its root-relative path — what
+/// the ⋮ of a screen asks (2026-08-17). Absent (or empty) is the whole
+/// notebook, which is what Ctrl+F asks.
 #[tauri::command]
 pub fn search(
     state: State<'_, AppState>,
     query: String,
     limit: Option<usize>,
+    scope: Option<String>,
 ) -> CommandResult<jott_core::SearchResults> {
     let limit = limit.unwrap_or(jott_core::search::DEFAULT_LIMIT);
-    state.with_notebook(|nb| Ok(nb.search(&query, limit)?))
+    let scope = scope.filter(|s| !s.is_empty());
+    state.with_notebook(|nb| Ok(nb.search_in(&query, limit, scope.as_deref())?))
+}
+
+// ---- the notebook as folders on disk ----
+
+/// Opens the folder that holds `path` in the system's file manager.
+///
+/// The notebook is plain files (principle 4), and this is the one command that
+/// says so out loud: whatever screen the user is on, its folder is one click
+/// away. `path` is a root-relative address — a space, a list, a note — and
+/// empty means the notebook root.
+///
+/// What is opened is always a FOLDER, never a document: an address that names
+/// a file opens the directory around it. Opening the `.md` would hand the file
+/// to whatever editor the desktop has registered, which is a different promise
+/// from the one the menu makes.
+#[tauri::command]
+pub fn open_in_file_manager(
+    state: State<'_, AppState>,
+    path: Option<String>,
+) -> CommandResult<()> {
+    let target = state.with_notebook(|nb| folder_to_open(nb.root(), path.as_deref()))?;
+    open_folder(&target)
+}
+
+/// Which folder an address resolves to, without touching the desktop — the
+/// half of [`open_in_file_manager`] that can be tested.
+fn folder_to_open(root: &Path, path: Option<&str>) -> CommandResult<PathBuf> {
+    let root = root.to_path_buf();
+    let Some(relative) = path.map(str::trim).filter(|p| !p.is_empty()) else {
+        return Ok(root);
+    };
+    // The address comes from the frontend, which got it from a config file:
+    // it is checked here exactly like every other address the app takes, so
+    // nothing can point outside the notebook.
+    let joined = jott_core::relpath::safe_join(&root, relative)
+        .ok_or_else(|| CommandError::new("invalidNotePath", format!("bad address: {relative}")))?;
+    // A file address opens the folder around it. `is_dir` is a question about
+    // disk; an address that names nothing at all still resolves to the folder
+    // it would have been in, which is the honest answer for a notebook edited
+    // by other tools.
+    Ok(if joined.is_dir() {
+        joined
+    } else {
+        joined.parent().map(Path::to_path_buf).unwrap_or(root)
+    })
+}
+
+/// Hands a folder to the desktop's file manager.
+///
+/// One process per platform, spawned and left alone — waiting for a file
+/// manager to exit would block the command for as long as the window stays
+/// open. A failure to even start it is reported: the menu promised something.
+fn open_folder(folder: &Path) -> CommandResult<()> {
+    #[cfg(target_os = "linux")]
+    let program = "xdg-open";
+    #[cfg(target_os = "macos")]
+    let program = "open";
+    #[cfg(target_os = "windows")]
+    let program = "explorer";
+    #[cfg(not(any(target_os = "linux", target_os = "macos", target_os = "windows")))]
+    {
+        let _ = folder;
+        return Err(CommandError::new(
+            "io",
+            "this platform has no file manager to open",
+        ));
+    }
+
+    #[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
+    {
+        std::process::Command::new(program)
+            .arg(folder)
+            .spawn()
+            .map(|_| ())
+            .map_err(|e| {
+                eprintln!("[jott] could not open {}: {e}", folder.display());
+                CommandError::new("io", format!("could not open the file manager: {e}"))
+            })
+    }
 }
 
 // ---- completed (aggregated across widgets) ----
@@ -1548,6 +1658,40 @@ mod tests {
                 parse_button_layout(hostile),
                 default_button_layout(),
                 "{hostile:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn the_file_manager_is_only_ever_pointed_inside_the_notebook() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        std::fs::create_dir_all(root.join("Design/Clients")).unwrap();
+        std::fs::write(root.join("Design/Clients/task-list.md"), "").unwrap();
+
+        // No address: the notebook itself.
+        assert_eq!(folder_to_open(root, None).unwrap(), root);
+        assert_eq!(folder_to_open(root, Some("  ")).unwrap(), root);
+
+        // A space: its folder.
+        assert_eq!(
+            folder_to_open(root, Some("Design/Clients")).unwrap(),
+            root.join("Design/Clients")
+        );
+
+        // A file: the folder around it — the menu opens folders, never
+        // documents.
+        assert_eq!(
+            folder_to_open(root, Some("Design/Clients/task-list.md")).unwrap(),
+            root.join("Design/Clients")
+        );
+
+        // Anything that climbs out is refused, the same as every other address
+        // the app takes.
+        for hostile in ["../..", "/etc", "Design/../../etc", "a\0b"] {
+            assert!(
+                folder_to_open(root, Some(hostile)).is_err(),
+                "{hostile:?} devia ser recusado"
             );
         }
     }

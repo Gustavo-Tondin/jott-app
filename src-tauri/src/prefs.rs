@@ -24,6 +24,17 @@ struct MachinePrefs {
     /// when the notebook has `restoreLastScreen` on — the preference travels
     /// with the notebook, the value stays on this machine.
     last_screen: Option<String>,
+    /// How wide the user dragged the left sidebar, in CSS pixels
+    /// (2026-08-17).
+    ///
+    /// A machine preference for the same reason the last screen is one: it is
+    /// answering to a monitor, not to a notebook. Syncing it would make a
+    /// 27-inch desktop dictate the layout of a laptop. Absent means the
+    /// app's own width, and the frontend clamps whatever it reads — a value
+    /// hand-edited to 3000 must not push every panel off screen.
+    sidebar_width: Option<f64>,
+    /// The same, for the right panel (task inspector / suggestions).
+    panel_width: Option<f64>,
 }
 
 /// Overrides where machine preferences are stored.
@@ -73,6 +84,33 @@ pub fn remember_notebook<R: Runtime>(app: &AppHandle<R>, notebook: &Path) {
 /// Remembers the current screen, so the next launch can return to it.
 pub fn remember_screen<R: Runtime>(app: &AppHandle<R>, screen: &str) {
     update(app, |prefs| prefs.last_screen = Some(screen.to_string()));
+}
+
+/// How wide the sidebar was left, if it was ever dragged.
+pub fn sidebar_width<R: Runtime>(app: &AppHandle<R>) -> Option<f64> {
+    load(app).sidebar_width.filter(|w| w.is_finite() && *w > 0.0)
+}
+
+/// Remembers the sidebar's width. Written once per drag, on release — not on
+/// every pointer move.
+pub fn remember_sidebar_width<R: Runtime>(app: &AppHandle<R>, width: f64) {
+    if !width.is_finite() || width <= 0.0 {
+        return;
+    }
+    update(app, |prefs| prefs.sidebar_width = Some(width));
+}
+
+/// How wide the right panel was left, if it was ever dragged.
+pub fn panel_width<R: Runtime>(app: &AppHandle<R>) -> Option<f64> {
+    load(app).panel_width.filter(|w| w.is_finite() && *w > 0.0)
+}
+
+/// Remembers it, on release.
+pub fn remember_panel_width<R: Runtime>(app: &AppHandle<R>, width: f64) {
+    if !width.is_finite() || width <= 0.0 {
+        return;
+    }
+    update(app, |prefs| prefs.panel_width = Some(width));
 }
 
 /// Reads, changes and writes the preferences. Every failure path is silent on

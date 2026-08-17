@@ -79,6 +79,11 @@ pub enum SuggestionGroup {
     Soon,
     /// Already chosen for this week (only offered to the day).
     ThisWeek,
+    /// Was in Today or This Week and left — taken out by hand, or dropped when
+    /// the period turned (2026-08-17). Below `ThisWeek` on purpose: what the
+    /// user chose for the week is a live decision, this one is a way back to
+    /// an old one.
+    Recent,
     /// Everything else, in the order the lists have it.
     Lists,
 }
@@ -1309,16 +1314,36 @@ impl Notebook {
     /// Reads through `open_list`, never `tasks_in`: typing into a search box
     /// must not rewrite a single file. An empty query finds nothing.
     pub fn search(&self, query: &str, limit: usize) -> Result<SearchResults> {
+        self.search_in(query, limit, None)
+    }
+
+    /// The same search, narrowed to one space (2026-08-17).
+    ///
+    /// `scope` is a space's root-relative path — the address the sidebar and
+    /// every list already speak. A space is the whole unit here: a list inside
+    /// one is searched by naming its space, because "find inside this screen"
+    /// is a question about the place, not about the file. `None` searches the
+    /// notebook, which is what the Ctrl+F box does.
+    pub fn search_in(
+        &self,
+        query: &str,
+        limit: usize,
+        scope: Option<&str>,
+    ) -> Result<SearchResults> {
         let needle = crate::search::needle(query);
         let mut results = SearchResults::default();
         if needle.is_empty() {
             return Ok(results);
         }
+        let in_scope = |prefix: &str| scope.is_none_or(|only| prefix == only);
 
         let labels = self.space_labels()?;
         let label_of = |prefix: &String| labels.get(prefix).cloned().unwrap_or_else(|| prefix.clone());
 
         for (prefix, folder) in self.task_folders()? {
+            if !in_scope(&prefix) {
+                continue;
+            }
             let space = label_of(&prefix);
             for name in folder.list_names()? {
                 let path = format!("{prefix}/{name}.md");
@@ -1349,6 +1374,9 @@ impl Notebook {
         results.tasks.sort_by_key(|hit| hit.done);
 
         for (prefix, folder) in self.note_folders()? {
+            if !in_scope(&prefix) {
+                continue;
+            }
             let space = label_of(&prefix);
             for entry in folder.search(&needle)? {
                 if results.notes.len() >= limit {
@@ -1522,12 +1550,17 @@ impl Notebook {
     }
 
     /// Removes a task from Today or This Week. The task itself is untouched.
+    ///
+    /// The departure is remembered (2026-08-17): what was taken out of the day
+    /// is the likeliest thing to be put back, so it comes back as its own
+    /// group of suggestions instead of falling into the middle of its list.
     pub fn remove_from(&self, period: Period, path: &str, id: &str) -> Result<bool> {
         self.ensure_writable()?;
         let mut file = self.open_state(period)?;
         if !file.state.remove(path, id) {
             return Ok(false);
         }
+        file.state.recall([crate::state::TaskRef::new(path, id)]);
         file.save()?;
         Ok(true)
     }
@@ -1744,6 +1777,25 @@ impl Notebook {
             Default::default()
         };
 
+        // What left Today or This Week, newest first — either period counts,
+        // whichever one is being filled: "I took this out yesterday" is the
+        // same answer to both questions. Rank and membership come from the
+        // same map, so the group is also ordered by how recently it left.
+        let mut recent_rank: std::collections::HashMap<(String, String), usize> =
+            Default::default();
+        for source in [Period::Day, Period::Week] {
+            for reference in self.open_state(source)?.state.recent {
+                let key = (reference.path, reference.id);
+                if !recent_rank.contains_key(&key) {
+                    recent_rank.insert(key, recent_rank.len());
+                }
+            }
+        }
+        let rank_of = |path: &str, id: Option<&String>| -> Option<usize> {
+            let id = id?;
+            recent_rank.get(&(path.to_string(), id.clone())).copied()
+        };
+
         let labels = self.space_labels()?;
         let space_of = |path: &str| -> String {
             path.rsplit_once('/')
@@ -1766,6 +1818,8 @@ impl Notebook {
                     .is_some_and(|id| in_week.contains(&(entry.path.clone(), id.clone())))
                 {
                     SuggestionGroup::ThisWeek
+                } else if rank_of(&entry.path, entry.task.id.as_ref()).is_some() {
+                    SuggestionGroup::Recent
                 } else {
                     SuggestionGroup::Lists
                 };
@@ -1779,8 +1833,17 @@ impl Notebook {
             .collect();
 
         // Stable sort: inside a group the original order is kept, which is the
-        // order of the lists on disk — the order the user arranged.
-        suggestions.sort_by_key(|s| s.group);
+        // order of the lists on disk — the order the user arranged. The one
+        // group with an order of its own is `Recent`, which reads newest
+        // first; every other group ranks flat and keeps the walk order.
+        suggestions.sort_by_key(|s| {
+            let rank = if s.group == SuggestionGroup::Recent {
+                rank_of(&s.path, s.task.id.as_ref()).unwrap_or(usize::MAX)
+            } else {
+                0
+            };
+            (s.group, rank)
+        });
         Ok(suggestions)
     }
 

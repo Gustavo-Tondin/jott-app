@@ -137,6 +137,35 @@ fn reaches_every_space_and_says_which_one() {
 }
 
 #[test]
+fn a_scoped_search_stays_inside_one_space() {
+    // The ⋮ of a screen asks about THAT screen (2026-08-17): the same engine,
+    // narrowed to the space the user is looking at.
+    let (dir, notebook) = notebook();
+    let work = notebook.create_space("Obra", "tasks").unwrap();
+    notebook
+        .create_task(&format!("{work}/task-list.md"), "Comprar cimento")
+        .unwrap();
+    notebook.create_task(INBOX, "Comprar cimento também").unwrap();
+    notes_of(&dir)
+        .create("", "Cimento e areia", today())
+        .unwrap();
+
+    let found = notebook.search_in("cimento", LIMIT, Some(&work)).unwrap();
+    assert_eq!(found.tasks.len(), 1);
+    assert_eq!(found.tasks[0].space, "Obra");
+    // The notes space is another place, so it is out of this question.
+    assert!(found.notes.is_empty());
+
+    // A space with nothing matching answers nothing, rather than falling back
+    // to the whole notebook.
+    let quiet = notebook.create_space("Vazio", "tasks").unwrap();
+    assert!(notebook.search_in("cimento", LIMIT, Some(&quiet)).unwrap().is_empty());
+
+    // And no scope is still the whole notebook.
+    assert_eq!(notebook.search("cimento", LIMIT).unwrap().tasks.len(), 2);
+}
+
+#[test]
 fn open_tasks_come_before_completed_ones() {
     // A search is nearly always about what is still to do.
     let (_dir, notebook) = notebook();

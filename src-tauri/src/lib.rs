@@ -66,6 +66,11 @@ pub fn configure<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builde
             commands::set_notebook_settings,
             commands::screen_to_restore,
             commands::remember_screen,
+            commands::sidebar_width,
+            commands::remember_sidebar_width,
+            commands::panel_width,
+            commands::remember_panel_width,
+            commands::open_in_file_manager,
             commands::list_counts,
             // lists
             commands::list_names,

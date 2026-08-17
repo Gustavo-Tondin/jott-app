@@ -1003,6 +1003,80 @@ fn suggestions_come_grouped_by_why_they_are_offered() {
 }
 
 #[test]
+fn a_task_taken_out_of_the_day_comes_back_as_a_recent_suggestion() {
+    // 2026-08-17: taking something out of Today is not the same as never
+    // having planned it, and until now the way back was to find it again in
+    // the middle of its list.
+    use jott_core::notebook::SuggestionGroup;
+
+    let dir = tempfile::tempdir().unwrap();
+    let (notebook, id) = notebook_with_task(dir.path(), "Arrumar o site");
+    let inbox = Notebook::inbox_path();
+
+    // A second task nobody ever pulled, so the two groups can be told apart.
+    let mut list = notebook.open_list(&inbox).unwrap();
+    list.add_text_with_id("Comprar café");
+    list.save().unwrap();
+
+    notebook.pull_into(Period::Day, &inbox, &id).unwrap();
+    // While it is in the day it is not offered at all.
+    assert!(
+        notebook
+            .grouped_suggestions(Period::Day)
+            .unwrap()
+            .iter()
+            .all(|s| s.task.text != "Arrumar o site"),
+        "uma tarefa que já está no dia não é sugestão"
+    );
+
+    notebook.remove_from(Period::Day, &inbox, &id).unwrap();
+
+    let suggestions = notebook.grouped_suggestions(Period::Day).unwrap();
+    let group_of = |text: &str| {
+        suggestions
+            .iter()
+            .find(|s| s.task.text == text)
+            .unwrap_or_else(|| panic!("{text} não sugerida"))
+            .group
+    };
+    assert_eq!(group_of("Arrumar o site"), SuggestionGroup::Recent);
+    assert_eq!(group_of("Comprar café"), SuggestionGroup::Lists);
+    // And it is offered before the plain list entries.
+    assert_eq!(suggestions[0].task.text, "Arrumar o site");
+
+    // Pulled back in, it stops being a departure — nothing left to offer.
+    notebook.pull_into(Period::Day, &inbox, &id).unwrap();
+    notebook.remove_from(Period::Day, &inbox, &id).unwrap();
+    notebook.pull_into(Period::Day, &inbox, &id).unwrap();
+    assert!(
+        notebook
+            .grouped_suggestions(Period::Day)
+            .unwrap()
+            .iter()
+            .all(|s| s.group != SuggestionGroup::Recent),
+        "o histórico devia esquecer o que voltou para o dia"
+    );
+}
+
+#[test]
+fn the_week_remembers_its_own_departures_for_the_day_too() {
+    // "Was in Today or Week and left" is one question with two sources: what
+    // was taken out of the week is just as good a candidate for today.
+    use jott_core::notebook::SuggestionGroup;
+
+    let dir = tempfile::tempdir().unwrap();
+    let (notebook, id) = notebook_with_task(dir.path(), "Revisar proposta");
+    let inbox = Notebook::inbox_path();
+
+    notebook.pull_into(Period::Week, &inbox, &id).unwrap();
+    notebook.remove_from(Period::Week, &inbox, &id).unwrap();
+
+    let suggestions = notebook.grouped_suggestions(Period::Day).unwrap();
+    assert_eq!(suggestions[0].group, SuggestionGroup::Recent);
+    assert_eq!(suggestions[0].task.text, "Revisar proposta");
+}
+
+#[test]
 fn the_urgent_tag_counts_as_much_as_a_date() {
     use jott_core::notebook::SuggestionGroup;
 

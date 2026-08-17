@@ -68,6 +68,10 @@ impl TaskRef {
     }
 }
 
+/// How many departures a state remembers. A short memory on purpose: this
+/// answers "what did I just take out of the day", not "what did I ever plan".
+pub const RECENT_LIMIT: usize = 20;
+
 /// The contents of one state file.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PeriodState {
@@ -75,6 +79,15 @@ pub struct PeriodState {
     pub date: NaiveDate,
     #[serde(default)]
     pub items: Vec<TaskRef>,
+    /// Tasks that WERE in this period and left it, newest first — taken out by
+    /// hand, or dropped by a rollover that resets (2026-08-17). References
+    /// only, exactly like `items`: the task itself is untouched in its list,
+    /// and a stale entry here simply matches nothing.
+    ///
+    /// Skipped when empty so a notebook that never removed anything keeps the
+    /// file it always had.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub recent: Vec<TaskRef>,
 }
 
 impl PeriodState {
@@ -82,6 +95,7 @@ impl PeriodState {
         Self {
             date,
             items: Vec::new(),
+            recent: Vec::new(),
         }
     }
 
@@ -102,11 +116,28 @@ impl PeriodState {
     /// Returns whether anything changed.
     pub fn add(&mut self, path: impl Into<String>, id: impl Into<String>) -> bool {
         let reference = TaskRef::new(path, id);
+        // Back in the period means it is no longer something that left it:
+        // offering it under "recently pulled" while it sits on the screen
+        // would be the panel arguing with itself.
+        self.recent.retain(|r| r != &reference);
         if self.items.contains(&reference) {
             return false;
         }
         self.items.push(reference);
         true
+    }
+
+    /// Remembers references that left the period, newest first.
+    ///
+    /// Only what the user can still act on is worth keeping, so the list is
+    /// deduplicated and capped at [`RECENT_LIMIT`]; a task that leaves twice
+    /// moves to the front instead of being listed twice.
+    pub fn recall(&mut self, gone: impl IntoIterator<Item = TaskRef>) {
+        for reference in gone {
+            self.recent.retain(|r| r != &reference);
+            self.recent.insert(0, reference);
+        }
+        self.recent.truncate(RECENT_LIMIT);
     }
 
     /// Removes a reference. Returns whether anything changed.
@@ -341,6 +372,42 @@ mod tests {
         assert!(state.remove_path("Tasks/Compras.md"));
         assert_eq!(state.len(), 1);
         assert!(state.contains("Tasks/Inbox.md", "b"));
+    }
+
+    #[test]
+    fn what_leaves_the_period_is_remembered_until_it_is_pulled_back() {
+        let mut state = PeriodState::new(ymd(2026, 8, 17));
+        state.add("Tasks/Inbox.md", "a");
+        state.remove("Tasks/Inbox.md", "a");
+        state.recall([TaskRef::new("Tasks/Inbox.md", "a")]);
+
+        assert_eq!(state.recent, vec![TaskRef::new("Tasks/Inbox.md", "a")]);
+
+        // Pulled back in: it is on screen again, so it stops being something
+        // that left.
+        state.add("Tasks/Inbox.md", "a");
+        assert!(state.recent.is_empty());
+    }
+
+    #[test]
+    fn the_memory_of_departures_is_newest_first_deduplicated_and_capped() {
+        let mut state = PeriodState::new(ymd(2026, 8, 17));
+        for n in 0..RECENT_LIMIT + 5 {
+            state.recall([TaskRef::new("Tasks/Inbox.md", n.to_string())]);
+        }
+
+        assert_eq!(state.recent.len(), RECENT_LIMIT);
+        // The last one to leave is the first one offered back.
+        assert_eq!(state.recent[0].id, (RECENT_LIMIT + 4).to_string());
+
+        // Leaving twice moves it to the front instead of listing it twice.
+        state.recall([TaskRef::new("Tasks/Inbox.md", "5")]);
+        assert_eq!(state.recent[0].id, "5");
+        assert_eq!(
+            state.recent.iter().filter(|r| r.id == "5").count(),
+            1,
+            "a mesma tarefa listada duas vezes"
+        );
     }
 
     #[test]

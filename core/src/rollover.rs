@@ -74,7 +74,22 @@ pub fn apply(state: &mut PeriodState, current: NaiveDate, mode: RolloverMode) ->
         RolloverMode::Reset if went_backwards => 0,
         RolloverMode::Reset => {
             let dropped = state.len();
+            // The unfinished ones become "recently pulled" — the day turned
+            // under them, and offering them back is the whole point of the
+            // group (2026-08-17). What points into a `Completed.md` was ticked
+            // during the period, so it left by being done, not by being
+            // dropped.
+            let gone: Vec<_> = state
+                .items
+                .iter()
+                .filter(|reference| !is_completed_list(&reference.path))
+                .cloned()
+                .collect();
             state.items.clear();
+            // Reversed, because `recall` treats each one as newer than the
+            // last: they all left at the same instant, and the order worth
+            // keeping is the one the day had.
+            state.recall(gone.into_iter().rev());
             dropped
         }
     };
@@ -173,6 +188,47 @@ mod tests {
         );
         assert_eq!(state.len(), 1);
         assert!(state.contains("Tasks/Inbox/Inbox.md", "a"));
+    }
+
+    #[test]
+    fn reset_remembers_the_unfinished_ones_it_dropped() {
+        // The day turned under them: they are exactly what the user may want
+        // back, and "recently pulled" is where they come back (2026-08-17).
+        let mut state = state_with(
+            ymd(2026, 8, 16),
+            &[
+                ("jott.tasks/task-list.md", "a"),
+                ("jott.tasks/task-list.md", "b"),
+                ("jott.tasks/completed.md", "c"),
+            ],
+        );
+        apply(&mut state, ymd(2026, 8, 17), RolloverMode::Reset);
+
+        assert!(state.is_empty());
+        // In the order the day had them, and without the one that left by
+        // being ticked.
+        assert_eq!(
+            state.recent,
+            vec![
+                crate::state::TaskRef::new("jott.tasks/task-list.md", "a"),
+                crate::state::TaskRef::new("jott.tasks/task-list.md", "b"),
+            ]
+        );
+    }
+
+    #[test]
+    fn carry_remembers_nothing_because_nothing_unfinished_left() {
+        let mut state = state_with(
+            ymd(2026, 8, 16),
+            &[
+                ("jott.tasks/task-list.md", "a"),
+                ("jott.tasks/completed.md", "b"),
+            ],
+        );
+        apply(&mut state, ymd(2026, 8, 17), RolloverMode::Carry);
+
+        assert_eq!(state.len(), 1);
+        assert!(state.recent.is_empty());
     }
 
     #[test]
