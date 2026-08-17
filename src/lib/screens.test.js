@@ -1057,6 +1057,40 @@ describe("App", () => {
     return await screen.findByLabelText("task name");
   };
 
+  // Both cases below only ever happen on Android, where no one developing Jott
+  // can click. The tests are the only thing standing between a working first
+  // launch there and an onboarding screen whose single button cannot work,
+  // because the platform has no folder for the user to pick.
+  test("with no notebook to reopen, it opens the folder the platform gives it", async () => {
+    const opened = vi.fn(() => notebook);
+    shell({
+      last_notebook: null,
+      default_notebook_folder: "/storage/emulated/0/Android/data/dev.gustavotondin.jott/files/Documents/Jott",
+      open_notebook: opened,
+    });
+
+    render(App);
+
+    await waitFor(() => expect(opened).toHaveBeenCalled());
+    expect(opened.mock.calls[0][0]).toEqual({
+      path: "/storage/emulated/0/Android/data/dev.gustavotondin.jott/files/Documents/Jott",
+    });
+    // Never the onboarding screen: that folder was not a suggestion.
+    expect(screen.queryByText("Choose notebook folder…")).toBeNull();
+  });
+
+  test("where the platform offers no folder, it still asks the user for one", async () => {
+    const opened = vi.fn(() => notebook);
+    // Desktop: `default_notebook_folder` answers null, because choosing where
+    // the notebook lives is the user's call.
+    shell({ last_notebook: null, default_notebook_folder: null, open_notebook: opened });
+
+    render(App);
+
+    await waitFor(() => expect(screen.getByText("Choose notebook folder…")).toBeTruthy());
+    expect(opened).not.toHaveBeenCalled();
+  });
+
   test("Completed lives in the right-rail menu, not among the lists", async () => {
     // It is created by the app on every open, so it never sits among the user's
     // lists; it moved to the hamburger's lesser pages.

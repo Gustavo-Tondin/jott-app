@@ -58,6 +58,7 @@ pub fn configure<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builde
             commands::search,
             // notebook
             commands::pick_notebook_folder,
+            commands::default_notebook_folder,
             commands::open_notebook,
             commands::current_notebook,
             commands::last_notebook,
@@ -113,6 +114,15 @@ pub fn configure<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builde
         ])
 }
 
+/// Starts the app.
+///
+/// On desktop `main.rs` calls this. On mobile there is no `main`: Android
+/// loads this crate as a shared library and calls in through a symbol the
+/// `mobile_entry_point` macro exports. Without the attribute the library
+/// builds perfectly and then fails to be assembled into an APK with "does not
+/// include required runtime symbols" — the code is fine, nothing is there to
+/// call it.
+#[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     configure(tauri::Builder::default())
         .run(tauri::generate_context!())

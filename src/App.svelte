@@ -856,7 +856,14 @@
     try {
       const last = await api.lastNotebook();
       if (last) await openAt(last);
-      else await refreshNotebook();
+      else {
+        // Where the platform gives the user no folder to pick (Android), the
+        // app opens its own container instead of showing an onboarding screen
+        // whose only button cannot work.
+        const fallback = await api.defaultFolder();
+        if (fallback) await openAt(fallback);
+        else await refreshNotebook();
+      }
     } catch (e) {
       fail(e);
     } finally {

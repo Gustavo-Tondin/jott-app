@@ -12,6 +12,9 @@ use jott_core::state::{Period, PeriodState};
 use jott_core::{Conflict, ListedTask, Notebook, OriginAction, Task, TurnOffset, WeekStart};
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Runtime, State};
+// Desktop-only: the trait brings in the folder picker, which Android does not
+// have — see `pick_notebook_folder`.
+#[cfg(not(target_os = "android"))]
 use tauri_plugin_dialog::DialogExt;
 
 use crate::error::CommandResult;
@@ -237,20 +240,69 @@ pub fn core_version() -> String {
 ///    Waiting for the answer on a blocking-pool thread keeps the main thread
 ///    free to actually draw the dialog, whatever thread Tauri picks for the
 ///    command in the future.
+/// On Android there is no folder picker at all: `FileDialogBuilder` has no
+/// `pick_folder` there, because the platform answers folder requests with a
+/// Storage Access Framework `content://` URI rather than a path, and the core
+/// speaks `std::fs`. Answering `None` is honest — and the app never asks,
+/// because [`default_notebook_folder`] gives it a folder up front.
 #[tauri::command]
 pub async fn pick_notebook_folder<R: Runtime>(app: AppHandle<R>) -> Option<PathBuf> {
-    let (tx, rx) = std::sync::mpsc::channel();
+    #[cfg(target_os = "android")]
+    {
+        let _ = app;
+        None
+    }
+    #[cfg(not(target_os = "android"))]
+    {
+        let (tx, rx) = std::sync::mpsc::channel();
 
-    // Fires on the main thread when the user answers; sending never blocks.
-    app.dialog().file().pick_folder(move |folder| {
-        let _ = tx.send(folder);
-    });
+        // Fires on the main thread when the user answers; sending never blocks.
+        app.dialog().file().pick_folder(move |folder| {
+            let _ = tx.send(folder);
+        });
 
-    tauri::async_runtime::spawn_blocking(move || rx.recv().ok().flatten())
-        .await
-        .ok()
-        .flatten()
-        .and_then(|folder| folder.into_path().ok())
+        tauri::async_runtime::spawn_blocking(move || rx.recv().ok().flatten())
+            .await
+            .ok()
+            .flatten()
+            .and_then(|folder| folder.into_path().ok())
+    }
+}
+
+/// The folder to use when the user has no folder to choose — `None` when
+/// choosing is the right thing to ask for.
+///
+/// On desktop this is always `None`: the notebook is the user's, it lives
+/// wherever they keep their files, and picking it is the first thing the app
+/// asks. On Android there is nothing to ask. Scoped storage means an app
+/// cannot open an arbitrary folder: the picker there returns a `content://`
+/// URI from the Storage Access Framework, and `std::fs` — which is all the
+/// core speaks — cannot open one. So the app writes inside its own external
+/// container, which needs no permission and is still a real directory of real
+/// `.md` files: reachable over USB, and reachable by a sync client such as
+/// Syncthing pointed at it.
+///
+/// `document_dir()` on Android resolves to
+/// `/storage/emulated/0/Android/data/<identifier>/files/Documents`. It falls
+/// back to the app data dir, which is private but at least always exists —
+/// losing the notebook is worse than losing its visibility.
+#[tauri::command]
+pub fn default_notebook_folder<R: Runtime>(app: AppHandle<R>) -> Option<PathBuf> {
+    #[cfg(target_os = "android")]
+    {
+        use tauri::Manager;
+        let base = app
+            .path()
+            .document_dir()
+            .or_else(|_| app.path().app_data_dir())
+            .ok()?;
+        Some(base.join("Jott"))
+    }
+    #[cfg(not(target_os = "android"))]
+    {
+        let _ = app;
+        None
+    }
 }
 
 /// Opens a notebook, creating one in that folder if it is not one yet.

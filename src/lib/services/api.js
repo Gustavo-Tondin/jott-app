@@ -12,6 +12,9 @@ export const api = {
   notebookSnapshot: () => invoke("notebook_snapshot"),
   lastNotebook: () => invoke("last_notebook"),
   pickFolder: () => invoke("pick_notebook_folder"),
+  // Non-null only where the user cannot pick a folder (Android): the app's own
+  // container, which is the notebook there. Desktop answers null and asks.
+  defaultFolder: () => invoke("default_notebook_folder"),
   openNotebook: (path) => invoke("open_notebook", { path }),
   currentNotebook: () => invoke("current_notebook"),
   // Every field is optional: the core keeps what it is not told about, so a
