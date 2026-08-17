@@ -53,7 +53,7 @@ fn completing_moves_the_task_to_completed_with_its_origin() {
 fn creating_stamps_created_and_completing_stamps_completed() {
     // Every task the app creates carries its creation date, and completing
     // stamps the completion date (2026-08-04) — both hidden in the comment,
-    // both read by the widget's by-date orderings. Undo clears the stamp.
+    // both read by the space's by-date orderings. Undo clears the stamp.
     let dir = tempfile::tempdir().unwrap();
     let notebook = Notebook::init(dir.path()).unwrap();
     let today = jott_core::clock::civil_today();
@@ -947,8 +947,8 @@ fn write_dated_list(dir: &Path, list: &str, entries: &[(&str, i64)]) {
             format!("- [ ] {text}\n  @{due}\n")
         })
         .collect();
-    // The fixed tasks widget lives in `Tasks/` now (reestruturação
-    // 2026-07-30), so its lists are written there, not at the space root.
+    // The fixed tasks space is a folder of its own, so its lists are written
+    // inside it and never at the notebook root.
     std::fs::write(
         dir.join("jott.tasks").join(format!("{list}.md")),
         body,
@@ -1650,12 +1650,12 @@ fn tags_keep_their_colours() {
 }
 
 #[test]
-fn completed_aggregates_across_widgets_and_writes_the_index() {
+fn completed_aggregates_across_spaces_and_writes_the_index() {
     let dir = tempfile::tempdir().unwrap();
     let nb = jott_core::Notebook::init(dir.path()).unwrap();
     nb.create_space("Project", "tasks").unwrap();
 
-    // Complete one task in each widget's list.
+    // Complete one task in each space's list.
     let mut inbox = nb.inbox().unwrap();
     let id1 = inbox.add_text_with_id("pessoal");
     inbox.save().unwrap();

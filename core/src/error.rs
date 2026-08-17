@@ -26,7 +26,6 @@ pub enum Error {
     )]
     LegacyNotebook(PathBuf),
 
-    /// A widget's `folder` tried to escape its space, or is malformed.
     /// A note address that could escape its folder, or a title that cannot
     /// be a file name.
     #[error("invalid note path {0:?}")]
@@ -67,9 +66,9 @@ pub type Result<T> = std::result::Result<T, Error>;
 /// The guard every writer shares: refuse to write a file whose `schemaVersion`
 /// came from a newer build.
 ///
-/// The notebook config, the space config, the widget config and the
-/// notebook itself each spelled this out; four copies of one rule is four
-/// chances for the next config file to forget it. Reading a future file is
+/// The notebook config, the space config and the notebook itself each spelled
+/// this out; three copies of one rule is three chances for the next config
+/// file to forget it. Reading a future file is
 /// fine — rewriting one is how data written by a newer app gets destroyed.
 pub fn guard_schema(found: u64, supported: u64) -> Result<()> {
     if found > supported {

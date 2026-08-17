@@ -1,6 +1,6 @@
 //! Resolving a user-supplied relative path inside a folder, safely.
 //!
-//! Every address the app takes — a list, a widget folder, a note — arrives
+//! Every address the app takes — a list, a space folder, a note — arrives
 //! from somewhere the user controls: a config file, a text field, a template
 //! someone downloaded. The rule is always the same, so it lives here once
 //! instead of being re-derived (slightly differently) in each module.
@@ -29,10 +29,10 @@ pub fn is_safe_component(part: &str) -> bool {
 /// the app would silently turn into a folder.
 ///
 /// Every door that takes a name from the user goes through here — a list name,
-/// a space name, a widget folder. They used to each spell the rule out with
+/// a space name, a group name. They used to each spell the rule out with
 /// a slightly different set of checks; each still raises **its own** error, and
-/// adds its own extra restriction (a list name also refuses `"`, a widget
-/// folder also refuses `Completed`), but the rule underneath is one.
+/// adds its own extra restriction (a list name also refuses `"`, a space
+/// folder also refuses `completed`), but the rule underneath is one.
 pub fn is_safe_leaf(name: &str) -> bool {
     is_safe_component(name) && !name.contains('/') && !name.contains("..")
 }
@@ -54,7 +54,7 @@ pub fn safe_join(base: &Path, relative: &str) -> Option<PathBuf> {
 /// The inverse: `abs` written relative to `base`, always with `/`.
 ///
 /// Every address the app hands out or stores — a list path in a state file, a
-/// widget prefix, a note address, a trashed item's origin — is a root-relative
+/// space prefix, a note address, a trashed item's origin — is a root-relative
 /// string with forward slashes, because those strings are written into files
 /// that sync between machines. A Windows `\` in one of them would address
 /// nothing on the next machine to open the notebook.

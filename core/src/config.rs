@@ -191,7 +191,7 @@ pub struct Config {
     /// was worth (2026-07-21). Kept as an option because the gesture is
     /// muscle memory for some people.
     pub close_inspector_on_click_away: bool,
-    /// Where the Home's quick capture writes, relative to the notes widget.
+    /// Where the Home's quick capture writes, relative to the notes space.
     pub quick_note_folder: String,
     /// How many days a trashed item waits in `.jott/trash/` before the reaper
     /// clears it for good (reestruturação 2026-07-30).

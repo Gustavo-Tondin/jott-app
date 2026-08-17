@@ -24,7 +24,7 @@ impl Notebook {
     }
 
     /// The address of the Completed list that serves `list_path` — the one in
-    /// the **same folder** (spec 3.5: one Completed per tasks widget, so a
+    /// the **same folder** (spec 3.5: one Completed per tasks space, so a
     /// completed task never leaves the space it lived in).
     pub fn completed_path_of(list_path: &str) -> Result<String> {
         let (dir, _) = split_list_path(list_path)?;
@@ -60,7 +60,7 @@ impl Notebook {
             .collect())
     }
 
-    /// The lists of the notebook, across every space's tasks widgets.
+    /// The lists of the notebook, across every tasks space.
     /// Sorted by name, which is what a sidebar shows.
     pub fn lists(&self) -> Result<Vec<ListEntry>> {
         let labels = self.space_labels()?;
@@ -103,7 +103,7 @@ impl Notebook {
     }
 
     /// How many open tasks each list has, keyed by address, across every
-    /// space's tasks widgets.
+    /// tasks space.
     pub fn open_task_counts(&self) -> Result<BTreeMap<String, usize>> {
         let mut counts = BTreeMap::new();
         for (prefix, folder) in self.task_folders()? {
@@ -116,7 +116,7 @@ impl Notebook {
 
     /// Conflicting copies sitting in the notebook right now.
     ///
-    /// Scans the config folder and every tasks-widget folder, which is where
+    /// Scans the config folder and every tasks space's folder, which is where
     /// sync tools leave them. Reporting is all this does — the user decides
     /// what to keep.
     pub fn conflicts(&self) -> Result<Vec<Conflict>> {
@@ -245,7 +245,7 @@ impl Notebook {
         std::fs::rename(&source, &target).ctx(&target)?;
 
         // Origins live in the folder's own Completed and hold bare names —
-        // relative to the widget, so the folder stays portable (spec 3.5).
+        // relative to the space, so the folder stays portable (spec 3.5).
         let mut completed = folder.open_list(COMPLETED_LIST)?;
         if completed.repoint_origin(&from_name, to_name) > 0 {
             completed.save()?;

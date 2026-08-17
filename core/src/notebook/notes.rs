@@ -29,7 +29,7 @@ impl Notebook {
             .ok_or_else(|| Error::InvalidNotePath(prefix.to_string()))
     }
 
-    /// Deletes a note (a file inside a notes widget), sending it to the trash.
+    /// Deletes a note (a file inside a notes space), sending it to the trash.
     pub fn delete_note(&self, folder: &str, relative: &str) -> Result<()> {
         self.ensure_writable()?;
         let note_folder = self.note_folder(folder)?;

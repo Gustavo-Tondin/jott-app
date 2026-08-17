@@ -221,7 +221,7 @@ impl Notebook {
     /// Un-completes a task, sending it back to the list it came from.
     ///
     /// `completed` is the address of the Completed list holding the task —
-    /// with one Completed per widget (spec 3.5), the id alone cannot say
+    /// with one Completed per space (spec 3.5), the id alone cannot say
     /// which folder to undo in. The origin is a bare name resolved **inside
     /// that same folder**; a task with no usable origin — hand-written, or
     /// pointing at a name that is no longer valid — lands in the folder's
@@ -256,8 +256,8 @@ impl Notebook {
 
     // -------------------------------------------------------- completed index
 
-    /// Every completed task across all tasks widgets, aggregated for the
-    /// Completed screen. The per-widget `Completed.md` files are the source of
+    /// Every completed task across all tasks spaces, aggregated for the
+    /// Completed screen. The per-space `completed.md` files are the source of
     /// truth; this just gathers them (spec 3.5 — a reconstructible index).
     pub fn completed_all(&self) -> Result<Vec<ListedTask>> {
         let mut out = Vec::new();
@@ -317,7 +317,7 @@ impl Notebook {
     }
 
     /// Files away completed tasks older than `completedRetentionDays`, in every
-    /// widget's `Completed.md`. Run on open, beside the trash reaper.
+    /// space's `completed.md`. Run on open, beside the trash reaper.
     ///
     /// Nothing is destroyed — each one goes to `.jott/trash/`, where the trash
     /// retention then applies, so a task is always recoverable for a while

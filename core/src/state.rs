@@ -199,7 +199,7 @@ impl PeriodState {
 
     /// Reparents every reference that lives under `from` (a folder, without the
     /// trailing slash) to the same place under `to`. Used when a whole folder
-    /// moves — a widget changing space — where the lists keep their names
+    /// moves — a space changing group — where the lists keep their names
     /// but their addresses change.
     pub fn rename_prefix(&mut self, from: &str, to: &str) -> bool {
         let prefix = format!("{from}/");

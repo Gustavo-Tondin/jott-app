@@ -1,4 +1,4 @@
-//! A folder of notes — what a `notes` widget owns.
+//! A folder of notes — what a `notes` space owns.
 //!
 //! The counterpart of [`crate::folder::TaskFolder`], and deliberately not a
 //! generalisation of it: notes are whole documents in a free folder tree,
@@ -23,11 +23,11 @@ const EXTENSION: &str = "md";
 #[derive(Debug, Clone, PartialEq, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct NoteEntry {
-    /// Address relative to the widget folder (`Ideias/receita.md`).
+    /// Address relative to the space folder (`Ideias/receita.md`).
     pub path: String,
     /// The file stem — notes are titled by their file name, like lists.
     pub title: String,
-    /// Folder holding it, relative to the widget (`""` at the root).
+    /// Folder holding it, relative to the space (`""` at the root).
     pub folder: String,
     pub preview: String,
     pub created: Option<NaiveDate>,
@@ -339,7 +339,7 @@ impl NoteFolder {
         Ok(moved)
     }
 
-    /// The widget's `Inbox` is recreated on every open, so renaming or
+    /// The space's `Inbox` is recreated on every open, so renaming or
     /// deleting it would only confuse the user.
     fn refuse_if_protected(&self, relative: &str) -> Result<()> {
         if relative == NOTES_INBOX {

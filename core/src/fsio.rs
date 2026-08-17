@@ -38,8 +38,8 @@ pub fn write_atomically(path: impl AsRef<Path>, bytes: &[u8]) -> Result<()> {
 /// Everything directly inside `dir`, as absolute paths.
 ///
 /// **A missing folder is an empty folder, not an error.** That is the rule the
-/// whole app already followed — a widget with no lists yet, a notebook whose
-/// `Notes/` the user deleted, a space with nothing in it — written out
+/// whole app already followed — a tasks space with no lists yet, a notebook
+/// whose `Notes/` the user deleted, a group with nothing in it — written out
 /// seven times, once per caller. Written once, the next caller cannot get it
 /// subtly wrong.
 ///
@@ -133,9 +133,9 @@ mod tests {
 
     #[test]
     fn a_missing_folder_reads_as_an_empty_folder() {
-        // Seven callers depend on this: a widget with no lists yet, a notebook
-        // whose Notes/ was deleted outside the app, a space with nothing in
-        // it. None of them may fail to open over a folder that is not there.
+        // Seven callers depend on this: a tasks space with no lists yet, a
+        // notebook whose Notes/ was deleted outside the app, a group with
+        // nothing in it. None may fail to open over a folder that is not there.
         let dir = tempfile::tempdir().unwrap();
         assert!(dir_paths(dir.path().join("nao-existe")).unwrap().is_empty());
 

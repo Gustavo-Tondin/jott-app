@@ -8,20 +8,26 @@
 //! │   ├── config.json
 //! │   ├── daily-state.json
 //! │   └── weekly-state.json
-//! ├── Tasks/                ← fixed space, type `tasks`
+//! ├── jott.home/            ← fixed space, type `home` (views only)
+//! │   └── .space.json
+//! ├── jott.tasks/           ← fixed space, type `tasks`
 //! │   ├── .space.json
-//! │   ├── Tasks.md
-//! │   └── Completed.md
-//! ├── Notes/                ← fixed space, type `notes`
-//! └── Design/               ← a group, holding spaces
-//!     └── Clients/
+//! │   ├── task-list.md
+//! │   └── completed.md
+//! ├── jott.notes/           ← fixed space, type `notes`
+//! └── Design/               ← a group (.group.json), holding spaces
+//!     └── Clients/          ← a space of the user's, in that group
 //! ```
 //!
+//! The app's own folders carry the `jott.` prefix so the plain words stay the
+//! user's to take (2026-08-11), and the two files of a tasks space are named
+//! the same in every one of them (2026-08-13) — the FOLDER is the name.
+//!
 //! Since phase 7 every list is addressed by its **root-relative path**
-//! (`Tasks/Compras.md`), never by a bare name — two folders of tasks mean two
-//! lists called `Inbox`, and a name stops identifying anything. A notebook in
-//! the pre-phase-7 layout is refused on open with a clear message (no
-//! migrations before v1 — decision 2026-07-21).
+//! (`jott.tasks/task-list.md`), never by a bare name — two folders of tasks
+//! mean two lists called `Inbox`, and a name stops identifying anything. A
+//! notebook in the pre-phase-7 layout is refused on open with a clear message
+//! (no migrations before v1 — decision 2026-07-21).
 
 use std::path::{Path, PathBuf};
 
@@ -225,8 +231,8 @@ impl Notebook {
         // A notebook written by a newer app is opened for reading only, so
         // nothing here may touch the disk.
         if !notebook.is_read_only() {
-            // `ensure_fixed_spaces` now creates the fixed widgets and their
-            // default lists inside `Inbox/`; no separate root-level defaults.
+            // The three fixed spaces and the files a tasks space is born
+            // with; nothing is kept at the notebook root.
             notebook.ensure_fixed_spaces()?;
             notebook.write_format_guide()?;
             // Clear expired trash and rebuild the aggregated Completed index —
@@ -317,21 +323,21 @@ impl Notebook {
         // Tasks and Notes: a typed space that owns its files directly —
         // the tasks one is a single list plus its Completed (spec 3.5, no
         // widget layer).
-        for (ws_name, wtype, label) in [
+        for (folder, kind, label) in [
             (TASKS_DIR, "tasks", "Tasks"),
             (NOTES_DIR, "notes", "Notes"),
         ] {
-            let ws_dir = self.root.join(ws_name);
-            ensure_marker(&ws_dir, wtype, label)?;
-            if wtype == "tasks" {
-                self.task_folder(ws_dir.clone()).ensure_default_lists()?;
+            let dir = self.root.join(folder);
+            ensure_marker(&dir, kind, label)?;
+            if kind == "tasks" {
+                self.task_folder(dir.clone()).ensure_default_lists()?;
             }
         }
         Ok(())
     }
 
     fn write_format_guide(&self) -> Result<()> {
-        // The guide sits in `.jott/` now: with widgets in their own folders,
+        // The guide sits in `.jott/`: every space owns its own folder, so
         // there is no single `Tasks/` folder to drop it in.
         crate::folder::TaskFolder::new(self.config_dir()).write_format_guide()
     }
@@ -351,9 +357,9 @@ impl Notebook {
 
     // `tasks_dir`/`tasks_folder`/`notes_dir` lived here until 2026-08-04. They
     // answered "where do the tasks live?" with `Tasks/`, which stopped being
-    // true in the 2026-07-30 restructure — lists moved into each widget's own
-    // folder (`Tasks/Inbox/`). The one answer now is `task_folders()`; a second,
-    // wrong one is worse than none.
+    // true in the 2026-07-30 restructure — every tasks space holds its own
+    // lists. The one answer now is `task_folders()`; a second, wrong one is
+    // worse than none.
 
     pub fn config_dir(&self) -> PathBuf {
         self.root.join(NOTEBOOK_CONFIG_DIR)
