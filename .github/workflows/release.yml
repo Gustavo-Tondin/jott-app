@@ -1,0 +1,100 @@
+# Builds the downloadable packages for a tagged version.
+#
+# This workflow is not a convenience: Windows installers can only be assembled
+# on Windows, and no Windows machine takes part in developing Jott. Without it,
+# one of the three supported platforms simply has no build.
+#
+# Push a tag to run it:
+#
+#   git tag v0.8.0 && git push origin v0.8.0
+#
+# It leaves a DRAFT release with the artifacts attached, so the notes can be
+# written and the files checked before anything becomes public.
+name: release
+
+on:
+  push:
+    tags: ['v*']
+  # Lets a build be triggered by hand from the Actions tab, without a tag —
+  # useful to prove the pipeline still works before cutting a real version.
+  workflow_dispatch:
+
+jobs:
+  package:
+    permissions:
+      contents: write
+
+    strategy:
+      # One platform failing must not cancel the other: a broken Windows build
+      # is no reason to lose a working Linux one.
+      fail-fast: false
+      matrix:
+        include:
+          # Built on the OLDEST supported Ubuntu on purpose. A binary linked
+          # against a new glibc refuses to start on older distributions, and
+          # the AppImage exists precisely for the distributions we do not know.
+          - platform: ubuntu-22.04
+          - platform: windows-latest
+
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # webkit2gtk is what Tauri draws the window with on Linux; patchelf is
+      # what the AppImage tooling uses to rewrite library paths.
+      - name: Install Linux build dependencies
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+
+      - run: npm ci
+
+      # The suites run here rather than in a separate workflow so that a tag
+      # cannot produce installers from a commit that does not pass its tests.
+      - run: npm test
+      - run: cargo test --workspace
+
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # The strip inside linuxdeploy does not understand the .relr.dyn ELF
+          # section current toolchains emit, and fails on every library it
+          # touches. Skipping it costs some size and is the only way the
+          # AppImage builds at all. (Found the hard way, 2026-08-14.)
+          NO_STRIP: 'true'
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: Jott ${{ github.ref_name }}
+          releaseDraft: true
+          prerelease: false
+          releaseBody: |
+            Jott ${{ github.ref_name }}
+
+            **Linux** — `.AppImage` runs anywhere (`chmod +x`, then run).
+            `.deb` and `.rpm` for Debian/Ubuntu and Fedora. On Arch, build the
+            `PKGBUILD` in `packaging/`.
+
+            **Windows** — run the `.exe` installer. It installs for the current
+            user, so it needs no administrator password.
+
+            Jott is not code-signed: paying for a certificate would not remove
+            the warning anyway until the file builds reputation. On first run
+            Windows shows "Windows protected your PC" — click **More info**,
+            then **Run anyway**. Once.
