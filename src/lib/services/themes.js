@@ -25,6 +25,25 @@ export const THEMES = [
 /// What the app ships as, and what an unknown or missing name falls back to.
 export const DEFAULT_THEME = "default";
 
+/// Whether H1–H6 (and the titles that share their scale) take the accent or
+/// plain ink — the second runtime choice about colour, next to the theme and
+/// the accent itself (2026-08-17). It lives here rather than in accent.js
+/// because it is a look setting like the theme, not a colour: what it moves is
+/// which ramp `--theme-heading-*` reads, resolved in styles/roles.css.
+///
+/// Only `ink` is ever written to the document; the accent is the app's own, so
+/// the attribute is absent and the default rule answers.
+export const HEADING_COLORS = [
+  {
+    key: "accent",
+    label: () => S.headingColorAccent,
+    hint: () => S.headingColorAccentHint,
+  },
+  { key: "ink", label: () => S.headingColorInk, hint: () => S.headingColorInkHint },
+];
+
+export const DEFAULT_HEADING_COLOR = "accent";
+
 /// True for one this build can actually draw.
 export function isTheme(value) {
   return THEMES.some((theme) => theme.key === value);

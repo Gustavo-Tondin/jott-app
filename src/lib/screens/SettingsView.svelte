@@ -14,7 +14,12 @@
   import { S } from "../services/strings.js";
   import { FEATURES, on, stored } from "../services/features.js";
   import { DEFAULT_ACCENT } from "../services/accent.js";
-  import { THEMES, DEFAULT_THEME } from "../services/themes.js";
+  import {
+    THEMES,
+    DEFAULT_THEME,
+    HEADING_COLORS,
+    DEFAULT_HEADING_COLOR,
+  } from "../services/themes.js";
   import AccentPicker from "../components/AccentPicker.svelte";
 
   let {
@@ -220,6 +225,30 @@
       />
     </div>
     <p class="settings__hint">{S.accentColorHint}</p>
+
+    <!-- Two answers, both right depending on what the notebook is for, which
+         is why this is a setting and not a theme: a note titled in the colour
+         of its space is the app's face, and a reader who wants a document to
+         read as a document turns it off. -->
+    <div class="settings__row">
+      <span class="settings__label">{S.headingColor}</span>
+      <div class="theme-segmented" role="group" aria-label={S.headingColor}>
+        {#each HEADING_COLORS as option (option.key)}
+          <button
+            type="button"
+            class="theme-segmented__item"
+            class:theme-segmented__item--active={(form.headingColor ||
+              DEFAULT_HEADING_COLOR) === option.key}
+            aria-pressed={(form.headingColor || DEFAULT_HEADING_COLOR) ===
+              option.key}
+            title={option.hint()}
+            disabled={readOnly}
+            onclick={() => put({ headingColor: option.key })}
+            >{option.label()}</button
+          >
+        {/each}
+      </div>
+    </div>
 
     <label class="settings__row">
       <span class="settings__label">{S.dateFormat}</span>

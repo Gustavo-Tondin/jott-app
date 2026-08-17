@@ -172,10 +172,39 @@ export const livePreview = ViewPlugin.fromClass(
 /// How the formatted result looks. Sizes are relative so the editor inherits
 /// whatever the app's type scale becomes in phase 10.
 export const markdownLook = HighlightStyle.define([
-  { tag: tags.heading1, fontSize: "1.6em", fontWeight: "700", lineHeight: "1.3" },
-  { tag: tags.heading2, fontSize: "1.35em", fontWeight: "700", lineHeight: "1.3" },
-  { tag: tags.heading3, fontSize: "1.15em", fontWeight: "700" },
-  { tag: [tags.heading4, tags.heading5, tags.heading6], fontWeight: "700" },
+  // SIX rungs for six levels (user call, 2026-08-17). It shipped with three —
+  // H1/H2 strong, H3 base, H4–H6 soft — and the colour changing every OTHER
+  // level read as an accident rather than a hierarchy. Size and weight still
+  // carry most of the hierarchy; the colour now agrees with them all the way
+  // down instead of stopping halfway.
+  //
+  // Which ladder — the accent's or the ink's — is the `headingColor` setting,
+  // resolved in styles/roles.css, so this table says nothing about colour
+  // beyond which rung a level stands on. The last rung is faint by design: six
+  // steps do not fit in the legible stretch of a ramp otherwise.
+  {
+    tag: tags.heading1,
+    fontSize: "1.6em",
+    fontWeight: "700",
+    lineHeight: "1.3",
+    color: "var(--theme-heading-1)",
+  },
+  {
+    tag: tags.heading2,
+    fontSize: "1.35em",
+    fontWeight: "700",
+    lineHeight: "1.3",
+    color: "var(--theme-heading-2)",
+  },
+  {
+    tag: tags.heading3,
+    fontSize: "1.15em",
+    fontWeight: "700",
+    color: "var(--theme-heading-3)",
+  },
+  { tag: tags.heading4, fontWeight: "700", color: "var(--theme-heading-4)" },
+  { tag: tags.heading5, fontWeight: "700", color: "var(--theme-heading-5)" },
+  { tag: tags.heading6, fontWeight: "700", color: "var(--theme-heading-6)" },
   { tag: tags.strong, fontWeight: "700" },
   { tag: tags.emphasis, fontStyle: "italic" },
   { tag: tags.strikethrough, textDecoration: "line-through" },

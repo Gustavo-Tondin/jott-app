@@ -55,6 +55,22 @@
        region is painted with the pair, in whichever order its ground says
        (styles/themes/*.css).
        --------------------------------------------------------------------- */
+    /* ---------------------------------------------------------------------
+       TIER 1 — JOTT'S OWN COLOURS (the Figma palette, "Mode 1.tokens.json",
+       put on a tonal scale 2026-08-17).
+       Do not read these from a component.
+
+       They are **not a layer every theme must build from**: they are the
+       colour list of the three themes that ship here, which share them because
+       they are one design. A theme with colours of its own writes them inline
+       and never mentions this block — the only rule a theme obeys is that no
+       role reads another role (styles/themes/default.css).
+
+       THE GROUNDS — the two neutrals a region is painted with, and the only
+       colours here that are not part of the tonal scale below. `-tint` is the
+       step AWAY from the pure one: darker on light, lighter on dark. A region
+       takes the pair in whichever order its ground says (styles/themes/*.css).
+       --------------------------------------------------------------------- */
     --palette-white: #fbfbfb;
     --palette-white-tint: #ecebea;
     --palette-black: #1e1e1e;
@@ -65,52 +81,105 @@
     --palette-gray: #a39f9b;
 
     /* ---------------------------------------------------------------------
-       THE SEVEN — the complementary colours the user picks from, for the app
-       accent, a space and a tag. Four steps each, in two opposed pairs:
+       THE EIGHT — the colours the user picks from, for the app accent, a
+       space and a tag: seven hues plus `neutral`, which is the white↔black
+       family and behaves exactly like the others (its light end shows on a
+       dark ground, its dark end on a light one).
 
-         -light      the fill/ink that reads on a DARK ground
-         -light-bg   the tint that reads on a LIGHT ground
-         -dark       the fill/ink that reads on a LIGHT ground
-         -dark-bg    the tint that reads on a DARK ground
+       SEVEN STEPS EACH, 100 (lightest) → 700 (darkest), and the step number
+       MEANS something: every colour hits the same target tone at the same
+       step, so `blue-500` and `yellow-500` carry the same weight and the same
+       contrast. That is what makes "H4 takes step 400" a rule instead of a
+       guess — before this the four hand-picked steps ranged from L*40 to
+       L*75 for the same role, and a yellow accent was unreadable on the white
+       canvas (1.9:1) while a purple one was fine.
 
-       So the same colour is one hex on the black sidebar and another on the
-       white canvas — always the half that contrasts with what it sits on. A
-       ground picks the pair; nothing else in the app chooses between them.
+         step   tone (CIE L*)   what it is for
+         100         92         pale tint — a quiet fill on a LIGHT ground
+         200         80         emphasis on a DARK ground (H1, H2)
+         300         70         the base on a DARK ground   (H3, icons, fills)
+         400         58         the soft step, and the only one that serves
+                                both grounds (H4–H6, secondary text)
+         500         48         the base on a LIGHT ground  (H3, icons, fills)
+         600         34         emphasis on a LIGHT ground  (H1, H2)
+         700         18         deep fill — a quiet fill on a DARK ground
+
+       Chroma is full in the middle and compressed at both ends, so a 100 reads
+       as a pale tint and a 700 as a deep fill rather than a saturated slab.
+       Four of the steps are pinned to a CONTRAST floor rather than to the tone
+       alone (200/600 at 7:1, 300/500 at 4.5:1 against their own ground): a
+       tone is perceptual lightness, WCAG measures luminance, and a saturated
+       green at L*48 lands short of a grey at L*48. Where the two disagree the
+       floor wins, capped at 4 L* so the grid still holds. Generated and
+       verified by the one-shot script logged in the 2026-08-17 session.
+
+       The `neutral` ramp runs along the same axis as the app's two grounds,
+       so its extremes would collide with them — which is why it, alone, takes
+       its roles one step further out (see styles/themes/default.css).
        --------------------------------------------------------------------- */
-    --palette-yellow-light-bg: #fbf3d5;
-    --palette-yellow-light: #ffdb4d;
-    --palette-yellow-dark: #e4b301;
-    --palette-yellow-dark-bg: #2d2a1f;
+    --palette-yellow-100: #f2e8cf;
+    --palette-yellow-200: #dec483;
+    --palette-yellow-300: #d2a513;
+    --palette-yellow-400: #ac8602;
+    --palette-yellow-500: #8c6d02;
+    --palette-yellow-600: #634c02;
+    --palette-yellow-700: #382900;
 
-    --palette-orange-light-bg: #fae2d4;
-    --palette-orange-light: #fa8e51;
-    --palette-orange-dark: #d95026;
-    --palette-orange-dark-bg: #3b1c13;
+    --palette-orange-100: #ffe1d9;
+    --palette-orange-200: #feb19b;
+    --palette-orange-300: #fe8461;
+    --palette-orange-400: #e35930;
+    --palette-orange-500: #c43c09;
+    --palette-orange-600: #8d2600;
+    --palette-orange-700: #4a1b0d;
 
-    --palette-pink-light-bg: #fbe8f6;
-    --palette-pink-light: #fb50b4;
-    --palette-pink-dark: #c85195;
-    --palette-pink-dark-bg: #371528;
+    --palette-pink-100: #fddfed;
+    --palette-pink-200: #f4aed1;
+    --palette-pink-300: #f37ebe;
+    --palette-pink-400: #d25a9e;
+    --palette-pink-500: #b43e83;
+    --palette-pink-600: #84245d;
+    --palette-pink-700: #441b32;
 
-    --palette-green-light-bg: #e7f6eb;
-    --palette-green-light: #66e685;
-    --palette-green-dark: #40bf5f;
-    --palette-green-dark-bg: #283c30;
+    --palette-green-100: #d8f0db;
+    --palette-green-200: #9cd8a4;
+    --palette-green-300: #53c76c;
+    --palette-green-400: #1da748;
+    --palette-green-500: #018534;
+    --palette-green-600: #006123;
+    --palette-green-700: #0a3515;
 
-    --palette-blue-light-bg: #e5ecf9;
-    --palette-blue-light: #66a3ff;
-    --palette-blue-dark: #386dc7;
-    --palette-blue-dark-bg: #1f2f4a;
+    --palette-blue-100: #ddeaff;
+    --palette-blue-200: #a8c8fd;
+    --palette-blue-300: #7aacfe;
+    --palette-blue-400: #538ae6;
+    --palette-blue-500: #396ec9;
+    --palette-blue-600: #224c95;
+    --palette-blue-700: #182b4b;
 
-    --palette-red-light-bg: #fbe0e0;
-    --palette-red-light: #fe4e50;
-    --palette-red-dark: #d42b33;
-    --palette-red-dark-bg: #421316;
+    --palette-red-100: #ffe1dd;
+    --palette-red-200: #feafa9;
+    --palette-red-300: #fd827b;
+    --palette-red-400: #ee4748;
+    --palette-red-500: #ce232e;
+    --palette-red-600: #980217;
+    --palette-red-700: #4e1515;
 
-    --palette-purple-light-bg: #efe3fb;
-    --palette-purple-light: #9d52fa;
-    --palette-purple-dark: #7e33ce;
-    --palette-purple-dark-bg: #37234c;
+    --palette-purple-100: #ece4fe;
+    --palette-purple-200: #d1b8fd;
+    --palette-purple-300: #bc92fe;
+    --palette-purple-400: #a460fa;
+    --palette-purple-500: #8a42dc;
+    --palette-purple-600: #6325a4;
+    --palette-purple-700: #341d52;
+
+    --palette-neutral-100: #e9e8e8;
+    --palette-neutral-200: #c7c6c5;
+    --palette-neutral-300: #adaba9;
+    --palette-neutral-400: #8d8b89;
+    --palette-neutral-500: #737170;
+    --palette-neutral-600: #514f4e;
+    --palette-neutral-700: #2c2b2b;
 
     /* TIER 2 — the semantic COLOUR roles are NOT here. They are assigned once
        per REGION, in styles/themes/<name>.css — and the rule there is

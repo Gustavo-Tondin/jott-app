@@ -13,10 +13,15 @@
    palette for the brand), and reading a colour meant opening three files to
    find out what it actually was.
 
-   There is exactly ONE exception, at the bottom of this file: which of the
-   seven `--theme-brand` points at. That one is chosen by the user at runtime,
-   so it cannot be written into the theme — the theme names all seven, and the
-   `data-accent` attribute picks. Two hops on that branch, and nowhere else.
+   The exceptions are the RUNTIME CHOICES, and they all live at the bottom of
+   this file because a theme cannot pre-write an answer the user has not given
+   yet. There are two, and there is room for no others:
+
+     1. which of the eight `--theme-brand` points at   (`data-accent`)
+     2. whether H1–H6 take the accent or the ink       (`data-headings`)
+
+   Two hops on those branches (three for the heading, which lands on the brand),
+   and one hop everywhere else in the app.
 
    ---------------------------------------------------------------------------
    WHAT IS HERE, AND WHY IT IS NOT IN THE THEMES
@@ -26,9 +31,9 @@
       grey that belongs to no mode, at the three alphas the app uses. A theme
       may still override any of them; it just does not have to write them six
       times to say nothing.
-   2. The accent choice, above.
+   2. The two runtime choices, above.
 
-   Everything else — the neutrals, the ink, the seven, the status colours — is
+   Everything else — the neutrals, the ink, the eight, the status colours — is
    the theme's, spelled out per region in `themes/<name>.css`.
    ============================================================================= */
 
@@ -57,57 +62,156 @@
   }
 
   /* ---------------------------------------------------------------------------
-     THE APP ACCENT — the one runtime choice, and the one place a role reads
-     something other than the palette.
+     THE APP ACCENT — the first runtime choice.
 
-     The theme names all seven for each region (`--accent-blue` and its
-     `-tint`, already resolved to the half that reads on that region's ground).
-     `data-accent` on <html>, from the notebook's `accentColor` setting, picks
-     which one is the brand. No attribute, or one this build does not know,
-     is blue — what the app ships as.
+     The theme names all eight for each region (`--accent-blue` and its four
+     steps, already resolved to the end of the tonal grid that reads on that
+     region's ground). `data-accent` on <html>, from the notebook's
+     `accentColor` setting, picks which one is the brand. No attribute, or one
+     this build does not know, is blue — what the app ships as.
 
-     Seven rules rather than one, because a custom property cannot compose the
+     Eight rules rather than one, because a custom property cannot compose the
      name of another. Written as a descendant selector so one attribute reaches
      both regions:  <html data-accent> … [data-region="chrome"] … ="canvas"
      --------------------------------------------------------------------------- */
   [data-region] {
+    --theme-brand-1: var(--accent-blue-1);
+    --theme-brand-2: var(--accent-blue-2);
+    --theme-brand-3: var(--accent-blue-3);
+    --theme-brand-4: var(--accent-blue-4);
+    --theme-brand-5: var(--accent-blue-5);
+    --theme-brand-6: var(--accent-blue-6);
     --theme-brand: var(--accent-blue);
     --theme-brand-weak: var(--accent-blue-tint);
-    --theme-brand-outline: color-mix(in srgb, var(--accent-blue) 45%, transparent);
+    --theme-brand-outline: var(--accent-blue-line);
   }
   [data-accent="yellow"] [data-region] {
+    --theme-brand-1: var(--accent-yellow-1);
+    --theme-brand-2: var(--accent-yellow-2);
+    --theme-brand-3: var(--accent-yellow-3);
+    --theme-brand-4: var(--accent-yellow-4);
+    --theme-brand-5: var(--accent-yellow-5);
+    --theme-brand-6: var(--accent-yellow-6);
     --theme-brand: var(--accent-yellow);
     --theme-brand-weak: var(--accent-yellow-tint);
-    --theme-brand-outline: color-mix(in srgb, var(--accent-yellow) 45%, transparent);
+    --theme-brand-outline: var(--accent-yellow-line);
   }
   [data-accent="orange"] [data-region] {
+    --theme-brand-1: var(--accent-orange-1);
+    --theme-brand-2: var(--accent-orange-2);
+    --theme-brand-3: var(--accent-orange-3);
+    --theme-brand-4: var(--accent-orange-4);
+    --theme-brand-5: var(--accent-orange-5);
+    --theme-brand-6: var(--accent-orange-6);
     --theme-brand: var(--accent-orange);
     --theme-brand-weak: var(--accent-orange-tint);
-    --theme-brand-outline: color-mix(in srgb, var(--accent-orange) 45%, transparent);
+    --theme-brand-outline: var(--accent-orange-line);
   }
   [data-accent="pink"] [data-region] {
+    --theme-brand-1: var(--accent-pink-1);
+    --theme-brand-2: var(--accent-pink-2);
+    --theme-brand-3: var(--accent-pink-3);
+    --theme-brand-4: var(--accent-pink-4);
+    --theme-brand-5: var(--accent-pink-5);
+    --theme-brand-6: var(--accent-pink-6);
     --theme-brand: var(--accent-pink);
     --theme-brand-weak: var(--accent-pink-tint);
-    --theme-brand-outline: color-mix(in srgb, var(--accent-pink) 45%, transparent);
+    --theme-brand-outline: var(--accent-pink-line);
   }
   [data-accent="green"] [data-region] {
+    --theme-brand-1: var(--accent-green-1);
+    --theme-brand-2: var(--accent-green-2);
+    --theme-brand-3: var(--accent-green-3);
+    --theme-brand-4: var(--accent-green-4);
+    --theme-brand-5: var(--accent-green-5);
+    --theme-brand-6: var(--accent-green-6);
     --theme-brand: var(--accent-green);
     --theme-brand-weak: var(--accent-green-tint);
-    --theme-brand-outline: color-mix(in srgb, var(--accent-green) 45%, transparent);
+    --theme-brand-outline: var(--accent-green-line);
   }
   [data-accent="blue"] [data-region] {
+    --theme-brand-1: var(--accent-blue-1);
+    --theme-brand-2: var(--accent-blue-2);
+    --theme-brand-3: var(--accent-blue-3);
+    --theme-brand-4: var(--accent-blue-4);
+    --theme-brand-5: var(--accent-blue-5);
+    --theme-brand-6: var(--accent-blue-6);
     --theme-brand: var(--accent-blue);
     --theme-brand-weak: var(--accent-blue-tint);
-    --theme-brand-outline: color-mix(in srgb, var(--accent-blue) 45%, transparent);
+    --theme-brand-outline: var(--accent-blue-line);
   }
   [data-accent="red"] [data-region] {
+    --theme-brand-1: var(--accent-red-1);
+    --theme-brand-2: var(--accent-red-2);
+    --theme-brand-3: var(--accent-red-3);
+    --theme-brand-4: var(--accent-red-4);
+    --theme-brand-5: var(--accent-red-5);
+    --theme-brand-6: var(--accent-red-6);
     --theme-brand: var(--accent-red);
     --theme-brand-weak: var(--accent-red-tint);
-    --theme-brand-outline: color-mix(in srgb, var(--accent-red) 45%, transparent);
+    --theme-brand-outline: var(--accent-red-line);
   }
   [data-accent="purple"] [data-region] {
+    --theme-brand-1: var(--accent-purple-1);
+    --theme-brand-2: var(--accent-purple-2);
+    --theme-brand-3: var(--accent-purple-3);
+    --theme-brand-4: var(--accent-purple-4);
+    --theme-brand-5: var(--accent-purple-5);
+    --theme-brand-6: var(--accent-purple-6);
     --theme-brand: var(--accent-purple);
     --theme-brand-weak: var(--accent-purple-tint);
-    --theme-brand-outline: color-mix(in srgb, var(--accent-purple) 45%, transparent);
+    --theme-brand-outline: var(--accent-purple-line);
+  }
+  [data-accent="neutral"] [data-region] {
+    --theme-brand-1: var(--accent-neutral-1);
+    --theme-brand-2: var(--accent-neutral-2);
+    --theme-brand-3: var(--accent-neutral-3);
+    --theme-brand-4: var(--accent-neutral-4);
+    --theme-brand-5: var(--accent-neutral-5);
+    --theme-brand-6: var(--accent-neutral-6);
+    --theme-brand: var(--accent-neutral);
+    --theme-brand-weak: var(--accent-neutral-tint);
+    --theme-brand-outline: var(--accent-neutral-line);
+  }
+
+  /* ---------------------------------------------------------------------------
+     THE HEADING COLOUR — the second runtime choice, and the second (and last)
+     place a role reads a role.
+
+     SIX RUNGS FOR SIX LEVELS (user call, 2026-08-17: "each one its own colour,
+     even if H6 comes out weak"). It started at three — H1/H2 strong, H3 base,
+     H4–H6 soft — and reading it back, the colour changing every other level
+     read as an accident rather than a hierarchy.
+
+     Six PURE palette steps do not fit: past 500 on a dark ground and past 400
+     on a light one the ramp is out of contrast (2.0:1 — invisible, not weak).
+     So the ladder walks in HALF steps through the legible stretch, which the
+     theme spells out per colour (styles/themes/default.css). It ends around
+     3.8:1 on a dark ground and 2.7:1 on a light one: H6 is faint on purpose,
+     and it is the only rung that is.
+
+     H1–H6 take the accent by default: a note titled in the colour of the place
+     it lives in is what the app looks like. `headingColor: "ink"` in the
+     notebook's settings turns that off for a reader who wants a document to
+     read as a document, and it is a SETTING rather than a theme because both
+     answers are right on every theme. The ink ladder is the same six rungs of
+     emphasis, spent on alpha instead of tone, so switching moves the colour
+     and nothing else.
+     --------------------------------------------------------------------------- */
+  [data-region] {
+    --theme-heading-1: var(--theme-brand-1);
+    --theme-heading-2: var(--theme-brand-2);
+    --theme-heading-3: var(--theme-brand-3);
+    --theme-heading-4: var(--theme-brand-4);
+    --theme-heading-5: var(--theme-brand-5);
+    --theme-heading-6: var(--theme-brand-6);
+  }
+  [data-headings="ink"] [data-region] {
+    --theme-heading-1: var(--theme-ink);
+    --theme-heading-2: color-mix(in srgb, var(--theme-ink) 86%, transparent);
+    --theme-heading-3: color-mix(in srgb, var(--theme-ink) 72%, transparent);
+    --theme-heading-4: color-mix(in srgb, var(--theme-ink) 60%, transparent);
+    --theme-heading-5: color-mix(in srgb, var(--theme-ink) 50%, transparent);
+    --theme-heading-6: color-mix(in srgb, var(--theme-ink) 42%, transparent);
   }
 }

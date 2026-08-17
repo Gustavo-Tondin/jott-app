@@ -174,6 +174,16 @@ pub struct Config {
     /// notebook written by a newer build must keep a theme this one cannot
     /// draw. Empty means the one the app ships as.
     pub theme: String,
+    /// Whether headings (H1–H6, and the titles that share their scale) are
+    /// drawn in the accent or in plain ink (2026-08-17). `"ink"` turns the
+    /// colour off; anything else, including empty, means the accent — which is
+    /// what the app ships as, because a note titled in the colour of the place
+    /// it lives in is what the interface looks like.
+    ///
+    /// Same covenant as `accent_color` and `theme`: a NAME, never a colour,
+    /// not policed here. It is a look, and the answers belong to the
+    /// interface.
+    pub heading_color: String,
     /// Close the task panel when clicking outside it.
     ///
     /// Off by default, and that default is a decision: it shipped on, fired
@@ -236,6 +246,7 @@ impl Default for Config {
             date_display_format: DateFormat::default(),
             accent_color: String::new(),
             theme: String::new(),
+            heading_color: String::new(),
             close_inspector_on_click_away: false,
             quick_note_folder: crate::notefolder::NOTES_INBOX.to_string(),
             trash_retention_days: 30,
@@ -408,6 +419,7 @@ impl Config {
                 .unwrap_or_default(),
             accent_color: string(&raw, "accentColor").unwrap_or(defaults.accent_color),
             theme: string(&raw, "theme").unwrap_or(defaults.theme),
+            heading_color: string(&raw, "headingColor").unwrap_or(defaults.heading_color),
             close_inspector_on_click_away: flag(
                 &raw,
                 "closeInspectorOnClickAway",
@@ -515,7 +527,11 @@ impl Config {
         // as, so a notebook that never had one chosen says nothing about it,
         // and going back to the default REMOVES the key rather than writing
         // the default name into the file.
-        for (key, value) in [("accentColor", &self.accent_color), ("theme", &self.theme)] {
+        for (key, value) in [
+            ("accentColor", &self.accent_color),
+            ("theme", &self.theme),
+            ("headingColor", &self.heading_color),
+        ] {
             if value.is_empty() {
                 cleared.push(key);
             } else {
@@ -862,6 +878,31 @@ mod tests {
         let future = Config::parse(r#"{ "schemaVersion": 1, "accentColor": "teal" }"#);
         assert_eq!(future.accent_color, "teal");
         assert!(future.render().contains("teal"));
+    }
+
+    #[test]
+    fn the_heading_colour_round_trips_and_absent_means_the_accent() {
+        // The third look setting, same covenant as the other two (2026-08-17):
+        // a name, unpoliced, and absent means what the app ships as — which
+        // here is the accent, so an untouched notebook writes nothing.
+        let config = Config::default();
+        assert_eq!(config.heading_color, "");
+        assert!(!config.render().contains("headingColor"));
+
+        let mut chosen = Config::default();
+        chosen.heading_color = "ink".into();
+        let reparsed = Config::parse(&chosen.render());
+        assert_eq!(reparsed.heading_color, "ink");
+
+        let mut back = reparsed;
+        back.heading_color = String::new();
+        assert!(!back.render().contains("headingColor"));
+
+        // A value from a newer build is kept, not reset — the answers belong
+        // to the interface, exactly as with the accent and the theme.
+        let future = Config::parse(r#"{ "schemaVersion": 1, "headingColor": "rainbow" }"#);
+        assert_eq!(future.heading_color, "rainbow");
+        assert!(future.render().contains("rainbow"));
     }
 
     #[test]

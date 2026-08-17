@@ -1,23 +1,37 @@
-// The seven complementary colours, and how a stored choice becomes CSS.
+// The eight colours, and how a stored choice becomes CSS.
 //
-// A space, a group, a tag and the app itself all pick from the SAME seven
-// (user call, 2026-08-13). What is stored is the NAME — `"orange"` — never a
-// hex, and that is the whole point: each of the seven has four steps, and
-// which two a colour shows depends on the ground it lands on. The black
-// sidebar gets the light half, the white canvas gets the dark half
-// (styles/tokens.css, styles/themes/*.css). A hex cannot do that; a name
-// resolves to `var(--accent-orange)`, which every region has already answered
-// for itself.
+// A space, a group, a tag and the app itself all pick from the SAME eight
+// (user call, 2026-08-13; `neutral` added 2026-08-17). What is stored is the
+// NAME — `"orange"` — never a hex, and that is the whole point: each colour
+// runs a seven-step tonal ramp, and which end of it a colour shows depends on
+// the ground it lands on. The black sidebar reads from the light end, the
+// white canvas from the dark end (styles/tokens.css, styles/themes/*.css). A
+// hex cannot do that; a name resolves to `var(--accent-orange)`, which every
+// region has already answered for itself.
+//
+// `neutral` is the white↔black family, and it is one colour rather than two
+// for the same reason: white over black and black over white are the two ends
+// of one ramp, exactly like light blue and dark blue. Picking it on the
+// sidebar gives white; the same space's title on the canvas gives black.
 //
 // Tolerance, not migration: a notebook written before this (or by hand) may
 // hold a raw `#rrggbb`. It is passed through untouched — a colour the user
 // chose is theirs, even if the app would no longer offer it. It simply does
 // not follow the ground, because it cannot.
 
-/// The seven, in palette order. This array IS the order every swatch row
+/// The eight, in palette order. This array IS the order every swatch row
 /// draws, so the palette reads the same in the space popup, the tag
 /// manager and the settings screen.
-export const ACCENTS = ["yellow", "orange", "pink", "green", "blue", "red", "purple"];
+export const ACCENTS = [
+  "yellow",
+  "orange",
+  "pink",
+  "green",
+  "blue",
+  "red",
+  "purple",
+  "neutral",
+];
 
 /// What the app ships as, and what an unknown or missing name falls back to.
 export const DEFAULT_ACCENT = "blue";
@@ -35,6 +49,29 @@ export function accentColor(value) {
   if (!value) return null;
   if (isAccent(value)) return `var(--accent-${value})`;
   return value;
+}
+
+/// A rung of the colour's SIX-STEP emphasis ladder, 1 (strongest) to 6
+/// (faintest) — the same ladder H1–H6 stand on (styles/roles.css). Which
+/// tones a rung resolves to is the region's call, as always.
+///
+/// A raw colour has no ladder to climb: rung 1 is the colour itself, and the
+/// rest fade toward the ground, which is the closest a lone hex can get.
+export function accentRung(value, rung) {
+  if (!value) return null;
+  if (isAccent(value)) return `var(--accent-${value}-${rung})`;
+  const fade = [100, 90, 80, 68, 58, 48][rung - 1] ?? 100;
+  return fade === 100 ? value : `color-mix(in srgb, ${value} ${fade}%, transparent)`;
+}
+
+/// The top of that ladder — what a title takes (2026-08-17).
+export function accentStrong(value) {
+  return accentRung(value, 1);
+}
+
+/// …and the quiet end of the legible range: secondary text, a meta line.
+export function accentSoft(value) {
+  return accentRung(value, 5);
 }
 
 /// The matching tint — the quiet fill behind something wearing this colour (a

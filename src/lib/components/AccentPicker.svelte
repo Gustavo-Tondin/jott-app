@@ -1,13 +1,14 @@
 <script>
-  // A row of the seven complementary colours — the ONE colour picker in the
-  // app (2026-08-13). The space/group popup, the tag manager and the
-  // settings screen all choose from the same seven, so they all draw this.
+  // A row of the eight colours — the ONE colour picker in the app
+  // (2026-08-13). The space/group popup, the tag manager and the settings
+  // screen all choose from the same eight, so they all draw this.
   //
-  // What it emits is a NAME (`"orange"`), never a hex: each of the seven has a
-  // light half and a dark half, and which one shows is the ground's call, not
-  // the picker's (services/accent.js). The swatches themselves are painted
-  // with `accentColor`, so this row previews the halves of whatever region it
-  // was opened in — the sidebar shows the colours the sidebar will use.
+  // What it emits is a NAME (`"orange"`), never a hex: each colour runs a
+  // seven-step tonal ramp, and which end shows is the ground's call, not the
+  // picker's (services/accent.js). The swatches themselves are painted with
+  // `accentColor`, so this row previews the steps of whatever region it was
+  // opened in — the sidebar shows the colours the sidebar will use, which is
+  // also what makes `neutral` legible here: on the sidebar it draws white.
   import { ACCENTS, accentColor } from "../services/accent.js";
   import { S } from "../services/strings.js";
 

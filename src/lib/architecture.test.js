@@ -166,6 +166,226 @@ describe("frontend architecture", () => {
     expect([...missing].sort()).toEqual([]);
   });
 
+  // ---------------------------------------------------------------------------
+  // The tonal scale (2026-08-17). Its whole value is that the step NUMBER means
+  // something — `blue-500` and `yellow-500` carry the same weight and the same
+  // contrast — so these two tests measure the hexes rather than trust them.
+  // ---------------------------------------------------------------------------
+
+  const TARGET = { 100: 92, 200: 80, 300: 70, 400: 58, 500: 48, 600: 34, 700: 18 };
+  const GROUND = { dark: "#1e1e1e", light: "#fbfbfb" };
+
+  /// CIE L* — the definition of a tone, and what the step numbers name.
+  function lstar(hex) {
+    const channel = (c) => {
+      const v = parseInt(hex.slice(c, c + 2), 16) / 255;
+      return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+    };
+    const y = 0.2126 * channel(1) + 0.7152 * channel(3) + 0.0722 * channel(5);
+    return y > 0.008856 ? 116 * y ** (1 / 3) - 16 : 903.3 * y;
+  }
+
+  /// WCAG contrast, which is luminance and NOT tone — the reason four of the
+  /// steps are pinned to a ratio instead of to their target tone.
+  function ratio(a, b) {
+    const rl = (hex) => {
+      const channel = (c) => {
+        const v = parseInt(hex.slice(c, c + 2), 16) / 255;
+        return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+      };
+      return 0.2126 * channel(1) + 0.7152 * channel(3) + 0.0722 * channel(5);
+    };
+    const [lo, hi] = [rl(a), rl(b)].sort((x, y) => x - y);
+    return (hi + 0.05) / (lo + 0.05);
+  }
+
+  /// The oklab midpoint of two hexes — what `color-mix(in oklab, a, b)` is,
+  /// and what a half rung of the emphasis ladder resolves to.
+  function midpoint(a, b) {
+    const lin = (hex) =>
+      [1, 3, 5].map((c) => {
+        const v = parseInt(hex.slice(c, c + 2), 16) / 255;
+        return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+      });
+    const M1 = [
+      [0.4122214708, 0.5363325363, 0.0514459929],
+      [0.2119034982, 0.6806995451, 0.1073969566],
+      [0.0883024619, 0.2817188376, 0.6299787005],
+    ];
+    const M2 = [
+      [0.2104542553, 0.793617785, -0.0040720468],
+      [1.9779984951, -2.428592205, 0.4505937099],
+      [0.0259040371, 0.7827717662, -0.808675766],
+    ];
+    const apply = (m, v) => m.map((row) => row.reduce((s, k, i) => s + k * v[i], 0));
+    const toLab = (hex) => apply(M2, apply(M1, lin(hex)).map(Math.cbrt));
+    const [la, lb] = [toLab(a), toLab(b)];
+    const lab = la.map((v, i) => (v + lb[i]) / 2);
+    // Back out: invert M2, cube, invert M1. The inverses are spelled rather
+    // than solved — this is a test, not a colour library.
+    const M2i = [
+      [1, 0.3963377774, 0.2158037573],
+      [1, -0.1055613458, -0.0638541728],
+      [1, -0.0894841775, -1.291485548],
+    ];
+    const M1i = [
+      [4.0767416621, -3.3077115913, 0.2309699292],
+      [-1.2684380046, 2.6097574011, -0.3413193965],
+      [-0.0041960863, -0.7034186147, 1.707614701],
+    ];
+    const rgb = apply(M1i, apply(M2i, lab).map((v) => v ** 3));
+    return (
+      "#" +
+      rgb
+        .map((v) => {
+          const c = Math.max(0, Math.min(1, v));
+          const s = c <= 0.0031308 ? c * 12.92 : 1.055 * c ** (1 / 2.4) - 0.055;
+          return Math.round(s * 255)
+            .toString(16)
+            .padStart(2, "0");
+        })
+        .join("")
+    );
+  }
+
+  const palette = () => {
+    const css = readFileSync(join(src, "styles", "tokens.css"), "utf8");
+    const steps = {};
+    for (const m of css.matchAll(/--palette-([a-z]+)-(\d00):\s*(#[0-9a-f]{6})/g)) {
+      (steps[m[1]] ??= {})[m[2]] = m[3];
+    }
+    return steps;
+  };
+
+  test("every colour hits the same tone at the same step", () => {
+    // A step whose tone drifts is a step whose number lies, and the moment one
+    // colour's 500 is lighter than another's the app is back where it started:
+    // a yellow accent unreadable on the canvas while a purple one was fine.
+    // The tolerance is 4 L*, which is the cap the contrast correction may
+    // spend (styles/tokens.css).
+    const offenders = [];
+    for (const [name, steps] of Object.entries(palette())) {
+      for (const [step, target] of Object.entries(TARGET)) {
+        const hex = steps[step];
+        if (!hex) {
+          offenders.push(`${name}: no step ${step}`);
+          continue;
+        }
+        const drift = Math.abs(lstar(hex) - target);
+        if (drift > 4) offenders.push(`${name}-${step}: L* ${lstar(hex).toFixed(0)} ≠ ${target}`);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  test("every step that carries text clears its contrast floor", () => {
+    // The promise the scale makes to a screen: take step 300 on the sidebar or
+    // step 500 on the canvas and the text is readable, whichever of the eight
+    // the user picked. 4.5:1 is WCAG AA for body text, 7:1 what the emphasis
+    // steps above them are for.
+    const floors = [
+      [200, GROUND.dark, 7],
+      [300, GROUND.dark, 4.5],
+      [500, GROUND.light, 4.5],
+      [600, GROUND.light, 7],
+    ];
+    const offenders = [];
+    for (const [name, steps] of Object.entries(palette())) {
+      for (const [step, ground, floor] of floors) {
+        const got = ratio(steps[step], ground);
+        if (got < floor) offenders.push(`${name}-${step}: ${got.toFixed(2)}:1 < ${floor}:1`);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  test("every emphasis ladder gets weaker one rung at a time", () => {
+    // The rung a heading stands on has to be quieter than the one above it, on
+    // the ground it is actually read against — otherwise the colour stops
+    // agreeing with the size, which is what "it changes colour every other
+    // level" looked like before there were six rungs (user report,
+    // 2026-08-17).
+    //
+    // The floor is on rungs 1–4. The tail is MEANT to be faint — the user
+    // asked for six distinct colours knowing H6 would be weak — and how faint
+    // depends on the ground: the light theme's chrome sits on #ECEBEA, half a
+    // step darker than its canvas, and dark text loses contrast there. So the
+    // same ladder ends at 3.3:1 on the page and 2.6:1 on the frame, which is
+    // where the six rungs stop being a promise about legibility and start
+    // being one about ORDER — that part is checked on every rung.
+    const steps = palette();
+
+    // Every literal in the palette, including the grounds (`--palette-black`,
+    // `--palette-white-tint`), which are not part of the tonal grid.
+    const literals = Object.fromEntries(
+      [
+        ...readFileSync(join(src, "styles", "tokens.css"), "utf8").matchAll(
+          /(--palette-[a-z0-9-]+):\s*(#[0-9a-f]{6})/g,
+        ),
+      ].map((m) => [m[1], m[2]]),
+    );
+
+    /// A theme value → a hex. Either a palette entry or the oklab midpoint of
+    /// two of them, which is what a half rung is.
+    const resolve = (value) => {
+      const mix = value.match(
+        /color-mix\(in oklab,\s*var\((--palette-[a-z0-9-]+)\),\s*var\((--palette-[a-z0-9-]+)\)\)/,
+      );
+      if (mix) return midpoint(literals[mix[1]], literals[mix[2]]);
+      const one = value.match(/^var\((--palette-[a-z0-9-]+)\)$/);
+      return one ? (literals[one[1]] ?? null) : null;
+    };
+
+    const offenders = [];
+    let laddersChecked = 0;
+    for (const [file, css] of themes()) {
+      // A region's ground and its accents are not always declared in the same
+      // rule (light.css splits them), so grounds are collected per region
+      // across the whole file first.
+      const blocks = [...css.matchAll(/([^{}]+)\{([^}]*)\}/g)].map((m) => ({
+        // Deduped: default.css names each region twice in one selector (once
+        // under [data-theme], once under the :root fallback), and a block that
+        // looked like two regions used to be skipped as if it were neither.
+        regions: [...new Set([...m[1].matchAll(/data-region="(\w+)"/g)].map((r) => r[1]))],
+        body: m[2],
+      }));
+      const grounds = {};
+      for (const b of blocks) {
+        const bg = b.body.match(/--theme-bg:\s*([^;]+);/);
+        if (bg) for (const region of b.regions) grounds[region] = resolve(bg[1].trim());
+      }
+      for (const b of blocks) {
+        for (const region of b.regions) {
+          const ground = grounds[region];
+          if (!ground) continue;
+          for (const name of Object.keys(steps)) {
+            const rungs = [];
+            for (let i = 1; i <= 6; i++) {
+              const m = b.body.match(new RegExp(`--accent-${name}-${i}:\\s*([^;]+);`));
+              if (m) rungs.push(resolve(m[1].trim()));
+            }
+            if (rungs.length !== 6) continue;
+            laddersChecked += 1;
+            const ratios = rungs.map((hex) => ratio(hex, ground));
+            ratios.forEach((r, i) => {
+              if (i > 0 && r >= ratios[i - 1])
+                offenders.push(
+                  `${file} ${region} ${name}: rung ${i + 1} is not quieter than ${i}`,
+                );
+              if (i < 4 && r < 3)
+                offenders.push(`${file} ${region} ${name}: rung ${i + 1} at ${r.toFixed(1)}:1`);
+            });
+          }
+        }
+      }
+    }
+    expect(offenders).toEqual([]);
+    // A ground or a value this parser cannot read would make every ladder skip
+    // silently, and the test would pass by measuring nothing — which it did
+    // when it was first written. 8 colours × 2 regions × 3 themes.
+    expect(laddersChecked).toBe(48);
+  });
+
   test("component stylesheets keep every top-level selector on a class", () => {
     // An element selector at the top level of a global sheet leaks onto the
     // whole app (scoping no longer protects it). Descendants of a class

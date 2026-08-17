@@ -56,6 +56,10 @@ pub struct NotebookLayout {
     /// would flash the wrong colours. Empty means what the app ships as.
     pub accent_color: String,
     pub theme: String,
+    /// Whether headings take the accent or plain ink (2026-08-17). Rides here
+    /// for the same reason as the other two: it is an attribute on the
+    /// document root, wanted on the first paint.
+    pub heading_color: String,
     /// Which parts of the app are switched on (2026-08-06). Only what was
     /// switched OFF is listed; the frontend's `services/features.js` reads a
     /// missing key as on, and applies a child's parent for it.
@@ -107,6 +111,7 @@ impl NotebookInfo {
                 quick_note_folder: notebook.config().quick_note_folder.clone(),
                 accent_color: notebook.config().accent_color.clone(),
                 theme: notebook.config().theme.clone(),
+                heading_color: notebook.config().heading_color.clone(),
                 features: notebook.config().features.clone(),
             },
         })
@@ -140,6 +145,8 @@ pub struct NotebookSettings {
     pub accent_color: Option<String>,
     /// A theme name; empty goes back to the app's own.
     pub theme: Option<String>,
+    /// `"ink"` draws headings in plain ink; empty (or anything else) accents.
+    pub heading_color: Option<String>,
     pub close_inspector_on_click_away: Option<bool>,
     pub quick_note_folder: Option<String>,
     /// Days a completed task stays in its `Completed.md` before the reaper
@@ -427,6 +434,7 @@ pub fn notebook_settings(state: State<'_, AppState>) -> CommandResult<NotebookSe
             date_display_format: Some(config.date_display_format.render().to_string()),
             accent_color: Some(config.accent_color.clone()),
             theme: Some(config.theme.clone()),
+            heading_color: Some(config.heading_color.clone()),
             close_inspector_on_click_away: Some(config.close_inspector_on_click_away),
             quick_note_folder: Some(config.quick_note_folder.clone()),
             completed_retention_days: Some(config.completed_retention_days),
@@ -487,6 +495,9 @@ pub fn set_notebook_settings(
         }
         if let Some(v) = &settings.theme {
             config.theme = v.trim().to_string();
+        }
+        if let Some(v) = &settings.heading_color {
+            config.heading_color = v.trim().to_string();
         }
         if let Some(v) = settings.close_inspector_on_click_away {
             config.close_inspector_on_click_away = v;
