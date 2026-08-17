@@ -107,13 +107,35 @@ npm run package      # gera AppImage / deb
 cd packaging && makepkg -sid    # -d se o Rust/Node vier do rustup ou do nvm
 ```
 
-**Qualquer distribuição** — o AppImage sai em
-`target/release/bundle/appimage/` depois do `npm run package`.
+**Qualquer distribuição** — o AppImage, o `.deb` e o `.rpm` saem em
+`target/release/bundle/` depois do `npm run package`.
 
 > **Nota do AppImage:** o empacotamento usa `NO_STRIP=1` (é o que o script
 > `package` faz). O `strip` que vem dentro do `linuxdeploy` é antigo demais
 > para a seção ELF `.relr.dyn` que as distribuições atuais usam, e sem isso o
 > bundle falha em toda biblioteca do sistema.
+
+**Windows** — o instalador é gerado pelo CI (`.github/workflows/release.yml`),
+porque instalador de Windows só se monta no Windows. Ele instala para o
+usuário atual e não pede senha de administrador.
+
+> O Jott não é assinado com certificado. Na primeira execução o Windows mostra
+> *"O Windows protegeu o seu PC"* — clique em **Mais informações** e depois em
+> **Executar assim mesmo**. Uma vez só, por versão.
+
+**Android** — APK de sideload. Para compilar, é preciso JDK 17+, o Android SDK
+e o NDK; com `JAVA_HOME`, `ANDROID_HOME` e `NDK_HOME` no ambiente:
+
+```bash
+npm run tauri android build -- --apk    # release (precisa de keystore)
+npm run tauri android build -- --debug --target aarch64 --apk
+```
+
+> No Android o app **não pergunta onde fica o caderno**: o sistema não deixa um
+> app abrir uma pasta qualquer. O caderno fica em
+> `Android/data/dev.gustavotondin.jott/files/Documents/Jott`, que continua sendo
+> uma pasta de arquivos `.md` de verdade — alcançável por cabo USB e por um
+> cliente de sincronização (Syncthing) apontado para ela.
 
 Estrutura:
 
