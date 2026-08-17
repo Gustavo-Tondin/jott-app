@@ -30,7 +30,7 @@
     border-radius: var(--theme-radius-xs);
   }
 
-  /* Carried clear of its list: it is about to LEAVE it (a workspace dragged
+  /* Carried clear of its list: it is about to LEAVE it (a space dragged
      out of a group). A dashed edge rather than the solid ring of `--into` —
      one says "this receives it", the other says "this is on its way out". */
   .reorder-item--leaving {

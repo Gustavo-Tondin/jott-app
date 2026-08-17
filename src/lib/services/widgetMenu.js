@@ -22,7 +22,7 @@ export const SORT_LABELS = {
 /// - `lead`: the type's own entries, above the shared ones;
 /// - `sorts`: which orderings this type understands (a note has no completion
 ///   date, so the notes widget leaves that one out);
-/// - `sort` / `hasOrder`: what the workspace's `.workspace.json` currently
+/// - `sort` / `hasOrder`: what the space's `.space.json` currently
 ///   says — the active one is ticked, and "custom" is dead until something
 ///   was dragged.
 export function widgetMenu({
@@ -36,7 +36,7 @@ export function widgetMenu({
   const items = [...lead];
 
   // An entry the caller gave nothing for is LEFT OUT, not shown dead: a source
-  // with no `.workspace.json` (a period — the Home's day, the Tasks screen)
+  // with no `.space.json` (a period — the Home's day, the Tasks screen)
   // has no arrangement to set, so offering it would be a promise the screen
   // cannot keep (2026-08-06).
   if (sorts.length > 0) {

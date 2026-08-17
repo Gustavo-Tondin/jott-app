@@ -11,7 +11,7 @@ describe("widgetMenu", () => {
 
   test("what the caller gave nothing for is left out, not shown dead", () => {
     // A period source (the Home's day, the Tasks screen) has no
-    // `.workspace.json`: no arrangement to set. Offering it would be a
+    // `.space.json`: no arrangement to set. Offering it would be a
     // promise the screen cannot keep (2026-08-06).
     const items = widgetMenu({ lead: [{ label: "Select tasks…", run() {} }], sorts: [] });
     expect(labels(items)).toEqual(["Select tasks…"]);

@@ -640,8 +640,8 @@
       <Menu
         align="start"
         items={lists.map((l) => ({
-          // The group in grey, the workspace in ink — `Design/`**Tasks**. Two
-          // workspaces called Tasks in two groups are a normal thing to have,
+          // The group in grey, the space in ink — `Design/`**Tasks**. Two
+          // spaces called Tasks in two groups are a normal thing to have,
           // and the composer's chip says it the same way (services/paths.js).
           context: splitLabel(l).context,
           label: splitLabel(l).name,

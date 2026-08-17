@@ -19,8 +19,8 @@ export function viewId(view) {
       return `list:${view.list}`;
     case "note":
       return `note:${view.folder}/${view.path}`;
-    case "workspace":
-      return `ws:${view.ws}`;
+    case "space":
+      return `sp:${view.sp}`;
     default:
       return view.kind;
   }

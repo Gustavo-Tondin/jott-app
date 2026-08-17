@@ -34,8 +34,8 @@ export const api = {
   listCounts: () => invoke("list_counts"),
   listConflicts: () => invoke("list_conflicts"),
   listTasks: (list) => invoke("list_tasks", { list }),
-  // `folder` is a workspace folder ("Tasks"); the UI takes it from
-  // layout.tasksFolder until it is workspace-aware.
+  // `folder` is a space folder ("Tasks"); the UI takes it from
+  // layout.tasksFolder until it is space-aware.
   createList: (folder, name) => invoke("create_list", { folder, name }),
   renameList: (from, to) => invoke("rename_list", { from, to }),
   deleteList: (name) => invoke("delete_list", { name }),
@@ -54,32 +54,32 @@ export const api = {
   // Move a task to another list (keeps its id). `from`/`to` are list paths.
   moveTask: (from, id, to) => invoke("move_task", { from, id, to }),
   duplicateTask: (list, id) => invoke("duplicate_task", { list, id }),
-  // Manual order (dragging in the sidebar). Namespace: "workspaces" or
+  // Manual order (dragging in the sidebar). Namespace: "spaces" or
   // "lists:<folder>". Names is the ordered list of item names.
   setOrder: (namespace, names) => invoke("set_order", { namespace, names }),
 
-  // Workspace management.
-  // A workspace has a single function, chosen at creation: `tasks` / `notes`.
-  createWorkspace: (name, kind) => invoke("create_workspace", { name, kind }),
-  renameWorkspace: (folder, name) => invoke("rename_workspace", { folder, name }),
-  setWorkspaceAppearance: (folder, color, icon) =>
-    invoke("set_workspace_appearance", { folder, color, icon }),
-  deleteWorkspace: (folder) => invoke("delete_workspace", { folder }),
-  // A workspace's ordering preference lives in its own .workspace.json —
-  // `workspace` is the folder name (the identity).
-  setWorkspaceSort: (workspace, sort) =>
-    invoke("set_workspace_sort", { workspace, sort }),
-  setWorkspaceOrder: (workspace, order) =>
-    invoke("set_workspace_order", { workspace, order }),
+  // Space management.
+  // A space has a single function, chosen at creation: `tasks` / `notes`.
+  createSpace: (name, kind) => invoke("create_space", { name, kind }),
+  renameSpace: (folder, name) => invoke("rename_space", { folder, name }),
+  setSpaceAppearance: (folder, color, icon) =>
+    invoke("set_space_appearance", { folder, color, icon }),
+  deleteSpace: (folder) => invoke("delete_space", { folder }),
+  // A space's ordering preference lives in its own .space.json —
+  // `space` is the folder name (the identity).
+  setSpaceSort: (space, sort) =>
+    invoke("set_space_sort", { space, sort }),
+  setSpaceOrder: (space, order) =>
+    invoke("set_space_order", { space, order }),
 
   // Switching a part of the app on or off (App Functions, 2026-08-06).
   setFeature: (key, on) => invoke("set_feature", { key, on }),
 
-  // How the sidebar arranges workspaces: "name", or "" for the dragged order.
-  workspacesSort: () => invoke("workspaces_sort"),
-  setWorkspacesSort: (sort) => invoke("set_workspaces_sort", { sort }),
+  // How the sidebar arranges spaces: "name", or "" for the dragged order.
+  spacesSort: () => invoke("spaces_sort"),
+  setSpacesSort: (sort) => invoke("set_spaces_sort", { sort }),
 
-  // Groups (reestruturação 2026-07-30): a folder that holds workspaces.
+  // Groups (reestruturação 2026-07-30): a folder that holds spaces.
   groups: () => invoke("groups"),
   // A group is made at the root, or inside another group (they nest).
   createGroup: (name, group = null) => invoke("create_group", { name, group }),
@@ -87,12 +87,12 @@ export const api = {
   setGroupAppearance: (folder, color, icon) =>
     invoke("set_group_appearance", { folder, color, icon }),
   deleteGroup: (folder) => invoke("delete_group", { folder }),
-  moveWorkspace: (name, intoGroup) =>
-    invoke("move_workspace", { name, intoGroup }),
+  moveSpace: (name, intoGroup) =>
+    invoke("move_space", { name, intoGroup }),
   // Moves a group — with everything under it — into another, or back out.
   moveGroup: (name, intoGroup) => invoke("move_group", { name, intoGroup }),
-  createWorkspaceIn: (name, kind, group) =>
-    invoke("create_workspace_in", { name, kind, group }),
+  createSpaceIn: (name, kind, group) =>
+    invoke("create_space_in", { name, kind, group }),
 
   // Trash (internal, `.jott/trash/`) — restore or let it expire.
   trashEntries: () => invoke("trash_entries"),
@@ -144,7 +144,7 @@ export const api = {
   removeFrom: (period, list, id) =>
     invoke("remove_from_period", { period, list, id }),
   addTaskInPeriod: (period, text) => invoke("add_task_in_period", { period, text }),
-  // A period has no `.workspace.json`: how it is arranged lives in the notebook
+  // A period has no `.space.json`: how it is arranged lives in the notebook
   // config, and the hand-dragged order goes straight into the state file.
   periodSort: (period) => invoke("period_sort", { period }),
   setPeriodSort: (period, sort) => invoke("set_period_sort", { period, sort }),

@@ -30,9 +30,9 @@ use crate::state::AppState;
 pub struct NotebookLayout {
     /// Where quick-captured tasks land.
     pub inbox: String,
-    /// The fixed workspace's completed list.
+    /// The fixed space's completed list.
     pub completed: String,
-    /// The folder new lists are created in, until the UI is workspace-aware.
+    /// The folder new lists are created in, until the UI is space-aware.
     pub tasks_folder: String,
     /// The per-folder completed list's NAME (`Completed`) — every tasks
     /// widget has one, and the UI must not hard-code it (the names.js lesson).
@@ -87,8 +87,8 @@ impl NotebookInfo {
             layout: NotebookLayout {
                 inbox: Notebook::inbox_path(),
                 completed: Notebook::completed_path_of(&Notebook::inbox_path())?,
-                // 2026-08-11: a workspace owns its files directly — tasks land
-                // in the fixed `Tasks/` workspace, loose notes in `Notes/`.
+                // 2026-08-11: a space owns its files directly — tasks land
+                // in the fixed `Tasks/` space, loose notes in `Notes/`.
                 tasks_folder: jott_core::TASKS_DIR.to_string(),
                 completed_name: jott_core::COMPLETED_LIST.to_string(),
                 notes_folder: jott_core::NOTES_DIR.to_string(),
@@ -433,7 +433,7 @@ pub fn set_notebook_settings(
     })
 }
 
-/// Records a manual order for a namespace (`"workspaces"`, `"lists:<folder>"`),
+/// Records a manual order for a namespace (`"spaces"`, `"lists:<folder>"`),
 /// written by dragging in the sidebar. An empty list clears it.
 #[tauri::command]
 pub fn set_order(
@@ -465,9 +465,9 @@ pub fn list_tasks(state: State<'_, AppState>, list: String) -> CommandResult<Vec
     state.with_notebook(|nb| Ok(nb.tasks_in(&list)?))
 }
 
-/// Creates a list inside `folder` (a root-relative workspace folder, e.g.
+/// Creates a list inside `folder` (a root-relative space folder, e.g.
 /// `Tasks` — the UI takes it from `layout.tasksFolder` until it is
-/// workspace-aware).
+/// space-aware).
 #[tauri::command]
 pub fn create_list(
     state: State<'_, AppState>,
@@ -958,17 +958,17 @@ pub fn set_feature(
     state.with_notebook_mut(|nb| Ok(nb.set_feature(&key, on)?))
 }
 
-/// How the sidebar arranges the user's workspaces: `name`, or the empty string
+/// How the sidebar arranges the user's spaces: `name`, or the empty string
 /// for the hand-dragged order.
 #[tauri::command]
-pub fn workspaces_sort(state: State<'_, AppState>) -> CommandResult<String> {
-    state.with_notebook(|nb| Ok(nb.workspaces_sort().to_string()))
+pub fn spaces_sort(state: State<'_, AppState>) -> CommandResult<String> {
+    state.with_notebook(|nb| Ok(nb.spaces_sort().to_string()))
 }
 
 /// Sets it.
 #[tauri::command]
-pub fn set_workspaces_sort(state: State<'_, AppState>, sort: String) -> CommandResult<()> {
-    state.with_notebook_mut(|nb| Ok(nb.set_workspaces_sort(&sort)?))
+pub fn set_spaces_sort(state: State<'_, AppState>, sort: String) -> CommandResult<()> {
+    state.with_notebook_mut(|nb| Ok(nb.set_spaces_sort(&sort)?))
 }
 
 /// How the Day or the Week is arranged (`name` / `created` / `completed`), or
@@ -978,7 +978,7 @@ pub fn period_sort(state: State<'_, AppState>, period: Period) -> CommandResult<
     state.with_notebook(|nb| Ok(nb.period_sort(period).map(str::to_string)))
 }
 
-/// Sets that arrangement. A period has no `.workspace.json`, so it lives in the
+/// Sets that arrangement. A period has no `.space.json`, so it lives in the
 /// notebook config beside the manual `order`.
 #[tauri::command]
 pub fn set_period_sort(
@@ -1061,108 +1061,108 @@ pub fn is_notebook_open(state: State<'_, AppState>) -> bool {
     state.is_open()
 }
 
-/// A workspace as the navigation shows it.
+/// A space as the navigation shows it.
 ///
 /// `kind` is whatever the config says — an unknown one is delivered, not
 /// dropped, so the UI can show its "unsupported" card and the folder stays
 /// untouched (spec 3.5).
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct WorkspaceInfo {
+pub struct SpaceInfo {
     /// The folder — the stable identity; renaming the folder renames the
-    /// workspace.
+    /// space.
     pub folder_name: String,
-    /// The workspace's root-relative path (`Clients` at the root,
+    /// The space's root-relative path (`Clients` at the root,
     /// `Design/Clients` inside a group) — what list addresses start with.
     pub path: String,
     /// What the user reads (config `name`, falling back to the folder).
     pub name: String,
-    /// The workspace's single function: `tasks`, `notes`, `home`, or an
+    /// The space's single function: `tasks`, `notes`, `home`, or an
     /// unknown type this build keeps but cannot render.
     pub kind: String,
     pub known: bool,
     /// One of the three the app creates and recreates (Home, Tasks, Notes).
     pub fixed: bool,
     pub read_only: bool,
-    /// The workspace's accent colour, if it set one (`.workspace.json` `color`).
+    /// The space's accent colour, if it set one (`.space.json` `color`).
     pub color: Option<String>,
-    /// The workspace's icon name, if it set one (`.workspace.json` `icon`).
+    /// The space's icon name, if it set one (`.space.json` `icon`).
     pub icon: Option<String>,
-    /// The ordering the workspace declares (`name` / `created` / `completed` /
+    /// The ordering the space declares (`name` / `created` / `completed` /
     /// `custom`), and the hand-dragged arrangement `custom` reads.
     pub sort: Option<String>,
     pub order: Vec<String>,
 }
 
-/// The workspaces of the notebook, ready to render.
+/// The spaces of the notebook, ready to render.
 #[tauri::command]
-pub fn workspaces(state: State<'_, AppState>) -> CommandResult<Vec<WorkspaceInfo>> {
-    state.with_notebook(|nb| Ok(workspaces_of(nb)?))
+pub fn spaces(state: State<'_, AppState>) -> CommandResult<Vec<SpaceInfo>> {
+    state.with_notebook(|nb| Ok(spaces_of(nb)?))
 }
 
-/// Creates a user workspace of the given type (`tasks` / `notes`). Returns
+/// Creates a user space of the given type (`tasks` / `notes`). Returns
 /// the folder name.
 #[tauri::command]
-pub fn create_workspace(
+pub fn create_space(
     state: State<'_, AppState>,
     name: String,
     kind: String,
 ) -> CommandResult<String> {
-    state.with_notebook(|nb| Ok(nb.create_workspace(&name, &kind)?))
+    state.with_notebook(|nb| Ok(nb.create_space(&name, &kind)?))
 }
 
-/// Sets a workspace's display name (empty clears it, back to the folder name).
+/// Sets a space's display name (empty clears it, back to the folder name).
 #[tauri::command]
-pub fn rename_workspace(
+pub fn rename_space(
     state: State<'_, AppState>,
     folder: String,
     name: String,
 ) -> CommandResult<()> {
-    state.with_notebook_mut(|nb| Ok(nb.rename_workspace(&folder, &name)?))
+    state.with_notebook_mut(|nb| Ok(nb.rename_space(&folder, &name)?))
 }
 
-/// Sets a workspace's accent colour and icon (either empty clears it).
+/// Sets a space's accent colour and icon (either empty clears it).
 #[tauri::command]
-pub fn set_workspace_appearance(
+pub fn set_space_appearance(
     state: State<'_, AppState>,
     folder: String,
     color: Option<String>,
     icon: Option<String>,
 ) -> CommandResult<()> {
-    state.with_notebook(|nb| Ok(nb.set_workspace_appearance(&folder, color, icon)?))
+    state.with_notebook(|nb| Ok(nb.set_space_appearance(&folder, color, icon)?))
 }
 
-/// Sends a user workspace to the trash (never a fixed one).
+/// Sends a user space to the trash (never a fixed one).
 #[tauri::command]
-pub fn delete_workspace(state: State<'_, AppState>, folder: String) -> CommandResult<()> {
-    state.with_notebook(|nb| Ok(nb.delete_workspace(&folder)?))
+pub fn delete_space(state: State<'_, AppState>, folder: String) -> CommandResult<()> {
+    state.with_notebook(|nb| Ok(nb.delete_space(&folder)?))
 }
 
-/// Sets how a workspace orders its items (`name` / `created` / `completed` /
+/// Sets how a space orders its items (`name` / `created` / `completed` /
 /// `custom`; null = the file order).
 #[tauri::command]
-pub fn set_workspace_sort(
+pub fn set_space_sort(
     state: State<'_, AppState>,
-    workspace: String,
+    space: String,
     sort: Option<String>,
 ) -> CommandResult<()> {
-    state.with_notebook(|nb| Ok(nb.set_workspace_sort(&workspace, sort.as_deref())?))
+    state.with_notebook(|nb| Ok(nb.set_space_sort(&space, sort.as_deref())?))
 }
 
-/// Saves the hand-dragged arrangement in the workspace's `.workspace.json`
+/// Saves the hand-dragged arrangement in the space's `.space.json`
 /// and switches it to the custom ordering.
 #[tauri::command]
-pub fn set_workspace_order(
+pub fn set_space_order(
     state: State<'_, AppState>,
-    workspace: String,
+    space: String,
     order: Vec<String>,
 ) -> CommandResult<()> {
-    state.with_notebook(|nb| Ok(nb.set_workspace_order(&workspace, order)?))
+    state.with_notebook(|nb| Ok(nb.set_space_order(&space, order)?))
 }
 
 // ---- groups (reestruturação 2026-07-30) ----
 
-/// A group of workspaces, as the sidebar shows it.
+/// A group of spaces, as the sidebar shows it.
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GroupInfo {
@@ -1172,9 +1172,9 @@ pub struct GroupInfo {
     pub name: String,
     pub color: Option<String>,
     pub icon: Option<String>,
-    /// The leaf names of the workspaces it holds directly, in the notebook's
+    /// The leaf names of the spaces it holds directly, in the notebook's
     /// own order — the order the user dragged.
-    pub workspaces: Vec<String>,
+    pub spaces: Vec<String>,
 }
 
 fn groups_of(nb: &Notebook) -> CommandResult<Vec<GroupInfo>> {
@@ -1182,14 +1182,14 @@ fn groups_of(nb: &Notebook) -> CommandResult<Vec<GroupInfo>> {
     for g in nb.groups()? {
         out.push(GroupInfo {
             // The FOLDER is the name (2026-08-13), for a group exactly as for
-            // a workspace: no second copy in the marker to drift away from it,
+            // a space: no second copy in the marker to drift away from it,
             // and renaming the folder outside the app renames the group here.
             name: g.folder.clone(),
             color: g.config.color.clone(),
             icon: g.config.icon.clone(),
             folder: g.folder,
             parent: g.parent,
-            workspaces: g.workspaces,
+            spaces: g.spaces,
         });
     }
     Ok(out)
@@ -1242,22 +1242,22 @@ pub fn delete_group(state: State<'_, AppState>, folder: String) -> CommandResult
 }
 
 #[tauri::command]
-pub fn move_workspace(
+pub fn move_space(
     state: State<'_, AppState>,
     name: String,
     into_group: Option<String>,
 ) -> CommandResult<()> {
-    state.with_notebook_mut(|nb| Ok(nb.move_workspace(&name, into_group.as_deref())?))
+    state.with_notebook_mut(|nb| Ok(nb.move_space(&name, into_group.as_deref())?))
 }
 
 #[tauri::command]
-pub fn create_workspace_in(
+pub fn create_space_in(
     state: State<'_, AppState>,
     name: String,
     kind: String,
     group: Option<String>,
 ) -> CommandResult<String> {
-    state.with_notebook(|nb| Ok(nb.create_workspace_in(&name, &kind, group.as_deref())?))
+    state.with_notebook(|nb| Ok(nb.create_space_in(&name, &kind, group.as_deref())?))
 }
 
 // ---- trash ----
@@ -1371,29 +1371,29 @@ pub fn completed_tasks(
     state.with_notebook(|nb| Ok(nb.completed_all()?))
 }
 
-fn workspaces_of(nb: &Notebook) -> CommandResult<Vec<WorkspaceInfo>> {
+fn spaces_of(nb: &Notebook) -> CommandResult<Vec<SpaceInfo>> {
     const FIXED: [&str; 3] = [jott_core::HOME_DIR, jott_core::TASKS_DIR, jott_core::NOTES_DIR];
 
     let mut out = Vec::new();
-    for workspace in nb.workspaces()? {
-        let path = workspace
+    for space in nb.spaces()? {
+        let path = space
             .root()
             .strip_prefix(nb.root())
-            .unwrap_or(workspace.root())
+            .unwrap_or(space.root())
             .to_string_lossy()
             .replace('\\', "/");
-        out.push(WorkspaceInfo {
-            folder_name: workspace.folder_name().to_string(),
+        out.push(SpaceInfo {
+            folder_name: space.folder_name().to_string(),
             path,
-            name: workspace.display_name().to_string(),
-            kind: workspace.kind().to_string(),
-            known: workspace.config.is_known(),
-            fixed: FIXED.contains(&workspace.folder_name()),
-            read_only: workspace.config.is_read_only(),
-            color: workspace.config.color.clone(),
-            icon: workspace.config.icon.clone(),
-            sort: workspace.config.sort.clone(),
-            order: workspace.config.order.clone(),
+            name: space.display_name().to_string(),
+            kind: space.kind().to_string(),
+            known: space.config.is_known(),
+            fixed: FIXED.contains(&space.folder_name()),
+            read_only: space.config.is_read_only(),
+            color: space.config.color.clone(),
+            icon: space.config.icon.clone(),
+            sort: space.config.sort.clone(),
+            order: space.config.order.clone(),
         });
     }
     Ok(out)
@@ -1414,8 +1414,8 @@ pub struct NotebookSnapshot {
     /// Empty when the user turned the counters off.
     pub counts: std::collections::BTreeMap<String, usize>,
     pub conflicts: Vec<Conflict>,
-    pub workspaces: Vec<WorkspaceInfo>,
-    /// The groups of workspaces in the sidebar (reestruturação 2026-07-30).
+    pub spaces: Vec<SpaceInfo>,
+    /// The groups of spaces in the sidebar (reestruturação 2026-07-30).
     pub groups: Vec<GroupInfo>,
     /// The user's tag catalogue (name + colour), for the card pills.
     pub tags: Vec<TagInfo>,
@@ -1437,7 +1437,7 @@ pub fn notebook_snapshot(state: State<'_, AppState>) -> CommandResult<NotebookSn
                 Default::default()
             },
             conflicts: nb.conflicts()?,
-            workspaces: workspaces_of(nb)?,
+            spaces: spaces_of(nb)?,
             groups: groups_of(nb)?,
             tags: tags_of(nb),
             day: nb.open_state(Period::Day)?.state.items,

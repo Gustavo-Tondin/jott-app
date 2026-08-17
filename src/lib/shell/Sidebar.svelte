@@ -1,5 +1,5 @@
 <script>
-  // The left panel: fixed workspaces on top, the user's lists and workspaces
+  // The left panel: fixed spaces on top, the user's lists and spaces
   // in their groups, notebook name and settings pinned to the bottom.
   //
   // Pure skeleton — every decision (what is open, what a click does) comes in
@@ -7,7 +7,7 @@
   // styles/components/shell.css under the `shell__*` hooks.
   import Icon from "../components/Icon.svelte";
   import Menu from "../components/Menu.svelte";
-  import WorkspaceAppearance from "../components/WorkspaceAppearance.svelte";
+  import SpaceAppearance from "../components/SpaceAppearance.svelte";
   import { S } from "../services/strings.js";
   import ContextMenu from "../components/ContextMenu.svelte";
   import {
@@ -16,7 +16,7 @@
     dropMeaning,
   } from "../services/sidebarOrder.js";
   import { reorderable } from "../actions/reorder.js";
-  import { workspaceIcon } from "../services/workspaceIcon.js";
+  import { spaceIcon } from "../services/spaceIcon.js";
   import { accentStyle } from "../services/accent.js";
 
   let {
@@ -25,7 +25,7 @@
     /// Functions, 2026-08-06.)
     f = () => true,
     userLists,
-    userWorkspaces,
+    userSpaces,
     counts,
     isOpen,
     onOpen,
@@ -34,36 +34,36 @@
     // Drag-to-reorder handlers (the shared action reports from→to). The shell
     // persists the order in the config.
     onReorderLists,
-    /// The sidebar's whole running order, groups and loose workspaces alike,
+    /// The sidebar's whole running order, groups and loose spaces alike,
     /// as a flat list of names. One list because they share one column: a
-    /// group has to be draggable between two workspaces and back.
+    /// group has to be draggable between two spaces and back.
     onReorderEntries,
     /// Two entries to become a group — the shell asks for the name.
     onGroupWith,
     /// A group moved into another group, or back out (`null`).
     onMoveGroup,
     /// `""` (the dragged order) or `"name"`.
-    workspacesSort = "",
-    onSetWorkspacesSort,
-    // Workspace management (create / rename / appearance / delete).
-    onCreateWorkspace,
-    onRenameWorkspace,
-    onSetWorkspaceAppearance,
-    onDeleteWorkspace,
-    // Groups (reestruturação 2026-07-30): folders that hold workspaces.
+    spacesSort = "",
+    onSetSpacesSort,
+    // Space management (create / rename / appearance / delete).
+    onCreateSpace,
+    onRenameSpace,
+    onSetSpaceAppearance,
+    onDeleteSpace,
+    // Groups (reestruturação 2026-07-30): folders that hold spaces.
     groups = [],
     onCreateGroup,
     onRenameGroup,
     onSetGroupAppearance,
     onDeleteGroup,
-    onMoveWorkspace,
+    onMoveSpace,
     // Collapsed to an icon rail? Owned by the shell, toggled by the button here.
     rail = false,
     onToggleRail,
   } = $props();
 
-  // Which workspace's appearance popup is open (its path, or null). Opened
-  // from that workspace's ⋮ menu.
+  // Which space's appearance popup is open (its path, or null). Opened
+  // from that space's ⋮ menu.
   let appearanceOpen = $state(null);
 
   // Groups folded shut by clicking their name. Local to the sidebar, like the
@@ -87,15 +87,15 @@
 
   // Names that live inside a group — the column itself is built by
   // `sidebarEntries`, which is where "loose or grouped" is decided.
-  let groupedNames = $derived(new Set(groups.flatMap((g) => g.workspaces)));
+  let groupedNames = $derived(new Set(groups.flatMap((g) => g.spaces)));
 
   // ---- one ordered column ----
-  // Groups and loose workspaces used to be two `{#each}` blocks in two
+  // Groups and loose spaces used to be two `{#each}` blocks in two
   // containers, which is why a group could not be dragged at all and a
-  // workspace could not be dragged past one (2026-08-06). What the merged
+  // space could not be dragged past one (2026-08-06). What the merged
   // order MEANS — and what a drop on another entry means — is decided in
   // services/sidebarOrder.js, so it is testable without a DOM.
-  let entries = $derived(sidebarEntries(userWorkspaces, groups));
+  let entries = $derived(sidebarEntries(userSpaces, groups));
 
   /// A drag inside one level rewrites only that level's run of names — the
   /// whole column is still one flat order (services/sidebarOrder.js).
@@ -111,7 +111,7 @@
     // One level up: the root, or the group this one sits in.
     const target = parent.group.parent ?? null;
     if (child.kind === "group") onMoveGroup?.(child.group.folder, target);
-    else onMoveWorkspace?.(child.ws.path, target);
+    else onMoveSpace?.(child.sp.path, target);
   }
 
   /// Dropped on a group's head, wherever that group is in the column: the
@@ -122,24 +122,24 @@
     const folder = zone.dataset.groupDrop;
     if (!entry || !folder) return;
     if (entry.kind === "group") onMoveGroup?.(entry.group.folder, folder);
-    else onMoveWorkspace?.(entry.ws.path, folder);
+    else onMoveSpace?.(entry.sp.path, folder);
   }
 
   function dropAt(list, from, into) {
     const meaning = dropMeaning(list, from, into);
     if (!meaning) return;
     if (meaning.kind === "intoGroup") {
-      onMoveWorkspace?.(meaning.workspace.path, meaning.group.folder);
+      onMoveSpace?.(meaning.space.path, meaning.group.folder);
     } else if (meaning.kind === "groupIntoGroup") {
       onMoveGroup?.(meaning.moving.folder, meaning.group.folder);
     } else {
-      onGroupWith?.(meaning.host, meaning.workspace);
+      onGroupWith?.(meaning.host, meaning.space);
     }
   }
 
   // ---- the right-click menu on empty space ----
   // The two "+ New …" buttons used to sit at the bottom of the list, where they
-  // read as two more workspaces. They live here now (user call, 2026-08-06).
+  // read as two more spaces. They live here now (user call, 2026-08-06).
   let menuAt = $state(null);
   let menuShown = $state([]);
 
@@ -166,14 +166,14 @@
   /// The three things that can be made, in the sidebar's empty space
   /// (`group: null`) or inside a group — where they are made INSIDE it.
   ///
-  /// A workspace has one function, chosen at creation (spec 3.5), and the
+  /// A space has one function, chosen at creation (spec 3.5), and the
   /// menu says which by name: a tasks one is a **list**, a notes one is a
-  /// **notepad**. "New workspace" asked a second question nobody needed to be
+  /// **notepad**. "New space" asked a second question nobody needed to be
   /// asked (user call, 2026-08-11).
   const createMenu = (group = null) => [
     { label: S.newGroup, run: () => onCreateGroup?.(group) },
-    { label: S.newList, run: () => onCreateWorkspace?.("tasks", group) },
-    { label: S.newNotepad, run: () => onCreateWorkspace?.("notes", group) },
+    { label: S.newList, run: () => onCreateSpace?.("tasks", group) },
+    { label: S.newNotepad, run: () => onCreateSpace?.("notes", group) },
   ];
 
   let sidebarMenu = $derived([
@@ -182,19 +182,19 @@
       label: S.sortTasks,
       items: [
         {
-          label: (workspacesSort === "name" ? "  " : "✓ ") + S.sortCustom,
-          run: () => onSetWorkspacesSort?.(""),
+          label: (spacesSort === "name" ? "  " : "✓ ") + S.sortCustom,
+          run: () => onSetSpacesSort?.(""),
         },
         {
-          label: (workspacesSort === "name" ? "✓ " : "  ") + S.sortByName,
-          run: () => onSetWorkspacesSort?.("name"),
+          label: (spacesSort === "name" ? "✓ " : "  ") + S.sortByName,
+          run: () => onSetSpacesSort?.("name"),
         },
       ],
     },
   ]);
 
-  // The ⋮ menu items for a workspace, including move-to/remove-from group.
-  // A grouped workspace has no appearance of its own (no icon, and it follows
+  // The ⋮ menu items for a space, including move-to/remove-from group.
+  // A grouped space has no appearance of its own (no icon, and it follows
   // the group's colour — user call 2026-08-04), so the item only shows loose.
   const groupMenu = (group) => [
     // What is made here is made INSIDE this group — including another group
@@ -202,7 +202,7 @@
     ...createMenu(group.folder),
     { label: S.renameGroup, run: () => onRenameGroup?.(group.folder, group.name) },
     {
-      label: S.workspaceAppearance,
+      label: S.spaceAppearance,
       run: () => (appearanceOpen = `group:${group.folder}`),
     },
     ...(group.parent
@@ -211,36 +211,36 @@
     { label: S.deleteGroup, run: () => onDeleteGroup?.(group.folder, group.name) },
   ];
 
-  /// The group holding a workspace, if one does.
-  const groupOf = (name) => groups.find((group) => group.workspaces.includes(name)) ?? null;
+  /// The group holding a space, if one does.
+  const groupOf = (name) => groups.find((group) => group.spaces.includes(name)) ?? null;
 
-  function workspaceMenu(ws) {
-    const holder = groupOf(ws.path);
+  function spaceMenu(sp) {
+    const holder = groupOf(sp.path);
     const items = [
-      { label: S.renameWorkspace, run: () => onRenameWorkspace?.(ws.path, ws.name) },
+      { label: S.renameSpace, run: () => onRenameSpace?.(sp.path, sp.name) },
     ];
     // A member picks its ICON but not its colour: the colour is the group's.
     items.push({
-      label: holder ? S.iconOnly : S.workspaceAppearance,
-      run: () => (appearanceOpen = ws.path),
+      label: holder ? S.iconOnly : S.spaceAppearance,
+      run: () => (appearanceOpen = sp.path),
     });
     if (holder) {
       // Out to whatever holds the group — one level up, not all the way to the
       // root: with groups nesting, "out" means out of THIS one.
       items.push({
         label: S.removeFromGroup,
-        run: () => onMoveWorkspace?.(ws.path, holder.parent ?? null),
+        run: () => onMoveSpace?.(sp.path, holder.parent ?? null),
       });
     }
     for (const g of groups) {
-      if (!g.workspaces.includes(ws.path)) {
+      if (!g.spaces.includes(sp.path)) {
         items.push({
           label: `${S.moveToGroup}: ${g.name}`,
-          run: () => onMoveWorkspace?.(ws.path, g.folder),
+          run: () => onMoveSpace?.(sp.path, g.folder),
         });
       }
     }
-    items.push({ label: S.deleteWorkspace, run: () => onDeleteWorkspace?.(ws.path, ws.name) });
+    items.push({ label: S.deleteSpace, run: () => onDeleteSpace?.(sp.path, sp.name) });
     return items;
   }
 </script>
@@ -289,7 +289,7 @@
     oncontextmenu={openSidebarMenu}
   >
     <!-- Each group carries a 2px bar at the wall (design PDF). The fixed
-         group is neutral; user workspaces will each set their own colour
+         group is neutral; user spaces will each set their own colour
          via --group-color (Fase 13). -->
     <div class="shell__group">
       <button
@@ -362,47 +362,47 @@
     </div>
     {/if}
 
-    <!-- Workspaces. Each row's whole surface carries the hover and the
-         selected highlight (tinted with the workspace's own colour), with the
+    <!-- Spaces. Each row's whole surface carries the hover and the
+         selected highlight (tinted with the space's own colour), with the
          ⋮ inside it. Groups (reestruturação 2026-07-30) render as titled
-         sections that hold their member workspaces; loose ones sit below. -->
+         sections that hold their member spaces; loose ones sit below. -->
 
-    <!-- One workspace row: the same .shell__nav-item band the fixed entries
+    <!-- One space row: the same .shell__nav-item band the fixed entries
          use, as a DIV so the ⋮ can sit inside the highlight. Grouped members
          (2026-08-04) are the shorter, icon-less variant — they follow the
          GROUP's colour and vanish in the rail. -->
-    {#snippet workspaceRow(ws, grouped)}
+    {#snippet spaceRow(sp, grouped)}
       <!-- svelte-ignore a11y_no_static_element_interactions -->
       <div
         class="shell__nav-item shell__nav-item--row"
         class:shell__nav-item--member={grouped}
-        class:shell__nav-item--active={isOpen({ kind: "workspace", ws: ws.path })}
-        oncontextmenu={(e) => openRowMenu(e, workspaceMenu(ws))}
+        class:shell__nav-item--active={isOpen({ kind: "space", sp: sp.path })}
+        oncontextmenu={(e) => openRowMenu(e, spaceMenu(sp))}
       >
         <button
           class="shell__nav-open"
-          onclick={() => onOpen({ kind: "workspace", ws: ws.path })}
-          onauxclick={(e) => middleOpen(e, { kind: "workspace", ws: ws.path })}
+          onclick={() => onOpen({ kind: "space", sp: sp.path })}
+          onauxclick={(e) => middleOpen(e, { kind: "space", sp: sp.path })}
         >
           <!-- A member draws its icon too (user call, 2026-08-06), a size
                down — it keeps the rail usable, where the label is gone and the
                icon is all there is. Untinted: the colour belongs to the group,
                for the whole section. -->
-          <Icon name={workspaceIcon(ws)} size={grouped ? "1rem" : "1.125rem"} />
-          <span class="shell__nav-label">{ws.name}</span>
+          <Icon name={spaceIcon(sp)} size={grouped ? "1rem" : "1.125rem"} />
+          <span class="shell__nav-label">{sp.name}</span>
         </button>
         <!-- The colour/icon popup still needs somewhere to hang; it is only in
              the DOM while it is open, so nothing marks the row otherwise. -->
-        {#if appearanceOpen === ws.path}
+        {#if appearanceOpen === sp.path}
           <span class="shell__ws-tools shell__ws-tools--open">
-            <WorkspaceAppearance
+            <SpaceAppearance
               open
               colors={!grouped}
-              color={ws.color}
-              icon={ws.icon}
+              color={sp.color}
+              icon={sp.icon}
               onClose={() => (appearanceOpen = null)}
-              onColor={(c) => onSetWorkspaceAppearance?.(ws.path, c, ws.icon)}
-              onIcon={(i) => onSetWorkspaceAppearance?.(ws.path, ws.color, i)}
+              onColor={(c) => onSetSpaceAppearance?.(sp.path, c, sp.icon)}
+              onIcon={(i) => onSetSpaceAppearance?.(sp.path, sp.color, i)}
             />
           </span>
         {/if}
@@ -419,8 +419,8 @@
          land one level up. -->
     {#snippet column(list, parent)}
       <div
-        class="shell__workspaces"
-        class:shell__workspaces--nested={!!parent}
+        class="shell__spaces"
+        class:shell__spaces--nested={!!parent}
         use:reorderable={{
           axis: "y",
           item: ".shell__entry",
@@ -441,7 +441,7 @@
         {#each list as entry (entry.key)}
           {#if entry.kind === "group"}
             <div
-              class="shell__entry shell__group shell__group--workspace"
+              class="shell__entry shell__group shell__group--space"
               style={accentStyle(entry.group.color, {
                 color: "--group-color",
                 tint: "--group-tint",
@@ -473,7 +473,7 @@
                 </button>
                 {#if appearanceOpen === `group:${entry.group.folder}`}
                   <span class="shell__ws-tools shell__ws-tools--open">
-                    <WorkspaceAppearance
+                    <SpaceAppearance
                       open
                       color={entry.group.color}
                       icon={entry.group.icon}
@@ -497,15 +497,15 @@
             <div
               class="shell__entry"
               class:shell__group={!parent}
-              class:shell__group--workspace={!parent}
+              class:shell__group--space={!parent}
               style={(!parent &&
-                accentStyle(entry.ws.color, {
+                accentStyle(entry.sp.color, {
                   color: "--group-color",
                   tint: "--group-tint",
                 })) ||
                 undefined}
             >
-              {@render workspaceRow(entry.ws, !!parent)}
+              {@render spaceRow(entry.sp, !!parent)}
             </div>
           {/if}
         {/each}
@@ -516,21 +516,21 @@
 
     <!-- An empty column has nothing to right-click, so the first entries still
          have buttons (user call, 2026-08-06). They say what they make: asking
-         for "a workspace" and quietly making a task list was the bug of
+         for "a space" and quietly making a task list was the bug of
          2026-08-11. They go away as soon as there is one entry — from then on
          the menu is where new things are made, and permanent buttons at the
          bottom of the list read as two more entries. -->
     {#if !notebook.readOnly && entries.length === 0}
       <button
         class="shell__nav-item shell__nav-item--secondary"
-        onclick={() => onCreateWorkspace?.("tasks", null)}
+        onclick={() => onCreateSpace?.("tasks", null)}
       >
         <Icon name="plus" size="1rem" />
         <span class="shell__nav-label">{S.newList}</span>
       </button>
       <button
         class="shell__nav-item shell__nav-item--secondary"
-        onclick={() => onCreateWorkspace?.("notes", null)}
+        onclick={() => onCreateSpace?.("notes", null)}
       >
         <Icon name="plus" size="1rem" />
         <span class="shell__nav-label">{S.newNotepad}</span>

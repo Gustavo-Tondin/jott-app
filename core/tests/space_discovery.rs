@@ -1,12 +1,12 @@
-//! Workspace discovery against the real filesystem (phase 7, step A;
+//! Space discovery against the real filesystem (phase 7, step A;
 //! rewritten 2026-08-11 for the no-widget model).
 //!
-//! The rule under test: a folder is a workspace when — and only when — it
-//! carries a `.workspace.json`. Everything else in the notebook stays
-//! invisible, no matter how much it looks like content. A workspace has a
+//! The rule under test: a folder is a space when — and only when — it
+//! carries a `.space.json`. Everything else in the notebook stays
+//! invisible, no matter how much it looks like content. A space has a
 //! single function (`type`) and owns its files directly.
 
-use jott_core::{Notebook, Workspace};
+use jott_core::{Notebook, Space};
 
 fn notebook() -> (tempfile::TempDir, Notebook) {
     let dir = tempfile::tempdir().unwrap();
@@ -14,16 +14,16 @@ fn notebook() -> (tempfile::TempDir, Notebook) {
     (dir, nb)
 }
 
-fn make_workspace(root: &std::path::Path, name: &str, config: &str) {
+fn make_space(root: &std::path::Path, name: &str, config: &str) {
     let dir = root.join(name);
     std::fs::create_dir_all(&dir).unwrap();
-    std::fs::write(dir.join(".workspace.json"), config).unwrap();
+    std::fs::write(dir.join(".space.json"), config).unwrap();
 }
 
 #[test]
-fn only_marked_folders_are_workspaces() {
+fn only_marked_folders_are_spaces() {
     let (dir, mut nb) = notebook();
-    make_workspace(dir.path(), "Project A", r#"{ "schemaVersion": 1, "type": "tasks" }"#);
+    make_space(dir.path(), "Project A", r#"{ "schemaVersion": 1, "type": "tasks" }"#);
 
     // Folders without the marker — however plausible — are not interface.
     std::fs::create_dir_all(dir.path().join("Downloads")).unwrap();
@@ -32,21 +32,21 @@ fn only_marked_folders_are_workspaces() {
     std::fs::write(dir.path().join("README.md"), "hi\n").unwrap();
 
     let names: Vec<String> = nb
-        .workspaces()
+        .spaces()
         .unwrap()
         .iter()
         .map(|w| w.folder_name().to_string())
         .collect();
-    // The three fixed workspaces exist since init (step D), plus the marked
+    // The three fixed spaces exist since init (step D), plus the marked
     // one. They carry the `jott.` prefix, so the plain names are the user's.
     assert_eq!(names, vec!["Project A", "jott.home", "jott.notes", "jott.tasks"]);
 }
 
 #[test]
-fn the_fixed_workspaces_are_born_typed_and_usable() {
+fn the_fixed_spaces_are_born_typed_and_usable() {
     let (dir, mut nb) = notebook();
     let kinds: Vec<(String, String)> = nb
-        .workspaces()
+        .spaces()
         .unwrap()
         .iter()
         .map(|w| (w.folder_name().to_string(), w.kind().to_string()))
@@ -55,7 +55,7 @@ fn the_fixed_workspaces_are_born_typed_and_usable() {
     assert!(kinds.contains(&("jott.tasks".into(), "tasks".into())));
     assert!(kinds.contains(&("jott.notes".into(), "notes".into())));
 
-    // The fixed Tasks workspace is a single list plus its Completed (spec
+    // The fixed Tasks space is a single list plus its Completed (spec
     // 3.5) — the inbox of the notebook. The list keeps the plain name: it is
     // the file the user opens in another editor.
     assert!(dir.path().join("jott.tasks/task-list.md").is_file());
@@ -64,17 +64,17 @@ fn the_fixed_workspaces_are_born_typed_and_usable() {
 }
 
 #[test]
-fn the_config_folder_is_never_a_workspace() {
+fn the_config_folder_is_never_a_space() {
     let (dir, mut nb) = notebook();
     // Even sabotaged with a marker, a hidden folder stays invisible.
     std::fs::write(
-        dir.path().join(".jott/.workspace.json"),
+        dir.path().join(".jott/.space.json"),
         r#"{ "schemaVersion": 1 }"#,
     )
     .unwrap();
 
     let names: Vec<String> = nb
-        .workspaces()
+        .spaces()
         .unwrap()
         .iter()
         .map(|w| w.folder_name().to_string())
@@ -83,14 +83,14 @@ fn the_config_folder_is_never_a_workspace() {
 }
 
 #[test]
-fn workspaces_come_back_sorted_by_folder_name() {
+fn spaces_come_back_sorted_by_folder_name() {
     let (dir, mut nb) = notebook();
     for name in ["Zeta", "Alpha", "Meu Espaço"] {
-        make_workspace(dir.path(), name, r#"{ "schemaVersion": 1, "type": "notes" }"#);
+        make_space(dir.path(), name, r#"{ "schemaVersion": 1, "type": "notes" }"#);
     }
 
     let names: Vec<String> = nb
-        .workspaces()
+        .spaces()
         .unwrap()
         .iter()
         .map(|w| w.folder_name().to_string())
@@ -106,45 +106,45 @@ fn a_template_from_the_future_opens_but_stays_untouchable() {
     // The community-template scenario end to end: unzip a folder written by
     // a newer version into the notebook, and nothing breaks, nothing is lost.
     let (dir, mut nb) = notebook();
-    make_workspace(
+    make_space(
         dir.path(),
         "Do Futuro",
         r#"{ "schemaVersion": 99, "type": "hologram", "shader": "neon" }"#,
     );
 
-    let workspaces = nb.workspaces().unwrap();
-    let ws = workspaces
+    let spaces = nb.spaces().unwrap();
+    let sp = spaces
         .iter()
         .find(|w| w.folder_name() == "Do Futuro")
         .unwrap();
-    assert!(ws.config.is_read_only());
-    assert!(!ws.config.is_known());
-    assert_eq!(ws.kind(), "hologram");
-    assert!(ws.config.save(ws.config_path()).is_err(), "must refuse to rewrite");
+    assert!(sp.config.is_read_only());
+    assert!(!sp.config.is_known());
+    assert_eq!(sp.kind(), "hologram");
+    assert!(sp.config.save(sp.config_path()).is_err(), "must refuse to rewrite");
 
     // The bytes on disk are exactly what the template author wrote.
-    let on_disk = std::fs::read_to_string(dir.path().join("Do Futuro/.workspace.json")).unwrap();
+    let on_disk = std::fs::read_to_string(dir.path().join("Do Futuro/.space.json")).unwrap();
     assert!(on_disk.contains("shader"));
 }
 
 #[test]
-fn opening_a_workspace_directly_requires_the_marker() {
+fn opening_a_space_directly_requires_the_marker() {
     let (dir, _nb) = notebook();
     std::fs::create_dir_all(dir.path().join("Solta")).unwrap();
-    assert!(Workspace::open(dir.path().join("Solta")).is_err());
+    assert!(Space::open(dir.path().join("Solta")).is_err());
 }
 
 #[test]
-fn a_second_tasks_workspace_feeds_lists_counts_and_suggestions() {
-    // The point of the whole phase: a user workspace of type tasks joins the
+fn a_second_tasks_space_feeds_lists_counts_and_suggestions() {
+    // The point of the whole phase: a user space of type tasks joins the
     // navigation and the suggestions without touching the fixed Tasks/ — and
-    // lists in different workspaces never get confused, being addressed by
-    // full path. (2026-08-11: a tasks workspace is one list, named after its
+    // lists in different spaces never get confused, being addressed by
+    // full path. (2026-08-11: a tasks space is one list, named after its
     // folder; the fixed one is `Tasks/Tasks.md`.)
     use jott_core::state::Period;
 
     let (dir, mut nb) = notebook();
-    nb.create_workspace("Project A", "tasks").unwrap();
+    nb.create_space("Project A", "tasks").unwrap();
 
     std::fs::write(
         dir.path().join("Project A/task-list.md"),
@@ -182,7 +182,7 @@ fn a_second_tasks_workspace_feeds_lists_counts_and_suggestions() {
         !std::fs::read_to_string(dir.path().join("jott.tasks/completed.md"))
             .unwrap()
             .contains("tarefa do projeto"),
-        "the fixed Completed must not receive another workspace's task"
+        "the fixed Completed must not receive another space's task"
     );
 
     // The personal inbox was never touched by any of it.
@@ -201,82 +201,82 @@ fn a_second_tasks_workspace_feeds_lists_counts_and_suggestions() {
 }
 
 #[test]
-fn a_workspace_keeps_its_colour_and_unknown_keys_through_a_rewrite() {
+fn a_space_keeps_its_colour_and_unknown_keys_through_a_rewrite() {
     let (dir, mut nb) = notebook();
-    make_workspace(
+    make_space(
         dir.path(),
         "Project A",
         r##"{ "schemaVersion": 1, "type": "tasks", "color": "#8b5cf6", "future": true }"##,
     );
 
-    let ws = nb
-        .workspaces()
+    let sp = nb
+        .spaces()
         .unwrap()
         .into_iter()
         .find(|w| w.folder_name() == "Project A")
         .unwrap();
-    assert_eq!(ws.config.color.as_deref(), Some("#8b5cf6"));
+    assert_eq!(sp.config.color.as_deref(), Some("#8b5cf6"));
 
     // Rewriting keeps the colour this build owns and the key it does not.
-    let rendered = ws.config.render();
+    let rendered = sp.config.render();
     assert!(rendered.contains("\"color\": \"#8b5cf6\""));
     assert!(rendered.contains("\"future\""));
 }
 
 #[test]
-fn a_new_workspace_is_born_typed_and_usable() {
+fn a_new_space_is_born_typed_and_usable() {
     let (dir, mut nb) = notebook();
-    let folder = nb.create_workspace("My Project", "tasks").unwrap();
+    let folder = nb.create_space("My Project", "tasks").unwrap();
     assert_eq!(folder, "My Project");
-    assert!(dir.path().join("My Project/.workspace.json").is_file());
+    assert!(dir.path().join("My Project/.space.json").is_file());
 
-    // A tasks workspace is born with its list and its Completed — usable on
-    // arrival, no second step. Both carry the names EVERY tasks workspace
+    // A tasks space is born with its list and its Completed — usable on
+    // arrival, no second step. Both carry the names EVERY tasks space
     // uses (2026-08-13); the folder is what tells one from another.
     assert!(dir.path().join("My Project/task-list.md").is_file());
     assert!(dir.path().join("My Project/completed.md").is_file());
-    let ws = nb
-        .workspaces()
+    let sp = nb
+        .spaces()
         .unwrap()
         .into_iter()
         .find(|w| w.folder_name() == "My Project")
         .unwrap();
-    assert_eq!(ws.kind(), "tasks");
+    assert_eq!(sp.kind(), "tasks");
 
-    // A notes workspace just makes its folder + marker.
-    nb.create_workspace("Journal", "notes").unwrap();
-    assert!(dir.path().join("Journal/.workspace.json").is_file());
+    // A notes space just makes its folder + marker.
+    nb.create_space("Journal", "notes").unwrap();
+    assert!(dir.path().join("Journal/.space.json").is_file());
     assert!(!dir.path().join("Journal/task-list.md").exists());
 
     // Unknown type, duplicate and unsafe names are refused.
-    assert!(nb.create_workspace("X", "hologram").is_err());
-    assert!(nb.create_workspace("My Project", "tasks").is_err());
-    assert!(nb.create_workspace("../escape", "tasks").is_err());
-    assert!(nb.create_workspace("   ", "tasks").is_err());
+    assert!(nb.create_space("X", "hologram").is_err());
+    assert!(nb.create_space("My Project", "tasks").is_err());
+    assert!(nb.create_space("../escape", "tasks").is_err());
+    assert!(nb.create_space("   ", "tasks").is_err());
     // A folder called like one of the files inside it is a trap for whoever
     // opens the notebook without the app — refused either way it is spelled.
-    assert!(nb.create_workspace("Completed", "tasks").is_err());
-    assert!(nb.create_workspace("completed", "tasks").is_err());
-    assert!(nb.create_workspace("task-list", "tasks").is_err());
+    assert!(nb.create_space("Completed", "tasks").is_err());
+    assert!(nb.create_space("completed", "tasks").is_err());
+    assert!(nb.create_space("task-list", "tasks").is_err());
 }
 
 #[test]
-fn renaming_a_workspace_renames_its_folder() {
+fn renaming_a_space_renames_its_folder() {
     // 2026-08-13: the name IS the folder. It used to be a `name` in the
     // marker with the folder left alone, and the two drifted apart the moment
     // anything was renamed — the sidebar said "Tasks" while the disk still
     // said "Work", and the list file inside kept the old name for good.
     let (dir, mut nb) = notebook();
-    nb.create_workspace("proj", "tasks").unwrap();
-    nb.rename_workspace("proj", "My Project").unwrap();
+    nb.create_space("proj", "tasks").unwrap();
+    nb.rename_space("proj", "My Project").unwrap();
 
-    let ws = nb
-        .workspaces()
+    let sp = nb
+        .spaces()
         .unwrap()
         .into_iter()
         .find(|w| w.folder_name() == "My Project")
         .unwrap();
-    assert_eq!(ws.display_name(), "My Project");
+    assert_eq!(sp.display_name(), "My Project");
     assert!(dir.path().join("My Project").is_dir());
     assert!(!dir.path().join("proj").exists(), "the old folder is gone");
     // The files inside kept their names, because they never carried one.
@@ -284,52 +284,52 @@ fn renaming_a_workspace_renames_its_folder() {
     assert!(dir.path().join("My Project/completed.md").is_file());
     // And no stale label is left behind in the marker.
     let marker =
-        std::fs::read_to_string(dir.path().join("My Project/.workspace.json")).unwrap();
+        std::fs::read_to_string(dir.path().join("My Project/.space.json")).unwrap();
     assert!(!marker.contains("\"name\""), "{marker}");
 }
 
 #[test]
-fn a_fixed_workspace_is_renamed_in_its_marker_not_on_disk() {
+fn a_fixed_space_is_renamed_in_its_marker_not_on_disk() {
     // The app recreates `jott.tasks` by name, so its folder cannot move. It is
     // the one place a display name still lives in the marker.
     let (dir, mut nb) = notebook();
-    nb.rename_workspace("jott.tasks", "Afazeres").unwrap();
+    nb.rename_space("jott.tasks", "Afazeres").unwrap();
 
-    let ws = nb
-        .workspaces()
+    let sp = nb
+        .spaces()
         .unwrap()
         .into_iter()
         .find(|w| w.folder_name() == "jott.tasks")
         .unwrap();
-    assert_eq!(ws.display_name(), "Afazeres");
+    assert_eq!(sp.display_name(), "Afazeres");
     assert!(dir.path().join("jott.tasks").is_dir());
 }
 
 #[test]
-fn workspace_appearance_persists_and_clears() {
+fn space_appearance_persists_and_clears() {
     let (dir, mut nb) = notebook();
-    nb.create_workspace("proj", "tasks").unwrap();
-    nb.set_workspace_appearance("proj", Some("#8b5cf6".into()), Some("flag".into()))
+    nb.create_space("proj", "tasks").unwrap();
+    nb.set_space_appearance("proj", Some("#8b5cf6".into()), Some("flag".into()))
         .unwrap();
 
     let reopened = Notebook::open(dir.path()).unwrap();
-    let ws = reopened
-        .workspaces()
+    let sp = reopened
+        .spaces()
         .unwrap()
         .into_iter()
         .find(|w| w.folder_name() == "proj")
         .unwrap();
-    assert_eq!(ws.config.color.as_deref(), Some("#8b5cf6"));
-    assert_eq!(ws.config.icon.as_deref(), Some("flag"));
-    // Editing the appearance must not lose the type the workspace was born
+    assert_eq!(sp.config.color.as_deref(), Some("#8b5cf6"));
+    assert_eq!(sp.config.icon.as_deref(), Some("flag"));
+    // Editing the appearance must not lose the type the space was born
     // with — the config is one file, rewritten whole.
-    assert_eq!(ws.kind(), "tasks");
+    assert_eq!(sp.kind(), "tasks");
 
     // Empty strings clear them, back to the default.
-    nb.set_workspace_appearance("proj", Some(String::new()), Some(String::new()))
+    nb.set_space_appearance("proj", Some(String::new()), Some(String::new()))
         .unwrap();
     let cleared = nb
-        .workspaces()
+        .spaces()
         .unwrap()
         .into_iter()
         .find(|w| w.folder_name() == "proj")
@@ -339,38 +339,38 @@ fn workspace_appearance_persists_and_clears() {
 }
 
 #[test]
-fn delete_workspace_trashes_it_and_refuses_the_fixed_ones() {
+fn delete_space_trashes_it_and_refuses_the_fixed_ones() {
     let (dir, mut nb) = notebook();
-    nb.create_workspace("proj", "tasks").unwrap();
+    nb.create_space("proj", "tasks").unwrap();
     assert!(dir.path().join("proj").is_dir());
 
-    nb.delete_workspace("proj").unwrap();
+    nb.delete_space("proj").unwrap();
     assert!(!dir.path().join("proj").exists());
 
-    // The three fixed workspaces are protected.
+    // The three fixed spaces are protected.
     assert!(matches!(
-        nb.delete_workspace("jott.tasks"),
+        nb.delete_space("jott.tasks"),
         Err(jott_core::Error::Protected(_))
     ));
 }
 
 #[test]
-fn groups_hold_workspaces_and_can_be_created_moved_and_deleted() {
+fn groups_hold_spaces_and_can_be_created_moved_and_deleted() {
     let (dir, mut nb) = notebook();
 
-    // A group is a folder with a `.group.json`; it is not a workspace.
+    // A group is a folder with a `.group.json`; it is not a space.
     nb.create_group("Design", None).unwrap();
     assert!(dir.path().join("Design/.group.json").is_file());
 
-    // A workspace created inside the group lives under it, addressed by its
+    // A space created inside the group lives under it, addressed by its
     // root-relative PATH — and is born usable like any other.
-    nb.create_workspace_in("Clients", "tasks", Some("Design")).unwrap();
-    assert!(dir.path().join("Design/Clients/.workspace.json").is_file());
+    nb.create_space_in("Clients", "tasks", Some("Design")).unwrap();
+    assert!(dir.path().join("Design/Clients/.space.json").is_file());
     assert!(dir.path().join("Design/Clients/task-list.md").is_file());
 
-    // Discovery finds it among all workspaces, and the group lists it.
+    // Discovery finds it among all spaces, and the group lists it.
     let names: Vec<String> = nb
-        .workspaces()
+        .spaces()
         .unwrap()
         .iter()
         .map(|w| w.folder_name().to_string())
@@ -379,9 +379,9 @@ fn groups_hold_workspaces_and_can_be_created_moved_and_deleted() {
     let groups = nb.groups().unwrap();
     assert_eq!(groups.len(), 1);
     assert_eq!(groups[0].folder, "Design");
-    assert_eq!(groups[0].workspaces, vec!["Design/Clients".to_string()]);
+    assert_eq!(groups[0].spaces, vec!["Design/Clients".to_string()]);
 
-    // Addressing the workspace works regardless of its group: its list is
+    // Addressing the space works regardless of its group: its list is
     // reachable by full path, group included.
     nb.create_task("Design/Clients/task-list.md", "call the client").unwrap();
     assert_eq!(
@@ -390,29 +390,29 @@ fn groups_hold_workspaces_and_can_be_created_moved_and_deleted() {
     );
 
     // A name only has to be free among its SIBLINGS (2026-08-13): the path is
-    // the identity, so another `Clients` at the root is a different workspace.
-    nb.create_workspace("Clients", "tasks").unwrap();
-    assert!(dir.path().join("Clients/.workspace.json").is_file());
+    // the identity, so another `Clients` at the root is a different space.
+    nb.create_space("Clients", "tasks").unwrap();
+    assert!(dir.path().join("Clients/.space.json").is_file());
     // …but a second one beside the first is still a collision.
-    assert!(nb.create_workspace_in("Clients", "tasks", Some("Design")).is_err());
-    nb.delete_workspace("Clients").unwrap();
+    assert!(nb.create_space_in("Clients", "tasks", Some("Design")).is_err());
+    nb.delete_space("Clients").unwrap();
 
-    // Moving the workspace out to the root: its path changes with it.
-    nb.move_workspace("Design/Clients", None).unwrap();
-    assert!(dir.path().join("Clients/.workspace.json").is_file());
+    // Moving the space out to the root: its path changes with it.
+    nb.move_space("Design/Clients", None).unwrap();
+    assert!(dir.path().join("Clients/.space.json").is_file());
     assert!(!dir.path().join("Design/Clients").exists());
 
     // Deleting a group with members moves them to the root, never loses them.
-    nb.create_workspace_in("Reports", "notes", Some("Design")).unwrap();
+    nb.create_space_in("Reports", "notes", Some("Design")).unwrap();
     nb.delete_group("Design").unwrap();
-    assert!(dir.path().join("Reports/.workspace.json").is_file());
+    assert!(dir.path().join("Reports/.space.json").is_file());
     assert!(!dir.path().join("Design").exists());
     assert!(nb.groups().unwrap().is_empty());
 }
 
 #[test]
 fn the_same_hostile_names_are_refused_at_every_door() {
-    // Two doors take a name straight from the user — a list and a workspace —
+    // Two doors take a name straight from the user — a list and a space —
     // and each one used to spell the safety rule out on its own. One rule
     // (`relpath::is_safe_leaf`), so one table: whatever climbs, hides or
     // carries a separator is refused wherever it is typed, and each door
@@ -436,27 +436,27 @@ fn the_same_hostile_names_are_refused_at_every_door() {
             "create_list accepted {hostile:?}"
         );
         assert!(
-            nb.create_workspace(hostile, "tasks").is_err(),
-            "create_workspace accepted {hostile:?}"
+            nb.create_space(hostile, "tasks").is_err(),
+            "create_space accepted {hostile:?}"
         );
     }
 
     // And an ordinary name still works at both.
     nb.create_list("jott.tasks", "Projeto v2.0").unwrap();
-    nb.create_workspace("Projeto Y", "tasks").unwrap();
+    nb.create_space("Projeto Y", "tasks").unwrap();
 }
 
 #[test]
-fn a_group_renames_and_restyles_exactly_like_a_workspace() {
+fn a_group_renames_and_restyles_exactly_like_a_space() {
     // Both carry the same tolerant config under a different marker file, so
     // both go through the same read-edit-write. This test existed for the
-    // workspace side only; the group side was the untested half of the copy.
+    // space side only; the group side was the untested half of the copy.
     let (dir, mut nb) = notebook();
     nb.create_group("Design", None).unwrap();
-    nb.create_workspace_in("Acme", "tasks", Some("Design")).unwrap();
+    nb.create_space_in("Acme", "tasks", Some("Design")).unwrap();
 
     // Renaming a GROUP renames its folder too (2026-08-13) — the name is the
-    // folder, for a group exactly as for a workspace — and everything it
+    // folder, for a group exactly as for a space — and everything it
     // holds travels with it.
     nb.rename_group("Design", "  Design & Brand  ").unwrap();
     nb.set_group_appearance("Design & Brand", Some("#8b5cf6".into()), Some("flag".into()))
@@ -472,7 +472,7 @@ fn a_group_renames_and_restyles_exactly_like_a_workspace() {
     // Whitespace around what the user typed is not part of the name.
     assert_eq!(group.config.color.as_deref(), Some("#8b5cf6"));
     assert_eq!(group.config.icon.as_deref(), Some("flag"));
-    // The folder moved, with the workspace inside it, and no stale label was
+    // The folder moved, with the space inside it, and no stale label was
     // left behind in the marker.
     assert!(dir.path().join("Design & Brand/.group.json").is_file());
     assert!(!dir.path().join("Design").exists());
@@ -483,63 +483,63 @@ fn a_group_renames_and_restyles_exactly_like_a_workspace() {
 }
 
 #[test]
-fn a_workspace_keeps_its_sort_and_dragged_order_in_its_own_config() {
-    // The arrangement is an app preference, so it lives in the workspace's
-    // `.workspace.json` — never in the content files.
+fn a_space_keeps_its_sort_and_dragged_order_in_its_own_config() {
+    // The arrangement is an app preference, so it lives in the space's
+    // `.space.json` — never in the content files.
     let (dir, mut nb) = notebook();
-    nb.create_workspace("Space 1", "tasks").unwrap();
+    nb.create_space("Space 1", "tasks").unwrap();
 
-    let workspace = |nb: &Notebook| {
-        nb.workspaces()
+    let space = |nb: &Notebook| {
+        nb.spaces()
             .unwrap()
             .into_iter()
             .find(|w| w.folder_name() == "Space 1")
             .unwrap()
     };
 
-    nb.set_workspace_sort("Space 1", Some("name")).unwrap();
-    assert_eq!(workspace(&nb).config.sort.as_deref(), Some("name"));
+    nb.set_space_sort("Space 1", Some("name")).unwrap();
+    assert_eq!(space(&nb).config.sort.as_deref(), Some("name"));
 
-    // Dragging saves the arrangement and switches the workspace to it.
-    nb.set_workspace_order("Space 1", vec!["b2".into(), "a1".into()])
+    // Dragging saves the arrangement and switches the space to it.
+    nb.set_space_order("Space 1", vec!["b2".into(), "a1".into()])
         .unwrap();
-    let config = workspace(&nb).config;
+    let config = space(&nb).config;
     assert_eq!(config.sort.as_deref(), Some("custom"));
     assert_eq!(config.order, vec!["b2".to_string(), "a1".to_string()]);
 
     // Clearing removes the keys from the file instead of leaving stale ones.
-    nb.set_workspace_sort("Space 1", None).unwrap();
-    nb.set_workspace_order("Space 1", Vec::new()).unwrap();
+    nb.set_space_sort("Space 1", None).unwrap();
+    nb.set_space_order("Space 1", Vec::new()).unwrap();
     let on_disk =
-        std::fs::read_to_string(dir.path().join("Space 1/.workspace.json")).unwrap();
+        std::fs::read_to_string(dir.path().join("Space 1/.space.json")).unwrap();
     assert!(!on_disk.contains("order"), "{on_disk}");
-    // set_workspace_order still switches to custom (an empty arrangement just
+    // set_space_order still switches to custom (an empty arrangement just
     // falls back to the file order when applied).
-    assert_eq!(workspace(&nb).config.sort.as_deref(), Some("custom"));
+    assert_eq!(space(&nb).config.sort.as_deref(), Some("custom"));
     // And the type survives every rewrite.
-    assert_eq!(workspace(&nb).kind(), "tasks");
+    assert_eq!(space(&nb).kind(), "tasks");
 
-    // A folder that is not a workspace is refused — writing a config there
+    // A folder that is not a space is refused — writing a config there
     // would turn it into one.
     std::fs::create_dir(dir.path().join("Loose")).unwrap();
-    assert!(nb.set_workspace_sort("Loose", Some("name")).is_err());
+    assert!(nb.set_space_sort("Loose", Some("name")).is_err());
 }
 
 #[test]
 fn a_groups_members_come_back_in_the_order_the_user_dragged() {
     // The sidebar reads a group's place off its members, and the order the
-    // user drags is stored once, in the notebook config's `workspaces`
+    // user drags is stored once, in the notebook config's `spaces`
     // namespace. `groups()` used to sort its members alphabetically, so the
     // dragged order was written and then thrown away on the next read — the
     // drag inside a group simply did nothing (user report, 2026-08-11).
     let (_dir, mut nb) = notebook();
     nb.create_group("Design", None).unwrap();
     for name in ["Alpha", "Beta", "Gamma"] {
-        nb.create_workspace_in(name, "tasks", Some("Design")).unwrap();
+        nb.create_space_in(name, "tasks", Some("Design")).unwrap();
     }
 
     // Members come back as PATHS, and the stored order names them the same way.
-    let members = |nb: &Notebook| nb.groups().unwrap().remove(0).workspaces;
+    let members = |nb: &Notebook| nb.groups().unwrap().remove(0).spaces;
     assert_eq!(
         members(&nb),
         vec!["Design/Alpha", "Design/Beta", "Design/Gamma"],
@@ -547,7 +547,7 @@ fn a_groups_members_come_back_in_the_order_the_user_dragged() {
     );
 
     nb.set_order(
-        "workspaces",
+        "spaces",
         ["Design/Gamma", "Design/Alpha", "Design/Beta"]
             .iter()
             .map(|s| s.to_string())
@@ -564,9 +564,9 @@ fn groups_nest_and_a_group_can_be_created_inside_another() {
     nb.create_group("Clients", Some("Design")).unwrap();
     assert!(dir.path().join("Design/Clients/.group.json").is_file());
 
-    // A workspace inside the nested group is discovered like any other, and
+    // A space inside the nested group is discovered like any other, and
     // its list is addressed by the full path.
-    nb.create_workspace_in("Acme", "tasks", Some("Design/Clients")).unwrap();
+    nb.create_space_in("Acme", "tasks", Some("Design/Clients")).unwrap();
     assert!(dir.path().join("Design/Clients/Acme/task-list.md").is_file());
     assert!(nb
         .lists()
@@ -580,16 +580,16 @@ fn groups_nest_and_a_group_can_be_created_inside_another() {
     let of = |folder: &str| groups.iter().find(|g| g.folder == folder).unwrap().clone();
     assert_eq!(of("Design").parent, None);
     assert_eq!(of("Design/Clients").parent.as_deref(), Some("Design"));
-    assert!(of("Design").workspaces.is_empty());
+    assert!(of("Design").spaces.is_empty());
     assert_eq!(
-        of("Design/Clients").workspaces,
+        of("Design/Clients").spaces,
         vec!["Design/Clients/Acme".to_string()]
     );
 
     // A leaf may repeat at another depth — that is the point of paths, and it
     // is the arrangement a user builds on purpose (a `Tasks` in two groups).
     nb.create_group("Acme", None).unwrap();
-    nb.create_workspace("Clients", "notes").unwrap();
+    nb.create_space("Clients", "notes").unwrap();
     assert!(nb.groups().unwrap().iter().any(|g| g.folder == "Acme"));
 }
 
@@ -598,7 +598,7 @@ fn moving_a_group_carries_its_subtree_and_refuses_to_enter_itself() {
     let (dir, mut nb) = notebook();
     nb.create_group("Design", None).unwrap();
     nb.create_group("Clients", Some("Design")).unwrap();
-    nb.create_workspace_in("Acme", "tasks", Some("Design/Clients")).unwrap();
+    nb.create_space_in("Acme", "tasks", Some("Design/Clients")).unwrap();
 
     // Out to the root: everything under it travels.
     nb.move_group("Design/Clients", None).unwrap();
@@ -614,21 +614,21 @@ fn moving_a_group_carries_its_subtree_and_refuses_to_enter_itself() {
 }
 
 #[test]
-fn moving_a_workspace_between_groups_keeps_its_pulled_tasks() {
+fn moving_a_space_between_groups_keeps_its_pulled_tasks() {
     // A move changes every list address under the folder, so the Day/Week
-    // references have to follow. They never did for a workspace (only for the
+    // references have to follow. They never did for a space (only for the
     // old widget move), which left a task pulled into today pointing at a path
     // that no longer existed — it just vanished from the screen.
     let (dir, mut nb) = notebook();
     nb.create_group("Design", None).unwrap();
-    nb.create_workspace("Acme", "tasks").unwrap();
+    nb.create_space("Acme", "tasks").unwrap();
 
     let list = "Acme/task-list.md";
     nb.create_task(list, "call the client").unwrap();
     let id = nb.ensure_task_id(list, 0).unwrap();
     nb.pull_into(jott_core::Period::Day, list, &id).unwrap();
 
-    nb.move_workspace("Acme", Some("Design")).unwrap();
+    nb.move_space("Acme", Some("Design")).unwrap();
 
     let moved = "Design/Acme/task-list.md";
     assert!(dir.path().join(moved).is_file());
@@ -638,7 +638,7 @@ fn moving_a_workspace_between_groups_keeps_its_pulled_tasks() {
 }
 
 #[test]
-fn two_workspaces_may_share_a_leaf_name_and_are_two_different_places() {
+fn two_spaces_may_share_a_leaf_name_and_are_two_different_places() {
     // The bug this closes (user report, screen recording 2026-08-13): the leaf
     // name WAS the identity, so `Design/Tasks` and `Personal/Tasks` were one
     // address. Opening either highlighted BOTH rows in the sidebar, the title
@@ -648,26 +648,26 @@ fn two_workspaces_may_share_a_leaf_name_and_are_two_different_places() {
     let (dir, mut nb) = notebook();
     nb.create_group("Design", None).unwrap();
     nb.create_group("Personal", None).unwrap();
-    nb.create_workspace_in("Tasks", "tasks", Some("Design")).unwrap();
-    nb.create_workspace_in("Tasks", "tasks", Some("Personal")).unwrap();
+    nb.create_space_in("Tasks", "tasks", Some("Design")).unwrap();
+    nb.create_space_in("Tasks", "tasks", Some("Personal")).unwrap();
 
     // Two folders, two markers, two lists.
     assert!(dir.path().join("Design/Tasks/task-list.md").is_file());
     assert!(dir.path().join("Personal/Tasks/task-list.md").is_file());
-    assert_eq!(nb.workspaces().unwrap().len(), 5, "the three fixed ones plus two");
+    assert_eq!(nb.spaces().unwrap().len(), 5, "the three fixed ones plus two");
 
     // Each group holds its own, named by path.
     let groups = nb.groups().unwrap();
     let of = |folder: &str| groups.iter().find(|g| g.folder == folder).unwrap().clone();
-    assert_eq!(of("Design").workspaces, vec!["Design/Tasks".to_string()]);
-    assert_eq!(of("Personal").workspaces, vec!["Personal/Tasks".to_string()]);
+    assert_eq!(of("Design").spaces, vec!["Design/Tasks".to_string()]);
+    assert_eq!(of("Personal").spaces, vec!["Personal/Tasks".to_string()]);
 
     // A command names ONE of them. Appearance on the Design one leaves the
     // Personal one alone — before, the first match took every write.
-    nb.set_workspace_appearance("Design/Tasks", Some("orange".into()), None)
+    nb.set_space_appearance("Design/Tasks", Some("orange".into()), None)
         .unwrap();
     let colour = |path: &str| {
-        nb.workspaces()
+        nb.spaces()
             .unwrap()
             .into_iter()
             .find(|w| w.root() == dir.path().join(path))
@@ -680,7 +680,7 @@ fn two_workspaces_may_share_a_leaf_name_and_are_two_different_places() {
     assert_eq!(colour("Personal/Tasks"), None);
 
     // And renaming one does not touch the other.
-    nb.rename_workspace("Personal/Tasks", "Afazeres").unwrap();
+    nb.rename_space("Personal/Tasks", "Afazeres").unwrap();
     assert!(dir.path().join("Personal/Afazeres").is_dir());
     assert!(dir.path().join("Design/Tasks").is_dir());
 }
@@ -692,13 +692,13 @@ fn deleting_a_group_hands_what_it_held_to_its_own_parent() {
     let (dir, mut nb) = notebook();
     nb.create_group("Design", None).unwrap();
     nb.create_group("Clients", Some("Design")).unwrap();
-    nb.create_workspace_in("Acme", "tasks", Some("Design/Clients")).unwrap();
+    nb.create_space_in("Acme", "tasks", Some("Design/Clients")).unwrap();
     nb.create_group("Archive", Some("Design/Clients")).unwrap();
 
     nb.delete_group("Design/Clients").unwrap();
 
     assert!(!dir.path().join("Design/Clients").exists());
-    assert!(dir.path().join("Design/Acme/task-list.md").is_file(), "the workspace moved up");
+    assert!(dir.path().join("Design/Acme/task-list.md").is_file(), "the space moved up");
     assert!(dir.path().join("Design/Archive/.group.json").is_file(), "the child group too");
     let groups = nb.groups().unwrap();
     assert!(groups.iter().all(|g| g.folder != "Design/Clients"));
@@ -711,7 +711,7 @@ fn deleting_a_group_hands_what_it_held_to_its_own_parent() {
 #[test]
 fn a_fixed_marker_without_a_type_is_completed_not_left_unsupported() {
     // A marker written before `type` existed (the Memo-era notebooks) would
-    // otherwise open as "unsupported workspace" — a lie about a folder the app
+    // otherwise open as "unsupported space" — a lie about a folder the app
     // itself created and recreates. The three fixed ones are the app's, and
     // their function is not a user choice.
     let dir = tempfile::tempdir().unwrap();
@@ -719,7 +719,7 @@ fn a_fixed_marker_without_a_type_is_completed_not_left_unsupported() {
 
     // Put the old shape back on disk, unknown keys and all.
     std::fs::write(
-        dir.path().join("jott.tasks/.workspace.json"),
+        dir.path().join("jott.tasks/.space.json"),
         r#"{ "schemaVersion": 1, "kind": "old", "fixed": true, "future": 7 }"#,
     )
     .unwrap();
@@ -727,7 +727,7 @@ fn a_fixed_marker_without_a_type_is_completed_not_left_unsupported() {
 
     let reopened = Notebook::open(dir.path()).unwrap();
     let tasks = reopened
-        .workspaces()
+        .spaces()
         .unwrap()
         .into_iter()
         .find(|w| w.folder_name() == "jott.tasks")
@@ -735,15 +735,15 @@ fn a_fixed_marker_without_a_type_is_completed_not_left_unsupported() {
     assert_eq!(tasks.kind(), "tasks");
     assert!(tasks.config.is_known());
     // Completing it keeps everything else the file carried.
-    let on_disk = std::fs::read_to_string(dir.path().join("jott.tasks/.workspace.json")).unwrap();
+    let on_disk = std::fs::read_to_string(dir.path().join("jott.tasks/.space.json")).unwrap();
     assert!(on_disk.contains("future"), "{on_disk}");
 
-    // A USER workspace with no type is left exactly as it is: there the type
+    // A USER space with no type is left exactly as it is: there the type
     // is a decision, and the app has no business inventing one.
-    make_workspace(dir.path(), "Mystery", r#"{ "schemaVersion": 1 }"#);
+    make_space(dir.path(), "Mystery", r#"{ "schemaVersion": 1 }"#);
     let reopened = Notebook::open(dir.path()).unwrap();
     let mystery = reopened
-        .workspaces()
+        .spaces()
         .unwrap()
         .into_iter()
         .find(|w| w.folder_name() == "Mystery")
@@ -752,7 +752,7 @@ fn a_fixed_marker_without_a_type_is_completed_not_left_unsupported() {
 }
 
 #[test]
-fn the_fixed_workspaces_read_as_home_tasks_and_notes_however_they_are_filed() {
+fn the_fixed_spaces_read_as_home_tasks_and_notes_however_they_are_filed() {
     // The folders carry the app's `jott.` prefix so the plain names stay free
     // for the user — and the interface must go on saying Home, Tasks, Notes.
     // Every address the app hands out carries the name the user reads, so the
@@ -762,7 +762,7 @@ fn the_fixed_workspaces_read_as_home_tasks_and_notes_however_they_are_filed() {
     assert!(dir.path().join("jott.tasks/task-list.md").is_file());
 
     let of = |folder: &str| {
-        nb.workspaces()
+        nb.spaces()
             .unwrap()
             .into_iter()
             .find(|w| w.folder_name() == folder)
@@ -781,40 +781,40 @@ fn the_fixed_workspaces_read_as_home_tasks_and_notes_however_they_are_filed() {
         .find(|entry| entry.path == Notebook::inbox_path())
         .unwrap();
     assert_eq!(inbox.name, "task-list");
-    assert_eq!(inbox.workspace, "Tasks", "the label, never the folder");
+    assert_eq!(inbox.space, "Tasks", "the label, never the folder");
 
-    // A user workspace speaks for itself, by its folder — and renaming it
+    // A user space speaks for itself, by its folder — and renaming it
     // moves that folder, so its address follows.
-    nb.create_workspace("Errands", "tasks").unwrap();
-    nb.rename_workspace("Errands", "Weekend").unwrap();
+    nb.create_space("Errands", "tasks").unwrap();
+    nb.rename_space("Errands", "Weekend").unwrap();
     let entry = nb
         .lists()
         .unwrap()
         .into_iter()
         .find(|entry| entry.path.starts_with("Weekend/") && entry.name == "task-list")
         .unwrap();
-    assert_eq!(entry.workspace, "Weekend");
+    assert_eq!(entry.space, "Weekend");
 
-    // A workspace inside a group reads as the ADDRESS the user sees, group
-    // first (user call, 2026-08-13): two workspaces called Tasks in two
+    // A space inside a group reads as the ADDRESS the user sees, group
+    // first (user call, 2026-08-13): two spaces called Tasks in two
     // different groups were the same word twice in the same picker.
     nb.create_group("Design", None).unwrap();
-    nb.create_workspace_in("Tarefas", "tasks", Some("Design")).unwrap();
+    nb.create_space_in("Tarefas", "tasks", Some("Design")).unwrap();
     let grouped = nb
         .lists()
         .unwrap()
         .into_iter()
         .find(|entry| entry.path.starts_with("Design/Tarefas/") && entry.name == "task-list")
         .unwrap();
-    assert_eq!(grouped.workspace, "Design/Tarefas");
+    assert_eq!(grouped.space, "Design/Tarefas");
 
     // And renaming a fixed one sticks: the app fills the name only when the
     // file has none.
-    nb.rename_workspace("jott.tasks", "My tasks").unwrap();
+    nb.rename_space("jott.tasks", "My tasks").unwrap();
     let reopened = Notebook::open(dir.path()).unwrap();
     assert_eq!(
         reopened
-            .workspaces()
+            .spaces()
             .unwrap()
             .into_iter()
             .find(|w| w.folder_name() == "jott.tasks")

@@ -4,7 +4,7 @@
   //
   // It owns almost nothing. Since 2026-08-06 the tasks half is not even its own
   // markup: it is THE tasks widget, hosted over the day (`period: "day"`), so
-  // Home shows exactly what a workspace shows — same cards, same "Completed N"
+  // Home shows exactly what a space shows — same cards, same "Completed N"
   // — plus the Suggestions pill the widget adds when its source is a period.
   // The home-grown block it had before was a partial copy, and it kept falling
   // behind.

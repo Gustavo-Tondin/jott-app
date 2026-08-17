@@ -4,7 +4,7 @@
 //! read the file at any instant, and a half-written list or config is a
 //! corrupted notebook. This used to live in three near-identical copies
 //! (lists, config, machine prefs); one helper means the next kind of file
-//! (notes, workspace configs) cannot accidentally skip the dance.
+//! (notes, space configs) cannot accidentally skip the dance.
 //!
 //! The invariant test in `core/tests/invariants.rs` enforces that no other
 //! module calls `std::fs::write` directly.
@@ -39,7 +39,7 @@ pub fn write_atomically(path: impl AsRef<Path>, bytes: &[u8]) -> Result<()> {
 ///
 /// **A missing folder is an empty folder, not an error.** That is the rule the
 /// whole app already followed — a widget with no lists yet, a notebook whose
-/// `Notes/` the user deleted, a workspace with nothing in it — written out
+/// `Notes/` the user deleted, a space with nothing in it — written out
 /// seven times, once per caller. Written once, the next caller cannot get it
 /// subtly wrong.
 ///
@@ -67,7 +67,7 @@ pub fn dir_paths(dir: impl AsRef<Path>) -> Result<Vec<PathBuf>> {
 
 /// True for a dot-file or dot-folder.
 ///
-/// Hidden entries are the app's business (`.jott`, `.workspace.json`) or
+/// Hidden entries are the app's business (`.jott`, `.space.json`) or
 /// another tool's (`.git`, `.stfolder`) — never the user's content.
 pub fn is_hidden(path: &Path) -> bool {
     path.file_name()
@@ -134,7 +134,7 @@ mod tests {
     #[test]
     fn a_missing_folder_reads_as_an_empty_folder() {
         // Seven callers depend on this: a widget with no lists yet, a notebook
-        // whose Notes/ was deleted outside the app, a workspace with nothing in
+        // whose Notes/ was deleted outside the app, a space with nothing in
         // it. None of them may fail to open over a folder that is not there.
         let dir = tempfile::tempdir().unwrap();
         assert!(dir_paths(dir.path().join("nao-existe")).unwrap().is_empty());
@@ -148,7 +148,7 @@ mod tests {
     #[test]
     fn hidden_entries_are_recognized_by_the_leading_dot() {
         assert!(is_hidden(Path::new("/notebook/.jott")));
-        assert!(is_hidden(Path::new("/notebook/Tasks/.workspace.json")));
+        assert!(is_hidden(Path::new("/notebook/Tasks/.space.json")));
         assert!(!is_hidden(Path::new("/notebook/Tasks")));
         assert!(!is_hidden(Path::new("/notebook/Projeto v2.0.md")));
     }

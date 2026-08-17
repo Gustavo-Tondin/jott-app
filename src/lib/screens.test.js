@@ -70,7 +70,7 @@ const { default: PeriodView } = await import("./screens/PeriodView.svelte");
 const { default: CompletedView } = await import("./screens/CompletedView.svelte");
 const { default: TaskInspector } = await import("./components/TaskInspector.svelte");
 const { default: App } = await import("../App.svelte");
-const { default: WorkspaceView } = await import("./screens/WorkspaceView.svelte");
+const { default: SpaceView } = await import("./screens/SpaceView.svelte");
 const { default: NotesWidget } = await import("./widgets/NotesWidget.svelte");
 const { default: NoteEditor } = await import("./components/NoteEditor.svelte");
 const { default: HomeView } = await import("./screens/HomeView.svelte");
@@ -574,7 +574,7 @@ describe("CompletedView", () => {
 
   test("aggregates the Completed of every widget, fixed and user-made", async () => {
     // The screen used to read a single hardcoded list, so anything completed
-    // inside a user workspace never showed up here.
+    // inside a user space never showed up here.
     bridge({
       completed_tasks: [
         { path: "jott.tasks/completed.md", task: task("a1", "Da Inbox", { done: true }) },
@@ -644,17 +644,17 @@ describe("TaskInspector", () => {
     render(TaskInspector, {
       props: props(task("a1", "Comprar leite"), {
         lists: [
-          // The workspace label travels with the address (the core sends it),
+          // The space label travels with the address (the core sends it),
           // so a menu never has to read it off the folder.
-          { path: "jott.tasks/Compras.md", name: "Compras", workspace: "Tasks" },
-          { path: "jott.tasks/Casa.md", name: "Casa", workspace: "Tasks" },
+          { path: "jott.tasks/Compras.md", name: "Compras", space: "Tasks" },
+          { path: "jott.tasks/Casa.md", name: "Casa", space: "Tasks" },
         ],
         onMoved: (path) => moved.push(path),
       }),
     });
 
     await userEvent.click(screen.getByRole("button", { name: "move to list" }));
-    // The row reads `Tasks/`**Casa** — the workspace in grey, the list in ink,
+    // The row reads `Tasks/`**Casa** — the space in grey, the list in ink,
     // so two lists both called "Inbox" are told apart without the row turning
     // into a file path (user call, 2026-08-06).
     const row = (await screen.findByText("Casa")).closest("button");
@@ -1012,7 +1012,7 @@ describe("App", () => {
     },
   };
 
-  const snapshot = (workspaces = [], groups = []) => ({
+  const snapshot = (spaces = [], groups = []) => ({
     info: notebook,
     clock: {
       today: "2026-07-21",
@@ -1022,13 +1022,13 @@ describe("App", () => {
     },
     counts: {},
     conflicts: [],
-    workspaces,
+    spaces,
     groups,
   });
 
   // `path` is the identity (2026-08-13); `folderName` rides along for anything
   // that still wants the leaf.
-  const aWorkspace = {
+  const aSpace = {
     folderName: "Space",
     path: "Space",
     name: "Space",
@@ -1109,7 +1109,7 @@ describe("App", () => {
             id: "a1",
             title: "Comprar cimento",
             snippet: "",
-            workspace: "Tasks",
+            space: "Tasks",
             container: "Compras",
             done: false,
           },
@@ -1287,7 +1287,7 @@ describe("App", () => {
         },
         counts: {},
         conflicts: [],
-        workspaces: [],
+        spaces: [],
       },
       screen_to_restore: "list:jott.tasks/task-list.md",
       note_folders: ["Inbox"],
@@ -1324,8 +1324,8 @@ describe("App", () => {
     );
   });
 
-  test("the sidebar's right-click menu also sorts the workspaces", async () => {
-    shell({ workspaces_sort: "", set_workspaces_sort: null });
+  test("the sidebar's right-click menu also sorts the spaces", async () => {
+    shell({ spaces_sort: "", set_spaces_sort: null });
     render(App);
     await screen.findByText("Comprar leite");
 
@@ -1334,7 +1334,7 @@ describe("App", () => {
     await userEvent.click(await screen.findByText("Sort by name"));
 
     await waitFor(() =>
-      expect(invoke).toHaveBeenCalledWith("set_workspaces_sort", { sort: "name" }),
+      expect(invoke).toHaveBeenCalledWith("set_spaces_sort", { sort: "name" }),
     );
   });
 
@@ -1351,7 +1351,7 @@ describe("App", () => {
 
   test("once there is one, only the menu makes them", async () => {
     // Permanent buttons at the bottom of the list read as two more entries.
-    shell({ notebook_snapshot: snapshot([aWorkspace]) });
+    shell({ notebook_snapshot: snapshot([aSpace]) });
     render(App);
     await screen.findByText("Space");
     expect(screen.queryByRole("button", { name: "New list" })).toBeNull();
@@ -1377,12 +1377,12 @@ describe("App", () => {
       notebook_snapshot: snapshot(
         [inner],
         [
-          { folder: "Design", parent: null, name: "Design", workspaces: [] },
+          { folder: "Design", parent: null, name: "Design", spaces: [] },
           {
             folder: "Design/Clients",
             parent: "Design",
             name: "Clients",
-            workspaces: ["Design/Clients/Acme"],
+            spaces: ["Design/Clients/Acme"],
           },
         ],
       ),
@@ -1391,12 +1391,12 @@ describe("App", () => {
 
     await screen.findByText("Design");
     expect(screen.getByText("Clients")).toBeTruthy();
-    // The workspace is drawn inside the innermost level, not loose at the top.
-    const nested = document.querySelectorAll(".shell__workspaces--nested");
+    // The space is drawn inside the innermost level, not loose at the top.
+    const nested = document.querySelectorAll(".shell__spaces--nested");
     expect(nested.length).toBe(2);
     expect(within(nested[1]).getByText("Acme")).toBeTruthy();
 
-    // And it opens: the workspace's own screen names it, so "Acme" is on the
+    // And it opens: the space's own screen names it, so "Acme" is on the
     // page twice — once in the column, once as the title.
     await userEvent.click(within(nested[1]).getByText("Acme"));
     await waitFor(() => expect(screen.getAllByText("Acme").length).toBeGreaterThan(1));
@@ -1408,7 +1408,7 @@ describe("App", () => {
     // right-click menu since 2026-08-06 — a permanent button at the bottom of
     // the list read as one more entry. The menu names the two kinds outright
     // (user call, 2026-08-11): a list, or a notepad.
-    shell({ create_workspace: "My Project", notebook_snapshot: snapshot([aWorkspace]) });
+    shell({ create_space: "My Project", notebook_snapshot: snapshot([aSpace]) });
     render(App);
     await screen.findByText("Comprar leite");
 
@@ -1423,7 +1423,7 @@ describe("App", () => {
     await userEvent.click(within(dialog).getByRole("button", { name: "Create" }));
 
     await waitFor(() =>
-      expect(invoke).toHaveBeenCalledWith("create_workspace", {
+      expect(invoke).toHaveBeenCalledWith("create_space", {
         name: "My Project",
         kind: "tasks",
       }),
@@ -1431,11 +1431,11 @@ describe("App", () => {
   });
 });
 
-describe("WorkspaceView", () => {
-  // 2026-08-11: a workspace has ONE function (its type) and owns its files
+describe("SpaceView", () => {
+  // 2026-08-11: a space has ONE function (its type) and owns its files
   // directly — the screen renders the tasks/notes view by type, no widget
   // layer in between. An invented type still renders as the unsupported card.
-  const workspace = {
+  const space = {
     folderName: "Project A",
     path: "Project A",
     name: "Project A",
@@ -1447,26 +1447,26 @@ describe("WorkspaceView", () => {
     order: [],
   };
 
-  // Fixed file names in every tasks workspace (2026-08-13): the FOLDER says
-  // which workspace this is, the file never does.
+  // Fixed file names in every tasks space (2026-08-13): the FOLDER says
+  // which space this is, the file never does.
   const lists = [
-    { path: "Project A/task-list.md", name: "task-list", workspace: "Project A" },
-    { path: "Project A/completed.md", name: "completed", workspace: "Project A" },
-    { path: "jott.tasks/task-list.md", name: "task-list", workspace: "Tasks" },
+    { path: "Project A/task-list.md", name: "task-list", space: "Project A" },
+    { path: "Project A/completed.md", name: "completed", space: "Project A" },
+    { path: "jott.tasks/task-list.md", name: "task-list", space: "Tasks" },
   ];
 
-  test("renders the workspace's own screen by its type", async () => {
+  test("renders the space's own screen by its type", async () => {
     bridge({ list_tasks: [task("a1", "Comprar leite")] });
-    render(WorkspaceView, { props: { workspace, lists, counts: {}, onSelectTask: noop } });
+    render(SpaceView, { props: { space, lists, counts: {}, onSelectTask: noop } });
 
-    // The tasks screen shows the workspace's single list.
+    // The tasks screen shows the space's single list.
     expect(await screen.findByText("Comprar leite")).toBeTruthy();
   });
 
   test("an invented type is shown and named, never silently dropped", async () => {
-    const future = { ...workspace, kind: "hologram", known: false };
-    render(WorkspaceView, {
-      props: { workspace: future, lists, counts: {}, onSelectTask: noop },
+    const future = { ...space, kind: "hologram", known: false };
+    render(SpaceView, {
+      props: { space: future, lists, counts: {}, onSelectTask: noop },
     });
     expect(await screen.findByText('"hologram" widget')).toBeTruthy();
   });
@@ -1474,13 +1474,13 @@ describe("WorkspaceView", () => {
   test("the ⋮ menu offers the orderings and persists the choice", async () => {
     bridge({ list_tasks: [] });
     const sorts = [];
-    render(WorkspaceView, {
+    render(SpaceView, {
       props: {
-        workspace,
+        space,
         lists,
         counts: {},
         onSelectTask: noop,
-        onSetWorkspaceSort: (sort) => sorts.push(sort),
+        onSetSpaceSort: (sort) => sorts.push(sort),
       },
     });
     await screen.findAllByText("Project A");
@@ -1500,9 +1500,9 @@ describe("WorkspaceView", () => {
           ? []
           : [task("b", "banana"), task("a", "Amora")],
     });
-    render(WorkspaceView, {
+    render(SpaceView, {
       props: {
-        workspace: { ...workspace, sort: "name" },
+        space: { ...space, sort: "name" },
         lists,
         counts: {},
         onSelectTask: noop,
@@ -1526,9 +1526,9 @@ describe("WorkspaceView", () => {
           : [{ ...task("b", "banana"), pinned: true }, task("a", "Amora")],
       set_task_pinned: null,
     });
-    render(WorkspaceView, {
+    render(SpaceView, {
       props: {
-        workspace: { ...workspace, sort: "name" },
+        space: { ...space, sort: "name" },
         lists,
         counts: {},
         onSelectTask: noop,
@@ -1569,13 +1569,13 @@ describe("WorkspaceView", () => {
           : [task("a1", "Primeira"), task("b2", "Segunda")],
     });
     const orders = [];
-    const { container } = render(WorkspaceView, {
+    const { container } = render(SpaceView, {
       props: {
-        workspace,
+        space,
         lists,
         counts: {},
         onSelectTask: noop,
-        onSetWorkspaceOrder: (order) => orders.push(order),
+        onSetSpaceOrder: (order) => orders.push(order),
       },
     });
     await screen.findByText("Primeira");
@@ -1596,7 +1596,7 @@ describe("WorkspaceView", () => {
     await fireEvent.pointerMove(rows[0], { pointerId: 1, clientY: 75 });
     await fireEvent.pointerUp(rows[0], { pointerId: 1, clientY: 75 });
 
-    // The dragged arrangement goes to the workspace's .workspace.json, as
+    // The dragged arrangement goes to the space's .space.json, as
     // ids — never to the .md file.
     await waitFor(() => expect(orders).toEqual([["b2", "a1"]]));
   });
@@ -1611,13 +1611,13 @@ describe("WorkspaceView", () => {
           : [{ ...task("a1", "Primeira"), pinned: true }, task("b2", "Segunda")],
       set_task_pinned: null,
     });
-    const { container } = render(WorkspaceView, {
+    const { container } = render(SpaceView, {
       props: {
-        workspace,
+        space,
         lists,
         counts: {},
         onSelectTask: noop,
-        onSetWorkspaceOrder: noop,
+        onSetSpaceOrder: noop,
         onChanged: noop,
       },
     });
@@ -1653,9 +1653,9 @@ describe("WorkspaceView", () => {
           : [task("a1", "Primeira"), task("b2", "Segunda")],
       move_task: {},
     });
-    render(WorkspaceView, {
+    render(SpaceView, {
       props: {
-        workspace,
+        space,
         lists,
         counts: {},
         onSelectTask: noop,
@@ -1693,7 +1693,7 @@ describe("WorkspaceView", () => {
 
 });
 
-describe("App with a user workspace", () => {
+describe("App with a user space", () => {
   const notebook = {
     path: "/n",
     name: "n",
@@ -1730,7 +1730,7 @@ describe("App with a user workspace", () => {
         },
         counts: {},
         conflicts: [],
-        workspaces: [
+        spaces: [
           { folderName: "Home", path: "Home", name: "Home", kind: "home", known: true, fixed: true, readOnly: false, sort: null, order: [] },
           {
             folderName: "Project A",
@@ -1753,25 +1753,25 @@ describe("App with a user workspace", () => {
       grouped_suggestions: [],
     });
 
-  test("a user workspace appears in the sidebar and opens its screen", async () => {
+  test("a user space appears in the sidebar and opens its screen", async () => {
     shell();
     render(App);
 
-    // Fixed workspaces never show among the user's — Home has its own
-    // dedicated entry at the top. (The "Workspaces" section title was
+    // Fixed spaces never show among the user's — Home has its own
+    // dedicated entry at the top. (The "Spaces" section title was
     // removed by the user, 2026-08-04.)
     await screen.findByText("Project A");
 
     await userEvent.click(screen.getByText("Project A"));
-    // The workspace renders its own tasks screen, titled by the workspace.
+    // The space renders its own tasks screen, titled by the space.
     expect((await screen.findAllByText("Project A")).length).toBeGreaterThan(1);
 
     // Its lists are not flattened into the fixed sidebar.
     expect(screen.queryByRole("button", { name: /^Sprint/ })).toBeNull();
   });
 
-  test("opening a workspace loads its own list", async () => {
-    // A tasks workspace is one list (spec 3.5): opening the workspace loads
+  test("opening a space loads its own list", async () => {
+    // A tasks space is one list (spec 3.5): opening the space loads
     // that list's tasks — no intermediate list-name to click.
     shell();
     render(App);
@@ -2321,7 +2321,7 @@ describe("the New task popup", () => {
   // The blue button opens a centred dialog over a dimmed page (wireframe
   // "New task popup.pdf"). It only COMPOSES — the caller writes, which is why
   // the same dialog can pull into the day from a period screen and not from a
-  // workspace widget.
+  // space widget.
   //
   // It is driven by a STORE (services/dialog.js), so the dialog and the screen
   // that opens it are mounted side by side here rather than through App. Home
@@ -2428,7 +2428,7 @@ describe("App functions — switching a part of the app off", () => {
         },
         counts: {},
         conflicts: [],
-        workspaces: [],
+        spaces: [],
         groups: [],
         tags: [],
         day: [],
@@ -2517,7 +2517,7 @@ describe("App functions — switching a part of the app off", () => {
           } },
         clock: { today: "2026-07-21", weekStart: "2026-07-20",
           nextDailyTurn: "2026-07-22T00:00:00Z", nextWeeklyTurn: "2026-07-27T00:00:00Z" },
-        counts: {}, conflicts: [], workspaces: [], groups: [], tags: [], day: [],
+        counts: {}, conflicts: [], spaces: [], groups: [], tags: [], day: [],
       },
       screen_to_restore: "list:jott.tasks/task-list.md",
       note_folders: [],
@@ -2572,7 +2572,7 @@ describe("the sun that says a task is in today", () => {
         },
         counts: {},
         conflicts: [],
-        workspaces: [],
+        spaces: [],
         groups: [],
         tags: [],
         // "Comprar leite" is in today; "Pagar boleto" is not.
@@ -2647,7 +2647,7 @@ describe("the suggestions panel", () => {
         },
         counts: {},
         conflicts: [],
-        workspaces: [],
+        spaces: [],
       },
       screen_to_restore: "home",
       note_folders: [],
@@ -2657,8 +2657,8 @@ describe("the suggestions panel", () => {
     });
 
   const suggestions = [
-    { path: "jott.tasks/Compras.md", workspace: "Tasks", task: task("b2", "Vencida", { due: "2026-07-05" }), group: "urgent" },
-    { path: "jott.tasks/Compras.md", workspace: "Tasks", task: task("c3", "Tranquila"), group: "lists" },
+    { path: "jott.tasks/Compras.md", space: "Tasks", task: task("b2", "Vencida", { due: "2026-07-05" }), group: "urgent" },
+    { path: "jott.tasks/Compras.md", space: "Tasks", task: task("c3", "Tranquila"), group: "lists" },
   ];
 
   test("the pill fills the right panel, grouped, and a row pulls", async () => {
@@ -2677,7 +2677,7 @@ describe("the suggestions panel", () => {
 
     expect(await screen.findByText("Suggestions for today")).toBeTruthy();
     expect(screen.getByText("Urgent")).toBeTruthy();
-    // "From the lists" is gone: each list has its own heading now, workspace
+    // "From the lists" is gone: each list has its own heading now, space
     // in front (user call, 2026-08-06).
     expect(screen.queryByText("From the lists")).toBeNull();
     const pane = document.querySelector(".suggestions-pane");
@@ -2853,7 +2853,7 @@ describe("App shell with tabs", () => {
         },
         counts: {},
         conflicts: [],
-        workspaces: [],
+        spaces: [],
       },
       screen_to_restore: null,
       note_folders: ["Inbox"],

@@ -6,7 +6,7 @@
   // only ever lists.
   //
   // Etapa 1 (2026-08-04): the widget owns its arrangement — `sort` + `order`
-  // in its `.workspace.json`, chosen in the ⋮ menu or by dragging a card on the
+  // in its `.space.json`, chosen in the ⋮ menu or by dragging a card on the
   // board (the same contract the tasks widget keeps).
   import { api } from "../services/api.js";
   import { S } from "../services/strings.js";

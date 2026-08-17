@@ -45,7 +45,7 @@ pub struct SearchHit {
     /// A task: the list's root-relative address (`jott.tasks/task-list.md`).
     /// A note: its address inside `folder`, which is what `read_note` takes.
     pub path: String,
-    /// A note: the notes workspace this `path` is relative to. Empty for a
+    /// A note: the notes space this `path` is relative to. Empty for a
     /// task, whose `path` is already root-relative.
     pub folder: String,
     /// The task's id, when it has earned one. Notes never have one.
@@ -56,11 +56,11 @@ pub struct SearchHit {
     /// title — a description line, a subtask, the note's body. Empty when the
     /// title itself is the match.
     pub snippet: String,
-    /// The workspace's readable address (`Design/Tasks`), as `ListEntry`
+    /// The space's readable address (`Design/Tasks`), as `ListEntry`
     /// reports it. Never derived from the path on the other side.
-    pub workspace: String,
+    pub space: String,
     /// What holds it, as the user reads it: the list's name for a task, the
-    /// folder's for a note (empty at a notes workspace's root).
+    /// folder's for a note (empty at a notes space's root).
     pub container: String,
     /// A completed task. Shown, but after the open ones.
     pub done: bool,

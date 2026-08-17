@@ -91,10 +91,10 @@
     }
     return [...out].map(([path, items]) => {
       // The address the core hands over, never the folder or the file stem:
-      // the fixed workspaces are filed as `jott.*` and read as Home, Tasks and
+      // the fixed spaces are filed as `jott.*` and read as Home, Tasks and
       // Notes, and since 2026-08-13 every tasks list is called `task-list.md`,
       // so the stem names nothing. Split so the heading can draw the group in
-      // the quieter grey and the workspace in the louder one.
+      // the quieter grey and the space in the louder one.
       const { context, name } = splitLabel(items[0] ?? { path });
       return { key: `list:${path}`, label: name, context, items };
     });

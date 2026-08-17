@@ -1,5 +1,5 @@
 // Drag-to-reorder, as one reusable Svelte action — the single capability the
-// tabs, subtasks, tasks, notes, lists and workspaces all reorder through.
+// tabs, subtasks, tasks, notes, lists and spaces all reorder through.
 //
 // Pointer-based, never native drag-and-drop: HTML5 DnD in WebKitGTK paints a
 // red "no-drop" cursor over every gap the pointer crosses, and no amount of
@@ -30,7 +30,7 @@
 //
 //   `onDropInto`  — the middle of an item is a target of its own, drawn as a
 //                   ring around it instead of a gap beside it. It is how a
-//                   workspace dropped ON another makes a group of the two.
+//                   space dropped ON another makes a group of the two.
 //   `dropZones`   — elements OUTSIDE this list that can receive the carried
 //                   item, as `() => elements`. Reordering is per container,
 //                   and a sidebar of nested groups is many containers: without
@@ -41,7 +41,7 @@
 //                   "released clear of the list": the pointer is not nowhere,
 //                   it is on that group.
 //   `onDragOut`   — released clear of the container, the item is asking to
-//                   LEAVE it. A workspace dragged out of a group is how it
+//                   LEAVE it. A space dragged out of a group is how it
 //                   stops being a member; without it, joining would be a one
 //                   way door. While the pointer is out there the carried item
 //                   says so (`.reorder-item--leaving`) and the list it is
@@ -223,7 +223,7 @@ export function reorderable(node, params) {
 
     // Out of the container altogether: it is leaving, not moving within. Say
     // so on the carried item and stop pretending there is a slot for it here
-    // (user report, 2026-08-06 — dragging a workspace out of a group gave no
+    // (user report, 2026-08-06 — dragging a space out of a group gave no
     // sign of what would happen).
     drag.leaving = !!opts.onDragOut && outside(e);
     drag.el.classList.toggle("reorder-item--leaving", drag.leaving);

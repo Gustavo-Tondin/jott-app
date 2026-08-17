@@ -3,7 +3,7 @@
   //
   // Both used to be a screen of their own, with their own card list, their own
   // add-a-task form and their own suggestions panel. Since 2026-08-06 they are
-  // the SAME widget the Home and a workspace draw, told to read the day or the
+  // the SAME widget the Home and a space draw, told to read the day or the
   // week instead of a folder (`period`). What is left here is the frame: which
   // period, and the props the widget needs.
   //

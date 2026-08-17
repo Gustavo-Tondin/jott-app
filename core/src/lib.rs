@@ -22,12 +22,12 @@ pub mod recurrence;
 pub mod relpath;
 pub mod rollover;
 pub mod search;
+pub mod space;
 pub mod state;
 pub mod tags;
 pub mod task;
 pub mod trash;
 pub mod watcher;
-pub mod workspace;
 
 pub use clock::{TurnOffset, WeekStart};
 pub use config::{Config, Rollover, RolloverMode};
@@ -36,47 +36,47 @@ pub use error::{Error, Result};
 pub use list::{Line, TaskList};
 pub use notebook::{ListedTask, Notebook, OriginAction};
 pub use search::{HitKind, SearchHit, SearchResults};
+pub use space::{Group, GroupEntry, Space, SpaceConfig};
 pub use state::{Period, PeriodState, StateFile, TaskRef};
 pub use watcher::{Change, NotebookWatcher};
 pub use note::Note;
 pub use notefolder::{NoteEntry, NoteFolder};
 pub use task::Task;
-pub use workspace::{Group, GroupEntry, Workspace, WorkspaceConfig};
 
 /// Name of the hidden config directory inside a notebook.
 /// Equivalent to Obsidian's `.obsidian`.
 pub const NOTEBOOK_CONFIG_DIR: &str = ".jott";
 
-// The three workspaces the app creates and recreates carry a `jott.` prefix
+// The three spaces the app creates and recreates carry a `jott.` prefix
 // (2026-08-11). They are the app's own folders, and saying so in the name is
-// what frees the words a user actually wants — a workspace called "Tasks" or
+// what frees the words a user actually wants — a space called "Tasks" or
 // "Notes" is now theirs to make. No leading dot: these are content folders,
 // and hiding the user's own tasks would be a strange way to own them.
 
-/// Directory of the fixed tasks workspace.
+/// Directory of the fixed tasks space.
 pub const TASKS_DIR: &str = "jott.tasks";
 
-/// Directory of the fixed notes workspace.
+/// Directory of the fixed notes space.
 pub const NOTES_DIR: &str = "jott.notes";
 
-/// Directory of the fixed Home workspace (views only, no files of its own).
+/// Directory of the fixed Home space (views only, no files of its own).
 pub const HOME_DIR: &str = "jott.home";
 
-// A tasks workspace's two files have FIXED names (user call, 2026-08-13).
+// A tasks space's two files have FIXED names (user call, 2026-08-13).
 //
 // They used to be named after the folder — `Work/` held `Work.md` — which
-// made the file name a second copy of the workspace's name, and a copy drifts:
-// renaming the workspace in the app left `Work.md` behind, and from then on
+// made the file name a second copy of the space's name, and a copy drifts:
+// renaming the space in the app left `Work.md` behind, and from then on
 // the app showed one name and the disk another. There is no rename dance now
-// and nothing to guess: the FOLDER names the workspace, the files never move.
+// and nothing to guess: the FOLDER names the space, the files never move.
 //
-// The cost, deliberately accepted: every tasks workspace has a `task-list.md`,
+// The cost, deliberately accepted: every tasks space has a `task-list.md`,
 // so ten of them are ten identically-named files in an editor's tab bar or
 // fuzzy finder — the folder is what tells them apart. The name is hyphenated
 // and lowercase to read as the app's structure rather than as a title the user
 // wrote.
 
-/// The single list of a tasks workspace, in every one of them.
+/// The single list of a tasks space, in every one of them.
 pub const MAIN_LIST: &str = "task-list";
 
 /// List holding completed tasks, recreated whenever the notebook is opened.

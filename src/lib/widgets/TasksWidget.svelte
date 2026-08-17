@@ -1,6 +1,6 @@
 <script>
   // The `tasks` widget — the one block of tasks this app draws, anywhere it
-  // draws tasks: inside a workspace, as the Home's "Today tasks", and as each
+  // draws tasks: inside a space, as the Home's "Today tasks", and as each
   // tab of the fixed Tasks screen.
   //
   // Three props are what let the fixed screens host it instead of copying it
@@ -75,7 +75,7 @@
     /// Where a composed task goes by default when the widget has no list of
     /// its own — the notebook's Inbox, for a period source.
     defaultList = null,
-    // Persist the widget's arrangement in its `.workspace.json` (the host binds
+    // Persist the widget's arrangement in its `.space.json` (the host binds
     // these to the widget's folder; the widget only reports).
     onSetSort,
     onSetOrder,
@@ -97,7 +97,7 @@
   let open = $state([]);
   let done = $state([]);
   let showCompleted = $state(false);
-  /// A period's arrangement: it has no `.workspace.json`, so the notebook keeps it
+  /// A period's arrangement: it has no `.space.json`, so the notebook keeps it
   /// (2026-08-06) and the widget reads it with the tasks.
   let periodSort = $state(null);
 
@@ -159,7 +159,7 @@
   // Same shape whatever the source; only where the preference is kept differs.
   // A period's "file order" is the order things were pulled in — the state
   // file's own — and dragging rewrites exactly that, so a period never needs
-  // the `custom` ordering the folder widget keeps in its `.workspace.json`.
+  // the `custom` ordering the folder widget keeps in its `.space.json`.
   const accessors = {
     nameOf: (entry) => entry.task.text,
     createdOf: (entry) => entry.task.created,
@@ -176,7 +176,7 @@
   let shown = $derived(pinnedFirst(arrange(open, sort, order, accessors), isPinned));
   let shownCompleted = $derived(arrange(done, sort, order, accessors));
 
-  // A period has no `.workspace.json` and no folder, so it offers neither an
+  // A period has no `.space.json` and no folder, so it offers neither an
   // arrangement nor a move — `widgetMenu` leaves out what it is not given.
   let sortMenu = $derived(
     widgetMenu({
@@ -232,7 +232,7 @@
   };
 
   // Where a picked task can move — any tasks list of the notebook except this
-  // workspace's own and the Completed files.
+  // space's own and the Completed files.
   let listTargets = $derived(composeTargets.filter((entry) => entry.path !== paths.list));
 
   // Ids are resolved BEFORE the first move/delete: each mutation shifts the
@@ -412,9 +412,9 @@
             >
               <option value="" disabled selected>{S.moveTo}</option>
               {#each listTargets as target (target.path)}
-                <!-- The workspace's readable address, like the other two
+                <!-- The space's readable address, like the other two
                      pickers (services/paths.js). A <select> cannot show the
-                     group and the workspace in different greys, but it can at
+                     group and the space in different greys, but it can at
                      least stop reading like a file path. -->
                 <option value={target.path}>{listLabel(target)}</option>
               {/each}

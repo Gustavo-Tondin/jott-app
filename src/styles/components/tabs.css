@@ -70,7 +70,7 @@
     font-weight: var(--theme-weight-bold);
   }
 
-  /* The workspace dot: the colour of the workspace the tab's view comes from
+  /* The space dot: the colour of the space the tab's view comes from
      (per-tab --tab-color, set inline), the theme brand when it comes from a
      fixed one. Full strength on every tab (2026-08-13 wireframe) — the dot is
      the only thing naming WHERE a closed tab comes from, and fading it left

@@ -8,12 +8,12 @@
 //! │   ├── config.json
 //! │   ├── daily-state.json
 //! │   └── weekly-state.json
-//! ├── Tasks/                ← fixed workspace, type `tasks`
-//! │   ├── .workspace.json
+//! ├── Tasks/                ← fixed space, type `tasks`
+//! │   ├── .space.json
 //! │   ├── Tasks.md
 //! │   └── Completed.md
-//! ├── Notes/                ← fixed workspace, type `notes`
-//! └── Design/               ← a group, holding workspaces
+//! ├── Notes/                ← fixed space, type `notes`
+//! └── Design/               ← a group, holding spaces
 //!     └── Clients/
 //! ```
 //!
@@ -91,8 +91,8 @@ const SOON_WINDOW_DAYS: i64 = 3;
 #[serde(rename_all = "camelCase")]
 pub struct Suggestion {
     pub path: String,
-    /// The workspace holding it, as the user reads it (see [`ListEntry`]).
-    pub workspace: String,
+    /// The space holding it, as the user reads it (see [`ListEntry`]).
+    pub space: String,
     pub task: Task,
     pub group: SuggestionGroup,
 }
@@ -106,16 +106,16 @@ pub struct ListEntry {
     pub path: String,
     /// The file stem (`Compras`) — what the user reads.
     pub name: String,
-    /// Where it lives, as the user reads it: the workspace's **readable
+    /// Where it lives, as the user reads it: the space's **readable
     /// address** — `Design/Tasks` inside a group, `Mercado` when loose, and
     /// `Tasks` for the fixed one whose folder is `jott.tasks` (2026-08-13).
     ///
-    /// Never derived in the frontend. The three fixed workspaces live in
+    /// Never derived in the frontend. The three fixed spaces live in
     /// `jott.*` folders so the plain names stay free for the user, and the
     /// interface has always called them Home, Tasks and Notes — deriving this
     /// from the path on the other side would put the folder on screen
     /// (2026-08-11).
-    pub workspace: String,
+    pub space: String,
 }
 
 /// Splits a root-relative list address into folder part and list name:
@@ -130,7 +130,7 @@ fn split_list_path(path: &str) -> Result<(&str, &str)> {
     let invalid = || Error::InvalidListName(path.to_string());
 
     let stem = path.strip_suffix(".md").ok_or_else(invalid)?;
-    // A list always lives inside a workspace folder, never at the root.
+    // A list always lives inside a space folder, never at the root.
     let (dir, name) = stem.rsplit_once('/').ok_or_else(invalid)?;
 
     // Each component has to stand on its own — the canonical predicate, so the
@@ -157,15 +157,15 @@ fn cleared_to_none(value: &str) -> Option<String> {
 
 /// Reads a marked node's config, edits it, and writes it back.
 ///
-/// A workspace and a group carry the **same** [`WorkspaceConfig`] — name,
+/// A space and a group carry the **same** [`SpaceConfig`] — name,
 /// colour, icon — under different file names, so renaming one and renaming the
 /// other were the same three lines twice, as were the two appearance setters.
 /// Only the path differs, so only the path is a parameter.
 fn edit_marked_config(
     path: PathBuf,
-    edit: impl FnOnce(&mut crate::workspace::WorkspaceConfig),
+    edit: impl FnOnce(&mut crate::space::SpaceConfig),
 ) -> Result<()> {
-    let mut config = crate::workspace::WorkspaceConfig::load(&path);
+    let mut config = crate::space::SpaceConfig::load(&path);
     edit(&mut config);
     config.save(path)
 }
@@ -209,9 +209,9 @@ impl Notebook {
         // A notebook written by a newer app is opened for reading only, so
         // nothing here may touch the disk.
         if !notebook.is_read_only() {
-            // `ensure_fixed_workspaces` now creates the fixed widgets and their
+            // `ensure_fixed_spaces` now creates the fixed widgets and their
             // default lists inside `Inbox/`; no separate root-level defaults.
-            notebook.ensure_fixed_workspaces()?;
+            notebook.ensure_fixed_spaces()?;
             notebook.write_format_guide()?;
             // Clear expired trash and rebuild the aggregated Completed index —
             // both derived, so a failure here must not stop the notebook opening.
@@ -237,35 +237,35 @@ impl Notebook {
             config: Config::default(),
         };
         notebook.config.save(notebook.config_path())?;
-        notebook.ensure_fixed_workspaces()?;
+        notebook.ensure_fixed_spaces()?;
         notebook.write_format_guide()?;
         Ok(notebook)
     }
 
-    /// Recreates the three fixed workspaces — Home, Tasks, Notes — when their
+    /// Recreates the three fixed spaces — Home, Tasks, Notes — when their
     /// folder or marker is missing. Called on init and on every open, same
     /// treatment the default lists get: the user may delete things outside
     /// the app, and the app must not break.
     ///
     /// Only the **markers** are recreated; the contents of the folders are
-    /// never touched. A `.workspace.json` the user edited is left exactly as
+    /// never touched. A `.space.json` the user edited is left exactly as
     /// it is — recreating is not rewriting.
-    fn ensure_fixed_workspaces(&self) -> Result<()> {
-        use crate::workspace::WORKSPACE_CONFIG_FILE;
+    fn ensure_fixed_spaces(&self) -> Result<()> {
+        use crate::space::SPACE_CONFIG_FILE;
 
         // Recreate a marker only when missing — never rewrite an existing one
         // (recreating is not rewriting: it must not clobber a user's edits).
         //
         // The one thing it does complete: a fixed marker with no `type`. The
-        // three fixed workspaces are the app's own, and their function is not
-        // a user choice — Tasks is a tasks workspace, always. Without this a
+        // three fixed spaces are the app's own, and their function is not
+        // a user choice — Tasks is a tasks space, always. Without this a
         // marker written before `type` existed opens as "unsupported", which
-        // is a lie about a folder the app itself created. A USER workspace is
+        // is a lie about a folder the app itself created. A USER space is
         // never touched: there, the type is a decision, and guessing it would
         // be inventing one.
         let ensure_marker = |dir: &std::path::Path, kind: &str, label: &str| -> Result<()> {
             std::fs::create_dir_all(dir).ctx(dir)?;
-            let marker = dir.join(WORKSPACE_CONFIG_FILE);
+            let marker = dir.join(SPACE_CONFIG_FILE);
             if !marker.exists() {
                 let body = format!(
                     "{{\n  \"schemaVersion\": 1,\n  \"type\": \"{kind}\",\n  \
@@ -273,14 +273,14 @@ impl Notebook {
                 );
                 return crate::fsio::write_atomically(&marker, body.as_bytes());
             }
-            let mut config = crate::workspace::WorkspaceConfig::load(&marker);
+            let mut config = crate::space::SpaceConfig::load(&marker);
             if config.is_read_only() {
                 return Ok(());
             }
             // The display name is what the interface has always shown for
             // these three, and it is NOT the folder — the folder carries the
             // app's `jott.` prefix. Filled only when absent: a fixed
-            // workspace the user renamed keeps the name they gave it.
+            // space the user renamed keeps the name they gave it.
             let fill_name = config.name.is_none();
             if config.kind.is_empty() || fill_name {
                 if config.kind.is_empty() {
@@ -298,7 +298,7 @@ impl Notebook {
         // Home: pure views, no files of its own.
         ensure_marker(&self.root.join(crate::HOME_DIR), "home", "Home")?;
 
-        // Tasks and Notes: a typed workspace that owns its files directly —
+        // Tasks and Notes: a typed space that owns its files directly —
         // the tasks one is a single list plus its Completed (spec 3.5, no
         // widget layer).
         for (ws_name, wtype, label) in [
@@ -373,7 +373,7 @@ impl Notebook {
         )
     }
 
-    /// The root-relative address of the fixed Tasks workspace's list — where
+    /// The root-relative address of the fixed Tasks space's list — where
     /// quick-captured tasks land.
     pub fn inbox_path() -> String {
         format!("{TASKS_DIR}/{}.md", crate::MAIN_LIST)
@@ -381,7 +381,7 @@ impl Notebook {
 
     /// The address of the Completed list that serves `list_path` — the one in
     /// the **same folder** (spec 3.5: one Completed per tasks widget, so a
-    /// completed task never leaves the workspace it lived in).
+    /// completed task never leaves the space it lived in).
     pub fn completed_path_of(list_path: &str) -> Result<String> {
         let (dir, _) = split_list_path(list_path)?;
         Ok(format!("{dir}/{COMPLETED_LIST}.md"))
@@ -398,46 +398,46 @@ impl Notebook {
 
     /// A tasks folder for `dir`. Every one of them is the same shape now
     /// (2026-08-13): `task-list.md` beside `completed.md`, whatever the folder
-    /// is called. The fixed Tasks workspace used to be the exception — it
+    /// is called. The fixed Tasks space used to be the exception — it
     /// lives in `jott.tasks/` and had to be TOLD its list was `Tasks.md`,
     /// because the folder name could not say it.
     fn task_folder(&self, dir: PathBuf) -> crate::folder::TaskFolder {
         crate::folder::TaskFolder::new(dir)
     }
 
-    /// Every tasks workspace's folder in the notebook, with its root-relative
+    /// Every tasks space's folder in the notebook, with its root-relative
     /// prefix. This is the walk behind lists, counts, conflicts and
     /// suggestions — one definition of "where tasks live", not four.
     fn task_folders(&self) -> Result<Vec<(String, crate::folder::TaskFolder)>> {
         Ok(self
-            .typed_workspace_dirs("tasks")?
+            .typed_space_dirs("tasks")?
             .into_iter()
             .map(|(prefix, dir)| (prefix, self.task_folder(dir)))
             .collect())
     }
 
-    /// Every notes workspace's folder in the notebook, with its root-relative
+    /// Every notes space's folder in the notebook, with its root-relative
     /// prefix — the notes counterpart of [`Notebook::task_folders`].
     pub fn note_folders(&self) -> Result<Vec<(String, crate::notefolder::NoteFolder)>> {
         Ok(self
-            .typed_workspace_dirs("notes")?
+            .typed_space_dirs("notes")?
             .into_iter()
             .map(|(prefix, dir)| (prefix, crate::notefolder::NoteFolder::new(dir)))
             .collect())
     }
 
-    /// Every workspace folder of a given type, as (root-relative prefix,
+    /// Every space folder of a given type, as (root-relative prefix,
     /// absolute dir). The walk behind both folder listings above — they
     /// differ only in the type they ask for and the folder value they build,
-    /// so the walk itself is written once. A workspace is its own content
+    /// so the walk itself is written once. A space is its own content
     /// folder now: the widget level between them was cut (2026-08-11).
-    fn typed_workspace_dirs(&self, kind: &str) -> Result<Vec<(String, PathBuf)>> {
+    fn typed_space_dirs(&self, kind: &str) -> Result<Vec<(String, PathBuf)>> {
         let mut found = Vec::new();
-        for workspace in self.workspaces()? {
-            if workspace.kind() != kind {
+        for space in self.spaces()? {
+            if space.kind() != kind {
                 continue;
             }
-            let dir = workspace.root().to_path_buf();
+            let dir = space.root().to_path_buf();
             found.push((crate::relpath::relative_slash(&self.root, &dir), dir));
         }
         Ok(found)
@@ -452,13 +452,13 @@ impl Notebook {
             .ok_or_else(|| Error::InvalidNotePath(prefix.to_string()))
     }
 
-    /// The lists of the notebook, across every workspace's tasks widgets.
+    /// The lists of the notebook, across every space's tasks widgets.
     /// Sorted by name, which is what a sidebar shows.
     pub fn lists(&self) -> Result<Vec<ListEntry>> {
-        let labels = self.workspace_labels()?;
+        let labels = self.space_labels()?;
         let mut entries: Vec<ListEntry> = Vec::new();
         for (prefix, folder) in self.task_folders()? {
-            let workspace = labels
+            let space = labels
                 .get(&prefix)
                 .cloned()
                 .unwrap_or_else(|| prefix.clone());
@@ -466,7 +466,7 @@ impl Notebook {
                 entries.push(ListEntry {
                     path: format!("{prefix}/{name}.md"),
                     name,
-                    workspace: workspace.clone(),
+                    space: space.clone(),
                 });
             }
         }
@@ -485,7 +485,7 @@ impl Notebook {
                 .cmp(&folder_of(&b.path))
                 .then_with(|| a.name.cmp(&b.name))
         });
-        // The same helper the workspaces go through — the "manual order lives in
+        // The same helper the spaces go through — the "manual order lives in
         // the config" rule has one implementation, applied here once per folder.
         for run in entries.chunk_by_mut(|a, b| folder_of(&a.path) == folder_of(&b.path)) {
             let namespace = format!("lists:{}", folder_of(&run[0].path));
@@ -495,7 +495,7 @@ impl Notebook {
     }
 
     /// How many open tasks each list has, keyed by address, across every
-    /// workspace's tasks widgets.
+    /// space's tasks widgets.
     pub fn open_task_counts(&self) -> Result<BTreeMap<String, usize>> {
         let mut counts = BTreeMap::new();
         for (prefix, folder) in self.task_folders()? {
@@ -578,19 +578,19 @@ impl Notebook {
         Ok(id)
     }
 
-    /// The fixed workspace's inbox.
+    /// The fixed space's inbox.
     pub fn inbox(&self) -> Result<TaskList> {
         self.open_list(&Self::inbox_path())
     }
 
     /// Whether a list is one the app protects: the folder's main list (the
-    /// workspace *is* that list, spec 3.5) and its Completed. Both come back
+    /// space *is* that list, spec 3.5) and its Completed. Both come back
     /// on every open, and neither can be renamed or deleted.
     fn is_protected_list(folder: &crate::folder::TaskFolder, name: &str) -> bool {
         name == COMPLETED_LIST || name == folder.main_list_name()
     }
 
-    /// Creates a new list inside `folder` (a root-relative workspace folder,
+    /// Creates a new list inside `folder` (a root-relative space folder,
     /// e.g. `Tasks`). Fails if one with that name already exists.
     pub fn create_list(&self, folder: &str, name: &str) -> Result<TaskList> {
         self.ensure_writable()?;
@@ -610,35 +610,35 @@ impl Notebook {
         TaskList::load(path)
     }
 
-    /// The three workspaces the app creates and recreates — never renamed,
+    /// The three spaces the app creates and recreates — never renamed,
     /// deleted, nor treated as user content. They carry the `jott.` prefix, so
     /// the plain names (`Tasks`, `Notes`, `Home`) are the user's to take.
-    fn is_fixed_workspace(folder: &str) -> bool {
+    fn is_fixed_space(folder: &str) -> bool {
         folder == crate::HOME_DIR || folder == TASKS_DIR || folder == NOTES_DIR
     }
 
-    /// Validates a workspace folder name (user input): a safe single component,
+    /// Validates a space folder name (user input): a safe single component,
     /// not hidden. Shared by create and open.
-    fn check_workspace_name(name: &str) -> Result<()> {
+    fn check_space_name(name: &str) -> Result<()> {
         if !crate::relpath::is_safe_leaf(name) {
-            return Err(Error::InvalidWorkspaceName(name.to_string()));
+            return Err(Error::InvalidSpaceName(name.to_string()));
         }
         Ok(())
     }
 
-    /// Creates a user workspace at the root: a folder carrying a
-    /// `.workspace.json` with the chosen type (`tasks` or `notes`) — the
-    /// workspace's single function, chosen at creation and never changed
-    /// (spec 3.5). A tasks workspace is born usable: its list (named after
+    /// Creates a user space at the root: a folder carrying a
+    /// `.space.json` with the chosen type (`tasks` or `notes`) — the
+    /// space's single function, chosen at creation and never changed
+    /// (spec 3.5). A tasks space is born usable: its list (named after
     /// the folder) and its `Completed.md`. Returns the folder name.
-    pub fn create_workspace(&self, name: &str, kind: &str) -> Result<String> {
-        self.create_workspace_in(name, kind, None)
+    pub fn create_space(&self, name: &str, kind: &str) -> Result<String> {
+        self.create_space_in(name, kind, None)
     }
 
-    /// Creates a workspace at the root or inside a group. The folder name is
-    /// the identity — unique across the notebook (spec 3.5), so a workspace
+    /// Creates a space at the root or inside a group. The folder name is
+    /// the identity — unique across the notebook (spec 3.5), so a space
     /// in a group is addressed the same as one at the root. Returns the name.
-    pub fn create_workspace_in(
+    pub fn create_space_in(
         &self,
         name: &str,
         kind: &str,
@@ -646,31 +646,31 @@ impl Notebook {
     ) -> Result<String> {
         self.ensure_writable()?;
         if !["tasks", "notes"].contains(&kind) {
-            return Err(Error::InvalidWorkspaceName(format!(
-                "unknown workspace type {kind:?}"
+            return Err(Error::InvalidSpaceName(format!(
+                "unknown space type {kind:?}"
             )));
         }
         let parent = match into_group {
             Some(group) => self.open_group(group)?.0,
             None => self.root.clone(),
         };
-        let config = crate::workspace::WorkspaceConfig::new(kind);
+        let config = crate::space::SpaceConfig::new(kind);
         let folder = self.create_marked_folder(
             name,
             &parent,
-            crate::workspace::WORKSPACE_CONFIG_FILE,
+            crate::space::SPACE_CONFIG_FILE,
             &config.render(),
         )?;
         if kind == "tasks" {
             // Born usable: its one list and the Completed beside it, under the
-            // names every tasks workspace uses (2026-08-13).
-            let dir = self.resolve_workspace_path(&folder)?;
+            // names every tasks space uses (2026-08-13).
+            let dir = self.resolve_space_path(&folder)?;
             crate::folder::TaskFolder::new(dir).ensure_default_lists()?;
         }
         Ok(folder)
     }
 
-    /// Creates a folder that carries a marker — a workspace or a group.
+    /// Creates a folder that carries a marker — a space or a group.
     ///
     /// Creating either is the same act: a name that has to be a safe leaf, free
     /// across the whole notebook (spec 3.5 — the leaf name *is* the identity),
@@ -685,17 +685,17 @@ impl Notebook {
         body: &str,
     ) -> Result<String> {
         let folder = name.trim();
-        Self::check_workspace_name(folder)?;
-        // A workspace called `completed` used to be refused, because its list
+        Self::check_space_name(folder)?;
+        // A space called `completed` used to be refused, because its list
         // was named after its folder and would have collided with its own
         // `completed.md`. Fixed file names removed the collision, but the name
         // is still refused: a folder and a file called the same thing inside it
         // is a trap for whoever opens the notebook without the app.
-        if Self::is_fixed_workspace(folder)
+        if Self::is_fixed_space(folder)
             || folder.eq_ignore_ascii_case(COMPLETED_LIST)
             || folder.eq_ignore_ascii_case(crate::MAIN_LIST)
         {
-            return Err(Error::InvalidWorkspaceName(format!("{folder} is reserved")));
+            return Err(Error::InvalidSpaceName(format!("{folder} is reserved")));
         }
         // Free HERE, not notebook-wide (2026-08-13). A name had to be unique
         // across the whole notebook while the leaf was the identity; now the
@@ -704,50 +704,50 @@ impl Notebook {
         // one: a sibling of the same name.
         let dir = parent.join(folder);
         if dir.exists() {
-            return Err(Error::InvalidWorkspaceName(format!("{folder} already exists")));
+            return Err(Error::InvalidSpaceName(format!("{folder} already exists")));
         }
         std::fs::create_dir_all(&dir).ctx(&dir)?;
         crate::fsio::write_atomically(&dir.join(marker), body.as_bytes())?;
         // The PATH, not the leaf: it is the address the caller will open the
-        // new workspace by, and inside a group the leaf is not enough.
+        // new space by, and inside a group the leaf is not enough.
         Ok(crate::relpath::relative_slash(&self.root, &dir))
     }
 
-    /// Changes a workspace's own `.workspace.json`, through the same tolerant
+    /// Changes a space's own `.space.json`, through the same tolerant
     /// config type discovery reads.
-    fn with_workspace_config(
+    fn with_space_config(
         &self,
         folder: &str,
-        change: impl FnOnce(&mut crate::workspace::WorkspaceConfig),
+        change: impl FnOnce(&mut crate::space::SpaceConfig),
     ) -> Result<()> {
         self.ensure_writable()?;
-        let ws = self.open_workspace(folder)?;
-        let path = ws.config_path();
-        let mut config = ws.config;
+        let sp = self.open_space(folder)?;
+        let path = sp.config_path();
+        let mut config = sp.config;
         change(&mut config);
         config.save(path)
     }
 
-    /// Persists how a workspace arranges its items (`name` / `created` /
-    /// `completed` / `custom`, `None` = file order) in its `.workspace.json`.
-    pub fn set_workspace_sort(&self, folder: &str, sort: Option<&str>) -> Result<()> {
-        self.with_workspace_config(folder, |config| {
+    /// Persists how a space arranges its items (`name` / `created` /
+    /// `completed` / `custom`, `None` = file order) in its `.space.json`.
+    pub fn set_space_sort(&self, folder: &str, sort: Option<&str>) -> Result<()> {
+        self.with_space_config(folder, |config| {
             config.sort = sort.map(str::to_string);
         })
     }
 
     /// Persists the hand-dragged arrangement (task ids / note paths) in the
-    /// workspace's `.workspace.json` and switches it to the custom ordering —
+    /// space's `.space.json` and switches it to the custom ordering —
     /// the order lives in the config, never in the content files.
-    pub fn set_workspace_order(&self, folder: &str, order: Vec<String>) -> Result<()> {
-        self.with_workspace_config(folder, |config| {
+    pub fn set_space_order(&self, folder: &str, order: Vec<String>) -> Result<()> {
+        self.with_space_config(folder, |config| {
             config.sort = Some("custom".to_string());
             config.order = order;
         })
     }
 
-    /// Opens an existing user workspace by its folder name.
-    /// Opens a workspace by its **root-relative path** (`Mercado`,
+    /// Opens an existing user space by its folder name.
+    /// Opens a space by its **root-relative path** (`Mercado`,
     /// `Design/Tasks`).
     ///
     /// The path, not the leaf name (2026-08-13). The leaf used to be the
@@ -758,16 +758,16 @@ impl Notebook {
     /// with two matches it silently opened the first — and the sidebar
     /// highlighted BOTH, because both answered to the same address (user
     /// report, screen recording 2026-08-13).
-    fn open_workspace(&self, path: &str) -> Result<crate::workspace::Workspace> {
-        let dir = self.resolve_workspace_path(path)?;
-        crate::workspace::Workspace::open(dir)
+    fn open_space(&self, path: &str) -> Result<crate::space::Space> {
+        let dir = self.resolve_space_path(path)?;
+        crate::space::Space::open(dir)
     }
 
     /// A root-relative path resolved against the notebook, refusing anything
     /// that climbs, hides, or is not a single safe run of components.
-    fn resolve_workspace_path(&self, path: &str) -> Result<PathBuf> {
+    fn resolve_space_path(&self, path: &str) -> Result<PathBuf> {
         crate::relpath::safe_join(&self.root, path)
-            .ok_or_else(|| Error::InvalidWorkspaceName(path.to_string()))
+            .ok_or_else(|| Error::InvalidSpaceName(path.to_string()))
     }
 
     /// Creates an empty group (a folder with a `.group.json`) at the root. The
@@ -782,23 +782,23 @@ impl Notebook {
         self.create_marked_folder(
             name,
             &parent,
-            crate::workspace::GROUP_CONFIG_FILE,
+            crate::space::GROUP_CONFIG_FILE,
             "{\n  \"schemaVersion\": 1\n}\n",
         )
     }
 
     /// Renames a group's display name (`.group.json` `name`); empty clears it.
-    /// Renames a group by renaming its FOLDER — the same rule as a workspace
+    /// Renames a group by renaming its FOLDER — the same rule as a space
     /// (2026-08-13). Everything under it moves with it, so the Day/Week
     /// references and the stored arrangements are repointed by `relocate`.
     pub fn rename_group(&mut self, folder: &str, new_name: &str) -> Result<()> {
         self.ensure_writable()?;
         let name = new_name.trim();
-        Self::check_workspace_name(name)?;
+        Self::check_space_name(name)?;
         let (from, _) = self.open_group(folder)?;
         let parent = from.parent().unwrap_or(&self.root).to_path_buf();
         self.relocate(&from, &parent, name)?;
-        let moved = parent.join(name).join(crate::workspace::GROUP_CONFIG_FILE);
+        let moved = parent.join(name).join(crate::space::GROUP_CONFIG_FILE);
         edit_marked_config(moved, |config| config.name = None)
     }
 
@@ -822,7 +822,7 @@ impl Notebook {
         Ok(self
             .open_group(folder)?
             .0
-            .join(crate::workspace::GROUP_CONFIG_FILE))
+            .join(crate::space::GROUP_CONFIG_FILE))
     }
 
     /// Sends a group to the trash after handing what it held to its own parent
@@ -832,16 +832,16 @@ impl Notebook {
         let (dir, _) = self.open_group(folder)?;
         let parent = self.parent_group_of(&dir);
 
-        // Members first: a workspace still inside when the folder goes to the
+        // Members first: a space still inside when the folder goes to the
         // trash would go with it.
         let mut members = Vec::new();
-        self.collect_workspaces(&dir, &mut members)?;
-        for ws in members {
-            let path = crate::relpath::relative_slash(&self.root, ws.root());
-            self.move_workspace(&path, parent.as_deref())?;
+        self.collect_spaces(&dir, &mut members)?;
+        for sp in members {
+            let path = crate::relpath::relative_slash(&self.root, sp.root());
+            self.move_space(&path, parent.as_deref())?;
         }
         // Child groups the same way — deleting a group is not deleting a branch.
-        for child in crate::workspace::marker_dirs(&dir, crate::workspace::GROUP_CONFIG_FILE)? {
+        for child in crate::space::marker_dirs(&dir, crate::space::GROUP_CONFIG_FILE)? {
             let path = crate::relpath::relative_slash(&self.root, &child);
             self.move_group(&path, parent.as_deref())?;
         }
@@ -849,23 +849,23 @@ impl Notebook {
         Ok(())
     }
 
-    /// Moves a workspace into a group (`Some`) or back to the root (`None`),
+    /// Moves a space into a group (`Some`) or back to the root (`None`),
     /// renaming its folder. Identity is the leaf name, which never changes, so
-    /// nothing addressing the workspace *by name* breaks — but its lists are
+    /// nothing addressing the space *by name* breaks — but its lists are
     /// addressed by PATH, and the path is exactly what a move changes.
-    pub fn move_workspace(&mut self, name: &str, into_group: Option<&str>) -> Result<()> {
+    pub fn move_space(&mut self, name: &str, into_group: Option<&str>) -> Result<()> {
         self.ensure_writable()?;
-        if Self::is_fixed_workspace(name) {
+        if Self::is_fixed_space(name) {
             return Err(Error::Protected(name.to_string()));
         }
-        let ws = self.open_workspace(name)?;
-        let from = ws.root().to_path_buf();
+        let sp = self.open_space(name)?;
+        let from = sp.root().to_path_buf();
         let target_parent = match into_group {
             Some(group) => self.open_group(group)?.0,
             None => self.root.clone(),
         };
         // `relocate` is told the LEAF to land under; `name` is a path now.
-        let leaf = crate::workspace::folder_name_of(&from);
+        let leaf = crate::space::folder_name_of(&from);
         self.relocate(&from, &target_parent, &leaf)
     }
 
@@ -878,7 +878,7 @@ impl Notebook {
             Some(group) => {
                 let (dir, _) = self.open_group(group)?;
                 if dir == from {
-                    return Err(Error::InvalidWorkspaceName(format!(
+                    return Err(Error::InvalidSpaceName(format!(
                         "{name} cannot hold itself"
                     )));
                 }
@@ -886,7 +886,7 @@ impl Notebook {
                 // be carrying itself, and everything under it would leave the
                 // notebook with the move.
                 if dir.starts_with(&from) {
-                    return Err(Error::InvalidWorkspaceName(format!(
+                    return Err(Error::InvalidSpaceName(format!(
                         "{group} is inside {name}"
                     )));
                 }
@@ -894,7 +894,7 @@ impl Notebook {
             }
             None => self.root.clone(),
         };
-        let leaf = crate::workspace::folder_name_of(&from);
+        let leaf = crate::space::folder_name_of(&from);
         self.relocate(&from, &target_parent, &leaf)
     }
 
@@ -903,14 +903,14 @@ impl Notebook {
     /// Every list under it just changed address, so the Day/Week references
     /// follow — a reference left pointing at the old path reads as a task that
     /// vanished. (It is the same repointing a moved widget used to do; a moved
-    /// workspace never did it, which is the bug this closes.)
+    /// space never did it, which is the bug this closes.)
     fn relocate(&mut self, from: &Path, target_parent: &Path, name: &str) -> Result<()> {
         let to = target_parent.join(name);
         if from == to {
             return Ok(());
         }
         if to.exists() {
-            return Err(Error::InvalidWorkspaceName(format!("{name} already exists")));
+            return Err(Error::InvalidSpaceName(format!("{name} already exists")));
         }
         let from_rel = crate::relpath::relative_slash(&self.root, from);
         let to_rel = crate::relpath::relative_slash(&self.root, &to);
@@ -920,7 +920,7 @@ impl Notebook {
 
         self.update_states(|state| state.rename_prefix(&from_rel, &to_rel))?;
         // The hand-dragged arrangements are addressed by folder too, and a
-        // stale one fails silently: the workspace just falls to the end of a
+        // stale one fails silently: the space just falls to the end of a
         // column the user arranged (services/sidebarOrder.js reads what is
         // stored, and what is stored no longer names anything).
         let mut config = self.config.clone();
@@ -937,26 +937,26 @@ impl Notebook {
     fn parent_group_of(&self, dir: &Path) -> Option<String> {
         dir.parent()
             .filter(|parent| *parent != self.root.as_path())
-            .filter(|parent| crate::workspace::Group::is_group(parent))
+            .filter(|parent| crate::space::Group::is_group(parent))
             .map(|parent| crate::relpath::relative_slash(&self.root, parent))
     }
 
     /// Opens a group by folder name — at the root or nested in another group —
     /// returning its dir and config.
-    fn open_group(&self, path: &str) -> Result<(PathBuf, crate::workspace::WorkspaceConfig)> {
-        let wanted = self.resolve_workspace_path(path)?;
+    fn open_group(&self, path: &str) -> Result<(PathBuf, crate::space::SpaceConfig)> {
+        let wanted = self.resolve_space_path(path)?;
         let dir = self
             .group_dirs()?
             .into_iter()
             .find(|dir| *dir == wanted)
-            .ok_or_else(|| Error::InvalidWorkspaceName(format!("{path} is not a group")))?;
-        let config = crate::workspace::WorkspaceConfig::load(
-            dir.join(crate::workspace::GROUP_CONFIG_FILE),
+            .ok_or_else(|| Error::InvalidSpaceName(format!("{path} is not a group")))?;
+        let config = crate::space::SpaceConfig::load(
+            dir.join(crate::space::GROUP_CONFIG_FILE),
         );
         Ok((dir, config))
     }
 
-    /// Renames a workspace by renaming its **FOLDER** (user call, 2026-08-13).
+    /// Renames a space by renaming its **FOLDER** (user call, 2026-08-13).
     ///
     /// It used to write a `name` into the marker and leave the folder alone,
     /// which kept the identity stable but made the name a second copy of it —
@@ -964,58 +964,58 @@ impl Notebook {
     /// name now, in both directions: rename it here and the disk follows;
     /// rename it in a file manager and the sidebar follows.
     ///
-    /// The app's own `jott.*` workspaces cannot take that route — their folder
+    /// The app's own `jott.*` spaces cannot take that route — their folder
     /// name is an identifier the app recreates — so those, and only those,
     /// still keep their label in the marker.
-    pub fn rename_workspace(&mut self, folder: &str, new_name: &str) -> Result<()> {
+    pub fn rename_space(&mut self, folder: &str, new_name: &str) -> Result<()> {
         self.ensure_writable()?;
-        let ws = self.open_workspace(folder)?;
-        if crate::workspace::is_app_folder(folder) {
-            return edit_marked_config(ws.config_path(), |config| {
+        let sp = self.open_space(folder)?;
+        if crate::space::is_app_folder(folder) {
+            return edit_marked_config(sp.config_path(), |config| {
                 config.name = cleared_to_none(new_name)
             });
         }
         let name = new_name.trim();
-        Self::check_workspace_name(name)?;
-        let from = ws.root().to_path_buf();
+        Self::check_space_name(name)?;
+        let from = sp.root().to_path_buf();
         let parent = from.parent().unwrap_or(&self.root).to_path_buf();
         self.relocate(&from, &parent, name)?;
         // The marker's `name` is dead weight from here on: it is no longer
-        // read for a user workspace, and leaving it would show up in a diff as
+        // read for a user space, and leaving it would show up in a diff as
         // a name that disagrees with the folder.
-        let moved = parent.join(name).join(crate::workspace::WORKSPACE_CONFIG_FILE);
+        let moved = parent.join(name).join(crate::space::SPACE_CONFIG_FILE);
         edit_marked_config(moved, |config| config.name = None)
     }
 
-    /// Sets a workspace's accent colour and icon; an empty string clears each.
-    pub fn set_workspace_appearance(
+    /// Sets a space's accent colour and icon; an empty string clears each.
+    pub fn set_space_appearance(
         &self,
         folder: &str,
         color: Option<String>,
         icon: Option<String>,
     ) -> Result<()> {
         self.ensure_writable()?;
-        let path = self.open_workspace(folder)?.config_path();
+        let path = self.open_space(folder)?.config_path();
         edit_marked_config(path, |config| {
             config.color = color.as_deref().and_then(cleared_to_none);
             config.icon = icon.as_deref().and_then(cleared_to_none);
         })
     }
 
-    /// Sends a user workspace to the trash — never a fixed one, and never a
+    /// Sends a user space to the trash — never a fixed one, and never a
     /// permanent delete (the trash is the only door out).
-    pub fn delete_workspace(&self, folder: &str) -> Result<()> {
+    pub fn delete_space(&self, folder: &str) -> Result<()> {
         self.ensure_writable()?;
-        if Self::is_fixed_workspace(folder) {
+        if Self::is_fixed_space(folder) {
             return Err(Error::Protected(folder.to_string()));
         }
-        let ws = self.open_workspace(folder)?;
-        self.trash_path(ws.root())?;
+        let sp = self.open_space(folder)?;
+        self.trash_path(sp.root())?;
         Ok(())
     }
 
     /// Renames a user list (addressed by path) to a new **name**, in the same
-    /// folder — a rename never moves a list between workspaces. Repoints
+    /// folder — a rename never moves a list between spaces. Repoints
     /// everything that referred to it: the `origin` of completed tasks in the
     /// folder's own Completed (otherwise undo would send them to a list that
     /// no longer exists) and the day/week states.
@@ -1231,33 +1231,33 @@ impl Notebook {
         }
     }
 
-    /// The workspaces of this notebook: every first-level folder carrying a
-    /// `.workspace.json`, alphabetically by folder name.
+    /// The spaces of this notebook: every first-level folder carrying a
+    /// `.space.json`, alphabetically by folder name.
     ///
     /// Folders without the marker are ignored on purpose — a stray folder
     /// dropped into the notebook (downloads, an attachments dir, whatever a
     /// sync tool leaves) must never turn into interface on its own.
-    pub fn workspaces(&self) -> Result<Vec<crate::workspace::Workspace>> {
-        // Workspaces live at the root and one level inside a group (spec 3.5:
+    pub fn spaces(&self) -> Result<Vec<crate::space::Space>> {
+        // Spaces live at the root and one level inside a group (spec 3.5:
         // groups do not nest). Their identity is the leaf folder name, unique
-        // across the notebook — so nothing addressing a workspace cares whether
+        // across the notebook — so nothing addressing a space cares whether
         // it sits in a group or not.
         let mut found = Vec::new();
-        self.collect_workspaces(&self.root, &mut found)?;
+        self.collect_spaces(&self.root, &mut found)?;
         for group_dir in self.group_dirs()? {
-            self.collect_workspaces(&group_dir, &mut found)?;
+            self.collect_spaces(&group_dir, &mut found)?;
         }
-        // By PATH, so a workspace sorts under the group it belongs to and two
-        // workspaces sharing a leaf name are two different entries.
-        let path_of = |ws: &crate::workspace::Workspace| {
-            crate::relpath::relative_slash(&self.root, ws.root())
+        // By PATH, so a space sorts under the group it belongs to and two
+        // spaces sharing a leaf name are two different entries.
+        let path_of = |sp: &crate::space::Space| {
+            crate::relpath::relative_slash(&self.root, sp.root())
         };
         found.sort_by(|a, b| path_of(a).cmp(&path_of(b)));
         // `name` sorts by what the user READS, which is not the folder name a
-        // workspace was created under (2026-08-06). Anything else — including
-        // the default — is the hand-dragged order; fixed workspaces are not
+        // space was created under (2026-08-06). Anything else — including
+        // the default — is the hand-dragged order; fixed spaces are not
         // named in it and simply keep their place.
-        if self.config.workspaces_sort == "name" {
+        if self.config.spaces_sort == "name" {
             found.sort_by(|a, b| {
                 a.display_name()
                     .to_lowercase()
@@ -1265,38 +1265,38 @@ impl Notebook {
             });
         } else {
             let keys: Vec<String> = found.iter().map(path_of).collect();
-            let mut zipped: Vec<(String, crate::workspace::Workspace)> =
+            let mut zipped: Vec<(String, crate::space::Space)> =
                 keys.into_iter().zip(found.drain(..)).collect();
             self.config
-                .apply_order("workspaces", &mut zipped, |entry| &entry.0);
-            found = zipped.into_iter().map(|(_, ws)| ws).collect();
+                .apply_order("spaces", &mut zipped, |entry| &entry.0);
+            found = zipped.into_iter().map(|(_, sp)| sp).collect();
         }
         Ok(found)
     }
 
-    /// Every workspace's root-relative path, mapped to the name the user
+    /// Every space's root-relative path, mapped to the name the user
     /// reads. The one place that answers "what is this address called?" —
     /// the frontend used to derive it from the path, which put the folder on
     /// screen the moment the fixed folders gained their `jott.` prefix.
-    fn workspace_labels(&self) -> Result<std::collections::HashMap<String, String>> {
+    fn space_labels(&self) -> Result<std::collections::HashMap<String, String>> {
         Ok(self
-            .workspaces()?
+            .spaces()?
             .into_iter()
-            .map(|ws| {
-                let path = crate::relpath::relative_slash(&self.root, ws.root());
-                // The label is the workspace's READABLE ADDRESS, not just its
+            .map(|sp| {
+                let path = crate::relpath::relative_slash(&self.root, sp.root());
+                // The label is the space's READABLE ADDRESS, not just its
                 // name (user call, 2026-08-13): `Design/Tasks` for one inside a
-                // group, `Mercado` for a loose one. Two workspaces called Tasks
+                // group, `Mercado` for a loose one. Two spaces called Tasks
                 // in two different groups are a normal thing to have, and named
                 // alone they were the same word twice in the same picker.
                 //
                 // Building it from the path costs nothing now that a group's
                 // name IS its folder — there is no second name to look up. Only
                 // the leaf can differ from its folder, and only for the app's
-                // own `jott.*` workspaces, so only the leaf is substituted.
+                // own `jott.*` spaces, so only the leaf is substituted.
                 let mut parts: Vec<&str> = path.split('/').collect();
                 if let Some(last) = parts.last_mut() {
-                    *last = ws.display_name();
+                    *last = sp.display_name();
                 }
                 (path.clone(), parts.join("/"))
             })
@@ -1315,11 +1315,11 @@ impl Notebook {
             return Ok(results);
         }
 
-        let labels = self.workspace_labels()?;
+        let labels = self.space_labels()?;
         let label_of = |prefix: &String| labels.get(prefix).cloned().unwrap_or_else(|| prefix.clone());
 
         for (prefix, folder) in self.task_folders()? {
-            let workspace = label_of(&prefix);
+            let space = label_of(&prefix);
             for name in folder.list_names()? {
                 let path = format!("{prefix}/{name}.md");
                 for task in self.open_list(&path)?.tasks() {
@@ -1337,7 +1337,7 @@ impl Notebook {
                         id: task.id.clone(),
                         title: task.text.clone(),
                         snippet,
-                        workspace: workspace.clone(),
+                        space: space.clone(),
                         container: name.clone(),
                         done: task.done,
                     });
@@ -1345,11 +1345,11 @@ impl Notebook {
             }
         }
         // Open tasks first: a search is nearly always about what is still to
-        // do. Within each half the walk order (workspace, then list) stands.
+        // do. Within each half the walk order (space, then list) stands.
         results.tasks.sort_by_key(|hit| hit.done);
 
         for (prefix, folder) in self.note_folders()? {
-            let workspace = label_of(&prefix);
+            let space = label_of(&prefix);
             for entry in folder.search(&needle)? {
                 if results.notes.len() >= limit {
                     results.truncated = true;
@@ -1369,7 +1369,7 @@ impl Notebook {
                     id: None,
                     title: entry.title,
                     snippet,
-                    workspace: workspace.clone(),
+                    space: space.clone(),
                     container: entry.folder,
                     done: false,
                 });
@@ -1379,16 +1379,16 @@ impl Notebook {
         Ok(results)
     }
 
-    /// Collects the workspace subfolders directly inside `dir`.
-    fn collect_workspaces(
+    /// Collects the space subfolders directly inside `dir`.
+    fn collect_spaces(
         &self,
         dir: &std::path::Path,
-        out: &mut Vec<crate::workspace::Workspace>,
+        out: &mut Vec<crate::space::Space>,
     ) -> Result<()> {
         for path in
-            crate::workspace::marker_dirs(dir, crate::workspace::WORKSPACE_CONFIG_FILE)?
+            crate::space::marker_dirs(dir, crate::space::SPACE_CONFIG_FILE)?
         {
-            out.push(crate::workspace::Workspace::open(path)?);
+            out.push(crate::space::Space::open(path)?);
         }
         Ok(())
     }
@@ -1397,14 +1397,14 @@ impl Notebook {
     ///
     /// Groups nest (2026-08-11): a group is a folder carrying a `.group.json`,
     /// inside the root or inside another group. The walk goes down from the
-    /// root through the groups it finds — a workspace's own subfolders are its
+    /// root through the groups it finds — a space's own subfolders are its
     /// content and are never entered.
     fn group_dirs(&self) -> Result<Vec<PathBuf>> {
         let mut found = Vec::new();
         let mut pending = vec![self.root.clone()];
         while let Some(dir) = pending.pop() {
             for child in
-                crate::workspace::marker_dirs(&dir, crate::workspace::GROUP_CONFIG_FILE)?
+                crate::space::marker_dirs(&dir, crate::space::GROUP_CONFIG_FILE)?
             {
                 pending.push(child.clone());
                 found.push(child);
@@ -1415,34 +1415,34 @@ impl Notebook {
     }
 
     /// The groups of the notebook, each with the group it sits in (if any) and
-    /// the **root-relative paths** of the workspaces it holds directly — a
-    /// workspace in a child group belongs to that child, not to this one.
+    /// the **root-relative paths** of the spaces it holds directly — a
+    /// space in a child group belongs to that child, not to this one.
     ///
     /// Paths, not leaf names, since 2026-08-13: two groups may each hold a
     /// `Tasks/`, and by leaf they were indistinguishable.
     ///
-    /// The members come out in the notebook's own workspace order, not
+    /// The members come out in the notebook's own space order, not
     /// alphabetically: the sidebar reads a group's place off its members, and
     /// sorting them here would quietly discard the order the user dragged
     /// (user report, 2026-08-11).
-    pub fn groups(&self) -> Result<Vec<crate::workspace::GroupEntry>> {
-        let ordered = self.workspaces()?;
+    pub fn groups(&self) -> Result<Vec<crate::space::GroupEntry>> {
+        let ordered = self.spaces()?;
         let mut groups = Vec::new();
         for dir in self.group_dirs()? {
             let folder = crate::relpath::relative_slash(&self.root, &dir);
-            let config = crate::workspace::WorkspaceConfig::load(
-                dir.join(crate::workspace::GROUP_CONFIG_FILE),
+            let config = crate::space::SpaceConfig::load(
+                dir.join(crate::space::GROUP_CONFIG_FILE),
             );
-            let workspaces: Vec<String> = ordered
+            let spaces: Vec<String> = ordered
                 .iter()
-                .filter(|ws| ws.root().parent() == Some(dir.as_path()))
-                .map(|ws| crate::relpath::relative_slash(&self.root, ws.root()))
+                .filter(|sp| sp.root().parent() == Some(dir.as_path()))
+                .map(|sp| crate::relpath::relative_slash(&self.root, sp.root()))
                 .collect();
-            groups.push(crate::workspace::GroupEntry {
+            groups.push(crate::space::GroupEntry {
                 folder,
                 parent: self.parent_group_of(&dir),
                 config,
-                workspaces,
+                spaces,
             });
         }
         groups.sort_by(|a, b| a.folder.cmp(&b.folder));
@@ -1450,8 +1450,8 @@ impl Notebook {
     }
 
     /// Records the manual order for a namespace and writes the config. The
-    /// single door the sidebar's drag goes through, for workspaces and lists
-    /// alike (`"workspaces"`, `"lists:<folder>"`).
+    /// single door the sidebar's drag goes through, for spaces and lists
+    /// alike (`"spaces"`, `"lists:<folder>"`).
     pub fn set_order(&mut self, namespace: &str, names: Vec<String>) -> Result<()> {
         let mut config = self.config.clone();
         config.set_order(namespace, names);
@@ -1651,17 +1651,17 @@ impl Notebook {
         self.set_config(config)
     }
 
-    /// How the sidebar arranges workspaces: `"name"` or the dragged order.
-    pub fn workspaces_sort(&self) -> &str {
-        &self.config.workspaces_sort
+    /// How the sidebar arranges spaces: `"name"` or the dragged order.
+    pub fn spaces_sort(&self) -> &str {
+        &self.config.spaces_sort
     }
 
     /// Sets it. Anything but `"name"` means the hand-dragged order, which is
     /// what an untouched notebook already does.
-    pub fn set_workspaces_sort(&mut self, sort: &str) -> Result<()> {
+    pub fn set_spaces_sort(&mut self, sort: &str) -> Result<()> {
         self.ensure_writable()?;
         let mut config = self.config.clone();
-        config.workspaces_sort = if sort == "name" { sort.to_string() } else { String::new() };
+        config.spaces_sort = if sort == "name" { sort.to_string() } else { String::new() };
         self.set_config(config)
     }
 
@@ -1744,8 +1744,8 @@ impl Notebook {
             Default::default()
         };
 
-        let labels = self.workspace_labels()?;
-        let workspace_of = |path: &str| -> String {
+        let labels = self.space_labels()?;
+        let space_of = |path: &str| -> String {
             path.rsplit_once('/')
                 .and_then(|(dir, _)| labels.get(dir).cloned())
                 .unwrap_or_default()
@@ -1770,7 +1770,7 @@ impl Notebook {
                     SuggestionGroup::Lists
                 };
                 Suggestion {
-                    workspace: workspace_of(&entry.path),
+                    space: space_of(&entry.path),
                     path: entry.path,
                     task: entry.task,
                     group,

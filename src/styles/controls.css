@@ -506,7 +506,7 @@
 
   /* ---------------------------------------------------------------------------
      Popover — a transient surface floating under whatever opened it: the
-     dropdown menu, the workspace palette, the tag picker, the calendar. Four
+     dropdown menu, the space palette, the tag picker, the calendar. Four
      of them declared the same six properties, and three different raw shadows.
      Pair it with the `dismissable` action, which is the behaviour half.
 
@@ -557,7 +557,7 @@
   .theme-title--sm {
     font-size: var(--theme-text-20);
   }
-  /* The workspace name: the largest thing on the screen, centred, and in the
+  /* The space name: the largest thing on the screen, centred, and in the
      accent — it names the place, not a block in it. (It read `--theme-accent`,
      a role that was always equal to `--theme-brand`; two names for one colour
      is one name too many.) */

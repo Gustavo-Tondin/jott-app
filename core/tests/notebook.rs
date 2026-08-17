@@ -435,17 +435,17 @@ fn manual_order_arranges_lists_and_survives_a_reopen() {
 }
 
 #[test]
-fn manual_order_arranges_workspaces() {
+fn manual_order_arranges_spaces() {
     let dir = tempfile::tempdir().unwrap();
     let mut nb = Notebook::init(dir.path()).unwrap();
     for name in ["Zebra", "Apple"] {
         let d = dir.path().join(name);
         std::fs::create_dir_all(&d).unwrap();
-        std::fs::write(d.join(".workspace.json"), r#"{ "schemaVersion": 1 }"#).unwrap();
+        std::fs::write(d.join(".space.json"), r#"{ "schemaVersion": 1 }"#).unwrap();
     }
 
     let user_ws = |nb: &Notebook| -> Vec<String> {
-        nb.workspaces()
+        nb.spaces()
             .unwrap()
             .into_iter()
             .map(|w| w.folder_name().to_string())
@@ -454,7 +454,7 @@ fn manual_order_arranges_workspaces() {
     };
     assert_eq!(user_ws(&nb), vec!["Apple", "Zebra"]); // alphabetical default
 
-    nb.set_order("workspaces", vec!["Zebra".into(), "Apple".into()])
+    nb.set_order("spaces", vec!["Zebra".into(), "Apple".into()])
         .unwrap();
     assert_eq!(user_ws(&nb), vec!["Zebra", "Apple"]);
 }

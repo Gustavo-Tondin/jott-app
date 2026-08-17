@@ -185,7 +185,7 @@ describe("reorderable", () => {
   });
 
   test("carried clear of the list, it says it is leaving — and then leaves", () => {
-    // A workspace dragged out of a group: while it is out there the row is
+    // A space dragged out of a group: while it is out there the row is
     // marked, and nothing inside opens a gap for it (user report, 2026-08-06).
     const ul = list();
     layOut(ul);

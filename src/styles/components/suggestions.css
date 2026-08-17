@@ -94,7 +94,7 @@
     background: var(--theme-hover);
     color: var(--theme-ink);
   }
-  /* The workspace before a list's name, quieter — the same two tones the list
+  /* The space before a list's name, quieter — the same two tones the list
      pickers use. */
   .suggestions-pane__group-context {
     color: var(--theme-ink-faint);

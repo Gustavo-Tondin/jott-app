@@ -1,5 +1,5 @@
 /* accent-picker.css — the visual layer of AccentPicker.svelte: the row of
- * seven swatches, wherever a colour is chosen (workspace popup, tag manager,
+ * seven swatches, wherever a colour is chosen (space popup, tag manager,
  * settings). Markup: src/lib/components/AccentPicker.svelte. */
 
 @layer components {

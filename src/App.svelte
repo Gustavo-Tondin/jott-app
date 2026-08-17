@@ -23,7 +23,7 @@
   import SuggestionsPane from "./lib/components/SuggestionsPane.svelte";
   import NewTaskDialog from "./lib/components/NewTaskDialog.svelte";
   import SearchDialog from "./lib/components/SearchDialog.svelte";
-  import WorkspaceView from "./lib/screens/WorkspaceView.svelte";
+  import SpaceView from "./lib/screens/SpaceView.svelte";
   import NotesWidget from "./lib/widgets/NotesWidget.svelte";
   import NoteEditor from "./lib/components/NoteEditor.svelte";
   import HomeView from "./lib/screens/HomeView.svelte";
@@ -36,7 +36,7 @@
   import PageHeader from "./lib/shell/PageHeader.svelte";
   import { listName, listTitle } from "./lib/services/paths.js";
   import { formatDate } from "./lib/services/dates.js";
-  import { workspaceColors } from "./lib/services/workspaceColors.js";
+  import { spaceColors } from "./lib/services/spaceColors.js";
   import { tagColors as tagColorMap } from "./lib/services/accent.js";
   import { themeAttribute } from "./lib/services/themes.js";
   import { reader } from "./lib/services/features.js";
@@ -52,7 +52,7 @@
   let reloadKey = $state(0);
   let counts = $state({});
   let conflicts = $state([]);
-  let workspaces = $state([]);
+  let spaces = $state([]);
   let groups = $state([]);
   let tags = $state([]);
   // Name → the CSS value its pill is painted with, from the tag catalogue: the
@@ -64,8 +64,8 @@
   /// "am I in today?". It rides along with the snapshot rather than being
   /// fetched per screen (2026-08-06).
   let dayRefs = $state(new Set());
-  /// How the sidebar arranges workspaces — "" (dragged) or "name".
-  let workspacesSort = $state("");
+  /// How the sidebar arranges spaces — "" (dragged) or "name".
+  let spacesSort = $state("");
   /// The task open in the right-hand panel, as `{ list, task }`.
   let selected = $state(null);
   /// Left sidebar collapsed to an icon rail. Local to the session (not a
@@ -292,7 +292,7 @@
     )
       return { kind: id };
     if (id.startsWith("list:")) return { kind: "list", list: id.slice(5) };
-    if (id.startsWith("ws:")) return { kind: "workspace", ws: id.slice(3) };
+    if (id.startsWith("sp:")) return { kind: "space", sp: id.slice(3) };
     return null;
   }
 
@@ -340,29 +340,29 @@
       (entry) =>
         entry.path !== layout.completed &&
         entry.path !== layout.inbox &&
-        // Lists of user workspaces are reached through their workspace, not
+        // Lists of user spaces are reached through their space, not
         // flattened into the fixed sidebar — two Inboxes side by side with
         // the same label would be unreadable.
         entry.path.startsWith(`${layout.tasksFolder}/`),
     ),
   );
 
-  let userWorkspaces = $derived(workspaces.filter((ws) => !ws.fixed));
+  let userSpaces = $derived(spaces.filter((sp) => !sp.fixed));
 
-  /// The fixed Tasks workspace, in the shape the tasks screen reads, so the
+  /// The fixed Tasks space, in the shape the tasks screen reads, so the
   /// Tasks screen hosts the notebook's own source (arrangement and all)
-  /// instead of a stand-in. The folder is the workspace's own path.
+  /// instead of a stand-in. The folder is the space's own path.
   let inboxWidget = $derived.by(() => {
     const folder = layout.inbox.slice(0, layout.inbox.lastIndexOf("/"));
-    const ws = workspaces.find((ws) => ws.kind === "tasks" && ws.path === folder);
-    return ws
+    const sp = spaces.find((sp) => sp.kind === "tasks" && sp.path === folder);
+    return sp
       ? {
-          kind: ws.kind,
-          known: ws.known,
-          folder: ws.path,
+          kind: sp.kind,
+          known: sp.known,
+          folder: sp.path,
           name: null,
-          sort: ws.sort ?? null,
-          order: ws.order ?? [],
+          sort: sp.sort ?? null,
+          order: sp.order ?? [],
         }
       : null;
   });
@@ -371,10 +371,10 @@
   /// `Tasks/Index` while the browser tab keeps saying just `Tasks`.
   let tasksSub = $state("");
 
-  // What colour each workspace reads as — a member of a group follows the
+  // What colour each space reads as — a member of a group follows the
   // group (2026-08-04), which the sidebar already did through --group-color
   // and the title and the tab dot did not.
-  let wsColors = $derived(workspaceColors(workspaces, groups));
+  let spColors = $derived(spaceColors(spaces, groups));
 
   // Where the open task can move: ANY tasks list of the notebook, minus the
   // Completed files (moving into Completed is what completing a task does).
@@ -412,34 +412,34 @@
         return listTitle(v.list);
       case "note":
         return listName(v.path);
-      case "workspace":
+      case "space":
         return (
-          workspaces.find((w) => w.path === v.ws)?.name ?? v.ws
+          spaces.find((w) => w.path === v.sp)?.name ?? v.sp
         );
       default:
         return S.untitled;
     }
   }
 
-  /// The colour of the workspace a view comes from — feeds the tab dot. A
-  /// view of a fixed workspace (or of no workspace at all) returns null and
+  /// The colour of the space a view comes from — feeds the tab dot. A
+  /// view of a fixed space (or of no space at all) returns null and
   /// the dot falls back to the theme brand in CSS.
   ///
-  /// The workspace of a file address is everything ABOVE the file, not the
+  /// The space of a file address is everything ABOVE the file, not the
   /// first segment: `Design/Tasks/task-list.md` lives in `Design/Tasks`, and
   /// taking the first segment answered "Design" — a group, which owns no
   /// colour of its own in this map (2026-08-13).
   const holderOf = (path) => (path ?? "").split("/").slice(0, -1).join("/");
   function colorOf(v) {
     const folder =
-      v?.kind === "workspace"
-        ? v.ws
+      v?.kind === "space"
+        ? v.sp
         : v?.kind === "list"
           ? holderOf(v.list)
           : v?.kind === "note"
             ? v.folder
             : null;
-    return (folder && wsColors[folder]) ?? null;
+    return (folder && spColors[folder]) ?? null;
   }
 
   /// The page menu of the current screen — the `•••` of the wireframe.
@@ -455,7 +455,7 @@
       ];
     }
 
-    // Lists are created inside a workspace's widget now, not from here.
+    // Lists are created inside a space's widget now, not from here.
     // Renaming or deleting a list the app recreates on every open would only
     // confuse — the core refuses it anyway, so the menu must not offer it.
     const items = [];
@@ -532,12 +532,12 @@
       clock = snap.clock;
       counts = snap.counts;
       conflicts = snap.conflicts;
-      workspaces = snap.workspaces ?? [];
+      spaces = snap.spaces ?? [];
       groups = snap.groups ?? [];
       tags = snap.tags ?? [];
       dayRefs = new Set((snap.day ?? []).map((ref) => `${ref.path}#${ref.id}`));
       noteFolders = await api.noteFolders(snap.info.layout.notesFolder);
-      workspacesSort = await api.workspacesSort();
+      spacesSort = await api.spacesSort();
     } catch {
       // No notebook open (or it just closed): back to onboarding.
       notebook = null;
@@ -575,7 +575,7 @@
 
   // Sidebar drag-to-reorder (the shared `reorderable` action reports from→to).
   // The order is a notebook preference kept in the config, never a change to
-  // the files: lists and workspaces sort by it, everything else stays put.
+  // the files: lists and spaces sort by it, everything else stays put.
   const moveItem = (arr, from, to) => {
     const next = [...arr];
     const [x] = next.splice(from, 1);
@@ -594,25 +594,25 @@
     }
   }
 
-  /// The sidebar's whole running order — groups and loose workspaces alike,
+  /// The sidebar's whole running order — groups and loose spaces alike,
   /// flattened to names. One namespace orders both: a group's members are
   /// contiguous in it, which is what lets the sidebar read a group's place off
   /// its members instead of keeping a second ordering in step (2026-08-06).
   ///
-  /// It used to renumber `userWorkspaces` from indices that came from the
+  /// It used to renumber `userSpaces` from indices that came from the
   /// LOOSE ones — so with any group in the notebook the drag reordered the
   /// wrong things, and a group could not be dragged at all.
   async function reorderEntries(names) {
     if (notebook.readOnly) return;
     try {
-      await api.setOrder("workspaces", names);
+      await api.setOrder("spaces", names);
       await refreshNotebook();
     } catch (e) {
       fail(e);
     }
   }
 
-  /// Two workspaces dropped one on the other become a group. The name is asked
+  /// Two spaces dropped one on the other become a group. The name is asked
   /// for, and cancelling leaves everything where it was — a gesture that
   /// silently reorganises the sidebar is a gesture nobody trusts.
   async function groupWith(host, moving) {
@@ -621,32 +621,32 @@
     if (!name?.trim()) return;
     try {
       const folder = await api.createGroup(name.trim());
-      // Paths, both sides: the new group's and the two workspaces' — moving
+      // Paths, both sides: the new group's and the two spaces' — moving
       // one names it by the address it has RIGHT NOW, and the first move
       // changes the second one's parent, not its own address.
-      await api.moveWorkspace(host.path, folder);
-      await api.moveWorkspace(moving.path, folder);
+      await api.moveSpace(host.path, folder);
+      await api.moveSpace(moving.path, folder);
       await refreshNotebook();
     } catch (e) {
       fail(e);
     }
   }
 
-  async function setWorkspacesSort(sort) {
+  async function setSpacesSort(sort) {
     if (notebook.readOnly) return;
     try {
-      await api.setWorkspacesSort(sort);
+      await api.setSpacesSort(sort);
       await refreshNotebook();
     } catch (e) {
       fail(e);
     }
   }
 
-  // ---- workspace management (Fase 11) ----
-  // A workspace has one function, chosen at creation (spec 3.5): the caller
+  // ---- space management (Fase 11) ----
+  // A space has one function, chosen at creation (spec 3.5): the caller
   // says whether it is a list (tasks) or a notepad (notes), and — since
   // groups nest — which group it is being made inside.
-  async function createWorkspace(kind = "tasks", group = null) {
+  async function createSpace(kind = "tasks", group = null) {
     const name = await askName(
       kind === "notes" ? S.promptNewNotepad : S.promptNewList,
       "",
@@ -655,42 +655,42 @@
     if (!name || !name.trim()) return;
     try {
       const folder = group
-        ? await api.createWorkspaceIn(name.trim(), kind, group)
-        : await api.createWorkspace(name.trim(), kind);
+        ? await api.createSpaceIn(name.trim(), kind, group)
+        : await api.createSpace(name.trim(), kind);
       await refreshNotebook();
-      openTab({ kind: "workspace", ws: folder });
+      openTab({ kind: "space", sp: folder });
     } catch (e) {
       fail(e);
     }
   }
 
-  async function renameWorkspaceTo(folder, current) {
-    const to = await askName(S.promptRenameWorkspace(current), current);
+  async function renameSpaceTo(folder, current) {
+    const to = await askName(S.promptRenameSpace(current), current);
     if (to == null) return;
     try {
-      await api.renameWorkspace(folder, to.trim());
+      await api.renameSpace(folder, to.trim());
       await refreshNotebook();
     } catch (e) {
       fail(e);
     }
   }
 
-  async function setWorkspaceAppearance(folder, color, icon) {
+  async function setSpaceAppearance(folder, color, icon) {
     try {
-      await api.setWorkspaceAppearance(folder, color ?? null, icon ?? null);
+      await api.setSpaceAppearance(folder, color ?? null, icon ?? null);
       await refreshNotebook();
     } catch (e) {
       fail(e);
     }
   }
 
-  async function deleteWorkspaceAt(folder, name) {
-    if (!confirm(S.confirmDeleteWorkspace(name))) return;
+  async function deleteSpaceAt(folder, name) {
+    if (!confirm(S.confirmDeleteSpace(name))) return;
     try {
-      await api.deleteWorkspace(folder);
+      await api.deleteSpace(folder);
       await refreshNotebook();
       // If we were looking at it, it is gone — go Home.
-      if (view.kind === "workspace" && view.ws === folder) goTo({ kind: "home" });
+      if (view.kind === "space" && view.sp === folder) goTo({ kind: "home" });
     } catch (e) {
       fail(e);
     }
@@ -730,7 +730,7 @@
   }
 
   // The group's colour and icon — the group is where the colour is chosen
-  // now; a workspace inside one follows it (user call, 2026-08-04).
+  // now; a space inside one follows it (user call, 2026-08-04).
   async function setGroupAppearanceAt(folder, color, icon) {
     try {
       await api.setGroupAppearance(folder, color, icon);
@@ -750,32 +750,32 @@
     }
   }
 
-  async function moveWorkspaceTo(name, intoGroup) {
+  async function moveSpaceTo(name, intoGroup) {
     try {
-      await api.moveWorkspace(name, intoGroup);
+      await api.moveSpace(name, intoGroup);
       await refreshNotebook();
     } catch (e) {
       fail(e);
     }
   }
 
-  // A workspace's arrangement lives in its own .workspace.json. The refresh
+  // A space's arrangement lives in its own .space.json. The refresh
   // brings the new sort/order back through the snapshot, which is what
   // re-arranges the cards on screen.
-  async function setWorkspaceSort(sort) {
-    if (view.kind !== "workspace") return;
+  async function setSpaceSort(sort) {
+    if (view.kind !== "space") return;
     try {
-      await api.setWorkspaceSort(view.ws, sort);
+      await api.setSpaceSort(view.sp, sort);
       await refreshNotebook();
     } catch (e) {
       fail(e);
     }
   }
 
-  async function setWorkspaceOrder(order) {
-    if (view.kind !== "workspace") return;
+  async function setSpaceOrder(order) {
+    if (view.kind !== "space") return;
     try {
-      await api.setWorkspaceOrder(view.ws, order);
+      await api.setSpaceOrder(view.sp, order);
       await refreshNotebook();
     } catch (e) {
       fail(e);
@@ -918,12 +918,12 @@
       </section>
   {:else}
     <div class="shell">
-      <!-- LEFT: workspaces on top, notebook and settings pinned to the
+      <!-- LEFT: spaces on top, notebook and settings pinned to the
            bottom, as the wireframe has them. Collapses to an icon rail. -->
       <Sidebar
         {notebook}
         {userLists}
-        {userWorkspaces}
+        {userSpaces}
         {counts}
         {isOpen}
         rail={railed}
@@ -936,18 +936,18 @@
         onReorderEntries={reorderEntries}
         onGroupWith={groupWith}
         onMoveGroup={moveGroupTo}
-        {workspacesSort}
-        onSetWorkspacesSort={setWorkspacesSort}
-        onCreateWorkspace={createWorkspace}
-        onRenameWorkspace={renameWorkspaceTo}
-        onSetWorkspaceAppearance={setWorkspaceAppearance}
-        onDeleteWorkspace={deleteWorkspaceAt}
+        {spacesSort}
+        onSetSpacesSort={setSpacesSort}
+        onCreateSpace={createSpace}
+        onRenameSpace={renameSpaceTo}
+        onSetSpaceAppearance={setSpaceAppearance}
+        onDeleteSpace={deleteSpaceAt}
         {groups}
         onCreateGroup={createGroup}
         onRenameGroup={renameGroupTo}
         onSetGroupAppearance={setGroupAppearanceAt}
         onDeleteGroup={deleteGroupAt}
-        onMoveWorkspace={moveWorkspaceTo}
+        onMoveSpace={moveSpaceTo}
       />
 
       <!-- CENTRE: page header, then the screen itself. The tabs moved up into
@@ -1086,12 +1086,12 @@
               onChanged={refreshNotebook}
               onError={fail}
             />
-          {:else if view.kind === "workspace"}
-            {@const current = userWorkspaces.find((w) => w.path === view.ws)}
+          {:else if view.kind === "space"}
+            {@const current = userSpaces.find((w) => w.path === view.sp)}
             {#if current}
-              <WorkspaceView
-                workspace={current}
-                color={wsColors[current.path] ?? null}
+              <SpaceView
+                space={current}
+                color={spColors[current.path] ?? null}
                 lists={notebook.lists}
                 {counts}
                 {tags}
@@ -1107,13 +1107,13 @@
                 onSelectTask={select}
                 onOpenList={(path) => showList(path)}
                 onOpenNote={(path, folder) => showNote(path, folder)}
-                onSetWorkspaceSort={setWorkspaceSort}
-                onSetWorkspaceOrder={setWorkspaceOrder}
+                onSetSpaceSort={setSpaceSort}
+                onSetSpaceOrder={setSpaceOrder}
                 onChanged={refreshNotebook}
                 onError={fail}
               />
             {:else}
-              <p class="shell__empty">{S.missingWorkspace}</p>
+              <p class="shell__empty">{S.missingSpace}</p>
             {/if}
           {:else if view.kind === "tags"}
             <TagsView {tags} onChanged={refreshNotebook} onError={fail} />

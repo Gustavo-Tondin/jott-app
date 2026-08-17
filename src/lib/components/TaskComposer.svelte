@@ -51,7 +51,7 @@
   /// that a default arriving later does not overwrite the user's pick.
   let target = $derived(intent.list ?? defaultList ?? lists[0]?.path ?? null);
 
-  // The group in grey, the workspace in ink: `Design/`**Tasks**. The bare
+  // The group in grey, the space in ink: `Design/`**Tasks**. The bare
   // name would not tell two "Tasks" apart, and the whole address reads as a
   // file path (services/paths.js).
   let listMenu = $derived(

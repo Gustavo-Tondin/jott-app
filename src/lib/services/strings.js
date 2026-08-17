@@ -20,7 +20,7 @@ export const S = {
   trash: "Trash",
   tagsSoon: "Managing tags — name and colour — is coming soon.",
   trashSoon:
-    "Restoring deleted workspaces, tasks and notes from here is coming soon. " +
+    "Restoring deleted spaces, tasks and notes from here is coming soon. " +
     "Deletions already go to the system trash in the meantime.",
   readOnly: "read-only",
   renameList: "rename list",
@@ -36,39 +36,42 @@ export const S = {
     "open the folder and decide which version stays.",
   dismissError: "ok",
 
-  // Workspaces (phase 7.5)
-  readOnlyWorkspace: "read-only (newer version)",
-  missingWorkspace: "This page is no longer in the notebook.",
-  // A workspace has one function, and the interface says which by name: a
-  // tasks one is a LIST, a notes one is a NOTEPAD. "Workspace" is the term of
-  // the file format, not of the app (user call, 2026-08-11).
+  // Spaces (phase 7.5)
+  readOnlySpace: "read-only (newer version)",
+  missingSpace: "This page is no longer in the notebook.",
+  // A space has one function, and the interface says which by name when it is
+  // being MADE: a tasks one is a LIST, a notes one is a NOTEPAD. "Space" is
+  // what the container itself is called, on screen and on disk alike — the app
+  // and the file format say the same word since 2026-08-17 (user call), so
+  // there is no second vocabulary to translate. Home, Tasks and Notes are the
+  // **fixed spaces**.
   newList: "New list",
   newNotepad: "New notepad",
   promptNewList: "Name of the new list:",
   promptNewNotepad: "Name of the new notepad:",
-  promptRenameWorkspace: (name) => `New name for "${name}":`,
-  confirmDeleteWorkspace: (name) => `Delete "${name}"? It goes to the trash.`,
-  renameWorkspace: "Rename",
-  deleteWorkspace: "Delete",
-  workspaceAppearance: "Colour & icon",
-  // A workspace inside a group picks only its icon — the colour is the group's.
+  promptRenameSpace: (name) => `New name for "${name}":`,
+  confirmDeleteSpace: (name) => `Delete "${name}"? It goes to the trash.`,
+  renameSpace: "Rename",
+  deleteSpace: "Delete",
+  spaceAppearance: "Colour & icon",
+  // A space inside a group picks only its icon — the colour is the group's.
   iconOnly: "Icon",
   appearance: "appearance",
   color: "colour",
   icon: "icon",
   defaultAppearance: "default",
   unsupportedWidgetTitle: (kind) =>
-    kind ? `"${kind}" widget` : "Workspace without a type",
+    kind ? `"${kind}" widget` : "Space without a type",
   unsupportedWidgetBody:
-    "This version of Jott does not know how to show this workspace. " +
+    "This version of Jott does not know how to show this space. " +
     "Its files are untouched — a newer version may support it.",
-  widgetNoLists: "No list in this workspace yet.",
+  widgetNoLists: "No list in this space yet.",
   // Reestruturação 2026-07-30 — inline naming, widget flow, groups, trash, tags.
   cancel: "Cancel",
   create: "Create",
   newTask: "New task",
-  // What the single list of a tasks workspace is CALLED. Its file is
-  // `task-list.md` in every workspace — a structural name, never meant to be
+  // What the single list of a tasks space is CALLED. Its file is
+  // `task-list.md` in every space — a structural name, never meant to be
   // read (services/paths.js → listTitle).
   mainList: "Inbox",
   noTasksYet: "No tasks yet",

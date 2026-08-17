@@ -86,7 +86,7 @@
   /* Rail: the right-hand chrome gives way so the 56px column fits the icon
      band without overflowing (minimized screen.pdf); the LEFT paddings stay,
      so every icon keeps its x. The member indent resets for the same reason.
-     The "new workspace/group" affordances wait for the full sidebar. */
+     The "new space/group" affordances wait for the full sidebar. */
   .shell__sidebar--rail .shell__sidebar-scroll{
     padding-inline-end: 0;
   }
@@ -97,7 +97,7 @@
   .shell__sidebar--rail .shell__nav-item {
     padding: var(--theme-space-12);
   }
-  /* A workspace/group row is a DIV with the opening BUTTON inside it, so its
+  /* A space/group row is a DIV with the opening BUTTON inside it, so its
      inline padding lands on top of the row's — the icon ended up one whole
      step right of the fixed entries' (user report, 2026-08-06). In the rail the
      row already spaces it; the button adds nothing. */
@@ -108,7 +108,7 @@
   .shell__group {
     /* --gc-strong / --gc-weak are the section's colour, declared HERE so every
        section has them — the fixed entries (Home/Tasks/Notes) and the user
-       lists included. They were only on `--workspace` until 2026-08-13, which
+       lists included. They were only on `--space` until 2026-08-13, which
        is why the fixed entries' icons came out muted grey instead of wearing
        the theme (user report). A section with no colour of its own IS the
        theme accent; that is not a fallback, it is the answer. */
@@ -120,9 +120,9 @@
     border-left: 0.125rem solid var(--gc-strong);
     padding-inline: var(--theme-space-4);
   }
-  /* The wrapper the workspaces reorder within — reproduces the gap they had as
+  /* The wrapper the spaces reorder within — reproduces the gap they had as
      loose scroll children. */
-  .shell__workspaces {
+  .shell__spaces {
     display: flex;
     flex-direction: column;
     /* Tight (user call, 2026-08-11): the column reads as one list of places,
@@ -132,16 +132,16 @@
   /* A level inside a group (they nest, 2026-08-11). The indent is the
      CONTAINER's, not the row's, so it compounds with depth on its own — and a
      row does not have to know how deep it is. */
-  .shell__workspaces--nested {
+  .shell__spaces--nested {
     padding-inline-start: var(--theme-space-12);
   }
   /* The rail is 56px of icon column: every icon keeps its x, at any depth. */
-  .shell__sidebar--rail .shell__workspaces--nested {
+  .shell__sidebar--rail .shell__spaces--nested {
     padding-inline-start: 0;
   }
 
-  /* ---- workspace colour system ----
-     A workspace (or the group it belongs to) picks one of the seven, and
+  /* ---- space colour system ----
+     A space (or the group it belongs to) picks one of the seven, and
      Sidebar.svelte writes the pair the choice resolves to — --group-color for
      the bar/text/icon, --group-tint for the selected row's fill. Both already
      follow the region's ground (services/accent.js → styles/themes/*.css), so
@@ -152,13 +152,13 @@
 
      Unset means "no colour of its own" and the fallbacks put the row back on
      the theme accent. */
-  .shell__group--workspace {
+  .shell__group--space {
     --gc-strong: var(--group-color, var(--theme-brand));
     --gc-weak: var(--group-tint, var(--theme-brand-weak));
   }
 
   /* Selected: the solid pill, in whatever colour the section carries — its own
-     for a coloured workspace, the group's for a member, the theme accent for
+     for a coloured space, the group's for a member, the theme accent for
      the fixed entries. One shape for "this is the open place", whatever it is,
      and no outline (user call). */
   .shell__group .shell__nav-item--active {
@@ -224,14 +224,14 @@
      neighbours (the sidebar itself is transparent). */
   .shell__nav-item.reorder-item--carried,
   .shell__entry.reorder-item--carried,
-  .shell__group--workspace.reorder-item--carried {
+  .shell__group--space.reorder-item--carried {
     background: var(--theme-surface);
     border-radius: var(--theme-radius-xs);
   }
   /* ---- the sidebar row ----
      One row of the navigation: a 42px band holding an icon and a label —
      `.shell__nav-item`, whether it is a fixed entry (a button) or a
-     workspace/group row (the `--row` div variant further down, whose inner
+     space/group row (the `--row` div variant further down, whose inner
      `.shell__nav-open` opens so the ⋮ can sit INSIDE the highlight). The
      band is written once. */
   .shell__nav-item {
@@ -269,7 +269,7 @@
      — over a solid accent pill that reads as a smudge on the colour rather
      than as feedback, and it wins on specificity, so the pill lost its colour
      under the pointer. Fading the whole row keeps the colour and still answers
-     the pointer. Both selectors are needed: a workspace row repaints the
+     the pointer. Both selectors are needed: a space row repaints the
      background with its own colour further down. */
   .shell__nav-item--active:hover {
     background: var(--theme-brand);
@@ -293,13 +293,13 @@
     color: var(--theme-ink-faint);
   }
 
-  /* ---- workspace/group rows (2026-08-04): the SAME .shell__nav-item band
+  /* ---- space/group rows (2026-08-04): the SAME .shell__nav-item band
      the fixed entries use, so these come AFTER it — they are its modifiers,
      and being written before it was exactly why `--member` never got its
      shorter height (same specificity, the base won on order; 2026-08-05).
      `--row` is the div variant whose inner .shell__nav-open button opens (so
      the ⋮ sits inside the highlight); `--head` is the group head, which
-     collapses its members; `--member` is a workspace inside a group —
+     collapses its members; `--member` is a space inside a group —
      shorter, icon-less, following the group's colour, gone in the rail. ---- */
   .shell__nav-item--row {
     padding: 0;
@@ -328,7 +328,7 @@
     font-size: var(--theme-text-14);
   }
   /* The rail keeps the members (user call, 2026-08-06): with the icon back
-     they are still readable there, and hiding them made a grouped workspace
+     they are still readable there, and hiding them made a grouped space
      unreachable without expanding the sidebar. Nothing to say here — the
      rail's own `.shell__nav-item` padding already wins over the member's
      indent (two classes to one), so their icons land in the same column as

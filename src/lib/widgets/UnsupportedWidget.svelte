@@ -1,5 +1,5 @@
 <script>
-  // The polite fallback of the registry: a workspace type this build cannot
+  // The polite fallback of the registry: a space type this build cannot
   // render is shown and named, never hidden and never touched. Erasing or
   // "fixing" it would destroy data written by a newer version or a community
   // template — the exact failure spec 3.5 forbids.

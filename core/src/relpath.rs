@@ -10,7 +10,7 @@
 //! - `..` in any form — the whole point;
 //! - an absolute path, which would ignore the base entirely;
 //! - a component starting with `.` — hidden files are the app's business
-//!   (`.jott`, `.workspace.json`), never content;
+//!   (`.jott`, `.space.json`), never content;
 //! - `\` and NUL, which mean different things on different platforms and
 //!   nothing good on any of them;
 //! - an empty component (`a//b`), which hides intent.
@@ -29,7 +29,7 @@ pub fn is_safe_component(part: &str) -> bool {
 /// the app would silently turn into a folder.
 ///
 /// Every door that takes a name from the user goes through here — a list name,
-/// a workspace name, a widget folder. They used to each spell the rule out with
+/// a space name, a widget folder. They used to each spell the rule out with
 /// a slightly different set of checks; each still raises **its own** error, and
 /// adds its own extra restriction (a list name also refuses `"`, a widget
 /// folder also refuses `Completed`), but the rule underneath is one.

@@ -1,7 +1,7 @@
 // How a widget arranges its items — the one implementation both the tasks
 // and the notes widget read (princípio 7).
 //
-// The preference lives in the workspace's own `.workspace.json` (`sort` + `order`,
+// The preference lives in the space's own `.space.json` (`sort` + `order`,
 // Etapa 1 2026-08-04); the content files never carry it. This module is pure:
 // a screen hands in its items and accessors, and gets a new array back. An
 // unknown `sort` reads as the file order — the same tolerance the config

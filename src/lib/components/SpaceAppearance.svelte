@@ -1,5 +1,5 @@
 <script>
-  // The workspace colour + icon popup, opened from the ⋮ menu (controlled by
+  // The space colour + icon popup, opened from the ⋮ menu (controlled by
   // `open`). A preset palette and a curated set of icons (all vendored).
   // Picking calls onColor/onIcon with the value — an empty string clears it,
   // back to the default. Stays open across picks so both can be set at once;
@@ -17,7 +17,7 @@
     onColor,
     onIcon,
     onClose,
-    /// A workspace inside a group picks its ICON but not its colour — the
+    /// A space inside a group picks its ICON but not its colour — the
     /// colour is the group's, for the whole section (2026-08-04/08-06).
     colors = true,
   } = $props();
@@ -26,7 +26,7 @@
   // and the settings screen offer (2026-08-13). The icons stay here: they are
   // this popup's own vocabulary.
   //
-  // The two type defaults lead the row (services/workspaceIcon.js), so the
+  // The two type defaults lead the row (services/spaceIcon.js), so the
   // icon a list or a notepad already wears is also the one to pick again.
   const ICONS = [
     "list-checks", "notepad", "folder", "house", "check-square", "note",

@@ -13,10 +13,10 @@ pub enum Error {
     #[error("{0} is not a Jott notebook")]
     NotANotebook(PathBuf),
 
-    /// The folder has no `.workspace.json`. A folder only becomes interface
+    /// The folder has no `.space.json`. A folder only becomes interface
     /// by carrying the marker — never on its own.
-    #[error("{0} is not a workspace")]
-    NotAWorkspace(PathBuf),
+    #[error("{0} is not a space")]
+    NotASpace(PathBuf),
 
     /// A notebook in the pre-phase-7 layout. Refused with a clear message
     /// instead of converted: no migrations before v1 (decision 2026-07-21).
@@ -26,7 +26,7 @@ pub enum Error {
     )]
     LegacyNotebook(PathBuf),
 
-    /// A widget's `folder` tried to escape its workspace, or is malformed.
+    /// A widget's `folder` tried to escape its space, or is malformed.
     /// A note address that could escape its folder, or a title that cannot
     /// be a file name.
     #[error("invalid note path {0:?}")]
@@ -41,10 +41,10 @@ pub enum Error {
     #[error("invalid list name {0:?}")]
     InvalidListName(String),
 
-    /// A workspace folder name that could escape the notebook, is empty, or
+    /// A space folder name that could escape the notebook, is empty, or
     /// collides with an existing folder. The name is user input.
-    #[error("invalid workspace name {0:?}")]
-    InvalidWorkspaceName(String),
+    #[error("invalid space name {0:?}")]
+    InvalidSpaceName(String),
 
     /// The notebook was written by a newer version of the app. Opening it
     /// read-only is safer than rewriting a file whose fields we do not know.
@@ -67,7 +67,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 /// The guard every writer shares: refuse to write a file whose `schemaVersion`
 /// came from a newer build.
 ///
-/// The notebook config, the workspace config, the widget config and the
+/// The notebook config, the space config, the widget config and the
 /// notebook itself each spelled this out; four copies of one rule is four
 /// chances for the next config file to forget it. Reading a future file is
 /// fine — rewriting one is how data written by a newer app gets destroyed.

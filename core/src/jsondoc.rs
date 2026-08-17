@@ -1,6 +1,6 @@
 //! The tolerant JSON document every config file in the notebook is.
 //!
-//! `.jott/config.json`, `.workspace.json`, `.group.json` and
+//! `.jott/config.json`, `.space.json`, `.group.json` and
 //! `.jott/tags.json` all make the **same four promises** (spec 3.4 and 3.5):
 //!
 //! - a missing or unreadable file reads as "nothing set", never an error —
@@ -12,7 +12,7 @@
 //!
 //! Each file used to implement all four itself. That is how the last two bugs
 //! in this area happened, both the same shape: a cleared optional whose old
-//! value survived in `raw` (workspace colour, 2026-07-28; `Config::order`, the
+//! value survived in `raw` (space colour, 2026-07-28; `Config::order`, the
 //! same day). Written once, a new config file inherits the promises instead of
 //! re-earning them.
 

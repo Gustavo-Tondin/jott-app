@@ -1,5 +1,5 @@
 <script>
-  // The fixed Tasks workspace: the inbox, plus the day and the week.
+  // The fixed Tasks space: the inbox, plus the day and the week.
   //
   // One entry in the sidebar and three buttons inside it, rather than three
   // entries — Today and This Week are *views of the same tasks*, not places

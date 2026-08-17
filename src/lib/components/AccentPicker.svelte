@@ -1,6 +1,6 @@
 <script>
   // A row of the seven complementary colours — the ONE colour picker in the
-  // app (2026-08-13). The workspace/group popup, the tag manager and the
+  // app (2026-08-13). The space/group popup, the tag manager and the
   // settings screen all choose from the same seven, so they all draw this.
   //
   // What it emits is a NAME (`"orange"`), never a hex: each of the seven has a

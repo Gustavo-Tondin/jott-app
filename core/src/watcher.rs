@@ -26,7 +26,7 @@ use crate::NOTEBOOK_CONFIG_DIR;
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(tag = "kind", rename_all = "lowercase")]
 pub enum Change {
-    /// A `.md` file in any workspace — a task list, or (until phase 8 gives
+    /// A `.md` file in any space — a task list, or (until phase 8 gives
     /// them their own kind) a note.
     List { path: PathBuf },
     /// A day/week state file.
@@ -63,9 +63,9 @@ impl Change {
             });
         }
 
-        // Any `.md` outside `.jott/` is content — a list in *any* workspace,
+        // Any `.md` outside `.jott/` is content — a list in *any* space,
         // or (phase 8) a note. The old rule only knew `Tasks/`, so a list in
-        // a user workspace came back as `Other`, the UI never reloaded, and
+        // a user space came back as `Other`, the UI never reloaded, and
         // the app's next save would overwrite the external edit in silence.
         // A note classified as `List` merely causes a harmless reload; phase
         // 8 refines the kinds.
@@ -243,9 +243,9 @@ mod tests {
     }
 
     #[test]
-    fn a_list_in_a_user_workspace_is_a_list_not_other() {
+    fn a_list_in_a_user_space_is_a_list_not_other() {
         // The old rule only knew Tasks/: an external edit to a user
-        // workspace's list came back as Other, the UI never reloaded, and
+        // space's list came back as Other, the UI never reloaded, and
         // the app's next save overwrote the edit in silence.
         let root = Path::new("/caderno");
         let config_dir = config_dir(root);

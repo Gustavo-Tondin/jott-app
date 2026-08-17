@@ -1,6 +1,6 @@
 //! The notebook's own trash, in `.jott/trash/` (reestruturação 2026-07-30).
 //!
-//! Deleting never destroys (principle 4): a note, list, widget, workspace,
+//! Deleting never destroys (principle 4): a note, list, widget, space,
 //! group — or a single task line — is *moved* here, with a record of where it
 //! came from, so the user can bring it back (Ctrl+Z, or the Trash screen) until
 //! a retention window (default 30 days) elapses and the reaper clears it.

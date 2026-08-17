@@ -15,7 +15,7 @@
   //
   // An item may instead carry `items: [...]` — a SUBMENU (2026-08-05). It shows
   // a caret and opens its own panel beside the row, which is what keeps a long
-  // menu (sort by five things, move to any workspace) readable: the top level
+  // menu (sort by five things, move to any space) readable: the top level
   // stays a short list of decisions. An empty submenu is a disabled row —
   // "Move widget to" with nowhere to move says so instead of opening nothing.
   //

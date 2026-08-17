@@ -77,7 +77,7 @@
   }
 
   /// Where a hit lives, as one readable line: `Tasks · Inbox`.
-  const place = (hit) => [hit.workspace, hit.container].filter(Boolean).join(" · ");
+  const place = (hit) => [hit.space, hit.container].filter(Boolean).join(" · ");
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->

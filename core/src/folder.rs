@@ -1,14 +1,15 @@
-//! A folder of task lists — the thing a `tasks` workspace owns.
+//! A folder of task lists — the thing a `tasks` space owns.
 //!
 //! Extracted from `Notebook` in phase 7 (step B): every operation here used
 //! to be written against the one hard-coded `Tasks/` directory. Making "a
-//! folder of lists" a value is what lets a second tasks workspace exist
+//! folder of lists" a value is what lets a second tasks space exist
 //! without bolting an `if` onto twenty functions — the notebook
 //! orchestrates, the folder does the file work.
 //!
-//! A tasks workspace is **one list** (spec 3.5): a `.md` named after the
-//! folder (`Work/` → `Work.md`) plus its `Completed.md`. Extra `.md` files a
-//! user drops in are still read — tolerance, not a second model.
+//! A tasks space is **one list** (spec 3.5): `task-list.md` plus its
+//! `completed.md`, the same two names in every space since 2026-08-13 — the
+//! folder is what tells them apart. Extra `.md` files a user drops in are
+//! still read — tolerance, not a second model.
 //!
 //! Nothing here knows about states, periods or completion rules: those are
 //! business decisions that coordinate *across* files, and they stay in
@@ -54,8 +55,8 @@ needs to keep track of it — when you pull it into your day or week, or
 complete it. You never have to write those yourself, and you can leave them
 alone.
 
-Delete a list file and Jott forgets that list. The workspace's own list
-and Completed.md come back automatically.
+Delete a list file and Jott forgets that list. The space's own
+task-list.md and completed.md come back automatically.
 ";
 
 /// A directory holding task lists. Cheap to build — it is a path, not a
@@ -131,8 +132,8 @@ impl TaskFolder {
         Ok(counts)
     }
 
-    /// The folder's main list — spec 3.5: a tasks workspace is ONE list, and
-    /// since 2026-08-13 that list has the same name in every workspace.
+    /// The folder's main list — spec 3.5: a tasks space is ONE list, and
+    /// since 2026-08-13 that list has the same name in every space.
     ///
     /// It used to be derived: the `.md` named after the folder, falling back
     /// to "the single `.md` that is not the Completed one" when the user had

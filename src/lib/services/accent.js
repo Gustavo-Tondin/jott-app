@@ -1,6 +1,6 @@
 // The seven complementary colours, and how a stored choice becomes CSS.
 //
-// A workspace, a group, a tag and the app itself all pick from the SAME seven
+// A space, a group, a tag and the app itself all pick from the SAME seven
 // (user call, 2026-08-13). What is stored is the NAME — `"orange"` — never a
 // hex, and that is the whole point: each of the seven has four steps, and
 // which two a colour shows depends on the ground it lands on. The black
@@ -15,7 +15,7 @@
 // not follow the ground, because it cannot.
 
 /// The seven, in palette order. This array IS the order every swatch row
-/// draws, so the palette reads the same in the workspace popup, the tag
+/// draws, so the palette reads the same in the space popup, the tag
 /// manager and the settings screen.
 export const ACCENTS = ["yellow", "orange", "pink", "green", "blue", "red", "purple"];
 

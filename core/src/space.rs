@@ -1,22 +1,22 @@
-//! Workspaces: the folders of the notebook that carry a `.workspace.json`,
+//! Spaces: the folders of the notebook that carry a `.space.json`,
 //! and the groups (`.group.json`) that gather them in the sidebar.
 //!
-//! Model (spec 3.5, rewritten 2026-08-11): **notebook → [group] → workspace
-//! → file**. A folder *with* a `.workspace.json` is a workspace; every other
+//! Model (spec 3.5, rewritten 2026-08-11): **notebook → [group] → space
+//! → file**. A folder *with* a `.space.json` is a space; every other
 //! folder is ignored — a stray folder dropped into the notebook must never
-//! turn into interface on its own. A workspace has a single function — its
+//! turn into interface on its own. A space has a single function — its
 //! `type` (`tasks` or `notes`) — and owns its files directly; the widget
-//! layer that used to sit between the workspace and its files was cut.
+//! layer that used to sit between the space and its files was cut.
 //! The type comes from the config, never from the folder name, so two task
-//! workspaces can be called `Backlog/` and `Bugs/`.
+//! spaces can be called `Backlog/` and `Bugs/`.
 //!
 //! The config file follows the same covenant as `.jott/config.json`:
 //!
 //! - a missing or malformed value falls back to a default, never an error;
-//! - an **unknown key survives the rewrite** — including a workspace of
+//! - an **unknown key survives the rewrite** — including a space of
 //!   unknown type. A template written for a future version must open as
 //!   "not supported yet", never be destroyed;
-//! - a `schemaVersion` above what this build knows opens the workspace
+//! - a `schemaVersion` above what this build knows opens the space
 //!   read-only, and saving is refused.
 
 use std::path::{Path, PathBuf};
@@ -26,45 +26,45 @@ use serde_json::Value;
 use crate::error::{Error, Result};
 use crate::jsondoc;
 
-/// The marker file that makes a folder a workspace.
-pub const WORKSPACE_CONFIG_FILE: &str = ".workspace.json";
+/// The marker file that makes a folder a space.
+pub const SPACE_CONFIG_FILE: &str = ".space.json";
 
-/// The marker file that makes a folder a group of workspaces.
+/// The marker file that makes a folder a group of spaces.
 pub const GROUP_CONFIG_FILE: &str = ".group.json";
 
 /// Schema version this build understands.
-pub const SUPPORTED_WORKSPACE_SCHEMA: u64 = 1;
+pub const SUPPORTED_SPACE_SCHEMA: u64 = 1;
 
-/// Workspace types this build ships (`home` exists only on the fixed Home).
+/// Space types this build ships (`home` exists only on the fixed Home).
 /// Anything else is *kept and shown as unsupported*, never dropped — see
-/// [`WorkspaceConfig::is_known`].
-pub const KNOWN_WORKSPACE_KINDS: [&str; 3] = ["tasks", "notes", "home"];
+/// [`SpaceConfig::is_known`].
+pub const KNOWN_SPACE_KINDS: [&str; 3] = ["tasks", "notes", "home"];
 
-/// A workspace's `.workspace.json`, in memory.
+/// A space's `.space.json`, in memory.
 ///
 /// Since the 2026-08-11 pivot this also carries what used to live in the
-/// widget's own config: the `type` (the workspace's single function) and the
+/// widget's own config: the `type` (the space's single function) and the
 /// `sort`/`order` arrangement of its content.
 #[derive(Debug, Clone)]
-pub struct WorkspaceConfig {
+pub struct SpaceConfig {
     schema_version: u64,
-    /// The workspace type (`tasks`, `notes`, `home` on the fixed Home, or
+    /// The space type (`tasks`, `notes`, `home` on the fixed Home, or
     /// something this build has never heard of). Empty when the file has no
     /// usable `type` — still kept, so nothing the user wrote is lost.
     pub kind: String,
     /// Display name. Falls back to the folder name when absent.
     pub name: Option<String>,
-    /// The workspace's accent colour (any CSS colour string), shown on its
+    /// The space's accent colour (any CSS colour string), shown on its
     /// group bar in the sidebar. Absent means the sidebar's default accent.
     pub color: Option<String>,
-    /// The workspace's icon (a Phosphor icon name the frontend knows). Absent
+    /// The space's icon (a Phosphor icon name the frontend knows). Absent
     /// falls back to the generic folder icon.
     pub icon: Option<String>,
-    /// How the workspace arranges its items (`name`, `created`, `completed`,
+    /// How the space arranges its items (`name`, `created`, `completed`,
     /// `custom`). `None` — or a value this build has never heard of — reads
     /// as the file order. A view preference, so the core stores it verbatim.
     pub sort: Option<String>,
-    /// The hand-dragged arrangement (task ids for a tasks workspace, note
+    /// The hand-dragged arrangement (task ids for a tasks space, note
     /// paths for a notes one), read when `sort` is `custom`. Lives here and
     /// never in the content files — the order is an app preference, the `.md`
     /// is the user's.
@@ -73,10 +73,10 @@ pub struct WorkspaceConfig {
     raw: jsondoc::Doc,
 }
 
-impl Default for WorkspaceConfig {
+impl Default for SpaceConfig {
     fn default() -> Self {
         Self {
-            schema_version: SUPPORTED_WORKSPACE_SCHEMA,
+            schema_version: SUPPORTED_SPACE_SCHEMA,
             kind: String::new(),
             name: None,
             color: None,
@@ -88,8 +88,8 @@ impl Default for WorkspaceConfig {
     }
 }
 
-impl WorkspaceConfig {
-    /// Builds a config for a workspace the app itself creates.
+impl SpaceConfig {
+    /// Builds a config for a space the app itself creates.
     pub fn new(kind: impl Into<String>) -> Self {
         Self {
             kind: kind.into(),
@@ -104,13 +104,13 @@ impl WorkspaceConfig {
     /// True when the file came from a newer app than this one. Same rule as
     /// the notebook config: read, never rewrite.
     pub fn is_read_only(&self) -> bool {
-        self.schema_version > SUPPORTED_WORKSPACE_SCHEMA
+        self.schema_version > SUPPORTED_SPACE_SCHEMA
     }
 
-    /// Whether this build knows how to render the workspace. An unknown one
+    /// Whether this build knows how to render the space. An unknown one
     /// is shown as an "unsupported" card with its folder left untouched.
     pub fn is_known(&self) -> bool {
-        KNOWN_WORKSPACE_KINDS.contains(&self.kind.as_str())
+        KNOWN_SPACE_KINDS.contains(&self.kind.as_str())
     }
 
     /// Reads a config file. Missing or unreadable yields the defaults.
@@ -124,7 +124,7 @@ impl WorkspaceConfig {
 
     fn from_doc(raw: jsondoc::Doc) -> Self {
         Self {
-            schema_version: jsondoc::schema_version(&raw, SUPPORTED_WORKSPACE_SCHEMA),
+            schema_version: jsondoc::schema_version(&raw, SUPPORTED_SPACE_SCHEMA),
             kind: jsondoc::string(&raw, "type").unwrap_or_default(),
             name: jsondoc::string(&raw, "name"),
             color: jsondoc::string(&raw, "color"),
@@ -151,10 +151,10 @@ impl WorkspaceConfig {
     pub fn render(&self) -> String {
         let mut owned = jsondoc::owned([("schemaVersion", Value::from(self.schema_version))]);
         let mut cleared = Vec::new();
-        // `type` is never cleared, only overwritten: a workspace whose type
+        // `type` is never cleared, only overwritten: a space whose type
         // this build cannot read (a future shape, an object where we expect a
         // string) keeps whatever is on disk — that is the whole "unsupported
-        // workspace, folder untouched" promise of spec 3.5. A group's config
+        // space, folder untouched" promise of spec 3.5. A group's config
         // reuses this struct and simply has no `type` to write.
         if !self.kind.is_empty() {
             owned.insert("type".into(), Value::from(self.kind.clone()));
@@ -186,33 +186,33 @@ impl WorkspaceConfig {
 
     /// Writes the config atomically. Refuses when it came from a newer app.
     pub fn save(&self, path: impl AsRef<Path>) -> Result<()> {
-        crate::error::guard_schema(self.schema_version, SUPPORTED_WORKSPACE_SCHEMA)?;
+        crate::error::guard_schema(self.schema_version, SUPPORTED_SPACE_SCHEMA)?;
         crate::fsio::write_atomically(path.as_ref(), self.render().as_bytes())
     }
 }
 
-/// An open workspace: a first-level folder plus its config.
+/// An open space: a first-level folder plus its config.
 #[derive(Debug, Clone)]
-pub struct Workspace {
+pub struct Space {
     root: PathBuf,
     folder_name: String,
-    pub config: WorkspaceConfig,
+    pub config: SpaceConfig,
 }
 
-impl Workspace {
+impl Space {
     /// True when the folder carries the marker file.
-    pub fn is_workspace(path: impl AsRef<Path>) -> bool {
-        path.as_ref().join(WORKSPACE_CONFIG_FILE).is_file()
+    pub fn is_space(path: impl AsRef<Path>) -> bool {
+        path.as_ref().join(SPACE_CONFIG_FILE).is_file()
     }
 
-    /// Opens the workspace living in `path`.
+    /// Opens the space living in `path`.
     pub fn open(path: impl AsRef<Path>) -> Result<Self> {
         let root = path.as_ref().to_path_buf();
-        if !Self::is_workspace(&root) {
-            return Err(Error::NotAWorkspace(root));
+        if !Self::is_space(&root) {
+            return Err(Error::NotASpace(root));
         }
         let folder_name = folder_name_of(&root);
-        let config = WorkspaceConfig::load(root.join(WORKSPACE_CONFIG_FILE));
+        let config = SpaceConfig::load(root.join(SPACE_CONFIG_FILE));
         Ok(Self {
             root,
             folder_name,
@@ -225,7 +225,7 @@ impl Workspace {
     }
 
     /// The folder name, which is how states and origins will address the
-    /// workspace — renaming the folder is renaming the workspace.
+    /// space — renaming the folder is renaming the space.
     pub fn folder_name(&self) -> &str {
         &self.folder_name
     }
@@ -234,7 +234,7 @@ impl Workspace {
     ///
     /// The marker's `name` used to win, and that made the name a second copy
     /// of something the filesystem already stores. Two copies drift: renaming
-    /// a workspace in the app wrote the marker and left the folder — and the
+    /// a space in the app wrote the marker and left the folder — and the
     /// list file inside it — under the old name, so the sidebar and the disk
     /// disagreed. It also went one way only: renaming the folder in a file
     /// manager changed nothing on screen.
@@ -243,7 +243,7 @@ impl Workspace {
     /// called `jott.tasks`, `jott.notes`, `jott.home` precisely so the plain
     /// words stay free for the user, so their folder name is an identifier and
     /// not a label; their marker carries the name the interface reads. A user
-    /// workspace cannot take that route — there, the folder IS the name.
+    /// space cannot take that route — there, the folder IS the name.
     pub fn display_name(&self) -> &str {
         if !is_app_folder(&self.folder_name) {
             return &self.folder_name;
@@ -256,10 +256,10 @@ impl Workspace {
     }
 
     pub fn config_path(&self) -> PathBuf {
-        self.root.join(WORKSPACE_CONFIG_FILE)
+        self.root.join(SPACE_CONFIG_FILE)
     }
 
-    /// The workspace's single function (`tasks`, `notes`, `home`), straight
+    /// The space's single function (`tasks`, `notes`, `home`), straight
     /// from the config. Empty means a type this build cannot read — shown as
     /// unsupported, folder untouched.
     pub fn kind(&self) -> &str {
@@ -275,7 +275,7 @@ impl Workspace {
 /// ignored, and so is anything hidden.
 ///
 /// The two discoveries of the app are the same scan with a different marker:
-/// workspaces (`.workspace.json`) inside the notebook or a group, and groups
+/// spaces (`.space.json`) inside the notebook or a group, and groups
 /// (`.group.json`) at the root.
 pub fn marker_dirs(parent: &Path, marker: &str) -> Result<Vec<PathBuf>> {
     let mut found: Vec<PathBuf> = crate::fsio::dir_paths(parent)?
@@ -302,10 +302,10 @@ pub(crate) fn folder_name_of(path: &Path) -> String {
         .unwrap_or_default()
 }
 
-/// A group of workspaces (reestruturação 2026-07-30): a folder carrying a
-/// `.group.json`, holding workspaces **and other groups** (nesting, since
+/// A group of spaces (reestruturação 2026-07-30): a folder carrying a
+/// `.group.json`, holding spaces **and other groups** (nesting, since
 /// 2026-08-11). It organizes the left sidebar and owns no files of its own.
-/// The marker **reuses [`WorkspaceConfig`]** — a group config is just
+/// The marker **reuses [`SpaceConfig`]** — a group config is just
 /// name/colour/icon, the same tolerant fields — so there is no second reader
 /// to keep in sync.
 pub struct Group;
@@ -319,14 +319,14 @@ impl Group {
 
 /// A group as the navigation shows it: its folder (identity), the group it
 /// sits in (groups nest since 2026-08-11), its config (name/colour/icon) and
-/// the leaf names of the workspaces it holds directly.
+/// the leaf names of the spaces it holds directly.
 #[derive(Debug, Clone)]
 pub struct GroupEntry {
     pub folder: String,
     /// The folder name of the group holding this one; `None` at the root.
     pub parent: Option<String>,
-    pub config: WorkspaceConfig,
-    pub workspaces: Vec<String>,
+    pub config: SpaceConfig,
+    pub spaces: Vec<String>,
 }
 
 #[cfg(test)]
@@ -334,8 +334,8 @@ mod tests {
     use super::*;
 
     #[test]
-    fn a_documented_workspace_config_parses() {
-        let config = WorkspaceConfig::parse(
+    fn a_documented_space_config_parses() {
+        let config = SpaceConfig::parse(
             r##"{ "schemaVersion": 1, "type": "tasks", "name": "Project A", "color": "#f00" }"##,
         );
         assert_eq!(config.kind, "tasks");
@@ -345,10 +345,10 @@ mod tests {
     }
 
     #[test]
-    fn an_unknown_workspace_type_is_kept_not_dropped() {
-        // The most important promise of spec 3.5: a workspace from a future
+    fn an_unknown_space_type_is_kept_not_dropped() {
+        // The most important promise of spec 3.5: a space from a future
         // version renders as "unsupported", and nothing the user has is lost.
-        let config = WorkspaceConfig::parse(
+        let config = SpaceConfig::parse(
             r#"{ "schemaVersion": 1, "type": "kanban", "columns": ["todo", "done"] }"#,
         );
         assert!(!config.is_known());
@@ -361,26 +361,26 @@ mod tests {
     }
 
     #[test]
-    fn a_workspace_without_a_type_is_kept_as_unknown() {
-        let config = WorkspaceConfig::parse(r#"{ "schemaVersion": 1, "name": "X" }"#);
+    fn a_space_without_a_type_is_kept_as_unknown() {
+        let config = SpaceConfig::parse(r#"{ "schemaVersion": 1, "name": "X" }"#);
         assert!(!config.is_known());
         assert_eq!(config.kind, "");
     }
 
     #[test]
-    fn clearing_a_workspace_name_removes_the_key() {
+    fn clearing_a_space_name_removes_the_key() {
         let mut config =
-            WorkspaceConfig::parse(r#"{ "schemaVersion": 1, "type": "tasks", "name": "old" }"#);
+            SpaceConfig::parse(r#"{ "schemaVersion": 1, "type": "tasks", "name": "old" }"#);
         config.name = None;
         assert!(!config.render().contains("old"));
     }
 
     #[test]
-    fn the_sort_and_order_live_in_the_workspace_config() {
-        let mut config = WorkspaceConfig::new("tasks");
+    fn the_sort_and_order_live_in_the_space_config() {
+        let mut config = SpaceConfig::new("tasks");
         config.sort = Some("custom".into());
         config.order = vec!["a1".into(), "b2".into()];
-        let reparsed = WorkspaceConfig::parse(&config.render());
+        let reparsed = SpaceConfig::parse(&config.render());
         assert_eq!(reparsed.sort.as_deref(), Some("custom"));
         assert_eq!(reparsed.order, vec!["a1".to_string(), "b2".to_string()]);
 
@@ -398,8 +398,8 @@ mod tests {
         for text in [
             r#"{ "schemaVersion": 1, "futureFeature": { "deep": [1] } }"#,
         ] {
-            let ws = WorkspaceConfig::parse(text);
-            let reparsed = WorkspaceConfig::parse(&ws.render());
+            let sp = SpaceConfig::parse(text);
+            let reparsed = SpaceConfig::parse(&sp.render());
             assert_eq!(reparsed.raw["futureFeature"], serde_json::json!({ "deep": [1] }));
         }
     }
@@ -407,26 +407,26 @@ mod tests {
     #[test]
     fn garbage_or_missing_falls_back_to_defaults() {
         for text in ["", "not json", "[]", "null"] {
-            let ws = WorkspaceConfig::parse(text);
-            assert_eq!(ws.schema_version(), SUPPORTED_WORKSPACE_SCHEMA);
-            assert_eq!(ws.kind, "", "{text:?}");
+            let sp = SpaceConfig::parse(text);
+            assert_eq!(sp.schema_version(), SUPPORTED_SPACE_SCHEMA);
+            assert_eq!(sp.kind, "", "{text:?}");
         }
     }
 
     #[test]
     fn a_newer_schema_opens_read_only_and_refuses_to_save() {
-        let config = WorkspaceConfig::parse(r#"{ "schemaVersion": 99 }"#);
+        let config = SpaceConfig::parse(r#"{ "schemaVersion": 99 }"#);
         assert!(config.is_read_only());
         let dir = tempfile::tempdir().unwrap();
-        let path = dir.path().join(WORKSPACE_CONFIG_FILE);
+        let path = dir.path().join(SPACE_CONFIG_FILE);
         assert!(config.save(&path).is_err());
         assert!(!path.exists());
     }
 
-    fn workspace_at(dir: &Path, config: &str) -> Workspace {
+    fn space_at(dir: &Path, config: &str) -> Space {
         std::fs::create_dir_all(dir).unwrap();
-        std::fs::write(dir.join(WORKSPACE_CONFIG_FILE), config).unwrap();
-        Workspace::open(dir).unwrap()
+        std::fs::write(dir.join(SPACE_CONFIG_FILE), config).unwrap();
+        Space::open(dir).unwrap()
     }
 
     #[test]
@@ -436,14 +436,14 @@ mod tests {
         // the folder — and it only ever went one way, so renaming the folder
         // in a file manager changed nothing on screen.
         let dir = tempfile::tempdir().unwrap();
-        let ws = workspace_at(&dir.path().join("Trabalho"), r#"{ "schemaVersion": 1 }"#);
-        assert_eq!(ws.display_name(), "Trabalho");
-        assert_eq!(ws.folder_name(), "Trabalho");
+        let sp = space_at(&dir.path().join("Trabalho"), r#"{ "schemaVersion": 1 }"#);
+        assert_eq!(sp.display_name(), "Trabalho");
+        assert_eq!(sp.folder_name(), "Trabalho");
 
-        // A user workspace carrying a stale `name` shows its FOLDER. The key
+        // A user space carrying a stale `name` shows its FOLDER. The key
         // itself is not destroyed (the unknown-key promise still holds); it is
         // simply no longer what the interface reads.
-        let named = workspace_at(
+        let named = space_at(
             &dir.path().join("pasta-feia"),
             r#"{ "schemaVersion": 1, "name": "Project A" }"#,
         );
@@ -453,7 +453,7 @@ mod tests {
         // The exception, and the only one: the app's own folders are called
         // `jott.*` precisely so the plain words stay free for the user, so
         // their folder name is an identifier and their marker holds the label.
-        let fixed = workspace_at(
+        let fixed = space_at(
             &dir.path().join("jott.tasks"),
             r#"{ "schemaVersion": 1, "type": "tasks", "name": "Tasks" }"#,
         );
@@ -462,7 +462,7 @@ mod tests {
 
         // And a fixed one with no label falls back to its folder rather than
         // showing nothing.
-        let bare = workspace_at(
+        let bare = space_at(
             &dir.path().join("jott.notes"),
             r#"{ "schemaVersion": 1, "type": "notes" }"#,
         );
@@ -470,24 +470,24 @@ mod tests {
     }
 
     #[test]
-    fn a_folder_without_the_marker_is_not_a_workspace() {
+    fn a_folder_without_the_marker_is_not_a_space() {
         let dir = tempfile::tempdir().unwrap();
         assert!(matches!(
-            Workspace::open(dir.path()),
-            Err(Error::NotAWorkspace(_))
+            Space::open(dir.path()),
+            Err(Error::NotASpace(_))
         ));
     }
 
     #[test]
-    fn a_workspace_reads_its_type_from_the_config() {
+    fn a_space_reads_its_type_from_the_config() {
         let dir = tempfile::tempdir().unwrap();
-        let tasks = workspace_at(
+        let tasks = space_at(
             &dir.path().join("Work"),
             r#"{ "schemaVersion": 1, "type": "tasks" }"#,
         );
         assert_eq!(tasks.kind(), "tasks");
 
-        let notes = workspace_at(
+        let notes = space_at(
             &dir.path().join("Journal"),
             r#"{ "schemaVersion": 1, "type": "notes" }"#,
         );
@@ -501,10 +501,10 @@ mod tests {
             let d = dir.path().join(folder);
             std::fs::create_dir_all(&d).unwrap();
             if marked {
-                std::fs::write(d.join(WORKSPACE_CONFIG_FILE), "{}").unwrap();
+                std::fs::write(d.join(SPACE_CONFIG_FILE), "{}").unwrap();
             }
         }
-        let found = marker_dirs(dir.path(), WORKSPACE_CONFIG_FILE).unwrap();
+        let found = marker_dirs(dir.path(), SPACE_CONFIG_FILE).unwrap();
         assert_eq!(found.len(), 1);
         assert_eq!(folder_name_of(&found[0]), "Work");
     }

@@ -192,13 +192,13 @@ pub struct Config {
     /// `0` means never — the Completed keeps growing, which is a valid choice.
     pub completed_retention_days: i64,
     /// Manual ordering the user set by dragging, keyed by a namespace string
-    /// (`"workspaces"`, `"lists:<folder>"`, …) → the item names in order. It
+    /// (`"spaces"`, `"lists:<folder>"`, …) → the item names in order. It
     /// lives here, not in the files, because on disk items sort by whatever the
     /// user's filter chooses; a hand-arranged order is an app preference.
     /// Reusable: [`Config::apply_order`] applies any namespace to any list.
     pub order: BTreeMap<String, Vec<String>>,
     /// How the Day and the Week are arranged (`"day"`/`"week"` → `name` /
-    /// `created` / `completed`). A period has no `.workspace.json` to keep its
+    /// `created` / `completed`). A period has no `.space.json` to keep its
     /// own preference in — it is not a folder — so its arrangement lives with
     /// the notebook, next to the manual `order` (2026-08-06). Absent means the
     /// order the tasks were pulled in, which is the state file's own order.
@@ -214,10 +214,10 @@ pub struct Config {
     /// `src/lib/services/features.js` owns the defaults — one list, which is
     /// also the one the settings screen draws itself from.
     pub features: BTreeMap<String, bool>,
-    /// How the sidebar arranges the user's workspaces and groups: `name` for
+    /// How the sidebar arranges the user's spaces and groups: `name` for
     /// alphabetical, anything else (the default) for the hand-dragged `order`
     /// (2026-08-06).
-    pub workspaces_sort: String,
+    pub spaces_sort: String,
     /// The document exactly as it was read, so keys this build does not know
     /// about are written back instead of being silently dropped. This is what
     /// protects a notebook opened by two different app versions.
@@ -243,7 +243,7 @@ impl Default for Config {
             order: BTreeMap::new(),
             period_sort: BTreeMap::new(),
             features: BTreeMap::new(),
-            workspaces_sort: String::new(),
+            spaces_sort: String::new(),
             raw: Map::new(),
         }
     }
@@ -267,7 +267,7 @@ impl Config {
     /// its current relative order, after them. A no-op when nothing is stored
     /// for the namespace, so new items and untracked lists behave as before.
     ///
-    /// One helper for every draggable list — workspaces, a folder's lists, and
+    /// One helper for every draggable list — spaces, a folder's lists, and
     /// whatever comes next — so the "manual order in the config" rule lives in
     /// exactly one place.
     pub fn apply_order<T>(&self, namespace: &str, items: &mut [T], name_of: impl Fn(&T) -> &str) {
@@ -320,12 +320,12 @@ impl Config {
     ///
     /// The arrangements are addressed by folder, in two different shapes, and
     /// both go stale on a rename — silently, which is the worst kind: the
-    /// workspace simply falls to the end of a hand-dragged column and nobody
+    /// space simply falls to the end of a hand-dragged column and nobody
     /// can see why. So:
     ///
     /// - the `lists:<dir>` namespace KEY carries a root-relative path, and any
     ///   key under the moved dir moves with it;
-    /// - the sidebar's `workspaces` order holds bare folder names, so an entry
+    /// - the sidebar's `spaces` order holds bare folder names, so an entry
     ///   equal to the old leaf becomes the new one. Safe to do across every
     ///   namespace because a folder name is unique in the notebook (spec 3.5).
     ///
@@ -447,7 +447,7 @@ impl Config {
                         .collect()
                 })
                 .unwrap_or_default(),
-            workspaces_sort: string(&raw, "workspacesSort").unwrap_or_default(),
+            spaces_sort: string(&raw, "spacesSort").unwrap_or_default(),
             order: raw
                 .get("order")
                 .and_then(Value::as_object)
@@ -503,12 +503,12 @@ impl Config {
         let mut cleared: Vec<&str> = Vec::new();
         // The sidebar's arrangement: absent means the dragged order, which is
         // the default, so an untouched notebook says nothing about it.
-        if self.workspaces_sort.is_empty() {
-            cleared.push("workspacesSort");
+        if self.spaces_sort.is_empty() {
+            cleared.push("spacesSort");
         } else {
             owned.insert(
-                "workspacesSort".to_string(),
-                Value::from(self.workspaces_sort.clone()),
+                "spacesSort".to_string(),
+                Value::from(self.spaces_sort.clone()),
             );
         }
         // The accent and the theme, same rule: absent means what the app ships
@@ -866,18 +866,18 @@ mod tests {
 
     #[test]
     fn a_renamed_folder_carries_its_arrangements_with_it() {
-        // Renaming a workspace moves its folder now (2026-08-13), and both
+        // Renaming a space moves its folder now (2026-08-13), and both
         // shapes of stored arrangement are addressed by folder. Left stale,
-        // they fail silently: the workspace simply drops to the end of a
+        // they fail silently: the space simply drops to the end of a
         // column the user dragged, with nothing on screen to explain it.
         let mut config = Config::default();
-        config.set_order("workspaces", vec!["Work".into(), "Mercado".into()]);
+        config.set_order("spaces", vec!["Work".into(), "Mercado".into()]);
         config.set_order("lists:Design/Work", vec!["a".into()]);
         config.set_order("lists:Other", vec!["b".into()]);
 
         assert!(config.relocate_orders("Design/Work", "Design/Tasks"));
         assert_eq!(
-            config.order.get("workspaces"),
+            config.order.get("spaces"),
             Some(&vec!["Tasks".to_string(), "Mercado".to_string()]),
             "the sidebar order holds bare folder names"
         );
@@ -909,7 +909,7 @@ mod tests {
 
         // Moving without renaming touches no key and reports nothing changed.
         let mut same = Config::default();
-        same.set_order("workspaces", vec!["Work".into()]);
+        same.set_order("spaces", vec!["Work".into()]);
         assert!(!same.relocate_orders("Work", "Work"));
     }
 
@@ -951,17 +951,17 @@ mod tests {
         // about it, and clearing has to REMOVE the key or a stale one in `raw`
         // outlives the change (2026-08-06).
         let mut config = Config::default();
-        assert_eq!(config.workspaces_sort, "");
-        assert!(!config.render().contains("workspacesSort"));
+        assert_eq!(config.spaces_sort, "");
+        assert!(!config.render().contains("spacesSort"));
 
-        config.workspaces_sort = "name".into();
+        config.spaces_sort = "name".into();
         let text = config.render();
-        assert!(text.contains("workspacesSort"));
-        assert_eq!(Config::parse(&text).workspaces_sort, "name");
+        assert!(text.contains("spacesSort"));
+        assert_eq!(Config::parse(&text).spaces_sort, "name");
 
         let mut back = Config::parse(&text);
-        back.workspaces_sort = String::new();
-        assert!(!back.render().contains("workspacesSort"));
+        back.spaces_sort = String::new();
+        assert!(!back.render().contains("spacesSort"));
     }
 
     #[test]

@@ -39,7 +39,7 @@ fn finds_a_task_by_its_text() {
     // Everything needed to open it, with no path taken apart on the other side.
     assert_eq!(found.tasks[0].path, INBOX);
     assert_eq!(found.tasks[0].container, "task-list");
-    assert_eq!(found.tasks[0].workspace, "Tasks");
+    assert_eq!(found.tasks[0].space, "Tasks");
     // The title IS the match: nothing else to prove.
     assert_eq!(found.tasks[0].snippet, "");
     assert!(found.notes.is_empty());
@@ -86,7 +86,7 @@ fn finds_a_note_by_title_and_by_body() {
     assert_eq!(by_title.notes[0].title, "Receita de bolo");
     assert_eq!(by_title.notes[0].folder, "jott.notes");
     assert_eq!(by_title.notes[0].container, "Inbox");
-    assert_eq!(by_title.notes[0].workspace, "Notes");
+    assert_eq!(by_title.notes[0].space, "Notes");
 
     let by_body = notebook.search("orçamento", LIMIT).unwrap();
     assert_eq!(by_body.notes.len(), 1);
@@ -121,9 +121,9 @@ fn searching_never_writes() {
 }
 
 #[test]
-fn reaches_every_workspace_and_says_which_one() {
+fn reaches_every_space_and_says_which_one() {
     let (_dir, notebook) = notebook();
-    let work = notebook.create_workspace("Obra", "tasks").unwrap();
+    let work = notebook.create_space("Obra", "tasks").unwrap();
     let list = format!("{work}/task-list.md");
     notebook.create_task(&list, "Comprar cimento").unwrap();
     notebook.create_task(INBOX, "Comprar cimento também").unwrap();
@@ -131,7 +131,7 @@ fn reaches_every_workspace_and_says_which_one() {
     let found = notebook.search("cimento", LIMIT).unwrap();
 
     assert_eq!(found.tasks.len(), 2);
-    let mut places: Vec<&str> = found.tasks.iter().map(|hit| hit.workspace.as_str()).collect();
+    let mut places: Vec<&str> = found.tasks.iter().map(|hit| hit.space.as_str()).collect();
     places.sort();
     assert_eq!(places, ["Obra", "Tasks"]);
 }

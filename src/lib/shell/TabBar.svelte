@@ -89,7 +89,7 @@
         role="presentation"
         onauxclick={(e) => onAuxClick(e, i)}
       >
-        <!-- The dot names the workspace the tab comes from by colour: strong
+        <!-- The dot names the space the tab comes from by colour: strong
              on the active tab, faded on the rest. -->
         <span
           class="tabs__dot"

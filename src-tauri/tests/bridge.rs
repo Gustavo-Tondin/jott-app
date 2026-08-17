@@ -140,7 +140,7 @@ fn opening_a_notebook_reports_it_and_creates_the_layout() {
     assert_eq!(info["readOnly"], json!(false));
     assert_eq!(
         info["lists"],
-        json!([{"path": "jott.tasks/completed.md", "name": "completed", "workspace": "Tasks"}, {"path": "jott.tasks/task-list.md", "name": "task-list", "workspace": "Tasks"}]),
+        json!([{"path": "jott.tasks/completed.md", "name": "completed", "space": "Tasks"}, {"path": "jott.tasks/task-list.md", "name": "task-list", "space": "Tasks"}]),
         "default lists should exist and be sorted"
     );
     assert!(dir.path().join(".jott/config.json").is_file());
@@ -362,20 +362,20 @@ fn switching_a_feature_off_reaches_the_layout_and_touches_nothing_else() {
 fn the_sidebar_sort_round_trips() {
     let (_lock, app, dir) = app_with_notebook();
 
-    assert_eq!(ok(&app, "workspaces_sort", json!({})), "");
-    ok(&app, "set_workspaces_sort", json!({ "sort": "name" }));
-    assert_eq!(ok(&app, "workspaces_sort", json!({})), "name");
+    assert_eq!(ok(&app, "spaces_sort", json!({})), "");
+    ok(&app, "set_spaces_sort", json!({ "sort": "name" }));
+    assert_eq!(ok(&app, "spaces_sort", json!({})), "name");
     assert!(std::fs::read_to_string(dir.path().join(".jott/config.json"))
         .unwrap()
-        .contains("workspacesSort"));
+        .contains("spacesSort"));
 
     // Anything else means the dragged order, which is what an untouched
     // notebook already does — so the key leaves the file entirely.
-    ok(&app, "set_workspaces_sort", json!({ "sort": "banana" }));
-    assert_eq!(ok(&app, "workspaces_sort", json!({})), "");
+    ok(&app, "set_spaces_sort", json!({ "sort": "banana" }));
+    assert_eq!(ok(&app, "spaces_sort", json!({})), "");
     assert!(!std::fs::read_to_string(dir.path().join(".jott/config.json"))
         .unwrap()
-        .contains("workspacesSort"));
+        .contains("spacesSort"));
 }
 
 #[test]
@@ -579,7 +579,7 @@ fn sync_conflicts_reach_the_frontend() {
     assert!(conflicts[0]["original"].as_str().unwrap().ends_with("Compras.md"));
 
     // And it must not have become a list in the sidebar.
-    assert_eq!(ok(&app, "list_names", json!({})), json!([{"path": "jott.tasks/Compras.md", "name": "Compras", "workspace": "Tasks"}, {"path": "jott.tasks/completed.md", "name": "completed", "workspace": "Tasks"}, {"path": "jott.tasks/task-list.md", "name": "task-list", "workspace": "Tasks"}]));
+    assert_eq!(ok(&app, "list_names", json!({})), json!([{"path": "jott.tasks/Compras.md", "name": "Compras", "space": "Tasks"}, {"path": "jott.tasks/completed.md", "name": "completed", "space": "Tasks"}, {"path": "jott.tasks/task-list.md", "name": "task-list", "space": "Tasks"}]));
 }
 
 #[test]
@@ -862,7 +862,7 @@ fn opening_a_second_notebook_switches_the_open_one() {
 
     let info = ok(&app, "current_notebook", json!({}));
     assert_eq!(info["path"], json!(second.path()));
-    assert_eq!(info["lists"], json!([{"path": "jott.tasks/completed.md", "name": "completed", "workspace": "Tasks"}, {"path": "jott.tasks/task-list.md", "name": "task-list", "workspace": "Tasks"}]));
+    assert_eq!(info["lists"], json!([{"path": "jott.tasks/completed.md", "name": "completed", "space": "Tasks"}, {"path": "jott.tasks/task-list.md", "name": "task-list", "space": "Tasks"}]));
 
     // The first notebook is untouched on disk, just no longer open.
     assert!(first.path().join("jott.tasks/SoNoPrimeiro.md").is_file());
@@ -889,7 +889,7 @@ fn the_snapshot_answers_everything_in_one_call() {
 
     let snap = ok(&app, "notebook_snapshot", json!({}));
 
-    assert_eq!(snap["info"]["lists"], json!([{"path": "jott.tasks/Compras.md", "name": "Compras", "workspace": "Tasks"}, {"path": "jott.tasks/completed.md", "name": "completed", "workspace": "Tasks"}, {"path": "jott.tasks/task-list.md", "name": "task-list", "workspace": "Tasks"}]));
+    assert_eq!(snap["info"]["lists"], json!([{"path": "jott.tasks/Compras.md", "name": "Compras", "space": "Tasks"}, {"path": "jott.tasks/completed.md", "name": "completed", "space": "Tasks"}, {"path": "jott.tasks/task-list.md", "name": "task-list", "space": "Tasks"}]));
     assert_eq!(snap["info"]["layout"]["inbox"], "jott.tasks/task-list.md");
     assert_eq!(snap["info"]["layout"]["completed"], "jott.tasks/completed.md");
     assert_eq!(snap["counts"]["jott.tasks/Compras.md"], json!(1));
@@ -946,32 +946,32 @@ fn hostile_fields_are_normalized_by_the_core_not_trusted_to_the_ui() {
 }
 
 #[test]
-fn a_hand_written_workspace_crosses_the_bridge_intact() {
-    // The community-template promise end to end: a hand-written workspace of
+fn a_hand_written_space_crosses_the_bridge_intact() {
+    // The community-template promise end to end: a hand-written space of
     // a type this build ships must open and expose its list; one of an
     // invented type must arrive flagged as unknown — and the file on disk
     // must not change by one byte for having been looked at.
     let (_lock, app, dir) = app_with_notebook();
 
-    let ws = dir.path().join("Project A");
-    std::fs::create_dir_all(&ws).unwrap();
+    let sp = dir.path().join("Project A");
+    std::fs::create_dir_all(&sp).unwrap();
     std::fs::write(
-        ws.join(".workspace.json"),
+        sp.join(".space.json"),
         r#"{ "schemaVersion": 1, "type": "tasks", "name": "Project A" }"#,
     )
     .unwrap();
-    std::fs::write(ws.join("Sprint.md"), "- [ ] shipar\n").unwrap();
+    std::fs::write(sp.join("Sprint.md"), "- [ ] shipar\n").unwrap();
 
     let holo = dir.path().join("Do Futuro");
     std::fs::create_dir_all(&holo).unwrap();
     std::fs::write(
-        holo.join(".workspace.json"),
+        holo.join(".space.json"),
         r#"{ "schemaVersion": 1, "type": "hologram", "shader": "neon" }"#,
     )
     .unwrap();
 
-    let workspaces = ok(&app, "workspaces", json!({}));
-    let list = workspaces.as_array().unwrap();
+    let spaces = ok(&app, "spaces", json!({}));
+    let list = spaces.as_array().unwrap();
 
     // The three fixed ones plus the hand-written ones, flagged apart.
     let fixed: Vec<&str> = list
@@ -984,7 +984,7 @@ fn a_hand_written_workspace_crosses_the_bridge_intact() {
     let project = list
         .iter()
         .find(|w| w["folderName"] == "Project A")
-        .expect("the hand-written workspace must be discovered");
+        .expect("the hand-written space must be discovered");
     assert_eq!(project["name"], "Project A");
     assert_eq!(project["fixed"], json!(false));
     assert_eq!(project["kind"], "tasks");
@@ -994,7 +994,7 @@ fn a_hand_written_workspace_crosses_the_bridge_intact() {
     let future = list
         .iter()
         .find(|w| w["folderName"] == "Do Futuro")
-        .expect("the unknown workspace must be delivered, not dropped");
+        .expect("the unknown space must be delivered, not dropped");
     assert_eq!(future["kind"], "hologram");
     assert_eq!(future["known"], json!(false), "unknown, never dropped");
 
@@ -1006,77 +1006,77 @@ fn a_hand_written_workspace_crosses_the_bridge_intact() {
         .iter()
         .any(|l| l["path"] == "Project A/Sprint.md"));
 
-    // And looking never wrote: the unknown workspace's config is the author's.
-    let on_disk = std::fs::read_to_string(holo.join(".workspace.json")).unwrap();
+    // And looking never wrote: the unknown space's config is the author's.
+    let on_disk = std::fs::read_to_string(holo.join(".space.json")).unwrap();
     assert!(on_disk.contains("shader"), "unknown keys survive");
 }
 
 #[test]
-fn workspace_sort_and_order_round_trip_over_the_bridge() {
-    // The ordering preference lives in the workspace's own `.workspace.json`,
+fn space_sort_and_order_round_trip_over_the_bridge() {
+    // The ordering preference lives in the space's own `.space.json`,
     // set by two commands and read back in the snapshot.
     let (_lock, app, dir) = app_with_notebook();
     ok(
         &app,
-        "create_workspace",
+        "create_space",
         json!({ "name": "Space 1", "kind": "tasks" }),
     );
 
     ok(
         &app,
-        "set_workspace_sort",
-        json!({ "workspace": "Space 1", "sort": "name" }),
+        "set_space_sort",
+        json!({ "space": "Space 1", "sort": "name" }),
     );
     ok(
         &app,
-        "set_workspace_order",
-        json!({ "workspace": "Space 1", "order": ["b2", "a1"] }),
+        "set_space_order",
+        json!({ "space": "Space 1", "order": ["b2", "a1"] }),
     );
 
-    let workspaces = ok(&app, "workspaces", json!({}));
-    let space = workspaces
+    let spaces = ok(&app, "spaces", json!({}));
+    let space = spaces
         .as_array()
         .unwrap()
         .iter()
         .find(|w| w["folderName"] == "Space 1")
         .unwrap()
         .clone();
-    // set_workspace_order also switches to the dragged arrangement.
+    // set_space_order also switches to the dragged arrangement.
     assert_eq!(space["sort"], "custom");
     assert_eq!(space["order"], json!(["b2", "a1"]));
 
     let on_disk =
-        std::fs::read_to_string(dir.path().join("Space 1/.workspace.json")).unwrap();
+        std::fs::read_to_string(dir.path().join("Space 1/.space.json")).unwrap();
     assert!(on_disk.contains("\"order\""), "{on_disk}");
-    // And the type the workspace was born with survives the rewrite.
+    // And the type the space was born with survives the rewrite.
     assert!(on_disk.contains("\"type\": \"tasks\""), "{on_disk}");
 }
 
 #[test]
-fn a_new_workspace_is_born_usable_over_the_bridge() {
-    // Creating a tasks workspace delivers its list and Completed on arrival;
+fn a_new_space_is_born_usable_over_the_bridge() {
+    // Creating a tasks space delivers its list and Completed on arrival;
     // a notes one is just the marked folder.
     let (_lock, app, dir) = app_with_notebook();
     ok(
         &app,
-        "create_workspace",
+        "create_space",
         json!({ "name": "Errands", "kind": "tasks" }),
     );
     ok(
         &app,
-        "create_workspace",
+        "create_space",
         json!({ "name": "Journal", "kind": "notes" }),
     );
 
     assert!(dir.path().join("Errands/task-list.md").is_file());
     assert!(dir.path().join("Errands/completed.md").is_file());
-    assert!(dir.path().join("Journal/.workspace.json").is_file());
+    assert!(dir.path().join("Journal/.space.json").is_file());
     assert!(!dir.path().join("Journal/task-list.md").exists());
 
     // An unknown type is refused at the door.
     assert!(invoke(
         &app,
-        "create_workspace",
+        "create_space",
         json!({ "name": "X", "kind": "hologram" })
     )
     .is_err());
@@ -1113,9 +1113,9 @@ fn pinning_a_task_over_the_bridge_writes_the_hidden_field() {
 }
 
 #[test]
-fn an_unknown_workspace_type_does_not_take_the_notebook_down() {
+fn an_unknown_space_type_does_not_take_the_notebook_down() {
     // A broken or future template must degrade politely: an unknown
-    // workspace is kept and flagged, and its healthy siblings still work.
+    // space is kept and flagged, and its healthy siblings still work.
     let (_lock, app, dir) = app_with_notebook();
     for (folder, cfg) in [
         ("Ok", r#"{ "schemaVersion": 1, "type": "tasks" }"#),
@@ -1123,12 +1123,12 @@ fn an_unknown_workspace_type_does_not_take_the_notebook_down() {
     ] {
         let d = dir.path().join(folder);
         std::fs::create_dir_all(&d).unwrap();
-        std::fs::write(d.join(".workspace.json"), cfg).unwrap();
+        std::fs::write(d.join(".space.json"), cfg).unwrap();
     }
 
-    let workspaces = ok(&app, "workspaces", json!({}));
+    let spaces = ok(&app, "spaces", json!({}));
     let find = |name: &str| {
-        workspaces
+        spaces
             .as_array()
             .unwrap()
             .iter()
@@ -1335,14 +1335,14 @@ fn groups_nest_and_report_their_parent_over_the_bridge() {
     // in, and the members it holds directly — in the notebook's own order.
     let (_lock, app, dir) = app_with_notebook();
 
-    // Groups and workspaces are addressed by their root-relative PATH
+    // Groups and spaces are addressed by their root-relative PATH
     // (2026-08-13): two groups may each hold a `Tasks/`, and by leaf name they
     // were the same address.
     ok(&app, "create_group", json!({ "name": "Design" }));
     ok(&app, "create_group", json!({ "name": "Clients", "group": "Design" }));
     ok(
         &app,
-        "create_workspace_in",
+        "create_space_in",
         json!({ "name": "Acme", "kind": "tasks", "group": "Design/Clients" }),
     );
     assert!(dir.path().join("Design/Clients/Acme/task-list.md").is_file());
@@ -1360,8 +1360,8 @@ fn groups_nest_and_report_their_parent_over_the_bridge() {
     assert_eq!(of("Design")["parent"], Value::Null);
     assert_eq!(of("Design/Clients")["parent"], "Design");
     // Acme belongs to Clients, not to the group above it.
-    assert_eq!(of("Design")["workspaces"], json!([]));
-    assert_eq!(of("Design/Clients")["workspaces"], json!(["Design/Clients/Acme"]));
+    assert_eq!(of("Design")["spaces"], json!([]));
+    assert_eq!(of("Design/Clients")["spaces"], json!(["Design/Clients/Acme"]));
 
     // Moving the branch out to the root carries everything under it.
     ok(&app, "move_group", json!({ "name": "Design/Clients", "intoGroup": null }));
@@ -1385,12 +1385,12 @@ fn groups_nest_and_report_their_parent_over_the_bridge() {
 }
 
 #[test]
-fn a_workspace_moved_into_a_group_keeps_its_pulled_tasks() {
+fn a_space_moved_into_a_group_keeps_its_pulled_tasks() {
     // The move rewrites every list address under the folder; a Day reference
     // left pointing at the old path reads as a task that vanished.
     let (_lock, app, _dir) = app_with_notebook();
     ok(&app, "create_group", json!({ "name": "Design" }));
-    ok(&app, "create_workspace", json!({ "name": "Acme", "kind": "tasks" }));
+    ok(&app, "create_space", json!({ "name": "Acme", "kind": "tasks" }));
 
     let id = task_with_id(&app, "Acme/task-list.md", "call the client");
     ok(
@@ -1399,7 +1399,7 @@ fn a_workspace_moved_into_a_group_keeps_its_pulled_tasks() {
         json!({ "period": "day", "list": "Acme/task-list.md", "id": id }),
     );
 
-    ok(&app, "move_workspace", json!({ "name": "Acme", "intoGroup": "Design" }));
+    ok(&app, "move_space", json!({ "name": "Acme", "intoGroup": "Design" }));
 
     let state = ok(&app, "period_state", json!({ "period": "day" }));
     assert_eq!(state["items"][0]["path"], "Design/Acme/task-list.md");

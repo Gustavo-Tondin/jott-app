@@ -263,7 +263,7 @@ fn moving_a_task_to_another_list_takes_its_period_references_along() {
 
 #[test]
 fn a_period_keeps_the_order_the_user_dragged_and_its_own_sort() {
-    // A period is not a folder, so there is no `.workspace.json`: the hand-made
+    // A period is not a folder, so there is no `.space.json`: the hand-made
     // order goes into the state file itself (it IS the day's list) and the
     // sorting preference into the notebook config (2026-08-06).
     let dir = tempfile::tempdir().unwrap();
@@ -948,7 +948,7 @@ fn write_dated_list(dir: &Path, list: &str, entries: &[(&str, i64)]) {
         })
         .collect();
     // The fixed tasks widget lives in `Tasks/` now (reestruturação
-    // 2026-07-30), so its lists are written there, not at the workspace root.
+    // 2026-07-30), so its lists are written there, not at the space root.
     std::fs::write(
         dir.join("jott.tasks").join(format!("{list}.md")),
         body,
@@ -1579,7 +1579,7 @@ fn tags_keep_their_colours() {
 fn completed_aggregates_across_widgets_and_writes_the_index() {
     let dir = tempfile::tempdir().unwrap();
     let nb = jott_core::Notebook::init(dir.path()).unwrap();
-    nb.create_workspace("Project", "tasks").unwrap();
+    nb.create_space("Project", "tasks").unwrap();
 
     // Complete one task in each widget's list.
     let mut inbox = nb.inbox().unwrap();
