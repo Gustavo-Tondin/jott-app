@@ -1,0 +1,105 @@
+//! The way out of the notebook — and the way back.
+//!
+//! Nothing the app deletes is destroyed: a file, a folder or a task goes to
+//! `.jott/trash/`, and can be restored to the line it was on.
+
+use crate::error::{Error, IoContext, Result};
+use crate::list::TaskList;
+
+use super::*;
+
+impl Notebook {
+    // ------------------------------------------------------------------ trash
+
+    /// The notebook's own trash, rooted at `.jott/trash/`.
+    pub(super) fn trash(&self) -> crate::trash::Trash {
+        crate::trash::Trash::open(self.config_dir().join("trash"))
+    }
+
+    /// Moves a file or folder into the notebook's trash, recording its origin.
+    /// The single door every file/folder deletion goes through now — no more
+    /// OS trash (which Android lacks and a synced folder cannot carry).
+    pub(super) fn trash_path(&self, abs: &std::path::Path) -> Result<()> {
+        let origin = crate::relpath::relative_slash(&self.root, abs);
+        self.trash()
+            .trash_file(abs, &origin, crate::clock::civil_today())?;
+        Ok(())
+    }
+
+    /// The trashed items awaiting restore or expiry, newest first.
+    pub fn trash_entries(&self) -> Vec<crate::trash::TrashEntry> {
+        let mut entries = self.trash().entries().to_vec();
+        entries.reverse();
+        entries
+    }
+
+    /// Clears items whose retention window elapsed. Run on open.
+    pub fn reap_trash(&self) -> Result<()> {
+        self.trash()
+            .reap(self.config.trash_retention_days, crate::clock::civil_today())
+    }
+
+    /// Brings a trashed item back to where it came from. A collision at the
+    /// origin is suffixed, never overwritten.
+    pub fn restore_from_trash(&self, id: &str) -> Result<()> {
+        self.ensure_writable()?;
+        let mut trash = self.trash();
+        let Some(entry) = trash.take(id) else {
+            return Err(Error::TaskNotFound(id.to_string()));
+        };
+        match entry.kind {
+            crate::trash::TrashKind::File => {
+                let stored = entry.stored.clone().unwrap_or_default();
+                let source = trash.stored_path(&stored);
+                let dest = self.root.join(&entry.origin);
+                if let Some(parent) = dest.parent() {
+                    std::fs::create_dir_all(parent).ctx(parent)?;
+                }
+                let name = dest
+                    .file_name()
+                    .map(|n| n.to_string_lossy().to_string())
+                    .unwrap_or_else(|| "restored".to_string());
+                let final_dest = if dest.exists() {
+                    crate::fsio::free_name(dest.parent().unwrap_or(&self.root), &name)
+                } else {
+                    dest
+                };
+                std::fs::rename(&source, &final_dest).ctx(&final_dest)?;
+            }
+            crate::trash::TrashKind::Task => {
+                // A deleted task goes back to its origin list, **at the line it
+                // sat on** (2026-08-14) — the trash always recorded the index,
+                // and restoring to the end quietly reshuffled a list the user
+                // had arranged by hand.
+                //
+                // The stored lines are the task as it was rendered, so they are
+                // parsed back into a task rather than pasted as text:
+                // `add_text` would wrap `- [ ] foo` into a task whose own TEXT
+                // is `- [ ] foo`.
+                if let Some(lines) = &entry.content {
+                    let mut list = self.open_list(&entry.origin)?;
+                    let restored = TaskList::from_str(&lines.join("\n"));
+                    let mut at = entry.index.unwrap_or(usize::MAX);
+                    for line in restored.lines() {
+                        match line {
+                            crate::list::Line::Task(task) => {
+                                list.insert_line_at(at, task.clone());
+                                at = at.saturating_add(1);
+                            }
+                            // A line the parser did not read as a task cannot be
+                            // put back through the task API; dropping it would
+                            // lose the user's text, so it goes back as it was.
+                            crate::list::Line::Raw(raw) => {
+                                list.insert_raw_at(at, raw.clone());
+                                at = at.saturating_add(1);
+                            }
+                        }
+                    }
+                    list.save()?;
+                }
+            }
+        }
+        let _ = self.refresh_completed_index();
+        Ok(())
+    }
+}
