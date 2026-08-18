@@ -1,111 +1,334 @@
 /* editor.css — the visual layer of Editor.svelte.
  * Markup: src/lib/components/Editor.svelte. Selectors are the stable BEM hooks a theme
- * may restyle; components read tokens only. */
+ * may restyle; components read tokens only.
+ *
+ * THE ONE STYLESHEET IN THE APP WITHOUT `@layer` (2026-08-18), and it has to
+ * be: CodeMirror injects its base theme as a <style> it puts FIRST in <head>,
+ * and that style is UNLAYERED. An unlayered declaration beats a layered one
+ * whatever the specificity, so `@layer components { .editor .cm-content { … } }`
+ * lost every fight it picked — silently. It was losing them: the padding of a
+ * line, the padding of the content, the placeholder's colour and the caret's
+ * were CodeMirror's, and the note body was rendering in MONOSPACE (its
+ * `.cm-scroller { font-family: monospace }`) instead of the app's font.
+ *
+ * Unlayered, this file lands in the same bucket as CodeMirror's and wins on
+ * order — style-mod inserts before <head>'s first child, so ours is always
+ * later. Nothing here reaches outside `.editor`, so nothing else in the app
+ * notices the promotion. */
 
-@layer components {
-  .editor {
-    height: 100%;
-  }
-  /* CodeMirror renders into our subtree, so these need :global. */
-  .editor .cm-editor {
-    height: 100%;
-    font: inherit;
-  }
-  .editor .cm-editor.cm-focused {
-    outline: none;
-  }
-  .editor .cm-content {
-    padding: var(--theme-space-8) 0;
-    line-height: var(--theme-leading-loose);
-    /* CodeMirror does not inherit the caret from the region; without this the
-       cursor stayed near-black and disappeared on a dark ground. */
-    caret-color: var(--theme-ink);
-    color: var(--theme-ink);
-  }
-  .editor .cm-line {
-    padding: 0 var(--theme-space-4);
-  }
-  .editor .cm-task-checkbox {
-    margin-right: var(--theme-space-6);
-    vertical-align: middle;
-  }
-  .editor .cm-placeholder {
-    color: var(--theme-ink-faint);
-  }
-  /* The text cursor's own highlight, for the same reason as the caret. */
-  .editor .cm-selectionBackground,
-  .editor .cm-editor ::selection {
-    background: var(--theme-brand-weak);
-  }
+.editor {
+  height: 100%;
+}
+/* The app's font, taken back on BOTH elements: CodeMirror puts
+   `font-family: monospace` on the scroller, and a rule on the editor above it
+   never reaches a declaration made on the element itself. */
+.editor .cm-editor,
+.editor .cm-scroller {
+  font: inherit;
+}
+.editor .cm-editor {
+  height: 100%;
+}
+.editor .cm-editor.cm-focused {
+  outline: none;
+}
+.editor .cm-content {
+  padding: var(--theme-space-8) 0;
+  line-height: var(--theme-leading-loose);
+  /* CodeMirror does not inherit the caret from the region; without this the
+     cursor stayed near-black and disappeared on a dark ground. */
+  caret-color: var(--theme-ink);
+  color: var(--theme-ink);
+}
+.editor .cm-line {
+  padding: 0 var(--theme-space-4);
+}
+.editor .cm-task-checkbox {
+  margin-right: var(--theme-space-6);
+  vertical-align: middle;
+}
+.editor .cm-placeholder {
+  color: var(--theme-ink-faint);
+}
+/* The text cursor's own highlight, for the same reason as the caret. */
+.editor .cm-selectionBackground,
+.editor .cm-editor ::selection {
+  background: var(--theme-brand-weak);
+}
 
-  /* ---- find and replace (2026-08-17) ----
-     CodeMirror's own panel, dressed in the app's tokens. It ships with a
-     light-only look of its own, which on the dark themes was white text in a
-     white box. Everything here is the panel taking the region's ground, the
-     app's controls and the app's accent — the behaviour is untouched. */
-  .editor .cm-panels {
-    background: var(--theme-surface);
-    color: var(--theme-ink);
-    border-color: var(--theme-line);
-  }
-  .editor .cm-panels.cm-panels-top {
-    border-bottom: 0.0625rem solid var(--theme-line);
-  }
-  .editor .cm-panel.cm-search {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: var(--theme-space-6);
-    padding: var(--theme-space-8);
-    font-size: var(--theme-text-14);
-  }
-  .editor .cm-panel.cm-search input[type="text"] {
-    flex: 1 1 8rem;
-    min-inline-size: 0;
-    padding: var(--theme-space-4) var(--theme-space-8);
-    background: var(--theme-bg);
-    color: var(--theme-ink);
-    border: 0.0625rem solid var(--theme-line);
-    border-radius: var(--theme-radius-xs);
-    font: inherit;
-  }
-  .editor .cm-panel.cm-search input[type="text"]:focus-visible {
-    outline: 0.125rem solid var(--theme-brand);
-    outline-offset: 0.0625rem;
-  }
-  .editor .cm-panel.cm-search button:not([name="close"]) {
-    padding: var(--theme-space-4) var(--theme-space-8);
-    background: var(--theme-bg);
-    color: var(--theme-ink);
-    border: 0.0625rem solid var(--theme-line);
-    border-radius: var(--theme-radius-xs);
-    background-image: none;
-    font: inherit;
-    cursor: pointer;
-  }
-  .editor .cm-panel.cm-search button:not([name="close"]):hover {
-    background: var(--theme-hover);
-  }
-  .editor .cm-panel.cm-search label {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--theme-space-4);
-    color: var(--theme-ink-muted);
-  }
-  .editor .cm-panel.cm-search [name="close"] {
-    color: var(--theme-ink-muted);
-    background: none;
-    border: none;
-    cursor: pointer;
-  }
-  /* The matches themselves: the one the cursor is on wears the accent, the
-     others its tint — the same pair the rest of the app uses to say "this one"
-     and "these too". */
-  .editor .cm-searchMatch {
-    background: var(--theme-brand-weak);
-  }
-  .editor .cm-searchMatch-selected {
-    background: var(--theme-brand);
-    color: var(--theme-on-brand);
-  }
+/* =========================================================================
+   THE SHAPE OF MARKDOWN (2026-08-18)
+
+   What each piece of Markdown looks like once the line reads as formatted
+   text. The names come from services/markdown.js, which hands out classes
+   and not one measurement — a size or a colour written there would be a
+   visual decision hiding in a service, out of a theme's reach.
+
+   Drawn from the Notes wireframes (Wireframes/Desktop/Notes, "Editor
+   screen"), which decide four things this file could not have guessed:
+
+     · the line being edited wears a soft band of the accent, rounded, the
+       width of the text column;
+     · a quote is a BOX — the region's surface, with a 2px accent bar down
+       the side and its far corners rounded;
+     · bold is ink and a link is the accent, but italic is green
+       (--theme-emphasis);
+     · the syntax marks are NOT dimmed on the line that shows them, and a
+       bullet is ink like the text it introduces.
+
+   Everything else here (code, rule, checked task) is the same shape language
+   applied where the wireframes are silent.
+   ========================================================================= */
+
+/* ---- the editing zone ----
+   Every line the selection touches: one while typing, the whole block while
+   selecting across it. The same set of lines `livePreview` leaves showing
+   their raw syntax — so the band is what explains why those lines look
+   different from the rest of the note.
+
+   A background IMAGE rather than a colour, so it veils whatever ground the
+   line already has (a quote's surface, a code block's box) instead of
+   replacing it. And translucent, so the text selection still reads on top. */
+.editor .cm-md-editing {
+  background-image: linear-gradient(
+    color-mix(in srgb, var(--theme-brand-weak) 75%, transparent),
+    color-mix(in srgb, var(--theme-brand-weak) 75%, transparent)
+  );
+  border-radius: var(--theme-radius-xs);
+}
+
+/* ---- headings ----
+   Six sizes for six levels; the colour is the accent ladder (or the ink one,
+   if the reader turned headings off the accent in Settings), assigned by
+   styles/roles.css. Sizes are in `em` so the whole scale follows the app's
+   body size instead of pinning the note to one number. */
+.editor .cm-md-h1 {
+  font-size: 1.6em;
+  font-weight: var(--theme-weight-bold);
+  line-height: var(--theme-leading-tight);
+  letter-spacing: var(--theme-tracking-tight);
+  color: var(--theme-heading-1);
+}
+.editor .cm-md-h2 {
+  font-size: 1.35em;
+  font-weight: var(--theme-weight-bold);
+  line-height: var(--theme-leading-tight);
+  letter-spacing: var(--theme-tracking-tight);
+  color: var(--theme-heading-2);
+}
+.editor .cm-md-h3 {
+  font-size: 1.15em;
+  font-weight: var(--theme-weight-bold);
+  color: var(--theme-heading-3);
+}
+.editor .cm-md-h4 {
+  font-weight: var(--theme-weight-bold);
+  color: var(--theme-heading-4);
+}
+.editor .cm-md-h5 {
+  font-weight: var(--theme-weight-bold);
+  color: var(--theme-heading-5);
+}
+.editor .cm-md-h6 {
+  font-weight: var(--theme-weight-bold);
+  color: var(--theme-heading-6);
+}
+/* A title needs air above it more than below: the paragraph it opens is
+   already its own line. */
+.editor .cm-md-heading {
+  padding-block-start: var(--theme-space-12);
+}
+
+/* ---- inline emphasis ---- */
+.editor .cm-md-strong {
+  font-weight: var(--theme-weight-bold);
+}
+.editor .cm-md-em {
+  font-style: italic;
+  color: var(--theme-emphasis);
+}
+.editor .cm-md-strike {
+  color: var(--theme-ink-muted);
+  text-decoration: line-through;
+}
+
+/* ---- links ----
+   The accent, and the underline only under the pointer: a note is mostly
+   prose, and a permanent underline turns every reference into a scar. The
+   `(endereço)` half — visible only on the line being edited — steps back to
+   muted ink, because it is plumbing and the text is the link. */
+.editor .cm-md-link {
+  color: var(--theme-brand);
+}
+.editor .cm-md-link:hover {
+  text-decoration: underline;
+}
+.editor .cm-md-url {
+  color: var(--theme-ink-muted);
+}
+
+/* ---- code ----
+   Two shapes from one tag: `InlineCode` and the text inside a fenced block
+   both carry it. Inline it is a chip; inside the block the box already says
+   "code", so the chip comes off. */
+.editor .cm-md-mono {
+  padding: 0.05em 0.3em;
+  border-radius: var(--theme-radius-xs);
+  background: var(--theme-surface);
+  font-family: var(--theme-font-mono);
+  font-size: 0.9em;
+}
+.editor .cm-md-code .cm-md-mono {
+  padding: 0;
+  background: none;
+  font-size: inherit;
+}
+.editor .cm-md-code {
+  background-color: var(--theme-surface);
+  padding-inline: var(--theme-space-10);
+  font-family: var(--theme-font-mono);
+  font-size: 0.9em;
+}
+
+/* ---- quote ----
+   A box with a bar, not italic muted text: the shape carries the meaning, so
+   the words keep the ink of the note around them. */
+.editor .cm-md-quote {
+  background-color: var(--theme-surface);
+  border-inline-start: 0.125rem solid var(--theme-brand);
+  padding-inline: var(--theme-space-10) var(--theme-space-8);
+}
+
+/* The two ends of a box are the only lines that round a corner. The side the
+   bar is on stays square — a bar with a rounded box behind it reads as two
+   pieces that missed each other. */
+.editor .cm-md-open {
+  border-start-start-radius: var(--theme-radius-xs);
+  border-start-end-radius: var(--theme-radius-xs);
+  padding-block-start: var(--theme-space-6);
+}
+.editor .cm-md-close {
+  border-end-start-radius: var(--theme-radius-xs);
+  border-end-end-radius: var(--theme-radius-xs);
+  padding-block-end: var(--theme-space-6);
+}
+.editor .cm-md-quote.cm-md-open,
+.editor .cm-md-quote.cm-md-close {
+  border-start-start-radius: 0;
+  border-end-start-radius: 0;
+}
+
+/* ---- horizontal rule ----
+   The dashes ARE the rule, so on a line nobody is editing they step aside
+   and let a real hairline take their place. Drawn on a pseudo-element, which
+   costs no height: the line keeps measuring the way CodeMirror expects. */
+.editor .cm-md-rule {
+  position: relative;
+}
+.editor .cm-md-rule .cm-md-separator {
+  color: transparent;
+}
+.editor .cm-md-rule::after {
+  content: "";
+  position: absolute;
+  inset-inline: var(--theme-space-4);
+  inset-block-start: 50%;
+  border-block-start: 0.0625rem solid var(--theme-line);
+}
+/* On the line being edited the characters come back and the hairline goes,
+   the same trade the rest of the live preview makes. */
+.editor .cm-md-rule.cm-md-editing .cm-md-separator {
+  color: var(--theme-ink-muted);
+}
+.editor .cm-md-rule.cm-md-editing::after {
+  content: none;
+}
+
+/* ---- lists ----
+   The • a `-` becomes on a line nobody is editing. Ink, not muted: it is the
+   structure of the list, and it is what the eye runs down the margin. */
+.editor .cm-md-bullet {
+  color: var(--theme-ink);
+}
+
+/* ---- checklists ----
+   A note's checkbox is two characters in the file (spec 5), but it reads as
+   done the way a task of the app does — struck through and stepped back. */
+.editor .cm-task-checkbox {
+  accent-color: var(--theme-brand);
+}
+.editor .cm-md-done {
+  color: var(--theme-ink-muted);
+  text-decoration: line-through;
+}
+
+/* ---- find and replace (2026-08-17) ----
+   CodeMirror's own panel, dressed in the app's tokens. It ships with a
+   light-only look of its own, which on the dark themes was white text in a
+   white box. Everything here is the panel taking the region's ground, the
+   app's controls and the app's accent — the behaviour is untouched. */
+.editor .cm-panels {
+  background: var(--theme-surface);
+  color: var(--theme-ink);
+  border-color: var(--theme-line);
+}
+.editor .cm-panels.cm-panels-top {
+  border-bottom: 0.0625rem solid var(--theme-line);
+}
+.editor .cm-panel.cm-search {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--theme-space-6);
+  padding: var(--theme-space-8);
+  font-size: var(--theme-text-14);
+}
+.editor .cm-panel.cm-search input[type="text"] {
+  flex: 1 1 8rem;
+  min-inline-size: 0;
+  padding: var(--theme-space-4) var(--theme-space-8);
+  background: var(--theme-bg);
+  color: var(--theme-ink);
+  border: 0.0625rem solid var(--theme-line);
+  border-radius: var(--theme-radius-xs);
+  font: inherit;
+}
+.editor .cm-panel.cm-search input[type="text"]:focus-visible {
+  outline: 0.125rem solid var(--theme-brand);
+  outline-offset: 0.0625rem;
+}
+.editor .cm-panel.cm-search button:not([name="close"]) {
+  padding: var(--theme-space-4) var(--theme-space-8);
+  background: var(--theme-bg);
+  color: var(--theme-ink);
+  border: 0.0625rem solid var(--theme-line);
+  border-radius: var(--theme-radius-xs);
+  background-image: none;
+  font: inherit;
+  cursor: pointer;
+}
+.editor .cm-panel.cm-search button:not([name="close"]):hover {
+  background: var(--theme-hover);
+}
+.editor .cm-panel.cm-search label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--theme-space-4);
+  color: var(--theme-ink-muted);
+}
+.editor .cm-panel.cm-search [name="close"] {
+  color: var(--theme-ink-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+/* The matches themselves: the one the cursor is on wears the accent, the
+   others its tint — the same pair the rest of the app uses to say "this one"
+   and "these too". */
+.editor .cm-searchMatch {
+  background: var(--theme-brand-weak);
+}
+.editor .cm-searchMatch-selected {
+  background: var(--theme-brand);
+  color: var(--theme-on-brand);
 }

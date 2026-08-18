@@ -123,4 +123,12 @@
   --theme-danger: var(--palette-red-300);
   --theme-warning: var(--palette-yellow-300);
   --theme-success: var(--palette-green-300);
+
+  /* The one piece of Markdown with a colour of its own (Notes wireframe,
+     Editor screen): emphasis. Bold is ink and a link is the accent, but italic
+     is green — it is the only inline mark whose SHAPE alone (a slant) is easy
+     to miss in a wall of text. A fixed colour rather than the accent, for the
+     same reason the status three are fixed: it must not change meaning when
+     the user picks green as their accent. */
+  --theme-emphasis: var(--palette-green-300);
 }

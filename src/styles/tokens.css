@@ -218,6 +218,11 @@
        TYPOGRAPHY
        --------------------------------------------------------------------- */
     --theme-font-sans: "Inter", system-ui, sans-serif;
+    /* Code inside a note: the reader's own monospace, not a webfont — a
+       note is a `.md` on disk and its code should look the way code looks
+       in the editor they open it with. */
+    --theme-font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo,
+      "Liberation Mono", monospace;
 
     --theme-text-8: 0.5rem; /*  8px — tag pill */
     --theme-text-10: 0.625rem; /* 10px — task meta date */

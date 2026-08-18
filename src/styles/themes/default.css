@@ -46,6 +46,7 @@
  *   --accent-<name>-tint    …its quiet fill (a selected row)
  *   --theme-danger/-warning/-success   three of the eight, straight from the
  *                           palette so a status pill lives in the same world
+ *   --theme-emphasis        a fourth of the eight: italic text in a note
  *
  * NOT here, because they are the same everywhere: --theme-ink-faint, --line,
  * --line-soft, --well (styles/roles.css). Nor --theme-brand: the user chooses
@@ -198,6 +199,14 @@
   --theme-danger: var(--palette-red-300);
   --theme-warning: var(--palette-yellow-300);
   --theme-success: var(--palette-green-300);
+
+  /* The one piece of Markdown with a colour of its own (Notes wireframe,
+     Editor screen): emphasis. Bold is ink and a link is the accent, but italic
+     is green — it is the only inline mark whose SHAPE alone (a slant) is easy
+     to miss in a wall of text. A fixed colour rather than the accent, for the
+     same reason the status three are fixed: it must not change meaning when
+     the user picks green as their accent. */
+  --theme-emphasis: var(--palette-green-300);
 }
 
 /* ---- canvas: on a light ground ----------------------------------------- */
@@ -297,4 +306,12 @@
   --theme-danger: var(--palette-red-500);
   --theme-warning: var(--palette-yellow-500);
   --theme-success: var(--palette-green-500);
+
+  /* The one piece of Markdown with a colour of its own (Notes wireframe,
+     Editor screen): emphasis. Bold is ink and a link is the accent, but italic
+     is green — it is the only inline mark whose SHAPE alone (a slant) is easy
+     to miss in a wall of text. A fixed colour rather than the accent, for the
+     same reason the status three are fixed: it must not change meaning when
+     the user picks green as their accent. */
+  --theme-emphasis: var(--palette-green-500);
 }
