@@ -34,6 +34,10 @@
 }
 .editor .cm-content {
   padding: var(--theme-space-8) 0;
+  /* The middle rung of the note's own size ladder (14 / 16 / 18), stated
+     rather than left to inherit, so all three sizes are one decision — see
+     the `data-note-size` rules at the foot of this file. */
+  font-size: var(--theme-text-16);
   line-height: var(--theme-leading-loose);
   /* CodeMirror does not inherit the caret from the region; without this the
      cursor stayed near-black and disappeared on a dark ground. */
@@ -331,4 +335,19 @@
 .editor .cm-searchMatch-selected {
   background: var(--theme-brand);
   color: var(--theme-on-brand);
+}
+
+/* How big the body of a note is drawn (2026-08-18, `noteFontSize`).
+   `data-note-size` on the root, absent for the size the app ships as — the
+   same pact `data-theme` and `data-accent` keep.
+
+   One declaration moves the whole document because the marks inside are sized
+   in `em` (the headings above are `1.6em`, `1.35em`…): they are multiples of
+   the body, so they follow it in proportion instead of each needing a rule. */
+:root[data-note-size="small"] .editor .cm-content {
+  font-size: var(--theme-text-14);
+}
+
+:root[data-note-size="large"] .editor .cm-content {
+  font-size: var(--theme-text-18);
 }

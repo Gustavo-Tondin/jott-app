@@ -51,6 +51,25 @@ import list from "../../assets/icons/phosphor/regular/list.svg?raw";
 import magnifyingGlass from "../../assets/icons/phosphor/regular/magnifying-glass.svg?raw";
 import lightbulb from "../../assets/icons/phosphor/regular/lightbulb.svg?raw";
 
+// Writing Markdown by keyboard and by the formatting panel (2026-08-18). The
+// six heading glyphs are one icon each rather than a number in a box: Phosphor
+// draws them as `H1`…`H6`, which is what the mark itself is called.
+import textB from "../../assets/icons/phosphor/regular/text-b.svg?raw";
+import textItalic from "../../assets/icons/phosphor/regular/text-italic.svg?raw";
+import textStrikethrough from "../../assets/icons/phosphor/regular/text-strikethrough.svg?raw";
+import code from "../../assets/icons/phosphor/regular/code.svg?raw";
+import link from "../../assets/icons/phosphor/regular/link.svg?raw";
+import listNumbers from "../../assets/icons/phosphor/regular/list-numbers.svg?raw";
+import quotes from "../../assets/icons/phosphor/regular/quotes.svg?raw";
+import minus from "../../assets/icons/phosphor/regular/minus.svg?raw";
+import textHOne from "../../assets/icons/phosphor/regular/text-h-one.svg?raw";
+import textHTwo from "../../assets/icons/phosphor/regular/text-h-two.svg?raw";
+import textHThree from "../../assets/icons/phosphor/regular/text-h-three.svg?raw";
+import textHFour from "../../assets/icons/phosphor/regular/text-h-four.svg?raw";
+import textHFive from "../../assets/icons/phosphor/regular/text-h-five.svg?raw";
+import textHSix from "../../assets/icons/phosphor/regular/text-h-six.svg?raw";
+import textAa from "../../assets/icons/phosphor/regular/text-aa.svg?raw";
+
 export const ICONS = {
   // weighted variants
   "x-bold": xBold,
@@ -93,4 +112,22 @@ export const ICONS = {
   "dots-six-vertical": dotsSixVertical,
   list,
   "magnifying-glass": magnifyingGlass,
+  // markdown
+  bold: textB,
+  italic: textItalic,
+  strike: textStrikethrough,
+  code,
+  link,
+  bullet: listBullets,
+  ordered: listNumbers,
+  task: listChecks,
+  quote: quotes,
+  rule: minus,
+  h1: textHOne,
+  h2: textHTwo,
+  h3: textHThree,
+  h4: textHFour,
+  h5: textHFive,
+  h6: textHSix,
+  "text-size": textAa,
 };

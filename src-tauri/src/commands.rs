@@ -60,6 +60,7 @@ pub struct NotebookLayout {
     /// for the same reason as the other two: it is an attribute on the
     /// document root, wanted on the first paint.
     pub heading_color: String,
+    pub note_font_size: String,
     /// Which parts of the app are switched on (2026-08-06). Only what was
     /// switched OFF is listed; the frontend's `services/features.js` reads a
     /// missing key as on, and applies a child's parent for it.
@@ -112,6 +113,7 @@ impl NotebookInfo {
                 accent_color: notebook.config().accent_color.clone(),
                 theme: notebook.config().theme.clone(),
                 heading_color: notebook.config().heading_color.clone(),
+                note_font_size: notebook.config().note_font_size.clone(),
                 features: notebook.config().features.clone(),
             },
         })
@@ -147,6 +149,7 @@ pub struct NotebookSettings {
     pub theme: Option<String>,
     /// `"ink"` draws headings in plain ink; empty (or anything else) accents.
     pub heading_color: Option<String>,
+    pub note_font_size: Option<String>,
     pub close_inspector_on_click_away: Option<bool>,
     pub quick_note_folder: Option<String>,
     /// Days a completed task stays in its `Completed.md` before the reaper
@@ -469,6 +472,7 @@ pub fn notebook_settings(state: State<'_, AppState>) -> CommandResult<NotebookSe
             accent_color: Some(config.accent_color.clone()),
             theme: Some(config.theme.clone()),
             heading_color: Some(config.heading_color.clone()),
+            note_font_size: Some(config.note_font_size.clone()),
             close_inspector_on_click_away: Some(config.close_inspector_on_click_away),
             quick_note_folder: Some(config.quick_note_folder.clone()),
             completed_retention_days: Some(config.completed_retention_days),
@@ -529,6 +533,9 @@ pub fn set_notebook_settings(
         }
         if let Some(v) = &settings.theme {
             config.theme = v.trim().to_string();
+        }
+        if let Some(v) = &settings.note_font_size {
+            config.note_font_size = v.trim().to_string();
         }
         if let Some(v) = &settings.heading_color {
             config.heading_color = v.trim().to_string();

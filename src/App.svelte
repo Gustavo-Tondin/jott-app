@@ -28,6 +28,7 @@
   import SpaceView from "./lib/screens/SpaceView.svelte";
   import NotesSpace from "./lib/spaces/NotesSpace.svelte";
   import NoteEditor from "./lib/components/NoteEditor.svelte";
+  import FormatBar from "./lib/components/FormatBar.svelte";
   import HomeView from "./lib/screens/HomeView.svelte";
   import SettingsView from "./lib/screens/SettingsView.svelte";
   import TabBar from "./lib/shell/TabBar.svelte";
@@ -48,7 +49,11 @@
   import { formatDate } from "./lib/services/dates.js";
   import { spaceColors } from "./lib/services/spaceColors.js";
   import { tagColors as tagColorMap } from "./lib/services/accent.js";
-  import { themeAttribute } from "./lib/services/themes.js";
+  import {
+    NOTE_FONT_SIZES,
+    noteFontSizeAttribute,
+    themeAttribute,
+  } from "./lib/services/themes.js";
   import { reader } from "./lib/services/features.js";
   import { S } from "./lib/services/strings.js";
   import * as Tabs from "./lib/shell/tabs.js";
@@ -408,6 +413,33 @@
     );
   };
 
+  const setNoteFontSize = (size) =>
+    api
+      .setNotebookSettings({ noteFontSize: size })
+      .then(refreshNotebook)
+      .catch(fail);
+
+  /// True while the note's editor holds the cursor — what the compact
+  /// formatting strip is tied to. `focusin`/`focusout` on the window rather
+  /// than props down through two components: the question is about the
+  /// document's focus, which is a window-level fact.
+  let editorFocused = $state(false);
+
+  /// Whether the note's formatting panel is showing.
+  ///
+  /// Session state, like the sidebar's rail: it answers "am I writing right
+  /// now", which is not something a notebook has an opinion about. On a phone
+  /// it is not this flag at all — the strip appears while the editor has the
+  /// cursor, because there the question is answered by the keyboard being up.
+  let formatting = $state(true);
+
+  /// The right panel has three possible tenants now, and only one at a time.
+  /// A note's formatting is the weakest claim: a task inspector is something
+  /// the user just opened, and the suggestions were asked for.
+  let formatBarOpen = $derived(
+    formatting && view.kind === "note" && !suggesting && !selected && !notebook?.readOnly,
+  );
+
   /// Which period's suggestions the right panel is showing, or null.
   ///
   /// It shares the panel with the inspector, so opening one closes the other —
@@ -487,6 +519,11 @@
     else delete root.dataset.accent;
     if (layout.headingColor === "ink") root.dataset.headings = "ink";
     else delete root.dataset.headings;
+    // How big a note's body is drawn. Absent for the size the app ships as,
+    // like the accent and the headings above.
+    const size = noteFontSizeAttribute(layout.noteFontSize);
+    if (size) root.dataset.noteSize = size;
+    else delete root.dataset.noteSize;
   });
 
   // The platform rides on the root next to them, and for the same reason: it
@@ -658,7 +695,25 @@
         { label: openNote.pinned ? S.unpin : S.pin, run: toggleNotePin },
         { label: S.renameNote, run: renameCurrentNote },
         { label: S.deleteNote, run: deleteCurrentNote },
+        // The reading size, where a reader asks for it — on the note itself,
+        // not only two screens away in Settings (user call, 2026-08-18). It is
+        // the same notebook setting either way.
+        {
+          label: S.noteTextSize,
+          items: NOTE_FONT_SIZES.map((size) => ({
+            label: size.label(),
+            context: layout.noteFontSize === size.key ? "•" : undefined,
+            run: () => setNoteFontSize(size.key),
+          })),
+        },
       );
+      // Only on the desktop: the compact strip answers to the keyboard being
+      // up, so there is nothing here to switch.
+      if (!compact)
+        own.push({
+          label: formatting ? S.hideFormatting : S.showFormatting,
+          run: () => (formatting = !formatting),
+        });
     }
     // Lists are created inside the space itself now, not from here.
     // Renaming or deleting a list the app recreates on every open would only
@@ -1047,7 +1102,17 @@
     );
 </script>
 
-<svelte:window onkeydown={onKeydown} />
+<svelte:window
+  onkeydown={onKeydown}
+  onfocusin={(e) => (editorFocused = !!e.target?.closest?.(".cm-editor"))}
+  onfocusout={(e) => {
+    // `relatedTarget` is where the focus is GOING. Tapping a button on the
+    // strip itself must not take the strip away from under the finger.
+    const to = e.relatedTarget;
+    if (to?.closest?.(".cm-editor, .format-strip")) return;
+    editorFocused = false;
+  }}
+/>
 
 <!-- The window is frameless: this bar draws the brand, the document tabs and
      the min/max/close controls itself, and is the only handle to move or close
@@ -1475,8 +1540,8 @@
         </div>
       </section>
 
-      <!-- RIGHT: one panel, one thing in it — the task inspector, or the day's
-           suggestions (2026-08-06). The wrapper is a flex column whose width
+      <!-- RIGHT: one panel, one thing in it — the task inspector, the day's
+           suggestions (2026-08-06), or an open note's formatting (2026-08-18). The wrapper is a flex column whose width
            slides on open/close — the same width animation the left rail uses,
            so both side panels move the same way (no grid flicker, since the
            shell is flex). The inner panel keeps a fixed width so its content is
@@ -1484,7 +1549,7 @@
       <!-- Its own handle, on the side it opens from (user call, 2026-08-17).
            Only while there is a panel to resize; the same separator the
            sidebar's edge is, mirrored. -->
-      {#if (suggesting || selected) && !compact}
+      {#if (suggesting || selected || formatBarOpen) && !compact}
         <!-- Its own handle, on the side the panel opens from: the same
              separator, mirrored (`sign`). -->
         <PanelResizer
@@ -1517,6 +1582,8 @@
             onClose={() => (suggesting = null)}
             {f}
           />
+        {:else if formatBarOpen}
+          <FormatBar onRun={(id) => noteEditor?.run(id)} />
         {:else if selected}
           <TaskInspector
             task={selected.task}
@@ -1540,7 +1607,7 @@
         {/if}
       {/snippet}
 
-      {#if suggesting || selected}
+      {#if suggesting || selected || (formatBarOpen && !compact)}
         {#if compact}
           <!-- 72% of the screen, from the wireframe: tall enough for the
                inspector's form, short enough that the list it belongs to is
@@ -1591,6 +1658,24 @@
     {@render sidebar()}
   {/if}
 </div>
+
+<!-- The formatting strip, below 768px: it rides above the on-screen keyboard
+     while a note has the cursor (user call, 2026-08-18).
+
+     `position: fixed` and OUTSIDE `.window`, the same two reasons the drawer
+     is: the page slides under it, and a transform on an ancestor would make it
+     the containing block of anything fixed inside. Outside the window it is in
+     no region at all, so it declares one — canvas, because it belongs to the
+     document it is editing.
+
+     Tied to the editor having FOCUS, not to the screen being a note: with the
+     keyboard down the strip would be a bar floating over nothing, and the
+     wireframe puts it against the keyboard's top edge. -->
+{#if compact && notebook && view.kind === "note" && editorFocused && !notebook.readOnly}
+  <div class="format-strip" data-region="canvas">
+    <FormatBar layout="row" onRun={(id) => noteEditor?.run(id)} />
+  </div>
+{/if}
 
 <!-- The tab strip, below 768px: a sheet you pull up rather than a row across
      the top. There is no room for a row of tabs on a phone, and a tab strip

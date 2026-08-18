@@ -162,6 +162,22 @@
     openSearchPanel(view);
   }
 
+  /// Runs a command by the id the registry knows it as — the door the
+  /// formatting panel comes through, while a chord comes through the keymap.
+  /// Both end at the same function, which is what keeps a button and its
+  /// tooltip from ever describing something the key does differently.
+  ///
+  /// Focus first: an editor command edits around the cursor, and clicking a
+  /// button took the focus away from it. Without this the selection is still
+  /// there but the caret is not, and the note would not scroll to what just
+  /// changed.
+  export function run(id) {
+    const command = EDITOR_COMMANDS[id];
+    if (!view || !command) return false;
+    view.focus();
+    return command(view);
+  }
+
   /// Puts the cursor in the note's BODY, at the end of what is there.
   ///
   /// For a note that was just created (the compact shell's "new note", user

@@ -184,6 +184,15 @@ pub struct Config {
     /// not policed here. It is a look, and the answers belong to the
     /// interface.
     pub heading_color: String,
+    /// How big the body of a note is drawn — `small`, `medium`, `large`
+    /// (2026-08-18).
+    ///
+    /// Same covenant as the three above: a NAME, never a measurement, and not
+    /// policed here. It travels WITH the notebook, unlike the interface's
+    /// zoom, which is a machine preference: this one is reading taste and
+    /// should follow the writer to another screen, while zoom answers to a
+    /// monitor. Empty means the size the app ships as.
+    pub note_font_size: String,
     /// Close the task panel when clicking outside it.
     ///
     /// Off by default, and that default is a decision: it shipped on, fired
@@ -247,6 +256,7 @@ impl Default for Config {
             accent_color: String::new(),
             theme: String::new(),
             heading_color: String::new(),
+            note_font_size: String::new(),
             close_inspector_on_click_away: false,
             quick_note_folder: crate::notefolder::NOTES_INBOX.to_string(),
             trash_retention_days: 30,
@@ -420,6 +430,7 @@ impl Config {
             accent_color: string(&raw, "accentColor").unwrap_or(defaults.accent_color),
             theme: string(&raw, "theme").unwrap_or(defaults.theme),
             heading_color: string(&raw, "headingColor").unwrap_or(defaults.heading_color),
+            note_font_size: string(&raw, "noteFontSize").unwrap_or(defaults.note_font_size),
             close_inspector_on_click_away: flag(
                 &raw,
                 "closeInspectorOnClickAway",
@@ -531,6 +542,7 @@ impl Config {
             ("accentColor", &self.accent_color),
             ("theme", &self.theme),
             ("headingColor", &self.heading_color),
+            ("noteFontSize", &self.note_font_size),
         ] {
             if value.is_empty() {
                 cleared.push(key);

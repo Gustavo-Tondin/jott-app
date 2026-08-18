@@ -44,6 +44,32 @@ export const HEADING_COLORS = [
 
 export const DEFAULT_HEADING_COLOR = "accent";
 
+/// How big a note's body is drawn (2026-08-18).
+///
+/// A NOTE setting and not an interface one: it travels with the notebook,
+/// because it is reading taste and follows the writer to another screen. The
+/// interface's own zoom (Ctrl+= / Ctrl+-) is the other question and is a
+/// machine preference.
+///
+/// It is cheap because the editor was already built in `em`: the heading
+/// sizes in `editor.css` are multiples of the body, so one size on the root of
+/// the editor moves the whole document in proportion.
+export const NOTE_FONT_SIZES = [
+  { key: "small", label: () => S.noteSizeSmall },
+  { key: "medium", label: () => S.noteSizeMedium },
+  { key: "large", label: () => S.noteSizeLarge },
+];
+
+export const DEFAULT_NOTE_FONT_SIZE = "medium";
+
+/// The attribute value to write, or null for the size the app ships as —
+/// the same pact `themeAttribute` keeps: the default is what the stylesheet
+/// answers with no attribute at all.
+export function noteFontSizeAttribute(stored) {
+  const known = NOTE_FONT_SIZES.some((size) => size.key === stored);
+  return known && stored !== DEFAULT_NOTE_FONT_SIZE ? stored : null;
+}
+
 /// True for one this build can actually draw.
 export function isTheme(value) {
   return THEMES.some((theme) => theme.key === value);

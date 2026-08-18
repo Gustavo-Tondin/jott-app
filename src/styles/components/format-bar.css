@@ -1,0 +1,55 @@
+@layer components {
+  /* The formatting controls of an open note: a column of buttons in the right
+     panel, a scrolling row above the keyboard on a phone. One component, so
+     one block, with the direction as the modifier.
+
+     The buttons themselves are `.theme-btn--icon` — hover, colour and the
+     focus ring all come from there. Only the arrangement is written here. */
+  .format-bar {
+    display: flex;
+    gap: var(--theme-space-2);
+    padding: var(--theme-space-8);
+  }
+
+  /* Wrapped, so the panel's own width decides how many fit on a line: the six
+     headings end up together and the inline marks above them, and dragging the
+     panel wider simply reflows. */
+  .format-bar--column {
+    flex-wrap: wrap;
+    align-content: flex-start;
+  }
+
+  /* Above the keyboard: one line, scrolled rather than wrapped — a second row
+     would eat the little of the document that is still visible. */
+  .format-bar--row {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .format-bar--row::-webkit-scrollbar {
+    display: none;
+  }
+
+  .format-bar__button {
+    flex: 0 0 auto;
+  }
+}
+
+@layer components {
+  /* The strip that rides above the on-screen keyboard, below 768px. Fixed to
+     the viewport and drawn outside `.window` (App.svelte says why), so it needs
+     its own ground and its own top hairline — it is not sitting on any panel. */
+  .format-strip {
+    position: fixed;
+    inset-inline: 0;
+    /* Against the top of the keyboard when one is up, above the gesture bar
+       when it is not. `max()` rather than a sum: with the keyboard up the
+       gesture bar is inside it. The same rule the task composer and the sheets
+       follow (0.11.0). */
+    inset-block-end: max(var(--theme-safe-bottom), var(--theme-keyboard));
+    z-index: 40;
+    background: var(--theme-bg);
+    border-block-start: 0.0625rem solid var(--theme-line);
+  }
+}

@@ -126,6 +126,18 @@ export const S = {
   featureDescription: "Description",
   featureFiles: "Add files",
 
+  formatting: "Formatting",
+  showFormatting: "Show formatting",
+  hideFormatting: "Hide formatting",
+  noteTextSize: "Text size",
+  noteSizeSmall: "Small",
+  noteSizeMedium: "Medium",
+  noteSizeLarge: "Large",
+  noteFontSizeLabel: "Note text size",
+  noteFontSizeHint:
+    "How big the body of a note is drawn. It travels with the notebook — the " +
+    "interface's own zoom (Ctrl +/-) belongs to this machine instead.",
+
   // Commands (2026-08-18): the name of every keyboard command, read by the
   // shortcuts table in Settings and by the formatting panel's tooltips. They
   // are the imperative the user would say out loud, not a description.

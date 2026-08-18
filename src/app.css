@@ -65,6 +65,7 @@
 @import "./styles/components/tags-view.css";
 @import "./styles/components/settings.css";
 @import "./styles/components/space-view.css";
+@import "./styles/components/format-bar.css";
 
 @import "./styles/components/tasks-space.css";
 @import "./styles/components/notes-space.css";

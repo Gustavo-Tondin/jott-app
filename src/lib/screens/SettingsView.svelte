@@ -19,6 +19,8 @@
     DEFAULT_THEME,
     HEADING_COLORS,
     DEFAULT_HEADING_COLOR,
+    NOTE_FONT_SIZES,
+    DEFAULT_NOTE_FONT_SIZE,
   } from "../services/themes.js";
   import AccentPicker from "../components/AccentPicker.svelte";
 
@@ -249,6 +251,28 @@
         {/each}
       </div>
     </div>
+
+    <!-- How big a note reads. A notebook setting, not a machine one: it is
+         reading taste and should follow the writer to another screen. The
+         interface's own zoom is the other question, and lives on the keyboard
+         (Ctrl +/-) and in this machine's preferences. -->
+    <div class="settings__row">
+      <span class="settings__label">{S.noteFontSizeLabel}</span>
+      <div class="theme-segmented" role="group" aria-label={S.noteFontSizeLabel}>
+        {#each NOTE_FONT_SIZES as option (option.key)}
+          <button
+            type="button"
+            class="theme-segmented__item"
+            class:theme-segmented__item--active={(form.noteFontSize ||
+              DEFAULT_NOTE_FONT_SIZE) === option.key}
+            aria-pressed={(form.noteFontSize || DEFAULT_NOTE_FONT_SIZE) === option.key}
+            disabled={readOnly}
+            onclick={() => put({ noteFontSize: option.key })}>{option.label()}</button
+          >
+        {/each}
+      </div>
+    </div>
+    <p class="settings__hint">{S.noteFontSizeHint}</p>
 
     <label class="settings__row">
       <span class="settings__label">{S.dateFormat}</span>

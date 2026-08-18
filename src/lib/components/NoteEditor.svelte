@@ -103,6 +103,9 @@
   export const openFind = () => editor?.openFind();
   export const openReplace = () => editor?.openReplace();
   export const focusBody = () => editor?.focusBody();
+  /// The formatting panel's door into the editor: same commands, same ids as
+  /// the keymap uses (2026-08-18).
+  export const run = (id) => editor?.run(id);
 </script>
 
 <div class="note-editor__body" aria-label={S.noteBodyPlaceholder}>
