@@ -55,10 +55,47 @@
     );
     margin-block-start: 0;
   }
+  /* TWO ROWS ON A PHONE (user call, 2026-08-18): the quick fields go on a line
+     of their OWN, above the ＋ and the writing.
+
+     On one line they were four 48px targets sharing 360px with a text field,
+     and both lost — the field had barely room for "Cre|" and the icons sat
+     shoulder to shoulder with no room to miss. Wrapped, each keeps its full
+     target and the field gets the whole width.
+
+     Done by WRAPPING, not by a second row in the markup: `order: -1` and a
+     full-width basis put the fields on the first line, so the composer stays
+     one form with one tab order, and the desktop keeps the single row the
+     wireframe draws. */
+  .shell--compact .task-composer {
+    flex-wrap: wrap;
+    /* No gap at all between the two lines, and each line only as tall as its
+       controls (below). Two 48px rows one under the other put a finger's worth
+       of air in the middle of a bar that is 344px wide and holds six things
+       (user report, 2026-08-18: "o gap está muito alto"). */
+    row-gap: 0;
+  }
+  .shell--compact .task-composer__fields {
+    order: -1;
+    flex-basis: 100%;
+    gap: var(--theme-space-4);
+  }
+  /* The one place the app's 48px touch minimum is spent on HEIGHT it does not
+     need. These controls are a row of six with the full width to themselves —
+     they keep the 48px in the axis a thumb actually misses in, and give back
+     the vertical, where the only thing above or below either row is the other
+     row of the same bar. */
+  .shell--compact .task-composer__fields .theme-btn--icon,
+  .shell--compact .task-composer__add {
+    min-block-size: 2.25rem;
+    block-size: 2.25rem;
+  }
+
   /* …and the screen keeps its last card clear of it. Only where there IS one:
      a screen with no composer must not reserve room for one. */
   .shell--compact .shell__content:has(.task-composer--bar) {
-    padding-block-end: calc(5.5rem + var(--theme-safe-bottom));
+    /* Two rows now, so the room reserved for the bar grew by one. */
+    padding-block-end: calc(7.5rem + var(--theme-safe-bottom));
   }
 
   /* Inside the dialog the row is the whole point, so it sits flush. */
@@ -123,8 +160,8 @@
     color: var(--theme-ink-muted);
   }
   /* The same height as the unit beside it: it wears the shared `--sm` size,
-     and only its width is its own. */
+     and only its width is its own. Enough for two digits and the caret. */
   .task-composer__repeat-every {
-    inline-size: 3rem;
+    inline-size: 4rem;
   }
 }

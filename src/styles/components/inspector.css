@@ -210,10 +210,11 @@
     align-items: center;
     gap: var(--theme-space-2);
   }
-  /* The count is a tight box, not a browser-default-wide field (the shared
-     --filled sets width:auto, which a number input renders far too wide). */
-  .inspector__stepper .theme-number {
-    width: 2.75rem;
+  /* The count is a tight box, not a browser-default-wide control: a `<select>`
+     sizes itself to its widest option, and left alone it reserves the room for
+     "30" plus a caret in a row that already has a unit beside it. */
+  .inspector__repeat-every {
+    min-inline-size: 2.75rem;
     text-align: center;
   }
 

@@ -41,6 +41,25 @@
     height: 100%;
   }
 
+  /* The app scrolls INSIDE itself — every scrollport it has is a panel, and
+     the page around them has nothing to scroll to. Saying so is what stops the
+     compact shell's open drawer from becoming a horizontal scrollbar: it
+     pushes the whole window sideways with a transform, and the part now
+     hanging past the right edge is overflow like any other (user report,
+     2026-08-18: "fica habilitado scroll lateral no canvas").
+
+     ON THE APP'S OWN ROOT, not on `html`/`body`: clipping here is enough —
+     nothing can reach the document to overflow it — and the page around it
+     stays exactly as it was. `html` is the element whose background the
+     browser propagates to the window itself, and this app needs that to stay
+     transparent for its own rounded corners; the fewer properties it carries,
+     the fewer chances of an engine treating that root differently. The fixed
+     drawer is NOT clipped by this: `#app` has no transform, so it is not the
+     containing block of a fixed child. */
+  #app {
+    overflow: hidden;
+  }
+
   body {
     margin: 0;
     font-family: var(--theme-font-sans);

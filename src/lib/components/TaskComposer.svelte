@@ -16,12 +16,18 @@
   // go, so an untouched screen shows one quiet line. In the dialog there is no
   // ambiguity about what the row is for, so they are there from the start.
   //
+  // BELOW 768px the same markup wraps into two lines — the five controls on
+  // top, the ＋ and the writing under them (user call, 2026-08-18: on one line
+  // at 360px the field was down to three characters and the icons had no room
+  // to be missed). It is a wrap, not a second row in the markup, so this stays
+  // one form with one tab order: styles/components/task-composer.css.
+  //
   // It collects an INTENT and hands it over; writing it is `taskCompose`'s job,
   // because the same three bridge calls serve every caller.
   import { S } from "../services/strings.js";
   import { listTitle, splitLabel } from "../services/paths.js";
   import { emptyIntent } from "../services/taskCompose.js";
-  import { PRIORITIES, REPEAT_UNITS } from "../services/taskFields.js";
+  import { PRIORITIES, REPEAT_UNITS, repeatCounts } from "../services/taskFields.js";
   import { dismissable } from "../actions/dismissable.js";
   import { keepOnScreen } from "../actions/keepOnScreen.js";
   import Icon from "./Icon.svelte";
@@ -230,13 +236,20 @@
           >
             <span class="task-composer__repeat-label">{S.repeatEvery}</span>
             {#if intent.repeatUnit}
-              <input
-                class="theme-input theme-input--sm theme-number task-composer__repeat-every"
-                type="number"
-                min="1"
+              <!-- Chosen, never typed (user call, 2026-08-18): on a phone a
+                   number field opens the keyboard over the panel it belongs
+                   to, and on the desktop it asks for a spinner two pixels
+                   tall. The list is `repeatCounts`, which carries whatever
+                   this task already says even when that is off the scale. -->
+              <select
+                class="theme-select theme-select--sm task-composer__repeat-every"
                 bind:value={intent.repeatEvery}
                 aria-label={S.repeatEvery}
-              />
+              >
+                {#each repeatCounts(intent.repeatEvery) as count (count)}
+                  <option value={count}>{count}</option>
+                {/each}
+              </select>
             {/if}
             <select
               class="theme-select theme-select--sm"

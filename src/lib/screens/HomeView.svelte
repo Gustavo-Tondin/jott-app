@@ -52,6 +52,9 @@
     today = null,
     /// The day, already formatted for reading — the capture box shows it.
     todayLabel = "",
+    /// The colour of this place, as a NAME (services/accent.js) — the capture
+    /// card draws the same dot the compact header does beside its title.
+    dot = null,
     /// The narrow shell (shell/compact.js). There the capture box is not a
     /// fixture at the top of the screen: it opens from the header's +, because
     /// 112px of permanent composer is most of what a phone can show at once.
@@ -134,6 +137,7 @@
   {#if !readOnly && !compact && (f("myDay") || f("notes"))}
     <CaptureBox
       date={todayLabel}
+      {dot}
       canTask={f("myDay") && !!inbox}
       canNote={f("notes") && !!notesFolder}
       onSubmit={capture}

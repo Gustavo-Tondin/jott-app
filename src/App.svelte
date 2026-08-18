@@ -124,6 +124,21 @@
   /// finger and its own transition is off, so it arrives where the hand is
   /// instead of easing towards it.
   let drawerAt = $state(null);
+  /// …and it is published on the DOCUMENT ROOT, not on the window.
+  ///
+  /// The window and the drawer are siblings (the drawer is rendered outside
+  /// `.window`, see below), so a custom property set on one of them does not
+  /// reach the other — and this one has to move BOTH: the app slides right by
+  /// exactly what the drawer slides in by. Written on `.window` it reached
+  /// only the window, the drawer stayed at its closed wall for the whole drag,
+  /// and the gesture read as the page sliding off to reveal a white strip that
+  /// the sidebar only filled once the finger was lifted (user report,
+  /// 2026-08-18: "primeiro o canvas desliza, depois a sidebar aparece").
+  $effect(() => {
+    const root = document.documentElement;
+    if (drawerAt === null) root.style.removeProperty("--drawer-at");
+    else root.style.setProperty("--drawer-at", `${drawerAt}px`);
+  });
   let tabsOpen = $state(false);
   /// True while the Home's + has asked for a TASK: the day's composer opens,
   /// focused, pinned above the keyboard. It is the same bar the tasks screens
@@ -431,6 +446,11 @@
   /// Which tab of the Tasks screen is open, so the page header can read
   /// `Tasks/Index` while the browser tab keeps saying just `Tasks`.
   let tasksSub = $state("");
+  /// And what date that tab is looking at — the day for Today, the span for
+  /// Week, nothing for the Index. Below 768px the screen hands it up instead
+  /// of drawing it beside the strip: there it is the header's second line
+  /// (user call, 2026-08-18).
+  let tasksSpan = $state("");
 
   // What colour each space reads as — a member of a group follows the
   // group (2026-08-04), which the sidebar already did through --group-color
@@ -1004,9 +1024,6 @@
   style={[
     sidebarWidth ? `--theme-sidebar-left: ${sidebarWidth}px` : "",
     panelWidth ? `--theme-sidebar-right: ${panelWidth}px` : "",
-    // How far a finger has carried the drawer. On the ROOT because the window
-    // and the drawer are siblings now and both have to read it.
-    drawerAt === null ? "" : `--drawer-at: ${drawerAt}px`,
   ]
     .filter(Boolean)
     .join("; ") || undefined}
@@ -1017,6 +1034,12 @@
   {#if !flush && !mobile}
     <ResizeHandles />
   {/if}
+
+  <!-- Everything the drawer pushes aside, in one box. The push is a transform
+       on THIS, not on the window, because the drawer has to stay put while it
+       happens and it is now the window's own child (see below). Inert at every
+       other width: a plain flex column that fills the frame. -->
+  <div class="window__page">
   <!-- Two bars, and the shell picks. The compact one holds the drawer toggle
        and the page ⋮, which the desktop bar has never had, and holds neither
        the brand nor the window buttons — see shell/TopBar.svelte. -->
@@ -1027,10 +1050,13 @@
       onBack={goBack}
       onForward={goForward}
       onOpenDrawer={() => (drawerOpen = true)}
+      {drawerOpen}
       onOpenTabs={notebook ? () => (tabsOpen = true) : null}
       tabCount={tabs.length}
       menu={pageMenu}
       pageKey={title(view)}
+      {mobile}
+      buttons={windowButtons}
     />
   {:else}
     <TitleBar rail={railed} buttons={windowButtons}>
@@ -1108,8 +1134,21 @@
           {compact}
           title={view.kind === "tasks" && tasksSub ? tasksSub : title(view)}
           context={view.kind === "tasks" && tasksSub ? S.tasks : ""}
-          subtitle={view.kind === "home"
-            ? formatDate(clock?.today ?? "", layout.dateDisplayFormat)
+          subtitle={/* The day, ONCE, and only where a date means something.
+            On the desktop the two screens that carry one draw it themselves —
+            the capture box at its own top right (components/CaptureBox.svelte),
+            the Tasks strip beside its tabs — and the header repeating it three
+            inches above was two dates on one screen (user report, 2026-08-18).
+            Below 768px neither of those places survives: there is no capture
+            box (the + replaces it) and the strip is a phone wide, so the date
+            comes up here, under the name, which is where both mobile
+            wireframes draw it (user call, 2026-08-18). The Tasks screen sends
+            up what its open tab is looking at — the week's span on Week — and
+            falls back to today, as the wireframe shows on the Index. */
+          compact && (view.kind === "home" || view.kind === "tasks")
+            ? tasksSpan && view.kind === "tasks"
+              ? tasksSpan
+              : formatDate(clock?.today ?? "", layout.dateDisplayFormat)
             : ""}
           canBack={Tabs.canGoBack(tabs[active])}
           canForward={Tabs.canGoForward(tabs[active])}
@@ -1185,6 +1224,7 @@
           {#if view.kind === "home"}
             <HomeView
               {compact}
+              dot={colorOf(view)}
               composing={composingTask}
               dateFormat={layout.dateDisplayFormat}
               quickNoteFolder={layout.quickNoteFolder}
@@ -1223,7 +1263,9 @@
               onSelect={select}
               selectedTask={selected?.task ?? null}
               {dayRefs}
+              {compact}
               onSub={(label) => (tasksSub = label)}
+              onSpan={(span) => (tasksSpan = span)}
               onSuggest={suggest}
               {f}
             />
@@ -1361,6 +1403,7 @@
           <SuggestionsPane
             period={suggesting}
             dateFormat={layout.dateDisplayFormat}
+            {compact}
             {reloadKey}
             onChanged={() => {
               refreshNotebook();
@@ -1376,6 +1419,7 @@
             list={selected.list}
             lists={moveTargets}
             {tags}
+            {compact}
             readOnly={notebook.readOnly}
             dateFormat={layout.dateDisplayFormat}
             inDay={!!selected.task?.id &&
@@ -1412,31 +1456,37 @@
     </div>
   {/if}
   </main>
-</div>
+  </div>
 
-<!-- The drawer, below 768px. OUTSIDE `.window` on purpose: it covers the top
-     bar rather than starting under it (wireframe "Mobile - Sidebar", where the
-     drawer's own toolbar IS the top of the screen), and the app slides out from
-     under it — which cannot happen while it is a child of the thing sliding,
-     because a transform on an ancestor makes it the containing block of every
-     fixed descendant. -->
-{#if compact && notebook}
-  {#if drawerOpen || drawerAt !== null}
-    <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <!-- svelte-ignore a11y_click_events_have_key_events -->
-    <!-- It declares the chrome for the same reason the drawer does: outside the
-         window it is in no region, and `--theme-scrim` is a role. Without this
-         the veil resolved to nothing and the page behind an open drawer stayed
-         at full brightness (measured on the emulator). -->
-    <div
-      class="shell__drawer-scrim"
-      data-region="chrome"
-      class:is-sliding={drawerAt !== null}
-      onclick={() => (drawerOpen = false)}
-    ></div>
+  <!-- The drawer, below 768px. INSIDE `.window`, and absolutely placed against
+       it (user call, 2026-08-18: "o sidebar deve continuar dentro do app,
+       somente estar invisível fora da janela").
+
+       It was outside for two frames' worth of good reasons — it has to cover
+       the top bar, and it has to stay still while the app slides out from
+       under it — and both are met here too, now that what slides is
+       `.window__page` and not the window: the drawer is that box's sibling, so
+       the transform never reaches it, and a higher layer puts it over the bar.
+       What being outside cost was the app's own edge: the window kept its
+       rounded corners and hairline while the drawer sat beside it, un-clipped,
+       so an open drawer showed the desktop through the seam between the two.
+       Inside, the frame clips it — off-canvas is simply outside the window. -->
+  {#if compact && notebook}
+    {#if drawerOpen || drawerAt !== null}
+      <!-- svelte-ignore a11y_no_static_element_interactions -->
+      <!-- svelte-ignore a11y_click_events_have_key_events -->
+      <!-- It draws nothing at all (styles/components/shell.css): a drawer that
+           PUSHES leaves the whole app on screen, and veiling a frame you can
+           still see whole only made its black read as another black (user
+           report, 2026-08-18). All that is left of it is the tap that closes. -->
+      <div
+        class="shell__drawer-scrim"
+        onclick={() => (drawerOpen = false)}
+      ></div>
+    {/if}
+    {@render sidebar()}
   {/if}
-  {@render sidebar()}
-{/if}
+</div>
 
 <!-- The tab strip, below 768px: a sheet you pull up rather than a row across
      the top. There is no room for a row of tabs on a phone, and a tab strip
@@ -1482,6 +1532,7 @@
 <ContextMenu
   at={canvasMenuAt}
   items={screenActions}
+  region="canvas"
   onClose={() => (canvasMenuAt = null)}
 />
 

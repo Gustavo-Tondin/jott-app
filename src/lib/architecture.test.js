@@ -136,6 +136,49 @@ describe("frontend architecture", () => {
     expect(gaps.sort()).toEqual([]);
   });
 
+  test("every theme gives a floating panel the region's two neutrals, swapped", () => {
+    // A bottom sheet is a panel raised over the page, and the app has two
+    // neutrals per mode: the sheet takes the raised step for its ground, so
+    // everything inside it has the other one to stand on. Forget it in one
+    // theme and the sheet inherits the region's pair unswapped — cards the
+    // same colour as the sheet they sit on, which is what the task inspector
+    // looked like on a phone (user report, 2026-08-18).
+    //
+    // What is checked is that the pair is REVERSED, not which colours: a theme
+    // with its own palette is free to choose them.
+    const gaps = [];
+    for (const [name, css] of themes()) {
+      const region = (which) => {
+        const m = css.match(
+          new RegExp(`\\[data-region="${which}"\\][^{]*\\{([^}]*)\\}`),
+        );
+        const body = m?.[1] ?? "";
+        return {
+          bg: body.match(/--theme-bg:\s*([^;]+);/)?.[1]?.trim(),
+          surface: body.match(/--theme-surface:\s*([^;]+);/)?.[1]?.trim(),
+        };
+      };
+      const canvas = region("canvas");
+      const rule = css.match(/([^};]*\.sheet[^{]*)\{([^}]*)\}/);
+      // The dialog is the same shape by another route and takes the same pair
+      // (user call, 2026-08-18): both names, or one of them is a flat wash.
+      if (rule && !rule[1].includes(".theme-modal"))
+        gaps.push(`${name}: the modal does not share the sheet's ground`);
+      const sheetBody = rule?.[2] ?? "";
+      const sheet = {
+        bg: sheetBody.match(/--theme-bg:\s*([^;]+);/)?.[1]?.trim(),
+        surface: sheetBody.match(/--theme-surface:\s*([^;]+);/)?.[1]?.trim(),
+      };
+      if (!sheet.bg || !sheet.surface) {
+        gaps.push(`${name}: no .sheet ground`);
+        continue;
+      }
+      if (sheet.bg !== canvas.surface || sheet.surface !== canvas.bg)
+        gaps.push(`${name}: sheet is not the canvas pair swapped`);
+    }
+    expect(gaps).toEqual([]);
+  });
+
   test("every role a component reads is assigned by every theme", () => {
     // Catches the other direction: a stylesheet reaching for a `--theme-*`
     // that no theme defines renders as nothing at all.

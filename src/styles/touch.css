@@ -64,6 +64,15 @@
       min-block-size: var(--theme-touch-min);
     }
 
+    /* THE COMPACT TOP BAR IS THE ONE EXEMPTION, and it is a user call
+       (2026-08-18): its controls stay at the wireframe's 42px. They are
+       exempt on their own terms rather than by accident — the bar sits at the
+       very top of the screen with nothing above it and nothing between its
+       three targets but 12px of its own padding, so a miss lands on the bar
+       itself and not on a neighbouring control. The rule is stated in
+       topbar.css, where the length lives; here is only the note that the
+       48px minimum above deliberately does not reach it. */
+
     /* A task row. The checkbox inside it is drawn at 20px and must NOT grow —
        it is the shape that says "task" — so what gets the minimum is the row,
        which is the target anyway: the whole card opens the task. */
@@ -88,6 +97,16 @@
     .tasks-space__remove {
       min-inline-size: var(--theme-touch-min);
       min-block-size: var(--theme-touch-min);
+    }
+
+    /* A control at the END of a card gives its grown box back to the card's
+       padding. Inflating the box moves the DRAWING too — the glyph is centred
+       in it — so a 16px pin ended up 28px from the card's edge and read as
+       adrift in the middle of the row (user report, 2026-08-18). Pulled out by
+       exactly the card's padding, the box's edge meets the card's edge and the
+       glyph sits where the eye expects it, with the target intact. */
+    .task-row__bookmark {
+      margin-inline-end: calc(-1 * var(--theme-space-12));
     }
   }
 }

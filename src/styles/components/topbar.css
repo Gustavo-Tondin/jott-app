@@ -17,27 +17,105 @@
     flex-shrink: 0;
     padding: var(--theme-space-12);
     background: var(--theme-bg);
+    /* The one height of everything on this bar: 42px from the wireframe,
+       measured off the SVG, ON EVERY POINTER (user call, 2026-08-18). It is
+       the one place the app's 48px touch minimum (styles/touch.css) does not
+       reach, which is why every rule below states the minimum as well as the
+       size — otherwise the generic rule would raise some of these controls and
+       not others, which is exactly how the row ended up with three different
+       heights. */
+    --topbar-control: 2.625rem;
     /* The status bar is drawn OVER the app on Android (every 15+ app is
        edge-to-edge whether it asks or not), so the bar grows by exactly the
-       strip the system owns. On a desktop window the inset resolves to zero
-       and this line costs nothing. */
-    padding-block-start: calc(var(--theme-space-12) + var(--theme-safe-top));
+       strip the system owns — and no more.
+
+       Right UNDER that bar, not a bar's worth below it (user report,
+       2026-08-18 — "estão muito longe do topo do celular"). The inset already
+       IS the strip the system owns, so adding a full 12px of air on top of it
+       spent a sixth of a phone's first screen on nothing. Where there is no
+       inset — every desktop window — the 12px stands, which is what `max`
+       says: never less than the bar's own padding, never the two stacked.
+
+       The 8px is not free choice: it is what the drawer's own head already
+       puts between the status bar and its first button, and the two rows sit
+       side by side the moment the drawer opens. Measured on the emulator, both
+       land at y=51. */
+    padding-block-start: max(
+      var(--theme-space-12),
+      calc(var(--theme-safe-top) + var(--theme-space-8))
+    );
     padding-inline-start: calc(var(--theme-space-12) + var(--theme-safe-left));
     padding-inline-end: calc(var(--theme-space-12) + var(--theme-safe-right));
     user-select: none;
   }
 
-  /* Every control on this bar is the same 42px square on the chrome's raised
+  /* Every control on this bar is the SAME square on the chrome's raised
      surface — the wireframe draws no difference between them, because there
-     is none: they are all "one tap, one job". */
+     is none: they are all "one tap, one job".
+
+     One length, named once, and everything on the bar reads it: the two loose
+     buttons, the pill, and the pill's own children. Before that, the app's
+     48px touch minimum reached the two loose buttons and neither the pill nor
+     what is inside it, and the row came out with three different heights
+     (user report, 2026-08-18: "os botões do topo têm alturas diferentes"). */
   .topbar .topbar__button,
   .topbar .page-menu__toggle {
-    inline-size: 2.625rem;
-    block-size: 2.625rem;
+    inline-size: var(--topbar-control);
+    block-size: var(--topbar-control);
+    min-inline-size: var(--topbar-control);
+    min-block-size: var(--topbar-control);
     flex: 0 0 auto;
     border-radius: var(--theme-radius-md);
     background: var(--theme-surface);
     color: var(--theme-ink);
+  }
+
+  /* The drawer toggle while the drawer is open: invisible, and still occupying
+     its square (user call, 2026-08-18). The open drawer has its own close
+     button right beside this one, so two buttons ended up side by side — but
+     `display: none` would let the pill slide left as the drawer opens, and the
+     bar must not move under the finger that opened it.
+
+     It FADES (user call, 2026-08-18): the drawer slides in over a quarter of a
+     second, and a button that blinks out at the first frame of that reads as a
+     glitch rather than as a control standing down. Same duration as the
+     drawer's own travel, so the two finish together. `visibility` is in the
+     transition list only to be held until the fade is done — it is not an
+     animatable property, it simply flips at the end of its window. */
+  .topbar__button--drawer {
+    transition:
+      opacity var(--theme-transition-medium),
+      visibility var(--theme-transition-medium);
+  }
+  .topbar__button--hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  /* The app's own three controls, and the only things the spread applies to
+     (user call, 2026-08-18). They take all the width the window's buttons
+     leave and share it between them, which is what keeps the pill centred ON
+     THE APP'S PART OF THE BAR; the window's buttons stay at the edge with the
+     ⋮ against them, instead of the ⋮ being spread out to the middle of the
+     right-hand half. */
+  .topbar__controls {
+    flex: 1;
+    min-inline-size: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--theme-space-8);
+  }
+
+  /* The window's own buttons, on a narrow DESKTOP window (App.svelte renders
+     them only off Android). They keep the SIZE the title bar gives them — they
+     are the OS's controls, not the app's — and give up only its side padding,
+     which here would be added to the group's gap and to the bar's own inset
+     and push them a third of an inch off the corner. */
+  .topbar .window-controls {
+    flex: 0 0 auto;
+    padding-inline: 0;
   }
 
   /* The pill's own buttons are inside it, so they must NOT carry the surface
@@ -45,10 +123,10 @@
      reads as two nested cards. */
   .topbar__pill {
     display: flex;
-    align-items: center;
+    align-items: stretch;
     justify-content: center;
     gap: var(--theme-space-2);
-    block-size: 2.625rem;
+    block-size: var(--topbar-control);
     padding-inline: var(--theme-space-4);
     border-radius: var(--theme-radius-md);
     background: var(--theme-surface);
@@ -56,10 +134,20 @@
   .topbar__pill .topbar__button,
   .topbar__pill .page-nav__arrow {
     background: none;
-    /* Still a full-height target: the pill is 42px tall and so is everything
-       in it, which is what keeps three controls inside one pill hittable. */
-    block-size: 2.375rem;
+    /* Full height, MEASURED FROM THE PILL rather than restated: the pill is
+       one control's worth tall and everything in it fills that, which is what
+       keeps three targets inside one pill hittable — and what keeps the row
+       level (user report, 2026-08-18: the buttons had three different heights,
+       because the app's 48px touch minimum reached the two loose buttons and
+       not the pill). Both minima are zeroed here for that reason: inside the
+       pill, the pill is the target's height. */
+    block-size: auto;
+    min-block-size: 0;
     inline-size: 2.75rem;
+    min-inline-size: 0;
+  }
+  .topbar__pill .page-nav {
+    align-items: stretch;
   }
 
   /* An arrow with nowhere to go stays visible but plainly inert — the same

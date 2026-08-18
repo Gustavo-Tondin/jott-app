@@ -1,17 +1,22 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { drawerSwipe } from "./drawerSwipe.js";
 
 /// A shell with a drawer of a known width and a card that owns its own swipe,
 /// so the "empty area" rule can be tested against a real target.
 function shell() {
+  // The drawer and the sheet that catches the tap are rendered OUTSIDE the
+  // shell in the app (they must sit still while the shell slides), which is
+  // why the action listens on the document rather than on its own node.
   document.body.innerHTML = `
     <div class="shell">
-      <nav class="shell__sidebar--drawer"></nav>
       <section class="shell__centre">
         <div class="card" data-swipes="x"><span class="label">Fix website</span></div>
         <p class="empty">nothing here</p>
       </section>
-    </div>`;
+    </div>
+    <div class="shell__drawer-scrim"></div>
+    <nav class="shell__sidebar--drawer"></nav>
+    <div class="sheet"><p class="sheet-line">a sheet over everything</p></div>`;
   const node = document.querySelector(".shell");
   // jsdom gives every element a zero layout, and the action measures the
   // drawer to know how far the gesture has to travel.
@@ -89,6 +94,17 @@ function mount(opts = {}) {
 
 beforeEach(() => {
   node = shell();
+  action = null;
+});
+
+// The action listens on the DOCUMENT (it has to: the drawer and the sheet over
+// the pushed page are rendered outside the shell). A document outlives the
+// markup each test throws away, so an action left mounted would keep answering
+// the next test's gestures — which is exactly what happened, and it counted
+// every one of them.
+afterEach(() => {
+  action?.destroy?.();
+  action = null;
 });
 
 describe("whose gesture it is", () => {
@@ -162,6 +178,33 @@ describe("committing", () => {
     mount({ open: true });
     drag(node, document.querySelector(".card"), { dx: -130, ms: 900 });
     expect(calls.close).toBe(1);
+  });
+
+  // The whole reason the listeners moved to the document. Once open, NOTHING
+  // the finger can reach is inside the shell: the app is behind the tap-sheet
+  // and the sidebar is a sibling of it. Listening on the shell alone, every
+  // closing gesture landed on an element the action never saw.
+  it("closes from the sheet over the pushed page", () => {
+    mount({ open: true });
+    drag(node, document.querySelector(".shell__drawer-scrim"), { dx: -130, ms: 900 });
+    expect(calls.close).toBe(1);
+  });
+
+  it("closes from the drawer itself, which is not in the shell either", () => {
+    mount({ open: true });
+    drag(node, document.querySelector(".shell__sidebar--drawer"), { dx: -130, ms: 900 });
+    expect(calls.close).toBe(1);
+  });
+});
+
+describe("what is raised over the shell", () => {
+  // Excluded by construction while the listeners were on the shell; named
+  // explicitly now that they are on the document. A bottom sheet's own content
+  // must not drag the app's drawer out from under it.
+  it("leaves a gesture inside a bottom sheet alone", () => {
+    mount();
+    drag(node, document.querySelector(".sheet-line"), { dx: 200 });
+    expect(calls).toMatchObject({ open: 0, close: 0 });
   });
 });
 

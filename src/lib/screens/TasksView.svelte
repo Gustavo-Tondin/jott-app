@@ -41,6 +41,13 @@
     dateFormat = "mm/dd/yyyy",
     /// Told which tab is open, so the page header can say `Tasks/Index`.
     onSub,
+    /// Told the day (or the week's span) the open tab is looking at. Below
+    /// 768px that date is not drawn here at all — it belongs under the title,
+    /// in the header (user call, 2026-08-18, and the mobile wireframe "Tasks
+    /// Screen"), and only the shell can put it there.
+    onSpan,
+    /// The narrow shell (shell/compact.js).
+    compact = false,
     /// Asks the shell to open the right panel on the period's suggestions.
     onSuggest,
   } = $props();
@@ -60,6 +67,10 @@
 
   $effect(() => {
     onSub?.(SUBS.find((item) => item.key === sub)?.label ?? "");
+  });
+
+  $effect(() => {
+    onSpan?.(span);
   });
 
   /// The folder holding the Inbox list — `jott.tasks/task-list.md` →
@@ -110,7 +121,10 @@
           </button>
         {/each}
       </nav>
-      {#if span}
+      <!-- The date rides beside the strip on the desktop and NOWHERE here in
+           the compact shell: there it is the header's second line, under the
+           screen's name, which is the one place a phone has room for it. -->
+      {#if span && !compact}
         <span class="tasks-view__range">{span}</span>
       {/if}
     </div>

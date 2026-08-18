@@ -3557,3 +3557,220 @@ describe("date display", () => {
     expect(await screen.findByText("07/05/2026")).toBeTruthy();
   });
 });
+
+describe("the compact shell", () => {
+  // Below 768px the top bar replaces the title bar (shell/TopBar.svelte). What
+  // these guard is what that swap must NOT cost — a swap nobody here can click
+  // on a phone, and which on a narrow desktop window took away the only way to
+  // close the app (user report, 2026-08-18).
+  const notebook = {
+    path: "/n",
+    name: "n",
+    readOnly: false,
+    features: {},
+    lists: [
+      { path: "jott.tasks/task-list.md", name: "Inbox" },
+      { path: "jott.tasks/completed.md", name: "Completed" },
+    ],
+    layout: {
+      inbox: "jott.tasks/task-list.md",
+      completed: "jott.tasks/completed.md",
+      tasksFolder: "jott.tasks",
+      completedName: "completed",
+      notesFolder: "jott.notes",
+      notesInbox: "Inbox",
+      dateDisplayFormat: "mm/dd/yyyy",
+    },
+  };
+
+  const compactShell = (extra = {}) =>
+    bridge({
+      last_notebook: "/n",
+      open_notebook: notebook,
+      notebook_snapshot: {
+        info: notebook,
+        clock: {
+          today: "2026-07-21",
+          weekStart: "2026-07-20",
+          nextDailyTurn: "2026-07-22T00:00:00Z",
+          nextWeeklyTurn: "2026-07-27T00:00:00Z",
+        },
+        counts: {},
+        conflicts: [],
+        spaces: [],
+        groups: [],
+      },
+      screen_to_restore: "home",
+      period_tasks: [],
+      grouped_suggestions: [],
+      notes_created_today: [],
+      window_button_layout: "appmenu:minimize,maximize,close",
+      ...extra,
+    });
+
+  /// jsdom has no matchMedia at all, and shell/compact.js answers `false`
+  /// without one — which is the right fallback and useless for testing the
+  /// compact shell. This is the narrow window.
+  const narrow = () => {
+    window.matchMedia = (query) => ({
+      matches: true,
+      media: query,
+      addEventListener: noop,
+      removeEventListener: noop,
+      addListener: noop,
+      removeListener: noop,
+    });
+  };
+
+  beforeEach(narrow);
+
+  test("a narrow desktop window keeps the buttons that close it", async () => {
+    // The title bar is the ONLY handle a frameless window has, and below 768px
+    // it is not rendered. Without these the app could be resized into a state
+    // it cannot be closed from (user report, 2026-08-18).
+    compactShell({ platform: "desktop" });
+
+    render(App);
+
+    expect(await screen.findByLabelText("close window")).toBeTruthy();
+    expect(screen.getByLabelText("minimize")).toBeTruthy();
+  });
+
+  test("on Android there are none: the system owns the window", async () => {
+    compactShell({ platform: "android" });
+
+    render(App);
+
+    // Waited for through something the compact bar always draws, so this is
+    // not asserting on an empty screen.
+    await screen.findByLabelText("open sidebar");
+    expect(screen.queryByLabelText("close window")).toBeNull();
+  });
+
+  test("the tasks block keeps its own ⋮, with the twin that centres the strip", async () => {
+    // Both places were tried on the device (user calls, 2026-08-18). The ⋮
+    // moved up to the screen's black header and came straight back: one below
+    // the top bar's own ⋮, two of them stacked in the corner read as one
+    // control drawn twice. It belongs on the block's row — and the invisible
+    // twin opposite it is what keeps the Inbox/Today/Week strip centred on the
+    // screen rather than pushed off by the width of a menu button.
+    compactShell({
+      platform: "android",
+      screen_to_restore: "tasks",
+      list_tasks: [task("a1", "Comprar leite")],
+    });
+
+    const { container } = render(App);
+
+    // Waited on the screen's own strip, so this is not asserting on a shell
+    // that has not drawn the tasks screen yet.
+    await screen.findByText("Today");
+    expect(container.querySelector(".tasks-space__more")).toBeTruthy();
+    expect(container.querySelector(".tasks-space__mirror")).toBeTruthy();
+    // The screen's header holds the place's name and Home's +, never a block's
+    // menu.
+    expect(container.querySelector(".page-header--compact .page-menu__toggle")).toBeNull();
+  });
+
+  test("the task sheet has no ×: the page behind it and the handle already close it", async () => {
+    // A sheet is dismissed two ways that cost no room — tapping the page it is
+    // raised over, and pulling it down by its handle (BottomSheet.svelte) — so
+    // an × in the toolbar only spends the corner the sun wants (user call,
+    // 2026-08-18). What is left takes an end each.
+    compactShell({
+      platform: "android",
+      screen_to_restore: "tasks",
+      list_tasks: [task("a1", "Comprar leite")],
+    });
+
+    const { container } = render(App);
+
+    await userEvent.click(await screen.findByText("Comprar leite"));
+
+    const toolbar = await waitFor(() => {
+      const el = container.querySelector(".inspector__toolbar");
+      if (!el) throw new Error("no inspector");
+      return el;
+    });
+    expect(within(toolbar).queryByLabelText("close")).toBeNull();
+    expect(within(toolbar).queryByLabelText("collapse panel")).toBeNull();
+    // The sun first, the gap, then the ⋮ — the two ends of the row.
+    const order = [...toolbar.children].map((el) => el.className);
+    expect(order[0]).toContain("inspector__myday");
+    expect(order[1]).toContain("inspector__gap");
+  });
+
+  test("the desktop panel keeps the button that folds it away", async () => {
+    // The other half of the same rule: a column has nowhere to be pulled down
+    // to, so it still needs a control.
+    window.matchMedia = (query) => ({
+      matches: false,
+      media: query,
+      addEventListener: noop,
+      removeEventListener: noop,
+      addListener: noop,
+      removeListener: noop,
+    });
+    compactShell({
+      platform: "desktop",
+      screen_to_restore: "tasks",
+      list_tasks: [task("a1", "Comprar leite")],
+    });
+
+    render(App);
+
+    await userEvent.click(await screen.findByText("Comprar leite"));
+
+    expect(await screen.findByLabelText("collapse panel")).toBeTruthy();
+  });
+
+  test("the header carries the colour of the place on every screen", async () => {
+    // A fixed space has no colour of its own and falls back to the app's
+    // accent in CSS. A mark that comes and goes says less than one that is
+    // always there to be read (user call, 2026-08-18).
+    compactShell({ platform: "android" });
+
+    const { container } = render(App);
+
+    await screen.findByLabelText("open sidebar");
+    await waitFor(() => {
+      if (!container.querySelector(".page-header__dot")) throw new Error("no dot");
+    });
+  });
+
+  test("the day the tasks screen is looking at moves into the header", async () => {
+    // On the desktop it rides beside the Inbox/Today/Week strip; a phone has
+    // no room there, and the wireframe puts it under the screen's name.
+    compactShell({
+      platform: "android",
+      screen_to_restore: "tasks",
+      period_tasks: [],
+    });
+
+    const { container } = render(App);
+
+    await userEvent.click(await screen.findByText("Today"));
+
+    await waitFor(() => {
+      const date = container.querySelector(".page-header__date");
+      if (!date?.textContent.includes("07/21")) throw new Error("not in the header");
+    });
+    expect(container.querySelector(".tasks-view__range")).toBeNull();
+  });
+
+  test("opening the drawer hides the toggle without taking its place", async () => {
+    // Two open-sidebar buttons ended up side by side (user report). The fix is
+    // `visibility`, not removal: a button that leaves the row lets everything
+    // after it slide left as the drawer opens.
+    compactShell({ platform: "android" });
+
+    const { container } = render(App);
+
+    await userEvent.click(await screen.findByLabelText("open sidebar"));
+
+    const toggle = container.querySelector(".topbar__button");
+    expect(toggle.classList.contains("topbar__button--hidden")).toBe(true);
+    // Still in the row, still the same square.
+    expect(container.querySelectorAll(".topbar__button").length).toBeGreaterThan(0);
+  });
+});

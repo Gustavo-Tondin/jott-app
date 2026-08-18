@@ -22,6 +22,7 @@
     PRIORITIES,
     REPEAT_UNITS,
     cleanTagName,
+    repeatCounts,
     repeatText,
   } from "../services/taskFields.js";
   import { tagColors as tagColorMap } from "../services/accent.js";
@@ -35,6 +36,9 @@
     task,
     list,
     readOnly = false,
+    /// The narrow shell (shell/compact.js): this panel is a bottom sheet
+    /// rather than a column, and a sheet closes by itself — see the toolbar.
+    compact = false,
     // The lists this task could move to (its folder's siblings, no Completed).
     lists = [],
     // The tag catalogue (name + colour), for the picker and the pill colours.
@@ -301,20 +305,31 @@
 </script>
 
 <aside class="inspector">
-  <!-- Toolbar: collapse the panel, send to My Day, task options. Icon buttons
+  <!-- Toolbar: fold the panel away, send to My Day, task options. Icon buttons
        are the shared `.theme-btn--icon`. The options menu (duplicate,
        functions) is wired in a later pass; disabled so it is never a dead
        promise. -->
   <div class="inspector__toolbar theme-pane-head">
-    <button
-      class="theme-btn theme-btn--icon"
-      onclick={() => onClose?.()}
-      aria-label={S.collapsePanel}
-      title={S.collapsePanel}
-    >
-      <Icon name="sidebar-simple" size="1.125rem" />
-    </button>
-    <span class="inspector__gap"></span>
+    <!-- THE SHEET HAS NO CLOSE BUTTON (user call, 2026-08-18). On the desktop
+         the panel is a column that folds away to the side, and the sidebar
+         glyph draws exactly that. In the compact shell it is a sheet, and a
+         sheet is already dismissed two ways that cost no room — tapping the
+         page behind it, and pulling it down by its handle (BottomSheet) — so
+         an × here only spends the corner the sun wants.
+
+         What is left then is the sun and the ⋮, and they take an end each:
+         the gap moves BETWEEN them rather than sitting ahead of both. -->
+    {#if !compact}
+      <button
+        class="theme-btn theme-btn--icon"
+        onclick={() => onClose?.()}
+        aria-label={S.collapsePanel}
+        title={S.collapsePanel}
+      >
+        <Icon name="sidebar-simple" size="1.125rem" />
+      </button>
+      <span class="inspector__gap"></span>
+    {/if}
     {#if f("myDay")}
     <button
       class="theme-btn theme-btn--icon inspector__myday"
@@ -327,6 +342,7 @@
       <Icon name="sun" size="1.125rem" />
     </button>
     {/if}
+    {#if compact}<span class="inspector__gap"></span>{/if}
     <Menu items={optionsMenu} align="end">
       {#snippet trigger({ toggle })}
         <button
@@ -546,14 +562,19 @@
         </span>
         <span class="inspector__stepper">
           {#if draft.repeatUnit}
-            <input
-              class="theme-input theme-number theme-input--filled"
-              type="number"
-              min="1"
+            <!-- Chosen, never typed — the same call as the composer's, and the
+                 same list, so the two rows cannot come to disagree about what
+                 "every N" may be. -->
+            <select
+              class="theme-select theme-select--bare inspector__repeat-every"
               bind:value={draft.repeatEvery}
               disabled={readOnly}
               aria-label={S.repeatEvery}
-            />
+            >
+              {#each repeatCounts(draft.repeatEvery) as count (count)}
+                <option value={count}>{count}</option>
+              {/each}
+            </select>
           {/if}
           <select
             class="theme-select theme-select--bare"

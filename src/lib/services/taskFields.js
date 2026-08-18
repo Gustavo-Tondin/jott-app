@@ -32,6 +32,27 @@ export const REPEAT_UNITS = [
   { value: "month", label: () => S.repeatMonths },
 ];
 
+/// How high the "every N" selector counts.
+///
+/// A COUNT, NOT A TYPED NUMBER (user call, 2026-08-18): the field asks for one
+/// of a few small numbers, and a number input answers it with a keyboard on a
+/// phone and a pair of spinners nobody can hit on a desktop. Thirty is where
+/// the units take over — past "every 30 days" the honest answer is a month.
+export const REPEAT_MAX = 30;
+
+/// The counts to offer, with `current` folded in wherever it belongs.
+///
+/// Folding it in is what keeps the selector from LYING about a task it did not
+/// write: a file may carry `repeat:45d`, typed by hand or written by an older
+/// build, and a list that cannot say 45 would show the field blank and quietly
+/// save a different task the next time it is touched.
+export function repeatCounts(current) {
+  const counts = Array.from({ length: REPEAT_MAX }, (_, i) => i + 1);
+  const n = Number(current);
+  if (!Number.isInteger(n) || n < 1 || counts.includes(n)) return counts;
+  return [...counts, n].sort((a, b) => a - b);
+}
+
 /// The `repeat:` value the core parses, or null when there is no repetition.
 ///
 /// Built rather than typed: the core silently DROPS a `repeat:` it cannot

@@ -22,6 +22,11 @@
     /// The day, already formatted — shown at the top right, so the box says
     /// what "today" means without the header having to repeat it.
     date = "",
+    /// The colour of the place, as a NAME (services/accent.js) — the dot after
+    /// the title, the same mark the compact header draws (shell/PageHeader).
+    /// Null on a space with no colour of its own: the CSS falls back to the
+    /// app's accent.
+    dot = null,
     /// Whether each half is reachable at all (a notebook may have notes or
     /// tasks switched off). With one of them off the segmented control goes
     /// away: a choice of one is not a choice.
@@ -62,12 +67,31 @@
   class="capture"
   onsubmit={(e) => (e.preventDefault(), submit())}
 >
-  <div class="capture__body">
-    <div class="capture__head">
-      <h2 class="capture__question">{S.captureQuestion}</h2>
-      {#if date}<span class="capture__date">{date}</span>{/if}
-    </div>
+  <!-- The head spans the WHOLE card, so the day lands on the card's right edge
+       — the same edge the ＋ under it stands on (user call, 2026-08-18). Inside
+       the body it stopped short by the button's width plus a gap, and read as
+       floating in the middle of the row.
 
+       It is named after the SCREEN, not after the question it asks (user call,
+       2026-08-18): below 768px the header says "Home" over the same block, and
+       one place cannot go by two names depending on the width of the window.
+       The question survives as the segmented control's label, which is the one
+       spot where it is still asking something. The dot beside it is the mark
+       the compact header carries — the colour of where you are. -->
+  <div class="capture__head">
+    <h2 class="capture__question">
+      {S.home}
+      <span
+        class="capture__dot"
+        style={dot ? `--dot: var(--accent-${dot})` : ""}
+        aria-hidden="true"
+      ></span>
+    </h2>
+    {#if date}<span class="capture__date">{date}</span>{/if}
+  </div>
+
+  <div class="capture__main">
+  <div class="capture__body">
     <div class="capture__field">
       <!-- A square that says "this becomes a task", not a control: ticking it
            here would mean creating something already done. It is the tasks
@@ -120,4 +144,5 @@
   >
     <Icon name="plus-bold" size="1.5rem" />
   </button>
+  </div>
 </form>

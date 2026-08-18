@@ -25,6 +25,7 @@
     display: flex;
     height: 100%;
     min-height: 0;
+    padding: 0 var(--theme-space-4) var(--theme-space-4) var(--theme-space-4);
   }
 
   /* ---- sidebar ---- */
@@ -86,7 +87,7 @@
     gap: var(--theme-space-8);
     /* Block padding keeps the groups off the head/footer borders; the inline
        wall gap sits the group bar between the wall and the button. */
-    padding: var(--theme-space-12) var(--theme-space-4);
+    padding: var(--theme-space-12) 0;
   }
   /* Rail: the right-hand chrome gives way so the 56px column fits the icon
      band without overflowing (minimized screen.pdf); the LEFT paddings stay,
@@ -544,13 +545,15 @@
      reflow — reflowing the centre panel mid-slide would relayout every task
      row twice per open.
 
-     FIXED, and rendered outside `.window` (App.svelte): the drawer's own
-     toolbar is the top of the SCREEN in the wireframe, not a strip below the
-     app's top bar, so it has to cover that bar; and it has to sit still while
-     the app slides out from under it, which it cannot do as a child of the
-     thing that is sliding. */
+     ABSOLUTE, against `.window` itself (App.svelte): the drawer's own toolbar
+     is the top of the SCREEN in the wireframe, not a strip below the app's top
+     bar, so it has to cover that bar; and it has to sit still while the app
+     slides out from under it, which is why what slides is `.window__page` and
+     not the window — the drawer is that box's sibling and the transform never
+     reaches it. Inside the frame it is also CLIPPED by it, which is the whole
+     point: off-canvas means outside the window, not beside it. */
   .shell__sidebar--drawer {
-    position: fixed;
+    position: absolute;
     inset-block: 0;
     inset-inline-start: 0;
     z-index: 40;
@@ -586,23 +589,26 @@
     visibility: visible;
     transition: none;
   }
-  /* The app, pushed aside by an open drawer. On `.window` rather than on the
-     centre panel, because the top bar goes with it — the wireframe translates
-     the whole 360px frame, pill and all. */
-  .window--compact {
+  /* Everything the drawer pushes aside. The top bar goes with it — the
+     wireframe translates the whole 360px frame, pill and all — but the WINDOW
+     stays where it is: it is the app's edge, it owns the rounded corners and
+     the hairline, and moving it dragged those across the screen and left the
+     desktop showing through the seam beside the drawer. */
+  .window__page {
+    flex: 1;
+    min-block-size: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .window--compact .window__page {
     transition: translate var(--theme-transition-medium);
   }
-  .window--pushed {
+  .window--pushed .window__page {
     translate: var(--theme-drawer-width) 0;
   }
-  .window--sliding {
+  .window--sliding .window__page {
     translate: var(--drawer-at, 0rem) 0;
     transition: none;
-  }
-  /* The scrim fades in with the travel, so the page dims as it is pushed
-     aside rather than snapping dark at the end of the gesture. */
-  .shell__drawer-scrim.is-sliding {
-    opacity: calc(var(--drawer-at, 0rem) / var(--theme-drawer-width));
   }
 
   .shell--compact {
@@ -614,13 +620,18 @@
   }
 
   /* Tapping the page closes the drawer. Fixed and full-screen, under the
-     drawer and over everything else, so the top bar dims with the rest of the
-     app rather than staying lit above a dimmed page. */
+     drawer and over everything else.
+
+     AND IT DRAWS NOTHING (user report, 2026-08-18: "fica um overlay no app que
+     muda a cor do preto do lado ficando esquisito"). A veil is what a sheet
+     lays over the page it covers; this drawer does not cover the page, it
+     PUSHES it — the app stays whole, just moved, and dimming a frame that is
+     entirely visible only made its black read as a different black. What is
+     left is the one thing the element is actually for: catching the tap. */
   .shell__drawer-scrim {
-    position: fixed;
+    position: absolute;
     inset: 0;
     z-index: 35;
-    background: var(--theme-scrim);
   }
 
   /* ---- the centre, now the whole row ----

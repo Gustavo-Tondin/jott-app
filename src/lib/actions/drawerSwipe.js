@@ -9,11 +9,12 @@
 // arrive under the finger, so the two share the shape of the problem and none
 // of the numbers.
 //
-// It lives on the shell, above both the page and the drawer, and that is what
-// makes the conflict manageable. Three gestures could otherwise claim the same
-// pointer — this one, a card's `swipe`, and a row's `reorderable` — and two of
-// them calling `setPointerCapture` on one pointer leaves the first deaf to
-// every move after (the drag that froze and snapped back, 2026-08-06).
+// It listens on the DOCUMENT, in the capture phase, above both the page and the
+// drawer, and that is what makes the conflict manageable. Three gestures could
+// otherwise claim the same pointer — this one, a card's `swipe`, and a row's
+// `reorderable` — and two of them calling `setPointerCapture` on one pointer
+// leaves the first deaf to every move after (the drag that froze and snapped
+// back, 2026-08-06).
 //
 // THE DRAWER OPENS FROM AN EMPTY AREA (user call, 2026-08-18). Swiping a card
 // still swipes the card; the sidebar answers a swipe that started on nothing
@@ -25,9 +26,9 @@
 //     selected — → this action never engages, and the event reaches it
 //     untouched;
 //   - anywhere else → the drawer takes it;
-//   - open → the page is behind a scrim that swallows the pointer anyway, so
-//     the only thing under the finger is the drawer, and a leftward drag on it
-//     closes.
+//   - open → the page is behind the (invisible) sheet that catches the tap, so
+//     the only things under the finger are that sheet and the drawer, and a
+//     leftward drag on either closes.
 //
 // Reading the mark instead of listing card classes is what keeps the two in
 // step: whatever starts using `swipe` next is excluded on the same day.
@@ -48,9 +49,16 @@
 //   <div class="shell" use:drawerSwipe={{ enabled, open, onOpen, onClose, onDrag }}>
 
 /// What already means something else when dragged sideways. `[data-swipes]` is
-/// every card carrying actions/swipe.js; the rest is text a drag SELECTS, where
-/// hijacking the gesture would take away the only way to select anything.
-const CLAIMED = "[data-swipes], input, textarea, [contenteditable], .cm-editor";
+/// every card carrying actions/swipe.js; then text a drag SELECTS, where
+/// hijacking the gesture would take away the only way to select anything; then
+/// the things that are raised OVER the shell — a bottom sheet, a modal, a
+/// popover. Those three came in with the listeners moving to the document (see
+/// the header): they are not inside the shell, so the old arrangement excluded
+/// them by construction, and a sheet whose own content slides sideways must not
+/// also be dragging the app's drawer out from under it.
+const CLAIMED =
+  "[data-swipes], input, textarea, [contenteditable], .cm-editor," +
+  " .sheet, .sheet-scrim, .theme-modal, .theme-modal-backdrop, .theme-popover";
 /// The first movement decides which gesture this is. Ahead of the lock nothing
 /// moves at all, so a vertical scroll never nudges the drawer sideways.
 const LOCK = 8;
@@ -78,7 +86,8 @@ export function drawerSwipe(node, params) {
   /// place for exactly the people the rem is there to serve. The fallback is
   /// only for a drag that somehow starts before the drawer is in the DOM.
   const width = () =>
-    node.querySelector(opts.target ?? ".shell__sidebar--drawer")?.offsetWidth || 240;
+    document.querySelector(opts.target ?? ".shell__sidebar--drawer")?.offsetWidth ||
+    240;
 
   /// Engage, or decline. Returns whether the gesture is now ours to watch.
   function begin(target, x, y, at) {
@@ -208,6 +217,16 @@ export function drawerSwipe(node, params) {
     abandon();
   }
 
+  // ON THE DOCUMENT, not on the node the action is used on.
+  //
+  // The drawer and the transparent sheet over the pushed page are rendered
+  // OUTSIDE the shell (App.svelte: they have to sit still while the shell
+  // slides, which a child of the sliding thing cannot do). So while the drawer
+  // is open nothing the finger can reach is inside the node any more, and
+  // every closing gesture landed on an element the listeners never saw. The
+  // document sees all of them, and the target check above is what keeps the
+  // gesture from stealing anyone else's.
+  //
   // Capture phase throughout: the decision about whose gesture this is has to
   // be made on the way DOWN the tree, before a card sees it. `passive: false`
   // on the moves, because a passive listener may not call `preventDefault` —
@@ -223,7 +242,8 @@ export function drawerSwipe(node, params) {
     ["pointerup", pointerUp],
     ["pointercancel", pointerCancel],
   ];
-  for (const [type, fn] of handlers) node.addEventListener(type, fn, LISTEN);
+  const on = node.ownerDocument ?? document;
+  for (const [type, fn] of handlers) on.addEventListener(type, fn, LISTEN);
 
   return {
     update(next) {
@@ -233,8 +253,7 @@ export function drawerSwipe(node, params) {
       if (opts.enabled === false) abandon();
     },
     destroy() {
-      for (const [type, fn] of handlers)
-        node.removeEventListener(type, fn, LISTEN);
+      for (const [type, fn] of handlers) on.removeEventListener(type, fn, LISTEN);
     },
   };
 }

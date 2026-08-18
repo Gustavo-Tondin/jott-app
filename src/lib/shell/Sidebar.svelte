@@ -332,7 +332,9 @@
       aria-label={compact ? S.closeSheet : rail ? S.expandSidebar : S.collapseSidebar}
       title={compact ? S.closeSheet : rail ? S.expandSidebar : S.collapseSidebar}
     >
-      <Icon name="sidebar-simple" size="1.125rem" />
+      <!-- Same rule as the inspector's: as a column it folds to the side, as a
+           drawer over the page it simply closes (user call, 2026-08-18). -->
+      <Icon name={compact ? "x" : "sidebar-simple"} size="1.125rem" />
     </button>
   </div>
 

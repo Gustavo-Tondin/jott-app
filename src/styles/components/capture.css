@@ -8,11 +8,20 @@
 @layer components {
   .capture {
     display: flex;
-    align-items: stretch;
-    gap: var(--theme-space-16);
+    flex-direction: column;
+    gap: var(--theme-space-12);
     padding: var(--theme-space-24);
     background: var(--theme-surface);
     border-radius: var(--theme-radius-lg);
+  }
+  /* Everything below the head: what you are writing, and the button that
+     commits it. The head sits ABOVE this row rather than inside it, which is
+     what puts the day on the card's own right edge instead of on the writing
+     column's. */
+  .capture__main {
+    display: flex;
+    align-items: stretch;
+    gap: var(--theme-space-16);
   }
   .capture__body {
     flex: 1;
@@ -30,11 +39,24 @@
     gap: var(--theme-space-16);
   }
   .capture__question {
+    display: flex;
+    align-items: center;
+    gap: var(--theme-space-8);
     margin: 0;
     font-size: var(--theme-text-24);
     font-weight: var(--theme-weight-medium);
     letter-spacing: var(--theme-tracking-tight);
     color: var(--theme-ink);
+  }
+  /* The colour of the place, the same mark the compact header draws beside its
+     own title (page-header.css) — a space with no colour of its own falls back
+     to the app's accent, exactly as the tab dot does. */
+  .capture__dot {
+    flex: 0 0 auto;
+    inline-size: 0.75rem;
+    block-size: 0.75rem;
+    border-radius: var(--theme-radius-pill);
+    background: var(--dot, var(--theme-brand));
   }
   .capture__date {
     flex-shrink: 0;
@@ -127,7 +149,7 @@
   /* Narrow panel (the inspector open on a small window): the button drops
      under the field rather than squeezing the question into two lines. */
   @container (max-width: 30rem) {
-    .capture {
+    .capture__main {
       flex-direction: column;
     }
     .capture__submit {

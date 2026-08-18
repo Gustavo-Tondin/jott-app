@@ -167,7 +167,12 @@
     gap: var(--theme-space-12);
     padding-inline: var(--theme-space-12);
     border-radius: var(--theme-radius-md);
-    background: var(--theme-bg);
+    /* The sheet's RAISED step, not its ground. A sheet swaps the region's two
+       neutrals so that what it holds has somewhere to rise to (themes/*.css),
+       and a row painted `--theme-bg` in here is painted the sheet itself —
+       which is how the whole stack came out as one flat wash (user report,
+       2026-08-18). The wireframe draws exactly this: white rows on the tint. */
+    background: var(--theme-surface);
   }
   .tabs--compact .tabs__label {
     flex: 1;
@@ -195,8 +200,11 @@
     min-block-size: var(--theme-touch-min);
     border: none;
     border-radius: var(--theme-radius-md);
-    background: var(--theme-bg);
-    color: var(--theme-ink);
+    /* SOLID ink, the one filled thing in the sheet (wireframe "Mobile - tab
+       panel"): it is the sheet's only verb, and as another pale row it read as
+       a fourth tab that happened to say "new tab". */
+    background: var(--theme-ink);
+    color: var(--theme-bg);
     font-size: var(--theme-text-16);
     font-weight: var(--theme-weight-medium);
     cursor: pointer;

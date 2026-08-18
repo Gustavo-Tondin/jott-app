@@ -2,7 +2,7 @@
 // this module existed, which is exactly how two copies of a rule drift.
 
 import { describe, expect, test } from "vitest";
-import { PRIORITIES, REPEAT_UNITS, cleanTagName, repeatText } from "./taskFields.js";
+import { PRIORITIES, REPEAT_MAX, REPEAT_UNITS, cleanTagName, repeatCounts, repeatText } from "./taskFields.js";
 
 describe("repeatText", () => {
   test("builds only what the core can parse", () => {
@@ -43,5 +43,28 @@ describe("the option tables", () => {
   test("the empty repeat unit is 'it does not repeat'", () => {
     expect(REPEAT_UNITS[0].value).toBe("");
     expect(REPEAT_UNITS.map((u) => u.value)).toEqual(["", "day", "week", "month"]);
+  });
+});
+
+describe("the counts the repeat selector offers", () => {
+  test("counts from 1 to the ceiling", () => {
+    const counts = repeatCounts(1);
+    expect(counts[0]).toBe(1);
+    expect(counts.at(-1)).toBe(REPEAT_MAX);
+    expect(counts.length).toBe(REPEAT_MAX);
+  });
+
+  test("folds in a value the list does not have, in its place", () => {
+    // A file may say `repeat:45d` — typed by hand, or written by a build that
+    // offered more. A selector that cannot say 45 would show the field blank
+    // and quietly save a different task the next time it was touched.
+    const counts = repeatCounts(45);
+    expect(counts.at(-1)).toBe(45);
+    expect(counts.length).toBe(REPEAT_MAX + 1);
+  });
+
+  test("ignores a value that is not a count", () => {
+    for (const odd of [0, -3, 1.5, "", null, "many"])
+      expect(repeatCounts(odd).length).toBe(REPEAT_MAX);
   });
 });

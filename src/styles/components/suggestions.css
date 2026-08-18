@@ -139,6 +139,25 @@
   .suggestions-pane__item:hover {
     background: var(--theme-hover);
   }
+
+  /* ---- in the sheet (below 768px) ----
+     The panel is the same, but its ground is not: a sheet swaps the region's
+     two neutrals so what it holds has somewhere to rise to (themes/*.css), and
+     a list of transparent rows on that ground is a flat wash — the same report
+     that put the task inspector on cards (user call, 2026-08-18). So the rows
+     become cards here, and grow to a thumb's target while they are at it. */
+  .suggestions-pane--compact .suggestions-pane__item {
+    min-block-size: var(--theme-touch-min);
+    padding: var(--theme-space-8) var(--theme-space-12);
+    border-radius: var(--theme-radius-md);
+    background: var(--theme-surface);
+  }
+  .suggestions-pane--compact .suggestions-pane__list {
+    gap: var(--theme-space-4);
+  }
+  .suggestions-pane--compact .suggestions-pane__text {
+    font-size: var(--theme-text-16);
+  }
   .suggestions-pane__text {
     flex: 1;
     min-width: 0;

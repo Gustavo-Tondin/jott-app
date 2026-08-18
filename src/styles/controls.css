@@ -107,7 +107,9 @@
     font-size: var(--theme-text-12);
   }
 
-  /* --- Number field: the tiny "Repeat every [1]" box; no native spinners --- */
+  /* --- Number field: a typed count with no native spinners. The repeat rows
+     used to wear this and are selectors now (services/taskFields.js); what is
+     left of it is Settings, where the numbers are open-ended. --- */
   .theme-number {
     width: 3.25rem;
     text-align: center;
@@ -616,7 +618,12 @@
     gap: var(--theme-space-8);
     inline-size: min(24rem, calc(100vw - var(--theme-space-32)));
     padding: var(--theme-space-16);
-    background: var(--theme-surface);
+    /* Its OWN ground — a dialog takes the region's two neutrals swapped, the
+       same pact a bottom sheet keeps (styles/themes/*.css). The colour on
+       screen is unchanged (after the swap this IS what `--theme-surface` used
+       to resolve to); what it buys is the step for the cards and fields inside
+       it, which were coming out the same colour as the dialog holding them. */
+    background: var(--theme-bg);
     border: 0.0625rem solid var(--theme-line);
     border-radius: var(--theme-radius-lg);
     box-shadow: var(--theme-shadow-popover);

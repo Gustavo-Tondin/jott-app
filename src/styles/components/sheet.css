@@ -37,7 +37,11 @@
     );
     margin-inline-start: calc(var(--theme-sheet-inset) + var(--theme-safe-left));
     margin-inline-end: calc(var(--theme-sheet-inset) + var(--theme-safe-right));
-    background: var(--theme-surface);
+    /* Its OWN ground, which for a sheet is the region's raised step — the
+       themes hand it that by swapping the pair (styles/themes/*.css). Reading
+       `--theme-bg` here rather than `--theme-surface` is what leaves the step
+       free for everything inside the sheet to stand on. */
+    background: var(--theme-bg);
     border-radius: var(--theme-sheet-radius);
     overflow: hidden;
     /* Follows the drag (BottomSheet.svelte). Zero except while a pointer is

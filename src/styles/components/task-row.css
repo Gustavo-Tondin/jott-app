@@ -137,4 +137,12 @@
     display: flex;
     gap: var(--theme-space-4);
   }
+  /* A screen that slots in nothing must not still pay for the slot: as an
+     empty flex item it kept the row's 12px gap, and every card on the screens
+     that pass no actions — the Home's, the Tasks screen's — ended with a strip
+     of nothing between the pin and the card's edge (user report,
+     2026-08-18). */
+  .task-row__actions:empty {
+    display: none;
+  }
 }

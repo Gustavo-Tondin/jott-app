@@ -38,7 +38,11 @@
     compact = false,
     /// The colour of the place, as a NAME (services/accent.js) — the dot after
     /// the title. Only the compact header draws it: it is what tells a space
-    /// apart at a glance once the sidebar is behind a drawer.
+    /// apart at a glance once the sidebar is behind a drawer. It is drawn on
+    /// EVERY screen, colour or not (user call, 2026-08-18): a fixed space
+    /// carries no colour of its own and falls back to the app's accent in CSS,
+    /// the same fallback the tab dot takes — a mark that comes and goes says
+    /// less than one that is always there to be read.
     dot = null,
     /// Whatever this screen offers as its one big action, drawn at the right
     /// of the compact header. Home fills it with the capture +; the screens
@@ -65,13 +69,11 @@
         {:else}
           {title}
         {/if}
-        {#if dot}
-          <span
-            class="page-header__dot"
-            style="--dot: var(--accent-{dot})"
-            aria-hidden="true"
-          ></span>
-        {/if}
+        <span
+          class="page-header__dot"
+          style={dot ? `--dot: var(--accent-${dot})` : ""}
+          aria-hidden="true"
+        ></span>
       </h1>
       {#if subtitle}
         <p class="page-header__date">{subtitle}</p>

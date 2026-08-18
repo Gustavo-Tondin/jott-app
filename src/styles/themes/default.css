@@ -315,3 +315,35 @@
      the user picks green as their accent. */
   --theme-emphasis: var(--palette-green-500);
 }
+
+/* ---- a sheet: the canvas's two neutrals, the other way round --------------
+ *
+ * A bottom sheet is a panel RAISED over the page (styles/components/sheet.css),
+ * and the app has exactly two neutrals per mode — so a panel that takes the
+ * page's raised step for its own ground leaves nothing for the cards, chips and
+ * fields inside it: they came out the same colour as the sheet they sit on, and
+ * the task inspector read as a flat wash (user report, 2026-08-18).
+ *
+ * So the sheet swaps the pair. That is not a new colour and not a third
+ * neutral: it is exactly what the CHROME region of a light-ground theme already
+ * is — ground on the tint, cards on the white — which is the look the user
+ * asked for ("iguais aos painéis fora do canvas no modo claro"). Written out
+ * per theme, from the palette, because a theme is where a ground is decided.
+ *
+ * The MODAL is the same shape by another route — a panel raised over the page,
+ * with cards, fields and chips inside it — so it takes the same pair (user
+ * call, 2026-08-18: every floating panel, not only the sheets). Its own ground
+ * does not move: it painted `--theme-surface` before and paints `--theme-bg`
+ * now, and after the swap those are the same colour. What changes is that what
+ * it HOLDS finally has a step to rise to. A popover is deliberately not in
+ * here: a menu is a list of rows, not a panel with cards, and it has nothing
+ * to raise.
+ */
+[data-theme="default"] .sheet,
+[data-theme="default"] .theme-modal,
+:root:not([data-theme]) .sheet,
+:root:not([data-theme]) .theme-modal {
+  --theme-bg: var(--palette-white-tint);
+  --theme-surface: var(--palette-white);
+  --theme-surface-sunken: var(--palette-white);
+}

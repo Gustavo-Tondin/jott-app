@@ -27,6 +27,11 @@
     reloadKey = 0,
     /// `(key) => boolean` — is this part of the app switched on?
     f = () => true,
+    /// The narrow shell (shell/compact.js): the panel is a bottom sheet, which
+    /// is dismissed by tapping the page behind it or pulling it down by its
+    /// handle. Both are free, so the head drops its × and keeps the room for
+    /// the title (user call, 2026-08-18).
+    compact = false,
     onChanged,
     onError,
     onClose,
@@ -163,17 +168,19 @@
   </section>
 {/snippet}
 
-<aside class="suggestions-pane">
+<aside class="suggestions-pane" class:suggestions-pane--compact={compact}>
   <header class="theme-pane-head suggestions-pane__head">
     <span class="suggestions-pane__title">{title}</span>
-    <button
-      class="theme-btn--icon"
-      onclick={() => onClose?.()}
-      aria-label={S.closePanel}
-      title={S.closePanel}
-    >
-      <Icon name="x" size="1rem" />
-    </button>
+    {#if !compact}
+      <button
+        class="theme-btn--icon"
+        onclick={() => onClose?.()}
+        aria-label={S.closePanel}
+        title={S.closePanel}
+      >
+        <Icon name="x" size="1rem" />
+      </button>
+    {/if}
   </header>
 
   <div class="suggestions-pane__scroll">

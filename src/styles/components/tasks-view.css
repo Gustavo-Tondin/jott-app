@@ -59,28 +59,29 @@
      The wireframe draws it 24px tall with 32px of padding around the pills,
      and both numbers were revised at the desk (user call): 24px is half the
      48dp a thumb needs, and 32px of inner padding on a 360px screen spends a
-     fifth of the row on air. 16px of padding and 38px of height — his figures
-     — put three real targets across the row: each pill ends up ~100×38, which
-     is wider than the minimum in the axis that a thumb misses in. */
-  /* Its own full-width row. On the desktop the strip shares the header line
-     with the block's ⋮ and the invisible twin that balances it; at 360px that
-     left it 232px of a 344px row, centred, with 56px of nothing on each side.
-     The twin — which exists only to centre something sharing the row — goes,
-     and the strip takes everything the block's ⋮ leaves: 288px instead of 232.
-     DELIBERATELY NOT the full 344 the wireframe draws: that would need the ⋮
-     to go too, and with it the sort menu, which has nowhere else to live yet.
-     A wasted 48px row above the strip was the other way to keep both, and it
-     cost more than the 56px this costs. */
-  .shell--compact .tasks-space__header:has(.tasks-view__bar) .tasks-space__mirror {
-    display: none;
-  }
+     fifth of the row on air. 38px of height — his figure — puts three real
+     targets across the row, and the padding stays the shared control's 2px
+     (second user call, same day: at 16px the pills floated inside a fat well
+     instead of filling it). */
+  /* It takes the whole row it is given, and that row is CENTRED between the
+     block's ⋮ and the invisible twin of it on the other side (user call,
+     2026-08-18, after seeing both: the ⋮ tried living up in the screen's black
+     header, one below the top bar's own ⋮, and two ⋮ stacked in a corner read
+     as one control drawn twice). So the strip is narrower than the panel by
+     one control on each side — and centred on the SCREEN, which is what the
+     twin is for. */
   .shell--compact .tasks-view__bar {
     display: block;
   }
   .shell--compact .tasks-view__bar > .theme-segmented {
     display: flex;
     inline-size: 100%;
-    padding: var(--theme-space-4) var(--theme-space-16);
+    /* The track's padding is the SHARED control's 2px, here as everywhere else
+       (user call, 2026-08-18). The wireframe's 16px was read off a strip drawn
+       at half a thumb's height, and applied to a taller one it left the three
+       pills floating inside a fat well instead of filling it. Height is the
+       thing that changes on a phone; padding is not. */
+    padding: var(--theme-space-2);
     block-size: 2.375rem;
   }
   .shell--compact .tasks-view__sub {
