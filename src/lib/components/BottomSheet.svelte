@@ -19,6 +19,17 @@
   // NOT a `<dialog>`: the sheet holds the task inspector, which stays usable
   // while the list behind it is still being read, and a modal dialog would
   // make everything behind it inert.
+  //
+  // It declares the CANVAS, the same call Modal makes and for the same reason:
+  // a sheet is CONTENT — a task being edited, a list of open documents —
+  // raised over the page, so it is made of the page's material rather than the
+  // frame's. The wireframes draw it light on the factory theme, which is what
+  // the canvas is.
+  //
+  // ON THE SCRIM, the outermost element, so it holds wherever the sheet is
+  // mounted. Declared on the inner panel instead, the sheets rendered outside
+  // `.window` (the tabs) sat in no region and `--theme-scrim` resolved to
+  // nothing — the veil was invisible and the page behind stayed lit.
   import { S } from "../services/strings.js";
 
   let {
@@ -82,6 +93,7 @@
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 <div
   class="sheet-scrim"
+  data-region="canvas"
   role="presentation"
   onpointerdown={(e) => e.target === e.currentTarget && onClose?.()}
   onkeydown={onKey}
@@ -92,7 +104,6 @@
     class:sheet--dragging={pulled > 0}
     role="dialog"
     aria-label={label}
-    data-region="chrome"
     style="--sheet-max: {maxHeight}; --sheet-pulled: {pulled}px"
   >
     <!-- The handle is also a button: a drag is the only way to dismiss by
