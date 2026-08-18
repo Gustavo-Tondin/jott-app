@@ -39,6 +39,13 @@
     /// drawn somewhere without the gesture simply gets nothing.
     swipeAction = null,
     swipeOptions = {},
+    /// Where this card sits in the list, and whether it is the one the list's
+    /// keyboard is on. Together they are the roving tabindex: exactly one card
+    /// per list is reachable by Tab, and the arrows move which (2026-08-18).
+    /// Before this, a task card could not be reached by keyboard at all.
+    index = 0,
+    focusable = false,
+    onFocused = null,
     children,
   } = $props();
 
@@ -108,17 +115,32 @@
 <!-- The whole card opens the task in the inspector; the interactive parts
      inside (checkbox, bookmark, the slotted actions) stop the click so they do
      their own thing instead. -->
-<!-- svelte-ignore a11y_click_events_have_key_events -->
-<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 <!-- The whole card is also the drag handle when the list is reorderable
      (hold and drag anywhere; the action tells a 5px drag from a click and
      swallows the click a drag would otherwise fire). -->
+<!-- svelte-ignore a11y_click_events_have_key_events -->
+<!-- The keyboard handler this rule asks for exists — it is on the LIST
+     (TaskCards), which is where it has to be, because navigating between
+     cards is a question only the list can answer. The rule only looks at
+     this element. -->
+<!-- `role="row"`, and the list around it is a `grid` (2026-08-18). A card is
+     a click target that CONTAINS controls — a checkbox, a bookmark, the
+     slotted buttons — which is exactly what rules out `button` and `option`:
+     neither may hold an interactive child. `row` is the one role that is
+     focusable, may be navigated with the arrows, and may contain controls,
+     and it is what every task-list widget with inline actions ends up being.
+     The keyboard itself lives in the list (TaskCards), because the list is
+     what knows the order. -->
 <li
   class="task-row"
+  role="row"
   class:swipe={gesture !== noAction}
   class:task-row--selected={selected}
   class:task-row--done={task.done}
+  data-card={index}
+  tabindex={focusable ? 0 : -1}
   onclick={() => onSelect?.(list, task)}
+  onfocusin={() => onFocused?.()}
   use:gesture={swipeOptions}
 >
   <!-- What a swipe uncovers: a square in the space the card leaves, at the end

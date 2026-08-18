@@ -169,7 +169,7 @@
     onChanged: () => onChanged?.(),
     onError: (e) => onError?.(e),
   });
-  const { complete, edit, pin } = taskActions(act);
+  const { complete, edit, pin, remove, duplicate } = taskActions(act);
 
   // ---- arrangement (Etapa 1) ----
   // Same shape whatever the source; only where the preference is kept differs.
@@ -348,12 +348,8 @@
   // Left deletes; right takes the card out of the period, and only on a screen
   // that IS one. No confirmation on the delete: it goes to the notebook's own
   // trash, so it is recoverable — and a dialog on every swipe kills the
-  // gesture. The id is resolved first, the way every card action does.
-  const swipeDelete = (entry) =>
-    act(async () => {
-      const id = await ensureTaskId(entry.list, entry.task);
-      await api.deleteTask(entry.list, id);
-    });
+  // gesture. The Delete key asks for the same thing (2026-08-18).
+  const deleteEntry = (entry) => remove(entry.list, entry.task);
 
   // Derived, not computed once: the same component instance serves Today and
   // the Week, and a screen that stops being a period has to lose the gesture
@@ -492,7 +488,8 @@
         showList={!!period}
         {inDay}
         {f}
-        onSwipeDelete={readOnly ? null : swipeDelete}
+        onDelete={readOnly ? null : deleteEntry}
+        onDuplicate={readOnly ? null : (entry) => duplicate(entry.list, entry.task)}
         onSwipeUnpull={readOnly ? null : swipeUnpull}
         onReorder={readOnly ? null : period ? reorderPeriod : reorderTasks}
         {isSelected}
@@ -546,6 +543,7 @@
         onSelect={onSelectTask}
         onComplete={(list, task) => uncomplete(list, task)}
         onEdit={edit}
+        onDelete={readOnly ? null : (entry) => removeCompleted(entry.list, entry.task)}
         {tagColors}
         {dateFormat}
         {today}

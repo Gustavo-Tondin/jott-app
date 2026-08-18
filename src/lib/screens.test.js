@@ -111,6 +111,107 @@ beforeEach(() => {
   taskRequest.set(null);
 });
 
+describe("the task list's keyboard (2026-08-18)", () => {
+  // Before this, a task card could not be reached by keyboard at all: the
+  // whole list was click-only. These guard the two rules that are easy to
+  // lose — focus moves without dragging the inspector along with it, and a
+  // press inside a field is typing, never a command.
+
+  const twoTasks = () => [task("a1", "Comprar leite"), task("a2", "Regar plantas")];
+
+  const listProps = (over = {}) => ({
+    list: "jott.tasks/Compras.md",
+    readOnly: false,
+    onChanged: noop,
+    onError: noop,
+    reloadKey: 0,
+    ...over,
+  });
+
+  test("gives exactly one card the Tab stop, and the arrows move it", async () => {
+    bridge({ list_tasks: twoTasks() });
+    const { container } = render(ListView, { props: listProps() });
+    await screen.findByText("Comprar leite");
+
+    const cards = () => [...container.querySelectorAll(".task-row")];
+    expect(cards().map((c) => c.getAttribute("tabindex"))).toEqual(["0", "-1"]);
+
+    await fireEvent.keyDown(container.querySelector(".theme-task-list"), {
+      key: "ArrowDown",
+    });
+    await waitFor(() =>
+      expect(cards().map((c) => c.getAttribute("tabindex"))).toEqual(["-1", "0"]),
+    );
+  });
+
+  test("moving the focus does NOT open the inspector — Enter does", async () => {
+    bridge({ list_tasks: twoTasks() });
+    const opened = [];
+    const { container } = render(ListView, {
+      props: listProps({ onSelect: (list, t) => opened.push(t.text) }),
+    });
+    await screen.findByText("Comprar leite");
+    const list = container.querySelector(".theme-task-list");
+
+    // Ten cards would mean ten reloads of the inspector; arrowing is looking.
+    await fireEvent.keyDown(list, { key: "ArrowDown" });
+    expect(opened).toEqual([]);
+
+    await fireEvent.keyDown(list, { key: "Enter" });
+    expect(opened).toEqual(["Regar plantas"]);
+  });
+
+  test("Space completes the card the keyboard is on", async () => {
+    bridge({ list_tasks: twoTasks(), ensure_task_id: "a1", complete_task: null });
+    const { container } = render(ListView, { props: listProps() });
+    await screen.findByText("Comprar leite");
+
+    await fireEvent.keyDown(container.querySelector(".theme-task-list"), { key: " " });
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("complete_task", {
+        list: "jott.tasks/Compras.md",
+        id: "a1",
+      }),
+    );
+  });
+
+  test("a press inside a field is typing, not a command", async () => {
+    bridge({ list_tasks: twoTasks() });
+    const { container } = render(ListView, { props: listProps() });
+    await screen.findByText("Comprar leite");
+
+    // A Space typed into the screen's own field is a space in a word. The
+    // press bubbles up to the list, so only `typing()` keeps it from
+    // completing a task instead.
+    const field = await screen.findByPlaceholderText("New task…");
+    await fireEvent.keyDown(field, { key: " ", bubbles: true });
+    expect(
+      invoke.mock.calls.some(([cmd]) => cmd === "complete_task"),
+      "a space typed into a field completed a task",
+    ).toBe(false);
+
+    // The same press on the list itself does complete — otherwise this test
+    // would pass with the keyboard switched off entirely. (These tasks carry
+    // ids, so `ensureTaskId` resolves without a round trip and the first
+    // call to reach the bridge is the completion itself.)
+    await fireEvent.keyDown(container.querySelector(".theme-task-list"), { key: " " });
+    await waitFor(() =>
+      expect(invoke.mock.calls.some(([cmd]) => cmd === "complete_task")).toBe(true),
+    );
+  });
+
+  test("a read-only notebook has no Delete key", async () => {
+    bridge({ list_tasks: twoTasks() });
+    const { container } = render(ListView, { props: listProps({ readOnly: true }) });
+    await screen.findByText("Comprar leite");
+
+    await fireEvent.keyDown(container.querySelector(".theme-task-list"), {
+      key: "Delete",
+    });
+    expect(invoke).not.toHaveBeenCalledWith("delete_task", expect.anything());
+  });
+});
+
 describe("ListView", () => {
   test("shows the tasks of the list it was given", async () => {
     bridge({ list_tasks: [task("a1", "Comprar leite")] });

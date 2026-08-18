@@ -38,6 +38,20 @@ export function taskActions(act) {
         const id = await ensureTaskId(list, task);
         await api.pullInto(period, list, id);
       }),
+
+    /// To the trash, never destroyed — `.jott/trash/` keeps it, and the
+    /// restore puts it back on the line it was on.
+    remove: (list, task) =>
+      act(async () => {
+        const id = await ensureTaskId(list, task);
+        await api.deleteTask(list, id);
+      }),
+
+    duplicate: (list, task) =>
+      act(async () => {
+        const id = await ensureTaskId(list, task);
+        await api.duplicateTask(list, id);
+      }),
   };
 }
 

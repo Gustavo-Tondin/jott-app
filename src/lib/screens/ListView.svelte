@@ -35,15 +35,6 @@
   const inDay = (entry) =>
     !!entry.task.id && !!dayRefs?.has(`${entry.list}#${entry.task.id}`);
 
-  // Swiping a card left deletes it — the same gesture a space's screen offers,
-  // and it has to work in any list, not only the ones a space draws. No
-  // confirmation: it goes to the notebook's own trash, so it is recoverable.
-  const swipeDelete = (entry) =>
-    act(async () => {
-      const id = await ensureTaskId(entry.list, entry.task);
-      await api.deleteTask(entry.list, id);
-    });
-
   let tasks = $state([]);
   let newText = $state("");
 
@@ -69,7 +60,12 @@
     onChanged: () => onChanged?.(),
     onError: (e) => onError?.(e),
   });
-  const { complete, edit, pin, pull } = taskActions(act);
+  const { complete, edit, pin, pull, remove, duplicate } = taskActions(act);
+
+  // Swiping a card left deletes it, and so does the Delete key — the same
+  // action by two gestures. No confirmation: it goes to the notebook's own
+  // trash, so it is recoverable.
+  const deleteEntry = (entry) => remove(entry.list, entry.task);
 
   const add = () => {
     const text = newText.trim();
@@ -118,7 +114,8 @@
       {isSelected}
       {inDay}
       {f}
-      onSwipeDelete={readOnly ? null : swipeDelete}
+      onDelete={readOnly ? null : deleteEntry}
+      onDuplicate={readOnly ? null : (entry) => duplicate(entry.list, entry.task)}
       {onSelect}
       onComplete={complete}
       onEdit={edit}
