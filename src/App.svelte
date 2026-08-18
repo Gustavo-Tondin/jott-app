@@ -13,7 +13,7 @@
   import { askName, askTask } from "./lib/services/dialog.js";
   import { composeTask } from "./lib/services/taskCompose.js";
   import { makeAct } from "./lib/services/act.js";
-  import { shortcutFor } from "./lib/services/shortcuts.js";
+  import { ask, userBindings } from "./lib/services/shortcuts.js";
   import NameDialog from "./lib/components/NameDialog.svelte";
   import ContextMenu from "./lib/components/ContextMenu.svelte";
   import ListView from "./lib/screens/ListView.svelte";
@@ -96,6 +96,10 @@
   $effect(() => {
     api.sidebarWidth().then((w) => (sidebarWidth = clampWidth(w, SIDEBAR)), () => {});
     api.panelWidth().then((w) => (panelWidth = clampWidth(w, PANEL)), () => {});
+    // Clamped like the widths are, and for the same reason: a value
+    // hand-edited into the file must not leave the app unusable with no way
+    // back to a readable size.
+    api.zoom().then((z) => z && (zoom = clampZoom(z)), () => {});
   });
 
   /// Which window buttons the desktop wants, and where. Read once: there is no
@@ -221,46 +225,134 @@
   let flush = $state(false);
   $effect(() => watchWindowState((v) => (flush = v)));
 
+  // The user's own bindings, published for everything that answers a key —
+  // the shell here, the task list four levels down, the note editor in
+  // another subtree entirely (`services/shortcuts.js`).
+  $effect(() => {
+    userBindings.set(layout.shortcuts ?? {});
+  });
+
+  /// What each command id DOES. The registry says a command exists and what
+  /// it is called; this is the only place that knows what a notebook is, and
+  /// so the only place that can run one.
+  ///
+  /// A command absent from here is not broken — it is one the editor answers
+  /// (`Editor.svelte` maps the `editor` scope to CodeMirror commands from the
+  /// same registry).
+  const RUNS = {
+    "task.new": () => notebook && quickTask(),
+    "note.new": () => notebook && f("notes") && quickNote(),
+    "search.notebook": () => notebook && openSearch(),
+    "search.notebook.global": () => notebook && openSearch(),
+    "app.settings": () => notebook && goTo({ kind: "settings" }),
+    "app.fullscreen": () => toggleFullscreen().catch(() => {}),
+    "app.sidebar": () => notebook && (compact ? (drawerOpen = !drawerOpen) : (railed = !railed)),
+    "page.rename": () => notebook && renameHere(),
+    "app.zoomIn": () => zoomBy(1),
+    "app.zoomOut": () => zoomBy(-1),
+    "app.zoomReset": () => setZoom(1),
+    "tab.new": openNewTab,
+    "tab.close": () => closeTab(active),
+    "tab.next": () => cycleTab(1),
+    "tab.previous": () => cycleTab(-1),
+    "tab.last": () => selectTab(tabs.length - 1),
+    "nav.back": goBack,
+    "nav.forward": goForward,
+    ...Object.fromEntries(
+      Array.from({ length: 8 }, (_, i) => [`tab.go${i + 1}`, () => selectTab(i)]),
+    ),
+  };
+
+  // ---- zoom (Ctrl+= / Ctrl+- / Ctrl+0) ----
+  // One `font-size` on the root scales the whole interface, because every
+  // measure in the design system is `rem` — no component knows this happened.
+  // It is a MACHINE preference, like the sidebar's width (0.9.0): it answers
+  // to a monitor and a pair of eyes, not to a notebook, so it does not travel
+  // with the files.
+  const ZOOM_STEPS = [0.8, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2];
+  let zoom = $state(1);
+
+  $effect(() => {
+    // 16px is the browser's own base, and the number every `rem` token was
+    // written against (`styles/tokens.css`).
+    document.documentElement.style.fontSize = zoom === 1 ? "" : `${16 * zoom}px`;
+  });
+
+  const clampZoom = (z) =>
+    Math.min(ZOOM_STEPS[ZOOM_STEPS.length - 1], Math.max(ZOOM_STEPS[0], z));
+
+  function setZoom(next) {
+    const clamped = clampZoom(next);
+    if (clamped === zoom) return;
+    zoom = clamped;
+    api.rememberZoom(clamped).catch(() => {});
+  }
+
+  /// One step along the ladder, in `direction`. A ladder rather than a
+  /// multiplier so the steps are the same going up and coming back down, and
+  /// so 100% is always reachable by pressing the key.
+  function zoomBy(direction) {
+    const at = ZOOM_STEPS.indexOf(zoom);
+    const from = at >= 0 ? at : ZOOM_STEPS.findIndex((z) => z >= zoom);
+    setZoom(ZOOM_STEPS[Math.min(ZOOM_STEPS.length - 1, Math.max(0, from + direction))]);
+  }
+
+  /// Move between tabs by one, wrapping. Wrapping because a strip of tabs is
+  /// a ring in every app that has one, and stopping at the end would make the
+  /// chord feel broken on the last tab.
+  function cycleTab(step) {
+    if (tabs.length < 2) return;
+    selectTab((active + step + tabs.length) % tabs.length);
+  }
+
+  const selectTab = (i) => {
+    if (i >= 0 && i < tabs.length) active = i;
+  };
+
+  /// The search box over whatever screen is showing, asking the whole
+  /// notebook — the shortcut always asks the notebook, whatever the last
+  /// scoped search was.
+  function openSearch() {
+    searchScope = null;
+    searching = true;
+  }
+
+  /// F2: rename whatever this screen IS. The page menu already offers exactly
+  /// one of these per screen, so the key follows the menu rather than
+  /// inventing a second rule about what "here" means.
+  function renameHere() {
+    if (notebook?.readOnly) return;
+    if (view.kind === "note") renameCurrentNote();
+    else if (view.kind === "list" && view.list !== layout.inbox && view.list !== layout.completed)
+      renameCurrentList();
+    else if (renamableSpace) renameSpaceTo(renamableSpace.path, renamableSpace.name);
+  }
+
   function onKeydown(event) {
-    switch (shortcutFor(event)) {
-      case "fullscreen":
-        event.preventDefault();
-        toggleFullscreen().catch(() => {});
+    // Escape stays the shell's own, and deliberately is NOT a command: it
+    // dismisses whatever is open, which is about state rather than about a
+    // binding a user could take away or point somewhere else.
+    if (event.key === "Escape" && !event.defaultPrevented) {
+      if (suggesting) {
+        suggesting = null;
         return;
-      case "newTask":
-        // Only where there is a notebook to write into: before that the app is
-        // an onboarding screen, and a dialog over it would have nowhere to put
-        // what the user typed.
-        if (!notebook) return;
-        event.preventDefault();
-        quickTask();
-        return;
-      case "newNote":
-        if (!notebook || !f("notes")) return;
-        event.preventDefault();
-        quickNote();
-        return;
-      case "search":
-        if (!notebook) return;
-        event.preventDefault();
-        // The shortcut always asks the whole notebook, whatever the last
-        // scoped search was.
-        searchScope = null;
-        searching = true;
-        return;
-      case "dismiss":
-        if (suggesting) {
-          suggesting = null;
-          return;
-        }
-        if (!selected) return;
-        // The date picker catches Escape itself (capture phase) while its
-        // calendar is open, so an Escape that reaches here means nothing else
-        // is capturing it — closing the panel is the right response.
-        selected = null;
-        return;
-      default:
+      }
+      if (!selected) return;
+      // The date picker catches Escape itself (capture phase) while its
+      // calendar is open, so an Escape that reaches here means nothing else
+      // is capturing it — closing the panel is the right response.
+      selected = null;
+      return;
     }
+
+    // The task scope is not answered here: a focused task list answers its
+    // own keys (`TaskCards`), because it is the one that HAS the tasks and
+    // the one whose focus says it is the list being talked to.
+    const id = $ask(event, "global");
+    const run = id && RUNS[id];
+    if (!run) return;
+    event.preventDefault();
+    run();
   }
 
   /// The search dialog is open over whatever screen is showing.

@@ -52,6 +52,11 @@ export const api = {
   // because they share the panel.
   panelWidth: () => invoke("panel_width"),
   rememberPanelWidth: (width) => invoke("remember_panel_width", { width }),
+  // How far the interface is zoomed, as a multiplier of the base 16px. Also a
+  // machine preference: it answers to a monitor and a pair of eyes. The NOTE's
+  // own font size is the opposite case and lives in the notebook.
+  zoom: () => invoke("zoom"),
+  rememberZoom: (zoom) => invoke("remember_zoom", { zoom }),
 
   // lists
   listNames: () => invoke("list_names"),

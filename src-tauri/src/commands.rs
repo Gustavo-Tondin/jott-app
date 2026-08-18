@@ -438,6 +438,18 @@ pub fn remember_panel_width<R: Runtime>(app: AppHandle<R>, width: f64) {
     crate::prefs::remember_panel_width(&app, width);
 }
 
+/// How far the interface is zoomed. The frontend clamps whatever it reads —
+/// a value hand-edited to 40 must not make the app unusable with no way back.
+#[tauri::command]
+pub fn zoom<R: Runtime>(app: AppHandle<R>) -> Option<f64> {
+    crate::prefs::zoom(&app)
+}
+
+#[tauri::command]
+pub fn remember_zoom<R: Runtime>(app: AppHandle<R>, zoom: f64) {
+    crate::prefs::remember_zoom(&app, zoom);
+}
+
 #[tauri::command]
 pub fn notebook_settings(state: State<'_, AppState>) -> CommandResult<NotebookSettings> {
     state.with_notebook(|nb| {

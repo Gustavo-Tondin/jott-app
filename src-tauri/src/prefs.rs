@@ -35,6 +35,14 @@ struct MachinePrefs {
     sidebar_width: Option<f64>,
     /// The same, for the right panel (task inspector / suggestions).
     panel_width: Option<f64>,
+    /// How far the interface is zoomed, as a multiplier of the base 16px
+    /// (2026-08-18).
+    ///
+    /// A machine preference for the same reason the two widths are: it
+    /// answers to a monitor and a pair of eyes. The NOTE's own font size is
+    /// the opposite case — that is reading taste, it travels with the
+    /// notebook, and it lives in `.jott/config.json`.
+    zoom: Option<f64>,
 }
 
 /// Overrides where machine preferences are stored.
@@ -101,6 +109,14 @@ pub fn remember_sidebar_width<R: Runtime>(app: &AppHandle<R>, width: f64) {
 }
 
 /// How wide the right panel was left, if it was ever dragged.
+pub fn zoom<R: Runtime>(app: &AppHandle<R>) -> Option<f64> {
+    load(app).zoom
+}
+
+pub fn remember_zoom<R: Runtime>(app: &AppHandle<R>, zoom: f64) {
+    update(app, |prefs| prefs.zoom = Some(zoom));
+}
+
 pub fn panel_width<R: Runtime>(app: &AppHandle<R>) -> Option<f64> {
     load(app).panel_width.filter(|w| w.is_finite() && *w > 0.0)
 }
