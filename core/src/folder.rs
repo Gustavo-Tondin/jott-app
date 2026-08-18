@@ -22,12 +22,16 @@ use crate::error::{Error, IoContext, Result};
 use crate::list::TaskList;
 use crate::COMPLETED_LIST;
 
-/// Written into every new tasks folder, for whoever opens it without the app.
+/// Written into `.jott/` once, for whoever opens the notebook without the app.
 /// Deliberately short: someone reading this is looking at a text file, not at
-/// documentation.
+/// documentation. It covers BOTH worlds — a notebook holds notes as well as
+/// lists, and the note format is as much a documented promise (spec 5) as the
+/// task one.
 const FORMAT_GUIDE: &str = "\
-These are plain Markdown checklists. Edit them in any text editor —
-Jott reads whatever you write.
+Your tasks and notes are plain Markdown, in the folders next to this one.
+Edit them in any text editor — Jott reads whatever you write.
+
+TASK LISTS (task-list.md, and the completed.md beside it)
 
   - [ ] Buy milk
   - [x] Pay the bill
@@ -57,6 +61,27 @@ alone.
 
 Delete a list file and Jott forgets that list. The space's own
 task-list.md and completed.md come back automatically.
+
+NOTES (one .md file each)
+
+Anything Jott keeps about a note sits in a block at the very top, between
+two --- lines:
+
+  ---
+  created: 2026-07-21
+  pinned: true
+  ---
+
+  Text of the note.
+
+The block is optional: a .md file you wrote by hand, with no block at all,
+is a perfectly good note. A key Jott does not know is left untouched, and a
+checklist typed inside a note stays text — notes and tasks never mix.
+
+NOTHING IS DESTROYED
+
+A task or a file you delete in the app waits in .jott/trash/ before it goes
+for good — 30 days, unless you change that in Settings.
 ";
 
 /// A directory holding task lists. Cheap to build — it is a path, not a

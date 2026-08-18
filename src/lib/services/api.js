@@ -104,6 +104,12 @@ export const api = {
   // Switching a part of the app on or off (App Functions, 2026-08-06).
   setFeature: (key, on) => invoke("set_feature", { key, on }),
 
+  // A command's chord. `chord: null` unbinds it; neither string is judged by
+  // the core (2026-08-18). A binding travels with the notebook: a chord
+  // answers to a pair of hands, and those move between machines.
+  setShortcut: (id, chord) => invoke("set_shortcut", { id, chord }),
+  resetShortcuts: () => invoke("reset_shortcuts"),
+
   // How the sidebar arranges spaces: "name", or "" for the dragged order.
   spacesSort: () => invoke("spaces_sort"),
   setSpacesSort: (sort) => invoke("set_spaces_sort", { sort }),

@@ -417,6 +417,37 @@ impl Notebook {
         self.set_config(config)
     }
 
+    /// Binds a command to a chord, or unbinds it with `chord: None`.
+    ///
+    /// The core does not judge either string: which commands exist and how a
+    /// chord is spelled belong to the interface, and a notebook a newer build
+    /// wrote carries bindings this one cannot read. Unbinding REMOVES the key
+    /// rather than writing an empty one, so a config only ever carries what
+    /// differs from the app's own table.
+    pub fn set_shortcut(&mut self, id: &str, chord: Option<String>) -> Result<()> {
+        self.ensure_writable()?;
+        let mut config = self.config.clone();
+        match chord {
+            Some(chord) => {
+                config
+                    .shortcuts
+                    .insert(id.to_string(), serde_json::Value::from(chord));
+            }
+            None => {
+                config.shortcuts.remove(id);
+            }
+        }
+        self.set_config(config)
+    }
+
+    /// Forgets every binding — back to the table the app ships with.
+    pub fn reset_shortcuts(&mut self) -> Result<()> {
+        self.ensure_writable()?;
+        let mut config = self.config.clone();
+        config.shortcuts.clear();
+        self.set_config(config)
+    }
+
     /// Starts watching this notebook for changes made outside the app.
     pub fn watch(&self) -> Result<crate::watcher::NotebookWatcher> {
         crate::watcher::NotebookWatcher::start(&self.root)

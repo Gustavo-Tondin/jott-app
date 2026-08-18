@@ -61,6 +61,7 @@ pub struct NotebookLayout {
     /// document root, wanted on the first paint.
     pub heading_color: String,
     pub note_font_size: String,
+    pub shortcuts: serde_json::Map<String, serde_json::Value>,
     /// Which parts of the app are switched on (2026-08-06). Only what was
     /// switched OFF is listed; the frontend's `services/features.js` reads a
     /// missing key as on, and applies a child's parent for it.
@@ -114,6 +115,7 @@ impl NotebookInfo {
                 theme: notebook.config().theme.clone(),
                 heading_color: notebook.config().heading_color.clone(),
                 note_font_size: notebook.config().note_font_size.clone(),
+                shortcuts: notebook.config().shortcuts.clone(),
                 features: notebook.config().features.clone(),
             },
         })
@@ -1085,6 +1087,27 @@ pub fn set_feature(
     on: Option<bool>,
 ) -> CommandResult<()> {
     state.with_notebook_mut(|nb| Ok(nb.set_feature(&key, on)?))
+}
+
+/// Binds a command to a chord, or unbinds it with `chord: null`.
+///
+/// Neither string is judged here or in the core: the registry of commands and
+/// the spelling of a chord are the frontend's (`services/commands.js`,
+/// `services/keys.js`), and a binding this build cannot honour is simply
+/// ignored on the way in rather than destroyed on the way out.
+#[tauri::command]
+pub fn set_shortcut(
+    state: State<'_, AppState>,
+    id: String,
+    chord: Option<String>,
+) -> CommandResult<()> {
+    state.with_notebook_mut(|nb| Ok(nb.set_shortcut(&id, chord)?))
+}
+
+/// Back to the table the app ships with.
+#[tauri::command]
+pub fn reset_shortcuts(state: State<'_, AppState>) -> CommandResult<()> {
+    state.with_notebook_mut(|nb| Ok(nb.reset_shortcuts()?))
 }
 
 /// How the sidebar arranges the user's spaces: `name`, or the empty string

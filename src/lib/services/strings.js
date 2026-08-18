@@ -126,6 +126,26 @@ export const S = {
   featureDescription: "Description",
   featureFiles: "Add files",
 
+  // The shortcuts table in Settings (2026-08-18).
+  sectionShortcuts: "Shortcuts",
+  sectionShortcutsHint:
+    "Click a key to record a new one, Escape to leave it as it was. Bindings " +
+    "travel with the notebook, the way the theme does.",
+  // Named for what the user is DOING, not for the word the code uses.
+  shortcutScope: (scope) =>
+    ({
+      global: "Anywhere",
+      tasks: "In a task list",
+      editor: "While writing a note",
+    })[scope] ?? scope,
+  pressAKey: "Press a key…",
+  noShortcut: "None",
+  changeShortcut: "Record a new key",
+  clearShortcut: "Remove this key",
+  shortcutNotBindable: "That would swallow typing",
+  shortcutTaken: (name) => `Already: ${name}`,
+  resetShortcuts: "Reset to defaults",
+
   formatting: "Formatting",
   showFormatting: "Show formatting",
   hideFormatting: "Hide formatting",

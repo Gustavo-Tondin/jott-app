@@ -32,6 +32,8 @@ pub fn configure<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builde
             commands::set_space_appearance,
             commands::delete_space,
             commands::set_feature,
+            commands::set_shortcut,
+            commands::reset_shortcuts,
             commands::spaces_sort,
             commands::set_spaces_sort,
             commands::period_sort,

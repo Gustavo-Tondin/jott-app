@@ -193,6 +193,20 @@ pub struct Config {
     /// should follow the writer to another screen, while zoom answers to a
     /// monitor. Empty means the size the app ships as.
     pub note_font_size: String,
+    /// The user's own keyboard bindings, as `command id → chord`
+    /// (2026-08-18).
+    ///
+    /// Opaque to the core, deliberately: which commands exist and what a
+    /// chord is spelled like are the interface's business, and a notebook
+    /// written by a newer build carries bindings this one has never heard of.
+    /// It keeps them and hands them back untouched — the frontend ignores what
+    /// it cannot honour (`services/commands.js`).
+    ///
+    /// A binding travels WITH the notebook, unlike the window widths and the
+    /// zoom: a chord answers to a pair of hands, and those move between
+    /// machines. It is the same choice Obsidian makes (hotkeys live in the
+    /// vault).
+    pub shortcuts: Map<String, Value>,
     /// Close the task panel when clicking outside it.
     ///
     /// Off by default, and that default is a decision: it shipped on, fired
@@ -257,6 +271,7 @@ impl Default for Config {
             theme: String::new(),
             heading_color: String::new(),
             note_font_size: String::new(),
+            shortcuts: Map::new(),
             close_inspector_on_click_away: false,
             quick_note_folder: crate::notefolder::NOTES_INBOX.to_string(),
             trash_retention_days: 30,
@@ -470,6 +485,14 @@ impl Config {
                         .collect()
                 })
                 .unwrap_or_default(),
+            // Kept whole, values and all: the core does not know what a
+            // command is or what a chord looks like, and a binding it cannot
+            // read is one a newer build wrote.
+            shortcuts: raw
+                .get("shortcuts")
+                .and_then(Value::as_object)
+                .cloned()
+                .unwrap_or_default(),
             spaces_sort: string(&raw, "spacesSort").unwrap_or_default(),
             order: raw
                 .get("order")
@@ -560,6 +583,7 @@ impl Config {
                 "periodSort",
                 serde_json::to_value(&self.period_sort).unwrap_or_default(),
             ),
+            ("shortcuts", Value::Object(self.shortcuts.clone())),
         ] {
             let empty = value.as_object().is_none_or(|o| o.is_empty());
             if empty {
@@ -921,6 +945,29 @@ mod tests {
         let future = Config::parse(r#"{ "schemaVersion": 1, "headingColor": "rainbow" }"#);
         assert_eq!(future.heading_color, "rainbow");
         assert!(future.render().contains("rainbow"));
+    }
+
+    #[test]
+    fn shortcuts_survive_a_round_trip_and_are_not_policed() {
+        // The core does not know what a command is. A binding it cannot read
+        // is a binding a NEWER build wrote, and throwing it away would make
+        // opening a notebook in an older Jott quietly destructive.
+        let config = Config::parse(
+            r#"{ "schemaVersion": 1, "shortcuts": { "task.new": "Mod+J", "future.thing": "Mod+Q" } }"#,
+        );
+        assert_eq!(config.shortcuts.len(), 2);
+        assert_eq!(config.shortcuts["future.thing"], "Mod+Q");
+
+        let reparsed = Config::parse(&config.render());
+        assert_eq!(reparsed.shortcuts, config.shortcuts);
+    }
+
+    #[test]
+    fn no_shortcuts_writes_no_key() {
+        // A notebook that never rebound anything says nothing about it, the
+        // same way it says nothing about a theme it never chose.
+        let config = Config::default();
+        assert!(!config.render().contains("shortcuts"));
     }
 
     #[test]

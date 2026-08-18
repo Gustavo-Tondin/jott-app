@@ -3577,6 +3577,54 @@ describe("SettingsView", () => {
     ...extra,
   });
 
+  test("the note's own text size is a notebook setting, chosen here", async () => {
+    // Reading taste travels with the notebook; the interface's zoom does not
+    // (it is a machine preference, like the panel widths).
+    bridge({ notebook_settings: settings, set_notebook_settings: null });
+    render(SettingsView, { props: props() });
+
+    await userEvent.click(await screen.findByRole("button", { name: "Large" }));
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("set_notebook_settings", {
+        settings: { noteFontSize: "large" },
+      }),
+    );
+  });
+
+  test("a shortcut is recorded here and stored on the notebook", async () => {
+    bridge({ notebook_settings: settings, set_shortcut: null });
+    render(SettingsView, { props: props() });
+
+    // Every command has a row, grouped by what the user is doing.
+    expect(await screen.findByText("In a task list")).toBeTruthy();
+    expect(screen.getByText("While writing a note")).toBeTruthy();
+
+    const rows = screen.getAllByTitle("Record a new key");
+    await userEvent.click(rows[0]);
+    await fireEvent.keyDown(screen.getByText("Press a key…"), {
+      key: "j",
+      ctrlKey: true,
+      shiftKey: true,
+    });
+
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("set_shortcut", {
+        id: "task.new",
+        chord: "Mod+Shift+J",
+      }),
+    );
+  });
+
+  test("resetting forgets every binding", async () => {
+    bridge({ notebook_settings: settings, reset_shortcuts: null });
+    render(SettingsView, { props: props() });
+
+    await userEvent.click(await screen.findByText("Reset to defaults"));
+    await waitFor(() =>
+      expect(invoke.mock.calls.some(([cmd]) => cmd === "reset_shortcuts")).toBe(true),
+    );
+  });
+
   test("the theme and the accent are chosen here, and stored by name", async () => {
     // Both are a NAME, never colours (2026-08-13): the theme picks which CSS
     // file dresses the app, the accent which of the seven the brand is. Absent

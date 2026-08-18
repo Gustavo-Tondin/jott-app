@@ -23,6 +23,9 @@
     DEFAULT_NOTE_FONT_SIZE,
   } from "../services/themes.js";
   import AccentPicker from "../components/AccentPicker.svelte";
+  import ShortcutRow from "../components/ShortcutRow.svelte";
+  import { SCOPES, commandsIn } from "../services/commands.js";
+  import { bound } from "../services/shortcuts.js";
 
   let {
     notebook,
@@ -98,6 +101,33 @@
 
   // Slash-only, and month-first is the default (user call, 2026-08-06).
   const DATE_SHAPES = ["mm/dd/yyyy", "dd/mm/yyyy", "yyyy/mm/dd"];
+
+  /// Records a chord for a command, or clears it with `null`.
+  ///
+  /// It goes to the notebook and comes back through the layout, the way every
+  /// other setting on this screen does — nothing here holds a local copy of
+  /// the bindings, so the table, the keymap and the tooltips can never
+  /// disagree about what is bound.
+  async function bindShortcut(id, chord) {
+    try {
+      await api.setShortcut(id, chord);
+      onChanged?.();
+      saved = true;
+      clearTimeout(savedTimer);
+      savedTimer = setTimeout(() => (saved = false), 1500);
+    } catch (e) {
+      onError?.(e);
+    }
+  }
+
+  async function resetShortcuts() {
+    try {
+      await api.resetShortcuts();
+      onChanged?.();
+    } catch (e) {
+      onError?.(e);
+    }
+  }
 
   let readOnly = $derived(!!notebook?.readOnly);
 </script>
@@ -362,6 +392,38 @@
        entry in services/features.js and nothing here. A sub-option is indented
        under its parent and goes dead with it. -->
   <section class="settings__section settings__section--features">
+    <h2 class="settings__section-title">{S.sectionShortcuts}</h2>
+    <p class="settings__hint">{S.sectionShortcutsHint}</p>
+
+    <!-- Grouped by SCOPE, because a scope is what decides whether two commands
+         may share a chord: two that can never both answer (a task list and a
+         text cursor are not focused at once) legitimately can. The groups are
+         named for what the user is doing, not for the word the code uses. -->
+    {#each SCOPES as scope (scope)}
+      <h3 class="settings__subtitle">{S.shortcutScope(scope)}</h3>
+      {#each commandsIn(scope) as command (command.id)}
+        <ShortcutRow
+          {command}
+          chord={$bound.get(command.id) ?? null}
+          bound={$bound}
+          disabled={readOnly}
+          onBind={(chord) => bindShortcut(command.id, chord)}
+        />
+      {/each}
+    {/each}
+
+    <div class="settings__row">
+      <span class="settings__label"></span>
+      <button
+        type="button"
+        class="theme-btn theme-btn--outline theme-btn--xs"
+        disabled={readOnly}
+        onclick={resetShortcuts}>{S.resetShortcuts}</button
+      >
+    </div>
+  </section>
+
+  <section class="settings__section">
     <h2 class="settings__section-title">{S.sectionFeatures}</h2>
     <p class="settings__hint">{S.sectionFeaturesHint}</p>
 

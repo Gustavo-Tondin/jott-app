@@ -85,3 +85,41 @@
     border-top: none;
   }
 }
+
+@layer components {
+  /* The shortcuts table (2026-08-18). A scope heading inside a section: it
+     names a group of rows, so it sits between the section title and a row's
+     own label. */
+  .settings__subtitle {
+    margin-block: var(--theme-space-16) var(--theme-space-4);
+    font-size: var(--theme-text-13);
+    font-weight: 600;
+    color: var(--theme-ink-muted);
+  }
+
+  .shortcut-row__keys {
+    display: flex;
+    align-items: center;
+    gap: var(--theme-space-4);
+  }
+
+  /* Monospaced, because a chord is read glyph by glyph and a proportional
+     font makes `Ctrl+I` and `Ctrl+l` look alike. */
+  .shortcut-row__chord,
+  .shortcut-row__recording {
+    min-inline-size: 8rem;
+    font-family: var(--theme-font-mono);
+  }
+
+  .shortcut-row__chord--none {
+    color: var(--theme-ink-muted);
+  }
+
+  /* Recording: the row is listening, and says so by the same accent the app
+     uses for anything live. */
+  .shortcut-row__recording {
+    border-color: var(--theme-brand);
+    color: var(--theme-brand);
+    font-family: var(--theme-font-sans);
+  }
+}
