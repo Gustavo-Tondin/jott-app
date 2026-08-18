@@ -6,4 +6,17 @@
   .note-editor__body {
     min-height: 60vh;
   }
+
+  /* On a phone the note IS the screen, so the editor takes what is left of it
+     rather than a share of the window.
+
+     `svh`, not `vh`: with `interactive-widget=resizes-content` (index.html) the
+     keyboard shrinks the layout viewport, and `vh` keeps reporting the height
+     the screen has WITHOUT it — a 60vh minimum under an open keyboard is
+     taller than the space left, which pushes the caret off the bottom of the
+     very screen the user is typing on. The small viewport is the honest one
+     here, and the editor grows past it with the document anyway. */
+  .shell--compact .note-editor__body {
+    min-block-size: 50svh;
+  }
 }

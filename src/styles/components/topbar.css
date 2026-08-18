@@ -1,0 +1,72 @@
+/* topbar.css — the compact shell's top bar.
+ * Markup: src/lib/shell/TopBar.svelte. Rendered instead of `.titlebar` below
+ * 768px (App.svelte reads `data-compact`, shell/compact.js).
+ *
+ * From the mobile wireframes, measured off the SVG: three 42px controls on a
+ * 66px bar, 12px of air on every side, and a 166px pill centred between the
+ * two end buttons. The centring is by construction — the end buttons are the
+ * same width, so `space-between` puts the pill in the middle without a magic
+ * number to keep in sync with the bar's width. */
+
+@layer components {
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--theme-space-8);
+    flex-shrink: 0;
+    padding: var(--theme-space-12);
+    background: var(--theme-bg);
+    /* The status bar is drawn OVER the app on Android (every 15+ app is
+       edge-to-edge whether it asks or not), so the bar grows by exactly the
+       strip the system owns. On a desktop window the inset resolves to zero
+       and this line costs nothing. */
+    padding-block-start: calc(var(--theme-space-12) + var(--theme-safe-top));
+    padding-inline-start: calc(var(--theme-space-12) + var(--theme-safe-left));
+    padding-inline-end: calc(var(--theme-space-12) + var(--theme-safe-right));
+    user-select: none;
+  }
+
+  /* Every control on this bar is the same 42px square on the chrome's raised
+     surface — the wireframe draws no difference between them, because there
+     is none: they are all "one tap, one job". */
+  .topbar .topbar__button,
+  .topbar .page-menu__toggle {
+    inline-size: 2.625rem;
+    block-size: 2.625rem;
+    flex: 0 0 auto;
+    border-radius: var(--theme-radius-md);
+    background: var(--theme-surface);
+    color: var(--theme-ink);
+  }
+
+  /* The pill's own buttons are inside it, so they must NOT carry the surface
+     again — the pill is the surface, and a raised square on a raised pill
+     reads as two nested cards. */
+  .topbar__pill {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--theme-space-2);
+    block-size: 2.625rem;
+    padding-inline: var(--theme-space-4);
+    border-radius: var(--theme-radius-md);
+    background: var(--theme-surface);
+  }
+  .topbar__pill .topbar__button,
+  .topbar__pill .page-nav__arrow {
+    background: none;
+    /* Still a full-height target: the pill is 42px tall and so is everything
+       in it, which is what keeps three controls inside one pill hittable. */
+    block-size: 2.375rem;
+    inline-size: 2.75rem;
+  }
+
+  /* An arrow with nowhere to go stays visible but plainly inert — the same
+     rule the desktop header keeps, so the bar never changes shape. */
+  .topbar .page-nav__arrow:disabled,
+  .topbar .page-menu__toggle:disabled {
+    color: var(--theme-ink-faint);
+    cursor: default;
+  }
+}

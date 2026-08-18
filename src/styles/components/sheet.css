@@ -1,0 +1,106 @@
+/* sheet.css — the bottom sheet and the scrim behind it.
+ * Markup: src/lib/components/BottomSheet.svelte.
+ *
+ * What the right-hand panel and the tab strip become below 768px. Measured off
+ * the mobile wireframes: the sheet FLOATS — 10px clear of both walls and of
+ * the bottom, 16px corners all round — rather than sitting flush against the
+ * edges. That gap is the whole difference between a panel that rose over the
+ * page and a page that was replaced. */
+
+@layer components {
+  .sheet-scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    background: var(--theme-scrim);
+    /* The sheet is pinned to the bottom of the scrim, which is the bottom of
+       the LAYOUT viewport — and with `interactive-widget=resizes-content`
+       (index.html) the virtual keyboard shrinks that viewport, so a sheet with
+       a field in it rides up above the keyboard instead of under it. */
+    display: flex;
+    align-items: flex-end;
+  }
+
+  .sheet {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    inline-size: 100%;
+    max-block-size: var(--sheet-max, 72svh);
+    margin: var(--theme-sheet-inset);
+    /* Clear of the gesture bar as well as of the wall. */
+    /* Clear of the keyboard when one is up, of the gesture bar when not — a
+       sheet with a field in it is the other place this matters. */
+    margin-block-end: calc(
+      var(--theme-sheet-inset) + max(var(--theme-safe-bottom), var(--theme-keyboard))
+    );
+    margin-inline-start: calc(var(--theme-sheet-inset) + var(--theme-safe-left));
+    margin-inline-end: calc(var(--theme-sheet-inset) + var(--theme-safe-right));
+    background: var(--theme-surface);
+    border-radius: var(--theme-sheet-radius);
+    overflow: hidden;
+    /* Follows the drag (BottomSheet.svelte). Zero except while a pointer is
+       pulling it down, so the sheet is where it belongs the rest of the time. */
+    translate: 0 var(--sheet-pulled, 0rem);
+    transition: translate var(--theme-transition-fast);
+  }
+  /* While the finger is down the sheet must track it exactly — a transition
+     here would make the drag feel like it is on a leash. */
+  .sheet--dragging {
+    transition: none;
+  }
+
+  /* ---- the grab handle ----
+     A button as well as a drag surface: dragging is the only gesture that
+     dismisses, and a gesture is not reachable from a keyboard or a screen
+     reader, so tapping it closes too. Full width so the whole top strip of
+     the sheet is grabbable, not just the 60px the grip draws. */
+  .sheet__handle {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    inline-size: 100%;
+    /* Comfortably past the 48px minimum: this is the one control the user is
+       asked to find without looking. */
+    block-size: var(--theme-touch-min);
+    padding: 0;
+    border: none;
+    background: none;
+    cursor: grab;
+    /* Stop the browser from claiming the vertical drag for a scroll — without
+       this the pointermove events never arrive on a touchscreen. */
+    touch-action: none;
+  }
+  .sheet--dragging .sheet__handle {
+    cursor: grabbing;
+  }
+  .sheet__grip {
+    inline-size: 3.75rem;
+    block-size: 0.25rem;
+    border-radius: var(--theme-radius-pill);
+    background: color-mix(in srgb, var(--palette-gray) 30%, transparent);
+  }
+  .sheet__handle:focus-visible .sheet__grip {
+    background: var(--theme-brand);
+  }
+
+  .sheet__body {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  /* Whatever the sheet is holding fills it. On the desktop these two are
+     fixed-width columns clipped by a sliding wrapper; here the sheet is the
+     wrapper and the width is the screen's. */
+  .sheet__body > .inspector,
+  .sheet__body > .suggestions-pane {
+    flex: 1;
+    inline-size: 100%;
+    min-height: 0;
+  }
+}

@@ -33,6 +33,7 @@
 @import "./styles/components/swipe.css";
 
 @import "./styles/components/titlebar.css";
+@import "./styles/components/topbar.css";
 @import "./styles/components/tabs.css";
 @import "./styles/components/window-controls.css";
 @import "./styles/components/page-header.css";
@@ -52,6 +53,8 @@
 @import "./styles/components/task-row.css";
 
 @import "./styles/components/capture.css";
+@import "./styles/components/capture-fab.css";
+@import "./styles/components/sheet.css";
 @import "./styles/components/search.css";
 @import "./styles/components/home.css";
 @import "./styles/components/tasks-view.css";
@@ -66,6 +69,10 @@
 @import "./styles/components/tasks-space.css";
 @import "./styles/components/notes-space.css";
 @import "./styles/components/unsupported-space.css";
+
+/* Last of the component sheets: everything in it exists to override a rule one
+   of them wrote, once the pointer turns out to be a finger. */
+@import "./styles/touch.css";
 
 /* The themes come last and UNLAYERED: they must win over every layer above
    without a specificity fight.

@@ -521,3 +521,151 @@
     font-size: 0.8rem;
   }
 }
+
+/* =============================================================================
+   THE COMPACT SHELL (below 768px — mobile wireframes, 2026-08-18).
+
+   Three columns do not fit on a phone, so two of them stop being columns: the
+   sidebar becomes a drawer, and the right panel becomes a bottom sheet
+   (styles/components/sheet.css). What is left in the row is the centre, at
+   full width.
+
+   Everything here hangs off classes the components already carry —
+   `.shell--compact`, and the drawer modifiers that exist only in this shell.
+   THE BREAKPOINT ITSELF IS NOWHERE IN THIS FILE: one matchMedia answers the
+   width question (shell/compact.js) and the markup carries the answer down,
+   so there is no second copy of 768 to drift.
+   ============================================================================= */
+@layer components {
+  /* ---- the drawer ----
+     It PUSHES rather than overlays: the wireframe translates the whole app
+     240px to the right and leaves it peeking, which is what says the page is
+     still there and one tap away. The app slides as a TRANSFORM, never as a
+     reflow — reflowing the centre panel mid-slide would relayout every task
+     row twice per open.
+
+     FIXED, and rendered outside `.window` (App.svelte): the drawer's own
+     toolbar is the top of the SCREEN in the wireframe, not a strip below the
+     app's top bar, so it has to cover that bar; and it has to sit still while
+     the app slides out from under it, which it cannot do as a child of the
+     thing that is sliding. */
+  .shell__sidebar--drawer {
+    position: fixed;
+    inset-block: 0;
+    inset-inline-start: 0;
+    z-index: 40;
+    flex-basis: auto;
+    inline-size: var(--theme-drawer-width);
+    background: var(--theme-bg);
+    /* Off-canvas until asked for. `visibility` rides along so a closed drawer
+       is not a tab stop — `inert` on the element covers the pointer and the
+       accessibility tree, this covers focus order in older engines. */
+    translate: -100% 0;
+    visibility: hidden;
+    transition:
+      translate var(--theme-transition-medium),
+      visibility var(--theme-transition-medium);
+    padding-block-start: var(--theme-safe-top);
+    padding-block-end: var(--theme-safe-bottom);
+    padding-inline-start: var(--theme-safe-left);
+  }
+  .shell__sidebar--open {
+    translate: 0 0;
+    visibility: visible;
+  }
+
+  /* ---- while a finger is carrying it (actions/drawerSwipe.js) ----
+     `--drawer-at` is how far the drag has got, in px. The drawer sits THERE
+     rather than at either end, and its transition is off so it arrives under
+     the hand instead of easing towards it. It is also visible for the whole
+     drag: a drawer that is half open is half open, whichever end it started
+     from. The rules are stronger than the two above by one class, which is
+     what lets a drag override both the open and the closed position. */
+  .shell__sidebar--drawer.is-sliding {
+    translate: calc(var(--drawer-at, 0rem) - 100%) 0;
+    visibility: visible;
+    transition: none;
+  }
+  /* The app, pushed aside by an open drawer. On `.window` rather than on the
+     centre panel, because the top bar goes with it — the wireframe translates
+     the whole 360px frame, pill and all. */
+  .window--compact {
+    transition: translate var(--theme-transition-medium);
+  }
+  .window--pushed {
+    translate: var(--theme-drawer-width) 0;
+  }
+  .window--sliding {
+    translate: var(--drawer-at, 0rem) 0;
+    transition: none;
+  }
+  /* The scrim fades in with the travel, so the page dims as it is pushed
+     aside rather than snapping dark at the end of the gesture. */
+  .shell__drawer-scrim.is-sliding {
+    opacity: calc(var(--drawer-at, 0rem) / var(--theme-drawer-width));
+  }
+
+  .shell--compact {
+    position: relative;
+    /* The browser keeps the vertical pan and hands us the horizontal one —
+       without this it claims the whole gesture and the drawer never sees a
+       single move (actions/drawerSwipe.js). */
+    touch-action: pan-y;
+  }
+
+  /* Tapping the page closes the drawer. Fixed and full-screen, under the
+     drawer and over everything else, so the top bar dims with the rest of the
+     app rather than staying lit above a dimmed page. */
+  .shell__drawer-scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 35;
+    background: var(--theme-scrim);
+  }
+
+  /* ---- the centre, now the whole row ----
+     THE SCROLLER MOVES UP. On the desktop `.shell__content` scrolls under a
+     pinned header; here the header scrolls away with the page (the "scrolled
+     down" wireframes), so the section scrolls and the content inside it does
+     not. The header is chrome, the content below it is the canvas, and the
+     canvas keeps the rounded top the wireframe draws at y=178. */
+  .shell--compact .shell__centre {
+    overflow-y: auto;
+    border-radius: 0;
+    background: none;
+  }
+  .shell--compact .shell__content {
+    overflow: visible;
+    background: var(--theme-bg);
+    border-start-start-radius: var(--theme-radius-lg);
+    border-start-end-radius: var(--theme-radius-lg);
+    /* Grows with its content but never shorter than what is left of the
+       screen, so the canvas is never a short white card floating on the
+       chrome. `1 0 auto` and not `min-block-size: 100%`: the header above it
+       is inside the same scroller, and 100% of the scrollport would make every
+       screen overscroll by exactly the header's height. */
+    flex: 1 0 auto;
+    /* A column, so the inner block can fill it — which is what puts a sticky
+       composer at the bottom of a SHORT list instead of under the last card. */
+    display: flex;
+    flex-direction: column;
+    padding: var(--theme-space-16) var(--theme-space-8) var(--theme-space-16);
+    padding-inline-start: calc(var(--theme-space-8) + var(--theme-safe-left));
+    padding-inline-end: calc(var(--theme-space-8) + var(--theme-safe-right));
+    /* Clear of the gesture bar. The composer that sticks to the bottom sits
+       inside this padding, so the two do not have to agree about it. */
+    padding-block-end: calc(var(--theme-space-16) + var(--theme-safe-bottom));
+  }
+  /* `inline-size: 100%` is load-bearing, not belt-and-braces. The desktop rule
+     centres this block with `margin-inline: auto`, and an auto inline margin
+     BEATS the stretch a flex item would otherwise get in the cross axis — so
+     as a flex child it fell back to its content width, and `container-type:
+     inline-size` (which is what lets the screens inside ask about their
+     column) means it has no content width to fall back TO. The block collapsed
+     to zero and every screen rendered one word per line. Measured on the
+     emulator, 2026-08-18. */
+  .shell--compact .shell__content-inner {
+    flex: 1;
+    inline-size: 100%;
+  }
+}

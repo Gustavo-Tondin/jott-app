@@ -55,6 +55,12 @@
        INTO a raised surface, for the one control that needs a track behind it
        (the segmented group). */
     --theme-well: color-mix(in srgb, var(--palette-gray) 30%, transparent);
+    /* The veil a drawer or a bottom sheet lays over the page it opened on top
+       of (the compact shell, 2026-08-18). Black at low alpha in EVERY theme,
+       including the dark one: a scrim's job is to push the page back, and a
+       light veil over a light page pushes nothing. Same reason as the three
+       above — one value that reads on both grounds, so no theme restates it. */
+    --theme-scrim: color-mix(in srgb, #0d0d0d 20%, transparent);
 
     /* A region carries its own ink, so anything inside it starts readable —
        including text a component forgot to colour. */

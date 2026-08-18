@@ -48,3 +48,38 @@
      own, so a theme can still target this particular strip without having to
      restyle every segmented control in the app. */
 }
+
+/* =============================================================================
+   THE COMPACT SCREEN (below 768px — mobile wireframes, 2026-08-18).
+   ============================================================================= */
+@layer components {
+  /* The Inbox / Today / Week strip stretches to the full width of the screen
+     and gets taller.
+
+     The wireframe draws it 24px tall with 32px of padding around the pills,
+     and both numbers were revised at the desk (user call): 24px is half the
+     48dp a thumb needs, and 32px of inner padding on a 360px screen spends a
+     fifth of the row on air. 16px of padding and 38px of height — his figures
+     — put three real targets across the row: each pill ends up ~100×38, which
+     is wider than the minimum in the axis that a thumb misses in. */
+  .shell--compact .tasks-view__bar {
+    display: block;
+  }
+  .shell--compact .tasks-view__bar > .theme-segmented {
+    display: flex;
+    inline-size: 100%;
+    padding: var(--theme-space-4) var(--theme-space-16);
+    block-size: 2.375rem;
+  }
+  .shell--compact .tasks-view__sub {
+    flex: 1;
+    padding-inline: var(--theme-space-8);
+    font-size: var(--theme-text-16);
+  }
+  /* The range ("12–18 Aug") sat in the third column of a grid that is gone. */
+  .shell--compact .tasks-view__range {
+    display: block;
+    margin-block-start: var(--theme-space-8);
+    text-align: center;
+  }
+}

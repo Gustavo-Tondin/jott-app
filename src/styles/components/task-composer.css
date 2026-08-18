@@ -31,6 +31,36 @@
     box-shadow: 0 -0.0625rem 0.25rem color-mix(in srgb, var(--theme-ink) 8%, transparent);
   }
 
+  /* On a phone the bar leaves the flow and rides the bottom of the VIEWPORT.
+     Sticky is right on the desktop — the panel is tall, so `bottom: 0` pins it
+     the moment the list would scroll past — but on a short screen the list is
+     often shorter than the panel, and sticky then leaves the bar wherever the
+     content ended: halfway up, with the keyboard open under it (measured on
+     the emulator, Home with an empty day).
+
+     Fixed to the layout viewport, which `interactive-widget=resizes-content`
+     shrinks when the keyboard comes up (index.html) — so "the bottom of the
+     screen" and "just above the keyboard" are the same place, and the wireframe
+     "New task mobile" is what comes out. */
+  .shell--compact .task-composer--bar {
+    position: fixed;
+    z-index: 20;
+    inset-inline-start: calc(var(--theme-space-8) + var(--theme-safe-left));
+    inset-inline-end: calc(var(--theme-space-8) + var(--theme-safe-right));
+    /* Above the keyboard when there is one, above the gesture bar when there
+       is not. `max()` rather than a sum: with the keyboard up the gesture bar
+       is behind it, and adding both would leave a strip of dead space. */
+    inset-block-end: calc(
+      var(--theme-space-8) + max(var(--theme-safe-bottom), var(--theme-keyboard))
+    );
+    margin-block-start: 0;
+  }
+  /* …and the screen keeps its last card clear of it. Only where there IS one:
+     a screen with no composer must not reserve room for one. */
+  .shell--compact .shell__content:has(.task-composer--bar) {
+    padding-block-end: calc(5.5rem + var(--theme-safe-bottom));
+  }
+
   /* Inside the dialog the row is the whole point, so it sits flush. */
   .task-composer--dialog {
     background: var(--theme-surface-sunken);

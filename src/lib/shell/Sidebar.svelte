@@ -60,6 +60,17 @@
     // Collapsed to an icon rail? Owned by the shell, toggled by the button here.
     rail = false,
     onToggleRail,
+    /// The narrow shell (shell/compact.js): the same sidebar, presented as a
+    /// drawer that slides in over the page. Nothing about its CONTENT changes
+    /// — the four head controls the wireframe draws are the four it already
+    /// had — so this only says which way it is worn.
+    compact = false,
+    /// Whether the drawer is showing. Ignored outside the compact shell, where
+    /// the sidebar is a column and is always there.
+    open = false,
+    /// A finger is carrying the drawer right now (actions/drawerSwipe.js): it
+    /// sits wherever the drag has got to, with its own transition off.
+    sliding = false,
     /// Opens the notebook-wide search box (the shell owns the dialog, because
     /// it opens over whatever screen is showing).
     onSearch,
@@ -248,7 +259,20 @@
   }
 </script>
 
-<nav class="shell__sidebar" class:shell__sidebar--rail={rail}>
+<!-- It DECLARES the chrome, rather than inheriting it. As a column inside the
+     window it would inherit it anyway; as a drawer it is rendered outside the
+     window (App.svelte), where it sits in no region at all and would get no
+     colour role — it came out white on the first build, pills and space
+     colours and all. Same trap the modals document, same answer. -->
+<nav
+  data-region="chrome"
+  class="shell__sidebar"
+  class:shell__sidebar--rail={rail}
+  class:shell__sidebar--drawer={compact}
+  class:shell__sidebar--open={compact && open}
+  class:is-sliding={compact && sliding}
+  inert={compact && !open && !sliding}
+>
   <!-- Head: the hamburger to the lesser pages (Completed, Tags, Trash) on the
        left, the rail collapse toggle on the right. -->
   <div class="shell__sidebar-head theme-pane-head">
@@ -305,8 +329,8 @@
     <button
       class="theme-btn--icon shell__collapse"
       onclick={() => onToggleRail?.()}
-      aria-label={rail ? S.expandSidebar : S.collapseSidebar}
-      title={rail ? S.expandSidebar : S.collapseSidebar}
+      aria-label={compact ? S.closeSheet : rail ? S.expandSidebar : S.collapseSidebar}
+      title={compact ? S.closeSheet : rail ? S.expandSidebar : S.collapseSidebar}
     >
       <Icon name="sidebar-simple" size="1.125rem" />
     </button>

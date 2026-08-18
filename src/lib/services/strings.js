@@ -199,6 +199,16 @@ export const S = {
   goBack: "back",
   goForward: "forward",
   pageMenu: "page menu",
+
+  // The compact shell (below 768px, 2026-08-18). The tab strip is a sheet you
+  // pull up rather than a row you read, so its button has to SAY how many are
+  // behind it — the count is the only thing left on screen about them.
+  openTabs: (count) => (count === 1 ? "1 open tab" : `${count} open tabs`),
+  openSidebar: "open sidebar",
+  closeSheet: "close",
+  // The Home's + on a phone: it opens the two composers rather than being one
+  // of them, because Home is the only screen that is neither tasks nor notes.
+  capture: "capture",
   todaysTasks: "Today tasks",
   todaysNotes: "Today notes",
   newNoteAction: "New note",

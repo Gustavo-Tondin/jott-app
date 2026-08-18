@@ -148,11 +148,19 @@ export function swipe(node, params) {
   node.addEventListener("pointerup", onPointerUp);
   node.addEventListener("pointercancel", onPointerCancel);
 
+  // Marks the card as owning the horizontal gesture, so the drawer's swipe
+  // (actions/drawerSwipe.js) knows to keep its hands off it: the sidebar opens
+  // from an EMPTY area, and a card is not one (user call, 2026-08-18). Set by
+  // the action rather than written into every card's markup, so any future
+  // user of `swipe` is excluded the moment it starts using it.
+  node.dataset.swipes = "x";
+
   return {
     update(next) {
       opts = next ?? {};
     },
     destroy() {
+      delete node.dataset.swipes;
       clearTimeout(returning);
       node.removeEventListener("pointerdown", onPointerDown);
       node.removeEventListener("pointermove", onPointerMove);

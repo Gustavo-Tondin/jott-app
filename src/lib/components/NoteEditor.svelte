@@ -102,6 +102,7 @@
   let editor = $state(null);
   export const openFind = () => editor?.openFind();
   export const openReplace = () => editor?.openReplace();
+  export const focusBody = () => editor?.focusBody();
 </script>
 
 <div class="note-editor__body" aria-label={S.noteBodyPlaceholder}>

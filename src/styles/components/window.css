@@ -21,7 +21,14 @@
   }
 
   /* Maximized/fullscreen: the window IS the screen — square corners, no
-     hairline, no dead pixels at the edges. */
+     hairline, no dead pixels at the edges.
+
+     ALWAYS ON ANDROID (user call, 2026-08-18), where the app is never anything
+     but the whole screen. A rounded corner drawn by the app has to agree with
+     the corner radius of the physical display, and phones do not agree with
+     each other — where the device's own radius is larger the app's rounding
+     falls inside it and reads as a rendering fault. The OS already rounds the
+     screen; the app draws square and lets it. */
   .window--flush {
     border-radius: 0;
     border: none;

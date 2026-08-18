@@ -135,3 +135,75 @@
     color: var(--theme-ink-faint);
   }
 }
+
+/* =============================================================================
+   THE TAB SHEET (below 768px — "Mobile - tab panel").
+
+   The same tabs, stacked. A strip works because a desktop window is wide and a
+   tab only has to be recognised, not read; on a phone three tabs on a strip
+   are three truncated glyphs, so they become rows with room for their names.
+   Measured off the SVG: 46px rows, a 10px dot at the left wall, the × at the
+   right, and a full-width "New tab" under them.
+   ============================================================================= */
+@layer components {
+  .tabs--compact {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--theme-space-8);
+    padding: var(--theme-space-8);
+    overflow: visible;
+  }
+  .tabs--compact .tabs__list {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--theme-space-4);
+  }
+
+  /* A row, not a chip: full width, and tall enough to hit without aiming. */
+  .tabs--compact .tabs__item {
+    inline-size: auto;
+    max-inline-size: none;
+    min-block-size: var(--theme-touch-min);
+    gap: var(--theme-space-12);
+    padding-inline: var(--theme-space-12);
+    border-radius: var(--theme-radius-md);
+    background: var(--theme-bg);
+  }
+  .tabs--compact .tabs__label {
+    flex: 1;
+    text-align: start;
+    font-size: var(--theme-text-16);
+  }
+  /* The × is its own target here, not a 12px glyph tucked into a chip: a
+     mis-hit closes the wrong document. */
+  .tabs--compact .tabs__close {
+    inline-size: var(--theme-touch-min);
+    block-size: var(--theme-touch-min);
+    /* Pull the visual back to the row's edge; only the hit area is this wide. */
+    margin-inline-end: calc(var(--theme-space-12) * -1);
+    opacity: 1;
+  }
+
+  /* The widest thing in the sheet, and the wireframe gives it its name back —
+     a bare + at the end of a stack says nothing about what it adds. */
+  .tabs--compact .tabs__add {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--theme-space-8);
+    inline-size: 100%;
+    min-block-size: var(--theme-touch-min);
+    border: none;
+    border-radius: var(--theme-radius-md);
+    background: var(--theme-bg);
+    color: var(--theme-ink);
+    font-size: var(--theme-text-16);
+    font-weight: var(--theme-weight-medium);
+    cursor: pointer;
+  }
+  .tabs__add-label {
+    /* The strings are lowercase everywhere ("new tab"); this is the one place
+       one is read as a button's name rather than as a label. */
+    text-transform: capitalize;
+  }
+}

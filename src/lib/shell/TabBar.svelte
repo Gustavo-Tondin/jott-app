@@ -18,6 +18,11 @@
     onClose,
     onOpenNew,
     onMove,
+    /// Inside the bottom sheet, below 768px (shell/compact.js): the same tabs
+    /// stacked instead of strung across a strip, because a phone has no strip
+    /// to string them across. What changes is the AXIS — of the layout, of the
+    /// reordering drag, and of the + at the end — not what a tab is.
+    compact = false,
   } = $props();
 
   let bar;
@@ -29,7 +34,7 @@
   let locked = $state(false);
 
   function closeAt(index) {
-    if (bar && tabs.length > 2) {
+    if (bar && !compact && tabs.length > 2) {
       for (const el of bar.querySelectorAll(".tabs__item")) {
         el.style.width = `${el.getBoundingClientRect().width}px`;
       }
@@ -66,9 +71,10 @@
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
   class="tabs"
+  class:tabs--compact={compact}
   bind:this={bar}
   onmouseleave={unlock}
-  data-tauri-drag-region
+  data-tauri-drag-region={compact ? undefined : true}
 >
   <!-- The list fills the strip, so its empty gaps are the likeliest place to
        grab the window when few tabs are open — it must be a drag region too.
@@ -77,8 +83,12 @@
   <div
     class="tabs__list"
     role="tablist"
-    data-tauri-drag-region
-    use:reorderable={{ axis: "x", item: ".tabs__item", onReorder: onMove }}
+    data-tauri-drag-region={compact ? undefined : true}
+    use:reorderable={{
+      axis: compact ? "y" : "x",
+      item: ".tabs__item",
+      onReorder: onMove,
+    }}
   >
     {#each tabs as tab, i (i)}
       {@const dotColor = accentColor(colorOf?.(currentView(tab)))}
@@ -120,11 +130,13 @@
 
   {#if onOpenNew}
     <button
-      class="theme-btn--icon tabs__add"
+      class="tabs__add"
+      class:theme-btn--icon={!compact}
       aria-label={S.newTab}
       onclick={() => onOpenNew?.()}
     >
       <Icon name="plus" size="1rem" />
+      {#if compact}<span class="tabs__add-label">{S.newTab}</span>{/if}
     </button>
   {/if}
 </div>

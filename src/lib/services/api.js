@@ -25,6 +25,11 @@ export const api = {
   // Which window buttons the desktop wants, and on which side. The window is
   // frameless, so the app draws them and has to follow the system's layout.
   windowButtonLayout: () => invoke("window_button_layout"),
+  // `"android"` or `"desktop"` — what the DEVICE is, which is not the same
+  // question as how wide the window is. Width decides the layout (the CSS
+  // answers that alone); this decides the affordances: window buttons, resize
+  // edges, safe areas, hover.
+  platform: () => invoke("platform"),
   rememberScreen: (screen) => invoke("remember_screen", { screen }),
 
   // search

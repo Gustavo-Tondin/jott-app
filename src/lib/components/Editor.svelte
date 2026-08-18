@@ -89,6 +89,19 @@
     openSearchPanel(view);
   }
 
+  /// Puts the cursor in the note's BODY, at the end of what is there.
+  ///
+  /// For a note that was just created (the compact shell's "new note", user
+  /// call 2026-08-18): the wireframe drew the caret in the title, and the
+  /// decision went the other way — a note is opened to WRITE in, and a title
+  /// is a name you give something once it exists. Naming first asks for the
+  /// one thing the writer does not know yet.
+  export function focusBody() {
+    if (!view) return;
+    view.focus();
+    view.dispatch({ selection: { anchor: view.state.doc.length } });
+  }
+
   /// The same panel, with the cursor already in the replace field — which is
   /// the only difference between "find" and "replace" as questions.
   export function openReplace() {

@@ -52,6 +52,16 @@
     today = null,
     /// The day, already formatted for reading — the capture box shows it.
     todayLabel = "",
+    /// The narrow shell (shell/compact.js). There the capture box is not a
+    /// fixture at the top of the screen: it opens from the header's +, because
+    /// 112px of permanent composer is most of what a phone can show at once.
+    compact = false,
+    /// The header's + asked for a task (mobile wireframe "New task"): the
+    /// day's own composer bar opens, focused, and rides above the keyboard.
+    /// It is the SAME bar the tasks screens carry — nothing new is built for
+    /// the phone, and a task captured here still lands in the inbox and gets
+    /// pulled into the day.
+    composing = false,
   } = $props();
 
   // The tasks block IS the tasks screen hosted over the day — no source
@@ -121,7 +131,7 @@
 </script>
 
 <div class="home">
-  {#if !readOnly && (f("myDay") || f("notes"))}
+  {#if !readOnly && !compact && (f("myDay") || f("notes"))}
     <CaptureBox
       date={todayLabel}
       canTask={f("myDay") && !!inbox}
@@ -129,6 +139,7 @@
       onSubmit={capture}
     />
   {/if}
+
 
   <!-- The tasks half IS the day, so it goes with My Day (user call,
        2026-08-06) — there is no day left to show. -->
@@ -138,7 +149,8 @@
         source={DAY_SOURCE}
         period="day"
         align="center"
-        compose="none"
+        compose={composing ? "bar" : "none"}
+        composeAutofocus={composing}
         {lists}
         {tags}
         {completedName}

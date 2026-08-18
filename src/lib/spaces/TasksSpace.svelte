@@ -72,6 +72,10 @@
     /// everything is written and a second New task next to it was two ways to
     /// do one thing (2026-08-13).
     compose = "button",
+    /// Put the cursor in the composer as soon as it appears. For the bar that
+    /// opens on demand (Home's + on a phone): a composer that was ASKED for
+    /// and then waits to be tapped again has answered half the request.
+    composeAutofocus = false,
     /// Where a composed task goes by default when the source has no list of
     /// its own — the notebook's Inbox, for a period source.
     defaultList = null,
@@ -550,6 +554,7 @@
       <TaskComposer
         lists={composeTargets}
         defaultList={composeList}
+        autofocus={composeAutofocus}
         {dateFormat}
         {f}
         onSubmit={write}

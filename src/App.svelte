@@ -33,6 +33,12 @@
   import TabBar from "./lib/shell/TabBar.svelte";
   import TitleBar from "./lib/shell/TitleBar.svelte";
   import { buttonLayout } from "./lib/shell/windowButtons.js";
+  import { isMobile, platformAttribute } from "./lib/shell/platform.js";
+  import { watchCompact } from "./lib/shell/compact.js";
+  import TopBar from "./lib/shell/TopBar.svelte";
+  import BottomSheet from "./lib/components/BottomSheet.svelte";
+  import { drawerSwipe } from "./lib/actions/drawerSwipe.js";
+  import CaptureFab from "./lib/components/CaptureFab.svelte";
   import { clampWidth, SIDEBAR, PANEL } from "./lib/shell/sidebarWidth.js";
   import ResizeHandles from "./lib/shell/ResizeHandles.svelte";
   import PanelResizer from "./lib/shell/PanelResizer.svelte";
@@ -102,6 +108,62 @@
       () => {},
     );
   });
+  /// Is the window too narrow for three columns side by side? The WIDTH
+  /// question, and the only thing that decides the layout (shell/compact.js).
+  /// It is measured once, here, so the top bar and the page header can never
+  /// disagree about which of them is holding the back/forward arrows.
+  let compact = $state(false);
+  $effect(() => watchCompact((v) => (compact = v)));
+
+  /// The three panels the compact shell cannot keep on screen at once, and so
+  /// opens on demand. All three are transient by nature, so none of them is
+  /// remembered: a drawer left open across a restart is a drawer in the way.
+  let drawerOpen = $state(false);
+  /// How far a finger has carried the drawer, in px — null unless one is on it
+  /// (actions/drawerSwipe.js). While it is a number the drawer follows the
+  /// finger and its own transition is off, so it arrives where the hand is
+  /// instead of easing towards it.
+  let drawerAt = $state(null);
+  let tabsOpen = $state(false);
+  /// True while the Home's + has asked for a TASK: the day's composer opens,
+  /// focused, pinned above the keyboard. It is the same bar the tasks screens
+  /// carry — the + only asks for it (mobile wireframe "New task").
+  let composingTask = $state(false);
+  /// Set when a note was just created from the +, and consumed the moment the
+  /// editor reports it has loaded: a new note opens with the cursor in the
+  /// BODY, not in the title (user call, 2026-08-18 — "fazer começar digitando
+  /// na nota é melhor, se quiser muda o título depois").
+  let focusNewNote = $state(false);
+
+  // Going anywhere closes them: a drawer still open over the page you just
+  // navigated to is the sidebar hiding the thing you asked for.
+  $effect(() => {
+    view;
+    drawerOpen = false;
+    tabsOpen = false;
+    composingTask = false;
+  });
+  // Widening the window puts everything back in its column, so nothing may be
+  // left holding a sheet open over a shell that no longer has one.
+  $effect(() => {
+    if (!compact) {
+      drawerOpen = false;
+      tabsOpen = false;
+      composingTask = false;
+    }
+  });
+
+  /// What kind of machine this is: `"android"` or `"desktop"`. Read once, like
+  /// the window buttons — a build cannot change platform while it runs. It is
+  /// deliberately NOT how the app decides its layout: width does that, in CSS
+  /// alone. This gates the affordances that belong to the device (window
+  /// buttons, resize edges, system bars). See shell/platform.js.
+  let platform = $state(platformAttribute(null));
+  let mobile = $derived(isMobile(platform));
+  $effect(() => {
+    api.platform().then((answer) => (platform = platformAttribute(answer)), () => {});
+  });
+
   /// What the open note reports about itself, for the page header and menu.
   let openNote = $state({ pinned: false, title: "" });
 
@@ -318,6 +380,15 @@
     else delete root.dataset.accent;
     if (layout.headingColor === "ink") root.dataset.headings = "ink";
     else delete root.dataset.headings;
+  });
+
+  // The platform rides on the root next to them, and for the same reason: it
+  // reaches both regions at once, and the CSS reads it without a single
+  // component being told. It is set apart from the layout because it is not a
+  // notebook's property — the onboarding screen, with no notebook open yet,
+  // still runs on a phone.
+  $effect(() => {
+    document.documentElement.dataset.platform = platform;
   });
 
   /// Is this part of the app switched on? (App Functions, 2026-08-06.) One
@@ -839,6 +910,29 @@
 
   const showList = (path, newTab = false) =>
     (newTab ? openTab : goTo)({ kind: "list", list: path });
+
+  /// The Home +, "Note" half: makes an empty note in the notes inbox and opens
+  /// it straight away, with nothing asked first. The name is a placeholder the
+  /// header is already offering to rename — a prompt here would stop the one
+  /// gesture the button exists to make fast.
+  const captureNote = () =>
+    change(
+      async () => {
+        const folder = layout.notesFolder;
+        if (!folder) return null;
+        return {
+          folder,
+          path: await api.createNote(folder, layout.notesInbox, S.untitled),
+        };
+      },
+      // In `after`, so the note is opened on a snapshot that already carries
+      // it — the same reason creating a space opens it here and not inline.
+      (made) => {
+        if (!made) return;
+        focusNewNote = true;
+        showNote(made.path, made.folder);
+      },
+    );
 </script>
 
 <svelte:window onkeydown={onKeydown} />
@@ -853,13 +947,66 @@
      bar's brand column is as wide as the sidebar and lives outside the shell,
      so both edges have to read the same variable. Unset means the token in
      tokens.css stands, which keeps the stylesheet the source of the default. -->
+<!-- The sidebar is written ONCE and placed twice. On the desktop it is a
+     column in this row; below 768px it is a drawer that has to cover the
+     top bar and sit still while the app slides out from under it, which
+     it can only do from outside `.window` (the drawer's own toolbar is
+     the top of the screen in the wireframe, not a strip below the app's).
+     The props are the sidebar's contract and must not fork with the
+     place. -->
+{#snippet sidebar()}
+  <Sidebar
+    {notebook}
+    {userLists}
+    {userSpaces}
+    {counts}
+    {isOpen}
+    rail={railed && !compact}
+    {compact}
+    open={drawerOpen}
+    sliding={drawerAt !== null}
+    onToggleRail={() =>
+      compact ? (drawerOpen = false) : (railed = !railed)}
+    onOpen={(next, newTab = false) => (newTab ? openTab : goTo)(next)}
+    onOpenList={showList}
+    onChooseFolder={chooseFolder}
+    onReorderLists={reorderLists}
+    {f}
+    onReorderEntries={reorderEntries}
+    onGroupWith={groupWith}
+    onMoveGroup={moveGroupTo}
+    {spacesSort}
+    onSetSpacesSort={setSpacesSort}
+    onCreateSpace={createSpace}
+    onRenameSpace={renameSpaceTo}
+    onSetSpaceAppearance={setSpaceAppearance}
+    onDeleteSpace={deleteSpaceAt}
+    {groups}
+    onCreateGroup={createGroup}
+    onRenameGroup={renameGroupTo}
+    onSetGroupAppearance={setGroupAppearanceAt}
+    onDeleteGroup={deleteGroupAt}
+    onMoveSpace={moveSpaceTo}
+    onSearch={() => {
+      searchScope = null;
+      searching = true;
+    }}
+  />
+{/snippet}
+
 <div
   class="window"
-  class:window--flush={flush}
+  class:window--flush={flush || mobile}
   class:window--resizing={resizing}
+  class:window--compact={compact}
+  class:window--pushed={compact && drawerOpen}
+  class:window--sliding={drawerAt !== null}
   style={[
     sidebarWidth ? `--theme-sidebar-left: ${sidebarWidth}px` : "",
     panelWidth ? `--theme-sidebar-right: ${panelWidth}px` : "",
+    // How far a finger has carried the drawer. On the ROOT because the window
+    // and the drawer are siblings now and both have to read it.
+    drawerAt === null ? "" : `--drawer-at: ${drawerAt}px`,
   ]
     .filter(Boolean)
     .join("; ") || undefined}
@@ -867,24 +1014,41 @@
 >
   <!-- Frameless: draw our own resize grips at the edges. Not while flush —
        a maximized window has nothing to resize into. -->
-  {#if !flush}
+  {#if !flush && !mobile}
     <ResizeHandles />
   {/if}
-  <TitleBar rail={railed} buttons={windowButtons}>
-    {#if notebook}
-      <TabBar
-        {tabs}
-        {active}
-        titleOf={title}
-        {colorOf}
-        onSelect={(i) => (active = i)}
-        onClose={closeTab}
-        onOpenNew={openNewTab}
-        onMove={(from, to) =>
-          ({ tabs, active } = Tabs.move(tabs, active, from, to))}
-      />
-    {/if}
-  </TitleBar>
+  <!-- Two bars, and the shell picks. The compact one holds the drawer toggle
+       and the page ⋮, which the desktop bar has never had, and holds neither
+       the brand nor the window buttons — see shell/TopBar.svelte. -->
+  {#if compact}
+    <TopBar
+      canBack={Tabs.canGoBack(tabs[active])}
+      canForward={Tabs.canGoForward(tabs[active])}
+      onBack={goBack}
+      onForward={goForward}
+      onOpenDrawer={() => (drawerOpen = true)}
+      onOpenTabs={notebook ? () => (tabsOpen = true) : null}
+      tabCount={tabs.length}
+      menu={pageMenu}
+      pageKey={title(view)}
+    />
+  {:else}
+    <TitleBar rail={railed} buttons={windowButtons}>
+      {#if notebook}
+        <TabBar
+          {tabs}
+          {active}
+          titleOf={title}
+          {colorOf}
+          onSelect={(i) => (active = i)}
+          onClose={closeTab}
+          onOpenNew={openNewTab}
+          onMove={(from, to) =>
+            ({ tabs, active } = Tabs.move(tabs, active, from, to))}
+        />
+      {/if}
+    </TitleBar>
+  {/if}
 
   <main class="shell__main">
     {#if !notebook}
@@ -899,48 +1063,34 @@
         {#if error}<p class="shell__error">{error}</p>{/if}
       </section>
   {:else}
-    <div class="shell">
+    <div
+      class="shell"
+      class:shell--compact={compact}
+      use:drawerSwipe={{
+        enabled: compact,
+        open: drawerOpen,
+        onOpen: () => (drawerOpen = true),
+        onClose: () => (drawerOpen = false),
+        onDrag: (at) => (drawerAt = at),
+      }}
+    >
       <!-- LEFT: spaces on top, notebook and settings pinned to the
-           bottom, as the wireframe has them. Collapses to an icon rail. -->
-      <Sidebar
-        {notebook}
-        {userLists}
-        {userSpaces}
-        {counts}
-        {isOpen}
-        rail={railed}
-        onToggleRail={() => (railed = !railed)}
-        onOpen={(next, newTab = false) => (newTab ? openTab : goTo)(next)}
-        onOpenList={showList}
-        onChooseFolder={chooseFolder}
-        onReorderLists={reorderLists}
-        {f}
-        onReorderEntries={reorderEntries}
-        onGroupWith={groupWith}
-        onMoveGroup={moveGroupTo}
-        {spacesSort}
-        onSetSpacesSort={setSpacesSort}
-        onCreateSpace={createSpace}
-        onRenameSpace={renameSpaceTo}
-        onSetSpaceAppearance={setSpaceAppearance}
-        onDeleteSpace={deleteSpaceAt}
-        {groups}
-        onCreateGroup={createGroup}
-        onRenameGroup={renameGroupTo}
-        onSetGroupAppearance={setGroupAppearanceAt}
-        onDeleteGroup={deleteGroupAt}
-        onMoveSpace={moveSpaceTo}
-        onSearch={() => {
-          searchScope = null;
-          searching = true;
-        }}
-      />
+           bottom, as the wireframe has them. Collapses to an icon rail.
+
+           Below 768px it is the SAME sidebar, only presented as a drawer that
+           pushes the page aside (user call: "o sidebar esquerdo fica
+           basicamente igual"). The scrim is a sibling rather than a wrapper so
+           the drawer keeps its place in the flex row and simply slides. -->
+
+      {#if !compact}
+        {@render sidebar()}
+      {/if}
 
       <!-- The edge between the two panels is a handle (user call, 2026-08-17).
            Gone with the rail, whose width is the app's answer, not a
            preference. A focusable separator, so the width is also reachable
            from the keyboard. -->
-      {#if !railed}
+      {#if !railed && !compact}
         <PanelResizer
           limits={SIDEBAR}
           width={sidebarWidth}
@@ -955,6 +1105,7 @@
            the title bar; the header keeps the back/forward, title and ••• menu. -->
       <section class="shell__centre" data-region="canvas">
         <PageHeader
+          {compact}
           title={view.kind === "tasks" && tasksSub ? tasksSub : title(view)}
           context={view.kind === "tasks" && tasksSub ? S.tasks : ""}
           subtitle={view.kind === "home"
@@ -968,7 +1119,23 @@
             ? renameCurrentNote
             : null}
           menu={pageMenu}
+          dot={colorOf(view)}
+          action={compact && view.kind === "home" && !notebook.readOnly
+            ? homeCapture
+            : undefined}
         />
+
+        <!-- Home is the one screen that is neither tasks nor notes, so it is
+             the one place the + still has to ask which. It only reports the
+             answer: HomeView holds the folders and does the writing. -->
+        {#snippet homeCapture()}
+          <CaptureFab
+            canTask={f("myDay") && !!layout.inbox}
+            canNote={f("notes") && !!layout.notesFolder}
+            onPick={(kind) =>
+              kind === "note" ? captureNote() : (composingTask = true)}
+          />
+        {/snippet}
 
         <!-- svelte-ignore a11y_no_static_element_interactions -->
         <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -1017,6 +1184,8 @@
                caught it; it is still the one that would catch it again. -->
           {#if view.kind === "home"}
             <HomeView
+              {compact}
+              composing={composingTask}
               dateFormat={layout.dateDisplayFormat}
               quickNoteFolder={layout.quickNoteFolder}
               notesFolder={layout.notesFolder}
@@ -1092,7 +1261,15 @@
               readOnly={notebook.readOnly}
               onSaved={refreshNotebook}
               onError={fail}
-              onLoaded={(state) => (openNote = state)}
+              onLoaded={(state) => {
+                openNote = state;
+                // Consumed here, not in the editor: only the shell knows this
+                // note was created a moment ago rather than opened.
+                if (focusNewNote) {
+                  focusNewNote = false;
+                  noteEditor?.focusBody();
+                }
+              }}
             />
           {:else if view.kind === "settings"}
             <SettingsView
@@ -1161,7 +1338,7 @@
       <!-- Its own handle, on the side it opens from (user call, 2026-08-17).
            Only while there is a panel to resize; the same separator the
            sidebar's edge is, mirrored. -->
-      {#if suggesting || selected}
+      {#if (suggesting || selected) && !compact}
         <!-- Its own handle, on the side the panel opens from: the same
              separator, mirrored (`sign`). -->
         <PanelResizer
@@ -1175,8 +1352,12 @@
         />
       {/if}
 
-      {#if suggesting}
-        <div class="shell__panel" transition:slide={{ axis: "x", duration: 200 }}>
+      <!-- What the right panel is holding, written ONCE and framed twice: a
+           sliding column on the desktop, a bottom sheet below 768px, where
+           there is no "right" left to open into. The props are the panel's
+           contract and must not fork with the frame. -->
+      {#snippet rightPanel()}
+        {#if suggesting}
           <SuggestionsPane
             period={suggesting}
             dateFormat={layout.dateDisplayFormat}
@@ -1189,9 +1370,7 @@
             onClose={() => (suggesting = null)}
             {f}
           />
-        </div>
-      {:else if selected}
-        <div class="shell__panel" transition:slide={{ axis: "x", duration: 200 }}>
+        {:else if selected}
           <TaskInspector
             task={selected.task}
             list={selected.list}
@@ -1210,12 +1389,86 @@
             onClose={() => (selected = null)}
             onMoved={(to) => (selected = { ...selected, list: to })}
           />
-        </div>
+        {/if}
+      {/snippet}
+
+      {#if suggesting || selected}
+        {#if compact}
+          <!-- 72% of the screen, from the wireframe: tall enough for the
+               inspector's form, short enough that the list it belongs to is
+               still visible behind it. -->
+          <BottomSheet
+            label={suggesting ? S.suggestionsTitle : S.taskName}
+            onClose={() => (suggesting ? (suggesting = null) : (selected = null))}
+          >
+            {@render rightPanel()}
+          </BottomSheet>
+        {:else}
+          <div class="shell__panel" transition:slide={{ axis: "x", duration: 200 }}>
+            {@render rightPanel()}
+          </div>
+        {/if}
       {/if}
     </div>
   {/if}
   </main>
 </div>
+
+<!-- The drawer, below 768px. OUTSIDE `.window` on purpose: it covers the top
+     bar rather than starting under it (wireframe "Mobile - Sidebar", where the
+     drawer's own toolbar IS the top of the screen), and the app slides out from
+     under it — which cannot happen while it is a child of the thing sliding,
+     because a transform on an ancestor makes it the containing block of every
+     fixed descendant. -->
+{#if compact && notebook}
+  {#if drawerOpen || drawerAt !== null}
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <!-- svelte-ignore a11y_click_events_have_key_events -->
+    <!-- It declares the chrome for the same reason the drawer does: outside the
+         window it is in no region, and `--theme-scrim` is a role. Without this
+         the veil resolved to nothing and the page behind an open drawer stayed
+         at full brightness (measured on the emulator). -->
+    <div
+      class="shell__drawer-scrim"
+      data-region="chrome"
+      class:is-sliding={drawerAt !== null}
+      onclick={() => (drawerOpen = false)}
+    ></div>
+  {/if}
+  {@render sidebar()}
+{/if}
+
+<!-- The tab strip, below 768px: a sheet you pull up rather than a row across
+     the top. There is no room for a row of tabs on a phone, and a tab strip
+     squeezed to three glyphs stops naming anything. Same TabBar, same props —
+     the sheet is the only thing that is new. -->
+{#if compact && tabsOpen && notebook}
+  <BottomSheet
+    label={S.openTabs(tabs.length)}
+    maxHeight="60svh"
+    sheetClass="tabs-sheet"
+    onClose={() => (tabsOpen = false)}
+  >
+    <TabBar
+      compact
+      {tabs}
+      {active}
+      titleOf={title}
+      {colorOf}
+      onSelect={(i) => {
+        active = i;
+        tabsOpen = false;
+      }}
+      onClose={closeTab}
+      onOpenNew={() => {
+        openNewTab();
+        tabsOpen = false;
+      }}
+      onMove={(from, to) =>
+        ({ tabs, active } = Tabs.move(tabs, active, from, to))}
+    />
+  </BottomSheet>
+{/if}
 
 <!-- The app's own name prompt (window.prompt is broken in WebKitGTK). -->
 <NameDialog />

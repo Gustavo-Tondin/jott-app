@@ -227,6 +227,28 @@ pub fn window_button_layout() -> ButtonLayout {
         .unwrap_or_else(default_button_layout)
 }
 
+/// Which kind of machine this build runs on: `"android"` or `"desktop"`.
+///
+/// The app needs this for what belongs to the DEVICE rather than to the
+/// window: there are no window buttons to draw on a phone, no edges to drag,
+/// and the system bars own strips of the screen that the layout has to keep
+/// clear. None of that follows from how wide the viewport is — a narrow
+/// desktop window is still a desktop window — so it cannot be a media query.
+///
+/// Resolved at compile time by `cfg!`, which is the honest answer: a build
+/// either targets Android or it does not, and nothing at runtime can change
+/// it. The mirror image of this is width, which the CSS answers on its own
+/// (styles/tokens.css, `--theme-compact`): width decides the LAYOUT, this
+/// decides the AFFORDANCES.
+#[tauri::command]
+pub fn platform() -> &'static str {
+    if cfg!(target_os = "android") {
+        "android"
+    } else {
+        "desktop"
+    }
+}
+
 #[tauri::command]
 pub fn core_version() -> String {
     jott_core::version().to_string()

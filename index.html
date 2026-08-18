@@ -2,7 +2,25 @@
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- viewport-fit=cover: Android 15+ draws every app edge-to-edge whether it
+         asks to or not, so the choice is not WHETHER the content runs under the
+         status and gesture bars, only whether the app is told where they are.
+         With `cover` the `env(safe-area-inset-*)` values become real and the
+         layout keeps those strips clear (styles/tokens.css).
+
+         interactive-widget=resizes-content: makes the virtual keyboard shrink
+         the LAYOUT viewport, not just the visual one. Without it a composer
+         pinned to the bottom stays pinned to the bottom of a viewport the
+         keyboard is now covering, which is the one place it must never be.
+
+         user-scalable=no: this is an app frame, not a document. Pinch-zooming
+         the shell only ever detaches the chrome from the window; the note
+         editor's own text still scales with the OS font size, because every
+         length in the app is in rem. -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content, user-scalable=no"
+    />
     <title>Jott</title>
   </head>
   <body>

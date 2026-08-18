@@ -1,0 +1,93 @@
+/* touch.css — what changes when the pointer is a finger.
+ *
+ * NOT the same question as "is the window narrow" (shell/compact.js) and not
+ * the same as "is this Android" (shell/platform.js). It is the third question,
+ * and CSS is the only place that can answer it: a Linux laptop with a
+ * touchscreen belongs here and a phone in a desktop-width window still does.
+ *
+ * Two media features, each for its own thing:
+ *
+ *   (hover: none)      the primary pointer cannot hover — so anything the app
+ *                      only shows ON hover is unreachable and must be shown.
+ *   (pointer: coarse)  the primary pointer is imprecise — so anything smaller
+ *                      than 48px needs its HIT AREA grown, without the drawing
+ *                      changing size.
+ *
+ * It is imported last of the component sheets, because everything here exists
+ * to override a rule one of them wrote. */
+
+/* ===========================================================================
+   REACHABILITY — the four places the app hides a control behind a hover.
+   Audited 2026-08-18: of 43 `:hover` blocks in the app only these reveal
+   something. The rest change a background or an ink, which a touch device
+   simply never shows — losing a highlight costs nothing, losing the only
+   handle a row can be dragged by costs the feature.
+   =========================================================================== */
+@media (hover: none) {
+  @layer components {
+    /* The drag handle. Without this, reordering is not "hard" on a touch
+       screen — it is IMPOSSIBLE: the grip is at `opacity: 0` and the only
+       thing that ever raised it was a pointer resting on the row. */
+    .reorder-grip {
+      opacity: 1;
+    }
+
+    /* A space's colour/icon tools in the sidebar, revealed by hovering its
+       row. On touch only the ACTIVE row ever showed them, so every other
+       space's appearance was unreachable from the sidebar. */
+    .shell__ws-tools {
+      opacity: 1;
+    }
+
+    /* The × that takes a tag off a task. (The grip beside a subtask is the
+       shared `.reorder-grip` above — one rule already covers it.) */
+    .inspector__tag-remove {
+      opacity: 1;
+    }
+  }
+}
+
+/* ===========================================================================
+   HIT AREAS — 48px, the stricter of Android's 48dp and iOS's 44pt.
+
+   Grown UNDER the drawing, never by resizing it: the icons keep the sizes the
+   wireframes give them and the box behind them reaches the minimum. That is
+   how both platforms' own controls do it, and it is why the interface does not
+   turn into a row of oversized glyphs on a phone.
+   =========================================================================== */
+@media (pointer: coarse) {
+  @layer components {
+    /* The app's one icon-button class, and so the one rule that covers most of
+       this: at 6px of padding around an 18px glyph it is a 30px target. */
+    .theme-btn--icon {
+      min-inline-size: var(--theme-touch-min);
+      min-block-size: var(--theme-touch-min);
+    }
+
+    /* A task row. The checkbox inside it is drawn at 20px and must NOT grow —
+       it is the shape that says "task" — so what gets the minimum is the row,
+       which is the target anyway: the whole card opens the task. */
+    .task-row {
+      min-block-size: var(--theme-touch-min);
+    }
+
+    /* Rows that open something. A 46px row from the wireframe is two pixels
+       short, and two pixels is the difference between hitting the space and
+       hitting the one under it. */
+    .shell__nav-item,
+    .shell__nav-open,
+    .theme-row,
+    .theme-menu__item {
+      min-block-size: var(--theme-touch-min);
+    }
+
+    /* The note cards' pin, and the × on a completed task: both are drawn small
+       and sit at the edge of a card, which is exactly where a thumb lands by
+       accident. */
+    .notes-space__pin,
+    .tasks-space__remove {
+      min-inline-size: var(--theme-touch-min);
+      min-block-size: var(--theme-touch-min);
+    }
+  }
+}

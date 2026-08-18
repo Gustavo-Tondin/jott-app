@@ -137,3 +137,32 @@
     color: var(--theme-ink-muted);
   }
 }
+
+/* =============================================================================
+   THE COMPACT BOARD (below 768px — "Notes Screen - mobile").
+   ============================================================================= */
+@layer components {
+  /* TWO columns, always. `auto-fill` with a 13rem minimum resolves to ONE on a
+     360px screen, and a board of one column per card is a list — which loses
+     the only thing a board is for, seeing several notes at once. Two named
+     columns of `1fr` say what the wireframe draws and let the cards be as
+     narrow as they have to be. */
+  .shell--compact .notes-space__board {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--theme-space-8);
+  }
+  /* The tree view stays one column: it is a list on purpose. */
+  .shell--compact .notes-space__board--tree {
+    grid-template-columns: 1fr;
+  }
+
+  /* The toolbar wraps instead of overflowing: search, the two view buttons and
+     "new note" do not fit on one 360px line. */
+  .shell--compact .notes-space__bar {
+    flex-wrap: wrap;
+    gap: var(--theme-space-8);
+  }
+  .shell--compact .notes-space__search {
+    flex: 1 1 100%;
+  }
+}

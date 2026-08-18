@@ -63,14 +63,89 @@
     color: var(--theme-ink);
   }
 
-  .page-header__nav {
+  .page-nav {
     display: flex;
     gap: var(--theme-space-2);
   }
   /* An arrow — or a ••• — with nowhere to go stays visible but plainly inert. */
-  .page-header__arrow:disabled,
-  .page-header__menu-toggle:disabled {
+  .page-header .page-nav__arrow:disabled,
+  .page-header .page-menu__toggle:disabled {
     color: var(--theme-ink-faint);
     cursor: default;
+  }
+}
+
+/* =============================================================================
+   THE COMPACT HEADER (below 768px — mobile wireframes, 2026-08-18).
+
+   A different shape, not a narrower one: the arrows and the ⋮ are up in the
+   top bar, and what is left is the name of the place, large, with the date
+   under it. Measured off the SVG: the block runs from the bar's bottom edge
+   (66px) to the canvas's rounded top (178px).
+   ============================================================================= */
+@layer components {
+  .page-header--compact {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--theme-space-12);
+    /* The chrome's own ground, because the canvas begins BELOW this block —
+       the wireframe rounds the panel's top corners under it. */
+    background: var(--theme-bg);
+    padding: var(--theme-space-12) var(--theme-space-16) var(--theme-space-24);
+    padding-inline-start: calc(var(--theme-space-16) + var(--theme-safe-left));
+    padding-inline-end: calc(var(--theme-space-16) + var(--theme-safe-right));
+  }
+
+  .page-header__place {
+    min-width: 0;
+  }
+
+  /* The screen's name at the size the wireframe draws it — the top of the
+     type scale, which is named "space title" for exactly this. */
+  .page-header__name-large {
+    display: flex;
+    align-items: center;
+    gap: var(--theme-space-10);
+    margin: 0;
+    min-width: 0;
+    font-size: var(--theme-text-32);
+    font-weight: var(--theme-weight-bold);
+    letter-spacing: var(--theme-tracking-tight);
+    line-height: var(--theme-leading-tight);
+    color: var(--theme-ink);
+    /* A long space name truncates rather than pushing the action off screen. */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* The colour of the place. With the sidebar behind a drawer this dot is the
+     only thing on screen still saying which space you are in. */
+  .page-header__dot {
+    flex: 0 0 auto;
+    inline-size: 0.75rem;
+    block-size: 0.75rem;
+    border-radius: var(--theme-radius-pill);
+    background: var(--dot, var(--theme-brand));
+  }
+
+  .page-header__date {
+    margin: var(--theme-space-4) 0 0;
+    font-size: var(--theme-text-14);
+    color: var(--theme-ink-muted);
+  }
+
+  /* The name is still the rename button on a note; it just carries the large
+     type now, so it must not re-introduce the small one. */
+  .page-header--compact .page-header__name {
+    font-size: inherit;
+    font-weight: inherit;
+    letter-spacing: inherit;
+    text-transform: none;
+    padding: 0;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 }
