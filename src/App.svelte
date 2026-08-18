@@ -1325,6 +1325,7 @@
             {@const current = userSpaces.find((w) => w.path === view.sp)}
             {#if current}
               <SpaceView
+                {compact}
                 space={current}
                 color={spColors[current.path] ?? null}
                 lists={notebook.lists}

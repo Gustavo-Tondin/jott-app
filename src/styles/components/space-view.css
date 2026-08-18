@@ -10,6 +10,12 @@
   .space-view__title {
     margin-block-end: var(--theme-space-24);
   }
+  /* Below 768px the heading is gone (the header above says the name), so the
+     read-only badge needs a line of its own to stand on. */
+  .space-view__note {
+    margin-block-start: 0;
+    text-align: center;
+  }
   .space-view__badge {
     color: var(--theme-danger);
     font-weight: normal;

@@ -1640,6 +1640,21 @@ describe("SpaceView", () => {
     expect(dot.getAttribute("style")).toBeFalsy();
   });
 
+  test("below 768px the screen does not repeat the name the header already says", async () => {
+    // Three copies of one word on a phone: the header, this heading, and the
+    // block's own titled row (user report, 2026-08-18). The header keeps it.
+    bridge({ list_tasks: [task("a1", "Comprar leite")] });
+    const { container } = render(SpaceView, {
+      props: { space, color: "orange", lists, counts: {}, compact: true, onSelectTask: noop },
+    });
+
+    await screen.findByText("Comprar leite");
+    expect(container.querySelector(".theme-title--lg")).toBeNull();
+    expect(container.querySelector(".tasks-space__title")).toBeNull();
+    // The row itself stays: it is where the ⋮ lives.
+    expect(container.querySelector(".tasks-space__more")).toBeTruthy();
+  });
+
   test("an invented type is shown and named, never silently dropped", async () => {
     const future = { ...space, kind: "hologram", known: false };
     render(SpaceView, {
