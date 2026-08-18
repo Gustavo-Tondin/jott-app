@@ -613,6 +613,13 @@
 
   .shell--compact {
     position: relative;
+    /* NO FRAME (user report, 2026-08-18). The 4px the desktop keeps around the
+       canvas is the app's own edge, drawn inside a window that already floats
+       on a desktop; a phone has no desktop behind it, the app IS the screen,
+       and the strip only read as a black seam the canvas failed to reach.
+       Same call as the square corners: at the edges of a phone the app is
+       flush. */
+    padding: 0;
     /* The browser keeps the vertical pan and hands us the horizontal one —
        without this it claims the whole gesture and the drawer never sees a
        single move (actions/drawerSwipe.js). */
