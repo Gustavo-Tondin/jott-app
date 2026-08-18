@@ -5,15 +5,11 @@
  * may restyle; components read tokens only. */
 
 @layer components {
-  /* The heading is the shared .theme-title--lg; only its spacing below is the
-     screen's business. */
-  .space-view__title {
-    margin-block-end: var(--theme-space-24);
-  }
-  /* Below 768px the heading is gone (the header above says the name), so the
-     read-only badge needs a line of its own to stand on. */
+  /* The screen names itself now (spaces/TasksSpace.svelte,
+     spaces/NotesSpace.svelte), so all this file still owns is the line the
+     read-only badge stands on, above it. */
   .space-view__note {
-    margin-block-start: 0;
+    margin: 0 0 var(--theme-space-12);
     text-align: center;
   }
   .space-view__badge {
@@ -23,7 +19,16 @@
     margin-inline-start: var(--theme-space-8);
   }
 
+  /* The same pact the Tasks screen keeps (tasks-view.css): the screen fills
+     the scrollport so the tasks composer can take the slack and sit at the
+     bottom of the PANEL instead of under the last card. */
   .space-view__screen {
-    margin-block-end: var(--theme-space-24);
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-block-size: 0;
+  }
+  .space-view__screen > .tasks-space {
+    flex: 1;
   }
 }

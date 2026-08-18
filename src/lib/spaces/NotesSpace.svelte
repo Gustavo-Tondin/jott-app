@@ -14,6 +14,8 @@
   import { makeAct } from "../services/act.js";
   import { spaceMenu } from "../services/spaceMenu.js";
   import { arrange, planReorder } from "../services/spaceOrder.js";
+  import { accentColor } from "../services/accent.js";
+  import { listName } from "../services/paths.js";
   import { reorderable } from "../actions/reorder.js";
   import Menu from "../components/Menu.svelte";
   import Icon from "../components/Icon.svelte";
@@ -22,6 +24,16 @@
     source,
     readOnly = false,
     notesInbox = "Inbox",
+    /// Whether the titled row is drawn — the same pact the tasks screen keeps
+    /// (spaces/TasksSpace.svelte). The row itself is always there, because the
+    /// ⋮ belongs at the top right of every source; `header` only decides
+    /// whether the place is NAMED on it. Below 768px it is not: the shell's
+    /// header says the name right above (user report, 2026-08-18).
+    header = true,
+    /// The colour of the PLACE, as a name (services/accent.js) — the dot after
+    /// the title. Left `undefined` there is no dot: only a place the user
+    /// coloured has one to show.
+    dot = undefined,
     onSetSort,
     onSetOrder,
     onChanged,
@@ -32,6 +44,10 @@
 
   // The source's folder is its address for every notes command.
   let folder = $derived(source?.folder ?? null);
+
+  /// What this place is called, and the colour it reads as.
+  let title = $derived(source?.name || listName(folder ?? ""));
+  let dotStyle = $derived(accentColor(dot) ? `--dot: ${accentColor(dot)}` : "");
 
   let notes = $state([]);
   let folders = $state([]);
@@ -178,6 +194,40 @@
 <!-- Opening a note is the shell's business: it becomes a document tab, the
      same as a list. This screen only ever lists. -->
 <div class="notes-space">
+  <!-- The place's own row: the name centred, the ⋮ at the far right, and an
+       invisible twin of the ⋮ on the left so the name is centred on the PANEL
+       and not on what is left of the row — the same construction the tasks
+       screen uses (2026-08-06, wireframes "Notes screen" and "Space Notes").
+       The ⋮ used to sit at the end of the controls bar below, which made the
+       screen's own menu read as one more of the board's filters. -->
+  <header class="notes-space__head">
+    <span class="notes-space__mirror" aria-hidden="true">
+      <span class="theme-btn--icon">
+        <Icon name="dots-three-vertical" size="1rem" />
+      </span>
+    </span>
+    {#if header}
+      <h3 class="theme-title notes-space__title">
+        {title}
+        {#if dot !== undefined}
+          <span class="theme-dot" style={dotStyle} aria-hidden="true"></span>
+        {/if}
+      </h3>
+    {/if}
+    <Menu items={sortMenu} align="end">
+      {#snippet trigger({ toggle })}
+        <button
+          class="theme-btn--icon notes-space__more"
+          onclick={toggle}
+          aria-label={S.spaceOptions}
+          title={S.spaceOptions}
+        >
+          <Icon name="dots-three-vertical" size="1rem" />
+        </button>
+      {/snippet}
+    </Menu>
+  </header>
+
   <div class="notes-space__bar">
     <input
       class="theme-input theme-input--sm theme-input--search notes-space__search"
@@ -201,18 +251,6 @@
         >{S.newNoteFolder}</button
       >
     {/if}
-    <Menu items={sortMenu}>
-      {#snippet trigger({ toggle })}
-        <button
-          class="theme-btn--icon notes-space__more"
-          onclick={toggle}
-          aria-label={S.spaceOptions}
-          title={S.spaceOptions}
-        >
-          <Icon name="dots-three-vertical" size="1rem" />
-        </button>
-      {/snippet}
-    </Menu>
   </div>
 
   {#if layout === "tree"}

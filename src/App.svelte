@@ -1287,7 +1287,18 @@
             />
           {:else if view.kind === "notes"}
             <NotesSpace
-              source={{ kind: "notes", folder: layout.notesFolder }}
+              source={{
+                kind: "notes",
+                folder: layout.notesFolder,
+                // The screen names itself, and what it is called is what the
+                // app calls this place everywhere else — the sidebar entry,
+                // the tab, the header. (The wireframe writes "Inbox" there,
+                // from a time when this screen was thought of as showing that
+                // one folder; the board shows the whole space, so the space's
+                // name is the honest label.)
+                name: title(view),
+              }}
+              header={!compact}
               readOnly={notebook.readOnly}
               notesInbox={layout.notesInbox}
               {reloadKey}

@@ -509,22 +509,10 @@
   .theme-title--sm {
     font-size: var(--theme-text-20);
   }
-  /* The space name: the largest thing on the screen, and centred — it names
-     the place, not a block in it.
-     IN INK, not in the colour of the place (user call, 2026-08-18). The colour
-     is said by the dot beside it, the same mark the compact header and the
-     Home card carry, and saying it twice cost the title its legibility: the
-     strong step of a colour is dark enough to read as a heading and dark
-     enough to stop looking like the colour it is naming. */
-  .theme-title--lg {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: var(--theme-space-10);
-    font-size: var(--theme-text-32);
-    text-align: center;
-    color: var(--theme-ink);
-  }
+  /* (The 32px `--lg` step went away on 2026-08-18: it existed for a space's
+     own heading, and a space is now titled by its screen — one row, the name
+     centred with the ⋮ at the end, at the same size every other screen names
+     itself.) */
 
   /* ---------------------------------------------------------------------------
      Dot — the colour of a place, beside its name. Three screens draw it (the
@@ -533,6 +521,10 @@
      falls back to the app's accent, which is what a FIXED space has.
      --------------------------------------------------------------------------- */
   .theme-dot {
+    /* Inline-block so it also answers outside a flex row (a title that is
+       plain text with the dot after it). */
+    display: inline-block;
+    vertical-align: middle;
     flex: 0 0 auto;
     inline-size: var(--dot-size, 0.75rem);
     block-size: var(--dot-size, 0.75rem);

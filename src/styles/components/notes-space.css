@@ -10,6 +10,42 @@
  * the Home already shows (home.css .home__note), since they are the same card. */
 
 @layer components {
+  /* The place's own row (2026-08-18): name centred, ⋮ at the far right, and
+     the mirrored ⋮ on the left keeping the name centred on the panel. Same
+     three parts as the tasks screen's header — see tasks-space.css. */
+  .notes-space__head {
+    display: flex;
+    align-items: center;
+    gap: var(--theme-space-8);
+    min-block-size: 2rem;
+    margin-block-end: var(--theme-space-12);
+  }
+  .notes-space__title {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--theme-space-10);
+    text-align: center;
+  }
+  /* Takes the ⋮'s room on the left without being seen or reached; it shrinks
+     away before the title does, so a narrow panel gives up the centring rather
+     than the name (same rule as tasks-space.css). */
+  .notes-space__mirror {
+    display: inline-flex;
+    visibility: hidden;
+    min-inline-size: 0;
+    flex-shrink: 1;
+  }
+  /* With no title (below 768px, where the shell's header carries the name) the
+     ⋮ still has to hug the right edge. The auto margin goes on the Menu's own
+     wrapper, which is the flex child — the button inside it is not. */
+  .notes-space__head > .menu {
+    flex-shrink: 0;
+    margin-inline-start: auto;
+  }
+
   .notes-space__bar {
     display: flex;
     align-items: center;
@@ -25,7 +61,6 @@
   .notes-space__bar-button--active {
     font-weight: var(--theme-weight-semibold);
   }
-  /* The screen's ⋮ is a plain .theme-btn--icon at the end of the bar. */
 
   .notes-space__folders {
     flex-wrap: wrap;

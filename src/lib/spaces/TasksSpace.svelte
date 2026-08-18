@@ -28,6 +28,7 @@
   import { listName, listLabel, taskSpacePaths } from "../services/paths.js";
   import { makeAct } from "../services/act.js";
   import { taskActions, isSelectedTask } from "../services/taskActions.js";
+  import { accentColor } from "../services/accent.js";
   import { spaceMenu } from "../services/spaceMenu.js";
   import { tagColors as tagColorMap } from "../services/accent.js";
   import { composeTask } from "../services/taskCompose.js";
@@ -58,10 +59,17 @@
     /// Whether to draw the titled header (title + New task + ⋮).
     header = true,
     /// Where the title sits on that row: `"start"` (a block inside a screen
-    /// that has other blocks) or `"center"` (the Home, 2026-08-13 — the block
-    /// IS the screen there, and a centred heading over a centred column reads
-    /// as one thing instead of a label stuck to the left of it).
+    /// that has other blocks) or `"center"` (the Home, 2026-08-13, and a
+    /// space — the block IS the screen there, and a centred heading over a
+    /// centred column reads as one thing instead of a label stuck to the left
+    /// of it).
     align = "start",
+    /// The colour of the PLACE, as a name (services/accent.js) — the dot after
+    /// the title, the same mark the header and the Home card carry. Left
+    /// `undefined` there is no dot at all: a block ("Today tasks") is not a
+    /// place, and only a place has a colour. Passed as `null` by a space with
+    /// no colour of its own, which draws the dot in the app's accent.
+    dot = undefined,
     /// Controls the HOST wants on the source's top row, between the title and
     /// the ⋮ — the Tasks screen's Index/Today/Week strip and week span. They
     /// go in the row rather than above it so the ⋮ stays at the far right of
@@ -94,6 +102,10 @@
   let paths = $derived(taskSpacePaths(source, lists, completedName));
 
   let tagColors = $derived(tagColorMap(tags));
+
+  /// The place's colour as CSS; unset leaves the class's own fallback (the
+  /// app's accent) to answer.
+  let dotStyle = $derived(accentColor(dot) ? `--dot: ${accentColor(dot)}` : "");
 
   // Everything below works in ENTRIES — `{ task, list }` — because a period
   // draws tasks from several lists at once and each card has to know which
@@ -397,6 +409,9 @@
         {#if header}
           <h3 class="theme-title tasks-space__title" class:theme-title--sm={align !== "center"}>
             {source.name || listName(source.folder)}
+            {#if dot !== undefined}
+              <span class="theme-dot" style={dotStyle} aria-hidden="true"></span>
+            {/if}
           </h3>
         {/if}
         {#if toolbar}{@render toolbar()}{/if}

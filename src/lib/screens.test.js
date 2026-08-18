@@ -1605,24 +1605,27 @@ describe("SpaceView", () => {
     expect(await screen.findByText("Comprar leite")).toBeTruthy();
   });
 
-  test("the title is ink, and the colour of the place is the dot beside it", async () => {
-    // Said once, not twice (user call, 2026-08-18): the heading used to BE the
-    // colour, at its strong step, and dark enough to read is too dark to still
-    // look like the colour it names.
+  test("the screen titles itself: the name in ink, the colour as the dot beside it", async () => {
+    // The space had a heading of its own on top of the one the block below
+    // already drew (user call, 2026-08-18). One row now — the same row the ⋮
+    // was already on — and the colour is said by the dot, not by the type.
     bridge({ list_tasks: [] });
     const { container } = render(SpaceView, {
       props: { space, color: "orange", lists, counts: {}, onSelectTask: noop },
     });
 
     const title = await waitFor(() => {
-      const el = container.querySelector(".space-view__title");
+      const el = container.querySelector(".tasks-space__title");
       if (!el) throw new Error("no title");
       return el;
     });
+    expect(title.textContent).toContain("Project A");
     expect(title.getAttribute("style")).toBeNull();
     expect(title.querySelector(".theme-dot").getAttribute("style")).toContain(
       "--dot: var(--accent-orange)",
     );
+    // And only one heading on the screen.
+    expect(container.querySelectorAll("h1, h2, h3").length).toBe(1);
   });
 
   test("a space with no colour of its own leaves the dot to the app's accent", async () => {
@@ -1632,12 +1635,27 @@ describe("SpaceView", () => {
     });
 
     const dot = await waitFor(() => {
-      const el = container.querySelector(".space-view__title .theme-dot");
+      const el = container.querySelector(".tasks-space__title .theme-dot");
       if (!el) throw new Error("no dot");
       return el;
     });
     // Unset, so the class's own `var(--dot, --theme-brand)` answers.
     expect(dot.getAttribute("style")).toBeFalsy();
+  });
+
+  test("a tasks space composes from the bar at the bottom, like the fixed screen", async () => {
+    // Not the blue "New task" button in the corner: a user space is meant to
+    // look like Tasks does (user call, 2026-08-18), and both wireframes draw
+    // the pinned composer.
+    bridge({ list_tasks: [] });
+    const { container } = render(SpaceView, {
+      props: { space, lists, counts: {}, onSelectTask: noop },
+    });
+
+    await waitFor(() => {
+      if (!container.querySelector(".task-composer")) throw new Error("no bar");
+    });
+    expect(container.querySelector(".tasks-space__new")).toBeNull();
   });
 
   test("below 768px the screen does not repeat the name the header already says", async () => {
@@ -1649,7 +1667,6 @@ describe("SpaceView", () => {
     });
 
     await screen.findByText("Comprar leite");
-    expect(container.querySelector(".theme-title--lg")).toBeNull();
     expect(container.querySelector(".tasks-space__title")).toBeNull();
     // The row itself stays: it is where the ⋮ lives.
     expect(container.querySelector(".tasks-space__more")).toBeTruthy();
