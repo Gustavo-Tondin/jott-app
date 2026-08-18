@@ -1605,6 +1605,41 @@ describe("SpaceView", () => {
     expect(await screen.findByText("Comprar leite")).toBeTruthy();
   });
 
+  test("the title is ink, and the colour of the place is the dot beside it", async () => {
+    // Said once, not twice (user call, 2026-08-18): the heading used to BE the
+    // colour, at its strong step, and dark enough to read is too dark to still
+    // look like the colour it names.
+    bridge({ list_tasks: [] });
+    const { container } = render(SpaceView, {
+      props: { space, color: "orange", lists, counts: {}, onSelectTask: noop },
+    });
+
+    const title = await waitFor(() => {
+      const el = container.querySelector(".space-view__title");
+      if (!el) throw new Error("no title");
+      return el;
+    });
+    expect(title.getAttribute("style")).toBeNull();
+    expect(title.querySelector(".theme-dot").getAttribute("style")).toContain(
+      "--dot: var(--accent-orange)",
+    );
+  });
+
+  test("a space with no colour of its own leaves the dot to the app's accent", async () => {
+    bridge({ list_tasks: [] });
+    const { container } = render(SpaceView, {
+      props: { space, lists, counts: {}, onSelectTask: noop },
+    });
+
+    const dot = await waitFor(() => {
+      const el = container.querySelector(".space-view__title .theme-dot");
+      if (!el) throw new Error("no dot");
+      return el;
+    });
+    // Unset, so the class's own `var(--dot, --theme-brand)` answers.
+    expect(dot.getAttribute("style")).toBeFalsy();
+  });
+
   test("an invented type is shown and named, never silently dropped", async () => {
     const future = { ...space, kind: "hologram", known: false };
     render(SpaceView, {
@@ -3734,7 +3769,8 @@ describe("the compact shell", () => {
 
     await screen.findByLabelText("open sidebar");
     await waitFor(() => {
-      if (!container.querySelector(".page-header__dot")) throw new Error("no dot");
+      if (!container.querySelector(".page-header--compact .theme-dot"))
+        throw new Error("no dot");
     });
   });
 

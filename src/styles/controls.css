@@ -509,14 +509,35 @@
   .theme-title--sm {
     font-size: var(--theme-text-20);
   }
-  /* The space name: the largest thing on the screen, centred, and in the
-     accent — it names the place, not a block in it. (It read `--theme-accent`,
-     a role that was always equal to `--theme-brand`; two names for one colour
-     is one name too many.) */
+  /* The space name: the largest thing on the screen, and centred — it names
+     the place, not a block in it.
+     IN INK, not in the colour of the place (user call, 2026-08-18). The colour
+     is said by the dot beside it, the same mark the compact header and the
+     Home card carry, and saying it twice cost the title its legibility: the
+     strong step of a colour is dark enough to read as a heading and dark
+     enough to stop looking like the colour it is naming. */
   .theme-title--lg {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--theme-space-10);
     font-size: var(--theme-text-32);
     text-align: center;
-    color: var(--theme-brand);
+    color: var(--theme-ink);
+  }
+
+  /* ---------------------------------------------------------------------------
+     Dot — the colour of a place, beside its name. Three screens draw it (the
+     compact header, the Home card, a space's title) and it was written out
+     three times before this. `--dot` is the instance's colour; without one it
+     falls back to the app's accent, which is what a FIXED space has.
+     --------------------------------------------------------------------------- */
+  .theme-dot {
+    flex: 0 0 auto;
+    inline-size: var(--dot-size, 0.75rem);
+    block-size: var(--dot-size, 0.75rem);
+    border-radius: var(--theme-radius-pill);
+    background: var(--dot, var(--theme-brand));
   }
 
   /* ---------------------------------------------------------------------------

@@ -120,16 +120,6 @@
     white-space: nowrap;
   }
 
-  /* The colour of the place. With the sidebar behind a drawer this dot is the
-     only thing on screen still saying which space you are in. */
-  .page-header__dot {
-    flex: 0 0 auto;
-    inline-size: 0.75rem;
-    block-size: 0.75rem;
-    border-radius: var(--theme-radius-pill);
-    background: var(--dot, var(--theme-brand));
-  }
-
   .page-header__date {
     margin: var(--theme-space-4) 0 0;
     font-size: var(--theme-text-14);

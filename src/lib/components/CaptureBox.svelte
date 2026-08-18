@@ -14,6 +14,7 @@
   // handles better, and the ⋮ of the block below still opens it.
   import Icon from "./Icon.svelte";
   import { S } from "../services/strings.js";
+  import { accentColor } from "../services/accent.js";
 
   let {
     /// `"task"` / `"note"` — which half is armed. Kept here, not by the host:
@@ -40,6 +41,10 @@
 
   let text = $state("");
   let field = $state();
+
+  /// The place's colour as CSS; unset falls back to the app's accent in the
+  /// class itself (services/accent.js).
+  let dotStyle = $derived(accentColor(dot) ? `--dot: ${accentColor(dot)}` : "");
 
   // With only one half available it is the armed one, whatever `kind` says.
   let both = $derived(canTask && canNote);
@@ -81,11 +86,7 @@
   <div class="capture__head">
     <h2 class="capture__question">
       {S.home}
-      <span
-        class="capture__dot"
-        style={dot ? `--dot: var(--accent-${dot})` : ""}
-        aria-hidden="true"
-      ></span>
+      <span class="theme-dot" style={dotStyle} aria-hidden="true"></span>
     </h2>
     {#if date}<span class="capture__date">{date}</span>{/if}
   </div>

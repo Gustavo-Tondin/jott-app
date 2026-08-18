@@ -5,7 +5,7 @@
   // unsupported card, with the folder left untouched (spec 3.5).
   import { S } from "../services/strings.js";
   import { spaceComponent } from "../spaces/registry.js";
-  import { accentStrong } from "../services/accent.js";
+  import { accentColor } from "../services/accent.js";
 
   let {
     space,
@@ -48,15 +48,20 @@
   });
 
   let Screen = $derived(spaceComponent(space.kind));
+
+  /// The place's colour as CSS; unset falls back to the app's accent in the
+  /// class itself (services/accent.js).
+  let dotStyle = $derived(accentColor(color) ? `--dot: ${accentColor(color)}` : "");
 </script>
 
-<!-- The screen's H1, so the title takes the STRONG step of the colour rather
-     than the base — the same emphasis a note's own H1 gets (2026-08-17). -->
-<h2
-  class="theme-title theme-title--lg space-view__title"
-  style={accentStrong(color) ? `color: ${accentStrong(color)}` : ""}
->
+<!-- The name in INK, and the colour of the place said once, by the dot beside
+     it (user call, 2026-08-18) — the same pair the Home card and the compact
+     header draw. The title used to BE the colour, at its strong step, and a
+     heading dark enough to read was too dark to still look like the colour it
+     was naming. -->
+<h2 class="theme-title theme-title--lg space-view__title">
   {space.name}
+  <span class="theme-dot" style={dotStyle} aria-hidden="true"></span>
   {#if space.readOnly}<small class="space-view__badge"
       >{S.readOnlySpace}</small
     >{/if}

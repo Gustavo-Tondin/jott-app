@@ -48,16 +48,6 @@
     letter-spacing: var(--theme-tracking-tight);
     color: var(--theme-ink);
   }
-  /* The colour of the place, the same mark the compact header draws beside its
-     own title (page-header.css) — a space with no colour of its own falls back
-     to the app's accent, exactly as the tab dot does. */
-  .capture__dot {
-    flex: 0 0 auto;
-    inline-size: 0.75rem;
-    block-size: 0.75rem;
-    border-radius: var(--theme-radius-pill);
-    background: var(--dot, var(--theme-brand));
-  }
   .capture__date {
     flex-shrink: 0;
     font-size: var(--theme-text-14);
