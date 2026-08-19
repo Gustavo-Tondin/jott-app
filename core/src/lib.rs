@@ -6,6 +6,7 @@
 //!
 //! Reading and writing the notebook is done. Day/week rules come next.
 
+pub mod assets;
 pub mod clock;
 pub mod conflict;
 pub mod config;
@@ -29,6 +30,7 @@ pub mod task;
 pub mod trash;
 pub mod watcher;
 
+pub use assets::{AssetEntry, Assets, ASSETS_DIR};
 pub use clock::{TurnOffset, WeekStart};
 pub use config::{Config, Rollover, RolloverMode};
 pub use conflict::Conflict;
@@ -39,9 +41,9 @@ pub use search::{HitKind, SearchHit, SearchResults};
 pub use space::{Group, GroupEntry, Space, SpaceConfig};
 pub use state::{Period, PeriodState, StateFile, TaskRef};
 pub use watcher::{Change, NotebookWatcher};
-pub use note::Note;
+pub use note::{Banner, Note};
 pub use notefolder::{NoteEntry, NoteFolder};
-pub use task::Task;
+pub use task::{Attachment, Task};
 
 /// Name of the hidden config directory inside a notebook.
 /// Equivalent to Obsidian's `.obsidian`.
@@ -113,6 +115,9 @@ mod tests {
         assert_eq!(HOME_DIR, "jott.home");
         assert_eq!(MAIN_LIST, "task-list");
         assert_eq!(COMPLETED_LIST, "completed");
+        // The asset library is addressed from inside `.md` files
+        // (`![](assets/x.png)`), so its name is part of the format too.
+        assert_eq!(ASSETS_DIR, "assets");
         // The app's own folders are named so, and are NOT hidden: a leading
         // dot would take the user's tasks out of their own file manager.
         for dir in [TASKS_DIR, NOTES_DIR, HOME_DIR] {

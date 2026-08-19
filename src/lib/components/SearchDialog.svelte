@@ -14,6 +14,10 @@
   import Modal from "./Modal.svelte";
 
   let {
+    /// What to start looking for. Empty is the ordinary case (Ctrl+F asks a
+    /// blank box); a value means something else asked the question on the
+    /// user's behalf — an ambiguous `[[link]]`, so far (2026-08-19).
+    query: initial = "",
     /// Narrow the question to one space, by its root-relative path — what the
     /// page ⋮ asks (2026-08-17). Null is the whole notebook, which is Ctrl+F.
     scope = null,
@@ -30,7 +34,7 @@
     onError,
   } = $props();
 
-  let query = $state("");
+  let query = $state(initial);
   let results = $state({ tasks: [], notes: [], truncated: false });
   /// A query is in flight. Only used to keep the empty state honest: "nothing
   /// found" must not flash while the answer is still coming.

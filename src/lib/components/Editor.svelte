@@ -28,11 +28,38 @@
   } from "@codemirror/search";
   import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
   import { markdownPreview } from "../services/markdown.js";
+  import { autocompletion } from "@codemirror/autocomplete";
+  import { fileEmbeds } from "../services/embeds.js";
+  import { fromNotebook, referenceCompletions } from "../services/linkComplete.js";
+  import { assetUrl } from "../services/assets.js";
+  import { fileIcon } from "../services/fileIcons.js";
   import * as md from "../services/markdownCommands.js";
   import { bound } from "../services/shortcuts.js";
   import { toCodeMirror } from "../services/keys.js";
 
-  let { value = "", readOnly = false, placeholder = "", onChange } = $props();
+  let {
+    value = "",
+    readOnly = false,
+    placeholder = "",
+    onChange,
+    /// The notebook's root, absolute — what turns `[[/foto.jpg]]` into a URL
+    /// an `<img>` can load (`services/assets.js`). Without it the editor
+    /// still reads the note; it just draws nothing.
+    root = null,
+    /// `(address) => void` — a file chip in the note was clicked. Opening one
+    /// is the shell's business; the editor only says which.
+    onOpenFile,
+    /// `(address) => void` — a picture whose link is already showing was
+    /// clicked again, which means "show me this one properly".
+    onZoomImage,
+    /// `(title) => void` — a link to another note was clicked. Resolving a
+    /// title to a note is a question about the whole notebook, so the shell
+    /// answers it (`App.svelte`).
+    onOpenNote,
+    /// What `[[` offers while it is typed, as `{notes, files}`. Defaults to
+    /// asking the notebook; a test hands its own answers in.
+    references = fromNotebook,
+  } = $props();
 
   let host;
   let view = null;
@@ -135,6 +162,23 @@
           // as code — monospace, set apart — it just is not colourised.
           markdown({ base: markdownLanguage }),
           markdownPreview,
+          // The notebook's files, drawn in the note (2026-08-19). Built with
+          // its three answers rather than importing them, so the plugin is
+          // testable without a bridge and the editor keeps knowing only about
+          // text. The closures read the props on every call, which is what
+          // lets the notebook be reopened under a live editor.
+          fileEmbeds({
+            url: (address) => assetUrl(root, address),
+            open: (address) => onOpenFile?.(address),
+            openNote: (title) => onOpenNote?.(title),
+            zoom: (address) => onZoomImage?.(address),
+            icon: fileIcon,
+          }),
+          // What `[[` offers while it is typed (2026-08-19). Its keymap is
+          // installed at high precedence by `autocompletion()` itself, which
+          // is what puts ArrowDown/Enter on the list while it is open and
+          // gives them straight back to the document when it is not.
+          autocompletion({ override: [referenceCompletions(references)] }),
           EditorView.lineWrapping,
           placeholderExt(placeholder),
           editable.of(EditorState.readOnly.of(readOnly)),
@@ -176,6 +220,15 @@
     if (!view || !command) return false;
     view.focus();
     return command(view);
+  }
+
+  /// Writes text where the cursor is — how a picture chosen in the library
+  /// lands in the note (2026-08-18). The selection is replaced, which is what
+  /// every other editor does with a paste, and it is undoable like one.
+  export function insert(text) {
+    if (!view || !text) return;
+    view.focus();
+    view.dispatch(view.state.replaceSelection(text));
   }
 
   /// Puts the cursor in the note's BODY, at the end of what is there.

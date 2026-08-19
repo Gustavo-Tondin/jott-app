@@ -32,6 +32,10 @@ pub struct NoteEntry {
     pub preview: String,
     pub created: Option<NaiveDate>,
     pub pinned: bool,
+    /// The head of the note, when it has one (`crate::note::Banner`). The card
+    /// draws it; a note without one is a card with a title and nothing above
+    /// it, which is the default.
+    pub banner: Option<crate::note::Banner>,
 }
 
 /// A directory holding notes and folders of notes. Cheap to build: it is a
@@ -110,6 +114,7 @@ impl NoteFolder {
                 preview: note.preview(),
                 created: note.created,
                 pinned: note.pinned,
+                banner: note.banner,
             });
             Ok(())
         })?;
@@ -264,6 +269,19 @@ impl NoteFolder {
         }
         std::fs::rename(&source, &target).ctx(&target)?;
         Ok(target_relative)
+    }
+
+    /// Sets — or clears, with `None` — the note's banner.
+    ///
+    /// Reads, changes the one line, writes: everything else in the file,
+    /// frontmatter and body alike, is exactly what it was. The same shape as
+    /// `set_pinned`, and for the same reason: the file is the user's.
+    pub fn set_banner(&self, relative: &str, banner: Option<crate::note::Banner>) -> Result<()> {
+        let path = self.note_path(relative)?;
+        let text = std::fs::read_to_string(&path).ctx(&path)?;
+        let mut note = Note::parse(&text);
+        note.banner = banner;
+        crate::fsio::write_atomically(&path, note.render().as_bytes())
     }
 
     pub fn set_pinned(&self, relative: &str, pinned: bool) -> Result<()> {

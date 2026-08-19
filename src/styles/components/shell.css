@@ -424,7 +424,8 @@
   .window--resizing .shell__sidebar,
   .window--resizing .titlebar__brand,
   .window--resizing .shell__panel > .inspector,
-  .window--resizing .shell__panel > .suggestions-pane {
+  .window--resizing .shell__panel > .suggestions-pane,
+  .window--resizing .shell__panel > .format-bar {
     transition: none;
   }
   .window--resizing {
@@ -457,9 +458,15 @@
     overflow: hidden;
   }
   /* Whatever the panel is showing keeps the same fixed width, so the slide
-     clips its content instead of reflowing it mid-animation. */
+     clips its content instead of reflowing it mid-animation.
+     EVERY thing the panel can hold has to be in this list. The formatting bar
+     was not (2026-08-18, user report: "a tela continua gigante"): with no width
+     of its own, a wrapping flex box takes whatever the row will give it, and
+     the panel — which is sized BY its child — grew to half the window and left
+     the note in a column. */
   .shell__panel > .inspector,
-  .shell__panel > .suggestions-pane {
+  .shell__panel > .suggestions-pane,
+  .shell__panel > .format-bar {
     flex: 1;
     width: var(--theme-sidebar-right);
     min-height: 0;

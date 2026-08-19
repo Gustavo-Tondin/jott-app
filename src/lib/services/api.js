@@ -165,11 +165,48 @@ export const api = {
     invoke("move_note", { folder, path, toFolder }),
   setNotePinned: (folder, path, pinned) =>
     invoke("set_note_pinned", { folder, path, pinned }),
+  // The note's head, as the value the line carries: a colour name
+  // (`"yellow"`), an asset address (`"assets/foto.png"`), or null to take it
+  // off. Which of the two a value IS is decided in the core.
+  setNoteBanner: (folder, path, banner) =>
+    invoke("set_note_banner", { folder, path, banner }),
+  // Moves a note to ANOTHER notes space (the board's bulk "move to"); `moveNote`
+  // above only ever moves inside one space.
+  moveNoteToSpace: (folder, path, toSpace, toFolder) =>
+    invoke("move_note_to_space", { folder, path, toSpace, toFolder }),
   createNoteFolder: (folder, path) => invoke("create_note_folder", { folder, path }),
   renameNoteFolder: (folder, path, name) =>
     invoke("rename_note_folder", { folder, path, name }),
   // Returns how many entries moved up to the parent — nothing is destroyed.
   deleteNoteFolder: (folder, path) => invoke("delete_note_folder", { folder, path }),
+
+  // assets — the notebook's image library (`assets/`, 2026-08-18)
+  // What a note points at is an ADDRESS (`assets/foto.png`); the URL an <img>
+  // loads it from is built in services/assets.js, not here.
+  assets: () => invoke("assets"),
+  // `data` is base64: Tauri's raw request body does not exist on Android, and
+  // the same `<input type="file">` has to work on both.
+  importAsset: (name, data) => invoke("import_asset", { name, data }),
+  // The same import, for a file that arrived as a `file://` address instead
+  // of as bytes — which is how the desktop hands over a drag (2026-08-19).
+  importAssetFromPath: (path) => invoke("import_asset_from_path", { path }),
+  // The files sitting on the SYSTEM clipboard, as `file://` addresses — the
+  // only door left when the webview's own clipboard says nothing, which for a
+  // pasted file is always (2026-08-19).
+  clipboardFiles: () => invoke("clipboard_files"),
+  deleteAsset: (path) => invoke("delete_asset", { path }),
+  // Hands an attachment to the system's own app for that kind of file. Only a
+  // file of `assets/` resolves — that is the whole of its security.
+  openAsset: (path) => invoke("open_asset", { path }),
+  // The desktop's own icon for a kind of file, as a `data:` URL — for the
+  // chip a non-drawable file gets inside a note (services/fileIcons.js).
+  // `null` where the system has no answer, which is not a failure.
+  fileIcon: (name) => invoke("file_icon", { name }),
+  // Where each file of the library is used, keyed by address. A file nobody
+  // points at simply has no entry (2026-08-19).
+  assetUsage: () => invoke("asset_usage"),
+  // TEMPORARY (2026-08-19) — see services/debugGesture.js.
+  debugLog: (line) => invoke("debug_log", { line }),
 
   // day and week
   periodTasks: (period) => invoke("period_tasks", { period }),

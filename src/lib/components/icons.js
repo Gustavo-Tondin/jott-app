@@ -51,6 +51,12 @@ import list from "../../assets/icons/phosphor/regular/list.svg?raw";
 import magnifyingGlass from "../../assets/icons/phosphor/regular/magnifying-glass.svg?raw";
 import lightbulb from "../../assets/icons/phosphor/regular/lightbulb.svg?raw";
 
+// The image library and the note banner (2026-08-18). `image` is the placeholder
+// a picture leaves when it is missing — the same grey square the wireframes
+// draw on a card whose banner is an image.
+import image from "../../assets/icons/phosphor/regular/image.svg?raw";
+import images from "../../assets/icons/phosphor/regular/images.svg?raw";
+
 // Writing Markdown by keyboard and by the formatting panel (2026-08-18). The
 // six heading glyphs are one icon each rather than a number in a box: Phosphor
 // draws them as `H1`…`H6`, which is what the mark itself is called.
@@ -112,6 +118,8 @@ export const ICONS = {
   "dots-six-vertical": dotsSixVertical,
   list,
   "magnifying-glass": magnifyingGlass,
+  image,
+  images,
   // markdown
   bold: textB,
   italic: textItalic,

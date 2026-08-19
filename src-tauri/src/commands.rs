@@ -348,9 +348,33 @@ pub fn open_notebook<R: Runtime>(
 ) -> CommandResult<NotebookInfo> {
     let notebook = Notebook::open_or_init(&path)?;
     let info = NotebookInfo::of(&notebook)?;
+    allow_assets(&app, &path);
     state.open(&app, notebook)?;
     crate::prefs::remember_notebook(&app, &path);
     Ok(info)
+}
+
+/// Lets the webview LOAD the images of this notebook, and only those.
+///
+/// A banner and an inline image are drawn by an `<img>`, and an `<img>` cannot
+/// call a command — it needs a URL. Tauri's asset protocol is that URL
+/// (`convertFileSrc`), and it answers only for paths in its scope. The scope
+/// is empty in `tauri.conf.json` and filled HERE, at the moment a notebook is
+/// opened, with one folder: `<notebook>/assets`. A notebook is a folder the
+/// user picks at runtime, so a scope written in the config could only have
+/// been `**` — every file on the machine reachable from a webview, to draw
+/// pictures from one directory.
+///
+/// Not recursive: the library is flat by construction (`jott_core::assets`).
+///
+/// A failure here is not a reason to refuse the notebook: everything else in
+/// the app works, and what breaks is images not drawing.
+fn allow_assets<R: Runtime>(app: &AppHandle<R>, root: &std::path::Path) {
+    use tauri::Manager;
+    let dir = root.join(jott_core::ASSETS_DIR);
+    if let Err(e) = app.asset_protocol_scope().allow_directory(&dir, false) {
+        eprintln!("[jott] could not allow {}: {e}", dir.display());
+    }
 }
 
 /// The notebook open when the app was last closed, so onboarding can reopen
@@ -691,6 +715,10 @@ pub struct TaskFields {
     pub priority: Option<Option<u8>>,
     pub tags: Option<Vec<String>>,
     pub description: Option<Vec<String>>,
+    /// The task's attachments, whole. Sent as `{label, address}` and not as a
+    /// list of addresses, so a label someone wrote by hand in the `.md`
+    /// survives an add or a remove made in the app.
+    pub files: Option<Vec<jott_core::Attachment>>,
     #[serde(deserialize_with = "present_or_absent")]
     pub repeat: Option<Option<String>>,
     pub subtasks: Option<Vec<SubtaskInput>>,
@@ -761,6 +789,15 @@ pub fn set_task_fields(
                 .map(str::trim)
                 .filter(|line| !line.is_empty())
                 .map(str::to_string)
+                .collect();
+        }
+        if let Some(files) = fields.files {
+            // Only addresses of the notebook's own library are kept: the line
+            // is written as Markdown links, and a link to anywhere else would
+            // be read back as description on the next open (core/src/task.rs).
+            task.files = files
+                .into_iter()
+                .filter(|file| jott_core::assets::name_of(&file.address).is_some())
                 .collect();
         }
         if let Some(repeat) = fields.repeat {
@@ -854,9 +891,14 @@ pub fn uncomplete_task(
 pub struct NoteContent {
     pub path: String,
     pub title: String,
+    /// The text WITHOUT the banner line: the editor edits prose, and the
+    /// banner is drawn above it (`components/NoteBanner.svelte`). The core
+    /// splits the two and puts them back together on every write, so a note
+    /// being typed into never loses its head.
     pub body: String,
     pub pinned: bool,
     pub created: Option<String>,
+    pub banner: Option<jott_core::Banner>,
 }
 
 /// Every note in a notes widget, sorted for the board: pinned first, then
@@ -926,6 +968,7 @@ pub fn read_note(
             body: note.body,
             pinned: note.pinned,
             created: note.created.map(|d| d.to_string()),
+            banner: note.banner,
         })
     })
 }
@@ -1000,6 +1043,288 @@ pub fn set_note_pinned(
     pinned: bool,
 ) -> CommandResult<()> {
     state.with_notebook(|nb| Ok(nb.note_folder(&folder)?.set_pinned(&path, pinned)?))
+}
+
+/// Sets — or clears, with `None` — a note's banner.
+///
+/// The value is what the line carries: a colour name (`yellow`) or an asset
+/// address (`assets/sunset.jpg`). Which of the two it is comes from the value
+/// itself, in the core, so the interface never has to say.
+#[tauri::command]
+pub fn set_note_banner(
+    state: State<'_, AppState>,
+    folder: String,
+    path: String,
+    banner: Option<String>,
+) -> CommandResult<()> {
+    let banner = banner.as_deref().and_then(jott_core::Banner::from_value);
+    state.with_notebook(|nb| Ok(nb.note_folder(&folder)?.set_banner(&path, banner)?))
+}
+
+/// Moves a note to another notes space (the bulk "move to" of the board).
+/// Returns the new address, relative to the space it landed in.
+#[tauri::command]
+pub fn move_note_to_space(
+    state: State<'_, AppState>,
+    folder: String,
+    path: String,
+    to_space: String,
+    to_folder: String,
+) -> CommandResult<String> {
+    state.with_notebook(|nb| Ok(nb.move_note_to_space(&folder, &path, &to_space, &to_folder)?))
+}
+
+// ------------------------------------------------------------------ assets
+
+/// Every image in the notebook's library, newest first.
+#[tauri::command]
+pub fn assets(state: State<'_, AppState>) -> CommandResult<Vec<jott_core::AssetEntry>> {
+    state.with_notebook(|nb| Ok(nb.assets().list()?))
+}
+
+/// Writes an image into the library, returning the address a note carries.
+///
+/// The bytes arrive as base64 because that is the one transport that works
+/// everywhere: `tauri::ipc::Request`'s raw body is documented as unavailable
+/// on Android, and the webview's `<input type="file">` is the same code path
+/// on desktop and on a phone. See `crate::base64` for the decoder.
+#[tauri::command]
+pub fn import_asset(
+    state: State<'_, AppState>,
+    name: String,
+    data: String,
+) -> CommandResult<String> {
+    let bytes = crate::base64::decode(&data)
+        .ok_or_else(|| crate::error::CommandError::new("invalid", "the image could not be read"))?;
+    state.with_notebook(|nb| Ok(nb.import_asset(&name, &bytes)?))
+}
+
+/// Copies a file of THIS machine into the library, by its path.
+///
+/// The other door for the same gesture. `import_asset` takes the bytes,
+/// because that is all a `<input type="file">` and a pasted image ever have;
+/// a file dragged from the file manager arrives as a `file://` address and
+/// nothing else, and reading it here beats sending a photo through the IPC as
+/// base64 (user report, 2026-08-19 — the drag was doing nothing at all).
+///
+/// The path is chosen by the person doing the dragging, in their own file
+/// manager, which is the same trust the folder picker already carries. What
+/// this can do is READ that one file and write a copy into `assets/` — the
+/// notebook is the only thing it can write to.
+#[tauri::command]
+pub fn import_asset_from_path(state: State<'_, AppState>, path: PathBuf) -> CommandResult<String> {
+    let name = path
+        .file_name()
+        .map(|n| n.to_string_lossy().to_string())
+        .unwrap_or_default();
+    let bytes = std::fs::read(&path)
+        .map_err(|e| CommandError::new("io", format!("{}: {e}", path.display())))?;
+    state.with_notebook(|nb| Ok(nb.import_asset(&name, &bytes)?))
+}
+
+/// Sends a file to the notebook's trash. Notes and tasks pointing at it keep
+/// their address — the file is what came back, if it comes back.
+#[tauri::command]
+pub fn delete_asset(state: State<'_, AppState>, path: String) -> CommandResult<()> {
+    state.with_notebook(|nb| Ok(nb.delete_asset(&path)?))
+}
+
+/// Opens an attachment in whatever the system uses for that kind of file.
+///
+/// The app's other door, `open_in_file_manager`, opens the FOLDER and never
+/// the document (2026-08-17) — deliberately, because there it is the user's
+/// own notebook being browsed. An attachment is the other case: it exists to
+/// be opened, and a task's paperclip that only revealed a folder would be a
+/// second click for nothing (user call, 2026-08-18).
+///
+/// The address is resolved by the library, which is what keeps this from
+/// becoming "open any file on this machine": only a direct child of `assets/`
+/// resolves at all.
+#[tauri::command]
+pub fn open_asset(state: State<'_, AppState>, path: String) -> CommandResult<()> {
+    let file = state.with_notebook(|nb| Ok(nb.asset_file(&path)?))?;
+    if !file.is_file() {
+        return Err(CommandError::new(
+            "io",
+            format!("{path} is not in this notebook's files"),
+        ));
+    }
+    open_path(&file)
+}
+
+/// The files sitting on the system clipboard, as `file://` addresses.
+///
+/// **Why this exists, measured rather than assumed** (2026-08-19, with the
+/// gesture logged from inside the running window): pasting a file copied in
+/// the file manager reaches the webview as a paste whose only type is
+/// `text/uri-list` — and every way the DOM has of reading that type comes back
+/// EMPTY. `dataTransfer.files` is empty, `getData("text/uri-list")` is `""`,
+/// and so is `items[…].getAsString()`. There is nothing left to read on that
+/// side, so the question is asked of the system instead, which has the answer
+/// and always did.
+///
+/// (A DRAG is different and does not come through here: there the webview
+/// hands the address over in the `text/html` flavour, which the frontend
+/// reads — see `services/assets.js`.)
+///
+/// Async for the reason `file_icon` is: GTK is not thread-safe, so the read
+/// happens on the main thread, and a synchronous command might BE on it.
+#[tauri::command]
+pub async fn clipboard_files<R: Runtime>(app: AppHandle<R>) -> Vec<String> {
+    clipboard_uris(&app).unwrap_or_default()
+}
+
+#[cfg(target_os = "linux")]
+fn clipboard_uris<R: Runtime>(app: &AppHandle<R>) -> Option<Vec<String>> {
+    use std::sync::mpsc;
+
+    let (tx, rx) = mpsc::channel();
+    app.run_on_main_thread(move || {
+        let _ = tx.send(gtk_clipboard_uris());
+    })
+    .ok()?;
+    rx.recv_timeout(std::time::Duration::from_secs(2)).ok()?
+}
+
+#[cfg(target_os = "linux")]
+fn gtk_clipboard_uris() -> Option<Vec<String>> {
+
+    let display = gdk::Display::default()?;
+    let clipboard = gtk::Clipboard::default(&display)?;
+    let uris = clipboard.wait_for_uris();
+    // The addresses are handed on as they are: percent-decoding them is the
+    // frontend's `pathOfFileUrl`, and one decoder beats two.
+    Some(uris.into_iter().map(|uri| uri.to_string()).collect())
+}
+
+/// Everywhere else the webview's own clipboard is all there is.
+#[cfg(not(target_os = "linux"))]
+fn clipboard_uris<R: Runtime>(_app: &AppHandle<R>) -> Option<Vec<String>> {
+    None
+}
+
+/// TEMPORARY (2026-08-19): writes a line to `<config>/gesture.log`.
+///
+/// The drag and the paste do nothing in the real app and everything in every
+/// test, and there is no way to watch a webview from here — no devtools that
+/// can be driven, no screenshot on Wayland. So the app writes down what it
+/// saw and the log is read afterwards. Remove this, and
+/// `services/debugGesture.js`, once the answer is in.
+#[tauri::command]
+pub fn debug_log<R: Runtime>(app: AppHandle<R>, line: String) {
+    use std::io::Write;
+    use tauri::Manager;
+
+    let Ok(dir) = app.path().app_config_dir() else {
+        return;
+    };
+    let _ = std::fs::create_dir_all(&dir);
+    if let Ok(mut file) = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(dir.join("gesture.log"))
+    {
+        let _ = writeln!(file, "{line}");
+    }
+}
+
+/// Where each file of the library is used, keyed by its address — so the
+/// Images screen can say which files are carrying their weight, and offer the
+/// way to what uses them (2026-08-19). A file nobody points at has no entry.
+#[tauri::command]
+pub fn asset_usage(
+    state: State<'_, AppState>,
+) -> CommandResult<std::collections::HashMap<String, Vec<jott_core::search::SearchHit>>> {
+    state.with_notebook(|nb| Ok(nb.asset_usage()?))
+}
+
+/// The desktop's own icon for a kind of file, as a `data:` URL.
+///
+/// What it is for: a note can carry a video, a PDF, a spreadsheet, and the
+/// app draws one as a chip with its name (`services/embeds.js`). The chip
+/// reads better with the icon the person's file manager already uses for that
+/// type (user call, 2026-08-19).
+///
+/// `None` is an ordinary answer, not a failure: there is no icon theme on a
+/// phone, and a desktop may simply have no entry for that type. The chip
+/// keeps the extension it drew for itself.
+///
+/// `name` is a file NAME and never a path — the type is guessed from it and
+/// nothing is opened, so there is nothing here to escape from.
+///
+/// **Async on purpose.** The lookup has to happen on the GTK thread (GTK3 is
+/// not thread-safe, and an icon theme read from a worker is undefined
+/// behaviour), which means handing the work to the main thread and waiting
+/// for it. An async command never RUNS on the main thread, so that wait
+/// cannot be a deadlock; a sync one might.
+#[tauri::command]
+pub async fn file_icon<R: Runtime>(app: AppHandle<R>, name: String) -> Option<String> {
+    let png = system_icon(&app, &name)?;
+    Some(format!("data:image/png;base64,{}", crate::base64::encode(&png)))
+}
+
+/// The icon bytes, from the system that has them.
+#[cfg(target_os = "linux")]
+fn system_icon<R: Runtime>(app: &AppHandle<R>, name: &str) -> Option<Vec<u8>> {
+    use std::sync::mpsc;
+
+    let name = name.to_string();
+    let (tx, rx) = mpsc::channel();
+    app.run_on_main_thread(move || {
+        let _ = tx.send(gtk_icon(&name));
+    })
+    .ok()?;
+    // A bounded wait: a nicety must never be the reason a note stops drawing.
+    rx.recv_timeout(std::time::Duration::from_secs(2)).ok()?
+}
+
+#[cfg(target_os = "linux")]
+fn gtk_icon(name: &str) -> Option<Vec<u8>> {
+    use gtk::prelude::*;
+
+    // The type from the NAME alone — no file is touched, and the library may
+    // not even hold this one yet.
+    let (content_type, _) = gio::functions::content_type_guess(Some(name), &[]);
+    let icon = gio::functions::content_type_get_icon(&content_type);
+    let theme = gtk::IconTheme::default()?;
+    let info = theme.lookup_by_gicon(&icon, ICON_SIZE, gtk::IconLookupFlags::FORCE_SIZE)?;
+    let pixbuf = info.load_icon().ok()?;
+    pixbuf.save_to_bufferv("png", &[]).ok()
+}
+
+/// Drawn at 64 so it stays sharp on a scaled display; the chip sizes it down
+/// in CSS.
+#[cfg(target_os = "linux")]
+const ICON_SIZE: i32 = 64;
+
+#[cfg(all(test, target_os = "linux"))]
+mod icon_tests {
+    //! The lookup itself, against the machine's real icon theme.
+    //!
+    //! Skipped where there is no display to init GTK against — a CI runner,
+    //! a tty. That is not a reason to leave the one interesting part of this
+    //! untested on the machine that has one.
+
+    #[test]
+    fn the_system_draws_an_icon_for_a_kind_of_file() {
+        if gtk::init().is_err() {
+            eprintln!("no display: skipping the icon theme lookup");
+            return;
+        }
+        // A PNG is what a real theme always has an entry for; the unknown
+        // extension exercises the generic fallback, which is also an icon.
+        for name in ["file.pdf", "file.mp4", "file.xyzzy"] {
+            let png = super::gtk_icon(name).unwrap_or_else(|| panic!("no icon for {name}"));
+            assert_eq!(&png[1..4], b"PNG", "{name} did not come back as a PNG");
+        }
+    }
+}
+
+/// Everywhere else the app draws its own chip. Android has no icon theme at
+/// all, and Windows and macOS keep theirs behind APIs this app does not link.
+#[cfg(not(target_os = "linux"))]
+fn system_icon<R: Runtime>(_app: &AppHandle<R>, _name: &str) -> Option<Vec<u8>> {
+    None
 }
 
 /// Renames a folder inside a notes widget. Returns the new address.
@@ -1539,7 +1864,7 @@ pub fn open_in_file_manager(
     path: Option<String>,
 ) -> CommandResult<()> {
     let target = state.with_notebook(|nb| folder_to_open(nb.root(), path.as_deref()))?;
-    open_folder(&target)
+    open_path(&target)
 }
 
 /// Which folder an address resolves to, without touching the desktop — the
@@ -1570,7 +1895,9 @@ fn folder_to_open(root: &Path, path: Option<&str>) -> CommandResult<PathBuf> {
 /// One process per platform, spawned and left alone — waiting for a file
 /// manager to exit would block the command for as long as the window stays
 /// open. A failure to even start it is reported: the menu promised something.
-fn open_folder(folder: &Path) -> CommandResult<()> {
+/// Hands a path to the desktop. Both doors end here: the file manager on a
+/// folder, and the system's own app on an attachment.
+fn open_path(target: &Path) -> CommandResult<()> {
     #[cfg(target_os = "linux")]
     let program = "xdg-open";
     #[cfg(target_os = "macos")]
@@ -1579,22 +1906,22 @@ fn open_folder(folder: &Path) -> CommandResult<()> {
     let program = "explorer";
     #[cfg(not(any(target_os = "linux", target_os = "macos", target_os = "windows")))]
     {
-        let _ = folder;
+        let _ = target;
         return Err(CommandError::new(
             "io",
-            "this platform has no file manager to open",
+            "this platform has nothing to open files with",
         ));
     }
 
     #[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
     {
         std::process::Command::new(program)
-            .arg(folder)
+            .arg(target)
             .spawn()
             .map(|_| ())
             .map_err(|e| {
-                eprintln!("[jott] could not open {}: {e}", folder.display());
-                CommandError::new("io", format!("could not open the file manager: {e}"))
+                eprintln!("[jott] could not open {}: {e}", target.display());
+                CommandError::new("io", format!("could not open it: {e}"))
             })
     }
 }

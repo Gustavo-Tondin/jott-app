@@ -266,6 +266,151 @@
   text-decoration: line-through;
 }
 
+/* ---- the notebook's files, inside the note (2026-08-19) ----
+   `[[/foto.jpg]]` becomes what it names: a picture is drawn, anything else is
+   a chip that opens the file. Both replace the reference on lines the cursor
+   is not on, so what is drawn always sits where the text was. */
+.editor .cm-embed {
+  display: inline-block;
+  max-inline-size: 100%;
+  vertical-align: top;
+}
+/* A picture takes the line it is on. Block, not inline: an image sharing a
+   baseline with text would ride on it, and a picture in a note is a paragraph
+   of its own. */
+.editor .cm-embed--image {
+  display: block;
+  margin-block: var(--theme-space-6);
+}
+.editor .cm-embed--image img {
+  display: block;
+  max-inline-size: 100%;
+  border-radius: var(--theme-radius-sm);
+}
+/* The file is named in the note but not in the library — deleted, renamed by
+   hand, or a notebook that travelled without its `assets/`. Saying so beats a
+   broken-image glyph. */
+.editor .cm-embed--missing {
+  display: inline-block;
+  padding: var(--theme-space-2) var(--theme-space-6);
+  border: 0.0625rem dashed var(--theme-line);
+  border-radius: var(--theme-radius-xs);
+  color: var(--theme-ink-faint);
+  font-size: var(--theme-text-13);
+}
+
+/* What the app cannot draw: a name and an icon, sized like a line of text so
+   it sits in a paragraph without pushing it around. */
+.editor .cm-embed--file {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--theme-space-6);
+  max-inline-size: 100%;
+  padding: var(--theme-space-2) var(--theme-space-8);
+  background: var(--theme-surface);
+  border: 0.0625rem solid var(--theme-line);
+  border-radius: var(--theme-radius-sm);
+  cursor: pointer;
+}
+.editor .cm-embed--file:hover {
+  border-color: var(--theme-brand);
+}
+.editor .cm-embed__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* The app's own fallback: the extension, drawn as a small tile. Replaced by
+   the system's icon when the system has one (`commands::file_icon`) — which
+   is a nicety, so the tile has to read on its own. */
+.editor .cm-embed__glyph {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 1.75em;
+  block-size: 1.75em;
+  flex: none;
+  background: var(--theme-well);
+  border-radius: var(--theme-radius-xs);
+  color: var(--theme-ink-muted);
+  font-family: var(--theme-font-mono);
+  font-size: 0.5em;
+  letter-spacing: 0.02em;
+}
+.editor .cm-embed__glyph::before {
+  content: attr(data-ext);
+}
+.editor .cm-embed__glyph--system {
+  background: none;
+}
+.editor .cm-embed__glyph--system::before {
+  content: none;
+}
+.editor .cm-embed__glyph--system img {
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: contain;
+}
+
+/* ---- a link to another note (2026-08-19) ----
+   The brackets go; the title stays and reads as what it is. The app's accent
+   rather than a browser blue: a link inside the notebook is the notebook's
+   own colour. */
+.editor .cm-link-note {
+  color: var(--theme-brand);
+  text-decoration: underline;
+  text-decoration-thickness: 0.0625rem;
+  text-underline-offset: 0.125rem;
+  cursor: pointer;
+}
+.editor .cm-link-note:hover {
+  text-decoration-thickness: 0.125rem;
+}
+
+/* ---- what `[[` offers while it is typed (2026-08-19) ----
+   CodeMirror's completion panel, dressed in the app's tokens — it ships with
+   a light-only look of its own, the same problem the find panel had. */
+.editor .cm-tooltip.cm-tooltip-autocomplete {
+  background: var(--theme-surface);
+  border: 0.0625rem solid var(--theme-line);
+  border-radius: var(--theme-radius-sm);
+  box-shadow: 0 0.25rem 0.75rem var(--theme-shadow-popover);
+  overflow: hidden;
+}
+.editor .cm-tooltip-autocomplete > ul {
+  font: inherit;
+  max-height: 15rem;
+}
+.editor .cm-tooltip-autocomplete > ul > li {
+  display: flex;
+  align-items: baseline;
+  gap: var(--theme-space-8);
+  padding: var(--theme-space-4) var(--theme-space-10);
+  color: var(--theme-ink);
+}
+.editor .cm-tooltip-autocomplete > ul > li[aria-selected] {
+  background: var(--theme-brand);
+  color: var(--theme-on-brand);
+}
+.editor .cm-completionLabel {
+  flex: 1;
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* Where a note lives, or whether a file is one the app draws — said quietly,
+   because the name is the answer and this is only the tie-break. */
+.editor .cm-completionDetail {
+  color: var(--theme-ink-faint);
+  font-size: var(--theme-text-12);
+  font-style: normal;
+}
+.editor .cm-tooltip-autocomplete > ul > li[aria-selected] .cm-completionDetail {
+  color: var(--theme-on-brand);
+  opacity: 0.75;
+}
+
 /* ---- find and replace (2026-08-17) ----
    CodeMirror's own panel, dressed in the app's tokens. It ships with a
    light-only look of its own, which on the dark themes was white text in a

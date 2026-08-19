@@ -1,0 +1,48 @@
+/* image-viewer.css — a picture from a note, full screen.
+ * Markup: src/lib/components/ImageViewer.svelte. Selectors are the stable BEM
+ * hooks a theme may restyle; components read tokens only.
+ *
+ * The one surface in the app that is dark in every theme: a photo is looked
+ * AT, and a bright frame around it is the frame competing with it. Nothing is
+ * written on this ground except the close button, which carries its own. */
+
+@layer components {
+  .image-viewer {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    display: grid;
+    place-items: center;
+    padding: var(--theme-space-24);
+    background: color-mix(in srgb, var(--palette-black) 88%, transparent);
+  }
+  .image-viewer:focus-visible {
+    outline: none;
+  }
+  .image-viewer__picture {
+    max-inline-size: 100%;
+    max-block-size: 100%;
+    object-fit: contain;
+    border-radius: var(--theme-radius-sm);
+  }
+  /* Above the picture rather than beside it: the picture takes whatever room
+     there is, so there is no beside. */
+  .image-viewer__close {
+    position: absolute;
+    inset-block-start: var(--theme-space-16);
+    inset-inline-end: var(--theme-space-16);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    inline-size: 2.5rem;
+    block-size: 2.5rem;
+    background: color-mix(in srgb, var(--palette-white) 12%, transparent);
+    border: none;
+    border-radius: var(--theme-radius-pill);
+    color: var(--palette-white);
+    cursor: pointer;
+  }
+  .image-viewer__close:hover {
+    background: color-mix(in srgb, var(--palette-white) 22%, transparent);
+  }
+}

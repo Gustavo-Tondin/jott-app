@@ -171,3 +171,76 @@ fn tasks_iterator_skips_raw_lines() {
     assert_eq!(tasks[0].text, "tarefa");
     assert_eq!(non_task_lines(&list), 2);
 }
+
+// ---- attachments (2026-08-18) ----
+// A task points at files of the notebook's library with a plain Markdown link
+// on a line of its own. Visible and clickable in any editor, which is the whole
+// argument for it over a field in the hidden comment (user call).
+
+#[test]
+fn an_attachment_is_a_link_line_under_the_task() {
+    let text = concat!(
+        "- [ ] Enviar proposta <!--id:g7h8i9-->\n",
+        "  @2026-07-25 #cliente\n",
+        "  [nota-fiscal.pdf](assets/nota-fiscal.pdf)\n",
+        "  Falar com o Jorge antes.\n",
+    );
+    let list = list_from(text);
+    let task = list.tasks().next().unwrap();
+
+    assert_eq!(task.files.len(), 1);
+    assert_eq!(task.files[0].label, "nota-fiscal.pdf");
+    assert_eq!(task.files[0].address, "assets/nota-fiscal.pdf");
+    // It is NOT description: the line IS the attachment, not text about it.
+    assert_eq!(task.description, vec!["Falar com o Jorge antes."]);
+    // And it goes back exactly where it was read from.
+    assert_eq!(format!("{}\n", task.render_block()), text);
+}
+
+#[test]
+fn several_files_share_one_line() {
+    let mut task = Task::new("Fechar o mês");
+    task.files = vec![
+        jott_core::Attachment::of("assets/nota.pdf"),
+        jott_core::Attachment::of("assets/planilha.xlsx"),
+    ];
+    assert_eq!(
+        task.render_block(),
+        "- [ ] Fechar o mês\n  [nota.pdf](assets/nota.pdf) [planilha.xlsx](assets/planilha.xlsx)"
+    );
+}
+
+#[test]
+fn a_link_that_leaves_the_library_stays_description() {
+    // The half of the rule that keeps someone's own links theirs: a line of
+    // links to the web is a description line, and the app cannot open what it
+    // did not put there.
+    for line in [
+        "  [a documentação](https://exemplo.com)",
+        "  [o contrato](../fora/contrato.pdf)",
+        "  [nota](assets/sub/nota.pdf)",
+        "  veja [isto](assets/nota.pdf)",
+    ] {
+        let text = format!("- [ ] Tarefa\n{line}\n");
+        let list = list_from(&text);
+        let task = list.tasks().next().unwrap();
+        assert!(task.files.is_empty(), "{line}");
+        assert_eq!(task.description.len(), 1, "{line}");
+        // Whatever it is, it survives the rewrite untouched.
+        assert_eq!(format!("{}\n", task.render_block()), text, "{line}");
+    }
+}
+
+#[test]
+fn a_label_written_by_hand_survives_the_rewrite() {
+    let text = "- [ ] Tarefa\n  [o contrato assinado](assets/contrato.pdf)\n";
+    let list = list_from(text);
+    let task = list.tasks().next().unwrap();
+    assert_eq!(task.files[0].label, "o contrato assinado");
+    assert_eq!(format!("{}\n", task.render_block()), text);
+}
+
+#[test]
+fn attaching_nothing_writes_no_line() {
+    assert_eq!(Task::new("Sem anexo").render_block(), "- [ ] Sem anexo");
+}

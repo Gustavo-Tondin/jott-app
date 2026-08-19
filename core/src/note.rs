@@ -13,8 +13,17 @@
 //! pinned: true
 //! ---
 //!
+//! <!--banner: yellow-->
+//!
 //! Text of the note.
 //! ```
+//!
+//! The **banner** is the first line of the body, and it is an HTML comment on
+//! purpose (user call, 2026-08-18): every markdown renderer in the world hides
+//! it, so a note with a banner is still a plain note in Obsidian, in VS Code
+//! and on GitHub — and it is the same idiom a task already uses to carry its
+//! id. Without the line a note has no banner and shows only its title, which
+//! is the default and stays the default.
 //!
 //! The frontmatter is **lazy**, like the task `id`: a note written by hand
 //! with no frontmatter at all is a perfectly valid note, and `created` is
@@ -34,11 +43,58 @@ const KNOWN_KEYS: [&str; 2] = ["created", "pinned"];
 /// How much of the body a card shows.
 const PREVIEW_CHARS: usize = 240;
 
+/// What opens the banner line, and what closes it.
+const BANNER_OPEN: &str = "<!--banner:";
+const BANNER_CLOSE: &str = "-->";
+
+/// The head of a note: a colour, or an image from the notebook's library.
+///
+/// Which one it is comes from the VALUE, not from a second keyword: an address
+/// ending in an image extension is an image, anything else is a colour. The
+/// two are never confusable — `yellow` is not a file and `assets/sunset.jpg`
+/// is not a colour — and one keyword is one thing for the user to remember
+/// when writing it by hand, which is the point of a plain-text format.
+///
+/// A colour is a NAME from the app's palette (`services/accent.js`), never a
+/// hex: the same rule every other colour in a Jott notebook follows, so the
+/// banner of a note reads correctly on the light chrome and on the dark one. A
+/// hex written by hand is carried through untouched, like everywhere else.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+#[serde(tag = "kind", content = "value", rename_all = "lowercase")]
+pub enum Banner {
+    Color(String),
+    Image(String),
+}
+
+impl Banner {
+    /// The banner a value means — an image when it reads as an image address.
+    pub fn from_value(value: &str) -> Option<Self> {
+        let value = value.trim();
+        if value.is_empty() {
+            return None;
+        }
+        Some(if crate::assets::is_image_name(value) {
+            Self::Image(value.to_string())
+        } else {
+            Self::Color(value.to_string())
+        })
+    }
+
+    /// What the note carries after `<!--banner:`.
+    pub fn value(&self) -> &str {
+        match self {
+            Self::Color(value) | Self::Image(value) => value,
+        }
+    }
+}
+
 /// A note in memory.
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct Note {
     pub created: Option<NaiveDate>,
     pub pinned: bool,
+    /// The head of the note, from the first line of the body.
+    pub banner: Option<Banner>,
     /// Frontmatter lines this build does not own, exactly as read.
     pub extra: Vec<String>,
     /// Everything after the frontmatter, verbatim.
@@ -50,21 +106,25 @@ impl Note {
     /// file that opens with `---` but never closes it is a horizontal rule
     /// in someone's markdown, not a broken note.
     pub fn parse(text: &str) -> Self {
-        let Some(rest) = strip_open_fence(text) else {
-            return Self {
-                body: text.to_string(),
+        let plain = |text: &str| {
+            let (banner, body) = split_banner(text);
+            Self {
+                banner,
+                body,
                 ..Default::default()
-            };
+            }
+        };
+        let Some(rest) = strip_open_fence(text) else {
+            return plain(text);
         };
         let Some((block, body)) = split_at_close_fence(rest) else {
-            return Self {
-                body: text.to_string(),
-                ..Default::default()
-            };
+            return plain(text);
         };
 
+        let (banner, body) = split_banner(body);
         let mut note = Self {
-            body: body.to_string(),
+            banner,
+            body,
             ..Default::default()
         };
         for line in block.lines() {
@@ -94,11 +154,23 @@ impl Note {
         }
         fields.extend(self.extra.iter().cloned());
 
+        // The banner belongs to the BODY — it is the first line of it — so it
+        // goes back exactly where it was read from, above the text and below
+        // the frontmatter.
+        let body = match &self.banner {
+            Some(banner) => format!(
+                "{BANNER_OPEN} {}{BANNER_CLOSE}\n\n{}",
+                banner.value(),
+                self.body.trim_start_matches('\n')
+            ),
+            None => self.body.clone(),
+        };
+
         if fields.is_empty() {
-            return self.body.clone();
+            return body;
         }
 
-        let body = self.body.trim_start_matches('\n');
+        let body = body.trim_start_matches('\n');
         format!("{FENCE}\n{}\n{FENCE}\n\n{body}", fields.join("\n"))
     }
 
@@ -132,6 +204,32 @@ impl Note {
         let query = query.trim().to_lowercase();
         query.is_empty() || self.body.to_lowercase().contains(&query)
     }
+}
+
+/// Splits the banner line off the top of a body.
+///
+/// Only the FIRST line, and only when it is the whole line: a `<!--banner:…-->`
+/// written in the middle of a paragraph is a comment someone wrote, not the
+/// head of the note. The blank line under it goes too, so that reading and
+/// writing a note back is byte-for-byte stable.
+fn split_banner(body: &str) -> (Option<Banner>, String) {
+    let (first, rest) = match body.split_once('\n') {
+        Some((first, rest)) => (first, rest),
+        None => (body, ""),
+    };
+    let trimmed = first.trim();
+    let Some(value) = trimmed
+        .strip_prefix(BANNER_OPEN)
+        .and_then(|rest| rest.strip_suffix(BANNER_CLOSE))
+    else {
+        return (None, body.to_string());
+    };
+    let Some(banner) = Banner::from_value(value) else {
+        // `<!--banner:-->` says nothing. Left in the body rather than eaten:
+        // the app never silently deletes a line someone typed.
+        return (None, body.to_string());
+    };
+    (Some(banner), rest.trim_start_matches('\n').to_string())
 }
 
 /// The text after an opening `---` line, or `None`.
@@ -271,6 +369,72 @@ mod tests {
         assert!(note.matches("CIMENTO"));
         assert!(note.matches("  "));
         assert!(!note.matches("areia"));
+    }
+
+    #[test]
+    fn a_banner_is_the_first_line_of_the_body_and_is_not_text() {
+        let note = Note::parse("<!--banner: yellow-->\n\nTexto.\n");
+        assert_eq!(note.banner, Some(Banner::Color("yellow".into())));
+        assert_eq!(note.body, "Texto.\n");
+        // The preview a card shows is the TEXT — the banner is drawn, not read.
+        assert_eq!(note.preview(), "Texto.");
+    }
+
+    #[test]
+    fn an_address_that_ends_in_an_image_extension_is_an_image() {
+        let note = Note::parse("<!--banner: assets/sunset.jpg-->\n\nTexto.\n");
+        assert_eq!(note.banner, Some(Banner::Image("assets/sunset.jpg".into())));
+    }
+
+    #[test]
+    fn a_note_without_the_line_has_no_banner() {
+        // The default, and what "sem essa sintaxe a nota fica só com título"
+        // means: nothing is invented for a note that does not ask for one.
+        let note = Note::parse("---\ncreated: 2026-07-21\n---\n\nSó texto.\n");
+        assert_eq!(note.banner, None);
+        assert_eq!(note.body, "Só texto.\n");
+    }
+
+    #[test]
+    fn the_banner_round_trips_with_and_without_frontmatter() {
+        for text in [
+            "<!--banner: blue-->\n\nCorpo.\n",
+            "---\ncreated: 2026-07-21\n---\n\n<!--banner: blue-->\n\nCorpo.\n",
+        ] {
+            assert_eq!(Note::parse(text).render(), text, "{text:?}");
+        }
+    }
+
+    #[test]
+    fn setting_and_clearing_a_banner_only_touches_that_line() {
+        let mut note = Note::parse("---\ncreated: 2026-07-21\n---\n\nCorpo.\n");
+        note.banner = Some(Banner::Color("red".into()));
+        assert_eq!(
+            note.render(),
+            "---\ncreated: 2026-07-21\n---\n\n<!--banner: red-->\n\nCorpo.\n"
+        );
+
+        note.banner = None;
+        assert_eq!(note.render(), "---\ncreated: 2026-07-21\n---\n\nCorpo.\n");
+    }
+
+    #[test]
+    fn a_banner_comment_further_down_is_just_a_comment() {
+        // Only the first line is the head of the note; anywhere else it is
+        // something the user wrote, and rewriting it would be the app editing
+        // prose it does not own.
+        let text = "Primeira linha.\n<!--banner: yellow-->\n";
+        let note = Note::parse(text);
+        assert_eq!(note.banner, None);
+        assert_eq!(note.render(), text);
+    }
+
+    #[test]
+    fn an_empty_banner_says_nothing_and_is_left_alone() {
+        let text = "<!--banner: -->\n\nCorpo.\n";
+        let note = Note::parse(text);
+        assert_eq!(note.banner, None);
+        assert_eq!(note.render(), text, "a line the app cannot read is never eaten");
     }
 
     #[test]

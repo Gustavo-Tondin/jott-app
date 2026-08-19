@@ -62,6 +62,27 @@
        above — one value that reads on both grounds, so no theme restates it. */
     --theme-scrim: color-mix(in srgb, #0d0d0d 20%, transparent);
 
+    /* THE FILL OF A COLOURED PIECE OF PAPER (2026-08-18).
+
+       A note's banner is a surface, not text: nothing is written ON it (the
+       title sits on a chip of its own), so it is the one colour in the app
+       that is NOT pinned to the ground it lands on. It is the same in every
+       theme and every region, for the same reason a yellow sticky note is
+       yellow under any lamp — and step 300 is the palette's own vivid rung,
+       the one the wireframes draw the note banners in.
+
+       Eight lines rather than a computed name: a custom property cannot
+       compose the name of another (same reason `data-accent` is eight rules
+       below). One hop each, palette straight through. */
+    --accent-red-fill: var(--palette-red-300);
+    --accent-orange-fill: var(--palette-orange-300);
+    --accent-yellow-fill: var(--palette-yellow-300);
+    --accent-green-fill: var(--palette-green-300);
+    --accent-blue-fill: var(--palette-blue-300);
+    --accent-purple-fill: var(--palette-purple-300);
+    --accent-pink-fill: var(--palette-pink-300);
+    --accent-neutral-fill: var(--palette-neutral-300);
+
     /* A region carries its own ink, so anything inside it starts readable —
        including text a component forgot to colour. */
     color: var(--theme-ink);

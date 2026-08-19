@@ -74,6 +74,18 @@ export function accentSoft(value) {
   return accentRung(value, 5);
 }
 
+/// The FILL of a coloured surface — a note's banner (2026-08-18).
+///
+/// The one colour of the app that does not change with the ground it lands on:
+/// nothing is written on a banner, so there is no contrast to protect, and a
+/// yellow note is yellow in all three themes (styles/roles.css). A raw colour
+/// written by hand is itself, as everywhere else.
+export function accentFill(value) {
+  if (!value) return null;
+  if (isAccent(value)) return `var(--accent-${value}-fill)`;
+  return value;
+}
+
 /// The matching tint — the quiet fill behind something wearing this colour (a
 /// selected sidebar row, a highlighted card). For one of the seven it is the
 /// ground's own tint step; for a raw colour there is nothing to look up, so it

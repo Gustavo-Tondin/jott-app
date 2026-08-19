@@ -21,7 +21,20 @@ chrono.workspace = true
 
 [dependencies]
 jott-core = { path = "../core" }
-tauri = { version = "2", features = [] }
+# `protocol-asset`: the URL an <img> can load a file of the notebook from
+# (banners and inline images, 2026-08-18). It answers only for paths in the
+# scope, which is empty in tauri.conf.json and filled at runtime with the open
+# notebook's `assets/` folder — see `commands::allow_assets`.
+tauri = { version = "2", features = ["protocol-asset"] }
 tauri-plugin-dialog = "2"
 serde.workspace = true
 serde_json.workspace = true
+
+# The desktop's own icon for a kind of file, for the chip a non-drawable file
+# gets inside a note (`commands::file_icon`, 2026-08-19). Pinned to the exact
+# versions Tauri's own window stack already links, so the binary carries ONE
+# GTK and not two.
+[target.'cfg(target_os = "linux")'.dependencies]
+gtk = "0.18"
+gio = "0.18"
+gdk = "0.18"

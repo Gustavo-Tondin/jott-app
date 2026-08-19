@@ -31,6 +31,13 @@
   /// writing, not a mirror of the list.
   const shown = COMMANDS.filter((command) => command.scope === "editor" && command.icon);
 
+  /// Where a rule goes: between two commands of different `group` (user call,
+  /// 2026-08-18). Read from the registry rather than written out here, so a
+  /// command added there lands in its own category without this file knowing
+  /// the categories at all.
+  const startsGroup = (index) =>
+    index > 0 && shown[index].group !== shown[index - 1].group;
+
   /// `Bold [Ctrl+B]` — the name, and the chord when there is one.
   function hint(command) {
     const chord = $bound.get(command.id);
@@ -44,7 +51,16 @@
   aria-label={S.formatting}
   aria-orientation={layout === "row" ? "horizontal" : "vertical"}
 >
-  {#each shown as command (command.id)}
+  {#each shown as command, index (command.id)}
+    {#if startsGroup(index)}
+      <!-- A rule, not a gap: three of these bars' groups are six glyphs long,
+           and a gap that size reads as a missing button. In the column it is a
+           full-width line (which also breaks the wrap onto a new row); in the
+           strip above the keyboard it is an upright hairline. -->
+      <span class="format-bar__divider" role="separator" aria-orientation={
+        layout === "row" ? "vertical" : "horizontal"
+      }></span>
+    {/if}
     <button
       type="button"
       class="theme-btn--icon format-bar__button"

@@ -460,4 +460,62 @@ export const S = {
   resizeSidebar: "resize sidebar",
   resizePanel: "resize panel",
   sidebarWidthValue: (px) => `sidebar width: ${px} pixels`,
+
+  // The file library (2026-08-18): one folder the whole notebook shares,
+  // reached from the sidebar's hamburger. Images are drawn (banners, pictures
+  // in a note); anything else is a file a task points at.
+  assetsTitle: "Files",
+  assetsHint:
+    "Every file you add lives in the notebook's assets folder. Notes and tasks " +
+    "point at it by address, so moving them never breaks a link.",
+  assetsEmpty: "No files yet.",
+  addImages: "Add files",
+  addingImages: "Adding…",
+  copyAddress: "Copy address",
+  addressCopied: "Address copied",
+  deleteImage: "Delete file",
+  confirmDeleteAsset: (name) =>
+    `Delete "${name}"? It goes to the trash, and whatever points at it will point at nothing.`,
+  imageCount: (n) => (n === 1 ? "1 file" : `${n} files`),
+  imageSize: (kb) => (kb < 1024 ? `${kb} KB` : `${(kb / 1024).toFixed(1)} MB`),
+  missingImage: "image not found",
+  // The picker, when what is being asked for is a picture and not any file.
+  chooseImageOnly: "Only an image can be a banner or go inside a note.",
+  openFile: "Open file",
+  removeAttachment: "Remove attachment",
+
+  // The note's banner (2026-08-18) — a colour or a picture at the head of a
+  // note, written on its first line.
+  addBanner: "Add banner",
+  bannerOptions: "banner options",
+  bannerColor: "Colour",
+  bannerImage: "Choose image…",
+  removeBanner: "Remove banner",
+  chooseImage: "Choose an image",
+  chooseFile: "Choose a file",
+  insertImage: "Insert image…",
+  // Links between notes (2026-08-19). A title that names no note is worth
+  // saying out loud: the link is a promise the notebook did not keep.
+  noteNotFound: (title) => `No note called “${title}”.`,
+
+  // The Images screen saying which files are carrying their weight
+  // (2026-08-19). A file nobody points at is room being taken up — worth
+  // saying, right beside the button that deletes it.
+  // A drag or a paste that declared a file and carried none. The types are in
+  // the message on purpose: they are the only clue to what the desktop
+  // actually sent, and they turn a mystery into a bug report.
+  noFileInGesture: (types) =>
+    `Nothing could be read from that${types.length ? ` (${types.join(", ")})` : ""}.`,
+
+  assetUnused: "Not used",
+  assetUsedIn: (n) => (n === 1 ? "Used in 1 place" : `Used in ${n} places`),
+  assetGoTo: (title) => `Go to “${title}”`,
+
+  // Picking notes on the board, the way tasks are picked (2026-08-18).
+  selectNotes: "Select notes…",
+  moveNotesTo: "Move to…",
+  notesFolderCount: (n) => (n === 1 ? "1 note" : `${n} notes`),
+  openFolder: (name) => `open ${name}`,
+  backToBoard: "Back",
+  noteOptions: "note options",
 };

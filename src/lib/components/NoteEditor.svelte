@@ -11,6 +11,8 @@
   import { S } from "../services/strings.js";
   import Editor from "./Editor.svelte";
 
+  import { carriesFiles, readGesture, readPaste } from "../services/assets.js";
+
   let {
     folder,
     path,
@@ -18,6 +20,11 @@
     onSaved,
     onError,
     onLoaded,
+    onFiles,
+    onOpenFile,
+    onOpenNote,
+    onZoomImage,
+    root = null,
     saveDelay = 500,
   } = $props();
 
@@ -50,7 +57,10 @@
       baseline = note.body;
       // The shell owns the title and the document actions — they belong to
       // the page header, above the tabs, not to a second bar inside the page.
-      onLoaded?.({ pinned: note.pinned, title: note.title });
+      // The banner travels with the note but is NOT part of the body: it is
+      // the shell that draws it, above this editor (components/NoteBanner),
+      // the same way the title and the pin are the page header's.
+      onLoaded?.({ pinned: note.pinned, title: note.title, banner: note.banner ?? null });
     } catch (e) {
       onError?.(e);
     } finally {
@@ -103,17 +113,55 @@
   export const openFind = () => editor?.openFind();
   export const openReplace = () => editor?.openReplace();
   export const focusBody = () => editor?.focusBody();
+  /// Writes text at the cursor — the image picker's way in (2026-08-18).
+  export const insert = (text) => editor?.insert(text);
   /// The formatting panel's door into the editor: same commands, same ids as
   /// the keymap uses (2026-08-18).
   export const run = (id) => editor?.run(id);
+
+  // ---- files brought into the note (2026-08-19) ----
+  //
+  // **On the wrapper, and in the CAPTURE phase**, and both halves of that were
+  // learned from the running app rather than guessed:
+  //
+  //   - a file DROPPED on a note lands on this div and not inside the editor
+  //     (measured: `drop on div.note-editor__body inEditor=false`). Handlers
+  //     inside CodeMirror never saw it, which is why dragging did nothing at
+  //     all. This div is the whole area a person aims at.
+  //   - capture, because CodeMirror handles a paste itself, and by the time
+  //     the event bubbles back out here it is too late to stop it pasting the
+  //     address as text.
+  //
+  // The reading is asynchronous (`readGesture`), so `preventDefault` happens
+  // first: a transfer is only readable while its event is being dispatched.
+  function brought(transfer, read) {
+    if (readOnly || !onFiles) return false;
+    if (!transfer?.files?.length && !carriesFiles(transfer)) return false;
+    read(transfer).then(onFiles);
+    return true;
+  }
 </script>
 
-<div class="note-editor__body" aria-label={S.noteBodyPlaceholder}>
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<div
+  class="note-editor__body"
+  aria-label={S.noteBodyPlaceholder}
+  onpastecapture={(e) => brought(e.clipboardData, readPaste) && e.preventDefault()}
+  ondropcapture={(e) => brought(e.dataTransfer, readGesture) && e.preventDefault()}
+  ondragovercapture={(e) => {
+    // Saying "I take these" is the only way the drop event arrives at all.
+    if (!readOnly && carriesFiles(e.dataTransfer)) e.preventDefault();
+  }}
+>
   <Editor
     bind:this={editor}
     value={body}
     readOnly={readOnly || loading}
     placeholder={S.noteBodyPlaceholder}
     onChange={(next) => (body = next)}
+    {onOpenFile}
+    {onOpenNote}
+    {onZoomImage}
+    {root}
   />
 </div>

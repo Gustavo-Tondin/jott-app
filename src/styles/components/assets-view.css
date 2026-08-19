@@ -1,0 +1,255 @@
+/* assets-view.css — the notebook's image library, and the dialog that picks
+ * from it. Markup: src/lib/screens/AssetsView.svelte and
+ * src/lib/components/AssetPicker.svelte. Selectors are the stable BEM hooks a
+ * theme may restyle; components read tokens only.
+ *
+ * Two blocks in one sheet because they are two questions about one thing: the
+ * screen manages the library, the dialog picks from it, and both draw the same
+ * thumbnail. */
+
+@layer components {
+  .assets-view__head {
+    display: flex;
+    align-items: center;
+    gap: var(--theme-space-12);
+    margin-block-end: var(--theme-space-6);
+  }
+  .assets-view__title {
+    flex: 1;
+    min-inline-size: 0;
+  }
+  .assets-view__hint,
+  .assets-view__empty,
+  .assets-view__count {
+    color: var(--theme-ink-muted);
+    font-size: var(--theme-text-13);
+    margin-block-end: var(--theme-space-12);
+  }
+
+  /* The file input is the button's business: the button is what the user sees
+     and what the keyboard reaches, and the input is only the door to the OS
+     picker behind it. Off-screen rather than `display: none`, which some
+     engines take as "not focusable, do not open". */
+  .assets-view__input,
+  .asset-picker__input {
+    position: absolute;
+    inline-size: 0.0625rem;
+    block-size: 0.0625rem;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .assets-view__grid {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+    gap: var(--theme-space-12);
+  }
+  .assets-view__item {
+    display: flex;
+    flex-direction: column;
+    gap: var(--theme-space-4);
+    padding: var(--theme-space-8);
+    background: var(--theme-surface);
+    border-radius: var(--theme-radius-md);
+    min-inline-size: 0;
+  }
+  /* A fixed frame, not a fixed image: pictures come in every proportion, and a
+     grid whose cells are all different heights is a grid that reads as broken.
+     The picture is covered into it, centred. */
+  .assets-view__frame {
+    display: block;
+    inline-size: 100%;
+    block-size: 7rem;
+    padding: 0;
+    background: var(--theme-well);
+    border: none;
+    border-radius: var(--theme-radius-sm);
+    overflow: hidden;
+    cursor: pointer;
+  }
+  /* What the app cannot draw says so with a glyph, and keeps the frame's
+     shape — a grid of cells of different heights reads as broken. */
+  .assets-view__glyph,
+  .asset-picker__thumb--file {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    block-size: 100%;
+    color: var(--theme-ink-faint);
+  }
+  .assets-view__thumb,
+  .asset-picker__thumb {
+    display: block;
+    inline-size: 100%;
+    block-size: 100%;
+    object-fit: cover;
+  }
+  .assets-view__name {
+    font-size: var(--theme-text-13);
+    font-weight: var(--theme-weight-semibold);
+    color: var(--theme-ink);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .assets-view__meta {
+    color: var(--theme-ink-faint);
+    font-size: var(--theme-text-12);
+  }
+  .assets-view__actions {
+    display: flex;
+    align-items: center;
+    gap: var(--theme-space-6);
+  }
+  /* The address IS the button: what it does is copy itself, so showing it and
+     offering it are one control. Monospaced, because it is something to be
+     typed into a file. */
+  .assets-view__action {
+    flex: 1;
+    min-inline-size: 0;
+    padding: 0;
+    background: none;
+    border: none;
+    color: var(--theme-ink-muted);
+    font-family: var(--theme-font-mono);
+    font-size: var(--theme-text-12);
+    text-align: start;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+  .assets-view__action:hover {
+    color: var(--theme-brand);
+  }
+
+  /* A file is being held over the screen. The only way the person knows this
+     place will take it — an outline rather than a fill, so nothing already
+     drawn changes colour under the pointer. */
+  .assets-view--taking {
+    outline: 0.125rem dashed var(--theme-brand);
+    outline-offset: var(--theme-space-8);
+    border-radius: var(--theme-radius-md);
+  }
+
+  /* ---- what uses a file (2026-08-19) ----
+     Said beside the button that deletes it, because "not used" is the fact
+     that makes deleting safe. Quiet when nothing points at the file, and a
+     control when something does — the list of places is a detail of the row
+     that asked for it. */
+  .assets-view__unused {
+    color: var(--theme-ink-faint);
+    font-size: var(--theme-text-12);
+  }
+  .assets-view__used {
+    align-self: flex-start;
+    padding: 0;
+    background: none;
+    border: none;
+    color: var(--theme-brand);
+    font: inherit;
+    font-size: var(--theme-text-12);
+    cursor: pointer;
+  }
+  .assets-view__used:hover {
+    text-decoration: underline;
+  }
+  .assets-view__places {
+    list-style: none;
+    margin: var(--theme-space-4) 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--theme-space-2);
+  }
+  .assets-view__place {
+    display: flex;
+    align-items: center;
+    gap: var(--theme-space-6);
+    inline-size: 100%;
+    padding: var(--theme-space-4) var(--theme-space-6);
+    background: var(--theme-well);
+    border: none;
+    border-radius: var(--theme-radius-xs);
+    color: var(--theme-ink);
+    font: inherit;
+    font-size: var(--theme-text-12);
+    text-align: start;
+    cursor: pointer;
+  }
+  .assets-view__place:hover {
+    background: var(--theme-brand-weak);
+  }
+  .assets-view__place-name {
+    flex: 1;
+    min-inline-size: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  /* Which space it lives in — the tie-break when two notes are called the
+     same, and never the main answer. */
+  .assets-view__place-where {
+    color: var(--theme-ink-faint);
+    flex: none;
+  }
+
+  /* ---- the picker ---- */
+  .asset-picker {
+    display: flex;
+    flex-direction: column;
+    gap: var(--theme-space-12);
+    max-block-size: 70vh;
+  }
+  .asset-picker__head {
+    display: flex;
+    align-items: center;
+    gap: var(--theme-space-12);
+  }
+  .asset-picker__head .theme-title {
+    flex: 1;
+    min-inline-size: 0;
+  }
+  .asset-picker__empty {
+    color: var(--theme-ink-muted);
+  }
+  .asset-picker__grid {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(7rem, 1fr));
+    gap: var(--theme-space-8);
+    overflow-y: auto;
+  }
+  .asset-picker__item {
+    display: flex;
+    flex-direction: column;
+    gap: var(--theme-space-4);
+    inline-size: 100%;
+    padding: var(--theme-space-4);
+    background: var(--theme-surface);
+    border: none;
+    border-radius: var(--theme-radius-sm);
+    font: inherit;
+    cursor: pointer;
+  }
+  .asset-picker__item:hover {
+    background: var(--theme-brand-weak);
+  }
+  .asset-picker__item .asset-picker__thumb {
+    block-size: 4.5rem;
+    border-radius: var(--theme-radius-xs);
+    background: var(--theme-well);
+  }
+  .asset-picker__name {
+    color: var(--theme-ink-muted);
+    font-size: var(--theme-text-12);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}

@@ -1412,3 +1412,273 @@ fn a_space_moved_into_a_group_keeps_its_pulled_tasks() {
         "the pulled task must still be in today"
     );
 }
+
+#[test]
+fn an_image_crosses_the_bridge_as_base64_and_becomes_a_banner() {
+    // The whole assets round trip, over the same commands the interface calls:
+    // import a picture, see it listed, hang it on a note, read the note back.
+    let (_lock, app, dir) = app_with_notebook();
+
+    // "Zm9v" is "foo" — the bytes do not have to be a real PNG for the file to
+    // be the file, and a real one in a test fixture would test the fixture.
+    let address = ok(
+        &app,
+        "import_asset",
+        json!({ "name": "foto.png", "data": "Zm9v" }),
+    );
+    assert_eq!(address, json!("assets/foto.png"));
+    assert_eq!(
+        std::fs::read(dir.path().join("assets/foto.png")).unwrap(),
+        b"foo"
+    );
+
+    let listed = ok(&app, "assets", json!({}));
+    assert_eq!(listed.as_array().unwrap().len(), 1);
+    assert_eq!(listed[0]["name"], json!("foto.png"));
+    assert_eq!(listed[0]["path"], json!("assets/foto.png"));
+    assert_eq!(listed[0]["size"], json!(3));
+
+    let note = ok(
+        &app,
+        "create_note",
+        json!({ "folder": "jott.notes", "inFolder": "Inbox", "title": "com banner" }),
+    );
+    let note = note.as_str().unwrap();
+    ok(
+        &app,
+        "set_note_banner",
+        json!({ "folder": "jott.notes", "path": note, "banner": "assets/foto.png" }),
+    );
+
+    // The editor gets the body WITHOUT the banner line, and the banner beside
+    // it, typed so the interface knows whether to draw a colour or an image.
+    let read = ok(
+        &app,
+        "read_note",
+        json!({ "folder": "jott.notes", "path": note }),
+    );
+    assert_eq!(read["banner"], json!({ "kind": "image", "value": "assets/foto.png" }));
+    assert_eq!(read["body"], json!(""));
+
+    // Writing the body back does not take the banner off.
+    ok(
+        &app,
+        "write_note",
+        json!({ "folder": "jott.notes", "path": note, "body": "Texto.\n" }),
+    );
+    let read = ok(
+        &app,
+        "read_note",
+        json!({ "folder": "jott.notes", "path": note }),
+    );
+    assert_eq!(read["banner"], json!({ "kind": "image", "value": "assets/foto.png" }));
+    assert_eq!(read["body"], json!("Texto.\n"));
+
+    // And the board's listing carries it, so a card draws without a second read.
+    let notes = ok(
+        &app,
+        "list_notes",
+        json!({ "folder": "jott.notes", "query": null }),
+    );
+    assert_eq!(
+        notes[0]["banner"],
+        json!({ "kind": "image", "value": "assets/foto.png" })
+    );
+
+    // Clearing it is the same command with nothing in it.
+    ok(
+        &app,
+        "set_note_banner",
+        json!({ "folder": "jott.notes", "path": note, "banner": null }),
+    );
+    let read = ok(
+        &app,
+        "read_note",
+        json!({ "folder": "jott.notes", "path": note }),
+    );
+    assert_eq!(read["banner"], json!(null));
+
+    // Deleting the picture files it in the trash, like everything else.
+    ok(&app, "delete_asset", json!({ "path": "assets/foto.png" }));
+    assert!(!dir.path().join("assets/foto.png").exists());
+    assert_eq!(ok(&app, "assets", json!({})).as_array().unwrap().len(), 0);
+}
+
+#[test]
+fn what_is_not_a_file_of_this_notebook_is_refused_over_the_bridge() {
+    let (_lock, app, _dir) = app_with_notebook();
+
+    // A payload that is not base64 is refused rather than written half-decoded.
+    assert!(invoke(&app, "import_asset", json!({ "name": "a.png", "data": "não!" })).is_err());
+    // A name that cannot be a file name.
+    assert!(invoke(&app, "import_asset", json!({ "name": "..", "data": "Zm9v" })).is_err());
+    // An address that reaches outside the library.
+    assert!(invoke(&app, "delete_asset", json!({ "path": "../.jott/config.json" })).is_err());
+
+    // What is NOT refused any more (2026-08-18): a file that is not an image.
+    // The library holds whatever a task attaches; only a banner and a note's
+    // `![](…)` still ask for something the app can draw.
+    let address = ok(&app, "import_asset", json!({ "name": "notas.pdf", "data": "Zm9v" }));
+    assert_eq!(address, json!("assets/notas.pdf"));
+    let listed = ok(&app, "assets", json!({}));
+    assert_eq!(listed[0]["image"], json!(false));
+}
+
+#[test]
+fn a_note_moves_to_another_space_over_the_bridge() {
+    // What "Select notes… → move to" does, end to end.
+    let (_lock, app, dir) = app_with_notebook();
+    let target = ok(&app, "create_space", json!({ "name": "Ideias", "kind": "notes" }));
+    let target = target.as_str().unwrap();
+
+    let note = ok(
+        &app,
+        "create_note",
+        json!({ "folder": "jott.notes", "inFolder": "Inbox", "title": "viajante" }),
+    );
+    let moved = ok(
+        &app,
+        "move_note_to_space",
+        json!({
+            "folder": "jott.notes",
+            "path": note.as_str().unwrap(),
+            "toSpace": target,
+            "toFolder": "",
+        }),
+    );
+    assert_eq!(moved, json!("viajante.md"));
+    assert!(dir.path().join(target).join("viajante.md").is_file());
+    assert!(ok(&app, "list_notes", json!({ "folder": "jott.notes", "query": null }))
+        .as_array()
+        .unwrap()
+        .is_empty());
+}
+
+#[test]
+fn the_webview_may_load_the_notebooks_images_and_nothing_else() {
+    // The one place the webview reaches a file WITHOUT going through a command
+    // (2026-08-18): an `<img>` cannot call `invoke`, so a banner is loaded by
+    // URL through Tauri's asset protocol. What that protocol will answer for is
+    // this scope — empty in `tauri.conf.json`, filled when a notebook opens.
+    //
+    // Worth a test of its own because the alternative was a scope of `**` in
+    // the config: every file on the machine reachable from the webview, in
+    // order to draw pictures from one directory.
+    use tauri::Manager;
+    let (_lock, app, dir) = app_with_notebook();
+
+    let scope = app.asset_protocol_scope();
+    assert!(scope.is_allowed(dir.path().join("assets/foto.png")));
+    // Not the notebook's config, not its notes, not the machine.
+    assert!(!scope.is_allowed(dir.path().join(".jott/config.json")));
+    assert!(!scope.is_allowed(dir.path().join("jott.notes/Inbox/nota.md")));
+    assert!(!scope.is_allowed("/etc/passwd"));
+}
+
+#[test]
+fn a_task_carries_its_attachments_over_the_bridge() {
+    // "Add files" (2026-08-18): the file goes into the notebook's library, and
+    // the task points at it with a Markdown link on a line of its own.
+    let (_lock, app, dir) = app_with_notebook();
+    let inbox = "jott.tasks/task-list.md";
+
+    ok(&app, "import_asset", json!({ "name": "nota-fiscal.pdf", "data": "Zm9v" }));
+    let id = task_with_id(&app, inbox, "Enviar proposta");
+
+    ok(
+        &app,
+        "set_task_fields",
+        json!({
+            "list": inbox,
+            "id": id,
+            "fields": {
+                "files": [{ "label": "nota-fiscal.pdf", "address": "assets/nota-fiscal.pdf" }],
+            },
+        }),
+    );
+
+    // On disk it is a plain link, readable and clickable in any editor.
+    let text = std::fs::read_to_string(dir.path().join(inbox)).unwrap();
+    assert!(text.contains("[nota-fiscal.pdf](assets/nota-fiscal.pdf)"), "{text}");
+
+    // And it comes back with the task.
+    let tasks = ok(&app, "list_tasks", json!({ "list": inbox }));
+    assert_eq!(
+        tasks[0]["files"],
+        json!([{ "label": "nota-fiscal.pdf", "address": "assets/nota-fiscal.pdf" }])
+    );
+
+    // Removing is the same call with the list it should end up as.
+    ok(
+        &app,
+        "set_task_fields",
+        json!({ "list": inbox, "id": id, "fields": { "files": [] } }),
+    );
+    let tasks = ok(&app, "list_tasks", json!({ "list": inbox }));
+    assert_eq!(tasks[0]["files"], json!([]));
+    assert!(!std::fs::read_to_string(dir.path().join(inbox)).unwrap().contains("assets/"));
+}
+
+#[test]
+fn an_attachment_outside_the_library_is_dropped_rather_than_written() {
+    // The app can only open what it put in `assets/`, so it must not write a
+    // link it could not honour — the parser would read it back as description
+    // anyway (core/src/task.rs).
+    let (_lock, app, dir) = app_with_notebook();
+    let inbox = "jott.tasks/task-list.md";
+    let id = task_with_id(&app, inbox, "Tarefa");
+
+    ok(
+        &app,
+        "set_task_fields",
+        json!({
+            "list": inbox,
+            "id": id,
+            "fields": {
+                "files": [
+                    { "label": "web", "address": "https://exemplo.com" },
+                    { "label": "fuga", "address": "assets/../.jott/config.json" },
+                    { "label": "ok.png", "address": "assets/ok.png" },
+                ],
+            },
+        }),
+    );
+
+    let text = std::fs::read_to_string(dir.path().join(inbox)).unwrap();
+    assert!(text.contains("[ok.png](assets/ok.png)"), "{text}");
+    assert!(!text.contains("exemplo.com"), "{text}");
+    assert!(!text.contains("config.json"), "{text}");
+}
+
+#[test]
+fn only_a_file_of_the_library_can_be_opened() {
+    // `open_asset` hands a path to the desktop, so what it accepts is the
+    // whole of its security: a direct child of `assets/`, and one that exists.
+    let (_lock, app, _dir) = app_with_notebook();
+    ok(&app, "import_asset", json!({ "name": "nota.pdf", "data": "Zm9v" }));
+
+    for path in [
+        "assets/../.jott/config.json",
+        "jott.notes/Inbox/nota.md",
+        "/etc/passwd",
+        "assets/nao-existe.pdf",
+    ] {
+        assert!(invoke(&app, "open_asset", json!({ "path": path })).is_err(), "{path}");
+    }
+}
+
+#[test]
+fn the_window_lets_the_webview_handle_its_own_drops() {
+    // Dropping a file into a note only reaches the DOM when Tauri's own
+    // drag-drop handler is OFF (user report, 2026-08-19: the drop did
+    // nothing). The key is easy to misspell and serde would ignore it in
+    // silence, so the real config is parsed and asked.
+    let text = std::fs::read_to_string("tauri.conf.json").unwrap();
+    let config: tauri::utils::config::Config = serde_json::from_str(&text).unwrap();
+    let window = &config.app.windows[0];
+
+    assert!(
+        !window.drag_drop_enabled,
+        "the webview must handle drops itself, or the editor never sees one"
+    );
+}

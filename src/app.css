@@ -41,6 +41,10 @@
 @import "./styles/components/icon.css";
 @import "./styles/components/editor.css";
 @import "./styles/components/note-editor.css";
+@import "./styles/components/note-banner.css";
+@import "./styles/components/note-card.css";
+@import "./styles/components/assets-view.css";
+@import "./styles/components/image-viewer.css";
 @import "./styles/components/inspector.css";
 @import "./styles/components/menu.css";
 @import "./styles/components/name-dialog.css";

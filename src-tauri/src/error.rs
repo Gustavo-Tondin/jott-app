@@ -44,6 +44,7 @@ impl From<jott_core::Error> for CommandError {
             Error::InvalidListName(_) => "invalidListName",
             Error::InvalidSpaceName(_) => "invalidSpaceName",
             Error::InvalidNotePath(_) => "invalidNotePath",
+            Error::InvalidAssetPath(_) => "invalidAssetPath",
             Error::ReadOnlyNotebook { .. } => "readOnlyNotebook",
             Error::Protected(_) => "protected",
             Error::Watch(_) => "watch",

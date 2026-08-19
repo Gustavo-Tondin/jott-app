@@ -24,7 +24,7 @@ export function viewFromId(id) {
   if (id === "day" || id === "week") return { kind: "period", period: id };
   if (id.startsWith("list:")) return { kind: "list", list: id.slice(5) };
   if (id.startsWith("sp:")) return { kind: "space", sp: id.slice(3) };
-  if (["home", "completed", "notes", "tasks", "settings"].includes(id)) {
+  if (["home", "completed", "notes", "tasks", "settings", "assets"].includes(id)) {
     return { kind: id };
   }
   return null;
@@ -48,6 +48,11 @@ export function reachable(view, f = () => true) {
       return f("notes");
     case "tags":
       return f("taskTags");
+    // The image library exists to feed notes — banners and pictures inside
+    // them. With notes switched off there is nothing to feed, and the
+    // hamburger stops offering it (shell/Sidebar.svelte).
+    case "assets":
+      return f("notes");
     default:
       return true;
   }
@@ -78,6 +83,8 @@ export function titleOf(view, spaces = []) {
       return S.tagsManagement;
     case "trash":
       return S.trash;
+    case "assets":
+      return S.assetsTitle;
     case "list":
       return listTitle(view.list);
     case "note":

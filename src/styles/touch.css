@@ -90,10 +90,11 @@
       min-block-size: var(--theme-touch-min);
     }
 
-    /* The note cards' pin, and the × on a completed task: both are drawn small
+    /* The ⋮ on a note card, and the × on a completed task: both are drawn small
        and sit at the edge of a card, which is exactly where a thumb lands by
-       accident. */
-    .notes-space__pin,
+       accident. (The pin star that used to be here went into the card's own ⋮
+       when the board was redrawn, 2026-08-18.) */
+    .note-card__more,
     .tasks-space__remove {
       min-inline-size: var(--theme-touch-min);
       min-block-size: var(--theme-touch-min);

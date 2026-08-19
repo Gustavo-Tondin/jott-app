@@ -4,6 +4,7 @@
 //! owns exactly two things the core cannot: which notebook is open right now,
 //! and the bridge to the frontend (commands in, events out).
 
+pub mod base64;
 pub mod commands;
 pub mod error;
 pub mod prefs;
@@ -108,9 +109,21 @@ pub fn configure<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builde
             commands::rename_note,
             commands::move_note,
             commands::set_note_pinned,
+            commands::set_note_banner,
+            commands::move_note_to_space,
             commands::create_note_folder,
             commands::rename_note_folder,
             commands::delete_note_folder,
+            // assets (the notebook's image library, 2026-08-18)
+            commands::assets,
+            commands::import_asset,
+            commands::import_asset_from_path,
+            commands::clipboard_files,
+            commands::delete_asset,
+            commands::open_asset,
+            commands::file_icon,
+            commands::asset_usage,
+            commands::debug_log,
             // day and week
             commands::period_state,
             commands::period_tasks,

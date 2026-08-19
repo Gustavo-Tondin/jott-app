@@ -1,0 +1,183 @@
+/* note-card.css — a note, and a folder of notes, as cards on the board.
+ * Markup: src/lib/components/NoteCard.svelte and the folder card inside
+ * src/lib/spaces/NotesSpace.svelte. Selectors are the stable BEM hooks a theme
+ * may restyle; components read tokens only.
+ *
+ * Wireframes: "Notes screen - default", "Space Notes - Desktop",
+ * "Notes Screen - mobile" (2026-08-18). A card is three things stacked — a
+ * banner, the title on a chip that straddles its bottom edge, and the first
+ * lines of the text. The chip is what makes the title readable over a
+ * photograph without a scrim over the whole picture, and it is why the title
+ * is drawn as a box rather than as text on the banner.
+ *
+ * The two neutrals do the work: the CARD is the region's raised step
+ * (`--theme-surface`) and the CHIP is its ground (`--theme-bg`) — the same
+ * pairing the sheets and the tab rows stand on, so a chip reads as lifted off
+ * the card in all three themes without a shadow or a hairline. */
+
+@layer components {
+  .note-card {
+    position: relative;
+    display: flex;
+    background: var(--theme-surface);
+    border-radius: var(--theme-radius-md);
+    padding: var(--theme-space-6);
+    transition: opacity var(--theme-transition-fast);
+  }
+  .note-card:hover {
+    opacity: 0.7;
+  }
+  /* Picked, in selection mode: the same tint a chosen task card takes. */
+  .note-card--picked {
+    background: var(--theme-brand-weak);
+  }
+  /* Pinned: the star's own colour as a hairline. The one card that keeps an
+     outline, because here it MEANS something. */
+  .note-card--pinned {
+    outline: 0.0625rem solid var(--theme-warning);
+    outline-offset: -0.0625rem;
+  }
+
+  .note-card__open {
+    display: flex;
+    flex-direction: column;
+    gap: var(--theme-space-4);
+    inline-size: 100%;
+    min-inline-size: 0;
+    padding: 0;
+    background: none;
+    border: none;
+    font: inherit;
+    text-align: start;
+    cursor: pointer;
+  }
+
+  /* The banner. A fixed height, not a ratio: the cards sit in columns of
+     different lengths and a ratio would make every card a different shape,
+     which is the one thing a board of cards must not be. */
+  .note-card__banner {
+    display: block;
+    block-size: 4.75rem;
+    border-radius: var(--theme-radius-sm);
+    background: var(--banner, var(--theme-brand));
+    overflow: hidden;
+  }
+  .note-card__image {
+    display: block;
+    inline-size: 100%;
+    block-size: 100%;
+    object-fit: cover;
+  }
+  /* The address points at a picture that is not there. The placeholder is the
+     grey square the wireframe draws, so the card keeps its shape. */
+  .note-card__banner--image {
+    background: var(--theme-well);
+  }
+  .note-card__missing {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    block-size: 100%;
+    color: var(--theme-ink-faint);
+  }
+
+  .note-card__title {
+    min-inline-size: 0;
+    font-size: var(--theme-text-14);
+    font-weight: var(--theme-weight-bold);
+    color: var(--theme-ink);
+    overflow-wrap: anywhere;
+  }
+  /* Over the banner's bottom edge, aligned to the start — the negative margin
+     is what makes it straddle rather than sit under. */
+  .note-card__title--chip {
+    align-self: start;
+    margin-block-start: -0.875rem;
+    margin-inline-start: var(--theme-space-6);
+    max-inline-size: calc(100% - var(--theme-space-12));
+    padding: var(--theme-space-2) var(--theme-space-8);
+    background: var(--theme-bg);
+    border-radius: var(--theme-radius-xs);
+  }
+
+  .note-card__preview {
+    color: var(--theme-ink-muted);
+    font-size: var(--theme-text-13);
+    line-height: var(--theme-leading-normal);
+    max-block-size: 10.4em;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+  }
+
+  /* The ⋮, in the corner of the card. Over the banner when there is one, so it
+     is always in the same place.
+     The WRAPPER is what is placed, not the button: the panel it opens is
+     anchored to `.menu` (menu.css), so moving the button alone would leave the
+     dropdown hanging off the bottom of the card. */
+  .note-card > .menu {
+    position: absolute;
+    inset-block-start: var(--theme-space-8);
+    inset-inline-end: var(--theme-space-8);
+  }
+  .note-card__more {
+    color: var(--theme-ink-muted);
+  }
+
+  /* The small card inside a folder card: a title, and nothing else. */
+  .note-card--small {
+    padding: var(--theme-space-8);
+    background: var(--theme-bg);
+    border-radius: var(--theme-radius-sm);
+  }
+  .note-card--small .note-card__title {
+    font-size: var(--theme-text-13);
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* ---- a folder of notes, as one card ---- */
+  .note-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--theme-space-8);
+    padding: var(--theme-space-8);
+    background: var(--accent-tint-color, var(--theme-brand-weak));
+    border-radius: var(--theme-radius-md);
+  }
+  .note-group__head {
+    display: flex;
+    align-items: center;
+    gap: var(--theme-space-6);
+    padding: var(--theme-space-2) var(--theme-space-4);
+    background: none;
+    border: none;
+    font: inherit;
+    color: var(--accent-color, var(--theme-brand));
+    cursor: pointer;
+  }
+  .note-group__name {
+    flex: 1;
+    min-inline-size: 0;
+    font-weight: var(--theme-weight-semibold);
+    text-align: start;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .note-group__count {
+    font-size: var(--theme-text-12);
+    color: var(--theme-ink-muted);
+  }
+  /* Two by two, as the wireframe draws — a folder card says "there are notes
+     in here", it does not list them. */
+  .note-group__notes {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--theme-space-6);
+  }
+  .note-group__notes:empty {
+    display: none;
+  }
+}

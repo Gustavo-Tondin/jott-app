@@ -30,6 +30,7 @@
   import Menu from "./Menu.svelte";
   import Icon from "./Icon.svelte";
   import DatePicker from "./DatePicker.svelte";
+  import AssetPicker from "./AssetPicker.svelte";
   import TagPicker from "./TagPicker.svelte";
 
   let {
@@ -57,6 +58,10 @@
     /// takes it back out. A lit button that does nothing when pressed is a
     /// button that reads as broken (user call, 2026-08-06).
     inDay = false,
+    /// The notebook's root, absolute — the file picker draws thumbnails of
+    /// what it can draw, and an address resolves against it
+    /// (services/assets.js).
+    root = null,
     /// `(key) => boolean` — is this part of the app switched on? A field
     /// switched off leaves the PANEL only: the draft still carries it and
     /// `set_task_fields` still writes it back, so nothing is lost while it is
@@ -165,6 +170,9 @@
         .map((line) => line.trim())
         .filter(Boolean),
       repeat: repeatText(draft),
+      // Whole, and as `{label, address}`: a label someone wrote by hand in the
+      // `.md` has to survive an add or a remove made here (core/src/task.rs).
+      files: draft.files.map((f) => ({ label: f.label, address: f.address })),
       subtasks: draft.subtasks.map((s) => ({ text: s.text, done: s.done })),
     };
   }
@@ -183,9 +191,32 @@
       description: (t?.description ?? []).join("\n"),
       repeatEvery: t?.repeat?.every ?? 1,
       repeatUnit: t?.repeat?.unit ?? "",
+      files: (t?.files ?? []).map((f) => ({ ...f })),
       subtasks: (t?.subtasks ?? []).map((s) => ({ ...s })),
     };
   }
+
+  // ---- attachments (2026-08-18) ----
+  // The task points at a file of the notebook's library; the library screen
+  // (and the picker) is where the file itself is managed. Attaching the same
+  // file twice is a no-op rather than a second chip: the address IS the
+  // attachment, and two links to one file say nothing new.
+  let picking = $state(false);
+
+  function attach(address) {
+    picking = false;
+    if (!address || draft.files.some((f) => f.address === address)) return;
+    const label = address.split("/").pop() ?? address;
+    draft.files = [...draft.files, { label, address }];
+  }
+
+  const detach = (address) =>
+    (draft.files = draft.files.filter((f) => f.address !== address));
+
+  /// Opens it in whatever the system uses for that kind of file. Detaching is
+  /// the × beside it; the FILE is only ever deleted from the library screen,
+  /// where deleting is about the file and not about this task.
+  const openFile = (address) => api.openAsset(address).catch((e) => onError?.(e));
 
   /// Removing a date needs its own control: the picker can set a day but has no
   /// gesture for "none", so the inspector keeps its own × to clear it.
@@ -605,12 +636,39 @@
         ></textarea>
       {/if}
       {#if f("files")}
-        <div class="inspector__field inspector__field--muted" title={S.comingSoon}>
-          <span class="inspector__field-label">
-            <Icon name="paperclip" size="1rem" />
-            {S.addFilesLabel}
-          </span>
-        </div>
+        <!-- Attachments. Each one is a plain Markdown link in the `.md`
+             (spec 3.2), so what is drawn here is what someone reading the file
+             in any editor sees — a name, and the file behind it. -->
+        {#each draft.files as file (file.address)}
+          <div class="inspector__field inspector__file">
+            <button
+              class="inspector__file-open"
+              onclick={() => openFile(file.address)}
+              title={S.openFile}
+            >
+              <Icon name="paperclip" size="1rem" />
+              <span class="inspector__file-name">{file.label}</span>
+            </button>
+            {#if !readOnly}
+              <button
+                class="theme-btn--icon"
+                onclick={() => detach(file.address)}
+                aria-label={S.removeAttachment}
+                title={S.removeAttachment}
+              >
+                <Icon name="x" size="0.875rem" />
+              </button>
+            {/if}
+          </div>
+        {/each}
+        {#if !readOnly}
+          <button class="inspector__field inspector__add-file" onclick={() => (picking = true)}>
+            <span class="inspector__field-label">
+              <Icon name="paperclip" size="1rem" />
+              {S.addFilesLabel}
+            </span>
+          </button>
+        {/if}
       {/if}
     </div>
     {/if}
@@ -665,3 +723,17 @@
     </button>
   </footer>
 </aside>
+
+<!-- The library, as a question: which file? It is `position: fixed` over the
+     whole viewport (controls.css), so it opens out of the panel it was asked
+     from rather than inside it. `imagesOnly` is false here: a task attaches a
+     PDF as readily as a photo (2026-08-18). -->
+{#if picking}
+  <AssetPicker
+    {root}
+    {readOnly}
+    onPick={attach}
+    onClose={() => (picking = false)}
+    {onError}
+  />
+{/if}

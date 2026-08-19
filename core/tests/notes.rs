@@ -405,3 +405,171 @@ fn a_deleted_note_goes_to_the_notebooks_trash_and_comes_back() {
     assert!(restored.is_file(), "restore puts it back at its origin");
     assert!(read(&restored).contains("Conteúdo que importa"));
 }
+
+#[test]
+fn a_note_moves_to_another_space_without_overwriting_what_is_there() {
+    // "Select notes… → move to" (2026-08-18) crosses the border between two
+    // spaces, which `NoteFolder::move_to` cannot do and should not: a space
+    // has no way to reach into another one. The notebook is what knows both.
+    let dir = tempfile::tempdir().unwrap();
+    let nb = Notebook::init(dir.path()).unwrap();
+    let other = nb.create_space("Ideias", "notes").unwrap();
+
+    let notes = nb.note_folder("jott.notes").unwrap();
+    let path = notes.create("Inbox", "receita", today()).unwrap();
+    notes.write(&path, "Bolo de fubá.\n", today()).unwrap();
+
+    let moved = nb
+        .move_note_to_space("jott.notes", &path, &other, "")
+        .unwrap();
+    assert_eq!(moved, "receita.md");
+    assert!(notes.notes().unwrap().is_empty(), "left the old space");
+    let arrived = dir.path().join(&other).join("receita.md");
+    assert!(read(&arrived).contains("Bolo de fubá"));
+
+    // A second note of the same name is suffixed, never overwritten.
+    let again = notes.create("Inbox", "receita", today()).unwrap();
+    notes.write(&again, "Pão de queijo.\n", today()).unwrap();
+    let second = nb
+        .move_note_to_space("jott.notes", &again, &other, "")
+        .unwrap();
+    assert_ne!(second, "receita.md");
+    assert!(read(&arrived).contains("Bolo de fubá"), "the first is intact");
+}
+
+#[test]
+fn a_moved_note_keeps_pointing_at_the_same_image() {
+    // The reason the asset address is relative to the notebook ROOT and not to
+    // the note (user call, 2026-08-18): moving is now a two-click bulk action,
+    // and a `../../assets/x.png` would have to be rewritten on every one of
+    // them. Nothing is rewritten here — that is the test.
+    let dir = tempfile::tempdir().unwrap();
+    let nb = Notebook::init(dir.path()).unwrap();
+    let other = nb.create_space("Ideias", "notes").unwrap();
+    nb.import_asset("foto.png", b"png-bytes").unwrap();
+
+    let notes = nb.note_folder("jott.notes").unwrap();
+    let path = notes.create("Inbox", "com imagem", today()).unwrap();
+    notes
+        .write(&path, "<!--banner: assets/foto.png-->\n\n![](assets/foto.png)\n", today())
+        .unwrap();
+    let before = read(dir.path().join("jott.notes/Inbox/com imagem.md"));
+
+    let moved = nb
+        .move_note_to_space("jott.notes", &path, &other, "")
+        .unwrap();
+    assert_eq!(
+        read(dir.path().join(&other).join(&moved)),
+        before,
+        "byte for byte — a move is a move, not an edit"
+    );
+    // And the address still resolves, from a note two folders away.
+    assert!(nb.asset_file("assets/foto.png").unwrap().is_file());
+}
+
+#[test]
+fn the_library_says_which_files_are_used_and_where() {
+    // What the Images screen asks (2026-08-19): a file nobody points at is
+    // room being taken up, and a file that IS pointed at is worth a way to
+    // what points at it.
+    let dir = tempfile::tempdir().unwrap();
+    let nb = Notebook::init(dir.path()).unwrap();
+    nb.import_asset("usada.png", b"x").unwrap();
+    nb.import_asset("banner.png", b"x").unwrap();
+    nb.import_asset("anexo.pdf", b"x").unwrap();
+    nb.import_asset("esquecida.png", b"x").unwrap();
+
+    let notes = nb.note_folder("jott.notes").unwrap();
+    let one = notes.create("Inbox", "com imagem", today()).unwrap();
+    // The app's own syntax for a file in a note.
+    notes.write(&one, "olha só\n\n[[/usada.png]]\n", today()).unwrap();
+    // And a note whose ONLY use of a file is its banner — which the core
+    // lifts off the body, so it has to be looked for separately.
+    let two = notes.create("Inbox", "com banner", today()).unwrap();
+    notes.write(&two, "<!--banner: assets/banner.png-->\n\nnada mais\n", today()).unwrap();
+
+    let list = "jott.tasks/task-list.md";
+    nb.create_task(list, "Enviar proposta").unwrap();
+    let id = nb.ensure_task_id(list, 0).unwrap();
+    let mut tasks = nb.open_list(list).unwrap();
+    tasks.task_mut(&id).unwrap().files = vec![jott_core::task::Attachment::of("assets/anexo.pdf")];
+    tasks.save().unwrap();
+
+    let used = nb.asset_usage().unwrap();
+
+    assert_eq!(used["assets/usada.png"].len(), 1);
+    assert_eq!(used["assets/usada.png"][0].title, "com imagem");
+    assert_eq!(used["assets/banner.png"][0].title, "com banner");
+    assert_eq!(used["assets/anexo.pdf"][0].title, "Enviar proposta");
+    // The one nobody named simply is not in the answer.
+    assert!(!used.contains_key("assets/esquecida.png"));
+}
+
+#[test]
+fn a_file_named_by_a_plain_markdown_link_still_counts_as_used() {
+    // The app writes `[[/x]]`, but the file is the user's and they may have
+    // written the address by hand, or in a link, or in a note that predates
+    // the syntax. Saying "unused" about a file a note is showing would be a
+    // lie with a delete button next to it.
+    let dir = tempfile::tempdir().unwrap();
+    let nb = Notebook::init(dir.path()).unwrap();
+    nb.import_asset("foto.png", b"x").unwrap();
+
+    let notes = nb.note_folder("jott.notes").unwrap();
+    let path = notes.create("Inbox", "à mão", today()).unwrap();
+    notes.write(&path, "![](assets/foto.png)\n", today()).unwrap();
+
+    assert_eq!(nb.asset_usage().unwrap()["assets/foto.png"].len(), 1);
+}
+
+#[test]
+fn a_deleted_asset_goes_to_the_trash_like_everything_else() {
+    let dir = tempfile::tempdir().unwrap();
+    let nb = Notebook::init(dir.path()).unwrap();
+    let address = nb.import_asset("logo.png", b"png-bytes").unwrap();
+    assert_eq!(address, "assets/logo.png");
+    assert!(dir.path().join("assets/logo.png").is_file());
+
+    nb.delete_asset(&address).unwrap();
+    assert!(!dir.path().join("assets/logo.png").exists());
+    assert_eq!(nb.trash_entries()[0].origin, "assets/logo.png");
+
+    // An image can be the banner of a note written a year ago, so it comes
+    // back the same way a note does.
+    let id = nb.trash_entries()[0].id.clone();
+    nb.restore_from_trash(&id).unwrap();
+    assert_eq!(std::fs::read(dir.path().join("assets/logo.png")).unwrap(), b"png-bytes");
+}
+
+#[test]
+fn the_banner_survives_the_editor_writing_the_body() {
+    // The editor is handed the body WITHOUT the banner line and writes it back
+    // the same way; the banner has to outlive that round trip, or typing into
+    // a note would silently take its head off.
+    let (dir, notes) = folder();
+    let path = notes.create("Inbox", "com banner", today()).unwrap();
+    notes
+        .set_banner(&path, Some(jott_core::Banner::Color("yellow".into())))
+        .unwrap();
+
+    let read_back = notes.read(&path).unwrap();
+    assert_eq!(read_back.banner, Some(jott_core::Banner::Color("yellow".into())));
+    assert_eq!(read_back.body, "", "the editor never sees the banner line");
+
+    notes.write(&path, "Texto novo.\n", today()).unwrap();
+    let after = notes.read(&path).unwrap();
+    assert_eq!(after.banner, Some(jott_core::Banner::Color("yellow".into())));
+    assert_eq!(after.body, "Texto novo.\n");
+
+    // And the listing carries it, so a card can draw it without reading the
+    // file a second time.
+    let listed = notes.notes().unwrap();
+    assert_eq!(listed[0].banner, Some(jott_core::Banner::Color("yellow".into())));
+
+    // On disk it is the documented line, and the note is still plain markdown.
+    let on_disk = read(dir.path().join("jott.notes/Inbox/com banner.md"));
+    assert!(on_disk.contains("<!--banner: yellow-->"), "{on_disk}");
+
+    notes.set_banner(&path, None).unwrap();
+    assert!(!read(dir.path().join("jott.notes/Inbox/com banner.md")).contains("banner"));
+}

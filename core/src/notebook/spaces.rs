@@ -148,6 +148,15 @@ impl Notebook {
         if !crate::relpath::is_safe_leaf(name) {
             return Err(Error::InvalidSpaceName(name.to_string()));
         }
+        // `assets/` is the notebook's image library (2026-08-18) and lives at
+        // the root, so a space of that name would end up holding it. Refused
+        // by NAME rather than only where it would actually collide, the same
+        // way `completed` and `task-list` are: a word the app writes files
+        // under is not a word the user gets to name a folder with, and a rule
+        // that depends on where you are is a rule nobody can predict.
+        if name.eq_ignore_ascii_case(crate::assets::ASSETS_DIR) {
+            return Err(Error::InvalidSpaceName(format!("{name} is reserved")));
+        }
         Ok(())
     }
 

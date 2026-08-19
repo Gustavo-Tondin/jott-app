@@ -87,85 +87,63 @@
     color: var(--theme-ink);
   }
 
-  /* The grid is a board of cards; the tree view is one column, since it is
-     already filtered to a folder. */
+  /* The board flows in COLUMNS (2026-08-18, wireframes "Notes screen" and
+     "Space Notes"): a card is as tall as its own text, and the next one starts
+     where it ended. A grid of rows made every card in a row as tall as the
+     longest of them, which is what left the ragged white gaps the wireframes
+     do not have.
+
+     `columns: <width>` and not a count: the board narrows when the right panel
+     opens, and a width lets the browser drop a column instead of squeezing
+     three. `break-inside` is what keeps a card from being cut in half at the
+     bottom of a column. */
   .notes-space__board {
     list-style: none;
     margin: 0;
     padding: 0;
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
-    gap: var(--theme-space-12);
-    align-items: start;
+    columns: 15rem;
+    column-gap: var(--theme-space-12);
   }
+  .notes-space__board > li {
+    break-inside: avoid;
+    margin-block-end: var(--theme-space-12);
+  }
+  /* The tree view is one column: it is already filtered to a folder, so it
+     reads as a list on purpose. */
   .notes-space__board--tree {
-    grid-template-columns: 1fr;
+    columns: 1;
   }
 
-  /* One note: the same card the Home shows (.home__note) — a raised surface,
-     borderless, dimming on hover. It follows the task cards (2026-08-13): the
-     ground step is the card, and a hairline on top of it outlined every item
-     in the grid. */
-  .notes-space__item {
-    position: relative;
-    background: var(--theme-surface);
-    border: none;
-    border-radius: var(--theme-radius-md);
-    transition: opacity var(--theme-transition-fast);
-  }
-  .notes-space__item:hover {
-    opacity: 0.7;
-  }
-  /* Pinned: the star's own colour, so the card says so without a second cue.
-     The one card that keeps an outline, because here it MEANS something. */
-  .notes-space__item--pinned {
-    border: 0.0625rem solid var(--theme-warning);
-  }
-  .notes-space__card {
+  /* What a card LOOKS like is note-card.css now (2026-08-18): the board draws
+     none of it, because the same card is drawn inside a folder card too. What
+     is left here is the slot it sits in — and the pin star that used to sit in
+     its corner is gone with it, into the card's own ⋮. */
+
+  /* The bulk-selection row, in place of the title (spaces/NotesSpace.svelte).
+     The same shape the tasks screen's header takes. */
+  .notes-space__tools {
+    flex: 1;
     display: flex;
-    flex-direction: column;
-    gap: var(--theme-space-4);
-    width: 100%;
-    padding: var(--theme-space-12);
-    background: none;
-    border: none;
-    font: inherit;
-    text-align: left;
-    cursor: pointer;
+    align-items: center;
+    gap: var(--theme-space-8);
+    justify-content: end;
   }
-  .notes-space__card-title {
-    font-size: var(--theme-text-14);
-    font-weight: var(--theme-weight-bold);
-    color: var(--theme-ink);
-  }
-  .notes-space__preview {
+  .notes-space__picked {
     color: var(--theme-ink-muted);
     font-size: var(--theme-text-13);
-    line-height: var(--theme-leading-normal);
-    max-height: 5.4em;
-    overflow: hidden;
-  }
-  .notes-space__meta {
-    color: var(--theme-ink-faint);
-    font-size: var(--theme-text-12);
+    white-space: nowrap;
   }
 
-  .notes-space__pin {
-    position: absolute;
-    top: var(--theme-space-4);
-    inset-inline-end: var(--theme-space-6);
-    padding: 0;
-    background: none;
-    border: none;
-    color: var(--theme-ink-faint);
-    font-size: var(--theme-text-14);
-    cursor: pointer;
+  /* Inside a folder card: the way back, and where you are. */
+  .notes-space__crumbs {
+    display: flex;
+    align-items: center;
+    gap: var(--theme-space-8);
+    margin-block-end: var(--theme-space-12);
   }
-  .notes-space__pin:hover {
+  .notes-space__crumb {
     color: var(--theme-ink-muted);
-  }
-  .notes-space__item--pinned .notes-space__pin {
-    color: var(--theme-warning);
+    font-size: var(--theme-text-13);
   }
 
   .notes-space__empty {
@@ -177,18 +155,21 @@
    THE COMPACT BOARD (below 768px — "Notes Screen - mobile").
    ============================================================================= */
 @layer components {
-  /* TWO columns, always. `auto-fill` with a 13rem minimum resolves to ONE on a
-     360px screen, and a board of one column per card is a list — which loses
-     the only thing a board is for, seeing several notes at once. Two named
-     columns of `1fr` say what the wireframe draws and let the cards be as
-     narrow as they have to be. */
+  /* TWO columns, always. A 15rem column resolves to ONE on a 360px screen, and
+     a board of one column per card is a list — which loses the only thing a
+     board is for, seeing several notes at once. A count, not a width, says
+     what the wireframe draws and lets the cards be as narrow as they have to
+     be. */
   .shell--compact .notes-space__board {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: var(--theme-space-8);
+    columns: 2;
+    column-gap: var(--theme-space-8);
+  }
+  .shell--compact .notes-space__board > li {
+    margin-block-end: var(--theme-space-8);
   }
   /* The tree view stays one column: it is a list on purpose. */
   .shell--compact .notes-space__board--tree {
-    grid-template-columns: 1fr;
+    columns: 1;
   }
 
   /* The toolbar wraps instead of overflowing: search, the two view buttons and

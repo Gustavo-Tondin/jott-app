@@ -229,6 +229,47 @@
     min-height: 7rem;
   }
 
+  /* One attachment: the name is the button that opens it, the × takes it off
+     the task. Deleting the FILE is the library screen's job — here the two
+     would be one click apart and mean very different things. */
+  .inspector__file-open {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--theme-space-8);
+    flex: 1;
+    min-inline-size: 0;
+    padding: 0;
+    background: none;
+    border: none;
+    color: inherit;
+    font: inherit;
+    font-size: var(--theme-text-13);
+    text-align: start;
+    cursor: pointer;
+  }
+  .inspector__file-open:hover .inspector__file-name {
+    color: var(--theme-brand);
+  }
+  .inspector__file-name {
+    min-inline-size: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  /* "Add files" is a whole row that presses, like the fields above it. */
+  .inspector__add-file {
+    inline-size: 100%;
+    border: none;
+    color: var(--theme-ink-muted);
+    font: inherit;
+    font-size: var(--theme-text-13);
+    text-align: start;
+    cursor: pointer;
+  }
+  .inspector__add-file:hover {
+    color: var(--theme-ink);
+  }
+
   /* ---- footer (the pane foot): origin · trash. Pinned at the bottom, always
      visible; the top-border divider comes from .theme-pane-foot. ---- */
   .inspector__footer {

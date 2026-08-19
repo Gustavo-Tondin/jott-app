@@ -1,0 +1,116 @@
+/* note-banner.css — the head of an open note: its banner and its title.
+ * Markup: src/lib/components/NoteBanner.svelte. Selectors are the stable BEM
+ * hooks a theme may restyle; components read tokens only.
+ *
+ * Wireframes "Editor screen - maximized" and "Editor Screen mobile"
+ * (2026-08-18): a wide block of colour or picture, the title on a chip
+ * straddling its bottom edge, a ⋮ in the top right. The same three parts a
+ * note card has — the card is this, small (note-card.css).
+ *
+ * It is WIDER than the text it heads. The note's prose is capped at
+ * `--theme-content-max` like every other screen (shell.css), and the banner
+ * reaches past that cap to the edges of the panel, which is what the wireframe
+ * draws and what makes it read as the head of the page rather than as the
+ * first paragraph of it. The negative margin is bounded by the padding
+ * `.shell__content` already keeps, so it can never touch the panel's edge. */
+
+@layer components {
+  .note-banner {
+    position: relative;
+    display: flex;
+    align-items: end;
+    block-size: 7rem;
+    margin-inline: calc(var(--theme-space-16) * -1);
+    margin-block-end: var(--theme-space-24);
+    padding: var(--theme-space-12);
+    background: var(--banner, var(--theme-brand));
+    border-radius: var(--theme-radius-lg);
+    overflow: hidden;
+  }
+  .note-banner__image {
+    position: absolute;
+    inset: 0;
+    inline-size: 100%;
+    block-size: 100%;
+    object-fit: cover;
+  }
+  /* A picture may be any colour at all, so the block under it is the region's
+     quiet step rather than the accent — what shows while it loads, and what
+     stays if the file is gone. */
+  .note-banner--image {
+    background: var(--theme-well);
+  }
+
+  /* The title, on its chip. The ground's neutral over the banner's colour, the
+     same lift the cards use. */
+  .note-banner__title {
+    position: relative;
+    max-inline-size: 100%;
+    margin: 0;
+    padding: var(--theme-space-6) var(--theme-space-12);
+    background: var(--theme-bg);
+    border-radius: var(--theme-radius-sm);
+    color: var(--theme-ink);
+    font-size: var(--theme-text-20);
+    font-weight: var(--theme-weight-bold);
+    line-height: var(--theme-leading-tight);
+    overflow-wrap: anywhere;
+  }
+
+  /* No banner: the note is its title, and nothing above it. */
+  .note-banner__plain {
+    margin-block-end: var(--theme-space-16);
+  }
+
+  .note-banner__menu {
+    position: absolute;
+    inset-block-start: var(--theme-space-8);
+    inset-inline-end: var(--theme-space-8);
+  }
+  /* On a picture the glyph has to hold against whatever is under it, so it
+     travels with its own ground — the one place in the app where a control
+     carries a chip of its own. */
+  .note-banner__more {
+    background: var(--theme-bg);
+    border-radius: var(--theme-radius-pill);
+    color: var(--theme-ink-muted);
+  }
+  .note-banner__panel {
+    display: flex;
+    flex-direction: column;
+    gap: var(--theme-space-8);
+    padding: var(--theme-space-10);
+  }
+  .note-banner__action {
+    padding: 0;
+    background: none;
+    border: none;
+    color: var(--theme-ink);
+    font: inherit;
+    font-size: var(--theme-text-13);
+    text-align: start;
+    cursor: pointer;
+  }
+  .note-banner__action:hover {
+    color: var(--theme-brand);
+  }
+}
+
+/* =============================================================================
+   THE COMPACT HEAD (below 768px — "Editor Screen mobile").
+   ============================================================================= */
+@layer components {
+  /* Flush with the screen: on a phone the note IS the screen, and the wireframe
+     draws the banner touching all three edges, with square top corners under
+     the app's own bar. */
+  .shell--compact .note-banner {
+    block-size: 6.25rem;
+    margin-inline: calc(var(--theme-space-16) * -1);
+    margin-block-start: calc(var(--theme-space-12) * -1);
+    border-start-start-radius: 0;
+    border-start-end-radius: 0;
+  }
+  .shell--compact .note-banner__title {
+    font-size: var(--theme-text-18);
+  }
+}

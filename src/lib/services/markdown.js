@@ -118,7 +118,12 @@ class BulletWidget extends WidgetType {
 const BULLETS = new Set(["-", "*", "+"]);
 
 /// Line numbers the selection touches — the lines that stay raw.
-function activeLines(state) {
+///
+/// Exported because the file embeds (`services/embeds.js`) obey the same rule
+/// and must obey the SAME answer: a line that shows its `[[/foto.jpg]]` is a
+/// line showing its syntax, and two implementations of "which lines are
+/// active" would eventually disagree on one of them.
+export function activeLines(state) {
   const lines = new Set();
   for (const range of state.selection.ranges) {
     const first = state.doc.lineAt(range.from).number;

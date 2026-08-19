@@ -1,6 +1,6 @@
 {
   "name": "jott",
-  "version": "0.12.1",
+  "version": "0.14.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -12,6 +12,7 @@
     "package": "NO_STRIP=1 tauri build"
   },
   "dependencies": {
+    "@codemirror/autocomplete": "6.20.3",
     "@codemirror/commands": "6.7.1",
     "@codemirror/lang-markdown": "6.3.1",
     "@codemirror/language": "6.10.3",

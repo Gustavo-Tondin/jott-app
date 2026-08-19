@@ -6,7 +6,7 @@
 // the core does the right thing with those calls — that lives in Rust, and
 // duplicating it here would just be a slower copy.
 
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/svelte";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/svelte";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { pace } from "./services/pace.js";
@@ -42,7 +42,12 @@ if (typeof Element !== "undefined" && !Element.prototype.animate) {
 }
 
 const invoke = vi.fn();
-vi.mock("@tauri-apps/api/core", () => ({ invoke: (...args) => invoke(...args) }));
+vi.mock("@tauri-apps/api/core", () => ({
+  invoke: (...args) => invoke(...args),
+  // What an <img> loads a notebook file from (services/assets.js). There is no
+  // asset protocol in jsdom; the path is what matters here.
+  convertFileSrc: (path) => `asset://localhost/${encodeURIComponent(path)}`,
+}));
 // The note editor's engine is CodeMirror, which needs a real layout jsdom
 // cannot give it. These tests are about the *editor screen* — auto-save,
 // flush on close, read-only — so the engine is stubbed by a textarea and the
@@ -79,6 +84,8 @@ const { default: PageHeader } = await import("./shell/PageHeader.svelte");
 const { default: TabBar } = await import("./shell/TabBar.svelte");
 const { default: SettingsView } = await import("./screens/SettingsView.svelte");
 const { default: NewTaskDialog } = await import("./components/NewTaskDialog.svelte");
+const { default: NoteBanner } = await import("./components/NoteBanner.svelte");
+const { default: AssetsView } = await import("./screens/AssetsView.svelte");
 
 const task = (id, text, extra = {}) => ({
   id,
@@ -1099,6 +1106,135 @@ describe("TaskInspector", () => {
     expect(screen.queryByPlaceholderText("New tag…")).toBeNull();
     expect(screen.getByLabelText("task name").disabled).toBe(true);
     expect(saveCount()).toBe(0);
+  });
+
+  // ---- attachments (2026-08-18) ----
+  // "Add files" stopped being an honest placeholder: the file lives in the
+  // notebook's library and the task points at it with a Markdown link.
+
+  const withFiles = (extra = {}) => ({ root: "/home/gus/Caderno", ...extra });
+
+  test("attaching a file from the library saves a link on the task", async () => {
+    bridge({
+      set_task_fields: null,
+      assets: [{ path: "assets/nota.pdf", name: "nota.pdf", size: 10, modified: 1, image: false }],
+    });
+
+    render(TaskInspector, { props: props(task("a1", "Enviar proposta"), withFiles()) });
+
+    await userEvent.click(await screen.findByText("Add files"));
+    // The picker offers what the library holds, image or not.
+    await userEvent.click(await screen.findByTitle("nota.pdf"));
+
+    await waitFor(() =>
+      expect(lastSave().fields.files).toEqual([
+        { label: "nota.pdf", address: "assets/nota.pdf" },
+      ]),
+    );
+    // And the chip is on the panel, named after the file.
+    expect(screen.getByText("nota.pdf")).toBeTruthy();
+  });
+
+  // The engine's own semantics, measured in WebKit 2.4.1 (the app's Linux
+  // webview) before this test was written: resetting a file input CLEARS the
+  // very `FileList` object the handler is holding — WebKit's
+  // `FileInputType::setValue` calls `m_fileList->clear()`, while Blink swaps
+  // in a fresh empty list. A handler that resets first and reads afterwards
+  // imports nothing, in silence, on Linux only.
+  function webkitFileInput(input, files) {
+    const held = [...files];
+    held.item = (i) => held[i] ?? null;
+    Object.defineProperty(input, "files", { configurable: true, get: () => held });
+    Object.defineProperty(input, "value", {
+      configurable: true,
+      get: () => (held.length ? held[0].name : ""),
+      set: () => (held.length = 0),
+    });
+  }
+
+  test("importing a file from the picker survives the input being reset", async () => {
+    const imported = [];
+    bridge({
+      set_task_fields: null,
+      assets: () => imported.map((name) => ({ path: `assets/${name}`, name, size: 4, modified: 1, image: true })),
+      import_asset: ({ name }) => {
+        imported.push(name);
+        return `assets/${name}`;
+      },
+    });
+
+    const { container } = render(TaskInspector, {
+      props: props(task("a1", "Enviar proposta"), withFiles()),
+    });
+    await userEvent.click(await screen.findByText("Add files"));
+
+    const input = await waitFor(() => {
+      const found = container.ownerDocument.querySelector(".asset-picker__input");
+      if (!found) throw new Error("no file input");
+      return found;
+    });
+    webkitFileInput(input, [new File(["png!"], "foto.png", { type: "image/png" })]);
+    await fireEvent.change(input);
+
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("import_asset", {
+        name: "foto.png",
+        // "png!" in base64 — the bytes the bridge decodes.
+        data: "cG5nIQ==",
+      }),
+    );
+    // And the file it just imported is the one attached, without a second ask.
+    await waitFor(() =>
+      expect(lastSave().fields.files).toEqual([
+        { label: "foto.png", address: "assets/foto.png" },
+      ]),
+    );
+  });
+
+  test("a task opens with the files it already has, and can drop one", async () => {
+    bridge({ set_task_fields: null, open_asset: null });
+    const attached = task("a1", "Enviar proposta", {
+      files: [{ label: "o contrato assinado", address: "assets/contrato.pdf" }],
+    });
+
+    render(TaskInspector, { props: props(attached, withFiles()) });
+
+    // The LABEL from the file, not the address: someone may have written it.
+    await userEvent.click(await screen.findByText("o contrato assinado"));
+    expect(invoke).toHaveBeenCalledWith("open_asset", { path: "assets/contrato.pdf" });
+
+    await userEvent.click(screen.getByLabelText("Remove attachment"));
+    await waitFor(() => expect(lastSave().fields.files).toEqual([]));
+  });
+
+  test("attaching the same file twice says nothing new", async () => {
+    bridge({
+      set_task_fields: null,
+      assets: [{ path: "assets/nota.pdf", name: "nota.pdf", size: 10, modified: 1, image: false }],
+    });
+    const attached = task("a1", "Enviar proposta", {
+      files: [{ label: "nota.pdf", address: "assets/nota.pdf" }],
+    });
+
+    render(TaskInspector, { props: props(attached, withFiles()) });
+    await userEvent.click(await screen.findByText("Add files"));
+    await userEvent.click(await screen.findByTitle("nota.pdf"));
+
+    // Nothing was written: the address IS the attachment, and two links to one
+    // file say nothing new.
+    expect(saveCount()).toBe(0);
+  });
+
+  test("a read-only notebook shows the attachments and offers no way to change them", async () => {
+    const attached = task("a1", "Enviar proposta", {
+      files: [{ label: "nota.pdf", address: "assets/nota.pdf" }],
+    });
+
+    render(TaskInspector, { props: props(attached, withFiles({ readOnly: true })) });
+
+    expect(await screen.findByText("nota.pdf")).toBeTruthy();
+    expect(screen.queryByText("Add files")).toBeNull();
+    expect(screen.queryByLabelText("Remove attachment")).toBeNull();
   });
 });
 
@@ -2204,10 +2340,14 @@ describe("NotesSpace", () => {
   });
 
   test("pinning goes through the core and reloads", async () => {
+    // The star that used to sit on the corner of a card is gone with the
+    // board's redraw (2026-08-18): a card carries one control, the ⋮ the
+    // wireframes draw, and pinning is an item in it.
     bridge({ list_notes: [entry("Ideia")], note_folders: [], set_note_pinned: null });
 
     render(NotesSpace, { props: props() });
-    await userEvent.click(await screen.findByLabelText("pin"));
+    await userEvent.click(await screen.findByLabelText("note options"));
+    await userEvent.click(await screen.findByText("pin"));
 
     await waitFor(() =>
       expect(invoke).toHaveBeenCalledWith("set_note_pinned", {
@@ -2258,7 +2398,362 @@ describe("NotesSpace", () => {
 
     await screen.findByText("Ideia");
     expect(screen.queryByText("+ new note")).toBeNull();
-    expect(screen.queryByLabelText("pin")).toBeNull();
+    // The card's ⋮ is not drawn at all: every item in it writes.
+    expect(screen.queryByLabelText("note options")).toBeNull();
+  });
+
+  // ---- the board redrawn (2026-08-18) ----
+
+  test("a note's banner is drawn on its card, in the colour it names", async () => {
+    bridge({
+      list_notes: [entry("Ideia", { banner: { kind: "color", value: "yellow" } })],
+      note_folders: [],
+    });
+
+    const { container } = render(NotesSpace, { props: props() });
+    await screen.findByText("Ideia");
+
+    const banner = container.querySelector(".note-card__banner");
+    // The NAME becomes a var() of the palette, never a hex: which end of the
+    // ramp shows is the region's call (services/accent.js).
+    expect(banner.getAttribute("style")).toContain("var(--accent-yellow-fill)");
+  });
+
+  test("a note with no banner has no block above its title", async () => {
+    bridge({ list_notes: [entry("Ideia")], note_folders: [] });
+
+    const { container } = render(NotesSpace, { props: props() });
+    await screen.findByText("Ideia");
+    expect(container.querySelector(".note-card__banner")).toBeNull();
+  });
+
+  test("a folder of notes is a card, and opening it shows what is inside", async () => {
+    bridge({
+      list_notes: [
+        entry("Solta"),
+        entry("Briefing", { path: "Clientes/Briefing.md", folder: "Clientes" }),
+      ],
+      note_folders: ["Clientes", "Inbox"],
+    });
+
+    render(NotesSpace, { props: props() });
+
+    // On the board: the loose note as a card, the folder as a card of its own
+    // — and the INBOX is not one of them (services/noteBoard.js).
+    expect(await screen.findByText("Solta")).toBeTruthy();
+    expect(screen.getByText("Clientes")).toBeTruthy();
+    expect(screen.getByText("1 note")).toBeTruthy();
+    expect(screen.queryByText("Inbox")).toBeNull();
+
+    await userEvent.click(screen.getByLabelText("open Clientes"));
+    expect(await screen.findByText("preview of Briefing")).toBeTruthy();
+    expect(screen.queryByText("Solta")).toBeNull();
+
+    // And back out again — a folder card opens in place, so the way back is
+    // the only way back.
+    await userEvent.click(screen.getByText("Back"));
+    expect(await screen.findByText("Solta")).toBeTruthy();
+  });
+
+  test("picked notes move to another space", async () => {
+    bridge({
+      list_notes: [entry("Ideia")],
+      note_folders: ["Inbox"],
+      move_note_to_space: "Ideia.md",
+    });
+
+    render(NotesSpace, {
+      props: props({ noteSpaces: [{ path: "Design/Ideias", name: "Ideias" }] }),
+    });
+
+    await userEvent.click(await screen.findByLabelText("space options"));
+    await userEvent.click(await screen.findByText("Select notes…"));
+    await userEvent.click(await screen.findByText("Ideia"));
+    expect(screen.getByText("1 selected")).toBeTruthy();
+
+    await userEvent.selectOptions(
+      screen.getByLabelText("Move to…"),
+      JSON.stringify(["Design/Ideias", "Inbox"]),
+    );
+
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("move_note_to_space", {
+        folder: "Notes",
+        path: "Inbox/Ideia.md",
+        toSpace: "Design/Ideias",
+        toFolder: "Inbox",
+      }),
+    );
+  });
+
+  test("picked notes are deleted together", async () => {
+    bridge({ list_notes: [entry("Ideia"), entry("Outra")], note_folders: [], delete_note: null });
+
+    render(NotesSpace, { props: props() });
+    await userEvent.click(await screen.findByLabelText("space options"));
+    await userEvent.click(await screen.findByText("Select notes…"));
+    await userEvent.click(await screen.findByText("Ideia"));
+    await userEvent.click(await screen.findByText("Outra"));
+    await userEvent.click(screen.getByText("Delete"));
+
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("delete_note", {
+        folder: "Notes",
+        path: "Inbox/Outra.md",
+      }),
+    );
+    expect(invoke).toHaveBeenCalledWith("delete_note", {
+      folder: "Notes",
+      path: "Inbox/Ideia.md",
+    });
+  });
+});
+
+describe("NoteBanner", () => {
+  const props = (extra = {}) => ({
+    banner: null,
+    title: "Ideia",
+    root: "/home/gus/Caderno",
+    readOnly: false,
+    onSet: noop,
+    onChooseImage: noop,
+    ...extra,
+  });
+
+  test("a note with no banner is its title, and nothing above it", () => {
+    const { container } = render(NoteBanner, { props: props() });
+
+    expect(screen.getByText("Ideia")).toBeTruthy();
+    expect(container.querySelector(".note-banner")).toBeNull();
+    // Nothing to open a menu on either: the block that carries it is not there.
+    expect(screen.queryByLabelText("banner options")).toBeNull();
+  });
+
+  test("below 768px a note with no banner says nothing at all", () => {
+    // The bar above the page already prints the name; the two together were
+    // the same word twice (the report that redrew the space screens).
+    render(NoteBanner, { props: props({ compact: true }) });
+    expect(screen.queryByText("Ideia")).toBeNull();
+  });
+
+  test("a colour banner is painted with the palette, never a hex", () => {
+    const { container } = render(NoteBanner, {
+      props: props({ banner: { kind: "color", value: "yellow" } }),
+    });
+
+    const banner = container.querySelector(".note-banner");
+    expect(banner.getAttribute("style")).toContain("var(--accent-yellow-fill)");
+    expect(container.querySelector(".note-banner__image")).toBeNull();
+    // The title moves onto the chip over it — one title, in one place.
+    expect(screen.getByText("Ideia")).toBeTruthy();
+  });
+
+  test("an image banner loads the file the address names", () => {
+    const { container } = render(NoteBanner, {
+      props: props({ banner: { kind: "image", value: "assets/foto.png" } }),
+    });
+
+    const img = container.querySelector(".note-banner__image");
+    expect(img.getAttribute("src")).toContain("Caderno");
+  });
+
+  test("the ⋮ takes the banner off, and a read-only note has no ⋮ at all", async () => {
+    const set = [];
+    render(NoteBanner, {
+      props: props({ banner: { kind: "color", value: "blue" }, onSet: (v) => set.push(v) }),
+    });
+
+    await userEvent.click(screen.getByLabelText("banner options"));
+    await userEvent.click(screen.getByText("Remove banner"));
+    expect(set).toEqual([null]);
+
+    cleanup();
+    render(NoteBanner, {
+      props: props({ banner: { kind: "color", value: "blue" }, readOnly: true }),
+    });
+    expect(screen.queryByLabelText("banner options")).toBeNull();
+  });
+});
+
+describe("AssetsView", () => {
+  const asset = (name, image = true) => ({
+    path: `assets/${name}`,
+    name,
+    size: 2048,
+    modified: 1,
+    image,
+  });
+
+  const props = (extra = {}) => ({
+    root: "/home/gus/Caderno",
+    readOnly: false,
+    onChanged: noop,
+    onError: noop,
+    reloadKey: 0,
+    ...extra,
+  });
+
+  // ---- files brought to the library itself (2026-08-19) ----
+  // This screen IS the library, so it is the most obvious thing in the app to
+  // hand a file to — and it was the one place that did not accept one.
+
+  test("a file dropped on the library is imported", async () => {
+    bridge({ assets: [], asset_usage: {}, import_asset_from_path: "assets/foto.webp" });
+    const { container } = render(AssetsView, { props: props() });
+    await screen.findByText("No files yet.");
+
+    await fireEvent.drop(container.querySelector(".assets-view"), {
+      dataTransfer: {
+        files: [],
+        types: ["text/uri-list"],
+        getData: () => "",
+        items: [
+          {
+            kind: "string",
+            type: "text/html",
+            // The shape WebKit actually hands a drag over in — the address is
+            // the anchor's TEXT, while `text/uri-list` sits empty beside it.
+            getAsString: (cb) => cb('<a style="color: rgb(0,0,0)">file:///home/gus/foto.webp</a>'),
+          },
+        ],
+      },
+    });
+
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("import_asset_from_path", {
+        path: "/home/gus/foto.webp",
+      }),
+    );
+  });
+
+  test("a pasted file falls back to the system clipboard", async () => {
+    // Every accessor the webview has answers empty for a pasted file
+    // (measured 2026-08-19); the system is the only one that knows.
+    bridge({
+      assets: [],
+      asset_usage: {},
+      clipboard_files: ["file:///home/gus/nota.pdf"],
+      import_asset_from_path: "assets/nota.pdf",
+    });
+    const { container } = render(AssetsView, { props: props() });
+    await screen.findByText("No files yet.");
+
+    await fireEvent.paste(container.querySelector(".assets-view"), {
+      clipboardData: { files: [], types: ["text/uri-list"], getData: () => "", items: [] },
+    });
+
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("import_asset_from_path", {
+        path: "/home/gus/nota.pdf",
+      }),
+    );
+  });
+
+  // ---- what uses a file (2026-08-19) ----
+  // The fact that makes deleting safe, and the way to what would break.
+
+  const usedBy = (title, extra = {}) => ({
+    kind: "note",
+    path: "Inbox/com imagem.md",
+    folder: "jott.notes",
+    id: null,
+    title,
+    snippet: "",
+    space: "Notes",
+    container: "Inbox",
+    done: false,
+    ...extra,
+  });
+
+  test("says which files nothing points at", async () => {
+    bridge({
+      assets: [asset("usada.png"), asset("esquecida.png")],
+      asset_usage: { "assets/usada.png": [usedBy("com imagem")] },
+    });
+
+    render(AssetsView, { props: props() });
+
+    await screen.findByText("Not used");
+    expect(screen.getByText("Used in 1 place")).toBeTruthy();
+  });
+
+  test("opens what uses one", async () => {
+    const opened = vi.fn();
+    bridge({
+      assets: [asset("usada.png")],
+      asset_usage: { "assets/usada.png": [usedBy("com imagem")] },
+    });
+
+    render(AssetsView, { props: props({ onOpenNote: opened }) });
+
+    // The places are a detail of the row: asked for, not always on screen.
+    await userEvent.click(await screen.findByText("Used in 1 place"));
+    await userEvent.click(screen.getByText("com imagem"));
+
+    expect(opened).toHaveBeenCalledWith("Inbox/com imagem.md", "jott.notes");
+  });
+
+  test("a task that attaches it is a place too", async () => {
+    const opened = vi.fn();
+    bridge({
+      assets: [asset("nota.pdf", false)],
+      asset_usage: {
+        "assets/nota.pdf": [
+          usedBy("Enviar proposta", {
+            kind: "task",
+            path: "jott.tasks/task-list.md",
+            folder: "",
+            id: "a1",
+            space: "Tasks",
+          }),
+        ],
+      },
+    });
+
+    render(AssetsView, { props: props({ onOpenTask: opened }) });
+
+    await userEvent.click(await screen.findByText("Used in 1 place"));
+    await userEvent.click(screen.getByText("Enviar proposta"));
+
+    expect(opened).toHaveBeenCalledWith("jott.tasks/task-list.md", "a1");
+  });
+
+  test("lists the library, with the name a note would call the file by", async () => {
+    bridge({ assets: [asset("foto.png")] });
+
+    render(AssetsView, { props: props() });
+
+    expect(await screen.findByText("foto.png")).toBeTruthy();
+    // `/foto.png` — the piece that goes between a pair of brackets. Not the
+    // machine path, which would break on another computer, and not
+    // `assets/foto.png`, which is where the file lives (user call,
+    // 2026-08-19).
+    expect(screen.getByText("/foto.png")).toBeTruthy();
+    expect(screen.getByText("1 file")).toBeTruthy();
+  });
+
+  test("deleting asks first and goes through the core", async () => {
+    bridge({ assets: [asset("foto.png")], delete_asset: null });
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
+
+    render(AssetsView, { props: props() });
+    await userEvent.click(await screen.findByLabelText("Delete file"));
+
+    expect(confirm).toHaveBeenCalled();
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("delete_asset", { path: "assets/foto.png" }),
+    );
+    confirm.mockRestore();
+  });
+
+  test("a read-only notebook can look but not add or delete", async () => {
+    bridge({ assets: [asset("foto.png")] });
+
+    render(AssetsView, { props: props({ readOnly: true }) });
+
+    await screen.findByText("foto.png");
+    expect(screen.queryByText("Add files")).toBeNull();
+    expect(screen.queryByLabelText("Delete file")).toBeNull();
   });
 });
 
@@ -2295,6 +2790,163 @@ describe("NoteEditor", () => {
     await new Promise((r) => setTimeout(r, 20));
 
     expect(invoke.mock.calls.some(([cmd]) => cmd === "write_note")).toBe(false);
+  });
+
+  // ---- files brought into the note (2026-08-19) ----
+  //
+  // The gesture is handled on the note's WRAPPER, in the capture phase, and
+  // both halves were learned from the running app: a dropped file lands on
+  // the wrapper and never inside the editor, and CodeMirror handles a paste
+  // itself before the event could bubble out. So the tests fire on the
+  // wrapper, which is where a person's gesture actually arrives.
+
+  const picture = () => new File(["png!"], "foto.png", { type: "image/png" });
+  const bodyOf = (container) => container.querySelector(".note-editor__body");
+
+  test("pasting a file hands it to the shell instead of pasting text", async () => {
+    bridge(loaded());
+    const brought = vi.fn();
+
+    const { container } = render(NoteEditor, { props: props({ onFiles: brought }) });
+    await screen.findByDisplayValue("Corpo.");
+    await fireEvent.paste(bodyOf(container), {
+      clipboardData: { files: [picture()], types: ["Files"] },
+    });
+
+    await waitFor(() => expect(brought).toHaveBeenCalledTimes(1));
+    expect(brought.mock.calls[0][0].files[0].name).toBe("foto.png");
+  });
+
+  test("a file the desktop handed over as an address is read too", async () => {
+    // The shape the app's own window actually sends (measured 2026-08-19):
+    // no bytes, `text/uri-list` in the types, and `getData` answering empty —
+    // so the item list is what has the address.
+    bridge(loaded());
+    const brought = vi.fn();
+
+    const { container } = render(NoteEditor, { props: props({ onFiles: brought }) });
+    await screen.findByDisplayValue("Corpo.");
+    await fireEvent.paste(bodyOf(container), {
+      clipboardData: {
+        files: [],
+        types: ["text/uri-list"],
+        getData: () => "",
+        items: [
+          {
+            kind: "string",
+            type: "text/uri-list",
+            getAsString: (cb) => cb("file:///home/gus/f%C3%A9rias.jpg"),
+          },
+        ],
+      },
+    });
+
+    await waitFor(() => expect(brought).toHaveBeenCalledTimes(1));
+    expect(brought.mock.calls[0][0].paths).toEqual(["/home/gus/férias.jpg"]);
+  });
+
+  test("a dragged file is read out of the html flavour", async () => {
+    // Where the address actually is, for a drag (measured 2026-08-19):
+    // WebKit hands over `<a …>file:///…</a>` while `text/uri-list` sits
+    // empty beside it.
+    bridge(loaded());
+    const brought = vi.fn();
+
+    const { container } = render(NoteEditor, { props: props({ onFiles: brought }) });
+    await screen.findByDisplayValue("Corpo.");
+    await fireEvent.drop(bodyOf(container), {
+      dataTransfer: {
+        files: [],
+        types: ["text/uri-list", "text/html"],
+        getData: () => "",
+        items: [
+          { kind: "string", type: "text/uri-list", getAsString: (cb) => cb("") },
+          {
+            kind: "string",
+            type: "text/html",
+            getAsString: (cb) => cb('<a style="color: rgb(0,0,0)">file:///home/gus/foto.webp</a>'),
+          },
+        ],
+      },
+    });
+
+    await waitFor(() => expect(brought).toHaveBeenCalledTimes(1));
+    expect(brought.mock.calls[0][0].paths).toEqual(["/home/gus/foto.webp"]);
+  });
+
+  test("a pasted file falls back to the system clipboard", async () => {
+    // For a paste there is nothing in the webview at all — no bytes, no
+    // `getData`, no `getAsString`. The system is the only one that knows.
+    bridge({ ...loaded(), clipboard_files: ["file:///home/gus/nota.pdf"] });
+    const brought = vi.fn();
+
+    const { container } = render(NoteEditor, { props: props({ onFiles: brought }) });
+    await screen.findByDisplayValue("Corpo.");
+    await fireEvent.paste(bodyOf(container), {
+      clipboardData: { files: [], types: ["text/uri-list"], getData: () => "", items: [] },
+    });
+
+    await waitFor(() => expect(brought).toHaveBeenCalledTimes(1));
+    expect(brought.mock.calls[0][0].paths).toEqual(["/home/gus/nota.pdf"]);
+  });
+
+  test("dropping a file on the note hands it over too", async () => {
+    bridge(loaded());
+    const brought = vi.fn();
+
+    const { container } = render(NoteEditor, { props: props({ onFiles: brought }) });
+    await screen.findByDisplayValue("Corpo.");
+    await fireEvent.drop(bodyOf(container), {
+      dataTransfer: { files: [picture()], types: ["Files"] },
+    });
+
+    await waitFor(() => expect(brought).toHaveBeenCalledTimes(1));
+  });
+
+  test("a drag carrying files is accepted, so the drop can arrive", async () => {
+    // Without this `preventDefault` the drop never happens at all — and a
+    // real drag out of a file manager announces itself as `text/uri-list`,
+    // not as `Files`.
+    bridge(loaded());
+    const { container } = render(NoteEditor, { props: props({ onFiles: vi.fn() }) });
+    await screen.findByDisplayValue("Corpo.");
+
+    for (const types of [["Files"], ["text/uri-list"]]) {
+      const carrying = new Event("dragover", { bubbles: true, cancelable: true });
+      carrying.dataTransfer = { types };
+      bodyOf(container).dispatchEvent(carrying);
+      expect(carrying.defaultPrevented, types.join()).toBe(true);
+    }
+  });
+
+  test("a paste of plain text is left alone", async () => {
+    // The common case, and the one a greedy handler would break: not
+    // answering is what lets the editor do its own job.
+    bridge(loaded());
+    const brought = vi.fn();
+
+    const { container } = render(NoteEditor, { props: props({ onFiles: brought }) });
+    await screen.findByDisplayValue("Corpo.");
+    await fireEvent.paste(bodyOf(container), {
+      clipboardData: { files: [], types: ["text/plain"], getData: () => "olá" },
+    });
+
+    expect(brought).not.toHaveBeenCalled();
+  });
+
+  test("a read-only note takes nothing", async () => {
+    bridge(loaded());
+    const brought = vi.fn();
+
+    const { container } = render(NoteEditor, {
+      props: props({ onFiles: brought, readOnly: true }),
+    });
+    await screen.findByDisplayValue("Corpo.");
+    await fireEvent.drop(bodyOf(container), {
+      dataTransfer: { files: [picture()], types: ["Files"] },
+    });
+
+    expect(brought).not.toHaveBeenCalled();
   });
 
   test("editing saves on its own", async () => {
@@ -2347,19 +2999,43 @@ describe("NoteEditor", () => {
     await waitFor(() => expect(field.disabled).toBe(false));
   });
 
-  test("the note reports its title and pin state to the shell", async () => {
+  test("the note reports its title, pin state and banner to the shell", async () => {
     // They belong to the page header above the tabs, not to a second bar
-    // inside the page.
+    // inside the page — and the banner is drawn by the shell too, above this
+    // editor, because it is not part of the body being typed into.
     const seen = [];
     bridge(loaded());
 
     render(NoteEditor, { props: props({ onLoaded: (s) => seen.push(s) }) });
 
     await waitFor(() => expect(seen.length).toBe(1));
-    expect(seen[0]).toEqual({ pinned: false, title: "Ideia" });
+    expect(seen[0]).toEqual({ pinned: false, title: "Ideia", banner: null });
     // And it draws no header of its own.
     expect(screen.queryByText("← notes")).toBeNull();
     expect(screen.queryByText("delete")).toBeNull();
+  });
+
+  test("a note that has a banner hands it over the same way", async () => {
+    const seen = [];
+    bridge({
+      ...loaded(),
+      read_note: {
+        path: "Inbox/Ideia.md",
+        title: "Ideia",
+        body: "Corpo.",
+        pinned: false,
+        created: null,
+        banner: { kind: "color", value: "yellow" },
+      },
+    });
+
+    render(NoteEditor, { props: props({ onLoaded: (s) => seen.push(s) }) });
+
+    await waitFor(() => expect(seen.length).toBe(1));
+    expect(seen[0].banner).toEqual({ kind: "color", value: "yellow" });
+    // The body it edits is the text WITHOUT the banner line — the core split
+    // them, and typing must not put the head back into the prose.
+    expect(await screen.findByDisplayValue("Corpo.")).toBeTruthy();
   });
 });
 

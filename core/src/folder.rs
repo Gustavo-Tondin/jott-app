@@ -50,7 +50,17 @@ You can add details on indented lines below a task:
   !1 to !3      priority, 1 is highest
   repeat:       every-day, every-week, every-month, every-3-days...
   - [ ] ...     a subtask
+  [file](assets/file)   a file attached to the task (see IMAGES below)
   anything else on an indented line is a description
+
+A line of nothing but links into assets/ is the task's attachments:
+
+  - [ ] Enviar proposta
+    @2026-07-25 #cliente
+    [nota-fiscal.pdf](assets/nota-fiscal.pdf)
+
+A line with any other link — to the web, to a file of your own — is just a
+description, and Jott leaves it exactly as you wrote it.
 
 Two tags mean something to the app: #urgent and #pinned.
 
@@ -77,6 +87,34 @@ two --- lines:
 The block is optional: a .md file you wrote by hand, with no block at all,
 is a perfectly good note. A key Jott does not know is left untouched, and a
 checklist typed inside a note stays text — notes and tasks never mix.
+
+NOTE BANNERS (the first line of a note)
+
+A note can carry a coloured or illustrated head. It is one comment, on the
+first line of the text:
+
+  <!--banner: yellow-->
+  <!--banner: assets/sunset.jpg-->
+
+A colour is one of Jott's eight names — red, orange, yellow, green, blue,
+purple, pink, neutral. An image is an address in the assets folder, below.
+Every Markdown reader hides that comment, so the note stays a normal note
+everywhere else. No line, no banner: the note shows only its title, and
+that is the default.
+
+FILES (the assets folder)
+
+Every file you add lives in assets/, next to your spaces, and is addressed
+from the notebook's root wherever it is used:
+
+  ![](assets/sunset.jpg)               a picture inside a note
+  <!--banner: assets/sunset.jpg-->     a note's banner
+  [nota-fiscal.pdf](assets/nota-fiscal.pdf)   a file attached to a task
+
+Any kind of file goes in there; only an image can be a banner or be shown
+inside a note. The address is the same from any note and any task, so moving
+them never breaks a link. Drop files into assets/ yourself if you prefer —
+Jott lists whatever is in there.
 
 NOTHING IS DESTROYED
 

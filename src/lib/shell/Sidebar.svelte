@@ -285,6 +285,10 @@
         ...(f("taskTags")
           ? [{ label: S.tagsManagement, run: () => onOpen?.({ kind: "tags" }) }]
           : []),
+        // The notebook's images (2026-08-18). Here, with the other three, for
+        // the same reason they are here: it belongs to the NOTEBOOK, not to
+        // any one space, so no space's ⋮ could own it.
+        ...(f("notes") ? [{ label: S.assetsTitle, run: () => onOpen?.({ kind: "assets" }) }] : []),
         { label: S.trash, run: () => onOpen?.({ kind: "trash" }) },
       ]}
     >

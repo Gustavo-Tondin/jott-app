@@ -1,0 +1,106 @@
+// What `[[` offers while it is being typed.
+//
+// One trigger, two namespaces — the same split `services/embeds.js` writes
+// down: `[[` asks about NOTES, `[[/` asks about the notebook's FILES. Typing
+// the slash switches the list under the cursor, which is the whole reason the
+// slash was chosen as the marker (user call, 2026-08-19).
+//
+// Nothing is invented here: notes come from the notebook's own search — the
+// same one Ctrl+F asks — and files from the library listing. Arrow keys and
+// Enter are CodeMirror's own (`completionKeymap`), so the gesture is the one
+// every other editor already taught the user.
+//
+// The empty query is deliberately different in the two halves, because the
+// two questions are: the library is a flat folder small enough to show whole,
+// so `[[/` lists everything at once; the notebook's search answers nothing to
+// an empty query on purpose (`core/src/search.rs`), so `[[` waits for a
+// letter rather than dumping every note.
+
+import { api } from "./api.js";
+import { embedMarkdown, noteMarkdown } from "./embeds.js";
+
+/// How many suggestions are worth showing. Past this the list stops being a
+/// list and starts being a screen — and the search box is the screen.
+const LIMIT = 20;
+
+/// The text between `[[` and the cursor, and where the reference starts.
+///
+/// A closing `]]` already to the right is left alone: the completion replaces
+/// only what was typed, and writes its own pair.
+export function typedReference(context) {
+  const before = context.matchBefore(/\[\[[^[\]\n]*/);
+  if (!before) return null;
+  return { from: before.from, typed: before.text.slice(2) };
+}
+
+/// Matches the way a person means it: case-insensitively, anywhere in the name.
+const matches = (haystack, needle) =>
+  String(haystack).toLowerCase().includes(needle.toLowerCase());
+
+/// CodeMirror's completion source for `[[`.
+///
+/// Built with its two answers rather than importing them, for the same reason
+/// the embeds are: so the rule can be tested without a bridge.
+export function referenceCompletions({ notes, files } = {}) {
+  return async (context) => {
+    const at = typedReference(context);
+    if (!at) return null;
+
+    const options = at.typed.startsWith("/")
+      ? await fileOptions(files, at.typed.slice(1))
+      : await noteOptions(notes, at.typed);
+
+    return {
+      from: at.from,
+      options,
+      // **`filter: false`, and it is not an optimisation.** CodeMirror filters
+      // options by the text between `from` and the cursor, and `from` has to
+      // be the first `[` — that is what a picked option REPLACES. So the text
+      // it would filter by is `[[fo`, and no name in either list has brackets
+      // in it: every option was thrown away and the panel never opened. The
+      // narrowing is done here instead, where the two halves already know how
+      // to ask (`fileOptions` filters, and the search does its own).
+      //
+      // With no `validFor`, CodeMirror re-asks on each keystroke — which is
+      // exactly what makes that narrowing happen.
+      filter: false,
+    };
+  };
+}
+
+async function fileOptions(files, typed) {
+  const library = (await files?.()) ?? [];
+  return library
+    .filter((asset) => matches(asset.name, typed))
+    .slice(0, LIMIT)
+    .map((asset) => ({
+      label: `/${asset.name}`,
+      // What the app can DRAW is worth saying, because it is the difference
+      // between a picture in the note and a chip.
+      detail: asset.image ? "image" : "file",
+      type: asset.image ? "image" : "file",
+      // What picking one writes comes from the module that OWNS the syntax —
+      // a second copy of it here is the drift this app keeps designing out.
+      apply: embedMarkdown(asset.path),
+    }));
+}
+
+async function noteOptions(notes, typed) {
+  // An empty query finds nothing, by the core's rule; asking anyway would be
+  // a round trip for a guaranteed empty answer.
+  if (!typed.trim()) return [];
+  const found = (await notes?.(typed)) ?? [];
+  return found.slice(0, LIMIT).map((note) => ({
+    label: note.title,
+    detail: note.space || undefined,
+    type: "text",
+    apply: noteMarkdown(note.title),
+  }));
+}
+
+/// The two answers, as the app asks them. The library is re-read on every
+/// `[[/` because importing a file is exactly when someone reaches for it.
+export const fromNotebook = {
+  files: () => api.assets(),
+  notes: (query) => api.search(query, LIMIT).then((results) => results?.notes ?? []),
+};

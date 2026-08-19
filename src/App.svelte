@@ -21,6 +21,13 @@
   import CompletedView from "./lib/screens/CompletedView.svelte";
   import TagsView from "./lib/screens/TagsView.svelte";
   import TrashView from "./lib/screens/TrashView.svelte";
+  import AssetsView from "./lib/screens/AssetsView.svelte";
+  import NoteBanner from "./lib/components/NoteBanner.svelte";
+  import AssetPicker from "./lib/components/AssetPicker.svelte";
+  import ImageViewer from "./lib/components/ImageViewer.svelte";
+  import { importBrought, isImage } from "./lib/services/assets.js";
+  import { embedMarkdown } from "./lib/services/embeds.js";
+  import { assetUrl } from "./lib/services/assets.js";
   import TaskInspector from "./lib/components/TaskInspector.svelte";
   import SuggestionsPane from "./lib/components/SuggestionsPane.svelte";
   import NewTaskDialog from "./lib/components/NewTaskDialog.svelte";
@@ -36,6 +43,7 @@
   import { buttonLayout } from "./lib/shell/windowButtons.js";
   import { isMobile, platformAttribute } from "./lib/shell/platform.js";
   import { watchCompact } from "./lib/shell/compact.js";
+  import { watchGestures } from "./lib/services/debugGesture.js";
   import TopBar from "./lib/shell/TopBar.svelte";
   import BottomSheet from "./lib/components/BottomSheet.svelte";
   import { drawerSwipe } from "./lib/actions/drawerSwipe.js";
@@ -124,6 +132,11 @@
   let compact = $state(false);
   $effect(() => watchCompact((v) => (compact = v)));
 
+  // TEMPORARY (2026-08-19) — see services/debugGesture.js. Remove with it.
+  $effect(() => {
+    watchGestures();
+  });
+
   /// The three panels the compact shell cannot keep on screen at once, and so
   /// opens on demand. All three are transient by nature, so none of them is
   /// remembered: a drawer left open across a restart is a drawer in the way.
@@ -189,7 +202,15 @@
   });
 
   /// What the open note reports about itself, for the page header and menu.
-  let openNote = $state({ pinned: false, title: "" });
+  let openNote = $state({ pinned: false, title: "", banner: null });
+
+  /// What the image picker is being opened FOR: `"banner"` hangs it on the
+  /// open note, `"body"` writes it where the cursor is. Null when it is shut.
+  /// One dialog, two questions — the library is the same either way.
+  let pickingImage = $state(null);
+  /// The picture being shown full screen, by address — the second of the two
+  /// clicks a photo in a note answers (2026-08-19).
+  let zoomedImage = $state(null);
 
   // Tabs. The active tab's current view is what the centre panel shows.
   let tabs = $state([{ views: [{ kind: "home" }], at: 0 }]);
@@ -366,6 +387,9 @@
   /// Ctrl+F and the sidebar's magnifier ask the notebook; a screen's own menu
   /// asks the screen (2026-08-17).
   let searchScope = $state(null);
+  /// What the search box opens with. Set when something else asks the question
+  /// on the user's behalf — an ambiguous `[[link]]`, so far.
+  let searchQuery = $state("");
 
   /// Goes to a task found by the search: its list opens, and the task itself
   /// opens in the panel — what was searched for is the task, not the list it
@@ -554,6 +578,14 @@
 
   let userSpaces = $derived(spaces.filter((sp) => !sp.fixed));
 
+  /// Every notes space of the notebook — where a picked note can be moved to
+  /// (the board's "move to", 2026-08-18). The fixed Notes space is in it: it
+  /// is a place notes belong, and leaving it out would make the one space
+  /// everybody has the one you cannot file into.
+  let noteSpaces = $derived(
+    spaces.filter((sp) => sp.kind === "notes").map((sp) => ({ path: sp.path, name: sp.name })),
+  );
+
   /// The fixed Tasks space, in the shape the tasks screen reads, so the
   /// Tasks screen hosts the notebook's own source (arrangement and all)
   /// instead of a stand-in. The folder is the space's own path.
@@ -695,6 +727,14 @@
         { label: openNote.pinned ? S.unpin : S.pin, run: toggleNotePin },
         { label: S.renameNote, run: renameCurrentNote },
         { label: S.deleteNote, run: deleteCurrentNote },
+        // A note with no banner has no ⋮ of its own to open one from — the
+        // block is not drawn at all (NoteBanner). So the way IN is here, and
+        // it gives the note the app's own accent: one click leaves something
+        // on screen to then change, instead of asking for a colour first.
+        ...(openNote.banner
+          ? []
+          : [{ label: S.addBanner, run: () => setNoteBanner(layout.accentColor || "blue") }]),
+        { label: S.insertImage, run: () => (pickingImage = "body") },
         // The reading size, where a reader asks for it — on the note itself,
         // not only two screens away in Settings (user call, 2026-08-18). It is
         // the same notebook setting either way.
@@ -764,6 +804,87 @@
       await api.setNotePinned(view.folder, view.path, !openNote.pinned);
       openNote = { ...openNote, pinned: !openNote.pinned };
     });
+
+  /// Hangs a banner on the open note, or takes it off with `null`.
+  ///
+  /// It writes ONE line of the note's own file (`core/src/note.rs`), so it
+  /// goes through the same flush the other document actions do: a pending body
+  /// write and a banner write both rewrite the file, and the last one there
+  /// would win.
+  const setNoteBanner = (value) =>
+    noteAction(async () => {
+      await api.setNoteBanner(view.folder, view.path, value);
+      openNote = {
+        ...openNote,
+        banner: value
+          ? { kind: isImage(value) ? "image" : "color", value }
+          : null,
+      };
+    });
+
+  /// What the image picker does with what was chosen, by what it was opened
+  /// for. Closing it is the same either way.
+  function useImage(address) {
+    const purpose = pickingImage;
+    pickingImage = null;
+    if (purpose === "banner") setNoteBanner(address);
+    else noteEditor?.insert(embedMarkdown(address));
+  }
+
+  /// Files the user brought into the open note — pasted, or dropped on it
+  /// (2026-08-19). They go into the notebook's library like any other file,
+  /// and the note gets the markdown for them where the caret is.
+  ///
+  /// Importing here rather than in the editor is the same split the picker
+  /// keeps: the editor writes text, and what an address MEANS is the shell's
+  /// question. One markdown line per file, each on its own line, because two
+  /// pictures pasted at once are two pictures and not a sentence.
+  async function addFilesToNote(brought) {
+    if (notebook?.readOnly) return;
+    // The desktop said it was handing over a file and handed over something
+    // this app cannot read. Saying WHAT it was beats doing nothing at all —
+    // it is the difference between a bug report and a mystery.
+    if (!brought?.files?.length && !brought?.paths?.length) {
+      fail(S.noFileInGesture(brought?.types ?? []));
+      return;
+    }
+    try {
+      for (const address of await importBrought(brought)) {
+        noteEditor?.insert(`${embedMarkdown(address)}\n`);
+      }
+    } catch (e) {
+      fail(e);
+    }
+  }
+
+  /// Opens the note a `[[link]]` names (2026-08-19).
+  ///
+  /// A link carries a TITLE, so a title has to be turned into a note — and
+  /// the notebook's own search is what already knows every note there is.
+  /// Exact matches only: `[[Ideias]]` means the note called Ideias, not every
+  /// note with the word in it.
+  ///
+  /// Two of them is not a guess the app gets to make (it made one in v0.5.0
+  /// and it was wrong): the search box opens at that title and the person
+  /// picks. None of them is worth saying — a link that names nothing looks
+  /// exactly like one that works.
+  async function openNoteByTitle(title) {
+    const wanted = String(title ?? "").trim().toLowerCase();
+    if (!wanted) return;
+    try {
+      const found = (await api.search(title, 50))?.notes ?? [];
+      const exact = found.filter((note) => note.title.trim().toLowerCase() === wanted);
+      if (exact.length === 1) showNote(exact[0].path, exact[0].folder);
+      else if (exact.length === 0) fail(S.noteNotFound(title));
+      else {
+        searchScope = null;
+        searchQuery = title;
+        searching = true;
+      }
+    } catch (e) {
+      fail(e);
+    }
+  }
 
   const renameCurrentNote = () =>
     noteAction(async () => {
@@ -1102,8 +1223,16 @@
     );
 </script>
 
+<!-- The window takes the drop it was not offered, and does nothing with it.
+     With `dragDropEnabled: false` (`tauri.conf.json`) the webview handles
+     drops itself, and WebKit's own answer to a file dropped on a page is to
+     NAVIGATE to it — which here means the app replaced by a picture, with no
+     way back. Refusing by default is what makes the editor's own handler the
+     only place a file can land. -->
 <svelte:window
   onkeydown={onKeydown}
+  ondragover={(e) => e.preventDefault()}
+  ondrop={(e) => e.preventDefault()}
   onfocusin={(e) => (editorFocused = !!e.target?.closest?.(".cm-editor"))}
   onfocusout={(e) => {
     // `relatedTarget` is where the focus is GOING. Tapping a button on the
@@ -1458,12 +1587,27 @@
               header={!compact}
               readOnly={notebook.readOnly}
               notesInbox={layout.notesInbox}
+              root={notebook.path}
+              {noteSpaces}
               {reloadKey}
               onChanged={refreshNotebook}
               onError={fail}
               onOpenNote={showNote}
             />
           {:else if view.kind === "note"}
+            <!-- The note's head: its banner and its title, as the "Editor
+                 screen" wireframes draw them. Without a banner it is the title
+                 alone — which is what a note with no `<!--banner:-->` line
+                 is. -->
+            <NoteBanner
+              banner={openNote.banner}
+              title={openNote.title}
+              root={notebook.path}
+              readOnly={notebook.readOnly}
+              {compact}
+              onSet={setNoteBanner}
+              onChooseImage={() => (pickingImage = "banner")}
+            />
             <NoteEditor
               bind:this={noteEditor}
               folder={view.folder}
@@ -1471,6 +1615,11 @@
               readOnly={notebook.readOnly}
               onSaved={refreshNotebook}
               onError={fail}
+              onFiles={addFilesToNote}
+              onOpenFile={(address) => api.openAsset(address).catch(fail)}
+              onOpenNote={openNoteByTitle}
+              onZoomImage={(address) => (zoomedImage = address)}
+              root={notebook.path}
               onLoaded={(state) => {
                 openNote = state;
                 // Consumed here, not in the editor: only the shell knows this
@@ -1501,6 +1650,8 @@
                 {tags}
                 completedName={layout.completedName}
                 notesInbox={layout.notesInbox}
+                root={notebook.path}
+                {noteSpaces}
                 today={clock?.today}
                 dateFormat={layout.dateDisplayFormat}
                 {dayRefs}
@@ -1521,6 +1672,16 @@
             {/if}
           {:else if view.kind === "tags"}
             <TagsView {tags} onChanged={refreshNotebook} onError={fail} />
+          {:else if view.kind === "assets"}
+            <AssetsView
+              root={notebook.path}
+              readOnly={notebook.readOnly}
+              onChanged={refreshNotebook}
+              onError={fail}
+              onOpenNote={(path, folder) => showNote(path, folder)}
+              onOpenTask={showFoundTask}
+              {reloadKey}
+            />
           {:else if view.kind === "trash"}
             <TrashView
               onChanged={refreshNotebook}
@@ -1591,6 +1752,7 @@
             lists={moveTargets}
             {tags}
             {compact}
+            root={notebook.path}
             readOnly={notebook.readOnly}
             dateFormat={layout.dateDisplayFormat}
             inDay={!!selected.task?.id &&
@@ -1725,8 +1887,30 @@
   onClose={() => (canvasMenuAt = null)}
 />
 
+<!-- The image library, as a question: which picture? Mounted out here with the
+     other dialogs, and it opens over whatever screen asked — the banner's ⋮ or
+     the note's ⋮ (`pickingImage` says which, and what to do with the answer). -->
+{#if zoomedImage && notebook}
+  <ImageViewer
+    src={assetUrl(notebook.path, zoomedImage)}
+    alt={zoomedImage.split("/").pop()}
+    onClose={() => (zoomedImage = null)}
+  />
+{/if}
+
+{#if pickingImage && notebook}
+  <AssetPicker
+    root={notebook.path}
+    readOnly={notebook.readOnly}
+    onPick={useImage}
+    onClose={() => (pickingImage = null)}
+    onError={fail}
+  />
+{/if}
+
 {#if searching}
   <SearchDialog
+    query={searchQuery}
     scope={searchScope}
     scopeLabel={searchScope
       ? (spaces.find((sp) => sp.path === searchScope)?.name ?? searchScope)
@@ -1734,6 +1918,7 @@
     onClose={() => {
       searching = false;
       searchScope = null;
+      searchQuery = "";
     }}
     onOpenList={showFoundTask}
     onOpenNote={(path, folder) => showNote(path, folder)}

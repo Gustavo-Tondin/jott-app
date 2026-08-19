@@ -1,146 +1,153 @@
 # Jott
 
-Tarefas e notas que moram no seu computador, em arquivos que você consegue
-abrir sem o app.
+Tasks and notes that live on your computer, in files you can open without
+the app.
 
-Jott é um aplicativo local-first: nada essencial depende de internet ou de
-criar conta. Suas tarefas ficam em arquivos Markdown comuns, dentro de uma
-pasta que você escolhe — dá pra ler, editar ou versionar com qualquer outra
-ferramenta, inclusive o Obsidian. Se um dia você parar de usar o Jott, seus
-dados continuam lá, legíveis.
+Jott is a local-first app: nothing essential depends on the internet or on
+creating an account. Your tasks live in plain Markdown files, inside a
+folder you choose — you can read, edit, or version them with any other
+tool, including Obsidian. If you ever stop using Jott, your data stays
+there, readable.
 
-Roda em Linux e Android a partir do mesmo código, com interface nativa
-(não é um site empacotado).
+Runs on Linux, windows and Android from the same codebase, with a native interface
+(not a packaged website).
 
-> **Status:** em desenvolvimento inicial. Ainda não há versão utilizável.
+> **Status:** early development. No usable version yet.
 
-## Princípios
+## Principles
 
-- **Local first** — funciona inteiro sem internet.
-- **Os dados são seus** — formato aberto, acessível fora do app, sem prisão.
-- **Simples primeiro** — o que é avançado é opcional e não polui o básico.
-- **O que é local é gratuito, pra sempre.** Serviços online (sync, backup)
-  são pagos e opcionais, mas nenhum recurso local será removido pra empurrar
-  assinatura.
-- **Privacidade** — criptografia ponta a ponta nos serviços online.
+- **Your data is yours** — local files, open format, accessible outside the app, no
+  lock-in.
+- **Simple first** — anything advanced is optional and doesn't clutter the
+  basics.
+- **What's local is free, forever.** Online services (sync, backup) are
+  paid and optional, but no local feature will ever be removed to push a
+  subscription. (services in development)
+- **Privacy** — end-to-end encryption on the online services. (services in development)
 
-## Como suas coisas ficam no disco
+## How your stuff sits on disk
 
-Cada pasta é um espaço com **uma função só**: ou é uma lista de tarefas, ou
-é um bloco de notas. As três que o app cria carregam o prefixo `jott.` — são
-dele, e dizer isso no nome deixa os nomes bonitos livres pra você.
+Each folder is a space with **one job only**: it's either a task list or a
+notebook. The three that the app creates carry the `jott.` prefix — they
+belong to it, and saying so up front leaves the pretty names free for you.
 
 ```
-MeuCaderno/
-├── jott.tasks/          ← a lista que o app cria
+MyNotebook/
+├── jott.tasks/          ← the list the app creates
 │   ├── Tasks.md
 │   └── Completed.md
-├── jott.notes/          ← as notas soltas
-├── Compras/             ← uma lista sua
+├── jott.notes/          ← the space for loose notes the app creates
+├── Compras/              ← a list of yours
 │   ├── Compras.md
 │   └── Completed.md
-└── Trabalho/            ← um grupo, reunindo espaços
-    └── Clientes/
+└── Trabalho/             ← a group, gathering spaces
+    └── Clientes/         ← a space for notes of yours
 ```
 
-E dentro de cada arquivo, checklist Markdown comum:
+And inside each task list file, plain Markdown checklists:
 
 ```markdown
-- [ ] Comprar leite
-- [x] Pagar internet
+- [ ] Buy milk
+- [x] Pay internet bill
 ```
 
-## O que vem por aí
+## What's coming
 
-O desenvolvimento é sequencial: cada etapa só começa quando a anterior está
-funcionando de verdade.
+Development is sequential: each stage only starts once the previous one
+truly works.
 
-### Versão 1 — tarefas e notas
+### Version 1 — tasks and notes
 
-- [x] Base do aplicativo rodando no Linux
-- [x] Criar, editar e concluir tarefas, com tudo salvo em arquivos `.md`
-- [x] Listas e blocos de notas próprios, que podem ser reunidos em grupos
-- [x] Visão de **Hoje** e da **Semana**: você escolhe o que puxar pra cada
-      período, em vez de encarar a lista inteira
-- [x] Virada do dia e da semana configurável — inclusive o horário, pra quem
-      monta o dia seguinte antes de dormir ou decide de manhã cedo
-- [x] Tarefas concluídas separadas, com desfazer que devolve o item pra
-      lista de origem
-- [x] Detecta alterações feitas por fora (útil com Syncthing, Drive etc.)
-- [x] Excluir nunca destrói: tudo passa por uma lixeira dentro do caderno
-- [ ] Notas: editor de Markdown e organização em pastas, em construção
-- [ ] Interface finalizada, com tema claro e escuro
-- [ ] Versão Android, com layout adaptado pra toque
-- [ ] Pacotes prontos: AppImage/Flatpak no Linux, APK no Android
+- [x] App base running on Linux
+- [x] Create, edit, and complete tasks, all saved to `.md` files
+- [x] Standalone lists and notebooks, which can be gathered into groups
+- [x] **Today** and **Week** views: you choose what to pull into each
+      period, instead of facing the whole list at once
+- [x] Configurable day and week rollover — including the time, for
+      whether you plan tomorrow before bed or first thing in the morning
+- [x] Completed tasks kept separate, with undo that returns the item to
+      its original list
+- [x] Detects changes made from outside the app (handy with Syncthing,
+      Drive, etc.)
+- [x] Deleting never destroys: everything goes through a trash inside the
+      notebook
+- [ ] Notes: Markdown editor and folder organization, in progress
+- [ ] Finished interface, with light and dark theme
+- [ ] Android version, with a touch-adapted layout
+- [ ] Ready-to-install packages: AppImage/Flatpak on Linux, APK on Android
 
-### Depois da v1
+### After v1
 
-- **Recursos opcionais, sempre locais e gratuitos** — tabela e kanban como
-  outras formas de ver a mesma lista, ligações entre notas, importador de
-  outros apps, tradução da interface
-- **Serviços online opcionais (pagos)** — sincronização entre dispositivos
-  com criptografia ponta a ponta, backup automático com histórico de
-  versões, colaboração e publicação de notas
+- **Optional features, always local and free** — table and kanban as other
+  ways to view the same list, links between notes, importer for other
+  apps, interface translations
+- **Optional online services (paid)** — sync across devices with
+  end-to-end encryption, automatic backup with version history,
+  collaboration, and note publishing
 
-Sincronizar entre dispositivos **hoje já é possível de graça**, apontando
-Syncthing, Drive ou similar pra pasta do caderno. O serviço pago é
-conveniência, não permissão.
+Syncing across devices **is already possible for free today**, by pointing
+Syncthing, Drive, or similar at your notebook folder. The paid service is
+convenience, not permission.
 
-## Desenvolvimento
 
-Requisitos: Rust (stable, via `rustup`), Node.js com npm, e as bibliotecas
-de sistema `webkit2gtk-4.1`, `gtk3` e `libsoup3`.
+### Install
+
+**Arch and derivatives** — the native way, which adds the app to your
+application menu:
 
 ```bash
-npm install          # dependências do frontend
-npm run tauri dev    # roda o app
-cargo test           # testes da lógica de negócio
-npm test             # testes do frontend
-npm run package      # gera AppImage / deb
+cd packaging && makepkg -sid    # -d if Rust/Node come from rustup or nvm
 ```
 
-### Instalar
+**Any distribution** — the AppImage, `.deb`, and `.rpm` come out in
+`target/release/bundle/` after running `npm run package`.
 
-**Arch e derivados** — o jeito nativo, que põe o app no menu de aplicativos:
+> **AppImage note:** packaging uses `NO_STRIP=1` (that's what the
+> `package` script does). The `strip` bundled with `linuxdeploy` is too
+> old for the ELF `.relr.dyn` section that current distributions use, and
+> without this the bundle fails on every system library.
 
-```bash
-cd packaging && makepkg -sid    # -d se o Rust/Node vier do rustup ou do nvm
-```
+**Windows** — the installer is built by CI
+(`.github/workflows/release.yml`), since a Windows installer can only be
+put together on Windows. It installs for the current user and doesn't
+require administrator rights.
 
-**Qualquer distribuição** — o AppImage, o `.deb` e o `.rpm` saem em
-`target/release/bundle/` depois do `npm run package`.
+> Jott isn't signed with a certificate. On first launch Windows shows
+> *"Windows protected your PC"* — click **More info**, then **Run
+> anyway**. Just once, per version.
 
-> **Nota do AppImage:** o empacotamento usa `NO_STRIP=1` (é o que o script
-> `package` faz). O `strip` que vem dentro do `linuxdeploy` é antigo demais
-> para a seção ELF `.relr.dyn` que as distribuições atuais usam, e sem isso o
-> bundle falha em toda biblioteca do sistema.
-
-**Windows** — o instalador é gerado pelo CI (`.github/workflows/release.yml`),
-porque instalador de Windows só se monta no Windows. Ele instala para o
-usuário atual e não pede senha de administrador.
-
-> O Jott não é assinado com certificado. Na primeira execução o Windows mostra
-> *"O Windows protegeu o seu PC"* — clique em **Mais informações** e depois em
-> **Executar assim mesmo**. Uma vez só, por versão.
-
-**Android** — APK de sideload. Para compilar, é preciso JDK 17+, o Android SDK
-e o NDK; com `JAVA_HOME`, `ANDROID_HOME` e `NDK_HOME` no ambiente:
+**Android** — sideload APK. Building requires JDK 17+, the Android SDK,
+and the NDK; with `JAVA_HOME`, `ANDROID_HOME`, and `NDK_HOME` set:
 
 ```bash
-npm run tauri android build -- --apk    # release (precisa de keystore)
+npm run tauri android build -- --apk    # release (needs a keystore)
 npm run tauri android build -- --debug --target aarch64 --apk
 ```
 
-> No Android o app **não pergunta onde fica o caderno**: o sistema não deixa um
-> app abrir uma pasta qualquer. O caderno fica em
-> `Android/data/dev.gustavotondin.jott/files/Documents/Jott`, que continua sendo
-> uma pasta de arquivos `.md` de verdade — alcançável por cabo USB e por um
-> cliente de sincronização (Syncthing) apontado para ela.
+> On Android the app **doesn't ask where the notebook lives**: the system
+> doesn't let an app open just any folder. The notebook lives at
+> `Android/data/dev.gustavotondin.jott/files/Documents/Jott`, which is
+> still a real folder of `.md` files — reachable over USB and by a sync
+> client (Syncthing) pointed at it.
 
-Estrutura:
 
-| Pasta        | O que é                                                        |
+## Development
+
+Requirements: Rust (stable, via `rustup`), Node.js with npm, and the
+system libraries `webkit2gtk-4.1`, `gtk3`, and `libsoup3`.
+
+```bash
+npm install          # frontend dependencies
+npm run tauri dev    # run the app
+cargo test            # business logic tests
+npm test              # frontend tests
+npm run package       # build AppImage / deb
+```
+
+Layout:
+
+| Folder       | What it is                                                    |
 | ------------ | -------------------------------------------------------------- |
-| `core/`      | Crate Rust puro com toda a lógica de negócio. Não depende do Tauri. |
-| `src-tauri/` | Casca fina que expõe o `core` pro frontend via `invoke()`.      |
-| `src/`       | Frontend em Svelte, com CSS puro.                               |
+| `core/`      | Pure Rust crate with all the business logic. No Tauri dependency. |
+| `src-tauri/` | Thin shell that exposes `core` to the frontend via `invoke()`. |
+| `src/`       | Svelte frontend, with plain CSS.                                |

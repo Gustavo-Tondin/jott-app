@@ -34,6 +34,27 @@
   .format-bar__button {
     flex: 0 0 auto;
   }
+
+  /* The rule between two categories — marking a word, naming a line, shaping a
+     block (services/commands.js says which is which). */
+  .format-bar__divider {
+    flex: 0 0 auto;
+    background: var(--theme-line);
+  }
+  /* In the column it spans the panel and forces the wrap, so a category always
+     starts its own row. */
+  .format-bar--column .format-bar__divider {
+    flex-basis: 100%;
+    block-size: 0.0625rem;
+    margin-block: var(--theme-space-6);
+  }
+  /* In the strip it is upright, with air on both sides. */
+  .format-bar--row .format-bar__divider {
+    align-self: center;
+    inline-size: 0.0625rem;
+    block-size: 1.25rem;
+    margin-inline: var(--theme-space-6);
+  }
 }
 
 @layer components {

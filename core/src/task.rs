@@ -110,6 +110,72 @@ pub struct Subtask {
     pub done: bool,
 }
 
+/// A file attached to a task.
+///
+/// On disk it is a plain Markdown link on a line of its own under the task
+/// (spec 3.2, 2026-08-18):
+///
+/// ```markdown
+/// - [ ] Enviar proposta <!--id:g7h8i9-->
+///   @2026-07-25 #cliente
+///   [nota-fiscal.pdf](assets/nota-fiscal.pdf)
+///   Falar com o Jorge antes.
+/// ```
+///
+/// Visible, and not a field in the hidden comment (user call): a link renders
+/// and is clickable in any Markdown editor, which is the same reason a note
+/// writes `![](assets/x.png)` for its images. The `label` is what the link
+/// shows — the file's name when the app writes it, whatever someone typed when
+/// they wrote it by hand, and either way it survives the rewrite.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Attachment {
+    pub label: String,
+    /// Address in the notebook's library (`assets/nota-fiscal.pdf`).
+    pub address: String,
+}
+
+impl Attachment {
+    /// Names the link after the file, which is what the app writes.
+    pub fn of(address: &str) -> Self {
+        Self {
+            label: address.rsplit('/').next().unwrap_or(address).to_string(),
+            address: address.to_string(),
+        }
+    }
+
+    fn render(&self) -> String {
+        format!("[{}]({})", self.label, self.address)
+    }
+}
+
+/// The attachment line: nothing but links, and every one of them into the
+/// notebook's own library.
+///
+/// Both halves matter. "Nothing but links" is the same rule the metadata line
+/// keeps (a loose word makes it a description), and "into the library" is what
+/// stops `[a documentação](https://exemplo.com)` written in a description from
+/// silently becoming an attachment the app then cannot open.
+fn parse_attachments(line: &str) -> Option<Vec<Attachment>> {
+    let mut found = Vec::new();
+    let mut rest = line.trim();
+    while !rest.is_empty() {
+        let inner = rest.strip_prefix('[')?;
+        let (label, after) = inner.split_once("](")?;
+        let (address, after) = after.split_once(')')?;
+        if label.contains('[') || label.contains(']') {
+            return None;
+        }
+        crate::assets::name_of(address)?;
+        found.push(Attachment {
+            label: label.to_string(),
+            address: address.to_string(),
+        });
+        rest = after.trim_start();
+    }
+    (!found.is_empty()).then_some(found)
+}
+
 /// A single task.
 #[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
 pub struct Task {
@@ -142,6 +208,8 @@ pub struct Task {
     /// 1 (highest) to 3 (lowest).
     pub priority: Option<u8>,
     pub tags: Vec<String>,
+    /// Files attached to the task, as the link line under it carries them.
+    pub files: Vec<Attachment>,
     /// Free text under the task, kept line by line as written.
     pub description: Vec<String>,
     pub subtasks: Vec<Subtask>,
@@ -230,6 +298,11 @@ impl Task {
             }
         }
 
+        if let Some(files) = parse_attachments(body) {
+            self.files.extend(files);
+            return true;
+        }
+
         if let Some(metadata) = Metadata::parse(body) {
             self.due = metadata.due.or(self.due);
             self.priority = metadata.priority.or(self.priority);
@@ -272,6 +345,10 @@ impl Task {
         // because it is what the eye looks for.
         if let Some(metadata) = self.render_metadata() {
             lines.push(format!("{child_indent}{metadata}"));
+        }
+        if !self.files.is_empty() {
+            let links: Vec<String> = self.files.iter().map(Attachment::render).collect();
+            lines.push(format!("{child_indent}{}", links.join(" ")));
         }
         for line in &self.description {
             lines.push(format!("{child_indent}{line}"));

@@ -26,6 +26,12 @@ pub enum Error {
     )]
     LegacyNotebook(PathBuf),
 
+    /// An asset address that is not one of the library's — it escapes the
+    /// folder, names something that is not an image, or points at a file the
+    /// user wrote the link to themselves. See [`crate::assets`].
+    #[error("invalid asset path {0:?}")]
+    InvalidAssetPath(String),
+
     /// A note address that could escape its folder, or a title that cannot
     /// be a file name.
     #[error("invalid note path {0:?}")]

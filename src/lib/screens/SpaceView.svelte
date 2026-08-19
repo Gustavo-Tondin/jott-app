@@ -16,6 +16,12 @@
     tags = [],
     completedName = "completed",
     notesInbox = "Inbox",
+    /// The notebook's root, and every notes space of it — what a notes screen
+    /// needs and a tasks screen ignores: an image address resolves against the
+    /// root (services/assets.js), and "move notes to" needs somewhere to move
+    /// them (2026-08-18).
+    root = null,
+    noteSpaces = [],
     today = null,
     dateFormat = "mm/dd/yyyy",
     /// What is pulled into the Day, so a card can say it is in today.
@@ -93,6 +99,8 @@
       {tags}
       {completedName}
       {notesInbox}
+      {root}
+      {noteSpaces}
       {today}
       {dateFormat}
       {dayRefs}

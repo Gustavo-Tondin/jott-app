@@ -111,10 +111,17 @@ export const COMMANDS = [
   // without an icon is reachable by key and by the settings screen only —
   // the panel is a shortlist of what one reaches for while writing, not a
   // mirror of the list.
-  { id: "md.bold", scope: "editor", keys: "Mod+B", icon: "bold", label: () => S.cmdBold },
+  //
+  // `group` is what that panel puts a rule between (user call, 2026-08-18):
+  // marking a WORD, naming a LINE, and shaping a BLOCK are three different
+  // gestures, and eighteen glyphs in a row read as one undifferentiated wall.
+  // It lives here rather than in the panel because it says what a command IS,
+  // not how it is drawn — the same reason `scope` is here.
+  { id: "md.bold", scope: "editor", group: "mark", keys: "Mod+B", icon: "bold", label: () => S.cmdBold },
   {
     id: "md.italic",
     scope: "editor",
+    group: "mark",
     keys: "Mod+I",
     icon: "italic",
     label: () => S.cmdItalic,
@@ -122,6 +129,7 @@ export const COMMANDS = [
   {
     id: "md.strike",
     scope: "editor",
+    group: "mark",
     keys: "Mod+Shift+X",
     icon: "strike",
     label: () => S.cmdStrike,
@@ -129,14 +137,16 @@ export const COMMANDS = [
   {
     id: "md.code",
     scope: "editor",
+    group: "mark",
     keys: "Mod+E",
     icon: "code",
     label: () => S.cmdInlineCode,
   },
-  { id: "md.link", scope: "editor", keys: "Mod+K", icon: "link", label: () => S.cmdLink },
+  { id: "md.link", scope: "editor", group: "mark", keys: "Mod+K", icon: "link", label: () => S.cmdLink },
   ...Array.from({ length: 6 }, (_, i) => ({
     id: `md.h${i + 1}`,
     scope: "editor",
+    group: "heading",
     keys: `Mod+Alt+${i + 1}`,
     icon: `h${i + 1}`,
     label: () => S.cmdHeading(i + 1),
@@ -150,6 +160,7 @@ export const COMMANDS = [
   {
     id: "md.bullet",
     scope: "editor",
+    group: "block",
     keys: "Mod+Shift+8",
     icon: "bullet",
     label: () => S.cmdBulletList,
@@ -157,19 +168,21 @@ export const COMMANDS = [
   {
     id: "md.ordered",
     scope: "editor",
+    group: "block",
     keys: "Mod+Shift+7",
     icon: "ordered",
     label: () => S.cmdOrderedList,
   },
-  { id: "md.task", scope: "editor", keys: "Mod+L", icon: "task", label: () => S.cmdTaskList },
+  { id: "md.task", scope: "editor", group: "block", keys: "Mod+L", icon: "task", label: () => S.cmdTaskList },
   {
     id: "md.quote",
     scope: "editor",
+    group: "block",
     keys: "Mod+Shift+.",
     icon: "quote",
     label: () => S.cmdQuote,
   },
-  { id: "md.rule", scope: "editor", keys: null, icon: "rule", label: () => S.cmdRule },
+  { id: "md.rule", scope: "editor", group: "block", keys: null, icon: "rule", label: () => S.cmdRule },
   { id: "note.replace", scope: "editor", keys: "Mod+H", label: () => S.cmdReplace },
 ];
 
