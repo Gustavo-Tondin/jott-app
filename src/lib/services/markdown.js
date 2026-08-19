@@ -13,11 +13,15 @@
 // 2. `livePreview` hides the *marks* (`#`, `**`, `>`) on inactive lines, and
 //    turns `[ ]` into a real checkbox.
 // 3. `blockLook` dresses whole LINES — the quote's bar, the code block's box,
-//    the rule, and the soft accent band on the lines being edited.
+//    the rule, and the soft accent band on the line being edited.
 //
-// Pieces 2 and 3 read the same `activeLines`, and that is the point: the lines
-// wearing the accent band are exactly the lines showing their raw syntax, so
-// the band explains why those lines look different from the rest.
+// Pieces 2 and 3 ask two DIFFERENT questions about the selection, and the
+// difference is deliberate (user report, 2026-08-19). The raw syntax follows
+// `activeLines` — every line the selection touches, because that is what a
+// person selecting text is working on. The band follows `caretLines` — only a
+// bare caret, never a selection: the band and the text selection are the same
+// colour, so drawing the band under a selection painted twenty rounded boxes
+// down the page and hid the selection inside them.
 //
 // Nothing here changes the file. Hiding is a decoration over the document;
 // the `.md` on disk keeps every character the user typed, which is the whole
@@ -129,6 +133,31 @@ export function activeLines(state) {
     const first = state.doc.lineAt(range.from).number;
     const last = state.doc.lineAt(range.to).number;
     for (let n = first; n <= last; n++) lines.add(n);
+  }
+  return lines;
+}
+
+/// Line numbers that carry a bare CARET — the lines the band is drawn on.
+///
+/// NOT the same question as `activeLines`, and that is the change (user
+/// report with a screenshot, 2026-08-19: "o seletor de linhas está estranho,
+/// criando diversos cantos arredondados... o seletor de linha somente no bloco
+/// onde está a | de texto"). Until now the band followed the selection, so
+/// dragging across twenty lines drew twenty rounded bands, each one a box the
+/// eye had to take apart — and since the band and the text selection are the
+/// same colour, the selection itself became impossible to see.
+///
+/// A selection produces NO band: it already says where you are, and saying it
+/// twice in the same colour is what the screenshot showed. The band is for the
+/// other case, the one it was drawn for — where the caret sits while typing.
+///
+/// The raw syntax still follows `activeLines`, which is what the reference
+/// image shows too: the marks of every selected line are visible there.
+export function caretLines(state) {
+  const lines = new Set();
+  for (const range of state.selection.ranges) {
+    if (!range.empty) continue;
+    lines.add(state.doc.lineAt(range.head).number);
   }
   return lines;
 }
@@ -262,7 +291,7 @@ const BOXED = new Set(["cm-md-quote", "cm-md-code"]);
 /// Same shape as `decorationsFor`: a state and plain ranges, no view, so the
 /// rule is testable without a DOM.
 export function blockDecorationsFor(state, ranges) {
-  const active = activeLines(state);
+  const banded = caretLines(state);
   /// line number → the classes that line wears
   const lines = new Map();
 
@@ -277,7 +306,7 @@ export function blockDecorationsFor(state, ranges) {
     // ones: a decoration outside the viewport is work nobody sees.
     for (let pos = from; pos <= to; ) {
       const line = state.doc.lineAt(pos);
-      if (active.has(line.number)) dress(line.number, "cm-md-editing");
+      if (banded.has(line.number)) dress(line.number, "cm-md-editing");
       pos = line.to + 1;
     }
 

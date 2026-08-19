@@ -96,3 +96,50 @@ describe("FormatBar, narrow", () => {
     expect(container.querySelectorAll(".format-bar__divider").length).toBe(0);
   });
 });
+
+// ---- the focus stays in the note (user report, 2026-08-19) ----
+//
+// "Clicking the formatting items closes the keyboard." Reproduced on the
+// emulator: a real tap on the `A` opener left `document.activeElement` on the
+// BODY, the strip — which is tied to the editor holding the focus — unmounted
+// mid-tap, and the panel never opened. Pressing a button focuses it by
+// default, and that default is the whole bug.
+describe("FormatBar and the focus", () => {
+  const pressing = (button) => {
+    const event = new MouseEvent("mousedown", { bubbles: true, cancelable: true });
+    button.dispatchEvent(event);
+    return event.defaultPrevented;
+  };
+
+  it("refuses the focus on every button of the narrow bar", () => {
+    const { container } = render(FormatBar, {
+      props: { onRun: () => {}, layout: "row" },
+    });
+    const buttons = [...container.querySelectorAll(".format-bar__button")];
+    expect(buttons.length).toBe(9);
+    for (const button of buttons) {
+      expect(pressing(button), button.getAttribute("aria-label")).toBe(true);
+    }
+  });
+
+  it("refuses it inside an unfolded group too", async () => {
+    render(FormatBar, { props: { onRun: () => {}, layout: "row" } });
+    await userEvent.click(screen.getByLabelText("Text style"));
+    expect(pressing(screen.getByTitle("Bold [Ctrl+B]"))).toBe(true);
+  });
+
+  it("refuses it in the desktop column, where the same loss moves the caret", () => {
+    const { container } = render(FormatBar, { props: { onRun: () => {} } });
+    for (const button of container.querySelectorAll(".format-bar__button")) {
+      expect(pressing(button), button.getAttribute("aria-label")).toBe(true);
+    }
+  });
+
+  it("still runs the command it was pressed for", async () => {
+    // Cancelling the default takes the focus away, not the click.
+    const asked = [];
+    render(FormatBar, { props: { onRun: (id) => asked.push(id), layout: "row" } });
+    await userEvent.click(screen.getByTitle("Bullet list [Ctrl+Shift+8]"));
+    expect(asked).toEqual(["md.bullet"]);
+  });
+});

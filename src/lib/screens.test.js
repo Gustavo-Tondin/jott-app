@@ -1464,6 +1464,66 @@ describe("App", () => {
     );
   });
 
+  // ---- the way back to the docked panel (user call, 2026-08-19) ----
+  //
+  // Sending the controls to float was one click on the panel's ×; bringing
+  // them back was two, inside a submenu of the page ⋮ — and nothing on screen
+  // said the panel was still there to reopen.
+  test("closing the formatting panel leaves a button that reopens it", async () => {
+    shell({
+      list_notes: [
+        {
+          path: "Inbox/Ideia.md",
+          title: "Ideia",
+          folder: "Inbox",
+          preview: "preview",
+          created: "2026-07-21",
+          pinned: false,
+        },
+      ],
+      note_folders: [noteFolder("Inbox")],
+      read_note: {
+        path: "Inbox/Ideia.md",
+        title: "Ideia",
+        body: "Corpo.",
+        pinned: false,
+        created: "2026-07-21",
+      },
+      write_note: null,
+    });
+    const { container } = render(App);
+
+    await userEvent.click(await screen.findByRole("button", { name: "Notes" }));
+    await userEvent.click(await screen.findByText("Ideia"));
+    await screen.findByLabelText("Formatting");
+
+    // Docked: the bar is the panel, and there is nothing to reopen.
+    expect(screen.queryByLabelText("Dock the formatting panel")).toBeNull();
+
+    await userEvent.click(screen.getByLabelText("collapse panel"));
+
+    // Floating now — and the way back is on screen, in a pill of its own.
+    const dock = await screen.findByLabelText("Dock the formatting panel");
+    const pill = container.querySelector(".format-float--dock");
+    expect(pill).toBeTruthy();
+    // Its own box, not a tenth button inside the bar: it formats nothing.
+    expect(dock.closest(".format-bar")).toBeNull();
+    // BESIDE the bar, in the row the two travel in (user call, 2026-08-19).
+    // Placed on its own it landed in the corner the page ⋮ already owns.
+    expect(pill.parentElement.classList.contains("format-floats")).toBe(true);
+    expect(pill.previousElementSibling.querySelector(".format-bar")).toBeTruthy();
+    // And the row hangs off the canvas, which begins below the page header —
+    // measured from the panel, the bar sat on the header itself.
+    expect(pill.closest(".shell__canvas")).toBeTruthy();
+    expect(pill.closest(".page-header")).toBeNull();
+
+    await userEvent.click(dock);
+
+    // Back in the panel, and the button has nothing left to offer.
+    await screen.findByLabelText("collapse panel");
+    expect(screen.queryByLabelText("Dock the formatting panel")).toBeNull();
+  });
+
   test("the sidebar head carries search and a + that makes things", async () => {
     // Both were only reachable by shortcut or by right-clicking empty column
     // — which stops existing as soon as the column is full (user call,
@@ -2459,7 +2519,7 @@ describe("NotesSpace", () => {
     bridge({ list_notes: [entry("Ideia")], note_folders: [], set_note_pinned: null });
 
     render(NotesSpace, { props: props() });
-    await userEvent.click(await screen.findByLabelText("pin"));
+    await userEvent.click(await screen.findByLabelText("Pin"));
 
     await waitFor(() =>
       expect(invoke).toHaveBeenCalledWith("set_note_pinned", {
@@ -2512,7 +2572,7 @@ describe("NotesSpace", () => {
     // No quick-note bar, no pin, and no ⋮ on the card: every one of them
     // writes.
     expect(screen.queryByLabelText("Quick note…")).toBeNull();
-    expect(screen.queryByLabelText("pin")).toBeNull();
+    expect(screen.queryByLabelText("Pin")).toBeNull();
     expect(screen.queryByLabelText("note options")).toBeNull();
     await userEvent.click(screen.getByLabelText("space options"));
     expect(screen.queryByText("New note")).toBeNull();
@@ -2729,6 +2789,57 @@ describe("NotesSpace", () => {
     fireEvent.pointerUp(cards[0], { pointerId: 1, clientX: 110, clientY: 300 });
 
     await waitFor(() => expect(saved).toEqual([["Inbox/Bbb.md", "Inbox/Aaa.md"]]));
+  });
+
+  test("a dragged FOLDER card saves the arrangement it landed in", async () => {
+    // It could not be dragged at all until now (user report, 2026-08-19): the
+    // drag was told to pick up note cards only, the order it saved held note
+    // addresses only, and the folders never went through `arrange()`. The
+    // board is one arrangement now, and a folder's address rides in the same
+    // order as the notes'.
+    const saved = [];
+    bridge({ list_notes: [entry("Aaa")], note_folders: [noteFolder("Clientes")] });
+
+    const { container } = render(NotesSpace, {
+      props: props({ onSetOrder: (order) => saved.push(order) }),
+    });
+    await screen.findByText("Aaa");
+
+    const cards = [...container.querySelectorAll(".notes-space__group, .notes-space__item")];
+    expect(cards[0].classList.contains("notes-space__group")).toBe(true);
+    place(cards, 220);
+    fireEvent.pointerDown(cards[0], { button: 0, pointerId: 1, clientX: 110, clientY: 240 });
+    fireEvent.pointerMove(cards[0], { pointerId: 1, clientX: 110, clientY: 470 });
+    fireEvent.pointerUp(cards[0], { pointerId: 1, clientX: 110, clientY: 470 });
+
+    await waitFor(() => expect(saved).toEqual([["Inbox/Aaa.md", "Clientes"]]));
+  });
+
+  test("a folder dropped on a folder is put in the order, not filed into it", async () => {
+    // A folder card is where a NOTE is filed. Carrying a folder, it is no drop
+    // zone at all — the app never lights up a target whose drop would do
+    // nothing, and the core has no move for a folder of notes anyway.
+    const saved = [];
+    bridge({
+      list_notes: [],
+      note_folders: [noteFolder("Clientes"), noteFolder("Design")],
+      move_note_to_space: "x",
+    });
+
+    const { container } = render(NotesSpace, {
+      props: props({ onSetOrder: (order) => saved.push(order) }),
+    });
+    await screen.findByText("Clientes");
+
+    const cards = [...container.querySelectorAll(".notes-space__group")];
+    place(cards, 220);
+    fireEvent.pointerDown(cards[0], { button: 0, pointerId: 1, clientX: 110, clientY: 240 });
+    // Straight onto the middle of the other folder card.
+    fireEvent.pointerMove(cards[0], { pointerId: 1, clientX: 110, clientY: 460 });
+    fireEvent.pointerUp(cards[0], { pointerId: 1, clientX: 110, clientY: 460 });
+
+    await waitFor(() => expect(saved).toEqual([["Design", "Clientes"]]));
+    expect(invoke.mock.calls.some(([cmd]) => cmd === "move_note_to_space")).toBe(false);
   });
 
   test("a card dropped on a folder card is filed into it", async () => {
@@ -3418,7 +3529,7 @@ describe("NoteEditor", () => {
     expect(seen[0]).toEqual({ pinned: false, title: "Ideia", banner: null });
     // And it draws no header of its own.
     expect(screen.queryByText("← notes")).toBeNull();
-    expect(screen.queryByText("delete")).toBeNull();
+    expect(screen.queryByText("Delete")).toBeNull();
   });
 
   test("a note that has a banner hands it over the same way", async () => {
@@ -3481,7 +3592,7 @@ describe("NotesSpace folder management", () => {
     expect(screen.getByText("Delete")).toBeTruthy();
     expect(screen.getByText("Rename")).toBeTruthy();
     // And pinning and colouring, which a folder never had before.
-    expect(screen.getByText("pin")).toBeTruthy();
+    expect(screen.getByText("Pin")).toBeTruthy();
     expect(screen.getByText("colour")).toBeTruthy();
   });
 
@@ -3492,7 +3603,7 @@ describe("NotesSpace folder management", () => {
     render(NotesSpace, { props: props() });
 
     await openFolderMenu();
-    await userEvent.click(screen.getByText("pin"));
+    await userEvent.click(screen.getByText("Pin"));
     await waitFor(() =>
       expect(invoke).toHaveBeenCalledWith("set_note_folder_pinned", {
         folder: "Notes",
@@ -3584,7 +3695,7 @@ describe("NotesSpace folder management", () => {
     // every item in one writes.
     expect(await screen.findByLabelText("open Clientes")).toBeTruthy();
     expect(screen.queryByLabelText("folder options")).toBeNull();
-    expect(screen.queryByLabelText("pin")).toBeNull();
+    expect(screen.queryByLabelText("Pin")).toBeNull();
   });
 });
 
@@ -3628,6 +3739,36 @@ describe("HomeView", () => {
     expect(screen.getByText("ideia")).toBeTruthy();
     // The Home owns no notes: it asks for today's, it does not store them.
     expect(invoke).toHaveBeenCalledWith("notes_created_today", { folder: "jott.notes" });
+  });
+
+  test("today's notes are drawn as the board's cards, banner and all", async () => {
+    // Home draws THE note card now (2026-08-19), not a copy of it: the banner,
+    // the title on its chip and the first lines. It had a card of its own from
+    // before a note could have a banner at all, and it was the copy that fell
+    // behind.
+    bridge({
+      period_tasks: [],
+      notes_created_today: [
+        {
+          path: "Inbox/ideia.md",
+          title: "ideia",
+          folder: "Inbox",
+          preview: "uma ideia",
+          created: "2026-07-21",
+          pinned: false,
+          banner: { kind: "color", value: "yellow" },
+        },
+      ],
+    });
+
+    const { container } = render(HomeView, { props: props() });
+
+    expect(await screen.findByText("ideia")).toBeTruthy();
+    expect(screen.getByText("uma ideia")).toBeTruthy();
+    expect(container.querySelector(".note-card__banner")).toBeTruthy();
+    // Its own actions belong where the note lives — Home is the day looking in.
+    expect(container.querySelector(".note-card__more")).toBeNull();
+    expect(container.querySelector(".note-card__pin")).toBeNull();
   });
 
   test("the capture box writes a note where the notes ⋮ points", async () => {
@@ -4287,6 +4428,42 @@ describe("TasksView", () => {
     // Adding happens in the bar, so the header (and its button) is gone.
     expect(screen.queryByText("New task")).toBeNull();
     expect(screen.getByPlaceholderText("Create a task…")).toBeTruthy();
+  });
+
+  test("a dragged task saves the arrangement it landed in", async () => {
+    // The same hole the fixed Notes board had, in the fixed Tasks screen: the
+    // drag played out in full, called an `onSetOrder` nobody had passed, and
+    // the order was dropped on release (user report, 2026-08-19 — found while
+    // fixing the touch gesture, and it would have hidden the fix entirely).
+    const saved = [];
+    bridge({
+      list_tasks: (args) =>
+        args.list === "jott.tasks/task-list.md"
+          ? [task("a1", "Comprar leite"), task("b2", "Pagar boleto")]
+          : [],
+    });
+
+    const { container } = render(TasksView, {
+      props: props({ onSetOrder: (order) => saved.push(order) }),
+    });
+    await screen.findByText("Comprar leite");
+
+    const rows = [...container.querySelectorAll(".task-row")];
+    expect(rows.length).toBe(2);
+    rows.forEach((row, i) => {
+      row.getBoundingClientRect = () => ({
+        left: 0, right: 300, width: 300,
+        top: i * 60, bottom: i * 60 + 60, height: 60, x: 0, y: i * 60,
+        toJSON() {},
+      });
+    });
+
+    // A mouse: immediate, the way it always was (touch waits — reorder.js).
+    fireEvent.pointerDown(rows[0], { button: 0, pointerId: 1, pointerType: "mouse", clientX: 10, clientY: 10 });
+    fireEvent.pointerMove(rows[0], { pointerId: 1, pointerType: "mouse", clientX: 10, clientY: 100 });
+    fireEvent.pointerUp(rows[0], { pointerId: 1, pointerType: "mouse", clientX: 10, clientY: 100 });
+
+    await waitFor(() => expect(saved).toEqual([["b2", "a1"]]));
   });
 
   test("the bar writes into the list the chip points at", async () => {
@@ -5103,5 +5280,58 @@ describe("the compact shell", () => {
     expect(toggle.classList.contains("topbar__button--hidden")).toBe(true);
     // Still in the row, still the same square.
     expect(container.querySelectorAll(".topbar__button").length).toBeGreaterThan(0);
+  });
+
+  // ---- the note scrolls under the bar (wireframes "Editor screen", 2026-08-19) ----
+  //
+  // The two states the wireframes draw are one arrangement: the bar is out of
+  // the flow and paints nothing, and the canvas reserves its height. At rest
+  // the canvas begins where the bar ends, rounded; scrolled, the text passes
+  // beneath it and the buttons are left floating on their pills.
+
+  const withNote = (extra = {}) =>
+    compactShell({
+      platform: "android",
+      note_folders: [noteFolder("Inbox")],
+      list_notes: [
+        {
+          path: "Inbox/Ideia.md",
+          title: "Ideia",
+          folder: "Inbox",
+          preview: "preview",
+          created: "2026-07-21",
+          pinned: false,
+        },
+      ],
+      read_note: {
+        path: "Inbox/Ideia.md",
+        title: "Ideia",
+        body: "Corpo.",
+        pinned: false,
+        created: "2026-07-21",
+      },
+      write_note: null,
+      ...extra,
+    });
+
+  test("an open note lifts the top bar over the page", async () => {
+    withNote({ screen_to_restore: "notes" });
+    const { container } = render(App);
+
+    await userEvent.click(await screen.findByText("Ideia"));
+
+    // The canvas carries the note's own modifier the moment the screen is one.
+    await waitFor(() => expect(container.querySelector(".shell__content--note")).toBeTruthy());
+    expect(container.querySelector(".topbar").classList.contains("topbar--over")).toBe(true);
+  });
+
+  test("every other screen keeps the bar above the canvas", async () => {
+    // The note is the only screen with no header of its own. Pushing the
+    // others under the bar would take their title with them.
+    withNote();
+    const { container } = render(App);
+
+    await screen.findByLabelText("open sidebar");
+    expect(container.querySelector(".topbar").classList.contains("topbar--over")).toBe(false);
   });
 });

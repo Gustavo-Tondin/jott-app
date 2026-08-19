@@ -259,6 +259,23 @@
     --theme-sidebar-rail: 3.5rem; /* the left sidebar collapsed to an icon rail */
     --theme-sidebar-right: 15rem;
     --theme-titlebar-height: 2.375rem;
+    /* The compact shell's top bar, in three parts, because two places need
+       its total height and only one of them draws it: an open note lets its
+       canvas scroll UNDER the bar (the wireframes "Editor screen", 2026-08-19
+       — the buttons float over the text once the page has moved), so the
+       canvas has to start exactly where the bar ends. Written once here rather
+       than twice, so the bar cannot drift away from the space reserved for it.
+       The top padding is the status bar's own strip, never stacked on top of
+       the bar's air — components/topbar.css says why. */
+    --theme-topbar-control: 2.625rem;
+    --theme-topbar-pad-block-start: max(
+      var(--theme-space-12),
+      var(--theme-safe-top)
+    );
+    --theme-topbar-height: calc(
+      var(--theme-topbar-control) + var(--theme-topbar-pad-block-start) +
+        var(--theme-space-12)
+    );
     --theme-content-max: 45rem;
     /* An open note is the one screen with TWO widths (wireframe "Editor screen
        - maximized", 2026-08-19): its prose keeps the cap above, and its banner
@@ -267,6 +284,21 @@
        chip still lines up with the first letter of the text because it is
        drawn inside a box of `--theme-content-max` within it. */
     --theme-content-wide: 56.25rem;
+
+    /* HOW BIG A NOTE IS DRAWN, and the one heading size read from outside the
+       editor. `data-note-size` on the root picks the rung (`noteFontSize`,
+       2026-08-18) — absent for the size the app ships as, the same pact
+       `data-theme` and `data-accent` keep.
+
+       The marks inside a note are `em` multiples of the body, so one
+       declaration moves the whole document. `--theme-note-h1` states the
+       largest of those multiples as a length, because the note's TITLE is
+       drawn outside the editor and has to match it (user call, 2026-08-19:
+       "deixe o título maior também, pelo menos do tamanho de um H1"). Written
+       once here, so the title cannot drift from the heading it is sized
+       against. */
+    --theme-note-size: var(--theme-text-16);
+    --theme-note-h1: calc(var(--theme-note-size) * 1.6);
 
     /* ---------------------------------------------------------------------
        COMPACT — the shell rearranged for a screen too narrow to hold three
@@ -344,5 +376,15 @@
        on every repaint until it turned into a black ring.
        --------------------------------------------------------------------- */
     --theme-window-radius: 0.75rem;
+  }
+
+  /* The two other rungs of the note's size ladder. Here rather than in
+     editor.css, because the token is now read from outside the editor too —
+     the note's title is sized against `--theme-note-h1`. */
+  :root[data-note-size="small"] {
+    --theme-note-size: var(--theme-text-14);
+  }
+  :root[data-note-size="large"] {
+    --theme-note-size: var(--theme-text-18);
   }
 }

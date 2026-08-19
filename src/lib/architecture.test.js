@@ -202,7 +202,7 @@ describe("frontend architecture", () => {
       for (const m of css.matchAll(/var\(\s*(--theme-[a-z0-9-]+)/g)) {
         // Metrics (spacing, radius, type, layout, motion) live in tokens.css.
         if (
-          /^--theme-(space|radius|text|weight|tracking|leading|font|transition|sidebar|titlebar|content|window|drawer|sheet|touch|safe|keyboard)/.test(
+          /^--theme-(space|radius|text|weight|tracking|leading|font|transition|sidebar|titlebar|topbar|content|note-|window|drawer|sheet|touch|safe|keyboard)/.test(
             m[1],
           )
         )

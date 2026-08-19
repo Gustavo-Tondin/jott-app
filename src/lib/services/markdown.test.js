@@ -13,10 +13,12 @@ import { describe, expect, test } from "vitest";
 import { blockDecorationsFor, decorationsFor, markdownPreview } from "./markdown.js";
 
 /// A state with the cursor at `at`, and the ranges the preview would hide.
+/// `at` is a caret position, or a `{anchor, head}` range when the point is
+/// what a SELECTION leaves showing.
 function hidden(doc, at = 0) {
   const state = EditorState.create({
     doc,
-    selection: { anchor: at },
+    selection: typeof at === "number" ? { anchor: at } : at,
     extensions: [markdown({ base: markdownLanguage })],
   });
 
@@ -127,28 +129,43 @@ describe("the shape of a block", () => {
     expect(lines.has(1)).toBe(false);
   });
 
-  test("a selection makes every line it touches the editing zone", () => {
-    // The block case: the band follows what is selected, which is the whole
-    // reason this is not the library's `highlightActiveLine` (it gives up the
-    // moment the selection stops being a bare cursor).
+  test("a selection draws NO band, however many lines it covers", () => {
+    // THE ONE THE USER HIT (screenshot, 2026-08-19): the band used to follow
+    // the selection, so dragging across a page drew a rounded box per line —
+    // and since the band and the text selection are the same colour, the
+    // selection vanished inside them. A selection already says where you are.
     const doc = "um\ndois\ntrês\nquatro\n";
     const lines = dressed(doc, {
       anchor: lineStart(doc, 2),
       head: lineStart(doc, 3) + 2,
     });
-    expect(lines.get(2)).toEqual(["cm-md-editing"]);
+    expect([...lines.values()].flat()).not.toContain("cm-md-editing");
+  });
+
+  test("a bare caret bands its own line, and only that one", () => {
+    // "o seletor de linha somente no bloco onde está a | de texto".
+    const doc = "um\ndois\ntrês\nquatro\n";
+    const lines = dressed(doc, { anchor: lineStart(doc, 3) + 1 });
     expect(lines.get(3)).toEqual(["cm-md-editing"]);
-    expect(lines.has(1)).toBe(false);
+    expect(lines.has(2)).toBe(false);
     expect(lines.has(4)).toBe(false);
   });
 
-  test("the band lands exactly on the lines that keep their syntax", () => {
-    // The two rules are one rule seen twice: the band is what explains why
-    // those lines look different from the rest of the note.
+  test("but the selected lines still show their raw syntax", () => {
+    // The two questions parted ways: the band is about the caret, the raw
+    // marks are about what is selected — which is what the reference image
+    // shows as well (every selected line has its `##` and `**` visible).
+    const doc = "# Título\n**forte**\n";
+    const range = { anchor: 0, head: doc.length };
+    expect(hidden(doc, range)).toEqual([]);
+    const lines = dressed(doc, range);
+    expect([...lines.values()].flat()).not.toContain("cm-md-editing");
+  });
+
+  test("the band explains why ITS line shows its syntax", () => {
     const doc = "# Título\n**forte**\n";
     const at = lineStart(doc, 2);
     expect(hidden(doc, at)).toEqual(["# "]); // line 2 kept its `**`
-    expect([...dressed(doc, { anchor: at }).keys()]).toEqual([1, 2]);
     expect(dressed(doc, { anchor: at }).get(2)).toContain("cm-md-editing");
   });
 
@@ -264,6 +281,42 @@ describe("what the editor actually paints", () => {
     ).replace(/\/\*[\s\S]*?\*\//g, "");
     return new Set([...css.matchAll(/\.(cm-md-[a-z0-9-]+)/g)].map((m) => m[1]));
   }
+
+  /// The classes on each LINE element the editor renders, keyed by line
+  /// number — the band is a line decoration, so this is where it shows up.
+  function lineClasses(doc, selection) {
+    const parent = document.createElement("div");
+    document.body.appendChild(parent);
+    const view = new EditorView({
+      parent,
+      state: EditorState.create({
+        doc,
+        selection,
+        extensions: [markdown({ base: markdownLanguage }), markdownPreview],
+      }),
+    });
+    const lines = [...view.dom.querySelectorAll(".cm-line")].map((el) => el.className);
+    view.destroy();
+    parent.remove();
+    return lines;
+  }
+
+  // Driven through a real EditorView, not the pure function alone: the band is
+  // a line decoration and the thing that can break is the editor's own
+  // rendering of it (the lesson of 2026-08-19, when a block decoration built
+  // the same way was dropped in silence).
+  test("dragging across the note paints no band anywhere", () => {
+    const doc = "um\ndois\ntrês\nquatro\n";
+    const classes = lineClasses(doc, { anchor: 0, head: doc.length - 1 });
+    expect(classes.some((c) => c.includes("cm-md-editing"))).toBe(false);
+  });
+
+  test("a caret paints exactly one band", () => {
+    const doc = "um\ndois\ntrês\nquatro\n";
+    const classes = lineClasses(doc, { anchor: lineStart(doc, 2) + 1 });
+    expect(classes.filter((c) => c.includes("cm-md-editing")).length).toBe(1);
+    expect(classes[1]).toContain("cm-md-editing");
+  });
 
   test("every class the stylesheet dresses is one the editor paints", () => {
     const shown = painted();

@@ -23,6 +23,7 @@
   import TagsView from "./lib/screens/TagsView.svelte";
   import TrashView from "./lib/screens/TrashView.svelte";
   import AssetsView from "./lib/screens/AssetsView.svelte";
+  import Icon from "./lib/components/Icon.svelte";
   import NoteBanner from "./lib/components/NoteBanner.svelte";
   import AssetPicker from "./lib/components/AssetPicker.svelte";
   import ImageViewer from "./lib/components/ImageViewer.svelte";
@@ -1251,6 +1252,19 @@
   const setNotesOrder = (order) =>
     layout.notesFolder && change(() => api.setSpaceOrder(layout.notesFolder, order));
 
+  /// ...and the FIXED Tasks screen had exactly the same hole (user report,
+  /// 2026-08-19: on a phone "ele quer ficar selecionando e movendo as tarefas",
+  /// and when the gesture was fixed the cards still snapped back). It is the
+  /// space that holds the Inbox, so its arrangement lives in that space's
+  /// `.space.json` — which `inboxSource` above already READS. Only the writing
+  /// was missing, and a missing optional handler does nothing at all: the drag
+  /// played out in full and the order was thrown away on release.
+  const tasksSpaceFolder = $derived(layout.inbox ? folderOf(layout.inbox) : null);
+  const setTasksSort = (sort) =>
+    tasksSpaceFolder && change(() => api.setSpaceSort(tasksSpaceFolder, sort));
+  const setTasksOrder = (order) =>
+    tasksSpaceFolder && change(() => api.setSpaceOrder(tasksSpaceFolder, order));
+
   async function renameCurrentList() {
     if (view.kind !== "list") return;
     const from = view.list;
@@ -1553,6 +1567,7 @@
       pageKey={title(view)}
       {mobile}
       buttons={windowButtons}
+      over={view.kind === "note"}
     />
   {:else}
     <TitleBar rail={railed} buttons={windowButtons}>
@@ -1681,21 +1696,67 @@
           />
         {/snippet}
 
-        <!-- The formatting controls, floating (user call, 2026-08-19): the
-             same narrow bar the phone gets, centred over the top of the canvas
-             just under the page header, on a LIGHT ground because here it
-             floats over the document and not over a phone's chrome. It is what
-             a note has whenever the right panel is not holding them — closed,
-             or busy with a task. -->
-        {#if formatBarFloats}
-          <div class="format-float">
-            <!-- CANVAS, and it matters: the folded panel is portaled out of the
-                 window by `keepOnScreen`, so it paints whatever region it was
-                 TOLD. Told "chrome" it came out dark on a light bar (this bar
-                 is the one place the same component sits on the two grounds). -->
-            <FormatBar layout="row" region="canvas" onRun={runFormat} />
-          </div>
-        {/if}
+        <!-- CANVAS: what the screen is drawn on, and the box the floating
+             controls are measured from. It exists so they can be placed
+             against the TOP OF THE SCREEN rather than the top of the panel —
+             measured from the panel they landed on the page header, the dock
+             button right on top of its ⋮ (user report, 2026-08-19). The
+             header is outside this box, so "below the header" needs no number
+             that would have to be kept in step with it. -->
+        <div class="shell__canvas">
+          <!-- The formatting controls, floating (user call, 2026-08-19): the
+               same narrow bar the phone gets, centred over the top of the
+               canvas, on a LIGHT ground because here it floats over the
+               document and not over a phone's chrome. It is what a note has
+               whenever the right panel is not holding them — closed, or busy
+               with a task.
+
+               THE TWO PILLS TRAVEL TOGETHER, centred as one (user call,
+               2026-08-19: "logo à direita dos outros botões"). A row, not two
+               placements: pinning the button to the canvas's far edge put it
+               in the corner the page ⋮ already owns, and any gap written as a
+               number would drift the moment the bar gains a glyph. -->
+          {#if formatBarFloats}
+            <div class="format-floats">
+              <div class="format-float">
+                <!-- CANVAS, and it matters: the folded panel is portaled out of
+                     the window by `keepOnScreen`, so it paints whatever region
+                     it was TOLD. Told "chrome" it came out dark on a light bar
+                     (this bar is the one place the same component sits on the
+                     two grounds). -->
+                <FormatBar layout="row" region="canvas" onRun={runFormat} />
+              </div>
+
+              <!-- The way BACK to the docked panel (user call, 2026-08-19).
+                   Sending the controls to the side was one click on the
+                   panel's ×; bringing them back was two, buried in the page ⋮
+                   under a submenu — and nothing on screen said the panel was
+                   still there to reopen.
+
+                   Its own pill, not a tenth button on the bar: it does not
+                   format anything. Same ground, same radius, same shadow, so
+                   the two read as one family and still as two things — which
+                   is what "mesmo formato com fundo, mas separado" asks for.
+
+                   Only when the panel was CLOSED. The bar also floats while
+                   the panel is busy holding a task or the suggestions, and
+                   there the button would promise a move that is already
+                   made. -->
+              {#if !formatting}
+                <div class="format-float format-float--dock">
+                  <button
+                    type="button"
+                    class="theme-btn theme-btn--icon format-float__dock"
+                    title={S.formattingDock}
+                    aria-label={S.formattingDock}
+                    onclick={() => (formatting = true)}
+                  >
+                    <Icon name="sidebar-simple" size="1.125rem" />
+                  </button>
+                </div>
+              {/if}
+            </div>
+          {/if}
 
         <!-- svelte-ignore a11y_no_static_element_interactions -->
         <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -1749,6 +1810,7 @@
           {#if view.kind === "home"}
             <HomeView
               {compact}
+              root={notebook.path}
               dot={colorOf(view)}
               composing={composingTask}
               dateFormat={layout.dateDisplayFormat}
@@ -1792,6 +1854,8 @@
               onSub={(label) => (tasksSub = label)}
               onSpan={(span) => (tasksSpan = span)}
               onSuggest={suggest}
+              onSetSort={setTasksSort}
+              onSetOrder={setTasksOrder}
               {f}
             />
           {:else if view.kind === "list"}
@@ -1953,6 +2017,7 @@
             />
           {/if}
           </div>
+        </div>
         </div>
       </section>
 

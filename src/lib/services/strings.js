@@ -151,6 +151,10 @@ export const S = {
   // they are for, so the choice is a place (user call, 2026-08-19).
   formattingDocked: "In the side panel",
   formattingFloating: "Floating over the note",
+  // The button beside the floating bar. It says where the controls GO,
+  // not what it does to them — the panel is a place, the same way the two
+  // menu items above are.
+  formattingDock: "Dock the formatting panel",
   noteTextSize: "Text size",
   noteSizeSmall: "Small",
   noteSizeMedium: "Medium",
@@ -348,10 +352,10 @@ export const S = {
   noNotes: "No notes yet.",
   allNotes: "All notes",
   emptyNote: "Empty note",
-  pin: "pin",
-  unpin: "unpin",
-  deleteNote: "delete",
-  renameNote: "rename",
+  pin: "Pin",
+  unpin: "Unpin",
+  deleteNote: "Delete",
+  renameNote: "Rename",
   noteBodyPlaceholder: "Write here…",
   layout: "Layout",
   gridView: "Grid",

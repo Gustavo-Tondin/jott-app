@@ -6,8 +6,9 @@
  * raw hex (#ddd, #eef2ff, #666, #d9c26a…), which meant it was the one block a
  * theme could not recolour — the contract of .jott/themes/<name>.css says
  * every colour is the theme's to change. The search field, the bar buttons and
- * the folder chips are now the shared controls; the note card follows the one
- * the Home already shows (home.css .home__note), since they are the same card. */
+ * the folder chips are now the shared controls; the note card is
+ * note-card.css, and the Home draws THAT one too (home.css .home__notes),
+ * since they are the same card. */
 
 @layer components {
   /* The place's own row (2026-08-18): name centred, ⋮ at the far right, and

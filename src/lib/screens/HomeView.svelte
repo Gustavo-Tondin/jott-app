@@ -17,6 +17,15 @@
   //
   // The notes are still a view of the notes inbox filtered by `created`
   // (spec 5), so nothing is moved when the day turns.
+  //
+  // And since 2026-08-19 they are drawn by the SAME card the notes board draws
+  // — banner, title on its chip, first lines — in the same measured masonry
+  // (services/noteColumns.js). Home had a card of its own, a title on a step
+  // of surface, which is what it looked like before a note had a banner at
+  // all: two drawings of one thing, and the day's half of Home kept falling
+  // behind the other. Only the drawing is shared — there is no arrangement to
+  // drag here, because what is on this screen is a QUESTION (what did I write
+  // today?) and not a place with an order of its own.
   import { api } from "../services/api.js";
   import { S } from "../services/strings.js";
   import { makeAct } from "../services/act.js";
@@ -25,10 +34,16 @@
   import CaptureBox from "../components/CaptureBox.svelte";
   import Menu from "../components/Menu.svelte";
   import Icon from "../components/Icon.svelte";
+  import NoteCard from "../components/NoteCard.svelte";
+  import { measured } from "../actions/measure.js";
+  import { columnBreaks, columnCount, weightOfNote } from "../services/noteColumns.js";
 
   let {
     notesFolder,
     notesInbox = "Inbox",
+    /// The notebook's root, absolute — what an image banner's address resolves
+    /// against (services/assets.js).
+    root = null,
     quickNoteFolder = null,
     folders = [],
     /// Every list of the notebook, for the screen and its composer.
@@ -78,6 +93,15 @@
   /// render.
   let chosenFolder = $state(null);
   let captureTo = $derived(chosenFolder ?? quickNoteFolder ?? notesInbox);
+
+  // The masonry, measured — the same two questions the notes board asks
+  // (services/noteColumns.js): how many columns fit, and where to cut them.
+  // Left to `column-fill: balance` the browser empties one whenever the cards
+  // are few and one of them is long, which is the layout Home would show most
+  // days.
+  let boardWidth = $state(0);
+  let columns = $derived(columnCount(boardWidth));
+  let breaks = $derived(columnBreaks(notes.map(weightOfNote), columns));
 
   $effect(() => {
     reloadKey;
@@ -208,16 +232,23 @@
       {#if notes.length === 0}
         <p class="theme-empty-card home__empty">{S.noNotesToday}</p>
       {:else}
-        <div class="home__notes">
-          {#each notes as note (note.path)}
-            <button class="home__note" onclick={() => onOpenNote?.(note.path)}>
-              <span class="home__note-head">
-                <span class="home__note-title">{note.title}</span>
-                <Icon name="dots-three" size="1rem" />
-              </span>
-            </button>
+        <!-- The board's card, drawn by the board's own component. No ⋮ and no
+             pin: what a note IS lives where the note lives, and Home is the
+             day looking in. -->
+        <ul
+          class="home__notes"
+          style={`columns: ${columns}`}
+          use:measured={(width) => (boardWidth = width)}
+        >
+          {#each notes as note, index (note.path)}
+            <li
+              class="home__note"
+              style={breaks.has(index) ? "break-after: column" : ""}
+            >
+              <NoteCard entry={note} {root} onOpen={() => onOpenNote?.(note.path)} />
+            </li>
           {/each}
-        </div>
+        </ul>
       {/if}
     </section>
   {/if}

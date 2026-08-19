@@ -2,7 +2,7 @@
 // whole-item path; this locks the parts they do not: a grip handle and a
 // vertical axis. jsdom has no layout, so each row is given a fake 40px-tall
 // rect stacked top to bottom, and the pointer is moved to the slot to land in.
-import { describe, expect, test, beforeEach } from "vitest";
+import { describe, expect, test, beforeEach, afterEach, vi } from "vitest";
 import { reorderable } from "./reorder.js";
 
 function list(rows = 3) {
@@ -170,6 +170,35 @@ describe("reorderable", () => {
 
     expect(intos).toEqual([[0, 2]]);
     expect(moves).toEqual([], "a drop INTO is not also a reorder");
+  });
+
+  test("canDropInto narrows which items may receive a drop", () => {
+    // A list of more than one kind of thing: the notes board carries note
+    // cards and FOLDER cards in one arrangement, and only two notes make a
+    // folder of themselves. Without this the ring would light up around a
+    // target whose drop does nothing — a promise the drop cannot keep.
+    const ul = list();
+    layOut(ul);
+    const moves = [];
+    const intos = [];
+    reorderable(ul, {
+      axis: "y",
+      item: ".row",
+      onReorder: (f, t) => moves.push([f, t]),
+      canDropInto: (from, to) => to !== 2,
+      onDropInto: (f, t) => intos.push([f, t]),
+    });
+
+    const row = ul.children[0];
+    fire(row, "pointerdown", { button: 0, pointerId: 1, clientY: 20 });
+    // Right on row 2's middle band, which this list refuses.
+    fire(row, "pointermove", { pointerId: 1, clientY: 100 });
+    const rows = [...ul.querySelectorAll(".row")];
+    expect(rows[2].classList.contains("reorder-item--into")).toBe(false);
+    fire(row, "pointerup", { pointerId: 1, clientY: 100 });
+
+    expect(intos).toEqual([]);
+    expect(moves).toEqual([[0, 1]], "refused as a target, it is just a gap");
   });
 
   test("the carried item leaves the flow, and its place is kept", () => {
@@ -340,5 +369,107 @@ describe("reorderable drop zones", () => {
     expect(dropped).toEqual([]);
     // With no zone to land on, the release far from the list reads as leaving.
     expect(out).toEqual([0]);
+  });
+});
+
+// ---- a finger has to rest first (user report, 2026-08-19) ----
+//
+// Dragging a card up the list and SCROLLING the list are the same movement on
+// the same axis, so five pixels of it used to carry a card away while the user
+// was only scrolling. Time is what separates the two intents.
+describe("reorderable on a touch screen", () => {
+  beforeEach(() => {
+    document.body.innerHTML = "";
+    vi.useFakeTimers();
+  });
+  afterEach(() => vi.useRealTimers());
+
+  const touchList = (onReorder, extra = {}) => {
+    const ul = list();
+    layOut(ul);
+    reorderable(ul, { axis: "y", item: ".row", onReorder, ...extra });
+    return ul;
+  };
+
+  test("a finger that moves straight away is scrolling, and nothing is carried", () => {
+    const moves = [];
+    const ul = touchList((f, t) => moves.push([f, t]));
+    const row = ul.children[0];
+
+    fire(row, "pointerdown", { button: 0, pointerId: 1, pointerType: "touch", clientY: 5, clientX: 5 });
+    // The scroll begins before the hold is up.
+    vi.advanceTimersByTime(120);
+    fire(row, "pointermove", { pointerId: 1, clientY: 95, clientX: 5 });
+    fire(row, "pointerup", { pointerId: 1, clientY: 95, clientX: 5 });
+
+    expect(moves).toEqual([]);
+    // And the list never entered the dragging state, so nothing was captured.
+    expect(ul.hasAttribute("data-reordering")).toBe(false);
+  });
+
+  test("a finger that rests picks the item up, before it has moved at all", () => {
+    const ul = touchList(() => {});
+    const row = ul.children[0];
+
+    fire(row, "pointerdown", { button: 0, pointerId: 1, pointerType: "touch", clientY: 5, clientX: 5 });
+    expect(ul.hasAttribute("data-reordering")).toBe(false);
+
+    vi.advanceTimersByTime(400);
+
+    // Picked up where it stands — the whole point of the indicator.
+    expect(ul.hasAttribute("data-reordering")).toBe(true);
+    expect(row.classList.contains("reorder-item--carried")).toBe(true);
+  });
+
+  test("...and then it drags, the way it always did", () => {
+    const moves = [];
+    const ul = touchList((f, t) => moves.push([f, t]));
+    const row = ul.children[0];
+
+    fire(row, "pointerdown", { button: 0, pointerId: 1, pointerType: "touch", clientY: 5, clientX: 5 });
+    vi.advanceTimersByTime(400);
+    fire(row, "pointermove", { pointerId: 1, clientY: 95, clientX: 5 });
+    fire(row, "pointerup", { pointerId: 1, clientY: 95, clientX: 5 });
+
+    expect(moves).toEqual([[0, 2]]);
+  });
+
+  test("a mouse still drags immediately — it has no second intent", () => {
+    const moves = [];
+    const ul = touchList((f, t) => moves.push([f, t]));
+    const row = ul.children[0];
+
+    fire(row, "pointerdown", { button: 0, pointerId: 1, pointerType: "mouse", clientY: 5, clientX: 5 });
+    fire(row, "pointermove", { pointerId: 1, clientY: 95, clientX: 5 });
+    fire(row, "pointerup", { pointerId: 1, clientY: 95, clientX: 5 });
+
+    expect(moves).toEqual([[0, 2]]);
+  });
+
+  test("a grip needs no wait: pressing it is already the whole intent", () => {
+    const moves = [];
+    const ul = touchList((f, t) => moves.push([f, t]), { handle: ".grip" });
+    const grip = ul.children[0].querySelector(".grip");
+
+    fire(grip, "pointerdown", { button: 0, pointerId: 1, pointerType: "touch", clientY: 5, clientX: 5 });
+    fire(grip, "pointermove", { pointerId: 1, clientY: 95, clientX: 5 });
+    fire(grip, "pointerup", { pointerId: 1, clientY: 95, clientX: 5 });
+
+    expect(moves).toEqual([[0, 2]]);
+  });
+
+  test("letting go before the wait is over is a tap, not a drag", () => {
+    const moves = [];
+    const ul = touchList((f, t) => moves.push([f, t]));
+    const row = ul.children[0];
+
+    fire(row, "pointerdown", { button: 0, pointerId: 1, pointerType: "touch", clientY: 5, clientX: 5 });
+    vi.advanceTimersByTime(100);
+    fire(row, "pointerup", { pointerId: 1, clientY: 5, clientX: 5 });
+    // The timer must not fire after the finger is gone.
+    vi.advanceTimersByTime(400);
+
+    expect(moves).toEqual([]);
+    expect(ul.hasAttribute("data-reordering")).toBe(false);
   });
 });

@@ -42,6 +42,16 @@ export function keepOnScreen(node, params) {
   // Where the panel grows from its anchor: under it (a dropdown, the default)
   // or beside it (a submenu, which must not cover the row that opened it).
   const beside = params?.side === "inline";
+  // A box the panel must clear in the BLOCK axis, named by selector and looked
+  // up from the anchor. The inline placement still comes from the anchor — the
+  // panel stays lined up with the button that opened it — but it opens clear of
+  // the whole thing that button sits in. The format bar's folded groups need
+  // it: a button inside a padded bar ends its box 8px before the bar does, so
+  // a panel that cleared only the button opened 4px UNDER the bar's own edge
+  // (user report, 2026-08-19; measured at -4px in WebKitGTK).
+  const clears = params?.clears
+    ? (anchor?.closest?.(params.clears) ?? null)
+    : null;
   // The .theme-popover--end/--start intent survives the portal: it decides
   // which edge of the anchor the panel grows from.
   const endAligned = node.classList.contains("theme-popover--end");
@@ -60,10 +70,21 @@ export function keepOnScreen(node, params) {
   node.__popoutAnchor = anchor;
   document.body.appendChild(node);
   node.style.position = "fixed";
-  // Neutralise .theme-popover's absolute-positioning contract (top and
-  // inset-inline); the fixed placement is written inline by place().
+  // Neutralise the absolute-positioning contract the panel carries from its
+  // own stylesheet; the fixed placement is written inline by place().
+  //
+  // BOTH AXES, and the block one is not decoration: `place()` writes `top`,
+  // and a panel that also declares `inset-block-end` (the folded groups of the
+  // format bar, which open UPWARDS from their button) ends up over-constrained
+  // — top and bottom both set, height auto — so the browser solves for the
+  // height and the box collapses. Measured in WebKitGTK, the app's own engine:
+  // 40px of buttons became a 12px band of padding with the glyphs spilling out
+  // of it (user report, 2026-08-19). Same for `inset-block-start`, since
+  // `place()` positions by `top`.
   node.style.insetInlineStart = "auto";
   node.style.insetInlineEnd = "auto";
+  node.style.insetBlockStart = "auto";
+  node.style.insetBlockEnd = "auto";
 
   let raf = null;
 
@@ -78,8 +99,14 @@ export function keepOnScreen(node, params) {
     // keyboard is covering.
     const floor = window.innerHeight - keyboardInset() - MARGIN;
 
+    // The edges the panel opens from: the anchor's, pushed out to the box it
+    // was told to clear.
+    const c = clears?.isConnected ? clears.getBoundingClientRect() : null;
+    const under = Math.max(a.bottom, c ? c.bottom : a.bottom);
+    const over = Math.min(a.top, c ? c.top : a.top);
+
     let left = endAligned ? a.right - rect.width : a.left;
-    let top = a.bottom + GAP;
+    let top = under + GAP;
     if (beside) {
       left = a.right + GAP;
       top = a.top;
@@ -95,7 +122,7 @@ export function keepOnScreen(node, params) {
       // that anchors it is itself pinned just above the keyboard (user report,
       // 2026-08-18). Only when there is room up there; otherwise the clamp
       // below is still the least bad answer.
-      const above = a.top - GAP - rect.height;
+      const above = over - GAP - rect.height;
       if (above >= MARGIN) top = above;
     }
     left = Math.min(left, window.innerWidth - MARGIN - rect.width);

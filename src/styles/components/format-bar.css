@@ -8,7 +8,7 @@
   .format-bar {
     display: flex;
     gap: var(--theme-space-2);
-    padding: var(--theme-space-8);
+    padding: var(--theme-space-2);
   }
 
   /* Wrapped, so the panel's own width decides how many fit on a line: the six
@@ -70,7 +70,7 @@
     inset-block-end: calc(100% + var(--theme-space-8));
     display: flex;
     gap: var(--theme-space-2);
-    padding: var(--theme-space-6);
+    padding: var(--theme-space-2);
     background: var(--theme-bg);
     border-radius: var(--theme-radius-lg);
     box-shadow: var(--theme-shadow-popover);
@@ -84,19 +84,59 @@
      canvas just under the page header — and on a LIGHT ground, because here it
      floats over the document itself rather than over a phone's chrome.
 
-     `absolute`, inside `.shell__centre` (which is `relative`): it has to stay
-     put while the note scrolls under it, and the centre is the box that means
-     "this screen". */
-  .format-float {
+     THE ROW IS WHAT IS PLACED, not each pill. It is `absolute` inside
+     `.shell__canvas` (which is `relative`) — the box that begins UNDER the
+     page header, so the pills stay put while the note scrolls beneath them and
+     "below the header" is where the box is rather than a number that would
+     have to be kept in step with it. Measured from the panel instead, the bar
+     sat on the header and the dock button landed on its ⋮ (user report,
+     2026-08-19).
+
+     The pills are centred together, because the second one belongs beside the
+     first ("logo à direita dos outros botões") and a second placement would be
+     one more thing to keep in agreement with the first.
+
+     The row spans the canvas, so it must not catch what was aimed at the note
+     underneath: only the pills take the pointer. */
+  .format-floats {
     position: absolute;
     inset-block-start: var(--theme-space-8);
-    inset-inline-start: 50%;
-    translate: -50% 0;
+    inset-inline: 0;
     z-index: 15;
-    max-inline-size: calc(100% - var(--theme-space-32));
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    gap: var(--theme-space-8);
+    padding-inline: var(--theme-space-16);
+    pointer-events: none;
+  }
+  .format-floats > * {
+    pointer-events: auto;
+  }
+  /* A pill: the ground, the radius and the shadow the two of them share. */
+  .format-float {
+    min-inline-size: 0;
     background: var(--theme-bg);
     border-radius: var(--theme-radius-lg);
     box-shadow: var(--theme-shadow-popover);
+  }
+  /* The bar gives way when the canvas is narrow — it is the one that scrolls.
+     The dock button is a single square with nothing to give. */
+  .format-floats > .format-float:not(.format-float--dock) {
+    flex: 0 1 auto;
+  }
+  .format-float--dock {
+    flex: 0 0 auto;
+  }
+  /* The glyph is the sidebar's, MIRRORED: the vendored icon draws the panel on
+     the leading edge and this one lives on the trailing edge. Flipping the one
+     icon is what keeps the two panels reading as the same kind of thing —
+     drawing a second, subtly different one would not. */
+  .format-float__dock {
+    padding: var(--theme-space-8);
+  }
+  .format-float__dock .theme-icon {
+    scale: -1 1;
   }
 
   /* The strip that rides above the on-screen keyboard, below 768px. Fixed to

@@ -63,12 +63,23 @@
     /// Which window buttons go on each side, from the system — the same shape
     /// the title bar takes (shell/windowButtons.js).
     buttons = { left: [], right: ["minimize", "maximize", "close"] },
+    /// Over the page rather than above it: the bar is lifted out of the flow
+    /// and paints nothing, so the screen below scrolls UNDER it and leaves the
+    /// buttons floating on their own pills (wireframes "Editor screen",
+    /// 2026-08-19). An open note is the only screen that asks — every other
+    /// one has a header of its own that belongs above the canvas.
+    over = false,
   } = $props();
 </script>
 
 <!-- The drag region is what lets a narrow desktop window still be moved by its
      bar; on Android nothing reads the attribute and it costs nothing. -->
-<header class="topbar" data-region="chrome" data-tauri-drag-region>
+<header
+  class="topbar"
+  class:topbar--over={over}
+  data-region="chrome"
+  data-tauri-drag-region
+>
   <!-- THE WINDOW'S BUTTONS ARE NOT PART OF THE SPREAD (user call, 2026-08-18).
        The app's three controls share the width between them — that is what
        centres the pill — and the window's own buttons sit outside that

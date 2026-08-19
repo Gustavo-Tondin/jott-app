@@ -96,6 +96,22 @@
     openFold = null;
     onRun?.(id);
   }
+
+  /// A button of this bar must never take the focus (user report, 2026-08-19,
+  /// on the phone: "clicking the formatting items closes the keyboard").
+  ///
+  /// The default action of pressing a button is to focus it, and the focus was
+  /// in the note. On a phone that costs three things at once: the soft
+  /// keyboard closes, the strip — which is tied to the editor HOLDING the
+  /// focus, because with the keyboard down it would float over nothing —
+  /// unmounts, and the button being pressed is gone from the document before
+  /// its own click can land. Pressing Bold did nothing at all, twice over.
+  ///
+  /// `mousedown` is the event to refuse, not `pointerdown`: it is the one that
+  /// moves the focus in every engine the app runs on, and a touch gets one too
+  /// (the compatibility mouse event Chromium synthesises after the tap). The
+  /// click still fires — cancelling this default suppresses only the focus.
+  const keepFocus = (event) => event.preventDefault();
 </script>
 
 <div
@@ -129,6 +145,7 @@
         <button
           type="button"
           class="theme-btn--icon format-bar__button"
+          onmousedown={keepFocus}
           class:format-bar__button--on={openFold === item.fold}
           title={opener.label()}
           aria-label={opener.label()}
@@ -146,18 +163,25 @@
                it opens on, which differs between the two narrow frames: the
                strip sits at the bottom of a phone (so above, clear of the
                keyboard, which it is the one thing that knows how to measure)
-               and the floating bar sits at the top of the canvas (so below). -->
+               and the floating bar sits at the top of the canvas (so below).
+
+               `clears` names the BAR, not the button: the two are twins, and a
+               panel that cleared only the button opened inside the bar's own
+               padding, 4px under its edge (user report, 2026-08-19). It stays
+               lined up with the button in the other axis, which is what says
+               which of the two openers the panel belongs to. -->
           <div
             class="format-bar__panel"
             data-region={region}
             role="group"
             aria-label={opener.label()}
-            use:keepOnScreen
+            use:keepOnScreen={{ clears: ".format-bar" }}
           >
             {#each inGroup(item.fold) as command (command.id)}
               <button
                 type="button"
                 class="theme-btn--icon format-bar__button"
+                onmousedown={keepFocus}
                 title={hint(command)}
                 aria-label={hint(command)}
                 aria-keyshortcuts={$bound.get(command.id) ?? undefined}
@@ -173,6 +197,7 @@
       <button
         type="button"
         class="theme-btn--icon format-bar__button"
+        onmousedown={keepFocus}
         title={hint(item)}
         aria-label={hint(item)}
         aria-keyshortcuts={$bound.get(item.id) ?? undefined}

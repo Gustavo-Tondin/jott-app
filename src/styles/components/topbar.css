@@ -24,29 +24,46 @@
        size — otherwise the generic rule would raise some of these controls and
        not others, which is exactly how the row ended up with three different
        heights. */
-    --topbar-control: 2.625rem;
+    --topbar-control: var(--theme-topbar-control);
     /* The status bar is drawn OVER the app on Android (every 15+ app is
        edge-to-edge whether it asks or not), so the bar grows by exactly the
-       strip the system owns — and no more.
+       strip the system owns — and NO MORE (user report twice, 2026-08-18 and
+       again 2026-08-19: "os botões ainda estão muito longe do topo do
+       celular"). The inset already IS the strip the system owns; the 8px of
+       air that used to be added on top of it put the first button at y=51 with
+       the status bar ending at 43, which read as a gap rather than as a bar
+       under another bar. Now they meet.
 
-       Right UNDER that bar, not a bar's worth below it (user report,
-       2026-08-18 — "estão muito longe do topo do celular"). The inset already
-       IS the strip the system owns, so adding a full 12px of air on top of it
-       spent a sixth of a phone's first screen on nothing. Where there is no
-       inset — every desktop window — the 12px stands, which is what `max`
-       says: never less than the bar's own padding, never the two stacked.
-
-       The 8px is not free choice: it is what the drawer's own head already
-       puts between the status bar and its first button, and the two rows sit
-       side by side the moment the drawer opens. Measured on the emulator, both
-       land at y=51. */
-    padding-block-start: max(
-      var(--theme-space-12),
-      calc(var(--theme-safe-top) + var(--theme-space-8))
-    );
+       Where there is no inset — every desktop window — the bar's own 12px
+       stands, which is what `max` says: never less than that, never the two
+       stacked. The drawer's head drops its own top padding in the compact
+       shell for the same reason (shell.css), so the two rows still line up the
+       moment the drawer opens. */
+    padding-block-start: var(--theme-topbar-pad-block-start);
     padding-inline-start: calc(var(--theme-space-12) + var(--theme-safe-left));
     padding-inline-end: calc(var(--theme-space-12) + var(--theme-safe-right));
     user-select: none;
+  }
+
+  /* Over the page rather than above it — what an open note asks for below
+     768px (shell.css says why, and reserves exactly this bar's height).
+     Lifted off the flow and painting NOTHING, so the note scrolls beneath it
+     and the buttons are left floating on the pills they already wear.
+
+     It lives HERE, next to the rule it overrides, and not with the shell rules
+     that turn it on: both are one class deep and in the same layer, so the one
+     the browser keeps is the one that comes later in the bundle — and that is
+     import order, which is not a thing to encode a visual decision in. On the
+     emulator the bar stayed black (measured rgb(30,30,30), 2026-08-19).
+
+     Over the canvas but UNDER the drawer and the sheets: it is chrome the page
+     slides beneath, not a layer above the app. */
+  .topbar--over {
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline: 0;
+    z-index: 20;
+    background: none;
   }
 
   /* Every control on this bar is the SAME square on the chrome's raised

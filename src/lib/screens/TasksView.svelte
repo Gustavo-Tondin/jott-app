@@ -50,6 +50,11 @@
     compact = false,
     /// Asks the shell to open the right panel on the period's suggestions.
     onSuggest,
+    /// How the Index is arranged, saved into the space that holds it. Without
+    /// these the drag played out and the order was dropped on release — the
+    /// same hole the fixed Notes screen had (App.svelte says why).
+    onSetSort,
+    onSetOrder,
   } = $props();
 
   // Today and Week are My Day and Week; switched off, the tab goes with them.
@@ -136,6 +141,8 @@
       {toolbar}
       header={false}
       compose="bar"
+      {onSetSort}
+      {onSetOrder}
       {lists}
       {tags}
       {completedName}

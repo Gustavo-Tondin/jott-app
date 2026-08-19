@@ -251,8 +251,14 @@
   }
 
   // ---- arrangement (Etapa 1) ----
+  //
+  // The same accessors answer for a FOLDER card, because the board arranges
+  // the two kinds together (see `laidOut`): a folder is titled by its `name`,
+  // and it has no date of its own — under `created` it lands with everything
+  // else that carries no stamp, at the end, which is the tolerance arrange()
+  // already keeps rather than a rule of its own.
   const accessors = {
-    nameOf: (n) => n.title,
+    nameOf: (n) => n.title ?? n.name,
     createdOf: (n) => n.created,
     // A note has no completion date; under that sort everything is "missing"
     // and the file order holds — the tolerance arrange() already keeps.
@@ -279,16 +285,33 @@
   const laid = (cards) =>
     pinnedFirst(arrange(cards, sort, source?.order ?? [], accessors));
 
-  let shown = $derived(
-    laid(
-      layout === "tree" && openFolder !== null
-        ? notes.filter((n) => n.folder === openFolder)
-        : here.cards,
-    ),
+  /// The notes of this place, before the folder cards join them.
+  let atHand = $derived(
+    layout === "tree" && openFolder !== null
+      ? notes.filter((n) => n.folder === openFolder)
+      : here.cards,
   );
 
-  /// Folder cards are the grid's own: the tree view has its chips.
-  let groups = $derived(layout === "grid" ? here.groups : []);
+  /// **The board is ONE arrangement** (2026-08-19): the folder cards and the
+  /// notes, arranged and pinned together, in the order the space remembers.
+  ///
+  /// They used to be two blocks — every folder first, every note after — and
+  /// that is the whole reason a folder card could not be dragged at all (user
+  /// report): the drag was told to pick up `.notes-space__item` only, the
+  /// order it saved held note addresses only, and the folders never went
+  /// through `arrange()`, so an order that named one would have been thrown
+  /// away on the next read anyway. Now a folder is a card like the others:
+  /// dragged, it stays where it was dropped, and its address rides in the same
+  /// `order` (a folder's has no `.md`, so the two never collide).
+  ///
+  /// Untouched, the board still opens folders-first: that is the order
+  /// `board()` hands them over in, and the file order is what `sort: null`
+  /// means. Folder cards are the grid's own: the tree view has its chips.
+  let laidOut = $derived(laid(layout === "grid" ? [...here.groups, ...atHand] : atHand));
+
+  /// Which cards are folders, and which are notes. A folder card carries the
+  /// notes it holds; a note does not.
+  const isGroup = (card) => Array.isArray(card?.notes);
 
   // The same ⋮ every source carries (services/spaceMenu.js), minus the
   // completion date: a note has none, so that sorting would be a dead entry.
@@ -452,20 +475,19 @@
   /// zones (a note dropped on a folder is filed into it).
   let boardEl = $state(null);
   let columns = $derived(columnCount(boardWidth));
-  /// The cards in the order they are drawn: the folder cards, then the notes.
-  let laidOut = $derived([...groups, ...shown]);
   let breaks = $derived(
     columnBreaks(
-      laidOut.map((it) => (it.notes && it.count !== undefined ? weightOfGroup(it) : weightOfNote(it))),
+      laidOut.map((it) => (isGroup(it) ? weightOfGroup(it) : weightOfNote(it))),
       columns,
     ),
   );
 
   // Dragging a card on the board saves what the user built as the custom
-  // order (of note paths). Only on the unfiltered board: reordering one folder
-  // of the tree would silently rewrite the rest.
+  // order (of card addresses — a folder's among them since 2026-08-19). Only
+  // on the unfiltered board: reordering one folder of the tree would silently
+  // rewrite the rest.
   let canDrag = $derived(
-    !readOnly && !picking && layout === "grid" && shown.length > 1,
+    !readOnly && !picking && layout === "grid" && laidOut.length > 1,
   );
 
   /// Files a note into a folder of this space — what dropping its card on a
@@ -473,10 +495,16 @@
   const fileInto = (entry, path) =>
     act(() => api.moveNoteToSpace(folder, entry.path, folder, path));
 
-  /// Two notes dropped one on the other become a FOLDER holding both. The name
+  /// Two NOTES dropped one on the other become a FOLDER holding both. The name
   /// is asked for, because a folder made without one would have to be called
   /// something the app invented — and the folder is the user's filing, not the
   /// app's.
+  ///
+  /// Only two notes: a folder card dropped on anything is only ever being put
+  /// somewhere in the order (`canDropInto` below keeps the ring from lighting
+  /// up around a target that would do nothing). Nesting a folder inside
+  /// another is a MOVE, which the core does not offer for a folder of notes —
+  /// so it is not pretended here.
   const groupNotes = (a, b) =>
     act(async () => {
       const name = await askName(S.promptNewNoteFolder, "", { confirm: S.create });
@@ -489,10 +517,10 @@
       await api.moveNoteToSpace(folder, a.path, folder, path);
     });
 
-  async function reorderNotes(from, to) {
-    // A note is never pinned into a block of its own here, so only the new
+  async function reorderCards(from, to) {
+    // A card is never pinned into a block of its own here, so only the new
     // arrangement matters out of the plan.
-    const { next } = planReorder(shown, from, to, () => false);
+    const { next } = planReorder(laidOut, from, to, () => false);
     try {
       // The shell persists and refreshes; the new order comes back with the
       // snapshot.
@@ -624,7 +652,7 @@
     </nav>
   {/if}
 
-  {#if shown.length === 0 && groups.length === 0}
+  {#if laidOut.length === 0}
     <p class="notes-space__empty">{S.noNotes}</p>
   {:else}
     <ul
@@ -636,200 +664,210 @@
       use:reorderable={{
         axis: "grid",
         // A selector that matches nothing disables the drag entirely (no
-        // half-drag animation on a filtered board). Folder cards never match
-        // it: they are not part of the arrangement being dragged — they are
-        // where a note can be dropped INTO instead.
-        item: canDrag ? ".notes-space__item" : ".notes-space__never",
-        onReorder: reorderNotes,
-        dropZones: () => [...(boardEl?.querySelectorAll(".notes-space__group") ?? [])],
-        onDropZone: (from, zone) => fileInto(shown[from], zone.dataset.folder),
-        onDropInto: (from, to) => groupNotes(shown[from], shown[to]),
+        // half-drag animation on a filtered board). BOTH kinds of card match
+        // it: the board is one arrangement, and a folder card is carried the
+        // same way a note is (see `laidOut`).
+        item: canDrag ? ".notes-space__item, .notes-space__group" : ".notes-space__never",
+        onReorder: reorderCards,
+        // A folder card is where a NOTE is filed. Carrying a folder there is
+        // no zone at all: it is only being put somewhere in the order.
+        dropZones: (from) =>
+          isGroup(laidOut[from])
+            ? []
+            : [...(boardEl?.querySelectorAll(".notes-space__group") ?? [])],
+        onDropZone: (from, zone) => fileInto(laidOut[from], zone.dataset.folder),
+        canDropInto: (from, to) => !isGroup(laidOut[from]) && !isGroup(laidOut[to]),
+        onDropInto: (from, to) => groupNotes(laidOut[from], laidOut[to]),
       }}
     >
-      {#each groups as group, index (group.path)}
-        <!-- A folder, as the wireframes draw it: a tinted block with the notes
-             it holds shown small inside — titles only, and never a banner,
-             because a closed group says what is in it and not what it looks
-             like (user call, 2026-08-19). The tint is the PLACE's colour (the
-             space's, or the app's accent): a note folder carries no marker
-             file of its own, so there is no colour to store on it and none is
-             invented.
+      <!-- ONE loop, because the board is one arrangement: a folder card and a
+           note card sit side by side wherever the order puts them, and either
+           can be carried. See `laidOut`. -->
+      {#each laidOut as card, index (card.path)}
+        {#if isGroup(card)}
+          {@const group = card}
+          <!-- A folder, as the wireframes draw it: a tinted block with the notes
+               it holds shown small inside — titles only, and never a banner,
+               because a closed group says what is in it and not what it looks
+               like (user call, 2026-08-19). The tint is the PLACE's colour (the
+               space's, or the app's accent): a note folder carries no marker
+               file of its own, so there is no colour to store on it and none is
+               invented.
 
-             It OPENS OVER THE BOARD, in a popover of two columns that behaves
-             like the board itself. It used to replace the screen, which meant
-             going into a folder was a navigation with no visible way back. -->
-        <li
-          class="notes-space__group"
-          data-folder={group.path}
-          style={breaks.has(index) ? "break-after: column" : ""}
-        >
-          <article
-            class="note-group"
-            class:note-group--open={anchorFolder === group.path}
-            style={accentStyle(group.color ?? dot)}
-            use:dismissable={{
-              active: anchorFolder === group.path,
-              onDismiss: closeGroup,
-            }}
+               It OPENS OVER THE BOARD, in a popover of two columns that behaves
+               like the board itself. It used to replace the screen, which meant
+               going into a folder was a navigation with no visible way back. -->
+          <li
+            class="notes-space__group"
+            data-folder={group.path}
+            style={breaks.has(index) ? "break-after: column" : ""}
           >
-            <div class="note-group__bar">
-              <button
-                class="note-group__head"
-                aria-expanded={anchorFolder === group.path}
-                onclick={() =>
-                  anchorFolder === group.path
-                    ? closeGroup()
-                    : ((anchorFolder = group.path), (openFolder = group.path))}
-                aria-label={S.openFolder(group.name)}
-              >
-                <Icon name="folder" size="1rem" />
-                <span class="note-group__name">{group.name}</span>
-                <span class="note-group__count">{S.notesFolderCount(group.count)}</span>
-              </button>
-              {#if !readOnly}
-                <!-- The same two controls a note card carries, for the same
-                     reason: a pin is a state and has to be readable off the
-                     card, and everything else is the ⋮. -->
+            <article
+              class="note-group"
+              class:note-group--open={anchorFolder === group.path}
+              style={accentStyle(group.color ?? dot)}
+              use:dismissable={{
+                active: anchorFolder === group.path,
+                onDismiss: closeGroup,
+              }}
+            >
+              <div class="note-group__bar">
                 <button
-                  class="theme-btn--icon note-card__pin"
-                  class:note-card__pin--on={group.pinned}
-                  aria-pressed={group.pinned}
-                  aria-label={group.pinned ? S.unpin : S.pin}
-                  title={group.pinned ? S.unpin : S.pin}
-                  onclick={() => pinFolder(group)}
+                  class="note-group__head"
+                  aria-expanded={anchorFolder === group.path}
+                  onclick={() =>
+                    anchorFolder === group.path
+                      ? closeGroup()
+                      : ((anchorFolder = group.path), (openFolder = group.path))}
+                  aria-label={S.openFolder(group.name)}
                 >
-                  <Icon
-                    name={group.pinned ? "bookmark-simple-fill" : "bookmark-simple"}
-                    size="1rem"
-                  />
+                  <Icon name="folder" size="1rem" />
+                  <span class="note-group__name">{group.name}</span>
+                  <span class="note-group__count">{S.notesFolderCount(group.count)}</span>
                 </button>
-                <Menu items={groupMenu(group)} align="end">
-                  {#snippet trigger({ toggle })}
-                    <button
-                      class="theme-btn--icon note-card__more"
-                      onclick={toggle}
-                      aria-label={S.folderOptions}
-                      title={S.folderOptions}
-                    >
-                      <Icon name="dots-three" size="1rem" />
-                    </button>
-                  {/snippet}
-                </Menu>
-              {/if}
-            </div>
-            <div class="note-group__notes">
-              {#each group.notes as entry (entry.path)}
-                <NoteCard
-                  {entry}
-                  {root}
-                  small
-                  onOpen={() => onOpenNote?.(entry.path, folder)}
-                />
-              {/each}
-            </div>
-
-            {#if anchorFolder === group.path}
-              <!-- The folder, open: the same cards the board draws, in two
-                   columns. Anchored to the card, so what it belongs to is
-                   never in doubt. -->
-              <div
-                class="theme-popover note-group__popover"
-                data-region="canvas"
-                use:keepOnScreen
-              >
-                <header class="note-group__panel-head">
-                  {#if openFolder !== group.path}
-                    <button
-                      class="theme-btn--icon"
-                      aria-label={S.backToBoard}
-                      title={S.backToBoard}
-                      onclick={() =>
-                        (openFolder = inside.parent === "" ? group.path : inside.parent)}
-                    >
-                      <Icon name="arrow-left" size="0.875rem" />
-                    </button>
-                  {/if}
-                  <span class="note-group__panel-name">{openFolder}</span>
-                  {#if !readOnly}
-                    <Menu items={groupMenu(openInside ?? group)} align="end">
-                      {#snippet trigger({ toggle })}
-                        <button
-                          class="theme-btn--icon"
-                          onclick={toggle}
-                          aria-label={S.folderOptions}
-                          title={S.folderOptions}
-                        >
-                          <Icon name="dots-three" size="1rem" />
-                        </button>
-                      {/snippet}
-                    </Menu>
-                  {/if}
+                {#if !readOnly}
+                  <!-- The same two controls a note card carries, for the same
+                       reason: a pin is a state and has to be readable off the
+                       card, and everything else is the ⋮. -->
                   <button
-                    class="theme-btn--icon note-group__close"
-                    aria-label={S.cancel}
-                    title={S.cancel}
-                    onclick={closeGroup}
+                    class="theme-btn--icon note-card__pin"
+                    class:note-card__pin--on={group.pinned}
+                    aria-pressed={group.pinned}
+                    aria-label={group.pinned ? S.unpin : S.pin}
+                    title={group.pinned ? S.unpin : S.pin}
+                    onclick={() => pinFolder(group)}
                   >
-                    <Icon name="x" size="0.875rem" />
+                    <Icon
+                      name={group.pinned ? "bookmark-simple-fill" : "bookmark-simple"}
+                      size="1rem"
+                    />
                   </button>
-                </header>
-
-                {#if inside.groups.length > 0}
-                  <nav class="note-group__subfolders">
-                    {#each inside.groups as sub (sub.path)}
+                  <Menu items={groupMenu(group)} align="end">
+                    {#snippet trigger({ toggle })}
                       <button
-                        class="theme-btn theme-btn--outline theme-btn--sm"
-                        onclick={() => (openFolder = sub.path)}
+                        class="theme-btn--icon note-card__more"
+                        onclick={toggle}
+                        aria-label={S.folderOptions}
+                        title={S.folderOptions}
                       >
-                        <Icon name="folder" size="0.875rem" />
-                        <span>{sub.name}</span>
+                        <Icon name="dots-three" size="1rem" />
                       </button>
-                    {/each}
-                  </nav>
-                {/if}
-
-                {#if inside.cards.length === 0}
-                  <p class="notes-space__empty">{S.noNotes}</p>
-                {:else}
-                  <ul class="notes-space__board notes-space__board--pair">
-                    {#each laid(inside.cards) as entry (entry.path)}
-                      <li class="notes-space__item">
-                        <NoteCard
-                          {entry}
-                          {root}
-                          {picking}
-                          selected={picked.has(entry.path)}
-                          menu={cardMenu(entry)}
-                          onPin={readOnly ? null : () => togglePin(entry)}
-                          onOpen={() =>
-                            picking ? togglePick(entry) : onOpenNote?.(entry.path, folder)}
-                        />
-                      </li>
-                    {/each}
-                  </ul>
+                    {/snippet}
+                  </Menu>
                 {/if}
               </div>
-            {/if}
-          </article>
-        </li>
-      {/each}
+              <div class="note-group__notes">
+                {#each group.notes as entry (entry.path)}
+                  <NoteCard
+                    {entry}
+                    {root}
+                    small
+                    onOpen={() => onOpenNote?.(entry.path, folder)}
+                  />
+                {/each}
+              </div>
 
-      {#each shown as entry, index (entry.path)}
-        <li
-          class="notes-space__item"
-          style={breaks.has(groups.length + index) ? "break-after: column" : ""}
-        >
-          <NoteCard
-            {entry}
-            {root}
-            {picking}
-            selected={picked.has(entry.path)}
-            menu={cardMenu(entry)}
-            onPin={readOnly ? null : () => togglePin(entry)}
-            onOpen={() =>
-              picking ? togglePick(entry) : onOpenNote?.(entry.path, folder)}
-          />
-        </li>
+              {#if anchorFolder === group.path}
+                <!-- The folder, open: the same cards the board draws, in two
+                     columns. Anchored to the card, so what it belongs to is
+                     never in doubt. -->
+                <div
+                  class="theme-popover note-group__popover"
+                  data-region="canvas"
+                  use:keepOnScreen
+                >
+                  <header class="note-group__panel-head">
+                    {#if openFolder !== group.path}
+                      <button
+                        class="theme-btn--icon"
+                        aria-label={S.backToBoard}
+                        title={S.backToBoard}
+                        onclick={() =>
+                          (openFolder = inside.parent === "" ? group.path : inside.parent)}
+                      >
+                        <Icon name="arrow-left" size="0.875rem" />
+                      </button>
+                    {/if}
+                    <span class="note-group__panel-name">{openFolder}</span>
+                    {#if !readOnly}
+                      <Menu items={groupMenu(openInside ?? group)} align="end">
+                        {#snippet trigger({ toggle })}
+                          <button
+                            class="theme-btn--icon"
+                            onclick={toggle}
+                            aria-label={S.folderOptions}
+                            title={S.folderOptions}
+                          >
+                            <Icon name="dots-three" size="1rem" />
+                          </button>
+                        {/snippet}
+                      </Menu>
+                    {/if}
+                    <button
+                      class="theme-btn--icon note-group__close"
+                      aria-label={S.cancel}
+                      title={S.cancel}
+                      onclick={closeGroup}
+                    >
+                      <Icon name="x" size="0.875rem" />
+                    </button>
+                  </header>
+
+                  {#if inside.groups.length > 0}
+                    <nav class="note-group__subfolders">
+                      {#each inside.groups as sub (sub.path)}
+                        <button
+                          class="theme-btn theme-btn--outline theme-btn--sm"
+                          onclick={() => (openFolder = sub.path)}
+                        >
+                          <Icon name="folder" size="0.875rem" />
+                          <span>{sub.name}</span>
+                        </button>
+                      {/each}
+                    </nav>
+                  {/if}
+
+                  {#if inside.cards.length === 0}
+                    <p class="notes-space__empty">{S.noNotes}</p>
+                  {:else}
+                    <ul class="notes-space__board notes-space__board--pair">
+                      {#each laid(inside.cards) as entry (entry.path)}
+                        <li class="notes-space__item">
+                          <NoteCard
+                            {entry}
+                            {root}
+                            {picking}
+                            selected={picked.has(entry.path)}
+                            menu={cardMenu(entry)}
+                            onPin={readOnly ? null : () => togglePin(entry)}
+                            onOpen={() =>
+                              picking ? togglePick(entry) : onOpenNote?.(entry.path, folder)}
+                          />
+                        </li>
+                      {/each}
+                    </ul>
+                  {/if}
+                </div>
+              {/if}
+            </article>
+          </li>
+        {:else}
+          <li
+            class="notes-space__item"
+            style={breaks.has(index) ? "break-after: column" : ""}
+          >
+            <NoteCard
+              entry={card}
+              {root}
+              {picking}
+              selected={picked.has(card.path)}
+              menu={cardMenu(card)}
+              onPin={readOnly ? null : () => togglePin(card)}
+              onOpen={() =>
+                picking ? togglePick(card) : onOpenNote?.(card.path, folder)}
+            />
+          </li>
+        {/if}
       {/each}
     </ul>
   {/if}

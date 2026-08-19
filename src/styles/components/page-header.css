@@ -18,7 +18,7 @@
     align-items: center;
     justify-content: space-between;
     gap: var(--theme-space-12);
-    padding: var(--theme-space-8) var(--theme-space-16);
+    padding: var(--theme-space-2) var(--theme-space-12);
   }
 
   /* The page's name, centred and quiet: it says where you are, it is not the

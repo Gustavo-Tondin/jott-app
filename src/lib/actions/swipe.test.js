@@ -128,6 +128,69 @@ describe("swipe", () => {
     expect(fired).toEqual(["left"]);
   });
 
+  // ---- a finger drives this by touch events (2026-08-19) ----
+  //
+  // Measured on the running app: a sideways drag over a list that scrolls
+  // vertically gets `pointerdown, pointermove, pointercancel` and nothing
+  // more, so the card never moved at all on a phone. The `touchmove`s keep
+  // coming, and preventing them is what takes the gesture back.
+  const touch = (x, y = 10) => ({
+    changedTouches: [{ identifier: 0, clientX: x, clientY: y }],
+  });
+
+  test("a finger swipes the card even after the browser cancels the pointer", () => {
+    const el = card();
+    const fired = [];
+    swipe(el, { onLeft: () => fired.push("left"), onRight: () => fired.push("right") });
+
+    fire(el, "pointerdown", { button: 0, pointerId: 1, clientX: 200, clientY: 10 });
+    fire(el, "touchmove", touch(180));
+    // The browser gives up on the pointer here; the touch path carries on.
+    fire(el, "pointercancel", { pointerId: 1 });
+    fire(el, "touchmove", touch(120));
+    expect(el.getAttribute("data-swipe")).toBe("left");
+
+    fire(el, "touchend", touch(120));
+    expect(fired).toEqual(["left"]);
+  });
+
+  test("a vertical finger is not ours: the list keeps its scroll", () => {
+    const el = card();
+    const fired = [];
+    swipe(el, { onLeft: () => fired.push("left") });
+
+    fire(el, "pointerdown", { button: 0, pointerId: 1, clientX: 200, clientY: 10 });
+    fire(el, "touchmove", touch(198, 60));
+    fire(el, "touchend", touch(198, 60));
+
+    expect(fired).toEqual([]);
+    expect(el.hasAttribute("data-swipe")).toBe(false);
+  });
+
+  test("it lets go when the card is already being CARRIED (2026-08-19)", () => {
+    // The finger rested on the card long enough for the reorder to pick it up
+    // (reorder.js, HOLD_MS), and the reorder holds the pointer. Taking the
+    // gesture here would be the second `setPointerCapture` on one pointer,
+    // which leaves the first action deaf — the frozen drag of 2026-08-06, and
+    // the reason press-and-hold failed when it was first tried.
+    const list = document.createElement("ul");
+    list.setAttribute("data-reordering", "");
+    document.body.append(list);
+    const el = card();
+    list.append(el);
+
+    const fired = [];
+    swipe(el, { onLeft: () => fired.push("left"), onRight: () => fired.push("right") });
+
+    fire(el, "pointerdown", { button: 0, pointerId: 1, clientX: 200, clientY: 10 });
+    fire(el, "pointermove", { pointerId: 1, clientX: 100, clientY: 10 });
+    fire(el, "pointerup", { pointerId: 1, clientX: 100, clientY: 10 });
+
+    expect(fired).toEqual([]);
+    // And the card never moved: no `--swipe-x`, no direction attribute.
+    expect(el.hasAttribute("data-swipe")).toBe(false);
+  });
+
   test("a swipe swallows the click, so it never also opens the card", () => {
     const el = card();
     swipe(el, { onLeft: () => {} });

@@ -1442,6 +1442,15 @@ fn gtk_clipboard_uris() -> Option<Vec<String>> {
     )
 }
 
+/// Everywhere else the clipboard is not asked. The GTK read above is the
+/// Linux answer to a paste the webview cannot see; Android has no such
+/// clipboard to reach for, and Windows and macOS hand the files to the
+/// webview in the first place, so the frontend already has them.
+#[cfg(not(target_os = "linux"))]
+fn clipboard_uris<R: Runtime>(_app: &AppHandle<R>) -> Option<Vec<String>> {
+    None
+}
+
 /// Where each file of the library is used, keyed by its address — so the
 /// Images screen can say which files are carrying their weight, and offer the
 /// way to what uses them (2026-08-19). A file nobody points at has no entry.

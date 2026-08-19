@@ -88,6 +88,17 @@ export function swipe(node, params) {
     const dy = e.clientY - drag.y;
 
     if (!drag.axis) {
+      // A reorder already has this pointer: the finger rested on the card long
+      // enough to pick it up (reorder.js, HOLD_MS), and it is now being
+      // carried. Taking the gesture here would be the second
+      // `setPointerCapture` on one pointer, which leaves the first action deaf
+      // to every move that follows — the frozen drag of 2026-08-06, which is
+      // also why press-and-hold failed the first time it was tried. Reading
+      // the mark the container raises is what makes holding safe now.
+      if (node.closest("[data-reordering]")) {
+        drag = null;
+        return;
+      }
       if (Math.abs(dx) < LOCK && Math.abs(dy) < LOCK) return;
       // Whichever way it went first is the gesture; the other one is not ours.
       drag.axis = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
@@ -138,15 +149,66 @@ export function swipe(node, params) {
   }
 
   function onPointerCancel() {
-    if (!drag) return;
+    // A gesture the touch path has taken over survives this: past the axis
+    // lock the card is being carried sideways by `touchmove`, and the cancel
+    // is only the browser saying its scroller gave up on the pointer.
+    if (!drag || drag.touch) return;
     drag = null;
     reset();
+  }
+
+  /// A FINGER DRIVES THIS BY TOUCH EVENTS, measured on the running app
+  /// (2026-08-19): a sideways drag over a list that scrolls vertically gets
+  /// `pointerdown, pointermove, pointercancel` and nothing more — the browser
+  /// claims the gesture two moves in, so the card never moved at all on a
+  /// phone. The `touchmove`s keep coming, and a `preventDefault()` on them is
+  /// what takes the gesture back. Exactly what the drawer's swipe documents
+  /// (actions/drawerSwipe.js) and what the reorder needed for the same reason.
+  ///
+  /// A mouse keeps the pointer path: there is no scroller competing for it.
+  function onTouchMove(e) {
+    if (!drag) return;
+    const t = e.changedTouches[0];
+    if (!t) return;
+    drag.touch = true;
+    const dx = t.clientX - drag.x;
+    const dy = t.clientY - drag.y;
+    if (!drag.axis) {
+      // The reorder has the card (it was held long enough to be picked up):
+      // the gesture is not ours, and taking it would leave both half-driving
+      // the same finger — the frozen drag of 2026-08-06.
+      if (node.closest("[data-reordering]")) {
+        drag = null;
+        return;
+      }
+      if (Math.abs(dx) < LOCK && Math.abs(dy) < LOCK) return;
+      drag.axis = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
+      if (drag.axis !== "x") {
+        drag = null;
+        return;
+      }
+      node.classList.add("swipe--dragging");
+    }
+    // Ours now: the list must not scroll under it.
+    e.preventDefault();
+    drag.dx = clamp(allowed(dx) ? dx : dx / 6);
+    paint(drag.dx);
+  }
+
+  function onTouchEnd() {
+    if (!drag || !drag.touch) return;
+    onPointerUp({ pointerId: drag.id });
   }
 
   node.addEventListener("pointerdown", onPointerDown);
   node.addEventListener("pointermove", onPointerMove);
   node.addEventListener("pointerup", onPointerUp);
   node.addEventListener("pointercancel", onPointerCancel);
+  // `passive: false`, because a passive listener may not call
+  // `preventDefault` — which is the only thing that takes the gesture back.
+  node.addEventListener("touchmove", onTouchMove, { passive: false });
+  node.addEventListener("touchend", onTouchEnd);
+  node.addEventListener("touchcancel", onTouchEnd);
 
   // Marks the card as owning the horizontal gesture, so the drawer's swipe
   // (actions/drawerSwipe.js) knows to keep its hands off it: the sidebar opens
@@ -166,6 +228,9 @@ export function swipe(node, params) {
       node.removeEventListener("pointermove", onPointerMove);
       node.removeEventListener("pointerup", onPointerUp);
       node.removeEventListener("pointercancel", onPointerCancel);
+      node.removeEventListener("touchmove", onTouchMove);
+      node.removeEventListener("touchend", onTouchEnd);
+      node.removeEventListener("touchcancel", onTouchEnd);
       reset();
     },
   };

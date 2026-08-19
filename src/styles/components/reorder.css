@@ -29,6 +29,23 @@
        cannot say by moving. */
     box-shadow: var(--theme-shadow-popover);
   }
+  /* ON A TOUCH SCREEN THE ITEM ALSO GROWS (user call, 2026-08-19: "seria bom
+     ter um delay e indicativo no mobile"). A finger has to REST on an item to
+     pick it up now (reorder.js, HOLD_MS), and the moment it is picked up is
+     the moment nothing has moved yet — so without this the screen says nothing
+     at all until the hand moves, and the wait reads as the app ignoring it.
+
+     `scale` and not `transform`: the action writes `transform` every frame to
+     follow the finger, and the two are separate properties the browser
+     composes — so the lift survives the drag instead of being overwritten by
+     its first move. A pointer needs none of this: the cursor already turned
+     into a grabbing hand, and the drag begins on movement rather than on
+     time. */
+  @media (pointer: coarse) {
+    .reorder-item--carried {
+      scale: 1.03;
+    }
+  }
   /* The space it left behind, and nothing else: it is what keeps the list
      still while the item is out of flow. */
   .reorder-ghost {

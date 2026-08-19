@@ -37,11 +37,18 @@
     border-radius: var(--theme-radius-lg);
     overflow: hidden;
   }
-  /* No banner chosen: the block has no colour and no height of its own, and
-     what is left is the title where it always was. */
+  /* No banner chosen: the block has no colour of its own, and what is left is
+     the title.
+
+     It still opens with AIR (user call, 2026-08-19: "deixe o title mais pra
+     baixo quando não tem banner"). With a banner the title sits at the foot of
+     a 7rem block; with none it started at the very top of the canvas — under
+     the floating formatting bar, which is exactly where the report showed the
+     two on top of each other. The space is enough to clear that bar, and it
+     reads as the note's own head either way. */
   .note-banner--empty {
     --banner-height: 0;
-    padding-block: 0;
+    padding-block: var(--theme-space-64) 0;
     background: none;
     border-radius: 0;
     margin-block-end: var(--theme-space-16);
@@ -89,7 +96,11 @@
     background: var(--theme-bg);
     border-radius: var(--theme-radius-sm);
     color: var(--theme-ink);
-    font-size: var(--theme-text-20);
+    /* AT LEAST AS BIG AS AN H1 (user call, 2026-08-19). It is the name of the
+       whole note, and it was reading smaller than the first heading inside it.
+       Sized off the note's own ladder rather than a fixed step, so it keeps up
+       when the reader changes the note's text size. */
+    font-size: var(--theme-note-h1);
     font-weight: var(--theme-weight-bold);
     line-height: var(--theme-leading-tight);
     overflow-wrap: anywhere;

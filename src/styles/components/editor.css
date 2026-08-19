@@ -34,10 +34,10 @@
 }
 .editor .cm-content {
   padding: var(--theme-space-8) 0;
-  /* The middle rung of the note's own size ladder (14 / 16 / 18), stated
-     rather than left to inherit, so all three sizes are one decision — see
-     the `data-note-size` rules at the foot of this file. */
-  font-size: var(--theme-text-16);
+  /* The note's own size (14 / 16 / 18 by `data-note-size`), from the token
+     that names it. The token is in tokens.css because the note's TITLE is
+     sized against the same ladder and is drawn outside this editor. */
+  font-size: var(--theme-note-size);
   line-height: var(--theme-leading-loose);
   /* CodeMirror does not inherit the caret from the region; without this the
      cursor stayed near-black and disappeared on a dark ground. */
@@ -85,10 +85,15 @@
    ========================================================================= */
 
 /* ---- the editing zone ----
-   Every line the selection touches: one while typing, the whole block while
-   selecting across it. The same set of lines `livePreview` leaves showing
-   their raw syntax — so the band is what explains why those lines look
-   different from the rest of the note.
+   THE LINE THE CARET IS ON, and only while it is a bare caret — a selection
+   draws none (user report with a screenshot, 2026-08-19: "o seletor de linha
+   somente no bloco onde está a | de texto"). The band and the text selection
+   are the same colour, so a band under a selection stacked twenty rounded
+   boxes down the page and swallowed the selection itself. Which lines those
+   are is `caretLines` in services/markdown.js, next to the reason.
+
+   Note that the lines showing their RAW SYNTAX are still every line the
+   selection touches (`activeLines`) — the two questions parted ways here.
 
    A background IMAGE rather than a colour, so it veils whatever ground the
    line already has (a quote's surface, a code block's box) instead of
@@ -482,17 +487,10 @@
   color: var(--theme-on-brand);
 }
 
-/* How big the body of a note is drawn (2026-08-18, `noteFontSize`).
-   `data-note-size` on the root, absent for the size the app ships as — the
-   same pact `data-theme` and `data-accent` keep.
+/* How big the body of a note is drawn (2026-08-18, `noteFontSize`) is now one
+   token, `--theme-note-size`, set in tokens.css with its three rungs — the
+   note's title is sized against the same ladder from outside this file.
 
-   One declaration moves the whole document because the marks inside are sized
-   in `em` (the headings above are `1.6em`, `1.35em`…): they are multiples of
-   the body, so they follow it in proportion instead of each needing a rule. */
-:root[data-note-size="small"] .editor .cm-content {
-  font-size: var(--theme-text-14);
-}
-
-:root[data-note-size="large"] .editor .cm-content {
-  font-size: var(--theme-text-18);
-}
+   One declaration still moves the whole document, because the marks inside are
+   sized in `em` (the headings above are `1.6em`, `1.35em`…): they are
+   multiples of the body and follow it in proportion. */

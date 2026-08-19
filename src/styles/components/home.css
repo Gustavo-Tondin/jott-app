@@ -44,43 +44,39 @@
     border-top: 0.125rem solid var(--theme-ink-faint);
     margin: 0;
   }
+  /* Today's notes are the notes BOARD, in miniature (2026-08-19): the same
+     card (note-card.css) in the same masonry the notes screen flows in. The
+     column count and the cuts are measured in the markup, for the reason
+     services/noteColumns.js gives — the browser's own balancing empties a
+     column whenever the cards are few and one is long, which is most days on
+     Home. What is here is only the slot, as on the notes board.
+
+     It was a grid of title-on-a-step cards, drawn before a note could have a
+     banner at all: one thing drawn twice, and this was the copy that fell
+     behind. */
   .home__notes {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
-    gap: var(--theme-space-12);
-    align-items: start;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    columns: 11rem;
+    column-gap: var(--theme-space-12);
   }
-  /* A note card is the raised step, borderless — the same card the task rows
-     wear, so the two halves of Home are made of one material (2026-08-13). The
-     per-note colours the wireframe shows are the notes redesign, not this one. */
   .home__note {
-    display: flex;
-    flex-direction: column;
-    gap: var(--theme-space-8);
-    text-align: left;
-    padding: var(--theme-space-12);
-    background: var(--theme-surface);
-    border: none;
-    border-radius: var(--theme-radius-md);
-    font: inherit;
-    cursor: pointer;
-    transition: opacity var(--theme-transition-fast);
+    break-inside: avoid;
+    margin-block-end: var(--theme-space-12);
   }
-  .home__note:hover {
-    opacity: 0.7;
+  /* On a phone the board is two narrower columns, with the tighter gap the
+     notes screen uses there — the count itself is measured (the inline
+     `columns` in the markup wins over this), so what is left to say is the
+     spacing. */
+  .shell--compact .home__notes {
+    columns: 2;
+    column-gap: var(--theme-space-8);
   }
-  .home__note-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--theme-space-8);
-    color: var(--theme-ink-muted);
+  .shell--compact .home__note {
+    margin-block-end: var(--theme-space-8);
   }
-  .home__note-title {
-    font-size: var(--theme-text-14);
-    font-weight: var(--theme-weight-bold);
-    color: var(--theme-ink);
-  }
+
   /* The empty state is the shared .theme-empty-card (controls.css) — the same
      card the tasks block draws, which is what the wireframe shows in both.
      The hook stays for a theme to reach this one in particular. */

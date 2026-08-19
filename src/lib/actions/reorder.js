@@ -31,8 +31,18 @@
 //   `onDropInto`  — the middle of an item is a target of its own, drawn as a
 //                   ring around it instead of a gap beside it. It is how a
 //                   space dropped ON another makes a group of the two.
+//                   `canDropInto(from, to)` narrows it when the list holds
+//                   more than one kind of thing: the notes board carries note
+//                   cards and FOLDER cards in one arrangement, and only two
+//                   notes make a folder of themselves. Without it the ring
+//                   would light up around a target that then does nothing,
+//                   which is a promise the drop cannot keep.
 //   `dropZones`   — elements OUTSIDE this list that can receive the carried
-//                   item, as `() => elements`. Reordering is per container,
+//                   item, as `(from) => elements` — `from` being the index of
+//                   the item being carried, so a caller may offer no zone at
+//                   all for some of them (a folder card is where a NOTE is
+//                   filed; a folder dropped on a folder is not). Reordering
+//                   is per container,
 //                   and a sidebar of nested groups is many containers: without
 //                   this, moving a list from one group to another meant
 //                   dragging it out to the root first and in again — two
@@ -53,6 +63,27 @@
 // transition, from .reorder-item in reorder.css). The commit is synchronous —
 // remove the transitions, clear the transforms and reorder in one frame, so
 // the browser paints the settled result once, with no flash or backtrack.
+
+/// TOUCH ONLY: how long a finger rests on an item before it is carried.
+///
+/// A finger has one gesture for two intents here, and the app cannot tell them
+/// apart from the first pixels: dragging a card up the list and SCROLLING the
+/// list are the same movement on the same axis. Five pixels of it used to be
+/// enough to pick the card up, so scrolling a screen of tasks carried one along
+/// instead (user report, 2026-08-19: "ele quer ficar selecionando e movendo as
+/// tarefas ao invés de scrollar").
+///
+/// The axis lock cannot help — that one separates the sideways swipe from the
+/// vertical drag, and here both intents are vertical. Time is what separates
+/// them, which is what every phone list does: rest to pick up, move to scroll.
+///
+/// A mouse keeps the old immediate drag: a pointer has no second intent to
+/// disambiguate, and a wheel scrolls without pressing anything.
+const HOLD_MS = 400;
+/// ...and how far the finger may stray while waiting. Past this it was never
+/// resting: the gesture is a scroll (or the card's swipe), and this action
+/// lets go of it entirely.
+const HOLD_SLOP = 8;
 
 export function reorderable(node, params) {
   let opts = params ?? {};
@@ -105,7 +136,30 @@ export function reorderable(node, params) {
       originY: e.clientY,
       moved: false,
       into: null,
+      holdTimer: null,
+      touch: e.pointerType === "touch",
     };
+    // A finger on an item that is dragged BY ITSELF has to rest first (see
+    // HOLD_MS). Where the caller gave a handle there is nothing to wait for:
+    // pressing a grip is already the whole intent, and the grip takes the
+    // gesture off the scroller with `touch-action: none`.
+    if (e.pointerType === "touch" && !opts.handle) {
+      drag.holdTimer = setTimeout(hold, HOLD_MS);
+    }
+  }
+
+  /// The finger rested: the item is picked up where it stands, with no
+  /// movement yet. From here every move drags, and the scroller has already
+  /// lost the gesture to our pointer capture.
+  function hold() {
+    if (!drag) return;
+    drag.holdTimer = null;
+    drag.moved = true;
+    begin();
+    // The one moment the app can say "you have it now" on a screen with no
+    // cursor to change and no hover to light up. Optional everywhere: a
+    // desktop has no vibrator and a phone may have it switched off.
+    navigator.vibrate?.(8);
   }
 
   function begin() {
@@ -140,6 +194,13 @@ export function reorderable(node, params) {
     const dx = e.clientX - drag.originX;
     const dy = e.clientY - drag.originY;
     const delta = coord(e) - drag.origin;
+    // Still waiting for the finger to settle: any real movement means this was
+    // a scroll (or a swipe) all along, and we let go rather than compete for
+    // it. Nothing was captured yet, so the scroller keeps the gesture whole.
+    if (drag.holdTimer) {
+      if (Math.hypot(dx, dy) > HOLD_SLOP) cancel();
+      return;
+    }
     if (!drag.moved) {
       if ((grid() ? Math.hypot(dx, dy) : Math.abs(delta)) < threshold()) return;
       // The axis lock: a drag that set off across our axis belongs to whatever
@@ -177,7 +238,7 @@ export function reorderable(node, params) {
       drag.into = null;
       if (!zone && opts.onDropInto) {
         for (let i = 0; i < rects.length; i++) {
-          if (i === drag.from) continue;
+          if (i === drag.from || !accepts(i)) continue;
           const r = rects[i];
           const mx = (r.width * (1 - INTO_BAND)) / 2;
           const my = (r.height * (1 - INTO_BAND)) / 2;
@@ -289,7 +350,7 @@ export function reorderable(node, params) {
     if (opts.onDropInto) {
       const at = coord(e);
       for (let i = 0; i < rects.length; i++) {
-        if (i === drag.from) continue;
+        if (i === drag.from || !accepts(i)) continue;
         const r = rects[i];
         const margin = (size(r) * (1 - INTO_BAND)) / 2;
         if (at > start(r) + margin && at < start(r) + size(r) - margin) {
@@ -382,6 +443,7 @@ export function reorderable(node, params) {
   /// Gives the gesture up without committing anything.
   function cancel() {
     if (!drag) return;
+    clearTimeout(drag.holdTimer);
     drag = null;
     clear();
   }
@@ -389,6 +451,7 @@ export function reorderable(node, params) {
   function onPointerUp(e) {
     if (!drag || e.pointerId !== drag.pointerId) return;
     const d = drag;
+    clearTimeout(d.holdTimer);
     drag = null;
     try {
       d.el.releasePointerCapture(d.pointerId);
@@ -419,11 +482,17 @@ export function reorderable(node, params) {
     else if (d.to !== d.from) opts.onReorder?.(d.from, d.to);
   }
 
+  /// May the carried item be dropped INTO the item at `i`? Everything may,
+  /// unless the caller says otherwise — see `canDropInto` at the top.
+  function accepts(i) {
+    return opts.canDropInto?.(drag.from, i) ?? true;
+  }
+
   /// The declared drop zone under the pointer, if any. A zone inside the
   /// carried item never counts — see `dropZones` at the top.
   function zoneAt(e) {
     if (!opts.dropZones) return null;
-    for (const zone of opts.dropZones()) {
+    for (const zone of opts.dropZones(drag.from)) {
       if (drag.el.contains(zone)) continue;
       const r = zone.getBoundingClientRect();
       const inside =
@@ -447,13 +516,73 @@ export function reorderable(node, params) {
     );
   }
 
-  const onPointerCancel = cancel;
+  /// A carried item is driven by TOUCH events, not pointer ones — measured
+  /// against the running app, not chosen (2026-08-19).
+  ///
+  /// Once the finger has rested and the item is picked up, the very next
+  /// movement is one the browser has already decided belongs to the scroller:
+  /// it fires `pointercancel` and stops sending moves, and the item stays
+  /// where it was picked up while the finger travels on. The `touchmove`s keep
+  /// arriving throughout — that is the difference — and a `preventDefault()`
+  /// on them is what takes the gesture back. It is the same thing the drawer's
+  /// swipe documents (actions/drawerSwipe.js), where `touch-action: pan-y` and
+  /// dropping `setPointerCapture` were both tried and neither helped.
+  ///
+  /// Before the hold is up nothing is prevented: there the gesture IS the
+  /// scroll, and that is the whole point of waiting.
+  const touchOf = (e) =>
+    [...e.changedTouches].find((t) => t.identifier === drag.touchId) ?? e.changedTouches[0];
+
+  function onTouchStart(e) {
+    if (drag && drag.touch && drag.touchId == null) drag.touchId = e.changedTouches[0]?.identifier;
+  }
+
+  function onTouchMove(e) {
+    if (!drag || !drag.touch) return;
+    const t = touchOf(e);
+    if (!t) return;
+    if (drag.holdTimer) {
+      if (Math.hypot(t.clientX - drag.originX, t.clientY - drag.originY) > HOLD_SLOP) cancel();
+      return;
+    }
+    if (!drag.moved) return;
+    e.preventDefault();
+    // The same engine the mouse drives, fed the finger's position: everything
+    // below reads `clientX`/`clientY` and the pointer id, and nothing else.
+    onPointerMove({ pointerId: drag.pointerId, clientX: t.clientX, clientY: t.clientY });
+  }
+
+  function onTouchEnd(e) {
+    if (!drag || !drag.touch) return;
+    const t = touchOf(e);
+    onPointerUp({
+      pointerId: drag.pointerId,
+      clientX: t?.clientX ?? drag.originX,
+      clientY: t?.clientY ?? drag.originY,
+    });
+  }
+
+  /// The browser taking the gesture for its scroller. It kills a drag that has
+  /// not been picked up yet — but NOT one that has: past the hold the finger
+  /// is carrying an item, the touch path above has the gesture back, and
+  /// letting the cancel through would drop the item the moment it started to
+  /// move.
+  function onPointerCancel() {
+    if (drag?.touch && drag.moved) return;
+    cancel();
+  }
 
   node.setAttribute("data-reorderable", "");
   node.addEventListener("pointerdown", onPointerDown);
   node.addEventListener("pointermove", onPointerMove);
   node.addEventListener("pointerup", onPointerUp);
   node.addEventListener("pointercancel", onPointerCancel);
+  // `passive: false` is load-bearing: a passive listener may not call
+  // `preventDefault`, which is the only thing that takes the gesture back.
+  node.addEventListener("touchstart", onTouchStart, { passive: true });
+  node.addEventListener("touchmove", onTouchMove, { passive: false });
+  node.addEventListener("touchend", onTouchEnd);
+  node.addEventListener("touchcancel", onTouchEnd);
 
   return {
     update(next) {
@@ -465,6 +594,10 @@ export function reorderable(node, params) {
       node.removeEventListener("pointermove", onPointerMove);
       node.removeEventListener("pointerup", onPointerUp);
       node.removeEventListener("pointercancel", onPointerCancel);
+      node.removeEventListener("touchstart", onTouchStart);
+      node.removeEventListener("touchmove", onTouchMove);
+      node.removeEventListener("touchend", onTouchEnd);
+      node.removeEventListener("touchcancel", onTouchEnd);
     },
   };
 }
