@@ -2,10 +2,33 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- The notebook is a folder of .md files the user picks and a sync client
+         (Syncthing, Obsidian) reads. That is only possible with broad file
+         access: an app's own external container (Android/data/<package>) is
+         unreachable to every OTHER app since Android 11 — and stays unreachable
+         even to one holding this very permission, because Android/data and
+         Android/obb are carved out of it. The Storage Access Framework, the
+         other way out, hands back a content:// URI that std::fs cannot open,
+         and the core speaks std::fs throughout.
+         This is the same permission Obsidian asks for, for the same reason.
+         Jott is sideloaded, not shipped through Play, so no store policy is
+         being leaned on here — the user grants it in Settings, or declines and
+         keeps the app's private folder. -->
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
+    <!-- Before Android 11 that permission does not exist; these are its
+         predecessors, and they are pointless after 29. -->
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="29" />
+    <uses-permission
+        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="29" />
+
     <!-- AndroidTV support -->
     <uses-feature android:name="android.software.leanback" android:required="false" />
 
     <application
+        android:requestLegacyExternalStorage="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:theme="@style/Theme.jott"

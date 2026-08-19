@@ -16,6 +16,21 @@
     padding: 1rem;
   }
 
+  /* The second choice on Android — the app's own private folder — is offered,
+     not urged: it is what someone gets by declining file access, and it is the
+     smaller of the two. Hence a plain button under the primary one, with the
+     cost of choosing it written out (nothing else on the phone can read it,
+     and uninstalling takes it along). */
+  .shell__onboarding-alt {
+    margin-block-start: var(--theme-space-8);
+  }
+
+  .shell__onboarding-note {
+    margin-block-start: var(--theme-space-4);
+    font-size: var(--theme-text-12);
+    color: var(--theme-ink-muted);
+  }
+
   /* Flex, not grid: each side panel is a flex item whose width animates
      (the left rail collapses, the right inspector slides in/out). Grid was
      dropped because toggling its column count mid-transition auto-placed the

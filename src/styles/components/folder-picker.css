@@ -1,0 +1,79 @@
+/* folder-picker.css — the app's own folder browser (Android).
+ *
+ * Markup in lib/components/FolderPicker.svelte. It is a Modal, so the panel's
+ * chrome, backdrop and region come from `.theme-modal`; what is here is the
+ * one thing a browser needs and a dialog does not — a list that scrolls
+ * between a fixed head and a fixed foot, so the two buttons that end the
+ * question never scroll away from the folder being looked at. */
+
+@layer components {
+  .folder-picker {
+    display: flex;
+    flex-direction: column;
+    gap: var(--theme-space-12);
+    /* Tall enough to browse, never taller than the screen — and on a phone
+       that screen is what the system bars leave. */
+    max-block-size: min(32rem, 80vh);
+  }
+
+  .folder-picker__head {
+    display: flex;
+    flex-direction: column;
+    gap: var(--theme-space-4);
+  }
+
+  /* The whole path, wrapping. A folder browser that cannot say where it is
+     makes the user count folders backwards to find out. */
+  .folder-picker__path {
+    margin: 0;
+    font-family: var(--theme-font-mono);
+    font-size: var(--theme-text-12);
+    color: var(--theme-ink-muted);
+    overflow-wrap: anywhere;
+  }
+
+  .folder-picker__list {
+    flex: 1;
+    min-block-size: 0;
+    overflow-y: auto;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .folder-picker__row {
+    display: flex;
+    align-items: center;
+    gap: var(--theme-space-8);
+    inline-size: 100%;
+    text-align: start;
+  }
+
+  .folder-picker__name {
+    flex: 1;
+    /* A long folder name truncates rather than pushing the badge off the row;
+       the path above still says the whole thing once it is entered. */
+    min-inline-size: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Marks a folder that already holds a notebook, so opening one does not look
+     like creating one. */
+  .folder-picker__badge {
+    font-size: var(--theme-text-12);
+    color: var(--theme-brand);
+  }
+
+  .folder-picker__empty {
+    padding: var(--theme-space-12);
+    color: var(--theme-ink-muted);
+  }
+
+  .folder-picker__foot {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--theme-space-8);
+  }
+}

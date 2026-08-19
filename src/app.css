@@ -48,6 +48,7 @@
 @import "./styles/components/inspector.css";
 @import "./styles/components/menu.css";
 @import "./styles/components/name-dialog.css";
+@import "./styles/components/folder-picker.css";
 @import "./styles/components/tag-picker.css";
 @import "./styles/components/accent-picker.css";
 @import "./styles/components/palette.css";

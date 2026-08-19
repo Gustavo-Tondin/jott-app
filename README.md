@@ -124,11 +124,20 @@ npm run tauri android build -- --apk    # release (needs a keystore)
 npm run tauri android build -- --debug --target aarch64 --apk
 ```
 
-> On Android the app **doesn't ask where the notebook lives**: the system
-> doesn't let an app open just any folder. The notebook lives at
-> `Android/data/dev.gustavotondin.jott/files/Documents/Jott`, which is
-> still a real folder of `.md` files — reachable over USB and by a sync
-> client (Syncthing) pointed at it.
+> **Where the notebook lives on Android.** Jott asks for the *All files
+> access* permission and then lets you browse to any folder — the same
+> thing Obsidian does, and for the same reason: Android's Storage Access
+> Framework hands an app a `content://` URI, which is not a path, and
+> Jott's core reads and writes plain paths. Grant it when the app asks
+> (Android opens its own Settings screen), and put the notebook wherever
+> a sync client such as Syncthing can also see it.
+>
+> Decline, and Jott falls back to its private folder,
+> `Android/data/dev.gustavotondin.jott/files/Documents/Jott`. That folder
+> is real `.md` files reachable over USB — but **no other app on the
+> phone can read it**, sync clients included: since Android 11 an app's
+> own container is off-limits to everyone else, and stays off-limits even
+> to an app holding all-files access. Uninstalling Jott deletes it.
 
 
 ## Development

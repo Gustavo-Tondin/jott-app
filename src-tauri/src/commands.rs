@@ -308,18 +308,23 @@ pub async fn pick_notebook_folder<R: Runtime>(app: AppHandle<R>) -> Option<PathB
     }
 }
 
-/// The folder to use when the user has no folder to choose — `None` when
-/// choosing is the right thing to ask for.
+/// The app's own container on Android — the notebook's home when the user has
+/// not given it another one. `None` on desktop.
 ///
-/// On desktop this is always `None`: the notebook is the user's, it lives
-/// wherever they keep their files, and picking it is the first thing the app
-/// asks. On Android there is nothing to ask. Scoped storage means an app
-/// cannot open an arbitrary folder: the picker there returns a `content://`
-/// URI from the Storage Access Framework, and `std::fs` — which is all the
-/// core speaks — cannot open one. So the app writes inside its own external
-/// container, which needs no permission and is still a real directory of real
-/// `.md` files: reachable over USB, and reachable by a sync client such as
-/// Syncthing pointed at it.
+/// **This is the fallback, not the plan** (revised 2026-08-19). It used to be
+/// the only answer Android had: scoped storage means an app cannot open an
+/// arbitrary folder, the Storage Access Framework returns a `content://` URI
+/// that `std::fs` cannot open, and the core speaks `std::fs`. What that
+/// reasoning got wrong was the consolation prize — this folder was described
+/// as "reachable by a sync client such as Syncthing pointed at it", and it is
+/// not: `Android/data/<package>` is unreadable to every other app since
+/// Android 11, and stays unreadable even to one holding all-files access,
+/// because that path is carved out of the permission. Only USB reaches it.
+///
+/// So the app now asks for `MANAGE_EXTERNAL_STORAGE` and browses real folders
+/// (`list_folders`), the way Obsidian does. This container remains for the two
+/// cases that still need it: the user who declines the permission, and the
+/// notebooks already living here from earlier versions.
 ///
 /// `document_dir()` on Android resolves to
 /// `/storage/emulated/0/Android/data/<identifier>/files/Documents`. It falls
@@ -342,6 +347,155 @@ pub fn default_notebook_folder<R: Runtime>(app: AppHandle<R>) -> Option<PathBuf>
         let _ = app;
         None
     }
+}
+
+/// A folder and the folders inside it — one rung of the in-app folder browser.
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FolderListing {
+    /// The folder that was listed, absolute.
+    pub path: String,
+    /// What to display for it — the last component, or the whole path at the
+    /// top, where there is no component to name.
+    pub name: String,
+    /// One rung up, or `None` at the top of what the app may browse.
+    pub parent: Option<String>,
+    /// The folders inside, sorted, hidden ones left out. Files are not listed:
+    /// the question this browser asks is "which FOLDER", and a list of every
+    /// photo on the phone would only be scrolled past.
+    pub folders: Vec<FolderEntry>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FolderEntry {
+    pub path: String,
+    pub name: String,
+    /// True when the folder already holds a notebook — the browser marks it,
+    /// so opening an existing notebook does not look like creating one.
+    pub notebook: bool,
+}
+
+/// Where the folder browser starts, and how far up it may go.
+///
+/// This is the app's own browser rather than the system's, and it exists for
+/// Android: `pick_notebook_folder` has no picker there, and the Storage Access
+/// Framework — the platform's answer — hands back a `content://` URI that
+/// `std::fs` cannot open. With the all-files permission granted, ordinary
+/// paths work again, and a folder browser is a list of directories.
+///
+/// On Android the root is the shared storage the user sees over USB
+/// (`/storage/emulated/0`), which is what `EXTERNAL_STORAGE` names. On desktop
+/// it is the home folder, though desktop never opens this browser: it has the
+/// system's own picker, which knows about bookmarks, network mounts and typing
+/// a path.
+fn browse_root() -> PathBuf {
+    #[cfg(target_os = "android")]
+    {
+        std::env::var_os("EXTERNAL_STORAGE")
+            .map(PathBuf::from)
+            .unwrap_or_else(|| PathBuf::from("/storage/emulated/0"))
+    }
+    #[cfg(not(target_os = "android"))]
+    {
+        dirs_home().unwrap_or_else(|| PathBuf::from("/"))
+    }
+}
+
+#[cfg(not(target_os = "android"))]
+fn dirs_home() -> Option<PathBuf> {
+    std::env::var_os("HOME").map(PathBuf::from)
+}
+
+/// Lists the folders inside `path`, or inside the browse root when it is
+/// `None`.
+///
+/// **`path` is never trusted to be inside the root**: it arrives from the UI,
+/// and a browser that accepted `..` would walk out of shared storage into
+/// wherever the process happens to be allowed. Anything outside answers the
+/// root instead of an error — the browser lands somewhere usable rather than
+/// showing a failure the user cannot act on.
+#[tauri::command]
+pub fn list_folders(path: Option<String>) -> CommandResult<FolderListing> {
+    listing_in(&browse_root(), path)
+}
+
+/// The whole of `list_folders` except which root it is bounded by — so the
+/// containment rule can be tested against a temporary folder rather than
+/// against whatever `$HOME` happens to be on the machine running the tests.
+fn listing_in(root: &Path, path: Option<String>) -> CommandResult<FolderListing> {
+    let root = root.to_path_buf();
+    let at = match path {
+        Some(path) => {
+            let candidate = PathBuf::from(path);
+            // `canonicalize` resolves `..` and symlinks, which is what makes
+            // the containment check mean anything.
+            let resolved = candidate.canonicalize().unwrap_or(candidate);
+            if resolved.starts_with(&root) {
+                resolved
+            } else {
+                root.clone()
+            }
+        }
+        None => root.clone(),
+    };
+
+    let mut folders: Vec<FolderEntry> = jott_core::fsio::dir_paths(&at)?
+        .into_iter()
+        .filter(|p| p.is_dir() && !jott_core::fsio::is_hidden(p))
+        .map(|p| FolderEntry {
+            notebook: p.join(".jott").is_dir(),
+            name: file_label(&p),
+            path: p.to_string_lossy().into_owned(),
+        })
+        .collect();
+    folders.sort_by_key(|f| f.name.to_lowercase());
+
+    Ok(FolderListing {
+        parent: (at != root)
+            .then(|| at.parent().map(|p| p.to_string_lossy().into_owned()))
+            .flatten(),
+        name: file_label(&at),
+        path: at.to_string_lossy().into_owned(),
+        folders,
+    })
+}
+
+/// The last component of a path, falling back to the whole thing — a root has
+/// no last component, and an empty label would draw an empty breadcrumb.
+fn file_label(path: &Path) -> String {
+    path.file_name()
+        .map(|n| n.to_string_lossy().into_owned())
+        .unwrap_or_else(|| path.to_string_lossy().into_owned())
+}
+
+/// Creates a folder inside `parent`, so the notebook can be put somewhere that
+/// does not exist yet — which is most of the time, on a phone whose shared
+/// storage came with the manufacturer's folders and nothing else.
+///
+/// The name goes through the same guard as every name the user types
+/// (`relpath::is_safe_leaf`), so a slash or a `..` cannot make this write
+/// anywhere but inside `parent`.
+#[tauri::command]
+pub fn create_folder(parent: String, name: String) -> CommandResult<String> {
+    create_folder_in(&browse_root(), parent, &name)
+}
+
+fn create_folder_in(root: &Path, parent: String, name: &str) -> CommandResult<String> {
+    let name = name.trim();
+    if !jott_core::relpath::is_safe_leaf(name) {
+        return Err(CommandError::new(
+            "invalidName",
+            format!("bad folder name: {name}"),
+        ));
+    }
+    // Through the browser's own resolution, so a `parent` from outside the
+    // root cannot be written to either.
+    let listing = listing_in(root, Some(parent))?;
+    let folder = PathBuf::from(listing.path).join(name);
+    std::fs::create_dir_all(&folder)
+        .map_err(|e| CommandError::new("io", format!("{}: {e}", folder.display())))?;
+    Ok(folder.to_string_lossy().into_owned())
 }
 
 /// Opens a notebook, creating one in that folder if it is not one yet.
@@ -1393,6 +1547,15 @@ pub async fn clipboard_files<R: Runtime>(app: AppHandle<R>) -> Vec<String> {
     clipboard_uris(&app).unwrap_or_default()
 }
 
+/// Everywhere but Linux there is nothing to ask: this whole path answers a
+/// GTK-flavoured paste, and every other platform hands the file to the webview
+/// itself. Without this the Android build does not compile at all — which is
+/// how it was found (2026-08-19).
+#[cfg(not(target_os = "linux"))]
+fn clipboard_uris<R: Runtime>(_app: &AppHandle<R>) -> Option<Vec<String>> {
+    None
+}
+
 #[cfg(target_os = "linux")]
 fn clipboard_uris<R: Runtime>(app: &AppHandle<R>) -> Option<Vec<String>> {
     use std::sync::mpsc;
@@ -2239,6 +2402,85 @@ pub fn grouped_suggestions(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// The folder browser Android needs (2026-08-19). Its rules are the ones a
+    /// path from the UI makes necessary: it may not walk out of the root, and
+    /// a typed name may not be a path.
+    mod folder_browser {
+        use super::*;
+
+        fn tree() -> tempfile::TempDir {
+            let dir = tempfile::tempdir().unwrap();
+            std::fs::create_dir_all(dir.path().join("Documents/Jott/.jott")).unwrap();
+            std::fs::create_dir(dir.path().join("Documents/Photos")).unwrap();
+            std::fs::create_dir(dir.path().join("Documents/.thumbnails")).unwrap();
+            std::fs::write(dir.path().join("Documents/note.md"), "x").unwrap();
+            dir
+        }
+
+        #[test]
+        fn lists_folders_only_and_marks_the_ones_holding_a_notebook() {
+            let dir = tree();
+            let at = dir.path().join("Documents");
+            let listing = listing_in(dir.path(), Some(at.to_string_lossy().into_owned())).unwrap();
+
+            let names: Vec<&str> = listing.folders.iter().map(|f| f.name.as_str()).collect();
+            // Sorted, no files, and no dot-folders — `.thumbnails` is another
+            // tool's business and `note.md` is not an answer to "which folder?".
+            assert_eq!(names, ["Jott", "Photos"]);
+            assert!(listing.folders[0].notebook, "Jott/ holds a .jott");
+            assert!(!listing.folders[1].notebook);
+            assert_eq!(listing.name, "Documents");
+        }
+
+        #[test]
+        fn the_root_has_no_way_up_and_everything_below_it_does() {
+            let dir = tree();
+            assert_eq!(listing_in(dir.path(), None).unwrap().parent, None);
+
+            let at = dir.path().join("Documents");
+            let listing = listing_in(dir.path(), Some(at.to_string_lossy().into_owned())).unwrap();
+            assert_eq!(listing.parent.as_deref(), dir.path().to_str());
+        }
+
+        #[test]
+        fn a_path_outside_the_root_lands_on_the_root_instead_of_erroring() {
+            let dir = tree();
+            let outside = dir.path().join("Documents/../../..");
+
+            // Not an error: the browser has to land somewhere the user can act
+            // on, and "that path is not allowed" is not a folder.
+            let listing =
+                listing_in(dir.path(), Some(outside.to_string_lossy().into_owned())).unwrap();
+            assert_eq!(listing.path, dir.path().to_string_lossy());
+        }
+
+        #[test]
+        fn a_missing_folder_is_an_empty_one() {
+            // `fsio::dir_paths`' rule, which matters here because a folder can
+            // be deleted by another app between the listing and the tap.
+            let dir = tree();
+            let gone = dir.path().join("Documents/gone");
+            let listing = listing_in(dir.path(), Some(gone.to_string_lossy().into_owned())).unwrap();
+            assert!(listing.folders.is_empty());
+        }
+
+        #[test]
+        fn creates_a_folder_and_refuses_a_name_that_is_a_path() {
+            let dir = tree();
+            let at = dir.path().join("Documents").to_string_lossy().into_owned();
+
+            let made = create_folder_in(dir.path(), at.clone(), " Notebook ").unwrap();
+            assert!(dir.path().join("Documents/Notebook").is_dir());
+            assert_eq!(made, dir.path().join("Documents/Notebook").to_string_lossy());
+
+            for bad in ["../escaped", "a/b", "..", ""] {
+                let error = create_folder_in(dir.path(), at.clone(), bad).unwrap_err();
+                assert_eq!(error.kind, "invalidName", "{bad} should be refused");
+            }
+            assert!(!dir.path().join("escaped").exists());
+        }
+    }
 
     #[test]
     fn the_button_layout_follows_the_system_and_never_leaves_the_window_shut() {

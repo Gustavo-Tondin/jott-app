@@ -12,9 +12,14 @@ export const api = {
   notebookSnapshot: () => invoke("notebook_snapshot"),
   lastNotebook: () => invoke("last_notebook"),
   pickFolder: () => invoke("pick_notebook_folder"),
-  // Non-null only where the user cannot pick a folder (Android): the app's own
-  // container, which is the notebook there. Desktop answers null and asks.
+  // The app's own container on Android — the notebook's home for whoever
+  // declines the file permission, and for notebooks already living there.
+  // Desktop answers null: choosing is the first thing it asks.
   defaultFolder: () => invoke("default_notebook_folder"),
+  // The in-app folder browser (Android). `path` null starts at the top of
+  // shared storage; anything outside it lands there too, rather than erroring.
+  listFolders: (path = null) => invoke("list_folders", { path }),
+  createFolder: (parent, name) => invoke("create_folder", { parent, name }),
   openNotebook: (path) => invoke("open_notebook", { path }),
   currentNotebook: () => invoke("current_notebook"),
   // Every field is optional: the core keeps what it is not told about, so a
