@@ -16,6 +16,12 @@
   import { ask, userBindings } from "./lib/services/shortcuts.js";
   import NameDialog from "./lib/components/NameDialog.svelte";
   import ConfirmDialog from "./lib/components/ConfirmDialog.svelte";
+  import FolderPicker from "./lib/components/FolderPicker.svelte";
+  import {
+    storageAccess,
+    requestStorageAccess,
+    watchStorageAccess,
+  } from "./lib/services/androidStorage.js";
   import ContextMenu from "./lib/components/ContextMenu.svelte";
   import ListView from "./lib/screens/ListView.svelte";
   import TasksView from "./lib/screens/TasksView.svelte";
@@ -1090,7 +1096,30 @@
     }
   }
 
+  /// Whether Android is willing to let the app out of its own container:
+  /// `"granted"`, `"denied"`, or `"notNeeded"` everywhere else. The Activity
+  /// says so when the user comes back from the Settings screen.
+  let storage = $state(storageAccess());
+  $effect(() => watchStorageAccess((next) => (storage = next)));
+
+  /// The app's own container — non-null only on Android, where it is what the
+  /// user gets by declining the permission, and where notebooks made by
+  /// earlier versions already live.
+  let privateFolder = $state(null);
+
+  /// The in-app folder browser is open (Android only).
+  let picking = $state(false);
+
   async function chooseFolder() {
+    // Two different questions wearing one button. The desktop opens the
+    // system's picker, which is better at this than anything the app could
+    // draw. Android has no picker to open — and, before it can browse
+    // anything, needs the file permission the user grants in Settings.
+    if (storage !== "notNeeded") {
+      if (storage === "granted") picking = true;
+      else requestStorageAccess();
+      return;
+    }
     try {
       const path = await api.pickFolder();
       if (path) await openAt(path);
@@ -1334,16 +1363,17 @@
   // Reopen the last notebook so the app is usable straight away.
   (async () => {
     try {
+      // Kept for the onboarding screen, which offers it as the second choice.
+      // Android used to open it silently, because there was nothing else the
+      // platform could give: no folder picker, and a Storage Access Framework
+      // URI the core cannot read. That was revised on 2026-08-19 — the app
+      // asks for file access and browses real folders (androidStorage.js), so
+      // this folder is a fallback and not a default. Anyone already using it
+      // is unaffected: `last_notebook` reopens it.
+      privateFolder = await api.defaultFolder();
       const last = await api.lastNotebook();
       if (last) await openAt(last);
-      else {
-        // Where the platform gives the user no folder to pick (Android), the
-        // app opens its own container instead of showing an onboarding screen
-        // whose only button cannot work.
-        const fallback = await api.defaultFolder();
-        if (fallback) await openAt(fallback);
-        else await refreshNotebook();
-      }
+      else await refreshNotebook();
     } catch (e) {
       fail(e);
     } finally {
@@ -1592,11 +1622,23 @@
       <section class="shell__onboarding">
         <h1 class="shell__onboarding-title">Jott</h1>
         <p class="shell__onboarding-intro">{S.onboardingIntro}</p>
+        {#if storage === "denied"}
+          <p class="shell__onboarding-intro">{S.storageIntro}</p>
+        {/if}
         <button
-          class="shell__onboarding-action"
+          class="theme-btn theme-btn--primary shell__onboarding-action"
           onclick={chooseFolder}
-          disabled={busy}>{S.chooseFolder}</button
+          disabled={busy}
+          >{storage === "denied" ? S.allowFiles : S.chooseFolder}</button
         >
+        {#if privateFolder}
+          <button
+            class="theme-btn shell__onboarding-alt"
+            onclick={() => openAt(privateFolder)}
+            disabled={busy}>{S.usePrivateFolder}</button
+          >
+          <p class="shell__onboarding-note">{S.privateFolderNote}</p>
+        {/if}
         {#if error}<p class="shell__error">{error}</p>{/if}
       </section>
   {:else}
@@ -2206,6 +2248,18 @@
 <!-- The app's own name prompt (window.prompt is broken in WebKitGTK). -->
 <NameDialog />
 <ConfirmDialog />
+
+{#if picking}
+  <FolderPicker
+    start={notebook?.path ?? null}
+    onChoose={(path) => {
+      picking = false;
+      openAt(path);
+    }}
+    onClose={() => (picking = false)}
+    onError={fail}
+  />
+{/if}
 <NewTaskDialog />
 
 <!-- Ctrl+F / Ctrl+K, over whatever screen is open: a search is a question

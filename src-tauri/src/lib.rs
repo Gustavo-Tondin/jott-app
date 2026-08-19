@@ -63,6 +63,8 @@ pub fn configure<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builde
             // notebook
             commands::pick_notebook_folder,
             commands::default_notebook_folder,
+            commands::list_folders,
+            commands::create_folder,
             commands::open_notebook,
             commands::current_notebook,
             commands::last_notebook,

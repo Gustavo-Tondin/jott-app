@@ -10,6 +10,24 @@ export const S = {
     "Choose a folder to be your notebook. If it is not one yet, Jott creates " +
     "the structure inside it — your files stay plain .md, readable in any editor.",
   chooseFolder: "Choose notebook folder…",
+  // Android only: the notebook lives wherever the user says, and that needs
+  // the all-files permission — see services/androidStorage.js.
+  storageIntro:
+    "To keep your notebook in a folder you choose — and to let a sync app " +
+    "like Syncthing reach it — Jott needs permission to manage files. " +
+    "Android opens its Settings screen; turn Jott on there and come back.",
+  allowFiles: "Allow file access",
+  usePrivateFolder: "Use Jott's private folder instead",
+  privateFolderNote:
+    "Kept inside the app. Nothing else on the phone can read it, and " +
+    "uninstalling Jott deletes it.",
+  browseFolders: "Choose a folder",
+  parentFolder: "Up one folder",
+  newFolder: "New folder",
+  newFolderName: "Name for the new folder:",
+  useThisFolder: "Use this folder",
+  noSubfolders: "No folders here.",
+  existingNotebook: "notebook",
   today: "Today",
   week: "Week",
   completed: "Completed",

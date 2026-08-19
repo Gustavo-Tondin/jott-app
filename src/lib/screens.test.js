@@ -1348,38 +1348,123 @@ describe("App", () => {
     return await screen.findByLabelText("task name");
   };
 
-  // Both cases below only ever happen on Android, where no one developing Jott
+  // The cases below only ever happen on Android, where no one developing Jott
   // can click. The tests are the only thing standing between a working first
-  // launch there and an onboarding screen whose single button cannot work,
-  // because the platform has no folder for the user to pick.
-  test("with no notebook to reopen, it opens the folder the platform gives it", async () => {
+  // launch there and a screen the user cannot get past.
+  //
+  // What the platform offers CHANGED on 2026-08-19. Android used to open the
+  // app's own container silently, because there was nothing else to open: no
+  // folder picker, and a Storage Access Framework URI the core cannot read.
+  // That container turned out to be unreachable to every other app — including
+  // the sync client the whole arrangement was for — so the app now asks for
+  // file access and browses real folders, and the container is one of two
+  // choices on the onboarding screen rather than a silent default.
+  test("with no notebook to reopen, it offers the folder the platform gives it", async () => {
     const opened = vi.fn(() => notebook);
+    const container =
+      "/storage/emulated/0/Android/data/dev.gustavotondin.jott/files/Documents/Jott";
     shell({
       last_notebook: null,
-      default_notebook_folder: "/storage/emulated/0/Android/data/dev.gustavotondin.jott/files/Documents/Jott",
+      default_notebook_folder: container,
+      open_notebook: opened,
+      // What the bridge really answers with nothing open — and what keeps the
+      // app on the onboarding screen instead of drawing a notebook it has not
+      // got.
+      notebook_snapshot: () => Promise.reject(new Error("no notebook is open")),
+    });
+
+    render(App);
+
+    // Offered, not taken: opening it silently is what hid the fact that
+    // nothing else on the phone can read it.
+    await screen.findByText("Use Jott's private folder instead");
+    expect(opened).not.toHaveBeenCalled();
+
+    // The onboarding buttons are disabled while the boot is still asking the
+    // bridge what there is to open; the node is re-queried each time because
+    // the block it lives in is created by that same answer.
+    const button = () => screen.getByText("Use Jott's private folder instead");
+    await waitFor(() => expect(button().disabled).toBe(false));
+    await userEvent.click(button());
+    await waitFor(() => expect(opened).toHaveBeenCalled());
+    expect(opened.mock.calls[0][0]).toEqual({ path: container });
+  });
+
+  test("where the platform offers no folder, it only asks the user for one", async () => {
+    const opened = vi.fn(() => notebook);
+    // Desktop: `default_notebook_folder` answers null, because choosing where
+    // the notebook lives is the user's call and the system has a picker.
+    shell({
+      last_notebook: null,
+      default_notebook_folder: null,
+      open_notebook: opened,
+      notebook_snapshot: () => Promise.reject(new Error("no notebook is open")),
+    });
+
+    render(App);
+
+    await waitFor(() => expect(screen.getByText("Choose notebook folder…")).toBeTruthy());
+    expect(screen.queryByText("Use Jott's private folder instead")).toBeNull();
+    expect(opened).not.toHaveBeenCalled();
+  });
+
+  test("on Android the button asks for file access first, and browses after", async () => {
+    // The two halves of the same button. Android has no system folder picker
+    // to open (`pick_notebook_folder` answers null there), and cannot browse
+    // anything at all until the user has granted file access on a Settings
+    // screen the app can only send them to.
+    const picked = vi.fn();
+    const request = vi.fn();
+    window.JottAndroid = { granted: () => false, request };
+    shell({
+      last_notebook: null,
+      default_notebook_folder: "/storage/emulated/0/Android/data/x/files/Documents/Jott",
+      pick_notebook_folder: picked,
+      notebook_snapshot: () => Promise.reject(new Error("no notebook is open")),
+      list_folders: {
+        path: "/storage/emulated/0",
+        name: "0",
+        parent: null,
+        folders: [{ path: "/storage/emulated/0/Docs", name: "Docs", notebook: false }],
+      },
+    });
+
+    render(App);
+
+    const button = () => screen.getByText("Allow file access");
+    await waitFor(() => expect(button().disabled).toBe(false));
+    await userEvent.click(button());
+    expect(request).toHaveBeenCalledOnce();
+    // Never the system picker: there is none on this platform, and calling it
+    // would fail silently.
+    expect(picked).not.toHaveBeenCalled();
+
+    // Granted, and back from Settings — which is the only signal there is.
+    window.JottAndroid = { granted: () => true, request };
+    document.dispatchEvent(new CustomEvent("android-storage-changed"));
+
+    await userEvent.click(await screen.findByText("Choose notebook folder…"));
+    await screen.findByText("Docs");
+    expect(picked).not.toHaveBeenCalled();
+
+    delete window.JottAndroid;
+  });
+
+  test("a remembered notebook is reopened, whatever the platform offers", async () => {
+    // The revision above must not disturb anyone already using the app: an
+    // Android install from before it keeps opening the container it has.
+    const opened = vi.fn(() => notebook);
+    shell({
+      last_notebook: "/storage/emulated/0/Android/data/dev.gustavotondin.jott/files/Documents/Jott",
+      default_notebook_folder:
+        "/storage/emulated/0/Android/data/dev.gustavotondin.jott/files/Documents/Jott",
       open_notebook: opened,
     });
 
     render(App);
 
     await waitFor(() => expect(opened).toHaveBeenCalled());
-    expect(opened.mock.calls[0][0]).toEqual({
-      path: "/storage/emulated/0/Android/data/dev.gustavotondin.jott/files/Documents/Jott",
-    });
-    // Never the onboarding screen: that folder was not a suggestion.
     expect(screen.queryByText("Choose notebook folder…")).toBeNull();
-  });
-
-  test("where the platform offers no folder, it still asks the user for one", async () => {
-    const opened = vi.fn(() => notebook);
-    // Desktop: `default_notebook_folder` answers null, because choosing where
-    // the notebook lives is the user's call.
-    shell({ last_notebook: null, default_notebook_folder: null, open_notebook: opened });
-
-    render(App);
-
-    await waitFor(() => expect(screen.getByText("Choose notebook folder…")).toBeTruthy());
-    expect(opened).not.toHaveBeenCalled();
   });
 
   test("opening a note clears the right panel and takes it for the formatting", async () => {
