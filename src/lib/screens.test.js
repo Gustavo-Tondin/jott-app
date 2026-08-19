@@ -2679,6 +2679,58 @@ describe("NotesSpace", () => {
     expect(invoke.mock.calls.some(([cmd]) => cmd === "read_note")).toBe(false);
   });
 
+  test("a card is a link: the middle button opens it beside what is open", async () => {
+    // The same contract the sidebar's rows keep (shell/Sidebar.svelte): a
+    // plain click follows, the middle button opens another tab. Which tab is
+    // the shell's business — the board only says which door was used.
+    const opened = [];
+    bridge({ list_notes: [entry("Ideia")], note_folders: [] });
+
+    render(NotesSpace, {
+      props: props({ onOpenNote: (path, folder, opts) => opened.push([path, folder, opts]) }),
+    });
+    await fireEvent(
+      await screen.findByText("Ideia"),
+      new MouseEvent("auxclick", { button: 1, bubbles: true, cancelable: true }),
+    );
+
+    expect(opened).toEqual([["Inbox/Ideia.md", "Notes", { newTab: true }]]);
+  });
+
+  test("the right button offers the same door, above the card's own items", async () => {
+    const opened = [];
+    bridge({ list_notes: [entry("Ideia")], note_folders: [] });
+
+    render(NotesSpace, {
+      props: props({ onOpenNote: (path, folder, opts) => opened.push([path, folder, opts]) }),
+    });
+    await fireEvent.contextMenu(await screen.findByText("Ideia"));
+
+    // First row, then everything the ⋮ carries — a menu is read from the top.
+    const rows = [...document.querySelectorAll(".context-menu button")].map((el) =>
+      el.textContent.trim(),
+    );
+    expect(rows[0]).toBe("Open in new tab");
+    expect(rows).toContain("Delete");
+
+    await userEvent.click(screen.getByText("Open in new tab"));
+    expect(opened).toEqual([["Inbox/Ideia.md", "Notes", { newTab: true }]]);
+  });
+
+  test("a read-only notebook still opens a note in a new tab", async () => {
+    // Reading is still reading: a second tab writes nothing, so it is the one
+    // row the right button keeps when every other one is gone.
+    bridge({ list_notes: [entry("Ideia")], note_folders: [] });
+
+    render(NotesSpace, { props: props({ readOnly: true }) });
+    await fireEvent.contextMenu(await screen.findByText("Ideia"));
+
+    const rows = [...document.querySelectorAll(".context-menu button")].map((el) =>
+      el.textContent.trim(),
+    );
+    expect(rows).toEqual(["Open in new tab"]);
+  });
+
   test("the folder view filters to the folder being looked at", async () => {
     bridge({
       list_notes: [
@@ -3311,7 +3363,21 @@ describe("AssetsView", () => {
     await userEvent.click(await screen.findByText("Used in 1 place"));
     await userEvent.click(screen.getByText("com imagem"));
 
-    expect(opened).toHaveBeenCalledWith("Inbox/com imagem.md", "jott.notes");
+    expect(opened).toHaveBeenCalledWith("Inbox/com imagem.md", "jott.notes", {
+      newTab: false,
+    });
+
+    // And beside the library, by the middle button: finding where a picture is
+    // used is a question asked in passing, like a search hit. (Going anywhere
+    // folds the places away, so they are asked for again.)
+    await userEvent.click(await screen.findByText("Used in 1 place"));
+    await fireEvent(
+      screen.getByText("com imagem"),
+      new MouseEvent("auxclick", { button: 1, bubbles: true, cancelable: true }),
+    );
+    expect(opened).toHaveBeenLastCalledWith("Inbox/com imagem.md", "jott.notes", {
+      newTab: true,
+    });
   });
 
   test("a task that attaches it is a place too", async () => {
@@ -4746,6 +4812,44 @@ describe("App shell with tabs", () => {
     );
 
     await waitFor(() => expect(tabLabels()).toEqual(["Home", "Compras"]));
+  });
+
+  test("a note of the day opens in a new tab, by the middle button and by the right one", async () => {
+    // The whole chain, because every link in it is where this could break: the
+    // card reports the gesture (components/NoteCard.svelte), the screen names
+    // the note (screens/HomeView.svelte), and only the shell opens a tab.
+    const note = {
+      path: "Inbox/Ideia.md",
+      title: "Ideia",
+      folder: "Inbox",
+      preview: "",
+      created: "2026-07-21",
+      pinned: false,
+    };
+    shell({ notes_created_today: [note] });
+    render(App);
+    await waitFor(() => expect(tabLabels()).toEqual(["Home"]));
+
+    await fireEvent(
+      await screen.findByText("Ideia"),
+      new MouseEvent("auxclick", { button: 1, bubbles: true, cancelable: true }),
+    );
+    await waitFor(() => expect(tabLabels()).toEqual(["Home", "Ideia"]));
+
+    // And the same door with the right button, from the Home tab again. The
+    // card is asked for by its place on the board: "Ideia" now names the tab
+    // as well, and a bare text query would find two.
+    await userEvent.click(screen.getAllByRole("tab")[0]);
+    await waitFor(() => expect(document.querySelector(".home__notes")).toBeTruthy());
+    await fireEvent.contextMenu(
+      within(document.querySelector(".home__notes")).getByText("Ideia"),
+    );
+    await userEvent.click(await screen.findByText("Open in new tab"));
+
+    // Already open: the second tab is FOCUSED rather than duplicated, the
+    // same rule following a link keeps (shell/tabs.js).
+    await waitFor(() => expect(tabLabels()).toEqual(["Home", "Ideia"]));
+    expect(screen.getAllByRole("tab")[1].getAttribute("aria-selected")).toBe("true");
   });
 
   test("the sidebar navigates the tab you are on; middle click makes a new one", async () => {

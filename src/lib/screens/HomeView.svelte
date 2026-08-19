@@ -33,6 +33,7 @@
   import TasksSpace from "../spaces/TasksSpace.svelte";
   import CaptureBox from "../components/CaptureBox.svelte";
   import Menu from "../components/Menu.svelte";
+  import ContextMenu from "../components/ContextMenu.svelte";
   import Icon from "../components/Icon.svelte";
   import NoteCard from "../components/NoteCard.svelte";
   import { measured } from "../actions/measure.js";
@@ -57,6 +58,9 @@
     readOnly = false,
     onChanged,
     onError,
+    /// `(path, folder, { newTab }) => void` — a card of the day opens the note
+    /// it draws, in this tab or beside it (the middle button, and the right
+    /// button's one row).
     onOpenNote,
     onSelectTask,
     /// Asks the shell to open the right panel on the day's suggestions.
@@ -137,6 +141,26 @@
       }
       await composeTask({ text, list: inbox }, { period: "day" });
     });
+
+  /// Going to a note of the day. Home only ever LOOKS at the notes space, so
+  /// it names the space it was given rather than letting the shell guess one
+  /// — the address is the whole answer either way.
+  const openNote = (note, { newTab = false } = {}) =>
+    onOpenNote?.(note.path, notesFolder, { newTab });
+
+  /// The right button on a card. Only the one row: what a note IS belongs
+  /// where the note lives, and Home is the day looking in (the same reason
+  /// these cards carry no ⋮ and no pin). Where it opens is this screen's, the
+  /// same pact the board and the sidebar keep.
+  let cardMenuAt = $state(null);
+  let cardMenuFor = $state(null);
+
+  function openCardMenu(event, note) {
+    event.preventDefault();
+    event.stopPropagation();
+    cardMenuFor = note;
+    cardMenuAt = { x: event.clientX, y: event.clientY };
+  }
 
   /// The notes block's ⋮: where a captured note is filed. It was a select
   /// living inside the old quick-note form; with the form gone it belongs
@@ -243,7 +267,12 @@
               class="home__note"
               style={breaks.has(index) ? "break-after: column" : ""}
             >
-              <NoteCard entry={note} {root} onOpen={() => onOpenNote?.(note.path)} />
+              <NoteCard
+                entry={note}
+                {root}
+                onOpen={(_, opts) => openNote(note, opts)}
+                onContextMenu={openCardMenu}
+              />
             </li>
           {/each}
         </ul>
@@ -251,3 +280,17 @@
     </section>
   {/if}
 </div>
+
+<!-- The one row the right button offers over a card of the day. -->
+<ContextMenu
+  at={cardMenuAt}
+  items={cardMenuFor
+    ? [
+        {
+          label: S.openInNewTabItem,
+          run: () => openNote(cardMenuFor, { newTab: true }),
+        },
+      ]
+    : []}
+  onClose={() => (cardMenuAt = null)}
+/>

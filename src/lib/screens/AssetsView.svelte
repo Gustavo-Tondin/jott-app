@@ -98,10 +98,19 @@
 
   /// Goes to whatever uses the file. A note is opened at its address, a task
   /// in the list that holds it — the two doors the search box already uses.
-  function go(place) {
+  function go(place, { newTab = false } = {}) {
     showing = null;
-    if (place.kind === "note") onOpenNote?.(place.path, place.folder);
+    if (place.kind === "note") onOpenNote?.(place.path, place.folder, { newTab });
     else onOpenTask?.(place.path, place.id);
+  }
+
+  /// The middle button on a note that uses the file: it opens beside the
+  /// library instead of replacing it, the same gesture a card on the board
+  /// answers.
+  function middleGo(event, place) {
+    if (event.button !== 1 || place.kind !== "note") return;
+    event.preventDefault();
+    go(place, { newTab: true });
   }
 
   /// The file input, and the two gestures, are one question with three doors:
@@ -249,6 +258,7 @@
                     <button
                       class="assets-view__place"
                       onclick={() => go(place)}
+                      onauxclick={(event) => middleGo(event, place)}
                       title={S.assetGoTo(place.title)}
                     >
                       <Icon

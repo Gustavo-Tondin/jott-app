@@ -9,7 +9,10 @@
   //
   // The card only ever DRAWS. Opening, picking, pinning and the ⋮'s items are
   // the board's business (spaces/NotesSpace.svelte), because they are the same
-  // gestures whether the card sits on a board or inside a folder card.
+  // gestures whether the card sits on a board or inside a folder card. The two
+  // gestures a card answers on its own — the middle button and the right one —
+  // are reported the same way: it says WHICH card was asked for, never what
+  // happens next.
   import { S } from "../services/strings.js";
   import { accentFill } from "../services/accent.js";
   import { assetUrl } from "../services/assets.js";
@@ -36,8 +39,26 @@
     /// it is pinned without being asked, and the drawn pin is what says it.
     /// Null draws none.
     onPin = null,
+    /// `(entry, {newTab}) => void` — the click, and the MIDDLE click: a card
+    /// is a link to a document, and the middle button opens a link in a new
+    /// tab everywhere else in this app (shell/Sidebar.svelte) as well as
+    /// outside it.
     onOpen,
+    /// `(event, entry) => void` — the right button over the card. The panel
+    /// itself belongs to the screen (the same pact the sidebar keeps: one
+    /// `ContextMenu` per panel, at the pointer), so the card only reports the
+    /// gesture. Null leaves the right button alone.
+    onContextMenu = null,
   } = $props();
+
+  /// Only the middle button, and never while picking: in that mode a click is
+  /// choosing, not going, and a second gesture that navigates would be a way
+  /// out of the mode nobody asked for.
+  function middleOpen(event) {
+    if (event.button !== 1 || picking) return;
+    event.preventDefault();
+    onOpen?.(entry, { newTab: true });
+  }
 
   let banner = $derived(entry.banner ?? null);
   let isImage = $derived(banner?.kind === "image");
@@ -50,11 +71,15 @@
   class:note-card--small={small}
   class:note-card--picked={selected}
   class:note-card--pinned={entry.pinned}
+  oncontextmenu={onContextMenu && !picking
+    ? (event) => onContextMenu(event, entry)
+    : null}
 >
   <button
     class="note-card__open"
     aria-pressed={picking ? selected : undefined}
     onclick={() => onOpen?.(entry)}
+    onauxclick={middleOpen}
   >
     {#if banner && !small}
       <span

@@ -1420,10 +1420,12 @@
 
   /// A note opened FROM a board. `fresh` says the board has just created it
   /// empty (the quick-note bar's + on an empty field), so the cursor goes
-  /// straight into its body — the same hand-off the Home's + makes.
-  const openNoteFromBoard = (path, folder, { fresh = false } = {}) => {
+  /// straight into its body — the same hand-off the Home's + makes. `newTab`
+  /// is the card's middle click and the right button's first row: the board
+  /// reports which door was used, and only here is a tab opened.
+  const openNoteFromBoard = (path, folder, { fresh = false, newTab = false } = {}) => {
     if (fresh) focusNewNote = true;
-    showNote(path, folder);
+    showNote(path, folder ?? undefined, newTab);
   };
 
   const showList = (path, newTab = false) =>
@@ -1844,7 +1846,7 @@
               {reloadKey}
               onChanged={refreshNotebook}
               onError={fail}
-              onOpenNote={(path) => showNote(path)}
+              onOpenNote={openNoteFromBoard}
               onSelectTask={select}
               onSuggest={suggest}
               selectedTask={selected?.task ?? null}
@@ -2012,7 +2014,7 @@
               readOnly={notebook.readOnly}
               onChanged={refreshAll}
               onError={fail}
-              onOpenNote={(path, folder) => showNote(path, folder)}
+              onOpenNote={(path, folder, opts) => showNote(path, folder, opts?.newTab)}
               onOpenTask={showFoundTask}
               onRemoteImage={(url) => fetchRemoteImage(url)}
               {reloadKey}
@@ -2277,7 +2279,7 @@
       searchQuery = "";
     }}
     onOpenList={showFoundTask}
-    onOpenNote={(path, folder) => showNote(path, folder)}
+    onOpenNote={(path, folder, opts) => showNote(path, folder, opts?.newTab)}
     onError={fail}
   />
 {/if}

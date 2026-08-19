@@ -86,10 +86,19 @@
     query.trim() && !asking && results.tasks.length === 0 && results.notes.length === 0,
   );
 
-  function open(hit) {
-    if (hit.kind === "note") onOpenNote?.(hit.path, hit.folder);
+  function open(hit, { newTab = false } = {}) {
+    if (hit.kind === "note") onOpenNote?.(hit.path, hit.folder, { newTab });
     else onOpenList?.(hit.path, hit.id);
     onClose?.();
+  }
+
+  /// The middle button on a NOTE hit: the answer opens beside the question
+  /// instead of over it, the same gesture a card on the board answers. A task
+  /// hit has nowhere else to go — it is a row inside a list, not a document.
+  function middleOpen(event, hit) {
+    if (event.button !== 1 || hit.kind !== "note") return;
+    event.preventDefault();
+    open(hit, { newTab: true });
   }
 
   /// Where a hit lives, as one readable line: `Tasks · Inbox`.
@@ -133,7 +142,11 @@
         {#if section.hits.length > 0}
           <p class="search__section">{section.label}</p>
           {#each section.hits as hit (`${hit.folder}/${hit.path}/${hit.id ?? hit.title}`)}
-            <button class="theme-row search__hit" onclick={() => open(hit)}>
+            <button
+              class="theme-row search__hit"
+              onclick={() => open(hit)}
+              onauxclick={(event) => middleOpen(event, hit)}
+            >
               <span class="search__hit-main">
                 <span class="search__hit-title" class:search__hit-title--done={hit.done}>
                   {hit.title}

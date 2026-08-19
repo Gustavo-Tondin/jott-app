@@ -313,6 +313,9 @@ export const S = {
   tasks: "Tasks",
   inboxTab: "Inbox",
   openInNewTab: "open in new tab",
+  // The same gesture as a menu row: the tooltip above is a hint on a control
+  // that already answers the middle button, this is a line the user reads.
+  openInNewTabItem: "Open in new tab",
   closeTab: "close tab",
   newTab: "new tab",
 

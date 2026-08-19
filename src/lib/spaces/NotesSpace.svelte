@@ -41,6 +41,7 @@
   import { dismissable } from "../actions/dismissable.js";
   import { keepOnScreen } from "../actions/keepOnScreen.js";
   import Menu from "../components/Menu.svelte";
+  import ContextMenu from "../components/ContextMenu.svelte";
   import Icon from "../components/Icon.svelte";
   import NoteCard from "../components/NoteCard.svelte";
 
@@ -68,9 +69,11 @@
     onSetOrder,
     onChanged,
     onError,
-    /// `(path, folder, { fresh })` — `fresh` is a note this screen has just
-    /// created empty, so the shell puts the cursor in its body rather than
-    /// leaving it in a document nobody has typed into yet.
+    /// `(path, folder, { fresh, newTab })` — `fresh` is a note this screen has
+    /// just created empty, so the shell puts the cursor in its body rather than
+    /// leaving it in a document nobody has typed into yet. `newTab` is the
+    /// middle button and the right button's first row: a card is a link, and a
+    /// link opens beside what you are reading without taking it away.
     onOpenNote,
     reloadKey = 0,
   } = $props();
@@ -159,6 +162,31 @@
       const parent = openFolder ? `${openFolder}/` : "";
       await api.createNoteFolder(folder, `${parent}${name.trim()}`);
     });
+
+  /// Going to a note. `newTab` is the middle button and the right button's
+  /// first row; where the tab comes from is the shell's business, this only
+  /// says which door was used.
+  const openNote = (entry, { newTab = false } = {}) =>
+    onOpenNote?.(entry.path, folder, { newTab });
+
+  // ---- the right button on a card ----
+  // One panel for the whole board, at the pointer — the same pact the sidebar
+  // keeps (shell/Sidebar.svelte): a card reports the gesture, the screen owns
+  // where the menu goes. It carries the card's own ⋮ items under the one row
+  // the right button exists for here, and it is offered on a read-only
+  // notebook too: opening a second tab writes nothing.
+  let cardMenuAt = $state(null);
+  let cardMenuShown = $state([]);
+
+  function openCardMenu(event, entry) {
+    event.preventDefault();
+    event.stopPropagation();
+    cardMenuShown = [
+      { label: S.openInNewTabItem, run: () => openNote(entry, { newTab: true }) },
+      ...cardMenu(entry),
+    ];
+    cardMenuAt = { x: event.clientX, y: event.clientY };
+  }
 
   const togglePin = (entry) =>
     act(() => api.setNotePinned(folder, entry.path, !entry.pinned));
@@ -761,7 +789,8 @@
                     {entry}
                     {root}
                     small
-                    onOpen={() => onOpenNote?.(entry.path, folder)}
+                    onOpen={(_, opts) => openNote(entry, opts)}
+                    onContextMenu={openCardMenu}
                   />
                 {/each}
               </div>
@@ -839,8 +868,9 @@
                             selected={picked.has(entry.path)}
                             menu={cardMenu(entry)}
                             onPin={readOnly ? null : () => togglePin(entry)}
-                            onOpen={() =>
-                              picking ? togglePick(entry) : onOpenNote?.(entry.path, folder)}
+                            onOpen={(_, opts) =>
+                              picking ? togglePick(entry) : openNote(entry, opts)}
+                            onContextMenu={openCardMenu}
                           />
                         </li>
                       {/each}
@@ -862,8 +892,8 @@
               selected={picked.has(card.path)}
               menu={cardMenu(card)}
               onPin={readOnly ? null : () => togglePin(card)}
-              onOpen={() =>
-                picking ? togglePick(card) : onOpenNote?.(card.path, folder)}
+              onOpen={(_, opts) => (picking ? togglePick(card) : openNote(card, opts))}
+              onContextMenu={openCardMenu}
             />
           </li>
         {/if}
@@ -871,3 +901,13 @@
     </ul>
   {/if}
 </div>
+
+<!-- A card's own right-click menu. Last in the markup and fixed to the
+     viewport (styles/components/menu.css), so the panel is never clipped by
+     the board it was opened over — nor by the folder popover, which sits at
+     the same layer and would otherwise cover it. -->
+<ContextMenu
+  at={cardMenuAt}
+  items={cardMenuShown}
+  onClose={() => (cardMenuAt = null)}
+/>
