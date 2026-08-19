@@ -73,7 +73,8 @@ impl NoteFolder {
     }
 
     /// Recreates the default `Inbox` folder when missing, the same courtesy
-    /// `Inbox.md` gets on the tasks side.
+    /// the two fixed files of a tasks space get. Called on every open (for
+    /// the fixed Notes space) and when a notes space is created.
     pub fn ensure_default_folders(&self) -> Result<()> {
         let inbox = self.dir.join(NOTES_INBOX);
         std::fs::create_dir_all(&inbox).ctx(&inbox)?;

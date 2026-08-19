@@ -24,6 +24,25 @@ fn read(path: impl AsRef<std::path::Path>) -> String {
 }
 
 #[test]
+fn the_inbox_folder_comes_back_on_open_and_is_born_with_a_user_space() {
+    // The Inbox is protected from rename and delete BECAUSE it is recreated —
+    // a protection without the recreation would guard something the app does
+    // not maintain. (It never ran before 2026-08-19: `ensure_default_folders`
+    // existed, documented as running on every open, and had no caller.)
+    let dir = tempfile::tempdir().unwrap();
+    Notebook::init(dir.path()).unwrap();
+    assert!(dir.path().join("jott.notes/Inbox").is_dir());
+
+    std::fs::remove_dir(dir.path().join("jott.notes/Inbox")).unwrap();
+    let notebook = Notebook::open(dir.path()).unwrap();
+    assert!(dir.path().join("jott.notes/Inbox").is_dir());
+
+    // A notes space of the user's is born usable the same way.
+    notebook.create_space("Ideias", "notes").unwrap();
+    assert!(dir.path().join("Ideias/Inbox").is_dir());
+}
+
+#[test]
 fn the_whole_phase_eight_scenario_end_to_end() {
     // Jot it down, find it by search, delete it.
     let (dir, notes) = folder();
