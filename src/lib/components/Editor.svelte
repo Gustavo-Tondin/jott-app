@@ -27,7 +27,7 @@
   import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
   import { markdownPreview } from "../services/markdown.js";
   import { autocompletion } from "@codemirror/autocomplete";
-  import { autoClose } from "../services/autoClose.js";
+  import { autoClose, plainAutoClose } from "../services/autoClose.js";
   import { fileEmbeds, refreshEmbeds } from "../services/embeds.js";
   import { fromNotebook, referenceCompletions } from "../services/linkComplete.js";
   import { assetUrl } from "../services/assets.js";
@@ -62,6 +62,13 @@
     /// component means one thing: the pictures may not be the pictures any
     /// more, so draw them again and ask for them again.
     version = 0,
+    /// A plain-text field rather than a note (the task description,
+    /// 2026-08-19): no Markdown, no search panel, no formatting chords — but
+    /// the SAME `[[` language, because a reference to a note or a file means
+    /// the same thing wherever it is written (principle 7). Only the brackets
+    /// auto-close here; the Markdown marks stay ordinary characters in a
+    /// field nothing renders.
+    plain = false,
   } = $props();
 
   let host;
@@ -118,6 +125,12 @@
         doc: value,
         extensions: [
           history(),
+          // Everything a NOTE is and a plain field is not: Markdown and its
+          // preview, the find/replace panel, the formatting chords, the list
+          // indentation. What stays below the split is the ground every text
+          // field shares — and the `[[` references, which mean the same thing
+          // wherever they are written.
+          ...(plain ? [] : [
           // The panel sits at the TOP, where the document's own header is —
           // at the bottom it lands on the window edge, under the status of
           // nothing.
@@ -157,7 +170,7 @@
           // and the settings screen read (`services/commands.js`), so a
           // rebinding reaches the editor with nothing to keep in sync.
           formatting.of(formattingKeymap($bound)),
-          keymap.of([...searchKeymap, ...defaultKeymap, ...historyKeymap]),
+          keymap.of([...searchKeymap]),
           // `markdownLanguage` rather than the commonmark default: it is the
           // one that understands task lists and strikethrough, which a note
           // of the day uses constantly.
@@ -168,6 +181,8 @@
           // as code — monospace, set apart — it just is not colourised.
           markdown({ base: markdownLanguage }),
           markdownPreview,
+          ]),
+          keymap.of([...defaultKeymap, ...historyKeymap]),
           // The notebook's files, drawn in the note (2026-08-19). Built with
           // its three answers rather than importing them, so the plugin is
           // testable without a bridge and the editor keeps knowing only about
@@ -188,8 +203,9 @@
           // Pairs that close themselves (2026-08-19). After the completion so
           // its Backspace and its keymap are the ones already in place, and
           // internally in front of CodeMirror's own bracket handler — the
-          // reason is written at the top of the module.
-          autoClose,
+          // reason is written at the top of the module. A plain field gets
+          // the bracket half only (`plainAutoClose` carries the why).
+          plain ? plainAutoClose : autoClose,
           EditorView.lineWrapping,
           placeholderExt(placeholder),
           editable.of(EditorState.readOnly.of(readOnly)),
@@ -274,10 +290,11 @@
     });
   }
 
-  // A rebinding reaches the open editor without recreating it.
+  // A rebinding reaches the open editor without recreating it. A plain field
+  // never installed the compartment, so there is nothing to reconfigure.
   $effect(() => {
     const keys = formattingKeymap($bound);
-    view?.dispatch({ effects: formatting.reconfigure(keys) });
+    if (!plain) view?.dispatch({ effects: formatting.reconfigure(keys) });
   });
 
   // Read-only follows the prop, which flips as soon as the note has loaded.
@@ -301,4 +318,4 @@
   });
 </script>
 
-<div class="editor" bind:this={host}></div>
+<div class="editor" class:editor--plain={plain} bind:this={host}></div>

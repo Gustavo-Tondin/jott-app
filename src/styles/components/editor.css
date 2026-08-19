@@ -492,3 +492,37 @@
    One declaration still moves the whole document, because the marks inside are
    sized in `em` (the headings above are `1.6em`, `1.35em`…): they are
    multiples of the body and follow it in proportion. */
+
+/* =========================================================================
+   THE PLAIN FIELD (2026-08-19)
+
+   `Editor.svelte` with `plain`: a text field that speaks the `[[` language —
+   today, the task description. It dresses as `.theme-textarea` (controls.css)
+   so the inspector reads as one form, but the declarations live HERE because
+   this is the unlayered sheet: a layered rule on `.cm-content` loses to
+   CodeMirror's own in silence (the lesson at the top of this file). */
+.editor--plain {
+  height: auto;
+  background: var(--theme-surface);
+  border: 0.0625rem solid var(--theme-line);
+  border-radius: var(--theme-radius-md);
+}
+.editor--plain:hover:not(:focus-within) {
+  border-color: var(--theme-brand-outline);
+}
+.editor--plain:focus-within {
+  border-color: var(--theme-brand);
+  box-shadow: 0 0 0 0.1875rem var(--theme-brand-weak);
+}
+/* The interface's own size, not the note's: this field sits in a form next
+   to inputs and selects, and it matches THEM. */
+.editor--plain .cm-content {
+  font-size: var(--theme-text-14);
+  line-height: var(--theme-leading-normal);
+  padding: var(--theme-space-8) 0;
+}
+/* The textarea's inset, carried by the lines so the caret and the
+   placeholder both land where a textarea would put them. */
+.editor--plain .cm-line {
+  padding: 0 var(--theme-space-12);
+}

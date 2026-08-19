@@ -39,7 +39,7 @@
 // memory. The rules below are structural instead: what the caret is standing
 // between decides, and the same document always gets the same answer.
 
-import { EditorSelection, Prec } from "@codemirror/state";
+import { EditorSelection, EditorState, Prec } from "@codemirror/state";
 import { EditorView, keymap } from "@codemirror/view";
 import { closeBrackets, closeBracketsKeymap } from "@codemirror/autocomplete";
 import { markdownLanguage } from "@codemirror/lang-markdown";
@@ -197,6 +197,21 @@ export const autoClose = [
     closeBrackets: { brackets: [...BRACKETS, ...MARKS] },
   }),
   Prec.high(markHandler),
+  closeBrackets(),
+  Prec.high(keymap.of(closeBracketsKeymap)),
+];
+
+/// The bracket half alone, for a PLAIN-TEXT field (the task description,
+/// 2026-08-19).
+///
+/// `[` twice still leaves `[[|]]` — which is what opens the reference
+/// autocomplete (`services/linkComplete.js`) — but the Markdown marks stay
+/// ordinary characters: a description is never rendered as Markdown, so a
+/// paired `*` would decorate nothing and just be a stray character to delete.
+/// Declared as global language data because a plain field has no language to
+/// hang the list on.
+export const plainAutoClose = [
+  EditorState.languageData.of(() => [{ closeBrackets: { brackets: BRACKETS } }]),
   closeBrackets(),
   Prec.high(keymap.of(closeBracketsKeymap)),
 ];

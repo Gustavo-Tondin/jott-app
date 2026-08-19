@@ -2138,6 +2138,7 @@
             onError={fail}
             onClose={() => (selected = null)}
             onMoved={(to) => (selected = { ...selected, list: to })}
+            onOpenNote={openNoteByTitle}
           />
         {/if}
       {/snippet}

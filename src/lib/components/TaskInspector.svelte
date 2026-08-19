@@ -32,6 +32,7 @@
   import DatePicker from "./DatePicker.svelte";
   import AssetPicker from "./AssetPicker.svelte";
   import TagPicker from "./TagPicker.svelte";
+import Editor from "./Editor.svelte";
 
   let {
     task,
@@ -67,6 +68,10 @@
     /// `set_task_fields` still writes it back, so nothing is lost while it is
     /// away (2026-08-06).
     f = () => true,
+    /// `(title) => void` — a `[[note]]` in the description was clicked.
+    /// Resolving a title to a note is a question about the whole notebook,
+    /// so the shell answers it — the same door the note editor knocks on.
+    onOpenNote,
   } = $props();
 
   let draft = $state(fromTask(null));
@@ -627,13 +632,22 @@
     <!-- Description + attachments. Attachments have no backend yet: honest. -->
     <div class="inspector__description-block">
       {#if f("description")}
-        <textarea
-          class="theme-textarea inspector__description"
-          bind:value={draft.description}
-          disabled={readOnly}
-          rows="5"
-          placeholder={S.descriptionTitle}
-        ></textarea>
+        <!-- The plain editor rather than a textarea (2026-08-19): the same
+             `[[` language the notes speak — autocomplete while typing, and a
+             reference drawn as the thing it names — so a task can point at
+             the note that explains it. -->
+        <div class="inspector__description">
+          <Editor
+            plain
+            value={draft.description}
+            {readOnly}
+            placeholder={S.descriptionTitle}
+            {root}
+            onChange={(text) => (draft.description = text)}
+            onOpenFile={openFile}
+            {onOpenNote}
+          />
+        </div>
       {/if}
       {#if f("files")}
         <!-- Attachments. Each one is a plain Markdown link in the `.md`

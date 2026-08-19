@@ -184,3 +184,43 @@ describe("when the library changes under the note", () => {
   });
 });
 
+
+describe("the task description speaks the same [[ language", () => {
+  // `Editor.svelte` with `plain` (2026-08-19): the field the inspector shows.
+  // What is under test is the assembly — that the reference machinery is
+  // still installed when the Markdown machinery is not, because a wrong
+  // extension list fails exactly the way a stub cannot show.
+
+  it("draws a note reference as a link and asks the shell to open it", async () => {
+    const opened = vi.fn();
+    const { container } = render(Editor, {
+      props: { plain: true, value: "Antes\nVer [[Ideias]]\nDepois", onOpenNote: opened },
+    });
+
+    const link = container.querySelector(".cm-link-note");
+    expect(link?.textContent).toBe("Ideias");
+    await fireEvent.mouseDown(link);
+    expect(opened).toHaveBeenCalledWith("Ideias");
+  });
+
+  it("still draws a file of the library, by the same rule as a note", async () => {
+    const { container } = render(Editor, {
+      props: { plain: true, value: "Antes\n[[/foto.jpg]]\nDepois", root: "/n" },
+    });
+
+    expect(container.querySelector(".cm-embed--image img")).toBeTruthy();
+  });
+
+  it("does not render Markdown — a description is plain text", async () => {
+    // `# Título` in a description is the character and the word, not a
+    // heading. The preview classes existing here would mean the Markdown
+    // extensions leaked into the plain assembly.
+    const { container } = render(Editor, {
+      props: { plain: true, value: "# Título\n**negrito**" },
+    });
+
+    expect(container.querySelector('[class*="cm-md-"]')).toBeNull();
+    expect(content(container).textContent).toContain("# Título");
+    expect(content(container).textContent).toContain("**negrito**");
+  });
+});

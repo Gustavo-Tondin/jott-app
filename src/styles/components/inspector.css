@@ -225,8 +225,13 @@
     gap: var(--theme-space-4);
     padding-inline: var(--theme-space-8);
   }
+  /* A wrapper now, not the textarea itself: inside it lives the plain editor
+     (`.editor--plain`, editor.css), which is what lets a description carry
+     `[[note]]` references. The grid is what stretches the editor's box to
+     this minimum height. */
   .inspector__description {
     min-height: 7rem;
+    display: grid;
   }
 
   /* One attachment: the name is the button that opens it, the × takes it off

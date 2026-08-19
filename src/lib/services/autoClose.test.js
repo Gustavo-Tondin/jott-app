@@ -17,7 +17,7 @@ import { EditorView, keymap } from "@codemirror/view";
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import { autocompletion } from "@codemirror/autocomplete";
-import { autoClose } from "./autoClose.js";
+import { autoClose, plainAutoClose } from "./autoClose.js";
 import { markdownPreview } from "./markdown.js";
 import { referenceCompletions } from "./linkComplete.js";
 
@@ -219,5 +219,47 @@ describe("the reference autocomplete and the brackets it now finds waiting", () 
     const option = result.options[0];
     option.apply(view, option, result.from, view.state.selection.main.head);
     expect(shown(view)).toBe("[[/foto.jpg]]|");
+  });
+});
+
+describe("the plain field's pairs (the task description)", () => {
+  // `plainAutoClose`, with the extensions in the order the plain editor
+  // installs them (`Editor.svelte` with `plain`). The split under test: the
+  // brackets still close — `[` twice is what opens the reference
+  // autocomplete — while the Markdown marks stay ordinary characters,
+  // because nothing ever renders a description as Markdown.
+  function plainEditor(doc = "", at = doc.length) {
+    const parent = document.createElement("div");
+    document.body.appendChild(parent);
+    const view = new EditorView({
+      parent,
+      state: EditorState.create({
+        doc,
+        selection: { anchor: at },
+        extensions: [
+          history(),
+          keymap.of([...defaultKeymap, ...historyKeymap]),
+          autocompletion(),
+          plainAutoClose,
+        ],
+      }),
+    });
+    opened.push(view);
+    return view;
+  }
+
+  it("`[` twice leaves `[[|]]`, ready for a reference", () => {
+    expect(type(plainEditor(), "[[")).toBe("[[|]]");
+  });
+
+  it("a Markdown mark is just a character here", () => {
+    expect(type(plainEditor(), "*")).toBe("*|");
+    expect(type(plainEditor(), "`")).toBe("`|");
+    expect(type(plainEditor(), "~")).toBe("~|");
+  });
+
+  it("parentheses and quotes still pair, as in any field", () => {
+    expect(type(plainEditor(), "(")).toBe("(|)");
+    expect(type(plainEditor(), '"')).toBe('"|"');
   });
 });

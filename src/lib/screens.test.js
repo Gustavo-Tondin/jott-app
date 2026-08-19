@@ -929,6 +929,23 @@ describe("TaskInspector", () => {
     expect(screen.queryByLabelText("clear date")).toBeNull();
   });
 
+  test("typing in the description still saves it as lines", async () => {
+    // The description swapped its textarea for the plain editor (2026-08-19,
+    // so it can carry `[[note]]` references). The editor is stubbed here, as
+    // it is for notes — what this guards is the wiring: what is typed reaches
+    // the draft and goes over the bridge as lines, references included.
+    bridge({ set_task_fields: null });
+
+    render(TaskInspector, { props: props(task("a1", "Comprar leite")) });
+
+    const field = await screen.findByLabelText("Description");
+    await userEvent.type(field, "Ver [[[[Ideias]]");
+
+    await waitFor(() =>
+      expect(lastSave().fields.description).toEqual(["Ver [[Ideias]]"]),
+    );
+  });
+
   test("choosing a day closes the calendar", async () => {
     // The popup must dismiss itself once a day is picked — the whole reason it
     // replaced the native picker, which stayed open on top of the panel.
