@@ -1226,6 +1226,14 @@
   const showNote = (path, folder = layout.notesFolder, newTab = false) =>
     (newTab ? openTab : goTo)({ kind: "note", folder, path });
 
+  /// A note opened FROM a board. `fresh` says the board has just created it
+  /// empty (the quick-note bar's + on an empty field), so the cursor goes
+  /// straight into its body — the same hand-off the Home's + makes.
+  const openNoteFromBoard = (path, folder, { fresh = false } = {}) => {
+    if (fresh) focusNewNote = true;
+    showNote(path, folder);
+  };
+
   const showList = (path, newTab = false) =>
     (newTab ? openTab : goTo)({ kind: "list", list: path });
 
@@ -1635,7 +1643,7 @@
               {reloadKey}
               onChanged={refreshNotebook}
               onError={fail}
-              onOpenNote={showNote}
+              onOpenNote={openNoteFromBoard}
             />
           {:else if view.kind === "note"}
             <!-- The note's head: its banner and its title, as the "Editor
@@ -1705,7 +1713,7 @@
                 selectedTask={selected?.task ?? null}
                 onSelectTask={select}
                 onOpenList={(path) => showList(path)}
-                onOpenNote={(path, folder) => showNote(path, folder)}
+                onOpenNote={openNoteFromBoard}
                 onSetSpaceSort={setSpaceSort}
                 onSetSpaceOrder={setSpaceOrder}
                 onChanged={refreshNotebook}

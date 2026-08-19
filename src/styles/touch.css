@@ -44,6 +44,13 @@
     .inspector__tag-remove {
       opacity: 1;
     }
+
+    /* The pin on a note card (2026-08-19). Unpinned it waits for a pointer,
+       and on a touch screen that pointer never comes — pinning would be
+       reachable only through the ⋮ two taps away. */
+    .note-card__pin {
+      opacity: 1;
+    }
   }
 }
 

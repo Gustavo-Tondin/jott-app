@@ -310,12 +310,15 @@ export const S = {
 
   // Notes (phase 8)
   notes: "Notes",
-  newNote: "+ new note",
+  // The board's ⋮, where creating lives now (user call, 2026-08-19): the row
+  // of buttons above the grid went away, and what it did is menu items and the
+  // quick-note bar.
+  newNote: "New note",
   newNoteTitle: "New note",
   promptNewNote: "Title of the new note:",
   promptRenameNote: (title) => `New title for "${title}":`,
   promptNewNoteFolder: "Name of the new folder:",
-  newNoteFolder: "+ new folder",
+  newNoteFolder: "New group",
   renameFolder: "rename folder",
   deleteFolder: "delete folder",
   promptRenameFolder: (name) => `New name for "${name}":`,
@@ -324,9 +327,7 @@ export const S = {
   folderEmptied: (count, name) =>
     `${count} item(s) from "${name}" moved up one level.`,
   confirmDeleteNote: (title) => `Delete "${title}"? This cannot be undone.`,
-  searchNotes: "Search notes…",
   noNotes: "No notes yet.",
-  noNotesFound: "No notes match this search.",
   allNotes: "All notes",
   emptyNote: "Empty note",
   pin: "pin",
@@ -335,8 +336,14 @@ export const S = {
   deleteNote: "delete",
   renameNote: "rename",
   noteBodyPlaceholder: "Write here…",
-  gridView: "grid",
-  treeView: "folders",
+  layout: "Layout",
+  gridView: "Grid",
+  treeView: "Folders",
+  // The bar under the title: type the note itself, press + (or Enter) to file
+  // it. Shift+Enter is a new line, which is why the field is a textarea.
+  quickNote: "Quick note…",
+  addNote: "Create the note",
+  duplicateNote: "Duplicate",
 
   // Lists
   newTaskPlaceholder: "New task…",

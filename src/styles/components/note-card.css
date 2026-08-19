@@ -100,27 +100,53 @@
     border-radius: var(--theme-radius-xs);
   }
 
+  /* A card is as tall as its own text, up to a ceiling — "notas com pouco
+     conteúdo mostram tudo, as com muito são cortadas" (user, 2026-08-19). The
+     ceiling is a LINE COUNT and not a height: the cut then lands at the end of
+     a line and the browser writes the ellipsis itself, which is what the
+     wireframe draws ("Ad lito…"). */
   .note-card__preview {
     color: var(--theme-ink-muted);
     font-size: var(--theme-text-13);
     line-height: var(--theme-leading-normal);
-    max-block-size: 10.4em;
+    display: -webkit-box;
+    -webkit-line-clamp: 14;
+    -webkit-box-orient: vertical;
     overflow: hidden;
     overflow-wrap: anywhere;
   }
 
-  /* The ⋮, in the corner of the card. Over the banner when there is one, so it
-     is always in the same place.
-     The WRAPPER is what is placed, not the button: the panel it opens is
+  /* The pin and the ⋮, in the corner of the card. Over the banner when there is
+     one, so they are always in the same place.
+     The ROW is what is placed, not the buttons: the panel the ⋮ opens is
      anchored to `.menu` (menu.css), so moving the button alone would leave the
      dropdown hanging off the bottom of the card. */
-  .note-card > .menu {
+  .note-card__tools {
     position: absolute;
-    inset-block-start: var(--theme-space-8);
-    inset-inline-end: var(--theme-space-8);
+    inset-block-start: var(--theme-space-6);
+    inset-inline-end: var(--theme-space-6);
+    display: flex;
+    align-items: center;
   }
-  .note-card__more {
+  .note-card__more,
+  .note-card__pin {
     color: var(--theme-ink-muted);
+  }
+  /* Pinned reads as pinned without hovering: the mark is filled and takes the
+     colour the outline around the card already carries. */
+  .note-card__pin--on {
+    color: var(--theme-warning);
+  }
+  /* Unpinned, the mark is an offer and not a state — it waits for the pointer,
+     the same rule the sidebar's tools follow. A touch screen never hovers, so
+     there it is simply always there (styles/touch.css keeps that pact). */
+  .note-card__pin {
+    opacity: 0;
+  }
+  .note-card:hover .note-card__pin,
+  .note-card__pin:focus-visible,
+  .note-card__pin--on {
+    opacity: 1;
   }
 
   /* The small card inside a folder card: a title, and nothing else. */
@@ -179,5 +205,64 @@
   }
   .note-group__notes:empty {
     display: none;
+  }
+
+  /* ---- the folder, OPEN (2026-08-19) ----
+     A popover over the board, anchored to the card it belongs to — not a
+     screen you navigate into, which is what it used to be and which left no
+     visible way back. Two columns of the very same cards the board draws
+     ("um pop over de um grid de 2 colunas que se comporta igual ao normal").
+
+     It hangs off the card's top edge and is as wide as two of its columns, so
+     it reads as the card unfolding rather than as a panel that happened to
+     open nearby. `theme-popover` gives it the ground, the radius and the
+     shadow every floating panel of the app stands on. */
+  .note-group--open {
+    position: relative;
+    z-index: 20;
+  }
+  .note-group__popover {
+    /* Placed by `keepOnScreen`, which portals it to the body and clamps it
+       inside the window — a board is a scroll container, and a panel that
+       opens near its edge would otherwise be cut off by it. These two are the
+       fallback for before the action has measured anything. */
+    position: absolute;
+    inset-block-start: 100%;
+    inset-inline-start: 0;
+    inline-size: min(28rem, 88vw);
+    max-block-size: min(32rem, 70vh);
+    overflow-y: auto;
+    padding: var(--theme-space-10);
+    display: flex;
+    flex-direction: column;
+    gap: var(--theme-space-8);
+  }
+  .note-group__panel-head {
+    display: flex;
+    align-items: center;
+    gap: var(--theme-space-6);
+    font-size: var(--theme-text-13);
+  }
+  .note-group__panel-name {
+    flex: 1;
+    min-inline-size: 0;
+    font-weight: var(--theme-weight-semibold);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .note-group__close {
+    color: var(--theme-ink-muted);
+  }
+  /* A card inside the panel takes the OTHER neutral: the panel already stands
+     on the raised step, so a card painted the same colour has nothing to be
+     lifted off (the pairing every floating panel of the app keeps). */
+  .note-group__popover .note-card {
+    background: var(--theme-bg);
+  }
+  .note-group__subfolders {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--theme-space-6);
   }
 }

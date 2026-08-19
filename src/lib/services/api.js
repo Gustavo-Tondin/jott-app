@@ -170,6 +170,8 @@ export const api = {
   // off. Which of the two a value IS is decided in the core.
   setNoteBanner: (folder, path, banner) =>
     invoke("set_note_banner", { folder, path, banner }),
+  // Copies a note beside itself, under a free name — the card's "Duplicate".
+  duplicateNote: (folder, path) => invoke("duplicate_note", { folder, path }),
   // Moves a note to ANOTHER notes space (the board's bulk "move to"); `moveNote`
   // above only ever moves inside one space.
   moveNoteToSpace: (folder, path, toSpace, toFolder) =>

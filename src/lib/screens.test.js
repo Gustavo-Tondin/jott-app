@@ -2277,6 +2277,15 @@ describe("App with a user space", () => {
   });
 });
 
+/// The board's ⋮ → Layout → Folders. The two view buttons that used to sit
+/// above the cards are menu items since the 2026-08-19 redraw, so every test
+/// that wants the tree view comes through here.
+const showFolders = async () => {
+  await userEvent.click(await screen.findByLabelText("space options"));
+  await userEvent.click(await screen.findByText("Layout"));
+  await userEvent.click(await screen.findByText("Folders"));
+};
+
 describe("NotesSpace", () => {
   const source = { kind: "notes", folder: "Notes", invalidFolder: false, options: null };
 
@@ -2313,41 +2322,25 @@ describe("NotesSpace", () => {
     });
   });
 
-  test("typing in the search box asks the core, not the browser", async () => {
-    // Search is a core capability (it reads the files); the screen must not
-    // filter a list it happens to have in memory.
-    bridge({ list_notes: [], note_folders: [] });
-
-    render(NotesSpace, { props: props() });
-    await userEvent.type(await screen.findByLabelText("Search notes…"), "cimento");
-
-    await waitFor(() =>
-      expect(invoke).toHaveBeenCalledWith("list_notes", {
-        folder: "Notes",
-        query: "cimento",
-      }),
-    );
-  });
-
-  test("an empty search says so differently from an empty notebook", async () => {
+  test("an empty board says so", async () => {
+    // The screen's own search box went with the 2026-08-19 redraw: searching
+    // in a place is Ctrl+F with this space as its scope (SearchDialog), and a
+    // second field above the cards was a second answer to the same question.
     bridge({ list_notes: [], note_folders: [] });
 
     render(NotesSpace, { props: props() });
     expect(await screen.findByText("No notes yet.")).toBeTruthy();
-
-    await userEvent.type(screen.getByLabelText("Search notes…"), "nada");
-    expect(await screen.findByText("No notes match this search.")).toBeTruthy();
+    expect(screen.queryByLabelText("Search notes…")).toBeNull();
   });
 
   test("pinning goes through the core and reloads", async () => {
-    // The star that used to sit on the corner of a card is gone with the
-    // board's redraw (2026-08-18): a card carries one control, the ⋮ the
-    // wireframes draw, and pinning is an item in it.
+    // A button of its own beside the ⋮ (user call, 2026-08-19: "com a mesma
+    // funcionalidade das tarefas"). A pin is a STATE, and a state has to be
+    // readable off the card without opening a menu to ask.
     bridge({ list_notes: [entry("Ideia")], note_folders: [], set_note_pinned: null });
 
     render(NotesSpace, { props: props() });
-    await userEvent.click(await screen.findByLabelText("note options"));
-    await userEvent.click(await screen.findByText("pin"));
+    await userEvent.click(await screen.findByLabelText("pin"));
 
     await waitFor(() =>
       expect(invoke).toHaveBeenCalledWith("set_note_pinned", {
@@ -2383,7 +2376,7 @@ describe("NotesSpace", () => {
     });
 
     render(NotesSpace, { props: props() });
-    await userEvent.click(await screen.findByText("folders"));
+    await showFolders();
     // The folder chip, not the card footer that also names the folder.
     await userEvent.click(screen.getByRole("button", { name: "Clientes" }));
 
@@ -2397,9 +2390,13 @@ describe("NotesSpace", () => {
     render(NotesSpace, { props: props({ readOnly: true }) });
 
     await screen.findByText("Ideia");
-    expect(screen.queryByText("+ new note")).toBeNull();
-    // The card's ⋮ is not drawn at all: every item in it writes.
+    // No quick-note bar, no pin, and no ⋮ on the card: every one of them
+    // writes.
+    expect(screen.queryByLabelText("Quick note…")).toBeNull();
+    expect(screen.queryByLabelText("pin")).toBeNull();
     expect(screen.queryByLabelText("note options")).toBeNull();
+    await userEvent.click(screen.getByLabelText("space options"));
+    expect(screen.queryByText("New note")).toBeNull();
   });
 
   // ---- the board redrawn (2026-08-18) ----
@@ -2445,14 +2442,151 @@ describe("NotesSpace", () => {
     expect(screen.getByText("1 note")).toBeTruthy();
     expect(screen.queryByText("Inbox")).toBeNull();
 
+    // Opening it does NOT leave the board (user call, 2026-08-19): the folder
+    // unfolds over it, so what is behind is still there to go back to.
     await userEvent.click(screen.getByLabelText("open Clientes"));
     expect(await screen.findByText("preview of Briefing")).toBeTruthy();
-    expect(screen.queryByText("Solta")).toBeNull();
+    expect(screen.getByText("Solta")).toBeTruthy();
 
-    // And back out again — a folder card opens in place, so the way back is
-    // the only way back.
-    await userEvent.click(screen.getByText("Back"));
-    expect(await screen.findByText("Solta")).toBeTruthy();
+    // And it closes onto the same board.
+    await userEvent.click(screen.getByLabelText("open Clientes"));
+    expect(screen.queryByText("preview of Briefing")).toBeNull();
+  });
+
+  // ---- the quick note bar (2026-08-19) ----
+
+  test("what is typed in the bar becomes the note's BODY, under a name the app gives", async () => {
+    // The writer types the thing, not a file name (user call): asking for a
+    // title first asks for the one thing they do not know yet.
+    bridge({
+      list_notes: [],
+      note_folders: [],
+      create_note: "Inbox/New note.md",
+      write_note: null,
+    });
+
+    render(NotesSpace, { props: props() });
+    await userEvent.type(await screen.findByLabelText("Quick note…"), "comprar cimento");
+    await userEvent.click(screen.getByLabelText("Create the note"));
+
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("create_note", {
+        folder: "Notes",
+        inFolder: "Inbox",
+        title: "New note",
+      }),
+    );
+    expect(invoke).toHaveBeenCalledWith("write_note", {
+      folder: "Notes",
+      path: "Inbox/New note.md",
+      body: "comprar cimento\n",
+    });
+  });
+
+  test("Enter files the note and Shift+Enter is a new line", async () => {
+    bridge({
+      list_notes: [],
+      note_folders: [],
+      create_note: "Inbox/New note.md",
+      write_note: null,
+    });
+
+    render(NotesSpace, { props: props() });
+    const field = await screen.findByLabelText("Quick note…");
+    await userEvent.type(field, "uma linha{Shift>}{Enter}{/Shift}outra");
+    expect(invoke.mock.calls.some(([cmd]) => cmd === "create_note")).toBe(false);
+
+    await userEvent.type(field, "{Enter}");
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("write_note", {
+        folder: "Notes",
+        path: "Inbox/New note.md",
+        body: "uma linha\noutra\n",
+      }),
+    );
+  });
+
+  test("+ on an empty bar makes a note and hands it over, ready to type in", async () => {
+    // The other gesture entirely: nothing was typed here, so there is nothing
+    // keeping the writer on this screen — the note opens with the cursor in
+    // its body.
+    const opened = [];
+    bridge({ list_notes: [], note_folders: [], create_note: "Inbox/New note.md" });
+
+    render(NotesSpace, {
+      props: props({ onOpenNote: (path, folder, opts) => opened.push([path, folder, opts]) }),
+    });
+    await userEvent.click(await screen.findByLabelText("Create the note"));
+
+    await waitFor(() =>
+      expect(opened).toEqual([["Inbox/New note.md", "Notes", { fresh: true }]]),
+    );
+    expect(invoke.mock.calls.some(([cmd]) => cmd === "write_note")).toBe(false);
+  });
+
+  test("a card duplicates through the core", async () => {
+    bridge({
+      list_notes: [entry("Ideia")],
+      note_folders: [],
+      duplicate_note: "Inbox/Ideia 2.md",
+    });
+
+    render(NotesSpace, { props: props() });
+    await userEvent.click(await screen.findByLabelText("note options"));
+    await userEvent.click(await screen.findByText("Duplicate"));
+
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("duplicate_note", {
+        folder: "Notes",
+        path: "Inbox/Ideia.md",
+      }),
+    );
+  });
+
+  test("a card moves to another place from its own ⋮", async () => {
+    bridge({
+      list_notes: [entry("Ideia")],
+      note_folders: ["Clientes", "Inbox"],
+      move_note_to_space: "Clientes/Ideia.md",
+    });
+
+    render(NotesSpace, { props: props() });
+    await userEvent.click(await screen.findByLabelText("note options"));
+    await userEvent.click(await screen.findByText("Move to…"));
+    // The menu row, not the folder CARD of the same name behind it.
+    await userEvent.click(
+      (await screen.findAllByText("Clientes")).find((el) =>
+        el.classList.contains("menu__link"),
+      ),
+    );
+
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("move_note_to_space", {
+        folder: "Notes",
+        path: "Inbox/Ideia.md",
+        toSpace: "Notes",
+        toFolder: "Clientes",
+      }),
+    );
+  });
+
+  test("a pinned note is drawn first, whatever the sort says", async () => {
+    // Pinning outranks the arrangement, exactly as it does on a task list
+    // (services/spaceOrder.js) — that is what "a mesma funcionalidade das
+    // tarefas" means for a board.
+    bridge({
+      list_notes: [entry("Aaa"), entry("Zzz", { pinned: true })],
+      note_folders: [],
+    });
+
+    const { container } = render(NotesSpace, {
+      props: props({ source: { ...source, sort: "name" } }),
+    });
+    await screen.findByText("Zzz");
+    const titles = [...container.querySelectorAll(".note-card__title")].map(
+      (el) => el.textContent.trim(),
+    );
+    expect(titles).toEqual(["Zzz", "Aaa"]);
   });
 
   test("picked notes move to another space", async () => {
@@ -2888,14 +3022,28 @@ describe("NoteEditor", () => {
   test("a pasted file falls back to the system clipboard", async () => {
     // For a paste there is nothing in the webview at all — no bytes, no
     // `getData`, no `getAsString`. The system is the only one that knows.
+    //
+    // The transfer here EMPTIES ITSELF once the handler returns, the way a
+    // real one does (W3C Clipboard API: the store goes to Protected mode and
+    // the `DataTransfer` is disconnected). Reading it after an await is what
+    // kept the system from ever being asked, and a stub that stays readable
+    // for ever cannot fail that way.
     bridge({ ...loaded(), clipboard_files: ["file:///home/gus/nota.pdf"] });
     const brought = vi.fn();
 
     const { container } = render(NoteEditor, { props: props({ onFiles: brought }) });
     await screen.findByDisplayValue("Corpo.");
-    await fireEvent.paste(bodyOf(container), {
-      clipboardData: { files: [], types: ["text/uri-list"], getData: () => "", items: [] },
+    const clipboardData = {
+      files: [],
+      types: ["text/uri-list"],
+      getData: () => "",
+      items: [],
+    };
+    queueMicrotask(() => {
+      clipboardData.types = [];
+      clipboardData.items = [];
     });
+    await fireEvent.paste(bodyOf(container), { clipboardData });
 
     await waitFor(() => expect(brought).toHaveBeenCalledTimes(1));
     expect(brought.mock.calls[0][0].paths).toEqual(["/home/gus/nota.pdf"]);
@@ -3073,7 +3221,7 @@ describe("NotesSpace folder management", () => {
     });
 
   const openClientes = async () => {
-    await userEvent.click(await screen.findByText("folders"));
+    await showFolders();
     await userEvent.click(screen.getByRole("button", { name: "Clientes" }));
   };
 
@@ -3082,7 +3230,7 @@ describe("NotesSpace folder management", () => {
     render(NotesSpace, { props: props() });
 
     // On the board there is no folder to act on, so no actions are offered.
-    await screen.findByText("grid");
+    await screen.findByLabelText("space options");
     expect(screen.queryByText("delete folder")).toBeNull();
 
     await openClientes();

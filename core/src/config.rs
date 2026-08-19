@@ -148,6 +148,16 @@ pub struct Config {
     /// a task takes it straight back out, and a task pulled by hand keeps
     /// being pulled by hand.
     pub dated_tasks_join_period: bool,
+    /// Ask before the app fetches an image from the internet.
+    ///
+    /// Pasting a picture copied from a web page hands the app a `https://`
+    /// address and nothing else, so drawing it means DOWNLOADING it — the one
+    /// thing this app does that reaches outside the machine. On by default,
+    /// and the dialog it controls says which host is being contacted
+    /// (principle 9: every external connection is explained). Turning it off
+    /// is the user saying they have understood and would rather not be asked
+    /// again.
+    pub confirm_image_downloads: bool,
     /// Treat a task due today or overdue as urgent, without being told.
     ///
     /// On by default, but switchable: some people find an interface that
@@ -265,6 +275,7 @@ impl Default for Config {
             restore_last_screen: false,
             show_list_counts: true,
             dated_tasks_join_period: true,
+            confirm_image_downloads: true,
             auto_urgent_by_date: true,
             date_display_format: DateFormat::default(),
             accent_color: String::new(),
@@ -437,6 +448,11 @@ impl Config {
                 "datedTasksJoinPeriod",
                 defaults.dated_tasks_join_period,
             ),
+            confirm_image_downloads: flag(
+                &raw,
+                "confirmImageDownloads",
+                defaults.confirm_image_downloads,
+            ),
             auto_urgent_by_date: flag(&raw, "autoUrgentByDate", defaults.auto_urgent_by_date),
             date_display_format: string(&raw, "dateDisplayFormat")
                 .as_deref()
@@ -525,6 +541,10 @@ impl Config {
             (
                 "datedTasksJoinPeriod",
                 Value::from(self.dated_tasks_join_period),
+            ),
+            (
+                "confirmImageDownloads",
+                Value::from(self.confirm_image_downloads),
             ),
             ("autoUrgentByDate", Value::from(self.auto_urgent_by_date)),
             (

@@ -191,16 +191,65 @@ function asString(item) {
 /// manager, is every single time), the system clipboard is asked directly.
 /// That question can only be answered outside the webview, so it crosses the
 /// bridge.
+/// Everything a gesture brought, including a picture that is only on the web.
+///
+/// `remote` is an address and not a file: it is a REQUEST to make, and the
+/// shell asks before making it. Kept apart from `paths` for exactly that
+/// reason — one of them is already on this machine and the other is not.
+export async function readForNote(transfer, read) {
+  // Started here, before anything is awaited: a `DataTransfer` is disconnected
+  // the moment its event finishes dispatching and answers as if it were empty
+  // from then on (W3C Clipboard API). The same trap that kept the system
+  // clipboard from ever being asked.
+  const html = carriesMarkup(transfer) ? htmlOf(transfer) : null;
+  const brought = await read(transfer);
+  if (brought.files.length || brought.paths.length || !html) return brought;
+  return { ...brought, remote: remoteImageIn(await html) };
+}
+
+/// The html flavour of a gesture, read through the item list. Empty when the
+/// gesture has none — or when the transfer has already been disconnected,
+/// which is why the CALLER decides whether to ask at all.
+function htmlOf(transfer) {
+  const item = Array.from(transfer?.items ?? []).find(
+    (candidate) => candidate.kind === "string" && candidate.type === "text/html",
+  );
+  return item ? asString(item) : Promise.resolve("");
+}
+
 export async function readPaste(clipboardData) {
+  // **Read BEFORE the await, and never again after it.** When a paste event
+  // finishes dispatching, the spec puts the clipboard store in Protected mode
+  // and disconnects the `DataTransfer` — which from then on "appears empty"
+  // (W3C Clipboard API, §the paste action). So `clipboardData.types` answers
+  // `[]` on the far side of an `await`, and asking it there is what kept the
+  // system clipboard from ever being consulted: the condition below was
+  // reading a neutered object and always saying no.
+  const declared = carriesFiles(clipboardData);
   const brought = await readGesture(clipboardData);
   if (brought.files.length || brought.paths.length) return brought;
-  if (!carriesFiles(clipboardData)) return brought;
+  if (!declared) return brought;
   try {
     const uris = (await api.clipboardFiles()) ?? [];
     return { ...brought, paths: uris.map(pathOfFileUrl).filter(Boolean) };
   } catch {
     return brought;
   }
+}
+
+/// A picture on the internet named by the gesture, or `""`.
+///
+/// The shape a picture copied from a WEB PAGE arrives in (measured
+/// 2026-08-19): `text/html` holding `<img src="https://…">` and nothing else
+/// — no bytes, no local file. Drawing it means downloading it, which is the
+/// one thing this app does that leaves the machine, so it is never done
+/// without being asked (`confirmImageDownloads`).
+///
+/// Only `https`, and only the FIRST: pasting a page's worth of markup is not
+/// a request to fill the library.
+export function remoteImageIn(text) {
+  const found = String(text ?? "").match(/https:\/\/[^\s"'<>]+/g) ?? [];
+  return found[0] ?? "";
 }
 
 /// Whether a gesture is worth taking over. Asked on `dragover`, where the
@@ -214,6 +263,13 @@ export async function readPaste(clipboardData) {
 export function carriesFiles(transfer) {
   const types = Array.from(transfer?.types ?? []);
   return types.includes("Files") || types.includes("text/uri-list");
+}
+
+/// Whether a gesture might be a picture from a web page — `text/html` and no
+/// local file in sight. Asked synchronously, before anything is awaited, for
+/// the reason `readPaste` gives.
+export function carriesMarkup(transfer) {
+  return Array.from(transfer?.types ?? []).includes("text/html");
 }
 
 /// The local files named in a blob of text, in the order they appear.

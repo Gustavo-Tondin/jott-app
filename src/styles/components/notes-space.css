@@ -46,20 +46,53 @@
     margin-inline-start: auto;
   }
 
-  .notes-space__bar {
+  /* ---- the quick note bar (2026-08-19, wireframes "Grid") ----
+     One field and one +, on the surface step so it reads as a thing to write
+     IN rather than a strip of the page. What is typed is the note's body, so
+     the field grows with it like the editor would — `field-sizing` where it
+     exists, and a floor of one line everywhere. */
+  .quick-note {
     display: flex;
-    align-items: center;
+    align-items: end;
     gap: var(--theme-space-8);
-    margin-block-end: var(--theme-space-12);
+    margin-block-end: var(--theme-space-16);
+    padding: var(--theme-space-8);
+    background: var(--theme-surface);
+    border-radius: var(--theme-radius-lg);
   }
-  /* The look comes from .theme-input--search; here it only fills the row. */
-  .notes-space__search {
+  .quick-note__field {
     flex: 1;
-    width: auto;
+    min-inline-size: 0;
+    /* The bar IS the field: no second box inside a box. */
+    padding: var(--theme-space-6) var(--theme-space-8);
+    background: none;
+    border: none;
+    color: var(--theme-ink);
+    font: inherit;
+    font-size: var(--theme-text-14);
+    line-height: var(--theme-leading-normal);
+    resize: none;
+    field-sizing: content;
+    max-block-size: 12rem;
+    overflow-y: auto;
   }
-  /* The chosen layout reads as chosen. */
-  .notes-space__bar-button--active {
-    font-weight: var(--theme-weight-semibold);
+  .quick-note__field:focus {
+    outline: none;
+  }
+  .quick-note__field::placeholder {
+    color: var(--theme-ink-faint);
+  }
+  /* The one filled button of the screen, as the wireframe draws it. Square, so
+     it stays a target as the field grows past one line. */
+  .quick-note__add {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    inline-size: 2.5rem;
+    block-size: 2.5rem;
+    padding: 0;
+    border-radius: var(--theme-radius-md);
   }
 
   .notes-space__folders {
@@ -96,12 +129,18 @@
      `columns: <width>` and not a count: the board narrows when the right panel
      opens, and a width lets the browser drop a column instead of squeezing
      three. `break-inside` is what keeps a card from being cut in half at the
-     bottom of a column. */
+     bottom of a column.
+
+     13rem is the MINIMUM a card may be, and it is chosen against the reading
+     column it lives in: three of them plus two gaps fit inside
+     `--theme-content-max` (which is what the wireframe draws — three columns
+     of ~222px), and two fit once the right panel takes its share. At 15rem the
+     third column never fitted at all and the desktop board was always two. */
   .notes-space__board {
     list-style: none;
     margin: 0;
     padding: 0;
-    columns: 15rem;
+    columns: 13rem;
     column-gap: var(--theme-space-12);
   }
   .notes-space__board > li {
@@ -112,6 +151,15 @@
      reads as a list on purpose. */
   .notes-space__board--tree {
     columns: 1;
+  }
+  /* Inside an open folder: two columns whatever the room, because the panel is
+     sized by this board and not the other way round (user call, 2026-08-19). */
+  .notes-space__board--pair {
+    columns: 2;
+    column-gap: var(--theme-space-8);
+  }
+  .notes-space__board--pair > li {
+    margin-block-end: var(--theme-space-8);
   }
 
   /* What a card LOOKS like is note-card.css now (2026-08-18): the board draws
@@ -132,18 +180,6 @@
     color: var(--theme-ink-muted);
     font-size: var(--theme-text-13);
     white-space: nowrap;
-  }
-
-  /* Inside a folder card: the way back, and where you are. */
-  .notes-space__crumbs {
-    display: flex;
-    align-items: center;
-    gap: var(--theme-space-8);
-    margin-block-end: var(--theme-space-12);
-  }
-  .notes-space__crumb {
-    color: var(--theme-ink-muted);
-    font-size: var(--theme-text-13);
   }
 
   .notes-space__empty {
@@ -170,15 +206,5 @@
   /* The tree view stays one column: it is a list on purpose. */
   .shell--compact .notes-space__board--tree {
     columns: 1;
-  }
-
-  /* The toolbar wraps instead of overflowing: search, the two view buttons and
-     "new note" do not fit on one 360px line. */
-  .shell--compact .notes-space__bar {
-    flex-wrap: wrap;
-    gap: var(--theme-space-8);
-  }
-  .shell--compact .notes-space__search {
-    flex: 1 1 100%;
   }
 }

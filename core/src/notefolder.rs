@@ -271,6 +271,24 @@ impl NoteFolder {
         Ok(target_relative)
     }
 
+    /// Copies a note beside itself, returning the new address.
+    ///
+    /// The file is copied VERBATIM — frontmatter, banner and body. A duplicate
+    /// of a note is that note, including the day it says it was written on:
+    /// stamping today's date on it would make the copy claim to be something
+    /// it is not, and the one thing that has to differ (the name, which is the
+    /// title) is decided by `free_name` the same way every other collision in
+    /// the app is.
+    pub fn duplicate(&self, relative: &str) -> Result<String> {
+        let source = self.note_path(relative)?;
+        let (folder, title) = split_relative(relative);
+        let dir = self.folder_path(&folder)?;
+        let target = crate::fsio::free_name(&dir, &format!("{title}.{EXTENSION}"));
+        let bytes = std::fs::read(&source).ctx(&source)?;
+        crate::fsio::write_atomically(&target, &bytes)?;
+        Ok(crate::relpath::relative_slash(&self.dir, &target))
+    }
+
     /// Sets — or clears, with `None` — the note's banner.
     ///
     /// Reads, changes the one line, writes: everything else in the file,

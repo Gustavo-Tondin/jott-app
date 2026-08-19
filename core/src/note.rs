@@ -41,7 +41,14 @@ const FENCE: &str = "---";
 const KNOWN_KEYS: [&str; 2] = ["created", "pinned"];
 
 /// How much of the body a card shows.
-const PREVIEW_CHARS: usize = 240;
+///
+/// Enough to FILL the tallest card the board draws, because the cut is the
+/// card's, not this one's: a note with little in it shows all of it, and a long
+/// one is clamped by the column it is in (note-card.css), which is what puts
+/// the ellipsis on a real line ending instead of mid-air. 240 was short enough
+/// that the tallest card in the wireframe ran out of text before it ran out of
+/// room.
+const PREVIEW_CHARS: usize = 400;
 
 /// What opens the banner line, and what closes it.
 const BANNER_OPEN: &str = "<!--banner:";

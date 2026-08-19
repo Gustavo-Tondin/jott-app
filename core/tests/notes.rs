@@ -573,3 +573,35 @@ fn the_banner_survives_the_editor_writing_the_body() {
     notes.set_banner(&path, None).unwrap();
     assert!(!read(dir.path().join("jott.notes/Inbox/com banner.md")).contains("banner"));
 }
+
+#[test]
+fn a_duplicated_note_is_the_same_file_under_a_free_name() {
+    // "Duplicar" on a card (user call, 2026-08-19). A copy is a COPY: the
+    // frontmatter, the banner and the body are byte for byte what they were,
+    // and the only thing that has to differ — the name, which is the title —
+    // is settled by the same free-name dance every collision in the app goes
+    // through.
+    let (dir, notes) = folder();
+    let path = notes.create("Inbox", "Receita", today()).unwrap();
+    notes
+        .set_banner(&path, Some(jott_core::Banner::Color("green".into())))
+        .unwrap();
+    notes.write(&path, "Dois ovos.\n", today()).unwrap();
+
+    let copy = notes.duplicate(&path).unwrap();
+    assert_eq!(copy, "Inbox/Receita 2.md");
+    assert_eq!(
+        read(dir.path().join("jott.notes/Inbox/Receita.md")),
+        read(dir.path().join("jott.notes/Inbox/Receita 2.md")),
+        "a duplicate is the same note, not a re-rendered one"
+    );
+
+    // And again: the second copy does not overwrite the first.
+    assert_eq!(notes.duplicate(&path).unwrap(), "Inbox/Receita 3.md");
+
+    // Through the notebook, which is the door the interface uses — and the one
+    // that refuses to write into a notebook it may not write.
+    let notebook = Notebook::open(dir.path()).unwrap();
+    let fourth = notebook.duplicate_note("jott.notes", &path).unwrap();
+    assert_eq!(fourth, "Inbox/Receita 4.md");
+}

@@ -39,6 +39,16 @@ impl Notebook {
         self.trash_path(&abs)
     }
 
+    /// Copies a note beside itself, returning the new address.
+    ///
+    /// Here as well as on the folder because writing is the notebook's gate:
+    /// a read-only notebook (a newer schema) must refuse it, and the folder
+    /// itself does not know whether it may write.
+    pub fn duplicate_note(&self, folder: &str, relative: &str) -> Result<String> {
+        self.ensure_writable()?;
+        self.note_folder(folder)?.duplicate(relative)
+    }
+
     /// Moves a note to another notes space, into `to_folder` inside it.
     ///
     /// The counterpart of `NoteFolder::move_to`, which only ever moves within

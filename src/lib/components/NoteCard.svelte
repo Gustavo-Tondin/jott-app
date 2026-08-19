@@ -30,6 +30,12 @@
     /// Smaller, for the cards drawn INSIDE a folder card: title only, no
     /// banner, no menu.
     small = false,
+    /// `() => void` — pinning, beside the ⋮ (user call, 2026-08-19: "com a
+    /// mesma funcionalidade das tarefas"). It is a button of its own and not
+    /// only a menu item because a pin is a STATE: the card has to say whether
+    /// it is pinned without being asked, and the drawn pin is what says it.
+    /// Null draws none.
+    onPin = null,
     onOpen,
   } = $props();
 
@@ -81,18 +87,39 @@
     {/if}
   </button>
 
-  {#if menu.length > 0 && !picking}
-    <Menu items={menu} align="end">
-      {#snippet trigger({ toggle })}
+  {#if (onPin || menu.length > 0) && !picking}
+    <div class="note-card__tools">
+      {#if onPin}
         <button
-          class="theme-btn--icon note-card__more"
-          onclick={toggle}
-          aria-label={S.noteOptions}
-          title={S.noteOptions}
+          class="theme-btn--icon note-card__pin"
+          class:note-card__pin--on={entry.pinned}
+          aria-pressed={!!entry.pinned}
+          aria-label={entry.pinned ? S.unpin : S.pin}
+          title={entry.pinned ? S.unpin : S.pin}
+          onclick={() => onPin()}
         >
-          <Icon name="dots-three" size="1rem" />
+          <!-- The same glyph a pinned TASK carries (components/TaskRow.svelte):
+               one mark for "kept at the top", whatever it is pinned to. -->
+          <Icon
+            name={entry.pinned ? "bookmark-simple-fill" : "bookmark-simple"}
+            size="1rem"
+          />
         </button>
-      {/snippet}
-    </Menu>
+      {/if}
+      {#if menu.length > 0}
+        <Menu items={menu} align="end">
+          {#snippet trigger({ toggle })}
+            <button
+              class="theme-btn--icon note-card__more"
+              onclick={toggle}
+              aria-label={S.noteOptions}
+              title={S.noteOptions}
+            >
+              <Icon name="dots-three" size="1rem" />
+            </button>
+          {/snippet}
+        </Menu>
+      {/if}
+    </div>
   {/if}
 </article>

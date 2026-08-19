@@ -143,6 +143,9 @@ pub struct NotebookSettings {
     pub restore_last_screen: Option<bool>,
     pub show_list_counts: Option<bool>,
     pub dated_tasks_join_period: Option<bool>,
+    /// Ask before fetching a picture from the internet. The user turns this
+    /// off from the dialog itself ("don't ask again").
+    pub confirm_image_downloads: Option<bool>,
     pub auto_urgent_by_date: Option<bool>,
     pub date_display_format: Option<String>,
     /// One of the seven, by name; empty goes back to the app's own.
@@ -493,6 +496,7 @@ pub fn notebook_settings(state: State<'_, AppState>) -> CommandResult<NotebookSe
             restore_last_screen: Some(config.restore_last_screen),
             show_list_counts: Some(config.show_list_counts),
             dated_tasks_join_period: Some(config.dated_tasks_join_period),
+            confirm_image_downloads: Some(config.confirm_image_downloads),
             auto_urgent_by_date: Some(config.auto_urgent_by_date),
             date_display_format: Some(config.date_display_format.render().to_string()),
             accent_color: Some(config.accent_color.clone()),
@@ -544,6 +548,9 @@ pub fn set_notebook_settings(
         }
         if let Some(v) = settings.dated_tasks_join_period {
             config.dated_tasks_join_period = v;
+        }
+        if let Some(v) = settings.confirm_image_downloads {
+            config.confirm_image_downloads = v;
         }
         if let Some(v) = settings.auto_urgent_by_date {
             config.auto_urgent_by_date = v;
@@ -1061,6 +1068,17 @@ pub fn set_note_banner(
     state.with_notebook(|nb| Ok(nb.note_folder(&folder)?.set_banner(&path, banner)?))
 }
 
+/// Copies a note beside itself, returning the new address — the card's
+/// "Duplicate".
+#[tauri::command]
+pub fn duplicate_note(
+    state: State<'_, AppState>,
+    folder: String,
+    path: String,
+) -> CommandResult<String> {
+    state.with_notebook(|nb| Ok(nb.duplicate_note(&folder, &path)?))
+}
+
 /// Moves a note to another notes space (the bulk "move to" of the board).
 /// Returns the new address, relative to the space it landed in.
 #[tauri::command]
@@ -1150,6 +1168,163 @@ pub fn open_asset(state: State<'_, AppState>, path: String) -> CommandResult<()>
         ));
     }
     open_path(&file)
+}
+
+/// Downloads a picture from the internet into the library.
+///
+/// **The one thing this app does that leaves the machine**, and it is asked
+/// for explicitly every time until the person says to stop asking
+/// (`confirmImageDownloads`, principle 9). It exists because pasting an image
+/// copied from a web page hands the app an `https://` address and nothing
+/// else — no bytes anywhere — so drawing it means fetching it.
+///
+/// The request is fenced on four sides:
+///
+///   - **`https` only.** A picture is not worth a plaintext request, and
+///     `file://` here would be this command reading the disk.
+///   - **Timeouts**, on connecting and on the whole call: a page that never
+///     answers must not be a note that never finishes pasting.
+///   - **A size ceiling.** The body is read through `take`, so a server
+///     claiming a small file and sending a stream cannot fill the disk.
+///   - **It has to BE a picture** — the content type is checked, and the
+///     extension the file is stored under comes from that type rather than
+///     from the URL, which may have none (`…/large/daoz-51.jpg?1747030361`).
+#[tauri::command]
+pub async fn import_asset_from_url(
+    state: State<'_, AppState>,
+    url: String,
+) -> CommandResult<String> {
+    let (name, bytes) = tauri::async_runtime::spawn_blocking(move || fetch_image(&url))
+        .await
+        .map_err(|e| CommandError::new("io", e.to_string()))??;
+    state.with_notebook(|nb| Ok(nb.import_asset(&name, &bytes)?))
+}
+
+/// Ten megabytes. Larger than any picture a note wants and smaller than
+/// anything that would hurt.
+const MAX_IMAGE_BYTES: u64 = 10 * 1024 * 1024;
+
+fn fetch_image(url: &str) -> CommandResult<(String, Vec<u8>)> {
+    use std::io::Read;
+
+    if !url.starts_with("https://") {
+        return Err(CommandError::new("invalid", format!("{url} is not https")));
+    }
+    let agent: ureq::Agent = ureq::Agent::config_builder()
+        .timeout_connect(Some(std::time::Duration::from_secs(10)))
+        .timeout_global(Some(std::time::Duration::from_secs(30)))
+        .build()
+        .into();
+
+    let mut response = agent
+        .get(url)
+        .call()
+        .map_err(|e| CommandError::new("io", format!("{url}: {e}")))?;
+
+    let kind = response
+        .headers()
+        .get("content-type")
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or_default()
+        .split(';')
+        .next()
+        .unwrap_or_default()
+        .trim()
+        .to_lowercase();
+    let Some(extension) = image_extension(&kind) else {
+        return Err(CommandError::new(
+            "invalid",
+            format!("that address answered {kind:?}, which is not a picture"),
+        ));
+    };
+
+    let mut bytes = Vec::new();
+    response
+        .body_mut()
+        .as_reader()
+        .take(MAX_IMAGE_BYTES + 1)
+        .read_to_end(&mut bytes)
+        .map_err(|e| CommandError::new("io", e.to_string()))?;
+    if bytes.len() as u64 > MAX_IMAGE_BYTES {
+        return Err(CommandError::new("invalid", "that picture is too large"));
+    }
+
+    Ok((format!("{}.{extension}", url_stem(url)), bytes))
+}
+
+/// The extension a picture of this content type is stored under. `None` for
+/// anything the app cannot draw — the same closed list the core keeps, for
+/// the same reason: an address the app wrote must be one it can show.
+fn image_extension(content_type: &str) -> Option<&'static str> {
+    Some(match content_type {
+        "image/png" => "png",
+        "image/jpeg" | "image/jpg" => "jpg",
+        "image/gif" => "gif",
+        "image/webp" => "webp",
+        "image/svg+xml" => "svg",
+        "image/avif" => "avif",
+        "image/bmp" => "bmp",
+        _ => return None,
+    })
+}
+
+/// A name for the file, from the last readable piece of the address.
+///
+/// The query string is dropped and so is the extension the URL claims: the
+/// content type decides that. `image` when there is nothing to go on — the
+/// library suffixes a colliding name rather than overwriting it.
+fn url_stem(url: &str) -> String {
+    let path = url
+        .trim_start_matches("https://")
+        .split(['?', '#'])
+        .next()
+        .unwrap_or_default();
+    let leaf = path.rsplit('/').find(|piece| !piece.is_empty()).unwrap_or("");
+    let stem = leaf.rsplit_once('.').map(|(head, _)| head).unwrap_or(leaf);
+    let cleaned: String = stem
+        .chars()
+        .filter(|c| c.is_alphanumeric() || matches!(c, '-' | '_' | ' '))
+        .collect();
+    let cleaned = cleaned.trim().to_string();
+    if cleaned.is_empty() {
+        "image".to_string()
+    } else {
+        cleaned
+    }
+}
+
+#[cfg(test)]
+mod url_tests {
+    use super::*;
+
+    #[test]
+    fn a_name_is_made_from_the_address_and_the_type() {
+        // The real one from the user's clipboard, query string and all: the
+        // extension comes from the content type, never from the URL.
+        assert_eq!(
+            url_stem("https://cdnb.artstation.com/p/assets/images/087/large/daoz-51.jpg?1747030361"),
+            "daoz-51"
+        );
+        assert_eq!(url_stem("https://exemplo.com/foto"), "foto");
+        assert_eq!(url_stem("https://exemplo.com/"), "exemplo");
+        // Nothing usable at the end of the address: the library will suffix
+        // a colliding `image.png` rather than overwrite one.
+        assert_eq!(url_stem("https://exemplo.com/a/../"), "image");
+    }
+
+    #[test]
+    fn only_what_the_app_can_draw_comes_back() {
+        assert_eq!(image_extension("image/jpeg"), Some("jpg"));
+        assert_eq!(image_extension("image/svg+xml"), Some("svg"));
+        assert_eq!(image_extension("text/html"), None);
+        assert_eq!(image_extension(""), None);
+    }
+
+    #[test]
+    fn plaintext_is_refused_before_a_socket_is_opened() {
+        assert!(fetch_image("http://exemplo.com/a.png").is_err());
+        assert!(fetch_image("file:///etc/passwd").is_err());
+    }
 }
 
 /// The files sitting on the system clipboard, as `file://` addresses.

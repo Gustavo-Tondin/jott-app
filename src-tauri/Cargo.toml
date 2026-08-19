@@ -29,6 +29,7 @@ tauri = { version = "2", features = ["protocol-asset"] }
 tauri-plugin-dialog = "2"
 serde.workspace = true
 serde_json.workspace = true
+ureq = { version = "3", default-features = false, features = ["rustls", "platform-verifier", "gzip"] }
 
 # The desktop's own icon for a kind of file, for the chip a non-drawable file
 # gets inside a note (`commands::file_icon`, 2026-08-19). Pinned to the exact

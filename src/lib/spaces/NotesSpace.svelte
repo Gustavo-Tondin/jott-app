@@ -1,5 +1,5 @@
 <script>
-  // The `notes` source: a board of note cards, or a folder tree, plus search.
+  // The `notes` source: a board of note cards, or a folder tree.
   //
   // Same note in both views — the layout is a preference, never a change to
   // the file (spec 5). Opening a note hands over to the editor; this screen
@@ -15,16 +15,24 @@
   // FOLDER of notes is a card too — a coloured block with the notes it holds
   // drawn small inside. Which is which is `services/noteBoard.js`, so the rule
   // that the inbox is not a folder card is testable without a DOM.
+  //
+  // The bar above it redrawn (2026-08-19, wireframes "Grid"): the row of
+  // buttons is gone and what it did is in two places — the ⋮ (new note, new
+  // group, select, sort, layout) and the QUICK NOTE bar, which is the note
+  // itself being typed before it exists. A folder card no longer navigates the
+  // screen either: it opens over the board, as a popover of its own.
   import { api } from "../services/api.js";
   import { S } from "../services/strings.js";
   import { askName } from "../services/dialog.js";
   import { makeAct } from "../services/act.js";
   import { spaceMenu } from "../services/spaceMenu.js";
-  import { arrange, planReorder } from "../services/spaceOrder.js";
+  import { arrange, pinnedFirst, planReorder } from "../services/spaceOrder.js";
   import { accentColor, accentStyle } from "../services/accent.js";
   import { board } from "../services/noteBoard.js";
   import { listName } from "../services/paths.js";
   import { reorderable } from "../actions/reorder.js";
+  import { dismissable } from "../actions/dismissable.js";
+  import { keepOnScreen } from "../actions/keepOnScreen.js";
   import Menu from "../components/Menu.svelte";
   import Icon from "../components/Icon.svelte";
   import NoteCard from "../components/NoteCard.svelte";
@@ -53,6 +61,9 @@
     onSetOrder,
     onChanged,
     onError,
+    /// `(path, folder, { fresh })` — `fresh` is a note this screen has just
+    /// created empty, so the shell puts the cursor in its body rather than
+    /// leaving it in a document nobody has typed into yet.
     onOpenNote,
     reloadKey = 0,
   } = $props();
@@ -66,7 +77,6 @@
 
   let notes = $state([]);
   let folders = $state([]);
-  let query = $state("");
   /// `grid` (cards, Keep-like) or `tree` (by folder).
   ///
   /// The config option picks the starting layout and the user's choice wins
@@ -79,13 +89,17 @@
   );
   /// Which folder is being looked at — `null` is the space's own board (its
   /// loose notes and the inbox's). ONE state for both views: "where am I in
-  /// the tree" is the same question whether it is asked by a chip or by a
-  /// folder card.
+  /// the tree" is the same question whether it is asked by a chip or by the
+  /// popover a folder card opens.
   let openFolder = $state(null);
+  /// Which folder CARD the popover hangs off, on the board. It is not always
+  /// `openFolder`: going into a subfolder inside the popover changes what is
+  /// shown without moving the panel, which stays anchored to the card that was
+  /// clicked. Null closes it.
+  let anchorFolder = $state(null);
 
   $effect(() => {
     folder;
-    query;
     reloadKey;
     load();
   });
@@ -95,7 +109,6 @@
   $effect(() => {
     folder;
     openFolder;
-    query;
     exitPicking();
   });
 
@@ -103,7 +116,7 @@
     if (!folder) return;
     try {
       [notes, folders] = await Promise.all([
-        api.listNotes(folder, query),
+        api.listNotes(folder, ""),
         api.noteFolders(folder),
       ]);
     } catch (e) {
@@ -119,6 +132,11 @@
     onError: (e) => onError?.(e),
   });
 
+  /// Where a note made right now belongs: the folder being looked at, or the
+  /// space's inbox on the board itself (the spec's "loose notes go to
+  /// Notes/Inbox").
+  let target = $derived(openFolder ?? notesInbox);
+
   // Naming goes through the app's own dialog — window.prompt is a no-op in
   // WebKitGTK (the widget-creation bug of 2026-07-30).
   const create = () =>
@@ -127,9 +145,6 @@
         confirm: S.create,
       });
       if (!title) return;
-      // A note created from a folder lands in it; from the board, in the
-      // inbox — the spec's "loose notes go to Notes/Inbox".
-      const target = openFolder ?? notesInbox;
       const path = await api.createNote(folder, target, title.trim());
       onOpenNote?.(path, folder);
     });
@@ -145,10 +160,18 @@
   const togglePin = (entry) =>
     act(() => api.setNotePinned(folder, entry.path, !entry.pinned));
 
+  const duplicate = (entry) => act(() => api.duplicateNote(folder, entry.path));
+
   const deleteNote = (entry) =>
     act(async () => {
       if (!confirm(S.confirmDeleteNote(entry.title))) return;
       await api.deleteNote(folder, entry.path);
+    });
+
+  const moveNote = (entry, where) =>
+    act(async () => {
+      const [space, into] = JSON.parse(where);
+      await api.moveNoteToSpace(folder, entry.path, space, into);
     });
 
   const renameFolder = () =>
@@ -158,6 +181,7 @@
       const next = await askName(S.promptRenameFolder(current), current);
       if (!next || next.trim() === current) return;
       openFolder = await api.renameNoteFolder(folder, openFolder, next.trim());
+      anchorFolder = openFolder;
     });
 
   const deleteFolder = () =>
@@ -166,9 +190,45 @@
       const name = openFolder.split("/").pop();
       if (!confirm(S.confirmDeleteFolder(name))) return;
       const moved = await api.deleteNoteFolder(folder, openFolder);
-      openFolder = null;
+      closeGroup();
       if (moved > 0) onError?.({ kind: "info", message: S.folderEmptied(moved, name) });
     });
+
+  // ---- the quick note bar (2026-08-19) ----
+  //
+  // What is typed here is the note's own BODY, not its name: someone jotting
+  // something down types the thing, and the app names it (`New note`, and
+  // `New note 2` after that — `fsio::free_name`, the same suffix every
+  // collision in the notebook takes). Asking for a title first would ask for
+  // the one thing the writer does not know yet.
+  //
+  // Enter files it and leaves the field ready for the next one; Shift+Enter is
+  // a new line, which is why this is a textarea. And + on an EMPTY field means
+  // the other gesture entirely: make the note and open it, with the cursor in
+  // its body — nothing was typed here, so there is nothing to keep the writer
+  // in this screen for.
+  let draft = $state("");
+  let quick = $state(null);
+
+  const quickCreate = () =>
+    act(async () => {
+      const text = draft;
+      const path = await api.createNote(folder, target, S.newNoteTitle);
+      if (text.trim()) {
+        await api.writeNote(folder, path, text.endsWith("\n") ? text : `${text}\n`);
+        draft = "";
+        quick?.focus();
+      } else {
+        onOpenNote?.(path, folder, { fresh: true });
+      }
+    });
+
+  function quickKey(event) {
+    if (event.key !== "Enter" || event.shiftKey) return;
+    event.preventDefault();
+    if (!draft.trim()) return;
+    quickCreate();
+  }
 
   // ---- arrangement (Etapa 1) ----
   const accessors = {
@@ -184,27 +244,60 @@
   /// What is at this place: the notes to draw as cards, and the folders to
   /// draw as cards of their own. In the tree view the folder chips already say
   /// where you are, so only the notes of the open folder are drawn.
-  let here = $derived(board(notes, folders, openFolder ?? "", notesInbox));
+  let here = $derived(board(notes, folders, "", notesInbox));
+
+  /// The same question asked of the open folder card — what the popover holds.
+  let inside = $derived(board(notes, folders, openFolder ?? "", notesInbox));
+
+  /// Arranged, with the pinned ones floated to the top: pinning outranks the
+  /// sort, exactly as it does on a task list (services/spaceOrder.js).
+  const laid = (cards) =>
+    pinnedFirst(arrange(cards, sort, source?.order ?? [], accessors));
 
   let shown = $derived(
-    arrange(
+    laid(
       layout === "tree" && openFolder !== null
         ? notes.filter((n) => n.folder === openFolder)
         : here.cards,
-      sort,
-      source?.order ?? [],
-      accessors,
     ),
   );
 
   /// Folder cards are the grid's own: the tree view has its chips.
-  let groups = $derived(layout === "grid" && !query.trim() ? here.groups : []);
+  let groups = $derived(layout === "grid" ? here.groups : []);
 
   // The same ⋮ every source carries (services/spaceMenu.js), minus the
   // completion date: a note has none, so that sorting would be a dead entry.
+  // Creating lives here now: the wireframe's board has a name, a ⋮ and the
+  // quick-note bar, and nothing else above the cards.
   let sortMenu = $derived(
     spaceMenu({
-      lead: [{ label: S.selectNotes, run: () => (picking = true), disabled: readOnly }],
+      lead: [
+        // Creating and picking write; the LAYOUT does not — how the same notes
+        // are drawn is a question a read-only notebook answers as happily as
+        // any other.
+        ...(readOnly
+          ? []
+          : [
+              { label: S.newNote, run: create },
+              { label: S.newNoteFolder, run: createFolder },
+              { label: S.selectNotes, run: () => (picking = true) },
+            ]),
+        {
+          label: S.layout,
+          items: [
+            {
+              label: S.gridView,
+              context: layout === "grid" ? "✓" : undefined,
+              run: () => (chosenLayout = "grid"),
+            },
+            {
+              label: S.treeView,
+              context: layout === "tree" ? "✓" : undefined,
+              run: () => (chosenLayout = "tree"),
+            },
+          ],
+        },
+      ],
       sorts: [null, "name", "created", "custom"],
       sort,
       hasOrder: (source?.order ?? []).length > 0,
@@ -218,6 +311,17 @@
       ? []
       : [
           { label: entry.pinned ? S.unpin : S.pin, run: () => togglePin(entry) },
+          {
+            label: S.moveTo,
+            items: moveTargets.flatMap((group) =>
+              group.options.map((option) => ({
+                label: option.label,
+                context: group.label,
+                run: () => moveNote(entry, option.value),
+              })),
+            ),
+          },
+          { label: S.duplicateNote, run: () => duplicate(entry) },
           { label: S.deleteNote, run: () => deleteNote(entry) },
         ];
 
@@ -235,6 +339,11 @@
   function exitPicking() {
     picking = false;
     picked = new Set();
+  }
+
+  function closeGroup() {
+    openFolder = null;
+    anchorFolder = null;
   }
 
   /// Where picked notes can go: any folder of this space, and every other
@@ -278,10 +387,10 @@
     });
 
   // Dragging a card on the board saves what the user built as the custom
-  // order (of note paths). Only on the unfiltered board: reordering a search
-  // result or one folder of the tree would silently rewrite the rest.
+  // order (of note paths). Only on the unfiltered board: reordering one folder
+  // of the tree would silently rewrite the rest.
   let canDrag = $derived(
-    !readOnly && !picking && layout === "grid" && !query.trim() && shown.length > 1,
+    !readOnly && !picking && layout === "grid" && shown.length > 1,
   );
 
   async function reorderNotes(from, to) {
@@ -376,30 +485,29 @@
     </Menu>
   </header>
 
-  <div class="notes-space__bar">
-    <input
-      class="theme-input theme-input--sm theme-input--search notes-space__search"
-      placeholder={S.searchNotes}
-      aria-label={S.searchNotes}
-      bind:value={query}
-    />
-    <button
-      class="theme-btn theme-btn--outline theme-btn--sm notes-space__bar-button"
-      class:notes-space__bar-button--active={layout === "grid"}
-      onclick={() => (chosenLayout = "grid")}>{S.gridView}</button
-    >
-    <button
-      class="theme-btn theme-btn--outline theme-btn--sm notes-space__bar-button"
-      class:notes-space__bar-button--active={layout === "tree"}
-      onclick={() => (chosenLayout = "tree")}>{S.treeView}</button
-    >
-    {#if !readOnly}
-      <button class="theme-btn theme-btn--primary theme-btn--sm notes-space__bar-button" onclick={create}>{S.newNote}</button>
-      <button class="theme-btn theme-btn--outline theme-btn--sm notes-space__bar-button" onclick={createFolder}
-        >{S.newNoteFolder}</button
+  {#if !readOnly}
+    <!-- The quick note bar (wireframes "Grid"): the note is typed here and
+         filed with +, and what was typed is its body. -->
+    <div class="quick-note">
+      <textarea
+        bind:this={quick}
+        class="quick-note__field"
+        placeholder={S.quickNote}
+        aria-label={S.quickNote}
+        rows="1"
+        bind:value={draft}
+        onkeydown={quickKey}
+      ></textarea>
+      <button
+        class="theme-btn theme-btn--primary quick-note__add"
+        aria-label={S.addNote}
+        title={S.addNote}
+        onclick={quickCreate}
       >
-    {/if}
-  </div>
+        <Icon name="plus" size="1.125rem" />
+      </button>
+    </div>
+  {/if}
 
   {#if layout === "tree"}
     <nav class="theme-segmented notes-space__folders">
@@ -418,38 +526,24 @@
         >
       {/each}
     </nav>
-  {:else if openFolder !== null}
-    <!-- Inside a folder card. The way back is one control, on the left of the
-         name of the place you are in — a folder card opens IN PLACE, so
-         without it there is no way out but the sidebar. -->
-    <nav class="notes-space__crumbs">
-      <button
-        class="theme-btn theme-btn--outline theme-btn--sm"
-        onclick={() => (openFolder = here.parent === "" ? null : here.parent)}
-      >
-        <Icon name="arrow-left" size="0.875rem" />
-        <span>{S.backToBoard}</span>
-      </button>
-      <span class="notes-space__crumb">{openFolder}</span>
-    </nav>
-  {/if}
 
-  <!-- Folder actions live next to the folder they act on, and only when one is
-       open — a folder is not deletable from the board view, where nothing says
-       which one you mean. -->
-  {#if !readOnly && openFolder}
-    <p class="notes-space__folder-actions">
-      <button class="notes-space__folder-action" onclick={renameFolder}
-        >{S.renameFolder}</button
-      >
-      <button class="notes-space__folder-action" onclick={deleteFolder}
-        >{S.deleteFolder}</button
-      >
-    </p>
+    <!-- Folder actions live next to the folder they act on, and only when one
+         is open — a folder is not deletable from a view where nothing says
+         which one you mean. On the board they are in the popover instead. -->
+    {#if !readOnly && openFolder}
+      <p class="notes-space__folder-actions">
+        <button class="notes-space__folder-action" onclick={renameFolder}
+          >{S.renameFolder}</button
+        >
+        <button class="notes-space__folder-action" onclick={deleteFolder}
+          >{S.deleteFolder}</button
+        >
+      </p>
+    {/if}
   {/if}
 
   {#if shown.length === 0 && groups.length === 0}
-    <p class="notes-space__empty">{query.trim() ? S.noNotesFound : S.noNotes}</p>
+    <p class="notes-space__empty">{S.noNotes}</p>
   {:else}
     <ul
       class="notes-space__board"
@@ -465,18 +559,33 @@
     >
       {#each groups as group (group.path)}
         <!-- A folder, as the wireframes draw it: a tinted block with the notes
-             it holds shown small inside. The tint is the PLACE's colour (the
-             space's, or the app's accent) — a note folder carries no marker
+             it holds shown small inside — titles only, and never a banner,
+             because a closed group says what is in it and not what it looks
+             like (user call, 2026-08-19). The tint is the PLACE's colour (the
+             space's, or the app's accent): a note folder carries no marker
              file of its own, so there is no colour to store on it and none is
-             invented. The wireframe paints the block saturated; here it is the
-             colour's TINT with the name in the colour itself, which is the
-             step every other coloured container of the app already stands on
-             (the sidebar row, the selected card). -->
+             invented.
+
+             It OPENS OVER THE BOARD, in a popover of two columns that behaves
+             like the board itself. It used to replace the screen, which meant
+             going into a folder was a navigation with no visible way back. -->
         <li class="notes-space__group">
-          <article class="note-group" style={accentStyle(dot)}>
+          <article
+            class="note-group"
+            class:note-group--open={anchorFolder === group.path}
+            style={accentStyle(dot)}
+            use:dismissable={{
+              active: anchorFolder === group.path,
+              onDismiss: closeGroup,
+            }}
+          >
             <button
               class="note-group__head"
-              onclick={() => (openFolder = group.path)}
+              aria-expanded={anchorFolder === group.path}
+              onclick={() =>
+                anchorFolder === group.path
+                  ? closeGroup()
+                  : ((anchorFolder = group.path), (openFolder = group.path))}
               aria-label={S.openFolder(group.name)}
             >
               <Icon name="folder" size="1rem" />
@@ -485,9 +594,91 @@
             </button>
             <div class="note-group__notes">
               {#each group.notes as entry (entry.path)}
-                <NoteCard {entry} {root} small onOpen={() => onOpenNote?.(entry.path, folder)} />
+                <NoteCard
+                  {entry}
+                  {root}
+                  small
+                  onOpen={() => onOpenNote?.(entry.path, folder)}
+                />
               {/each}
             </div>
+
+            {#if anchorFolder === group.path}
+              <!-- The folder, open: the same cards the board draws, in two
+                   columns. Anchored to the card, so what it belongs to is
+                   never in doubt. -->
+              <div
+                class="theme-popover note-group__popover"
+                data-region="canvas"
+                use:keepOnScreen
+              >
+                <header class="note-group__panel-head">
+                  {#if openFolder !== group.path}
+                    <button
+                      class="theme-btn--icon"
+                      aria-label={S.backToBoard}
+                      title={S.backToBoard}
+                      onclick={() =>
+                        (openFolder = inside.parent === "" ? group.path : inside.parent)}
+                    >
+                      <Icon name="arrow-left" size="0.875rem" />
+                    </button>
+                  {/if}
+                  <span class="note-group__panel-name">{openFolder}</span>
+                  {#if !readOnly}
+                    <button class="notes-space__folder-action" onclick={renameFolder}
+                      >{S.renameFolder}</button
+                    >
+                    <button class="notes-space__folder-action" onclick={deleteFolder}
+                      >{S.deleteFolder}</button
+                    >
+                  {/if}
+                  <button
+                    class="theme-btn--icon note-group__close"
+                    aria-label={S.cancel}
+                    title={S.cancel}
+                    onclick={closeGroup}
+                  >
+                    <Icon name="x" size="0.875rem" />
+                  </button>
+                </header>
+
+                {#if inside.groups.length > 0}
+                  <nav class="note-group__subfolders">
+                    {#each inside.groups as sub (sub.path)}
+                      <button
+                        class="theme-btn theme-btn--outline theme-btn--sm"
+                        onclick={() => (openFolder = sub.path)}
+                      >
+                        <Icon name="folder" size="0.875rem" />
+                        <span>{sub.name}</span>
+                      </button>
+                    {/each}
+                  </nav>
+                {/if}
+
+                {#if inside.cards.length === 0}
+                  <p class="notes-space__empty">{S.noNotes}</p>
+                {:else}
+                  <ul class="notes-space__board notes-space__board--pair">
+                    {#each laid(inside.cards) as entry (entry.path)}
+                      <li class="notes-space__item">
+                        <NoteCard
+                          {entry}
+                          {root}
+                          {picking}
+                          selected={picked.has(entry.path)}
+                          menu={cardMenu(entry)}
+                          onPin={readOnly ? null : () => togglePin(entry)}
+                          onOpen={() =>
+                            picking ? togglePick(entry) : onOpenNote?.(entry.path, folder)}
+                        />
+                      </li>
+                    {/each}
+                  </ul>
+                {/if}
+              </div>
+            {/if}
           </article>
         </li>
       {/each}
@@ -500,6 +691,7 @@
             {picking}
             selected={picked.has(entry.path)}
             menu={cardMenu(entry)}
+            onPin={readOnly ? null : () => togglePin(entry)}
             onOpen={() =>
               picking ? togglePick(entry) : onOpenNote?.(entry.path, folder)}
           />
