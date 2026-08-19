@@ -1443,6 +1443,25 @@ fn a_notebook_from_a_newer_app_refuses_every_write() {
     assert!(read(dir.path().join(".jott/config.json")).contains("somethingNew"));
 }
 
+#[test]
+fn a_config_written_outside_the_app_takes_effect_on_reload() {
+    // The bridge calls `reload_config` when the watcher reports the file
+    // changed. Without it, a preference synced in from another machine was
+    // announced and then ignored until the app restarted.
+    let dir = tempfile::tempdir().unwrap();
+    let mut notebook = Notebook::init(dir.path()).unwrap();
+    assert_eq!(notebook.config().accent_color, "");
+
+    std::fs::write(
+        dir.path().join(".jott/config.json"),
+        r#"{ "schemaVersion": 1, "accentColor": "orange" }"#,
+    )
+    .unwrap();
+
+    notebook.reload_config();
+    assert_eq!(notebook.config().accent_color, "orange");
+}
+
 // ------------------------------------------------------- full phase-2 flow
 
 #[test]

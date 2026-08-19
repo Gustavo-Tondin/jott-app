@@ -105,6 +105,22 @@ impl WatcherHandle {
                 }
 
                 for change in changes {
+                    // A synced-in `config.json` must actually take effect:
+                    // the notebook caches its Config by value and only reads
+                    // it on open, so without this re-read the app would
+                    // announce the change and keep serving the stale copy
+                    // until restarted. Re-reading our own write back is
+                    // harmless — it loads what was just saved.
+                    if matches!(change, jott_core::watcher::Change::Config) {
+                        use tauri::Manager;
+                        let state = app.state::<AppState>();
+                        let guard = state.inner.lock();
+                        if let Ok(mut guard) = guard {
+                            if let Some(open) = guard.as_mut() {
+                                open.notebook.reload_config();
+                            }
+                        }
+                    }
                     if let Err(e) = app.emit(NOTEBOOK_CHANGED_EVENT, &change) {
                         eprintln!("[jott] could not emit change event: {e}");
                     }

@@ -1354,9 +1354,12 @@
   }
 
   // Someone else wrote to the notebook (Syncthing, Obsidian, a text editor).
+  // A config change reloads the layout too — that is where the theme, the
+  // accent and every other synced preference travel (the bridge has already
+  // re-read the file by the time this event arrives).
   listen("notebook://changed", async (event) => {
     const kind = event.payload?.kind;
-    if (kind === "list") await refreshNotebook();
+    if (kind === "list" || kind === "config") await refreshNotebook();
     reload();
   });
 

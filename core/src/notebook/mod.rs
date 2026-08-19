@@ -329,6 +329,12 @@ impl Notebook {
             ensure_marker(&dir, kind, label)?;
             if kind == "tasks" {
                 self.task_folder(dir.clone()).ensure_default_lists()?;
+            } else {
+                // The notes counterpart of the line above: the Inbox folder is
+                // protected from rename and delete BECAUSE it comes back on
+                // every open — a protection without the recreation would be
+                // guarding something the app does not maintain.
+                crate::notefolder::NoteFolder::new(dir).ensure_default_folders()?;
             }
         }
         Ok(())
@@ -374,6 +380,18 @@ impl Notebook {
     /// True when the notebook was written by a newer version of the app.
     pub fn is_read_only(&self) -> bool {
         self.config.is_read_only()
+    }
+
+    /// Re-reads the preferences from disk.
+    ///
+    /// The notebook caches its `Config` by value and only ever loads it on
+    /// open — so a `config.json` written by someone else (a sync tool, a
+    /// text editor) would be announced by the watcher and then ignored:
+    /// every command kept answering from the stale copy until the app
+    /// restarted. The bridge calls this when the watcher sees the file
+    /// change (2026-08-19).
+    pub fn reload_config(&mut self) {
+        self.config = Config::load(self.config_path());
     }
 
     /// Replaces the preferences and writes them to disk.
