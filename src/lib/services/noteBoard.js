@@ -31,11 +31,14 @@ const leafOf = (path) => path.slice(path.lastIndexOf("/") + 1);
 ///
 /// - `notes`   — every note of the space, as the bridge lists them
 ///               (`{ path, title, folder, preview, pinned, banner }`);
-/// - `folders` — every folder of the space, deep, as `note_folders` gives them;
+/// - `folders` — every folder of the space, deep, as `note_folders` gives them:
+///               `{ path, color, pinned }`, the colour and the pin coming from
+///               the space's own config (2026-08-19);
 /// - `inbox`   — the name of the space's inbox folder.
 ///
 /// Returns `{ cards, groups, parent }`: the notes to draw, the folder cards to
-/// draw, and where "up" goes (null at the root).
+/// draw, and where "up" goes (null at the root). A **pinned** folder card comes
+/// first, the same rule a pinned note follows.
 export function board(notes = [], folders = [], current = "", inbox = "Inbox") {
   const here = current ?? "";
   const inboxName = inbox || "";
@@ -46,18 +49,25 @@ export function board(notes = [], folders = [], current = "", inbox = "Inbox") {
     here === "" ? note.folder === "" || note.folder === inboxName : note.folder === here;
 
   const groups = folders
-    .filter((path) => parentOf(path) === here && !(here === "" && path === inboxName))
-    .map((path) => ({
-      path,
-      name: leafOf(path),
+    .filter(
+      (folder) =>
+        parentOf(folder.path) === here && !(here === "" && folder.path === inboxName),
+    )
+    .map((folder) => ({
+      path: folder.path,
+      name: leafOf(folder.path),
+      color: folder.color ?? null,
+      pinned: !!folder.pinned,
       /// The notes directly inside it, for the small cards.
-      notes: notes.filter((note) => note.folder === path).slice(0, GROUP_PREVIEW),
+      notes: notes.filter((note) => note.folder === folder.path).slice(0, GROUP_PREVIEW),
       /// Everything below it, however deep — the number on the card has to
       /// mean "notes in there", not "notes in the first level of there".
       count: notes.filter(
-        (note) => note.folder === path || note.folder.startsWith(`${path}/`),
+        (note) =>
+          note.folder === folder.path || note.folder.startsWith(`${folder.path}/`),
       ).length,
-    }));
+    }))
+    .sort((a, b) => Number(b.pinned) - Number(a.pinned));
 
   return {
     cards: notes.filter(loose),

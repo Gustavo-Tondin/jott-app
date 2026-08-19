@@ -334,8 +334,11 @@ export const S = {
   promptRenameNote: (title) => `New title for "${title}":`,
   promptNewNoteFolder: "Name of the new folder:",
   newNoteFolder: "New group",
-  renameFolder: "rename folder",
-  deleteFolder: "delete folder",
+  // A folder of notes is a card on the board, and carries the same two
+  // controls a note card does (2026-08-19).
+  folderOptions: "folder options",
+  renameFolder: "Rename",
+  deleteFolder: "Delete",
   promptRenameFolder: (name) => `New name for "${name}":`,
   confirmDeleteFolder: (name) =>
     `Delete the folder "${name}"? Its notes and subfolders move up one level — nothing is deleted.`,

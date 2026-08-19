@@ -133,9 +133,14 @@
      picture or a colour someone chose; a chip parked in its corner is the app
      signing it. On the bare head there is nothing to keep clean and it stays —
      that head IS the way in to choosing a banner at all. */
+  /* It is an icon button like every other one in the app (user call,
+     2026-08-19): the same veil the shared `.theme-btn--icon` hover uses, and
+     the same square corner — it was the one button anywhere wearing a solid
+     white pill. The veil is enough to read against a photograph because it
+     only ever shows while the pointer is on the block, which is also when the
+     ink under it is being looked at. */
   .note-banner__more--on-block {
-    background: var(--theme-bg);
-    border-radius: var(--theme-radius-pill);
+    background: var(--theme-hover);
     opacity: 0;
     transition: opacity var(--theme-transition-fast);
   }

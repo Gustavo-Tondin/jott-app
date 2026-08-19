@@ -605,3 +605,63 @@ fn a_duplicated_note_is_the_same_file_under_a_free_name() {
     let fourth = notebook.duplicate_note("jott.notes", &path).unwrap();
     assert_eq!(fourth, "Inbox/Receita 4.md");
 }
+
+#[test]
+fn a_folder_of_notes_carries_a_colour_and_a_pin_in_the_space() {
+    // A folder of notes is a plain directory — the app writes no marker inside
+    // the user's tree — so what it is coloured and whether it is pinned live in
+    // the space's own `.space.json` (user call, 2026-08-19).
+    let dir = tempfile::tempdir().unwrap();
+    Notebook::init(dir.path()).unwrap();
+    let notes = NoteFolder::new(dir.path().join("jott.notes"));
+    notes.ensure_default_folders().unwrap();
+    notes.create_folder("Clientes").unwrap();
+    notes.create_folder("Clientes/2026").unwrap();
+
+    let notebook = Notebook::open(dir.path()).unwrap();
+    notebook
+        .set_note_folder("jott.notes", "Clientes", |it| {
+            it.color = Some("red".into());
+            it.pinned = true;
+        })
+        .unwrap();
+    notebook
+        .set_note_folder("jott.notes", "Clientes/2026", |it| it.color = Some("blue".into()))
+        .unwrap();
+
+    let entries = notebook.note_folder_entries("jott.notes").unwrap();
+    let of = |path: &str| entries.iter().find(|e| e.path == path).cloned().unwrap();
+    assert_eq!(of("Clientes").color.as_deref(), Some("red"));
+    assert!(of("Clientes").pinned);
+    // A folder nobody chose anything for has no entry, and reads as nothing.
+    assert_eq!(of("Inbox").color, None);
+    assert!(!of("Inbox").pinned);
+
+    // Renaming carries the folder's own settings AND its children's.
+    let moved = notebook
+        .rename_note_folder("jott.notes", "Clientes", "Contas")
+        .unwrap();
+    assert_eq!(moved, "Contas");
+    let entries = notebook.note_folder_entries("jott.notes").unwrap();
+    let of = |path: &str| entries.iter().find(|e| e.path == path).cloned().unwrap();
+    assert_eq!(of("Contas").color.as_deref(), Some("red"));
+    assert_eq!(of("Contas/2026").color.as_deref(), Some("blue"));
+
+    // Deleting a folder moves what was inside UP a level — so the child's
+    // colour is re-keyed to where it landed, not thrown away with the parent.
+    notebook.delete_note_folder("jott.notes", "Contas").unwrap();
+    let entries = notebook.note_folder_entries("jott.notes").unwrap();
+    assert!(!entries.iter().any(|e| e.path.starts_with("Contas")));
+    assert_eq!(
+        entries.iter().find(|e| e.path == "2026").unwrap().color.as_deref(),
+        Some("blue")
+    );
+
+    // Clearing the last thing an entry said removes the entry, instead of
+    // leaving `{}` behind in the file.
+    notebook
+        .set_note_folder("jott.notes", "2026", |it| it.color = None)
+        .unwrap();
+    let on_disk = read(dir.path().join("jott.notes/.space.json"));
+    assert!(!on_disk.contains("folders"), "{on_disk}");
+}

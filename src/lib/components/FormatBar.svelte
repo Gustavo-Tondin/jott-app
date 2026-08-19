@@ -34,6 +34,13 @@
     /// Laid out as a column (the desktop panel) or as a scrolling row (the
     /// strip above the keyboard, and the floating bar).
     layout = "column",
+    /// Which ground the folded panel paints itself on. It has to be SAID:
+    /// `keepOnScreen` portals that panel to the body, which is in no region at
+    /// all, so a panel that inherited its ground came out of the portal
+    /// wearing the root's (user report, 2026-08-19 — the marks floated over
+    /// the note with no pill at all). The same trap the drawer and the sheets
+    /// document.
+    region = "canvas",
   } = $props();
 
   /// The commands the panel draws, in registry order — the ones that named an
@@ -142,6 +149,7 @@
                and the floating bar sits at the top of the canvas (so below). -->
           <div
             class="format-bar__panel"
+            data-region={region}
             role="group"
             aria-label={opener.label()}
             use:keepOnScreen

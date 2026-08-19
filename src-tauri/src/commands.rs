@@ -950,10 +950,36 @@ pub fn quick_capture_note(
     })
 }
 
-/// The folders inside a notes widget, for the tree view.
+/// The folders of a notes space, each with the colour and the pin the space
+/// remembers for it (2026-08-19).
 #[tauri::command]
-pub fn note_folders(state: State<'_, AppState>, folder: String) -> CommandResult<Vec<String>> {
-    state.with_notebook(|nb| Ok(nb.note_folder(&folder)?.folders()?))
+pub fn note_folders(
+    state: State<'_, AppState>,
+    folder: String,
+) -> CommandResult<Vec<jott_core::NoteFolderEntry>> {
+    state.with_notebook(|nb| Ok(nb.note_folder_entries(&folder)?))
+}
+
+/// The colour of a folder of notes — a palette NAME, or null for none.
+#[tauri::command]
+pub fn set_note_folder_color(
+    state: State<'_, AppState>,
+    folder: String,
+    path: String,
+    color: Option<String>,
+) -> CommandResult<()> {
+    state.with_notebook(|nb| Ok(nb.set_note_folder(&folder, &path, |it| it.color = color)?))
+}
+
+/// Keeps a folder of notes at the top of the board, or stops.
+#[tauri::command]
+pub fn set_note_folder_pinned(
+    state: State<'_, AppState>,
+    folder: String,
+    path: String,
+    pinned: bool,
+) -> CommandResult<()> {
+    state.with_notebook(|nb| Ok(nb.set_note_folder(&folder, &path, |it| it.pinned = pinned)?))
 }
 
 #[tauri::command]
@@ -1592,7 +1618,9 @@ pub fn rename_note_folder(
     path: String,
     name: String,
 ) -> CommandResult<String> {
-    state.with_notebook(|nb| Ok(nb.note_folder(&folder)?.rename_folder(&path, &name)?))
+    // Through the notebook, not the folder: a folder's colour and pin live in
+    // the space's config, and they have to travel with the rename.
+    state.with_notebook(|nb| Ok(nb.rename_note_folder(&folder, &path, &name)?))
 }
 
 /// Deletes a folder, moving what was inside up to its parent. Returns how
@@ -1603,7 +1631,7 @@ pub fn delete_note_folder(
     folder: String,
     path: String,
 ) -> CommandResult<usize> {
-    state.with_notebook(|nb| Ok(nb.note_folder(&folder)?.delete_folder(&path)?))
+    state.with_notebook(|nb| Ok(nb.delete_note_folder(&folder, &path)?))
 }
 
 #[tauri::command]

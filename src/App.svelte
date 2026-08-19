@@ -36,6 +36,7 @@
   import NotesSpace from "./lib/spaces/NotesSpace.svelte";
   import NoteEditor from "./lib/components/NoteEditor.svelte";
   import FormatBar from "./lib/components/FormatBar.svelte";
+  import NotePanel from "./lib/components/NotePanel.svelte";
   import HomeView from "./lib/screens/HomeView.svelte";
   import SettingsView from "./lib/screens/SettingsView.svelte";
   import TabBar from "./lib/shell/TabBar.svelte";
@@ -768,11 +769,14 @@
       : screenActions,
   );
 
-  /// The page menu of the current screen — the `•••` of the wireframe.
-  let pageMenu = $derived.by(() => {
-    // A note's own actions belong here, not to a second bar inside the page.
+  /// What an open NOTE can be asked to do — written once and served twice
+  /// (2026-08-19): the page's ••• and the ⋮ of the note's own panel
+  /// (components/NotePanel.svelte). Two lists would have drifted the first
+  /// time one of them grew an item.
+  let noteActions = $derived.by(() => {
+    if (notebook?.readOnly || view.kind !== "note") return [];
     const own = [];
-    if (!notebook?.readOnly && view.kind === "note") {
+    {
       own.push(
         { label: openNote.pinned ? S.unpin : S.pin, run: toggleNotePin },
         { label: S.renameNote, run: renameCurrentNote },
@@ -815,6 +819,13 @@
           ],
         });
     }
+    return own;
+  });
+
+  /// The page menu of the current screen — the `•••` of the wireframe.
+  let pageMenu = $derived.by(() => {
+    // A note's own actions belong here, not to a second bar inside the page.
+    const own = [...noteActions];
     // Lists are created inside the space itself now, not from here.
     // Renaming or deleting a list the app recreates on every open would only
     // confuse — the core refuses it anyway, so the menu must not offer it.
@@ -1265,6 +1276,61 @@
   const showNote = (path, folder = layout.notesFolder, newTab = false) =>
     (newTab ? openTab : goTo)({ kind: "note", folder, path });
 
+  /// The folders of the OPEN note's space — where it can be filed without
+  /// leaving the space. The shell's own `noteFolders` cannot answer: it is the
+  /// fixed space's, kept for the Settings screen, and a note is as often in a
+  /// space of the user's own.
+  let openNoteFolders = $state([]);
+  $effect(() => {
+    const space = view.kind === "note" ? view.folder : null;
+    if (!space) {
+      openNoteFolders = [];
+      return;
+    }
+    api
+      .noteFolders(space)
+      .then((found) => (openNoteFolders = found))
+      .catch(() => (openNoteFolders = []));
+  });
+
+  /// Where the open note could go: the folders of its own space, then every
+  /// other notes space (into its inbox, which is where a note filed into a
+  /// space belongs). The same set the board's cards offer, asked from the
+  /// other side.
+  let noteMoveTargets = $derived.by(() => {
+    if (view.kind !== "note" || notebook?.readOnly) return [];
+    const here = view.folder;
+    const name = noteSpaces.find((sp) => sp.path === here)?.name ?? here;
+    const at = folderOf(view.path);
+    return [
+      { path: "", label: S.allNotes },
+      ...openNoteFolders.map((it) => ({ path: it.path, label: it.path })),
+    ]
+      .map((it) => ({
+        label: it.label,
+        context: name,
+        disabled: it.path === at,
+        run: () => moveOpenNote(here, it.path),
+      }))
+      .concat(
+        noteSpaces
+          .filter((sp) => sp.path !== here)
+          .map((sp) => ({
+            label: sp.name,
+            context: S.notes,
+            run: () => moveOpenNote(sp.path, layout.notesInbox),
+          })),
+      );
+  });
+
+  /// Moves the open note, and follows it: the tab points at an address, and
+  /// the address just changed.
+  const moveOpenNote = (space, into) =>
+    noteAction(async () => {
+      const landed = await api.moveNoteToSpace(view.folder, view.path, space, into);
+      goTo({ kind: "note", folder: space, path: landed });
+    });
+
   /// A note opened FROM a board. `fresh` says the board has just created it
   /// empty (the quick-note bar's + on an empty field), so the cursor goes
   /// straight into its body — the same hand-off the Home's + makes.
@@ -1556,7 +1622,7 @@
              or busy with a task. -->
         {#if formatBarFloats}
           <div class="format-float">
-            <FormatBar layout="row" onRun={runFormat} />
+            <FormatBar layout="row" region="chrome" onRun={runFormat} />
           </div>
         {/if}
 
@@ -1847,7 +1913,15 @@
             {f}
           />
         {:else if formatBarOpen}
-          <FormatBar onRun={runFormat} />
+          <NotePanel
+            onRun={runFormat}
+            menu={noteActions}
+            where={listName(folderOf(view.path)) || S.allNotes}
+            targets={noteMoveTargets}
+            onDelete={deleteCurrentNote}
+            onClose={() => (formatting = false)}
+            readOnly={notebook.readOnly}
+          />
         {:else if selected}
           <TaskInspector
             task={selected.task}
@@ -1942,7 +2016,7 @@
      wireframe puts it against the keyboard's top edge. -->
 {#if compact && notebook && view.kind === "note" && editorFocused && !notebook.readOnly}
   <div class="format-strip" data-region="chrome">
-    <FormatBar layout="row" onRun={runFormat} />
+    <FormatBar layout="row" region="chrome" onRun={runFormat} />
   </div>
 {/if}
 

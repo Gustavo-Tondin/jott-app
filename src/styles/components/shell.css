@@ -470,7 +470,7 @@
      the note in a column. */
   .shell__panel > .inspector,
   .shell__panel > .suggestions-pane,
-  .shell__panel > .format-bar {
+  .shell__panel > .note-panel {
     flex: 1;
     width: var(--theme-sidebar-right);
     min-height: 0;

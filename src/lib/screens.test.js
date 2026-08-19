@@ -75,6 +75,10 @@ const { default: PeriodView } = await import("./screens/PeriodView.svelte");
 const { default: CompletedView } = await import("./screens/CompletedView.svelte");
 const { default: TaskInspector } = await import("./components/TaskInspector.svelte");
 const { default: App } = await import("../App.svelte");
+
+/// A folder of notes as the bridge answers it since 2026-08-19: an address,
+/// plus the colour and the pin the SPACE remembers for it.
+const noteFolder = (path, extra = {}) => ({ path, color: null, pinned: false, ...extra });
 const { default: SpaceView } = await import("./screens/SpaceView.svelte");
 const { default: NotesSpace } = await import("./spaces/NotesSpace.svelte");
 const { default: NoteEditor } = await import("./components/NoteEditor.svelte");
@@ -1297,7 +1301,7 @@ describe("App", () => {
       // One round trip for everything the shell shows after any change.
       notebook_snapshot: snapshot(),
       screen_to_restore: "list:jott.tasks/task-list.md",
-      note_folders: ["Inbox"],
+      note_folders: [noteFolder("Inbox")],
       notes_created_today: [],
       list_tasks: [task("a1", "Comprar leite"), task("b2", "Pagar boleto")],
       period_tasks: [],
@@ -1377,6 +1381,54 @@ describe("App", () => {
 
     await waitFor(() => expect(screen.queryByLabelText("task name")).toBeNull());
     expect(screen.getByLabelText("Formatting")).toBeTruthy();
+  });
+
+  test("the note's panel has the head and the foot every panel has", async () => {
+    // User report, 2026-08-19: the formatting controls were the whole panel,
+    // while the wireframe draws the same silhouette the inspector has — a way
+    // to fold it away and a ⋮ above, where the note lives and a trash below.
+    shell({
+      list_notes: [
+        {
+          path: "Inbox/Ideia.md",
+          title: "Ideia",
+          folder: "Inbox",
+          preview: "preview",
+          created: "2026-07-21",
+          pinned: false,
+        },
+      ],
+      note_folders: [noteFolder("Inbox"), noteFolder("Clientes")],
+      read_note: {
+        path: "Inbox/Ideia.md",
+        title: "Ideia",
+        body: "Corpo.",
+        pinned: false,
+        created: "2026-07-21",
+      },
+      write_note: null,
+      move_note_to_space: "Clientes/Ideia.md",
+    });
+    render(App);
+
+    await userEvent.click(await screen.findByRole("button", { name: "Notes" }));
+    await userEvent.click(await screen.findByText("Ideia"));
+    await screen.findByLabelText("Formatting");
+
+    expect(screen.getByLabelText("collapse panel")).toBeTruthy();
+    expect(screen.getByLabelText("note options")).toBeTruthy();
+
+    // The foot says where the note is filed, and is the way to move it.
+    await userEvent.click(screen.getByLabelText("Move to…"));
+    await userEvent.click(await screen.findByText("Clientes"));
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("move_note_to_space", {
+        folder: "jott.notes",
+        path: "Inbox/Ideia.md",
+        toSpace: "jott.notes",
+        toFolder: "Clientes",
+      }),
+    );
   });
 
   test("the sidebar head carries search and a + that makes things", async () => {
@@ -1703,7 +1755,7 @@ describe("App", () => {
         spaces: [],
       },
       screen_to_restore: "list:jott.tasks/task-list.md",
-      note_folders: ["Inbox"],
+      note_folders: [noteFolder("Inbox")],
       notes_created_today: [],
       list_tasks: [],
       period_tasks: [],
@@ -2226,7 +2278,7 @@ describe("App with a user space", () => {
         ],
       },
       screen_to_restore: null,
-      note_folders: ["Inbox"],
+      note_folders: [noteFolder("Inbox")],
       notes_created_today: [],
       list_tasks: [],
       period_tasks: [],
@@ -2344,7 +2396,7 @@ describe("NotesSpace", () => {
   });
 
   test("lists the notes of its own folder", async () => {
-    bridge({ list_notes: [entry("Ideia")], note_folders: ["Inbox"] });
+    bridge({ list_notes: [entry("Ideia")], note_folders: [noteFolder("Inbox")] });
 
     render(NotesSpace, { props: props() });
 
@@ -2406,7 +2458,7 @@ describe("NotesSpace", () => {
         entry("Solta"),
         entry("Briefing", { path: "Clientes/Briefing.md", folder: "Clientes" }),
       ],
-      note_folders: ["Clientes", "Inbox"],
+      note_folders: [noteFolder("Clientes"), noteFolder("Inbox")],
     });
 
     render(NotesSpace, { props: props() });
@@ -2464,7 +2516,7 @@ describe("NotesSpace", () => {
         entry("Solta"),
         entry("Briefing", { path: "Clientes/Briefing.md", folder: "Clientes" }),
       ],
-      note_folders: ["Clientes", "Inbox"],
+      note_folders: [noteFolder("Clientes"), noteFolder("Inbox")],
     });
 
     render(NotesSpace, { props: props() });
@@ -2580,7 +2632,7 @@ describe("NotesSpace", () => {
   test("a card moves to another place from its own ⋮", async () => {
     bridge({
       list_notes: [entry("Ideia")],
-      note_folders: ["Clientes", "Inbox"],
+      note_folders: [noteFolder("Clientes"), noteFolder("Inbox")],
       move_note_to_space: "Clientes/Ideia.md",
     });
 
@@ -2626,7 +2678,7 @@ describe("NotesSpace", () => {
   test("picked notes move to another space", async () => {
     bridge({
       list_notes: [entry("Ideia")],
-      note_folders: ["Inbox"],
+      note_folders: [noteFolder("Inbox")],
       move_note_to_space: "Ideia.md",
     });
 
@@ -3248,28 +3300,56 @@ describe("NotesSpace folder management", () => {
   const withFolders = (extra = {}) =>
     bridge({
       list_notes: [],
-      note_folders: ["Clientes", "Inbox"],
+      note_folders: [noteFolder("Clientes"), noteFolder("Inbox")],
       rename_note_folder: "Contas",
       delete_note_folder: 2,
       ...extra,
     });
 
-  const openClientes = async () => {
-    await showFolders();
-    await userEvent.click(screen.getByRole("button", { name: "Clientes" }));
-  };
+  /// The folder card's own ⋮ (2026-08-19). The two underlined words that used
+  /// to hang under the board are gone: they only appeared once a folder was
+  /// already open, which is the one moment you did not need them.
+  const openFolderMenu = async () =>
+    await userEvent.click(await screen.findByLabelText("folder options"));
 
-  test("folder actions appear only when a folder is open", async () => {
+  test("a folder card carries its own menu, on the board itself", async () => {
     withFolders();
     render(NotesSpace, { props: props() });
 
-    // On the board there is no folder to act on, so no actions are offered.
-    await screen.findByLabelText("space options");
-    expect(screen.queryByText("delete folder")).toBeNull();
+    await openFolderMenu();
+    expect(screen.getByText("Delete")).toBeTruthy();
+    expect(screen.getByText("Rename")).toBeTruthy();
+    // And pinning and colouring, which a folder never had before.
+    expect(screen.getByText("pin")).toBeTruthy();
+    expect(screen.getByText("colour")).toBeTruthy();
+  });
 
-    await openClientes();
-    expect(screen.getByText("delete folder")).toBeTruthy();
-    expect(screen.getByText("rename folder")).toBeTruthy();
+  test("a folder is pinned and coloured through the space's own config", async () => {
+    // A folder of notes is a plain directory: what it is coloured lives in the
+    // space's `.space.json`, never in a marker inside the user's tree.
+    withFolders({ set_note_folder_pinned: null, set_note_folder_color: null });
+    render(NotesSpace, { props: props() });
+
+    await openFolderMenu();
+    await userEvent.click(screen.getByText("pin"));
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("set_note_folder_pinned", {
+        folder: "Notes",
+        path: "Clientes",
+        pinned: true,
+      }),
+    );
+
+    await openFolderMenu();
+    await userEvent.click(screen.getByText("colour"));
+    await userEvent.click(await screen.findByText("Red"));
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("set_note_folder_color", {
+        folder: "Notes",
+        path: "Clientes",
+        color: "red",
+      }),
+    );
   });
 
   test("renaming a folder goes through the core", async () => {
@@ -3281,8 +3361,8 @@ describe("NotesSpace folder management", () => {
     const { get } = await import("svelte/store");
 
     render(NotesSpace, { props: props() });
-    await openClientes();
-    await userEvent.click(screen.getByText("rename folder"));
+    await openFolderMenu();
+    await userEvent.click(screen.getByText("Rename"));
 
     await waitFor(() => expect(get(nameRequest)).toBeTruthy());
     get(nameRequest).resolve("Contas");
@@ -3306,8 +3386,8 @@ describe("NotesSpace folder management", () => {
     render(NotesSpace, {
       props: props({ onError: (e) => messages.push(e.message) }),
     });
-    await openClientes();
-    await userEvent.click(screen.getByText("delete folder"));
+    await openFolderMenu();
+    await userEvent.click(screen.getByText("Delete"));
 
     await waitFor(() =>
       expect(invoke).toHaveBeenCalledWith("delete_note_folder", {
@@ -3327,8 +3407,8 @@ describe("NotesSpace folder management", () => {
     vi.spyOn(window, "confirm").mockReturnValue(false);
 
     render(NotesSpace, { props: props() });
-    await openClientes();
-    await userEvent.click(screen.getByText("delete folder"));
+    await openFolderMenu();
+    await userEvent.click(screen.getByText("Delete"));
 
     expect(invoke.mock.calls.some(([cmd]) => cmd === "delete_note_folder")).toBe(false);
     window.confirm.mockRestore();
@@ -3338,8 +3418,11 @@ describe("NotesSpace folder management", () => {
     withFolders();
     render(NotesSpace, { props: props({ readOnly: true }) });
 
-    await openClientes();
-    expect(screen.queryByText("delete folder")).toBeNull();
+    // The card is drawn and opens; it simply carries no ⋮ and no pin, because
+    // every item in one writes.
+    expect(await screen.findByLabelText("open Clientes")).toBeTruthy();
+    expect(screen.queryByLabelText("folder options")).toBeNull();
+    expect(screen.queryByLabelText("pin")).toBeNull();
   });
 });
 
@@ -4132,7 +4215,7 @@ describe("App shell with tabs", () => {
         spaces: [],
       },
       screen_to_restore: null,
-      note_folders: ["Inbox"],
+      note_folders: [noteFolder("Inbox")],
       notes_created_today: [],
       period_tasks: [],
       grouped_suggestions: [],

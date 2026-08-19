@@ -100,26 +100,6 @@
     margin-block-end: var(--theme-space-12);
   }
 
-  .notes-space__folder-actions {
-    display: flex;
-    gap: var(--theme-space-8);
-    margin: calc(var(--theme-space-6) * -1) 0 var(--theme-space-12);
-    font-size: var(--theme-text-13);
-  }
-  .notes-space__folder-action {
-    background: none;
-    border: none;
-    padding: 0;
-    color: var(--theme-ink-muted);
-    font: inherit;
-    font-size: var(--theme-text-13);
-    text-decoration: underline;
-    cursor: pointer;
-  }
-  .notes-space__folder-action:hover {
-    color: var(--theme-ink);
-  }
-
   /* The board flows in COLUMNS (2026-08-18, wireframes "Notes screen" and
      "Space Notes"): a card is as tall as its own text, and the next one starts
      where it ended. A grid of rows made every card in a row as tall as the
@@ -131,16 +111,19 @@
      three. `break-inside` is what keeps a card from being cut in half at the
      bottom of a column.
 
-     13rem is the MINIMUM a card may be, and it is chosen against the reading
-     column it lives in: three of them plus two gaps fit inside
-     `--theme-content-max` (which is what the wireframe draws — three columns
-     of ~222px), and two fit once the right panel takes its share. At 15rem the
-     third column never fitted at all and the desktop board was always two. */
+     11rem is the MINIMUM a card may be (user call, 2026-08-19: "as notas devem
+     ter um min width que, quando a tela não chega nesse valor, diminui uma
+     coluna"). Read against the column it lives in: three of them plus two gaps
+     need 552px, so the full reading width (720px) draws three — the wireframe's
+     count — and the board drops to two as soon as the panel or the window takes
+     that room away. 15rem never fitted three at all; 13rem needed 660px, which
+     a 1009px window with a panel open does not have. Below the minimum the
+     browser drops a column on its own: that is what `column-width` IS. */
   .notes-space__board {
     list-style: none;
     margin: 0;
     padding: 0;
-    columns: 13rem;
+    columns: 11rem;
     column-gap: var(--theme-space-12);
   }
   .notes-space__board > li {
