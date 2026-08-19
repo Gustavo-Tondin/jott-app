@@ -6,19 +6,30 @@
 use std::path::PathBuf;
 
 fn core_sources() -> Vec<(String, String)> {
+    // Recursive on purpose: when `notebook.rs` became the `notebook/` module
+    // this walk stayed flat and the two rules below silently stopped reading
+    // ~40% of the crate. A rule that skips subdirectories is a rule that dies
+    // on the next split.
     let src = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("src");
-    std::fs::read_dir(&src)
-        .expect("core/src must be readable")
-        .filter_map(|entry| {
-            let path = entry.ok()?.path();
-            if path.extension()? != "rs" {
-                return None;
+    let mut sources = Vec::new();
+    let mut dirs = vec![src.clone()];
+    while let Some(dir) = dirs.pop() {
+        for entry in std::fs::read_dir(&dir).expect("core/src must be readable") {
+            let path = entry.expect("entry must be readable").path();
+            if path.is_dir() {
+                dirs.push(path);
+            } else if path.extension().is_some_and(|e| e == "rs") {
+                let name = path
+                    .strip_prefix(&src)
+                    .unwrap_or(&path)
+                    .to_string_lossy()
+                    .to_string();
+                let body = std::fs::read_to_string(&path).expect("source must be readable");
+                sources.push((name, body));
             }
-            let name = path.file_name()?.to_string_lossy().to_string();
-            let body = std::fs::read_to_string(&path).ok()?;
-            Some((name, body))
-        })
-        .collect()
+        }
+    }
+    sources
 }
 
 /// Strips line comments and the `#[cfg(test)]` module, so a comment
