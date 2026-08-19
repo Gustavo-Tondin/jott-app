@@ -1689,7 +1689,11 @@
              or busy with a task. -->
         {#if formatBarFloats}
           <div class="format-float">
-            <FormatBar layout="row" region="chrome" onRun={runFormat} />
+            <!-- CANVAS, and it matters: the folded panel is portaled out of the
+                 window by `keepOnScreen`, so it paints whatever region it was
+                 TOLD. Told "chrome" it came out dark on a light bar (this bar
+                 is the one place the same component sits on the two grounds). -->
+            <FormatBar layout="row" region="canvas" onRun={runFormat} />
           </div>
         {/if}
 
