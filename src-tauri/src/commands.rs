@@ -427,17 +427,28 @@ fn listing_in(root: &Path, path: Option<String>) -> CommandResult<FolderListing>
     // on Windows `canonicalize` returns a verbatim path (`\\?\C:\...`), and a
     // verbatim path never starts_with a non-verbatim one — every candidate
     // would silently land back on the root (caught by CI, 2026-08-19).
+    let raw_root = root;
     let root = root.canonicalize().unwrap_or_else(|_| root.to_path_buf());
     let at = match path {
         Some(path) => {
             let candidate = PathBuf::from(path);
             // `canonicalize` resolves `..` and symlinks, which is what makes
-            // the containment check mean anything.
-            let resolved = candidate.canonicalize().unwrap_or(candidate);
-            if resolved.starts_with(&root) {
-                resolved
-            } else {
-                root.clone()
+            // the containment check mean anything. A path that does not
+            // exist cannot be canonicalized — a folder deleted between the
+            // listing and the tap — so that one is judged against the RAW
+            // root (again like with like), and only with no `..` inside:
+            // unresolved dot-dots would walk out of what starts_with saw.
+            match candidate.canonicalize() {
+                Ok(resolved) if resolved.starts_with(&root) => resolved,
+                Err(_)
+                    if candidate.starts_with(raw_root)
+                        && candidate
+                            .components()
+                            .all(|c| !matches!(c, std::path::Component::ParentDir)) =>
+                {
+                    candidate
+                }
+                _ => root.clone(),
             }
         }
         None => root.clone(),
@@ -2447,7 +2458,10 @@ mod tests {
             // on, and "that path is not allowed" is not a folder.
             let listing =
                 listing_in(dir.path(), Some(outside.to_string_lossy().into_owned())).unwrap();
-            assert_eq!(listing.path, dir.path().to_string_lossy());
+            // The browser answers canonical paths — see the parent assertion
+            // in the test below.
+            let root = dir.path().canonicalize().unwrap();
+            assert_eq!(listing.path, root.to_string_lossy());
         }
 
         #[test]
