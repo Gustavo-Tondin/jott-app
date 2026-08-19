@@ -27,6 +27,7 @@
   import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
   import { markdownPreview } from "../services/markdown.js";
   import { autocompletion } from "@codemirror/autocomplete";
+  import { autoClose } from "../services/autoClose.js";
   import { fileEmbeds, refreshEmbeds } from "../services/embeds.js";
   import { fromNotebook, referenceCompletions } from "../services/linkComplete.js";
   import { assetUrl } from "../services/assets.js";
@@ -184,6 +185,11 @@
           // is what puts ArrowDown/Enter on the list while it is open and
           // gives them straight back to the document when it is not.
           autocompletion({ override: [referenceCompletions(references)] }),
+          // Pairs that close themselves (2026-08-19). After the completion so
+          // its Backspace and its keymap are the ones already in place, and
+          // internally in front of CodeMirror's own bracket handler — the
+          // reason is written at the top of the module.
+          autoClose,
           EditorView.lineWrapping,
           placeholderExt(placeholder),
           editable.of(EditorState.readOnly.of(readOnly)),

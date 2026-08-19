@@ -27,15 +27,36 @@ const LIMIT = 20;
 const matches = (haystack, needle) =>
   String(haystack).toLowerCase().includes(needle.toLowerCase());
 
+/// Writes the picked reference, and eats a `]]` the bracket-closing already
+/// put to the right of the caret (`services/autoClose.js`, 2026-08-19).
+///
+/// A picked option writes the WHOLE reference, brackets included — so with
+/// `[[` now typed as two keystrokes that leave `[[|]]`, a plain string `apply`
+/// replaced only up to the caret and the note ended up holding
+/// `[[/foto.jpg]]]]`. The closing brackets are read off the document at the
+/// moment of picking rather than assumed, because the caret may equally be
+/// sitting in a `[[…]]` the user typed out by hand.
+function writes(text) {
+  return (view, _completion, from, to) => {
+    const after = view.state.sliceDoc(to, to + 2);
+    const extra = after === "]]" ? 2 : after.startsWith("]") ? 1 : 0;
+    view.dispatch({
+      changes: { from, to: to + extra, insert: text },
+      selection: { anchor: from + text.length },
+      userEvent: "input.complete",
+    });
+  };
+}
+
 /// CodeMirror's completion source for `[[`.
 ///
 /// Built with its two answers rather than importing them, for the same reason
 /// the embeds are: so the rule can be tested without a bridge.
 export function referenceCompletions({ notes, files } = {}) {
   return async (context) => {
-    // Everything between `[[` and the cursor. A closing `]]` already to the
-    // right is left alone — a picked option replaces only what was typed, and
-    // writes its own pair.
+    // Everything between `[[` and the cursor. What sits to the RIGHT of it is
+    // not matched here — a `]]` there is the auto-closing's, and `writes()`
+    // above is what takes it back when an option is picked.
     const open = context.matchBefore(/\[\[[^[\]\n]*/);
     if (!open) return null;
     const typed = open.text.slice(2);
@@ -75,7 +96,7 @@ async function fileOptions(files, typed) {
       type: asset.image ? "image" : "file",
       // What picking one writes comes from the module that OWNS the syntax —
       // a second copy of it here is the drift this app keeps designing out.
-      apply: embedMarkdown(asset.path),
+      apply: writes(embedMarkdown(asset.path)),
     }));
 }
 
@@ -88,7 +109,7 @@ async function noteOptions(notes, typed) {
     label: note.title,
     detail: note.space || undefined,
     type: "text",
-    apply: noteMarkdown(note.title),
+    apply: writes(noteMarkdown(note.title)),
   }));
 }
 

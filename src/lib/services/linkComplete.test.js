@@ -37,6 +37,27 @@ const notes = [
 const source = (extra = {}) =>
   referenceCompletions({ files: () => library, notes: () => notes, ...extra });
 
+/// What picking an option writes into a document.
+///
+/// `apply` is a FUNCTION now, not a string: with `[[` auto-closing to
+/// `[[|]]` (services/autoClose.js), picking has to take the waiting `]]` back
+/// as well as write the reference. So the test drives it the way CodeMirror
+/// does — against a real document — instead of reading a string off the
+/// option, which is what it used to do and what stopped saying anything.
+function picking(option, from, doc = "", to = doc.length) {
+  const parent = document.createElement("div");
+  document.body.appendChild(parent);
+  const view = new EditorView({
+    parent,
+    state: EditorState.create({ doc, selection: { anchor: to } }),
+  });
+  option.apply(view, option, from, to);
+  const written = view.state.doc.toString();
+  view.destroy();
+  parent.remove();
+  return written;
+}
+
 describe("when the list appears at all", () => {
   it("only inside an open reference", async () => {
     expect(await source()(context("texto solto"))).toBeNull();
@@ -61,7 +82,15 @@ describe("the two namespaces", () => {
 
   it("narrows the library as more is typed, ignoring case", async () => {
     const { options } = await source()(context("[[/FOT"));
-    expect(options.map((o) => o.apply)).toEqual(["[[/foto.jpg]]"]);
+    expect(options.map((o) => o.label)).toEqual(["/foto.jpg"]);
+    expect(picking(options[0], 0, "[[/FOT")).toBe("[[/foto.jpg]]");
+  });
+
+  it("picking takes back the `]]` the auto-closing left waiting", async () => {
+    // Without this the note held `[[/foto.jpg]]]]`: the option writes the
+    // whole reference, and the closing pair was already sitting there.
+    const { options } = await source()(context("[[/fo"));
+    expect(picking(options[0], 0, "[[/fo]]", 5)).toBe("[[/foto.jpg]]");
   });
 
   it("asks the notebook's search for notes, and writes the title", async () => {
@@ -69,7 +98,7 @@ describe("the two namespaces", () => {
     const { options } = await source({ notes: asked })(context("[[guard"));
 
     expect(asked).toHaveBeenCalledWith("guard");
-    expect(options[0].apply).toBe("[[Guardiões do império]]");
+    expect(picking(options[0], 0, "[[guard")).toBe("[[Guardiões do império]]");
     expect(options[0].detail).toBe("Notes");
   });
 
