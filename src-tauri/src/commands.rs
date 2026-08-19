@@ -101,7 +101,11 @@ impl NotebookInfo {
                 tasks_folder: jott_core::TASKS_DIR.to_string(),
                 completed_name: jott_core::COMPLETED_LIST.to_string(),
                 notes_folder: jott_core::NOTES_DIR.to_string(),
-                notes_inbox: String::new(),
+                // The core's name, never a mirror: this used to be hard-coded
+                // to "" and every note the Home created landed in the space's
+                // ROOT instead of the Inbox the spec (and the config default)
+                // point at.
+                notes_inbox: jott_core::notefolder::NOTES_INBOX.to_string(),
                 date_display_format: notebook
                     .config()
                     .date_display_format

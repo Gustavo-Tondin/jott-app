@@ -877,6 +877,9 @@ fn the_snapshot_answers_everything_in_one_call() {
     assert_eq!(snap["info"]["lists"], json!([{"path": "jott.tasks/Compras.md", "name": "Compras", "space": "Tasks"}, {"path": "jott.tasks/completed.md", "name": "completed", "space": "Tasks"}, {"path": "jott.tasks/task-list.md", "name": "task-list", "space": "Tasks"}]));
     assert_eq!(snap["info"]["layout"]["inbox"], "jott.tasks/task-list.md");
     assert_eq!(snap["info"]["layout"]["completed"], "jott.tasks/completed.md");
+    // The core's folder name, never "" — an empty one sent every note the
+    // Home created into the space's root instead of the Inbox.
+    assert_eq!(snap["info"]["layout"]["notesInbox"], "Inbox");
     assert_eq!(snap["counts"]["jott.tasks/Compras.md"], json!(1));
     assert_eq!(snap["conflicts"].as_array().unwrap().len(), 1);
     assert_eq!(snap["clock"]["today"].as_str().unwrap().len(), 10);
