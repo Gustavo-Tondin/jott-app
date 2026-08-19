@@ -4,5 +4,5 @@
   "description": "Permissions the Jott webview needs on mobile. The desktop capability cannot be reused: it asks for window commands (start-dragging, minimize, toggle-maximize) that only exist where a window can be moved, and requesting them here fails the build. What is left is the same principle as on desktop — the webview never touches the filesystem itself, it goes through the app's own Rust commands.",
   "platforms": ["android", "iOS"],
   "windows": ["main"],
-  "permissions": ["core:default", "dialog:allow-open"]
+  "permissions": ["core:default"]
 }
