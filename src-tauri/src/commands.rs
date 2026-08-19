@@ -423,7 +423,11 @@ pub fn list_folders(path: Option<String>) -> CommandResult<FolderListing> {
 /// containment rule can be tested against a temporary folder rather than
 /// against whatever `$HOME` happens to be on the machine running the tests.
 fn listing_in(root: &Path, path: Option<String>) -> CommandResult<FolderListing> {
-    let root = root.to_path_buf();
+    // Canonicalized so the containment check below compares like with like:
+    // on Windows `canonicalize` returns a verbatim path (`\\?\C:\...`), and a
+    // verbatim path never starts_with a non-verbatim one — every candidate
+    // would silently land back on the root (caught by CI, 2026-08-19).
+    let root = root.canonicalize().unwrap_or_else(|_| root.to_path_buf());
     let at = match path {
         Some(path) => {
             let candidate = PathBuf::from(path);
@@ -2428,7 +2432,10 @@ mod tests {
 
             let at = dir.path().join("Documents");
             let listing = listing_in(dir.path(), Some(at.to_string_lossy().into_owned())).unwrap();
-            assert_eq!(listing.parent.as_deref(), dir.path().to_str());
+            // Canonicalized on both sides: the browser answers canonical
+            // paths, and on Windows those carry the verbatim prefix.
+            let root = dir.path().canonicalize().unwrap();
+            assert_eq!(listing.parent.as_deref(), root.to_str());
         }
 
         #[test]
@@ -2460,7 +2467,11 @@ mod tests {
 
             let made = create_folder_in(dir.path(), at.clone(), " Notebook ").unwrap();
             assert!(dir.path().join("Documents/Notebook").is_dir());
-            assert_eq!(made, dir.path().join("Documents/Notebook").to_string_lossy());
+            // Canonical on both sides — see the parent assertion above. And
+            // compared as paths, not strings: Path equality goes through
+            // components, which is what forgives `\` vs `/` on Windows.
+            let expected = dir.path().canonicalize().unwrap().join("Documents").join("Notebook");
+            assert_eq!(PathBuf::from(&made), expected);
 
             for bad in ["../escaped", "a/b", "..", ""] {
                 let error = create_folder_in(dir.path(), at.clone(), bad).unwrap_err();
