@@ -1337,16 +1337,18 @@ fn fetch_image(url: &str) -> CommandResult<(String, Vec<u8>)> {
 /// anything the app cannot draw — the same closed list the core keeps, for
 /// the same reason: an address the app wrote must be one it can show.
 fn image_extension(content_type: &str) -> Option<&'static str> {
-    Some(match content_type {
-        "image/png" => "png",
-        "image/jpeg" | "image/jpg" => "jpg",
-        "image/gif" => "gif",
-        "image/webp" => "webp",
-        "image/svg+xml" => "svg",
-        "image/avif" => "avif",
-        "image/bmp" => "bmp",
-        _ => return None,
-    })
+    // The two subtypes whose conventional extension is not the subtype
+    // itself; everything else is answered by the core's closed list, so a
+    // format added there is accepted here without a second list to update.
+    let extension = match content_type.strip_prefix("image/")? {
+        "jpeg" | "jpg" => "jpg",
+        "svg+xml" => "svg",
+        other => other,
+    };
+    jott_core::assets::IMAGE_EXTENSIONS
+        .iter()
+        .find(|known| **known == extension)
+        .copied()
 }
 
 /// A name for the file, from the last readable piece of the address.
@@ -2185,8 +2187,6 @@ pub fn completed_tasks(
 }
 
 fn spaces_of(nb: &Notebook) -> CommandResult<Vec<SpaceInfo>> {
-    const FIXED: [&str; 3] = [jott_core::HOME_DIR, jott_core::TASKS_DIR, jott_core::NOTES_DIR];
-
     let mut out = Vec::new();
     for space in nb.spaces()? {
         let path = space
@@ -2201,7 +2201,9 @@ fn spaces_of(nb: &Notebook) -> CommandResult<Vec<SpaceInfo>> {
             name: space.display_name().to_string(),
             kind: space.kind().to_string(),
             known: space.config.is_known(),
-            fixed: FIXED.contains(&space.folder_name()),
+            // The core's rule, not a second list: it is also what enforces
+            // the protection this flag lets the UI draw (greyed-out delete).
+            fixed: Notebook::is_fixed_space(space.folder_name()),
             read_only: space.config.is_read_only(),
             color: space.config.color.clone(),
             icon: space.config.icon.clone(),
