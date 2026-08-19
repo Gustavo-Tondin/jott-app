@@ -54,20 +54,61 @@ describe("FormatBar", () => {
 
 // ---- the narrow bar (2026-08-19, wireframes "Format panel") ----
 //
-// It is NOT the column with a scrollbar: nineteen glyphs do not fit on a phone
-// and a bar you have to scroll to reach bold is a bar nobody uses. Two of its
-// buttons are openers, and what they hold is the rest.
+// It is NOT the column with a scrollbar: twenty-three glyphs do not fit on a
+// phone and a bar you have to scroll to reach bold is a bar nobody uses. It
+// draws one glyph per category and folds the category behind it.
 describe("FormatBar, narrow", () => {
   const row = (onRun = () => {}) =>
     render(FormatBar, { props: { onRun, layout: "row" } });
 
-  it("shows nine buttons, two of which open a group", () => {
+  const editorCommands = COMMANDS.filter((c) => c.scope === "editor" && c.icon);
+  const groups = [...new Set(editorCommands.map((c) => c.group))];
+
+  it("shows one button per category, undoing drawn flat", () => {
     const { container } = row();
-    expect(container.querySelectorAll(".format-bar__button").length).toBe(9);
+    // The five folds, plus undo and redo, which are two and so stay flat.
+    expect(container.querySelectorAll(".format-bar__button").length).toBe(
+      groups.length - 1 + 2,
+    );
     expect(screen.getByLabelText("Text style")).toBeTruthy();
     expect(screen.getByLabelText("Heading")).toBeTruthy();
+    expect(screen.getByLabelText("Block")).toBeTruthy();
+    expect(screen.getByLabelText("List")).toBeTruthy();
+    expect(screen.getByLabelText("Insert")).toBeTruthy();
     // Folded, not dropped: bold is not on the bar itself.
     expect(screen.queryByTitle("Bold [Ctrl+B]")).toBeNull();
+  });
+
+  // The report that caused this shape (2026-08-19): the bar named nine commands
+  // by hand, so the six it did not name — outdent, quote, rule, ordered list,
+  // task list, link to a note — could not be reached on a phone AT ALL. What
+  // the column holds, the bar holds.
+  it("reaches every command the column draws, flat or folded", async () => {
+    const { container } = row();
+    const openers = [...container.querySelectorAll('[aria-expanded]')];
+    const reached = new Set(
+      [...container.querySelectorAll(".format-bar__button")]
+        .filter((b) => !b.hasAttribute("aria-expanded"))
+        .map((b) => b.getAttribute("aria-label")),
+    );
+    for (const opener of openers) {
+      await userEvent.click(opener);
+      // The unfolded panel is PORTALED out of the bar (`keepOnScreen`), so it
+      // is not under `container` — it hangs off the body.
+      for (const button of document.querySelectorAll(
+        ".format-bar__panel .format-bar__button",
+      )) {
+        reached.add(button.getAttribute("aria-label"));
+      }
+    }
+    for (const command of editorCommands) {
+      const chord = command.keys;
+      const label = command.label();
+      expect(
+        [...reached].some((seen) => seen === label || seen.startsWith(`${label} [`)),
+        `${command.id} (${label}${chord ? ` ${chord}` : ""}) is unreachable`,
+      ).toBe(true);
+    }
   });
 
   it("an opener unfolds its group, and running one closes it again", async () => {
@@ -91,7 +132,7 @@ describe("FormatBar, narrow", () => {
     expect(screen.queryByTitle("Bold [Ctrl+B]")).toBeNull();
   });
 
-  it("draws no category rules — nine glyphs are not nineteen", () => {
+  it("draws no category rules — each category is already one glyph", () => {
     const { container } = row();
     expect(container.querySelectorAll(".format-bar__divider").length).toBe(0);
   });
@@ -116,7 +157,7 @@ describe("FormatBar and the focus", () => {
       props: { onRun: () => {}, layout: "row" },
     });
     const buttons = [...container.querySelectorAll(".format-bar__button")];
-    expect(buttons.length).toBe(9);
+    expect(buttons.length).toBeGreaterThan(0);
     for (const button of buttons) {
       expect(pressing(button), button.getAttribute("aria-label")).toBe(true);
     }
@@ -139,6 +180,7 @@ describe("FormatBar and the focus", () => {
     // Cancelling the default takes the focus away, not the click.
     const asked = [];
     render(FormatBar, { props: { onRun: (id) => asked.push(id), layout: "row" } });
+    await userEvent.click(screen.getByLabelText("List"));
     await userEvent.click(screen.getByTitle("Bullet list [Ctrl+Shift+8]"));
     expect(asked).toEqual(["md.bullet"]);
   });

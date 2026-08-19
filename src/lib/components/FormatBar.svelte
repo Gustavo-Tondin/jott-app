@@ -15,13 +15,20 @@
   //
   // THE TWO SHAPES ARE NOT THE SAME LIST (wireframes "Format panel",
   // 2026-08-19). The column shows every glyph, in rows by category. A narrow
-  // bar has room for nine, so two of its buttons are OPENERS: `A` holds the
-  // marks and `H` holds the six headings, in a panel that floats above the
-  // bar. Folded, not dropped — everything is still one tap away, and the bar
-  // stays one line, because a second row would eat the little of the document
-  // a phone still shows.
+  // bar has no room for twenty-three, so it draws ONE glyph per category and
+  // folds the category behind it, in a panel that floats above the bar.
+  //
+  // Folded, not dropped, and that distinction is the whole point of this round
+  // (user report, 2026-08-19: "faltam diversos botões" — the bar used to fold
+  // two categories and simply LEAVE OUT six commands of the other four, which
+  // read as a bar that had lost buttons). What the column holds, the bar holds;
+  // the bar just holds it one tap deeper. It stays one line, because a second
+  // row would eat the little of the document a phone still shows.
+  //
+  // A category of one or two glyphs is drawn FLAT — undoing is the only one
+  // today. A fold that holds two buttons costs a tap and saves none.
   import Icon from "./Icon.svelte";
-  import { COMMANDS, commandById } from "../services/commands.js";
+  import { COMMANDS } from "../services/commands.js";
   import { bound } from "../services/shortcuts.js";
   import { formatChord } from "../services/keys.js";
   import { dismissable } from "../actions/dismissable.js";
@@ -49,28 +56,30 @@
   /// writing, not a mirror of the list.
   const shown = COMMANDS.filter((command) => command.scope === "editor" && command.icon);
 
-  /// The two folded groups, and what opens each.
+  /// The folded groups, and what opens each. A group named here folds; one
+  /// that is not is drawn flat, which is both right for `history` (two glyphs)
+  /// and the safe default for a category added later.
   const FOLDED = {
     mark: { icon: "marks", label: () => S.formatMarks },
     heading: { icon: "headings", label: () => S.formatHeadings },
+    block: { icon: "blocks", label: () => S.formatBlocks },
+    list: { icon: "lists", label: () => S.formatLists },
+    insert: { icon: "inserts", label: () => S.formatInsert },
   };
 
   const inGroup = (group) => shown.filter((command) => command.group === group);
 
-  /// What the narrow bar draws, in the wireframe's order: undo and redo, the
-  /// one indent that earns its place, the two openers, and the four inserts a
-  /// note reaches for most.
-  const NARROW = [
-    "edit.undo",
-    "edit.redo",
-    "md.indent",
-    { fold: "mark" },
-    { fold: "heading" },
-    "md.bullet",
-    "md.code",
-    "md.link",
-    "md.attach",
-  ].map((item) => (typeof item === "string" ? commandById(item) : item));
+  /// Every category the panel draws, in the order the narrow bar puts them:
+  /// undoing first (the wireframe's lead), then the registry's own.
+  ///
+  /// DERIVED, not written out — that is what makes "the bar holds everything
+  /// the column holds" true by construction rather than by someone remembering
+  /// to add a line here. The old list named nine commands by hand, and the six
+  /// it did not name were unreachable on a phone.
+  const CATEGORIES = [...new Set(shown.map((command) => command.group))];
+  const NARROW = ["history", ...CATEGORIES.filter((group) => group !== "history")]
+    .filter((group) => CATEGORIES.includes(group))
+    .flatMap((group) => (FOLDED[group] ? [{ fold: group }] : inGroup(group)));
 
   let items = $derived(layout === "column" ? shown : NARROW);
 
@@ -81,8 +90,8 @@
   /// Where a rule goes: between two commands of different `group` (user call,
   /// 2026-08-18). Read from the registry rather than written out here, so a
   /// command added there lands in its own category without this file knowing
-  /// the categories at all. The narrow bar has none — it is nine glyphs, not
-  /// nineteen, and a rule between every other one is noise.
+  /// the categories at all. The narrow bar has none — there each category is
+  /// already ONE glyph, so a rule between every button would be noise.
   const startsGroup = (index) =>
     layout === "column" && index > 0 && items[index].group !== items[index - 1].group;
 
@@ -169,7 +178,7 @@
                panel that cleared only the button opened inside the bar's own
                padding, 4px under its edge (user report, 2026-08-19). It stays
                lined up with the button in the other axis, which is what says
-               which of the two openers the panel belongs to. -->
+               which of the openers the panel belongs to. -->
           <div
             class="format-bar__panel"
             data-region={region}

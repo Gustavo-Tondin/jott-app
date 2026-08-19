@@ -90,6 +90,16 @@ import arrowArcRight from "../../assets/icons/phosphor/regular/arrow-arc-right.s
 import textH from "../../assets/icons/phosphor/regular/text-h.svg?raw";
 import textAUnderline from "../../assets/icons/phosphor/regular/text-a-underline.svg?raw";
 
+// The narrow bar folds EVERY category, not two of them (user report,
+// 2026-08-19: "faltam diversos botões"). Three more openers, each named after
+// what it holds: a paragraph for the shapes a block takes, a plain list for the
+// three list kinds, and a plus for what is put INTO the note. None of the three
+// repeats a glyph a command already wears — an opener that looked like `bullet`
+// would read as the command itself.
+import paragraph from "../../assets/icons/phosphor/regular/paragraph.svg?raw";
+import listDashes from "../../assets/icons/phosphor/regular/list-dashes.svg?raw";
+import plusCircle from "../../assets/icons/phosphor/regular/plus-circle.svg?raw";
+
 export const ICONS = {
   // weighted variants
   "x-bold": xBold,
@@ -161,4 +171,7 @@ export const ICONS = {
   redo: arrowArcRight,
   headings: textH,
   marks: textAUnderline,
+  blocks: paragraph,
+  lists: listDashes,
+  inserts: plusCircle,
 };

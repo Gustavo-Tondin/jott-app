@@ -234,10 +234,13 @@ export const S = {
   cmdAttach: "Insert a file",
   cmdUndo: "Undo",
   cmdRedo: "Redo",
-  // What the two openers of the narrow bar say. They open nothing but more
+  // What the openers of the narrow bar say. They open nothing but more
   // buttons, so they are named after what is INSIDE them.
   formatMarks: "Text style",
   formatHeadings: "Heading",
+  formatBlocks: "Block",
+  formatLists: "List",
+  formatInsert: "Insert",
 
   // Settings (phase 9)
   settings: "Settings",
