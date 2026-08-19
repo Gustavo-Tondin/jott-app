@@ -3,6 +3,7 @@
   // hamburger. Lists what was deleted and restores it (reestruturação
   // 2026-07-30). Items clear on their own after the retention window.
   import { api } from "../services/api.js";
+  import { makeAct, makeLoad } from "../services/act.js";
   import { S } from "../services/strings.js";
   import { formatDate } from "../services/dates.js";
 
@@ -15,23 +16,21 @@
     load();
   });
 
-  async function load() {
-    try {
-      entries = await api.trashEntries();
-    } catch (e) {
-      onError?.(e);
-    }
-  }
+  const load = makeLoad({
+    read: () => api.trashEntries(),
+    apply: (read) => (entries = read),
+    onError: (e) => onError?.(e),
+  });
 
-  async function restore(id) {
-    try {
-      await api.restoreFromTrash(id);
-      await load();
-      onChanged?.();
-    } catch (e) {
-      onError?.(e);
-    }
-  }
+  const act = makeAct({
+    load,
+    // Wrapped, not passed: `act` is built once, and the props may be
+    // replaced (services/act.js).
+    onChanged: () => onChanged?.(),
+    onError: (e) => onError?.(e),
+  });
+
+  const restore = (id) => act(() => api.restoreFromTrash(id));
 </script>
 
 <section class="trash-view">

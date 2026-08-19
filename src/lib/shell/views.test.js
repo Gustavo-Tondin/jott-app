@@ -16,14 +16,21 @@ describe("viewFromId", () => {
       { kind: "notes" },
       { kind: "settings" },
       { kind: "completed" },
-      { kind: "period", period: "day" },
-      { kind: "period", period: "week" },
       { kind: "list", list: "Design/Tasks/task-list.md" },
       { kind: "space", sp: "Design/Tasks" },
     ];
     for (const view of views) {
       expect(viewFromId(viewId(view))).toEqual(view);
     }
+  });
+
+  test("a legacy day/week id opens the Tasks screen, not the Completed", () => {
+    // Today and This Week stopped being views of their own when they became
+    // sub-tabs of the Tasks screen. A session remembered on one of the old
+    // ids used to come back as {kind: "period"}, which no screen branch
+    // handled — the {:else} fell to the Completed view.
+    expect(viewFromId("day")).toEqual({ kind: "tasks" });
+    expect(viewFromId("week")).toEqual({ kind: "tasks" });
   });
 
   test("an id this build does not know means nothing, not the Home", () => {
@@ -45,12 +52,6 @@ describe("reachable", () => {
       false,
     );
     expect(reachable({ kind: "tags" }, off("taskTags"))).toBe(false);
-  });
-
-  test("Today and This Week answer to their own switches", () => {
-    expect(reachable({ kind: "period", period: "day" }, off("myDay"))).toBe(false);
-    expect(reachable({ kind: "period", period: "day" }, off("week"))).toBe(true);
-    expect(reachable({ kind: "period", period: "week" }, off("week"))).toBe(false);
   });
 
   test("Home and Settings are always somewhere to be", () => {

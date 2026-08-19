@@ -9,12 +9,12 @@
 // list}`, `{kind: "note", folder, path}`, and so on. Tabs add no vocabulary
 // of their own; they just hold views.
 
+import { movedItem } from "../services/spaceOrder.js";
+
 /// Stable identity of a view, used to tell "already open" from "open again".
 export function viewId(view) {
   if (!view) return "";
   switch (view.kind) {
-    case "period":
-      return view.period;
     case "list":
       return `list:${view.list}`;
     case "note":
@@ -99,9 +99,7 @@ export function move(tabs, active, from, to) {
   if (from === to || from < 0 || to < 0 || from >= tabs.length || to >= tabs.length) {
     return { tabs, active };
   }
-  const next = [...tabs];
-  const [moved] = next.splice(from, 1);
-  next.splice(to, 0, moved);
+  const next = movedItem(tabs, from, to);
 
   // Follow the tab the user was on, wherever it ended up.
   let at = active;

@@ -56,7 +56,6 @@ import lightbulb from "../../assets/icons/phosphor/regular/lightbulb.svg?raw";
 // a picture leaves when it is missing — the same grey square the wireframes
 // draw on a card whose banner is an image.
 import image from "../../assets/icons/phosphor/regular/image.svg?raw";
-import images from "../../assets/icons/phosphor/regular/images.svg?raw";
 
 // Writing Markdown by keyboard and by the formatting panel (2026-08-18). The
 // six heading glyphs are one icon each rather than a number in a box: Phosphor
@@ -144,7 +143,6 @@ export const ICONS = {
   list,
   "magnifying-glass": magnifyingGlass,
   image,
-  images,
   // markdown
   bold: textB,
   italic: textItalic,

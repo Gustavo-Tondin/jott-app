@@ -13,19 +13,15 @@
 // else the rule is the plain one: the notes of this folder, and a card for
 // each folder directly inside it.
 
+import { folderOf, leafOf } from "./paths.js";
+
 /// How many notes a folder card draws inside itself. Four, as the wireframe
 /// draws — two rows of two, which is what fits the card's height without the
 /// mini cards becoming unreadable slivers.
 export const GROUP_PREVIEW = 4;
 
-/// The parent of a folder address, `""` at the top level.
-const parentOf = (path) => {
-  const cut = path.lastIndexOf("/");
-  return cut < 0 ? "" : path.slice(0, cut);
-};
-
-/// The last segment of a folder address — what the card is called.
-const leafOf = (path) => path.slice(path.lastIndexOf("/") + 1);
+// The address arithmetic is paths.js's (`folderOf`/`leafOf`) — this module
+// had re-derived both before the catalogue grew the second half.
 
 /// The board at `current` (`""` or null = the space's root).
 ///
@@ -51,7 +47,7 @@ export function board(notes = [], folders = [], current = "", inbox = "Inbox") {
   const groups = folders
     .filter(
       (folder) =>
-        parentOf(folder.path) === here && !(here === "" && folder.path === inboxName),
+        folderOf(folder.path) === here && !(here === "" && folder.path === inboxName),
     )
     .map((folder) => ({
       path: folder.path,
@@ -72,6 +68,6 @@ export function board(notes = [], folders = [], current = "", inbox = "Inbox") {
   return {
     cards: notes.filter(loose),
     groups,
-    parent: here === "" ? null : parentOf(here),
+    parent: here === "" ? null : folderOf(here),
   };
 }

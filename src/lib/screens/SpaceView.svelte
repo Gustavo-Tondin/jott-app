@@ -4,7 +4,7 @@
   // with the component for the type; an unknown type still renders, as the
   // unsupported card, with the folder left untouched (spec 3.5).
   import { S } from "../services/strings.js";
-  import { spaceComponent } from "../spaces/registry.js";
+  import { sourceOf, spaceComponent } from "../spaces/registry.js";
 
   let {
     space,
@@ -12,7 +12,6 @@
     // in one (services/spaceColors.js). Never `space.color` directly.
     color = null,
     lists = [],
-    counts = {},
     tags = [],
     completedName = "completed",
     notesInbox = "Inbox",
@@ -35,7 +34,6 @@
     readOnly = false,
     reloadKey = 0,
     selectedTask = null,
-    onOpenList,
     onOpenNote,
     onSelectTask,
     // Persist the space's arrangement in its own `.space.json`.
@@ -45,18 +43,11 @@
     onError,
   } = $props();
 
-  // The space, in the shape the tasks/notes screens read: the folder is
-  // the space's own root-relative path, and the NAME is the space's own — the
-  // screen titles itself with it (2026-08-18), so the row that names the place
-  // and the row that carries its ⋮ are one row, as the wireframes draw them.
-  let source = $derived({
-    kind: space.kind,
-    known: space.known,
-    folder: space.path,
-    name: space.name,
-    sort: space.sort ?? null,
-    order: space.order ?? [],
-  });
+  // The space, in the shape the tasks/notes screens read. The NAME is the
+  // space's own — the screen titles itself with it (2026-08-18), so the row
+  // that names the place and the row that carries its ⋮ are one row, as the
+  // wireframes draw them.
+  let source = $derived(sourceOf(space));
 
   let Screen = $derived(spaceComponent(space.kind));
 
@@ -95,7 +86,6 @@
     <Screen
       {source}
       {lists}
-      {counts}
       {tags}
       {completedName}
       {notesInbox}
@@ -112,7 +102,6 @@
       readOnly={readOnly || space.readOnly}
       {reloadKey}
       {selectedTask}
-      {onOpenList}
       {onOpenNote}
       {onSelectTask}
       onSetSort={onSetSpaceSort}

@@ -34,6 +34,7 @@
 import { RangeSetBuilder, StateEffect, StateField } from "@codemirror/state";
 import { Decoration, EditorView, WidgetType } from "@codemirror/view";
 import { ASSETS_DIR, isImage } from "./assets.js";
+import { leafOf } from "./paths.js";
 import { activeLines } from "./markdown.js";
 
 /// Anything in double brackets. Which of the two it is, is the slash.
@@ -41,7 +42,7 @@ const REFERENCE = /\[\[([^[\]\n]+)\]\]/g;
 
 /// The text a note carries for a file of the library.
 export function embedMarkdown(address) {
-  const name = String(address ?? "").split("/").pop() ?? "";
+  const name = leafOf(String(address ?? ""));
   return name ? `[[/${name}]]` : "";
 }
 
@@ -66,7 +67,7 @@ export function noteMarkdown(title) {
 /// screen offers to copy (user call, 2026-08-19): the piece you paste between
 /// a pair of brackets, not the folder it happens to live in.
 export function referenceName(address) {
-  const name = String(address ?? "").split("/").pop() ?? "";
+  const name = leafOf(String(address ?? ""));
   return name ? `/${name}` : "";
 }
 

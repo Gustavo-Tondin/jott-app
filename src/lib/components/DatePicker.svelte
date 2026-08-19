@@ -9,7 +9,7 @@
   // It speaks the same contract the field always spoke: `value` is an ISO string
   // (or ""), and `onChange(iso)` fires when a day is chosen. Clearing stays the
   // caller's job (the inspector keeps its own × for that).
-  import { formatDate } from "../services/dates.js";
+  import { formatDate, toIso } from "../services/dates.js";
   import { S } from "../services/strings.js";
   import Icon from "./Icon.svelte";
   import { dismissable } from "../actions/dismissable.js";
@@ -36,10 +36,7 @@
     const [y, m, d] = iso.split("-").map(Number);
     return new Date(y, m - 1, d);
   }
-  function toIso(y, m, d) {
-    const pad = (n) => String(n).padStart(2, "0");
-    return `${y}-${pad(m + 1)}-${pad(d)}`;
-  }
+  const isoOf = (y, m, d) => toIso(new Date(y, m, d));
 
   function seed() {
     const base = value ? parseIso(value) : new Date();
@@ -64,7 +61,7 @@
   }
 
   function choose(day) {
-    onChange?.(toIso(viewYear, viewMonth, day));
+    onChange?.(isoOf(viewYear, viewMonth, day));
     close();
   }
 
@@ -84,7 +81,7 @@
     viewYear === now.getFullYear() &&
     viewMonth === now.getMonth() &&
     d === now.getDate();
-  const isSelected = (d) => d && value === toIso(viewYear, viewMonth, d);
+  const isSelected = (d) => d && value === isoOf(viewYear, viewMonth, d);
 
 </script>
 

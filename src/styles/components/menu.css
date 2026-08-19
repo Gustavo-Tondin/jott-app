@@ -19,6 +19,12 @@
   .menu__context {
     color: var(--theme-ink-faint);
   }
+  /* The tick of a choice group's chosen row. Rendered (empty) on the group's
+     other rows too, so the labels stay aligned. */
+  .menu__check {
+    display: inline-block;
+    inline-size: 1.125em;
+  }
   .menu__link {
     display: block;
     width: 100%;

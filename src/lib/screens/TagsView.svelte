@@ -5,7 +5,7 @@
   // hamburger.
   import { api } from "../services/api.js";
   import { S } from "../services/strings.js";
-  import { askName } from "../services/dialog.js";
+  import { askConfirm, askName } from "../services/dialog.js";
   import { makeAct } from "../services/act.js";
   import { accentColor } from "../services/accent.js";
   import AccentPicker from "../components/AccentPicker.svelte";
@@ -28,7 +28,17 @@
     });
 
   const setColor = (name, color) => act(() => api.setTag(name, color));
-  const remove = (name) => act(() => api.removeTag(name));
+  const remove = async (name) => {
+    // Not DELETING: removing a tag forgets its colour and nothing else — the
+    // shared "goes to the trash" detail would promise a trip that never
+    // happens (core: `remove_tag`).
+    const ok = await askConfirm(S.confirmDeleteTag(name), {
+      detail: S.tagTextStays,
+      danger: S.deleteAction,
+      remember: "confirmDeletes",
+    });
+    if (ok) act(() => api.removeTag(name));
+  };
 </script>
 
 <section class="tags-view">

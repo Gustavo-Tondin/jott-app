@@ -34,6 +34,11 @@
     onError,
   } = $props();
 
+  // Seeded once on purpose: the dialog owns the text from the moment it
+  // opens, and following the prop afterwards would overwrite what the user
+  // is typing. The ignore is the documented way to say "yes, first value
+  // only" (svelte.dev/e/state_referenced_locally).
+  // svelte-ignore state_referenced_locally
   let query = $state(initial);
   let results = $state({ tasks: [], notes: [], truncated: false });
   /// A query is in flight. Only used to keep the empty state honest: "nothing

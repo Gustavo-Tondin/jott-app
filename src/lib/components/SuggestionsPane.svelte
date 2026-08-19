@@ -17,7 +17,7 @@
   import { listName, splitLabel } from "../services/paths.js";
   import { formatDate } from "../services/dates.js";
   import { ensureTaskId } from "../services/taskId.js";
-  import { makeAct } from "../services/act.js";
+  import { makeAct, makeLoad } from "../services/act.js";
   import Icon from "./Icon.svelte";
 
   let {
@@ -45,13 +45,11 @@
     load();
   });
 
-  async function load() {
-    try {
-      suggestions = (await api.groupedSuggestions(period)) ?? [];
-    } catch (e) {
-      onError?.(e);
-    }
-  }
+  const load = makeLoad({
+    read: () => api.groupedSuggestions(period),
+    apply: (read) => (suggestions = read ?? []),
+    onError: (e) => onError?.(e),
+  });
 
   const act = makeAct({
     load,

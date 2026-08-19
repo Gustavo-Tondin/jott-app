@@ -2068,7 +2068,7 @@ describe("App", () => {
     // right-click menu since 2026-08-06 — a permanent button at the bottom of
     // the list read as one more entry. The menu names the two kinds outright
     // (user call, 2026-08-11): a list, or a notepad.
-    shell({ create_space: "My Project", notebook_snapshot: snapshot([aSpace]) });
+    shell({ create_space_in: "My Project", notebook_snapshot: snapshot([aSpace]) });
     render(App);
     await screen.findByText("Comprar leite");
 
@@ -2082,10 +2082,12 @@ describe("App", () => {
     await userEvent.type(within(dialog).getByRole("textbox"), "My Project");
     await userEvent.click(within(dialog).getByRole("button", { name: "Create" }));
 
+    // One door for both cases: at the root the group is simply null.
     await waitFor(() =>
-      expect(invoke).toHaveBeenCalledWith("create_space", {
+      expect(invoke).toHaveBeenCalledWith("create_space_in", {
         name: "My Project",
         kind: "tasks",
+        group: null,
       }),
     );
   });
@@ -2418,6 +2420,36 @@ describe("SpaceView", () => {
     });
   });
 
+  test("deleting picked tasks asks first, with the count", async () => {
+    // The same question a single delete asks (2026-08-19): bulk delete used
+    // to skip the confirm entirely.
+    bridge({
+      list_tasks: (args) =>
+        args.list.endsWith("completed.md")
+          ? []
+          : [task("a1", "Primeira"), task("b2", "Segunda")],
+      delete_task: {},
+    });
+    render(SpaceView, {
+      props: { space, lists, onSelectTask: noop, onChanged: noop },
+    });
+    await screen.findByText("Primeira");
+
+    await userEvent.click(screen.getByLabelText("space options"));
+    await userEvent.click(await screen.findByText("Select tasks…"));
+    await userEvent.click(screen.getByText("Primeira"));
+    await userEvent.click(screen.getByText("Segunda"));
+    await userEvent.click(screen.getByText("Delete"));
+
+    const asked = await answerConfirm();
+    expect(asked.title).toBe("Delete 2 tasks?");
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith(
+        "delete_task",
+        expect.objectContaining({ id: "a1" }),
+      ),
+    );
+  });
 });
 
 describe("App with a user space", () => {
@@ -2568,7 +2600,7 @@ const showFolders = async () => {
 };
 
 describe("NotesSpace", () => {
-  const source = { kind: "notes", folder: "Notes", invalidFolder: false, options: null };
+  const source = { kind: "notes", folder: "Notes", invalidFolder: false };
 
   const entry = (title, extra = {}) => ({
     path: `Inbox/${title}.md`,
@@ -3014,6 +3046,11 @@ describe("NotesSpace", () => {
     await userEvent.click(await screen.findByText("Ideia"));
     await userEvent.click(await screen.findByText("Outra"));
     await userEvent.click(screen.getByText("Delete"));
+
+    // Deleting twelve asks what deleting one asks (2026-08-19) — and the
+    // question carries the count.
+    const asked = await answerConfirm();
+    expect(asked.title).toBe("Delete 2 notes?");
 
     await waitFor(() =>
       expect(invoke).toHaveBeenCalledWith("delete_note", {
@@ -3659,7 +3696,7 @@ describe("NoteEditor", () => {
 });
 
 describe("NotesSpace folder management", () => {
-  const source = { kind: "notes", folder: "Notes", invalidFolder: false, options: null };
+  const source = { kind: "notes", folder: "Notes", invalidFolder: false };
 
   const props = (extra = {}) => ({
     source,

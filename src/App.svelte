@@ -42,6 +42,8 @@
   import SearchDialog from "./lib/components/SearchDialog.svelte";
   import SpaceView from "./lib/screens/SpaceView.svelte";
   import NotesSpace from "./lib/spaces/NotesSpace.svelte";
+  import { sourceOf } from "./lib/spaces/registry.js";
+  import { movedItem } from "./lib/services/spaceOrder.js";
   import NoteEditor from "./lib/components/NoteEditor.svelte";
   import FormatBar from "./lib/components/FormatBar.svelte";
   import NotePanel from "./lib/components/NotePanel.svelte";
@@ -57,11 +59,12 @@
   import { drawerSwipe } from "./lib/actions/drawerSwipe.js";
   import CaptureFab from "./lib/components/CaptureFab.svelte";
   import { clampWidth, SIDEBAR, PANEL } from "./lib/shell/sidebarWidth.js";
+  import { clampZoom, steppedZoom, zoomFontSize } from "./lib/shell/zoom.js";
   import ResizeHandles from "./lib/shell/ResizeHandles.svelte";
   import PanelResizer from "./lib/shell/PanelResizer.svelte";
   import Sidebar from "./lib/shell/Sidebar.svelte";
   import PageHeader from "./lib/shell/PageHeader.svelte";
-  import { folderOf, listName, listTitle } from "./lib/services/paths.js";
+  import { folderOf, leafOf, listName, listTitle } from "./lib/services/paths.js";
   import { formatDate } from "./lib/services/dates.js";
   import { spaceColors } from "./lib/services/spaceColors.js";
   import { ACCENTS, tagColors as tagColorMap } from "./lib/services/accent.js";
@@ -114,25 +117,23 @@
   /// True only while an edge is being dragged, so the widths can stop
   /// animating for the length of the gesture.
   let resizing = $state(false);
-  $effect(() => {
-    api.sidebarWidth().then((w) => (sidebarWidth = clampWidth(w, SIDEBAR)), () => {});
-    api.panelWidth().then((w) => (panelWidth = clampWidth(w, PANEL)), () => {});
-    // Clamped like the widths are, and for the same reason: a value
-    // hand-edited into the file must not leave the app unusable with no way
-    // back to a readable size.
-    api.zoom().then((z) => z && (zoom = clampZoom(z)), () => {});
-  });
+  // Plain calls, not an $effect: they read no reactive value, and an effect
+  // would silently start re-running the day someone reads state inside.
+  api.sidebarWidth().then((w) => (sidebarWidth = clampWidth(w, SIDEBAR)), () => {});
+  api.panelWidth().then((w) => (panelWidth = clampWidth(w, PANEL)), () => {});
+  // Clamped like the widths are, and for the same reason: a value
+  // hand-edited into the file must not leave the app unusable with no way
+  // back to a readable size.
+  api.zoom().then((z) => z && (zoom = clampZoom(z)), () => {});
 
   /// Which window buttons the desktop wants, and where. Read once: there is no
   /// live signal for it, and the fallback is the standard set, so the worst
   /// case is a restart after changing the setting.
   let windowButtons = $state(buttonLayout(null));
-  $effect(() => {
-    api.windowButtonLayout().then(
-      (layout) => (windowButtons = buttonLayout(layout)),
-      () => {},
-    );
-  });
+  api.windowButtonLayout().then(
+    (layout) => (windowButtons = buttonLayout(layout)),
+    () => {},
+  );
   /// Is the window too narrow for three columns side by side? The WIDTH
   /// question, and the only thing that decides the layout (shell/compact.js).
   /// It is measured once, here, so the top bar and the page header can never
@@ -200,9 +201,7 @@
   /// buttons, resize edges, system bars). See shell/platform.js.
   let platform = $state(platformAttribute(null));
   let mobile = $derived(isMobile(platform));
-  $effect(() => {
-    api.platform().then((answer) => (platform = platformAttribute(answer)), () => {});
-  });
+  api.platform().then((answer) => (platform = platformAttribute(answer)), () => {});
 
   /// What the open note reports about itself, for the page header and menu.
   let openNote = $state({ pinned: false, title: "", banner: null });
@@ -293,22 +292,13 @@
   };
 
   // ---- zoom (Ctrl+= / Ctrl+- / Ctrl+0) ----
-  // One `font-size` on the root scales the whole interface, because every
-  // measure in the design system is `rem` — no component knows this happened.
-  // It is a MACHINE preference, like the sidebar's width (0.9.0): it answers
-  // to a monitor and a pair of eyes, not to a notebook, so it does not travel
-  // with the files.
-  const ZOOM_STEPS = [0.8, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2];
+  // The ladder and its rules are shell/zoom.js's; what stays here is the
+  // wiring — the state, the root font-size, and the preference write.
   let zoom = $state(1);
 
   $effect(() => {
-    // 16px is the browser's own base, and the number every `rem` token was
-    // written against (`styles/tokens.css`).
-    document.documentElement.style.fontSize = zoom === 1 ? "" : `${16 * zoom}px`;
+    document.documentElement.style.fontSize = zoomFontSize(zoom);
   });
-
-  const clampZoom = (z) =>
-    Math.min(ZOOM_STEPS[ZOOM_STEPS.length - 1], Math.max(ZOOM_STEPS[0], z));
 
   function setZoom(next) {
     const clamped = clampZoom(next);
@@ -317,14 +307,7 @@
     api.rememberZoom(clamped).catch(() => {});
   }
 
-  /// One step along the ladder, in `direction`. A ladder rather than a
-  /// multiplier so the steps are the same going up and coming back down, and
-  /// so 100% is always reachable by pressing the key.
-  function zoomBy(direction) {
-    const at = ZOOM_STEPS.indexOf(zoom);
-    const from = at >= 0 ? at : ZOOM_STEPS.findIndex((z) => z >= zoom);
-    setZoom(ZOOM_STEPS[Math.min(ZOOM_STEPS.length - 1, Math.max(0, from + direction))]);
-  }
+  const zoomBy = (direction) => setZoom(steppedZoom(zoom, direction));
 
   /// Move between tabs by one, wrapping. Wrapping because a strip of tabs is
   /// a ring in every app that has one, and stopping at the end would make the
@@ -614,16 +597,8 @@
   let inboxSource = $derived.by(() => {
     const folder = folderOf(layout.inbox);
     const sp = spaces.find((sp) => sp.kind === "tasks" && sp.path === folder);
-    return sp
-      ? {
-          kind: sp.kind,
-          known: sp.known,
-          folder: sp.path,
-          name: null,
-          sort: sp.sort ?? null,
-          order: sp.order ?? [],
-        }
-      : null;
+    // `name: null` — the Tasks screen titles itself, not with the space.
+    return sp ? sourceOf(sp, { name: null }) : null;
   });
 
   /// Which tab of the Tasks screen is open, so the page header can read
@@ -752,7 +727,7 @@
     items: [
       ...ACCENTS.map((name) => ({
         label: S.colorName(name),
-        context: openNote.banner?.value === name ? "•" : undefined,
+        checked: openNote.banner?.value === name,
         run: () => setNoteBanner(name),
       })),
       { label: S.bannerImage, run: () => (pickingImage = "banner") },
@@ -797,7 +772,7 @@
           label: S.noteTextSize,
           items: NOTE_FONT_SIZES.map((size) => ({
             label: size.label(),
-            context: layout.noteFontSize === size.key ? "•" : undefined,
+            checked: layout.noteFontSize === size.key,
             run: () => setNoteFontSize(size.key),
           })),
         },
@@ -810,12 +785,12 @@
           items: [
             {
               label: S.formattingDocked,
-              context: formatting ? "✓" : undefined,
+              checked: formatting,
               run: () => (formatting = true),
             },
             {
               label: S.formattingFloating,
-              context: formatting ? undefined : "✓",
+              checked: !formatting,
               run: () => (formatting = false),
             },
           ],
@@ -1055,6 +1030,13 @@
   }
 
   const reload = () => (reloadKey += 1);
+  /// Both halves of "something changed elsewhere": the layout (sidebar,
+  /// counts) and whatever screen is open. Written three times before it had
+  /// a name.
+  const refreshAll = () => {
+    refreshNotebook();
+    reload();
+  };
 
   // One round trip instead of four: the auto-save calls this on every pause
   // in typing, so the fan-out was the hottest path in the app.
@@ -1146,19 +1128,13 @@
   // Sidebar drag-to-reorder (the shared `reorderable` action reports from→to).
   // The order is a notebook preference kept in the config, never a change to
   // the files: lists and spaces sort by it, everything else stays put.
-  const moveItem = (arr, from, to) => {
-    const next = [...arr];
-    const [x] = next.splice(from, 1);
-    next.splice(to, 0, x);
-    return next;
-  };
 
   const reorderLists = (from, to) =>
     canWrite() &&
     change(() =>
       api.setOrder(
         `lists:${layout.tasksFolder}`,
-        moveItem(
+        movedItem(
           userLists.map((l) => l.name),
           from,
           to,
@@ -1207,10 +1183,7 @@
     );
     if (!name?.trim()) return;
     change(
-      () =>
-        group
-          ? api.createSpaceIn(name.trim(), kind, group)
-          : api.createSpace(name.trim(), kind),
+      () => api.createSpaceIn(name.trim(), kind, group),
       (folder) => openTab({ kind: "space", sp: folder }),
     );
   }
@@ -1921,26 +1894,31 @@
             />
           {:else if view.kind === "notes"}
             <NotesSpace
-              source={{
-                kind: "notes",
-                folder: layout.notesFolder,
+              source={sourceOf(
+                // The arrangement comes from the space's own config — without
+                // it the ⋮ could not tick the sorting in force and dragging
+                // had nowhere to be saved. The folder falls back to the
+                // layout's answer so the screen still opens if the space list
+                // has not caught up.
+                {
+                  kind: "notes",
+                  known: true,
+                  path: notesSpace?.path ?? layout.notesFolder,
+                  sort: notesSpace?.sort,
+                  order: notesSpace?.order,
+                },
                 // The screen names itself, and what it is called is what the
                 // app calls this place everywhere else — the sidebar entry,
                 // the tab, the header. (The wireframe writes "Inbox" there,
                 // from a time when this screen was thought of as showing that
                 // one folder; the board shows the whole space, so the space's
                 // name is the honest label.)
-                name: title(view),
-                // What the space's own config says about its arrangement —
-                // without these the ⋮ could not tick the sorting in force and
-                // dragging had nowhere to be saved.
-                sort: notesSpace?.sort ?? null,
-                order: notesSpace?.order ?? [],
-                options: notesSpace?.options ?? null,
-              }}
+                { name: title(view) },
+              )}
               onSetSort={setNotesSort}
               onSetOrder={setNotesOrder}
               header={!compact}
+              dot={colorOf(view)}
               readOnly={notebook.readOnly}
               notesInbox={layout.notesInbox}
               root={notebook.path}
@@ -2004,7 +1982,6 @@
                 space={current}
                 color={spColors[current.path] ?? null}
                 lists={notebook.lists}
-                {counts}
                 {tags}
                 completedName={layout.completedName}
                 notesInbox={layout.notesInbox}
@@ -2018,7 +1995,6 @@
                 {reloadKey}
                 selectedTask={selected?.task ?? null}
                 onSelectTask={select}
-                onOpenList={(path) => showList(path)}
                 onOpenNote={openNoteFromBoard}
                 onSetSpaceSort={setSpaceSort}
                 onSetSpaceOrder={setSpaceOrder}
@@ -2034,12 +2010,7 @@
             <AssetsView
               root={notebook.path}
               readOnly={notebook.readOnly}
-              onChanged={() => {
-                // The open note may be showing one of these; `reloadKey` is
-                // what tells its editor to draw them again.
-                refreshNotebook();
-                reload();
-              }}
+              onChanged={refreshAll}
               onError={fail}
               onOpenNote={(path, folder) => showNote(path, folder)}
               onOpenTask={showFoundTask}
@@ -2100,10 +2071,7 @@
             dateFormat={layout.dateDisplayFormat}
             {compact}
             {reloadKey}
-            onChanged={() => {
-              refreshNotebook();
-              reload();
-            }}
+            onChanged={refreshAll}
             onError={fail}
             onClose={() => (suggesting = null)}
             {f}
@@ -2131,10 +2099,7 @@
             inDay={!!selected.task?.id &&
               dayRefs.has(`${selected.list}#${selected.task.id}`)}
             {f}
-            onSaved={() => {
-              refreshNotebook();
-              reload();
-            }}
+            onSaved={refreshAll}
             onError={fail}
             onClose={() => (selected = null)}
             onMoved={(to) => (selected = { ...selected, list: to })}
@@ -2284,7 +2249,7 @@
 {#if zoomedImage && notebook}
   <ImageViewer
     src={assetUrl(notebook.path, zoomedImage)}
-    alt={zoomedImage.split("/").pop()}
+    alt={leafOf(zoomedImage)}
     onClose={() => (zoomedImage = null)}
   />
 {/if}

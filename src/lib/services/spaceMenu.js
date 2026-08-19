@@ -32,7 +32,6 @@ export function spaceMenu({
   hasOrder = false,
   onSetSort,
 } = {}) {
-  const tick = (value) => (sort === value ? "✓ " : "  ");
   const items = [...lead];
 
   // An entry the caller gave nothing for is LEFT OUT, not shown dead: a source
@@ -43,7 +42,10 @@ export function spaceMenu({
     items.push({
       label: S.sortTasks,
       items: sorts.map((value) => ({
-        label: tick(value) + SORT_LABELS[String(value)](),
+        label: SORT_LABELS[String(value)](),
+        // The mark is the menu's (`MenuItems.svelte`), not a label prefix:
+        // a prefix was one of four hand-rolled spellings of "chosen".
+        checked: sort === value,
         run: () => onSetSort?.(value),
         disabled: value === "custom" && !hasOrder,
       })),

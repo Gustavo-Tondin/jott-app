@@ -25,7 +25,6 @@ pub fn configure<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builde
             commands::platform,
             commands::window_button_layout,
             commands::notebook_snapshot,
-            commands::create_space,
             commands::rename_space,
             commands::set_space_appearance,
             commands::delete_space,

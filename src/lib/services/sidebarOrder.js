@@ -22,6 +22,8 @@
 // without a DOM (same reason `spaceOrder.planReorder` exists).
 
 /// Rank compare that survives two `Infinity`s (which subtract to NaN, and a
+import { movedItem } from "./spaceOrder.js";
+
 /// NaN comparator silently keeps whatever order it was handed).
 const byRank = (a, b) => (a.rank === b.rank ? 0 : a.rank < b.rank ? -1 : 1);
 
@@ -75,12 +77,7 @@ export function namesOf(entry) {
 /// for the top level. Every other level is copied out untouched, so a drag
 /// deep in the tree rewrites only its own run of names.
 export function reorderedAt(tree, parentKey, from, to) {
-  const moved = (list) => {
-    const next = [...list];
-    const [carried] = next.splice(from, 1);
-    next.splice(to, 0, carried);
-    return next;
-  };
+  const moved = (list) => movedItem(list, from, to);
   const walk = (entries, key) =>
     (key === parentKey ? moved(entries) : entries).flatMap((entry) =>
       entry.kind === "group" ? walk(entry.children, entry.key) : [entry.sp.path],

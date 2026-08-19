@@ -146,8 +146,27 @@
     position: fixed;
     /* A pill with air on both sides, as the wireframe draws it — not a band
        across the screen. It is a thing floating above the keyboard, and a
-       floating thing has edges. */
+       floating thing has edges.
+
+       It HUGS its buttons and sits in the middle (user call, 2026-08-19, once
+       the bar folded down to seven glyphs): the two insets say how far it may
+       spread, `fit-content` takes only what the row needs, and the auto margins
+       centre what is left over — the rule that a positioned box with both
+       insets set and a width of its own is centred by `margin: auto`. Stretched
+       edge to edge, the pill was mostly empty ground with the glyphs bunched on
+       the left.
+
+       `max-inline-size` says the ceiling OUTRIGHT rather than trusting the
+       insets to hold it: a fixed box whose width outgrows them is
+       over-constrained, and the rule is that the end inset is the one dropped —
+       measured, the pill ran off the right edge instead of scrolling. The
+       containing block here is the viewport, so the gutter is subtracted twice
+       by hand. Past that ceiling the row scrolls, which is `.format-bar--row`'s
+       job and not this one's. */
     inset-inline: var(--theme-space-8);
+    inline-size: fit-content;
+    max-inline-size: calc(100% - 2 * var(--theme-space-8));
+    margin-inline: auto;
     /* Against the top of the keyboard when one is up, above the gesture bar
        when it is not. `max()` rather than a sum: with the keyboard up the
        gesture bar is inside it. The same rule the task composer and the sheets

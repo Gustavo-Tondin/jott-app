@@ -14,10 +14,11 @@
   //    exactly this, because a half-applied edit is worse than none.
   import { onDestroy } from "svelte";
   import { api } from "../services/api.js";
+  import { autosave } from "../services/autosave.js";
   import { ensureTaskId } from "../services/taskId.js";
   import { completionBeat } from "../services/pace.js";
   import { S } from "../services/strings.js";
-  import { listTitle, splitLabel } from "../services/paths.js";
+  import { leafOf, listTitle, splitLabel } from "../services/paths.js";
   import {
     PRIORITIES,
     REPEAT_UNITS,
@@ -26,13 +27,14 @@
     repeatText,
   } from "../services/taskFields.js";
   import { tagColors as tagColorMap } from "../services/accent.js";
+  import { movedItem } from "../services/spaceOrder.js";
   import { reorderable } from "../actions/reorder.js";
   import Menu from "./Menu.svelte";
   import Icon from "./Icon.svelte";
   import DatePicker from "./DatePicker.svelte";
   import AssetPicker from "./AssetPicker.svelte";
   import TagPicker from "./TagPicker.svelte";
-import Editor from "./Editor.svelte";
+  import Editor from "./Editor.svelte";
 
   let {
     task,
@@ -80,89 +82,55 @@ import Editor from "./Editor.svelte";
   // user call 2026-08-04). Local to the panel; it writes nothing.
   let collapsed = $state(false);
 
-  // Plain variables, not state: none of this should re-render anything, and a
-  // reactive `pending` would make the auto-save effect trigger itself.
-  //
-  // `slot` is the task the current draft belongs to, together with its id once
-  // it has one. It is captured instead of read from the props at write time,
-  // because the user can click another task while a write is still on its way
-  // — and that write has to land on the task it was typed into.
-  let slot = null;
-  let baseline = "";
-  let pending = null;
-  let timer = null;
+  // The debounced write with a captured target — the shared engine
+  // (services/autosave.js carries the why of each rule). The delay is
+  // captured once on purpose: it is a mount-time knob for tests, never
+  // changed while the panel lives.
+  // svelte-ignore state_referenced_locally
+  const saver = autosave({
+    delay: saveDelay,
+    write: async (target, fields) => {
+      // The id is earned here, on a real change — never on opening the task.
+      if (!target.id) target.id = await ensureTaskId(target.list, target.task);
+      await api.setTaskFields(target.list, target.id, fields);
+      onSaved?.();
+    },
+    onError: (e) => onError?.(e),
+  });
 
   // A different task selected means a different draft. Without this, editing
   // one task and clicking another would show the first one's typing.
   $effect(() => {
     task;
     list;
-    // Whatever was typed into the previous task goes out now, addressed to
-    // that task, before the draft is replaced.
-    flush();
-    slot = { list, task, id: task?.id ?? null };
     // Stringify the plain object before it becomes the reactive draft.
     // Reading `draft` here would make this effect depend on the state it
     // assigns, and Svelte would loop until it gave up.
     const fresh = fromTask(task);
-    baseline = JSON.stringify(fresh);
+    // `open` flushes what was typed into the previous task first, addressed
+    // to that task, before the slot is replaced.
+    saver.open({ list, task, id: task?.id ?? null }, JSON.stringify(fresh));
     draft = fresh;
     newSubtask = "";
   });
 
   // The auto-save itself. Stringifying the draft subscribes to every field in
-  // it; comparing against the baseline is what tells a real edit apart from
-  // the effect above having just reloaded the same values.
+  // it; the dirty check is what tells a real edit apart from the effect above
+  // having just reloaded the same values.
   $effect(() => {
     const snapshot = JSON.stringify(draft);
-    if (readOnly || snapshot === baseline) return;
-
-    // The snapshot rides along with the fields it produced, so that marking
-    // the write as done later cannot swallow something typed in between.
-    pending = { fields: fields(), snapshot };
-    if (timer) clearTimeout(timer);
-    timer = setTimeout(write, saveDelay);
+    if (readOnly || !saver.dirty(snapshot)) return;
+    saver.edit(fields(), snapshot);
   });
 
   // A pending edit must not die with the panel — closing it is the most
   // natural moment to stop typing.
-  onDestroy(() => flush());
-
-  /// Sends whatever is waiting right now, without waiting for the timer.
-  function flush() {
-    if (!pending) return Promise.resolve();
-    if (timer) clearTimeout(timer);
-    timer = null;
-    return write();
-  }
-
-  async function write() {
-    // Read synchronously: by the time the first await returns, the user may
-    // already have selected another task and replaced both of these.
-    const target = slot;
-    const job = pending;
-    pending = null;
-    timer = null;
-    if (!target || !job) return;
-
-    try {
-      // The id is earned here, on a real change — never on opening the task.
-      if (!target.id) target.id = await ensureTaskId(target.list, target.task);
-      await api.setTaskFields(target.list, target.id, job.fields);
-      // Only after it lands, and only if the panel is still on the same task:
-      // a failed write has to be retried by the next edit, not quietly
-      // counted as saved.
-      if (target === slot) baseline = job.snapshot;
-      onSaved?.();
-    } catch (e) {
-      onError?.(e);
-    }
-  }
+  onDestroy(() => saver.flush());
 
   function fields() {
     return {
       // An emptied name would leave a checkbox with no text; keep the old one.
-      text: draft.text.trim() || slot?.task?.text || "",
+      text: draft.text.trim() || saver.target()?.task?.text || "",
       // Present-but-null is how a field is cleared — absent would mean
       // "leave alone", and there would be no way to remove a date.
       due: draft.due || null,
@@ -211,7 +179,7 @@ import Editor from "./Editor.svelte";
   function attach(address) {
     picking = false;
     if (!address || draft.files.some((f) => f.address === address)) return;
-    const label = address.split("/").pop() ?? address;
+    const label = leafOf(address) || address;
     draft.files = [...draft.files, { label, address }];
   }
 
@@ -264,10 +232,7 @@ import Editor from "./Editor.svelte";
   // an edit like any other, so the auto-save writes the new order.
   function reorderSubtasks(from, to) {
     if (readOnly) return;
-    const next = [...draft.subtasks];
-    const [moved] = next.splice(from, 1);
-    next.splice(to, 0, moved);
-    draft.subtasks = next;
+    draft.subtasks = movedItem(draft.subtasks, from, to);
   }
 
   /// The shape EVERY action of this panel takes, in the order that matters:
@@ -282,8 +247,8 @@ import Editor from "./Editor.svelte";
   /// all three every time one of them changed.
   async function onTask(run, { close = false } = {}) {
     if (readOnly) return;
-    await flush();
-    const target = slot;
+    await saver.flush();
+    const target = saver.target();
     if (!target) return;
     try {
       if (!target.id) target.id = await ensureTaskId(target.list, target.task);
@@ -307,7 +272,7 @@ import Editor from "./Editor.svelte";
   /// The footer's list picker: move this task to another list. On success the
   /// shell re-points at the new list.
   const moveList = (to) =>
-    to && to !== slot?.list
+    to && to !== saver.target()?.list
       ? onTask(async (task) => {
           await api.moveTask(task.list, task.id, to);
           onMoved?.(to);

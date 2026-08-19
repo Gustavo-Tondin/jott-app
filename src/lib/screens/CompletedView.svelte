@@ -4,6 +4,7 @@
   // them (spec 3.5). Unchecking sends the task back to the list it came from;
   // the core reads that from the `origin` recorded in the file.
   import { api } from "../services/api.js";
+  import { makeAct, makeLoad } from "../services/act.js";
   import { S } from "../services/strings.js";
   import { folderOf } from "../services/paths.js";
 
@@ -18,23 +19,21 @@
     load();
   });
 
-  async function load() {
-    try {
-      items = await api.completedTasks();
-    } catch (e) {
-      onError(e);
-    }
-  }
+  const load = makeLoad({
+    read: () => api.completedTasks(),
+    apply: (read) => (items = read),
+    onError: (e) => onError?.(e),
+  });
 
-  async function uncomplete(item) {
-    try {
-      await api.uncompleteTask(item.path, item.task.id);
-      await load();
-      onChanged();
-    } catch (e) {
-      onError(e);
-    }
-  }
+  const act = makeAct({
+    load,
+    // Wrapped, not passed: `act` is built once, and the props may be
+    // replaced (services/act.js).
+    onChanged: () => onChanged?.(),
+    onError: (e) => onError?.(e),
+  });
+
+  const uncomplete = (item) => act(() => api.uncompleteTask(item.path, item.task.id));
 
 </script>
 

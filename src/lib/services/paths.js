@@ -27,6 +27,14 @@ export function folderOf(path) {
   return cut < 0 ? "" : path.slice(0, cut);
 }
 
+/// The last segment of an address — the half of `folderOf` that was still
+/// being hand-rolled (`split("/").pop()`) in half a dozen places. Extension
+/// kept: what a FILE is called is `listName`'s question.
+export function leafOf(path) {
+  const value = path ?? "";
+  return value.slice(value.lastIndexOf("/") + 1);
+}
+
 /// The file name every tasks space's single list carries (core's
 /// `MAIN_LIST`). Since 2026-08-13 it is the same in all of them, so it says
 /// nothing about WHICH list this is and never belongs on screen.

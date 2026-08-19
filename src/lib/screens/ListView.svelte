@@ -9,7 +9,7 @@
   import { ensureTaskId } from "../services/taskId.js";
   import { listTitle } from "../services/paths.js";
   import { S } from "../services/strings.js";
-  import { makeAct } from "../services/act.js";
+  import { makeAct, makeLoad } from "../services/act.js";
   import { taskActions, isSelectedTask } from "../services/taskActions.js";
   import { pinnedFirst, planReorder } from "../services/spaceOrder.js";
   import TaskCards from "../components/TaskCards.svelte";
@@ -45,13 +45,11 @@
     load();
   });
 
-  async function load() {
-    try {
-      tasks = await api.listTasks(list);
-    } catch (e) {
-      onError(e);
-    }
-  }
+  const load = makeLoad({
+    read: () => api.listTasks(list),
+    apply: (read) => (tasks = read),
+    onError: (e) => onError?.(e),
+  });
 
   const act = makeAct({
     load,

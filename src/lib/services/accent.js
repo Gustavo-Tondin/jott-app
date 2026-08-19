@@ -111,11 +111,21 @@ export function tagColors(tags = []) {
   return map;
 }
 
+/// The inline `style` of a `.theme-dot`: the place's colour, or empty so the
+/// class's own fallback (the app's accent) answers. Four components computed
+/// this line by hand before it lived here.
+export function dotStyle(value) {
+  const c = accentColor(value);
+  return c ? `--dot: ${c}` : "";
+}
+
 /// The two together, as the inline `style` a component sets on the element
 /// that owns the colour. Empty string when there is no choice, so the element
 /// keeps the theme's accent.
 export function accentStyle(value, { color = "--accent-color", tint = "--accent-tint-color" } = {}) {
   const c = accentColor(value);
   if (!c) return "";
-  return `${color}: ${c}; ${tint}: ${accentTint(value)}`;
+  // `tint: null` — the caller's element has no reader for a tint variable,
+  // so writing one would be a value with no audience.
+  return tint ? `${color}: ${c}; ${tint}: ${accentTint(value)}` : `${color}: ${c}`;
 }

@@ -15,7 +15,7 @@
   import { api } from "../services/api.js";
   import { S } from "../services/strings.js";
   import { askConfirm, askName, DELETING } from "../services/dialog.js";
-  import { assetUrl, importBrought, importFiles } from "../services/assets.js";
+  import { assetUrl, importBrought } from "../services/assets.js";
   import { acceptsFiles } from "../actions/acceptsFiles.js";
   import { filesFromInput } from "../services/gesture.js";
   import { makeAct, makeLoad } from "../services/act.js";
@@ -104,8 +104,6 @@
     else onOpenTask?.(place.path, place.id);
   }
 
-  /// The file input, and the two gestures, are one question with three doors:
-  /// here are some files, put them in the library.
   /// The file input, and the two gestures, are one question with three doors:
   /// here are some files, put them in the library.
   function add(event) {

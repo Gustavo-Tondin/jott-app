@@ -1006,8 +1006,8 @@ fn space_sort_and_order_round_trip_over_the_bridge() {
     let (_lock, app, dir) = app_with_notebook();
     ok(
         &app,
-        "create_space",
-        json!({ "name": "Space 1", "kind": "tasks" }),
+        "create_space_in",
+        json!({ "name": "Space 1", "kind": "tasks", "group": null }),
     );
 
     ok(
@@ -1047,13 +1047,13 @@ fn a_new_space_is_born_usable_over_the_bridge() {
     let (_lock, app, dir) = app_with_notebook();
     ok(
         &app,
-        "create_space",
-        json!({ "name": "Errands", "kind": "tasks" }),
+        "create_space_in",
+        json!({ "name": "Errands", "kind": "tasks", "group": null }),
     );
     ok(
         &app,
-        "create_space",
-        json!({ "name": "Journal", "kind": "notes" }),
+        "create_space_in",
+        json!({ "name": "Journal", "kind": "notes", "group": null }),
     );
 
     assert!(dir.path().join("Errands/task-list.md").is_file());
@@ -1064,8 +1064,8 @@ fn a_new_space_is_born_usable_over_the_bridge() {
     // An unknown type is refused at the door.
     assert!(invoke(
         &app,
-        "create_space",
-        json!({ "name": "X", "kind": "hologram" })
+        "create_space_in",
+        json!({ "name": "X", "kind": "hologram", "group": null })
     )
     .is_err());
 }
@@ -1414,7 +1414,7 @@ fn a_space_moved_into_a_group_keeps_its_pulled_tasks() {
     // left pointing at the old path reads as a task that vanished.
     let (_lock, app, _dir) = app_with_notebook();
     ok(&app, "create_group", json!({ "name": "Design" }));
-    ok(&app, "create_space", json!({ "name": "Acme", "kind": "tasks" }));
+    ok(&app, "create_space_in", json!({ "name": "Acme", "kind": "tasks", "group": null }));
 
     let id = task_with_id(&app, "Acme/task-list.md", "call the client");
     ok(
@@ -1552,7 +1552,8 @@ fn what_is_not_a_file_of_this_notebook_is_refused_over_the_bridge() {
 fn a_note_moves_to_another_space_over_the_bridge() {
     // What "Select notes… → move to" does, end to end.
     let (_lock, app, dir) = app_with_notebook();
-    let target = ok(&app, "create_space", json!({ "name": "Ideias", "kind": "notes" }));
+    let target =
+        ok(&app, "create_space_in", json!({ "name": "Ideias", "kind": "notes", "group": null }));
     let target = target.as_str().unwrap();
 
     let note = ok(

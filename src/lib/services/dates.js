@@ -30,6 +30,14 @@ export function formatDate(iso, pattern = "mm/dd/yyyy") {
   }
 }
 
+/// A `Date` as the ISO day the files speak (`2026-08-19`). Local fields, not
+/// `toISOString()` — that one answers in UTC and is a day off every evening
+/// west of Greenwich.
+export function toIso(date) {
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
 /// Day and month only, in the notebook's order — for a span, where the year is
 /// the same on both ends and repeating it says nothing (user call, 2026-08-06).
 export function formatDayMonth(iso, pattern = "mm/dd/yyyy") {

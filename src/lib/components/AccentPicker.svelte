@@ -9,7 +9,7 @@
   // `accentColor`, so this row previews the steps of whatever region it was
   // opened in — the sidebar shows the colours the sidebar will use, which is
   // also what makes `neutral` legible here: on the sidebar it draws white.
-  import { ACCENTS, accentColor } from "../services/accent.js";
+  import { ACCENTS, dotStyle } from "../services/accent.js";
   import { S } from "../services/strings.js";
 
   let {
@@ -42,7 +42,7 @@
     <button
       class="accent-picker__swatch"
       class:accent-picker__swatch--on={value === name}
-      style={`--dot: ${accentColor(name)}`}
+      style={dotStyle(name)}
       aria-label={name}
       aria-pressed={value === name}
       {disabled}

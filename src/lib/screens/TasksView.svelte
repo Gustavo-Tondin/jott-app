@@ -16,7 +16,7 @@
   // button, but the bar it pins to the bottom (`compose="bar"`).
   import { S } from "../services/strings.js";
   import { folderOf } from "../services/paths.js";
-  import { formatDayMonth } from "../services/dates.js";
+  import { formatDayMonth, toIso } from "../services/dates.js";
   import PeriodView from "./PeriodView.svelte";
   import TasksSpace from "../spaces/TasksSpace.svelte";
 
@@ -99,8 +99,7 @@
     const end = new Date(`${start}T00:00:00`);
     if (Number.isNaN(end.getTime())) return "";
     end.setDate(end.getDate() + 6);
-    const pad = (n) => String(n).padStart(2, "0");
-    const iso = `${end.getFullYear()}-${pad(end.getMonth() + 1)}-${pad(end.getDate())}`;
+    const iso = toIso(end);
     return S.weekRange(
       formatDayMonth(start, dateFormat),
       formatDayMonth(iso, dateFormat),

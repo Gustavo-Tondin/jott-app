@@ -7,9 +7,15 @@
 // unknown `sort` reads as the file order — the same tolerance the config
 // itself keeps, so a file written by a future build degrades politely.
 
-/// The sortings the ⋮ menu offers, in display order. `null` is the file
-/// order; `custom` is the arrangement the user dragged.
-export const SORTS = [null, "name", "created", "completed", "custom"];
+/// The list with the item at `from` re-seated at `to` — the one splice every
+/// drag in the app performs. It was written out five times (the tabs, the
+/// sidebar, the subtasks, the shell, and here) before it had a name.
+export function movedItem(list, from, to) {
+  const next = [...list];
+  const [carried] = next.splice(from, 1);
+  next.splice(to, 0, carried);
+  return next;
+}
 
 /// Arranges `items` by `sort`:
 /// - `name`: alphabetical, case-insensitive;
@@ -69,9 +75,8 @@ export function landsPinned(to, pinnedElsewhere, wasPinned) {
 /// translates back to file positions, through `moved` and `next`. Pure, so the
 /// rule that crossing the divider pins and unpins is testable without a DOM.
 export function planReorder(items, from, to, isPinned = (item) => !!item.pinned) {
-  const next = [...items];
-  const [moved] = next.splice(from, 1);
-  next.splice(to, 0, moved);
+  const moved = items[from];
+  const next = movedItem(items, from, to);
   const pinned = landsPinned(
     to,
     next.filter((item) => item !== moved && isPinned(item)).length,

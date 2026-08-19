@@ -24,12 +24,12 @@
   import { api } from "../services/api.js";
   import { S } from "../services/strings.js";
   import { askConfirm, askName, DELETING } from "../services/dialog.js";
-  import { makeAct } from "../services/act.js";
+  import { makeAct, makeLoad } from "../services/act.js";
   import { spaceMenu } from "../services/spaceMenu.js";
   import { arrange, pinnedFirst, planReorder } from "../services/spaceOrder.js";
-  import { ACCENTS, accentColor, accentStyle } from "../services/accent.js";
+  import { ACCENTS, accentColor, accentStyle, dotStyle as dotStyleOf } from "../services/accent.js";
   import { board } from "../services/noteBoard.js";
-  import { listName } from "../services/paths.js";
+  import { leafOf, listName } from "../services/paths.js";
   import { reorderable } from "../actions/reorder.js";
   import { measured } from "../actions/measure.js";
   import {
@@ -81,20 +81,17 @@
 
   /// What this place is called, and the colour it reads as.
   let title = $derived(source?.name || listName(folder ?? ""));
-  let dotStyle = $derived(accentColor(dot) ? `--dot: ${accentColor(dot)}` : "");
+  let dotStyle = $derived(dotStyleOf(dot));
 
   let notes = $state([]);
   let folders = $state([]);
   /// `grid` (cards, Keep-like) or `tree` (by folder).
   ///
-  /// The config option picks the starting layout and the user's choice wins
-  /// from then on — hence a null-until-chosen override rather than a state
-  /// seeded from the prop, which would freeze on the value the source had
-  /// when it first rendered.
+  /// Session-local on purpose for now: the `.space.json` has no layout key,
+  /// so there is nothing to read a saved choice from. (An `options` field
+  /// used to be consulted here — a phantom the bridge never sent.)
   let chosenLayout = $state(null);
-  let layout = $derived(
-    chosenLayout ?? (source?.options?.layout === "tree" ? "tree" : "grid"),
-  );
+  let layout = $derived(chosenLayout ?? "grid");
   /// Which folder is being looked at — `null` is the space's own board (its
   /// loose notes and the inbox's). ONE state for both views: "where am I in
   /// the tree" is the same question whether it is asked by a chip or by the
@@ -120,17 +117,15 @@
     exitPicking();
   });
 
-  async function load() {
-    if (!folder) return;
-    try {
-      [notes, folders] = await Promise.all([
-        api.listNotes(folder, ""),
-        api.noteFolders(folder),
-      ]);
-    } catch (e) {
-      onError?.(e);
-    }
-  }
+  const load = makeLoad({
+    // No folder yet: nothing to read, and what is on screen stays.
+    read: () =>
+      folder && Promise.all([api.listNotes(folder, ""), api.noteFolders(folder)]),
+    apply: (read) => {
+      if (read) [notes, folders] = read;
+    },
+    onError: (e) => onError?.(e),
+  });
 
   const act = makeAct({
     load,
@@ -185,7 +180,7 @@
   const renameFolder = (path = openFolder) =>
     act(async () => {
       if (!path) return;
-      const current = path.split("/").pop();
+      const current = leafOf(path);
       const next = await askName(S.promptRenameFolder(current), current);
       if (!next || next.trim() === current) return;
       const moved = await api.renameNoteFolder(folder, path, next.trim());
@@ -198,7 +193,7 @@
   const deleteFolder = (path = openFolder) =>
     act(async () => {
       if (!path) return;
-      const name = path.split("/").pop();
+      const name = leafOf(path);
       if (!(await askConfirm(S.confirmDeleteFolder(name), DELETING))) return;
       const moved = await api.deleteNoteFolder(folder, path);
       if (anchorFolder === path || openFolder === path) closeGroup();
@@ -335,12 +330,12 @@
           items: [
             {
               label: S.gridView,
-              context: layout === "grid" ? "✓" : undefined,
+              checked: layout === "grid",
               run: () => (chosenLayout = "grid"),
             },
             {
               label: S.treeView,
-              context: layout === "tree" ? "✓" : undefined,
+              checked: layout === "tree",
               run: () => (chosenLayout = "tree"),
             },
           ],
@@ -367,12 +362,12 @@
             items: [
               {
                 label: S.defaultAppearance,
-                context: group.color ? undefined : "✓",
+                checked: !group.color,
                 run: () => colorFolder(group, null),
               },
               ...ACCENTS.map((name) => ({
                 label: S.colorName(name),
-                context: group.color === name ? "✓" : undefined,
+                checked: group.color === name,
                 run: () => colorFolder(group, name),
               })),
             ],
@@ -455,12 +450,16 @@
       exitPicking();
     });
 
-  const deleteSelected = () =>
+  const deleteSelected = async () => {
+    if (picked.size === 0) return;
+    // The same question a single delete asks — deleting twelve without it
+    // while deleting one asked was an accident, not a policy.
+    if (!(await askConfirm(S.confirmDeleteNotes(picked.size), DELETING))) return;
     act(async () => {
-      if (picked.size === 0) return;
       for (const path of picked) await api.deleteNote(folder, path);
       exitPicking();
     });
+  };
 
   // ---- the masonry (2026-08-19) ----
   //

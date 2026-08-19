@@ -70,11 +70,6 @@ export function noteFontSizeAttribute(stored) {
   return known && stored !== DEFAULT_NOTE_FONT_SIZE ? stored : null;
 }
 
-/// True for one this build can actually draw.
-export function isTheme(value) {
-  return THEMES.some((theme) => theme.key === value);
-}
-
 /// The theme to put on <html>. An empty setting means "the one the app ships
 /// as"; a name from a newer build is NOT forced back to the default here —
 /// the notebook keeps it (the core never validates a look), and the CSS simply

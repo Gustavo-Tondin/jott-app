@@ -17,7 +17,7 @@
   // wireframe rounds the canvas's top corners BELOW it, so the header belongs
   // to the frame around the page rather than to the page.
   import { S } from "../services/strings.js";
-  import { accentColor } from "../services/accent.js";
+  import { dotStyle as dotStyleOf } from "../services/accent.js";
   import PageMenu from "./PageMenu.svelte";
   import PageNav from "./PageNav.svelte";
 
@@ -54,7 +54,7 @@
   /// The stored choice as CSS — a name becomes the ground-aware `var()`, a raw
   /// hex passes through, and nothing at all leaves the property unset so the
   /// class's own fallback (the app's accent) applies.
-  let dotStyle = $derived(accentColor(dot) ? `--dot: ${accentColor(dot)}` : "");
+  let dotStyle = $derived(dotStyleOf(dot));
 
   /// What the menu belongs to, so leaving the page closes it (PageMenu).
   let pageKey = $derived(`${context} ${title} ${subtitle}`);

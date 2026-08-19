@@ -3,11 +3,11 @@
   //
   // Auto-saves like the task inspector, and for the same reason the user gave
   // when the Save button was removed: an edit you have to remember to confirm
-  // is an edit you lose. The mechanics are the same too — a captured target,
-  // a flush on close, and a baseline that only advances after the write
-  // lands. See TaskInspector for why each of those exists.
+  // is an edit you lose. The mechanics ARE the inspector's — the shared
+  // engine in services/autosave.js, which carries the why of each rule.
   import { onDestroy } from "svelte";
   import { api } from "../services/api.js";
+  import { autosave } from "../services/autosave.js";
   import { S } from "../services/strings.js";
   import Editor from "./Editor.svelte";
   import { acceptsFiles } from "../actions/acceptsFiles.js";
@@ -34,30 +34,35 @@
   let body = $state("");
   let loading = $state(true);
 
-  // Plain, not reactive: none of this should re-render anything.
-  let slot = null;
-  let baseline = "";
-  let pending = null;
-  let timer = null;
+  // The delay is captured once on purpose: a mount-time knob for tests,
+  // never changed while the editor lives.
+  // svelte-ignore state_referenced_locally
+  const saver = autosave({
+    delay: saveDelay,
+    write: async (target, text) => {
+      await api.writeNote(target.folder, target.path, text);
+      onSaved?.();
+    },
+    onError: (e) => onError?.(e),
+  });
 
   $effect(() => {
     folder;
     path;
     // Whatever was typed into the previous note goes out first, addressed to
     // that note, before this one replaces it.
-    flush();
+    saver.flush();
     load(folder, path);
   });
 
-  onDestroy(() => flush());
+  onDestroy(() => saver.flush());
 
   async function load(atFolder, atPath) {
     loading = true;
     try {
       const note = await api.readNote(atFolder, atPath);
-      slot = { folder: atFolder, path: atPath };
+      saver.open({ folder: atFolder, path: atPath }, note.body);
       body = note.body;
-      baseline = note.body;
       // The shell owns the title and the document actions — they belong to
       // the page header, above the tabs, not to a second bar inside the page.
       // The banner travels with the note but is NOT part of the body: it is
@@ -71,43 +76,16 @@
     }
   }
 
-  // The auto-save. Comparing against the baseline is what tells a real edit
-  // apart from `load` having just filled the field.
+  // The auto-save. The dirty check is what tells a real edit apart from
+  // `load` having just filled the field.
   $effect(() => {
     const snapshot = body;
-    if (readOnly || loading || snapshot === baseline) return;
-
-    pending = { target: slot, body: snapshot };
-    if (timer) clearTimeout(timer);
-    timer = setTimeout(write, saveDelay);
+    if (readOnly || loading || !saver.dirty(snapshot)) return;
+    saver.edit(snapshot, snapshot);
   });
 
-  function flush() {
-    if (!pending) return Promise.resolve();
-    if (timer) clearTimeout(timer);
-    timer = null;
-    return write();
-  }
-
-  async function write() {
-    const job = pending;
-    pending = null;
-    timer = null;
-    if (!job?.target) return;
-
-    try {
-      await api.writeNote(job.target.folder, job.target.path, job.body);
-      // Only after it lands, and only if we are still on the same note: a
-      // failed write must be retried by the next edit, not counted as saved.
-      if (job.target === slot) baseline = job.body;
-      onSaved?.();
-    } catch (e) {
-      onError?.(e);
-    }
-  }
-
   /// Sends anything still pending, so the shell can rename or delete safely.
-  export const flushPending = () => flush();
+  export const flushPending = () => saver.flush();
 
   // The find/replace panel belongs to the editor engine; the shell opens it
   // from the page ⋮ and from the canvas menu, which is why it travels back up

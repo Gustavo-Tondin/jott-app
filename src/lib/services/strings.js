@@ -93,6 +93,9 @@ export const S = {
   selectedCount: (n) => `${n} selected`,
   moveTo: "Move to…",
   deleteSelected: "Delete",
+  // Deleting twelve must ask what deleting one asks.
+  confirmDeleteTasks: (n) => (n === 1 ? "Delete 1 task?" : `Delete ${n} tasks?`),
+  confirmDeleteNotes: (n) => (n === 1 ? "Delete 1 note?" : `Delete ${n} notes?`),
   sortFileOrder: "File order",
   sortByName: "Sort by name",
   sortByCreated: "Sort by creation date",
@@ -124,6 +127,11 @@ export const S = {
   newTagName: "New tag name",
   // A label now, not a caption: the control is the trash glyph.
   deleteTag: "Delete tag",
+  confirmDeleteTag: (name) => `Delete the tag "${name}"?`,
+  // What removing a tag actually does (core: `remove_tag`): only the colour
+  // is forgotten — the detail must not promise a trash trip that never
+  // happens.
+  tagTextStays: "Its colour is forgotten; the #tag text in tasks stays.",
   deleteTask: "Delete task",
 
   // App Functions (2026-08-06): which parts of the app are switched on.

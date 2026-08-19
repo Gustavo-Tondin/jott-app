@@ -21,7 +21,12 @@ import { folderOf, listName, listTitle } from "../services/paths.js";
 /// The inverse of `tabs.viewId` — keep the two in step.
 export function viewFromId(id) {
   if (!id) return null;
-  if (id === "day" || id === "week") return { kind: "period", period: id };
+  // Ids from before Today and This Week became sub-tabs of the Tasks screen.
+  // There is no "period" view any more — a session restored onto one used to
+  // fall through every screen branch to the Completed, which is the one place
+  // those ids never meant. Which sub-tab opens is the screen's own state, so
+  // the closest honest answer is the screen itself.
+  if (id === "day" || id === "week") return { kind: "tasks" };
   if (id.startsWith("list:")) return { kind: "list", list: id.slice(5) };
   if (id.startsWith("sp:")) return { kind: "space", sp: id.slice(3) };
   if (["home", "completed", "notes", "tasks", "settings", "assets"].includes(id)) {
@@ -41,8 +46,6 @@ export function reachable(view, f = () => true) {
     case "list":
     case "completed":
       return f("tasks");
-    case "period":
-      return f(view.period === "week" ? "week" : "myDay");
     case "notes":
     case "note":
       return f("notes");
@@ -69,8 +72,6 @@ export function titleOf(view, spaces = []) {
   switch (view?.kind) {
     case "home":
       return S.home;
-    case "period":
-      return view.period === "day" ? S.today : S.week;
     case "tasks":
       return S.tasks;
     case "notes":

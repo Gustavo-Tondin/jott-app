@@ -94,7 +94,6 @@ export const api = {
 
   // Space management.
   // A space has a single function, chosen at creation: `tasks` / `notes`.
-  createSpace: (name, kind) => invoke("create_space", { name, kind }),
   renameSpace: (folder, name) => invoke("rename_space", { folder, name }),
   setSpaceAppearance: (folder, color, icon) =>
     invoke("set_space_appearance", { folder, color, icon }),

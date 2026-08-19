@@ -36,9 +36,9 @@
 
   let shown = $derived(imagesOnly ? assets.filter((asset) => asset.image) : assets);
 
-  $effect(() => {
-    load();
-  });
+  // A plain call, not an $effect: it reads no reactive value, and an effect
+  // here would silently start re-running the day someone reads state inside.
+  load();
 
   async function load() {
     try {

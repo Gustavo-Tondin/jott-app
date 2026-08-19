@@ -28,7 +28,7 @@
   // today?) and not a place with an order of its own.
   import { api } from "../services/api.js";
   import { S } from "../services/strings.js";
-  import { makeAct } from "../services/act.js";
+  import { makeAct, makeLoad } from "../services/act.js";
   import { composeTask } from "../services/taskCompose.js";
   import TasksSpace from "../spaces/TasksSpace.svelte";
   import CaptureBox from "../components/CaptureBox.svelte";
@@ -109,14 +109,12 @@
     load();
   });
 
-  async function load() {
-    try {
-      // `?? []`: the bridge answering with nothing is not a list of notes.
-      notes = (notesFolder ? await api.notesCreatedToday(notesFolder) : []) ?? [];
-    } catch (e) {
-      onError?.(e);
-    }
-  }
+  const load = makeLoad({
+    read: () => (notesFolder ? api.notesCreatedToday(notesFolder) : []),
+    // `?? []`: the bridge answering with nothing is not a list of notes.
+    apply: (read) => (notes = read ?? []),
+    onError: (e) => onError?.(e),
+  });
 
   const act = makeAct({
     load,

@@ -4,10 +4,17 @@
   // `Menu` opens a panel under a trigger and `ContextMenu` opens one at the
   // pointer: that is the whole difference between them, and it lives in where
   // the panel goes. What an item IS — a label, an optional `context` drawn
-  // ahead of it in grey, a `disabled` state, a `run`, or an `items` array that
-  // makes it a submenu — was written out twice, forty lines each, and a change
-  // to one of them (the submenu's flip, the composite key) had to be
-  // remembered in the other.
+  // ahead of it in grey, a `checked` mark for the chosen row of a choice
+  // group, a `disabled` state, a `run`, or an `items` array that makes it a
+  // submenu — was written out twice, forty lines each, and a change to one of
+  // them (the submenu's flip, the composite key) had to be remembered in the
+  // other.
+  //
+  // `checked` is tri-state on purpose: `true` draws the tick, `false` draws
+  // the empty slot that keeps siblings aligned, `undefined` means the row is
+  // not part of a choice group and gets no slot at all. Before it existed,
+  // four callers spelled the mark four ways — two of them through `context`,
+  // which renders with a trailing slash, so rows literally read "✓/Grid".
   //
   // It renders `<li>`s, not the list: the panel element is the host's, because
   // it is the host that anchors and positions it (`use:keepOnScreen`).
@@ -58,7 +65,9 @@
           {#each item.items as sub (sub.label)}
             <li class="menu__item">
               <button class="menu__link" disabled={sub.disabled} onclick={() => choose(sub)}
-                >{sub.label}</button
+                >{#if sub.checked !== undefined}<span class="menu__check"
+                    >{sub.checked ? "✓" : ""}</span
+                  >{/if}{sub.label}</button
               >
             </li>
           {/each}
@@ -66,7 +75,9 @@
       {/if}
     {:else}
       <button class="menu__link" disabled={item.disabled} onclick={() => choose(item)}>
-        {#if item.context}<span class="menu__context">{item.context}/</span>{/if}{item.label}
+        {#if item.checked !== undefined}<span class="menu__check">{item.checked ? "✓" : ""}</span
+          >{/if}{#if item.context}<span class="menu__context">{item.context}/</span
+          >{/if}{item.label}
       </button>
     {/if}
   </li>

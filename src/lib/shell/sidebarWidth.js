@@ -28,10 +28,9 @@ export const SIDEBAR = { min: 176, max: 480, default: 220 };
 export const PANEL = { min: 176, max: 560, default: 240 };
 
 // Kept as named exports because they read better in the tests that guard the
-// range, and because the shell asks for the sidebar's default by name.
+// range.
 export const MIN_SIDEBAR = SIDEBAR.min;
 export const MAX_SIDEBAR = SIDEBAR.max;
-export const DEFAULT_SIDEBAR = SIDEBAR.default;
 
 /// A width the app is willing to use, or `null` when there is no answer.
 ///

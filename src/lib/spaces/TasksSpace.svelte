@@ -23,12 +23,12 @@
   // source and is where a list you act on repeatedly belongs.
   import { api } from "../services/api.js";
   import { S } from "../services/strings.js";
-  import { askTask } from "../services/dialog.js";
+  import { askConfirm, askTask, DELETING } from "../services/dialog.js";
   import { ensureTaskId } from "../services/taskId.js";
   import { listName, listLabel, taskSpacePaths } from "../services/paths.js";
-  import { makeAct } from "../services/act.js";
+  import { makeAct, makeLoad } from "../services/act.js";
   import { taskActions, isSelectedTask } from "../services/taskActions.js";
-  import { accentColor } from "../services/accent.js";
+  import { dotStyle as dotStyleOf } from "../services/accent.js";
   import { spaceMenu } from "../services/spaceMenu.js";
   import { tagColors as tagColorMap } from "../services/accent.js";
   import { composeTask } from "../services/taskCompose.js";
@@ -105,7 +105,7 @@
 
   /// The place's colour as CSS; unset leaves the class's own fallback (the
   /// app's accent) to answer.
-  let dotStyle = $derived(accentColor(dot) ? `--dot: ${accentColor(dot)}` : "");
+  let dotStyle = $derived(dotStyleOf(dot));
 
   // Everything below works in ENTRIES — `{ task, list }` — because a period
   // draws tasks from several lists at once and each card has to know which
@@ -131,36 +131,43 @@
   const inDay = (entry) =>
     !period && !!entry.task.id && !!dayRefs?.has(`${entry.list}#${entry.task.id}`);
 
-  async function load() {
-    try {
-      if (period) {
-        // A completed task keeps its period reference and follows the task
-        // into the folder's Completed (2026-08-06), so one call answers both
-        // halves of the screen — split by the checkbox.
-        const [entries, chosen] = await Promise.all([
-          api.periodTasks(period),
-          api.periodSort(period),
-        ]);
-        open = (entries ?? []).filter((e) => !e.task.done).map(asEntry);
-        done = (entries ?? []).filter((e) => e.task.done).map(asEntry);
-        periodSort = chosen ?? null;
-        return;
-      }
-      if (!paths.list) {
-        open = [];
-        done = [];
-        return;
-      }
-      const [todo, finished] = await Promise.all([
-        api.listTasks(paths.list),
-        api.listTasks(paths.completed).catch(() => []),
+  async function read() {
+    if (period) {
+      // A completed task keeps its period reference and follows the task
+      // into the folder's Completed (2026-08-06), so one call answers both
+      // halves of the screen — split by the checkbox.
+      const [entries, chosen] = await Promise.all([
+        api.periodTasks(period),
+        api.periodSort(period),
       ]);
-      open = (todo ?? []).map((task) => ({ task, list: paths.list }));
-      done = (finished ?? []).map((task) => ({ task, list: paths.completed }));
-    } catch (e) {
-      onError?.(e);
+      return {
+        open: (entries ?? []).filter((e) => !e.task.done).map(asEntry),
+        done: (entries ?? []).filter((e) => e.task.done).map(asEntry),
+        sort: chosen ?? null,
+      };
     }
+    if (!paths.list) return { open: [], done: [] };
+    const [todo, finished] = await Promise.all([
+      api.listTasks(paths.list),
+      api.listTasks(paths.completed).catch(() => []),
+    ]);
+    return {
+      open: (todo ?? []).map((task) => ({ task, list: paths.list })),
+      done: (finished ?? []).map((task) => ({ task, list: paths.completed })),
+    };
   }
+
+  const load = makeLoad({
+    read,
+    apply: (r) => {
+      open = r.open;
+      done = r.done;
+      // Only a period carries an arrangement of its own; a space's sort
+      // lives in its `.space.json` and arrives with the source.
+      if (r.sort !== undefined) periodSort = r.sort;
+    },
+    onError: (e) => onError?.(e),
+  });
 
   const act = makeAct({
     load,
@@ -268,12 +275,16 @@
       exitPicking();
     });
 
-  const deleteSelected = () =>
+  const deleteSelected = async () => {
+    if (picked.size === 0) return;
+    // The same question a single delete asks — deleting twelve without it
+    // while deleting one asked was an accident, not a policy.
+    if (!(await askConfirm(S.confirmDeleteTasks(picked.size), DELETING))) return;
     act(async () => {
-      if (picked.size === 0) return;
       await withPickedIds((list, id) => api.deleteTask(list, id));
       exitPicking();
     });
+  };
 
   const setSort = (next) =>
     period ? act(() => api.setPeriodSort(period, next)) : onSetSort?.(next);

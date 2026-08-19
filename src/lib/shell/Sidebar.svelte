@@ -99,10 +99,6 @@
     onOpen?.(view, true);
   }
 
-  // Names that live inside a group — the column itself is built by
-  // `sidebarEntries`, which is where "loose or grouped" is decided.
-  let groupedNames = $derived(new Set(groups.flatMap((g) => g.spaces)));
-
   // ---- one ordered column ----
   // Groups and loose spaces used to be two `{#each}` blocks in two
   // containers, which is why a group could not be dragged at all and a
@@ -196,11 +192,13 @@
       label: S.sortTasks,
       items: [
         {
-          label: (spacesSort === "name" ? "  " : "✓ ") + S.sortCustom,
+          label: S.sortCustom,
+          checked: spacesSort !== "name",
           run: () => onSetSpacesSort?.(""),
         },
         {
-          label: (spacesSort === "name" ? "✓ " : "  ") + S.sortByName,
+          label: S.sortByName,
+          checked: spacesSort === "name",
           run: () => onSetSpacesSort?.("name"),
         },
       ],
@@ -504,7 +502,7 @@
               class="shell__entry shell__group shell__group--space"
               style={accentStyle(entry.group.color, {
                 color: "--group-color",
-                tint: "--group-tint",
+                tint: null,
               }) || undefined}
             >
               <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -561,7 +559,7 @@
               style={(!parent &&
                 accentStyle(entry.sp.color, {
                   color: "--group-color",
-                  tint: "--group-tint",
+                  tint: null,
                 })) ||
                 undefined}
             >

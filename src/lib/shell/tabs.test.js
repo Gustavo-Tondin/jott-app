@@ -17,7 +17,7 @@ import {
 
 const list = (path) => ({ kind: "list", list: path });
 const home = { kind: "home" };
-const week = { kind: "period", period: "week" };
+const notes = { kind: "notes" };
 
 /// Opens a sequence of views from an empty bar.
 function bar(...views) {
@@ -29,7 +29,7 @@ function bar(...views) {
 
 describe("tabs", () => {
   test("opening a view that is already open focuses it instead of duplicating", () => {
-    const first = bar(home, week);
+    const first = bar(home, notes);
     const again = open(first.tabs, first.active, home);
 
     expect(again.tabs.length).toBe(2);
@@ -39,7 +39,7 @@ describe("tabs", () => {
   test("each tab carries its own history", () => {
     // Global history would make "back" jump between tabs, which is the
     // confusion tabs exist to avoid.
-    let { tabs, active } = bar(home, week);
+    let { tabs, active } = bar(home, notes);
     ({ tabs, active } = navigate(tabs, active, list("Tasks/Inbox.md")));
 
     expect(viewId(currentView(tabs[active]))).toBe("list:Tasks/Inbox.md");
@@ -48,7 +48,7 @@ describe("tabs", () => {
     expect(canGoBack(tabs[0])).toBe(false);
 
     ({ tabs, active } = back(tabs, active));
-    expect(viewId(currentView(tabs[active]))).toBe("week");
+    expect(viewId(currentView(tabs[active]))).toBe("notes");
     expect(canGoForward(tabs[active])).toBe(true);
 
     ({ tabs, active } = forward(tabs, active));
@@ -57,7 +57,7 @@ describe("tabs", () => {
 
   test("navigating after going back drops what was ahead", () => {
     let { tabs, active } = bar(home);
-    ({ tabs, active } = navigate(tabs, active, week));
+    ({ tabs, active } = navigate(tabs, active, notes));
     ({ tabs, active } = back(tabs, active));
     ({ tabs, active } = navigate(tabs, active, list("Tasks/Inbox.md")));
 
@@ -78,7 +78,7 @@ describe("tabs", () => {
   });
 
   test("closing the active tab lands on its neighbour", () => {
-    const { tabs } = bar(home, week, list("Tasks/Inbox.md"));
+    const { tabs } = bar(home, notes, list("Tasks/Inbox.md"));
 
     const closedMiddle = close(tabs, 1, 1);
     expect(closedMiddle.tabs.length).toBe(2);
@@ -109,24 +109,24 @@ describe("tabs", () => {
   });
 
   test("moving a tab keeps the same one focused", () => {
-    const { tabs } = bar(home, week, list("Tasks/Inbox.md"));
+    const { tabs } = bar(home, notes, list("Tasks/Inbox.md"));
 
     // Dragging the tab you are on: focus follows it.
     const dragged = move(tabs, 0, 0, 2);
     expect(viewId(currentView(dragged.tabs[dragged.active]))).toBe("home");
     expect(dragged.tabs.map((t) => viewId(currentView(t)))).toEqual([
-      "week",
+      "notes",
       "list:Tasks/Inbox.md",
       "home",
     ]);
 
     // Dragging another tab past you: you stay on the same document.
     const other = move(tabs, 1, 0, 2);
-    expect(viewId(currentView(other.tabs[other.active]))).toBe("week");
+    expect(viewId(currentView(other.tabs[other.active]))).toBe("notes");
   });
 
   test("a move that goes nowhere changes nothing", () => {
-    const { tabs } = bar(home, week);
+    const { tabs } = bar(home, notes);
     expect(move(tabs, 0, 1, 1).tabs).toBe(tabs);
     expect(move(tabs, 0, 0, 9).tabs).toBe(tabs);
     expect(move(tabs, 0, -1, 0).tabs).toBe(tabs);

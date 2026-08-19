@@ -20,10 +20,13 @@ describe("spaceMenu", () => {
   test("only the sortings the type understands, with the active one ticked", () => {
     const items = spaceMenu({ sorts: [null, "name", "custom"], sort: "name" });
     expect(labels(items[0].items)).toEqual([
-      "  File order",
-      "✓ Sort by name",
-      "  Custom order (dragged)",
+      "File order",
+      "Sort by name",
+      "Custom order (dragged)",
     ]);
+    // The mark travels as data (`checked`), drawn by MenuItems — a label
+    // prefix was one of four hand-rolled spellings of "chosen".
+    expect(items[0].items.map((i) => i.checked)).toEqual([false, true, false]);
   });
 
   test("custom order is dead until something was dragged", () => {

@@ -1828,17 +1828,6 @@ pub struct SpaceInfo {
     pub order: Vec<String>,
 }
 
-/// Creates a user space of the given type (`tasks` / `notes`). Returns
-/// the folder name.
-#[tauri::command]
-pub fn create_space(
-    state: State<'_, AppState>,
-    name: String,
-    kind: String,
-) -> CommandResult<String> {
-    state.with_notebook(|nb| Ok(nb.create_space(&name, &kind)?))
-}
-
 /// Sets a space's display name (empty clears it, back to the folder name).
 #[tauri::command]
 pub fn rename_space(

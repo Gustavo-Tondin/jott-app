@@ -11,6 +11,7 @@
   //    validate a second time. What it *does* do is stop a bad value from
   //    being offered at all: modes, week start and date shape are selects.
   import { api } from "../services/api.js";
+  import { makeAct, makeLoad } from "../services/act.js";
   import { S } from "../services/strings.js";
   import { FEATURES, on, stored } from "../services/features.js";
   import { DEFAULT_ACCENT } from "../services/accent.js";
@@ -40,19 +41,10 @@
   /// them from there and writes them with their own command.
   let features = $derived(notebook?.layout?.features ?? {});
 
-  async function setFeature(key, value) {
-    try {
-      // Back to the default? Then the notebook forgets it, and the file keeps
-      // only what differs from how the app ships.
-      await api.setFeature(key, stored(key, value));
-      onChanged?.();
-      saved = true;
-      clearTimeout(savedTimer);
-      savedTimer = setTimeout(() => (saved = false), 1500);
-    } catch (e) {
-      onError?.(e);
-    }
-  }
+  // Back to the default? Then the notebook forgets it, and the file keeps
+  // only what differs from how the app ships.
+  const setFeature = (key, value) =>
+    act(() => api.setFeature(key, stored(key, value)), flash);
 
   let settings = $state(null);
   /// What the controls are bound to.
@@ -65,39 +57,41 @@
   let saved = $state(false);
   let savedTimer = null;
 
+  /// The "Saved" that blinks after a write — it was pasted into three
+  /// handlers before it had a name.
+  function flash() {
+    saved = true;
+    clearTimeout(savedTimer);
+    savedTimer = setTimeout(() => (saved = false), 1500);
+  }
+
   // Whatever the core says is what the controls show.
   $effect(() => {
     if (settings) form = { ...settings };
   });
 
-  $effect(() => {
-    load();
+  // Re-read rather than trusting what was sent: the core may have normalised
+  // the value, and the screen should show what was stored.
+  const load = makeLoad({
+    read: () => api.notebookSettings(),
+    apply: (read) => (settings = read),
+    onError: (e) => onError?.(e),
   });
 
-  async function load() {
-    try {
-      settings = await api.notebookSettings();
-    } catch (e) {
-      onError?.(e);
-    }
-  }
+  const act = makeAct({
+    load,
+    // Wrapped, not passed: `act` is built once, and the props may be
+    // replaced (services/act.js).
+    onChanged: () => onChanged?.(),
+    onError: (e) => onError?.(e),
+  });
+
+  // A plain call, not an $effect: it reads no reactive value, and an effect
+  // here would silently start re-running the day someone reads state inside.
+  load();
 
   /// Sends one key. The core keeps everything it was not told about.
-  async function put(patch) {
-    try {
-      await api.setNotebookSettings(patch);
-      // Re-read rather than trusting what we sent: the core may have
-      // normalised the value, and the screen should show what was stored.
-      settings = await api.notebookSettings();
-      onChanged?.();
-
-      saved = true;
-      clearTimeout(savedTimer);
-      savedTimer = setTimeout(() => (saved = false), 1500);
-    } catch (e) {
-      onError?.(e);
-    }
-  }
+  const put = (patch) => act(() => api.setNotebookSettings(patch), flash);
 
   // Slash-only, and month-first is the default (user call, 2026-08-06).
   const DATE_SHAPES = ["mm/dd/yyyy", "dd/mm/yyyy", "yyyy/mm/dd"];
@@ -108,26 +102,9 @@
   /// other setting on this screen does — nothing here holds a local copy of
   /// the bindings, so the table, the keymap and the tooltips can never
   /// disagree about what is bound.
-  async function bindShortcut(id, chord) {
-    try {
-      await api.setShortcut(id, chord);
-      onChanged?.();
-      saved = true;
-      clearTimeout(savedTimer);
-      savedTimer = setTimeout(() => (saved = false), 1500);
-    } catch (e) {
-      onError?.(e);
-    }
-  }
+  const bindShortcut = (id, chord) => act(() => api.setShortcut(id, chord), flash);
 
-  async function resetShortcuts() {
-    try {
-      await api.resetShortcuts();
-      onChanged?.();
-    } catch (e) {
-      onError?.(e);
-    }
-  }
+  const resetShortcuts = () => act(() => api.resetShortcuts());
 
   let readOnly = $derived(!!notebook?.readOnly);
 </script>
@@ -391,7 +368,7 @@
   <!-- App functions: built FROM the declared list, so a new switch is one
        entry in services/features.js and nothing here. A sub-option is indented
        under its parent and goes dead with it. -->
-  <section class="settings__section settings__section--features">
+  <section class="settings__section">
     <h2 class="settings__section-title">{S.sectionShortcuts}</h2>
     <p class="settings__hint">{S.sectionShortcutsHint}</p>
 
@@ -423,7 +400,10 @@
     </div>
   </section>
 
-  <section class="settings__section">
+  <!-- The modifier is what scopes the sub-feature indent and the row
+       hairlines in settings.css — it sat on the Shortcuts section for a
+       while, where none of those rules had anything to catch. -->
+  <section class="settings__section settings__section--features">
     <h2 class="settings__section-title">{S.sectionFeatures}</h2>
     <p class="settings__hint">{S.sectionFeaturesHint}</p>
 
