@@ -79,6 +79,7 @@
   {#if !readOnly}
     <div
       class="note-banner__menu"
+      class:note-banner__menu--open={open}
       use:dismissable={{ active: open, onDismiss: () => (open = false) }}
     >
       <button

@@ -51,6 +51,13 @@
     .note-card__pin {
       opacity: 1;
     }
+
+    /* Same for the ⋮ on a banner. Below 768px it is not drawn at all (the page
+       menu carries it), so this is for a touch screen WIDE enough to still get
+       the desktop shell — a tablet, and the app's own window on one. */
+    .note-banner__more--on-block {
+      opacity: 1;
+    }
   }
 }
 

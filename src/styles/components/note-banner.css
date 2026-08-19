@@ -28,6 +28,11 @@
     min-block-size: var(--banner-height);
     margin-block-end: var(--theme-space-24);
     padding-block: var(--theme-space-12);
+    /* The floor between the block's edge and the chip. It only ever shows on a
+       narrow canvas: past 720px of prose the centring leaves far more room than
+       this, and the chip lands on the text's own edge instead (user report,
+       2026-08-19 — below that width the chip was touching the side). */
+    padding-inline: var(--theme-space-8);
     background: var(--banner, var(--theme-brand));
     border-radius: var(--theme-radius-lg);
     overflow: hidden;
@@ -59,11 +64,18 @@
   }
 
   /* The text column, inside the block. */
+  /* The text column, inside the block — and TWELVE PIXELS WIDER than the prose
+     on each side, with that much padding back. That is what gives the chip
+     somewhere to be pulled into: its own padding comes off the line's, so the
+     first letter lands on the prose's first letter while the box itself never
+     crosses the block's own padding. On a canvas too narrow for the cap the
+     line is simply the block, and the chip stops at the padding above. */
   .note-banner__line {
     position: relative;
     inline-size: 100%;
-    max-inline-size: var(--theme-content-max);
+    max-inline-size: calc(var(--theme-content-max) + var(--theme-space-24));
     margin-inline: auto;
+    padding-inline: var(--theme-space-12);
   }
 
   /* The title. Over a banner it is a chip — the ground's neutral over the
@@ -117,9 +129,20 @@
   .note-banner__more {
     color: var(--theme-ink-muted);
   }
+  /* ON A BANNER IT WAITS FOR THE POINTER (user call, 2026-08-19). A banner is a
+     picture or a colour someone chose; a chip parked in its corner is the app
+     signing it. On the bare head there is nothing to keep clean and it stays —
+     that head IS the way in to choosing a banner at all. */
   .note-banner__more--on-block {
     background: var(--theme-bg);
     border-radius: var(--theme-radius-pill);
+    opacity: 0;
+    transition: opacity var(--theme-transition-fast);
+  }
+  .note-banner:hover .note-banner__more--on-block,
+  .note-banner__more--on-block:focus-visible,
+  .note-banner__menu--open .note-banner__more--on-block {
+    opacity: 1;
   }
   .note-banner__panel {
     display: flex;
@@ -180,5 +203,12 @@
   }
   .note-banner--compact .note-banner__title {
     font-size: var(--theme-text-18);
+  }
+  /* No ⋮ of its own below 768px (user call, 2026-08-19): the banner's choices
+     are in the page menu of the top bar, which is the ⋮ a phone already has —
+     and the only one, since the header that would carry a second is not drawn
+     for a note there. */
+  .note-banner--compact .note-banner__menu {
+    display: none;
   }
 }
