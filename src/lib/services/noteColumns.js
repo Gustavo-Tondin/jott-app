@@ -64,12 +64,19 @@ export function columnBreaks(weights, count) {
   let column = 1;
   for (let i = 0; i < weights.length && column < count; i++) {
     carried += weights[i];
-    // The share this column was owed, and the room left for the ones after it:
-    // a break is taken as soon as the column has had its share, provided every
-    // remaining column can still be given a card.
+    // The share this column was owed, and the cards left after this one.
     const share = (total * column) / count;
     const left = weights.length - 1 - i;
-    if (carried >= share && left >= count - column) {
+    // Two reasons to end a column here. The first is the share: it has had its
+    // weight, and there are still enough cards to give every column after it
+    // one. The second is the one that MATTERS on a nearly empty board, and its
+    // absence was the whole bug (user report, 2026-08-19 — the third column
+    // stayed empty even with the breaks in place): when what is left is
+    // exactly the number of columns still to fill, every remaining card has to
+    // start one, whatever the shares say. Four cards into three columns never
+    // reached a single share in time, so nothing broke and the browser went
+    // back to balancing — which is what put them in two columns.
+    if (left === count - column || (carried >= share && left >= count - column)) {
       breaks.add(i);
       column += 1;
     }

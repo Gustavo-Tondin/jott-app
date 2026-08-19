@@ -45,6 +45,17 @@ describe("where the columns break", () => {
     expect([...columnBreaks([6, 1, 1, 1, 1, 1, 1], 2)]).toEqual([0]);
   });
 
+  it("fills every column on a board with barely more cards than columns", () => {
+    // THE case that was still broken after the first fix (user report,
+    // 2026-08-19): a folder card, an empty note, a short one and a long one,
+    // into three columns. No column ever reached its share of the weight in
+    // time, so nothing broke, and the browser's own balancing put them all in
+    // two columns — the very thing the breaks exist to prevent.
+    expect([...columnBreaks([5, 2, 8, 13], 3)]).toEqual([1, 2]);
+    // Five cards, one enormous: it takes a column, and the rest still spread.
+    expect([...columnBreaks([50, 1, 1, 1, 1], 3)]).toEqual([0, 1]);
+  });
+
   it("keeps the last columns from being starved", () => {
     // A first card heavy enough to claim every share must still leave one card
     // for each remaining column.
