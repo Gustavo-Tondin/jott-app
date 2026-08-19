@@ -1184,6 +1184,17 @@
   const setSpaceOrder = (order) =>
     view.kind === "space" && change(() => api.setSpaceOrder(view.sp, order));
 
+  /// The FIXED Notes screen is a space too, and it had none of this (user
+  /// report, 2026-08-19: "arrastar não move"). The board dragged, called an
+  /// `onSetOrder` nobody had passed, and redrew in the old order — silently,
+  /// because an optional handler that is missing simply does nothing. Its
+  /// arrangement lives in `jott.notes/.space.json` like any other space's.
+  let notesSpace = $derived(spaces.find((sp) => sp.path === layout.notesFolder) ?? null);
+  const setNotesSort = (sort) =>
+    layout.notesFolder && change(() => api.setSpaceSort(layout.notesFolder, sort));
+  const setNotesOrder = (order) =>
+    layout.notesFolder && change(() => api.setSpaceOrder(layout.notesFolder, order));
+
   async function renameCurrentList() {
     if (view.kind !== "list") return;
     const from = view.list;
@@ -1751,7 +1762,15 @@
                 // one folder; the board shows the whole space, so the space's
                 // name is the honest label.)
                 name: title(view),
+                // What the space's own config says about its arrangement —
+                // without these the ⋮ could not tick the sorting in force and
+                // dragging had nowhere to be saved.
+                sort: notesSpace?.sort ?? null,
+                order: notesSpace?.order ?? [],
+                options: notesSpace?.options ?? null,
               }}
+              onSetSort={setNotesSort}
+              onSetOrder={setNotesOrder}
               header={!compact}
               readOnly={notebook.readOnly}
               notesInbox={layout.notesInbox}

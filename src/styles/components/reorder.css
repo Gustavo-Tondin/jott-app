@@ -12,13 +12,28 @@
   }
 
   /* The one being carried: it tracks the pointer 1:1 (no transition), lifts a
-     little, and rides above its neighbours as it passes them. */
+     little, and rides above its neighbours as it passes them.
+
+     The action takes it OUT OF FLOW while it is carried (`position: fixed`,
+     set inline, with a placeholder holding its place) — every list the app
+     drags in lives inside something that scrolls, and a scroller clips what
+     leaves it. So the z-index here has to clear the page, not just its own
+     siblings; it stays under the dialogs (100) and the popovers (200), which
+     is where a carried card belongs. */
   .reorder-item--carried {
     transition: none;
-    position: relative;
-    z-index: 3;
+    z-index: 60;
     opacity: 0.9;
     cursor: grabbing;
+    /* The shadow says it is off the page — the one thing an item out of flow
+       cannot say by moving. */
+    box-shadow: var(--theme-shadow-popover);
+  }
+  /* The space it left behind, and nothing else: it is what keeps the list
+     still while the item is out of flow. */
+  .reorder-ghost {
+    list-style: none;
+    break-inside: avoid;
   }
 
   /* The item the drop will go INTO, rather than next to (`onDropInto`,
