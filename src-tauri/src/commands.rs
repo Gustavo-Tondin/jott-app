@@ -1547,15 +1547,6 @@ pub async fn clipboard_files<R: Runtime>(app: AppHandle<R>) -> Vec<String> {
     clipboard_uris(&app).unwrap_or_default()
 }
 
-/// Everywhere but Linux there is nothing to ask: this whole path answers a
-/// GTK-flavoured paste, and every other platform hands the file to the webview
-/// itself. Without this the Android build does not compile at all — which is
-/// how it was found (2026-08-19).
-#[cfg(not(target_os = "linux"))]
-fn clipboard_uris<R: Runtime>(_app: &AppHandle<R>) -> Option<Vec<String>> {
-    None
-}
-
 #[cfg(target_os = "linux")]
 fn clipboard_uris<R: Runtime>(app: &AppHandle<R>) -> Option<Vec<String>> {
     use std::sync::mpsc;
@@ -1609,6 +1600,8 @@ fn gtk_clipboard_uris() -> Option<Vec<String>> {
 /// Linux answer to a paste the webview cannot see; Android has no such
 /// clipboard to reach for, and Windows and macOS hand the files to the
 /// webview in the first place, so the frontend already has them.
+/// Without it the crate does not compile off Linux at all, which is how the
+/// gap was found: the first Android build after it landed.
 #[cfg(not(target_os = "linux"))]
 fn clipboard_uris<R: Runtime>(_app: &AppHandle<R>) -> Option<Vec<String>> {
     None
