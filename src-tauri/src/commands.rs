@@ -38,9 +38,9 @@ pub struct NotebookLayout {
     /// The folder new lists are created in, until the UI is space-aware.
     pub tasks_folder: String,
     /// The per-folder completed list's NAME (`Completed`) — every tasks
-    /// widget has one, and the UI must not hard-code it (the names.js lesson).
+    /// space has one, and the UI must not hard-code it (the names.js lesson).
     pub completed_name: String,
-    /// The fixed Notes widget's folder, and the folder loose notes land in.
+    /// The fixed Notes space's folder, and the folder loose notes land in.
     pub notes_folder: String,
     pub notes_inbox: String,
     /// Preferences the screens need on every render, so they do not each ask
@@ -257,11 +257,6 @@ pub fn platform() -> &'static str {
     } else {
         "desktop"
     }
-}
-
-#[tauri::command]
-pub fn core_version() -> String {
-    jott_core::version().to_string()
 }
 
 // --------------------------------------------------------------- notebook
@@ -559,12 +554,17 @@ pub fn current_notebook(state: State<'_, AppState>) -> Option<NotebookInfo> {
 pub fn list_counts(
     state: State<'_, AppState>,
 ) -> CommandResult<std::collections::BTreeMap<String, usize>> {
-    state.with_notebook(|nb| {
-        if !nb.config().show_list_counts {
-            return Ok(Default::default());
-        }
-        Ok(nb.open_task_counts()?)
-    })
+    state.with_notebook(counts_of)
+}
+
+/// The rule behind the counters, written once: off means empty, not absent —
+/// the shape stays the same either way. Shared by `list_counts` and the
+/// snapshot, so the two doors cannot drift.
+fn counts_of(nb: &Notebook) -> CommandResult<std::collections::BTreeMap<String, usize>> {
+    if !nb.config().show_list_counts {
+        return Ok(Default::default());
+    }
+    Ok(nb.open_task_counts()?)
 }
 
 /// Which screen to open on launch.
@@ -924,7 +924,7 @@ pub fn complete_task(
 }
 
 /// Un-completes a task. `list` is the address of the Completed list it sits
-/// in — with one Completed per widget, the id alone cannot say which folder
+/// in — with one Completed per space, the id alone cannot say which folder
 /// to undo in.
 #[tauri::command]
 pub fn uncomplete_task(
@@ -937,9 +937,9 @@ pub fn uncomplete_task(
 
 // ------------------------------------------------------------------ notes
 //
-// `folder` is always the root-relative address of a notes widget (`Notes`);
-// `path` is always relative to that widget (`Inbox/ideia.md`). Two levels,
-// because the widget owns its subtree and the user organises freely inside
+// `folder` is always the root-relative address of a notes space (`Notes`);
+// `path` is always relative to that space (`Inbox/ideia.md`). Two levels,
+// because the space owns its subtree and the user organises freely inside
 // it.
 
 /// A note's content, for the editor.
@@ -958,7 +958,7 @@ pub struct NoteContent {
     pub banner: Option<jott_core::Banner>,
 }
 
-/// Every note in a notes widget, sorted for the board: pinned first, then
+/// Every note in a notes space, sorted for the board: pinned first, then
 /// newest. An empty `query` returns all of them.
 #[tauri::command]
 pub fn list_notes(
@@ -1108,7 +1108,7 @@ pub fn rename_asset(
     state.with_notebook(|nb| Ok(nb.rename_asset(&path, &name)?))
 }
 
-/// Moves a note to another folder inside the widget. Returns the new address.
+/// Moves a note to another folder inside the same space. Returns the new address.
 #[tauri::command]
 pub fn move_note(
     state: State<'_, AppState>,
@@ -1190,7 +1190,7 @@ pub fn import_asset(
     data: String,
 ) -> CommandResult<String> {
     let bytes = crate::base64::decode(&data)
-        .ok_or_else(|| crate::error::CommandError::new("invalid", "the image could not be read"))?;
+        .ok_or_else(|| CommandError::new("invalid", "the image could not be read"))?;
     state.with_notebook(|nb| Ok(nb.import_asset(&name, &bytes)?))
 }
 
@@ -1426,16 +1426,30 @@ pub async fn clipboard_files<R: Runtime>(app: AppHandle<R>) -> Vec<String> {
     clipboard_uris(&app).unwrap_or_default()
 }
 
+/// Runs `f` on the GTK main thread and waits — bounded — for its answer.
+///
+/// GTK3 is not thread-safe: the clipboard and the icon theme may only be
+/// touched from the main thread. The wait is bounded because both callers
+/// are niceties — a missing icon or an empty paste must never hang a
+/// command.
 #[cfg(target_os = "linux")]
-fn clipboard_uris<R: Runtime>(app: &AppHandle<R>) -> Option<Vec<String>> {
+fn on_main_thread<R: Runtime, T: Send + 'static>(
+    app: &AppHandle<R>,
+    f: impl FnOnce() -> T + Send + 'static,
+) -> Option<T> {
     use std::sync::mpsc;
 
     let (tx, rx) = mpsc::channel();
     app.run_on_main_thread(move || {
-        let _ = tx.send(gtk_clipboard_uris());
+        let _ = tx.send(f());
     })
     .ok()?;
-    rx.recv_timeout(std::time::Duration::from_secs(2)).ok()?
+    rx.recv_timeout(std::time::Duration::from_secs(2)).ok()
+}
+
+#[cfg(target_os = "linux")]
+fn clipboard_uris<R: Runtime>(app: &AppHandle<R>) -> Option<Vec<String>> {
+    on_main_thread(app, gtk_clipboard_uris)?
 }
 
 #[cfg(target_os = "linux")]
@@ -1524,16 +1538,8 @@ pub async fn file_icon<R: Runtime>(app: AppHandle<R>, name: String) -> Option<St
 /// The icon bytes, from the system that has them.
 #[cfg(target_os = "linux")]
 fn system_icon<R: Runtime>(app: &AppHandle<R>, name: &str) -> Option<Vec<u8>> {
-    use std::sync::mpsc;
-
     let name = name.to_string();
-    let (tx, rx) = mpsc::channel();
-    app.run_on_main_thread(move || {
-        let _ = tx.send(gtk_icon(&name));
-    })
-    .ok()?;
-    // A bounded wait: a nicety must never be the reason a note stops drawing.
-    rx.recv_timeout(std::time::Duration::from_secs(2)).ok()?
+    on_main_thread(app, move || gtk_icon(&name))?
 }
 
 #[cfg(target_os = "linux")]
@@ -1585,7 +1591,7 @@ fn system_icon<R: Runtime>(_app: &AppHandle<R>, _name: &str) -> Option<Vec<u8>> 
     None
 }
 
-/// Renames a folder inside a notes widget. Returns the new address.
+/// Renames a folder inside a notes space. Returns the new address.
 #[tauri::command]
 pub fn rename_note_folder(
     state: State<'_, AppState>,
@@ -1619,15 +1625,6 @@ pub fn create_note_folder(
 }
 
 // --------------------------------------------------------- day and week
-
-/// The state of Today or This Week, with any pending rollover applied.
-#[tauri::command]
-pub fn period_state(
-    state: State<'_, AppState>,
-    period: Period,
-) -> CommandResult<PeriodState> {
-    state.with_notebook(|nb| Ok(nb.open_state(period)?.state))
-}
 
 #[tauri::command]
 pub fn pull_into_period(
@@ -1792,12 +1789,6 @@ pub fn refresh_periods(state: State<'_, AppState>) -> CommandResult<Vec<PeriodSt
     })
 }
 
-/// Kept from phase 0 so the frontend can prove the bridge is alive.
-#[tauri::command]
-pub fn is_notebook_open(state: State<'_, AppState>) -> bool {
-    state.is_open()
-}
-
 /// A space as the navigation shows it.
 ///
 /// `kind` is whatever the config says — an unknown one is delivered, not
@@ -1829,12 +1820,6 @@ pub struct SpaceInfo {
     /// `custom`), and the hand-dragged arrangement `custom` reads.
     pub sort: Option<String>,
     pub order: Vec<String>,
-}
-
-/// The spaces of the notebook, ready to render.
-#[tauri::command]
-pub fn spaces(state: State<'_, AppState>) -> CommandResult<Vec<SpaceInfo>> {
-    state.with_notebook(spaces_of)
 }
 
 /// Creates a user space of the given type (`tasks` / `notes`). Returns
@@ -2186,7 +2171,7 @@ fn open_path(target: &Path) -> CommandResult<()> {
     }
 }
 
-// ---- completed (aggregated across widgets) ----
+// ---- completed (aggregated across spaces) ----
 
 #[tauri::command]
 pub fn completed_tasks(
@@ -2255,11 +2240,7 @@ pub fn notebook_snapshot(state: State<'_, AppState>) -> CommandResult<NotebookSn
         Ok(NotebookSnapshot {
             info: NotebookInfo::of(nb)?,
             clock: clock_of(nb),
-            counts: if nb.config().show_list_counts {
-                nb.open_task_counts()?
-            } else {
-                Default::default()
-            },
+            counts: counts_of(nb)?,
             conflicts: nb.conflicts()?,
             spaces: spaces_of(nb)?,
             groups: groups_of(nb)?,

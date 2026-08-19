@@ -104,18 +104,6 @@ fn exclusive() -> std::sync::MutexGuard<'static, ()> {
 }
 
 #[test]
-fn core_version_answers_over_the_bridge() {
-    let _lock = exclusive();
-    let app = app();
-    WebviewWindowBuilder::new(&app, "main", Default::default())
-        .build()
-        .unwrap();
-
-    let version = ok(&app, "core_version", json!({}));
-    assert_eq!(version, json!(jott_core::version()));
-}
-
-#[test]
 fn commands_fail_cleanly_before_a_notebook_is_open() {
     let _lock = exclusive();
     // The UI can call something before onboarding finishes; that must be a
@@ -127,7 +115,6 @@ fn commands_fail_cleanly_before_a_notebook_is_open() {
 
     let err = invoke(&app, "list_names", json!({})).unwrap_err();
     assert_eq!(err["kind"], "noNotebook");
-    assert_eq!(ok(&app, "is_notebook_open", json!({})), json!(false));
     assert_eq!(ok(&app, "current_notebook", json!({})), Value::Null);
 }
 
@@ -143,7 +130,6 @@ fn opening_a_notebook_reports_it_and_creates_the_layout() {
         "default lists should exist and be sorted"
     );
     assert!(dir.path().join(".jott/config.json").is_file());
-    assert_eq!(ok(&app, "is_notebook_open", json!({})), json!(true));
 }
 
 #[test]
@@ -176,16 +162,16 @@ fn the_full_task_lifecycle_over_the_bridge() {
         "pull_into_period",
         json!({ "period": "day", "list": "jott.tasks/Compras.md", "id": id }),
     );
-    let state = ok(&app, "period_state", json!({ "period": "day" }));
-    assert_eq!(state["items"][0]["path"], "jott.tasks/Compras.md");
+    let day = ok(&app, "notebook_snapshot", json!({}))["day"].clone();
+    assert_eq!(day[0]["path"], "jott.tasks/Compras.md");
 
     ok(
         &app,
         "complete_task",
         json!({ "list": "jott.tasks/Compras.md", "id": id }),
     );
-    let state = ok(&app, "period_state", json!({ "period": "day" }));
-    assert_eq!(state["items"][0]["path"], "jott.tasks/completed.md");
+    let day = ok(&app, "notebook_snapshot", json!({}))["day"].clone();
+    assert_eq!(day[0]["path"], "jott.tasks/completed.md");
     let pulled = ok(&app, "period_tasks", json!({ "period": "day" }));
     assert_eq!(pulled[0]["task"]["done"], json!(true));
 
@@ -212,9 +198,9 @@ fn creating_a_task_from_today_writes_it_to_the_inbox() {
     let inbox = std::fs::read_to_string(dir.path().join("jott.tasks/task-list.md")).unwrap();
     assert!(inbox.contains("Responder e-mail"));
 
-    let state = ok(&app, "period_state", json!({ "period": "day" }));
-    assert_eq!(state["items"][0]["path"], "jott.tasks/task-list.md");
-    assert_eq!(state["items"][0]["id"], id);
+    let day = ok(&app, "notebook_snapshot", json!({}))["day"].clone();
+    assert_eq!(day[0]["path"], "jott.tasks/task-list.md");
+    assert_eq!(day[0]["id"], id);
 
     assert_eq!(
         ok(
@@ -741,9 +727,9 @@ fn a_dated_task_reaches_the_day_over_the_bridge() {
     assert_eq!(day.as_array().unwrap().len(), 1);
     assert_eq!(day[0]["task"]["text"], "Para hoje");
 
-    let state = ok(&app, "period_state", json!({ "period": "day" }));
+    let day = ok(&app, "notebook_snapshot", json!({}))["day"].clone();
     assert!(
-        state["items"].as_array().map(|i| i.is_empty()).unwrap_or(true),
+        day.as_array().map(|i| i.is_empty()).unwrap_or(true),
         "nothing is written into the day's state"
     );
 }
@@ -969,7 +955,7 @@ fn a_hand_written_space_crosses_the_bridge_intact() {
     )
     .unwrap();
 
-    let spaces = ok(&app, "spaces", json!({}));
+    let spaces = ok(&app, "notebook_snapshot", json!({}))["spaces"].clone();
     let list = spaces.as_array().unwrap();
 
     // The three fixed ones plus the hand-written ones, flagged apart.
@@ -1032,7 +1018,7 @@ fn space_sort_and_order_round_trip_over_the_bridge() {
         json!({ "space": "Space 1", "order": ["b2", "a1"] }),
     );
 
-    let spaces = ok(&app, "spaces", json!({}));
+    let spaces = ok(&app, "notebook_snapshot", json!({}))["spaces"].clone();
     let space = spaces
         .as_array()
         .unwrap()
@@ -1125,7 +1111,7 @@ fn an_unknown_space_type_does_not_take_the_notebook_down() {
         std::fs::write(d.join(".space.json"), cfg).unwrap();
     }
 
-    let spaces = ok(&app, "spaces", json!({}));
+    let spaces = ok(&app, "notebook_snapshot", json!({}))["spaces"].clone();
     let find = |name: &str| {
         spaces
             .as_array()
@@ -1436,8 +1422,8 @@ fn a_space_moved_into_a_group_keeps_its_pulled_tasks() {
 
     ok(&app, "move_space", json!({ "name": "Acme", "intoGroup": "Design" }));
 
-    let state = ok(&app, "period_state", json!({ "period": "day" }));
-    assert_eq!(state["items"][0]["path"], "Design/Acme/task-list.md");
+    let day = ok(&app, "notebook_snapshot", json!({}))["day"].clone();
+    assert_eq!(day[0]["path"], "Design/Acme/task-list.md");
     assert_eq!(
         ok(&app, "period_tasks", json!({ "period": "day" }))
             .as_array()
