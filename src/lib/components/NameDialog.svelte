@@ -56,7 +56,7 @@
     />
     <div class="theme-modal__actions name-dialog__actions">
       <button class="theme-btn" onclick={() => settle(null)}>{S.cancel}</button>
-      <button class="theme-btn--primary name-dialog__confirm" onclick={confirm}>
+      <button class="theme-btn theme-btn--primary name-dialog__confirm" onclick={confirm}>
         {$nameRequest.confirm}
       </button>
     </div>

@@ -433,6 +433,31 @@ describe("frontend architecture", () => {
     expect(laddersChecked).toBe(48);
   });
 
+  test("no component wears a modifier without the class it modifies", () => {
+    // `theme-btn--primary` paints a fill and nothing else: the padding, the
+    // radius and the type all come from `theme-btn`. Worn alone it renders as
+    // the browser's own button with a coloured background, which is exactly
+    // how the rename dialog's OK button shipped (user report, 2026-08-19).
+    //
+    // `theme-btn--icon` is the documented exception — it carries its own reset
+    // so a lone glyph works with or without the base (controls.css says so).
+    const offenders = [];
+    for (const file of [join(src, "App.svelte"), ...walk(join(src, "lib"), ".svelte")]) {
+      const markup = readFileSync(file, "utf8");
+      for (const match of markup.matchAll(/class="([^"]*)"/g)) {
+        const classes = match[1].split(/\s+/);
+        for (const name of classes) {
+          if (!name.startsWith("theme-") || !name.includes("--")) continue;
+          if (name === "theme-btn--icon") continue;
+          const base = name.split("--")[0];
+          if (!classes.includes(base))
+            offenders.push(`${basename(file)}: ${name} without ${base}`);
+        }
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+
   test("component stylesheets keep every top-level selector on a class", () => {
     // An element selector at the top level of a global sheet leaks onto the
     // whole app (scoping no longer protects it). Descendants of a class
