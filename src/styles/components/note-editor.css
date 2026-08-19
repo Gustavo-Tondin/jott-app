@@ -5,6 +5,13 @@
 @layer components {
   .note-editor__body {
     min-height: 60vh;
+    /* The prose keeps the app's reading width while the screen around it is
+       wider (`--theme-content-wide`, tokens.css): only the banner reaches past the
+       cap, and it is the banner that reaches — the text stays where every
+       other screen's text is. */
+    inline-size: 100%;
+    max-inline-size: var(--theme-content-max);
+    margin-inline: auto;
   }
 
   /* On a phone the note IS the screen, so the editor takes what is left of it

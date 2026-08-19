@@ -486,9 +486,22 @@ export const S = {
 
   // The note's banner (2026-08-18) — a colour or a picture at the head of a
   // note, written on its first line.
-  addBanner: "Add banner",
+  banner: "Banner",
   bannerOptions: "banner options",
   bannerColor: "Colour",
+  // The eight palette names, written out for a MENU — the picker shows
+  // swatches and needs none of these, but a row of a menu is a word.
+  colorName: (name) =>
+    ({
+      yellow: "Yellow",
+      orange: "Orange",
+      pink: "Pink",
+      green: "Green",
+      blue: "Blue",
+      red: "Red",
+      purple: "Purple",
+      neutral: "Neutral",
+    })[name] ?? name,
   bannerImage: "Choose image…",
   removeBanner: "Remove banner",
   chooseImage: "Choose an image",

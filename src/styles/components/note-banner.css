@@ -3,30 +3,47 @@
  * hooks a theme may restyle; components read tokens only.
  *
  * Wireframes "Editor screen - maximized" and "Editor Screen mobile"
- * (2026-08-18): a wide block of colour or picture, the title on a chip
- * straddling its bottom edge, a ⋮ in the top right. The same three parts a
- * note card has — the card is this, small (note-card.css).
+ * (2026-08-19). TWO widths on one screen, and they are the whole idea:
  *
- * It is WIDER than the text it heads. The note's prose is capped at
- * `--theme-content-max` like every other screen (shell.css), and the banner
- * reaches past that cap to the edges of the panel, which is what the wireframe
- * draws and what makes it read as the head of the page rather than as the
- * first paragraph of it. The negative margin is bounded by the padding
- * `.shell__content` already keeps, so it can never touch the panel's edge. */
+ *   |<------------------- 900px, the banner block ------------------->|
+ *         |<-------------- 720px, the note's own text -------------->|
+ *         [ Title ]
+ *
+ * The block reaches past the prose, and the title chip lines up with the first
+ * letter of the first paragraph — which is why the chip lives inside a box of
+ * `--theme-content-max` centred in the block, rather than at the block's own
+ * padding. The outer cap is `--theme-content-wide`, put on the screen's container
+ * by the shell (`.shell__content-inner--note`, shell.css).
+ *
+ * WITHOUT a banner the same head is drawn with no colour and no height: the
+ * title does not move (user call, 2026-08-19). So the difference between the
+ * two states is `--banner-height` and a background, never a different box. */
 
 @layer components {
   .note-banner {
+    --banner-height: 7rem;
     position: relative;
     display: flex;
     align-items: end;
-    block-size: 7rem;
-    margin-inline: calc(var(--theme-space-16) * -1);
+    min-block-size: var(--banner-height);
     margin-block-end: var(--theme-space-24);
-    padding: var(--theme-space-12);
+    padding-block: var(--theme-space-12);
     background: var(--banner, var(--theme-brand));
     border-radius: var(--theme-radius-lg);
     overflow: hidden;
   }
+  /* No banner chosen: the block has no colour and no height of its own, and
+     what is left is the title where it always was. */
+  .note-banner--empty {
+    --banner-height: 0;
+    padding-block: 0;
+    background: none;
+    border-radius: 0;
+    margin-block-end: var(--theme-space-16);
+    /* Nothing is clipped here, and clipping would cut the ⋮'s panel off. */
+    overflow: visible;
+  }
+
   .note-banner__image {
     position: absolute;
     inset: 0;
@@ -41,10 +58,19 @@
     background: var(--theme-well);
   }
 
-  /* The title, on its chip. The ground's neutral over the banner's colour, the
-     same lift the cards use. */
-  .note-banner__title {
+  /* The text column, inside the block. */
+  .note-banner__line {
     position: relative;
+    inline-size: 100%;
+    max-inline-size: var(--theme-content-max);
+    margin-inline: auto;
+  }
+
+  /* The title. Over a banner it is a chip — the ground's neutral over the
+     block's colour, the same lift the cards use; with no banner it is the
+     heading itself, and there is nothing under it to lift off. */
+  .note-banner__title {
+    display: inline-block;
     max-inline-size: 100%;
     margin: 0;
     padding: var(--theme-space-6) var(--theme-space-12);
@@ -56,24 +82,44 @@
     line-height: var(--theme-leading-tight);
     overflow-wrap: anywhere;
   }
-
-  /* No banner: the note is its title, and nothing above it. */
-  .note-banner__plain {
-    margin-block-end: var(--theme-space-16);
+  /* The chip is pulled out by exactly its own padding, so the first LETTER of
+     the title lands over the first letter of the first paragraph — which is
+     what "o título alinhado com o texto" means with a box around it. Without
+     a banner there is no box and nothing to pull. */
+  .note-banner:not(.note-banner--empty) .note-banner__title {
+    margin-inline-start: calc(var(--theme-space-12) * -1);
+  }
+  .note-banner--empty .note-banner__title {
+    padding-inline: 0;
+    background: none;
+  }
+  /* Renaming, from the name itself. It is a button and it must not look like
+     one: the heading is the affordance, the pointer says the rest. */
+  .note-banner__rename {
+    padding: 0;
+    background: none;
+    border: none;
+    color: inherit;
+    font: inherit;
+    text-align: start;
+    cursor: pointer;
   }
 
   .note-banner__menu {
     position: absolute;
     inset-block-start: var(--theme-space-8);
     inset-inline-end: var(--theme-space-8);
+    z-index: 1;
   }
-  /* On a picture the glyph has to hold against whatever is under it, so it
-     travels with its own ground — the one place in the app where a control
-     carries a chip of its own. */
+  /* Over a block it has to hold against whatever is under it — a photograph,
+     a saturated fill — so there it travels with its own ground. On the bare
+     head it is a plain icon button like every other. */
   .note-banner__more {
+    color: var(--theme-ink-muted);
+  }
+  .note-banner__more--on-block {
     background: var(--theme-bg);
     border-radius: var(--theme-radius-pill);
-    color: var(--theme-ink-muted);
   }
   .note-banner__panel {
     display: flex;
@@ -100,17 +146,39 @@
    THE COMPACT HEAD (below 768px — "Editor Screen mobile").
    ============================================================================= */
 @layer components {
-  /* Flush with the screen: on a phone the note IS the screen, and the wireframe
-     draws the banner touching all three edges, with square top corners under
-     the app's own bar. */
-  .shell--compact .note-banner {
-    block-size: 6.25rem;
-    margin-inline: calc(var(--theme-space-16) * -1);
-    margin-block-start: calc(var(--theme-space-12) * -1);
-    border-start-start-radius: 0;
-    border-start-end-radius: 0;
+  /* Flush with the screen: on a phone the note IS the screen, and the
+     wireframe draws the banner touching all three edges, under the app's own
+     bar. The negative margins undo the canvas's padding (shell.css), which is
+     the only thing between the block and the edge. */
+  .note-banner--compact {
+    --banner-height: 6.25rem;
+    /* The canvas's own padding, undone — including the safe areas, so the
+       block reaches the glass and not the notch's idea of it. The canvas gives
+       up its top padding for a note (shell.css), so there is none to undo
+       above. */
+    margin-inline-start: calc((var(--theme-space-8) + var(--theme-safe-left)) * -1);
+    margin-inline-end: calc((var(--theme-space-8) + var(--theme-safe-right)) * -1);
+    border-radius: 0;
   }
-  .shell--compact .note-banner__title {
+  .note-banner--compact.note-banner--empty {
+    /* Nothing to bleed: with no block the head is text on the canvas, and it
+       keeps the canvas's own margins — plus the top padding the canvas handed
+       to the banner it does not have. */
+    margin-inline: 0;
+    padding-block-start: var(--theme-space-16);
+  }
+  /* Flush with the screen there is no slack to pull the chip into, so the
+     column keeps a margin of its own and the chip sits inside it. */
+  .note-banner--compact .note-banner__line {
+    padding-inline: var(--theme-space-8);
+  }
+  .note-banner--compact .note-banner__title {
+    margin-inline-start: 0;
+  }
+  .note-banner--compact.note-banner--empty .note-banner__line {
+    padding-inline: 0;
+  }
+  .note-banner--compact .note-banner__title {
     font-size: var(--theme-text-18);
   }
 }

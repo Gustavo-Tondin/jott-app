@@ -1171,7 +1171,10 @@ pub fn open_asset(state: State<'_, AppState>, path: String) -> CommandResult<()>
 /// happens on the main thread, and a synchronous command might BE on it.
 #[tauri::command]
 pub async fn clipboard_files<R: Runtime>(app: AppHandle<R>) -> Vec<String> {
-    clipboard_uris(&app).unwrap_or_default()
+    note_line("clipboard_files: asked");
+    let answer = clipboard_uris(&app).unwrap_or_default();
+    note_line(&format!("clipboard_files: answering {answer:?}"));
+    answer
 }
 
 #[cfg(target_os = "linux")]
@@ -1179,22 +1182,101 @@ fn clipboard_uris<R: Runtime>(app: &AppHandle<R>) -> Option<Vec<String>> {
     use std::sync::mpsc;
 
     let (tx, rx) = mpsc::channel();
-    app.run_on_main_thread(move || {
-        let _ = tx.send(gtk_clipboard_uris());
-    })
-    .ok()?;
-    rx.recv_timeout(std::time::Duration::from_secs(2)).ok()?
+    if app
+        .run_on_main_thread(move || {
+            note_line("clipboard: on the main thread");
+            let _ = tx.send(gtk_clipboard_uris());
+        })
+        .is_err()
+    {
+        note_line("clipboard: run_on_main_thread refused");
+        return None;
+    }
+    match rx.recv_timeout(std::time::Duration::from_secs(2)) {
+        Ok(answer) => answer,
+        Err(e) => {
+            note_line(&format!("clipboard: no answer ({e})"));
+            None
+        }
+    }
 }
 
 #[cfg(target_os = "linux")]
 fn gtk_clipboard_uris() -> Option<Vec<String>> {
 
-    let display = gdk::Display::default()?;
-    let clipboard = gtk::Clipboard::default(&display)?;
-    let uris = clipboard.wait_for_uris();
-    // The addresses are handed on as they are: percent-decoding them is the
-    // frontend's `pathOfFileUrl`, and one decoder beats two.
-    Some(uris.into_iter().map(|uri| uri.to_string()).collect())
+    let Some(display) = gdk::Display::default() else {
+        note_line("clipboard: no display");
+        return None;
+    };
+    let Some(clipboard) = gtk::Clipboard::default(&display) else {
+        note_line("clipboard: no clipboard for the display");
+        return None;
+    };
+
+    // TEMPORARY (2026-08-19): what the clipboard is actually offering, for
+    // the log. Remove with `debug_log`.
+    let offered: Vec<String> = clipboard
+        .wait_for_targets()
+        .map(|targets| targets.iter().map(|t| t.name().to_string()).collect())
+        .unwrap_or_default();
+
+    let uris: Vec<String> = clipboard
+        .wait_for_uris()
+        .into_iter()
+        .map(|uri| uri.to_string())
+        .collect();
+
+    // Nautilus writes `x-special/gnome-copied-files` as well — `copy\n` and
+    // then the addresses — and it is the one some desktops fill when the
+    // plain uri-list stays empty.
+    let gnome = if uris.is_empty() {
+        clipboard
+            .wait_for_contents(&gdk::Atom::intern("x-special/gnome-copied-files"))
+            .and_then(|data| data.data().to_vec().into())
+            .map(|bytes| String::from_utf8_lossy(&bytes).to_string())
+            .unwrap_or_default()
+    } else {
+        String::new()
+    };
+
+    note_line(&format!(
+        "clipboard targets=[{}] uris={uris:?} gnome={gnome:?}",
+        offered.join("|")
+    ));
+
+    if !uris.is_empty() {
+        return Some(uris);
+    }
+    Some(
+        gnome
+            .lines()
+            .filter(|line| line.starts_with("file://"))
+            .map(str::to_string)
+            .collect(),
+    )
+}
+
+/// TEMPORARY (2026-08-19) — see `debug_log`.
+fn note_line(line: &str) {
+    if let Some(dir) = dirs_config() {
+        use std::io::Write;
+        let _ = std::fs::create_dir_all(&dir);
+        if let Ok(mut file) = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(dir.join("gesture.log"))
+        {
+            let _ = writeln!(file, "{line}");
+        }
+    }
+}
+
+/// TEMPORARY (2026-08-19) — the config dir, without an `AppHandle` to hand.
+fn dirs_config() -> Option<PathBuf> {
+    std::env::var_os("XDG_CONFIG_HOME")
+        .map(PathBuf::from)
+        .or_else(|| std::env::var_os("HOME").map(|h| PathBuf::from(h).join(".config")))
+        .map(|base| base.join("dev.gustavotondin.jott"))
 }
 
 /// Everywhere else the webview's own clipboard is all there is.

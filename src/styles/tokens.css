@@ -260,6 +260,13 @@
     --theme-sidebar-right: 15rem;
     --theme-titlebar-height: 2.375rem;
     --theme-content-max: 45rem;
+    /* An open note is the one screen with TWO widths (wireframe "Editor screen
+       - maximized", 2026-08-19): its prose keeps the cap above, and its banner
+       reaches past it to 900px. The wider box is what makes the banner read as
+       the head of the page rather than as its first paragraph, and the title
+       chip still lines up with the first letter of the text because it is
+       drawn inside a box of `--theme-content-max` within it. */
+    --theme-content-wide: 56.25rem;
 
     /* ---------------------------------------------------------------------
        COMPACT — the shell rearranged for a screen too narrow to hold three

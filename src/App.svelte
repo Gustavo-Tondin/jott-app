@@ -56,7 +56,7 @@
   import { folderOf, listName, listTitle } from "./lib/services/paths.js";
   import { formatDate } from "./lib/services/dates.js";
   import { spaceColors } from "./lib/services/spaceColors.js";
-  import { tagColors as tagColorMap } from "./lib/services/accent.js";
+  import { ACCENTS, tagColors as tagColorMap } from "./lib/services/accent.js";
   import {
     NOTE_FONT_SIZES,
     noteFontSizeAttribute,
@@ -718,6 +718,37 @@
     return items;
   });
 
+  /// The open note's banner, as one row with the eight colours folded under
+  /// it (user call, 2026-08-19: "escolher a cor ou carregar uma imagem nos 3
+  /// pontos do canvas ou clicando com o botão direito nele").
+  ///
+  /// The palette is written out as words here and as swatches in the block's
+  /// own popover, because a menu row is a word — but the VALUE is the same
+  /// name either door, which is what keeps the file readable by hand.
+  let bannerMenu = $derived({
+    label: S.banner,
+    items: [
+      ...ACCENTS.map((name) => ({
+        label: S.colorName(name),
+        context: openNote.banner?.value === name ? "•" : undefined,
+        run: () => setNoteBanner(name),
+      })),
+      { label: S.bannerImage, run: () => (pickingImage = "banner") },
+      ...(openNote.banner
+        ? [{ label: S.removeBanner, run: () => setNoteBanner(null) }]
+        : []),
+    ],
+  });
+
+  /// What the right button offers on the empty canvas: the screen's actions,
+  /// plus the banner when the screen IS a note — the wireframe's second door
+  /// to it.
+  let canvasMenu = $derived(
+    view.kind === "note" && !notebook?.readOnly
+      ? [bannerMenu, ...screenActions]
+      : screenActions,
+  );
+
   /// The page menu of the current screen — the `•••` of the wireframe.
   let pageMenu = $derived.by(() => {
     // A note's own actions belong here, not to a second bar inside the page.
@@ -727,13 +758,12 @@
         { label: openNote.pinned ? S.unpin : S.pin, run: toggleNotePin },
         { label: S.renameNote, run: renameCurrentNote },
         { label: S.deleteNote, run: deleteCurrentNote },
-        // A note with no banner has no ⋮ of its own to open one from — the
-        // block is not drawn at all (NoteBanner). So the way IN is here, and
-        // it gives the note the app's own accent: one click leaves something
-        // on screen to then change, instead of asking for a colour first.
-        ...(openNote.banner
-          ? []
-          : [{ label: S.addBanner, run: () => setNoteBanner(layout.accentColor || "blue") }]),
+        // The banner, from the page's own ⋮ and — through `screenActions` —
+        // from the right button on the canvas (user call, 2026-08-19). The
+        // block carries the same choices in its corner; this is the door for
+        // someone who did not think to look there, and the only one when the
+        // note is scrolled past its head.
+        bannerMenu,
         { label: S.insertImage, run: () => (pickingImage = "body") },
         // The reading size, where a reader asks for it — on the note itself,
         // not only two screens away in Settings (user call, 2026-08-18). It is
@@ -1418,7 +1448,16 @@
       <section class="shell__centre" data-region="canvas">
         <PageHeader
           {compact}
-          title={view.kind === "tasks" && tasksSub ? tasksSub : title(view)}
+          title={/* Below 768px an open note names itself: its head draws the
+            title, on the banner's chip or as the heading a note with no banner
+            has (components/NoteBanner.svelte). Repeating it here was the same
+            "o nome dito duas vezes" the space screens were fixed for
+            (2026-08-18), and the wireframes give the room to the banner. */
+          compact && view.kind === "note"
+            ? ""
+            : view.kind === "tasks" && tasksSub
+              ? tasksSub
+              : title(view)}
           context={view.kind === "tasks" && tasksSub ? S.tasks : ""}
           subtitle={/* The day, ONCE, and only where a date means something.
             On the desktop the two screens that carry one draw it themselves —
@@ -1466,10 +1505,14 @@
         <!-- svelte-ignore a11y_click_events_have_key_events -->
         <div
           class="shell__content"
+          class:shell__content--note={view.kind === "note"}
           onclick={clickedAway}
           oncontextmenu={openCanvasMenu}
         >
-          <div class="shell__content-inner">
+          <div
+            class="shell__content-inner"
+            class:shell__content-inner--note={view.kind === "note"}
+          >
           {#if error}
             <p class="shell__error">
               {error}
@@ -1596,9 +1639,9 @@
             />
           {:else if view.kind === "note"}
             <!-- The note's head: its banner and its title, as the "Editor
-                 screen" wireframes draw them. Without a banner it is the title
-                 alone — which is what a note with no `<!--banner:-->` line
-                 is. -->
+                 screen" wireframes draw them. Without a banner the block has
+                 no colour and no height, and the title stays exactly where it
+                 was (user call, 2026-08-19). -->
             <NoteBanner
               banner={openNote.banner}
               title={openNote.title}
@@ -1607,6 +1650,7 @@
               {compact}
               onSet={setNoteBanner}
               onChooseImage={() => (pickingImage = "banner")}
+              onRename={notebook.readOnly ? null : renameCurrentNote}
             />
             <NoteEditor
               bind:this={noteEditor}
@@ -1882,7 +1926,7 @@
      scrolling content it was opened over. -->
 <ContextMenu
   at={canvasMenuAt}
-  items={screenActions}
+  items={canvasMenu}
   region="canvas"
   onClose={() => (canvasMenuAt = null)}
 />

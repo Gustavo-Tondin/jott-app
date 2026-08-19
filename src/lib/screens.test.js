@@ -2520,20 +2520,31 @@ describe("NoteBanner", () => {
     ...extra,
   });
 
-  test("a note with no banner is its title, and nothing above it", () => {
+  test("a note with no banner keeps its title, in the same place", () => {
+    // The head is ONE box whose block has a colour and a height only when the
+    // note asks for one (user call, 2026-08-19). So the title is drawn either
+    // way, and it is the same element in both — what goes away is the fill.
     const { container } = render(NoteBanner, { props: props() });
 
     expect(screen.getByText("Ideia")).toBeTruthy();
-    expect(container.querySelector(".note-banner")).toBeNull();
-    // Nothing to open a menu on either: the block that carries it is not there.
-    expect(screen.queryByLabelText("banner options")).toBeNull();
+    expect(container.querySelector(".note-banner__title")).toBeTruthy();
+    expect(container.querySelector(".note-banner--empty")).toBeTruthy();
   });
 
-  test("below 768px a note with no banner says nothing at all", () => {
-    // The bar above the page already prints the name; the two together were
-    // the same word twice (the report that redrew the space screens).
+  test("a note with no banner is where one is chosen from", () => {
+    // The ⋮ is on the head, not on the block: with no banner there would be
+    // nowhere to open one from at all, and "add a banner" would live only in
+    // the page menu two screens away.
+    render(NoteBanner, { props: props() });
+    expect(screen.getByLabelText("banner options")).toBeTruthy();
+  });
+
+  test("below 768px the title is still the note's own head", () => {
+    // The bar above the page stops printing the name for a note (PageHeader),
+    // so this IS the name on screen — the wireframe "New note mobile - no
+    // banner" draws exactly this row.
     render(NoteBanner, { props: props({ compact: true }) });
-    expect(screen.queryByText("Ideia")).toBeNull();
+    expect(screen.getByText("Ideia")).toBeTruthy();
   });
 
   test("a colour banner is painted with the palette, never a hex", () => {

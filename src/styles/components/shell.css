@@ -496,6 +496,15 @@
     flex-direction: column;
     min-block-size: 100%;
   }
+  /* An open note is the one screen that is wider than the cap: its banner
+     reaches to 900px while its prose stays at 45rem (note-banner.css draws the
+     two, tokens.css names them). The cap is redefined rather than a second
+     max-width added, so everything inside — the banner, the editor's own
+     centred column — keeps reading ONE variable. */
+  .shell__content-inner--note {
+    max-width: var(--theme-content-wide);
+  }
+
   .shell__empty {
     color: var(--theme-ink-muted);
   }
@@ -681,6 +690,17 @@
        inside this padding, so the two do not have to agree about it. */
     padding-block-end: calc(var(--theme-space-16) + var(--theme-safe-bottom));
   }
+  /* An open note starts at the very top of the screen, so its banner can bleed
+     into the three edges the mobile wireframe draws it touching. There is no
+     header above it to leave room for (PageHeader draws none for a note in the
+     compact shell), and a rounded corner with no chrome behind it would only
+     show the black through the notch. */
+  .shell--compact .shell__content--note {
+    padding-block-start: 0;
+    border-start-start-radius: 0;
+    border-start-end-radius: 0;
+  }
+
   /* `inline-size: 100%` is load-bearing, not belt-and-braces. The desktop rule
      centres this block with `margin-inline: auto`, and an auto inline margin
      BEATS the stretch a flex item would otherwise get in the cross axis — so

@@ -60,7 +60,13 @@
   let pageKey = $derived(`${context} ${title} ${subtitle}`);
 </script>
 
-{#if compact}
+{#if compact && !title}
+  <!-- A screen that names ITSELF asks for no name here (the open note, whose
+       head carries the title on its banner — wireframes "Editor Screen mobile"
+       and "New note mobile - no banner"). Nothing is drawn at all rather than
+       an empty strip: the canvas has to start at the top of the screen for the
+       banner to bleed into it. -->
+{:else if compact}
   <header class="page-header page-header--compact" data-region="chrome">
     <div class="page-header__place">
       <h1 class="page-header__name-large">

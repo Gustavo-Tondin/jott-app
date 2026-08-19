@@ -55,7 +55,13 @@ const where = (target) => {
   return `${el.tagName.toLowerCase()}.${el.className || "-"} inEditor=${inEditor}`;
 };
 
+let watching = false;
+
 export function watchGestures() {
+  // The shell installs this from an effect, and an effect re-runs — which was
+  // adding a listener each time and writing every line four and six times over.
+  if (watching) return;
+  watching = true;
   let dragSeen = 0;
   say(`--- watching, ${new Date().toISOString()} ---`);
 
