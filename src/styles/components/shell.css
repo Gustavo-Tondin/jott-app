@@ -12,8 +12,8 @@
 
   .shell__onboarding {
     max-width: 32rem;
-    margin: 4rem auto;
-    padding: 1rem;
+    margin: var(--theme-space-64) auto;
+    padding: var(--theme-space-16);
   }
 
   /* The second choice on Android — the app's own private folder — is offered,
@@ -127,14 +127,13 @@
   }
   /* Every section of the sidebar is marked by a 2px bar in the wall gap. */
   .shell__group {
-    /* --gc-strong / --gc-weak are the section's colour, declared HERE so every
-       section has them — the fixed entries (Home/Tasks/Notes) and the user
-       lists included. They were only on `--space` until 2026-08-13, which
-       is why the fixed entries' icons came out muted grey instead of wearing
-       the theme (user report). A section with no colour of its own IS the
-       theme accent; that is not a fallback, it is the answer. */
+    /* --gc-strong is the section's colour, declared HERE so every section
+       has it — the fixed entries (Home/Tasks/Notes) and the user lists
+       included. It was only on `--space` until 2026-08-13, which is why the
+       fixed entries' icons came out muted grey instead of wearing the theme
+       (user report). A section with no colour of its own IS the theme
+       accent; that is not a fallback, it is the answer. */
     --gc-strong: var(--theme-brand);
-    --gc-weak: var(--theme-brand-weak);
     display: flex;
     flex-direction: column;
     gap: var(--theme-space-2);
@@ -163,19 +162,16 @@
 
   /* ---- space colour system ----
      A space (or the group it belongs to) picks one of the seven, and
-     Sidebar.svelte writes the pair the choice resolves to — --group-color for
-     the bar/text/icon, --group-tint for the selected row's fill. Both already
-     follow the region's ground (services/accent.js → styles/themes/*.css), so
-     the same orange is the light half here on the black sidebar and the dark
-     half on the white canvas. No colour is mixed at this level any more, and
-     the old dark-theme alpha bump is gone with it: the tint is a real token,
-     not a guess at how much of a hex survives on a darker ground.
+     Sidebar.svelte writes the choice as --group-color, read here for the
+     bar/text/icon. It already follows the region's ground (services/accent.js
+     → styles/themes/*.css), so the same orange is the light half here on the
+     black sidebar and the dark half on the white canvas. No colour is mixed
+     at this level any more.
 
-     Unset means "no colour of its own" and the fallbacks put the row back on
+     Unset means "no colour of its own" and the fallback puts the row back on
      the theme accent. */
   .shell__group--space {
     --gc-strong: var(--group-color, var(--theme-brand));
-    --gc-weak: var(--group-tint, var(--theme-brand-weak));
   }
 
   /* Selected: the solid pill, in whatever colour the section carries — its own

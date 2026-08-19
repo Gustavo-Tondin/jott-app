@@ -46,12 +46,47 @@ describe("frontend architecture", () => {
     expect(offenders).toEqual([]);
   });
 
-  test("every component stylesheet is imported by the aggregator", () => {
+  test("every stylesheet on disk is imported by the aggregator", () => {
+    // Not just components/: a theme dropped into styles/themes/ passes every
+    // colour test in this file (they all read the directory) and ships zero
+    // bytes of CSS unless app.css imports it. The whole styles/ tree is the
+    // unit — a sheet that exists but is not imported is a silent no-op.
     const app = readFileSync(join(src, "app.css"), "utf8");
-    const missing = readdirSync(join(src, "styles", "components"))
-      .filter((f) => f.endsWith(".css"))
-      .filter((f) => !app.includes(`./styles/components/${f}`));
+    const missing = walk(join(src, "styles"), ".css")
+      .map((f) => f.slice(f.indexOf("styles")))
+      .filter((rel) => !app.includes(`./${rel}`));
     expect(missing).toEqual([]);
+  });
+
+  test("editor.css is the only sheet with rules outside @layer", () => {
+    // Unlayered beats layered no matter the specificity, so a sheet that
+    // loses its `@layer` wrapper silently jumps above every layered sheet —
+    // a style that "works" for the wrong reason. Two exceptions, by name:
+    // components/editor.css must stay unlayered to tie with CodeMirror's
+    // injected <style> (its header explains), and themes/* are imported
+    // unlayered by design so a theme wins without a specificity fight
+    // (app.css explains). Everything else keeps every style rule under an
+    // @layer ancestor — at-rules like @media may wrap it on the way.
+    const exempt = new Set(["editor.css", "default.css", "light.css", "dark.css"]);
+    const offenders = [];
+    for (const f of walk(join(src, "styles"), ".css")) {
+      if (exempt.has(basename(f)) ) continue;
+      const css = readFileSync(f, "utf8")
+        .replace(/\/\*[\s\S]*?\*\//g, "")
+        .replace(/url\([^)]*\)/g, "");
+      const stack = [];
+      for (const [, chunk, brace] of css.matchAll(/([^{}]*)([{}])/g)) {
+        if (brace === "}") {
+          stack.pop();
+          continue;
+        }
+        const prelude = chunk.split(";").pop().trim();
+        if (!prelude.startsWith("@") && !stack.includes("@layer"))
+          offenders.push(`${basename(f)}: ${prelude}`);
+        stack.push(prelude.startsWith("@layer") ? "@layer" : "rule");
+      }
+    }
+    expect(offenders).toEqual([]);
   });
 
   test("every length is in rem — px is only for a real device measurement", () => {
@@ -68,8 +103,10 @@ describe("frontend architecture", () => {
       ...walk(join(src, "styles"), ".css"),
       join(src, "app.css"),
     ]) {
+      // `-?` and the leading-dot branch: `-2px` and `.5px` are lengths too,
+      // and the old lookbehind quietly skipped both.
       for (const m of strip(readFileSync(f, "utf8")).matchAll(
-        /(?<![\w.-])\d+(?:\.\d+)?px\b/g,
+        /(?<![\w.-])-?(?:\d+(?:\.\d+)?|\.\d+)px\b/g,
       )) {
         offenders.push(`${basename(f)}: ${m[0]}`);
       }
@@ -109,7 +146,15 @@ describe("frontend architecture", () => {
     for (const [name, css] of themes()) {
       for (const m of css.matchAll(/(--[a-z0-9-]+)\s*:\s*([^;]+);/g)) {
         for (const ref of m[2].matchAll(/var\(\s*(--[a-z0-9-]+)/g)) {
-          if (ref[1].startsWith("--theme-") || ref[1].startsWith("--accent-")) {
+          // `--canvas-*` counts as a role too: it is theme-assigned and
+          // component-read exactly like `--theme-*` (tabs.css reads it), so
+          // `--theme-bg: var(--canvas-ground)` would be the forbidden
+          // two-hop chain wearing a different prefix.
+          if (
+            ref[1].startsWith("--theme-") ||
+            ref[1].startsWith("--accent-") ||
+            ref[1].startsWith("--canvas-")
+          ) {
             offenders.push(`${name}: ${m[1]} reads the role ${ref[1]}`);
           }
         }
@@ -181,17 +226,26 @@ describe("frontend architecture", () => {
 
   test("every role a component reads is assigned by every theme", () => {
     // Catches the other direction: a stylesheet reaching for a `--theme-*`
-    // that no theme defines renders as nothing at all.
-    const assigned = new Set(
-      themes().flatMap(([, css]) => [...css.matchAll(/(--theme-[a-z0-9-]+)\s*:/g)].map((m) => m[1])),
-    );
+    // that no theme defines renders as nothing at all. Checked against EACH
+    // theme, not the union of all of them: a role assigned only in dark.css
+    // is a role the other two themes leave unset, and the union would never
+    // notice. `--canvas-*` is in scope for the same reason as above — it is
+    // a theme-assigned role by another name.
+    const shared = new Set();
     // roles.css holds the ones that are the same in every theme, plus the
-    // accent branch — they count as assigned too.
+    // accent branch — they count as assigned in all of them.
     for (const m of readFileSync(join(src, "styles", "roles.css"), "utf8").matchAll(
-      /(--theme-[a-z0-9-]+)\s*:/g,
+      /(--(?:theme|canvas)-[a-z0-9-]+)\s*:/g,
     )) {
-      assigned.add(m[1]);
+      shared.add(m[1]);
     }
+    const perTheme = themes().map(([name, css]) => [
+      name,
+      new Set([
+        ...shared,
+        ...[...css.matchAll(/(--(?:theme|canvas)-[a-z0-9-]+)\s*:/g)].map((m) => m[1]),
+      ]),
+    ]);
     const missing = new Set();
     const sheets = [
       join(src, "styles", "controls.css"),
@@ -199,7 +253,7 @@ describe("frontend architecture", () => {
     ];
     for (const f of sheets) {
       const css = readFileSync(f, "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
-      for (const m of css.matchAll(/var\(\s*(--theme-[a-z0-9-]+)/g)) {
+      for (const m of css.matchAll(/var\(\s*(--(?:theme|canvas)-[a-z0-9-]+)/g)) {
         // Metrics (spacing, radius, type, layout, motion) live in tokens.css.
         if (
           /^--theme-(space|radius|text|weight|tracking|leading|font|transition|sidebar|titlebar|topbar|content|note-|window|drawer|sheet|touch|safe|keyboard)/.test(
@@ -207,7 +261,9 @@ describe("frontend architecture", () => {
           )
         )
           continue;
-        if (!assigned.has(m[1])) missing.add(`${basename(f)}: ${m[1]}`);
+        for (const [theme, set] of perTheme) {
+          if (!set.has(m[1])) missing.add(`${basename(f)}: ${m[1]} not assigned by ${theme}`);
+        }
       }
     }
     expect([...missing].sort()).toEqual([]);
@@ -298,11 +354,29 @@ describe("frontend architecture", () => {
   const palette = () => {
     const css = readFileSync(join(src, "styles", "tokens.css"), "utf8");
     const steps = {};
-    for (const m of css.matchAll(/--palette-([a-z]+)-(\d00):\s*(#[0-9a-f]{6})/g)) {
-      (steps[m[1]] ??= {})[m[2]] = m[3];
+    // Family names may hyphenate and a hex pasted from Figma may arrive
+    // uppercase — a parser that only reads `[a-z]+` and lowercase hex would
+    // skip such a colour and every test built on it would go green while
+    // measuring nothing. That silent-skip shape already bit once (the ladder
+    // test's first version); the count test below is the backstop.
+    for (const m of css.matchAll(/--palette-([a-z][a-z-]*?)-(\d00):\s*(#[0-9a-fA-F]{6})/g)) {
+      (steps[m[1]] ??= {})[m[2]] = m[3].toLowerCase();
     }
     return steps;
   };
+
+  test("the palette is eight families of seven steps", () => {
+    // The count is the parser's proof of coverage: a ninth colour, or a step
+    // written in a shape the regex above cannot read, changes a number here
+    // instead of silently dropping out of every measurement.
+    const families = palette();
+    expect(Object.keys(families).sort()).toEqual(
+      ["blue", "green", "neutral", "orange", "pink", "purple", "red", "yellow"],
+    );
+    for (const [name, steps] of Object.entries(families)) {
+      expect(Object.keys(steps).length, `${name} has seven steps`).toBe(7);
+    }
+  });
 
   test("every colour hits the same tone at the same step", () => {
     // A step whose tone drifts is a step whose number lies, and the moment one
@@ -367,9 +441,9 @@ describe("frontend architecture", () => {
     const literals = Object.fromEntries(
       [
         ...readFileSync(join(src, "styles", "tokens.css"), "utf8").matchAll(
-          /(--palette-[a-z0-9-]+):\s*(#[0-9a-f]{6})/g,
+          /(--palette-[a-z0-9-]+):\s*(#[0-9a-fA-F]{6})/g,
         ),
-      ].map((m) => [m[1], m[2]]),
+      ].map((m) => [m[1], m[2].toLowerCase()]),
     );
 
     /// A theme value → a hex. Either a palette entry or the oklab midpoint of
@@ -441,11 +515,37 @@ describe("frontend architecture", () => {
     //
     // `theme-btn--icon` is the documented exception — it carries its own reset
     // so a lone glyph works with or without the base (controls.css says so).
+    // A tag is read as a whole — `class="…"` AND `class:x` directives — so a
+    // modifier applied through a directive is held to the same rule. The
+    // scanner walks to the tag's real `>`: an attribute may hold an arrow
+    // function, and stopping at the `>` of `=>` would split the tag and hide
+    // the directives after it.
+    const tagsOf = (markup) => {
+      const tags = [];
+      for (let i = 0; i < markup.length; i++) {
+        if (markup[i] !== "<" || !/[a-zA-Z]/.test(markup[i + 1] ?? "")) continue;
+        let depth = 0;
+        let j = i + 1;
+        for (; j < markup.length; j++) {
+          const c = markup[j];
+          if (c === "{") depth++;
+          else if (c === "}") depth--;
+          else if (c === '"' || c === "'" || c === "`") {
+            for (j++; j < markup.length && markup[j] !== c; j++);
+          } else if (c === ">" && depth === 0) break;
+        }
+        tags.push(markup.slice(i, j + 1));
+        i = j;
+      }
+      return tags;
+    };
     const offenders = [];
     for (const file of [join(src, "App.svelte"), ...walk(join(src, "lib"), ".svelte")]) {
-      const markup = readFileSync(file, "utf8");
-      for (const match of markup.matchAll(/class="([^"]*)"/g)) {
-        const classes = match[1].split(/\s+/);
+      for (const tag of tagsOf(readFileSync(file, "utf8"))) {
+        const classes = [
+          ...[...tag.matchAll(/class="([^"]*)"/g)].flatMap((m) => m[1].split(/\s+/)),
+          ...[...tag.matchAll(/class:([\w-]+)/g)].map((m) => m[1]),
+        ];
         for (const name of classes) {
           if (!name.startsWith("theme-") || !name.includes("--")) continue;
           if (name === "theme-btn--icon") continue;
@@ -462,14 +562,22 @@ describe("frontend architecture", () => {
     // An element selector at the top level of a global sheet leaks onto the
     // whole app (scoping no longer protects it). Descendants of a class
     // (`.home__divider hr`) are fine — only the FIRST token must be a class.
+    // A real brace walk, not a regex over `}…{` seams: the old shape never
+    // saw the first rule after a nested at-rule opened (`@media (…) { div{`
+    // has a `{` on its left, not a `}`), so a leak inside a media query
+    // passed. Every style rule is checked at any depth — nesting under
+    // @media/@container does not stop an element selector from applying
+    // app-wide.
     const offenders = [];
     for (const f of walk(join(src, "styles", "components"), ".css")) {
       const css = readFileSync(f, "utf8")
         .replace(/\/\*[\s\S]*?\*\//g, "")
-        .replace(/@layer components \{/g, "")
-        .replace(/^\}/gm, "");
-      for (const m of css.matchAll(/(^|\})\s*([^{}@]+)\{/g)) {
-        for (const sel of m[2].split(",")) {
+        .replace(/url\([^)]*\)/g, "");
+      for (const [, chunk, brace] of css.matchAll(/([^{}]*)([{}])/g)) {
+        if (brace !== "{") continue;
+        const prelude = chunk.split(";").pop().trim();
+        if (prelude.startsWith("@")) continue;
+        for (const sel of prelude.split(",")) {
           const first = sel.trim();
           if (first && !first.startsWith(".") && !first.startsWith(":root"))
             offenders.push(`${basename(f)}: ${first}`);

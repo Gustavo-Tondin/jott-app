@@ -93,7 +93,7 @@
   .settings__subtitle {
     margin-block: var(--theme-space-16) var(--theme-space-4);
     font-size: var(--theme-text-13);
-    font-weight: 600;
+    font-weight: var(--theme-weight-semibold);
     color: var(--theme-ink-muted);
   }
 

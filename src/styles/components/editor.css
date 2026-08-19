@@ -47,10 +47,6 @@
 .editor .cm-line {
   padding: 0 var(--theme-space-4);
 }
-.editor .cm-task-checkbox {
-  margin-right: var(--theme-space-6);
-  vertical-align: middle;
-}
 .editor .cm-placeholder {
   color: var(--theme-ink-faint);
 }
@@ -264,6 +260,8 @@
    A note's checkbox is two characters in the file (spec 5), but it reads as
    done the way a task of the app does — struck through and stepped back. */
 .editor .cm-task-checkbox {
+  margin-right: var(--theme-space-6);
+  vertical-align: middle;
   accent-color: var(--theme-brand);
 }
 .editor .cm-md-done {

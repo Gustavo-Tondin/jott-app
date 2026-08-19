@@ -213,12 +213,10 @@
   }
   .note-banner--compact .note-banner__title {
     margin-inline-start: 0;
+    font-size: var(--theme-text-18);
   }
   .note-banner--compact.note-banner--empty .note-banner__line {
     padding-inline: 0;
-  }
-  .note-banner--compact .note-banner__title {
-    font-size: var(--theme-text-18);
   }
   /* No ⋮ of its own below 768px (user call, 2026-08-19): the banner's choices
      are in the page menu of the top bar, which is the ⋮ a phone already has —

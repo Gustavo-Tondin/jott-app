@@ -58,7 +58,10 @@
     resize: vertical;
   }
 
-  /* Native arrow off, our own caret on — so the select matches everywhere. */
+  /* Native arrow off, our own caret on — so the select matches everywhere.
+     The stroke hex inside the data: URI is a byte copy of --palette-gray
+     (tokens.css) — a URL cannot read a custom property, so a palette change
+     has to update it by hand. */
   .theme-select {
     appearance: none;
     -webkit-appearance: none;

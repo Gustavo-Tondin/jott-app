@@ -69,7 +69,7 @@
     flex-shrink: 0;
     inline-size: 1.25rem;
     block-size: 1.25rem;
-    margin-block-start: 0.125rem;
+    margin-block-start: var(--theme-space-2);
     border: 0.09375rem solid var(--theme-ink);
     border-radius: var(--theme-radius-xs);
   }

@@ -119,7 +119,7 @@
   /* An overdue due date reads as a warning, not a quiet note. */
   .task-row__field--overdue {
     color: var(--theme-danger);
-    font-weight: 600;
+    font-weight: var(--theme-weight-semibold);
   }
   /* A tag is shown as a coloured pill, not text — the colour is the tag. That
      pill is the shared .theme-tag-pill (controls.css); the `task-row__tag`
