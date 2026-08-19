@@ -34,9 +34,11 @@ describe("sidebar width", () => {
   });
 
   it("the right panel has a floor of its own", () => {
-    // It holds a calendar and a row of controls, not a list of names, so it
-    // cannot go as narrow as the sidebar.
-    expect(clampWidth(180, PANEL)).toBe(PANEL.min);
+    // A floor, but not the formatting panel's own width: it stood at 208 —
+    // exactly one row of six heading glyphs — and the panel read as stuck
+    // there (user report, 2026-08-19). What the floor protects is the
+    // inspector's fields, not a row that wraps on its own.
+    expect(clampWidth(120, PANEL)).toBe(PANEL.min);
     expect(clampWidth(2000, PANEL)).toBe(PANEL.max);
     // Its handle is on the side the width grows away from: the same drag to
     // the left makes it WIDER, which the shell says by flipping the travel.

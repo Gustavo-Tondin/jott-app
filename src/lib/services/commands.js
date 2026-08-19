@@ -117,6 +117,7 @@ export const COMMANDS = [
   // gestures, and eighteen glyphs in a row read as one undifferentiated wall.
   // It lives here rather than in the panel because it says what a command IS,
   // not how it is drawn — the same reason `scope` is here.
+  // ---- marking a WORD ----
   { id: "md.bold", scope: "editor", group: "mark", keys: "Mod+B", icon: "bold", label: () => S.cmdBold },
   {
     id: "md.italic",
@@ -135,14 +136,55 @@ export const COMMANDS = [
     label: () => S.cmdStrike,
   },
   {
-    id: "md.code",
+    id: "md.underline",
     scope: "editor",
     group: "mark",
+    keys: "Mod+U",
+    icon: "underline",
+    label: () => S.cmdUnderline,
+  },
+
+  // ---- shaping a BLOCK ----
+  // Tab and Shift+Tab are declared HERE and nowhere else (2026-08-19): the
+  // editor used to bind them in a keymap of its own, which made two sources
+  // for one behaviour the moment the panel grew a button for it. Now the
+  // registry is the only one, and rebinding them in Settings reaches the
+  // editor like every other chord does.
+  {
+    id: "md.indent",
+    scope: "editor",
+    group: "block",
+    keys: "Tab",
+    icon: "indent",
+    label: () => S.cmdIndent,
+  },
+  {
+    id: "md.outdent",
+    scope: "editor",
+    group: "block",
+    keys: "Shift+Tab",
+    icon: "outdent",
+    label: () => S.cmdOutdent,
+  },
+  {
+    id: "md.code",
+    scope: "editor",
+    group: "block",
     keys: "Mod+E",
     icon: "code",
     label: () => S.cmdInlineCode,
   },
-  { id: "md.link", scope: "editor", group: "mark", keys: "Mod+K", icon: "link", label: () => S.cmdLink },
+  {
+    id: "md.quote",
+    scope: "editor",
+    group: "block",
+    keys: "Mod+Shift+.",
+    icon: "quote",
+    label: () => S.cmdQuote,
+  },
+  { id: "md.rule", scope: "editor", group: "block", keys: null, icon: "rule", label: () => S.cmdRule },
+
+  // ---- naming a LINE ----
   ...Array.from({ length: 6 }, (_, i) => ({
     id: `md.h${i + 1}`,
     scope: "editor",
@@ -157,10 +199,12 @@ export const COMMANDS = [
     keys: "Mod+Alt+0",
     label: () => S.cmdParagraph,
   },
+
+  // ---- lists ----
   {
     id: "md.bullet",
     scope: "editor",
-    group: "block",
+    group: "list",
     keys: "Mod+Shift+8",
     icon: "bullet",
     label: () => S.cmdBulletList,
@@ -168,21 +212,53 @@ export const COMMANDS = [
   {
     id: "md.ordered",
     scope: "editor",
-    group: "block",
+    group: "list",
     keys: "Mod+Shift+7",
     icon: "ordered",
     label: () => S.cmdOrderedList,
   },
-  { id: "md.task", scope: "editor", group: "block", keys: "Mod+L", icon: "task", label: () => S.cmdTaskList },
+  { id: "md.task", scope: "editor", group: "list", keys: "Mod+L", icon: "task", label: () => S.cmdTaskList },
+
+  // ---- putting something INTO the note ----
+  { id: "md.link", scope: "editor", group: "insert", keys: "Mod+K", icon: "link", label: () => S.cmdLink },
   {
-    id: "md.quote",
+    id: "md.reference",
     scope: "editor",
-    group: "block",
-    keys: "Mod+Shift+.",
-    icon: "quote",
-    label: () => S.cmdQuote,
+    group: "insert",
+    keys: "Mod+Shift+K",
+    icon: "reference",
+    label: () => S.cmdReference,
   },
-  { id: "md.rule", scope: "editor", group: "block", keys: null, icon: "rule", label: () => S.cmdRule },
+  // The one editor command the EDITOR does not run: it asks the shell for a
+  // file, and the shell writes the answer at the cursor (App.svelte). It is
+  // declared here all the same, because what a person means by the paperclip
+  // is one thing whichever half of the app carries it out.
+  {
+    id: "md.attach",
+    scope: "editor",
+    group: "insert",
+    keys: null,
+    icon: "attach",
+    label: () => S.cmdAttach,
+  },
+
+  // ---- undoing ----
+  {
+    id: "edit.undo",
+    scope: "editor",
+    group: "history",
+    keys: "Mod+Z",
+    icon: "undo",
+    label: () => S.cmdUndo,
+  },
+  {
+    id: "edit.redo",
+    scope: "editor",
+    group: "history",
+    keys: "Mod+Shift+Z",
+    icon: "redo",
+    label: () => S.cmdRedo,
+  },
   { id: "note.replace", scope: "editor", keys: "Mod+H", label: () => S.cmdReplace },
 ];
 

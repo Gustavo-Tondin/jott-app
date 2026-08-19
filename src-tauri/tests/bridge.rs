@@ -1226,9 +1226,45 @@ fn notes_can_be_pinned_renamed_moved_and_foldered() {
     assert_eq!(moved, "Clientes/Acme/Ideia boa.md");
     assert!(dir.path().join("jott.notes/Clientes/Acme/Ideia boa.md").is_file());
 
+    // A folder is an OBJECT now (2026-08-19): its address, plus the colour and
+    // the pin the space remembers for it.
     let folders = ok(&app, "note_folders", json!({ "folder": "jott.notes" }));
-    let folders: Vec<&str> = folders.as_array().unwrap().iter().map(|f| f.as_str().unwrap()).collect();
-    assert!(folders.contains(&"Clientes/Acme"));
+    let paths: Vec<&str> = folders
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|f| f["path"].as_str().unwrap())
+        .collect();
+    assert!(paths.contains(&"Clientes/Acme"));
+
+    ok(
+        &app,
+        "set_note_folder_color",
+        json!({ "folder": "jott.notes", "path": "Clientes", "color": "red" }),
+    );
+    ok(
+        &app,
+        "set_note_folder_pinned",
+        json!({ "folder": "jott.notes", "path": "Clientes", "pinned": true }),
+    );
+    let folders = ok(&app, "note_folders", json!({ "folder": "jott.notes" }));
+    let clientes = folders
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|f| f["path"] == "Clientes")
+        .unwrap()
+        .clone();
+    assert_eq!(clientes["color"], "red");
+    assert_eq!(clientes["pinned"], true);
+    // And it is the SPACE that remembers, not a marker inside the user's
+    // folder — nothing was written into `Clientes/`.
+    assert!(!dir.path().join("jott.notes/Clientes/.space.json").exists());
+    assert!(dir
+        .path()
+        .join("jott.notes/.space.json")
+        .to_path_buf()
+        .is_file());
 }
 
 #[test]

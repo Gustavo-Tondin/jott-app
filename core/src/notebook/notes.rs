@@ -9,6 +9,17 @@ use crate::error::{Error, IoContext, Result};
 
 use crate::search::{HitKind, SearchHit};
 
+/// A folder of notes, as a screen lists it: where it is, and what the space
+/// remembers about it (crate::space::FolderSettings).
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+pub struct NoteFolderEntry {
+    /// Address relative to the space (`Clientes`, `Clientes/2026`).
+    pub path: String,
+    /// A palette name, or none — then the folder reads as the space's colour.
+    pub color: Option<String>,
+    pub pinned: bool,
+}
+
 use super::*;
 
 impl Notebook {
@@ -31,7 +42,112 @@ impl Notebook {
             .ok_or_else(|| Error::InvalidNotePath(prefix.to_string()))
     }
 
-    /// Deletes a note (a file inside a notes space), sending it to the trash.
+    /// Every folder of a notes space, with what the space remembers about it
+    /// (`crate::space::FolderSettings`).
+    ///
+    /// One answer, not two: the folders come off the disk and their colours
+    /// out of `.space.json`, and a screen that had to ask twice would have to
+    /// keep the two in step itself.
+    pub fn note_folder_entries(&self, space: &str) -> Result<Vec<NoteFolderEntry>> {
+        let settings = self.open_space(space)?.config.folders;
+        Ok(self
+            .note_folder(space)?
+            .folders()?
+            .into_iter()
+            .map(|path| {
+                let own = settings.get(&path).cloned().unwrap_or_default();
+                NoteFolderEntry {
+                    path,
+                    color: own.color,
+                    pinned: own.pinned,
+                }
+            })
+            .collect())
+    }
+
+    /// Changes what the space remembers about one of its folders. An entry
+    /// left with nothing to say is removed, so clearing a colour leaves the
+    /// file as it was before the colour was ever chosen.
+    pub fn set_note_folder(
+        &self,
+        space: &str,
+        folder: &str,
+        change: impl FnOnce(&mut crate::space::FolderSettings),
+    ) -> Result<()> {
+        self.with_space_config(space, |config| {
+            let entry = config.folders.entry(folder.to_string()).or_default();
+            change(entry);
+            if entry.is_empty() {
+                config.folders.remove(folder);
+            }
+        })
+    }
+
+    /// Renames a folder of notes, carrying its colour and its pin along.
+    ///
+    /// Here rather than on [`crate::notefolder::NoteFolder`] because half of
+    /// what a folder IS lives in the space's config: renaming on the folder
+    /// alone moved the directory and left its colour behind on a name that no
+    /// longer exists. Subfolders travel too — they are keyed by a path that
+    /// starts with the old one.
+    pub fn rename_note_folder(&self, space: &str, folder: &str, name: &str) -> Result<String> {
+        self.ensure_writable()?;
+        let moved = self.note_folder(space)?.rename_folder(folder, name)?;
+        self.move_folder_settings(space, folder, Some(&moved))?;
+        Ok(moved)
+    }
+
+    /// Deletes a folder of notes (what was inside moves up a level), and
+    /// forgets what the space remembered about it.
+    pub fn delete_note_folder(&self, space: &str, folder: &str) -> Result<usize> {
+        self.ensure_writable()?;
+        let moved = self.note_folder(space)?.delete_folder(folder)?;
+        // The subfolders moved UP rather than away, so their settings are not
+        // dropped — they are re-keyed to where they landed.
+        self.move_folder_settings(space, folder, None)?;
+        Ok(moved)
+    }
+
+    /// Re-keys the settings of `from` and everything under it. `to` is where
+    /// the folder itself went; `None` means it is gone and its children moved
+    /// up to its parent (which is what deleting a folder does).
+    fn move_folder_settings(&self, space: &str, from: &str, to: Option<&str>) -> Result<()> {
+        self.with_space_config(space, |config| {
+            let prefix = format!("{from}/");
+            let touched: Vec<String> = config
+                .folders
+                .keys()
+                .filter(|key| *key == from || key.starts_with(&prefix))
+                .cloned()
+                .collect();
+            let parent = match from.rsplit_once('/') {
+                Some((parent, _)) => parent.to_string(),
+                None => String::new(),
+            };
+            for key in touched {
+                let Some(settings) = config.folders.remove(&key) else {
+                    continue;
+                };
+                let landed = match (&key == from, to) {
+                    // The folder itself, renamed.
+                    (true, Some(to)) => Some(to.to_string()),
+                    // The folder itself, deleted: nothing is left to carry.
+                    (true, None) => None,
+                    // Something under it.
+                    (false, Some(to)) => Some(format!("{to}/{}", &key[prefix.len()..])),
+                    (false, None) => Some(match parent.is_empty() {
+                        true => key[prefix.len()..].to_string(),
+                        false => format!("{parent}/{}", &key[prefix.len()..]),
+                    }),
+                };
+                if let Some(landed) = landed {
+                    config.folders.insert(landed, settings);
+                }
+            }
+        })
+    }
+
+    /// Deletes a note (a file inside a notes space), sending it to the trash.    /// Deletes a note (a file inside a notes space), sending it to the trash.
     pub fn delete_note(&self, folder: &str, relative: &str) -> Result<()> {
         self.ensure_writable()?;
         let note_folder = self.note_folder(folder)?;

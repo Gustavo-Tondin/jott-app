@@ -37,6 +37,7 @@
   import NotesSpace from "./lib/spaces/NotesSpace.svelte";
   import NoteEditor from "./lib/components/NoteEditor.svelte";
   import FormatBar from "./lib/components/FormatBar.svelte";
+  import NotePanel from "./lib/components/NotePanel.svelte";
   import HomeView from "./lib/screens/HomeView.svelte";
   import SettingsView from "./lib/screens/SettingsView.svelte";
   import TabBar from "./lib/shell/TabBar.svelte";
@@ -444,20 +445,39 @@
   /// document's focus, which is a window-level fact.
   let editorFocused = $state(false);
 
-  /// Whether the note's formatting panel is showing.
+  /// WHERE the note's formatting controls are: docked in the right panel, or
+  /// floating over the top of the canvas (user call, 2026-08-19). Not whether
+  /// they are there at all — writing a note is what the panel is for, and the
+  /// two shapes are the same controls in a different frame
+  /// (components/FormatBar.svelte).
   ///
-  /// Session state, like the sidebar's rail: it answers "am I writing right
-  /// now", which is not something a notebook has an opinion about. On a phone
-  /// it is not this flag at all — the strip appears while the editor has the
-  /// cursor, because there the question is answered by the keyboard being up.
+  /// Session state, like the sidebar's rail: it answers "how am I writing
+  /// right now", which is not something a notebook has an opinion about. On a
+  /// phone it is neither — the strip appears while the editor has the cursor,
+  /// because there the question is answered by the keyboard being up.
   let formatting = $state(true);
 
-  /// The right panel has three possible tenants now, and only one at a time.
-  /// A note's formatting is the weakest claim: a task inspector is something
-  /// the user just opened, and the suggestions were asked for.
-  let formatBarOpen = $derived(
-    formatting && view.kind === "note" && !suggesting && !selected && !notebook?.readOnly,
-  );
+  /// Is a note being written, at all — the condition both shapes share.
+  let writing = $derived(view.kind === "note" && !notebook?.readOnly);
+
+  /// The right panel's tenant, when the controls are docked.
+  let formatBarOpen = $derived(formatting && writing && !suggesting && !selected);
+
+  /// ...and the floating bar, which takes over whenever the panel does not
+  /// hold them: undocked, or busy with something else.
+  let formatBarFloats = $derived(writing && !compact && !formatBarOpen);
+
+  // Opening a note closes whatever the right panel was holding (user call,
+  // 2026-08-19: "ao entrar num editor de notas, se tem uma tarefa aberta, ela
+  // deve fechar imediatamente"). A task inspector belongs to the task list it
+  // was opened from; left standing over a note it describes something that is
+  // not on screen any more — the same reason leaving a place drops its
+  // selection (spaces/NotesSpace.svelte).
+  $effect(() => {
+    if (view.kind !== "note") return;
+    selected = null;
+    suggesting = null;
+  });
 
   /// Which period's suggestions the right panel is showing, or null.
   ///
@@ -744,11 +764,14 @@
       : screenActions,
   );
 
-  /// The page menu of the current screen — the `•••` of the wireframe.
-  let pageMenu = $derived.by(() => {
-    // A note's own actions belong here, not to a second bar inside the page.
+  /// What an open NOTE can be asked to do — written once and served twice
+  /// (2026-08-19): the page's ••• and the ⋮ of the note's own panel
+  /// (components/NotePanel.svelte). Two lists would have drifted the first
+  /// time one of them grew an item.
+  let noteActions = $derived.by(() => {
+    if (notebook?.readOnly || view.kind !== "note") return [];
     const own = [];
-    if (!notebook?.readOnly && view.kind === "note") {
+    {
       own.push(
         { label: openNote.pinned ? S.unpin : S.pin, run: toggleNotePin },
         { label: S.renameNote, run: renameCurrentNote },
@@ -776,10 +799,28 @@
       // up, so there is nothing here to switch.
       if (!compact)
         own.push({
-          label: formatting ? S.hideFormatting : S.showFormatting,
-          run: () => (formatting = !formatting),
+          label: S.formatting,
+          items: [
+            {
+              label: S.formattingDocked,
+              context: formatting ? "✓" : undefined,
+              run: () => (formatting = true),
+            },
+            {
+              label: S.formattingFloating,
+              context: formatting ? undefined : "✓",
+              run: () => (formatting = false),
+            },
+          ],
         });
     }
+    return own;
+  });
+
+  /// The page menu of the current screen — the `•••` of the wireframe.
+  let pageMenu = $derived.by(() => {
+    // A note's own actions belong here, not to a second bar inside the page.
+    const own = [...noteActions];
     // Lists are created inside the space itself now, not from here.
     // Renaming or deleting a list the app recreates on every open would only
     // confuse — the core refuses it anyway, so the menu must not offer it.
@@ -846,6 +887,15 @@
           : null,
       };
     });
+
+  /// What a formatting button asks for. All but one go straight to the editor,
+  /// which owns the cursor; the paperclip asks the SHELL for a file, because
+  /// the library is the notebook's and the editor only ever speaks text — the
+  /// same split the picker has kept since 2026-08-18.
+  const runFormat = (id) => {
+    if (id === "md.attach") pickingImage = "body";
+    else noteEditor?.run(id);
+  };
 
   /// What the image picker does with what was chosen, by what it was opened
   /// for. Closing it is the same either way.
@@ -1282,6 +1332,61 @@
   const showNote = (path, folder = layout.notesFolder, newTab = false) =>
     (newTab ? openTab : goTo)({ kind: "note", folder, path });
 
+  /// The folders of the OPEN note's space — where it can be filed without
+  /// leaving the space. The shell's own `noteFolders` cannot answer: it is the
+  /// fixed space's, kept for the Settings screen, and a note is as often in a
+  /// space of the user's own.
+  let openNoteFolders = $state([]);
+  $effect(() => {
+    const space = view.kind === "note" ? view.folder : null;
+    if (!space) {
+      openNoteFolders = [];
+      return;
+    }
+    api
+      .noteFolders(space)
+      .then((found) => (openNoteFolders = found))
+      .catch(() => (openNoteFolders = []));
+  });
+
+  /// Where the open note could go: the folders of its own space, then every
+  /// other notes space (into its inbox, which is where a note filed into a
+  /// space belongs). The same set the board's cards offer, asked from the
+  /// other side.
+  let noteMoveTargets = $derived.by(() => {
+    if (view.kind !== "note" || notebook?.readOnly) return [];
+    const here = view.folder;
+    const name = noteSpaces.find((sp) => sp.path === here)?.name ?? here;
+    const at = folderOf(view.path);
+    return [
+      { path: "", label: S.allNotes },
+      ...openNoteFolders.map((it) => ({ path: it.path, label: it.path })),
+    ]
+      .map((it) => ({
+        label: it.label,
+        context: name,
+        disabled: it.path === at,
+        run: () => moveOpenNote(here, it.path),
+      }))
+      .concat(
+        noteSpaces
+          .filter((sp) => sp.path !== here)
+          .map((sp) => ({
+            label: sp.name,
+            context: S.notes,
+            run: () => moveOpenNote(sp.path, layout.notesInbox),
+          })),
+      );
+  });
+
+  /// Moves the open note, and follows it: the tab points at an address, and
+  /// the address just changed.
+  const moveOpenNote = (space, into) =>
+    noteAction(async () => {
+      const landed = await api.moveNoteToSpace(view.folder, view.path, space, into);
+      goTo({ kind: "note", folder: space, path: landed });
+    });
+
   /// A note opened FROM a board. `fresh` says the board has just created it
   /// empty (the quick-note bar's + on an empty field), so the cursor goes
   /// straight into its body — the same hand-off the Home's + makes.
@@ -1564,6 +1669,18 @@
               kind === "note" ? captureNote() : (composingTask = true)}
           />
         {/snippet}
+
+        <!-- The formatting controls, floating (user call, 2026-08-19): the
+             same narrow bar the phone gets, centred over the top of the canvas
+             just under the page header, on a LIGHT ground because here it
+             floats over the document and not over a phone's chrome. It is what
+             a note has whenever the right panel is not holding them — closed,
+             or busy with a task. -->
+        {#if formatBarFloats}
+          <div class="format-float">
+            <FormatBar layout="row" region="chrome" onRun={runFormat} />
+          </div>
+        {/if}
 
         <!-- svelte-ignore a11y_no_static_element_interactions -->
         <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -1859,7 +1976,15 @@
             {f}
           />
         {:else if formatBarOpen}
-          <FormatBar onRun={(id) => noteEditor?.run(id)} />
+          <NotePanel
+            onRun={runFormat}
+            menu={noteActions}
+            where={listName(folderOf(view.path)) || S.allNotes}
+            targets={noteMoveTargets}
+            onDelete={deleteCurrentNote}
+            onClose={() => (formatting = false)}
+            readOnly={notebook.readOnly}
+          />
         {:else if selected}
           <TaskInspector
             task={selected.task}
@@ -1942,15 +2067,19 @@
      `position: fixed` and OUTSIDE `.window`, the same two reasons the drawer
      is: the page slides under it, and a transform on an ancestor would make it
      the containing block of anything fixed inside. Outside the window it is in
-     no region at all, so it declares one — canvas, because it belongs to the
-     document it is editing.
+     no region at all, so it declares one — CHROME (2026-08-19, wireframe "New
+     note mobile"): it is drawn dark against the light page, the way the top
+     bar and the drawer are, because it belongs to the app around the note and
+     not to the note. On the desktop the same bar floats over the canvas and is
+     light, and that difference is exactly the difference between the two
+     places it sits.
 
      Tied to the editor having FOCUS, not to the screen being a note: with the
      keyboard down the strip would be a bar floating over nothing, and the
      wireframe puts it against the keyboard's top edge. -->
 {#if compact && notebook && view.kind === "note" && editorFocused && !notebook.readOnly}
-  <div class="format-strip" data-region="canvas">
-    <FormatBar layout="row" onRun={(id) => noteEditor?.run(id)} />
+  <div class="format-strip" data-region="chrome">
+    <FormatBar layout="row" region="chrome" onRun={runFormat} />
   </div>
 {/if}
 

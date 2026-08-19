@@ -20,7 +20,12 @@ export const SIDEBAR = { min: 176, max: 480, default: 220 };
 /// The right panel (task inspector / suggestions). Its floor is higher: it
 /// holds a date picker and a row of controls, not a list of names. Default is
 /// `--theme-sidebar-right`.
-export const PANEL = { min: 208, max: 560, default: 240 };
+// The floor was 208 until 2026-08-19, and it was the width of one row of the
+// formatting panel's six headings — so dragging the panel narrower simply
+// stopped there and the panel read as un-resizable (user report). The bar
+// wraps at any width; what a floor has to protect is the inspector's fields
+// still being usable, and 176 is the same one the sidebar keeps.
+export const PANEL = { min: 176, max: 560, default: 240 };
 
 // Kept as named exports because they read better in the tests that guard the
 // range, and because the shell asks for the sidebar's default by name.

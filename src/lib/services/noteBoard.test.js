@@ -12,7 +12,15 @@ const NOTES = [
   note("Clientes/2026/contrato.md", "Clientes/2026"),
   note("Receitas/bolo.md", "Receitas"),
 ];
-const FOLDERS = ["Clientes", "Clientes/2026", "Inbox", "Receitas"];
+// A folder is an entry now, not a bare path: the space remembers a colour and
+// a pin for it (2026-08-19).
+const folder = (path, extra = {}) => ({ path, color: null, pinned: false, ...extra });
+const FOLDERS = [
+  folder("Clientes"),
+  folder("Clientes/2026"),
+  folder("Inbox"),
+  folder("Receitas"),
+];
 
 describe("the board at the root", () => {
   const { cards, groups, parent } = board(NOTES, FOLDERS, "", "Inbox");
@@ -63,7 +71,7 @@ describe("the board inside a folder", () => {
 describe("edge cases the disk actually produces", () => {
   it("caps the small cards a folder draws", () => {
     const many = Array.from({ length: 9 }, (_, i) => note(`Muitas/n${i}.md`, "Muitas"));
-    const [group] = board(many, ["Muitas"], "").groups;
+    const [group] = board(many, [folder("Muitas")], "").groups;
     expect(group.notes).toHaveLength(GROUP_PREVIEW);
     expect(group.count).toBe(9);
   });
@@ -78,7 +86,25 @@ describe("edge cases the disk actually produces", () => {
 
   it("does not mistake a folder whose name merely starts the same", () => {
     const notes = [note("Cliente/x.md", "Cliente"), note("Clientes/y.md", "Clientes")];
-    const [cliente] = board(notes, ["Cliente", "Clientes"], "").groups;
+    const [cliente] = board(notes, [folder("Cliente"), folder("Clientes")], "").groups;
     expect(cliente.count).toBe(1);
+  });
+});
+
+
+describe("a pinned folder", () => {
+  it("is drawn before the others, whatever the order they came in", () => {
+    const { groups } = board(
+      NOTES,
+      [folder("Clientes"), folder("Receitas", { pinned: true })],
+      "",
+      "Inbox",
+    );
+    expect(groups.map((g) => g.name)).toEqual(["Receitas", "Clientes"]);
+  });
+
+  it("carries its colour to the card", () => {
+    const { groups } = board(NOTES, [folder("Clientes", { color: "red" })], "", "Inbox");
+    expect(groups[0].color).toBe("red");
   });
 });

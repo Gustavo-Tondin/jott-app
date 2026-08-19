@@ -1,0 +1,63 @@
+/* note-panel.css — the right panel while a note is open.
+ * Markup: src/lib/components/NotePanel.svelte. Selectors are the stable BEM
+ * hooks a theme may restyle; components read tokens only.
+ *
+ * The shape is the task inspector's, and deliberately so (wireframe "Editor
+ * screen scroll down - side panel"): a pinned head, a scrolling middle and a
+ * pinned foot. One panel, three tenants, one silhouette — what changes is what
+ * the middle holds. The head and the foot are the shared `.theme-pane-head` /
+ * `.theme-pane-foot` (controls.css), so the hairlines are the same too. */
+
+@layer components {
+  .note-panel {
+    display: flex;
+    flex-direction: column;
+    min-block-size: 0;
+  }
+
+  .note-panel__toolbar {
+    display: flex;
+    align-items: center;
+    gap: var(--theme-space-4);
+    padding: var(--theme-space-8);
+  }
+  .note-panel__gap {
+    flex: 1;
+  }
+
+  /* The middle scrolls, so a panel dragged short still reaches every glyph. */
+  .note-panel__scroll {
+    flex: 1;
+    min-block-size: 0;
+    overflow-y: auto;
+  }
+
+  .note-panel__footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--theme-space-8);
+    padding: var(--theme-space-8);
+  }
+  .note-panel__origin {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--theme-space-6);
+    min-inline-size: 0;
+    color: var(--theme-ink-muted);
+    font-size: var(--theme-text-13);
+  }
+  /* As a button it stands on the panel's own surface — the same lift the
+     inspector's does, for the same reason: the foot sits on the ground, so a
+     card is what makes it read as pressable. */
+  .note-panel__origin--button {
+    max-inline-size: 100%;
+    background: var(--theme-surface);
+  }
+  .note-panel__origin-name {
+    min-inline-size: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}

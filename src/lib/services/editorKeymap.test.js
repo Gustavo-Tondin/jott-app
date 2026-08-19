@@ -13,8 +13,6 @@ import {
   defaultKeymap,
   history,
   historyKeymap,
-  indentLess,
-  indentMore,
   insertNewline,
 } from "@codemirror/commands";
 import { indentUnit } from "@codemirror/language";
@@ -39,10 +37,7 @@ function editor(doc, at = doc.length) {
       extensions: [
         history(),
         indentUnit.of(md.INDENT),
-        keymap.of([
-          { key: "Tab", run: indentMore, shift: indentLess },
-          { key: "Shift-Enter", run: insertNewline },
-        ]),
+        keymap.of([{ key: "Shift-Enter", run: insertNewline }]),
         keymap.of(
           Object.entries(md.EDITOR_COMMANDS)
             .filter(([id]) => bound.get(id))
@@ -171,9 +166,15 @@ describe("formatting chords", () => {
 
 describe("the component and the registry stay in step", () => {
   it("has an editor command for every `editor` id the registry declares", () => {
-    // `note.replace` is the documented exception: it opens a panel, so it is
-    // added in the component, which owns the view.
-    const runnable = new Set([...Object.keys(md.EDITOR_COMMANDS), "note.replace"]);
+    // Two documented exceptions, and both for the same reason — they need
+    // something the editor does not own: `note.replace` opens a panel (added
+    // in the component, which owns the view) and `md.attach` asks for a file
+    // from the notebook's library (the shell, App.svelte).
+    const runnable = new Set([
+      ...Object.keys(md.EDITOR_COMMANDS),
+      "note.replace",
+      "md.attach",
+    ]);
     for (const command of commandsIn("editor"))
       expect(runnable.has(command.id), `${command.id} has a chord but nothing to run`).toBe(
         true,

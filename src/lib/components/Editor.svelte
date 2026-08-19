@@ -11,8 +11,6 @@
     defaultKeymap,
     history,
     historyKeymap,
-    indentLess,
-    indentMore,
     insertNewline,
   } from "@codemirror/commands";
   import { indentUnit } from "@codemirror/language";
@@ -147,10 +145,13 @@
           // list marker on. Binding it a second time here would be a second
           // source for one behaviour. Shift+Enter is the way OUT of both, and
           // that one nobody had.
-          keymap.of([
-            { key: "Tab", run: indentMore, shift: indentLess },
-            { key: "Shift-Enter", run: insertNewline },
-          ]),
+          //
+          // Tab and Shift+Tab used to be here too. They moved into the
+          // registry (`md.indent` / `md.outdent`, 2026-08-19) the moment the
+          // formatting panel grew a button for them: a button, a chord and a
+          // settings row all describing one behaviour is exactly what the
+          // registry exists to keep from drifting.
+          keymap.of([{ key: "Shift-Enter", run: insertNewline }]),
           // The formatting commands, bound from the SAME registry the shell
           // and the settings screen read (`services/commands.js`), so a
           // rebinding reaches the editor with nothing to keep in sync.

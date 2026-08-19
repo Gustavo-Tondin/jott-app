@@ -172,7 +172,16 @@
     background: var(--accent-tint-color, var(--theme-brand-weak));
     border-radius: var(--theme-radius-md);
   }
+  /* The card's own row: the name (which opens it) and the two controls a note
+     card carries — the pin and the ⋮ (2026-08-19). */
+  .note-group__bar {
+    display: flex;
+    align-items: center;
+    gap: var(--theme-space-2);
+  }
   .note-group__head {
+    flex: 1;
+    min-inline-size: 0;
     display: flex;
     align-items: center;
     gap: var(--theme-space-6);
@@ -182,6 +191,12 @@
     font: inherit;
     color: var(--accent-color, var(--theme-brand));
     cursor: pointer;
+  }
+  /* The pin and the ⋮ take the card's own colour here: on a tinted block the
+     muted grey of an icon button reads as disabled. */
+  .note-group__bar .note-card__pin,
+  .note-group__bar .note-card__more {
+    color: var(--accent-color, var(--theme-brand));
   }
   .note-group__name {
     flex: 1;
@@ -222,6 +237,12 @@
     z-index: 20;
   }
   .note-group__popover {
+    /* BELOW the dialogs, unlike every other popover (2026-08-19). The rule in
+       controls.css puts a popover at 200 so one opened from inside a dialog
+       wins — that is a MENU next to what you clicked. This panel is the other
+       way round: it holds the buttons that OPEN dialogs (rename, delete), and
+       at 200 the question landed behind the panel that asked it. */
+    z-index: 50;
     /* Placed by `keepOnScreen`, which portals it to the body and clamps it
        inside the window — a board is a scroll container, and a panel that
        opens near its edge would otherwise be cut off by it. These two are the

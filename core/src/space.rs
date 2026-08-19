@@ -19,6 +19,7 @@
 //! - a `schemaVersion` above what this build knows opens the space
 //!   read-only, and saving is refused.
 
+use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 use serde_json::Value;
@@ -39,6 +40,62 @@ pub const SUPPORTED_SPACE_SCHEMA: u64 = 1;
 /// Anything else is *kept and shown as unsupported*, never dropped — see
 /// [`SpaceConfig::is_known`].
 pub const KNOWN_SPACE_KINDS: [&str; 3] = ["tasks", "notes", "home"];
+
+/// What a folder of notes inside a space carries, beyond its own name.
+///
+/// Both are the user's choices about a place, not about its files — which is
+/// why they live in the space's config and not in the `.md`s below.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct FolderSettings {
+    /// A palette NAME (`"red"`), never a hex — the same rule every colour in
+    /// a Jott notebook follows. `None` means the place has no colour of its
+    /// own and reads as the space's.
+    pub color: Option<String>,
+    /// Kept at the top of the board, the way a pinned note is.
+    pub pinned: bool,
+    /// The entry exactly as it was read, for the unknown-key promise — the
+    /// same one the documents themselves keep. A key a newer build wrote here
+    /// (an icon, a cover) survives this build rewriting the colour beside it.
+    raw: serde_json::Map<String, Value>,
+}
+
+impl FolderSettings {
+    /// True when there is nothing left to write down — no colour, no pin, and
+    /// nothing a future build left behind. Such an entry is dropped rather
+    /// than saved as `{}`: an empty object in the file would be litter the app
+    /// leaves every time a colour is cleared.
+    pub fn is_empty(&self) -> bool {
+        self.color.is_none()
+            && !self.pinned
+            && !self
+                .raw
+                .keys()
+                .any(|key| key != "color" && key != "pinned")
+    }
+
+    fn from_entry(entry: &serde_json::Map<String, Value>) -> Self {
+        Self {
+            color: entry.get("color").and_then(Value::as_str).map(str::to_string),
+            pinned: entry.get("pinned").and_then(Value::as_bool).unwrap_or(false),
+            raw: entry.clone(),
+        }
+    }
+
+    /// The entry as it goes back to disk: what was read, with this build's two
+    /// keys written over it and the cleared ones taken out.
+    fn to_entry(&self) -> serde_json::Map<String, Value> {
+        let mut entry = self.raw.clone();
+        match &self.color {
+            Some(color) => entry.insert("color".into(), Value::from(color.clone())),
+            None => entry.remove("color"),
+        };
+        match self.pinned {
+            true => entry.insert("pinned".into(), Value::from(true)),
+            false => entry.remove("pinned"),
+        };
+        entry
+    }
+}
 
 /// A space's `.space.json`, in memory.
 ///
@@ -69,6 +126,17 @@ pub struct SpaceConfig {
     /// never in the content files — the order is an app preference, the `.md`
     /// is the user's.
     pub order: Vec<String>,
+    /// What each FOLDER of notes inside this space carries: a colour, and
+    /// whether it is kept at the top. Keyed by the folder's address relative
+    /// to the space (`Clientes`, `Clientes/2026`).
+    ///
+    /// **Here and not in the folder itself** (2026-08-19): a folder of notes
+    /// is a plain directory, and the app does not scatter marker files through
+    /// the user's own tree — that is the same reason a note folder has never
+    /// had a colour before. The space already carries the arrangement of its
+    /// contents (`sort`/`order`); this is one more line of the same sentence.
+    /// A folder with nothing to say has no entry at all.
+    pub folders: BTreeMap<String, FolderSettings>,
     /// The document as read, for the unknown-key promise.
     raw: jsondoc::Doc,
 }
@@ -83,6 +151,7 @@ impl Default for SpaceConfig {
             icon: None,
             sort: None,
             order: Vec::new(),
+            folders: BTreeMap::new(),
             raw: jsondoc::Doc::new(),
         }
     }
@@ -142,6 +211,22 @@ impl SpaceConfig {
                         .collect()
                 })
                 .unwrap_or_default(),
+            // Same tolerance: an entry that is not an object, or a colour that
+            // is not a string, simply falls away — one folder never spoils the
+            // file for the others.
+            folders: raw
+                .get("folders")
+                .and_then(Value::as_object)
+                .map(|entries| {
+                    entries
+                        .iter()
+                        .filter_map(|(name, value)| {
+                            let settings = FolderSettings::from_entry(value.as_object()?);
+                            (!settings.is_empty()).then(|| (name.clone(), settings))
+                        })
+                        .collect()
+                })
+                .unwrap_or_default(),
             raw,
         }
     }
@@ -181,7 +266,30 @@ impl SpaceConfig {
                 None
             }
         };
-        jsondoc::render(&self.raw, owned, &cleared)
+        let folders: serde_json::Map<String, Value> = self
+            .folders
+            .iter()
+            .filter(|(_, settings)| !settings.is_empty())
+            .map(|(name, settings)| (name.clone(), Value::Object(settings.to_entry())))
+            .collect();
+        match folders.is_empty() {
+            false => owned.insert("folders".into(), Value::Object(folders)),
+            true => {
+                cleared.push("folders");
+                None
+            }
+        };
+
+        // `folders` is the ONE key this build replaces whole instead of
+        // merging into. jsondoc merges deeply, on purpose — that is what keeps
+        // an unknown sibling key alive — but a deep merge cannot express a
+        // REMOVAL, and a folder that was renamed or deleted has to stop being
+        // in the file. Each entry carries what it was read with
+        // (`FolderSettings::raw`), so nothing inside one is lost by taking the
+        // map out of the base document first.
+        let mut base = self.raw.clone();
+        base.remove("folders");
+        jsondoc::render(&base, owned, &cleared)
     }
 
     /// Writes the config atomically. Refuses when it came from a newer app.
@@ -332,6 +440,27 @@ pub struct GroupEntry {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_folder_entry_keeps_what_this_build_does_not_own() {
+        // The same promise the documents keep: a key a newer build wrote next
+        // to ours survives us rewriting ours.
+        let config = SpaceConfig::parse(
+            r##"{ "type": "notes", "folders": { "Clientes": { "color": "red", "cover": "x.png" } } }"##,
+        );
+        assert_eq!(config.folders["Clientes"].color.as_deref(), Some("red"));
+
+        let mut config = config;
+        config.folders.get_mut("Clientes").unwrap().color = None;
+        let rendered = config.render();
+        assert!(rendered.contains("x.png"), "{rendered}");
+        assert!(!rendered.contains("red"), "{rendered}");
+
+        // And an entry that says nothing at all is not written.
+        let mut bare = SpaceConfig::parse(r##"{ "type": "notes" }"##);
+        bare.folders.insert("Vazia".into(), FolderSettings::default());
+        assert!(!bare.render().contains("folders"));
+    }
 
     #[test]
     fn a_documented_space_config_parses() {

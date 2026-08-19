@@ -27,7 +27,7 @@
   import { makeAct } from "../services/act.js";
   import { spaceMenu } from "../services/spaceMenu.js";
   import { arrange, pinnedFirst, planReorder } from "../services/spaceOrder.js";
-  import { accentColor, accentStyle } from "../services/accent.js";
+  import { ACCENTS, accentColor, accentStyle } from "../services/accent.js";
   import { board } from "../services/noteBoard.js";
   import { listName } from "../services/paths.js";
   import { reorderable } from "../actions/reorder.js";
@@ -175,25 +175,37 @@
       await api.moveNoteToSpace(folder, entry.path, space, into);
     });
 
-  const renameFolder = () =>
+  const renameFolder = (path = openFolder) =>
     act(async () => {
-      if (!openFolder) return;
-      const current = openFolder.split("/").pop();
+      if (!path) return;
+      const current = path.split("/").pop();
       const next = await askName(S.promptRenameFolder(current), current);
       if (!next || next.trim() === current) return;
-      openFolder = await api.renameNoteFolder(folder, openFolder, next.trim());
-      anchorFolder = openFolder;
+      const moved = await api.renameNoteFolder(folder, path, next.trim());
+      // Only the place being LOOKED at follows the rename; renaming a card on
+      // the board leaves the board where it is.
+      if (openFolder === path) openFolder = moved;
+      if (anchorFolder === path) anchorFolder = moved;
     });
 
-  const deleteFolder = () =>
+  const deleteFolder = (path = openFolder) =>
     act(async () => {
-      if (!openFolder) return;
-      const name = openFolder.split("/").pop();
+      if (!path) return;
+      const name = path.split("/").pop();
       if (!(await askConfirm(S.confirmDeleteFolder(name), DELETING))) return;
-      const moved = await api.deleteNoteFolder(folder, openFolder);
-      closeGroup();
+      const moved = await api.deleteNoteFolder(folder, path);
+      if (anchorFolder === path || openFolder === path) closeGroup();
       if (moved > 0) onError?.({ kind: "info", message: S.folderEmptied(moved, name) });
     });
+
+  // A folder of notes has a colour and a pin of its own since 2026-08-19, and
+  // both live in the SPACE's config — a folder is a plain directory and the
+  // app writes no marker inside the user's tree (core/src/space.rs).
+  const pinFolder = (group) =>
+    act(() => api.setNoteFolderPinned(folder, group.path, !group.pinned));
+
+  const colorFolder = (group, color) =>
+    act(() => api.setNoteFolderColor(folder, group.path, color || null));
 
   // ---- the quick note bar (2026-08-19) ----
   //
@@ -249,6 +261,11 @@
 
   /// The same question asked of the open folder card — what the popover holds.
   let inside = $derived(board(notes, folders, openFolder ?? "", notesInbox));
+
+  /// The folder the popover is SHOWING, as an entry. Not always the card the
+  /// panel hangs off: going into a subfolder changes what is shown without
+  /// moving the panel, and the ⋮ has to act on what is on screen.
+  let openInside = $derived(folders.find((it) => it.path === openFolder) ?? null);
 
   /// Arranged, with the pinned ones floated to the top: pinning outranks the
   /// sort, exactly as it does on a task list (services/spaceOrder.js).
@@ -306,6 +323,34 @@
     }),
   );
 
+  /// A folder card's own ⋮ — the same shape a note card's has, because it is
+  /// the same gesture on the same board (user call, 2026-08-19). It replaced
+  /// the two underlined words that used to hang under the board, which were
+  /// reachable only once a folder was already open.
+  const groupMenu = (group) =>
+    readOnly
+      ? []
+      : [
+          { label: group.pinned ? S.unpin : S.pin, run: () => pinFolder(group) },
+          {
+            label: S.color,
+            items: [
+              {
+                label: S.defaultAppearance,
+                context: group.color ? undefined : "✓",
+                run: () => colorFolder(group, null),
+              },
+              ...ACCENTS.map((name) => ({
+                label: S.colorName(name),
+                context: group.color === name ? "✓" : undefined,
+                run: () => colorFolder(group, name),
+              })),
+            ],
+          },
+          { label: S.renameFolder, run: () => renameFolder(group.path) },
+          { label: S.deleteFolder, run: () => deleteFolder(group.path) },
+        ];
+
   /// A card's own ⋮. Not built for a read-only notebook: every item writes.
   const cardMenu = (entry) =>
     readOnly
@@ -356,9 +401,9 @@
       label: title,
       options: [
         { value: JSON.stringify([folder, ""]), label: S.allNotes },
-        ...folders.map((name) => ({
-          value: JSON.stringify([folder, name]),
-          label: name,
+        ...folders.map((it) => ({
+          value: JSON.stringify([folder, it.path]),
+          label: it.path,
         })),
       ],
     },
@@ -518,29 +563,15 @@
         class:notes-space__folder--active={openFolder === null}
         onclick={() => (openFolder = null)}>{S.allNotes}</button
       >
-      {#each folders as name (name)}
+      {#each folders as it (it.path)}
         <button
           class="theme-segmented__item notes-space__folder"
-          class:theme-segmented__item--active={openFolder === name}
-          class:notes-space__folder--active={openFolder === name}
-          onclick={() => (openFolder = name)}>{name}</button
+          class:theme-segmented__item--active={openFolder === it.path}
+          class:notes-space__folder--active={openFolder === it.path}
+          onclick={() => (openFolder = it.path)}>{it.path}</button
         >
       {/each}
     </nav>
-
-    <!-- Folder actions live next to the folder they act on, and only when one
-         is open — a folder is not deletable from a view where nothing says
-         which one you mean. On the board they are in the popover instead. -->
-    {#if !readOnly && openFolder}
-      <p class="notes-space__folder-actions">
-        <button class="notes-space__folder-action" onclick={renameFolder}
-          >{S.renameFolder}</button
-        >
-        <button class="notes-space__folder-action" onclick={deleteFolder}
-          >{S.deleteFolder}</button
-        >
-      </p>
-    {/if}
   {/if}
 
   {#if shown.length === 0 && groups.length === 0}
@@ -574,25 +605,57 @@
           <article
             class="note-group"
             class:note-group--open={anchorFolder === group.path}
-            style={accentStyle(dot)}
+            style={accentStyle(group.color ?? dot)}
             use:dismissable={{
               active: anchorFolder === group.path,
               onDismiss: closeGroup,
             }}
           >
-            <button
-              class="note-group__head"
-              aria-expanded={anchorFolder === group.path}
-              onclick={() =>
-                anchorFolder === group.path
-                  ? closeGroup()
-                  : ((anchorFolder = group.path), (openFolder = group.path))}
-              aria-label={S.openFolder(group.name)}
-            >
-              <Icon name="folder" size="1rem" />
-              <span class="note-group__name">{group.name}</span>
-              <span class="note-group__count">{S.notesFolderCount(group.count)}</span>
-            </button>
+            <div class="note-group__bar">
+              <button
+                class="note-group__head"
+                aria-expanded={anchorFolder === group.path}
+                onclick={() =>
+                  anchorFolder === group.path
+                    ? closeGroup()
+                    : ((anchorFolder = group.path), (openFolder = group.path))}
+                aria-label={S.openFolder(group.name)}
+              >
+                <Icon name="folder" size="1rem" />
+                <span class="note-group__name">{group.name}</span>
+                <span class="note-group__count">{S.notesFolderCount(group.count)}</span>
+              </button>
+              {#if !readOnly}
+                <!-- The same two controls a note card carries, for the same
+                     reason: a pin is a state and has to be readable off the
+                     card, and everything else is the ⋮. -->
+                <button
+                  class="theme-btn--icon note-card__pin"
+                  class:note-card__pin--on={group.pinned}
+                  aria-pressed={group.pinned}
+                  aria-label={group.pinned ? S.unpin : S.pin}
+                  title={group.pinned ? S.unpin : S.pin}
+                  onclick={() => pinFolder(group)}
+                >
+                  <Icon
+                    name={group.pinned ? "bookmark-simple-fill" : "bookmark-simple"}
+                    size="1rem"
+                  />
+                </button>
+                <Menu items={groupMenu(group)} align="end">
+                  {#snippet trigger({ toggle })}
+                    <button
+                      class="theme-btn--icon note-card__more"
+                      onclick={toggle}
+                      aria-label={S.folderOptions}
+                      title={S.folderOptions}
+                    >
+                      <Icon name="dots-three" size="1rem" />
+                    </button>
+                  {/snippet}
+                </Menu>
+              {/if}
+            </div>
             <div class="note-group__notes">
               {#each group.notes as entry (entry.path)}
                 <NoteCard
@@ -627,12 +690,18 @@
                   {/if}
                   <span class="note-group__panel-name">{openFolder}</span>
                   {#if !readOnly}
-                    <button class="notes-space__folder-action" onclick={renameFolder}
-                      >{S.renameFolder}</button
-                    >
-                    <button class="notes-space__folder-action" onclick={deleteFolder}
-                      >{S.deleteFolder}</button
-                    >
+                    <Menu items={groupMenu(openInside ?? group)} align="end">
+                      {#snippet trigger({ toggle })}
+                        <button
+                          class="theme-btn--icon"
+                          onclick={toggle}
+                          aria-label={S.folderOptions}
+                          title={S.folderOptions}
+                        >
+                          <Icon name="dots-three" size="1rem" />
+                        </button>
+                      {/snippet}
+                    </Menu>
                   {/if}
                   <button
                     class="theme-btn--icon note-group__close"

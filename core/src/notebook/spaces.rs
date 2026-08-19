@@ -249,7 +249,7 @@ impl Notebook {
 
     /// Changes a space's own `.space.json`, through the same tolerant
     /// config type discovery reads.
-    fn with_space_config(
+    pub(super) fn with_space_config(
         &self,
         folder: &str,
         change: impl FnOnce(&mut crate::space::SpaceConfig),
@@ -292,7 +292,7 @@ impl Notebook {
     /// with two matches it silently opened the first — and the sidebar
     /// highlighted BOTH, because both answered to the same address (user
     /// report, screen recording 2026-08-13).
-    fn open_space(&self, path: &str) -> Result<crate::space::Space> {
+    pub(super) fn open_space(&self, path: &str) -> Result<crate::space::Space> {
         let dir = self.resolve_space_path(path)?;
         crate::space::Space::open(dir)
     }

@@ -150,7 +150,14 @@ export const api = {
   // `folder` is a notes space's address ("Notes"); `path` is relative to it
   // ("Inbox/ideia.md") — the space owns its subtree.
   listNotes: (folder, query) => invoke("list_notes", { folder, query }),
+  // `{ path, color, pinned }` per folder — the colour and the pin live in the
+  // space's `.space.json`, since a folder of notes is a plain directory
+  // (2026-08-19).
   noteFolders: (folder) => invoke("note_folders", { folder }),
+  setNoteFolderColor: (folder, path, color) =>
+    invoke("set_note_folder_color", { folder, path, color }),
+  setNoteFolderPinned: (folder, path, pinned) =>
+    invoke("set_note_folder_pinned", { folder, path, pinned }),
   notesCreatedToday: (folder) => invoke("notes_created_today", { folder }),
   quickCaptureNote: (folder, inFolder, text) =>
     invoke("quick_capture_note", { folder, inFolder, text }),

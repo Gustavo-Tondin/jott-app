@@ -188,6 +188,7 @@ pub struct Notebook {
 mod groups;
 mod lists;
 mod notes;
+pub use notes::NoteFolderEntry;
 mod period;
 mod search;
 mod spaces;

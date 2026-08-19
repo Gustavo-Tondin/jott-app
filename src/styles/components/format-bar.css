@@ -13,7 +13,8 @@
 
   /* Wrapped, so the panel's own width decides how many fit on a line: the six
      headings end up together and the inline marks above them, and dragging the
-     panel wider simply reflows. */
+     panel narrower simply drops the last glyph of a row onto the next one
+     (user call, 2026-08-19: "as fileiras de ícones sejam flex"). */
   .format-bar--column {
     flex-wrap: wrap;
     align-content: flex-start;
@@ -48,22 +49,65 @@
     block-size: 0.0625rem;
     margin-block: var(--theme-space-6);
   }
-  /* In the strip it is upright, with air on both sides. */
-  .format-bar--row .format-bar__divider {
-    align-self: center;
-    inline-size: 0.0625rem;
-    block-size: 1.25rem;
-    margin-inline: var(--theme-space-6);
+  /* ---- the folded groups of the narrow bar ---- */
+  .format-bar__fold {
+    position: relative;
+    flex: 0 0 auto;
+    display: inline-flex;
+  }
+  /* The opener, while its panel is open: the pressed state the wireframe
+     draws, so it is clear WHICH of the two the panel belongs to. */
+  .format-bar__button--on {
+    background: var(--theme-well);
+  }
+  /* The panel itself — a bar of its own, beside the bar. It carries its own
+     ground rather than `theme-popover`'s: it is a strip of buttons, the same
+     strip as the one it belongs to, and the wireframe draws the two as twins.
+     Where it lands is `keepOnScreen`'s call (FormatBar.svelte says why); these
+     two are the fallback until it has measured. */
+  .format-bar__panel {
+    position: absolute;
+    inset-block-end: calc(100% + var(--theme-space-8));
+    display: flex;
+    gap: var(--theme-space-2);
+    padding: var(--theme-space-6);
+    background: var(--theme-bg);
+    border-radius: var(--theme-radius-lg);
+    box-shadow: var(--theme-shadow-popover);
+    z-index: 1;
   }
 }
 
 @layer components {
+  /* The floating bar of a DESKTOP with no right panel open (user call,
+     2026-08-19). Same narrow bar as the phone's, centred over the top of the
+     canvas just under the page header — and on a LIGHT ground, because here it
+     floats over the document itself rather than over a phone's chrome.
+
+     `absolute`, inside `.shell__centre` (which is `relative`): it has to stay
+     put while the note scrolls under it, and the centre is the box that means
+     "this screen". */
+  .format-float {
+    position: absolute;
+    inset-block-start: var(--theme-space-8);
+    inset-inline-start: 50%;
+    translate: -50% 0;
+    z-index: 15;
+    max-inline-size: calc(100% - var(--theme-space-32));
+    background: var(--theme-bg);
+    border-radius: var(--theme-radius-lg);
+    box-shadow: var(--theme-shadow-popover);
+  }
+
   /* The strip that rides above the on-screen keyboard, below 768px. Fixed to
      the viewport and drawn outside `.window` (App.svelte says why), so it needs
      its own ground and its own top hairline — it is not sitting on any panel. */
   .format-strip {
     position: fixed;
-    inset-inline: 0;
+    /* A pill with air on both sides, as the wireframe draws it — not a band
+       across the screen. It is a thing floating above the keyboard, and a
+       floating thing has edges. */
+    inset-inline: var(--theme-space-8);
     /* Against the top of the keyboard when one is up, above the gesture bar
        when it is not. `max()` rather than a sum: with the keyboard up the
        gesture bar is inside it. The same rule the task composer and the sheets
@@ -71,6 +115,7 @@
     inset-block-end: max(var(--theme-safe-bottom), var(--theme-keyboard));
     z-index: 40;
     background: var(--theme-bg);
-    border-block-start: 0.0625rem solid var(--theme-line);
+    border-radius: var(--theme-radius-lg);
+    margin-block-end: var(--theme-space-8);
   }
 }
