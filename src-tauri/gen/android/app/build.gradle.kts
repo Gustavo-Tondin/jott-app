@@ -79,6 +79,14 @@ android {
             }
         }
         getByName("release") {
+            // The missing half of the keystore block above: declaring the
+            // signing config is not using it. Without this line the build
+            // quietly produces app-universal-release-unsigned.apk, which
+            // Android refuses to install (found on the first real release,
+            // 2026-08-19).
+            if (hasReleaseKey) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             isMinifyEnabled = true
             proguardFiles(
                 *fileTree(".") { include("**/*.pro") }
