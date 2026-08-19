@@ -76,6 +76,20 @@ import textHFive from "../../assets/icons/phosphor/regular/text-h-five.svg?raw";
 import textHSix from "../../assets/icons/phosphor/regular/text-h-six.svg?raw";
 import textAa from "../../assets/icons/phosphor/regular/text-aa.svg?raw";
 
+// The panel completed (2026-08-19, wireframe "Format panel"): underline,
+// indent/outdent, the brackets that link to a note, and undo/redo. `text-h` and
+// `text-a-underline` are the two OPENERS of the narrow bar — a whole group
+// folded behind one glyph, which is how the mobile wireframe fits six rows on
+// one line.
+import textUnderline from "../../assets/icons/phosphor/regular/text-underline.svg?raw";
+import textIndent from "../../assets/icons/phosphor/regular/text-indent.svg?raw";
+import textOutdent from "../../assets/icons/phosphor/regular/text-outdent.svg?raw";
+import bracketsSquare from "../../assets/icons/phosphor/regular/brackets-square.svg?raw";
+import arrowArcLeft from "../../assets/icons/phosphor/regular/arrow-arc-left.svg?raw";
+import arrowArcRight from "../../assets/icons/phosphor/regular/arrow-arc-right.svg?raw";
+import textH from "../../assets/icons/phosphor/regular/text-h.svg?raw";
+import textAUnderline from "../../assets/icons/phosphor/regular/text-a-underline.svg?raw";
+
 export const ICONS = {
   // weighted variants
   "x-bold": xBold,
@@ -137,5 +151,14 @@ export const ICONS = {
   h4: textHFour,
   h5: textHFive,
   h6: textHSix,
+  underline: textUnderline,
+  indent: textIndent,
+  outdent: textOutdent,
+  reference: bracketsSquare,
+  attach: paperclip,
+  undo: arrowArcLeft,
+  redo: arrowArcRight,
+  headings: textH,
+  marks: textAUnderline,
   "text-size": textAa,
 };

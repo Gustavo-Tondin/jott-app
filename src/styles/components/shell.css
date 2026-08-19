@@ -443,6 +443,10 @@
     display: flex;
     flex-direction: column;
     min-height: 0;
+    /* The containing block of what floats over this screen — the formatting
+       bar of an open note (format-bar.css), which has to stay put while the
+       note scrolls under it. */
+    position: relative;
     background: var(--theme-bg);
     border-radius: var(--theme-radius-lg);
     overflow: hidden;

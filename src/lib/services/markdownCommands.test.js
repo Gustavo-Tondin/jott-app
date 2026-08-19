@@ -4,6 +4,7 @@ import {
   INDENT,
   clearHeading,
   insertLink,
+  insertReference,
   insertRule,
   markOf,
   setHeading,
@@ -15,6 +16,7 @@ import {
   toggleQuote,
   toggleStrike,
   toggleTaskList,
+  toggleUnderline,
 } from "./markdownCommands.js";
 
 // A view is only ever `{state, dispatch}` to a command, so the commands can be
@@ -137,6 +139,28 @@ describe("line marks", () => {
     expect(run(insertRule, "texto", 0)).toBe("texto\n\n---\n");
     expect(run(insertRule, "", 0)).toBe("---\n");
   });
+
+  // ---- the two marks markdown does not have a symbol for (2026-08-19) ----
+
+  it("underlines with the HTML markdown lacks, and takes it off again", () => {
+    // `<u>` and not `__`: in CommonMark `__x__` is BOLD, so the file would say
+    // something else in every other editor (user call).
+    expect(run(toggleUnderline, "leite", 2)).toBe("<u>leite</u>");
+    expect(run(toggleUnderline, "<u>leite</u>", 3, 8)).toBe("leite");
+    expect(run(toggleUnderline, "<u>leite</u>", 0, 12)).toBe("leite");
+  });
+
+  it("writes a note reference the autocomplete can finish", () => {
+    // The cursor lands BETWEEN the brackets, which is what makes `[[` open the
+    // suggestions on the very next keystroke (services/linkComplete.js).
+    const view = editor("", 0);
+    insertReference(view);
+    expect(view.state.doc.toString()).toBe("[[]]");
+    expect(view.state.selection.main.head).toBe(2);
+
+    // A selection becomes the title being linked to.
+    expect(run(insertReference, "Receita", 0, 7)).toBe("[[Receita]]");
+  });
 });
 
 describe("read-only", () => {
@@ -147,7 +171,15 @@ describe("read-only", () => {
         throw new Error("dispatched into a read-only document");
       },
     };
-    for (const command of [toggleBold, toggleBullet, insertLink, insertRule, clearHeading])
+    for (const command of [
+      toggleBold,
+      toggleUnderline,
+      toggleBullet,
+      insertLink,
+      insertReference,
+      insertRule,
+      clearHeading,
+    ])
       expect(command(view)).toBe(false);
   });
 });

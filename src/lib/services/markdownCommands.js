@@ -11,6 +11,7 @@
 // the user comes through.
 
 import { EditorSelection } from "@codemirror/state";
+import { indentLess, indentMore, redo, undo } from "@codemirror/commands";
 
 /// One level of indentation, as SPACES.
 ///
@@ -24,12 +25,14 @@ export const INDENT = "  ";
 
 // ---- inline marks ---------------------------------------------------------
 
-/// Wrap the selection in `mark`, or take `mark` off when it is already there.
+/// Wrap the selection in `open`…`close`, or take them off when they are
+/// already there. `close` defaults to `open`, which is every markdown mark;
+/// the two differ only for the one mark markdown does not have (`<u>`).
 ///
 /// With nothing selected it works on the WORD under the cursor, because that
 /// is what someone means by pressing Ctrl+B mid-word; with no word either, it
 /// leaves the marks and puts the cursor between them, ready to type.
-function toggleWrap(mark) {
+function toggleWrap(open, close = open) {
   return (view) => {
     if (view.state.readOnly) return false;
     const changes = [];
@@ -38,25 +41,35 @@ function toggleWrap(mark) {
     for (const range of view.state.selection.ranges) {
       const span = range.empty ? wordAt(view.state, range.head) : range;
       const text = view.state.sliceDoc(span.from, span.to);
-      const before = view.state.sliceDoc(Math.max(0, span.from - mark.length), span.from);
-      const after = view.state.sliceDoc(span.to, Math.min(view.state.doc.length, span.to + mark.length));
+      const before = view.state.sliceDoc(Math.max(0, span.from - open.length), span.from);
+      const after = view.state.sliceDoc(span.to, Math.min(view.state.doc.length, span.to + close.length));
 
-      if (text.startsWith(mark) && text.endsWith(mark) && text.length >= mark.length * 2) {
+      if (
+        text.startsWith(open) &&
+        text.endsWith(close) &&
+        text.length >= open.length + close.length
+      ) {
         // The marks are inside the selection.
-        changes.push({ from: span.from, to: span.to, insert: text.slice(mark.length, -mark.length) });
-        ranges.push(EditorSelection.range(span.from, span.to - mark.length * 2));
-      } else if (before === mark && after === mark) {
+        changes.push({
+          from: span.from,
+          to: span.to,
+          insert: text.slice(open.length, text.length - close.length),
+        });
+        ranges.push(
+          EditorSelection.range(span.from, span.to - open.length - close.length),
+        );
+      } else if (before === open && after === close) {
         // The marks are just outside it — the shape a second press leaves.
-        changes.push({ from: span.from - mark.length, to: span.from, insert: "" });
-        changes.push({ from: span.to, to: span.to + mark.length, insert: "" });
-        ranges.push(EditorSelection.range(span.from - mark.length, span.to - mark.length));
+        changes.push({ from: span.from - open.length, to: span.from, insert: "" });
+        changes.push({ from: span.to, to: span.to + close.length, insert: "" });
+        ranges.push(EditorSelection.range(span.from - open.length, span.to - open.length));
       } else {
-        changes.push({ from: span.from, insert: mark });
-        changes.push({ from: span.to, insert: mark });
+        changes.push({ from: span.from, insert: open });
+        changes.push({ from: span.to, insert: close });
         ranges.push(
           range.empty && span.from === span.to
-            ? EditorSelection.cursor(span.from + mark.length)
-            : EditorSelection.range(span.from + mark.length, span.to + mark.length),
+            ? EditorSelection.cursor(span.from + open.length)
+            : EditorSelection.range(span.from + open.length, span.to + open.length),
         );
       }
     }
@@ -90,6 +103,19 @@ export const toggleBold = toggleWrap("**");
 export const toggleItalic = toggleWrap("*");
 export const toggleStrike = toggleWrap("~~");
 export const toggleInlineCode = toggleWrap("`");
+/// Underline, which **Markdown does not have** — so it is written as the HTML
+/// it is (user call, 2026-08-19, weighing the two candidates):
+///
+///   * `<u>text</u>` is valid CommonMark (inline HTML) and renders as an
+///     underline in Obsidian, in VS Code and on GitHub. The cost is a tag
+///     visible in the raw text.
+///   * `__text__` would read cleaner and would be a LIE: in CommonMark that is
+///     bold, so the file would say something else everywhere but here — and it
+///     would collide with the B button two glyphs away.
+///
+/// The panel draws the button because the wireframe does; the file stays
+/// portable, which is principle 4.
+export const toggleUnderline = toggleWrap("<u>", "</u>");
 
 /// A link around the selection: `[text](url)`, cursor left in the url, where
 /// the next thing to type is. With nothing selected the cursor goes to the
@@ -104,6 +130,29 @@ export function insertLink(view) {
       selection: EditorSelection.cursor(
         text ? range.from + text.length + 3 : range.from + 1,
       ),
+      scrollIntoView: true,
+      userEvent: "input.format",
+    }),
+  );
+  return true;
+}
+
+/// A reference to another note: `[[title]]`, with the cursor between the
+/// brackets so the autocomplete opens on the next keystroke
+/// (services/linkComplete.js). A selection becomes the title.
+///
+/// The same brackets carry a FILE, with a leading slash (`[[/foto.jpg]]`) —
+/// which is why this writes the note form and the paperclip beside it writes
+/// the other: the two are one syntax with two namespaces (services/embeds.js),
+/// and the button says which one you meant.
+export function insertReference(view) {
+  if (view.state.readOnly) return false;
+  const range = view.state.selection.main;
+  const text = view.state.sliceDoc(range.from, range.to);
+  view.dispatch(
+    view.state.update({
+      changes: { from: range.from, to: range.to, insert: `[[${text}]]` },
+      selection: EditorSelection.cursor(range.from + 2 + text.length),
       scrollIntoView: true,
       userEvent: "input.format",
     }),
@@ -264,6 +313,16 @@ export function clearHeading(view) {
 /// view the component owns.
 export const EDITOR_COMMANDS = {
   "md.bold": toggleBold,
+  "md.underline": toggleUnderline,
+  "md.reference": insertReference,
+  // Indentation and history are CodeMirror's own, bound here as well as to
+  // their keys so the panel's buttons press the very same function (the point
+  // of this table). `indentMore`/`indentLess` are what Tab and Shift+Tab run
+  // in the editor already.
+  "md.indent": indentMore,
+  "md.outdent": indentLess,
+  "edit.undo": undo,
+  "edit.redo": redo,
   "md.italic": toggleItalic,
   "md.strike": toggleStrike,
   "md.code": toggleInlineCode,

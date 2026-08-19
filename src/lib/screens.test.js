@@ -1345,6 +1345,40 @@ describe("App", () => {
     expect(opened).not.toHaveBeenCalled();
   });
 
+  test("opening a note clears the right panel and takes it for the formatting", async () => {
+    // User call, 2026-08-19: "ao entrar num editor de notas, se tem uma tarefa
+    // aberta, ela deve fechar imediatamente". An inspector left standing over
+    // a note describes something that is not on screen any more.
+    shell({
+      list_notes: [
+        {
+          path: "Inbox/Ideia.md",
+          title: "Ideia",
+          folder: "Inbox",
+          preview: "preview",
+          created: "2026-07-21",
+          pinned: false,
+        },
+      ],
+      read_note: {
+        path: "Inbox/Ideia.md",
+        title: "Ideia",
+        body: "Corpo.",
+        pinned: false,
+        created: "2026-07-21",
+      },
+      write_note: null,
+    });
+    render(App);
+
+    await openTask("Comprar leite");
+    await userEvent.click(await screen.findByRole("button", { name: "Notes" }));
+    await userEvent.click(await screen.findByText("Ideia"));
+
+    await waitFor(() => expect(screen.queryByLabelText("task name")).toBeNull());
+    expect(screen.getByLabelText("Formatting")).toBeTruthy();
+  });
+
   test("the sidebar head carries search and a + that makes things", async () => {
     // Both were only reachable by shortcut or by right-clicking empty column
     // — which stops existing as soon as the column is full (user call,

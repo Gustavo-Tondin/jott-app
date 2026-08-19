@@ -51,3 +51,48 @@ describe("FormatBar", () => {
     expect(expected.length).toBeGreaterThan(0);
   });
 });
+
+// ---- the narrow bar (2026-08-19, wireframes "Format panel") ----
+//
+// It is NOT the column with a scrollbar: nineteen glyphs do not fit on a phone
+// and a bar you have to scroll to reach bold is a bar nobody uses. Two of its
+// buttons are openers, and what they hold is the rest.
+describe("FormatBar, narrow", () => {
+  const row = (onRun = () => {}) =>
+    render(FormatBar, { props: { onRun, layout: "row" } });
+
+  it("shows nine buttons, two of which open a group", () => {
+    const { container } = row();
+    expect(container.querySelectorAll(".format-bar__button").length).toBe(9);
+    expect(screen.getByLabelText("Text style")).toBeTruthy();
+    expect(screen.getByLabelText("Heading")).toBeTruthy();
+    // Folded, not dropped: bold is not on the bar itself.
+    expect(screen.queryByTitle("Bold [Ctrl+B]")).toBeNull();
+  });
+
+  it("an opener unfolds its group, and running one closes it again", async () => {
+    const asked = [];
+    row((id) => asked.push(id));
+
+    await userEvent.click(screen.getByLabelText("Text style"));
+    expect(screen.getByTitle("Bold [Ctrl+B]")).toBeTruthy();
+    expect(screen.getByTitle("Underline [Ctrl+U]")).toBeTruthy();
+
+    await userEvent.click(screen.getByTitle("Underline [Ctrl+U]"));
+    expect(asked).toEqual(["md.underline"]);
+    expect(screen.queryByTitle("Bold [Ctrl+B]")).toBeNull();
+  });
+
+  it("opens one group at a time", async () => {
+    row();
+    await userEvent.click(screen.getByLabelText("Text style"));
+    await userEvent.click(screen.getByLabelText("Heading"));
+    expect(screen.getByTitle("Heading 1 [Ctrl+Alt+1]")).toBeTruthy();
+    expect(screen.queryByTitle("Bold [Ctrl+B]")).toBeNull();
+  });
+
+  it("draws no category rules — nine glyphs are not nineteen", () => {
+    const { container } = row();
+    expect(container.querySelectorAll(".format-bar__divider").length).toBe(0);
+  });
+});

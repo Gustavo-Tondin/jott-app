@@ -147,8 +147,10 @@ export const S = {
   resetShortcuts: "Reset to defaults",
 
   formatting: "Formatting",
-  showFormatting: "Show formatting",
-  hideFormatting: "Hide formatting",
+  // WHERE the controls sit, not whether they exist: writing a note is what
+  // they are for, so the choice is a place (user call, 2026-08-19).
+  formattingDocked: "In the side panel",
+  formattingFloating: "Floating over the note",
   noteTextSize: "Text size",
   noteSizeSmall: "Small",
   noteSizeMedium: "Medium",
@@ -201,6 +203,19 @@ export const S = {
   cmdQuote: "Quote",
   cmdRule: "Horizontal rule",
   cmdReplace: "Find and replace",
+  // The panel's second row and its last two (2026-08-19, wireframe "Format
+  // panel").
+  cmdUnderline: "Underline",
+  cmdIndent: "Indent",
+  cmdOutdent: "Outdent",
+  cmdReference: "Link to a note",
+  cmdAttach: "Insert a file",
+  cmdUndo: "Undo",
+  cmdRedo: "Redo",
+  // What the two openers of the narrow bar say. They open nothing but more
+  // buttons, so they are named after what is INSIDE them.
+  formatMarks: "Text style",
+  formatHeadings: "Heading",
 
   // Settings (phase 9)
   settings: "Settings",
