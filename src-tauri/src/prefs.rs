@@ -43,6 +43,18 @@ struct MachinePrefs {
     /// the opposite case — that is reading taste, it travels with the
     /// notebook, and it lives in `.jott/config.json`.
     zoom: Option<f64>,
+    /// Whether the app may look for a new version by itself (2026-08-19).
+    ///
+    /// A machine preference because it answers for this INSTALL, not for the
+    /// notebook: the same notebook synced to a phone and a desktop is served
+    /// by two different binaries, updated two different ways. Absent means
+    /// on — the check is the one connection the app makes, it is explained
+    /// in the settings screen, and this switch is how it is refused.
+    auto_update_check: Option<bool>,
+    /// When the last automatic check ran, as an ISO date-time the frontend
+    /// owns. It is what keeps the check to once a day instead of once per
+    /// launch.
+    last_update_check: Option<String>,
 }
 
 /// Overrides where machine preferences are stored.
@@ -127,6 +139,24 @@ pub fn remember_panel_width<R: Runtime>(app: &AppHandle<R>, width: f64) {
         return;
     }
     update(app, |prefs| prefs.panel_width = Some(width));
+}
+
+/// Whether the app may check for a new version by itself. Absent means yes.
+pub fn auto_update_check<R: Runtime>(app: &AppHandle<R>) -> bool {
+    load(app).auto_update_check.unwrap_or(true)
+}
+
+pub fn remember_auto_update_check<R: Runtime>(app: &AppHandle<R>, on: bool) {
+    update(app, |prefs| prefs.auto_update_check = Some(on));
+}
+
+/// When the last automatic check ran, if one ever did.
+pub fn last_update_check<R: Runtime>(app: &AppHandle<R>) -> Option<String> {
+    load(app).last_update_check
+}
+
+pub fn remember_last_update_check<R: Runtime>(app: &AppHandle<R>, when: &str) {
+    update(app, |prefs| prefs.last_update_check = Some(when.to_string()));
 }
 
 /// Reads, changes and writes the preferences. Every failure path is silent on

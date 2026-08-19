@@ -27,6 +27,10 @@ jott-core = { path = "../core" }
 # notebook's `assets/` folder — see `commands::allow_assets`.
 tauri = { version = "2", features = ["protocol-asset"] }
 tauri-plugin-dialog = "2"
+# Opens the release page in the system browser when an update cannot install
+# itself (a .deb/.rpm/pacman install, and Android — there it becomes an
+# intent). The whole reason it exists here is the update notice's button.
+tauri-plugin-opener = "2"
 serde.workspace = true
 serde_json.workspace = true
 ureq = { version = "3", default-features = false, features = ["rustls", "platform-verifier", "gzip"] }
@@ -39,3 +43,11 @@ ureq = { version = "3", default-features = false, features = ["rustls", "platfor
 gtk = "0.18"
 gio = "0.18"
 gdk = "0.18"
+
+# In-place updates exist only where a file can replace itself: the AppImage
+# and the Windows installer. A .deb/.rpm/pacman install belongs to a package
+# manager and an APK to Android's installer, so the plugins are not even
+# compiled there — the notice falls back to opening the release page.
+[target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
+tauri-plugin-updater = "2"
+tauri-plugin-process = "2"

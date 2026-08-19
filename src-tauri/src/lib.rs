@@ -20,6 +20,7 @@ use state::AppState;
 pub fn configure<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builder<R> {
     builder
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_opener::init())
         .manage(AppState::default())
         .invoke_handler(tauri::generate_handler![
             commands::platform,
@@ -74,6 +75,13 @@ pub fn configure<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builde
             commands::remember_panel_width,
             commands::zoom,
             commands::remember_zoom,
+            // update (2026-08-19)
+            commands::app_version,
+            commands::check_for_update,
+            commands::auto_update_check,
+            commands::remember_auto_update_check,
+            commands::last_update_check,
+            commands::remember_last_update_check,
             commands::open_in_file_manager,
             commands::list_counts,
             // lists
@@ -148,7 +156,19 @@ pub fn configure<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builde
 /// call it.
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    configure(tauri::Builder::default())
+    let builder = configure(tauri::Builder::default());
+    // In-place updates only exist where the installed file can replace
+    // itself (the AppImage, the Windows build); the plugins are not even
+    // compiled on mobile — see Cargo.toml. Registered here and not in
+    // `configure` because the updater reads its pubkey and endpoint from
+    // tauri.conf.json, which the tests' mock context does not carry — there
+    // the registration itself would fail, taking every test with it.
+    // `process` is what relaunches the app after an update installs.
+    #[cfg(desktop)]
+    let builder = builder
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init());
+    builder
         .run(tauri::generate_context!())
         .expect("error while running Jott");
 }
