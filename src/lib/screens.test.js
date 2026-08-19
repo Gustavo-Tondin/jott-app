@@ -5268,6 +5268,58 @@ describe("SettingsView", () => {
     const options = [...field.options].map((o) => o.value);
     expect(options).toEqual(["Inbox", "Clientes"]);
   });
+
+  test("the update check is a machine preference, written outside the notebook", async () => {
+    // It answers for this INSTALL, so it goes nowhere near
+    // `set_notebook_settings` and ignores a read-only notebook.
+    bridge({ notebook_settings: settings, auto_update_check: true, app_version: "0.20.0" });
+    render(SettingsView, { props: props({ notebook: { ...notebook, readOnly: true } }) });
+
+    const toggle = await screen.findByLabelText("Check for updates automatically");
+    await waitFor(() => expect(toggle.checked).toBe(true));
+    await userEvent.click(toggle);
+
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("remember_auto_update_check", { on: false }),
+    );
+    expect(invoke).not.toHaveBeenCalledWith("set_notebook_settings", expect.anything());
+  });
+
+  test("Check now asks the bridge and reports both endings", async () => {
+    // An install that cannot replace itself is offered the release page.
+    bridge({
+      notebook_settings: settings,
+      check_for_update: {
+        current: "0.20.0",
+        latest: "9.9.9",
+        newer: true,
+        canInstall: false,
+        url: "https://example.com/latest",
+      },
+    });
+    render(SettingsView, { props: props() });
+
+    await userEvent.click(await screen.findByRole("button", { name: "Check now" }));
+    await screen.findByText("Version 9.9.9 is available.");
+    await screen.findByRole("button", { name: "Download" });
+  });
+
+  test("being up to date is said in one line", async () => {
+    bridge({
+      notebook_settings: settings,
+      check_for_update: {
+        current: "0.20.0",
+        latest: "0.20.0",
+        newer: false,
+        canInstall: false,
+        url: "https://example.com/latest",
+      },
+    });
+    render(SettingsView, { props: props() });
+
+    await userEvent.click(await screen.findByRole("button", { name: "Check now" }));
+    await screen.findByText("You have the latest version.");
+  });
 });
 
 describe("date display", () => {

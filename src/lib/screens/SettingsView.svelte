@@ -27,6 +27,7 @@
   import ShortcutRow from "../components/ShortcutRow.svelte";
   import { SCOPES, commandsIn } from "../services/commands.js";
   import { bound } from "../services/shortcuts.js";
+  import { installUpdate, manualCheck, openReleasePage } from "../services/update.js";
 
   let {
     notebook,
@@ -107,6 +108,48 @@
   const resetShortcuts = () => act(() => api.resetShortcuts());
 
   let readOnly = $derived(!!notebook?.readOnly);
+
+  // ---- updates (2026-08-19) ----
+  // Machine preferences, not notebook ones: the same notebook synced to a
+  // phone and a desktop is served by two binaries, each updated its own way.
+  // That is why none of this goes through `put` or minds `readOnly`.
+  let version = $state("");
+  let updateAuto = $state(true);
+  let checking = $state(false);
+  let installing = $state(false);
+  /// The answer to the last click on "Check now" — null until one happens.
+  let checked = $state(null);
+
+  api.appVersion().then((v) => (version = v ?? "")).catch(() => {});
+  api.autoUpdateCheck().then((on) => (updateAuto = on ?? true)).catch(() => {});
+
+  const setUpdateAuto = (on) => {
+    updateAuto = on;
+    api.rememberAutoUpdateCheck(on).catch(onError);
+  };
+
+  async function checkNow() {
+    checking = true;
+    checked = null;
+    try {
+      checked = await manualCheck();
+    } catch (e) {
+      onError?.(e);
+    } finally {
+      checking = false;
+    }
+  }
+
+  async function installNow() {
+    installing = true;
+    try {
+      await installUpdate();
+    } catch (e) {
+      onError?.(e);
+    } finally {
+      installing = false;
+    }
+  }
 </script>
 
 {#if settings && form}
@@ -461,6 +504,62 @@
       <span class="settings__label">{S.notebookPath}</span>
       <code class="settings__path">{notebook?.path}</code>
     </p>
+  </section>
+
+  <section class="settings__section">
+    <h2 class="settings__section-title">{S.sectionUpdates}</h2>
+
+    <p class="settings__row">
+      <span class="settings__label">{S.updateVersion}</span>
+      <code class="settings__path">Jott {version}</code>
+    </p>
+
+    <label class="settings__row">
+      <span class="settings__label">{S.updateAutoCheck}</span>
+      <input
+        class="theme-switch"
+        type="checkbox"
+        checked={updateAuto}
+        aria-label={S.updateAutoCheck}
+        onchange={(e) => setUpdateAuto(e.currentTarget.checked)}
+      />
+    </label>
+    <p class="settings__hint">{S.updateAutoCheckHint}</p>
+
+    <div class="settings__row">
+      <span class="settings__label">{S.updateCheckNow}</span>
+      <button
+        type="button"
+        class="theme-btn theme-btn--outline theme-btn--xs"
+        disabled={checking}
+        onclick={checkNow}>{checking ? S.updateChecking : S.updateCheckNow}</button
+      >
+    </div>
+    {#if checked}
+      <p class="settings__notice">
+        {#if checked.newer}
+          {S.updateAvailable(checked.latest)}
+          {#if checked.canInstall}
+            <button
+              type="button"
+              class="theme-btn theme-btn--primary theme-btn--xs"
+              disabled={installing}
+              onclick={installNow}
+              >{installing ? S.updateInstalling : S.updateInstall}</button
+            >
+          {:else}
+            <button
+              type="button"
+              class="theme-btn theme-btn--primary theme-btn--xs"
+              onclick={() => openReleasePage(checked.url).catch(onError)}
+              >{S.updateDownload}</button
+            >
+          {/if}
+        {:else}
+          {S.updateUpToDate}
+        {/if}
+      </p>
+    {/if}
   </section>
 
   {#if saved}<p class="settings__saved">{S.settingsSaved}</p>{/if}

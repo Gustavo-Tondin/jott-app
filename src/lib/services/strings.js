@@ -308,6 +308,22 @@ export const S = {
   readOnlyNotice:
     "This notebook was written by a newer version of Jott and is open for reading only.",
 
+  // Updates (2026-08-19)
+  sectionUpdates: "Updates",
+  updateVersion: "This app",
+  updateAutoCheck: "Check for updates automatically",
+  updateAutoCheckHint:
+    "Once a day, Jott asks github.com for the number of the latest release — the only connection the app ever makes, and nothing about you or your notebook travels with it. Off means checking stays yours, with the button below.",
+  updateCheckNow: "Check now",
+  updateChecking: "Checking…",
+  updateUpToDate: "You have the latest version.",
+  updateAvailable: (version) => `Version ${version} is available.`,
+  updateBanner: (version) => `A new version of Jott is out: ${version}.`,
+  updateInstall: "Update and restart",
+  updateInstalling: "Updating…",
+  updateDownload: "Download",
+  updateDismiss: "Later",
+
   // Shell (phase 8.5)
   home: "Home",
   tasks: "Tasks",

@@ -63,6 +63,16 @@ export const api = {
   zoom: () => invoke("zoom"),
   rememberZoom: (zoom) => invoke("remember_zoom", { zoom }),
 
+  // update (2026-08-19). The check itself is Rust's — the webview's CSP does
+  // not reach github.com, and should not. The two prefs are machine ones:
+  // they answer for this INSTALL, which is updated its own way on each device.
+  appVersion: () => invoke("app_version"),
+  checkForUpdate: () => invoke("check_for_update"),
+  autoUpdateCheck: () => invoke("auto_update_check"),
+  rememberAutoUpdateCheck: (on) => invoke("remember_auto_update_check", { on }),
+  lastUpdateCheck: () => invoke("last_update_check"),
+  rememberLastUpdateCheck: (when) => invoke("remember_last_update_check", { when }),
+
   // lists
   listNames: () => invoke("list_names"),
   listCounts: () => invoke("list_counts"),

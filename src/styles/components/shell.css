@@ -567,6 +567,26 @@
     word-break: break-all;
     font-size: 0.8rem;
   }
+  /* The third state box: a newer version exists. Green, because it is the
+     good-news sibling of the two above — and fixed like them, so the notice
+     does not change meaning when the accent happens to be green. */
+  .shell__update {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--theme-space-12);
+    flex-wrap: wrap;
+    background: var(--accent-green-tint);
+    border: 0.0625rem solid var(--accent-green);
+    padding: var(--theme-space-8) var(--theme-space-12);
+    border-radius: var(--theme-radius-xs);
+    margin-bottom: var(--theme-space-16);
+    font-size: var(--theme-text-14);
+  }
+  .shell__update-actions {
+    display: flex;
+    gap: var(--theme-space-8);
+  }
 }
 
 /* =============================================================================

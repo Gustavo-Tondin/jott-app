@@ -74,6 +74,7 @@
     themeAttribute,
   } from "./lib/services/themes.js";
   import { reader } from "./lib/services/features.js";
+  import { autoCheck, installUpdate, openReleasePage } from "./lib/services/update.js";
   import { S } from "./lib/services/strings.js";
   import * as Tabs from "./lib/shell/tabs.js";
   import { reachable, spaceOfView, titleOf, viewFromId } from "./lib/shell/views.js";
@@ -1357,6 +1358,26 @@
     }
   })();
 
+  /// A newer released version, when the daily check found one. Everything
+  /// about whether to even ask lives in services/update.js; a launch that is
+  /// offline, up to date or switched off simply never sets this.
+  let update = $state(null);
+  let installing = $state(false);
+  autoCheck()
+    .then((found) => (update = found ?? update))
+    .catch(() => {});
+
+  async function installNow() {
+    installing = true;
+    try {
+      await installUpdate();
+    } catch (e) {
+      fail(e);
+    } finally {
+      installing = false;
+    }
+  }
+
   /// Opening a document replaces what the tab shows, the way clicking a link
   /// does — a new tab is a deliberate gesture (middle click, or the option in
   /// the context menu), never the default.
@@ -1813,6 +1834,36 @@
                   </li>
                 {/each}
               </ul>
+            </div>
+          {/if}
+
+          {#if update}
+            <!-- Good news, quietly: one line and two buttons, gone for the
+                 session on "Later". Which button depends on the install —
+                 an AppImage or the Windows build can replace itself, a
+                 package-manager install gets the release page instead. -->
+            <div class="shell__update">
+              <strong>{S.updateBanner(update.latest)}</strong>
+              <span class="shell__update-actions">
+                {#if update.canInstall}
+                  <button
+                    class="theme-btn theme-btn--primary theme-btn--xs"
+                    disabled={installing}
+                    onclick={installNow}
+                    >{installing ? S.updateInstalling : S.updateInstall}</button
+                  >
+                {:else}
+                  <button
+                    class="theme-btn theme-btn--primary theme-btn--xs"
+                    onclick={() => openReleasePage(update.url).catch(fail)}
+                    >{S.updateDownload}</button
+                  >
+                {/if}
+                <button
+                  class="theme-btn theme-btn--outline theme-btn--xs"
+                  onclick={() => (update = null)}>{S.updateDismiss}</button
+                >
+              </span>
             </div>
           {/if}
 
