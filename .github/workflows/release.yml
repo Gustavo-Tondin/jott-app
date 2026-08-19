@@ -79,6 +79,14 @@ jobs:
           # touches. Skipping it costs some size and is the only way the
           # AppImage builds at all. (Found the hard way, 2026-08-14.)
           NO_STRIP: 'true'
+          # Signs the updater artifacts (the .sig beside the AppImage and the
+          # .exe) so an installed app can verify a download against the public
+          # key baked into tauri.conf.json. With these set, the action also
+          # writes latest.json into the release — the file the in-app check
+          # reads. Losing this key breaks the update chain for every install
+          # out there; the backup lives in the private jott-vault repository.
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           tagName: ${{ github.ref_name }}
           releaseName: Jott ${{ github.ref_name }}
@@ -87,12 +95,26 @@ jobs:
           releaseBody: |
             Jott ${{ github.ref_name }}
 
-            **Linux** — `.AppImage` runs anywhere (`chmod +x`, then run).
-            `.deb` and `.rpm` for Debian/Ubuntu and Fedora. On Arch, build the
-            `PKGBUILD` in `packaging/`.
+            **Linux** — `.AppImage` runs anywhere (`chmod +x`, then run; to
+            remove it, delete the file). `.deb` and `.rpm` for Debian/Ubuntu
+            and Fedora install into the applications menu and uninstall
+            through the package manager. On Arch, build the `PKGBUILD` in
+            `packaging/`.
 
-            **Windows** — run the `.exe` installer. It installs for the current
-            user, so it needs no administrator password.
+            **Windows** — run the `.exe` installer. It installs for the
+            current user (no administrator password), adds a Start Menu entry
+            and uninstalls from Settings → Apps.
+
+            **Android** — download the `.apk` and open it; Android asks once
+            to allow installs from your browser. A newer APK installs over
+            the old one, keeping your data. Uninstall like any app.
+
+            **Updating** — Jott checks GitHub once a day (it can be turned
+            off in Settings) and shows a notice when a new version is out.
+            The AppImage and the Windows build update themselves in place;
+            package-manager installs and the APK are pointed back to this
+            page. `latest.json` and the `.sig` files below are what that
+            mechanism reads — they are not downloads.
 
             Jott is not code-signed: paying for a certificate would not remove
             the warning anyway until the file builds reputation. On first run
