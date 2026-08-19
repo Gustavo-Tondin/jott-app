@@ -53,7 +53,9 @@ describe("frontend architecture", () => {
     // unit — a sheet that exists but is not imported is a silent no-op.
     const app = readFileSync(join(src, "app.css"), "utf8");
     const missing = walk(join(src, "styles"), ".css")
-      .map((f) => f.slice(f.indexOf("styles")))
+      // The import in app.css is written with forward slashes; the path from
+      // disk arrives with backslashes on Windows, where CI runs this too.
+      .map((f) => f.slice(f.indexOf("styles")).replaceAll("\\", "/"))
       .filter((rel) => !app.includes(`./${rel}`));
     expect(missing).toEqual([]);
   });
