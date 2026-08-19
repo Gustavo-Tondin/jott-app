@@ -88,6 +88,26 @@ const { default: CompletedView } = await import("./screens/CompletedView.svelte"
 const { default: TaskInspector } = await import("./components/TaskInspector.svelte");
 const { default: App } = await import("../App.svelte");
 
+/// Gives a set of elements a layout jsdom does not compute: one column of
+/// 200x200 boxes starting at `top`. Dragging is geometry, so a drag test has
+/// to say where things are.
+function place(elements, top) {
+  elements.forEach((el, i) => {
+    const y = top + i * 220;
+    el.getBoundingClientRect = () => ({
+      left: 10,
+      right: 210,
+      width: 200,
+      top: y,
+      bottom: y + 200,
+      height: 200,
+      x: 10,
+      y,
+      toJSON() {},
+    });
+  });
+}
+
 /// A folder of notes as the bridge answers it since 2026-08-19: an address,
 /// plus the colour and the pin the SPACE remembers for it.
 const noteFolder = (path, extra = {}) => ({ path, color: null, pinned: false, ...extra });
@@ -2686,6 +2706,59 @@ describe("NotesSpace", () => {
       (el) => el.textContent.trim(),
     );
     expect(titles).toEqual(["Zzz", "Aaa"]);
+  });
+
+  // ---- dragging a card (2026-08-19) ----
+
+  test("a dragged card saves the arrangement it landed in", async () => {
+    // It did nothing at all until now: the fixed Notes screen never passed an
+    // `onSetOrder`, so the board dragged, called a handler nobody had given it
+    // and redrew in the old order (user report).
+    const saved = [];
+    bridge({ list_notes: [entry("Aaa"), entry("Bbb")], note_folders: [] });
+
+    const { container } = render(NotesSpace, {
+      props: props({ onSetOrder: (order) => saved.push(order) }),
+    });
+    await screen.findByText("Aaa");
+
+    const cards = [...container.querySelectorAll(".notes-space__item")];
+    place(cards, 220);
+    fireEvent.pointerDown(cards[0], { button: 0, pointerId: 1, clientX: 110, clientY: 60 });
+    fireEvent.pointerMove(cards[0], { pointerId: 1, clientX: 110, clientY: 300 });
+    fireEvent.pointerUp(cards[0], { pointerId: 1, clientX: 110, clientY: 300 });
+
+    await waitFor(() => expect(saved).toEqual([["Inbox/Bbb.md", "Inbox/Aaa.md"]]));
+  });
+
+  test("a card dropped on a folder card is filed into it", async () => {
+    // A folder card is not part of the arrangement, so it is a drop ZONE: the
+    // note goes in there instead of next to it.
+    bridge({
+      list_notes: [entry("Aaa"), entry("Bbb")],
+      note_folders: [noteFolder("Clientes"), noteFolder("Inbox")],
+      move_note_to_space: "Clientes/Aaa.md",
+    });
+
+    const { container } = render(NotesSpace, { props: props() });
+    await screen.findByText("Aaa");
+
+    const group = container.querySelector(".notes-space__group");
+    const cards = [...container.querySelectorAll(".notes-space__item")];
+    place(cards, 220);
+    place([group], 700);
+    fireEvent.pointerDown(cards[0], { button: 0, pointerId: 1, clientX: 110, clientY: 240 });
+    fireEvent.pointerMove(cards[0], { pointerId: 1, clientX: 110, clientY: 720 });
+    fireEvent.pointerUp(cards[0], { pointerId: 1, clientX: 110, clientY: 720 });
+
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("move_note_to_space", {
+        folder: "Notes",
+        path: "Inbox/Aaa.md",
+        toSpace: "Notes",
+        toFolder: "Clientes",
+      }),
+    );
   });
 
   test("picked notes move to another space", async () => {

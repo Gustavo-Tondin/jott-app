@@ -31,6 +31,13 @@
   import { board } from "../services/noteBoard.js";
   import { listName } from "../services/paths.js";
   import { reorderable } from "../actions/reorder.js";
+  import { measured } from "../actions/measure.js";
+  import {
+    columnBreaks,
+    columnCount,
+    weightOfGroup,
+    weightOfNote,
+  } from "../services/noteColumns.js";
   import { dismissable } from "../actions/dismissable.js";
   import { keepOnScreen } from "../actions/keepOnScreen.js";
   import Menu from "../components/Menu.svelte";
@@ -432,12 +439,55 @@
       exitPicking();
     });
 
+  // ---- the masonry (2026-08-19) ----
+  //
+  // The board measures itself and decides its own column count, then tells the
+  // browser where to cut. Leaving both to `column-fill: balance` is what left a
+  // whole column empty whenever the cards were few and one of them was long
+  // (reported twice). services/noteColumns.js carries the reasoning; what is
+  // here is only the wiring — and the cards stay direct children of the board,
+  // which is what keeps the drag working.
+  let boardWidth = $state(0);
+  /// The board element, so the folder cards inside it can be offered as drop
+  /// zones (a note dropped on a folder is filed into it).
+  let boardEl = $state(null);
+  let columns = $derived(columnCount(boardWidth));
+  /// The cards in the order they are drawn: the folder cards, then the notes.
+  let laidOut = $derived([...groups, ...shown]);
+  let breaks = $derived(
+    columnBreaks(
+      laidOut.map((it) => (it.notes && it.count !== undefined ? weightOfGroup(it) : weightOfNote(it))),
+      columns,
+    ),
+  );
+
   // Dragging a card on the board saves what the user built as the custom
   // order (of note paths). Only on the unfiltered board: reordering one folder
   // of the tree would silently rewrite the rest.
   let canDrag = $derived(
     !readOnly && !picking && layout === "grid" && shown.length > 1,
   );
+
+  /// Files a note into a folder of this space — what dropping its card on a
+  /// folder card means (user call, 2026-08-19).
+  const fileInto = (entry, path) =>
+    act(() => api.moveNoteToSpace(folder, entry.path, folder, path));
+
+  /// Two notes dropped one on the other become a FOLDER holding both. The name
+  /// is asked for, because a folder made without one would have to be called
+  /// something the app invented — and the folder is the user's filing, not the
+  /// app's.
+  const groupNotes = (a, b) =>
+    act(async () => {
+      const name = await askName(S.promptNewNoteFolder, "", { confirm: S.create });
+      if (!name?.trim()) return;
+      const parent = openFolder ? `${openFolder}/` : "";
+      const path = `${parent}${name.trim()}`;
+      await api.createNoteFolder(folder, path);
+      // The one that was dropped ON first, so it keeps the top of the folder.
+      await api.moveNoteToSpace(folder, b.path, folder, path);
+      await api.moveNoteToSpace(folder, a.path, folder, path);
+    });
 
   async function reorderNotes(from, to) {
     // A note is never pinned into a block of its own here, so only the new
@@ -580,16 +630,23 @@
     <ul
       class="notes-space__board"
       class:notes-space__board--tree={layout === "tree"}
+      style={layout === "tree" ? "" : `columns: ${columns}`}
+      use:measured={(width) => (boardWidth = width)}
+      bind:this={boardEl}
       use:reorderable={{
         axis: "grid",
         // A selector that matches nothing disables the drag entirely (no
         // half-drag animation on a filtered board). Folder cards never match
-        // it: they are not part of the arrangement being dragged.
+        // it: they are not part of the arrangement being dragged — they are
+        // where a note can be dropped INTO instead.
         item: canDrag ? ".notes-space__item" : ".notes-space__never",
         onReorder: reorderNotes,
+        dropZones: () => [...(boardEl?.querySelectorAll(".notes-space__group") ?? [])],
+        onDropZone: (from, zone) => fileInto(shown[from], zone.dataset.folder),
+        onDropInto: (from, to) => groupNotes(shown[from], shown[to]),
       }}
     >
-      {#each groups as group (group.path)}
+      {#each groups as group, index (group.path)}
         <!-- A folder, as the wireframes draw it: a tinted block with the notes
              it holds shown small inside — titles only, and never a banner,
              because a closed group says what is in it and not what it looks
@@ -601,7 +658,11 @@
              It OPENS OVER THE BOARD, in a popover of two columns that behaves
              like the board itself. It used to replace the screen, which meant
              going into a folder was a navigation with no visible way back. -->
-        <li class="notes-space__group">
+        <li
+          class="notes-space__group"
+          data-folder={group.path}
+          style={breaks.has(index) ? "break-after: column" : ""}
+        >
           <article
             class="note-group"
             class:note-group--open={anchorFolder === group.path}
@@ -753,8 +814,11 @@
         </li>
       {/each}
 
-      {#each shown as entry (entry.path)}
-        <li class="notes-space__item">
+      {#each shown as entry, index (entry.path)}
+        <li
+          class="notes-space__item"
+          style={breaks.has(groups.length + index) ? "break-after: column" : ""}
+        >
           <NoteCard
             {entry}
             {root}

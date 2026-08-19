@@ -67,7 +67,11 @@ export function reorderable(node, params) {
   const INTO_BAND = 0.5;
 
   const items = () =>
-    [...node.children].filter((el) => opts.item == null || el.matches(opts.item));
+    [...node.children].filter(
+      (el) =>
+        !el.classList.contains("reorder-ghost") &&
+        (opts.item == null || el.matches(opts.item)),
+    );
 
   const coord = (e) => (horizontal() ? e.clientX : e.clientY);
   const start = (r) => (horizontal() ? r.left : r.top);
@@ -108,6 +112,7 @@ export function reorderable(node, params) {
     const list = items();
     const rects = list.map((c) => c.getBoundingClientRect());
     drag.rects = rects;
+    lift(rects[drag.from]);
     // One slot's worth of movement = the carried item's own size plus the gap
     // to its neighbour — how far the others slide to open room for it.
     const r = rects[drag.from];
@@ -155,6 +160,47 @@ export function reorderable(node, params) {
       // slots glides into its neighbour's place.
       drag.el.style.transform = `translate(${dx}px, ${dy}px)`;
       const rects = drag.rects;
+
+      // A declared zone under the pointer wins over every slot — on the notes
+      // board a zone is a folder CARD, and dropping a note on one files it in
+      // there (2026-08-19). Same rule the sidebar's columns keep.
+      const zone = zoneAt(e);
+      if (drag.zone !== zone) {
+        drag.zone?.classList.remove("reorder-item--into");
+        zone?.classList.add("reorder-item--into");
+        drag.zone = zone;
+      }
+      // ...and the middle of another CARD is a target of its own, when the
+      // caller has somewhere for it to go (`onDropInto` — two notes made into
+      // a folder). The band is the card's own middle in both axes, so aiming
+      // at a card is a deliberate act rather than a near miss.
+      drag.into = null;
+      if (!zone && opts.onDropInto) {
+        for (let i = 0; i < rects.length; i++) {
+          if (i === drag.from) continue;
+          const r = rects[i];
+          const mx = (r.width * (1 - INTO_BAND)) / 2;
+          const my = (r.height * (1 - INTO_BAND)) / 2;
+          if (
+            e.clientX > r.left + mx &&
+            e.clientX < r.right - mx &&
+            e.clientY > r.top + my &&
+            e.clientY < r.bottom - my
+          ) {
+            drag.into = i;
+            break;
+          }
+        }
+      }
+      if (zone || drag.into != null) {
+        // Nothing is making room: the drop goes INSIDE something.
+        items().forEach((el, i) => {
+          el.classList.toggle("reorder-item--into", i === drag.into);
+          if (i !== drag.from) el.style.transform = "";
+        });
+        return;
+      }
+      for (const c of items()) c.classList.remove("reorder-item--into");
       const origin = centreOf(rects[drag.from]);
       const centre = { x: origin.x + dx, y: origin.y + dy };
       let to = drag.from;
@@ -269,7 +315,57 @@ export function reorderable(node, params) {
     });
   }
 
-  function clear() {
+  /// Takes the carried item OUT OF FLOW and leaves a placeholder its exact
+  /// size behind (2026-08-19).
+  ///
+  /// Why: every list this action serves lives inside something that scrolls,
+  /// and a scroller clips what sticks out of it — so a card dragged towards
+  /// the top of the notes board was cut in half by the edge of the page
+  /// (user report). `position: fixed` is the one way out: its containing block
+  /// is the viewport, so no ancestor's overflow reaches it.
+  ///
+  /// The placeholder is what keeps the rest of the list still. Without it the
+  /// list closes the gap the moment the item leaves the flow, and every
+  /// measurement taken a line above would be describing a layout that no
+  /// longer exists.
+  function lift(rect) {
+    const ghost = node.ownerDocument.createElement(drag.el.tagName);
+    ghost.className = "reorder-ghost";
+    ghost.style.cssText = `width:${rect.width}px;height:${rect.height}px;visibility:hidden`;
+    drag.el.after(ghost);
+    drag.ghost = ghost;
+    // The item keeps the size it had: out of flow it would otherwise shrink to
+    // its content, and a card that changes shape as it is picked up reads as a
+    // different card.
+    Object.assign(drag.el.style, {
+      position: "fixed",
+      insetInlineStart: `${rect.left}px`,
+      insetBlockStart: `${rect.top}px`,
+      inlineSize: `${rect.width}px`,
+      blockSize: `${rect.height}px`,
+      margin: "0",
+    });
+  }
+
+  function drop(d) {
+    d?.ghost?.remove();
+    if (!d?.el) return;
+    for (const property of [
+      "position",
+      "inset-inline-start",
+      "inset-block-start",
+      "inline-size",
+      "block-size",
+      "margin",
+    ])
+      d.el.style.removeProperty(property);
+  }
+
+  /// `d` is passed in because the release nulls `drag` before it tidies up:
+  /// what has to be put back is the gesture that just ended, not the one
+  /// running now (there is none).
+  function clear(d = drag) {
+    drop(d);
     node.removeAttribute("data-reordering");
     drag?.zone?.classList.remove("reorder-item--into");
     for (const c of items()) {
@@ -314,7 +410,7 @@ export function reorderable(node, params) {
     // Commit in one frame: drop the transitions, clear the transforms and
     // reorder together, so the settled order is the only thing painted.
     d.zone?.classList.remove("reorder-item--into");
-    clear();
+    clear(d);
     // Released on a zone: it is going THERE, wherever it came from.
     if (d.zone) opts.onDropZone?.(d.from, d.zone);
     // Released clear of the list: the item is leaving, not moving within.

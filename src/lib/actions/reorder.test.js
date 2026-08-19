@@ -162,11 +162,38 @@ describe("reorderable", () => {
     fire(row, "pointerdown", { button: 0, pointerId: 1, clientY: 20 });
     // Row 2 spans 80-120; its middle band is 90-110.
     fire(row, "pointermove", { pointerId: 1, clientY: 100 });
-    expect(ul.children[2].classList.contains("reorder-item--into")).toBe(true);
+    // By the ROWS, not by the raw children: the carried item leaves a
+    // placeholder of its own behind while it is out of flow (2026-08-19).
+    const rows = [...ul.querySelectorAll(".row")];
+    expect(rows[2].classList.contains("reorder-item--into")).toBe(true);
     fire(row, "pointerup", { pointerId: 1, clientY: 100 });
 
     expect(intos).toEqual([[0, 2]]);
     expect(moves).toEqual([], "a drop INTO is not also a reorder");
+  });
+
+  test("the carried item leaves the flow, and its place is kept", () => {
+    // Every list this action serves scrolls, and a scroller clips what sticks
+    // out of it — a card dragged up the notes board was cut in half by the top
+    // of the page (user report, 2026-08-19). Out of flow it escapes every
+    // ancestor's overflow; the placeholder is what stops the list closing the
+    // gap under it.
+    const ul = list();
+    layOut(ul);
+    reorderable(ul, { axis: "y", item: ".row", onReorder: () => {} });
+
+    const row = ul.children[0];
+    fire(row, "pointerdown", { button: 0, pointerId: 1, clientY: 20 });
+    fire(row, "pointermove", { pointerId: 1, clientY: 100 });
+
+    expect(row.style.position).toBe("fixed");
+    const ghost = ul.querySelector(".reorder-ghost");
+    expect(ghost).toBeTruthy();
+    expect(ghost.style.height).toBe("40px");
+
+    fire(row, "pointerup", { pointerId: 1, clientY: 100 });
+    expect(row.style.position).toBe("");
+    expect(ul.querySelector(".reorder-ghost")).toBeNull();
   });
 
   test("without onDropInto the middle is just another gap", () => {
