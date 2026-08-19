@@ -75,7 +75,6 @@ import textHThree from "../../assets/icons/phosphor/regular/text-h-three.svg?raw
 import textHFour from "../../assets/icons/phosphor/regular/text-h-four.svg?raw";
 import textHFive from "../../assets/icons/phosphor/regular/text-h-five.svg?raw";
 import textHSix from "../../assets/icons/phosphor/regular/text-h-six.svg?raw";
-import textAa from "../../assets/icons/phosphor/regular/text-aa.svg?raw";
 
 // The panel completed (2026-08-19, wireframe "Format panel"): underline,
 // indent/outdent, the brackets that link to a note, and undo/redo. `text-h` and
@@ -162,5 +161,4 @@ export const ICONS = {
   redo: arrowArcRight,
   headings: textH,
   marks: textAUnderline,
-  "text-size": textAa,
 };

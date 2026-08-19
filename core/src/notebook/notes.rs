@@ -128,7 +128,7 @@ impl Notebook {
                 let Some(settings) = config.folders.remove(&key) else {
                     continue;
                 };
-                let landed = match (&key == from, to) {
+                let landed = match (key == from, to) {
                     // The folder itself, renamed.
                     (true, Some(to)) => Some(to.to_string()),
                     // The folder itself, deleted: nothing is left to carry.

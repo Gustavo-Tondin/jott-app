@@ -100,7 +100,7 @@
     .shell__nav-item,
     .shell__nav-open,
     .theme-row,
-    .theme-menu__item {
+    .menu__item {
       min-block-size: var(--theme-touch-min);
     }
 

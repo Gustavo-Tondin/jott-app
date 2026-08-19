@@ -350,7 +350,6 @@ export const S = {
   emptyNote: "Empty note",
   pin: "pin",
   unpin: "unpin",
-  pinned: "pinned",
   deleteNote: "delete",
   renameNote: "rename",
   noteBodyPlaceholder: "Write here…",

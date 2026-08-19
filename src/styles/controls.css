@@ -157,15 +157,6 @@
     border-color: transparent;
   }
 
-  /* --- Search field: a leading magnifier baked in (single input, no wrapper) --- */
-  .theme-input--search {
-    padding-left: var(--theme-space-32);
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='7' cy='7' r='4.5' fill='none' stroke='%23a39f9b' stroke-width='1.5'/%3E%3Cpath d='M10.5 10.5 14 14' fill='none' stroke='%23a39f9b' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: left var(--theme-space-10) center;
-    background-size: 1rem;
-  }
-
   /* ---------------------------------------------------------------------------
      Checkbox (a native input, restyled — kept native for the keyboard)
      --------------------------------------------------------------------------- */
