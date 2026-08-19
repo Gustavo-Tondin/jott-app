@@ -1413,6 +1413,32 @@ fn a_notebook_from_a_newer_app_refuses_every_write() {
     assert!(notebook.add_task_in_period(Period::Day, "nova").is_err());
     assert!(notebook.delete_list("jott.tasks/Compras.md").is_err());
 
+    // These used to be composed in the bridge from unguarded primitives
+    // (`TaskList::save`, `NoteFolder::write`), which is how a read-only
+    // notebook was written into anyway. Every one of them now goes through
+    // the notebook, where the guard lives (2026-08-19).
+    assert!(notebook
+        .edit_task_text("jott.tasks/task-list.md", &id, "novo texto".into())
+        .is_err());
+    assert!(notebook
+        .set_task_fields(
+            "jott.tasks/task-list.md",
+            &id,
+            jott_core::task::TaskFields::default(),
+        )
+        .is_err());
+    assert!(notebook.move_task_to("jott.tasks/task-list.md", 0, 0).is_err());
+    assert!(notebook.write_note("jott.notes", "Inbox/a.md", "corpo").is_err());
+    assert!(notebook.create_note("jott.notes", "Inbox", "Nova").is_err());
+    assert!(notebook.quick_capture_note("jott.notes", "Inbox", "texto").is_err());
+    assert!(notebook.move_note("jott.notes", "Inbox/a.md", "").is_err());
+    assert!(notebook.set_note_pinned("jott.notes", "Inbox/a.md", true).is_err());
+    assert!(notebook.set_note_banner("jott.notes", "Inbox/a.md", None).is_err());
+    assert!(notebook.create_note_folder("jott.notes", "Ideias").is_err());
+    assert!(notebook
+        .set_note_folder("jott.notes", "Inbox", |it| it.pinned = true)
+        .is_err());
+
     // And the unknown key is still on disk, untouched.
     assert!(read(dir.path().join(".jott/config.json")).contains("somethingNew"));
 }

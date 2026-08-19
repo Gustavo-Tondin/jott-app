@@ -46,6 +46,38 @@ impl Notebook {
         list.save()
     }
 
+    /// Replaces a task's text, keeping everything else.
+    ///
+    /// Here and not composed in the bridge (moved 2026-08-19, with the two
+    /// below): `ensure_writable` lives on the notebook, so a caller holding a
+    /// bare `TaskList` writes into a read-only notebook without noticing —
+    /// which is exactly what the bridge used to do.
+    pub fn edit_task_text(&self, path: &str, id: &str, text: String) -> Result<()> {
+        self.ensure_writable()?;
+        let mut list = self.open_list(path)?;
+        list.edit_text(id, text)?;
+        list.save()
+    }
+
+    /// Edits any field of a task in one call.
+    ///
+    /// One method instead of one per field: the UI edits a task in a panel and
+    /// saves it as a whole, and a half-applied edit would be worse than none.
+    pub fn set_task_fields(&self, path: &str, id: &str, fields: crate::task::TaskFields) -> Result<()> {
+        self.ensure_writable()?;
+        let mut list = self.open_list(path)?;
+        fields.apply_to(list.task_mut(id)?);
+        list.save()
+    }
+
+    /// Reorders a task inside its list. Positions count tasks, not lines.
+    pub fn move_task_to(&self, path: &str, from: usize, to: usize) -> Result<()> {
+        self.ensure_writable()?;
+        let mut list = self.open_list(path)?;
+        list.move_task_to(from, to)?;
+        list.save()
+    }
+
     /// The move primitive. `done` optionally flips the checkbox in the same
     /// write, so completing a task is one pass over each file instead of two.
     ///

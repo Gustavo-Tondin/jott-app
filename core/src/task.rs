@@ -525,6 +525,107 @@ pub fn parse_date(text: &str) -> Option<NaiveDate> {
     None
 }
 
+/// The editable fields of a task, all optional.
+///
+/// Absent means "leave alone"; present-but-null means "clear". Without that
+/// distinction there would be no way to remove a due date. Lives in the core
+/// (moved from the bridge, 2026-08-19): every rule below is a decision about
+/// the task format, and a second frontend would otherwise have to reinvent
+/// each one.
+#[derive(Debug, Default, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct TaskFields {
+    pub text: Option<String>,
+    #[serde(deserialize_with = "present_or_absent")]
+    pub due: Option<Option<String>>,
+    #[serde(deserialize_with = "present_or_absent")]
+    pub priority: Option<Option<u8>>,
+    pub tags: Option<Vec<String>>,
+    pub description: Option<Vec<String>>,
+    /// The task's attachments, whole. Sent as `{label, address}` and not as a
+    /// list of addresses, so a label someone wrote by hand in the `.md`
+    /// survives an add or a remove made in the app.
+    pub files: Option<Vec<Attachment>>,
+    #[serde(deserialize_with = "present_or_absent")]
+    pub repeat: Option<Option<String>>,
+    pub subtasks: Option<Vec<Subtask>>,
+}
+
+/// Tells "field absent" apart from "field sent as null".
+///
+/// By default serde collapses both into `None`, which would make clearing a
+/// due date impossible: the UI has no other way to say "remove this".
+fn present_or_absent<'de, D, T>(deserializer: D) -> Result<Option<Option<T>>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+    T: Deserialize<'de>,
+{
+    Option::deserialize(deserializer).map(Some)
+}
+
+impl TaskFields {
+    /// Applies every field that was sent, leaving the rest alone.
+    pub fn apply_to(self, task: &mut Task) {
+        if let Some(text) = self.text {
+            task.text = single_line(&text);
+        }
+        if let Some(due) = self.due {
+            // An unparseable date clears it rather than being stored wrong.
+            task.due = due.as_deref().and_then(parse_date);
+        }
+        if let Some(priority) = self.priority {
+            task.priority = priority.filter(|p| (1..=3).contains(p));
+        }
+        if let Some(tags) = self.tags {
+            // Normalised here too, not just in the UI: a spaced tag would
+            // silently turn the whole metadata line into description on the
+            // next read.
+            let mut cleaned: Vec<String> = Vec::new();
+            for tag in &tags {
+                if let Some(tag) = normalize_tag(tag) {
+                    if !cleaned.contains(&tag) {
+                        cleaned.push(tag);
+                    }
+                }
+            }
+            task.tags = cleaned;
+        }
+        if let Some(description) = self.description {
+            // An embedded newline becomes a further line; a blank line would
+            // end the task's block in the file and cut the description short.
+            task.description = description
+                .iter()
+                .flat_map(|entry| entry.lines())
+                .map(str::trim)
+                .filter(|line| !line.is_empty())
+                .map(str::to_string)
+                .collect();
+        }
+        if let Some(files) = self.files {
+            // Only addresses of the notebook's own library are kept: the line
+            // is written as Markdown links, and a link to anywhere else would
+            // be read back as description on the next open (see
+            // `parse_attachments`).
+            task.files = files
+                .into_iter()
+                .filter(|file| crate::assets::name_of(&file.address).is_some())
+                .collect();
+        }
+        if let Some(repeat) = self.repeat {
+            task.repeat = repeat.as_deref().and_then(Repeat::parse);
+        }
+        if let Some(subtasks) = self.subtasks {
+            task.subtasks = subtasks
+                .into_iter()
+                .map(|s| Subtask {
+                    text: single_line(&s.text),
+                    done: s.done,
+                })
+                .collect();
+        }
+    }
+}
+
 /// Splits the trailing `<!--...-->` off a task body, if present.
 fn split_trailing_comment(body: &str) -> (&str, Option<String>) {
     let trimmed = body.trim_end();

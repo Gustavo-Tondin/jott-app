@@ -439,8 +439,6 @@ fn is_note_file(path: &Path) -> bool {
     path.is_file() && path.extension().is_some_and(|ext| ext == EXTENSION)
 }
 
-/// Splits a note address into folder and title: `Ideias/receita.md` →
-/// (`Ideias`, `receita`).
 /// The title a note's address ends in — the file stem, which is how a note
 /// is named in this app and what a `[[link]]` carries.
 pub fn title_of(relative: &str) -> String {
@@ -448,12 +446,13 @@ pub fn title_of(relative: &str) -> String {
     leaf.strip_suffix(&format!(".{EXTENSION}")).unwrap_or(leaf).to_string()
 }
 
+/// Splits a note address into folder and title: `Ideias/receita.md` →
+/// (`Ideias`, `receita`).
 fn split_relative(relative: &str) -> (String, String) {
-    let stem = relative.strip_suffix(".md").unwrap_or(relative);
-    match stem.rsplit_once('/') {
-        Some((folder, title)) => (folder.to_string(), title.to_string()),
-        None => (String::new(), stem.to_string()),
-    }
+    let stem = relative
+        .strip_suffix(&format!(".{EXTENSION}"))
+        .unwrap_or(relative);
+    split_folder(stem)
 }
 
 /// Splits a folder address into parent and name: `Clientes/Acme` →

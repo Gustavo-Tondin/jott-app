@@ -74,6 +74,7 @@ impl Notebook {
         folder: &str,
         change: impl FnOnce(&mut crate::space::FolderSettings),
     ) -> Result<()> {
+        self.ensure_writable()?;
         self.with_space_config(space, |config| {
             let entry = config.folders.entry(folder.to_string()).or_default();
             change(entry);
@@ -147,7 +148,62 @@ impl Notebook {
         })
     }
 
-    /// Deletes a note (a file inside a notes space), sending it to the trash.    /// Deletes a note (a file inside a notes space), sending it to the trash.
+    // The guarded doors to a note. `NoteFolder` itself has no idea whether
+    // the notebook may write — `ensure_writable` lives here — so every write
+    // the interface asks for goes through the notebook, never through a bare
+    // `NoteFolder` (moved from the bridge, 2026-08-19: composing the folder
+    // there wrote into read-only notebooks without noticing).
+
+    /// Replaces a note's body. The folder adopts today as its creation date if
+    /// it does not have one — the lazy frontmatter's one writing moment.
+    pub fn write_note(&self, space: &str, path: &str, body: &str) -> Result<()> {
+        self.ensure_writable()?;
+        self.note_folder(space)?.write(path, body, self.today())
+    }
+
+    /// Creates a note and returns its address.
+    pub fn create_note(&self, space: &str, in_folder: &str, title: &str) -> Result<String> {
+        self.ensure_writable()?;
+        self.note_folder(space)?.create(in_folder, title, self.today())
+    }
+
+    /// Files a quickly-captured text as a note, returning its address.
+    pub fn quick_capture_note(&self, space: &str, in_folder: &str, text: &str) -> Result<String> {
+        self.ensure_writable()?;
+        self.note_folder(space)?.quick_capture(in_folder, text, self.today())
+    }
+
+    /// Moves a note to another folder inside the same space. Returns the new
+    /// address. Crossing into another space is [`Notebook::move_note_to_space`].
+    pub fn move_note(&self, space: &str, path: &str, to_folder: &str) -> Result<String> {
+        self.ensure_writable()?;
+        self.note_folder(space)?.move_to(path, to_folder)
+    }
+
+    /// Keeps a note at the top of the board, or stops.
+    pub fn set_note_pinned(&self, space: &str, path: &str, pinned: bool) -> Result<()> {
+        self.ensure_writable()?;
+        self.note_folder(space)?.set_pinned(path, pinned)
+    }
+
+    /// Sets — or clears, with `None` — a note's banner.
+    pub fn set_note_banner(
+        &self,
+        space: &str,
+        path: &str,
+        banner: Option<crate::note::Banner>,
+    ) -> Result<()> {
+        self.ensure_writable()?;
+        self.note_folder(space)?.set_banner(path, banner)
+    }
+
+    /// Creates a folder of notes inside a space.
+    pub fn create_note_folder(&self, space: &str, path: &str) -> Result<()> {
+        self.ensure_writable()?;
+        self.note_folder(space)?.create_folder(path)
+    }
+
+    /// Deletes a note (a file inside a notes space), sending it to the trash.
     pub fn delete_note(&self, folder: &str, relative: &str) -> Result<()> {
         self.ensure_writable()?;
         let note_folder = self.note_folder(folder)?;

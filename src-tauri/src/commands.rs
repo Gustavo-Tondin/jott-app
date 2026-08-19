@@ -849,12 +849,7 @@ pub fn edit_task_text(
     id: String,
     text: String,
 ) -> CommandResult<()> {
-    state.with_notebook(|nb| {
-        let mut tasks = nb.open_list(&list)?;
-        tasks.edit_text(&id, text)?;
-        tasks.save()?;
-        Ok(())
-    })
+    state.with_notebook(|nb| Ok(nb.edit_task_text(&list, &id, text)?))
 }
 
 /// Pins a task to the top of its list, or unpins it (the card's bookmark).
@@ -868,121 +863,21 @@ pub fn set_task_pinned(
     state.with_notebook(|nb| Ok(nb.set_task_pinned(&list, &id, pinned)?))
 }
 
-/// The editable fields of a task, all optional.
-///
-/// Absent means "leave alone"; present-but-null means "clear". Without that
-/// distinction there would be no way to remove a due date.
-#[derive(Debug, Default, Deserialize)]
-#[serde(rename_all = "camelCase", default)]
-pub struct TaskFields {
-    pub text: Option<String>,
-    #[serde(deserialize_with = "present_or_absent")]
-    pub due: Option<Option<String>>,
-    #[serde(deserialize_with = "present_or_absent")]
-    pub priority: Option<Option<u8>>,
-    pub tags: Option<Vec<String>>,
-    pub description: Option<Vec<String>>,
-    /// The task's attachments, whole. Sent as `{label, address}` and not as a
-    /// list of addresses, so a label someone wrote by hand in the `.md`
-    /// survives an add or a remove made in the app.
-    pub files: Option<Vec<jott_core::Attachment>>,
-    #[serde(deserialize_with = "present_or_absent")]
-    pub repeat: Option<Option<String>>,
-    pub subtasks: Option<Vec<SubtaskInput>>,
-}
-
-/// Tells "field absent" apart from "field sent as null".
-///
-/// By default serde collapses both into `None`, which would make clearing a
-/// due date impossible: the UI has no other way to say "remove this".
-fn present_or_absent<'de, D, T>(deserializer: D) -> Result<Option<Option<T>>, D::Error>
-where
-    D: serde::Deserializer<'de>,
-    T: Deserialize<'de>,
-{
-    Option::deserialize(deserializer).map(Some)
-}
-
-#[derive(Debug, Deserialize)]
-pub struct SubtaskInput {
-    pub text: String,
-    pub done: bool,
-}
-
 /// Edits any field of a task in one call.
 ///
 /// One command instead of one per field: the UI edits a task in a panel and
 /// saves it as a whole, and a half-applied edit would be worse than none.
+/// What each field means — and every rule about it — is
+/// [`jott_core::task::TaskFields`]'s, in the core, where a second frontend
+/// can reach it.
 #[tauri::command]
 pub fn set_task_fields(
     state: State<'_, AppState>,
     list: String,
     id: String,
-    fields: TaskFields,
+    fields: jott_core::task::TaskFields,
 ) -> CommandResult<()> {
-    state.with_notebook(|nb| {
-        let mut tasks = nb.open_list(&list)?;
-        let task = tasks.task_mut(&id)?;
-
-        if let Some(text) = fields.text {
-            task.text = jott_core::task::single_line(&text);
-        }
-        if let Some(due) = fields.due {
-            // An unparseable date clears it rather than being stored wrong.
-            task.due = due.as_deref().and_then(jott_core::task::parse_date);
-        }
-        if let Some(priority) = fields.priority {
-            task.priority = priority.filter(|p| (1..=3).contains(p));
-        }
-        if let Some(tags) = fields.tags {
-            // Normalised by the core: a spaced tag would silently turn the
-            // whole metadata line into description on the next read.
-            let mut cleaned: Vec<String> = Vec::new();
-            for tag in &tags {
-                if let Some(tag) = jott_core::task::normalize_tag(tag) {
-                    if !cleaned.contains(&tag) {
-                        cleaned.push(tag);
-                    }
-                }
-            }
-            task.tags = cleaned;
-        }
-        if let Some(description) = fields.description {
-            // An embedded newline becomes a further line; a blank line would
-            // end the task's block in the file and cut the description short.
-            task.description = description
-                .iter()
-                .flat_map(|entry| entry.lines())
-                .map(str::trim)
-                .filter(|line| !line.is_empty())
-                .map(str::to_string)
-                .collect();
-        }
-        if let Some(files) = fields.files {
-            // Only addresses of the notebook's own library are kept: the line
-            // is written as Markdown links, and a link to anywhere else would
-            // be read back as description on the next open (core/src/task.rs).
-            task.files = files
-                .into_iter()
-                .filter(|file| jott_core::assets::name_of(&file.address).is_some())
-                .collect();
-        }
-        if let Some(repeat) = fields.repeat {
-            task.repeat = repeat.as_deref().and_then(jott_core::task::Repeat::parse);
-        }
-        if let Some(subtasks) = fields.subtasks {
-            task.subtasks = subtasks
-                .into_iter()
-                .map(|s| jott_core::task::Subtask {
-                    text: jott_core::task::single_line(&s.text),
-                    done: s.done,
-                })
-                .collect();
-        }
-
-        tasks.save()?;
-        Ok(())
-    })
+    state.with_notebook(|nb| Ok(nb.set_task_fields(&list, &id, fields)?))
 }
 
 /// Reorders a task inside its list. Positions count tasks, not lines.
@@ -993,12 +888,7 @@ pub fn move_task_to(
     from: usize,
     to: usize,
 ) -> CommandResult<()> {
-    state.with_notebook(|nb| {
-        let mut tasks = nb.open_list(&list)?;
-        tasks.move_task_to(from, to)?;
-        tasks.save()?;
-        Ok(())
-    })
+    state.with_notebook(|nb| Ok(nb.move_task_to(&list, from, to)?))
 }
 
 /// Moves a task to another list. The task keeps its id; its origin is cleared,
@@ -1104,10 +994,7 @@ pub fn quick_capture_note(
     in_folder: String,
     text: String,
 ) -> CommandResult<String> {
-    state.with_notebook(|nb| {
-        let today = nb.today();
-        Ok(nb.note_folder(&folder)?.quick_capture(&in_folder, &text, today)?)
-    })
+    state.with_notebook(|nb| Ok(nb.quick_capture_note(&folder, &in_folder, &text)?))
 }
 
 /// The folders of a notes space, each with the colour and the pin the space
@@ -1151,12 +1038,10 @@ pub fn read_note(
     state.with_notebook(|nb| {
         let note = nb.note_folder(&folder)?.read(&path)?;
         Ok(NoteContent {
-            title: path
-                .rsplit('/')
-                .next()
-                .unwrap_or(&path)
-                .trim_end_matches(".md")
-                .to_string(),
+            // The core's rule, not a second one: `trim_end_matches(".md")`
+            // here used to strip REPEATED suffixes, so a note titled
+            // `todo.md` (stored as `todo.md.md`) opened under a third name.
+            title: jott_core::notefolder::title_of(&path),
             path,
             body: note.body,
             pinned: note.pinned,
@@ -1175,10 +1060,7 @@ pub fn write_note(
     path: String,
     body: String,
 ) -> CommandResult<()> {
-    state.with_notebook(|nb| {
-        let today = nb.today();
-        Ok(nb.note_folder(&folder)?.write(&path, &body, today)?)
-    })
+    state.with_notebook(|nb| Ok(nb.write_note(&folder, &path, &body)?))
 }
 
 /// Creates a note and returns its address.
@@ -1189,10 +1071,7 @@ pub fn create_note(
     in_folder: String,
     title: String,
 ) -> CommandResult<String> {
-    state.with_notebook(|nb| {
-        let today = nb.today();
-        Ok(nb.note_folder(&folder)?.create(&in_folder, &title, today)?)
-    })
+    state.with_notebook(|nb| Ok(nb.create_note(&folder, &in_folder, &title)?))
 }
 
 #[tauri::command]
@@ -1237,7 +1116,7 @@ pub fn move_note(
     path: String,
     to_folder: String,
 ) -> CommandResult<String> {
-    state.with_notebook(|nb| Ok(nb.note_folder(&folder)?.move_to(&path, &to_folder)?))
+    state.with_notebook(|nb| Ok(nb.move_note(&folder, &path, &to_folder)?))
 }
 
 #[tauri::command]
@@ -1247,7 +1126,7 @@ pub fn set_note_pinned(
     path: String,
     pinned: bool,
 ) -> CommandResult<()> {
-    state.with_notebook(|nb| Ok(nb.note_folder(&folder)?.set_pinned(&path, pinned)?))
+    state.with_notebook(|nb| Ok(nb.set_note_pinned(&folder, &path, pinned)?))
 }
 
 /// Sets — or clears, with `None` — a note's banner.
@@ -1263,7 +1142,7 @@ pub fn set_note_banner(
     banner: Option<String>,
 ) -> CommandResult<()> {
     let banner = banner.as_deref().and_then(jott_core::Banner::from_value);
-    state.with_notebook(|nb| Ok(nb.note_folder(&folder)?.set_banner(&path, banner)?))
+    state.with_notebook(|nb| Ok(nb.set_note_banner(&folder, &path, banner)?))
 }
 
 /// Copies a note beside itself, returning the new address — the card's
@@ -1736,7 +1615,7 @@ pub fn create_note_folder(
     folder: String,
     path: String,
 ) -> CommandResult<()> {
-    state.with_notebook(|nb| Ok(nb.note_folder(&folder)?.create_folder(&path)?))
+    state.with_notebook(|nb| Ok(nb.create_note_folder(&folder, &path)?))
 }
 
 // --------------------------------------------------------- day and week
