@@ -302,6 +302,34 @@ impl NoteFolder {
         crate::fsio::write_atomically(&path, note.render().as_bytes())
     }
 
+    /// Writes a body and/or a banner in one pass, leaving alone whatever is
+    /// `None` — for a rewrite that follows a renamed file into every note
+    /// that mentions it (2026-08-19).
+    ///
+    /// Not `write`: that one adopts a creation date, which is right when a
+    /// person edits a note and wrong when the app is only repointing a link.
+    /// A note the app touched on its own account should look untouched.
+    pub fn rewrite(
+        &self,
+        relative: &str,
+        body: Option<String>,
+        banner: Option<crate::note::Banner>,
+    ) -> Result<()> {
+        if body.is_none() && banner.is_none() {
+            return Ok(());
+        }
+        let path = self.note_path(relative)?;
+        let text = std::fs::read_to_string(&path).ctx(&path)?;
+        let mut note = Note::parse(&text);
+        if let Some(body) = body {
+            note.body = body;
+        }
+        if let Some(banner) = banner {
+            note.banner = Some(banner);
+        }
+        crate::fsio::write_atomically(&path, note.render().as_bytes())
+    }
+
     pub fn set_pinned(&self, relative: &str, pinned: bool) -> Result<()> {
         let path = self.note_path(relative)?;
         let text = std::fs::read_to_string(&path).ctx(&path)?;
@@ -413,6 +441,13 @@ fn is_note_file(path: &Path) -> bool {
 
 /// Splits a note address into folder and title: `Ideias/receita.md` →
 /// (`Ideias`, `receita`).
+/// The title a note's address ends in — the file stem, which is how a note
+/// is named in this app and what a `[[link]]` carries.
+pub fn title_of(relative: &str) -> String {
+    let leaf = relative.rsplit('/').next().unwrap_or(relative);
+    leaf.strip_suffix(&format!(".{EXTENSION}")).unwrap_or(leaf).to_string()
+}
+
 fn split_relative(relative: &str) -> (String, String) {
     let stem = relative.strip_suffix(".md").unwrap_or(relative);
     match stem.rsplit_once('/') {

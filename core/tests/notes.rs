@@ -523,6 +523,80 @@ fn a_file_named_by_a_plain_markdown_link_still_counts_as_used() {
 }
 
 #[test]
+fn renaming_a_file_follows_it_into_every_note_and_task() {
+    // A rename that left `[[/foto.jpg]]` pointing at a name nobody has any
+    // more would break every note using the file (user call, 2026-08-19).
+    let dir = tempfile::tempdir().unwrap();
+    let nb = Notebook::init(dir.path()).unwrap();
+    nb.import_asset("foto.jpg", b"x").unwrap();
+    nb.import_asset("foto.jpg.bak", b"x").unwrap();
+
+    let notes = nb.note_folder("jott.notes").unwrap();
+    let body = notes.create("Inbox", "com imagem", today()).unwrap();
+    notes
+        .write(&body, "[[/foto.jpg]] e ![](assets/foto.jpg) e [[/foto.jpg.bak]]\n", today())
+        .unwrap();
+    // A note whose only use is the banner, which the core keeps off the body.
+    let head = notes.create("Inbox", "com banner", today()).unwrap();
+    notes
+        .write(&head, "<!--banner: assets/foto.jpg-->\n\ntexto\n", today())
+        .unwrap();
+
+    let list = "jott.tasks/task-list.md";
+    nb.create_task(list, "Enviar").unwrap();
+    let id = nb.ensure_task_id(list, 0).unwrap();
+    let mut tasks = nb.open_list(list).unwrap();
+    tasks.task_mut(&id).unwrap().files = vec![jott_core::task::Attachment::of("assets/foto.jpg")];
+    tasks.save().unwrap();
+
+    let now = nb.rename_asset("assets/foto.jpg", "férias").unwrap();
+    // No extension asked for, so the old one came along.
+    assert_eq!(now, "assets/férias.jpg");
+    assert!(dir.path().join("assets/férias.jpg").is_file());
+
+    let after = read(dir.path().join("jott.notes/Inbox/com imagem.md"));
+    assert!(after.contains("[[/férias.jpg]]"), "{after}");
+    assert!(after.contains("assets/férias.jpg"));
+    // The other file only STARTS with the old name, and is left alone.
+    assert!(after.contains("[[/foto.jpg.bak]]"), "{after}");
+
+    assert!(read(dir.path().join("jott.notes/Inbox/com banner.md"))
+        .contains("<!--banner: assets/férias.jpg-->"));
+    let attached = &nb.tasks_in(list).unwrap()[0].files[0];
+    assert_eq!(attached.address, "assets/férias.jpg");
+    assert_eq!(attached.label, "férias.jpg", "a label that was the name follows it");
+}
+
+#[test]
+fn renaming_a_note_follows_it_into_every_link() {
+    // A link carries the TITLE, which survives a note being MOVED and goes
+    // stale the instant it is renamed. This is the other half of that trade.
+    let dir = tempfile::tempdir().unwrap();
+    let nb = Notebook::init(dir.path()).unwrap();
+    let other = nb.create_space("Ideias", "notes").unwrap();
+
+    let notes = nb.note_folder("jott.notes").unwrap();
+    let target = notes.create("Inbox", "Guardiões", today()).unwrap();
+    let linking = notes.create("Inbox", "diário", today()).unwrap();
+    notes
+        .write(&linking, "veja [[Guardiões]] e [[Outra]]\n", today())
+        .unwrap();
+    // …and a note in ANOTHER space: the brackets promise the notebook, not
+    // the space.
+    let far = nb.note_folder(&other).unwrap();
+    let across = far.create("", "longe", today()).unwrap();
+    far.write(&across, "também [[Guardiões]]\n", today()).unwrap();
+
+    let moved = nb.rename_note("jott.notes", &target, "Guardiões do império").unwrap();
+    assert_eq!(moved, "Inbox/Guardiões do império.md");
+
+    assert!(read(dir.path().join("jott.notes/Inbox/diário.md"))
+        .contains("[[Guardiões do império]] e [[Outra]]"));
+    assert!(read(dir.path().join(&other).join("longe.md"))
+        .contains("[[Guardiões do império]]"));
+}
+
+#[test]
 fn a_deleted_asset_goes_to_the_trash_like_everything_else() {
     let dir = tempfile::tempdir().unwrap();
     let nb = Notebook::init(dir.path()).unwrap();

@@ -15,6 +15,7 @@ pub mod folder;
 pub mod fsio;
 pub mod id;
 pub mod jsondoc;
+pub mod links;
 pub mod list;
 pub mod note;
 pub mod notebook;

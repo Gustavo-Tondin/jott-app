@@ -125,6 +125,134 @@ impl Notebook {
         self.assets().file(address)
     }
 
+    /// Renames a note, and follows it into every note that links to it.
+    ///
+    /// A note link carries the TITLE (`crate::links`, and the reason is in
+    /// `embeds.js`), which is what survives a note being MOVED — and what goes
+    /// stale the instant it is renamed. This is the other half of that trade,
+    /// paid here so the user never sees the cost (user call, 2026-08-19).
+    ///
+    /// The rename happens first: rewriting links to a note that failed to be
+    /// renamed would point them at nothing.
+    pub fn rename_note(&self, folder: &str, path: &str, title: &str) -> Result<String> {
+        self.ensure_writable()?;
+        let notes = self.note_folder(folder)?;
+        let was = crate::notefolder::title_of(path);
+        let moved = notes.rename(path, title)?;
+        let now = crate::notefolder::title_of(&moved);
+        self.retarget_note_links(&was, &now)?;
+        Ok(moved)
+    }
+
+    /// Points every `[[link]]` at `new` instead of `old`, notebook-wide.
+    ///
+    /// The whole notebook and not one space: a note in Design may well link to
+    /// one in Pessoal, and a link that only worked inside its own space would
+    /// be a different feature from the one the brackets promise.
+    fn retarget_note_links(&self, old: &str, new: &str) -> Result<()> {
+        if old == new {
+            return Ok(());
+        }
+        for (_, folder) in self.note_folders()? {
+            for entry in folder.notes()? {
+                let note = folder.read(&entry.path)?;
+                if let Some(body) = crate::links::retarget_note(&note.body, old, new) {
+                    folder.rewrite(&entry.path, Some(body), None)?;
+                }
+            }
+        }
+        Ok(())
+    }
+
+    /// Renames a file of the library, and follows it everywhere.
+    ///
+    /// **The whole point is the "and follows it"** (user call, 2026-08-19): a
+    /// rename that left `[[/foto.jpg]]` pointing at a name nobody has any more
+    /// would be a rename that broke every note using the file — the same
+    /// question the delete dialog answers by warning, answered here by simply
+    /// not breaking anything.
+    ///
+    /// Which forms are rewritten, and why not all of them, is written down in
+    /// [`crate::links`]. The banner is retargeted separately because the core
+    /// lifts it off the body; a task's attachment is a field, and is moved as
+    /// one.
+    ///
+    /// The file moves first: if the move fails there is nothing to point at,
+    /// and rewriting the notes would have been a lie. A colliding name is
+    /// suffixed, never overwritten, and the address that comes back is the one
+    /// the file actually took.
+    pub fn rename_asset(&self, address: &str, new_name: &str) -> Result<String> {
+        self.ensure_writable()?;
+        let assets = self.assets();
+        let old_name = crate::assets::name_of(address)
+            .ok_or_else(|| Error::InvalidAssetPath(address.to_string()))?
+            .to_string();
+        let wanted = clean_asset_name(new_name, &old_name)?;
+        if wanted == old_name {
+            return Ok(address.to_string());
+        }
+
+        let source = assets.file(address)?;
+        let target = crate::fsio::free_name(assets.dir(), &wanted);
+        std::fs::rename(&source, &target).ctx(&target)?;
+        let taken = target
+            .file_name()
+            .map(|n| n.to_string_lossy().to_string())
+            .unwrap_or(wanted);
+
+        self.retarget_asset(&old_name, &taken)?;
+        Ok(crate::assets::address(&taken))
+    }
+
+    /// Points every note and task at `new` instead of `old`.
+    fn retarget_asset(&self, old: &str, new: &str) -> Result<()> {
+        let was = crate::assets::address(old);
+        let now = crate::assets::address(new);
+
+        for (_, folder) in self.note_folders()? {
+            for entry in folder.notes()? {
+                let note = folder.read(&entry.path)?;
+                let body = crate::links::retarget_file(&note.body, old, new);
+                let banner = match &note.banner {
+                    Some(crate::note::Banner::Image(address)) if address == &was => {
+                        Some(crate::note::Banner::Image(now.clone()))
+                    }
+                    _ => None,
+                };
+                if body.is_none() && banner.is_none() {
+                    continue;
+                }
+                folder.rewrite(&entry.path, body, banner)?;
+            }
+        }
+
+        for (prefix, folder) in self.task_folders()? {
+            for list in folder.list_names()? {
+                let path = format!("{prefix}/{list}.md");
+                let mut tasks = self.open_list(&path)?;
+                let mut touched = false;
+                for task in tasks.tasks_mut() {
+                    for file in &mut task.files {
+                        if file.address != was {
+                            continue;
+                        }
+                        // A label the user wrote by hand is theirs and stays;
+                        // one that was only ever the file's name follows it.
+                        if file.label == old {
+                            file.label = new.to_string();
+                        }
+                        file.address = now.clone();
+                        touched = true;
+                    }
+                }
+                if touched {
+                    tasks.save()?;
+                }
+            }
+        }
+        Ok(())
+    }
+
     /// Where each file of the library is used, keyed by its address.
     ///
     /// The Images screen asks this so it can say which files are carrying
@@ -208,6 +336,23 @@ impl Notebook {
 
         Ok(used)
     }
+}
+
+/// The name a rename asks for, checked as a file name.
+///
+/// An extension left off is taken from the old name rather than refused: a
+/// person renaming `IMG_2049.jpg` to `férias` means `férias.jpg`, and making
+/// them retype `.jpg` is making them do the app's arithmetic.
+fn clean_asset_name(wanted: &str, old: &str) -> Result<String> {
+    let wanted = wanted.trim();
+    let with_extension = match (wanted.rsplit_once('.'), old.rsplit_once('.')) {
+        (None, Some((_, extension))) => format!("{wanted}.{extension}"),
+        _ => wanted.to_string(),
+    };
+    if with_extension.is_empty() || !crate::relpath::is_safe_leaf(&with_extension) {
+        return Err(Error::InvalidAssetPath(wanted.to_string()));
+    }
+    Ok(with_extension)
 }
 
 /// Whether a note's body points at the library file called `name`, in either

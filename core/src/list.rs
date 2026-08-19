@@ -109,6 +109,15 @@ impl TaskList {
         })
     }
 
+    /// Every task, to be changed in place — for a rewrite that touches all of
+    /// them rather than one by id (a renamed file, 2026-08-19).
+    pub fn tasks_mut(&mut self) -> impl Iterator<Item = &mut Task> {
+        self.lines.iter_mut().filter_map(|line| match line {
+            Line::Task(task) => Some(task),
+            Line::Raw(_) => None,
+        })
+    }
+
     pub fn is_empty(&self) -> bool {
         self.tasks().next().is_none()
     }
