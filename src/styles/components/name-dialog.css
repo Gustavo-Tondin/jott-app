@@ -10,4 +10,26 @@
   .name-dialog__input {
     inline-size: 100%;
   }
+
+  /* ---- the app's own "are you sure?" (2026-08-19) ----
+     Replaces the system dialog, which could say a title and nothing else. The
+     second line is what it exists for: what breaks, and where the thing goes. */
+  .confirm-dialog__detail {
+    color: var(--theme-ink-muted);
+  }
+  .confirm-dialog__again {
+    display: flex;
+    align-items: center;
+    gap: var(--theme-space-8);
+    color: var(--theme-ink-muted);
+    font-size: var(--theme-text-13);
+    cursor: pointer;
+  }
+  .confirm-dialog__code {
+    padding: var(--theme-space-8) var(--theme-space-10);
+    background: var(--theme-well);
+    border-radius: var(--theme-radius-xs);
+    font-family: var(--theme-font-mono);
+    overflow-wrap: anywhere;
+  }
 }

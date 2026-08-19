@@ -29,7 +29,7 @@
   import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
   import { markdownPreview } from "../services/markdown.js";
   import { autocompletion } from "@codemirror/autocomplete";
-  import { fileEmbeds } from "../services/embeds.js";
+  import { fileEmbeds, refreshEmbeds } from "../services/embeds.js";
   import { fromNotebook, referenceCompletions } from "../services/linkComplete.js";
   import { assetUrl } from "../services/assets.js";
   import { fileIcon } from "../services/fileIcons.js";
@@ -59,6 +59,10 @@
     /// What `[[` offers while it is typed, as `{notes, files}`. Defaults to
     /// asking the notebook; a test hands its own answers in.
     references = fromNotebook,
+    /// Bumped whenever the notebook changed under the note — which for this
+    /// component means one thing: the pictures may not be the pictures any
+    /// more, so draw them again and ask for them again.
+    version = 0,
   } = $props();
 
   let host;
@@ -168,7 +172,7 @@
           // text. The closures read the props on every call, which is what
           // lets the notebook be reopened under a live editor.
           fileEmbeds({
-            url: (address) => assetUrl(root, address),
+            url: (address) => assetUrl(root, address, version),
             open: (address) => onOpenFile?.(address),
             openNote: (title) => onOpenNote?.(title),
             zoom: (address) => onZoomImage?.(address),
@@ -190,6 +194,13 @@
         ],
       }),
     });
+  });
+
+  // The library changed elsewhere in the app: redraw what this note is
+  // showing, and let the webview ask for the files again.
+  $effect(() => {
+    version;
+    view?.dispatch({ effects: refreshEmbeds.of(null) });
   });
 
   onDestroy(() => view?.destroy());

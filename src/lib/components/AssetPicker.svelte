@@ -11,6 +11,7 @@
   import { api } from "../services/api.js";
   import { S } from "../services/strings.js";
   import { assetUrl, importFiles, isImage } from "../services/assets.js";
+  import { filesFromInput } from "../services/gesture.js";
   import Modal from "./Modal.svelte";
   import Icon from "./Icon.svelte";
 
@@ -48,17 +49,7 @@
   }
 
   async function add(event) {
-    // Copied out BEFORE the input is reset, and never held as a `FileList`.
-    // WebKit's `setValue("")` clears the very list object this code is
-    // holding (`FileInputType::setValue` calls `m_fileList->clear()`), so
-    // reading `files.length` after the reset answers 0 and the import
-    // silently does nothing — the shape of the bug the user hit on Linux.
-    // Blink hands out a fresh empty list instead, which is why jsdom and
-    // every Chromium harness saw this work.
-    const files = Array.from(event.currentTarget.files ?? []);
-    // The input keeps the file it was given; clearing it is what lets the same
-    // picture be picked twice in a row after a mistake.
-    event.currentTarget.value = "";
+    const files = filesFromInput(event.currentTarget);
     if (!files.length) return;
     busy = true;
     try {

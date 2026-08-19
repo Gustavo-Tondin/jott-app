@@ -10,8 +10,7 @@
   import { api } from "../services/api.js";
   import { S } from "../services/strings.js";
   import Editor from "./Editor.svelte";
-
-  import { carriesFiles, readGesture, readPaste } from "../services/assets.js";
+  import { acceptsFiles } from "../actions/acceptsFiles.js";
 
   let {
     folder,
@@ -20,11 +19,15 @@
     onSaved,
     onError,
     onLoaded,
+    /// `({files, paths, remote, types}) => void` — the user brought files into
+    /// the note, by pasting or by dropping them on it. What that means is the
+    /// shell's to decide (`services/gesture.js` says what each field is).
     onFiles,
     onOpenFile,
     onOpenNote,
     onZoomImage,
     root = null,
+    version = 0,
     saveDelay = 500,
   } = $props();
 
@@ -119,39 +122,15 @@
   /// the keymap uses (2026-08-18).
   export const run = (id) => editor?.run(id);
 
-  // ---- files brought into the note (2026-08-19) ----
-  //
-  // **On the wrapper, and in the CAPTURE phase**, and both halves of that were
-  // learned from the running app rather than guessed:
-  //
-  //   - a file DROPPED on a note lands on this div and not inside the editor
-  //     (measured: `drop on div.note-editor__body inEditor=false`). Handlers
-  //     inside CodeMirror never saw it, which is why dragging did nothing at
-  //     all. This div is the whole area a person aims at.
-  //   - capture, because CodeMirror handles a paste itself, and by the time
-  //     the event bubbles back out here it is too late to stop it pasting the
-  //     address as text.
-  //
-  // The reading is asynchronous (`readGesture`), so `preventDefault` happens
-  // first: a transfer is only readable while its event is being dispatched.
-  function brought(transfer, read) {
-    if (readOnly || !onFiles) return false;
-    if (!transfer?.files?.length && !carriesFiles(transfer)) return false;
-    read(transfer).then(onFiles);
-    return true;
-  }
 </script>
 
-<!-- svelte-ignore a11y_no_static_element_interactions -->
+<!-- The whole area a person aims at: a dropped file lands on this div and
+     never inside the editor (measured 2026-08-19), and a paste reaches it by
+     capture before CodeMirror can paste the address as text. -->
 <div
   class="note-editor__body"
   aria-label={S.noteBodyPlaceholder}
-  onpastecapture={(e) => brought(e.clipboardData, readPaste) && e.preventDefault()}
-  ondropcapture={(e) => brought(e.dataTransfer, readGesture) && e.preventDefault()}
-  ondragovercapture={(e) => {
-    // Saying "I take these" is the only way the drop event arrives at all.
-    if (!readOnly && carriesFiles(e.dataTransfer)) e.preventDefault();
-  }}
+  use:acceptsFiles={{ onFiles, disabled: readOnly, paste: "node" }}
 >
   <Editor
     bind:this={editor}
@@ -163,5 +142,6 @@
     {onOpenNote}
     {onZoomImage}
     {root}
+    {version}
   />
 </div>

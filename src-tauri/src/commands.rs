@@ -143,6 +143,8 @@ pub struct NotebookSettings {
     pub restore_last_screen: Option<bool>,
     pub show_list_counts: Option<bool>,
     pub dated_tasks_join_period: Option<bool>,
+    /// Ask before deleting. Turned off from the dialog itself.
+    pub confirm_deletes: Option<bool>,
     /// Ask before fetching a picture from the internet. The user turns this
     /// off from the dialog itself ("don't ask again").
     pub confirm_image_downloads: Option<bool>,
@@ -394,7 +396,7 @@ pub fn current_notebook(state: State<'_, AppState>) -> Option<NotebookInfo> {
     if !state.is_open() {
         return None;
     }
-    state.with_notebook(|nb| NotebookInfo::of(nb)).ok()
+    state.with_notebook(NotebookInfo::of).ok()
 }
 
 /// Open task count per list, for the navigation. Empty when the user turned
@@ -496,6 +498,7 @@ pub fn notebook_settings(state: State<'_, AppState>) -> CommandResult<NotebookSe
             restore_last_screen: Some(config.restore_last_screen),
             show_list_counts: Some(config.show_list_counts),
             dated_tasks_join_period: Some(config.dated_tasks_join_period),
+            confirm_deletes: Some(config.confirm_deletes),
             confirm_image_downloads: Some(config.confirm_image_downloads),
             auto_urgent_by_date: Some(config.auto_urgent_by_date),
             date_display_format: Some(config.date_display_format.render().to_string()),
@@ -548,6 +551,9 @@ pub fn set_notebook_settings(
         }
         if let Some(v) = settings.dated_tasks_join_period {
             config.dated_tasks_join_period = v;
+        }
+        if let Some(v) = settings.confirm_deletes {
+            config.confirm_deletes = v;
         }
         if let Some(v) = settings.confirm_image_downloads {
             config.confirm_image_downloads = v;
@@ -1028,7 +1034,19 @@ pub fn rename_note(
     path: String,
     title: String,
 ) -> CommandResult<String> {
-    state.with_notebook(|nb| Ok(nb.note_folder(&folder)?.rename(&path, &title)?))
+    // Through the notebook and not the folder: renaming a note now follows it
+    // into every `[[link]]` in the whole notebook (2026-08-19).
+    state.with_notebook(|nb| Ok(nb.rename_note(&folder, &path, &title)?))
+}
+
+/// Renames a file of the library, repointing every note and task that uses it.
+#[tauri::command]
+pub fn rename_asset(
+    state: State<'_, AppState>,
+    path: String,
+    name: String,
+) -> CommandResult<String> {
+    state.with_notebook(|nb| Ok(nb.rename_asset(&path, &name)?))
 }
 
 /// Moves a note to another folder inside the widget. Returns the new address.
@@ -1346,10 +1364,7 @@ mod url_tests {
 /// happens on the main thread, and a synchronous command might BE on it.
 #[tauri::command]
 pub async fn clipboard_files<R: Runtime>(app: AppHandle<R>) -> Vec<String> {
-    note_line("clipboard_files: asked");
-    let answer = clipboard_uris(&app).unwrap_or_default();
-    note_line(&format!("clipboard_files: answering {answer:?}"));
-    answer
+    clipboard_uris(&app).unwrap_or_default()
 }
 
 #[cfg(target_os = "linux")]
@@ -1357,43 +1372,18 @@ fn clipboard_uris<R: Runtime>(app: &AppHandle<R>) -> Option<Vec<String>> {
     use std::sync::mpsc;
 
     let (tx, rx) = mpsc::channel();
-    if app
-        .run_on_main_thread(move || {
-            note_line("clipboard: on the main thread");
-            let _ = tx.send(gtk_clipboard_uris());
-        })
-        .is_err()
-    {
-        note_line("clipboard: run_on_main_thread refused");
-        return None;
-    }
-    match rx.recv_timeout(std::time::Duration::from_secs(2)) {
-        Ok(answer) => answer,
-        Err(e) => {
-            note_line(&format!("clipboard: no answer ({e})"));
-            None
-        }
-    }
+    app.run_on_main_thread(move || {
+        let _ = tx.send(gtk_clipboard_uris());
+    })
+    .ok()?;
+    rx.recv_timeout(std::time::Duration::from_secs(2)).ok()?
 }
 
 #[cfg(target_os = "linux")]
 fn gtk_clipboard_uris() -> Option<Vec<String>> {
 
-    let Some(display) = gdk::Display::default() else {
-        note_line("clipboard: no display");
-        return None;
-    };
-    let Some(clipboard) = gtk::Clipboard::default(&display) else {
-        note_line("clipboard: no clipboard for the display");
-        return None;
-    };
-
-    // TEMPORARY (2026-08-19): what the clipboard is actually offering, for
-    // the log. Remove with `debug_log`.
-    let offered: Vec<String> = clipboard
-        .wait_for_targets()
-        .map(|targets| targets.iter().map(|t| t.name().to_string()).collect())
-        .unwrap_or_default();
+    let display = gdk::Display::default()?;
+    let clipboard = gtk::Clipboard::default(&display)?;
 
     let uris: Vec<String> = clipboard
         .wait_for_uris()
@@ -1414,11 +1404,6 @@ fn gtk_clipboard_uris() -> Option<Vec<String>> {
         String::new()
     };
 
-    note_line(&format!(
-        "clipboard targets=[{}] uris={uris:?} gnome={gnome:?}",
-        offered.join("|")
-    ));
-
     if !uris.is_empty() {
         return Some(uris);
     }
@@ -1429,60 +1414,6 @@ fn gtk_clipboard_uris() -> Option<Vec<String>> {
             .map(str::to_string)
             .collect(),
     )
-}
-
-/// TEMPORARY (2026-08-19) — see `debug_log`.
-fn note_line(line: &str) {
-    if let Some(dir) = dirs_config() {
-        use std::io::Write;
-        let _ = std::fs::create_dir_all(&dir);
-        if let Ok(mut file) = std::fs::OpenOptions::new()
-            .create(true)
-            .append(true)
-            .open(dir.join("gesture.log"))
-        {
-            let _ = writeln!(file, "{line}");
-        }
-    }
-}
-
-/// TEMPORARY (2026-08-19) — the config dir, without an `AppHandle` to hand.
-fn dirs_config() -> Option<PathBuf> {
-    std::env::var_os("XDG_CONFIG_HOME")
-        .map(PathBuf::from)
-        .or_else(|| std::env::var_os("HOME").map(|h| PathBuf::from(h).join(".config")))
-        .map(|base| base.join("dev.gustavotondin.jott"))
-}
-
-/// Everywhere else the webview's own clipboard is all there is.
-#[cfg(not(target_os = "linux"))]
-fn clipboard_uris<R: Runtime>(_app: &AppHandle<R>) -> Option<Vec<String>> {
-    None
-}
-
-/// TEMPORARY (2026-08-19): writes a line to `<config>/gesture.log`.
-///
-/// The drag and the paste do nothing in the real app and everything in every
-/// test, and there is no way to watch a webview from here — no devtools that
-/// can be driven, no screenshot on Wayland. So the app writes down what it
-/// saw and the log is read afterwards. Remove this, and
-/// `services/debugGesture.js`, once the answer is in.
-#[tauri::command]
-pub fn debug_log<R: Runtime>(app: AppHandle<R>, line: String) {
-    use std::io::Write;
-    use tauri::Manager;
-
-    let Ok(dir) = app.path().app_config_dir() else {
-        return;
-    };
-    let _ = std::fs::create_dir_all(&dir);
-    if let Ok(mut file) = std::fs::OpenOptions::new()
-        .create(true)
-        .append(true)
-        .open(dir.join("gesture.log"))
-    {
-        let _ = writeln!(file, "{line}");
-    }
 }
 
 /// Where each file of the library is used, keyed by its address — so the
@@ -1831,7 +1762,7 @@ pub struct SpaceInfo {
 /// The spaces of the notebook, ready to render.
 #[tauri::command]
 pub fn spaces(state: State<'_, AppState>) -> CommandResult<Vec<SpaceInfo>> {
-    state.with_notebook(|nb| Ok(spaces_of(nb)?))
+    state.with_notebook(spaces_of)
 }
 
 /// Creates a user space of the given type (`tasks` / `notes`). Returns
@@ -1931,7 +1862,7 @@ fn groups_of(nb: &Notebook) -> CommandResult<Vec<GroupInfo>> {
 
 #[tauri::command]
 pub fn groups(state: State<'_, AppState>) -> CommandResult<Vec<GroupInfo>> {
-    state.with_notebook(|nb| Ok(groups_of(nb)?))
+    state.with_notebook(groups_of)
 }
 
 /// Creates a group at the root, or inside another group when `group` is given.

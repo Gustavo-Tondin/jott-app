@@ -14,14 +14,11 @@
   // what the app can show, a glyph for what it cannot.
   import { api } from "../services/api.js";
   import { S } from "../services/strings.js";
-  import {
-    assetUrl,
-    carriesFiles,
-    importBrought,
-    importFiles,
-    readGesture,
-    readPaste,
-  } from "../services/assets.js";
+  import { askConfirm, askName, DELETING } from "../services/dialog.js";
+  import { assetUrl, importBrought, importFiles } from "../services/assets.js";
+  import { acceptsFiles } from "../actions/acceptsFiles.js";
+  import { filesFromInput } from "../services/gesture.js";
+  import { makeAct, makeLoad } from "../services/act.js";
   import { referenceName } from "../services/embeds.js";
   import Icon from "../components/Icon.svelte";
 
@@ -36,6 +33,10 @@
     /// there is one answer to "open this hit" in the app (2026-08-19).
     onOpenNote,
     onOpenTask,
+    /// `(url) => Promise<void>` — a picture that is only on the web. Asking
+    /// before fetching it is the shell's business (principle 9), and so is the
+    /// dialog that explains which host is contacted.
+    onRemoteImage,
     reloadKey = 0,
   } = $props();
 
@@ -58,16 +59,38 @@
     load();
   });
 
-  async function load() {
+  // The one shape every screen in this app uses to change the notebook: do
+  // it, re-read, tell the shell, route a failure to the banner (`act.js`).
+  // Four handlers here were each carrying their own copy of it.
+  const load = makeLoad({
+    read: async () => ({
+      assets: (await api.assets()) ?? [],
+      // A second question, asked after the first: a file whose usage is not
+      // known yet reads as "not used" for a moment rather than as nothing.
+      usage: (await api.assetUsage()) ?? {},
+    }),
+    apply: (read) => {
+      assets = read.assets;
+      usage = read.usage;
+    },
+    onError: (e) => onError?.(e),
+  });
+
+  const act = makeAct({
+    load,
+    onChanged: () => onChanged?.(),
+    onError: (e) => onError?.(e),
+  });
+
+  /// Everything here writes through `act`, and everything here is busy while
+  /// it does: importing a photo is the one action on this screen slow enough
+  /// to be worth saying so.
+  async function working(fn) {
+    busy = true;
     try {
-      assets = (await api.assets()) ?? [];
-      // A second question, asked after: the grid is worth drawing even if the
-      // notebook is too big for the scan to have finished, and a file whose
-      // usage is not known yet reads as "not used" for a moment rather than
-      // as nothing at all.
-      usage = (await api.assetUsage()) ?? {};
-    } catch (e) {
-      onError?.(e);
+      return await act(fn);
+    } finally {
+      busy = false;
     }
   }
 
@@ -81,65 +104,50 @@
     else onOpenTask?.(place.path, place.id);
   }
 
-  async function add(event) {
-    // Copied out before the reset — see the same handler in AssetPicker: in
-    // WebKit, clearing the input empties the `FileList` object already in
-    // hand, and the import would quietly import nothing.
-    const files = Array.from(event.currentTarget.files ?? []);
-    event.currentTarget.value = "";
-    if (!files.length) return;
-    busy = true;
-    try {
-      await importFiles(files);
-      await load();
-      // The sidebar counts nothing here, but the open note may be showing one
-      // of these — a reload is what redraws it.
-      onChanged?.();
-    } catch (e) {
-      onError?.(e);
-    } finally {
-      busy = false;
-    }
+  /// The file input, and the two gestures, are one question with three doors:
+  /// here are some files, put them in the library.
+  /// The file input, and the two gestures, are one question with three doors:
+  /// here are some files, put them in the library.
+  function add(event) {
+    const files = filesFromInput(event.currentTarget);
+    if (files.length) take({ files, paths: [], remote: "", types: [] });
   }
 
-  // Dropping a file ON the library, and pasting one into it (user call,
-  // 2026-08-19). The same door the note has, asking the same question — this
-  // screen is what the library IS, so it is the most obvious place in the app
-  // to hand a file to, and it was the one place that did not accept one.
-  function catches(transfer, read) {
-    if (readOnly) return false;
-    if (!transfer?.files?.length && !carriesFiles(transfer)) return false;
-    take(read(transfer));
-    return true;
+  /// A file handed to the library — chosen, dropped on it, or pasted anywhere
+  /// on the screen. This screen IS the library, so it is the most obvious
+  /// thing in the app to hand a file to (user call, 2026-08-19).
+  function take(brought) {
+    if (brought.files.length || brought.paths.length) {
+      return working(() => importBrought(brought));
+    }
+    // Nothing local, but a picture on the web: fetching it is the shell's to
+    // ask about — the dialog that explains the connection is mounted once, up
+    // there, and is the same one the note uses.
+    if (brought.remote) return working(() => onRemoteImage?.(brought.remote));
+    onError?.(S.noFileInGesture(brought.types ?? []));
   }
 
-  async function take(reading) {
-    busy = true;
-    try {
-      const brought = await reading;
-      if (!brought.files.length && !brought.paths.length) {
-        onError?.(S.noFileInGesture(brought.types ?? []));
-        return;
-      }
-      await importBrought(brought);
-      await load();
-      onChanged?.();
-    } catch (e) {
-      onError?.(e);
-    } finally {
-      busy = false;
-    }
+  /// Renaming, which the core makes safe: every note and task pointing at the
+  /// file is repointed in the same breath (`Notebook::rename_asset`). Leaving
+  /// the extension off is allowed — the old one comes along, because a person
+  /// renaming `IMG_2049.jpg` to `férias` means `férias.jpg`.
+  async function rename(asset) {
+    const next = await askName(S.promptRenameFile(asset.name), asset.name);
+    if (next && next !== asset.name) act(() => api.renameAsset(asset.path, next));
   }
 
   async function remove(asset) {
-    if (!confirm(S.confirmDeleteAsset(asset.name))) return;
-    try {
-      await api.deleteAsset(asset.path);
-      await load();
-      onChanged?.();
-    } catch (e) {
-      onError?.(e);
-    }
+    // The one delete in this app whose consequence is somewhere else: the
+    // file goes to the trash, and every note and task pointing at it is left
+    // pointing at nothing. Saying how many, BEFORE rather than after (user
+    // call, 2026-08-19) — the screen already knows, and knowing and not
+    // saying is the worst of the three options.
+    const places = placesFor(asset).length;
+    const ok = await askConfirm(S.confirmDeleteAsset(asset.name), {
+      ...DELETING,
+      detail: places ? `${S.assetInUseWarning(places)} ${S.goesToTrash}` : S.goesToTrash,
+    });
+    if (ok) act(() => api.deleteAsset(asset.path));
   }
 
   /// What a note calls the file — `/foto.jpg`, the piece that goes between a
@@ -164,24 +172,17 @@
   const open = (asset) => api.openAsset(asset.path).catch((e) => onError?.(e));
 </script>
 
-<!-- svelte-ignore a11y_no_static_element_interactions -->
+<!-- Paste is listened for on the DOCUMENT here: this screen has nothing to
+     type in, so a paste is delivered to `<body>` and would never reach the
+     section (measured 2026-08-19). -->
 <section
   class="assets-view"
   class:assets-view--taking={dragging}
-  onpastecapture={(e) => catches(e.clipboardData, readPaste) && e.preventDefault()}
-  ondropcapture={(e) => {
-    dragging = false;
-    return catches(e.dataTransfer, readGesture) && e.preventDefault();
-  }}
-  ondragovercapture={(e) => {
-    if (readOnly || !carriesFiles(e.dataTransfer)) return;
-    e.preventDefault();
-    dragging = true;
-  }}
-  ondragleave={(e) => {
-    // Only when the pointer left the screen itself, not when it crossed from
-    // one card to the next.
-    if (!e.relatedTarget || !e.currentTarget.contains(e.relatedTarget)) dragging = false;
+  use:acceptsFiles={{
+    onFiles: take,
+    disabled: readOnly,
+    paste: "document",
+    over: (active) => (dragging = active),
   }}
 >
   <header class="assets-view__head">
@@ -274,6 +275,14 @@
               {copied === asset.path ? S.addressCopied : referenceName(asset.path)}
             </button>
             {#if !readOnly}
+              <button
+                class="theme-btn--icon"
+                onclick={() => rename(asset)}
+                aria-label={S.renameFile}
+                title={S.renameFile}
+              >
+                <Icon name="pencil" size="1rem" />
+              </button>
               <button
                 class="theme-btn--icon"
                 onclick={() => remove(asset)}

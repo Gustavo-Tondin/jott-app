@@ -121,11 +121,11 @@ pub fn configure<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builde
             commands::import_asset_from_path,
             commands::clipboard_files,
             commands::import_asset_from_url,
+            commands::rename_asset,
             commands::delete_asset,
             commands::open_asset,
             commands::file_icon,
             commands::asset_usage,
-            commands::debug_log,
             // day and week
             commands::period_state,
             commands::period_tasks,

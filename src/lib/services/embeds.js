@@ -5,8 +5,8 @@
 // reasons they were taken:
 //
 //   - **The double bracket** is the shape a reference to something INSIDE the
-//     notebook takes — the same shape a link between notes will take when
-//     notes link to each other. A `![alt](assets/foto.jpg)` says the same
+//     notebook takes — files and notes alike, which is what makes it one
+//     syntax and not two. A `![alt](assets/foto.jpg)` says the same
 //     thing in CommonMark and would render in any other editor; what it does
 //     not say is that the address belongs to this notebook rather than to the
 //     web.
@@ -27,11 +27,11 @@
 // left as the text the user wrote.
 //
 // Without the slash it is a NOTE (2026-08-19), carried by title — the reason
-// is on `noteMarkdown`. Both are drawn the same way and by the same rule as
-// every other piece of syntax in this editor: the line the cursor is on shows
-// what was typed, every other line shows what it means.
+// is on `noteMarkdown`. Both are drawn by the same rule as every other piece
+// of syntax in this editor: the line the cursor is on shows what was typed,
+// every other line shows what it means.
 
-import { RangeSetBuilder, StateField } from "@codemirror/state";
+import { RangeSetBuilder, StateEffect, StateField } from "@codemirror/state";
 import { Decoration, EditorView, WidgetType } from "@codemirror/view";
 import { ASSETS_DIR, isImage } from "./assets.js";
 import { activeLines } from "./markdown.js";
@@ -51,11 +51,12 @@ export function embedMarkdown(address) {
 /// were decided with (2026-08-18): what survives the note being moved. A note
 /// is moved between folders and between spaces in two clicks now, and an
 /// address written into a body would go stale on every one of them. A title
-/// goes stale only on a rename, which no scheme here survives.
+/// goes stale on a RENAME, and that half is paid in the core: renaming a note
+/// follows it into every link (`Notebook::rename_note`).
 ///
-/// The cost, and it is real: two notes may share a title. Clicking one of
-/// those opens the SEARCH at that title rather than guessing — the app has
-/// picked the wrong twin once already (v0.5.0) and will not do it again.
+/// The cost that remains, and it is real: two notes may share a title.
+/// Clicking one of those opens the SEARCH at that title rather than guessing —
+/// the app picked the wrong twin once already (v0.5.0) and will not again.
 export function noteMarkdown(title) {
   const clean = String(title ?? "").trim();
   return clean ? `[[${clean}]]` : "";
@@ -70,7 +71,7 @@ export function referenceName(address) {
 }
 
 /// The address a file name inside the brackets stands for.
-export function embedAddress(name) {
+function embedAddress(name) {
   return `${ASSETS_DIR}/${name}`;
 }
 
@@ -110,6 +111,12 @@ class EmbedWidget extends WidgetType {
     super();
     this.embed = embed;
     this.ctx = ctx;
+    // Resolved HERE, when the decoration is built, and not in `toDOM`: it is
+    // part of what makes this widget this widget. Asking the context again
+    // later would answer the same thing on both sides of an `eq`, and
+    // CodeMirror would keep the old `<img>` for ever — which is exactly what
+    // kept a deleted picture on screen (2026-08-19).
+    this.url = embed.kind === "file" ? (ctx.url?.(embed.address) ?? "") : "";
   }
 
   eq(other) {
@@ -118,7 +125,8 @@ class EmbedWidget extends WidgetType {
       other.embed.address === this.embed.address &&
       other.embed.title === this.embed.title &&
       other.embed.image === this.embed.image &&
-      other.embed.opened === this.embed.opened
+      other.embed.opened === this.embed.opened &&
+      other.url === this.url
     );
   }
 
@@ -158,7 +166,7 @@ class EmbedWidget extends WidgetType {
       });
     }
     const img = document.createElement("img");
-    img.src = this.ctx.url?.(address) ?? "";
+    img.src = this.url;
     // The file's name, minus its extension: the only description the app has,
     // and better than nothing for someone listening to the note.
     img.alt = name.replace(/\.[^.]+$/, "");
@@ -269,6 +277,14 @@ export function embedDecorationsFor(state, ranges, ctx = {}) {
 /// dropped in silence, and the photo simply did not come back (2026-08-19).
 /// The cost is reading the whole document instead of the visible part, which
 /// for a note is the same thing.
+/// "The library changed — draw it again."
+///
+/// A `StateField` only recomputes when a transaction arrives, and deleting a
+/// file happens in another screen entirely: without this, the open note went
+/// on showing a picture whose file was in the trash (user report,
+/// 2026-08-19).
+export const refreshEmbeds = StateEffect.define();
+
 export function fileEmbeds(ctx = {}) {
   const whole = (state) => embedDecorationsFor(state, [{ from: 0, to: state.doc.length }], ctx);
   return StateField.define({
@@ -276,6 +292,7 @@ export function fileEmbeds(ctx = {}) {
     update(value, tr) {
       // The selection matters as much as the document: moving the cursor onto
       // the line is what turns the picture back into its text.
+      if (tr.effects.some((effect) => effect.is(refreshEmbeds))) return whole(tr.state);
       return tr.docChanged || tr.selection ? whole(tr.state) : value;
     },
     provide: (field) => [

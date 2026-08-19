@@ -23,7 +23,7 @@
   // screen either: it opens over the board, as a popover of its own.
   import { api } from "../services/api.js";
   import { S } from "../services/strings.js";
-  import { askName } from "../services/dialog.js";
+  import { askConfirm, askName, DELETING } from "../services/dialog.js";
   import { makeAct } from "../services/act.js";
   import { spaceMenu } from "../services/spaceMenu.js";
   import { arrange, pinnedFirst, planReorder } from "../services/spaceOrder.js";
@@ -67,6 +67,7 @@
     onOpenNote,
     reloadKey = 0,
   } = $props();
+
 
   // The source's folder is its address for every notes command.
   let folder = $derived(source?.folder ?? null);
@@ -164,7 +165,7 @@
 
   const deleteNote = (entry) =>
     act(async () => {
-      if (!confirm(S.confirmDeleteNote(entry.title))) return;
+      if (!(await askConfirm(S.confirmDeleteNote(entry.title), DELETING))) return;
       await api.deleteNote(folder, entry.path);
     });
 
@@ -188,7 +189,7 @@
     act(async () => {
       if (!openFolder) return;
       const name = openFolder.split("/").pop();
-      if (!confirm(S.confirmDeleteFolder(name))) return;
+      if (!(await askConfirm(S.confirmDeleteFolder(name), DELETING))) return;
       const moved = await api.deleteNoteFolder(folder, openFolder);
       closeGroup();
       if (moved > 0) onError?.({ kind: "info", message: S.folderEmptied(moved, name) });

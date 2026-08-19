@@ -23,16 +23,6 @@ import { embedMarkdown, noteMarkdown } from "./embeds.js";
 /// list and starts being a screen — and the search box is the screen.
 const LIMIT = 20;
 
-/// The text between `[[` and the cursor, and where the reference starts.
-///
-/// A closing `]]` already to the right is left alone: the completion replaces
-/// only what was typed, and writes its own pair.
-export function typedReference(context) {
-  const before = context.matchBefore(/\[\[[^[\]\n]*/);
-  if (!before) return null;
-  return { from: before.from, typed: before.text.slice(2) };
-}
-
 /// Matches the way a person means it: case-insensitively, anywhere in the name.
 const matches = (haystack, needle) =>
   String(haystack).toLowerCase().includes(needle.toLowerCase());
@@ -43,15 +33,19 @@ const matches = (haystack, needle) =>
 /// the embeds are: so the rule can be tested without a bridge.
 export function referenceCompletions({ notes, files } = {}) {
   return async (context) => {
-    const at = typedReference(context);
-    if (!at) return null;
+    // Everything between `[[` and the cursor. A closing `]]` already to the
+    // right is left alone — a picked option replaces only what was typed, and
+    // writes its own pair.
+    const open = context.matchBefore(/\[\[[^[\]\n]*/);
+    if (!open) return null;
+    const typed = open.text.slice(2);
 
-    const options = at.typed.startsWith("/")
-      ? await fileOptions(files, at.typed.slice(1))
-      : await noteOptions(notes, at.typed);
+    const options = typed.startsWith("/")
+      ? await fileOptions(files, typed.slice(1))
+      : await noteOptions(notes, typed);
 
     return {
-      from: at.from,
+      from: open.from,
       options,
       // **`filter: false`, and it is not an optimisation.** CodeMirror filters
       // options by the text between `from` and the cursor, and `from` has to

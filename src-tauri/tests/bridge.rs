@@ -88,7 +88,6 @@ fn task_with_id(app: &MockApp, list: &str, text: &str) -> String {
 /// milliseconds, running it one test at a time is the cheap, honest fix.
 ///
 /// The guard must be held for the whole test — bind it, do not discard it.
-#[must_use]
 fn exclusive() -> std::sync::MutexGuard<'static, ()> {
     static LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
     static DIR: std::sync::OnceLock<tempfile::TempDir> = std::sync::OnceLock::new();

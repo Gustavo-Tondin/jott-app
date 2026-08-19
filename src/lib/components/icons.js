@@ -37,6 +37,7 @@ import calendarBlank from "../../assets/icons/phosphor/regular/calendar-blank.sv
 import clock from "../../assets/icons/phosphor/regular/clock.svg?raw";
 import alarm from "../../assets/icons/phosphor/regular/alarm.svg?raw";
 import paperclip from "../../assets/icons/phosphor/regular/paperclip.svg?raw";
+import pencil from "../../assets/icons/phosphor/regular/pencil-simple.svg?raw";
 import trash from "../../assets/icons/phosphor/regular/trash.svg?raw";
 import tray from "../../assets/icons/phosphor/regular/tray.svg?raw";
 import dotsThreeVertical from "../../assets/icons/phosphor/regular/dots-three-vertical.svg?raw";
@@ -106,6 +107,7 @@ export const ICONS = {
   alarm,
   clock,
   paperclip,
+  pencil,
   trash,
   tray,
   "dots-three-vertical": dotsThreeVertical,

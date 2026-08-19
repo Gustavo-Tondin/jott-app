@@ -10,11 +10,12 @@
   import { listen } from "@tauri-apps/api/event";
   import { slide } from "svelte/transition";
   import { api, describeError } from "./lib/services/api.js";
-  import { askName, askTask } from "./lib/services/dialog.js";
+  import { askConfirm, askName, askTask, DELETING, setConfirmPolicy } from "./lib/services/dialog.js";
   import { composeTask } from "./lib/services/taskCompose.js";
   import { makeAct } from "./lib/services/act.js";
   import { ask, userBindings } from "./lib/services/shortcuts.js";
   import NameDialog from "./lib/components/NameDialog.svelte";
+  import ConfirmDialog from "./lib/components/ConfirmDialog.svelte";
   import ContextMenu from "./lib/components/ContextMenu.svelte";
   import ListView from "./lib/screens/ListView.svelte";
   import TasksView from "./lib/screens/TasksView.svelte";
@@ -43,7 +44,6 @@
   import { buttonLayout } from "./lib/shell/windowButtons.js";
   import { isMobile, platformAttribute } from "./lib/shell/platform.js";
   import { watchCompact } from "./lib/shell/compact.js";
-  import { watchGestures } from "./lib/services/debugGesture.js";
   import TopBar from "./lib/shell/TopBar.svelte";
   import BottomSheet from "./lib/components/BottomSheet.svelte";
   import { drawerSwipe } from "./lib/actions/drawerSwipe.js";
@@ -131,11 +131,6 @@
   /// disagree about which of them is holding the back/forward arrows.
   let compact = $state(false);
   $effect(() => watchCompact((v) => (compact = v)));
-
-  // TEMPORARY (2026-08-19) — see services/debugGesture.js. Remove with it.
-  $effect(() => {
-    watchGestures();
-  });
 
   /// The three panels the compact shell cannot keep on screen at once, and so
   /// opens on demand. All three are transient by nature, so none of them is
@@ -871,19 +866,80 @@
   /// pictures pasted at once are two pictures and not a sentence.
   async function addFilesToNote(brought) {
     if (notebook?.readOnly) return;
+    if (brought?.files?.length || brought?.paths?.length) {
+      try {
+        for (const address of await importBrought(brought)) {
+          noteEditor?.insert(`${embedMarkdown(address)}\n`);
+        }
+      } catch (e) {
+        fail(e);
+      }
+      return;
+    }
+    // Nothing local, but an address on the web: a picture copied from a page.
+    // Drawing it means FETCHING it, which is the one thing this app does that
+    // leaves the machine — so it is asked for, until the person says to stop
+    // asking (principle 9, and `confirmImageDownloads`).
+    if (brought?.remote) {
+      const address = await fetchRemoteImage(brought.remote);
+      if (address) noteEditor?.insert(`${embedMarkdown(address)}\n`);
+      return;
+    }
     // The desktop said it was handing over a file and handed over something
     // this app cannot read. Saying WHAT it was beats doing nothing at all —
     // it is the difference between a bug report and a mystery.
-    if (!brought?.files?.length && !brought?.paths?.length) {
-      fail(S.noFileInGesture(brought?.types ?? []));
-      return;
-    }
+    fail(S.noFileInGesture(brought?.types ?? []));
+  }
+
+  // Which questions are still being asked, and how to stop asking one —
+  // installed once, here, because the shell is the only thing that holds the
+  // notebook's settings. Every screen then asks without carrying them down
+  // through props (services/dialog.js).
+  $effect(() => {
+    setConfirmPolicy({
+      settings: {
+        confirmDeletes: layout.confirmDeletes,
+        confirmImageDownloads: layout.confirmImageDownloads,
+      },
+      save: (key) =>
+        api
+          .setNotebookSettings({ [key]: false })
+          .then(refreshNotebook)
+          .catch(fail),
+    });
+  });
+
+  /// Fetches a picture that is only on the web, having asked first.
+  ///
+  /// The one thing this app does that leaves the machine, so it says which
+  /// host it will contact before doing it (principle 9) — until the person
+  /// says to stop asking, which is a setting of the notebook and not of the
+  /// session. Answers with the address it took, or `null`.
+  async function fetchRemoteImage(url) {
+    const ok = await askConfirm(S.downloadImageTitle, {
+      detail: S.downloadImageBody,
+      code: hostOf(url),
+      danger: S.downloadImageConfirm,
+      remember: "confirmImageDownloads",
+    });
+    if (!ok) return null;
     try {
-      for (const address of await importBrought(brought)) {
-        noteEditor?.insert(`${embedMarkdown(address)}\n`);
-      }
+      const address = await api.importAssetFromUrl(url);
+      reload();
+      return address;
     } catch (e) {
       fail(e);
+      return null;
+    }
+  }
+
+  /// The host, which is the part worth reading — and the whole address when it
+  /// will not parse, because the question still has to say what it is doing.
+  function hostOf(url) {
+    try {
+      return new URL(url).host;
+    } catch {
+      return url;
     }
   }
 
@@ -931,7 +987,7 @@
 
   const deleteCurrentNote = () =>
     noteAction(async () => {
-      if (!confirm(S.confirmDeleteNote(openNote.title))) return;
+      if (!(await askConfirm(S.confirmDeleteNote(openNote.title), DELETING))) return;
       await api.deleteNote(view.folder, view.path);
       closeTab(active);
     });
@@ -1088,8 +1144,8 @@
   const setSpaceAppearance = (folder, color, icon) =>
     change(() => api.setSpaceAppearance(folder, color ?? null, icon ?? null));
 
-  function deleteSpaceAt(folder, name) {
-    if (!confirm(S.confirmDeleteSpace(name))) return;
+  async function deleteSpaceAt(folder, name) {
+    if (!(await askConfirm(S.confirmDeleteSpace(name), DELETING))) return;
     change(
       () => api.deleteSpace(folder),
       // If we were looking at it, it is gone — go Home.
@@ -1118,8 +1174,8 @@
   const setGroupAppearanceAt = (folder, color, icon) =>
     change(() => api.setGroupAppearance(folder, color, icon));
 
-  function deleteGroupAt(folder, name) {
-    if (!confirm(S.confirmDeleteGroup(name))) return;
+  async function deleteGroupAt(folder, name) {
+    if (!(await askConfirm(S.confirmDeleteGroup(name), DELETING))) return;
     change(() => api.deleteGroup(folder));
   }
 
@@ -1152,10 +1208,10 @@
     );
   }
 
-  function deleteCurrentList() {
+  async function deleteCurrentList() {
     if (view.kind !== "list") return;
     const list = view.list;
-    if (!confirm(S.confirmDeleteList(listTitle(list)))) return;
+    if (!(await askConfirm(S.confirmDeleteList(listTitle(list)), DELETING))) return;
     change(
       () => api.deleteList(list),
       (rescued) => {
@@ -1671,6 +1727,7 @@
               onOpenFile={(address) => api.openAsset(address).catch(fail)}
               onOpenNote={openNoteByTitle}
               onZoomImage={(address) => (zoomedImage = address)}
+              version={reloadKey}
               root={notebook.path}
               onLoaded={(state) => {
                 openNote = state;
@@ -1728,10 +1785,16 @@
             <AssetsView
               root={notebook.path}
               readOnly={notebook.readOnly}
-              onChanged={refreshNotebook}
+              onChanged={() => {
+                // The open note may be showing one of these; `reloadKey` is
+                // what tells its editor to draw them again.
+                refreshNotebook();
+                reload();
+              }}
               onError={fail}
               onOpenNote={(path, folder) => showNote(path, folder)}
               onOpenTask={showFoundTask}
+              onRemoteImage={(url) => fetchRemoteImage(url)}
               {reloadKey}
             />
           {:else if view.kind === "trash"}
@@ -1925,6 +1988,7 @@
 
 <!-- The app's own name prompt (window.prompt is broken in WebKitGTK). -->
 <NameDialog />
+<ConfirmDialog />
 <NewTaskDialog />
 
 <!-- Ctrl+F / Ctrl+K, over whatever screen is open: a search is a question

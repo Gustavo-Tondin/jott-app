@@ -148,6 +148,13 @@ pub struct Config {
     /// a task takes it straight back out, and a task pulled by hand keeps
     /// being pulled by hand.
     pub dated_tasks_join_period: bool,
+    /// Ask before deleting. On by default, and turned off from the dialog
+    /// itself ("don't ask again", 2026-08-19).
+    ///
+    /// Honest to offer only because nothing in this app is destroyed: a
+    /// deleted note, list, space or file goes to `.jott/trash/` and comes
+    /// back. Someone who has understood that is entitled to stop being asked.
+    pub confirm_deletes: bool,
     /// Ask before the app fetches an image from the internet.
     ///
     /// Pasting a picture copied from a web page hands the app a `https://`
@@ -275,6 +282,7 @@ impl Default for Config {
             restore_last_screen: false,
             show_list_counts: true,
             dated_tasks_join_period: true,
+            confirm_deletes: true,
             confirm_image_downloads: true,
             auto_urgent_by_date: true,
             date_display_format: DateFormat::default(),
@@ -448,6 +456,7 @@ impl Config {
                 "datedTasksJoinPeriod",
                 defaults.dated_tasks_join_period,
             ),
+            confirm_deletes: flag(&raw, "confirmDeletes", defaults.confirm_deletes),
             confirm_image_downloads: flag(
                 &raw,
                 "confirmImageDownloads",
@@ -542,6 +551,7 @@ impl Config {
                 "datedTasksJoinPeriod",
                 Value::from(self.dated_tasks_join_period),
             ),
+            ("confirmDeletes", Value::from(self.confirm_deletes)),
             (
                 "confirmImageDownloads",
                 Value::from(self.confirm_image_downloads),

@@ -527,6 +527,26 @@ export const S = {
   noFileInGesture: (types) =>
     `Nothing could be read from that${types.length ? ` (${types.join(", ")})` : ""}.`,
 
+  // Deleting, in the app's own dialog rather than the system's (2026-08-19).
+  // Nothing in this app is destroyed, and the second sentence is where that
+  // gets said — the system dialog had no room for it.
+  deleteAction: "Delete",
+  dontAskAgain: "Don’t ask again",
+  goesToTrash: "It goes to the trash, and can be restored from there.",
+  assetInUseWarning: (n) =>
+    n === 1
+      ? "One note or task is showing this file. That link will stop working."
+      : `${n} notes and tasks are showing this file. Those links will stop working.`,
+
+  // Fetching a picture from the internet (2026-08-19). The one thing the app
+  // does that leaves the machine, so it says so — and says WHERE to.
+  downloadImageTitle: "Download this picture?",
+  downloadImageBody:
+    "This picture is not on your computer. To put it in the note, Jott has to fetch it from:",
+  downloadImageConfirm: "Download",
+
+  renameFile: "Rename",
+  promptRenameFile: (name) => `Rename “${name}”`,
   assetUnused: "Not used",
   assetUsedIn: (n) => (n === 1 ? "Used in 1 place" : `Used in ${n} places`),
   assetGoTo: (title) => `Go to “${title}”`,

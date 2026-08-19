@@ -252,4 +252,32 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+
+  /* ---- fetching a picture from the internet (2026-08-19) ----
+     The one dialog in the app that exists to explain a connection before it
+     is made. The HOST is the fact worth reading, so it is the line that is
+     set apart. */
+  .download-image__what {
+    color: var(--theme-ink-muted);
+  }
+  .download-image__host {
+    padding: var(--theme-space-8) var(--theme-space-10);
+    background: var(--theme-well);
+    border-radius: var(--theme-radius-xs);
+    font-family: var(--theme-font-mono);
+    overflow-wrap: anywhere;
+  }
+  .download-image__again {
+    display: flex;
+    align-items: center;
+    gap: var(--theme-space-8);
+    color: var(--theme-ink-muted);
+    font-size: var(--theme-text-13);
+    cursor: pointer;
+  }
+  .download-image__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--theme-space-8);
+  }
 }

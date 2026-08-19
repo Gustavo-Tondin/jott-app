@@ -16,18 +16,8 @@ vi.mock("@tauri-apps/api/core", () => ({
   convertFileSrc: (path) => `asset://localhost/${encodeURIComponent(path)}`,
 }));
 
-const {
-  assetFile,
-  carriesFiles,
-  pathOfFileUrl,
-  readGesture,
-  assetUrl,
-  importFiles,
-  isAssetAddress,
-  isImage,
-  libraryName,
-  readAsBase64,
-} = await import("./assets.js");
+const { assetFile, assetUrl, importFiles, isAssetAddress, isImage, libraryName, readAsBase64 } =
+  await import("./assets.js");
 
 describe("what counts as an image", () => {
   it("reads the extension, whatever its case", () => {
@@ -138,73 +128,5 @@ describe("naming a file the user brought in", () => {
   it("would rather have no extension than claim the wrong one", () => {
     expect(libraryName(new File([""], "", { type: "application/octet-stream" }))).toBe("pasted");
     expect(libraryName(null)).toBe("pasted");
-  });
-});
-
-describe("what a paste or a drag is carrying", () => {
-  it("reads the bytes when there are bytes", async () => {
-    const file = new File([""], "foto.png");
-    const brought = await readGesture({ files: [file], types: ["Files"] });
-    expect(brought.files).toEqual([file]);
-    expect(brought.paths).toEqual([]);
-  });
-
-  it("reads the address when the desktop sent an address", async () => {
-    // The shape a file copied or dragged out of a file manager arrives in —
-    // and the reason both gestures did nothing at first (2026-08-19).
-    const brought = await readGesture({
-      files: [],
-      types: ["text/uri-list"],
-      getData: (type) =>
-        type === "text/uri-list"
-          ? "#comment\nfile:///home/gus/f%C3%A9rias%202026.jpg\nfile:///tmp/a.pdf"
-          : "",
-    });
-    expect(brought.paths).toEqual(["/home/gus/férias 2026.jpg", "/tmp/a.pdf"]);
-  });
-
-  it("keeps what the gesture said it had, for when it turns out to have none", async () => {
-    const brought = await readGesture({ files: [], types: ["Files"], getData: () => "" });
-    expect(brought.paths).toEqual([]);
-    expect(brought.types).toEqual(["Files"]);
-  });
-
-  it("asks the ITEMS when getData answers nothing", async () => {
-    // What the app's own webview actually does (measured 2026-08-19): the
-    // type is listed, `getData("text/uri-list")` comes back empty, and the
-    // item is right there in `items`. Reading only `getData` read nothing.
-    const brought = await readGesture({
-      files: [],
-      types: ["text/uri-list"],
-      getData: () => "",
-      items: [
-        { kind: "string", type: "text/uri-list", getAsString: (cb) => cb("file:///tmp/a.png") },
-      ],
-    });
-    expect(brought.paths).toEqual(["/tmp/a.png"]);
-  });
-
-  it("does not hang on an item that never answers", async () => {
-    const brought = await readGesture({
-      files: [],
-      types: ["text/uri-list"],
-      getData: () => "",
-      items: [{ kind: "string", type: "text/uri-list", getAsString: () => {} }],
-    });
-    expect(brought.paths).toEqual([]);
-  });
-
-  it("ignores an address that is not a local file", () => {
-    expect(pathOfFileUrl("https://exemplo.com/foto.jpg")).toBe("");
-    expect(pathOfFileUrl("foto.jpg")).toBe("");
-    expect(pathOfFileUrl("")).toBe("");
-  });
-
-  it("knows mid-drag whether a gesture is worth taking over", () => {
-    // `files` is secret until the drop; the TYPES are all a dragover can read.
-    expect(carriesFiles({ types: ["Files"] })).toBe(true);
-    expect(carriesFiles({ types: ["text/uri-list"] })).toBe(true);
-    expect(carriesFiles({ types: ["text/plain"] })).toBe(false);
-    expect(carriesFiles(null)).toBe(false);
   });
 });

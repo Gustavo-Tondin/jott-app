@@ -10,7 +10,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-li
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { pace } from "./services/pace.js";
-import { nameRequest, taskRequest } from "./services/dialog.js";
+import { confirmRequest, nameRequest, taskRequest } from "./services/dialog.js";
 
 // Svelte 5 transitions (the inspector's slide) drive the Web Animations API,
 // which jsdom does not implement. A no-op that reports "already finished" — and
@@ -39,6 +39,18 @@ if (typeof Element !== "undefined" && !Element.prototype.animate) {
     return anim;
   };
   Element.prototype.getAnimations = () => [];
+}
+
+/// Answers the app's own confirmation dialog, which replaced window.confirm
+/// (2026-08-19). `ConfirmDialog` is mounted by the shell, so a test that
+/// renders one screen has to play its part.
+async function answerConfirm(answer = true) {
+  const { get } = await import("svelte/store");
+  await vi.waitFor(() => expect(get(confirmRequest)).toBeTruthy());
+  const asked = get(confirmRequest);
+  confirmRequest.set(null);
+  asked.resolve({ ok: answer, stopAsking: false });
+  return asked;
 }
 
 const invoke = vi.fn();
@@ -115,6 +127,7 @@ beforeEach(() => {
   // The two dialog requests are module-level stores: a test that leaves one
   // open would put every test after it behind a modal.
   nameRequest.set(null);
+  confirmRequest.set(null);
   taskRequest.set(null);
 });
 
@@ -2794,6 +2807,60 @@ describe("AssetsView", () => {
     );
   });
 
+  test("renaming a file goes through the core, which repoints every link", async () => {
+    bridge({
+      assets: [asset("foto.png")],
+      asset_usage: {},
+      rename_asset: "assets/ferias.png",
+    });
+
+    render(AssetsView, { props: props() });
+    await userEvent.click(await screen.findByLabelText("Rename"));
+
+    const { get } = await import("svelte/store");
+    await waitFor(() => expect(get(nameRequest)).toBeTruthy());
+    get(nameRequest).resolve("ferias");
+    nameRequest.set(null);
+
+    // The name goes over as typed — the core is what decides that a missing
+    // extension means the old one.
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("rename_asset", {
+        path: "assets/foto.png",
+        name: "ferias",
+      }),
+    );
+  });
+
+  test("a picture that is only on the web is handed up to be asked about", async () => {
+    // The screen does not make network requests of its own: explaining the
+    // connection is the shell's, and there is one dialog for it.
+    const asked = vi.fn(() => Promise.resolve("assets/daoz-51.jpg"));
+    bridge({ assets: [], asset_usage: {} });
+
+    const { container } = render(AssetsView, { props: props({ onRemoteImage: asked }) });
+    await screen.findByText("No files yet.");
+
+    await fireEvent.paste(container.querySelector(".assets-view"), {
+      clipboardData: {
+        files: [],
+        types: ["text/html"],
+        getData: () => "",
+        items: [
+          {
+            kind: "string",
+            type: "text/html",
+            getAsString: (cb) => cb('<img src="https://cdnb.artstation.com/daoz-51.jpg?17">'),
+          },
+        ],
+      },
+    });
+
+    await waitFor(() =>
+      expect(asked).toHaveBeenCalledWith("https://cdnb.artstation.com/daoz-51.jpg?17"),
+    );
+  });
+
   // ---- what uses a file (2026-08-19) ----
   // The fact that makes deleting safe, and the way to what would break.
 
@@ -2878,17 +2945,38 @@ describe("AssetsView", () => {
   });
 
   test("deleting asks first and goes through the core", async () => {
-    bridge({ assets: [asset("foto.png")], delete_asset: null });
-    const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
+    bridge({ assets: [asset("foto.png")], asset_usage: {}, delete_asset: null });
 
     render(AssetsView, { props: props() });
-    await userEvent.click(await screen.findByLabelText("Delete file"));
+    userEvent.click(await screen.findByLabelText("Delete file"));
+    const asked = await answerConfirm();
 
-    expect(confirm).toHaveBeenCalled();
+    // Nothing is showing this one, so the question is only about the file.
+    expect(asked.detail).toContain("trash");
     await waitFor(() =>
       expect(invoke).toHaveBeenCalledWith("delete_asset", { path: "assets/foto.png" }),
     );
-    confirm.mockRestore();
+  });
+
+  test("deleting a file a note is showing says so, and how many", async () => {
+    // The consequence is somewhere else, and the screen already knows it: a
+    // question that does not say which links break is a question that hid the
+    // only fact that mattered (user call, 2026-08-19).
+    bridge({
+      assets: [asset("foto.png")],
+      asset_usage: { "assets/foto.png": [usedBy("com imagem"), usedBy("outra")] },
+      delete_asset: null,
+    });
+
+    render(AssetsView, { props: props() });
+    userEvent.click(await screen.findByLabelText("Delete file"));
+    const asked = await answerConfirm(false);
+
+    expect(asked.detail).toContain("2 notes and tasks");
+    expect(asked.detail).toContain("stop working");
+    // Cancelled means cancelled.
+    await new Promise((r) => setTimeout(r, 10));
+    expect(invoke.mock.calls.some(([cmd]) => cmd === "delete_asset")).toBe(false);
   });
 
   test("a read-only notebook can look but not add or delete", async () => {
@@ -3267,13 +3355,13 @@ describe("NotesSpace folder management", () => {
     // Nothing is destroyed — the notes move up a level, and the user is told.
     const messages = [];
     withFolders();
-    vi.spyOn(window, "confirm").mockReturnValue(true);
 
     render(NotesSpace, {
       props: props({ onError: (e) => messages.push(e.message) }),
     });
     await openClientes();
-    await userEvent.click(screen.getByText("delete folder"));
+    userEvent.click(screen.getByText("delete folder"));
+    const asked = await answerConfirm();
 
     await waitFor(() =>
       expect(invoke).toHaveBeenCalledWith("delete_note_folder", {
@@ -3281,11 +3369,13 @@ describe("NotesSpace folder management", () => {
         path: "Clientes",
       }),
     );
-    expect(window.confirm.mock.calls[0][0]).toContain("nothing is deleted");
+    // The question says what it does, and the app's own second sentence says
+    // where things go — which the system dialog had no room for.
+    expect(asked.title).toContain("nothing is deleted");
+    expect(asked.detail).toContain("trash");
     await waitFor(() =>
       expect(messages.some((m) => m.includes("moved up one level"))).toBe(true),
     );
-    window.confirm.mockRestore();
   });
 
   test("a refused confirmation deletes nothing", async () => {
@@ -3297,7 +3387,6 @@ describe("NotesSpace folder management", () => {
     await userEvent.click(screen.getByText("delete folder"));
 
     expect(invoke.mock.calls.some(([cmd]) => cmd === "delete_note_folder")).toBe(false);
-    window.confirm.mockRestore();
   });
 
   test("a read-only notebook offers no folder actions", async () => {

@@ -196,6 +196,12 @@ export const api = {
   // only door left when the webview's own clipboard says nothing, which for a
   // pasted file is always (2026-08-19).
   clipboardFiles: () => invoke("clipboard_files"),
+  // Fetches a picture from the internet into the library. The one call in this
+  // app that leaves the machine, and never made without being asked.
+  importAssetFromUrl: (url) => invoke("import_asset_from_url", { url }),
+  // Renames a file of the library and repoints every note and task that uses
+  // it — a rename that broke its own links would not be a rename.
+  renameAsset: (path, name) => invoke("rename_asset", { path, name }),
   deleteAsset: (path) => invoke("delete_asset", { path }),
   // Hands an attachment to the system's own app for that kind of file. Only a
   // file of `assets/` resolves — that is the whole of its security.
@@ -207,8 +213,6 @@ export const api = {
   // Where each file of the library is used, keyed by address. A file nobody
   // points at simply has no entry (2026-08-19).
   assetUsage: () => invoke("asset_usage"),
-  // TEMPORARY (2026-08-19) — see services/debugGesture.js.
-  debugLog: (line) => invoke("debug_log", { line }),
 
   // day and week
   periodTasks: (period) => invoke("period_tasks", { period }),

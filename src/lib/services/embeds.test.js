@@ -10,7 +10,7 @@ import { EditorState } from "@codemirror/state";
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke: vi.fn(), convertFileSrc: (p) => p }));
 
-const { embedAddress, embedMarkdown, embedDecorationsFor, noteMarkdown, referencesIn } =
+const { embedMarkdown, embedDecorationsFor, noteMarkdown, referencesIn } =
   await import("./embeds.js");
 
 describe("the text a file gets in a note", () => {
@@ -20,10 +20,6 @@ describe("the text a file gets in a note", () => {
     // over a bare name gets the same answer.
     expect(embedMarkdown("foto.jpg")).toBe("[[/foto.jpg]]");
     expect(embedMarkdown("")).toBe("");
-  });
-
-  it("names one file of the library and nothing else", () => {
-    expect(embedAddress("foto.jpg")).toBe("assets/foto.jpg");
   });
 
   it("writes a note link as its title, trimmed", () => {

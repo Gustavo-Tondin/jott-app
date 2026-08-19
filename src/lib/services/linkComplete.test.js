@@ -12,7 +12,7 @@ import { autocompletion, completionStatus, currentCompletions } from "@codemirro
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke: vi.fn(), convertFileSrc: (p) => p }));
 
-const { referenceCompletions, typedReference } = await import("./linkComplete.js");
+const { referenceCompletions } = await import("./linkComplete.js");
 
 /// The little CodeMirror hands a completion source. `matchBefore` is all it
 /// uses, and it is a regex against the text to the left of the cursor.
@@ -44,8 +44,9 @@ describe("when the list appears at all", () => {
     expect(await source()(context("olha [[fo"))).not.toBeNull();
   });
 
-  it("starts where the brackets start, so picking replaces them", () => {
-    expect(typedReference(context("olha [[fo"))).toEqual({ from: 5, typed: "fo" });
+  it("starts where the brackets start, so picking replaces them", async () => {
+    const { from } = await source()(context("olha [[fo"));
+    expect(from).toBe(5);
   });
 });
 

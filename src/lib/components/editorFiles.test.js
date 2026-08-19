@@ -165,3 +165,22 @@ describe("a link to another note", () => {
   });
 });
 
+describe("when the library changes under the note", () => {
+  it("draws the picture again, and asks for it again", async () => {
+    // A file deleted from the Images screen went on drawing in the open note:
+    // nothing had asked the decorations to rebuild, and the webview had the
+    // bytes (user report, 2026-08-19).
+    const { container, rerender } = render(Editor, {
+      props: { value: "Antes\n[[/foto.jpg]]\nDepois", root: "/n", version: 1 },
+    });
+    const before = container.querySelector(".cm-embed--image img").getAttribute("src");
+
+    await rerender({ value: "Antes\n[[/foto.jpg]]\nDepois", root: "/n", version: 2 });
+
+    const after = container.querySelector(".cm-embed--image img").getAttribute("src");
+    expect(after).not.toBe(before);
+    // Still the same file — only the question is new.
+    expect(after).toContain(encodeURIComponent("/n/assets/foto.jpg"));
+  });
+});
+
