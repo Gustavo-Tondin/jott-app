@@ -24,10 +24,7 @@ pub fn write_atomically(path: impl AsRef<Path>, bytes: &[u8]) -> Result<()> {
         std::fs::create_dir_all(parent).ctx(parent)?;
     }
 
-    let name = path
-        .file_name()
-        .map(|n| n.to_string_lossy().to_string())
-        .unwrap_or_default();
+    let name = file_name_of(path);
     let tmp = path.with_file_name(format!("{name}.tmp"));
 
     std::fs::write(&tmp, bytes).ctx(&tmp)?;
@@ -63,6 +60,19 @@ pub fn dir_paths(dir: impl AsRef<Path>) -> Result<Vec<PathBuf>> {
         paths.push(entry.ctx(dir)?.path());
     }
     Ok(paths)
+}
+
+/// The last component of a path, as an owned string — empty when the path
+/// has none (a root, or one ending in `..`).
+///
+/// This exact shape was hand-rolled eleven times across the crate, three of
+/// them as named private helpers (one of which said "stem" and returned the
+/// name). Callers that need a different fallback for the empty case say so
+/// at the call site, where the fallback is visible.
+pub fn file_name_of(path: &Path) -> String {
+    path.file_name()
+        .map(|n| n.to_string_lossy().to_string())
+        .unwrap_or_default()
 }
 
 /// True for a dot-file or dot-folder.

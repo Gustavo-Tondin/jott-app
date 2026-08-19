@@ -30,7 +30,6 @@ impl Notebook {
         )
     }
 
-    /// Renames a group's display name (`.group.json` `name`); empty clears it.
     /// Renames a group by renaming its FOLDER — the same rule as a space
     /// (2026-08-13). Everything under it moves with it, so the Day/Week
     /// references and the stored arrangements are repointed by `relocate`.
@@ -52,12 +51,8 @@ impl Notebook {
         color: Option<String>,
         icon: Option<String>,
     ) -> Result<()> {
-        self.ensure_writable()?;
         let path = self.group_config_path(folder)?;
-        edit_marked_config(path, |config| {
-            config.color = color.as_deref().and_then(cleared_to_none);
-            config.icon = icon.as_deref().and_then(cleared_to_none);
-        })
+        self.set_marked_appearance(path, color, icon)
     }
 
     /// Where a group's config lives.
@@ -117,7 +112,7 @@ impl Notebook {
             }
             None => self.root.clone(),
         };
-        let leaf = crate::space::folder_name_of(&from);
+        let leaf = crate::fsio::file_name_of(&from);
         self.relocate(&from, &target_parent, &leaf)
     }
 

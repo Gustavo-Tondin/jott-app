@@ -52,6 +52,8 @@ pub const ASSETS_DIR: &str = "assets";
 ///
 /// A closed list rather than "whatever the OS thinks": the webview is what has
 /// to draw these, and an address the app wrote must be one the app can show.
+/// Public because it is THE list — the bridge maps a downloaded image's
+/// content-type onto it, and a second copy there already drifted once.
 pub const IMAGE_EXTENSIONS: [&str; 8] = [
     "png", "jpg", "jpeg", "gif", "webp", "svg", "avif", "bmp",
 ];
@@ -102,7 +104,7 @@ impl Assets {
             if crate::fsio::is_hidden(&path) || !path.is_file() {
                 continue;
             }
-            let name = file_name_of(&path);
+            let name = crate::fsio::file_name_of(&path);
             let meta = std::fs::metadata(&path).ok();
             found.push(AssetEntry {
                 path: address(&name),
@@ -138,7 +140,7 @@ impl Assets {
         std::fs::create_dir_all(&self.dir).ctx(&self.dir)?;
         let target = crate::fsio::free_name(&self.dir, &name);
         crate::fsio::write_atomically(&target, bytes)?;
-        Ok(address(&file_name_of(&target)))
+        Ok(address(&crate::fsio::file_name_of(&target)))
     }
 
     /// The file behind an address, or an error when it is not one of ours.
@@ -183,12 +185,6 @@ pub fn is_image_name(name: &str) -> bool {
     };
     let ext = ext.to_lowercase();
     IMAGE_EXTENSIONS.contains(&ext.as_str())
-}
-
-fn file_name_of(path: &Path) -> String {
-    path.file_name()
-        .map(|n| n.to_string_lossy().to_string())
-        .unwrap_or_default()
 }
 
 /// An imported name becomes a file name, so it has to survive being one.

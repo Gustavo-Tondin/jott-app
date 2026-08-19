@@ -270,7 +270,7 @@ impl Notebook {
         let target_name = match task.origin.as_deref() {
             Some(origin) if folder.list_path(origin).is_ok() => origin.to_string(),
             // No usable origin: the folder's own list, never nowhere.
-            _ => folder.main_list_name(),
+            _ => folder.main_list_name().to_string(),
         };
         let (dir, _) = split_list_path(completed)?;
         let target = format!("{dir}/{target_name}.md");

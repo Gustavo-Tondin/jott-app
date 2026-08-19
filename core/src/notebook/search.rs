@@ -40,35 +40,31 @@ impl Notebook {
         let in_scope = |prefix: &str| scope.is_none_or(|only| prefix == only);
 
         let labels = self.space_labels()?;
-        let label_of = |prefix: &String| labels.get(prefix).cloned().unwrap_or_else(|| prefix.clone());
 
-        for (prefix, folder) in self.task_folders()? {
-            if !in_scope(&prefix) {
+        for list in self.list_paths()? {
+            if !in_scope(&list.prefix) {
                 continue;
             }
-            let space = label_of(&prefix);
-            for name in folder.list_names()? {
-                let path = format!("{prefix}/{name}.md");
-                for task in self.open_list(&path)?.tasks() {
-                    let Some(snippet) = crate::search::task_match(task, &needle) else {
-                        continue;
-                    };
-                    if results.tasks.len() >= limit {
-                        results.truncated = true;
-                        break;
-                    }
-                    results.tasks.push(SearchHit {
-                        kind: HitKind::Task,
-                        path: path.clone(),
-                        folder: String::new(),
-                        id: task.id.clone(),
-                        title: task.text.clone(),
-                        snippet,
-                        space: space.clone(),
-                        container: name.clone(),
-                        done: task.done,
-                    });
+            let space = space_label_of(&labels, &list.prefix);
+            for task in self.open_list(&list.path)?.tasks() {
+                let Some(snippet) = crate::search::task_match(task, &needle) else {
+                    continue;
+                };
+                if results.tasks.len() >= limit {
+                    results.truncated = true;
+                    break;
                 }
+                results.tasks.push(SearchHit {
+                    kind: HitKind::Task,
+                    path: list.path.clone(),
+                    folder: String::new(),
+                    id: task.id.clone(),
+                    title: task.text.clone(),
+                    snippet,
+                    space: space.clone(),
+                    container: list.name.clone(),
+                    done: task.done,
+                });
             }
         }
         // Open tasks first: a search is nearly always about what is still to
@@ -79,7 +75,7 @@ impl Notebook {
             if !in_scope(&prefix) {
                 continue;
             }
-            let space = label_of(&prefix);
+            let space = space_label_of(&labels, &prefix);
             for entry in folder.search(&needle)? {
                 if results.notes.len() >= limit {
                     results.truncated = true;

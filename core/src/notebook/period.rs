@@ -187,17 +187,7 @@ impl Notebook {
         // as pulled.
         if self.config.dated_tasks_join_period {
             for candidate in self.tasks_due_in(period)? {
-                let already = out.iter().any(|listed| {
-                    listed.path == candidate.path
-                        && match (listed.task.id.as_deref(), candidate.task.id.as_deref()) {
-                            (Some(a), Some(b)) => a == b,
-                            // An id is handed out only when something needs to
-                            // address the task, so two id-less tasks are the
-                            // same one when their text is.
-                            _ => listed.task.text == candidate.task.text,
-                        }
-                });
-                if !already {
+                if !out.iter().any(|listed| is_same_task(listed, &candidate)) {
                     out.push(candidate);
                 }
             }

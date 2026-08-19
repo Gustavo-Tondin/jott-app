@@ -39,7 +39,7 @@ pub const SUPPORTED_SPACE_SCHEMA: u64 = 1;
 /// Space types this build ships (`home` exists only on the fixed Home).
 /// Anything else is *kept and shown as unsupported*, never dropped — see
 /// [`SpaceConfig::is_known`].
-pub const KNOWN_SPACE_KINDS: [&str; 3] = ["tasks", "notes", "home"];
+const KNOWN_SPACE_KINDS: [&str; 3] = ["tasks", "notes", "home"];
 
 /// What a folder of notes inside a space carries, beyond its own name.
 ///
@@ -259,26 +259,22 @@ impl SpaceConfig {
                 None => cleared.push(key),
             }
         }
-        match self.order.is_empty() {
-            false => owned.insert("order".into(), Value::from(self.order.clone())),
-            true => {
-                cleared.push("order");
-                None
-            }
-        };
+        if self.order.is_empty() {
+            cleared.push("order");
+        } else {
+            owned.insert("order".into(), Value::from(self.order.clone()));
+        }
         let folders: serde_json::Map<String, Value> = self
             .folders
             .iter()
             .filter(|(_, settings)| !settings.is_empty())
             .map(|(name, settings)| (name.clone(), Value::Object(settings.to_entry())))
             .collect();
-        match folders.is_empty() {
-            false => owned.insert("folders".into(), Value::Object(folders)),
-            true => {
-                cleared.push("folders");
-                None
-            }
-        };
+        if folders.is_empty() {
+            cleared.push("folders");
+        } else {
+            owned.insert("folders".into(), Value::Object(folders));
+        }
 
         // `folders` is the ONE key this build replaces whole instead of
         // merging into. jsondoc merges deeply, on purpose — that is what keeps
@@ -319,7 +315,7 @@ impl Space {
         if !Self::is_space(&root) {
             return Err(Error::NotASpace(root));
         }
-        let folder_name = folder_name_of(&root);
+        let folder_name = crate::fsio::file_name_of(&root);
         let config = SpaceConfig::load(root.join(SPACE_CONFIG_FILE));
         Ok(Self {
             root,
@@ -392,7 +388,7 @@ pub fn marker_dirs(parent: &Path, marker: &str) -> Result<Vec<PathBuf>> {
             path.is_dir() && !crate::fsio::is_hidden(path) && path.join(marker).is_file()
         })
         .collect();
-    found.sort_by_key(|dir| folder_name_of(dir));
+    found.sort_by_key(|dir| crate::fsio::file_name_of(dir));
     Ok(found)
 }
 
@@ -401,13 +397,6 @@ pub fn marker_dirs(parent: &Path, marker: &str) -> Result<Vec<PathBuf>> {
 /// folder name is an identifier, everyone else's folder name is the name.
 pub fn is_app_folder(folder: &str) -> bool {
     folder.starts_with("jott.")
-}
-
-/// The last component of a path, as an owned string.
-pub(crate) fn folder_name_of(path: &Path) -> String {
-    path.file_name()
-        .map(|name| name.to_string_lossy().to_string())
-        .unwrap_or_default()
 }
 
 /// A group of spaces (reestruturação 2026-07-30): a folder carrying a
@@ -632,6 +621,6 @@ mod tests {
         }
         let found = marker_dirs(dir.path(), SPACE_CONFIG_FILE).unwrap();
         assert_eq!(found.len(), 1);
-        assert_eq!(folder_name_of(&found[0]), "Work");
+        assert_eq!(crate::fsio::file_name_of(&found[0]), "Work");
     }
 }

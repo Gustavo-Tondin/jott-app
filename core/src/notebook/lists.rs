@@ -60,43 +60,50 @@ impl Notebook {
             .collect())
     }
 
+    /// Every list address across every tasks space — the flat form of the
+    /// walk above, for the callers that want addresses rather than folder
+    /// handles. This exact double loop used to be written out at each of
+    /// those call sites.
+    pub(super) fn list_paths(&self) -> Result<Vec<ListAddress>> {
+        let mut out = Vec::new();
+        for (prefix, folder) in self.task_folders()? {
+            for name in folder.list_names()? {
+                out.push(ListAddress {
+                    path: format!("{prefix}/{name}.md"),
+                    prefix: prefix.clone(),
+                    name,
+                });
+            }
+        }
+        Ok(out)
+    }
+
     /// The lists of the notebook, across every tasks space.
     /// Sorted by name, which is what a sidebar shows.
     pub fn lists(&self) -> Result<Vec<ListEntry>> {
         let labels = self.space_labels()?;
         let mut entries: Vec<ListEntry> = Vec::new();
-        for (prefix, folder) in self.task_folders()? {
-            let space = labels
-                .get(&prefix)
-                .cloned()
-                .unwrap_or_else(|| prefix.clone());
-            for name in folder.list_names()? {
-                entries.push(ListEntry {
-                    path: format!("{prefix}/{name}.md"),
-                    name,
-                    space: space.clone(),
-                });
-            }
+        for list in self.list_paths()? {
+            entries.push(ListEntry {
+                space: space_label_of(&labels, &list.prefix),
+                path: list.path,
+                name: list.name,
+            });
         }
         // Manual order lives per folder — the sidebar reorders one folder's
         // lists at a time. So: group by folder and sort by name first, then let
         // the stored order rearrange each folder's run. Anything the order does
         // not mention (Inbox, Completed, a freshly created list) keeps its
         // alphabetical place, after the named ones.
-        let folder_of = |path: &str| -> String {
-            path.rsplit_once('/')
-                .map(|(folder, _)| folder.to_string())
-                .unwrap_or_default()
-        };
         entries.sort_by(|a, b| {
-            folder_of(&a.path)
-                .cmp(&folder_of(&b.path))
+            list_dir_of(&a.path)
+                .cmp(list_dir_of(&b.path))
                 .then_with(|| a.name.cmp(&b.name))
         });
         // The same helper the spaces go through — the "manual order lives in
         // the config" rule has one implementation, applied here once per folder.
-        for run in entries.chunk_by_mut(|a, b| folder_of(&a.path) == folder_of(&b.path)) {
-            let namespace = format!("lists:{}", folder_of(&run[0].path));
+        for run in entries.chunk_by_mut(|a, b| list_dir_of(&a.path) == list_dir_of(&b.path)) {
+            let namespace = format!("lists:{}", list_dir_of(&run[0].path));
             self.config.apply_order(&namespace, run, |entry| &entry.name);
         }
         Ok(entries)
@@ -280,7 +287,7 @@ impl Notebook {
         let rescued: Vec<Task> = list.tasks().cloned().collect();
 
         let main_list = folder.main_list_name();
-        let mut inbox = folder.open_list(&main_list)?;
+        let mut inbox = folder.open_list(main_list)?;
         for task in &rescued {
             inbox.add(task.clone());
         }

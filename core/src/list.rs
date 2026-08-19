@@ -1,4 +1,4 @@
-//! A task list file (`Tarefas/Inbox.md` and friends).
+//! A task list file (`jott.tasks/task-list.md` and friends).
 //!
 //! A list is read as a sequence of lines, not as a bag of tasks: anything that
 //! is not a task — headings, notes, blank lines — is kept verbatim and written
@@ -87,19 +87,6 @@ impl TaskList {
             lines,
             trailing_newline,
         }
-    }
-
-    pub fn path(&self) -> &Path {
-        &self.path
-    }
-
-    /// The list name as shown in the app: the file stem (`Compras.md` →
-    /// `Compras`).
-    pub fn name(&self) -> String {
-        self.path
-            .file_stem()
-            .map(|s| s.to_string_lossy().to_string())
-            .unwrap_or_default()
     }
 
     pub fn tasks(&self) -> impl Iterator<Item = &Task> {

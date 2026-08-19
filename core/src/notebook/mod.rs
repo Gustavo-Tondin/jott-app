@@ -117,6 +117,18 @@ pub struct ListEntry {
     pub space: String,
 }
 
+/// A list address as the notebook walk yields it: the full root-relative
+/// path plus the two halves it was built from, so a caller never re-splits
+/// what the walk just joined.
+pub(super) struct ListAddress {
+    /// `jott.tasks/task-list.md` — what every command takes.
+    pub(super) path: String,
+    /// The space folder, root-relative (`jott.tasks`, `Design/Clients`).
+    pub(super) prefix: String,
+    /// The file stem (`task-list`).
+    pub(super) name: String,
+}
+
 /// Splits a root-relative list address into folder part and list name:
 /// `jott.tasks/Compras.md` → (`jott.tasks`, `Compras`).
 ///
@@ -147,6 +159,43 @@ fn split_list_path(path: &str) -> Result<(&str, &str)> {
     Ok((dir, name))
 }
 
+/// The folder part of a root-relative list address (`jott.tasks/a.md` →
+/// `jott.tasks`); empty when the address has no `/`. The validating split is
+/// [`split_list_path`] — this one is for sorting and grouping addresses that
+/// were already accepted, where an odd address must not turn into an error.
+pub(super) fn list_dir_of(path: &str) -> &str {
+    path.rsplit_once('/').map(|(dir, _)| dir).unwrap_or("")
+}
+
+/// The label for a space prefix, out of the map [`Notebook::space_labels`]
+/// builds — the prefix itself when the map has no entry, so an address never
+/// shows up blank. This lookup used to be a closure copy-pasted wherever
+/// labels were needed.
+pub(super) fn space_label_of(
+    labels: &std::collections::HashMap<String, String>,
+    prefix: &str,
+) -> String {
+    labels
+        .get(prefix)
+        .cloned()
+        .unwrap_or_else(|| prefix.to_string())
+}
+
+/// Whether two listed tasks are the same task.
+///
+/// Same list first; then id against id when both carry one. Most tasks have
+/// no id — one is handed out only when something needs to address the task —
+/// so two id-less tasks in the same list are the same one when their text is.
+/// The rule was written out in full wherever a period or a suggestion had to
+/// dedupe; a divergence here is a task shown twice or not at all.
+pub(super) fn is_same_task(a: &ListedTask, b: &ListedTask) -> bool {
+    a.path == b.path
+        && match (a.task.id.as_deref(), b.task.id.as_deref()) {
+            (Some(this), Some(that)) => this == that,
+            _ => a.task.text == b.task.text,
+        }
+}
+
 /// The value of a field the user may have cleared: blank is absent, and the
 /// whitespace around what they typed is never part of it.
 fn cleared_to_none(value: &str) -> Option<String> {
@@ -167,6 +216,25 @@ fn edit_marked_config(
     let mut config = crate::space::SpaceConfig::load(&path);
     edit(&mut config);
     config.save(path)
+}
+
+impl Notebook {
+    /// Sets a marked folder's accent colour and icon; an empty string clears
+    /// each. The body behind both public appearance setters — a space and a
+    /// group differ only in where their marker lives, so only the path
+    /// arrives here.
+    fn set_marked_appearance(
+        &self,
+        path: PathBuf,
+        color: Option<String>,
+        icon: Option<String>,
+    ) -> Result<()> {
+        self.ensure_writable()?;
+        edit_marked_config(path, |config| {
+            config.color = color.as_deref().and_then(cleared_to_none);
+            config.icon = icon.as_deref().and_then(cleared_to_none);
+        })
+    }
 }
 
 /// An open notebook.
@@ -418,14 +486,6 @@ impl Notebook {
         let mut config = self.config.clone();
         config.set_order(namespace, names);
         self.set_config(config)
-    }
-
-    /// What the user said about a feature, if anything (2026-08-06). The core
-    /// reads this and nothing else: no folder stops being created and no file
-    /// stops being read, so switching a feature back on has to find everything
-    /// exactly where it was left.
-    pub fn feature(&self, key: &str) -> Option<bool> {
-        self.config.feature(key)
     }
 
     /// Records an opinion, or forgets one (`None` = back to the default).

@@ -19,8 +19,10 @@ use crate::state::PeriodState;
 /// Whether an address is a folder's `Completed.md` — where a ticked task
 /// lives, and where its period reference now follows it.
 fn is_completed_list(path: &str) -> bool {
-    let completed = format!("{}.md", crate::COMPLETED_LIST);
-    path.rsplit('/').next() == Some(completed.as_str())
+    path.rsplit('/')
+        .next()
+        .and_then(|leaf| leaf.strip_suffix(".md"))
+        == Some(crate::COMPLETED_LIST)
 }
 
 /// What a rollover did, so the caller knows whether to write the file.

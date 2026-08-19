@@ -147,15 +147,6 @@ impl PeriodState {
         before != self.items.len()
     }
 
-    /// Drops every reference to a task id, whatever list it claims to be in.
-    /// Used when a task is completed or deleted: leaving a dangling reference
-    /// behind would show a ghost entry in Today.
-    pub fn remove_id(&mut self, id: &str) -> bool {
-        let before = self.items.len();
-        self.items.retain(|r| r.id != id);
-        before != self.items.len()
-    }
-
     /// Follows **one task** to another list, keeping it in the period.
     ///
     /// The reference is to a task, not to a place: moving a task between lists
@@ -213,12 +204,6 @@ impl PeriodState {
         changed
     }
 
-    /// Drops every reference into a list, used when the list is deleted.
-    pub fn remove_path(&mut self, path: &str) -> bool {
-        let before = self.items.len();
-        self.items.retain(|r| r.path != path);
-        before != self.items.len()
-    }
 }
 
 /// A state file on disk.
@@ -240,10 +225,6 @@ impl StateFile {
             .and_then(|text| serde_json::from_str::<PeriodState>(&text).ok())
             .unwrap_or_else(|| PeriodState::new(fallback_date));
         Self { path, state }
-    }
-
-    pub fn path(&self) -> &Path {
-        &self.path
     }
 
     pub fn save(&self) -> Result<()> {
@@ -340,18 +321,6 @@ mod tests {
     }
 
     #[test]
-    fn remove_id_drops_every_reference_to_a_task() {
-        let mut state = PeriodState::new(ymd(2026, 7, 20));
-        state.add("Tasks/Inbox.md", "abc123");
-        state.add("Tasks/Compras.md", "abc123");
-        state.add("Tasks/Compras.md", "other");
-
-        assert!(state.remove_id("abc123"));
-        assert_eq!(state.len(), 1);
-        assert!(state.contains("Tasks/Compras.md", "other"));
-    }
-
-    #[test]
     fn renaming_a_list_repoints_its_references() {
         let mut state = PeriodState::new(ymd(2026, 7, 20));
         state.add("Tasks/Compras.md", "a");
@@ -361,17 +330,6 @@ mod tests {
         assert!(state.contains("Tasks/Mercado.md", "a"));
         assert!(state.contains("Tasks/Inbox.md", "b"));
         assert!(!state.rename_path("Tasks/Compras.md", "Tasks/Mercado.md"));
-    }
-
-    #[test]
-    fn deleting_a_list_drops_its_references() {
-        let mut state = PeriodState::new(ymd(2026, 7, 20));
-        state.add("Tasks/Compras.md", "a");
-        state.add("Tasks/Inbox.md", "b");
-
-        assert!(state.remove_path("Tasks/Compras.md"));
-        assert_eq!(state.len(), 1);
-        assert!(state.contains("Tasks/Inbox.md", "b"));
     }
 
     #[test]

@@ -253,10 +253,7 @@ impl Notebook {
 
         let dir = target_space.folder_path(to_folder)?;
         std::fs::create_dir_all(&dir).ctx(&dir)?;
-        let name = source
-            .file_name()
-            .map(|n| n.to_string_lossy().to_string())
-            .unwrap_or_default();
+        let name = crate::fsio::file_name_of(&source);
         // A note of the same name already there is not overwritten — the same
         // free-name dance every other move in the app goes through.
         let target = crate::fsio::free_name(&dir, &name);
@@ -367,10 +364,10 @@ impl Notebook {
         let source = assets.file(address)?;
         let target = crate::fsio::free_name(assets.dir(), &wanted);
         std::fs::rename(&source, &target).ctx(&target)?;
-        let taken = target
-            .file_name()
-            .map(|n| n.to_string_lossy().to_string())
-            .unwrap_or(wanted);
+        let mut taken = crate::fsio::file_name_of(&target);
+        if taken.is_empty() {
+            taken = wanted;
+        }
 
         self.retarget_asset(&old_name, &taken)?;
         Ok(crate::assets::address(&taken))
@@ -398,28 +395,25 @@ impl Notebook {
             }
         }
 
-        for (prefix, folder) in self.task_folders()? {
-            for list in folder.list_names()? {
-                let path = format!("{prefix}/{list}.md");
-                let mut tasks = self.open_list(&path)?;
-                let mut touched = false;
-                for task in tasks.tasks_mut() {
-                    for file in &mut task.files {
-                        if file.address != was {
-                            continue;
-                        }
-                        // A label the user wrote by hand is theirs and stays;
-                        // one that was only ever the file's name follows it.
-                        if file.label == old {
-                            file.label = new.to_string();
-                        }
-                        file.address = now.clone();
-                        touched = true;
+        for list in self.list_paths()? {
+            let mut tasks = self.open_list(&list.path)?;
+            let mut touched = false;
+            for task in tasks.tasks_mut() {
+                for file in &mut task.files {
+                    if file.address != was {
+                        continue;
                     }
+                    // A label the user wrote by hand is theirs and stays;
+                    // one that was only ever the file's name follows it.
+                    if file.label == old {
+                        file.label = new.to_string();
+                    }
+                    file.address = now.clone();
+                    touched = true;
                 }
-                if touched {
-                    tasks.save()?;
-                }
+            }
+            if touched {
+                tasks.save()?;
             }
         }
         Ok(())
@@ -451,11 +445,9 @@ impl Notebook {
             return Ok(used);
         }
         let labels = self.space_labels()?;
-        let label_of =
-            |prefix: &String| labels.get(prefix).cloned().unwrap_or_else(|| prefix.clone());
 
         for (prefix, folder) in self.note_folders()? {
-            let space = label_of(&prefix);
+            let space = space_label_of(&labels, &prefix);
             for entry in folder.notes()? {
                 let note = folder.read(&entry.path)?;
                 // The banner is not part of the body — the core lifts it off
@@ -484,24 +476,21 @@ impl Notebook {
             }
         }
 
-        for (prefix, folder) in self.task_folders()? {
-            let space = label_of(&prefix);
-            for list in folder.list_names()? {
-                let path = format!("{prefix}/{list}.md");
-                for task in self.open_list(&path)?.tasks() {
-                    for file in &task.files {
-                        used.entry(file.address.clone()).or_default().push(SearchHit {
-                            kind: HitKind::Task,
-                            path: path.clone(),
-                            folder: String::new(),
-                            id: task.id.clone(),
-                            title: task.text.clone(),
-                            snippet: String::new(),
-                            space: space.clone(),
-                            container: list.clone(),
-                            done: task.done,
-                        });
-                    }
+        for list in self.list_paths()? {
+            let space = space_label_of(&labels, &list.prefix);
+            for task in self.open_list(&list.path)?.tasks() {
+                for file in &task.files {
+                    used.entry(file.address.clone()).or_default().push(SearchHit {
+                        kind: HitKind::Task,
+                        path: list.path.clone(),
+                        folder: String::new(),
+                        id: task.id.clone(),
+                        title: task.text.clone(),
+                        snippet: String::new(),
+                        space: space.clone(),
+                        container: list.name.clone(),
+                        done: task.done,
+                    });
                 }
             }
         }

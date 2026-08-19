@@ -35,14 +35,14 @@ pub struct Conflict {
 /// Used to keep these files out of the list of lists — a conflict copy is not
 /// a list the user created.
 pub fn is_conflict_file(path: &Path) -> bool {
-    file_stem_of(path).is_some_and(|stem| stem.contains(MARKER))
+    crate::fsio::file_name_of(path).contains(MARKER)
 }
 
 /// Describes a conflict file: which list it belongs to and what it conflicts
 /// with. Returns `None` when the path is not a conflict file.
 pub fn describe(path: &Path) -> Option<Conflict> {
-    let stem = file_stem_of(path)?;
-    let (original_stem, _) = stem.split_once(MARKER)?;
+    let name = crate::fsio::file_name_of(path);
+    let (original_stem, _) = name.split_once(MARKER)?;
 
     // `Inbox.sync-conflict-...md` belongs to `Inbox.md`, in the same folder.
     let original = path.parent().map(|dir| {
@@ -60,10 +60,6 @@ pub fn describe(path: &Path) -> Option<Conflict> {
         original: original.filter(|p| p.exists()),
         path: path.to_path_buf(),
     })
-}
-
-fn file_stem_of(path: &Path) -> Option<String> {
-    path.file_name().map(|n| n.to_string_lossy().to_string())
 }
 
 #[cfg(test)]

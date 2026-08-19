@@ -215,10 +215,7 @@ impl NoteFolder {
         // A colliding title is suffixed, never overwritten — the same free-name
         // dance every move in the app goes through (`fsio::free_name`).
         let file = crate::fsio::free_name(&dir, &format!("{title}.{EXTENSION}"));
-        let name = file
-            .file_name()
-            .map(|n| n.to_string_lossy().to_string())
-            .unwrap_or_default();
+        let name = crate::fsio::file_name_of(&file);
         let relative = join_relative(folder, &name);
         let mut note = Note::default();
         note.adopt_created(today);
@@ -296,10 +293,19 @@ impl NoteFolder {
     /// frontmatter and body alike, is exactly what it was. The same shape as
     /// `set_pinned`, and for the same reason: the file is the user's.
     pub fn set_banner(&self, relative: &str, banner: Option<crate::note::Banner>) -> Result<()> {
+        self.edit(relative, |note| note.banner = banner)
+    }
+
+    /// Reads a note, lets `change` mutate it, writes it back — the body
+    /// behind every setter that edits one field of an existing note. `write`
+    /// is deliberately not one of them: it tolerates a missing file and
+    /// adopts a creation date, which is right when a person edits a note and
+    /// wrong for the app's own bookkeeping.
+    fn edit(&self, relative: &str, change: impl FnOnce(&mut Note)) -> Result<()> {
         let path = self.note_path(relative)?;
         let text = std::fs::read_to_string(&path).ctx(&path)?;
         let mut note = Note::parse(&text);
-        note.banner = banner;
+        change(&mut note);
         crate::fsio::write_atomically(&path, note.render().as_bytes())
     }
 
@@ -319,24 +325,18 @@ impl NoteFolder {
         if body.is_none() && banner.is_none() {
             return Ok(());
         }
-        let path = self.note_path(relative)?;
-        let text = std::fs::read_to_string(&path).ctx(&path)?;
-        let mut note = Note::parse(&text);
-        if let Some(body) = body {
-            note.body = body;
-        }
-        if let Some(banner) = banner {
-            note.banner = Some(banner);
-        }
-        crate::fsio::write_atomically(&path, note.render().as_bytes())
+        self.edit(relative, |note| {
+            if let Some(body) = body {
+                note.body = body;
+            }
+            if let Some(banner) = banner {
+                note.banner = Some(banner);
+            }
+        })
     }
 
     pub fn set_pinned(&self, relative: &str, pinned: bool) -> Result<()> {
-        let path = self.note_path(relative)?;
-        let text = std::fs::read_to_string(&path).ctx(&path)?;
-        let mut note = Note::parse(&text);
-        note.pinned = pinned;
-        crate::fsio::write_atomically(&path, note.render().as_bytes())
+        self.edit(relative, |note| note.pinned = pinned)
     }
 
     pub fn create_folder(&self, relative: &str) -> Result<()> {
@@ -388,10 +388,7 @@ impl NoteFolder {
         // The folder is known to exist (checked above), so the empty-on-missing
         // behaviour of `dir_paths` never applies here.
         for path in crate::fsio::dir_paths(&dir)? {
-            let name = path
-                .file_name()
-                .map(|n| n.to_string_lossy().to_string())
-                .unwrap_or_default();
+            let name = crate::fsio::file_name_of(&path);
             let target = crate::fsio::free_name(&parent_dir, &name);
             std::fs::rename(&path, &target).ctx(&target)?;
             moved += 1;

@@ -204,8 +204,8 @@ impl TaskFolder {
     /// drifting away from its folder, and a fixed name means it cannot drift.
     /// Kept as a method rather than inlining the constant so every call site
     /// still reads as a question about this folder.
-    pub fn main_list_name(&self) -> String {
-        crate::MAIN_LIST.to_string()
+    pub fn main_list_name(&self) -> &'static str {
+        crate::MAIN_LIST
     }
 
     /// Recreates `task-list.md` and `completed.md` when missing. Called on

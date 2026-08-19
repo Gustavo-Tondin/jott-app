@@ -105,7 +105,8 @@ impl Notebook {
     }
 
     /// Every space folder of a given type, as (root-relative prefix,
-    /// absolute dir). The walk behind both folder listings above — they
+    /// absolute dir). The walk behind `task_folders` and `note_folders` (in
+    /// the `lists` and `notes` areas) — they
     /// differ only in the type they ask for and the folder value they build,
     /// so the walk itself is written once. A space is its own content
     /// folder now: the widget level between them was cut (2026-08-11).
@@ -138,7 +139,10 @@ impl Notebook {
     /// The three spaces the app creates and recreates — never renamed,
     /// deleted, nor treated as user content. They carry the `jott.` prefix, so
     /// the plain names (`Tasks`, `Notes`, `Home`) are the user's to take.
-    fn is_fixed_space(folder: &str) -> bool {
+    /// Public because the interface greys out what this refuses — a second
+    /// copy of the three names in the bridge would drift from the rule that
+    /// actually enforces them.
+    pub fn is_fixed_space(folder: &str) -> bool {
         folder == crate::HOME_DIR || folder == TASKS_DIR || folder == NOTES_DIR
     }
 
@@ -285,7 +289,6 @@ impl Notebook {
         })
     }
 
-    /// Opens an existing user space by its folder name.
     /// Opens a space by its **root-relative path** (`Mercado`,
     /// `Design/Tasks`).
     ///
@@ -310,9 +313,9 @@ impl Notebook {
     }
 
     /// Moves a space into a group (`Some`) or back to the root (`None`),
-    /// renaming its folder. Identity is the leaf name, which never changes, so
-    /// nothing addressing the space *by name* breaks — but its lists are
-    /// addressed by PATH, and the path is exactly what a move changes.
+    /// renaming its folder. Identity is the root-relative PATH (2026-08-13),
+    /// and the path is exactly what a move changes — so the states and the
+    /// stored arrangements are repointed by `relocate`.
     pub fn move_space(&mut self, name: &str, into_group: Option<&str>) -> Result<()> {
         self.ensure_writable()?;
         if Self::is_fixed_space(name) {
@@ -325,7 +328,7 @@ impl Notebook {
             None => self.root.clone(),
         };
         // `relocate` is told the LEAF to land under; `name` is a path now.
-        let leaf = crate::space::folder_name_of(&from);
+        let leaf = crate::fsio::file_name_of(&from);
         self.relocate(&from, &target_parent, &leaf)
     }
 
@@ -410,12 +413,8 @@ impl Notebook {
         color: Option<String>,
         icon: Option<String>,
     ) -> Result<()> {
-        self.ensure_writable()?;
         let path = self.open_space(folder)?.config_path();
-        edit_marked_config(path, |config| {
-            config.color = color.as_deref().and_then(cleared_to_none);
-            config.icon = icon.as_deref().and_then(cleared_to_none);
-        })
+        self.set_marked_appearance(path, color, icon)
     }
 
     /// Sends a user space to the trash — never a fixed one, and never a

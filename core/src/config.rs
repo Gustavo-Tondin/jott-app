@@ -426,7 +426,7 @@ impl Config {
     }
 
     /// Reads the config. A missing or unreadable file yields the defaults —
-    /// same treatment `Inbox.md` gets, and for the same reason: a broken
+    /// same treatment a missing `task-list.md` gets, and for the same reason: a broken
     /// preference file must never stop someone from opening their notebook.
     pub fn load(path: impl AsRef<Path>) -> Self {
         Self::from_doc(crate::jsondoc::load(path))
@@ -572,36 +572,45 @@ impl Config {
                 Value::from(self.completed_retention_days),
             ),
         ]);
-        // Both are written only once the user has arranged something, so an
-        // untouched notebook stays free of an empty `"order": {}` — and
-        // clearing an arrangement has to *remove* the key, or a stale one in
-        // `raw` survives the rewrite.
+        // Everything below is written only once the user has chosen or
+        // arranged something, so an untouched notebook stays free of empty
+        // keys — and going back to the default has to *remove* the key, or a
+        // stale one in `raw` survives the rewrite. One rule, three shapes of
+        // "nothing to say": the empty sort, the empty name, the empty map.
         let mut cleared: Vec<&str> = Vec::new();
+        let put_or_clear = |owned: &mut crate::jsondoc::Doc,
+                                cleared: &mut Vec<&'static str>,
+                                key: &'static str,
+                                value: Option<Value>| {
+            match value {
+                Some(value) => {
+                    owned.insert(key.to_string(), value);
+                }
+                None => cleared.push(key),
+            }
+        };
         // The sidebar's arrangement: absent means the dragged order, which is
         // the default, so an untouched notebook says nothing about it.
-        if self.spaces_sort.is_empty() {
-            cleared.push("spacesSort");
-        } else {
-            owned.insert(
-                "spacesSort".to_string(),
-                Value::from(self.spaces_sort.clone()),
-            );
-        }
+        put_or_clear(
+            &mut owned,
+            &mut cleared,
+            "spacesSort",
+            (!self.spaces_sort.is_empty()).then(|| Value::from(self.spaces_sort.clone())),
+        );
         // The accent and the theme, same rule: absent means what the app ships
-        // as, so a notebook that never had one chosen says nothing about it,
-        // and going back to the default REMOVES the key rather than writing
-        // the default name into the file.
+        // as, so a notebook that never had one chosen says nothing about it.
         for (key, value) in [
             ("accentColor", &self.accent_color),
             ("theme", &self.theme),
             ("headingColor", &self.heading_color),
             ("noteFontSize", &self.note_font_size),
         ] {
-            if value.is_empty() {
-                cleared.push(key);
-            } else {
-                owned.insert(key.to_string(), Value::from(value.clone()));
-            }
+            put_or_clear(
+                &mut owned,
+                &mut cleared,
+                key,
+                (!value.is_empty()).then(|| Value::from(value.clone())),
+            );
         }
         for (key, value) in [
             ("order", serde_json::to_value(&self.order).unwrap_or_default()),
@@ -615,12 +624,8 @@ impl Config {
             ),
             ("shortcuts", Value::Object(self.shortcuts.clone())),
         ] {
-            let empty = value.as_object().is_none_or(|o| o.is_empty());
-            if empty {
-                cleared.push(key);
-            } else {
-                owned.insert(key.to_string(), value);
-            }
+            let has_content = value.as_object().is_some_and(|o| !o.is_empty());
+            put_or_clear(&mut owned, &mut cleared, key, has_content.then_some(value));
         }
         crate::jsondoc::render(&self.raw, owned, &cleared)
     }

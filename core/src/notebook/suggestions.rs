@@ -25,24 +25,21 @@ impl Notebook {
         };
 
         let mut out = Vec::new();
-        for (prefix, folder) in self.task_folders()? {
-            for name in folder.list_names()? {
-                // Completed lists are where finished tasks go; a date on one of
-                // them is history, not a plan.
-                if name == COMPLETED_LIST {
+        for list in self.list_paths()? {
+            // Completed lists are where finished tasks go; a date on one of
+            // them is history, not a plan.
+            if list.name == COMPLETED_LIST {
+                continue;
+            }
+            for task in self.open_list(&list.path)?.tasks() {
+                if task.done {
                     continue;
                 }
-                let path = format!("{prefix}/{name}.md");
-                for task in self.open_list(&path)?.tasks() {
-                    if task.done {
-                        continue;
-                    }
-                    if task.due.is_some_and(|due| due <= last_day) {
-                        out.push(ListedTask {
-                            path: path.clone(),
-                            task: task.clone(),
-                        });
-                    }
+                if task.due.is_some_and(|due| due <= last_day) {
+                    out.push(ListedTask {
+                        path: list.path.clone(),
+                        task: task.clone(),
+                    });
                 }
             }
         }
@@ -104,11 +101,11 @@ impl Notebook {
         };
 
         let labels = self.space_labels()?;
-        let space_of = |path: &str| -> String {
-            path.rsplit_once('/')
-                .and_then(|(dir, _)| labels.get(dir).cloned())
-                .unwrap_or_default()
-        };
+        // Unlike `space_label_of`, unknown here is the EMPTY string: a
+        // suggestion row draws its space label as a small caption, and a raw
+        // folder path there would be noise rather than a name.
+        let space_of =
+            |path: &str| -> String { labels.get(list_dir_of(path)).cloned().unwrap_or_default() };
 
         let mut suggestions: Vec<Suggestion> = self
             .suggestions_for(period)?
@@ -161,37 +158,25 @@ impl Notebook {
     /// candidates for today. Everything else in the lists follows.
     ///
     /// Anything already pulled into the period is left out, and so are
-    /// completed tasks and the `Completas` list itself.
+    /// completed tasks and the folder's `completed` list itself.
     pub fn suggestions_for(&self, period: Period) -> Result<Vec<ListedTask>> {
         // What the period ALREADY shows — not just what was pulled into its
         // state. Since 2026-08-14 a dated task joins the period on its own, and
         // suggesting something the user is already looking at is noise.
-        let showing = self.period_tasks(period)?;
+        let showing = ShownIndex::of(&self.period_tasks(period)?);
         let mut out: Vec<ListedTask> = Vec::new();
+        // Ids already offered. Id-only ON PURPOSE, narrower than
+        // `is_same_task`: two id-less tasks with the same text in one list
+        // are usually two real tasks ("call back" twice), and hiding one of
+        // them from the panel would hide work.
+        let mut offered: std::collections::HashSet<(String, String)> = Default::default();
 
-        let is_showing = |candidate: &ListedTask| {
-            showing.iter().any(|listed| {
-                listed.path == candidate.path
-                    && match (listed.task.id.as_deref(), candidate.task.id.as_deref()) {
-                        (Some(a), Some(b)) => a == b,
-                        // Most tasks have no id — one is handed out only when
-                        // something needs to address the task — so two id-less
-                        // tasks in the same list are the same one when their
-                        // text is.
-                        _ => listed.task.text == candidate.task.text,
-                    }
-            })
-        };
-
-        let push = |candidate: ListedTask, out: &mut Vec<ListedTask>| {
-            if candidate.task.done || is_showing(&candidate) {
+        let mut push = |candidate: ListedTask, out: &mut Vec<ListedTask>| {
+            if candidate.task.done || showing.contains(&candidate) {
                 return;
             }
             if let Some(id) = candidate.task.id.as_deref() {
-                let already = out
-                    .iter()
-                    .any(|t| t.path == candidate.path && t.task.id.as_deref() == Some(id));
-                if already {
+                if !offered.insert((candidate.path.clone(), id.to_string())) {
                     return;
                 }
             }
@@ -220,5 +205,53 @@ impl Notebook {
             }
         }
         Ok(out)
+    }
+}
+
+/// The set form of [`super::is_same_task`], for asking "is this task already
+/// on the period's screen?" once per candidate without a scan per question.
+///
+/// Three sets carry the predicate's three arms exactly: id against id when
+/// both exist; a candidate with no id falls back to text against ANY shown
+/// task; a candidate with an id still text-matches a shown task that has
+/// none (an id is handed out lazily, so the same task can be id-less on one
+/// side and named on the other).
+struct ShownIndex {
+    ids: std::collections::HashSet<(String, String)>,
+    texts_all: std::collections::HashSet<(String, String)>,
+    texts_idless: std::collections::HashSet<(String, String)>,
+}
+
+impl ShownIndex {
+    fn of(shown: &[ListedTask]) -> Self {
+        let mut index = Self {
+            ids: Default::default(),
+            texts_all: Default::default(),
+            texts_idless: Default::default(),
+        };
+        for listed in shown {
+            let key = (listed.path.clone(), listed.task.text.clone());
+            index.texts_all.insert(key.clone());
+            match listed.task.id.as_deref() {
+                Some(id) => {
+                    index.ids.insert((listed.path.clone(), id.to_string()));
+                }
+                None => {
+                    index.texts_idless.insert(key);
+                }
+            }
+        }
+        index
+    }
+
+    fn contains(&self, candidate: &ListedTask) -> bool {
+        let text_key = (candidate.path.clone(), candidate.task.text.clone());
+        match candidate.task.id.as_deref() {
+            Some(id) => {
+                self.ids.contains(&(candidate.path.clone(), id.to_string()))
+                    || self.texts_idless.contains(&text_key)
+            }
+            None => self.texts_all.contains(&text_key),
+        }
     }
 }

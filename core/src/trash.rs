@@ -88,16 +88,13 @@ impl Trash {
     pub fn trash_file(&mut self, abs: &Path, origin: &str, today: NaiveDate) -> Result<String> {
         let items = self.items_dir();
         std::fs::create_dir_all(&items).ctx(&items)?;
-        let name = abs
-            .file_name()
-            .map(|n| n.to_string_lossy().to_string())
-            .unwrap_or_else(|| "deleted".to_string());
+        let mut name = crate::fsio::file_name_of(abs);
+        if name.is_empty() {
+            name = "deleted".to_string();
+        }
         let target = crate::fsio::free_name(&items, &name);
         std::fs::rename(abs, &target).ctx(&target)?;
-        let stored = target
-            .file_name()
-            .map(|n| n.to_string_lossy().to_string())
-            .unwrap_or_default();
+        let stored = crate::fsio::file_name_of(&target);
         let id = self.next_id();
         self.entries.push(TrashEntry {
             id: id.clone(),
@@ -157,12 +154,13 @@ impl Trash {
     /// Permanently removes every entry whose retention window has elapsed.
     /// `retention_days` is the countdown length; `today` the current civil day.
     pub fn reap(&mut self, retention_days: i64, today: NaiveDate) -> Result<()> {
-        let expired: Vec<TrashEntry> = self
-            .entries
-            .iter()
-            .filter(|e| is_expired(e, retention_days, today))
-            .cloned()
-            .collect();
+        // One pass: split off the expired entries, delete their stored files,
+        // keep the rest. `is_expired` used to run twice over the whole index,
+        // with a full clone of every expired entry in between.
+        let (expired, kept): (Vec<TrashEntry>, Vec<TrashEntry>) = std::mem::take(&mut self.entries)
+            .into_iter()
+            .partition(|e| is_expired(e, retention_days, today));
+        self.entries = kept;
         if expired.is_empty() {
             return Ok(());
         }
@@ -176,8 +174,6 @@ impl Trash {
                 }
             }
         }
-        self.entries
-            .retain(|e| !is_expired(e, retention_days, today));
         self.save()
     }
 

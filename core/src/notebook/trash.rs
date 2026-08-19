@@ -55,10 +55,10 @@ impl Notebook {
                 if let Some(parent) = dest.parent() {
                     std::fs::create_dir_all(parent).ctx(parent)?;
                 }
-                let name = dest
-                    .file_name()
-                    .map(|n| n.to_string_lossy().to_string())
-                    .unwrap_or_else(|| "restored".to_string());
+                let mut name = crate::fsio::file_name_of(&dest);
+                if name.is_empty() {
+                    name = "restored".to_string();
+                }
                 let final_dest = if dest.exists() {
                     crate::fsio::free_name(dest.parent().unwrap_or(&self.root), &name)
                 } else {

@@ -20,8 +20,6 @@
 //! gets decided by shape, never by position, because the file is written by
 //! humans in whatever order they like.
 
-use std::collections::BTreeMap;
-
 use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 
@@ -29,7 +27,7 @@ const COMMENT_OPEN: &str = "<!--";
 const COMMENT_CLOSE: &str = "-->";
 
 /// Indentation of one level. Everything under a task uses exactly one level.
-pub const INDENT: &str = "  ";
+const INDENT: &str = "  ";
 
 /// Named fields the app understands. Anything else stays description, so a
 /// line like `lembrar: ligar pro Jorge` is never mistaken for a field.
@@ -727,9 +725,3 @@ fn find_field(comment: &str, key: &str) -> Option<usize> {
     None
 }
 
-/// Unknown named fields are kept as description, so nothing is lost. Exposed
-/// for tests that check that promise.
-#[allow(dead_code)]
-pub(crate) fn known_fields() -> BTreeMap<&'static str, ()> {
-    KNOWN_FIELDS.iter().map(|k| (*k, ())).collect()
-}
