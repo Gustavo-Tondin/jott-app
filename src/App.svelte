@@ -55,7 +55,7 @@
   import TabBar from "./lib/shell/TabBar.svelte";
   import TitleBar from "./lib/shell/TitleBar.svelte";
   import { buttonLayout } from "./lib/shell/windowButtons.js";
-  import { isMobile, platformAttribute } from "./lib/shell/platform.js";
+  import { isMobile, osAttribute, platformAttribute } from "./lib/shell/platform.js";
   import { watchCompact } from "./lib/shell/compact.js";
   import TopBar from "./lib/shell/TopBar.svelte";
   import BottomSheet from "./lib/components/BottomSheet.svelte";
@@ -205,7 +205,17 @@
   /// buttons, resize edges, system bars). See shell/platform.js.
   let platform = $state(platformAttribute(null));
   let mobile = $derived(isMobile(platform));
-  api.platform().then((answer) => (platform = platformAttribute(answer)), () => {});
+  /// The same answer, asked the finer question: WHICH system, for the window
+  /// corner the app draws itself. Empty until the bridge replies, and empty
+  /// for anything this build has no corner for — the CSS default stands then.
+  let os = $state("");
+  api.platform().then(
+    (answer) => {
+      platform = platformAttribute(answer);
+      os = osAttribute(answer);
+    },
+    () => {},
+  );
 
   /// What the open note reports about itself, for the page header and menu.
   let openNote = $state({ pinned: false, title: "", banner: null });
@@ -596,6 +606,8 @@
   // still runs on a phone.
   $effect(() => {
     document.documentElement.dataset.platform = platform;
+    if (os) document.documentElement.dataset.os = os;
+    else delete document.documentElement.dataset.os;
   });
 
   /// Is this part of the app switched on? (App Functions, 2026-08-06.) One

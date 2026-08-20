@@ -215,7 +215,7 @@
          md 12px  a standard control or list row, ~36-48px — field, task row,
                   button, popover, sidebar entry
          lg 16px  a card or a floating panel — note card, dialog, format bar
-         xl 20px  a full region — the canvas panel, a bottom sheet
+         xl 20px  a full region — a bottom sheet, the canvas a phone raises
 
        NESTING IS ARITHMETIC, NOT A RUNG: a box sitting flush inside another
        takes `outer - padding`, which is the only value that keeps the two
@@ -392,12 +392,34 @@
        IS the OS window's edge (no transparent gutter), so a webview-drawn
        shadow has nowhere to render — and on WebKitGTK it accumulated alpha
        on every repaint until it turned into a black ring.
+
+       IT COPIES THE HOST (user call, 2026-08-20). No system tells an app what
+       it rounds its windows by — GNOME's is a shell setting, KDE's belongs to
+       the decoration, Windows' lives in the DWM — so the value cannot be
+       asked for; it is KNOWN per system and picked by `data-os`
+       (shell/platform.js). Getting it wrong is visible: where the compositor
+       masks the window at its own radius and the app draws a bigger one, the
+       app's corner is clipped by the mask and the two curves fight.
+
+       Linux is the default, at the 20px of GNOME's rounded corners — the
+       desktop this app is developed and clicked on, so the unknown case lands
+       on the one that has been looked at. Android never gets here: there the
+       window IS the screen and draws square (`.window--flush`), because the
+       device's own corner is already rounder than anything the app would draw
+       inside it.
        --------------------------------------------------------------------- */
-    /* The frame is the CANVAS's corner plus the gutter it sits in (`.shell`
-       pads the centre panel by 4px), which is the only value that keeps the
-       two curves concentric at the bottom corners — an inner corner rounder
-       than the outer one is what reads as a rendering fault. */
-    --theme-window-radius: calc(var(--theme-radius-xl) + var(--theme-space-4));
+    --theme-window-radius: 1.25rem; /* 20px */
+  }
+
+  /* Windows 11 rounds a window by 8px, macOS by 10. Neither has been seen
+     running — the app is cross-compiled for Windows and has no Mac at all
+     (CLAUDE.md, "Plataformas") — so these are the systems' documented values
+     and not a measurement, and they are one line each to correct. */
+  :root[data-os="windows"] {
+    --theme-window-radius: 0.5rem; /* 8px */
+  }
+  :root[data-os="macos"] {
+    --theme-window-radius: 0.625rem; /* 10px */
   }
 
   /* The two other rungs of the note's size ladder. Here rather than in

@@ -456,7 +456,12 @@
     min-height: 0;
     position: relative;
     background: var(--theme-bg);
-    border-radius: var(--theme-radius-xl);
+    /* The window's corner less the gutter `.shell` leaves around this panel:
+       the canvas is what the frame holds, and its two bottom corners are 4px
+       inside the window's own. It follows the frame from system to system —
+       a squarer window gets a squarer canvas, and the pair stays concentric
+       without either being restated. */
+    border-radius: calc(var(--theme-window-radius) - var(--theme-space-4));
     overflow: hidden;
   }
 

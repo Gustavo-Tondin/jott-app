@@ -285,7 +285,8 @@ pub fn window_button_layout() -> ButtonLayout {
         .unwrap_or_else(default_button_layout)
 }
 
-/// Which kind of machine this build runs on: `"android"` or `"desktop"`.
+/// Which machine this build runs on: `"android"`, `"windows"`, `"macos"` or
+/// `"linux"`.
 ///
 /// The app needs this for what belongs to the DEVICE rather than to the
 /// window: there are no window buttons to draw on a phone, no edges to drag,
@@ -298,12 +299,24 @@ pub fn window_button_layout() -> ButtonLayout {
 /// it. The mirror image of this is width, which the CSS answers on its own
 /// (styles/tokens.css, `--theme-compact`): width decides the LAYOUT, this
 /// decides the AFFORDANCES.
+///
+/// It NAMES THE DESKTOP it is on (2026-08-20) for the one thing that is not a
+/// yes/no about the device: the window's own corner. The app draws an
+/// undecorated window, so the rounding is the app's to draw, and each system
+/// rounds its windows differently — copying the host is what keeps the app
+/// from looking like a stranger on it. Nothing else asks; the front end folds
+/// every desktop answer back into "desktop" for the affordance question
+/// (shell/platform.js), which is why widening this vocabulary broke nothing.
 #[tauri::command]
 pub fn platform() -> &'static str {
     if cfg!(target_os = "android") {
         "android"
+    } else if cfg!(target_os = "windows") {
+        "windows"
+    } else if cfg!(target_os = "macos") {
+        "macos"
     } else {
-        "desktop"
+        "linux"
     }
 }
 
