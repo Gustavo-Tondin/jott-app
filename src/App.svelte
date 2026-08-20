@@ -787,11 +787,20 @@
     ],
   });
 
+  /// The formatting buttons this notebook does not draw (App Functions,
+  /// 2026-08-20). One list, three bars: the panel, the desktop strip and the
+  /// one above the Android keyboard all read it, so none of them can be the
+  /// one that still offers a picture nobody can embed.
+  let hiddenFormats = $derived([
+    ...(f("wikiLinks") ? [] : ["md.reference"]),
+    ...(f("embeds") ? [] : ["md.attach"]),
+  ]);
+
   /// What the right button offers on the empty canvas: the screen's actions,
   /// plus the banner when the screen IS a note — the wireframe's second door
   /// to it.
   let canvasMenu = $derived(
-    view.kind === "note" && !notebook?.readOnly
+    view.kind === "note" && !notebook?.readOnly && f("banners")
       ? [bannerMenu, ...screenActions]
       : screenActions,
   );
@@ -805,7 +814,12 @@
     const own = [];
     {
       own.push(
-        { label: openNote.pinned ? S.unpin : S.pin, run: toggleNotePin },
+        // Each of these is a switch of its own (App Functions, 2026-08-20):
+        // an item that acts on something the notebook does not have would be
+        // a promise the app cannot keep.
+        ...(f("pinNotes")
+          ? [{ label: openNote.pinned ? S.unpin : S.pin, run: toggleNotePin }]
+          : []),
         { label: S.renameNote, run: renameCurrentNote },
         { label: S.deleteNote, run: deleteCurrentNote },
         // The banner, from the page's own ⋮ and — through `screenActions` —
@@ -813,8 +827,10 @@
         // block carries the same choices in its corner; this is the door for
         // someone who did not think to look there, and the only one when the
         // note is scrolled past its head.
-        bannerMenu,
-        { label: S.insertImage, run: () => (pickingImage = "body") },
+        ...(f("banners") ? [bannerMenu] : []),
+        ...(f("embeds")
+          ? [{ label: S.insertImage, run: () => (pickingImage = "body") }]
+          : []),
         // The reading size, where a reader asks for it — on the note itself,
         // not only two screens away in Settings (user call, 2026-08-18). It is
         // the same notebook setting either way.
@@ -1853,7 +1869,7 @@
                      it was TOLD. Told "chrome" it came out dark on a light bar
                      (this bar is the one place the same component sits on the
                      two grounds). -->
-                <FormatBar layout="row" region="canvas" onRun={runFormat} />
+                <FormatBar layout="row" region="canvas" hidden={hiddenFormats} onRun={runFormat} />
               </div>
 
               <!-- The way BACK to the docked panel (user call, 2026-08-19).
@@ -2036,6 +2052,7 @@
             />
           {:else if view.kind === "notes"}
             <NotesSpace
+              {f}
               source={sourceOf(
                 // The arrangement comes from the space's own config — without
                 // it the ⋮ could not tick the sorting in force and dragging
@@ -2076,6 +2093,7 @@
                  no colour and no height, and the title stays exactly where it
                  was (user call, 2026-08-19). -->
             <NoteBanner
+              enabled={f("banners")}
               banner={openNote.banner}
               title={openNote.title}
               root={notebook.path}
@@ -2097,6 +2115,8 @@
               onOpenNote={openNoteByTitle}
               onZoomImage={(address) => (zoomedImage = address)}
               version={reloadKey}
+              wikiLinks={f("wikiLinks")}
+              embeds={f("embeds")}
               root={notebook.path}
               onLoaded={(state) => {
                 openNote = state;
@@ -2112,6 +2132,9 @@
             <SettingsView
               {compact}
               {notebook}
+              {zoom}
+              onZoom={setZoom}
+              onSwitchNotebook={chooseFolder}
               folders={noteFolders}
               notesInbox={layout.notesInbox}
               onSection={(label) => (settingsSub = label)}
@@ -2223,6 +2246,7 @@
         {:else if formatBarOpen}
           <NotePanel
             onRun={runFormat}
+            hidden={hiddenFormats}
             menu={noteActions}
             where={listName(folderOf(view.path)) || S.allNotes}
             targets={noteMoveTargets}
@@ -2322,7 +2346,7 @@
      wireframe puts it against the keyboard's top edge. -->
 {#if compact && notebook && view.kind === "note" && editorFocused && !notebook.readOnly}
   <div class="format-strip" data-region="chrome">
-    <FormatBar layout="row" region="chrome" onRun={runFormat} />
+    <FormatBar layout="row" region="chrome" hidden={hiddenFormats} onRun={runFormat} />
   </div>
 {/if}
 

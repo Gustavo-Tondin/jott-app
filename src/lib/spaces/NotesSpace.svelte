@@ -76,6 +76,13 @@
     /// link opens beside what you are reading without taking it away.
     onOpenNote,
     reloadKey = 0,
+    /// Which parts of the app are on (`services/features.js`). Notes gained
+    /// sub-functions on 2026-08-20, the way tasks always had them: a board
+    /// with folders off is flat, one with pins off has no pin, and a note with
+    /// banners off is a title and its text. Nothing on disk changes either
+    /// way — a folder that exists still holds its notes, and its notes are
+    /// still listed.
+    f = () => true,
   } = $props();
 
 
@@ -94,7 +101,9 @@
   /// so there is nothing to read a saved choice from. (An `options` field
   /// used to be consulted here — a phantom the bridge never sent.)
   let chosenLayout = $state(null);
-  let layout = $derived(chosenLayout ?? "grid");
+  /// With folders switched off there is no tree to draw — the view is the one
+  /// arrangement the space still has.
+  let layout = $derived(f("noteFolders") ? (chosenLayout ?? "grid") : "grid");
   /// Which folder is being looked at — `null` is the space's own board (its
   /// loose notes and the inbox's). ONE state for both views: "where am I in
   /// the tree" is the same question whether it is asked by a chip or by the
@@ -293,7 +302,9 @@
   /// What is at this place: the notes to draw as cards, and the folders to
   /// draw as cards of their own. In the tree view the folder chips already say
   /// where you are, so only the notes of the open folder are drawn.
-  let here = $derived(board(notes, folders, "", notesInbox));
+  let here = $derived(
+    board(notes, folders, "", notesInbox, { flat: !f("noteFolders") }),
+  );
 
   /// The same question asked of the open folder card — what the popover holds.
   let inside = $derived(board(notes, folders, openFolder ?? "", notesInbox));
@@ -306,7 +317,9 @@
   /// Arranged, with the pinned ones floated to the top: pinning outranks the
   /// sort, exactly as it does on a task list (services/spaceOrder.js).
   const laid = (cards) =>
-    pinnedFirst(arrange(cards, sort, source?.order ?? [], accessors));
+    f("pinNotes")
+      ? pinnedFirst(arrange(cards, sort, source?.order ?? [], accessors))
+      : arrange(cards, sort, source?.order ?? [], accessors);
 
   /// The notes of this place, before the folder cards join them.
   let atHand = $derived(
@@ -350,24 +363,30 @@
           ? []
           : [
               { label: S.newNote, run: create },
-              { label: S.newNoteFolder, run: createFolder },
+              ...(f("noteFolders")
+                ? [{ label: S.newNoteFolder, run: createFolder }]
+                : []),
               { label: S.selectNotes, run: () => (picking = true) },
             ]),
-        {
-          label: S.layout,
-          items: [
-            {
-              label: S.gridView,
-              checked: layout === "grid",
-              run: () => (chosenLayout = "grid"),
-            },
-            {
-              label: S.treeView,
-              checked: layout === "tree",
-              run: () => (chosenLayout = "tree"),
-            },
-          ],
-        },
+        ...(f("noteFolders")
+          ? [
+              {
+                label: S.layout,
+                items: [
+                  {
+                    label: S.gridView,
+                    checked: layout === "grid",
+                    run: () => (chosenLayout = "grid"),
+                  },
+                  {
+                    label: S.treeView,
+                    checked: layout === "tree",
+                    run: () => (chosenLayout = "tree"),
+                  },
+                ],
+              },
+            ]
+          : []),
       ],
       sorts: [null, "name", "created", "custom"],
       sort,
@@ -384,7 +403,9 @@
     readOnly
       ? []
       : [
-          { label: group.pinned ? S.unpin : S.pin, run: () => pinFolder(group) },
+          ...(f("pinNotes")
+            ? [{ label: group.pinned ? S.unpin : S.pin, run: () => pinFolder(group) }]
+            : []),
           {
             label: S.color,
             items: [
@@ -409,7 +430,9 @@
     readOnly
       ? []
       : [
-          { label: entry.pinned ? S.unpin : S.pin, run: () => togglePin(entry) },
+          ...(f("pinNotes")
+            ? [{ label: entry.pinned ? S.unpin : S.pin, run: () => togglePin(entry) }]
+            : []),
           {
             label: S.moveTo,
             items: moveTargets.flatMap((group) =>
@@ -454,10 +477,12 @@
       label: title,
       options: [
         { value: JSON.stringify([folder, ""]), label: S.allNotes },
-        ...folders.map((it) => ({
-          value: JSON.stringify([folder, it.path]),
-          label: it.path,
-        })),
+        ...(f("noteFolders")
+          ? folders.map((it) => ({
+              value: JSON.stringify([folder, it.path]),
+              label: it.path,
+            }))
+          : []),
       ],
     },
     ...noteSpaces
@@ -756,6 +781,7 @@
                   <!-- The same two controls a note card carries, for the same
                        reason: a pin is a state and has to be readable off the
                        card, and everything else is the ⋮. -->
+                  {#if f("pinNotes")}
                   <button
                     class="theme-btn--icon note-card__pin"
                     class:note-card__pin--on={group.pinned}
@@ -769,6 +795,7 @@
                       size="1rem"
                     />
                   </button>
+                  {/if}
                   <Menu items={groupMenu(group)} align="end">
                     {#snippet trigger({ toggle })}
                       <button
@@ -788,6 +815,7 @@
                   <NoteCard
                     {entry}
                     {root}
+                    banners={f("banners")}
                     small
                     onOpen={(_, opts) => openNote(entry, opts)}
                     onContextMenu={openCardMenu}
@@ -864,10 +892,11 @@
                           <NoteCard
                             {entry}
                             {root}
+                            banners={f("banners")}
                             {picking}
                             selected={picked.has(entry.path)}
                             menu={cardMenu(entry)}
-                            onPin={readOnly ? null : () => togglePin(entry)}
+                            onPin={readOnly || !f("pinNotes") ? null : () => togglePin(entry)}
                             onOpen={(_, opts) =>
                               picking ? togglePick(entry) : openNote(entry, opts)}
                             onContextMenu={openCardMenu}
@@ -888,10 +917,11 @@
             <NoteCard
               entry={card}
               {root}
+              banners={f("banners")}
               {picking}
               selected={picked.has(card.path)}
               menu={cardMenu(card)}
-              onPin={readOnly ? null : () => togglePin(card)}
+              onPin={readOnly || !f("pinNotes") ? null : () => togglePin(card)}
               onOpen={(_, opts) => (picking ? togglePick(card) : openNote(card, opts))}
               onContextMenu={openCardMenu}
             />

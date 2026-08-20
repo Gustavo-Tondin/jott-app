@@ -35,9 +35,18 @@ export const GROUP_PREVIEW = 4;
 /// Returns `{ cards, groups, parent }`: the notes to draw, the folder cards to
 /// draw, and where "up" goes (null at the root). A **pinned** folder card comes
 /// first, the same rule a pinned note follows.
-export function board(notes = [], folders = [], current = "", inbox = "Inbox") {
+export function board(notes = [], folders = [], current = "", inbox = "Inbox", { flat = false } = {}) {
   const here = current ?? "";
   const inboxName = inbox || "";
+
+  // FLAT: the notebook has note folders switched off (App Functions,
+  // 2026-08-20). Every note is a card and no folder is, wherever the notes
+  // actually live — which is the part that matters. A board that simply left
+  // the folders out would have hidden the notes inside them, and "switched
+  // off" has never meant "hidden" anywhere else in the app: the folder is
+  // still on disk, still holds its notes, and gets its cards back with the
+  // switch.
+  if (flat) return { cards: notes, groups: [], parent: null };
 
   // At the root the inbox is not a place you go into — it is where loose notes
   // already are.

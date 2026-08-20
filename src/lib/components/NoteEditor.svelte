@@ -29,6 +29,11 @@
     root = null,
     version = 0,
     saveDelay = 500,
+    /// What a note may hold in this notebook (App Functions, 2026-08-20).
+    /// Passed straight through: this component owns the file, the editor owns
+    /// what is drawn in it.
+    wikiLinks = true,
+    embeds = true,
   } = $props();
 
   let body = $state("");
@@ -121,5 +126,7 @@
     {onZoomImage}
     {root}
     {version}
+    {wikiLinks}
+    {embeds}
   />
 </div>

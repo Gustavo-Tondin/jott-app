@@ -108,11 +108,12 @@ impl NoteFolder {
             let text = std::fs::read_to_string(path).ctx(path)?;
             let note = Note::parse(&text);
             let (folder, title) = split_relative(relative);
+            let preview = note.preview(&title);
             found.push(NoteEntry {
                 path: relative.to_string(),
                 title,
                 folder,
-                preview: note.preview(),
+                preview,
                 created: note.created,
                 pinned: note.pinned,
                 banner: note.banner,

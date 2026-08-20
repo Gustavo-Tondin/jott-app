@@ -1,0 +1,71 @@
+<script>
+  // The head of a note, drawn on its card (board of `spaces/NotesSpace.svelte`).
+  //
+  // Everything it knows about markdown it asks `services/notePreview.js` for;
+  // everything it knows about looks is a class in
+  // `styles/components/note-preview.css`. What is left here is the one thing a
+  // component owns: which element each block becomes.
+  //
+  // **Spans, not divs.** The whole card is a `<button>` (a card is a link to a
+  // document), and a button may only hold phrasing content — a `<p>` or an
+  // `<h2>` inside it is invalid HTML that browsers "fix" by closing the button
+  // early. The shape comes from `display: block` in the sheet, and the heading
+  // level travels as `data-level` for the styles to read.
+  import { previewBlocks } from "../services/notePreview.js";
+
+  let {
+    /// The markdown the core sent (`NoteEntry.preview`).
+    markdown = "",
+    /// What to draw when there is none.
+    empty = "",
+  } = $props();
+
+  let blocks = $derived(previewBlocks(markdown));
+</script>
+
+{#if blocks.length > 0}
+  <span class="note-preview">
+    {#each blocks as block}
+      {#if block.kind === "rule"}
+        <span class="note-preview__rule"></span>
+      {:else if block.kind === "code"}
+        <span class="note-preview__code">{block.text}</span>
+      {:else if block.kind === "heading"}
+        <span class="note-preview__heading" data-level={block.level}>
+          {@render spans(block.spans)}
+        </span>
+      {:else if block.kind === "quote"}
+        <span class="note-preview__quote">{@render spans(block.spans)}</span>
+      {:else if block.kind === "bullet" || block.kind === "ordered" || block.kind === "task"}
+        <span class="note-preview__item">
+          {#if block.kind === "task"}
+            <span class="note-preview__box" class:note-preview__box--done={block.done}></span>
+          {:else}
+            <span class="note-preview__marker">
+              {block.kind === "ordered" ? block.marker : "•"}
+            </span>
+          {/if}
+          <span class="note-preview__text" class:note-preview__text--done={block.done}>
+            {@render spans(block.spans)}
+          </span>
+        </span>
+      {:else}
+        <span class="note-preview__line">{@render spans(block.spans)}</span>
+      {/if}
+    {/each}
+  </span>
+{:else if empty}
+  <span class="note-preview note-preview__line">{empty}</span>
+{/if}
+
+{#snippet spans(runs)}
+  {#each runs as run}
+    <span
+      class:note-preview__strong={run.strong}
+      class:note-preview__em={run.em}
+      class:note-preview__strike={run.strike}
+      class:note-preview__underline={run.underline}
+      class:note-preview__mono={run.code}>{run.text}</span
+    >
+  {/each}
+{/snippet}

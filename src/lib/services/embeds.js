@@ -229,10 +229,17 @@ export function embedDecorationsFor(state, ranges, ctx = {}) {
   const builder = new RangeSetBuilder();
   const active = activeLines(state);
 
+  // What this notebook draws at all (App Functions, 2026-08-20). A reference
+  // the user switched off is left as the text it is — the file is untouched
+  // either way, which is the same promise every other switch makes. Asked per
+  // KIND because the two are separate switches: `[[Nota]]` is WikiLinks, and
+  // `[[/foto.jpg]]` is Embedded images and files.
+  const shows = (kind) => ctx.shows?.(kind) ?? true;
+
   for (const { from, to } of ranges) {
     let line = state.doc.lineAt(from);
     while (line.from <= to) {
-      const found = referencesIn(line.text, line.from);
+      const found = referencesIn(line.text, line.from).filter((ref) => shows(ref.kind));
       if (!active.has(line.number)) {
         for (const embed of found) {
           builder.add(embed.from, embed.to, Decoration.replace({ widget: new EmbedWidget(embed, ctx) }));

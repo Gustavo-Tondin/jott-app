@@ -45,10 +45,18 @@ const KNOWN_KEYS: [&str; 2] = ["created", "pinned"];
 /// Enough to FILL the tallest card the board draws, because the cut is the
 /// card's, not this one's: a note with little in it shows all of it, and a long
 /// one is clamped by the column it is in (note-card.css), which is what puts
-/// the ellipsis on a real line ending instead of mid-air. 240 was short enough
+/// the fade on a real line ending instead of mid-air. 240 was short enough
 /// that the tallest card in the wireframe ran out of text before it ran out of
 /// room.
 const PREVIEW_CHARS: usize = 400;
+
+/// And how many LINES of it, whatever the characters say.
+///
+/// A note whose head is twenty empty-ish lines (a list of one-word items, a
+/// table of dates) would otherwise spend the whole budget arriving nowhere,
+/// and the card would be a column of stubs. The card draws fewer than this;
+/// the margin is what lets it clamp on a line the reader can see ending.
+const PREVIEW_LINES: usize = 24;
 
 /// What opens the banner line, and what closes it.
 const BANNER_OPEN: &str = "<!--banner:";
@@ -191,19 +199,60 @@ impl Note {
         }
     }
 
-    /// First lines of the body, collapsed, for a card.
-    pub fn preview(&self) -> String {
-        let mut preview = String::new();
-        for word in self.body.split_whitespace() {
-            if preview.len() + word.len() + 1 > PREVIEW_CHARS {
-                break;
+    /// The head of the body, **as Markdown**, for a card to draw.
+    ///
+    /// Lines are kept, and so is every mark on them. The card renders the
+    /// structure it finds (`services/notePreview.js`) instead of showing a
+    /// paragraph of collapsed syntax — before 2026-08-20 this collapsed the
+    /// whole head with `split_whitespace`, and a card opened with
+    /// `# Título > **Nota** ## Seção` run together as one grey tira.
+    ///
+    /// `title` is the note's own, and the reason this takes an argument at
+    /// all: a note almost always opens with a heading repeating the file name,
+    /// and drawing it would print the title of the card twice (user call,
+    /// 2026-08-20 — "sim, pule"). Only the FIRST heading, only when it says
+    /// the same thing, and only for the card: the file keeps every character.
+    pub fn preview(&self, title: &str) -> String {
+        let mut lines = self.body.lines().skip_while(|line| line.trim().is_empty()).peekable();
+
+        if lines.peek().is_some_and(|line| heading_text(line) == Some(title.trim())) {
+            lines.next();
+            while lines.peek().is_some_and(|line| line.trim().is_empty()) {
+                lines.next();
             }
-            if !preview.is_empty() {
-                preview.push(' ');
-            }
-            preview.push_str(word);
         }
-        preview
+
+        let mut preview = String::new();
+        for line in lines.take(PREVIEW_LINES) {
+            let line = line.trim_end();
+            if !preview.is_empty() {
+                preview.push('\n');
+            }
+            let room = PREVIEW_CHARS.saturating_sub(preview.len());
+            if line.len() <= room {
+                preview.push_str(line);
+                continue;
+            }
+            // The line is longer than what is left. It is cut on a WORD, never
+            // mid-character: one paragraph of prose is a perfectly ordinary
+            // note, and the card would otherwise get the whole of it.
+            let mut written = 0;
+            for word in line.split_whitespace() {
+                if written + word.len() + 1 > room {
+                    break;
+                }
+                if written > 0 {
+                    preview.push(' ');
+                    written += 1;
+                }
+                preview.push_str(word);
+                written += word.len();
+            }
+            break;
+        }
+        // A head that ends in blank lines would draw as empty space under the
+        // last one; the card's own gap between blocks is the spacing.
+        preview.trim_end().to_string()
     }
 
     /// Whether the note's text matches `query`, case-insensitively.
@@ -237,6 +286,17 @@ fn split_banner(body: &str) -> (Option<Banner>, String) {
         return (None, body.to_string());
     };
     (Some(banner), rest.trim_start_matches('\n').to_string())
+}
+
+/// The words of an ATX heading (`## Título` -> `Título`), or `None`.
+///
+/// Only the form the app itself writes. A Setext heading (a line underlined
+/// with `===`) is left alone: it is two lines, and reading one back to skip
+/// the other is more machinery than the one case it buys.
+fn heading_text(line: &str) -> Option<&str> {
+    let line = line.trim();
+    let hashes = line.len() - line.trim_start_matches('#').len();
+    (1..=6).contains(&hashes).then(|| line[hashes..].trim())
 }
 
 /// The text after an opening `---` line, or `None`.
@@ -361,12 +421,35 @@ mod tests {
     }
 
     #[test]
-    fn preview_collapses_whitespace_and_stops_at_a_limit() {
-        let note = Note::parse("Primeira linha.\n\n   Segunda    linha.\n");
-        assert_eq!(note.preview(), "Primeira linha. Segunda linha.");
+    fn preview_keeps_the_lines_and_the_marks_and_stops_at_a_limit() {
+        // The card DRAWS the markdown (services/notePreview.js), so the head
+        // arrives as markdown: the line breaks are the structure.
+        let note = Note::parse("## Seção\n\n- **um**\n- dois\n");
+        assert_eq!(note.preview("Nota"), "## Seção\n\n- **um**\n- dois");
 
         let long = Note::parse(&"palavra ".repeat(200));
-        assert!(long.preview().len() <= PREVIEW_CHARS);
+        assert!(long.preview("Nota").len() <= PREVIEW_CHARS);
+
+        // A head of many short lines is capped by the line count, not by the
+        // characters — otherwise the card is a column of stubs.
+        let listy = Note::parse(&"- x\n".repeat(100));
+        assert_eq!(listy.preview("Nota").lines().count(), PREVIEW_LINES);
+    }
+
+    #[test]
+    fn preview_skips_a_first_heading_that_repeats_the_title() {
+        // User call, 2026-08-20: almost every note opens with `# ` and its own
+        // name, and the card was printing the title twice.
+        let note = Note::parse("# Receita\n\nDuas xícaras.\n");
+        assert_eq!(note.preview("Receita"), "Duas xícaras.");
+
+        // Only the first, only when it says the same thing.
+        let other = Note::parse("# Ingredientes\n\nDuas xícaras.\n");
+        assert_eq!(other.preview("Receita"), "# Ingredientes\n\nDuas xícaras.");
+
+        // And it is a heading that is skipped, never a line of text.
+        let plain = Note::parse("Receita\n\nDuas xícaras.\n");
+        assert_eq!(plain.preview("Receita"), "Receita\n\nDuas xícaras.");
     }
 
     #[test]
@@ -384,7 +467,7 @@ mod tests {
         assert_eq!(note.banner, Some(Banner::Color("yellow".into())));
         assert_eq!(note.body, "Texto.\n");
         // The preview a card shows is the TEXT — the banner is drawn, not read.
-        assert_eq!(note.preview(), "Texto.");
+        assert_eq!(note.preview("Nota"), "Texto.");
     }
 
     #[test]

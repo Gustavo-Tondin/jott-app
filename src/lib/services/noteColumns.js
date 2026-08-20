@@ -18,6 +18,14 @@
 // this file is pure, and a card's height is guessed from what it holds. An
 // estimate that is off makes one column longer than another — never one empty.
 
+import { previewBlocks } from "./notePreview.js";
+
+/// The most lines of preview a card draws — the clamp in
+/// styles/components/note-preview.css (`--note-preview-lines`), repeated here
+/// for the same reason the widths are: the count has to be computed, not read
+/// back off the layout.
+export const PREVIEW_LINES = 12;
+
 /// The narrowest a card may be, in px, and the gap between columns. Both are
 /// the CSS values (notes-space.css, `--theme-space-12`); they are repeated
 /// here because the count has to be computed, not read back off the layout.
@@ -84,13 +92,39 @@ export function columnBreaks(weights, count) {
   return breaks;
 }
 
+/// Roughly how many characters of a preview fit on one line of a card.
+const CHARS_PER_LINE = 34;
+
 /// What a card is worth, in rough line-heights: its banner, its title, and as
 /// much of its preview as the card will draw. A folder card is its own header
 /// plus the small cards inside it.
+///
+/// The preview is asked what BLOCKS it holds (`services/notePreview.js`) and
+/// not how many characters it has, because since 2026-08-20 the card draws
+/// them: a head of six one-word bullets is six lines however short its text
+/// is, and a heading is taller than the line under it. Counting characters
+/// called that head one line and packed the column as if the card were empty.
 export function weightOfNote(entry) {
-  const preview = entry?.preview ?? "";
-  const lines = Math.min(14, Math.ceil(preview.length / 34));
-  return 2 + (entry?.banner ? 5 : 0) + lines;
+  const blocks = previewBlocks(entry?.preview ?? "");
+  const lines = blocks.reduce((total, block) => total + weightOfBlock(block), 0);
+  return 2 + (entry?.banner ? 5 : 0) + Math.min(PREVIEW_LINES, Math.round(lines));
+}
+
+/// One block, in the same rough line-heights.
+function weightOfBlock(block) {
+  if (block.kind === "rule") return 1;
+  if (block.kind === "code") return block.text.split("\n").length + 1;
+
+  const text = block.spans.map((span) => span.text).join("");
+  if (block.kind === "heading") {
+    // Bigger type fits less on a line and asks for air above it — the two
+    // sizes note-preview.css draws, at the weights they cost.
+    const wide = block.level <= 2;
+    const lines = Math.max(1, Math.ceil(text.length / (wide ? 26 : 32)));
+    return lines * (wide ? 1.5 : 1.2) + 0.5;
+  }
+  const lines = Math.max(1, Math.ceil(text.length / CHARS_PER_LINE));
+  return block.kind === "quote" ? lines + 0.5 : lines;
 }
 
 export function weightOfGroup(group) {

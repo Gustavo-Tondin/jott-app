@@ -47,15 +47,23 @@
     /// (wireframe "New note mobile - no banner") — so the door to renaming has
     /// to be here as well as in the page ⋮.
     onRename = null,
+    /// Whether this notebook has banners at all (App Functions, 2026-08-20).
+    /// Off, the head is the TITLE and nothing else — no band, no ⋮ to hang one
+    /// with — and the `<!--banner:-->` line already in a file stays exactly
+    /// where it is, the way a task keeps its `!2` while priority is off.
+    enabled = true,
   } = $props();
 
   let open = $state(false);
 
-  let isImage = $derived(banner?.kind === "image");
-  let src = $derived(isImage ? assetUrl(root, banner.value) : "");
+  /// Nothing is drawn from a banner the notebook does not draw. Folded in
+  /// here, once, rather than at each of the four places that read it.
+  let shown = $derived(enabled ? banner : null);
+  let isImage = $derived(shown?.kind === "image");
+  let src = $derived(isImage ? assetUrl(root, shown.value) : "");
   /// A colour banner paints with the palette; a hex written by hand passes
   /// through, the same tolerance every other colour in the app keeps.
-  let tint = $derived(banner?.kind === "color" ? accentFill(banner.value) : null);
+  let tint = $derived(shown?.kind === "color" ? accentFill(shown.value) : null);
 
   const set = (value) => {
     open = false;
@@ -65,7 +73,7 @@
 
 <div
   class="note-banner"
-  class:note-banner--empty={!banner}
+  class:note-banner--empty={!shown}
   class:note-banner--image={isImage}
   class:note-banner--compact={compact}
   style={tint ? `--banner: ${tint}` : ""}
@@ -76,7 +84,7 @@
     <img class="note-banner__image" src={src} alt="" />
   {/if}
 
-  {#if !readOnly}
+  {#if !readOnly && enabled}
     <div
       class="note-banner__menu"
       class:note-banner__menu--open={open}
@@ -84,7 +92,7 @@
     >
       <button
         class="theme-btn--icon note-banner__more"
-        class:note-banner__more--on-block={!!banner}
+        class:note-banner__more--on-block={!!shown}
         aria-label={S.bannerOptions}
         title={S.bannerOptions}
         onclick={() => (open = !open)}
@@ -94,7 +102,7 @@
       {#if open}
         <div class="theme-popover theme-popover--end note-banner__panel" use:keepOnScreen>
           <AccentPicker
-            value={banner?.kind === "color" ? banner.value : null}
+            value={shown?.kind === "color" ? shown.value : null}
             clearable={false}
             label={S.bannerColor}
             onPick={(name) => set(name)}
@@ -102,7 +110,7 @@
           <button class="note-banner__action" onclick={() => { open = false; onChooseImage?.(); }}>
             {S.bannerImage}
           </button>
-          {#if banner}
+          {#if shown}
             <button class="note-banner__action" onclick={() => set(null)}>
               {S.removeBanner}
             </button>

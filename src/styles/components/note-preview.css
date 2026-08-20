@@ -1,0 +1,168 @@
+/* note-preview.css — the head of a note, drawn on its card.
+ * Markup: src/lib/components/NotePreview.svelte. Blocks come from
+ * services/notePreview.js; this sheet is the whole of what they look like.
+ *
+ * **One ink, and it is the muted one** (user call, 2026-08-20: "com peso e
+ * tudo formatado, mas cinza opaco como agora"). The note itself gives its
+ * headings the accent ladder — inside a note that is the reader's own
+ * document, and the colour is a map of it. A board is twenty notes at once,
+ * and twenty accented headings would be twenty things asking to be looked at
+ * before the titles do. So the hierarchy here is carried by SIZE, WEIGHT and
+ * SHAPE only: the same structure the note has, at the volume a thumbnail
+ * should speak in.
+ *
+ * Everything is in `em`, so the whole preview follows the card's own font size
+ * — the same trade the editor makes (styles/components/editor.css).
+ *
+ * Every element is a `<span>` made to behave: the card is a `<button>`, which
+ * may only hold phrasing content. See the component's header. */
+
+@layer components {
+  .note-preview {
+    /* The clamp is a LINE COUNT, not a height: it is what makes the cut land
+       between lines rather than through one. The fade does the rest — with a
+       formatted preview an ellipsis has nowhere to sit (the last line may be
+       a heading, a bullet or a quote), and a soft end says "there is more"
+       without pretending to be punctuation. */
+    --note-preview-lines: 12;
+    display: block;
+    color: var(--theme-ink-muted);
+    font-size: var(--theme-text-13);
+    line-height: var(--theme-leading-normal);
+    max-block-size: calc(var(--note-preview-lines) * var(--theme-leading-normal) * 1em);
+    overflow: hidden;
+    overflow-wrap: anywhere;
+    mask-image: linear-gradient(to bottom, #000 70%, transparent 100%);
+  }
+
+  .note-preview > * {
+    display: block;
+  }
+  /* The gap between blocks is the paragraph break the markdown had. Between
+     items of the same list it closes up: a list is one shape, not five. */
+  .note-preview > * + * {
+    margin-block-start: 0.35em;
+  }
+  .note-preview__item + .note-preview__item {
+    margin-block-start: 0.1em;
+  }
+
+  /* ---- headings ----
+     Six levels, and the same rule the note keeps: a title needs air above it
+     more than below. The two largest step up in size; the four below say it
+     with weight alone, because at 13px a fourth size is a rounding error. */
+  .note-preview__heading {
+    font-weight: var(--theme-weight-bold);
+    line-height: var(--theme-leading-tight);
+    letter-spacing: var(--theme-tracking-tight);
+  }
+  .note-preview__heading[data-level="1"] {
+    font-size: 1.25em;
+  }
+  .note-preview__heading[data-level="2"] {
+    font-size: 1.1em;
+  }
+  .note-preview__heading[data-level="3"] {
+    font-size: 1.02em;
+  }
+  .note-preview > * + .note-preview__heading {
+    margin-block-start: 0.7em;
+  }
+
+  /* ---- inline ---- */
+  .note-preview__strong {
+    font-weight: var(--theme-weight-bold);
+  }
+  /* Italic only. In the note the emphasis carries a colour of its own
+     (`--theme-emphasis`); here it would be the one coloured word on a grey
+     card, which is more attention than the word asked for. */
+  .note-preview__em {
+    font-style: italic;
+  }
+  .note-preview__strike {
+    text-decoration: line-through;
+  }
+  .note-preview__underline {
+    text-decoration: underline;
+  }
+  .note-preview__mono {
+    padding: 0.05em 0.3em;
+    border-radius: var(--theme-radius-xs);
+    background: var(--theme-bg);
+    font-family: var(--theme-font-mono);
+    font-size: 0.9em;
+  }
+
+  /* ---- lists ----
+     The marker hangs in its own column, so a wrapped item lines up under its
+     first word instead of under the bullet. */
+  .note-preview__item {
+    display: flex;
+    gap: 0.45em;
+    align-items: baseline;
+  }
+  .note-preview__marker {
+    flex: none;
+    font-variant-numeric: tabular-nums;
+  }
+  .note-preview__text {
+    min-inline-size: 0;
+  }
+  /* A checklist inside a note is text (spec 5), and this is a picture of it:
+     a drawn box, never an input — nothing on a card is interactive. */
+  .note-preview__box {
+    flex: none;
+    inline-size: 0.75em;
+    block-size: 0.75em;
+    align-self: center;
+    border: 0.0625rem solid currentColor;
+    border-radius: var(--theme-radius-xs);
+  }
+  .note-preview__box--done {
+    background: currentColor;
+  }
+  .note-preview__text--done {
+    text-decoration: line-through;
+    opacity: 0.7;
+  }
+
+  /* ---- quote ----
+     The bar, in the line colour rather than the accent the note gives it: on
+     a grey card the bar is the shape saying "quote", and it does not need to
+     be the brightest thing on it. */
+  .note-preview__quote {
+    border-inline-start: 0.125rem solid var(--theme-line);
+    padding-inline-start: 0.6em;
+  }
+
+  /* ---- code block ----
+     The box says "code" and the box is enough; inside it the chip comes off,
+     the same trade the editor makes. */
+  .note-preview__code {
+    padding: 0.25em 0.5em;
+    border-radius: var(--theme-radius-xs);
+    background: var(--theme-bg);
+    font-family: var(--theme-font-mono);
+    font-size: 0.9em;
+    white-space: pre-wrap;
+  }
+
+  /* ---- rule ----
+     A hairline, and it keeps its own air: three dashes in a note are a break
+     between two things, and a break with no room around it is a border. */
+  .note-preview__rule {
+    block-size: 0.0625rem;
+    margin-block: 0.5em;
+    background: var(--theme-line);
+  }
+
+  /* The card inside a folder card, and any other ground that is already the
+     region's lower neutral: a chip painted `--theme-bg` there would be
+     invisible, so it takes the other one. */
+  .note-card--small .note-preview__mono,
+  .note-card--small .note-preview__code,
+  .note-group__popover .note-preview__mono,
+  .note-group__popover .note-preview__code {
+    background: var(--theme-surface);
+  }
+}

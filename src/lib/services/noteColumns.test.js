@@ -3,6 +3,7 @@ import {
   CARD_MIN,
   columnBreaks,
   columnCount,
+  PREVIEW_LINES,
   weightOfGroup,
   weightOfNote,
 } from "./noteColumns.js";
@@ -74,7 +75,18 @@ describe("what a card weighs", () => {
     expect(weightOfNote({ preview: "" })).toBe(2);
     expect(weightOfNote({ preview: "", banner: { kind: "color", value: "red" } })).toBe(7);
     // The preview is clamped on screen, so it is clamped here too.
-    expect(weightOfNote({ preview: "x".repeat(4000) })).toBe(16);
+    expect(weightOfNote({ preview: "x".repeat(4000) })).toBe(2 + PREVIEW_LINES);
+  });
+
+  it("counts the BLOCKS, not the characters", () => {
+    // Six one-word bullets are six lines however little they say — counting
+    // characters called that card empty and packed the column around it.
+    const listy = weightOfNote({ preview: "- um\n- dois\n- três\n- quatro" });
+    expect(listy).toBe(weightOfNote({ preview: "x".repeat(4 * 34) }));
+    // And a heading is taller than the line under it.
+    expect(weightOfNote({ preview: "# Título" })).toBeGreaterThan(
+      weightOfNote({ preview: "Título" }),
+    );
   });
 
   it("counts a folder card by the small cards inside it", () => {

@@ -18,6 +18,7 @@
   import { reorderable } from "../actions/reorder.js";
   import { spaceIcon } from "../services/spaceIcon.js";
   import { accentStyle } from "../services/accent.js";
+  import { openIn } from "../services/counts.js";
 
   let {
     notebook,
@@ -372,6 +373,14 @@
         >
           <Icon name="check-square" size="1.125rem" />
           <span class="shell__nav-label">{S.tasks}</span>
+          <!-- The fixed screen's own number, which it never had: a row that
+               holds tasks says how many are open, and this one holds the
+               Inbox and every list beside it (user report, 2026-08-20). -->
+          {#if openIn(counts, notebook?.layout?.tasksFolder)}
+            <span class="shell__count"
+              >{openIn(counts, notebook?.layout?.tasksFolder)}</span
+            >
+          {/if}
         </button>
       {/if}
       {#if f("notes")}
@@ -448,6 +457,13 @@
                for the whole section. -->
           <Icon name={spaceIcon(sp)} size={grouped ? "1rem" : "1.125rem"} />
           <span class="shell__nav-label">{sp.name}</span>
+          <!-- A space of tasks counts what is open in it, the same way the
+               fixed screen and the lists do. A notepad has nothing to count,
+               and a type this build has never heard of is not going to be
+               guessed at. -->
+          {#if sp.kind === "tasks" && openIn(counts, sp.path)}
+            <span class="shell__count">{openIn(counts, sp.path)}</span>
+          {/if}
         </button>
         <!-- The colour/icon popup still needs somewhere to hang; it is only in
              the DOM while it is open, so nothing marks the row otherwise. -->

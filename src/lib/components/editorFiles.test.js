@@ -224,3 +224,44 @@ describe("the task description speaks the same [[ language", () => {
     expect(content(container).textContent).toContain("**negrito**");
   });
 });
+
+describe("with a note sub-function switched off", () => {
+  // App Functions, 2026-08-20. The switch takes the DRAWING away and leaves
+  // the file alone: what was written stays written, and comes back the moment
+  // the switch does. The two are separate switches because they are separate
+  // languages — `[[Nota]]` is a WikiLink, `[[/foto.jpg]]` is an embed.
+  const NOTEBOOK = "/home/gus/Caderno";
+
+  it("embeds off: the picture is the text that addresses it", async () => {
+    const { container } = render(Editor, {
+      props: {
+        value: "Antes\n[[/foto.jpg]]\nDepois",
+        root: NOTEBOOK,
+        embeds: false,
+      },
+    });
+
+    expect(container.querySelector(".cm-embed--image img")).toBe(null);
+    // The address is on the line, as the text it is. Not the whole
+    // `[[/foto.jpg]]`: the Markdown preview reads the inner `[...]` as link
+    // syntax and hides that one bracket, which is what it does to any square
+    // bracket in any note — and is exactly the point. With embeds off there is
+    // no reference here any more, only Markdown.
+    expect(content(container).textContent).toContain("/foto.jpg");
+  });
+
+  it("wikiLinks off: a note reference stays text, and a file still draws", async () => {
+    const { container } = render(Editor, {
+      props: {
+        value: "[[Outra nota]]\n[[/foto.jpg]]",
+        root: NOTEBOOK,
+        wikiLinks: false,
+      },
+    });
+
+    expect(container.querySelector(".cm-embed--note")).toBe(null);
+    expect(content(container).textContent).toContain("[[Outra nota]]");
+    // Its sibling is untouched: one switch, one thing.
+    expect(container.querySelector(".cm-embed--image img")).toBeTruthy();
+  });
+});

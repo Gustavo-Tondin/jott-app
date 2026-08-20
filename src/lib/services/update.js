@@ -14,6 +14,7 @@
 // The bridge already answered which ending applies (`canInstall`).
 
 import { api } from "./api.js";
+import { openExternal } from "./external.js";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -68,8 +69,9 @@ export async function installUpdate() {
   return true;
 }
 
-/// The other ending: the release page, in the system browser.
+/// The other ending: the release page, in the system browser. The opening
+/// itself is `services/external.js` — this keeps the name the update flow
+/// calls it by, and every outward link in the app goes through the one door.
 export async function openReleasePage(url) {
-  const { openUrl } = await import("@tauri-apps/plugin-opener");
-  await openUrl(url);
+  await openExternal(url);
 }

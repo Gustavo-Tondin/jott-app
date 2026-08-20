@@ -48,13 +48,23 @@
     /// the note with no pill at all). The same trap the drawer and the sheets
     /// document.
     region = "canvas",
+    /// Command ids this notebook does not draw — `md.reference` with WikiLinks
+    /// off, `md.attach` with embeds off (App Functions, 2026-08-20). A list of
+    /// ids rather than a flag per subject: the panel does not need to know
+    /// what a switch is called, only that this button has nothing to act on.
+    hidden = [],
   } = $props();
 
   /// The commands the panel draws, in registry order — the ones that named an
   /// icon. A command without one is reachable by key and by the settings
   /// screen; the panel is the shortlist of what a hand reaches for while
   /// writing, not a mirror of the list.
-  const shown = COMMANDS.filter((command) => command.scope === "editor" && command.icon);
+  let shown = $derived(
+    COMMANDS.filter(
+      (command) =>
+        command.scope === "editor" && command.icon && !hidden.includes(command.id),
+    ),
+  );
 
   /// The folded groups, and what opens each. A group named here folds; one
   /// that is not is drawn flat, which is both right for `history` (two glyphs)
@@ -76,10 +86,12 @@
   /// the column holds" true by construction rather than by someone remembering
   /// to add a line here. The old list named nine commands by hand, and the six
   /// it did not name were unreachable on a phone.
-  const CATEGORIES = [...new Set(shown.map((command) => command.group))];
-  const NARROW = ["history", ...CATEGORIES.filter((group) => group !== "history")]
-    .filter((group) => CATEGORIES.includes(group))
-    .flatMap((group) => (FOLDED[group] ? [{ fold: group }] : inGroup(group)));
+  let CATEGORIES = $derived([...new Set(shown.map((command) => command.group))]);
+  let NARROW = $derived(
+    ["history", ...CATEGORIES.filter((group) => group !== "history")]
+      .filter((group) => CATEGORIES.includes(group))
+      .flatMap((group) => (FOLDED[group] ? [{ fold: group }] : inGroup(group))),
+  );
 
   let items = $derived(layout === "column" ? shown : NARROW);
 

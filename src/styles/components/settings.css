@@ -58,6 +58,56 @@
   .settings--compact .settings__nav {
     max-inline-size: none;
   }
+  /* ---- the search over every row (2026-08-20) ----
+     It sits ABOVE the two blocks because it answers about both, and it is the
+     one control in the menu that is not a place to go. */
+  .settings__search {
+    display: flex;
+    align-items: center;
+    gap: var(--theme-space-6);
+    margin: 0 var(--theme-space-4) var(--theme-space-12);
+    padding: var(--theme-space-6) var(--theme-space-8);
+    border-radius: var(--theme-radius-md);
+    background: var(--theme-well);
+    color: var(--theme-ink-faint);
+  }
+  .settings__search--inline {
+    margin-inline: 0;
+    margin-block-end: var(--theme-space-8);
+    max-inline-size: 18rem;
+  }
+  .settings__search-field {
+    flex: 1;
+    min-inline-size: 0;
+    border: none;
+    background: none;
+    color: var(--theme-ink);
+    font: inherit;
+    font-size: var(--theme-text-14);
+  }
+  .settings__search-field:focus {
+    outline: none;
+  }
+  /* The engines draw their own clear button, in their own colour, in a field
+     that has neither. */
+  .settings__search-field::-webkit-search-cancel-button {
+    appearance: none;
+  }
+  /* A hit is a row plus WHERE it is — the answer to "where is this?" is a
+     place, so the place is on the row and not implied by the jump. */
+  .settings__hit {
+    flex-wrap: wrap;
+    row-gap: 0;
+  }
+  .settings__hit-where {
+    flex-basis: 100%;
+    font-size: var(--theme-text-12);
+    color: var(--theme-ink-faint);
+  }
+  .settings__hit-empty {
+    padding-inline: var(--theme-space-12);
+  }
+
   .settings__nav-title {
     margin: 0 0 var(--theme-space-8);
     padding-inline: var(--theme-space-12);
@@ -110,6 +160,27 @@
     background: var(--theme-well);
     color: var(--theme-ink);
     font-weight: var(--theme-weight-semibold);
+  }
+
+  /* The second block of the menu (wireframe "Settings screen mobile",
+     2026-08-20). A rule above it rather than a gap: the two blocks are peers
+     inside one card, and a line is what says the card has two halves. */
+  .settings__nav-title--split {
+    margin-block-start: var(--theme-space-16);
+    padding-block-start: var(--theme-space-16);
+    border-top: 0.0625rem solid var(--theme-line);
+  }
+  /* A door into a group carries no icon (the wireframe's rule): it is not a
+     subject, so the label starts where the subjects' icons do. */
+  .settings__nav-item--group {
+    padding-inline-start: var(--theme-space-12);
+  }
+  /* What belongs to the group above it. The bar is the belonging — indent
+     alone reads as a second level of the same list. */
+  .settings__nav-nest {
+    margin-inline-start: var(--theme-space-16);
+    padding-inline-start: var(--theme-space-8);
+    border-inline-start: 0.0625rem solid var(--theme-line);
   }
 
   /* The way back to the menu, on the phone. It is NOT the top bar's arrow:
@@ -215,6 +286,34 @@
     + .settings__row:not(.settings__row--sub) {
     margin-block-start: var(--theme-space-16);
     border-top: none;
+  }
+}
+
+/* Native Functions (2026-08-20). The row reads left to right as the sentence
+   it is: this is ON, it is called that, and there is more of it through here. */
+@layer components {
+  .settings__function {
+    gap: var(--theme-space-12);
+  }
+  .settings__function-name {
+    flex: 1;
+    min-inline-size: 0;
+  }
+  /* Dead while the function is off: its page has nothing to say about a part
+     of the app that is not there. */
+  .settings__function-open:disabled {
+    opacity: 0.4;
+  }
+  .settings__zoom {
+    display: flex;
+    align-items: center;
+    gap: var(--theme-space-8);
+  }
+  .settings__zoom-value {
+    min-inline-size: 3rem;
+    font-size: var(--theme-text-13);
+    color: var(--theme-ink-muted);
+    text-align: end;
   }
 }
 

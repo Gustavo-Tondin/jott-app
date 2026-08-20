@@ -17,11 +17,18 @@
 
 @layer components {
   .note-card {
+    /* The card's own padding, named once: the banner's corner and the corner
+       of the small card are both this number subtracted from the card's own
+       (`interno = externo − padding`, the rule of the house), and the tools in
+       the corner sit on it too. Written as a variable so the four places that
+       read it cannot drift apart — 6px was too tight to read a formatted
+       preview through (user, 2026-08-20: "ela tá muito apertada"). */
+    --note-card-pad: var(--theme-space-12);
     position: relative;
     display: flex;
     background: var(--theme-surface);
     border-radius: var(--theme-radius-lg);
-    padding: var(--theme-space-6);
+    padding: var(--note-card-pad);
     transition: opacity var(--theme-transition-fast);
   }
   .note-card:hover {
@@ -41,7 +48,7 @@
   .note-card__open {
     display: flex;
     flex-direction: column;
-    gap: var(--theme-space-4);
+    gap: var(--theme-space-8);
     inline-size: 100%;
     min-inline-size: 0;
     padding: 0;
@@ -60,7 +67,7 @@
     block-size: 4.75rem;
     /* The card's corner less the card's padding: the banner is flush against
        three of its edges. */
-    border-radius: calc(var(--theme-radius-lg) - var(--theme-space-6));
+    border-radius: calc(var(--theme-radius-lg) - var(--note-card-pad));
     background: var(--banner, var(--theme-brand));
     overflow: hidden;
   }
@@ -103,20 +110,10 @@
   }
 
   /* A card is as tall as its own text, up to a ceiling — "notas com pouco
-     conteúdo mostram tudo, as com muito são cortadas" (user, 2026-08-19). The
-     ceiling is a LINE COUNT and not a height: the cut then lands at the end of
-     a line and the browser writes the ellipsis itself, which is what the
-     wireframe draws ("Ad lito…"). */
-  .note-card__preview {
-    color: var(--theme-ink-muted);
-    font-size: var(--theme-text-13);
-    line-height: var(--theme-leading-normal);
-    display: -webkit-box;
-    -webkit-line-clamp: 14;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    overflow-wrap: anywhere;
-  }
+     conteúdo mostram tudo, as com muito são cortadas" (user, 2026-08-19).
+     The text itself, and the ceiling with it, moved to
+     styles/components/note-preview.css on 2026-08-20, when the preview stopped
+     being one run of collapsed syntax and became the blocks it describes. */
 
   /* The pin and the ⋮, in the corner of the card. Over the banner when there is
      one, so they are always in the same place.
@@ -125,8 +122,8 @@
      dropdown hanging off the bottom of the card. */
   .note-card__tools {
     position: absolute;
-    inset-block-start: var(--theme-space-6);
-    inset-inline-end: var(--theme-space-6);
+    inset-block-start: var(--note-card-pad);
+    inset-inline-end: var(--note-card-pad);
     display: flex;
     align-items: center;
   }
@@ -163,9 +160,11 @@
     display: none;
   }
 
-  /* The small card inside a folder card: a title, and nothing else. */
+  /* The small card inside a folder card: a title, and nothing else. It keeps
+     the tighter padding — it holds one line, and the folder card around it is
+     already padded. */
   .note-card--small {
-    padding: var(--theme-space-8);
+    --note-card-pad: var(--theme-space-8);
     background: var(--theme-bg);
     /* The folder card's corner less the padding it sits in. */
     border-radius: calc(var(--theme-radius-lg) - var(--theme-space-8));

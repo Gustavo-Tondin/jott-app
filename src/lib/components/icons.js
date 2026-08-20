@@ -62,6 +62,7 @@ import notebookIcon from "../../assets/icons/phosphor/regular/notebook.svg?raw";
 import keyboard from "../../assets/icons/phosphor/regular/keyboard.svg?raw";
 import slidersHorizontal from "../../assets/icons/phosphor/regular/sliders-horizontal.svg?raw";
 import downloadSimple from "../../assets/icons/phosphor/regular/download-simple.svg?raw";
+import info from "../../assets/icons/phosphor/regular/info.svg?raw";
 
 // The image library and the note banner (2026-08-18). `image` is the placeholder
 // a picture leaves when it is missing — the same grey square the wireframes
@@ -158,6 +159,7 @@ export const ICONS = {
   keyboard,
   "sliders-horizontal": slidersHorizontal,
   "download-simple": downloadSimple,
+  info,
   image,
   // markdown
   bold: textB,

@@ -3,9 +3,12 @@
   // "Notes Screen - mobile").
   //
   // A card is its banner, its title on a chip over the banner's bottom edge,
-  // and the first lines of its text. A note with no banner is the same card
-  // without the coloured block — the title reads as a title on its own, which
-  // is what "sem banner a nota fica só com título" means on the board too.
+  // and the first lines of its text — DRAWN as the markdown they are
+  // (components/NotePreview.svelte), which is what makes a card look like a
+  // small picture of the note instead of a paragraph of syntax. A note with no
+  // banner is the same card without the coloured block — the title reads as a
+  // title on its own, which is what "sem banner a nota fica só com título"
+  // means on the board too.
   //
   // The card only ever DRAWS. Opening, picking, pinning and the ⋮'s items are
   // the board's business (spaces/NotesSpace.svelte), because they are the same
@@ -18,6 +21,7 @@
   import { assetUrl } from "../services/assets.js";
   import Menu from "./Menu.svelte";
   import Icon from "./Icon.svelte";
+  import NotePreview from "./NotePreview.svelte";
 
   let {
     /// A `NoteEntry` from the bridge.
@@ -49,6 +53,9 @@
     /// `ContextMenu` per panel, at the pointer), so the card only reports the
     /// gesture. Null leaves the right button alone.
     onContextMenu = null,
+    /// Whether this notebook draws banners at all (App Functions, 2026-08-20).
+    /// Defaults to on, like every other switch a component is not told about.
+    banners = true,
   } = $props();
 
   /// Only the middle button, and never while picking: in that mode a click is
@@ -60,7 +67,10 @@
     onOpen?.(entry, { newTab: true });
   }
 
-  let banner = $derived(entry.banner ?? null);
+  /// A banner the notebook does not draw is not drawn here either (App
+  /// Functions, 2026-08-20) — and the card without one is the card this
+  /// component was already written for: title and preview.
+  let banner = $derived(banners ? (entry.banner ?? null) : null);
   let isImage = $derived(banner?.kind === "image");
   let src = $derived(isImage ? assetUrl(root, banner.value) : "");
   let tint = $derived(banner?.kind === "color" ? accentFill(banner.value) : null);
@@ -108,7 +118,7 @@
     </span>
 
     {#if !small}
-      <span class="note-card__preview">{entry.preview || S.emptyNote}</span>
+      <NotePreview markdown={entry.preview} empty={S.emptyNote} />
     {/if}
   </button>
 

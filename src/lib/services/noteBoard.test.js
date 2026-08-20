@@ -108,3 +108,28 @@ describe("a pinned folder", () => {
     expect(groups[0].color).toBe("red");
   });
 });
+
+describe("with note folders switched off", () => {
+  // App Functions, 2026-08-20. "Switched off" has never meant "hidden"
+  // anywhere else in the app — a task keeps its `!2` while priority is off —
+  // so a flat board still shows every note, wherever it is filed.
+  test("every note is a card, and no folder is", () => {
+    const notes = [
+      { path: "Inbox/a.md", title: "a", folder: "Inbox" },
+      { path: "Clientes/b.md", title: "b", folder: "Clientes" },
+      { path: "Clientes/Sub/c.md", title: "c", folder: "Clientes/Sub" },
+    ];
+    const folders = [{ path: "Inbox" }, { path: "Clientes" }, { path: "Clientes/Sub" }];
+
+    const flat = board(notes, folders, "", "Inbox", { flat: true });
+    expect(flat.groups).toEqual([]);
+    expect(flat.cards.map((n) => n.title)).toEqual(["a", "b", "c"]);
+    expect(flat.parent).toBe(null);
+
+    // And with folders on, the same call is the board it always was: the two
+    // notes filed away are inside their card, not loose.
+    const deep = board(notes, folders, "", "Inbox");
+    expect(deep.cards.map((n) => n.title)).toEqual(["a"]);
+    expect(deep.groups.map((g) => g.name)).toEqual(["Clientes"]);
+  });
+});

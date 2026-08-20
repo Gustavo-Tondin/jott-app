@@ -151,6 +151,11 @@ export const S = {
   featurePriority: "Priority",
   featureDescription: "Description",
   featureFiles: "Add files",
+  featureBanners: "Banners",
+  featureWikiLinks: "WikiLinks [[ ]]",
+  featureEmbeds: "Embedded images and files",
+  featureNoteFolders: "Note folders",
+  featurePinNotes: "Pin notes",
 
   // The shortcuts table in Settings (2026-08-18).
   sectionShortcuts: "Shortcuts",
@@ -258,7 +263,26 @@ export const S = {
   // the day this menu gains a second group, that group gets a label of its own
   // beside this one.
   settingsSections: "Settings",
+  // The second block of the menu (wireframe "Settings screen mobile",
+  // 2026-08-20): what the app can DO, as opposed to how it is set up. Its rows
+  // are a door into a group, which is why neither of them carries an icon.
+  settingsFunctions: "App functions",
   settingsBackToMenu: "All settings",
+  sectionNative: "Native Functions",
+  sectionNativeHint:
+    "Everything Jott can do. Switching one off takes it out of the whole " +
+    "interface — sidebar, tabs, buttons — and touches nothing on disk: your " +
+    "files keep every field, and it all comes back when you switch it on.",
+  sectionExpansions: "Expansions",
+  // The arrow at the end of a function's row. It needs a name of its own: the
+  // switch beside it already carries the function's, and two controls answering
+  // to one name is two controls nobody can tell apart by voice or by test.
+  openFunction: (name) => `${name} options`,
+  sectionTasks: "Tasks",
+  sectionNotes: "Notes",
+  sectionDates: "Date preferences",
+  // Kept for the notebooks that still name the screen this way, and for the
+  // search index: the section was renamed, the subject was not.
   sectionDay: "Day and week",
   sectionDisplay: "Display",
   // Whose answers these are (2026-08-20). Said once at the top of the section
@@ -311,6 +335,87 @@ export const S = {
   closeOnClickAwayHint:
     "Off by default: it fires easily, and losing a half-typed task costs more than the shortcut is worth.",
   quickNoteFolder: "Quick note goes to",
+  quickNoteFolderHint:
+    "Where the Home's capture box files a note. It names a folder of THIS " +
+    "notebook, so it stays with the notebook and not with the device.",
+
+  // The function pages (2026-08-20). One subtitle per group of rows: a
+  // function page is a list of what the function HAS, then of how it behaves.
+  subText: "Text",
+  subInterface: "Interface",
+  subLocation: "Location",
+  subSafety: "Safety",
+  subKeeping: "Keeping",
+  dateFormatElsewhere:
+    "How a date is WRITTEN answers to this device, so it lives in Display → Interface.",
+  shortcutFilter: "Filter commands",
+  subScreens: "Screens",
+  subFields: "Fields",
+  subBehaviour: "Behaviour",
+  subNoteHas: "What a note can have",
+  subBoard: "Board",
+  subEditor: "Editor",
+  subImages: "Images",
+  featureBannersHint:
+    "The colour or picture at the head of a note. Off, the editor draws no " +
+    "band and the card is title and preview — the <!--banner:--> line in the " +
+    "file stays exactly where it is.",
+  featureWikiLinksHint:
+    "Typing [[ offers the notes and files of this notebook, and a finished " +
+    "reference is drawn as a chip. Off, the brackets are ordinary characters.",
+  noteLayout: "Default layout",
+  noteLayoutGrid: "Cards",
+  noteLayoutTree: "Tree",
+  noteLayoutHint:
+    "How a notes space opens the first time. Each space remembers what you " +
+    "last chose in its own ⋮ menu.",
+  notePreviewLines: "Preview lines on a card",
+  previewLinesNone: "None",
+  editorPreview: "While writing",
+  editorPreviewLive: "Live preview",
+  editorPreviewSource: "Markdown source",
+  editorPreviewHint:
+    "Live preview hides the marks around the text you are not on. Source " +
+    "shows every * and # exactly as the file holds them.",
+  editorFormatBar: "Formatting bar",
+  formatBarAlways: "Always",
+  formatBarSelection: "On selection",
+  formatBarOff: "Off",
+  editorAutoClose: "Auto-close brackets and marks",
+  editorAutoCloseHint:
+    "Typing ( [ or * writes the closing one for you, and wraps what is " +
+    "selected instead of replacing it.",
+  confirmDeletes: "Ask before deleting",
+  confirmDeletesHint:
+    "Nothing is destroyed either way: a deleted note, list, space or file " +
+    "goes to .jott/trash/ and comes back to where it was.",
+  confirmImageDownloads: "Ask before downloading an image",
+  confirmImageDownloadsHint:
+    "Pasting a picture copied from a web page hands Jott an address, not a " +
+    "file, so drawing it means fetching it. The question says which site is " +
+    "being contacted.",
+
+  // Notebook / Location (2026-08-20). Both of these were reachable only from
+  // somewhere else — the folder from no menu at all, the switch from the
+  // sidebar's foot.
+  openNotebookFolder: "Open notebook folder",
+  openNotebookFolderAction: "Open",
+  switchNotebook: "Switch notebook",
+  switchNotebookAction: "Choose…",
+
+  // Display / Text (2026-08-20): the zoom was only ever on the keyboard.
+  interfaceZoom: "Interface zoom",
+  interfaceZoomHint:
+    "How big the app itself is drawn — the same thing Ctrl + and Ctrl - do. " +
+    "The note's own size is the row above.",
+  zoomOut: "Smaller",
+  zoomIn: "Bigger",
+  zoomReset: "Reset",
+
+  // The search over every row of every page (2026-08-20).
+  settingsSearch: "Search settings",
+  settingsSearchEmpty: "Nothing here matches that.",
+  settingsSearchIn: (section) => `in ${section}`,
   completedRetention: "Clear completed after (days)",
   completedRetentionHint:
     "A finished task leaves its Completed list after this many days and waits " +
@@ -321,7 +426,18 @@ export const S = {
   readOnlyNotice:
     "This notebook was written by a newer version of Jott and is open for reading only.",
 
-  // Updates (2026-08-19)
+  // About — was "Updates" until the section grew the other half of its
+  // subject (2026-08-20): what this app IS, next to what version it is.
+  sectionAbout: "About",
+  subVersion: "Version",
+  subThisApp: "This app",
+  yourFiles: "Your files",
+  yourFilesHint:
+    "Every notebook documents its own format, in plain text, inside " +
+    ".jott/_FORMAT.txt — so your notes stay readable without Jott.",
+  yourFilesAction: "Open the folder",
+  reportIssue: "Report an issue",
+  reportIssueAction: "Open GitHub",
   sectionUpdates: "Updates",
   updateVersion: "This app",
   updateAutoCheck: "Check for updates automatically",

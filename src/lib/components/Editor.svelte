@@ -69,6 +69,13 @@
     /// auto-close here; the Markdown marks stay ordinary characters in a
     /// field nothing renders.
     plain = false,
+    /// What this notebook draws inside a note (App Functions, 2026-08-20).
+    /// Both default to on: a component asked for nothing behaves the way the
+    /// app ships. They are read by the extensions through closures, so a
+    /// switch flipped in Settings reaches the open note on its next
+    /// transaction rather than needing the editor torn down.
+    wikiLinks = true,
+    embeds = true,
   } = $props();
 
   let host;
@@ -194,12 +201,23 @@
             openNote: (title) => onOpenNote?.(title),
             zoom: (address) => onZoomImage?.(address),
             icon: fileIcon,
+            shows: (kind) => (kind === "note" ? wikiLinks : embeds),
           }),
           // What `[[` offers while it is typed (2026-08-19). Its keymap is
           // installed at high precedence by `autocompletion()` itself, which
           // is what puts ArrowDown/Enter on the list while it is open and
           // gives them straight back to the document when it is not.
-          autocompletion({ override: [referenceCompletions(references)] }),
+          // Only the halves that are switched on are offered: with WikiLinks
+          // off, `[[` has nothing to say about notes, and with both off it
+          // says nothing at all and the brackets are two characters.
+          autocompletion({
+            override: [
+              referenceCompletions({
+                notes: (query) => (wikiLinks ? references.notes?.(query) : []),
+                files: (query) => (embeds ? references.files?.(query) : []),
+              }),
+            ],
+          }),
           // Pairs that close themselves (2026-08-19). After the completion so
           // its Backspace and its keymap are the ones already in place, and
           // internally in front of CodeMirror's own bracket handler — the

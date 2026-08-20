@@ -270,6 +270,7 @@
               <NoteCard
                 entry={note}
                 {root}
+                banners={f("banners")}
                 onOpen={(_, opts) => openNote(note, opts)}
                 onContextMenu={openCardMenu}
               />

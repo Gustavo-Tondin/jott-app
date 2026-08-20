@@ -32,23 +32,75 @@ import { S } from "./strings.js";
 /// an entry plus a checkbox someone has to remember to add.
 export const FEATURES = [
   { key: "tasks", label: () => S.featureTasks },
-  { key: "myDay", parent: "tasks", label: () => S.featureMyDay },
-  { key: "week", parent: "tasks", label: () => S.featureWeek, default: false },
-  { key: "subtasks", parent: "tasks", label: () => S.featureSubtasks },
-  { key: "taskTags", parent: "tasks", label: () => S.featureTaskTags },
-  { key: "dueDate", parent: "tasks", label: () => S.featureDueDate },
-  { key: "remind", parent: "tasks", label: () => S.featureRemind, default: false },
-  { key: "repeat", parent: "tasks", label: () => S.featureRepeat },
-  { key: "priority", parent: "tasks", label: () => S.featurePriority },
+  { key: "myDay", parent: "tasks", group: "screens", label: () => S.featureMyDay },
+  {
+    key: "week",
+    parent: "tasks",
+    group: "screens",
+    label: () => S.featureWeek,
+    default: false,
+  },
+  { key: "dueDate", parent: "tasks", group: "fields", label: () => S.featureDueDate },
+  { key: "priority", parent: "tasks", group: "fields", label: () => S.featurePriority },
+  { key: "repeat", parent: "tasks", group: "fields", label: () => S.featureRepeat },
+  { key: "subtasks", parent: "tasks", group: "fields", label: () => S.featureSubtasks },
+  { key: "taskTags", parent: "tasks", group: "fields", label: () => S.featureTaskTags },
   {
     key: "description",
     parent: "tasks",
+    group: "fields",
     label: () => S.featureDescription,
     default: false,
   },
-  { key: "files", parent: "tasks", label: () => S.featureFiles, default: false },
+  {
+    key: "files",
+    parent: "tasks",
+    group: "fields",
+    label: () => S.featureFiles,
+    default: false,
+  },
+  {
+    key: "remind",
+    parent: "tasks",
+    group: "fields",
+    label: () => S.featureRemind,
+    default: false,
+  },
   { key: "notes", label: () => S.featureNotes },
+  { key: "banners", parent: "notes", group: "has", label: () => S.featureBanners },
+  { key: "wikiLinks", parent: "notes", group: "has", label: () => S.featureWikiLinks },
+  { key: "embeds", parent: "notes", group: "has", label: () => S.featureEmbeds },
+  {
+    key: "noteFolders",
+    parent: "notes",
+    group: "has",
+    label: () => S.featureNoteFolders,
+  },
+  { key: "pinNotes", parent: "notes", group: "has", label: () => S.featurePinNotes },
 ];
+
+/// The app's FUNCTIONS — the switches that, turned off, take a whole part of
+/// the interface with them (wireframe "Settings screen mobile", 2026-08-20).
+///
+/// They are exactly the ones with no parent, which is why this is derived and
+/// not a third field somebody has to remember to set: a sub-function belongs
+/// to a function by naming it, and everything that names nothing IS one.
+export const FUNCTIONS = FEATURES.filter((feature) => !feature.parent);
+
+/// Whether a function has sub-functions of its own — the arrow at the end of
+/// its row in Native Functions, and the page that row leads to. Derived for
+/// the same reason: a function gains a page by gaining a child.
+export function hasPage(key) {
+  return FEATURES.some((feature) => feature.parent === key);
+}
+
+/// The sub-functions of `parent` that belong to `group` — one subtitle's worth
+/// of rows on a function's page. The GROUPING is data, not markup: a switch
+/// moves from Fields to Behaviour by changing a word here, and the page draws
+/// whatever it is given.
+export function childrenIn(parent, group) {
+  return FEATURES.filter((f) => f.parent === parent && f.group === group);
+}
 
 const BY_KEY = Object.fromEntries(FEATURES.map((f) => [f.key, f]));
 
