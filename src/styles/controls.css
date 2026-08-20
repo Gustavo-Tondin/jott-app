@@ -403,7 +403,8 @@
   .theme-segmented__item {
     padding: var(--theme-space-6) var(--theme-space-16);
     border: none;
-    border-radius: var(--theme-radius-sm);
+    /* The track's own corner less the 2px of well it sits in. */
+    border-radius: calc(var(--theme-radius-md) - var(--theme-space-2));
     background: none;
     color: var(--theme-ink-muted);
     font-size: var(--theme-text-14);

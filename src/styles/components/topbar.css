@@ -151,6 +151,12 @@
   .topbar__pill .topbar__button,
   .topbar__pill .page-nav__arrow {
     background: none;
+    /* The pill's corner less the inline padding they sit in — the hover plate
+       is what touches the pill's edge, and 4px in from it is where it starts.
+       The inline axis is the one with a gap to subtract: on the block axis the
+       button fills the pill's height on purpose (the row came out with three
+       different heights when it did not), so there is nothing to inset. */
+    border-radius: calc(var(--theme-radius-md) - var(--theme-space-4));
     /* Full height, MEASURED FROM THE PILL rather than restated: the pill is
        one control's worth tall and everything in it fills that, which is what
        keeps three targets inside one pill hittable — and what keeps the row

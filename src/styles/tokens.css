@@ -217,8 +217,13 @@
          lg 16px  a card or a floating panel — note card, dialog, format bar
          xl 20px  a full region — the canvas panel, a bottom sheet
 
-       Nesting takes the rung BELOW the box that holds it, which is what keeps
-       the two curves concentric across the padding between them. */
+       NESTING IS ARITHMETIC, NOT A RUNG: a box sitting flush inside another
+       takes `outer - padding`, which is the only value that keeps the two
+       curves concentric (user call, 2026-08-20, from the Inbox/Today/Week
+       track — the blue item read as a square jammed into a rounded well).
+       It is written as the `calc()` at the point of use, so the child follows
+       when the parent's rung or padding changes; landing on a rung is a
+       coincidence, and 10 or 14 is as correct an answer as 8. */
     --theme-radius-xs: 0.375rem; /*  6px */
     --theme-radius-sm: 0.5rem; /*  8px */
     --theme-radius-md: 0.75rem; /* 12px */

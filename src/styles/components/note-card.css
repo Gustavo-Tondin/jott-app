@@ -58,7 +58,9 @@
   .note-card__banner {
     display: block;
     block-size: 4.75rem;
-    border-radius: var(--theme-radius-md);
+    /* The card's corner less the card's padding: the banner is flush against
+       three of its edges. */
+    border-radius: calc(var(--theme-radius-lg) - var(--theme-space-6));
     background: var(--banner, var(--theme-brand));
     overflow: hidden;
   }
@@ -165,7 +167,8 @@
   .note-card--small {
     padding: var(--theme-space-8);
     background: var(--theme-bg);
-    border-radius: var(--theme-radius-sm);
+    /* The folder card's corner less the padding it sits in. */
+    border-radius: calc(var(--theme-radius-lg) - var(--theme-space-8));
   }
   .note-card--small .note-card__title {
     font-size: var(--theme-text-13);
