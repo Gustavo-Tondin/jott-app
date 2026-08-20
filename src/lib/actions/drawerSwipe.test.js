@@ -59,11 +59,11 @@ function pointer(el, type, { x = 0, y = 0, at = 0, id = 1 } = {}) {
 
 /// One whole gesture with a FINGER — the path that matters on a phone, and the
 /// one the device forced (see the action's header).
-function drag(node, from, { dx, dy = 0, ms = 400 }) {
-  touch(from, "touchstart", { x: 100, y: 200, at: 0 });
-  touch(from, "touchmove", { x: 100 + dx / 2, y: 200 + dy / 2, at: ms / 2 });
-  const last = touch(from, "touchmove", { x: 100 + dx, y: 200 + dy, at: ms });
-  touch(from, "touchend", { x: 100 + dx, y: 200 + dy, at: ms });
+function drag(node, from, { dx, dy = 0, ms = 400, x0 = 100 }) {
+  touch(from, "touchstart", { x: x0, y: 200, at: 0 });
+  touch(from, "touchmove", { x: x0 + dx / 2, y: 200 + dy / 2, at: ms / 2 });
+  const last = touch(from, "touchmove", { x: x0 + dx, y: 200 + dy, at: ms });
+  touch(from, "touchend", { x: x0 + dx, y: 200 + dy, at: ms });
   return last;
 }
 
@@ -128,11 +128,32 @@ describe("whose gesture it is", () => {
     expect(calls.open).toBe(1);
   });
 
-  // Text is dragged to SELECT it; taking that gesture would leave no way to.
-  it("leaves editable text alone", () => {
+  // Text is dragged to SELECT it WITH A MOUSE; taking that gesture would leave
+  // no way to select anything.
+  it("leaves editable text alone under a mouse", () => {
+    document.querySelector(".empty").outerHTML = '<div class="cm-editor"><span class="line">x</span></div>';
+    mount();
+    dragMouse(node, document.querySelector(".line"), { dx: 200 });
+    expect(calls.open).toBe(0);
+  });
+
+  // …BY A MOUSE. A finger does not select by dragging — touch selection is a
+  // long press and then the handles — and claiming text on both paths left a
+  // phone with no way to reach the sidebar while a note was open, because an
+  // open note is one `.cm-editor` filling the screen (user report on device,
+  // 2026-08-20).
+  it("takes a finger drag over the editor", () => {
     document.querySelector(".empty").outerHTML = '<div class="cm-editor"><span class="line">x</span></div>';
     mount();
     drag(node, document.querySelector(".line"), { dx: 200 });
+    expect(calls.open).toBe(1);
+  });
+
+  // A card still owns its own swipe on either path: that one is the app's
+  // own gesture, not the platform's.
+  it("still leaves a card alone on the finger path", () => {
+    mount();
+    drag(node, document.querySelector(".card"), { dx: 200 });
     expect(calls.open).toBe(0);
   });
 });

@@ -57,8 +57,24 @@
 /// them by construction, and a sheet whose own content slides sideways must not
 /// also be dragging the app's drawer out from under it.
 const CLAIMED =
-  "[data-swipes], input, textarea, [contenteditable], .cm-editor," +
-  " .sheet, .sheet-scrim, .theme-modal, .theme-modal-backdrop, .theme-popover";
+  "[data-swipes], .sheet, .sheet-scrim, .theme-modal, .theme-modal-backdrop," +
+  " .theme-popover";
+/// …and what is claimed BY A MOUSE ONLY: text, where dragging is how a
+/// selection is made and hijacking it would leave no way to select anything.
+///
+/// A FINGER DOES NOT SELECT BY DRAGGING. Touch selection is a long press and
+/// then the handles; a plain horizontal drag across text means nothing to the
+/// platform, which is why every Android app with a drawer opens it from over
+/// its own content. Claiming text on both paths is what left a phone with no
+/// way to reach the sidebar while a note was open — the editor is one
+/// `.cm-editor` filling the screen (user report on device, 2026-08-20).
+///
+/// The obvious alternative, an exception for the leading EDGE, was tried
+/// against the running app and does not work at all: on gesture navigation the
+/// left edge is the SYSTEM's back gesture, and a drag that starts there never
+/// reaches the page. Measured — the app went back a screen instead of opening
+/// anything.
+const CLAIMED_BY_MOUSE = "input, textarea, [contenteditable], .cm-editor";
 /// The first movement decides which gesture this is. Ahead of the lock nothing
 /// moves at all, so a vertical scroll never nudges the drawer sideways.
 const LOCK = 8;
@@ -90,12 +106,17 @@ export function drawerSwipe(node, params) {
     240;
 
   /// Engage, or decline. Returns whether the gesture is now ours to watch.
-  function begin(target, x, y, at) {
+  ///
+  /// `mouse` is what decides whether text counts as claimed — see
+  /// CLAIMED_BY_MOUSE. The two callers already know which they are.
+  function begin(target, x, y, at, mouse = false) {
     if (opts.enabled === false) return false;
     const open = !!opts.open;
-    // Closed: only from an empty area. Open: from anywhere, because the only
-    // things reachable are the drawer and the scrim over the page.
-    if (!open && target?.closest?.(CLAIMED)) return false;
+    // Closed: only from an area that does not already own a sideways drag.
+    // Open: from anywhere, because the only things reachable are the drawer
+    // and the scrim over the page.
+    const claimed = mouse ? `${CLAIMED}, ${CLAIMED_BY_MOUSE}` : CLAIMED;
+    if (!open && target?.closest?.(claimed)) return false;
     drag = { x, y, at, axis: null, travel: 0, open };
     return true;
   }
@@ -189,7 +210,7 @@ export function drawerSwipe(node, params) {
   function pointerDown(event) {
     if (event.pointerType === "touch") return;
     if (!event.isPrimary || event.button !== 0) return;
-    if (begin(event.target, event.clientX, event.clientY, event.timeStamp))
+    if (begin(event.target, event.clientX, event.clientY, event.timeStamp, true))
       pointer = event.pointerId;
   }
 
