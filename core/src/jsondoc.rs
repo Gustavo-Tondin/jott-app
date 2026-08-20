@@ -68,14 +68,30 @@ pub fn flag(raw: &Doc, key: &str, default: bool) -> bool {
 /// `cleared` is what makes clearing work. The merge only writes the keys that
 /// are *set*, so without it a value still sitting in `raw` survives — clearing
 /// a colour would silently keep the old one.
+///
+/// **The clearing happens FIRST, before the merge**, and that is what lets a
+/// key be both cleared and owned: "whatever the file had here does not
+/// survive, and here is what goes in its place". A key that is only cleared
+/// behaves exactly as it always did, since nothing writes it back.
+///
+/// That distinction is the whole of a bug measured on device (2026-08-20): the
+/// merge is DEEP, on purpose — it is what keeps an unknown sibling key alive
+/// next to one this build writes — and **a deep merge cannot express a
+/// removal**. Every map the app owns whole was affected. Switching a feature
+/// back to its default removes it from `features`; the removal was merged over
+/// a `features` that still had it, so the file kept the old answer and the
+/// switch could be turned off but never on again. The same silence was hiding
+/// in `order`, `periodSort` and `shortcuts` — unbinding a chord never took.
+/// `space.rs` had already met it and worked around it by hand, which is where
+/// this belongs instead.
 pub fn render(raw: &Doc, owned: Doc, cleared: &[&str]) -> String {
     let mut doc = Value::Object(raw.clone());
-    merge(&mut doc, Value::Object(owned));
     if let Value::Object(map) = &mut doc {
         for key in cleared {
             map.remove(*key);
         }
     }
+    merge(&mut doc, Value::Object(owned));
     crate::fsio::pretty_json(&doc)
 }
 
@@ -156,6 +172,26 @@ mod tests {
         // The owned key landed without wiping the unknown sibling next to it.
         assert_eq!(written["rollover"]["daily"]["mode"], serde_json::json!("carry"));
         assert_eq!(written["rollover"]["daily"]["unknownKnob"], serde_json::json!(true));
+    }
+
+    #[test]
+    fn a_key_that_is_both_cleared_and_owned_is_replaced_whole() {
+        // The deep merge cannot express a REMOVAL inside a map. A caller that
+        // owns the whole map says so by clearing the key AND writing it: the
+        // old value is gone before the merge, so what goes in is what comes
+        // out. Every map in config.rs lives under this rule, and getting it
+        // wrong is what let a settings switch be turned off but never on
+        // again (2026-08-20).
+        let raw = parse(r#"{ "features": { "a": true, "b": false }, "keep": 1 }"#);
+        let text = render(
+            &raw,
+            owned([("features", serde_json::json!({ "a": true }))]),
+            &["features"],
+        );
+        let written = parse(&text);
+
+        assert_eq!(written["features"], serde_json::json!({ "a": true }), "{text}");
+        assert_eq!(written["keep"], serde_json::json!(1), "the rest is untouched");
     }
 
     #[test]

@@ -270,22 +270,26 @@ impl SpaceConfig {
             .filter(|(_, settings)| !settings.is_empty())
             .map(|(name, settings)| (name.clone(), Value::Object(settings.to_entry())))
             .collect();
-        if folders.is_empty() {
-            cleared.push("folders");
-        } else {
+        // `folders` is a key this build replaces whole instead of merging
+        // into. jsondoc merges deeply, on purpose — that is what keeps an
+        // unknown sibling key alive — but a deep merge cannot express a
+        // REMOVAL, and a folder that was renamed or deleted has to stop being
+        // in the file. Each entry carries what it was read with
+        // (`FolderSettings::raw`), so nothing inside one is lost by clearing
+        // the map before the merge.
+        //
+        // Cleared whether or not it has content, which is what says "replace"
+        // rather than "remove": `render` clears before it merges, so the map
+        // that goes in is the map that comes out. This file met the problem
+        // first and used to lift `folders` out of the base document by hand;
+        // the same silence turned out to be swallowing four maps in
+        // config.rs, which is why the mechanism moved into jsondoc.
+        cleared.push("folders");
+        if !folders.is_empty() {
             owned.insert("folders".into(), Value::Object(folders));
         }
 
-        // `folders` is the ONE key this build replaces whole instead of
-        // merging into. jsondoc merges deeply, on purpose — that is what keeps
-        // an unknown sibling key alive — but a deep merge cannot express a
-        // REMOVAL, and a folder that was renamed or deleted has to stop being
-        // in the file. Each entry carries what it was read with
-        // (`FolderSettings::raw`), so nothing inside one is lost by taking the
-        // map out of the base document first.
-        let mut base = self.raw.clone();
-        base.remove("folders");
-        jsondoc::render(&base, owned, &cleared)
+        jsondoc::render(&self.raw, owned, &cleared)
     }
 
     /// Writes the config atomically. Refuses when it came from a newer app.

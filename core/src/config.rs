@@ -612,6 +612,19 @@ impl Config {
                 (!value.is_empty()).then(|| Value::from(value.clone())),
             );
         }
+        // The four maps this build owns WHOLE — and each of them is cleared
+        // first, whether or not it has content, so the map that goes in is the
+        // map that comes out. Merged into what the file had, a REMOVAL cannot
+        // be expressed: taking a feature back to its default removes it from
+        // `features`, the merge put the shorter map over the longer one, and
+        // the file kept the old answer — so a switch could be turned off and
+        // never on again (user report on device, 2026-08-20; the same silence
+        // swallowed an unbound chord and a cleared order). `jsondoc::render`
+        // says why the merge is deep, and why clearing runs before it.
+        //
+        // Nothing inside one is lost by it: each of these round-trips through
+        // its own typed map, so a key this build has never heard of comes back
+        // out the way it went in.
         for (key, value) in [
             ("order", serde_json::to_value(&self.order).unwrap_or_default()),
             (
@@ -624,8 +637,11 @@ impl Config {
             ),
             ("shortcuts", Value::Object(self.shortcuts.clone())),
         ] {
+            cleared.push(key);
             let has_content = value.as_object().is_some_and(|o| !o.is_empty());
-            put_or_clear(&mut owned, &mut cleared, key, has_content.then_some(value));
+            if has_content {
+                owned.insert(key.to_string(), value);
+            }
         }
         crate::jsondoc::render(&self.raw, owned, &cleared)
     }
@@ -1052,6 +1068,35 @@ mod tests {
         let mut same = Config::default();
         same.set_order("spaces", vec!["Work".into()]);
         assert!(!same.relocate_orders("Work", "Work"));
+    }
+
+    /// The one the suite above missed for four months, because it only ever
+    /// held ONE opinion at a time: with a single feature in the map, forgetting
+    /// it emptied the map, and an empty map was cleared outright. With TWO, the
+    /// shorter map was merged over the longer one and the forgotten key came
+    /// straight back — so on a phone a switch could be turned off and never on
+    /// again (user report on device, 2026-08-20).
+    ///
+    /// Every map this build owns whole is checked here, because the fix is one
+    /// rule in `jsondoc::render` and each of them was living under it.
+    #[test]
+    fn forgetting_one_of_several_opinions_actually_removes_it() {
+        let mut config = Config::default();
+        config.set_feature("repeat", Some(false));
+        config.set_feature("priority", Some(false));
+        config.shortcuts.insert("task.new".into(), Value::from("Ctrl+N"));
+        config.shortcuts.insert("note.new".into(), Value::from("Ctrl+Shift+N"));
+
+        // Read back the way the app does — `raw` now HOLDS both of each.
+        let mut back = Config::parse(&config.render());
+        back.set_feature("priority", None);
+        back.shortcuts.remove("note.new");
+
+        let written = Config::parse(&back.render());
+        assert_eq!(written.feature("priority"), None, "the forgotten one is gone");
+        assert_eq!(written.feature("repeat"), Some(false), "its neighbour stays");
+        assert!(!written.shortcuts.contains_key("note.new"), "the unbound chord is gone");
+        assert!(written.shortcuts.contains_key("task.new"), "its neighbour stays");
     }
 
     #[test]
