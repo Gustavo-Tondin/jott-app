@@ -148,6 +148,18 @@
   .note-card__pin--on {
     opacity: 1;
   }
+  /* …and on a phone it is not there at all (user call, 2026-08-20: "está mal
+     posicionado no mobile, oculte ele, deixando somente os 3 pontos"). The
+     corner is holding two buttons in the width of one, over a banner, at the
+     edge of the thumb's reach.
+
+     Nothing is lost by taking it out: a pinned card still SAYS so — the
+     warning-coloured outline above is the state, not the glyph — and Pin/Unpin
+     is the first item of the ⋮ that stays. Same call the banner's own ⋮ makes
+     below 768px. */
+  .shell--compact .note-card__pin {
+    display: none;
+  }
 
   /* The small card inside a folder card: a title, and nothing else. */
   .note-card--small {

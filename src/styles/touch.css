@@ -47,8 +47,12 @@
 
     /* The pin on a note card (2026-08-19). Unpinned it waits for a pointer,
        and on a touch screen that pointer never comes — pinning would be
-       reachable only through the ⋮ two taps away. */
-    .note-card__pin {
+       reachable only through the ⋮ two taps away.
+
+       WIDE touch screens only. Below 768px the pin is not drawn at all
+       (note-card.css says why), which is the same call the banner's ⋮ below
+       already makes. */
+    .shell:not(.shell--compact) .note-card__pin {
       opacity: 1;
     }
 
