@@ -1,4 +1,6 @@
 <script>
+  import { onBack } from "../services/back.js";
+
   // A dialog centred over a dimmed page — the frame the three modals of the
   // app share (the name prompt, the New task composer, the search box).
   //
@@ -34,6 +36,14 @@
     event.stopPropagation();
     onClose?.();
   }
+
+  // A dialog is the first thing "back" should close, and this is where every
+  // dialog in the app already passes — so registering here covers the six of
+  // them at once, and covers the next one for free (services/back.js). It is
+  // also what makes the ORDER right without anyone deciding it: a dialog
+  // opened over the drawer registers after it, and the stack asks the most
+  // recent first.
+  $effect(() => onBack(() => (onClose?.(), true)));
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->

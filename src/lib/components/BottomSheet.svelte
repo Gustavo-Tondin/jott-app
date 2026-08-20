@@ -31,6 +31,7 @@
   // `.window` (the tabs) sat in no region and `--theme-scrim` resolved to
   // nothing — the veil was invisible and the page behind stayed lit.
   import { S } from "../services/strings.js";
+  import { onBack } from "../services/back.js";
 
   let {
     /// What the sheet is called, for the screen reader.
@@ -56,6 +57,11 @@
   /// figure both platforms' own sheets use: far enough that a shaky grip does
   /// not dismiss, near enough that the gesture does not feel like work.
   const DISMISS_AT = 1 / 3;
+
+  // The same call Modal makes, for the same reason: a sheet is the thing a
+  // back press should close, and this is where every sheet in the app passes
+  // (services/back.js).
+  $effect(() => onBack(() => (onClose?.(), true)));
 
   function onPointerDown(event) {
     // Ignore anything but the primary button/finger: a right-click on the
