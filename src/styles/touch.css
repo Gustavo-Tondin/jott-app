@@ -158,9 +158,25 @@
        anyway, and it is one the thumb cannot miss: it spans the screen. */
     .theme-btn--sm,
     .theme-btn--xs,
-    .theme-chip {
+    .theme-chip,
+    .suggestions-pill,
+    .tasks-space__completed-toggle {
       min-block-size: 2.75rem;
     }
+
+    /* THE LAST TWO ARE THE SHARED CHIP'S TWINS, and naming them one by one is
+       the honest fix rather than the tidy one (2026-08-20, user: "o botão
+       completed e suggestion ainda estão pequenos"). `.theme-chip` is
+       documented in styles/controls.css as being "e.g. Completed /
+       Suggestions" and neither of them wears it — both were written out again,
+       inline-flex for inline-flex and 4px/10px for 4px/10px, so the rule above
+       reached the class the design named and not the two buttons it was named
+       after. At 25px they were the smallest targets left on the phone.
+
+       They are listed instead of merged into `.theme-chip` because that is a
+       refactor of live styling on two screens, and this pass is about size.
+       The duplication is worth a note in its own right — see the maintenance
+       list in CLAUDE.md. */
 
     /* `--xs` IS IN THAT LIST, and the first draft of this rule had it at 32px
        on the belief that it is always the affordance at the end of a row that
