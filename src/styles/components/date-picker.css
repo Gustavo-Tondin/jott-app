@@ -60,7 +60,7 @@
     justify-content: center;
     aspect-ratio: 1;
     border: none;
-    border-radius: var(--theme-radius-xs);
+    border-radius: var(--theme-radius-sm);
     background: none;
     color: var(--theme-ink);
     font: inherit;

@@ -20,7 +20,7 @@
     position: relative;
     display: flex;
     background: var(--theme-surface);
-    border-radius: var(--theme-radius-md);
+    border-radius: var(--theme-radius-lg);
     padding: var(--theme-space-6);
     transition: opacity var(--theme-transition-fast);
   }
@@ -58,7 +58,7 @@
   .note-card__banner {
     display: block;
     block-size: 4.75rem;
-    border-radius: var(--theme-radius-sm);
+    border-radius: var(--theme-radius-md);
     background: var(--banner, var(--theme-brand));
     overflow: hidden;
   }
@@ -97,7 +97,7 @@
     max-inline-size: calc(100% - var(--theme-space-12));
     padding: var(--theme-space-2) var(--theme-space-8);
     background: var(--theme-bg);
-    border-radius: var(--theme-radius-xs);
+    border-radius: var(--theme-radius-sm);
   }
 
   /* A card is as tall as its own text, up to a ceiling — "notas com pouco
@@ -182,7 +182,7 @@
     gap: var(--theme-space-8);
     padding: var(--theme-space-8);
     background: var(--accent-tint-color, var(--theme-brand-weak));
-    border-radius: var(--theme-radius-md);
+    border-radius: var(--theme-radius-lg);
   }
   /* The card's own row: the name (which opens it) and the two controls a note
      card carries — the pin and the ⋮ (2026-08-19). */

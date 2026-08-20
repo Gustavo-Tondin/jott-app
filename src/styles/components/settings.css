@@ -177,7 +177,7 @@
     background: var(--theme-surface-sunken);
     border: 0.0625rem solid var(--theme-line);
     padding: var(--theme-space-8) var(--theme-space-12);
-    border-radius: var(--theme-radius-sm);
+    border-radius: var(--theme-radius-md);
     color: var(--theme-ink);
   }
   .settings__saved {

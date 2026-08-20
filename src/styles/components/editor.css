@@ -288,7 +288,7 @@
 .editor .cm-embed--image img {
   display: block;
   max-inline-size: 100%;
-  border-radius: var(--theme-radius-sm);
+  border-radius: var(--theme-radius-md);
 }
 /* The file is named in the note but not in the library — deleted, renamed by
    hand, or a notebook that travelled without its `assets/`. Saying so beats a
@@ -297,7 +297,7 @@
   display: inline-block;
   padding: var(--theme-space-2) var(--theme-space-6);
   border: 0.0625rem dashed var(--theme-line);
-  border-radius: var(--theme-radius-xs);
+  border-radius: var(--theme-radius-sm);
   color: var(--theme-ink-faint);
   font-size: var(--theme-text-13);
 }
@@ -376,7 +376,7 @@
 .editor .cm-tooltip.cm-tooltip-autocomplete {
   background: var(--theme-surface);
   border: 0.0625rem solid var(--theme-line);
-  border-radius: var(--theme-radius-sm);
+  border-radius: var(--theme-radius-md);
   box-shadow: 0 0.25rem 0.75rem var(--theme-shadow-popover);
   overflow: hidden;
 }
@@ -442,7 +442,7 @@
   background: var(--theme-bg);
   color: var(--theme-ink);
   border: 0.0625rem solid var(--theme-line);
-  border-radius: var(--theme-radius-xs);
+  border-radius: var(--theme-radius-sm);
   font: inherit;
 }
 .editor .cm-panel.cm-search input[type="text"]:focus-visible {
@@ -454,7 +454,7 @@
   background: var(--theme-bg);
   color: var(--theme-ink);
   border: 0.0625rem solid var(--theme-line);
-  border-radius: var(--theme-radius-xs);
+  border-radius: var(--theme-radius-sm);
   background-image: none;
   font: inherit;
   cursor: pointer;

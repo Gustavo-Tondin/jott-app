@@ -94,7 +94,7 @@
     margin: 0;
     padding: var(--theme-space-6) var(--theme-space-12);
     background: var(--theme-bg);
-    border-radius: var(--theme-radius-sm);
+    border-radius: var(--theme-radius-md);
     color: var(--theme-ink);
     /* AT LEAST AS BIG AS AN H1 (user call, 2026-08-19). It is the name of the
        whole note, and it was reading smaller than the first heading inside it.

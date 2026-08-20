@@ -31,7 +31,7 @@
     padding: var(--theme-space-6) var(--theme-space-10);
     background: none;
     border: none;
-    border-radius: var(--theme-radius-xs);
+    border-radius: var(--theme-radius-sm);
     color: var(--theme-ink);
     font: inherit;
     font-size: var(--theme-text-13);

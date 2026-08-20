@@ -100,7 +100,7 @@
     padding: var(--theme-space-4) var(--theme-space-10);
     background: var(--theme-surface-sunken);
     border: none;
-    border-radius: var(--theme-radius-md);
+    border-radius: var(--theme-radius-sm);
     color: var(--theme-ink-muted);
     font: inherit;
     font-size: var(--theme-text-13);

@@ -63,7 +63,7 @@
     margin-inline: var(--theme-space-8);
     padding: var(--theme-space-8) var(--theme-space-10);
     background: var(--theme-brand-weak);
-    border-radius: var(--theme-radius-sm);
+    border-radius: var(--theme-radius-md);
     color: var(--theme-brand);
   }
   .inspector__name {
@@ -91,7 +91,7 @@
     padding: var(--theme-space-6) var(--theme-space-10) var(--theme-space-6)
       var(--theme-space-24);
     background: var(--theme-surface);
-    border-radius: var(--theme-radius-sm);
+    border-radius: var(--theme-radius-md);
   }
   .inspector__subtask-main {
     display: flex;
@@ -173,7 +173,7 @@
     min-height: 2.375rem;
     padding: var(--theme-space-6) var(--theme-space-10);
     background: var(--theme-surface);
-    border-radius: var(--theme-radius-sm);
+    border-radius: var(--theme-radius-md);
     color: var(--theme-ink);
   }
   .inspector__field--muted {

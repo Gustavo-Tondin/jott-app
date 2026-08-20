@@ -55,7 +55,7 @@
        produces a whisper instead of a jump. One formula, three themes. */
     background: color-mix(in srgb, var(--canvas-ground) 55%, var(--theme-bg));
     border: none;
-    border-radius: var(--theme-radius-xs);
+    border-radius: var(--theme-radius-sm);
     /* The CANVAS's ink, muted — not the chrome's faint grey (user report,
        2026-08-13: unreadable). The tab is made of canvas material, and in the
        factory theme that material is light, so the frame's pale ink landed

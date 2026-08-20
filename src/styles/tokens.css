@@ -205,12 +205,25 @@
     --theme-space-64: 4rem; /* 64px */
 
     /* ---------------------------------------------------------------------
-       RADIUS
-       --------------------------------------------------------------------- */
-    --theme-radius-xs: 0.375rem;
-    --theme-radius-sm: 0.5rem;
-    --theme-radius-md: 0.625rem;
-    --theme-radius-lg: 0.75rem;
+       RADIUS — a ladder read by THE SIZE OF THE OBJECT, not by taste: the
+       bigger the box, the rounder the corner, so a card never carries the
+       corner of the chip inside it. Which rung a thing takes is decided by
+       its height (or, for a surface, by what it is):
+
+         xs  6px  a mark, not a box — checkbox, inline code, a 20px tile
+         sm  8px  a small control, up to ~32px — icon button, menu row, chip
+         md 12px  a standard control or list row, ~36-48px — field, task row,
+                  button, popover, sidebar entry
+         lg 16px  a card or a floating panel — note card, dialog, format bar
+         xl 20px  a full region — the canvas panel, a bottom sheet
+
+       Nesting takes the rung BELOW the box that holds it, which is what keeps
+       the two curves concentric across the padding between them. */
+    --theme-radius-xs: 0.375rem; /*  6px */
+    --theme-radius-sm: 0.5rem; /*  8px */
+    --theme-radius-md: 0.75rem; /* 12px */
+    --theme-radius-lg: 1rem; /* 16px */
+    --theme-radius-xl: 1.25rem; /* 20px */
     /* The pill: any value past half the tallest control rounds it fully. */
     --theme-radius-pill: 62.5rem;
 
@@ -317,7 +330,7 @@
        --------------------------------------------------------------------- */
     --theme-drawer-width: 15rem; /* 240px — the wireframe's sidebar */
     --theme-sheet-inset: 0.625rem; /* 10px — a bottom sheet floats, edge to edge is a page */
-    --theme-sheet-radius: 1rem;
+    --theme-sheet-radius: var(--theme-radius-xl);
 
     /* The smallest thing a finger may be asked to hit. Android asks for 48dp
        and iOS for 44pt; 48 is the stricter of the two, so it is the one used.
@@ -375,7 +388,11 @@
        shadow has nowhere to render — and on WebKitGTK it accumulated alpha
        on every repaint until it turned into a black ring.
        --------------------------------------------------------------------- */
-    --theme-window-radius: 0.75rem;
+    /* The frame is the CANVAS's corner plus the gutter it sits in (`.shell`
+       pads the centre panel by 4px), which is the only value that keeps the
+       two curves concentric at the bottom corners — an inner corner rounder
+       than the outer one is what reads as a rendering fault. */
+    --theme-window-radius: calc(var(--theme-radius-xl) + var(--theme-space-4));
   }
 
   /* The two other rungs of the note's size ladder. Here rather than in

@@ -249,7 +249,7 @@
   .shell__entry.reorder-item--carried,
   .shell__group--space.reorder-item--carried {
     background: var(--theme-surface);
-    border-radius: var(--theme-radius-xs);
+    border-radius: var(--theme-radius-md);
   }
   /* ---- the sidebar row ----
      One row of the navigation: a 42px band holding an icon and a label —
@@ -265,7 +265,7 @@
     padding: var(--theme-space-12) var(--theme-space-8);
     background: none;
     border: none;
-    border-radius: var(--theme-radius-xs);
+    border-radius: var(--theme-radius-md);
     color: var(--theme-ink-muted);
     font: inherit;
     font-size: var(--theme-text-16);
@@ -456,7 +456,7 @@
     min-height: 0;
     position: relative;
     background: var(--theme-bg);
-    border-radius: var(--theme-radius-lg);
+    border-radius: var(--theme-radius-xl);
     overflow: hidden;
   }
 
@@ -555,13 +555,13 @@
     background: var(--accent-red-tint);
     border: 0.0625rem solid var(--accent-red);
     padding: var(--theme-space-8);
-    border-radius: var(--theme-radius-xs);
+    border-radius: var(--theme-radius-md);
   }
   .shell__conflict {
     background: var(--accent-yellow-tint);
     border: 0.0625rem solid var(--accent-yellow);
     padding: var(--theme-space-8) var(--theme-space-12);
-    border-radius: var(--theme-radius-xs);
+    border-radius: var(--theme-radius-md);
     margin-bottom: var(--theme-space-16);
     font-size: var(--theme-text-14);
   }
@@ -585,7 +585,7 @@
     background: var(--accent-green-tint);
     border: 0.0625rem solid var(--accent-green);
     padding: var(--theme-space-8) var(--theme-space-12);
-    border-radius: var(--theme-radius-xs);
+    border-radius: var(--theme-radius-md);
     margin-bottom: var(--theme-space-16);
     font-size: var(--theme-text-14);
   }
@@ -741,8 +741,8 @@
   .shell--compact .shell__content {
     overflow: visible;
     background: var(--theme-bg);
-    border-start-start-radius: var(--theme-radius-lg);
-    border-start-end-radius: var(--theme-radius-lg);
+    border-start-start-radius: var(--theme-radius-xl);
+    border-start-end-radius: var(--theme-radius-xl);
     /* Grows with its content but never shorter than what is left of the
        screen, so the canvas is never a short white card floating on the
        chrome. `1 0 auto` and not `min-block-size: 100%`: the header above it

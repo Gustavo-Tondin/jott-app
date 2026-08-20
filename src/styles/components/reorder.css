@@ -59,7 +59,7 @@
   .reorder-item--into {
     outline: 0.125rem solid var(--theme-brand);
     outline-offset: 0.0625rem;
-    border-radius: var(--theme-radius-xs);
+    border-radius: var(--theme-radius-md);
   }
 
   /* Carried clear of its list: it is about to LEAVE it (a space dragged
@@ -68,7 +68,7 @@
   .reorder-item--leaving {
     outline: 0.125rem dashed var(--theme-brand);
     outline-offset: 0.125rem;
-    border-radius: var(--theme-radius-xs);
+    border-radius: var(--theme-radius-md);
     opacity: 0.75;
   }
 
