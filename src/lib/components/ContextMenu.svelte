@@ -9,6 +9,8 @@
   //
   // Open it by handing `at` a point; clear it to null to close.
   import { dismissable } from "../actions/dismissable.js";
+  import { portal } from "../actions/portal.js";
+  import { onBack } from "../services/back.js";
   import MenuItems from "./MenuItems.svelte";
 
   let {
@@ -27,12 +29,26 @@
     region = undefined,
   } = $props();
 
+  // PORTALED to <body> (`use:portal`), because `position: fixed` is only
+  // measured against the viewport while no ancestor carries a transform — and
+  // the mobile drawer slides with `translate`, which made itself the
+  // containing block and clipped the sidebar's menu inside its 240px (user
+  // report on device, 2026-08-20). The panel already carries its own
+  // coordinates, so leaving is free.
+  //
   // Kept inside the window by hand rather than through `keepOnScreen`: that
   // action measures an element anchored to a trigger, and this one has no
   // trigger — the pointer IS the anchor.
   const MARGIN = 8;
   let panel = $state(null);
   let placed = $state(null);
+
+  // An open menu is the first thing a back press should close — measured on
+  // device (2026-08-20): without this, back closed the DRAWER out from under
+  // the menu the drawer had opened. The same call Modal and BottomSheet make,
+  // and registered only while the menu is open, so a closed one does not
+  // answer for the app (services/back.js).
+  $effect(() => (at ? onBack(() => (onClose?.(), true)) : undefined));
 
   $effect(() => {
     if (!at || !panel) {
@@ -52,6 +68,7 @@
     bind:this={panel}
     class="theme-popover context-menu"
     data-region={region}
+    use:portal
     style={`left: ${(placed ?? at).x}px; top: ${(placed ?? at).y}px`}
     use:dismissable={{ active: true, onDismiss: () => onClose?.() }}
   >
