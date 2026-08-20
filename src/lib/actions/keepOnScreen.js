@@ -25,9 +25,10 @@ const GAP = 4;
 /// It has to be ASKED FOR: inside an Android WebView the keyboard shrinks
 /// nothing the page can see — `innerHeight` and `visualViewport.height` both
 /// stay at the full screen with the keyboard plainly covering the bottom third
-/// (measured on the emulator, 2026-08-18). The activity publishes the inset as
-/// `--theme-keyboard` on the root instead (MainActivity.kt), and this is the
-/// one place a popover can learn about it. Zero everywhere else, every desktop
+/// (measured on the emulator, 2026-08-18). The activity publishes the inset it
+/// reads from the window and the page turns it into `--theme-keyboard` on the
+/// root (MainActivity.kt, shell/keyboard.js), and that token is the one place
+/// a popover can learn about it. Zero everywhere else, every desktop
 /// included.
 function keyboardInset() {
   if (typeof getComputedStyle !== "function") return 0;
@@ -156,8 +157,8 @@ export function keepOnScreen(node, params) {
   // …and it moves when the KEYBOARD arrives, which fires no event of its own:
   // the composer that anchors these panels is pinned above it, so it travels
   // half the screen while the panel would sit where it was opened. The one
-  // signal there is, is the activity writing `--theme-keyboard` onto the root
-  // (MainActivity.kt) — so the style attribute of that element is what is
+  // signal there is, is `--theme-keyboard` being written onto the root
+  // (shell/keyboard.js) — so the style attribute of that element is what is
   // watched. Costs nothing where nothing writes it.
   const roots =
     typeof MutationObserver !== "undefined"

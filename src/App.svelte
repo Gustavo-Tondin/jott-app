@@ -56,6 +56,7 @@
   import TitleBar from "./lib/shell/TitleBar.svelte";
   import { buttonLayout } from "./lib/shell/windowButtons.js";
   import { isMobile, osAttribute, platformAttribute } from "./lib/shell/platform.js";
+  import { installKeyboard } from "./lib/shell/keyboard.js";
   import { watchCompact } from "./lib/shell/compact.js";
   import TopBar from "./lib/shell/TopBar.svelte";
   import BottomSheet from "./lib/components/BottomSheet.svelte";
@@ -279,6 +280,11 @@
       onForward: () => Tabs.canGoForward(tabs[active]) && goForward(),
     }),
   );
+  // What the keyboard covers, kept true (2026-08-20). The activity publishes
+  // the raw inset; this is what turns it into the distance the LAYOUT owes,
+  // which is not the same number on a WebView that already shrank the page —
+  // `shell/keyboard.js` carries the whole reason.
+  $effect(() => installKeyboard());
   $effect(() =>
     onBack(() => {
       if (zoomedImage) return ((zoomedImage = null), true);
@@ -478,6 +484,32 @@
   /// than props down through two components: the question is about the
   /// document's focus, which is a window-level fact.
   let editorFocused = $state(false);
+  /// The formatting strip is up: a note has the cursor, on a phone.
+  let stripUp = $derived(
+    compact && !!notebook && view.kind === "note" && editorFocused && !notebook.readOnly,
+  );
+  /// …and how tall it is, measured rather than restated — the pill sizes
+  /// itself from its buttons, and a number here would drift the first time one
+  /// of them changed.
+  let stripHeight = $state(0);
+
+  // The strip is part of what the keyboard covers, as far as the note is
+  // concerned: it floats over the page, so without this the last line of the
+  // note — and the cursor with it — sat behind the buttons (measured on the
+  // emulator, 2026-08-20). The air the pill leaves under itself is added in
+  // CSS rather than here, so the two never disagree about the gap.
+  $effect(() => {
+    const root = document.documentElement;
+    if (!stripUp || !stripHeight) {
+      root.style.removeProperty("--theme-format-strip");
+      return;
+    }
+    root.style.setProperty(
+      "--theme-format-strip",
+      `calc(${stripHeight}px + var(--theme-space-8))`,
+    );
+    return () => root.style.removeProperty("--theme-format-strip");
+  });
 
   /// WHERE the note's formatting controls are: docked in the right panel, or
   /// floating over the top of the canvas (user call, 2026-08-19). Not whether
@@ -2344,8 +2376,8 @@
      Tied to the editor having FOCUS, not to the screen being a note: with the
      keyboard down the strip would be a bar floating over nothing, and the
      wireframe puts it against the keyboard's top edge. -->
-{#if compact && notebook && view.kind === "note" && editorFocused && !notebook.readOnly}
-  <div class="format-strip" data-region="chrome">
+{#if stripUp}
+  <div class="format-strip" data-region="chrome" bind:clientHeight={stripHeight}>
     <FormatBar layout="row" region="chrome" hidden={hiddenFormats} onRun={runFormat} />
   </div>
 {/if}

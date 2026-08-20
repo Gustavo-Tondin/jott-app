@@ -366,18 +366,33 @@
     --theme-safe-bottom: max(env(safe-area-inset-bottom, 0rem), var(--android-inset-bottom, 0rem));
     --theme-safe-left: max(env(safe-area-inset-left, 0rem), var(--android-inset-left, 0rem));
 
-    /* How much of the screen the on-screen keyboard is covering.
-       WRITTEN FROM ANDROID, not read from the platform: none of the three web
-       answers works inside a WebView — `interactive-widget=resizes-content` is
-       a Chrome-the-browser flag, `visualViewport` never shrinks, and
-       `env(keyboard-inset-height)` reports 0 even with the API switched on and
-       a field focused. All three were measured against the running app. So the
-       activity reads the IME inset and sets this property on the root
-       (src-tauri/gen/android/.../MainActivity.kt), and everything that has to
-       stay above the keyboard reads it here. Zero everywhere else, which is
-       what a desktop resolves to and what Android reports with no keyboard
-       up. */
+    /* How much of the PAGE the on-screen keyboard is covering.
+
+       ASKED FOR, not read from the platform: none of the three web answers
+       works inside a WebView — `interactive-widget=resizes-content` is a
+       Chrome-the-browser flag, `visualViewport` never shrank, and
+       `env(keyboard-inset-height)` reported 0 even with the API switched on
+       and a field focused. All three were measured against the running app.
+       So the activity reads the IME inset from the window and publishes it as
+       `--android-ime` (src-tauri/gen/android/.../MainActivity.kt).
+
+       That inset is NOT this number, and the difference is the whole reason
+       this token exists: the inset is what the keyboard covers of the WINDOW,
+       while the layout needs what it covers of the PAGE — and since Chrome
+       M139 the WebView may have shrunk the page for the keyboard already, in
+       which case an app that also lifts by the inset lifts twice.
+       `shell/keyboard.js` subtracts whatever the page gave up and writes the
+       remainder here. Zero everywhere else, which is what a desktop resolves
+       to and what Android reports with no keyboard up. */
     --theme-keyboard: 0rem;
+
+    /* The formatting strip's own share of the bottom edge, while one is up.
+       It floats over the page just above the keyboard, so a note has to end
+       above THE STRIP rather than above the keys — otherwise the line being
+       typed sits behind the buttons. Measured from the pill and written by
+       App.svelte; zero on every screen that has no strip, which is all of them
+       but a note being written on a phone. */
+    --theme-format-strip: 0rem;
 
     /* ---------------------------------------------------------------------
        MOTION

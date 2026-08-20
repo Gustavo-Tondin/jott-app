@@ -36,9 +36,30 @@
   }
 
   html,
-  body,
-  #app {
+  body {
     height: 100%;
+  }
+
+  /* The app ENDS where the keyboard begins (2026-08-20).
+
+     This is the one line that makes a phone keyboard behave the way it does in
+     a native app, and it replaces every component doing the same sum by hand.
+     Android would do it for us — `adjustResize` is exactly this — but only for
+     a window that lets the system fit its content, and this one draws edge to
+     edge, so the keyboard arrives as an inset and the page keeps its full
+     height with the bottom third of it covered.
+
+     What that cost, before this line: the note's scroller ran on UNDER the
+     keyboard, so CodeMirror believed the cursor was on screen while the line
+     being typed was behind the keys, and nothing scrolled. The strip, the
+     composer and the sheets each lifted themselves and the editor could not,
+     because it is not a thing at the bottom edge — it is the whole panel.
+
+     `--theme-keyboard` is what the keyboard covers OF THE PAGE, which on a
+     WebView that already shrinks itself is zero (shell/keyboard.js). Off the
+     phone it is zero too, and this is `height: 100%`. */
+  #app {
+    height: calc(100% - var(--theme-keyboard) - var(--theme-format-strip));
   }
 
   /* The app scrolls INSIDE itself — every scrollport it has is a panel, and

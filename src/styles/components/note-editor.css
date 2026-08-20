@@ -17,13 +17,17 @@
   /* On a phone the note IS the screen, so the editor takes what is left of it
      rather than a share of the window.
 
-     `svh`, not `vh`: with `interactive-widget=resizes-content` (index.html) the
-     keyboard shrinks the layout viewport, and `vh` keeps reporting the height
-     the screen has WITHOUT it — a 60vh minimum under an open keyboard is
-     taller than the space left, which pushes the caret off the bottom of the
-     very screen the user is typing on. The small viewport is the honest one
-     here, and the editor grows past it with the document anyway. */
+     Half of WHAT IS LEFT, keyboard subtracted — not half of the viewport.
+     `svh` was chosen for this on the belief that
+     `interactive-widget=resizes-content` (index.html) makes the keyboard
+     shrink the layout viewport; measured inside the WebView, it does not:
+     with the keyboard up, `innerHeight` still read 780 and every viewport
+     unit with it, so a 50svh minimum was 390px of editor in the 268px left
+     above the keys — the note pushed its own last line under them
+     (measured on the emulator, 2026-08-20). `--theme-keyboard` is what the
+     keyboard covers of this page (shell/keyboard.js), and off the phone it
+     is zero, which leaves this exactly 50svh. */
   .shell--compact .note-editor__body {
-    min-block-size: 50svh;
+    min-block-size: calc((100svh - var(--theme-keyboard)) / 2);
   }
 }

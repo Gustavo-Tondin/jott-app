@@ -9,6 +9,7 @@ import android.os.Bundle
 import android.os.Environment
 import android.provider.Settings
 import android.provider.DocumentsContract
+import android.view.View
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
 import androidx.activity.OnBackPressedCallback
@@ -18,6 +19,7 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.activity.enableEdgeToEdge
 import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsAnimationCompat
 import androidx.core.view.WindowInsetsCompat
 import org.json.JSONObject
 import java.io.File
@@ -40,9 +42,18 @@ import java.io.File
  *     focused field. Present and inert.
  *
  * So the page cannot find out on its own, and Android has to say. This reads
- * the IME inset from the window and writes it to `--theme-keyboard` on the
- * document root, in CSS pixels; the composer and the bottom sheets keep clear
- * of it (styles/tokens.css).
+ * the IME inset from the window and writes it to `--android-ime` on the
+ * document root, in CSS pixels.
+ *
+ * WHAT IT IS NOT is the distance anything moves. Chrome M139 taught the
+ * Android WebView to resize the page under the keyboard by itself, so on a
+ * new WebView the page is already clear of it and an app that lifts by this
+ * inset lifts twice. The three measurements above were taken on WebView 133,
+ * before that landed, and they are kept because the same APK still meets both
+ * WebViews. What the layout reads is `--theme-keyboard`, which the page
+ * derives by comparing this inset against the height it can see for itself
+ * (shell/keyboard.js) — the composer, the strip and the bottom sheets keep
+ * clear of THAT (styles/tokens.css).
  *
  * It also publishes the system bars as `--android-inset-*`, for a smaller
  * reason with the same shape: `env(safe-area-inset-top)` reports the status
@@ -137,38 +148,8 @@ class MainActivity : TauriActivity() {
     // the hierarchy when this runs, and the decor view is the one the window
     // always dispatches to.
     ViewCompat.setOnApplyWindowInsetsListener(window.decorView) { view, insets ->
-      // The page thinks in CSS pixels; insets arrive in physical ones.
-      val density = view.resources.displayMetrics.density
-      val px = { v: Int -> "${v / density}px" }
-
-      val ime = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
-      // The keyboard just went away. Nothing in the page can notice that on
-      // its own (see the class comment), and something has to: dismissing the
-      // keyboard with the back gesture left the note still focused, caret
-      // blinking on a line nobody was typing into, with the formatting strip
-      // floating above a keyboard that was no longer there (user report on
-      // device, 2026-08-20). Only the EDGE is announced — the inset pass runs
-      // for every bar change, and "still zero" is not news.
-      if (keyboard > 0 && ime == 0) {
-        webView.evaluateJavascript(
-          "document.dispatchEvent(new CustomEvent('android-keyboard-hidden'))",
-          null,
-        )
-      }
-      keyboard = ime
-      // The bars the app draws under, gesture handle and cutout included. NOT
-      // the IME: it is asked for separately because it comes and goes for a
-      // different reason and the page answers it differently.
-      val bars = insets.getInsets(
-        WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
-      )
-      pending =
-        "--theme-keyboard:${px(ime)};" +
-          "--android-inset-top:${px(bars.top)};" +
-          "--android-inset-right:${px(bars.right)};" +
-          "--android-inset-bottom:${px(bars.bottom)};" +
-          "--android-inset-left:${px(bars.left)}"
-      publish()
+      settle(insets.getInsets(WindowInsetsCompat.Type.ime()).bottom)
+      report(view, insets)
 
       // DELEGATED, never just returned. Setting a listener REPLACES the view's
       // own `onApplyWindowInsets`, and the WebView's own is what feeds
@@ -178,6 +159,94 @@ class MainActivity : TauriActivity() {
       // listener was added).
       ViewCompat.onApplyWindowInsets(view, insets)
     }
+
+    // The keyboard SLIDES, and the page has to slide with it.
+    //
+    // The listener above answers once, with the inset the keyboard will have
+    // when it finishes arriving — so the strip jumped to the top of a keyboard
+    // that was still on its way up and hung there over nothing for the length
+    // of the animation. That is the whole of "the panel is loose on screen"
+    // (user report on device, 2026-08-20): it was never in the wrong PLACE, it
+    // got there before the keyboard did.
+    //
+    // `onProgress` runs per frame with the insets as they are at that frame,
+    // which is the same source the final answer comes from — so the page is
+    // told the truth ~15 times instead of once, and nothing has to guess a
+    // duration or copy the system's easing curve.
+    //
+    // CONTINUE_ON_SUBTREE, not STOP: STOP would hold the whole dispatch back
+    // from the subtree until the animation ended, and the WebView's own inset
+    // handling — the thing that feeds `env(safe-area-inset-*)` and, since
+    // Chrome M139, resizes the page under the keyboard — is in that subtree.
+    ViewCompat.setWindowInsetsAnimationCallback(
+      window.decorView,
+      object : WindowInsetsAnimationCompat.Callback(DISPATCH_MODE_CONTINUE_ON_SUBTREE) {
+        override fun onProgress(
+          insets: WindowInsetsCompat,
+          running: MutableList<WindowInsetsAnimationCompat>,
+        ): WindowInsetsCompat {
+          val moving = running.any { it.typeMask and WindowInsetsCompat.Type.ime() != 0 }
+          if (moving) report(window.decorView, insets)
+          return insets
+        }
+      },
+    )
+  }
+
+  /**
+   * Announces the keyboard GOING AWAY, and remembers where it settled.
+   *
+   * Nothing in the page can notice that on its own (see the class comment),
+   * and something has to: dismissing the keyboard with the back gesture left
+   * the note still focused, caret blinking on a line nobody was typing into,
+   * with the formatting strip floating above a keyboard that was no longer
+   * there (user report on device, 2026-08-20). Only the EDGE is announced —
+   * the inset pass runs for every bar change, and "still zero" is not news.
+   *
+   * ONLY THE SETTLED INSET REACHES HERE, never an animation frame, and that
+   * is not a detail: a keyboard on its way UP passes through zero on its
+   * first frames, so asking a frame whether the keyboard is gone answered
+   * yes 150ms after every tap. The page blurred the field, the keyboard it
+   * had just asked for was dismissed, and no text field in the app could be
+   * focused by touch at all (measured on the emulator, 2026-08-20). It is
+   * the exact loop Chrome's WebView documentation warns about, arrived at
+   * from the other end.
+   */
+  private fun settle(ime: Int) {
+    if (keyboard > 0 && ime == 0) {
+      webView?.evaluateJavascript(
+        "document.dispatchEvent(new CustomEvent('android-keyboard-hidden'))",
+        null,
+      )
+    }
+    keyboard = ime
+  }
+
+  /**
+   * Tells the page what the system is covering right now.
+   *
+   * Called from two places on purpose: the inset listener, which is the
+   * settled answer, and every frame of the keyboard's own animation.
+   */
+  private fun report(view: View, insets: WindowInsetsCompat) {
+    // The page thinks in CSS pixels; insets arrive in physical ones.
+    val density = view.resources.displayMetrics.density
+    val px = { v: Int -> "${v / density}px" }
+
+    val ime = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
+    // The bars the app draws under, gesture handle and cutout included. NOT
+    // the IME: it is asked for separately because it comes and goes for a
+    // different reason and the page answers it differently.
+    val bars = insets.getInsets(
+      WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
+    )
+    pending =
+      "--android-ime:${px(ime)};" +
+        "--android-inset-top:${px(bars.top)};" +
+        "--android-inset-right:${px(bars.right)};" +
+        "--android-inset-bottom:${px(bars.bottom)};" +
+        "--android-inset-left:${px(bars.left)}"
+    publish()
   }
 
   /**
@@ -253,6 +322,11 @@ class MainActivity : TauriActivity() {
         "var e=document.documentElement;" +
         "var d='$style'.split(';');" +
         "for(var i=0;i<d.length;i++){var p=d[i].split(':');e.style.setProperty(p[0],p[1]);}" +
+        // Said out loud, because a custom property landing on the root is not
+        // an event: nothing in the page can observe a style being set from
+        // here, and the page is the one that turns this inset into the
+        // distance the layout owes (shell/keyboard.js).
+        "document.dispatchEvent(new CustomEvent('android-insets'));" +
         "return true})()",
     ) { landed ->
       if (landed != "true" && tries > 0) {
