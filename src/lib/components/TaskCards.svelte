@@ -45,8 +45,12 @@
     /// Deleting a card — by swiping it left, or by pressing Delete on it.
     /// `(entry) => void`; omitted, neither gesture gives.
     onDelete = null,
-    /// Swiping a card right takes it out of the period, where there is one.
-    onSwipeUnpull = null,
+    /// What a rightward swipe means for one card: `(entry) => { adds, run }`,
+    /// or null where the gesture has no meaning here. `adds` decides which
+    /// square the swipe uncovers — the screen that owns the gesture is the one
+    /// that knows whether it is sending the task to the day or taking it out
+    /// (spaces/TasksSpace.svelte).
+    daySwipe = null,
     /// `(entry) => void` — make a copy of this task. Omitted, Ctrl+D does
     /// nothing rather than something surprising.
     onDuplicate = null,
@@ -171,7 +175,8 @@
       swipeAction={swipe}
       swipeOptions={{
         onLeft: onDelete && (() => onDelete(entry)),
-        onRight: onSwipeUnpull && (() => onSwipeUnpull(entry)),
+        onRight: daySwipe?.(entry)?.run,
+        rightAdds: !!daySwipe?.(entry)?.adds,
       }}
       index={i}
       focusable={i === at}

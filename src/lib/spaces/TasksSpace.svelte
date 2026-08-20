@@ -362,17 +362,47 @@
   // gesture. The Delete key asks for the same thing (2026-08-18).
   const deleteEntry = (entry) => remove(entry.list, entry.task);
 
-  // Derived, not computed once: the same component instance serves Today and
-  // the Week, and a screen that stops being a period has to lose the gesture
-  // with it.
-  const swipeUnpull = $derived(
-    period
-      ? (entry) =>
-          act(async () => {
-            const id = await ensureTaskId(entry.list, entry.task);
-            await api.removeFrom(period, entry.list, id);
-          })
-      : null,
+  /// What a rightward swipe means for one card: `{ adds, run }`.
+  ///
+  /// Derived, not computed once: the same component instance serves Today, the
+  /// Week and a plain list, and a screen that stops being a period has to lose
+  /// the meaning with it.
+  ///
+  /// IT GOES BOTH WAYS (user call, 2026-08-20). On a period the gesture takes
+  /// the card OUT — that is what the screen is, and there is nowhere to put it
+  /// that it is not already. Anywhere else it is a toggle: a task not in the
+  /// day is sent to it, one already there is taken out. The gesture that could
+  /// only ever remove was half a gesture — the way INTO the day was a menu.
+  ///
+  /// `adds` is what the revealed square draws, so the card says which of the
+  /// two it is about to do before the finger is lifted.
+  const daySwipe = $derived(
+    readOnly
+      ? null
+      : (entry) => {
+          if (period) {
+            return {
+              adds: false,
+              run: () =>
+                act(async () => {
+                  const id = await ensureTaskId(entry.list, entry.task);
+                  await api.removeFrom(period, entry.list, id);
+                }),
+            };
+          }
+          // A task with no id was never pulled anywhere, so it is always the
+          // adding half — which is also what `inDay` answers for one.
+          const there = inDay(entry);
+          return {
+            adds: !there,
+            run: () =>
+              act(async () => {
+                const id = await ensureTaskId(entry.list, entry.task);
+                if (there) await api.removeFrom("day", entry.list, id);
+                else await api.pullInto("day", entry.list, id);
+              }),
+          };
+        },
   );
 
   // Whether the row under the cards is drawn: it carries the Completed toggle
@@ -501,7 +531,7 @@
         {f}
         onDelete={readOnly ? null : deleteEntry}
         onDuplicate={readOnly ? null : (entry) => duplicate(entry.list, entry.task)}
-        onSwipeUnpull={readOnly ? null : swipeUnpull}
+        {daySwipe}
         onReorder={readOnly ? null : period ? reorderPeriod : reorderTasks}
         {isSelected}
         onSelect={picking ? (_, task) => togglePick(task) : onSelectTask}

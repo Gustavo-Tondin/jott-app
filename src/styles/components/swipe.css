@@ -61,10 +61,18 @@
     background: var(--theme-danger);
   }
 
-  /* Swiping RIGHT uncovers the left-hand end: out of the day. */
+  /* Swiping RIGHT uncovers the left-hand end: the day. */
   .swipe[data-swipe="right"] .swipe__action--unpull {
     display: flex;
     inset-inline-start: calc(-1 * var(--swipe-x, 0rem));
     background: var(--theme-brand);
+  }
+  /* The same square when the gesture PUTS the task in the day rather than
+     taking it out (2026-08-20). A different colour, because the two are
+     opposite acts and a square that looks identical either way would make the
+     gesture a coin toss — warning is the colour the sun already carries on a
+     card that is in today. */
+  .swipe[data-swipe="right"] .swipe__action--pull {
+    background: var(--theme-warning);
   }
 }

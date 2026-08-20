@@ -153,8 +153,16 @@
     </span>
   {/if}
   {#if swipeOptions.onRight}
-    <span class="swipe__action swipe__action--unpull" aria-hidden="true">
-      <Icon name="x" size="1.125rem" />
+    <!-- The same square, two meanings: taking the task out of the day, or
+         sending it there (user call, 2026-08-20). The glyph is what says which
+         BEFORE the finger lifts, so the gesture is never a guess. Which of the
+         two it is belongs to the screen, not to the row (TaskCards.svelte). -->
+    <span
+      class="swipe__action swipe__action--unpull"
+      class:swipe__action--pull={swipeOptions.rightAdds}
+      aria-hidden="true"
+    >
+      <Icon name={swipeOptions.rightAdds ? "sun" : "x"} size="1.125rem" />
     </span>
   {/if}
   <input
