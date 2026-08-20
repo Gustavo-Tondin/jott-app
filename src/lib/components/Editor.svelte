@@ -28,6 +28,7 @@
   import { markdownPreview } from "../services/markdown.js";
   import { autocompletion } from "@codemirror/autocomplete";
   import { autoClose, plainAutoClose } from "../services/autoClose.js";
+  import { keepCaretInView } from "../services/caretScroll.js";
   import { fileEmbeds, refreshEmbeds } from "../services/embeds.js";
   import { fromNotebook, referenceCompletions } from "../services/linkComplete.js";
   import { assetUrl } from "../services/assets.js";
@@ -224,7 +225,39 @@
           // reason is written at the top of the module. A plain field gets
           // the bracket half only (`plainAutoClose` carries the why).
           plain ? plainAutoClose : autoClose,
+          // The keyboard's own help, switched back ON (2026-08-20).
+          // CodeMirror ships `spellcheck="false" autocorrect="off"
+          // autocapitalize="off"` on its content element — the right defaults
+          // for a code editor and the wrong ones for a notebook. On Android
+          // those three attributes are the whole conversation with Gboard:
+          // they decide whether a sentence is capitalised, whether a typo is
+          // fixed, and whether the suggestion strip appears at all. With them
+          // off, writing a note felt like nothing else on the phone (user
+          // report, 2026-08-20) — the keyboard was not misbehaving, it had
+          // been told to keep quiet.
+          //
+          // `spellcheck` is the one that carries the strip, which is why it is
+          // here even though no red underline is wanted for its own sake:
+          // Chrome turns a false spellcheck into the IME's no-suggestions
+          // flag, and that silences autocorrect as well, `autocorrect="on"`
+          // or not.
+          EditorView.contentAttributes.of({
+            autocapitalize: "sentences",
+            autocorrect: "on",
+            spellcheck: "true",
+          }),
           EditorView.lineWrapping,
+          // Air under the cursor when the editor scrolls to it (2026-08-20).
+          // Without it the line being typed lands flush against the bottom
+          // edge — which, on a phone, is flush against the top of the
+          // keyboard, with the next line already out of sight. A native
+          // editor always shows a little of what comes after the caret. In
+          // px because the facet is measured in them; roughly two lines at
+          // the default note size.
+          EditorView.cursorScrollMargin.of({ x: 0, y: 40 }),
+          // …and the scroll that margin is measured against, which the shell's
+          // own layout keeps out of CodeMirror's reach (services/caretScroll.js).
+          keepCaretInView,
           placeholderExt(placeholder),
           editable.of(EditorState.readOnly.of(readOnly)),
           EditorView.updateListener.of((update) => {
