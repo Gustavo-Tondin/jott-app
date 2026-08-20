@@ -21,7 +21,10 @@
     storageAccess,
     requestStorageAccess,
     watchStorageAccess,
+    pickFolderNatively,
+    onKeyboardHidden,
   } from "./lib/services/androidStorage.js";
+  import { onBack, installBack } from "./lib/services/back.js";
   import ContextMenu from "./lib/components/ContextMenu.svelte";
   import ListView from "./lib/screens/ListView.svelte";
   import TasksView from "./lib/screens/TasksView.svelte";
@@ -245,6 +248,36 @@
   const closeTab = (i) => ({ tabs, active } = Tabs.close(tabs, active, i));
   const goBack = () => ({ tabs, active } = Tabs.back(tabs, active));
   const goForward = () => ({ tabs, active } = Tabs.forward(tabs, active));
+
+  // ---- "back", from wherever it is asked (2026-08-20) ----
+  // Until now the back arrow in the title bar was the only caller, and the two
+  // the platform provides did nothing with it: Android's back gesture closed
+  // the app from anywhere at all, and a mouse's back button was inert. Both
+  // arrive here now (services/back.js).
+  //
+  // This is the SHELL's handler and so the bottom of the stack — a dialog or a
+  // sheet registers while it is mounted and is asked first, which is what
+  // makes "close what is open before leaving where you are" true without
+  // anyone listing what can be open. What is left for the shell is what only
+  // it holds: the two overlays it draws itself, then the tab's own history.
+  //
+  // Answering `false` is a real answer, not a failure: on Android it hands the
+  // press back to the system, and closing the app is the right end of the road
+  // when there is nowhere left to go back to.
+  $effect(() =>
+    installBack({
+      onForward: () => Tabs.canGoForward(tabs[active]) && goForward(),
+    }),
+  );
+  $effect(() =>
+    onBack(() => {
+      if (zoomedImage) return ((zoomedImage = null), true);
+      if (canvasMenuAt) return ((canvasMenuAt = null), true);
+      if (drawerOpen) return ((drawerOpen = false), true);
+      if (Tabs.canGoBack(tabs[active])) return (goBack(), true);
+      return false;
+    }),
+  );
 
   const isOpen = (v) => Tabs.viewId(view) === Tabs.viewId(v);
 
@@ -1085,6 +1118,23 @@
   let storage = $state(storageAccess());
   $effect(() => watchStorageAccess((next) => (storage = next)));
 
+  // The keyboard went away, so whatever it was typing into should stop being
+  // typed into (user report on device, 2026-08-20: dismissing it with the back
+  // gesture left the note focused, the caret blinking on a line nobody was
+  // writing, and the formatting strip floating above a keyboard that was no
+  // longer there).
+  //
+  // Whatever holds the focus, not the editor by name: the keyboard was up
+  // because SOMETHING had it — a note, a task composer, a rename field — and
+  // the same thing is true of all of them. Android only reports the edge, so
+  // this cannot fire while someone is still typing (services/androidStorage.js).
+  $effect(() =>
+    onKeyboardHidden(() => {
+      const focused = document.activeElement;
+      if (focused && focused !== document.body) focused.blur?.();
+    }),
+  );
+
   /// The app's own container — non-null only on Android, where it is what the
   /// user gets by declining the permission, and where notebooks made by
   /// earlier versions already live.
@@ -1094,13 +1144,33 @@
   let picking = $state(false);
 
   async function chooseFolder() {
-    // Two different questions wearing one button. The desktop opens the
-    // system's picker, which is better at this than anything the app could
-    // draw. Android has no picker to open — and, before it can browse
-    // anything, needs the file permission the user grants in Settings.
+    // Two different questions wearing one button, and on Android a third
+    // behind them. The desktop opens the system's picker, which is better at
+    // this than anything the app could draw.
+    //
+    // Android needs the file permission FIRST — without it there is nothing to
+    // browse — and then opens the system's chooser too, converted back to a
+    // path by the Activity (services/androidStorage.js says why that is
+    // sound). The app's own browser is what is left when the chooser names a
+    // folder that cannot be turned into a path: it is the fallback now, not
+    // the answer.
     if (storage !== "notNeeded") {
-      if (storage === "granted") picking = true;
-      else requestStorageAccess();
+      if (storage !== "granted") {
+        requestStorageAccess();
+        return;
+      }
+      try {
+        const picked = await pickFolderNatively();
+        if (picked?.cancelled) return;
+        if (picked?.path) {
+          await openAt(picked.path);
+          return;
+        }
+      } catch (e) {
+        fail(e);
+        return;
+      }
+      picking = true;
       return;
     }
     try {
