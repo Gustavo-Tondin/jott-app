@@ -38,4 +38,24 @@
     outline: none;
     box-shadow: 0 0 0 0.1875rem var(--theme-brand-weak);
   }
+
+  /* A finger's swatches (2026-08-20). The app's rule is to grow the box and
+     leave the drawing (styles/touch.css), and this is one of the two places it
+     cannot apply: the swatch IS the drawing and the target both — a 20px dot
+     with an invisible 48px box around it would either overlap its neighbours
+     or space the row out to the width of the panel.
+
+     So the dot grows, and it costs nothing to look at: a colour swatch is one
+     of the few controls that reads BETTER bigger, because what it shows is the
+     colour itself. Eight of these plus their gaps come to 298px, which clears
+     the 360px the narrowest supported screen gives. */
+  @media (pointer: coarse) {
+    .accent-picker {
+      gap: var(--theme-space-8);
+    }
+    .accent-picker__swatch {
+      inline-size: 2rem;
+      block-size: 2rem;
+    }
+  }
 }

@@ -302,4 +302,18 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+
+  /* A finger's inspector (2026-08-20). Below 768px this whole panel is a
+     bottom sheet (components/sheet.css) — every row in it is under a thumb
+     rather than under a pointer, and a row here is not a `.theme-row`, so the
+     app's 48px minimum never reached it: `min-height: 2.375rem` above is 38.
+
+     Only the rows that HOLD a control need it. A field is a label at one end
+     and a select, a date pill or a switch at the other, and the tap has to
+     land on the far end of a row the eye reads from the near end. */
+  @media (pointer: coarse) {
+    .inspector__field {
+      min-height: var(--theme-touch-min);
+    }
+  }
 }

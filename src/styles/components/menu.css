@@ -57,6 +57,20 @@
     color: var(--theme-ink-faint);
     cursor: default;
   }
+
+  /* On a finger the list needs more than the 11rem the desktop gives it: the
+     rows are 48px tall and their labels a step bigger (touch.css, tokens.css),
+     and a menu that grew downwards without growing sideways reads as a column
+     of tall thin bands. The rows are `white-space: nowrap`, so the width was
+     never a wrapping question — it is that the panel stopped looking like a
+     panel. Capped against the narrowest screen the app supports so a long
+     label can still widen it without reaching both walls. */
+  @media (pointer: coarse) {
+    .menu__list {
+      min-width: min(14rem, 70vw);
+      padding: var(--theme-space-6);
+    }
+  }
 }
 
 /* The right-click menu (ContextMenu.svelte): the same list, anchored to the

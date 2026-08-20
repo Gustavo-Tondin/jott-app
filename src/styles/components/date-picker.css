@@ -83,4 +83,24 @@
     color: var(--theme-on-brand);
     font-weight: var(--theme-weight-semibold);
   }
+
+  /* THE SMALLEST TARGET IN THE APP, on a finger (2026-08-20). The 13rem above
+     is bought from the right panel's width, and it buys 26px days: 208px less
+     12px of padding less six 2px gaps, over seven columns. A day cell is
+     square by `aspect-ratio`, so it is the PANEL that has to grow — a minimum
+     on the cell alone would give tall cells in narrow columns.
+
+     The 240px ceiling the desktop obeys is not there below 768px: the
+     inspector that clipped this popup is a bottom sheet the width of the
+     screen (components/sheet.css). So the panel takes what the screen has,
+     short of both walls, and the days land at ~42px. */
+  @media (pointer: coarse) {
+    .date-picker__pop {
+      width: min(20rem, 88vw);
+      padding: var(--theme-space-8);
+    }
+    .date-picker__weekday {
+      height: 2rem;
+    }
+  }
 }

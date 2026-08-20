@@ -103,9 +103,119 @@
        hitting the one under it. */
     .shell__nav-item,
     .shell__nav-open,
-    .theme-row,
-    .menu__item {
+    .theme-row {
       min-block-size: var(--theme-touch-min);
+    }
+
+    /* THE MENU ROW, and the reason it is not in the list above any more
+       (2026-08-20, user report from the phone). The minimum was on
+       `.menu__item` — which is the `<li>` — and the thing a finger hits is the
+       `<button>` inside it. A block-level child does not take its parent's
+       minimum, so the button stayed at the 31px its padding and 13px label
+       give it and the list grew 17px of DEAD GAP under every row: a tap in the
+       bottom third of a menu row landed on the list and did nothing.
+
+       Three declarations, because the row has to be rebuilt to carry a
+       minimum at all. The `<li>` becomes a flex box so the button can fill it
+       (its submenu is a `.theme-popover`, absolutely positioned and out of
+       flow, so it is not made a sibling column by this). The button takes the
+       minimum. And the button centres what it holds, which it would have done
+       on its own — `.menu__link` declares `display: block`, and that is what
+       turns a <button>'s native vertical centring off. */
+    .menu__item {
+      display: flex;
+    }
+    .menu__link {
+      display: flex;
+      align-items: center;
+      flex: 1;
+      min-block-size: var(--theme-touch-min);
+      padding-inline: var(--theme-space-12);
+    }
+
+    /* THE BUTTONS THE 48px NEVER REACHED. `.theme-btn--icon` was covered from
+       the start because it is a lone glyph and obviously small; the button
+       with a WORD in it was not, and it is the one under a finger at the end
+       of every dialog, sheet and onboarding screen — 8px of padding around a
+       13px label is a 33px target for Save, Delete and Create.
+
+       A minimum only, never a height: a button that wraps to two lines is
+       taller than this and stays taller. */
+    .theme-btn {
+      min-block-size: var(--theme-touch-min);
+    }
+
+    /* The quiet sizes keep their density and still clear iOS's 44pt. They ride
+       inside a row or a toolbar that is itself a target, so the full 48 here
+       would spend the whole strip's height on one control.
+
+       THE SEGMENTED CONTROL IS NOT IN THIS LIST, and the omission is the
+       point: its item fills a track whose compact height is a settled user
+       call (2.375rem, components/tasks-view.css, 2026-08-18 — the wireframe's
+       padding was measured off a strip drawn at half a thumb's height). A
+       minimum here would push the item past the track that draws it and the
+       three pills would hang out of their own well. The track is the target
+       anyway, and it is one the thumb cannot miss: it spans the screen. */
+    .theme-btn--sm,
+    .theme-btn--xs,
+    .theme-chip {
+      min-block-size: 2.75rem;
+    }
+
+    /* `--xs` IS IN THAT LIST, and the first draft of this rule had it at 32px
+       on the belief that it is always the affordance at the end of a row that
+       the row itself catches the miss for. Counted on the phone: of its eleven
+       uses only the two in ListView are that. The other nine are the target of
+       whatever holds them — the chord button that rebinds a shortcut, four
+       buttons in Settings, and Install/Later on the update banner — and at
+       20px of drawn height they were the smallest worded buttons in the app.
+
+       So the ONE shape that really does ride inside a task card is the one
+       named here, and it keeps its density: the card is 48px and is itself the
+       tap that opens the task, so a miss lands on something useful. What it
+       gains is width, which is the axis a thumb is imprecise on and the one
+       axis that costs the card nothing. */
+    .list-view__action {
+      min-block-size: 2rem;
+      padding-inline: var(--theme-space-12);
+    }
+
+    /* The form controls. Both are a field a finger has to land in to type, and
+       at 8px of padding around a 14px label they came out at 37px — the same
+       shortfall the worded button had, from the same cause.
+
+       THE TEXTAREA IS NOT HERE, and leaving it in was a bug caught before it
+       shipped: it already carries `min-height: 5rem` (styles/controls.css),
+       a minimum and this one are the SAME property in the cascade, and this
+       sheet is imported last — so the rule meant to grow a control would have
+       shrunk the one control that was big enough, from 80px to 48. */
+    .theme-input,
+    .theme-select {
+      min-block-size: var(--theme-touch-min);
+    }
+
+    /* THE SWITCH IS THE EXCEPTION TO "grow the box, not the drawing", and it
+       has to be: the switch IS the target — there is no box behind it to grow,
+       and the row it sits in toggles nothing (Settings puts the label on the
+       left and the switch at the far right, so a tap on the row is a tap on
+       air). At 36x20 it is the smallest thing the app asks a thumb to hit.
+       Grown to 44x26 with the knob and its travel kept in proportion, it is
+       still plainly a switch and no longer a coin toss. */
+    .theme-switch {
+      inline-size: 2.75rem;
+      block-size: 1.625rem;
+    }
+    .theme-switch::after {
+      inline-size: 1.375rem;
+      block-size: 1.375rem;
+    }
+    /* The travel is the track less the knob less its 2px of air at each end,
+       and it is restated here because it is a LENGTH, not a ratio: left at the
+       desktop's 16px the knob would stop 4px short of the right wall and 2px
+       from the left, and a knob that does not land symmetrically is the one
+       detail that makes a switch look broken rather than small. */
+    .theme-switch:checked::after {
+      transform: translateX(1.125rem);
     }
 
     /* The ⋮ on a note card, and the × on a completed task: both are drawn small

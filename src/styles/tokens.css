@@ -387,4 +387,36 @@
   :root[data-note-size="large"] {
     --theme-note-size: var(--theme-text-18);
   }
+
+  /* ---------------------------------------------------------------------
+     THE TYPE RAMP ON A FINGER (2026-08-20, user report from the phone:
+     "botões e textos/ícones de menus" too small).
+
+     THE NUMBER IN THE NAME IS THE DESKTOP px, and it always was — the name
+     denotes the RUNG, which is why 55 rules across 40 sheets can read
+     `--theme-text-13` without any of them knowing what a 13 is worth. So the
+     ramp gets a second setting rather than 55 overrides: on a coarse pointer
+     the bottom five rungs each move up one step, and every rule that reads
+     them moves with it, in step, for free.
+
+     ONLY THE BOTTOM MOVES. 16 and up are already comfortable at arm's length
+     and are the sizes the wireframes composed with — growing them would
+     re-flow the layouts. What was unreadable is the tail the design uses for
+     meta and chrome: an 8px tag pill and a 10px date are drawn on a phone at
+     roughly half the size the platform's own smallest label uses.
+
+     THE CEILING IS +2px, and it is a budget rather than a taste: at 360 CSS
+     px the rows that read these tokens (a task card's date beside its tags, a
+     sidebar row's label beside its count) have no slack to give, so type that
+     grows past the air around it buys legibility with wrapping. Two steps is
+     what the tightest of those rows was measured to hold. */
+  @media (pointer: coarse) {
+    :root {
+      --theme-text-8: 0.625rem; /* 10px — tag pill */
+      --theme-text-10: 0.75rem; /* 12px — task meta date */
+      --theme-text-12: 0.8125rem; /* 13px — right panel, breadcrumb */
+      --theme-text-13: 0.875rem; /* 14px — buttons, menu rows */
+      --theme-text-14: 0.9375rem; /* 15px — tabs, nav labels, body small */
+    }
+  }
 }

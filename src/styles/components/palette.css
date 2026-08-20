@@ -40,4 +40,16 @@
     border-color: var(--theme-brand);
     color: var(--theme-brand);
   }
+
+  /* A finger's icon row (2026-08-20). Same call as the swatch beside it
+     (components/accent-picker.css): the tile is the drawing and the target
+     both, so it grows rather than gaining an invisible box that would overlap
+     its neighbours. The glyph inside rides the app's icon scale on its own
+     (components/icon.css), so only the tile is stated here. */
+  @media (pointer: coarse) {
+    .palette__icon {
+      width: 2.25rem;
+      height: 2.25rem;
+    }
+  }
 }

@@ -5,8 +5,15 @@
 @layer components {
   .theme-icon {
     display: inline-flex;
-    width: var(--icon-size);
-    height: var(--icon-size);
+    /* `--icon-size` is the call site's, written inline by Icon.svelte, and it
+       is the only length here a component chooses. `--icon-scale` is the app's,
+       and it exists because the call site's number is not reachable from CSS:
+       an inline custom property beats any rule, so a phone could not have been
+       given bigger glyphs without editing all ~105 `size=` props by hand and
+       keeping two sets of numbers in step forever. Multiplied, one declaration
+       moves every icon in the app and each keeps its place in the ramp. */
+    width: calc(var(--icon-size) * var(--icon-scale, 1));
+    height: calc(var(--icon-size) * var(--icon-scale, 1));
     line-height: 0;
     flex-shrink: 0;
   }
@@ -14,5 +21,20 @@
     width: 100%;
     height: 100%;
     display: block;
+  }
+
+  /* A finger's glyphs (2026-08-20, user report from the phone). One eighth,
+     which is the same move the type ramp makes beside it (tokens.css): the
+     14px caret that says a menu row opens a submenu, and the 12px chevrons in
+     the date picker, are the two the report named — but scaling the whole set
+     is what keeps an icon the same weight as the text it sits next to.
+
+     The DRAWING only. Hit areas are a separate question with its own answer
+     (styles/touch.css), and deliberately so: the 48px minimum there must not
+     depend on how big a glyph happens to be. */
+  @media (pointer: coarse) {
+    :root {
+      --icon-scale: 1.125;
+    }
   }
 }
