@@ -120,7 +120,7 @@ impl NotebookWatcher {
             }
         })?;
 
-        watcher.watch(&root, RecursiveMode::Recursive)?;
+        watch_tree(&mut watcher, &root, MAX_DEPTH)?;
         Ok(Self {
             _watcher: watcher,
             events: rx,
@@ -150,6 +150,62 @@ impl NotebookWatcher {
         }
         changes
     }
+}
+
+/// How deep the fallback walk goes before giving up. A notebook is folders of
+/// markdown, not a filesystem; anything past this is somebody having pointed
+/// the app at their whole phone, and the depth is there so a symlink loop
+/// cannot spin forever.
+const MAX_DEPTH: u32 = 24;
+
+/// Watches `dir` and everything under it, LEAVING OUT what cannot be read.
+///
+/// WHY NOT JUST `RecursiveMode::Recursive` — that is one call, and it is all
+/// or nothing: `notify` walks the tree itself and returns `Err` for the whole
+/// root the moment one directory refuses to open. On Android that is not an
+/// edge case but the normal shape of shared storage: `/sdcard/Android/data` is
+/// carved out of MANAGE_EXTERNAL_STORAGE and stays unreadable to an app
+/// holding it, so picking `/sdcard` (or any folder above it) failed the watch,
+/// and `state.rs` propagates that — the notebook would not open at all (user
+/// report on device, 2026-08-20: "Permission denied (os error 13) about
+/// ["/sdcard/Android/data"]").
+///
+/// So the recursive call is still the FIRST thing tried, because it is one
+/// inotify registration for the common case where every folder is readable.
+/// Only when it refuses does this descend by hand: watch this directory alone,
+/// then try each child the same way. An unreadable branch is skipped and its
+/// siblings are kept, which is the whole point.
+///
+/// What the fallback costs: a directory created LATER inside a degraded branch
+/// is not watched, because nothing re-walks. The parent is watched, so its
+/// creation is still reported and the app still reloads — only later changes
+/// *inside* it are missed until the notebook is reopened. That is the price of
+/// the notebook opening at all.
+fn watch_tree(watcher: &mut RecommendedWatcher, dir: &Path, depth: u32) -> Result<()> {
+    if watcher.watch(dir, RecursiveMode::Recursive).is_ok() {
+        return Ok(());
+    }
+
+    // This directory on its own. If even that fails, the caller decides: at the
+    // root it is a real error, deeper down it is a branch to skip.
+    watcher.watch(dir, RecursiveMode::NonRecursive)?;
+    if depth == 0 {
+        return Ok(());
+    }
+
+    // A directory that cannot be listed is one whose children cannot be
+    // watched either, and that is not a reason to fail the notebook.
+    let Ok(children) = crate::fsio::dir_paths(dir) else {
+        return Ok(());
+    };
+    for child in children {
+        // `is_dir` follows symlinks, and a link pointing back up would walk
+        // forever — the depth counter is what bounds it.
+        if child.is_dir() {
+            let _ = watch_tree(watcher, &child, depth - 1);
+        }
+    }
+    Ok(())
 }
 
 /// Ignores access/metadata noise: only creation, modification and removal
@@ -234,6 +290,40 @@ mod tests {
             Change::classify(config_dir.join("daily-state.json.tmp"), &config_dir),
             None
         );
+    }
+
+    /// The one that had to be measured against a real directory: a notebook
+    /// whose tree holds a folder nobody may open. That is Android's shared
+    /// storage every time (`/sdcard/Android/data`), and a single recursive
+    /// `watch()` refuses the whole root over it, which took the notebook down
+    /// with it.
+    ///
+    /// Root-only guard: root reads everything, so the unreadable folder would
+    /// be readable and the test would prove nothing.
+    #[test]
+    #[cfg(unix)]
+    fn an_unreadable_folder_does_not_stop_the_watch() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        std::fs::create_dir(root.join("Tasks")).unwrap();
+        let locked = root.join("Locked");
+        std::fs::create_dir(&locked).unwrap();
+        std::fs::set_permissions(&locked, std::fs::Permissions::from_mode(0o000)).unwrap();
+
+        // Asked while it is still locked: running as root, mode 000 is no
+        // obstacle at all and there would be nothing to prove.
+        let really_locked = std::fs::read_dir(&locked).is_err();
+        let started = NotebookWatcher::start(root);
+
+        // Put it back before asserting, or the tempdir cannot clean itself up.
+        std::fs::set_permissions(&locked, std::fs::Permissions::from_mode(0o755)).unwrap();
+        if !really_locked {
+            return;
+        }
+        let failure = started.err().map(|e| e.to_string());
+        assert_eq!(failure, None, "the notebook must open anyway");
     }
 
     #[test]
