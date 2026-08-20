@@ -149,3 +149,9 @@ Platform notes:
   (`Android/data/dev.gustavotondin.jott/files/Documents/Jott`) — real `.md`
   files reachable over USB, but invisible to every other app on the phone,
   sync clients included; uninstalling Jott deletes it.
+
+## License
+
+Jott is free software under the [MIT License](LICENSE) — use it, read it, fork
+it, ship your own build of it. The notebook it writes is plain Markdown, so
+your side of the deal never depended on the license anyway.
