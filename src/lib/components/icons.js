@@ -52,6 +52,17 @@ import list from "../../assets/icons/phosphor/regular/list.svg?raw";
 import magnifyingGlass from "../../assets/icons/phosphor/regular/magnifying-glass.svg?raw";
 import lightbulb from "../../assets/icons/phosphor/regular/lightbulb.svg?raw";
 
+// The settings menu (2026-08-20, wireframe "Settings"). One glyph per section
+// of the screen, each naming what the section is ABOUT rather than the word it
+// uses: a screen for how the app looks, a calendar for when the day turns, a
+// notebook for the folder itself, a keyboard for the chords, sliders for the
+// switches, and the arrow that brings a new version down.
+import monitor from "../../assets/icons/phosphor/regular/monitor.svg?raw";
+import notebookIcon from "../../assets/icons/phosphor/regular/notebook.svg?raw";
+import keyboard from "../../assets/icons/phosphor/regular/keyboard.svg?raw";
+import slidersHorizontal from "../../assets/icons/phosphor/regular/sliders-horizontal.svg?raw";
+import downloadSimple from "../../assets/icons/phosphor/regular/download-simple.svg?raw";
+
 // The image library and the note banner (2026-08-18). `image` is the placeholder
 // a picture leaves when it is missing — the same grey square the wireframes
 // draw on a card whose banner is an image.
@@ -142,6 +153,11 @@ export const ICONS = {
   "dots-six-vertical": dotsSixVertical,
   list,
   "magnifying-glass": magnifyingGlass,
+  monitor,
+  notebook: notebookIcon,
+  keyboard,
+  "sliders-horizontal": slidersHorizontal,
+  "download-simple": downloadSimple,
   image,
   // markdown
   bold: textB,

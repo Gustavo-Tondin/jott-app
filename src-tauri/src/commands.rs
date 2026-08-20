@@ -82,8 +82,58 @@ pub struct NotebookInfo {
     pub layout: NotebookLayout,
 }
 
+/// The display choices in force, machine over notebook.
+///
+/// Since 2026-08-20 the Settings screen's Display section answers to a SCREEN
+/// and not to a notebook (`crate::prefs::DisplayPrefs`): a phone can be dark
+/// while the desktop stays in Jott's own black-on-white. What this machine has
+/// not chosen falls back to the notebook, which is what lets a notebook still
+/// carry a look to a machine that never picked one.
+///
+/// One function, because four doors answer with these values — the layout, the
+/// settings screen, the sidebar's counters and the screen to restore — and
+/// they must not drift about which side wins.
+struct Display {
+    theme: String,
+    accent_color: String,
+    heading_color: String,
+    note_font_size: String,
+    date_display_format: String,
+    show_list_counts: bool,
+    restore_last_screen: bool,
+    close_inspector_on_click_away: bool,
+}
+
+fn display_of<R: Runtime>(app: &AppHandle<R>, notebook: &Notebook) -> Display {
+    let machine = crate::prefs::display(app);
+    let config = notebook.config();
+    Display {
+        theme: machine.theme.unwrap_or_else(|| config.theme.clone()),
+        accent_color: machine
+            .accent_color
+            .unwrap_or_else(|| config.accent_color.clone()),
+        heading_color: machine
+            .heading_color
+            .unwrap_or_else(|| config.heading_color.clone()),
+        note_font_size: machine
+            .note_font_size
+            .unwrap_or_else(|| config.note_font_size.clone()),
+        date_display_format: machine
+            .date_display_format
+            .unwrap_or_else(|| config.date_display_format.render().to_string()),
+        show_list_counts: machine.show_list_counts.unwrap_or(config.show_list_counts),
+        restore_last_screen: machine
+            .restore_last_screen
+            .unwrap_or(config.restore_last_screen),
+        close_inspector_on_click_away: machine
+            .close_inspector_on_click_away
+            .unwrap_or(config.close_inspector_on_click_away),
+    }
+}
+
 impl NotebookInfo {
-    fn of(notebook: &Notebook) -> CommandResult<Self> {
+    fn of<R: Runtime>(app: &AppHandle<R>, notebook: &Notebook) -> CommandResult<Self> {
+        let display = display_of(app, notebook);
         Ok(Self {
             path: notebook.root().to_path_buf(),
             name: notebook
@@ -106,19 +156,13 @@ impl NotebookInfo {
                 // ROOT instead of the Inbox the spec (and the config default)
                 // point at.
                 notes_inbox: jott_core::notefolder::NOTES_INBOX.to_string(),
-                date_display_format: notebook
-                    .config()
-                    .date_display_format
-                    .render()
-                    .to_string(),
-                close_inspector_on_click_away: notebook
-                    .config()
-                    .close_inspector_on_click_away,
+                date_display_format: display.date_display_format,
+                close_inspector_on_click_away: display.close_inspector_on_click_away,
                 quick_note_folder: notebook.config().quick_note_folder.clone(),
-                accent_color: notebook.config().accent_color.clone(),
-                theme: notebook.config().theme.clone(),
-                heading_color: notebook.config().heading_color.clone(),
-                note_font_size: notebook.config().note_font_size.clone(),
+                accent_color: display.accent_color,
+                theme: display.theme,
+                heading_color: display.heading_color,
+                note_font_size: display.note_font_size,
                 shortcuts: notebook.config().shortcuts.clone(),
                 features: notebook.config().features.clone(),
             },
@@ -520,7 +564,7 @@ pub fn open_notebook<R: Runtime>(
     path: PathBuf,
 ) -> CommandResult<NotebookInfo> {
     let notebook = Notebook::open_or_init(&path)?;
-    let info = NotebookInfo::of(&notebook)?;
+    let info = NotebookInfo::of(&app, &notebook)?;
     allow_assets(&app, &path);
     state.open(&app, notebook)?;
     crate::prefs::remember_notebook(&app, &path);
@@ -560,27 +604,34 @@ pub fn last_notebook<R: Runtime>(app: AppHandle<R>) -> Option<PathBuf> {
 
 /// The notebook currently open, if any.
 #[tauri::command]
-pub fn current_notebook(state: State<'_, AppState>) -> Option<NotebookInfo> {
+pub fn current_notebook<R: Runtime>(
+    app: AppHandle<R>,
+    state: State<'_, AppState>,
+) -> Option<NotebookInfo> {
     if !state.is_open() {
         return None;
     }
-    state.with_notebook(NotebookInfo::of).ok()
+    state.with_notebook(|nb| NotebookInfo::of(&app, nb)).ok()
 }
 
 /// Open task count per list, for the navigation. Empty when the user turned
 /// the counters off — the frontend does not need to know the rule.
 #[tauri::command]
-pub fn list_counts(
+pub fn list_counts<R: Runtime>(
+    app: AppHandle<R>,
     state: State<'_, AppState>,
 ) -> CommandResult<std::collections::BTreeMap<String, usize>> {
-    state.with_notebook(counts_of)
+    state.with_notebook(|nb| counts_of(&app, nb))
 }
 
 /// The rule behind the counters, written once: off means empty, not absent —
 /// the shape stays the same either way. Shared by `list_counts` and the
 /// snapshot, so the two doors cannot drift.
-fn counts_of(nb: &Notebook) -> CommandResult<std::collections::BTreeMap<String, usize>> {
-    if !nb.config().show_list_counts {
+fn counts_of<R: Runtime>(
+    app: &AppHandle<R>,
+    nb: &Notebook,
+) -> CommandResult<std::collections::BTreeMap<String, usize>> {
+    if !display_of(app, nb).show_list_counts {
         return Ok(Default::default());
     }
     Ok(nb.open_task_counts()?)
@@ -597,7 +648,7 @@ pub fn screen_to_restore<R: Runtime>(
     state: State<'_, AppState>,
 ) -> CommandResult<Option<String>> {
     state.with_notebook(|nb| {
-        if !nb.config().restore_last_screen {
+        if !display_of(&app, nb).restore_last_screen {
             return Ok(None);
         }
         Ok(crate::prefs::last_screen(&app))
@@ -613,7 +664,7 @@ pub fn remember_screen<R: Runtime>(
     screen: String,
 ) -> CommandResult<()> {
     state.with_notebook(|nb| {
-        if nb.config().restore_last_screen {
+        if display_of(&app, nb).restore_last_screen {
             crate::prefs::remember_screen(&app, &screen);
         }
         Ok(())
@@ -682,8 +733,12 @@ pub fn remember_last_update_check<R: Runtime>(app: AppHandle<R>, when: String) {
 }
 
 #[tauri::command]
-pub fn notebook_settings(state: State<'_, AppState>) -> CommandResult<NotebookSettings> {
+pub fn notebook_settings<R: Runtime>(
+    app: AppHandle<R>,
+    state: State<'_, AppState>,
+) -> CommandResult<NotebookSettings> {
     state.with_notebook(|nb| {
+        let display = display_of(&app, nb);
         let config = nb.config();
         let rollover = config.rollover;
         Ok(NotebookSettings {
@@ -692,23 +747,34 @@ pub fn notebook_settings(state: State<'_, AppState>) -> CommandResult<NotebookSe
             weekly_mode: Some(rollover.weekly.mode.render().to_string()),
             weekly_at: Some(rollover.weekly.at.render()),
             week_starts_on: Some(rollover.weekly.starts_on.render().to_string()),
-            restore_last_screen: Some(config.restore_last_screen),
-            show_list_counts: Some(config.show_list_counts),
+            restore_last_screen: Some(display.restore_last_screen),
+            show_list_counts: Some(display.show_list_counts),
             dated_tasks_join_period: Some(config.dated_tasks_join_period),
             confirm_deletes: Some(config.confirm_deletes),
             confirm_image_downloads: Some(config.confirm_image_downloads),
             auto_urgent_by_date: Some(config.auto_urgent_by_date),
-            date_display_format: Some(config.date_display_format.render().to_string()),
-            accent_color: Some(config.accent_color.clone()),
-            theme: Some(config.theme.clone()),
-            heading_color: Some(config.heading_color.clone()),
-            note_font_size: Some(config.note_font_size.clone()),
-            close_inspector_on_click_away: Some(config.close_inspector_on_click_away),
+            date_display_format: Some(display.date_display_format),
+            accent_color: Some(display.accent_color),
+            theme: Some(display.theme),
+            heading_color: Some(display.heading_color),
+            note_font_size: Some(display.note_font_size),
+            close_inspector_on_click_away: Some(display.close_inspector_on_click_away),
             quick_note_folder: Some(config.quick_note_folder.clone()),
             completed_retention_days: Some(config.completed_retention_days),
             trash_retention_days: Some(config.trash_retention_days),
         })
     })
+}
+
+/// Saves one or more Display choices, on THIS machine (2026-08-20).
+///
+/// It goes nowhere near the notebook, which is why it needs no `ensure_writable`
+/// and why a read-only notebook does not stop it — the same reasoning the
+/// update check is written under. Every field is optional on the way in: the
+/// screen sends the one key that changed.
+#[tauri::command]
+pub fn set_machine_display<R: Runtime>(app: AppHandle<R>, display: crate::prefs::DisplayPrefs) {
+    crate::prefs::set_display(&app, display);
 }
 
 /// Saves the rollover preferences. Unparseable values fall back to the
@@ -2269,12 +2335,15 @@ pub struct NotebookSnapshot {
 }
 
 #[tauri::command]
-pub fn notebook_snapshot(state: State<'_, AppState>) -> CommandResult<NotebookSnapshot> {
+pub fn notebook_snapshot<R: Runtime>(
+    app: AppHandle<R>,
+    state: State<'_, AppState>,
+) -> CommandResult<NotebookSnapshot> {
     state.with_notebook(|nb| {
         Ok(NotebookSnapshot {
-            info: NotebookInfo::of(nb)?,
+            info: NotebookInfo::of(&app, nb)?,
             clock: clock_of(nb),
-            counts: counts_of(nb)?,
+            counts: counts_of(&app, nb)?,
             conflicts: nb.conflicts()?,
             spaces: spaces_of(nb)?,
             groups: groups_of(nb)?,

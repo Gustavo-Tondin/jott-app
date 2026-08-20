@@ -12,6 +12,38 @@ use tauri::{AppHandle, Manager, Runtime};
 
 const FILE_NAME: &str = "machine-prefs.json";
 
+/// The Display choices, which answer to a SCREEN and not to a notebook
+/// (2026-08-20, user call: "no meu celular quero tema escuro e no desktop tema
+/// Jott").
+///
+/// This is the whole of the Settings screen's Display section, which is what
+/// makes the split a rule instead of a list to remember: **Display is this
+/// machine, every other section is the notebook.** The two choices that used
+/// to sit there and are NOT about a screen moved to the section they belong to
+/// rather than becoming exceptions — where a quick note lands is the
+/// notebook's (Notebook), and whether an overdue task counts as urgent is a
+/// rule about tasks (Day and week).
+///
+/// Every field is optional, and absent is not "off": it means **this machine
+/// has no answer, so the notebook's is used**. That fallback is what keeps the
+/// look travelling — a notebook opened on a machine that never chose comes up
+/// dressed the way it was left, and diverges the moment something is picked
+/// here. It is also why nothing has to be migrated: a notebook written before
+/// the split keeps its values in `.jott/config.json`, they keep being read,
+/// and another version of Jott still finds them where it left them.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct DisplayPrefs {
+    pub theme: Option<String>,
+    pub accent_color: Option<String>,
+    pub heading_color: Option<String>,
+    pub note_font_size: Option<String>,
+    pub date_display_format: Option<String>,
+    pub show_list_counts: Option<bool>,
+    pub restore_last_screen: Option<bool>,
+    pub close_inspector_on_click_away: Option<bool>,
+}
+
 #[derive(Debug, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct MachinePrefs {
@@ -21,9 +53,13 @@ struct MachinePrefs {
     ///
     /// Deliberately opaque: the shell has no business knowing what a screen
     /// is, and the frontend can add screens without touching Rust. Only used
-    /// when the notebook has `restoreLastScreen` on — the preference travels
-    /// with the notebook, the value stays on this machine.
+    /// when `restoreLastScreen` is on — which since 2026-08-20 is a display
+    /// preference of this machine too, so the switch and the value it governs
+    /// finally answer to the same thing.
     last_screen: Option<String>,
+    /// What this machine chose to look like. See `DisplayPrefs`.
+    #[serde(default)]
+    display: DisplayPrefs,
     /// How wide the user dragged the left sidebar, in CSS pixels
     /// (2026-08-17).
     ///
@@ -139,6 +175,45 @@ pub fn remember_panel_width<R: Runtime>(app: &AppHandle<R>, width: f64) {
         return;
     }
     update(app, |prefs| prefs.panel_width = Some(width));
+}
+
+/// What this machine chose to look like — every field `None` until something
+/// is picked in Settings.
+pub fn display<R: Runtime>(app: &AppHandle<R>) -> DisplayPrefs {
+    load(app).display
+}
+
+/// Records one or more display choices. Everything the patch leaves out is
+/// kept, so the settings screen can send one key at a time — the same pact
+/// `set_notebook_settings` makes about the notebook's own preferences.
+pub fn set_display<R: Runtime>(app: &AppHandle<R>, patch: DisplayPrefs) {
+    update(app, |prefs| {
+        let d = &mut prefs.display;
+        if patch.theme.is_some() {
+            d.theme = patch.theme;
+        }
+        if patch.accent_color.is_some() {
+            d.accent_color = patch.accent_color;
+        }
+        if patch.heading_color.is_some() {
+            d.heading_color = patch.heading_color;
+        }
+        if patch.note_font_size.is_some() {
+            d.note_font_size = patch.note_font_size;
+        }
+        if patch.date_display_format.is_some() {
+            d.date_display_format = patch.date_display_format;
+        }
+        if patch.show_list_counts.is_some() {
+            d.show_list_counts = patch.show_list_counts;
+        }
+        if patch.restore_last_screen.is_some() {
+            d.restore_last_screen = patch.restore_last_screen;
+        }
+        if patch.close_inspector_on_click_away.is_some() {
+            d.close_inspector_on_click_away = patch.close_inspector_on_click_away;
+        }
+    });
 }
 
 /// Whether the app may check for a new version by itself. Absent means yes.

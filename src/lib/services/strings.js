@@ -156,7 +156,7 @@ export const S = {
   sectionShortcuts: "Shortcuts",
   sectionShortcutsHint:
     "Click a key to record a new one, Escape to leave it as it was. Bindings " +
-    "travel with the notebook, the way the theme does.",
+    "travel with the notebook, so the same keys answer wherever it is opened.",
   // Named for what the user is DOING, not for the word the code uses.
   shortcutScope: (scope) =>
     ({
@@ -187,8 +187,8 @@ export const S = {
   noteSizeLarge: "Large",
   noteFontSizeLabel: "Note text size",
   noteFontSizeHint:
-    "How big the body of a note is drawn. It travels with the notebook — the " +
-    "interface's own zoom (Ctrl +/-) belongs to this machine instead.",
+    "How big the body of a note is drawn. The interface's own zoom is the " +
+    "other half of the question, and lives on the keyboard (Ctrl +/-).",
 
   // Commands (2026-08-18): the name of every keyboard command, read by the
   // shortcuts table in Settings and by the formatting panel's tooltips. They
@@ -253,8 +253,21 @@ export const S = {
   // Settings (phase 9)
   settings: "Settings",
   settingsSaved: "Saved.",
+  // The label above the menu of sections (2026-08-20, wireframe "Settings").
+  // It names the LIST, which is why it is not the screen's own title repeated:
+  // the day this menu gains a second group, that group gets a label of its own
+  // beside this one.
+  settingsSections: "Settings",
+  settingsBackToMenu: "All settings",
   sectionDay: "Day and week",
   sectionDisplay: "Display",
+  // Whose answers these are (2026-08-20). Said once at the top of the section
+  // rather than on each row: the whole section moved to the machine, and a
+  // note repeated eight times reads as a warning instead of a fact.
+  sectionDisplayHint:
+    "These answer for this device, not for the notebook — a phone can be dark " +
+    "while the desktop stays in Jott's own. Until one is chosen here, the " +
+    "notebook's own choice is what shows.",
   sectionNotebook: "Notebook",
   rolloverDaily: "When the day turns",
   rolloverWeekly: "When the week turns",

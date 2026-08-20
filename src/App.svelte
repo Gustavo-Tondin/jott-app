@@ -638,6 +638,10 @@
   /// Which tab of the Tasks screen is open, so the page header can read
   /// `Tasks/Index` while the browser tab keeps saying just `Tasks`.
   let tasksSub = $state("");
+  /// The Settings section the screen went into, for the compact header to name
+  /// (screens/SettingsView.svelte). Empty while the menu is what is on screen,
+  /// and always empty side by side — there the menu says which one is open.
+  let settingsSub = $state("");
   /// And what date that tab is looking at — the day for Today, the span for
   /// Week, nothing for the Index. Below 768px the screen hands it up instead
   /// of drawing it beside the strip: there it is the header's second line
@@ -1763,7 +1767,9 @@
             ? ""
             : view.kind === "tasks" && tasksSub
               ? tasksSub
-              : title(view)}
+              : compact && view.kind === "settings" && settingsSub
+                ? settingsSub
+                : title(view)}
           context={view.kind === "tasks" && tasksSub ? S.tasks : ""}
           subtitle={/* The day, ONCE, and only where a date means something.
             On the desktop the two screens that carry one draw it themselves —
@@ -1880,6 +1886,7 @@
           <div
             class="shell__content-inner"
             class:shell__content-inner--note={view.kind === "note"}
+            class:shell__content-inner--wide={view.kind === "settings"}
           >
           {#if error}
             <p class="shell__error">
@@ -2091,9 +2098,11 @@
             />
           {:else if view.kind === "settings"}
             <SettingsView
+              {compact}
               {notebook}
               folders={noteFolders}
               notesInbox={layout.notesInbox}
+              onSection={(label) => (settingsSub = label)}
               onChanged={refreshNotebook}
               onError={fail}
             />

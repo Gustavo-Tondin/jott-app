@@ -26,6 +26,10 @@ export const api = {
   // screen can send one key without holding the rest.
   notebookSettings: () => invoke("notebook_settings"),
   setNotebookSettings: (settings) => invoke("set_notebook_settings", { settings }),
+  // The Display choices answer to THIS machine, not to the notebook
+  // (2026-08-20) — a phone can be dark while the desktop stays in Jott's own
+  // black-on-white. Same pact as the one above: send the key that changed.
+  setMachineDisplay: (display) => invoke("set_machine_display", { display }),
   screenToRestore: () => invoke("screen_to_restore"),
   // Which window buttons the desktop wants, and on which side. The window is
   // frameless, so the app draws them and has to follow the system's layout.

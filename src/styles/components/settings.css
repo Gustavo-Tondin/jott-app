@@ -2,10 +2,142 @@
  * Markup: src/lib/screens/SettingsView.svelte. Selectors are the stable BEM hooks a theme
  * may restyle; components read tokens only. */
 
+/* =============================================================================
+   THE SCREEN'S SHAPE (2026-08-20, wireframes "Settings").
+
+   Two arrangements of one screen, and `.settings--compact` is which — the
+   shell's own measurement (shell/compact.js), never a second media query that
+   could disagree with it:
+
+     desktop  MENU | SECTION, inside the 900px column the shell caps
+              (.shell__content-inner--wide, shell.css). The menu HUGS its rows
+              (`max-content`) and the section takes what is left, so the menu's
+              width is its longest label and not a number that has to be kept
+              in step with one.
+     phone    one column: the menu is the screen, and a row goes INTO the
+              section. Nothing here says so — with a single grid column the
+              same two boxes stack, and only one of them is rendered at a time.
+   ============================================================================= */
+@layer components {
+  .settings {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    align-items: start;
+    gap: var(--theme-space-24);
+  }
+  .settings--compact {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--theme-space-16);
+  }
+  /* The read-only notice and the "Saved." flash answer for the whole screen,
+     not for the section that happens to be open, so they cross both columns. */
+  .settings > .settings__notice,
+  .settings > .settings__saved {
+    grid-column: 1 / -1;
+  }
+  .settings__panel {
+    min-inline-size: 0;
+  }
+
+  /* ---- the menu ----
+     One sunken card holding the rows, not a row of sunken cards: the wireframe
+     draws a single block with a label above its list, which is what lets a
+     second group (the day this screen gains one) sit beside it as a peer. */
+  .settings__nav {
+    background: var(--theme-surface);
+    border-radius: var(--theme-radius-lg);
+    padding: var(--theme-space-12) var(--theme-space-8) var(--theme-space-16);
+    /* Wide enough that the rows do not read as a narrow strip, and never so
+       wide that a long label pushes the section out of the column. */
+    min-inline-size: 12rem;
+    max-inline-size: 16rem;
+  }
+  /* On the phone the menu IS the screen, so it takes the width it is given —
+     the cap above is what keeps a long label from eating the section's column,
+     and there is no section beside it here. */
+  .settings--compact .settings__nav {
+    max-inline-size: none;
+  }
+  .settings__nav-title {
+    margin: 0 0 var(--theme-space-8);
+    padding-inline: var(--theme-space-12);
+    font-size: var(--theme-text-12);
+    letter-spacing: var(--theme-tracking-wide);
+    text-transform: uppercase;
+    color: var(--theme-ink-muted);
+  }
+  .settings__nav-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--theme-space-2);
+  }
+  .settings__nav-item {
+    inline-size: 100%;
+    display: flex;
+    align-items: center;
+    gap: var(--theme-space-12);
+    padding: var(--theme-space-8) var(--theme-space-12);
+    border: none;
+    border-radius: var(--theme-radius-md);
+    background: none;
+    color: var(--theme-ink-muted);
+    font: inherit;
+    font-size: var(--theme-text-14);
+    text-align: start;
+    cursor: pointer;
+  }
+  .settings__nav-item:hover {
+    background: var(--theme-hover);
+    color: var(--theme-ink);
+  }
+  .settings__nav-label {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  /* The selected row is a WELL, not the accent pill the sidebar wears. The
+     sidebar's pill says which place in the notebook you are in, and it is on
+     screen at the same time as this one — two accent pills would be "you are
+     here" said twice, about two different things. A step deeper into the card
+     is enough here, because the row it marks is one of six in one block. */
+  .settings__nav-item--active,
+  .settings__nav-item--active:hover {
+    background: var(--theme-well);
+    color: var(--theme-ink);
+    font-weight: var(--theme-weight-semibold);
+  }
+
+  /* The way back to the menu, on the phone. It is NOT the top bar's arrow:
+     that one is the tab's history and would leave Settings altogether, and a
+     desktop window merely narrowed past 768px has no back gesture at all. */
+  .settings__back {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--theme-space-4);
+    margin-block-end: var(--theme-space-12);
+    padding: var(--theme-space-6) var(--theme-space-8);
+    margin-inline-start: calc(var(--theme-space-8) * -1);
+    border: none;
+    border-radius: var(--theme-radius-sm);
+    background: none;
+    color: var(--theme-ink-muted);
+    font: inherit;
+    font-size: var(--theme-text-14);
+    cursor: pointer;
+  }
+  .settings__back:hover {
+    color: var(--theme-ink);
+  }
+}
+
 @layer components {
   .settings__section {
     margin-bottom: var(--theme-space-24);
-    max-width: 34rem;
   }
   .settings__section-title {
     font-size: var(--theme-text-12);

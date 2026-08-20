@@ -735,6 +735,76 @@ fn a_dated_task_reaches_the_day_over_the_bridge() {
 }
 
 #[test]
+fn display_answers_to_this_machine_and_falls_back_to_the_notebook() {
+    // 2026-08-20, user call: "no meu celular quero usar tema escuro e no
+    // desktop tema Jott". The Settings screen's whole Display section moved to
+    // the machine, and the notebook's own values became the FALLBACK — which
+    // is what lets a notebook still carry a look to a machine that never
+    // picked one, and why nothing had to be migrated.
+    let (_lock, app, dir) = app_with_notebook();
+
+    // The notebook says dark; this machine has said nothing, so dark it is.
+    ok(
+        &app,
+        "set_notebook_settings",
+        json!({ "settings": { "theme": "dark", "noteFontSize": "large" } }),
+    );
+    assert_eq!(ok(&app, "notebook_settings", json!({}))["theme"], "dark");
+    let info = ok(&app, "current_notebook", json!({}));
+    assert_eq!(info["layout"]["theme"], "dark", "the first paint reads it too");
+
+    // This machine chooses. The notebook is not asked, and not touched.
+    ok(
+        &app,
+        "set_machine_display",
+        json!({ "display": { "theme": "light" } }),
+    );
+    let saved = ok(&app, "notebook_settings", json!({}));
+    assert_eq!(saved["theme"], "light", "this machine's answer wins");
+    assert_eq!(
+        saved["noteFontSize"], "large",
+        "what this machine did not choose still comes from the notebook"
+    );
+    assert_eq!(
+        ok(&app, "current_notebook", json!({}))["layout"]["theme"],
+        "light"
+    );
+
+    let on_disk = std::fs::read_to_string(dir.path().join(".jott/config.json")).unwrap();
+    assert!(
+        on_disk.contains("dark"),
+        "the notebook keeps its own answer, so another machine still reads it"
+    );
+    assert!(!on_disk.contains("light"));
+}
+
+#[test]
+fn a_display_payload_keeps_the_choices_it_did_not_mention() {
+    // The same pact `set_notebook_settings` makes, in the other drawer: the
+    // screen sends the one key that changed.
+    let (_lock, app, _dir) = app_with_notebook();
+
+    ok(
+        &app,
+        "set_machine_display",
+        json!({ "display": { "theme": "dark", "showListCounts": false } }),
+    );
+    ok(
+        &app,
+        "set_machine_display",
+        json!({ "display": { "accentColor": "orange" } }),
+    );
+
+    let saved = ok(&app, "notebook_settings", json!({}));
+    assert_eq!(saved["accentColor"], "orange", "the field that was sent");
+    assert_eq!(saved["theme"], "dark", "survived the second call");
+    assert_eq!(saved["showListCounts"], json!(false), "survived too");
+    // And the counters obey the machine, not the notebook, now that it has
+    // an answer of its own.
+    assert_eq!(ok(&app, "list_counts", json!({})), json!({}));
+}
+
+#[test]
 fn a_partial_settings_payload_keeps_what_it_did_not_mention() {
     // An older frontend, or a screen that only edits one thing, must not wipe
     // the preferences it does not know about.
