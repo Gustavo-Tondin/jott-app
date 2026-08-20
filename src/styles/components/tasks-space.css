@@ -61,15 +61,6 @@
 
   /* Both header buttons are .theme-btn--icon. The × on a completed card
      (wireframe) only adds the danger tint on hover. */
-  /* Taking a card out of the day/week — an × for now; the roadmap has the
-     struck-through sun that should replace it. */
-  .tasks-space__unpull {
-    color: var(--theme-ink-faint);
-  }
-  .tasks-space__unpull:hover {
-    color: var(--theme-ink);
-  }
-
   .tasks-space__remove {
     color: var(--theme-ink-faint);
   }

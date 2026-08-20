@@ -352,9 +352,6 @@
   // trash — recoverable, never destroyed.
   const removeCompleted = (list, task) => act(() => api.deleteTask(list, task.id));
 
-  // A period holds references, so dropping one deletes nothing.
-  const removeFromPeriod = (list, id) => act(() => api.removeFrom(period, list, id));
-
   // ---- the swipes (2026-08-06) ----
   // Left deletes; right takes the card out of the period, and only on a screen
   // that IS one. No confirmation on the delete: it goes to the notebook's own
@@ -521,6 +518,12 @@
         {#if period && !readOnly}{@render suggestPill()}{/if}
       </div>
     {:else}
+      <!-- NO per-card × on a period (user call, 2026-08-20; the wireframes draw
+           the open cards clean, and the × only on a completed one). It stood
+           for "take this out of my day" and read as "delete" — the one glyph
+           on the screen that means destroy everywhere else, sitting on the
+           card that is merely borrowed. Taking a card out is the rightward
+           swipe (mouse and finger both) and the inspector's sun. -->
       <TaskCards
         items={shown}
         listClass="tasks-space__list"
@@ -541,22 +544,7 @@
         {tagColors}
         {dateFormat}
         {today}
-      >
-        {#snippet actions(entry)}
-          {#if period && !readOnly && entry.task.id}
-            <!-- An × for now. The right glyph is a struck-through sun ("take
-                 this out of my day"), which has to be drawn — see the roadmap. -->
-            <button
-              class="theme-btn--icon tasks-space__unpull"
-              aria-label={S.removeFromPeriod}
-              title={S.removeFromPeriod}
-              onclick={() => removeFromPeriod(entry.list, entry.task.id)}
-            >
-              <Icon name="x" size="0.875rem" />
-            </button>
-          {/if}
-        {/snippet}
-      </TaskCards>
+      />
     {/if}
 
     {#if hasCompletedRow}

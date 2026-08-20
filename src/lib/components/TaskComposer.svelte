@@ -1,8 +1,16 @@
 <script>
-  // The composing row of the wireframes ("New task popup", "Tasks Screen
-  // Writing"):
+  // The composing row of the wireframes ("New task popup", "Tasks screen -
+  // default", "New task mobile"):
   //
-  //     ＋ │ Create a task…       │ [📁 Inbox] [📅] [🚩] [⏰] [🔁]
+  //     ☐ │ Create a task…       │ [📁 Inbox] [📅] [🚩] [⏰] [🔁] │ [＋]
+  //
+  // The square on the LEFT is drawn, not offered: it is the same unticked box
+  // the cards above wear, on the same x, so the bar reads as the next task
+  // rather than as a toolbar. Nothing to tick until the task exists.
+  //
+  // The ＋ on the RIGHT is the submit, and it is the one filled-brand control
+  // on the screen (wireframe, 2026-08-20) — the bar is where the screen wants
+  // the hand to go, and the blue is what says so.
   //
   // One implementation, two places: the middle of the New task dialog, and the
   // bar pinned to the bottom of the Tasks screen. Only the frame differs.
@@ -17,10 +25,11 @@
   // ambiguity about what the row is for, so they are there from the start.
   //
   // BELOW 768px the same markup wraps into two lines — the five controls on
-  // top, the ＋ and the writing under them (user call, 2026-08-18: on one line
-  // at 360px the field was down to three characters and the icons had no room
-  // to be missed). It is a wrap, not a second row in the markup, so this stays
-  // one form with one tab order: styles/components/task-composer.css.
+  // top, the square, the writing and the ＋ under them (user call, 2026-08-18:
+  // on one line at 360px the field was down to three characters and the icons
+  // had no room to be missed). It is a wrap, not a second row in the markup,
+  // so this stays one form with one tab order:
+  // styles/components/task-composer.css.
   //
   // It collects an INTENT and hands it over; writing it is `taskCompose`'s job,
   // because the same three bridge calls serve every caller.
@@ -118,15 +127,7 @@
   onfocusin={() => (engaged = true)}
   onfocusout={letGo}
 >
-  <button
-    class="theme-btn--icon task-composer__add"
-    type="submit"
-    aria-label={S.addTask}
-    title={S.addTask}
-    disabled={disabled || !intent.text.trim()}
-  >
-    <Icon name="plus" size="1.25rem" />
-  </button>
+  <span class="theme-checkbox theme-checkbox--lg task-composer__mark" aria-hidden="true"></span>
 
   <input
     bind:this={field}
@@ -266,4 +267,18 @@
       {/if}
     </div>
   {/if}
+
+  <!-- Solid whether or not anything is written (wireframe): the empty bar is
+       exactly where the blue is needed, and a washed-out plate would take the
+       accent out of the one place the screen is pointing at. `submit` is the
+       guard — an empty row hands nothing over. -->
+  <button
+    class="theme-btn theme-btn--primary task-composer__add"
+    type="submit"
+    aria-label={S.addTask}
+    title={S.addTask}
+    {disabled}
+  >
+    <Icon name="plus" size="1.25rem" />
+  </button>
 </form>

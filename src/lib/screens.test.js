@@ -637,15 +637,25 @@ describe("PeriodView", () => {
     );
   });
 
+  // Through the SWIPE, which is the only way out of a period since the per-card
+  // × was dropped (2026-08-20). The rule it guards is the one that matters: a
+  // period holds references, so leaving one deletes nothing.
   test("removing a pulled task only touches the period", async () => {
     bridge({
       period_tasks: [{ path: "jott.tasks/Compras.md", task: task("a1", "Puxada") }],
       grouped_suggestions: [],
+      ensure_task_id: "a1",
       remove_from_period: true,
     });
 
-    render(PeriodView, { props });
-    await userEvent.click(await screen.findByLabelText("remove"));
+    const { container } = render(PeriodView, { props });
+    await screen.findByText("Puxada");
+    const row = container.querySelector(".task-row");
+
+    await fireEvent.pointerDown(row, { button: 0, pointerId: 1, clientX: 100, clientY: 20 });
+    await fireEvent.pointerMove(row, { pointerId: 1, clientX: 200, clientY: 22 });
+    expect(row.getAttribute("data-swipe")).toBe("right");
+    await fireEvent.pointerUp(row, { pointerId: 1, clientX: 200, clientY: 22 });
 
     await waitFor(() =>
       expect(invoke).toHaveBeenCalledWith("remove_from_period", {
@@ -655,6 +665,7 @@ describe("PeriodView", () => {
       }),
     );
     expect(invoke.mock.calls.some(([cmd]) => cmd === "complete_task")).toBe(false);
+    expect(invoke.mock.calls.some(([cmd]) => cmd === "delete_task")).toBe(false);
   });
 
   test("the week screen asks for week data", async () => {

@@ -450,7 +450,6 @@ export const S = {
   // period turned (2026-08-17).
   groupRecent: "Pulled recently",
   pull: "pull",
-  removeFromPeriod: "remove",
 
   // Completed
   nothingCompleted: "Nothing completed yet.",

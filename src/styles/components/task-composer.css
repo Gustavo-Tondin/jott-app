@@ -1,8 +1,9 @@
 /* task-composer.css — the visual layer of TaskComposer.svelte.
  * Markup: src/lib/components/TaskComposer.svelte. Faithful to the wireframes
- * "Tasks Screen Writing.pdf" and "New task popup.pdf" (2026-08-06): one wide
- * rounded row, a ＋ on the left, and the quick fields tucked to the right.
- * Selectors are the stable BEM hooks a theme may restyle. */
+ * "Tasks screen - default", "New task mobile" and "New task popup.pdf"
+ * (2026-08-06, revised 2026-08-20): one wide rounded row, an unticked square
+ * on the left, the quick fields tucked to the right, and the brand-filled ＋
+ * closing it. Selectors are the stable BEM hooks a theme may restyle. */
 
 @layer components {
   .task-composer {
@@ -84,9 +85,9 @@
      need. These controls are a row of six with the full width to themselves —
      they keep the 48px in the axis a thumb actually misses in, and give back
      the vertical, where the only thing above or below either row is the other
-     row of the same bar. */
-  .shell--compact .task-composer__fields .theme-btn--icon,
-  .shell--compact .task-composer__add {
+     row of the same bar. (The ＋ states its own 36px square in both layouts —
+     the wireframes draw the same button on the phone and on the desktop.) */
+  .shell--compact .task-composer__fields .theme-btn--icon {
     min-block-size: 2.25rem;
     block-size: 2.25rem;
   }
@@ -104,12 +105,25 @@
     border-color: transparent;
   }
 
+  /* The square that opens the row: the card checkbox, on the card checkbox's
+     x, worn by something that is not a control. It carries the LOOK from
+     `.theme-checkbox` and has to give back the two things that class assumes
+     about an input — a hand cursor and a hit area — because there is nothing
+     here to click. */
+  .task-composer__mark {
+    pointer-events: none;
+    cursor: default;
+  }
+
+  /* The submit, and the one filled-brand plate on a Tasks screen (wireframe,
+     2026-08-20). Square, 36px, radius 8 — the ＋ is the whole label, so the
+     button's own padding goes and the box is stated instead. */
   .task-composer__add {
     flex-shrink: 0;
-    color: var(--theme-ink-faint);
-  }
-  .task-composer__add:not(:disabled) {
-    color: var(--theme-brand);
+    inline-size: 2.25rem;
+    block-size: 2.25rem;
+    padding: 0;
+    border-radius: var(--theme-radius-sm);
   }
 
   /* Plain input: the row already IS the box, so a second border inside it
