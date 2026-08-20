@@ -33,9 +33,20 @@
         android:label="@string/app_name"
         android:theme="@style/Theme.jott"
         android:usesCleartextTraffic="${usesCleartextTraffic}">
+        <!-- windowSoftInputMode is SAID OUT LOUD, because the default is
+             adjustUnspecified and the system then picks: on a window drawing
+             edge to edge it picks PAN, and panning slides the whole surface up
+             to reveal the focused field — taking every position:fixed element
+             with it. That is what left the formatting strip floating in the
+             middle of the note instead of above the keyboard, with the top bar
+             scrolled off screen (user report on device, 2026-08-20). With
+             adjustResize the window stays put and the keyboard is an inset,
+             which is what MainActivity already publishes to the page as the
+             CSS keyboard variable. -->
         <activity
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode"
             android:launchMode="singleTask"
+            android:windowSoftInputMode="adjustResize"
             android:label="@string/main_activity_title"
             android:name=".MainActivity"
             android:exported="true">

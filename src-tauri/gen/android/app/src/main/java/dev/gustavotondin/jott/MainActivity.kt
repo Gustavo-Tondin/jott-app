@@ -8,13 +8,19 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.provider.Settings
+import android.provider.DocumentsContract
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
+import androidx.activity.OnBackPressedCallback
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.activity.enableEdgeToEdge
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import org.json.JSONObject
+import java.io.File
 
 /**
  * Tells the page what the system is covering: the keyboard, and the bars.
@@ -50,16 +56,82 @@ class MainActivity : TauriActivity() {
   /// The last insets seen, so they can be re-published once there is a
   /// document to publish them to (see [publish]).
   private var pending: String? = null
+  /// The height of the keyboard the last time it was reported, so that its
+  /// GOING AWAY can be told apart from it merely being absent. Only the edge
+  /// is worth an event (see the listener).
+  private var keyboard: Int = 0
+  /// The system's folder chooser, armed for [Storage.pickFolder].
+  ///
+  /// Registered here and not where it is used: a launcher has to exist before
+  /// the activity is STARTED, or the framework throws — registering one on
+  /// demand is the standard way to get `LifecycleOwners must call register
+  /// before they are STARTED`.
+  private lateinit var folderPicker: ActivityResultLauncher<Uri?>
 
   override fun onCreate(savedInstanceState: Bundle?) {
     enableEdgeToEdge()
     super.onCreate(savedInstanceState)
+    folderPicker =
+      registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+        // Cancelled is not the same as "could not be used": the page falls
+        // back to its own browser for the second and does nothing for the
+        // first, so the two travel separately.
+        val answer = JSONObject()
+        answer.put("cancelled", uri == null)
+        answer.put("path", uri?.let { realPath(it) })
+        webView?.evaluateJavascript(
+          "document.dispatchEvent(new CustomEvent('android-folder-picked'," +
+            "{detail:JSON.parse(${JSONObject.quote(answer.toString())})}))",
+          null,
+        )
+      }
+  }
+
+  /**
+   * The folder a `content://` tree URI stands for, or null when it stands for
+   * one this app cannot reach as a path.
+   *
+   * WHY CONVERT AT ALL — the core speaks `std::fs`, and the Storage Access
+   * Framework answers with a URI that `std::fs` cannot open. That is why the
+   * app grew its own folder browser in the first place. But the browser is not
+   * what anyone expects to see when an app asks where to put its files, and
+   * the app ALREADY holds all-files access, which is what makes the conversion
+   * sound: with that permission the path the URI names is a path this process
+   * can genuinely open, and the picker becomes what it should have been all
+   * along — a chooser, not a way in.
+   *
+   * The tree id is `volume:relative/path`. `primary` is the built-in shared
+   * storage; anything else is a removable volume, which lives under /storage
+   * by its id. A volume this does not resolve to a real, writable directory
+   * answers null rather than a guess, and the page opens its own browser.
+   */
+  private fun realPath(uri: Uri): String? {
+    val id = runCatching { DocumentsContract.getTreeDocumentId(uri) }.getOrNull() ?: return null
+    val parts = id.split(":", limit = 2)
+    if (parts.size != 2) return null
+    val (volume, relative) = parts
+    val base =
+      if (volume.equals("primary", ignoreCase = true)) {
+        Environment.getExternalStorageDirectory().absolutePath
+      } else {
+        "/storage/$volume"
+      }
+    val folder = if (relative.isEmpty()) File(base) else File(base, relative)
+    // Proven, not assumed: a path that cannot be listed and written is one the
+    // notebook cannot live at, and finding that out HERE is what lets the page
+    // offer the browser instead of failing on open.
+    return if (folder.isDirectory && folder.canRead() && folder.canWrite()) {
+      folder.absolutePath
+    } else {
+      null
+    }
   }
 
   override fun onWebViewCreate(webView: WebView) {
     super.onWebViewCreate(webView)
     this.webView = webView
     webView.addJavascriptInterface(Storage(), "JottAndroid")
+    takeBackNavigation()
 
     // On the DECOR view, not the WebView: the WebView is not necessarily in
     // the hierarchy when this runs, and the decor view is the one the window
@@ -70,6 +142,20 @@ class MainActivity : TauriActivity() {
       val px = { v: Int -> "${v / density}px" }
 
       val ime = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
+      // The keyboard just went away. Nothing in the page can notice that on
+      // its own (see the class comment), and something has to: dismissing the
+      // keyboard with the back gesture left the note still focused, caret
+      // blinking on a line nobody was typing into, with the formatting strip
+      // floating above a keyboard that was no longer there (user report on
+      // device, 2026-08-20). Only the EDGE is announced — the inset pass runs
+      // for every bar change, and "still zero" is not news.
+      if (keyboard > 0 && ime == 0) {
+        webView.evaluateJavascript(
+          "document.dispatchEvent(new CustomEvent('android-keyboard-hidden'))",
+          null,
+        )
+      }
+      keyboard = ime
       // The bars the app draws under, gesture handle and cutout included. NOT
       // the IME: it is asked for separately because it comes and goes for a
       // different reason and the page answers it differently.
@@ -92,6 +178,55 @@ class MainActivity : TauriActivity() {
       // listener was added).
       ViewCompat.onApplyWindowInsets(view, insets)
     }
+  }
+
+  /**
+   * Makes the system's back gesture mean what the app's back arrow means.
+   *
+   * Tauri turns [WryActivity]'s own handling off (`handleBackNavigation =
+   * false`), and with nothing in its place a back gesture went straight to
+   * finishing the activity — so the gesture every Android user reaches for
+   * first CLOSED THE APP, from anywhere, instead of stepping back through the
+   * tab's history the way the arrows in the title bar do (user report on
+   * device, 2026-08-20).
+   *
+   * The page is the one that knows: whether a sheet is open, whether the
+   * drawer is out, whether this tab has anywhere to go back to. So it is asked
+   * — `window.__jottBack()` answers whether it took the press — and only when
+   * it says no does the press become the system's again, by the same
+   * disable/re-enable dance [WryActivity] uses for its own.
+   *
+   * `evaluateJavascript` answers on the UI thread but LATER, which is why this
+   * cannot simply return a boolean: by the time the answer arrives the
+   * dispatcher has finished with the press, and re-dispatching is the only way
+   * to hand it back. A page that has not installed the hook (or that throws)
+   * answers `false`, so back keeps closing the app rather than becoming dead.
+   */
+  private fun takeBackNavigation() {
+    val callback = object : OnBackPressedCallback(true) {
+      override fun handleOnBackPressed() {
+        val view = webView
+        if (view == null) {
+          giveBack(this)
+          return
+        }
+        view.evaluateJavascript(
+          "(function(){try{return !!(window.__jottBack&&window.__jottBack())}" +
+            "catch(e){return false}})()",
+        ) { handled ->
+          if (handled != "true") giveBack(this)
+        }
+      }
+    }
+    onBackPressedDispatcher.addCallback(this, callback)
+  }
+
+  /// Lets this one press through to whoever would have had it — which, with
+  /// nothing else registered, is the activity finishing.
+  private fun giveBack(callback: OnBackPressedCallback) {
+    callback.isEnabled = false
+    onBackPressedDispatcher.onBackPressed()
+    callback.isEnabled = true
   }
 
   /**
@@ -184,6 +319,20 @@ class MainActivity : TauriActivity() {
      * `runOnUiThread` because a JavascriptInterface method runs on the
      * WebView's own thread, and starting an activity is the UI thread's.
      */
+    /**
+     * Opens the SYSTEM's folder chooser — the screen a phone user expects when
+     * an app asks where to keep its files.
+     *
+     * Answers nothing: the chosen folder comes back through
+     * `android-folder-picked` on the document, the same shape as every other
+     * message this class sends. `runOnUiThread` because a JavascriptInterface
+     * method runs on the WebView's thread and launching is the UI thread's.
+     */
+    @JavascriptInterface
+    fun pickFolder() {
+      runOnUiThread { runCatching { folderPicker.launch(null) } }
+    }
+
     @JavascriptInterface
     fun request() {
       runOnUiThread {
