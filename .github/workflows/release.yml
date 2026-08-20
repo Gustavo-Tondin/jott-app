@@ -95,6 +95,10 @@ jobs:
           releaseBody: |
             Jott ${{ github.ref_name }}
 
+            Tasks and notes that live on your computer, in plain Markdown
+            files you can open without the app. No account, no server, no
+            internet required. Linux, Windows and Android from one codebase.
+
             **Linux** — `.AppImage` runs anywhere (`chmod +x`, then run; to
             remove it, delete the file). `.deb` and `.rpm` for Debian/Ubuntu
             and Fedora install into the applications menu and uninstall
@@ -116,7 +120,9 @@ jobs:
             page. `latest.json` and the `.sig` files below are what that
             mechanism reads — they are not downloads.
 
-            Jott is not code-signed: paying for a certificate would not remove
-            the warning anyway until the file builds reputation. On first run
-            Windows shows "Windows protected your PC" — click **More info**,
-            then **Run anyway**. Once.
+            Jott is not code-signed. A certificate would not switch the
+            warning off either — since 2024 Microsoft makes every certificate
+            build reputation from downloads — but it would move that
+            reputation from the file to the certificate, so it stops starting
+            over with each version. On first run Windows shows "Windows
+            protected your PC" — click **More info**, then **Run anyway**.

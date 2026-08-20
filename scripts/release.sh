@@ -220,6 +220,31 @@ if [ "${free_gb:-99}" -lt 20 ]; then
   log WARN "would give most of it back — but that is your call, not the script's."
 fi
 
+# The two things that make this a project other people — and code signing
+# programmes for open source — can actually take seriously.
+#
+# A LICENSE file, because a public repository without one is not open source
+# to anybody, whatever Cargo.toml says. And a previous release that is
+# PUBLISHED: `releases/latest` only resolves for a published release, so a
+# draft left behind means no install out there ever sees an update, and no
+# download page for anyone to point at.
+
+[ -f LICENSE ] || log WARN "no LICENSE file — a public repo without one is not open source to anybody"
+
+if command -v gh >/dev/null 2>&1; then
+  previous_tag="$(git tag --list 'v*' --sort=-v:refname | head -1)"
+  if [ -n "$previous_tag" ]; then
+    # Timed out on purpose: a hanging network call must not park a release.
+    draft="$(timeout 15 gh release view "$previous_tag" --json isDraft --jq .isDraft 2>/dev/null)"
+    case "$draft" in
+      true)  log WARN "$previous_tag is still a DRAFT on GitHub. Publish it —"
+             log WARN "  a draft is not an update, and not a download page either." ;;
+      false) log INFO "  previous release $previous_tag is published" ;;
+      *)     debug "no GitHub release found for $previous_tag" ;;
+    esac
+  fi
+fi
+
 # ---------------------------------------------------------------------------
 # Step 2 — bump
 # ---------------------------------------------------------------------------
