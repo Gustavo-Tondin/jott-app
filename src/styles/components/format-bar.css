@@ -64,7 +64,12 @@
      ground rather than `theme-popover`'s: it is a strip of buttons, the same
      strip as the one it belongs to, and the wireframe draws the two as twins.
      Where it lands is `keepOnScreen`'s call (FormatBar.svelte says why); these
-     two are the fallback until it has measured. */
+     two are the fallback until it has measured.
+
+     NO SHADOW (user call, 2026-08-20). Twins means twins: the bar it comes out
+     of already floats, and a second lifted plate a few pixels above the first
+     read as two layers stacked rather than one strip beside another. Its own
+     ground against the note is what separates it. */
   .format-bar__panel {
     position: absolute;
     inset-block-end: calc(100% + var(--theme-space-8));
@@ -73,7 +78,6 @@
     padding: var(--theme-space-2);
     background: var(--theme-bg);
     border-radius: var(--theme-radius-lg);
-    box-shadow: var(--theme-shadow-popover);
     z-index: 1;
   }
 }
