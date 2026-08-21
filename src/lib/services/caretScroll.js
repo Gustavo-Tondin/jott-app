@@ -45,6 +45,33 @@ export function scrollNeeded({ top, bottom }, box, margin = 0) {
   return 0;
 }
 
+/// The part of `el` that is genuinely visible, in viewport coordinates.
+///
+/// `clientHeight`, not the rectangle's height: a horizontal scrollbar sits
+/// inside the box and the last line would hide under it.
+///
+/// And `scroll-padding` off the top and bottom, which is the platform's way of
+/// saying "something floats over this edge" — here the formatting strip above
+/// the keyboard, and the title bar the note scrolls under. Without it the
+/// cursor was scrolled to the true edge of the scroller and landed BEHIND the
+/// strip, which is the same disappearing line this file exists for, arriving
+/// from the other side (measured on device, 2026-08-21).
+export function visibleBox(el) {
+  const rect = el.getBoundingClientRect();
+  const style = getComputedStyle(el);
+  // BOTH SPELLINGS. The stylesheets say `scroll-padding-block-end`, because
+  // logical properties are the house rule; a browser resolves that to the
+  // physical `scroll-padding-bottom` in the computed style, and jsdom does
+  // not. Reading only one of them means either the app or the test is
+  // measuring something that is always zero.
+  const pad = (...names) =>
+    Math.max(0, ...names.map((n) => Number.parseFloat(style.getPropertyValue(n)) || 0));
+  return {
+    top: rect.top + pad("scroll-padding-top", "scroll-padding-block-start"),
+    bottom: rect.top + el.clientHeight - pad("scroll-padding-bottom", "scroll-padding-block-end"),
+  };
+}
+
 /// Scrolls `el` so the cursor at `head` sits inside it. The one piece of DOM
 /// work in this file; everything above is arithmetic.
 function follow(view, head, margin) {
@@ -52,11 +79,7 @@ function follow(view, head, margin) {
   const caret = el && view.coordsAtPos(head);
   if (!caret) return;
 
-  const rect = el.getBoundingClientRect();
-  // `clientHeight`, not the rectangle's height: a horizontal scrollbar sits
-  // inside the box and the last line would hide under it.
-  const box = { top: rect.top, bottom: rect.top + el.clientHeight };
-  const move = scrollNeeded(caret, box, margin);
+  const move = scrollNeeded(caret, visibleBox(el), margin);
   if (move) el.scrollTop += move;
 }
 

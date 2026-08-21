@@ -57,9 +57,17 @@
 
      `--theme-keyboard` is what the keyboard covers OF THE PAGE, which on a
      WebView that already shrinks itself is zero (shell/keyboard.js). Off the
-     phone it is zero too, and this is `height: 100%`. */
+     phone it is zero too, and this is `height: 100%`.
+
+     THE KEYBOARD ONLY. The floating formatting strip was subtracted here too
+     for a while, and it ended the whole window 48px above the keys with the
+     document's own background showing through the gap — a black band under
+     the note, with the strip stranded in it (user report on device,
+     2026-08-21). The strip floats OVER the page; what owes it room is the
+     text that would otherwise sit behind it, so the note's own scroller pads
+     for it (shell.css) and the window keeps ending exactly at the keyboard. */
   #app {
-    height: calc(100% - var(--theme-keyboard) - var(--theme-format-strip));
+    height: calc(100% - var(--theme-keyboard));
   }
 
   /* The app scrolls INSIDE itself — every scrollport it has is a panel, and

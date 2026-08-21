@@ -8,7 +8,7 @@
 // on the emulator.
 
 import { describe, expect, it } from "vitest";
-import { scrollNeeded, scrollableAround } from "./caretScroll.js";
+import { scrollNeeded, scrollableAround, visibleBox } from "./caretScroll.js";
 
 const box = { top: 100, bottom: 500 };
 
@@ -84,5 +84,38 @@ describe("which element scrolls", () => {
     );
 
     expect(scrollableAround(inner)).toBe(null);
+  });
+});
+
+// The strip floats over the bottom of the scroller, so the scroller's own edge
+// is not where the visible part ends — `scroll-padding` is how the page says
+// so, and the caret has to stop above it rather than behind it (device,
+// 2026-08-21).
+describe("where the visible part of a scroller ends", () => {
+  function scroller(css) {
+    const el = document.createElement("div");
+    el.style.cssText = css;
+    Object.defineProperty(el, "clientHeight", { value: 400, configurable: true });
+    el.getBoundingClientRect = () => ({ top: 100, bottom: 500, height: 400 });
+    document.body.appendChild(el);
+    return el;
+  }
+
+  it("is the box itself with nothing floating over it", () => {
+    expect(visibleBox(scroller(""))).toEqual({ top: 100, bottom: 500 });
+  });
+
+  it("stops short of what floats over the bottom edge", () => {
+    expect(visibleBox(scroller("scroll-padding-block-end: 56px"))).toEqual({
+      top: 100,
+      bottom: 444,
+    });
+  });
+
+  it("starts below what floats over the top edge", () => {
+    expect(visibleBox(scroller("scroll-padding-block-start: 40px"))).toEqual({
+      top: 140,
+      bottom: 500,
+    });
   });
 });

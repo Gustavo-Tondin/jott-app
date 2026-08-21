@@ -493,11 +493,13 @@
   /// of them changed.
   let stripHeight = $state(0);
 
-  // The strip is part of what the keyboard covers, as far as the note is
-  // concerned: it floats over the page, so without this the last line of the
-  // note — and the cursor with it — sat behind the buttons (measured on the
-  // emulator, 2026-08-20). The air the pill leaves under itself is added in
-  // CSS rather than here, so the two never disagree about the gap.
+  // The strip floats over the page, so the note's scroller has to pad for it
+  // or the last line — and the cursor with it — sits behind the buttons
+  // (measured on the emulator, 2026-08-20). PADDING, not a shorter window:
+  // taking it off `#app` ended the whole frame above the keys and showed the
+  // document's background in the gap (user report on device, 2026-08-21).
+  // The air the pill leaves under itself is added in CSS rather than here, so
+  // the two never disagree about the gap.
   $effect(() => {
     const root = document.documentElement;
     if (!stripUp || !stripHeight) {

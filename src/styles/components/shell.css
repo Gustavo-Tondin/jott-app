@@ -742,6 +742,13 @@
     overflow-y: auto;
     border-radius: 0;
     background: none;
+    /* The formatting strip floats over this scroller's bottom edge, so the
+       edge is not where the visible part ends. Saying it HERE rather than in
+       the editor is what makes anything scrolling into view — the caret
+       (services/caretScroll.js), a search hit — stop above the strip instead
+       of behind it. The padding on `.shell__content` gives it the room to;
+       this says where to stop. */
+    scroll-padding-block-end: var(--theme-format-strip);
   }
   .shell--compact .shell__content {
     overflow: visible;
@@ -761,9 +768,16 @@
     padding: var(--theme-space-16) var(--theme-space-8) var(--theme-space-16);
     padding-inline-start: calc(var(--theme-space-8) + var(--theme-safe-left));
     padding-inline-end: calc(var(--theme-space-8) + var(--theme-safe-right));
-    /* Clear of the gesture bar. The composer that sticks to the bottom sits
-       inside this padding, so the two do not have to agree about it. */
-    padding-block-end: calc(var(--theme-space-16) + var(--theme-safe-bottom));
+    /* Clear of the gesture bar — or of the formatting strip when a note has
+       one, since the strip floats over this scroller and would otherwise sit
+       on the last line being typed. `max()` rather than a sum: the strip
+       stands where the gesture bar is when there is no keyboard, and above the
+       keys when there is, so only ever one of the two is in the way. The
+       composer that sticks to the bottom sits inside this padding, so the two
+       do not have to agree about it. */
+    padding-block-end: calc(
+      var(--theme-space-16) + max(var(--theme-safe-bottom), var(--theme-format-strip))
+    );
   }
   /* An open note keeps the canvas's rounded top and SCROLLS UNDER THE TOP BAR
      (wireframes "Editor screen", user call 2026-08-19). The two states the

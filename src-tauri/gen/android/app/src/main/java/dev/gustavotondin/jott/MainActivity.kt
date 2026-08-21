@@ -51,9 +51,11 @@ import java.io.File
  * inset lifts twice. The three measurements above were taken on WebView 133,
  * before that landed, and they are kept because the same APK still meets both
  * WebViews. What the layout reads is `--theme-keyboard`, which the page
- * derives by comparing this inset against the height it can see for itself
- * (shell/keyboard.js) — the composer, the strip and the bottom sheets keep
- * clear of THAT (styles/tokens.css).
+ * derives by comparing this inset against its own initial containing block and
+ * the height of the SCREEN — never against this window, which `adjustResize`
+ * shrinks for the keyboard, and which therefore cannot say how much room there
+ * was before it (shell/keyboard.js). The composer, the strip and the bottom
+ * sheets keep clear of THAT (styles/tokens.css).
  *
  * It also publishes the system bars as `--android-inset-*`, for a smaller
  * reason with the same shape: `env(safe-area-inset-top)` reports the status
