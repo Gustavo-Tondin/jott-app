@@ -334,11 +334,15 @@
     gap: var(--theme-space-4);
   }
 
-  /* Monospaced, because a chord is read glyph by glyph and a proportional
-     font makes `Ctrl+I` and `Ctrl+l` look alike. */
+  /* The chord and the "recording" prompt take the same room, so the row does
+     not jump when one replaces the other. */
   .shortcut-row__chord,
   .shortcut-row__recording {
     min-inline-size: 8rem;
+  }
+  /* Monospaced, because a chord is read glyph by glyph and a proportional
+     font makes `Ctrl+I` and `Ctrl+l` look alike. */
+  .shortcut-row__chord {
     font-family: var(--theme-font-mono);
   }
 
