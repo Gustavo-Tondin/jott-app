@@ -117,8 +117,8 @@ jobs:
             off in Settings) and shows a notice when a new version is out.
             The AppImage and the Windows build update themselves in place;
             package-manager installs and the APK are pointed back to this
-            page. `latest.json` and the `.sig` files below are what that
-            mechanism reads — they are not downloads.
+            page. `latest.json` is what that check reads — it carries the
+            signature that proves a download is genuine. It is not a download.
 
             Jott is not code-signed. A certificate would not switch the
             warning off either — since 2024 Microsoft makes every certificate
@@ -126,3 +126,45 @@ jobs:
             reputation from the file to the certificate, so it stops starting
             over with each version. On first run Windows shows "Windows
             protected your PC" — click **More info**, then **Run anyway**.
+
+  # The bundler writes a .sig beside every artifact it signs, and the action
+  # uploads all of them. None is ever fetched: the updater reads `latest.json`,
+  # which carries each signature INLINE — the 416 bytes in the `signature` field
+  # are byte for byte the .sig file. So they are four rows on the release page
+  # that nobody downloads and that make the real installers harder to find.
+  #
+  # A separate job because the matrix legs upload in parallel: cleaning up from
+  # inside one of them could run before the other has finished uploading.
+  tidy:
+    needs: package
+    # `always()` so a broken Windows leg still leaves a tidy Linux release, and
+    # the tag guard because a manual `workflow_dispatch` run has no release to
+    # clean — `github.ref_name` would be a branch.
+    if: ${{ always() && startsWith(github.ref, 'refs/tags/') }}
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Drop the .sig assets from the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          # If both legs failed there is no release at all; that is not a
+          # reason to fail the run on top of the failure that caused it.
+          if ! sigs=$(gh release view "$TAG" --json assets -q '.assets[].name' 2>/dev/null); then
+            echo "No release for $TAG — nothing to tidy."
+            exit 0
+          fi
+          sigs=$(printf '%s\n' "$sigs" | grep '\.sig$' || true)
+          if [ -z "$sigs" ]; then
+            echo "No .sig assets on $TAG."
+            exit 0
+          fi
+          printf '%s\n' "$sigs" | while read -r asset; do
+            echo "Removing $asset"
+            gh release delete-asset "$TAG" "$asset" --yes
+          done

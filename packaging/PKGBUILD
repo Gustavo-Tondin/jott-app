@@ -12,7 +12,7 @@
 # skip the check: `makepkg -sid`.
 #
 pkgname=jott
-pkgver=0.22.2
+pkgver=0.23.0
 pkgrel=1
 pkgdesc="Local-first tasks and notes in plain Markdown files"
 arch=('x86_64')
@@ -22,7 +22,13 @@ license=('MIT')
 # webview itself pulls in at runtime.
 depends=('webkit2gtk-4.1' 'gtk3' 'libayatana-appindicator')
 makedepends=('rust' 'cargo' 'nodejs' 'npm')
-options=('!strip' '!debug')
+# `!lto` is not a preference — it is what makes this build LINK. Arch's
+# makepkg.conf enables LTO globally, which appends `-flto=auto` to CFLAGS, and
+# `ring` compiles its C and assembly through the `cc` crate with exactly those
+# flags. What lands in the archive is then GCC bitcode, which rust-lld cannot
+# read, and the link dies on a wall of `undefined symbol: ring_core_*`. The Rust
+# side is already optimised by the release profile, so nothing is lost here.
+options=('!strip' '!debug' '!lto')
 
 # Built from the checkout this file sits in, not from a release tarball: there
 # is no release yet, and the whole point right now is packaging what is on disk.
