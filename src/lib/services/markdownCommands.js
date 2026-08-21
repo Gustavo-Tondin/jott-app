@@ -25,6 +25,24 @@ export const INDENT = "  ";
 
 // ---- inline marks ---------------------------------------------------------
 
+/// The one transaction every command ends in: its `changes` and, when the
+/// command moves the cursor, its `selection` — scrolled into view and tagged
+/// `input.format`, so undo groups it apart from typing. The read-only guard
+/// lives here and nowhere else: on a read-only view a command answers
+/// `false`, which is what lets the key fall through to the next binding.
+function edit(view, { changes, selection }) {
+  if (view.state.readOnly) return false;
+  view.dispatch(
+    view.state.update({
+      changes,
+      ...(selection ? { selection } : {}),
+      scrollIntoView: true,
+      userEvent: "input.format",
+    }),
+  );
+  return true;
+}
+
 /// Wrap the selection in `open`…`close`, or take them off when they are
 /// already there. `close` defaults to `open`, which is every markdown mark;
 /// the two differ only for the one mark markdown does not have (`<u>`).
@@ -34,7 +52,6 @@ export const INDENT = "  ";
 /// leaves the marks and puts the cursor between them, ready to type.
 function toggleWrap(open, close = open) {
   return (view) => {
-    if (view.state.readOnly) return false;
     const changes = [];
     const ranges = [];
 
@@ -74,15 +91,10 @@ function toggleWrap(open, close = open) {
       }
     }
 
-    view.dispatch(
-      view.state.update({
-        changes,
-        selection: EditorSelection.create(ranges, view.state.selection.mainIndex),
-        scrollIntoView: true,
-        userEvent: "input.format",
-      }),
-    );
-    return true;
+    return edit(view, {
+      changes,
+      selection: EditorSelection.create(ranges, view.state.selection.mainIndex),
+    });
   };
 }
 
@@ -121,20 +133,12 @@ export const toggleUnderline = toggleWrap("<u>", "</u>");
 /// the next thing to type is. With nothing selected the cursor goes to the
 /// TEXT instead — there is nothing to link yet.
 export function insertLink(view) {
-  if (view.state.readOnly) return false;
   const range = view.state.selection.main;
   const text = view.state.sliceDoc(range.from, range.to);
-  view.dispatch(
-    view.state.update({
-      changes: { from: range.from, to: range.to, insert: `[${text}]()` },
-      selection: EditorSelection.cursor(
-        text ? range.from + text.length + 3 : range.from + 1,
-      ),
-      scrollIntoView: true,
-      userEvent: "input.format",
-    }),
-  );
-  return true;
+  return edit(view, {
+    changes: { from: range.from, to: range.to, insert: `[${text}]()` },
+    selection: EditorSelection.cursor(text ? range.from + text.length + 3 : range.from + 1),
+  });
 }
 
 /// A reference to another note: `[[title]]`, with the cursor between the
@@ -146,34 +150,22 @@ export function insertLink(view) {
 /// the other: the two are one syntax with two namespaces (services/embeds.js),
 /// and the button says which one you meant.
 export function insertReference(view) {
-  if (view.state.readOnly) return false;
   const range = view.state.selection.main;
   const text = view.state.sliceDoc(range.from, range.to);
-  view.dispatch(
-    view.state.update({
-      changes: { from: range.from, to: range.to, insert: `[[${text}]]` },
-      selection: EditorSelection.cursor(range.from + 2 + text.length),
-      scrollIntoView: true,
-      userEvent: "input.format",
-    }),
-  );
-  return true;
+  return edit(view, {
+    changes: { from: range.from, to: range.to, insert: `[[${text}]]` },
+    selection: EditorSelection.cursor(range.from + 2 + text.length),
+  });
 }
 
 /// A horizontal rule on its own line.
 export function insertRule(view) {
-  if (view.state.readOnly) return false;
   const line = view.state.doc.lineAt(view.state.selection.main.head);
   const insert = line.text.trim() ? "\n\n---\n" : "---\n";
-  view.dispatch(
-    view.state.update({
-      changes: { from: line.to, insert },
-      selection: EditorSelection.cursor(line.to + insert.length),
-      scrollIntoView: true,
-      userEvent: "input.format",
-    }),
-  );
-  return true;
+  return edit(view, {
+    changes: { from: line.to, insert },
+    selection: EditorSelection.cursor(line.to + insert.length),
+  });
 }
 
 // ---- line marks -----------------------------------------------------------
@@ -220,7 +212,6 @@ export function markOf(text) {
 /// of these commands is.
 function setLineMark(kind, make) {
   return (view) => {
-    if (view.state.readOnly) return false;
     const changes = [];
 
     for (const range of view.state.selection.ranges) {
@@ -242,10 +233,7 @@ function setLineMark(kind, make) {
     }
 
     if (changes.length === 0) return false;
-    view.dispatch(
-      view.state.update({ changes, scrollIntoView: true, userEvent: "input.format" }),
-    );
-    return true;
+    return edit(view, { changes });
   };
 }
 
@@ -282,7 +270,6 @@ export function setHeading(level) {
 /// WHATEVER mark it finds when a line does not match, and this must leave a
 /// bullet or a quote exactly where it is. It only ever removes a `#`.
 export function clearHeading(view) {
-  if (view.state.readOnly) return false;
   const changes = [];
   for (const range of view.state.selection.ranges) {
     for (const line of linesOf(view.state, range)) {
@@ -296,10 +283,7 @@ export function clearHeading(view) {
     }
   }
   if (changes.length === 0) return false;
-  view.dispatch(
-    view.state.update({ changes, scrollIntoView: true, userEvent: "input.format" }),
-  );
-  return true;
+  return edit(view, { changes });
 }
 
 // ---- what the registry's editor ids run ----------------------------------
