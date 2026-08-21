@@ -9,7 +9,7 @@ import { S } from "./strings.js";
 
 /// The sortings a space's screen may offer, in display order. `null` is the file
 /// order; `custom` is the arrangement the user dragged.
-export const SORT_LABELS = {
+const SORT_LABELS = {
   null: () => S.sortFileOrder,
   name: () => S.sortByName,
   created: () => S.sortByCreated,

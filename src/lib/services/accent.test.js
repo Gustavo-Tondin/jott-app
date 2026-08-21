@@ -5,8 +5,6 @@ import {
   isAccent,
   accentColor,
   accentRung,
-  accentSoft,
-  accentStrong,
   accentTint,
   accentStyle,
   tagColors,
@@ -86,22 +84,16 @@ describe("the eight colours", () => {
     for (let rung = 1; rung <= 6; rung++) {
       expect(accentRung("blue", rung)).toBe(`var(--accent-blue-${rung})`);
     }
-    // The two named ends of the ladder are rungs, not a separate vocabulary.
-    expect(accentStrong("blue")).toBe("var(--accent-blue-1)");
-    expect(accentSoft("blue")).toBe("var(--accent-blue-5)");
   });
 
   test("a raw colour has no ladder, so it fades instead of stepping", () => {
     // A lone hex cannot climb a ramp it does not have: the top rung is the
     // colour itself, and the rest fade toward whatever ground it sits on.
     expect(accentRung("#ff0000", 1)).toBe("#ff0000");
-    expect(accentStrong("#ff0000")).toBe("#ff0000");
     expect(accentRung("#ff0000", 6)).toBe(
       "color-mix(in srgb, #ff0000 48%, transparent)",
     );
     for (const empty of [null, undefined, ""]) {
-      expect(accentStrong(empty)).toBeNull();
-      expect(accentSoft(empty)).toBeNull();
       expect(accentRung(empty, 3)).toBeNull();
     }
   });

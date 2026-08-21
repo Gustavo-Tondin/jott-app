@@ -64,16 +64,6 @@ export function accentRung(value, rung) {
   return fade === 100 ? value : `color-mix(in srgb, ${value} ${fade}%, transparent)`;
 }
 
-/// The top of that ladder — what a title takes (2026-08-17).
-export function accentStrong(value) {
-  return accentRung(value, 1);
-}
-
-/// …and the quiet end of the legible range: secondary text, a meta line.
-export function accentSoft(value) {
-  return accentRung(value, 5);
-}
-
 /// The FILL of a coloured surface — a note's banner (2026-08-18).
 ///
 /// The one colour of the app that does not change with the ground it lands on:
