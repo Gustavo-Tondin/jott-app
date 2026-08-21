@@ -36,8 +36,14 @@
     color: var(--theme-ink-muted);
     font-size: var(--theme-text-12);
   }
-  .trash-view__date {
+  .trash-view__date,
+  .trash-view__left {
     color: var(--theme-ink-faint);
     font-size: var(--theme-text-12);
+    white-space: nowrap;
+  }
+  /* Three days or fewer: the countdown is the one thing worth noticing. */
+  .trash-view__left--soon {
+    color: var(--theme-warning);
   }
 }

@@ -122,6 +122,9 @@ export const S = {
   trashEmpty: "The trash is empty.",
   restore: "Restore",
   trashHint: "Deleted items wait here before they are cleared for good.",
+  // The countdown the reaper acts on (`trash::days_left`), in the row.
+  trashDaysLeft: (n) => (n <= 0 ? "clears today" : n === 1 ? "1 day left" : `${n} days left`),
+  trashKeptForever: "kept until you restore it",
   tagsTitle: "Tags",
   tagsEmpty: "No tags yet. Add one from a task.",
   newTagName: "New tag name",

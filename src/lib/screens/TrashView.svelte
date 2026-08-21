@@ -39,6 +39,9 @@
           <span class="trash-view__label">{entry.label}</span>
           <span class="trash-view__origin">{entry.origin}</span>
           <span class="trash-view__date">{formatDate(entry.deleted, dateFormat)}</span>
+          <span class="trash-view__left" class:trash-view__left--soon={entry.daysLeft != null && entry.daysLeft <= 3}>
+            {entry.daysLeft == null ? S.trashKeptForever : S.trashDaysLeft(entry.daysLeft)}
+          </span>
           <button class="theme-btn trash-view__restore" onclick={() => restore(entry.id)}>
             {S.restore}
           </button>

@@ -190,12 +190,19 @@ impl Trash {
 
 /// Whether an entry is past its retention window.
 fn is_expired(entry: &TrashEntry, retention_days: i64, today: NaiveDate) -> bool {
-    match entry.deleted.parse::<NaiveDate>() {
-        Ok(deleted) => (today - deleted).num_days() >= retention_days,
-        // An unparseable date is treated as not-yet-expired: never delete on a
-        // guess.
-        Err(_) => false,
+    matches!(days_left(entry, retention_days, today), Some(left) if left <= 0)
+}
+
+/// How many civil days remain before `reap` clears the entry — the same
+/// arithmetic `is_expired` uses, so the number the screen shows is the number
+/// the reaper acts on. `None` means "never": a retention of 0 (keep forever)
+/// or an unparseable date (never delete on a guess).
+pub fn days_left(entry: &TrashEntry, retention_days: i64, today: NaiveDate) -> Option<i64> {
+    if retention_days <= 0 {
+        return None;
     }
+    let deleted = entry.deleted.parse::<NaiveDate>().ok()?;
+    Some(retention_days - (today - deleted).num_days())
 }
 
 fn read_index(path: &Path) -> Vec<TrashEntry> {
@@ -261,4 +268,50 @@ fn render_index(entries: &[TrashEntry]) -> String {
         })
         .collect();
     crate::fsio::pretty_json(&serde_json::json!({ "schemaVersion": 1, "items": items }))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn entry(deleted: &str) -> TrashEntry {
+        TrashEntry {
+            id: "x".into(),
+            kind: TrashKind::Task,
+            origin: "Tasks/task-list.md".into(),
+            label: "a task".into(),
+            deleted: deleted.into(),
+            stored: None,
+            content: None,
+            index: None,
+        }
+    }
+
+    fn day(s: &str) -> NaiveDate {
+        s.parse().unwrap()
+    }
+
+    #[test]
+    fn days_left_counts_down_to_the_day_the_reaper_acts() {
+        let e = entry("2026-08-01");
+        assert_eq!(days_left(&e, 30, day("2026-08-01")), Some(30));
+        assert_eq!(days_left(&e, 30, day("2026-08-21")), Some(10));
+        assert_eq!(days_left(&e, 30, day("2026-08-31")), Some(0));
+        assert!(!is_expired(&e, 30, day("2026-08-30")));
+        assert!(is_expired(&e, 30, day("2026-08-31")));
+    }
+
+    #[test]
+    fn retention_zero_means_forever_for_both_the_screen_and_the_reaper() {
+        let e = entry("2020-01-01");
+        assert_eq!(days_left(&e, 0, day("2026-08-21")), None);
+        assert!(!is_expired(&e, 0, day("2026-08-21")));
+    }
+
+    #[test]
+    fn an_unparseable_date_is_never_reaped() {
+        let e = entry("yesterday");
+        assert_eq!(days_left(&e, 30, day("2026-08-21")), None);
+        assert!(!is_expired(&e, 30, day("2026-08-21")));
+    }
 }

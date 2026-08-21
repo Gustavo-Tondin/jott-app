@@ -229,6 +229,8 @@ pub struct TrashEntryInfo {
     pub origin: String,
     pub label: String,
     pub deleted: String,
+    /// Days until the reaper clears it; `None` = kept forever.
+    pub days_left: Option<i64>,
 }
 
 #[tauri::command]
@@ -238,6 +240,7 @@ pub fn trash_entries(state: State<'_, AppState>) -> CommandResult<Vec<TrashEntry
             .trash_entries()
             .into_iter()
             .map(|e| TrashEntryInfo {
+                days_left: nb.trash_days_left(&e),
                 id: e.id,
                 kind: match e.kind {
                     jott_core::trash::TrashKind::File => "file".to_string(),

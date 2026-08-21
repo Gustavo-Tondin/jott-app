@@ -33,6 +33,16 @@ impl Notebook {
         entries
     }
 
+    /// Days before an entry is cleared, by the reaper's own arithmetic.
+    /// `None` when it is kept forever (retention 0).
+    pub fn trash_days_left(&self, entry: &crate::trash::TrashEntry) -> Option<i64> {
+        crate::trash::days_left(
+            entry,
+            self.config.trash_retention_days,
+            crate::clock::civil_today(),
+        )
+    }
+
     /// Clears items whose retention window elapsed. Run on open.
     pub fn reap_trash(&self) -> Result<()> {
         self.trash()
