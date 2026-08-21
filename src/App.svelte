@@ -278,9 +278,13 @@
   // Answering `false` is a real answer, not a failure: on Android it hands the
   // press back to the system, and closing the app is the right end of the road
   // when there is nowhere left to go back to.
+  /// Whether the open tab has somewhere to go back or forward to — read by
+  /// the two bars, the back gesture and the forward button alike.
+  let canBack = $derived(Tabs.canGoBack(tabs[active]));
+  let canForward = $derived(Tabs.canGoForward(tabs[active]));
   $effect(() =>
     installBack({
-      onForward: () => Tabs.canGoForward(tabs[active]) && goForward(),
+      onForward: () => canForward && goForward(),
     }),
   );
   // What the keyboard covers, kept true (2026-08-20). The activity publishes
@@ -293,7 +297,7 @@
       if (zoomedImage) return ((zoomedImage = null), true);
       if (canvasMenuAt) return ((canvasMenuAt = null), true);
       if (drawerOpen) return ((drawerOpen = false), true);
-      if (Tabs.canGoBack(tabs[active])) return (goBack(), true);
+      if (canBack) return (goBack(), true);
       return false;
     }),
   );
@@ -663,9 +667,9 @@
   /// The fixed Tasks space, in the shape the tasks screen reads, so the
   /// Tasks screen hosts the notebook's own source (arrangement and all)
   /// instead of a stand-in. The folder is the space's own path.
+  const tasksSpaceFolder = $derived(layout.inbox ? folderOf(layout.inbox) : null);
   let inboxSource = $derived.by(() => {
-    const folder = folderOf(layout.inbox);
-    const sp = spaces.find((sp) => sp.kind === "tasks" && sp.path === folder);
+    const sp = spaces.find((sp) => sp.kind === "tasks" && sp.path === tasksSpaceFolder);
     // `name: null` — the Tasks screen titles itself, not with the space.
     return sp ? sourceOf(sp, { name: null }) : null;
   });
@@ -724,12 +728,16 @@
     view.kind === "space" ? (userSpaces.find((sp) => sp.path === view.sp) ?? null) : null,
   );
 
+  /// What a space is called on screen, by its address — the address itself
+  /// when the snapshot does not carry it (yet).
+  const spaceName = (path) => spaces.find((sp) => sp.path === path)?.name ?? path;
+
   /// What "here" is called, for the menu label and the search box.
   let hereLabel = $derived(
     view.kind === "note"
       ? openNote.title || title(view)
       : currentSpace
-        ? (spaces.find((sp) => sp.path === currentSpace)?.name ?? currentSpace)
+        ? spaceName(currentSpace)
         : S.thisNotebook,
   );
 
@@ -1366,12 +1374,20 @@
 
   // A space's arrangement lives in its own .space.json. The refresh
   // brings the new sort/order back through the snapshot, which is what
-  // re-arranges the cards on screen.
-  const setSpaceSort = (sort) =>
-    view.kind === "space" && change(() => api.setSpaceSort(view.sp, sort));
-
-  const setSpaceOrder = (order) =>
-    view.kind === "space" && change(() => api.setSpaceOrder(view.sp, order));
+  // re-arranges the cards on screen. `folder()` is asked at each call, never
+  // read once: the space a screen shows is reactive, and the two writers are
+  // handed down as props when the shell is built.
+  const arrangementOf = (folder) => ({
+    setSort: (sort) => {
+      const at = folder();
+      return at && change(() => api.setSpaceSort(at, sort));
+    },
+    setOrder: (order) => {
+      const at = folder();
+      return at && change(() => api.setSpaceOrder(at, order));
+    },
+  });
+  const spaceArrangement = arrangementOf(() => (view.kind === "space" ? view.sp : null));
 
   /// The FIXED Notes screen is a space too, and it had none of this (user
   /// report, 2026-08-19: "arrastar não move"). The board dragged, called an
@@ -1379,10 +1395,7 @@
   /// because an optional handler that is missing simply does nothing. Its
   /// arrangement lives in `jott.notes/.space.json` like any other space's.
   let notesSpace = $derived(spaces.find((sp) => sp.path === layout.notesFolder) ?? null);
-  const setNotesSort = (sort) =>
-    layout.notesFolder && change(() => api.setSpaceSort(layout.notesFolder, sort));
-  const setNotesOrder = (order) =>
-    layout.notesFolder && change(() => api.setSpaceOrder(layout.notesFolder, order));
+  const notesArrangement = arrangementOf(() => layout.notesFolder);
 
   /// ...and the FIXED Tasks screen had exactly the same hole (user report,
   /// 2026-08-19: on a phone "ele quer ficar selecionando e movendo as tarefas",
@@ -1391,11 +1404,7 @@
   /// `.space.json` — which `inboxSource` above already READS. Only the writing
   /// was missing, and a missing optional handler does nothing at all: the drag
   /// played out in full and the order was thrown away on release.
-  const tasksSpaceFolder = $derived(layout.inbox ? folderOf(layout.inbox) : null);
-  const setTasksSort = (sort) =>
-    tasksSpaceFolder && change(() => api.setSpaceSort(tasksSpaceFolder, sort));
-  const setTasksOrder = (order) =>
-    tasksSpaceFolder && change(() => api.setSpaceOrder(tasksSpaceFolder, order));
+  const tasksArrangement = arrangementOf(() => tasksSpaceFolder);
 
   async function renameCurrentList() {
     if (view.kind !== "list") return;
@@ -1553,11 +1562,14 @@
   /// other notes space (into its inbox, which is where a note filed into a
   /// space belongs). The same set the board's cards offer, asked from the
   /// other side.
+  /// The folder of the open note within its space — `""` at the space's root.
+  let openNoteFolder = $derived(view.kind === "note" ? folderOf(view.path) : "");
+
   let noteMoveTargets = $derived.by(() => {
     if (view.kind !== "note" || notebook?.readOnly) return [];
     const here = view.folder;
-    const name = noteSpaces.find((sp) => sp.path === here)?.name ?? here;
-    const at = folderOf(view.path);
+    const name = spaceName(here);
+    const at = openNoteFolder;
     return [
       { path: "", label: S.allNotes },
       ...openNoteFolders.map((it) => ({ path: it.path, label: it.path })),
@@ -1732,8 +1744,8 @@
        the brand nor the window buttons — see shell/TopBar.svelte. -->
   {#if compact}
     <TopBar
-      canBack={Tabs.canGoBack(tabs[active])}
-      canForward={Tabs.canGoForward(tabs[active])}
+      {canBack}
+      {canForward}
       onBack={goBack}
       onForward={goForward}
       onOpenDrawer={() => (drawerOpen = true)}
@@ -1861,8 +1873,8 @@
               ? tasksSpan
               : formatDate(clock?.today ?? "", layout.dateDisplayFormat)
             : ""}
-          canBack={Tabs.canGoBack(tabs[active])}
-          canForward={Tabs.canGoForward(tabs[active])}
+          {canBack}
+          {canForward}
           onBack={goBack}
           onForward={goForward}
           onRenameTitle={view.kind === "note" && !notebook.readOnly
@@ -2099,8 +2111,8 @@
               onSub={(label) => (tasksSub = label)}
               onSpan={(span) => (tasksSpan = span)}
               onSuggest={suggest}
-              onSetSort={setTasksSort}
-              onSetOrder={setTasksOrder}
+              onSetSort={tasksArrangement.setSort}
+              onSetOrder={tasksArrangement.setOrder}
               {f}
             />
           {:else if view.kind === "list"}
@@ -2143,8 +2155,8 @@
                 // name is the honest label.)
                 { name: title(view) },
               )}
-              onSetSort={setNotesSort}
-              onSetOrder={setNotesOrder}
+              onSetSort={notesArrangement.setSort}
+              onSetOrder={notesArrangement.setOrder}
               header={!compact}
               dot={colorOf(view)}
               readOnly={notebook.readOnly}
@@ -2232,8 +2244,8 @@
                 selectedTask={selected?.task ?? null}
                 onSelectTask={select}
                 onOpenNote={openNoteFromBoard}
-                onSetSpaceSort={setSpaceSort}
-                onSetSpaceOrder={setSpaceOrder}
+                onSetSpaceSort={spaceArrangement.setSort}
+                onSetSpaceOrder={spaceArrangement.setOrder}
                 onChanged={refreshNotebook}
                 onError={fail}
               />
@@ -2317,7 +2329,7 @@
             onRun={runFormat}
             hidden={hiddenFormats}
             menu={noteActions}
-            where={listName(folderOf(view.path)) || S.allNotes}
+            where={leafOf(openNoteFolder) || S.allNotes}
             targets={noteMoveTargets}
             onDelete={deleteCurrentNote}
             onClose={() => (formatting = false)}
@@ -2505,9 +2517,7 @@
   <SearchDialog
     query={searchQuery}
     scope={searchScope}
-    scopeLabel={searchScope
-      ? (spaces.find((sp) => sp.path === searchScope)?.name ?? searchScope)
-      : ""}
+    scopeLabel={searchScope ? spaceName(searchScope) : ""}
     onClose={() => {
       searching = false;
       searchScope = null;
