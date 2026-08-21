@@ -135,10 +135,6 @@ export const S = {
   deleteTask: "Delete task",
 
   // App Functions (2026-08-06): which parts of the app are switched on.
-  sectionFeatures: "App functions",
-  sectionFeaturesHint:
-    "Switching one off takes it out of the whole interface. Nothing is deleted " +
-    "— your files keep every field, and it all comes back when you switch it on.",
   featureTasks: "Tasks",
   featureNotes: "Notes",
   featureMyDay: "My Day",
@@ -273,13 +269,10 @@ export const S = {
     "Everything Jott can do. Switching one off takes it out of the whole " +
     "interface — sidebar, tabs, buttons — and touches nothing on disk: your " +
     "files keep every field, and it all comes back when you switch it on.",
-  sectionExpansions: "Expansions",
   // The arrow at the end of a function's row. It needs a name of its own: the
   // switch beside it already carries the function's, and two controls answering
   // to one name is two controls nobody can tell apart by voice or by test.
   openFunction: (name) => `${name} options`,
-  sectionTasks: "Tasks",
-  sectionNotes: "Notes",
   sectionDates: "Date preferences",
   // Kept for the notebooks that still name the screen this way, and for the
   // search index: the section was renamed, the subject was not.
@@ -351,40 +344,12 @@ export const S = {
   shortcutFilter: "Filter commands",
   subScreens: "Screens",
   subFields: "Fields",
-  subBehaviour: "Behaviour",
   subNoteHas: "What a note can have",
-  subBoard: "Board",
-  subEditor: "Editor",
   subImages: "Images",
   featureBannersHint:
     "The colour or picture at the head of a note. Off, the editor draws no " +
     "band and the card is title and preview — the <!--banner:--> line in the " +
     "file stays exactly where it is.",
-  featureWikiLinksHint:
-    "Typing [[ offers the notes and files of this notebook, and a finished " +
-    "reference is drawn as a chip. Off, the brackets are ordinary characters.",
-  noteLayout: "Default layout",
-  noteLayoutGrid: "Cards",
-  noteLayoutTree: "Tree",
-  noteLayoutHint:
-    "How a notes space opens the first time. Each space remembers what you " +
-    "last chose in its own ⋮ menu.",
-  notePreviewLines: "Preview lines on a card",
-  previewLinesNone: "None",
-  editorPreview: "While writing",
-  editorPreviewLive: "Live preview",
-  editorPreviewSource: "Markdown source",
-  editorPreviewHint:
-    "Live preview hides the marks around the text you are not on. Source " +
-    "shows every * and # exactly as the file holds them.",
-  editorFormatBar: "Formatting bar",
-  formatBarAlways: "Always",
-  formatBarSelection: "On selection",
-  formatBarOff: "Off",
-  editorAutoClose: "Auto-close brackets and marks",
-  editorAutoCloseHint:
-    "Typing ( [ or * writes the closing one for you, and wraps what is " +
-    "selected instead of replacing it.",
   confirmDeletes: "Ask before deleting",
   confirmDeletesHint:
     "Nothing is destroyed either way: a deleted note, list, space or file " +
@@ -408,9 +373,6 @@ export const S = {
   interfaceZoomHint:
     "How big the app itself is drawn — the same thing Ctrl + and Ctrl - do. " +
     "The note's own size is the row above.",
-  zoomOut: "Smaller",
-  zoomIn: "Bigger",
-  zoomReset: "Reset",
 
   // The search over every row of every page (2026-08-20).
   settingsSearch: "Search settings",
@@ -438,7 +400,6 @@ export const S = {
   yourFilesAction: "Open the folder",
   reportIssue: "Report an issue",
   reportIssueAction: "Open GitHub",
-  sectionUpdates: "Updates",
   updateVersion: "This app",
   updateAutoCheck: "Check for updates automatically",
   updateAutoCheckHint:
@@ -462,7 +423,6 @@ export const S = {
   menuEntryLabel: "Show in applications menu",
   menuEntryHint:
     "Writes a launcher and an icon into your home folder (~/.local/share) so Jott shows up in the applications list and in search, the way an installed app does. It points at this file where it is now — move the file and switch this off and on again. Nothing outside your home folder is touched.",
-  menuEntryAdded: "Jott is in your applications menu.",
 
   // Shell (phase 8.5)
   home: "Home",
