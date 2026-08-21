@@ -103,7 +103,9 @@
      renaming it there. */
   .task-row--finishing {
     overflow: hidden;
-    animation: task-row-finish calc(var(--theme-duration-slow) * 2.4) var(--theme-ease-out) forwards;
+    /* About a second, on purpose (user call, 2026-08-21): long enough to
+       tick the box again when the tick was a slip. */
+    animation: task-row-finish calc(var(--theme-duration-slow) * 3) var(--theme-ease-out) forwards;
   }
   @keyframes task-row-finish {
     0%,
