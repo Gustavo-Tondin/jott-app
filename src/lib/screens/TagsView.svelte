@@ -50,7 +50,7 @@
   {#if tags.length === 0}
     <p class="tags-view__empty">{S.tagsEmpty}</p>
   {:else}
-    <ul class="tags-view__list">
+    <ul class="theme-task-list tags-view__list">
       {#each tags as tag (tag.name)}
         <li class="theme-row tags-view__item">
           <span
