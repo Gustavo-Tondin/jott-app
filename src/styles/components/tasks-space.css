@@ -48,16 +48,7 @@
     max-inline-size: 14rem;
   }
 
-  /* The hidden twin of the tools (see the markup): it takes the same room on
-     the left, so a host's centred strip sits on the panel's centre line. It
-     shrinks away before the strip does, so a narrow panel gives up the
-     centring rather than the content. */
-  .tasks-space__mirror {
-    display: inline-flex;
-    visibility: hidden;
-    min-inline-size: 0;
-    flex-shrink: 1;
-  }
+  /* .tasks-space__mirror is the shared .theme-mirror (controls.css). */
 
   /* Both header buttons are .theme-btn--icon. The × on a completed card
      (wireframe) only adds the danger tint on hover. */

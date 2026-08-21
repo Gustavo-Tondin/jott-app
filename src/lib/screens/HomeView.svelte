@@ -222,7 +222,7 @@
         <!-- The mirrored ⋮ that balances the real one, so the heading is
              centred on the panel and not on what is left of the row — the same
              trick the tasks block uses (spaces/TasksSpace.svelte). -->
-        <span class="home__mirror" aria-hidden="true">
+        <span class="theme-mirror home__mirror" aria-hidden="true">
           <span class="theme-btn--icon">
             <Icon name="dots-three-vertical" size="1rem" />
           </span>

@@ -602,7 +602,7 @@
        The ⋮ used to sit at the end of the controls bar below, which made the
        screen's own menu read as one more of the board's filters. -->
   <header class="notes-space__head">
-    <span class="notes-space__mirror" aria-hidden="true">
+    <span class="theme-mirror notes-space__mirror" aria-hidden="true">
       <span class="theme-btn--icon">
         <Icon name="dots-three-vertical" size="1rem" />
       </span>

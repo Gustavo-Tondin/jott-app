@@ -26,12 +26,7 @@
     min-width: 0;
     text-align: center;
   }
-  .home__mirror {
-    display: inline-flex;
-    visibility: hidden;
-    min-inline-size: 0;
-    flex-shrink: 1;
-  }
+  /* .home__mirror is the shared .theme-mirror (controls.css). */
   /* .home__task-list is the shared .theme-task-list (controls.css). */
 
   /* The rule between the two halves. Inset rather than full-bleed: it separates

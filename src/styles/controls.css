@@ -736,6 +736,23 @@
   }
 
   /* ---------------------------------------------------------------------------
+     Mirror — the hidden twin of a header's tools (the ⋮, the bulk-select
+     strip). It was the same four declarations in home.css, notes-space.css
+     and tasks-space.css; each keeps its own `__mirror` hook in the markup.
+
+     The hidden twin of the tools (see the markup): it takes the same room on
+     the left, so a host's centred strip sits on the panel's centre line. It
+     shrinks away before the strip does, so a narrow panel gives up the
+     centring rather than the content.
+     --------------------------------------------------------------------------- */
+  .theme-mirror {
+    display: inline-flex;
+    visibility: hidden;
+    min-inline-size: 0;
+    flex-shrink: 1;
+  }
+
+  /* ---------------------------------------------------------------------------
      Pane chrome — the head and foot shared by the side panes (the sidebar and
      the inspector). Each is a fixed row at its edge of the pane (flex-shrink:0,
      so it never scrolls away while the middle scrolls), carrying the hairline

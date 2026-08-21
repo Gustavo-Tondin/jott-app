@@ -32,13 +32,8 @@
   }
   /* Takes the ⋮'s room on the left without being seen or reached; it shrinks
      away before the title does, so a narrow panel gives up the centring rather
-     than the name (same rule as tasks-space.css). */
-  .notes-space__mirror {
-    display: inline-flex;
-    visibility: hidden;
-    min-inline-size: 0;
-    flex-shrink: 1;
-  }
+     than the name (same rule as tasks-space.css). It is the shared
+     .theme-mirror (controls.css). */
   /* With no title (below 768px, where the shell's header carries the name) the
      ⋮ still has to hug the right edge. The auto margin goes on the Menu's own
      wrapper, which is the flex child — the button inside it is not. */

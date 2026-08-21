@@ -422,7 +422,7 @@
                PANEL and not on what is left of the row. A hidden copy rather
                than a guessed width: whatever the tools grow into, the two
                sides stay equal (user call, 2026-08-06). -->
-          <span class="tasks-space__mirror" aria-hidden="true">
+          <span class="theme-mirror tasks-space__mirror" aria-hidden="true">
             <span class="theme-btn--icon">
               <Icon name="dots-three-vertical" size="1rem" />
             </span>
