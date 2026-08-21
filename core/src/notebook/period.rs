@@ -207,17 +207,14 @@ impl Notebook {
     /// Sets that arrangement. `None` goes back to the order things were pulled
     /// in, which is the state file's own order.
     pub fn set_period_sort(&mut self, period: Period, sort: Option<&str>) -> Result<()> {
-        self.ensure_writable()?;
-        let mut config = self.config.clone();
-        match sort {
+        self.edit_config(|config| match sort {
             Some(sort) if !sort.is_empty() => {
                 config.period_sort.insert(period.key().to_string(), sort.to_string());
             }
             _ => {
                 config.period_sort.remove(period.key());
             }
-        }
-        self.set_config(config)
+        })
     }
 
     /// Rearranges the period to match `refs` — the order the user just dragged.

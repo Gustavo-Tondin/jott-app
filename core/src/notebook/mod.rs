@@ -497,6 +497,28 @@ impl Notebook {
         Ok(())
     }
 
+    /// Applies `change` to a copy of the config and writes it — the one door
+    /// for every setter that touches a single field. The guard, the save and
+    /// the swap are [`Notebook::set_config`]'s; this only spares each caller
+    /// the clone-mutate-save dance, which seven of them spelled out.
+    pub(super) fn edit_config(&mut self, change: impl FnOnce(&mut Config)) -> Result<()> {
+        self.edit_config_if(|config| {
+            change(config);
+            true
+        })
+    }
+
+    /// The conditional form: `change` says whether anything changed, and the
+    /// file is only rewritten when it did.
+    pub(super) fn edit_config_if(&mut self, change: impl FnOnce(&mut Config) -> bool) -> Result<()> {
+        self.ensure_writable()?;
+        let mut config = self.config.clone();
+        if change(&mut config) {
+            self.set_config(config)?;
+        }
+        Ok(())
+    }
+
     /// Guard for every operation that writes. Reading a future notebook is
     /// fine; rewriting one is how data written by a newer app gets destroyed.
     fn ensure_writable(&self) -> Result<()> {
@@ -510,17 +532,12 @@ impl Notebook {
     /// single door the sidebar's drag goes through, for spaces and lists
     /// alike (`"spaces"`, `"lists:<folder>"`).
     pub fn set_order(&mut self, namespace: &str, names: Vec<String>) -> Result<()> {
-        let mut config = self.config.clone();
-        config.set_order(namespace, names);
-        self.set_config(config)
+        self.edit_config(|config| config.set_order(namespace, names))
     }
 
     /// Records an opinion, or forgets one (`None` = back to the default).
     pub fn set_feature(&mut self, key: &str, on: Option<bool>) -> Result<()> {
-        self.ensure_writable()?;
-        let mut config = self.config.clone();
-        config.set_feature(key, on);
-        self.set_config(config)
+        self.edit_config(|config| config.set_feature(key, on))
     }
 
     /// Binds a command to a chord, or unbinds it with `chord: None`.
@@ -531,9 +548,7 @@ impl Notebook {
     /// rather than writing an empty one, so a config only ever carries what
     /// differs from the app's own table.
     pub fn set_shortcut(&mut self, id: &str, chord: Option<String>) -> Result<()> {
-        self.ensure_writable()?;
-        let mut config = self.config.clone();
-        match chord {
+        self.edit_config(|config| match chord {
             Some(chord) => {
                 config
                     .shortcuts
@@ -542,16 +557,12 @@ impl Notebook {
             None => {
                 config.shortcuts.remove(id);
             }
-        }
-        self.set_config(config)
+        })
     }
 
     /// Forgets every binding — back to the table the app ships with.
     pub fn reset_shortcuts(&mut self) -> Result<()> {
-        self.ensure_writable()?;
-        let mut config = self.config.clone();
-        config.shortcuts.clear();
-        self.set_config(config)
+        self.edit_config(|config| config.shortcuts.clear())
     }
 
     /// Starts watching this notebook for changes made outside the app.

@@ -130,10 +130,9 @@ impl Notebook {
     /// Sets it. Anything but `"name"` means the hand-dragged order, which is
     /// what an untouched notebook already does.
     pub fn set_spaces_sort(&mut self, sort: &str) -> Result<()> {
-        self.ensure_writable()?;
-        let mut config = self.config.clone();
-        config.spaces_sort = if sort == "name" { sort.to_string() } else { String::new() };
-        self.set_config(config)
+        self.edit_config(|config| {
+            config.spaces_sort = if sort == "name" { sort.to_string() } else { String::new() };
+        })
     }
 
     /// The three spaces the app creates and recreates — never renamed,
@@ -357,10 +356,7 @@ impl Notebook {
         // stale one fails silently: the space just falls to the end of a
         // column the user arranged (services/sidebarOrder.js reads what is
         // stored, and what is stored no longer names anything).
-        let mut config = self.config.clone();
-        if config.relocate_orders(&from_rel, &to_rel) {
-            self.set_config(config)?;
-        }
+        self.edit_config_if(|config| config.relocate_orders(&from_rel, &to_rel))?;
         // The aggregated index holds paths too; it is reconstructible, so a
         // failure here must not fail the move.
         let _ = self.refresh_completed_index();
