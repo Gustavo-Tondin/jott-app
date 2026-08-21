@@ -169,7 +169,32 @@ impl Trash {
         if expired.is_empty() {
             return Ok(());
         }
-        for entry in &expired {
+        self.remove_stored(&expired);
+        self.save()
+    }
+
+    /// Permanently removes one entry, the user's call — the only door besides
+    /// the reaper through which something leaves the notebook for good.
+    pub fn purge(&mut self, id: &str) -> Option<TrashEntry> {
+        let pos = self.entries.iter().position(|e| e.id == id)?;
+        let entry = self.entries.remove(pos);
+        self.remove_stored(std::slice::from_ref(&entry));
+        let _ = self.save();
+        Some(entry)
+    }
+
+    /// Permanently removes every entry. Returns how many went.
+    pub fn purge_all(&mut self) -> Result<usize> {
+        let gone = std::mem::take(&mut self.entries);
+        self.remove_stored(&gone);
+        self.save()?;
+        Ok(gone.len())
+    }
+
+    /// Deletes the stored files of `entries` from `items/`. A task carries its
+    /// lines in the index and has nothing on disk.
+    fn remove_stored(&self, entries: &[TrashEntry]) {
+        for entry in entries {
             if let Some(stored) = &entry.stored {
                 let path = self.stored_path(stored);
                 if path.is_dir() {
@@ -179,7 +204,6 @@ impl Trash {
                 }
             }
         }
-        self.save()
     }
 
     fn save(&self) -> Result<()> {

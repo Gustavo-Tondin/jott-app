@@ -52,6 +52,8 @@ pub fn configure<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builde
             // trash + tags + completed
             commands::notebook::trash_entries,
             commands::notebook::restore_from_trash,
+            commands::notebook::purge_from_trash,
+            commands::notebook::empty_trash,
             commands::tasks::delete_task,
             commands::notebook::tags,
             commands::notebook::set_tag,

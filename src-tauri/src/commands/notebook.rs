@@ -259,6 +259,16 @@ pub fn restore_from_trash(state: State<'_, AppState>, id: String) -> CommandResu
     state.read(|nb| nb.restore_from_trash(&id))
 }
 
+#[tauri::command]
+pub fn purge_from_trash(state: State<'_, AppState>, id: String) -> CommandResult<()> {
+    state.read(|nb| nb.purge_from_trash(&id))
+}
+
+#[tauri::command]
+pub fn empty_trash(state: State<'_, AppState>) -> CommandResult<usize> {
+    state.read(|nb| nb.empty_trash())
+}
+
 // ---- tags ----
 
 /// A user tag with its colour.

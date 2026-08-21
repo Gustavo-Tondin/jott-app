@@ -49,6 +49,21 @@ impl Notebook {
             .reap(self.config.trash_retention_days, crate::clock::civil_today())
     }
 
+    /// Deletes one trashed item for good (user's call, 2026-08-21).
+    pub fn purge_from_trash(&self, id: &str) -> Result<()> {
+        self.ensure_writable()?;
+        match self.trash().purge(id) {
+            Some(_) => Ok(()),
+            None => Err(Error::TaskNotFound(id.to_string())),
+        }
+    }
+
+    /// Empties the trash for good. Returns how many items went.
+    pub fn empty_trash(&self) -> Result<usize> {
+        self.ensure_writable()?;
+        self.trash().purge_all()
+    }
+
     /// Brings a trashed item back to where it came from. A collision at the
     /// origin is suffixed, never overwritten.
     pub fn restore_from_trash(&self, id: &str) -> Result<()> {

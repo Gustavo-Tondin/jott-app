@@ -125,6 +125,15 @@ export const S = {
   // The countdown the reaper acts on (`trash::days_left`), in the row.
   trashDaysLeft: (n) => (n <= 0 ? "clears today" : n === 1 ? "1 day left" : `${n} days left`),
   trashKeptForever: "kept until you restore it",
+  // The two icon buttons of a row, and the one destructive act the app has
+  // besides the reaper. The dialogs say "for good" because nothing else in
+  // the app is — this is the one place the second sentence is not a promise.
+  restoreItem: "Restore",
+  deleteForever: "Delete forever",
+  emptyTrash: "Empty trash",
+  confirmDeleteForever: (label) => `Delete "${label}" for good?`,
+  confirmEmptyTrash: (n) => (n === 1 ? "Delete the 1 item for good?" : `Delete all ${n} items for good?`),
+  deleteForeverDetail: "This cannot be undone — it is the one thing in Jott that is not kept.",
   tagsTitle: "Tags",
   tagsEmpty: "No tags yet. Add one from a task.",
   newTagName: "New tag name",

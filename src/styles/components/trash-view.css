@@ -7,6 +7,17 @@
     max-inline-size: 44rem;
     margin-inline: auto;
   }
+  .trash-view__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--theme-space-12);
+  }
+  .trash-view__head .theme-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--theme-space-6);
+  }
   .trash-view__hint,
   .trash-view__empty {
     margin: 0;
@@ -41,6 +52,30 @@
     color: var(--theme-ink-faint);
     font-size: var(--theme-text-12);
     white-space: nowrap;
+  }
+  /* The two verbs of a row, icon-only (user call, 2026-08-21): the circular
+     arrow in the accent says "back", the bin in the danger colour says
+     "gone". Both are plates the shared .theme-btn--icon already draws; the
+     glyph carries the colour, and the hover veil stays the shared one. */
+  .trash-view__actions {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--theme-space-2);
+    margin-inline-start: var(--theme-space-4);
+  }
+  .trash-view__restore {
+    color: var(--theme-brand);
+  }
+  .trash-view__restore:hover:not(:disabled) {
+    color: var(--theme-brand);
+    background: var(--theme-brand-weak);
+  }
+  .trash-view__purge {
+    color: var(--theme-danger);
+  }
+  .trash-view__purge:hover:not(:disabled) {
+    color: var(--theme-danger);
+    background: color-mix(in srgb, var(--theme-danger) 14%, transparent);
   }
   /* Three days or fewer: the countdown is the one thing worth noticing. */
   .trash-view__left--soon {

@@ -1783,3 +1783,27 @@ fn on_top_keeps_whatever_the_user_wrote_above_the_checklist() {
     let text = read(&path);
     assert!(text.starts_with("# Minhas tarefas\n\nUma nota antes.\n\n- [ ] Nova"), "{text}");
 }
+
+#[test]
+fn a_trashed_item_can_be_deleted_for_good_and_the_trash_emptied() {
+    let dir = tempfile::tempdir().unwrap();
+    let nb = jott_core::Notebook::init(dir.path()).unwrap();
+    for name in ["Obra", "Casa", "Viagem"] {
+        nb.create_list("jott.tasks", name).unwrap();
+        nb.delete_list(&format!("jott.tasks/{name}.md")).unwrap();
+    }
+    let items = dir.path().join(".jott/trash/items");
+    assert_eq!(std::fs::read_dir(&items).unwrap().count(), 3);
+
+    let entries = nb.trash_entries();
+    let stored = entries[0].stored.clone().unwrap();
+    nb.purge_from_trash(&entries[0].id).unwrap();
+    assert_eq!(nb.trash_entries().len(), 2);
+    assert!(!items.join(stored).exists(), "the stored file goes with the entry");
+    assert!(nb.restore_from_trash(&entries[0].id).is_err(), "gone is gone");
+
+    assert_eq!(nb.empty_trash().unwrap(), 2);
+    assert!(nb.trash_entries().is_empty());
+    assert_eq!(std::fs::read_dir(&items).unwrap().count(), 0);
+    assert!(nb.purge_from_trash("nope").is_err());
+}

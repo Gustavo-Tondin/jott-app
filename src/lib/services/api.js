@@ -147,9 +147,12 @@ export const api = {
   createSpaceIn: (name, kind, group) =>
     invoke("create_space_in", { name, kind, group }),
 
-  // Trash (internal, `.jott/trash/`) — restore or let it expire.
+  // Trash (internal, `.jott/trash/`) — restore, let it expire, or, on the
+  // user's word alone, delete for good (2026-08-21).
   trashEntries: () => invoke("trash_entries"),
   restoreFromTrash: (id) => invoke("restore_from_trash", { id }),
+  purgeFromTrash: (id) => invoke("purge_from_trash", { id }),
+  emptyTrash: () => invoke("empty_trash"),
   deleteTask: (list, id) => invoke("delete_task", { list, id }),
 
   // Tags catalogue (name + colour).
