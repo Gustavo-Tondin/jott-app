@@ -76,7 +76,13 @@
 @media (pointer: coarse) {
   @layer components {
     /* The app's one icon-button class, and so the one rule that covers most of
-       this: at 6px of padding around an 18px glyph it is a 30px target. */
+       this: at 6px of padding around an 18px glyph it is a 30px target.
+
+       The ⋮ on a note card, and the × on a completed task: both are drawn small
+       and sit at the edge of a card, which is exactly where a thumb lands by
+       accident. (The pin star that used to be here went into the card's own ⋮
+       when the board was redrawn, 2026-08-18.) Both wear this class, so this
+       rule is the one that reaches them. */
     .theme-btn--icon {
       min-inline-size: var(--theme-touch-min);
       min-block-size: var(--theme-touch-min);
@@ -256,16 +262,6 @@
        detail that makes a switch look broken rather than small. */
     .theme-switch:checked::after {
       transform: translateX(1.125rem);
-    }
-
-    /* The ⋮ on a note card, and the × on a completed task: both are drawn small
-       and sit at the edge of a card, which is exactly where a thumb lands by
-       accident. (The pin star that used to be here went into the card's own ⋮
-       when the board was redrawn, 2026-08-18.) */
-    .note-card__more,
-    .tasks-space__remove {
-      min-inline-size: var(--theme-touch-min);
-      min-block-size: var(--theme-touch-min);
     }
 
     /* A control at the END of a card gives its grown box back to the card's
