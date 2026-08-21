@@ -134,15 +134,22 @@ describe("whose gesture it is", () => {
 });
 
 describe("following the finger", () => {
-  it("carries the pane and takes the gesture from the browser", () => {
+  it("carries the pane and takes the gesture from the browser", async () => {
     mount();
     touch(empty(), "touchstart", { x: 100, y: 200, at: 0 });
-    const move = touch(empty(), "touchmove", { x: 40, y: 202, at: 100 });
+    const move = touch(empty(), "touchmove", { x: 40, y: 202, at: 400 });
     expect(move.defaultPrevented).toBe(true);
     expect(node.classList.contains("is-turning")).toBe(true);
     expect(node.style.getPropertyValue("--pane-x")).toBe("-60px");
-    touch(empty(), "touchend", { x: 40, y: 202, at: 100 });
+    touch(empty(), "touchend", { x: 40, y: 202, at: 400 });
     expect(node.classList.contains("is-turning")).toBe(false);
+    // Short of the mark (60 of 360, slow): it glides home, then lets go of
+    // the property altogether — a standing transform would hold every fixed
+    // descendant (see tasks-view.css).
+    expect(node.classList.contains("is-settling")).toBe(true);
+    expect(node.style.getPropertyValue("--pane-x")).toBe("0px");
+    await new Promise((r) => setTimeout(r, 320));
+    expect(node.classList.contains("is-settling")).toBe(false);
     expect(node.style.getPropertyValue("--pane-x")).toBe("");
   });
   it("only rubber-bands towards a side with no page", () => {

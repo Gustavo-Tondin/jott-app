@@ -37,7 +37,13 @@ const MAX = 112;
 const LOCK = 8;
 /// The rubber band: the indicator covers this fraction of what the finger does.
 const RESIST = 0.55;
-const CLAIMED = "input, textarea, [contenteditable], .cm-editor, .sheet, .theme-modal, .theme-popover";
+/// …and never from a card or a list of them: a finger on a card is scrolling,
+/// swiping or about to rest and pick it up, and the glass appearing mid-drag
+/// read as a fourth gesture fighting the three (user call, 2026-08-21:
+/// "limite o de pesquisar às partes vazias da tela").
+const CLAIMED =
+  "input, textarea, [contenteditable], .cm-editor, .sheet, .theme-modal, .theme-popover," +
+  " [data-swipes], [data-reorderable], .task-row, .note-card, .theme-row, .theme-btn, .theme-btn--icon";
 
 export function pullToSearch(node, params) {
   let opts = params ?? {};

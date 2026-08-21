@@ -177,7 +177,11 @@
     onHold: onHold ? (i) => onHold(items[i]) : null,
     carried: carried
       ? (i) => {
-          const pile = carried(items[i]).map((entry) => items.indexOf(entry));
+          // Matched by the task: the host's entries and these are not the
+          // same objects (TasksSpace.svelte says why).
+          const pile = carried(items[i]).map((entry) =>
+            items.findIndex((candidate) => candidate.task === entry.task),
+          );
           return [i, ...pile.filter((at) => at >= 0 && at !== i)];
         }
       : null,

@@ -100,6 +100,29 @@
      masonry, its slot and the compact two-column setting all live there. */
   /* The tree view is one column: it is already filtered to a folder, so it
      reads as a list on purpose. */
+  /* The screen fills the canvas (user call, 2026-08-21): a board hugging its
+     cards left the lower half of the screen as nothing, and a ring drawn at
+     its edge cut off. */
+  .notes-space {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+  .notes-space__board {
+    flex: 1;
+  }
+  /* The drop ring goes on the CARD, not on the slot. The slot is a box in a
+     multi-column layout, and an outline on a fragmenting box is drawn per
+     fragment — it came out as a stray line along the bottom of the previous
+     column (screenshot, 2026-08-21). The card inside does not fragment. */
+  .theme-note-board > .reorder-item--into {
+    outline: none;
+  }
+  .theme-note-board > .reorder-item--into > * {
+    outline: 0.125rem solid var(--theme-brand);
+    outline-offset: 0.0625rem;
+    border-radius: var(--theme-radius-lg);
+  }
   .notes-space__board--tree {
     columns: 1;
   }

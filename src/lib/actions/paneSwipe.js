@@ -67,14 +67,30 @@ export function paneSwipe(node, params) {
     else node.setAttribute("data-swipes", prev && next ? "x" : prev ? "right" : "left");
   }
 
+  let settling = null;
+
   function paint(dx) {
     if (dx === null) {
       node.style.removeProperty("--pane-x");
-      node.classList.remove("is-turning");
+      node.classList.remove("is-turning", "is-settling");
       return;
     }
+    clearTimeout(settling);
+    node.classList.remove("is-settling");
     node.style.setProperty("--pane-x", `${dx}px`);
     node.classList.add("is-turning");
+  }
+
+  /// Let go short of the mark: the pane glides home. A class ADDED for the
+  /// glide and taken off after it, never a standing transition — the
+  /// stylesheet says why (tasks-view.css): a standing transform on the pane
+  /// would hold every `position: fixed` descendant hostage.
+  function settle() {
+    node.classList.remove("is-turning");
+    node.classList.add("is-settling");
+    node.style.setProperty("--pane-x", "0px");
+    clearTimeout(settling);
+    settling = setTimeout(() => paint(null), 300);
   }
 
   function begin(target, x, y, at, mouse = false) {
@@ -112,15 +128,16 @@ export function paneSwipe(node, params) {
     const settled = drag;
     drag = null;
     if (!settled || !settled.axis) return;
-    paint(null);
     const dx = x - settled.x;
     const elapsed = Math.max(1, at - settled.at);
     const flicked = Math.abs(dx) / elapsed > FLICK;
     const width = node.offsetWidth || 360;
     const far = Math.abs(dx) > width * COMMIT;
-    if (!flicked && !far) return;
-    if (dx < 0 && opts.canNext) opts.onNext?.();
-    else if (dx > 0 && opts.canPrev) opts.onPrev?.();
+    const turns = (flicked || far) && (dx < 0 ? !!opts.canNext : !!opts.canPrev);
+    if (!turns) return settle();
+    paint(null);
+    if (dx < 0) opts.onNext?.();
+    else opts.onPrev?.();
   }
 
   function abandon() {
@@ -199,6 +216,7 @@ export function paneSwipe(node, params) {
     destroy() {
       for (const [type, fn] of handlers) node.removeEventListener(type, fn, LISTEN);
       node.removeAttribute("data-swipes");
+      clearTimeout(settling);
       paint(null);
     },
   };

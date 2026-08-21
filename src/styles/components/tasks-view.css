@@ -19,33 +19,48 @@
     min-block-size: 0;
     display: flex;
     flex-direction: column;
-    /* Follows the finger while a swipe is turning the page
-       (actions/paneSwipe.js writes `--pane-x` on the screen). Zero the rest of
-       the time. The glide home when a swipe is let go short of the mark is the
-       transition; while the finger is down `is-turning` switches it off, so
-       the pane sits under the hand instead of easing after it. */
-    translate: var(--pane-x, 0rem) 0;
-    transition: translate var(--theme-transition-medium);
-  }
-  .tasks-view.is-turning .tasks-view__pane {
-    transition: none;
   }
   .tasks-view__pane > .tasks-space,
   .tasks-view__pane > .period-view {
     flex: 1;
   }
-  /* THE PAGE TURN. A new pane comes in from the side the strip reads towards
-     — from the end when the tab is further along, from the start when it is
-     further back — sliding a short way and fading, decelerating as it lands.
-     A short way, not the whole width: the old pane is gone by the time this
-     one exists (the `{#key}` replaces it), and a full-width slide with nothing
-     leaving read as the screen arriving from off-stage. An eighth of the way
-     says WHICH way without pretending the other page is still there. The
-     first paint has no `data-enter` and stays still. */
-  .tasks-view__pane[data-enter="end"] {
+
+  /* WHAT TURNS IS THE LIST (user call, 2026-08-21, on seeing the whole
+     canvas slide): the strip, the header and the composing bar are the same
+     on all three tabs, so they stay put, and only what differs — the cards,
+     the Completed row, the empty note — moves. Hence the selector: every
+     child of the tasks block that is not its header or its bar.
+
+     NO STANDING `translate`. A transform on an ancestor, even `0 0`, makes it
+     the containing block of every `position: fixed` descendant — and two of
+     those live in here: the card being carried by a drag (actions/reorder.js
+     lifts it fixed, at viewport coordinates) and the phone's composing bar.
+     With a standing translate on the pane the carried card landed a panel's
+     width to the right and the bar sat mid-screen (both seen, 2026-08-21).
+     So the property is only ever set while a swipe is in flight
+     (`is-turning`: the finger has it, no transition) or gliding home
+     (`is-settling`: a transition back to zero, for one beat), and is `none`
+     the rest of the time. */
+  .tasks-view.is-turning .tasks-view__pane .tasks-space > :not(.tasks-space__header, .task-composer) {
+    translate: var(--pane-x, 0rem) 0;
+  }
+  .tasks-view.is-settling .tasks-view__pane .tasks-space > :not(.tasks-space__header, .task-composer) {
+    translate: var(--pane-x, 0rem) 0;
+    transition: translate var(--theme-transition-medium);
+  }
+  /* THE PAGE TURN. The new list comes in from the side the strip reads
+     towards — from the end when the tab is further along, from the start when
+     it is further back — sliding a short way and fading, decelerating as it
+     lands. A short way, not the whole width: the old list is gone by the time
+     this one exists (the `{#key}` replaces it), and a full-width slide with
+     nothing leaving read as the screen arriving from off-stage. An eighth of
+     the way says WHICH way without pretending the other page is still there.
+     The first paint has no `data-enter` and stays still. The animation ends
+     and leaves no transform behind (no fill mode), for the reason above. */
+  .tasks-view__pane[data-enter="end"] .tasks-space > :not(.tasks-space__header, .task-composer) {
     animation: tasks-view-turn-from-end var(--theme-duration-slow) var(--theme-ease-out);
   }
-  .tasks-view__pane[data-enter="start"] {
+  .tasks-view__pane[data-enter="start"] .tasks-space > :not(.tasks-space__header, .task-composer) {
     animation: tasks-view-turn-from-start var(--theme-duration-slow) var(--theme-ease-out);
   }
   @keyframes tasks-view-turn-from-end {

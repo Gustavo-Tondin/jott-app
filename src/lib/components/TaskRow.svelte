@@ -95,17 +95,19 @@
   let row = $state(null);
   let finishing = $state(false);
   const CEILING = 1200;
+  const SEND_OFFS = new Set(["task-row-finish", "task-row-restore"]);
 
+  // Unticking a completed card plays the same way (user call, 2026-08-21):
+  // `--restoring` is the shorter cousin, and the write waits on it alike.
   async function finish() {
-    if (task.done) return onComplete(list, task);
     if (finishing) {
       finishing = false;
       return;
     }
     finishing = true;
     await tick();
-    const playing = (row?.getAnimations?.({ subtree: true }) ?? []).filter(
-      (a) => a.animationName === "task-row-finish",
+    const playing = (row?.getAnimations?.({ subtree: true }) ?? []).filter((a) =>
+      SEND_OFFS.has(a.animationName),
     );
     if (playing.length) {
       await Promise.race([
@@ -183,7 +185,8 @@
   class:swipe={gesture !== noAction}
   class:task-row--selected={selected}
   class:task-row--done={task.done}
-  class:task-row--finishing={finishing}
+  class:task-row--finishing={finishing && !task.done}
+  class:task-row--restoring={finishing && task.done}
   data-card={index}
   tabindex={focusable ? 0 : -1}
   onclick={() => onSelect?.(list, task)}

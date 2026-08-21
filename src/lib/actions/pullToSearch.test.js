@@ -5,6 +5,7 @@ function scroller() {
   document.body.innerHTML = `
     <section class="shell__centre">
       <p class="empty">a list</p>
+      <ul class="theme-task-list" data-reorderable><li class="task-row"><span class="title">Fix website</span></li></ul>
       <input class="field" />
     </section>`;
   const node = document.querySelector(".shell__centre");
@@ -81,8 +82,10 @@ describe("pullToSearch", () => {
     expect(pulls).toBe(0);
   });
 
-  it("never from a field, and never when switched off", () => {
+  it("never from a field, a card or a list, and never when switched off", () => {
     pull(document.querySelector(".field"), 200);
+    pull(document.querySelector(".title"), 200);
+    pull(document.querySelector(".theme-task-list"), 200);
     expect(pulls).toBe(0);
     action.update({ enabled: false, onPull: () => pulls++ });
     pull(empty(), 200);

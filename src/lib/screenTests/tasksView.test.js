@@ -170,6 +170,27 @@ describe("TasksView", () => {
     await waitFor(() => expect(ground().getAttribute("data-enter")).toBe("start"));
   });
 
+  // A press that rests on a card enters selection mode WITH that card picked
+  // (it came in unmarked once: the entry under the finger and the one in the
+  // host's list were two objects for one task, 2026-08-21).
+  test("holding a card selects it and raises the bulk bar", async () => {
+    bridge({
+      list_tasks: [task("a1", "Fix website"), task("a2", "Send invoice")],
+      period_tasks: [],
+      grouped_suggestions: [],
+    });
+    const { container } = render(TasksView, { props: props({ compact: true }) });
+    const card = await screen.findByText("Fix website");
+    const down = new Event("pointerdown", { bubbles: true });
+    Object.assign(down, { button: 0, pointerId: 1, pointerType: "touch", isPrimary: true, clientX: 40, clientY: 40 });
+    card.dispatchEvent(down);
+    await new Promise((r) => setTimeout(r, 450));
+    await waitFor(() =>
+      expect(card.closest(".task-row").classList.contains("task-row--selected")).toBe(true),
+    );
+    expect(container.querySelector(".bulkbar__count").textContent).toBe("1 selected");
+  });
+
   test("the open tab is reported so the page header can name it", async () => {
     const subs = [];
     bridge({ list_tasks: [] });

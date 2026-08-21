@@ -107,6 +107,31 @@
        tick the box again when the tick was a slip. */
     animation: task-row-finish calc(var(--theme-duration-slow) * 3) var(--theme-ease-out) forwards;
   }
+  /* Unticking, from the Completed list: the same fold, shorter and without
+     the tint — the card is leaving for the open list, not being celebrated.
+     The strike fades out with it (`--done` stays on until the write). */
+  .task-row--restoring {
+    overflow: hidden;
+    animation: task-row-restore calc(var(--theme-duration-slow) * 2) var(--theme-ease-out) forwards;
+  }
+  .task-row--restoring .task-row__title {
+    text-decoration-color: transparent;
+    color: var(--theme-ink);
+  }
+  @keyframes task-row-restore {
+    0%,
+    35% {
+      opacity: 1;
+      scale: 1;
+      max-block-size: 8rem;
+    }
+    100% {
+      opacity: 0;
+      scale: 0.96;
+      max-block-size: 0;
+      padding-block: 0;
+    }
+  }
   @keyframes task-row-finish {
     0%,
     45% {

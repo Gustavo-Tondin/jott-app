@@ -253,8 +253,16 @@
   // more. Resting on a card that is ALREADY picked is not answered — the
   // reorder action then picks up the whole pile (`carried`), and the drop
   // lands them together (`reorderMany`).
-  function holdCard(entry) {
+  //
+  // By the TASK, never by the entry object: what the cards hand back is the
+  // list they were given, and that list is rebuilt on every arrangement —
+  // the entry under the finger and the one in `shown` are two objects for
+  // one task (the held card entered selection mode unmarked, 2026-08-21).
+  const entryOf = (entry) => shown.find((candidate) => candidate.task === entry.task);
+  function holdCard(held) {
     if (readOnly) return false;
+    const entry = entryOf(held);
+    if (!entry) return false;
     if (!picking) {
       picking = true;
       picked = new Set([entry]);
@@ -263,7 +271,10 @@
     if (!picked.has(entry)) picked = new Set([...picked, entry]);
     return false;
   }
-  const carriedWith = (entry) => (picking && picked.has(entry) ? [...picked] : []);
+  const carriedWith = (held) => {
+    const entry = entryOf(held);
+    return picking && entry && picked.has(entry) ? [...picked] : [];
+  };
 
   // Where a picked task can move — any tasks list of the notebook except this
   // space's own and the Completed files.

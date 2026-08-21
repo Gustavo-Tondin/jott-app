@@ -834,7 +834,17 @@
     min-block-size: 0;
     display: flex;
     flex-direction: column;
-    animation: theme-rise var(--theme-duration-medium) var(--theme-ease-out);
+    /* Not `theme-rise`: that one moves by `translate`, and a transform on
+       this wrapper — even for a quarter second — would be the containing
+       block of the phone's fixed composing bar and of a card being carried.
+       A fade and a breath of top margin arrive the same way without one. */
+    animation: shell-screen-rise var(--theme-duration-medium) var(--theme-ease-out);
+  }
+  @keyframes shell-screen-rise {
+    from {
+      opacity: 0;
+      margin-block-start: var(--theme-space-8);
+    }
   }
 
   /* ---- pull to search (actions/pullToSearch.js) ----
