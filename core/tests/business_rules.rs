@@ -1741,3 +1741,45 @@ fn a_deleted_task_restores_as_a_real_task_not_raw_text() {
     assert_eq!(restored[0].text, "task 1");
     assert!(!restored[0].text.contains("- [ ]"));
 }
+
+// ------------------------------------------------------ where a new task lands
+
+#[test]
+fn a_new_task_lands_at_the_bottom_unless_the_notebook_says_top() {
+    let dir = tempfile::tempdir().unwrap();
+    let (mut notebook, _) = notebook_with_task(dir.path(), "Primeira");
+    let inbox = "jott.tasks/task-list.md";
+
+    assert_eq!(notebook.create_task(inbox, "Segunda").unwrap(), 1);
+    let texts: Vec<String> = notebook.tasks_in(inbox).unwrap().into_iter().map(|t| t.text).collect();
+    assert_eq!(texts, vec!["Primeira", "Segunda"]);
+
+    let mut config = notebook.config().clone();
+    config.new_tasks_on_top = true;
+    notebook.set_config(config).unwrap();
+
+    assert_eq!(notebook.create_task(inbox, "Terceira").unwrap(), 0);
+    let texts: Vec<String> = notebook.tasks_in(inbox).unwrap().into_iter().map(|t| t.text).collect();
+    assert_eq!(texts, vec!["Terceira", "Primeira", "Segunda"]);
+
+    // The period door obeys the same setting.
+    notebook.add_task_in_period(Period::Day, "Quarta").unwrap();
+    let texts: Vec<String> = notebook.tasks_in(inbox).unwrap().into_iter().map(|t| t.text).collect();
+    assert_eq!(texts[0], "Quarta");
+}
+
+#[test]
+fn on_top_keeps_whatever_the_user_wrote_above_the_checklist() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut notebook = Notebook::init(dir.path()).unwrap();
+    let path = dir.path().join("jott.tasks/task-list.md");
+    std::fs::write(&path, "# Minhas tarefas\n\nUma nota antes.\n\n- [ ] Primeira\n").unwrap();
+
+    let mut config = notebook.config().clone();
+    config.new_tasks_on_top = true;
+    notebook.set_config(config).unwrap();
+    notebook.create_task("jott.tasks/task-list.md", "Nova").unwrap();
+
+    let text = read(&path);
+    assert!(text.starts_with("# Minhas tarefas\n\nUma nota antes.\n\n- [ ] Nova"), "{text}");
+}

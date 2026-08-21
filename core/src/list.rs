@@ -139,6 +139,29 @@ impl TaskList {
         self.tasks().count() - 1
     }
 
+    /// Adds a task **above the first one** — the `newTasksOnTop` setting.
+    /// Whatever the user wrote above the checklist (a heading, a note to self)
+    /// stays above it: the insertion point is the first task line, not line 0.
+    /// With no task yet, it lands where `add` would. Returns position 0.
+    pub fn add_first(&mut self, task: Task) -> usize {
+        let at = self
+            .lines
+            .iter()
+            .position(|line| matches!(line, Line::Task(_)))
+            .unwrap_or(self.lines.len());
+        self.insert_line_at(at, task);
+        0
+    }
+
+    /// `add` or `add_first`, by the setting — the one place the two meet.
+    pub fn add_placed(&mut self, task: Task, on_top: bool) -> usize {
+        if on_top {
+            self.add_first(task)
+        } else {
+            self.add(task)
+        }
+    }
+
     /// Puts a task back among the file's lines at `index`, counting lines and
     /// not tasks — the index the trash recorded when the task was removed.
     ///

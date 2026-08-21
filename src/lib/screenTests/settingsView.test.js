@@ -24,6 +24,7 @@ describe("SettingsView", () => {
     restoreLastScreen: false,
     showListCounts: true,
     autoUrgentByDate: true,
+    newTasksOnTop: false,
     dateDisplayFormat: "mm/dd/yyyy",
     closeInspectorOnClickAway: false,
     quickNoteFolder: "Inbox",
@@ -198,6 +199,15 @@ describe("SettingsView", () => {
     await waitFor(() =>
       expect(invoke).toHaveBeenCalledWith("set_notebook_settings", {
         settings: { autoUrgentByDate: false },
+      }),
+    );
+
+    // Where a new task lands is a notebook rule (2026-08-21): the select
+    // speaks top/bottom, the config stores a boolean.
+    await userEvent.selectOptions(screen.getByLabelText("New tasks go to"), "top");
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("set_notebook_settings", {
+        settings: { newTasksOnTop: true },
       }),
     );
   });

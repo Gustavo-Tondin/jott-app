@@ -324,7 +324,7 @@
   /// with none simply has no entry, instead of the `fn.key === "tasks" ? …`
   /// chain this replaced.
   const FUNCTION_EXTRAS = () => ({
-    tasks: [S.autoUrgentByDate],
+    tasks: [S.autoUrgentByDate, S.newTasksGoTo],
     notes: [S.confirmImageDownloads],
   });
 
@@ -1073,6 +1073,22 @@
       {#if shows("fn:tasks")}
         <section class="settings__section settings__section--features">
           {@render sectionTitle(S.featureTasks)}
+
+          <!-- A notebook rule, not a field: where a capture lands. Above the
+               screens because it is the first thing a new task does. -->
+          <label class="settings__row">
+            <span class="settings__label">{S.newTasksGoTo}</span>
+            <select
+              class="theme-select"
+              value={form.newTasksOnTop ? "top" : "bottom"}
+              disabled={readOnly}
+              aria-label={S.newTasksGoTo}
+              onchange={(e) => put({ newTasksOnTop: e.currentTarget.value === "top" })}
+            >
+              <option value="bottom">{S.newTasksBottom}</option>
+              <option value="top">{S.newTasksTop}</option>
+            </select>
+          </label>
 
           <h3 class="settings__subtitle">{S.subScreens}</h3>
           {#each childrenIn("tasks", "screens") as feature (feature.key)}

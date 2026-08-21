@@ -147,7 +147,8 @@ impl Notebook {
     /// Creates a task in `path` and returns its **position**, not an id — a
     /// new task has no id until something needs to address it.
     pub fn create_task(&self, path: &str, text: impl Into<String>) -> Result<usize> {
-        self.with_list(path, |list| Ok(list.add(Self::stamped_task(text))))
+        let on_top = self.config.new_tasks_on_top;
+        self.with_list(path, |list| Ok(list.add_placed(Self::stamped_task(text), on_top)))
     }
 
     // ------------------------------------------------------- complete / undo

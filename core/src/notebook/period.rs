@@ -147,7 +147,7 @@ impl Notebook {
 
         // This one earns an id immediately: the state is about to reference
         // it, and a reference needs something stable to point at.
-        let position = inbox.add(Self::stamped_task(text));
+        let position = inbox.add_placed(Self::stamped_task(text), self.config.new_tasks_on_top);
         let id = inbox
             .ensure_id_at(position)
             .expect("the task was just added at this position");

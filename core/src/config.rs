@@ -171,6 +171,12 @@ pub struct Config {
     /// paints deadlines red on its own more stressful than useful. The
     /// `#urgent` tag written by hand always counts, either way.
     pub auto_urgent_by_date: bool,
+    /// Where a new task lands in its list: above the first task (`true`) or
+    /// below the last (`false`, the default — what every list did until
+    /// 2026-08-21). A quick capture wants to see what it just wrote; a plan
+    /// written in order wants the order kept. The file decides nothing here:
+    /// `List::add_first` keeps whatever sits above the checklist above it.
+    pub new_tasks_on_top: bool,
     /// How dates are shown. The file always stores ISO.
     pub date_display_format: DateFormat,
     /// Which of the app's seven complementary colours is the accent — the
@@ -285,6 +291,7 @@ impl Default for Config {
             confirm_deletes: true,
             confirm_image_downloads: true,
             auto_urgent_by_date: true,
+            new_tasks_on_top: false,
             date_display_format: DateFormat::default(),
             accent_color: String::new(),
             theme: String::new(),
@@ -456,6 +463,7 @@ impl Config {
                 defaults.confirm_image_downloads,
             ),
             auto_urgent_by_date: flag(&raw, "autoUrgentByDate", defaults.auto_urgent_by_date),
+            new_tasks_on_top: flag(&raw, "newTasksOnTop", defaults.new_tasks_on_top),
             date_display_format: string(&raw, "dateDisplayFormat")
                 .as_deref()
                 .map(DateFormat::parse_or_default)
@@ -550,6 +558,7 @@ impl Config {
                 Value::from(self.confirm_image_downloads),
             ),
             ("autoUrgentByDate", Value::from(self.auto_urgent_by_date)),
+            ("newTasksOnTop", Value::from(self.new_tasks_on_top)),
             (
                 "dateDisplayFormat",
                 Value::from(self.date_display_format.render()),
@@ -756,6 +765,7 @@ mod tests {
         assert_eq!(config.schema_version(), 1);
         assert!(!config.restore_last_screen);
         assert!(config.show_list_counts);
+        assert!(!config.new_tasks_on_top);
         assert_eq!(config.rollover.daily.mode, RolloverMode::Reset);
         assert_eq!(config.rollover.daily.at, TurnOffset::MIDNIGHT);
         assert_eq!(config.rollover.weekly.mode, RolloverMode::Reset);

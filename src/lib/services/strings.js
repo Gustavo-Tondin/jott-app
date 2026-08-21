@@ -324,6 +324,9 @@ export const S = {
     "Off by default: landing on Today is more predictable.",
   showListCounts: "Show task counts in the sidebar",
   autoUrgentByDate: "Treat overdue tasks as urgent",
+  newTasksGoTo: "New tasks go to",
+  newTasksTop: "Top of the list",
+  newTasksBottom: "Bottom of the list",
   autoUrgentByDateHint:
     "The #urgent tag written by hand always counts, either way.",
   closeOnClickAway: "Close the task panel when clicking outside",
