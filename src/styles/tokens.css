@@ -242,7 +242,6 @@
     --theme-font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo,
       "Liberation Mono", monospace;
 
-    --theme-text-8: 0.5rem; /*  8px — tag pill */
     --theme-text-10: 0.625rem; /* 10px — task meta date */
     --theme-text-12: 0.75rem; /* 12px — right panel, breadcrumb */
     --theme-text-13: 0.8125rem; /* 13px — primary button */
@@ -253,16 +252,13 @@
     --theme-text-24: 1.5rem; /* 24px — block heading */
     --theme-text-32: 2rem; /* 32px — space title */
 
-    --theme-weight-light: 300;
     --theme-weight-regular: 400;
     --theme-weight-medium: 500;
     --theme-weight-semibold: 600;
     --theme-weight-bold: 700;
 
     --theme-tracking-tight: -0.01em;
-    --theme-tracking-normal: 0;
     --theme-tracking-wide: 0.06em; /* the letter-spacing:1px of headings/labels */
-    --theme-tracking-wider: 0.12em; /* breadcrumb / group titles (letter-spacing:2px) */
 
     --theme-leading-tight: 1.2;
     --theme-leading-normal: 1.5;
@@ -455,14 +451,14 @@
      denotes the RUNG, which is why 55 rules across 40 sheets can read
      `--theme-text-13` without any of them knowing what a 13 is worth. So the
      ramp gets a second setting rather than 55 overrides: on a coarse pointer
-     the bottom five rungs each move up one step, and every rule that reads
+     the bottom four rungs each move up one step, and every rule that reads
      them moves with it, in step, for free.
 
      ONLY THE BOTTOM MOVES. 16 and up are already comfortable at arm's length
      and are the sizes the wireframes composed with — growing them would
      re-flow the layouts. What was unreadable is the tail the design uses for
-     meta and chrome: an 8px tag pill and a 10px date are drawn on a phone at
-     roughly half the size the platform's own smallest label uses.
+     meta and chrome: a 10px date is drawn on a phone at roughly half the
+     size the platform's own smallest label uses.
 
      THE CEILING IS +2px, and it is a budget rather than a taste: at 360 CSS
      px the rows that read these tokens (a task card's date beside its tags, a
@@ -471,7 +467,6 @@
      what the tightest of those rows was measured to hold. */
   @media (pointer: coarse) {
     :root {
-      --theme-text-8: 0.625rem; /* 10px — tag pill */
       --theme-text-10: 0.75rem; /* 12px — task meta date */
       --theme-text-12: 0.8125rem; /* 13px — right panel, breadcrumb */
       --theme-text-13: 0.875rem; /* 14px — buttons, menu rows */
