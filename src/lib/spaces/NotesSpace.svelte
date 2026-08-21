@@ -24,7 +24,7 @@
   import { api } from "../services/api.js";
   import { S } from "../services/strings.js";
   import { askConfirm, askName, DELETING } from "../services/dialog.js";
-  import { makeAct, makeLoad } from "../services/act.js";
+  import { makeScreen } from "../services/act.js";
   import { spaceMenu } from "../services/spaceMenu.js";
   import { arrange, pinnedFirst, planReorder } from "../services/spaceOrder.js";
   import { ACCENTS, accentColor, accentStyle, dotStyle as dotStyleOf } from "../services/accent.js";
@@ -129,20 +129,13 @@
     exitPicking();
   });
 
-  const load = makeLoad({
+  const { load, act } = makeScreen({
     // No folder yet: nothing to read, and what is on screen stays.
     read: () =>
       folder && Promise.all([api.listNotes(folder, ""), api.noteFolders(folder)]),
     apply: (read) => {
       if (read) [notes, folders] = read;
     },
-    onError: (e) => onError?.(e),
-  });
-
-  const act = makeAct({
-    load,
-    // Wrapped, not passed: `act` is built once, and the props may be
-    // replaced (services/act.js).
     onChanged: () => onChanged?.(),
     onError: (e) => onError?.(e),
   });

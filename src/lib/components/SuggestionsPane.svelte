@@ -17,7 +17,7 @@
   import { listName, splitLabel } from "../services/paths.js";
   import { formatDate } from "../services/dates.js";
   import { ensureTaskId } from "../services/taskId.js";
-  import { makeAct, makeLoad } from "../services/act.js";
+  import { makeScreen } from "../services/act.js";
   import Icon from "./Icon.svelte";
 
   let {
@@ -45,16 +45,9 @@
     load();
   });
 
-  const load = makeLoad({
+  const { load, act } = makeScreen({
     read: () => api.groupedSuggestions(period),
     apply: (read) => (suggestions = read ?? []),
-    onError: (e) => onError?.(e),
-  });
-
-  const act = makeAct({
-    load,
-    // Wrapped, not passed: `act` is built once, and the props may be
-    // replaced (services/act.js).
     onChanged: () => onChanged?.(),
     onError: (e) => onError?.(e),
   });

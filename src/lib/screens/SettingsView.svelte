@@ -11,7 +11,7 @@
   //    validate a second time. What it *does* do is stop a bad value from
   //    being offered at all: modes, week start and date shape are selects.
   import { api } from "../services/api.js";
-  import { makeAct, makeLoad } from "../services/act.js";
+  import { makeScreen } from "../services/act.js";
   import { S } from "../services/strings.js";
   import {
     FUNCTIONS,
@@ -203,16 +203,9 @@
 
   // Re-read rather than trusting what was sent: the core may have normalised
   // the value, and the screen should show what was stored.
-  const load = makeLoad({
+  const { load, act } = makeScreen({
     read: () => api.notebookSettings(),
     apply: (read) => (settings = read),
-    onError: (e) => onError?.(e),
-  });
-
-  const act = makeAct({
-    load,
-    // Wrapped, not passed: `act` is built once, and the props may be
-    // replaced (services/act.js).
     onChanged: () => onChanged?.(),
     onError: (e) => onError?.(e),
   });

@@ -28,7 +28,7 @@
   // today?) and not a place with an order of its own.
   import { api } from "../services/api.js";
   import { S } from "../services/strings.js";
-  import { makeAct, makeLoad } from "../services/act.js";
+  import { makeScreen } from "../services/act.js";
   import { composeTask } from "../services/taskCompose.js";
   import TasksSpace from "../spaces/TasksSpace.svelte";
   import CaptureBox from "../components/CaptureBox.svelte";
@@ -113,17 +113,10 @@
     load();
   });
 
-  const load = makeLoad({
+  const { load, act } = makeScreen({
     read: () => (notesFolder ? api.notesCreatedToday(notesFolder) : []),
     // `?? []`: the bridge answering with nothing is not a list of notes.
     apply: (read) => (notes = read ?? []),
-    onError: (e) => onError?.(e),
-  });
-
-  const act = makeAct({
-    load,
-    // Wrapped, not passed: `act` is built once, and the props may be
-    // replaced (services/act.js).
     onChanged: () => onChanged?.(),
     onError: (e) => onError?.(e),
   });

@@ -18,7 +18,7 @@
   import { assetUrl, importBrought } from "../services/assets.js";
   import { acceptsFiles } from "../actions/acceptsFiles.js";
   import { filesFromInput } from "../services/gesture.js";
-  import { makeAct, makeLoad } from "../services/act.js";
+  import { makeScreen } from "../services/act.js";
   import { referenceName } from "../services/embeds.js";
   import Icon from "../components/Icon.svelte";
 
@@ -62,7 +62,7 @@
   // The one shape every screen in this app uses to change the notebook: do
   // it, re-read, tell the shell, route a failure to the banner (`act.js`).
   // Four handlers here were each carrying their own copy of it.
-  const load = makeLoad({
+  const { load, act } = makeScreen({
     read: async () => ({
       assets: (await api.assets()) ?? [],
       // A second question, asked after the first: a file whose usage is not
@@ -73,11 +73,6 @@
       assets = read.assets;
       usage = read.usage;
     },
-    onError: (e) => onError?.(e),
-  });
-
-  const act = makeAct({
-    load,
     onChanged: () => onChanged?.(),
     onError: (e) => onError?.(e),
   });

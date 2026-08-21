@@ -3,7 +3,7 @@
   // hamburger. Lists what was deleted and restores it (reestruturação
   // 2026-07-30). Items clear on their own after the retention window.
   import { api } from "../services/api.js";
-  import { makeAct, makeLoad } from "../services/act.js";
+  import { makeScreen } from "../services/act.js";
   import { S } from "../services/strings.js";
   import { formatDate } from "../services/dates.js";
 
@@ -16,16 +16,9 @@
     load();
   });
 
-  const load = makeLoad({
+  const { load, act } = makeScreen({
     read: () => api.trashEntries(),
     apply: (read) => (entries = read),
-    onError: (e) => onError?.(e),
-  });
-
-  const act = makeAct({
-    load,
-    // Wrapped, not passed: `act` is built once, and the props may be
-    // replaced (services/act.js).
     onChanged: () => onChanged?.(),
     onError: (e) => onError?.(e),
   });

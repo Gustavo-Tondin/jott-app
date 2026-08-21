@@ -26,7 +26,7 @@
   import { askConfirm, askTask, DELETING } from "../services/dialog.js";
   import { ensureTaskId } from "../services/taskId.js";
   import { listName, listLabel, taskSpacePaths } from "../services/paths.js";
-  import { makeAct, makeLoad } from "../services/act.js";
+  import { makeScreen } from "../services/act.js";
   import { taskActions, isSelectedTask } from "../services/taskActions.js";
   import { dotStyle as dotStyleOf } from "../services/accent.js";
   import { spaceMenu } from "../services/spaceMenu.js";
@@ -157,7 +157,7 @@
     };
   }
 
-  const load = makeLoad({
+  const { load, act } = makeScreen({
     read,
     apply: (r) => {
       open = r.open;
@@ -166,13 +166,6 @@
       // lives in its `.space.json` and arrives with the source.
       if (r.sort !== undefined) periodSort = r.sort;
     },
-    onError: (e) => onError?.(e),
-  });
-
-  const act = makeAct({
-    load,
-    // Wrapped, not passed: `act` is built once, and the props may be
-    // replaced (services/act.js).
     onChanged: () => onChanged?.(),
     onError: (e) => onError?.(e),
   });

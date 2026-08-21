@@ -9,7 +9,7 @@
   import { ensureTaskId } from "../services/taskId.js";
   import { listTitle } from "../services/paths.js";
   import { S } from "../services/strings.js";
-  import { makeAct, makeLoad } from "../services/act.js";
+  import { makeScreen } from "../services/act.js";
   import { taskActions, isSelectedTask } from "../services/taskActions.js";
   import { pinnedFirst, planReorder } from "../services/spaceOrder.js";
   import TaskCards from "../components/TaskCards.svelte";
@@ -45,16 +45,9 @@
     load();
   });
 
-  const load = makeLoad({
+  const { load, act } = makeScreen({
     read: () => api.listTasks(list),
     apply: (read) => (tasks = read),
-    onError: (e) => onError?.(e),
-  });
-
-  const act = makeAct({
-    load,
-    // Wrapped, not passed: `act` is built once, and the props may be
-    // replaced (services/act.js).
     onChanged: () => onChanged?.(),
     onError: (e) => onError?.(e),
   });

@@ -50,3 +50,18 @@ export function makeLoad({ read, apply, onError }) {
     }
   };
 }
+
+/// Builds the pair every screen holds — `load` and the `act` that reloads
+/// through it — from one description: `read`/`apply` for the load,
+/// `onChanged`/`onError` for both. It was the same eleven lines at the top of
+/// nine screens.
+///
+/// Pass the shell's callbacks WRAPPED (`onChanged: () => onChanged?.()`),
+/// never the prop itself: both halves are built once, and handing them the
+/// prop would freeze the value it had at first render (see `makeAct`). What
+/// stays in the screen is the `$effect` that calls `load` when its key
+/// changes — that is the screen's own reactive fact.
+export function makeScreen({ read, apply, onChanged, onError }) {
+  const load = makeLoad({ read, apply, onError });
+  return { load, act: makeAct({ load, onChanged, onError }) };
+}

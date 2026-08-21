@@ -2,7 +2,7 @@
 // an ORDER, and the order is the reason it exists.
 
 import { describe, expect, test, vi } from "vitest";
-import { makeAct, makeLoad } from "./act.js";
+import { makeAct, makeLoad, makeScreen } from "./act.js";
 
 describe("makeAct", () => {
   test("does the thing, re-reads, tells the shell — in that order", async () => {
@@ -74,5 +74,38 @@ describe("makeLoad", () => {
     })();
     expect(errors).toEqual(["boom"]);
     expect(applied).toEqual([[1, 2]]);
+  });
+});
+
+describe("makeScreen", () => {
+  test("the act it builds reloads through the load it builds", async () => {
+    const seen = [];
+    const { load, act } = makeScreen({
+      read: () => "fresh",
+      apply: (v) => seen.push(`apply ${v}`),
+      onChanged: () => seen.push("changed"),
+    });
+
+    await load();
+    expect(seen).toEqual(["apply fresh"]);
+
+    await act(() => seen.push("do"));
+    expect(seen).toEqual(["apply fresh", "do", "apply fresh", "changed"]);
+  });
+
+  test("one onError serves both halves", async () => {
+    const errors = [];
+    const { load, act } = makeScreen({
+      read: () => {
+        throw "read failed";
+      },
+      apply: () => {},
+      onError: (e) => errors.push(e),
+    });
+    await load();
+    await act(() => {
+      throw "act failed";
+    });
+    expect(errors).toEqual(["read failed", "act failed"]);
   });
 });
