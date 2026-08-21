@@ -543,17 +543,6 @@
       </div>
       {/if}
 
-      {#if f("remind")}
-      <!-- Reminders have no backend yet: shown, disabled, honest. -->
-      <div class="inspector__field inspector__field--muted" title={S.comingSoon}>
-        <span class="inspector__field-label">
-          <Icon name="clock" size="1rem" />
-          {S.remindMeLabel}
-        </span>
-        <span class="inspector__field-soon">{S.comingSoon}</span>
-      </div>
-      {/if}
-
       {#if f("repeat")}
       <div class="inspector__field" class:inspector__field--unset={!draft.repeatUnit}>
         <span class="inspector__field-label">

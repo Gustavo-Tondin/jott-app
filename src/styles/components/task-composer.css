@@ -149,7 +149,7 @@
     text-overflow: ellipsis;
   }
 
-  /* Date / remind / repeat: quiet until they hold something, then brand — the
+  /* Date / repeat: quiet until they hold something, then brand — the
      icon carries its own state, so nothing has to be spelled out in the row. */
   .task-composer__field {
     color: var(--theme-ink-faint);

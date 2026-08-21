@@ -59,13 +59,6 @@ export const FEATURES = [
     label: () => S.featureFiles,
     default: false,
   },
-  {
-    key: "remind",
-    parent: "tasks",
-    group: "fields",
-    label: () => S.featureRemind,
-    default: false,
-  },
   { key: "notes", label: () => S.featureNotes },
   { key: "banners", parent: "notes", group: "has", label: () => S.featureBanners },
   { key: "wikiLinks", parent: "notes", group: "has", label: () => S.featureWikiLinks },

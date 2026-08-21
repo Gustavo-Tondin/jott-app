@@ -192,21 +192,6 @@
       </DatePicker>
       {/if}
 
-      {#if f("remind")}
-      <!-- Honest placeholders: reminders and attachments have no backend yet,
-           so the buttons are there (the panel draws them too) and say so
-           instead of pretending. -->
-      <button
-        class="theme-btn--icon task-composer__field"
-        type="button"
-        disabled
-        aria-label={S.remindMeLabel}
-        title={`${S.remindMeLabel} — ${S.comingSoon}`}
-      >
-        <Icon name="alarm" size="1rem" />
-      </button>
-      {/if}
-
       {#if f("priority")}
       <Menu items={priorityMenu}>
         {#snippet trigger({ toggle })}

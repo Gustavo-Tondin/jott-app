@@ -187,9 +187,6 @@
     border-radius: var(--theme-radius-md);
     color: var(--theme-ink);
   }
-  .inspector__field--muted {
-    color: var(--theme-ink-muted);
-  }
   /* A field the task does not use reads faded — label, icon and control alike
      (user call 2026-08-05). What the task actually carries is the black text,
      so a glance at the panel says which fields are in play. The controls set
@@ -212,9 +209,6 @@
     display: inline-flex;
     align-items: center;
     gap: var(--theme-space-4);
-  }
-  .inspector__field-soon {
-    color: var(--theme-ink-faint);
   }
   .inspector__stepper {
     display: inline-flex;
