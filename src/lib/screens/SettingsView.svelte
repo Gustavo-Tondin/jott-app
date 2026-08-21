@@ -520,6 +520,28 @@
   </li>
 {/snippet}
 
+<!-- A row whose control is a segmented group: one button per option, the
+     current one pressed. `options` carry `key`, `label()` and, when there is
+     something to say on hover, `hint()`. Not a <label>: a label wrapping a
+     group of buttons would claim the first one for its own click. -->
+{#snippet segmentedRow(label, options, current, apply)}
+  <div class="settings__row">
+    <span class="settings__label">{label}</span>
+    <div class="theme-segmented" role="group" aria-label={label}>
+      {#each options as option (option.key)}
+        <button
+          type="button"
+          class="theme-segmented__item"
+          class:theme-segmented__item--active={current === option.key}
+          aria-pressed={current === option.key}
+          title={option.hint?.()}
+          onclick={() => apply(option.key)}>{option.label()}</button
+        >
+      {/each}
+    </div>
+  </div>
+{/snippet}
+
 {#snippet featureRow(feature)}
   <label class="settings__row">
     <span class="settings__label">{feature.label()}</span>
@@ -747,22 +769,9 @@
                drawn on, including which half of the accent shows. A segmented group
                rather than a select — there are three, and each is a look you want to
                see the name of side by side. -->
-          <div class="settings__row">
-            <span class="settings__label">{S.theme}</span>
-            <div class="theme-segmented" role="group" aria-label={S.theme}>
-              {#each THEMES as option (option.key)}
-                <button
-                  type="button"
-                  class="theme-segmented__item"
-                  class:theme-segmented__item--active={(form.theme || DEFAULT_THEME) ===
-                    option.key}
-                  aria-pressed={(form.theme || DEFAULT_THEME) === option.key}
-                  title={option.hint()}
-                  onclick={() => putDisplay({ theme: option.key })}>{option.label()}</button
-                >
-              {/each}
-            </div>
-          </div>
+          {@render segmentedRow(S.theme, THEMES, form.theme || DEFAULT_THEME, (key) =>
+            putDisplay({ theme: key }),
+          )}
 
           <!-- Not a <label>: the picker is a group of buttons, and a label wrapping
                them would claim the first one for its own click. -->
@@ -781,24 +790,12 @@
                is why this is a setting and not a theme: a note titled in the colour
                of its space is the app's face, and a reader who wants a document to
                read as a document turns it off. -->
-          <div class="settings__row">
-            <span class="settings__label">{S.headingColor}</span>
-            <div class="theme-segmented" role="group" aria-label={S.headingColor}>
-              {#each HEADING_COLORS as option (option.key)}
-                <button
-                  type="button"
-                  class="theme-segmented__item"
-                  class:theme-segmented__item--active={(form.headingColor ||
-                    DEFAULT_HEADING_COLOR) === option.key}
-                  aria-pressed={(form.headingColor || DEFAULT_HEADING_COLOR) ===
-                    option.key}
-                  title={option.hint()}
-                  onclick={() => putDisplay({ headingColor: option.key })}
-                  >{option.label()}</button
-                >
-              {/each}
-            </div>
-          </div>
+          {@render segmentedRow(
+            S.headingColor,
+            HEADING_COLORS,
+            form.headingColor || DEFAULT_HEADING_COLOR,
+            (key) => putDisplay({ headingColor: key }),
+          )}
 
           <h3 class="settings__subtitle">{S.subText}</h3>
 
@@ -834,21 +831,12 @@
           <!-- How big a note reads. This machine's, like everything in this
                section: a phone held at arm's length and a monitor at a desk do
                not agree about it, and the notebook is the same notebook. -->
-          <div class="settings__row">
-            <span class="settings__label">{S.noteFontSizeLabel}</span>
-            <div class="theme-segmented" role="group" aria-label={S.noteFontSizeLabel}>
-              {#each NOTE_FONT_SIZES as option (option.key)}
-                <button
-                  type="button"
-                  class="theme-segmented__item"
-                  class:theme-segmented__item--active={(form.noteFontSize ||
-                    DEFAULT_NOTE_FONT_SIZE) === option.key}
-                  aria-pressed={(form.noteFontSize || DEFAULT_NOTE_FONT_SIZE) === option.key}
-                  onclick={() => putDisplay({ noteFontSize: option.key })}>{option.label()}</button
-                >
-              {/each}
-            </div>
-          </div>
+          {@render segmentedRow(
+            S.noteFontSizeLabel,
+            NOTE_FONT_SIZES,
+            form.noteFontSize || DEFAULT_NOTE_FONT_SIZE,
+            (key) => putDisplay({ noteFontSize: key }),
+          )}
           <p class="settings__hint">{S.noteFontSizeHint}</p>
 
           <h3 class="settings__subtitle">{S.subInterface}</h3>
