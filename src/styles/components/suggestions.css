@@ -8,24 +8,20 @@
  * Selectors are the stable BEM hooks a theme may restyle. */
 
 @layer components {
-  /* ---- the pill that opens it (wireframe "Suggestions 💡") ---- */
+  /* ---- the pill that opens it (wireframe "Suggestions 💡") ----
+     It IS the shared chip (markup: `theme-chip suggestions-pill`), so only the
+     one thing that makes it different is here: SOLID accent, not a tint with
+     an outline (2026-08-13 wireframe). It is the one thing offered on a
+     finished day, and as a tinted outline it read as a disabled control
+     sitting next to the "Completed" chip beside it. */
   .suggestions-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--theme-space-6);
-    padding: var(--theme-space-4) var(--theme-space-10);
-    /* SOLID accent, not a tint with an outline (2026-08-13 wireframe). It is
-       the one thing offered on a finished day, and as a tinted outline it read
-       as a disabled control sitting next to the "Completed" chip. */
     background: var(--theme-brand);
-    border: none;
-    border-radius: var(--theme-radius-sm);
     color: var(--theme-on-brand);
-    font: inherit;
-    font-size: var(--theme-text-13);
-    cursor: pointer;
   }
+  /* Brightness rather than the chip's ink lift: it paints its own ground, so
+     there is no muted text here to lift. */
   .suggestions-pill:hover {
+    color: var(--theme-on-brand);
     filter: brightness(1.06);
   }
 

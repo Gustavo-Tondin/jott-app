@@ -426,6 +426,13 @@
   /* ---------------------------------------------------------------------------
      Chip (a small toggle/label, e.g. Completed / Suggestions)
      --------------------------------------------------------------------------- */
+  /* THE one declaration of the shape. Both of the chips at the foot of a task
+     list (Completed N, Suggestions) were written out again in their own
+     component sheets until 2026-08-21 — inline-flex for inline-flex, radius
+     for radius — and the copies were what the touch pass of 2026-08-20 could
+     not reach: the size rule named the class the design was written around and
+     missed the two buttons it was named after. They wear this class now, and
+     only what they do NOT share is left in their own sheets. */
   .theme-chip {
     display: inline-flex;
     align-items: center;
@@ -435,8 +442,19 @@
     border: 0.0625rem solid transparent;
     border-radius: var(--theme-radius-sm);
     color: var(--theme-ink-muted);
+    /* A <button> does not inherit the page font, and every wearer of this
+       class is one — without this the chip in the task composer drew in the
+       UA's font while the row around it was in the app's. */
+    font-family: inherit;
     font-size: var(--theme-text-12);
     cursor: pointer;
+  }
+  /* Ink on hover: the chip is a control everywhere it is worn (it opens a
+     menu, it folds the completed list away), so the muted rest state lifting
+     under the pointer belongs to the shape, not to one of its wearers. A chip
+     that paints its own ground (the accent pill) overrides this. */
+  .theme-chip:hover {
+    color: var(--theme-ink);
   }
 
   /* ---------------------------------------------------------------------------

@@ -92,23 +92,11 @@
     margin-inline-start: auto;
   }
 
-  /* The "Completed N" toggle: a quiet pill with a caret. */
-  .tasks-space__completed-toggle {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--theme-space-6);
-    padding: var(--theme-space-4) var(--theme-space-10);
-    background: var(--theme-surface-sunken);
-    border: none;
-    border-radius: var(--theme-radius-sm);
-    color: var(--theme-ink-muted);
-    font: inherit;
-    font-size: var(--theme-text-13);
-    cursor: pointer;
-  }
-  .tasks-space__completed-toggle:hover {
-    color: var(--theme-ink);
-  }
+  /* The "Completed N" toggle is the shared chip with nothing added — a quiet
+     pill with a caret, which is what `.theme-chip` already draws (down to the
+     ink lift on hover). It wears the class in the markup and has no rule of
+     its own here; a copy of the declaration is what the touch pass of
+     2026-08-20 could not reach. */
 
   .tasks-space__note {
     color: var(--theme-ink-muted);

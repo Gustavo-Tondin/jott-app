@@ -176,38 +176,29 @@
        anyway, and it is one the thumb cannot miss: it spans the screen. */
     .theme-btn--sm,
     .theme-btn--xs,
-    .theme-chip,
-    .suggestions-pill,
-    .tasks-space__completed-toggle {
+    .theme-chip {
       min-block-size: 2.75rem;
     }
 
-    /* THE LAST TWO ARE THE SHARED CHIP'S TWINS, and naming them one by one is
-       the honest fix rather than the tidy one (2026-08-20, user: "o botão
-       completed e suggestion ainda estão pequenos"). `.theme-chip` is
-       documented in styles/controls.css as being "e.g. Completed /
-       Suggestions" and neither of them wears it — both were written out again,
-       inline-flex for inline-flex and 4px/10px for 4px/10px, so the rule above
-       reached the class the design named and not the two buttons it was named
-       after. At 25px they were the smallest targets left on the phone.
+    /* THIS RULE ONCE NAMED TWO BUTTONS ONE BY ONE (2026-08-20, user: "o botão
+       completed e suggestion ainda estão pequenos"): Completed and Suggestions
+       were copies of `.theme-chip` rather than wearers of it, so the size pass
+       reached the class the design was written around and not the two buttons
+       it was named after — at 25px they were the smallest targets left on the
+       phone. They wear the class since 2026-08-21 and the list is one name
+       again.
 
-       They are listed instead of merged into `.theme-chip` because that is a
-       refactor of live styling on two screens, and this pass is about size.
-       The duplication is worth a note in its own right — see the maintenance
-       list in CLAUDE.md. */
-
-    /* And the sides grow with the height (user call, 2026-08-20: "o padding
+       And the sides grow with the height (user call, same day: "o padding
        vertical do suggestions ficou bom, mas teria que aumentar um pouco o
        lateral"). The minimum above only ever moved one axis, so a pill that
        went from 26px to 44px tall kept the 10px flanks it was drawn with and
        came out as a wide thin label in a tall box — the text was no longer
        centred in anything, it was stranded in it. 16px reads as a pill again.
 
-       Both twins, not just the one named: they are the same control drawn
-       twice and they meet on the same strip at the foot of a task list. One
-       with roomier flanks than the other would look like a mistake. */
-    .suggestions-pill,
-    .tasks-space__completed-toggle {
+       Every chip, not just the two on the task strip: the one in the task
+       composer was already being stretched by the minimum above and was the
+       same stranded label, which is what a copied declaration hides. */
+    .theme-chip {
       padding-inline: var(--theme-space-16);
     }
 

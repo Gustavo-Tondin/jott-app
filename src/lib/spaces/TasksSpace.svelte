@@ -410,7 +410,7 @@
 <!-- The pill shows up twice (inside the empty card, and on the Completed row),
      so it is a snippet rather than the same six lines written out again. -->
 {#snippet suggestPill()}
-  <button class="suggestions-pill" onclick={() => onSuggest?.(period)}>
+  <button class="theme-chip suggestions-pill" onclick={() => onSuggest?.(period)}>
     <span>{S.suggestionsTitle}</span>
     <Icon name="lightbulb" size="1rem" />
   </button>
@@ -551,7 +551,7 @@
       <div class="tasks-space__completed-row">
         {#if done.length > 0}
           <button
-            class="tasks-space__completed-toggle"
+            class="theme-chip tasks-space__completed-toggle"
             onclick={() => (showCompleted = !showCompleted)}
           >
             <Icon name={showCompleted ? "caret-down" : "caret-right"} size="0.875rem" />
