@@ -1036,11 +1036,7 @@
         confirmDeletes: layout.confirmDeletes,
         confirmImageDownloads: layout.confirmImageDownloads,
       },
-      save: (key) =>
-        api
-          .setNotebookSettings({ [key]: false })
-          .then(refreshNotebook)
-          .catch(fail),
+      save: (key) => change(() => api.setNotebookSettings({ [key]: false })),
     });
   });
 
