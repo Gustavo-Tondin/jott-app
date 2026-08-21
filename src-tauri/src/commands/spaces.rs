@@ -51,7 +51,7 @@ pub fn rename_space(
     folder: String,
     name: String,
 ) -> CommandResult<()> {
-    state.with_notebook_mut(|nb| Ok(nb.rename_space(&folder, &name)?))
+    state.write(|nb| nb.rename_space(&folder, &name))
 }
 
 /// Sets a space's accent colour and icon (either empty clears it).
@@ -62,13 +62,13 @@ pub fn set_space_appearance(
     color: Option<String>,
     icon: Option<String>,
 ) -> CommandResult<()> {
-    state.with_notebook(|nb| Ok(nb.set_space_appearance(&folder, color, icon)?))
+    state.read(|nb| nb.set_space_appearance(&folder, color, icon))
 }
 
 /// Sends a user space to the trash (never a fixed one).
 #[tauri::command]
 pub fn delete_space(state: State<'_, AppState>, folder: String) -> CommandResult<()> {
-    state.with_notebook(|nb| Ok(nb.delete_space(&folder)?))
+    state.read(|nb| nb.delete_space(&folder))
 }
 
 /// Sets how a space orders its items (`name` / `created` / `completed` /
@@ -79,7 +79,7 @@ pub fn set_space_sort(
     space: String,
     sort: Option<String>,
 ) -> CommandResult<()> {
-    state.with_notebook(|nb| Ok(nb.set_space_sort(&space, sort.as_deref())?))
+    state.read(|nb| nb.set_space_sort(&space, sort.as_deref()))
 }
 
 /// Saves the hand-dragged arrangement in the space's `.space.json`
@@ -90,7 +90,7 @@ pub fn set_space_order(
     space: String,
     order: Vec<String>,
 ) -> CommandResult<()> {
-    state.with_notebook(|nb| Ok(nb.set_space_order(&space, order)?))
+    state.read(|nb| nb.set_space_order(&space, order))
 }
 
 // ---- groups (reestruturação 2026-07-30) ----
@@ -140,7 +140,7 @@ pub fn create_group(
     name: String,
     group: Option<String>,
 ) -> CommandResult<String> {
-    state.with_notebook(|nb| Ok(nb.create_group(&name, group.as_deref())?))
+    state.read(|nb| nb.create_group(&name, group.as_deref()))
 }
 
 /// Moves a group — with everything under it — into another group, or back to
@@ -151,12 +151,12 @@ pub fn move_group(
     name: String,
     into_group: Option<String>,
 ) -> CommandResult<()> {
-    state.with_notebook_mut(|nb| Ok(nb.move_group(&name, into_group.as_deref())?))
+    state.write(|nb| nb.move_group(&name, into_group.as_deref()))
 }
 
 #[tauri::command]
 pub fn rename_group(state: State<'_, AppState>, folder: String, name: String) -> CommandResult<()> {
-    state.with_notebook_mut(|nb| Ok(nb.rename_group(&folder, &name)?))
+    state.write(|nb| nb.rename_group(&folder, &name))
 }
 
 #[tauri::command]
@@ -166,12 +166,12 @@ pub fn set_group_appearance(
     color: Option<String>,
     icon: Option<String>,
 ) -> CommandResult<()> {
-    state.with_notebook(|nb| Ok(nb.set_group_appearance(&folder, color, icon)?))
+    state.read(|nb| nb.set_group_appearance(&folder, color, icon))
 }
 
 #[tauri::command]
 pub fn delete_group(state: State<'_, AppState>, folder: String) -> CommandResult<()> {
-    state.with_notebook_mut(|nb| Ok(nb.delete_group(&folder)?))
+    state.write(|nb| nb.delete_group(&folder))
 }
 
 #[tauri::command]
@@ -180,7 +180,7 @@ pub fn move_space(
     name: String,
     into_group: Option<String>,
 ) -> CommandResult<()> {
-    state.with_notebook_mut(|nb| Ok(nb.move_space(&name, into_group.as_deref())?))
+    state.write(|nb| nb.move_space(&name, into_group.as_deref()))
 }
 
 #[tauri::command]
@@ -190,7 +190,7 @@ pub fn create_space_in(
     kind: String,
     group: Option<String>,
 ) -> CommandResult<String> {
-    state.with_notebook(|nb| Ok(nb.create_space_in(&name, &kind, group.as_deref())?))
+    state.read(|nb| nb.create_space_in(&name, &kind, group.as_deref()))
 }
 
 pub(crate) fn spaces_of(nb: &Notebook) -> CommandResult<Vec<SpaceInfo>> {

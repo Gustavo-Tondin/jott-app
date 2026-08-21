@@ -12,7 +12,7 @@ use crate::state::AppState;
 
 #[tauri::command]
 pub fn list_names(state: State<'_, AppState>) -> CommandResult<Vec<jott_core::notebook::ListEntry>> {
-    state.with_notebook(|nb| Ok(nb.lists()?))
+    state.read(|nb| nb.lists())
 }
 
 /// Conflicting copies a sync tool left in the notebook.
@@ -21,12 +21,12 @@ pub fn list_names(state: State<'_, AppState>) -> CommandResult<Vec<jott_core::no
 /// side to keep is how work gets lost.
 #[tauri::command]
 pub fn list_conflicts(state: State<'_, AppState>) -> CommandResult<Vec<Conflict>> {
-    state.with_notebook(|nb| Ok(nb.conflicts()?))
+    state.read(|nb| nb.conflicts())
 }
 
 #[tauri::command]
 pub fn list_tasks(state: State<'_, AppState>, list: String) -> CommandResult<Vec<Task>> {
-    state.with_notebook(|nb| Ok(nb.tasks_in(&list)?))
+    state.read(|nb| nb.tasks_in(&list))
 }
 
 /// Creates a list inside `folder` (a root-relative space folder, e.g.
@@ -38,7 +38,7 @@ pub fn create_list(
     folder: String,
     name: String,
 ) -> CommandResult<()> {
-    state.with_notebook(|nb| {
+    state.read(|nb| {
         nb.create_list(&folder, &name)?;
         Ok(())
     })
@@ -46,18 +46,18 @@ pub fn create_list(
 
 #[tauri::command]
 pub fn rename_list(state: State<'_, AppState>, from: String, to: String) -> CommandResult<()> {
-    state.with_notebook(|nb| Ok(nb.rename_list(&from, &to)?))
+    state.read(|nb| nb.rename_list(&from, &to))
 }
 
 /// Deletes a list. Returns how many tasks were moved to the Inbox.
 #[tauri::command]
 pub fn delete_list(state: State<'_, AppState>, name: String) -> CommandResult<usize> {
-    state.with_notebook(|nb| Ok(nb.delete_list(&name)?))
+    state.read(|nb| nb.delete_list(&name))
 }
 
 #[tauri::command]
 pub fn completed_tasks(
     state: State<'_, AppState>,
 ) -> CommandResult<Vec<jott_core::notebook::ListedTask>> {
-    state.with_notebook(|nb| Ok(nb.completed_all()?))
+    state.read(|nb| nb.completed_all())
 }

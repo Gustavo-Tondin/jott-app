@@ -35,9 +35,9 @@ pub fn list_notes(
     folder: String,
     query: Option<String>,
 ) -> CommandResult<Vec<jott_core::NoteEntry>> {
-    state.with_notebook(|nb| {
+    state.read(|nb| {
         let notes = nb.note_folder(&folder)?;
-        Ok(notes.search(query.as_deref().unwrap_or_default())?)
+        notes.search(query.as_deref().unwrap_or_default())
     })
 }
 
@@ -48,9 +48,9 @@ pub fn notes_created_today(
     state: State<'_, AppState>,
     folder: String,
 ) -> CommandResult<Vec<jott_core::NoteEntry>> {
-    state.with_notebook(|nb| {
+    state.read(|nb| {
         let today = nb.today();
-        Ok(nb.note_folder(&folder)?.created_on(today)?)
+        nb.note_folder(&folder)?.created_on(today)
     })
 }
 
@@ -63,7 +63,7 @@ pub fn quick_capture_note(
     in_folder: String,
     text: String,
 ) -> CommandResult<String> {
-    state.with_notebook(|nb| Ok(nb.quick_capture_note(&folder, &in_folder, &text)?))
+    state.read(|nb| nb.quick_capture_note(&folder, &in_folder, &text))
 }
 
 /// The folders of a notes space, each with the colour and the pin the space
@@ -73,7 +73,7 @@ pub fn note_folders(
     state: State<'_, AppState>,
     folder: String,
 ) -> CommandResult<Vec<jott_core::NoteFolderEntry>> {
-    state.with_notebook(|nb| Ok(nb.note_folder_entries(&folder)?))
+    state.read(|nb| nb.note_folder_entries(&folder))
 }
 
 /// The colour of a folder of notes — a palette NAME, or null for none.
@@ -84,7 +84,7 @@ pub fn set_note_folder_color(
     path: String,
     color: Option<String>,
 ) -> CommandResult<()> {
-    state.with_notebook(|nb| Ok(nb.set_note_folder(&folder, &path, |it| it.color = color)?))
+    state.read(|nb| nb.set_note_folder(&folder, &path, |it| it.color = color))
 }
 
 /// Keeps a folder of notes at the top of the board, or stops.
@@ -95,7 +95,7 @@ pub fn set_note_folder_pinned(
     path: String,
     pinned: bool,
 ) -> CommandResult<()> {
-    state.with_notebook(|nb| Ok(nb.set_note_folder(&folder, &path, |it| it.pinned = pinned)?))
+    state.read(|nb| nb.set_note_folder(&folder, &path, |it| it.pinned = pinned))
 }
 
 #[tauri::command]
@@ -129,7 +129,7 @@ pub fn write_note(
     path: String,
     body: String,
 ) -> CommandResult<()> {
-    state.with_notebook(|nb| Ok(nb.write_note(&folder, &path, &body)?))
+    state.read(|nb| nb.write_note(&folder, &path, &body))
 }
 
 /// Creates a note and returns its address.
@@ -140,7 +140,7 @@ pub fn create_note(
     in_folder: String,
     title: String,
 ) -> CommandResult<String> {
-    state.with_notebook(|nb| Ok(nb.create_note(&folder, &in_folder, &title)?))
+    state.read(|nb| nb.create_note(&folder, &in_folder, &title))
 }
 
 #[tauri::command]
@@ -151,7 +151,7 @@ pub fn delete_note(
 ) -> CommandResult<()> {
     // Routed through the notebook now, so it lands in the internal trash with
     // its origin recorded (reestruturação 2026-07-30), not the OS trash.
-    state.with_notebook(|nb| Ok(nb.delete_note(&folder, &path)?))
+    state.read(|nb| nb.delete_note(&folder, &path))
 }
 
 /// Renames a note inside its folder. Returns the new address.
@@ -164,7 +164,7 @@ pub fn rename_note(
 ) -> CommandResult<String> {
     // Through the notebook and not the folder: renaming a note now follows it
     // into every `[[link]]` in the whole notebook (2026-08-19).
-    state.with_notebook(|nb| Ok(nb.rename_note(&folder, &path, &title)?))
+    state.read(|nb| nb.rename_note(&folder, &path, &title))
 }
 
 /// Moves a note to another folder inside the same space. Returns the new address.
@@ -175,7 +175,7 @@ pub fn move_note(
     path: String,
     to_folder: String,
 ) -> CommandResult<String> {
-    state.with_notebook(|nb| Ok(nb.move_note(&folder, &path, &to_folder)?))
+    state.read(|nb| nb.move_note(&folder, &path, &to_folder))
 }
 
 #[tauri::command]
@@ -185,7 +185,7 @@ pub fn set_note_pinned(
     path: String,
     pinned: bool,
 ) -> CommandResult<()> {
-    state.with_notebook(|nb| Ok(nb.set_note_pinned(&folder, &path, pinned)?))
+    state.read(|nb| nb.set_note_pinned(&folder, &path, pinned))
 }
 
 /// Sets — or clears, with `None` — a note's banner.
@@ -201,7 +201,7 @@ pub fn set_note_banner(
     banner: Option<String>,
 ) -> CommandResult<()> {
     let banner = banner.as_deref().and_then(jott_core::Banner::from_value);
-    state.with_notebook(|nb| Ok(nb.set_note_banner(&folder, &path, banner)?))
+    state.read(|nb| nb.set_note_banner(&folder, &path, banner))
 }
 
 /// Copies a note beside itself, returning the new address — the card's
@@ -212,7 +212,7 @@ pub fn duplicate_note(
     folder: String,
     path: String,
 ) -> CommandResult<String> {
-    state.with_notebook(|nb| Ok(nb.duplicate_note(&folder, &path)?))
+    state.read(|nb| nb.duplicate_note(&folder, &path))
 }
 
 /// Moves a note to another notes space (the bulk "move to" of the board).
@@ -225,7 +225,7 @@ pub fn move_note_to_space(
     to_space: String,
     to_folder: String,
 ) -> CommandResult<String> {
-    state.with_notebook(|nb| Ok(nb.move_note_to_space(&folder, &path, &to_space, &to_folder)?))
+    state.read(|nb| nb.move_note_to_space(&folder, &path, &to_space, &to_folder))
 }
 
 /// Renames a folder inside a notes space. Returns the new address.
@@ -238,7 +238,7 @@ pub fn rename_note_folder(
 ) -> CommandResult<String> {
     // Through the notebook, not the folder: a folder's colour and pin live in
     // the space's config, and they have to travel with the rename.
-    state.with_notebook(|nb| Ok(nb.rename_note_folder(&folder, &path, &name)?))
+    state.read(|nb| nb.rename_note_folder(&folder, &path, &name))
 }
 
 /// Deletes a folder, moving what was inside up to its parent. Returns how
@@ -249,7 +249,7 @@ pub fn delete_note_folder(
     folder: String,
     path: String,
 ) -> CommandResult<usize> {
-    state.with_notebook(|nb| Ok(nb.delete_note_folder(&folder, &path)?))
+    state.read(|nb| nb.delete_note_folder(&folder, &path))
 }
 
 #[tauri::command]
@@ -258,5 +258,5 @@ pub fn create_note_folder(
     folder: String,
     path: String,
 ) -> CommandResult<()> {
-    state.with_notebook(|nb| Ok(nb.create_note_folder(&folder, &path)?))
+    state.read(|nb| nb.create_note_folder(&folder, &path))
 }

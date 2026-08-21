@@ -48,6 +48,25 @@ impl AppState {
         f(&mut open.notebook)
     }
 
+    /// `with_notebook` for the common case: a closure that is one core call.
+    ///
+    /// Almost every command is a wire around a single `Notebook` method, and
+    /// the core's own `Result` is what that method hands back. Lifting it into
+    /// a `CommandResult` here is what keeps each command from spelling
+    /// `|nb| Ok(nb.x(..)?)` — the `Ok(..?)` was the same conversion written
+    /// seventy times.
+    pub fn read<T>(&self, f: impl FnOnce(&Notebook) -> jott_core::Result<T>) -> CommandResult<T> {
+        self.with_notebook(|nb| Ok(f(nb)?))
+    }
+
+    /// Same, for the operations that need `&mut`.
+    pub fn write<T>(
+        &self,
+        f: impl FnOnce(&mut Notebook) -> jott_core::Result<T>,
+    ) -> CommandResult<T> {
+        self.with_notebook_mut(|nb| Ok(f(nb)?))
+    }
+
     /// Replaces the open notebook and starts watching it.
     pub fn open<R: Runtime>(&self, app: &AppHandle<R>, notebook: Notebook) -> CommandResult<()> {
         let watcher = WatcherHandle::start(app.clone(), &notebook)?;

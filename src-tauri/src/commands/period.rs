@@ -18,7 +18,7 @@ pub fn pull_into_period(
     list: String,
     id: String,
 ) -> CommandResult<bool> {
-    state.with_notebook(|nb| Ok(nb.pull_into(period, &list, &id)?))
+    state.read(|nb| nb.pull_into(period, &list, &id))
 }
 
 #[tauri::command]
@@ -28,7 +28,7 @@ pub fn remove_from_period(
     list: String,
     id: String,
 ) -> CommandResult<bool> {
-    state.with_notebook(|nb| Ok(nb.remove_from(period, &list, &id)?))
+    state.read(|nb| nb.remove_from(period, &list, &id))
 }
 
 /// Creates a task straight from Today or This Week. It is written to the
@@ -39,7 +39,7 @@ pub fn add_task_in_period(
     period: Period,
     text: String,
 ) -> CommandResult<String> {
-    state.with_notebook(|nb| Ok(nb.add_task_in_period(period, text)?))
+    state.read(|nb| nb.add_task_in_period(period, text))
 }
 
 /// How the Day or the Week is arranged (`name` / `created` / `completed`), or
@@ -57,7 +57,7 @@ pub fn set_period_sort(
     period: Period,
     sort: Option<String>,
 ) -> CommandResult<()> {
-    state.with_notebook_mut(|nb| Ok(nb.set_period_sort(period, sort.as_deref())?))
+    state.write(|nb| nb.set_period_sort(period, sort.as_deref()))
 }
 
 /// Rearranges the period to the order the user dragged. The state file is the
@@ -68,7 +68,7 @@ pub fn set_period_order(
     period: Period,
     refs: Vec<jott_core::state::TaskRef>,
 ) -> CommandResult<()> {
-    state.with_notebook(|nb| Ok(nb.set_period_order(period, &refs)?))
+    state.read(|nb| nb.set_period_order(period, &refs))
 }
 
 /// The tasks pulled into a period, resolved to the real thing.
@@ -77,7 +77,7 @@ pub fn period_tasks(
     state: State<'_, AppState>,
     period: Period,
 ) -> CommandResult<Vec<ListedTask>> {
-    state.with_notebook(|nb| Ok(nb.period_tasks(period)?))
+    state.read(|nb| nb.period_tasks(period))
 }
 
 /// What to offer pulling into a period, already in display order.
@@ -86,7 +86,7 @@ pub fn period_suggestions(
     state: State<'_, AppState>,
     period: Period,
 ) -> CommandResult<Vec<ListedTask>> {
-    state.with_notebook(|nb| Ok(nb.suggestions_for(period)?))
+    state.read(|nb| nb.suggestions_for(period))
 }
 
 /// The current logical day and week, and when each turns next. The UI needs
@@ -118,7 +118,7 @@ pub fn period_clock(state: State<'_, AppState>) -> CommandResult<PeriodClock> {
 /// app was open. The frontend calls this when the scheduled turn arrives.
 #[tauri::command]
 pub fn refresh_periods(state: State<'_, AppState>) -> CommandResult<Vec<PeriodState>> {
-    state.with_notebook(|nb| {
+    state.read(|nb| {
         Ok(vec![
             nb.open_state(Period::Day)?.state,
             nb.open_state(Period::Week)?.state,
@@ -133,5 +133,5 @@ pub fn grouped_suggestions(
     state: State<'_, AppState>,
     period: Period,
 ) -> CommandResult<Vec<jott_core::notebook::Suggestion>> {
-    state.with_notebook(|nb| Ok(nb.grouped_suggestions(period)?))
+    state.read(|nb| nb.grouped_suggestions(period))
 }

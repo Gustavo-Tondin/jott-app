@@ -218,7 +218,7 @@ pub fn search(
 ) -> CommandResult<jott_core::SearchResults> {
     let limit = limit.unwrap_or(jott_core::search::DEFAULT_LIMIT);
     let scope = scope.filter(|s| !s.is_empty());
-    state.with_notebook(|nb| Ok(nb.search_in(&query, limit, scope.as_deref())?))
+    state.read(|nb| nb.search_in(&query, limit, scope.as_deref()))
 }
 
 /// A trashed item awaiting restore or expiry.
@@ -255,7 +255,7 @@ pub fn trash_entries(state: State<'_, AppState>) -> CommandResult<Vec<TrashEntry
 
 #[tauri::command]
 pub fn restore_from_trash(state: State<'_, AppState>, id: String) -> CommandResult<()> {
-    state.with_notebook(|nb| Ok(nb.restore_from_trash(&id)?))
+    state.read(|nb| nb.restore_from_trash(&id))
 }
 
 // ---- tags ----
@@ -290,12 +290,12 @@ pub fn set_tag(
     name: String,
     color: Option<String>,
 ) -> CommandResult<()> {
-    state.with_notebook(|nb| Ok(nb.set_tag(&name, color)?))
+    state.read(|nb| nb.set_tag(&name, color))
 }
 
 #[tauri::command]
 pub fn remove_tag(state: State<'_, AppState>, name: String) -> CommandResult<()> {
-    state.with_notebook(|nb| Ok(nb.remove_tag(&name)?))
+    state.read(|nb| nb.remove_tag(&name))
 }
 
 /// Everything the shell of the UI needs after any change, in one round trip.

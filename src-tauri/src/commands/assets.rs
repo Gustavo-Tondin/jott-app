@@ -19,7 +19,7 @@ use super::shell::open_path;
 /// Every image in the notebook's library, newest first.
 #[tauri::command]
 pub fn assets(state: State<'_, AppState>) -> CommandResult<Vec<jott_core::AssetEntry>> {
-    state.with_notebook(|nb| Ok(nb.assets().list()?))
+    state.read(|nb| nb.assets().list())
 }
 
 /// Writes an image into the library, returning the address a note carries.
@@ -36,7 +36,7 @@ pub fn import_asset(
 ) -> CommandResult<String> {
     let bytes = crate::base64::decode(&data)
         .ok_or_else(|| CommandError::new("invalid", "the image could not be read"))?;
-    state.with_notebook(|nb| Ok(nb.import_asset(&name, &bytes)?))
+    state.read(|nb| nb.import_asset(&name, &bytes))
 }
 
 /// Copies a file of THIS machine into the library, by its path.
@@ -59,7 +59,7 @@ pub fn import_asset_from_path(state: State<'_, AppState>, path: PathBuf) -> Comm
         .unwrap_or_default();
     let bytes = std::fs::read(&path)
         .map_err(|e| CommandError::new("io", format!("{}: {e}", path.display())))?;
-    state.with_notebook(|nb| Ok(nb.import_asset(&name, &bytes)?))
+    state.read(|nb| nb.import_asset(&name, &bytes))
 }
 
 /// Renames a file of the library, repointing every note and task that uses it.
@@ -69,14 +69,14 @@ pub fn rename_asset(
     path: String,
     name: String,
 ) -> CommandResult<String> {
-    state.with_notebook(|nb| Ok(nb.rename_asset(&path, &name)?))
+    state.read(|nb| nb.rename_asset(&path, &name))
 }
 
 /// Sends a file to the notebook's trash. Notes and tasks pointing at it keep
 /// their address — the file is what came back, if it comes back.
 #[tauri::command]
 pub fn delete_asset(state: State<'_, AppState>, path: String) -> CommandResult<()> {
-    state.with_notebook(|nb| Ok(nb.delete_asset(&path)?))
+    state.read(|nb| nb.delete_asset(&path))
 }
 
 /// Opens an attachment in whatever the system uses for that kind of file.
@@ -92,7 +92,7 @@ pub fn delete_asset(state: State<'_, AppState>, path: String) -> CommandResult<(
 /// resolves at all.
 #[tauri::command]
 pub fn open_asset(state: State<'_, AppState>, path: String) -> CommandResult<()> {
-    let file = state.with_notebook(|nb| Ok(nb.asset_file(&path)?))?;
+    let file = state.read(|nb| nb.asset_file(&path))?;
     if !file.is_file() {
         return Err(CommandError::new(
             "io",
@@ -129,7 +129,7 @@ pub async fn import_asset_from_url(
     let (name, bytes) = tauri::async_runtime::spawn_blocking(move || fetch_image(&url))
         .await
         .map_err(|e| CommandError::new("io", e.to_string()))??;
-    state.with_notebook(|nb| Ok(nb.import_asset(&name, &bytes)?))
+    state.read(|nb| nb.import_asset(&name, &bytes))
 }
 
 /// Ten megabytes. Larger than any picture a note wants and smaller than
@@ -290,7 +290,7 @@ fn clipboard_uris<R: Runtime>(_app: &AppHandle<R>) -> Option<Vec<String>> {
 pub fn asset_usage(
     state: State<'_, AppState>,
 ) -> CommandResult<std::collections::HashMap<String, Vec<jott_core::search::SearchHit>>> {
-    state.with_notebook(|nb| Ok(nb.asset_usage()?))
+    state.read(|nb| nb.asset_usage())
 }
 
 /// The desktop's own icon for a kind of file, as a `data:` URL.

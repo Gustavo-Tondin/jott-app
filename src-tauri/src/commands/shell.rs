@@ -269,7 +269,7 @@ pub fn open_in_file_manager(
     state: State<'_, AppState>,
     path: Option<String>,
 ) -> CommandResult<()> {
-    let target = state.with_notebook(|nb| Ok(nb.folder_of(path.as_deref())?))?;
+    let target = state.read(|nb| nb.folder_of(path.as_deref()))?;
     open_path(&target)
 }
 

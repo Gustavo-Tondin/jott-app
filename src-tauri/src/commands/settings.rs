@@ -126,11 +126,10 @@ pub fn set_notebook_settings(
     state: State<'_, AppState>,
     settings: NotebookSettings,
 ) -> CommandResult<()> {
-    state.with_notebook_mut(|nb| {
+    state.write(|nb| {
         let mut config = nb.config().clone();
         settings.apply_to(&mut config);
-        nb.set_config(config)?;
-        Ok(())
+        nb.set_config(config)
     })
 }
 
@@ -142,7 +141,7 @@ pub fn set_order(
     namespace: String,
     names: Vec<String>,
 ) -> CommandResult<()> {
-    state.with_notebook_mut(|nb| Ok(nb.set_order(&namespace, names)?))
+    state.write(|nb| nb.set_order(&namespace, names))
 }
 
 /// Records what the user said about a part of the app (`tasks`, `notes`, and
@@ -156,7 +155,7 @@ pub fn set_feature(
     key: String,
     on: Option<bool>,
 ) -> CommandResult<()> {
-    state.with_notebook_mut(|nb| Ok(nb.set_feature(&key, on)?))
+    state.write(|nb| nb.set_feature(&key, on))
 }
 
 /// Binds a command to a chord, or unbinds it with `chord: null`.
@@ -171,13 +170,13 @@ pub fn set_shortcut(
     id: String,
     chord: Option<String>,
 ) -> CommandResult<()> {
-    state.with_notebook_mut(|nb| Ok(nb.set_shortcut(&id, chord)?))
+    state.write(|nb| nb.set_shortcut(&id, chord))
 }
 
 /// Back to the table the app ships with.
 #[tauri::command]
 pub fn reset_shortcuts(state: State<'_, AppState>) -> CommandResult<()> {
-    state.with_notebook_mut(|nb| Ok(nb.reset_shortcuts()?))
+    state.write(|nb| nb.reset_shortcuts())
 }
 
 /// How the sidebar arranges the user's spaces: `name`, or the empty string
@@ -190,5 +189,5 @@ pub fn spaces_sort(state: State<'_, AppState>) -> CommandResult<String> {
 /// Sets it.
 #[tauri::command]
 pub fn set_spaces_sort(state: State<'_, AppState>, sort: String) -> CommandResult<()> {
-    state.with_notebook_mut(|nb| Ok(nb.set_spaces_sort(&sort)?))
+    state.write(|nb| nb.set_spaces_sort(&sort))
 }
