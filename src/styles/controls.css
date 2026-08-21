@@ -753,6 +753,37 @@
   }
 
   /* ---------------------------------------------------------------------------
+     Notice — the state box the shell draws above the content (an error, a sync
+     conflict, a newer version). One shape, three colours: a tinted fill, the
+     colour itself as the hairline, and the region's ink for the text — so it
+     reads the same on the white canvas and on the black onboarding screen
+     alike, in whatever theme is on. The colours are fixed like the status
+     ones, so the box does not change meaning when the accent happens to be
+     red, yellow or green. App.svelte is the markup half; shell.css keeps
+     what differs per box (margins, type, the error's tighter padding).
+     --------------------------------------------------------------------------- */
+  .theme-notice {
+    --notice-accent: var(--theme-brand);
+    --notice-tint: var(--theme-brand-weak);
+    background: var(--notice-tint);
+    border: 0.0625rem solid var(--notice-accent);
+    padding: var(--theme-space-8) var(--theme-space-12);
+    border-radius: var(--theme-radius-md);
+  }
+  .theme-notice--error {
+    --notice-accent: var(--accent-red);
+    --notice-tint: var(--accent-red-tint);
+  }
+  .theme-notice--warning {
+    --notice-accent: var(--accent-yellow);
+    --notice-tint: var(--accent-yellow-tint);
+  }
+  .theme-notice--success {
+    --notice-accent: var(--accent-green);
+    --notice-tint: var(--accent-green-tint);
+  }
+
+  /* ---------------------------------------------------------------------------
      Pane chrome — the head and foot shared by the side panes (the sidebar and
      the inspector). Each is a fixed row at its edge of the pane (flex-shrink:0,
      so it never scrolls away while the middle scrolls), carrying the hairline

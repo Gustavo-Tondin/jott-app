@@ -1799,7 +1799,7 @@
           >
           <p class="shell__onboarding-note">{S.privateFolderNote}</p>
         {/if}
-        {#if error}<p class="shell__error">{error}</p>{/if}
+        {#if error}<p class="theme-notice theme-notice--error shell__error">{error}</p>{/if}
       </section>
   {:else}
     <div
@@ -1976,7 +1976,7 @@
             class:shell__content-inner--wide={view.kind === "settings"}
           >
           {#if error}
-            <p class="shell__error">
+            <p class="theme-notice theme-notice--error shell__error">
               {error}
               <button onclick={() => (error = null)}>{S.dismissError}</button>
             </p>
@@ -1985,7 +1985,7 @@
           {#if conflicts.length > 0}
             <!-- The one case where the user can silently lose work: two
                  devices edited the same file and the sync tool kept both. -->
-            <div class="shell__conflict">
+            <div class="theme-notice theme-notice--warning shell__conflict">
               <strong class="shell__conflict-title"
                 >{S.conflictsTitle(conflicts.length)}</strong
               >
@@ -2006,7 +2006,7 @@
                  session on "Later". Which button depends on the install —
                  an AppImage or the Windows build can replace itself, a
                  package-manager install gets the release page instead. -->
-            <div class="shell__update">
+            <div class="theme-notice theme-notice--success shell__update">
               <strong>{S.updateBanner(update.latest)}</strong>
               <span class="shell__update-actions">
                 {#if update.canInstall}
@@ -2037,7 +2037,7 @@
                  entry and no icon to find. Offered once — "No thanks" is
                  remembered on this machine, "Add to menu" is not, so moving
                  the file asks again. -->
-            <div class="shell__update">
+            <div class="theme-notice theme-notice--success shell__update">
               <strong>{S.menuEntryBanner}</strong>
               <span class="shell__update-actions">
                 <button

@@ -556,17 +556,12 @@
      fill, the colour itself as the hairline, and the region's ink for the text
      — so an error reads as an error on the white canvas and on the black
      onboarding screen alike, in whatever theme is on. ---- */
+  /* All three are the shared .theme-notice (controls.css); the colour is the
+     modifier's. The error box is the one with the even padding. */
   .shell__error {
-    background: var(--accent-red-tint);
-    border: 0.0625rem solid var(--accent-red);
     padding: var(--theme-space-8);
-    border-radius: var(--theme-radius-md);
   }
   .shell__conflict {
-    background: var(--accent-yellow-tint);
-    border: 0.0625rem solid var(--accent-yellow);
-    padding: var(--theme-space-8) var(--theme-space-12);
-    border-radius: var(--theme-radius-md);
     margin-bottom: var(--theme-space-16);
     font-size: var(--theme-text-14);
   }
@@ -587,10 +582,6 @@
     justify-content: space-between;
     gap: var(--theme-space-12);
     flex-wrap: wrap;
-    background: var(--accent-green-tint);
-    border: 0.0625rem solid var(--accent-green);
-    padding: var(--theme-space-8) var(--theme-space-12);
-    border-radius: var(--theme-radius-md);
     margin-bottom: var(--theme-space-16);
     font-size: var(--theme-text-14);
   }
