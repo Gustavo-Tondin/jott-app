@@ -47,7 +47,7 @@ your data.
   subscription.
 - **Privacy** — the app makes no connection beyond the optional update check.
 
-## How your stuff sits on disk
+## How your data sits on disk
 
 Each folder is a **space** with one job only: it's either a task list or a
 notebook of notes. The three the app creates carry the `jott.` prefix — they
