@@ -578,17 +578,7 @@ impl Config {
         // stale one in `raw` survives the rewrite. One rule, three shapes of
         // "nothing to say": the empty sort, the empty name, the empty map.
         let mut cleared: Vec<&str> = Vec::new();
-        let put_or_clear = |owned: &mut crate::jsondoc::Doc,
-                                cleared: &mut Vec<&'static str>,
-                                key: &'static str,
-                                value: Option<Value>| {
-            match value {
-                Some(value) => {
-                    owned.insert(key.to_string(), value);
-                }
-                None => cleared.push(key),
-            }
-        };
+        let put_or_clear = crate::jsondoc::put_or_clear;
         // The sidebar's arrangement: absent means the dragged order, which is
         // the default, so an untouched notebook says nothing about it.
         put_or_clear(

@@ -244,26 +244,27 @@ impl SpaceConfig {
         if !self.kind.is_empty() {
             owned.insert("type".into(), Value::from(self.kind.clone()));
         }
+        // A cleared optional must be actively removed, or the old value
+        // still sitting in `raw` survives the rewrite.
         for (key, value) in [
             ("name", &self.name),
             ("color", &self.color),
             ("icon", &self.icon),
             ("sort", &self.sort),
         ] {
-            match value {
-                Some(value) => {
-                    owned.insert(key.to_string(), Value::from(value.clone()));
-                }
-                // A cleared optional must be actively removed, or the old value
-                // still sitting in `raw` survives the rewrite.
-                None => cleared.push(key),
-            }
+            crate::jsondoc::put_or_clear(
+                &mut owned,
+                &mut cleared,
+                key,
+                value.clone().map(Value::from),
+            );
         }
-        if self.order.is_empty() {
-            cleared.push("order");
-        } else {
-            owned.insert("order".into(), Value::from(self.order.clone()));
-        }
+        crate::jsondoc::put_or_clear(
+            &mut owned,
+            &mut cleared,
+            "order",
+            (!self.order.is_empty()).then(|| Value::from(self.order.clone())),
+        );
         let folders: serde_json::Map<String, Value> = self
             .folders
             .iter()

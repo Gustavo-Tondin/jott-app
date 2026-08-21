@@ -25,10 +25,10 @@ impl Notebook {
     /// dropped into the notebook (downloads, an attachments dir, whatever a
     /// sync tool leaves) must never turn into interface on its own.
     pub fn spaces(&self) -> Result<Vec<crate::space::Space>> {
-        // Spaces live at the root and one level inside a group (spec 3.5:
-        // groups do not nest). Their identity is the leaf folder name, unique
-        // across the notebook — so nothing addressing a space cares whether
-        // it sits in a group or not.
+        // Spaces live at the root and inside groups, and groups nest (spec
+        // 3.5), so `group_dirs` walks the whole tree. A space's identity is
+        // its ROOT-RELATIVE PATH, never the leaf name: `Design/Tasks` and
+        // `Personal/Tasks` are two legitimate spaces (see `open_space`).
         let mut found = Vec::new();
         self.collect_spaces(&self.root, &mut found)?;
         for group_dir in self.group_dirs()? {

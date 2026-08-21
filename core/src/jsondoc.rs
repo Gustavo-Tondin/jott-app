@@ -113,6 +113,27 @@ fn merge(target: &mut Value, patch: Value) {
     }
 }
 
+/// Writes an optional value, or clears its key when there is nothing to say.
+///
+/// The one rule behind every optional a config file carries (a colour, a sort,
+/// a name): it is written only once the user has chosen something, and going
+/// back to the default has to *remove* the key, or a stale one in `raw`
+/// survives the rewrite. `config.rs` and `space.rs` each spelled this out by
+/// hand; the policy belongs next to [`render`], which is what it feeds.
+pub fn put_or_clear<'a>(
+    owned: &mut Doc,
+    cleared: &mut Vec<&'a str>,
+    key: &'a str,
+    value: Option<Value>,
+) {
+    match value {
+        Some(value) => {
+            owned.insert(key.to_string(), value);
+        }
+        None => cleared.push(key),
+    }
+}
+
 /// Builds an owned-keys map from `(key, value)` pairs, for [`render`].
 pub fn owned<const N: usize>(pairs: [(&str, Value); N]) -> Doc {
     pairs
@@ -204,6 +225,17 @@ mod tests {
 
         assert!(!written.contains_key("color"), "{text}");
         assert_eq!(written["icon"], serde_json::json!("star"));
+    }
+
+    #[test]
+    fn put_or_clear_writes_a_value_and_clears_an_absence() {
+        let mut owned = Doc::new();
+        let mut cleared = Vec::new();
+        put_or_clear(&mut owned, &mut cleared, "color", Some(Value::from("red")));
+        put_or_clear(&mut owned, &mut cleared, "icon", None);
+        assert_eq!(owned.get("color"), Some(&Value::from("red")));
+        assert!(!owned.contains_key("icon"));
+        assert_eq!(cleared, vec!["icon"]);
     }
 
     #[test]
