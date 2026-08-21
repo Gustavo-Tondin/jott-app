@@ -106,7 +106,7 @@
      band without overflowing (minimized screen.pdf); the LEFT paddings stay,
      so every icon keeps its x. The member indent resets for the same reason.
      The "new space/group" affordances wait for the full sidebar. */
-  .shell__sidebar--rail .shell__sidebar-scroll{
+  .shell__sidebar--rail .shell__sidebar-scroll {
     padding-inline-end: 0;
   }
   .shell__sidebar--rail .shell__nav-item--secondary {
@@ -564,12 +564,12 @@
     font-size: var(--theme-text-14);
   }
   .shell__conflict-list {
-    margin: 0.5rem 0 0;
-    padding-left: 1.2rem;
+    margin: var(--theme-space-8) 0 0;
+    padding-inline-start: calc(var(--theme-space-16) + var(--theme-space-4));
   }
   .shell__conflict-path {
     word-break: break-all;
-    font-size: 0.8rem;
+    font-size: var(--theme-text-13);
   }
   /* The third state box: a newer version exists. Green, because it is the
      good-news sibling of the two above — and fixed like them, so the notice

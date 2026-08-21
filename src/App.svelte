@@ -1986,9 +1986,7 @@
             <!-- The one case where the user can silently lose work: two
                  devices edited the same file and the sync tool kept both. -->
             <div class="theme-notice theme-notice--warning shell__conflict">
-              <strong class="shell__conflict-title"
-                >{S.conflictsTitle(conflicts.length)}</strong
-              >
+              <strong>{S.conflictsTitle(conflicts.length)}</strong>
               <p>{S.conflictsBody}</p>
               <ul class="shell__conflict-list">
                 {#each conflicts as conflict}
