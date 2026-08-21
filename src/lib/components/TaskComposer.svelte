@@ -117,6 +117,18 @@
     onSubmit?.({ ...intent, text, list: target });
     intent = emptyIntent(null);
     repeating = false;
+    // THE CURSOR GOES BACK, so the next task can be typed straight away (user
+    // call, 2026-08-21: "ao clicar ＋ eu gostaria que o teclado continuasse
+    // aberto, pra poder adicionar várias tasks seguidas"). Tapping the ＋ moves
+    // focus to the BUTTON, and on Android focus leaving the field is what
+    // dismisses the keyboard — which made the pinned row cost one keyboard per
+    // task, when a row pinned above the keys exists for a RUN of them. Enter
+    // never had the problem; only the button did, which is exactly the half a
+    // desktop test would not have noticed.
+    //
+    // Not in the dialog: that one settles and closes on submit, so there is no
+    // field left to put the cursor in.
+    if (variant !== "dialog") field?.focus();
   }
 </script>
 

@@ -1194,10 +1194,18 @@
   // because SOMETHING had it — a note, a task composer, a rename field — and
   // the same thing is true of all of them. Android only reports the edge, so
   // this cannot fire while someone is still typing (services/androidStorage.js).
+  //
+  // And the Home's composer goes with it (user call, 2026-08-21). It is the
+  // one bar that was ASKED for — the + opened it — so putting the keyboard
+  // away is the same gesture as being done with it; leaving it behind meant a
+  // bar across the bottom of the day with no way to dismiss it. The tasks
+  // screens' bar is not this: there it is part of the screen, not something
+  // opened, and it stays.
   $effect(() =>
     onKeyboardHidden(() => {
       const focused = document.activeElement;
       if (focused && focused !== document.body) focused.blur?.();
+      composingTask = false;
     }),
   );
 

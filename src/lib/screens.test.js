@@ -2224,6 +2224,35 @@ describe("SpaceView", () => {
     expect(container.querySelector(".tasks-space__new")).toBeNull();
   });
 
+  test("submitting from the ＋ leaves the cursor in the field, ready for the next task", async () => {
+    // On Android the keyboard is up because the FIELD has focus, so focus
+    // moving to the button is the keyboard going away — one task per keyboard,
+    // on a row whose whole point is a run of them (user call, 2026-08-21).
+    // Clicked, not submitted by hand: the button is the half that moves focus,
+    // and a test that dispatches `submit` on the form would pass either way.
+    bridge({ list_tasks: [], write_task: null });
+    const { container } = render(SpaceView, {
+      props: { space, lists, counts: {}, onSelectTask: noop },
+    });
+
+    const field = await waitFor(() => {
+      const el = container.querySelector(".task-composer__input");
+      if (!el) throw new Error("no field");
+      return el;
+    });
+    field.focus();
+    await fireEvent.input(field, { target: { value: "Comprar leite" } });
+
+    const add = container.querySelector(".task-composer button[type=submit]");
+    add.focus(); // what the tap itself does, before the click is dispatched
+    await fireEvent.click(add);
+
+    await waitFor(() => {
+      if (document.activeElement !== field) throw new Error("focus left the field");
+    });
+    expect(field.value).toBe("");
+  });
+
   test("below 768px the screen does not repeat the name the header already says", async () => {
     // Three copies of one word on a phone: the header, this heading, and the
     // block's own titled row (user report, 2026-08-18). The header keeps it.
