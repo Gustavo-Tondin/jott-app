@@ -7,6 +7,7 @@
 pub mod base64;
 pub mod commands;
 pub mod error;
+pub mod net;
 pub mod prefs;
 pub mod state;
 

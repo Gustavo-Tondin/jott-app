@@ -107,7 +107,7 @@ pub fn open_asset(state: State<'_, AppState>, path: String) -> CommandResult<()>
 /// copied from a web page hands the app an `https://` address and nothing
 /// else — no bytes anywhere — so drawing it means fetching it.
 ///
-/// The request is fenced on four sides:
+/// The request is fenced on four sides (the first three are `crate::net`'s):
 ///
 ///   - **`https` only.** A picture is not worth a plaintext request, and
 ///     `file://` here would be this command reading the disk.
@@ -134,32 +134,10 @@ pub async fn import_asset_from_url(
 const MAX_IMAGE_BYTES: u64 = 10 * 1024 * 1024;
 
 fn fetch_image(url: &str) -> CommandResult<(String, Vec<u8>)> {
-    use std::io::Read;
+    crate::net::require_https(url)?;
+    let fetched = crate::net::get_bounded(url, MAX_IMAGE_BYTES)?;
 
-    if !url.starts_with("https://") {
-        return Err(CommandError::new("invalid", format!("{url} is not https")));
-    }
-    let agent: ureq::Agent = ureq::Agent::config_builder()
-        .timeout_connect(Some(std::time::Duration::from_secs(10)))
-        .timeout_global(Some(std::time::Duration::from_secs(30)))
-        .build()
-        .into();
-
-    let mut response = agent
-        .get(url)
-        .call()
-        .map_err(|e| CommandError::new("io", format!("{url}: {e}")))?;
-
-    let kind = response
-        .headers()
-        .get("content-type")
-        .and_then(|v| v.to_str().ok())
-        .unwrap_or_default()
-        .split(';')
-        .next()
-        .unwrap_or_default()
-        .trim()
-        .to_lowercase();
+    let kind = fetched.content_type;
     let Some(extension) = jott_core::assets::extension_for_type(&kind) else {
         return Err(CommandError::new(
             "invalid",
@@ -167,20 +145,9 @@ fn fetch_image(url: &str) -> CommandResult<(String, Vec<u8>)> {
         ));
     };
 
-    let mut bytes = Vec::new();
-    response
-        .body_mut()
-        .as_reader()
-        .take(MAX_IMAGE_BYTES + 1)
-        .read_to_end(&mut bytes)
-        .map_err(|e| CommandError::new("io", e.to_string()))?;
-    if bytes.len() as u64 > MAX_IMAGE_BYTES {
-        return Err(CommandError::new("invalid", "that picture is too large"));
-    }
-
     Ok((
         format!("{}.{extension}", jott_core::assets::name_from_url(url)),
-        bytes,
+        fetched.body,
     ))
 }
 

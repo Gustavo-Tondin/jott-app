@@ -80,8 +80,8 @@ pub struct UpdateCheck {
 /// Asks the release feed for the newest published version.
 ///
 /// The second thing this app does that leaves the machine, after
-/// `import_asset_from_url`, and fenced the same way: https only, timeouts on
-/// both ends, a size ceiling. Consent is handled a level up — the automatic
+/// `import_asset_from_url`, and fenced the same way (`crate::net`): https
+/// only, timeouts on both ends, a size ceiling. Consent is handled a level up — the automatic
 /// check is a machine preference the settings screen explains and switches
 /// off, so this command only runs because that switch (or a click on
 /// "check now") said so.
@@ -107,29 +107,11 @@ pub async fn check_for_update() -> CommandResult<UpdateCheck> {
 }
 
 fn fetch_latest_version(url: &str, overridden: bool) -> CommandResult<String> {
-    use std::io::Read;
-
-    if !overridden && !url.starts_with("https://") {
-        return Err(CommandError::new("invalid", format!("{url} is not https")));
+    if !overridden {
+        crate::net::require_https(url)?;
     }
-    let agent: ureq::Agent = ureq::Agent::config_builder()
-        .timeout_connect(Some(std::time::Duration::from_secs(10)))
-        .timeout_global(Some(std::time::Duration::from_secs(30)))
-        .build()
-        .into();
-
-    let mut response = agent
-        .get(url)
-        .call()
-        .map_err(|e| CommandError::new("io", format!("{url}: {e}")))?;
-
-    let mut text = String::new();
-    response
-        .body_mut()
-        .as_reader()
-        .take(MAX_MANIFEST_BYTES)
-        .read_to_string(&mut text)
-        .map_err(|e| CommandError::new("io", e.to_string()))?;
+    let fetched = crate::net::get_bounded(url, MAX_MANIFEST_BYTES)?;
+    let text = String::from_utf8_lossy(&fetched.body);
 
     // Which version a manifest names, and what makes one unusable, is the
     // core's (`jott_core::version`); the bytes are this side's.
