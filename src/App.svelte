@@ -304,6 +304,15 @@
   );
 
   const isOpen = (v) => Tabs.viewId(view) === Tabs.viewId(v);
+  /// Whether the open view lives INSIDE the place `v` names, without being it
+  /// (roadmap, Etapa 7): a note open from a space keeps that space marked in
+  /// the sidebar, where before it simply went dark. Asked only of rows that
+  /// are places (spaces and the fixed Tasks/Notes), never of list rows — a
+  /// list is inside its space, not the other way round.
+  const holds = (v) => {
+    const place = spaceOfView(v, layout);
+    return place !== null && place === currentSpace && !isOpen(v);
+  };
 
   // True while the window fills the screen (maximized or fullscreen): the
   // self-drawn frame (rounded corners + hairline) goes flush against the
@@ -1681,6 +1690,7 @@
     {userSpaces}
     {counts}
     {isOpen}
+    {holds}
     rail={railed && !compact}
     {compact}
     open={drawerOpen}

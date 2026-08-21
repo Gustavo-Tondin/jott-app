@@ -277,6 +277,46 @@ describe("App", () => {
     expect(screen.getByLabelText("Formatting")).toBeTruthy();
   });
 
+  test("the place a note was opened from stays marked in the sidebar", async () => {
+    // Roadmap Etapa 7 (2026-08-21): a note open from Notes is INSIDE Notes,
+    // and the sidebar used to go dark the moment the board gave way to the
+    // editor. The row is marked as holding, not as open — one pill at a time.
+    shell({
+      list_notes: [
+        {
+          path: "Inbox/Ideia.md",
+          title: "Ideia",
+          folder: "Inbox",
+          preview: "preview",
+          created: "2026-07-21",
+          pinned: false,
+        },
+      ],
+      read_note: {
+        path: "Inbox/Ideia.md",
+        title: "Ideia",
+        body: "Corpo.",
+        pinned: false,
+        created: "2026-07-21",
+      },
+      write_note: null,
+    });
+    render(App);
+
+    const notes = await screen.findByRole("button", { name: "Notes" });
+    await userEvent.click(notes);
+    expect(notes.classList.contains("shell__nav-item--active")).toBe(true);
+    expect(notes.classList.contains("shell__nav-item--holds")).toBe(false);
+
+    await userEvent.click(await screen.findByText("Ideia"));
+    await waitFor(() => expect(notes.classList.contains("shell__nav-item--holds")).toBe(true));
+    expect(notes.classList.contains("shell__nav-item--active")).toBe(false);
+    // Home holds nothing: a screen outside every space never lights a row.
+    expect(
+      screen.getByRole("button", { name: "Home" }).classList.contains("shell__nav-item--holds"),
+    ).toBe(false);
+  });
+
   test("the note's panel has the head and the foot every panel has", async () => {
     // User report, 2026-08-19: the formatting controls were the whole panel,
     // while the wireframe draws the same silhouette the inspector has — a way

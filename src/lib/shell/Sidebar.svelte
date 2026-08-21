@@ -29,6 +29,9 @@
     userSpaces,
     counts,
     isOpen,
+    /// `(view) => boolean` — does this place hold the open view without
+    /// being it? Marked quieter than the open pill.
+    holds = () => false,
     onOpen,
     onOpenList,
     onChooseFolder,
@@ -358,6 +361,7 @@
       <button
         class="shell__nav-item"
         class:shell__nav-item--active={isOpen(view)}
+        class:shell__nav-item--holds={holds(view)}
         onclick={() => onOpen(view)}
         onauxclick={(e) => middleOpen(e, () => onOpen?.(view, true))}
       >
@@ -442,6 +446,7 @@
         class="shell__nav-item shell__nav-item--row"
         class:shell__nav-item--member={grouped}
         class:shell__nav-item--active={isOpen({ kind: "space", sp: sp.path })}
+        class:shell__nav-item--holds={holds({ kind: "space", sp: sp.path })}
         oncontextmenu={(e) => openRowMenu(e, spaceMenu(sp))}
       >
         <button
