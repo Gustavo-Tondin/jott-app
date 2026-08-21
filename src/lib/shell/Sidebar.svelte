@@ -93,11 +93,13 @@
   }
 
   // Middle click opens in a fresh tab; a plain click navigates the current
-  // one, the way links do (same contract as onOpenList).
-  function middleOpen(event, view) {
+  // one, the way links do (same contract as onOpenList). `run` is what opening
+  // in a new tab IS for that row — `onOpen(view, true)` or `onOpenList(path,
+  // true)`.
+  function middleOpen(event, run) {
     if (event.button !== 1) return;
     event.preventDefault();
-    onOpen?.(view, true);
+    run();
   }
 
   // ---- one ordered column ----
@@ -350,49 +352,41 @@
     <!-- Each group carries a 2px bar at the wall (design PDF). The fixed
          group is neutral; user spaces will each set their own colour
          via --group-color (Fase 13). -->
-    <div class="shell__group">
+    <!-- One fixed row: a view, its glyph, its label and — for the one that
+         holds tasks — how many are open. -->
+    {#snippet fixedRow(view, icon, label, count = 0)}
       <button
         class="shell__nav-item"
-        class:shell__nav-item--active={isOpen({ kind: "home" })}
-        onclick={() => onOpen({ kind: "home" })}
-        onauxclick={(e) => middleOpen(e, { kind: "home" })}
+        class:shell__nav-item--active={isOpen(view)}
+        onclick={() => onOpen(view)}
+        onauxclick={(e) => middleOpen(e, () => onOpen?.(view, true))}
       >
-        <!-- One glyph, open or not (user call, 2026-08-13): Home was the only
-             entry that swapped to its filled variant when selected, so the
-             icon changed SHAPE under the pointer while every other row just
-             took the accent pill. The pill already says where you are. -->
-        <Icon name="house" size="1.125rem" />
-        <span class="shell__nav-label">{S.home}</span>
+        <Icon name={icon} size="1.125rem" />
+        <span class="shell__nav-label">{label}</span>
+        {#if count}
+          <span class="shell__count">{count}</span>
+        {/if}
       </button>
+    {/snippet}
+    <div class="shell__group">
+      <!-- One glyph, open or not (user call, 2026-08-13): Home was the only
+           entry that swapped to its filled variant when selected, so the
+           icon changed SHAPE under the pointer while every other row just
+           took the accent pill. The pill already says where you are. -->
+      {@render fixedRow({ kind: "home" }, "house", S.home)}
       {#if f("tasks")}
-        <button
-          class="shell__nav-item"
-          class:shell__nav-item--active={isOpen({ kind: "tasks" })}
-          onclick={() => onOpen({ kind: "tasks" })}
-          onauxclick={(e) => middleOpen(e, { kind: "tasks" })}
-        >
-          <Icon name="check-square" size="1.125rem" />
-          <span class="shell__nav-label">{S.tasks}</span>
-          <!-- The fixed screen's own number, which it never had: a row that
-               holds tasks says how many are open, and this one holds the
-               Inbox and every list beside it (user report, 2026-08-20). -->
-          {#if openIn(counts, notebook?.layout?.tasksFolder)}
-            <span class="shell__count"
-              >{openIn(counts, notebook?.layout?.tasksFolder)}</span
-            >
-          {/if}
-        </button>
+        <!-- The fixed screen's own number, which it never had: a row that
+             holds tasks says how many are open, and this one holds the
+             Inbox and every list beside it (user report, 2026-08-20). -->
+        {@render fixedRow(
+          { kind: "tasks" },
+          "check-square",
+          S.tasks,
+          openIn(counts, notebook?.layout?.tasksFolder),
+        )}
       {/if}
       {#if f("notes")}
-        <button
-          class="shell__nav-item"
-          class:shell__nav-item--active={isOpen({ kind: "notes" })}
-          onclick={() => onOpen({ kind: "notes" })}
-          onauxclick={(e) => middleOpen(e, { kind: "notes" })}
-        >
-          <Icon name="note" size="1.125rem" />
-          <span class="shell__nav-label">{S.notes}</span>
-        </button>
+        {@render fixedRow({ kind: "notes" }, "note", S.notes)}
       {/if}
     </div>
 
@@ -415,8 +409,7 @@
           class="shell__nav-item shell__nav-item--reorderable"
           class:shell__nav-item--active={isOpen({ kind: "list", list: entry.path })}
           onclick={() => onOpenList(entry.path)}
-          onauxclick={(e) =>
-            e.button === 1 && (e.preventDefault(), onOpenList(entry.path, true))}
+          onauxclick={(e) => middleOpen(e, () => onOpenList(entry.path, true))}
           title={S.openInNewTab}
         >
           <Icon name="list-bullets" size="1.125rem" />
@@ -439,6 +432,11 @@
          (2026-08-04) are the shorter, icon-less variant — they follow the
          GROUP's colour and vanish in the rail. -->
     {#snippet spaceRow(sp, grouped)}
+      <!-- A space of tasks counts what is open in it, the same way the
+           fixed screen and the lists do. A notepad has nothing to count,
+           and a type this build has never heard of is not going to be
+           guessed at. -->
+      {@const open = sp.kind === "tasks" ? openIn(counts, sp.path) : 0}
       <!-- svelte-ignore a11y_no_static_element_interactions -->
       <div
         class="shell__nav-item shell__nav-item--row"
@@ -449,7 +447,7 @@
         <button
           class="shell__nav-open"
           onclick={() => onOpen({ kind: "space", sp: sp.path })}
-          onauxclick={(e) => middleOpen(e, { kind: "space", sp: sp.path })}
+          onauxclick={(e) => middleOpen(e, () => onOpen?.({ kind: "space", sp: sp.path }, true))}
         >
           <!-- A member draws its icon too (user call, 2026-08-06), a size
                down — it keeps the rail usable, where the label is gone and the
@@ -457,12 +455,8 @@
                for the whole section. -->
           <Icon name={spaceIcon(sp)} size={grouped ? "1rem" : "1.125rem"} />
           <span class="shell__nav-label">{sp.name}</span>
-          <!-- A space of tasks counts what is open in it, the same way the
-               fixed screen and the lists do. A notepad has nothing to count,
-               and a type this build has never heard of is not going to be
-               guessed at. -->
-          {#if sp.kind === "tasks" && openIn(counts, sp.path)}
-            <span class="shell__count">{openIn(counts, sp.path)}</span>
+          {#if open}
+            <span class="shell__count">{open}</span>
           {/if}
         </button>
         <!-- The colour/icon popup still needs somewhere to hang; it is only in
