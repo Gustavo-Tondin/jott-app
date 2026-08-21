@@ -23,6 +23,24 @@
     background: var(--theme-brand);
     color: var(--theme-on-brand);
     cursor: pointer;
+    transition:
+      scale var(--theme-transition-fast),
+      filter var(--theme-transition-fast);
+  }
+  .capture-fab__toggle:hover:not(:disabled) {
+    filter: brightness(1.06);
+  }
+  .capture-fab__toggle:active:not(:disabled) {
+    scale: 0.94;
+  }
+  /* Open, the + turns into a × — the same glyph, an eighth of a turn, on the
+     spring: the button that opened the choices is the one that closes them,
+     and the turn says so without a second icon. */
+  .capture-fab__toggle .theme-icon {
+    transition: rotate var(--theme-duration-medium) var(--theme-ease-spring);
+  }
+  .capture-fab--open .capture-fab__toggle .theme-icon {
+    rotate: 45deg;
   }
   .capture-fab__toggle:disabled {
     opacity: 0.5;
@@ -55,5 +73,16 @@
     font-weight: var(--theme-weight-semibold);
     box-shadow: 0 0.25rem 0.75rem var(--theme-shadow-popover);
     cursor: pointer;
+    /* Each choice rises in from under the +, the second a beat after the
+       first — the two arrive as a pair being dealt, not as a block switching
+       on. */
+    animation: theme-rise var(--theme-duration-medium) var(--theme-ease-out) both;
+    transition: scale var(--theme-transition-fast);
+  }
+  .capture-fab__choice:nth-child(2) {
+    animation-delay: calc(var(--theme-duration-fast) / 3);
+  }
+  .capture-fab__choice:active {
+    scale: 0.96;
   }
 }

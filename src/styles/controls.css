@@ -175,6 +175,19 @@
     background: none;
     cursor: pointer;
     position: relative;
+    transition:
+      background var(--theme-transition-fast),
+      border-color var(--theme-transition-fast),
+      scale var(--theme-duration-medium) var(--theme-ease-spring);
+  }
+  /* Held, the box shrinks a touch; let go, it springs back past full size as
+     the tick lands — the POP. Ticking a task is the most repeated gesture in
+     the app, and the one that most deserves to feel like something happened.
+     The pop is the release of the press and not a keyframe on `:checked`,
+     deliberately: a keyframe would also play for every box that MOUNTS
+     checked, and the Completed list opening would be forty ticks popping. */
+  .theme-checkbox:active:not(:disabled) {
+    scale: 0.88;
   }
   .theme-checkbox:checked {
     background: var(--theme-brand);
@@ -250,13 +263,26 @@
     height: 1rem;
     border-radius: var(--theme-radius-pill);
     background: var(--theme-on-brand);
-    transition: transform var(--theme-transition-fast);
+    transition:
+      transform var(--theme-duration-medium) var(--theme-ease-spring),
+      width var(--theme-transition-fast);
+  }
+  /* Held, the knob stretches towards where it is about to go, and snaps to a
+     circle again on release — a knob under a thumb is being pushed, and a
+     thing being pushed deforms a little. Same width whichever way it is
+     going; the right edge is what moves on the checked side, so it stays
+     pinned by `translateX(1rem − the extra)` below. */
+  .theme-switch:active:not(:disabled)::after {
+    width: 1.25rem;
   }
   .theme-switch:checked {
     background: var(--theme-brand);
   }
   .theme-switch:checked::after {
     transform: translateX(1rem);
+  }
+  .theme-switch:checked:active:not(:disabled)::after {
+    transform: translateX(0.75rem);
   }
   .theme-switch:focus-visible {
     outline: none;
@@ -344,7 +370,17 @@
     transition:
       background var(--theme-transition-fast),
       color var(--theme-transition-fast),
-      filter var(--theme-transition-fast);
+      filter var(--theme-transition-fast),
+      scale var(--theme-transition-fast);
+  }
+  /* THE PRESS. Every button in the app gives by the same few percent while
+     it is held — a `scale`, not a colour, because colour is already spoken
+     for by hover and the press has to read on top of it, on a finger that
+     never hovered at all. Small enough that a label does not visibly blur;
+     it is felt more than seen, and it is what tells a finger the tap landed
+     before anything else has had time to happen. */
+  .theme-btn:active:not(:disabled) {
+    scale: 0.96;
   }
   .theme-btn:focus-visible {
     outline: none;
@@ -397,7 +433,11 @@
     cursor: pointer;
     transition:
       background var(--theme-transition-fast),
-      color var(--theme-transition-fast);
+      color var(--theme-transition-fast),
+      scale var(--theme-transition-fast);
+  }
+  .theme-btn--icon:active:not(:disabled) {
+    scale: 0.92;
   }
   .theme-btn--icon:hover:not(:disabled) {
     /* The hover veil, not a solid grey: it must read on the grey sidebar and
@@ -456,11 +496,15 @@
   .theme-chip:hover {
     color: var(--theme-ink);
   }
+  .theme-chip:active {
+    scale: 0.96;
+  }
 
   /* ---------------------------------------------------------------------------
      Segmented control (a pill group, e.g. Inbox / Today / Week)
      --------------------------------------------------------------------------- */
   .theme-segmented {
+    position: relative;
     display: inline-flex;
     gap: var(--theme-space-2);
     padding: var(--theme-space-2);
@@ -469,6 +513,35 @@
        painted it in the colour of a panel it is not on. */
     background-color: var(--theme-well);
     border-radius: var(--theme-radius-md);
+    /* The pill below is stacked under the items, and the stack must not leak
+       out of the control: without its own context a `z-index: 0` pill would
+       sit under whatever ground the PARENT paints. */
+    isolation: isolate;
+  }
+  /* THE PILL THAT GLIDES (actions/segmented.js). One pseudo-element on the
+     track, placed and sized in px by the action from the active item's own
+     box, that slides to the new choice instead of the colour jumping from one
+     item to the next. Drawn only once `--glides` says it has been measured,
+     so it never travels in from the corner on first paint; and the active
+     item goes transparent on the same class, so the fact is painted once.
+     The glide is the spring curve — a hair past the mark and back — because
+     the pill is a thing that MOVES, and a thing that moves has weight. The
+     width eases out plainly: an overshooting width would clip the label. */
+  .theme-segmented--glides::before {
+    content: "";
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline-start: 0;
+    z-index: 0;
+    inline-size: var(--seg-w);
+    block-size: var(--seg-h);
+    translate: var(--seg-x) var(--seg-y);
+    border-radius: calc(var(--theme-radius-md) - var(--theme-space-2));
+    background: var(--theme-brand);
+    transition:
+      translate var(--theme-duration-medium) var(--theme-ease-spring),
+      inline-size var(--theme-duration-medium) var(--theme-ease-out),
+      block-size var(--theme-duration-medium) var(--theme-ease-out);
   }
   /* Each item is a filled rounded rectangle, not an outline pill (2026-08-06,
      from the Tasks screen shot): with a plain outline the group read as three
@@ -484,9 +557,20 @@
     font-size: var(--theme-text-14);
     font-weight: var(--theme-weight-semibold);
     cursor: pointer;
+    /* Above the pill. */
+    position: relative;
+    z-index: 1;
+    transition:
+      color var(--theme-transition-fast),
+      scale var(--theme-transition-fast);
   }
   .theme-segmented__item:hover:not(.theme-segmented__item--active) {
     color: var(--theme-ink);
+  }
+  /* Pressed, the item gives a little under the finger — the same give every
+     button in the app has (see .theme-btn). */
+  .theme-segmented__item:active {
+    scale: 0.96;
   }
   /* The active one is a SOLID accent pill on the well (2026-08-13 wireframes),
      not a tint with an outline: at this size a tinted fill and a tinted border
@@ -496,6 +580,10 @@
     background: var(--theme-brand);
     color: var(--theme-on-brand);
     font-weight: var(--theme-weight-semibold);
+  }
+  /* Once the track's pill has the colour, the item lets go of it. */
+  .theme-segmented--glides .theme-segmented__item--active {
+    background: transparent;
   }
 
   /* ---------------------------------------------------------------------------
@@ -548,6 +636,15 @@
     border: 0.0625rem solid var(--theme-line);
     border-radius: var(--theme-radius-md);
     box-shadow: var(--theme-shadow-popover);
+    /* It UNFOLDS from the edge it hangs off: a fade plus a short growth from
+       the top, decelerating — a menu that appears is a menu that was opened,
+       and the motion says from where. `scale` rather than `transform`, which
+       keepOnScreen may write while placing the panel. The origin is the top
+       because every anchor in the app is above its panel; the `--start`/`--end`
+       variants only decide which corner, and a centred origin reads right
+       for both. */
+    transform-origin: top center;
+    animation: theme-unfold var(--theme-duration-fast) var(--theme-ease-out);
   }
   .theme-popover--end {
     inset-inline-end: 0;
@@ -693,6 +790,7 @@
     display: grid;
     place-items: center;
     background: color-mix(in srgb, var(--theme-ink) 32%, transparent);
+    animation: theme-fade-in var(--theme-duration-fast) var(--theme-ease);
   }
   .theme-modal {
     display: flex;
@@ -709,6 +807,10 @@
     border: 0.0625rem solid var(--theme-line);
     border-radius: var(--theme-radius-lg);
     box-shadow: var(--theme-shadow-popover);
+    /* A dialog RISES a little as it fades in, decelerating: it comes up to
+       meet the question, rather than switching on. Short, so a confirm does
+       not keep a keyboard waiting. */
+    animation: theme-rise var(--theme-duration-medium) var(--theme-ease-out);
   }
   /* The composer dialog is a row of controls, so it needs more room than a
      single name field does. */
@@ -769,6 +871,9 @@
     border: 0.0625rem solid var(--notice-accent);
     padding: var(--theme-space-8) var(--theme-space-12);
     border-radius: var(--theme-radius-md);
+    /* A notice drops in rather than appearing: an error is the one thing on
+       the screen the eye was not already looking at. */
+    animation: theme-rise var(--theme-duration-medium) var(--theme-ease-out);
   }
   .theme-notice--error {
     --notice-accent: var(--accent-red);
@@ -869,5 +974,32 @@
   }
   .theme-pane-foot {
     border-top: 0.0625rem solid var(--theme-line);
+  }
+
+  /* ---------------------------------------------------------------------------
+     The keyframes the controls above play. Named, so a component sheet that
+     needs the same entrance (a sheet rising, a notice dropping in) plays the
+     one already written rather than spelling another. Every duration they are
+     played at is a token, which is what lets prefers-reduced-motion switch
+     them all off from tokens.css.
+     --------------------------------------------------------------------------- */
+  @keyframes theme-fade-in {
+    from {
+      opacity: 0;
+    }
+  }
+  /* Up from a little below, fading in — a panel arriving. */
+  @keyframes theme-rise {
+    from {
+      opacity: 0;
+      translate: 0 var(--theme-space-8);
+    }
+  }
+  /* Grows from its origin, fading in — a menu opening from its anchor. */
+  @keyframes theme-unfold {
+    from {
+      opacity: 0;
+      scale: 0.96;
+    }
   }
 }

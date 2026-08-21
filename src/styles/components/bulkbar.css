@@ -1,0 +1,55 @@
+/* bulkbar.css — the visual layer of BulkBar.svelte.
+ * Markup: src/lib/components/BulkBar.svelte. Selectors are the stable BEM hooks a theme
+ * may restyle; components read tokens only. */
+
+@layer components {
+  /* A pill floating over the bottom of the screen, centred. FIXED, so it
+     stays put while the list under it scrolls; the bottom inset clears the
+     gesture bar and the keyboard, which is the same sum the bottom sheet
+     makes. The canvas's two neutrals, like a popover: a raised surface with a
+     hairline and the popover's shadow, so it reads as a panel over the page
+     and not as a strip of it. */
+  .bulkbar {
+    position: fixed;
+    inset-block-end: calc(
+      var(--theme-space-16) + max(var(--theme-safe-bottom), var(--theme-keyboard))
+    );
+    inset-inline-start: 50%;
+    translate: -50% 0;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    gap: var(--theme-space-8);
+    max-inline-size: calc(100vw - var(--theme-space-24));
+    padding: var(--theme-space-6) var(--theme-space-6) var(--theme-space-6) var(--theme-space-14);
+    background: var(--theme-surface);
+    border: 0.0625rem solid var(--theme-line);
+    border-radius: var(--theme-radius-pill);
+    box-shadow: var(--theme-shadow-popover);
+    /* Rises in from under the edge, the way the bottom sheet does — the
+       selection was made up here, and the bar comes up to meet it. The
+       `translate` keyframe has to carry the centring too, or the bar would
+       jump sideways as the animation ended. */
+    animation: bulkbar-rise var(--theme-duration-medium) var(--theme-ease-out);
+  }
+  @keyframes bulkbar-rise {
+    from {
+      opacity: 0;
+      translate: -50% var(--theme-space-16);
+    }
+  }
+  .bulkbar__count {
+    color: var(--theme-ink-muted);
+    font-size: var(--theme-text-13);
+    font-weight: var(--theme-weight-semibold);
+    white-space: nowrap;
+  }
+  /* Both are a .theme-select--sm / .theme-btn--sm from the caller; the pill
+     only asks them not to outgrow a phone. */
+  .bulkbar > .theme-select {
+    max-inline-size: 11rem;
+  }
+  .bulkbar__close {
+    flex-shrink: 0;
+  }
+}

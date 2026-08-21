@@ -118,8 +118,14 @@ export function drawerSwipe(node, params) {
     // Open: from anywhere, because the only things reachable are the drawer
     // and the scrim over the page.
     const claimed = mouse ? `${CLAIMED}, ${CLAIMED_BY_MOUSE}` : CLAIMED;
-    if (!open && target?.closest?.(claimed)) return false;
-    drag = { x, y, at, axis: null, travel: 0, open };
+    const owner = open ? null : target?.closest?.(claimed);
+    // A QUALIFIED mark claims one direction only (actions/paneSwipe.js: a
+    // screen with a page on one side of it). The drawer steps aside for that
+    // direction at the axis lock, once the direction is known, and keeps the
+    // other — so the Inbox still opens the sidebar with a swipe to the right.
+    const yields = owner?.getAttribute?.("data-swipes");
+    if (owner && yields !== "left" && yields !== "right") return false;
+    drag = { x, y, at, axis: null, travel: 0, open, yields: yields ?? null };
     return true;
   }
 
@@ -137,6 +143,10 @@ export function drawerSwipe(node, params) {
       // list that stops scrolling because a drawer was listening is worse than
       // a drawer that needs a straighter swipe.
       if (Math.abs(dy) > Math.abs(dx)) {
+        drag = null;
+        return false;
+      }
+      if (drag.yields === (dx < 0 ? "left" : "right")) {
         drag = null;
         return false;
       }

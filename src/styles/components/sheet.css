@@ -19,6 +19,7 @@
        a field in it rides up above the keyboard instead of under it. */
     display: flex;
     align-items: flex-end;
+    animation: theme-fade-in var(--theme-duration-fast) var(--theme-ease);
   }
 
   .sheet {
@@ -47,7 +48,18 @@
     /* Follows the drag (BottomSheet.svelte). Zero except while a pointer is
        pulling it down, so the sheet is where it belongs the rest of the time. */
     translate: 0 var(--sheet-pulled, 0rem);
-    transition: translate var(--theme-transition-fast);
+    transition: translate var(--theme-transition-medium);
+    /* It comes UP from below the bottom edge, decelerating as it lands — the
+       way the drag that dismisses it goes, in reverse. `translate` is the same
+       property the drag writes through `--sheet-pulled`, so the entrance and
+       the drag cannot fight: the keyframe owns the property until it ends,
+       and the drag owns it after. */
+    animation: sheet-rise var(--theme-duration-slow) var(--theme-ease-out);
+  }
+  @keyframes sheet-rise {
+    from {
+      translate: 0 100%;
+    }
   }
   /* While the finger is down the sheet must track it exactly — a transition
      here would make the drag feel like it is on a leash. */

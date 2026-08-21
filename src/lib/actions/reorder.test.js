@@ -473,3 +473,76 @@ describe("reorderable on a touch screen", () => {
     expect(ul.hasAttribute("data-reordering")).toBe(false);
   });
 });
+
+// ---- a list whose items can be picked (2026-08-21) ----
+//
+// Rest to mark (selection mode), tap to pick more, rest on one already picked
+// to carry them all.
+describe("reorderable with a selection", () => {
+  beforeEach(() => {
+    document.body.innerHTML = "";
+    vi.useFakeTimers();
+  });
+  afterEach(() => vi.useRealTimers());
+
+  const setup = (extra = {}) => {
+    const ul = list(4);
+    layOut(ul);
+    const calls = { holds: [], many: [], one: [] };
+    reorderable(ul, {
+      axis: "y",
+      item: ".row",
+      onHold: (i) => (calls.holds.push(i), true),
+      onReorder: (f, t) => calls.one.push([f, t]),
+      onReorderMany: (f, t) => calls.many.push([f, t]),
+      ...extra,
+    });
+    return { ul, calls };
+  };
+
+  test("a finger that rests asks the caller, and is not carried when it says so", () => {
+    const { ul, calls } = setup();
+    const row = ul.children[1];
+    fire(row, "pointerdown", { button: 0, pointerId: 1, pointerType: "touch", clientY: 45, clientX: 5 });
+    vi.advanceTimersByTime(400);
+    expect(calls.holds).toEqual([1]);
+    expect(ul.hasAttribute("data-reordering")).toBe(false);
+    // The click that follows the release is swallowed — a hold is not a tap.
+    const click = fire(row, "click", {});
+    expect(click.defaultPrevented).toBe(true);
+  });
+
+  test("a mouse that rests asks too, once there is someone to ask", () => {
+    const { ul, calls } = setup();
+    fire(ul.children[2], "pointerdown", { button: 0, pointerId: 1, pointerType: "mouse", clientY: 85, clientX: 5 });
+    vi.advanceTimersByTime(400);
+    expect(calls.holds).toEqual([2]);
+  });
+
+  test("a mouse that moves before the wait is up drags, as it always did", () => {
+    const { ul, calls } = setup();
+    const row = ul.children[0];
+    fire(row, "pointerdown", { button: 0, pointerId: 1, pointerType: "mouse", clientY: 5, clientX: 5 });
+    fire(row, "pointermove", { pointerId: 1, clientY: 95, clientX: 5 });
+    fire(row, "pointerup", { pointerId: 1, clientY: 95, clientX: 5 });
+    expect(calls.holds).toEqual([]);
+    expect(calls.one).toEqual([[0, 2]]);
+  });
+
+  test("told the item is part of a pile, it carries the pile and reports them all", () => {
+    const { ul, calls } = setup({ onHold: () => false, carried: () => [1, 3] });
+    const row = ul.children[1];
+    fire(row, "pointerdown", { button: 0, pointerId: 1, pointerType: "touch", clientY: 45, clientX: 5 });
+    vi.advanceTimersByTime(400);
+    expect(row.classList.contains("reorder-item--carried")).toBe(true);
+    expect(row.getAttribute("data-carry")).toBe("2");
+    // Not `children[3]`: the lifted item leaves a ghost behind it in the DOM.
+    expect(ul.querySelectorAll(".row")[3].classList.contains("reorder-item--stacked")).toBe(true);
+    fire(row, "pointermove", { pointerId: 1, clientY: -20, clientX: 5 });
+    fire(row, "pointerup", { pointerId: 1, clientY: -20, clientX: 5 });
+    expect(calls.many).toEqual([[[1, 3], 0]]);
+    expect(calls.one).toEqual([]);
+    expect(row.hasAttribute("data-carry")).toBe(false);
+    expect(ul.querySelectorAll(".row")[3].classList.contains("reorder-item--stacked")).toBe(false);
+  });
+});

@@ -1,4 +1,5 @@
 <script>
+  import { tick } from "svelte";
   import { listTitle } from "../services/paths.js";
   import { formatDate } from "../services/dates.js";
   import { S } from "../services/strings.js";
@@ -73,6 +74,52 @@
     if (check && check.checked !== done) check.checked = done;
   });
 
+  // COMPLETING PLAYS BEFORE IT IS WRITTEN (user call, 2026-08-21). Ticking a
+  // task is the one gesture the whole app exists for, and until now the card
+  // simply vanished on the next frame — the list closed over the gap before
+  // the eye had registered the tick. Now the row is marked `--finishing`, the
+  // stylesheet plays the send-off (the tick pops, the title strikes through,
+  // the card tints and folds away — task-row.css), and the write goes out
+  // when that has played.
+  //
+  // The wait is the ANIMATION's, not a number copied from the stylesheet:
+  // the row asks the engine what is playing on it and waits for that to
+  // finish. Where nothing plays — jsdom, a reader who asked the system for
+  // less motion, a theme that dropped the keyframe — the write goes out at
+  // once, so no test and no setting ever waits on a duration it cannot see.
+  // A ceiling guards against an animation that never reports back (the row
+  // re-rendered under it mid-play): the task is completed either way.
+  //
+  // Ticking the box again while it plays is the undo: the send-off stops,
+  // nothing is written, the task is where it was.
+  let row = $state(null);
+  let finishing = $state(false);
+  const CEILING = 1200;
+  const SEND_OFFS = new Set(["task-row-finish", "task-row-restore"]);
+
+  // Unticking a completed card plays the same way (user call, 2026-08-21):
+  // `--restoring` is the shorter cousin, and the write waits on it alike.
+  async function finish() {
+    if (finishing) {
+      finishing = false;
+      return;
+    }
+    finishing = true;
+    await tick();
+    const playing = (row?.getAnimations?.({ subtree: true }) ?? []).filter((a) =>
+      SEND_OFFS.has(a.animationName),
+    );
+    if (playing.length) {
+      await Promise.race([
+        Promise.all(playing.map((a) => a.finished)).catch(() => {}),
+        new Promise((r) => setTimeout(r, CEILING)),
+      ]);
+    }
+    if (!finishing) return;
+    finishing = false;
+    onComplete(list, task);
+  }
+
   function startEditing() {
     draft = task.text;
     editing = true;
@@ -132,11 +179,14 @@
      The keyboard itself lives in the list (TaskCards), because the list is
      what knows the order. -->
 <li
+  bind:this={row}
   class="task-row"
   role="row"
   class:swipe={gesture !== noAction}
   class:task-row--selected={selected}
   class:task-row--done={task.done}
+  class:task-row--finishing={finishing && !task.done}
+  class:task-row--restoring={finishing && task.done}
   data-card={index}
   tabindex={focusable ? 0 : -1}
   onclick={() => onSelect?.(list, task)}
@@ -170,7 +220,7 @@
     class="theme-checkbox theme-checkbox--lg task-row__check"
     type="checkbox"
     checked={task.done}
-    onchange={() => onComplete(list, task)}
+    onchange={finish}
     onclick={(e) => e.stopPropagation()}
     aria-label={task.done ? S.uncheck : S.complete}
   />

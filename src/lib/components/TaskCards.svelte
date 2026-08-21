@@ -25,6 +25,14 @@
     dividerClass = "",
     /// Drop handler, in SCREEN indices. Omitted, the list is not draggable.
     onReorder = null,
+    /// The selection, for the drag (actions/reorder.js, 2026-08-21):
+    /// `onHold(entry)` answers a press that rested — true to take it (enter
+    /// selection mode); `carried(entry)` lists the entries that travel with
+    /// one that is picked up; `onReorderMany(entries, to)` is the drop of
+    /// that pile, `to` in screen indices like `onReorder`.
+    onHold = null,
+    carried = null,
+    onReorderMany = null,
     /// Whether a pinned block floats on top, and so whether the divider is
     /// drawn. `pinnedFirst` is the host's call: a Completed list has no top.
     pinned = false,
@@ -166,6 +174,20 @@
     axis: "y",
     item: onReorder ? ".task-row" : ".task-row--never",
     onReorder: onReorder ?? (() => {}),
+    onHold: onHold ? (i) => onHold(items[i]) : null,
+    carried: carried
+      ? (i) => {
+          // Matched by the task: the host's entries and these are not the
+          // same objects (TasksSpace.svelte says why).
+          const pile = carried(items[i]).map((entry) =>
+            items.findIndex((candidate) => candidate.task === entry.task),
+          );
+          return [i, ...pile.filter((at) => at >= 0 && at !== i)];
+        }
+      : null,
+    onReorderMany: onReorderMany
+      ? (froms, to) => onReorderMany(froms.map((i) => items[i]), to)
+      : null,
   }}
 >
   <!-- Keyed by position as well as id: a duplicated id would otherwise be a

@@ -155,3 +155,48 @@ describe("planReorder", () => {
     expect(pinChanged).toBe(false);
   });
 });
+
+// ---- a selection dragged as one pile (2026-08-21) ----
+import { movedItem as movedOne, movedItems, planReorderMany } from "./spaceOrder.js";
+
+describe("movedItems", () => {
+  const L = ["a", "b", "c", "d", "e"];
+  it("moves the pile down, keeping file order, to where the carried one lands", () => {
+    // b carried (with a), dropped where b alone would go to slot 3 (after d).
+    expect(movedItems(L, [1, 0], 3)).toEqual(["c", "d", "a", "b", "e"]);
+  });
+  it("moves the pile up", () => {
+    // d carried with e, dropped at slot 0.
+    expect(movedItems(L, [3, 4], 0)).toEqual(["d", "e", "a", "b", "c"]);
+  });
+  it("a pile around the carried one closes over the gap", () => {
+    // c carried with a and e, dropped where c alone would go to slot 1.
+    expect(movedItems(L, [2, 0, 4], 1)).toEqual(["a", "c", "e", "b", "d"]);
+  });
+  it("one item is movedItem", () => {
+    expect(movedItems(L, [0], 2)).toEqual(movedOne(L, 0, 2));
+  });
+});
+
+describe("planReorderMany", () => {
+  const pinned = (item) => !!item.pinned;
+  const items = [
+    { id: "p1", pinned: true },
+    { id: "p2", pinned: true },
+    { id: "a" },
+    { id: "b" },
+    { id: "c" },
+  ];
+  it("lands the whole pile pinned when dropped inside the pinned block", () => {
+    const { next, pinned: landed, pinChanged } = planReorderMany(items, [3, 4], 0, pinned);
+    expect(next.map((i) => i.id)).toEqual(["b", "c", "p1", "p2", "a"]);
+    expect(landed).toBe(true);
+    expect(pinChanged.map((i) => i.id)).toEqual(["b", "c"]);
+  });
+  it("unpins a pinned pile dragged below the divider, and leaves the rest alone", () => {
+    const { next, pinned: landed, pinChanged } = planReorderMany(items, [0, 1], 3, pinned);
+    expect(next.map((i) => i.id)).toEqual(["a", "b", "p1", "p2", "c"]);
+    expect(landed).toBe(false);
+    expect(pinChanged.map((i) => i.id)).toEqual(["p1", "p2"]);
+  });
+});

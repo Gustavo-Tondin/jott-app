@@ -43,6 +43,7 @@
   import Menu from "../components/Menu.svelte";
   import ContextMenu from "../components/ContextMenu.svelte";
   import Icon from "../components/Icon.svelte";
+  import BulkBar from "../components/BulkBar.svelte";
   import NoteCard from "../components/NoteCard.svelte";
 
   let {
@@ -641,10 +642,10 @@
     {/if}
 
     {#if picking}
-      <!-- Selection mode: the row turns into the bulk actions, the same shape
-           the tasks screen's header takes (spaces/TasksSpace.svelte). -->
-      <div class="notes-space__tools">
-        <span class="notes-space__picked">{S.selectedCount(picked.size)}</span>
+      <!-- Selection mode: the bulk actions float over the bottom of the
+           screen (components/BulkBar.svelte), the same bar the tasks screen
+           raises. -->
+      <BulkBar count={picked.size} onClose={exitPicking}>
         <select
           class="theme-select theme-select--sm"
           aria-label={S.moveNotesTo}
@@ -669,15 +670,7 @@
           disabled={picked.size === 0}
           onclick={deleteSelected}>{S.deleteSelected}</button
         >
-        <button
-          class="theme-btn--icon"
-          aria-label={S.cancel}
-          title={S.cancel}
-          onclick={exitPicking}
-        >
-          <Icon name="x" size="1rem" />
-        </button>
-      </div>
+      </BulkBar>
     {/if}
 
     <Menu items={sortMenu} align="end">

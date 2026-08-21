@@ -38,11 +38,10 @@
     flex-shrink: 0;
     margin-inline-start: auto;
   }
-  /* Selection mode: the picked count in the bulk header. */
-  .tasks-space__picked {
-    color: var(--theme-ink-muted);
-    font-size: var(--theme-text-13);
-    white-space: nowrap;
+  /* The completed list unfolding under its row, the same way. Opacity and a
+     breath of margin, not a transform — a carried card inside it is fixed. */
+  .tasks-space__list--completed {
+    animation: shell-screen-rise var(--theme-duration-medium) var(--theme-ease-out);
   }
   .tasks-space__move {
     max-inline-size: 14rem;
@@ -74,6 +73,9 @@
     align-items: center;
     justify-content: space-between;
     gap: var(--theme-space-8);
+    /* It appears with the first completed task, and it rises in rather than
+       popping under the list (user call, 2026-08-21). */
+    animation: theme-rise var(--theme-duration-medium) var(--theme-ease-out);
     margin-top: var(--theme-space-4);
   }
   /* The toggle is anchored left and the pill right, whether or not the other

@@ -14,6 +14,8 @@
   // "Completed N"; Today and Week host the same screen over a period. The only
   // thing this screen changes is where a new task comes from: not the blue
   // button, but the bar it pins to the bottom (`compose="bar"`).
+  import { segmented } from "../actions/segmented.js";
+  import { paneSwipe } from "../actions/paneSwipe.js";
   import { S } from "../services/strings.js";
   import { folderOf } from "../services/paths.js";
   import { formatDayMonth, toIso } from "../services/dates.js";
@@ -70,6 +72,23 @@
     if (!SUBS.some((item) => item.key === sub)) sub = "inbox";
   });
 
+  /// Which side the pane comes in from when the tab changes: a tab further
+  /// along the strip slides in from the end, one further back from the start
+  /// — the page turns the way the strip reads. `null` for the first paint, so
+  /// the screen opens still rather than sliding in from nowhere. Set by
+  /// `show()` rather than derived from `sub`, because a derivation cannot see
+  /// where it came FROM.
+  let enter = $state(null);
+  const at = (key) => SUBS.findIndex((item) => item.key === key);
+  function show(key) {
+    if (key === sub) return;
+    enter = at(key) > at(sub) ? "end" : "start";
+    sub = key;
+  }
+  /// The neighbours of the open tab, for the swipe that turns the page.
+  let prevSub = $derived(SUBS[at(sub) - 1]?.key ?? null);
+  let nextSub = $derived(SUBS[at(sub) + 1]?.key ?? null);
+
   $effect(() => {
     onSub?.(SUBS.find((item) => item.key === sub)?.label ?? "");
   });
@@ -107,19 +126,32 @@
   });
 </script>
 
-<div class="tasks-view">
+<!-- The page turns with a swipe below 768px (actions/paneSwipe.js): the pane
+     follows the finger and, let go far enough, the next tab comes in from the
+     side the finger was pushing towards. Only in the compact shell — on a
+     desktop a sideways drag over a list is how a card is moved to the trash. -->
+<div
+  class="tasks-view"
+  use:paneSwipe={{
+    enabled: compact,
+    canPrev: !!prevSub,
+    canNext: !!nextSub,
+    onPrev: () => show(prevSub),
+    onNext: () => show(nextSub),
+  }}
+>
   <!-- The strip rides on the SCREEN's top row (2026-08-06), so the ⋮ ends up at
        the far right of the same line, with the day or the week's span just
        before it — instead of a bar of its own with the ⋮ orphaned below. -->
   {#snippet toolbar()}
     <div class="tasks-view__bar">
-      <nav class="theme-segmented tasks-view__subs">
+      <nav class="theme-segmented tasks-view__subs" use:segmented>
         {#each SUBS as item (item.key)}
           <button
             class="theme-segmented__item tasks-view__sub"
             class:theme-segmented__item--active={sub === item.key}
             class:tasks-view__sub--active={sub === item.key}
-            onclick={() => (sub = item.key)}
+            onclick={() => show(item.key)}
           >
             {item.label}
           </button>
@@ -134,6 +166,11 @@
     </div>
   {/snippet}
 
+  <!-- Keyed on the tab, so the pane is a NEW element each time — that is what
+       lets a plain CSS animation (tasks-view.css) slide it in, without a
+       transition engine to keep the old one around. -->
+  {#key sub}
+  <div class="tasks-view__pane" data-enter={enter}>
   {#if sub === "inbox"}
     <TasksSpace
       {source}
@@ -178,4 +215,6 @@
       {f}
     />
   {/if}
+  </div>
+  {/key}
 </div>

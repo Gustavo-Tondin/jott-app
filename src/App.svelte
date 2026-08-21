@@ -64,6 +64,7 @@
   import TopBar from "./lib/shell/TopBar.svelte";
   import BottomSheet from "./lib/components/BottomSheet.svelte";
   import { drawerSwipe } from "./lib/actions/drawerSwipe.js";
+  import { pullToSearch } from "./lib/actions/pullToSearch.js";
   import CaptureFab from "./lib/components/CaptureFab.svelte";
   import { clampWidth, SIDEBAR, PANEL } from "./lib/shell/sidebarWidth.js";
   import { clampZoom, steppedZoom, zoomFontSize } from "./lib/shell/zoom.js";
@@ -1901,7 +1902,22 @@
 
       <!-- CENTRE: page header, then the screen itself. The tabs moved up into
            the title bar; the header keeps the back/forward, title and ••• menu. -->
-      <section class="shell__centre" data-region="canvas">
+      <section
+        class="shell__centre"
+        data-region="canvas"
+        use:pullToSearch={{ enabled: compact && !!notebook, onPull: openSearch }}
+      >
+        <!-- The search, pulled down from the top of the page (2026-08-21,
+             actions/pullToSearch.js): a glass that grows out of the top edge
+             as the page is pulled, and pops when it is far enough. Below
+             768px the search is otherwise a ⋮ away; the pull puts it under the
+             thumb. Drawn here and not in the header because the header
+             scrolls away with the page in the compact shell. -->
+        {#if compact}
+          <div class="pull-search" aria-hidden="true">
+            <span class="pull-search__glass"><Icon name="magnifying-glass" size="1.125rem" /></span>
+          </div>
+        {/if}
         <PageHeader
           {compact}
           title={/* Below 768px an open note names itself: its head draws the
@@ -2116,6 +2132,11 @@
             </div>
           {/if}
 
+          <!-- Keyed on the view: a new screen is a NEW element, and the
+               stylesheet lets it rise in (2026-08-21) — opening a space from
+               the sidebar or the search arrives rather than switches. -->
+          {#key Tabs.viewId(view)}
+          <div class="shell__screen">
           <!-- The screens, each handed what it needs, one prop at a time.
                TRIED AND REVERTED (2026-08-18): gathering the five or six props
                they share into one `$derived` object and spreading it. It reads
@@ -2350,6 +2371,8 @@
               {reloadKey}
             />
           {/if}
+          </div>
+          {/key}
           </div>
         </div>
         </div>

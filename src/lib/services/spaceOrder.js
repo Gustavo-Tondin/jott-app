@@ -74,6 +74,36 @@ export function landsPinned(to, pinnedElsewhere, wasPinned) {
 /// screen indices the reorder action reports — so this is also where a caller
 /// translates back to file positions, through `moved` and `next`. Pure, so the
 /// rule that crossing the divider pins and unpins is testable without a DOM.
+/// Several items moved as one block (a selection dragged together): they leave
+/// their slots, keeping their file order, and land in a row where the CARRIED
+/// one — `froms[0]`, the item under the pointer — would have landed alone.
+/// `to` is what the action reports for that one item, in `movedItem`'s
+/// terms: a slot in the list with `froms[0]` taken out. The rest of the pile
+/// was also taken out, so every one of them that sat before that slot moves
+/// it up by one.
+export function movedItems(list, froms, to) {
+  const [from, ...others] = froms;
+  const moving = new Set(froms);
+  const block = list.filter((_, i) => moving.has(i));
+  const rest = list.filter((_, i) => !moving.has(i));
+  const before = others.filter((i) => (i < from ? i : i - 1) < to).length;
+  const at = Math.max(0, Math.min(rest.length, to - before));
+  return [...rest.slice(0, at), ...block, ...rest.slice(at)];
+}
+
+/// `planReorder` for a block: the arrangement, the items moved, and the pin
+/// the whole block lands with — crossing the divider pins or unpins all of
+/// them together, the way one item would. `pinChanged` lists those whose pin
+/// actually changes.
+export function planReorderMany(items, froms, to, isPinned = (item) => !!item.pinned) {
+  const moved = [...froms].sort((a, b) => a - b).map((i) => items[i]);
+  const next = movedItems(items, froms, to);
+  const movedSet = new Set(moved);
+  const pinnedElsewhere = next.filter((item) => !movedSet.has(item) && isPinned(item)).length;
+  const pinned = landsPinned(next.indexOf(moved[0]), pinnedElsewhere, moved.some(isPinned));
+  return { next, moved, pinned, pinChanged: moved.filter((item) => isPinned(item) !== pinned) };
+}
+
 export function planReorder(items, from, to, isPinned = (item) => !!item.pinned) {
   const moved = items[from];
   const next = movedItem(items, from, to);

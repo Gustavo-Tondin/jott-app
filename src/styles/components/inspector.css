@@ -85,10 +85,13 @@
   }
 
   /* ---- subtasks: indented, each a surface card ---- */
+  /* ONE card for the whole checklist, not one per row (user call,
+     2026-08-21: with many subtasks a surface per row was "muito poluído").
+     The rows sit on the list's own surface, separated by a hairline, and the
+     card's corner is the list's. */
   .inspector__subtasks {
     display: flex;
     flex-direction: column;
-    gap: var(--theme-space-4);
     padding-inline: var(--theme-space-16) var(--theme-space-8);
   }
   .inspector__subtask {
@@ -102,7 +105,16 @@
     padding: var(--theme-space-6) var(--theme-space-10) var(--theme-space-6)
       var(--theme-space-24);
     background: var(--theme-surface);
-    border-radius: var(--theme-radius-md);
+    border-block-end: 0.0625rem solid var(--theme-line);
+  }
+  .inspector__subtask:first-child {
+    border-start-start-radius: var(--theme-radius-md);
+    border-start-end-radius: var(--theme-radius-md);
+  }
+  .inspector__subtask:last-child {
+    border-block-end: none;
+    border-end-start-radius: var(--theme-radius-md);
+    border-end-end-radius: var(--theme-radius-md);
   }
   .inspector__subtask-main {
     display: flex;
@@ -125,10 +137,16 @@
   .inspector__subtask-input {
     flex: 1;
     min-width: 0;
+    /* The strike is always drawn, in transparent, so ticking the row fades
+       it in — the same send-off the task card gives its title. */
+    text-decoration: line-through transparent;
+    transition:
+      color var(--theme-transition-fast),
+      text-decoration-color var(--theme-transition-medium);
   }
   .inspector__subtask--done .inspector__subtask-input {
     color: var(--theme-ink-faint);
-    text-decoration: line-through;
+    text-decoration-color: currentColor;
   }
   .inspector__subtask--add {
     opacity: 0.85;
