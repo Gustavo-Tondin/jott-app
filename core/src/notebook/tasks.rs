@@ -13,6 +13,18 @@ use crate::COMPLETED_LIST;
 use super::*;
 
 impl Notebook {
+    /// Opens the list at `path`, lets `change` edit it, and saves it — the one
+    /// shape under every single-list edit. The guard comes first on purpose:
+    /// `ensure_writable` lives on the notebook, so a caller holding a bare
+    /// `TaskList` writes into a read-only notebook without noticing.
+    fn with_list<T>(&self, path: &str, change: impl FnOnce(&mut TaskList) -> Result<T>) -> Result<T> {
+        self.ensure_writable()?;
+        let mut list = self.open_list(path)?;
+        let out = change(&mut list)?;
+        list.save()?;
+        Ok(out)
+    }
+
     /// Moves a task between lists (addressed by path), preserving its id.
     pub fn move_task(
         &self,
@@ -27,11 +39,7 @@ impl Notebook {
     /// Inserts a copy of a task right after it, in the same list. The copy
     /// carries the task's fields but no id and no origin — it is a new task.
     pub fn duplicate_task(&self, path: &str, id: &str) -> Result<()> {
-        self.ensure_writable()?;
-        let mut list = self.open_list(path)?;
-        list.duplicate(id)?;
-        list.save()?;
-        Ok(())
+        self.with_list(path, |list| list.duplicate(id))
     }
 
     /// Pins a task to the top of its list, or unpins it (the card's bookmark).
@@ -40,10 +48,10 @@ impl Notebook {
     /// reads the same to anyone opening the file in another editor and no
     /// `#pinned` tag turns up in the tag manager.
     pub fn set_task_pinned(&self, path: &str, id: &str, pinned: bool) -> Result<()> {
-        self.ensure_writable()?;
-        let mut list = self.open_list(path)?;
-        list.task_mut(id)?.pinned = pinned;
-        list.save()
+        self.with_list(path, |list| {
+            list.task_mut(id)?.pinned = pinned;
+            Ok(())
+        })
     }
 
     /// Replaces a task's text, keeping everything else.
@@ -53,10 +61,7 @@ impl Notebook {
     /// bare `TaskList` writes into a read-only notebook without noticing —
     /// which is exactly what the bridge used to do.
     pub fn edit_task_text(&self, path: &str, id: &str, text: String) -> Result<()> {
-        self.ensure_writable()?;
-        let mut list = self.open_list(path)?;
-        list.edit_text(id, text)?;
-        list.save()
+        self.with_list(path, |list| list.edit_text(id, text))
     }
 
     /// Edits any field of a task in one call.
@@ -64,18 +69,15 @@ impl Notebook {
     /// One method instead of one per field: the UI edits a task in a panel and
     /// saves it as a whole, and a half-applied edit would be worse than none.
     pub fn set_task_fields(&self, path: &str, id: &str, fields: crate::task::TaskFields) -> Result<()> {
-        self.ensure_writable()?;
-        let mut list = self.open_list(path)?;
-        fields.apply_to(list.task_mut(id)?);
-        list.save()
+        self.with_list(path, |list| {
+            fields.apply_to(list.task_mut(id)?);
+            Ok(())
+        })
     }
 
     /// Reorders a task inside its list. Positions count tasks, not lines.
     pub fn move_task_to(&self, path: &str, from: usize, to: usize) -> Result<()> {
-        self.ensure_writable()?;
-        let mut list = self.open_list(path)?;
-        list.move_task_to(from, to)?;
-        list.save()
+        self.with_list(path, |list| list.move_task_to(from, to))
     }
 
     /// The move primitive. `done` optionally flips the checkbox in the same
@@ -145,11 +147,7 @@ impl Notebook {
     /// Creates a task in `path` and returns its **position**, not an id — a
     /// new task has no id until something needs to address it.
     pub fn create_task(&self, path: &str, text: impl Into<String>) -> Result<usize> {
-        self.ensure_writable()?;
-        let mut list = self.open_list(path)?;
-        let position = list.add(Self::stamped_task(text));
-        list.save()?;
-        Ok(position)
+        self.with_list(path, |list| Ok(list.add(Self::stamped_task(text))))
     }
 
     // ------------------------------------------------------- complete / undo

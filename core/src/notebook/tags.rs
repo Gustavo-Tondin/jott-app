@@ -21,19 +21,21 @@ impl Notebook {
         crate::tags::Tags::load(self.tags_path())
     }
 
-    /// Sets (or creates) a tag's colour; an empty colour clears it.
-    pub fn set_tag(&self, name: &str, color: Option<String>) -> Result<()> {
+    /// Loads the catalogue, lets `change` edit it, and writes it back.
+    fn with_tags(&self, change: impl FnOnce(&mut crate::tags::Tags)) -> Result<()> {
         self.ensure_writable()?;
         let mut tags = self.tags();
-        tags.set(name, color);
+        change(&mut tags);
         tags.save(self.tags_path())
+    }
+
+    /// Sets (or creates) a tag's colour; an empty colour clears it.
+    pub fn set_tag(&self, name: &str, color: Option<String>) -> Result<()> {
+        self.with_tags(|tags| tags.set(name, color))
     }
 
     /// Forgets a tag's colour (the `#word` text in tasks stays).
     pub fn remove_tag(&self, name: &str) -> Result<()> {
-        self.ensure_writable()?;
-        let mut tags = self.tags();
-        tags.remove(name);
-        tags.save(self.tags_path())
+        self.with_tags(|tags| tags.remove(name))
     }
 }

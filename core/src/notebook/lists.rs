@@ -6,7 +6,6 @@
 //! address apart, because the address arrives from user input.
 
 use std::collections::BTreeMap;
-use std::path::PathBuf;
 
 use crate::conflict::Conflict;
 use crate::error::{Error, IoContext, Result};
@@ -37,16 +36,10 @@ impl Notebook {
     /// list name used to be.
     pub(super) fn resolve_list(&self, path: &str) -> Result<(crate::folder::TaskFolder, String)> {
         let (dir, name) = split_list_path(path)?;
-        Ok((self.task_folder(self.root.join(dir)), name.to_string()))
-    }
-
-    /// A tasks folder for `dir`. Every one of them is the same shape now
-    /// (2026-08-13): `task-list.md` beside `completed.md`, whatever the folder
-    /// is called. The fixed Tasks space used to be the exception — it
-    /// lives in `jott.tasks/` and had to be TOLD its list was `Tasks.md`,
-    /// because the folder name could not say it.
-    pub(super) fn task_folder(&self, dir: PathBuf) -> crate::folder::TaskFolder {
-        crate::folder::TaskFolder::new(dir)
+        Ok((
+            crate::folder::TaskFolder::new(self.root.join(dir)),
+            name.to_string(),
+        ))
     }
 
     /// Every tasks space's folder in the notebook, with its root-relative
@@ -56,7 +49,7 @@ impl Notebook {
         Ok(self
             .typed_space_dirs("tasks")?
             .into_iter()
-            .map(|(prefix, dir)| (prefix, self.task_folder(dir)))
+            .map(|(prefix, dir)| (prefix, crate::folder::TaskFolder::new(dir)))
             .collect())
     }
 

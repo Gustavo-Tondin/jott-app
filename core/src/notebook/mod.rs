@@ -396,7 +396,7 @@ impl Notebook {
             let dir = self.root.join(folder);
             ensure_marker(&dir, kind, label)?;
             if kind == "tasks" {
-                self.task_folder(dir.clone()).ensure_default_lists()?;
+                crate::folder::TaskFolder::new(dir.clone()).ensure_default_lists()?;
             } else {
                 // The notes counterpart of the line above: the Inbox folder is
                 // protected from rename and delete BECAUSE it comes back on
