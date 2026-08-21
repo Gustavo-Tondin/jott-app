@@ -111,7 +111,7 @@ impl Assets {
                 path: address(&name),
                 image: is_image_name(&name),
                 name,
-                size: meta.as_ref().map(|m| m.len()).unwrap_or(0),
+                size: meta.as_ref().map_or(0, |m| m.len()),
                 modified: meta.and_then(|m| m.modified().ok()).and_then(|time| {
                     time.duration_since(std::time::UNIX_EPOCH)
                         .ok()

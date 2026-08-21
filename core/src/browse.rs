@@ -108,9 +108,12 @@ pub fn listing(root: &Path, path: Option<String>) -> Result<FolderListing> {
 /// The last component of a path, falling back to the whole thing — a root has
 /// no last component, and an empty label would draw an empty breadcrumb.
 pub fn label(path: &Path) -> String {
-    path.file_name()
-        .map(|n| n.to_string_lossy().into_owned())
-        .unwrap_or_else(|| path.to_string_lossy().into_owned())
+    let name = crate::fsio::file_name_of(path);
+    if name.is_empty() {
+        path.to_string_lossy().into_owned()
+    } else {
+        name
+    }
 }
 
 /// Creates a folder inside `parent`, so the notebook can be put somewhere that

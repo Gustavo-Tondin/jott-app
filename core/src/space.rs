@@ -89,10 +89,11 @@ impl FolderSettings {
             Some(color) => entry.insert("color".into(), Value::from(color.clone())),
             None => entry.remove("color"),
         };
-        match self.pinned {
-            true => entry.insert("pinned".into(), Value::from(true)),
-            false => entry.remove("pinned"),
-        };
+        if self.pinned {
+            entry.insert("pinned".into(), Value::from(true));
+        } else {
+            entry.remove("pinned");
+        }
         entry
     }
 }

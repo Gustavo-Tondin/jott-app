@@ -133,9 +133,10 @@ impl Notebook {
                     (true, None) => None,
                     // Something under it.
                     (false, Some(to)) => Some(format!("{to}/{}", &key[prefix.len()..])),
-                    (false, None) => Some(match parent.is_empty() {
-                        true => key[prefix.len()..].to_string(),
-                        false => format!("{parent}/{}", &key[prefix.len()..]),
+                    (false, None) => Some(if parent.is_empty() {
+                        key[prefix.len()..].to_string()
+                    } else {
+                        format!("{parent}/{}", &key[prefix.len()..])
                     }),
                 };
                 if let Some(landed) = landed {

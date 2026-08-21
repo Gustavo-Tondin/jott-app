@@ -19,8 +19,7 @@ static COUNTER: AtomicU64 = AtomicU64::new(0);
 pub fn generate() -> String {
     let nanos = SystemTime::now()
         .duration_since(UNIX_EPOCH)
-        .map(|d| d.as_nanos() as u64)
-        .unwrap_or(0);
+        .map_or(0, |d| d.as_nanos() as u64);
     let seq = COUNTER.fetch_add(1, Ordering::Relaxed);
 
     let mut hasher = DefaultHasher::new();

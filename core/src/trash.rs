@@ -95,9 +95,8 @@ impl Trash {
         let target = crate::fsio::free_name(&items, &name);
         std::fs::rename(abs, &target).ctx(&target)?;
         let stored = crate::fsio::file_name_of(&target);
-        let id = self.next_id();
-        self.entries.push(TrashEntry {
-            id: id.clone(),
+        self.record(TrashEntry {
+            id: String::new(),
             kind: TrashKind::File,
             origin: origin.to_string(),
             label: name,
@@ -105,9 +104,7 @@ impl Trash {
             stored: Some(stored),
             content: None,
             index: None,
-        });
-        self.save()?;
-        Ok(id)
+        })
     }
 
     /// Records a removed task (its rendered lines) so it can go back to its
@@ -121,9 +118,8 @@ impl Trash {
         today: NaiveDate,
     ) -> Result<String> {
         std::fs::create_dir_all(&self.dir).ctx(&self.dir)?;
-        let id = self.next_id();
-        self.entries.push(TrashEntry {
-            id: id.clone(),
+        self.record(TrashEntry {
+            id: String::new(),
             kind: TrashKind::Task,
             origin: list.to_string(),
             label: label.to_string(),
@@ -131,7 +127,16 @@ impl Trash {
             stored: None,
             content: Some(content),
             index: Some(index),
-        });
+        })
+    }
+
+    /// Gives `entry` a fresh id, files it in the index and writes the index —
+    /// the tail every kind of trashing shares. The id the caller left blank is
+    /// the one returned.
+    fn record(&mut self, mut entry: TrashEntry) -> Result<String> {
+        let id = self.next_id();
+        entry.id = id.clone();
+        self.entries.push(entry);
         self.save()?;
         Ok(id)
     }
