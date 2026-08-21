@@ -11,6 +11,7 @@
   import { dismissable } from "../actions/dismissable.js";
   import { portal } from "../actions/portal.js";
   import { onBack } from "../services/back.js";
+  import { clamp } from "../services/num.js";
   import MenuItems from "./MenuItems.svelte";
 
   let {
@@ -57,8 +58,10 @@
     }
     const r = panel.getBoundingClientRect();
     placed = {
-      x: Math.max(MARGIN, Math.min(at.x, window.innerWidth - r.width - MARGIN)),
-      y: Math.max(MARGIN, Math.min(at.y, window.innerHeight - r.height - MARGIN)),
+      // The margin wins over the far edge when the panel is wider than the
+      // window: the panel is cut on the right, never pushed off the left.
+      x: clamp(at.x, MARGIN, Math.max(MARGIN, window.innerWidth - r.width - MARGIN)),
+      y: clamp(at.y, MARGIN, Math.max(MARGIN, window.innerHeight - r.height - MARGIN)),
     };
   });
 </script>

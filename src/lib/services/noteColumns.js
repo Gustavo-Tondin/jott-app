@@ -19,6 +19,7 @@
 // estimate that is off makes one column longer than another — never one empty.
 
 import { previewBlocks } from "./notePreview.js";
+import { clamp } from "./num.js";
 
 /// The most lines of preview a card draws — the clamp in
 /// styles/components/note-preview.css (`--note-preview-lines`), repeated here
@@ -49,7 +50,7 @@ export function columnCount(width, min = CARD_MIN, gap = COLUMN_GAP) {
   if (!(width > 0)) return 1;
   const fits = Math.floor((width + gap) / (min + gap));
   const floor = width >= PAIR_FLOOR ? 2 : 1;
-  return Math.max(floor, Math.min(MAX_COLUMNS, fits));
+  return clamp(fits, floor, MAX_COLUMNS);
 }
 
 /// Which items end a column: a Set of indices into `weights`.

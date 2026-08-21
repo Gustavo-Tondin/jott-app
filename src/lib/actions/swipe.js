@@ -22,6 +22,8 @@
 // committed until release: released short of the threshold, the card comes
 // back and nothing happened.
 
+import { clamp } from "../services/num.js";
+
 /// How far the card must travel for the release to count. Just past the point
 /// where the action square is fully out, so committing and seeing it line up.
 const THRESHOLD = 60;
@@ -34,7 +36,7 @@ const MAX = 76;
 /// card does not move at all, so a vertical drag never nudges it sideways.
 const LOCK = 8;
 
-const clamp = (dx) => Math.max(-MAX, Math.min(MAX, dx));
+const held = (dx) => clamp(dx, -MAX, MAX);
 
 export function swipe(node, params) {
   let opts = params ?? {};
@@ -116,7 +118,7 @@ export function swipe(node, params) {
 
     // A direction with nothing behind it gives, but only a little — the card
     // rubber-bands instead of sliding open onto an action that is not there.
-    drag.dx = clamp(allowed(dx) ? dx : dx / 6);
+    drag.dx = held(allowed(dx) ? dx : dx / 6);
     paint(drag.dx);
   }
 
@@ -191,7 +193,7 @@ export function swipe(node, params) {
     }
     // Ours now: the list must not scroll under it.
     e.preventDefault();
-    drag.dx = clamp(allowed(dx) ? dx : dx / 6);
+    drag.dx = held(allowed(dx) ? dx : dx / 6);
     paint(drag.dx);
   }
 

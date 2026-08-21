@@ -10,6 +10,8 @@
 // exception the resize grips and the drop zones make. Everything the CSS
 // itself declares stays in rem.
 
+import { clamp } from "../services/num.js";
+
 /// The left sidebar. Narrower than the minimum and it stops being a sidebar:
 /// the notebook name in the footer and the group rows have nowhere to go.
 /// Wider than the maximum and the centre panel — the actual work — is the
@@ -40,7 +42,7 @@ export const MAX_SIDEBAR = SIDEBAR.max;
 export function clampWidth(value, limits = SIDEBAR) {
   const px = typeof value === "string" ? Number.parseFloat(value) : value;
   if (typeof px !== "number" || !Number.isFinite(px)) return null;
-  return Math.min(limits.max, Math.max(limits.min, Math.round(px)));
+  return clamp(Math.round(px), limits.min, limits.max);
 }
 
 /// The width a drag lands on: where it started, plus how far the pointer went.

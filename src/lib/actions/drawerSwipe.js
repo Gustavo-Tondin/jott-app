@@ -48,6 +48,8 @@
 // Used on the shell:
 //   <div class="shell" use:drawerSwipe={{ enabled, open, onOpen, onClose, onDrag }}>
 
+import { clamp } from "../services/num.js";
+
 /// What already means something else when dragged sideways. `[data-swipes]` is
 /// every card carrying actions/swipe.js; then text a drag SELECTS, where
 /// hijacking the gesture would take away the only way to select anything; then
@@ -145,7 +147,7 @@ export function drawerSwipe(node, params) {
     // from 0, closing counts down from its full width; neither goes past the
     // ends, so the drawer never overshoots its own wall.
     const from = drag.open ? width() : 0;
-    drag.travel = Math.max(0, Math.min(width(), from + dx));
+    drag.travel = clamp(from + dx, 0, width());
     opts.onDrag?.(drag.travel);
     return true;
   }

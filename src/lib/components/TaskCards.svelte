@@ -13,6 +13,7 @@
   import { reorderable } from "../actions/reorder.js";
   import { swipe } from "../actions/swipe.js";
   import { ask } from "../services/shortcuts.js";
+  import { clamp } from "../services/num.js";
 
   let {
     /// Each entry is a task and the list it lives in — Home draws tasks from
@@ -74,7 +75,7 @@
 
   /// The card the keys act on: the focused one, kept inside the list as items
   /// come and go (a completed task leaves, and the index would dangle).
-  let at = $derived(Math.min(focused, Math.max(0, items.length - 1)));
+  let at = $derived(clamp(focused, 0, Math.max(0, items.length - 1)));
 
   let list = $state(null);
 

@@ -11,6 +11,8 @@
 // file, a keystroke — what zoom does the app actually use? That question is
 // answerable without a DOM, so it is answered under test.
 
+import { clamp } from "../services/num.js";
+
 /// The ladder. A ladder rather than a multiplier so the steps are the same
 /// going up and coming back down, and so 100% is always reachable by
 /// pressing the key.
@@ -20,7 +22,7 @@ export const ZOOM_STEPS = [0.8, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2];
 /// the same reason: a value hand-edited into the preferences file must not
 /// leave the app unusable with no way back to a readable size.
 export const clampZoom = (z) =>
-  Math.min(ZOOM_STEPS[ZOOM_STEPS.length - 1], Math.max(ZOOM_STEPS[0], z));
+  clamp(z, ZOOM_STEPS[0], ZOOM_STEPS[ZOOM_STEPS.length - 1]);
 
 /// One step along the ladder from `current`, in `direction` (±1). A value
 /// off the ladder snaps to the first step at or above it, so stepping from
@@ -28,7 +30,7 @@ export const clampZoom = (z) =>
 export function steppedZoom(current, direction) {
   const at = ZOOM_STEPS.indexOf(current);
   const from = at >= 0 ? at : ZOOM_STEPS.findIndex((z) => z >= current);
-  return ZOOM_STEPS[Math.min(ZOOM_STEPS.length - 1, Math.max(0, from + direction))];
+  return ZOOM_STEPS[clamp(from + direction, 0, ZOOM_STEPS.length - 1)];
 }
 
 /// The root `font-size` a zoom means — empty at 100%, so the stylesheet's
