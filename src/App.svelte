@@ -79,6 +79,11 @@
   } from "./lib/services/themes.js";
   import { reader } from "./lib/services/features.js";
   import { autoCheck, installUpdate, openReleasePage } from "./lib/services/update.js";
+  import {
+    offerIfDue as offerMenuEntry,
+    addToMenu,
+    dismiss as dismissMenuEntry,
+  } from "./lib/services/desktopEntry.js";
   import { S } from "./lib/services/strings.js";
   import * as Tabs from "./lib/shell/tabs.js";
   import { reachable, spaceOfView, titleOf, viewFromId } from "./lib/shell/views.js";
@@ -1522,6 +1527,35 @@
     }
   }
 
+  /// The offer to put Jott in the applications menu, when this install is an
+  /// AppImage that is not in it yet. Same shape as the update notice on
+  /// purpose: one line, two buttons, and gone once answered. The whole rule
+  /// for whether to ask is in services/desktopEntry.js.
+  let menuOffer = $state(null);
+  let addingToMenu = $state(false);
+  offerMenuEntry()
+    .then((found) => (menuOffer = found))
+    .catch(() => {});
+
+  async function addToMenuNow() {
+    addingToMenu = true;
+    try {
+      await addToMenu();
+      // Gone because it is done, not because it was refused: nothing is
+      // remembered, so moving the file brings the offer back.
+      menuOffer = null;
+    } catch (e) {
+      fail(e);
+    } finally {
+      addingToMenu = false;
+    }
+  }
+
+  function dismissMenuOffer() {
+    menuOffer = null;
+    dismissMenuEntry().catch(() => {});
+  }
+
   /// Opening a document replaces what the tab shows, the way clicking a link
   /// does — a new tab is a deliberate gesture (middle click, or the option in
   /// the context menu), never the default.
@@ -2009,6 +2043,29 @@
                 <button
                   class="theme-btn theme-btn--outline theme-btn--xs"
                   onclick={() => (update = null)}>{S.updateDismiss}</button
+                >
+              </span>
+            </div>
+          {/if}
+
+          {#if menuOffer}
+            <!-- The one thing an AppImage cannot do for itself until it is
+                 asked: a single file installs nothing, so the desktop has no
+                 entry and no icon to find. Offered once — "No thanks" is
+                 remembered on this machine, "Add to menu" is not, so moving
+                 the file asks again. -->
+            <div class="shell__update">
+              <strong>{S.menuEntryBanner}</strong>
+              <span class="shell__update-actions">
+                <button
+                  class="theme-btn theme-btn--primary theme-btn--xs"
+                  disabled={addingToMenu}
+                  onclick={addToMenuNow}
+                  >{addingToMenu ? S.menuEntryAdding : S.menuEntryAdd}</button
+                >
+                <button
+                  class="theme-btn theme-btn--outline theme-btn--xs"
+                  onclick={dismissMenuOffer}>{S.menuEntryDismiss}</button
                 >
               </span>
             </div>

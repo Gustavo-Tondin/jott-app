@@ -5518,6 +5518,57 @@ describe("SettingsView", () => {
     await screen.findByRole("button", { name: "Download" });
   });
 
+  test("the menu-entry row is only there for an install that has one to write", async () => {
+    // A packaged Jott was put in the applications menu by its package
+    // manager. Showing the switch anyway would offer a second entry for one
+    // app — so the row is absent, not disabled.
+    bridge({
+      notebook_settings: settings,
+      desktop_entry_state: { supported: false, installed: false, dismissed: false },
+    });
+    render(SettingsView, { props: props() });
+    await openSection("About");
+
+    // Waiting on a row that is always in About, so the absence below is
+    // "the section rendered without it", not "the section had not rendered".
+    await screen.findByLabelText("Check for updates automatically");
+    expect(screen.queryByLabelText("Show in applications menu")).toBe(null);
+  });
+
+  test("the AppImage can put itself in the menu, and take itself back out", async () => {
+    bridge({
+      notebook_settings: settings,
+      desktop_entry_state: { supported: true, installed: false, dismissed: false },
+      set_desktop_entry: null,
+    });
+    render(SettingsView, { props: props() });
+    await openSection("About");
+
+    const toggle = await screen.findByLabelText("Show in applications menu");
+    await waitFor(() => expect(toggle.checked).toBe(false));
+
+    await userEvent.click(toggle);
+    await waitFor(() => expect(invoke).toHaveBeenCalledWith("set_desktop_entry", { on: true }));
+    await waitFor(() => expect(toggle.checked).toBe(true));
+
+    // Reversible: it writes two files outside the notebook, so the same row
+    // has to be able to take them away.
+    await userEvent.click(toggle);
+    await waitFor(() => expect(invoke).toHaveBeenCalledWith("set_desktop_entry", { on: false }));
+  });
+
+  test("an entry already on disk shows as on", async () => {
+    bridge({
+      notebook_settings: settings,
+      desktop_entry_state: { supported: true, installed: true, dismissed: false },
+    });
+    render(SettingsView, { props: props() });
+    await openSection("About");
+
+    const toggle = await screen.findByLabelText("Show in applications menu");
+    await waitFor(() => expect(toggle.checked).toBe(true));
+  });
+
   test("the menu names every section, and one is open beside it", async () => {
     // Side by side (wireframe "Settings"): the menu never leaves and something
     // is always selected — a menu with nothing open would be half a screen.

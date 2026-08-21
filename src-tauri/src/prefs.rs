@@ -91,6 +91,16 @@ struct MachinePrefs {
     /// owns. It is what keeps the check to once a day instead of once per
     /// launch.
     last_update_check: Option<String>,
+    /// Whether the user waved away the offer to put Jott in the application
+    /// menu (2026-08-21).
+    ///
+    /// A machine preference for the same reason the update switch is one: it
+    /// answers for THIS install. The same notebook opened from an AppImage
+    /// here and a pacman package there is one notebook and two installs, and
+    /// only one of them has a menu entry to write. Absent means never asked —
+    /// the offer only appears where there is something to offer, so the
+    /// default costs nothing on a packaged install.
+    desktop_entry_dismissed: Option<bool>,
 }
 
 /// Overrides where machine preferences are stored.
@@ -232,6 +242,17 @@ pub fn last_update_check<R: Runtime>(app: &AppHandle<R>) -> Option<String> {
 
 pub fn remember_last_update_check<R: Runtime>(app: &AppHandle<R>, when: &str) {
     update(app, |prefs| prefs.last_update_check = Some(when.to_string()));
+}
+
+/// Whether the menu-entry offer was already waved away. Absent means no.
+pub fn desktop_entry_dismissed<R: Runtime>(app: &AppHandle<R>) -> bool {
+    load(app).desktop_entry_dismissed.unwrap_or(false)
+}
+
+pub fn remember_desktop_entry_dismissed<R: Runtime>(app: &AppHandle<R>, dismissed: bool) {
+    update(app, |prefs| {
+        prefs.desktop_entry_dismissed = Some(dismissed);
+    });
 }
 
 /// Reads, changes and writes the preferences. Every failure path is silent on

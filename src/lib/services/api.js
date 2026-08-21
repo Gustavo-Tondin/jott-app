@@ -77,6 +77,12 @@ export const api = {
   lastUpdateCheck: () => invoke("last_update_check"),
   rememberLastUpdateCheck: (when) => invoke("remember_last_update_check", { when }),
 
+  // Putting the app into the desktop's application menu — only an AppImage
+  // has anything to write here, which is what `supported` answers.
+  desktopEntryState: () => invoke("desktop_entry_state"),
+  setDesktopEntry: (on) => invoke("set_desktop_entry", { on }),
+  dismissDesktopEntry: () => invoke("dismiss_desktop_entry"),
+
   // lists
   listNames: () => invoke("list_names"),
   listCounts: () => invoke("list_counts"),

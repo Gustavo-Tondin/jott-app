@@ -10,6 +10,7 @@ pub mod assets;
 pub mod clock;
 pub mod conflict;
 pub mod config;
+pub mod desktop;
 pub mod error;
 pub mod folder;
 pub mod fsio;

@@ -33,6 +33,7 @@
   import { bound } from "../services/shortcuts.js";
   import { ZOOM_STEPS } from "../shell/zoom.js";
   import { installUpdate, manualCheck, openReleasePage } from "../services/update.js";
+  import { addToMenu, removeFromMenu } from "../services/desktopEntry.js";
 
   let {
     notebook,
@@ -256,7 +257,8 @@
   // here is invisible to the search but still perfectly reachable — the
   // failure is a search miss, never a broken screen.
   const INDEX = () => [
-    ["about", [S.updateVersion, S.updateAutoCheck, S.updateCheckNow, S.yourFiles, S.reportIssue]],
+    ["about", [S.updateVersion, S.updateAutoCheck, S.updateCheckNow, S.yourFiles,
+      S.menuEntryLabel, S.reportIssue]],
     [
       "display",
       [
@@ -373,6 +375,30 @@
     updateAuto = on;
     api.rememberAutoUpdateCheck(on).catch(onError);
   };
+
+  /// The menu entry, on the installs that have one to write. `supported`
+  /// false — a packaged Jott, Windows, Android — hides the row entirely
+  /// rather than showing a switch that would refuse: the package manager
+  /// already put this app in the menu.
+  let menuEntry = $state({ supported: false, installed: false });
+  let menuBusy = $state(false);
+
+  api
+    .desktopEntryState()
+    .then((state) => (menuEntry = state ?? menuEntry))
+    .catch(() => {});
+
+  async function setMenuEntry(on) {
+    menuBusy = true;
+    try {
+      await (on ? addToMenu() : removeFromMenu());
+      menuEntry = { ...menuEntry, installed: on };
+    } catch (e) {
+      onError?.(e);
+    } finally {
+      menuBusy = false;
+    }
+  }
 
   async function checkNow() {
     checking = true;
@@ -644,6 +670,26 @@
             >
           </div>
           <p class="settings__hint">{S.yourFilesHint}</p>
+
+          <!-- Only an AppImage sees this. A single file installs nothing, so
+               the desktop has no entry and no icon to find it by; a
+               deb/rpm/pacman Jott was put in the menu at install time and
+               must not get a second one. Reversible because it writes two
+               files outside the notebook. -->
+          {#if menuEntry.supported}
+            <label class="settings__row">
+              <span class="settings__label">{S.menuEntryLabel}</span>
+              <input
+                class="theme-switch"
+                type="checkbox"
+                checked={menuEntry.installed}
+                disabled={menuBusy}
+                aria-label={S.menuEntryLabel}
+                onchange={(e) => setMenuEntry(e.currentTarget.checked)}
+              />
+            </label>
+            <p class="settings__hint">{S.menuEntryHint}</p>
+          {/if}
 
           <div class="settings__row">
             <span class="settings__label">{S.reportIssue}</span>

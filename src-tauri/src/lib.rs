@@ -83,6 +83,9 @@ pub fn configure<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builde
             commands::remember_auto_update_check,
             commands::last_update_check,
             commands::remember_last_update_check,
+            commands::desktop_entry_state,
+            commands::set_desktop_entry,
+            commands::dismiss_desktop_entry,
             commands::open_in_file_manager,
             commands::list_counts,
             // lists

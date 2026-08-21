@@ -453,6 +453,17 @@ export const S = {
   updateDownload: "Download",
   updateDismiss: "Later",
 
+  // The application menu (2026-08-21). Only an AppImage ever sees these: a
+  // deb/rpm/pacman Jott was put in the menu by its package manager.
+  menuEntryBanner: "Jott is running as a single file, so it is not in your applications menu yet.",
+  menuEntryAdd: "Add to menu",
+  menuEntryAdding: "Adding…",
+  menuEntryDismiss: "No thanks",
+  menuEntryLabel: "Show in applications menu",
+  menuEntryHint:
+    "Writes a launcher and an icon into your home folder (~/.local/share) so Jott shows up in the applications list and in search, the way an installed app does. It points at this file where it is now — move the file and switch this off and on again. Nothing outside your home folder is touched.",
+  menuEntryAdded: "Jott is in your applications menu.",
+
   // Shell (phase 8.5)
   home: "Home",
   tasks: "Tasks",

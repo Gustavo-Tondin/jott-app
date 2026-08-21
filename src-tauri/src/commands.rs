@@ -2483,10 +2483,223 @@ fn fetch_latest_version(url: &str, overridden: bool) -> CommandResult<String> {
         .ok_or_else(|| CommandError::new("invalid", "that manifest names no version"))
 }
 
+// ---------------------------------------------------------------------------
+// The application menu
+// ---------------------------------------------------------------------------
+
+/// The icon the entry points at, carried in the binary.
+///
+/// Read from the AppImage's own insides instead? It does ship `jott.png` at
+/// its root, but reaching it means asking the AppImage to extract itself into
+/// a temporary folder — a subprocess, a scratch directory and a dependency on
+/// AppImage internals, to fetch twelve kilobytes that are already ours. The
+/// same file the PKGBUILD installs, compiled in, cannot go missing.
+const ICON_PNG: &[u8] = include_bytes!("../icons/128x128@2x.png");
+
+/// The entry text, from the file the PKGBUILD installs.
+///
+/// One template, two installs: whatever the packaged Jott calls itself in the
+/// menu, the AppImage calls itself too. Editing `packaging/jott.desktop` moves
+/// both, and there is no second copy to forget.
+const DESKTOP_TEMPLATE: &str = include_str!("../../packaging/jott.desktop");
+
+/// What the frontend needs to decide whether to offer, and what to show.
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DesktopEntryState {
+    /// Whether this install has a menu entry to write at all. False on
+    /// Windows, on Android, and on a deb/rpm/pacman Jott — those were put in
+    /// the menu by their package manager, and writing a second entry would
+    /// give the user two Jotts in the launcher.
+    pub supported: bool,
+    /// Whether the entry currently on disk points at THIS executable.
+    pub installed: bool,
+    /// Whether that entry is out of date — it exists and points here, but the
+    /// icon or the entry text is not what this build would write. An in-place
+    /// update replaces the `.AppImage` and nothing else, so a redrawn icon
+    /// would otherwise never reach a machine that integrated months ago.
+    pub stale: bool,
+    /// Whether the offer was already waved away on this machine.
+    pub dismissed: bool,
+}
+
+/// Where the running app lives, when it is an AppImage.
+///
+/// `$APPIMAGE` is set by the AppImage's own runtime to the absolute path of
+/// the `.AppImage` file — the same signal `check_for_update` reads to know
+/// this install can replace itself. `std::env::current_exe()` is the wrong
+/// question here: inside an AppImage it answers with the unpacked binary in a
+/// temporary mount that disappears when the app closes.
+fn appimage_path() -> Option<PathBuf> {
+    let raw = std::env::var_os("APPIMAGE")?;
+    let path = PathBuf::from(raw);
+    path.is_absolute().then_some(path)
+}
+
+/// The user's data directory, per the XDG spec.
+///
+/// `$XDG_DATA_HOME` first because a machine that sets it means it: writing to
+/// `~/.local/share` anyway would put the entry where that desktop is not
+/// looking.
+fn data_dir() -> Option<PathBuf> {
+    match std::env::var_os("XDG_DATA_HOME") {
+        Some(dir) if !dir.is_empty() => Some(PathBuf::from(dir)),
+        _ => std::env::var_os("HOME").map(|home| PathBuf::from(home).join(".local/share")),
+    }
+}
+
+#[tauri::command]
+pub fn desktop_entry_state<R: Runtime>(app: AppHandle<R>) -> DesktopEntryState {
+    let here = appimage_path();
+    let dir = data_dir();
+    let (installed, stale) = match (&here, &dir) {
+        (Some(exec), Some(dir)) => {
+            let installed = jott_core::desktop::is_installed(dir, exec);
+            let current =
+                installed && jott_core::desktop::is_current(dir, DESKTOP_TEMPLATE, exec, ICON_PNG);
+            (installed, installed && !current)
+        }
+        _ => (false, false),
+    };
+    DesktopEntryState {
+        supported: here.is_some() && dir.is_some(),
+        installed,
+        stale,
+        dismissed: crate::prefs::desktop_entry_dismissed(&app),
+    }
+}
+
+/// Writes the entry, or takes it away again.
+///
+/// Reversible on purpose: this writes two files outside the notebook, and a
+/// feature that can only be turned on is a feature the user cannot undo
+/// without being told where the files are.
+#[tauri::command]
+pub fn set_desktop_entry(on: bool) -> CommandResult<()> {
+    let dir = data_dir().ok_or_else(|| {
+        CommandError::new("unsupported", "this system has no user data directory")
+    })?;
+
+    if !on {
+        return jott_core::desktop::remove(&dir).map_err(Into::into);
+    }
+
+    let exec = appimage_path()
+        .ok_or_else(|| CommandError::new("unsupported", "this install is not an AppImage"))?;
+    jott_core::desktop::install(&dir, DESKTOP_TEMPLATE, &exec, ICON_PNG)?;
+    Ok(())
+}
+
+/// Remembers that the offer was refused, so it is made once and not at every
+/// launch.
+#[tauri::command]
+pub fn dismiss_desktop_entry<R: Runtime>(app: AppHandle<R>) {
+    crate::prefs::remember_desktop_entry_dismissed(&app, true);
+}
+
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// The real template, not a stand-in.
+    ///
+    /// `jott_core::desktop` is tested against a template of its own, which
+    /// proves the rewriting. What it cannot prove is that the file this crate
+    /// compiles in is a usable entry — and that file is shared with the
+    /// PKGBUILD, so an edit meant for the packaged install lands here too.
+    #[test]
+    fn the_packaged_template_makes_a_launchable_entry() {
+        let exec = Path::new("/home/x/AppImages/Jott.AppImage");
+        let icon = Path::new("/home/x/.local/share/icons/hicolor/256x256/apps/jott.png");
+        let text = jott_core::desktop::contents(DESKTOP_TEMPLATE, exec, icon);
+
+        assert!(text.starts_with("[Desktop Entry]"));
+        for required in ["Type=Application", "Name=Jott", "StartupWMClass=jott"] {
+            assert!(text.contains(required), "the entry lost {required}:\n{text}");
+        }
+        assert!(text.contains("Exec=/home/x/AppImages/Jott.AppImage\n"));
+        assert!(text.contains(&format!("Icon={}\n", icon.display())));
+        // `Exec=jott` and `Icon=jott` are the packaged install's answers: the
+        // first would open nothing from an AppImage, the second is hidden by
+        // any stale icon cache. Rewriting both is the whole point.
+        assert!(!text.contains("Exec=jott\n"));
+        assert!(!text.contains("Icon=jott\n"));
+    }
+
+    /// The desktop's own validator, on the entry this crate would write.
+    ///
+    /// Asserting on the text proves what we MEANT; `desktop-file-validate` is
+    /// the freedesktop reference implementation and proves what a launcher
+    /// will make of it. Skipped where the tool is absent — that is a missing
+    /// measurement, not a failure, and CI must not go red for it.
+    #[test]
+    fn the_entry_passes_the_freedesktop_validator() {
+        let Ok(dir) = tempfile::tempdir() else { return };
+        let exec = dir.path().join("Jott.AppImage");
+        let entry =
+            jott_core::desktop::install(dir.path(), DESKTOP_TEMPLATE, &exec, ICON_PNG).unwrap();
+
+        let Ok(out) = std::process::Command::new("desktop-file-validate")
+            .arg(&entry.desktop)
+            .output()
+        else {
+            eprintln!("desktop-file-validate is not installed — entry not validated");
+            return;
+        };
+
+        // The tool reports hints on stdout and errors through the exit code.
+        assert!(
+            out.status.success(),
+            "the entry is not valid:\n{}",
+            String::from_utf8_lossy(&out.stdout)
+        );
+    }
+
+    /// The icon has to be a PNG the desktop can actually draw: the entry names
+    /// it by theme name, so a broken file is an app with no icon rather than
+    /// an error anyone sees.
+    #[test]
+    fn the_compiled_in_icon_is_a_png() {
+        assert_eq!(&ICON_PNG[1..4], b"PNG");
+        assert!(ICON_PNG.len() > 1024, "that icon is too small to be the real one");
+    }
+
+    /// `$HOME` is the fallback, and the spec says an explicit `$XDG_DATA_HOME`
+    /// wins — writing to `~/.local/share` on a machine that moved it puts the
+    /// entry where nothing is looking.
+    #[test]
+    fn the_data_directory_follows_the_spec() {
+        // Serialised because environment variables belong to the process, not
+        // to the test — two of these running at once would read each other's.
+        static GUARD: std::sync::Mutex<()> = std::sync::Mutex::new(());
+        let _held = GUARD.lock().unwrap_or_else(|e| e.into_inner());
+
+        let restore = (
+            std::env::var_os("XDG_DATA_HOME"),
+            std::env::var_os("HOME"),
+        );
+
+        std::env::set_var("HOME", "/home/x");
+        std::env::remove_var("XDG_DATA_HOME");
+        assert_eq!(data_dir(), Some(PathBuf::from("/home/x/.local/share")));
+
+        std::env::set_var("XDG_DATA_HOME", "/data");
+        assert_eq!(data_dir(), Some(PathBuf::from("/data")));
+
+        // An empty value is not a choice, it is an unset variable spelled out.
+        std::env::set_var("XDG_DATA_HOME", "");
+        assert_eq!(data_dir(), Some(PathBuf::from("/home/x/.local/share")));
+
+        match restore.0 {
+            Some(v) => std::env::set_var("XDG_DATA_HOME", v),
+            None => std::env::remove_var("XDG_DATA_HOME"),
+        }
+        match restore.1 {
+            Some(v) => std::env::set_var("HOME", v),
+            None => std::env::remove_var("HOME"),
+        }
+    }
 
     /// The folder browser Android needs (2026-08-19). Its rules are the ones a
     /// path from the UI makes necessary: it may not walk out of the root, and
