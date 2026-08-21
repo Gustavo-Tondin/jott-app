@@ -187,19 +187,19 @@ fn data_dir() -> Option<PathBuf> {
 pub fn desktop_entry_state<R: Runtime>(app: AppHandle<R>) -> DesktopEntryState {
     let here = appimage_path();
     let dir = data_dir();
-    let (installed, stale) = match (&here, &dir) {
+    let status = match (&here, &dir) {
         (Some(exec), Some(dir)) => {
-            let installed = jott_core::desktop::is_installed(dir, exec);
-            let current =
-                installed && jott_core::desktop::is_current(dir, DESKTOP_TEMPLATE, exec, ICON_PNG);
-            (installed, installed && !current)
+            jott_core::desktop::status(dir, DESKTOP_TEMPLATE, exec, ICON_PNG)
         }
-        _ => (false, false),
+        _ => jott_core::desktop::Status {
+            installed: false,
+            stale: false,
+        },
     };
     DesktopEntryState {
         supported: here.is_some() && dir.is_some(),
-        installed,
-        stale,
+        installed: status.installed,
+        stale: status.stale,
         dismissed: crate::prefs::desktop_entry_dismissed(&app),
     }
 }

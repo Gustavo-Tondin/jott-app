@@ -23,6 +23,8 @@
 
 use std::path::{Path, PathBuf};
 
+use serde::Serialize;
+
 use crate::error::{IoContext, Result};
 use crate::fsio;
 
@@ -175,6 +177,27 @@ pub fn is_current(data_dir: &Path, template: &str, exec: &Path, icon: &[u8]) -> 
     std::fs::read(&entry.icon).is_ok_and(|bytes| bytes == icon)
 }
 
+/// What the menu says about the app running from `exec`, in one answer.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Status {
+    /// The entry on disk points at THIS executable.
+    pub installed: bool,
+    /// It does, but the icon or the entry text is not what this build would
+    /// write. Never true for an entry that is not installed: a stale entry
+    /// is one worth refreshing, and there is nothing to refresh where the
+    /// offer has to be made from scratch.
+    pub stale: bool,
+}
+
+/// Whether the menu points at `exec`, and whether what it points with is out
+/// of date — `is_installed` and `is_current` folded into the one rule the
+/// launch needs: stale is "installed, and not current".
+pub fn status(data_dir: &Path, template: &str, exec: &Path, icon: &[u8]) -> Status {
+    let installed = is_installed(data_dir, exec);
+    let stale = installed && !is_current(data_dir, template, exec, icon);
+    Status { installed, stale }
+}
+
 /// Whether the menu currently points at the app running from `exec`.
 ///
 /// Not just "does the file exist": an AppImage that was moved or renamed
@@ -191,9 +214,109 @@ pub fn is_installed(data_dir: &Path, exec: &Path) -> bool {
         .any(|value| value.trim() == wanted)
 }
 
+// ---------------------------------------------------------------------------
+// The window buttons
+// ---------------------------------------------------------------------------
+//
+// The other thing the desktop tells the app about itself. The window is
+// frameless, so the app draws the buttons, and it has to draw the ones the
+// system would — in the system's order, on the system's side. Reading the
+// setting is the bridge's (`gsettings`); what its text means is here, where a
+// second frontend can read it the same way.
+
+/// Which window buttons go on each side, in order.
+#[derive(Debug, Default, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ButtonLayout {
+    pub left: Vec<String>,
+    pub right: Vec<String>,
+}
+
+/// The layout every desktop gets when the system does not say otherwise.
+///
+/// It is also the answer when anything at all goes wrong: a window with no way
+/// to close it is not a fallback, it is a trap.
+pub fn default_button_layout() -> ButtonLayout {
+    ButtonLayout {
+        left: Vec::new(),
+        right: ["minimize", "maximize", "close"]
+            .iter()
+            .map(|s| s.to_string())
+            .collect(),
+    }
+}
+
+/// Parses GNOME's `button-layout` — `"appmenu:minimize,maximize,close"`.
+///
+/// The colon splits the title bar's two sides; the names are comma separated.
+/// Anything this build cannot draw (`appmenu`, `icon`, `spacer`) is dropped
+/// rather than guessed at, and a value with no side we recognise falls back
+/// entirely — half a set of buttons is worse than the standard one.
+pub fn parse_button_layout(value: &str) -> ButtonLayout {
+    const KNOWN: [&str; 3] = ["minimize", "maximize", "close"];
+    let side = |part: &str| -> Vec<String> {
+        part.split(',')
+            .map(str::trim)
+            .filter(|name| KNOWN.contains(name))
+            .map(str::to_string)
+            .collect()
+    };
+
+    let value = value.trim().trim_matches('\'');
+    let (left, right) = value.split_once(':').unwrap_or(("", value));
+    let layout = ButtonLayout {
+        left: side(left),
+        right: side(right),
+    };
+    if layout.left.is_empty() && layout.right.is_empty() {
+        return default_button_layout();
+    }
+    layout
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_button_layout_follows_the_system_and_never_leaves_the_window_shut() {
+        // GNOME's default.
+        assert_eq!(
+            parse_button_layout("appmenu:minimize,maximize,close"),
+            ButtonLayout {
+                left: vec![],
+                right: ["minimize", "maximize", "close"]
+                    .map(str::to_string)
+                    .to_vec(),
+            }
+        );
+
+        // Buttons on the left, the way macOS-style setups put them — and the
+        // `gsettings` quoting stripped.
+        assert_eq!(
+            parse_button_layout("'close,minimize,maximize:'"),
+            ButtonLayout {
+                left: ["close", "minimize", "maximize"].map(str::to_string).to_vec(),
+                right: vec![],
+            }
+        );
+
+        // Someone who dropped the maximize keeps exactly what they asked for.
+        assert_eq!(
+            parse_button_layout(":minimize,close").right,
+            ["minimize", "close"].map(str::to_string).to_vec()
+        );
+
+        // Anything unreadable, empty, or naming only things we cannot draw
+        // gives the standard set back: a window has to be closable.
+        for hostile in ["", "   ", ":", "appmenu:icon,spacer", "banana"] {
+            assert_eq!(
+                parse_button_layout(hostile),
+                default_button_layout(),
+                "{hostile:?}"
+            );
+        }
+    }
 
     const TEMPLATE: &str = "[Desktop Entry]\nType=Application\nName=Jott\nExec=jott\nIcon=jott\n";
 
@@ -334,6 +457,49 @@ mod tests {
         let d = dir();
         install(d.path(), TEMPLATE, Path::new("/old/Jott.AppImage"), b"i").unwrap();
         assert!(!is_installed(d.path(), Path::new("/new/Jott.AppImage")));
+    }
+
+    #[test]
+    fn status_folds_installed_and_current_into_one_answer() {
+        let d = dir();
+        let exec = Path::new("/x/Jott.AppImage");
+
+        // Nothing written yet: not installed, and therefore not stale either.
+        assert_eq!(
+            status(d.path(), TEMPLATE, exec, b"i"),
+            Status {
+                installed: false,
+                stale: false
+            }
+        );
+
+        // Freshly installed: current.
+        install(d.path(), TEMPLATE, exec, b"i").unwrap();
+        assert_eq!(
+            status(d.path(), TEMPLATE, exec, b"i"),
+            Status {
+                installed: true,
+                stale: false
+            }
+        );
+
+        // The icon this build would write changed: still installed, now stale.
+        assert_eq!(
+            status(d.path(), TEMPLATE, exec, b"redrawn"),
+            Status {
+                installed: true,
+                stale: true
+            }
+        );
+
+        // Pointing somewhere else is not stale — it is not installed at all.
+        assert_eq!(
+            status(d.path(), TEMPLATE, Path::new("/moved/Jott.AppImage"), b"i"),
+            Status {
+                installed: false,
+                stale: false
+            }
+        );
     }
 
     #[test]

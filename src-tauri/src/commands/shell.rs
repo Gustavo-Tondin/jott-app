@@ -8,7 +8,7 @@
 
 use std::path::{Path, PathBuf};
 
-use serde::Serialize;
+use jott_core::desktop::{default_button_layout, parse_button_layout, ButtonLayout};
 use tauri::{AppHandle, Runtime, State};
 // Desktop-only: the trait brings in the folder picker, which Android does not
 // have — see `pick_notebook_folder`.
@@ -18,62 +18,13 @@ use tauri_plugin_dialog::DialogExt;
 use crate::error::{CommandError, CommandResult};
 use crate::state::AppState;
 
-/// Which window buttons go on each side, in order.
-#[derive(Debug, Default, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ButtonLayout {
-    pub left: Vec<String>,
-    pub right: Vec<String>,
-}
-
-/// The layout every desktop gets when the system does not say otherwise.
-///
-/// It is also the answer when anything at all goes wrong: a window with no way
-/// to close it is not a fallback, it is a trap.
-fn default_button_layout() -> ButtonLayout {
-    ButtonLayout {
-        left: Vec::new(),
-        right: ["minimize", "maximize", "close"]
-            .iter()
-            .map(|s| s.to_string())
-            .collect(),
-    }
-}
-
-/// Parses GNOME's `button-layout` — `"appmenu:minimize,maximize,close"`.
-///
-/// The colon splits the title bar's two sides; the names are comma separated.
-/// Anything this build cannot draw (`appmenu`, `icon`, `spacer`) is dropped
-/// rather than guessed at, and a value with no side we recognise falls back
-/// entirely — half a set of buttons is worse than the standard one.
-fn parse_button_layout(value: &str) -> ButtonLayout {
-    const KNOWN: [&str; 3] = ["minimize", "maximize", "close"];
-    let side = |part: &str| -> Vec<String> {
-        part.split(',')
-            .map(str::trim)
-            .filter(|name| KNOWN.contains(name))
-            .map(str::to_string)
-            .collect()
-    };
-
-    let value = value.trim().trim_matches('\'');
-    let (left, right) = value.split_once(':').unwrap_or(("", value));
-    let layout = ButtonLayout {
-        left: side(left),
-        right: side(right),
-    };
-    if layout.left.is_empty() && layout.right.is_empty() {
-        return default_button_layout();
-    }
-    layout
-}
-
 /// What the desktop says the window buttons should be.
 ///
 /// The window is frameless, so the app draws them itself — and a shell that
 /// draws its own chrome has to follow the system's, or it reads as a foreign
 /// app on the desktop. Read once at boot; there is no live signal to watch and
-/// a setting change is rare enough to cost a restart.
+/// a setting change is rare enough to cost a restart. What the setting's text
+/// MEANS is `jott_core::desktop`'s; asking `gsettings` is this side's.
 #[tauri::command]
 pub fn window_button_layout() -> ButtonLayout {
     if !cfg!(target_os = "linux") {
@@ -305,50 +256,5 @@ pub(crate) fn open_path(target: &Path) -> CommandResult<()> {
                 eprintln!("[jott] could not open {}: {e}", target.display());
                 CommandError::new("io", format!("could not open it: {e}"))
             })
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn the_button_layout_follows_the_system_and_never_leaves_the_window_shut() {
-        // GNOME's default.
-        assert_eq!(
-            parse_button_layout("appmenu:minimize,maximize,close"),
-            ButtonLayout {
-                left: vec![],
-                right: ["minimize", "maximize", "close"]
-                    .map(str::to_string)
-                    .to_vec(),
-            }
-        );
-
-        // Buttons on the left, the way macOS-style setups put them — and the
-        // `gsettings` quoting stripped.
-        assert_eq!(
-            parse_button_layout("'close,minimize,maximize:'"),
-            ButtonLayout {
-                left: ["close", "minimize", "maximize"].map(str::to_string).to_vec(),
-                right: vec![],
-            }
-        );
-
-        // Someone who dropped the maximize keeps exactly what they asked for.
-        assert_eq!(
-            parse_button_layout(":minimize,close").right,
-            ["minimize", "close"].map(str::to_string).to_vec()
-        );
-
-        // Anything unreadable, empty, or naming only things we cannot draw
-        // gives the standard set back: a window has to be closable.
-        for hostile in ["", "   ", ":", "appmenu:icon,spacer", "banana"] {
-            assert_eq!(
-                parse_button_layout(hostile),
-                default_button_layout(),
-                "{hostile:?}"
-            );
-        }
     }
 }
