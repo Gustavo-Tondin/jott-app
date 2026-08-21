@@ -21,7 +21,6 @@ export const api = {
   listFolders: (path = null) => invoke("list_folders", { path }),
   createFolder: (parent, name) => invoke("create_folder", { parent, name }),
   openNotebook: (path) => invoke("open_notebook", { path }),
-  currentNotebook: () => invoke("current_notebook"),
   // Every field is optional: the core keeps what it is not told about, so a
   // screen can send one key without holding the rest.
   notebookSettings: () => invoke("notebook_settings"),
@@ -84,13 +83,9 @@ export const api = {
   dismissDesktopEntry: () => invoke("dismiss_desktop_entry"),
 
   // lists
-  listNames: () => invoke("list_names"),
-  listCounts: () => invoke("list_counts"),
-  listConflicts: () => invoke("list_conflicts"),
   listTasks: (list) => invoke("list_tasks", { list }),
   // `folder` is a space folder ("Tasks"); the UI takes it from
   // layout.tasksFolder until it is space-aware.
-  createList: (folder, name) => invoke("create_list", { folder, name }),
   renameList: (from, to) => invoke("rename_list", { from, to }),
   deleteList: (name) => invoke("delete_list", { name }),
 
@@ -139,7 +134,6 @@ export const api = {
   setSpacesSort: (sort) => invoke("set_spaces_sort", { sort }),
 
   // Groups (reestruturação 2026-07-30): a folder that holds spaces.
-  groups: () => invoke("groups"),
   // A group is made at the root, or inside another group (they nest).
   createGroup: (name, group = null) => invoke("create_group", { name, group }),
   renameGroup: (folder, name) => invoke("rename_group", { folder, name }),
@@ -159,7 +153,6 @@ export const api = {
   deleteTask: (list, id) => invoke("delete_task", { list, id }),
 
   // Tags catalogue (name + colour).
-  tags: () => invoke("tags"),
   setTag: (name, color) => invoke("set_tag", { name, color }),
   removeTag: (name) => invoke("remove_tag", { name }),
 
@@ -192,8 +185,6 @@ export const api = {
   deleteNote: (folder, path) => invoke("delete_note", { folder, path }),
   renameNote: (folder, path, title) =>
     invoke("rename_note", { folder, path, title }),
-  moveNote: (folder, path, toFolder) =>
-    invoke("move_note", { folder, path, toFolder }),
   setNotePinned: (folder, path, pinned) =>
     invoke("set_note_pinned", { folder, path, pinned }),
   // The note's head, as the value the line carries: a colour name
@@ -247,12 +238,10 @@ export const api = {
 
   // day and week
   periodTasks: (period) => invoke("period_tasks", { period }),
-  periodSuggestions: (period) => invoke("period_suggestions", { period }),
   groupedSuggestions: (period) => invoke("grouped_suggestions", { period }),
   pullInto: (period, list, id) => invoke("pull_into_period", { period, list, id }),
   removeFrom: (period, list, id) =>
     invoke("remove_from_period", { period, list, id }),
-  addTaskInPeriod: (period, text) => invoke("add_task_in_period", { period, text }),
   // A period has no `.space.json`: how it is arranged lives in the notebook
   // config, and the hand-dragged order goes straight into the state file.
   periodSort: (period) => invoke("period_sort", { period }),

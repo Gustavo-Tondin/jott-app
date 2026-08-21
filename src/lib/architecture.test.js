@@ -678,3 +678,70 @@ describe("the version lives in one file", () => {
     expect(pkgbuild).toContain("Cargo.toml");
   });
 });
+
+// The bridge has two ends — `services/api.js` names a command, `src-tauri/src/
+// lib.rs` registers it — and nothing but a click at runtime used to say
+// whether they agreed. A wrapper for a command Rust dropped fails the first
+// time it is called; a command Rust registers that no wrapper names is code
+// the front cannot reach. Both directions are read from the source here.
+describe("the bridge's two ends agree", () => {
+  const repo = join(src, "..");
+  const named = new Set(
+    [...readFileSync(join(src, "lib", "services", "api.js"), "utf8").matchAll(
+      /invoke\("([a-z_]+)"/g,
+    )].map((m) => m[1]),
+  );
+  const handler = readFileSync(join(repo, "src-tauri", "src", "lib.rs"), "utf8").match(
+    /generate_handler!\[([\s\S]*?)\]/,
+  );
+  const registered = new Set(
+    [...handler[1].replace(/\/\/[^\n]*/g, "").matchAll(/commands::\w+::(\w+)/g)].map(
+      (m) => m[1],
+    ),
+  );
+
+  // Registered in Rust, called by nobody in `src/` (2026-08-21). Each stays
+  // compiled in on purpose — a second frontend, or a screen that is not
+  // written yet — and is listed HERE so that a wrapper silently losing its
+  // last caller shows up as a failing test rather than as dead weight.
+  const UNCALLED = [
+    // The snapshot carries the open notebook; nothing asks for it alone.
+    "current_notebook",
+    // Three views the snapshot also carries (info.lists, counts, conflicts).
+    "list_names",
+    "list_counts",
+    "list_conflicts",
+    // A tasks space is ONE list since 2026-08-13, made with the space; no
+    // screen offers a second list, so `create_list` is unreachable from the
+    // UI today. The command stays for the hand-made extra list the format
+    // still allows.
+    "create_list",
+    // The sidebar reads groups from the snapshot.
+    "groups",
+    // The tag catalogue arrives with the tasks that carry it.
+    "tags",
+    // Only the cross-space move is offered; `move_note_to_space` covers a
+    // move inside one space too.
+    "move_note",
+    // The pane reads `grouped_suggestions`, the flat list has no reader.
+    "period_suggestions",
+    // The composer creates in a list and then pulls into the period, so an
+    // id exists for the card before the period names it.
+    "add_task_in_period",
+  ];
+
+  test("every command the front names is registered", () => {
+    expect([...named].filter((c) => !registered.has(c)).sort()).toEqual([]);
+  });
+
+  test("every registered command is named by the front, or listed as uncalled", () => {
+    const allowed = new Set([...named, ...UNCALLED]);
+    expect([...registered].filter((c) => !allowed.has(c)).sort()).toEqual([]);
+  });
+
+  test("the uncalled list holds only commands that are really uncalled", () => {
+    // An entry that gained a wrapper again is a stale line here.
+    expect(UNCALLED.filter((c) => named.has(c))).toEqual([]);
+    expect(UNCALLED.filter((c) => !registered.has(c))).toEqual([]);
+  });
+});
