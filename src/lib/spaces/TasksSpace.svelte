@@ -28,9 +28,8 @@
   import { listName, listLabel, taskSpacePaths } from "../services/paths.js";
   import { makeScreen } from "../services/act.js";
   import { taskActions, isSelectedTask } from "../services/taskActions.js";
-  import { dotStyle as dotStyleOf } from "../services/accent.js";
+  import { dotStyle as dotStyleOf, tagColors as tagColorMap } from "../services/accent.js";
   import { spaceMenu } from "../services/spaceMenu.js";
-  import { tagColors as tagColorMap } from "../services/accent.js";
   import { composeTask } from "../services/taskCompose.js";
   import { arrange, pinnedFirst, planReorder } from "../services/spaceOrder.js";
   import TaskCards from "../components/TaskCards.svelte";
@@ -285,9 +284,9 @@
   // Dragging a period rewrites the state file — the day IS that list, so there
   // is nothing to mirror and nothing to fall out of step. Whatever sort was on
   // goes back to the pulled order, because that order is now what was built.
-  async function reorderPeriod(from, to) {
+  function reorderPeriod(from, to) {
     const { next } = planReorder(shown, from, to, isPinned);
-    try {
+    return act(async () => {
       const refs = next
         .filter((entry) => entry.task.id)
         .map((entry) => ({ path: entry.list, id: entry.task.id }));
@@ -297,11 +296,7 @@
       }
       if (periodSort) await api.setPeriodSort(period, null);
       await api.setPeriodOrder(period, refs);
-      await load();
-      onChanged?.();
-    } catch (e) {
-      onError?.(e);
-    }
+    });
   }
 
   // Dragging saves the arrangement the user just made as the custom order —
