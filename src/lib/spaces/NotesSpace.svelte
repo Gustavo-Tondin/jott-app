@@ -717,9 +717,9 @@
     <p class="notes-space__empty">{S.noNotes}</p>
   {:else}
     <ul
-      class="notes-space__board"
+      class="theme-note-board notes-space__board"
       class:notes-space__board--tree={layout === "tree"}
-      style={layout === "tree" ? "" : `columns: ${columns}`}
+      style="--columns: {columns}"
       use:measured={(width) => (boardWidth = width)}
       bind:this={boardEl}
       use:reorderable={{
@@ -761,7 +761,7 @@
           <li
             class="notes-space__group"
             data-folder={group.path}
-            style={breaks.has(index) ? "break-after: column" : ""}
+            class:theme-note-board__break={breaks.has(index)}
           >
             <article
               class="note-group"
@@ -895,7 +895,7 @@
                   {#if inside.cards.length === 0}
                     <p class="notes-space__empty">{S.noNotes}</p>
                   {:else}
-                    <ul class="notes-space__board notes-space__board--pair">
+                    <ul class="theme-note-board notes-space__board notes-space__board--pair">
                       {#each laid(inside.cards) as entry (entry.path)}
                         <li class="notes-space__item">
                           {@render noteItem(entry)}
@@ -910,7 +910,7 @@
         {:else}
           <li
             class="notes-space__item"
-            style={breaks.has(index) ? "break-after: column" : ""}
+            class:theme-note-board__break={breaks.has(index)}
           >
             {@render noteItem(card)}
           </li>

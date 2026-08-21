@@ -251,14 +251,14 @@
              pin: what a note IS lives where the note lives, and Home is the
              day looking in. -->
         <ul
-          class="home__notes"
-          style={`columns: ${columns}`}
+          class="theme-note-board home__notes"
+          style="--columns: {columns}"
           use:measured={(width) => (boardWidth = width)}
         >
           {#each notes as note, index (note.path)}
             <li
               class="home__note"
-              style={breaks.has(index) ? "break-after: column" : ""}
+              class:theme-note-board__break={breaks.has(index)}
             >
               <NoteCard
                 entry={note}

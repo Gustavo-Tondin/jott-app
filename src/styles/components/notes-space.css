@@ -96,36 +96,8 @@
     margin-block-end: var(--theme-space-12);
   }
 
-  /* The board flows in COLUMNS (2026-08-18, wireframes "Notes screen" and
-     "Space Notes"): a card is as tall as its own text, and the next one starts
-     where it ended. A grid of rows made every card in a row as tall as the
-     longest of them, which is what left the ragged white gaps the wireframes
-     do not have.
-
-     `columns: <width>` and not a count: the board narrows when the right panel
-     opens, and a width lets the browser drop a column instead of squeezing
-     three. `break-inside` is what keeps a card from being cut in half at the
-     bottom of a column.
-
-     11rem is the MINIMUM a card may be (user call, 2026-08-19: "as notas devem
-     ter um min width que, quando a tela não chega nesse valor, diminui uma
-     coluna"). Read against the column it lives in: three of them plus two gaps
-     need 552px, so the full reading width (720px) draws three — the wireframe's
-     count — and the board drops to two as soon as the panel or the window takes
-     that room away. 15rem never fitted three at all; 13rem needed 660px, which
-     a 1009px window with a panel open does not have. Below the minimum the
-     browser drops a column on its own: that is what `column-width` IS. */
-  .notes-space__board {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    columns: 11rem;
-    column-gap: var(--theme-space-12);
-  }
-  .notes-space__board > li {
-    break-inside: avoid;
-    margin-block-end: var(--theme-space-12);
-  }
+  /* .notes-space__board is the shared .theme-note-board (controls.css): the
+     masonry, its slot and the compact two-column setting all live there. */
   /* The tree view is one column: it is already filtered to a folder, so it
      reads as a list on purpose. */
   .notes-space__board--tree {
@@ -170,19 +142,8 @@
    THE COMPACT BOARD (below 768px — "Notes Screen - mobile").
    ============================================================================= */
 @layer components {
-  /* TWO columns, always. A 15rem column resolves to ONE on a 360px screen, and
-     a board of one column per card is a list — which loses the only thing a
-     board is for, seeing several notes at once. A count, not a width, says
-     what the wireframe draws and lets the cards be as narrow as they have to
-     be. */
-  .shell--compact .notes-space__board {
-    columns: 2;
-    column-gap: var(--theme-space-8);
-  }
-  .shell--compact .notes-space__board > li {
-    margin-block-end: var(--theme-space-8);
-  }
-  /* The tree view stays one column: it is a list on purpose. */
+  /* The two columns themselves are the shared .theme-note-board's
+     (controls.css). The tree view stays one column: it is a list on purpose. */
   .shell--compact .notes-space__board--tree {
     columns: 1;
   }
