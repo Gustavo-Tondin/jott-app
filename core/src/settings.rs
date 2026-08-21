@@ -41,6 +41,12 @@ pub struct DisplayPrefs {
     pub accent_color: Option<String>,
     pub heading_color: Option<String>,
     pub note_font_size: Option<String>,
+    /// When the floating formatting bar shows, and which side of the canvas
+    /// it hugs (2026-08-21). Display, and it is the section that decides:
+    /// where a bar sits over a document is a fact about THIS screen — a phone
+    /// has neither, and a wide monitor and a laptop do not agree about it.
+    pub format_bar: Option<String>,
+    pub format_bar_side: Option<String>,
     pub date_display_format: Option<String>,
     pub show_list_counts: Option<bool>,
     pub restore_last_screen: Option<bool>,
@@ -57,6 +63,8 @@ impl DisplayPrefs {
         take(&mut self.accent_color, patch.accent_color);
         take(&mut self.heading_color, patch.heading_color);
         take(&mut self.note_font_size, patch.note_font_size);
+        take(&mut self.format_bar, patch.format_bar);
+        take(&mut self.format_bar_side, patch.format_bar_side);
         take(&mut self.date_display_format, patch.date_display_format);
         take(&mut self.show_list_counts, patch.show_list_counts);
         take(&mut self.restore_last_screen, patch.restore_last_screen);
@@ -92,6 +100,8 @@ pub struct Display {
     pub accent_color: String,
     pub heading_color: String,
     pub note_font_size: String,
+    pub format_bar: String,
+    pub format_bar_side: String,
     pub date_display_format: String,
     pub show_list_counts: bool,
     pub restore_last_screen: bool,
@@ -114,6 +124,14 @@ impl Display {
                 .note_font_size
                 .clone()
                 .unwrap_or_else(|| config.note_font_size.clone()),
+            format_bar: machine
+                .format_bar
+                .clone()
+                .unwrap_or_else(|| config.format_bar.clone()),
+            format_bar_side: machine
+                .format_bar_side
+                .clone()
+                .unwrap_or_else(|| config.format_bar_side.clone()),
             date_display_format: machine
                 .date_display_format
                 .clone()
@@ -165,6 +183,10 @@ pub struct NotebookSettings {
     /// `"ink"` draws headings in plain ink; empty (or anything else) accents.
     pub heading_color: Option<String>,
     pub note_font_size: Option<String>,
+    /// `always` / `selection` / `off`, and `top` / `left` / `right` /
+    /// `bottom`. Names, never policed here — see `DisplayPrefs`.
+    pub format_bar: Option<String>,
+    pub format_bar_side: Option<String>,
     pub close_inspector_on_click_away: Option<bool>,
     pub quick_note_folder: Option<String>,
     /// The board layout of a notes space that never chose one (`grid` /
@@ -204,6 +226,8 @@ impl NotebookSettings {
             theme: Some(display.theme.clone()),
             heading_color: Some(display.heading_color.clone()),
             note_font_size: Some(display.note_font_size.clone()),
+            format_bar: Some(display.format_bar.clone()),
+            format_bar_side: Some(display.format_bar_side.clone()),
             close_inspector_on_click_away: Some(display.close_inspector_on_click_away),
             quick_note_folder: Some(config.quick_note_folder.clone()),
             note_layout: Some(config.note_layout.clone()),
@@ -270,6 +294,12 @@ impl NotebookSettings {
         }
         if let Some(v) = &self.note_font_size {
             config.note_font_size = v.trim().to_string();
+        }
+        if let Some(v) = &self.format_bar {
+            config.format_bar = v.trim().to_string();
+        }
+        if let Some(v) = &self.format_bar_side {
+            config.format_bar_side = v.trim().to_string();
         }
         if let Some(v) = &self.heading_color {
             config.heading_color = v.trim().to_string();
@@ -427,6 +457,46 @@ mod tests {
             ..DisplayPrefs::default()
         };
         assert!(!Display::resolve(&machine, &config).restore_last_screen);
+    }
+
+    #[test]
+    fn where_the_formatting_bar_sits_is_this_screens_answer() {
+        // It is Display, so the machine wins — and a phone, which has no
+        // floating bar at all, leaves the notebook's answer alone for the
+        // desktop that shares it.
+        let mut config = Config::default();
+        config.format_bar = "off".to_string();
+        config.format_bar_side = "bottom".to_string();
+
+        let unanswered = Display::resolve(&DisplayPrefs::default(), &config);
+        assert_eq!(unanswered.format_bar, "off", "o caderno respondeu");
+        assert_eq!(unanswered.format_bar_side, "bottom");
+
+        let machine = DisplayPrefs {
+            format_bar: Some("selection".to_string()),
+            ..DisplayPrefs::default()
+        };
+        let display = Display::resolve(&machine, &config);
+        assert_eq!(display.format_bar, "selection", "esta tela escolheu");
+        // The side was not answered here, so it is still the notebook's.
+        assert_eq!(display.format_bar_side, "bottom");
+
+        // And it round-trips through the screen's own shape.
+        let read = NotebookSettings::of(&config, &display);
+        assert_eq!(read.format_bar.as_deref(), Some("selection"));
+        assert_eq!(read.format_bar_side.as_deref(), Some("bottom"));
+    }
+
+    #[test]
+    fn a_mode_this_build_does_not_know_is_written_as_it_arrived() {
+        // Same covenant as the accent and the theme: the list of modes is the
+        // interface's, so the core trims and stores rather than judging.
+        let mut config = Config::default();
+        settings(r#"{"formatBar": "  hover  ", "formatBarSide": " float "}"#)
+            .apply_to(&mut config);
+
+        assert_eq!(config.format_bar, "hover");
+        assert_eq!(config.format_bar_side, "float");
     }
 
     #[test]

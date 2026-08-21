@@ -216,6 +216,24 @@ pub struct Config {
     /// should follow the writer to another screen, while zoom answers to a
     /// monitor. Empty means the size the app ships as.
     pub note_font_size: String,
+    /// When the note's floating formatting bar is drawn — `always`,
+    /// `selection` (only while something is selected), `off` (2026-08-21).
+    ///
+    /// It says nothing about the DOCKED panel, which is what the right side
+    /// is for: turning the floating bar off leaves the controls exactly where
+    /// the panel puts them. Empty means `always`, which is what the app ships
+    /// as.
+    ///
+    /// Same covenant as the looks above: a NAME, never behaviour spelled out,
+    /// and not policed here — the list of modes is the interface's.
+    pub format_bar: String,
+    /// Which SIDE of the canvas the floating bar hugs — `top`, `left`,
+    /// `right`, `bottom` (2026-08-21). It is always centred on that side;
+    /// what the user picks is the edge, not a corner.
+    ///
+    /// Empty means `top`, where the bar has always been. Same covenant: a
+    /// name, unpoliced.
+    pub format_bar_side: String,
     /// The user's own keyboard bindings, as `command id → chord`
     /// (2026-08-18).
     ///
@@ -304,6 +322,8 @@ impl Default for Config {
             theme: String::new(),
             heading_color: String::new(),
             note_font_size: String::new(),
+            format_bar: String::new(),
+            format_bar_side: String::new(),
             shortcuts: Map::new(),
             close_inspector_on_click_away: false,
             quick_note_folder: crate::notefolder::NOTES_INBOX.to_string(),
@@ -480,6 +500,8 @@ impl Config {
             theme: string(&raw, "theme").unwrap_or(defaults.theme),
             heading_color: string(&raw, "headingColor").unwrap_or(defaults.heading_color),
             note_font_size: string(&raw, "noteFontSize").unwrap_or(defaults.note_font_size),
+            format_bar: string(&raw, "formatBar").unwrap_or(defaults.format_bar),
+            format_bar_side: string(&raw, "formatBarSide").unwrap_or(defaults.format_bar_side),
             close_inspector_on_click_away: flag(
                 &raw,
                 "closeInspectorOnClickAway",
@@ -598,13 +620,16 @@ impl Config {
             "spacesSort",
             (!self.spaces_sort.is_empty()).then(|| Value::from(self.spaces_sort.clone())),
         );
-        // The accent and the theme, same rule: absent means what the app ships
-        // as, so a notebook that never had one chosen says nothing about it.
+        // The accent, the theme and the rest of the by-name choices, same
+        // rule: absent means what the app ships as, so a notebook that never
+        // had one chosen says nothing about it.
         for (key, value) in [
             ("accentColor", &self.accent_color),
             ("theme", &self.theme),
             ("headingColor", &self.heading_color),
             ("noteFontSize", &self.note_font_size),
+            ("formatBar", &self.format_bar),
+            ("formatBarSide", &self.format_bar_side),
             ("noteLayout", &self.note_layout),
         ] {
             put_or_clear(
@@ -972,6 +997,43 @@ mod tests {
         let future = Config::parse(r#"{ "schemaVersion": 1, "theme": "solarized" }"#);
         assert_eq!(future.theme, "solarized");
         assert!(future.render().contains("solarized"));
+    }
+
+    #[test]
+    fn the_formatting_bars_place_round_trips_and_absent_means_the_app_default() {
+        // Untouched: neither key is in the file, so a notebook that never had
+        // the bar moved says nothing about where it sits.
+        let config = Config::default();
+        assert_eq!(config.format_bar, "");
+        assert_eq!(config.format_bar_side, "");
+        let rendered = config.render();
+        assert!(!rendered.contains("formatBar"), "{rendered}");
+
+        let chosen = Config {
+            format_bar: "selection".into(),
+            format_bar_side: "left".into(),
+            ..Config::default()
+        };
+        let reparsed = Config::parse(&chosen.render());
+        assert_eq!(reparsed.format_bar, "selection");
+        assert_eq!(reparsed.format_bar_side, "left");
+
+        // Back to the app's own REMOVES both keys, the same rule the accent
+        // and the theme follow — a stale one in `raw` would outlive the
+        // choice that cleared it.
+        let mut back = reparsed;
+        back.format_bar = String::new();
+        back.format_bar_side = String::new();
+        let rendered = back.render();
+        assert!(!rendered.contains("formatBar"), "{rendered}");
+
+        // A mode and a side this build has never heard of survive: the lists
+        // are the interface's, and a newer app's choice is not ours to reset.
+        let future =
+            Config::parse(r#"{ "schemaVersion": 1, "formatBar": "hover", "formatBarSide": "float" }"#);
+        assert_eq!(future.format_bar, "hover");
+        assert_eq!(future.format_bar_side, "float");
+        assert!(future.render().contains("hover"));
     }
 
     #[test]

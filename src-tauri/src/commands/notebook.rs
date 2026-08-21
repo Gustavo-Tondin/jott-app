@@ -63,6 +63,12 @@ pub struct NotebookLayout {
     /// document root, wanted on the first paint.
     pub heading_color: String,
     pub note_font_size: String,
+    /// When the note's floating formatting bar shows, and which side it hugs
+    /// (2026-08-21). It rides in the layout for the same reason the accent
+    /// does: the bar is drawn as soon as a note opens, and asking for the
+    /// settings separately would show it in the wrong place first.
+    pub format_bar: String,
+    pub format_bar_side: String,
     pub shortcuts: serde_json::Map<String, serde_json::Value>,
     /// Which parts of the app are switched on (2026-08-06). Only what was
     /// switched OFF is listed; the frontend's `services/features.js` reads a
@@ -115,6 +121,8 @@ impl NotebookInfo {
                 theme: display.theme,
                 heading_color: display.heading_color,
                 note_font_size: display.note_font_size,
+                format_bar: display.format_bar,
+                format_bar_side: display.format_bar_side,
                 shortcuts: notebook.config().shortcuts.clone(),
                 features: notebook.config().features.clone(),
             },
