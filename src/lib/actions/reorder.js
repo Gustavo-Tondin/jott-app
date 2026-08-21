@@ -85,6 +85,26 @@ const HOLD_MS = 400;
 /// lets go of it entirely.
 const HOLD_SLOP = 8;
 
+// Two more options, for a list whose items can be PICKED (2026-08-21, after
+// the Things 3 preview: "segura pra marcar um item, click pra selecionar cada
+// um, e ao segurar de novo em cima de um já clicado começa o arrastar todos"):
+//
+//   `onHold(from)`   — the pointer RESTED on an item (HOLD_MS, not moving) and
+//                      the caller is asked first. Returning true means "I took
+//                      that": the item is not lifted and the gesture ends —
+//                      how a long press enters selection mode. Returning false
+//                      lets the hold pick the item up as before. With it set,
+//                      a MOUSE that rests also asks (the immediate mouse drag
+//                      is unchanged: moving before the wait is up drags).
+//   `carried(from)`  — the indices that travel TOGETHER when `from` is picked
+//                      up: the selection, when the item is part of one. The
+//                      first is the one under the pointer; the others stay in
+//                      their slots, dimmed (`.reorder-item--stacked`), and the
+//                      carried item wears their count (`data-carry`). On
+//                      release `onReorderMany(indices, to)` is called instead
+//                      of `onReorder` — or `onDropZone`/`onDropInto` with the
+//                      same indices in place of `from`, where those apply.
+
 export function reorderable(node, params) {
   let opts = params ?? {};
   let drag = null;
@@ -143,7 +163,7 @@ export function reorderable(node, params) {
     // HOLD_MS). Where the caller gave a handle there is nothing to wait for:
     // pressing a grip is already the whole intent, and the grip takes the
     // gesture off the scroller with `touch-action: none`.
-    if (e.pointerType === "touch" && !opts.handle) {
+    if ((e.pointerType === "touch" || opts.onHold) && !opts.handle) {
       drag.holdTimer = setTimeout(hold, HOLD_MS);
     }
   }
@@ -154,6 +174,19 @@ export function reorderable(node, params) {
   function hold() {
     if (!drag) return;
     drag.holdTimer = null;
+    // The caller may want the rest for itself (entering selection mode).
+    if (opts.onHold?.(drag.from)) {
+      const el = drag.el;
+      try {
+        el.releasePointerCapture?.(drag.pointerId);
+      } catch {
+        // ignore
+      }
+      drag = null;
+      navigator.vibrate?.(8);
+      swallowNextClick();
+      return;
+    }
     drag.moved = true;
     begin();
     // The one moment the app can say "you have it now" on a screen with no
@@ -178,9 +211,14 @@ export function reorderable(node, params) {
     drag.step = size(r) + gap;
     drag.to = drag.from;
     node.setAttribute("data-reordering", "");
+    // The pile: what else is picked travels with the carried item.
+    const stack = (opts.carried?.(drag.from) ?? [drag.from]).filter((i) => i !== drag.from);
+    drag.stack = [drag.from, ...stack];
+    if (stack.length) drag.el.setAttribute("data-carry", String(drag.stack.length));
     list.forEach((c, i) => {
       c.classList.add("reorder-item");
       if (i === drag.from) c.classList.add("reorder-item--carried");
+      else if (stack.includes(i)) c.classList.add("reorder-item--stacked");
     });
     try {
       drag.el.setPointerCapture(drag.pointerId);
@@ -198,8 +236,12 @@ export function reorderable(node, params) {
     // a scroll (or a swipe) all along, and we let go rather than compete for
     // it. Nothing was captured yet, so the scroller keeps the gesture whole.
     if (drag.holdTimer) {
-      if (Math.hypot(dx, dy) > HOLD_SLOP) cancel();
-      return;
+      if (Math.hypot(dx, dy) <= HOLD_SLOP) return;
+      // A finger that moved was scrolling. A MOUSE that moved (it only waits
+      // when there is an `onHold` to ask) was dragging, as it always did.
+      if (drag.touch) return cancel();
+      clearTimeout(drag.holdTimer);
+      drag.holdTimer = null;
     }
     if (!drag.moved) {
       if ((grid() ? Math.hypot(dx, dy) : Math.abs(delta)) < threshold()) return;
@@ -433,9 +475,11 @@ export function reorderable(node, params) {
       c.classList.remove(
         "reorder-item",
         "reorder-item--carried",
+        "reorder-item--stacked",
         "reorder-item--into",
         "reorder-item--leaving",
       );
+      c.removeAttribute("data-carry");
       c.style.transform = "";
     }
   }
@@ -460,7 +504,26 @@ export function reorderable(node, params) {
     }
     if (!d.moved) return; // a plain click — let the item handle it
 
-    // Swallow the click WebKit fires next, so a drag never also selects/opens.
+    swallowNextClick();
+
+    // Commit in one frame: drop the transitions, clear the transforms and
+    // reorder together, so the settled order is the only thing painted.
+    d.zone?.classList.remove("reorder-item--into");
+    clear(d);
+    const many = d.stack && d.stack.length > 1;
+    const what = many ? d.stack : d.from;
+    // Released on a zone: it is going THERE, wherever it came from.
+    if (d.zone) opts.onDropZone?.(what, d.zone);
+    // Released clear of the list: the item is leaving, not moving within.
+    else if (d.leaving) opts.onDragOut(what);
+    else if (d.into != null) opts.onDropInto?.(what, d.into);
+    else if (many) opts.onReorderMany?.(d.stack, d.to);
+    else if (d.to !== d.from) opts.onReorder?.(d.from, d.to);
+  }
+
+  /// Swallow the click WebKit fires next, so a drag (or a hold that was
+  /// answered) never also selects/opens.
+  function swallowNextClick() {
     const swallow = (ev) => {
       ev.stopPropagation();
       ev.preventDefault();
@@ -469,17 +532,6 @@ export function reorderable(node, params) {
     node.addEventListener("click", swallow, true);
     if (typeof requestAnimationFrame === "function")
       requestAnimationFrame(() => node.removeEventListener("click", swallow, true));
-
-    // Commit in one frame: drop the transitions, clear the transforms and
-    // reorder together, so the settled order is the only thing painted.
-    d.zone?.classList.remove("reorder-item--into");
-    clear(d);
-    // Released on a zone: it is going THERE, wherever it came from.
-    if (d.zone) opts.onDropZone?.(d.from, d.zone);
-    // Released clear of the list: the item is leaving, not moving within.
-    else if (d.leaving) opts.onDragOut(d.from);
-    else if (d.into != null) opts.onDropInto?.(d.from, d.into);
-    else if (d.to !== d.from) opts.onReorder?.(d.from, d.to);
   }
 
   /// May the carried item be dropped INTO the item at `i`? Everything may,

@@ -31,7 +31,8 @@
   import { dotStyle as dotStyleOf, tagColors as tagColorMap } from "../services/accent.js";
   import { spaceMenu } from "../services/spaceMenu.js";
   import { composeTask } from "../services/taskCompose.js";
-  import { arrange, pinnedFirst, planReorder } from "../services/spaceOrder.js";
+  import { arrange, pinnedFirst, planReorder, planReorderMany } from "../services/spaceOrder.js";
+  import BulkBar from "../components/BulkBar.svelte";
   import TaskCards from "../components/TaskCards.svelte";
   import TaskComposer from "../components/TaskComposer.svelte";
   import Menu from "../components/Menu.svelte";
@@ -246,6 +247,24 @@
     picked = new Set();
   };
 
+  // THE LONG PRESS (user call, 2026-08-21, after the Things 3 preview). A
+  // press that rests on a card is the other door into selection mode: it
+  // marks the card and turns the screen over to picking, where a tap marks
+  // more. Resting on a card that is ALREADY picked is not answered — the
+  // reorder action then picks up the whole pile (`carried`), and the drop
+  // lands them together (`reorderMany`).
+  function holdCard(entry) {
+    if (readOnly) return false;
+    if (!picking) {
+      picking = true;
+      picked = new Set([entry]);
+      return true;
+    }
+    if (!picked.has(entry)) picked = new Set([...picked, entry]);
+    return false;
+  }
+  const carriedWith = (entry) => (picking && picked.has(entry) ? [...picked] : []);
+
   // Where a picked task can move — any tasks list of the notebook except this
   // space's own and the Completed files.
   let listTargets = $derived(composeTargets.filter((entry) => entry.path !== paths.list));
@@ -297,6 +316,43 @@
       if (periodSort) await api.setPeriodSort(period, null);
       await api.setPeriodOrder(period, refs);
     });
+  }
+
+  /// The pile dropped: the same two writes `reorderTasks` makes, for a block.
+  function reorderPeriodMany(froms, to) {
+    const { next } = planReorderMany(shown, froms, to, isPinned);
+    return act(async () => {
+      const refs = next
+        .filter((entry) => entry.task.id)
+        .map((entry) => ({ path: entry.list, id: entry.task.id }));
+      for (const entry of shownCompleted) {
+        if (entry.task.id) refs.push({ path: entry.list, id: entry.task.id });
+      }
+      if (periodSort) await api.setPeriodSort(period, null);
+      await api.setPeriodOrder(period, refs);
+      exitPicking();
+    });
+  }
+  async function reorderTasksMany(froms, to) {
+    const { next, pinned, pinChanged } = planReorderMany(shown, froms, to, isPinned);
+    try {
+      for (const entry of pinChanged) {
+        const id = await ensureTaskId(entry.list, entry.task);
+        await api.setTaskPinned(entry.list, id, pinned);
+      }
+      const ids = [];
+      for (const entry of next) {
+        ids.push(entry.task.id ?? (await ensureTaskId(entry.list, entry.task)));
+      }
+      for (const entry of shownCompleted) {
+        if (entry.task.id) ids.push(entry.task.id);
+      }
+      await onSetOrder?.(ids);
+      exitPicking();
+      await load();
+    } catch (e) {
+      onError?.(e);
+    }
   }
 
   // Dragging saves the arrangement the user just made as the custom order —
@@ -437,44 +493,11 @@
           </h3>
         {/if}
         {#if toolbar}{@render toolbar()}{/if}
-        {#if picking}
-          <!-- Selection mode: the header turns into the bulk actions. -->
-          <div class="tasks-space__tools">
-            <span class="tasks-space__picked">{S.selectedCount(picked.size)}</span>
-            <select
-              class="theme-select theme-select--sm tasks-space__move"
-              aria-label={S.moveTo}
-              disabled={picked.size === 0}
-              onchange={(e) => {
-                const target = e.currentTarget.value;
-                e.currentTarget.value = "";
-                moveSelected(target);
-              }}
-            >
-              <option value="" disabled selected>{S.moveTo}</option>
-              {#each listTargets as target (target.path)}
-                <!-- The space's readable address, like the other two
-                     pickers (services/paths.js). A <select> cannot show the
-                     group and the space in different greys, but it can at
-                     least stop reading like a file path. -->
-                <option value={target.path}>{listLabel(target)}</option>
-              {/each}
-            </select>
-            <button
-              class="theme-btn theme-btn--danger theme-btn--sm"
-              disabled={picked.size === 0}
-              onclick={deleteSelected}>{S.deleteSelected}</button
-            >
-            <button
-              class="theme-btn--icon"
-              aria-label={S.cancel}
-              title={S.cancel}
-              onclick={exitPicking}
-            >
-              <Icon name="x" size="1rem" />
-            </button>
-          </div>
-        {:else}
+        <!-- Selection mode: the bulk actions float over the bottom of the
+             screen (components/BulkBar.svelte), not in this header — the
+             header is where the screen's name is, and a phone-width header
+             has no room for a picker and two buttons beside it. -->
+        {#if !picking}
           <div class="tasks-space__tools">
             {#if !readOnly && compose === "button"}
               <button class="theme-btn theme-btn--primary tasks-space__new" onclick={newTask}>
@@ -524,6 +547,9 @@
         onDuplicate={readOnly ? null : (entry) => duplicate(entry.list, entry.task)}
         {daySwipe}
         onReorder={readOnly ? null : period ? reorderPeriod : reorderTasks}
+        onHold={readOnly ? null : holdCard}
+        carried={carriedWith}
+        onReorderMany={readOnly ? null : period ? reorderPeriodMany : reorderTasksMany}
         {isSelected}
         onSelect={picking ? (_, task) => togglePick(task) : onSelectTask}
         onComplete={complete}
@@ -580,7 +606,37 @@
       </TaskCards>
     {/if}
 
-    {#if !readOnly && compose === "bar"}
+    {#if picking}
+      <BulkBar count={picked.size} onClose={exitPicking}>
+        <select
+          class="theme-select theme-select--sm tasks-space__move"
+          aria-label={S.moveTo}
+          disabled={picked.size === 0}
+          onchange={(e) => {
+            const target = e.currentTarget.value;
+            e.currentTarget.value = "";
+            moveSelected(target);
+          }}
+        >
+          <option value="" disabled selected>{S.moveTo}</option>
+          {#each listTargets as target (target.path)}
+            <!-- The space's readable address, like the other two pickers
+                 (services/paths.js). A <select> cannot show the group and the
+                 space in different greys, but it can at least stop reading
+                 like a file path. -->
+            <option value={target.path}>{listLabel(target)}</option>
+          {/each}
+        </select>
+        <button
+          class="theme-btn theme-btn--danger theme-btn--sm"
+          disabled={picked.size === 0}
+          onclick={deleteSelected}>{S.deleteSelected}</button
+        >
+      </BulkBar>
+    {/if}
+    <!-- The composing bar steps aside while the bulk bar is up: two bars on
+         the same edge would sit on top of each other. -->
+    {#if !readOnly && compose === "bar" && !picking}
       <TaskComposer
         lists={composeTargets}
         defaultList={composeList}

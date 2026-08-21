@@ -61,6 +61,7 @@
 @import "./styles/components/capture.css";
 @import "./styles/components/capture-fab.css";
 @import "./styles/components/sheet.css";
+@import "./styles/components/bulkbar.css";
 @import "./styles/components/search.css";
 @import "./styles/components/home.css";
 @import "./styles/components/tasks-view.css";

@@ -93,4 +93,45 @@
     color: var(--theme-ink-muted);
     opacity: 1;
   }
+
+  /* ---- the pile (a selection carried together) ----
+     The ones that travel with the carried item stay in their slots, dimmed
+     and a hair smaller — they are spoken for, and the eye reads them as the
+     rest of what is in the hand. */
+  .reorder-item--stacked {
+    opacity: 0.35;
+    scale: 0.97;
+    transition:
+      opacity var(--theme-transition-fast),
+      scale var(--theme-transition-fast);
+  }
+  /* The carried one wears the pile: two sheets peeking out under it, and the
+     count in the corner. The sheets are box-shadows in the surface and line
+     colours of the region, so the pile is made of the same paper as the card.
+     Only with more than one in hand — a single card carries no pile. */
+  .reorder-item--carried[data-carry]:not([data-carry="1"]) {
+    box-shadow:
+      0 0.25rem 0 -0.0625rem var(--theme-line),
+      0 0.25rem 0 -0.125rem var(--theme-surface),
+      0 0.5rem 0 -0.1875rem var(--theme-line),
+      0 0.5rem 0 -0.25rem var(--theme-surface),
+      var(--theme-shadow-popover);
+  }
+  .reorder-item--carried[data-carry]:not([data-carry="1"])::after {
+    content: attr(data-carry);
+    position: absolute;
+    inset-block-start: calc(-1 * var(--theme-space-8));
+    inset-inline-end: calc(-1 * var(--theme-space-8));
+    min-inline-size: 1.375rem;
+    block-size: 1.375rem;
+    padding-inline: var(--theme-space-6);
+    display: grid;
+    place-items: center;
+    border-radius: var(--theme-radius-pill);
+    background: var(--theme-brand);
+    color: var(--theme-on-brand);
+    font-size: var(--theme-text-12);
+    font-weight: var(--theme-weight-bold);
+    animation: theme-unfold var(--theme-duration-medium) var(--theme-ease-spring);
+  }
 }

@@ -38,12 +38,6 @@
     flex-shrink: 0;
     margin-inline-start: auto;
   }
-  /* Selection mode: the picked count in the bulk header. */
-  .tasks-space__picked {
-    color: var(--theme-ink-muted);
-    font-size: var(--theme-text-13);
-    white-space: nowrap;
-  }
   .tasks-space__move {
     max-inline-size: 14rem;
   }

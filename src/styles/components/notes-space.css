@@ -118,20 +118,6 @@
      is left here is the slot it sits in — and the pin star that used to sit in
      its corner is gone with it, into the card's own ⋮. */
 
-  /* The bulk-selection row, in place of the title (spaces/NotesSpace.svelte).
-     The same shape the tasks screen's header takes. */
-  .notes-space__tools {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    gap: var(--theme-space-8);
-    justify-content: end;
-  }
-  .notes-space__picked {
-    color: var(--theme-ink-muted);
-    font-size: var(--theme-text-13);
-    white-space: nowrap;
-  }
 
   .notes-space__empty {
     color: var(--theme-ink-muted);
