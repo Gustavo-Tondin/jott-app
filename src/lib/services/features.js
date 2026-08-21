@@ -94,12 +94,22 @@ export function hasPage(key) {
   return FEATURES.some((feature) => feature.parent === key);
 }
 
+/// Every sub-function of `parent`, whatever subtitle it was filed under.
+///
+/// The page draws its rows a group at a time, but the SEARCH asks a different
+/// question — "does this word appear anywhere under Tasks?" — and answering it
+/// by listing the groups it knows about is how a switch filed under a new one
+/// becomes invisible without breaking anything (2026-08-21).
+export function childrenOf(parent) {
+  return FEATURES.filter((f) => f.parent === parent);
+}
+
 /// The sub-functions of `parent` that belong to `group` — one subtitle's worth
 /// of rows on a function's page. The GROUPING is data, not markup: a switch
 /// moves from Fields to Behaviour by changing a word here, and the page draws
 /// whatever it is given.
 export function childrenIn(parent, group) {
-  return FEATURES.filter((f) => f.parent === parent && f.group === group);
+  return childrenOf(parent).filter((f) => f.group === group);
 }
 
 const BY_KEY = Object.fromEntries(FEATURES.map((f) => [f.key, f]));

@@ -589,6 +589,21 @@ describe("frontend architecture", () => {
     expect(offenders).toEqual([]);
   });
 
+  test("the settings search never writes out a label it could derive", () => {
+    // The index has two halves (2026-08-21): the functions' half is read from
+    // `features.js`, and `SETUP_INDEX` covers what exists only as markup. The
+    // moment the hand-written half repeats a label the table already carries,
+    // that switch has two names to keep in step and the drift is silent — so
+    // the split is read off the source rather than trusted.
+    const file = readFileSync(join(src, "lib", "screens", "SettingsView.svelte"), "utf8");
+    const manual = file.slice(
+      file.indexOf("const SETUP_INDEX"),
+      file.indexOf("const FUNCTION_EXTRAS"),
+    );
+    expect(manual.length).toBeGreaterThan(0);
+    expect(manual).not.toMatch(/S\.feature[A-Z]/);
+  });
+
   test("no test fakes the Tauri bridge on its own", () => {
     // 2026-08-21: four incompatible shapes of this mock lived in the tree — a
     // hoisted `vi.fn`, a closure one, an inert one, and a partial stub of

@@ -8,6 +8,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, test } from "vitest";
 import { back } from "../services/back.js";
 import { bridge, invoke } from "../test/bridge.js";
+import { FEATURES, hasPage } from "../services/features.js";
 import { noop, resetScreens } from "../test/screens.js";
 import SettingsView from "../screens/SettingsView.svelte";
 
@@ -506,6 +507,44 @@ describe("SettingsView", () => {
 
     expect(await screen.findByLabelText("Empty the trash after (days)")).toBeTruthy();
     expect(screen.getByLabelText("Search settings").value).toBe("");
+  });
+
+  test("every switch is findable by the search, with no second list to keep", async () => {
+    // The criterion the index is built for (2026-08-21): a function or a
+    // sub-function is findable because it is DERIVED from `features.js`, not
+    // because somebody remembered to write its label out a second time. The
+    // test walks the table itself, so a switch added there fails here rather
+    // than going quietly missing from the search.
+    bridge({ notebook_settings: settings });
+    render(SettingsView, { props: props() });
+
+    const field = await screen.findByLabelText("Search settings");
+    for (const feature of FEATURES) {
+      const label = feature.label();
+      const page = feature.parent
+        ? FEATURES.find((f) => f.key === feature.parent).label()
+        : "Native Functions";
+      await fireEvent.input(field, { target: { value: label } });
+
+      // Where a hit with this exact label may land, and nowhere else. A
+      // sub-function is on its function's page; a function is on Native
+      // Functions, plus — when it has a page — that page, whose own NAME the
+      // search counts as a row of it. Anything beyond that set is the same
+      // word written out by hand as well as derived.
+      const where = feature.parent
+        ? [`in ${page}`]
+        : [`in Native Functions`, ...(hasPage(feature.key) ? [`in ${label}`] : [])];
+
+      await waitFor(() => {
+        const found = screen
+          .getAllByRole("button")
+          .filter(
+            (b) => b.querySelector(".settings__nav-label")?.textContent === label,
+          )
+          .map((b) => b.querySelector(".settings__hit-where")?.textContent);
+        expect(found.sort(), label).toEqual([...where].sort());
+      });
+    }
   });
 
   test("the notebook's folder and the picker are reachable from here", async () => {

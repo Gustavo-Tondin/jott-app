@@ -13,7 +13,14 @@
   import { api } from "../services/api.js";
   import { makeAct, makeLoad } from "../services/act.js";
   import { S } from "../services/strings.js";
-  import { FUNCTIONS, childrenIn, hasPage, on, stored } from "../services/features.js";
+  import {
+    FUNCTIONS,
+    childrenIn,
+    childrenOf,
+    hasPage,
+    on,
+    stored,
+  } from "../services/features.js";
   import { DEFAULT_ACCENT } from "../services/accent.js";
   import { TYPE_ICONS } from "../services/spaceIcon.js";
   import { openExternal, ISSUES_URL } from "../services/external.js";
@@ -250,13 +257,23 @@
   // directly and answers "which page is this on?", which is the question
   // somebody actually has.
   //
-  // It is a SECOND list, and that is the honest cost of a search that works
-  // before a page is rendered. Two things keep it from drifting: everything
-  // that is already data comes from its own table (the functions from
-  // `features.js`, the commands from `commands.js`), and a row that is missing
-  // here is invisible to the search but still perfectly reachable — the
-  // failure is a search miss, never a broken screen.
-  const INDEX = () => [
+  // The index has two halves, and the split is the whole point (2026-08-21):
+  // what is already DATA is derived from its own table, and only what exists
+  // solely as markup is written out by hand. A hand-written row that names a
+  // switch would be the drift this guards against — the switch would then have
+  // two labels to keep in step, and `SETUP_INDEX` never mentions one.
+
+  /// The half the search can only know by being TOLD.
+  ///
+  /// These rows are markup — one `<label>` at a time inside the sections
+  /// below — and the search has to answer before any of them is rendered, so
+  /// there is nothing to read them off. Nothing derives them and nothing will:
+  /// the day a section is built from a table of its own, its entry here goes
+  /// the way the functions' did.
+  ///
+  /// A row missing here is invisible to the search and still perfectly
+  /// reachable — the failure is a search miss, never a broken screen.
+  const SETUP_INDEX = () => [
     ["about", [S.updateVersion, S.updateAutoCheck, S.updateCheckNow, S.yourFiles,
       S.menuEntryLabel, S.reportIssue]],
     [
@@ -281,6 +298,8 @@
         S.rolloverMode,
         S.weekStartsOn,
         S.datedTasksJoinPeriod,
+        // The page's OTHER name. It is titled "Date preferences" and the
+        // strategy doc calls the same thing "Day and week", so both find it.
         S.sectionDay,
       ],
     ],
@@ -296,16 +315,37 @@
         S.trashRetention,
       ],
     ],
+    // The ~50 commands are deliberately NOT here: the Shortcuts page carries a
+    // filter of its own over `commands.js`, and pouring them into a search for
+    // settings would bury the eight pages under them. What is indexed is the
+    // door — the page, by both its names.
     ["shortcuts", [S.sectionShortcuts, S.resetShortcuts]],
+  ];
+
+  /// The rows on a function's page that are NOT one of its switches.
+  ///
+  /// They are notebook settings that belong to a function rather than to a
+  /// section — where a dated task gets its colour is about Priority, and the
+  /// download prompt is about Notes — so they are drawn one page in, and the
+  /// search has to be told which page. Keyed by function so that a function
+  /// with none simply has no entry, instead of the `fn.key === "tasks" ? …`
+  /// chain this replaced.
+  const FUNCTION_EXTRAS = () => ({
+    tasks: [S.autoUrgentByDate],
+    notes: [S.confirmImageDownloads],
+  });
+
+  /// Every page the search can look up. The functions' half is DERIVED — the
+  /// switches from `features.js`, whatever group each was filed under — so a
+  /// switch added there is findable the same day, without a second line here.
+  const INDEX = () => [
+    ...SETUP_INDEX(),
     ["native", FUNCTIONS.map((fn) => fn.label())],
     ...FUNCTIONS.filter((fn) => hasPage(fn.key)).map((fn) => [
       `fn:${fn.key}`,
       [
-        ...childrenIn(fn.key, "screens").map((c) => c.label()),
-        ...childrenIn(fn.key, "fields").map((c) => c.label()),
-        ...childrenIn(fn.key, "has").map((c) => c.label()),
-        ...(fn.key === "tasks" ? [S.autoUrgentByDate] : []),
-        ...(fn.key === "notes" ? [S.confirmImageDownloads] : []),
+        ...childrenOf(fn.key).map((c) => c.label()),
+        ...(FUNCTION_EXTRAS()[fn.key] ?? []),
       ],
     ]),
   ];
