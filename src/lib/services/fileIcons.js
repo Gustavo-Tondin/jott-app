@@ -16,20 +16,14 @@
 // PDF, and a note with twelve of them must not cross the bridge twelve times.
 
 import { api } from "./api.js";
+import { extensionOf } from "./paths.js";
 
 const cache = new Map();
-
-/// The extension a name is asked by. Lowercased, so `FOTO.PNG` and `a.png`
-/// are one question.
-function kindOf(name) {
-  const dot = String(name ?? "").lastIndexOf(".");
-  return dot < 0 ? "" : String(name).slice(dot + 1).toLowerCase();
-}
 
 /// A `data:` URL for the system's icon, or `null`. Never rejects: a missing
 /// icon is not an error the user should hear about.
 export function fileIcon(name) {
-  const kind = kindOf(name);
+  const kind = extensionOf(name);
   if (!kind) return Promise.resolve(null);
   if (!cache.has(kind)) {
     cache.set(

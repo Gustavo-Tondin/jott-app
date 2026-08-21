@@ -2,6 +2,7 @@
 
 import { describe, expect, test } from "vitest";
 import {
+  extensionOf,
   folderOf,
   listName,
   listTitle,
@@ -101,5 +102,20 @@ describe("listName / listTitle", () => {
   test("a hand-made second list keeps its own name", () => {
     // The only case where the stem carries information.
     expect(listTitle("Design/Tasks/Compras.md")).toBe("Compras");
+  });
+});
+
+describe("extensionOf", () => {
+  test("the extension, lowercased, of the leaf alone", () => {
+    expect(extensionOf("assets/FOTO.PNG")).toBe("png");
+    expect(extensionOf("nota.md")).toBe("md");
+    expect(extensionOf("arquivo.tar.gz")).toBe("gz");
+  });
+
+  test("nothing to ask by: no extension, a dot in a folder, no name at all", () => {
+    expect(extensionOf("Makefile")).toBe("");
+    expect(extensionOf("pasta.v2/README")).toBe("");
+    expect(extensionOf(null)).toBe("");
+    expect(extensionOf(undefined)).toBe("");
   });
 });

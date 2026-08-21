@@ -12,7 +12,7 @@ import { S } from "./strings.js";
 
 /// Display name of a list address: `Tasks/Compras.md` → `Compras`.
 export function listName(path) {
-  return (path ?? "").split("/").pop().replace(/\.md$/, "");
+  return leafOf(path).replace(/\.md$/, "");
 }
 
 /// What HOLDS an address — everything above the last segment.
@@ -33,6 +33,15 @@ export function folderOf(path) {
 export function leafOf(path) {
   const value = path ?? "";
   return value.slice(value.lastIndexOf("/") + 1);
+}
+
+/// The extension a file name is asked by — `FOTO.PNG` → `png`, `""` when
+/// there is none. Lowercased, so two spellings are one question; it was
+/// computed by hand in the icon cache and in the image check, each its own way.
+export function extensionOf(name) {
+  const leaf = leafOf(name);
+  const dot = leaf.lastIndexOf(".");
+  return dot < 0 ? "" : leaf.slice(dot + 1).toLowerCase();
 }
 
 /// The file name every tasks space's single list carries (core's

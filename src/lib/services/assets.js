@@ -17,6 +17,7 @@
 
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { api } from "./api.js";
+import { extensionOf } from "./paths.js";
 
 /// The notebook folder holding images. The same constant the core keeps; it is
 /// part of the file format, so it is written out rather than derived.
@@ -28,9 +29,7 @@ const IMAGE_EXTENSIONS = ["png", "jpg", "jpeg", "gif", "webp", "svg", "avif", "b
 
 /// Whether an address or file name reads as an image.
 export function isImage(name) {
-  const dot = String(name ?? "").lastIndexOf(".");
-  if (dot < 0) return false;
-  return IMAGE_EXTENSIONS.includes(name.slice(dot + 1).toLowerCase());
+  return IMAGE_EXTENSIONS.includes(extensionOf(name));
 }
 
 /// Whether an address points into the notebook's library — the only addresses
