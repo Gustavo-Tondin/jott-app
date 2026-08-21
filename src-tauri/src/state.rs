@@ -78,6 +78,17 @@ impl AppState {
         Ok(())
     }
 
+    /// Re-reads the open notebook's config from disk. A no-op with no
+    /// notebook open, or with the state unusable — the watcher that calls
+    /// this has nothing better to do than carry on.
+    pub fn reload_config(&self) {
+        if let Ok(mut guard) = self.lock() {
+            if let Some(open) = guard.as_mut() {
+                open.notebook.reload_config();
+            }
+        }
+    }
+
     fn lock(&self) -> CommandResult<std::sync::MutexGuard<'_, Option<OpenNotebook>>> {
         // A poisoned mutex means a command panicked while holding it. Failing
         // the call is better than papering over an unknown state.
@@ -128,13 +139,7 @@ impl WatcherHandle {
                     // harmless — it loads what was just saved.
                     if matches!(change, jott_core::watcher::Change::Config) {
                         use tauri::Manager;
-                        let state = app.state::<AppState>();
-                        let guard = state.inner.lock();
-                        if let Ok(mut guard) = guard {
-                            if let Some(open) = guard.as_mut() {
-                                open.notebook.reload_config();
-                            }
-                        }
+                        app.state::<AppState>().reload_config();
                     }
                     if let Err(e) = app.emit(NOTEBOOK_CHANGED_EVENT, &change) {
                         eprintln!("[jott] could not emit change event: {e}");

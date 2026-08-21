@@ -234,7 +234,6 @@ fn clipboard_uris<R: Runtime>(app: &AppHandle<R>) -> Option<Vec<String>> {
 
 #[cfg(target_os = "linux")]
 fn gtk_clipboard_uris() -> Option<Vec<String>> {
-
     let display = gdk::Display::default()?;
     let clipboard = gtk::Clipboard::default(&display)?;
 
@@ -243,23 +242,17 @@ fn gtk_clipboard_uris() -> Option<Vec<String>> {
         .into_iter()
         .map(|uri| uri.to_string())
         .collect();
+    if !uris.is_empty() {
+        return Some(uris);
+    }
 
     // Nautilus writes `x-special/gnome-copied-files` as well — `copy\n` and
     // then the addresses — and it is the one some desktops fill when the
     // plain uri-list stays empty.
-    let gnome = if uris.is_empty() {
-        clipboard
-            .wait_for_contents(&gdk::Atom::intern("x-special/gnome-copied-files"))
-            .and_then(|data| data.data().to_vec().into())
-            .map(|bytes| String::from_utf8_lossy(&bytes).to_string())
-            .unwrap_or_default()
-    } else {
-        String::new()
-    };
-
-    if !uris.is_empty() {
-        return Some(uris);
-    }
+    let gnome = clipboard
+        .wait_for_contents(&gdk::Atom::intern("x-special/gnome-copied-files"))
+        .map(|data| String::from_utf8_lossy(&data.data()).to_string())
+        .unwrap_or_default();
     Some(
         gnome
             .lines()

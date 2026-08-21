@@ -273,13 +273,12 @@ pub fn open_in_file_manager(
     open_path(&target)
 }
 
-/// Hands a folder to the desktop's file manager.
-///
-/// One process per platform, spawned and left alone — waiting for a file
-/// manager to exit would block the command for as long as the window stays
-/// open. A failure to even start it is reported: the menu promised something.
 /// Hands a path to the desktop. Both doors end here: the file manager on a
 /// folder, and the system's own app on an attachment.
+///
+/// One process per platform, spawned and left alone — waiting for it to exit
+/// would block the command for as long as the window stays open. A failure
+/// to even start it is reported: the menu promised something.
 pub(crate) fn open_path(target: &Path) -> CommandResult<()> {
     #[cfg(target_os = "linux")]
     let program = "xdg-open";
