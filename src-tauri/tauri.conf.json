@@ -1,7 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Jott",
-  "version": "0.23.0",
   "identifier": "dev.gustavotondin.jott",
   "build": {
     "frontendDist": "../dist",

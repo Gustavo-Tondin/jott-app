@@ -614,3 +614,52 @@ describe("frontend architecture", () => {
     expect(offenders).toEqual([]);
   });
 });
+
+// The version used to be typed into four files that had to agree, and
+// scripts/release.sh compared them afterwards. Comparing is not preventing:
+// package-lock.json sat on 0.22.0 for a whole version while the other four
+// said 0.23.0, because it was not one of the four being compared. The copies
+// were removed on 2026-08-21 — Cargo.toml holds it, because cargo is the only
+// tool involved that cannot read a version out of another file, and everything
+// else derives.
+//
+// These live here rather than only in release.sh because CI runs `npm test`
+// before it packages a tag, and a guard nobody has to remember to run is the
+// only kind that holds.
+describe("the version lives in one file", () => {
+  const repo = join(src, "..");
+  const read = (...p) => readFileSync(join(repo, ...p), "utf8");
+  const source = read("Cargo.toml").match(
+    /^\[workspace\.package\][\s\S]*?^version = "([^"]+)"/m,
+  );
+
+  test("Cargo.toml declares it under [workspace.package]", () => {
+    expect(source?.[1]).toMatch(/^\d+\.\d+\.\d+$/);
+  });
+
+  test.each(["package.json", join("src-tauri", "tauri.conf.json")])(
+    "%s has no version key — it derives by saying nothing",
+    (file) => {
+      // Typing one back in is the silent regression: the file would simply win
+      // over the source. tauri.conf.json omitting `version` is what makes the
+      // Tauri CLI fall back to the Cargo manifest, and package.json is private
+      // with nothing in the repo reading its version.
+      expect(Object.keys(JSON.parse(read(file)))).not.toContain("version");
+    },
+  );
+
+  test.each([join("core", "Cargo.toml"), join("src-tauri", "Cargo.toml")])(
+    "%s inherits the version instead of repeating it",
+    (file) => {
+      // A literal here compiles, tests and passes every other check — and
+      // ships a binary announcing the wrong version through CARGO_PKG_VERSION.
+      expect(read(file)).toMatch(/^version\.workspace = true$/m);
+    },
+  );
+
+  test("the PKGBUILD reads Cargo.toml instead of carrying a number", () => {
+    const pkgbuild = read("packaging", "PKGBUILD");
+    expect(pkgbuild).not.toMatch(/^pkgver=\d/m);
+    expect(pkgbuild).toContain("Cargo.toml");
+  });
+});

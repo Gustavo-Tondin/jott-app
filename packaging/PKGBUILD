@@ -12,7 +12,19 @@
 # skip the check: `makepkg -sid`.
 #
 pkgname=jott
-pkgver=0.23.0
+
+# The version is NOT declared here. It lives in one place — [workspace.package]
+# version in the repository's Cargo.toml — and every other file derives from it,
+# because four hand-edited copies is exactly how three of them reach a new
+# release and the fourth stays behind. Cargo cannot read a version from another
+# file, so Cargo.toml is the one that holds it; a PKGBUILD is a bash script and
+# can simply go and read it.
+_root="$(cd "$startdir/.." && pwd)"
+pkgver="$(sed -n '/^\[workspace\.package\]/,/^\[/{ s/^version *= *"\([^"]*\)".*/\1/p }' "$_root/Cargo.toml")"
+if [ -z "$pkgver" ]; then
+  echo "==> ERRO: não achei a versão em $_root/Cargo.toml ([workspace.package] version)." >&2
+  return 1
+fi
 pkgrel=1
 pkgdesc="Local-first tasks and notes in plain Markdown files"
 arch=('x86_64')
@@ -30,9 +42,9 @@ makedepends=('rust' 'cargo' 'nodejs' 'npm')
 # side is already optimised by the release profile, so nothing is lost here.
 options=('!strip' '!debug' '!lto')
 
+# `_root` is set above, next to pkgver, which is the first thing that needs it.
 # Built from the checkout this file sits in, not from a release tarball: there
 # is no release yet, and the whole point right now is packaging what is on disk.
-_root="$(cd "$startdir/.." && pwd)"
 
 build() {
   cd "$_root"

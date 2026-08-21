@@ -4,15 +4,39 @@
 #
 # WHY THIS EXISTS
 #
-# Every release repeated the same nine steps by hand: bump the version in four
-# files that must never disagree, run two suites and clippy, cross-check the
-# Windows build, audit for secrets, commit, tag, push, build the APK, verify
-# its signing certificate. Nine steps is more than anyone holds in their head
-# at 1am, so the sequence was delegated to an assistant each time — slow, and
-# a different order every release.
+# Every release repeated the same nine steps by hand: bump the version, run two
+# suites and clippy, cross-check the Windows build, audit for secrets, commit,
+# tag, push, build the APK, verify its signing certificate. Nine steps is more
+# than anyone holds in their head at 1am, so the sequence was delegated to an
+# assistant each time — slow, and a different order every release.
 #
-# The steps were never the hard part. Knowing WHICH four files and WHY the
-# order matters was. That knowledge is now here instead of in a chat log.
+# The steps were never the hard part. Knowing WHY the order matters was. That
+# knowledge is now here instead of in a chat log.
+#
+# THE VERSION LIVES IN ONE FILE
+#
+# It used to live in four, and this script proved after the fact that they
+# agreed. Proving is not preventing: package-lock.json sat on 0.22.0 while the
+# other four said 0.23.0, for a whole version, because it was not one of the
+# four being compared. So the copies were removed instead of policed:
+#
+#   Cargo.toml [workspace.package] version   THE version. Cargo is the only
+#                                            tool here that cannot read one
+#                                            from another file, so it holds it.
+#   core/ and src-tauri/Cargo.toml           inherit: version.workspace = true
+#   the running app                          env!("CARGO_PKG_VERSION")
+#   src-tauri/tauri.conf.json                NO version key — omitted on
+#                                            purpose, so the Tauri CLI falls
+#                                            back to the Cargo manifest
+#   package.json                             NO version key — private:true, and
+#                                            nothing in the repo read it
+#   packaging/PKGBUILD                       reads Cargo.toml at makepkg time
+#
+# --check no longer compares four hand-edits. It checks that each derivation
+# still WORKS: that the inheritances are in place, that nobody helpfully typed
+# a version back into one of the JSON files, and that `cargo metadata` — the
+# very command the Tauri CLI runs to resolve the app version — lands on the
+# same number.
 #
 # WHAT IT REFUSES TO DO
 #
@@ -26,9 +50,9 @@
 #
 # USAGE
 #
-#   scripts/release.sh 0.23.0             # the whole cycle, stopping before the push
-#   scripts/release.sh 0.23.0 --dry-run   # print every command, change nothing
-#   scripts/release.sh --check            # only verify the four versions agree
+#   scripts/release.sh 0.24.0             # the whole cycle, stopping before the push
+#   scripts/release.sh 0.24.0 --dry-run   # print every command, change nothing
+#   scripts/release.sh --check            # only verify the derivations still work
 #
 #   --skip-tests       skip npm test / cargo test / clippy
 #   --skip-preflight   skip the Windows cross-check (scripts/windows-preflight.sh)
@@ -74,52 +98,66 @@ run() {
 }
 
 # ---------------------------------------------------------------------------
-# The four files that declare the version.
+# The one file that declares the version, and the derivations that must hold.
 #
-# They must agree: the app announces one version, the bundle carries another,
-# and a rollback aims at the wrong one. Android is NOT in this list —
-# gen/android/app/tauri.properties is generated from tauri.conf.json by the
-# Tauri CLI (versionCode 22000 for 0.22.0), and editing it by hand is undone
-# on the next build.
+# Android is not in here. gen/android/app/tauri.properties is a generated file
+# and carries the version separately; it is handled at build time, in step 8.
 # ---------------------------------------------------------------------------
 
-version_of() {
-  case "$1" in
-    package.json)              grep -m1 '"version"'   package.json              | sed 's/.*"version": *"\([^"]*\)".*/\1/' ;;
-    src-tauri/tauri.conf.json) grep -m1 '"version"'   src-tauri/tauri.conf.json | sed 's/.*"version": *"\([^"]*\)".*/\1/' ;;
-    Cargo.toml)                grep -m1 '^version'    Cargo.toml                | sed 's/.*"\([^"]*\)".*/\1/' ;;
-    packaging/PKGBUILD)        grep -m1 '^pkgver='    packaging/PKGBUILD        | cut -d= -f2 ;;
-  esac
+readonly SOURCE_FILE="Cargo.toml"
+
+# The single source: [workspace.package] version. Scoped to that table so a
+# `version = "1.0"` under [workspace.dependencies] can never be picked up by
+# accident.
+source_version() {
+  sed -n '/^\[workspace\.package\]/,/^\[/{ s/^version *= *"\([^"]*\)".*/\1/p }' "$SOURCE_FILE"
 }
 
-readonly VERSION_FILES=(package.json src-tauri/tauri.conf.json Cargo.toml packaging/PKGBUILD)
+# Rewrites the source and PROVES it changed. A sed that silently matches
+# nothing is exactly how a release ships the previous version's number.
+bump_source() {
+  local to="$1" from
+  from="$(source_version)"
+  [ -n "$from" ] || die "$SOURCE_FILE declares no [workspace.package] version the script can read"
 
-# Rewrites one file and PROVES it changed. A sed that silently matches nothing
-# is exactly how three files end up on the new version and one stays behind.
-bump_file() {
-  local file="$1" to="$2" from
-  from="$(version_of "$file")"
-
-  [ "$from" = "$to" ] && { log INFO "  $file already $to"; return 0; }
+  [ "$from" = "$to" ] && { log INFO "  $SOURCE_FILE already $to"; return 0; }
 
   if [ -n "$DRY_RUN" ]; then
-    log DRY  "  $file: $from -> $to"
+    log DRY  "  $SOURCE_FILE: $from -> $to"
     return 0
   fi
 
-  case "$file" in
-    package.json|src-tauri/tauri.conf.json)
-      sed -i "0,/\"version\": *\"$from\"/s//\"version\": \"$to\"/" "$file" ;;
-    Cargo.toml)
-      sed -i "0,/^version = \"$from\"/s//version = \"$to\"/" "$file" ;;
-    packaging/PKGBUILD)
-      sed -i "s/^pkgver=$from\$/pkgver=$to/" "$file" ;;
-  esac
+  sed -i "/^\[workspace\.package\]/,/^\[/ s/^version = \"$from\"\$/version = \"$to\"/" "$SOURCE_FILE"
 
   local now
-  now="$(version_of "$file")"
-  [ "$now" = "$to" ] || die "$file did not take the bump — still $now. Nothing else was touched."
-  log INFO "  $file: $from -> $to"
+  now="$(source_version)"
+  [ "$now" = "$to" ] || die "$SOURCE_FILE did not take the bump — still $now. Nothing else was touched."
+  log INFO "  $SOURCE_FILE: $from -> $to"
+}
+
+# Asks the PKGBUILD itself rather than re-implementing its sed here — a copy of
+# the parsing would happily agree with itself while the real file was broken.
+# Sourcing it only runs the top-level assignments; build/check/package are
+# functions and are merely defined.
+pkgbuild_version() (
+  # shellcheck disable=SC2034
+  startdir="$ROOT/packaging"
+  # shellcheck disable=SC1091
+  source "$ROOT/packaging/PKGBUILD" >/dev/null 2>&1 || return 1
+  printf '%s' "${pkgver:-}"
+)
+
+# Reports one derivation. Sets DERIVED_BAD instead of dying so a single run
+# lists everything that drifted, rather than one thing per invocation.
+DERIVED_BAD=0
+derives() {
+  local what="$1" got="$2" want="$3"
+  if [ "$got" = "$want" ]; then
+    log INFO  "  $what: $got"
+  else
+    log ERROR "  $what: ${got:-<nothing>}  (expected $want)"
+    DERIVED_BAD=1
+  fi
 }
 
 # Sets AGREED_VERSION rather than printing it. `die` inside a $( ) subshell
@@ -127,20 +165,98 @@ bump_file() {
 # reported as fatal.
 AGREED_VERSION=""
 check_versions() {
-  local first="" file current disagree=0
-  for file in "${VERSION_FILES[@]}"; do
-    current="$(version_of "$file")"
-    [ -z "$current" ] && die "$file declares no version the script can read"
-    [ -z "$first" ] && first="$current"
-    if [ "$current" != "$first" ]; then
-      log ERROR "  $file: $current  (expected $first)"
-      disagree=1
+  DERIVED_BAD=0
+
+  local want
+  want="$(source_version)"
+  [ -n "$want" ] || die "$SOURCE_FILE declares no [workspace.package] version the script can read"
+  printf '%s' "$want" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$' \
+    || die "$SOURCE_FILE says '$want', which is not X.Y.Z"
+  log INFO "  $SOURCE_FILE [workspace.package]: $want   <- the source"
+
+  # The two crates must INHERIT. A literal here would compile and test and pass
+  # every other check in this function, and ship a binary announcing the wrong
+  # version through CARGO_PKG_VERSION.
+  local crate
+  for crate in core/Cargo.toml src-tauri/Cargo.toml; do
+    if grep -qE '^version\.workspace *= *true' "$crate"; then
+      log INFO  "  $crate: inherits (version.workspace = true)"
     else
-      log INFO  "  $file: $current"
+      log ERROR "  $crate: does NOT inherit — it must say 'version.workspace = true'"
+      DERIVED_BAD=1
     fi
   done
-  [ "$disagree" -eq 0 ] || die "the version files disagree — fix them before releasing"
-  AGREED_VERSION="$first"
+
+  # The two JSON files derive by SAYING NOTHING. Someone typing a version back
+  # into either of them is the regression this whole rework exists to prevent,
+  # and it is silent: the file would simply win over the source.
+  local json
+  for json in src-tauri/tauri.conf.json package.json; do
+    if grep -qE '^[[:space:]]*"version"[[:space:]]*:' "$json"; then
+      log ERROR "  $json: has a \"version\" key. Remove it — the key is what breaks the derivation."
+      case "$json" in
+        src-tauri/tauri.conf.json)
+          log ERROR "    With no key, the Tauri CLI reads the version from $SOURCE_FILE." ;;
+        package.json)
+          log ERROR "    Nothing in this repo reads it, and the package is private." ;;
+      esac
+      DERIVED_BAD=1
+    else
+      log INFO  "  $json: no version key (derives from $SOURCE_FILE)"
+    fi
+  done
+
+  derives "packaging/PKGBUILD (pkgver, evaluated)" "$(pkgbuild_version)" "$want"
+
+  # This is the strong one, and the only check here that asks CARGO instead of
+  # reading a text file. `cargo metadata --no-deps --format-version 1` is the
+  # exact command the Tauri CLI runs to resolve the app version when
+  # tauri.conf.json omits it, so agreeing here is agreeing with what the
+  # bundles, the installers and Android's versionName end up carrying — and
+  # with what the running app announces through CARGO_PKG_VERSION.
+  #
+  # It reads the MANIFESTS, not the lock, so it answers correctly the moment
+  # the source is edited. `cargo pkgid` looks like the shorter way to ask and
+  # is not: it reports what Cargo.lock says, which is a different question —
+  # asked separately, below.
+  if command -v cargo >/dev/null 2>&1 && command -v python3 >/dev/null 2>&1; then
+    local meta pkg
+    meta="$(cargo metadata --no-deps --format-version 1 --offline 2>/dev/null \
+         || cargo metadata --no-deps --format-version 1 2>/dev/null)"
+    if [ -n "$meta" ]; then
+      for pkg in jott jott-core; do
+        derives "cargo resolves $pkg" \
+          "$(printf '%s' "$meta" | python3 -c 'import json,sys
+m = json.load(sys.stdin)
+print(next((p["version"] for p in m["packages"] if p["name"] == sys.argv[1]), ""))' "$pkg")" \
+          "$want"
+      done
+    else
+      log WARN "  cargo metadata did not run — the resolution the bundles use went unchecked"
+    fi
+  else
+    log WARN "  cargo or python3 missing — the resolution the bundles use went unchecked"
+  fi
+
+  # Cargo.lock carries the version too, and cargo — not this script — writes
+  # it, so it lags a hand-edit of the source until the next cargo command. That
+  # lag is harmless right up until it is committed next to a tag, which is the
+  # same drift as before in a new hiding place. Checked, with the fix in the
+  # message; the release flow refreshes the lock before it gets here.
+  if [ -f Cargo.lock ]; then
+    local locked
+    locked="$(sed -n '/^name = "jott"$/,/^version/ s/^version = "\(.*\)"$/\1/p' Cargo.lock | head -1)"
+    if [ "$locked" = "$want" ]; then
+      log INFO  "  Cargo.lock: $locked"
+    else
+      log ERROR "  Cargo.lock: ${locked:-<nothing>}  (expected $want)"
+      log ERROR "    cargo has not caught up yet. Fix:  cargo metadata --offline >/dev/null"
+      DERIVED_BAD=1
+    fi
+  fi
+
+  [ "$DERIVED_BAD" -eq 0 ] || die "a derivation is broken — fix it before releasing"
+  AGREED_VERSION="$want"
 }
 
 # ---------------------------------------------------------------------------
@@ -165,7 +281,7 @@ while [ $# -gt 0 ]; do
     --android)        WITH_ANDROID=1 ;;
     --no-push)        NO_PUSH=1 ;;
     --yes|-y)         ASSUME_YES=1 ;;
-    -h|--help)        sed -n '2,40p' "$0"; exit 0 ;;
+    -h|--help)        awk '/^# USAGE$/{u=1} u&&!/^#/{exit} u{sub(/^# ?/,""); print}' "$0"; exit 0 ;;
     -*)               die "unknown option: $1" ;;
     *)                VERSION="$1" ;;
   esac
@@ -175,13 +291,13 @@ done
 log INFO "log: $LOG"
 
 if [ -n "$CHECK_ONLY" ]; then
-  log INFO "version files:"
+  log INFO "version, and the derivations from it:"
   check_versions
-  log INFO "all four agree on $AGREED_VERSION"
+  log INFO "every derivation lands on $AGREED_VERSION"
   exit 0
 fi
 
-[ -n "$VERSION" ] || die "give the new version: scripts/release.sh 0.23.0  (or --check)"
+[ -n "$VERSION" ] || die "give the new version: scripts/release.sh 0.24.0  (or --check)"
 printf '%s' "$VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$' \
   || die "version must be X.Y.Z, got '$VERSION'"
 
@@ -206,7 +322,7 @@ fi
 git rev-parse "v$VERSION" >/dev/null 2>&1 \
   && die "tag v$VERSION already exists. Pick another version, or delete it first."
 
-log INFO "current version files:"
+log INFO "current version, and the derivations from it:"
 check_versions
 [ "$AGREED_VERSION" = "$VERSION" ] && log WARN "already at $VERSION — the bump will be a no-op"
 
@@ -250,10 +366,7 @@ fi
 # ---------------------------------------------------------------------------
 
 log INFO "step 2/8 — bumping to $VERSION"
-for file in "${VERSION_FILES[@]}"; do
-  bump_file "$file" "$VERSION"
-done
-[ -n "$DRY_RUN" ] || check_versions
+bump_source "$VERSION"
 
 # Cargo.lock carries the workspace's own version, so the bump changes it too —
 # but only the next cargo invocation writes it. Left to that, the lock is
@@ -266,6 +379,13 @@ if [ -f Cargo.lock ]; then
     || log WARN "  could not refresh Cargo.lock — check it before the tag"
   [ -n "$DRY_RUN" ] || log INFO "  Cargo.lock refreshed"
 fi
+
+# Re-run AFTER the lock, not before: this is where the one edit is proved to
+# have reached everything that derives from it. Only three files changed on
+# disk — Cargo.toml, Cargo.lock, and nothing else — and this is what says the
+# other artifacts will still carry $VERSION anyway.
+log INFO "  derivations after the bump:"
+[ -n "$DRY_RUN" ] || check_versions
 
 # ---------------------------------------------------------------------------
 # Step 3 — the suites
@@ -344,9 +464,10 @@ done
 # ---------------------------------------------------------------------------
 
 log INFO "step 6/8 — commit and tag"
-# Cargo.lock goes in with them: it names the version too, and a lock left
-# out of the commit is a dirty tree the moment the tag exists.
-commit_files=("${VERSION_FILES[@]}")
+# Two files, because the bump touched two. Cargo.lock goes in with the source:
+# it names the version too, and a lock left out of the commit is a dirty tree
+# the moment the tag exists.
+commit_files=("$SOURCE_FILE")
 [ -f Cargo.lock ] && commit_files+=(Cargo.lock)
 run git add "${commit_files[@]}"
 if [ -z "$DRY_RUN" ] && git diff --cached --quiet; then
