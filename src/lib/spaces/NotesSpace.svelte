@@ -27,7 +27,7 @@
   import { makeScreen } from "../services/act.js";
   import { spaceMenu } from "../services/spaceMenu.js";
   import { arrange, pinnedFirst, planReorder } from "../services/spaceOrder.js";
-  import { ACCENTS, accentColor, accentStyle, dotStyle as dotStyleOf } from "../services/accent.js";
+  import { ACCENTS, accentStyle, dotStyle as dotStyleOf } from "../services/accent.js";
   import { board } from "../services/noteBoard.js";
   import { leafOf, listName } from "../services/paths.js";
   import { reorderable } from "../actions/reorder.js";
@@ -576,6 +576,22 @@
   }
 </script>
 
+<!-- One note on the board — the same card whether it sits loose in a column
+     or inside a folder's own pair of columns. While picking, a click picks. -->
+{#snippet noteItem(entry)}
+  <NoteCard
+    {entry}
+    {root}
+    banners={f("banners")}
+    {picking}
+    selected={picked.has(entry.path)}
+    menu={cardMenu(entry)}
+    onPin={readOnly || !f("pinNotes") ? null : () => togglePin(entry)}
+    onOpen={(_, opts) => (picking ? togglePick(entry) : openNote(entry, opts))}
+    onContextMenu={openCardMenu}
+  />
+{/snippet}
+
 <!-- Opening a note is the shell's business: it becomes a document tab, the
      same as a list. This screen only ever lists. -->
 <div class="notes-space">
@@ -882,18 +898,7 @@
                     <ul class="notes-space__board notes-space__board--pair">
                       {#each laid(inside.cards) as entry (entry.path)}
                         <li class="notes-space__item">
-                          <NoteCard
-                            {entry}
-                            {root}
-                            banners={f("banners")}
-                            {picking}
-                            selected={picked.has(entry.path)}
-                            menu={cardMenu(entry)}
-                            onPin={readOnly || !f("pinNotes") ? null : () => togglePin(entry)}
-                            onOpen={(_, opts) =>
-                              picking ? togglePick(entry) : openNote(entry, opts)}
-                            onContextMenu={openCardMenu}
-                          />
+                          {@render noteItem(entry)}
                         </li>
                       {/each}
                     </ul>
@@ -907,17 +912,7 @@
             class="notes-space__item"
             style={breaks.has(index) ? "break-after: column" : ""}
           >
-            <NoteCard
-              entry={card}
-              {root}
-              banners={f("banners")}
-              {picking}
-              selected={picked.has(card.path)}
-              menu={cardMenu(card)}
-              onPin={readOnly || !f("pinNotes") ? null : () => togglePin(card)}
-              onOpen={(_, opts) => (picking ? togglePick(card) : openNote(card, opts))}
-              onContextMenu={openCardMenu}
-            />
+            {@render noteItem(card)}
           </li>
         {/if}
       {/each}
