@@ -158,6 +158,38 @@ describe("whose gesture it is", () => {
   });
 });
 
+describe("a pane that claims one direction (actions/paneSwipe.js)", () => {
+  // The Tasks screen on its Inbox: a page to the right of it, none to the
+  // left. It marks itself `data-swipes="left"`, and the drawer steps aside
+  // for a leftward drag only — a swipe to the right still opens the sidebar.
+  beforeEach(() => {
+    document.querySelector(".empty").outerHTML =
+      '<div class="pane" data-swipes="left"><p class="empty">the inbox</p></div>';
+  });
+
+  it("yields the direction the pane claims", () => {
+    mount();
+    const last = drag(node, document.querySelector(".empty"), { dx: -200 });
+    expect(calls).toMatchObject({ open: 0, close: 0 });
+    expect(calls.drags).toEqual([]);
+    // And does not take the gesture from the browser — the pane will.
+    expect(last.defaultPrevented).toBe(false);
+  });
+
+  it("keeps the other one", () => {
+    mount();
+    drag(node, document.querySelector(".empty"), { dx: 200 });
+    expect(calls.open).toBe(1);
+  });
+
+  it("yields both when the mark is unqualified", () => {
+    document.querySelector(".pane").setAttribute("data-swipes", "x");
+    mount();
+    drag(node, document.querySelector(".empty"), { dx: 200 });
+    expect(calls.open).toBe(0);
+  });
+});
+
 describe("the axis", () => {
   it("drops the gesture when the drag is mostly vertical", () => {
     mount();

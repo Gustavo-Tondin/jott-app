@@ -127,6 +127,49 @@ describe("TasksView", () => {
     expect(await screen.findByText("07/20 - 07/26")).toBeTruthy();
   });
 
+  // Below 768px the page turns with a swipe (actions/paneSwipe.js); the strip
+  // and the swipe land on the same state.
+  test("a swipe turns the page in the compact shell, and only towards a page", async () => {
+    bridge({ list_tasks: [], period_tasks: [], grouped_suggestions: [] });
+    const { container } = render(TasksView, { props: props({ compact: true }) });
+    const pane = container.querySelector(".tasks-view");
+    Object.defineProperty(pane, "offsetWidth", { value: 360, configurable: true });
+    const ground = () => container.querySelector(".tasks-view__pane");
+    const swipe = (dx) => {
+      const at = (type, x, touches) => {
+        const event = new Event(type, { bubbles: true, cancelable: true });
+        const list = [{ clientX: x, clientY: 200 }];
+        Object.assign(event, { touches: touches ? list : [], changedTouches: list });
+        ground().dispatchEvent(event);
+      };
+      at("touchstart", 200, true);
+      at("touchmove", 200 + dx / 2, true);
+      at("touchmove", 200 + dx, true);
+      at("touchend", 200 + dx, false);
+    };
+
+    // Nothing before the Inbox: a swipe to the right is the drawer's.
+    expect(pane.getAttribute("data-swipes")).toBe("left");
+    swipe(200);
+    expect(invoke).not.toHaveBeenCalledWith("period_tasks", expect.anything());
+
+    swipe(-200);
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("period_tasks", { period: "day" }),
+    );
+    expect(pane.getAttribute("data-swipes")).toBe("x");
+    expect(ground().getAttribute("data-enter")).toBe("end");
+
+    swipe(-200);
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("period_tasks", { period: "week" }),
+    );
+    expect(pane.getAttribute("data-swipes")).toBe("right");
+
+    swipe(200);
+    await waitFor(() => expect(ground().getAttribute("data-enter")).toBe("start"));
+  });
+
   test("the open tab is reported so the page header can name it", async () => {
     const subs = [];
     bridge({ list_tasks: [] });

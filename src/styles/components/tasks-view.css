@@ -14,9 +14,51 @@
     flex: 1;
     min-block-size: 0;
   }
-  .tasks-view > .tasks-space,
-  .tasks-view > .period-view {
+  .tasks-view__pane {
     flex: 1;
+    min-block-size: 0;
+    display: flex;
+    flex-direction: column;
+    /* Follows the finger while a swipe is turning the page
+       (actions/paneSwipe.js writes `--pane-x` on the screen). Zero the rest of
+       the time. The glide home when a swipe is let go short of the mark is the
+       transition; while the finger is down `is-turning` switches it off, so
+       the pane sits under the hand instead of easing after it. */
+    translate: var(--pane-x, 0rem) 0;
+    transition: translate var(--theme-transition-medium);
+  }
+  .tasks-view.is-turning .tasks-view__pane {
+    transition: none;
+  }
+  .tasks-view__pane > .tasks-space,
+  .tasks-view__pane > .period-view {
+    flex: 1;
+  }
+  /* THE PAGE TURN. A new pane comes in from the side the strip reads towards
+     — from the end when the tab is further along, from the start when it is
+     further back — sliding a short way and fading, decelerating as it lands.
+     A short way, not the whole width: the old pane is gone by the time this
+     one exists (the `{#key}` replaces it), and a full-width slide with nothing
+     leaving read as the screen arriving from off-stage. An eighth of the way
+     says WHICH way without pretending the other page is still there. The
+     first paint has no `data-enter` and stays still. */
+  .tasks-view__pane[data-enter="end"] {
+    animation: tasks-view-turn-from-end var(--theme-duration-slow) var(--theme-ease-out);
+  }
+  .tasks-view__pane[data-enter="start"] {
+    animation: tasks-view-turn-from-start var(--theme-duration-slow) var(--theme-ease-out);
+  }
+  @keyframes tasks-view-turn-from-end {
+    from {
+      opacity: 0;
+      translate: 12% 0;
+    }
+  }
+  @keyframes tasks-view-turn-from-start {
+    from {
+      opacity: 0;
+      translate: -12% 0;
+    }
   }
 
   /* The strip lives ON the screen's top row (2026-08-06), to the left of its ⋮.
