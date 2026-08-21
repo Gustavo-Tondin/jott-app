@@ -825,4 +825,71 @@
     flex: 1;
     inline-size: 100%;
   }
+
+  /* ---- the screen's entrance ----
+     A new view rises into the canvas (App.svelte keys it on the view). The
+     wrapper otherwise does nothing: it fills the column it was given. */
+  .shell__screen {
+    flex: 1;
+    min-block-size: 0;
+    display: flex;
+    flex-direction: column;
+    animation: theme-rise var(--theme-duration-medium) var(--theme-ease-out);
+  }
+
+  /* ---- pull to search (actions/pullToSearch.js) ----
+     The glass sits folded under the top edge of the scroller and comes out
+     as the page is pulled: `--pull` is how far the finger has got, with the
+     action's resistance already applied. It grows from nothing to full size
+     over the first part of the pull, and the disc turns brand-solid the
+     moment the release would open the search (`is-pull-ready`) — that is the
+     "you can let go now", told by colour rather than by a second glyph. Let
+     go early and the transition glides it back under the edge. */
+  .pull-search {
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline: 0;
+    z-index: 5;
+    display: flex;
+    justify-content: center;
+    pointer-events: none;
+    translate: 0 calc(var(--pull, 0rem) - 3rem);
+    opacity: 0;
+    transition:
+      translate var(--theme-transition-medium),
+      opacity var(--theme-transition-medium);
+  }
+  .pull-search__glass {
+    display: grid;
+    place-items: center;
+    inline-size: 2.5rem;
+    block-size: 2.5rem;
+    border-radius: var(--theme-radius-pill);
+    background: var(--theme-surface);
+    color: var(--theme-ink-muted);
+    border: 0.0625rem solid var(--theme-line);
+    box-shadow: var(--theme-shadow-popover);
+    scale: var(--pull-ratio, 0);
+    rotate: calc(var(--pull-ratio, 0) * -30deg);
+    transition:
+      background var(--theme-transition-fast),
+      color var(--theme-transition-fast),
+      scale var(--theme-transition-medium),
+      rotate var(--theme-transition-medium);
+  }
+  .shell__centre.is-pulling .pull-search {
+    opacity: 1;
+    transition: none;
+  }
+  .shell__centre.is-pulling .pull-search__glass {
+    transition:
+      background var(--theme-transition-fast),
+      color var(--theme-transition-fast);
+  }
+  .shell__centre.is-pull-ready .pull-search__glass {
+    background: var(--theme-brand);
+    color: var(--theme-on-brand);
+    border-color: var(--theme-brand);
+    scale: 1.1;
+  }
 }
