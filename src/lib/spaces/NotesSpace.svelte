@@ -67,6 +67,11 @@
     dot = undefined,
     onSetSort,
     onSetOrder,
+    /// `(layout)` — persists `grid` / `tree` in the space's own `.space.json`.
+    onSetLayout,
+    /// The notebook's default for a space that never chose (Settings → Notes
+    /// → Board). Anything that is not `tree` draws the grid.
+    defaultLayout = "grid",
     onChanged,
     onError,
     /// `(path, folder, { fresh, newTab })` — `fresh` is a note this screen has
@@ -97,13 +102,32 @@
   let folders = $state([]);
   /// `grid` (cards, Keep-like) or `tree` (by folder).
   ///
-  /// Session-local on purpose for now: the `.space.json` has no layout key,
-  /// so there is nothing to read a saved choice from. (An `options` field
-  /// used to be consulted here — a phantom the bridge never sent.)
+  /// The choice is the SPACE's (2026-08-21): it lives in its `.space.json`
+  /// next to `sort`, arrives through `source.noteLayout`, and a space that
+  /// never chose follows the notebook's default. It used to be session state
+  /// and was forgotten on every screen change (proposta §9-A).
+  ///
+  /// `chosenLayout` is the click before the refresh brings it back — and the
+  /// whole answer on a read-only notebook, where nothing can be written and
+  /// the choice is as session-local as it always was. It is dropped when the
+  /// source changes place: a choice made in one space is not the next one's.
   let chosenLayout = $state(null);
+  $effect(() => {
+    void folder;
+    chosenLayout = null;
+  });
+  const layoutName = (value) => (value === "tree" ? "tree" : "grid");
   /// With folders switched off there is no tree to draw — the view is the one
   /// arrangement the space still has.
-  let layout = $derived(f("noteFolders") ? (chosenLayout ?? "grid") : "grid");
+  let layout = $derived(
+    f("noteFolders")
+      ? layoutName(chosenLayout ?? source?.noteLayout ?? defaultLayout)
+      : "grid",
+  );
+  function chooseLayout(value) {
+    chosenLayout = value;
+    if (!readOnly) onSetLayout?.(value);
+  }
   /// Which folder is being looked at — `null` is the space's own board (its
   /// loose notes and the inbox's). ONE state for both views: "where am I in
   /// the tree" is the same question whether it is asked by a chip or by the
@@ -349,9 +373,9 @@
   let sortMenu = $derived(
     spaceMenu({
       lead: [
-        // Creating and picking write; the LAYOUT does not — how the same notes
-        // are drawn is a question a read-only notebook answers as happily as
-        // any other.
+        // Creating and picking write; the LAYOUT is offered either way — on
+        // a read-only notebook it is not saved, and how the same notes are
+        // drawn is a question that notebook answers as happily as any other.
         ...(readOnly
           ? []
           : [
@@ -369,12 +393,12 @@
                   {
                     label: S.gridView,
                     checked: layout === "grid",
-                    run: () => (chosenLayout = "grid"),
+                    run: () => chooseLayout("grid"),
                   },
                   {
                     label: S.treeView,
                     checked: layout === "tree",
-                    run: () => (chosenLayout = "tree"),
+                    run: () => chooseLayout("tree"),
                   },
                 ],
               },

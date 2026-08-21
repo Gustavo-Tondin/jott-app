@@ -465,6 +465,28 @@ describe("SettingsView", () => {
     );
   });
 
+  test("the default board layout is a notebook setting on the Notes page", async () => {
+    // Proposta §9-A (2026-08-21): what a space that never chose draws. The
+    // grid is the app's own, so choosing it back writes the empty string and
+    // the key leaves the file.
+    bridge({ notebook_settings: settings, set_notebook_settings: null });
+    render(SettingsView, { props: props() });
+    await openSection("Notes");
+    const pick = await screen.findByLabelText("Default layout");
+    await userEvent.selectOptions(pick, "tree");
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("set_notebook_settings", {
+        settings: { noteLayout: "tree" },
+      }),
+    );
+    await userEvent.selectOptions(pick, "");
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("set_notebook_settings", {
+        settings: { noteLayout: "" },
+      }),
+    );
+  });
+
   test("Native Functions holds the functions; a field is one page in", async () => {
     // The page that dissolved the old "App functions" dump: only the switches
     // that take a whole part of the interface with them are here, and what a

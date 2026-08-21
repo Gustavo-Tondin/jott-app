@@ -119,6 +119,10 @@ export const api = {
     invoke("set_space_sort", { space, sort }),
   setSpaceOrder: (space, order) =>
     invoke("set_space_order", { space, order }),
+  // How a notes space draws its board (`grid` / `tree`); null follows the
+  // notebook's default (Settings → Notes → Board).
+  setSpaceNoteLayout: (space, layout) =>
+    invoke("set_space_note_layout", { space, layout }),
 
   // Switching a part of the app on or off (App Functions, 2026-08-06).
   setFeature: (key, on) => invoke("set_feature", { key, on }),

@@ -36,5 +36,8 @@ export function sourceOf(space, { name = space.name ?? null } = {}) {
     name,
     sort: space.sort ?? null,
     order: space.order ?? [],
+    // The board layout this notes space chose for itself; null follows the
+    // notebook's default (`layout.noteLayout`).
+    noteLayout: space.noteLayout ?? null,
   };
 }

@@ -612,6 +612,7 @@
       dateDisplayFormat: "mm/dd/yyyy",
       closeInspectorOnClickAway: false,
       quickNoteFolder: "Inbox",
+      noteLayout: "",
       accentColor: "",
       theme: "",
       headingColor: "",
@@ -1396,6 +1397,10 @@
       const at = folder();
       return at && change(() => api.setSpaceOrder(at, order));
     },
+    setNoteLayout: (layout) => {
+      const at = folder();
+      return at && change(() => api.setSpaceNoteLayout(at, layout));
+    },
   });
   const spaceArrangement = arrangementOf(() => (view.kind === "space" ? view.sp : null));
 
@@ -2155,6 +2160,7 @@
                   path: notesSpace?.path ?? layout.notesFolder,
                   sort: notesSpace?.sort,
                   order: notesSpace?.order,
+                  noteLayout: notesSpace?.noteLayout,
                 },
                 // The screen names itself, and what it is called is what the
                 // app calls this place everywhere else — the sidebar entry,
@@ -2166,6 +2172,8 @@
               )}
               onSetSort={notesArrangement.setSort}
               onSetOrder={notesArrangement.setOrder}
+              onSetLayout={notesArrangement.setNoteLayout}
+              defaultLayout={layout.noteLayout}
               header={!compact}
               dot={colorOf(view)}
               readOnly={notebook.readOnly}
@@ -2255,6 +2263,8 @@
                 onOpenNote={openNoteFromBoard}
                 onSetSpaceSort={spaceArrangement.setSort}
                 onSetSpaceOrder={spaceArrangement.setOrder}
+                onSetSpaceNoteLayout={spaceArrangement.setNoteLayout}
+                noteLayout={layout.noteLayout}
                 onChanged={refreshNotebook}
                 onError={fail}
               />

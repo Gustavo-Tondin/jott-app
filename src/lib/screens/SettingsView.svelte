@@ -325,7 +325,7 @@
   /// chain this replaced.
   const FUNCTION_EXTRAS = () => ({
     tasks: [S.autoUrgentByDate, S.newTasksGoTo],
-    notes: [S.confirmImageDownloads],
+    notes: [S.noteLayout, S.confirmImageDownloads],
   });
 
   /// Every page the search can look up. The functions' half is DERIVED — the
@@ -1130,6 +1130,27 @@
             {@render featureRow(feature)}
           {/each}
           <p class="settings__hint">{S.featureBannersHint}</p>
+
+          <h3 class="settings__subtitle">{S.subBoard}</h3>
+
+          <!-- The default for a space that never chose (proposta §9-A). A
+               space's own choice lives in its .space.json and wins; with
+               folders off there is no tree to draw, so the row goes quiet
+               the way a child switch does. -->
+          <label class="settings__row">
+            <span class="settings__label">{S.noteLayout}</span>
+            <select
+              class="theme-select"
+              value={form.noteLayout === "tree" ? "tree" : ""}
+              disabled={readOnly || !on(features, "noteFolders")}
+              aria-label={S.noteLayout}
+              onchange={(e) => put({ noteLayout: e.currentTarget.value })}
+            >
+              <option value="">{S.gridView}</option>
+              <option value="tree">{S.treeView}</option>
+            </select>
+          </label>
+          <p class="settings__hint">{S.noteLayoutHint}</p>
 
           <h3 class="settings__subtitle">{S.subImages}</h3>
 

@@ -39,6 +39,10 @@
     // Persist the space's arrangement in its own `.space.json`.
     onSetSpaceSort,
     onSetSpaceOrder,
+    onSetSpaceNoteLayout,
+    /// The notebook's default board layout for a notes space that never
+    /// chose (`layout.noteLayout`); a tasks screen ignores it.
+    noteLayout = "grid",
     onChanged,
     onError,
   } = $props();
@@ -106,6 +110,8 @@
       {onSelectTask}
       onSetSort={onSetSpaceSort}
       onSetOrder={onSetSpaceOrder}
+      onSetLayout={onSetSpaceNoteLayout}
+      defaultLayout={noteLayout}
       {onChanged}
       {onError}
     />

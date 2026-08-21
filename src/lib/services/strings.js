@@ -359,6 +359,11 @@ export const S = {
   subScreens: "Screens",
   subFields: "Fields",
   subNoteHas: "What a note can have",
+  subBoard: "Board",
+  noteLayout: "Default layout",
+  noteLayoutHint:
+    "How a notes space draws its board until it chooses for itself — each " +
+    "space keeps its own choice, from its ⋮ → Layout.",
   subImages: "Images",
   featureBannersHint:
     "The colour or picture at the head of a note. Off, the editor draws no " +

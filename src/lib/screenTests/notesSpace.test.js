@@ -3,9 +3,9 @@
 // Screen tests with the bridge mocked. What they catch, what they deliberately
 // do not, and the fakes they share: `lib/test/screens.js`.
 
-import { fireEvent, render, screen, waitFor } from "@testing-library/svelte";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/svelte";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, test } from "vitest";
+import { beforeEach, describe, expect, test, vi } from "vitest";
 import { nameRequest } from "../services/dialog.js";
 import { bridge, invoke } from "../test/bridge.js";
 import { answerConfirm, noop, noteFolder, place, resetScreens, showFolders } from "../test/screens.js";
@@ -182,6 +182,45 @@ describe("NotesSpace", () => {
 
     expect(await screen.findByText("Briefing")).toBeTruthy();
     expect(screen.queryByText("Solta")).toBeNull();
+  });
+
+  test("choosing a layout is saved in the space, and a saved one is opened", async () => {
+    // The choice used to be session state and was lost on every screen change
+    // (proposta §9-A, 2026-08-21). Now it is written to the space's own
+    // `.space.json` and read back through the source.
+    bridge({
+      list_notes: [entry("Solta")],
+      note_folders: [noteFolder("Inbox")],
+    });
+    const onSetLayout = vi.fn();
+
+    render(NotesSpace, { props: props({ onSetLayout }) });
+    await screen.findByText("Solta");
+    await showFolders();
+    expect(onSetLayout).toHaveBeenCalledWith("tree");
+    // The click shows at once, before any refresh brings it back.
+    expect(await screen.findByRole("button", { name: "Inbox" })).toBeTruthy();
+
+    cleanup();
+    // A space that saved `tree` opens in the tree, no click needed; the
+    // notebook's default is only for a space that never chose.
+    render(NotesSpace, {
+      props: props({ source: { ...source, noteLayout: "tree" }, defaultLayout: "grid" }),
+    });
+    expect(await screen.findByRole("button", { name: "Inbox" })).toBeTruthy();
+
+    cleanup();
+    render(NotesSpace, { props: props({ defaultLayout: "tree" }) });
+    expect(await screen.findByRole("button", { name: "Inbox" })).toBeTruthy();
+
+    cleanup();
+    // A read-only notebook still switches — for the session, nothing saved.
+    const untouched = vi.fn();
+    render(NotesSpace, { props: props({ readOnly: true, onSetLayout: untouched }) });
+    await screen.findByText("Solta");
+    await showFolders();
+    expect(await screen.findByRole("button", { name: "Inbox" })).toBeTruthy();
+    expect(untouched).not.toHaveBeenCalled();
   });
 
   test("a read-only notebook offers no way to write", async () => {
