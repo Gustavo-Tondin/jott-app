@@ -62,8 +62,6 @@
      hamburger · search · + · collapse, the first and the last on the walls.
      They read as one row of tools rather than as three-and-one. */
   .shell__sidebar-head {
-    display: flex;
-    align-items: center;
     justify-content: space-between;
     gap: var(--theme-space-2);
     padding: var(--theme-space-8) var(--theme-space-12);

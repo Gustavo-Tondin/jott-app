@@ -40,10 +40,7 @@
 
   /* ---- toolbar (the pane head) ---- */
   .inspector__toolbar {
-    display: flex;
-    align-items: center;
     gap: var(--theme-space-4);
-    padding: var(--theme-space-8);
   }
   /* Lit when the task is in today — the one coloured control in the toolbar,
      because it is the only one that carries state. */

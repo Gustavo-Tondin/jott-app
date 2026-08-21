@@ -16,10 +16,7 @@
   }
 
   .note-panel__toolbar {
-    display: flex;
-    align-items: center;
     gap: var(--theme-space-4);
-    padding: var(--theme-space-8);
   }
   .note-panel__gap {
     flex: 1;

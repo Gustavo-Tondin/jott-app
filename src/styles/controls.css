@@ -857,7 +857,14 @@
   .theme-pane-foot {
     flex-shrink: 0;
   }
+  /* The head is a row of controls: every pane that wears it laid it out the
+     same way (flex, centred, a space-8 padding); the gap and the alignment
+     along the row are each pane's own, and the two heads that pad wider at
+     the sides (sidebar, suggestions) say so themselves. */
   .theme-pane-head {
+    display: flex;
+    align-items: center;
+    padding: var(--theme-space-8);
     border-bottom: 0.0625rem solid var(--theme-line);
   }
   .theme-pane-foot {

@@ -37,8 +37,6 @@
     inline-size: 100%;
   }
   .suggestions-pane__head {
-    display: flex;
-    align-items: center;
     justify-content: space-between;
     gap: var(--theme-space-8);
     padding: var(--theme-space-8) var(--theme-space-12);
