@@ -307,9 +307,8 @@
 
 <aside class="inspector">
   <!-- Toolbar: fold the panel away, send to My Day, task options. Icon buttons
-       are the shared `.theme-btn--icon`. The options menu (duplicate,
-       functions) is wired in a later pass; disabled so it is never a dead
-       promise. -->
+       are the shared `.theme-btn--icon`. The options ⋮ carries `optionsMenu`
+       above (duplicate, for now); the trash lives in the footer. -->
   <div class="inspector__toolbar theme-pane-head">
     <!-- THE SHEET HAS NO CLOSE BUTTON (user call, 2026-08-18). On the desktop
          the panel is a column that folds away to the side, and the sidebar
@@ -594,7 +593,9 @@
     {#if f("description") || f("files")}
     <hr class="theme-divider" />
 
-    <!-- Description + attachments. Attachments have no backend yet: honest. -->
+    <!-- Description + attachments. An attachment is a file of the library
+         (`assets/`), written as a line of links under the task (2026-08-18);
+         the picker and the chips below are the whole of its UI. -->
     <div class="inspector__description-block">
       {#if f("description")}
         <!-- The plain editor rather than a textarea (2026-08-19): the same

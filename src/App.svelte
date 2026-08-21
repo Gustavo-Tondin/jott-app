@@ -4,9 +4,10 @@
   //
   // Phase 8.5 put the pieces where the wireframe puts them. What this file
   // owns is arrangement and navigation; every screen below it owns its own
-  // data, and every rule about tabs lives in `tabs.js`. Design comes in
-  // phase 10, on top of a token layer that does not exist yet — so the CSS
-  // here is still structural on purpose.
+  // data, and every rule about tabs lives in `tabs.js`. Nothing visual lives
+  // here: the shell's look is `styles/components/shell.css` over the token
+  // layer, and what this file writes on the root (theme, accent, platform)
+  // goes through `shell/rootStyle.js`.
   import { listen } from "@tauri-apps/api/event";
   import { slide } from "svelte/transition";
   import { api, describeError } from "./lib/services/api.js";
