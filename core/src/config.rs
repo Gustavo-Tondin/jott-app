@@ -390,8 +390,8 @@ impl Config {
         if from_rel == to_rel {
             return false;
         }
-        let from_leaf = from_rel.rsplit('/').next().unwrap_or(from_rel).to_string();
-        let to_leaf = to_rel.rsplit('/').next().unwrap_or(to_rel).to_string();
+        let from_leaf = crate::relpath::leaf_of(from_rel).to_string();
+        let to_leaf = crate::relpath::leaf_of(to_rel).to_string();
 
         let mut changed = false;
         let rekeyed: Vec<(String, String)> = self

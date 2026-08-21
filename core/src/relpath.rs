@@ -68,6 +68,21 @@ pub fn relative_slash(base: &Path, abs: &Path) -> String {
         .replace('\\', "/")
 }
 
+/// The last component of a slash-separated address — the whole address when
+/// it has no `/`. The root-relative strings the app hands around are always
+/// `/`-joined (see [`relative_slash`]), so this is the one split every module
+/// used to spell out with its own `rsplit('/')`.
+pub fn leaf_of(relative: &str) -> &str {
+    relative.rsplit('/').next().unwrap_or(relative)
+}
+
+/// Splits an address into its parent and its leaf: `Clientes/Acme` →
+/// (`Clientes`, `Acme`). The parent has no trailing slash, and is empty when
+/// the address has none — a root-level item's parent is the root.
+pub fn split_parent(relative: &str) -> (&str, &str) {
+    relative.rsplit_once('/').unwrap_or(("", relative))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -120,6 +135,23 @@ mod tests {
         assert_eq!(relative_slash(base, base), "");
         // Not under the base: the whole path is the only honest answer.
         assert_eq!(relative_slash(base, Path::new("/outro/x.md")), "/outro/x.md");
+    }
+
+    #[test]
+    fn leaf_of_is_the_last_component_or_the_whole_address() {
+        assert_eq!(leaf_of("Tasks/Inbox/Inbox.md"), "Inbox.md");
+        assert_eq!(leaf_of("Inbox.md"), "Inbox.md");
+        assert_eq!(leaf_of(""), "");
+        // A trailing slash is an empty leaf, not the piece before it.
+        assert_eq!(leaf_of("Ideias/"), "");
+    }
+
+    #[test]
+    fn split_parent_gives_the_parent_without_a_slash_and_empty_at_the_root() {
+        assert_eq!(split_parent("Clientes/Acme"), ("Clientes", "Acme"));
+        assert_eq!(split_parent("a/b/c.md"), ("a/b", "c.md"));
+        assert_eq!(split_parent("Acme"), ("", "Acme"));
+        assert_eq!(split_parent(""), ("", ""));
     }
 
     #[test]

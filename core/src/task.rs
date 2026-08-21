@@ -137,7 +137,7 @@ impl Attachment {
     /// Names the link after the file, which is what the app writes.
     pub fn of(address: &str) -> Self {
         Self {
-            label: address.rsplit('/').next().unwrap_or(address).to_string(),
+            label: crate::relpath::leaf_of(address).to_string(),
             address: address.to_string(),
         }
     }

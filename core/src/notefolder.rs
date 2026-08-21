@@ -441,7 +441,7 @@ fn is_note_file(path: &Path) -> bool {
 /// The title a note's address ends in — the file stem, which is how a note
 /// is named in this app and what a `[[link]]` carries.
 pub fn title_of(relative: &str) -> String {
-    let leaf = relative.rsplit('/').next().unwrap_or(relative);
+    let leaf = crate::relpath::leaf_of(relative);
     leaf.strip_suffix(&format!(".{EXTENSION}")).unwrap_or(leaf).to_string()
 }
 
@@ -457,10 +457,8 @@ fn split_relative(relative: &str) -> (String, String) {
 /// Splits a folder address into parent and name: `Clientes/Acme` →
 /// (`Clientes`, `Acme`).
 fn split_folder(relative: &str) -> (String, String) {
-    match relative.rsplit_once('/') {
-        Some((parent, name)) => (parent.to_string(), name.to_string()),
-        None => (String::new(), relative.to_string()),
-    }
+    let (parent, name) = crate::relpath::split_parent(relative);
+    (parent.to_string(), name.to_string())
 }
 
 fn join_relative(folder: &str, name: &str) -> String {

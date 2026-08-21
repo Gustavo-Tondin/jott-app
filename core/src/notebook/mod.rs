@@ -164,7 +164,7 @@ fn split_list_path(path: &str) -> Result<(&str, &str)> {
 /// [`split_list_path`] — this one is for sorting and grouping addresses that
 /// were already accepted, where an odd address must not turn into an error.
 pub(super) fn list_dir_of(path: &str) -> &str {
-    path.rsplit_once('/').map(|(dir, _)| dir).unwrap_or("")
+    crate::relpath::split_parent(path).0
 }
 
 /// The label for a space prefix, out of the map [`Notebook::space_labels`]

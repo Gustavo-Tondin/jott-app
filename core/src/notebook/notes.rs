@@ -121,10 +121,7 @@ impl Notebook {
                 .filter(|key| *key == from || key.starts_with(&prefix))
                 .cloned()
                 .collect();
-            let parent = match from.rsplit_once('/') {
-                Some((parent, _)) => parent.to_string(),
-                None => String::new(),
-            };
+            let (parent, _) = crate::relpath::split_parent(from);
             for key in touched {
                 let Some(settings) = config.folders.remove(&key) else {
                     continue;
