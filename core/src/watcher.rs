@@ -128,7 +128,7 @@ impl NotebookWatcher {
     }
 
     /// Next change, if one is already queued.
-    pub fn try_next(&self) -> Option<Change> {
+    fn try_next(&self) -> Option<Change> {
         self.events.try_recv().ok()
     }
 

@@ -21,7 +21,7 @@ use super::*;
 impl Notebook {
     // ---------------------------------------------------------------- state
 
-    pub fn state_path(&self, period: Period) -> PathBuf {
+    fn state_path(&self, period: Period) -> PathBuf {
         self.config_dir().join(period.file_name())
     }
 
@@ -38,7 +38,7 @@ impl Notebook {
         )
     }
 
-    pub fn current_period_date(&self, period: Period) -> NaiveDate {
+    fn current_period_date(&self, period: Period) -> NaiveDate {
         match period {
             Period::Day => self.today(),
             Period::Week => self.current_week(),

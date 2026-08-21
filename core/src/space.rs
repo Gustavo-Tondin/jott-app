@@ -310,7 +310,7 @@ pub struct Space {
 
 impl Space {
     /// True when the folder carries the marker file.
-    pub fn is_space(path: impl AsRef<Path>) -> bool {
+    fn is_space(path: impl AsRef<Path>) -> bool {
         path.as_ref().join(SPACE_CONFIG_FILE).is_file()
     }
 

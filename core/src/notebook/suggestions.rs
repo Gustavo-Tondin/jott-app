@@ -52,7 +52,7 @@ impl Notebook {
     /// wrote, and a date that is today or already past. The date half can be
     /// switched off for people who do not want the interface flagging
     /// deadlines on its own.
-    pub fn is_urgent(&self, task: &Task) -> bool {
+    fn is_urgent(&self, task: &Task) -> bool {
         if task.is_marked_urgent() {
             return true;
         }

@@ -15,7 +15,7 @@ use crate::task::{Repeat, RepeatUnit, Task};
 
 /// The date a repeating task should come back, given the date it was anchored
 /// on. `None` when the task does not repeat.
-pub fn next_occurrence(repeat: Repeat, from: NaiveDate) -> Option<NaiveDate> {
+fn next_occurrence(repeat: Repeat, from: NaiveDate) -> Option<NaiveDate> {
     let every = repeat.every.max(1) as i64;
     match repeat.unit {
         RepeatUnit::Day => Some(from + Duration::days(every)),

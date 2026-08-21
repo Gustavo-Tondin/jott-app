@@ -26,7 +26,7 @@ const MAX_OFFSET_MINUTES: i32 = 23 * 60 + 59;
 impl TurnOffset {
     pub const MIDNIGHT: Self = Self(0);
 
-    pub fn minutes(self) -> i32 {
+    fn minutes(self) -> i32 {
         self.0
     }
 
@@ -125,7 +125,7 @@ pub fn logical_week_start_at(
 }
 
 /// First day of the week containing `date`.
-pub fn week_start_of(date: NaiveDate, starts_on: WeekStart) -> NaiveDate {
+fn week_start_of(date: NaiveDate, starts_on: WeekStart) -> NaiveDate {
     date - Duration::days(starts_on.days_since_start(date) as i64)
 }
 
