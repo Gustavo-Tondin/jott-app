@@ -146,6 +146,23 @@
       min-block-size: var(--theme-touch-min);
     }
 
+    /* AND THE ONE BUTTON THAT STATES ITS OWN BOX. The composer's ＋ is drawn
+       as a 36px square in every wireframe, phone and desktop alike, and says
+       so in components/task-composer.css — but `min-block-size` beats
+       `block-size`, and this sheet is the last one loaded, so the rule above
+       quietly stretched it to 36 wide by 48 tall (user report on device,
+       2026-08-21: "está meio alto"). The square is given back here rather
+       than fought for with specificity there, next to the fields' icons,
+       which were exempted for the same reason and whose comment already
+       claims this button keeps its square.
+
+       Its target is not lost with it: the ＋ is the last thing in a row that
+       is itself 48 tall, at the end of a bar with nothing under it but the
+       keyboard, and Enter submits the same form. */
+    .task-composer__add {
+      min-block-size: 2.25rem;
+    }
+
     /* The quiet sizes keep their density and still clear iOS's 44pt. They ride
        inside a row or a toolbar that is itself a target, so the full 48 here
        would spend the whole strip's height on one control.

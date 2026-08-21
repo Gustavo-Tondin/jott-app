@@ -55,14 +55,28 @@
     flex: 1;
   }
 
-  /* ---- task header: a brand-weak pill ---- */
+  /* ---- task header: a brand pill, one step up from the weak tint ----
+
+     NOT `--theme-brand-weak` on its own. That role is the app's faintest wash
+     and it is shared: the editor's text selection, every control's focus ring,
+     a pinned note's card. It has to stay faint for those, and read as a FILLED
+     pill here — where it is the one coloured thing in a sheet of grey, naming
+     the task the whole panel is about (user call on device, 2026-08-21: "está
+     muito apagado, use um azul um pouco mais forte").
+
+     A mix at the point of use, rather than a role of its own: a new role would
+     be eight colours across three themes and two regions, all to be read in
+     one place. Mixing toward `--theme-brand` moves with the accent and the
+     theme the same way the tint does — in the canvas it lands about a palette
+     step darker (100 → ~200), which is the "little bit" that was asked for and
+     still leaves the brand-coloured text on top well clear of it. */
   .inspector__header {
     display: flex;
     align-items: center;
     gap: var(--theme-space-8);
     margin-inline: var(--theme-space-8);
     padding: var(--theme-space-8) var(--theme-space-10);
-    background: var(--theme-brand-weak);
+    background: color-mix(in oklab, var(--theme-brand-weak) 80%, var(--theme-brand));
     border-radius: var(--theme-radius-md);
     color: var(--theme-brand);
   }
