@@ -14,7 +14,7 @@
   }
   .space-view__badge {
     color: var(--theme-danger);
-    font-weight: normal;
+    font-weight: var(--theme-weight-regular);
     font-size: var(--theme-text-12);
     margin-inline-start: var(--theme-space-8);
   }
