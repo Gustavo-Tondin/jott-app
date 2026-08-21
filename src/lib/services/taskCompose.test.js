@@ -5,24 +5,14 @@
 // task exists. Getting either wrong is silent — the task still appears, just
 // with a comment nobody asked for, or missing from the day it was typed into.
 
-import { beforeEach, describe, expect, test, vi } from "vitest";
+import { beforeEach, describe, expect, test } from "vitest";
+import { bridge, callsTo, commandsCalled, invoke, resetBridge } from "../test/bridge.js";
 
-const invoke = vi.fn();
-vi.mock("@tauri-apps/api/core", () => ({ invoke: (...args) => invoke(...args) }));
-
-const { composeTask, emptyIntent } = await import(
-  "./taskCompose.js"
-);
-
-const calls = () => invoke.mock.calls.map(([cmd]) => cmd);
+import { composeTask, emptyIntent } from "./taskCompose.js";
 
 beforeEach(() => {
-  invoke.mockReset();
-  invoke.mockImplementation((cmd) => {
-    if (cmd === "create_task") return Promise.resolve(4);
-    if (cmd === "ensure_task_id") return Promise.resolve("a1");
-    return Promise.resolve(null);
-  });
+  resetBridge();
+  bridge({ create_task: 4, ensure_task_id: "a1" });
 });
 
 describe("composeTask", () => {
@@ -31,7 +21,7 @@ describe("composeTask", () => {
     const id = await composeTask({ ...emptyIntent("Tasks/Inbox/Inbox.md"), text: "Pão" });
 
     expect(id).toBeNull();
-    expect(calls()).toEqual(["create_task"]);
+    expect(commandsCalled()).toEqual(["create_task"]);
     expect(invoke).toHaveBeenCalledWith("create_task", {
       list: "Tasks/Inbox/Inbox.md",
       text: "Pão",
@@ -45,7 +35,7 @@ describe("composeTask", () => {
       due: "2026-08-15",
     });
 
-    expect(calls()).toEqual(["create_task", "ensure_task_id", "set_task_fields"]);
+    expect(commandsCalled()).toEqual(["create_task", "ensure_task_id", "set_task_fields"]);
     expect(invoke).toHaveBeenCalledWith("ensure_task_id", {
       list: "Tasks/Inbox/Inbox.md",
       position: 4,
@@ -65,7 +55,7 @@ describe("composeTask", () => {
 
     expect(id).toBe("a1");
     // Not before: pulling needs something to point at.
-    expect(calls()).toEqual(["create_task", "ensure_task_id", "pull_into_period"]);
+    expect(commandsCalled()).toEqual(["create_task", "ensure_task_id", "pull_into_period"]);
     expect(invoke).toHaveBeenCalledWith("pull_into_period", {
       period: "day",
       list: "Tasks/Inbox/Inbox.md",
@@ -85,8 +75,8 @@ describe("composeTask", () => {
       repeatEvery: 2,
     });
 
-    expect(calls()).toEqual(["create_task", "ensure_task_id", "set_task_fields"]);
-    const [, args] = invoke.mock.calls.find(([cmd]) => cmd === "set_task_fields");
+    expect(commandsCalled()).toEqual(["create_task", "ensure_task_id", "set_task_fields"]);
+    const [args] = callsTo("set_task_fields");
     expect(args.fields).toEqual({
       due: "2026-08-15",
       // A number, not the select's string: the core takes 1-3.
@@ -98,6 +88,6 @@ describe("composeTask", () => {
   test("nothing is written without text or without a list", async () => {
     expect(await composeTask({ ...emptyIntent("Tasks/Inbox/Inbox.md"), text: "   " })).toBeNull();
     expect(await composeTask({ ...emptyIntent(null), text: "Pão" })).toBeNull();
-    expect(calls()).toEqual([]);
+    expect(commandsCalled()).toEqual([]);
   });
 });

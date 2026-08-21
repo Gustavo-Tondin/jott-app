@@ -5,13 +5,10 @@
 // widgets themselves — the picture, the chip, the click that opens a file —
 // are exercised in `components/editorFiles.test.js`, where there is a view.
 
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { EditorState } from "@codemirror/state";
 
-vi.mock("@tauri-apps/api/core", () => ({ invoke: vi.fn(), convertFileSrc: (p) => p }));
-
-const { embedMarkdown, embedDecorationsFor, noteMarkdown, referencesIn } =
-  await import("./embeds.js");
+import { embedMarkdown, embedDecorationsFor, noteMarkdown, referencesIn } from "./embeds.js";
 
 describe("the text a file gets in a note", () => {
   it("is the name in double brackets, behind a slash", () => {

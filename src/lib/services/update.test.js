@@ -1,16 +1,7 @@
-import { beforeEach, describe, expect, test, vi } from "vitest";
+import { beforeEach, describe, expect, test } from "vitest";
 
-vi.mock("./api.js", () => ({
-  api: {
-    autoUpdateCheck: vi.fn(),
-    lastUpdateCheck: vi.fn(),
-    rememberLastUpdateCheck: vi.fn(() => Promise.resolve()),
-    checkForUpdate: vi.fn(),
-  },
-}));
-
-const { api } = await import("./api.js");
-const { isDue, autoCheck } = await import("./update.js");
+import { bridge, commandsCalled, fails, invoke, resetBridge } from "../test/bridge.js";
+import { isDue, autoCheck } from "./update.js";
 
 const NOW = new Date("2026-08-19T12:00:00Z");
 const newer = {
@@ -21,11 +12,15 @@ const newer = {
   url: "https://example.com/releases",
 };
 
+/// What the bridge answers, with this test's difference on top — the whole
+/// table each time, so a failure armed in one test cannot survive into the
+/// next one.
+const answering = (over = {}) =>
+  bridge({ auto_update_check: true, last_update_check: null, check_for_update: newer, ...over });
+
 beforeEach(() => {
-  vi.clearAllMocks();
-  api.autoUpdateCheck.mockResolvedValue(true);
-  api.lastUpdateCheck.mockResolvedValue(null);
-  api.checkForUpdate.mockResolvedValue(newer);
+  resetBridge();
+  answering();
 });
 
 describe("isDue", () => {
@@ -44,33 +39,37 @@ describe("isDue", () => {
 
 describe("autoCheck", () => {
   test("switched off means not even a look at the stamp", async () => {
-    api.autoUpdateCheck.mockResolvedValue(false);
+    answering({ auto_update_check: false });
     expect(await autoCheck(NOW)).toBe(null);
-    expect(api.checkForUpdate).not.toHaveBeenCalled();
-    expect(api.rememberLastUpdateCheck).not.toHaveBeenCalled();
+    expect(commandsCalled()).not.toContain("check_for_update");
+    expect(commandsCalled()).not.toContain("remember_last_update_check");
   });
 
   test("not due yet means no request", async () => {
-    api.lastUpdateCheck.mockResolvedValue("2026-08-19T11:00:00Z");
+    answering({ last_update_check: "2026-08-19T11:00:00Z" });
     expect(await autoCheck(NOW)).toBe(null);
-    expect(api.checkForUpdate).not.toHaveBeenCalled();
+    expect(commandsCalled()).not.toContain("check_for_update");
   });
 
   test("a due check stamps the attempt and reports the newer version", async () => {
     expect(await autoCheck(NOW)).toEqual(newer);
-    expect(api.rememberLastUpdateCheck).toHaveBeenCalledWith(NOW.toISOString());
+    expect(invoke).toHaveBeenCalledWith("remember_last_update_check", {
+      when: NOW.toISOString(),
+    });
   });
 
   test("being up to date is not news", async () => {
-    api.checkForUpdate.mockResolvedValue({ ...newer, newer: false });
+    answering({ check_for_update: { ...newer, newer: false } });
     expect(await autoCheck(NOW)).toBe(null);
   });
 
   test("an offline launch is a normal launch — the failure is swallowed, but the attempt still counts", async () => {
-    api.checkForUpdate.mockRejectedValue(new Error("no network"));
+    answering({ check_for_update: fails("no network") });
     expect(await autoCheck(NOW)).toBe(null);
     // Stamped BEFORE the request: offline every morning must not become a
     // request on every launch.
-    expect(api.rememberLastUpdateCheck).toHaveBeenCalledWith(NOW.toISOString());
+    expect(invoke).toHaveBeenCalledWith("remember_last_update_check", {
+      when: NOW.toISOString(),
+    });
   });
 });

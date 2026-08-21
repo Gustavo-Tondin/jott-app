@@ -4,13 +4,12 @@
 
 import { render, screen, waitFor } from "@testing-library/svelte";
 import userEvent from "@testing-library/user-event";
-import { describe, test, expect, vi, beforeEach } from "vitest";
+import { describe, test, expect, beforeEach } from "vitest";
 
 import FolderPicker from "./FolderPicker.svelte";
 import { nameRequest } from "../services/dialog.js";
+import { bridge, invoke, resetBridge } from "../test/bridge.js";
 
-const invoke = vi.hoisted(() => vi.fn());
-vi.mock("@tauri-apps/api/core", () => ({ invoke: (...args) => invoke(...args) }));
 
 /// A shared-storage tree, answered the way `list_folders` answers it.
 const TREE = {
@@ -33,11 +32,10 @@ const TREE = {
 
 beforeEach(() => {
   nameRequest.set(null);
-  invoke.mockReset();
-  invoke.mockImplementation((cmd, args) => {
-    if (cmd === "list_folders") return Promise.resolve(TREE[args.path ?? "/storage/emulated/0"]);
-    if (cmd === "create_folder") return Promise.resolve(`${args.parent}/${args.name}`);
-    return Promise.resolve(null);
+  resetBridge();
+  bridge({
+    list_folders: ({ path }) => TREE[path ?? "/storage/emulated/0"],
+    create_folder: ({ parent, name }) => `${parent}/${name}`,
   });
 });
 

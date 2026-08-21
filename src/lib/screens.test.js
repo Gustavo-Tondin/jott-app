@@ -12,6 +12,9 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
 import { pace } from "./services/pace.js";
 import { confirmRequest, nameRequest, taskRequest } from "./services/dialog.js";
 import { back } from "./services/back.js";
+// The bridge, faked in one place for the whole suite — `bridge()` says what
+// each command answers, `invoke` is the spy the assertions read.
+import { bridge, invoke, resetBridge } from "./test/bridge.js";
 
 // Svelte 5 transitions (the inspector's slide) drive the Web Animations API,
 // which jsdom does not implement. A no-op that reports "already finished" — and
@@ -54,34 +57,11 @@ async function answerConfirm(answer = true) {
   return asked;
 }
 
-const invoke = vi.fn();
-vi.mock("@tauri-apps/api/core", () => ({
-  invoke: (...args) => invoke(...args),
-  // What an <img> loads a notebook file from (services/assets.js). There is no
-  // asset protocol in jsdom; the path is what matters here.
-  convertFileSrc: (path) => `asset://localhost/${encodeURIComponent(path)}`,
-}));
 // The note editor's engine is CodeMirror, which needs a real layout jsdom
 // cannot give it. These tests are about the *editor screen* — auto-save,
 // flush on close, read-only — so the engine is stubbed by a textarea and the
 // live-preview rule is tested on its own in `markdown.test.js`.
 vi.mock("./components/Editor.svelte", async () => await import("./components/EditorStub.svelte"));
-vi.mock("@tauri-apps/api/event", () => ({ listen: vi.fn(() => Promise.resolve(() => {})) }));
-// The title bar and the shell drive the frameless window through this API;
-// jsdom has no real window to minimize/maximize/close, so the handle is
-// stubbed. The state getters resolve to false: screens are tested with the
-// window in its framed (non-flush) state.
-vi.mock("@tauri-apps/api/window", () => ({
-  getCurrentWindow: () => ({
-    minimize: vi.fn(),
-    toggleMaximize: vi.fn(),
-    close: vi.fn(),
-    isMaximized: vi.fn(() => Promise.resolve(false)),
-    isFullscreen: vi.fn(() => Promise.resolve(false)),
-    setFullscreen: vi.fn(() => Promise.resolve()),
-    onResized: vi.fn(() => Promise.resolve(() => {})),
-  }),
-}));
 
 const { default: ListView } = await import("./screens/ListView.svelte");
 const { default: PeriodView } = await import("./screens/PeriodView.svelte");
@@ -134,19 +114,10 @@ const task = (id, text, extra = {}) => ({
   ...extra,
 });
 
-/// Answers each command with whatever `responses` says.
-function bridge(responses) {
-  invoke.mockImplementation((cmd, args) => {
-    if (!(cmd in responses)) return Promise.resolve(null);
-    const value = responses[cmd];
-    return Promise.resolve(typeof value === "function" ? value(args) : value);
-  });
-}
-
 const noop = () => {};
 
 beforeEach(() => {
-  invoke.mockReset();
+  resetBridge();
   // The completion beat is a real-user pause; tests stay instant.
   pace.completionMs = 0;
   // The two dialog requests are module-level stores: a test that leaves one

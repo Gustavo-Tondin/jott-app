@@ -588,4 +588,29 @@ describe("frontend architecture", () => {
     }
     expect(offenders).toEqual([]);
   });
+
+  test("no test fakes the Tauri bridge on its own", () => {
+    // 2026-08-21: four incompatible shapes of this mock lived in the tree — a
+    // hoisted `vi.fn`, a closure one, an inert one, and a partial stub of
+    // services/api.js one level up. Each new test copied whichever it landed
+    // beside, and a stub could drift from the command the app really sends
+    // without anything saying a word. There is one stub now
+    // (lib/test/bridge.js), aliased onto the real modules in vite.config.js;
+    // a mock here is the start of the fifth shape.
+    const faking = /vi\s*\.\s*mock\(\s*["'](?:@tauri-apps\/|[^"']*\/api\.js)/;
+    const offenders = walk(join(src, "lib"), ".test.js")
+      .filter((f) => faking.test(readFileSync(f, "utf8")))
+      .map((f) => basename(f));
+    expect(offenders).toEqual([]);
+  });
+
+  test("the bridge stub is reached by tests only", () => {
+    // It imports vitest. Anything shipping to the app that pulled it in would
+    // take the test runner along with it.
+    const offenders = [join(src, "App.svelte"), ...walk(join(src, "lib"), ".svelte"), ...walk(join(src, "lib"), ".js")]
+      .filter((f) => !f.endsWith(".test.js") && !f.endsWith(join("test", "bridge.js")))
+      .filter((f) => readFileSync(f, "utf8").includes("test/bridge.js"))
+      .map((f) => basename(f));
+    expect(offenders).toEqual([]);
+  });
 });

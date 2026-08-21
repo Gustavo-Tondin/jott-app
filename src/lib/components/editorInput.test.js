@@ -8,14 +8,9 @@
 // has had its say.
 
 import { render } from "@testing-library/svelte";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
-vi.mock("@tauri-apps/api/core", () => ({
-  invoke: () => Promise.resolve(null),
-  convertFileSrc: (path) => `asset://localhost/${encodeURIComponent(path)}`,
-}));
-
-const { default: Editor } = await import("./Editor.svelte");
+import Editor from "./Editor.svelte";
 
 const content = (container) => container.querySelector(".cm-content");
 

@@ -10,9 +10,7 @@ import { EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import { autocompletion, completionStatus, currentCompletions } from "@codemirror/autocomplete";
 
-vi.mock("@tauri-apps/api/core", () => ({ invoke: vi.fn(), convertFileSrc: (p) => p }));
-
-const { referenceCompletions } = await import("./linkComplete.js");
+import { referenceCompletions } from "./linkComplete.js";
 
 /// The little CodeMirror hands a completion source. `matchBefore` is all it
 /// uses, and it is a regex against the text to the left of the cursor.

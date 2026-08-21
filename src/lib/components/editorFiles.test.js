@@ -15,16 +15,10 @@
 import { render } from "@testing-library/svelte";
 import { fireEvent } from "@testing-library/dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { bridge, invoke, resetBridge } from "../test/bridge.js";
 
-const invoke = vi.fn(() => Promise.resolve(null));
-vi.mock("@tauri-apps/api/core", () => ({
-  invoke: (...args) => invoke(...args),
-  // The asset protocol has no jsdom; the path is what matters here.
-  convertFileSrc: (path) => `asset://localhost/${encodeURIComponent(path)}`,
-}));
-
-const { default: Editor } = await import("./Editor.svelte");
-const { forgetIcons } = await import("../services/fileIcons.js");
+import Editor from "./Editor.svelte";
+import { forgetIcons } from "../services/fileIcons.js";
 
 const picture = () => new File(["png!"], "foto.png", { type: "image/png" });
 const content = (container) => container.querySelector(".cm-content");
@@ -34,7 +28,7 @@ describe("a file of the notebook, drawn in the note", () => {
 
   beforeEach(() => {
     forgetIcons();
-    invoke.mockImplementation(() => Promise.resolve(null));
+    resetBridge();
   });
 
   it("draws a picture where its reference is", async () => {
@@ -68,9 +62,9 @@ describe("a file of the notebook, drawn in the note", () => {
   });
 
   it("wears the system's icon for the type when the system has one", async () => {
-    invoke.mockImplementation((cmd, args) =>
-      Promise.resolve(cmd === "file_icon" && args.name === "file.pdf" ? "data:image/png;base64,AAA" : null),
-    );
+    bridge({
+      file_icon: ({ name }) => (name === "file.pdf" ? "data:image/png;base64,AAA" : null),
+    });
     const { container } = render(Editor, {
       props: { value: "\n[[/contrato.pdf]]\n", root: NOTEBOOK },
     });

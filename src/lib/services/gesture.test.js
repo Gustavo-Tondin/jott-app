@@ -4,13 +4,22 @@
 // Every case here is one the real webview produced (2026-08-19); none is
 // invented. The transfers are stubs, but they are stubs of what was logged.
 
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
+import { bridge, resetBridge } from "../test/bridge.js";
 
-const invoke = vi.fn(() => Promise.resolve([]));
-vi.mock("@tauri-apps/api/core", () => ({ invoke: (...a) => invoke(...a), convertFileSrc: (p) => p }));
+import {
+  localPathsIn,
+  looksLikeFiles,
+  pathOfFileUrl,
+  readGesture,
+  remoteImageIn,
+} from "./gesture.js";
 
-const { localPathsIn, looksLikeFiles, pathOfFileUrl, readGesture, remoteImageIn } =
-  await import("./gesture.js");
+beforeEach(() => {
+  resetBridge();
+  // What the system clipboard is holding, which for most of these is nothing.
+  bridge({ clipboard_files: [] });
+});
 
 /// The `<a>` WebKit hands a dragged file over in — with the address as its
 /// TEXT, while `text/uri-list` sits there empty beside it.
@@ -60,7 +69,7 @@ describe("reading one", () => {
   });
 
   it("asks the system when a paste says nothing at all", async () => {
-    invoke.mockImplementation(() => Promise.resolve(["file:///home/gus/nota.pdf"]));
+    bridge({ clipboard_files: ["file:///home/gus/nota.pdf"] });
     const transfer = { types: ["text/uri-list"], files: [], getData: () => "", items: [] };
 
     expect((await readGesture(transfer, { clipboard: true })).paths).toEqual([

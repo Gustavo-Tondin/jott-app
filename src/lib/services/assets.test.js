@@ -1,23 +1,30 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 
+import { bridge, resetBridge } from "../test/bridge.js";
+import {
+  assetFile,
+  assetUrl,
+  importFiles,
+  isAssetAddress,
+  isImage,
+  libraryName,
+  readAsBase64,
+} from "./assets.js";
+
+/// What crossed the bridge, in order — the import is the one thing in this
+/// file that leaves the process.
 const imported = [];
-vi.mock("./api.js", () => ({
-  api: {
-    importAsset: (name, data) => {
+
+beforeEach(() => {
+  resetBridge();
+  imported.length = 0;
+  bridge({
+    import_asset: ({ name, data }) => {
       imported.push([name, data]);
-      return Promise.resolve(`assets/${name}`);
+      return `assets/${name}`;
     },
-  },
-}));
-
-// The URL builder is the one thing here that touches Tauri; everything else is
-// string work, which is why it is string work in the first place.
-vi.mock("@tauri-apps/api/core", () => ({
-  convertFileSrc: (path) => `asset://localhost/${encodeURIComponent(path)}`,
-}));
-
-const { assetFile, assetUrl, importFiles, isAssetAddress, isImage, libraryName, readAsBase64 } =
-  await import("./assets.js");
+  });
+});
 
 describe("what counts as an image", () => {
   it("reads the extension, whatever its case", () => {
@@ -80,8 +87,6 @@ describe("the file an address names", () => {
 
 
 describe("importing what the user picked", () => {
-  beforeEach(() => (imported.length = 0));
-
   it("reads a file as base64, without the data-URL head", async () => {
     // The bytes cross the IPC as text (Tauri's raw request body does not exist
     // on Android), and the core decodes exactly this.
