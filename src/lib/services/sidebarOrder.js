@@ -78,10 +78,13 @@ export function namesOf(entry) {
 /// deep in the tree rewrites only its own run of names.
 export function reorderedAt(tree, parentKey, from, to) {
   const moved = (list) => movedItem(list, from, to);
+  // Below the moved level nothing changes, so the rest is `namesOf`.
   const walk = (entries, key) =>
-    (key === parentKey ? moved(entries) : entries).flatMap((entry) =>
-      entry.kind === "group" ? walk(entry.children, entry.key) : [entry.sp.path],
-    );
+    key === parentKey
+      ? moved(entries).flatMap(namesOf)
+      : entries.flatMap((entry) =>
+          entry.kind === "group" ? walk(entry.children, entry.key) : namesOf(entry),
+        );
   return walk(tree, null);
 }
 
