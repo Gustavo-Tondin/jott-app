@@ -6,6 +6,7 @@
 
 use std::path::PathBuf;
 
+use jott_core::settings::Display;
 use jott_core::state::Period;
 use jott_core::{Conflict, Notebook};
 use serde::Serialize;
@@ -81,15 +82,13 @@ pub struct NotebookInfo {
 }
 
 impl NotebookInfo {
-    fn of<R: Runtime>(app: &AppHandle<R>, notebook: &Notebook) -> CommandResult<Self> {
-        let display = display_of(app, notebook);
+    /// `display` is resolved by the caller, because the snapshot needs the
+    /// same answer for its counters and must not read `machine-prefs.json`
+    /// twice for it.
+    fn of(notebook: &Notebook, display: Display) -> CommandResult<Self> {
         Ok(Self {
             path: notebook.root().to_path_buf(),
-            name: notebook
-                .root()
-                .file_name()
-                .map(|n| n.to_string_lossy().to_string())
-                .unwrap_or_default(),
+            name: jott_core::fsio::file_name_of(notebook.root()),
             read_only: notebook.is_read_only(),
             lists: notebook.lists()?,
             layout: NotebookLayout {
@@ -127,7 +126,7 @@ pub fn open_notebook<R: Runtime>(
     path: PathBuf,
 ) -> CommandResult<NotebookInfo> {
     let notebook = Notebook::open_or_init(&path)?;
-    let info = NotebookInfo::of(&app, &notebook)?;
+    let info = NotebookInfo::of(&notebook, display_of(&app, &notebook))?;
     allow_assets(&app, &path);
     state.open(&app, notebook)?;
     crate::prefs::remember_notebook(&app, &path);
@@ -171,10 +170,9 @@ pub fn current_notebook<R: Runtime>(
     app: AppHandle<R>,
     state: State<'_, AppState>,
 ) -> Option<NotebookInfo> {
-    if !state.is_open() {
-        return None;
-    }
-    state.with_notebook(|nb| NotebookInfo::of(&app, nb)).ok()
+    state
+        .with_notebook(|nb| NotebookInfo::of(nb, display_of(&app, nb)))
+        .ok()
 }
 
 /// Open task count per list, for the navigation. Empty when the user turned
@@ -184,17 +182,17 @@ pub fn list_counts<R: Runtime>(
     app: AppHandle<R>,
     state: State<'_, AppState>,
 ) -> CommandResult<std::collections::BTreeMap<String, usize>> {
-    state.with_notebook(|nb| counts_of(&app, nb))
+    state.with_notebook(|nb| counts_of(nb, &display_of(&app, nb)))
 }
 
 /// The rule behind the counters, written once: off means empty, not absent —
 /// the shape stays the same either way. Shared by `list_counts` and the
 /// snapshot, so the two doors cannot drift.
-pub(crate) fn counts_of<R: Runtime>(
-    app: &AppHandle<R>,
+pub(crate) fn counts_of(
     nb: &Notebook,
+    display: &Display,
 ) -> CommandResult<std::collections::BTreeMap<String, usize>> {
-    if !display_of(app, nb).show_list_counts {
+    if !display.show_list_counts {
         return Ok(Default::default());
     }
     Ok(nb.open_task_counts()?)
@@ -330,10 +328,13 @@ pub fn notebook_snapshot<R: Runtime>(
     state: State<'_, AppState>,
 ) -> CommandResult<NotebookSnapshot> {
     state.with_notebook(|nb| {
+        // Once: the info and the counters read the same display choices, and
+        // resolving them means reading `machine-prefs.json`.
+        let display = display_of(&app, nb);
         Ok(NotebookSnapshot {
-            info: NotebookInfo::of(&app, nb)?,
+            counts: counts_of(nb, &display)?,
+            info: NotebookInfo::of(nb, display)?,
             clock: clock_of(nb),
-            counts: counts_of(&app, nb)?,
             conflicts: nb.conflicts()?,
             spaces: spaces_of(nb)?,
             groups: groups_of(nb)?,

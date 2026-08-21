@@ -35,10 +35,3 @@ pub mod shell;
 pub mod spaces;
 pub mod tasks;
 pub mod update;
-
-// The wire types the frontend sees are the modules' own; these are the ones
-// more than one module builds, re-exported so a reader looking for "what does
-// a snapshot carry" does not have to know which file each piece came from.
-pub use notebook::{NotebookInfo, NotebookLayout, NotebookSnapshot, TagInfo, TrashEntryInfo};
-pub use period::PeriodClock;
-pub use spaces::{GroupInfo, SpaceInfo};

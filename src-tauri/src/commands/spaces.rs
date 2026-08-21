@@ -196,12 +196,7 @@ pub fn create_space_in(
 pub(crate) fn spaces_of(nb: &Notebook) -> CommandResult<Vec<SpaceInfo>> {
     let mut out = Vec::new();
     for space in nb.spaces()? {
-        let path = space
-            .root()
-            .strip_prefix(nb.root())
-            .unwrap_or(space.root())
-            .to_string_lossy()
-            .replace('\\', "/");
+        let path = jott_core::relpath::relative_slash(nb.root(), space.root());
         out.push(SpaceInfo {
             folder_name: space.folder_name().to_string(),
             path,

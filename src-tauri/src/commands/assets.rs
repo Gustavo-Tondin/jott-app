@@ -53,10 +53,7 @@ pub fn import_asset(
 /// notebook is the only thing it can write to.
 #[tauri::command]
 pub fn import_asset_from_path(state: State<'_, AppState>, path: PathBuf) -> CommandResult<String> {
-    let name = path
-        .file_name()
-        .map(|n| n.to_string_lossy().to_string())
-        .unwrap_or_default();
+    let name = jott_core::fsio::file_name_of(&path);
     let bytes = std::fs::read(&path)
         .map_err(|e| CommandError::new("io", format!("{}: {e}", path.display())))?;
     state.read(|nb| nb.import_asset(&name, &bytes))

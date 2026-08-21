@@ -78,10 +78,6 @@ impl AppState {
         Ok(())
     }
 
-    pub fn is_open(&self) -> bool {
-        self.lock().map(|guard| guard.is_some()).unwrap_or(false)
-    }
-
     fn lock(&self) -> CommandResult<std::sync::MutexGuard<'_, Option<OpenNotebook>>> {
         // A poisoned mutex means a command panicked while holding it. Failing
         // the call is better than papering over an unknown state.
