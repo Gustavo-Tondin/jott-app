@@ -58,6 +58,7 @@
   import { isMobile, osAttribute, platformAttribute } from "./lib/shell/platform.js";
   import { installKeyboard } from "./lib/shell/keyboard.js";
   import { scheduleTurns } from "./lib/shell/turn.js";
+  import { setRootData, setRootVar } from "./lib/shell/rootStyle.js";
   import { watchCompact } from "./lib/shell/compact.js";
   import TopBar from "./lib/shell/TopBar.svelte";
   import BottomSheet from "./lib/components/BottomSheet.svelte";
@@ -171,11 +172,7 @@
   /// and the gesture read as the page sliding off to reveal a white strip that
   /// the sidebar only filled once the finger was lifted (user report,
   /// 2026-08-18: "primeiro o canvas desliza, depois a sidebar aparece").
-  $effect(() => {
-    const root = document.documentElement;
-    if (drawerAt === null) root.style.removeProperty("--drawer-at");
-    else root.style.setProperty("--drawer-at", `${drawerAt}px`);
-  });
+  $effect(() => setRootVar("--drawer-at", drawerAt === null ? null : `${drawerAt}px`));
   let tabsOpen = $state(false);
   /// True while the Home's + has asked for a TASK: the day's composer opens,
   /// focused, pinned above the keyboard. It is the same bar the tasks screens
@@ -505,16 +502,11 @@
   // The air the pill leaves under itself is added in CSS rather than here, so
   // the two never disagree about the gap.
   $effect(() => {
-    const root = document.documentElement;
-    if (!stripUp || !stripHeight) {
-      root.style.removeProperty("--theme-format-strip");
-      return;
-    }
-    root.style.setProperty(
+    setRootVar(
       "--theme-format-strip",
-      `calc(${stripHeight}px + var(--theme-space-8))`,
+      stripUp && stripHeight ? `calc(${stripHeight}px + var(--theme-space-8))` : null,
     );
-    return () => root.style.removeProperty("--theme-format-strip");
+    return () => setRootVar("--theme-format-strip", null);
   });
 
   /// WHERE the note's formatting controls are: docked in the right panel, or
@@ -623,30 +615,23 @@
   //
   // Only `ink` is written for the headings: the accent is what the app ships
   // as, and an absent attribute is what the default rule in roles.css answers.
-  $effect(() => {
-    const root = document.documentElement;
-    root.dataset.theme = themeAttribute(layout.theme);
-    if (layout.accentColor) root.dataset.accent = layout.accentColor;
-    else delete root.dataset.accent;
-    if (layout.headingColor === "ink") root.dataset.headings = "ink";
-    else delete root.dataset.headings;
-    // How big a note's body is drawn. Absent for the size the app ships as,
-    // like the accent and the headings above.
-    const size = noteFontSizeAttribute(layout.noteFontSize);
-    if (size) root.dataset.noteSize = size;
-    else delete root.dataset.noteSize;
-  });
+  // `noteSize` is how big a note's body is drawn. Absent for the size the app
+  // ships as, like the accent and the headings.
+  $effect(() =>
+    setRootData({
+      theme: themeAttribute(layout.theme),
+      accent: layout.accentColor || null,
+      headings: layout.headingColor === "ink" ? "ink" : null,
+      noteSize: noteFontSizeAttribute(layout.noteFontSize),
+    }),
+  );
 
   // The platform rides on the root next to them, and for the same reason: it
   // reaches both regions at once, and the CSS reads it without a single
   // component being told. It is set apart from the layout because it is not a
   // notebook's property — the onboarding screen, with no notebook open yet,
   // still runs on a phone.
-  $effect(() => {
-    document.documentElement.dataset.platform = platform;
-    if (os) document.documentElement.dataset.os = os;
-    else delete document.documentElement.dataset.os;
-  });
+  $effect(() => setRootData({ platform, os: os || null }));
 
   /// Is this part of the app switched on? (App Functions, 2026-08-06.) One
   /// reader for the whole shell; screens get it as a prop or through the
