@@ -48,6 +48,9 @@ pub struct NotebookLayout {
     pub date_display_format: String,
     pub close_inspector_on_click_away: bool,
     pub quick_note_folder: String,
+    /// The board layout of a notes space that never chose one (`grid` /
+    /// `tree`); empty means the app's own.
+    pub note_layout: String,
     /// Which of the seven the app is accented with, and which theme is on,
     /// both by name (2026-08-13). They ride in the layout rather than the
     /// settings because the shell needs them on the FIRST paint — both are
@@ -107,6 +110,7 @@ impl NotebookInfo {
                 date_display_format: display.date_display_format,
                 close_inspector_on_click_away: display.close_inspector_on_click_away,
                 quick_note_folder: notebook.config().quick_note_folder.clone(),
+                note_layout: notebook.config().note_layout.clone(),
                 accent_color: display.accent_color,
                 theme: display.theme,
                 heading_color: display.heading_color,

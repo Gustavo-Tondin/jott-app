@@ -167,6 +167,9 @@ pub struct NotebookSettings {
     pub note_font_size: Option<String>,
     pub close_inspector_on_click_away: Option<bool>,
     pub quick_note_folder: Option<String>,
+    /// The board layout of a notes space that never chose one (`grid` /
+    /// `tree`); empty goes back to the app's own.
+    pub note_layout: Option<String>,
     /// Days a completed task stays in its `Completed.md` before the reaper
     /// files it away into the trash; 0 means never (2026-08-06).
     pub completed_retention_days: Option<i64>,
@@ -203,6 +206,7 @@ impl NotebookSettings {
             note_font_size: Some(display.note_font_size.clone()),
             close_inspector_on_click_away: Some(display.close_inspector_on_click_away),
             quick_note_folder: Some(config.quick_note_folder.clone()),
+            note_layout: Some(config.note_layout.clone()),
             completed_retention_days: Some(config.completed_retention_days),
             trash_retention_days: Some(config.trash_retention_days),
         }
@@ -278,6 +282,11 @@ impl NotebookSettings {
                 config.quick_note_folder = v.clone();
             }
         }
+        // Not validated, like the looks above: the layouts are the
+        // interface's list, and a name this build does not know round-trips.
+        if let Some(v) = &self.note_layout {
+            config.note_layout = v.trim().to_string();
+        }
         // A negative retention is meaningless; the core would drop it on the
         // next read anyway, so it never reaches the file.
         if let Some(v) = self.completed_retention_days.filter(|d| *d >= 0) {
@@ -330,6 +339,25 @@ mod tests {
 
         assert_eq!(config.theme, "midnight");
         assert_eq!(config.accent_color, "turquesa");
+    }
+
+    #[test]
+    fn the_default_note_layout_is_a_notebook_setting() {
+        let mut config = Config::default();
+        settings(r#"{"noteLayout": " tree "}"#).apply_to(&mut config);
+        assert_eq!(config.note_layout, "tree");
+        assert_eq!(
+            NotebookSettings::of(&config, &Display::resolve(&Default::default(), &config))
+                .note_layout
+                .as_deref(),
+            Some("tree")
+        );
+        // Absent on the way in leaves it alone; empty sends it back to the
+        // app's own.
+        settings(r#"{}"#).apply_to(&mut config);
+        assert_eq!(config.note_layout, "tree");
+        settings(r#"{"noteLayout": ""}"#).apply_to(&mut config);
+        assert_eq!(config.note_layout, "");
     }
 
     #[test]

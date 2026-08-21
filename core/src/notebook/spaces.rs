@@ -278,6 +278,15 @@ impl Notebook {
         })
     }
 
+    /// Persists how a notes space draws its board (`grid` / `tree`, `None` =
+    /// the notebook's default) in its `.space.json` — next to `sort`, because
+    /// it is the same kind of fact: a view preference of THIS place.
+    pub fn set_space_note_layout(&self, folder: &str, layout: Option<&str>) -> Result<()> {
+        self.with_space_config(folder, |config| {
+            config.note_layout = layout.map(str::to_string);
+        })
+    }
+
     /// Persists the hand-dragged arrangement (task ids / note paths) in the
     /// space's `.space.json` and switches it to the custom ordering —
     /// the order lives in the config, never in the content files.

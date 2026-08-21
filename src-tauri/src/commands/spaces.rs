@@ -42,6 +42,9 @@ pub struct SpaceInfo {
     /// `custom`), and the hand-dragged arrangement `custom` reads.
     pub sort: Option<String>,
     pub order: Vec<String>,
+    /// How a notes space draws its board (`grid` / `tree`); null follows
+    /// the notebook's default (`NotebookLayout::note_layout`).
+    pub note_layout: Option<String>,
 }
 
 /// Sets a space's display name (empty clears it, back to the folder name).
@@ -80,6 +83,17 @@ pub fn set_space_sort(
     sort: Option<String>,
 ) -> CommandResult<()> {
     state.read(|nb| nb.set_space_sort(&space, sort.as_deref()))
+}
+
+/// Sets how a notes space draws its board (`grid` / `tree`; null = the
+/// notebook's default).
+#[tauri::command]
+pub fn set_space_note_layout(
+    state: State<'_, AppState>,
+    space: String,
+    layout: Option<String>,
+) -> CommandResult<()> {
+    state.read(|nb| nb.set_space_note_layout(&space, layout.as_deref()))
 }
 
 /// Saves the hand-dragged arrangement in the space's `.space.json`
@@ -211,6 +225,7 @@ pub(crate) fn spaces_of(nb: &Notebook) -> CommandResult<Vec<SpaceInfo>> {
             icon: space.config.icon.clone(),
             sort: space.config.sort.clone(),
             order: space.config.order.clone(),
+            note_layout: space.config.note_layout.clone(),
         });
     }
     Ok(out)

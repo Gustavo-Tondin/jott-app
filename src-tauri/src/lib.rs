@@ -39,6 +39,7 @@ pub fn configure<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builde
             commands::period::set_period_sort,
             commands::period::set_period_order,
             commands::spaces::set_space_sort,
+            commands::spaces::set_space_note_layout,
             commands::spaces::set_space_order,
             // groups (reestruturação 2026-07-30)
             commands::spaces::groups,

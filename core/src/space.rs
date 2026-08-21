@@ -122,6 +122,13 @@ pub struct SpaceConfig {
     /// `custom`). `None` — or a value this build has never heard of — reads
     /// as the file order. A view preference, so the core stores it verbatim.
     pub sort: Option<String>,
+    /// How a NOTES space draws its board: `grid` (cards) or `tree` (by
+    /// folder). `None` means the notebook's default (`Config::note_layout`),
+    /// so a space that never chose follows the setting when it changes; a
+    /// value this build has never heard of is kept verbatim and read as the
+    /// default, like `sort`. Meaningless on a tasks space, and never written
+    /// there by the app.
+    pub note_layout: Option<String>,
     /// The hand-dragged arrangement (task ids for a tasks space, note
     /// paths for a notes one), read when `sort` is `custom`. Lives here and
     /// never in the content files — the order is an app preference, the `.md`
@@ -151,6 +158,7 @@ impl Default for SpaceConfig {
             color: None,
             icon: None,
             sort: None,
+            note_layout: None,
             order: Vec::new(),
             folders: BTreeMap::new(),
             raw: jsondoc::Doc::new(),
@@ -200,6 +208,7 @@ impl SpaceConfig {
             color: jsondoc::string(&raw, "color"),
             icon: jsondoc::string(&raw, "icon"),
             sort: jsondoc::string(&raw, "sort"),
+            note_layout: jsondoc::string(&raw, "noteLayout"),
             // Malformed entries fall away one at a time, like every field.
             order: raw
                 .get("order")
@@ -252,6 +261,7 @@ impl SpaceConfig {
             ("color", &self.color),
             ("icon", &self.icon),
             ("sort", &self.sort),
+            ("noteLayout", &self.note_layout),
         ] {
             crate::jsondoc::put_or_clear(
                 &mut owned,
@@ -515,6 +525,30 @@ mod tests {
         let rendered = cleared.render();
         assert!(!rendered.contains("custom"), "{rendered}");
         assert!(!rendered.contains("a1"), "{rendered}");
+    }
+
+    #[test]
+    fn the_note_layout_lives_in_the_space_config_and_clears_like_the_sort() {
+        let mut config = SpaceConfig::new("notes");
+        assert_eq!(config.note_layout, None, "absent means the notebook's default");
+        config.note_layout = Some("tree".into());
+        let rendered = config.render();
+        assert!(rendered.contains("\"noteLayout\": \"tree\""), "{rendered}");
+        let reparsed = SpaceConfig::parse(&rendered);
+        assert_eq!(reparsed.note_layout.as_deref(), Some("tree"));
+
+        // Back to "follow the default" removes the key — a stale value left in
+        // the file would pin the space to a layout nobody chose any more.
+        let mut cleared = reparsed;
+        cleared.note_layout = None;
+        let rendered = cleared.render();
+        assert!(!rendered.contains("noteLayout"), "{rendered}");
+
+        // A value from a future build is kept, not judged: the core stores a
+        // view preference verbatim (same rule as `sort`).
+        let future = SpaceConfig::parse(r#"{ "schemaVersion": 1, "type": "notes", "noteLayout": "kanban" }"#);
+        assert_eq!(future.note_layout.as_deref(), Some("kanban"));
+        assert!(future.render().contains("kanban"));
     }
 
     #[test]

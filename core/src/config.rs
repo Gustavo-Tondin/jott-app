@@ -239,6 +239,13 @@ pub struct Config {
     pub close_inspector_on_click_away: bool,
     /// Where the Home's quick capture writes, relative to the notes space.
     pub quick_note_folder: String,
+    /// How a notes space draws its board when it has not chosen for itself
+    /// (`grid` / `tree`). Empty means what the app ships as, which is the
+    /// grid; the frontend owns that default, as it owns the list of layouts,
+    /// so a name from a newer build round-trips unjudged. A space that did
+    /// choose keeps its own `noteLayout` in its `.space.json` and ignores
+    /// this one.
+    pub note_layout: String,
     /// How many days a trashed item waits in `.jott/trash/` before the reaper
     /// clears it for good (reestruturação 2026-07-30).
     pub trash_retention_days: i64,
@@ -300,6 +307,7 @@ impl Default for Config {
             shortcuts: Map::new(),
             close_inspector_on_click_away: false,
             quick_note_folder: crate::notefolder::NOTES_INBOX.to_string(),
+            note_layout: String::new(),
             trash_retention_days: 30,
             completed_retention_days: 30,
             order: BTreeMap::new(),
@@ -479,6 +487,7 @@ impl Config {
             ),
             quick_note_folder: string(&raw, "quickNoteFolder")
                 .unwrap_or(defaults.quick_note_folder),
+            note_layout: string(&raw, "noteLayout").unwrap_or(defaults.note_layout),
             trash_retention_days: raw
                 .get("trashRetentionDays")
                 .and_then(Value::as_i64)
@@ -596,6 +605,7 @@ impl Config {
             ("theme", &self.theme),
             ("headingColor", &self.heading_color),
             ("noteFontSize", &self.note_font_size),
+            ("noteLayout", &self.note_layout),
         ] {
             put_or_clear(
                 &mut owned,
@@ -916,6 +926,26 @@ mod tests {
         assert_eq!(broken.date_display_format, DateFormat::MonthDayYear);
         assert_eq!(broken.quick_note_folder, "Inbox");
         assert!(!broken.close_inspector_on_click_away);
+    }
+
+    #[test]
+    fn the_default_note_layout_is_absent_until_chosen_and_round_trips() {
+        let mut config = Config::default();
+        assert_eq!(config.note_layout, "", "empty means what the app ships as");
+        assert!(!config.render().contains("noteLayout"));
+
+        config.note_layout = "tree".into();
+        let rendered = config.render();
+        assert!(rendered.contains("\"noteLayout\": \"tree\""), "{rendered}");
+        assert_eq!(Config::parse(&rendered).note_layout, "tree");
+
+        // Back to the default removes the key instead of leaving a stale one.
+        config.note_layout = String::new();
+        assert!(!config.render().contains("noteLayout"));
+
+        // Not a string: falls back, the rest of the file unharmed.
+        let broken = Config::parse(r#"{ "schemaVersion": 1, "noteLayout": 7 }"#);
+        assert_eq!(broken.note_layout, "");
     }
 
     #[test]

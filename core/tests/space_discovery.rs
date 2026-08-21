@@ -526,6 +526,39 @@ fn a_space_keeps_its_sort_and_dragged_order_in_its_own_config() {
 }
 
 #[test]
+fn a_notes_space_keeps_its_board_layout_in_its_own_config() {
+    // Grid or tree is a preference of THIS place, like its sort — it used to
+    // be session state and was forgotten on every screen change.
+    let (dir, nb) = notebook();
+    nb.create_space("Ideas", "notes").unwrap();
+    let space = |nb: &Notebook| {
+        nb.spaces()
+            .unwrap()
+            .into_iter()
+            .find(|w| w.folder_name() == "Ideas")
+            .unwrap()
+    };
+    assert_eq!(space(&nb).config.note_layout, None);
+
+    nb.set_space_note_layout("Ideas", Some("tree")).unwrap();
+    assert_eq!(space(&nb).config.note_layout.as_deref(), Some("tree"));
+    // It travels with the space, not with the sort: changing one leaves the
+    // other as it was.
+    nb.set_space_sort("Ideas", Some("name")).unwrap();
+    assert_eq!(space(&nb).config.note_layout.as_deref(), Some("tree"));
+    assert_eq!(space(&nb).config.sort.as_deref(), Some("name"));
+
+    // Back to the default removes the key from the file.
+    nb.set_space_note_layout("Ideas", None).unwrap();
+    let on_disk = std::fs::read_to_string(dir.path().join("Ideas/.space.json")).unwrap();
+    assert!(!on_disk.contains("noteLayout"), "{on_disk}");
+    assert_eq!(space(&nb).kind(), "notes");
+
+    std::fs::create_dir(dir.path().join("Loose")).unwrap();
+    assert!(nb.set_space_note_layout("Loose", Some("tree")).is_err());
+}
+
+#[test]
 fn a_groups_members_come_back_in_the_order_the_user_dragged() {
     // The sidebar reads a group's place off its members, and the order the
     // user drags is stored once, in the notebook config's `spaces`
