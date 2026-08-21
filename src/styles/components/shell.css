@@ -296,18 +296,6 @@
     background: var(--theme-brand);
     opacity: 0.7;
   }
-  /* The place that HOLDS what is open — a note read from inside a space — is
-     marked, but below the pill: the ink goes full and the label bold, with
-     no ground of its own. Two rows of accent would ask "which one am I on?";
-     one pill and one bold label read as "here, inside there" (roadmap Etapa
-     7, 2026-08-21). */
-  .shell__nav-item--holds {
-    color: var(--theme-ink);
-    font-weight: var(--theme-weight-semibold);
-  }
-  .shell__nav-item--holds > .shell__nav-open > .shell__nav-label {
-    color: var(--theme-ink);
-  }
   .shell__group .shell__nav-item--active:hover {
     background: var(--gc-strong);
     opacity: 0.7;

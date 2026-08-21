@@ -30,7 +30,8 @@
     counts,
     isOpen,
     /// `(view) => boolean` — does this place hold the open view without
-    /// being it? Marked quieter than the open pill.
+    /// being it? It wears the same pill: a note read from inside Notes is
+    /// still "in Notes" (user call, 2026-08-21).
     holds = () => false,
     onOpen,
     onOpenList,
@@ -360,8 +361,7 @@
     {#snippet fixedRow(view, icon, label, count = 0)}
       <button
         class="shell__nav-item"
-        class:shell__nav-item--active={isOpen(view)}
-        class:shell__nav-item--holds={holds(view)}
+        class:shell__nav-item--active={isOpen(view) || holds(view)}
         onclick={() => onOpen(view)}
         onauxclick={(e) => middleOpen(e, () => onOpen?.(view, true))}
       >
@@ -445,8 +445,8 @@
       <div
         class="shell__nav-item shell__nav-item--row"
         class:shell__nav-item--member={grouped}
-        class:shell__nav-item--active={isOpen({ kind: "space", sp: sp.path })}
-        class:shell__nav-item--holds={holds({ kind: "space", sp: sp.path })}
+        class:shell__nav-item--active={isOpen({ kind: "space", sp: sp.path }) ||
+          holds({ kind: "space", sp: sp.path })}
         oncontextmenu={(e) => openRowMenu(e, spaceMenu(sp))}
       >
         <button

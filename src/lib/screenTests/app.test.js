@@ -280,7 +280,7 @@ describe("App", () => {
   test("the place a note was opened from stays marked in the sidebar", async () => {
     // Roadmap Etapa 7 (2026-08-21): a note open from Notes is INSIDE Notes,
     // and the sidebar used to go dark the moment the board gave way to the
-    // editor. The row is marked as holding, not as open — one pill at a time.
+    // editor. The row keeps the same pill it had with the board open.
     shell({
       list_notes: [
         {
@@ -306,14 +306,13 @@ describe("App", () => {
     const notes = await screen.findByRole("button", { name: "Notes" });
     await userEvent.click(notes);
     expect(notes.classList.contains("shell__nav-item--active")).toBe(true);
-    expect(notes.classList.contains("shell__nav-item--holds")).toBe(false);
 
     await userEvent.click(await screen.findByText("Ideia"));
-    await waitFor(() => expect(notes.classList.contains("shell__nav-item--holds")).toBe(true));
-    expect(notes.classList.contains("shell__nav-item--active")).toBe(false);
+    await screen.findByLabelText("Formatting");
+    expect(notes.classList.contains("shell__nav-item--active")).toBe(true);
     // Home holds nothing: a screen outside every space never lights a row.
     expect(
-      screen.getByRole("button", { name: "Home" }).classList.contains("shell__nav-item--holds"),
+      screen.getByRole("button", { name: "Home" }).classList.contains("shell__nav-item--active"),
     ).toBe(false);
   });
 

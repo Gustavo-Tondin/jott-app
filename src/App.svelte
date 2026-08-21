@@ -305,7 +305,7 @@
 
   const isOpen = (v) => Tabs.viewId(view) === Tabs.viewId(v);
   /// Whether the open view lives INSIDE the place `v` names, without being it
-  /// (roadmap, Etapa 7): a note open from a space keeps that space marked in
+  /// (roadmap, Etapa 7): a note open from a space keeps that space's pill in
   /// the sidebar, where before it simply went dark. Asked only of rows that
   /// are places (spaces and the fixed Tasks/Notes), never of list rows — a
   /// list is inside its space, not the other way round.
@@ -2280,6 +2280,7 @@
               onError={fail}
               {reloadKey}
               dateFormat={layout.dateDisplayFormat}
+              readOnly={notebook?.readOnly ?? false}
             />
           {:else}
             <CompletedView
