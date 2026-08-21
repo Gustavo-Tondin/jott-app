@@ -126,21 +126,30 @@ pub fn remember_screen<R: Runtime>(app: &AppHandle<R>, screen: &str) {
     update(app, |prefs| prefs.last_screen = Some(screen.to_string()));
 }
 
+/// A width worth keeping: finite and above zero. Anything else — a NaN from
+/// a broken drag, a hand-edited `-1` — is treated as never set, on the way in
+/// and on the way out alike.
+fn positive(value: f64) -> Option<f64> {
+    (value.is_finite() && value > 0.0).then_some(value)
+}
+
 /// How wide the sidebar was left, if it was ever dragged.
 pub fn sidebar_width<R: Runtime>(app: &AppHandle<R>) -> Option<f64> {
-    load(app).sidebar_width.filter(|w| w.is_finite() && *w > 0.0)
+    load(app).sidebar_width.and_then(positive)
 }
 
 /// Remembers the sidebar's width. Written once per drag, on release — not on
 /// every pointer move.
 pub fn remember_sidebar_width<R: Runtime>(app: &AppHandle<R>, width: f64) {
-    if !width.is_finite() || width <= 0.0 {
-        return;
-    }
+    let Some(width) = positive(width) else { return };
     update(app, |prefs| prefs.sidebar_width = Some(width));
 }
 
-/// How wide the right panel was left, if it was ever dragged.
+/// How far the interface is zoomed, if it was ever changed.
+///
+/// Not validated here, unlike the two widths: the frontend clamps whatever it
+/// reads, so a value hand-edited to 40 is brought back into range on the way
+/// to the screen rather than dropped.
 pub fn zoom<R: Runtime>(app: &AppHandle<R>) -> Option<f64> {
     load(app).zoom
 }
@@ -149,15 +158,14 @@ pub fn remember_zoom<R: Runtime>(app: &AppHandle<R>, zoom: f64) {
     update(app, |prefs| prefs.zoom = Some(zoom));
 }
 
+/// How wide the right panel was left, if it was ever dragged.
 pub fn panel_width<R: Runtime>(app: &AppHandle<R>) -> Option<f64> {
-    load(app).panel_width.filter(|w| w.is_finite() && *w > 0.0)
+    load(app).panel_width.and_then(positive)
 }
 
 /// Remembers it, on release.
 pub fn remember_panel_width<R: Runtime>(app: &AppHandle<R>, width: f64) {
-    if !width.is_finite() || width <= 0.0 {
-        return;
-    }
+    let Some(width) = positive(width) else { return };
     update(app, |prefs| prefs.panel_width = Some(width));
 }
 
@@ -215,12 +223,7 @@ fn update<R: Runtime>(app: &AppHandle<R>, change: impl FnOnce(&mut MachinePrefs)
     let Ok(text) = serde_json::to_string_pretty(&prefs) else {
         return;
     };
-    if let Some(parent) = path.parent() {
-        if std::fs::create_dir_all(parent).is_err() {
-            return;
-        }
-    }
-    if let Err(e) = std::fs::write(&path, text) {
+    if let Err(e) = jott_core::fsio::write_atomically(&path, text.as_bytes()) {
         eprintln!("[jott] could not save machine preferences: {e}");
     }
 }
