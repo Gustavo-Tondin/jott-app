@@ -66,6 +66,44 @@ describe("SettingsView", () => {
     );
   });
 
+  test("the floating formatting bar's mode and side are this machine's too", async () => {
+    // Display, and the section is the rule: where a bar sits over a document
+    // is a fact about this screen, not about the notebook (core/settings.rs).
+    bridge({ notebook_settings: settings, set_machine_display: null });
+    render(SettingsView, { props: props() });
+
+    await userEvent.click(await screen.findByRole("button", { name: "On selection" }));
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("set_machine_display", {
+        display: { formatBar: "selection" },
+      }),
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Left" }));
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("set_machine_display", {
+        display: { formatBarSide: "left" },
+      }),
+    );
+  });
+
+  test("the search finds both rows by name, from a closed section", async () => {
+    // They are markup, so `SETUP_INDEX` is the only thing that knows they
+    // exist — a row missing there is invisible to the search while staying
+    // perfectly reachable, which is exactly the failure worth catching here.
+    bridge({ notebook_settings: settings });
+    render(SettingsView, { props: props() });
+
+    const box = await screen.findByPlaceholderText("Search settings");
+    await userEvent.type(box, "formatting bar");
+    // The HIT itself, not the menu entry that is on screen either way.
+    expect(await screen.findByRole("button", { name: /Formatting bar/ })).toBeTruthy();
+
+    await userEvent.clear(box);
+    await userEvent.type(box, "bar position");
+    expect(await screen.findByRole("button", { name: /Bar position/ })).toBeTruthy();
+  });
+
   test("a shortcut is recorded here and stored on the notebook", async () => {
     bridge({ notebook_settings: settings, set_shortcut: null });
     render(SettingsView, { props: props() });

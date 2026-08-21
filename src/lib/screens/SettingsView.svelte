@@ -32,6 +32,12 @@
     NOTE_FONT_SIZES,
     DEFAULT_NOTE_FONT_SIZE,
   } from "../services/themes.js";
+  import {
+    FORMAT_BAR_MODES,
+    DEFAULT_FORMAT_BAR,
+    FORMAT_BAR_SIDES,
+    DEFAULT_FORMAT_BAR_SIDE,
+  } from "../services/formatBar.js";
   import AccentPicker from "../components/AccentPicker.svelte";
   import Icon from "../components/Icon.svelte";
   import ShortcutRow from "../components/ShortcutRow.svelte";
@@ -277,6 +283,8 @@
         S.headingColor,
         S.interfaceZoom,
         S.noteFontSizeLabel,
+        S.formatBarLabel,
+        S.formatBarSideLabel,
         S.showListCounts,
         S.restoreLastScreen,
         S.closeOnClickAway,
@@ -838,6 +846,37 @@
             (key) => putDisplay({ noteFontSize: key }),
           )}
           <p class="settings__hint">{S.noteFontSizeHint}</p>
+
+          <h3 class="settings__subtitle">{S.subEditor}</h3>
+
+          <!-- The bar that floats over an open note (2026-08-21). Display,
+               because where a bar sits over a document is a fact about this
+               screen: a wide monitor has room for it against an edge and a
+               laptop may want it gone.
+
+               It is NOT hidden on a phone, even though the floating bar is a
+               desktop thing. The hint says so instead — a row that vanishes
+               below 768px is a row the search finds and then cannot show,
+               and this section is per-machine anyway, so a phone simply
+               answers for itself. -->
+          {@render segmentedRow(
+            S.formatBarLabel,
+            FORMAT_BAR_MODES,
+            form.formatBar || DEFAULT_FORMAT_BAR,
+            (key) => putDisplay({ formatBar: key }),
+          )}
+          <p class="settings__hint">{S.formatBarHint}</p>
+
+          <!-- Four sides, and the bar is always centred on the one it is
+               given — so this asks for an edge, not a corner. Off is the one
+               state where the question has no answer to give. -->
+          {@render segmentedRow(
+            S.formatBarSideLabel,
+            FORMAT_BAR_SIDES,
+            form.formatBarSide || DEFAULT_FORMAT_BAR_SIDE,
+            (key) => putDisplay({ formatBarSide: key }),
+          )}
+          <p class="settings__hint">{S.formatBarSideHint}</p>
 
           <h3 class="settings__subtitle">{S.subInterface}</h3>
 
