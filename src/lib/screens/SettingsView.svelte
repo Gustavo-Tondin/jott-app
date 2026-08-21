@@ -10,6 +10,7 @@
   //    default rather than being stored wrong, so the UI never has to
   //    validate a second time. What it *does* do is stop a bad value from
   //    being offered at all: modes, week start and date shape are selects.
+  import { segmented } from "../actions/segmented.js";
   import { api } from "../services/api.js";
   import { makeScreen } from "../services/act.js";
   import { S } from "../services/strings.js";
@@ -527,7 +528,7 @@
 {#snippet segmentedRow(label, options, current, apply)}
   <div class="settings__row">
     <span class="settings__label">{label}</span>
-    <div class="theme-segmented" role="group" aria-label={label}>
+    <div class="theme-segmented" role="group" aria-label={label} use:segmented>
       {#each options as option (option.key)}
         <button
           type="button"

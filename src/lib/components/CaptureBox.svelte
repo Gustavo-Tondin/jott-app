@@ -12,6 +12,7 @@
   // It stays deliberately thin: one line of text and a destination. Anything
   // with a due date, a repeat or a priority is a task the composer dialog
   // handles better, and the ⋮ of the block below still opens it.
+  import { segmented } from "../actions/segmented.js";
   import Icon from "./Icon.svelte";
   import { S } from "../services/strings.js";
   import { dotStyle as dotStyleOf } from "../services/accent.js";
@@ -115,7 +116,7 @@
     </div>
 
     {#if both}
-      <div class="theme-segmented capture__kinds" role="group" aria-label={S.captureQuestion}>
+      <div class="theme-segmented capture__kinds" role="group" aria-label={S.captureQuestion} use:segmented>
         <button
           type="button"
           class="theme-segmented__item"
