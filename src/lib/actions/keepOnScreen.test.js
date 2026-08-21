@@ -146,6 +146,55 @@ describe("where a popover lands", () => {
     expect(panel.style.top).toBe("488px");
   });
 
+  // ---- the rail (2026-08-21) ----
+  //
+  // The floating bar can hug the left or the right edge, and there it is a
+  // COLUMN. Above and below a column of seven buttons there is no room at
+  // all, so its folded groups open in the other axis — and `clears` has to
+  // work in that axis too, or the panel opens 4px INSIDE the bar it belongs
+  // to. Same defect as the one measured on the top edge, turned a quarter.
+  it("opens beside the whole bar, not beside the button inside it", () => {
+    const { panel } = popover({ anchorTop: 300 });
+    // A desktop window: the rail is a desktop shape, and the phone's 360px
+    // would clamp the panel before the placement could be read.
+    window.innerWidth = 1280;
+    action = keepOnScreen(panel, { clears: ".bar", side: "inline" });
+    // The bar's right edge is 320, and then the 4px gap. Cleared only to the
+    // button, this would have been 88 + 4 = 92 — well inside the bar.
+    expect(panel.style.left).toBe("324px");
+    // Lined up with the BUTTON in the other axis, which is what says which
+    // opener the panel belongs to.
+    expect(panel.style.top).toBe("300px");
+  });
+
+  it("flips to the bar's other side when there is no room on that one", () => {
+    // The rail against the RIGHT edge of the canvas: opening outwards would
+    // put the panel off screen, so it opens back over the document.
+    const { panel, bar, anchor } = popover({ anchorTop: 300 });
+    window.innerWidth = 1280;
+    // The bar hugging the window's right edge, and the button inside it.
+    bar.getBoundingClientRect = () => ({
+      top: 292,
+      bottom: 344,
+      left: 1216,
+      right: 1272,
+      width: 56,
+      height: 52,
+    });
+    anchor.getBoundingClientRect = () => ({
+      top: 300,
+      bottom: 336,
+      left: 1224,
+      right: 1264,
+      width: 40,
+      height: 36,
+    });
+    action = keepOnScreen(panel, { clears: ".bar", side: "inline" });
+    // 1216 (the bar's left) - 4 of gap - 240 of panel — back over the
+    // document rather than off the screen.
+    expect(panel.style.left).toBe("972px");
+  });
+
   it("leaves nothing of the panel's own placement in force", () => {
     // A portaled panel is positioned by `top`/`left` alone. A stylesheet rule
     // the panel still carries — `.format-bar__panel` opens upwards with

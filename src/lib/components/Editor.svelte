@@ -70,6 +70,14 @@
     /// auto-close here; the Markdown marks stay ordinary characters in a
     /// field nothing renders.
     plain = false,
+    /// `(hasSelection) => void` — whether something is selected right now
+    /// (2026-08-21). What that is FOR is the shell's: the floating formatting
+    /// bar can be asked to show only while there is something to format. It
+    /// fires on every selection change, including the ones a keystroke makes,
+    /// and it is the editor that must report it — the selection is
+    /// CodeMirror's state, and `document.getSelection()` does not see it the
+    /// same way.
+    onSelection,
     /// What this notebook draws inside a note (App Functions, 2026-08-20).
     /// Both default to on: a component asked for nothing behaves the way the
     /// app ships. They are read by the extensions through closures, so a
@@ -125,6 +133,11 @@
   /// What the editor itself last produced, so an echo of our own change does
   /// not get pushed back in and move the cursor.
   let lastEmitted = null;
+
+  /// Whether something was selected the last time we said so. The listener
+  /// fires on every cursor move; only the EDGES are worth reporting, or the
+  /// shell would re-render on each arrow key.
+  let lastSelected = false;
 
   onMount(() => {
     view = new EditorView({
@@ -261,6 +274,16 @@
           placeholderExt(placeholder),
           editable.of(EditorState.readOnly.of(readOnly)),
           EditorView.updateListener.of((update) => {
+            // Two questions of one listener. The selection first, because it
+            // moves on far more transactions than the document changes on —
+            // every arrow key is one — and it is cheap to answer.
+            if (update.selectionSet || update.docChanged) {
+              const has = !update.state.selection.main.empty;
+              if (has !== lastSelected) {
+                lastSelected = has;
+                onSelection?.(has);
+              }
+            }
             if (!update.docChanged) return;
             lastEmitted = update.state.doc.toString();
             onChange?.(lastEmitted);

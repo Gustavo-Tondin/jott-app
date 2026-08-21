@@ -80,6 +80,10 @@
     noteFontSizeAttribute,
     themeAttribute,
   } from "./lib/services/themes.js";
+  import {
+    formatBarMode as modeOfFormatBar,
+    formatBarSide as sideOfFormatBar,
+  } from "./lib/services/formatBar.js";
   import { reader } from "./lib/services/features.js";
   import { autoCheck, installUpdate, openReleasePage } from "./lib/services/update.js";
   import {
@@ -541,9 +545,45 @@
   /// The right panel's tenant, when the controls are docked.
   let formatBarOpen = $derived(formatting && writing && !suggesting && !selected);
 
+  /// WHEN the floating bar shows, and WHICH SIDE of the canvas it hugs
+  /// (2026-08-21). Display, so it answers to this screen: where a bar sits
+  /// over a document is a fact about the monitor it is on, and a phone has no
+  /// floating bar to place at all.
+  ///
+  /// Read with the app's own answer as the fallback, the same way every other
+  /// by-name choice is — an empty string means "never chosen", and the
+  /// notebook's own empty string reaches here unchanged.
+  let formatBarMode = $derived(modeOfFormatBar(layout.formatBar));
+  let formatBarSide = $derived(sideOfFormatBar(layout.formatBarSide));
+
+  /// Standing on its end against a side edge, rather than lying along the top
+  /// or the bottom (user call, 2026-08-21). It is the same seven glyphs
+  /// either way; only the axis differs (components/FormatBar.svelte).
+  let formatBarRail = $derived(formatBarSide === "left" || formatBarSide === "right");
+
+  /// Whether the open note has something selected right now — what "on
+  /// selection" is asking about. Reported BY the editor, because the
+  /// selection is CodeMirror's state and nothing outside it sees the same
+  /// thing (components/Editor.svelte).
+  let noteSelected = $state(false);
+
   /// ...and the floating bar, which takes over whenever the panel does not
   /// hold them: undocked, or busy with something else.
-  let formatBarFloats = $derived(writing && !compact && !formatBarOpen);
+  ///
+  /// The mode is the LAST condition and only ever takes the bar away: `off`
+  /// never floats it, `selection` floats it while something is selected. The
+  /// docked panel is untouched by either — turning the floating bar off is a
+  /// choice about a bar over the document, not about having the controls
+  /// (core/src/settings.rs). The phone's strip is untouched too: it is the
+  /// only formatting there is down there, and it is tied to the keyboard
+  /// rather than to this.
+  let formatBarFloats = $derived(
+    writing &&
+      !compact &&
+      !formatBarOpen &&
+      formatBarMode !== "off" &&
+      (formatBarMode !== "selection" || noteSelected),
+  );
 
   // Opening a note closes whatever the right panel was holding (user call,
   // 2026-08-19: "ao entrar num editor de notas, se tem uma tarefa aberta, ela
@@ -897,7 +937,11 @@
               run: () => (formatting = true),
             },
             {
-              label: S.formattingFloating,
+              // What the other half IS depends on Settings: with the floating
+              // bar off, undocking the panel does not float anything, so the
+              // menu says so rather than promising a bar that never comes
+              // (2026-08-21).
+              label: formatBarMode === "off" ? S.formattingHidden : S.formattingFloating,
               checked: !formatting,
               run: () => (formatting = false),
             },
@@ -1936,14 +1980,19 @@
                in the corner the page ⋮ already owns, and any gap written as a
                number would drift the moment the bar gains a glyph. -->
           {#if formatBarFloats}
-            <div class="format-floats">
+            <div class="format-floats format-floats--{formatBarSide}">
               <div class="format-float">
                 <!-- CANVAS, and it matters: the folded panel is portaled out of
                      the window by `keepOnScreen`, so it paints whatever region
                      it was TOLD. Told "chrome" it came out dark on a light bar
                      (this bar is the one place the same component sits on the
                      two grounds). -->
-                <FormatBar layout="row" region="canvas" hidden={hiddenFormats} onRun={runFormat} />
+                <FormatBar
+                  layout={formatBarRail ? "rail" : "row"}
+                  region="canvas"
+                  hidden={hiddenFormats}
+                  onRun={runFormat}
+                />
               </div>
 
               <!-- The way BACK to the docked panel (user call, 2026-08-19).
@@ -2212,6 +2261,7 @@
               onOpenFile={(address) => api.openAsset(address).catch(fail)}
               onOpenNote={openNoteByTitle}
               onZoomImage={(address) => (zoomedImage = address)}
+              onSelection={(has) => (noteSelected = has)}
               version={reloadKey}
               wikiLinks={f("wikiLinks")}
               embeds={f("embeds")}

@@ -463,6 +463,124 @@ describe("App", () => {
     expect(screen.queryByLabelText("Dock the formatting panel")).toBeNull();
   });
 
+  // ---- where the floating bar is, and whether it comes at all (2026-08-21) ----
+  //
+  // Two Display choices, so they arrive in the LAYOUT — the bar is drawn as
+  // soon as a note opens, and a second round trip would show it in the wrong
+  // place first. What is guarded here is the shell's reading of them; the
+  // fallbacks themselves are `services/formatBar.test.js`.
+  const withNote = (extra = {}) =>
+    shell({
+      list_notes: [
+        {
+          path: "Inbox/Ideia.md",
+          title: "Ideia",
+          folder: "Inbox",
+          preview: "preview",
+          created: "2026-07-21",
+          pinned: false,
+        },
+      ],
+      note_folders: [noteFolder("Inbox")],
+      read_note: {
+        path: "Inbox/Ideia.md",
+        title: "Ideia",
+        body: "Corpo.",
+        pinned: false,
+        created: "2026-07-21",
+      },
+      write_note: null,
+      ...extra,
+    });
+
+  /// Opens the note and undocks the panel, which is the state the floating bar
+  /// lives in.
+  const floatTheBar = async () => {
+    await userEvent.click(await screen.findByRole("button", { name: "Notes" }));
+    await userEvent.click(await screen.findByText("Ideia"));
+    await screen.findByLabelText("Formatting");
+    await userEvent.click(screen.getByLabelText("collapse panel"));
+  };
+
+  /// A notebook whose layout answers the two Display keys. BOTH doors, since
+  /// the shell re-reads the layout out of every snapshot — answering only the
+  /// open would last until the first refresh.
+  const placing = (formatBar, formatBarSide) => {
+    const info = {
+      ...notebook,
+      layout: { ...notebook.layout, formatBar, formatBarSide },
+    };
+    return { open_notebook: info, notebook_snapshot: { ...snapshot(), info } };
+  };
+
+  test("the floating bar hugs the side it was told, standing on end at the edges", async () => {
+    withNote(placing("always", "left"));
+    const { container } = render(App);
+    await floatTheBar();
+
+    const floats = await waitFor(() => {
+      const found = container.querySelector(".format-floats");
+      expect(found).toBeTruthy();
+      return found;
+    });
+    expect(floats.classList.contains("format-floats--left")).toBe(true);
+    // Against a side it is the same seven glyphs stood on end, not a row
+    // lying across the text.
+    expect(container.querySelector(".format-bar--rail")).toBeTruthy();
+    expect(container.querySelector(".format-bar--row")).toBeNull();
+  });
+
+  test("...and lies along the top when nothing was chosen", async () => {
+    // The default is not a taste: it is where the bar was before the setting
+    // existed, so nobody's note moves on upgrade.
+    withNote();
+    const { container } = render(App);
+    await floatTheBar();
+
+    await waitFor(() =>
+      expect(container.querySelector(".format-floats--top")).toBeTruthy(),
+    );
+    expect(container.querySelector(".format-bar--row")).toBeTruthy();
+  });
+
+  test("OFF takes the floating bar away and leaves the panel alone", async () => {
+    withNote(placing("off", "top"));
+    render(App);
+
+    await userEvent.click(await screen.findByRole("button", { name: "Notes" }));
+    await userEvent.click(await screen.findByText("Ideia"));
+    // Docked, the controls are exactly where they were: turning the bar off
+    // is a choice about a bar over the DOCUMENT, not about having formatting.
+    expect(await screen.findByLabelText("Formatting")).toBeTruthy();
+
+    await userEvent.click(screen.getByLabelText("collapse panel"));
+    // Nothing floats — and with it, no dock pill either, which is why the
+    // page ⋮ is the way back and says "Hidden" rather than "Floating".
+    await waitFor(() => expect(screen.queryByLabelText("Formatting")).toBeNull());
+    expect(screen.queryByLabelText("Dock the formatting panel")).toBeNull();
+  });
+
+  test("ON SELECTION waits for something to be selected, and goes when it goes", async () => {
+    withNote(placing("selection", "top"));
+    const { container } = render(App);
+    await floatTheBar();
+
+    // Nothing selected: no bar over the note.
+    await waitFor(() => expect(container.querySelector(".format-floats")).toBeNull());
+
+    // The stub is a textarea, so a selection is its two offsets — what the
+    // real engine reports is `editorSelection.test.js`. By tag and not by
+    // label: the drop target around it carries the same one.
+    const body = container.querySelector(".note-editor__body textarea");
+    body.setSelectionRange(0, 3);
+    await fireEvent.select(body);
+    await waitFor(() => expect(container.querySelector(".format-floats")).toBeTruthy());
+
+    body.setSelectionRange(3, 3);
+    await fireEvent.select(body);
+    await waitFor(() => expect(container.querySelector(".format-floats")).toBeNull());
+  });
+
   test("the sidebar head carries search and a + that makes things", async () => {
     // Both were only reachable by shortcut or by right-clicking empty column
     // — which stops existing as soon as the column is full (user call,

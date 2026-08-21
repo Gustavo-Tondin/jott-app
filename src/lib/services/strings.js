@@ -193,6 +193,11 @@ export const S = {
   // not what it does to them — the panel is a place, the same way the two
   // menu items above are.
   formattingDock: "Dock the formatting panel",
+  // What "floating" means once the floating bar is turned OFF in Settings
+  // (2026-08-21). The pair is still a pair — the controls are in the panel or
+  // they are not on screen — and the second half has to say which of the two
+  // it is, or the menu offers a bar that will never come.
+  formattingHidden: "Hidden",
   noteTextSize: "Text size",
   noteSizeSmall: "Small",
   noteSizeMedium: "Medium",
@@ -201,6 +206,25 @@ export const S = {
   noteFontSizeHint:
     "How big the body of a note is drawn. The interface's own zoom is the " +
     "other half of the question, and lives on the keyboard (Ctrl +/-).",
+
+  // The floating formatting bar of an open note (2026-08-21). Display, so it
+  // answers to this screen — and on a phone there is no floating bar at all:
+  // the controls ride above the keyboard, which the hint says out loud rather
+  // than hiding a row that would then be unfindable.
+  formatBarLabel: "Formatting bar",
+  formatBarAlways: "Always",
+  formatBarSelection: "On selection",
+  formatBarOff: "Off",
+  formatBarHint:
+    "The bar that floats over an open note. Turning it off leaves the same " +
+    "controls in the side panel. On a phone they ride above the keyboard, " +
+    "and this does not change that.",
+  formatBarSideLabel: "Bar position",
+  formatBarSideTop: "Top",
+  formatBarSideLeft: "Left",
+  formatBarSideRight: "Right",
+  formatBarSideBottom: "Bottom",
+  formatBarSideHint: "Which edge of the note it hugs. It is centred on that edge.",
 
   // Commands (2026-08-18): the name of every keyboard command, read by the
   // shortcuts table in Settings and by the formatting panel's tooltips. They
@@ -349,6 +373,7 @@ export const S = {
   // The function pages (2026-08-20). One subtitle per group of rows: a
   // function page is a list of what the function HAS, then of how it behaves.
   subText: "Text",
+  subEditor: "Editor",
   subInterface: "Interface",
   subLocation: "Location",
   subSafety: "Safety",

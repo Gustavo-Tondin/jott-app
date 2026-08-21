@@ -5,7 +5,18 @@
   // engine out keeps their tests about *them* — the auto-save, the flush on
   // close — instead of about CodeMirror, which jsdom cannot lay out anyway.
   // The live-preview rule has its own tests in `markdown.test.js`.
-  let { value = "", readOnly = false, placeholder = "", onChange } = $props();
+  let {
+    value = "",
+    readOnly = false,
+    placeholder = "",
+    onChange,
+    /// The one other thing the shell listens to (2026-08-21): whether
+    /// something is selected. A textarea knows the same fact by its own two
+    /// offsets, which is enough for a screen test to ask "does the bar show?"
+    /// — whether CODEMIRROR reports it right is the real engine's test
+    /// (editorSelection.test.js).
+    onSelection,
+  } = $props();
 
   let field = $state(null);
 
@@ -26,4 +37,6 @@
   disabled={readOnly}
   {value}
   oninput={(e) => onChange?.(e.currentTarget.value)}
+  onselect={(e) =>
+    onSelection?.(e.currentTarget.selectionStart !== e.currentTarget.selectionEnd)}
 ></textarea>

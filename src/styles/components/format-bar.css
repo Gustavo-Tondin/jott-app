@@ -32,6 +32,33 @@
     display: none;
   }
 
+  /* Against a side edge: the same one line, stood on end. It scrolls in the
+     other axis for the same reason the row does — seven glyphs fit on any
+     screen the app is used on, and a second column would be a second thing to
+     aim at rather than a bar.
+
+     THE CAP IS NOT DECORATION, and it is the one thing the row does not need
+     (measured in Firefox on the real stylesheet, 2026-08-21: a 240px canvas
+     had the rail hanging 30px off the bottom of it). A block box with `width:
+     auto` FILLS its parent, so the row's `overflow-x` has a width to scroll
+     inside as soon as the pill it sits in shrinks — but `height: auto` is the
+     CONTENT's height, so a rail simply stayed 254px tall while the pill around
+     it gave way. `overflow-y` with nothing to overflow scrolls nothing. The
+     cap is what turns the pill's used height into the rail's ceiling; putting
+     the scroller on the pill instead was measured too, and left the bar its
+     full height with the overflow still on the canvas. */
+  .format-bar--rail {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    max-block-size: 100%;
+    overflow-y: auto;
+    scrollbar-width: none;
+  }
+
+  .format-bar--rail::-webkit-scrollbar {
+    display: none;
+  }
+
   /* A floating container states what its inside corner is, and the buttons
      read it: the same button is docked in the right panel (no rounded parent,
      so its own `theme-btn--icon` corner stands) and floating inside a strip,
@@ -87,6 +114,16 @@
     border-radius: var(--theme-radius-lg);
     z-index: 1;
   }
+  /* Out of a RAIL it opens sideways instead, so this is the fallback for the
+     other axis — the one frame of a mount before `keepOnScreen` has measured.
+     `inset-block-end: auto` because the two would otherwise both be set, and
+     a box with both block insets and no height of its own collapses (the
+     lesson the action's own comment carries). */
+  .format-bar__panel--beside {
+    inset-block-end: auto;
+    inset-block-start: 0;
+    inset-inline-start: calc(100% + var(--theme-space-8));
+  }
 }
 
 @layer components {
@@ -107,33 +144,76 @@
      first ("logo à direita dos outros botões") and a second placement would be
      one more thing to keep in agreement with the first.
 
-     The row spans the canvas, so it must not catch what was aimed at the note
-     underneath: only the pills take the pointer. */
+     WHICH EDGE it hugs is a Display choice since 2026-08-21 — top, left,
+     right or bottom, and always CENTRED on that edge. So the four modifiers
+     say two things each and nothing else: which way the box is stretched, and
+     which way the pills stack. Centring is the base's, in both axes, because
+     it is the half that never varies.
+
+     The box spans the canvas along whichever edge it is on, so it must not
+     catch what was aimed at the note underneath: only the pills take the
+     pointer. */
   .format-floats {
     position: absolute;
-    inset-block-start: var(--theme-space-8);
-    inset-inline: 0;
     z-index: 15;
     display: flex;
     justify-content: center;
-    align-items: flex-start;
     gap: var(--theme-space-8);
-    padding-inline: var(--theme-space-16);
     pointer-events: none;
   }
   .format-floats > * {
     pointer-events: auto;
   }
-  /* A pill: the ground, the radius and the shadow the two of them share. */
+
+  /* Along the top or the bottom: the box is as wide as the canvas, the pills
+     lie in a row, and the one that is stretched is the inline axis. */
+  .format-floats--top,
+  .format-floats--bottom {
+    inset-inline: 0;
+    padding-inline: var(--theme-space-16);
+  }
+  .format-floats--top {
+    inset-block-start: var(--theme-space-8);
+    align-items: flex-start;
+  }
+  .format-floats--bottom {
+    inset-block-end: var(--theme-space-8);
+    align-items: flex-end;
+  }
+
+  /* Against a side: the same box turned a quarter — as TALL as the canvas,
+     the pills stacked, and the rail inside them stood on end
+     (`.format-bar--rail`). The dock pill goes under the bar rather than
+     beside it, which is the same "just after the other buttons" it has on the
+     top edge, read in the axis this one runs in. */
+  .format-floats--left,
+  .format-floats--right {
+    inset-block: 0;
+    flex-direction: column;
+    padding-block: var(--theme-space-16);
+  }
+  .format-floats--left {
+    inset-inline-start: var(--theme-space-8);
+    align-items: flex-start;
+  }
+  .format-floats--right {
+    inset-inline-end: var(--theme-space-8);
+    align-items: flex-end;
+  }
+
+  /* A pill: the ground, the radius and the shadow the two of them share.
+     Both minimums, not just the inline one: which axis the pill has to be
+     able to give way in is now the side's answer, not a constant. */
   .format-float {
     --format-inner-radius: calc(var(--theme-radius-lg) - var(--theme-space-2));
     min-inline-size: 0;
+    min-block-size: 0;
     background: var(--theme-bg);
     border-radius: var(--theme-radius-lg);
     box-shadow: var(--theme-shadow-popover);
   }
-  /* The bar gives way when the canvas is narrow — it is the one that scrolls.
-     The dock button is a single square with nothing to give. */
+  /* The bar gives way when the canvas is short of room — it is the one that
+     scrolls. The dock button is a single square with nothing to give. */
   .format-floats > .format-float:not(.format-float--dock) {
     flex: 0 1 auto;
   }

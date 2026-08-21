@@ -1,11 +1,12 @@
 <script>
   // The formatting controls of an open note.
   //
-  // One component, framed three ways — the right panel on a desktop, a strip
-  // that rides above the keyboard on a phone, and a bar floating over the top
-  // of the canvas when the right panel is closed (user calls, 2026-08-18 and
-  // 2026-08-19). What it HOLDS is written once; where it sits is the shell's
-  // business.
+  // One component, framed four ways — the right panel on a desktop, a strip
+  // that rides above the keyboard on a phone, a bar floating over the canvas
+  // when the right panel is closed, and that same floating bar stood on end
+  // when it hugs the left or the right edge (user calls, 2026-08-18,
+  // 2026-08-19 and 2026-08-21). What it HOLDS is written once; where it sits
+  // is the shell's business.
   //
   // Every button presses the very command its chord presses. Not a lookalike:
   // the same function out of `markdownCommands.js`, found by the same id the
@@ -17,6 +18,11 @@
   // 2026-08-19). The column shows every glyph, in rows by category. A narrow
   // bar has no room for twenty-three, so it draws ONE glyph per category and
   // folds the category behind it, in a panel that floats above the bar.
+  //
+  // The rail is the narrow bar STOOD ON END, not a third list: same seven
+  // glyphs, same folds, stacked instead of laid out. Two shapes of content,
+  // three of arrangement — `column` is the only one that changes what is
+  // drawn.
   //
   // Folded, not dropped, and that distinction is the whole point of this round
   // (user report, 2026-08-19: "faltam diversos botões" — the bar used to fold
@@ -38,8 +44,10 @@
   let {
     /// `(id) => void` — run the command with this id against the open note.
     onRun,
-    /// Laid out as a column (the desktop panel) or as a scrolling row (the
-    /// strip above the keyboard, and the floating bar).
+    /// How it is arranged: `column` (the desktop panel, every glyph, wrapped),
+    /// `row` (the strip above the keyboard and the floating bar, scrolling
+    /// sideways) or `rail` (that same floating bar against a side edge,
+    /// stacked). Only `column` changes WHICH glyphs are drawn.
     layout = "column",
     /// Which ground the folded panel paints itself on. It has to be SAID:
     /// `keepOnScreen` portals that panel to the body, which is in no region at
@@ -102,8 +110,8 @@
   /// Where a rule goes: between two commands of different `group` (user call,
   /// 2026-08-18). Read from the registry rather than written out here, so a
   /// command added there lands in its own category without this file knowing
-  /// the categories at all. The narrow bar has none — there each category is
-  /// already ONE glyph, so a rule between every button would be noise.
+  /// the categories at all. Neither narrow shape has one — there each category
+  /// is already ONE glyph, so a rule between every button would be noise.
   const startsGroup = (index) =>
     layout === "column" && index > 0 && items[index].group !== items[index - 1].group;
 
@@ -181,10 +189,13 @@
                bar scrolls sideways (`overflow-x`), and a scroller clips its own
                overflow — a panel drawn inside it was cut off at the bar's top
                edge, measured in the harness. The action also decides which SIDE
-               it opens on, which differs between the two narrow frames: the
-               strip sits at the bottom of a phone (so above, clear of the
-               keyboard, which it is the one thing that knows how to measure)
-               and the floating bar sits at the top of the canvas (so below).
+               it opens on, which differs between the narrow frames: the strip
+               sits at the bottom of a phone (so above, clear of the keyboard,
+               which it is the one thing that knows how to measure) and the
+               floating bar sits at the top of the canvas (so below). A RAIL
+               opens in the other axis entirely — `side: "inline"` — because
+               above and below a column of seven buttons there is no room at
+               all, and beside it there is nothing but document.
 
                `clears` names the BAR, not the button: the two are twins, and a
                panel that cleared only the button opened inside the bar's own
@@ -193,10 +204,14 @@
                which of the openers the panel belongs to. -->
           <div
             class="format-bar__panel"
+            class:format-bar__panel--beside={layout === "rail"}
             data-region={region}
             role="group"
             aria-label={opener.label()}
-            use:keepOnScreen={{ clears: ".format-bar" }}
+            use:keepOnScreen={{
+              clears: ".format-bar",
+              side: layout === "rail" ? "inline" : undefined,
+            }}
           >
             {#each inGroup(item.fold) as command (command.id)}
               <button

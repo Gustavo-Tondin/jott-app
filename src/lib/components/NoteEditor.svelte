@@ -26,6 +26,9 @@
     onOpenFile,
     onOpenNote,
     onZoomImage,
+    /// `(hasSelection) => void`, passed straight through (2026-08-21). This
+    /// component owns the file; the editor owns what is happening inside it.
+    onSelection,
     root = null,
     version = 0,
     saveDelay = 500,
@@ -57,6 +60,11 @@
     // Whatever was typed into the previous note goes out first, addressed to
     // that note, before this one replaces it.
     saver.flush();
+    // A new note starts with nothing selected, and the editor will not say so
+    // — its listener only fires on a transaction, and swapping the document
+    // is not one it reports as a selection change. Left unsaid, a bar shown
+    // "on selection" would still be up over a note nobody has touched.
+    onSelection?.(false);
     load(folder, path);
   });
 
@@ -124,6 +132,7 @@
     {onOpenFile}
     {onOpenNote}
     {onZoomImage}
+    {onSelection}
     {root}
     {version}
     {wikiLinks}

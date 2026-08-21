@@ -43,13 +43,16 @@ export function keepOnScreen(node, params) {
   // Where the panel grows from its anchor: under it (a dropdown, the default)
   // or beside it (a submenu, which must not cover the row that opened it).
   const beside = params?.side === "inline";
-  // A box the panel must clear in the BLOCK axis, named by selector and looked
-  // up from the anchor. The inline placement still comes from the anchor — the
-  // panel stays lined up with the button that opened it — but it opens clear of
-  // the whole thing that button sits in. The format bar's folded groups need
-  // it: a button inside a padded bar ends its box 8px before the bar does, so
-  // a panel that cleared only the button opened 4px UNDER the bar's own edge
-  // (user report, 2026-08-19; measured at -4px in WebKitGTK).
+  // A box the panel must clear, named by selector and looked up from the
+  // anchor. It is cleared in whichever axis the panel OPENS in, and stays
+  // lined up with the button in the other one — so the panel belongs to a
+  // button and sits beside the whole thing that button is in. The format
+  // bar's folded groups need it: a button inside a padded bar ends its box
+  // 8px before the bar does, so a panel that cleared only the button opened
+  // 4px UNDER the bar's own edge (user report, 2026-08-19; measured at -4px
+  // in WebKitGTK). The same 4px lands INSIDE the bar when the bar is a
+  // vertical rail and the panel opens sideways (2026-08-21), which is why
+  // `clears` is not a block-axis rule.
   const clears = params?.clears
     ? (anchor?.closest?.(params.clears) ?? null)
     : null;
@@ -109,12 +112,15 @@ export function keepOnScreen(node, params) {
     let left = endAligned ? a.right - rect.width : a.left;
     let top = under + GAP;
     if (beside) {
-      left = a.right + GAP;
+      // The inline twins of `under`/`over`, for the axis this panel opens in.
+      const after = Math.max(a.right, c ? c.right : a.right);
+      const before = Math.min(a.left, c ? c.left : a.left);
+      left = after + GAP;
       top = a.top;
       // No room on the right: flip to the other side rather than being
       // clamped on top of the menu that opened it.
       if (left + rect.width > window.innerWidth - MARGIN) {
-        left = a.left - GAP - rect.width;
+        left = before - GAP - rect.width;
       }
     } else if (top + rect.height > floor) {
       // No room UNDER the anchor: open upwards. Clamping instead — which is

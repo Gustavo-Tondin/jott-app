@@ -138,6 +138,70 @@ describe("FormatBar, narrow", () => {
   });
 });
 
+// ---- the rail: the same narrow bar, stood on end (2026-08-21) ----
+//
+// It hugs the left or the right edge of the canvas, which is a Display
+// choice. The thing worth guarding is that it is a THIRD ARRANGEMENT and not
+// a third list: what the row holds, the rail holds, or moving the bar to the
+// side would quietly cost the user six commands.
+describe("FormatBar, rail", () => {
+  const rail = (onRun = () => {}) =>
+    render(FormatBar, { props: { onRun, layout: "rail" } });
+
+  const drawn = (container) =>
+    [...container.querySelectorAll(".format-bar__button")].map((b) =>
+      b.getAttribute("aria-label"),
+    );
+
+  it("draws exactly what the row draws, in the same order", () => {
+    const { container: railed } = rail();
+    const railButtons = drawn(railed);
+    const { container: rowed } = render(FormatBar, {
+      props: { onRun: () => {}, layout: "row" },
+    });
+    expect(railButtons).toEqual(drawn(rowed));
+    expect(railButtons.length).toBeGreaterThan(0);
+  });
+
+  it("says it is vertical, which is what a screen reader arrows through", () => {
+    const { container } = rail();
+    const bar = container.querySelector(".format-bar");
+    expect(bar.getAttribute("aria-orientation")).toBe("vertical");
+    expect(bar.classList.contains("format-bar--rail")).toBe(true);
+  });
+
+  it("folds and runs the same as the row does", async () => {
+    const asked = [];
+    rail((id) => asked.push(id));
+    await userEvent.click(screen.getByLabelText("Text style"));
+    await userEvent.click(screen.getByTitle("Bold [Ctrl+B]"));
+    expect(asked).toEqual(["md.bold"]);
+  });
+
+  // Above and below a column of seven buttons there is no room; beside it
+  // there is nothing but document. The class is what says which axis the
+  // panel opened in before `keepOnScreen` has measured anything.
+  it("opens its folded group SIDEWAYS", async () => {
+    rail();
+    await userEvent.click(screen.getByLabelText("Heading"));
+    const panel = document.querySelector(".format-bar__panel");
+    expect(panel).toBeTruthy();
+    expect(panel.classList.contains("format-bar__panel--beside")).toBe(true);
+  });
+
+  it("...which the row does not", async () => {
+    render(FormatBar, { props: { onRun: () => {}, layout: "row" } });
+    await userEvent.click(screen.getByLabelText("Heading"));
+    const panel = document.querySelector(".format-bar__panel");
+    expect(panel.classList.contains("format-bar__panel--beside")).toBe(false);
+  });
+
+  it("draws no category rules either", () => {
+    const { container } = rail();
+    expect(container.querySelectorAll(".format-bar__divider").length).toBe(0);
+  });
+});
+
 // ---- the focus stays in the note (user report, 2026-08-19) ----
 //
 // "Clicking the formatting items closes the keyboard." Reproduced on the
