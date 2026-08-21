@@ -20,6 +20,16 @@
        must never start a text selection along the way. */
     user-select: none;
     -webkit-user-select: none;
+    transition:
+      background var(--theme-transition-fast),
+      scale var(--theme-transition-fast);
+  }
+  /* Pressed, the card gives by a hair — it is the whole drag handle, so the
+     give is also what says "held" the instant before a drag or a swipe
+     starts. Not while it is being carried: the reorder's own transform and a
+     scale on top of it would wobble. */
+  .task-row:active:not(.reorder-item--carried) {
+    scale: 0.99;
   }
   /* Selected: the accent tint alone carries it — no outline, for the same
      reason the card has no border. */
@@ -58,6 +68,12 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    /* The strike is ALWAYS drawn, in transparent — so that turning it on is a
+       colour change, and a colour change is something that can fade in. */
+    text-decoration: line-through transparent;
+    transition:
+      color var(--theme-transition-fast),
+      text-decoration-color var(--theme-transition-medium);
   }
   /* No box or border on hover — at most the text goes a touch lighter, so the
      card stays calm (the rename input is borderless too, via --plain). */
@@ -67,9 +83,43 @@
   .task-row--selected .task-row__title {
     font-weight: var(--theme-weight-semibold);
   }
-  .task-row--done .task-row__title {
+  .task-row--done .task-row__title,
+  .task-row--finishing .task-row__title {
     color: var(--theme-ink-muted);
-    text-decoration: line-through;
+    text-decoration-color: currentColor;
+  }
+
+  /* THE SEND-OFF (TaskRow.svelte says when it plays and what waits on it).
+     In one breath: the card takes the accent tint as the tick lands and the
+     title strikes through — the moment of "done" — holds it long enough to
+     be read, then folds away: fading, shrinking a hair, and closing its
+     height so the cards below rise into the gap instead of jumping there on
+     the next frame. `forwards`, so it stays folded until the list is redrawn
+     without it. The height closes through `max-block-size`, the one way to
+     animate a height that is not known in advance; the ceiling is taller than
+     any card, so the fold visibly begins only once the value crosses the real
+     height — which is what puts the pause between the tick and the fold.
+     The name is read by the row, which waits for it: renaming it here is
+     renaming it there. */
+  .task-row--finishing {
+    overflow: hidden;
+    animation: task-row-finish calc(var(--theme-duration-slow) * 2.4) var(--theme-ease-out) forwards;
+  }
+  @keyframes task-row-finish {
+    0%,
+    45% {
+      opacity: 1;
+      scale: 1;
+      max-block-size: 8rem;
+      background: var(--theme-brand-weak);
+    }
+    100% {
+      opacity: 0;
+      scale: 0.96;
+      max-block-size: 0;
+      padding-block: 0;
+      background: var(--theme-brand-weak);
+    }
   }
   .task-row__edit {
     flex: 1;
