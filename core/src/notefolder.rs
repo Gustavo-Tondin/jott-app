@@ -236,17 +236,9 @@ impl NoteFolder {
         let title = sanitize_title(title)?;
         let source = self.note_path(relative)?;
         let (folder, _) = split_relative(relative);
-        let target_relative = join_relative(&folder, &format!("{title}.{EXTENSION}"));
-        let target = self.note_path(&target_relative)?;
-
-        if target == source {
-            return Ok(target_relative);
-        }
-        if target.exists() {
-            return Err(Error::InvalidNotePath(format!("{title} already exists")));
-        }
-        std::fs::rename(&source, &target).ctx(&target)?;
-        Ok(target_relative)
+        self.relocate_note(&source, &folder, &title, || {
+            Error::InvalidNotePath(format!("{title} already exists"))
+        })
     }
 
     /// Moves a note to another folder, returning the new address.
@@ -255,18 +247,32 @@ impl NoteFolder {
         let (_, title) = split_relative(relative);
         let dir = self.folder_path(folder)?;
         std::fs::create_dir_all(&dir).ctx(&dir)?;
+        self.relocate_note(&source, folder, &title, || {
+            Error::InvalidNotePath(format!("{title} already exists in {folder}"))
+        })
+    }
 
+    /// The move under `rename` and `move_to`: the note at `source` becomes
+    /// `folder/title.md`. Landing on itself is a no-op; landing on another
+    /// note is refused with the caller's own error, since each door words the
+    /// collision differently.
+    fn relocate_note(
+        &self,
+        source: &Path,
+        folder: &str,
+        title: &str,
+        taken: impl FnOnce() -> Error,
+    ) -> Result<String> {
         let target_relative = join_relative(folder, &format!("{title}.{EXTENSION}"));
         let target = self.note_path(&target_relative)?;
-        if target == source {
+
+        if target == *source {
             return Ok(target_relative);
         }
         if target.exists() {
-            return Err(Error::InvalidNotePath(format!(
-                "{title} already exists in {folder}"
-            )));
+            return Err(taken());
         }
-        std::fs::rename(&source, &target).ctx(&target)?;
+        std::fs::rename(source, &target).ctx(&target)?;
         Ok(target_relative)
     }
 

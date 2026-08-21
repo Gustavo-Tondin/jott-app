@@ -53,30 +53,25 @@ impl DisplayPrefs {
     /// same pact [`NotebookSettings`] makes about the notebook's own
     /// preferences.
     pub fn patch(&mut self, patch: DisplayPrefs) {
-        if patch.theme.is_some() {
-            self.theme = patch.theme;
-        }
-        if patch.accent_color.is_some() {
-            self.accent_color = patch.accent_color;
-        }
-        if patch.heading_color.is_some() {
-            self.heading_color = patch.heading_color;
-        }
-        if patch.note_font_size.is_some() {
-            self.note_font_size = patch.note_font_size;
-        }
-        if patch.date_display_format.is_some() {
-            self.date_display_format = patch.date_display_format;
-        }
-        if patch.show_list_counts.is_some() {
-            self.show_list_counts = patch.show_list_counts;
-        }
-        if patch.restore_last_screen.is_some() {
-            self.restore_last_screen = patch.restore_last_screen;
-        }
-        if patch.close_inspector_on_click_away.is_some() {
-            self.close_inspector_on_click_away = patch.close_inspector_on_click_away;
-        }
+        take(&mut self.theme, patch.theme);
+        take(&mut self.accent_color, patch.accent_color);
+        take(&mut self.heading_color, patch.heading_color);
+        take(&mut self.note_font_size, patch.note_font_size);
+        take(&mut self.date_display_format, patch.date_display_format);
+        take(&mut self.show_list_counts, patch.show_list_counts);
+        take(&mut self.restore_last_screen, patch.restore_last_screen);
+        take(
+            &mut self.close_inspector_on_click_away,
+            patch.close_inspector_on_click_away,
+        );
+    }
+}
+
+/// Overwrites `slot` with `value` only when `value` says something — an
+/// absent key in the patch leaves the stored choice alone.
+fn take<T>(slot: &mut Option<T>, value: Option<T>) {
+    if value.is_some() {
+        *slot = value;
     }
 }
 

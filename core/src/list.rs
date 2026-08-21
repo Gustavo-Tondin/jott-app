@@ -212,23 +212,13 @@ impl TaskList {
     /// Replaces the text of an existing task, leaving everything else alone.
     /// The text is collapsed to a single line, like everything user-typed.
     pub fn edit_text(&mut self, id: &str, text: impl Into<String>) -> Result<()> {
-        let at = self
-            .position_of(id)
-            .ok_or_else(|| Error::TaskNotFound(id.to_string()))?;
-        if let Line::Task(task) = &mut self.lines[at] {
-            task.text = crate::task::single_line(&text.into());
-        }
+        self.task_mut(id)?.text = crate::task::single_line(&text.into());
         Ok(())
     }
 
     /// Marks a task done or undone in place, without moving it between files.
     pub fn set_done(&mut self, id: &str, done: bool) -> Result<()> {
-        let at = self
-            .position_of(id)
-            .ok_or_else(|| Error::TaskNotFound(id.to_string()))?;
-        if let Line::Task(task) = &mut self.lines[at] {
-            task.done = done;
-        }
+        self.task_mut(id)?.done = done;
         Ok(())
     }
 
