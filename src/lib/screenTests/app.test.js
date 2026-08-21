@@ -6,7 +6,7 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/svelte";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, test, vi } from "vitest";
-import { bridge, invoke } from "../test/bridge.js";
+import { bridge, callsTo, invoke } from "../test/bridge.js";
 import { noteFolder, resetScreens, task } from "../test/screens.js";
 
 // The note editor's engine is stubbed by a textarea — `lib/test/screens.js`
@@ -323,6 +323,45 @@ describe("App", () => {
         toFolder: "Clientes",
       }),
     );
+  });
+
+  test("the text size picked from the note's menu is written to the machine", async () => {
+    // Display is this machine's (2026-08-20): the same choice in Settings goes
+    // to `set_machine_display`, and this menu wrote it to the notebook instead
+    // — the phone's pick would have travelled to the desktop.
+    shell({
+      list_notes: [
+        {
+          path: "Inbox/Ideia.md",
+          title: "Ideia",
+          folder: "Inbox",
+          preview: "preview",
+          created: "2026-07-21",
+          pinned: false,
+        },
+      ],
+      read_note: {
+        path: "Inbox/Ideia.md",
+        title: "Ideia",
+        body: "Corpo.",
+        pinned: false,
+        created: "2026-07-21",
+      },
+      write_note: null,
+      set_machine_display: null,
+    });
+    render(App);
+
+    await userEvent.click(await screen.findByRole("button", { name: "Notes" }));
+    await userEvent.click(await screen.findByText("Ideia"));
+    await userEvent.click(await screen.findByLabelText("note options"));
+    await userEvent.click(await screen.findByText("Text size"));
+    await userEvent.click(await screen.findByText("Large"));
+
+    await waitFor(() =>
+      expect(callsTo("set_machine_display")).toEqual([{ display: { noteFontSize: "large" } }]),
+    );
+    expect(callsTo("set_notebook_settings")).toEqual([]);
   });
 
   // ---- the way back to the docked panel (user call, 2026-08-19) ----

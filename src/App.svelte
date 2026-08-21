@@ -478,11 +478,9 @@
     );
   };
 
-  const setNoteFontSize = (size) =>
-    api
-      .setNotebookSettings({ noteFontSize: size })
-      .then(refreshNotebook)
-      .catch(fail);
+  // Display is this machine's, not the notebook's (2026-08-20): the same
+  // drawer Settings writes to, or the phone and the desktop would fight.
+  const setNoteFontSize = (size) => change(() => api.setMachineDisplay({ noteFontSize: size }));
 
   /// True while the note's editor holds the cursor — what the compact
   /// formatting strip is tied to. `focusin`/`focusout` on the window rather
