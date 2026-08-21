@@ -57,6 +57,7 @@
   import { buttonLayout } from "./lib/shell/windowButtons.js";
   import { isMobile, osAttribute, platformAttribute } from "./lib/shell/platform.js";
   import { installKeyboard } from "./lib/shell/keyboard.js";
+  import { scheduleTurns } from "./lib/shell/turn.js";
   import { watchCompact } from "./lib/shell/compact.js";
   import TopBar from "./lib/shell/TopBar.svelte";
   import BottomSheet from "./lib/components/BottomSheet.svelte";
@@ -1444,30 +1445,20 @@
   }
 
   // The rollover has to happen with the app open too, not only when the
-  // notebook is reopened. The core says when; this schedules the wake-up.
-  let turnTimer = null;
-  async function scheduleTurn() {
-    if (turnTimer) clearTimeout(turnTimer);
-    if (!clock) return;
-
-    const next = Math.min(
-      new Date(clock.nextDailyTurn).getTime(),
-      new Date(clock.nextWeeklyTurn).getTime(),
-    );
-    // Cap the wait: a long sleep or a clock jump would otherwise leave the
-    // screen showing yesterday until something else refreshed it.
-    const delay = Math.min(Math.max(next - Date.now(), 1000), 60 * 60 * 1000);
-
-    turnTimer = setTimeout(async () => {
-      try {
+  // notebook is reopened. The core says when; `shell/turn.js` schedules the
+  // wake-up, from the clock the last tick brought back.
+  let stopTurns = () => {};
+  function scheduleTurn() {
+    stopTurns();
+    stopTurns = scheduleTurns({
+      clock: () => clock,
+      tick: async () => {
         await api.refreshPeriods();
         clock = await api.periodClock();
         reload();
-      } catch (e) {
-        fail(e);
-      }
-      scheduleTurn();
-    }, delay);
+      },
+      onError: fail,
+    });
   }
 
   // Someone else wrote to the notebook (Syncthing, Obsidian, a text editor).
