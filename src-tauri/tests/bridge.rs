@@ -486,20 +486,40 @@ fn refresh_periods_returns_both_states() {
 /// the first time this command shipped.
 #[test]
 fn dialog_helpers_are_never_called_from_a_blocking_command() {
-    let source = include_str!("../src/commands.rs");
+    // Every command module, read from disk rather than one `include_str!`, so
+    // a module added after this test was written is covered by it (the file
+    // was split into `commands/` on 2026-08-21). `CARGO_MANIFEST_DIR` is the
+    // crate root at compile time — no dependency on where the runner stands.
+    let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src/commands");
+    let modules: Vec<(String, String)> = std::fs::read_dir(&dir)
+        .expect("os módulos de comando")
+        .filter_map(|entry| {
+            let path = entry.ok()?.path();
+            if path.extension()? != "rs" {
+                return None;
+            }
+            let name = path.file_name()?.to_string_lossy().into_owned();
+            Some((name, std::fs::read_to_string(&path).ok()?))
+        })
+        .collect();
+    assert!(modules.len() > 1, "nenhum módulo de comando foi lido");
 
-    for (number, line) in source.lines().enumerate() {
-        let code = line.trim();
-        // Comments may name it — the docs on the command explain the trap.
-        if code.starts_with("//") {
-            continue;
+    let source: String = modules.iter().map(|(_, text)| text.as_str()).collect();
+
+    for (name, text) in &modules {
+        for (number, line) in text.lines().enumerate() {
+            let code = line.trim();
+            // Comments may name it — the docs on the command explain the trap.
+            if code.starts_with("//") {
+                continue;
+            }
+            assert!(
+                !code.contains("blocking_pick"),
+                "{name}:{}: blocking_pick_* freezes the window; use the \
+                 callback form inside an async command instead",
+                number + 1
+            );
         }
-        assert!(
-            !code.contains("blocking_pick"),
-            "commands.rs:{}: blocking_pick_* freezes the window; use the \
-             callback form inside an async command instead",
-            number + 1
-        );
     }
 
     // And the command that opens the picker must stay async.
