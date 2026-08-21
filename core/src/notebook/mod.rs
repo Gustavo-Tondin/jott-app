@@ -427,6 +427,33 @@ impl Notebook {
         &self.root
     }
 
+    /// Which folder a root-relative address lives in — a space, a list, a
+    /// note; empty means the notebook root.
+    ///
+    /// A file address answers the folder AROUND it. Handing over the `.md`
+    /// would be a different promise from the one the caller makes, which is
+    /// "show me where this sits" — the notebook is plain files (principle 4),
+    /// and that is what this exists to say out loud.
+    ///
+    /// The address is checked here exactly like every other address the app
+    /// takes ([`crate::relpath::safe_join`]), so nothing can point outside
+    /// the notebook. `is_dir` is a question about disk; an address that names
+    /// nothing at all still resolves to the folder it would have been in,
+    /// which is the honest answer for a notebook edited by other tools.
+    pub fn folder_of(&self, path: Option<&str>) -> Result<PathBuf> {
+        let root = self.root.clone();
+        let Some(relative) = path.map(str::trim).filter(|p| !p.is_empty()) else {
+            return Ok(root);
+        };
+        let joined = crate::relpath::safe_join(&root, relative)
+            .ok_or_else(|| Error::InvalidNotePath(relative.to_string()))?;
+        Ok(if joined.is_dir() {
+            joined
+        } else {
+            joined.parent().map(Path::to_path_buf).unwrap_or(root)
+        })
+    }
+
     // `tasks_dir`/`tasks_folder`/`notes_dir` lived here until 2026-08-04. They
     // answered "where do the tasks live?" with `Tasks/`, which stopped being
     // true in the 2026-07-30 restructure — every tasks space holds its own

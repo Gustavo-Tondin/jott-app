@@ -43,9 +43,12 @@ impl From<jott_core::Error> for CommandError {
             Error::TaskNotFound(_) => "taskNotFound",
             Error::InvalidListName(_) => "invalidListName",
             Error::InvalidSpaceName(_) => "invalidSpaceName",
+            // The folder browser's own; the name predates the core variant.
+            Error::InvalidFolderName(_) => "invalidName",
             Error::InvalidNotePath(_) => "invalidNotePath",
             Error::InvalidAssetPath(_) => "invalidAssetPath",
             Error::ReadOnlyNotebook { .. } => "readOnlyNotebook",
+            Error::InvalidManifest(_) => "invalid",
             Error::Protected(_) => "protected",
             Error::Watch(_) => "watch",
         };

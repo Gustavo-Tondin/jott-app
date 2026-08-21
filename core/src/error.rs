@@ -51,6 +51,12 @@ pub enum Error {
     #[error("invalid space name {0:?}")]
     InvalidSpaceName(String),
 
+    /// A folder name typed into the folder browser that is a path rather than
+    /// a name — the notebook does not exist yet here, so this one is about the
+    /// machine's folders and not about anything inside a notebook.
+    #[error("bad folder name: {0}")]
+    InvalidFolderName(String),
+
     /// The notebook was written by a newer version of the app. Opening it
     /// read-only is safer than rewriting a file whose fields we do not know.
     #[error("notebook uses schema version {found}, this build supports {supported}")]
@@ -61,6 +67,11 @@ pub enum Error {
     /// user, since it comes straight back.
     #[error("{0} is created by the app and cannot be renamed or deleted")]
     Protected(String),
+
+    /// A release manifest that is not JSON, or that names no version. Not a
+    /// reason to nag the user with a phantom update.
+    #[error("{0}")]
+    InvalidManifest(String),
 
     /// The file watcher could not be started or kept running.
     #[error("could not watch the notebook: {0}")]

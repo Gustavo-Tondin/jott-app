@@ -52,8 +52,9 @@ pub const ASSETS_DIR: &str = "assets";
 ///
 /// A closed list rather than "whatever the OS thinks": the webview is what has
 /// to draw these, and an address the app wrote must be one the app can show.
-/// Public because it is THE list — the bridge maps a downloaded image's
-/// content-type onto it, and a second copy there already drifted once.
+/// Public because it is THE list — [`extension_for_type`] answers a downloaded
+/// image's content-type out of it, and a second copy in the bridge drifted once
+/// before it was moved here.
 pub const IMAGE_EXTENSIONS: [&str; 8] = [
     "png", "jpg", "jpeg", "gif", "webp", "svg", "avif", "bmp",
 ];
@@ -187,6 +188,54 @@ pub fn is_image_name(name: &str) -> bool {
     IMAGE_EXTENSIONS.contains(&ext.as_str())
 }
 
+/// The extension a picture of this content type is stored under. `None` for
+/// anything the app cannot draw — the same closed list above, for the same
+/// reason: an address the app wrote must be one it can show.
+///
+/// Downloading the picture is the bridge's (it is the one thing this app does
+/// that leaves the machine); deciding what came back IS a picture, and what to
+/// call the file it lands in, is the library's.
+pub fn extension_for_type(content_type: &str) -> Option<&'static str> {
+    // The two subtypes whose conventional extension is not the subtype
+    // itself; everything else is answered by the closed list, so a format
+    // added there is accepted here without a second list to update.
+    let extension = match content_type.strip_prefix("image/")? {
+        "jpeg" | "jpg" => "jpg",
+        "svg+xml" => "svg",
+        other => other,
+    };
+    IMAGE_EXTENSIONS
+        .iter()
+        .find(|known| **known == extension)
+        .copied()
+}
+
+/// A name for the file, from the last readable piece of an address.
+///
+/// The query string is dropped and so is the extension the URL claims: the
+/// content type decides that ([`extension_for_type`]). `image` when there is
+/// nothing to go on — the library suffixes a colliding name rather than
+/// overwriting it.
+pub fn name_from_url(url: &str) -> String {
+    let path = url
+        .trim_start_matches("https://")
+        .split(['?', '#'])
+        .next()
+        .unwrap_or_default();
+    let leaf = path.rsplit('/').find(|piece| !piece.is_empty()).unwrap_or("");
+    let stem = leaf.rsplit_once('.').map(|(head, _)| head).unwrap_or(leaf);
+    let cleaned: String = stem
+        .chars()
+        .filter(|c| c.is_alphanumeric() || matches!(c, '-' | '_' | ' '))
+        .collect();
+    let cleaned = cleaned.trim().to_string();
+    if cleaned.is_empty() {
+        "image".to_string()
+    } else {
+        cleaned
+    }
+}
+
 /// An imported name becomes a file name, so it has to survive being one.
 fn sanitize_name(name: &str) -> Result<String> {
     // Whatever the browser handed over may carry a path (some file pickers
@@ -203,6 +252,31 @@ fn sanitize_name(name: &str) -> Result<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_name_is_made_from_the_address_and_the_type() {
+        // The real one from the user's clipboard, query string and all: the
+        // extension comes from the content type, never from the URL.
+        assert_eq!(
+            name_from_url(
+                "https://cdnb.artstation.com/p/assets/images/087/large/daoz-51.jpg?1747030361"
+            ),
+            "daoz-51"
+        );
+        assert_eq!(name_from_url("https://exemplo.com/foto"), "foto");
+        assert_eq!(name_from_url("https://exemplo.com/"), "exemplo");
+        // Nothing usable at the end of the address: the library will suffix
+        // a colliding `image.png` rather than overwrite one.
+        assert_eq!(name_from_url("https://exemplo.com/a/../"), "image");
+    }
+
+    #[test]
+    fn only_what_the_app_can_draw_comes_back() {
+        assert_eq!(extension_for_type("image/jpeg"), Some("jpg"));
+        assert_eq!(extension_for_type("image/svg+xml"), Some("svg"));
+        assert_eq!(extension_for_type("text/html"), None);
+        assert_eq!(extension_for_type(""), None);
+    }
 
     fn library() -> (tempfile::TempDir, Assets) {
         let dir = tempfile::tempdir().unwrap();

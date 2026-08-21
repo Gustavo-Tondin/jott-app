@@ -458,3 +458,40 @@ fn manual_order_arranges_spaces() {
         .unwrap();
     assert_eq!(user_ws(&nb), vec!["Zebra", "Apple"]);
 }
+
+/// The rule behind "open the containing folder" — the one command that says
+/// out loud that a notebook is plain files (principle 4).
+#[test]
+fn an_address_resolves_to_the_folder_it_lives_in() {
+    let dir = tempfile::tempdir().unwrap();
+    let notebook = Notebook::init(dir.path()).unwrap();
+    let root = notebook.root().to_path_buf();
+    std::fs::create_dir_all(root.join("Design/Clients")).unwrap();
+    std::fs::write(root.join("Design/Clients/task-list.md"), "").unwrap();
+
+    // No address: the notebook itself.
+    assert_eq!(notebook.folder_of(None).unwrap(), root);
+    assert_eq!(notebook.folder_of(Some("  ")).unwrap(), root);
+
+    // A space: its folder.
+    assert_eq!(
+        notebook.folder_of(Some("Design/Clients")).unwrap(),
+        root.join("Design/Clients")
+    );
+
+    // A file: the folder around it — the menu opens folders, never
+    // documents.
+    assert_eq!(
+        notebook.folder_of(Some("Design/Clients/task-list.md")).unwrap(),
+        root.join("Design/Clients")
+    );
+
+    // Anything that climbs out is refused, the same as every other address
+    // the app takes.
+    for hostile in ["../..", "/etc", "Design/../../etc", "a\0b"] {
+        assert!(
+            notebook.folder_of(Some(hostile)).is_err(),
+            "{hostile:?} devia ser recusado"
+        );
+    }
+}

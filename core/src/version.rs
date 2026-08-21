@@ -1,9 +1,30 @@
 //! Comparing the running app's version against a published one.
 //!
 //! The update check downloads a manifest that names the latest released
-//! version; this module answers the only question the app asks about it —
-//! "is that newer than me?". It lives in the core so the rule is testable
-//! without a network and shared by any frontend.
+//! version; this module answers the only two questions the app asks about it —
+//! which version it names, and whether that is newer than me. It lives in the
+//! core so both rules are testable without a network and shared by any
+//! frontend; fetching the bytes is the bridge's.
+
+use crate::error::{Error, Result};
+
+/// The version a release manifest names.
+///
+/// The manifest is `latest.json`, written by the release pipeline next to the
+/// installers, and it carries a good deal more than this — the download URLs
+/// and the signature the updater plugin verifies. This reads the ONE field the
+/// notice needs, and refuses anything else: a manifest that is not JSON, or
+/// that names no version, is not an update, and answering "" would be read as
+/// one version too many.
+pub fn from_manifest(text: &str) -> Result<String> {
+    let manifest: serde_json::Value = serde_json::from_str(text)
+        .map_err(|e| Error::InvalidManifest(format!("that manifest is not JSON: {e}")))?;
+    manifest
+        .get("version")
+        .and_then(|v| v.as_str())
+        .map(str::to_string)
+        .ok_or_else(|| Error::InvalidManifest("that manifest names no version".to_string()))
+}
 
 /// Whether `candidate` names a strictly newer version than `current`.
 ///

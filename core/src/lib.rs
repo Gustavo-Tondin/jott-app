@@ -7,6 +7,7 @@
 //! Reading and writing the notebook is done. Day/week rules come next.
 
 pub mod assets;
+pub mod browse;
 pub mod clock;
 pub mod conflict;
 pub mod config;
@@ -25,6 +26,7 @@ pub mod recurrence;
 pub mod relpath;
 pub mod rollover;
 pub mod search;
+pub mod settings;
 pub mod space;
 pub mod state;
 pub mod tags;
@@ -41,6 +43,7 @@ pub use error::{Error, Result};
 pub use list::{Line, TaskList};
 pub use notebook::{ListedTask, NoteFolderEntry, Notebook, OriginAction};
 pub use search::{HitKind, SearchHit, SearchResults};
+pub use settings::{Display, DisplayPrefs, NotebookSettings};
 pub use space::{FolderSettings, Group, GroupEntry, Space, SpaceConfig};
 pub use state::{Period, PeriodState, StateFile, TaskRef};
 pub use watcher::{Change, NotebookWatcher};
