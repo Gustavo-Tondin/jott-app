@@ -258,7 +258,7 @@ describe("frontend architecture", () => {
       for (const m of css.matchAll(/var\(\s*(--(?:theme|canvas)-[a-z0-9-]+)/g)) {
         // Metrics (spacing, radius, type, layout, motion) live in tokens.css.
         if (
-          /^--theme-(space|radius|text|weight|tracking|leading|font|transition|sidebar|titlebar|topbar|content|note-|window|drawer|sheet|touch|safe|keyboard|format)/.test(
+          /^--theme-(space|radius|text|weight|tracking|leading|font|transition|duration|ease|sidebar|titlebar|topbar|content|note-|window|drawer|sheet|touch|safe|keyboard|format)/.test(
             m[1],
           )
         )
@@ -579,6 +579,9 @@ describe("frontend architecture", () => {
         if (brace !== "{") continue;
         const prelude = chunk.split(";").pop().trim();
         if (prelude.startsWith("@")) continue;
+        // A keyframe step (`from`, `to`, `40%`) is not a selector: it names a
+        // point on an animation that only plays where a class asks for it.
+        if (/^(from|to|[\d.]+%)(\s*,\s*(from|to|[\d.]+%))*$/.test(prelude)) continue;
         for (const sel of prelude.split(",")) {
           const first = sel.trim();
           if (first && !first.startsWith(".") && !first.startsWith(":root"))

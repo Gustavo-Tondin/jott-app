@@ -29,10 +29,15 @@
     background: var(--theme-surface);
     border-radius: var(--theme-radius-lg);
     padding: var(--note-card-pad);
-    transition: opacity var(--theme-transition-fast);
+    transition:
+      opacity var(--theme-transition-fast),
+      scale var(--theme-transition-fast);
   }
   .note-card:hover {
     opacity: 0.7;
+  }
+  .note-card:active {
+    scale: 0.98;
   }
   /* Picked, in selection mode: the same tint a chosen task card takes. */
   .note-card--picked {

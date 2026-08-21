@@ -62,6 +62,15 @@
        grey-on-grey. Reading the ink from the same ground the fill comes from
        is what keeps the label legible in all three themes. */
     color: color-mix(in srgb, var(--canvas-ink) 60%, transparent);
+    transition:
+      background var(--theme-transition-fast),
+      color var(--theme-transition-fast);
+  }
+  /* A closed tab rises a little towards the open one's ground under the
+     pointer — the row reads as documents rising out of the frame, and hover
+     is the one that is about to. */
+  .tabs__item:hover:not(.tabs__item--active) {
+    background: color-mix(in srgb, var(--canvas-ground) 75%, var(--theme-bg));
   }
   .tabs__item--active {
     background: var(--canvas-ground);

@@ -228,7 +228,7 @@
     flex-shrink: 0;
     padding-inline-end: var(--theme-space-4);
     opacity: 0;
-    transition: opacity 120ms ease;
+    transition: opacity var(--theme-transition-fast);
   }
   .shell__nav-item--row:hover .shell__ws-tools,
   .shell__nav-item--active .shell__ws-tools,
@@ -269,9 +269,20 @@
     font-size: var(--theme-text-16);
     text-align: left;
     cursor: pointer;
+    transition:
+      background var(--theme-transition-fast),
+      color var(--theme-transition-fast),
+      opacity var(--theme-transition-fast),
+      scale var(--theme-transition-fast);
   }
   .shell__nav-item:hover {
     background: var(--theme-hover);
+  }
+  /* Pressed, the row gives by a hair — less than a button does (0.96): a row
+     the width of the sidebar shrinking by 4% would visibly pull away from
+     both walls. */
+  .shell__nav-item:active {
+    scale: 0.98;
   }
   /* The open place is a SOLID accent pill (2026-08-13 wireframes). On the black
      chrome the tint step is a near-black navy — enough to see, not enough to
@@ -283,7 +294,6 @@
     background: var(--theme-brand);
     color: var(--theme-on-brand);
     font-weight: var(--theme-weight-semibold);
-    transition: opacity var(--theme-transition-fast);
   }
   /* Hovering the row you are already on (user call, 2026-08-13): it DIMS, it
      does not veil. The base `:hover` paints --theme-hover, a translucent grey

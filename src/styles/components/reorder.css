@@ -7,7 +7,7 @@
   /* Any item in a live reorder: its transform glides, so the others make room
      for the carried one like Chrome tabs. Only present during a drag. */
   .reorder-item {
-    transition: transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    transition: transform var(--theme-transition-medium);
     will-change: transform;
   }
 
@@ -84,7 +84,9 @@
     color: var(--theme-ink-faint);
     cursor: grab;
     opacity: 0;
-    transition: opacity 120ms ease, color 120ms ease;
+    transition:
+      opacity var(--theme-transition-fast),
+      color var(--theme-transition-fast);
     touch-action: none;
   }
   .reorder-grip:hover {

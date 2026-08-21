@@ -393,8 +393,31 @@
     /* ---------------------------------------------------------------------
        MOTION
        --------------------------------------------------------------------- */
-    --theme-transition-fast: 0.15s ease;
-    --theme-transition-medium: 0.25s ease;
+    /* Three durations and three curves, and every transition in the app is
+       spelt from them — never a literal `120ms` in a component sheet. That is
+       what lets ONE media query (at the end of this file) turn the whole app
+       still for a reader who asked the system for less motion: the durations
+       go to zero and every `transition`, `animation` and glide collapses with
+       them, without an `!important` anywhere.
+
+       fast    a hover, a press, an ink change              — felt, not seen
+       medium  something moving from A to B on screen       — a pill, a panel
+       slow    something ENTERING the screen                — a sheet, a pane
+
+       ease      the browser's own curve, for a colour or an opacity
+       ease-out  decelerating — for anything that ARRIVES (it lands softly)
+       spring    a hair of overshoot — for a knob, a check, a pill that glides;
+                 never for layout, where the overshoot would clip. */
+    --theme-duration-fast: 0.15s;
+    --theme-duration-medium: 0.25s;
+    --theme-duration-slow: 0.35s;
+    --theme-ease: ease;
+    --theme-ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+    --theme-ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+
+    /* The two pairs every component already reads, now derived. */
+    --theme-transition-fast: var(--theme-duration-fast) var(--theme-ease);
+    --theme-transition-medium: var(--theme-duration-medium) var(--theme-ease-out);
 
     /* ---------------------------------------------------------------------
        WINDOW — frameless chrome the app draws itself (GNOME/Wayland gives no
@@ -471,6 +494,24 @@
       --theme-text-12: 0.8125rem; /* 13px — right panel, breadcrumb */
       --theme-text-13: 0.875rem; /* 14px — buttons, menu rows */
       --theme-text-14: 0.9375rem; /* 15px — tabs, nav labels, body small */
+    }
+  }
+}
+
+/* =============================================================================
+   LESS MOTION. A system-wide preference, answered in one place: the durations
+   go to zero, and because nothing in the app spells a duration any other way,
+   so does every transition, every glide and every keyframe. The app still
+   CHANGES — a pill is on the new tab, a sheet is up — it just no longer
+   travels there. `0.01s` rather than `0s` so that `transitionend` and
+   `animationend` still fire for anything listening for them.
+   ============================================================================= */
+@media (prefers-reduced-motion: reduce) {
+  @layer tokens {
+    :root {
+      --theme-duration-fast: 0.01s;
+      --theme-duration-medium: 0.01s;
+      --theme-duration-slow: 0.01s;
     }
   }
 }

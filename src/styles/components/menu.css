@@ -39,6 +39,7 @@
     text-align: start;
     white-space: nowrap;
     cursor: pointer;
+    transition: background var(--theme-transition-fast);
   }
   /* A row that opens a submenu: the caret sits at the far end, and the panel
      it opens is the same list, placed beside the row by keepOnScreen. */
