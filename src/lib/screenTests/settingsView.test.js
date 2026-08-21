@@ -1,0 +1,565 @@
+// The Settings screen: the two menu blocks, the pages, and the search on top.
+//
+// Screen tests with the bridge mocked. What they catch, what they deliberately
+// do not, and the fakes they share: `lib/test/screens.js`.
+
+import { fireEvent, render, screen, waitFor } from "@testing-library/svelte";
+import userEvent from "@testing-library/user-event";
+import { beforeEach, describe, expect, test } from "vitest";
+import { back } from "../services/back.js";
+import { bridge, invoke } from "../test/bridge.js";
+import { noop, resetScreens } from "../test/screens.js";
+import SettingsView from "../screens/SettingsView.svelte";
+
+beforeEach(resetScreens);
+
+describe("SettingsView", () => {
+  const settings = {
+    dailyMode: "reset",
+    dailyAt: "00:00",
+    weeklyMode: "reset",
+    weeklyAt: "00:00",
+    weekStartsOn: "monday",
+    restoreLastScreen: false,
+    showListCounts: true,
+    autoUrgentByDate: true,
+    dateDisplayFormat: "mm/dd/yyyy",
+    closeInspectorOnClickAway: false,
+    quickNoteFolder: "Inbox",
+    confirmDeletes: true,
+    confirmImageDownloads: true,
+    accentColor: "",
+    theme: "",
+  };
+
+  const notebook = { path: "/n", name: "n", readOnly: false };
+
+  const props = (extra = {}) => ({
+    notebook,
+    folders: ["Inbox", "Clientes"],
+    notesInbox: "Inbox",
+    onChanged: noop,
+    onError: noop,
+    ...extra,
+  });
+
+  /// Opens one of the menu's sections (2026-08-20). The screen draws ONE at a
+  /// time now, so a test that reads a setting has to say which section it
+  /// lives in — which is what a person does before reading it too.
+  const openSection = async (name) =>
+    userEvent.click(await screen.findByRole("button", { name }));
+
+  test("the note's own text size answers for this device", async () => {
+    // It moved to the machine with the rest of Display (2026-08-20): a phone
+    // held at arm's length and a monitor at a desk do not agree about it, and
+    // the notebook is the same notebook.
+    bridge({ notebook_settings: settings, set_machine_display: null });
+    render(SettingsView, { props: props() });
+
+    await userEvent.click(await screen.findByRole("button", { name: "Large" }));
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("set_machine_display", {
+        display: { noteFontSize: "large" },
+      }),
+    );
+  });
+
+  test("a shortcut is recorded here and stored on the notebook", async () => {
+    bridge({ notebook_settings: settings, set_shortcut: null });
+    render(SettingsView, { props: props() });
+    await openSection("Shortcuts");
+
+    // Every command has a row, grouped by what the user is doing.
+    expect(await screen.findByText("In a task list")).toBeTruthy();
+    expect(screen.getByText("While writing a note")).toBeTruthy();
+
+    const rows = screen.getAllByTitle("Record a new key");
+    await userEvent.click(rows[0]);
+    await fireEvent.keyDown(screen.getByText("Press a key…"), {
+      key: "j",
+      ctrlKey: true,
+      shiftKey: true,
+    });
+
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("set_shortcut", {
+        id: "task.new",
+        chord: "Mod+Shift+J",
+      }),
+    );
+  });
+
+  test("resetting forgets every binding", async () => {
+    bridge({ notebook_settings: settings, reset_shortcuts: null });
+    render(SettingsView, { props: props() });
+    await openSection("Shortcuts");
+
+    await userEvent.click(await screen.findByText("Reset to defaults"));
+    await waitFor(() =>
+      expect(invoke.mock.calls.some(([cmd]) => cmd === "reset_shortcuts")).toBe(true),
+    );
+  });
+
+  test("the theme and the accent are chosen here, and stored by name", async () => {
+    // Both are a NAME, never colours (2026-08-13): the theme picks which CSS
+    // file dresses the app, the accent which of the seven the brand is. Absent
+    // means the one the app ships as, so the default reads as chosen without
+    // the notebook having to say so.
+    bridge({ notebook_settings: settings, set_machine_display: null });
+    render(SettingsView, { props: props() });
+
+    const jott = await screen.findByRole("button", { name: "Jott" });
+    expect(jott.getAttribute("aria-pressed")).toBe("true");
+
+    // And to THIS DEVICE (2026-08-20): the phone is dark while the desktop
+    // stays in Jott's own black-on-white, from one notebook.
+    await userEvent.click(screen.getByRole("button", { name: "Dark" }));
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("set_machine_display", {
+        display: { theme: "dark" },
+      }),
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "orange" }));
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("set_machine_display", {
+        display: { accentColor: "orange" },
+      }),
+    );
+    // Never the notebook's drawer, whatever else happened.
+    expect(invoke).not.toHaveBeenCalledWith(
+      "set_notebook_settings",
+      expect.anything(),
+    );
+  });
+
+  test("a read-only notebook still gets to dress this device", async () => {
+    // The reverse of what it was until 2026-08-20, and it follows from where
+    // the value goes: a notebook open for reading does not get a say in what
+    // THIS screen looks like, so nothing here is disabled by it. The same
+    // reasoning the update check is written under.
+    bridge({ notebook_settings: settings, set_machine_display: null });
+    render(SettingsView, {
+      props: props({ notebook: { ...notebook, readOnly: true } }),
+    });
+
+    const dark = await screen.findByRole("button", { name: "Dark" });
+    expect(dark.hasAttribute("disabled")).toBe(false);
+    expect(screen.getByRole("button", { name: "orange" }).hasAttribute("disabled")).toBe(
+      false,
+    );
+
+    await userEvent.click(dark);
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("set_machine_display", {
+        display: { theme: "dark" },
+      }),
+    );
+  });
+
+  test("shows every documented key with its stored value", async () => {
+    bridge({ notebook_settings: settings });
+    render(SettingsView, { props: props() });
+
+    expect(await screen.findByLabelText("Date format")).toBeTruthy();
+    expect(screen.getByLabelText("Show task counts in the sidebar").checked).toBe(true);
+    expect(screen.getByLabelText("Reopen on the last screen").checked).toBe(false);
+    expect(
+      screen.getByLabelText("Close the task panel when clicking outside").checked,
+    ).toBe(false);
+
+    await openSection("Date preferences");
+    expect(screen.getByLabelText("Week starts on").value).toBe("monday");
+  });
+
+  test("changing one setting sends only that key", async () => {
+    // The core keeps what it is not told about, so a screen never has to
+    // hold — or risk overwriting — the rest of the config. Both drawers make
+    // the same pact, which is why both are exercised here.
+    bridge({
+      notebook_settings: settings,
+      set_notebook_settings: null,
+      set_machine_display: null,
+    });
+    render(SettingsView, { props: props() });
+
+    await userEvent.click(
+      await screen.findByLabelText("Show task counts in the sidebar"),
+    );
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("set_machine_display", {
+        display: { showListCounts: false },
+      }),
+    );
+
+    await openSection("Tasks");
+    await userEvent.click(screen.getByLabelText("Treat overdue tasks as urgent"));
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("set_notebook_settings", {
+        settings: { autoUrgentByDate: false },
+      }),
+    );
+  });
+
+  test("the screen shows what was stored, not what it sent", async () => {
+    // The core normalises: a value it cannot use falls back, and the screen
+    // must show the fallback rather than the rejected input.
+    let stored = { ...settings };
+    bridge({
+      notebook_settings: () => stored,
+      set_notebook_settings: () => {
+        stored = { ...stored, dateDisplayFormat: "mm/dd/yyyy" };
+        return null;
+      },
+    });
+    render(SettingsView, { props: props() });
+
+    const field = await screen.findByLabelText("Date format");
+    await userEvent.selectOptions(field, "yyyy/mm/dd");
+
+    await waitFor(() =>
+      expect(screen.getByLabelText("Date format").value).toBe("mm/dd/yyyy"),
+    );
+  });
+
+  test("a read-only notebook says so and edits nothing", async () => {
+    bridge({ notebook_settings: settings });
+    render(SettingsView, { props: props({ notebook: { ...notebook, readOnly: true } }) });
+
+    expect(await screen.findByText(/newer version of Jott/)).toBeTruthy();
+    // What the NOTEBOOK owns is what goes dead. Display is this device's and
+    // stays live — the test above says so.
+    expect(screen.getByLabelText("Date format").disabled).toBe(false);
+
+    await openSection("Date preferences");
+    expect(screen.getByLabelText("Week starts on").disabled).toBe(true);
+
+    await openSection("Tasks");
+    expect(screen.getByLabelText("Treat overdue tasks as urgent").disabled).toBe(true);
+  });
+
+  test("the quick note destination offers the notes folders", async () => {
+    // In Notebook since 2026-08-20: it names a folder of THIS notebook, so it
+    // could not follow Display onto the machine — machine preferences are one
+    // file for every notebook the app opens.
+    bridge({ notebook_settings: settings });
+    render(SettingsView, { props: props() });
+    await openSection("Notebook");
+
+    const field = await screen.findByLabelText("Quick note goes to");
+    const options = [...field.options].map((o) => o.value);
+    expect(options).toEqual(["Inbox", "Clientes"]);
+  });
+
+  test("the update check is a machine preference, written outside the notebook", async () => {
+    // It answers for this INSTALL, so it goes nowhere near
+    // `set_notebook_settings` and ignores a read-only notebook.
+    bridge({ notebook_settings: settings, auto_update_check: true, app_version: "0.20.0" });
+    render(SettingsView, { props: props({ notebook: { ...notebook, readOnly: true } }) });
+    await openSection("About");
+
+    const toggle = await screen.findByLabelText("Check for updates automatically");
+    await waitFor(() => expect(toggle.checked).toBe(true));
+    await userEvent.click(toggle);
+
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("remember_auto_update_check", { on: false }),
+    );
+    expect(invoke).not.toHaveBeenCalledWith("set_notebook_settings", expect.anything());
+  });
+
+  test("Check now asks the bridge and reports both endings", async () => {
+    // An install that cannot replace itself is offered the release page.
+    bridge({
+      notebook_settings: settings,
+      check_for_update: {
+        current: "0.20.0",
+        latest: "9.9.9",
+        newer: true,
+        canInstall: false,
+        url: "https://example.com/latest",
+      },
+    });
+    render(SettingsView, { props: props() });
+    await openSection("About");
+
+    await userEvent.click(await screen.findByRole("button", { name: "Check now" }));
+    await screen.findByText("Version 9.9.9 is available.");
+    await screen.findByRole("button", { name: "Download" });
+  });
+
+  test("the menu-entry row is only there for an install that has one to write", async () => {
+    // A packaged Jott was put in the applications menu by its package
+    // manager. Showing the switch anyway would offer a second entry for one
+    // app — so the row is absent, not disabled.
+    bridge({
+      notebook_settings: settings,
+      desktop_entry_state: { supported: false, installed: false, dismissed: false },
+    });
+    render(SettingsView, { props: props() });
+    await openSection("About");
+
+    // Waiting on a row that is always in About, so the absence below is
+    // "the section rendered without it", not "the section had not rendered".
+    await screen.findByLabelText("Check for updates automatically");
+    expect(screen.queryByLabelText("Show in applications menu")).toBe(null);
+  });
+
+  test("the AppImage can put itself in the menu, and take itself back out", async () => {
+    bridge({
+      notebook_settings: settings,
+      desktop_entry_state: { supported: true, installed: false, dismissed: false },
+      set_desktop_entry: null,
+    });
+    render(SettingsView, { props: props() });
+    await openSection("About");
+
+    const toggle = await screen.findByLabelText("Show in applications menu");
+    await waitFor(() => expect(toggle.checked).toBe(false));
+
+    await userEvent.click(toggle);
+    await waitFor(() => expect(invoke).toHaveBeenCalledWith("set_desktop_entry", { on: true }));
+    await waitFor(() => expect(toggle.checked).toBe(true));
+
+    // Reversible: it writes two files outside the notebook, so the same row
+    // has to be able to take them away.
+    await userEvent.click(toggle);
+    await waitFor(() => expect(invoke).toHaveBeenCalledWith("set_desktop_entry", { on: false }));
+  });
+
+  test("an entry already on disk shows as on", async () => {
+    bridge({
+      notebook_settings: settings,
+      desktop_entry_state: { supported: true, installed: true, dismissed: false },
+    });
+    render(SettingsView, { props: props() });
+    await openSection("About");
+
+    const toggle = await screen.findByLabelText("Show in applications menu");
+    await waitFor(() => expect(toggle.checked).toBe(true));
+  });
+
+  test("the menu names every section, and one is open beside it", async () => {
+    // Side by side (wireframe "Settings"): the menu never leaves and something
+    // is always selected — a menu with nothing open would be half a screen.
+    bridge({ notebook_settings: settings });
+    render(SettingsView, { props: props() });
+
+    // The menu is TWO blocks now (wireframe "Settings screen mobile"): how the
+    // app is set up, then what it can do — with the pages of the functions
+    // that are ON nested under Native Functions.
+    for (const name of [
+      "About",
+      "Display",
+      "Date preferences",
+      "Notebook",
+      "Shortcuts",
+      "Native Functions",
+      "Tasks",
+      "Notes",
+    ]) {
+      expect(await screen.findByRole("button", { name })).toBeTruthy();
+    }
+
+    // Display leads, and only Display is drawn.
+    expect(screen.getByLabelText("Date format")).toBeTruthy();
+    expect(screen.queryByLabelText("Week starts on")).toBe(null);
+
+    await openSection("Notebook");
+    expect(screen.queryByLabelText("Date format")).toBe(null);
+    expect(screen.getByLabelText("Clear completed after (days)")).toBeTruthy();
+  });
+
+  test("on a phone the menu is the screen, and a row goes into the section", async () => {
+    // The mobile wireframe draws two screens, not two columns: the menu, and
+    // the section you went into — whose name the header above carries, which
+    // is why the screen reports it instead of drawing it twice.
+    bridge({ notebook_settings: settings });
+    const said = [];
+    render(SettingsView, {
+      props: props({ compact: true, onSection: (label) => said.push(label) }),
+    });
+
+    // The menu, alone: nothing of any section is on screen yet.
+    expect(await screen.findByRole("button", { name: "Display" })).toBeTruthy();
+    expect(screen.queryByLabelText("Date format")).toBe(null);
+
+    await openSection("Display");
+    expect(await screen.findByLabelText("Date format")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Notebook" })).toBe(null);
+    expect(said.at(-1)).toBe("Display");
+
+    await userEvent.click(screen.getByRole("button", { name: "All settings" }));
+    expect(await screen.findByRole("button", { name: "Notebook" })).toBeTruthy();
+    expect(screen.queryByLabelText("Date format")).toBe(null);
+    expect(said.at(-1)).toBe("");
+  });
+
+  test("the phone's back gesture returns to the menu before leaving Settings", async () => {
+    // Registered while a section is open, so the shell's own handler — which
+    // would walk the tab's history out of Settings — is not the one asked
+    // (services/back.js).
+    bridge({ notebook_settings: settings });
+    render(SettingsView, { props: props({ compact: true }) });
+
+    await openSection("Display");
+    expect(await screen.findByLabelText("Date format")).toBeTruthy();
+
+    expect(back()).toBe(true);
+    expect(await screen.findByRole("button", { name: "Notebook" })).toBeTruthy();
+    // And once the menu is what is on screen, back is the shell's again.
+    expect(back()).toBe(false);
+  });
+
+  test("a phone is not offered the shortcuts", async () => {
+    // A chord is a keyboard's, and there is none to press one on (user call,
+    // 2026-08-20). The bindings themselves are untouched — they travel with
+    // the notebook and answer wherever there are keys.
+    bridge({ notebook_settings: settings });
+    render(SettingsView, { props: props({ compact: true }) });
+
+    expect(await screen.findByRole("button", { name: "Display" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Shortcuts" })).toBe(null);
+  });
+
+  test("the two switches that could only be turned OFF are back", async () => {
+    // Both were written only by a dialog's "don't ask again", and neither was
+    // ever drawn here: the user could switch them off and had no way back
+    // (2026-08-20). They live with what they guard — deleting with the
+    // notebook's safety, downloading with the notes' images.
+    bridge({
+      notebook_settings: { ...settings, confirmDeletes: false },
+      set_notebook_settings: null,
+    });
+    render(SettingsView, { props: props() });
+
+    await openSection("Notebook");
+    const asking = await screen.findByLabelText("Ask before deleting");
+    expect(asking.checked).toBe(false);
+    await userEvent.click(asking);
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("set_notebook_settings", {
+        settings: { confirmDeletes: true },
+      }),
+    );
+
+    await openSection("Notes");
+    await userEvent.click(
+      await screen.findByLabelText("Ask before downloading an image"),
+    );
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("set_notebook_settings", {
+        settings: { confirmImageDownloads: false },
+      }),
+    );
+  });
+
+  test("Native Functions holds the functions; a field is one page in", async () => {
+    // The page that dissolved the old "App functions" dump: only the switches
+    // that take a whole part of the interface with them are here, and what a
+    // function HAS is on the function's own page (2026-08-20).
+    bridge({ notebook_settings: settings, set_feature: null });
+    render(SettingsView, { props: props() });
+    await openSection("Native Functions");
+
+    expect(await screen.findByLabelText("Tasks")).toBeTruthy();
+    expect(screen.getByLabelText("Notes")).toBeTruthy();
+    expect(screen.queryByLabelText("Priority")).toBe(null);
+    expect(screen.queryByLabelText("Banners")).toBe(null);
+
+    await openSection("Notes");
+    expect(await screen.findByLabelText("Banners")).toBeTruthy();
+    expect(screen.getByLabelText("WikiLinks [[ ]]")).toBeTruthy();
+  });
+
+  test("a function switched off takes its page out of the menu", async () => {
+    // The menu is built from the switches, so nothing has to remember to
+    // remove a row: a page for a part of the app that is not there would be a
+    // door to an empty room.
+    bridge({ notebook_settings: settings });
+    render(SettingsView, {
+      props: props({
+        notebook: { ...notebook, layout: { features: { notes: false } } },
+      }),
+    });
+
+    expect(await screen.findByRole("button", { name: "Tasks" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Notes" })).toBe(null);
+    // The switch itself never leaves — it is how you turn it back on.
+    await openSection("Native Functions");
+    expect(await screen.findByLabelText("Notes")).toBeTruthy();
+  });
+
+  test("the search finds a row and says which page it is on", async () => {
+    // ~50 rows over eight pages, and only the open page draws any of them. The
+    // search answers "where is this?" with a place, and going there clears the
+    // field — the question was answered.
+    bridge({ notebook_settings: settings });
+    render(SettingsView, { props: props() });
+
+    const field = await screen.findByLabelText("Search settings");
+    await userEvent.type(field, "trash");
+
+    const hit = await screen.findByRole("button", { name: /Empty the trash/ });
+    expect(hit.textContent).toContain("in Notebook");
+    await userEvent.click(hit);
+
+    expect(await screen.findByLabelText("Empty the trash after (days)")).toBeTruthy();
+    expect(screen.getByLabelText("Search settings").value).toBe("");
+  });
+
+  test("the notebook's folder and the picker are reachable from here", async () => {
+    // Both existed in the code and neither had a door: the folder had no menu
+    // at all, and the picker was the notebook's name at the foot of a sidebar
+    // that a phone keeps closed (2026-08-20).
+    let switched = 0;
+    bridge({ notebook_settings: settings, open_in_file_manager: null });
+    render(SettingsView, { props: props({ onSwitchNotebook: () => switched++ }) });
+    await openSection("Notebook");
+
+    await userEvent.click(await screen.findByRole("button", { name: "Open" }));
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("open_in_file_manager", { path: null }),
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Choose…" }));
+    expect(switched).toBe(1);
+  });
+
+  test("the interface zoom lands when the drag ENDS, not during it", async () => {
+    // The zoom is a `font-size` on the root and every measure in the app is
+    // `rem`, so applying it mid-drag resizes and moves this very slider under
+    // the finger — the pointer lands on another step and the value jumps again
+    // (user report, 2026-08-20). The drag only moves the number.
+    const asked = [];
+    bridge({ notebook_settings: settings });
+    render(SettingsView, { props: props({ zoom: 1, onZoom: (z) => asked.push(z) }) });
+
+    const slider = await screen.findByLabelText("Interface zoom");
+    await fireEvent.input(slider, { target: { value: "4" } });
+    expect(asked).toEqual([]);
+    // …and the number says what it is about to be, since nothing else moved.
+    expect(screen.getByText("125%")).toBeTruthy();
+
+    await fireEvent.change(slider, { target: { value: "4" } });
+    expect(asked).toEqual([1.25]);
+  });
+
+  test("being up to date is said in one line", async () => {
+    bridge({
+      notebook_settings: settings,
+      check_for_update: {
+        current: "0.20.0",
+        latest: "0.20.0",
+        newer: false,
+        canInstall: false,
+        url: "https://example.com/latest",
+      },
+    });
+    render(SettingsView, { props: props() });
+    await openSection("About");
+
+    await userEvent.click(await screen.findByRole("button", { name: "Check now" }));
+    await screen.findByText("You have the latest version.");
+  });
+});
