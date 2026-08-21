@@ -14,7 +14,7 @@ use std::path::{Path, PathBuf};
 use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 
-use crate::config::write_atomically;
+use crate::fsio::write_atomically;
 use crate::error::Result;
 
 /// Which period a state file describes.

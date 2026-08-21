@@ -226,13 +226,9 @@ impl Notebook {
     pub fn set_period_order(&self, period: Period, refs: &[TaskRef]) -> Result<()> {
         self.ensure_writable()?;
         let mut file = self.open_state(period)?;
-        let rank = |item: &TaskRef| refs.iter().position(|r| r == item);
-        file.state.items.sort_by(|a, b| match (rank(a), rank(b)) {
-            (Some(x), Some(y)) => x.cmp(&y),
-            (Some(_), None) => std::cmp::Ordering::Less,
-            (None, Some(_)) => std::cmp::Ordering::Greater,
-            // Stable, so anything unmentioned keeps the order it had.
-            (None, None) => std::cmp::Ordering::Equal,
+        // Stable, so anything unmentioned keeps the order it had.
+        crate::config::by_rank(&mut file.state.items, |item| {
+            refs.iter().position(|r| r == item)
         });
         file.save()
     }

@@ -329,14 +329,7 @@ impl Config {
         let Some(order) = self.order.get(namespace) else {
             return;
         };
-        let rank = |name: &str| order.iter().position(|o| o == name);
-        items.sort_by(|a, b| match (rank(name_of(a)), rank(name_of(b))) {
-            (Some(x), Some(y)) => x.cmp(&y),
-            (Some(_), None) => std::cmp::Ordering::Less,
-            (None, Some(_)) => std::cmp::Ordering::Greater,
-            // Leave the rest as the caller sorted them (sort_by is stable).
-            (None, None) => std::cmp::Ordering::Equal,
-        });
+        by_rank(items, |item| order.iter().position(|o| o == name_of(item)));
     }
 
     /// What the user said about a feature, if anything. `None` means they
@@ -639,7 +632,7 @@ impl Config {
     /// Writes the config atomically. Refuses when the notebook is read-only.
     pub fn save(&self, path: impl AsRef<Path>) -> Result<()> {
         crate::error::guard_schema(self.schema_version, SUPPORTED_SCHEMA_VERSION)?;
-        write_atomically(path.as_ref(), self.render().as_bytes())
+        crate::fsio::write_atomically(path.as_ref(), self.render().as_bytes())
     }
 }
 
@@ -703,9 +696,21 @@ fn render_rollover(rollover: &Rollover) -> Value {
     ]))
 }
 
-/// The atomic write moved to [`crate::fsio`], where every kind of file shares
-/// it. Kept as a thin alias so existing callers read naturally.
-pub(crate) use crate::fsio::write_atomically;
+/// Sorts `items` in place by a manual order: ranked items first, in rank
+/// order, and everything unranked after them in the order it already had.
+///
+/// The comparator under every hand-dragged arrangement — the sidebar's
+/// spaces, a folder's lists, a period's references — so the rule "mentioned
+/// first, the rest untouched" is written once.
+pub fn by_rank<T>(items: &mut [T], rank: impl Fn(&T) -> Option<usize>) {
+    items.sort_by(|a, b| match (rank(a), rank(b)) {
+        (Some(x), Some(y)) => x.cmp(&y),
+        (Some(_), None) => std::cmp::Ordering::Less,
+        (None, Some(_)) => std::cmp::Ordering::Greater,
+        // Leave the rest as the caller sorted them (sort_by is stable).
+        (None, None) => std::cmp::Ordering::Equal,
+    });
+}
 
 /// The tolerant readers moved to [`crate::jsondoc`], where every config file
 /// shares them — including the deep merge that keeps an unknown key alive.
