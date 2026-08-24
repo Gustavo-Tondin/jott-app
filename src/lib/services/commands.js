@@ -246,25 +246,6 @@ export const COMMANDS = [
     label: () => S.cmdAttach,
   },
 
-  // ---- undoing ----
-  {
-    id: "edit.undo",
-    scope: "editor",
-    group: "history",
-    keys: "Mod+Z",
-    icon: "undo",
-    label: () => S.cmdUndo,
-  },
-  {
-    id: "edit.redo",
-    scope: "editor",
-    group: "history",
-    keys: "Mod+Shift+Z",
-    icon: "redo",
-    label: () => S.cmdRedo,
-  },
-  { id: "note.replace", scope: "editor", keys: "Mod+H", label: () => S.cmdReplace },
-];
   // ---- a TABLE (2026-08-24) ----
   // Its own category, with its own panel: five of the six only mean
   // something inside a table, and the panel greys them outside one. No
@@ -305,6 +286,25 @@ export const COMMANDS = [
   },
   { id: "table.delete", scope: "editor", group: "table", keys: null, icon: "trash", label: () => S.cmdTableDelete },
 
+  // ---- undoing ----
+  {
+    id: "edit.undo",
+    scope: "editor",
+    group: "history",
+    keys: "Mod+Z",
+    icon: "undo",
+    label: () => S.cmdUndo,
+  },
+  {
+    id: "edit.redo",
+    scope: "editor",
+    group: "history",
+    keys: "Mod+Shift+Z",
+    icon: "redo",
+    label: () => S.cmdRedo,
+  },
+  { id: "note.replace", scope: "editor", keys: "Mod+H", label: () => S.cmdReplace },
+];
 
 const BY_ID = new Map(COMMANDS.map((c) => [c.id, c]));
 

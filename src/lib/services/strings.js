@@ -245,6 +245,7 @@ export const S = {
   featureEmbeds: "Embedded images and files",
   featureNoteFolders: "Note folders",
   featurePinNotes: "Pin notes",
+  featureTables: "Tables",
   featureFixedSpaces: "Fixed spaces",
   fixedSpacesHelp: "What hiding a fixed space does",
   fixedSpacesHelpIntro:
@@ -304,7 +305,6 @@ export const S = {
   noteSizeMedium: "Medium",
   noteSizeLarge: "Large",
   noteFontSizeLabel: "Note text size",
-  featureTables: "Tables",
   noteFontSizeHint:
     "How big the body of a note is drawn. The interface's own zoom is the " +
     "other half of the question, and lives on the keyboard (Ctrl +/-).",
@@ -388,6 +388,19 @@ export const S = {
   formatBlocks: "Block",
   formatLists: "List",
   formatInsert: "Insert",
+  // Tables (2026-08-24).
+  formatTable: "Table",
+  cmdTableInsert: "Insert table",
+  cmdTableAddColumn: "Add column to the right",
+  cmdTableAddRow: "Add row below",
+  cmdTableDeleteColumn: "Delete column",
+  cmdTableDeleteRow: "Delete row",
+  cmdTableDelete: "Delete table",
+  tableColumn: "Column",
+  tableCell: "Table cell",
+  tableHeaderCell: "Header cell",
+  tableMoveColumn: "Move column",
+  tableMoveRow: "Move row",
 
   // Settings (phase 9)
   settings: "Settings",
@@ -448,19 +461,6 @@ export const S = {
   themeDark: "Dark",
   themeDarkHint: "Dark throughout.",
   accentColor: "Accent colour",
-  // Tables (2026-08-24).
-  formatTable: "Table",
-  cmdTableInsert: "Insert table",
-  cmdTableAddColumn: "Add column to the right",
-  cmdTableAddRow: "Add row below",
-  cmdTableDeleteColumn: "Delete column",
-  cmdTableDeleteRow: "Delete row",
-  cmdTableDelete: "Delete table",
-  tableColumn: "Column",
-  tableCell: "Table cell",
-  tableHeaderCell: "Header cell",
-  tableMoveColumn: "Move column",
-  tableMoveRow: "Move row",
   accentColorHint:
     "The colour of the open place, the primary button and every focus ring. Each colour runs from light to dark; the app picks the step that reads on whatever it lands on.",
   headingColor: "Headings",
