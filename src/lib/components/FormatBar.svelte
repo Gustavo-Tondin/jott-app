@@ -84,19 +84,18 @@
   /// that is not is drawn flat, which is both right for `history` (two glyphs)
   /// and the safe default for a category added later.
   ///
-  /// `always` folds the group in the COLUMN too (user call, 2026-08-24, for
-  /// the table): six buttons of which five are greyed most of the time have
-  /// no business taking a row of the panel — the one glyph opens them. And
-  /// `labelled` writes the name beside each button of that panel: "delete
-  /// row" and "delete column" are two glyphs nobody tells apart, and a verb
-  /// costs one word.
+  /// `labelled` writes the name beside each button of the folded panel
+  /// (the table, 2026-08-24): "delete row" and "delete column" are two
+  /// glyphs nobody tells apart, and a verb costs one word. The COLUMN does
+  /// not fold it — there is room there, and the six are drawn flat like
+  /// every other category (user call, 2026-08-24), greyed by `inactive`.
   const FOLDED = {
     mark: { icon: "marks", label: () => S.formatMarks },
     heading: { icon: "headings", label: () => S.formatHeadings },
     block: { icon: "blocks", label: () => S.formatBlocks },
     list: { icon: "lists", label: () => S.formatLists },
     insert: { icon: "inserts", label: () => S.formatInsert },
-    table: { icon: "table", label: () => S.formatTable, always: true, labelled: true },
+    table: { icon: "table", label: () => S.formatTable, labelled: true },
   };
 
   const inGroup = (group) => shown.filter((command) => command.group === group);
@@ -115,14 +114,7 @@
       .flatMap((group) => (FOLDED[group] ? [{ fold: group }] : inGroup(group))),
   );
 
-  /// The column: every glyph flat, except the groups that fold everywhere.
-  let COLUMN = $derived(
-    CATEGORIES.flatMap((group) =>
-      FOLDED[group]?.always ? [{ fold: group, group }] : inGroup(group),
-    ),
-  );
-
-  let items = $derived(layout === "column" ? COLUMN : NARROW);
+  let items = $derived(layout === "column" ? shown : NARROW);
 
   /// Which folded group is open, by name. One at a time: two panels over one
   /// bar would cover the very line being written.
@@ -264,6 +256,7 @@
         title={hint(item)}
         aria-label={hint(item)}
         aria-keyshortcuts={$bound.get(item.id) ?? undefined}
+        disabled={inactive.includes(item.id)}
         onclick={() => run(item.id)}
       >
         <Icon name={item.icon} size="1.125rem" />

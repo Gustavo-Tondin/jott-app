@@ -45,10 +45,8 @@ describe("FormatBar", () => {
   it("draws every editor command that named an icon, and only those", () => {
     const { container } = render(FormatBar, { props: { onRun: () => {} } });
     const drawn = container.querySelectorAll(".format-bar__button");
-    // The table's category folds even here (2026-08-24): its six are one
-    // opener in the column, and the six again behind it.
-    const expected = COMMANDS.filter((c) => c.scope === "editor" && c.icon && c.group !== "table");
-    expect(drawn.length).toBe(expected.length + 1);
+    const expected = COMMANDS.filter((c) => c.scope === "editor" && c.icon);
+    expect(drawn.length).toBe(expected.length);
     // A command the panel draws but nothing can run would be a dead button.
     expect(expected.length).toBeGreaterThan(0);
   });
@@ -254,10 +252,18 @@ describe("FormatBar and the focus", () => {
 
 // ---- the table's category (2026-08-24) ----
 //
-// Folded everywhere, labelled inside, greyed by where the caret is.
+// Flat in the column (there is room), folded and labelled in the narrow
+// bar, greyed by where the caret is.
 describe("FormatBar, table", () => {
-  it("folds the table behind one opener even in the column", async () => {
-    const { container } = render(FormatBar, { props: { onRun: () => {} } });
+  it("draws the six flat in the column, greyed where they do not apply", () => {
+    render(FormatBar, { props: { onRun: () => {}, inactive: ["table.addRow"] } });
+    expect(screen.getByTitle("Add row below").disabled).toBe(true);
+    expect(screen.getByTitle("Insert table").disabled).toBe(false);
+    expect(document.querySelector(".format-bar__panel--labelled")).toBe(null);
+  });
+
+  it("folds the table behind one labelled opener in the narrow bar", async () => {
+    render(FormatBar, { props: { onRun: () => {}, layout: "row" } });
     expect(screen.queryByTitle("Add row below")).toBe(null);
     await userEvent.click(screen.getByTitle("Table"));
     // `document`, not the container: `keepOnScreen` portals the panel to the body.
@@ -270,7 +276,7 @@ describe("FormatBar, table", () => {
   it("greys the ids it is told are inactive, and still names them", async () => {
     const asked = [];
     render(FormatBar, {
-      props: { onRun: (id) => asked.push(id), inactive: ["table.addRow"] },
+      props: { onRun: (id) => asked.push(id), inactive: ["table.addRow"], layout: "row" },
     });
     await userEvent.click(screen.getByTitle("Table"));
     const row = screen.getByTitle("Add row below");
