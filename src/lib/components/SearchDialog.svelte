@@ -86,6 +86,47 @@
     query.trim() && !asking && results.tasks.length === 0 && results.notes.length === 0,
   );
 
+  // The box is where the answer is typed, so it has the focus from the
+  // first frame — whether the dialog came from Ctrl+F or from a click on a
+  // tag's magnifier (2026-08-24). `autofocus` alone lost to the click that
+  // opened it. The caret goes to the END: a seeded `#tag` is a beginning to
+  // type after, not a word to replace.
+  let input = $state(null);
+  $effect(() => {
+    if (!input) return;
+    input.focus();
+    const end = input.value.length;
+    input.setSelectionRange(end, end);
+  });
+
+  /// Every hit in the order drawn — tasks, then notes — for the arrow keys.
+  let hits = $derived([...results.tasks, ...results.notes]);
+  /// The hit the arrows are on; Enter opens it. Back to the first whenever
+  /// the answer changes, so a new word never points at a stale row.
+  let active = $state(0);
+  $effect(() => {
+    hits;
+    active = 0;
+  });
+
+  function onKey(event) {
+    if (hits.length === 0) return;
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      event.preventDefault();
+      const step = event.key === "ArrowDown" ? 1 : -1;
+      active = (active + step + hits.length) % hits.length;
+    } else if (event.key === "Enter") {
+      event.preventDefault();
+      open(hits[active], { newTab: event.ctrlKey || event.metaKey || event.shiftKey });
+    }
+  }
+
+  // Keep the chosen row in view as the arrows walk past the fold.
+  $effect(() => {
+    active;
+    document.querySelector(".search__hit--active")?.scrollIntoView?.({ block: "nearest" });
+  });
+
   function open(hit, { newTab = false } = {}) {
     if (hit.kind === "note") onOpenNote?.(hit.path, hit.folder, { newTab });
     else onOpenList?.(hit.path, hit.id);
@@ -119,7 +160,9 @@
       class="theme-input search__input"
       type="text"
       autofocus
+      bind:this={input}
       bind:value={query}
+      onkeydown={onKey}
       placeholder={scopeName ? S.findIn(scopeName) : S.findPlaceholder}
       aria-label={scopeName ? S.findIn(scopeName) : S.findTitle}
     />
@@ -144,6 +187,7 @@
           {#each section.hits as hit (`${hit.folder}/${hit.path}/${hit.id ?? hit.title}`)}
             <button
               class="theme-row search__hit"
+              class:search__hit--active={hit === hits[active]}
               onclick={() => open(hit)}
               onauxclick={(event) => middleOpen(event, hit)}
             >

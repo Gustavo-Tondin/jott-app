@@ -8,25 +8,28 @@
 // said another, so joining a group left the old colour behind in two places.
 //
 // Since 2026-08-24 the sidebar can also wear the RAINBOW (`autoSpaceColors`,
-// a Display choice — the Blue Topaz look): the seven hues go around in
-// palette order starting from the accent, one per top-level entry, in
-// sidebar order. The fixed spaces wear the accent itself; the first list or
-// group takes the hue after it, and so on, cycling. It ignores the colour a
+// a Display choice — the Blue Topaz look): the seven hues go around starting
+// from the accent, one per top-level entry, in sidebar order, with `neutral`
+// closing every lap. The fixed spaces wear the accent itself; the first list
+// or group takes the hue after it, and so on, cycling. It ignores the colour a
 // space chose — it is a look for the whole column, and a hand-picked orange
 // in the middle of it would break the rainbow. Off, what was set is what
 // there is.
 
-import { ACCENTS, DEFAULT_ACCENT, isAccent } from "./accent.js";
+import { DEFAULT_ACCENT } from "./accent.js";
 import { sidebarEntries } from "./sidebarOrder.js";
 
-/// The seven, without `neutral` — a rainbow has no grey in it.
-const HUES = ACCENTS.filter((name) => name !== "neutral");
+/// The seven in the order the rainbow goes around (user call, 2026-08-24) —
+/// not the palette's swatch order, which is what a picker reads.
+const HUES = ["blue", "purple", "pink", "red", "orange", "yellow", "green"];
 
-/// The seven starting from `accent` and going around. An accent that is not
-/// one of them (`neutral`, or nothing chosen) starts from the app's own.
+/// The cycle: the seven starting from `accent` and going around, and
+/// `neutral` ALWAYS last, whichever hue starts — then it repeats. An accent
+/// that is not one of the seven (`neutral`, or nothing chosen) starts from
+/// the app's own.
 export function rainbowFrom(accent) {
-  const start = HUES.indexOf(isAccent(accent) && accent !== "neutral" ? accent : DEFAULT_ACCENT);
-  return HUES.map((_, i) => HUES[(start + i) % HUES.length]);
+  const start = Math.max(0, HUES.indexOf(HUES.includes(accent) ? accent : DEFAULT_ACCENT));
+  return [...HUES.map((_, i) => HUES[(start + i) % HUES.length]), "neutral"];
 }
 
 /// What each entry reads as, by space path and by group folder.

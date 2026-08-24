@@ -73,7 +73,8 @@
     font: inherit;
   }
   .search__hit:hover,
-  .search__hit:focus-visible {
+  .search__hit:focus-visible,
+  .search__hit--active {
     background: var(--theme-hover);
   }
 

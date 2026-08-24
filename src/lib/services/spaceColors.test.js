@@ -32,13 +32,15 @@ describe("spaceColors", () => {
     const opts = { auto: true, accent: "blue" };
     const colors = spaceColors([fixed, ...many], groups, opts);
     expect(colors["jott.tasks"]).toBe("blue");
-    expect(colors.S0).toBe("red");
-    expect(colors.S1).toBe("purple");
-    expect(colors.S2).toBe("yellow");
+    expect(colors.S0).toBe("purple");
+    expect(colors.S1).toBe("pink");
+    expect(colors.S2).toBe("red");
     expect(groupColors([fixed, ...many], groups, opts).Work).toBe("orange");
     expect(colors.S3).toBe("orange");
-    expect(colors.S4).toBe("pink");
-    expect(colors.S6).toBe("blue");
+    expect(colors.S4).toBe("yellow");
+    expect(colors.S5).toBe("green");
+    expect(colors.S6).toBe("neutral", "neutral closes every lap");
+    expect(colors.S7).toBe("blue");
     // Off, nothing is dealt — what was set is what there is.
     expect(spaceColors(many, groups).S1).toBe("red");
     expect(groupColors(many, groups).Work).toBe(null);
@@ -47,7 +49,9 @@ describe("spaceColors", () => {
   it("starts the rainbow from the app's own accent when none of the seven is chosen", () => {
     expect(rainbowFrom("neutral")[0]).toBe("blue");
     expect(rainbowFrom(null)[0]).toBe("blue");
-    expect(rainbowFrom("green")).toEqual(["green", "blue", "red", "purple", "yellow", "orange", "pink"]);
+    expect(rainbowFrom("green")).toEqual([
+      "green", "blue", "purple", "pink", "red", "orange", "yellow", "neutral",
+    ]);
   });
 
   it("drops the member's colour when the group has none", () => {

@@ -753,7 +753,19 @@ describe("App", () => {
       ).toBe(true),
     );
 
-    // Picking a hit goes there and closes the dialog.
+    // The box holds the focus from the start, and the arrows walk the hits:
+    // Enter opens the one they are on (2026-08-24).
+    const box = screen.getByPlaceholderText("Search tasks and notes…");
+    expect(document.activeElement).toBe(box);
+    await screen.findByText("Comprar cimento");
+    await userEvent.keyboard("{ArrowDown}{ArrowUp}{Enter}");
+    await waitFor(() =>
+      expect(screen.queryByPlaceholderText("Search tasks and notes…")).toBeNull(),
+    );
+
+    // Picking a hit with the pointer goes there and closes the dialog too.
+    await userEvent.keyboard("{Control>}f{/Control}");
+    await userEvent.type(await screen.findByPlaceholderText("Search tasks and notes…"), "cimento");
     await userEvent.click(await screen.findByText("Comprar cimento"));
     await waitFor(() =>
       expect(screen.queryByPlaceholderText("Search tasks and notes…")).toBeNull(),
