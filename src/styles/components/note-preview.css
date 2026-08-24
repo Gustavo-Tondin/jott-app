@@ -159,6 +159,21 @@
     white-space: pre-wrap;
   }
 
+  /* ---- table ----
+     The glyph and the header's cells on one line (user call, 2026-08-24):
+     a card says there is a table and what it is about, and leaves the grid
+     to the note. */
+  .note-preview__table {
+    display: flex;
+    align-items: baseline;
+    gap: 0.4em;
+    color: var(--theme-ink-muted);
+  }
+  .note-preview__table .icon {
+    flex: 0 0 auto;
+    translate: 0 0.125em;
+  }
+
   /* ---- rule ----
      A hairline, and it keeps its own air: three dashes in a note are a break
      between two things, and a break with no room around it is a border. */

@@ -61,6 +61,12 @@
     /// ids rather than a flag per subject: the panel does not need to know
     /// what a switch is called, only that this button has nothing to act on.
     hidden = [],
+    /// Command ids drawn but GREYED — the table commands that only mean
+    /// something inside a table, while the caret is outside one
+    /// (2026-08-24). Greyed rather than hidden: a button that comes and goes
+    /// is a bar that seems to lose buttons, the very report that shaped the
+    /// narrow bar.
+    inactive = [],
   } = $props();
 
   /// The commands the panel draws, in registry order — the ones that named an
@@ -77,12 +83,20 @@
   /// The folded groups, and what opens each. A group named here folds; one
   /// that is not is drawn flat, which is both right for `history` (two glyphs)
   /// and the safe default for a category added later.
+  ///
+  /// `always` folds the group in the COLUMN too (user call, 2026-08-24, for
+  /// the table): six buttons of which five are greyed most of the time have
+  /// no business taking a row of the panel — the one glyph opens them. And
+  /// `labelled` writes the name beside each button of that panel: "delete
+  /// row" and "delete column" are two glyphs nobody tells apart, and a verb
+  /// costs one word.
   const FOLDED = {
     mark: { icon: "marks", label: () => S.formatMarks },
     heading: { icon: "headings", label: () => S.formatHeadings },
     block: { icon: "blocks", label: () => S.formatBlocks },
     list: { icon: "lists", label: () => S.formatLists },
     insert: { icon: "inserts", label: () => S.formatInsert },
+    table: { icon: "table", label: () => S.formatTable, always: true, labelled: true },
   };
 
   const inGroup = (group) => shown.filter((command) => command.group === group);
@@ -101,7 +115,14 @@
       .flatMap((group) => (FOLDED[group] ? [{ fold: group }] : inGroup(group))),
   );
 
-  let items = $derived(layout === "column" ? shown : NARROW);
+  /// The column: every glyph flat, except the groups that fold everywhere.
+  let COLUMN = $derived(
+    CATEGORIES.flatMap((group) =>
+      FOLDED[group]?.always ? [{ fold: group, group }] : inGroup(group),
+    ),
+  );
+
+  let items = $derived(layout === "column" ? COLUMN : NARROW);
 
   /// Which folded group is open, by name. One at a time: two panels over one
   /// bar would cover the very line being written.
@@ -205,6 +226,7 @@
           <div
             class="format-bar__panel"
             class:format-bar__panel--beside={layout === "rail"}
+            class:format-bar__panel--labelled={opener.labelled}
             data-region={region}
             role="group"
             aria-label={opener.label()}
@@ -217,13 +239,18 @@
               <button
                 type="button"
                 class="theme-btn--icon format-bar__button"
+                class:format-bar__button--labelled={opener.labelled}
                 onmousedown={keepFocus}
                 title={hint(command)}
                 aria-label={hint(command)}
                 aria-keyshortcuts={$bound.get(command.id) ?? undefined}
+                disabled={inactive.includes(command.id)}
                 onclick={() => run(command.id)}
               >
                 <Icon name={command.icon} size="1.125rem" />
+                {#if opener.labelled}
+                  <span class="format-bar__label">{command.label()}</span>
+                {/if}
               </button>
             {/each}
           </div>

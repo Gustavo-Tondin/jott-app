@@ -24,6 +24,7 @@
 // for a format the user owns.
 
 import { referencesIn } from "./embeds.js";
+import { isDelimiterRow, isTableRow, splitRow } from "./tables.js";
 
 /// The fenced-code fence, and the three shapes of a horizontal rule.
 const FENCE = /^\s*(```|~~~)/;
@@ -64,7 +65,9 @@ const MARKS = [
 ///
 /// Each is `{kind, …}`: `heading` (with `level`), `paragraph`, `bullet`,
 /// `ordered` (with `marker`), `task` (with `done`), `quote`, `code` (with
-/// `text`) or `rule`. All but the last two carry `spans`.
+/// `text`), `rule` or `table` (its header's cells as `spans`, one line —
+/// the card says "there is a table here, about this", not the table; user
+/// call 2026-08-24). All but `code` and `rule` carry `spans`.
 export function previewBlocks(markdown) {
   const lines = String(markdown ?? "").split("\n");
   const blocks = [];
@@ -100,6 +103,17 @@ export function previewBlocks(markdown) {
     if (RULE.test(line)) {
       close();
       blocks.push({ kind: "rule" });
+      continue;
+    }
+
+    // A table is a row of pipes with the delimiter under it; the rows that
+    // follow belong to it and are not drawn — the header is the summary.
+    if (isTableRow(line) && i + 1 < lines.length && isDelimiterRow(lines[i + 1])) {
+      close();
+      const header = splitRow(line).filter((cell) => cell.trim() !== "");
+      blocks.push({ kind: "table", text: header.join("  ·  ") });
+      for (i += 2; i < lines.length && lines[i].trim() && isTableRow(lines[i]); i += 1);
+      i -= 1;
       continue;
     }
 

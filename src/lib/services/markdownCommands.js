@@ -12,6 +12,7 @@
 
 import { EditorSelection } from "@codemirror/state";
 import { indentLess, indentMore, redo, undo } from "@codemirror/commands";
+import { TABLE_COMMANDS } from "./tableEditing.js";
 
 /// One level of indentation, as SPACES.
 ///
@@ -385,6 +386,10 @@ export const EDITOR_COMMANDS = {
   "md.quote": toggleQuote,
   "md.rule": insertRule,
   "md.paragraph": clearHeading,
+  // Tables (2026-08-24): the same door, a different file — they need the
+  // editor's state to know which cell is current, and that state lives in
+  // `tableEditing.js` next to the commands that read it.
+  ...TABLE_COMMANDS,
   ...Object.fromEntries(
     Array.from({ length: 6 }, (_, i) => [`md.h${i + 1}`, setHeading(i + 1)]),
   ),

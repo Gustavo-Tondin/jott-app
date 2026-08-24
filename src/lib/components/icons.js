@@ -106,6 +106,13 @@ import arrowArcLeft from "../../assets/icons/phosphor/regular/arrow-arc-left.svg
 import arrowArcRight from "../../assets/icons/phosphor/regular/arrow-arc-right.svg?raw";
 import textH from "../../assets/icons/phosphor/regular/text-h.svg?raw";
 import textAUnderline from "../../assets/icons/phosphor/regular/text-a-underline.svg?raw";
+// Tables (2026-08-24): the opener, the two that add, the two that name what
+// a removal takes (the panel writes the verb beside them).
+import table from "../../assets/icons/phosphor/regular/table.svg?raw";
+import columnsPlusRight from "../../assets/icons/phosphor/regular/columns-plus-right.svg?raw";
+import rowsPlusBottom from "../../assets/icons/phosphor/regular/rows-plus-bottom.svg?raw";
+import columns from "../../assets/icons/phosphor/regular/columns.svg?raw";
+import rows from "../../assets/icons/phosphor/regular/rows.svg?raw";
 
 // The narrow bar folds EVERY category, not two of them (user report,
 // 2026-08-19: "faltam diversos botões"). Three more openers, each named after
@@ -209,4 +216,9 @@ export const ICONS = {
   blocks: paragraph,
   lists: listDashes,
   inserts: plusCircle,
+  table,
+  "table-add-column": columnsPlusRight,
+  "table-add-row": rowsPlusBottom,
+  "table-column": columns,
+  "table-row": rows,
 };

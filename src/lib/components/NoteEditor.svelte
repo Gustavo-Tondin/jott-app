@@ -37,6 +37,9 @@
     /// what is drawn in it.
     wikiLinks = true,
     embeds = true,
+    tables = true,
+    /// `({header}) | null`, passed straight through (2026-08-24).
+    onTable,
   } = $props();
 
   let body = $state("");
@@ -65,6 +68,7 @@
     // is not one it reports as a selection change. Left unsaid, a bar shown
     // "on selection" would still be up over a note nobody has touched.
     onSelection?.(false);
+    onTable?.(null);
     load(folder, path);
   });
 
@@ -137,5 +141,7 @@
     {version}
     {wikiLinks}
     {embeds}
+    {tables}
+    {onTable}
   />
 </div>

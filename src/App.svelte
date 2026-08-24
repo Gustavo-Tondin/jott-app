@@ -44,6 +44,7 @@
   import ImageViewer from "./lib/components/ImageViewer.svelte";
   import { importBrought, isImage } from "./lib/services/assets.js";
   import { embedMarkdown } from "./lib/services/embeds.js";
+  import { TABLE_FORMATS } from "./lib/services/tableEditing.js";
   import { assetUrl } from "./lib/services/assets.js";
   import TaskInspector from "./lib/components/TaskInspector.svelte";
   import SuggestionsPane from "./lib/components/SuggestionsPane.svelte";
@@ -1044,8 +1045,22 @@
           : []),
         // The reading size, where a reader asks for it — on the note itself,
         // not only two screens away in Settings (user call, 2026-08-18). It is
+    ...(f("tables") ? [] : TABLE_FORMATS),
         // the same notebook setting either way.
         {
+  /// Where the person is in a table — `{header}` or null — as the editor
+  /// last reported it (2026-08-24).
+  let noteTable = $state(null);
+
+  /// The table buttons that mean nothing where the caret is: outside a
+  /// table everything but Insert, inside one Insert (a table does not nest)
+  /// and, in the header row, Delete row (a table without one is not a table).
+  let inactiveFormats = $derived(
+    noteTable
+      ? ["table.insert", ...(noteTable.header ? ["table.deleteRow"] : [])]
+      : TABLE_FORMATS.filter((id) => id !== "table.insert"),
+  );
+
           label: S.noteTextSize,
           items: NOTE_FONT_SIZES.map((size) => ({
             label: size.label(),
@@ -2366,6 +2381,7 @@
         <!-- svelte-ignore a11y_click_events_have_key_events -->
         <div
           class="shell__content"
+                  inactive={inactiveFormats}
           class:shell__content--note={view.kind === "note"}
           onclick={clickedAway}
           oncontextmenu={openCanvasMenu}
@@ -2678,9 +2694,11 @@
                 {reloadKey}
                 selectedTask={selected?.task ?? null}
                 onSelectTask={select}
+              onTable={(status) => (noteTable = status)}
                 onOpenNote={openNoteFromBoard}
                 onSetSpaceSort={spaceArrangement.setSort}
                 onSetSpaceOrder={spaceArrangement.setOrder}
+              tables={f("tables")}
                 onSetSpaceNoteLayout={spaceArrangement.setNoteLayout}
                 noteLayout={layout.noteLayout}
                 onChanged={refreshNotebook}
@@ -2827,6 +2845,7 @@
   {/if}
   </main>
   </div>
+            inactive={inactiveFormats}
 
   <!-- The drawer, below 768px. INSIDE `.window`, and absolutely placed against
        it (user call, 2026-08-18: "o sidebar deve continuar dentro do app,
@@ -2876,7 +2895,13 @@
      wireframe puts it against the keyboard's top edge. -->
 {#if stripUp}
   <div class="format-strip" data-region="chrome" bind:clientHeight={stripHeight}>
-    <FormatBar layout="row" region="chrome" hidden={hiddenFormats} onRun={runFormat} />
+    <FormatBar
+      layout="row"
+      region="chrome"
+      hidden={hiddenFormats}
+      inactive={inactiveFormats}
+      onRun={runFormat}
+    />
   </div>
 {/if}
 

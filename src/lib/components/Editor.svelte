@@ -30,6 +30,8 @@
   import { autoClose, plainAutoClose } from "../services/autoClose.js";
   import { keepCaretInView } from "../services/caretScroll.js";
   import { fileEmbeds, refreshEmbeds } from "../services/embeds.js";
+  import { noteTables, refreshTables } from "../services/tableWidget.js";
+  import { activeCell, tableStatus } from "../services/tableEditing.js";
   import { fromNotebook, referenceCompletions } from "../services/linkComplete.js";
   import { assetUrl } from "../services/assets.js";
   import { fileIcon } from "../services/fileIcons.js";
@@ -85,6 +87,14 @@
     /// transaction rather than needing the editor torn down.
     wikiLinks = true,
     embeds = true,
+    /// Whether a table is drawn as a grid (App Functions, 2026-08-24). Off,
+    /// it stays the pipes it is in the file.
+    tables = true,
+    /// `({header}) | null` — whether the person is in a table cell right now
+    /// (header true in the header row), or in none. The formatting panel
+    /// greys its table buttons by it. Reported only on the edges, the way
+    /// `onSelection` is.
+    onTable,
   } = $props();
 
   let host;
@@ -133,6 +143,10 @@
   /// What the editor itself last produced, so an echo of our own change does
   /// not get pushed back in and move the cursor.
   let lastEmitted = null;
+
+  /// What was last said through `onTable`, as `header|null|undefined`, so the
+  /// shell hears the edges only.
+  let lastTable;
 
   /// Whether something was selected the last time we said so. The listener
   /// fires on every cursor move; only the EDGES are worth reporting, or the
@@ -202,6 +216,11 @@
           // as code — monospace, set apart — it just is not colourised.
           markdown({ base: markdownLanguage }),
           markdownPreview,
+          // Tables as grids (2026-08-24), edited in place. The field that
+          // says which cell is current comes first: the widget dispatches
+          // into it, the commands read it (services/tableEditing.js).
+          activeCell,
+          noteTables({ shows: () => tables }),
           // Folding by SECTION, the way Obsidian reads a document (user
           // call, 2026-08-24): the chevron beside a heading folds everything
           // up to the next heading of the same or a higher level. The ranges
@@ -300,6 +319,14 @@
                 onSelection?.(has);
               }
             }
+            if (!plain && (update.selectionSet || update.docChanged || update.transactions.some((tr) => tr.effects.length))) {
+              const status = tableStatus(update.state);
+              const key = status ? status.header : null;
+              if (key !== lastTable) {
+                lastTable = key;
+                onTable?.(status);
+              }
+            }
             if (!update.docChanged) return;
             lastEmitted = update.state.doc.toString();
             onChange?.(lastEmitted);
@@ -314,6 +341,13 @@
   $effect(() => {
     version;
     view?.dispatch({ effects: refreshEmbeds.of(null) });
+  });
+
+  // The switch in Settings reaches the open note: the field reads the prop
+  // through its closure, and this asks it to look again.
+  $effect(() => {
+    tables;
+    if (!plain) view?.dispatch({ effects: refreshTables.of(null) });
   });
 
   onDestroy(() => view?.destroy());
@@ -339,11 +373,21 @@
   /// button took the focus away from it. Without this the selection is still
   /// there but the caret is not, and the note would not scroll to what just
   /// changed.
+  ///
+  /// …unless the focus is in a TABLE CELL (2026-08-24): a cell is the
+  /// editor's DOM but not its content element, and focusing the editor would
+  /// take the focus out of the very cell the command is about.
   export function run(id) {
     const command = EDITOR_COMMANDS[id];
     if (!view || !command) return false;
-    view.focus();
+    if (!inCell()) view.focus();
     return command(view);
+  }
+
+  /// Whether the focus is inside a table widget of this editor.
+  function inCell() {
+    const active = view?.dom.ownerDocument.activeElement;
+    return !!active?.closest?.(".cm-md-table") && view.dom.contains(active);
   }
 
   /// Writes text where the cursor is — how a picture chosen in the library

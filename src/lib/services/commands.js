@@ -265,6 +265,46 @@ export const COMMANDS = [
   },
   { id: "note.replace", scope: "editor", keys: "Mod+H", label: () => S.cmdReplace },
 ];
+  // ---- a TABLE (2026-08-24) ----
+  // Its own category, with its own panel: five of the six only mean
+  // something inside a table, and the panel greys them outside one. No
+  // chord by default — the row in Settings is there for the person who
+  // wants one.
+  { id: "table.insert", scope: "editor", group: "table", keys: null, icon: "table", label: () => S.cmdTableInsert },
+  {
+    id: "table.addColumn",
+    scope: "editor",
+    group: "table",
+    keys: null,
+    icon: "table-add-column",
+    label: () => S.cmdTableAddColumn,
+  },
+  {
+    id: "table.addRow",
+    scope: "editor",
+    group: "table",
+    keys: null,
+    icon: "table-add-row",
+    label: () => S.cmdTableAddRow,
+  },
+  {
+    id: "table.deleteColumn",
+    scope: "editor",
+    group: "table",
+    keys: null,
+    icon: "table-column",
+    label: () => S.cmdTableDeleteColumn,
+  },
+  {
+    id: "table.deleteRow",
+    scope: "editor",
+    group: "table",
+    keys: null,
+    icon: "table-row",
+    label: () => S.cmdTableDeleteRow,
+  },
+  { id: "table.delete", scope: "editor", group: "table", keys: null, icon: "trash", label: () => S.cmdTableDelete },
+
 
 const BY_ID = new Map(COMMANDS.map((c) => [c.id, c]));
 

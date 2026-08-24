@@ -28,6 +28,12 @@ describe("blocks", () => {
     expect(blocks[3].done).toBe(true);
   });
 
+  it("reads a table as one line: its header's cells (2026-08-24)", () => {
+    const blocks = previewBlocks("| Elemento | Tipo |\n|---|---|\n| a | b |\n| c | d |\nfim");
+    expect(blocks.map((b) => b.kind)).toEqual(["table", "paragraph"]);
+    expect(blocks[0].spans.map((s) => s.text).join("")).toBe("Elemento  ·  Tipo");
+  });
+
   it("joins the lines of one paragraph and parts them at the blank line", () => {
     // A paragraph the writer wrapped is a paragraph, not four: the card would
     // otherwise put a gap inside a sentence.

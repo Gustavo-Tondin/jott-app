@@ -11,6 +11,8 @@ import { EditorView } from "@codemirror/view";
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import { describe, expect, test } from "vitest";
 import { blockDecorationsFor, decorationsFor, markdownPreview } from "./markdown.js";
+import { noteTables } from "./tableWidget.js";
+import { activeCell } from "./tableEditing.js";
 
 /// A state with the cursor at `at`, and the ranges the preview would hide.
 /// `at` is a caret position, or a `{anchor, head}` range when the point is
@@ -246,6 +248,10 @@ describe("what the editor actually paints", () => {
     "",
     "---",
     "",
+    "| a | b |",
+    "| - | - |",
+    "| 1 | 2 |",
+    "",
   ].join("\n");
 
   /// Every `cm-md-*` class the editor puts in the DOM for `sample`, with the
@@ -261,9 +267,20 @@ describe("what the editor actually paints", () => {
         state: EditorState.create({
           doc: sample,
           selection: { anchor: lineStart(sample, line) },
-          extensions: [markdown({ base: markdownLanguage }), markdownPreview],
+          extensions: [
+            markdown({ base: markdownLanguage }),
+            markdownPreview,
+            activeCell,
+            noteTables(),
+          ],
         }),
       });
+      // The table's two states that only a hand brings about: a cell with
+      // the focus, and a handle being dragged (services/tableWidget.js).
+      view.dom.querySelector(".cm-md-table__cell")?.focus();
+      view.dom
+        .querySelector(".cm-md-table__handle")
+        ?.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, pointerId: 1 }));
       const html = view.dom.querySelector(".cm-content").innerHTML;
       view.destroy();
       for (const m of html.matchAll(/cm-md-[a-z0-9-]+/g)) shown.add(m[0]);

@@ -81,6 +81,9 @@ export const FEATURES = [
     label: () => S.featureNoteFolders,
   },
   { key: "pinNotes", parent: "notes", group: "has", label: () => S.featurePinNotes },
+  // Off, a table is the pipes it is in the file, and the panel loses its
+  // table button; the commands still act on the caret's row and column.
+  { key: "tables", parent: "notes", group: "has", label: () => S.featureTables },
   // The three FIXED spaces (user call, 2026-08-24). Not functions — Tasks and
   // Notes above stay on — but the app's own spaces as sidebar entries and
   // screens: hiding one only takes it off the interface, the folders stay on

@@ -12,6 +12,7 @@
   // early. The shape comes from `display: block` in the sheet, and the heading
   // level travels as `data-level` for the styles to read.
   import { previewBlocks } from "../services/notePreview.js";
+  import Icon from "./Icon.svelte";
   import { measured } from "../actions/measure.js";
 
   let {
@@ -52,6 +53,11 @@
       {:else if block.kind === "heading"}
         <span class="note-preview__heading" data-level={block.level}>
           {@render spans(block.spans)}
+        </span>
+      {:else if block.kind === "table"}
+        <span class="note-preview__table">
+          <Icon name="table" size="1em" />
+          <span class="note-preview__text">{@render spans(block.spans)}</span>
         </span>
       {:else if block.kind === "quote"}
         <span class="note-preview__quote">{@render spans(block.spans)}</span>

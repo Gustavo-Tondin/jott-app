@@ -45,8 +45,10 @@ describe("FormatBar", () => {
   it("draws every editor command that named an icon, and only those", () => {
     const { container } = render(FormatBar, { props: { onRun: () => {} } });
     const drawn = container.querySelectorAll(".format-bar__button");
-    const expected = COMMANDS.filter((c) => c.scope === "editor" && c.icon);
-    expect(drawn.length).toBe(expected.length);
+    // The table's category folds even here (2026-08-24): its six are one
+    // opener in the column, and the six again behind it.
+    const expected = COMMANDS.filter((c) => c.scope === "editor" && c.icon && c.group !== "table");
+    expect(drawn.length).toBe(expected.length + 1);
     // A command the panel draws but nothing can run would be a dead button.
     expect(expected.length).toBeGreaterThan(0);
   });
@@ -247,5 +249,40 @@ describe("FormatBar and the focus", () => {
     await userEvent.click(screen.getByLabelText("List"));
     await userEvent.click(screen.getByTitle("Bullet list [Ctrl+Shift+8]"));
     expect(asked).toEqual(["md.bullet"]);
+  });
+});
+
+// ---- the table's category (2026-08-24) ----
+//
+// Folded everywhere, labelled inside, greyed by where the caret is.
+describe("FormatBar, table", () => {
+  it("folds the table behind one opener even in the column", async () => {
+    const { container } = render(FormatBar, { props: { onRun: () => {} } });
+    expect(screen.queryByTitle("Add row below")).toBe(null);
+    await userEvent.click(screen.getByTitle("Table"));
+    // `document`, not the container: `keepOnScreen` portals the panel to the body.
+    const panel = document.querySelector(".format-bar__panel--labelled");
+    expect(panel).not.toBe(null);
+    expect(panel.querySelectorAll(".format-bar__label").length).toBe(6);
+    expect(screen.getByTitle("Add row below").textContent).toContain("Add row below");
+  });
+
+  it("greys the ids it is told are inactive, and still names them", async () => {
+    const asked = [];
+    render(FormatBar, {
+      props: { onRun: (id) => asked.push(id), inactive: ["table.addRow"] },
+    });
+    await userEvent.click(screen.getByTitle("Table"));
+    const row = screen.getByTitle("Add row below");
+    expect(row.disabled).toBe(true);
+    await userEvent.click(row);
+    await userEvent.click(screen.getByTitle("Insert table"));
+    expect(asked).toEqual(["table.insert"]);
+  });
+
+  it("leaves the opener out when every table command is hidden", () => {
+    const hidden = COMMANDS.filter((c) => c.group === "table").map((c) => c.id);
+    render(FormatBar, { props: { onRun: () => {}, hidden } });
+    expect(screen.queryByTitle("Table")).toBe(null);
   });
 });

@@ -571,3 +571,117 @@
 .editor--plain .cm-line {
   padding: 0 var(--theme-space-12);
 }
+
+/* ---- tables (2026-08-24) ----
+   The grid a pipe table is drawn as, always — the one block that never
+   shows its syntax (services/tableWidget.js says why). The cells are
+   editable in place, so the grid is a piece of the note and reads in its
+   ink and its size; only the header is set apart, by weight and the lower
+   neutral, the way the reference rendering the user showed does it.
+
+   The wrapper keeps air ABOVE and to the LEFT for the drag handles, which
+   sit outside the grid so they never cover a cell's first letter. Widths in
+   `em` like the rest of the editor: the grid follows the note's font size. */
+.editor .cm-md-table {
+  position: relative;
+  margin-block: 0.5em;
+  padding-block-start: 0.75em;
+  padding-inline-start: 0.75em;
+}
+/* A wide table scrolls inside its own box instead of pushing the line out —
+   the canvas must never scroll sideways. */
+.editor .cm-md-table__scroll {
+  overflow-x: auto;
+  max-inline-size: 100%;
+}
+.editor .cm-md-table__grid {
+  border-collapse: separate;
+  border-spacing: 0;
+  inline-size: max-content;
+  min-inline-size: 50%;
+  border: 0.0625rem solid var(--theme-line);
+  border-radius: var(--theme-radius-xs);
+  font-size: 0.95em;
+  line-height: 1.4;
+}
+.editor .cm-md-table__head,
+.editor .cm-md-table__body {
+  position: relative;
+  padding: 0;
+  text-align: start;
+  vertical-align: top;
+  border-inline-start: 0.0625rem solid var(--theme-line);
+  border-block-start: 0.0625rem solid var(--theme-line);
+}
+.editor .cm-md-table__head:first-child,
+.editor .cm-md-table__body:first-child {
+  border-inline-start: 0;
+}
+.editor thead .cm-md-table__head {
+  border-block-start: 0;
+  background: var(--theme-surface);
+  font-weight: var(--theme-weight-semibold);
+}
+.editor .cm-md-table__cell {
+  min-inline-size: 4em;
+  padding: 0.3em 0.6em;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  outline: none;
+  caret-color: var(--theme-brand);
+}
+/* An empty cell keeps its height: a contenteditable with nothing in it
+   collapses, and a row of collapsed cells is a hairline nobody can click. */
+.editor .cm-md-table__cell:empty::before {
+  content: "\200B";
+}
+.editor .cm-md-table__cell:focus-visible {
+  box-shadow: inset 0 0 0 0.125rem var(--theme-brand);
+}
+
+/* The handles: a bar above each column, a bar beside each body row, in the
+   air the wrapper keeps for them. Hidden until the pointer is over the table
+   or a cell has the focus — on a phone the second is the only way in.
+   `touch-action: none` is what lets a finger drag one without the page
+   scrolling underneath. */
+.editor .cm-md-table__handle {
+  position: absolute;
+  display: block;
+  border-radius: var(--theme-radius-xs);
+  background: var(--theme-line);
+  opacity: 0;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  transition: opacity var(--theme-duration-fast) var(--theme-ease);
+}
+.editor .cm-md-table__handle--col {
+  inset-block-start: -0.6em;
+  inset-inline: 0.25em;
+  block-size: 0.375em;
+}
+.editor .cm-md-table__handle--row {
+  inset-inline-start: -0.6em;
+  inset-block: 0.25em;
+  inline-size: 0.375em;
+}
+.editor .cm-md-table:hover .cm-md-table__handle,
+.editor .cm-md-table--active .cm-md-table__handle,
+.editor .cm-md-table--dragging .cm-md-table__handle {
+  opacity: 1;
+}
+.editor .cm-md-table__handle:hover,
+.editor .cm-md-table--dragging .cm-md-table__handle {
+  background: var(--theme-brand);
+}
+.editor .cm-md-table--dragging .cm-md-table__handle {
+  cursor: grabbing;
+}
+/* Where the dragged column or row would land: a line on the near edge of
+   the cell (or row) that will follow it. */
+.editor .cm-md-table--dragging .cm-md-table__target {
+  box-shadow: inset 0.125rem 0 0 var(--theme-brand);
+}
+.editor .cm-md-table--dragging tr.cm-md-table__target > td {
+  box-shadow: inset 0 0.125rem 0 var(--theme-brand);
+}

@@ -21,6 +21,8 @@
     onRun,
     /// Command ids the formatting bar leaves out — see FormatBar's own note.
     hidden = [],
+    /// Command ids drawn greyed — see FormatBar's own note.
+    inactive = [],
     /// The note's own actions (App's `noteActions`), for the ⋮.
     menu = [],
     /// Where the note is filed, as a label, and where it could go:
@@ -64,7 +66,7 @@
   </div>
 
   <div class="note-panel__scroll">
-    <FormatBar {onRun} {hidden} layout="column" />
+    <FormatBar {onRun} {hidden} {inactive} layout="column" />
   </div>
 
   <footer class="note-panel__footer theme-pane-foot">

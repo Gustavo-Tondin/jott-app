@@ -119,6 +119,30 @@
      `inset-block-end: auto` because the two would otherwise both be set, and
      a box with both block insets and no height of its own collapses (the
      lesson the action's own comment carries). */
+  /* The table's panel writes a verb beside each glyph (FormatBar.svelte says
+     why) — so it is a column of rows rather than a strip of squares, and a
+     greyed row reads as "not here", not as a broken button. */
+  .format-bar__panel--labelled {
+    flex-direction: column;
+    align-items: stretch;
+    min-inline-size: 12rem;
+  }
+  .format-bar__button--labelled {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: var(--theme-space-8);
+    inline-size: auto;
+    padding-inline: var(--theme-space-8) var(--theme-space-12);
+  }
+  .format-bar__button--labelled:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+  .format-bar__label {
+    font-size: var(--theme-text-13);
+    white-space: nowrap;
+  }
   .format-bar__panel--beside {
     inset-block-end: auto;
     inset-block-start: 0;
