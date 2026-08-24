@@ -53,7 +53,9 @@ your data.
 
 ## What it does today
 
-Current version: **v0.36.1** — daily-driver usable, pre-1.0.
+Pre-1.0, and used daily. The
+[releases page](https://github.com/Gustavo-Tondin/jott-app/releases) says
+what the current version is.
 
 **Tasks**
 - Inbox and lists of your own, in as many task spaces as you want.
