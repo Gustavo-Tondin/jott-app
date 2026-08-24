@@ -55,6 +55,25 @@ export const COMMANDS = [
   // The notebooks screen (2026-08-24). Mod+O because it is the app's "open":
   // on the desktop it opens a WINDOW of its own, which is what lets a second
   // notebook be open beside this one.
+  // The app's history (2026-08-24): the same chords the editor answers, in
+  // the scope the editor is not in. `twin` says the clash is the point: the
+  // editor claims the press first, and what reaches the shell is the same
+  // gesture aimed at the app. A press inside a field is the field's (the
+  // shell checks `typing`), inside the inspector the inspector's.
+  {
+    id: "app.undo",
+    scope: "global",
+    keys: "Mod+Z",
+    twin: "edit.undo",
+    label: () => S.cmdUndoAction,
+  },
+  {
+    id: "app.redo",
+    scope: "global",
+    keys: "Mod+Shift+Z",
+    twin: "edit.redo",
+    label: () => S.cmdRedoAction,
+  },
   { id: "app.notebooks", scope: "global", keys: "Mod+O", label: () => S.cmdNotebooks },
   { id: "app.settings", scope: "global", keys: "Mod+,", label: () => S.cmdSettings },
   { id: "app.fullscreen", scope: "global", keys: "F11", label: () => S.cmdFullscreen },
@@ -362,7 +381,8 @@ export function keymapFor(scope, bound) {
 /// Scopes are not independent: `global` is heard everywhere, so a global
 /// command clashes with an editor one, while two commands in `tasks` and
 /// `editor` never both answer (a task list and a text cursor are not focused
-/// at once).
+/// at once). The one exception is a declared `twin` (the app's undo and the
+/// editor's): the same gesture in two places, meant to share the chord.
 export function conflictOf(id, chord, bound) {
   const chords = normalize(chord);
   if (!chords) return null;
@@ -371,6 +391,7 @@ export function conflictOf(id, chord, bound) {
   for (const command of COMMANDS) {
     if (command.id === id) continue;
     if (bound.get(command.id) !== chords) continue;
+    if (command.twin === id || mine.twin === command.id) continue;
     if (command.scope === mine.scope) return command;
     if (command.scope === "global" || mine.scope === "global") return command;
   }

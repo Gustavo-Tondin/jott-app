@@ -132,7 +132,7 @@ pub fn reset_settings<R: Runtime>(
     window: tauri::Window<R>,
     section: String,
 ) -> CommandResult<()> {
-    let known = state.write(window.label(), |nb| nb.reset_settings(&section))?;
+    let known = state.record(window.label(), "reset_settings", |nb| nb.reset_settings(&section))?;
     if !known {
         return Err(CommandError::new(
             "settings",
@@ -177,7 +177,7 @@ pub fn set_notebook_settings<R: Runtime>(
     window: tauri::Window<R>,
     settings: NotebookSettings,
 ) -> CommandResult<()> {
-    state.write(window.label(), |nb| {
+    state.record(window.label(), "set_notebook_settings", |nb| {
         let mut config = nb.config().clone();
         settings.apply_to(&mut config);
         nb.set_config(config)
@@ -193,7 +193,7 @@ pub fn set_order<R: Runtime>(
     namespace: String,
     names: Vec<String>,
 ) -> CommandResult<()> {
-    state.write(window.label(), |nb| nb.set_order(&namespace, names))
+    state.record(window.label(), "set_order", |nb| nb.set_order(&namespace, names))
 }
 
 /// Records what the user said about a part of the app (`tasks`, `notes`, and
@@ -208,7 +208,7 @@ pub fn set_feature<R: Runtime>(
     key: String,
     on: Option<bool>,
 ) -> CommandResult<()> {
-    state.write(window.label(), |nb| nb.set_feature(&key, on))
+    state.record(window.label(), "set_feature", |nb| nb.set_feature(&key, on))
 }
 
 /// Binds a command to a chord, or unbinds it with `chord: null`.
@@ -224,14 +224,14 @@ pub fn set_shortcut<R: Runtime>(
     id: String,
     chord: Option<String>,
 ) -> CommandResult<()> {
-    state.write(window.label(), |nb| nb.set_shortcut(&id, chord))
+    state.record(window.label(), "set_shortcut", |nb| nb.set_shortcut(&id, chord))
 }
 
 /// Back to the table the app ships with.
 #[tauri::command]
 pub fn reset_shortcuts<R: Runtime>(state: State<'_, AppState>,
     window: tauri::Window<R>,) -> CommandResult<()> {
-    state.write(window.label(), |nb| nb.reset_shortcuts())
+    state.record(window.label(), "reset_shortcuts", |nb| nb.reset_shortcuts())
 }
 
 /// How the sidebar arranges the user's spaces: `name`, or the empty string
@@ -246,5 +246,5 @@ pub fn spaces_sort<R: Runtime>(state: State<'_, AppState>,
 #[tauri::command]
 pub fn set_spaces_sort<R: Runtime>(state: State<'_, AppState>,
     window: tauri::Window<R>, sort: String) -> CommandResult<()> {
-    state.write(window.label(), |nb| nb.set_spaces_sort(&sort))
+    state.record(window.label(), "set_spaces_sort", |nb| nb.set_spaces_sort(&sort))
 }

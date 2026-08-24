@@ -19,7 +19,7 @@ pub fn pull_into_period<R: Runtime>(
     list: String,
     id: String,
 ) -> CommandResult<bool> {
-    state.read(window.label(), |nb| nb.pull_into(period, &list, &id))
+    state.record(window.label(), "pull_into", |nb| nb.pull_into(period, &list, &id))
 }
 
 #[tauri::command]
@@ -30,7 +30,7 @@ pub fn remove_from_period<R: Runtime>(
     list: String,
     id: String,
 ) -> CommandResult<bool> {
-    state.read(window.label(), |nb| nb.remove_from(period, &list, &id))
+    state.record(window.label(), "remove_from", |nb| nb.remove_from(period, &list, &id))
 }
 
 /// Creates a task straight from Today or This Week. It is written to the
@@ -62,7 +62,7 @@ pub fn set_period_sort<R: Runtime>(
     period: Period,
     sort: Option<String>,
 ) -> CommandResult<()> {
-    state.write(window.label(), |nb| nb.set_period_sort(period, sort.as_deref()))
+    state.record(window.label(), "set_period_sort", |nb| nb.set_period_sort(period, sort.as_deref()))
 }
 
 /// Rearranges the period to the order the user dragged. The state file is the
@@ -74,7 +74,7 @@ pub fn set_period_order<R: Runtime>(
     period: Period,
     refs: Vec<jott_core::state::TaskRef>,
 ) -> CommandResult<()> {
-    state.read(window.label(), |nb| nb.set_period_order(period, &refs))
+    state.record(window.label(), "set_period_order", |nb| nb.set_period_order(period, &refs))
 }
 
 /// The tasks pulled into a period, resolved to the real thing.

@@ -78,7 +78,7 @@ pub fn quick_capture_note<R: Runtime>(
     in_folder: String,
     text: String,
 ) -> CommandResult<String> {
-    state.read(window.label(), |nb| nb.quick_capture_note(&folder, &in_folder, &text))
+    state.record(window.label(), "quick_capture_note", |nb| nb.quick_capture_note(&folder, &in_folder, &text))
 }
 
 /// The folders of a notes space, each with the colour and the pin the space
@@ -149,7 +149,7 @@ pub fn write_note<R: Runtime>(
     path: String,
     body: String,
 ) -> CommandResult<()> {
-    state.read(window.label(), |nb| nb.write_note(&folder, &path, &body))
+    state.quiet(window.label(), |nb| nb.write_note(&folder, &path, &body))
 }
 
 /// Creates a note and returns its address.
@@ -161,7 +161,7 @@ pub fn create_note<R: Runtime>(
     in_folder: String,
     title: String,
 ) -> CommandResult<String> {
-    state.read(window.label(), |nb| nb.create_note(&folder, &in_folder, &title))
+    state.record(window.label(), "create_note", |nb| nb.create_note(&folder, &in_folder, &title))
 }
 
 #[tauri::command]
@@ -173,7 +173,7 @@ pub fn delete_note<R: Runtime>(
 ) -> CommandResult<()> {
     // Routed through the notebook now, so it lands in the internal trash with
     // its origin recorded (reestruturação 2026-07-30), not the OS trash.
-    state.read(window.label(), |nb| nb.delete_note(&folder, &path))
+    state.record(window.label(), "delete_note", |nb| nb.delete_note(&folder, &path))
 }
 
 /// Renames a note inside its folder. Returns the new address.
@@ -187,7 +187,7 @@ pub fn rename_note<R: Runtime>(
 ) -> CommandResult<String> {
     // Through the notebook and not the folder: renaming a note now follows it
     // into every `[[link]]` in the whole notebook (2026-08-19).
-    state.read(window.label(), |nb| nb.rename_note(&folder, &path, &title))
+    state.record(window.label(), "rename_note", |nb| nb.rename_note(&folder, &path, &title))
 }
 
 /// Moves a note to another folder inside the same space. Returns the new address.
@@ -199,7 +199,7 @@ pub fn move_note<R: Runtime>(
     path: String,
     to_folder: String,
 ) -> CommandResult<String> {
-    state.read(window.label(), |nb| nb.move_note(&folder, &path, &to_folder))
+    state.record(window.label(), "move_note", |nb| nb.move_note(&folder, &path, &to_folder))
 }
 
 #[tauri::command]
@@ -210,7 +210,7 @@ pub fn set_note_pinned<R: Runtime>(
     path: String,
     pinned: bool,
 ) -> CommandResult<()> {
-    state.read(window.label(), |nb| nb.set_note_pinned(&folder, &path, pinned))
+    state.record(window.label(), "set_note_pinned", |nb| nb.set_note_pinned(&folder, &path, pinned))
 }
 
 /// Sets — or clears, with `None` — a note's banner.
@@ -227,7 +227,7 @@ pub fn set_note_banner<R: Runtime>(
     banner: Option<String>,
 ) -> CommandResult<()> {
     let banner = banner.as_deref().and_then(jott_core::Banner::from_value);
-    state.read(window.label(), |nb| nb.set_note_banner(&folder, &path, banner))
+    state.record(window.label(), "set_note_banner", |nb| nb.set_note_banner(&folder, &path, banner))
 }
 
 /// Copies a note beside itself, returning the new address — the card's
@@ -239,7 +239,7 @@ pub fn duplicate_note<R: Runtime>(
     folder: String,
     path: String,
 ) -> CommandResult<String> {
-    state.read(window.label(), |nb| nb.duplicate_note(&folder, &path))
+    state.record(window.label(), "duplicate_note", |nb| nb.duplicate_note(&folder, &path))
 }
 
 /// Moves a note to another notes space (the bulk "move to" of the board).
@@ -253,7 +253,7 @@ pub fn move_note_to_space<R: Runtime>(
     to_space: String,
     to_folder: String,
 ) -> CommandResult<String> {
-    state.read(window.label(), |nb| nb.move_note_to_space(&folder, &path, &to_space, &to_folder))
+    state.record(window.label(), "move_note_to_space", |nb| nb.move_note_to_space(&folder, &path, &to_space, &to_folder))
 }
 
 /// Renames a folder inside a notes space. Returns the new address.
@@ -267,7 +267,7 @@ pub fn rename_note_folder<R: Runtime>(
 ) -> CommandResult<String> {
     // Through the notebook, not the folder: a folder's colour and pin live in
     // the space's config, and they have to travel with the rename.
-    state.read(window.label(), |nb| nb.rename_note_folder(&folder, &path, &name))
+    state.record(window.label(), "rename_note_folder", |nb| nb.rename_note_folder(&folder, &path, &name))
 }
 
 /// Deletes a folder, moving what was inside up to its parent. Returns how
@@ -279,7 +279,7 @@ pub fn delete_note_folder<R: Runtime>(
     folder: String,
     path: String,
 ) -> CommandResult<usize> {
-    state.read(window.label(), |nb| nb.delete_note_folder(&folder, &path))
+    state.record(window.label(), "delete_note_folder", |nb| nb.delete_note_folder(&folder, &path))
 }
 
 #[tauri::command]
@@ -289,5 +289,5 @@ pub fn create_note_folder<R: Runtime>(
     folder: String,
     path: String,
 ) -> CommandResult<()> {
-    state.read(window.label(), |nb| nb.create_note_folder(&folder, &path))
+    state.record(window.label(), "create_note_folder", |nb| nb.create_note_folder(&folder, &path))
 }

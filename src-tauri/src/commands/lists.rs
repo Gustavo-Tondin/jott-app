@@ -42,7 +42,7 @@ pub fn create_list<R: Runtime>(
     folder: String,
     name: String,
 ) -> CommandResult<()> {
-    state.read(window.label(), |nb| {
+    state.record(window.label(), "create_list", |nb| {
         nb.create_list(&folder, &name)?;
         Ok(())
     })
@@ -51,14 +51,14 @@ pub fn create_list<R: Runtime>(
 #[tauri::command]
 pub fn rename_list<R: Runtime>(state: State<'_, AppState>,
     window: tauri::Window<R>, from: String, to: String) -> CommandResult<()> {
-    state.read(window.label(), |nb| nb.rename_list(&from, &to))
+    state.record(window.label(), "rename_list", |nb| nb.rename_list(&from, &to))
 }
 
 /// Deletes a list. Returns how many tasks were moved to the Inbox.
 #[tauri::command]
 pub fn delete_list<R: Runtime>(state: State<'_, AppState>,
     window: tauri::Window<R>, name: String) -> CommandResult<usize> {
-    state.read(window.label(), |nb| nb.delete_list(&name))
+    state.record(window.label(), "delete_list", |nb| nb.delete_list(&name))
 }
 
 #[tauri::command]

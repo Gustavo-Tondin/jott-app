@@ -28,7 +28,12 @@
 //!
 //! The note being typed is deliberately NOT in here: the editor has its own
 //! history (CodeMirror's), and the app one would fight it — see the bridge,
-//! which does not route `write_note` through `record`.
+//! which does not route `write_note` through `record`. The same goes for the
+//! task inspector's saves. Those writes are still the app's own, though, and
+//! [`History::absorb`] folds them into the entry they land on: after "create
+//! task" and a priority typed into the inspector, undo takes the task away
+//! and redo brings it back WITH the priority — and neither is refused as a
+//! change from outside.
 
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::path::{Path, PathBuf};
@@ -65,6 +70,8 @@ pub struct History {
     cache: HashMap<PathBuf, Cached>,
     /// The sum of every entry's bytes, against [`MAX_TOTAL_BYTES`].
     bytes: usize,
+    /// The notebook as the last scan left it — what `absorb` diffs against.
+    last: Option<Tree>,
 }
 
 struct Cached {
@@ -95,6 +102,10 @@ pub struct Entry {
 impl Entry {
     pub fn label(&self) -> &str {
         &self.label
+    }
+
+    fn touches(&self, path: &Path) -> bool {
+        self.files.iter().any(|c| c.path == path)
     }
 
     fn bytes(&self) -> usize {
@@ -152,7 +163,51 @@ impl History {
         if let Some(entry) = diff(label, &before, &after) {
             self.push(entry);
         }
+        self.last = Some(after);
         Ok(result)
+    }
+
+    /// Folds a write the app made WITHOUT recording it — the editor's save,
+    /// the inspector's — into the history: the last recorded action that
+    /// touched each changed file now ends where that write left it, so undo
+    /// still runs (back to before the action) and redo brings the file back
+    /// with the quiet write included. A redoable action resting on such a
+    /// file is forgotten: the file has moved on under it.
+    ///
+    /// Without this, every quiet write would make the entry before it look
+    /// like a change from outside, and `undo` would refuse it as stale.
+    pub fn absorb(&mut self, root: &Path) -> Result<()> {
+        let now = self.scan(root)?;
+        if let Some(last) = self.last.take() {
+            for path in last.text.keys().chain(now.text.keys()).collect::<BTreeSet<_>>() {
+                let old = last.text.get(path);
+                let new = now.text.get(path);
+                let same = match (old, new) {
+                    (Some(a), Some(b)) => Arc::ptr_eq(a, b) || a == b,
+                    (None, None) => true,
+                    _ => false,
+                };
+                if same {
+                    continue;
+                }
+                if self.entries[self.done..].iter().any(|e| e.touches(path)) {
+                    self.drop_redo();
+                }
+                if let Some(entry) = self.entries[..self.done]
+                    .iter_mut()
+                    .rev()
+                    .find(|e| e.touches(path))
+                {
+                    let old_bytes = entry.bytes();
+                    for change in entry.files.iter_mut().filter(|c| c.path == *path) {
+                        change.after = new.cloned();
+                    }
+                    self.bytes = self.bytes + entry.bytes() - old_bytes;
+                }
+            }
+        }
+        self.last = Some(now);
+        Ok(())
     }
 
     /// The name of the action `undo` would take back, if any.
@@ -186,6 +241,7 @@ impl History {
         }
         apply(root, entry, |c| c.before.as_deref(), &entry.created_dirs, &entry.removed_dirs)?;
         self.done = index;
+        self.last = self.scan(root).ok();
         Ok(Some(self.entries[index].label.clone()))
     }
 
@@ -204,6 +260,7 @@ impl History {
         }
         apply(root, entry, |c| c.after.as_deref(), &entry.removed_dirs, &entry.created_dirs)?;
         self.done += 1;
+        self.last = self.scan(root).ok();
         Ok(Some(self.entries[self.done - 1].label.clone()))
     }
 
@@ -643,6 +700,47 @@ mod tests {
         }
         assert_eq!(undone, MAX_ENTRIES);
         assert_eq!(read(root, "note.md").as_deref(), Some("4"));
+    }
+
+    #[test]
+    fn a_quiet_write_is_absorbed_into_the_action_before_it() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        let mut history = History::new();
+
+        history
+            .record(root, "create", || {
+                write(root, "list.md", "- [ ] task\n");
+                Ok(())
+            })
+            .unwrap();
+        // The inspector saves a field: not an action, but the app's own.
+        write(root, "list.md", "- [ ] task !2\n");
+        history.absorb(root).unwrap();
+
+        assert_eq!(history.undo(root).unwrap().as_deref(), Some("create"));
+        assert!(!root.join("list.md").exists());
+        history.redo(root).unwrap();
+        assert_eq!(read(root, "list.md").as_deref(), Some("- [ ] task !2\n"));
+    }
+
+    #[test]
+    fn a_quiet_write_under_a_redoable_action_forgets_the_redo() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        write(root, "note.md", "one");
+        let mut history = History::new();
+
+        history
+            .record(root, "pin", || {
+                write(root, "note.md", "two");
+                Ok(())
+            })
+            .unwrap();
+        history.undo(root).unwrap();
+        write(root, "note.md", "typed after the undo");
+        history.absorb(root).unwrap();
+        assert_eq!(history.redoable(), None);
     }
 
     #[test]

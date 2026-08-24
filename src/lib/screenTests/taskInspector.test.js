@@ -131,6 +131,40 @@ describe("TaskInspector", () => {
     expect(lastSave().id).toBe("a1");
   });
 
+  test("Ctrl+Z in the panel puts the field back and saves it that way", async () => {
+    // The inspector's own history (services/draftHistory.js, 2026-08-24):
+    // apart from the note's and the app's. The step back is the tag that
+    // was just added; the save that follows is what the file gets.
+    bridge({ set_task_fields: null });
+
+    render(TaskInspector, { props: props(task("a1", "Comprar leite")) });
+    await addTag("casa");
+    await waitFor(() => expect(lastSave().fields.tags).toEqual(["casa"]));
+
+    await fireEvent.keyDown(screen.getByRole("complementary"), { key: "z", ctrlKey: true });
+    await waitFor(() => expect(lastSave().fields.tags).toEqual([]));
+    expect(screen.queryByText("casa")).toBeNull();
+
+    // …and Ctrl+Shift+Z brings it back.
+    await fireEvent.keyDown(screen.getByRole("complementary"), {
+      key: "z",
+      ctrlKey: true,
+      shiftKey: true,
+    });
+    await waitFor(() => expect(lastSave().fields.tags).toEqual(["casa"]));
+  });
+
+  test("Ctrl+Z with nothing to step back is still the panel's, not the app's", async () => {
+    bridge({ set_task_fields: null });
+    render(TaskInspector, { props: props(task("a1", "Comprar leite")) });
+    await screen.findByDisplayValue("Comprar leite");
+
+    const event = new KeyboardEvent("keydown", { key: "z", ctrlKey: true, bubbles: true, cancelable: true });
+    screen.getByRole("complementary").dispatchEvent(event);
+    expect(event.defaultPrevented).toBe(true);
+    expect(saveCount()).toBe(0);
+  });
+
   test("the first edit is what earns the id", async () => {
     bridge({
       list_tasks: [task(null, "Escrita à mão")],

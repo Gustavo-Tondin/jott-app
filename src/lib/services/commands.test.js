@@ -44,6 +44,21 @@ describe("the command registry", () => {
     }
   });
 
+  it("lets the app's undo share the editor's chord, and only that pair", () => {
+    // The clash is the design (2026-08-24): the editor claims Mod+Z first,
+    // the shell hears the rest. A twin has to point back at a real command.
+    const bound = bindings();
+    for (const command of COMMANDS) {
+      if (!command.twin) continue;
+      expect(commandById(command.twin), `${command.id} → ${command.twin}`).not.toBeNull();
+      expect(bound.get(command.id)).toBe(bound.get(command.twin));
+      expect(conflictOf(command.id, command.keys, bound)).toBeNull();
+    }
+    expect(commandById("app.undo").twin).toBe("edit.undo");
+    // A third command on that chord still clashes.
+    expect(conflictOf("task.new", "Mod+Z", bound)?.id).toBeTruthy();
+  });
+
   it("lets a user's binding win, and an unbind clear the key", () => {
     const bound = bindings({ "task.new": "Mod+Shift+Y", "note.new": null });
     expect(bound.get("task.new")).toBe("Mod+Shift+Y");

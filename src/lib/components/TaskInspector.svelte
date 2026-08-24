@@ -15,6 +15,8 @@
   import { onDestroy } from "svelte";
   import { api } from "../services/api.js";
   import { autosave } from "../services/autosave.js";
+  import { changedField, draftHistory } from "../services/draftHistory.js";
+  import { ask } from "../services/shortcuts.js";
   import { ensureTaskId } from "../services/taskId.js";
   import { completionBeat } from "../services/pace.js";
   import { S } from "../services/strings.js";
@@ -100,6 +102,14 @@
 
   // A different task selected means a different draft. Without this, editing
   // one task and clicking another would show the first one's typing.
+  // The panel's own Ctrl+Z (2026-08-24): the fields of THIS task, one step
+  // back per edit, apart from the note's history and the app's
+  // (services/draftHistory.js says why there are three). It follows the
+  // task, not the object: the shell hands a fresh `task` after every save,
+  // and that is the same task catching up, not a new one to forget for.
+  const history = draftHistory();
+  let openKey = null;
+
   $effect(() => {
     task;
     list;
@@ -107,9 +117,18 @@
     // Reading `draft` here would make this effect depend on the state it
     // assigns, and Svelte would loop until it gave up.
     const fresh = fromTask(task);
+    const snapshot = JSON.stringify(fresh);
     // `open` flushes what was typed into the previous task first, addressed
     // to that task, before the slot is replaced.
-    saver.open({ list, task, id: task?.id ?? null }, JSON.stringify(fresh));
+    saver.open({ list, task, id: task?.id ?? null }, snapshot);
+    // A task without an id earns one on its first save; the target carries
+    // it before the next `task` does. Two id-less tasks are told apart by
+    // their text, which is all an id-less task has.
+    const id = task?.id ?? saver.target()?.id ?? null;
+    const key = `${list}|${id ?? ""}|${id ? "" : (task?.text ?? "")}`;
+    if (key === openKey) history.settle(snapshot);
+    else history.reset(snapshot);
+    openKey = key;
     draft = fresh;
     newSubtask = "";
   });
@@ -119,9 +138,26 @@
   // having just reloaded the same values.
   $effect(() => {
     const snapshot = JSON.stringify(draft);
+    history.push(snapshot, changedField(history.current(), snapshot));
     if (readOnly || !saver.dirty(snapshot)) return;
     saver.edit(fields(), snapshot);
   });
+
+  /// The panel answers Ctrl+Z / Ctrl+Shift+Z for its own fields — with the
+  /// user's chords for `app.undo`/`app.redo`, so a rebinding follows. The
+  /// description is a CodeMirror with a history of its own, and a press in
+  /// there is its. Answering (`preventDefault`) even with nothing to step
+  /// back keeps the panel's key from reaching the shell as an app undo: a
+  /// hand that is in the panel means the panel.
+  function onKeydown(event) {
+    if (event.target?.closest?.(".cm-editor")) return;
+    const id = $ask(event, "global");
+    if (id !== "app.undo" && id !== "app.redo") return;
+    event.preventDefault();
+    if (readOnly) return;
+    const snapshot = id === "app.undo" ? history.undo() : history.redo();
+    if (snapshot !== null) draft = JSON.parse(snapshot);
+  }
 
   // A pending edit must not die with the panel — closing it is the most
   // natural moment to stop typing.
@@ -305,7 +341,8 @@
     );
 </script>
 
-<aside class="inspector">
+<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+<aside class="inspector" onkeydown={onKeydown}>
   <!-- Toolbar: fold the panel away, send to My Day, task options. Icon buttons
        are the shared `.theme-btn--icon`. The options ⋮ carries `optionsMenu`
        above (duplicate, for now); the trash lives in the footer. -->

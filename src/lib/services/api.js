@@ -78,6 +78,15 @@ export const api = {
   platform: () => invoke("platform"),
   rememberScreen: (screen) => invoke("remember_screen", { screen }),
 
+  // The session history (2026-08-24): what Ctrl+Z / Ctrl+Shift+Z take back
+  // and do again, OUTSIDE the editor and the inspector — a delete, a reorder,
+  // a rename, a setting. Both answer the command's name (`services/strings.js`
+  // turns it into words) or null when there was nothing; a `stale` error
+  // means the files moved on since (a sync, another window) and the entry
+  // was dropped rather than written over them.
+  undo: () => invoke("undo"),
+  redo: () => invoke("redo"),
+
   // search
   // Two answers (tasks, notes) plus whether anything was left out. `limit` is
   // the core's own when the caller has no opinion. `scope` is a space's path

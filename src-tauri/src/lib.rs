@@ -37,6 +37,8 @@ pub fn configure<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builde
             commands::shell::platform,
             commands::shell::window_button_layout,
             commands::notebook::notebook_snapshot,
+            commands::notebook::undo,
+            commands::notebook::redo,
             commands::notebook::notebook_contents,
             commands::spaces::rename_space,
             commands::spaces::set_space_appearance,

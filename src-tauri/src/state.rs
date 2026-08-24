@@ -19,7 +19,7 @@
 use std::collections::HashMap;
 use std::sync::Mutex;
 
-use jott_core::{Notebook, NotebookWatcher};
+use jott_core::{History, Notebook, NotebookWatcher};
 use tauri::{AppHandle, Emitter, Runtime};
 
 use crate::error::{CommandError, CommandResult};
@@ -37,6 +37,10 @@ pub struct AppState {
 
 struct OpenNotebook {
     notebook: Notebook,
+    /// What `Ctrl+Z` takes back in this window (`jott_core::history`). A
+    /// session thing: it is born with the entry and dies with it, and a
+    /// second window on the same notebook has its own.
+    history: History,
     /// Dropping this stops the watcher thread, which is exactly what should
     /// happen when the window opens another notebook or closes.
     _watcher: WatcherHandle,
@@ -82,13 +86,58 @@ impl AppState {
         self.with_notebook(window, |nb| Ok(f(nb)?))
     }
 
-    /// Same, for the operations that need `&mut`.
-    pub fn write<T>(
+    /// `write` for an ACTION — one the user can take back. Every command that
+    /// changes the notebook on the user's word goes through here, named by
+    /// the command, and lands in the window's history (`jott_core::history`).
+    /// The exceptions are deliberate, and each has its own history or none:
+    /// `write_note` (the editor's), `set_task_fields`/`ensure_task_id` (the
+    /// inspector's), the asset commands (binaries are not recorded) and
+    /// `refresh_periods` (the clock's, not the user's).
+    pub fn record<T>(
         &self,
         window: &str,
+        label: &str,
         f: impl FnOnce(&mut Notebook) -> jott_core::Result<T>,
     ) -> CommandResult<T> {
-        self.with_notebook_mut(window, |nb| Ok(f(nb)?))
+        let mut guard = self.lock()?;
+        let open = guard.get_mut(window).ok_or_else(CommandError::no_notebook)?;
+        let OpenNotebook { notebook, history, .. } = open;
+        Ok(notebook.record(history, label, f)?)
+    }
+
+    /// `read` for a write that is NOT an action of its own — the editor's
+    /// save, the inspector's, an id handed out — and so is folded into the
+    /// history rather than recorded by it (`History::absorb`).
+    pub fn quiet<T>(
+        &self,
+        window: &str,
+        f: impl FnOnce(&Notebook) -> jott_core::Result<T>,
+    ) -> CommandResult<T> {
+        let mut guard = self.lock()?;
+        let open = guard.get_mut(window).ok_or_else(CommandError::no_notebook)?;
+        let result = f(&open.notebook)?;
+        // A scan that fails leaves the history as it was; the write itself
+        // already happened, and that is what the caller asked for.
+        let _ = open.history.absorb(open.notebook.root());
+        Ok(result)
+    }
+
+    /// Takes back the window's last recorded action; answers its label, or
+    /// `None` when there was nothing to take back.
+    pub fn undo(&self, window: &str) -> CommandResult<Option<String>> {
+        let mut guard = self.lock()?;
+        let open = guard.get_mut(window).ok_or_else(CommandError::no_notebook)?;
+        let OpenNotebook { notebook, history, .. } = open;
+        Ok(notebook.undo(history)?)
+    }
+
+    /// Does the window's last undone action again; answers its label, or
+    /// `None`.
+    pub fn redo(&self, window: &str) -> CommandResult<Option<String>> {
+        let mut guard = self.lock()?;
+        let open = guard.get_mut(window).ok_or_else(CommandError::no_notebook)?;
+        let OpenNotebook { notebook, history, .. } = open;
+        Ok(notebook.redo(history)?)
     }
 
     /// Whether ANY window has the notebook at `path` open.
@@ -123,6 +172,7 @@ impl AppState {
             window.to_string(),
             OpenNotebook {
                 notebook,
+                history: History::new(),
                 _watcher: watcher,
             },
         );

@@ -22,7 +22,7 @@ pub fn create_task<R: Runtime>(
     list: String,
     text: String,
 ) -> CommandResult<usize> {
-    state.read(window.label(), |nb| nb.create_task(&list, text))
+    state.record(window.label(), "create_task", |nb| nb.create_task(&list, text))
 }
 
 /// Gives the task at `position` a stable id, and returns it.
@@ -36,7 +36,7 @@ pub fn ensure_task_id<R: Runtime>(
     list: String,
     position: usize,
 ) -> CommandResult<String> {
-    state.read(window.label(), |nb| nb.ensure_task_id(&list, position))
+    state.quiet(window.label(), |nb| nb.ensure_task_id(&list, position))
 }
 
 #[tauri::command]
@@ -47,7 +47,7 @@ pub fn edit_task_text<R: Runtime>(
     id: String,
     text: String,
 ) -> CommandResult<()> {
-    state.read(window.label(), |nb| nb.edit_task_text(&list, &id, text))
+    state.record(window.label(), "edit_task_text", |nb| nb.edit_task_text(&list, &id, text))
 }
 
 /// Pins a task to the top of its list, or unpins it (the card's bookmark).
@@ -59,7 +59,7 @@ pub fn set_task_pinned<R: Runtime>(
     id: String,
     pinned: bool,
 ) -> CommandResult<()> {
-    state.read(window.label(), |nb| nb.set_task_pinned(&list, &id, pinned))
+    state.record(window.label(), "set_task_pinned", |nb| nb.set_task_pinned(&list, &id, pinned))
 }
 
 /// Edits any field of a task in one call.
@@ -77,7 +77,7 @@ pub fn set_task_fields<R: Runtime>(
     id: String,
     fields: jott_core::task::TaskFields,
 ) -> CommandResult<()> {
-    state.read(window.label(), |nb| nb.set_task_fields(&list, &id, fields))
+    state.quiet(window.label(), |nb| nb.set_task_fields(&list, &id, fields))
 }
 
 /// Reorders a task inside its list. Positions count tasks, not lines.
@@ -89,7 +89,7 @@ pub fn move_task_to<R: Runtime>(
     from: usize,
     to: usize,
 ) -> CommandResult<()> {
-    state.read(window.label(), |nb| nb.move_task_to(&list, from, to))
+    state.record(window.label(), "move_task_to", |nb| nb.move_task_to(&list, from, to))
 }
 
 /// Moves a task to another list. The task keeps its id; its origin is cleared,
@@ -103,7 +103,7 @@ pub fn move_task<R: Runtime>(
     id: String,
     to: String,
 ) -> CommandResult<Task> {
-    state.read(window.label(), |nb| nb.move_task(&id, &from, &to, OriginAction::Clear))
+    state.record(window.label(), "move_task", |nb| nb.move_task(&id, &from, &to, OriginAction::Clear))
 }
 
 /// Inserts a copy of a task right after it, in the same list.
@@ -114,7 +114,7 @@ pub fn duplicate_task<R: Runtime>(
     list: String,
     id: String,
 ) -> CommandResult<()> {
-    state.read(window.label(), |nb| nb.duplicate_task(&list, &id))
+    state.record(window.label(), "duplicate_task", |nb| nb.duplicate_task(&list, &id))
 }
 
 #[tauri::command]
@@ -124,7 +124,7 @@ pub fn complete_task<R: Runtime>(
     list: String,
     id: String,
 ) -> CommandResult<Task> {
-    state.read(window.label(), |nb| nb.complete_task(&list, &id))
+    state.record(window.label(), "complete_task", |nb| nb.complete_task(&list, &id))
 }
 
 /// Un-completes a task. `list` is the address of the Completed list it sits
@@ -137,12 +137,12 @@ pub fn uncomplete_task<R: Runtime>(
     list: String,
     id: String,
 ) -> CommandResult<Task> {
-    state.read(window.label(), |nb| nb.uncomplete_task(&list, &id))
+    state.record(window.label(), "uncomplete_task", |nb| nb.uncomplete_task(&list, &id))
 }
 
 /// Deletes a single task (sends it to the internal trash).
 #[tauri::command]
 pub fn delete_task<R: Runtime>(state: State<'_, AppState>,
     window: tauri::Window<R>, list: String, id: String) -> CommandResult<()> {
-    state.read(window.label(), |nb| nb.delete_task(&list, &id))
+    state.record(window.label(), "delete_task", |nb| nb.delete_task(&list, &id))
 }

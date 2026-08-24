@@ -38,7 +38,7 @@ pub fn import_asset<R: Runtime>(
 ) -> CommandResult<String> {
     let bytes = crate::base64::decode(&data)
         .ok_or_else(|| CommandError::new("invalid", "the image could not be read"))?;
-    state.read(window.label(), |nb| nb.import_asset(&name, &bytes))
+    state.quiet(window.label(), |nb| nb.import_asset(&name, &bytes))
 }
 
 /// Copies a file of THIS machine into the library, by its path.
@@ -59,7 +59,7 @@ pub fn import_asset_from_path<R: Runtime>(state: State<'_, AppState>,
     let name = jott_core::fsio::file_name_of(&path);
     let bytes = std::fs::read(&path)
         .map_err(|e| CommandError::new("io", format!("{}: {e}", path.display())))?;
-    state.read(window.label(), |nb| nb.import_asset(&name, &bytes))
+    state.quiet(window.label(), |nb| nb.import_asset(&name, &bytes))
 }
 
 /// Renames a file of the library, repointing every note and task that uses it.
@@ -70,7 +70,7 @@ pub fn rename_asset<R: Runtime>(
     path: String,
     name: String,
 ) -> CommandResult<String> {
-    state.read(window.label(), |nb| nb.rename_asset(&path, &name))
+    state.quiet(window.label(), |nb| nb.rename_asset(&path, &name))
 }
 
 /// Sends a file to the notebook's trash. Notes and tasks pointing at it keep
@@ -78,7 +78,7 @@ pub fn rename_asset<R: Runtime>(
 #[tauri::command]
 pub fn delete_asset<R: Runtime>(state: State<'_, AppState>,
     window: tauri::Window<R>, path: String) -> CommandResult<()> {
-    state.read(window.label(), |nb| nb.delete_asset(&path))
+    state.quiet(window.label(), |nb| nb.delete_asset(&path))
 }
 
 /// Opens an attachment in whatever the system uses for that kind of file.
@@ -133,7 +133,7 @@ pub async fn import_asset_from_url<R: Runtime>(
     let (name, bytes) = tauri::async_runtime::spawn_blocking(move || fetch_image(&url))
         .await
         .map_err(|e| CommandError::new("io", e.to_string()))??;
-    state.read(window.label(), |nb| nb.import_asset(&name, &bytes))
+    state.quiet(window.label(), |nb| nb.import_asset(&name, &bytes))
 }
 
 /// Ten megabytes. Larger than any picture a note wants and smaller than

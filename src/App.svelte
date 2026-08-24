@@ -14,7 +14,7 @@
   import { askConfirm, askName, askTask, DELETING, setConfirmPolicy } from "./lib/services/dialog.js";
   import { composeTask } from "./lib/services/taskCompose.js";
   import { makeAct } from "./lib/services/act.js";
-  import { ask, userBindings } from "./lib/services/shortcuts.js";
+  import { ask, typing, userBindings } from "./lib/services/shortcuts.js";
   import NameDialog from "./lib/components/NameDialog.svelte";
   import ConfirmDialog from "./lib/components/ConfirmDialog.svelte";
   import FolderPicker from "./lib/components/FolderPicker.svelte";
@@ -392,6 +392,8 @@
     // Reachable with no notebook open too — unlike every other command here,
     // it is how a window with nothing in it gets something.
     "app.notebooks": () => showNotebooks(),
+    "app.undo": () => notebook && takeBack("undo"),
+    "app.redo": () => notebook && takeBack("redo"),
     "app.settings": () => notebook && goTo({ kind: "settings" }),
     "app.fullscreen": () => toggleFullscreen().catch(() => {}),
     "app.sidebar": () => notebook && (compact ? (drawerOpen = !drawerOpen) : (railed = !railed)),
@@ -483,8 +485,45 @@
     const id = $ask(event, "global");
     const run = id && RUNS[id];
     if (!run) return;
+    // Ctrl+Z inside a field is the field's own undo (the search box, a task
+    // being renamed inline); the app's history answers only where nothing
+    // is being typed. The editor and the inspector never get this far: they
+    // claim the press themselves.
+    if ((id === "app.undo" || id === "app.redo") && typing(event)) return;
     event.preventDefault();
     run();
+  }
+
+  // ---- the app's history (Ctrl+Z / Ctrl+Shift+Z, 2026-08-24) ----
+  // The core keeps it (`jott_core::history`): every action that changed the
+  // notebook on the user's word, as the files it touched. The shell only
+  // asks, reloads, and says what happened — a box that goes away on its own,
+  // because an undo the user cannot see (a reorder in another space) still
+  // has to be announced, and one they can see needs no ok.
+  let undoNotice = $state(null);
+  let undoNoticeTimer = null;
+
+  function sayUndo(tone, text) {
+    clearTimeout(undoNoticeTimer);
+    undoNotice = { tone, text };
+    undoNoticeTimer = setTimeout(() => (undoNotice = null), 4000);
+  }
+
+  async function takeBack(kind) {
+    if (notebook?.readOnly) return;
+    try {
+      const label = kind === "undo" ? await api.undo() : await api.redo();
+      await refreshNotebook();
+      reload();
+      if (label === null) sayUndo("info", kind === "undo" ? S.nothingToUndo : S.nothingToRedo);
+      else {
+        const name = S.actionName(label);
+        sayUndo("success", kind === "undo" ? S.undone(name) : S.redone(name));
+      }
+    } catch (e) {
+      if (e?.kind === "stale") sayUndo("warning", S.undoStale);
+      else fail(e);
+    }
   }
 
   /// The search dialog is open over whatever screen is showing.
@@ -2401,6 +2440,17 @@
             >
               <p>{error}</p>
             </Notice>
+          {/if}
+
+          {#if undoNotice}
+            <Notice
+              tone={undoNotice.tone}
+              icon={undoNotice.tone === "success" ? "undo" : null}
+              title={undoNotice.text}
+              class="shell__notice"
+              onDismiss={() => (undoNotice = null)}
+              dismissLabel={S.dismissError}
+            />
           {/if}
 
           {#if conflicts.length > 0 && conflictsHidden !== conflictsKey(conflicts)}

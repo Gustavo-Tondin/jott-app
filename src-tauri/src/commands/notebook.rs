@@ -432,22 +432,44 @@ pub fn trash_entries<R: Runtime>(state: State<'_, AppState>,
     })
 }
 
+/// `Ctrl+Z` — takes back the last action this window recorded (see
+/// `AppState::record`). Answers the command's name, for the screen to say
+/// what was undone, or `null` when there was nothing to undo. A `stale`
+/// error means the files moved on since (a sync, the other window) and the
+/// entry was dropped rather than written over them.
+#[tauri::command]
+pub fn undo<R: Runtime>(
+    state: State<'_, AppState>,
+    window: tauri::Window<R>,
+) -> CommandResult<Option<String>> {
+    state.undo(window.label())
+}
+
+/// `Ctrl+Shift+Z` — does the last undone action again. Same answers as `undo`.
+#[tauri::command]
+pub fn redo<R: Runtime>(
+    state: State<'_, AppState>,
+    window: tauri::Window<R>,
+) -> CommandResult<Option<String>> {
+    state.redo(window.label())
+}
+
 #[tauri::command]
 pub fn restore_from_trash<R: Runtime>(state: State<'_, AppState>,
     window: tauri::Window<R>, id: String) -> CommandResult<()> {
-    state.read(window.label(), |nb| nb.restore_from_trash(&id))
+    state.record(window.label(), "restore_from_trash", |nb| nb.restore_from_trash(&id))
 }
 
 #[tauri::command]
 pub fn purge_from_trash<R: Runtime>(state: State<'_, AppState>,
     window: tauri::Window<R>, id: String) -> CommandResult<()> {
-    state.read(window.label(), |nb| nb.purge_from_trash(&id))
+    state.record(window.label(), "purge_from_trash", |nb| nb.purge_from_trash(&id))
 }
 
 #[tauri::command]
 pub fn empty_trash<R: Runtime>(state: State<'_, AppState>,
     window: tauri::Window<R>,) -> CommandResult<usize> {
-    state.read(window.label(), |nb| nb.empty_trash())
+    state.record(window.label(), "empty_trash", |nb| nb.empty_trash())
 }
 
 // ---- tags ----
@@ -492,13 +514,13 @@ pub fn set_tag<R: Runtime>(
     name: String,
     color: Option<String>,
 ) -> CommandResult<()> {
-    state.read(window.label(), |nb| nb.set_tag(&name, color))
+    state.record(window.label(), "set_tag", |nb| nb.set_tag(&name, color))
 }
 
 #[tauri::command]
 pub fn remove_tag<R: Runtime>(state: State<'_, AppState>,
     window: tauri::Window<R>, name: String) -> CommandResult<()> {
-    state.read(window.label(), |nb| nb.remove_tag(&name))
+    state.record(window.label(), "remove_tag", |nb| nb.remove_tag(&name))
 }
 
 /// Everything the shell of the UI needs after any change, in one round trip.

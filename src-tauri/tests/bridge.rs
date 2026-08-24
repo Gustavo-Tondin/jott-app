@@ -2113,3 +2113,73 @@ fn a_renamed_notebook_keeps_the_look_it_was_dressed_in() {
     let info = ok(&app, "current_notebook", json!({}));
     assert_eq!(info["layout"]["accentColor"], json!("purple"));
 }
+
+#[test]
+fn an_action_is_undone_and_redone_over_the_bridge() {
+    let (_lock, app, dir) = app_with_notebook();
+    let list = "jott.tasks/task-list.md";
+    // Nothing to take back yet: the null answer, not an error.
+    assert_eq!(ok(&app, "undo", json!({})), Value::Null);
+
+    let id = task_with_id(&app, list, "Ligar pro dentista");
+    let file = dir.path().join(list);
+    let with_task = std::fs::read_to_string(&file).unwrap();
+
+    ok(&app, "delete_task", json!({ "list": list, "id": id }));
+    assert!(!std::fs::read_to_string(&file).unwrap().contains("dentista"));
+
+    assert_eq!(ok(&app, "undo", json!({})), json!("delete_task"));
+    assert_eq!(std::fs::read_to_string(&file).unwrap(), with_task);
+    assert!(ok(&app, "trash_entries", json!({})).as_array().unwrap().is_empty());
+
+    assert_eq!(ok(&app, "redo", json!({})), json!("delete_task"));
+    assert!(!std::fs::read_to_string(&file).unwrap().contains("dentista"));
+    assert_eq!(ok(&app, "redo", json!({})), Value::Null);
+
+    // The inspector's writes are the inspector's own history, not this one:
+    // a field saved after "create task" is not an entry, and undo takes the
+    // whole task away — while redo brings it back with the field it got.
+    ok(&app, "undo", json!({}));
+    ok(
+        &app,
+        "set_task_fields",
+        json!({ "list": list, "id": id, "fields": { "priority": 2 } }),
+    );
+    assert_eq!(ok(&app, "undo", json!({})), json!("create_task"));
+    assert!(ok(&app, "list_tasks", json!({ "list": list })).as_array().unwrap().is_empty());
+    assert_eq!(ok(&app, "redo", json!({})), json!("create_task"));
+    let tasks = ok(&app, "list_tasks", json!({ "list": list }));
+    assert_eq!(tasks[0]["priority"], json!(2));
+}
+
+#[test]
+fn a_file_that_moved_on_makes_the_undo_stale() {
+    let (_lock, app, dir) = app_with_notebook();
+    let list = "jott.tasks/task-list.md";
+    let id = task_with_id(&app, list, "Regar as plantas");
+    ok(&app, "set_task_pinned", json!({ "list": list, "id": id, "pinned": true }));
+    std::fs::write(dir.path().join(list), "- [ ] edited by hand\n").unwrap();
+
+    let err = invoke(&app, "undo", json!({})).unwrap_err();
+    assert_eq!(err["kind"], "stale");
+    assert_eq!(
+        std::fs::read_to_string(dir.path().join(list)).unwrap(),
+        "- [ ] edited by hand\n"
+    );
+}
+
+#[test]
+fn each_window_keeps_its_own_history() {
+    let (_lock, app, _dir) = app_with_notebook();
+    WebviewWindowBuilder::new(&app, "second", Default::default())
+        .build()
+        .unwrap();
+    let other = tempfile::tempdir().unwrap();
+    ok_from(&app, "second", "open_notebook", json!({ "path": other.path(), "create": true }));
+
+    ok_from(&app, "second", "create_group", json!({ "name": "Clientes", "group": null }));
+    // The first window did nothing; its history is empty.
+    assert_eq!(ok(&app, "undo", json!({})), Value::Null);
+    assert_eq!(ok_from(&app, "second", "undo", json!({})), json!("create_group"));
+    assert!(!other.path().join("Clientes").exists());
+}
