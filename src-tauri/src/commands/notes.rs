@@ -42,6 +42,18 @@ pub fn list_notes<R: Runtime>(
     })
 }
 
+/// Every note of the Inbox — the Home's widened view, behind the notebook's
+/// `homeShowsAllInboxNotes` (2026-08-24). A view like `notes_created_today`:
+/// nothing is moved or written.
+#[tauri::command]
+pub fn inbox_notes<R: Runtime>(
+    state: State<'_, AppState>,
+    window: tauri::Window<R>,
+    folder: String,
+) -> CommandResult<Vec<jott_core::NoteEntry>> {
+    state.read(window.label(), |nb| nb.note_folder(&folder)?.inbox_notes())
+}
+
 /// The notes created today — what the Home shows. The Home owns no notes of
 /// its own; this is a view of the inbox (spec 5).
 #[tauri::command]

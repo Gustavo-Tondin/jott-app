@@ -214,6 +214,7 @@ export const api = {
   setNoteFolderPinned: (folder, path, pinned) =>
     invoke("set_note_folder_pinned", { folder, path, pinned }),
   notesCreatedToday: (folder) => invoke("notes_created_today", { folder }),
+  inboxNotes: (folder) => invoke("inbox_notes", { folder }),
   quickCaptureNote: (folder, inFolder, text) =>
     invoke("quick_capture_note", { folder, inFolder, text }),
   readNote: (folder, path) => invoke("read_note", { folder, path }),

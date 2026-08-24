@@ -446,6 +446,11 @@ export const S = {
   subNoteHas: "What a note can have",
   subBoard: "Board",
   noteLayout: "Default layout",
+  homeShowsAllInboxNotes: "Home shows all Inbox notes",
+  homeShowsAllInboxNotesHint:
+    "The Home's notes block shows the whole Inbox instead of only the notes " +
+    "written today — captures pile up there, and the Home is where they are " +
+    "read back.",
   noteLayoutHint:
     "How a notes space draws its board until it chooses for itself — each " +
     "space keeps its own choice, from its ⋮ → Layout.",
@@ -559,6 +564,7 @@ export const S = {
   capture: "capture",
   todaysTasks: "Today tasks",
   todaysNotes: "Today notes",
+  inboxNotes: "Inbox notes",
   newNoteAction: "New note",
   quickNoteTo: "to",
   // The Home's capture box (2026-08-13). It asks ONE question and both halves

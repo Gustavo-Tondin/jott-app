@@ -189,6 +189,7 @@ pub struct NotebookSettings {
     pub format_bar_side: Option<String>,
     pub close_inspector_on_click_away: Option<bool>,
     pub quick_note_folder: Option<String>,
+    pub home_shows_all_inbox_notes: Option<bool>,
     /// The board layout of a notes space that never chose one (`grid` /
     /// `tree`); empty goes back to the app's own.
     pub note_layout: Option<String>,
@@ -230,6 +231,7 @@ impl NotebookSettings {
             format_bar_side: Some(display.format_bar_side.clone()),
             close_inspector_on_click_away: Some(display.close_inspector_on_click_away),
             quick_note_folder: Some(config.quick_note_folder.clone()),
+            home_shows_all_inbox_notes: Some(config.home_shows_all_inbox_notes),
             note_layout: Some(config.note_layout.clone()),
             completed_retention_days: Some(config.completed_retention_days),
             trash_retention_days: Some(config.trash_retention_days),
@@ -311,6 +313,9 @@ impl NotebookSettings {
             if !v.trim().is_empty() {
                 config.quick_note_folder = v.clone();
             }
+        }
+        if let Some(v) = self.home_shows_all_inbox_notes {
+            config.home_shows_all_inbox_notes = v;
         }
         // Not validated, like the looks above: the layouts are the
         // interface's list, and a name this build does not know round-trips.

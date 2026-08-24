@@ -339,7 +339,7 @@
   /// chain this replaced.
   const FUNCTION_EXTRAS = () => ({
     tasks: [S.autoUrgentByDate, S.newTasksGoTo],
-    notes: [S.noteLayout, S.confirmImageDownloads],
+    notes: [S.noteLayout, S.confirmImageDownloads, S.homeShowsAllInboxNotes],
   });
 
   /// Every page the search can look up. The functions' half is DERIVED — the
@@ -1250,6 +1250,21 @@
             />
           </label>
           <p class="settings__hint">{S.confirmImageDownloadsHint}</p>
+
+          <!-- The Home widened to the whole Inbox (user call, 2026-08-24) —
+               a notebook rule, like everything on a function's page. -->
+          <label class="settings__row">
+            <span class="settings__label">{S.homeShowsAllInboxNotes}</span>
+            <input
+              class="theme-checkbox"
+              type="checkbox"
+              bind:checked={form.homeShowsAllInboxNotes}
+              disabled={readOnly}
+              aria-label={S.homeShowsAllInboxNotes}
+              onchange={(e) => put({ homeShowsAllInboxNotes: e.currentTarget.checked })}
+            />
+          </label>
+          <p class="settings__hint">{S.homeShowsAllInboxNotesHint}</p>
         </section>
       {/if}
 

@@ -115,6 +115,17 @@ describe("HomeView", () => {
     );
   });
 
+  test("widened to the Inbox, the block reads the whole of it and says so", async () => {
+    // `homeShowsAllInboxNotes` (user call, 2026-08-24): every Inbox note, not
+    // just today's — and the heading stops claiming "Today".
+    bridge({ period_tasks: [], inbox_notes: [] });
+    render(HomeView, { props: props({ showAllInboxNotes: true }) });
+
+    expect(await screen.findByText("Inbox notes")).toBeTruthy();
+    await waitFor(() => expect(invoke).toHaveBeenCalledWith("inbox_notes", { folder: "jott.notes" }));
+    expect(invoke).not.toHaveBeenCalledWith("notes_created_today", { folder: "jott.notes" });
+  });
+
   test("with the fixed space hidden, a quick note still lands in another notepad", async () => {
     // The shell computes the targets with the fixed space left out: only the
     // user's note space is offered, and the capture writes THERE (user call,

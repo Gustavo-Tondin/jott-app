@@ -186,6 +186,20 @@ impl NoteFolder {
             .collect())
     }
 
+    /// Every note of the Inbox, whatever day it was written.
+    ///
+    /// The Home's other mode (user call, 2026-08-24): with
+    /// `homeShowsAllInboxNotes` on, the day's view widens to the whole Inbox
+    /// — the workflow where captures pile up there and the Home is where
+    /// they are read back. Still a VIEW: nothing is moved or written.
+    pub fn inbox_notes(&self) -> Result<Vec<NoteEntry>> {
+        Ok(self
+            .notes()?
+            .into_iter()
+            .filter(|note| note.folder == NOTES_INBOX)
+            .collect())
+    }
+
     /// Writes a note from a single blob of text — the Home's quick capture.
     ///
     /// The first line becomes the title, the whole text the body: someone

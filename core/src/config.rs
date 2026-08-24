@@ -257,6 +257,10 @@ pub struct Config {
     pub close_inspector_on_click_away: bool,
     /// Where the Home's quick capture writes, relative to the notes space.
     pub quick_note_folder: String,
+    /// The Home's notes block widened to the WHOLE Inbox, not just the notes
+    /// written today — the workflow where captures pile up in the Inbox and
+    /// the Home is where they are read back (user call, 2026-08-24).
+    pub home_shows_all_inbox_notes: bool,
     /// How a notes space draws its board when it has not chosen for itself
     /// (`grid` / `tree`). Empty means what the app ships as, which is the
     /// grid; the frontend owns that default, as it owns the list of layouts,
@@ -327,6 +331,7 @@ impl Default for Config {
             shortcuts: Map::new(),
             close_inspector_on_click_away: false,
             quick_note_folder: crate::notefolder::NOTES_INBOX.to_string(),
+            home_shows_all_inbox_notes: false,
             note_layout: String::new(),
             trash_retention_days: 30,
             completed_retention_days: 30,
@@ -509,6 +514,11 @@ impl Config {
             ),
             quick_note_folder: string(&raw, "quickNoteFolder")
                 .unwrap_or(defaults.quick_note_folder),
+            home_shows_all_inbox_notes: flag(
+                &raw,
+                "homeShowsAllInboxNotes",
+                defaults.home_shows_all_inbox_notes,
+            ),
             note_layout: string(&raw, "noteLayout").unwrap_or(defaults.note_layout),
             trash_retention_days: raw
                 .get("trashRetentionDays")
@@ -599,6 +609,10 @@ impl Config {
                 Value::from(self.close_inspector_on_click_away),
             ),
             ("quickNoteFolder", Value::from(self.quick_note_folder.clone())),
+            (
+                "homeShowsAllInboxNotes",
+                Value::from(self.home_shows_all_inbox_notes),
+            ),
             ("trashRetentionDays", Value::from(self.trash_retention_days)),
             (
                 "completedRetentionDays",

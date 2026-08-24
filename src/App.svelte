@@ -2359,6 +2359,7 @@
               onCloseCompose={() => (composingTask = false)}
               dateFormat={layout.dateDisplayFormat}
               quickNoteFolder={layout.quickNoteFolder}
+              showAllInboxNotes={layout.homeShowsAllInboxNotes}
               notesFolder={layout.notesFolder}
               notesInbox={layout.notesInbox}
               noteTargets={quickTargets}

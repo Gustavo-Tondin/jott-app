@@ -47,6 +47,9 @@
     /// against (services/assets.js).
     root = null,
     quickNoteFolder = null,
+    /// The notes block widened to the WHOLE Inbox, not just today's notes
+    /// (the notebook's `homeShowsAllInboxNotes`, 2026-08-24).
+    showAllInboxNotes = false,
     /// Where a quick note can go — the fixed space's folders and the user's
     /// note spaces (services/noteTargets.js). Empty means nowhere: the note
     /// half of the capture closes.
@@ -124,7 +127,12 @@
   });
 
   const { load, act } = makeScreen({
-    read: () => (notesFolder ? api.notesCreatedToday(notesFolder) : []),
+    read: () =>
+      notesFolder
+        ? showAllInboxNotes
+          ? api.inboxNotes(notesFolder)
+          : api.notesCreatedToday(notesFolder)
+        : [],
     // `?? []`: the bridge answering with nothing is not a list of notes.
     apply: (read) => (notes = read ?? []),
     onChanged: () => onChanged?.(),
@@ -244,7 +252,9 @@
             <Icon name="dots-three-vertical" size="1rem" />
           </span>
         </span>
-        <h2 class="theme-title home__block-title">{S.todaysNotes}</h2>
+        <h2 class="theme-title home__block-title">
+          {showAllInboxNotes ? S.inboxNotes : S.todaysNotes}
+        </h2>
         {#if !readOnly && notesMenu.length > 0}
           <Menu items={notesMenu}>
             {#snippet trigger({ toggle })}
