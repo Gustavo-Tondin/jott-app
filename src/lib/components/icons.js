@@ -37,6 +37,9 @@ import listChecks from "../../assets/icons/phosphor/regular/list-checks.svg?raw"
 import notepad from "../../assets/icons/phosphor/regular/notepad.svg?raw";
 import sun from "../../assets/icons/phosphor/regular/sun.svg?raw";
 import tag from "../../assets/icons/phosphor/regular/tag.svg?raw";
+// The app's own glyph (2026-08-24): the sun with a stroke through it — a task
+// leaving the day. Phosphor has no such icon; the file is the designer's.
+import sunOff from "../../assets/icons/jott/sun-off.svg?raw";
 import calendarBlank from "../../assets/icons/phosphor/regular/calendar-blank.svg?raw";
 import clock from "../../assets/icons/phosphor/regular/clock.svg?raw";
 import alarm from "../../assets/icons/phosphor/regular/alarm.svg?raw";
@@ -141,6 +144,7 @@ export const ICONS = {
   notepad,
   lightbulb,
   sun,
+  "sun-off": sunOff,
   tag,
   "calendar-blank": calendarBlank,
   alarm,

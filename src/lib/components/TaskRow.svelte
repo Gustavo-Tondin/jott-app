@@ -217,7 +217,7 @@
       class:swipe__action--pull={swipeOptions.rightAdds}
       aria-hidden="true"
     >
-      <Icon name={swipeOptions.rightAdds ? "sun" : "x"} size="1.125rem" />
+      <Icon name={swipeOptions.rightAdds ? "sun" : "sun-off"} size="1.125rem" />
     </span>
   {/if}
   <input
