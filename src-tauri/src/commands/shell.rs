@@ -53,7 +53,22 @@ pub fn window_button_layout() -> ButtonLayout {
 /// AppImage (2026-08-24): dropping `LD_LIBRARY_PATH` alone brings the user's
 /// value back; the rest is the same poison waiting for another distro's
 /// paths to line up with it.
+///
+/// The PATH is not only handed to the child but used to FIND the program: the
+/// scrubbed `PATH` in the child's environment does not decide which binary
+/// `spawn` starts — that is resolved against the parent's, where the bundle
+/// still comes first. Measured on the v0.26.0 AppImage (2026-08-24): the
+/// bundled `xdg-open` ran, knew nothing about GNOME, and gave up with "no
+/// method available for opening" the notebook's folder.
 fn host_command(program: &str) -> std::process::Command {
+    let host_path = match (std::env::var("APPDIR"), std::env::var("PATH")) {
+        (Ok(appdir), Ok(path)) => Some(path_without_bundle(&path, &appdir)),
+        _ => None,
+    };
+    let program = host_path
+        .as_deref()
+        .and_then(|path| find_on_path(program, path))
+        .unwrap_or_else(|| std::path::PathBuf::from(program));
     let mut cmd = std::process::Command::new(program);
     for var in [
         "LD_LIBRARY_PATH",
@@ -71,12 +86,18 @@ fn host_command(program: &str) -> std::process::Command {
     }
     // `APPDIR` is the mounted bundle: only set inside the AppImage, and the
     // prefix of every PATH entry the runtime pushed in front of the host's.
-    if let (Ok(appdir), Some(path)) = (std::env::var("APPDIR"), std::env::var_os("PATH")) {
-        if let Ok(path) = path.into_string() {
-            cmd.env("PATH", path_without_bundle(&path, &appdir));
-        }
+    if let Some(path) = host_path {
+        cmd.env("PATH", path);
     }
     cmd
+}
+
+/// The first `program` found under an entry of `path`, as an absolute path.
+fn find_on_path(program: &str, path: &str) -> Option<std::path::PathBuf> {
+    path.split(':')
+        .filter(|entry| !entry.is_empty())
+        .map(|entry| Path::new(entry).join(program))
+        .find(|candidate| candidate.is_file())
 }
 
 /// `path` with every entry under `appdir` dropped.
@@ -509,5 +530,23 @@ mod tests {
         );
         // Outside the AppImage nothing matches and nothing changes.
         assert_eq!(path_without_bundle("/bin:/usr/bin", "/tmp/.mount_x"), "/bin:/usr/bin");
+    }
+
+    #[test]
+    fn the_host_program_is_found_past_the_bundle() {
+        // A bundle dir with its own `xdg-open` first, the host's after: the
+        // scrubbed PATH must lead to the host's, by absolute path.
+        let dir = tempfile::tempdir().unwrap();
+        let bundle = dir.path().join("bundle/usr/bin");
+        let host = dir.path().join("host/bin");
+        std::fs::create_dir_all(&bundle).unwrap();
+        std::fs::create_dir_all(&host).unwrap();
+        std::fs::write(bundle.join("xdg-open"), "").unwrap();
+        std::fs::write(host.join("xdg-open"), "").unwrap();
+
+        let path = format!("{}:{}", bundle.display(), host.display());
+        let scrubbed = path_without_bundle(&path, &dir.path().join("bundle").to_string_lossy());
+        assert_eq!(find_on_path("xdg-open", &scrubbed), Some(host.join("xdg-open")));
+        assert_eq!(find_on_path("nope", &scrubbed), None);
     }
 }
