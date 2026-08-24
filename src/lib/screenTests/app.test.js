@@ -720,6 +720,28 @@ describe("App", () => {
     await waitFor(() => expect(screen.queryByPlaceholderText("Create a task…")).toBeNull());
   });
 
+  test("a tag in the sidebar opens the search on #tag", async () => {
+    // The tags section (2026-08-24) is a door to the search, not a screen:
+    // the core already reads a `#` prefix as "this tag".
+    shell({
+      notebook_snapshot: { ...snapshot(), tags: [{ name: "cliente", color: "orange" }] },
+      search: { tasks: [], notes: [], truncated: false },
+    });
+    render(App);
+
+    await screen.findByText("Comprar leite");
+    await userEvent.click(await screen.findByRole("button", { name: "Tags" }));
+    await userEvent.click(await screen.findByRole("button", { name: "cliente" }));
+
+    const box = await screen.findByPlaceholderText("Search tasks and notes…");
+    expect(box.value).toBe("#cliente");
+    await waitFor(() =>
+      expect(
+        invoke.mock.calls.some(([cmd, args]) => cmd === "search" && args.query === "#cliente"),
+      ).toBe(true),
+    );
+  });
+
   test("Ctrl+F searches the whole notebook and opens what was picked", async () => {
     shell({
       search: {

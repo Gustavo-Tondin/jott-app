@@ -1983,6 +1983,12 @@
       searchScope = null;
       searching = true;
     }}
+    {tags}
+    onSearchTag={(name) => {
+      searchScope = null;
+      searchQuery = `#${name}`;
+      searching = true;
+    }}
   />
 {/snippet}
 

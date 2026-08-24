@@ -36,6 +36,7 @@ import listBullets from "../../assets/icons/phosphor/regular/list-bullets.svg?ra
 import listChecks from "../../assets/icons/phosphor/regular/list-checks.svg?raw";
 import notepad from "../../assets/icons/phosphor/regular/notepad.svg?raw";
 import sun from "../../assets/icons/phosphor/regular/sun.svg?raw";
+import tag from "../../assets/icons/phosphor/regular/tag.svg?raw";
 import calendarBlank from "../../assets/icons/phosphor/regular/calendar-blank.svg?raw";
 import clock from "../../assets/icons/phosphor/regular/clock.svg?raw";
 import alarm from "../../assets/icons/phosphor/regular/alarm.svg?raw";
@@ -140,6 +141,7 @@ export const ICONS = {
   notepad,
   lightbulb,
   sun,
+  tag,
   "calendar-blank": calendarBlank,
   alarm,
   clock,

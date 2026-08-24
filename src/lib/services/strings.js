@@ -146,6 +146,8 @@ export const S = {
   sortFileOrder: "File order",
   sortByName: "Sort by name",
   sortByType: "Sort by type",
+  tagsSection: "Tags",
+  searchTag: (name) => `Search #${name}`,
   sortByCreated: "Sort by creation date",
   sortByCompleted: "Sort by completion date",
   sortCustom: "Custom order (dragged)",
