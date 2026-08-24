@@ -51,7 +51,9 @@
 
   let {
     notebook,
-    folders = [],
+    /// Where a quick note can go — `{label, value}` rows for the picker
+    /// (services/noteTargets.js). Empty means nowhere: the row hides.
+    noteTargets = [],
     notesInbox = "Inbox",
     /// The narrow shape (shell/compact.js). Not a width this screen measures:
     /// the shell measures once and tells everyone, the way the header and the
@@ -111,7 +113,10 @@
   const NATIVE = { key: "native", label: () => S.sectionNative, group: true };
 
   let functionPages = $derived(
-    FUNCTIONS.filter((fn) => hasPage(fn.key) && on(features, fn.key)).map((fn) => ({
+    // An inline group (the fixed spaces) has children but no page: its rows
+    // are drawn on Native Functions itself, so a menu entry would be a door
+    // to nowhere (user report, 2026-08-24).
+    FUNCTIONS.filter((fn) => hasPage(fn.key) && !fn.inline && on(features, fn.key)).map((fn) => ({
       key: `fn:${fn.key}`,
       feature: fn.key,
       icon: TYPE_ICONS[fn.key] ?? "sliders-horizontal",
@@ -1123,6 +1128,9 @@
                 </button>
               {/if}
             </div>
+            {#if fn.inline && fn.hint}
+              <p class="settings__hint">{fn.hint()}</p>
+            {/if}
             {#if fn.inline}
               {#each childrenOf(fn.key) as sub (sub.key)}
                 <div class="settings__row settings__function settings__function--sub">
@@ -1286,10 +1294,12 @@
                preferences are one file for every notebook the app opens, and
                a folder name from one would be nonsense in the next.
 
-               Every folder it can name lives in the fixed Notes space, so
-               with that space hidden the row goes too (2026-08-24): a choice
+               The choices are the fixed Notes space's folders and the user's
+               own note spaces (services/noteTargets.js, 2026-08-24) — which
+               is what keeps the capture alive when the fixed space is
+               hidden. With nowhere to go at all, the row goes too: a choice
                between places with no door is not a choice. -->
-          {#if on(features, "notesSpace")}
+          {#if noteTargets.length > 0}
           <label class="settings__row">
             <span class="settings__label">{S.quickNoteFolder}</span>
             <select
@@ -1299,9 +1309,8 @@
               aria-label={S.quickNoteFolder}
               onchange={(e) => put({ quickNoteFolder: e.currentTarget.value })}
             >
-              <option value={notesInbox}>{notesInbox}</option>
-              {#each folders.filter((f) => f !== notesInbox) as name (name)}
-                <option value={name}>{name}</option>
+              {#each noteTargets as target (target.value)}
+                <option value={target.value}>{target.label}</option>
               {/each}
             </select>
           </label>

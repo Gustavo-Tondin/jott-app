@@ -77,7 +77,15 @@ export const FEATURES = [
   // Functions page itself, under their master switch, instead of behind a
   // page of their own ("um separador, escrito fixed spaces com toggle, e
   // identado, home, tasks, notes, cada um com seu toggle").
-  { key: "fixedSpaces", inline: true, label: () => S.featureFixedSpaces },
+  {
+    key: "fixedSpaces",
+    inline: true,
+    label: () => S.featureFixedSpaces,
+    // Said right on the page (user call, 2026-08-24: "deveria ser intuitivo
+    // — ao desativar poderia ter um aviso"): what hiding does and does not
+    // do, before the first switch is flipped.
+    hint: () => S.featureFixedSpacesHint,
+  },
   { key: "homeSpace", parent: "fixedSpaces", group: "spaces", label: () => S.featureHomeSpace },
   { key: "tasksSpace", parent: "fixedSpaces", group: "spaces", label: () => S.featureTasksSpace },
   { key: "notesSpace", parent: "fixedSpaces", group: "spaces", label: () => S.featureNotesSpace },

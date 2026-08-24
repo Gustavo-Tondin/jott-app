@@ -97,6 +97,7 @@
   import { S } from "./lib/services/strings.js";
   import * as Tabs from "./lib/shell/tabs.js";
   import { landing, reachable, spaceOfView, titleOf, viewFromId } from "./lib/shell/views.js";
+  import { noteTargets } from "./lib/services/noteTargets.js";
   import { watchWindowState, toggleFullscreen } from "./lib/shell/windowState.js";
 
   let notebook = $state(null);
@@ -735,6 +736,20 @@
   /// reader for the whole shell; screens get it as a prop or through the
   /// space's screen, the same way `dayRefs` travels.
   let f = $derived(reader(layout.features ?? {}));
+
+  /// Where a quick note can go — the fixed Notes space's folders while that
+  /// space is shown, and the user's note spaces always
+  /// (services/noteTargets.js). The Home's capture and the Settings picker
+  /// read the same list, so they cannot disagree.
+  let quickTargets = $derived(
+    noteTargets({
+      notesFolder: layout.notesFolder,
+      notesInbox: layout.notesInbox,
+      folders: noteFolders,
+      spaces,
+      fixedShown: f("notesSpace"),
+    }),
+  );
 
   let userLists = $derived(
     (notebook?.lists ?? []).filter(
@@ -2156,7 +2171,7 @@
         {#snippet homeCapture()}
           <CaptureFab
             canTask={f("myDay") && !!layout.inbox}
-            canNote={f("notes") && f("notesSpace") && !!layout.notesFolder}
+            canNote={f("notes") && quickTargets.length > 0}
             onPick={(kind) =>
               kind === "note" ? captureNote() : (composingTask = true)}
           />
@@ -2346,7 +2361,7 @@
               quickNoteFolder={layout.quickNoteFolder}
               notesFolder={layout.notesFolder}
               notesInbox={layout.notesInbox}
-              folders={noteFolders}
+              noteTargets={quickTargets}
               lists={notebook.lists}
               {tags}
               completedName={layout.completedName}
@@ -2492,7 +2507,7 @@
               {zoom}
               onZoom={setZoom}
               onSwitchNotebook={chooseFolder}
-              folders={noteFolders}
+              noteTargets={quickTargets}
               notesInbox={layout.notesInbox}
               onSection={(label) => (settingsSub = label)}
               onChanged={refreshNotebook}

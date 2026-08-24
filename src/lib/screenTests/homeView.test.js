@@ -16,7 +16,12 @@ describe("HomeView", () => {
   const props = (extra = {}) => ({
     notesFolder: "jott.notes",
     notesInbox: "Inbox",
-    folders: ["Inbox", "Clientes"],
+    // The targets the shell computes (services/noteTargets.js): the fixed
+    // space's folders, plus any user note space.
+    noteTargets: [
+      { space: "jott.notes", folder: "Inbox", label: "Inbox", value: "Inbox" },
+      { space: "jott.notes", folder: "Clientes", label: "Clientes", value: "Clientes" },
+    ],
     readOnly: false,
     onChanged: noop,
     onError: noop,
@@ -105,6 +110,35 @@ describe("HomeView", () => {
       expect(invoke).toHaveBeenCalledWith("quick_capture_note", {
         folder: "jott.notes",
         inFolder: "Clientes",
+        text: "Comprar cimento",
+      }),
+    );
+  });
+
+  test("with the fixed space hidden, a quick note still lands in another notepad", async () => {
+    // The shell computes the targets with the fixed space left out: only the
+    // user's note space is offered, and the capture writes THERE (user call,
+    // 2026-08-24: "ainda deveria ser possível criar uma nota rápida, mas ela
+    // vai pra outro caderno").
+    bridge({ period_tasks: [], notes_created_today: [], quick_capture_note: "Inbox/x.md" });
+    render(HomeView, {
+      props: props({
+        noteTargets: [
+          { space: "Design Notes", folder: "Inbox", label: "Design Notes", value: "Design Notes" },
+        ],
+      }),
+    });
+
+    await userEvent.click(screen.getByRole("button", { name: "Note" }));
+    await userEvent.type(
+      await screen.findByPlaceholderText("New note…"),
+      "Comprar cimento{Enter}",
+    );
+
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("quick_capture_note", {
+        folder: "Design Notes",
+        inFolder: "Inbox",
         text: "Comprar cimento",
       }),
     );

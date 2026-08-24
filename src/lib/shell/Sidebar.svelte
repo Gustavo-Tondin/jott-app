@@ -376,34 +376,39 @@
         {/if}
       </button>
     {/snippet}
-    <div class="shell__group">
-      <!-- One glyph, open or not (user call, 2026-08-13): Home was the only
-           entry that swapped to its filled variant when selected, so the
-           icon changed SHAPE under the pointer while every other row just
-           took the accent pill. The pill already says where you are. -->
-      <!-- Each fixed row also answers to its own switch (Fixed spaces,
-           2026-08-24): hiding one takes the shortcut and the screen, and
-           nothing else — the folders stay, and the function stays on. -->
-      {#if f("homeSpace")}
-        {@render fixedRow({ kind: "home" }, "house", S.home)}
-      {/if}
-      {#if f("tasks") && f("tasksSpace")}
-        <!-- The fixed screen's own number, which it never had: a row that
-             holds tasks says how many are open, and this one holds the
-             Inbox and every list beside it (user report, 2026-08-20). -->
-        {@render fixedRow(
-          { kind: "tasks" },
-          "check-square",
-          S.tasks,
-          openIn(counts, notebook?.layout?.tasksFolder),
-        )}
-      {/if}
-      {#if f("notes") && f("notesSpace")}
-        {@render fixedRow({ kind: "notes" }, "note", S.notes)}
-      {/if}
-    </div>
+    <!-- With every fixed row hidden the whole group goes, divider included:
+         an empty group left a stray second line at the top of the column
+         (user report, 2026-08-24). -->
+    {#if f("homeSpace") || (f("tasks") && f("tasksSpace")) || (f("notes") && f("notesSpace"))}
+      <div class="shell__group">
+        <!-- One glyph, open or not (user call, 2026-08-13): Home was the only
+             entry that swapped to its filled variant when selected, so the
+             icon changed SHAPE under the pointer while every other row just
+             took the accent pill. The pill already says where you are. -->
+        <!-- Each fixed row also answers to its own switch (Fixed spaces,
+             2026-08-24): hiding one takes the shortcut and the screen, and
+             nothing else — the folders stay, and the function stays on. -->
+        {#if f("homeSpace")}
+          {@render fixedRow({ kind: "home" }, "house", S.home)}
+        {/if}
+        {#if f("tasks") && f("tasksSpace")}
+          <!-- The fixed screen's own number, which it never had: a row that
+               holds tasks says how many are open, and this one holds the
+               Inbox and every list beside it (user report, 2026-08-20). -->
+          {@render fixedRow(
+            { kind: "tasks" },
+            "check-square",
+            S.tasks,
+            openIn(counts, notebook?.layout?.tasksFolder),
+          )}
+        {/if}
+        {#if f("notes") && f("notesSpace")}
+          {@render fixedRow({ kind: "notes" }, "note", S.notes)}
+        {/if}
+      </div>
 
-    <hr class="theme-divider" />
+      <hr class="theme-divider" />
+    {/if}
 
     <!-- The user's lists reorder by drag (the whole item, like the tabs); the
          action skips the fixed Completed/new-list rows below by matching only

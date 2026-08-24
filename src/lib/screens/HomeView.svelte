@@ -38,6 +38,7 @@
   import NoteCard from "../components/NoteCard.svelte";
   import { measured } from "../actions/measure.js";
   import { columnBreaks, columnCount, weightOfNote } from "../services/noteColumns.js";
+  import { quickNoteTarget } from "../services/noteTargets.js";
 
   let {
     notesFolder,
@@ -46,7 +47,10 @@
     /// against (services/assets.js).
     root = null,
     quickNoteFolder = null,
-    folders = [],
+    /// Where a quick note can go — the fixed space's folders and the user's
+    /// note spaces (services/noteTargets.js). Empty means nowhere: the note
+    /// half of the capture closes.
+    noteTargets = [],
     /// Every list of the notebook, for the screen and its composer.
     lists = [],
     tags = [],
@@ -97,9 +101,12 @@
   /// Where the capture box's notes land. Null until the user picks it in the
   /// notes ⋮: the destination comes from the notebook's `quickNoteFolder`, and
   /// a state seeded from the prop would freeze on whatever it was at first
-  /// render.
-  let chosenFolder = $state(null);
-  let captureTo = $derived(chosenFolder ?? quickNoteFolder ?? notesInbox);
+  /// render. The value resolves against the offered targets, so a stored
+  /// choice that stopped existing falls back instead of swallowing notes.
+  let chosenTarget = $state(null);
+  let captureTarget = $derived(
+    quickNoteTarget(chosenTarget ?? quickNoteFolder, noteTargets),
+  );
 
   // The masonry, measured — the same two questions the notes board asks
   // (services/noteColumns.js): how many columns fit, and where to cut them.
@@ -132,7 +139,8 @@
   const capture = ({ kind, text }) =>
     act(async () => {
       if (kind === "note") {
-        await api.quickCaptureNote(notesFolder, captureTo, text);
+        if (!captureTarget) return;
+        await api.quickCaptureNote(captureTarget.space, captureTarget.folder, text);
         return;
       }
       await composeTask({ text, list: inbox }, { period: "day" });
@@ -160,31 +168,33 @@
 
   /// The notes block's ⋮: where a captured note is filed. It was a select
   /// living inside the old quick-note form; with the form gone it belongs
-  /// with the block it describes.
+  /// with the block it describes. The rows are the same targets Settings
+  /// offers — the fixed space's folders and the user's note spaces.
   let notesMenu = $derived(
-    (folders ?? []).length === 0
+    noteTargets.length === 0
       ? []
       : [
           { label: S.quickNoteTo, disabled: true },
-          ...[notesInbox, ...folders.filter((name) => name !== notesInbox)].map((name) => ({
-            label: name,
-            checked: captureTo === name,
-            run: () => (chosenFolder = name),
+          ...noteTargets.map((target) => ({
+            label: target.label,
+            checked: captureTarget?.value === target.value,
+            run: () => (chosenTarget = target.value),
           })),
         ],
   );
 </script>
 
 <div class="home">
-  <!-- A quick note can only land inside the fixed Notes space, so with that
-       space hidden (Fixed spaces, 2026-08-24) the note half of the capture
-       goes too — writing into a place with no door would lose the note. -->
-  {#if !readOnly && !compact && (f("myDay") || (f("notes") && f("notesSpace")))}
+  <!-- The note half of the capture lives as long as there is SOMEWHERE for a
+       note to go (services/noteTargets.js): the fixed Notes space hidden,
+       another notepad takes it — only with no note space at all does the
+       half close (user call, 2026-08-24). -->
+  {#if !readOnly && !compact && (f("myDay") || (f("notes") && !!captureTarget))}
     <CaptureBox
       date={todayLabel}
       {dot}
       canTask={f("myDay") && !!inbox}
-      canNote={f("notes") && f("notesSpace") && !!notesFolder}
+      canNote={f("notes") && !!captureTarget}
       onSubmit={capture}
     />
   {/if}
@@ -235,7 +245,7 @@
           </span>
         </span>
         <h2 class="theme-title home__block-title">{S.todaysNotes}</h2>
-        {#if !readOnly && notesFolder && f("notesSpace") && notesMenu.length > 0}
+        {#if !readOnly && notesMenu.length > 0}
           <Menu items={notesMenu}>
             {#snippet trigger({ toggle })}
               <button

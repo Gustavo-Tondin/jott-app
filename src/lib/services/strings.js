@@ -211,6 +211,11 @@ export const S = {
   featureNoteFolders: "Note folders",
   featurePinNotes: "Pin notes",
   featureFixedSpaces: "Fixed spaces",
+  featureFixedSpacesHint:
+    "The app's own spaces, as sidebar shortcuts and screens. Hiding one only " +
+    "takes it off the interface — the files stay, and everything returns " +
+    "when the space does. Quick notes go to whichever note space is still " +
+    "shown.",
   // Named "<Name> space", not the bare name: the bare "Tasks" would be the
   // second switch on the page wearing the label of the first — ambiguous to
   // a screen reader and to the settings search alike.

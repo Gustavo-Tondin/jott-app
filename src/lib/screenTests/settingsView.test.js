@@ -38,7 +38,12 @@ describe("SettingsView", () => {
 
   const props = (extra = {}) => ({
     notebook,
-    folders: ["Inbox", "Clientes"],
+    // The targets the shell computes (services/noteTargets.js): the fixed
+    // space's folders, plus any user note space.
+    noteTargets: [
+      { space: "jott.notes", folder: "Inbox", label: "Inbox", value: "Inbox" },
+      { space: "jott.notes", folder: "Clientes", label: "Clientes", value: "Clientes" },
+    ],
     notesInbox: "Inbox",
     onChanged: noop,
     onError: noop,

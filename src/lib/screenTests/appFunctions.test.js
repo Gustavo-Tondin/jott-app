@@ -139,6 +139,9 @@ describe("App functions — switching a part of the app off", () => {
     expect(within(sidebar).queryByText("Home")).toBeNull();
     expect(within(sidebar).queryByText("Tasks")).toBeNull();
     expect(within(sidebar).queryByText("Notes")).toBeNull();
+    // And the group's divider goes with it — an empty group left a stray
+    // second line at the top of the column (user report, 2026-08-24).
+    expect(sidebar.querySelectorAll(".theme-divider").length).toBe(0);
   });
 
   test("with notes off, the Home keeps only the day", async () => {
