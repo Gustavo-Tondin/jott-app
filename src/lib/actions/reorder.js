@@ -104,6 +104,15 @@ const HOLD_SLOP = 8;
 //                      release `onReorderMany(indices, to)` is called instead
 //                      of `onReorder` — or `onDropZone`/`onDropInto` with the
 //                      same indices in place of `from`, where those apply.
+//
+// And two about the REST itself (2026-08-24):
+//
+//   `holdMs`         — how long the finger rests before the hold fires, when
+//                      this list wants more than the default HOLD_MS.
+//   `hold: true`     — with a `handle`, still ask a FINGER to rest: for the
+//                      list whose handle is also its button, where pressing
+//                      it proves nothing. A mouse on the handle stays
+//                      immediate.
 
 export function reorderable(node, params) {
   let opts = params ?? {};
@@ -160,11 +169,22 @@ export function reorderable(node, params) {
       touch: e.pointerType === "touch",
     };
     // A finger on an item that is dragged BY ITSELF has to rest first (see
-    // HOLD_MS). Where the caller gave a handle there is nothing to wait for:
-    // pressing a grip is already the whole intent, and the grip takes the
-    // gesture off the scroller with `touch-action: none`.
-    if ((e.pointerType === "touch" || opts.onHold) && !opts.handle) {
-      drag.holdTimer = setTimeout(hold, HOLD_MS);
+    // HOLD_MS). Where the caller gave a handle there is usually nothing to
+    // wait for: pressing a grip is already the whole intent, and the grip
+    // takes the gesture off the scroller with `touch-action: none`. Unless
+    // the handle IS the row — the sidebar's "grip" is also the button that
+    // opens the space — where `hold: true` asks the finger to rest there too
+    // (user call, 2026-08-24: scrolling the column kept picking spaces up).
+    // A mouse on a handle keeps the immediate drag either way.
+    //
+    // `holdMs` lets a list ask for a longer rest than the default: the tasks
+    // give the wait to entering selection mode, and at 400ms a slow scroll
+    // kept entering it by accident (user call, 2026-08-24).
+    const rests = opts.handle
+      ? opts.hold && e.pointerType === "touch"
+      : e.pointerType === "touch" || opts.onHold;
+    if (rests) {
+      drag.holdTimer = setTimeout(hold, opts.holdMs ?? HOLD_MS);
     }
   }
 

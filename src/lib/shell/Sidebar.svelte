@@ -502,6 +502,11 @@
           // The INNERMOST list owns the gesture (see actions/reorder.js), so
           // grabbing a member drags the member, not the group holding it.
           handle: ".shell__nav-open",
+          // The handle here is also the button that OPENS the space, so a
+          // finger on it proves nothing — scrolling the column kept picking
+          // spaces up. It rests first, like everywhere else (user call,
+          // 2026-08-24).
+          hold: true,
           onReorder: (from, to) => reorderAt(parent, from, to),
           onDropInto: (from, into) => dropAt(list, from, into),
           onDragOut: parent ? (index) => leaveLevel(parent, index) : undefined,
