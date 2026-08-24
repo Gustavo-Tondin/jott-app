@@ -94,7 +94,9 @@
   // nothing is written, the task is where it was.
   let row = $state(null);
   let finishing = $state(false);
-  const CEILING = 1200;
+  // Above the send-off's ~1.23s (task-row.css), so the guard never cuts
+  // the fold short.
+  const CEILING = 1500;
   const SEND_OFFS = new Set(["task-row-finish", "task-row-restore"]);
 
   // Unticking a completed card plays the same way (user call, 2026-08-21):

@@ -66,7 +66,7 @@ describe("TaskRow — completing", () => {
     const { box, done, card } = row();
     playing(card);
     await fireEvent.click(box);
-    await vi.advanceTimersByTimeAsync(1300);
+    await vi.advanceTimersByTimeAsync(1600);
     expect(done).toEqual(["a1"]);
   });
 

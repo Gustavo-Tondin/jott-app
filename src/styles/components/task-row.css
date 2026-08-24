@@ -87,27 +87,33 @@
     color: var(--theme-ink-muted);
     text-decoration-color: currentColor;
   }
+  /* Checking: the exact strike the subtasks wear (user call, 2026-08-24:
+     "use a mesma animação de checked usada pras subtasks, que está muito
+     bonita") — the ink steps back to faint and the line fades in, in place,
+     through the transitions the title already carries. No tint, no dress-up:
+     the strike IS the moment of "done". */
+  .task-row--finishing .task-row__title {
+    color: var(--theme-ink-faint);
+    text-decoration-color: currentColor;
+  }
 
   /* THE SEND-OFF (TaskRow.svelte says when it plays and what waits on it).
-     In one breath: the card takes the accent tint as the tick lands — the
-     moment of "done" — holds it long enough to be read, then folds away:
-     fading, shrinking a hair, and closing its height so the cards below rise
-     into the gap instead of jumping there on the next frame. The tick and
-     the tint are the whole celebration: the grey, struck-through COMPLETED
-     look waits for the Completed list, because a card wearing it while still
-     sitting among the open ones read as the app lagging behind itself (user
-     call, 2026-08-24). `forwards`, so it stays folded until the list is redrawn
-     without it. The height closes through `max-block-size`, the one way to
-     animate a height that is not known in advance; the ceiling is taller than
-     any card, so the fold visibly begins only once the value crosses the real
-     height — which is what puts the pause between the tick and the fold.
+     The tick lands and the title strikes through, subtask-style (above); the
+     card then HOLDS for about a second — long enough to read, and to tick
+     again when it was a slip — and folds away FAST (user call, 2026-08-24:
+     "depois de 1s, o card encolhe rápido e surge no completed"): fading,
+     shrinking a hair, and closing its height so the cards below rise into
+     the gap instead of jumping there on the next frame. `forwards`, so it
+     stays folded until the list is redrawn without it. The height closes
+     through `max-block-size`, the one way to animate a height that is not
+     known in advance; the ceiling is taller than any card, so the visible
+     fold is even quicker than its keyframe window.
      The name is read by the row, which waits for it: renaming it here is
      renaming it there. */
   .task-row--finishing {
     overflow: hidden;
-    /* About a second, on purpose (user call, 2026-08-21): long enough to
-       tick the box again when the tick was a slip. */
-    animation: task-row-finish calc(var(--theme-duration-slow) * 3) var(--theme-ease-out) forwards;
+    /* ~1.2s total: 84% held (the second of reading), 16% fold (~200ms). */
+    animation: task-row-finish calc(var(--theme-duration-slow) * 3.5) var(--theme-ease-out) forwards;
   }
   /* Unticking, from the Completed list: the same fold, shorter and without
      the tint — the card is leaving for the open list, not being celebrated.
@@ -136,18 +142,16 @@
   }
   @keyframes task-row-finish {
     0%,
-    45% {
+    84% {
       opacity: 1;
       scale: 1;
       max-block-size: 8rem;
-      background: var(--theme-brand-weak);
     }
     100% {
       opacity: 0;
       scale: 0.96;
       max-block-size: 0;
       padding-block: 0;
-      background: var(--theme-brand-weak);
     }
   }
   .task-row__edit {
