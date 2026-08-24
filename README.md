@@ -11,6 +11,10 @@ you ever stop using Jott, everything stays there, readable.
 Runs on **Linux, Windows and Android** from one codebase, with a native
 interface (not a packaged website).
 
+- [Install](#install) · [What it does today](#what-it-does-today) ·
+  [Your data on disk](#your-data-on-disk) · [Roadmap](#roadmap) ·
+  [Contributing](#contributing) · [Documentation](documentation/)
+
 ## Install
 
 Grab the file for your platform from the
@@ -47,7 +51,51 @@ your data.
   subscription.
 - **Privacy** — the app makes no connection beyond the optional update check.
 
-## How your data sits on disk
+## What it does today
+
+Current version: **v0.36.1** — daily-driver usable, pre-1.0.
+
+**Tasks**
+- Inbox and lists of your own, in as many task spaces as you want.
+- **Today** and **Week**: you pull in what you want to face, instead of
+  staring at the whole list. Suggestions are ordered by urgency, never
+  auto-selected — unless you turn on "dated tasks join the day".
+- Due dates, priorities, tags, repetition, descriptions, subtasks and file
+  attachments; completed tasks kept in their own file, restorable.
+- A day/week rollover you configure, down to the hour.
+
+**Notes**
+- A masonry card board, with folders as cards; or a plain board with every
+  note on screen.
+- Markdown editor with live preview (CodeMirror): headings, lists, quotes,
+  code, tables as an editable grid, find & replace, a formatting panel you
+  can dock to any edge or float.
+- `[[Note]]` links between notes and `[[/file.pdf]]` references to files,
+  both with autocompletion; colour or image banners; pinning; bulk select.
+
+**The notebook**
+- **One image and file library** (`assets/`) for the whole notebook, with
+  usage tracking and safe renaming — links inside notes follow the file.
+- **Global search** (Ctrl+F / Ctrl+K), or scoped to one space.
+- **A notebooks screen**: everything this machine has opened, with colours
+  and counts read without opening anything; rename, move, reveal, forget.
+  Two notebooks can be open side by side, one per window.
+- **Nothing is destroyed** — everything deleted goes to the notebook's trash
+  and comes back exactly where it was. Undo/redo (Ctrl+Z) for app actions,
+  separate from the editor's own.
+- **Outside changes are detected** — edit a file in another editor, or let
+  Syncthing/Drive sync it, and the app follows.
+
+**Looks and input**
+- Three themes (default, light, dark) × eight accent colours, each with a
+  six-rung ladder so headings and chrome agree with the theme.
+- Three font choices (interface, note body, monospace) from the fonts your
+  machine has; interface zoom; note text size.
+- Configurable keyboard shortcuts for ~50 commands.
+- One responsive shell: sidebar and panels on the desktop, drawer and bottom
+  sheets on the phone.
+
+## Your data on disk
 
 Each folder is a **space** with one job only: it's either a task list or a
 notebook of notes. The three the app creates carry the `jott.` prefix — they
@@ -60,7 +108,7 @@ MyNotebook/
 │   ├── task-list.md     ← shown as "Inbox" in the app
 │   └── completed.md
 ├── jott.notes/          ← the app's space for loose notes
-├── assets/              ← every image the notebook uses, in one library
+├── assets/              ← every image and file the notebook uses
 ├── Groceries/           ← a task list of yours
 │   ├── task-list.md
 │   └── completed.md
@@ -77,34 +125,64 @@ A task is one Markdown checklist line; a note is one Markdown file:
 - [x] Pay internet bill
 ```
 
-The format is documented inside every notebook, in plain text
+Every notebook documents its own format in plain text
 (`.jott/_FORMAT.txt`), so your files never depend on this repository to be
-understood.
+understood. The full contract — front matter, banners, attachments, config
+files — is in [`documentation/file-format.md`](documentation/file-format.md).
 
-## What the app does today (v0.20)
+## Roadmap
 
-- **Tasks** — Inbox and your own lists; **Today** and **Week** views where
-  you pull in what you want to face, instead of the whole list; priorities,
-  tags, repetition, due dates, descriptions and file attachments; completed
-  tasks kept separate, with undo.
-- **Notes** — folders shown as a card board; Markdown editor with live
-  preview; `[[links]]` between notes with autocompletion; colour or image
-  banners; find & replace; global search (Ctrl+F).
-- **One image library** for the whole notebook, with safe renaming — links
-  inside notes are rewritten with the file.
-- **Day and week rollover** you configure — including the hour, for whether
-  you plan tomorrow before bed or first thing in the morning.
-- **Three themes** (default, light, dark) × eight accent colours;
-  configurable shortcuts; interface zoom.
-- **Nothing is destroyed** — everything deleted goes to the notebook's own
-  trash and can be restored to where it was.
-- **Outside changes are detected** — edit a file in another editor, or let
-  Syncthing/Drive sync it, and the app follows.
+Jott is pre-1.0. This is the honest state of it, by horizon.
 
-Syncing across devices **is already possible for free**: point Syncthing,
-Drive or similar at the notebook folder. Planned next: table and kanban as
-other views of the same list, importers, translations — and optional paid
-conveniences (encrypted sync, backup) that never replace the free local way.
+**Now — what's left before v1**
+
+The feature work is done; what remains is proving it on hardware.
+
+| | |
+|---|---|
+| Android on real hardware | the build installs and runs, and has been used on one physical phone — everything since has been the emulator |
+| Clicking through what only tests have seen | app-level undo/redo, the mouse back button, the light and dark themes |
+
+**Next — after v1, in rough order of appetite**
+
+- **Other views of the same list** — table and kanban, reading the data v1
+  already writes. Not a new kind of space.
+- **Local version history for a note** (`.jott/history/`) — the trash
+  protects a deleted file; nothing yet protects a paragraph you overwrote.
+- **Command palette** (Ctrl+P) — the command registry already exists; today
+  a command without a key is unreachable from the keyboard.
+- **System-wide capture** (Ctrl+Alt+Space) — the one shortcut that matters
+  most for an app whose thesis is "write it down before you forget it".
+- **Easier theme authoring** — the format is honest but verbose (~50
+  assignments per theme); see [theming](documentation/theming.md).
+- **User themes from `.jott/themes/`**, translations, importers (Todoist,
+  Microsoft To Do, Obsidian Tasks), CSV export/import, PDF export of a note,
+  split view, time-of-day on tasks.
+
+**Later — optional paid services, never replacing a local feature**
+
+End-to-end encrypted multi-device sync, cloud backup, sharing and
+publishing. Syncing today is already free and works: point Syncthing, Drive
+or git at the notebook folder.
+
+**Not happening** — decided, not pending
+
+| | Why |
+|---|---|
+| Third-party plugins running code from the notebook folder | executable JavaScript inside your *data*, synced to every device |
+| A graph view | the product is "simplified Obsidian, no graph" |
+| Whiteboard, mindmap, dashboards, multi-widget spaces | cut in 2026-08 — they were the most expensive part of the app and the least aligned with "write it down fast" |
+| Smart typography that rewrites what you typed | the app never puts characters in your file that you didn't type |
+| An iOS build | no free path to distribution |
+
+## Contributing
+
+Issues and pull requests are welcome. Start with
+[`CONTRIBUTING.md`](CONTRIBUTING.md) — it covers the setup, the two test
+suites, and the handful of rules that keep this codebase the way it is.
+
+Writing a **theme** is the smallest useful contribution and needs no Rust:
+[`documentation/theming.md`](documentation/theming.md).
 
 ## Development
 
@@ -124,31 +202,11 @@ npm run package      # build AppImage / deb / rpm
 | `core/` | Pure Rust crate with all the business logic. No Tauri dependency. |
 | `src-tauri/` | Thin shell that exposes `core` to the frontend via `invoke()`. |
 | `src/` | Svelte frontend, with plain CSS. |
+| `documentation/` | Architecture, file format, theming, contributing. |
 
-Platform notes:
-
-- **AppImage** is packaged with `NO_STRIP=1` (the `package` script does it):
-  the `strip` bundled with linuxdeploy predates the `.relr.dyn` ELF section
-  current toolchains emit.
-- **Windows** installers are built by CI (`.github/workflows/release.yml`) —
-  they can only be assembled on Windows.
-- **Android** builds need JDK 17+, the Android SDK and NDK, with `JAVA_HOME`,
-  `ANDROID_HOME` and `NDK_HOME` set:
-
-  ```bash
-  npm run tauri android build -- --apk    # release (needs a keystore)
-  npm run tauri android build -- --debug --target aarch64 --apk
-  ```
-
-  On Android, Jott asks for the *All files access* permission and then lets
-  you browse to any folder — the same thing Obsidian does, and for the same
-  reason: Android's Storage Access Framework hands an app a `content://` URI,
-  which is not a path, and Jott's core reads and writes plain paths. Put the
-  notebook wherever a sync client can also see it. Decline the permission and
-  Jott falls back to its private folder
-  (`Android/data/dev.gustavotondin.jott/files/Documents/Jott`) — real `.md`
-  files reachable over USB, but invisible to every other app on the phone,
-  sync clients included; uninstalling Jott deletes it.
+Platform-specific build notes (AppImage stripping, Windows CI, the Android
+SDK and its storage permission) are in
+[`documentation/building.md`](documentation/building.md).
 
 ## License
 
