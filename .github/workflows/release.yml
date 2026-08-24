@@ -151,20 +151,35 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ github.ref_name }}
+          REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
+          # The release is a DRAFT (releaseDraft: true above), and a draft is
+          # invisible to every lookup BY TAG: `GET /releases/tags/{tag}` —
+          # which is what `gh release view <tag>` and `gh release
+          # delete-asset <tag>` both call — answers 404 until the release is
+          # published. This job used to do exactly that and reported success
+          # while deleting nothing: the v0.36.1 run logged "No release for
+          # v0.36.1 — nothing to tidy" with four .sig sitting on the draft
+          # (measured 2026-08-24). Drafts are only reachable by LISTING the
+          # releases and matching `tag_name`, so that is what this does, and
+          # the assets go by id.
+          id=$(gh api "repos/$REPO/releases" --paginate \
+                 --jq ".[] | select(.tag_name==\"$TAG\") | .id" | head -1)
           # If both legs failed there is no release at all; that is not a
           # reason to fail the run on top of the failure that caused it.
-          if ! sigs=$(gh release view "$TAG" --json assets -q '.assets[].name' 2>/dev/null); then
+          if [ -z "$id" ]; then
             echo "No release for $TAG — nothing to tidy."
             exit 0
           fi
-          sigs=$(printf '%s\n' "$sigs" | grep '\.sig$' || true)
+          echo "Release $TAG is id $id."
+          sigs=$(gh api "repos/$REPO/releases/$id/assets" --paginate \
+                   --jq '.[] | select(.name|endswith(".sig")) | "\(.id) \(.name)"')
           if [ -z "$sigs" ]; then
             echo "No .sig assets on $TAG."
             exit 0
           fi
-          printf '%s\n' "$sigs" | while read -r asset; do
-            echo "Removing $asset"
-            gh release delete-asset "$TAG" "$asset" --yes
+          printf '%s\n' "$sigs" | while read -r asset_id name; do
+            echo "Removing $name ($asset_id)"
+            gh api -X DELETE "repos/$REPO/releases/assets/$asset_id"
           done
