@@ -11,6 +11,12 @@ const SETUP = {
     { path: "jott.tasks/task-list.md", name: "Inbox" },
     { path: "jott.tasks/completed.md", name: "Completed" },
     { path: "jott.tasks/compras.md", name: "compras" },
+    // The bridge flattens EVERY list of the notebook in here — the user
+    // spaces' own files share names with the fixed ones, and offering them
+    // as if they were the fixed space's made duplicate keys that blanked
+    // the Settings section (2026-08-24).
+    { path: "Design/Tarefas Design/task-list.md", name: "Inbox" },
+    { path: "Design/Tarefas Design/completed.md", name: "completed" },
   ],
   spaces: [
     { path: "jott.tasks", name: "Tasks", kind: "tasks", fixed: true },

@@ -13,7 +13,7 @@
 // Inbox alone stays while the Home is SHOWING that space (`homeTasksSource`):
 // a task captured into it is read right there.
 
-import { listName, MAIN_LIST } from "./paths.js";
+import { folderOf, listName, MAIN_LIST } from "./paths.js";
 
 /// The places a quick task can go, in the order the pickers offer them.
 /// `{list, label, value}` — `list` is the path `composeTask` writes to,
@@ -27,17 +27,23 @@ export function taskTargets({
   inboxOnHome = false,
 }) {
   const out = [];
+  const fixedFolder = inbox ? folderOf(inbox) : null;
   if ((fixedShown || inboxOnHome) && inbox) {
     out.push({ list: inbox, label: "Inbox", value: "" });
   }
   if (fixedShown) {
     for (const entry of lists) {
       if (!entry?.path || entry.path === inbox || entry.path === completed) continue;
+      // `lists` carries EVERY list of the notebook — the user spaces' own
+      // task-list/completed included, and every one of those shares a file
+      // name with the next. Only the FIXED space's lists belong here (the
+      // duplicate keys blanked the whole Settings section on the desktop,
+      // 2026-08-24); a user space enters below, whole.
+      if (folderOf(entry.path) !== fixedFolder) continue;
       const name = listName(entry.path);
       out.push({ list: entry.path, label: entry.name ?? name, value: name });
     }
   }
-  const fixedFolder = inbox ? inbox.slice(0, inbox.lastIndexOf("/")) : null;
   for (const sp of spaces) {
     // The fixed space rides in `spaces` too (it has a marker like any other);
     // its doors are the fixed entries above, not a duplicate row here.
