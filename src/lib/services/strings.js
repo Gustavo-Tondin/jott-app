@@ -163,6 +163,13 @@ export const S = {
   featureEmbeds: "Embedded images and files",
   featureNoteFolders: "Note folders",
   featurePinNotes: "Pin notes",
+  featureFixedSpaces: "Fixed spaces",
+  // Named "<Name> space", not the bare name: the bare "Tasks" would be the
+  // second switch on the page wearing the label of the first — ambiguous to
+  // a screen reader and to the settings search alike.
+  featureHomeSpace: "Home space",
+  featureTasksSpace: "Tasks space",
+  featureNotesSpace: "Notes space",
 
   // The shortcuts table in Settings (2026-08-18).
   sectionShortcuts: "Shortcuts",

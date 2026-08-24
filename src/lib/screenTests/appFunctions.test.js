@@ -90,6 +90,57 @@ describe("App functions — switching a part of the app off", () => {
     expect(screen.getByText("Trash")).toBeTruthy();
   });
 
+  test("a hidden fixed space loses its row, and the function stays on", async () => {
+    // Fixed spaces (2026-08-24): hiding the Tasks SPACE is not switching
+    // tasks off — the Home keeps its day, only the sidebar shortcut (and the
+    // fixed space's lists and Completed) leave.
+    withFeatures({ tasksSpace: false });
+    render(App);
+
+    const sidebar = await waitFor(() => {
+      const el = document.querySelector(".shell__sidebar");
+      expect(el).not.toBeNull();
+      return el;
+    });
+    await within(sidebar).findByText("Home");
+    expect(within(sidebar).queryByText("Tasks")).toBeNull();
+    expect(await screen.findByText("Today tasks")).toBeTruthy();
+    await userEvent.click(screen.getByLabelText("menu"));
+    expect(screen.queryByText("Completed")).toBeNull();
+    expect(screen.getByText("Trash")).toBeTruthy();
+  });
+
+  test("hiding the Home lands the app on the first fixed screen standing", async () => {
+    withFeatures({ homeSpace: false });
+    render(App);
+
+    const sidebar = await waitFor(() => {
+      const el = document.querySelector(".shell__sidebar");
+      expect(el).not.toBeNull();
+      return el;
+    });
+    expect(within(sidebar).queryByText("Home")).toBeNull();
+    // The restored screen was "home"; the landing is the Tasks screen.
+    await waitFor(() => {
+      expect(document.querySelector(".home")).toBeNull();
+      expect(document.querySelector(".tasks-view__subs")).not.toBeNull();
+    });
+  });
+
+  test("the master switch hides the three fixed rows at once", async () => {
+    withFeatures({ fixedSpaces: false });
+    render(App);
+
+    const sidebar = await waitFor(() => {
+      const el = document.querySelector(".shell__sidebar");
+      expect(el).not.toBeNull();
+      return el;
+    });
+    expect(within(sidebar).queryByText("Home")).toBeNull();
+    expect(within(sidebar).queryByText("Tasks")).toBeNull();
+    expect(within(sidebar).queryByText("Notes")).toBeNull();
+  });
+
   test("with notes off, the Home keeps only the day", async () => {
     withFeatures({ notes: false });
     render(App);

@@ -2,7 +2,7 @@
 // inside App.svelte, reachable only by mounting the whole app.
 
 import { describe, expect, test } from "vitest";
-import { reachable, spaceOfView, titleOf, viewFromId } from "./views.js";
+import { landing, reachable, spaceOfView, titleOf, viewFromId } from "./views.js";
 import { viewId } from "./tabs.js";
 
 describe("viewFromId", () => {
@@ -54,9 +54,42 @@ describe("reachable", () => {
     expect(reachable({ kind: "tags" }, off("taskTags"))).toBe(false);
   });
 
-  test("Home and Settings are always somewhere to be", () => {
-    expect(reachable({ kind: "home" }, () => false)).toBe(true);
+  test("a hidden fixed space takes its own screens, and only its own", () => {
+    // Fixed spaces (2026-08-24): the layout is what tells the fixed space's
+    // files from a user space's, which stay reachable regardless.
+    const layout = { tasksFolder: "jott.tasks", notesFolder: "jott.notes" };
+    expect(reachable({ kind: "tasks" }, off("tasksSpace"), layout)).toBe(false);
+    expect(reachable({ kind: "completed" }, off("tasksSpace"), layout)).toBe(false);
+    expect(
+      reachable({ kind: "list", list: "jott.tasks/task-list.md" }, off("tasksSpace"), layout),
+    ).toBe(false);
+    expect(
+      reachable({ kind: "list", list: "Design/Tasks/task-list.md" }, off("tasksSpace"), layout),
+    ).toBe(true);
+    expect(reachable({ kind: "notes" }, off("notesSpace"), layout)).toBe(false);
+    expect(
+      reachable({ kind: "note", folder: "jott.notes", path: "a.md" }, off("notesSpace"), layout),
+    ).toBe(false);
+    expect(
+      reachable({ kind: "note", folder: "Design/Notes", path: "a.md" }, off("notesSpace"), layout),
+    ).toBe(true);
+    expect(reachable({ kind: "home" }, off("homeSpace"))).toBe(false);
+  });
+
+  test("Settings is always somewhere to be", () => {
     expect(reachable({ kind: "settings" }, () => false)).toBe(true);
+  });
+});
+
+describe("landing", () => {
+  const off = (...keys) => (key) => !keys.includes(key);
+
+  test("Home, unless Home is hidden — then the first fixed screen standing", () => {
+    expect(landing()).toEqual({ kind: "home" });
+    expect(landing(off("homeSpace"))).toEqual({ kind: "tasks" });
+    expect(landing(off("homeSpace", "tasksSpace"))).toEqual({ kind: "notes" });
+    // Every door closed: the app still opens somewhere.
+    expect(landing(() => false)).toEqual({ kind: "home" });
   });
 });
 

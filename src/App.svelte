@@ -94,7 +94,7 @@
   } from "./lib/services/desktopEntry.js";
   import { S } from "./lib/services/strings.js";
   import * as Tabs from "./lib/shell/tabs.js";
-  import { reachable, spaceOfView, titleOf, viewFromId } from "./lib/shell/views.js";
+  import { landing, reachable, spaceOfView, titleOf, viewFromId } from "./lib/shell/views.js";
   import { watchWindowState, toggleFullscreen } from "./lib/shell/windowState.js";
 
   let notebook = $state(null);
@@ -243,9 +243,10 @@
   let active = $state(0);
   let rawView = $derived(Tabs.currentView(tabs[active]) ?? { kind: "home" });
 
-  // A view whose part of the app was switched off shows the Home instead
-  // (shell/views.js); nothing is closed behind the user's back.
-  let view = $derived(reachable(rawView, f) ? rawView : { kind: "home" });
+  // A view whose part of the app was switched off shows the landing screen
+  // instead (shell/views.js) — Home, or the first fixed screen still standing
+  // when Home itself is hidden. Nothing is closed behind the user's back.
+  let view = $derived(reachable(rawView, f, layout) ? rawView : landing(f));
 
   /// Opens a view in its own tab (focusing it if already open).
   function openTab(next) {
@@ -1981,7 +1982,7 @@
         {#snippet homeCapture()}
           <CaptureFab
             canTask={f("myDay") && !!layout.inbox}
-            canNote={f("notes") && !!layout.notesFolder}
+            canNote={f("notes") && f("notesSpace") && !!layout.notesFolder}
             onPick={(kind) =>
               kind === "note" ? captureNote() : (composingTask = true)}
           />

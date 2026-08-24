@@ -295,6 +295,15 @@
   .settings__function {
     gap: var(--theme-space-12);
   }
+  /* A sub-switch drawn on this page (the fixed spaces): indented under its
+     master, the way a child names its parent on a function's own page. */
+  .settings__function--sub {
+    margin-inline-start: var(--theme-space-24);
+  }
+  /* The divider that sets the inline group apart from the functions above. */
+  .settings__functions-break {
+    margin-block: var(--theme-space-8);
+  }
   .settings__function-name {
     flex: 1;
     min-inline-size: 0;
