@@ -173,6 +173,10 @@
   use:reorderable={{
     axis: "y",
     item: onReorder ? ".task-row" : ".task-row--never",
+    // Longer than the default rest: here the hold ENTERS SELECTION MODE, and
+    // at 400ms a slow scroll down the list kept marking cards by accident
+    // (user call, 2026-08-24: "aumentar bastantinho o tempo pra selecionar").
+    holdMs: 700,
     onReorder: onReorder ?? (() => {}),
     onHold: onHold ? (i) => onHold(items[i]) : null,
     carried: carried

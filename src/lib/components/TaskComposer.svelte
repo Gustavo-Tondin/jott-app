@@ -97,6 +97,18 @@
   let engaged = $state(false);
   let showFields = $derived(variant === "dialog" || engaged || intent.text.trim().length > 0);
 
+  /// Is there anything here worth keeping? Text typed, or a field chosen by
+  /// hand. The shell reads it off the markup (`.task-composer--holding`) when
+  /// the Android keyboard goes away, so the Home's bar is not thrown out with
+  /// a half-written task still on it (user report on device, 2026-08-24).
+  let holding = $derived(
+    intent.text.trim().length > 0 ||
+      !!intent.list ||
+      !!intent.due ||
+      !!intent.priority ||
+      !!intent.repeatUnit,
+  );
+
   function letGo() {
     // After the browser has settled focus on whatever comes next.
     setTimeout(() => {
@@ -135,6 +147,7 @@
 <form
   bind:this={form}
   class="task-composer task-composer--{variant}"
+  class:task-composer--holding={holding}
   onsubmit={(e) => (e.preventDefault(), submit())}
   onfocusin={() => (engaged = true)}
   onfocusout={letGo}

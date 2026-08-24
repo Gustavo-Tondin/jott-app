@@ -38,17 +38,32 @@ export function viewFromId(id) {
 /// Is this view still somewhere the app goes? A part switched off takes its
 /// screens with it (App Functions, 2026-08-06), and a tab left pointing at one
 /// — restored from the last session, or open when the switch flipped — shows
-/// the Home rather than a dead panel. Nothing is closed behind the user's
-/// back: the tab stays.
-export function reachable(view, f = () => true) {
+/// the landing screen rather than a dead panel. Nothing is closed behind the
+/// user's back: the tab stays.
+///
+/// `layout` joined for the fixed spaces (2026-08-24): a hidden fixed space
+/// takes its own screens with it, and only the layout knows whether a list or
+/// a note lives in one — a user space's files stay reachable regardless.
+export function reachable(view, f = () => true, layout = null) {
   switch (view?.kind) {
+    case "home":
+      return f("homeSpace");
     case "tasks":
-    case "list":
     case "completed":
-      return f("tasks");
+      return f("tasks") && f("tasksSpace");
+    case "list": {
+      if (!f("tasks")) return false;
+      const home = layout?.tasksFolder;
+      return home && folderOf(view.list) === home ? f("tasksSpace") : true;
+    }
     case "notes":
-    case "note":
-      return f("notes");
+      return f("notes") && f("notesSpace");
+    case "note": {
+      if (!f("notes")) return false;
+      return layout?.notesFolder && view.folder === layout.notesFolder
+        ? f("notesSpace")
+        : true;
+    }
     case "tags":
       return f("taskTags");
     // The image library exists to feed notes — banners and pictures inside
@@ -59,6 +74,17 @@ export function reachable(view, f = () => true) {
     default:
       return true;
   }
+}
+
+/// Where the app lands when a view is not somewhere it goes any more. Home,
+/// unless Home itself is hidden (Fixed spaces, 2026-08-24) — then the first
+/// fixed screen still standing, and Home regardless when none is: the app has
+/// to land somewhere, and a notebook with every door closed still opens.
+export function landing(f = () => true) {
+  if (f("homeSpace")) return { kind: "home" };
+  if (f("tasks") && f("tasksSpace")) return { kind: "tasks" };
+  if (f("notes") && f("notesSpace")) return { kind: "notes" };
+  return { kind: "home" };
 }
 
 /// What a view calls itself. Derived, never stored: renaming a list has to

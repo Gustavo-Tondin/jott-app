@@ -96,7 +96,7 @@
   } from "./lib/services/desktopEntry.js";
   import { S } from "./lib/services/strings.js";
   import * as Tabs from "./lib/shell/tabs.js";
-  import { reachable, spaceOfView, titleOf, viewFromId } from "./lib/shell/views.js";
+  import { landing, reachable, spaceOfView, titleOf, viewFromId } from "./lib/shell/views.js";
   import { watchWindowState, toggleFullscreen } from "./lib/shell/windowState.js";
 
   let notebook = $state(null);
@@ -270,9 +270,10 @@
   let active = $state(0);
   let rawView = $derived(Tabs.currentView(tabs[active]) ?? { kind: "home" });
 
-  // A view whose part of the app was switched off shows the Home instead
-  // (shell/views.js); nothing is closed behind the user's back.
-  let view = $derived(reachable(rawView, f) ? rawView : { kind: "home" });
+  // A view whose part of the app was switched off shows the landing screen
+  // instead (shell/views.js) — Home, or the first fixed screen still standing
+  // when Home itself is hidden. Nothing is closed behind the user's back.
+  let view = $derived(reachable(rawView, f, layout) ? rawView : landing(f));
 
   /// Opens a view in its own tab (focusing it if already open).
   function openTab(next) {
@@ -1298,11 +1299,23 @@
   // bar across the bottom of the day with no way to dismiss it. The tasks
   // screens' bar is not this: there it is part of the screen, not something
   // opened, and it stays.
+  //
+  // Two exceptions, both measured on device (2026-08-24). A composer CONTROL
+  // holding the focus — a chip, a field button, or a panel portaled out by
+  // `keepOnScreen` — is not "done typing": the keyboard stepped aside for the
+  // menu the tap just opened, and blurring here killed that menu before it
+  // drew. And a bar HOLDING something (text written, a field chosen — the
+  // `.task-composer--holding` class the composer itself wears) survives the
+  // keyboard, because dismissing the keys mid-thought was deleting the
+  // thought. Empty and let go, it closes as before.
   $effect(() =>
     onKeyboardHidden(() => {
       const focused = document.activeElement;
+      if (focused?.closest?.("[data-popout]")) return;
+      const composer = focused?.closest?.(".task-composer");
+      if (composer && !focused.classList.contains("task-composer__input")) return;
       if (focused && focused !== document.body) focused.blur?.();
-      composingTask = false;
+      if (!document.querySelector(".task-composer--holding")) composingTask = false;
     }),
   );
 
@@ -2148,7 +2161,7 @@
         {#snippet homeCapture()}
           <CaptureFab
             canTask={f("myDay") && !!layout.inbox}
-            canNote={f("notes") && !!layout.notesFolder}
+            canNote={f("notes") && f("notesSpace") && !!layout.notesFolder}
             onPick={(kind) =>
               kind === "note" ? captureNote() : (composingTask = true)}
           />

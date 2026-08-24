@@ -591,9 +591,12 @@ describe("SettingsView", () => {
     const field = await screen.findByLabelText("Search settings");
     for (const feature of FEATURES) {
       const label = feature.label();
-      const page = feature.parent
-        ? FEATURES.find((f) => f.key === feature.parent).label()
-        : "Native Functions";
+      const parent = feature.parent
+        ? FEATURES.find((f) => f.key === feature.parent)
+        : null;
+      // An inline group's children (the fixed spaces) live on the Native
+      // Functions page itself, not behind a page of their own (2026-08-24).
+      const page = parent && !parent.inline ? parent.label() : "Native Functions";
       await fireEvent.input(field, { target: { value: label } });
 
       // Where a hit with this exact label may land, and nowhere else. A
@@ -603,7 +606,11 @@ describe("SettingsView", () => {
       // word written out by hand as well as derived.
       const where = feature.parent
         ? [`in ${page}`]
-        : [`in Native Functions`, ...(hasPage(feature.key) ? [`in ${label}`] : [])];
+        : [
+            `in Native Functions`,
+            // An inline group has children but no page of its own.
+            ...(hasPage(feature.key) && !feature.inline ? [`in ${label}`] : []),
+          ];
 
       await waitFor(() => {
         const found = screen

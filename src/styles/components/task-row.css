@@ -83,18 +83,20 @@
   .task-row--selected .task-row__title {
     font-weight: var(--theme-weight-semibold);
   }
-  .task-row--done .task-row__title,
-  .task-row--finishing .task-row__title {
+  .task-row--done .task-row__title {
     color: var(--theme-ink-muted);
     text-decoration-color: currentColor;
   }
 
   /* THE SEND-OFF (TaskRow.svelte says when it plays and what waits on it).
-     In one breath: the card takes the accent tint as the tick lands and the
-     title strikes through — the moment of "done" — holds it long enough to
-     be read, then folds away: fading, shrinking a hair, and closing its
-     height so the cards below rise into the gap instead of jumping there on
-     the next frame. `forwards`, so it stays folded until the list is redrawn
+     In one breath: the card takes the accent tint as the tick lands — the
+     moment of "done" — holds it long enough to be read, then folds away:
+     fading, shrinking a hair, and closing its height so the cards below rise
+     into the gap instead of jumping there on the next frame. The tick and
+     the tint are the whole celebration: the grey, struck-through COMPLETED
+     look waits for the Completed list, because a card wearing it while still
+     sitting among the open ones read as the app lagging behind itself (user
+     call, 2026-08-24). `forwards`, so it stays folded until the list is redrawn
      without it. The height closes through `max-block-size`, the one way to
      animate a height that is not known in advance; the ceiling is taller than
      any card, so the fold visibly begins only once the value crosses the real

@@ -458,6 +458,52 @@ describe("reorderable on a touch screen", () => {
     expect(moves).toEqual([[0, 2]]);
   });
 
+  test("`hold: true` asks the finger to rest even on a grip", () => {
+    // The sidebar's grip is also the button that opens the space, so a finger
+    // on it proves nothing — scrolling the column kept picking spaces up
+    // (user call, 2026-08-24).
+    const moves = [];
+    const ul = touchList((f, t) => moves.push([f, t]), { handle: ".grip", hold: true });
+    const grip = ul.children[0].querySelector(".grip");
+
+    // Moving straight away is a scroll: nothing is carried.
+    fire(grip, "pointerdown", { button: 0, pointerId: 1, pointerType: "touch", clientY: 5, clientX: 5 });
+    fire(grip, "pointermove", { pointerId: 1, clientY: 95, clientX: 5 });
+    fire(grip, "pointerup", { pointerId: 1, clientY: 95, clientX: 5 });
+    expect(moves).toEqual([]);
+
+    // Resting first picks it up, and then it drags.
+    fire(grip, "pointerdown", { button: 0, pointerId: 2, pointerType: "touch", clientY: 5, clientX: 5 });
+    vi.advanceTimersByTime(400);
+    fire(grip, "pointermove", { pointerId: 2, clientY: 95, clientX: 5 });
+    fire(grip, "pointerup", { pointerId: 2, clientY: 95, clientX: 5 });
+    expect(moves).toEqual([[0, 2]]);
+  });
+
+  test("`hold: true` leaves the mouse's immediate drag on the grip alone", () => {
+    const moves = [];
+    const ul = touchList((f, t) => moves.push([f, t]), { handle: ".grip", hold: true });
+    const grip = ul.children[0].querySelector(".grip");
+
+    fire(grip, "pointerdown", { button: 0, pointerId: 1, pointerType: "mouse", clientY: 5, clientX: 5 });
+    fire(grip, "pointermove", { pointerId: 1, clientY: 95, clientX: 5 });
+    fire(grip, "pointerup", { pointerId: 1, clientY: 95, clientX: 5 });
+
+    expect(moves).toEqual([[0, 2]]);
+  });
+
+  test("`holdMs` stretches the rest for the list that asks", () => {
+    const ul = touchList(() => {}, { holdMs: 700 });
+    const row = ul.children[0];
+
+    fire(row, "pointerdown", { button: 0, pointerId: 1, pointerType: "touch", clientY: 5, clientX: 5 });
+    vi.advanceTimersByTime(400);
+    // The default rest has passed and nothing happened: this list waits longer.
+    expect(ul.hasAttribute("data-reordering")).toBe(false);
+    vi.advanceTimersByTime(300);
+    expect(ul.hasAttribute("data-reordering")).toBe(true);
+  });
+
   test("letting go before the wait is over is a tap, not a drag", () => {
     const moves = [];
     const ul = touchList((f, t) => moves.push([f, t]));

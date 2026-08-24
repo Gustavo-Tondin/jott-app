@@ -342,8 +342,18 @@
   /// switch added there is findable the same day, without a second line here.
   const INDEX = () => [
     ...SETUP_INDEX(),
-    ["native", FUNCTIONS.map((fn) => fn.label())],
-    ...FUNCTIONS.filter((fn) => hasPage(fn.key)).map((fn) => [
+    [
+      "native",
+      [
+        ...FUNCTIONS.map((fn) => fn.label()),
+        // An inline group's children live on THIS page, so the search sends
+        // the reader here and not to a page that does not exist.
+        ...FUNCTIONS.filter((fn) => fn.inline).flatMap((fn) =>
+          childrenOf(fn.key).map((c) => c.label()),
+        ),
+      ],
+    ],
+    ...FUNCTIONS.filter((fn) => hasPage(fn.key) && !fn.inline).map((fn) => [
       `fn:${fn.key}`,
       [
         ...childrenOf(fn.key).map((c) => c.label()),
@@ -1084,6 +1094,13 @@
           <p class="settings__hint">{S.sectionNativeHint}</p>
 
           {#each FUNCTIONS as fn (fn.key)}
+            <!-- An `inline` group (the fixed spaces) draws its children right
+                 here, indented under their master switch and set apart by a
+                 divider, instead of behind a page of its own (user call,
+                 2026-08-24). -->
+            {#if fn.inline}
+              <hr class="theme-divider settings__functions-break" />
+            {/if}
             <div class="settings__row settings__function">
               <input
                 class="theme-switch"
@@ -1094,7 +1111,7 @@
                 onchange={(e) => setFeature(fn.key, e.currentTarget.checked)}
               />
               <span class="settings__label settings__function-name">{fn.label()}</span>
-              {#if hasPage(fn.key)}
+              {#if hasPage(fn.key) && !fn.inline}
                 <button
                   type="button"
                   class="theme-btn--icon settings__function-open"
@@ -1106,6 +1123,21 @@
                 </button>
               {/if}
             </div>
+            {#if fn.inline}
+              {#each childrenOf(fn.key) as sub (sub.key)}
+                <div class="settings__row settings__function settings__function--sub">
+                  <input
+                    class="theme-switch"
+                    type="checkbox"
+                    checked={on(features, sub.key)}
+                    disabled={readOnly || !on(features, fn.key)}
+                    aria-label={sub.label()}
+                    onchange={(e) => setFeature(sub.key, e.currentTarget.checked)}
+                  />
+                  <span class="settings__label settings__function-name">{sub.label()}</span>
+                </div>
+              {/each}
+            {/if}
           {/each}
         </section>
       {/if}
@@ -1252,7 +1284,12 @@
           <!-- Where a quick note lands names a folder of THIS notebook, so it
                could not follow Display onto the machine (2026-08-20): machine
                preferences are one file for every notebook the app opens, and
-               a folder name from one would be nonsense in the next. -->
+               a folder name from one would be nonsense in the next.
+
+               Every folder it can name lives in the fixed Notes space, so
+               with that space hidden the row goes too (2026-08-24): a choice
+               between places with no door is not a choice. -->
+          {#if on(features, "notesSpace")}
           <label class="settings__row">
             <span class="settings__label">{S.quickNoteFolder}</span>
             <select
@@ -1269,6 +1306,7 @@
             </select>
           </label>
           <p class="settings__hint">{S.quickNoteFolderHint}</p>
+          {/if}
 
           <h3 class="settings__subtitle">{S.subSafety}</h3>
 

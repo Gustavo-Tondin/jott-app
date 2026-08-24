@@ -173,12 +173,15 @@
 </script>
 
 <div class="home">
-  {#if !readOnly && !compact && (f("myDay") || f("notes"))}
+  <!-- A quick note can only land inside the fixed Notes space, so with that
+       space hidden (Fixed spaces, 2026-08-24) the note half of the capture
+       goes too — writing into a place with no door would lose the note. -->
+  {#if !readOnly && !compact && (f("myDay") || (f("notes") && f("notesSpace")))}
     <CaptureBox
       date={todayLabel}
       {dot}
       canTask={f("myDay") && !!inbox}
-      canNote={f("notes") && !!notesFolder}
+      canNote={f("notes") && f("notesSpace") && !!notesFolder}
       onSubmit={capture}
     />
   {/if}
@@ -228,7 +231,7 @@
           </span>
         </span>
         <h2 class="theme-title home__block-title">{S.todaysNotes}</h2>
-        {#if !readOnly && notesFolder && notesMenu.length > 0}
+        {#if !readOnly && notesFolder && f("notesSpace") && notesMenu.length > 0}
           <Menu items={notesMenu}>
             {#snippet trigger({ toggle })}
               <button

@@ -70,6 +70,17 @@ export const FEATURES = [
     label: () => S.featureNoteFolders,
   },
   { key: "pinNotes", parent: "notes", group: "has", label: () => S.featurePinNotes },
+  // The three FIXED spaces (user call, 2026-08-24). Not functions — Tasks and
+  // Notes above stay on — but the app's own spaces as sidebar entries and
+  // screens: hiding one only takes it off the interface, the folders stay on
+  // disk untouched. `inline` draws the children indented on the Native
+  // Functions page itself, under their master switch, instead of behind a
+  // page of their own ("um separador, escrito fixed spaces com toggle, e
+  // identado, home, tasks, notes, cada um com seu toggle").
+  { key: "fixedSpaces", inline: true, label: () => S.featureFixedSpaces },
+  { key: "homeSpace", parent: "fixedSpaces", group: "spaces", label: () => S.featureHomeSpace },
+  { key: "tasksSpace", parent: "fixedSpaces", group: "spaces", label: () => S.featureTasksSpace },
+  { key: "notesSpace", parent: "fixedSpaces", group: "spaces", label: () => S.featureNotesSpace },
 ];
 
 /// The app's FUNCTIONS — the switches that, turned off, take a whole part of

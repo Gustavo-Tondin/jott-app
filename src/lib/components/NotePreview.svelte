@@ -12,6 +12,7 @@
   // early. The shape comes from `display: block` in the sheet, and the heading
   // level travels as `data-level` for the styles to read.
   import { previewBlocks } from "../services/notePreview.js";
+  import { measured } from "../actions/measure.js";
 
   let {
     /// The markdown the core sent (`NoteEntry.preview`).
@@ -21,10 +22,28 @@
   } = $props();
 
   let blocks = $derived(previewBlocks(markdown));
+
+  /// Whether the clamp actually cut something — the three dots under the
+  /// preview are only drawn when there IS more (user call, 2026-08-24).
+  /// Measured, because only the layout knows: the same markdown wraps into a
+  /// different number of lines at every card width, which is why `measured`
+  /// re-asks on resize and the effect re-asks when the note changes.
+  let root = $state(null);
+  let more = $state(false);
+
+  const check = () => {
+    if (!root) return;
+    more = root.scrollHeight > root.clientHeight + 1;
+  };
+
+  $effect(() => {
+    blocks;
+    check();
+  });
 </script>
 
 {#if blocks.length > 0}
-  <span class="note-preview">
+  <span class="note-preview" bind:this={root} use:measured={check}>
     {#each blocks as block}
       {#if block.kind === "rule"}
         <span class="note-preview__rule"></span>
@@ -54,6 +73,10 @@
       {/if}
     {/each}
   </span>
+  {#if more}
+    <!-- Outside the clamped span: inside it the clamp would swallow them. -->
+    <span class="note-preview__more" aria-hidden="true">…</span>
+  {/if}
 {:else if empty}
   <span class="note-preview note-preview__line">{empty}</span>
 {/if}

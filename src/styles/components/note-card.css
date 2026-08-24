@@ -43,12 +43,11 @@
   .note-card--picked {
     background: var(--theme-brand-weak);
   }
-  /* Pinned: the star's own colour as a hairline. The one card that keeps an
-     outline, because here it MEANS something. */
-  .note-card--pinned {
-    outline: 0.0625rem solid var(--theme-warning);
-    outline-offset: -0.0625rem;
-  }
+  /* Pinned: the filled mark alone says so (user call, 2026-08-24: "mais
+     simples, só com o ícone, sem outline" — the warning-coloured hairline
+     read as an alert around the note, not as a pin). Being floated FIRST on
+     the board is the separation; `.note-card--pinned` stays on the markup as
+     the hook a theme may restyle. */
 
   .note-card__open {
     display: flex;
@@ -136,10 +135,11 @@
   .note-card__pin {
     color: var(--theme-ink-muted);
   }
-  /* Pinned reads as pinned without hovering: the mark is filled and takes the
-     colour the outline around the card already carries. */
+  /* Pinned reads as pinned without hovering: the mark is filled and steps up
+     to full ink. Ink, not the warning yellow — a pin is a state of the note,
+     not an alert on it (user call, 2026-08-24). */
   .note-card__pin--on {
-    color: var(--theme-warning);
+    color: var(--theme-ink);
   }
   /* Unpinned, the mark is an offer and not a state — it waits for the pointer,
      the same rule the sidebar's tools follow. A touch screen never hovers, so
@@ -152,16 +152,16 @@
   .note-card__pin--on {
     opacity: 1;
   }
-  /* …and on a phone it is not there at all (user call, 2026-08-20: "está mal
-     posicionado no mobile, oculte ele, deixando somente os 3 pontos"). The
-     corner is holding two buttons in the width of one, over a banner, at the
-     edge of the thumb's reach.
+  /* …and on a phone the OFFER is not there at all (user call, 2026-08-20:
+     "está mal posicionado no mobile, oculte ele, deixando somente os 3
+     pontos"). The corner is holding two buttons in the width of one, over a
+     banner, at the edge of the thumb's reach — and Pin/Unpin is the first
+     item of the ⋮ that stays.
 
-     Nothing is lost by taking it out: a pinned card still SAYS so — the
-     warning-coloured outline above is the state, not the glyph — and Pin/Unpin
-     is the first item of the ⋮ that stays. Same call the banner's own ⋮ makes
-     below 768px. */
-  .shell--compact .note-card__pin {
+     The filled mark of a PINNED card survives (2026-08-24): with the outline
+     gone it is the one sign of the state, and a state with no sign is a
+     setting the user cannot see. */
+  .shell--compact .note-card__pin:not(.note-card__pin--on) {
     display: none;
   }
 

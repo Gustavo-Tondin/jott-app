@@ -74,7 +74,11 @@ class CheckboxWidget extends WidgetType {
     const box = document.createElement("input");
     box.type = "checkbox";
     box.checked = this.checked;
-    box.className = "cm-task-checkbox";
+    // Dressed as the app's own checkbox (`.theme-checkbox` is worn, never
+    // copied): the box in a note and the box on a task are the same control
+    // to the eye, and the bare native input read as a glitch beside them
+    // (user report, 2026-08-24).
+    box.className = "cm-task-checkbox theme-checkbox";
     box.addEventListener("mousedown", (event) => {
       // `mousedown`, not `click`: the editor would otherwise move the cursor
       // into the line first, which un-hides the syntax under the pointer.
@@ -198,6 +202,16 @@ export function decorationsFor(state, ranges) {
         if (node.name === "ListMark") {
           const text = state.doc.sliceString(node.from, node.to);
           if (BULLETS.has(text)) {
+            // On a task line the checkbox IS the bullet: `- [ ]` is one mark
+            // in the reader's eye, and drawing both put a stray • beside
+            // every box (user report, 2026-08-24). The space between the two
+            // goes with the mark, so the box sits where the bullet would.
+            if (node.node.parent?.getChild("Task")) {
+              let end = node.to;
+              if (state.doc.sliceString(end, end + 1) === " ") end += 1;
+              builder.add(node.from, end, HIDDEN);
+              return;
+            }
             builder.add(
               node.from,
               node.to,

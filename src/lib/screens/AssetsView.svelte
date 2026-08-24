@@ -189,24 +189,6 @@
 >
   <header class="assets-view__head">
     <h2 class="theme-title assets-view__title">{S.assetsTitle}</h2>
-    {#if !readOnly}
-      <button
-        class="theme-btn theme-btn--primary theme-btn--sm"
-        disabled={busy}
-        onclick={() => input?.click()}
-      >
-        {busy ? S.addingImages : S.addImages}
-      </button>
-      <!-- No `accept`: the library holds whatever a task attaches, and only
-           the banner and a note's picture ask for an image (AssetPicker). -->
-      <input
-        class="assets-view__input"
-        type="file"
-        multiple
-        bind:this={input}
-        onchange={add}
-      />
-    {/if}
   </header>
   <p class="assets-view__hint">{S.assetsHint}</p>
 
@@ -299,5 +281,30 @@
         </li>
       {/each}
     </ul>
+  {/if}
+
+  <!-- Adding lives at the BOTTOM of the screen (user call, 2026-08-24), the
+       same edge the tasks screens keep their composing bar on — the grid is
+       for looking, the bottom is where the hand goes. -->
+  {#if !readOnly}
+    <footer class="assets-view__foot">
+      <button
+        class="theme-btn theme-btn--primary assets-view__add"
+        disabled={busy}
+        onclick={() => input?.click()}
+      >
+        <Icon name="plus" size="1rem" />
+        {busy ? S.addingImages : S.addImages}
+      </button>
+      <!-- No `accept`: the library holds whatever a task attaches, and only
+           the banner and a note's picture ask for an image (AssetPicker). -->
+      <input
+        class="assets-view__input"
+        type="file"
+        multiple
+        bind:this={input}
+        onchange={add}
+      />
+    </footer>
   {/if}
 </section>

@@ -288,7 +288,7 @@
     <Menu
       align="start"
       items={[
-        ...(f("tasks")
+        ...(f("tasks") && f("tasksSpace")
           ? [{ label: S.completed, run: () => onOpen?.({ kind: "completed" }) }]
           : []),
         ...(f("taskTags")
@@ -381,8 +381,13 @@
            entry that swapped to its filled variant when selected, so the
            icon changed SHAPE under the pointer while every other row just
            took the accent pill. The pill already says where you are. -->
-      {@render fixedRow({ kind: "home" }, "house", S.home)}
-      {#if f("tasks")}
+      <!-- Each fixed row also answers to its own switch (Fixed spaces,
+           2026-08-24): hiding one takes the shortcut and the screen, and
+           nothing else — the folders stay, and the function stays on. -->
+      {#if f("homeSpace")}
+        {@render fixedRow({ kind: "home" }, "house", S.home)}
+      {/if}
+      {#if f("tasks") && f("tasksSpace")}
         <!-- The fixed screen's own number, which it never had: a row that
              holds tasks says how many are open, and this one holds the
              Inbox and every list beside it (user report, 2026-08-20). -->
@@ -393,7 +398,7 @@
           openIn(counts, notebook?.layout?.tasksFolder),
         )}
       {/if}
-      {#if f("notes")}
+      {#if f("notes") && f("notesSpace")}
         {@render fixedRow({ kind: "notes" }, "note", S.notes)}
       {/if}
     </div>
@@ -402,8 +407,9 @@
 
     <!-- The user's lists reorder by drag (the whole item, like the tabs); the
          action skips the fixed Completed/new-list rows below by matching only
-         the --reorderable items. -->
-    {#if f("tasks")}
+         the --reorderable items. They are files of the fixed Tasks space, so
+         they go with it (2026-08-24). -->
+    {#if f("tasks") && f("tasksSpace")}
     <div
       class="shell__group"
       use:reorderable={{
@@ -506,6 +512,11 @@
           // The INNERMOST list owns the gesture (see actions/reorder.js), so
           // grabbing a member drags the member, not the group holding it.
           handle: ".shell__nav-open",
+          // The handle here is also the button that OPENS the space, so a
+          // finger on it proves nothing — scrolling the column kept picking
+          // spaces up. It rests first, like everywhere else (user call,
+          // 2026-08-24).
+          hold: true,
           onReorder: (from, to) => reorderAt(parent, from, to),
           onDropInto: (from, into) => dropAt(list, from, into),
           onDragOut: parent ? (index) => leaveLevel(parent, index) : undefined,

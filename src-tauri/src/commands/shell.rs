@@ -30,7 +30,7 @@ pub fn window_button_layout() -> ButtonLayout {
     if !cfg!(target_os = "linux") {
         return default_button_layout();
     }
-    std::process::Command::new("gsettings")
+    host_command("gsettings")
         .args(["get", "org.gnome.desktop.wm.preferences", "button-layout"])
         .output()
         .ok()
@@ -38,6 +38,53 @@ pub fn window_button_layout() -> ButtonLayout {
         .and_then(|out| String::from_utf8(out.stdout).ok())
         .map(|text| parse_button_layout(&text))
         .unwrap_or_else(default_button_layout)
+}
+
+/// The bundle's environment, wiped off a child that answers for the HOST.
+///
+/// Inside the AppImage every child inherits what the runtime and the GTK
+/// AppRun hook exported: `LD_LIBRARY_PATH` into the bundled libraries, GLib
+/// schema and GIO module dirs of the bundle, and a PATH whose first entries
+/// are the bundle's own bin (which ships an `xdg-open`). A system binary
+/// started like that loads the BUNDLED GLib, and that GLib cannot find the
+/// host's GIO modules — so `gsettings` answers the schema DEFAULT
+/// (`appmenu:close`, upstream GNOME's) instead of the user's setting, and the
+/// minimize/maximize buttons silently vanish. Measured against the v0.25.0
+/// AppImage (2026-08-24): dropping `LD_LIBRARY_PATH` alone brings the user's
+/// value back; the rest is the same poison waiting for another distro's
+/// paths to line up with it.
+fn host_command(program: &str) -> std::process::Command {
+    let mut cmd = std::process::Command::new(program);
+    for var in [
+        "LD_LIBRARY_PATH",
+        "LD_PRELOAD",
+        "GSETTINGS_SCHEMA_DIR",
+        "GIO_EXTRA_MODULES",
+        "GIO_MODULE_DIR",
+        "GDK_PIXBUF_MODULE_FILE",
+        "GTK_PATH",
+        "GTK_DATA_PREFIX",
+        "GTK_EXE_PREFIX",
+        "GTK_IM_MODULE_FILE",
+    ] {
+        cmd.env_remove(var);
+    }
+    // `APPDIR` is the mounted bundle: only set inside the AppImage, and the
+    // prefix of every PATH entry the runtime pushed in front of the host's.
+    if let (Ok(appdir), Some(path)) = (std::env::var("APPDIR"), std::env::var_os("PATH")) {
+        if let Ok(path) = path.into_string() {
+            cmd.env("PATH", path_without_bundle(&path, &appdir));
+        }
+    }
+    cmd
+}
+
+/// `path` with every entry under `appdir` dropped.
+fn path_without_bundle(path: &str, appdir: &str) -> String {
+    path.split(':')
+        .filter(|entry| !entry.starts_with(appdir))
+        .collect::<Vec<_>>()
+        .join(":")
 }
 
 /// Which machine this build runs on: `"android"`, `"windows"`, `"macos"` or
@@ -268,7 +315,10 @@ pub(crate) fn open_path(target: &Path) -> CommandResult<()> {
 
     #[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
     {
-        std::process::Command::new(program)
+        // Scrubbed like `gsettings` is: the AppImage bundles an `xdg-open` of
+        // its own and puts it first on PATH — the one that runs must be the
+        // host's, in the host's environment.
+        host_command(program)
             .arg(target)
             .spawn()
             .map(|_| ())
@@ -427,4 +477,37 @@ pub fn opens_on_picker<R: Runtime>(app: AppHandle<R>) -> bool {
 #[tauri::command]
 pub fn remember_opens_on_picker<R: Runtime>(app: AppHandle<R>, on: bool) {
     crate::prefs::remember_opens_on_picker(&app, on);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_host_command_gets_the_bundle_wiped_from_its_environment() {
+        let cmd = host_command("gsettings");
+        let removed: Vec<_> = cmd
+            .get_envs()
+            .filter(|(_, value)| value.is_none())
+            .map(|(key, _)| key.to_string_lossy().into_owned())
+            .collect();
+        // The one that was measured breaking (v0.25.0 AppImage, 2026-08-24)
+        // and the rest of what the AppRun hook exports.
+        assert!(removed.contains(&"LD_LIBRARY_PATH".to_string()));
+        assert!(removed.contains(&"GSETTINGS_SCHEMA_DIR".to_string()));
+        assert!(removed.contains(&"GIO_EXTRA_MODULES".to_string()));
+    }
+
+    #[test]
+    fn the_bundles_path_entries_are_dropped_and_the_hosts_kept() {
+        assert_eq!(
+            path_without_bundle(
+                "/tmp/.mount_jottXY/usr/bin/:/tmp/.mount_jottXY/usr/sbin/:/bin:/usr/bin",
+                "/tmp/.mount_jottXY"
+            ),
+            "/bin:/usr/bin"
+        );
+        // Outside the AppImage nothing matches and nothing changes.
+        assert_eq!(path_without_bundle("/bin:/usr/bin", "/tmp/.mount_x"), "/bin:/usr/bin");
+    }
 }

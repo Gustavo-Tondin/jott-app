@@ -66,12 +66,14 @@ describe("live preview", () => {
     expect(hidden(doc, doc.length)).toEqual(["-"]);
   });
 
-  test("a checkbox replaces the marker, and the text stays untouched", () => {
+  test("a checkbox replaces the marker, and the bullet goes with it", () => {
     const doc = "- [ ] comprar leite\n";
     // The marker is decorated (replaced by a widget), never removed from the
     // document: the file keeps every character the user typed. The bullet in
-    // front of it is drawn the same way, which is why it is here too.
-    expect(hidden(doc, doc.length)).toEqual(["-", "[ ]"]);
+    // front of it is HIDDEN rather than drawn — on a task line the checkbox
+    // is the bullet, and the `- ` goes with it so the box sits on the
+    // bullet's x (user report, 2026-08-24: "• ☐ item" read as two marks).
+    expect(hidden(doc, doc.length)).toEqual(["- ", "[ ]"]);
   });
 
   test("hides the address of a link, keeps the address that IS the link", () => {
