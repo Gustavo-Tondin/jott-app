@@ -77,6 +77,16 @@ pub struct History {
 struct Cached {
     stamp: Stamp,
     content: Arc<[u8]>,
+    /// Whether the file was still inside the racy window when these bytes
+    /// were read. Recorded HERE, and never asked again at lookup time,
+    /// because raciness is a fact about the moment the cache was FILLED: a
+    /// same-length rewrite one tick after that read leaves the stamp
+    /// identical for good, and by the time anyone looks the stamp is old and
+    /// would pass for trustworthy (2026-08-24). It is git's smudge — an entry
+    /// recorded as racy is never believed again, and the next scan re-reads
+    /// it and re-stamps it, which clears the flag once the file has stopped
+    /// being fresh.
+    racy: bool,
 }
 
 /// What a file looked like without reading it.
@@ -96,6 +106,12 @@ impl Stamp {
     /// clock is coarser than the ext4 one this was written against. A
     /// stamp younger than two seconds is therefore never trusted from the
     /// cache — the file is read again, which is the only honest answer.
+    ///
+    /// **This is asked when an entry is written, not when it is read**
+    /// (2026-08-24): asking at read time left the window open, because the
+    /// dangerous pair is "cache filled while the file was fresh" + "rewrite
+    /// one tick later", and by the time anyone reads it the stamp is old.
+    /// See `Cached::racy`.
     fn is_racy(&self) -> bool {
         match self
             .modified
@@ -391,7 +407,7 @@ impl History {
 
     fn read_cached(&mut self, path: &Path, relative: &Path, stamp: Stamp) -> Result<Arc<[u8]>> {
         if let Some(cached) = self.cache.get(relative) {
-            if cached.stamp == stamp && !stamp.is_racy() {
+            if cached.stamp == stamp && !cached.racy {
                 return Ok(Arc::clone(&cached.content));
             }
         }
@@ -401,6 +417,7 @@ impl History {
             Cached {
                 stamp,
                 content: Arc::clone(&content),
+                racy: stamp.is_racy(),
             },
         );
         Ok(content)
@@ -831,6 +848,39 @@ mod tests {
         let mut history = History::new();
         history.scan(root).unwrap();
         write(root, "note.md", "two");
+        let after = history.scan(root).unwrap();
+        assert_eq!(&after.text[Path::new("note.md")][..], b"two");
+    }
+
+    #[test]
+    fn a_same_tick_rewrite_is_still_seen_after_the_window_closes() {
+        // The hole the first racy fix left open (2026-08-24). Raciness was
+        // asked at LOOKUP time — "is this stamp young?" — but it is a fact
+        // about the moment the cache was FILLED: a same-length rewrite one
+        // tick after that read leaves the stamp identical for good, and by
+        // the time anyone looks the stamp is old and passes for trustworthy.
+        // Reproduced by forcing the mtime back, which is what a filesystem
+        // with a coarse clock does on its own.
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        write(root, "note.md", "one");
+        let tick = std::fs::metadata(root.join("note.md")).unwrap().modified().unwrap();
+
+        let mut history = History::new();
+        history.scan(root).unwrap();
+
+        write(root, "note.md", "two");
+        std::fs::File::options()
+            .write(true)
+            .open(root.join("note.md"))
+            .unwrap()
+            .set_modified(tick)
+            .unwrap();
+
+        // Past the window: the stamp no longer looks young, so the entry is
+        // refused only because it was RECORDED as racy when it was read.
+        std::thread::sleep(std::time::Duration::from_millis(2200));
+
         let after = history.scan(root).unwrap();
         assert_eq!(&after.text[Path::new("note.md")][..], b"two");
     }
