@@ -163,6 +163,21 @@
     act(async () => {
       if (kind === "note") {
         if (!captureTarget) return;
+        // Nothing typed: the + makes the blank note and hands it over
+        // opened, which is the gesture the phone's + already makes
+        // (App.svelte, `captureNote`) and the one the notes board makes with
+        // its own empty field. The placeholder name is what the note's header
+        // is already offering to rename — asking first would stop the one
+        // gesture this button exists to make fast.
+        if (!text) {
+          const path = await api.createNote(
+            captureTarget.space,
+            captureTarget.folder,
+            S.untitled,
+          );
+          onOpenNote?.(path, captureTarget.space, { fresh: true });
+          return;
+        }
         await api.quickCaptureNote(captureTarget.space, captureTarget.folder, text);
         return;
       }

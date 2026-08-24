@@ -51,9 +51,19 @@
   let both = $derived(canTask && canNote);
   let armed = $derived(both ? kind : canTask ? "task" : "note");
 
+  /// An empty NOTE is a real answer (user call, 2026-08-24): the + makes the
+  /// blank note and opens it, which is what the phone's + has always done
+  /// (App.svelte, `captureNote`). An empty TASK is not — a task with no text
+  /// is a row nobody can read on a list.
+  let blankNote = $derived(armed === "note" && !text.trim());
+
+  /// What the + says it will do, which is not the same sentence when there
+  /// is nothing to capture yet.
+  let verb = $derived(blankNote ? S.newNoteAction : S.captureAction(armed));
+
   async function submit() {
     const clean = text.trim();
-    if (!clean || disabled) return;
+    if ((!clean && !blankNote) || disabled) return;
     await onSubmit?.({ kind: armed, text: clean });
     text = "";
     field?.focus();
@@ -140,9 +150,9 @@
   <button
     type="submit"
     class="capture__submit"
-    disabled={disabled || !text.trim()}
-    aria-label={S.captureAction(armed)}
-    title={S.captureAction(armed)}
+    disabled={disabled || (!text.trim() && !blankNote)}
+    aria-label={verb}
+    title={verb}
   >
     <Icon name="plus-bold" size="1.5rem" />
   </button>

@@ -114,6 +114,43 @@ describe("HomeView", () => {
     );
   });
 
+  test("the + makes a blank note and opens it when nothing was typed", async () => {
+    // User call, 2026-08-24: the desktop's + is the phone's + — with the Note
+    // half armed and an empty field it makes the note and goes to the page,
+    // instead of sitting there greyed out.
+    bridge({ period_tasks: [], notes_created_today: [], create_note: "Inbox/Untitled.md" });
+    const opened = [];
+    render(HomeView, { props: props({ onOpenNote: (...args) => opened.push(args) }) });
+
+    await userEvent.click(await screen.findByRole("button", { name: "Note" }));
+    const plus = screen.getByRole("button", { name: "New note" });
+    expect(plus.disabled).toBe(false);
+    await userEvent.click(plus);
+
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("create_note", {
+        folder: "jott.notes",
+        inFolder: "Inbox",
+        title: "Untitled",
+      }),
+    );
+    // And it hands the note over OPENED, marked fresh so the cursor lands in
+    // the body rather than on the board.
+    await waitFor(() => expect(opened).toHaveLength(1));
+    expect(opened[0][0]).toBe("Inbox/Untitled.md");
+    expect(opened[0][2]).toEqual({ fresh: true });
+    // Nothing was captured: an empty note is created, never written.
+    expect(invoke.mock.calls.some(([cmd]) => cmd === "quick_capture_note")).toBe(false);
+  });
+
+  test("the + stays out of reach for an empty TASK — a row nobody can read", async () => {
+    bridge({ period_tasks: [], notes_created_today: [] });
+    render(HomeView, { props: props() });
+
+    await userEvent.click(await screen.findByRole("button", { name: "Task" }));
+    expect(screen.getByRole("button", { name: "capture task" }).disabled).toBe(true);
+  });
+
   test("pointed at a source, the block reads its whole Inbox and says so", async () => {
     // `homeNotesSource` (user call, 2026-08-24): every Inbox note of the
     // chosen space, not just today's — and the heading names the source.
