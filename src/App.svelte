@@ -1250,11 +1250,23 @@
   // bar across the bottom of the day with no way to dismiss it. The tasks
   // screens' bar is not this: there it is part of the screen, not something
   // opened, and it stays.
+  //
+  // Two exceptions, both measured on device (2026-08-24). A composer CONTROL
+  // holding the focus — a chip, a field button, or a panel portaled out by
+  // `keepOnScreen` — is not "done typing": the keyboard stepped aside for the
+  // menu the tap just opened, and blurring here killed that menu before it
+  // drew. And a bar HOLDING something (text written, a field chosen — the
+  // `.task-composer--holding` class the composer itself wears) survives the
+  // keyboard, because dismissing the keys mid-thought was deleting the
+  // thought. Empty and let go, it closes as before.
   $effect(() =>
     onKeyboardHidden(() => {
       const focused = document.activeElement;
+      if (focused?.closest?.("[data-popout]")) return;
+      const composer = focused?.closest?.(".task-composer");
+      if (composer && !focused.classList.contains("task-composer__input")) return;
       if (focused && focused !== document.body) focused.blur?.();
-      composingTask = false;
+      if (!document.querySelector(".task-composer--holding")) composingTask = false;
     }),
   );
 
