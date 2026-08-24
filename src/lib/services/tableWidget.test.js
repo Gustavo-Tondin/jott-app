@@ -57,6 +57,28 @@ describe("the grid", () => {
     expect(view.dom.querySelector(".cm-content").textContent).not.toContain("|");
   });
 
+  it("wears the layout it is told, and changes it on refresh (Settings → Notes)", () => {
+    let layout = "";
+    const parent = document.createElement("div");
+    document.body.appendChild(parent);
+    const view = new EditorView({
+      parent,
+      state: EditorState.create({
+        doc: TABLE,
+        extensions: [
+          markdown({ base: markdownLanguage }),
+          activeCell,
+          noteTables({ layout: () => layout }),
+        ],
+      }),
+    });
+    views.push({ view, parent });
+    expect(view.dom.querySelector(".cm-md-table--scroll")).toBe(null);
+    layout = "scroll";
+    view.dispatch({ effects: refreshTables.of(null) });
+    expect(view.dom.querySelector(".cm-md-table--scroll")).not.toBe(null);
+  });
+
   it("draws nothing when tables are switched off, and again when they return", () => {
     let on = false;
     const view = mount(TABLE, { shows: () => on });

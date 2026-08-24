@@ -38,6 +38,7 @@
     wikiLinks = true,
     embeds = true,
     tables = true,
+    tableLayout = "",
     /// `({header}) | null`, passed straight through (2026-08-24).
     onTable,
   } = $props();
@@ -142,6 +143,7 @@
     {wikiLinks}
     {embeds}
     {tables}
+    {tableLayout}
     {onTable}
   />
 </div>

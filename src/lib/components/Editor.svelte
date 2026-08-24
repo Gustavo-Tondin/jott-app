@@ -90,6 +90,10 @@
     /// Whether a table is drawn as a grid (App Functions, 2026-08-24). Off,
     /// it stays the pipes it is in the file.
     tables = true,
+    /// How a table sits in the column (Settings → Notes, 2026-08-24):
+    /// `""` squeezed to the content width, `scroll` running wide with a
+    /// sideways scroll of its own.
+    tableLayout = "",
     /// `({header}) | null` — whether the person is in a table cell right now
     /// (header true in the header row), or in none. The formatting panel
     /// greys its table buttons by it. Reported only on the edges, the way
@@ -220,7 +224,7 @@
           // says which cell is current comes first: the widget dispatches
           // into it, the commands read it (services/tableEditing.js).
           activeCell,
-          noteTables({ shows: () => tables }),
+          noteTables({ shows: () => tables, layout: () => tableLayout }),
           // Folding by SECTION, the way Obsidian reads a document (user
           // call, 2026-08-24): the chevron beside a heading folds everything
           // up to the next heading of the same or a higher level. The ranges
@@ -347,6 +351,7 @@
   // through its closure, and this asks it to look again.
   $effect(() => {
     tables;
+    tableLayout;
     if (!plain) view?.dispatch({ effects: refreshTables.of(null) });
   });
 

@@ -300,6 +300,11 @@ pub struct Config {
     /// choose keeps its own `noteLayout` in its `.space.json` and ignores
     /// this one.
     pub note_layout: String,
+    /// How a table in a note sits in the column (2026-08-24): empty is the
+    /// app's own — squeezed to the content width, cells wrapping — and
+    /// `scroll` lets it run wide and scroll sideways. Same pact as the board
+    /// layout: the interface owns the list, an unknown name round-trips.
+    pub table_layout: String,
     /// How many days a trashed item waits in `.jott/trash/` before the reaper
     /// clears it for good (reestruturação 2026-07-30).
     pub trash_retention_days: i64,
@@ -371,6 +376,7 @@ impl Default for Config {
             home_tasks_source: String::new(),
             home_notes_source: String::new(),
             note_layout: String::new(),
+            table_layout: String::new(),
             trash_retention_days: 30,
             completed_retention_days: 30,
             order: BTreeMap::new(),
@@ -562,6 +568,7 @@ impl Config {
             home_notes_source: string(&raw, "homeNotesSource")
                 .unwrap_or(defaults.home_notes_source),
             note_layout: string(&raw, "noteLayout").unwrap_or(defaults.note_layout),
+            table_layout: string(&raw, "tableLayout").unwrap_or(defaults.table_layout),
             trash_retention_days: raw
                 .get("trashRetentionDays")
                 .and_then(Value::as_i64)
@@ -690,6 +697,7 @@ impl Config {
             ("formatBar", &self.format_bar),
             ("formatBarSide", &self.format_bar_side),
             ("noteLayout", &self.note_layout),
+            ("tableLayout", &self.table_layout),
         ] {
             put_or_clear(
                 &mut owned,
@@ -1041,6 +1049,16 @@ mod tests {
         // Not a string: falls back, the rest of the file unharmed.
         let broken = Config::parse(r#"{ "schemaVersion": 1, "noteLayout": 7 }"#);
         assert_eq!(broken.note_layout, "");
+        // The table layout follows the same three rules.
+        let mut config = Config::default();
+        assert_eq!(config.table_layout, "");
+        assert!(!config.render().contains("tableLayout"));
+        config.table_layout = "scroll".into();
+        assert_eq!(Config::parse(&config.render()).table_layout, "scroll");
+        assert_eq!(
+            Config::parse(r#"{ "schemaVersion": 1, "tableLayout": true }"#).table_layout,
+            ""
+        );
     }
 
     #[test]

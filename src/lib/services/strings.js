@@ -601,6 +601,13 @@ export const S = {
   quickTasksGoToHint:
     "Where the Home's capture writes a task. It names a list of THIS " +
     "notebook, like the note setting above.",
+  subTables: "Tables",
+  tableLayout: "Wide tables",
+  tableLayoutFit: "Fit the content width",
+  tableLayoutScroll: "Scroll sideways",
+  tableLayoutHint:
+    "A table wider than the note's column either squeezes its cells to fit, " +
+    "wrapping the text, or keeps its width and scrolls sideways on its own.",
   noteLayoutHint:
     "How a notes space draws its board until it chooses for itself — each " +
     "space keeps its own choice, from its ⋮ → Layout.",

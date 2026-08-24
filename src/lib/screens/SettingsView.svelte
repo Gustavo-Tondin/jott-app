@@ -432,7 +432,7 @@
   /// chain this replaced.
   const FUNCTION_EXTRAS = () => ({
     tasks: [S.autoUrgentByDate, S.newTasksGoTo],
-    notes: [S.noteLayout, S.confirmImageDownloads],
+    notes: [S.noteLayout, S.tableLayout, S.confirmImageDownloads],
   });
 
   /// Every page the search can look up. The functions' half is DERIVED — the
@@ -1423,6 +1423,28 @@
             </select>
           </label>
           <p class="settings__hint">{S.noteLayoutHint}</p>
+
+          <h3 class="settings__subtitle">{S.subTables}</h3>
+
+          <!-- How a table sits in the note's column (user call, 2026-08-24):
+               squeezed to the content width by default, or as wide as its
+               cells with a sideways scroll of its own. A notebook setting,
+               like the board layout above — it is about the notes, not about
+               this screen. -->
+          <label class="settings__row">
+            <span class="settings__label">{S.tableLayout}</span>
+            <select
+              class="theme-select"
+              value={form.tableLayout === "scroll" ? "scroll" : ""}
+              disabled={readOnly || !on(features, "tables")}
+              aria-label={S.tableLayout}
+              onchange={(e) => put({ tableLayout: e.currentTarget.value })}
+            >
+              <option value="">{S.tableLayoutFit}</option>
+              <option value="scroll">{S.tableLayoutScroll}</option>
+            </select>
+          </label>
+          <p class="settings__hint">{S.tableLayoutHint}</p>
 
           <h3 class="settings__subtitle">{S.subImages}</h3>
 

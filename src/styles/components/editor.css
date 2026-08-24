@@ -594,11 +594,14 @@
   overflow-x: auto;
   max-inline-size: 100%;
 }
+/* Two ways to sit in the column (Settings → Notes, 2026-08-24). The default
+   SQUEEZES: the grid takes the content width and the cells wrap, so a wide
+   table costs height and never a scrollbar. `--scroll` lets it run as wide
+   as its cells and scroll sideways inside its own box. */
 .editor .cm-md-table__grid {
   border-collapse: separate;
   border-spacing: 0;
-  inline-size: max-content;
-  min-inline-size: 50%;
+  inline-size: 100%;
   border: 0.0625rem solid var(--theme-line);
   border-radius: var(--theme-radius-xs);
   font-size: 0.95em;
@@ -622,8 +625,12 @@
   background: var(--theme-surface);
   font-weight: var(--theme-weight-semibold);
 }
+.editor .cm-md-table--scroll .cm-md-table__grid {
+  inline-size: max-content;
+  min-inline-size: 50%;
+}
 .editor .cm-md-table__cell {
-  min-inline-size: 4em;
+  min-inline-size: 3em;
   padding: 0.3em 0.6em;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
@@ -632,6 +639,10 @@
 }
 /* An empty cell keeps its height: a contenteditable with nothing in it
    collapses, and a row of collapsed cells is a hairline nobody can click. */
+.editor .cm-md-table--scroll .cm-md-table__cell {
+  white-space: pre;
+  overflow-wrap: normal;
+}
 .editor .cm-md-table__cell:empty::before {
   content: "\200B";
 }

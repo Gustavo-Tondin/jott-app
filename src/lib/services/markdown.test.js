@@ -271,7 +271,9 @@ describe("what the editor actually paints", () => {
             markdown({ base: markdownLanguage }),
             markdownPreview,
             activeCell,
-            noteTables(),
+            // Every other line with the scroll layout: both dresses have
+            // to be painted for the sheet to be allowed to name them.
+            noteTables({ layout: () => (line % 2 ? "scroll" : "") }),
           ],
         }),
       });

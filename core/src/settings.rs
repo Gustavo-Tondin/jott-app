@@ -250,6 +250,9 @@ pub struct NotebookSettings {
     /// The board layout of a notes space that never chose one (`grid` /
     /// `tree`); empty goes back to the app's own.
     pub note_layout: Option<String>,
+    /// How a table in a note sits in the column (`""` squeezed to fit /
+    /// `scroll`); empty goes back to the app's own.
+    pub table_layout: Option<String>,
     /// Days a completed task stays in its `Completed.md` before the reaper
     /// files it away into the trash; 0 means never (2026-08-06).
     pub completed_retention_days: Option<i64>,
@@ -296,6 +299,7 @@ impl NotebookSettings {
             home_tasks_source: Some(config.home_tasks_source.clone()),
             home_notes_source: Some(config.home_notes_source.clone()),
             note_layout: Some(config.note_layout.clone()),
+            table_layout: Some(config.table_layout.clone()),
             completed_retention_days: Some(config.completed_retention_days),
             trash_retention_days: Some(config.trash_retention_days),
         }
@@ -412,6 +416,9 @@ impl NotebookSettings {
         if let Some(v) = &self.note_layout {
             config.note_layout = v.trim().to_string();
         }
+        if let Some(v) = &self.table_layout {
+            config.table_layout = v.trim().to_string();
+        }
         // A negative retention is meaningless; the core would drop it on the
         // next read anyway, so it never reaches the file.
         if let Some(v) = self.completed_retention_days.filter(|d| *d >= 0) {
@@ -457,6 +464,7 @@ pub fn reset_section(config: &mut Config, section: &str) -> bool {
         }
         "notes" => {
             config.note_layout = d.note_layout;
+            config.table_layout = d.table_layout;
             config.confirm_image_downloads = d.confirm_image_downloads;
             config.format_bar = d.format_bar;
             config.format_bar_side = d.format_bar_side;
@@ -578,6 +586,14 @@ mod tests {
         assert_eq!(config.note_layout, "tree");
         settings(r#"{"noteLayout": ""}"#).apply_to(&mut config);
         assert_eq!(config.note_layout, "");
+        settings(r#"{"tableLayout": " scroll "}"#).apply_to(&mut config);
+        assert_eq!(config.table_layout, "scroll");
+        assert_eq!(
+            NotebookSettings::of(&config, &Display::resolve(&DisplayPrefs::default(), &config))
+                .table_layout
+                .as_deref(),
+            Some("scroll")
+        );
     }
 
     #[test]

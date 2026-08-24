@@ -70,10 +70,19 @@ class TableWidget extends WidgetType {
     super();
     this.table = table;
     this.ctx = ctx;
+    // Read when the decoration is built, for the reason `EmbedWidget` gives:
+    // it is part of what this widget IS, and `eq` has to see it change.
+    this.layout = ctx.layout?.() ?? "";
   }
 
   eq(other) {
-    return other.table.text === this.table.text;
+    return other.table.text === this.table.text && other.layout === this.layout;
+  }
+
+  /// The layout as a class on the wrapper — `scroll` runs wide, the default
+  /// squeezes to the column (Settings → Notes, 2026-08-24).
+  dress(dom) {
+    dom.classList.toggle("cm-md-table--scroll", this.layout === "scroll");
   }
 
   toDOM(view) {
@@ -88,6 +97,7 @@ class TableWidget extends WidgetType {
     dom.appendChild(scroll);
     dom.dataset.from = String(this.table.from);
     dom.tableWidget = { table: this.table, mode: editableMode(dom.ownerDocument) };
+    this.dress(dom);
     this.fill(grid, dom);
     this.wire(dom, view);
     return dom;
@@ -103,6 +113,7 @@ class TableWidget extends WidgetType {
     const next = this.table.model;
     dom.tableWidget.table = this.table;
     dom.dataset.from = String(this.table.from);
+    this.dress(dom);
     const grid = dom.querySelector(".cm-md-table__grid");
     const sameShape =
       previous.header.length === next.header.length && previous.rows.length === next.rows.length;
@@ -384,7 +395,8 @@ export function tableDecorationsFor(state, ctx = {}) {
 ///
 /// `ctx.shows` says whether the notebook draws tables at all (App Functions);
 /// off, the text stays the pipes it is, and the commands still work on the
-/// caret's row and column (`tableEditing.currentCell`).
+/// caret's row and column (`tableEditing.currentCell`). `ctx.layout` answers
+/// `""` (squeezed to fit) or `scroll`; both are read again on `refreshTables`.
 ///
 /// A `StateField`, for the reason `fileEmbeds` gives: a block decoration
 /// from a `ViewPlugin` is dropped in silence.

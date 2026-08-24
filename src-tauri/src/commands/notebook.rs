@@ -57,6 +57,8 @@ pub struct NotebookLayout {
     /// The board layout of a notes space that never chose one (`grid` /
     /// `tree`); empty means the app's own.
     pub note_layout: String,
+    /// How a table sits in a note (`""` squeezed to fit / `scroll`).
+    pub table_layout: String,
     /// Whether the sidebar wears the rainbow — each entry the next of the
     /// seven from the accent on (services/spaceColors.js does the dealing).
     /// Resolved like the accent: this machine's answer over the notebook's.
@@ -138,6 +140,7 @@ impl NotebookInfo {
                 home_tasks_source: notebook.config().home_tasks_source.clone(),
                 home_notes_source: notebook.config().home_notes_source.clone(),
                 note_layout: notebook.config().note_layout.clone(),
+                table_layout: notebook.config().table_layout.clone(),
                 auto_space_colors: display.auto_space_colors,
                 accent_color: display.accent_color,
                 theme: display.theme,

@@ -742,6 +742,7 @@
       closeInspectorOnClickAway: false,
       quickNoteFolder: "Inbox",
       noteLayout: "",
+      tableLayout: "",
       accentColor: "",
       theme: "",
       headingColor: "",
@@ -2710,6 +2711,7 @@
               wikiLinks={f("wikiLinks")}
               embeds={f("embeds")}
               tables={f("tables")}
+              tableLayout={layout.tableLayout}
               root={notebook.path}
               onLoaded={(state) => {
                 openNote = state;
