@@ -205,6 +205,15 @@ fn to_local(naive: NaiveDateTime) -> DateTime<Local> {
     Local::now()
 }
 
+/// The wall clock as an INSTANT, for comparing against a file's mtime
+/// (`history::Stamp::is_racy`, 2026-08-24). Not a date: no calendar decision
+/// can be taken from it, which is why it lives here beside the logical day
+/// rather than being one more `SystemTime::now()` the invariant test would
+/// have to forbid.
+pub fn system_now() -> std::time::SystemTime {
+    std::time::SystemTime::now()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -259,12 +268,18 @@ mod tests {
     #[test]
     fn parses_the_documented_offsets() {
         assert_eq!(TurnOffset::parse("00:00"), Some(TurnOffset::MIDNIGHT));
-        assert_eq!(TurnOffset::parse("02:00"), Some(TurnOffset::from_minutes(120)));
+        assert_eq!(
+            TurnOffset::parse("02:00"),
+            Some(TurnOffset::from_minutes(120))
+        );
         assert_eq!(
             TurnOffset::parse("-02:00"),
             Some(TurnOffset::from_minutes(-120))
         );
-        assert_eq!(TurnOffset::parse("+01:30"), Some(TurnOffset::from_minutes(90)));
+        assert_eq!(
+            TurnOffset::parse("+01:30"),
+            Some(TurnOffset::from_minutes(90))
+        );
     }
 
     #[test]

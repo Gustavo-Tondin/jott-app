@@ -86,6 +86,27 @@ struct Stamp {
     len: u64,
 }
 
+impl Stamp {
+    /// Whether this stamp could describe two different contents — git's
+    /// "racy" rule. A file written twice inside one tick of the
+    /// filesystem's clock keeps its mtime, and a rewrite of the same length
+    /// keeps its size: the stamp says "unchanged" while the bytes changed.
+    /// Measured in CI (2026-08-24): `one\n` → `two\n` in the same second
+    /// was recorded as no edit at all on ubuntu and on Windows, where the
+    /// clock is coarser than the ext4 one this was written against. A
+    /// stamp younger than two seconds is therefore never trusted from the
+    /// cache — the file is read again, which is the only honest answer.
+    fn is_racy(&self) -> bool {
+        match self
+            .modified
+            .and_then(|m| crate::clock::system_now().duration_since(m).ok())
+        {
+            Some(age) => age.as_secs() < 2,
+            None => true,
+        }
+    }
+}
+
 /// One action, as the changes it made.
 #[derive(Debug)]
 pub struct Entry {
@@ -111,7 +132,9 @@ impl Entry {
     fn bytes(&self) -> usize {
         self.files
             .iter()
-            .map(|c| c.before.as_ref().map_or(0, |b| b.len()) + c.after.as_ref().map_or(0, |a| a.len()))
+            .map(|c| {
+                c.before.as_ref().map_or(0, |b| b.len()) + c.after.as_ref().map_or(0, |a| a.len())
+            })
             .sum()
     }
 }
@@ -179,7 +202,12 @@ impl History {
     pub fn absorb(&mut self, root: &Path) -> Result<()> {
         let now = self.scan(root)?;
         if let Some(last) = self.last.take() {
-            for path in last.text.keys().chain(now.text.keys()).collect::<BTreeSet<_>>() {
+            for path in last
+                .text
+                .keys()
+                .chain(now.text.keys())
+                .collect::<BTreeSet<_>>()
+            {
                 let old = last.text.get(path);
                 let new = now.text.get(path);
                 let same = match (old, new) {
@@ -239,7 +267,13 @@ impl History {
             self.forget_through(index);
             return Err(e);
         }
-        apply(root, entry, |c| c.before.as_deref(), &entry.created_dirs, &entry.removed_dirs)?;
+        apply(
+            root,
+            entry,
+            |c| c.before.as_deref(),
+            &entry.created_dirs,
+            &entry.removed_dirs,
+        )?;
         self.done = index;
         self.last = self.scan(root).ok();
         Ok(Some(self.entries[index].label.clone()))
@@ -258,7 +292,13 @@ impl History {
             self.drop_redo();
             return Err(e);
         }
-        apply(root, entry, |c| c.after.as_deref(), &entry.removed_dirs, &entry.created_dirs)?;
+        apply(
+            root,
+            entry,
+            |c| c.after.as_deref(),
+            &entry.removed_dirs,
+            &entry.created_dirs,
+        )?;
         self.done += 1;
         self.last = self.scan(root).ok();
         Ok(Some(self.entries[self.done - 1].label.clone()))
@@ -351,7 +391,7 @@ impl History {
 
     fn read_cached(&mut self, path: &Path, relative: &Path, stamp: Stamp) -> Result<Arc<[u8]>> {
         if let Some(cached) = self.cache.get(relative) {
-            if cached.stamp == stamp {
+            if cached.stamp == stamp && !stamp.is_racy() {
                 return Ok(Arc::clone(&cached.content));
             }
         }
@@ -381,7 +421,12 @@ fn diff(label: &str, before: &Tree, after: &Tree) -> Option<Entry> {
         return None;
     }
     let mut files = Vec::new();
-    for path in before.text.keys().chain(after.text.keys()).collect::<BTreeSet<_>>() {
+    for path in before
+        .text
+        .keys()
+        .chain(after.text.keys())
+        .collect::<BTreeSet<_>>()
+    {
         let old = before.text.get(path);
         let new = after.text.get(path);
         let same = match (old, new) {
@@ -648,7 +693,10 @@ mod tests {
 
         let err = history.undo(root).unwrap_err();
         assert!(matches!(err, Error::Stale(ref label) if label == "second"));
-        assert_eq!(read(root, "note.md").as_deref(), Some("synced from elsewhere"));
+        assert_eq!(
+            read(root, "note.md").as_deref(),
+            Some("synced from elsewhere")
+        );
         // Both rested on that file: nothing older is offered either.
         assert_eq!(history.undoable(), None);
     }
@@ -693,7 +741,10 @@ mod tests {
                 .unwrap();
         }
         assert_eq!(history.entries.len(), MAX_ENTRIES);
-        assert_eq!(history.undoable(), Some(format!("edit {}", MAX_ENTRIES + 4).as_str()));
+        assert_eq!(
+            history.undoable(),
+            Some(format!("edit {}", MAX_ENTRIES + 4).as_str())
+        );
         let mut undone = 0;
         while history.undo(root).unwrap().is_some() {
             undone += 1;
@@ -748,6 +799,9 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let root = dir.path();
         write(root, "note.md", "one");
+        // Aged past the racy window: a file this old has a stamp worth
+        // trusting (`Stamp::is_racy`).
+        age(root, "note.md");
         let mut history = History::new();
         let first = history.scan(root).unwrap();
         let second = history.scan(root).unwrap();
@@ -755,6 +809,30 @@ mod tests {
             &first.text[Path::new("note.md")],
             &second.text[Path::new("note.md")]
         ));
+    }
+
+    /// Pushes a file's mtime ten seconds into the past.
+    fn age(root: &Path, rel: &str) {
+        let file = std::fs::File::options()
+            .write(true)
+            .open(root.join(rel))
+            .unwrap();
+        file.set_modified(crate::clock::system_now() - std::time::Duration::from_secs(10))
+            .unwrap();
+    }
+
+    #[test]
+    fn a_same_length_rewrite_in_the_same_tick_is_still_seen() {
+        // The CI failure of 2026-08-24: same size, same second, and the
+        // cache answered the old bytes. The racy rule reads it again.
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        write(root, "note.md", "one");
+        let mut history = History::new();
+        history.scan(root).unwrap();
+        write(root, "note.md", "two");
+        let after = history.scan(root).unwrap();
+        assert_eq!(&after.text[Path::new("note.md")][..], b"two");
     }
 
     #[test]
