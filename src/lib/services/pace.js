@@ -7,7 +7,12 @@
 //
 // One mutable knob on purpose: tests zero it to stay instant.
 export const pace = {
-  completionMs: 250,
+  // Zero since 2026-08-24: the completing card now HOLDS for a second of its
+  // own (task-row.css) before the write happens, so a second pause here only
+  // widened the blank moment before the Completed section arrived. The knob
+  // stays: the inspector's completes still pass through it, and a test zeroes
+  // it explicitly either way.
+  completionMs: 0,
 };
 
 /** Waits the completion beat, when there is one. */

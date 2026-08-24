@@ -97,7 +97,10 @@
   // Above the send-off's ~1.23s (task-row.css), so the guard never cuts
   // the fold short.
   const CEILING = 1500;
-  const SEND_OFFS = new Set(["task-row-finish", "task-row-restore"]);
+  // The FINISHING row waits on the HOLD, not the fold: the fold plays while
+  // the write and the re-read already run underneath (task-row.css says why).
+  // Unticking still waits its whole play — it has no second act.
+  const SEND_OFFS = new Set(["task-row-hold", "task-row-restore"]);
 
   // Unticking a completed card plays the same way (user call, 2026-08-21):
   // `--restoring` is the shorter cousin, and the write waits on it alike.

@@ -112,8 +112,17 @@
      renaming it there. */
   .task-row--finishing {
     overflow: hidden;
-    /* ~1.2s total: 84% held (the second of reading), 16% fold (~200ms). */
-    animation: task-row-finish calc(var(--theme-duration-slow) * 3.5) var(--theme-ease-out) forwards;
+    /* TWO animations, deliberately: the HOLD is the clock the row waits on —
+       about a second of reading, and of ticking again when it was a slip —
+       and the FOLD (~200ms, delayed past the hold) is what the eye sees
+       while the write and the re-read already run underneath. Committing at
+       the fold's START instead of its end is what closed the blank moment
+       between the card folding and the Completed section arriving (user
+       report with video, 2026-08-24). */
+    animation:
+      task-row-hold calc(var(--theme-duration-slow) * 3) var(--theme-ease-out),
+      task-row-finish calc(var(--theme-duration-slow) * 0.6) var(--theme-ease-out)
+        calc(var(--theme-duration-slow) * 3) forwards;
   }
   /* Unticking, from the Completed list: the same fold, shorter and without
      the tint — the card is leaving for the open list, not being celebrated.
@@ -140,14 +149,20 @@
       padding-block: 0;
     }
   }
+  /* The hold draws nothing: it is time made visible to the ROW (which waits
+     on it by name), not to the eye. */
+  @keyframes task-row-hold {
+    from {
+      opacity: 1;
+    }
+  }
   @keyframes task-row-finish {
-    0%,
-    84% {
+    from {
       opacity: 1;
       scale: 1;
       max-block-size: 8rem;
     }
-    100% {
+    to {
       opacity: 0;
       scale: 0.96;
       max-block-size: 0;

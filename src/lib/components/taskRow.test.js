@@ -19,9 +19,9 @@ const row = (extra = {}) => {
   return { ...result, box, card, done };
 };
 
-/// An engine that reports one `task-row-finish` playing on the card, and lets
-/// the test decide when it finishes.
-function playing(card, name = "task-row-finish") {
+/// An engine that reports one `task-row-hold` playing on the card — the
+/// animation the row waits on — and lets the test decide when it finishes.
+function playing(card, name = "task-row-hold") {
   let end;
   const finished = new Promise((r) => (end = r));
   card.getAnimations = () => [{ animationName: name, finished }];
