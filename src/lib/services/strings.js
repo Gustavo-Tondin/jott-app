@@ -453,7 +453,8 @@ export const S = {
   subNoteHas: "What a note can have",
   subBoard: "Board",
   noteLayout: "Default layout",
-  homeShows: "Home shows",
+  homeShowsTasks: "Home shows (tasks)",
+  homeShowsNotes: "Home shows (notes)",
   homeShowsTasksHint:
     "What the tasks block on the Home shows: My Day, or a task list hosted " +
     "whole — the Inbox, or one of your own.",

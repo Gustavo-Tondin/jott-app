@@ -329,6 +329,8 @@
         S.switchNotebook,
         S.quickNoteFolder,
         S.quickTasksGoTo,
+        S.homeShowsTasks,
+        S.homeShowsNotes,
         S.confirmDeletes,
         S.completedRetention,
         S.trashRetention,
@@ -350,8 +352,8 @@
   /// with none simply has no entry, instead of the `fn.key === "tasks" ? …`
   /// chain this replaced.
   const FUNCTION_EXTRAS = () => ({
-    tasks: [S.autoUrgentByDate, S.newTasksGoTo, S.homeShows],
-    notes: [S.noteLayout, S.confirmImageDownloads, S.homeShows],
+    tasks: [S.autoUrgentByDate, S.newTasksGoTo],
+    notes: [S.noteLayout, S.confirmImageDownloads],
   });
 
   /// Every page the search can look up. The functions' half is DERIVED — the
@@ -1200,25 +1202,6 @@
             </select>
           </label>
 
-          <!-- What the Home's tasks block shows (user call, 2026-08-24): the
-               day, or a task list hosted whole — the notes page keeps the
-               same row for its block. -->
-          <label class="settings__row">
-            <span class="settings__label">{S.homeShows}</span>
-            <select
-              class="theme-select"
-              bind:value={form.homeTasksSource}
-              disabled={readOnly}
-              aria-label={S.homeShows}
-              onchange={(e) => put({ homeTasksSource: e.currentTarget.value })}
-            >
-              {#each homeTasksChoices as choice (choice.value)}
-                <option value={choice.value}>{choice.label}</option>
-              {/each}
-            </select>
-          </label>
-          <p class="settings__hint">{S.homeShowsTasksHint}</p>
-
           <h3 class="settings__subtitle">{S.subScreens}</h3>
           {#each childrenIn("tasks", "screens") as feature (feature.key)}
             {@render featureRow(feature)}
@@ -1300,23 +1283,7 @@
           </label>
           <p class="settings__hint">{S.confirmImageDownloadsHint}</p>
 
-          <!-- What the Home's notes block shows (user call, 2026-08-24) — a
-               notebook rule, like everything on a function's page. -->
-          <label class="settings__row">
-            <span class="settings__label">{S.homeShows}</span>
-            <select
-              class="theme-select"
-              bind:value={form.homeNotesSource}
-              disabled={readOnly}
-              aria-label={S.homeShows}
-              onchange={(e) => put({ homeNotesSource: e.currentTarget.value })}
-            >
-              {#each homeNotesChoices as choice (choice.value)}
-                <option value={choice.value}>{choice.label}</option>
-              {/each}
-            </select>
-          </label>
-          <p class="settings__hint">{S.homeShowsNotesHint}</p>
+
         </section>
       {/if}
 
@@ -1403,6 +1370,41 @@
           </label>
           <p class="settings__hint">{S.quickTasksGoToHint}</p>
           {/if}
+
+          <!-- What the Home's two blocks show (user call, 2026-08-24: "home
+               shows deveria estar em notebook") — beside the captures they
+               feed, so entrance and display read as one subject. -->
+          <label class="settings__row">
+            <span class="settings__label">{S.homeShowsTasks}</span>
+            <select
+              class="theme-select"
+              bind:value={form.homeTasksSource}
+              disabled={readOnly}
+              aria-label={S.homeShowsTasks}
+              onchange={(e) => put({ homeTasksSource: e.currentTarget.value })}
+            >
+              {#each homeTasksChoices as choice (choice.value)}
+                <option value={choice.value}>{choice.label}</option>
+              {/each}
+            </select>
+          </label>
+          <p class="settings__hint">{S.homeShowsTasksHint}</p>
+
+          <label class="settings__row">
+            <span class="settings__label">{S.homeShowsNotes}</span>
+            <select
+              class="theme-select"
+              bind:value={form.homeNotesSource}
+              disabled={readOnly}
+              aria-label={S.homeShowsNotes}
+              onchange={(e) => put({ homeNotesSource: e.currentTarget.value })}
+            >
+              {#each homeNotesChoices as choice (choice.value)}
+                <option value={choice.value}>{choice.label}</option>
+              {/each}
+            </select>
+          </label>
+          <p class="settings__hint">{S.homeShowsNotesHint}</p>
 
           <h3 class="settings__subtitle">{S.subSafety}</h3>
 
