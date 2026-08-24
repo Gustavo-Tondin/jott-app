@@ -85,6 +85,33 @@ describe("indentation and line breaks (the four rules of 2026-08-18)", () => {
     done();
   });
 
+  it("Tab on an ordered item starts a count of its own, and the outer list carries on", () => {
+    // 1..3, then the fourth pressed in: it reads 1. of a nested list under
+    // c, and the item below returns to being the outer 4 (user call,
+    // 2026-08-24 — screenshot with "4. d" indented and "5. e" after it).
+    const doc = "1. a\n2. b\n3. c\n4. d\n5. e";
+    const { view, done } = editor(doc, doc.indexOf("4. d") + 4);
+    press(view, "Tab");
+    expect(text(view)).toBe(`1. a\n2. b\n3. c\n${md.INDENT}1. d\n4. e`);
+    done();
+  });
+
+  it("Shift+Tab brings the item back into the outer count", () => {
+    const doc = `1. a\n2. b\n3. c\n${md.INDENT}1. d\n4. e`;
+    const { view, done } = editor(doc, doc.indexOf("1. d") + 4);
+    press(view, "Tab", { shiftKey: true });
+    expect(text(view)).toBe("1. a\n2. b\n3. c\n4. d\n5. e");
+    done();
+  });
+
+  it("Enter inside the nested count carries IT on, not the outer one", () => {
+    const doc = `1. a\n${md.INDENT}1. b`;
+    const { view, done } = editor(doc);
+    press(view, "Enter");
+    expect(text(view)).toBe(`1. a\n${md.INDENT}1. b\n${md.INDENT}2. `);
+    done();
+  });
+
   // The two Enter tests below passed BEFORE this change too: `markdown()`
   // binds Enter at high precedence on its own. They are kept because that is
   // easy to lose — anyone adding a keymap above it, or passing

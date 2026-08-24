@@ -15,13 +15,16 @@ import { indentLess, indentMore, redo, undo } from "@codemirror/commands";
 
 /// One level of indentation, as SPACES.
 ///
-/// Two, not four: it is the least that makes a nested list render right in
-/// CommonMark (a `- ` puts its content at column 2), and a note stays legible
-/// in whatever editor opens the file next — the files are the product
-/// (principle 4). Tabs are avoided for the same reason: their width is the
-/// reader's setting, so a nested list written with them lands differently
-/// everywhere.
-export const INDENT = "  ";
+/// Four, not two (user call, 2026-08-24). Two was the least that nests a
+/// `- ` bullet, but an ORDERED item needs at least the parent's marker width
+/// — under `3. ` the content column is 3 — or CommonMark reads the "nested"
+/// item as a sibling and the numbering never restarts, which is exactly the
+/// screenshot that changed this. Four covers `99. `, and reads wider, which
+/// was asked for in the same breath. A note stays legible in whatever editor
+/// opens the file next — the files are the product (principle 4). Tabs are
+/// avoided for the same reason: their width is the reader's setting, so a
+/// nested list written with them lands differently everywhere.
+export const INDENT = "    ";
 
 // ---- inline marks ---------------------------------------------------------
 
@@ -286,6 +289,70 @@ export function clearHeading(view) {
   return edit(view, { changes });
 }
 
+// ---- ordered lists keep counting right ------------------------------------
+
+/// Any list marker holds the BLOCK together for the walk below; only the
+/// ordered ones are rewritten.
+const LIST_LINE = /^\s*(?:[-*+]|\d+[.)])\s/;
+const ORDERED_LINE = /^(\s*)(\d+)([.)])\s/;
+
+/// Rewrites the numbers of the contiguous list block around the cursor so
+/// each depth counts its own run: an indented item starts a new count under
+/// the item above it, and the line that comes back out continues the outer
+/// list where it left off — `1. 2. 3.`, indent the fourth and it reads `1.`;
+/// bring the next line back out and it reads `4.` (user call, 2026-08-24).
+///
+/// Depth is the indentation width, which is what this editor itself writes
+/// (`INDENT`); only a number that is wrong is touched, so the file changes by
+/// exactly what the eye sees change.
+export function renumberLists(view) {
+  const doc = view.state.doc;
+  let at = doc.lineAt(view.state.selection.main.head).number;
+  // The command may have left the cursor on a line that stopped being a list
+  // line; the block above it is still the one to fix.
+  if (!LIST_LINE.test(doc.line(at).text) && at > 1) at -= 1;
+  if (!LIST_LINE.test(doc.line(at).text)) return false;
+  let first = at;
+  while (first > 1 && LIST_LINE.test(doc.line(first - 1).text)) first -= 1;
+  let last = at;
+  while (last < doc.lines && LIST_LINE.test(doc.line(last + 1).text)) last += 1;
+
+  const changes = [];
+  const stack = [];
+  for (let n = first; n <= last; n++) {
+    const line = doc.line(n);
+    const m = ORDERED_LINE.exec(line.text);
+    if (!m) continue;
+    const width = m[1].length;
+    while (stack.length && stack[stack.length - 1].width > width) stack.pop();
+    const top = stack[stack.length - 1];
+    let count;
+    if (top && top.width === width) {
+      top.count += 1;
+      count = top.count;
+    } else {
+      stack.push({ width, count: 1 });
+      count = 1;
+    }
+    if (String(count) !== m[2]) {
+      changes.push({
+        from: line.from + width,
+        to: line.from + width + m[2].length,
+        insert: String(count),
+      });
+    }
+  }
+  if (changes.length === 0) return false;
+  return edit(view, { changes });
+}
+
+/// Indentation, plus the renumbering it makes necessary.
+const indentAndCount = (cmd) => (view) => {
+  if (!cmd(view)) return false;
+  renumberLists(view);
+  return true;
+};
+
 // ---- what the registry's editor ids run ----------------------------------
 
 /// Command id → the editor command it runs.
@@ -302,9 +369,10 @@ export const EDITOR_COMMANDS = {
   // Indentation and history are CodeMirror's own, bound here as well as to
   // their keys so the panel's buttons press the very same function (the point
   // of this table). `indentMore`/`indentLess` are what Tab and Shift+Tab run
-  // in the editor already.
-  "md.indent": indentMore,
-  "md.outdent": indentLess,
+  // in the editor already — wrapped so an ordered list keeps counting right
+  // across the depth change (`renumberLists`).
+  "md.indent": indentAndCount(indentMore),
+  "md.outdent": indentAndCount(indentLess),
   "edit.undo": undo,
   "edit.redo": redo,
   "md.italic": toggleItalic,
