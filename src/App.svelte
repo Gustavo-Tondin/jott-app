@@ -748,6 +748,7 @@
       folders: noteFolders,
       spaces,
       fixedShown: f("notesSpace"),
+      inboxOnHome: !!layout.homeShowsAllInboxNotes,
     }),
   );
 

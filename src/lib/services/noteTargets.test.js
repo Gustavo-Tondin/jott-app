@@ -35,6 +35,15 @@ describe("noteTargets", () => {
     expect(targets.map((t) => t.value)).toEqual(["Design Notes"]);
   });
 
+  test("…unless the Home shows the whole Inbox: then the Inbox stays a door", () => {
+    // `homeShowsAllInboxNotes` makes the Inbox readable ON the Home, so a
+    // note captured into it is not lost behind a hidden screen (user call,
+    // 2026-08-24). Only the Inbox comes back — the other folders of the
+    // hidden space still have no door.
+    const targets = noteTargets({ ...SETUP, fixedShown: false, inboxOnHome: true });
+    expect(targets.map((t) => t.value)).toEqual(["Inbox", "Design Notes"]);
+  });
+
   test("a task space is never a place for a note", () => {
     const targets = noteTargets({ ...SETUP, folders: [], spaces: SETUP.spaces });
     expect(targets.some((t) => t.space === "Design/Tasks")).toBe(false);

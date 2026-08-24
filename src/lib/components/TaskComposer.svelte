@@ -134,7 +134,18 @@
     const height = form?.offsetHeight ?? 0;
     const far = height > 0 && pulled > height * DISMISS_AT;
     pulled = 0;
-    if (far) onDismiss?.();
+    if (far) putAway();
+  }
+
+  /// The bar leaves, and the keyboard leaves WITH it (user call, 2026-08-24):
+  /// pulled down with the keys still up, they were left standing over
+  /// nothing. Whatever of ours holds the focus lets go before the bar goes.
+  function putAway() {
+    const active = document.activeElement;
+    if (active instanceof HTMLElement && (form?.contains(active) || active === field)) {
+      active.blur();
+    }
+    onDismiss?.();
   }
 
   function letGo() {
@@ -173,7 +184,7 @@
     if (variant === "dialog") return;
     const typing = document.activeElement === field || Date.now() < typedUntil;
     if (typing || !onDismiss) field?.focus();
-    else onDismiss();
+    else putAway();
   }
 </script>
 
@@ -198,7 +209,7 @@
       onpointermove={onPullMove}
       onpointerup={onPullUp}
       onpointercancel={onPullUp}
-      onclick={() => onDismiss?.()}
+      onclick={putAway}
     >
       <span class="task-composer__grip" aria-hidden="true"></span>
     </button>
