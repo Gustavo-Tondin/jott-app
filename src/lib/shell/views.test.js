@@ -76,6 +76,27 @@ describe("reachable", () => {
     expect(reachable({ kind: "home" }, off("homeSpace"))).toBe(false);
   });
 
+  test("the Home showing a hidden space keeps its files reachable", () => {
+    // `homeNotesSource`/`homeTasksSource` (2026-08-24): with the fixed space
+    // hidden but the Home pointed at it, the Home IS the door — a note
+    // clicked there must open instead of bouncing back (user report).
+    const layout = {
+      tasksFolder: "jott.tasks",
+      notesFolder: "jott.notes",
+      homeTasksSource: "jott.tasks",
+      homeNotesSource: "jott.notes",
+    };
+    expect(
+      reachable({ kind: "note", folder: "jott.notes", path: "a.md" }, off("notesSpace"), layout),
+    ).toBe(true);
+    expect(
+      reachable({ kind: "list", list: "jott.tasks/task-list.md" }, off("tasksSpace"), layout),
+    ).toBe(true);
+    // The hidden SCREENS themselves stay gone.
+    expect(reachable({ kind: "notes" }, off("notesSpace"), layout)).toBe(false);
+    expect(reachable({ kind: "tasks" }, off("tasksSpace"), layout)).toBe(false);
+  });
+
   test("Settings is always somewhere to be", () => {
     expect(reachable({ kind: "settings" }, () => false)).toBe(true);
   });

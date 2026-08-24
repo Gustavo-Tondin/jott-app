@@ -54,15 +54,20 @@ export function reachable(view, f = () => true, layout = null) {
     case "list": {
       if (!f("tasks")) return false;
       const home = layout?.tasksFolder;
-      return home && folderOf(view.list) === home ? f("tasksSpace") : true;
+      if (!home || folderOf(view.list) !== home) return true;
+      // The fixed space's files stay reachable while the HOME is showing
+      // that space (`homeTasksSource`): the Home is the door then, and a
+      // task opened from it must open (user report, 2026-08-24 — the notes
+      // twin below is the one that was clicked).
+      return f("tasksSpace") || layout.homeTasksSource === home;
     }
     case "notes":
       return f("notes") && f("notesSpace");
     case "note": {
       if (!f("notes")) return false;
-      return layout?.notesFolder && view.folder === layout.notesFolder
-        ? f("notesSpace")
-        : true;
+      const home = layout?.notesFolder;
+      if (!home || view.folder !== home) return true;
+      return f("notesSpace") || layout.homeNotesSource === home;
     }
     case "tags":
       return f("taskTags");
