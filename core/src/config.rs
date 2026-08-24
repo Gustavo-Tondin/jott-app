@@ -177,6 +177,11 @@ pub struct Config {
     /// written in order wants the order kept. The file decides nothing here:
     /// `List::add_first` keeps whatever sits above the checklist above it.
     pub new_tasks_on_top: bool,
+    /// Give every space and group that chose no colour one of the seven, in
+    /// sidebar order (2026-08-24). Off by default: a notebook reads as the
+    /// app's own colour until someone asks for the rainbow. A colour chosen
+    /// by hand always wins, so switching this on takes nothing away.
+    pub auto_space_colors: bool,
     /// How dates are shown. The file always stores ISO.
     pub date_display_format: DateFormat,
     /// Which of the app's seven complementary colours is the accent — the
@@ -331,6 +336,7 @@ impl Default for Config {
             confirm_image_downloads: true,
             auto_urgent_by_date: true,
             new_tasks_on_top: false,
+            auto_space_colors: false,
             date_display_format: DateFormat::default(),
             accent_color: String::new(),
             theme: String::new(),
@@ -509,6 +515,7 @@ impl Config {
             ),
             auto_urgent_by_date: flag(&raw, "autoUrgentByDate", defaults.auto_urgent_by_date),
             new_tasks_on_top: flag(&raw, "newTasksOnTop", defaults.new_tasks_on_top),
+            auto_space_colors: flag(&raw, "autoSpaceColors", defaults.auto_space_colors),
             date_display_format: string(&raw, "dateDisplayFormat")
                 .as_deref()
                 .map(DateFormat::parse_or_default)
@@ -612,6 +619,7 @@ impl Config {
             ),
             ("autoUrgentByDate", Value::from(self.auto_urgent_by_date)),
             ("newTasksOnTop", Value::from(self.new_tasks_on_top)),
+            ("autoSpaceColors", Value::from(self.auto_space_colors)),
             (
                 "dateDisplayFormat",
                 Value::from(self.date_display_format.render()),
@@ -826,6 +834,7 @@ mod tests {
         assert!(!config.restore_last_screen);
         assert!(config.show_list_counts);
         assert!(!config.new_tasks_on_top);
+        assert!(!config.auto_space_colors);
         assert_eq!(config.rollover.daily.mode, RolloverMode::Reset);
         assert_eq!(config.rollover.daily.at, TurnOffset::MIDNIGHT);
         assert_eq!(config.rollover.weekly.mode, RolloverMode::Reset);
@@ -1251,6 +1260,14 @@ mod tests {
         // A value that is not a bool is not an opinion.
         let broken = Config::parse(r#"{ "schemaVersion": 1, "features": { "tasks": "no" } }"#);
         assert_eq!(broken.feature("tasks"), None);
+    }
+
+    #[test]
+    fn the_rainbow_switch_round_trips_and_a_bad_value_falls_back() {
+        let mut config = Config::default();
+        config.auto_space_colors = true;
+        assert!(Config::parse(&config.render()).auto_space_colors);
+        assert!(!Config::parse(r#"{"autoSpaceColors": "sim"}"#).auto_space_colors);
     }
 
     #[test]

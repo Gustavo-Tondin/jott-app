@@ -57,6 +57,9 @@ pub struct NotebookLayout {
     /// The board layout of a notes space that never chose one (`grid` /
     /// `tree`); empty means the app's own.
     pub note_layout: String,
+    /// Whether spaces and groups without a colour of their own take one of
+    /// the seven, in sidebar order (services/spaceColors.js does the dealing).
+    pub auto_space_colors: bool,
     /// Which of the seven the app is accented with, and which theme is on,
     /// both by name (2026-08-13). They ride in the layout rather than the
     /// settings because the shell needs them on the FIRST paint — both are
@@ -126,6 +129,7 @@ impl NotebookInfo {
                 home_tasks_source: notebook.config().home_tasks_source.clone(),
                 home_notes_source: notebook.config().home_notes_source.clone(),
                 note_layout: notebook.config().note_layout.clone(),
+                auto_space_colors: notebook.config().auto_space_colors,
                 accent_color: display.accent_color,
                 theme: display.theme,
                 heading_color: display.heading_color,

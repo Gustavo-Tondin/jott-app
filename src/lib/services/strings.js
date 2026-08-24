@@ -447,6 +447,10 @@ export const S = {
   subInterface: "Interface",
   subLocation: "Location",
   subSafety: "Safety",
+  subSidebar: "Sidebar",
+  autoSpaceColors: "Colour spaces automatically",
+  autoSpaceColorsHint:
+    "Every space and group without a colour of its own takes one of the seven, in sidebar order. A colour you chose always wins.",
   subKeeping: "Keeping",
   notebookContents: "Notebook contents",
   notebookContentsLine: ({ notes, tasks, files, bytes }) => {

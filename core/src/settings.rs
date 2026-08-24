@@ -175,6 +175,7 @@ pub struct NotebookSettings {
     pub confirm_image_downloads: Option<bool>,
     pub auto_urgent_by_date: Option<bool>,
     pub new_tasks_on_top: Option<bool>,
+    pub auto_space_colors: Option<bool>,
     pub date_display_format: Option<String>,
     /// One of the seven, by name; empty goes back to the app's own.
     pub accent_color: Option<String>,
@@ -224,6 +225,7 @@ impl NotebookSettings {
             confirm_image_downloads: Some(config.confirm_image_downloads),
             auto_urgent_by_date: Some(config.auto_urgent_by_date),
             new_tasks_on_top: Some(config.new_tasks_on_top),
+            auto_space_colors: Some(config.auto_space_colors),
             date_display_format: Some(display.date_display_format.clone()),
             accent_color: Some(display.accent_color.clone()),
             theme: Some(display.theme.clone()),
@@ -285,6 +287,9 @@ impl NotebookSettings {
         }
         if let Some(v) = self.new_tasks_on_top {
             config.new_tasks_on_top = v;
+        }
+        if let Some(v) = self.auto_space_colors {
+            config.auto_space_colors = v;
         }
         if let Some(v) = &self.date_display_format {
             config.date_display_format = DateFormat::parse_or_default(v);

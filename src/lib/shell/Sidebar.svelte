@@ -89,6 +89,12 @@
     /// section is a door and not a screen.
     tags = [],
     onSearchTag,
+    /// What a space / a group READS as (services/spaceColors.js) — the
+    /// group's colour for a member, and a dealt one when the notebook asked
+    /// for the rainbow. The rows draw these, never `sp.color` straight: the
+    /// stored colour is what the appearance popup edits, not what is shown.
+    spaceColor = (path) => userSpaces.find((sp) => sp.path === path)?.color ?? null,
+    groupColor = (folder) => groups.find((g) => g.folder === folder)?.color ?? null,
   } = $props();
 
   // Tags fold away by default: they are a lesser thing than the spaces
@@ -551,7 +557,7 @@
           {#if entry.kind === "group"}
             <div
               class="shell__entry shell__group shell__group--space"
-              style={accentStyle(entry.group.color, {
+              style={accentStyle(groupColor(entry.group.folder), {
                 color: "--group-color",
                 tint: null,
               }) || undefined}
@@ -608,7 +614,7 @@
               class:shell__group={!parent}
               class:shell__group--space={!parent}
               style={(!parent &&
-                accentStyle(entry.sp.color, {
+                accentStyle(spaceColor(entry.sp.path), {
                   color: "--group-color",
                   tint: null,
                 })) ||

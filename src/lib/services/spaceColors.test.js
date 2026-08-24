@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { spaceColors } from "./spaceColors.js";
+import { groupColors, spaceColors } from "./spaceColors.js";
 
 describe("spaceColors", () => {
   const spaces = [
@@ -18,6 +18,24 @@ describe("spaceColors", () => {
     const colors = spaceColors(spaces, groups);
     expect(colors["Space 1"]).toBe("#0000ff");
     expect(colors["Space 3"]).toBe("#00ff00");
+  });
+
+  it("deals the seven hues in sidebar order to whoever chose none", () => {
+    // A hand-picked colour wins and does not use up a hue; a grouped space
+    // follows its group's dealt colour; the eighth entry wraps around.
+    const many = Array.from({ length: 9 }, (_, i) => ({ path: `S${i}`, color: null }));
+    many[1].color = "red";
+    const groups = [{ folder: "Work", spaces: ["S3"] }];
+    const colors = spaceColors(many, groups, { auto: true });
+    expect(colors.S0).toBe("yellow");
+    expect(colors.S1).toBe("red");
+    expect(colors.S2).toBe("orange");
+    expect(groupColors(many, groups, { auto: true }).Work).toBe("pink");
+    expect(colors.S3).toBe("pink");
+    expect(colors.S8).toBe("yellow");
+    // Off, nothing is dealt — what was set is what there is.
+    expect(spaceColors(many, groups).S0).toBe(null);
+    expect(groupColors(many, groups).Work).toBe(null);
   });
 
   it("drops the member's colour when the group has none", () => {

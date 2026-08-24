@@ -76,7 +76,7 @@
   import PageHeader from "./lib/shell/PageHeader.svelte";
   import { folderOf, leafOf, listName, listTitle } from "./lib/services/paths.js";
   import { formatDate } from "./lib/services/dates.js";
-  import { spaceColors } from "./lib/services/spaceColors.js";
+  import { groupColors, spaceColors } from "./lib/services/spaceColors.js";
   import { ACCENTS, tagColors as tagColorMap } from "./lib/services/accent.js";
   import {
     NOTE_FONT_SIZES,
@@ -851,7 +851,12 @@
   // What colour each space reads as — a member of a group follows the
   // group (2026-08-04), which the sidebar already did through --group-color
   // and the title and the tab dot did not.
-  let spColors = $derived(spaceColors(spaces, groups));
+  // The rainbow (2026-08-24) is the notebook's call and travels in the
+  // layout; the dealing itself is the service's, so the sidebar, the title
+  // and the tab dot all agree about which space is the orange one.
+  let autoColors = $derived({ auto: !!layout?.autoSpaceColors });
+  let spColors = $derived(spaceColors(spaces, groups, autoColors));
+  let grColors = $derived(groupColors(spaces, groups, autoColors));
 
   // Where the open task can move: ANY tasks list of the notebook, minus the
   // Completed files (moving into Completed is what completing a task does).
@@ -1950,6 +1955,8 @@
     {notebook}
     {userLists}
     {userSpaces}
+    spaceColor={(path) => spColors[path] ?? null}
+    groupColor={(folder) => grColors[folder] ?? null}
     {counts}
     {isOpen}
     {holds}

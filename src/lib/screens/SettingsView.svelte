@@ -345,6 +345,7 @@
         S.confirmDeletes,
         S.completedRetention,
         S.trashRetention,
+        S.autoSpaceColors,
       ],
     ],
     // The ~50 commands are deliberately NOT here: the Shortcuts page carries a
@@ -1416,6 +1417,23 @@
             </select>
           </label>
           <p class="settings__hint">{S.homeShowsNotesHint}</p>
+
+          <h3 class="settings__subtitle">{S.subSidebar}</h3>
+
+          <!-- The notebook's, not the machine's: which space is the orange one
+               has to be the same answer on every computer that opens it. -->
+          <label class="settings__row">
+            <span class="settings__label">{S.autoSpaceColors}</span>
+            <input
+              class="theme-checkbox"
+              type="checkbox"
+              bind:checked={form.autoSpaceColors}
+              disabled={readOnly}
+              aria-label={S.autoSpaceColors}
+              onchange={(e) => put({ autoSpaceColors: e.currentTarget.checked })}
+            />
+          </label>
+          <p class="settings__hint">{S.autoSpaceColorsHint}</p>
 
           <h3 class="settings__subtitle">{S.subSafety}</h3>
 
