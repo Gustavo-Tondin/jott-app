@@ -447,8 +447,16 @@ impl Notebook {
         let Some(relative) = path.map(str::trim).filter(|p| !p.is_empty()) else {
             return Ok(root);
         };
-        let joined = crate::relpath::safe_join(&root, relative)
-            .ok_or_else(|| Error::InvalidNotePath(relative.to_string()))?;
+        // The app's own folder is hidden, which `safe_join` refuses on
+        // purpose (a hidden name is nobody's note) — but `.jott/_FORMAT.txt`
+        // is the one address inside it the app itself hands out (Settings →
+        // About opens it), so the config folder is walked into explicitly.
+        // Only ONE level, and only under it: `.jott/../x` is still refused.
+        let joined = match relative.strip_prefix(&format!("{NOTEBOOK_CONFIG_DIR}/")) {
+            Some(inside) => crate::relpath::safe_join(&self.config_dir(), inside),
+            None => crate::relpath::safe_join(&root, relative),
+        }
+        .ok_or_else(|| Error::InvalidNotePath(relative.to_string()))?;
         Ok(if joined.is_dir() {
             joined
         } else {

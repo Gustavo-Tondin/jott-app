@@ -481,6 +481,14 @@ fn an_address_resolves_to_the_folder_it_lives_in() {
 
     // A file: the folder around it — the menu opens folders, never
     // documents.
+    // The one hidden address the app hands out itself: the format note
+    // inside its own folder (2026-08-24 — Settings → About refused it).
+    assert_eq!(
+        notebook.folder_of(Some(".jott/_FORMAT.txt")).unwrap(),
+        root.join(".jott")
+    );
+    assert!(notebook.folder_of(Some(".jott/../secret")).is_err());
+    assert!(notebook.folder_of(Some(".git/config")).is_err());
     assert_eq!(
         notebook.folder_of(Some("Design/Clients/task-list.md")).unwrap(),
         root.join("Design/Clients")
