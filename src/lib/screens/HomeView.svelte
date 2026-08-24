@@ -42,7 +42,6 @@
 
   let {
     notesFolder,
-    notesInbox = "Inbox",
     /// The notebook's root, absolute — what an image banner's address resolves
     /// against (services/assets.js).
     root = null,

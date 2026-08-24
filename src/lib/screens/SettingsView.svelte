@@ -61,7 +61,6 @@
     /// default first, then every space of the right kind.
     homeTasksChoices = [],
     homeNotesChoices = [],
-    notesInbox = "Inbox",
     /// The narrow shape (shell/compact.js). Not a width this screen measures:
     /// the shell measures once and tells everyone, the way the header and the
     /// top bar agree about which of them holds the arrows.

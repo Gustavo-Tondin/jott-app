@@ -15,7 +15,6 @@ beforeEach(resetScreens);
 describe("HomeView", () => {
   const props = (extra = {}) => ({
     notesFolder: "jott.notes",
-    notesInbox: "Inbox",
     // The targets the shell computes (services/noteTargets.js): the fixed
     // space's folders, plus any user note space.
     noteTargets: [

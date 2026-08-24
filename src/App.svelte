@@ -2415,7 +2415,6 @@
               notesSource={homeNotes}
               quickTask={quickTaskTo}
               notesFolder={layout.notesFolder}
-              notesInbox={layout.notesInbox}
               noteTargets={quickTargets}
               lists={notebook.lists}
               {tags}
@@ -2566,7 +2565,6 @@
               taskTargets={quickTaskChoices}
               {homeTasksChoices}
               {homeNotesChoices}
-              notesInbox={layout.notesInbox}
               onSection={(label) => (settingsSub = label)}
               onChanged={refreshNotebook}
               onError={fail}
