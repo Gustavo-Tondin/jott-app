@@ -258,11 +258,14 @@
 
 /* ---- checklists ----
    A note's checkbox is two characters in the file (spec 5), but it reads as
-   done the way a task of the app does — struck through and stepped back. */
+   done the way a task of the app does — struck through and stepped back.
+   The look itself comes from `.theme-checkbox`, which the widget wears
+   (services/markdown.js) — the box in a note and the box on a task are the
+   same control to the eye. Here is only what sitting INSIDE a line of text
+   asks for. */
 .editor .cm-task-checkbox {
   margin-right: var(--theme-space-6);
-  vertical-align: middle;
-  accent-color: var(--theme-brand);
+  vertical-align: text-bottom;
 }
 .editor .cm-md-done {
   color: var(--theme-ink-muted);
