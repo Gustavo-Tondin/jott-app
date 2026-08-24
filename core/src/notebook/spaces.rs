@@ -17,6 +17,18 @@ use crate::{COMPLETED_LIST, NOTES_DIR, TASKS_DIR};
 
 use super::*;
 
+/// Where a function sits under the `type` sort: lists first, notepads
+/// after, and a type this build cannot read at the end. Home is fixed and
+/// is not named in the dragged order either, so it keeps the front.
+fn type_rank(kind: &str) -> u8 {
+    match kind {
+        "home" => 0,
+        "tasks" => 1,
+        "notes" => 2,
+        _ => 3,
+    }
+}
+
 impl Notebook {
     /// The spaces of this notebook: every first-level folder carrying a
     /// `.space.json`, alphabetically by folder name.
@@ -44,19 +56,29 @@ impl Notebook {
         // space was created under (2026-08-06). Anything else — including
         // the default — is the hand-dragged order; fixed spaces are not
         // named in it and simply keep their place.
-        if self.config.spaces_sort == "name" {
-            found.sort_by(|a, b| {
-                a.display_name()
-                    .to_lowercase()
-                    .cmp(&b.display_name().to_lowercase())
-            });
-        } else {
+        let by_name = |a: &crate::space::Space, b: &crate::space::Space| {
+            a.display_name()
+                .to_lowercase()
+                .cmp(&b.display_name().to_lowercase())
+        };
+        match self.config.spaces_sort.as_str() {
+            "name" => found.sort_by(by_name),
+            // `type` puts every list before every notepad — the two functions
+            // a space can have (spec 3.5) — and reads by name inside each half,
+            // so the arrangement is stable under a rename.
+            "type" => found.sort_by(|a, b| {
+                type_rank(a.kind())
+                    .cmp(&type_rank(b.kind()))
+                    .then_with(|| by_name(a, b))
+            }),
+            _ => {
             let keys: Vec<String> = found.iter().map(path_of).collect();
             let mut zipped: Vec<(String, crate::space::Space)> =
                 keys.into_iter().zip(found.drain(..)).collect();
             self.config
                 .apply_order("spaces", &mut zipped, |entry| &entry.0);
             found = zipped.into_iter().map(|(_, sp)| sp).collect();
+            }
         }
         Ok(found)
     }
@@ -122,16 +144,21 @@ impl Notebook {
         Ok(found)
     }
 
-    /// How the sidebar arranges spaces: `"name"` or the dragged order.
+    /// How the sidebar arranges spaces: `"name"`, `"type"` or the dragged
+    /// order (empty).
     pub fn spaces_sort(&self) -> &str {
         &self.config.spaces_sort
     }
 
-    /// Sets it. Anything but `"name"` means the hand-dragged order, which is
-    /// what an untouched notebook already does.
+    /// Sets it. Anything but `"name"` or `"type"` means the hand-dragged
+    /// order, which is what an untouched notebook already does — and the
+    /// dragged order is never touched by a sort, so going back restores it.
     pub fn set_spaces_sort(&mut self, sort: &str) -> Result<()> {
         self.edit_config(|config| {
-            config.spaces_sort = if sort == "name" { sort.to_string() } else { String::new() };
+            config.spaces_sort = match sort {
+                "name" | "type" => sort.to_string(),
+                _ => String::new(),
+            };
         })
     }
 

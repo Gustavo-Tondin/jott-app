@@ -145,6 +145,7 @@ export const S = {
   confirmDeleteNotes: (n) => (n === 1 ? "Delete 1 note?" : `Delete ${n} notes?`),
   sortFileOrder: "File order",
   sortByName: "Sort by name",
+  sortByType: "Sort by type",
   sortByCreated: "Sort by creation date",
   sortByCompleted: "Sort by completion date",
   sortCustom: "Custom order (dragged)",

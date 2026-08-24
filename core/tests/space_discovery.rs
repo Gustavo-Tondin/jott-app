@@ -102,6 +102,29 @@ fn spaces_come_back_sorted_by_folder_name() {
 }
 
 #[test]
+fn the_type_sort_puts_lists_before_notepads_and_reads_by_name_inside() {
+    let (_dir, mut nb) = notebook();
+    nb.create_space("Zeta", "tasks").unwrap();
+    nb.create_space("Alpha", "notes").unwrap();
+    nb.create_space("Beta", "tasks").unwrap();
+
+    nb.set_spaces_sort("type").unwrap();
+    assert_eq!(nb.spaces_sort(), "type");
+    let names: Vec<String> = nb
+        .spaces()
+        .unwrap()
+        .iter()
+        .filter(|sp| !jott_core::space::is_app_folder(&jott_core::fsio::file_name_of(sp.root())))
+        .map(|sp| sp.display_name().to_string())
+        .collect();
+    assert_eq!(names, ["Beta", "Zeta", "Alpha"]);
+
+    // Anything else is the dragged order, and nothing about it was touched.
+    nb.set_spaces_sort("").unwrap();
+    assert_eq!(nb.spaces_sort(), "");
+}
+
+#[test]
 fn a_template_from_the_future_opens_but_stays_untouchable() {
     // The community-template scenario end to end: unzip a folder written by
     // a newer version into the notebook, and nothing breaks, nothing is lost.

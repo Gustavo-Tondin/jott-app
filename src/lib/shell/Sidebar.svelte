@@ -204,13 +204,18 @@
       items: [
         {
           label: S.sortCustom,
-          checked: spacesSort !== "name",
+          checked: spacesSort !== "name" && spacesSort !== "type",
           run: () => onSetSpacesSort?.(""),
         },
         {
           label: S.sortByName,
           checked: spacesSort === "name",
           run: () => onSetSpacesSort?.("name"),
+        },
+        {
+          label: S.sortByType,
+          checked: spacesSort === "type",
+          run: () => onSetSpacesSort?.("type"),
         },
       ],
     },
