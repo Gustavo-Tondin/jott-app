@@ -1,9 +1,9 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Permissions the Jott window needs on desktop. Kept minimal on purpose: the app only reaches the filesystem through its own Rust commands, so no blanket fs permission is granted to the webview. Desktop-only because the window commands below (dragging, minimize, maximize) describe a window the user can move — mobile has no such thing, and asking for them there fails the build.",
+  "description": "Permissions the Jott windows need on desktop. `windows` lists BOTH labels on purpose (2026-08-24): the first window is `main`, and every window opened after it is `jott-<id>` (commands::shell::open_window). A capability names the windows it applies to, so with `main` alone a second window came up with NO permissions at all — the title bar could not drag it and none of minimize, maximize or close did anything, while the app's own commands kept working because those are not gated by this file. Nothing to see in a test and nothing in a log; it is a window that simply cannot be moved. Kept minimal on purpose: Kept minimal on purpose: the app only reaches the filesystem through its own Rust commands, so no blanket fs permission is granted to the webview. Desktop-only because the window commands below (dragging, minimize, maximize) describe a window the user can move — mobile has no such thing, and asking for them there fails the build.",
   "platforms": ["linux", "windows", "macOS"],
-  "windows": ["main"],
+  "windows": ["main", "jott-*"],
   "permissions": [
     "core:default",
     "core:window:allow-start-dragging",

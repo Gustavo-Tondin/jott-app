@@ -5,6 +5,7 @@ import {
   isAccent,
   accentColor,
   accentRung,
+  accentSolid,
   accentTint,
   accentStyle,
   tagColors,
@@ -95,6 +96,23 @@ describe("the eight colours", () => {
     );
     for (const empty of [null, undefined, ""]) {
       expect(accentRung(empty, 3)).toBeNull();
+    }
+  });
+
+  test("the solid fill is the step that carries text, and it is theme-blind", () => {
+    // Its sibling `accentFill` is step 300 — a surface with nothing on it (a
+    // note's banner). A notebook card has a name and two counts written across
+    // it, and 300 is the step that reads AS text on a dark ground, not the
+    // step that carries text. 500 is; the palette pins it to 4.5:1 against the
+    // light ground, and `architecture.test.js` measures white on it.
+    expect(accentSolid("blue")).toBe("var(--accent-blue-solid)");
+    for (const name of ACCENTS) {
+      expect(accentSolid(name)).toBe(`var(--accent-${name}-solid)`);
+    }
+    // A raw colour written by hand is itself, as everywhere in this module.
+    expect(accentSolid("#ff0000")).toBe("#ff0000");
+    for (const empty of [null, undefined, ""]) {
+      expect(accentSolid(empty)).toBeNull();
     }
   });
 });

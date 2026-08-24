@@ -17,7 +17,6 @@ tauri-build = { version = "2", features = [] }
 # The mock runtime lets the bridge be tested without opening a window.
 tauri = { version = "2", features = ["test"] }
 tempfile = "3.14"
-chrono.workspace = true
 
 [dependencies]
 jott-core = { path = "../core" }
@@ -33,6 +32,11 @@ tauri-plugin-dialog = "2"
 tauri-plugin-opener = "2"
 serde.workspace = true
 serde_json.workspace = true
+# The wall clock, for the one thing on this side that reads it: when a notebook
+# was last opened, which the picker turns into "42 min ago". The core is not
+# allowed to (`core/tests/invariants.rs`) — the logical day is `clock.rs`'s —
+# and this is not a date on the calendar, it is a stamp on a machine preference.
+chrono.workspace = true
 ureq = { version = "3", default-features = false, features = ["rustls", "platform-verifier", "gzip"] }
 
 # The desktop's own icon for a kind of file, for the chip a non-drawable file

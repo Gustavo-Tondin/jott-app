@@ -5,14 +5,15 @@
 //! list is addressed by its root-relative path, never by a bare name.
 
 use jott_core::{Conflict, Task};
-use tauri::State;
+use tauri::{Runtime, State};
 
 use crate::error::CommandResult;
 use crate::state::AppState;
 
 #[tauri::command]
-pub fn list_names(state: State<'_, AppState>) -> CommandResult<Vec<jott_core::notebook::ListEntry>> {
-    state.read(|nb| nb.lists())
+pub fn list_names<R: Runtime>(state: State<'_, AppState>,
+    window: tauri::Window<R>,) -> CommandResult<Vec<jott_core::notebook::ListEntry>> {
+    state.read(window.label(), |nb| nb.lists())
 }
 
 /// Conflicting copies a sync tool left in the notebook.
@@ -20,44 +21,50 @@ pub fn list_names(state: State<'_, AppState>) -> CommandResult<Vec<jott_core::no
 /// The app reports them; resolving is the user's call, since guessing which
 /// side to keep is how work gets lost.
 #[tauri::command]
-pub fn list_conflicts(state: State<'_, AppState>) -> CommandResult<Vec<Conflict>> {
-    state.read(|nb| nb.conflicts())
+pub fn list_conflicts<R: Runtime>(state: State<'_, AppState>,
+    window: tauri::Window<R>,) -> CommandResult<Vec<Conflict>> {
+    state.read(window.label(), |nb| nb.conflicts())
 }
 
 #[tauri::command]
-pub fn list_tasks(state: State<'_, AppState>, list: String) -> CommandResult<Vec<Task>> {
-    state.read(|nb| nb.tasks_in(&list))
+pub fn list_tasks<R: Runtime>(state: State<'_, AppState>,
+    window: tauri::Window<R>, list: String) -> CommandResult<Vec<Task>> {
+    state.read(window.label(), |nb| nb.tasks_in(&list))
 }
 
 /// Creates a list inside `folder` (a root-relative space folder, e.g.
 /// `Tasks` — the UI takes it from `layout.tasksFolder` until it is
 /// space-aware).
 #[tauri::command]
-pub fn create_list(
+pub fn create_list<R: Runtime>(
     state: State<'_, AppState>,
+    window: tauri::Window<R>,
     folder: String,
     name: String,
 ) -> CommandResult<()> {
-    state.read(|nb| {
+    state.read(window.label(), |nb| {
         nb.create_list(&folder, &name)?;
         Ok(())
     })
 }
 
 #[tauri::command]
-pub fn rename_list(state: State<'_, AppState>, from: String, to: String) -> CommandResult<()> {
-    state.read(|nb| nb.rename_list(&from, &to))
+pub fn rename_list<R: Runtime>(state: State<'_, AppState>,
+    window: tauri::Window<R>, from: String, to: String) -> CommandResult<()> {
+    state.read(window.label(), |nb| nb.rename_list(&from, &to))
 }
 
 /// Deletes a list. Returns how many tasks were moved to the Inbox.
 #[tauri::command]
-pub fn delete_list(state: State<'_, AppState>, name: String) -> CommandResult<usize> {
-    state.read(|nb| nb.delete_list(&name))
+pub fn delete_list<R: Runtime>(state: State<'_, AppState>,
+    window: tauri::Window<R>, name: String) -> CommandResult<usize> {
+    state.read(window.label(), |nb| nb.delete_list(&name))
 }
 
 #[tauri::command]
-pub fn completed_tasks(
+pub fn completed_tasks<R: Runtime>(
     state: State<'_, AppState>,
+    window: tauri::Window<R>,
 ) -> CommandResult<Vec<jott_core::notebook::ListedTask>> {
-    state.read(|nb| nb.completed_all())
+    state.read(window.label(), |nb| nb.completed_all())
 }

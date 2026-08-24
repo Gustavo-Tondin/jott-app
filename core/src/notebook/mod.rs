@@ -254,6 +254,8 @@ pub struct Notebook {
 // notebook, and no wider. Private still means private to its own area, so the
 // helpers of an area cannot quietly become an interface.
 mod groups;
+mod library;
+pub use library::NotebookSummary;
 mod lists;
 mod notes;
 pub use notes::NoteFolderEntry;

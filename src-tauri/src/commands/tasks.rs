@@ -5,7 +5,7 @@
 //! arguments across.
 
 use jott_core::{OriginAction, Task};
-use tauri::State;
+use tauri::{Runtime, State};
 
 use crate::error::CommandResult;
 use crate::state::AppState;
@@ -16,12 +16,13 @@ use crate::state::AppState;
 /// address the task (see `ensure_task_id`), which is what keeps a plain
 /// checklist free of comments.
 #[tauri::command]
-pub fn create_task(
+pub fn create_task<R: Runtime>(
     state: State<'_, AppState>,
+    window: tauri::Window<R>,
     list: String,
     text: String,
 ) -> CommandResult<usize> {
-    state.read(|nb| nb.create_task(&list, text))
+    state.read(window.label(), |nb| nb.create_task(&list, text))
 }
 
 /// Gives the task at `position` a stable id, and returns it.
@@ -29,33 +30,36 @@ pub fn create_task(
 /// The UI works with positions; the moment the user acts on a task — pulls it
 /// into a period, completes it — it needs a name that survives reordering.
 #[tauri::command]
-pub fn ensure_task_id(
+pub fn ensure_task_id<R: Runtime>(
     state: State<'_, AppState>,
+    window: tauri::Window<R>,
     list: String,
     position: usize,
 ) -> CommandResult<String> {
-    state.read(|nb| nb.ensure_task_id(&list, position))
+    state.read(window.label(), |nb| nb.ensure_task_id(&list, position))
 }
 
 #[tauri::command]
-pub fn edit_task_text(
+pub fn edit_task_text<R: Runtime>(
     state: State<'_, AppState>,
+    window: tauri::Window<R>,
     list: String,
     id: String,
     text: String,
 ) -> CommandResult<()> {
-    state.read(|nb| nb.edit_task_text(&list, &id, text))
+    state.read(window.label(), |nb| nb.edit_task_text(&list, &id, text))
 }
 
 /// Pins a task to the top of its list, or unpins it (the card's bookmark).
 #[tauri::command]
-pub fn set_task_pinned(
+pub fn set_task_pinned<R: Runtime>(
     state: State<'_, AppState>,
+    window: tauri::Window<R>,
     list: String,
     id: String,
     pinned: bool,
 ) -> CommandResult<()> {
-    state.read(|nb| nb.set_task_pinned(&list, &id, pinned))
+    state.read(window.label(), |nb| nb.set_task_pinned(&list, &id, pinned))
 }
 
 /// Edits any field of a task in one call.
@@ -66,72 +70,79 @@ pub fn set_task_pinned(
 /// [`jott_core::task::TaskFields`]'s, in the core, where a second frontend
 /// can reach it.
 #[tauri::command]
-pub fn set_task_fields(
+pub fn set_task_fields<R: Runtime>(
     state: State<'_, AppState>,
+    window: tauri::Window<R>,
     list: String,
     id: String,
     fields: jott_core::task::TaskFields,
 ) -> CommandResult<()> {
-    state.read(|nb| nb.set_task_fields(&list, &id, fields))
+    state.read(window.label(), |nb| nb.set_task_fields(&list, &id, fields))
 }
 
 /// Reorders a task inside its list. Positions count tasks, not lines.
 #[tauri::command]
-pub fn move_task_to(
+pub fn move_task_to<R: Runtime>(
     state: State<'_, AppState>,
+    window: tauri::Window<R>,
     list: String,
     from: usize,
     to: usize,
 ) -> CommandResult<()> {
-    state.read(|nb| nb.move_task_to(&list, from, to))
+    state.read(window.label(), |nb| nb.move_task_to(&list, from, to))
 }
 
 /// Moves a task to another list. The task keeps its id; its origin is cleared,
 /// because the move makes the target its home (undoing a completion is a
 /// separate mechanism that does not go through here).
 #[tauri::command]
-pub fn move_task(
+pub fn move_task<R: Runtime>(
     state: State<'_, AppState>,
+    window: tauri::Window<R>,
     from: String,
     id: String,
     to: String,
 ) -> CommandResult<Task> {
-    state.read(|nb| nb.move_task(&id, &from, &to, OriginAction::Clear))
+    state.read(window.label(), |nb| nb.move_task(&id, &from, &to, OriginAction::Clear))
 }
 
 /// Inserts a copy of a task right after it, in the same list.
 #[tauri::command]
-pub fn duplicate_task(
+pub fn duplicate_task<R: Runtime>(
     state: State<'_, AppState>,
+    window: tauri::Window<R>,
     list: String,
     id: String,
 ) -> CommandResult<()> {
-    state.read(|nb| nb.duplicate_task(&list, &id))
+    state.read(window.label(), |nb| nb.duplicate_task(&list, &id))
 }
 
 #[tauri::command]
-pub fn complete_task(
+pub fn complete_task<R: Runtime>(
     state: State<'_, AppState>,
+    window: tauri::Window<R>,
     list: String,
     id: String,
 ) -> CommandResult<Task> {
-    state.read(|nb| nb.complete_task(&list, &id))
+    state.read(window.label(), |nb| nb.complete_task(&list, &id))
 }
 
 /// Un-completes a task. `list` is the address of the Completed list it sits
 /// in — with one Completed per space, the id alone cannot say which folder
 /// to undo in.
 #[tauri::command]
-pub fn uncomplete_task(
+pub fn uncomplete_task<R: Runtime>(
     state: State<'_, AppState>,
+    window: tauri::Window<R>,
     list: String,
     id: String,
 ) -> CommandResult<Task> {
-    state.read(|nb| nb.uncomplete_task(&list, &id))
+    state.read(window.label(), |nb| nb.uncomplete_task(&list, &id))
 }
 
 /// Deletes a single task (sends it to the internal trash).
 #[tauri::command]
-pub fn delete_task(state: State<'_, AppState>, list: String, id: String) -> CommandResult<()> {
-    state.read(|nb| nb.delete_task(&list, &id))
+pub fn delete_task<R: Runtime>(state: State<'_, AppState>,
+    window: tauri::Window<R>, list: String, id: String) -> CommandResult<()> {
+    state.read(window.label(), |nb| nb.delete_task(&list, &id))
 }

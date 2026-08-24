@@ -6,87 +6,95 @@
 use jott_core::state::{Period, PeriodState};
 use jott_core::{ListedTask, Notebook};
 use serde::Serialize;
-use tauri::State;
+use tauri::{Runtime, State};
 
 use crate::error::CommandResult;
 use crate::state::AppState;
 
 #[tauri::command]
-pub fn pull_into_period(
+pub fn pull_into_period<R: Runtime>(
     state: State<'_, AppState>,
+    window: tauri::Window<R>,
     period: Period,
     list: String,
     id: String,
 ) -> CommandResult<bool> {
-    state.read(|nb| nb.pull_into(period, &list, &id))
+    state.read(window.label(), |nb| nb.pull_into(period, &list, &id))
 }
 
 #[tauri::command]
-pub fn remove_from_period(
+pub fn remove_from_period<R: Runtime>(
     state: State<'_, AppState>,
+    window: tauri::Window<R>,
     period: Period,
     list: String,
     id: String,
 ) -> CommandResult<bool> {
-    state.read(|nb| nb.remove_from(period, &list, &id))
+    state.read(window.label(), |nb| nb.remove_from(period, &list, &id))
 }
 
 /// Creates a task straight from Today or This Week. It is written to the
 /// Inbox — the periods only ever hold references.
 #[tauri::command]
-pub fn add_task_in_period(
+pub fn add_task_in_period<R: Runtime>(
     state: State<'_, AppState>,
+    window: tauri::Window<R>,
     period: Period,
     text: String,
 ) -> CommandResult<String> {
-    state.read(|nb| nb.add_task_in_period(period, text))
+    state.read(window.label(), |nb| nb.add_task_in_period(period, text))
 }
 
 /// How the Day or the Week is arranged (`name` / `created` / `completed`), or
 /// null for the order the tasks were pulled in.
 #[tauri::command]
-pub fn period_sort(state: State<'_, AppState>, period: Period) -> CommandResult<Option<String>> {
-    state.with_notebook(|nb| Ok(nb.period_sort(period).map(str::to_string)))
+pub fn period_sort<R: Runtime>(state: State<'_, AppState>,
+    window: tauri::Window<R>, period: Period) -> CommandResult<Option<String>> {
+    state.with_notebook(window.label(), |nb| Ok(nb.period_sort(period).map(str::to_string)))
 }
 
 /// Sets that arrangement. A period has no `.space.json`, so it lives in the
 /// notebook config beside the manual `order`.
 #[tauri::command]
-pub fn set_period_sort(
+pub fn set_period_sort<R: Runtime>(
     state: State<'_, AppState>,
+    window: tauri::Window<R>,
     period: Period,
     sort: Option<String>,
 ) -> CommandResult<()> {
-    state.write(|nb| nb.set_period_sort(period, sort.as_deref()))
+    state.write(window.label(), |nb| nb.set_period_sort(period, sort.as_deref()))
 }
 
 /// Rearranges the period to the order the user dragged. The state file is the
 /// day's list, so the hand-made order goes straight into it.
 #[tauri::command]
-pub fn set_period_order(
+pub fn set_period_order<R: Runtime>(
     state: State<'_, AppState>,
+    window: tauri::Window<R>,
     period: Period,
     refs: Vec<jott_core::state::TaskRef>,
 ) -> CommandResult<()> {
-    state.read(|nb| nb.set_period_order(period, &refs))
+    state.read(window.label(), |nb| nb.set_period_order(period, &refs))
 }
 
 /// The tasks pulled into a period, resolved to the real thing.
 #[tauri::command]
-pub fn period_tasks(
+pub fn period_tasks<R: Runtime>(
     state: State<'_, AppState>,
+    window: tauri::Window<R>,
     period: Period,
 ) -> CommandResult<Vec<ListedTask>> {
-    state.read(|nb| nb.period_tasks(period))
+    state.read(window.label(), |nb| nb.period_tasks(period))
 }
 
 /// What to offer pulling into a period, already in display order.
 #[tauri::command]
-pub fn period_suggestions(
+pub fn period_suggestions<R: Runtime>(
     state: State<'_, AppState>,
+    window: tauri::Window<R>,
     period: Period,
 ) -> CommandResult<Vec<ListedTask>> {
-    state.read(|nb| nb.suggestions_for(period))
+    state.read(window.label(), |nb| nb.suggestions_for(period))
 }
 
 /// The current logical day and week, and when each turns next. The UI needs
@@ -110,15 +118,17 @@ pub(crate) fn clock_of(nb: &Notebook) -> PeriodClock {
 }
 
 #[tauri::command]
-pub fn period_clock(state: State<'_, AppState>) -> CommandResult<PeriodClock> {
-    state.with_notebook(|nb| Ok(clock_of(nb)))
+pub fn period_clock<R: Runtime>(state: State<'_, AppState>,
+    window: tauri::Window<R>,) -> CommandResult<PeriodClock> {
+    state.with_notebook(window.label(), |nb| Ok(clock_of(nb)))
 }
 
 /// Re-reads both period states, applying any rollover that came due while the
 /// app was open. The frontend calls this when the scheduled turn arrives.
 #[tauri::command]
-pub fn refresh_periods(state: State<'_, AppState>) -> CommandResult<Vec<PeriodState>> {
-    state.read(|nb| {
+pub fn refresh_periods<R: Runtime>(state: State<'_, AppState>,
+    window: tauri::Window<R>,) -> CommandResult<Vec<PeriodState>> {
+    state.read(window.label(), |nb| {
         Ok(vec![
             nb.open_state(Period::Day)?.state,
             nb.open_state(Period::Week)?.state,
@@ -129,9 +139,10 @@ pub fn refresh_periods(state: State<'_, AppState>) -> CommandResult<Vec<PeriodSt
 /// Suggestions with the reason each one is being offered, so the UI can group
 /// them without re-deriving the rule.
 #[tauri::command]
-pub fn grouped_suggestions(
+pub fn grouped_suggestions<R: Runtime>(
     state: State<'_, AppState>,
+    window: tauri::Window<R>,
     period: Period,
 ) -> CommandResult<Vec<jott_core::notebook::Suggestion>> {
-    state.read(|nb| nb.grouped_suggestions(period))
+    state.read(window.label(), |nb| nb.grouped_suggestions(period))
 }

@@ -76,6 +76,27 @@ export function accentFill(value) {
   return value;
 }
 
+/// The SOLID fill of a coloured surface that carries text — the card each
+/// notebook gets on the picker (2026-08-24).
+///
+/// Its sibling `accentFill` above is the fill of a surface with nothing on it
+/// (a note's banner), and it sits at the palette's vivid step 300. A card with
+/// a title and a line of counts written across it cannot: 300 is the step that
+/// reads AS text on a dark ground, not the step that carries text.
+///
+/// So this one is step 500 — the step the palette pins to 4.5:1 against a
+/// light ground, which is the same promise read the other way round: white on
+/// it clears AA for all eight colours, and a test measures it
+/// (`architecture.test.js`). Like the banner's fill and for the same reason,
+/// it does not follow the ground it lands on: a notebook's colour is what the
+/// user recognizes it by across the room, and it must be the same colour on
+/// every theme. The ink that goes over it is `--accent-on-solid`.
+export function accentSolid(value) {
+  if (!value) return null;
+  if (isAccent(value)) return `var(--accent-${value}-solid)`;
+  return value;
+}
+
 /// The matching tint — the quiet fill behind something wearing this colour (a
 /// selected sidebar row, a highlighted card). For one of the seven it is the
 /// ground's own tint step; for a raw colour there is nothing to look up, so it

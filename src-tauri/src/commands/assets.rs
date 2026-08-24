@@ -18,8 +18,9 @@ use super::shell::open_path;
 
 /// Every image in the notebook's library, newest first.
 #[tauri::command]
-pub fn assets(state: State<'_, AppState>) -> CommandResult<Vec<jott_core::AssetEntry>> {
-    state.read(|nb| nb.assets().list())
+pub fn assets<R: Runtime>(state: State<'_, AppState>,
+    window: tauri::Window<R>,) -> CommandResult<Vec<jott_core::AssetEntry>> {
+    state.read(window.label(), |nb| nb.assets().list())
 }
 
 /// Writes an image into the library, returning the address a note carries.
@@ -29,14 +30,15 @@ pub fn assets(state: State<'_, AppState>) -> CommandResult<Vec<jott_core::AssetE
 /// on Android, and the webview's `<input type="file">` is the same code path
 /// on desktop and on a phone. See `crate::base64` for the decoder.
 #[tauri::command]
-pub fn import_asset(
+pub fn import_asset<R: Runtime>(
     state: State<'_, AppState>,
+    window: tauri::Window<R>,
     name: String,
     data: String,
 ) -> CommandResult<String> {
     let bytes = crate::base64::decode(&data)
         .ok_or_else(|| CommandError::new("invalid", "the image could not be read"))?;
-    state.read(|nb| nb.import_asset(&name, &bytes))
+    state.read(window.label(), |nb| nb.import_asset(&name, &bytes))
 }
 
 /// Copies a file of THIS machine into the library, by its path.
@@ -52,28 +54,31 @@ pub fn import_asset(
 /// this can do is READ that one file and write a copy into `assets/` — the
 /// notebook is the only thing it can write to.
 #[tauri::command]
-pub fn import_asset_from_path(state: State<'_, AppState>, path: PathBuf) -> CommandResult<String> {
+pub fn import_asset_from_path<R: Runtime>(state: State<'_, AppState>,
+    window: tauri::Window<R>, path: PathBuf) -> CommandResult<String> {
     let name = jott_core::fsio::file_name_of(&path);
     let bytes = std::fs::read(&path)
         .map_err(|e| CommandError::new("io", format!("{}: {e}", path.display())))?;
-    state.read(|nb| nb.import_asset(&name, &bytes))
+    state.read(window.label(), |nb| nb.import_asset(&name, &bytes))
 }
 
 /// Renames a file of the library, repointing every note and task that uses it.
 #[tauri::command]
-pub fn rename_asset(
+pub fn rename_asset<R: Runtime>(
     state: State<'_, AppState>,
+    window: tauri::Window<R>,
     path: String,
     name: String,
 ) -> CommandResult<String> {
-    state.read(|nb| nb.rename_asset(&path, &name))
+    state.read(window.label(), |nb| nb.rename_asset(&path, &name))
 }
 
 /// Sends a file to the notebook's trash. Notes and tasks pointing at it keep
 /// their address — the file is what came back, if it comes back.
 #[tauri::command]
-pub fn delete_asset(state: State<'_, AppState>, path: String) -> CommandResult<()> {
-    state.read(|nb| nb.delete_asset(&path))
+pub fn delete_asset<R: Runtime>(state: State<'_, AppState>,
+    window: tauri::Window<R>, path: String) -> CommandResult<()> {
+    state.read(window.label(), |nb| nb.delete_asset(&path))
 }
 
 /// Opens an attachment in whatever the system uses for that kind of file.
@@ -88,8 +93,9 @@ pub fn delete_asset(state: State<'_, AppState>, path: String) -> CommandResult<(
 /// becoming "open any file on this machine": only a direct child of `assets/`
 /// resolves at all.
 #[tauri::command]
-pub fn open_asset(state: State<'_, AppState>, path: String) -> CommandResult<()> {
-    let file = state.read(|nb| nb.asset_file(&path))?;
+pub fn open_asset<R: Runtime>(state: State<'_, AppState>,
+    window: tauri::Window<R>, path: String) -> CommandResult<()> {
+    let file = state.read(window.label(), |nb| nb.asset_file(&path))?;
     if !file.is_file() {
         return Err(CommandError::new(
             "io",
@@ -119,14 +125,15 @@ pub fn open_asset(state: State<'_, AppState>, path: String) -> CommandResult<()>
 ///     extension the file is stored under comes from that type rather than
 ///     from the URL, which may have none (`…/large/daoz-51.jpg?1747030361`).
 #[tauri::command]
-pub async fn import_asset_from_url(
+pub async fn import_asset_from_url<R: Runtime>(
     state: State<'_, AppState>,
+    window: tauri::Window<R>,
     url: String,
 ) -> CommandResult<String> {
     let (name, bytes) = tauri::async_runtime::spawn_blocking(move || fetch_image(&url))
         .await
         .map_err(|e| CommandError::new("io", e.to_string()))??;
-    state.read(|nb| nb.import_asset(&name, &bytes))
+    state.read(window.label(), |nb| nb.import_asset(&name, &bytes))
 }
 
 /// Ten megabytes. Larger than any picture a note wants and smaller than
@@ -244,10 +251,11 @@ fn clipboard_uris<R: Runtime>(_app: &AppHandle<R>) -> Option<Vec<String>> {
 /// Images screen can say which files are carrying their weight, and offer the
 /// way to what uses them (2026-08-19). A file nobody points at has no entry.
 #[tauri::command]
-pub fn asset_usage(
+pub fn asset_usage<R: Runtime>(
     state: State<'_, AppState>,
+    window: tauri::Window<R>,
 ) -> CommandResult<std::collections::HashMap<String, Vec<jott_core::search::SearchHit>>> {
-    state.read(|nb| nb.asset_usage())
+    state.read(window.label(), |nb| nb.asset_usage())
 }
 
 /// The desktop's own icon for a kind of file, as a `data:` URL.

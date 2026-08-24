@@ -10,10 +10,25 @@
     font-family: var(--theme-font-sans);
   }
 
+  /* Hosting the picker rather than the shell (2026-08-24). The picker is a
+     screen with a floor — its two choices sit on it — so it needs to be told
+     how tall it may be, which a block child of a flex item is not. */
+  .shell__main--picker {
+    display: flex;
+    flex-direction: column;
+    min-block-size: 0;
+  }
+
+  /* What is left of the old onboarding screen: the two sentences Android has
+     to say, and the error box, under the picker (styles/components/notebooks.css).
+     It used to BE the screen — a paragraph, a button, and 4rem of air above
+     it. Now it is a footnote to one, so the air is gone and the box only
+     appears when it has something to say. */
   .shell__onboarding {
-    max-width: 32rem;
-    margin: var(--theme-space-64) auto;
-    padding: var(--theme-space-16);
+    max-inline-size: 32rem;
+    margin-inline: auto;
+    padding-inline: var(--theme-space-32);
+    padding-block-end: var(--theme-space-32);
   }
 
   /* The second choice on Android — the app's own private folder — is offered,

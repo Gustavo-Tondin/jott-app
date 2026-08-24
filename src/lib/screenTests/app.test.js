@@ -129,7 +129,9 @@ describe("App", () => {
     await waitFor(() => expect(button().disabled).toBe(false));
     await userEvent.click(button());
     await waitFor(() => expect(opened).toHaveBeenCalled());
-    expect(opened.mock.calls[0][0]).toEqual({ path: container });
+    // `create: true`: the container is Android's own folder, and the first
+    // launch that lands there has to be allowed to make a notebook of it.
+    expect(opened.mock.calls[0][0]).toEqual({ path: container, create: true });
   });
 
   test("where the platform offers no folder, it only asks the user for one", async () => {
@@ -145,7 +147,12 @@ describe("App", () => {
 
     render(App);
 
-    await waitFor(() => expect(screen.getByText("Choose notebook folder…")).toBeTruthy());
+    // The picker's two doors, which is what the one "Choose notebook folder…"
+    // button became (2026-08-24) — and no list above them, because this
+    // machine has opened nothing yet.
+    await waitFor(() => expect(screen.getByText("Create a new notebook")).toBeTruthy());
+    expect(screen.getByText("Open a notebook")).toBeTruthy();
+    expect(screen.queryByText("Pick a notebook")).toBeNull();
     expect(screen.queryByText("Use Jott's private folder instead")).toBeNull();
     expect(opened).not.toHaveBeenCalled();
   });
@@ -185,7 +192,7 @@ describe("App", () => {
     window.JottAndroid = { granted: () => true, request };
     document.dispatchEvent(new CustomEvent("android-storage-changed"));
 
-    await userEvent.click(await screen.findByText("Choose notebook folder…"));
+    await userEvent.click(await screen.findByText("Create a new notebook"));
     await screen.findByText("Docs");
     expect(picked).not.toHaveBeenCalled();
 
@@ -1044,6 +1051,138 @@ describe("App", () => {
         kind: "tasks",
         group: null,
       }),
+    );
+  });
+
+  // ---- windows and the notebooks screen (2026-08-24) ----
+
+  test("the sidebar's footer opens the notebooks screen, in a window of its own", async () => {
+    // It used to open the system's folder picker straight away, which was the
+    // only way to change notebook there was. A window of its own is what lets
+    // the notebook underneath stay open.
+    shell({ open_window: "jott-abc" });
+    render(App);
+
+    await userEvent.click(await screen.findByTitle("/n"));
+    await waitFor(() => expect(invoke).toHaveBeenCalledWith("open_window", { notebook: null }));
+    // The notebook under it is untouched — no window, no folder picker.
+    expect(invoke).not.toHaveBeenCalledWith("pick_notebook_folder", expect.anything());
+    expect(await screen.findByText("Comprar leite")).toBeTruthy();
+  });
+
+  test("Mod+O opens it too, and works with no notebook open", async () => {
+    // The one command reachable with nothing open: it is how a window with
+    // nothing in it gets something.
+    shell({ last_notebook: null, open_window: "jott-abc" });
+    render(App);
+
+    await screen.findByText("Create a new notebook");
+    await fireEvent.keyDown(window, { key: "o", ctrlKey: true });
+    await waitFor(() => expect(invoke).toHaveBeenCalledWith("open_window", { notebook: null }));
+  });
+
+  test("a card opens in THIS window while the picker is set to get out of the way", async () => {
+    // The default. Opening a new window and closing this one has the same
+    // outcome and a frame of empty window in between, so the window is reused.
+    shell({
+      last_notebook: null,
+      // Nothing open, so the window shows the picker — the snapshot is what
+      // the shell asks when it thinks it has a notebook.
+      notebook_snapshot: () => Promise.reject(new Error("no notebook is open")),
+      picker_closes: true,
+      recent_notebooks: [
+        { path: "/w", name: "Work", accentColor: "blue", notes: 1, tasks: 2, readOnly: false, opened: "2026-08-24T10:00:00Z" },
+      ],
+    });
+    render(App);
+
+    await userEvent.click(await screen.findByText("Work"));
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("open_notebook", { path: "/w", create: false }),
+    );
+    expect(invoke).not.toHaveBeenCalledWith("open_window", { notebook: "/w" });
+  });
+
+  test("with the picker set to stay, a card opens a window and the picker keeps its place", async () => {
+    // This is the two-notebooks-at-once case: the picker survives the choice.
+    shell({
+      last_notebook: null,
+      // Nothing open, so the window shows the picker — the snapshot is what
+      // the shell asks when it thinks it has a notebook.
+      notebook_snapshot: () => Promise.reject(new Error("no notebook is open")),
+      picker_closes: false,
+      open_window: "jott-abc",
+      recent_notebooks: [
+        { path: "/w", name: "Work", accentColor: "blue", notes: 1, tasks: 2, readOnly: false, opened: "2026-08-24T10:00:00Z" },
+      ],
+    });
+    render(App);
+
+    await userEvent.click(await screen.findByText("Work"));
+    await waitFor(() => expect(invoke).toHaveBeenCalledWith("open_window", { notebook: "/w" }));
+    // Nothing was opened HERE, so the picker is still the picker.
+    expect(invoke).not.toHaveBeenCalledWith("open_notebook", { path: "/w", create: false });
+    expect(screen.getByText("Work")).toBeTruthy();
+  });
+
+  test("the app opens on the last notebook unless the machine says otherwise", async () => {
+    shell({ opens_on_picker: false });
+    render(App);
+
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("open_notebook", { path: "/n", create: false }),
+    );
+    expect(await screen.findByText("Comprar leite")).toBeTruthy();
+  });
+
+  test("told to open on the picker, it does not reopen the last notebook", async () => {
+    // The whole point of the setting: someone who keeps several notebooks is
+    // asked which one, instead of being dropped into whichever they closed.
+    shell({ opens_on_picker: true, recent_notebooks: [] });
+    render(App);
+
+    expect(await screen.findByText("Create a new notebook")).toBeTruthy();
+    await waitFor(() =>
+      expect(invoke).not.toHaveBeenCalledWith("open_notebook", expect.anything()),
+    );
+    // It does not even ask which the last one was — the answer would go unused.
+    expect(callsTo("last_notebook")).toHaveLength(0);
+  });
+
+  test("on a phone the notebooks screen closes the drawer it was opened from", async () => {
+    // User report, 2026-08-24: tapping the notebook's name in the drawer's own
+    // footer swapped the panel behind a drawer that stayed open over it. The
+    // shell already had the rule — going anywhere closes it — but the picker is
+    // not a `view`, so it reached that rule through neither dependency.
+    // jsdom has no matchMedia, and shell/compact.js answers `false` without
+    // one — the right fallback, and useless for testing the compact shell.
+    // This is the narrow window (the same fake appTabs.test.js uses).
+    window.matchMedia = (query) => ({
+      matches: true,
+      media: query,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      addListener: () => {},
+      removeListener: () => {},
+    });
+    shell({ platform: "android" });
+    render(App);
+
+    // Open the drawer from the compact bar, and PROVE it opened — the first
+    // version of this test clicked the page ⋮ by mistake, so it asserted that
+    // a drawer nobody had opened was closed, and passed against the bug.
+    await userEvent.click(await screen.findByRole("button", { name: "open sidebar" }));
+    await waitFor(() =>
+      expect(document.querySelector(".shell__sidebar--open")).not.toBeNull(),
+    );
+
+    await userEvent.click(await screen.findByTitle("/n"));
+
+    // The screen came up...
+    expect(await screen.findByText("Create a new notebook")).toBeTruthy();
+    // ...and the drawer is not still lying over it.
+    await waitFor(() =>
+      expect(document.querySelector(".shell__sidebar--open")).toBeNull(),
     );
   });
 });

@@ -20,7 +20,38 @@ export const api = {
   // shared storage; anything outside it lands there too, rather than erroring.
   listFolders: (path = null) => invoke("list_folders", { path }),
   createFolder: (parent, name) => invoke("create_folder", { parent, name }),
-  openNotebook: (path) => invoke("open_notebook", { path }),
+  // `create` says which door was used (2026-08-24): true is "Create a new
+  // notebook", which makes one in a folder that is not one yet; false demands
+  // a notebook and refuses anything else. Never left out — the whole point of
+  // the flag is that the two answers differ.
+  openNotebook: (path, create = false) =>
+    invoke("open_notebook", { path, create }),
+  // The picker (2026-08-24). Every notebook this MACHINE has opened, newest
+  // first, each with its colour and its two numbers — read without opening
+  // any of them (`Notebook::summarize`). A folder that is gone or unplugged
+  // is simply not in the answer.
+  recentNotebooks: () => invoke("recent_notebooks"),
+  // Takes one off that list. Nothing on disk is touched.
+  forgetNotebook: (path) => invoke("forget_notebook", { path }),
+  // The three the ⋮ of a card offers. A notebook's name IS its folder name,
+  // so renaming and moving are the same operation on the folder; both answer
+  // with the new path, and refuse to overwrite anything.
+  renameNotebook: (path, name) => invoke("rename_notebook", { path, name }),
+  moveNotebook: (path, into) => invoke("move_notebook", { path, into }),
+  revealNotebook: (path) => invoke("reveal_notebook", { path }),
+  // A second window (2026-08-24) — what makes two notebooks open at once
+  // possible. `notebook` null opens the picker; a path opens that folder
+  // there. Nothing is handed across: the new window asks for its own notebook
+  // and is filed under its own label. Android refuses — one Activity, one
+  // window.
+  openWindow: (notebook = null) => invoke("open_window", { notebook }),
+  // The two rows of the picker's own ⋮, both machine preferences: whether the
+  // picker gets out of the way once it has opened something, and whether the
+  // app comes back to the picker or to the work.
+  pickerCloses: () => invoke("picker_closes"),
+  rememberPickerCloses: (closes) => invoke("remember_picker_closes", { closes }),
+  opensOnPicker: () => invoke("opens_on_picker"),
+  rememberOpensOnPicker: (on) => invoke("remember_opens_on_picker", { on }),
   // Every field is optional: the core keeps what it is not told about, so a
   // screen can send one key without holding the rest.
   notebookSettings: () => invoke("notebook_settings"),

@@ -35,7 +35,11 @@
     holds = () => false,
     onOpen,
     onOpenList,
-    onChooseFolder,
+    /// `() => void` — the notebooks screen. It used to be the folder picker
+    /// straight away, which was the only way to change notebook there was;
+    /// now the same footer opens the screen that LISTS them (2026-08-24), and
+    /// the folder picker is one of its two doors.
+    onNotebooks,
     // Drag-to-reorder handlers (the shared action reports from→to). The shell
     // persists the order in the config.
     onReorderLists,
@@ -617,7 +621,7 @@
     <button
       class="shell__notebook"
       title={notebook.path}
-      onclick={onChooseFolder}
+      onclick={onNotebooks}
     >
       <span class="shell__notebook-name">{notebook.name}</span>
       {#if notebook.readOnly}<span class="shell__badge">{S.readOnly}</span>{/if}

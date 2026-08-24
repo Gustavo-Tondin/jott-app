@@ -83,6 +83,37 @@
     --accent-pink-fill: var(--palette-pink-300);
     --accent-neutral-fill: var(--palette-neutral-300);
 
+    /* THE FILL OF A COLOURED PIECE OF PAPER THAT CARRIES TEXT (2026-08-24).
+
+       The eight above are the banner's fill: a surface with nothing written on
+       it, at the palette's vivid step 300. The notebooks screen needs the same
+       idea one step further — a card wearing the colour of the notebook it
+       opens, with the notebook's name and its two counts written across it.
+       Step 300 cannot hold them: it is the step that reads AS text on a dark
+       ground, not the step that carries text.
+
+       Step 500 is, and the scale already proves it: `styles/tokens.css` pins
+       500 to 4.5:1 against the light ground, which read the other way round is
+       the promise made here — white on it clears AA for all eight, measured in
+       `lib/architecture.test.js`.
+
+       Same covenant as the fill: theme-blind and region-blind. A notebook's
+       colour is what its owner recognizes it by, and it must be that colour on
+       every theme, the way a yellow sticky note is yellow under any lamp. */
+    --accent-red-solid: var(--palette-red-500);
+    --accent-orange-solid: var(--palette-orange-500);
+    --accent-yellow-solid: var(--palette-yellow-500);
+    --accent-green-solid: var(--palette-green-500);
+    --accent-blue-solid: var(--palette-blue-500);
+    --accent-purple-solid: var(--palette-purple-500);
+    --accent-pink-solid: var(--palette-pink-500);
+    --accent-neutral-solid: var(--palette-neutral-500);
+    /* And the one ink that goes on any of them. Not `--theme-on-brand`: that
+       one is the REGION's answer, and flips to black where the region's accent
+       is a bright step — which is right for a pill on the sidebar and wrong
+       for a surface that refuses to follow the ground in the first place. */
+    --accent-on-solid: var(--palette-white);
+
     /* A region carries its own ink, so anything inside it starts readable —
        including text a component forgot to colour. */
     color: var(--theme-ink);

@@ -401,6 +401,49 @@ describe("frontend architecture", () => {
     expect(offenders).toEqual([]);
   });
 
+  test("the solid accent carries white text, for all eight", () => {
+    // The promise `--accent-*-solid` makes (styles/roles.css): a notebook's
+    // card is that notebook's colour with its name written across it, the same
+    // colour on every theme — so the ink over it is fixed, and the fill has to
+    // clear AA against that ink whichever of the eight was picked.
+    //
+    // The role is read off the sheet rather than assumed to be step 500: the
+    // moment someone moves it to 400 for a brighter card, this is what says
+    // the text stopped being readable.
+    const roles = readFileSync(join(src, "styles", "roles.css"), "utf8");
+    const ink = roles.match(/--accent-on-solid:\s*var\((--palette-[a-z]+)\)/);
+    expect(ink, "roles.css assigns --accent-on-solid from the palette").toBeTruthy();
+    const tokens = readFileSync(join(src, "styles", "tokens.css"), "utf8");
+    const inkHex = tokens
+      .match(new RegExp(`${ink[1]}:\\s*(#[0-9a-fA-F]{6})`))?.[1]
+      ?.toLowerCase();
+    expect(inkHex, `tokens.css defines ${ink[1]}`).toBeTruthy();
+
+    const families = palette();
+    const offenders = [];
+    for (const m of roles.matchAll(
+      /--accent-([a-z]+)-solid:\s*var\(--palette-\1-(\d00)\)/g,
+    )) {
+      const hex = families[m[1]]?.[m[2]];
+      if (!hex) {
+        offenders.push(`${m[1]}-solid: no palette step ${m[2]}`);
+        continue;
+      }
+      const got = ratio(hex, inkHex);
+      if (got < 4.5) offenders.push(`${m[1]}-solid: ${got.toFixed(2)}:1 < 4.5:1`);
+    }
+    // All eight, so a colour added to the palette without a solid rung is a
+    // notebook whose card cannot be drawn.
+    expect(offenders).toEqual([]);
+    // `--accent-on-solid` is the ink, not a rung — it is what the eight are
+    // written IN, and counting it as a ninth colour is how this line first
+    // went green against nine.
+    expect(
+      [...roles.matchAll(/--accent-(?!on-)[a-z]+-solid:/g)].length,
+      "one solid rung per colour",
+    ).toBe(Object.keys(families).length);
+  });
+
   test("every step that carries text clears its contrast floor", () => {
     // The promise the scale makes to a screen: take step 300 on the sidebar or
     // step 500 on the canvas and the text is readable, whichever of the eight

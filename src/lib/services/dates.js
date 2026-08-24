@@ -50,3 +50,44 @@ export function formatDayMonth(iso, pattern = "mm/dd/yyyy") {
     ? `${d}/${m}`
     : `${m}/${d}`;
 }
+
+/// How long ago a stamp was, as PARTS rather than as a sentence: `{ unit,
+/// count }`, where unit is `now` / `minute` / `hour` / `day` / `month` /
+/// `year`.
+///
+/// Parts, because every string the user reads lives in `services/strings.js`
+/// (spec 4.4) — this decides which unit answers, `S.ago` decides how it is
+/// spelled, and i18n later changes only the second half.
+///
+/// `now` is a parameter so the answer can be tested without waiting for a
+/// clock; every caller in the app leaves it out.
+///
+/// Anything unreadable — an empty stamp, a string that is not a date — answers
+/// `null`, and the caller shows nothing. A card that said "just now" about a
+/// notebook nobody has opened would be worse than a card that says nothing.
+export function timeSince(iso, now = new Date()) {
+  if (!iso) return null;
+  const then = new Date(iso);
+  if (Number.isNaN(then.getTime())) return null;
+
+  // A clock that went backwards (a stamp from the future — a synced file, a
+  // machine whose time was wrong when it was written) reads as this instant
+  // rather than as a negative age.
+  const seconds = Math.max(0, (now.getTime() - then.getTime()) / 1000);
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 1) return { unit: "now", count: 0 };
+  if (minutes < 60) return { unit: "minute", count: minutes };
+
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return { unit: "hour", count: hours };
+
+  const days = Math.floor(hours / 24);
+  if (days < 30) return { unit: "day", count: days };
+
+  // Months and years are approximated from days on purpose. The question the
+  // card answers is "recently, or a while back?", and past a month the
+  // calendar's own irregularity is below the resolution of that question.
+  const months = Math.floor(days / 30);
+  if (months < 12) return { unit: "month", count: months };
+  return { unit: "year", count: Math.floor(days / 365) };
+}

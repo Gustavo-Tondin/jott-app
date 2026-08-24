@@ -22,7 +22,10 @@ use crate::state::AppState;
 /// `jott_core::settings::Display`; what this side adds is where the machine's
 /// half is kept.
 pub(crate) fn display_of<R: Runtime>(app: &AppHandle<R>, notebook: &Notebook) -> Display {
-    Display::resolve(&crate::prefs::display(app), notebook.config())
+    // The machine's half is kept PER NOTEBOOK since 2026-08-24 — the work
+    // notebook can be the dark one here without dragging the personal one into
+    // the dark with it. Which side wins is still the core's.
+    Display::resolve(&crate::prefs::display(app, notebook.root()), notebook.config())
 }
 
 /// Which screen to open on launch.
@@ -34,8 +37,9 @@ pub(crate) fn display_of<R: Runtime>(app: &AppHandle<R>, notebook: &Notebook) ->
 pub fn screen_to_restore<R: Runtime>(
     app: AppHandle<R>,
     state: State<'_, AppState>,
+    window: tauri::Window<R>,
 ) -> CommandResult<Option<String>> {
-    state.with_notebook(|nb| {
+    state.with_notebook(window.label(), |nb| {
         if !display_of(&app, nb).restore_last_screen {
             return Ok(None);
         }
@@ -49,9 +53,10 @@ pub fn screen_to_restore<R: Runtime>(
 pub fn remember_screen<R: Runtime>(
     app: AppHandle<R>,
     state: State<'_, AppState>,
+    window: tauri::Window<R>,
     screen: String,
 ) -> CommandResult<()> {
-    state.with_notebook(|nb| {
+    state.with_notebook(window.label(), |nb| {
         if display_of(&app, nb).restore_last_screen {
             crate::prefs::remember_screen(&app, &screen);
         }
@@ -102,19 +107,31 @@ pub fn remember_zoom<R: Runtime>(app: AppHandle<R>, zoom: f64) {
 pub fn notebook_settings<R: Runtime>(
     app: AppHandle<R>,
     state: State<'_, AppState>,
+    window: tauri::Window<R>,
 ) -> CommandResult<NotebookSettings> {
-    state.with_notebook(|nb| Ok(NotebookSettings::of(nb.config(), &display_of(&app, nb))))
+    state.with_notebook(window.label(), |nb| Ok(NotebookSettings::of(nb.config(), &display_of(&app, nb))))
 }
 
-/// Saves one or more Display choices, on THIS machine (2026-08-20).
+/// Saves one or more Display choices, on this machine and FOR THIS NOTEBOOK
+/// (2026-08-20, scoped to a notebook 2026-08-24).
 ///
-/// It goes nowhere near the notebook, which is why it needs no `ensure_writable`
-/// and why a read-only notebook does not stop it — the same reasoning the
-/// update check is written under. Every field is optional on the way in: the
-/// screen sends the one key that changed.
+/// It goes nowhere near the notebook's own files, which is why it needs no
+/// `ensure_writable` and why a read-only notebook does not stop it — the same
+/// reasoning the update check is written under. What it does need is to know
+/// WHICH notebook it is dressing, and that is the asking window's.
+///
+/// Every field is optional on the way in: the screen sends the one key that
+/// changed.
 #[tauri::command]
-pub fn set_machine_display<R: Runtime>(app: AppHandle<R>, display: crate::prefs::DisplayPrefs) {
-    crate::prefs::set_display(&app, display);
+pub fn set_machine_display<R: Runtime>(
+    app: AppHandle<R>,
+    state: State<'_, AppState>,
+    window: tauri::Window<R>,
+    display: crate::prefs::DisplayPrefs,
+) -> CommandResult<()> {
+    let root = state.with_notebook(window.label(), |nb| Ok(nb.root().to_path_buf()))?;
+    crate::prefs::set_display(&app, &root, display);
+    Ok(())
 }
 
 /// Saves the notebook's preferences. What each value means on the way in —
@@ -122,11 +139,12 @@ pub fn set_machine_display<R: Runtime>(app: AppHandle<R>, display: crate::prefs:
 /// was — is `jott_core::settings::NotebookSettings::apply_to`, so a second
 /// frontend writes this file under the same rules.
 #[tauri::command]
-pub fn set_notebook_settings(
+pub fn set_notebook_settings<R: Runtime>(
     state: State<'_, AppState>,
+    window: tauri::Window<R>,
     settings: NotebookSettings,
 ) -> CommandResult<()> {
-    state.write(|nb| {
+    state.write(window.label(), |nb| {
         let mut config = nb.config().clone();
         settings.apply_to(&mut config);
         nb.set_config(config)
@@ -136,12 +154,13 @@ pub fn set_notebook_settings(
 /// Records a manual order for a namespace (`"spaces"`, `"lists:<folder>"`),
 /// written by dragging in the sidebar. An empty list clears it.
 #[tauri::command]
-pub fn set_order(
+pub fn set_order<R: Runtime>(
     state: State<'_, AppState>,
+    window: tauri::Window<R>,
     namespace: String,
     names: Vec<String>,
 ) -> CommandResult<()> {
-    state.write(|nb| nb.set_order(&namespace, names))
+    state.write(window.label(), |nb| nb.set_order(&namespace, names))
 }
 
 /// Records what the user said about a part of the app (`tasks`, `notes`, and
@@ -150,12 +169,13 @@ pub fn set_order(
 /// what differs from how the app ships. Nothing on disk changes either way:
 /// this is about what the interface offers, never about the notebook.
 #[tauri::command]
-pub fn set_feature(
+pub fn set_feature<R: Runtime>(
     state: State<'_, AppState>,
+    window: tauri::Window<R>,
     key: String,
     on: Option<bool>,
 ) -> CommandResult<()> {
-    state.write(|nb| nb.set_feature(&key, on))
+    state.write(window.label(), |nb| nb.set_feature(&key, on))
 }
 
 /// Binds a command to a chord, or unbinds it with `chord: null`.
@@ -165,29 +185,33 @@ pub fn set_feature(
 /// `services/keys.js`), and a binding this build cannot honour is simply
 /// ignored on the way in rather than destroyed on the way out.
 #[tauri::command]
-pub fn set_shortcut(
+pub fn set_shortcut<R: Runtime>(
     state: State<'_, AppState>,
+    window: tauri::Window<R>,
     id: String,
     chord: Option<String>,
 ) -> CommandResult<()> {
-    state.write(|nb| nb.set_shortcut(&id, chord))
+    state.write(window.label(), |nb| nb.set_shortcut(&id, chord))
 }
 
 /// Back to the table the app ships with.
 #[tauri::command]
-pub fn reset_shortcuts(state: State<'_, AppState>) -> CommandResult<()> {
-    state.write(|nb| nb.reset_shortcuts())
+pub fn reset_shortcuts<R: Runtime>(state: State<'_, AppState>,
+    window: tauri::Window<R>,) -> CommandResult<()> {
+    state.write(window.label(), |nb| nb.reset_shortcuts())
 }
 
 /// How the sidebar arranges the user's spaces: `name`, or the empty string
 /// for the hand-dragged order.
 #[tauri::command]
-pub fn spaces_sort(state: State<'_, AppState>) -> CommandResult<String> {
-    state.with_notebook(|nb| Ok(nb.spaces_sort().to_string()))
+pub fn spaces_sort<R: Runtime>(state: State<'_, AppState>,
+    window: tauri::Window<R>,) -> CommandResult<String> {
+    state.with_notebook(window.label(), |nb| Ok(nb.spaces_sort().to_string()))
 }
 
 /// Sets it.
 #[tauri::command]
-pub fn set_spaces_sort(state: State<'_, AppState>, sort: String) -> CommandResult<()> {
-    state.write(|nb| nb.set_spaces_sort(&sort))
+pub fn set_spaces_sort<R: Runtime>(state: State<'_, AppState>,
+    window: tauri::Window<R>, sort: String) -> CommandResult<()> {
+    state.write(window.label(), |nb| nb.set_spaces_sort(&sort))
 }

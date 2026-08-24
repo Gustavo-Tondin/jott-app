@@ -28,6 +28,14 @@
     rail = false,
     /// Which window buttons go on each side, from the system.
     buttons = { left: [], right: ["minimize", "maximize", "close"] },
+    /// Whether the bar draws the logo at all (2026-08-24).
+    ///
+    /// Off on the notebooks screen, where the logo IS the screen: the wordmark
+    /// at two sizes at once, one of them in the corner, read as a mistake
+    /// rather than as branding. The column stays — it is as wide as the
+    /// sidebar and it is what the window is dragged by — it simply holds
+    /// nothing.
+    brand = true,
   } = $props();
 </script>
 
@@ -36,7 +44,9 @@
        does not fit in 3.5rem, and the J is the same shape either way. One or
        the other, never both — the word is already inside the full one. -->
   <div class="titlebar__brand" data-tauri-drag-region aria-label="Jott">
-    {#if rail}
+    {#if !brand}
+      <!-- nothing: the screen below is drawing the logo itself -->
+    {:else if rail}
       <span class="titlebar__mark" aria-hidden="true">{@html mark}</span>
     {:else}
       <span class="titlebar__wordmark" aria-hidden="true">{@html wordmark}</span>

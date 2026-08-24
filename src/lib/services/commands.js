@@ -52,6 +52,10 @@ export const COMMANDS = [
     keys: "Mod+Shift+F",
     label: () => S.cmdSearchEverywhere,
   },
+  // The notebooks screen (2026-08-24). Mod+O because it is the app's "open":
+  // on the desktop it opens a WINDOW of its own, which is what lets a second
+  // notebook be open beside this one.
+  { id: "app.notebooks", scope: "global", keys: "Mod+O", label: () => S.cmdNotebooks },
   { id: "app.settings", scope: "global", keys: "Mod+,", label: () => S.cmdSettings },
   { id: "app.fullscreen", scope: "global", keys: "F11", label: () => S.cmdFullscreen },
   { id: "app.sidebar", scope: "global", keys: "Mod+\\", label: () => S.cmdToggleSidebar },

@@ -1,9 +1,22 @@
 //! What the shell holds between `invoke()` calls.
 //!
-//! Exactly one thing: which notebook is open, plus the watcher keeping an eye
-//! on it. Everything else is read from disk on demand — the files are the
-//! source of truth, and caching them here would be a second one.
+//! Exactly one thing: which notebook each WINDOW has open, plus the watcher
+//! keeping an eye on it. Everything else is read from disk on demand — the
+//! files are the source of truth, and caching them here would be a second one.
+//!
+//! ONE NOTEBOOK PER WINDOW (2026-08-24). It used to be one notebook, full
+//! stop: a single `Option<Notebook>` that every command read. That is what the
+//! app was — one window, one notebook — until the notebooks screen made a
+//! second window possible, and a second window means two notebooks answering
+//! at once. A command therefore has to say WHICH, and the only honest answer
+//! is the window the `invoke()` came from: every command that touches a
+//! notebook takes a `Window` and hands its label in here.
+//!
+//! The label is Tauri's own name for a window, unique for as long as it
+//! exists. A window that closes takes its entry (and its watcher thread) with
+//! it — see `AppState::close`.
 
+use std::collections::HashMap;
 use std::sync::Mutex;
 
 use jott_core::{Notebook, NotebookWatcher};
@@ -16,24 +29,29 @@ pub const NOTEBOOK_CHANGED_EVENT: &str = "notebook://changed";
 
 #[derive(Default)]
 pub struct AppState {
-    inner: Mutex<Option<OpenNotebook>>,
+    /// Window label → the notebook that window is working in. A window with
+    /// no entry is a window showing the picker, which is not a failure: it is
+    /// the state every window starts in.
+    inner: Mutex<HashMap<String, OpenNotebook>>,
 }
 
 struct OpenNotebook {
     notebook: Notebook,
     /// Dropping this stops the watcher thread, which is exactly what should
-    /// happen when another notebook is opened.
+    /// happen when the window opens another notebook or closes.
     _watcher: WatcherHandle,
 }
 
 impl AppState {
-    /// Runs `f` against the open notebook, or fails if there is none.
+    /// Runs `f` against the notebook `window` has open, or fails if it has
+    /// none.
     pub fn with_notebook<T>(
         &self,
+        window: &str,
         f: impl FnOnce(&Notebook) -> CommandResult<T>,
     ) -> CommandResult<T> {
         let guard = self.lock()?;
-        let open = guard.as_ref().ok_or_else(CommandError::no_notebook)?;
+        let open = guard.get(window).ok_or_else(CommandError::no_notebook)?;
         f(&open.notebook)
     }
 
@@ -41,10 +59,11 @@ impl AppState {
     /// config), which need `&mut`.
     pub fn with_notebook_mut<T>(
         &self,
+        window: &str,
         f: impl FnOnce(&mut Notebook) -> CommandResult<T>,
     ) -> CommandResult<T> {
         let mut guard = self.lock()?;
-        let open = guard.as_mut().ok_or_else(CommandError::no_notebook)?;
+        let open = guard.get_mut(window).ok_or_else(CommandError::no_notebook)?;
         f(&mut open.notebook)
     }
 
@@ -55,41 +74,100 @@ impl AppState {
     /// a `CommandResult` here is what keeps each command from spelling
     /// `|nb| Ok(nb.x(..)?)` — the `Ok(..?)` was the same conversion written
     /// seventy times.
-    pub fn read<T>(&self, f: impl FnOnce(&Notebook) -> jott_core::Result<T>) -> CommandResult<T> {
-        self.with_notebook(|nb| Ok(f(nb)?))
+    pub fn read<T>(
+        &self,
+        window: &str,
+        f: impl FnOnce(&Notebook) -> jott_core::Result<T>,
+    ) -> CommandResult<T> {
+        self.with_notebook(window, |nb| Ok(f(nb)?))
     }
 
     /// Same, for the operations that need `&mut`.
     pub fn write<T>(
         &self,
+        window: &str,
         f: impl FnOnce(&mut Notebook) -> jott_core::Result<T>,
     ) -> CommandResult<T> {
-        self.with_notebook_mut(|nb| Ok(f(nb)?))
+        self.with_notebook_mut(window, |nb| Ok(f(nb)?))
     }
 
-    /// Replaces the open notebook and starts watching it.
-    pub fn open<R: Runtime>(&self, app: &AppHandle<R>, notebook: Notebook) -> CommandResult<()> {
-        let watcher = WatcherHandle::start(app.clone(), &notebook)?;
+    /// Whether ANY window has the notebook at `path` open.
+    ///
+    /// The one question about an open notebook that is not asked BY it: the
+    /// picker acts on notebooks it has not opened, and has to be sure the one
+    /// in its hands is not under another window (`commands::notebook`). Any
+    /// window and not just the asking one — with two windows the folder being
+    /// renamed may well be the OTHER one's, which is exactly the case a
+    /// single-notebook app never had.
+    ///
+    /// Unusable state answers "yes", which is the safe way round — it refuses
+    /// an operation instead of moving a folder the app may still be holding.
+    pub fn holds(&self, path: &std::path::Path) -> bool {
+        match self.lock() {
+            Ok(guard) => guard.values().any(|open| open.notebook.root() == path),
+            Err(_) => true,
+        }
+    }
+
+    /// Gives a window a notebook to work in, and starts watching it. Whatever
+    /// that window held before is dropped, watcher and all.
+    pub fn open<R: Runtime>(
+        &self,
+        app: &AppHandle<R>,
+        window: &str,
+        notebook: Notebook,
+    ) -> CommandResult<()> {
+        let watcher = WatcherHandle::start(app.clone(), window, &notebook)?;
         let mut guard = self.lock()?;
-        *guard = Some(OpenNotebook {
-            notebook,
-            _watcher: watcher,
-        });
+        guard.insert(
+            window.to_string(),
+            OpenNotebook {
+                notebook,
+                _watcher: watcher,
+            },
+        );
         Ok(())
     }
 
-    /// Re-reads the open notebook's config from disk. A no-op with no
-    /// notebook open, or with the state unusable — the watcher that calls
-    /// this has nothing better to do than carry on.
-    pub fn reload_config(&self) {
+    /// Which window, if any, is working in the notebook at `path`.
+    ///
+    /// The picker asks before opening one: a notebook is a folder, two windows
+    /// on it are two writers on the same files, and a second window on a
+    /// notebook already open is never what someone meant by clicking its card
+    /// (user report, 2026-08-24). The answer is a label, which is what
+    /// `set_focus` takes.
+    pub fn window_holding(&self, path: &std::path::Path) -> Option<String> {
+        let guard = self.lock().ok()?;
+        guard
+            .iter()
+            .find(|(_, open)| open.notebook.root() == path)
+            .map(|(label, _)| label.clone())
+    }
+
+    /// Forgets a window, because it closed.
+    ///
+    /// Not housekeeping: the entry owns a watcher THREAD, and a map that only
+    /// ever grows would leave one running per window the user ever opened,
+    /// each polling a folder nobody is looking at. Called from the window's
+    /// own destroyed event (`lib.rs`).
+    pub fn close(&self, window: &str) {
         if let Ok(mut guard) = self.lock() {
-            if let Some(open) = guard.as_mut() {
+            guard.remove(window);
+        }
+    }
+
+    /// Re-reads one window's notebook config from disk. A no-op where that
+    /// window has none, or with the state unusable — the watcher that calls
+    /// this has nothing better to do than carry on.
+    pub fn reload_config(&self, window: &str) {
+        if let Ok(mut guard) = self.lock() {
+            if let Some(open) = guard.get_mut(window) {
                 open.notebook.reload_config();
             }
         }
     }
 
-    fn lock(&self) -> CommandResult<std::sync::MutexGuard<'_, Option<OpenNotebook>>> {
+    fn lock(&self) -> CommandResult<std::sync::MutexGuard<'_, HashMap<String, OpenNotebook>>> {
         // A poisoned mutex means a command panicked while holding it. Failing
         // the call is better than papering over an unknown state.
         self.inner
@@ -104,7 +182,14 @@ struct WatcherHandle {
 }
 
 impl WatcherHandle {
-    fn start<R: Runtime>(app: AppHandle<R>, notebook: &Notebook) -> CommandResult<Self> {
+    fn start<R: Runtime>(
+        app: AppHandle<R>,
+        window: &str,
+        notebook: &Notebook,
+    ) -> CommandResult<Self> {
+        // Captured by the thread: the event has to reach the window whose
+        // notebook actually changed, and nobody else's.
+        let window = window.to_string();
         let watcher: NotebookWatcher = notebook.watch()?;
         let stop = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
         let flag = stop.clone();
@@ -139,9 +224,13 @@ impl WatcherHandle {
                     // harmless — it loads what was just saved.
                     if matches!(change, jott_core::watcher::Change::Config) {
                         use tauri::Manager;
-                        app.state::<AppState>().reload_config();
+                        app.state::<AppState>().reload_config(&window);
                     }
-                    if let Err(e) = app.emit(NOTEBOOK_CHANGED_EVENT, &change) {
+                    // To the ONE window (2026-08-24). Broadcast, every window
+                    // reloaded on every other window's save — and with two
+                    // notebooks open that is two screens flickering because
+                    // something was typed in the third.
+                    if let Err(e) = app.emit_to(&window, NOTEBOOK_CHANGED_EVENT, &change) {
                         eprintln!("[jott] could not emit change event: {e}");
                     }
                 }

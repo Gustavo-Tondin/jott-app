@@ -23,6 +23,16 @@ pub fn configure<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builde
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .manage(AppState::default())
+        // A window that closes takes its notebook — and the watcher THREAD
+        // watching it — with it (2026-08-24). Without this the state map only
+        // ever grows, and every window the user ever opened leaves a thread
+        // polling a folder nobody is looking at.
+        .on_window_event(|window, event| {
+            if matches!(event, tauri::WindowEvent::Destroyed) {
+                use tauri::Manager;
+                window.state::<AppState>().close(window.label());
+            }
+        })
         .invoke_handler(tauri::generate_handler![
             commands::shell::platform,
             commands::shell::window_button_layout,
@@ -69,6 +79,17 @@ pub fn configure<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builde
             commands::notebook::open_notebook,
             commands::notebook::current_notebook,
             commands::notebook::last_notebook,
+            // the picker (2026-08-24)
+            commands::notebook::recent_notebooks,
+            commands::notebook::forget_notebook,
+            commands::notebook::rename_notebook,
+            commands::notebook::move_notebook,
+            commands::shell::reveal_notebook,
+            commands::shell::open_window,
+            commands::shell::picker_closes,
+            commands::shell::remember_picker_closes,
+            commands::shell::opens_on_picker,
+            commands::shell::remember_opens_on_picker,
             commands::settings::notebook_settings,
             commands::settings::set_notebook_settings,
             commands::settings::set_machine_display,

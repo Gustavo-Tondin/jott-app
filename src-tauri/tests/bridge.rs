@@ -47,6 +47,41 @@ fn invoke(app: &MockApp, cmd: &str, args: Value) -> Result<Value, Value> {
         .map(|body| body.deserialize::<Value>().unwrap())
 }
 
+/// The same call, from a NAMED window (2026-08-24).
+///
+/// Which window a command came from is now half of what it means — the label
+/// is the key the asking window's notebook is filed under (`state::AppState`)
+/// — and `invoke` above can only ever speak for `main`. Everything about two
+/// windows is tested through this one.
+fn invoke_from(app: &MockApp, window: &str, cmd: &str, args: Value) -> Result<Value, Value> {
+    let webview = app
+        .get_webview_window(window)
+        .unwrap_or_else(|| panic!("webview {window} should exist"));
+
+    let request = InvokeRequest {
+        cmd: cmd.into(),
+        callback: CallbackFn(0),
+        error: CallbackFn(1),
+        url: if cfg!(any(windows, target_os = "android")) {
+            "http://tauri.localhost"
+        } else {
+            "tauri://localhost"
+        }
+        .parse()
+        .unwrap(),
+        body: InvokeBody::Json(args),
+        headers: Default::default(),
+        invoke_key: INVOKE_KEY.to_string(),
+    };
+
+    tauri::test::get_ipc_response(&webview, request)
+        .map(|body| body.deserialize::<Value>().unwrap())
+}
+
+fn ok_from(app: &MockApp, window: &str, cmd: &str, args: Value) -> Value {
+    invoke_from(app, window, cmd, args).unwrap_or_else(|e| panic!("{cmd} failed: {e}"))
+}
+
 /// An app with a webview and a freshly created notebook, ready to drive.
 fn app_with_notebook() -> (std::sync::MutexGuard<'static, ()>, MockApp, tempfile::TempDir) {
     let lock = exclusive();
@@ -56,7 +91,12 @@ fn app_with_notebook() -> (std::sync::MutexGuard<'static, ()>, MockApp, tempfile
         .expect("failed to build the mock webview");
 
     let dir = tempfile::tempdir().unwrap();
-    invoke(&app, "open_notebook", json!({ "path": dir.path() }))
+    // `create: true` — the folder is empty, and making a notebook of one is
+    // what the picker's "Create a new notebook" door does. Since 2026-08-24
+    // the flag has to be said out loud: without it `open_notebook` demands a
+    // notebook and refuses a plain folder, which is what the "Open a notebook"
+    // door promises.
+    invoke(&app, "open_notebook", json!({ "path": dir.path(), "create": true }))
         .expect("open_notebook should succeed");
     (lock, app, dir)
 }
@@ -928,12 +968,15 @@ fn external_changes_reach_the_frontend_as_events() {
 }
 
 #[test]
-fn opening_a_second_notebook_switches_the_open_one() {
+fn opening_a_second_notebook_switches_only_the_asking_windows() {
+    // Still a switch, and since 2026-08-24 a switch of one window's notebook
+    // rather than of the app's: another window's stays exactly where it was
+    // (the two-window tests at the end of this file).
     let (_lock, app, first) = app_with_notebook();
     ok(&app, "create_list", json!({ "folder": "jott.tasks", "name": "SoNoPrimeiro" }));
 
     let second = tempfile::tempdir().unwrap();
-    ok(&app, "open_notebook", json!({ "path": second.path() }));
+    ok(&app, "open_notebook", json!({ "path": second.path(), "create": true }));
 
     let info = ok(&app, "current_notebook", json!({}));
     assert_eq!(info["path"], json!(second.path()));
@@ -1796,4 +1839,248 @@ fn the_window_lets_the_webview_handle_its_own_drops() {
         !window.drag_drop_enabled,
         "the webview must handle drops itself, or the editor never sees one"
     );
+}
+
+// ---- two windows, two notebooks (2026-08-24) ----
+
+#[test]
+fn each_window_works_in_its_own_notebook() {
+    // THE invariant the notebooks screen bought, and the one thing that would
+    // break in silence: a command reads the notebook of the window it came
+    // from, and a second window opening another one does not move the first.
+    let (_lock, app, first) = app_with_notebook();
+    ok(&app, "create_list", json!({ "folder": "jott.tasks", "name": "SoNoPrimeiro" }));
+
+    WebviewWindowBuilder::new(&app, "second", Default::default())
+        .build()
+        .expect("failed to build the second webview");
+    let other = tempfile::tempdir().unwrap();
+    ok_from(&app, "second", "open_notebook", json!({ "path": other.path(), "create": true }));
+    ok_from(&app, "second", "create_list", json!({ "folder": "jott.tasks", "name": "SoNoSegundo" }));
+
+    // Each window answers with its own.
+    assert_eq!(ok(&app, "current_notebook", json!({}))["path"], json!(first.path()));
+    assert_eq!(
+        ok_from(&app, "second", "current_notebook", json!({}))["path"],
+        json!(other.path())
+    );
+
+    // And each list landed in the notebook whose window asked for it.
+    assert!(first.path().join("jott.tasks/SoNoPrimeiro.md").is_file());
+    assert!(!first.path().join("jott.tasks/SoNoSegundo.md").exists());
+    assert!(other.path().join("jott.tasks/SoNoSegundo.md").is_file());
+    assert!(!other.path().join("jott.tasks/SoNoPrimeiro.md").exists());
+}
+
+#[test]
+fn a_window_with_no_notebook_is_refused_rather_than_served_anothers() {
+    // The picker's window has none, and it sits beside a window that does.
+    // Falling back to "the open notebook" would have the picker writing into
+    // whichever notebook happened to be open elsewhere.
+    let (_lock, app, _first) = app_with_notebook();
+    WebviewWindowBuilder::new(&app, "picker", Default::default())
+        .build()
+        .expect("failed to build the picker webview");
+
+    let refused = invoke_from(&app, "picker", "notebook_snapshot", json!({}))
+        .expect_err("a window with no notebook has nothing to snapshot");
+    // The same refusal the app has always given a shell with nothing open —
+    // which is what the picker's window is.
+    assert_eq!(refused["kind"], "noNotebook");
+}
+
+#[test]
+fn a_notebook_open_in_any_window_is_not_renamed_or_moved_under_it() {
+    // `holds` asks about EVERY window, not the asking one: from the picker,
+    // the folder being renamed is by definition another window's.
+    let (_lock, app, open) = app_with_notebook();
+    WebviewWindowBuilder::new(&app, "picker", Default::default())
+        .build()
+        .expect("failed to build the picker webview");
+
+    let refused = invoke_from(
+        &app,
+        "picker",
+        "rename_notebook",
+        json!({ "path": open.path(), "name": "Outro" }),
+    )
+    .expect_err("a notebook another window is working in cannot be renamed");
+    assert_eq!(refused["kind"], "notebook");
+    assert!(open.path().join("jott.tasks/task-list.md").is_file());
+}
+
+#[test]
+fn opening_a_notebook_another_window_already_has_raises_that_window() {
+    // User report, 2026-08-24: clicking a card opened a SECOND window on a
+    // notebook that was already open. Two windows on one folder are two
+    // writers on the same files, and "take me there" is what a card means.
+    let (_lock, app, dir) = app_with_notebook();
+    WebviewWindowBuilder::new(&app, "picker", Default::default())
+        .build()
+        .expect("failed to build the picker webview");
+
+    let label = ok_from(&app, "picker", "open_window", json!({ "notebook": dir.path() }));
+    assert_eq!(label, json!("main"), "the window that already has it");
+    // And nothing new was built: the app still has the two windows it had.
+    assert_eq!(app.webview_windows().len(), 2);
+}
+
+#[test]
+fn the_picker_lists_what_this_machine_has_opened_newest_first() {
+    let (_lock, app, first) = app_with_notebook();
+    ok(&app, "create_task", json!({ "list": "jott.tasks/task-list.md", "text": "Comprar cimento" }));
+
+    let second = tempfile::tempdir().unwrap();
+    ok(&app, "open_notebook", json!({ "path": second.path(), "create": true }));
+
+    let listed = ok(&app, "recent_notebooks", json!({}));
+    let paths: Vec<&str> = listed
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|e| e["path"].as_str().unwrap())
+        .collect();
+    assert_eq!(
+        paths,
+        vec![
+            second.path().to_str().unwrap(),
+            first.path().to_str().unwrap()
+        ],
+        "the one just opened leads"
+    );
+    // Read without opening: the counts are there and nothing was written.
+    assert_eq!(listed[1]["tasks"], json!(1));
+    assert_eq!(listed[1]["notes"], json!(0));
+    assert_eq!(listed[1]["accentColor"], json!(""));
+}
+
+#[test]
+fn forgetting_a_notebook_drops_the_card_and_leaves_the_folder() {
+    let (_lock, app, dir) = app_with_notebook();
+    assert_eq!(ok(&app, "recent_notebooks", json!({})).as_array().unwrap().len(), 1);
+
+    ok(&app, "forget_notebook", json!({ "path": dir.path() }));
+
+    assert!(ok(&app, "recent_notebooks", json!({})).as_array().unwrap().is_empty());
+    assert!(dir.path().join("jott.tasks/task-list.md").is_file());
+    // And the machine stops calling it the last one, so a relaunch does not
+    // reopen what the user just took off the list.
+    assert_eq!(ok(&app, "last_notebook", json!({})), Value::Null);
+}
+
+#[test]
+fn a_renamed_notebook_keeps_its_place_on_the_list() {
+    // Every path in the preferences file is absolute, so a folder that travels
+    // leaves the list pointing at nothing — the card would vanish on the next
+    // launch, and the notebook with it as far as the picker is concerned.
+    let (_lock, app, home) = app_with_notebook();
+    let root = home.path().join("Trabalho");
+    std::fs::create_dir(&root).unwrap();
+    ok(&app, "open_notebook", json!({ "path": &root, "create": true }));
+    // Closed first: a notebook a window is working in is refused, on purpose.
+    ok(&app, "open_notebook", json!({ "path": home.path(), "create": true }));
+
+    let moved = ok(&app, "rename_notebook", json!({ "path": &root, "name": "Pessoal" }));
+    assert_eq!(moved, json!(home.path().join("Pessoal")));
+
+    let listed = ok(&app, "recent_notebooks", json!({}));
+    let names: Vec<&str> = listed
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|e| e["name"].as_str().unwrap())
+        .collect();
+    assert!(names.contains(&"Pessoal"), "{names:?}");
+    assert!(!names.contains(&"Trabalho"), "{names:?}");
+}
+
+#[test]
+fn the_two_picker_preferences_answer_before_anyone_sets_them() {
+    // Both defaults are the behaviour of someone working in one notebook at a
+    // time, which is most people most days: the picker gets out of the way
+    // once it has done its job, and the app comes back to the work rather than
+    // to the question.
+    let (_lock, app, _dir) = app_with_notebook();
+    assert_eq!(ok(&app, "picker_closes", json!({})), json!(true));
+    assert_eq!(ok(&app, "opens_on_picker", json!({})), json!(false));
+
+    ok(&app, "remember_picker_closes", json!({ "closes": false }));
+    ok(&app, "remember_opens_on_picker", json!({ "on": true }));
+    assert_eq!(ok(&app, "picker_closes", json!({})), json!(false));
+    assert_eq!(ok(&app, "opens_on_picker", json!({})), json!(true));
+}
+
+#[test]
+fn the_open_door_refuses_a_folder_that_is_not_a_notebook() {
+    // The two doors of the picker used to be one, and a folder picked under
+    // "open" that was not a notebook silently became one — `.jott/` and three
+    // spaces scattered into whatever was chosen, reported as success.
+    let (_lock, app, home) = app_with_notebook();
+    let plain = home.path().join("fotos");
+    std::fs::create_dir(&plain).unwrap();
+
+    let refused = invoke(&app, "open_notebook", json!({ "path": &plain, "create": false }))
+        .expect_err("the open door demands a notebook");
+    assert!(refused["message"].as_str().unwrap().contains("not a Jott notebook"));
+    assert!(!plain.join(".jott").exists(), "nothing was created");
+
+    // The create door does make one there.
+    ok(&app, "open_notebook", json!({ "path": &plain, "create": true }));
+    assert!(plain.join(".jott").is_dir());
+}
+
+#[test]
+fn the_display_choices_are_kept_per_notebook_not_per_machine() {
+    // User report, 2026-08-24: the accent picked in Settings did not reach the
+    // notebooks screen. It could not — every choice was one set per MACHINE,
+    // so the notebook's own `accentColor` was never written and every card
+    // fell back to the app's blue. Scoped to the notebook, the picker's whole
+    // premise works: a card wears the colour of the notebook it opens.
+    let (_lock, app, first) = app_with_notebook();
+    ok(&app, "set_machine_display", json!({ "display": { "accentColor": "orange" } }));
+
+    let second = tempfile::tempdir().unwrap();
+    ok(&app, "open_notebook", json!({ "path": second.path(), "create": true }));
+    ok(&app, "set_machine_display", json!({ "display": { "accentColor": "green" } }));
+
+    // Each answers with its own, and neither moved the other.
+    let by_path: std::collections::HashMap<String, String> =
+        ok(&app, "recent_notebooks", json!({}))
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|e| {
+                (
+                    e["path"].as_str().unwrap().to_string(),
+                    e["accentColor"].as_str().unwrap().to_string(),
+                )
+            })
+            .collect();
+    assert_eq!(by_path[first.path().to_str().unwrap()], "orange");
+    assert_eq!(by_path[second.path().to_str().unwrap()], "green");
+
+    // And the open notebook's own layout reads the same answer, so the card
+    // and the app it opens cannot disagree.
+    let info = ok(&app, "current_notebook", json!({}));
+    assert_eq!(info["layout"]["accentColor"], json!("green"));
+}
+
+#[test]
+fn a_renamed_notebook_keeps_the_look_it_was_dressed_in() {
+    // Its appearance is filed under the same absolute path as its place on the
+    // list. A look that vanished because a folder was renamed would be the app
+    // undressing a notebook for moving house.
+    let (_lock, app, home) = app_with_notebook();
+    let root = home.path().join("Trabalho");
+    std::fs::create_dir(&root).unwrap();
+    ok(&app, "open_notebook", json!({ "path": &root, "create": true }));
+    ok(&app, "set_machine_display", json!({ "display": { "accentColor": "purple" } }));
+    // Closed first: a notebook a window is working in is refused, on purpose.
+    ok(&app, "open_notebook", json!({ "path": home.path(), "create": true }));
+
+    let moved = ok(&app, "rename_notebook", json!({ "path": &root, "name": "Pessoal" }));
+
+    ok(&app, "open_notebook", json!({ "path": &moved, "create": false }));
+    let info = ok(&app, "current_notebook", json!({}));
+    assert_eq!(info["layout"]["accentColor"], json!("purple"));
 }

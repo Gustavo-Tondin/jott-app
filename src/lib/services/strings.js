@@ -6,10 +6,6 @@
 
 export const S = {
   // App shell
-  onboardingIntro:
-    "Choose a folder to be your notebook. If it is not one yet, Jott creates " +
-    "the structure inside it — your files stay plain .md, readable in any editor.",
-  chooseFolder: "Choose notebook folder…",
   // Android only: the notebook lives wherever the user says, and that needs
   // the all-files permission — see services/androidStorage.js.
   storageIntro:
@@ -21,6 +17,57 @@ export const S = {
   privateFolderNote:
     "Kept inside the app. Nothing else on the phone can read it, and " +
     "uninstalling Jott deletes it.",
+  // The notebooks screen (2026-08-24) — the picker the app opens on.
+  pickANotebook: "Pick a notebook",
+  createNotebook: "Create a new notebook",
+  openNotebook: "Open a notebook",
+  // What a card carries under the notebook's name: what is still to do in
+  // there, and what came into the Inbox and has not been filed.
+  notebookCounts: (notes, tasks) =>
+    `${notes === 1 ? "1 note" : `${notes} notes`} \u00b7 ${
+      tasks === 1 ? "1 task" : `${tasks} tasks`
+    }`,
+  // When this machine last opened it. The desktop draws it beside the name;
+  // the phone does not draw it at all (the wireframes).
+  ago: ({ unit, count } = {}) => {
+    switch (unit) {
+      case "now":
+        return "just now";
+      case "minute":
+        return count === 1 ? "1 min ago" : `${count} min ago`;
+      case "hour":
+        return count === 1 ? "1 hour ago" : `${count} hours ago`;
+      case "day":
+        return count === 1 ? "1 day ago" : `${count} days ago`;
+      case "month":
+        return count === 1 ? "1 month ago" : `${count} months ago`;
+      case "year":
+        return count === 1 ? "1 year ago" : `${count} years ago`;
+      default:
+        return "";
+    }
+  },
+  notebookOptions: "notebook options",
+  // The picker window's OWN ⋮ — two questions about windows, not about any
+  // one notebook, which is why it hangs off the screen and not off a card.
+  notebooksOptions: "screen options",
+  keepPickerOpen: "Keep this screen open after opening a notebook",
+  openAppOnPicker: "Open Jott on this screen",
+  closeNotebooks: "Close",
+  notebookReadOnly: "read-only",
+  // The five rows of a card's \u22ee. The first is not a row but a label: the
+  // path is what tells two notebooks of the same name apart.
+  renameNotebook: "Rename notebook",
+  renameNotebookPrompt: "New name for the notebook:",
+  moveNotebook: "Move notebook\u2026",
+  revealNotebook: "Show in file manager",
+  forgetNotebook: "Remove from the list",
+  // Asked before forgetting, because the word "remove" beside a notebook has
+  // to be unambiguous about what it does NOT do.
+  confirmForget: (name) => `Remove ${name} from the list?`,
+  confirmForgetDetail:
+    "The notebook stays exactly where it is on disk \u2014 only this list forgets it. " +
+    "Open it again from \u201cOpen a notebook\u201d whenever you like.",
   browseFolders: "Choose a folder",
   parentFolder: "Up one folder",
   newFolder: "New folder",
@@ -233,6 +280,7 @@ export const S = {
   cmdNewNote: "New note",
   cmdSearch: "Search",
   cmdSearchEverywhere: "Search the whole notebook",
+  cmdNotebooks: "Notebooks",
   cmdSettings: "Settings",
   cmdFullscreen: "Fullscreen",
   cmdToggleSidebar: "Show/hide the sidebar",

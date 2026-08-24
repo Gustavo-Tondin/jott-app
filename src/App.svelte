@@ -27,6 +27,8 @@
   } from "./lib/services/androidStorage.js";
   import { onBack, installBack } from "./lib/services/back.js";
   import ContextMenu from "./lib/components/ContextMenu.svelte";
+  import NotebooksView from "./lib/screens/NotebooksView.svelte";
+  import { entryOf } from "./lib/shell/entry.js";
   import ListView from "./lib/screens/ListView.svelte";
   import TasksView from "./lib/screens/TasksView.svelte";
   import CompletedView from "./lib/screens/CompletedView.svelte";
@@ -190,10 +192,35 @@
   /// na nota é melhor, se quiser muda o título depois").
   let focusNewNote = $state(false);
 
+  /// The notebooks screen, shown OVER a window that already has a notebook.
+  ///
+  /// Only the phone ever sets it: Android has one Activity and no second
+  /// window to put anything in, so "show me my notebooks" can only mean
+  /// "here". On the desktop the same request opens a window of its own
+  /// (`showNotebooks`), which is what lets a second notebook be opened without
+  /// closing the first.
+  let showingPicker = $state(false);
+
+  /// Whether this window is showing the notebooks screen rather than a
+  /// notebook. Three things read it and they must not disagree: the bar above
+  /// the panel, the panel itself, and the look the app wears (styles on the root).
+  ///
+  /// Not `!notebook`: the phone shows this screen OVER an open notebook, for
+  /// the reason just above.
+  let showsPicker = $derived(!notebook || showingPicker);
+
   // Going anywhere closes them: a drawer still open over the page you just
   // navigated to is the sidebar hiding the thing you asked for.
+  //
+  // "Anywhere" includes the notebooks screen (user report, 2026-08-24). It is
+  // not a `view` — it is not a page of a notebook at all — so it reached this
+  // rule through neither dependency, and tapping the notebook's name in the
+  // drawer's own footer swapped the panel behind a drawer that stayed open
+  // over it. Read here rather than closed at the call site, so there is one
+  // answer to "what closes the drawer" instead of two that can drift.
   $effect(() => {
     view;
+    showsPicker;
     drawerOpen = false;
     tabsOpen = false;
     composingTask = false;
@@ -344,6 +371,9 @@
     "note.new": () => notebook && f("notes") && quickNote(),
     "search.notebook": () => notebook && openSearch(),
     "search.notebook.global": () => notebook && openSearch(),
+    // Reachable with no notebook open too — unlike every other command here,
+    // it is how a window with nothing in it gets something.
+    "app.notebooks": () => showNotebooks(),
     "app.settings": () => notebook && goTo({ kind: "settings" }),
     "app.fullscreen": () => toggleFullscreen().catch(() => {}),
     "app.sidebar": () => notebook && (compact ? (drawerOpen = !drawerOpen) : (railed = !railed)),
@@ -673,11 +703,22 @@
   // as, and an absent attribute is what the default rule in roles.css answers.
   // `noteSize` is how big a note's body is drawn. Absent for the size the app
   // ships as, like the accent and the headings.
+  //
+  // WITH NO NOTEBOOK, THE APP HAS NO LOOK OF ITS OWN (user call, 2026-08-24).
+  // Every one of these choices is now kept per machine AND per notebook
+  // (src-tauri/src/prefs.rs), so a window with no notebook has nothing to read
+  // them from — and the honest answer is the app's own neutral: the default
+  // theme, black and white, and `neutral` for the accent rather than the blue
+  // an absent attribute falls back to. That is also exactly what the notebooks
+  // wireframe draws — its primary button is white on the black frame, which is
+  // what `--accent-neutral` resolves to in the chrome — and it is what leaves
+  // the CARDS as the only coloured things on the screen, which is the whole
+  // point of the colour being there.
   $effect(() =>
     setRootData({
-      theme: themeAttribute(layout.theme),
-      accent: layout.accentColor || null,
-      headings: layout.headingColor === "ink" ? "ink" : null,
+      theme: themeAttribute(showsPicker ? "" : layout.theme),
+      accent: showsPicker ? "neutral" : layout.accentColor || null,
+      headings: !showsPicker && layout.headingColor === "ink" ? "ink" : null,
       noteSize: noteFontSizeAttribute(layout.noteFontSize),
     }),
   );
@@ -1208,11 +1249,18 @@
     }
   }
 
-  async function openAt(path) {
+  /// Opens a notebook and settles the app around it.
+  ///
+  /// `create` is which door was used (2026-08-24): true only for the picker's
+  /// "Create a new notebook", which is allowed to make one out of a folder
+  /// that is not one yet. Every other caller — a card on the picker, the "Open
+  /// a notebook" door, the last notebook reopened at launch — demands a
+  /// notebook, and is told plainly when the folder is not one.
+  async function openAt(path, { create = false } = {}) {
     busy = true;
     error = null;
     try {
-      notebook = await api.openNotebook(path);
+      notebook = await api.openNotebook(path, create);
       await refreshNotebook();
 
       const restored = viewFromId(await api.screenToRestore());
@@ -1258,47 +1306,105 @@
     }),
   );
 
+  /// How many notebooks the picker is offering, or null before it has read.
+  /// The one thing under that screen that depends on the answer is Android's
+  /// private-folder offer, which only helps where there is nothing else.
+  let recentCount = $state(null);
+
   /// The app's own container — non-null only on Android, where it is what the
   /// user gets by declining the permission, and where notebooks made by
   /// earlier versions already live.
   let privateFolder = $state(null);
 
-  /// The in-app folder browser is open (Android only).
-  let picking = $state(false);
+  /// The in-app folder browser is open (Android only), holding the `resolve`
+  /// of whoever is waiting for a folder. Null when it is closed.
+  ///
+  /// A callback rather than a flag since 2026-08-24: the browser used to end
+  /// in one place (open this notebook), and now the picker's ⋮ asks the same
+  /// question to answer a different one (move this notebook into it). The
+  /// browser does not need to know which.
+  let picking = $state(null);
 
-  async function chooseFolder() {
-    // Two different questions wearing one button, and on Android a third
-    // behind them. The desktop opens the system's picker, which is better at
-    // this than anything the app could draw.
-    //
-    // Android needs the file permission FIRST — without it there is nothing to
-    // browse — and then opens the system's chooser too, converted back to a
-    // path by the Activity (services/androidStorage.js says why that is
-    // sound). The app's own browser is what is left when the chooser names a
-    // folder that cannot be turned into a path: it is the fallback now, not
-    // the answer.
-    if (storage !== "notNeeded") {
-      if (storage !== "granted") {
-        requestStorageAccess();
-        return;
-      }
-      try {
-        const picked = await pickFolderNatively();
-        if (picked?.cancelled) return;
-        if (picked?.path) {
-          await openAt(picked.path);
-          return;
-        }
-      } catch (e) {
-        fail(e);
-        return;
-      }
-      picking = true;
+  /// Asks the machine which folder, and answers with the path — or null when
+  /// the user backed out.
+  ///
+  /// Three questions wearing one function. The desktop opens the system's
+  /// picker, which is better at this than anything the app could draw. Android
+  /// needs the file permission FIRST — without it there is nothing to browse —
+  /// and then opens the system's chooser too, converted back to a path by the
+  /// Activity (services/androidStorage.js says why that is sound). The app's
+  /// own browser is what is left when the chooser names a folder that cannot
+  /// be turned into a path: it is the fallback, not the answer.
+  ///
+  /// Asking for the permission answers null: the user leaves the app for
+  /// Android's settings screen, and whatever they were doing is over. The
+  /// `storage` watcher brings them back to a screen that can now ask properly.
+  async function pickAFolder() {
+    if (storage === "notNeeded") return (await api.pickFolder()) ?? null;
+    if (storage !== "granted") {
+      requestStorageAccess();
+      return null;
+    }
+    const picked = await pickFolderNatively();
+    if (picked?.cancelled) return null;
+    if (picked?.path) return picked.path;
+    return new Promise((resolve) => (picking = resolve));
+  }
+
+  /// Where both doors to the notebooks screen end.
+  async function showNotebooks() {
+    if (mobile) {
+      showingPicker = true;
       return;
     }
     try {
-      const path = await api.pickFolder();
-      if (path) await openAt(path);
+      await api.openWindow(null);
+    } catch (e) {
+      fail(e);
+    }
+  }
+
+  /// A card on the notebooks screen was clicked.
+  ///
+  /// With `pickerCloses` on — the default, and the way someone who works in
+  /// one notebook at a time wants it — THIS window stops being the picker and
+  /// becomes the notebook. Opening a new window and closing this one has the
+  /// same outcome and a frame of empty window in between, so the window is
+  /// reused: what the setting is really about is whether the picker survives
+  /// the choice, not how many windows are spawned on the way.
+  ///
+  /// With it off, the notebook opens in a window of its own and the picker
+  /// stays where it is — and that is two notebooks open at once.
+  async function openFromPicker(path) {
+    // A picker shown over a notebook (the phone) always lands here: there is
+    // no second window to open it in.
+    if (showingPicker) {
+      showingPicker = false;
+      await openAt(path);
+      return;
+    }
+    // A bridge that cannot answer must not strand the click; closing is the
+    // default and the safe one — it always ends with the notebook on screen.
+    // `??` for the same reason the screen's own read uses it: a bridge with
+    // nothing to say lands on the default, and the default always ends with
+    // the notebook on screen.
+    const closes = (await api.pickerCloses().catch(() => true)) ?? true;
+    if (closes) {
+      await openAt(path);
+      return;
+    }
+    try {
+      await api.openWindow(path);
+    } catch (e) {
+      fail(e);
+    }
+  }
+
+  /// The picker's two doors: ask for a folder, then open what is there.
+  async function chooseFolder({ create = false } = {}) {
+    try {
+      const path = await pickAFolder();
+      if (path) await openAt(path, { create });
     } catch (e) {
       fail(e);
     }
@@ -1525,19 +1631,40 @@
     reload();
   });
 
-  // Reopen the last notebook so the app is usable straight away.
+  /// What THIS window was opened to do (shell/entry.js). Read once: an
+  /// address does not change under a window.
+  const entry = entryOf();
+
+  // What the window opens on.
+  //
+  // Three answers, and only the third asks the machine anything. A window
+  // created by `open_window` already carries its instruction in its address —
+  // it is a second window, and reopening the last notebook in it would ignore
+  // the reason it was opened.
   (async () => {
     try {
-      // Kept for the onboarding screen, which offers it as the second choice.
-      // Android used to open it silently, because there was nothing else the
-      // platform could give: no folder picker, and a Storage Access Framework
-      // URI the core cannot read. That was revised on 2026-08-19 — the app
-      // asks for file access and browses real folders (androidStorage.js), so
-      // this folder is a fallback and not a default. Anyone already using it
-      // is unaffected: `last_notebook` reopens it.
+      // Kept for the picker, which offers it as the second choice on Android.
+      // The platform used to open it silently, because there was nothing else
+      // it could give: no folder picker, and a Storage Access Framework URI
+      // the core cannot read. That was revised on 2026-08-19 — the app asks
+      // for file access and browses real folders (androidStorage.js), so this
+      // folder is a fallback and not a default. Anyone already using it is
+      // unaffected: `last_notebook` reopens it.
       privateFolder = await api.defaultFolder();
+
+      if (entry.kind === "picker") return;
+      if (entry.kind === "notebook") {
+        await openAt(entry.path);
+        return;
+      }
+
+      // The first window of the app. It comes back to the WORK by default —
+      // asking which notebook on every launch is a question with the same
+      // answer nearly every time — and the picker's ⋮ is where someone who
+      // keeps several says otherwise.
+      if (await api.opensOnPicker()) return;
       const last = await api.lastNotebook();
-      if (last) await openAt(last);
+      if (last) await openAt(last, { create: false });
       else await refreshNotebook();
     } catch (e) {
       fail(e);
@@ -1545,6 +1672,16 @@
       busy = false;
     }
   })();
+
+  /// What this build calls itself, for the number under the logo on the
+  /// picker. The FULL version, patch included: it is what someone copies into
+  /// a bug report, and a number cut short there names a build that does not
+  /// exist.
+  let version = $state("");
+  api
+    .appVersion()
+    .then((v) => (version = v ?? ""))
+    .catch(() => {});
 
   /// A newer released version, when the daily check found one. Everything
   /// about whether to even ask lives in services/update.js; a launch that is
@@ -1749,7 +1886,7 @@
       compact ? (drawerOpen = false) : (railed = !railed)}
     onOpen={(next, newTab = false) => (newTab ? openTab : goTo)(next)}
     onOpenList={showList}
-    onChooseFolder={chooseFolder}
+    onNotebooks={showNotebooks}
     onReorderLists={reorderLists}
     {f}
     onReorderEntries={reorderEntries}
@@ -1803,7 +1940,17 @@
   <!-- Two bars, and the shell picks. The compact one holds the drawer toggle
        and the page ⋮, which the desktop bar has never had, and holds neither
        the brand nor the window buttons — see shell/TopBar.svelte. -->
-  {#if compact}
+  <!-- No page chrome over the notebooks screen (user report, 2026-08-24). The
+       compact bar carries the drawer toggle, the history arrows and the page
+       ⋮ — every one of them an affordance of being INSIDE a notebook, and on
+       the picker they offered a sidebar for a notebook that is not open. The
+       wireframe draws the phone's picker with nothing above the logo, and
+       that is why: it is a screen, not a page of the app.
+
+       The desktop keeps its title bar, and has to: the window is frameless, so
+       that strip is the only way to move or close it. It is already stripped
+       to the window buttons alone (`brand={!!notebook}`, and no tabs). -->
+  {#if compact && !showsPicker}
     <TopBar
       {canBack}
       {canForward}
@@ -1819,8 +1966,8 @@
       buttons={windowButtons}
       over={view.kind === "note"}
     />
-  {:else}
-    <TitleBar rail={railed} buttons={windowButtons}>
+  {:else if !compact}
+    <TitleBar rail={railed} buttons={windowButtons} brand={!!notebook}>
       {#if notebook}
         <TabBar
           {tabs}
@@ -1837,30 +1984,62 @@
     </TitleBar>
   {/if}
 
-  <main class="shell__main">
-    {#if !notebook}
-      <section class="shell__onboarding">
-        <h1 class="shell__onboarding-title">Jott</h1>
-        <p class="shell__onboarding-intro">{S.onboardingIntro}</p>
-        {#if storage === "denied"}
-          <p class="shell__onboarding-intro">{S.storageIntro}</p>
-        {/if}
-        <button
-          class="theme-btn theme-btn--primary shell__onboarding-action"
-          onclick={chooseFolder}
-          disabled={busy}
-          >{storage === "denied" ? S.allowFiles : S.chooseFolder}</button
-        >
-        {#if privateFolder}
-          <button
-            class="theme-btn shell__onboarding-alt"
-            onclick={() => openAt(privateFolder)}
-            disabled={busy}>{S.usePrivateFolder}</button
-          >
-          <p class="shell__onboarding-note">{S.privateFolderNote}</p>
-        {/if}
-        {#if error}<p class="theme-notice theme-notice--error shell__error">{error}</p>{/if}
-      </section>
+  <!-- `--picker` while there is no notebook: the picker is a screen with a
+       floor (its two choices sit on it), so the main area becomes a column and
+       hands it whatever height is left. With a notebook open the shell inside
+       lays itself out and this does nothing. -->
+  <main class="shell__main" class:shell__main--picker={showsPicker}>
+    {#if showsPicker}
+      <!-- The door of the app (wireframes "Notebooks screen", 2026-08-24). It
+           replaced a paragraph and one button: the app remembers the notebooks
+           this machine has opened, so the usual answer to "which notebook?" is
+           already on the screen and the folder picker is for the other days.
+
+           Android keeps the two extra sentences below it, and they stay HERE
+           rather than moving into the screen: they are about the PERMISSION
+           this platform needs and the container it offers when that permission
+           is refused, which is a fact about the machine and not about the list
+           of notebooks. -->
+      <NotebooksView
+        {version}
+        {busy}
+        {compact}
+        onChoose={chooseFolder}
+        onOpen={openFromPicker}
+        onPickFolder={pickAFolder}
+        onListed={(n) => (recentCount = n)}
+        onClose={showingPicker ? () => (showingPicker = false) : null}
+        onError={fail}
+      />
+      <!-- Only when it has something to say, and the private-folder offer only
+           on a phone with NOTHING to offer above it (user report, 2026-08-24).
+           `privateFolder` is non-null on every Android run, so the condition
+           it was written under — a screen that existed only before the first
+           notebook — kept a paragraph about where a notebook could live under
+           a list of notebooks that already do. -->
+      {#if storage === "denied" || (privateFolder && recentCount === 0) || error}
+        <section class="shell__onboarding">
+          {#if storage === "denied"}
+            <p class="shell__onboarding-intro">{S.storageIntro}</p>
+            <button
+              class="theme-btn theme-btn--primary shell__onboarding-action"
+              onclick={() => chooseFolder({ create: true })}
+              disabled={busy}>{S.allowFiles}</button
+            >
+          {/if}
+          {#if privateFolder && recentCount === 0}
+            <button
+              class="theme-btn shell__onboarding-alt"
+              onclick={() => openAt(privateFolder, { create: true })}
+              disabled={busy}>{S.usePrivateFolder}</button
+            >
+            <p class="shell__onboarding-note">{S.privateFolderNote}</p>
+          {/if}
+          {#if error}
+            <p class="theme-notice theme-notice--error shell__error">{error}</p>
+          {/if}
+        </section>
+      {/if}
   {:else}
     <div
       class="shell"
@@ -2564,10 +2743,17 @@
   <FolderPicker
     start={notebook?.path ?? null}
     onChoose={(path) => {
-      picking = false;
-      openAt(path);
+      const answer = picking;
+      picking = null;
+      answer(path);
     }}
-    onClose={() => (picking = false)}
+    onClose={() => {
+      const answer = picking;
+      picking = null;
+      // Closed without choosing is an answer too: whoever is awaiting this
+      // would otherwise wait for the rest of the session.
+      answer(null);
+    }}
     onError={fail}
   />
 {/if}

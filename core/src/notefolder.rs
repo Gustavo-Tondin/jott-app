@@ -130,6 +130,24 @@ impl NoteFolder {
         Ok(found)
     }
 
+    /// How many notes live under `relative`, without reading a single one.
+    ///
+    /// The picker asks this of every notebook it lists
+    /// (`Notebook::summarize`), and `notes()` above answers by PARSING each
+    /// file on disk — the right price for a board that draws previews, and
+    /// the wrong one for a number on a card.
+    pub fn count(&self, relative: &str) -> Result<usize> {
+        let dir = self.folder_path(relative)?;
+        let mut found = 0;
+        self.walk(&dir, &mut |path, _| {
+            if is_note_file(path) {
+                found += 1;
+            }
+            Ok(())
+        })?;
+        Ok(found)
+    }
+
     /// Notes whose title or text matches `query`. An empty query is every
     /// note, so the search box starts showing everything.
     pub fn search(&self, query: &str) -> Result<Vec<NoteEntry>> {

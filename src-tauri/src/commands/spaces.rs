@@ -6,7 +6,7 @@
 
 use jott_core::Notebook;
 use serde::Serialize;
-use tauri::State;
+use tauri::{Runtime, State};
 
 use crate::error::CommandResult;
 use crate::state::AppState;
@@ -49,62 +49,68 @@ pub struct SpaceInfo {
 
 /// Sets a space's display name (empty clears it, back to the folder name).
 #[tauri::command]
-pub fn rename_space(
+pub fn rename_space<R: Runtime>(
     state: State<'_, AppState>,
+    window: tauri::Window<R>,
     folder: String,
     name: String,
 ) -> CommandResult<()> {
-    state.write(|nb| nb.rename_space(&folder, &name))
+    state.write(window.label(), |nb| nb.rename_space(&folder, &name))
 }
 
 /// Sets a space's accent colour and icon (either empty clears it).
 #[tauri::command]
-pub fn set_space_appearance(
+pub fn set_space_appearance<R: Runtime>(
     state: State<'_, AppState>,
+    window: tauri::Window<R>,
     folder: String,
     color: Option<String>,
     icon: Option<String>,
 ) -> CommandResult<()> {
-    state.read(|nb| nb.set_space_appearance(&folder, color, icon))
+    state.read(window.label(), |nb| nb.set_space_appearance(&folder, color, icon))
 }
 
 /// Sends a user space to the trash (never a fixed one).
 #[tauri::command]
-pub fn delete_space(state: State<'_, AppState>, folder: String) -> CommandResult<()> {
-    state.read(|nb| nb.delete_space(&folder))
+pub fn delete_space<R: Runtime>(state: State<'_, AppState>,
+    window: tauri::Window<R>, folder: String) -> CommandResult<()> {
+    state.read(window.label(), |nb| nb.delete_space(&folder))
 }
 
 /// Sets how a space orders its items (`name` / `created` / `completed` /
 /// `custom`; null = the file order).
 #[tauri::command]
-pub fn set_space_sort(
+pub fn set_space_sort<R: Runtime>(
     state: State<'_, AppState>,
+    window: tauri::Window<R>,
     space: String,
     sort: Option<String>,
 ) -> CommandResult<()> {
-    state.read(|nb| nb.set_space_sort(&space, sort.as_deref()))
+    state.read(window.label(), |nb| nb.set_space_sort(&space, sort.as_deref()))
 }
 
 /// Sets how a notes space draws its board (`grid` / `tree`; null = the
 /// notebook's default).
 #[tauri::command]
-pub fn set_space_note_layout(
+pub fn set_space_note_layout<R: Runtime>(
     state: State<'_, AppState>,
+    window: tauri::Window<R>,
     space: String,
     layout: Option<String>,
 ) -> CommandResult<()> {
-    state.read(|nb| nb.set_space_note_layout(&space, layout.as_deref()))
+    state.read(window.label(), |nb| nb.set_space_note_layout(&space, layout.as_deref()))
 }
 
 /// Saves the hand-dragged arrangement in the space's `.space.json`
 /// and switches it to the custom ordering.
 #[tauri::command]
-pub fn set_space_order(
+pub fn set_space_order<R: Runtime>(
     state: State<'_, AppState>,
+    window: tauri::Window<R>,
     space: String,
     order: Vec<String>,
 ) -> CommandResult<()> {
-    state.read(|nb| nb.set_space_order(&space, order))
+    state.read(window.label(), |nb| nb.set_space_order(&space, order))
 }
 
 // ---- groups (reestruturação 2026-07-30) ----
@@ -143,68 +149,76 @@ pub(crate) fn groups_of(nb: &Notebook) -> CommandResult<Vec<GroupInfo>> {
 }
 
 #[tauri::command]
-pub fn groups(state: State<'_, AppState>) -> CommandResult<Vec<GroupInfo>> {
-    state.with_notebook(groups_of)
+pub fn groups<R: Runtime>(state: State<'_, AppState>,
+    window: tauri::Window<R>,) -> CommandResult<Vec<GroupInfo>> {
+    state.with_notebook(window.label(), groups_of)
 }
 
 /// Creates a group at the root, or inside another group when `group` is given.
 #[tauri::command]
-pub fn create_group(
+pub fn create_group<R: Runtime>(
     state: State<'_, AppState>,
+    window: tauri::Window<R>,
     name: String,
     group: Option<String>,
 ) -> CommandResult<String> {
-    state.read(|nb| nb.create_group(&name, group.as_deref()))
+    state.read(window.label(), |nb| nb.create_group(&name, group.as_deref()))
 }
 
 /// Moves a group — with everything under it — into another group, or back to
 /// the root when `into_group` is null.
 #[tauri::command]
-pub fn move_group(
+pub fn move_group<R: Runtime>(
     state: State<'_, AppState>,
+    window: tauri::Window<R>,
     name: String,
     into_group: Option<String>,
 ) -> CommandResult<()> {
-    state.write(|nb| nb.move_group(&name, into_group.as_deref()))
+    state.write(window.label(), |nb| nb.move_group(&name, into_group.as_deref()))
 }
 
 #[tauri::command]
-pub fn rename_group(state: State<'_, AppState>, folder: String, name: String) -> CommandResult<()> {
-    state.write(|nb| nb.rename_group(&folder, &name))
+pub fn rename_group<R: Runtime>(state: State<'_, AppState>,
+    window: tauri::Window<R>, folder: String, name: String) -> CommandResult<()> {
+    state.write(window.label(), |nb| nb.rename_group(&folder, &name))
 }
 
 #[tauri::command]
-pub fn set_group_appearance(
+pub fn set_group_appearance<R: Runtime>(
     state: State<'_, AppState>,
+    window: tauri::Window<R>,
     folder: String,
     color: Option<String>,
     icon: Option<String>,
 ) -> CommandResult<()> {
-    state.read(|nb| nb.set_group_appearance(&folder, color, icon))
+    state.read(window.label(), |nb| nb.set_group_appearance(&folder, color, icon))
 }
 
 #[tauri::command]
-pub fn delete_group(state: State<'_, AppState>, folder: String) -> CommandResult<()> {
-    state.write(|nb| nb.delete_group(&folder))
+pub fn delete_group<R: Runtime>(state: State<'_, AppState>,
+    window: tauri::Window<R>, folder: String) -> CommandResult<()> {
+    state.write(window.label(), |nb| nb.delete_group(&folder))
 }
 
 #[tauri::command]
-pub fn move_space(
+pub fn move_space<R: Runtime>(
     state: State<'_, AppState>,
+    window: tauri::Window<R>,
     name: String,
     into_group: Option<String>,
 ) -> CommandResult<()> {
-    state.write(|nb| nb.move_space(&name, into_group.as_deref()))
+    state.write(window.label(), |nb| nb.move_space(&name, into_group.as_deref()))
 }
 
 #[tauri::command]
-pub fn create_space_in(
+pub fn create_space_in<R: Runtime>(
     state: State<'_, AppState>,
+    window: tauri::Window<R>,
     name: String,
     kind: String,
     group: Option<String>,
 ) -> CommandResult<String> {
-    state.read(|nb| nb.create_space_in(&name, &kind, group.as_deref()))
+    state.read(window.label(), |nb| nb.create_space_in(&name, &kind, group.as_deref()))
 }
 
 pub(crate) fn spaces_of(nb: &Notebook) -> CommandResult<Vec<SpaceInfo>> {

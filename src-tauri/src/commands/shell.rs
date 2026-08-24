@@ -216,12 +216,32 @@ pub fn create_folder(parent: String, name: String) -> CommandResult<String> {
 /// to whatever editor the desktop has registered, which is a different promise
 /// from the one the menu makes.
 #[tauri::command]
-pub fn open_in_file_manager(
+pub fn open_in_file_manager<R: Runtime>(
     state: State<'_, AppState>,
+    window: tauri::Window<R>,
     path: Option<String>,
 ) -> CommandResult<()> {
-    let target = state.read(|nb| nb.folder_of(path.as_deref()))?;
+    let target = state.read(window.label(), |nb| nb.folder_of(path.as_deref()))?;
     open_path(&target)
+}
+
+/// Opens a notebook's own folder in the file manager, from the picker.
+///
+/// The sibling of `open_in_file_manager` above, and separate from it on
+/// purpose: that one answers about an address INSIDE the open notebook, and
+/// there is no open notebook here. What is accepted is therefore checked
+/// rather than resolved — an absolute path that really is a notebook, which
+/// keeps this from becoming a command that opens any folder on the machine
+/// the webview cares to name.
+#[tauri::command]
+pub fn reveal_notebook(path: PathBuf) -> CommandResult<()> {
+    if !jott_core::Notebook::is_notebook(&path) {
+        return Err(CommandError::new(
+            "notebook",
+            format!("{} is not a notebook", path.display()),
+        ));
+    }
+    open_path(&path)
 }
 
 /// Hands a path to the desktop. Both doors end here: the file manager on a
@@ -257,4 +277,154 @@ pub(crate) fn open_path(target: &Path) -> CommandResult<()> {
                 CommandError::new("io", format!("could not open it: {e}"))
             })
     }
+}
+
+// ---- windows (2026-08-24) ----
+
+/// Opens a second window.
+///
+/// This is what makes two notebooks open at once possible, and it is the whole
+/// of the machinery: the new window loads the same page with a QUESTION in its
+/// query string, and answers it itself on boot (`shell/entry.js`). Nothing is
+/// handed across — the new window opens its own notebook through the ordinary
+/// `open_notebook`, which registers it under the new window's label, and every
+/// command that window sends from then on names that label
+/// (`state::AppState`).
+///
+/// `notebook` is the folder to open there; `None` opens the picker. Answers
+/// with the new window's label, which is Tauri's own name for it.
+///
+/// Android gets `None` and refuses: the platform has one Activity and no
+/// second window to put anything in, and a picker that opened a window nobody
+/// could see would be a button that does nothing.
+#[tauri::command]
+pub fn open_window<R: Runtime>(
+    app: AppHandle<R>,
+    state: State<'_, AppState>,
+    notebook: Option<PathBuf>,
+) -> CommandResult<String> {
+    #[cfg(target_os = "android")]
+    {
+        let _ = (app, state, notebook);
+        Err(CommandError::new(
+            "platform",
+            "this platform has one window",
+        ))
+    }
+    #[cfg(not(target_os = "android"))]
+    {
+        use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
+
+        // Already open somewhere: raise that window instead of making a second
+        // one on the same folder (user report, 2026-08-24). Two windows on one
+        // notebook are two writers on the same files, and clicking a card has
+        // never meant "give me another of these" — it means "take me there".
+        if let Some(path) = &notebook {
+            if let Some(label) = state.window_holding(path) {
+                if let Some(open) = app.get_webview_window(&label) {
+                    // Best effort, both of them: a window that refuses to come
+                    // forward is still the right window, and answering with its
+                    // label is what stops a duplicate being made.
+                    let _ = open.unminimize();
+                    let _ = open.set_focus();
+                }
+                return Ok(label);
+            }
+        }
+
+        // Unique for as long as the app runs: the label IS the key a window's
+        // notebook is filed under, and reusing one would hand a new window the
+        // notebook the old one had.
+        let label = format!(
+            "jott-{}",
+            jott_core::id::generate_unique(&app.webview_windows().keys().cloned().collect())
+        );
+        let url = match &notebook {
+            // Percent-encoded, because a folder may be called anything at all
+            // — a `&` or a `#` in the name would otherwise cut the address in
+            // half. `encodeURIComponent`'s counterpart is on the other side.
+            Some(path) => format!("index.html?notebook={}", encode_query(&path.to_string_lossy())),
+            None => "index.html?picker".to_string(),
+        };
+
+        // Same shape as the window in tauri.conf.json — a second window that
+        // came up decorated, or 800×600, would not read as the same app. The
+        // size is copied off the window asking, so a notebook opened from a
+        // window the user resized comes up that size too.
+        let (width, height) = app
+            .webview_windows()
+            .values()
+            .next()
+            .and_then(|w| w.inner_size().ok().zip(w.scale_factor().ok()))
+            .map(|(size, scale)| {
+                let logical = size.to_logical::<f64>(scale);
+                (logical.width, logical.height)
+            })
+            .unwrap_or((1000.0, 700.0));
+
+        WebviewWindowBuilder::new(&app, &label, WebviewUrl::App(url.into()))
+            .title("Jott")
+            .inner_size(width, height)
+            .min_inner_size(400.0, 500.0)
+            .resizable(true)
+            .decorations(false)
+            .transparent(true)
+            .disable_drag_drop_handler()
+            .build()
+            .map_err(|e| CommandError::new("window", format!("could not open a window: {e}")))?;
+
+        Ok(label)
+    }
+}
+
+/// Percent-encodes a value for a query string.
+///
+/// Written out rather than pulled in: the one thing crossing here is a
+/// filesystem path, and a dependency for eighteen lines of table would be the
+/// larger cost. Everything outside the unreserved set of RFC 3986 goes to
+/// `%XX`, which is what `decodeURIComponent` on the other side undoes.
+#[cfg(not(target_os = "android"))]
+fn encode_query(value: &str) -> String {
+    let mut out = String::with_capacity(value.len());
+    for byte in value.as_bytes() {
+        match byte {
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => {
+                out.push(*byte as char)
+            }
+            _ => out.push_str(&format!("%{byte:02X}")),
+        }
+    }
+    out
+}
+
+/// Whether the picker's window closes once it has opened a notebook.
+///
+/// A machine preference, and the picker's own ⋮ is where it is set. Absent
+/// means it closes — most people work in one notebook at a time, and a picker
+/// left behind every time would be a window to dismiss on every launch. Anyone
+/// who wants two open at once turns it off, and then the picker is a panel
+/// that stays.
+#[tauri::command]
+pub fn picker_closes<R: Runtime>(app: AppHandle<R>) -> bool {
+    crate::prefs::picker_closes(&app)
+}
+
+#[tauri::command]
+pub fn remember_picker_closes<R: Runtime>(app: AppHandle<R>, closes: bool) {
+    crate::prefs::remember_picker_closes(&app, closes);
+}
+
+/// Whether the app opens on the picker instead of on the last notebook.
+///
+/// The other half of the same ⋮. Absent means the last notebook: the app's job
+/// is to have the user's work on screen, and asking which notebook every
+/// launch is a question with the same answer nearly every time.
+#[tauri::command]
+pub fn opens_on_picker<R: Runtime>(app: AppHandle<R>) -> bool {
+    crate::prefs::opens_on_picker(&app)
+}
+
+#[tauri::command]
+pub fn remember_opens_on_picker<R: Runtime>(app: AppHandle<R>, on: bool) {
+    crate::prefs::remember_opens_on_picker(&app, on);
 }

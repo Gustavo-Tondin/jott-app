@@ -130,17 +130,35 @@ impl NotebookInfo {
     }
 }
 
-/// Opens a notebook, creating one in that folder if it is not one yet.
+/// Opens a notebook.
+///
+/// `create` says which QUESTION the user was asked (2026-08-24). The picker
+/// offers two doors — "Create a new notebook" and "Open a notebook" — and
+/// until they meant different things here, both did the same: a folder that
+/// was not a notebook silently became one, so a mistyped path under "open"
+/// scattered `.jott/` and three spaces into whatever folder was picked, and
+/// the app then reported success.
+///
+/// With `create` false the folder has to be a notebook already, and is refused
+/// with the core's own words when it is not. True is the create door, and is
+/// still `open_or_init`: picking a folder that already holds a notebook is not
+/// a mistake there, it is the same intention arriving by the other road.
 #[tauri::command]
 pub fn open_notebook<R: Runtime>(
     app: AppHandle<R>,
     state: State<'_, AppState>,
+    window: tauri::Window<R>,
     path: PathBuf,
+    create: Option<bool>,
 ) -> CommandResult<NotebookInfo> {
-    let notebook = Notebook::open_or_init(&path)?;
+    let notebook = if create.unwrap_or(false) {
+        Notebook::open_or_init(&path)?
+    } else {
+        Notebook::open(&path)?
+    };
     let info = NotebookInfo::of(&notebook, display_of(&app, &notebook))?;
     allow_assets(&app, &path);
-    state.open(&app, notebook)?;
+    state.open(&app, window.label(), notebook)?;
     crate::prefs::remember_notebook(&app, &path);
     Ok(info)
 }
@@ -176,14 +194,134 @@ pub fn last_notebook<R: Runtime>(app: AppHandle<R>) -> Option<PathBuf> {
     crate::prefs::last_notebook(&app)
 }
 
-/// The notebook currently open, if any.
+// ---- the picker (2026-08-24) ----
+
+/// One card on the notebooks screen: the notebook, plus when this machine
+/// last opened it.
+///
+/// Flattened rather than nested, because a card is one thing: the frontend
+/// reads `entry.name` and `entry.opened` side by side, and a `summary.`
+/// prefix on half of them would only say which side of the bridge each field
+/// came from.
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RecentNotebook {
+    #[serde(flatten)]
+    pub notebook: jott_core::NotebookSummary,
+    /// RFC 3339, local. The desktop draws it as "42 min ago"; the phone does
+    /// not draw it at all (the wireframes, 2026-08-24).
+    pub opened: String,
+}
+
+/// Every notebook this machine has opened, newest first, each with the two
+/// numbers and the colour its card wears.
+///
+/// **A notebook that cannot be summarized is left out rather than reported.**
+/// The list is paths remembered from earlier runs: a folder may have been
+/// deleted, renamed outside the app, or be sitting on a drive that is not
+/// plugged in. None of that is an error the user can act on from a picker, and
+/// one unreachable folder must not cost them the whole screen. It stays in the
+/// preferences file, so the day the drive comes back the card does too
+/// (`prefs::recent_notebooks`).
+///
+/// Reading, never writing: `Notebook::summarize` is the door precisely because
+/// `Notebook::open` would recreate spaces and reap trash in every notebook on
+/// the screen.
+#[tauri::command]
+pub fn recent_notebooks<R: Runtime>(app: AppHandle<R>) -> Vec<RecentNotebook> {
+    crate::prefs::recent_notebooks(&app)
+        .into_iter()
+        .filter_map(|entry| {
+            let mut notebook = Notebook::summarize(&entry.path).ok()?;
+            // The colour the card wears is the one that notebook is DRESSED
+            // in on this machine, not only the one written inside it: since
+            // 2026-08-24 the Display choices are kept per machine and per
+            // notebook, and the accent picked in Settings lands there. A card
+            // reading the notebook's own value alone showed the app's default
+            // blue for every notebook whose colour had ever been chosen —
+            // which is every notebook (user report, same day).
+            //
+            // The core stays out of it: `summarize` answers what is IN the
+            // notebook, and where this machine keeps its overrides is this
+            // side's business, exactly as `display_of` has it.
+            if let Some(chosen) = crate::prefs::display(&app, &entry.path).accent_color {
+                notebook.accent_color = chosen;
+            }
+            Some(RecentNotebook {
+                notebook,
+                opened: entry.opened,
+            })
+        })
+        .collect()
+}
+
+/// Takes a notebook off the picker's list. Nothing on disk is touched.
+#[tauri::command]
+pub fn forget_notebook<R: Runtime>(app: AppHandle<R>, path: PathBuf) {
+    crate::prefs::forget_notebook(&app, &path);
+}
+
+/// Renames a notebook from the picker, by renaming its folder.
+///
+/// The rule and the refusals are the core's (`Notebook::rename_at`); what is
+/// this side's is the guard below and the bookkeeping after. Answers with the
+/// new path, which is what the screen reloads around.
+#[tauri::command]
+pub fn rename_notebook<R: Runtime>(
+    app: AppHandle<R>,
+    state: State<'_, AppState>,
+    path: PathBuf,
+    name: String,
+) -> CommandResult<PathBuf> {
+    ensure_closed(&state, &path)?;
+    let moved = Notebook::rename_at(&path, &name)?;
+    crate::prefs::notebook_moved(&app, &path, &moved);
+    Ok(moved)
+}
+
+/// Moves a notebook from the picker into another folder of the machine. Same
+/// shape as the rename above, and the same guard.
+#[tauri::command]
+pub fn move_notebook<R: Runtime>(
+    app: AppHandle<R>,
+    state: State<'_, AppState>,
+    path: PathBuf,
+    into: PathBuf,
+) -> CommandResult<PathBuf> {
+    ensure_closed(&state, &path)?;
+    let moved = Notebook::move_at(&path, &into)?;
+    crate::prefs::notebook_moved(&app, &path, &moved);
+    Ok(moved)
+}
+
+/// Refuses to move the folder out from under the notebook the app is working
+/// in.
+///
+/// The picker only shows with nothing open, so this should never fire — which
+/// is exactly why it is here rather than trusted: the two commands take a path
+/// from the frontend, and the cost of being wrong is every open file handle
+/// pointing at a directory that no longer exists at that address.
+fn ensure_closed(state: &State<'_, AppState>, path: &std::path::Path) -> CommandResult<()> {
+    if state.holds(path) {
+        return Err(crate::error::CommandError::new(
+            "notebook",
+            "close this notebook before renaming or moving it",
+        ));
+    }
+    Ok(())
+}
+
+/// The notebook THIS window has open, if any.
 #[tauri::command]
 pub fn current_notebook<R: Runtime>(
     app: AppHandle<R>,
     state: State<'_, AppState>,
+    window: tauri::Window<R>,
 ) -> Option<NotebookInfo> {
     state
-        .with_notebook(|nb| NotebookInfo::of(nb, display_of(&app, nb)))
+        .with_notebook(window.label(), |nb| {
+            NotebookInfo::of(nb, display_of(&app, nb))
+        })
         .ok()
 }
 
@@ -193,8 +331,9 @@ pub fn current_notebook<R: Runtime>(
 pub fn list_counts<R: Runtime>(
     app: AppHandle<R>,
     state: State<'_, AppState>,
+    window: tauri::Window<R>,
 ) -> CommandResult<std::collections::BTreeMap<String, usize>> {
-    state.with_notebook(|nb| counts_of(nb, &display_of(&app, nb)))
+    state.with_notebook(window.label(), |nb| counts_of(nb, &display_of(&app, nb)))
 }
 
 /// The rule behind the counters, written once: off means empty, not absent —
@@ -220,15 +359,16 @@ pub(crate) fn counts_of(
 /// the ⋮ of a screen asks (2026-08-17). Absent (or empty) is the whole
 /// notebook, which is what Ctrl+F asks.
 #[tauri::command]
-pub fn search(
+pub fn search<R: Runtime>(
     state: State<'_, AppState>,
+    window: tauri::Window<R>,
     query: String,
     limit: Option<usize>,
     scope: Option<String>,
 ) -> CommandResult<jott_core::SearchResults> {
     let limit = limit.unwrap_or(jott_core::search::DEFAULT_LIMIT);
     let scope = scope.filter(|s| !s.is_empty());
-    state.read(|nb| nb.search_in(&query, limit, scope.as_deref()))
+    state.read(window.label(), |nb| nb.search_in(&query, limit, scope.as_deref()))
 }
 
 /// A trashed item awaiting restore or expiry.
@@ -246,8 +386,9 @@ pub struct TrashEntryInfo {
 }
 
 #[tauri::command]
-pub fn trash_entries(state: State<'_, AppState>) -> CommandResult<Vec<TrashEntryInfo>> {
-    state.with_notebook(|nb| {
+pub fn trash_entries<R: Runtime>(state: State<'_, AppState>,
+    window: tauri::Window<R>,) -> CommandResult<Vec<TrashEntryInfo>> {
+    state.with_notebook(window.label(), |nb| {
         Ok(nb
             .trash_entries()
             .into_iter()
@@ -267,18 +408,21 @@ pub fn trash_entries(state: State<'_, AppState>) -> CommandResult<Vec<TrashEntry
 }
 
 #[tauri::command]
-pub fn restore_from_trash(state: State<'_, AppState>, id: String) -> CommandResult<()> {
-    state.read(|nb| nb.restore_from_trash(&id))
+pub fn restore_from_trash<R: Runtime>(state: State<'_, AppState>,
+    window: tauri::Window<R>, id: String) -> CommandResult<()> {
+    state.read(window.label(), |nb| nb.restore_from_trash(&id))
 }
 
 #[tauri::command]
-pub fn purge_from_trash(state: State<'_, AppState>, id: String) -> CommandResult<()> {
-    state.read(|nb| nb.purge_from_trash(&id))
+pub fn purge_from_trash<R: Runtime>(state: State<'_, AppState>,
+    window: tauri::Window<R>, id: String) -> CommandResult<()> {
+    state.read(window.label(), |nb| nb.purge_from_trash(&id))
 }
 
 #[tauri::command]
-pub fn empty_trash(state: State<'_, AppState>) -> CommandResult<usize> {
-    state.read(|nb| nb.empty_trash())
+pub fn empty_trash<R: Runtime>(state: State<'_, AppState>,
+    window: tauri::Window<R>,) -> CommandResult<usize> {
+    state.read(window.label(), |nb| nb.empty_trash())
 }
 
 // ---- tags ----
@@ -303,22 +447,25 @@ pub(crate) fn tags_of(nb: &Notebook) -> Vec<TagInfo> {
 }
 
 #[tauri::command]
-pub fn tags(state: State<'_, AppState>) -> CommandResult<Vec<TagInfo>> {
-    state.with_notebook(|nb| Ok(tags_of(nb)))
+pub fn tags<R: Runtime>(state: State<'_, AppState>,
+    window: tauri::Window<R>,) -> CommandResult<Vec<TagInfo>> {
+    state.with_notebook(window.label(), |nb| Ok(tags_of(nb)))
 }
 
 #[tauri::command]
-pub fn set_tag(
+pub fn set_tag<R: Runtime>(
     state: State<'_, AppState>,
+    window: tauri::Window<R>,
     name: String,
     color: Option<String>,
 ) -> CommandResult<()> {
-    state.read(|nb| nb.set_tag(&name, color))
+    state.read(window.label(), |nb| nb.set_tag(&name, color))
 }
 
 #[tauri::command]
-pub fn remove_tag(state: State<'_, AppState>, name: String) -> CommandResult<()> {
-    state.read(|nb| nb.remove_tag(&name))
+pub fn remove_tag<R: Runtime>(state: State<'_, AppState>,
+    window: tauri::Window<R>, name: String) -> CommandResult<()> {
+    state.read(window.label(), |nb| nb.remove_tag(&name))
 }
 
 /// Everything the shell of the UI needs after any change, in one round trip.
@@ -351,8 +498,9 @@ pub struct NotebookSnapshot {
 pub fn notebook_snapshot<R: Runtime>(
     app: AppHandle<R>,
     state: State<'_, AppState>,
+    window: tauri::Window<R>,
 ) -> CommandResult<NotebookSnapshot> {
-    state.with_notebook(|nb| {
+    state.with_notebook(window.label(), |nb| {
         // Once: the info and the counters read the same display choices, and
         // resolving them means reading `machine-prefs.json`.
         let display = display_of(&app, nb);

@@ -20,6 +20,9 @@ import checkSquare from "../../assets/icons/phosphor/regular/check-square.svg?ra
 import note from "../../assets/icons/phosphor/regular/note.svg?raw";
 import folder from "../../assets/icons/phosphor/regular/folder.svg?raw";
 import folders from "../../assets/icons/phosphor/regular/folders.svg?raw";
+// The notebooks screen's second choice: a folder that is not one of the
+// app's yet — "open a notebook" reaches OUT to the machine (2026-08-24).
+import folderPlus from "../../assets/icons/phosphor/regular/folder-plus.svg?raw";
 import gear from "../../assets/icons/phosphor/regular/gear.svg?raw";
 import bookmarkSimple from "../../assets/icons/phosphor/regular/bookmark-simple.svg?raw";
 import arrowClockwise from "../../assets/icons/phosphor/regular/arrow-clockwise.svg?raw";
@@ -122,6 +125,7 @@ export const ICONS = {
   note,
   folder,
   folders,
+  "folder-plus": folderPlus,
   gear,
   "bookmark-simple": bookmarkSimple,
   "arrow-clockwise": arrowClockwise,
