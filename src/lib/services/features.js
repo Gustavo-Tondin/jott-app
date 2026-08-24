@@ -32,11 +32,22 @@ import { S } from "./strings.js";
 /// an entry plus a checkbox someone has to remember to add.
 export const FEATURES = [
   { key: "tasks", label: () => S.featureTasks },
-  { key: "myDay", parent: "tasks", group: "screens", label: () => S.featureMyDay },
+  // `needs`: switched off with the FIXED TASKS SCREEN (user call,
+  // 2026-08-24): both period views are that screen's tabs (and the day's
+  // block on the Home), and hiding the screen is choosing a life without
+  // them — the Home can point at a list instead (`homeTasksSource`).
+  {
+    key: "myDay",
+    parent: "tasks",
+    group: "screens",
+    needs: ["tasksSpace"],
+    label: () => S.featureMyDay,
+  },
   {
     key: "week",
     parent: "tasks",
     group: "screens",
+    needs: ["tasksSpace"],
     label: () => S.featureWeek,
     default: false,
   },
@@ -81,10 +92,11 @@ export const FEATURES = [
     key: "fixedSpaces",
     inline: true,
     label: () => S.featureFixedSpaces,
-    // Said right on the page (user call, 2026-08-24: "deveria ser intuitivo
-    // — ao desativar poderia ter um aviso"): what hiding does and does not
-    // do, before the first switch is flipped.
-    hint: () => S.featureFixedSpacesHint,
+    // A help button beside the label opens these (user call, 2026-08-24:
+    // "deveria ser intuitivo — um botão de ajuda perto de fixed spaces"):
+    // what hiding does and does not do, case by case, before the first
+    // switch is flipped.
+    help: () => [S.fixedSpacesHelpIntro, S.fixedSpacesHelpTasks, S.fixedSpacesHelpNotes],
   },
   { key: "homeSpace", parent: "fixedSpaces", group: "spaces", label: () => S.featureHomeSpace },
   { key: "tasksSpace", parent: "fixedSpaces", group: "spaces", label: () => S.featureTasksSpace },
@@ -133,11 +145,14 @@ export function defaultOf(key) {
 }
 
 /// Is `key` switched on — the user's word if they gave one, else its default,
-/// and always `false` when its parent is off.
+/// always `false` when its parent is off, and `false` while anything it
+/// `needs` is off (My Day and Week go with the fixed Tasks screen).
 export function on(features, key) {
   const said = features?.[key];
   const self = typeof said === "boolean" ? said : defaultOf(key);
   if (!self) return false;
+  const needs = BY_KEY[key]?.needs ?? [];
+  if (!needs.every((need) => on(features, need))) return false;
   const parent = BY_KEY[key]?.parent;
   return parent ? on(features, parent) : true;
 }

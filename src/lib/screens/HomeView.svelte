@@ -47,9 +47,16 @@
     /// against (services/assets.js).
     root = null,
     quickNoteFolder = null,
-    /// The notes block widened to the WHOLE Inbox, not just today's notes
-    /// (the notebook's `homeShowsAllInboxNotes`, 2026-08-24).
-    showAllInboxNotes = false,
+    /// What the TASKS block shows instead of My Day — `{source, label}`, a
+    /// task space hosted whole (`homeTasksSource`, 2026-08-24). Null is the
+    /// day, as always.
+    tasksSource = null,
+    /// What the NOTES block shows instead of today's notes — `{space, label}`,
+    /// that space's Inbox whole (`homeNotesSource`). Null is today.
+    notesSource = null,
+    /// The list a quick task writes to, already resolved
+    /// (services/taskTargets.js) — `{list, label, value}` or null for none.
+    quickTask = null,
     /// Where a quick note can go — the fixed space's folders and the user's
     /// note spaces (services/noteTargets.js). Empty means nowhere: the note
     /// half of the capture closes.
@@ -122,16 +129,25 @@
 
   $effect(() => {
     reloadKey;
-    notesFolder;
+    notesSpace;
     load();
   });
 
+  /// Which space the notes block reads (and opens its cards in): the chosen
+  /// source's, else the fixed one it always read.
+  let notesSpace = $derived(notesSource?.space ?? notesFolder);
+
+  /// Whether each block is on screen — the hosted source answers to its
+  /// FUNCTION (a space pointed at is a space wanted), the defaults to their
+  /// own switches, as always.
+  let showsTasks = $derived(tasksSource ? f("tasks") : f("myDay"));
+
   const { load, act } = makeScreen({
     read: () =>
-      notesFolder
-        ? showAllInboxNotes
-          ? api.inboxNotes(notesFolder)
-          : api.notesCreatedToday(notesFolder)
+      notesSpace
+        ? notesSource
+          ? api.inboxNotes(notesSpace)
+          : api.notesCreatedToday(notesSpace)
         : [],
     // `?? []`: the bridge answering with nothing is not a list of notes.
     apply: (read) => (notes = read ?? []),
@@ -151,14 +167,20 @@
         await api.quickCaptureNote(captureTarget.space, captureTarget.folder, text);
         return;
       }
-      await composeTask({ text, list: inbox }, { period: "day" });
+      // Where the notebook's quickTaskList points (falling back to the
+      // Inbox), and pulled into the day only while the day IS the block —
+      // hosting a list, the task appears right where it was written.
+      await composeTask(
+        { text, list: quickTask?.list ?? inbox },
+        { period: tasksSource ? null : "day" },
+      );
     });
 
   /// Going to a note of the day. Home only ever LOOKS at the notes space, so
   /// it names the space it was given rather than letting the shell guess one
   /// — the address is the whole answer either way.
   const openNote = (note, { newTab = false } = {}) =>
-    onOpenNote?.(note.path, notesFolder, { newTab });
+    onOpenNote?.(note.path, notesSpace, { newTab });
 
   /// The right button on a card. Only the one row: what a note IS belongs
   /// where the note lives, and Home is the day looking in (the same reason
@@ -197,11 +219,11 @@
        note to go (services/noteTargets.js): the fixed Notes space hidden,
        another notepad takes it — only with no note space at all does the
        half close (user call, 2026-08-24). -->
-  {#if !readOnly && !compact && (f("myDay") || (f("notes") && !!captureTarget))}
+  {#if !readOnly && !compact && ((showsTasks && !!quickTask) || (f("notes") && !!captureTarget))}
     <CaptureBox
       date={todayLabel}
       {dot}
-      canTask={f("myDay") && !!inbox}
+      canTask={showsTasks && !!(quickTask?.list ?? inbox)}
       canNote={f("notes") && !!captureTarget}
       onSubmit={capture}
     />
@@ -210,11 +232,11 @@
 
   <!-- The tasks half IS the day, so it goes with My Day (user call,
        2026-08-06) — there is no day left to show. -->
-  {#if f("myDay")}
+  {#if showsTasks}
     <section class="home__block">
       <TasksSpace
-        source={DAY_SOURCE}
-        period="day"
+        source={tasksSource?.source ?? DAY_SOURCE}
+        period={tasksSource ? null : "day"}
         align="center"
         compose={composing ? "bar" : "none"}
         composeAutofocus={composing}
@@ -222,7 +244,7 @@
         {lists}
         {tags}
         {completedName}
-        defaultList={inbox}
+        defaultList={quickTask?.list ?? inbox}
         {today}
         {dateFormat}
         {readOnly}
@@ -237,7 +259,7 @@
     </section>
   {/if}
 
-  {#if f("myDay") && f("notes")}
+  {#if showsTasks && f("notes")}
     <div class="home__divider"><hr /></div>
   {/if}
 
@@ -253,7 +275,7 @@
           </span>
         </span>
         <h2 class="theme-title home__block-title">
-          {showAllInboxNotes ? S.inboxNotes : S.todaysNotes}
+          {notesSource?.label ?? S.todaysNotes}
         </h2>
         {#if !readOnly && notesMenu.length > 0}
           <Menu items={notesMenu}>

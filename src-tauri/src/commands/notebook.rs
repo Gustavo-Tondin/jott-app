@@ -48,8 +48,12 @@ pub struct NotebookLayout {
     pub date_display_format: String,
     pub close_inspector_on_click_away: bool,
     pub quick_note_folder: String,
-    /// The Home's notes block widened to the whole Inbox (2026-08-24).
-    pub home_shows_all_inbox_notes: bool,
+    /// The capture targets and Home sources of 2026-08-24 — path-like
+    /// strings the front resolves (services/noteTargets.js and its tasks
+    /// mirror); empty is each one's default.
+    pub quick_task_list: String,
+    pub home_tasks_source: String,
+    pub home_notes_source: String,
     /// The board layout of a notes space that never chose one (`grid` /
     /// `tree`); empty means the app's own.
     pub note_layout: String,
@@ -118,7 +122,9 @@ impl NotebookInfo {
                 date_display_format: display.date_display_format,
                 close_inspector_on_click_away: display.close_inspector_on_click_away,
                 quick_note_folder: notebook.config().quick_note_folder.clone(),
-                home_shows_all_inbox_notes: notebook.config().home_shows_all_inbox_notes,
+                quick_task_list: notebook.config().quick_task_list.clone(),
+                home_tasks_source: notebook.config().home_tasks_source.clone(),
+                home_notes_source: notebook.config().home_notes_source.clone(),
                 note_layout: notebook.config().note_layout.clone(),
                 accent_color: display.accent_color,
                 theme: display.theme,

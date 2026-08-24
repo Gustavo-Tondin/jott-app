@@ -13,6 +13,9 @@ const SETUP = {
     { path: "Ideas", color: "yellow", pinned: false },
   ],
   spaces: [
+    // The fixed space itself rides in the snapshot's list — it must not
+    // become a duplicate row.
+    { path: "jott.notes", name: "Notes", kind: "notes", fixed: true },
     { path: "Design/Tasks", name: "Tarefas Design", kind: "tasks" },
     { path: "Design Notes", name: "Design Notes", kind: "notes" },
   ],

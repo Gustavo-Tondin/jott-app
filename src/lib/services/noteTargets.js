@@ -50,7 +50,9 @@ export function noteTargets({
     }
   }
   for (const sp of spaces) {
-    if (sp?.kind !== "notes") continue;
+    // The fixed space rides in `spaces` too (it has a marker like any other);
+    // its doors are the fixed entries above, not a duplicate row here.
+    if (sp?.kind !== "notes" || sp.fixed || sp.path === notesFolder) continue;
     out.push({ space: sp.path, folder: inbox, label: sp.name, value: sp.path });
   }
   return out;

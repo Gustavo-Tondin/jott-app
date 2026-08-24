@@ -98,6 +98,7 @@
   import * as Tabs from "./lib/shell/tabs.js";
   import { landing, reachable, spaceOfView, titleOf, viewFromId } from "./lib/shell/views.js";
   import { noteTargets } from "./lib/services/noteTargets.js";
+  import { quickTaskTarget, taskTargets } from "./lib/services/taskTargets.js";
   import { watchWindowState, toggleFullscreen } from "./lib/shell/windowState.js";
 
   let notebook = $state(null);
@@ -748,9 +749,59 @@
       folders: noteFolders,
       spaces,
       fixedShown: f("notesSpace"),
-      inboxOnHome: !!layout.homeShowsAllInboxNotes,
+      inboxOnHome: !!layout.homeNotesSource && layout.homeNotesSource === layout.notesFolder,
     }),
   );
+
+  /// …and the tasks mirror (services/taskTargets.js): where a quick TASK can
+  /// go, and the one the notebook chose.
+  let quickTaskChoices = $derived(
+    taskTargets({
+      inbox: layout.inbox,
+      completed: layout.completed,
+      lists: notebook?.lists ?? [],
+      spaces,
+      fixedShown: f("tasksSpace"),
+      inboxOnHome: !!layout.homeTasksSource && layout.homeTasksSource === layout.tasksFolder,
+    }),
+  );
+  /// (`quickTask` above is the SHORTCUT that opens the dialog — this is
+  /// where the quick capture lands.)
+  let quickTaskTo = $derived(quickTaskTarget(layout.quickTaskList ?? "", quickTaskChoices));
+
+  /// What the Home's two blocks show instead of their defaults — a task
+  /// space hosted whole, a note space's Inbox — resolved against what
+  /// exists; null is each block's default reading (My Day / today's notes).
+  let homeTasks = $derived.by(() => {
+    const at = layout.homeTasksSource;
+    if (!at) return null;
+    const sp = spaces.find((s) => s.kind === "tasks" && s.path === at);
+    if (!sp) return null;
+    return { source: sourceOf(sp, { name: null }), label: sp.fixed ? "Inbox" : sp.name };
+  });
+  let homeNotes = $derived.by(() => {
+    const at = layout.homeNotesSource;
+    if (!at) return null;
+    const sp = spaces.find((s) => s.kind === "notes" && s.path === at);
+    if (!sp) return null;
+    return { space: sp.path, label: sp.fixed ? S.inboxNotes : sp.name };
+  });
+
+  /// The rows the two "Home shows" pickers offer (SettingsView) — the
+  /// defaults first, then every space of the right kind, the fixed one under
+  /// its Inbox name.
+  let homeTasksChoices = $derived([
+    { value: "", label: S.featureMyDay },
+    ...spaces
+      .filter((sp) => sp.kind === "tasks")
+      .map((sp) => ({ value: sp.path, label: sp.fixed ? "Inbox" : sp.name })),
+  ]);
+  let homeNotesChoices = $derived([
+    { value: "", label: S.todaysNotes },
+    ...spaces
+      .filter((sp) => sp.kind === "notes")
+      .map((sp) => ({ value: sp.path, label: sp.fixed ? S.inboxNotes : sp.name })),
+  ]);
 
   let userLists = $derived(
     (notebook?.lists ?? []).filter(
@@ -2171,7 +2222,7 @@
              answer: HomeView holds the folders and does the writing. -->
         {#snippet homeCapture()}
           <CaptureFab
-            canTask={f("myDay") && !!layout.inbox}
+            canTask={f("tasks") && (!!homeTasks || f("myDay")) && !!quickTaskTo}
             canNote={f("notes") && quickTargets.length > 0}
             onPick={(kind) =>
               kind === "note" ? captureNote() : (composingTask = true)}
@@ -2360,7 +2411,9 @@
               onCloseCompose={() => (composingTask = false)}
               dateFormat={layout.dateDisplayFormat}
               quickNoteFolder={layout.quickNoteFolder}
-              showAllInboxNotes={layout.homeShowsAllInboxNotes}
+              tasksSource={homeTasks}
+              notesSource={homeNotes}
+              quickTask={quickTaskTo}
               notesFolder={layout.notesFolder}
               notesInbox={layout.notesInbox}
               noteTargets={quickTargets}
@@ -2510,6 +2563,9 @@
               onZoom={setZoom}
               onSwitchNotebook={chooseFolder}
               noteTargets={quickTargets}
+              taskTargets={quickTaskChoices}
+              {homeTasksChoices}
+              {homeNotesChoices}
               notesInbox={layout.notesInbox}
               onSection={(label) => (settingsSub = label)}
               onChanged={refreshNotebook}

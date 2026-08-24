@@ -211,11 +211,18 @@ export const S = {
   featureNoteFolders: "Note folders",
   featurePinNotes: "Pin notes",
   featureFixedSpaces: "Fixed spaces",
-  featureFixedSpacesHint:
-    "The app's own spaces, as sidebar shortcuts and screens. Hiding one only " +
-    "takes it off the interface — the files stay, and everything returns " +
-    "when the space does. Quick notes go to whichever note space is still " +
-    "shown.",
+  fixedSpacesHelp: "What hiding a fixed space does",
+  fixedSpacesHelpIntro:
+    "The app's own spaces — Home, Tasks and Notes — as sidebar shortcuts " +
+    "and screens. Hiding one only takes it off the interface: the files " +
+    "stay, and everything returns when the space does.",
+  fixedSpacesHelpTasks:
+    "Tasks: hiding the screen turns My Day and Week off with it — both are " +
+    "its views. To keep tasks on the Home, point \u201cHome shows\u201d (Tasks page) " +
+    "at a list instead.",
+  fixedSpacesHelpNotes:
+    "Notes: quick notes can go to another notepad, and the Inbox stays a " +
+    "destination while the Home shows it (\u201cHome shows\u201d, Notes page).",
   // Named "<Name> space", not the bare name: the bare "Tasks" would be the
   // second switch on the page wearing the label of the first — ambiguous to
   // a screen reader and to the settings search alike.
@@ -446,11 +453,18 @@ export const S = {
   subNoteHas: "What a note can have",
   subBoard: "Board",
   noteLayout: "Default layout",
-  homeShowsAllInboxNotes: "Home shows all Inbox notes",
-  homeShowsAllInboxNotesHint:
-    "The Home's notes block shows the whole Inbox instead of only the notes " +
-    "written today — captures pile up there, and the Home is where they are " +
-    "read back.",
+  homeShows: "Home shows",
+  homeShowsTasksHint:
+    "What the tasks block on the Home shows: My Day, or a task list hosted " +
+    "whole — the Inbox, or one of your own.",
+  homeShowsNotesHint:
+    "What the notes block on the Home shows: the notes written today, or a " +
+    "note space's whole Inbox — captures pile up there, and the Home is " +
+    "where they are read back.",
+  quickTasksGoTo: "Quick tasks go to",
+  quickTasksGoToHint:
+    "Where the Home's capture writes a task. It names a list of THIS " +
+    "notebook, like the note setting above.",
   noteLayoutHint:
     "How a notes space draws its board until it chooses for itself — each " +
     "space keeps its own choice, from its ⋮ → Layout.",

@@ -189,7 +189,9 @@ pub struct NotebookSettings {
     pub format_bar_side: Option<String>,
     pub close_inspector_on_click_away: Option<bool>,
     pub quick_note_folder: Option<String>,
-    pub home_shows_all_inbox_notes: Option<bool>,
+    pub quick_task_list: Option<String>,
+    pub home_tasks_source: Option<String>,
+    pub home_notes_source: Option<String>,
     /// The board layout of a notes space that never chose one (`grid` /
     /// `tree`); empty goes back to the app's own.
     pub note_layout: Option<String>,
@@ -231,7 +233,9 @@ impl NotebookSettings {
             format_bar_side: Some(display.format_bar_side.clone()),
             close_inspector_on_click_away: Some(display.close_inspector_on_click_away),
             quick_note_folder: Some(config.quick_note_folder.clone()),
-            home_shows_all_inbox_notes: Some(config.home_shows_all_inbox_notes),
+            quick_task_list: Some(config.quick_task_list.clone()),
+            home_tasks_source: Some(config.home_tasks_source.clone()),
+            home_notes_source: Some(config.home_notes_source.clone()),
             note_layout: Some(config.note_layout.clone()),
             completed_retention_days: Some(config.completed_retention_days),
             trash_retention_days: Some(config.trash_retention_days),
@@ -314,8 +318,16 @@ impl NotebookSettings {
                 config.quick_note_folder = v.clone();
             }
         }
-        if let Some(v) = self.home_shows_all_inbox_notes {
-            config.home_shows_all_inbox_notes = v;
+        // Path-like strings, not validated (the front resolves them against
+        // what exists and falls back): empty is each one's default reading.
+        if let Some(v) = &self.quick_task_list {
+            config.quick_task_list = v.trim().to_string();
+        }
+        if let Some(v) = &self.home_tasks_source {
+            config.home_tasks_source = v.trim().to_string();
+        }
+        if let Some(v) = &self.home_notes_source {
+            config.home_notes_source = v.trim().to_string();
         }
         // Not validated, like the looks above: the layouts are the
         // interface's list, and a name this build does not know round-trips.

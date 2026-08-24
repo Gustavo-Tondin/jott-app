@@ -304,6 +304,20 @@
   .settings__functions-break {
     margin-block: var(--theme-space-8);
   }
+  /* The ? beside an inline group's label — quiet until asked. */
+  .settings__function-help {
+    color: var(--theme-ink-faint);
+  }
+  .settings__function-help:hover {
+    color: var(--theme-ink);
+  }
+  /* The help dialog's paragraphs, one thought each. */
+  .settings__help-paragraph {
+    margin-block: var(--theme-space-8) 0;
+    color: var(--theme-ink-muted);
+    font-size: var(--theme-text-13);
+    line-height: var(--theme-leading-normal);
+  }
   .settings__function-name {
     flex: 1;
     min-inline-size: 0;

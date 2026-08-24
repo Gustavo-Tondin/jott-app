@@ -115,15 +115,35 @@ describe("HomeView", () => {
     );
   });
 
-  test("widened to the Inbox, the block reads the whole of it and says so", async () => {
-    // `homeShowsAllInboxNotes` (user call, 2026-08-24): every Inbox note, not
-    // just today's — and the heading stops claiming "Today".
+  test("pointed at a source, the block reads its whole Inbox and says so", async () => {
+    // `homeNotesSource` (user call, 2026-08-24): every Inbox note of the
+    // chosen space, not just today's — and the heading names the source.
     bridge({ period_tasks: [], inbox_notes: [] });
-    render(HomeView, { props: props({ showAllInboxNotes: true }) });
+    render(HomeView, {
+      props: props({ notesSource: { space: "jott.notes", label: "Inbox notes" } }),
+    });
 
     expect(await screen.findByText("Inbox notes")).toBeTruthy();
     await waitFor(() => expect(invoke).toHaveBeenCalledWith("inbox_notes", { folder: "jott.notes" }));
     expect(invoke).not.toHaveBeenCalledWith("notes_created_today", { folder: "jott.notes" });
+  });
+
+  test("pointed at a task space, the block hosts it even with My Day off", async () => {
+    // `homeTasksSource` (user call, 2026-08-24): the tasks block hosts the
+    // chosen space whole — the workflow that survives hiding the Tasks
+    // screen, which turns My Day off with it.
+    bridge({ notes_created_today: [], list_tasks: [task("a1", "Pagar boleto")] });
+    render(HomeView, {
+      props: props({
+        f: (key) => key !== "myDay" && key !== "week",
+        tasksSource: {
+          source: { kind: "tasks", known: true, folder: "jott.tasks", name: null, sort: null, order: [] },
+          label: "Inbox",
+        },
+      }),
+    });
+
+    expect(await screen.findByText("Pagar boleto")).toBeTruthy();
   });
 
   test("with the fixed space hidden, a quick note still lands in another notepad", async () => {

@@ -40,6 +40,7 @@
     DEFAULT_FORMAT_BAR_SIDE,
   } from "../services/formatBar.js";
   import AccentPicker from "../components/AccentPicker.svelte";
+  import Modal from "../components/Modal.svelte";
   import Icon from "../components/Icon.svelte";
   import ShortcutRow from "../components/ShortcutRow.svelte";
   import { onBack } from "../services/back.js";
@@ -54,6 +55,12 @@
     /// Where a quick note can go — `{label, value}` rows for the picker
     /// (services/noteTargets.js). Empty means nowhere: the row hides.
     noteTargets = [],
+    /// …and where a quick task can (services/taskTargets.js). Same contract.
+    taskTargets = [],
+    /// The rows of the two "Home shows" pickers (2026-08-24): the block's
+    /// default first, then every space of the right kind.
+    homeTasksChoices = [],
+    homeNotesChoices = [],
     notesInbox = "Inbox",
     /// The narrow shape (shell/compact.js). Not a width this screen measures:
     /// the shell measures once and tells everyone, the way the header and the
@@ -132,6 +139,10 @@
 
   /// What the user last opened, and `null` for the menu itself.
   let chosen = $state(null);
+
+  /// Which function's help is open — the ? beside an inline group's label
+  /// (the fixed spaces). Null when none is.
+  let helpFor = $state(null);
 
   /// What opens beside the menu when nothing has been chosen yet. NOT the
   /// first row: the wireframe lists About first and draws DISPLAY as the
@@ -317,6 +328,7 @@
         S.openNotebookFolder,
         S.switchNotebook,
         S.quickNoteFolder,
+        S.quickTasksGoTo,
         S.confirmDeletes,
         S.completedRetention,
         S.trashRetention,
@@ -338,8 +350,8 @@
   /// with none simply has no entry, instead of the `fn.key === "tasks" ? …`
   /// chain this replaced.
   const FUNCTION_EXTRAS = () => ({
-    tasks: [S.autoUrgentByDate, S.newTasksGoTo],
-    notes: [S.noteLayout, S.confirmImageDownloads, S.homeShowsAllInboxNotes],
+    tasks: [S.autoUrgentByDate, S.newTasksGoTo, S.homeShows],
+    notes: [S.noteLayout, S.confirmImageDownloads, S.homeShows],
   });
 
   /// Every page the search can look up. The functions' half is DERIVED — the
@@ -1116,6 +1128,17 @@
                 onchange={(e) => setFeature(fn.key, e.currentTarget.checked)}
               />
               <span class="settings__label settings__function-name">{fn.label()}</span>
+              {#if fn.help}
+                <button
+                  type="button"
+                  class="theme-btn--icon settings__function-help"
+                  aria-label={S.fixedSpacesHelp}
+                  title={S.fixedSpacesHelp}
+                  onclick={() => (helpFor = fn.key)}
+                >
+                  <Icon name="question" size="1rem" />
+                </button>
+              {/if}
               {#if hasPage(fn.key) && !fn.inline}
                 <button
                   type="button"
@@ -1128,9 +1151,6 @@
                 </button>
               {/if}
             </div>
-            {#if fn.inline && fn.hint}
-              <p class="settings__hint">{fn.hint()}</p>
-            {/if}
             {#if fn.inline}
               {#each childrenOf(fn.key) as sub (sub.key)}
                 <div class="settings__row settings__function settings__function--sub">
@@ -1147,6 +1167,16 @@
               {/each}
             {/if}
           {/each}
+
+          {#if helpFor}
+            {@const helped = FUNCTIONS.find((fn) => fn.key === helpFor)}
+            <Modal label={S.fixedSpacesHelp} onClose={() => (helpFor = null)}>
+              <h2 class="theme-title">{helped?.label()}</h2>
+              {#each helped?.help?.() ?? [] as paragraph}
+                <p class="settings__help-paragraph">{paragraph}</p>
+              {/each}
+            </Modal>
+          {/if}
         </section>
       {/if}
 
@@ -1169,6 +1199,25 @@
               <option value="top">{S.newTasksTop}</option>
             </select>
           </label>
+
+          <!-- What the Home's tasks block shows (user call, 2026-08-24): the
+               day, or a task list hosted whole — the notes page keeps the
+               same row for its block. -->
+          <label class="settings__row">
+            <span class="settings__label">{S.homeShows}</span>
+            <select
+              class="theme-select"
+              bind:value={form.homeTasksSource}
+              disabled={readOnly}
+              aria-label={S.homeShows}
+              onchange={(e) => put({ homeTasksSource: e.currentTarget.value })}
+            >
+              {#each homeTasksChoices as choice (choice.value)}
+                <option value={choice.value}>{choice.label}</option>
+              {/each}
+            </select>
+          </label>
+          <p class="settings__hint">{S.homeShowsTasksHint}</p>
 
           <h3 class="settings__subtitle">{S.subScreens}</h3>
           {#each childrenIn("tasks", "screens") as feature (feature.key)}
@@ -1251,20 +1300,23 @@
           </label>
           <p class="settings__hint">{S.confirmImageDownloadsHint}</p>
 
-          <!-- The Home widened to the whole Inbox (user call, 2026-08-24) —
-               a notebook rule, like everything on a function's page. -->
+          <!-- What the Home's notes block shows (user call, 2026-08-24) — a
+               notebook rule, like everything on a function's page. -->
           <label class="settings__row">
-            <span class="settings__label">{S.homeShowsAllInboxNotes}</span>
-            <input
-              class="theme-checkbox"
-              type="checkbox"
-              bind:checked={form.homeShowsAllInboxNotes}
+            <span class="settings__label">{S.homeShows}</span>
+            <select
+              class="theme-select"
+              bind:value={form.homeNotesSource}
               disabled={readOnly}
-              aria-label={S.homeShowsAllInboxNotes}
-              onchange={(e) => put({ homeShowsAllInboxNotes: e.currentTarget.checked })}
-            />
+              aria-label={S.homeShows}
+              onchange={(e) => put({ homeNotesSource: e.currentTarget.value })}
+            >
+              {#each homeNotesChoices as choice (choice.value)}
+                <option value={choice.value}>{choice.label}</option>
+              {/each}
+            </select>
           </label>
-          <p class="settings__hint">{S.homeShowsAllInboxNotesHint}</p>
+          <p class="settings__hint">{S.homeShowsNotesHint}</p>
         </section>
       {/if}
 
@@ -1330,6 +1382,26 @@
             </select>
           </label>
           <p class="settings__hint">{S.quickNoteFolderHint}</p>
+          {/if}
+
+          <!-- The tasks mirror (user call, 2026-08-24): both captures name
+               their landing place side by side, in the notebook's section. -->
+          {#if taskTargets.length > 0}
+          <label class="settings__row">
+            <span class="settings__label">{S.quickTasksGoTo}</span>
+            <select
+              class="theme-select"
+              bind:value={form.quickTaskList}
+              disabled={readOnly}
+              aria-label={S.quickTasksGoTo}
+              onchange={(e) => put({ quickTaskList: e.currentTarget.value })}
+            >
+              {#each taskTargets as target (target.value)}
+                <option value={target.value}>{target.label}</option>
+              {/each}
+            </select>
+          </label>
+          <p class="settings__hint">{S.quickTasksGoToHint}</p>
           {/if}
 
           <h3 class="settings__subtitle">{S.subSafety}</h3>

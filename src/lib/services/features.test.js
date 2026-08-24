@@ -28,6 +28,17 @@ describe("on", () => {
     expect(on({}, "invented-tomorrow")).toBe(true);
   });
 
+  test("hiding the fixed Tasks screen switches My Day and Week off with it", () => {
+    // `needs` (user call, 2026-08-24): both period views are that screen's
+    // tabs, and hiding the screen is choosing a life without them. Saying
+    // "week: true" does not resurrect it while the screen is hidden.
+    expect(on({ tasksSpace: false }, "myDay")).toBe(false);
+    expect(on({ tasksSpace: false, week: true }, "week")).toBe(false);
+    expect(on({ fixedSpaces: false }, "myDay")).toBe(false);
+    // The tasks FUNCTION itself stays on: user spaces keep working.
+    expect(on({ tasksSpace: false }, "tasks")).toBe(true);
+  });
+
   test("the user's word beats the default, in both directions", () => {
     expect(on({ week: true }, "week")).toBe(true);
     expect(on({ repeat: false }, "repeat")).toBe(false);

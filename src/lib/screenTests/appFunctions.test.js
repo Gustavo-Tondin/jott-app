@@ -90,10 +90,11 @@ describe("App functions — switching a part of the app off", () => {
     expect(screen.getByText("Trash")).toBeTruthy();
   });
 
-  test("a hidden fixed space loses its row, and the function stays on", async () => {
-    // Fixed spaces (2026-08-24): hiding the Tasks SPACE is not switching
-    // tasks off — the Home keeps its day, only the sidebar shortcut (and the
-    // fixed space's lists and Completed) leave.
+  test("a hidden Tasks screen takes My Day and Week with it, and the function stays on", async () => {
+    // Fixed spaces (revised 2026-08-24): hiding the Tasks SPACE is not
+    // switching tasks off — user spaces keep working — but both period views
+    // are that screen's, so the Home loses the day too (`needs`,
+    // services/features.js). The notes half stays.
     withFeatures({ tasksSpace: false });
     render(App);
 
@@ -104,7 +105,8 @@ describe("App functions — switching a part of the app off", () => {
     });
     await within(sidebar).findByText("Home");
     expect(within(sidebar).queryByText("Tasks")).toBeNull();
-    expect(await screen.findByText("Today tasks")).toBeTruthy();
+    expect(await screen.findByText("Today notes")).toBeTruthy();
+    expect(screen.queryByText("Today tasks")).toBeNull();
     await userEvent.click(screen.getByLabelText("menu"));
     expect(screen.queryByText("Completed")).toBeNull();
     expect(screen.getByText("Trash")).toBeTruthy();
