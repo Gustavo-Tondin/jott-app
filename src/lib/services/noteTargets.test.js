@@ -26,7 +26,7 @@ describe("noteTargets", () => {
     // Folder ENTRIES, not names: the select drew `[object Object]` when the
     // 2026-08-19 shape change was missed (screenshot, 2026-08-24).
     const targets = noteTargets(SETUP);
-    expect(targets.map((t) => t.label)).toEqual(["Inbox", "Ideas", "Design Notes"]);
+    expect(targets.map((t) => t.label)).toEqual(["Inbox notes", "Ideas", "Design Notes"]);
     expect(targets.map((t) => t.value)).toEqual(["Inbox", "Ideas", "Design Notes"]);
     // What the capture call takes: the space, and a folder inside it.
     expect(targets[1]).toMatchObject({ space: "jott.notes", folder: "Ideas" });

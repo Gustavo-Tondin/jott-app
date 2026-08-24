@@ -28,7 +28,7 @@ const SETUP = {
 describe("taskTargets", () => {
   test("offers the Inbox, the fixed space's lists, then the user's task spaces", () => {
     const targets = taskTargets(SETUP);
-    expect(targets.map((t) => t.label)).toEqual(["Inbox", "compras", "Tarefas Design"]);
+    expect(targets.map((t) => t.label)).toEqual(["Inbox tasks", "compras", "Tarefas Design"]);
     // "" is the Inbox — the value a notebook that never chose still means.
     expect(targets.map((t) => t.value)).toEqual(["", "compras", "Design/Tasks"]);
     // What the capture writes to: a LIST path, the user space's main list.
@@ -54,7 +54,7 @@ describe("quickTaskTarget", () => {
   test("answers the stored choice, and falls back to the first offered", () => {
     const targets = taskTargets(SETUP);
     expect(quickTaskTarget("Design/Tasks", targets)?.list).toBe("Design/Tasks/task-list.md");
-    expect(quickTaskTarget("sumiu", targets)?.label).toBe("Inbox");
+    expect(quickTaskTarget("sumiu", targets)?.label).toBe("Inbox tasks");
     expect(quickTaskTarget("", [])).toBeNull();
   });
 });

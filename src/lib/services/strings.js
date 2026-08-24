@@ -580,6 +580,7 @@ export const S = {
   todaysTasks: "Today tasks",
   todaysNotes: "Today notes",
   inboxNotes: "Inbox notes",
+  inboxTasks: "Inbox tasks",
   newNoteAction: "New note",
   quickNoteTo: "to",
   // The Home's capture box (2026-08-13). It asks ONE question and both halves

@@ -777,7 +777,7 @@
     if (!at) return null;
     const sp = spaces.find((s) => s.kind === "tasks" && s.path === at);
     if (!sp) return null;
-    return { source: sourceOf(sp, { name: null }), label: sp.fixed ? "Inbox" : sp.name };
+    return { source: sourceOf(sp, { name: null }), label: sp.fixed ? S.inboxTasks : sp.name };
   });
   let homeNotes = $derived.by(() => {
     const at = layout.homeNotesSource;
@@ -794,7 +794,7 @@
     { value: "", label: S.featureMyDay },
     ...spaces
       .filter((sp) => sp.kind === "tasks")
-      .map((sp) => ({ value: sp.path, label: sp.fixed ? "Inbox" : sp.name })),
+      .map((sp) => ({ value: sp.path, label: sp.fixed ? S.inboxTasks : sp.name })),
   ]);
   let homeNotesChoices = $derived([
     { value: "", label: S.todaysNotes },

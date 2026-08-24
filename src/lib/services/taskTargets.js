@@ -14,6 +14,7 @@
 // a task captured into it is read right there.
 
 import { folderOf, listName, MAIN_LIST } from "./paths.js";
+import { S } from "./strings.js";
 
 /// The places a quick task can go, in the order the pickers offer them.
 /// `{list, label, value}` — `list` is the path `composeTask` writes to,
@@ -29,7 +30,7 @@ export function taskTargets({
   const out = [];
   const fixedFolder = inbox ? folderOf(inbox) : null;
   if ((fixedShown || inboxOnHome) && inbox) {
-    out.push({ list: inbox, label: "Inbox", value: "" });
+    out.push({ list: inbox, label: S.inboxTasks, value: "" });
   }
   if (fixedShown) {
     for (const entry of lists) {

@@ -21,6 +21,8 @@
 // the fixed folder wins while the fixed space is shown, and the space is the
 // only reading left when it is hidden.
 
+import { S } from "./strings.js";
+
 /// The places a quick note can go, in the order the pickers offer them: the
 /// fixed space's Inbox and folders (while that space is shown), then the
 /// user's note spaces. `{space, folder, label, value}` — `space`/`folder`
@@ -38,7 +40,10 @@ export function noteTargets({
   const inbox = notesInbox || "Inbox";
   const out = [];
   if ((fixedShown || inboxOnHome) && notesFolder) {
-    out.push({ space: notesFolder, folder: inbox, label: inbox, value: inbox });
+    // "Inbox notes", not the bare folder name: beside "Inbox tasks" in the
+    // same section, a plain "Inbox" does not say which (user call,
+    // 2026-08-24).
+    out.push({ space: notesFolder, folder: inbox, label: S.inboxNotes, value: inbox });
   }
   if (fixedShown && notesFolder) {
     for (const entry of folders) {
