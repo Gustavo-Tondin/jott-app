@@ -116,6 +116,13 @@ import textAUnderline from "../../assets/icons/phosphor/regular/text-a-underline
 import paragraph from "../../assets/icons/phosphor/regular/paragraph.svg?raw";
 import listDashes from "../../assets/icons/phosphor/regular/list-dashes.svg?raw";
 import plusCircle from "../../assets/icons/phosphor/regular/plus-circle.svg?raw";
+// The shell's states (Etapa 7, 2026-08-24): the turning arc of "still
+// reading", the two warnings of an error and a conflict, and the file a
+// trashed folder or note is drawn as.
+import circleNotch from "../../assets/icons/phosphor/regular/circle-notch.svg?raw";
+import warning from "../../assets/icons/phosphor/regular/warning.svg?raw";
+import warningCircle from "../../assets/icons/phosphor/regular/warning-circle.svg?raw";
+import file from "../../assets/icons/phosphor/regular/file.svg?raw";
 
 export const ICONS = {
   // weighted variants
@@ -169,6 +176,10 @@ export const ICONS = {
   "sliders-horizontal": slidersHorizontal,
   info,
   image,
+  "circle-notch": circleNotch,
+  warning,
+  "warning-circle": warningCircle,
+  file,
   // markdown
   bold: textB,
   italic: textItalic,

@@ -90,11 +90,23 @@ export const S = {
     `Delete "${name}"? Remaining tasks go to the Inbox.`,
   tasksRescued: (count, name) =>
     `${count} task(s) from "${name}" were moved to the Inbox.`,
-  conflictsTitle: (count) => `${count} sync conflict(s) in this notebook`,
+  conflictsTitle: (count) =>
+    count === 1 ? "1 sync conflict in this notebook" : `${count} sync conflicts in this notebook`,
   conflictsBody:
     "Another device edited the same files. Jott does not choose for you — " +
     "open the folder and decide which version stays.",
+  // The row per conflict (2026-08-24): the list it belongs to, the copy the
+  // sync tool wrote, and the door to the folder it sits in.
+  conflictReveal: "Show in folder",
+  conflictOriginalGone: "the original is gone",
+  conflictsHide: "Hide for now",
   dismissError: "ok",
+  // The shell's states (Etapa 7, 2026-08-24).
+  errorTitle: "Something went wrong",
+  openingNotebook: (name) => (name ? `Opening ${name}…` : "Opening the notebook…"),
+  openFailedTitle: "This notebook could not be opened",
+  openFailedRetry: "Try again",
+  openFailedOther: "Open another one",
 
   // Spaces (phase 7.5)
   readOnlySpace: "read-only (newer version)",
@@ -169,6 +181,19 @@ export const S = {
     `Delete the group "${name}"? What it holds moves up one level; the group goes to the trash.`,
   trashTitle: "Trash",
   trashEmpty: "The trash is empty.",
+  // Under the title of the empty trash: what the screen is FOR, said once
+  // instead of a hint that repeats on every visit.
+  trashEmptyHint: "Anything you delete waits here, and can be put back.",
+  trashLoading: "Reading the trash…",
+  // The kind filter over the list (2026-08-24): a deleted task and a deleted
+  // file are two different regrets, and a long trash is easier to read one
+  // kind at a time. The counts say how many of each are waiting.
+  trashAll: "All",
+  trashTasks: "Tasks",
+  trashFiles: "Files",
+  trashKindTask: "task",
+  trashKindFile: "file or folder",
+  trashNoneOfKind: "Nothing of this kind in the trash.",
   restore: "Restore",
   trashHint: "Deleted items wait here before they are cleared for good.",
   // The countdown the reaper acts on (`trash::days_left`), in the row.
@@ -185,6 +210,14 @@ export const S = {
   deleteForeverDetail: "This cannot be undone — it is the one thing in Jott that is not kept.",
   tagsTitle: "Tags",
   tagsEmpty: "No tags yet. Add one from a task.",
+  tagsEmptyHint: "Type #word in a task, or name a tag here and give it a colour.",
+  tagsLoading: "Counting the tags…",
+  // The Tags screen lists every #word in use, not only the coloured ones
+  // (2026-08-24): a count per tag, and a filter once there are many.
+  tagsFilter: "Filter tags",
+  tagsFilterEmpty: "No tag matches that.",
+  tagUses: (n) => (n === 0 ? "not in use" : n === 1 ? "1 task" : `${n} tasks`),
+  tagUncoloured: "no colour yet",
   newTagName: "New tag name",
   // A label now, not a caption: the control is the trash glyph.
   deleteTag: "Delete tag",

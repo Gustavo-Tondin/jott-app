@@ -887,6 +887,187 @@
     --notice-accent: var(--accent-green);
     --notice-tint: var(--accent-green-tint);
   }
+  /* The parts (components/Notice.svelte, 2026-08-24): a glyph in the
+     notice's own colour, the body beside it, the × at the end. The glyph
+     is what tells the four boxes apart before a word is read; the title is
+     the line that is read first, and the text under it stays a step
+     quieter. Actions wrap under the text rather than fighting it for the
+     row — on the phone the row is the width of a sentence. */
+  .theme-notice__glyph {
+    display: inline-flex;
+    flex: none;
+    color: var(--notice-accent);
+    margin-block-start: 0.0625rem;
+  }
+  .theme-notice__body {
+    flex: 1;
+    min-inline-size: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--theme-space-4);
+  }
+  .theme-notice__title {
+    margin: 0;
+    font-weight: var(--theme-weight-medium);
+    color: var(--theme-ink);
+    overflow-wrap: anywhere;
+  }
+  .theme-notice__text {
+    color: var(--theme-ink-muted);
+    font-size: var(--theme-text-13);
+    overflow-wrap: anywhere;
+  }
+  .theme-notice__text > p {
+    margin: 0;
+  }
+  .theme-notice__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--theme-space-8);
+    margin-block-start: var(--theme-space-4);
+  }
+  .theme-notice__close {
+    flex: none;
+    margin-inline-start: auto;
+    /* Optically level with the title's first line, not with the box. */
+    margin-block: calc(-1 * var(--theme-space-4)) calc(-1 * var(--theme-space-4));
+  }
+  .theme-notice:has(.theme-notice__glyph) {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--theme-space-10);
+    font-size: var(--theme-text-14);
+  }
+
+  /* ---------------------------------------------------------------------------
+     Filter field — a glass and a search input on a well (2026-08-24).
+     It was the Settings menu's own (`.settings__search`) until the Tags
+     screen needed the same thing; the shape lives here now and the two
+     wearers keep only their margins. The engines' own clear button is
+     dropped: it draws in its own colour, in a field that has none.
+     --------------------------------------------------------------------------- */
+  .theme-filter {
+    display: flex;
+    align-items: center;
+    gap: var(--theme-space-6);
+    padding: var(--theme-space-6) var(--theme-space-8);
+    border-radius: var(--theme-radius-md);
+    background: var(--theme-well);
+    color: var(--theme-ink-faint);
+  }
+  .theme-filter__field {
+    flex: 1;
+    min-inline-size: 0;
+    border: none;
+    background: none;
+    color: var(--theme-ink);
+    font: inherit;
+    font-size: var(--theme-text-14);
+  }
+  .theme-filter__field:focus {
+    outline: none;
+  }
+  .theme-filter:focus-within {
+    outline: 0.125rem solid var(--theme-brand-outline);
+    outline-offset: 0.0625rem;
+  }
+  .theme-filter__field::-webkit-search-cancel-button {
+    appearance: none;
+  }
+
+  /* ---------------------------------------------------------------------------
+     Empty state (components/EmptyState.svelte, Etapa 7 — 2026-08-24).
+     A glyph on a sunken disc, the fact in ink, the advice in muted, and the
+     way forward as a button. Centred in whatever holds it, with air above
+     and below so a screen with nothing in it does not read as a screen that
+     failed to draw. `--compact` is the same shape in a panel or a column,
+     where that air would be most of the panel.
+     --------------------------------------------------------------------------- */
+  .theme-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: var(--theme-space-6);
+    margin: 0;
+    padding-block: var(--theme-space-48);
+    padding-inline: var(--theme-space-16);
+    color: var(--theme-ink-muted);
+    animation: theme-rise var(--theme-duration-medium) var(--theme-ease-out);
+  }
+  .theme-empty--compact {
+    padding-block: var(--theme-space-24);
+    gap: var(--theme-space-4);
+  }
+  .theme-empty__glyph {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    inline-size: 3.5rem;
+    block-size: 3.5rem;
+    margin-block-end: var(--theme-space-6);
+    border-radius: var(--theme-radius-pill);
+    background: var(--theme-surface-sunken);
+    color: var(--theme-ink-faint);
+  }
+  .theme-empty--compact .theme-empty__glyph {
+    inline-size: 2.5rem;
+    block-size: 2.5rem;
+    margin-block-end: var(--theme-space-2);
+  }
+  .theme-empty__title {
+    margin: 0;
+    color: var(--theme-ink);
+    font-size: var(--theme-text-14);
+    font-weight: var(--theme-weight-medium);
+  }
+  .theme-empty__hint {
+    margin: 0;
+    max-inline-size: 28rem;
+    font-size: var(--theme-text-13);
+    color: var(--theme-ink-muted);
+  }
+  .theme-empty__action {
+    margin-block-start: var(--theme-space-8);
+    display: flex;
+    gap: var(--theme-space-8);
+  }
+
+  /* ---------------------------------------------------------------------------
+     Loading (components/Loading.svelte, Etapa 7 — 2026-08-24).
+     A turning arc and a word. Inline by default; `--screen` fills the page
+     and centres, for the notebook being opened. The motion is the one
+     animation in the app that loops, so it is the one that has to stop under
+     reduced motion — the duration tokens go to 0.01s there, and a 0.01s loop
+     would be a strobe. The glyph stays; the word carries the meaning.
+     --------------------------------------------------------------------------- */
+  .theme-loading {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--theme-space-8);
+    color: var(--theme-ink-muted);
+    font-size: var(--theme-text-14);
+    animation: theme-fade-in var(--theme-duration-medium) var(--theme-ease-out);
+  }
+  .theme-loading--screen {
+    flex-direction: column;
+    justify-content: center;
+    gap: var(--theme-space-12);
+    inline-size: 100%;
+    block-size: 100%;
+    min-block-size: 12rem;
+    padding: var(--theme-space-32);
+  }
+  .theme-loading__spinner {
+    display: inline-flex;
+    color: var(--theme-brand);
+    animation: theme-spin 0.9s linear infinite;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .theme-loading__spinner {
+      animation: none;
+    }
+  }
 
   /* ---------------------------------------------------------------------------
      Note board — the masonry of note cards, wherever notes are drawn (the
@@ -986,6 +1167,12 @@
   @keyframes theme-fade-in {
     from {
       opacity: 0;
+    }
+  }
+  /* A full turn, for the loading arc — the only loop in the app. */
+  @keyframes theme-spin {
+    to {
+      rotate: 1turn;
     }
   }
   /* Up from a little below, fading in — a panel arriving. */

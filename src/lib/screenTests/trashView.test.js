@@ -69,4 +69,37 @@ describe("TrashView", () => {
     expect(screen.queryByRole("button", { name: "Restore" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Empty trash" })).toBeNull();
   });
+
+  test("it says when it is still reading, and when there is nothing to read", async () => {
+    let answer;
+    bridge({ trash_entries: () => new Promise((r) => (answer = r)) });
+    render(TrashView, { props: props() });
+    expect(await screen.findByRole("status")).toBeTruthy();
+    answer([]);
+    expect(await screen.findByText("The trash is empty.")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Empty trash" })).toBeNull();
+  });
+
+  test("a task and a file are told apart, and the filter shows one kind at a time", async () => {
+    bridge({
+      trash_entries: [
+        entry("a", "Comprar leite"),
+        entry("b", "Receita.md", { kind: "file", origin: "jott.notes/Receita.md" }),
+      ],
+    });
+    render(TrashView, { props: props() });
+    expect(await screen.findByRole("img", { name: "task" })).toBeTruthy();
+    expect(screen.getByRole("img", { name: "file or folder" })).toBeTruthy();
+
+    await userEvent.click(screen.getByRole("button", { name: /^Files/ }));
+    await waitFor(() => expect(screen.queryByText("Comprar leite")).toBeNull());
+    expect(screen.getByText("Receita.md")).toBeTruthy();
+  });
+
+  test("with one kind only there is nothing to filter, so no filter", async () => {
+    bridge({ trash_entries: [entry("a", "Um"), entry("b", "Dois")] });
+    render(TrashView, { props: props() });
+    await screen.findByText("Um");
+    expect(screen.queryByRole("button", { name: /^Files/ })).toBeNull();
+  });
 });

@@ -477,6 +477,14 @@ pub fn tags<R: Runtime>(state: State<'_, AppState>,
     state.with_notebook(window.label(), |nb| Ok(tags_of(nb)))
 }
 
+/// Every tag in use in the tasks, with its count — catalogued or not. Asked
+/// when the Tags screen opens (it walks every list), never on a render.
+#[tauri::command]
+pub fn tag_usage<R: Runtime>(state: State<'_, AppState>,
+    window: tauri::Window<R>,) -> CommandResult<Vec<jott_core::tags::TagUsage>> {
+    state.read(window.label(), |nb| nb.tag_usage())
+}
+
 #[tauri::command]
 pub fn set_tag<R: Runtime>(
     state: State<'_, AppState>,

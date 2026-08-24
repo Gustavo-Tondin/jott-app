@@ -26,6 +26,17 @@ pub struct Tag {
     pub color: Option<String>,
 }
 
+/// How often a tag is used across the notebook's tasks, catalogued or not
+/// (Tags screen, 2026-08-24). `count` is tasks, open and completed alike:
+/// the question the screen answers is "is this word still in use?", and a
+/// tag that only survives in `completed.md` is still a word someone typed.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TagUsage {
+    pub name: String,
+    pub count: usize,
+}
+
 /// The tag catalogue, in memory.
 #[derive(Debug, Clone, Default)]
 pub struct Tags {

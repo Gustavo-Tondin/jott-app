@@ -61,37 +61,15 @@
   /* ---- the search over every row (2026-08-20) ----
      It sits ABOVE the two blocks because it answers about both, and it is the
      one control in the menu that is not a place to go. */
+  /* The field itself is the shared .theme-filter (controls.css, 2026-08-24);
+     what is left here is where it sits in the menu. */
   .settings__search {
-    display: flex;
-    align-items: center;
-    gap: var(--theme-space-6);
     margin: 0 var(--theme-space-4) var(--theme-space-12);
-    padding: var(--theme-space-6) var(--theme-space-8);
-    border-radius: var(--theme-radius-md);
-    background: var(--theme-well);
-    color: var(--theme-ink-faint);
   }
   .settings__search--inline {
     margin-inline: 0;
     margin-block-end: var(--theme-space-8);
     max-inline-size: 18rem;
-  }
-  .settings__search-field {
-    flex: 1;
-    min-inline-size: 0;
-    border: none;
-    background: none;
-    color: var(--theme-ink);
-    font: inherit;
-    font-size: var(--theme-text-14);
-  }
-  .settings__search-field:focus {
-    outline: none;
-  }
-  /* The engines draw their own clear button, in their own colour, in a field
-     that has neither. */
-  .settings__search-field::-webkit-search-cancel-button {
-    appearance: none;
   }
   /* A hit is a row plus WHERE it is — the answer to "where is this?" is a
      place, so the place is on the row and not implied by the jump. */

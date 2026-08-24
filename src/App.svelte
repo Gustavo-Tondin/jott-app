@@ -36,6 +36,9 @@
   import TrashView from "./lib/screens/TrashView.svelte";
   import AssetsView from "./lib/screens/AssetsView.svelte";
   import Icon from "./lib/components/Icon.svelte";
+  import Notice from "./lib/components/Notice.svelte";
+  import Loading from "./lib/components/Loading.svelte";
+  import EmptyState from "./lib/components/EmptyState.svelte";
   import NoteBanner from "./lib/components/NoteBanner.svelte";
   import AssetPicker from "./lib/components/AssetPicker.svelte";
   import ImageViewer from "./lib/components/ImageViewer.svelte";
@@ -104,6 +107,17 @@
   let notebook = $state(null);
   let clock = $state(null);
   let error = $state(null);
+  /// The shell's states (Etapa 7, 2026-08-24). `opening` is the path being
+  /// opened while the disk has not answered — the picker gives way to a
+  /// "Opening…" screen rather than sitting there with its buttons greyed.
+  /// `failedOpen` is the door that would not open: the path and the reason,
+  /// so the picker can offer to try that one again instead of a bare line.
+  /// `conflictsHidden` is the set of conflicts the user asked to stop seeing
+  /// THIS session (a joined key): a new conflict brings the box back.
+  let opening = $state(null);
+  let failedOpen = $state(null);
+  let conflictsHidden = $state("");
+  const conflictsKey = (list) => list.map((c) => c.path).join("\n");
   let busy = $state(true);
   /// Bumped to tell the open screen to re-read from disk.
   let reloadKey = $state(0);
@@ -1332,6 +1346,8 @@
   async function openAt(path, { create = false } = {}) {
     busy = true;
     error = null;
+    failedOpen = null;
+    opening = path;
     try {
       notebook = await api.openNotebook(path, create);
       await refreshNotebook();
@@ -1342,9 +1358,13 @@
       scheduleTurn();
       reload();
     } catch (e) {
-      fail(e);
+      // The picker's own error panel says which door and why; the generic
+      // banner would only repeat the reason without the door.
+      failedOpen = { path, create, message: describeError(e) };
+      console.error("[jott]", e);
     } finally {
       busy = false;
+      opening = null;
     }
   }
 
@@ -2071,7 +2091,11 @@
        hands it whatever height is left. With a notebook open the shell inside
        lays itself out and this does nothing. -->
   <main class="shell__main" class:shell__main--picker={showsPicker}>
-    {#if showsPicker}
+    {#if showsPicker && opening}
+      <!-- Between the click and the notebook: the disk is reading, and the
+           picker with its buttons greyed said nothing about it. -->
+      <Loading screen label={S.openingNotebook(leafOf(opening))} />
+    {:else if showsPicker}
       <!-- The door of the app (wireframes "Notebooks screen", 2026-08-24). It
            replaced a paragraph and one button: the app remembers the notebooks
            this machine has opened, so the usual answer to "which notebook?" is
@@ -2099,7 +2123,7 @@
            it was written under — a screen that existed only before the first
            notebook — kept a paragraph about where a notebook could live under
            a list of notebooks that already do. -->
-      {#if storage === "denied" || (privateFolder && recentCount === 0) || error}
+      {#if storage === "denied" || (privateFolder && recentCount === 0) || error || failedOpen}
         <section class="shell__onboarding">
           {#if storage === "denied"}
             <p class="shell__onboarding-intro">{S.storageIntro}</p>
@@ -2117,8 +2141,43 @@
             >
             <p class="shell__onboarding-note">{S.privateFolderNote}</p>
           {/if}
-          {#if error}
-            <p class="theme-notice theme-notice--error shell__error">{error}</p>
+          {#if failedOpen}
+            <!-- The door that would not open (Etapa 7): which one, why, and
+                 the two ways on — the same door again (a drive that was not
+                 mounted yet, a permission just granted) or another one. -->
+            <Notice
+              tone="error"
+              title={S.openFailedTitle}
+              class="shell__notice"
+              onDismiss={() => (failedOpen = null)}
+              dismissLabel={S.dismissError}
+            >
+              <p><code class="shell__notice-path">{failedOpen.path}</code></p>
+              <p>{failedOpen.message}</p>
+              {#snippet actions()}
+                <button
+                  class="theme-btn theme-btn--primary theme-btn--xs"
+                  disabled={busy}
+                  onclick={() => openAt(failedOpen.path, { create: failedOpen.create })}
+                  >{S.openFailedRetry}</button
+                >
+                <button
+                  class="theme-btn theme-btn--outline theme-btn--xs"
+                  disabled={busy}
+                  onclick={() => chooseFolder({ create: false })}>{S.openFailedOther}</button
+                >
+              {/snippet}
+            </Notice>
+          {:else if error}
+            <Notice
+              tone="error"
+              title={S.errorTitle}
+              class="shell__notice"
+              onDismiss={() => (error = null)}
+              dismissLabel={S.dismissError}
+            >
+              <p>{error}</p>
+            </Notice>
           {/if}
         </section>
       {/if}
@@ -2317,27 +2376,51 @@
             class:shell__content-inner--wide={view.kind === "settings"}
           >
           {#if error}
-            <p class="theme-notice theme-notice--error shell__error">
-              {error}
-              <button onclick={() => (error = null)}>{S.dismissError}</button>
-            </p>
+            <Notice
+              tone="error"
+              title={S.errorTitle}
+              class="shell__notice"
+              onDismiss={() => (error = null)}
+              dismissLabel={S.dismissError}
+            >
+              <p>{error}</p>
+            </Notice>
           {/if}
 
-          {#if conflicts.length > 0}
+          {#if conflicts.length > 0 && conflictsHidden !== conflictsKey(conflicts)}
             <!-- The one case where the user can silently lose work: two
-                 devices edited the same file and the sync tool kept both. -->
-            <div class="theme-notice theme-notice--warning shell__conflict">
-              <strong>{S.conflictsTitle(conflicts.length)}</strong>
+                 devices edited the same file and the sync tool kept both.
+                 A row per copy, each with the door to its folder (the core's
+                 `folder_of` turns the file into the folder around it), and
+                 "hide for now" for the session — a NEW conflict brings the
+                 box back, because the key is the list of paths. -->
+            <Notice
+              tone="warning"
+              title={S.conflictsTitle(conflicts.length)}
+              class="shell__notice"
+              onDismiss={() => (conflictsHidden = conflictsKey(conflicts))}
+              dismissLabel={S.conflictsHide}
+            >
               <p>{S.conflictsBody}</p>
               <ul class="shell__conflict-list">
-                {#each conflicts as conflict}
-                  <li>
-                    {#if conflict.list}<strong>{conflict.list}</strong>{/if}
-                    <code class="shell__conflict-path">{conflict.path}</code>
+                {#each conflicts as conflict (conflict.path)}
+                  <li class="shell__conflict">
+                    <span class="shell__conflict-what">
+                      {#if conflict.list}<strong>{conflict.list}</strong>{/if}
+                      <code class="shell__notice-path">{conflict.relative ?? conflict.path}</code>
+                      {#if !conflict.original}<span class="shell__conflict-gone">({S.conflictOriginalGone})</span>{/if}
+                    </span>
+                    {#if conflict.relative}
+                      <button
+                        class="theme-btn theme-btn--outline theme-btn--xs"
+                        onclick={() => api.openInFileManager(conflict.relative).catch(fail)}
+                        >{S.conflictReveal}</button
+                      >
+                    {/if}
                   </li>
                 {/each}
               </ul>
-            </div>
+            </Notice>
           {/if}
 
           {#if update}
@@ -2345,9 +2428,8 @@
                  session on "Later". Which button depends on the install —
                  an AppImage or the Windows build can replace itself, a
                  package-manager install gets the release page instead. -->
-            <div class="theme-notice theme-notice--success shell__update">
-              <strong>{S.updateBanner(update.latest)}</strong>
-              <span class="shell__update-actions">
+            <Notice tone="success" title={S.updateBanner(update.latest)} class="shell__notice">
+              {#snippet actions()}
                 {#if update.canInstall}
                   <button
                     class="theme-btn theme-btn--primary theme-btn--xs"
@@ -2366,8 +2448,8 @@
                   class="theme-btn theme-btn--outline theme-btn--xs"
                   onclick={() => (update = null)}>{S.updateDismiss}</button
                 >
-              </span>
-            </div>
+              {/snippet}
+            </Notice>
           {/if}
 
           {#if menuOffer}
@@ -2376,9 +2458,8 @@
                  entry and no icon to find. Offered once — "No thanks" is
                  remembered on this machine, "Add to menu" is not, so moving
                  the file asks again. -->
-            <div class="theme-notice theme-notice--success shell__update">
-              <strong>{S.menuEntryBanner}</strong>
-              <span class="shell__update-actions">
+            <Notice tone="success" icon="info" title={S.menuEntryBanner} class="shell__notice">
+              {#snippet actions()}
                 <button
                   class="theme-btn theme-btn--primary theme-btn--xs"
                   disabled={addingToMenu}
@@ -2389,8 +2470,8 @@
                   class="theme-btn theme-btn--outline theme-btn--xs"
                   onclick={dismissMenuOffer}>{S.menuEntryDismiss}</button
                 >
-              </span>
-            </div>
+              {/snippet}
+            </Notice>
           {/if}
 
           <!-- Keyed on the view: a new screen is a NEW element, and the
@@ -2606,7 +2687,7 @@
                 onError={fail}
               />
             {:else}
-              <p class="shell__empty">{S.missingSpace}</p>
+              <EmptyState icon="folder" title={S.missingSpace} />
             {/if}
           {:else if view.kind === "tags"}
             <TagsView

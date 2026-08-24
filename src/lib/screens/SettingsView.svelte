@@ -654,10 +654,10 @@
        by side it never leaves. -->
   {#if !compact || !section}
     <nav class="settings__nav" aria-label={S.settingsSections}>
-      <div class="settings__search">
+      <div class="theme-filter settings__search">
         <Icon name="magnifying-glass" size="1rem" />
         <input
-          class="settings__search-field"
+          class="theme-filter__field settings__search-field"
           type="search"
           bind:value={query}
           placeholder={S.settingsSearch}
@@ -1120,10 +1120,10 @@
           {@render sectionTitle(S.sectionShortcuts)}
           <p class="settings__hint">{S.sectionShortcutsHint}</p>
 
-          <div class="settings__search settings__search--inline">
+          <div class="theme-filter settings__search settings__search--inline">
             <Icon name="magnifying-glass" size="1rem" />
             <input
-              class="settings__search-field"
+              class="theme-filter__field settings__search-field"
               type="search"
               bind:value={chordQuery}
               placeholder={S.shortcutFilter}

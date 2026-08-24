@@ -23,6 +23,7 @@
   // screen either: it opens over the board, as a popover of its own.
   import { api } from "../services/api.js";
   import { S } from "../services/strings.js";
+  import EmptyState from "../components/EmptyState.svelte";
   import { askConfirm, askName, DELETING } from "../services/dialog.js";
   import { makeScreen } from "../services/act.js";
   import { spaceMenu } from "../services/spaceMenu.js";
@@ -731,7 +732,7 @@
   {/if}
 
   {#if laidOut.length === 0}
-    <p class="notes-space__empty">{S.noNotes}</p>
+    <EmptyState icon="note" title={S.noNotes} />
   {:else}
     <ul
       class="theme-note-board notes-space__board"

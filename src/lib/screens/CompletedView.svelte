@@ -6,6 +6,7 @@
   import { api } from "../services/api.js";
   import { makeScreen } from "../services/act.js";
   import { S } from "../services/strings.js";
+  import EmptyState from "../components/EmptyState.svelte";
   import { folderOf } from "../services/paths.js";
 
   let { readOnly, onChanged, onError, reloadKey } = $props();
@@ -33,7 +34,7 @@
 <h2 class="theme-title completed-view__title">{S.completed}</h2>
 
 {#if items.length === 0}
-  <p class="completed-view__empty">{S.nothingCompleted}</p>
+  <EmptyState icon="check-square" title={S.nothingCompleted} />
 {:else}
   <ul class="completed-view__list">
     <!-- See ListView: position is part of the key so a duplicated id cannot

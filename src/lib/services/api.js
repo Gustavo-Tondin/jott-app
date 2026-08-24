@@ -198,6 +198,10 @@ export const api = {
   deleteTask: (list, id) => invoke("delete_task", { list, id }),
 
   // Tags catalogue (name + colour).
+  /// Every tag in use in the tasks with its count, catalogued or not — what
+  /// the Tags screen lists beside the catalogue (2026-08-24). Walks every
+  /// list: ask when the screen opens, not on each render.
+  tagUsage: () => invoke("tag_usage"),
   setTag: (name, color) => invoke("set_tag", { name, color }),
   removeTag: (name) => invoke("remove_tag", { name }),
 

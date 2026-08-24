@@ -70,6 +70,7 @@ pub fn configure<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builde
             commands::notebook::empty_trash,
             commands::tasks::delete_task,
             commands::notebook::tags,
+            commands::notebook::tag_usage,
             commands::notebook::set_tag,
             commands::notebook::remove_tag,
             commands::lists::completed_tasks,

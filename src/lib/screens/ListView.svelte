@@ -9,6 +9,7 @@
   import { ensureTaskId } from "../services/taskId.js";
   import { listTitle } from "../services/paths.js";
   import { S } from "../services/strings.js";
+  import EmptyState from "../components/EmptyState.svelte";
   import { makeScreen } from "../services/act.js";
   import { taskActions, isSelectedTask } from "../services/taskActions.js";
   import { pinnedFirst, planReorder } from "../services/spaceOrder.js";
@@ -94,7 +95,7 @@
   </header>
 
   {#if tasks.length === 0}
-    <p class="list-view__empty">{S.emptyList}</p>
+    <EmptyState icon="list-checks" title={S.emptyList} compact />
   {:else}
     <TaskCards
       items={shown.map((task) => ({ task, list }))}

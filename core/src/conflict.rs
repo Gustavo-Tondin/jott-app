@@ -28,6 +28,10 @@ pub struct Conflict {
     pub list: Option<String>,
     /// The file it conflicts with, if that file still exists.
     pub original: Option<PathBuf>,
+    /// The copy's address, root-relative with `/` — what the interface hands
+    /// back to `folder_of` to reveal it (2026-08-24). `describe` does not
+    /// know the root; `Notebook::conflicts` fills it in.
+    pub relative: Option<String>,
 }
 
 /// True when the file name looks like something a sync tool left behind.
@@ -58,6 +62,7 @@ pub fn describe(path: &Path) -> Option<Conflict> {
     Some(Conflict {
         list: is_markdown.then(|| original_stem.to_string()),
         original: original.filter(|p| p.exists()),
+        relative: None,
         path: path.to_path_buf(),
     })
 }

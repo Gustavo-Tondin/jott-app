@@ -127,7 +127,9 @@ impl Notebook {
         }
         for dir in dirs {
             for path in crate::fsio::dir_paths(&dir)? {
-                if let Some(conflict) = crate::conflict::describe(&path) {
+                if let Some(mut conflict) = crate::conflict::describe(&path) {
+                    conflict.relative =
+                        Some(crate::relpath::relative_slash(self.root(), &path));
                     found.push(conflict);
                 }
             }

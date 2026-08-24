@@ -217,3 +217,26 @@ fn says_out_loud_when_it_left_something_out() {
     assert_eq!(found.tasks.len(), 3);
     assert!(found.truncated, "a partial answer must say so");
 }
+
+#[test]
+fn counts_how_often_each_tag_is_used_whether_catalogued_or_not() {
+    let (_dir, notebook) = notebook();
+    for (i, tags) in [vec!["obra"], vec!["obra", "casa"], vec![]].iter().enumerate() {
+        notebook.create_task(INBOX, format!("Tarefa {i}")).unwrap();
+        let id = notebook.ensure_task_id(INBOX, i).unwrap();
+        let mut list = notebook.open_list(INBOX).unwrap();
+        list.task_mut(&id).unwrap().tags = tags.iter().map(|t| t.to_string()).collect();
+        list.save().unwrap();
+    }
+    // Only one of the two is in the catalogue; both are in use.
+    notebook.set_tag("obra", Some("blue".into())).unwrap();
+
+    let usage = notebook.tag_usage().unwrap();
+    let pairs: Vec<(&str, usize)> = usage.iter().map(|u| (u.name.as_str(), u.count)).collect();
+    assert_eq!(pairs, vec![("obra", 2), ("casa", 1)]);
+
+    // A catalogued colour with no task is not "in use" — the catalogue is
+    // the other half of the screen's answer.
+    notebook.set_tag("nunca", None).unwrap();
+    assert!(notebook.tag_usage().unwrap().iter().all(|u| u.name != "nunca"));
+}

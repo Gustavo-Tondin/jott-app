@@ -14,6 +14,7 @@
   // what the app can show, a glyph for what it cannot.
   import { api } from "../services/api.js";
   import { S } from "../services/strings.js";
+  import EmptyState from "../components/EmptyState.svelte";
   import { askConfirm, askName, DELETING } from "../services/dialog.js";
   import { assetUrl, importBrought } from "../services/assets.js";
   import { acceptsFiles } from "../actions/acceptsFiles.js";
@@ -193,7 +194,7 @@
   <p class="assets-view__hint">{S.assetsHint}</p>
 
   {#if assets.length === 0}
-    <p class="assets-view__empty">{S.assetsEmpty}</p>
+    <EmptyState icon="image" title={S.assetsEmpty} />
   {:else}
     <p class="assets-view__count">{S.imageCount(assets.length)}</p>
     <ul class="assets-view__grid">

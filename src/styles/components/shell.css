@@ -569,48 +569,45 @@
     max-width: var(--theme-content-wide);
   }
 
-  .shell__empty {
-    color: var(--theme-ink-muted);
-  }
-
   /* ---- state boxes ----
-     The last two raw hexes in the app, and the last places a theme could not
-     recolour (2026-08-13). They are now the palette's red and yellow: a tinted
-     fill, the colour itself as the hairline, and the region's ink for the text
-     — so an error reads as an error on the white canvas and on the black
-     onboarding screen alike, in whatever theme is on. ---- */
-  /* All three are the shared .theme-notice (controls.css); the colour is the
-     modifier's. The error box is the one with the even padding. */
-  .shell__error {
-    padding: var(--theme-space-8);
+     Every box the shell speaks through is the shared Notice
+     (components/Notice.svelte on .theme-notice, controls.css): the error,
+     the sync conflict, the update, the AppImage's menu offer, and the door
+     that would not open on the picker. What is the shell's is only where
+     they sit — a step of air below, before the screen. ---- */
+  .shell__notice {
+    margin-block-end: var(--theme-space-16);
+  }
+  .shell__notice-path {
+    word-break: break-all;
+    font-family: var(--theme-font-mono);
+    font-size: var(--theme-text-12);
+  }
+  /* A conflict per row: what it is, and the door to its folder at the end. */
+  .shell__conflict-list {
+    list-style: none;
+    margin: var(--theme-space-6) 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--theme-space-4);
   }
   .shell__conflict {
-    margin-bottom: var(--theme-space-16);
-    font-size: var(--theme-text-14);
-  }
-  .shell__conflict-list {
-    margin: var(--theme-space-8) 0 0;
-    padding-inline-start: calc(var(--theme-space-16) + var(--theme-space-4));
-  }
-  .shell__conflict-path {
-    word-break: break-all;
-    font-size: var(--theme-text-13);
-  }
-  /* The third state box: a newer version exists. Green, because it is the
-     good-news sibling of the two above — and fixed like them, so the notice
-     does not change meaning when the accent happens to be green. */
-  .shell__update {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: var(--theme-space-12);
-    flex-wrap: wrap;
-    margin-bottom: var(--theme-space-16);
-    font-size: var(--theme-text-14);
-  }
-  .shell__update-actions {
-    display: flex;
     gap: var(--theme-space-8);
+    flex-wrap: wrap;
+  }
+  .shell__conflict-what {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--theme-space-6);
+    min-inline-size: 0;
+  }
+  .shell__conflict-gone {
+    color: var(--theme-ink-faint);
   }
 }
 

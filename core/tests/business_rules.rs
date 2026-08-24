@@ -1345,6 +1345,12 @@ fn conflicts_are_reported_with_the_list_they_belong_to() {
         Some(dir.path().join("jott.tasks/task-list.md")),
         "the user needs to know which file it conflicts with"
     );
+    // And the address the interface hands back to reveal it: root-relative,
+    // slashes, the copy itself (folder_of turns a file into its folder).
+    assert_eq!(
+        conflicts[0].relative.as_deref(),
+        Some("jott.tasks/task-list.sync-conflict-20260720-143000-K3F7NLM.md")
+    );
 }
 
 #[test]
