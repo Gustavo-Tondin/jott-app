@@ -854,7 +854,7 @@
   // The rainbow (2026-08-24) is the notebook's call and travels in the
   // layout; the dealing itself is the service's, so the sidebar, the title
   // and the tab dot all agree about which space is the orange one.
-  let autoColors = $derived({ auto: !!layout?.autoSpaceColors });
+  let autoColors = $derived({ auto: !!layout?.autoSpaceColors, accent: layout?.accentColor ?? null });
   let spColors = $derived(spaceColors(spaces, groups, autoColors));
   let grColors = $derived(groupColors(spaces, groups, autoColors));
 
@@ -1990,12 +1990,6 @@
       searchScope = null;
       searching = true;
     }}
-    {tags}
-    onSearchTag={(name) => {
-      searchScope = null;
-      searchQuery = `#${name}`;
-      searching = true;
-    }}
   />
 {/snippet}
 
@@ -2615,7 +2609,16 @@
               <p class="shell__empty">{S.missingSpace}</p>
             {/if}
           {:else if view.kind === "tags"}
-            <TagsView {tags} onChanged={refreshNotebook} onError={fail} />
+            <TagsView
+              {tags}
+              onSearch={(name) => {
+                searchScope = null;
+                searchQuery = `#${name}`;
+                searching = true;
+              }}
+              onChanged={refreshNotebook}
+              onError={fail}
+            />
           {:else if view.kind === "assets"}
             <AssetsView
               root={notebook.path}

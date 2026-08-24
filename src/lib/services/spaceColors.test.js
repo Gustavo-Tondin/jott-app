@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { groupColors, spaceColors } from "./spaceColors.js";
+import { groupColors, rainbowFrom, spaceColors } from "./spaceColors.js";
 
 describe("spaceColors", () => {
   const spaces = [
@@ -20,22 +20,34 @@ describe("spaceColors", () => {
     expect(colors["Space 3"]).toBe("#00ff00");
   });
 
-  it("deals the seven hues in sidebar order to whoever chose none", () => {
-    // A hand-picked colour wins and does not use up a hue; a grouped space
-    // follows its group's dealt colour; the eighth entry wraps around.
+  it("wears the rainbow from the accent on, ignoring what was chosen", () => {
+    // Blue Topaz: the fixed spaces wear the accent, the column below goes
+    // around the seven from the hue after it, one per top-level entry in
+    // sidebar order — a hand-picked red is overruled, a grouped space
+    // follows its group's band, and the eighth entry wraps around.
     const many = Array.from({ length: 9 }, (_, i) => ({ path: `S${i}`, color: null }));
     many[1].color = "red";
+    const fixed = { path: "jott.tasks", fixed: true, color: null };
     const groups = [{ folder: "Work", spaces: ["S3"] }];
-    const colors = spaceColors(many, groups, { auto: true });
-    expect(colors.S0).toBe("yellow");
-    expect(colors.S1).toBe("red");
-    expect(colors.S2).toBe("orange");
-    expect(groupColors(many, groups, { auto: true }).Work).toBe("pink");
-    expect(colors.S3).toBe("pink");
-    expect(colors.S8).toBe("yellow");
+    const opts = { auto: true, accent: "blue" };
+    const colors = spaceColors([fixed, ...many], groups, opts);
+    expect(colors["jott.tasks"]).toBe("blue");
+    expect(colors.S0).toBe("red");
+    expect(colors.S1).toBe("purple");
+    expect(colors.S2).toBe("yellow");
+    expect(groupColors([fixed, ...many], groups, opts).Work).toBe("orange");
+    expect(colors.S3).toBe("orange");
+    expect(colors.S4).toBe("pink");
+    expect(colors.S6).toBe("blue");
     // Off, nothing is dealt — what was set is what there is.
-    expect(spaceColors(many, groups).S0).toBe(null);
+    expect(spaceColors(many, groups).S1).toBe("red");
     expect(groupColors(many, groups).Work).toBe(null);
+  });
+
+  it("starts the rainbow from the app's own accent when none of the seven is chosen", () => {
+    expect(rainbowFrom("neutral")[0]).toBe("blue");
+    expect(rainbowFrom(null)[0]).toBe("blue");
+    expect(rainbowFrom("green")).toEqual(["green", "blue", "red", "purple", "yellow", "orange", "pink"]);
   });
 
   it("drops the member's colour when the group has none", () => {

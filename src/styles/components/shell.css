@@ -173,16 +173,6 @@
     padding-inline-start: 0;
   }
 
-  /* The tags section (2026-08-24): a folded group of doors to the search,
-     set a little apart from the spaces it sits under. The dot takes the
-     icon's place so the names line up with the rows above. */
-  .shell__tags {
-    margin-block-start: var(--theme-space-8);
-  }
-  .shell__tag-dot {
-    margin-inline: var(--theme-space-4);
-  }
-
   /* ---- space colour system ----
      A space (or the group it belongs to) picks one of the seven, and
      Sidebar.svelte writes the choice as --group-color, read here for the

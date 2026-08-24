@@ -177,10 +177,13 @@ pub struct Config {
     /// written in order wants the order kept. The file decides nothing here:
     /// `List::add_first` keeps whatever sits above the checklist above it.
     pub new_tasks_on_top: bool,
-    /// Give every space and group that chose no colour one of the seven, in
-    /// sidebar order (2026-08-24). Off by default: a notebook reads as the
-    /// app's own colour until someone asks for the rainbow. A colour chosen
-    /// by hand always wins, so switching this on takes nothing away.
+    /// The sidebar's rainbow (2026-08-24): every top-level entry takes the
+    /// next of the seven, in sidebar order, starting from the accent — the
+    /// fixed spaces wear the accent, the first list the colour after it, and
+    /// so on around. It IGNORES the colour a space chose: it is a look for
+    /// the whole column, not a default for the gaps. A Display choice — this
+    /// value is the notebook's recoil for a machine that never answered
+    /// (`settings::Display::resolve`), like `theme` and `accent_color`.
     pub auto_space_colors: bool,
     /// How dates are shown. The file always stores ISO.
     pub date_display_format: DateFormat,

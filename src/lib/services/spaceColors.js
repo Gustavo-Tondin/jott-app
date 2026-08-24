@@ -7,49 +7,62 @@
 // (it inherits, through --group-color) and the space title and the tab dot
 // said another, so joining a group left the old colour behind in two places.
 //
-// Since 2026-08-24 the notebook can also ask for the rainbow
-// (`autoSpaceColors`): every top-level entry of the sidebar that chose no
-// colour is dealt one of the seven hues, in sidebar order, cycling. A colour
-// chosen by hand always wins and does not use up a hue — switching the
-// rainbow on takes nothing away, and off gives back exactly what was set.
+// Since 2026-08-24 the sidebar can also wear the RAINBOW (`autoSpaceColors`,
+// a Display choice — the Blue Topaz look): the seven hues go around in
+// palette order starting from the accent, one per top-level entry, in
+// sidebar order. The fixed spaces wear the accent itself; the first list or
+// group takes the hue after it, and so on, cycling. It ignores the colour a
+// space chose — it is a look for the whole column, and a hand-picked orange
+// in the middle of it would break the rainbow. Off, what was set is what
+// there is.
 
-import { ACCENTS } from "./accent.js";
+import { ACCENTS, DEFAULT_ACCENT, isAccent } from "./accent.js";
 import { sidebarEntries } from "./sidebarOrder.js";
 
 /// The seven, without `neutral` — a rainbow has no grey in it.
 const HUES = ACCENTS.filter((name) => name !== "neutral");
 
-/// What each top-level entry reads as, by space path and by group folder.
-/// A member of a group reads as the group; the group's own colour, or its
-/// dealt one, or `null`.
-function resolve(spaces = [], groups = [], { auto = false } = {}) {
+/// The seven starting from `accent` and going around. An accent that is not
+/// one of them (`neutral`, or nothing chosen) starts from the app's own.
+export function rainbowFrom(accent) {
+  const start = HUES.indexOf(isAccent(accent) && accent !== "neutral" ? accent : DEFAULT_ACCENT);
+  return HUES.map((_, i) => HUES[(start + i) % HUES.length]);
+}
+
+/// What each entry reads as, by space path and by group folder.
+function resolve(spaces = [], groups = [], { auto = false, accent = null } = {}) {
   const groupColor = new Map();
   const spaceColor = new Map();
 
-  // The top level, in the order the sidebar draws it: that is the order a
-  // rainbow has to follow, or two screens would disagree about which space
-  // is the orange one.
-  let dealt = 0;
-  const next = () => HUES[dealt++ % HUES.length];
-  for (const entry of sidebarEntries(spaces, groups)) {
-    if (entry.kind === "group") {
-      const own = entry.group.color ?? null;
-      groupColor.set(entry.group.folder, own ?? (auto ? next() : null));
-    } else {
-      const own = entry.sp.color ?? null;
-      spaceColor.set(entry.sp.path, own ?? (auto ? next() : null));
+  if (auto) {
+    const hues = rainbowFrom(accent);
+    // Index 0 is the accent, worn by the fixed spaces; the column below
+    // them starts at 1, in the order the sidebar draws it — so two screens
+    // never disagree about which space is the orange one.
+    for (const sp of spaces) if (sp.fixed) spaceColor.set(sp.path, hues[0]);
+    let dealt = 1;
+    for (const entry of sidebarEntries(spaces.filter((sp) => !sp.fixed), groups)) {
+      const hue = hues[dealt++ % hues.length];
+      if (entry.kind === "group") groupColor.set(entry.group.folder, hue);
+      else spaceColor.set(entry.sp.path, hue);
     }
+  } else {
+    for (const group of groups) groupColor.set(group.folder, group.color ?? null);
+    for (const sp of spaces) spaceColor.set(sp.path, sp.color ?? null);
   }
 
-  // Everything under a top-level group reads as that group: a nested group
-  // with a colour of its own keeps it, one without takes its parent's.
+  // Everything under a top-level group reads as that group. A nested group
+  // keeps a colour of its own when the rainbow is off; under the rainbow it
+  // is part of its parent's band.
   const byFolder = new Map(groups.map((group) => [group.folder, group]));
   const colorOfGroup = (group) => {
-    if (groupColor.has(group.folder)) return groupColor.get(group.folder);
     const parent = group.parent ? byFolder.get(group.parent) : null;
-    const color = group.color ?? (parent ? colorOfGroup(parent) : null);
-    groupColor.set(group.folder, color);
-    return color;
+    if (parent && (auto || group.color == null)) {
+      const color = colorOfGroup(parent);
+      groupColor.set(group.folder, color);
+      return color;
+    }
+    return groupColor.get(group.folder) ?? null;
   };
   for (const group of groups) {
     const color = colorOfGroup(group);

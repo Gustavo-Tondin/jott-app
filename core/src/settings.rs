@@ -51,6 +51,7 @@ pub struct DisplayPrefs {
     pub show_list_counts: Option<bool>,
     pub restore_last_screen: Option<bool>,
     pub close_inspector_on_click_away: Option<bool>,
+    pub auto_space_colors: Option<bool>,
 }
 
 impl DisplayPrefs {
@@ -67,6 +68,7 @@ impl DisplayPrefs {
         take(&mut self.format_bar_side, patch.format_bar_side);
         take(&mut self.date_display_format, patch.date_display_format);
         take(&mut self.show_list_counts, patch.show_list_counts);
+        take(&mut self.auto_space_colors, patch.auto_space_colors);
         take(&mut self.restore_last_screen, patch.restore_last_screen);
         take(
             &mut self.close_inspector_on_click_away,
@@ -106,6 +108,9 @@ pub struct Display {
     pub show_list_counts: bool,
     pub restore_last_screen: bool,
     pub close_inspector_on_click_away: bool,
+    /// The sidebar's rainbow (2026-08-24): every entry takes the next of
+    /// the seven, starting from the accent. This screen's, like the accent.
+    pub auto_space_colors: bool,
 }
 
 impl Display {
@@ -137,6 +142,7 @@ impl Display {
                 .clone()
                 .unwrap_or_else(|| config.date_display_format.render().to_string()),
             show_list_counts: machine.show_list_counts.unwrap_or(config.show_list_counts),
+            auto_space_colors: machine.auto_space_colors.unwrap_or(config.auto_space_colors),
             restore_last_screen: machine
                 .restore_last_screen
                 .unwrap_or(config.restore_last_screen),
@@ -225,7 +231,7 @@ impl NotebookSettings {
             confirm_image_downloads: Some(config.confirm_image_downloads),
             auto_urgent_by_date: Some(config.auto_urgent_by_date),
             new_tasks_on_top: Some(config.new_tasks_on_top),
-            auto_space_colors: Some(config.auto_space_colors),
+            auto_space_colors: Some(display.auto_space_colors),
             date_display_format: Some(display.date_display_format.clone()),
             accent_color: Some(display.accent_color.clone()),
             theme: Some(display.theme.clone()),
@@ -374,7 +380,6 @@ pub fn reset_section(config: &mut Config, section: &str) -> bool {
             config.quick_task_list = d.quick_task_list;
             config.home_tasks_source = d.home_tasks_source;
             config.home_notes_source = d.home_notes_source;
-            config.auto_space_colors = d.auto_space_colors;
             config.confirm_deletes = d.confirm_deletes;
             config.completed_retention_days = d.completed_retention_days;
             config.trash_retention_days = d.trash_retention_days;

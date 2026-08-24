@@ -17,7 +17,7 @@
   } from "../services/sidebarOrder.js";
   import { reorderable } from "../actions/reorder.js";
   import { spaceIcon } from "../services/spaceIcon.js";
-  import { accentColor, accentStyle } from "../services/accent.js";
+  import { accentStyle } from "../services/accent.js";
   import { openIn } from "../services/counts.js";
 
   let {
@@ -83,12 +83,6 @@
     /// Opens the notebook-wide search box (the shell owns the dialog, because
     /// it opens over whatever screen is showing).
     onSearch,
-    /// The notebook's tags, for the collapsible section under the spaces
-    /// (2026-08-24). A click asks the shell to search for `#name` — the
-    /// search already understands the prefix (core/search.rs), so the
-    /// section is a door and not a screen.
-    tags = [],
-    onSearchTag,
     /// What a space / a group READS as (services/spaceColors.js) — the
     /// group's colour for a member, and a dealt one when the notebook asked
     /// for the rainbow. The rows draw these, never `sp.color` straight: the
@@ -97,10 +91,6 @@
     groupColor = (folder) => groups.find((g) => g.folder === folder)?.color ?? null,
   } = $props();
 
-  // Tags fold away by default: they are a lesser thing than the spaces
-  // above them, and a long catalogue would push the notebook's own column
-  // out of sight.
-  let tagsOpen = $state(false);
 
   // Which space's appearance popup is open (its path, or null). Opened
   // from that space's ⋮ menu.
@@ -635,42 +625,6 @@
          2026-08-11. They go away as soon as there is one entry — from then on
          the menu is where new things are made, and permanent buttons at the
          bottom of the list read as two more entries. -->
-    {#if f("taskTags") && tags.length > 0}
-      <div class="shell__entry shell__group shell__tags">
-        <div class="shell__nav-item shell__nav-item--row shell__nav-item--head">
-          <button
-            class="shell__nav-open"
-            onclick={() => (tagsOpen = !tagsOpen)}
-            aria-expanded={tagsOpen}
-            title={tagsOpen ? S.collapseGroup : S.expandGroup}
-          >
-            <Icon name="tag" size="1.125rem" />
-            <span class="shell__nav-label">{S.tagsSection}</span>
-            <span class="shell__group-caret">
-              <Icon name={tagsOpen ? "caret-down" : "caret-right"} size="0.875rem" />
-            </span>
-          </button>
-        </div>
-        {#if tagsOpen}
-          <div class="shell__spaces shell__spaces--nested">
-            {#each tags as tag (tag.name)}
-              <button
-                class="shell__nav-item shell__tag"
-                onclick={() => onSearchTag?.(tag.name)}
-                title={S.searchTag(tag.name)}
-              >
-                <span
-                  class="theme-swatch shell__tag-dot"
-                  style={`--tag-color: ${accentColor(tag.color) ?? "var(--theme-brand)"}`}
-                ></span>
-                <span class="shell__nav-label">{tag.name}</span>
-              </button>
-            {/each}
-          </div>
-        {/if}
-      </div>
-    {/if}
-
     {#if !notebook.readOnly && entries.length === 0}
       <button
         class="shell__nav-item shell__nav-item--secondary"

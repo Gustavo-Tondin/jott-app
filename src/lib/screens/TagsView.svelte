@@ -11,7 +11,10 @@
   import AccentPicker from "../components/AccentPicker.svelte";
   import Icon from "../components/Icon.svelte";
 
-  let { tags = [], onChanged, onError } = $props();
+  /// `onSearch(name)`: the shell opens the notebook search on `#name` — the
+  /// core reads the prefix (core/search.rs), so this page is the door to
+  /// "where is this tag used?" and needs no screen of its own (2026-08-24).
+  let { tags = [], onSearch, onChanged, onError } = $props();
 
   // No `load`: the catalogue rides in with the snapshot, so refreshing the
   // shell is the reload. Callbacks wrapped — see services/act.js.
@@ -72,6 +75,14 @@
                2026-08-13): one glyph for "throw this away", wherever the app
                offers it. As a worded button it was the widest thing in the row
                and read as the row's main action. -->
+          <button
+            class="theme-btn--icon tags-view__search"
+            onclick={() => onSearch?.(tag.name)}
+            aria-label={S.searchTag(tag.name)}
+            title={S.searchTag(tag.name)}
+          >
+            <Icon name="magnifying-glass" size="1rem" />
+          </button>
           <button
             class="theme-btn--icon tags-view__delete"
             onclick={() => remove(tag.name)}
