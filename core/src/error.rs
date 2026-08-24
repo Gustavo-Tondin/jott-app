@@ -76,6 +76,12 @@ pub enum Error {
     /// The file watcher could not be started or kept running.
     #[error("could not watch the notebook: {0}")]
     Watch(String),
+
+    /// An action of the session history cannot be undone (or redone): the
+    /// files it touched no longer hold what it left there — a sync, the
+    /// other window, a hand edit. Carries the action's label.
+    #[error("{0} cannot be undone: the files changed since")]
+    Stale(String),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

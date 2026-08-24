@@ -15,6 +15,7 @@ pub mod desktop;
 pub mod error;
 pub mod folder;
 pub mod fsio;
+pub mod history;
 pub mod id;
 pub mod jsondoc;
 pub mod links;
@@ -40,6 +41,7 @@ pub use clock::{TurnOffset, WeekStart};
 pub use config::{Config, Rollover, RolloverMode};
 pub use conflict::Conflict;
 pub use error::{Error, Result};
+pub use history::History;
 pub use list::{Line, TaskList};
 pub use notebook::{
     ListedTask, NoteFolderEntry, Notebook, NotebookContents, NotebookSummary, OriginAction,

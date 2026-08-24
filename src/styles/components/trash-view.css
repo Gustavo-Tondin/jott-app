@@ -73,11 +73,24 @@
     color: var(--theme-ink-muted);
     font-size: var(--theme-text-12);
   }
+  /* The two numbers of a row, in columns rather than after the text: a
+     countdown that starts at a different x on every line cannot be read down
+     the list, which is the only way anyone reads a countdown. The wide one
+     is "kept until you restore it", and it is what the column is sized to;
+     the dates are tabular so their digits stack. */
   .trash-view__date,
   .trash-view__left {
     color: var(--theme-ink-faint);
     font-size: var(--theme-text-12);
     white-space: nowrap;
+    text-align: end;
+    font-variant-numeric: tabular-nums;
+  }
+  .trash-view__date {
+    min-inline-size: 5.5rem;
+  }
+  .trash-view__left {
+    min-inline-size: 8.5rem;
   }
   /* The two verbs of a row, icon-only (user call, 2026-08-21): the circular
      arrow in the accent says "back", the bin in the danger colour says

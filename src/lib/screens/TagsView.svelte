@@ -106,8 +106,11 @@
   {#if !loaded && rows.length === 0}
     <Loading label={S.tagsLoading} />
   {:else if rows.length === 0}
+    <!-- Outlined, not primary: the header already carries the same verb, and
+         two filled buttons saying the same thing on an otherwise blank screen
+         is one call to action too many. -->
     <EmptyState icon="tag" title={S.tagsEmpty} hint={S.tagsEmptyHint}>
-      <button class="theme-btn theme-btn--sm" onclick={add}>{S.newTagName}</button>
+      <button class="theme-btn theme-btn--outline theme-btn--sm" onclick={add}>{S.newTagName}</button>
     </EmptyState>
   {:else if shown.length === 0}
     <EmptyState icon="magnifying-glass" title={S.tagsFilterEmpty} compact />

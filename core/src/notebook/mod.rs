@@ -32,6 +32,7 @@
 use std::path::{Path, PathBuf};
 
 use crate::config::Config;
+use crate::history::History;
 use crate::error::{Error, IoContext, Result};
 use crate::task::Task;
 use crate::{NOTEBOOK_CONFIG_DIR, NOTES_DIR, TASKS_DIR};
@@ -497,6 +498,40 @@ impl Notebook {
     /// change (2026-08-19).
     pub fn reload_config(&mut self) {
         self.config = Config::load(self.config_path());
+    }
+
+    /// Runs `action` against this notebook and records what it changed in
+    /// `history`, under `label` — the door every action `Ctrl+Z` can take
+    /// back goes through (`crate::history`). The action gets `&mut self`
+    /// because a few of them (the config setters) need it; the rest ignore
+    /// the mutability.
+    pub fn record<T>(
+        &mut self,
+        history: &mut History,
+        label: &str,
+        action: impl FnOnce(&mut Self) -> Result<T>,
+    ) -> Result<T> {
+        let root = self.root.clone();
+        history.record(&root, label, || action(self))
+    }
+
+    /// Takes back the last recorded action; answers its label, or `None`
+    /// when there is nothing to take back. The config is re-read afterwards,
+    /// since the undo may well have rewritten it — waiting for the watcher
+    /// would leave the next command answering from the stale copy.
+    pub fn undo(&mut self, history: &mut History) -> Result<Option<String>> {
+        self.ensure_writable()?;
+        let undone = history.undo(&self.root)?;
+        self.reload_config();
+        Ok(undone)
+    }
+
+    /// Does the last undone action again; answers its label, or `None`.
+    pub fn redo(&mut self, history: &mut History) -> Result<Option<String>> {
+        self.ensure_writable()?;
+        let redone = history.redo(&self.root)?;
+        self.reload_config();
+        Ok(redone)
     }
 
     /// Replaces the preferences and writes them to disk.

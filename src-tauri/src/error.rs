@@ -51,6 +51,7 @@ impl From<jott_core::Error> for CommandError {
             Error::InvalidManifest(_) => "invalid",
             Error::Protected(_) => "protected",
             Error::Watch(_) => "watch",
+            Error::Stale(_) => "stale",
         };
         Self::new(kind, error.to_string())
     }
