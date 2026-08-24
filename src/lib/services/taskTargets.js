@@ -33,7 +33,7 @@ export function taskTargets({
     out.push({ list: inbox, label: S.inboxTasks, value: "" });
   }
   if (fixedShown) {
-    for (const entry of lists) {
+    for (const entry of lists ?? []) {
       if (!entry?.path || entry.path === inbox || entry.path === completed) continue;
       // `lists` carries EVERY list of the notebook — the user spaces' own
       // task-list/completed included, and every one of those shares a file
@@ -45,7 +45,7 @@ export function taskTargets({
       out.push({ list: entry.path, label: entry.name ?? name, value: name });
     }
   }
-  for (const sp of spaces) {
+  for (const sp of spaces ?? []) {
     // The fixed space rides in `spaces` too (it has a marker like any other);
     // its doors are the fixed entries above, not a duplicate row here.
     if (sp?.kind !== "tasks" || sp.fixed || sp.path === fixedFolder) continue;

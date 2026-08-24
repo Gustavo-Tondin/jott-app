@@ -46,7 +46,9 @@ export function noteTargets({
     out.push({ space: notesFolder, folder: inbox, label: S.inboxNotes, value: inbox });
   }
   if (fixedShown && notesFolder) {
-    for (const entry of folders) {
+    // `?? []`: a bridge answering null (a test's silent half, a notebook
+    // mid-close) must read as no folders, not as a crash in a derived.
+    for (const entry of folders ?? []) {
       // The bridge answers folder ENTRIES (`{path, color, pinned}`); a bare
       // name is accepted so a caller with only names still works.
       const name = typeof entry === "string" ? entry : entry?.path;
@@ -54,7 +56,7 @@ export function noteTargets({
       out.push({ space: notesFolder, folder: name, label: name, value: name });
     }
   }
-  for (const sp of spaces) {
+  for (const sp of spaces ?? []) {
     // The fixed space rides in `spaces` too (it has a marker like any other);
     // its doors are the fixed entries above, not a duplicate row here.
     if (sp?.kind !== "notes" || sp.fixed || sp.path === notesFolder) continue;
