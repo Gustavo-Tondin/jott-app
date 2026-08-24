@@ -563,6 +563,10 @@ mod tests {
         assert_eq!(path_without_bundle("/bin:/usr/bin", "/tmp/.mount_x"), "/bin:/usr/bin");
     }
 
+    // Unix only: the PATH it builds is `:`-separated and the bundle is an
+    // AppImage, which is a Linux thing. On Windows (the Wine preflight,
+    // 2026-08-24) the separator is `;` and the test could only fail.
+    #[cfg(unix)]
     #[test]
     fn the_host_program_is_found_past_the_bundle() {
         // A bundle dir with its own `xdg-open` first, the host's after: the
