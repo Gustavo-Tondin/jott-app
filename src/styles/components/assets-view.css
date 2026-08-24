@@ -1,4 +1,4 @@
-/* assets-view.css — the notebook's image library, and the dialog that picks
+/* assets-view.css — the notebook's file library, and the dialog that picks
  * from it. Markup: src/lib/screens/AssetsView.svelte and
  * src/lib/components/AssetPicker.svelte. Selectors are the stable BEM hooks a
  * theme may restyle; components read tokens only.
@@ -24,5 +24,279 @@
     color: var(--theme-ink-muted);
     font-size: var(--theme-text-13);
     margin-block-end: var(--theme-space-12);
+  }
+
+  /* The file input is the button's business: the button is what the user sees
+     and what the keyboard reaches, and the input is only the door to the OS
+     picker behind it. Off-screen rather than `display: none`, which some
+     engines take as "not focusable, do not open". */
+  .assets-view__input,
+  .asset-picker__input {
+    position: absolute;
+    inline-size: 0.0625rem;
+    block-size: 0.0625rem;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* Small cells, many to a row (user call, 2026-08-24): the library is
+     scanned by eye, not read one file at a time, and a cell only has to be
+     big enough to recognise the picture and reach the controls under it. */
+  .assets-view__grid {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
+    gap: var(--theme-space-8);
+    /* A cell with its places open must not stretch its whole row. */
+    align-items: start;
+  }
+  .assets-view__item {
+    display: flex;
+    flex-direction: column;
+    gap: var(--theme-space-4);
+    padding: var(--theme-space-6);
+    background: var(--theme-surface);
+    border-radius: var(--theme-radius-sm);
+    min-inline-size: 0;
+  }
+  /* A fixed frame, not a fixed image: pictures come in every proportion, and a
+     grid whose cells are all different heights is a grid that reads as broken.
+     The picture is covered into it, centred. */
+  .assets-view__frame {
+    display: block;
+    inline-size: 100%;
+    block-size: 5rem;
+    padding: 0;
+    background: var(--theme-well);
+    border: none;
+    border-radius: var(--theme-radius-xs);
+    overflow: hidden;
+    cursor: pointer;
+  }
+  /* What the app cannot draw says so with a glyph, and keeps the frame's
+     shape — a grid of cells of different heights reads as broken. */
+  .assets-view__glyph,
+  .asset-picker__thumb--file {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    block-size: 100%;
+    color: var(--theme-ink-faint);
+  }
+  .assets-view__thumb,
+  .asset-picker__thumb {
+    display: block;
+    inline-size: 100%;
+    block-size: 100%;
+    object-fit: cover;
+  }
+  .assets-view__name {
+    font-size: var(--theme-text-12);
+    font-weight: var(--theme-weight-semibold);
+    color: var(--theme-ink);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .assets-view__meta {
+    color: var(--theme-ink-faint);
+    font-size: var(--theme-text-12);
+  }
+  .assets-view__actions {
+    display: flex;
+    align-items: center;
+    gap: var(--theme-space-4);
+  }
+  /* The address IS the button: what it does is copy itself, so showing it and
+     offering it are one control. Monospaced, because it is something to be
+     typed into a file. */
+  .assets-view__action {
+    flex: 1;
+    min-inline-size: 0;
+    padding: 0;
+    background: none;
+    border: none;
+    color: var(--theme-ink-muted);
+    font-family: var(--theme-font-mono);
+    font-size: var(--theme-text-12);
+    text-align: start;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+  .assets-view__action:hover {
+    color: var(--theme-brand);
+  }
+
+  /* Adding rides the bottom of the screen, the same edge the tasks screens
+     keep their composing bar on (user call, 2026-08-24): the grid is for
+     looking, the bottom is where the hand goes. Sticky on the desktop — it
+     pins the moment the grid would scroll past, and sits after a short one. */
+  .assets-view__foot {
+    position: sticky;
+    inset-block-end: 0;
+    z-index: 5;
+    display: flex;
+    justify-content: center;
+    margin-block-start: var(--theme-space-16);
+    padding: var(--theme-space-8) var(--theme-space-12);
+    background: var(--theme-surface);
+    border: 0.0625rem solid var(--theme-line);
+    border-radius: var(--theme-radius-md);
+    /* Small on purpose: the shadow is only here to say "the cells pass under
+       this", not to lift the bar off the page (the composing bar's own words). */
+    box-shadow: 0 -0.0625rem 0.25rem color-mix(in srgb, var(--theme-ink) 8%, transparent);
+  }
+  .assets-view__add {
+    flex: 1;
+    max-inline-size: 20rem;
+  }
+  /* On a phone the bar leaves the flow and rides the bottom of the VIEWPORT,
+     for the same reasons the composing bar does (task-composer.css): a short
+     grid would leave a sticky bar wherever the content ended, halfway up. */
+  .shell--compact .assets-view__foot {
+    position: fixed;
+    z-index: 20;
+    inset-inline-start: calc(var(--theme-space-8) + var(--theme-safe-left));
+    inset-inline-end: calc(var(--theme-space-8) + var(--theme-safe-right));
+    inset-block-end: calc(
+      var(--theme-space-8) + max(var(--theme-safe-bottom), var(--theme-keyboard))
+    );
+    margin-block-start: 0;
+  }
+  /* …and the screen keeps its last row clear of it. Only where there IS one:
+     a read-only notebook has no bar and must not reserve room for one. */
+  .shell--compact .shell__content:has(.assets-view__foot) {
+    padding-block-end: calc(4.5rem + var(--theme-safe-bottom));
+  }
+
+  /* A file is being held over the screen. The only way the person knows this
+     place will take it — an outline rather than a fill, so nothing already
+     drawn changes colour under the pointer. */
+  .assets-view--taking {
+    outline: 0.125rem dashed var(--theme-brand);
+    outline-offset: var(--theme-space-8);
+    border-radius: var(--theme-radius-md);
+  }
+
+  /* ---- what uses a file (2026-08-19) ----
+     Said beside the button that deletes it, because "not used" is the fact
+     that makes deleting safe. Quiet when nothing points at the file, and a
+     control when something does — the list of places is a detail of the row
+     that asked for it. */
+  .assets-view__unused {
+    color: var(--theme-ink-faint);
+    font-size: var(--theme-text-12);
+  }
+  .assets-view__used {
+    align-self: flex-start;
+    padding: 0;
+    background: none;
+    border: none;
+    color: var(--theme-brand);
+    font: inherit;
+    font-size: var(--theme-text-12);
+    cursor: pointer;
+  }
+  .assets-view__used:hover {
+    text-decoration: underline;
+  }
+  .assets-view__places {
+    list-style: none;
+    margin: var(--theme-space-4) 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--theme-space-2);
+  }
+  .assets-view__place {
+    display: flex;
+    align-items: center;
+    gap: var(--theme-space-6);
+    inline-size: 100%;
+    padding: var(--theme-space-4) var(--theme-space-6);
+    background: var(--theme-well);
+    border: none;
+    border-radius: var(--theme-radius-xs);
+    color: var(--theme-ink);
+    font: inherit;
+    font-size: var(--theme-text-12);
+    text-align: start;
+    cursor: pointer;
+  }
+  .assets-view__place:hover {
+    background: var(--theme-brand-weak);
+  }
+  .assets-view__place-name {
+    flex: 1;
+    min-inline-size: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  /* Which space it lives in — the tie-break when two notes are called the
+     same, and never the main answer. */
+  .assets-view__place-where {
+    color: var(--theme-ink-faint);
+    flex: none;
+  }
+
+  /* ---- the picker ---- */
+  .asset-picker {
+    display: flex;
+    flex-direction: column;
+    gap: var(--theme-space-12);
+    max-block-size: 70vh;
+  }
+  .asset-picker__head {
+    display: flex;
+    align-items: center;
+    gap: var(--theme-space-12);
+  }
+  .asset-picker__head .theme-title {
+    flex: 1;
+    min-inline-size: 0;
+  }
+  .asset-picker__empty {
+    color: var(--theme-ink-muted);
+  }
+  .asset-picker__grid {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(7rem, 1fr));
+    gap: var(--theme-space-8);
+    overflow-y: auto;
+  }
+  .asset-picker__item {
+    display: flex;
+    flex-direction: column;
+    gap: var(--theme-space-4);
+    inline-size: 100%;
+    padding: var(--theme-space-4);
+    background: var(--theme-surface);
+    border: none;
+    border-radius: var(--theme-radius-sm);
+    font: inherit;
+    cursor: pointer;
+  }
+  .asset-picker__item:hover {
+    background: var(--theme-brand-weak);
+  }
+  .asset-picker__item .asset-picker__thumb {
+    block-size: 4.5rem;
+    border-radius: var(--theme-radius-xs);
+    background: var(--theme-well);
+  }
+  .asset-picker__name {
+    color: var(--theme-ink-muted);
+    font-size: var(--theme-text-12);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 }
