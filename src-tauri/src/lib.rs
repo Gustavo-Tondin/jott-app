@@ -36,6 +36,7 @@ pub fn configure<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builde
         .invoke_handler(tauri::generate_handler![
             commands::shell::platform,
             commands::shell::window_button_layout,
+            commands::shell::system_fonts,
             commands::notebook::notebook_snapshot,
             commands::notebook::undo,
             commands::notebook::redo,

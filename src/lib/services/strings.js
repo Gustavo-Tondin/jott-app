@@ -636,6 +636,20 @@ export const S = {
   // The search over every row of every page (2026-08-20).
   settingsSearch: "Search settings",
   settingsSearchEmpty: "Nothing here matches that.",
+  // The three faces (Display, 2026-08-24). The default row names the face
+  // the app carries, so "Default" is never a mystery.
+  interfaceFontLabel: "Interface font",
+  noteFontLabel: "Note font",
+  monoFontLabel: "Monospace font",
+  fontDefault: (name) => `Default (${name})`,
+  fontDefaultNote: "Same as the interface",
+  fontGeneric: "This system",
+  fontInstalled: "Installed",
+  interfaceFontHint: "Everything the app draws — menus, lists, buttons.",
+  noteFontHint: "The text of a note and its title. Reads in the interface font until you pick one.",
+  monoFontHint: "Code inside a note, and the paths the app shows.",
+  fontsNotListed:
+    "Jott can only list installed fonts on Linux. The two it carries and the system's own are always here.",
   settingsSearchIn: (section) => `in ${section}`,
   completedRetention: "Clear completed after (days)",
   completedRetentionHint:

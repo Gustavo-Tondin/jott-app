@@ -38,6 +38,26 @@
   src: url("../assets/fonts/Inter-latin-wght-normal.woff2") format("woff2");
 }
 
+/* DM Mono, self-hosted for the same reason (2026-08-24, user call): the app's
+   monospace, in the two weights it is drawn in — 400 for code and paths, 500
+   where the interface sets one in medium. Italic is not carried: nothing in
+   the app writes code in italic, and a face nobody draws is 22KB nobody
+   asked for. Licence and provenance: src/assets/fonts/LICENSES.md. */
+@font-face {
+  font-family: "DM Mono";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url("../assets/fonts/DM_Mono-Regular.woff2") format("woff2");
+}
+@font-face {
+  font-family: "DM Mono";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 500;
+  src: url("../assets/fonts/DM_Mono-Medium.woff2") format("woff2");
+}
+
 @layer tokens {
   :root {
     /* ---------------------------------------------------------------------
@@ -235,12 +255,25 @@
     /* ---------------------------------------------------------------------
        TYPOGRAPHY
        --------------------------------------------------------------------- */
+    /* The three faces, and all three are CHOOSABLE (Display, 2026-08-24):
+       the shell writes the chosen family in front of these stacks as an
+       inline custom property on the root, so what is written here is what
+       the app falls back to — the face it carries, then the machine's.
+
+       The note's own face defaults to the interface's, which is the honest
+       statement: a note is read in whatever the app is read in until someone
+       says otherwise. Only the two ends of the chain are stated; the middle
+       is the user's answer. */
     --theme-font-sans: "Inter", system-ui, sans-serif;
-    /* Code inside a note: the reader's own monospace, not a webfont — a
-       note is a `.md` on disk and its code should look the way code looks
-       in the editor they open it with. */
-    --theme-font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo,
-      "Liberation Mono", monospace;
+    --theme-font-note: var(--theme-font-sans);
+    /* Code inside a note. Until 2026-08-24 this was the reader's own
+       monospace and no webfont — the argument being that a note is a `.md`
+       on disk and its code should look the way code looks in the editor they
+       open it with. It ships with DM Mono now (user call): the app draws code
+       in a face it can count on, and the reader's own monospace is one line
+       down the stack and one click away in Display. */
+    --theme-font-mono: "DM Mono", ui-monospace, SFMono-Regular, "SF Mono",
+      Menlo, "Liberation Mono", monospace;
 
     --theme-text-10: 0.625rem; /* 10px — task meta date */
     --theme-text-12: 0.75rem; /* 12px — right panel, breadcrumb */

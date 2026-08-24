@@ -24,6 +24,7 @@
     stored,
   } from "../services/features.js";
   import { DEFAULT_ACCENT } from "../services/accent.js";
+  import { FONT_ROLES, fontOptions, fontValue } from "../services/fonts.js";
   import { TYPE_ICONS } from "../services/spaceIcon.js";
   import { openExternal, ISSUES_URL } from "../services/external.js";
   import {
@@ -266,6 +267,51 @@
   // Slash-only, and month-first is the default (user call, 2026-08-06).
   const DATE_SHAPES = ["mm/dd/yyyy", "dd/mm/yyyy", "yyyy/mm/dd"];
 
+  /// What this machine has installed (2026-08-24). Asked ONCE, when the
+  /// screen mounts: a font library does not change while the app is up, and
+  /// the answer walks the machine's font directories. Empty off Linux, and
+  /// the pickers then offer the app's own faces plus the generic families —
+  /// which is why the list being empty is not an error state.
+  let installedFonts = $state([]);
+  let fontsAsked = $state(false);
+  $effect(() => {
+    if (fontsAsked) return;
+    fontsAsked = true;
+    api
+      .systemFonts()
+      .then((names) => (installedFonts = names ?? []))
+      .catch(() => (installedFonts = []));
+  });
+
+  /// The three rows of the Display page, in the order they are drawn. Each
+  /// is a role of `services/fonts.js` plus what this screen calls it — the
+  /// row itself is one snippet, so a fourth face would be one line here.
+  const FONT_ROWS = () => [
+    {
+      role: "interface",
+      key: "interfaceFont",
+      label: S.interfaceFontLabel,
+      hint: S.interfaceFontHint,
+      fallback: S.fontDefault(FONT_ROLES.interface.shipped),
+    },
+    {
+      role: "note",
+      key: "noteFont",
+      label: S.noteFontLabel,
+      hint: S.noteFontHint,
+      // Not a face's name: the note's default IS the interface's answer,
+      // whatever that turned out to be.
+      fallback: S.fontDefaultNote,
+    },
+    {
+      role: "mono",
+      key: "monoFont",
+      label: S.monoFontLabel,
+      hint: S.monoFontHint,
+      fallback: S.fontDefault(FONT_ROLES.mono.shipped),
+    },
+  ];
+
   /// Records a chord for a command, or clears it with `null`.
   ///
   /// It goes to the notebook and comes back through the layout, the way every
@@ -329,6 +375,9 @@
         S.headingColor,
         S.interfaceZoom,
         S.noteFontSizeLabel,
+        S.interfaceFontLabel,
+        S.noteFontLabel,
+        S.monoFontLabel,
         S.formatBarLabel,
         S.formatBarSideLabel,
         S.showListCounts,
@@ -621,6 +670,45 @@
       {/each}
     </div>
   </div>
+{/snippet}
+
+<!-- A font row: the label, and a select holding the app's own answer, the
+     generic families, and what the machine has installed. The value is a
+     family NAME and the empty one means "the app's own" — the same pact every
+     Display key keeps, where absent is the default rather than a value.
+
+     Each option previews itself, which is the whole reason a font picker is
+     not a plain list of words: the name of a face says much less than the
+     face does. Only the option can do it — a <select>'s closed box draws in
+     the control's own font on every engine. -->
+{#snippet fontRow(row)}
+  {@const options = fontOptions(row.role, installedFonts, {
+    default: row.fallback,
+    generic: S.fontGeneric,
+    installed: S.fontInstalled,
+  })}
+  <label class="settings__row">
+    <span class="settings__label">{row.label}</span>
+    <select
+      class="theme-select settings__font"
+      bind:value={form[row.key]}
+      aria-label={row.label}
+      onchange={(e) => putDisplay({ [row.key]: e.currentTarget.value })}
+    >
+      {#each options as option (option.value)}
+        <!-- The same value the choice would write on the root, so the row
+             previews what picking it does — including the fallback, which is
+             what a font the machine lost would show. `fontValue` is also
+             what keeps a generic family unquoted: `font-family: "serif"`
+             names a font nobody has. -->
+        <option value={option.value} style={fontValue(row.role, option.value)
+            ? `font-family: ${fontValue(row.role, option.value)}`
+            : null}>{option.label}</option
+        >
+      {/each}
+    </select>
+  </label>
+  <p class="settings__hint">{row.hint}</p>
 {/snippet}
 
 {#snippet featureRow(feature)}
@@ -919,6 +1007,17 @@
             (key) => putDisplay({ noteFontSize: key }),
           )}
           <p class="settings__hint">{S.noteFontSizeHint}</p>
+
+          <!-- The three faces (2026-08-24). Display, like the size above it:
+               which fonts exist is a fact about THIS machine, and a notebook
+               carried to another one must not arrive naming a font that is
+               not there. -->
+          {#each FONT_ROWS() as row (row.key)}
+            {@render fontRow(row)}
+          {/each}
+          {#if installedFonts.length === 0}
+            <p class="settings__hint">{S.fontsNotListed}</p>
+          {/if}
 
           <h3 class="settings__subtitle">{S.subEditor}</h3>
 

@@ -40,6 +40,37 @@ pub fn window_button_layout() -> ButtonLayout {
         .unwrap_or_else(default_button_layout)
 }
 
+/// The font families this machine has installed, sorted and safe to name in
+/// CSS (2026-08-24).
+///
+/// Asked once, when the Display page opens: a font library does not change
+/// while the app is up, and a person who installs one can reopen the page.
+///
+/// Linux answers through fontconfig, which is the same list every GTK app
+/// offers — `fc-list : family`, one line per FACE, which is why the core
+/// folds it into families. Elsewhere the answer is empty rather than a guess:
+/// the interface then offers what the app carries plus the generic families,
+/// which is a short honest list instead of a long wrong one. Android has no
+/// fontconfig and no per-app font library at all.
+///
+/// `host_command` for the same reason `gsettings` uses it: inside the
+/// AppImage the bundled binary and the bundled libraries would answer for the
+/// bundle rather than for the machine.
+#[tauri::command]
+pub fn system_fonts() -> Vec<String> {
+    if !cfg!(target_os = "linux") {
+        return Vec::new();
+    }
+    host_command("fc-list")
+        .args([":", "family"])
+        .output()
+        .ok()
+        .filter(|out| out.status.success())
+        .and_then(|out| String::from_utf8(out.stdout).ok())
+        .map(|listing| jott_core::fonts::families(&listing))
+        .unwrap_or_default()
+}
+
 /// The bundle's environment, wiped off a child that answers for the HOST.
 ///
 /// Inside the AppImage every child inherits what the runtime and the GTK

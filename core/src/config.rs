@@ -224,6 +224,20 @@ pub struct Config {
     /// should follow the writer to another screen, while zoom answers to a
     /// monitor. Empty means the size the app ships as.
     pub note_font_size: String,
+    /// The three faces the app can be read in (2026-08-24): the interface,
+    /// the body of a note, and the monospace of code and paths.
+    ///
+    /// A family NAME, exactly as the machine spells it, or empty for what the
+    /// app ships with — Inter for the first two and DM Mono for the third,
+    /// both carried inside the app. Not policed here beyond the name being
+    /// writable into CSS (`fonts::is_safe_family`): which fonts exist is a
+    /// fact about a MACHINE, and a notebook carried to another one must not
+    /// lose the answer just because that machine has a different library.
+    /// The interface's face is the note's default too, so a notebook that
+    /// chose only the first reads its notes in it.
+    pub interface_font: String,
+    pub note_font: String,
+    pub mono_font: String,
     /// When the note's floating formatting bar is drawn — `always`,
     /// `selection` (only while something is selected), `off` (2026-08-21).
     ///
@@ -345,6 +359,9 @@ impl Default for Config {
             theme: String::new(),
             heading_color: String::new(),
             note_font_size: String::new(),
+            interface_font: String::new(),
+            note_font: String::new(),
+            mono_font: String::new(),
             format_bar: String::new(),
             format_bar_side: String::new(),
             shortcuts: Map::new(),
@@ -527,6 +544,9 @@ impl Config {
             theme: string(&raw, "theme").unwrap_or(defaults.theme),
             heading_color: string(&raw, "headingColor").unwrap_or(defaults.heading_color),
             note_font_size: string(&raw, "noteFontSize").unwrap_or(defaults.note_font_size),
+            interface_font: font(&raw, "interfaceFont", defaults.interface_font),
+            note_font: font(&raw, "noteFont", defaults.note_font),
+            mono_font: font(&raw, "monoFont", defaults.mono_font),
             format_bar: string(&raw, "formatBar").unwrap_or(defaults.format_bar),
             format_bar_side: string(&raw, "formatBarSide").unwrap_or(defaults.format_bar_side),
             close_inspector_on_click_away: flag(
@@ -664,6 +684,9 @@ impl Config {
             ("theme", &self.theme),
             ("headingColor", &self.heading_color),
             ("noteFontSize", &self.note_font_size),
+            ("interfaceFont", &self.interface_font),
+            ("noteFont", &self.note_font),
+            ("monoFont", &self.mono_font),
             ("formatBar", &self.format_bar),
             ("formatBarSide", &self.format_bar_side),
             ("noteLayout", &self.note_layout),
@@ -795,6 +818,16 @@ pub fn by_rank<T>(items: &mut [T], rank: impl Fn(&T) -> Option<usize>) {
 /// The tolerant readers moved to [`crate::jsondoc`], where every config file
 /// shares them — including the deep merge that keeps an unknown key alive.
 use crate::jsondoc::{flag, string};
+
+/// A font family name, read the tolerant way: absent, blank, or a name that
+/// could not be written into CSS all fall back to the default, which is the
+/// app's own face. The same pact as every other value here — a bad one is not
+/// an error, it is the app's answer (2026-08-24).
+fn font(raw: &crate::jsondoc::Doc, key: &str, default: String) -> String {
+    string(raw, key)
+        .filter(|name| crate::fonts::is_safe_family(name))
+        .unwrap_or(default)
+}
 
 /// Sorted view of a JSON object, for stable assertions in tests.
 #[cfg(test)]

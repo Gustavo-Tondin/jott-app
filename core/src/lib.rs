@@ -14,6 +14,7 @@ pub mod config;
 pub mod desktop;
 pub mod error;
 pub mod folder;
+pub mod fonts;
 pub mod fsio;
 pub mod history;
 pub mod id;

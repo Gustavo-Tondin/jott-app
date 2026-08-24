@@ -66,6 +66,7 @@
   import { installKeyboard } from "./lib/shell/keyboard.js";
   import { scheduleTurns } from "./lib/shell/turn.js";
   import { setRootData, setRootVar } from "./lib/shell/rootStyle.js";
+  import { fontVars } from "./lib/services/fonts.js";
   import { watchCompact } from "./lib/shell/compact.js";
   import TopBar from "./lib/shell/TopBar.svelte";
   import BottomSheet from "./lib/components/BottomSheet.svelte";
@@ -779,6 +780,16 @@
       noteSize: noteFontSizeAttribute(layout.noteFontSize),
     }),
   );
+
+  // The three faces ride on the root as custom properties, beside the
+  // attributes above and for the same reason: they have to reach both regions
+  // at once, and the note's editor inherits its family from the box around it
+  // (styles/components/note-editor.css). A null REMOVES the property, which
+  // is how "the app's own face" is spelled — never by writing the stack back.
+  $effect(() => {
+    const vars = fontVars(showsPicker ? {} : layout);
+    for (const [name, value] of Object.entries(vars)) setRootVar(name, value);
+  });
 
   // The platform rides on the root next to them, and for the same reason: it
   // reaches both regions at once, and the CSS reads it without a single

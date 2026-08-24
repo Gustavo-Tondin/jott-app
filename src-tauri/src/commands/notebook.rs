@@ -73,6 +73,14 @@ pub struct NotebookLayout {
     /// document root, wanted on the first paint.
     pub heading_color: String,
     pub note_font_size: String,
+    /// The three faces the app is read in (2026-08-24), by family name;
+    /// empty is the one the app carries. They ride in the layout for the
+    /// reason the accent does — each is a custom property on the document
+    /// root, and a second round trip would draw the first paint in the
+    /// wrong face.
+    pub interface_font: String,
+    pub note_font: String,
+    pub mono_font: String,
     /// When the note's floating formatting bar shows, and which side it hugs
     /// (2026-08-21). It rides in the layout for the same reason the accent
     /// does: the bar is drawn as soon as a note opens, and asking for the
@@ -135,6 +143,9 @@ impl NotebookInfo {
                 theme: display.theme,
                 heading_color: display.heading_color,
                 note_font_size: display.note_font_size,
+                interface_font: display.interface_font,
+                note_font: display.note_font,
+                mono_font: display.mono_font,
                 format_bar: display.format_bar,
                 format_bar_side: display.format_bar_side,
                 shortcuts: notebook.config().shortcuts.clone(),

@@ -716,3 +716,81 @@ describe("SettingsView", () => {
     await screen.findByText("You have the latest version.");
   });
 });
+
+describe("SettingsView — the three faces (2026-08-24)", () => {
+  const displayProps = (extra = {}) => ({
+    features: {},
+    readOnly: false,
+    compact: false,
+    onChanged: noop,
+    onError: noop,
+    ...extra,
+  });
+
+  test("each picker offers the app's own face, the generics, and what the machine has", async () => {
+    bridge({
+      notebook_settings: { interfaceFont: "", noteFont: "", monoFont: "" },
+      system_fonts: ["Fira Sans", "Noto Serif"],
+      set_machine_display: null,
+    });
+    render(SettingsView, { props: displayProps() });
+    await userEvent.click(await screen.findByRole("button", { name: "Display" }));
+
+    const picker = await screen.findByRole("combobox", { name: "Interface font" });
+    const labels = [...picker.options].map((o) => o.textContent);
+    expect(labels[0]).toBe("Default (Inter)");
+    expect(labels).toContain("system-ui");
+    expect(labels).toContain("Fira Sans");
+    // The note's default is not a face's name — it is the interface's answer.
+    const note = screen.getByRole("combobox", { name: "Note font" });
+    expect(note.options[0].textContent).toBe("Same as the interface");
+    expect(screen.getByRole("combobox", { name: "Monospace font" }).options[0].textContent).toBe(
+      "Default (DM Mono)",
+    );
+  });
+
+  test("picking one writes it as a machine display choice, by family name", async () => {
+    bridge({
+      notebook_settings: { interfaceFont: "", noteFont: "", monoFont: "" },
+      system_fonts: ["Fira Sans"],
+      set_machine_display: null,
+    });
+    render(SettingsView, { props: displayProps() });
+    await userEvent.click(await screen.findByRole("button", { name: "Display" }));
+
+    await userEvent.selectOptions(
+      await screen.findByRole("combobox", { name: "Note font" }),
+      "Fira Sans",
+    );
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("set_machine_display", {
+        display: { noteFont: "Fira Sans" },
+      }),
+    );
+  });
+
+  test("a machine the app cannot ask says so instead of showing an empty list", async () => {
+    bridge({
+      notebook_settings: {},
+      system_fonts: [],
+      set_machine_display: null,
+    });
+    render(SettingsView, { props: displayProps() });
+    await userEvent.click(await screen.findByRole("button", { name: "Display" }));
+
+    expect(await screen.findByText(/only list installed fonts on Linux/)).toBeTruthy();
+    // And the picker still has real choices.
+    const picker = screen.getByRole("combobox", { name: "Monospace font" });
+    expect([...picker.options].map((o) => o.value)).toContain("monospace");
+  });
+
+  test("the search finds the three rows", async () => {
+    bridge({ notebook_settings: {}, system_fonts: [] });
+    render(SettingsView, { props: displayProps() });
+    await userEvent.type(await screen.findByRole("searchbox"), "font");
+    const hits = await screen.findAllByRole("button", { name: /font/i });
+    const labels = hits.map((h) => h.textContent);
+    expect(labels.some((l) => l.includes("Interface font"))).toBe(true);
+    expect(labels.some((l) => l.includes("Monospace font"))).toBe(true);
+  });
+});

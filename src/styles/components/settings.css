@@ -71,6 +71,14 @@
     margin-block-end: var(--theme-space-8);
     max-inline-size: 18rem;
   }
+  /* A font picker is wider than the other controls of the page: a family
+     name is prose ("Noto Sans CJK JP"), not a word, and the closed box has
+     to show enough of it to tell two Notos apart. It still gives way on a
+     phone — `max` and not a fixed width. */
+  .settings__font {
+    inline-size: min(18rem, 60%);
+  }
+
   /* A hit is a row plus WHERE it is — the answer to "where is this?" is a
      place, so the place is on the row and not implied by the jump. */
   .settings__hit {

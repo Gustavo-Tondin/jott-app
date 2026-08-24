@@ -98,6 +98,11 @@ export const api = {
   // root-relative address (a space, a list, a note), empty for the root. What
   // opens is always the FOLDER around it, never the document.
   openInFileManager: (path = null) => invoke("open_in_file_manager", { path }),
+  /// The font families this machine has installed (2026-08-24), sorted and
+  /// safe to name in CSS. Empty off Linux, where there is no fontconfig to
+  /// ask — the picker then offers what the app carries plus the generics.
+  /// Asked when the Display page opens, never per render.
+  systemFonts: () => invoke("system_fonts"),
 
   // How wide the sidebar was dragged. A machine preference (the monitor
   // decides, not the notebook), so it lives beside the last notebook.

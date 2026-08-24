@@ -89,6 +89,10 @@
      block's colour, the same lift the cards use; with no banner it is the
      heading itself, and there is nothing under it to lift off. */
   .note-banner__title {
+    /* The title reads in the note's face, not the interface's: it is the
+       first line of the document, and the editor below it is already in
+       that face (2026-08-24). */
+    font-family: var(--theme-font-note);
     display: inline-block;
     max-inline-size: 100%;
     margin: 0;

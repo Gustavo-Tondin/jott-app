@@ -41,6 +41,15 @@ pub struct DisplayPrefs {
     pub accent_color: Option<String>,
     pub heading_color: Option<String>,
     pub note_font_size: Option<String>,
+    /// The three faces (2026-08-24). Display, and the section is what decides
+    /// it: which fonts exist is a fact about THIS machine, so the answer must
+    /// not travel with the notebook to a machine that does not have them.
+    /// Absent is not "the app's own" — it is "this machine did not answer",
+    /// and then the notebook's own choice stands (the recuo that spares a
+    /// migration).
+    pub interface_font: Option<String>,
+    pub note_font: Option<String>,
+    pub mono_font: Option<String>,
     /// When the floating formatting bar shows, and which side of the canvas
     /// it hugs (2026-08-21). Display, and it is the section that decides:
     /// where a bar sits over a document is a fact about THIS screen — a phone
@@ -54,6 +63,14 @@ pub struct DisplayPrefs {
     pub auto_space_colors: Option<bool>,
 }
 
+/// A font choice on its way in: kept when it is a name that can be written
+/// into CSS or the empty "use the app's own", dropped otherwise — dropped
+/// meaning the machine simply did not answer, which is a state this struct
+/// already has a word for.
+fn safe_font(choice: Option<String>) -> Option<String> {
+    choice.filter(|name| name.trim().is_empty() || crate::fonts::is_safe_family(name.trim()))
+}
+
 impl DisplayPrefs {
     /// Takes one or more choices from `patch`, keeping everything it leaves
     /// out — so the settings screen can send the one key that changed. The
@@ -64,6 +81,14 @@ impl DisplayPrefs {
         take(&mut self.accent_color, patch.accent_color);
         take(&mut self.heading_color, patch.heading_color);
         take(&mut self.note_font_size, patch.note_font_size);
+        // The one value a machine sends that came from ITS font library: a
+        // family name is written into a CSS declaration, so a name that could
+        // end the declaration is dropped here rather than stored and dealt
+        // with at every reader. An empty name is not a bad one — it is how
+        // the app's own face is asked for.
+        take(&mut self.interface_font, safe_font(patch.interface_font));
+        take(&mut self.note_font, safe_font(patch.note_font));
+        take(&mut self.mono_font, safe_font(patch.mono_font));
         take(&mut self.format_bar, patch.format_bar);
         take(&mut self.format_bar_side, patch.format_bar_side);
         take(&mut self.date_display_format, patch.date_display_format);
@@ -102,6 +127,9 @@ pub struct Display {
     pub accent_color: String,
     pub heading_color: String,
     pub note_font_size: String,
+    pub interface_font: String,
+    pub note_font: String,
+    pub mono_font: String,
     pub format_bar: String,
     pub format_bar_side: String,
     pub date_display_format: String,
@@ -129,6 +157,18 @@ impl Display {
                 .note_font_size
                 .clone()
                 .unwrap_or_else(|| config.note_font_size.clone()),
+            interface_font: machine
+                .interface_font
+                .clone()
+                .unwrap_or_else(|| config.interface_font.clone()),
+            note_font: machine
+                .note_font
+                .clone()
+                .unwrap_or_else(|| config.note_font.clone()),
+            mono_font: machine
+                .mono_font
+                .clone()
+                .unwrap_or_else(|| config.mono_font.clone()),
             format_bar: machine
                 .format_bar
                 .clone()
@@ -190,6 +230,14 @@ pub struct NotebookSettings {
     /// `"ink"` draws headings in plain ink; empty (or anything else) accents.
     pub heading_color: Option<String>,
     pub note_font_size: Option<String>,
+    /// The three faces, by family name; empty goes back to the one the app
+    /// carries (2026-08-24). A name that could not be written into CSS is
+    /// refused on the way IN — this is the one Display value that arrives
+    /// from a machine's own font library, and the config reader keeps the
+    /// same gate (`fonts::is_safe_family`).
+    pub interface_font: Option<String>,
+    pub note_font: Option<String>,
+    pub mono_font: Option<String>,
     /// `always` / `selection` / `off`, and `top` / `left` / `right` /
     /// `bottom`. Names, never policed here — see `DisplayPrefs`.
     pub format_bar: Option<String>,
@@ -237,6 +285,9 @@ impl NotebookSettings {
             theme: Some(display.theme.clone()),
             heading_color: Some(display.heading_color.clone()),
             note_font_size: Some(display.note_font_size.clone()),
+            interface_font: Some(display.interface_font.clone()),
+            note_font: Some(display.note_font.clone()),
+            mono_font: Some(display.mono_font.clone()),
             format_bar: Some(display.format_bar.clone()),
             format_bar_side: Some(display.format_bar_side.clone()),
             close_inspector_on_click_away: Some(display.close_inspector_on_click_away),
@@ -311,6 +362,22 @@ impl NotebookSettings {
         }
         if let Some(v) = &self.note_font_size {
             config.note_font_size = v.trim().to_string();
+        }
+        // The one Display value with a gate: a family name is written into a
+        // CSS declaration, so a name that could end the declaration is not
+        // stored. Clearing (an empty name) is always allowed — it is how the
+        // app's own face is asked for.
+        for (value, field) in [
+            (&self.interface_font, &mut config.interface_font),
+            (&self.note_font, &mut config.note_font),
+            (&self.mono_font, &mut config.mono_font),
+        ] {
+            if let Some(v) = value {
+                let name = v.trim();
+                if name.is_empty() || crate::fonts::is_safe_family(name) {
+                    *field = name.to_string();
+                }
+            }
         }
         if let Some(v) = &self.format_bar {
             config.format_bar = v.trim().to_string();
@@ -428,6 +495,35 @@ mod tests {
         for section in RESETTABLE_SECTIONS {
             assert!(reset_section(&mut Config::default(), section));
         }
+    }
+
+    #[test]
+    fn a_font_name_that_could_break_a_css_declaration_is_never_stored() {
+        let mut prefs = DisplayPrefs::default();
+        prefs.patch(DisplayPrefs {
+            interface_font: Some("Fira Sans".into()),
+            note_font: Some("Evil\"; color: red".into()),
+            mono_font: Some(String::new()),
+            ..Default::default()
+        });
+
+        assert_eq!(prefs.interface_font.as_deref(), Some("Fira Sans"));
+        assert_eq!(prefs.note_font, None, "the machine did not answer");
+        assert_eq!(prefs.mono_font.as_deref(), Some(""), "empty asks for the app's own");
+    }
+
+    #[test]
+    fn a_machine_without_a_font_answer_reads_the_notebooks() {
+        let mut config = Config::default();
+        config.interface_font = "Charter".to_string();
+        config.mono_font = "Fira Code".to_string();
+        let machine = DisplayPrefs { note_font: Some("Literata".into()), ..Default::default() };
+
+        let display = Display::resolve(&machine, &config);
+
+        assert_eq!(display.interface_font, "Charter", "o caderno responde");
+        assert_eq!(display.note_font, "Literata", "a máquina venceu");
+        assert_eq!(display.mono_font, "Fira Code");
     }
 
     #[test]
