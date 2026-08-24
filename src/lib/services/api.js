@@ -55,6 +55,9 @@ export const api = {
   // Every field is optional: the core keeps what it is not told about, so a
   // screen can send one key without holding the rest.
   notebookSettings: () => invoke("notebook_settings"),
+  // What the notebook holds: {notes, tasks, files, bytes}. Walks the tree —
+  // ask when a section opens, not on every render.
+  notebookContents: () => invoke("notebook_contents"),
   setNotebookSettings: (settings) => invoke("set_notebook_settings", { settings }),
   // The Display choices answer to THIS machine, not to the notebook
   // (2026-08-20) — a phone can be dark while the desktop stays in Jott's own

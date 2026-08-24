@@ -334,6 +334,17 @@ pub fn current_notebook<R: Runtime>(
         .ok()
 }
 
+/// What the open notebook holds — notes, open tasks, files, bytes — for the
+/// line under Notebook → Keeping. Counted on demand: the screen asks when
+/// the section opens, not on every render.
+#[tauri::command]
+pub fn notebook_contents<R: Runtime>(
+    state: State<'_, AppState>,
+    window: tauri::Window<R>,
+) -> CommandResult<jott_core::NotebookContents> {
+    state.read(window.label(), |nb| nb.contents())
+}
+
 /// Open task count per list, for the navigation. Empty when the user turned
 /// the counters off — the frontend does not need to know the rule.
 #[tauri::command]

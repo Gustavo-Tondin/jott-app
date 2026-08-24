@@ -244,6 +244,11 @@
     color: var(--theme-ink-muted);
     word-break: break-all;
   }
+  /* A read-only answer beside its label — the notebook's contents. */
+  .settings__value {
+    font-size: var(--theme-text-13);
+    color: var(--theme-ink-muted);
+  }
   .settings__notice {
     background: var(--theme-surface-sunken);
     border: 0.0625rem solid var(--theme-line);

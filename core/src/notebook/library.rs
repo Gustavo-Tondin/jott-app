@@ -49,7 +49,40 @@ pub struct NotebookSummary {
     pub read_only: bool,
 }
 
+/// What the open notebook holds, in four numbers — the line Settings draws
+/// under Notebook → Keeping so the user can see the size of what is theirs
+/// (principle 4) without opening a file manager.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NotebookContents {
+    /// Every note in every notes space, filed or not.
+    pub notes: usize,
+    /// Open tasks across every tasks space — the same count the picker shows.
+    pub tasks: usize,
+    /// Files in the `assets/` library.
+    pub files: usize,
+    /// Bytes on disk under the whole root, hidden folders included: the trash
+    /// and the config are part of what a backup has to carry.
+    pub bytes: u64,
+}
+
 impl Notebook {
+    /// The four numbers above, counted on demand. Notes are counted without
+    /// being parsed (`NoteFolder::count`); the size walks the whole tree, so
+    /// whoever asks should not ask on every render.
+    pub fn contents(&self) -> Result<NotebookContents> {
+        let mut notes = 0;
+        for (_, folder) in self.note_folders()? {
+            notes += folder.count("")?;
+        }
+        Ok(NotebookContents {
+            notes,
+            tasks: self.open_task_counts()?.values().sum(),
+            files: self.assets().list()?.len(),
+            bytes: bytes_under(&self.root)?,
+        })
+    }
+
     /// What a picker draws for a notebook it has not opened.
     ///
     /// Refuses a folder that is not a notebook — a picker's list is paths
@@ -183,4 +216,20 @@ impl Notebook {
         std::fs::rename(&root, &target).ctx(&target)?;
         Ok(target)
     }
+}
+
+/// The size of every file under `dir`, recursively — hidden entries too.
+fn bytes_under(dir: &Path) -> Result<u64> {
+    let mut total = 0;
+    for entry in std::fs::read_dir(dir).ctx(dir)? {
+        let entry = entry.ctx(dir)?;
+        let path = entry.path();
+        let meta = entry.metadata().ctx(&path)?;
+        if meta.is_dir() {
+            total += bytes_under(&path)?;
+        } else {
+            total += meta.len();
+        }
+    }
+    Ok(total)
 }

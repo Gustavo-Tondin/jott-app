@@ -255,7 +255,7 @@ pub struct Notebook {
 // helpers of an area cannot quietly become an interface.
 mod groups;
 mod library;
-pub use library::NotebookSummary;
+pub use library::{NotebookContents, NotebookSummary};
 mod lists;
 mod notes;
 pub use notes::NoteFolderEntry;

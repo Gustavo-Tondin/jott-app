@@ -52,6 +52,37 @@ fn a_summary_counts_the_open_tasks_and_the_notes_waiting_in_the_inbox() {
 }
 
 #[test]
+fn the_contents_count_every_note_the_open_tasks_the_files_and_the_bytes() {
+    let dir = tempfile::tempdir().unwrap();
+    let nb = notebook(dir.path());
+    let list = Notebook::inbox_path();
+
+    nb.create_task(&list, "Comprar cimento").unwrap();
+    let done = nb.create_task(&list, "Já feito").unwrap();
+    let id = nb.ensure_task_id(&list, done).unwrap();
+    nb.complete_task(&list, &id).unwrap();
+
+    let notes = nb.note_folder("jott.notes").unwrap();
+    notes.quick_capture("Inbox", "uma ideia", today()).unwrap();
+    notes.create_folder("Clientes").unwrap();
+    notes.create("Clientes", "Proposta", today()).unwrap();
+
+    nb.import_asset("foto.png", b"png-bytes").unwrap();
+
+    let contents = nb.contents().unwrap();
+    assert_eq!(contents.notes, 2, "filed notes count too — unlike the picker");
+    assert_eq!(contents.tasks, 1, "the completed one is not still to do");
+    assert_eq!(contents.files, 1);
+    assert!(contents.bytes > 0);
+
+    // The size is the whole tree: adding bytes anywhere under the root
+    // — even in the hidden config folder — grows it.
+    let before = contents.bytes;
+    std::fs::write(dir.path().join(".jott/extra.bin"), vec![0u8; 4096]).unwrap();
+    assert_eq!(nb.contents().unwrap().bytes, before + 4096);
+}
+
+#[test]
 fn a_summary_wears_the_accent_the_notebook_chose() {
     let dir = tempfile::tempdir().unwrap();
     let mut nb = notebook(dir.path());

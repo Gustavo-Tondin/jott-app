@@ -108,6 +108,18 @@ describe("SettingsView", () => {
     expect(await screen.findByRole("button", { name: /Bar position/ })).toBeTruthy();
   });
 
+  test("the Notebook section says what the notebook holds", async () => {
+    // Counted by the core when the section opens (2026-08-24) — a number
+    // the user can read without a file manager (principle 4).
+    bridge({
+      notebook_settings: settings,
+      notebook_contents: { notes: 12, tasks: 1, files: 3, bytes: 2 * 1024 * 1024 },
+    });
+    render(SettingsView, { props: props() });
+    await openSection("Notebook");
+    await screen.findByText("12 notes · 1 task · 3 files · 2.0 MB");
+  });
+
   test("a shortcut is recorded here and stored on the notebook", async () => {
     bridge({ notebook_settings: settings, set_shortcut: null });
     render(SettingsView, { props: props() });

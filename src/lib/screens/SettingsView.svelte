@@ -236,6 +236,18 @@
   // here would silently start re-running the day someone reads state inside.
   load();
 
+  /// What the notebook holds, read once per visit to the Notebook section
+  /// (2026-08-24): the core walks the whole tree for the size, so this is
+  /// asked when the section opens and not on every render.
+  let contents = $state(null);
+  $effect(() => {
+    if (section !== "notebook") return;
+    api
+      .notebookContents()
+      .then((read) => (contents = read))
+      .catch((e) => onError?.(e));
+  });
+
   /// Sends one key. The core keeps everything it was not told about.
   const put = (patch) => act(() => api.setNotebookSettings(patch), flash);
 
@@ -1423,6 +1435,11 @@
           <p class="settings__hint">{S.confirmDeletesHint}</p>
 
           <h3 class="settings__subtitle">{S.subKeeping}</h3>
+
+          <p class="settings__row">
+            <span class="settings__label">{S.notebookContents}</span>
+            <span class="settings__value">{contents ? S.notebookContentsLine(contents) : "…"}</span>
+          </p>
 
           <label class="settings__row">
             <span class="settings__label">{S.completedRetention}</span>

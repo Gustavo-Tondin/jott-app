@@ -384,6 +384,17 @@ fn switching_a_feature_off_reaches_the_layout_and_touches_nothing_else() {
 }
 
 #[test]
+fn the_notebook_contents_come_over_the_bridge() {
+    let (_lock, app, _dir) = app_with_notebook();
+    task_with_id(&app, "jott.tasks/task-list.md", "uma");
+    let contents = ok(&app, "notebook_contents", json!({}));
+    assert_eq!(contents["tasks"], 1);
+    assert_eq!(contents["notes"], 0);
+    assert_eq!(contents["files"], 0);
+    assert!(contents["bytes"].as_u64().unwrap() > 0);
+}
+
+#[test]
 fn the_sidebar_sort_round_trips() {
     let (_lock, app, dir) = app_with_notebook();
 

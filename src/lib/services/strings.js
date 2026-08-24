@@ -446,6 +446,13 @@ export const S = {
   subLocation: "Location",
   subSafety: "Safety",
   subKeeping: "Keeping",
+  notebookContents: "Notebook contents",
+  notebookContentsLine: ({ notes, tasks, files, bytes }) => {
+    const n = (count, one, many) => `${count} ${count === 1 ? one : many}`;
+    const mb = bytes / (1024 * 1024);
+    const size = mb < 0.1 ? `${Math.ceil(bytes / 1024)} KB` : `${mb.toFixed(1)} MB`;
+    return `${n(notes, "note", "notes")} \u00b7 ${n(tasks, "task", "tasks")} \u00b7 ${n(files, "file", "files")} \u00b7 ${size}`;
+  },
   dateFormatElsewhere:
     "How a date is WRITTEN answers to this device, so it lives in Display → Interface.",
   shortcutFilter: "Filter commands",

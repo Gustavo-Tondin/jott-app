@@ -41,7 +41,9 @@ pub use config::{Config, Rollover, RolloverMode};
 pub use conflict::Conflict;
 pub use error::{Error, Result};
 pub use list::{Line, TaskList};
-pub use notebook::{ListedTask, NoteFolderEntry, Notebook, NotebookSummary, OriginAction};
+pub use notebook::{
+    ListedTask, NoteFolderEntry, Notebook, NotebookContents, NotebookSummary, OriginAction,
+};
 pub use search::{HitKind, SearchHit, SearchResults};
 pub use settings::{Display, DisplayPrefs, NotebookSettings};
 pub use space::{FolderSettings, Group, GroupEntry, Space, SpaceConfig};
