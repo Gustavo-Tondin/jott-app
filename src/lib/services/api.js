@@ -55,6 +55,10 @@ export const api = {
   // Every field is optional: the core keeps what it is not told about, so a
   // screen can send one key without holding the rest.
   notebookSettings: () => invoke("notebook_settings"),
+  // "Reset this section": a notebook page by key (dates · notebook · tasks ·
+  // notes), or this machine's Display drawer.
+  resetSettings: (section) => invoke("reset_settings", { section }),
+  resetMachineDisplay: () => invoke("reset_machine_display"),
   // What the notebook holds: {notes, tasks, files, bytes}. Walks the tree —
   // ask when a section opens, not on every render.
   notebookContents: () => invoke("notebook_contents"),

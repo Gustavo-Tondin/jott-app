@@ -46,6 +46,8 @@ pub fn configure<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builde
             commands::settings::reset_shortcuts,
             commands::settings::spaces_sort,
             commands::settings::set_spaces_sort,
+            commands::settings::reset_settings,
+            commands::settings::reset_machine_display,
             commands::period::period_sort,
             commands::period::set_period_sort,
             commands::period::set_period_order,

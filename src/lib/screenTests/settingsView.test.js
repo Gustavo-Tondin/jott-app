@@ -9,7 +9,7 @@ import { beforeEach, describe, expect, test } from "vitest";
 import { back } from "../services/back.js";
 import { bridge, invoke } from "../test/bridge.js";
 import { FEATURES, hasPage } from "../services/features.js";
-import { noop, resetScreens } from "../test/screens.js";
+import { answerConfirm, noop, resetScreens } from "../test/screens.js";
 import SettingsView from "../screens/SettingsView.svelte";
 
 beforeEach(resetScreens);
@@ -118,6 +118,27 @@ describe("SettingsView", () => {
     render(SettingsView, { props: props() });
     await openSection("Notebook");
     await screen.findByText("12 notes · 1 task · 3 files · 2.0 MB");
+  });
+
+  test("Reset this section asks first, then puts the page back", async () => {
+    bridge({ notebook_settings: settings, reset_settings: null, reset_machine_display: null });
+    render(SettingsView, { props: props() });
+    await openSection("Notebook");
+    await userEvent.click(await screen.findByRole("button", { name: "Reset this section" }));
+    await answerConfirm(false);
+    expect(invoke).not.toHaveBeenCalledWith("reset_settings", expect.anything());
+
+    await userEvent.click(await screen.findByRole("button", { name: "Reset this section" }));
+    await answerConfirm(true);
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("reset_settings", { section: "notebook" }),
+    );
+
+    // Display is this machine's drawer, and its reset goes to the other door.
+    await openSection("Display");
+    await userEvent.click(await screen.findByRole("button", { name: "Reset this section" }));
+    await answerConfirm(true);
+    await waitFor(() => expect(invoke).toHaveBeenCalledWith("reset_machine_display"));
   });
 
   test("a shortcut is recorded here and stored on the notebook", async () => {

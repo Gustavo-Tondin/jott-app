@@ -14,6 +14,7 @@
   import { api } from "../services/api.js";
   import { makeScreen } from "../services/act.js";
   import { S } from "../services/strings.js";
+  import { askConfirm } from "../services/dialog.js";
   import {
     FUNCTIONS,
     childrenIn,
@@ -275,6 +276,23 @@
 
   const resetShortcuts = () => act(() => api.resetShortcuts());
 
+  /// "Reset this section" (2026-08-24): every option on the page goes back
+  /// to what the app ships with — the core's defaults for a notebook page,
+  /// and this machine going quiet for Display. Asked first, always: the
+  /// button is deliberately small and far from the options, but a wrong
+  /// click here undoes a page of choices at once.
+  async function resetSection(section) {
+    const ok = await askConfirm(S.resetSectionTitle, {
+      detail: S.resetSectionDetail,
+      danger: S.resetSectionAction,
+    });
+    if (!ok) return;
+    act(
+      () => (section === "display" ? api.resetMachineDisplay() : api.resetSettings(section)),
+      flash,
+    );
+  }
+
   let readOnly = $derived(!!notebook?.readOnly);
 
   // ---- the search over every row (2026-08-20) ----
@@ -534,6 +552,19 @@
 </script>
 
 {#if settings && form}
+{#snippet resetFooter(section)}
+  <!-- Set apart and quiet on purpose: it is the one control on the page
+       that undoes the others, so it must not be where a finger lands. -->
+  <div class="settings__reset">
+    <button
+      type="button"
+      class="theme-btn theme-btn--outline theme-btn--xs settings__reset-btn"
+      disabled={section !== "display" && readOnly}
+      onclick={() => resetSection(section)}>{S.resetSection}</button
+    >
+  </div>
+{/snippet}
+
 {#snippet sectionTitle(text)}
   <!-- The section's name, ONCE. Side by side it is the panel's own heading,
        which is what says which of the menu's rows you are reading. On the
@@ -971,6 +1002,8 @@
               {/each}
             </select>
           </label>
+
+          {@render resetFooter("display")}
         </section>
       {/if}
 
@@ -1065,6 +1098,8 @@
                it sits in Display and this says so out loud rather than leaving
                someone to hunt (2026-08-20). -->
           <p class="settings__hint">{S.dateFormatElsewhere}</p>
+
+          {@render resetFooter("dates")}
         </section>
       {/if}
 
@@ -1242,6 +1277,8 @@
             {/if}
           {/each}
           <p class="settings__hint">{S.autoUrgentByDateHint}</p>
+
+          {@render resetFooter("tasks")}
         </section>
       {/if}
 
@@ -1296,6 +1333,8 @@
           <p class="settings__hint">{S.confirmImageDownloadsHint}</p>
 
 
+
+          {@render resetFooter("notes")}
         </section>
       {/if}
 
@@ -1487,6 +1526,8 @@
             />
           </label>
           <p class="settings__hint">{S.trashRetentionHint}</p>
+
+          {@render resetFooter("notebook")}
         </section>
       {/if}
     </div>

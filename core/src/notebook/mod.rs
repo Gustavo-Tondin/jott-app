@@ -567,6 +567,18 @@ impl Notebook {
         self.edit_config(|config| config.shortcuts.clear())
     }
 
+    /// Puts one page of Settings back to the app's defaults
+    /// (`settings::reset_section`). `Ok(false)` names a page that is not the
+    /// notebook's to reset; nothing is written then.
+    pub fn reset_settings(&mut self, section: &str) -> Result<bool> {
+        let mut known = false;
+        self.edit_config_if(|config| {
+            known = crate::settings::reset_section(config, section);
+            known
+        })?;
+        Ok(known)
+    }
+
     /// Starts watching this notebook for changes made outside the app.
     pub fn watch(&self) -> Result<crate::watcher::NotebookWatcher> {
         crate::watcher::NotebookWatcher::start(&self.root)

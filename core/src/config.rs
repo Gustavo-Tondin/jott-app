@@ -1264,8 +1264,7 @@ mod tests {
 
     #[test]
     fn the_rainbow_switch_round_trips_and_a_bad_value_falls_back() {
-        let mut config = Config::default();
-        config.auto_space_colors = true;
+        let config = Config { auto_space_colors: true, ..Default::default() };
         assert!(Config::parse(&config.render()).auto_space_colors);
         assert!(!Config::parse(r#"{"autoSpaceColors": "sim"}"#).auto_space_colors);
     }

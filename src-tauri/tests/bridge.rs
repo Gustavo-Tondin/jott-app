@@ -384,6 +384,24 @@ fn switching_a_feature_off_reaches_the_layout_and_touches_nothing_else() {
 }
 
 #[test]
+fn a_section_resets_to_the_defaults_and_display_falls_back_to_the_notebook() {
+    let (_lock, app, _dir) = app_with_notebook();
+    ok(&app, "set_notebook_settings", json!({ "settings": { "newTasksOnTop": true, "trashRetentionDays": 7 } }));
+    ok(&app, "reset_settings", json!({ "section": "tasks" }));
+    let read = ok(&app, "notebook_settings", json!({}));
+    assert_eq!(read["newTasksOnTop"], false, "the Tasks page went back");
+    assert_eq!(read["trashRetentionDays"], 7, "the Notebook page did not");
+    assert!(invoke(&app, "reset_settings", json!({ "section": "banana" })).is_err());
+
+    // Display: the machine said dark over a notebook that says nothing, and
+    // the reset makes the machine stop answering.
+    ok(&app, "set_machine_display", json!({ "display": { "theme": "dark" } }));
+    assert_eq!(ok(&app, "notebook_settings", json!({}))["theme"], "dark");
+    ok(&app, "reset_machine_display", json!({}));
+    assert_ne!(ok(&app, "notebook_settings", json!({}))["theme"], "dark");
+}
+
+#[test]
 fn the_notebook_contents_come_over_the_bridge() {
     let (_lock, app, _dir) = app_with_notebook();
     task_with_id(&app, "jott.tasks/task-list.md", "uma");

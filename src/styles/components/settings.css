@@ -244,6 +244,23 @@
     color: var(--theme-ink-muted);
     word-break: break-all;
   }
+  /* "Reset this section": at the foot, past a gap wider than any row's, and
+     dimmed until pointed at — it undoes the whole page, so it is neither
+     where a finger lands nor what the eye is drawn to. */
+  .settings__reset {
+    display: flex;
+    justify-content: flex-end;
+    margin-block-start: var(--theme-space-48);
+    padding-block-start: var(--theme-space-16);
+    border-block-start: 0.0625rem solid var(--theme-line);
+  }
+  .settings__reset-btn {
+    opacity: 0.55;
+  }
+  .settings__reset-btn:hover:not(:disabled),
+  .settings__reset-btn:focus-visible {
+    opacity: 1;
+  }
   /* A read-only answer beside its label — the notebook's contents. */
   .settings__value {
     font-size: var(--theme-text-13);

@@ -350,12 +350,79 @@ impl NotebookSettings {
     }
 }
 
+/// The pages of Settings a "Reset this section" can put back (2026-08-24),
+/// by the key the screen calls them. Display is not here: it is this
+/// machine's drawer, and the bridge clears it (`prefs::clear_display`).
+pub const RESETTABLE_SECTIONS: [&str; 4] = ["dates", "notebook", "tasks", "notes"];
+
+/// Puts every notebook setting of one page back to what the app ships
+/// with, and nothing else — `Config::default()` is the source, so a new
+/// default reaches the reset without a second list. `false` for a section
+/// that has no page here (including `display`, which is not the notebook's).
+///
+/// What each page holds is what the screen DRAWS on it: a key that moves
+/// between pages moves here too, or the button lies.
+pub fn reset_section(config: &mut Config, section: &str) -> bool {
+    let d = Config::default();
+    match section {
+        "dates" => {
+            config.rollover = d.rollover;
+            config.dated_tasks_join_period = d.dated_tasks_join_period;
+        }
+        "notebook" => {
+            config.quick_note_folder = d.quick_note_folder;
+            config.quick_task_list = d.quick_task_list;
+            config.home_tasks_source = d.home_tasks_source;
+            config.home_notes_source = d.home_notes_source;
+            config.auto_space_colors = d.auto_space_colors;
+            config.confirm_deletes = d.confirm_deletes;
+            config.completed_retention_days = d.completed_retention_days;
+            config.trash_retention_days = d.trash_retention_days;
+        }
+        "tasks" => {
+            config.auto_urgent_by_date = d.auto_urgent_by_date;
+            config.new_tasks_on_top = d.new_tasks_on_top;
+        }
+        "notes" => {
+            config.note_layout = d.note_layout;
+            config.confirm_image_downloads = d.confirm_image_downloads;
+            config.format_bar = d.format_bar;
+            config.format_bar_side = d.format_bar_side;
+        }
+        _ => return false,
+    }
+    true
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     fn settings(json: &str) -> NotebookSettings {
         serde_json::from_str(json).unwrap()
+    }
+
+    #[test]
+    fn resetting_a_section_touches_only_that_page() {
+        let mut config = Config::default();
+        config.new_tasks_on_top = true;
+        config.trash_retention_days = 7;
+        config.theme = "dark".to_string();
+
+        assert!(reset_section(&mut config, "tasks"));
+        assert!(!config.new_tasks_on_top, "the Tasks page went back");
+        assert_eq!(config.trash_retention_days, 7, "the Notebook page did not");
+        assert_eq!(config.theme, "dark");
+
+        assert!(reset_section(&mut config, "notebook"));
+        assert_eq!(config.trash_retention_days, Config::default().trash_retention_days);
+
+        // Display is the machine's, and an unknown page is nobody's.
+        assert!(!reset_section(&mut config, "display"));
+        assert!(!reset_section(&mut config, "banana"));
+        for section in RESETTABLE_SECTIONS {
+            assert!(reset_section(&mut Config::default(), section));
+        }
     }
 
     #[test]

@@ -318,6 +318,17 @@ pub fn set_display<R: Runtime>(app: &AppHandle<R>, notebook: &Path, patch: Displ
     });
 }
 
+/// This machine stops answering for `notebook`'s looks: an entry of its own
+/// with every field `None`, so the notebook's config decides — not the
+/// machine-wide `display`, which is what a MISSING entry falls back to.
+pub fn clear_display<R: Runtime>(app: &AppHandle<R>, notebook: &Path) {
+    update(app, |prefs| {
+        prefs
+            .notebook_display
+            .insert(notebook.to_path_buf(), DisplayPrefs::default());
+    });
+}
+
 /// Whether the app may check for a new version by itself. Absent means yes.
 pub fn auto_update_check<R: Runtime>(app: &AppHandle<R>) -> bool {
     load(app).auto_update_check.unwrap_or(true)

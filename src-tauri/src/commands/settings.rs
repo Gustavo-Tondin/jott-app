@@ -11,7 +11,7 @@ use jott_core::settings::{Display, NotebookSettings};
 use jott_core::Notebook;
 use tauri::{AppHandle, Runtime, State};
 
-use crate::error::CommandResult;
+use crate::error::{CommandError, CommandResult};
 use crate::state::AppState;
 
 /// The display choices in force, machine over notebook.
@@ -122,6 +122,39 @@ pub fn notebook_settings<R: Runtime>(
 ///
 /// Every field is optional on the way in: the screen sends the one key that
 /// changed.
+/// "Reset this section" on a notebook page (2026-08-24). The core says
+/// which keys a page holds; an unknown page is refused rather than quietly
+/// doing nothing, so a renamed section shows up as an error and not as a
+/// button that stopped working.
+#[tauri::command]
+pub fn reset_settings<R: Runtime>(
+    state: State<'_, AppState>,
+    window: tauri::Window<R>,
+    section: String,
+) -> CommandResult<()> {
+    let known = state.write(window.label(), |nb| nb.reset_settings(&section))?;
+    if !known {
+        return Err(CommandError::new(
+            "settings",
+            format!("{section} is not a section this notebook can reset"),
+        ));
+    }
+    Ok(())
+}
+
+/// "Reset this section" on Display: this machine stops answering for the
+/// notebook, and every Display value falls back to the notebook's own.
+#[tauri::command]
+pub fn reset_machine_display<R: Runtime>(
+    app: AppHandle<R>,
+    state: State<'_, AppState>,
+    window: tauri::Window<R>,
+) -> CommandResult<()> {
+    let root = state.with_notebook(window.label(), |nb| Ok(nb.root().to_path_buf()))?;
+    crate::prefs::clear_display(&app, &root);
+    Ok(())
+}
+
 #[tauri::command]
 pub fn set_machine_display<R: Runtime>(
     app: AppHandle<R>,

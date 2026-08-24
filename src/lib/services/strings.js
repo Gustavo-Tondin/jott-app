@@ -448,6 +448,10 @@ export const S = {
   subLocation: "Location",
   subSafety: "Safety",
   subSidebar: "Sidebar",
+  resetSection: "Reset this section",
+  resetSectionTitle: "Reset this section?",
+  resetSectionDetail: "Every option on this page goes back to what the app ships with.",
+  resetSectionAction: "Reset",
   autoSpaceColors: "Colour spaces automatically",
   autoSpaceColorsHint:
     "Every space and group without a colour of its own takes one of the seven, in sidebar order. A colour you chose always wins.",
