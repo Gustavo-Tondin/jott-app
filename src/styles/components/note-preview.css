@@ -20,10 +20,12 @@
 @layer components {
   .note-preview {
     /* The clamp is a LINE COUNT, not a height: it is what makes the cut land
-       between lines rather than through one. The fade does the rest — with a
-       formatted preview an ellipsis has nowhere to sit (the last line may be
-       a heading, a bullet or a quote), and a soft end says "there is more"
-       without pretending to be punctuation. */
+       between lines rather than through one. The cut itself is a clean line
+       — the fade that used to soften it read as a smudge over the text
+       (user call, 2026-08-24) — and "there is more" is said by the three
+       dots the component appends only when the clamp actually cut something.
+       An ellipsis IN the text still has nowhere to sit (the last line may be
+       a heading, a bullet or a quote), which is why it sits under it. */
     --note-preview-lines: 12;
     display: block;
     color: var(--theme-ink-muted);
@@ -32,7 +34,17 @@
     max-block-size: calc(var(--note-preview-lines) * var(--theme-leading-normal) * 1em);
     overflow: hidden;
     overflow-wrap: anywhere;
-    mask-image: linear-gradient(to bottom, #000 70%, transparent 100%);
+  }
+
+  /* The three quiet dots under a cut preview. Faint, not muted: a sign, not
+     a line of the note. */
+  .note-preview__more {
+    display: block;
+    margin-block-start: 0.2em;
+    color: var(--theme-ink-faint);
+    font-size: var(--theme-text-13);
+    line-height: 1;
+    letter-spacing: 0.1em;
   }
 
   .note-preview > * {
