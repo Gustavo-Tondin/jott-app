@@ -13,7 +13,7 @@
     historyKeymap,
     insertNewline,
   } from "@codemirror/commands";
-  import { indentUnit } from "@codemirror/language";
+  import { codeFolding, foldGutter, indentUnit } from "@codemirror/language";
   // Find and replace inside the open note (2026-08-17). CodeMirror's own
   // panel: it is the same shape VSCode's is — a field, a replace field, and
   // the match count — and reusing it means the app is not maintaining a
@@ -202,6 +202,22 @@
           // as code — monospace, set apart — it just is not colourised.
           markdown({ base: markdownLanguage }),
           markdownPreview,
+          // Folding by SECTION, the way Obsidian reads a document (user
+          // call, 2026-08-24): the chevron beside a heading folds everything
+          // up to the next heading of the same or a higher level. The ranges
+          // are `markdown()`'s own fold service; these two only give them a
+          // gutter and a placeholder. The markers carry a class instead of
+          // CodeMirror's default glyphs so `editor.css` can draw and turn
+          // ONE chevron, the app's caret.
+          codeFolding({ placeholderText: "…" }),
+          foldGutter({
+            markerDOM(open) {
+              const mark = document.createElement("span");
+              mark.className = `cm-fold-marker${open ? " cm-fold-marker--open" : ""}`;
+              mark.textContent = "›";
+              return mark;
+            },
+          }),
           ]),
           keymap.of([...defaultKeymap, ...historyKeymap]),
           // The notebook's files, drawn in the note (2026-08-19). Built with

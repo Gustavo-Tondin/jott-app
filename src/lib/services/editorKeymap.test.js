@@ -15,7 +15,7 @@ import {
   historyKeymap,
   insertNewline,
 } from "@codemirror/commands";
-import { indentUnit } from "@codemirror/language";
+import { foldable, indentUnit } from "@codemirror/language";
 import { searchKeymap } from "@codemirror/search";
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import * as md from "./markdownCommands.js";
@@ -142,6 +142,25 @@ describe("indentation and line breaks (the four rules of 2026-08-18)", () => {
     const { view, done } = editor(`${md.INDENT}- leite`);
     press(view, "Enter", { shiftKey: true });
     expect(text(view)).toBe(`${md.INDENT}- leite\n`);
+    done();
+  });
+});
+
+describe("folding by section (2026-08-24)", () => {
+  it("a heading folds up to the next heading of its level or higher", () => {
+    // The Obsidian read of a document: the ## section swallows its ### child
+    // and stops at the next ## — the fold service `markdown()` ships, which
+    // the editor's gutter draws (Editor.svelte).
+    const doc = "## A\ntexto\n### sub\nmais\n## B\nfim";
+    const { view, done } = editor(doc, 0);
+    const first = view.state.doc.line(1);
+    expect(foldable(view.state, first.from, first.to)).toEqual({
+      from: first.to,
+      to: view.state.doc.line(4).to,
+    });
+    // A plain line has nothing to fold.
+    const plain = view.state.doc.line(2);
+    expect(foldable(view.state, plain.from, plain.to)).toBeNull();
     done();
   });
 });

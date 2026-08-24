@@ -256,6 +256,48 @@
   color: var(--theme-ink);
 }
 
+/* ---- folding by section (2026-08-24) ----
+   The gutter CodeMirror adds for the fold markers, stripped back to nothing
+   but the chevron: no ground, no rule — the margin of the page, not a panel
+   beside it. One glyph does both states, turned when open, and the open ones
+   keep quiet until the pointer comes near: a folded section is a FACT worth
+   showing always, an unfolded one only an offer. */
+.editor .cm-gutters {
+  background: none;
+  border: none;
+}
+.editor .cm-foldGutter .cm-gutterElement {
+  padding: 0;
+  inline-size: 1.1em;
+  text-align: center;
+}
+.editor .cm-fold-marker {
+  display: inline-block;
+  color: var(--theme-ink-faint);
+  cursor: pointer;
+  transition:
+    rotate var(--theme-transition-fast),
+    opacity var(--theme-transition-fast);
+}
+.editor .cm-fold-marker--open {
+  rotate: 90deg;
+  opacity: 0;
+}
+.editor .cm-gutters:hover .cm-fold-marker--open,
+.editor .cm-activeLineGutter .cm-fold-marker--open {
+  opacity: 1;
+}
+/* What a folded section leaves behind: the quiet dots, on a step of ground
+   so they read as something to press. */
+.editor .cm-foldPlaceholder {
+  padding-inline: var(--theme-space-6);
+  background: var(--theme-well);
+  border: none;
+  border-radius: var(--theme-radius-xs);
+  color: var(--theme-ink-muted);
+  cursor: pointer;
+}
+
 /* ---- checklists ----
    A note's checkbox is two characters in the file (spec 5), but it reads as
    done the way a task of the app does — struck through and stepped back.
