@@ -1293,21 +1293,17 @@
   // the same thing is true of all of them. Android only reports the edge, so
   // this cannot fire while someone is still typing (services/androidStorage.js).
   //
-  // And the Home's composer goes with it (user call, 2026-08-21). It is the
-  // one bar that was ASKED for — the + opened it — so putting the keyboard
-  // away is the same gesture as being done with it; leaving it behind meant a
-  // bar across the bottom of the day with no way to dismiss it. The tasks
-  // screens' bar is not this: there it is part of the screen, not something
-  // opened, and it stays.
+  // The Home's composer does NOT go with it (user call, 2026-08-24, replacing
+  // the 2026-08-21 rule): once asked for, the bar stays — through the keyboard
+  // coming and going — until a task is created with the keyboard already
+  // closed, or it is pulled down by its handle (TaskComposer.svelte). Closing
+  // the keyboard mid-thought was deleting the thought.
   //
-  // Two exceptions, both measured on device (2026-08-24). A composer CONTROL
+  // One exception, measured on device (2026-08-24): a composer CONTROL
   // holding the focus — a chip, a field button, or a panel portaled out by
   // `keepOnScreen` — is not "done typing": the keyboard stepped aside for the
   // menu the tap just opened, and blurring here killed that menu before it
-  // drew. And a bar HOLDING something (text written, a field chosen — the
-  // `.task-composer--holding` class the composer itself wears) survives the
-  // keyboard, because dismissing the keys mid-thought was deleting the
-  // thought. Empty and let go, it closes as before.
+  // drew.
   $effect(() =>
     onKeyboardHidden(() => {
       const focused = document.activeElement;
@@ -1315,7 +1311,6 @@
       const composer = focused?.closest?.(".task-composer");
       if (composer && !focused.classList.contains("task-composer__input")) return;
       if (focused && focused !== document.body) focused.blur?.();
-      if (!document.querySelector(".task-composer--holding")) composingTask = false;
     }),
   );
 
@@ -2346,6 +2341,7 @@
               root={notebook.path}
               dot={colorOf(view)}
               composing={composingTask}
+              onCloseCompose={() => (composingTask = false)}
               dateFormat={layout.dateDisplayFormat}
               quickNoteFolder={layout.quickNoteFolder}
               notesFolder={layout.notesFolder}

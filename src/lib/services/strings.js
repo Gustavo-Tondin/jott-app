@@ -548,6 +548,7 @@ export const S = {
   openTabs: (count) => (count === 1 ? "1 open tab" : `${count} open tabs`),
   openSidebar: "open sidebar",
   closeSheet: "close",
+  closeComposer: "close the new task bar",
   // The Home's + on a phone: it opens the two composers rather than being one
   // of them, because Home is the only screen that is neither tasks nor notes.
   capture: "capture",

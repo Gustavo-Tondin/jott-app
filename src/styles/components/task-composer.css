@@ -99,6 +99,61 @@
     padding-block-end: calc(7.5rem + var(--theme-safe-bottom));
   }
 
+  /* ---- the grab handle (the bar that can be put away) ----
+     The Home's on-demand bar grows the panels' own handle across its top:
+     pull it down to dismiss, tap it to close — the sheet's exact pact
+     (sheet.css, BottomSheet.svelte). Only drawn when the composer has an
+     `onDismiss`; the permanent bars have no handle to find. */
+  .task-composer__handle {
+    /* Above the fields row (order -1) in the compact wrap, and a line of its
+       own at any width. */
+    order: -2;
+    flex-basis: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    block-size: 1.75rem;
+    padding: 0;
+    border: none;
+    background: none;
+    cursor: grab;
+    /* Stop the browser from claiming the vertical drag for a scroll — without
+       this the pointermove events never arrive on a touchscreen. */
+    touch-action: none;
+  }
+  .task-composer--dragging .task-composer__handle {
+    cursor: grabbing;
+  }
+  .task-composer__grip {
+    inline-size: 3.75rem;
+    block-size: 0.25rem;
+    border-radius: var(--theme-radius-pill);
+    background: color-mix(in srgb, var(--palette-gray) 30%, transparent);
+  }
+  .task-composer__handle:focus-visible {
+    outline: none;
+  }
+  .task-composer__handle:focus-visible .task-composer__grip {
+    background: var(--theme-brand);
+  }
+  /* Follows the drag (TaskComposer.svelte). Zero except while a pointer is
+     pulling it down, so the bar is where it belongs the rest of the time. */
+  .task-composer--bar {
+    translate: 0 var(--composer-pulled, 0rem);
+    transition: translate var(--theme-transition-medium);
+  }
+  /* While the finger is down the bar must track it exactly — a transition
+     here would make the drag feel like it is on a leash. */
+  .task-composer--dragging {
+    transition: none;
+  }
+  /* The handle belongs to the phone: the wide shell never opens this bar on
+     demand, and in its single-row layout a full-width handle would squeeze
+     the row instead of topping it. */
+  .shell:not(.shell--compact) .task-composer__handle {
+    display: none;
+  }
+
   /* Inside the dialog the row is the whole point, so it sits flush. */
   .task-composer--dialog {
     background: var(--theme-surface-sunken);

@@ -84,6 +84,9 @@
     /// the phone, and a task captured here still lands in the inbox and gets
     /// pulled into the day.
     composing = false,
+    /// The way the bar is put away — its pull-down handle, and a task created
+    /// with the keyboard already closed (TaskComposer.svelte, 2026-08-24).
+    onCloseCompose = null,
   } = $props();
 
   // The tasks block IS the tasks screen hosted over the day — no source
@@ -197,6 +200,7 @@
         align="center"
         compose={composing ? "bar" : "none"}
         composeAutofocus={composing}
+        composeDismiss={onCloseCompose}
         {lists}
         {tags}
         {completedName}

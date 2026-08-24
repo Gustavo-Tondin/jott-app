@@ -1,14 +1,14 @@
-// The Home's composing bar on a compact screen, and the Android keyboard
-// going away — what closes the bar, and what must not (user report on device,
-// 2026-08-24: a tap on a chip killed the menu it opened, and dismissing the
-// keys mid-thought deleted the thought).
+// The Home's composing bar on a compact screen — what closes it, and what
+// must not (user calls, 2026-08-24). Once asked for, the bar STAYS through
+// the keyboard coming and going; it is put away by its pull-down handle, or
+// by creating a task with the keyboard already closed.
 //
 // Screen tests with the bridge mocked. What they catch, what they deliberately
 // do not, and the fakes they share: `lib/test/screens.js`.
 
-import { fireEvent, render, waitFor } from "@testing-library/svelte";
+import { fireEvent, render, waitFor, within } from "@testing-library/svelte";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { bridge } from "../test/bridge.js";
 import { resetScreens } from "../test/screens.js";
 
@@ -26,8 +26,9 @@ vi.mock("../shell/compact.js", async (original) => {
 const { default: App } = await import("../../App.svelte");
 
 beforeEach(resetScreens);
+afterEach(() => vi.useRealTimers());
 
-describe("Home's composing bar and the Android keyboard", () => {
+describe("Home's composing bar, the keyboard, and the way out", () => {
   const aNotebook = () => {
     const notebook = {
       path: "/n",
@@ -74,6 +75,9 @@ describe("Home's composing bar and the Android keyboard", () => {
       period_tasks: [],
       grouped_suggestions: [],
       list_tasks: [],
+      create_task: 0,
+      ensure_task_id: "t1",
+      pull_into: null,
     });
   };
 
@@ -96,7 +100,9 @@ describe("Home's composing bar and the Android keyboard", () => {
   const keyboardGoesAway = async () =>
     await fireEvent(document, new CustomEvent("android-keyboard-hidden"));
 
-  test("empty and let go, the bar closes with the keyboard", async () => {
+  test("empty and let go, the bar still stays: it lives until a task is made", async () => {
+    // Replacing the 2026-08-21 rule — the keyboard going away no longer puts
+    // the bar away, full or empty.
     aNotebook();
     render(App);
     const field = await openBar();
@@ -104,12 +110,15 @@ describe("Home's composing bar and the Android keyboard", () => {
 
     await keyboardGoesAway();
 
+    // The field lets go of the caret — the keyboard is gone — but the bar
+    // stays.
     await waitFor(() => {
-      expect(document.querySelector(".task-composer")).toBeNull();
+      expect(document.activeElement).not.toBe(field);
     });
+    expect(document.querySelector(".task-composer")).not.toBeNull();
   });
 
-  test("with something written, the bar (and the writing) survive the keyboard", async () => {
+  test("with something written, the writing survives the keyboard too", async () => {
     aNotebook();
     render(App);
     const field = await openBar();
@@ -118,20 +127,12 @@ describe("Home's composing bar and the Android keyboard", () => {
 
     await keyboardGoesAway();
 
-    // The field lets go of the caret — the keyboard is gone — but the bar
-    // stays, holding the half-written task.
-    await waitFor(() => {
-      expect(document.activeElement).not.toBe(field);
-    });
     const kept = document.querySelector(".task-composer__input");
     expect(kept).not.toBeNull();
     expect(kept.value).toBe("Comprar leite");
   });
 
-  test("a chip holding the focus is not 'done typing' — the bar stays put", async () => {
-    // Tapping the list chip moves focus off the field, which is what dismisses
-    // the IME — the keyboard stepping aside for the menu is not the user
-    // putting the bar away.
+  test("a chip holding the focus is not 'done typing' — the menu it opened survives", async () => {
     aNotebook();
     render(App);
     await openBar();
@@ -142,5 +143,73 @@ describe("Home's composing bar and the Android keyboard", () => {
 
     expect(document.querySelector(".task-composer")).not.toBeNull();
     expect(document.activeElement).toBe(chip);
+  });
+
+  test("creating with the keyboard up keeps the bar, ready for the next task", async () => {
+    aNotebook();
+    render(App);
+    const field = await openBar();
+    field.focus();
+    await fireEvent.input(field, { target: { value: "Comprar leite" } });
+
+    const add = document.querySelector(".task-composer button[type=submit]");
+    add.focus(); // what the tap itself does, before the click is dispatched
+    await fireEvent.click(add);
+
+    await waitFor(() => {
+      const kept = document.querySelector(".task-composer__input");
+      expect(kept).not.toBeNull();
+      expect(kept.value).toBe("");
+    });
+  });
+
+  test("creating with the keyboard closed puts the bar away with the task", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    aNotebook();
+    render(App);
+    const field = await openBar();
+    field.focus();
+    await fireEvent.input(field, { target: { value: "Comprar leite" } });
+    // The keyboard went away a while ago: the field let go past the grace
+    // that covers a tap's own focus hop (TaskComposer.svelte).
+    field.blur();
+    vi.advanceTimersByTime(1000);
+
+    await fireEvent.click(document.querySelector(".task-composer button[type=submit]"));
+
+    await waitFor(() => {
+      expect(document.querySelector(".task-composer")).toBeNull();
+    });
+  });
+
+  test("the bar wears the panels' handle, and tapping it closes", async () => {
+    aNotebook();
+    render(App);
+    await openBar();
+
+    const handle = document.querySelector(".task-composer__handle");
+    expect(handle).not.toBeNull();
+    await fireEvent.click(handle);
+
+    await waitFor(() => {
+      expect(document.querySelector(".task-composer")).toBeNull();
+    });
+  });
+
+  test("the permanent bars have no handle to find", async () => {
+    // The handle belongs to the bar that can be put away; the tasks screens'
+    // bar is part of the screen, and stays.
+    aNotebook();
+    render(App);
+    const sidebar = await waitFor(() => {
+      const el = document.querySelector(".shell__sidebar");
+      if (!el) throw new Error("no sidebar");
+      return el;
+    });
+    await userEvent.click(within(sidebar).getByText("Tasks"));
+    await waitFor(() => {
+      if (!document.querySelector(".task-composer")) throw new Error("no bar");
+    });
+    expect(document.querySelector(".task-composer__handle")).toBeNull();
   });
 });

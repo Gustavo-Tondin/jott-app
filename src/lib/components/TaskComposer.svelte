@@ -58,6 +58,11 @@
     /// Given the intent. Returning a promise is fine — the row clears as soon
     /// as it is handed over, so typing can continue immediately.
     onSubmit,
+    /// The bar was OPENED and can be put away (the Home's, on a phone). With
+    /// it set the bar grows the panels' grab handle — pull down (or tap it)
+    /// to close — and a task created with the keyboard already closed calls
+    /// it too: the run of tasks is over (user call, 2026-08-24).
+    onDismiss = null,
   } = $props();
 
   let intent = $state(emptyIntent(null));
@@ -97,17 +102,40 @@
   let engaged = $state(false);
   let showFields = $derived(variant === "dialog" || engaged || intent.text.trim().length > 0);
 
-  /// Is there anything here worth keeping? Text typed, or a field chosen by
-  /// hand. The shell reads it off the markup (`.task-composer--holding`) when
-  /// the Android keyboard goes away, so the Home's bar is not thrown out with
-  /// a half-written task still on it (user report on device, 2026-08-24).
-  let holding = $derived(
-    intent.text.trim().length > 0 ||
-      !!intent.list ||
-      !!intent.due ||
-      !!intent.priority ||
-      !!intent.repeatUnit,
-  );
+  /// When the field last let go of the caret. Submitting from the ＋ moves
+  /// focus to the button BEFORE the click lands, so "is the keyboard up?" at
+  /// submit time is really "was the field focused a moment ago". Anything
+  /// within this window counts as still typing.
+  let typedUntil = 0;
+  const TYPING_GRACE = 400;
+
+  /// The drag that puts the bar away, exactly the sheet's (BottomSheet.svelte
+  /// says why a handle that cannot be grabbed would be a lie): pull down past
+  /// a third of the bar's height and it goes, short of that it springs back.
+  let pulled = $state(0);
+  let pullFrom = 0;
+  const DISMISS_AT = 1 / 3;
+
+  function onPullDown(event) {
+    if (event.button !== 0) return;
+    pullFrom = event.clientY;
+    pulled = 0;
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }
+
+  function onPullMove(event) {
+    if (!event.currentTarget.hasPointerCapture?.(event.pointerId)) return;
+    pulled = Math.max(0, event.clientY - pullFrom);
+  }
+
+  function onPullUp(event) {
+    if (!event.currentTarget.hasPointerCapture?.(event.pointerId)) return;
+    event.currentTarget.releasePointerCapture(event.pointerId);
+    const height = form?.offsetHeight ?? 0;
+    const far = height > 0 && pulled > height * DISMISS_AT;
+    pulled = 0;
+    if (far) onDismiss?.();
+  }
 
   function letGo() {
     // After the browser has settled focus on whatever comes next.
@@ -129,29 +157,53 @@
     onSubmit?.({ ...intent, text, list: target });
     intent = emptyIntent(null);
     repeating = false;
-    // THE CURSOR GOES BACK, so the next task can be typed straight away (user
-    // call, 2026-08-21: "ao clicar ＋ eu gostaria que o teclado continuasse
-    // aberto, pra poder adicionar várias tasks seguidas"). Tapping the ＋ moves
-    // focus to the BUTTON, and on Android focus leaving the field is what
-    // dismisses the keyboard — which made the pinned row cost one keyboard per
-    // task, when a row pinned above the keys exists for a RUN of them. Enter
-    // never had the problem; only the button did, which is exactly the half a
-    // desktop test would not have noticed.
+    // THE CURSOR GOES BACK when the keyboard was up, so the next task can be
+    // typed straight away (user call, 2026-08-21: "ao clicar ＋ eu gostaria
+    // que o teclado continuasse aberto, pra poder adicionar várias tasks
+    // seguidas"). Tapping the ＋ moves focus to the BUTTON, and on Android
+    // focus leaving the field is what dismisses the keyboard — which is also
+    // why "was the keyboard up?" is asked as "was the field focused a moment
+    // ago" (`typedUntil`).
     //
-    // Not in the dialog: that one settles and closes on submit, so there is no
-    // field left to put the cursor in.
-    if (variant !== "dialog") field?.focus();
+    // Created with the keyboard already CLOSED, the run is over: a bar that
+    // can be dismissed goes away with the task it just made (user call,
+    // 2026-08-24). The permanent bars have no `onDismiss` and keep the old
+    // answer. Not in the dialog: that one settles and closes on submit, so
+    // there is no field left to put the cursor in.
+    if (variant === "dialog") return;
+    const typing = document.activeElement === field || Date.now() < typedUntil;
+    if (typing || !onDismiss) field?.focus();
+    else onDismiss();
   }
 </script>
 
 <form
   bind:this={form}
   class="task-composer task-composer--{variant}"
-  class:task-composer--holding={holding}
+  class:task-composer--dragging={pulled > 0}
+  style={onDismiss ? `--composer-pulled: ${pulled}px` : undefined}
   onsubmit={(e) => (e.preventDefault(), submit())}
   onfocusin={() => (engaged = true)}
   onfocusout={letGo}
 >
+  {#if onDismiss}
+    <!-- The panels' own gesture on the bar that can be put away: a drag is
+         not reachable from a keyboard or a screen reader, so the handle is
+         also a button and tapping it closes (the sheet's exact pact). -->
+    <button
+      type="button"
+      class="task-composer__handle"
+      aria-label={S.closeComposer}
+      onpointerdown={onPullDown}
+      onpointermove={onPullMove}
+      onpointerup={onPullUp}
+      onpointercancel={onPullUp}
+      onclick={() => onDismiss?.()}
+    >
+      <span class="task-composer__grip" aria-hidden="true"></span>
+    </button>
+  {/if}
+
   <span class="theme-checkbox theme-checkbox--lg task-composer__mark" aria-hidden="true"></span>
 
   <input
@@ -160,6 +212,7 @@
     placeholder={S.createTaskPlaceholder}
     aria-label={S.createTaskPlaceholder}
     bind:value={intent.text}
+    onblur={() => (typedUntil = Date.now() + TYPING_GRACE)}
     {disabled}
   />
 

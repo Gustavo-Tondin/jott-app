@@ -84,6 +84,9 @@
     /// opens on demand (Home's + on a phone): a composer that was ASKED for
     /// and then waits to be tapped again has answered half the request.
     composeAutofocus = false,
+    /// For the same on-demand bar: how it is put away. Handed to the composer
+    /// as its `onDismiss`; the permanent bars leave it unset.
+    composeDismiss = null,
     /// Where a composed task goes by default when the source has no list of
     /// its own — the notebook's Inbox, for a period source.
     defaultList = null,
@@ -655,6 +658,7 @@
         {dateFormat}
         {f}
         onSubmit={write}
+        onDismiss={composeDismiss}
       />
     {/if}
   {/if}
