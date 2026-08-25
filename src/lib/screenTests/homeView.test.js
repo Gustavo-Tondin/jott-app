@@ -3,7 +3,7 @@
 // Screen tests with the bridge mocked. What they catch, what they deliberately
 // do not, and the fakes they share: `lib/test/screens.js`.
 
-import { render, screen, waitFor, within } from "@testing-library/svelte";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/svelte";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, test } from "vitest";
 import { bridge, invoke } from "../test/bridge.js";
@@ -83,9 +83,72 @@ describe("HomeView", () => {
     expect(await screen.findByText("ideia")).toBeTruthy();
     expect(screen.getByText("uma ideia")).toBeTruthy();
     expect(container.querySelector(".note-card__banner")).toBeTruthy();
-    // Its own actions belong where the note lives — Home is the day looking in.
+    // …and the card's own actions with it (2026-08-25). It used to carry
+    // neither ⋮ nor pin, on the reading that what a note IS belongs where the
+    // note lives — which on a phone, with no right button, left a note on the
+    // Home with no action at all.
+    expect(container.querySelector(".note-card__more")).toBeTruthy();
+    expect(container.querySelector(".note-card__pin")).toBeTruthy();
+  });
+
+  test("a card of the day offers the same rows the board offers", async () => {
+    bridge({
+      period_tasks: [],
+      notes_created_today: [
+        {
+          path: "Inbox/ideia.md",
+          title: "ideia",
+          folder: "Inbox",
+          preview: "uma ideia",
+          created: "2026-07-21",
+          pinned: false,
+        },
+      ],
+      set_note_pinned: null,
+    });
+
+    const { container } = render(HomeView, { props: props() });
+    await screen.findByText("ideia");
+
+    await userEvent.click(container.querySelector(".note-card__more"));
+    const rows = [...document.querySelectorAll(".menu__list > .menu__item > .menu__link")].map(
+      (el) => el.textContent.trim(),
+    );
+    // The same four the board offers, in the same order.
+    expect(rows).toEqual(["Pin", "Move to…", "Duplicate", "Delete"]);
+
+    // The pin is a button of its own, because a pin is a STATE: the card has
+    // to say whether it is pinned without being asked.
+    await userEvent.click(container.querySelector(".note-card__pin"));
+    await waitFor(() =>
+      // Named with the SPACE Home was given — it looks into one, it does not
+      // live in it.
+      expect(invoke).toHaveBeenCalledWith("set_note_pinned", {
+        folder: "jott.notes",
+        path: "Inbox/ideia.md",
+        pinned: true,
+      }),
+    );
+  });
+
+  test("a read-only notebook still opens a card of the day in a new tab", async () => {
+    // The one row that is not a write.
+    bridge({
+      period_tasks: [],
+      notes_created_today: [
+        { path: "Inbox/ideia.md", title: "ideia", folder: "Inbox", created: "2026-07-21" },
+      ],
+    });
+
+    const { container } = render(HomeView, { props: props({ readOnly: true }) });
+    await screen.findByText("ideia");
+
     expect(container.querySelector(".note-card__more")).toBeNull();
-    expect(container.querySelector(".note-card__pin")).toBeNull();
+    await fireEvent.contextMenu(container.querySelector(".note-card"));
+    const rows = [...document.querySelectorAll(".context-menu button")].map((el) =>
+      el.textContent.trim(),
+    );
+    expect(rows).toEqual(["Open in new tab"]);
   });
 
   test("the capture box writes a note where the notes ⋮ points", async () => {

@@ -25,6 +25,7 @@
   import { S } from "../services/strings.js";
   import EmptyState from "../components/EmptyState.svelte";
   import { askConfirm, askName, DELETING } from "../services/dialog.js";
+  import { noteActions, noteCardMenu } from "../services/noteActions.js";
   import { makeScreen } from "../services/act.js";
   import { spaceMenu } from "../services/spaceMenu.js";
   import { arrange, pinnedFirst, planReorder } from "../services/spaceOrder.js";
@@ -209,29 +210,15 @@
   function openCardMenu(event, entry) {
     event.preventDefault();
     event.stopPropagation();
-    cardMenuShown = [
-      { label: S.openInNewTabItem, run: () => openNote(entry, { newTab: true }) },
-      ...cardMenu(entry),
-    ];
+    cardMenuShown = cardMenu(entry, {
+      openInNewTab: () => openNote(entry, { newTab: true }),
+    });
     cardMenuAt = { x: event.clientX, y: event.clientY };
   }
 
-  const togglePin = (entry) =>
-    act(() => api.setNotePinned(folder, entry.path, !entry.pinned));
-
-  const duplicate = (entry) => act(() => api.duplicateNote(folder, entry.path));
-
-  const deleteNote = (entry) =>
-    act(async () => {
-      if (!(await askConfirm(S.confirmDeleteNote(entry.title), DELETING))) return;
-      await api.deleteNote(folder, entry.path);
-    });
-
-  const moveNote = (entry, where) =>
-    act(async () => {
-      const [space, into] = JSON.parse(where);
-      await api.moveNoteToSpace(folder, entry.path, space, into);
-    });
+  /// The four a card offers, shared with the Home (services/noteActions.js).
+  const cards = noteActions(act);
+  const togglePin = (entry) => cards.pin(folder, entry);
 
   const renameFolder = (path = openFolder) =>
     act(async () => {
@@ -445,26 +432,16 @@
         ];
 
   /// A card's own ⋮. Not built for a read-only notebook: every item writes.
-  const cardMenu = (entry) =>
-    readOnly
-      ? []
-      : [
-          ...(f("pinNotes")
-            ? [{ label: entry.pinned ? S.unpin : S.pin, run: () => togglePin(entry) }]
-            : []),
-          {
-            label: S.moveTo,
-            items: moveTargets.flatMap((group) =>
-              group.options.map((option) => ({
-                label: option.label,
-                context: group.label,
-                run: () => moveNote(entry, option.value),
-              })),
-            ),
-          },
-          { label: S.duplicateNote, run: () => duplicate(entry) },
-          { label: S.deleteNote, run: () => deleteNote(entry) },
-        ];
+  const cardMenu = (entry, { openInNewTab = null } = {}) =>
+    noteCardMenu({
+      entry,
+      actions: cards,
+      space: folder,
+      canPin: f("pinNotes"),
+      moveTargets,
+      readOnly,
+      openInNewTab,
+    });
 
   // ---- bulk selection (the ⋮'s "Select notes…") ----
   // Picked notes are held by ADDRESS, not by object identity: unlike a task,

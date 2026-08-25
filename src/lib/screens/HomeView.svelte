@@ -39,6 +39,7 @@
   import { measured } from "../actions/measure.js";
   import { columnBreaks, columnCount, weightOfNote } from "../services/noteColumns.js";
   import { quickNoteTarget } from "../services/noteTargets.js";
+  import { noteActions, noteCardMenu } from "../services/noteActions.js";
 
   let {
     notesFolder,
@@ -196,17 +197,58 @@
   const openNote = (note, { newTab = false } = {}) =>
     onOpenNote?.(note.path, notesSpace, { newTab });
 
-  /// The right button on a card. Only the one row: what a note IS belongs
-  /// where the note lives, and Home is the day looking in (the same reason
-  /// these cards carry no ⋮ and no pin). Where it opens is this screen's, the
-  /// same pact the board and the sidebar keep.
+  /// What a card of the day offers (services/noteActions.js, 2026-08-25).
+  ///
+  /// It used to offer one row, on the right button, and the reason written
+  /// here was that what a note IS belongs where the note lives. That reading
+  /// cost the phone everything: with no right button, a note on the Home had
+  /// no action at all — and the card is right there, which is the whole point
+  /// of the Home. The rows are the board's, so the same card means the same
+  /// thing on both screens.
+  ///
+  /// Home only ever LOOKS at a notes space, so every action names the space
+  /// it was given rather than one of its own.
+  const cards = noteActions(act);
+
+  /// Where a note of the day can be moved: the same targets the capture
+  /// offers (services/noteTargets.js), which is the notebook's own list of
+  /// places a note belongs. One group, because from here they are one list.
+  let moveTargets = $derived(
+    noteTargets.length === 0
+      ? []
+      : [
+          {
+            label: S.moveTo,
+            options: noteTargets.map((target) => ({
+              label: target.label,
+              value: JSON.stringify([target.space, target.folder]),
+            })),
+          },
+        ],
+  );
+
+  const cardMenu = (note, { openInNewTab = null } = {}) =>
+    noteCardMenu({
+      entry: note,
+      actions: cards,
+      space: notesSpace,
+      canPin: f("pinNotes"),
+      moveTargets,
+      readOnly,
+      openInNewTab,
+    });
+
+  /// Where the right button's panel opens is this screen's, the same pact the
+  /// board and the sidebar keep: one `ContextMenu` per panel, at the pointer.
   let cardMenuAt = $state(null);
-  let cardMenuFor = $state(null);
+  let cardMenuShown = $state([]);
 
   function openCardMenu(event, note) {
     event.preventDefault();
     event.stopPropagation();
-    cardMenuFor = note;
+    cardMenuShown = cardMenu(note, {
+      openInNewTab: () => openNote(note, { newTab: true }),
+    });
     cardMenuAt = { x: event.clientX, y: event.clientY };
   }
 
@@ -327,6 +369,8 @@
                 entry={note}
                 {root}
                 banners={f("banners")}
+                menu={cardMenu(note)}
+                onPin={readOnly || !f("pinNotes") ? null : () => cards.pin(notesSpace, note)}
                 onOpen={(_, opts) => openNote(note, opts)}
                 onContextMenu={openCardMenu}
               />
@@ -338,16 +382,7 @@
   {/if}
 </div>
 
-<!-- The one row the right button offers over a card of the day. -->
-<ContextMenu
-  at={cardMenuAt}
-  items={cardMenuFor
-    ? [
-        {
-          label: S.openInNewTabItem,
-          run: () => openNote(cardMenuFor, { newTab: true }),
-        },
-      ]
-    : []}
-  onClose={() => (cardMenuAt = null)}
-/>
+<!-- The right button over a card of the day: the ⋮'s rows, plus opening in a
+     new tab — the one row that is not a write, so a read-only notebook keeps
+     it (services/noteActions.js). -->
+<ContextMenu at={cardMenuAt} items={cardMenuShown} onClose={() => (cardMenuAt = null)} />
