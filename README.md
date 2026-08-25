@@ -148,10 +148,11 @@ Jott is pre-1.0. This is the honest state of it, by horizon.
 
 **Now — what's left before v1**
 
-The feature work is done; what remains is proving it on hardware.
+One product decision remains, then it is proving things on hardware.
 
 | | |
 |---|---|
+| **The time axis** — a Timeline of everything you wrote, by day, and a weekly sweep of what you have not looked at in a while | decided 2026-08-25; tasks and notes already carry a creation date, the app will start keeping a last-seen record in `.jott/index/` (internal, regenerable — losing it loses nothing you wrote) |
 | Android on real hardware | the build installs and runs, and has been used on one physical phone — everything since has been the emulator |
 | Clicking through what only tests have seen | app-level undo/redo, the mouse back button, the light and dark themes |
 
