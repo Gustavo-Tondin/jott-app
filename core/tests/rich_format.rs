@@ -314,6 +314,47 @@ fn refuses_nonsense_repeats() {
     }
 }
 
+// ----------------------------------------------------------------- remind
+
+#[test]
+fn a_reminder_reads_and_writes_as_a_named_field() {
+    let content = "- [ ] Ligar pro dentista\n  remind: 2026-07-25T09:00\n";
+    let task = only_task(content);
+    assert_eq!(
+        task.remind,
+        Some(jott_core::parse_datetime("2026-07-25T09:00").unwrap())
+    );
+    assert_eq!(task.render_block(), content.trim_end());
+}
+
+#[test]
+fn a_hand_typed_reminder_is_normalised() {
+    // A space instead of the `T`, seconds present: both read, both written
+    // back canonical — the same courtesy the date gets.
+    for shape in ["2026-07-25 09:00", "2026-07-25T09:00:00", "2026-07-25 09:00:30"] {
+        let task = only_task(&format!("- [ ] X\n  remind: {shape}\n"));
+        assert_eq!(task.render_block(), "- [ ] X\n  remind: 2026-07-25T09:00", "{shape}");
+    }
+}
+
+#[test]
+fn an_unreadable_reminder_stays_description_instead_of_vanishing() {
+    let task = only_task("- [ ] X\n  remind: amanhã cedo\n");
+    assert_eq!(task.remind, None);
+    assert_eq!(task.description, vec!["remind: amanhã cedo"]);
+}
+
+#[test]
+fn reminder_comes_after_repeat_and_before_subtasks() {
+    let task = only_task(
+        "- [ ] X\n  - [ ] sub\n  remind: 2026-07-25T09:00\n  repeat: every-week\n  @2026-07-26\n",
+    );
+    assert_eq!(
+        task.render_block(),
+        "- [ ] X\n  @2026-07-26\n  repeat: every-week\n  remind: 2026-07-25T09:00\n  - [ ] sub"
+    );
+}
+
 // --------------------------------------------------------- tags reservadas
 
 #[test]

@@ -20,7 +20,7 @@
 //! gets decided by shape, never by position, because the file is written by
 //! humans in whatever order they like.
 
-use chrono::NaiveDate;
+use chrono::{NaiveDate, NaiveDateTime};
 use serde::{Deserialize, Serialize};
 
 const COMMENT_OPEN: &str = "<!--";
@@ -31,7 +31,7 @@ const INDENT: &str = "  ";
 
 /// Named fields the app understands. Anything else stays description, so a
 /// line like `lembrar: ligar pro Jorge` is never mistaken for a field.
-const KNOWN_FIELDS: [&str; 1] = ["repeat"];
+const KNOWN_FIELDS: [&str; 2] = ["repeat", "remind"];
 
 /// Tags with meaning to the app. Always stored in English; translated only
 /// when displayed.
@@ -203,6 +203,12 @@ pub struct Task {
     /// A tag typed by hand still counts — see [`Task::is_pinned`].
     pub pinned: bool,
     pub due: Option<NaiveDate>,
+    /// When to remind about the task, as a wall-clock moment in the local
+    /// time zone (`remind: 2026-07-25T09:00`). Independent of `due`: a task
+    /// with no date can still ring, and a dated task rings only if asked —
+    /// the automatic reminder for dated tasks is a notebook setting and is
+    /// never written here.
+    pub remind: Option<NaiveDateTime>,
     /// 1 (highest) to 3 (lowest).
     pub priority: Option<u8>,
     pub tags: Vec<String>,
@@ -294,6 +300,12 @@ impl Task {
                     return true;
                 }
             }
+            if key == "remind" {
+                if let Some(at) = parse_datetime(value) {
+                    self.remind = Some(at);
+                    return true;
+                }
+            }
         }
 
         if let Some(files) = parse_attachments(body) {
@@ -353,6 +365,9 @@ impl Task {
         }
         if let Some(repeat) = self.repeat {
             lines.push(format!("{child_indent}repeat: {}", repeat.render()));
+        }
+        if let Some(at) = self.remind {
+            lines.push(format!("{child_indent}remind: {}", render_datetime(at)));
         }
         for subtask in &self.subtasks {
             let checkbox = if subtask.done { "[x]" } else { "[ ]" };
@@ -523,6 +538,28 @@ pub fn parse_date(text: &str) -> Option<NaiveDate> {
     None
 }
 
+/// The written form of a reminder: ISO date, `T`, hour and minute — no
+/// seconds, no zone. Local wall-clock time is what a person means by
+/// "9 o'clock", and a zone would make the file say something else after a
+/// trip.
+pub const DATETIME_FORMAT: &str = "%Y-%m-%dT%H:%M";
+
+/// Accepts the canonical form plus the two shapes people type by hand (a
+/// space instead of the `T`, seconds present). Written back canonical.
+pub fn parse_datetime(text: &str) -> Option<NaiveDateTime> {
+    let text = text.trim();
+    for format in [DATETIME_FORMAT, "%Y-%m-%d %H:%M", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%d %H:%M:%S"] {
+        if let Ok(at) = NaiveDateTime::parse_from_str(text, format) {
+            return Some(at);
+        }
+    }
+    None
+}
+
+pub fn render_datetime(at: NaiveDateTime) -> String {
+    at.format(DATETIME_FORMAT).to_string()
+}
+
 /// The editable fields of a task, all optional.
 ///
 /// Absent means "leave alone"; present-but-null means "clear". Without that
@@ -546,6 +583,8 @@ pub struct TaskFields {
     pub files: Option<Vec<Attachment>>,
     #[serde(deserialize_with = "present_or_absent")]
     pub repeat: Option<Option<String>>,
+    #[serde(deserialize_with = "present_or_absent")]
+    pub remind: Option<Option<String>>,
     pub subtasks: Option<Vec<Subtask>>,
 }
 
@@ -611,6 +650,10 @@ impl TaskFields {
         }
         if let Some(repeat) = self.repeat {
             task.repeat = repeat.as_deref().and_then(Repeat::parse);
+        }
+        if let Some(remind) = self.remind {
+            // Same rule as the date: unreadable clears rather than stores wrong.
+            task.remind = remind.as_deref().and_then(parse_datetime);
         }
         if let Some(subtasks) = self.subtasks {
             task.subtasks = subtasks

@@ -228,6 +228,14 @@
     align-items: center;
     gap: var(--theme-space-4);
   }
+  .inspector__reminder {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  .inspector__time {
+    inline-size: auto;
+    min-inline-size: 0;
+  }
   .inspector__stepper {
     display: inline-flex;
     align-items: center;

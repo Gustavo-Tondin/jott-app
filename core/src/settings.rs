@@ -220,6 +220,10 @@ pub struct NotebookSettings {
     /// off from the dialog itself ("don't ask again").
     pub confirm_image_downloads: Option<bool>,
     pub auto_urgent_by_date: Option<bool>,
+    /// `off` / `dayOf` / `dayBefore` — see `reminders::AutoRemind`.
+    pub auto_remind: Option<String>,
+    /// `HH:MM`.
+    pub reminder_time: Option<String>,
     pub new_tasks_on_top: Option<bool>,
     pub auto_space_colors: Option<bool>,
     pub date_display_format: Option<String>,
@@ -281,6 +285,8 @@ impl NotebookSettings {
             confirm_deletes: Some(config.confirm_deletes),
             confirm_image_downloads: Some(config.confirm_image_downloads),
             auto_urgent_by_date: Some(config.auto_urgent_by_date),
+            auto_remind: Some(config.auto_remind.render().to_string()),
+            reminder_time: Some(config.reminder_time.render()),
             new_tasks_on_top: Some(config.new_tasks_on_top),
             auto_space_colors: Some(display.auto_space_colors),
             date_display_format: Some(display.date_display_format.clone()),
@@ -345,6 +351,12 @@ impl NotebookSettings {
         }
         if let Some(v) = self.auto_urgent_by_date {
             config.auto_urgent_by_date = v;
+        }
+        if let Some(v) = &self.auto_remind {
+            config.auto_remind = crate::reminders::AutoRemind::parse_or_default(v);
+        }
+        if let Some(v) = &self.reminder_time {
+            config.reminder_time = crate::reminders::ReminderTime::parse_or_default(v);
         }
         if let Some(v) = self.new_tasks_on_top {
             config.new_tasks_on_top = v;
@@ -460,6 +472,8 @@ pub fn reset_section(config: &mut Config, section: &str) -> bool {
         }
         "tasks" => {
             config.auto_urgent_by_date = d.auto_urgent_by_date;
+            config.auto_remind = d.auto_remind;
+            config.reminder_time = d.reminder_time;
             config.new_tasks_on_top = d.new_tasks_on_top;
         }
         "notes" => {

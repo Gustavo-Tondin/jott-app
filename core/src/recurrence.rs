@@ -76,6 +76,13 @@ pub fn respawn(task: &Task) -> Option<Task> {
     // it is completed in turn.
     respawned.spawned = None;
     respawned.due = Some(next);
+    // The reminder travels the same distance as the date: "ring the day
+    // before, at 9" keeps meaning that for next week's occurrence. Without a
+    // date to measure from, the reminder is a one-off and does not come back.
+    respawned.remind = match (task.due, task.remind) {
+        (Some(due), Some(at)) => Some(at + (next - due)),
+        _ => None,
+    };
     // Only meaningful when there is no due date; now there is one.
     respawned.created = task.due.is_none().then_some(next);
     for subtask in &mut respawned.subtasks {
@@ -200,6 +207,28 @@ mod tests {
         assert_eq!(next.tags, vec!["casa"]);
         assert_eq!(next.priority, Some(2));
         assert_eq!(next.description, vec!["com a escova velha"]);
+    }
+
+    #[test]
+    fn respawn_moves_the_reminder_with_the_date() {
+        let mut task = Task::new("Pagar aluguel");
+        task.due = Some(ymd(2026, 7, 1));
+        task.remind = crate::task::parse_datetime("2026-06-30T18:30");
+        task.repeat = Some(repeat(1, RepeatUnit::Month));
+
+        let next = respawn(&task).unwrap();
+        assert_eq!(next.remind, crate::task::parse_datetime("2026-07-31T18:30"));
+    }
+
+    #[test]
+    fn respawn_drops_a_reminder_it_cannot_measure_from() {
+        let mut task = Task::new("Regar as plantas");
+        task.created = Some(ymd(2026, 7, 20));
+        task.remind = crate::task::parse_datetime("2026-07-21T08:00");
+        task.repeat = Some(repeat(1, RepeatUnit::Week));
+
+        let next = respawn(&task).unwrap();
+        assert_eq!(next.remind, None);
     }
 
     #[test]

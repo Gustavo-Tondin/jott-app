@@ -67,6 +67,10 @@
     /// the shell measures once and tells everyone, the way the header and the
     /// top bar agree about which of them holds the arrows.
     compact = false,
+    /// Android (shell/platform.js): no tray and no session to start with, so
+    /// the two rows about them are not drawn — a switch that cannot do
+    /// anything is worse than none.
+    mobile = false,
     /// The interface's own zoom, and the way to change it. It belongs to the
     /// shell (it is a `font-size` on the root, applied there), so this screen
     /// asks rather than writes — the same handshake the notebook picker has.
@@ -397,7 +401,7 @@
   /// A row missing here is invisible to the search and still perfectly
   /// reachable — the failure is a search miss, never a broken screen.
   const SETUP_INDEX = () => [
-    ["about", [S.updateVersion, S.updateAutoCheck, S.updateCheckNow, S.yourFiles,
+    ["about", [S.updateVersion, S.updateAutoCheck, S.closeToTray, S.autostart, S.quitApp, S.updateCheckNow, S.yourFiles,
       S.menuEntryLabel, S.reportIssue]],
     [
       "display",
@@ -463,7 +467,7 @@
   /// with none simply has no entry, instead of the `fn.key === "tasks" ? …`
   /// chain this replaced.
   const FUNCTION_EXTRAS = () => ({
-    tasks: [S.autoUrgentByDate, S.newTasksGoTo],
+    tasks: [S.autoUrgentByDate, S.newTasksGoTo, S.autoRemind, S.reminderTime],
     notes: [S.noteLayout, S.tableLayout, S.confirmImageDownloads],
   });
 
@@ -552,6 +556,26 @@
 
   api.appVersion().then((v) => (version = v ?? "")).catch(() => {});
   api.autoUpdateCheck().then((on) => (updateAuto = on ?? true)).catch(() => {});
+
+  // The tray and the session start (2026-08-25) — this INSTALL's, like the
+  // update switch, and read the same way.
+  let closeToTray = $state(true);
+  let autostart = $state(false);
+  if (!mobile) {
+    api.closeToTray().then((on) => (closeToTray = on ?? true)).catch(() => {});
+    api.autostart().then((on) => (autostart = !!on)).catch(() => {});
+  }
+  const setCloseToTray = (on) => {
+    closeToTray = on;
+    api.rememberCloseToTray(on).catch(onError);
+  };
+  const setAutostart = (on) => {
+    autostart = on;
+    api.setAutostart(on).catch((e) => {
+      autostart = !on;
+      onError?.(e);
+    });
+  };
 
   const setUpdateAuto = (on) => {
     updateAuto = on;
@@ -876,6 +900,39 @@
             />
           </label>
           <p class="settings__hint">{S.updateAutoCheckHint}</p>
+
+          {#if !mobile}
+            <label class="settings__row">
+              <span class="settings__label">{S.closeToTray}</span>
+              <input
+                class="theme-switch"
+                type="checkbox"
+                checked={closeToTray}
+                aria-label={S.closeToTray}
+                onchange={(e) => setCloseToTray(e.currentTarget.checked)}
+              />
+            </label>
+            <p class="settings__hint">{S.closeToTrayHint}</p>
+
+            <label class="settings__row">
+              <span class="settings__label">{S.autostart}</span>
+              <input
+                class="theme-switch"
+                type="checkbox"
+                checked={autostart}
+                aria-label={S.autostart}
+                onchange={(e) => setAutostart(e.currentTarget.checked)}
+              />
+            </label>
+            <p class="settings__hint">{S.autostartHint}</p>
+
+            <div class="settings__row">
+              <span class="settings__label">{S.quitApp}</span>
+              <button class="theme-btn" type="button" onclick={() => api.quitApp()}>
+                {S.quitApp}
+              </button>
+            </div>
+          {/if}
 
           <div class="settings__row">
             <span class="settings__label">{S.updateCheckNow}</span>
@@ -1470,6 +1527,37 @@
                   onchange={(e) => put({ autoUrgentByDate: e.currentTarget.checked })}
                 />
               </label>
+            {/if}
+            <!-- The automatic reminder hangs off Remind me the same way: it
+                 rings dated tasks at the reminder time (2026-08-25), and
+                 with the field off there is no bell for it to ring. -->
+            {#if feature.key === "remind"}
+              <label class="settings__row settings__row--sub">
+                <span class="settings__label">{S.autoRemind}</span>
+                <select
+                  class="theme-select"
+                  bind:value={form.autoRemind}
+                  disabled={readOnly || !on(features, "remind")}
+                  aria-label={S.autoRemind}
+                  onchange={(e) => put({ autoRemind: e.currentTarget.value })}
+                >
+                  <option value="off">{S.autoRemindOff}</option>
+                  <option value="dayOf">{S.autoRemindDayOf}</option>
+                  <option value="dayBefore">{S.autoRemindDayBefore}</option>
+                </select>
+              </label>
+              <label class="settings__row settings__row--sub">
+                <span class="settings__label">{S.reminderTime}</span>
+                <input
+                  class="theme-input"
+                  type="time"
+                  bind:value={form.reminderTime}
+                  disabled={readOnly || !on(features, "remind")}
+                  aria-label={S.reminderTime}
+                  onchange={(e) => put({ reminderTime: e.currentTarget.value })}
+                />
+              </label>
+              <p class="settings__hint">{S.autoRemindHint}</p>
             {/if}
           {/each}
           <p class="settings__hint">{S.autoUrgentByDateHint}</p>

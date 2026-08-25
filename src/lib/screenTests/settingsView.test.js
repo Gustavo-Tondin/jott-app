@@ -475,6 +475,73 @@ describe("SettingsView", () => {
     expect(invoke).not.toHaveBeenCalledWith("set_notebook_settings", expect.anything());
   });
 
+  test("the automatic reminder and its hour are notebook rules under Remind me", async () => {
+    // Both hang off the Remind me switch (2026-08-25), so the switch has to
+    // be on for them to answer.
+    bridge({ notebook_settings: { ...settings, autoRemind: "off", reminderTime: "09:00" } });
+    render(SettingsView, {
+      props: props({ notebook: { ...notebook, layout: { features: { remind: true } } } }),
+    });
+    await openSection("Tasks");
+
+    await userEvent.selectOptions(
+      await screen.findByLabelText("Remind me about dated tasks"),
+      "dayBefore",
+    );
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("set_notebook_settings", {
+        settings: { autoRemind: "dayBefore" },
+      }),
+    );
+
+    const time = screen.getByLabelText("Reminder time");
+    await fireEvent.input(time, { target: { value: "07:30" } });
+    await fireEvent.change(time, { target: { value: "07:30" } });
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("set_notebook_settings", {
+        settings: { reminderTime: "07:30" },
+      }),
+    );
+  });
+
+  test("the tray and the session start are this install's, and not on a phone", async () => {
+    bridge({
+      notebook_settings: settings,
+      auto_update_check: true,
+      close_to_tray: true,
+      autostart: false,
+      app_version: "0.38.0",
+    });
+    render(SettingsView, { props: props() });
+    await openSection("About");
+
+    const tray = await screen.findByLabelText(
+      "Keep Jott running in the tray when the window closes",
+    );
+    await waitFor(() => expect(tray.checked).toBe(true));
+    await userEvent.click(tray);
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("remember_close_to_tray", { on: false }),
+    );
+
+    await userEvent.click(screen.getByLabelText("Start Jott with the system"));
+    await waitFor(() => expect(invoke).toHaveBeenCalledWith("set_autostart", { on: true }));
+    expect(invoke).not.toHaveBeenCalledWith("set_notebook_settings", expect.anything());
+
+    await userEvent.click(screen.getByRole("button", { name: "Quit Jott" }));
+    await waitFor(() => expect(invoke).toHaveBeenCalledWith("quit_app"));
+  });
+
+  test("a phone has no tray to offer", async () => {
+    bridge({ notebook_settings: settings, auto_update_check: true, app_version: "0.38.0" });
+    render(SettingsView, { props: props({ mobile: true }) });
+    await openSection("About");
+    await screen.findByLabelText("Check for updates automatically");
+    expect(
+      screen.queryByLabelText("Keep Jott running in the tray when the window closes"),
+    ).toBeNull();
+  });
+
   test("Check now asks the bridge and reports both endings", async () => {
     // An install that cannot replace itself is offered the release page.
     bridge({

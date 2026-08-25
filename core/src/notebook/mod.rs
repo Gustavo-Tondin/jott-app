@@ -261,6 +261,7 @@ mod lists;
 mod notes;
 pub use notes::NoteFolderEntry;
 mod period;
+mod reminders;
 mod search;
 mod spaces;
 mod suggestions;

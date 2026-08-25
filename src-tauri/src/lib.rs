@@ -10,6 +10,12 @@ pub mod error;
 pub mod net;
 pub mod prefs;
 pub mod state;
+#[cfg(desktop)]
+pub mod tray;
+
+/// The icon name the desktop knows the app by — `packaging/jott.desktop`
+/// installs it under this name, and a notification asks for it by name.
+pub const APP_ICON_NAME: &str = "jott";
 
 use state::AppState;
 
@@ -22,15 +28,25 @@ pub fn configure<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builde
     builder
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_notification::init())
         .manage(AppState::default())
         // A window that closes takes its notebook — and the watcher THREAD
         // watching it — with it (2026-08-24). Without this the state map only
         // ever grows, and every window the user ever opened leaves a thread
         // polling a folder nobody is looking at.
         .on_window_event(|window, event| {
-            if matches!(event, tauri::WindowEvent::Destroyed) {
-                use tauri::Manager;
-                window.state::<AppState>().close(window.label());
+            use tauri::Manager;
+            match event {
+                tauri::WindowEvent::Destroyed => {
+                    window.state::<AppState>().close(window.label());
+                }
+                // With the tray on, the close button hides the window and
+                // keeps its notebook — reminders go on ringing (`tray.rs`).
+                #[cfg(desktop)]
+                tauri::WindowEvent::CloseRequested { api, .. } if tray::intercept_close(window) => {
+                    api.prevent_close();
+                }
+                _ => {}
             }
         })
         .invoke_handler(tauri::generate_handler![
@@ -183,6 +199,16 @@ pub fn configure<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builde
             commands::period::remove_from_period,
             commands::period::add_task_in_period,
             commands::period::refresh_periods,
+            // reminders (2026-08-25)
+            commands::reminders::reminders,
+            commands::reminders::reminded_until,
+            commands::reminders::remember_reminded_until,
+            commands::reminders::notify_reminder,
+            commands::reminders::close_to_tray,
+            commands::reminders::remember_close_to_tray,
+            commands::reminders::autostart,
+            commands::reminders::set_autostart,
+            commands::reminders::quit_app,
         ])
 }
 
@@ -207,7 +233,26 @@ pub fn run() {
     #[cfg(desktop)]
     let builder = builder
         .plugin(tauri_plugin_updater::Builder::new().build())
-        .plugin(tauri_plugin_process::init());
+        .plugin(tauri_plugin_process::init())
+        // Started by the session, the app comes up in the tray and not on
+        // the screen: `--hidden` is what the autostart entry passes, and the
+        // setup below honours it.
+        .plugin(tauri_plugin_autostart::init(
+            tauri_plugin_autostart::MacosLauncher::LaunchAgent,
+            Some(vec!["--hidden"]),
+        ))
+        .setup(|app| {
+            use tauri::Manager;
+            if let Err(e) = tray::install(app.handle()) {
+                eprintln!("[jott] no tray icon: {e}");
+            }
+            if std::env::args().any(|arg| arg == "--hidden") {
+                for window in app.webview_windows().values() {
+                    let _ = window.hide();
+                }
+            }
+            Ok(())
+        });
     builder
         .run(tauri::generate_context!())
         .expect("error while running Jott");

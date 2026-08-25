@@ -46,6 +46,9 @@ pub struct NotebookLayout {
     /// for the settings separately: how to draw a date, whether clicking away
     /// closes the task panel, and where the quick capture writes.
     pub date_display_format: String,
+    /// `HH:MM` — the hour the inspector's reminder presets land on (the
+    /// notebook's `reminderTime`, 2026-08-25).
+    pub reminder_time: String,
     pub close_inspector_on_click_away: bool,
     pub quick_note_folder: String,
     /// The capture targets and Home sources of 2026-08-24 — path-like
@@ -134,6 +137,7 @@ impl NotebookInfo {
                 // point at.
                 notes_inbox: jott_core::notefolder::NOTES_INBOX.to_string(),
                 date_display_format: display.date_display_format,
+                reminder_time: notebook.config().reminder_time.render(),
                 close_inspector_on_click_away: display.close_inspector_on_click_away,
                 quick_note_folder: notebook.config().quick_note_folder.clone(),
                 quick_task_list: notebook.config().quick_task_list.clone(),

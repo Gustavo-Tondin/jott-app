@@ -54,6 +54,15 @@ export const FEATURES = [
   { key: "dueDate", parent: "tasks", group: "fields", label: () => S.featureDueDate },
   { key: "priority", parent: "tasks", group: "fields", label: () => S.featurePriority },
   { key: "repeat", parent: "tasks", group: "fields", label: () => S.featureRepeat },
+  // Back with its backend (2026-08-25): the switch left on 2026-08-21 when
+  // all it turned on was a disabled button.
+  {
+    key: "remind",
+    parent: "tasks",
+    group: "fields",
+    label: () => S.featureRemind,
+    default: false,
+  },
   { key: "subtasks", parent: "tasks", group: "fields", label: () => S.featureSubtasks },
   { key: "taskTags", parent: "tasks", group: "fields", label: () => S.featureTaskTags },
   {

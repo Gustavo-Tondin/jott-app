@@ -284,6 +284,7 @@
         {/if}
         {#if inDay}<Icon name="sun" size="0.875rem" />{/if}
         {#if task.repeat && f("repeat")}<Icon name="arrow-clockwise" size="0.875rem" />{/if}
+        {#if task.remind && f("remind")}<Icon name="alarm" size="0.875rem" />{/if}
         {#if task.due && f("dueDate")}<span
             class="task-row__field"
             class:task-row__field--overdue={overdue}

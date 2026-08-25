@@ -20,6 +20,10 @@
     disabled = false,
     dateFormat = "mm/dd/yyyy",
     onChange,
+    /// What the pill is called to a screen reader. The due date's by
+    /// default; the reminder's calendar names itself, so two pickers in one
+    /// panel are two things.
+    label = S.dueDateLabel,
     /// What opens the calendar. Omitted, it is the pill showing the date —
     /// the inspector's field. The composer passes an icon button instead, the
     /// same way `Menu` lets its caller own the trigger.
@@ -97,7 +101,7 @@
       type="button"
       onclick={toggle}
       {disabled}
-      aria-label={S.dueDateLabel}
+      aria-label={label}
     >
       {value ? formatDate(value, dateFormat) : S.pickDate}
     </button>

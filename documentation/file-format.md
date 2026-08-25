@@ -74,6 +74,7 @@ Details go on indented lines below it:
   @2026-07-25 #home #urgent !2
   Talk to Jorge first, he gives a discount.
   repeat: every-week
+  remind: 2026-07-24T18:00
   [invoice.pdf](assets/invoice.pdf)
   - [ ] Cement
   - [ ] Sand
@@ -85,6 +86,7 @@ Details go on indented lines below it:
 | `#home` | a tag. Two mean something to the app: `#urgent` and `#pinned` |
 | `!1` … `!3` | priority, 1 highest |
 | `repeat: every-week` | also `every-day`, `every-month`, `every-3-days`… |
+| `remind: 2026-07-24T18:00` | when to ring: date, `T`, hour and minute, in your local time — no zone. A space instead of the `T`, or seconds, read fine and are written back in this form. Independent of `@date`: a task without a date can ring, and a dated one rings only if asked (or if the notebook's automatic reminder is on — that one is a setting, never written here). On a repeating task it moves with the date |
 | `- [ ] …` | a subtask |
 | a line of **only** links into `assets/` | the task's attachments |
 | anything else | description |
@@ -239,7 +241,8 @@ order you dragged things into.
 - **`config.json`** — preferences that **travel with the notebook**, because
   they answer to a *person*: rollover hours, retention days, confirmation
   prompts, feature switches, shortcut bindings, quick-capture destinations,
-  sort orders, the fallback appearance. Written in camelCase, guarded by
+  sort orders, the fallback appearance, and the automatic reminder
+  (`autoRemind`: `off` / `dayOf` / `dayBefore`, at `reminderTime`, `HH:MM`). Written in camelCase, guarded by
   `schemaVersion`.
 
   The pact is the same for every key: **a value that fails validation reads

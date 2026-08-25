@@ -171,6 +171,13 @@ pub struct Config {
     /// paints deadlines red on its own more stressful than useful. The
     /// `#urgent` tag written by hand always counts, either way.
     pub auto_urgent_by_date: bool,
+    /// Ring for every dated task without being asked (`off` / `dayOf` /
+    /// `dayBefore`), at `reminder_time`. Computed, never written into the
+    /// task — see `reminders`.
+    pub auto_remind: crate::reminders::AutoRemind,
+    /// `HH:MM`: when the automatic reminder rings, and the hour the
+    /// inspector's presets land on.
+    pub reminder_time: crate::reminders::ReminderTime,
     /// Where a new task lands in its list: above the first task (`true`) or
     /// below the last (`false`, the default — what every list did until
     /// 2026-08-21). A quick capture wants to see what it just wrote; a plan
@@ -357,6 +364,8 @@ impl Default for Config {
             confirm_deletes: true,
             confirm_image_downloads: true,
             auto_urgent_by_date: true,
+            auto_remind: Default::default(),
+            reminder_time: Default::default(),
             new_tasks_on_top: false,
             auto_space_colors: false,
             date_display_format: DateFormat::default(),
@@ -540,6 +549,14 @@ impl Config {
                 defaults.confirm_image_downloads,
             ),
             auto_urgent_by_date: flag(&raw, "autoUrgentByDate", defaults.auto_urgent_by_date),
+            auto_remind: string(&raw, "autoRemind")
+                .as_deref()
+                .map(crate::reminders::AutoRemind::parse_or_default)
+                .unwrap_or_default(),
+            reminder_time: string(&raw, "reminderTime")
+                .as_deref()
+                .map(crate::reminders::ReminderTime::parse_or_default)
+                .unwrap_or_default(),
             new_tasks_on_top: flag(&raw, "newTasksOnTop", defaults.new_tasks_on_top),
             auto_space_colors: flag(&raw, "autoSpaceColors", defaults.auto_space_colors),
             date_display_format: string(&raw, "dateDisplayFormat")
@@ -648,6 +665,8 @@ impl Config {
                 Value::from(self.confirm_image_downloads),
             ),
             ("autoUrgentByDate", Value::from(self.auto_urgent_by_date)),
+            ("autoRemind", Value::from(self.auto_remind.render())),
+            ("reminderTime", Value::from(self.reminder_time.render())),
             ("newTasksOnTop", Value::from(self.new_tasks_on_top)),
             ("autoSpaceColors", Value::from(self.auto_space_colors)),
             (

@@ -111,6 +111,17 @@ struct MachinePrefs {
     /// on — the check is the one connection the app makes, it is explained
     /// in the settings screen, and this switch is how it is refused.
     auto_update_check: Option<bool>,
+    /// Closing the window keeps the app alive in the tray (2026-08-25), so
+    /// reminders still ring. `None` is the default: on. A machine
+    /// preference because whether there IS a tray to live in is a fact
+    /// about this desktop, not about any notebook.
+    close_to_tray: Option<bool>,
+    /// Up to what moment this machine has already rung a notebook's
+    /// reminders, keyed by the notebook's absolute path. What stops a
+    /// reminder from ringing again on every launch, and what makes the ones
+    /// missed while the app was closed ring ONCE when it comes back.
+    #[serde(default)]
+    reminded_until: std::collections::BTreeMap<PathBuf, String>,
     /// When the last automatic check ran, as an ISO date-time the frontend
     /// owns. It is what keeps the check to once a day instead of once per
     /// launch.
@@ -226,6 +237,9 @@ pub fn notebook_moved<R: Runtime>(app: &AppHandle<R>, from: &Path, to: &Path) {
                 entry.path = to.to_path_buf();
             }
         }
+        if let Some(until) = prefs.reminded_until.remove(from) {
+            prefs.reminded_until.insert(to.to_path_buf(), until);
+        }
         if prefs.last_notebook.as_deref() == Some(from) {
             prefs.last_notebook = Some(to.to_path_buf());
         }
@@ -336,6 +350,26 @@ pub fn auto_update_check<R: Runtime>(app: &AppHandle<R>) -> bool {
 
 pub fn remember_auto_update_check<R: Runtime>(app: &AppHandle<R>, on: bool) {
     update(app, |prefs| prefs.auto_update_check = Some(on));
+}
+
+pub fn close_to_tray<R: Runtime>(app: &AppHandle<R>) -> bool {
+    load(app).close_to_tray.unwrap_or(true)
+}
+
+pub fn remember_close_to_tray<R: Runtime>(app: &AppHandle<R>, on: bool) {
+    update(app, |prefs| prefs.close_to_tray = Some(on));
+}
+
+/// The moment up to which `notebook`'s reminders have rung on this machine,
+/// as the task file writes it (`2026-07-25T09:00`). `None` = never.
+pub fn reminded_until<R: Runtime>(app: &AppHandle<R>, notebook: &Path) -> Option<String> {
+    load(app).reminded_until.get(notebook).cloned()
+}
+
+pub fn remember_reminded_until<R: Runtime>(app: &AppHandle<R>, notebook: &Path, until: &str) {
+    update(app, |prefs| {
+        prefs.reminded_until.insert(notebook.to_path_buf(), until.to_string());
+    });
 }
 
 /// When the last automatic check ran, if one ever did.

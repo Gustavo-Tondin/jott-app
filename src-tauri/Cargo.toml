@@ -24,12 +24,19 @@ jott-core = { path = "../core" }
 # (banners and inline images, 2026-08-18). It answers only for paths in the
 # scope, which is empty in tauri.conf.json and filled at runtime with the open
 # notebook's `assets/` folder — see `commands::allow_assets`.
-tauri = { version = "2", features = ["protocol-asset"] }
+# `tray-icon`: the icon the app lives in after its window is closed
+# (`tray.rs`, 2026-08-25) — what lets a reminder ring with no window open.
+tauri = { version = "2", features = ["protocol-asset", "tray-icon"] }
 tauri-plugin-dialog = "2"
 # Opens the release page in the system browser when an update cannot install
 # itself (a .deb/.rpm/pacman install, and Android — there it becomes an
 # intent). The whole reason it exists here is the update notice's button.
 tauri-plugin-opener = "2"
+# The system's notification, for a task's reminder (2026-08-25). On Android
+# it also carries the SCHEDULE: the plugin hands the moment to AlarmManager
+# and re-registers it after a reboot, so a reminder rings with the app dead.
+# On desktop the shell keeps the timer itself and only asks it to show.
+tauri-plugin-notification = "2"
 serde.workspace = true
 serde_json.workspace = true
 # The wall clock, for the one thing on this side that reads it: when a notebook
@@ -47,6 +54,10 @@ ureq = { version = "3", default-features = false, features = ["rustls", "platfor
 gtk = "0.18"
 gio = "0.18"
 gdk = "0.18"
+# The notification plugin shows and forgets; on Linux the D-Bus notification
+# can also be CLICKED, and that is how a reminder opens its task. Same crate
+# and version the plugin links, so the binary carries one.
+notify-rust = "4.11"
 
 # In-place updates exist only where a file can replace itself: the AppImage
 # and the Windows installer. A .deb/.rpm/pacman install belongs to a package
@@ -55,3 +66,6 @@ gdk = "0.18"
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 tauri-plugin-updater = "2"
 tauri-plugin-process = "2"
+# Start with the session, hidden in the tray, so reminders ring on a machine
+# that never opened the window that day (2026-08-25). A switch in Settings.
+tauri-plugin-autostart = "2"

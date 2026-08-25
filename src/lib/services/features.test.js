@@ -17,10 +17,10 @@ describe("on", () => {
   test("with nothing said, a feature is however it ships", () => {
     expect(on({}, "tasks")).toBe(true);
     expect(on(undefined, "repeat")).toBe(true);
-    // The three that ship OFF (user call, 2026-08-06). `remind` was a fourth
-    // until 2026-08-21: a switch that only turned on a disabled button left
-    // with the placeholder, and comes back with the backend.
-    for (const key of ["week", "description", "files"]) {
+    // The four that ship OFF (user call, 2026-08-06). `remind` left on
+    // 2026-08-21 — a switch that only turned on a disabled button — and came
+    // back with its backend on 2026-08-25.
+    for (const key of ["week", "description", "files", "remind"]) {
       expect(on({}, key), key).toBe(false);
     }
     // A key this build has never heard of is ON: an older notebook must not be

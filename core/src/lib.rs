@@ -26,6 +26,7 @@ pub mod notebook;
 pub mod notefolder;
 pub mod recurrence;
 pub mod relpath;
+pub mod reminders;
 pub mod rollover;
 pub mod search;
 pub mod settings;
@@ -55,7 +56,7 @@ pub use state::{Period, PeriodState, StateFile, TaskRef};
 pub use watcher::{Change, NotebookWatcher};
 pub use note::{Banner, Note};
 pub use notefolder::{NoteEntry, NoteFolder};
-pub use task::{Attachment, Task};
+pub use task::{parse_datetime, render_datetime, Attachment, Task};
 
 /// Name of the hidden config directory inside a notebook.
 /// Equivalent to Obsidian's `.obsidian`.

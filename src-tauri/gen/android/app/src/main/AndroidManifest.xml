@@ -1,6 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- A reminder rings at its minute, not within the quarter hour the
+         inexact alarm allows. USE_EXACT_ALARM is granted on install (no
+         prompt); the notification plugin checks canScheduleExactAlarms and
+         falls back to inexact where it is refused. -->
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
 
     <!-- The notebook is a folder of .md files the user picks and a sync client
          (Syncthing, Obsidian) reads. That is only possible with broad file

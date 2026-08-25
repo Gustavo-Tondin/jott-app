@@ -26,6 +26,9 @@
     onKeyboardHidden,
   } from "./lib/services/androidStorage.js";
   import { onBack, installBack } from "./lib/services/back.js";
+  import { scheduleReminders } from "./lib/shell/reminders.js";
+  import { notice, toAt } from "./lib/services/reminders.js";
+  import { onAndroidReminderTap, syncAndroidReminders } from "./lib/services/androidReminders.js";
   import ContextMenu from "./lib/components/ContextMenu.svelte";
   import NotebooksView from "./lib/screens/NotebooksView.svelte";
   import { entryOf } from "./lib/shell/entry.js";
@@ -1477,6 +1480,7 @@
       // `?? []` because a bridge that does not answer this command is a
       // notebook with no themes, not a crash in the effect that reads them.
       userThemes = (await api.userThemes()) ?? [];
+      await refreshReminders();
     } catch {
       // No notebook open (or it just closed): back to onboarding.
       notebook = null;
@@ -1868,6 +1872,72 @@
       },
     );
   }
+
+  // ---- reminders (2026-08-25) ----
+  // The core lists what should ring; on desktop `shell/reminders.js` keeps
+  // the timer (the window may be hidden in the tray, the timer runs on) and
+  // the bridge shows the system's notification; on Android the list is
+  // handed to the system's alarm service instead. Either way the machine
+  // remembers up to where it rang, so a relaunch neither repeats nor
+  // swallows.
+  let reminders = [];
+  /// `undefined` until asked; `null` when this machine never rang this
+  /// notebook — and then "now" becomes the mark, so nothing old rings.
+  let remindedUntil = undefined;
+  let remindersLoop = null;
+
+  async function ringReminders(due, now) {
+    for (const reminder of due) {
+      const { title, body } = notice(reminder, S);
+      await api.notifyReminder(title, body, { list: reminder.list, id: reminder.id ?? null });
+    }
+    remindedUntil = now;
+    await api.rememberRemindedUntil(now);
+  }
+
+  async function refreshReminders() {
+    if (!notebook || !f("remind")) {
+      reminders = [];
+      remindersLoop?.stop();
+      remindersLoop = null;
+      if (mobile && notebook) await syncAndroidReminders([], { strings: S }).catch(() => {});
+      return;
+    }
+    reminders = (await api.reminders()) ?? [];
+    if (remindedUntil === undefined) {
+      remindedUntil = (await api.remindedUntil()) ?? null;
+      if (remindedUntil === null) {
+        remindedUntil = toAt(new Date());
+        await api.rememberRemindedUntil(remindedUntil);
+      }
+    }
+    if (mobile) {
+      if (!androidTapInstalled) {
+        androidTapInstalled = true;
+        onAndroidReminderTap((target) => showFoundTask(target.list, target.id)).catch(() => {});
+      }
+      await syncAndroidReminders(reminders, { strings: S }).catch(fail);
+      return;
+    }
+    if (remindersLoop) remindersLoop.rearm();
+    else
+      remindersLoop = scheduleReminders({
+        list: () => reminders,
+        until: () => remindedUntil,
+        ring: ringReminders,
+        onError: fail,
+      });
+  }
+
+  // A clicked notification names its task; the list opens and the panel
+  // with it, exactly as a search hit does.
+  listen("reminder://open", (event) => {
+    const target = event.payload ?? {};
+    if (target.list) showFoundTask(target.list, target.id || null);
+  });
+  // Installed on the first refresh rather than here: `mobile` is answered
+  // by the bridge after mount, and at this point it still says desktop.
+  let androidTapInstalled = false;
 
   // The rollover has to happen with the app open too, not only when the
   // notebook is reopened. The core says when; `shell/turn.js` schedules the
@@ -2833,6 +2903,7 @@
           {:else if view.kind === "settings"}
             <SettingsView
               {compact}
+              {mobile}
               {notebook}
               {zoom}
               onZoom={setZoom}
@@ -2987,6 +3058,7 @@
             root={notebook.path}
             readOnly={notebook.readOnly}
             dateFormat={layout.dateDisplayFormat}
+            reminderTime={layout.reminderTime ?? "09:00"}
             inDay={!!selected.task?.id &&
               dayRefs.has(`${selected.list}#${selected.task.id}`)}
             {f}

@@ -225,6 +225,53 @@ fn the_full_task_lifecycle_over_the_bridge() {
 }
 
 #[test]
+fn reminders_cross_the_bridge_with_the_machine_memory_of_what_rang() {
+    let (_lock, app, dir) = app_with_notebook();
+
+    let id = task_with_id(&app, "jott.tasks/task-list.md", "Ligar pro dentista");
+    ok(
+        &app,
+        "set_task_fields",
+        json!({ "list": "jott.tasks/task-list.md", "id": id, "fields": { "remind": "2026-07-24 18:00" } }),
+    );
+    let file = std::fs::read_to_string(dir.path().join("jott.tasks/task-list.md")).unwrap();
+    assert!(file.contains("  remind: 2026-07-24T18:00"), "{file}");
+
+    // A dated task with no reminder of its own rings under the automatic
+    // rule, once the notebook asks for one.
+    let position = ok(&app, "create_task", json!({ "list": "jott.tasks/task-list.md", "text": "Aluguel" }));
+    let other = ok(&app, "ensure_task_id", json!({ "list": "jott.tasks/task-list.md", "position": position }));
+    ok(
+        &app,
+        "set_task_fields",
+        json!({ "list": "jott.tasks/task-list.md", "id": other, "fields": { "due": "2026-08-01" } }),
+    );
+    let before = ok(&app, "reminders", json!({}));
+    assert_eq!(before.as_array().unwrap().len(), 1);
+
+    ok(
+        &app,
+        "set_notebook_settings",
+        json!({ "settings": { "autoRemind": "dayBefore", "reminderTime": "07:30" } }),
+    );
+    let after = ok(&app, "reminders", json!({}));
+    let ats: Vec<_> = after.as_array().unwrap().iter().map(|r| r["at"].as_str().unwrap().to_string()).collect();
+    assert_eq!(ats, ["2026-07-24T18:00", "2026-07-31T07:30"], "soonest first");
+    assert_eq!(after[1]["auto"], json!(true));
+    assert_eq!(after[1]["id"], json!(other));
+
+    // The machine's memory of what rang: per notebook, never by default.
+    assert_eq!(ok(&app, "reminded_until", json!({})), Value::Null);
+    ok(&app, "remember_reminded_until", json!({ "until": "2026-07-24T18:00" }));
+    assert_eq!(ok(&app, "reminded_until", json!({})), json!("2026-07-24T18:00"));
+
+    // The settings screen reads the two keys back.
+    let settings = ok(&app, "notebook_settings", json!({}));
+    assert_eq!(settings["autoRemind"], json!("dayBefore"));
+    assert_eq!(settings["reminderTime"], json!("07:30"));
+}
+
+#[test]
 fn creating_a_task_from_today_writes_it_to_the_inbox() {
     let (_lock, app, dir) = app_with_notebook();
 

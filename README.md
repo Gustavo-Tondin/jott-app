@@ -64,6 +64,12 @@ what the current version is.
   auto-selected — unless you turn on "dated tasks join the day".
 - Due dates, priorities, tags, repetition, descriptions, subtasks and file
   attachments; completed tasks kept in their own file, restorable.
+- **Reminders**: a date and time on any task (presets or your own), or an
+  automatic one for every dated task — the day of, or the day before, at an
+  hour you choose. They ring through the system's notifications; on the
+  desktop Jott waits in the tray after the window closes (and can start with
+  the session), on Android the alarm is the system's and rings with the app
+  closed.
 - A day/week rollover you configure, down to the hour.
 
 **Notes**

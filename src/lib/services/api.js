@@ -327,6 +327,18 @@ export const api = {
   setPeriodOrder: (period, refs) => invoke("set_period_order", { period, refs }),
   periodClock: () => invoke("period_clock"),
   refreshPeriods: () => invoke("refresh_periods"),
+  // reminders (2026-08-25): the core's sorted list, this machine's memory of
+  // what already rang, the desktop bell, and the tray the app waits in.
+  reminders: () => invoke("reminders"),
+  remindedUntil: () => invoke("reminded_until"),
+  rememberRemindedUntil: (until) => invoke("remember_reminded_until", { until }),
+  notifyReminder: (title, body, target) =>
+    invoke("notify_reminder", { title, body, target }),
+  closeToTray: () => invoke("close_to_tray"),
+  rememberCloseToTray: (on) => invoke("remember_close_to_tray", { on }),
+  autostart: () => invoke("autostart"),
+  setAutostart: (on) => invoke("set_autostart", { on }),
+  quitApp: () => invoke("quit_app"),
 };
 
 /// Errors cross the bridge as { kind, message }; anything else is a bug.

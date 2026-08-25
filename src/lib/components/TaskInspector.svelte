@@ -32,6 +32,8 @@
   import { movedItem } from "../services/spaceOrder.js";
   import { reorderable } from "../actions/reorder.js";
   import Menu from "./Menu.svelte";
+  import { formatAt, joinAt, normalizeAt, presets, splitAt } from "../services/reminders.js";
+  import { toIso } from "../services/dates.js";
   import Icon from "./Icon.svelte";
   import DatePicker from "./DatePicker.svelte";
   import AssetPicker from "./AssetPicker.svelte";
@@ -59,6 +61,9 @@
     saveDelay = 500,
     // How the due date is drawn (the notebook's display format).
     dateFormat = "mm/dd/yyyy",
+    /// `HH:MM` — the notebook's reminder time, where the reminder presets
+    /// land ("tomorrow" is tomorrow at this hour).
+    reminderTime = "09:00",
     /// This task is pulled into the Day: the sun lights up, and pressing it
     /// takes it back out. A lit button that does nothing when pressed is a
     /// button that reads as broken (user call, 2026-08-06).
@@ -131,7 +136,51 @@
     openKey = key;
     draft = fresh;
     newSubtask = "";
+    pickingReminder = false;
   });
+
+  // ---- the reminder (2026-08-25) ----
+  // A menu of presets (services/reminders.js resolves each to a moment) and,
+  // behind "Pick date and time…", the calendar plus a time field. The two
+  // controls write the draft the moment both have a value; there is no
+  // "done" — the autosave is the done.
+  let pickingReminder = $state(false);
+
+  const PRESET_LABELS = {
+    laterToday: () => S.remindLaterToday,
+    tomorrow: () => S.remindTomorrow,
+    nextWeek: () => S.remindNextWeek,
+    onDue: () => S.remindOnDue,
+  };
+
+  let reminderMenu = $derived([
+    ...presets({ due: draft.due, time: reminderTime }).map((p) => ({
+      label: PRESET_LABELS[p.id](),
+      run: () => {
+        pickingReminder = false;
+        draft.remind = p.at;
+      },
+    })),
+    { label: S.remindPick, run: startPickingReminder },
+  ]);
+
+  /// Opens the two controls, seeded with what the field has — or the due
+  /// date (else today) at the reminder time, so the field is never blank
+  /// while the calendar waits for a click.
+  function startPickingReminder() {
+    const { date, time } = splitAt(draft.remind);
+    draft.remind = joinAt(date || draft.due || toIso(new Date()), time || reminderTime);
+    pickingReminder = true;
+  }
+
+  const setReminderDate = (iso) => (draft.remind = joinAt(iso, splitAt(draft.remind).time));
+  const setReminderTime = (time) =>
+    (draft.remind = joinAt(splitAt(draft.remind).date, time || reminderTime));
+
+  function clearReminder() {
+    pickingReminder = false;
+    draft.remind = "";
+  }
 
   // The auto-save itself. Stringifying the draft subscribes to every field in
   // it; the dirty check is what tells a real edit apart from the effect above
@@ -179,6 +228,8 @@
         .map((line) => line.trim())
         .filter(Boolean),
       repeat: repeatText(draft),
+      // The moment as the file writes it (`2026-07-25T09:00`); null clears.
+      remind: draft.remind || null,
       // Whole, and as `{label, address}`: a label someone wrote by hand in the
       // `.md` has to survive an add or a remove made here (core/src/task.rs).
       files: draft.files.map((f) => ({ label: f.label, address: f.address })),
@@ -200,6 +251,9 @@
       description: (t?.description ?? []).join("\n"),
       repeatEvery: t?.repeat?.every ?? 1,
       repeatUnit: t?.repeat?.unit ?? "",
+      // The bridge sends the task's own moment with seconds; the draft keeps
+      // the minute form the file and the controls speak.
+      remind: normalizeAt(t?.remind ?? ""),
       files: (t?.files ?? []).map((f) => ({ ...f })),
       subtasks: (t?.subtasks ?? []).map((s) => ({ ...s })),
     };
@@ -613,6 +667,58 @@
               <option value={unit.value}>{unit.label()}</option>
             {/each}
           </select>
+        </span>
+      </div>
+      {/if}
+
+      {#if f("remind")}
+      <div class="inspector__field" class:inspector__field--unset={!draft.remind}>
+        <span class="inspector__field-label">
+          <Icon name="alarm" size="1rem" />
+          {S.remindLabel}
+        </span>
+        <span class="inspector__field-value inspector__reminder">
+          {#if pickingReminder}
+            <DatePicker
+              value={splitAt(draft.remind).date}
+              {dateFormat}
+              label={S.remindDateLabel}
+              disabled={readOnly}
+              onChange={setReminderDate}
+            />
+            <input
+              class="theme-input theme-input--filled inspector__time"
+              type="time"
+              value={splitAt(draft.remind).time}
+              disabled={readOnly}
+              aria-label={S.remindTimeLabel}
+              onchange={(e) => setReminderTime(e.currentTarget.value)}
+            />
+          {:else}
+            <Menu items={reminderMenu} align="end">
+              {#snippet trigger({ toggle })}
+                <button
+                  class="theme-input theme-input--filled inspector__reminder-value"
+                  type="button"
+                  onclick={toggle}
+                  disabled={readOnly}
+                  aria-label={S.remindLabel}
+                >
+                  {draft.remind ? formatAt(draft.remind, dateFormat) : S.addReminder}
+                </button>
+              {/snippet}
+            </Menu>
+          {/if}
+          {#if !readOnly && draft.remind}
+            <button
+              class="inspector__tag-remove"
+              onclick={clearReminder}
+              aria-label={S.clearReminder}
+              title={S.clearReminderHint}
+            >
+              <Icon name="x" size="0.625rem" />
+            </button>
+          {/if}
         </span>
       </div>
       {/if}

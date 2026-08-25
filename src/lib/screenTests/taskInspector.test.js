@@ -242,6 +242,71 @@ describe("TaskInspector", () => {
     expect(screen.queryByLabelText("clear date")).toBeNull();
   });
 
+  // ---- the reminder (2026-08-25) ----
+
+  test("a reminder preset writes the moment as the file spells it", async () => {
+    // "Tomorrow" lands on the notebook's reminder time, which reaches the
+    // panel as a prop — the proof that it is not a number typed in here.
+    bridge({ set_task_fields: null });
+    render(TaskInspector, {
+      props: props(task("a1", "Comprar leite"), { reminderTime: "07:30" }),
+    });
+
+    await userEvent.click(await screen.findByLabelText("Remind me"));
+    await userEvent.click(screen.getByRole("button", { name: "Tomorrow" }));
+
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const day = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, "0")}-${String(tomorrow.getDate()).padStart(2, "0")}`;
+    await waitFor(() => expect(lastSave().fields.remind).toBe(`${day}T07:30`));
+  });
+
+  test("the reminder shows the minute form and has its own way to be removed", async () => {
+    // The bridge sends the task's moment with seconds; the panel speaks the
+    // file's minute form, and clearing sends null like the date does.
+    bridge({ set_task_fields: null });
+    render(TaskInspector, {
+      props: props(task("a1", "Comprar leite", { remind: "2026-07-25T18:00:00" }), {
+        dateFormat: "dd/mm/yyyy",
+      }),
+    });
+
+    expect((await screen.findByLabelText("Remind me")).textContent.trim()).toBe(
+      "25/07/2026 18:00",
+    );
+    await userEvent.click(screen.getByLabelText("clear reminder"));
+    await waitFor(() => expect(lastSave().fields.remind).toBe(null));
+  });
+
+  test("picking a date and time writes both", async () => {
+    bridge({ set_task_fields: null });
+    render(TaskInspector, {
+      props: props(task("a1", "Comprar leite", { due: "2026-08-15" })),
+    });
+
+    await userEvent.click(await screen.findByLabelText("Remind me"));
+    await userEvent.click(screen.getByRole("button", { name: "Pick date and time…" }));
+    // Seeded with the due date at the reminder time, before any click.
+    await waitFor(() => expect(lastSave().fields.remind).toBe("2026-08-15T09:00"));
+
+    await userEvent.click(screen.getByLabelText("reminder date"));
+    await userEvent.click(screen.getByRole("button", { name: "1" }));
+    await waitFor(() => expect(lastSave().fields.remind).toBe("2026-08-01T09:00"));
+
+    const time = screen.getByLabelText("reminder time");
+    await fireEvent.input(time, { target: { value: "18:30" } });
+    await fireEvent.change(time, { target: { value: "18:30" } });
+    await waitFor(() => expect(lastSave().fields.remind).toBe("2026-08-01T18:30"));
+  });
+
+  test("with Remind me switched off the field is not drawn", async () => {
+    render(TaskInspector, {
+      props: props(task("a1", "Comprar leite"), { f: (key) => key !== "remind" }),
+    });
+    await screen.findByLabelText("Due date");
+    expect(screen.queryByLabelText("Remind me")).toBeNull();
+  });
+
   test("typing in the description still saves it as lines", async () => {
     // The description swapped its textarea for the plain editor (2026-08-19,
     // so it can carry `[[note]]` references). The editor is stubbed here, as
