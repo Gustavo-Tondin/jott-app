@@ -1,14 +1,71 @@
 # Making Jott look different
 
 A theme is **one CSS file**. No build step, no JavaScript, no plugin API —
-which is why this is the smallest useful contribution to the project and
+which is why this is the smallest useful thing you can make for Jott, and it
 needs no Rust at all.
 
-> **Today a theme ships with the app**, added by pull request. Loading a
-> theme from `.jott/themes/<name>.css` in your own notebook is planned but
-> not built — the mechanism is already in place (every theme is loaded at
-> once and picked by an attribute), which is why it will not change the
-> format below.
+There are two places a theme can live, and the file is the same either way:
+
+- **In your notebook**, under `.jott/themes/`. Nobody else has to agree —
+  drop it in, pick it in Settings, and it travels with the notebook to your
+  other machines. Start here.
+- **In the app**, by pull request, if you think everyone should have it.
+
+## The quickest path: let the app write the first one
+
+Settings → Display → **New theme from this one**. It asks for a name and
+writes `.jott/themes/<name>/` into your notebook, containing the look you are
+wearing right now — every role already assigned, in the right shape. Then
+open `theme.css` in any editor and change colours. **Saving the file repaints
+the app**, so the loop is: save, look, save again.
+
+That button exists because of a real cost: a theme assigns both regions in
+full, which is around 170 declarations. Typing those out of this page is not
+something anybody does; editing a file that already works is.
+
+## Bringing one in by hand
+
+Two shapes, both read from `.jott/themes/`:
+
+```
+.jott/themes/
+├── solarized.css          ← a loose file. This is a complete theme.
+└── blue-topaz/
+    ├── theme.css          ← the same thing, in a folder…
+    └── manifest.json      ← …which lets it say who made it
+```
+
+The **name** is the file's (without `.css`) or the folder's, and that is what
+Settings shows and what the notebook stores. `default`, `light` and `dark`
+are refused — the app already answers to those, and a theme by that name
+could never be worn.
+
+`manifest.json` is optional and every key in it is optional:
+
+```json
+{
+  "name": "Blue Topaz",
+  "author": "Someone",
+  "version": "2.1.0",
+  "minAppVersion": "0.37.0"
+}
+```
+
+`minAppVersion` is the one worth writing. A theme made for a newer Jott will
+still load, but the app can then say so on the row instead of leaving you to
+wonder why half the window looks wrong.
+
+### Two things Jott does to your stylesheet
+
+**Anything that would reach the network is neutralised on the way in.** A
+remote `@import` is dropped; a `url()` pointing at a host becomes
+`url("about:invalid")`, which keeps the declaration valid and makes no
+request. Settings says how many were blocked. A stylesheet is text the app
+injects into its own window, and a theme downloaded from a stranger should
+not be able to call home every time you open your notes. `data:` URIs are
+left alone — that is how a self-contained theme carries an image.
+
+**A stylesheet past 4 MB is refused** rather than injected.
 
 ---
 
@@ -38,17 +95,24 @@ being found later.
 
 ---
 
-## Writing one
+## What a theme has to assign
 
-```bash
-cp src/styles/themes/default.css src/styles/themes/solarized.css
-```
+Whichever of the two places it lives in, a theme is the same file — and it
+**replaces** the colours rather than patching them. That is the contract that
+keeps every role one hop from a real colour instead of a chain through three
+files.
 
-1. **Change the theme name in every selector** — `[data-theme="default"]`
-   becomes `[data-theme="solarized"]`. Drop the `:root:not([data-theme])`
-   half: that exists only so the factory theme dresses the app before the
-   setting has been read.
-2. **Assign the roles for both regions.** The list is at the top of
+Selectors differ by destination, and only in the first line of each rule:
+
+| Living in | Rule reads | Why |
+|---|---|---|
+| your notebook | `[data-region="chrome"] { … }` | `data-theme` carries your theme's name, so no theme the app ships matches — yours is the only one painting. Renaming the folder cannot break it. |
+| the app | `[data-theme="solarized"] [data-region="chrome"] { … }` | every theme the app ships is loaded at once, and the attribute picks |
+
+A notebook theme *may* use the keyed form too, as long as the name matches
+its folder — which is why a theme copied out of the app works unchanged.
+
+**Assign the roles for both regions.** The list is at the top of
    `default.css`, and it is the whole list — the short version:
 
    | Role | What it is |
@@ -63,19 +127,41 @@ cp src/styles/themes/default.css src/styles/themes/solarized.css
    | `--accent-<name>`, `-line`, `-tint` | the base (rung 3), a border/focus alpha, and a quiet fill |
    | `--theme-danger`, `-warning`, `-success`, `--theme-emphasis` | four of the eight, straight from the palette, so status never changes meaning with the accent |
 
-3. **Register it** — three lines, in three files:
+### Changing what the eight colours are
 
-   ```
-   src/app.css                    @import "./styles/themes/solarized.css";
-   src/lib/services/themes.js     a line in THEMES
-   src/lib/services/strings.js    its label and one-line hint
-   ```
+Most of the file is them: each of the eight, as a ladder, for each region.
+They are ordinary values — a theme that wants its own palette writes literals
+and never mentions `--palette-*`. Three things to know before you do:
 
-4. **`npm test`.** The architecture tests will tell you if a role reads
-   another role, if your theme is missing a role the other themes assign, if
-   a component reads a role you didn't assign, or if a floating panel doesn't
-   get the region's two neutrals swapped. They are the review, and they are
-   fast.
+- **Which of the eight is the accent stays the reader's choice** (Settings →
+  Display), never the theme's. A theme says what `blue` *looks like*; the
+  person says whether the app wears blue. Assigning `--theme-brand` takes
+  that away.
+- **The ladder runs 1 (strongest) → 6 (faintest), and H1–H6 stand on those
+  rungs in order.** Keep it monotonic or headings stop agreeing with their
+  own size.
+- **`--accent-<name>-fill` is not in the theme file** — it is the same in
+  every theme and both regions, because a banner is a surface with nothing
+  written on it and a yellow note should be yellow under any lamp. A notebook
+  theme can still override it (`:root { --accent-yellow-fill: #e8d9a0; }`),
+  since it is loaded after everything else.
+
+### If your theme ships with the app
+
+Three more lines, in three files:
+
+```
+src/app.css                    @import "./styles/themes/solarized.css";
+src/lib/services/themes.js     a line in THEMES
+src/lib/services/strings.js    its label and one-line hint
+```
+
+Then **`npm test`.** The architecture tests will tell you if a role reads
+another role, if your theme is missing a role the other themes assign, if a
+component reads a role you didn't assign, or if a floating panel doesn't get
+the region's two neutrals swapped. They are the review, and they are fast.
+(They only see themes in the repository — a notebook theme is yours, and
+nothing checks it but your eyes.)
 
 ---
 
@@ -132,9 +218,10 @@ Two conventions that will bite if you don't know them:
 
 **The honest downside**, so you know before you start: a theme is ~50
 assignments per region, most of them mechanical. It is verbose by design —
-the alternative was letting roles read roles. Making authoring cheaper
-without giving up that rule is on the roadmap; a themer's opinion on how
-would be welcome in an issue.
+the alternative was letting roles read roles, and then no line of a theme
+would tell you what a colour actually is. "New theme from this one" is the
+answer to the typing; making the *file* smaller without giving up the rule is
+still open, and a themer's opinion on how would be welcome in an issue.
 
 ## Not a theme, but nearby
 

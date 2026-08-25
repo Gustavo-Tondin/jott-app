@@ -33,6 +33,7 @@ pub mod space;
 pub mod state;
 pub mod tags;
 pub mod task;
+pub mod themes;
 pub mod trash;
 pub mod version;
 pub mod watcher;

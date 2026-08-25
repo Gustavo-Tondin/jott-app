@@ -97,6 +97,7 @@ fn the_apps_own_writes_do_not_surface_as_temporary_files() {
             Change::List { path }
             | Change::State { path }
             | Change::Conflict { path }
+            | Change::Theme { path }
             | Change::Other { path } => path.clone(),
             Change::Config => continue,
         };

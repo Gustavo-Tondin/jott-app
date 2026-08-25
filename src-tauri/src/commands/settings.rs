@@ -248,3 +248,55 @@ pub fn set_spaces_sort<R: Runtime>(state: State<'_, AppState>,
     window: tauri::Window<R>, sort: String) -> CommandResult<()> {
     state.record(window.label(), "set_spaces_sort", |nb| nb.set_spaces_sort(&sort))
 }
+
+/// The themes the open notebook carries (`.jott/themes/`).
+///
+/// Read on demand — when the settings screen opens, and again when the
+/// watcher says a stylesheet changed — never per render: it walks a folder.
+///
+/// The app's version is handed to the core rather than looked up there,
+/// because `CARGO_PKG_VERSION` is a fact about the binary and the core is a
+/// library that any binary may link.
+#[tauri::command]
+pub fn user_themes<R: Runtime>(
+    state: State<'_, AppState>,
+    window: tauri::Window<R>,
+) -> CommandResult<Vec<jott_core::themes::UserTheme>> {
+    state.with_notebook(window.label(), |nb| {
+        Ok(nb.themes(env!("CARGO_PKG_VERSION")))
+    })
+}
+
+/// One theme's stylesheet, for the frontend to put in the document.
+///
+/// The bytes cross the bridge rather than being loaded by the page itself,
+/// and that is the point: the core has already refused anything past the size
+/// cap and neutralised every reference that would leave the machine, so what
+/// arrives is text that can only paint.
+#[tauri::command]
+pub fn user_theme_css<R: Runtime>(
+    state: State<'_, AppState>,
+    window: tauri::Window<R>,
+    name: String,
+) -> CommandResult<jott_core::themes::Stylesheet> {
+    state.with_notebook(window.label(), |nb| Ok(nb.theme_css(&name)?))
+}
+
+/// Writes a new theme into the notebook, seeded with a stylesheet the frontend
+/// hands over — the one the app is wearing.
+///
+/// The CSS comes from the bundle rather than from here because that is where
+/// it lives: `src/styles/themes/*.css` is imported by the page, and asking the
+/// backend for a file the frontend already has would be a second copy to keep
+/// in step.
+#[tauri::command]
+pub fn create_user_theme<R: Runtime>(
+    state: State<'_, AppState>,
+    window: tauri::Window<R>,
+    name: String,
+    css: String,
+) -> CommandResult<jott_core::themes::UserTheme> {
+    state.record(window.label(), "create_user_theme", |nb| {
+        nb.create_theme(&name, &css)
+    })
+}

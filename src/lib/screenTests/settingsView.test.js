@@ -9,7 +9,7 @@ import { beforeEach, describe, expect, test } from "vitest";
 import { back } from "../services/back.js";
 import { bridge, invoke } from "../test/bridge.js";
 import { FEATURES, hasPage } from "../services/features.js";
-import { answerConfirm, noop, resetScreens } from "../test/screens.js";
+import { answerConfirm, answerName, noop, resetScreens } from "../test/screens.js";
 import SettingsView from "../screens/SettingsView.svelte";
 
 beforeEach(resetScreens);
@@ -174,6 +174,127 @@ describe("SettingsView", () => {
     await userEvent.click(await screen.findByText("Reset to defaults"));
     await waitFor(() =>
       expect(invoke.mock.calls.some(([cmd]) => cmd === "reset_shortcuts")).toBe(true),
+    );
+  });
+
+  test("a theme the notebook carries is offered beside the app's own", async () => {
+    // The whole installation procedure is putting a file in `.jott/themes/`,
+    // so the block appears by itself — and only when there is something in it.
+    bridge({ notebook_settings: settings, set_machine_display: null });
+    render(SettingsView, {
+      props: props({
+        userThemes: [
+          {
+            name: "solarized",
+            label: "Solarized",
+            author: "Ethan",
+            version: "1.2.0",
+            minAppVersion: null,
+            supported: true,
+          },
+        ],
+        wornTheme: "solarized",
+      }),
+    });
+
+    await openSection("Display");
+    const row = await screen.findByRole("button", { name: /Solarized/ });
+    // What the manifest says about itself, on the row.
+    expect(row.textContent).toContain("by Ethan");
+    expect(row.textContent).toContain("1.2.0");
+
+    await userEvent.click(row);
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("set_machine_display", {
+        display: { theme: "solarized" },
+      }),
+    );
+  });
+
+  test("a notebook with no themes says nothing about them", async () => {
+    bridge({ notebook_settings: settings, set_machine_display: null });
+    render(SettingsView, { props: props() });
+
+    await openSection("Display");
+    // An empty list explaining what an empty list means is worse than silence
+    // — but the hint that says WHERE to put one still stands, because that is
+    // the answer to "how do I get one".
+    expect(screen.queryByText("From this notebook")).toBe(null);
+    expect(screen.getByText(/Drop a .css file/)).toBeTruthy();
+  });
+
+  test("a theme that cannot be worn says so on its own row", async () => {
+    bridge({ notebook_settings: { ...settings, theme: "future" }, set_machine_display: null });
+    render(SettingsView, {
+      props: props({
+        userThemes: [
+          {
+            name: "future",
+            label: "Future",
+            author: null,
+            version: null,
+            minAppVersion: "9.0.0",
+            supported: false,
+          },
+        ],
+        // Chosen, but NOT worn: the shell is showing the default instead.
+        wornTheme: null,
+      }),
+    });
+
+    await openSection("Display");
+    await screen.findByText(/Made for Jott 9.0.0 or newer/);
+    await screen.findByText(/could not be read/);
+  });
+
+  test("what a worn theme lost on the way in is said out loud", async () => {
+    bridge({ notebook_settings: { ...settings, theme: "tracked" }, set_machine_display: null });
+    render(SettingsView, {
+      props: props({
+        userThemes: [
+          {
+            name: "tracked",
+            label: "Tracked",
+            author: null,
+            version: null,
+            minAppVersion: null,
+            supported: true,
+          },
+        ],
+        wornTheme: "tracked",
+        // The core neutralised two addresses that pointed off the machine.
+        blockedInTheme: 2,
+      }),
+    });
+
+    await openSection("Display");
+    await screen.findByText(/2 addresses pointing off this machine were blocked/);
+  });
+
+  test("a theme can be made out of the look on screen, and is worn at once", async () => {
+    // The seeding happens in the shell (it is what knows which stylesheet is
+    // on); this screen asks for a name, hands it over, and puts the result on
+    // — a theme written and not worn gives the reader no way to tell it took.
+    bridge({ notebook_settings: settings, set_machine_display: null });
+    const made = [];
+    render(SettingsView, {
+      props: props({
+        onNewTheme: async (name) => {
+          made.push(name);
+          return { name, label: name, supported: true };
+        },
+      }),
+    });
+
+    await openSection("Display");
+    await userEvent.click(screen.getByRole("button", { name: "New theme from this one" }));
+    await answerName("Solarized");
+
+    await waitFor(() => expect(made).toEqual(["Solarized"]));
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("set_machine_display", {
+        display: { theme: "Solarized" },
+      }),
     );
   });
 

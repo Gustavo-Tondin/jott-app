@@ -70,11 +70,28 @@ export function noteFontSizeAttribute(stored) {
   return known && stored !== DEFAULT_NOTE_FONT_SIZE ? stored : null;
 }
 
-/// The theme to put on <html>. An empty setting means "the one the app ships
-/// as"; a name from a newer build is NOT forced back to the default here —
-/// the notebook keeps it (the core never validates a look), and the CSS simply
-/// matches nothing, which lands on the `:root:not([data-theme])` fallback that
-/// default.css also answers to.
-export function themeAttribute(stored) {
-  return stored || DEFAULT_THEME;
+/// The theme to put on <html>.
+///
+/// An empty setting means "the one the app ships as". A name the app ships is
+/// itself. A name the NOTEBOOK ships (`.jott/themes/`, 2026-08-25) is itself
+/// too — but only once its stylesheet is actually in the document, which is
+/// what `worn` says: until then the attribute stays on the default, because
+/// an attribute matching no stylesheet at all leaves the app with no colour
+/// roles assigned — not a fallback, a blank window.
+///
+/// That is also what happens to a name from a build that is not this one, or
+/// a theme whose file was deleted while it was in use. The notebook KEEPS the
+/// name either way (the core never validates a look, and a theme removed by a
+/// sync should come back when it does), so this is a display decision every
+/// time it is read, not a value written back.
+/// Whether a name is one of the app's own three. Asked wherever the answer
+/// decides which SOURCE a theme comes from — the bundle, or the notebook.
+export function isAppTheme(name) {
+  return THEMES.some((theme) => theme.key === name);
+}
+
+export function themeAttribute(stored, worn = null) {
+  if (!stored) return DEFAULT_THEME;
+  if (isAppTheme(stored)) return stored;
+  return stored === worn ? stored : DEFAULT_THEME;
 }

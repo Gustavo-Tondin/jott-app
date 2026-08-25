@@ -388,4 +388,58 @@
     color: var(--theme-brand);
     font-family: var(--theme-font-sans);
   }
+
+  /* ---------------------------------------------------------------------------
+     Themes the notebook carries (2026-08-25). A column of rows rather than more
+     segments: each carries an author and a version, and there can be any number
+     of them.
+     --------------------------------------------------------------------------- */
+  .settings__themes {
+    display: grid;
+    gap: var(--theme-space-6);
+    margin-block-end: var(--theme-space-8);
+  }
+
+  /* It wears .theme-row for its shape and adds only what a BUTTON needs: the
+     row was written for a div. */
+  .settings__theme {
+    width: 100%;
+    border: 0.0625rem solid transparent;
+    color: inherit;
+    font: inherit;
+    text-align: start;
+    cursor: pointer;
+  }
+
+  .settings__theme:hover {
+    background: var(--theme-hover);
+  }
+
+  /* The one that is on. A border rather than a fill: the row below it may be
+     an explanation about this very theme, and a filled row would read as a
+     heading over it. */
+  .settings__theme[aria-pressed="true"] {
+    border-color: var(--theme-brand);
+  }
+
+  .settings__theme-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Author and version: what a theme says about itself, at the quiet end. */
+  .settings__theme-meta {
+    display: flex;
+    align-items: center;
+    gap: var(--theme-space-6);
+    color: var(--theme-ink-muted);
+    font-size: var(--theme-text-12);
+  }
+
+  .settings__theme-version {
+    font-family: var(--theme-font-mono);
+  }
 }

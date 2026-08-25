@@ -2183,3 +2183,43 @@ fn each_window_keeps_its_own_history() {
     assert_eq!(ok_from(&app, "second", "undo", json!({})), json!("create_group"));
     assert!(!other.path().join("Clientes").exists());
 }
+
+#[test]
+fn a_theme_dropped_into_the_notebook_reaches_the_frontend() {
+    let (_lock, app, dir) = app_with_notebook();
+    let themes = dir.path().join(".jott/themes/solarized");
+    std::fs::create_dir_all(&themes).unwrap();
+    std::fs::write(
+        themes.join("theme.css"),
+        "[data-region=\"canvas\"] { --theme-bg: #fdf6e3; background: url(https://x.example/a.png); }",
+    )
+    .unwrap();
+    std::fs::write(
+        themes.join("manifest.json"),
+        r#"{ "name": "Solarized Light", "author": "Ethan", "version": "1.0.0" }"#,
+    )
+    .unwrap();
+
+    let listed = ok(&app, "user_themes", json!({}));
+    assert_eq!(listed[0]["name"], json!("solarized"));
+    assert_eq!(listed[0]["label"], json!("Solarized Light"));
+    assert_eq!(listed[0]["author"], json!("Ethan"));
+    assert_eq!(listed[0]["supported"], json!(true));
+
+    // The stylesheet crosses already neutralised: the count is what the
+    // settings screen says out loud, and the address is simply not there.
+    let sheet = ok(&app, "user_theme_css", json!({ "name": "solarized" }));
+    assert_eq!(sheet["blocked"], json!(1));
+    let css = sheet["css"].as_str().unwrap();
+    assert!(css.contains("#fdf6e3"));
+    assert!(!css.contains("x.example"));
+}
+
+#[test]
+fn asking_for_a_theme_the_notebook_does_not_have_fails_cleanly() {
+    let (_lock, app, _dir) = app_with_notebook();
+
+    assert_eq!(ok(&app, "user_themes", json!({})), json!([]));
+    let err = invoke(&app, "user_theme_css", json!({ "name": "ghost" })).unwrap_err();
+    assert_eq!(err["kind"], "theme");
+}

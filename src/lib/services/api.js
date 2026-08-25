@@ -185,6 +185,20 @@ export const api = {
   setShortcut: (id, chord) => invoke("set_shortcut", { id, chord }),
   resetShortcuts: () => invoke("reset_shortcuts"),
 
+  /// The themes the OPEN NOTEBOOK carries (`.jott/themes/`, 2026-08-25) —
+  /// name, label, author, version, and whether this build is new enough for
+  /// it. Walks a folder: asked when the Display page opens and when the
+  /// watcher says a stylesheet changed, never per render.
+  userThemes: () => invoke("user_themes"),
+  /// One of their stylesheets, already stripped of anything that would reach
+  /// the network. `{ name, css, blocked }` — `blocked` counts what was
+  /// neutralised, so the interface can say it out loud.
+  userThemeCss: (name) => invoke("user_theme_css", { name }),
+  /// Writes a new theme into the notebook, seeded with a stylesheet the app
+  /// hands over — the look in use, with its selectors made nameless
+  /// (services/themeSeed.js). Refuses to overwrite one that exists.
+  createUserTheme: (name, css) => invoke("create_user_theme", { name, css }),
+
   // How the sidebar arranges spaces: "name", or "" for the dragged order.
   spacesSort: () => invoke("spaces_sort"),
   setSpacesSort: (sort) => invoke("set_spaces_sort", { sort }),

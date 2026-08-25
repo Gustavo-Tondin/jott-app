@@ -73,6 +73,11 @@ pub enum Error {
     #[error("{0}")]
     InvalidManifest(String),
 
+    /// A user theme that cannot be worn: the notebook has no such theme, or
+    /// its stylesheet is past the size the app is willing to inject.
+    #[error("{0}")]
+    Theme(String),
+
     /// The file watcher could not be started or kept running.
     #[error("could not watch the notebook: {0}")]
     Watch(String),

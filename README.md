@@ -91,6 +91,10 @@ what the current version is.
 **Looks and input**
 - Three themes (default, light, dark) × eight accent colours, each with a
   six-rung ladder so headings and chrome agree with the theme.
+- **Themes you bring in yourself**: drop a `.css` file into your notebook's
+  `.jott/themes/` and pick it in Settings — saving the file repaints the app.
+  The app writes the first one for you, out of the look already on screen
+  ([how](documentation/theming.md)).
 - Three font choices (interface, note body, monospace) from the fonts your
   machine has; interface zoom; note text size.
 - Configurable keyboard shortcuts for ~50 commands.
@@ -156,10 +160,10 @@ The feature work is done; what remains is proving it on hardware.
 - **System-wide capture** (Ctrl+Alt+Space) — the one shortcut that matters
   most for an app whose thesis is "write it down before you forget it".
 - **Easier theme authoring** — the format is honest but verbose (~50
-  assignments per theme); see [theming](documentation/theming.md).
-- **User themes from `.jott/themes/`**, translations, importers (Todoist,
-  Microsoft To Do, Obsidian Tasks), CSV export/import, PDF export of a note,
-  split view, time-of-day on tasks.
+  assignments per region). The app now writes the first file for you; making
+  the file itself smaller is still open ([theming](documentation/theming.md)).
+- **Translations**, importers (Todoist, Microsoft To Do, Obsidian Tasks),
+  CSV export/import, PDF export of a note, split view, time-of-day on tasks.
 
 **Later — optional paid services, never replacing a local feature**
 

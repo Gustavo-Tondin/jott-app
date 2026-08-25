@@ -532,6 +532,22 @@ export const S = {
   themeLightHint: "Light throughout.",
   themeDark: "Dark",
   themeDarkHint: "Dark throughout.",
+  // Themes the reader brought into the notebook (2026-08-25). The hint names
+  // the folder because that IS the whole installation procedure — there is no
+  // import button, and there should not be one.
+  themesFromNotebook: "From this notebook",
+  themesFromNotebookHint:
+    "Drop a .css file — or a folder with theme.css inside — into " +
+    ".jott/themes/ and it shows up here. Saving the file repaints the app.",
+  themeBy: (author) => `by ${author}`,
+  themeNeedsNewerApp: (version) =>
+    `Made for Jott ${version} or newer — parts of the app may go unpainted.`,
+  themeUnreadable: "This one could not be read. The app is wearing its own.",
+  newThemeAction: "New theme from this one",
+  themeBlockedRefs: (n) =>
+    n === 1
+      ? "1 address pointing off this machine was blocked."
+      : `${n} addresses pointing off this machine were blocked.`,
   accentColor: "Accent colour",
   accentColorHint:
     "The colour of the open place, the primary button and every focus ring. Each colour runs from light to dark; the app picks the step that reads on whatever it lands on.",

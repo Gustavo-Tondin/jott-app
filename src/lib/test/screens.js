@@ -64,6 +64,18 @@ export async function answerConfirm(answer = true) {
   return asked;
 }
 
+/// Answers the name dialog the screen just opened, the way `answerConfirm`
+/// answers the confirmation — `null` for cancel.
+export async function answerName(name) {
+  const { get } = await import("svelte/store");
+  const { nameRequest } = await import("../services/dialog.js");
+  await vi.waitFor(() => expect(get(nameRequest)).toBeTruthy());
+  const asked = get(nameRequest);
+  nameRequest.set(null);
+  asked.resolve(name);
+  return asked;
+}
+
 /// Gives a set of elements a layout jsdom does not compute: one column of
 /// 200x200 boxes starting at `top`. Dragging is geometry, so a drag test has
 /// to say where things are.

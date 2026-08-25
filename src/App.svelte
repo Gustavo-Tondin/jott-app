@@ -85,9 +85,18 @@
   import { ACCENTS, tagColors as tagColorMap } from "./lib/services/accent.js";
   import {
     NOTE_FONT_SIZES,
+    isAppTheme,
     noteFontSizeAttribute,
     themeAttribute,
   } from "./lib/services/themes.js";
+  import { applyUserTheme, userThemeApplied } from "./lib/shell/userTheme.js";
+  import { seedFrom } from "./lib/services/themeSeed.js";
+  // The app's own three, as TEXT. `?raw` gives the source rather than a
+  // stylesheet the page loads — these are already loaded, by app.css; what is
+  // wanted here is the file's contents, to seed a theme the reader will edit.
+  import defaultThemeCss from "./styles/themes/default.css?raw";
+  import lightThemeCss from "./styles/themes/light.css?raw";
+  import darkThemeCss from "./styles/themes/dark.css?raw";
   import {
     formatBarMode as modeOfFormatBar,
     formatBarSide as sideOfFormatBar,
@@ -139,6 +148,28 @@
   let dayRefs = $state(new Set());
   /// How the sidebar arranges spaces — "" (dragged) or "name".
   let spacesSort = $state("");
+  /// The themes the open notebook carries (`.jott/themes/`, 2026-08-25), and
+  /// which of them is actually IN the document right now. Two pieces of state
+  /// because they answer two questions: what to offer in Settings, and what
+  /// the `data-theme` attribute is allowed to say — a name whose stylesheet
+  /// has not arrived would paint nothing at all (services/themes.js).
+  let userThemes = $state([]);
+  let wornTheme = $state(null);
+  /// How many remote references the core neutralised in the worn stylesheet,
+  /// so Settings can say it rather than let a theme quietly lose its images.
+  let wornThemeBlocked = $state(0);
+  /// The source of each theme the app ships, by name.
+  const APP_THEME_CSS = {
+    default: defaultThemeCss,
+    light: lightThemeCss,
+    dark: darkThemeCss,
+  };
+
+  /// Bumped when the watcher reports a stylesheet changing on disk. It is in
+  /// the effect below purely to re-run it: saving the file is the whole
+  /// authoring loop, and without this the app would have to be restarted to
+  /// see a colour change.
+  let themeRevision = $state(0);
   /// The task open in the right-hand panel, as `{ list, task }`.
   let selected = $state(null);
   /// Left sidebar collapsed to an icon rail. Local to the session (not a
@@ -775,12 +806,59 @@
   // point of the colour being there.
   $effect(() =>
     setRootData({
-      theme: themeAttribute(showsPicker ? "" : layout.theme),
+      theme: themeAttribute(showsPicker ? "" : layout.theme, wornTheme),
       accent: showsPicker ? "neutral" : layout.accentColor || null,
       headings: !showsPicker && layout.headingColor === "ink" ? "ink" : null,
       noteSize: noteFontSizeAttribute(layout.noteFontSize),
     }),
   );
+
+  // A NOTEBOOK's theme: its stylesheet fetched and put in the document.
+  //
+  // The app's own three are `@import`ed by app.css and cost nothing to switch
+  // between; this one is text on the reader's disk, so it travels over the
+  // bridge (shell/userTheme.js says why it lands where it lands).
+  //
+  // The order matters and is the whole reason `wornTheme` exists: the CSS goes
+  // in FIRST, and only then does the attribute start naming the theme. Naming
+  // it first would leave a frame — or a whole session, if the fetch fails —
+  // with an attribute that matches no stylesheet at all, which is not a
+  // fallback but a window with no colour roles assigned.
+  $effect(() => {
+    // Read every dependency before the first await: an effect only tracks
+    // what it touched synchronously.
+    const wanted = showsPicker ? "" : layout.theme;
+    void themeRevision;
+    const carried = userThemes.some((theme) => theme.name === wanted);
+
+    if (!wanted || isAppTheme(wanted) || !carried) {
+      applyUserTheme(null);
+      wornTheme = null;
+      wornThemeBlocked = 0;
+      return;
+    }
+
+    let cancelled = false;
+    api
+      .userThemeCss(wanted)
+      .then((sheet) => {
+        if (cancelled) return;
+        applyUserTheme(sheet.css);
+        wornTheme = wanted;
+        wornThemeBlocked = sheet.blocked ?? 0;
+      })
+      .catch(() => {
+        // A theme that cannot be read is a theme that is not worn — the
+        // attribute stays on the default, and Settings still lists the file.
+        if (cancelled) return;
+        applyUserTheme(null);
+        wornTheme = null;
+        wornThemeBlocked = 0;
+      });
+    return () => {
+      cancelled = true;
+    };
+  });
 
   // The three faces ride on the root as custom properties, beside the
   // attributes above and for the same reason: they have to reach both regions
@@ -1396,10 +1474,31 @@
       dayRefs = new Set((snap.day ?? []).map((ref) => `${ref.path}#${ref.id}`));
       noteFolders = await api.noteFolders(snap.info.layout.notesFolder);
       spacesSort = await api.spacesSort();
+      // `?? []` because a bridge that does not answer this command is a
+      // notebook with no themes, not a crash in the effect that reads them.
+      userThemes = (await api.userThemes()) ?? [];
     } catch {
       // No notebook open (or it just closed): back to onboarding.
       notebook = null;
     }
+  }
+
+  /// Writes a new theme into the notebook, seeded with the look in use.
+  ///
+  /// The seed is the whole reason this button exists: a theme assigns both
+  /// regions in full, which is ~170 declarations, and copying those out of a
+  /// documentation page is not something anybody does. What is written is a
+  /// file that already works and is already the right shape — the editing is
+  /// then changing colours, which is the part a person actually wants to do.
+  ///
+  /// Wearing a notebook theme and asking for a new one duplicates THAT one,
+  /// which is the same operation and needs no separate button.
+  async function newThemeFrom(name) {
+    const worn = userThemeApplied();
+    const css = seedFrom(worn ?? APP_THEME_CSS[layout.theme] ?? APP_THEME_CSS.default);
+    const made = await api.createUserTheme(name, css);
+    userThemes = (await api.userThemes()) ?? [];
+    return made;
   }
 
   /// Opens a notebook and settles the app around it.
@@ -1793,6 +1892,14 @@
   // re-read the file by the time this event arrives).
   listen("notebook://changed", async (event) => {
     const kind = event.payload?.kind;
+    // A stylesheet under `.jott/themes/` changed: re-read the list (a theme
+    // may have appeared or gone) and re-fetch what is worn. Nothing else about
+    // the notebook moved, so nothing else is reloaded.
+    if (kind === "theme") {
+      userThemes = (await api.userThemes().catch(() => userThemes)) ?? [];
+      themeRevision += 1;
+      return;
+    }
     if (kind === "list" || kind === "config") await refreshNotebook();
     reload();
   });
@@ -2734,6 +2841,10 @@
               taskTargets={quickTaskChoices}
               {homeTasksChoices}
               {homeNotesChoices}
+              {userThemes}
+              {wornTheme}
+              onNewTheme={newThemeFrom}
+              blockedInTheme={wornThemeBlocked}
               onSection={(label) => (settingsSub = label)}
               onChanged={refreshNotebook}
               onError={fail}

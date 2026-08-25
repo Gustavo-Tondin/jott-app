@@ -475,6 +475,26 @@ impl Notebook {
         self.root.join(NOTEBOOK_CONFIG_DIR)
     }
 
+    /// The themes this notebook carries (`.jott/themes/`), for the app
+    /// version asking. Reading only: a theme is a file the reader brought in,
+    /// and the app never writes one.
+    pub fn themes(&self, app_version: &str) -> Vec<crate::themes::UserTheme> {
+        crate::themes::list(self.config_dir(), app_version)
+    }
+
+    /// One theme's stylesheet, with every remote reference neutralised.
+    pub fn theme_css(&self, name: &str) -> Result<crate::themes::Stylesheet> {
+        crate::themes::css(self.config_dir(), name)
+    }
+
+    /// Writes a new theme into the notebook, from the stylesheet the app is
+    /// wearing. The one write in this module that puts CSS on disk — and the
+    /// reason the format is usable at all (`themes::create`).
+    pub fn create_theme(&self, name: &str, css: &str) -> Result<crate::themes::UserTheme> {
+        self.ensure_writable()?;
+        crate::themes::create(self.config_dir(), name, css)
+    }
+
     pub fn config_path(&self) -> PathBuf {
         self.config_dir().join("config.json")
     }

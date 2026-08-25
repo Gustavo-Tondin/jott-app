@@ -32,6 +32,7 @@ MyNotebook/
 │   └── Clients/         ← a notes space you made
 └── .jott/
     ├── config.json      ← preferences that travel with the notebook
+    ├── themes/          ← the looks you brought in, if any
     ├── trash/           ← deleted things, waiting
     └── _FORMAT.txt      ← this document's short version, in every notebook
 ```
@@ -248,6 +249,12 @@ order you dragged things into.
 
   If you're writing a tool against a notebook, you can ignore this file: it
   holds preferences, not your content.
+
+- **`themes/`** — the looks this notebook carries, each either a
+  `<name>.css` or a `<name>/` holding `theme.css` and an optional
+  `manifest.json`. Yours: the app only ever reads them, except for the one
+  button that writes a starting point. Written in full in
+  [`theming.md`](theming.md).
 
 - **`trash/`** — everything deleted, with enough context to go back exactly
   where it was (a task returns to its line). Retention is configurable;

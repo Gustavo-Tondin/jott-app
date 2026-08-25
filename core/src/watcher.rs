@@ -33,6 +33,10 @@ pub enum Change {
     State { path: PathBuf },
     /// `.jott/config.json`.
     Config,
+    /// A stylesheet under `.jott/themes/`. Its own kind because the answer is
+    /// its own: nothing about the notebook changed, and re-reading the theme
+    /// is what makes writing one bearable — save the file, see the colour.
+    Theme { path: PathBuf },
     /// A sync tool left a conflicting copy behind. Checked before the other
     /// kinds: the app has to surface this, not treat it as a new list.
     Conflict { path: PathBuf },
@@ -55,6 +59,11 @@ impl Change {
         }
 
         if path.starts_with(config_dir) {
+            // Anything under `themes/`, at any depth: the stylesheet, the
+            // manifest, the folder appearing at all.
+            if path.starts_with(config_dir.join(crate::themes::THEMES_DIR)) {
+                return Some(Self::Theme { path });
+            }
             let name = path.file_name()?.to_string_lossy().to_string();
             return Some(match name.as_str() {
                 "config.json" => Self::Config,
@@ -258,6 +267,31 @@ mod tests {
         assert!(matches!(
             Change::classify(root.join("anexo.pdf"), &config_dir),
             Some(Change::Other { .. })
+        ));
+    }
+
+    #[test]
+    fn a_stylesheet_the_reader_edits_comes_back_as_a_theme() {
+        let root = Path::new("/caderno");
+        let config_dir = config_dir(root);
+
+        // Both shapes, and the manifest beside the stylesheet: the answer is
+        // the same for all three, because all three change how the app looks.
+        for relative in ["themes/solarized.css", "themes/blue/theme.css", "themes/blue/manifest.json"] {
+            assert!(
+                matches!(
+                    Change::classify(config_dir.join(relative), &config_dir),
+                    Some(Change::Theme { .. })
+                ),
+                "{relative} should be a theme change"
+            );
+        }
+
+        // And a theme is not a config: re-reading the notebook's settings on
+        // every keystroke of somebody writing CSS would be the wrong answer.
+        assert!(matches!(
+            Change::classify(config_dir.join("config.json"), &config_dir),
+            Some(Change::Config)
         ));
     }
 

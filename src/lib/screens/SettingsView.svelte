@@ -14,7 +14,7 @@
   import { api } from "../services/api.js";
   import { makeScreen } from "../services/act.js";
   import { S } from "../services/strings.js";
-  import { askConfirm } from "../services/dialog.js";
+  import { askConfirm, askName } from "../services/dialog.js";
   import {
     FUNCTIONS,
     childrenIn,
@@ -75,6 +75,21 @@
     /// Opens the notebook picker. It is the shell's flow — the same one the
     /// sidebar's foot has always had; this is its second door (2026-08-20).
     onSwitchNotebook,
+    /// The themes the notebook carries (`.jott/themes/`, 2026-08-25) — the
+    /// shell reads them, because it is the shell that wears one. Empty means
+    /// the notebook has none, and the whole block is absent rather than an
+    /// empty list with an explanation nobody asked for.
+    userThemes = [],
+    /// Which of them is actually in the document. A name in `userThemes` that
+    /// is not this one is a theme that failed to load — worth saying, because
+    /// the app is then wearing the default while the setting says otherwise.
+    wornTheme = null,
+    /// How many remote references were neutralised in it.
+    blockedInTheme = 0,
+    /// Writes a new theme into the notebook, seeded with the look in use, and
+    /// answers with it. The shell's, because the shell is what knows which
+    /// stylesheet is on (App.svelte → newThemeFrom).
+    onNewTheme,
     /// The open section's name, reported up so the compact header can draw it.
     /// The same handshake the Tasks screen has for its tabs (`onSub`): the
     /// header belongs to the shell, and only the screen knows what it opened.
@@ -327,6 +342,23 @@
   /// and this machine going quiet for Display. Asked first, always: the
   /// button is deliberately small and far from the options, but a wrong
   /// click here undoes a page of choices at once.
+  /// Makes a theme out of the look on screen, and puts it on.
+  ///
+  /// Wearing it immediately is the point: a theme written and not worn is a
+  /// file, and the reader has no way to tell whether it took. The name is
+  /// asked for rather than generated because it is the folder name, the
+  /// attribute value and what the list will show — three things at once.
+  async function makeTheme() {
+    const name = await askName();
+    if (!name) return;
+    try {
+      const made = await onNewTheme(name);
+      putDisplay({ theme: made.name });
+    } catch (e) {
+      onError?.(e);
+    }
+  }
+
   async function resetSection(section) {
     const ok = await askConfirm(S.resetSectionTitle, {
       detail: S.resetSectionDetail,
@@ -941,6 +973,59 @@
           {@render segmentedRow(S.theme, THEMES, form.theme || DEFAULT_THEME, (key) =>
             putDisplay({ theme: key }),
           )}
+
+          <!-- The notebook's own themes (2026-08-25). A block, not four more
+               segments: these have authors and versions to show, there can be
+               any number of them, and none of that fits in a segment. It is
+               absent entirely when the notebook carries none — an empty list
+               explaining what an empty list means is worse than silence.
+
+               When one of these is worn, the group above shows nothing pressed,
+               which is the honest reading: the look is not one of the three. -->
+          {#if userThemes.length}
+            <h3 class="settings__subtitle">{S.themesFromNotebook}</h3>
+            <div class="settings__themes">
+              {#each userThemes as theme (theme.name)}
+                {@const active = form.theme === theme.name}
+                <button
+                  type="button"
+                  class="theme-row settings__theme"
+                  aria-pressed={active}
+                  onclick={() => putDisplay({ theme: theme.name })}
+                >
+                  <span class="settings__theme-name">{theme.label}</span>
+                  <span class="settings__theme-meta">
+                    {#if theme.author}{S.themeBy(theme.author)}{/if}
+                    {#if theme.version}<span class="settings__theme-version"
+                        >{theme.version}</span
+                      >{/if}
+                  </span>
+                </button>
+                <!-- Said on the row it is about, and only while it matters:
+                     a warning about a theme nobody is wearing is noise. -->
+                {#if !theme.supported}
+                  <p class="settings__hint">{S.themeNeedsNewerApp(theme.minAppVersion)}</p>
+                {/if}
+                {#if active && wornTheme !== theme.name}
+                  <p class="settings__hint">{S.themeUnreadable}</p>
+                {:else if active && blockedInTheme > 0}
+                  <p class="settings__hint">{S.themeBlockedRefs(blockedInTheme)}</p>
+                {/if}
+              {/each}
+            </div>
+          {/if}
+          <p class="settings__hint">{S.themesFromNotebookHint}</p>
+
+          <!-- …and the door for someone who has none and does not want to
+               start from an empty file. What it writes is the look on screen
+               right now, which is also how a theme is duplicated. -->
+          {#if onNewTheme && !notebook?.readOnly}
+            <div class="settings__row">
+              <button type="button" class="theme-btn" onclick={makeTheme}
+                >{S.newThemeAction}</button
+              >
+            </div>
+          {/if}
 
           <!-- Not a <label>: the picker is a group of buttons, and a label wrapping
                them would claim the first one for its own click. -->
