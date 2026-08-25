@@ -130,6 +130,8 @@ pub fn open_target<R: Runtime>(app: &AppHandle<R>, label: &str, target: &Reminde
     use tauri::Emitter;
     if let Some(window) = app.get_webview_window(label) {
         let _ = window.show();
+        // Only desktop windows minimise; the method does not exist on mobile.
+        #[cfg(desktop)]
         let _ = window.unminimize();
         let _ = window.set_focus();
         let _ = window.emit(REMINDER_OPEN_EVENT, target.clone());
