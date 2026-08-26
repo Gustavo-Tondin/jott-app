@@ -550,7 +550,7 @@
               style={accentStyle(groupColor(entry.group.folder), {
                 color: "--group-color",
                 tint: null,
-              }) || undefined}
+              })}
             >
               <!-- svelte-ignore a11y_no_static_element_interactions -->
               <div
@@ -603,12 +603,12 @@
               class="shell__entry"
               class:shell__group={!parent}
               class:shell__group--space={!parent}
-              style={(!parent &&
-                accentStyle(spaceColor(entry.sp.path), {
-                  color: "--group-color",
-                  tint: null,
-                })) ||
-                undefined}
+              style={!parent
+                ? accentStyle(spaceColor(entry.sp.path), {
+                    color: "--group-color",
+                    tint: null,
+                  })
+                : undefined}
             >
               {@render spaceRow(entry.sp, !!parent)}
             </div>

@@ -7,7 +7,7 @@
   import { currentView } from "./tabs.js";
   import { reorderable } from "../actions/reorder.js";
   import Icon from "../components/Icon.svelte";
-  import { accentColor } from "../services/accent.js";
+  import { dotStyle } from "../services/accent.js";
 
   let {
     tabs = [],
@@ -91,7 +91,6 @@
     }}
   >
     {#each tabs as tab, i (i)}
-      {@const dotColor = accentColor(colorOf?.(currentView(tab)))}
       <!-- svelte-ignore a11y_no_static_element_interactions -->
       <div
         class="tabs__item"
@@ -102,8 +101,8 @@
         <!-- The dot names the space the tab comes from by colour: strong
              on the active tab, faded on the rest. -->
         <span
-          class="tabs__dot"
-          style={dotColor ? `--tab-color: ${dotColor}` : undefined}
+          class="theme-dot tabs__dot"
+          style={dotStyle(colorOf?.(currentView(tab)))}
           aria-hidden="true"
         ></span>
         <button

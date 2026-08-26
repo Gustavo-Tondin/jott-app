@@ -122,20 +122,23 @@ export function tagColors(tags = []) {
   return map;
 }
 
-/// The inline `style` of a `.theme-dot`: the place's colour, or empty so the
-/// class's own fallback (the app's accent) answers. Four components computed
-/// this line by hand before it lived here.
+/// The inline `style` of a `.theme-dot`: the place's colour, or `undefined`
+/// so the class's own fallback (the app's accent) answers — `undefined` is
+/// what makes Svelte leave the attribute off, where an empty string would
+/// write `style=""`. Four components computed this line by hand before it
+/// lived here.
 export function dotStyle(value) {
   const c = accentColor(value);
-  return c ? `--dot: ${c}` : "";
+  return c ? `--dot: ${c}` : undefined;
 }
 
 /// The two together, as the inline `style` a component sets on the element
-/// that owns the colour. Empty string when there is no choice, so the element
-/// keeps the theme's accent.
+/// that owns the colour. `undefined` when there is no choice (the attribute
+/// is left off and the element keeps the theme's accent) — two call sites
+/// used to append `|| undefined` and a third passed the empty string on.
 export function accentStyle(value, { color = "--accent-color", tint = "--accent-tint-color" } = {}) {
   const c = accentColor(value);
-  if (!c) return "";
+  if (!c) return undefined;
   // `tint: null` — the caller's element has no reader for a tint variable,
   // so writing one would be a value with no audience.
   return tint ? `${color}: ${c}; ${tint}: ${accentTint(value)}` : `${color}: ${c}`;

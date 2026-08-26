@@ -79,20 +79,16 @@
     font-weight: var(--theme-weight-bold);
   }
 
-  /* The space dot: the colour of the space the tab's view comes from
-     (per-tab --tab-color, set inline), the theme brand when it comes from a
-     fixed one. Full strength on every tab (2026-08-13 wireframe) — the dot is
-     the only thing naming WHERE a closed tab comes from, and fading it left
-     the row of closed tabs looking identical.
-     NOTE it reads --tab-color, which TabBar resolves against the CHROME (the
-     strip's region), while the tab's fill comes from the canvas. On a mid-grey
-     closed tab that is the readable half. */
+  /* The space dot: a .theme-dot (per-tab --dot, set inline by dotStyle),
+     the theme brand when the view comes from a fixed space. Full strength on
+     every tab (2026-08-13 wireframe) — the dot is the only thing naming WHERE
+     a closed tab comes from, and fading it left the row of closed tabs
+     looking identical. Only the size is the tab's own.
+     NOTE the colour resolves against the CHROME (the strip's region), while
+     the tab's fill comes from the canvas. On a mid-grey closed tab that is
+     the readable half. */
   .tabs__dot {
-    flex-shrink: 0;
-    width: var(--theme-space-6);
-    height: var(--theme-space-6);
-    border-radius: 50%;
-    background: var(--tab-color, var(--theme-brand));
+    --dot-size: var(--theme-space-6);
   }
   /* The carried tab: the motion (no transition, lift, z-index) comes from the
      shared .reorder-item--carried; this adds the tab's own shadow. */

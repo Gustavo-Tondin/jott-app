@@ -28,7 +28,7 @@ describe("the eight colours", () => {
     for (const empty of [null, undefined, ""]) {
       expect(accentColor(empty)).toBeNull();
       expect(accentTint(empty)).toBeNull();
-      expect(accentStyle(empty)).toBe("");
+      expect(accentStyle(empty)).toBeUndefined();
     }
   });
 
