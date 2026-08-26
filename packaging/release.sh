@@ -30,7 +30,7 @@
 #                                            back to the Cargo manifest
 #   package.json                             NO version key — private:true, and
 #                                            nothing in the repo read it
-#   packaging/PKGBUILD                       reads Cargo.toml at makepkg time
+#   packaging/linux/PKGBUILD                 reads Cargo.toml at makepkg time
 #
 # --check no longer compares four hand-edits. It checks that each derivation
 # still WORKS: that the inheritances are in place, that nobody helpfully typed
@@ -50,12 +50,12 @@
 #
 # USAGE
 #
-#   scripts/release.sh 0.24.0             # the whole cycle, stopping before the push
-#   scripts/release.sh 0.24.0 --dry-run   # print every command, change nothing
-#   scripts/release.sh --check            # only verify the derivations still work
+#   packaging/release.sh 0.24.0             # the whole cycle, stopping before the push
+#   packaging/release.sh 0.24.0 --dry-run   # print every command, change nothing
+#   packaging/release.sh --check            # only verify the derivations still work
 #
 #   --skip-tests       skip npm test / cargo test / clippy
-#   --skip-preflight   skip the Windows cross-check (scripts/windows-preflight.sh)
+#   --skip-preflight   skip the Windows cross-check (packaging/windows/windows-preflight.sh)
 #   --android          also build and verify the APK (needs the Android SDK)
 #   --no-push          commit and tag, but never offer to push
 #   --yes              answer yes to the push gate (for a scripted rerun)
@@ -141,9 +141,9 @@ bump_source() {
 # functions and are merely defined.
 pkgbuild_version() (
   # shellcheck disable=SC2034
-  startdir="$ROOT/packaging"
+  startdir="$ROOT/packaging/linux"
   # shellcheck disable=SC1091
-  source "$ROOT/packaging/PKGBUILD" >/dev/null 2>&1 || return 1
+  source "$ROOT/packaging/linux/PKGBUILD" >/dev/null 2>&1 || return 1
   printf '%s' "${pkgver:-}"
 )
 
@@ -275,7 +275,7 @@ check_versions() {
     fi
   done
 
-  derives "packaging/PKGBUILD (pkgver, evaluated)" "$(pkgbuild_version)" "$want"
+  derives "packaging/linux/PKGBUILD (pkgver, evaluated)" "$(pkgbuild_version)" "$want"
 
   # This is the strong one, and the only check here that asks CARGO instead of
   # reading a text file. `cargo metadata --no-deps --format-version 1` is the
@@ -385,7 +385,7 @@ if [ -n "$CHECK_ONLY" ]; then
   exit 0
 fi
 
-[ -n "$VERSION" ] || die "give the new version: scripts/release.sh 0.24.0  (or --check)"
+[ -n "$VERSION" ] || die "give the new version: packaging/release.sh 0.24.0  (or --check)"
 printf '%s' "$VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$' \
   || die "version must be X.Y.Z, got '$VERSION'"
 
@@ -505,13 +505,13 @@ fi
 
 if [ -n "$SKIP_PREFLIGHT" ]; then
   log WARN "step 4/8 — SKIPPED (--skip-preflight)"
-elif [ ! -x scripts/windows-preflight.sh ]; then
-  log WARN "step 4/8 — scripts/windows-preflight.sh not found or not executable"
+elif [ ! -x packaging/windows/windows-preflight.sh ]; then
+  log WARN "step 4/8 — packaging/windows/windows-preflight.sh not found or not executable"
 else
   log INFO "step 4/8 — Windows preflight (cross-compile + wine, ~3 min)"
   if [ -n "$DRY_RUN" ]; then
-    log DRY  "scripts/windows-preflight.sh"
-  elif scripts/windows-preflight.sh; then
+    log DRY  "packaging/windows/windows-preflight.sh"
+  elif packaging/windows/windows-preflight.sh; then
     log INFO "  Windows preflight ok"
   else
     die "the Windows preflight failed — fix it BEFORE the tag, that is the whole point"
@@ -621,8 +621,15 @@ else
   log INFO "  NDK_HOME=$NDK_HOME"
 
   apk="src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release.apk"
+  # The previous APK is the one collected into packaging/releases/ — the
+  # gradle output is build output and gets cleaned; that folder survives.
   previous="$WORK/previous-release.apk"
-  [ -f "$apk" ] && cp "$apk" "$previous"
+  last_collected="$(ls -1t packaging/releases/*.apk 2>/dev/null | head -1)"
+  if [ -n "$last_collected" ]; then
+    cp "$last_collected" "$previous"
+  elif [ -f "$apk" ]; then
+    cp "$apk" "$previous"
+  fi
 
   # Before the build, not after: this is the file gradle reads the version out
   # of, and the build does not write it. See the block up top for what happens
@@ -699,6 +706,13 @@ fi
 # ---------------------------------------------------------------------------
 # What is left, which is the part a script must not do on its own
 # ---------------------------------------------------------------------------
+
+# Whatever got built lands in packaging/releases/, one file per kind, with a
+# README naming the version of each — the place to look for the newest
+# installers without digging through target/.
+if [ -z "$DRY_RUN" ]; then
+  packaging/collect.sh >>"$LOG" 2>&1 || log WARN "packaging/collect.sh failed — read $LOG"
+fi
 
 echo
 log INFO "v$VERSION done here. What is left is yours:"

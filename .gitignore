@@ -45,10 +45,10 @@ test-notebook/
 CLAUDE.md
 docs/
 
-# --- makepkg (packaging/) ---
-packaging/pkg/
-packaging/src/
-packaging/*.pkg.tar.zst
+# --- makepkg (packaging/linux/) ---
+packaging/linux/pkg/
+packaging/linux/src/
+packaging/linux/*.pkg.tar.zst
 packaging/*.log
 
 # --- OS / editor ---
@@ -56,3 +56,7 @@ packaging/*.log
 .idea/
 .vscode/
 *.swp
+
+# --- Latest built installers, kept locally for convenience (binaries) ---
+packaging/releases/*
+!packaging/releases/README.md

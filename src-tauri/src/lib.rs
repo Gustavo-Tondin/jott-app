@@ -13,7 +13,7 @@ pub mod state;
 #[cfg(desktop)]
 pub mod tray;
 
-/// The icon name the desktop knows the app by — `packaging/jott.desktop`
+/// The icon name the desktop knows the app by — `packaging/linux/jott.desktop`
 /// installs it under this name, and a notification asks for it by name.
 pub const APP_ICON_NAME: &str = "jott";
 

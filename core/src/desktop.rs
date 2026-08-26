@@ -15,7 +15,7 @@
 //! would need exactly this, and a rule that only exists in the bridge is
 //! invisible to it.
 //!
-//! **The entry text is not written here.** It is `packaging/jott.desktop`,
+//! **The entry text is not written here.** It is `packaging/linux/jott.desktop`,
 //! the same file the PKGBUILD installs, handed in by the caller with only the
 //! `Exec=` line rewritten. Two copies of an app's desktop entry is how the
 //! packaged Jott and the AppImage Jott end up with different names in the
@@ -425,7 +425,7 @@ mod tests {
 
     #[test]
     fn a_changed_template_makes_the_entry_stale_too() {
-        // A new Name= or Categories= in packaging/jott.desktop reaches the
+        // A new Name= or Categories= in packaging/linux/jott.desktop reaches the
         // menu the same way the icon does.
         let d = dir();
         let exec = Path::new("/home/x/Jott.AppImage");

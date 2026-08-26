@@ -134,9 +134,9 @@ const ICON_PNG: &[u8] = include_bytes!("../../icons/128x128@2x.png");
 /// The entry text, from the file the PKGBUILD installs.
 ///
 /// One template, two installs: whatever the packaged Jott calls itself in the
-/// menu, the AppImage calls itself too. Editing `packaging/jott.desktop` moves
+/// menu, the AppImage calls itself too. Editing `packaging/linux/jott.desktop` moves
 /// both, and there is no second copy to forget.
-const DESKTOP_TEMPLATE: &str = include_str!("../../../packaging/jott.desktop");
+const DESKTOP_TEMPLATE: &str = include_str!("../../../packaging/linux/jott.desktop");
 
 /// What the frontend needs to decide whether to offer, and what to show.
 #[derive(Debug, Serialize)]

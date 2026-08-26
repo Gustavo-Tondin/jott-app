@@ -698,7 +698,7 @@ describe("frontend architecture", () => {
 });
 
 // The version used to be typed into four files that had to agree, and
-// scripts/release.sh compared them afterwards. Comparing is not preventing:
+// packaging/release.sh compared them afterwards. Comparing is not preventing:
 // package-lock.json sat on 0.22.0 for a whole version while the other four
 // said 0.23.0, because it was not one of the four being compared. The copies
 // were removed on 2026-08-21 — Cargo.toml holds it, because cargo is the only
@@ -740,7 +740,7 @@ describe("the version lives in one file", () => {
   );
 
   test("the PKGBUILD reads Cargo.toml instead of carrying a number", () => {
-    const pkgbuild = read("packaging", "PKGBUILD");
+    const pkgbuild = read("packaging", "linux", "PKGBUILD");
     expect(pkgbuild).not.toMatch(/^pkgver=\d/m);
     expect(pkgbuild).toContain("Cargo.toml");
   });

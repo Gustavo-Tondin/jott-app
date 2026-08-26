@@ -30,7 +30,7 @@ npm run package      # AppImage + .deb + .rpm, into src-tauri/target/release/bun
 bundled with linuxdeploy predates the `.relr.dyn` ELF section current
 toolchains emit, and stripping with it produces a binary that will not start.
 
-**Arch**: `cd packaging && makepkg -sid`. The `PKGBUILD` reads the version
+**Arch**: `cd packaging/linux && makepkg -sid`. The `PKGBUILD` reads the version
 out of `Cargo.toml` instead of carrying its own, and its `check()` runs the
 test suites — a package that builds is a package whose tests passed.
 
@@ -49,7 +49,7 @@ is packaged, so a tag never becomes an installer from a commit that doesn't
 pass.
 
 Cross-compiling a `.exe` from Linux for testing is possible; there is a
-`scripts/windows-preflight.sh` that checks the things that only break on
+`packaging/windows/windows-preflight.sh` that checks the things that only break on
 Windows before a tag is cut.
 
 The installer is `installMode: currentUser` — no administrator password. It
@@ -100,7 +100,7 @@ the release.
 Typing a `"version"` back into either JSON is the regression to fear: the
 file would quietly win over the source. An architecture test rejects it.
 
-Cutting a release is one command (`scripts/release.sh <version>`), which
+Cutting a release is one command (`packaging/release.sh <version>`), which
 bumps that one file, proves every derivation followed, runs both suites plus
 clippy, tags, and stops to ask before pushing — because a pushed tag writes a
 draft release on a public repository.

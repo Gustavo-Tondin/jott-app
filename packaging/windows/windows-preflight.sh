@@ -36,8 +36,8 @@
 #
 # USAGE
 #
-#   scripts/windows-preflight.sh            # build and run
-#   DEBUG=1 scripts/windows-preflight.sh    # trace every step
+#   packaging/windows/windows-preflight.sh            # build and run
+#   DEBUG=1 packaging/windows/windows-preflight.sh    # trace every step
 #
 # Requires `cargo-xwin` (cargo install cargo-xwin) and `wine`.
 #

@@ -10,7 +10,7 @@
     "test": "vitest run",
     "tauri": "tauri",
     "package": "NO_STRIP=1 tauri build",
-    "release": "scripts/release.sh"
+    "release": "packaging/release.sh"
   },
   "dependencies": {
     "@codemirror/autocomplete": "6.20.3",

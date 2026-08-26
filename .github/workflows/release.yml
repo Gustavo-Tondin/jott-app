@@ -103,7 +103,7 @@ jobs:
             remove it, delete the file). `.deb` and `.rpm` for Debian/Ubuntu
             and Fedora install into the applications menu and uninstall
             through the package manager. On Arch, build the `PKGBUILD` in
-            `packaging/`.
+            `packaging/linux/`.
 
             **Windows** — run the `.exe` installer. It installs for the
             current user (no administrator password), adds a Start Menu entry

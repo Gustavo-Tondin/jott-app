@@ -25,7 +25,7 @@ Grab the file for your platform from the
 | Linux (any distro) | `.AppImage` | `chmod +x`, then run. To remove it, delete the file. |
 | Debian / Ubuntu | `.deb` | Installs into the app menu; uninstall with the package manager. |
 | Fedora | `.rpm` | Same as above. |
-| Arch | — | Build from source: `cd packaging && makepkg -sid` |
+| Arch | — | Build from source: `cd packaging/linux && makepkg -sid` |
 | Windows | `.exe` | Installs for the current user — no administrator password. Uninstall from Settings → Apps. |
 | Android | `.apk` | Open the release page **on the phone**, download and tap the file. Android asks once to allow installs from your browser. |
 
@@ -162,7 +162,7 @@ One product decision remains, then it is proving things on hardware.
 
 | | |
 |---|---|
-| **The time axis** — a Timeline of everything you wrote, by day, and a weekly sweep of what you have not looked at in a while | decided 2026-08-25; tasks and notes already carry a creation date, the app will start keeping a last-seen record in `.jott/index/` (internal, regenerable — losing it loses nothing you wrote) |
+| **The time axis** — a Timeline of everything you wrote, by day, and a weekly sweep of what you have not looked at in a while | decided 2026-08-25; every task and note already carries its creation date. The Timeline will read an append-only log in `.jott/timeline/` (one plain-text file per year, never rewritten — a deleted item stays as a dated mention, a living one opens from there), every task will get an id, and a last-seen record for notes will live in `.jott/index/` (regenerable — losing it loses nothing you wrote) |
 | Android on real hardware | the build installs and runs, and has been used on one physical phone — everything since has been the emulator |
 | Clicking through what only tests have seen | app-level undo/redo, the mouse back button, the light and dark themes |
 

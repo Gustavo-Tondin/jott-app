@@ -10,11 +10,11 @@ resolver = "2"
 # that cannot move is the one place that holds it. Everything else derives:
 # core/ and src-tauri/ inherit with `version.workspace = true`, the runtime
 # reads `CARGO_PKG_VERSION`, tauri.conf.json omits `version` so the Tauri CLI
-# falls back to this manifest, and packaging/PKGBUILD reads this line.
+# falls back to this manifest, and packaging/linux/PKGBUILD reads this line.
 #
-# Editing it by hand is fine; `scripts/release.sh <version>` does it and then
+# Editing it by hand is fine; `packaging/release.sh <version>` does it and then
 # proves every derivation still lands on the same number.
-version = "0.40.0"
+version = "0.40.1"
 edition = "2021"
 license = "MIT"
 
