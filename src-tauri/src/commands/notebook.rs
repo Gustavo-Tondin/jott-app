@@ -19,6 +19,11 @@ use super::period::{clock_of, PeriodClock};
 use super::settings::display_of;
 use super::spaces::{groups_of, spaces_of, GroupInfo, SpaceInfo};
 
+/// The theme the app ships with — `styles/themes/jott.css` in the front-end,
+/// which is the file that has to end up in `.jott/themes/jott.css`
+/// byte for byte (`jott_core::themes::ensure_default`).
+const FACTORY_THEME_CSS: &str = include_str!("../../../src/styles/themes/jott.css");
+
 /// The addresses the core creates, so the frontend never hard-codes them.
 ///
 /// The frontend used to mirror these in a `names.js` — and when the core
@@ -192,6 +197,11 @@ pub fn open_notebook<R: Runtime>(
     } else {
         Notebook::open(&path)?
     };
+    // The factory palette, written once into every notebook opened here
+    // (2026-08-26): derived, so a failure to write it is not a failure to
+    // open. The bytes are the front-end's own file, so the copy on disk is
+    // the copy in the bundle.
+    let _ = notebook.ensure_default_theme(FACTORY_THEME_CSS);
     let info = NotebookInfo::of(&notebook, display_of(&app, &notebook))?;
     allow_assets(&app, &path);
     state.open(&app, window.label(), notebook)?;

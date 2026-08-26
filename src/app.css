@@ -18,6 +18,10 @@
 
 @import "./styles/reset.css";
 @import "./styles/tokens.css";
+/* The theme the app ships with — the palette every mode reads. Plain
+   `:root` so the same bytes can be written into a notebook; the layer comes
+   from here. */
+@import "./styles/themes/jott.css" layer(tokens);
 /* roles.css holds the two things a theme does not repeat: the roles that are
    the same everywhere, and which of the seven the app accent is. It sits in
    `base` because it is app structure, not look. See its header. */

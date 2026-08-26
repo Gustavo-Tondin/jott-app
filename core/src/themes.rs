@@ -42,10 +42,17 @@ const CSS_FILE: &str = "theme.css";
 /// Its optional metadata.
 const MANIFEST_FILE: &str = "manifest.json";
 
-/// The names the app already answers to. A notebook theme called `dark` would
-/// be unreachable — the app's own selectors would win the moment the attribute
-/// matched — so it is refused with its reason rather than listed and broken.
-pub const RESERVED: [&str; 3] = ["default", "light", "dark"];
+/// The names a notebook theme cannot take. `jott` is the app's own — the
+/// factory palette it writes into every notebook (`ensure_default`) and
+/// reads back, but never lists as somebody's theme nor lets `create`
+/// overwrite. `default`, `light` and `dark` were the three looks until
+/// 2026-08-26 and are MODES now; a `theme` holding one of them in an old
+/// config file is read as the mode it meant (`settings::split_legacy_theme`),
+/// and that reading is only unambiguous if no palette can carry the name.
+pub const RESERVED: [&str; 4] = ["jott", "default", "light", "dark"];
+
+/// The app's own theme, as it is called on disk: `.jott/themes/jott.css`.
+pub const FACTORY_NAME: &str = "jott";
 
 /// The most stylesheet the app will inject, in bytes.
 ///
@@ -134,9 +141,11 @@ pub fn css(config_dir: impl AsRef<Path>, name: &str) -> Result<Stylesheet> {
     })
 }
 
-/// The stylesheet of a theme by name, whichever shape it takes.
+/// The stylesheet of a theme by name, whichever shape it takes. The factory
+/// copy is readable here like any other — it is the one theme a notebook
+/// always has — even though `list` does not offer it.
 fn css_path(config_dir: impl AsRef<Path>, name: &str) -> Option<PathBuf> {
-    if !is_usable_name(name) {
+    if !is_safe_name(name) {
         return None;
     }
     let folder = dir(config_dir);
@@ -148,11 +157,37 @@ fn css_path(config_dir: impl AsRef<Path>, name: &str) -> Option<PathBuf> {
     flat.is_file().then_some(flat)
 }
 
-/// A name that can be a folder name, an attribute value and a theme setting.
+/// A name that can be a folder name and an attribute value — what `css`
+/// accepts, the factory `jott` included.
+fn is_safe_name(name: &str) -> bool {
+    relpath::is_safe_leaf(name) && !name.contains('"')
+}
+
+/// A name a NOTEBOOK theme can have: safe, and not one the app owns.
 fn is_usable_name(name: &str) -> bool {
-    relpath::is_safe_leaf(name)
-        && !name.contains('"')
-        && !RESERVED.contains(&name.to_lowercase().as_str())
+    is_safe_name(name) && !RESERVED.contains(&name.to_lowercase().as_str())
+}
+
+/// Writes the app's own palette into the notebook as `themes/jott.css`, if
+/// it is not there — and only then. `true` when it wrote.
+///
+/// The file is the reader's from the moment it exists: editing it is how a
+/// notebook re-tunes the factory palette without naming a theme, and
+/// deleting it is how it gets the factory back (the next open rewrites it).
+/// Overwriting on every open would make the first of those impossible; never
+/// writing it would leave the format theoretical. The app keeps its own
+/// embedded copy underneath, so a broken file here never leaves the app
+/// without a value. `css` is handed in by the bridge, which is where the
+/// stylesheet lives (`include_str!` of the front-end's file).
+pub fn ensure_default(config_dir: impl AsRef<Path>, css: &str) -> Result<bool> {
+    let folder = dir(&config_dir);
+    if folder.join(FACTORY_NAME).join(CSS_FILE).is_file()
+        || folder.join(format!("{FACTORY_NAME}.css")).is_file()
+    {
+        return Ok(false);
+    }
+    fsio::write_atomically(folder.join(format!("{FACTORY_NAME}.css")), css.as_bytes())?;
+    Ok(true)
 }
 
 /// One entry of `themes/`: a `.css` file, or a folder holding `theme.css`.
@@ -217,8 +252,8 @@ fn read_entry(path: &Path, app_version: &str) -> Option<UserTheme> {
 pub fn create(config_dir: impl AsRef<Path>, name: &str, css: &str) -> Result<UserTheme> {
     if !is_usable_name(name) {
         return Err(Error::Theme(format!(
-            "{name:?} cannot be a theme name here — the app already answers to \
-             default, light and dark"
+            "{name:?} cannot be a theme name here — jott is the app's own, and \
+             default, light and dark are modes"
         )));
     }
 
@@ -455,15 +490,40 @@ mod tests {
         let dir = config_dir();
         write(dir.path(), "themes/dark.css", ":root {}");
         write(dir.path(), "themes/Light/theme.css", ":root {}");
+        write(dir.path(), "themes/jott.css", ":root {}");
         write(dir.path(), "themes/mine.css", ":root {}");
 
         let names: Vec<_> = list(dir.path(), "1.0.0")
             .into_iter()
             .map(|t| t.name)
             .collect();
-        // A notebook theme called `dark` could never be worn: the app's own
-        // selectors answer to that attribute first.
+        // `dark` and `light` are modes, and an old config's `theme: "dark"`
+        // has to mean the mode; `jott` is the app's own palette, offered as
+        // the "Jott" line rather than as somebody's theme.
         assert_eq!(names, vec!["mine"]);
+        // …but the factory copy is readable, which is how it is worn.
+        assert_eq!(css(dir.path(), "jott").unwrap().css, ":root {}");
+    }
+
+    #[test]
+    fn the_factory_palette_is_written_once_and_never_over() {
+        let dir = config_dir();
+        assert!(ensure_default(dir.path(), ":root { --theme-color-blue-500: #111; }").unwrap());
+        assert_eq!(
+            css(dir.path(), "jott").unwrap().css,
+            ":root { --theme-color-blue-500: #111; }"
+        );
+
+        // The reader edits it: the next open leaves it alone.
+        write(dir.path(), "themes/jott.css", ":root { --theme-color-blue-500: #222; }");
+        assert!(!ensure_default(dir.path(), ":root { --theme-color-blue-500: #111; }").unwrap());
+        assert!(css(dir.path(), "jott").unwrap().css.contains("#222"));
+
+        // The folder shape counts as present too.
+        let dir = config_dir();
+        write(dir.path(), "themes/jott/theme.css", ":root {}");
+        assert!(!ensure_default(dir.path(), "x").unwrap());
+        assert!(!dir.path().join("themes/jott.css").exists());
     }
 
     #[test]

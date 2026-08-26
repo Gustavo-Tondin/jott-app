@@ -1,0 +1,167 @@
+/* =============================================================================
+   themes/jott.css — the theme the app ships with: JOTT'S OWN PALETTE.
+
+   This file is the whole contract a THEME has with the app (2026-08-26). A
+   theme is a `:root { … }` of `--theme-*` tokens — colours, radius, spacing —
+   and nothing else. It does not know about regions, modes or roles: the
+   MODES (styles/modes/*.css) read these tokens and decide what goes where
+   (`--app-*`), and a component reads only what a mode wrote. So a theme that
+   only writes colours wears the jott, light and dark modes alike.
+
+   The app writes a copy of this file into every notebook, at
+   `.jott/themes/jott.css`, when it is missing — and never overwrites it.
+   Edit it and the app follows; delete it and the next open brings the
+   factory one back. This embedded copy is always loaded underneath, so a
+   token a notebook's theme leaves out still has a value.
+
+   TONE GRID — every colour family runs the same seven steps, so a step means
+   the same thing whatever the hue (CIE L* targets):
+     100 → 92  pale ink, the quiet fill on a LIGHT ground
+     200 → 80  emphasis on a DARK ground (H1, H2)
+     300 → 70  base on a DARK ground (H3, icons, fills)
+     400 → 58  the soft step, the only one both grounds share (H4–H6)
+     500 → 48  base on a LIGHT ground
+     600 → 34  emphasis on a LIGHT ground
+     700 → 18  deep fill, the quiet fill on a DARK ground
+   Four steps are pinned to a CONTRAST FLOOR rather than a tone: 200/600 at
+   7:1 and 300/500 at 4.5:1 against their ground (tests in
+   lib/architecture.test.js measure it). A theme of its own keeps the floors
+   or accepts unreadable headings — the tests only guard this file.
+
+   No `@layer` here: this file is byte-identical to the one written into the
+   notebook, and there it is injected plain. app.css imports it into the
+   tokens layer.
+   ============================================================================= */
+:root {
+  /* THE GROUNDS — the two neutrals a region is painted with. `-tint` is the
+     step AWAY from the pure one: darker on light, lighter on dark. A mode
+     takes the pair in whichever order its ground says. `gray` belongs to
+     neither ground: the warm grey used at low alpha for hairlines, tracks
+     and disabled ink, so one value reads on white and on black alike. */
+  --theme-color-white: #fbfbfb;
+  --theme-color-white-tint: #ecebea;
+  --theme-color-black: #1e1e1e;
+  --theme-color-black-tint: #2b2b2b;
+  --theme-color-gray: #a39f9b;
+
+  /* THE EIGHT — seven hues and `neutral` (the white↔black family, one colour
+     rather than two: on the dark chrome it reads light, on the white canvas
+     dark, exactly like blue). `neutral` runs on the same axis as the grounds,
+     which is why a mode reads it one step further out. */
+
+  --theme-color-yellow-100: #f2e8cf;
+  --theme-color-yellow-200: #dec483;
+  --theme-color-yellow-300: #d2a513;
+  --theme-color-yellow-400: #ac8602;
+  --theme-color-yellow-500: #8c6d02;
+  --theme-color-yellow-600: #634c02;
+  --theme-color-yellow-700: #382900;
+
+  --theme-color-orange-100: #ffe1d9;
+  --theme-color-orange-200: #feb19b;
+  --theme-color-orange-300: #fe8461;
+  --theme-color-orange-400: #e35930;
+  --theme-color-orange-500: #c43c09;
+  --theme-color-orange-600: #8d2600;
+  --theme-color-orange-700: #4a1b0d;
+
+  --theme-color-pink-100: #fddfed;
+  --theme-color-pink-200: #f4aed1;
+  --theme-color-pink-300: #f37ebe;
+  --theme-color-pink-400: #d25a9e;
+  --theme-color-pink-500: #b43e83;
+  --theme-color-pink-600: #84245d;
+  --theme-color-pink-700: #441b32;
+
+  --theme-color-green-100: #d8f0db;
+  --theme-color-green-200: #9cd8a4;
+  --theme-color-green-300: #53c76c;
+  --theme-color-green-400: #1da748;
+  --theme-color-green-500: #018534;
+  --theme-color-green-600: #006123;
+  --theme-color-green-700: #0a3515;
+
+  --theme-color-blue-100: #ddeaff;
+  --theme-color-blue-200: #a8c8fd;
+  --theme-color-blue-300: #7aacfe;
+  --theme-color-blue-400: #538ae6;
+  --theme-color-blue-500: #396ec9;
+  --theme-color-blue-600: #224c95;
+  --theme-color-blue-700: #182b4b;
+
+  --theme-color-red-100: #ffe1dd;
+  --theme-color-red-200: #feafa9;
+  --theme-color-red-300: #fd827b;
+  --theme-color-red-400: #ee4748;
+  --theme-color-red-500: #ce232e;
+  --theme-color-red-600: #980217;
+  --theme-color-red-700: #4e1515;
+
+  --theme-color-purple-100: #ece4fe;
+  --theme-color-purple-200: #d1b8fd;
+  --theme-color-purple-300: #bc92fe;
+  --theme-color-purple-400: #a460fa;
+  --theme-color-purple-500: #8a42dc;
+  --theme-color-purple-600: #6325a4;
+  --theme-color-purple-700: #341d52;
+
+  --theme-color-neutral-100: #e9e8e8;
+  --theme-color-neutral-200: #c7c6c5;
+  --theme-color-neutral-300: #adaba9;
+  --theme-color-neutral-400: #8d8b89;
+  --theme-color-neutral-500: #737170;
+  --theme-color-neutral-600: #514f4e;
+  --theme-color-neutral-700: #2c2b2b;
+
+  /* STATUS — danger, warning, success: families of their OWN, seeded from
+     red, yellow and green. A theme may make its `red` sea-green; the error
+     notice, the overdue date and the `!!!` must not follow it. */
+
+  --theme-color-danger-100: #ffe1dd;
+  --theme-color-danger-200: #feafa9;
+  --theme-color-danger-300: #fd827b;
+  --theme-color-danger-400: #ee4748;
+  --theme-color-danger-500: #ce232e;
+  --theme-color-danger-600: #980217;
+  --theme-color-danger-700: #4e1515;
+
+  --theme-color-warning-100: #f2e8cf;
+  --theme-color-warning-200: #dec483;
+  --theme-color-warning-300: #d2a513;
+  --theme-color-warning-400: #ac8602;
+  --theme-color-warning-500: #8c6d02;
+  --theme-color-warning-600: #634c02;
+  --theme-color-warning-700: #382900;
+
+  --theme-color-success-100: #d8f0db;
+  --theme-color-success-200: #9cd8a4;
+  --theme-color-success-300: #53c76c;
+  --theme-color-success-400: #1da748;
+  --theme-color-success-500: #018534;
+  --theme-color-success-600: #006123;
+  --theme-color-success-700: #0a3515;
+
+  /* SHAPE — the spacing scale (named by the design's px, valued in rem) and
+     the radius ladder (read by the SIZE of the object: the bigger the box,
+     the rounder the corner). A theme may round or square the app with these;
+     the app reads them as `--app-space-*` / `--app-radius-*`. */
+  --theme-space-2: 0.125rem;
+  --theme-space-4: 0.25rem;
+  --theme-space-6: 0.375rem;
+  --theme-space-8: 0.5rem;
+  --theme-space-10: 0.625rem;
+  --theme-space-12: 0.75rem;
+  --theme-space-16: 1rem;
+  --theme-space-24: 1.5rem;
+  --theme-space-32: 2rem;
+  --theme-space-40: 2.5rem;
+  --theme-space-48: 3rem;
+  --theme-space-64: 4rem;
+
+  --theme-radius-xs: 0.375rem;
+  --theme-radius-sm: 0.5rem;
+  --theme-radius-md: 0.75rem;
+  --theme-radius-lg: 1rem;
+  --theme-radius-xl: 1.25rem;
+  --theme-radius-pill: 62.5rem;
+}

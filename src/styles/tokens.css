@@ -1,22 +1,17 @@
 /* =============================================================================
-   tokens.css — the single source of design values for the whole app.
+   tokens.css — the app's structural vocabulary: type, layout, motion.
 
-   TWO TIERS, and the split is the whole point of this file:
+   THREE LAYERS, one hop between each (2026-08-26):
 
-     1. --theme-color-*   Raw values (the Figma scale). Named after what they ARE
-                      (blue, gray-mute). A component must NEVER read these.
-     2. --app-*     Semantic roles. Named after what they DO (bg, ink, line,
-                      brand). Components read ONLY these.
+     1. --theme-*   What a THEME writes: colours (`--theme-color-*`), spacing
+                    and radius. styles/themes/jott.css is the app's own; a
+                    notebook's `.jott/themes/<name>.css` replaces any of it.
+     2. --app-*     What the APP reads. A MODE (styles/modes/*.css) assigns the
+                    colour roles per region from the theme's tokens; this
+                    file assigns the metrics. Components read ONLY these.
+     3. components  read `--app-*`, never `--theme-*`, never a literal.
 
-   The COLOUR roles (--app-bg/ink/line/brand/danger…) do NOT live here — a
-   theme assigns them, per region, in themes/<name>.css. What stays here is the
-   shared vocabulary every theme builds FROM: the palette a theme reads, plus
-   the structural scales (spacing, radius, type, layout, motion) that are
-   metrics, not look. See docs/project-strategy.md 4.5.
-
-   Prefix is `theme-` (not `memo-`): the product name is provisional, and these
-   names are meant to outlive it. When the user picks a custom font or a
-   community theme drops in, this is the surface it touches.
+   See docs/project-strategy.md 4.5 and documentation/theming.md.
 
    EVERY LENGTH IS IN `rem` (2026-08-06, user call). 1rem = 16px at the default
    root size, so the design's px values are simply divided by 16 — but a reader
@@ -61,199 +56,32 @@
 @layer tokens {
   :root {
     /* ---------------------------------------------------------------------
-       TIER 1 — JOTT'S OWN COLOURS (the Figma palette, "Mode 1.tokens.json").
-       Do not read these from a component.
-
-       They are **not a layer every theme must build from**: they are the
-       colour list of the three themes that ship here, which share them because
-       they are one design. A theme with colours of its own writes them inline
-       and never mentions this block — the only rule a theme obeys is that no
-       role reads another role (styles/modes/jott.css).
-
-       NEUTRALS — two per mode, and the design never uses a third. `-tint` is
-       the step AWAY from the pure one: darker on light, lighter on dark. A
-       region is painted with the pair, in whichever order its ground says
-       (styles/themes/*.css).
+       THE COLOURS ARE NOT HERE (2026-08-26). They are the THEME's —
+       `--theme-color-*` in styles/themes/jott.css, which every notebook can
+       replace with its own. The colour ROLES are not here either: a MODE
+       (styles/modes/*.css) assigns them per region as `--app-*`, reading the
+       theme's tokens. What stays in this file is the app's structural
+       vocabulary — type, layout, motion — as `--app-*`, plus the two scales
+       a theme may also set (spacing, radius), which below simply read the
+       theme's value so a component never has to know which layer answered.
        --------------------------------------------------------------------- */
-    /* ---------------------------------------------------------------------
-       TIER 1 — JOTT'S OWN COLOURS (the Figma palette, "Mode 1.tokens.json",
-       put on a tonal scale 2026-08-17).
-       Do not read these from a component.
-
-       They are **not a layer every theme must build from**: they are the
-       colour list of the three themes that ship here, which share them because
-       they are one design. A theme with colours of its own writes them inline
-       and never mentions this block — the only rule a theme obeys is that no
-       role reads another role (styles/modes/jott.css).
-
-       THE GROUNDS — the two neutrals a region is painted with, and the only
-       colours here that are not part of the tonal scale below. `-tint` is the
-       step AWAY from the pure one: darker on light, lighter on dark. A region
-       takes the pair in whichever order its ground says (styles/themes/*.css).
-       --------------------------------------------------------------------- */
-    --theme-color-white: #fbfbfb;
-    --theme-color-white-tint: #ecebea;
-    --theme-color-black: #1e1e1e;
-    --theme-color-black-tint: #2b2b2b;
-    /* The one neutral that belongs to NEITHER mode: a warm grey used at low
-       alpha for hairlines, tracks and disabled ink, so a single value reads on
-       a white canvas and on a black sidebar alike. */
-    --theme-color-gray: #a39f9b;
-
-    /* ---------------------------------------------------------------------
-       THE EIGHT — the colours the user picks from, for the app accent, a
-       space and a tag: seven hues plus `neutral`, which is the white↔black
-       family and behaves exactly like the others (its light end shows on a
-       dark ground, its dark end on a light one).
-
-       SEVEN STEPS EACH, 100 (lightest) → 700 (darkest), and the step number
-       MEANS something: every colour hits the same target tone at the same
-       step, so `blue-500` and `yellow-500` carry the same weight and the same
-       contrast. That is what makes "H4 takes step 400" a rule instead of a
-       guess — before this the four hand-picked steps ranged from L*40 to
-       L*75 for the same role, and a yellow accent was unreadable on the white
-       canvas (1.9:1) while a purple one was fine.
-
-         step   tone (CIE L*)   what it is for
-         100         92         pale tint — a quiet fill on a LIGHT ground
-         200         80         emphasis on a DARK ground (H1, H2)
-         300         70         the base on a DARK ground   (H3, icons, fills)
-         400         58         the soft step, and the only one that serves
-                                both grounds (H4–H6, secondary text)
-         500         48         the base on a LIGHT ground  (H3, icons, fills)
-         600         34         emphasis on a LIGHT ground  (H1, H2)
-         700         18         deep fill — a quiet fill on a DARK ground
-
-       Chroma is full in the middle and compressed at both ends, so a 100 reads
-       as a pale tint and a 700 as a deep fill rather than a saturated slab.
-       Four of the steps are pinned to a CONTRAST floor rather than to the tone
-       alone (200/600 at 7:1, 300/500 at 4.5:1 against their own ground): a
-       tone is perceptual lightness, WCAG measures luminance, and a saturated
-       green at L*48 lands short of a grey at L*48. Where the two disagree the
-       floor wins, capped at 4 L* so the grid still holds. Generated and
-       verified by the one-shot script logged in the 2026-08-17 session.
-
-       The `neutral` ramp runs along the same axis as the app's two grounds,
-       so its extremes would collide with them — which is why it, alone, takes
-       its roles one step further out (see styles/modes/jott.css).
-       --------------------------------------------------------------------- */
-    --theme-color-yellow-100: #f2e8cf;
-    --theme-color-yellow-200: #dec483;
-    --theme-color-yellow-300: #d2a513;
-    --theme-color-yellow-400: #ac8602;
-    --theme-color-yellow-500: #8c6d02;
-    --theme-color-yellow-600: #634c02;
-    --theme-color-yellow-700: #382900;
-
-    --theme-color-orange-100: #ffe1d9;
-    --theme-color-orange-200: #feb19b;
-    --theme-color-orange-300: #fe8461;
-    --theme-color-orange-400: #e35930;
-    --theme-color-orange-500: #c43c09;
-    --theme-color-orange-600: #8d2600;
-    --theme-color-orange-700: #4a1b0d;
-
-    --theme-color-pink-100: #fddfed;
-    --theme-color-pink-200: #f4aed1;
-    --theme-color-pink-300: #f37ebe;
-    --theme-color-pink-400: #d25a9e;
-    --theme-color-pink-500: #b43e83;
-    --theme-color-pink-600: #84245d;
-    --theme-color-pink-700: #441b32;
-
-    --theme-color-green-100: #d8f0db;
-    --theme-color-green-200: #9cd8a4;
-    --theme-color-green-300: #53c76c;
-    --theme-color-green-400: #1da748;
-    --theme-color-green-500: #018534;
-    --theme-color-green-600: #006123;
-    --theme-color-green-700: #0a3515;
-
-    --theme-color-blue-100: #ddeaff;
-    --theme-color-blue-200: #a8c8fd;
-    --theme-color-blue-300: #7aacfe;
-    --theme-color-blue-400: #538ae6;
-    --theme-color-blue-500: #396ec9;
-    --theme-color-blue-600: #224c95;
-    --theme-color-blue-700: #182b4b;
-
-    --theme-color-red-100: #ffe1dd;
-    --theme-color-red-200: #feafa9;
-    --theme-color-red-300: #fd827b;
-    --theme-color-red-400: #ee4748;
-    --theme-color-red-500: #ce232e;
-    --theme-color-red-600: #980217;
-    --theme-color-red-700: #4e1515;
-
-    --theme-color-purple-100: #ece4fe;
-    --theme-color-purple-200: #d1b8fd;
-    --theme-color-purple-300: #bc92fe;
-    --theme-color-purple-400: #a460fa;
-    --theme-color-purple-500: #8a42dc;
-    --theme-color-purple-600: #6325a4;
-    --theme-color-purple-700: #341d52;
-
-    --theme-color-neutral-100: #e9e8e8;
-    --theme-color-neutral-200: #c7c6c5;
-    --theme-color-neutral-300: #adaba9;
-    --theme-color-neutral-400: #8d8b89;
-    --theme-color-neutral-500: #737170;
-    --theme-color-neutral-600: #514f4e;
-    --theme-color-neutral-700: #2c2b2b;
-
-    /* THE THREE STATUS FAMILIES (2026-08-26) — danger, warning, success —
-       seeded from red, yellow and green and kept as families of their OWN,
-       not aliases. A theme may make its `red` sea-green; the error notice,
-       the overdue date and the `!!!` must not follow it — status is the one
-       colour that has to keep meaning whatever the palette says. Same seven
-       steps, same tone grid, same contrast floors as the eight. */
-
-    --theme-color-danger-100: #ffe1dd;
-    --theme-color-danger-200: #feafa9;
-    --theme-color-danger-300: #fd827b;
-    --theme-color-danger-400: #ee4748;
-    --theme-color-danger-500: #ce232e;
-    --theme-color-danger-600: #980217;
-    --theme-color-danger-700: #4e1515;
-
-    --theme-color-warning-100: #f2e8cf;
-    --theme-color-warning-200: #dec483;
-    --theme-color-warning-300: #d2a513;
-    --theme-color-warning-400: #ac8602;
-    --theme-color-warning-500: #8c6d02;
-    --theme-color-warning-600: #634c02;
-    --theme-color-warning-700: #382900;
-
-    --theme-color-success-100: #d8f0db;
-    --theme-color-success-200: #9cd8a4;
-    --theme-color-success-300: #53c76c;
-    --theme-color-success-400: #1da748;
-    --theme-color-success-500: #018534;
-    --theme-color-success-600: #006123;
-    --theme-color-success-700: #0a3515;
-
-    /* TIER 2 — the semantic COLOUR roles are NOT here. They are assigned once
-       per REGION, in styles/themes/<name>.css — and the rule there is
-       that a role reads one of these and nothing else, so a colour is always
-       one hop from its literal. Everything below is the structural vocabulary
-       (metrics, not look) that themes build from. */
 
     /* ---------------------------------------------------------------------
        SPACING — the design's real values (not the global Fibonacci scale:
        this is a specific Figma design, fidelity wins). Named by px.
        --------------------------------------------------------------------- */
-    --app-space-2: 0.125rem; /*  2px */
-    --app-space-4: 0.25rem; /*  4px */
-    --app-space-6: 0.375rem; /*  6px */
-    --app-space-8: 0.5rem; /*  8px */
-    --app-space-10: 0.625rem; /* 10px */
-    --app-space-12: 0.75rem; /* 12px */
-    --app-space-16: 1rem; /* 16px */
-    --app-space-24: 1.5rem; /* 24px */
-    --app-space-32: 2rem; /* 32px */
-    --app-space-40: 2.5rem; /* 40px */
-    --app-space-48: 3rem; /* 48px */
-    --app-space-64: 4rem; /* 64px */
+    --app-space-2: var(--theme-space-2); /*  2px */
+    --app-space-4: var(--theme-space-4); /*  4px */
+    --app-space-6: var(--theme-space-6); /*  6px */
+    --app-space-8: var(--theme-space-8); /*  8px */
+    --app-space-10: var(--theme-space-10); /* 10px */
+    --app-space-12: var(--theme-space-12); /* 12px */
+    --app-space-16: var(--theme-space-16); /* 16px */
+    --app-space-24: var(--theme-space-24); /* 24px */
+    --app-space-32: var(--theme-space-32); /* 32px */
+    --app-space-40: var(--theme-space-40); /* 40px */
+    --app-space-48: var(--theme-space-48); /* 48px */
+    --app-space-64: var(--theme-space-64); /* 64px */
 
     /* ---------------------------------------------------------------------
        RADIUS — a ladder read by THE SIZE OF THE OBJECT, not by taste: the
@@ -275,13 +103,13 @@
        It is written as the `calc()` at the point of use, so the child follows
        when the parent's rung or padding changes; landing on a rung is a
        coincidence, and 10 or 14 is as correct an answer as 8. */
-    --app-radius-xs: 0.375rem; /*  6px */
-    --app-radius-sm: 0.5rem; /*  8px */
-    --app-radius-md: 0.75rem; /* 12px */
-    --app-radius-lg: 1rem; /* 16px */
-    --app-radius-xl: 1.25rem; /* 20px */
+    --app-radius-xs: var(--theme-radius-xs); /*  6px */
+    --app-radius-sm: var(--theme-radius-sm); /*  8px */
+    --app-radius-md: var(--theme-radius-md); /* 12px */
+    --app-radius-lg: var(--theme-radius-lg); /* 16px */
+    --app-radius-xl: var(--theme-radius-xl); /* 20px */
     /* The pill: any value past half the tallest control rounds it fully. */
-    --app-radius-pill: 62.5rem;
+    --app-radius-pill: var(--theme-radius-pill);
 
     /* ---------------------------------------------------------------------
        TYPOGRAPHY

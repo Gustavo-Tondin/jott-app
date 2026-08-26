@@ -487,6 +487,16 @@ impl Notebook {
         crate::themes::list(self.config_dir(), app_version)
     }
 
+    /// Writes the app's own palette as `.jott/themes/jott.css` when the
+    /// notebook has none — never over one that exists, never into a
+    /// read-only notebook. `true` when it wrote (`themes::ensure_default`).
+    pub fn ensure_default_theme(&self, css: &str) -> Result<bool> {
+        if self.is_read_only() {
+            return Ok(false);
+        }
+        crate::themes::ensure_default(self.config_dir(), css)
+    }
+
     /// One theme's stylesheet, with every remote reference neutralised.
     pub fn theme_css(&self, name: &str) -> Result<crate::themes::Stylesheet> {
         crate::themes::css(self.config_dir(), name)

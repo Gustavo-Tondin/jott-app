@@ -2,59 +2,51 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, test } from "vitest";
-import { seedFrom } from "./themeSeed.js";
+import { seedFrom, themeTokens } from "./themeSeed.js";
 
 // From disk, not `?raw`: vitest stubs CSS imports to an empty string, and the
 // point of the last test is the REAL file (the architecture tests read the
 // stylesheets the same way, for the same reason).
-const defaultTheme = readFileSync(
-  join(dirname(fileURLToPath(import.meta.url)), "../../styles/modes/jott.css"),
+const factory = readFileSync(
+  join(dirname(fileURLToPath(import.meta.url)), "../../styles/themes/jott.css"),
   "utf8",
 );
 
 describe("seedFrom", () => {
-  test("drops the key in front of a region", () => {
-    expect(seedFrom('[data-theme="dark"] [data-region="chrome"] { --a: 1; }')).toBe(
-      '[data-region="chrome"] { --a: 1; }',
+  test("the factory alone comes out as its own tokens, in one root rule", () => {
+    const seeded = seedFrom({ factory: ":root {\n  --theme-color-blue-500: #111;\n  --theme-radius-md: 0.5rem;\n}" });
+    expect(seeded).toBe(
+      "/* A Jott theme: the palette, the spacing and the radius the app draws\n" +
+        "   with. Colours run seven steps (100 pale → 700 deep); the modes decide\n" +
+        "   which step goes where. Edit and save — the app repaints. */\n" +
+        ":root {\n  --theme-color-blue-500: #111;\n  --theme-radius-md: 0.5rem;\n}\n",
     );
   });
 
-  test("a key standing alone becomes the root", () => {
-    expect(seedFrom('[data-theme="dark"] { --a: 1; }')).toBe(":root { --a: 1; }");
+  test("the worn theme's tokens win, and only its tokens come along", () => {
+    // Duplicating a full stylesheet — one that also restyles regions — yields
+    // a PALETTE: what it said about `--theme-*`, over the factory, and none
+    // of its `--app-*` or selectors.
+    const worn =
+      '[data-region="canvas"] { --app-bg: #fdf6e3; --theme-color-blue-500: #222; }\n' +
+      "/* --theme-color-blue-500: #999; a comment does not count */";
+    const seeded = seedFrom({ factory: ":root { --theme-color-blue-500: #111; --theme-color-red-500: #a00; }", worn });
+    expect(seeded).toContain("--theme-color-blue-500: #222;");
+    expect(seeded).toContain("--theme-color-red-500: #a00;");
+    expect(seeded).not.toContain("--app-bg");
+    expect(seeded).not.toContain("data-region");
+    expect(themeTokens(null).size).toBe(0);
   });
 
-  test("the default theme's doubled selector collapses", () => {
-    // default.css answers to its name AND to no-attribute-at-all, so that it
-    // dresses the app before the setting has been read. A copy needs neither.
-    expect(seedFrom('[data-theme="default"],\n:root:not([data-theme]) {\n  --a: 1;\n}')).toBe(
-      ":root {\n  --a: 1;\n}",
-    );
-    // The descendant pair collapses the same way — one selector, said once.
-    expect(
-      seedFrom(
-        '[data-theme="default"] [data-region="chrome"],\n' +
-          ':root:not([data-theme]) [data-region="chrome"] {\n  --a: 1;\n}',
-      ),
-    ).toBe('[data-region="chrome"] {\n  --a: 1;\n}');
-  });
-
-  test("a stylesheet with no key at all is left exactly as it was", () => {
-    // Which is what "duplicate the theme I am wearing" runs into: a notebook
-    // theme carries no key.
-    const css = '[data-region="canvas"] { --app-bg: #fdf6e3; }';
-    expect(seedFrom(css)).toBe(css);
-  });
-
-  test("the real factory theme comes out with no key left in it", () => {
+  test("the real factory theme seeds every token it declares, and nothing else", () => {
     // The one that matters: this is the file the button actually copies.
-    const seeded = seedFrom(defaultTheme);
-
-    expect(seeded).not.toMatch(/\[data-theme=/);
-    expect(seeded).not.toMatch(/:root:not\(\[data-theme\]\)/);
-    // And it still assigns both regions, which is the whole point of copying
-    // this file rather than writing an empty one.
-    expect(seeded).toContain('[data-region="chrome"]');
-    expect(seeded).toContain('[data-region="canvas"]');
-    expect(seeded).toContain("--app-bg");
+    const seeded = seedFrom({ factory });
+    const tokens = themeTokens(seeded);
+    expect(tokens.size).toBe(themeTokens(factory).size);
+    expect(tokens.size).toBe(5 + 8 * 7 + 3 * 7 + 12 + 6);
+    expect(seeded).toMatch(/^\/\*[\s\S]*\*\/\n:root \{\n/);
+    expect(seeded).not.toMatch(/data-(theme|mode|region)/);
+    expect(seeded).toContain("--theme-color-blue-500:");
+    expect(seeded).toContain("--theme-space-8:");
   });
 });

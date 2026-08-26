@@ -71,6 +71,9 @@ describe("frontend architecture", () => {
     // @layer ancestor — at-rules like @media may wrap it on the way.
     const exempt = new Set([
       "components/editor.css",
+      // The factory theme is written into notebooks byte for byte, where it
+      // is injected plain — so the layer is app.css's `@import … layer()`.
+      "themes/jott.css",
       "modes/jott.css",
       "modes/light.css",
       "modes/dark.css",
@@ -380,7 +383,7 @@ describe("frontend architecture", () => {
 
   const HUES = ["yellow", "orange", "pink", "green", "blue", "red", "purple", "neutral"];
   const palette = () => {
-    const css = readFileSync(join(src, "styles", "tokens.css"), "utf8");
+    const css = readFileSync(join(src, "styles", "themes", "jott.css"), "utf8");
     const steps = {};
     // Family names may hyphenate and a hex pasted from Figma may arrive
     // uppercase — a parser that only reads `[a-z]+` and lowercase hex would
@@ -442,7 +445,7 @@ describe("frontend architecture", () => {
     const roles = readFileSync(join(src, "styles", "roles.css"), "utf8");
     const ink = roles.match(/--app-on-solid:\s*var\((--theme-color-[a-z]+)\)/);
     expect(ink, "roles.css assigns --app-on-solid from the palette").toBeTruthy();
-    const tokens = readFileSync(join(src, "styles", "tokens.css"), "utf8");
+    const tokens = readFileSync(join(src, "styles", "themes", "jott.css"), "utf8");
     const inkHex = tokens
       .match(new RegExp(`${ink[1]}:\\s*(#[0-9a-fA-F]{6})`))?.[1]
       ?.toLowerCase();
@@ -533,7 +536,7 @@ describe("frontend architecture", () => {
     // `--theme-color-white-tint`), which are not part of the tonal grid.
     const literals = Object.fromEntries(
       [
-        ...readFileSync(join(src, "styles", "tokens.css"), "utf8").matchAll(
+        ...readFileSync(join(src, "styles", "themes", "jott.css"), "utf8").matchAll(
           /(--theme-color-[a-z0-9-]+):\s*(#[0-9a-fA-F]{6})/g,
         ),
       ].map((m) => [m[1], m[2].toLowerCase()]),

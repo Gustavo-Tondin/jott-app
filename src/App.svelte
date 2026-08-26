@@ -100,9 +100,7 @@
   // The app's own three, as TEXT. `?raw` gives the source rather than a
   // stylesheet the page loads — these are already loaded, by app.css; what is
   // wanted here is the file's contents, to seed a theme the reader will edit.
-  import jottModeCss from "./styles/modes/jott.css?raw";
-  import lightModeCss from "./styles/modes/light.css?raw";
-  import darkModeCss from "./styles/modes/dark.css?raw";
+  import factoryThemeCss from "./styles/themes/jott.css?raw";
   import {
     formatBarMode as modeOfFormatBar,
     formatBarSide as sideOfFormatBar,
@@ -163,12 +161,8 @@
   /// How many remote references the core neutralised in the worn stylesheet,
   /// so Settings can say it rather than let a theme quietly lose its images.
   let wornThemeBlocked = $state(0);
-  /// The source of each theme the app ships, by name.
-  const APP_MODE_CSS = {
-    jott: jottModeCss,
-    light: lightModeCss,
-    dark: darkModeCss,
-  };
+  /// The app's own palette, as the notebook carries it (`.jott/themes/jott.css`).
+  const FACTORY_THEME = "jott";
 
   /// Bumped when the watcher reports a stylesheet changing on disk. It is in
   /// the effect below purely to re-run it: saving the file is the whole
@@ -819,23 +813,30 @@
     }),
   );
 
-  // A NOTEBOOK's theme: its stylesheet fetched and put in the document.
+  // The NOTEBOOK's theme: its stylesheet fetched and put in the document.
   //
-  // The app's own three are `@import`ed by app.css and cost nothing to switch
-  // between; this one is text on the reader's disk, so it travels over the
-  // bridge (shell/userTheme.js says why it lands where it lands).
+  // The modes are `@import`ed by app.css and cost nothing to switch between;
+  // a theme is text on the reader's disk, so it travels over the bridge
+  // (shell/userTheme.js says why it lands where it lands). Since 2026-08-26
+  // that includes the app's OWN: an empty setting wears `jott`, the copy of
+  // the factory palette the core writes into `.jott/themes/` — so editing
+  // that file re-tunes the notebook, and deleting it brings the factory
+  // back. The embedded copy is loaded underneath either way, so a fetch that
+  // fails leaves the app on the factory palette, never without one.
   //
   // The order matters and is the whole reason `wornTheme` exists: the CSS goes
   // in FIRST, and only then does the attribute start naming the theme. Naming
   // it first would leave a frame — or a whole session, if the fetch fails —
   // with an attribute that matches no stylesheet at all, which is not a
-  // fallback but a window with no colour roles assigned.
+  // fallback but a window with no colour roles assigned. The factory `jott`
+  // is never named: it is the default, and a palette needs no attribute.
   $effect(() => {
     // Read every dependency before the first await: an effect only tracks
     // what it touched synchronously.
-    const wanted = showsPicker ? "" : layout.theme;
+    const wanted = showsPicker ? "" : layout.theme || FACTORY_THEME;
     void themeRevision;
-    const carried = userThemes.some((theme) => theme.name === wanted);
+    const factory = wanted === FACTORY_THEME;
+    const carried = factory || userThemes.some((theme) => theme.name === wanted);
 
     if (!wanted || !carried) {
       applyUserTheme(null);
@@ -850,7 +851,7 @@
       .then((sheet) => {
         if (cancelled) return;
         applyUserTheme(sheet.css);
-        wornTheme = wanted;
+        wornTheme = factory ? null : wanted;
         wornThemeBlocked = sheet.blocked ?? 0;
       })
       .catch(() => {
@@ -1525,8 +1526,7 @@
   /// Wearing a notebook theme and asking for a new one duplicates THAT one,
   /// which is the same operation and needs no separate button.
   async function newThemeFrom(name) {
-    const worn = userThemeApplied();
-    const css = seedFrom(worn ?? APP_MODE_CSS[layout.mode] ?? APP_MODE_CSS.jott);
+    const css = seedFrom({ factory: factoryThemeCss, worn: userThemeApplied() });
     const made = await api.createUserTheme(name, css);
     userThemes = (await api.userThemes()) ?? [];
     return made;

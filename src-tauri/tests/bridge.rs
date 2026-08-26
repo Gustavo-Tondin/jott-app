@@ -2244,6 +2244,26 @@ fn each_window_keeps_its_own_history() {
 }
 
 #[test]
+fn opening_a_notebook_writes_the_factory_palette_once() {
+    let (_lock, app, dir) = app_with_notebook();
+    let file = dir.path().join(".jott/themes/jott.css");
+    let written = std::fs::read_to_string(&file).expect("jott.css written on open");
+    assert!(written.contains("--theme-color-blue-500:"));
+    assert_eq!(
+        written,
+        include_str!("../../src/styles/themes/jott.css"),
+        "byte for byte the bundle's own file"
+    );
+    // The reader's edit survives the next open — the file is theirs.
+    std::fs::write(&file, ":root { --theme-color-blue-500: #123456; }").unwrap();
+    ok(&app, "open_notebook", json!({ "path": dir.path() }));
+    let sheet = ok(&app, "user_theme_css", json!({ "name": "jott" }));
+    assert_eq!(sheet["css"], ":root { --theme-color-blue-500: #123456; }");
+    // And it is not offered as somebody's theme.
+    assert_eq!(ok(&app, "user_themes", json!({})), json!([]));
+}
+
+#[test]
 fn a_theme_dropped_into_the_notebook_reaches_the_frontend() {
     let (_lock, app, dir) = app_with_notebook();
     let themes = dir.path().join(".jott/themes/solarized");
