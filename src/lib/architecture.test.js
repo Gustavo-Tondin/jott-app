@@ -370,6 +370,7 @@ describe("frontend architecture", () => {
     );
   }
 
+  const HUES = ["yellow", "orange", "pink", "green", "blue", "red", "purple", "neutral"];
   const palette = () => {
     const css = readFileSync(join(src, "styles", "tokens.css"), "utf8");
     const steps = {};
@@ -388,9 +389,12 @@ describe("frontend architecture", () => {
     // The count is the parser's proof of coverage: a ninth colour, or a step
     // written in a shape the regex above cannot read, changes a number here
     // instead of silently dropping out of every measurement.
+    // The eight, plus the three STATUS families (2026-08-26) — seeded from
+    // red/yellow/green and kept as families of their own, so a theme that
+    // moves its red does not move the error notice with it.
     const families = palette();
     expect(Object.keys(families).sort()).toEqual(
-      ["blue", "green", "neutral", "orange", "pink", "purple", "red", "yellow"],
+      ["blue", "danger", "green", "neutral", "orange", "pink", "purple", "red", "success", "warning", "yellow"],
     );
     for (const [name, steps] of Object.entries(families)) {
       expect(Object.keys(steps).length, `${name} has seven steps`).toBe(7);
@@ -458,7 +462,26 @@ describe("frontend architecture", () => {
     expect(
       [...roles.matchAll(/--app-(?!on-)[a-z]+-solid:/g)].length,
       "one solid rung per colour",
-    ).toBe(Object.keys(families).length);
+    ).toBe(HUES.length);
+  });
+
+  test("status roles read the status families, never a hue", () => {
+    // `--app-danger: var(--theme-color-red-300)` was the shape until
+    // 2026-08-26. A theme may make its red sea-green; the error stays red.
+    const offenders = [];
+    for (const [name, css] of themes()) {
+      for (const m of css.matchAll(/(--app-(danger|warning|success)(?:-tint)?)\s*:\s*([^;]+);/g)) {
+        if (!new RegExp(`^var\\(--theme-color-${m[2]}-\\d00\\)$`).test(m[3].trim())) {
+          offenders.push(`${name}: ${m[1]} reads ${m[3].trim()}`);
+        }
+      }
+      for (const m of css.matchAll(/--app-emphasis\s*:\s*([^;]+);/g)) {
+        if (!/^var\(--theme-color-success-\d00\)$/.test(m[1].trim())) {
+          offenders.push(`${name}: --app-emphasis reads ${m[1].trim()}`);
+        }
+      }
+    }
+    expect(offenders).toEqual([]);
   });
 
   test("every step that carries text clears its contrast floor", () => {

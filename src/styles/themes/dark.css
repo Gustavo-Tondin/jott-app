@@ -120,12 +120,12 @@
   --app-neutral-line: color-mix(in srgb, var(--theme-color-neutral-500) 45%, transparent);
   --app-neutral-tint: var(--theme-color-neutral-600);
 
-  --app-danger: var(--theme-color-red-300);
-  --app-warning: var(--theme-color-yellow-300);
-  --app-success: var(--theme-color-green-300);
-  --app-danger-tint: var(--theme-color-red-700);
-  --app-warning-tint: var(--theme-color-yellow-700);
-  --app-success-tint: var(--theme-color-green-700);
+  --app-danger: var(--theme-color-danger-300);
+  --app-warning: var(--theme-color-warning-300);
+  --app-success: var(--theme-color-success-300);
+  --app-danger-tint: var(--theme-color-danger-700);
+  --app-warning-tint: var(--theme-color-warning-700);
+  --app-success-tint: var(--theme-color-success-700);
 
   /* The one piece of Markdown with a colour of its own (Notes wireframe,
      Editor screen): emphasis. Bold is ink and a link is the accent, but italic
@@ -133,7 +133,7 @@
      to miss in a wall of text. A fixed colour rather than the accent, for the
      same reason the status three are fixed: it must not change meaning when
      the user picks green as their accent. */
-  --app-emphasis: var(--theme-color-green-300);
+  --app-emphasis: var(--theme-color-success-300);
 }
 
 /* ---- a sheet: the canvas's two neutrals, the other way round --------------

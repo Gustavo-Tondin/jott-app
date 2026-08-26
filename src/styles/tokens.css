@@ -201,6 +201,37 @@
     --theme-color-neutral-600: #514f4e;
     --theme-color-neutral-700: #2c2b2b;
 
+    /* THE THREE STATUS FAMILIES (2026-08-26) — danger, warning, success —
+       seeded from red, yellow and green and kept as families of their OWN,
+       not aliases. A theme may make its `red` sea-green; the error notice,
+       the overdue date and the `!!!` must not follow it — status is the one
+       colour that has to keep meaning whatever the palette says. Same seven
+       steps, same tone grid, same contrast floors as the eight. */
+
+    --theme-color-danger-100: #ffe1dd;
+    --theme-color-danger-200: #feafa9;
+    --theme-color-danger-300: #fd827b;
+    --theme-color-danger-400: #ee4748;
+    --theme-color-danger-500: #ce232e;
+    --theme-color-danger-600: #980217;
+    --theme-color-danger-700: #4e1515;
+
+    --theme-color-warning-100: #f2e8cf;
+    --theme-color-warning-200: #dec483;
+    --theme-color-warning-300: #d2a513;
+    --theme-color-warning-400: #ac8602;
+    --theme-color-warning-500: #8c6d02;
+    --theme-color-warning-600: #634c02;
+    --theme-color-warning-700: #382900;
+
+    --theme-color-success-100: #d8f0db;
+    --theme-color-success-200: #9cd8a4;
+    --theme-color-success-300: #53c76c;
+    --theme-color-success-400: #1da748;
+    --theme-color-success-500: #018534;
+    --theme-color-success-600: #006123;
+    --theme-color-success-700: #0a3515;
+
     /* TIER 2 — the semantic COLOUR roles are NOT here. They are assigned once
        per REGION, in styles/themes/<name>.css — and the rule there is
        that a role reads one of these and nothing else, so a colour is always
