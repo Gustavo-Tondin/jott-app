@@ -62,6 +62,15 @@
     border-radius: var(--app-radius-md);
   }
 
+  /* Carried FREE of its list (Ctrl held, 2026-08-26): on its way to a space
+     in the sidebar or to the Home. Above everything, and the panels it
+     crosses must not catch it. */
+  .reorder-item--free {
+    z-index: 1000;
+    pointer-events: none;
+    cursor: grabbing;
+  }
+
   /* Carried clear of its list: it is about to LEAVE it (a space dragged
      out of a group). A dashed edge rather than the solid ring of `--into` —
      one says "this receives it", the other says "this is on its way out". */

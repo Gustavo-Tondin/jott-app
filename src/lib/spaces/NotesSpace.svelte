@@ -492,6 +492,14 @@
       })),
   ]);
 
+  /// A note dropped, by a free drag, on another notepad in the sidebar: it
+  /// goes into that space's Inbox folder — the same move the picker makes.
+  const moveCardTo = (card, space) =>
+    act(async () => {
+      if (!space || space === folder) return;
+      await api.moveNoteToSpace(folder, card.path, space, notesInbox);
+    });
+
   const moveSelected = (target) =>
     act(async () => {
       if (!target || picked.size === 0) return;
@@ -736,7 +744,17 @@
           isGroup(laidOut[from])
             ? []
             : [...(boardEl?.querySelectorAll(".notes-space__group") ?? [])],
-        onDropZone: (from, zone) => fileInto(laidOut[from], zone.dataset.folder),
+        onDropZone: (from, zone) =>
+          zone.dataset.spaceDrop != null
+            ? moveCardTo(laidOut[from], zone.dataset.spaceDrop)
+            : fileInto(laidOut[from], zone.dataset.folder),
+        // The free drag (Ctrl, 2026-08-26): a NOTE carried to a notepad in
+        // the sidebar goes into its Inbox folder. A folder card offers none.
+        free: readOnly ? null : (e) => e.ctrlKey || e.metaKey,
+        freeZones: (from) =>
+          isGroup(laidOut[from])
+            ? []
+            : [...document.querySelectorAll('[data-space-drop][data-space-kind="notes"]')],
         canDropInto: (from, to) => !isGroup(laidOut[from]) && !isGroup(laidOut[to]),
         onDropInto: (from, to) => groupNotes(laidOut[from], laidOut[to]),
       }}

@@ -374,10 +374,15 @@
          via --group-color (Fase 13). -->
     <!-- One fixed row: a view, its glyph, its label and — for the one that
          holds tasks — how many are open. -->
-    {#snippet fixedRow(view, icon, label, count = 0)}
+    <!-- `drop`: what a FREE drag (Ctrl) may land here — `data-space-drop` +
+         `data-space-kind` for a space (a task goes into its Inbox, a note
+         into its Inbox folder), `data-day-drop` for the Home, which pulls a
+         task into the day (2026-08-26; actions/reorder.js). -->
+    {#snippet fixedRow(view, icon, label, count = 0, drop = {})}
       <button
         class="shell__nav-item"
         class:shell__nav-item--active={isOpen(view) || holds(view)}
+        {...drop}
         onclick={() => onOpen(view)}
         onauxclick={(e) => middleOpen(e, () => onOpen?.(view, true))}
       >
@@ -401,7 +406,7 @@
              2026-08-24): hiding one takes the shortcut and the screen, and
              nothing else — the folders stay, and the function stays on. -->
         {#if f("homeSpace")}
-          {@render fixedRow({ kind: "home" }, "house", S.home)}
+          {@render fixedRow({ kind: "home" }, "house", S.home, 0, { "data-day-drop": "" })}
         {/if}
         {#if f("tasks") && f("tasksSpace")}
           <!-- The fixed screen's own number, which it never had: a row that
@@ -412,10 +417,14 @@
             "check-square",
             S.tasks,
             openIn(counts, notebook?.layout?.tasksFolder),
+            { "data-space-drop": notebook?.layout?.tasksFolder, "data-space-kind": "tasks" },
           )}
         {/if}
         {#if f("notes") && f("notesSpace")}
-          {@render fixedRow({ kind: "notes" }, "note", S.notes)}
+          {@render fixedRow({ kind: "notes" }, "note", S.notes, 0, {
+            "data-space-drop": notebook?.layout?.notesFolder,
+            "data-space-kind": "notes",
+          })}
         {/if}
       </div>
 
@@ -474,6 +483,8 @@
         class:shell__nav-item--member={grouped}
         class:shell__nav-item--active={isOpen({ kind: "space", sp: sp.path }) ||
           holds({ kind: "space", sp: sp.path })}
+        data-space-drop={sp.path}
+        data-space-kind={sp.kind}
         oncontextmenu={(e) => openRowMenu(e, spaceMenu(sp))}
       >
         <button

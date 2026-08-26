@@ -434,6 +434,29 @@
   ///
   /// `adds` is what the revealed square draws, so the card says which of the
   /// two it is about to do before the finger is lifted.
+  /// Cards dropped by a FREE drag (Ctrl held) on a space of tasks in the
+  /// sidebar, or on the Home (2026-08-26). A space takes them into its
+  /// Inbox — the same move the inspector's "Move to" makes, so a task keeps
+  /// its id and Ctrl+Z brings it back; the Home pulls them into the day,
+  /// which is what the Home is.
+  const moveTo = readOnly
+    ? null
+    : (entries, zone) =>
+        act(async () => {
+          const toDay = zone.dataset.dayDrop != null;
+          const target = toDay
+            ? null
+            : taskSpacePaths({ folder: zone.dataset.spaceDrop }, lists, completedName).list;
+          for (const entry of entries) {
+            const id = await ensureTaskId(entry.list, entry.task);
+            if (toDay) {
+              if (!inDay(entry)) await api.pullInto("day", entry.list, id);
+            } else if (target && target !== entry.list) {
+              await api.moveTask(entry.list, id, target);
+            }
+          }
+        });
+
   const daySwipe = $derived(
     readOnly
       ? null
@@ -559,6 +582,7 @@
         pinned={!period}
         origin={period ? origin : null}
         color={dot}
+        onMoveTo={moveTo}
         {inDay}
         {f}
         onDelete={readOnly ? null : deleteEntry}
@@ -599,6 +623,7 @@
         listClass="tasks-space__list tasks-space__list--completed"
         origin={period ? origin : null}
         color={dot}
+        onMoveTo={moveTo}
         {f}
         {isSelected}
         onSelect={onSelectTask}

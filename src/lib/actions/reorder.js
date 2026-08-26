@@ -50,6 +50,17 @@
 //                   under the pointer wins over everything else, including
 //                   "released clear of the list": the pointer is not nowhere,
 //                   it is on that group.
+//   `free`        — `(pointerdown event) => boolean`: a drag that is FREE of
+//                   the list (Ctrl held, 2026-08-26). No rest, no axis lock,
+//                   no gap opening — the carried item follows the pointer on
+//                   both axes, the list stays as it was, and the only thing
+//                   that can receive it is one of the `freeZones` (a space
+//                   in the sidebar, the Home). Released anywhere else it
+//                   snaps back. `freeZones` has the shape of `dropZones` and
+//                   is what a free drag asks instead of it — the notes board
+//                   keeps its folder cards for the ordinary drag and offers
+//                   the sidebar only to the free one. `onDropZone` answers
+//                   both.
 //   `onDragOut`   — released clear of the container, the item is asking to
 //                   LEAVE it. A space dragged out of a group is how it
 //                   stops being a member; without it, joining would be a one
@@ -167,7 +178,11 @@ export function reorderable(node, params) {
       into: null,
       holdTimer: null,
       touch: e.pointerType === "touch",
+      // Free of the list (see `free` at the top): only a free zone can take
+      // it, and it starts at once — the modifier IS the intent.
+      free: !!(opts.freeZones && opts.free?.(e)),
     };
+    if (drag.free) return;
     // A finger on an item that is dragged BY ITSELF has to rest first (see
     // HOLD_MS). Where the caller gave a handle there is usually nothing to
     // wait for: pressing a grip is already the whole intent, and the grip
@@ -231,6 +246,7 @@ export function reorderable(node, params) {
     drag.step = size(r) + gap;
     drag.to = drag.from;
     node.setAttribute("data-reordering", "");
+    if (drag.free) drag.el.classList.add("reorder-item--free");
     // The pile: what else is picked travels with the carried item.
     const stack = (opts.carried?.(drag.from) ?? [drag.from]).filter((i) => i !== drag.from);
     drag.stack = [drag.from, ...stack];
@@ -262,6 +278,21 @@ export function reorderable(node, params) {
       if (drag.touch) return cancel();
       clearTimeout(drag.holdTimer);
       drag.holdTimer = null;
+    }
+    if (drag.free) {
+      if (!drag.moved) {
+        if (Math.hypot(dx, dy) < threshold()) return;
+        drag.moved = true;
+        begin();
+      }
+      drag.el.style.transform = `translate(${dx}px, ${dy}px)`;
+      const zone = zoneAt(e);
+      if (drag.zone !== zone) {
+        drag.zone?.classList.remove("reorder-item--into");
+        zone?.classList.add("reorder-item--into");
+        drag.zone = zone;
+      }
+      return;
     }
     if (!drag.moved) {
       if ((grid() ? Math.hypot(dx, dy) : Math.abs(delta)) < threshold()) return;
@@ -498,6 +529,7 @@ export function reorderable(node, params) {
         "reorder-item--stacked",
         "reorder-item--into",
         "reorder-item--leaving",
+        "reorder-item--free",
       );
       c.removeAttribute("data-carry");
       c.style.transform = "";
@@ -532,6 +564,11 @@ export function reorderable(node, params) {
     clear(d);
     const many = d.stack && d.stack.length > 1;
     const what = many ? d.stack : d.from;
+    // A free drag goes to its zone or nowhere: the list was never in play.
+    if (d.free) {
+      if (d.zone) opts.onDropZone?.(what, d.zone);
+      return;
+    }
     // Released on a zone: it is going THERE, wherever it came from.
     if (d.zone) opts.onDropZone?.(what, d.zone);
     // Released clear of the list: the item is leaving, not moving within.
@@ -563,8 +600,9 @@ export function reorderable(node, params) {
   /// The declared drop zone under the pointer, if any. A zone inside the
   /// carried item never counts — see `dropZones` at the top.
   function zoneAt(e) {
-    if (!opts.dropZones) return null;
-    for (const zone of opts.dropZones(drag.from)) {
+    const zones = drag.free ? opts.freeZones : opts.dropZones;
+    if (!zones) return null;
+    for (const zone of zones(drag.from)) {
       if (drag.el.contains(zone)) continue;
       const r = zone.getBoundingClientRect();
       const inside =

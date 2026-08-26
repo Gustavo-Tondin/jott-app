@@ -91,6 +91,43 @@ describe("HomeView", () => {
     expect(screen.queryByText(/jott\.tasks|Design\/Tasks/)).toBeNull();
   });
 
+  test("a card dragged with Ctrl onto a space in the sidebar moves into its Inbox", async () => {
+    // The free drag (2026-08-26): Ctrl at pointerdown, no rest, no axis lock,
+    // and the sidebar's spaces are the only places it can land. The zone is
+    // what the sidebar draws (`data-space-drop`), planted here by hand.
+    const lists = [
+      { path: "jott.tasks/task-list.md", name: "task-list", space: "Tasks" },
+      { path: "Mercado/task-list.md", name: "task-list", space: "Mercado" },
+    ];
+    bridge({
+      period_tasks: [{ path: "jott.tasks/task-list.md", task: task("a1", "Comprar pão") }],
+      notes_created_today: [],
+      move_task: {},
+      pull_into_period: {},
+    });
+    const zone = document.createElement("div");
+    zone.dataset.spaceDrop = "Mercado";
+    zone.dataset.spaceKind = "tasks";
+    zone.getBoundingClientRect = () => ({ left: 0, right: 100, top: 500, bottom: 540, width: 100, height: 40, x: 0, y: 500, toJSON() {} });
+    document.body.append(zone);
+    render(HomeView, { props: props({ lists }) });
+
+    const row = (await screen.findByText("Comprar pão")).closest(".task-row");
+    await fireEvent.pointerDown(row, { button: 0, pointerId: 1, clientX: 10, clientY: 10, ctrlKey: true });
+    await fireEvent.pointerMove(row, { pointerId: 1, clientX: 40, clientY: 200 });
+    await fireEvent.pointerMove(row, { pointerId: 1, clientX: 50, clientY: 520 });
+    expect(zone.classList.contains("reorder-item--into")).toBe(true);
+    await fireEvent.pointerUp(row, { pointerId: 1, clientX: 50, clientY: 520 });
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("move_task", {
+        from: "jott.tasks/task-list.md",
+        id: "a1",
+        to: "Mercado/task-list.md",
+      }),
+    );
+    zone.remove();
+  });
+
   test("today's notes are drawn as the board's cards, banner and all", async () => {
     // Home draws THE note card now (2026-08-19), not a copy of it: the banner,
     // the title on its chip and the first lines. It had a card of its own from

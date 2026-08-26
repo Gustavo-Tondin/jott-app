@@ -591,4 +591,44 @@ describe("reorderable with a selection", () => {
     expect(row.hasAttribute("data-carry")).toBe(false);
     expect(ul.querySelectorAll(".row")[3].classList.contains("reorder-item--stacked")).toBe(false);
   });
+
+  test("a free drag (Ctrl) leaves the list alone and lands only on a free zone", () => {
+    // 2026-08-26: Ctrl held at pointerdown is the intent — no rest, no axis
+    // lock, no gap — and the sidebar's spaces are the only places it can go.
+    const ul = list(3);
+    layOut(ul);
+    const zone = document.createElement("div");
+    zone.dataset.spaceDrop = "Mercado";
+    zone.getBoundingClientRect = () => ({ left: 300, right: 400, top: 0, bottom: 40, width: 100, height: 40, x: 300, y: 0, toJSON() {} });
+    document.body.append(zone);
+    const reordered = [];
+    const dropped = [];
+    reorderable(ul, {
+      axis: "y",
+      item: ".row",
+      onReorder: (from, to) => reordered.push([from, to]),
+      free: (e) => e.ctrlKey,
+      freeZones: () => [zone],
+      onDropZone: (from, el) => dropped.push([from, el.dataset.spaceDrop]),
+    });
+    const row = ul.children[0];
+    // Sideways at once — the axis lock would have dropped this as a swipe.
+    fire(row, "pointerdown", { button: 0, pointerId: 1, clientX: 10, clientY: 5, ctrlKey: true });
+    fire(row, "pointermove", { pointerId: 1, clientX: 60, clientY: 8 });
+    expect(row.classList.contains("reorder-item--free")).toBe(true);
+    fire(row, "pointermove", { pointerId: 1, clientX: 350, clientY: 20 });
+    expect(zone.classList.contains("reorder-item--into")).toBe(true);
+    fire(row, "pointerup", { pointerId: 1, clientX: 350, clientY: 20 });
+    expect(dropped).toEqual([[0, "Mercado"]]);
+    expect(reordered).toEqual([]);
+    expect(zone.classList.contains("reorder-item--into")).toBe(false);
+
+    // Released anywhere else: nothing happens, the card snaps back.
+    fire(row, "pointerdown", { button: 0, pointerId: 2, clientX: 10, clientY: 5, ctrlKey: true });
+    fire(row, "pointermove", { pointerId: 2, clientX: 10, clientY: 95 });
+    fire(row, "pointerup", { pointerId: 2, clientX: 10, clientY: 95 });
+    expect(dropped).toHaveLength(1);
+    expect(reordered).toEqual([]);
+    zone.remove();
+  });
 });

@@ -59,6 +59,9 @@ what the current version is.
 
 **Tasks**
 - Inbox and lists of your own, in as many task spaces as you want.
+- **Ctrl+drag** a task card onto a list in the sidebar to move it there, or
+  onto Home to pull it into the day; the same gesture moves a note into
+  another notepad.
 - **Today** and **Week**: you pull in what you want to face, instead of
   staring at the whole list. Suggestions are ordered by urgency, never
   auto-selected — unless you turn on "dated tasks join the day".

@@ -45,6 +45,10 @@
     /// badge a card wears outside its space (services/origin.js). Null when
     /// the screen IS the space, and nothing is said.
     origin = null,
+    /// `(entries, zone) => void` — cards dropped, by a FREE drag (Ctrl held),
+    /// on a space of tasks in the sidebar or on the Home (2026-08-26). Null
+    /// offers no free drag.
+    onMoveTo = null,
     /// The colour of the space these cards are in (a name) — what a tag wears.
     color = null,
     /// `(entry) => boolean` — is this one pulled into the Day? Left alone on a
@@ -176,7 +180,17 @@
   onkeydown={onKeydown}
   use:reorderable={{
     axis: "y",
-    item: onReorder ? ".task-row" : ".task-row--never",
+    item: onReorder || onMoveTo ? ".task-row" : ".task-row--never",
+    // The free drag (Ctrl): out of the list, to a space in the sidebar or the
+    // Home — the only zones it can land on. A plain drag never sees them.
+    free: onMoveTo ? (e) => e.ctrlKey || e.metaKey : null,
+    freeZones: onMoveTo
+      ? () =>
+          document.querySelectorAll('[data-space-drop][data-space-kind="tasks"], [data-day-drop]')
+      : null,
+    onDropZone: onMoveTo
+      ? (what, zone) => onMoveTo((Array.isArray(what) ? what : [what]).map((i) => items[i]), zone)
+      : null,
     // Longer than the default rest: here the hold ENTERS SELECTION MODE, and
     // at 400ms a slow scroll down the list kept marking cards by accident
     // (user call, 2026-08-24: "aumentar bastantinho o tempo pra selecionar").
