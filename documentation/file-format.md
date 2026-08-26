@@ -266,6 +266,12 @@ order you dragged things into.
   (`autoRemind`: `off` / `dayOf` / `dayBefore`, at `reminderTime`, `HH:MM`). Written in camelCase, guarded by
   `schemaVersion`.
 
+  **`age`** holds where the three ages begin, in days —
+  `{ "fresh": 7, "stale": 30, "inboxStale": 7 }`: below `fresh` something is
+  fresh, below `stale` it is stale, and at or above it, forgotten. The inbox
+  has a shorter one of its own, because an inbox is a place things pass
+  through.
+
   The pact is the same for every key: **a value that fails validation reads
   as the app's default, an absent key means untouched, and an unknown key
   makes the round trip**. Editing it by hand while the app is running works —

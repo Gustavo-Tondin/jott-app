@@ -318,6 +318,12 @@ pub struct Config {
     /// `scroll` lets it run wide and scroll sideways. Same pact as the board
     /// layout: the interface owns the list, an unknown name round-trips.
     pub table_layout: String,
+    /// Where "fresh", "stale" and "forgotten" begin, in days
+    /// (`crate::age`, spec 3.6). A notebook preference and not a machine
+    /// one: how long something may sit before it counts as forgotten is a
+    /// judgement about the person's own work, and it travels with the
+    /// notebook.
+    pub age: crate::age::Thresholds,
     /// How many days a trashed item waits in `.jott/trash/` before the reaper
     /// clears it for good (reestruturação 2026-07-30).
     pub trash_retention_days: i64,
@@ -393,6 +399,7 @@ impl Default for Config {
             home_notes_source: String::new(),
             note_layout: String::new(),
             table_layout: String::new(),
+            age: crate::age::Thresholds::default(),
             trash_retention_days: 30,
             completed_retention_days: 30,
             order: BTreeMap::new(),
@@ -605,6 +612,7 @@ impl Config {
                 .unwrap_or(defaults.home_notes_source),
             note_layout: string(&raw, "noteLayout").unwrap_or(defaults.note_layout),
             table_layout: string(&raw, "tableLayout").unwrap_or(defaults.table_layout),
+            age: parse_age(raw.get("age"), defaults.age),
             trash_retention_days: raw
                 .get("trashRetentionDays")
                 .and_then(Value::as_i64)
@@ -672,6 +680,7 @@ impl Config {
         let mut owned = crate::jsondoc::owned([
             ("schemaVersion", Value::from(self.schema_version)),
             ("rollover", render_rollover(&self.rollover)),
+            ("age", render_age(&self.age)),
             ("restoreLastScreen", Value::from(self.restore_last_screen)),
             ("showListCounts", Value::from(self.show_list_counts)),
             (
@@ -823,6 +832,35 @@ fn read_at(block: Option<&Map<String, Value>>) -> TurnOffset {
         .unwrap_or_default()
 }
 
+/// Reads the `age` object, one key at a time. Same pact as every other
+/// value in this file: a number that makes no sense (missing, a string, a
+/// negative day count) reads as the app's default, and any key this build
+/// does not know round-trips untouched through `raw`.
+fn parse_age(raw: Option<&Value>, defaults: crate::age::Thresholds) -> crate::age::Thresholds {
+    let Some(obj) = raw.and_then(Value::as_object) else {
+        return defaults;
+    };
+    let days = |key: &str, fallback: i64| {
+        obj.get(key)
+            .and_then(Value::as_i64)
+            .filter(|days| *days >= 0)
+            .unwrap_or(fallback)
+    };
+    crate::age::Thresholds {
+        fresh: days("fresh", defaults.fresh),
+        stale: days("stale", defaults.stale),
+        inbox_stale: days("inboxStale", defaults.inbox_stale),
+    }
+}
+
+fn render_age(age: &crate::age::Thresholds) -> Value {
+    Value::Object(Map::from_iter([
+        ("fresh".to_string(), Value::from(age.fresh)),
+        ("stale".to_string(), Value::from(age.stale)),
+        ("inboxStale".to_string(), Value::from(age.inbox_stale)),
+    ]))
+}
+
 fn render_rollover(rollover: &Rollover) -> Value {
     let daily = Map::from_iter([
         ("mode".to_string(), Value::from(rollover.daily.mode.render())),
@@ -961,6 +999,35 @@ mod tests {
             }"#,
         );
         assert_eq!(config.rollover, Rollover::default());
+    }
+
+    #[test]
+    fn the_age_thresholds_follow_the_same_pact_as_everything_else() {
+        // A value that makes no sense reads as the default, an absent one
+        // means untouched, and an unknown sibling key round-trips.
+        let config = Config::parse(
+            r#"{
+              "schemaVersion": 1,
+              "age": { "fresh": 3, "stale": "soon", "sweepDay": "sunday" }
+            }"#,
+        );
+        assert_eq!(config.age.fresh, 3);
+        assert_eq!(config.age.stale, crate::age::Thresholds::default().stale);
+        assert_eq!(
+            config.age.inbox_stale,
+            crate::age::Thresholds::default().inbox_stale
+        );
+        assert!(
+            config.render().contains("sweepDay"),
+            "a key this build does not know survives: {}",
+            config.render()
+        );
+    }
+
+    #[test]
+    fn a_negative_threshold_is_not_a_threshold() {
+        let config = Config::parse(r#"{ "schemaVersion": 1, "age": { "fresh": -5 } }"#);
+        assert_eq!(config.age.fresh, crate::age::Thresholds::default().fresh);
     }
 
     #[test]

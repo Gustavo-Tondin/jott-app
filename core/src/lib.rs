@@ -6,6 +6,7 @@
 //!
 //! Reading and writing the notebook is done. Day/week rules come next.
 
+pub mod age;
 pub mod assets;
 pub mod browse;
 pub mod clock;
@@ -41,6 +42,7 @@ pub mod trash;
 pub mod version;
 pub mod watcher;
 
+pub use age::{Band, Thresholds};
 pub use assets::{AssetEntry, Assets, ASSETS_DIR};
 pub use clock::{TurnOffset, WeekStart};
 pub use config::{Config, Rollover, RolloverMode};
