@@ -540,10 +540,15 @@ export const S = {
   // Themes the reader brought into the notebook (2026-08-25). The hint names
   // the folder because that IS the whole installation procedure — there is no
   // import button, and there should not be one.
-  themesFromNotebook: "From this notebook",
+  themeJott: "Jott",
+  themeJottMeta: "the app's own",
+  themeJottHint:
+    "Its palette is in this notebook as .jott/themes/jott.css — edit it and " +
+    "the app follows; delete it and the factory one comes back.",
   themesFromNotebookHint:
-    "Drop a .css file — or a folder with theme.css inside — into " +
-    ".jott/themes/ and it shows up here. Saving the file repaints the app.",
+    "A theme is a .css file — or a folder with theme.css inside — in " +
+    ".jott/themes/. It sets the colours, spacing and radius, and wears any " +
+    "mode. Saving the file repaints the app.",
   themeBy: (author) => `by ${author}`,
   themeNeedsNewerApp: (version) =>
     `Made for Jott ${version} or newer — parts of the app may go unpainted.`,

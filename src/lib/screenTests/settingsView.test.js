@@ -212,16 +212,46 @@ describe("SettingsView", () => {
     );
   });
 
-  test("a notebook with no themes says nothing about them", async () => {
+  test("with no theme of its own the notebook still offers Jott, the app's palette", async () => {
+    // The theme block is never empty (2026-08-26): the app's own palette is a
+    // theme too — the editable `.jott/themes/jott.css` — and it is the one on
+    // when nothing is chosen. The hint that says where a theme goes stands,
+    // because that is the answer to "how do I get one".
     bridge({ notebook_settings: settings, set_machine_display: null });
     render(SettingsView, { props: props() });
 
     await openSection("Display");
-    // An empty list explaining what an empty list means is worse than silence
-    // — but the hint that says WHERE to put one still stands, because that is
-    // the answer to "how do I get one".
-    expect(screen.queryByText("From this notebook")).toBe(null);
-    expect(screen.getByText(/Drop a .css file/)).toBeTruthy();
+    const rows = screen.getAllByRole("button", { pressed: true });
+    const jott = rows.find((b) => b.className.includes("settings__theme"));
+    expect(jott.textContent).toContain("Jott");
+    expect(screen.getByText(/jott\.css/)).toBeTruthy();
+    expect(screen.getByText(/A theme is a .css file/)).toBeTruthy();
+  });
+
+  test("choosing Jott again clears the theme, and leaves the mode alone", async () => {
+    bridge({
+      notebook_settings: { ...settings, theme: "solarized", mode: "dark" },
+      set_machine_display: null,
+    });
+    render(SettingsView, {
+      props: props({
+        userThemes: [{ name: "solarized", label: "Solarized", supported: true }],
+        wornTheme: "solarized",
+      }),
+    });
+    await openSection("Display");
+    const jott = screen
+      .getAllByRole("button", { name: /Jott/ })
+      .find((b) => b.className.includes("settings__theme"));
+    expect(jott.getAttribute("aria-pressed")).toBe("false");
+    await userEvent.click(jott);
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("set_machine_display", { display: { theme: "" } }),
+    );
+    // Two questions: the theme changed, the mode was not sent.
+    expect(invoke).not.toHaveBeenCalledWith("set_machine_display", {
+      display: expect.objectContaining({ mode: expect.anything() }),
+    });
   });
 
   test("a theme that cannot be worn says so on its own row", async () => {
@@ -307,7 +337,10 @@ describe("SettingsView", () => {
     bridge({ notebook_settings: settings, set_machine_display: null });
     render(SettingsView, { props: props() });
 
-    const jott = await screen.findByRole("button", { name: "Jott" });
+    // The MODE's Jott (the segmented group), not the theme row's.
+    const jott = (await screen.findAllByRole("button", { name: "Jott" })).find((b) =>
+      b.className.includes("theme-segmented__item"),
+    );
     expect(jott.getAttribute("aria-pressed")).toBe("true");
 
     // And to THIS DEVICE (2026-08-20): the phone is dark while the desktop

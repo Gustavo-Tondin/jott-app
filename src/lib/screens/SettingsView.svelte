@@ -1033,46 +1033,55 @@
             putDisplay({ mode: key }),
           )}
 
-          <!-- The notebook's own themes (2026-08-25). A block, not four more
+          <!-- The THEME — the palette (2026-08-26): the app's own, which every
+               notebook carries as an editable `.jott/themes/jott.css`, and the
+               ones the reader brought in (2026-08-25). A block, not more
                segments: these have authors and versions to show, there can be
-               any number of them, and none of that fits in a segment. It is
-               absent entirely when the notebook carries none — an empty list
-               explaining what an empty list means is worse than silence.
-
-               When one of these is worn, the group above shows nothing pressed,
-               which is the honest reading: the look is not one of the three. -->
-          {#if userThemes.length}
-            <h3 class="settings__subtitle">{S.themesFromNotebook}</h3>
-            <div class="settings__themes">
-              {#each userThemes as theme (theme.name)}
-                {@const active = form.theme === theme.name}
-                <button
-                  type="button"
-                  class="theme-row settings__theme"
-                  aria-pressed={active}
-                  onclick={() => putDisplay({ theme: theme.name })}
-                >
-                  <span class="settings__theme-name">{theme.label}</span>
-                  <span class="settings__theme-meta">
-                    {#if theme.author}{S.themeBy(theme.author)}{/if}
-                    {#if theme.version}<span class="settings__theme-version"
-                        >{theme.version}</span
-                      >{/if}
-                  </span>
-                </button>
-                <!-- Said on the row it is about, and only while it matters:
-                     a warning about a theme nobody is wearing is noise. -->
-                {#if !theme.supported}
-                  <p class="settings__hint">{S.themeNeedsNewerApp(theme.minAppVersion)}</p>
-                {/if}
-                {#if active && wornTheme !== theme.name}
-                  <p class="settings__hint">{S.themeUnreadable}</p>
-                {:else if active && blockedInTheme > 0}
-                  <p class="settings__hint">{S.themeBlockedRefs(blockedInTheme)}</p>
-                {/if}
-              {/each}
-            </div>
-          {/if}
+               any number of them, and none of that fits in a segment. The
+               mode above and the theme here are two questions — wearing a
+               theme leaves the mode where it was. -->
+          <h3 class="settings__subtitle">{S.theme}</h3>
+          <div class="settings__themes">
+            <button
+              type="button"
+              class="theme-row settings__theme"
+              aria-pressed={!form.theme}
+              onclick={() => putDisplay({ theme: "" })}
+            >
+              <span class="settings__theme-name">{S.themeJott}</span>
+              <span class="settings__theme-meta">{S.themeJottMeta}</span>
+            </button>
+            {#if !form.theme}
+              <p class="settings__hint">{S.themeJottHint}</p>
+            {/if}
+            {#each userThemes as theme (theme.name)}
+              {@const active = form.theme === theme.name}
+              <button
+                type="button"
+                class="theme-row settings__theme"
+                aria-pressed={active}
+                onclick={() => putDisplay({ theme: theme.name })}
+              >
+                <span class="settings__theme-name">{theme.label}</span>
+                <span class="settings__theme-meta">
+                  {#if theme.author}{S.themeBy(theme.author)}{/if}
+                  {#if theme.version}<span class="settings__theme-version"
+                      >{theme.version}</span
+                    >{/if}
+                </span>
+              </button>
+              <!-- Said on the row it is about, and only while it matters:
+                   a warning about a theme nobody is wearing is noise. -->
+              {#if !theme.supported}
+                <p class="settings__hint">{S.themeNeedsNewerApp(theme.minAppVersion)}</p>
+              {/if}
+              {#if active && wornTheme !== theme.name}
+                <p class="settings__hint">{S.themeUnreadable}</p>
+              {:else if active && blockedInTheme > 0}
+                <p class="settings__hint">{S.themeBlockedRefs(blockedInTheme)}</p>
+              {/if}
+            {/each}
+          </div>
           <p class="settings__hint">{S.themesFromNotebookHint}</p>
 
           <!-- …and the door for someone who has none and does not want to
