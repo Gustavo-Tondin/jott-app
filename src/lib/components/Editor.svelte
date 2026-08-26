@@ -18,12 +18,7 @@
   // panel: it is the same shape VSCode's is — a field, a replace field, and
   // the match count — and reusing it means the app is not maintaining a
   // second search engine for one screen.
-  import {
-    highlightSelectionMatches,
-    openSearchPanel,
-    search,
-    searchKeymap,
-  } from "@codemirror/search";
+  import { openSearchPanel, search, searchKeymap } from "@codemirror/search";
   import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
   import { markdownPreview } from "../services/markdown.js";
   import { autocompletion } from "@codemirror/autocomplete";
@@ -174,7 +169,12 @@
           // at the bottom it lands on the window edge, under the status of
           // nothing.
           search({ top: true }),
-          highlightSelectionMatches(),
+          // NOT `highlightSelectionMatches` (user call, 2026-08-26). It is
+          // the VSCode behaviour of painting every other occurrence of the
+          // selected word, and a note is prose: selecting "token" lit up the
+          // whole document, and the marks even shifted the text around them.
+          // Find still highlights what was SEARCHED for — that is `search`
+          // above, and it is a different question from what is selected.
           // `searchKeymap` before the rest so Ctrl+F inside the editor is the
           // note's own search: the app-wide Ctrl+F (services/shortcuts.js)
           // yields to whatever answered closer to the keyboard.

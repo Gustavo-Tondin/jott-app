@@ -123,6 +123,31 @@ describe("NoteBanner", () => {
     expect(set).toHaveBeenLastCalledWith(["briefing", "cliente"]);
   });
 
+  test("the properties are below the block, never on it", async () => {
+    // A banner can be any photograph at all, and no ink colour reads against
+    // every picture someone might pick (user call, 2026-08-26). So the
+    // properties live outside the block, on the canvas's own ground — and
+    // land in the same place whether the note has a banner or not.
+    const { container } = render(NoteBanner, {
+      props: props({
+        banner: { kind: "image", value: "assets/foto.png" },
+        created: "2026-08-20",
+        tags: ["briefing"],
+        onSetTags: noop,
+      }),
+    });
+
+    const block = container.querySelector(".note-banner__block");
+    const props_ = container.querySelector(".note-banner__props");
+    expect(block).toBeTruthy();
+    expect(props_).toBeTruthy();
+    expect(block.contains(props_)).toBe(false);
+    // And the image — the thing with no readable contrast — IS in the block.
+    expect(block.querySelector(".note-banner__image")).toBeTruthy();
+    // Same column as the title, so the two line up: both are a `__line`.
+    expect(props_.closest(".note-banner__line")).toBeTruthy();
+  });
+
   test("with note tags off the line is not drawn, and read-only draws no picker", () => {
     render(NoteBanner, { props: props({ created: "2026-08-20", tags: ["x"], tagsEnabled: false }) });
     expect(screen.queryByText("20/08/2026")).toBeNull();

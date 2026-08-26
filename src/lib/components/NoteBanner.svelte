@@ -13,6 +13,13 @@
   // ⋮ is here in both cases — a note with no banner is exactly where one is
   // chosen from.
   //
+  // **The properties are BELOW the block, never on it** (user call,
+  // 2026-08-26). They started out inside it, under the title, and a banner can
+  // be any photograph at all — there is no ink colour that holds against every
+  // picture someone might choose. Out on the canvas they read against the
+  // ground the rest of the note reads against, and they land in the same place
+  // whether the note has a banner or not.
+  //
   // The banner itself is one line of the note's own file (`<!--banner: …-->`,
   // see `core/src/note.rs`), so what this component edits is the document, not
   // a setting: it reads as part of the note in any other markdown editor, and
@@ -20,7 +27,6 @@
   import { S } from "../services/strings.js";
   import { accentFill, badgeStyle } from "../services/accent.js";
   import { formatDate } from "../services/dates.js";
-  import Badge from "./Badge.svelte";
   import TagPicker from "./TagPicker.svelte";
   import { assetUrl } from "../services/assets.js";
   import { dismissable } from "../actions/dismissable.js";
@@ -108,12 +114,6 @@
   class:note-banner--compact={compact}
   style={tint ? `--banner: ${tint}` : ""}
 >
-  {#if isImage}
-    <!-- Alt is empty on purpose: the banner is decoration above a note whose
-         title is read out right below it. -->
-    <img class="note-banner__image" src={src} alt="" />
-  {/if}
-
   {#if !readOnly && enabled}
     <div
       class="note-banner__menu"
@@ -151,24 +151,40 @@
     </div>
   {/if}
 
-  <!-- The title, in a box as wide as the note's own text: the chip's first
-       letter lands over the first letter of the first paragraph, which is what
-       the wireframe draws (a 720px column inside a 900px block). -->
-  <div class="note-banner__line">
-    <h1 class="note-banner__title">
-      {#if onRename}
-        <button
-          class="note-banner__rename"
-          title={S.promptRenameNote(title)}
-          onclick={() => onRename()}
-        >
+  <!-- The block: the colour or the picture, and the title standing on it.
+       Everything with a background lives in here, so what is outside it is on
+       the canvas's own ground. -->
+  <div class="note-banner__block">
+    {#if isImage}
+      <!-- Alt is empty on purpose: the banner is decoration above a note whose
+           title is read out right below it. -->
+      <img class="note-banner__image" src={src} alt="" />
+    {/if}
+
+    <!-- The title, in a box as wide as the note's own text: the chip's first
+         letter lands over the first letter of the first paragraph, which is
+         what the wireframe draws (a 720px column inside a 900px block). -->
+    <div class="note-banner__line">
+      <h1 class="note-banner__title">
+        {#if onRename}
+          <button
+            class="note-banner__rename"
+            title={S.promptRenameNote(title)}
+            onclick={() => onRename()}
+          >
+            {title}
+          </button>
+        {:else}
           {title}
-        </button>
-      {:else}
-        {title}
-      {/if}
-    </h1>
-    {#if showsProps}
+        {/if}
+      </h1>
+    </div>
+  </div>
+
+  <!-- The properties, on the canvas and not on the block — same column as the
+       title, so the two line up with or without a banner. -->
+  {#if showsProps}
+    <div class="note-banner__line note-banner__line--props">
       <dl class="note-banner__props">
         {#if created}
           <div class="note-banner__prop">
@@ -210,6 +226,6 @@
           </dd>
         </div>
       </dl>
-    {/if}
-  </div>
+    </div>
+  {/if}
 </div>
