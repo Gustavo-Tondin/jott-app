@@ -10,7 +10,6 @@ import {
   accentStyle,
   accentLine,
   badgeStyle,
-  tagColors,
 } from "./accent.js";
 
 describe("the eight colours", () => {
@@ -51,18 +50,6 @@ describe("the eight colours", () => {
     );
   });
 
-  test("the tag map resolves every colour and leaves the colourless out", () => {
-    // Left out rather than mapped to the brand: absent is what makes the pill
-    // fall back in CSS, and writing the fallback in would freeze it.
-    expect(
-      tagColors([
-        { name: "design", color: "orange" },
-        { name: "urgent", color: null },
-        { name: "old", color: "#123456" },
-      ]),
-    ).toEqual({ design: "var(--accent-orange)", old: "#123456" });
-    expect(tagColors()).toEqual({});
-  });
 
   test("the app ships accented with one of the eight", () => {
     expect(ACCENTS).toContain(DEFAULT_ACCENT);

@@ -26,7 +26,6 @@
     selectedTask = null,
     dateFormat = "mm/dd/yyyy",
     today = null,
-    tagColors = {},
     /// What is pulled into the Day, so a card can say it is in today.
     dayRefs = null,
     /// `(key) => boolean` — is this part of the app switched on?
@@ -112,7 +111,6 @@
       onComplete={complete}
       onEdit={edit}
       onPin={pin}
-      {tagColors}
       {dateFormat}
       {today}
     >

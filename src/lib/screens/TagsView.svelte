@@ -13,8 +13,7 @@
   import { S } from "../services/strings.js";
   import { askConfirm, askName } from "../services/dialog.js";
   import { makeScreen } from "../services/act.js";
-  import { accentColor } from "../services/accent.js";
-  import AccentPicker from "../components/AccentPicker.svelte";
+  import Badge from "../components/Badge.svelte";
   import EmptyState from "../components/EmptyState.svelte";
   import Loading from "../components/Loading.svelte";
   import Icon from "../components/Icon.svelte";
@@ -44,16 +43,16 @@
     onError: (e) => onError?.(e),
   });
 
-  /// One row per name: the catalogue's colour where there is one, the
+  /// One row per name: whether the catalogue (the picker) knows it, and the
   /// count where the word is in use. Most used first, then by name — the
   /// order the question "what do I tag things with?" wants.
   let rows = $derived.by(() => {
     const byName = new Map();
-    for (const tag of tags) byName.set(tag.name, { name: tag.name, color: tag.color, count: 0, catalogued: true });
+    for (const tag of tags) byName.set(tag.name, { name: tag.name, count: 0, catalogued: true });
     for (const use of usage) {
       const row = byName.get(use.name);
       if (row) row.count = use.count;
-      else byName.set(use.name, { name: use.name, color: null, count: use.count, catalogued: false });
+      else byName.set(use.name, { name: use.name, count: use.count, catalogued: false });
     }
     return [...byName.values()].sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
   });
@@ -70,9 +69,8 @@
       await api.setTag(name, null);
     });
 
-  const setColor = (name, color) => act(() => api.setTag(name, color));
   const remove = async (name) => {
-    // Not DELETING: removing a tag forgets its colour and nothing else — the
+    // Not DELETING: removing a tag takes it out of the picker and nothing else — the
     // shared "goes to the trash" detail would promise a trip that never
     // happens (core: `remove_tag`).
     const ok = await askConfirm(S.confirmDeleteTag(name), {
@@ -117,30 +115,19 @@
   {:else}
     <ul class="theme-task-list tags-view__list">
       {#each shown as tag (tag.name)}
-        <li class="theme-row tags-view__item" class:tags-view__item--uncoloured={!tag.catalogued}>
-          <span
-            class="theme-swatch theme-swatch--lg tags-view__swatch"
-            style={`--tag-color: ${accentColor(tag.color) ?? "var(--theme-brand)"}`}
-          ></span>
+        <li class="theme-row tags-view__item" class:tags-view__item--uncatalogued={!tag.catalogued}>
           <span class="tags-view__name">
-            {tag.name}
-            <!-- The count is the second line's fact; "no colour yet" is what
-                 a word typed into a task and never catalogued looks like. -->
+            <!-- The tag as the card draws it: a neutral badge. A tag has no
+                 colour of its own since 2026-08-26 — the colour a card wears
+                 is its space's. -->
+            <Badge label={`#${tag.name}`} class="tags-view__badge" />
+            <!-- The count is the second line's fact; "not in the picker" is
+                 what a word typed into a task and never saved looks like. -->
             <span class="tags-view__meta">
               {#if loaded}{S.tagUses(tag.count)}{/if}
-              {#if !tag.catalogued}<span class="tags-view__meta-note">· {S.tagUncoloured}</span>{/if}
+              {#if !tag.catalogued}<span class="tags-view__meta-note">· {S.tagUncatalogued}</span>{/if}
             </span>
           </span>
-          <!-- The seven, not the OS colour dialog (2026-08-13). The native
-               picker offered sixteen million colours the app cannot place on a
-               ground: a hex has no light half and no dark half, so a tag chosen
-               there would keep one value on the white canvas and the black
-               sidebar and lose its contrast on one of them. -->
-          <AccentPicker
-            value={tag.color}
-            label={`${tag.name} colour`}
-            onPick={(c) => setColor(tag.name, c || null)}
-          />
           <button
             class="theme-btn--icon tags-view__search"
             onclick={() => onSearch?.(tag.name)}

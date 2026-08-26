@@ -36,7 +36,6 @@
     today = null,
     // Name → colour, from the tag catalogue (`.jott/tags.json`). A tag on the
     // card shows as a coloured pill (colour only); the inspector shows text too.
-    tagColors = {},
     /// The swipe action and its options, handed in by the list rather than
     /// imported here: the row does not decide what a swipe MEANS, and a row
     /// drawn somewhere without the gesture simply gets nothing.
@@ -299,11 +298,10 @@
             class:task-row__field--p3={task.priority === 3}
             >{"!".repeat(Math.max(1, 4 - task.priority))}</span
           >{/if}
-        {#each (f("taskTags") ? (task.tags ?? []) : []) as tag}<span
-            class="theme-tag-pill task-row__tag"
-            title={`#${tag}`}
-            style={tagColors[tag] ? `--tag-color: ${tagColors[tag]}` : ""}
-          ></span>{/each}
+        {#each (f("taskTags") ? (task.tags ?? []) : []) as tag}<Badge
+            label={`#${tag}`}
+            class="task-row__tag"
+          />{/each}
         {#if origin}<Badge label={origin.label} color={origin.color} class="task-row__origin" />{/if}
       </div>
     {/if}

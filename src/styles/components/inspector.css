@@ -160,16 +160,10 @@
     gap: var(--theme-space-6);
     padding-inline: var(--theme-space-8);
   }
+  /* A tag is the shared .theme-badge (neutral — 2026-08-26); the hook stays
+     for the × that follows the name. */
   .inspector__tag {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--theme-space-4);
-    padding: var(--theme-space-2) var(--theme-space-10);
-    background: var(--tag-color, var(--theme-brand));
-    border-radius: var(--theme-radius-pill);
-    color: var(--theme-on-brand);
-    font-size: var(--theme-text-10);
-    font-weight: var(--theme-weight-semibold);
+    padding-inline-end: var(--theme-space-2);
   }
   /* Small × inside a pill or a value — takes the colour of what holds it. */
   .inspector__tag-remove {

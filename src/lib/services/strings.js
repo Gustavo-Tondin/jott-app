@@ -51,7 +51,7 @@ const ACTION_NAMES = {
   set_group_appearance: "Group colour and icon",
   set_order: "Reorder sidebar",
   set_spaces_sort: "Sort sidebar",
-  set_tag: "Tag colour",
+  set_tag: "Save tag",
   remove_tag: "Remove tag",
   restore_from_trash: "Restore from trash",
   purge_from_trash: "Delete for good",
@@ -269,14 +269,14 @@ export const S = {
   deleteForeverDetail: "This cannot be undone — it is the one thing in Jott that is not kept.",
   tagsTitle: "Tags",
   tagsEmpty: "No tags yet. Add one from a task.",
-  tagsEmptyHint: "Type #word in a task, or name a tag here and give it a colour.",
+  tagsEmptyHint: "Type #word in a task, or name a tag here so the picker offers it.",
   tagsLoading: "Counting the tags…",
   // The Tags screen lists every #word in use, not only the coloured ones
   // (2026-08-24): a count per tag, and a filter once there are many.
   tagsFilter: "Filter tags",
   tagsFilterEmpty: "No tag matches that.",
   tagUses: (n) => (n === 0 ? "not in use" : n === 1 ? "1 task" : `${n} tasks`),
-  tagUncoloured: "no colour yet",
+  tagUncatalogued: "not in the picker yet",
   newTagName: "New tag name",
   // A label now, not a caption: the control is the trash glyph.
   deleteTag: "Delete tag",
@@ -284,7 +284,7 @@ export const S = {
   // What removing a tag actually does (core: `remove_tag`): only the colour
   // is forgotten — the detail must not promise a trash trip that never
   // happens.
-  tagTextStays: "Its colour is forgotten; the #tag text in tasks stays.",
+  tagTextStays: "It leaves the picker; the #tag text in tasks stays.",
   deleteTask: "Delete task",
 
   // App Functions (2026-08-06): which parts of the app are switched on.

@@ -28,7 +28,6 @@
     repeatCounts,
     repeatText,
   } from "../services/taskFields.js";
-  import { tagColors as tagColorMap } from "../services/accent.js";
   import { movedItem } from "../services/spaceOrder.js";
   import { reorderable } from "../actions/reorder.js";
   import Menu from "./Menu.svelte";
@@ -288,18 +287,17 @@
   }
 
   // Name → colour, from the catalogue, so a pill shows the user's chosen colour.
-  let tagColors = $derived(tagColorMap(tags));
 
   function addTagName(name) {
     const tag = cleanTagName(name);
     if (tag && !draft.tags.includes(tag)) draft.tags = [...draft.tags, tag];
   }
 
-  /// Create a tag in the catalogue (with its colour) and apply it. The refresh
-  /// (onSaved) brings the new colour back into `tags` for the pill.
-  async function createTag(name, color) {
+  /// Create a tag in the catalogue and apply it. The refresh (onSaved) brings
+  /// the new name back into `tags` for the picker.
+  async function createTag(name) {
     try {
-      await api.setTag(name, color);
+      await api.setTag(name, null);
       addTagName(name);
       onSaved?.();
     } catch (e) {
@@ -545,17 +543,14 @@
     {#if f("taskTags")}
     <hr class="theme-divider" />
 
-    <!-- Tags: coloured pills (the tag's own colour from the catalogue, via
-         --tag-color), plus a picker that adds an existing tag or creates one
-         with a colour. Not a free text field anymore (reestruturação
-         2026-07-30): a typed tag had no colour and lagged behind. -->
+    <!-- Tags: neutral `#tag` badges (a tag is a subject, not a colour —
+         2026-08-26), plus a picker that adds an existing tag or creates one.
+         Not a free text field (reestruturação 2026-07-30): picking is what
+         keeps the catalogue and the card in step. -->
     <div class="inspector__tags">
       {#each draft.tags as tag (tag)}
-        <span
-          class="inspector__tag"
-          style={tagColors[tag] ? `--tag-color: ${tagColors[tag]}` : ""}
-        >
-          {tag}
+        <span class="theme-badge inspector__tag">
+          #{tag}
           {#if !readOnly}
             <button
               class="inspector__tag-remove"

@@ -22,7 +22,7 @@
   /* .tags-view__list is the shared .theme-task-list (controls.css). */
   /* The row itself is the shared .theme-row; only what is specific to a tag
      lives below. */
-  /* The dot is the shared .theme-swatch, at its large size. */
+  /* The name is the shared .theme-badge, as the card draws it. */
   .tags-view__name {
     flex: 1;
     min-inline-size: 0;
@@ -41,10 +41,12 @@
   .tags-view__meta-note {
     color: var(--theme-ink-faint);
   }
-  /* An uncatalogued word's swatch is the brand at rest, dimmed: a colour it
-     does not have yet, not a colour it chose. */
-  .tags-view__item--uncoloured .tags-view__swatch {
-    opacity: 0.35;
+  /* An uncatalogued word's badge is dimmed: the picker does not know it yet. */
+  .tags-view__item--uncatalogued .tags-view__badge {
+    opacity: 0.6;
+  }
+  .tags-view__badge {
+    align-self: flex-start;
   }
   /* The place of the missing bin on an uncatalogued row, so the glasses line
      up down the column: the icon button's box (controls.css). */
@@ -52,8 +54,6 @@
     inline-size: calc(1.125rem + 2 * var(--theme-space-6));
     flex: none;
   }
-  /* The colour is chosen from the shared seven (components/accent-picker.css);
-     the OS colour input this row used to carry is gone. */
   /* The trash is the shared .theme-btn--icon; only the danger tint on hover is
      this row's, matching every other destructive glyph in the app. */
   .tags-view__delete:hover:not(:disabled) {

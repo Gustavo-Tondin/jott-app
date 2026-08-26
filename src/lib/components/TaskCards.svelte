@@ -51,7 +51,6 @@
     inDay = () => false,
     /// `(key) => boolean` — is this part of the app switched on?
     f = () => true,
-    tagColors = {},
     dateFormat = "mm/dd/yyyy",
     today = null,
     /// Deleting a card — by swiping it left, or by pressing Delete on it.
@@ -221,7 +220,6 @@
       {onComplete}
       {onEdit}
       {onPin}
-      {tagColors}
       {dateFormat}
       {today}
     >

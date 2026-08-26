@@ -28,7 +28,7 @@
   import { listName, listLabel, taskSpacePaths } from "../services/paths.js";
   import { makeScreen } from "../services/act.js";
   import { taskActions, isSelectedTask } from "../services/taskActions.js";
-  import { dotStyle as dotStyleOf, tagColors as tagColorMap } from "../services/accent.js";
+  import { dotStyle as dotStyleOf } from "../services/accent.js";
   import { spaceMenu } from "../services/spaceMenu.js";
   import { composeTask } from "../services/taskCompose.js";
   import { arrange, pinnedFirst, planReorder, planReorderMany } from "../services/spaceOrder.js";
@@ -108,7 +108,6 @@
   // period source, which owns no folder.
   let paths = $derived(taskSpacePaths(source, lists, completedName));
 
-  let tagColors = $derived(tagColorMap(tags));
 
   /// The place's colour as CSS; unset leaves the class's own fallback (the
   /// app's accent) to answer.
@@ -573,7 +572,6 @@
         onComplete={complete}
         onEdit={edit}
         onPin={readOnly || period ? undefined : pin}
-        {tagColors}
         {dateFormat}
         {today}
       />
@@ -605,7 +603,6 @@
         onComplete={(list, task) => uncomplete(list, task)}
         onEdit={edit}
         onDelete={readOnly ? null : (entry) => removeCompleted(entry.list, entry.task)}
-        {tagColors}
         {dateFormat}
         {today}
       >

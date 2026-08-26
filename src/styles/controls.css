@@ -614,33 +614,6 @@
   }
 
   /* ---------------------------------------------------------------------------
-     Tag pill (a colour standing in for a tag — no text; colour is the tag)
-     --------------------------------------------------------------------------- */
-  .theme-tag-pill {
-    display: inline-block;
-    flex-shrink: 0;
-    width: 1.25rem;
-    height: 0.375rem;
-    border-radius: var(--theme-radius-pill);
-    background: var(--tag-color, var(--theme-brand));
-  }
-
-  /* The same colour, as a dot — for places that show the tag NEXT TO its name
-     (the picker, the tag manager) rather than standing in for it. */
-  .theme-swatch {
-    display: inline-block;
-    flex-shrink: 0;
-    inline-size: var(--theme-space-10);
-    block-size: var(--theme-space-10);
-    border-radius: var(--theme-radius-pill);
-    background: var(--tag-color, var(--theme-brand));
-  }
-  .theme-swatch--lg {
-    inline-size: var(--theme-space-16);
-    block-size: var(--theme-space-16);
-  }
-
-  /* ---------------------------------------------------------------------------
      Popover — a transient surface floating under whatever opened it: the
      dropdown menu, the space palette, the tag picker, the calendar. Four
      of them declared the same six properties, and three different raw shadows.

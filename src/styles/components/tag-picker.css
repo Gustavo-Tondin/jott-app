@@ -59,19 +59,13 @@
   .tag-picker__option:hover {
     background: var(--theme-surface-sunken);
   }
-  /* The dot is the shared .theme-swatch. */
-  /* Name + Create on the first line, the seven swatches wrapping onto the
-     second. The OS colour input that used to lead this row is gone — a tag now
-     picks from the palette (components/accent-picker.css). */
+  /* Name + Create on one line. The colour row that used to follow is gone
+     (2026-08-26): a tag has no colour of its own — the card's colour is the
+     space's. */
   .tag-picker__create {
     display: flex;
     align-items: center;
-    flex-wrap: wrap;
     gap: var(--theme-space-4);
-  }
-  .tag-picker__create .accent-picker {
-    flex-basis: 100%;
-    padding-block-start: var(--theme-space-2);
   }
   .tag-picker__name {
     flex: 1;

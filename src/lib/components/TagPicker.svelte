@@ -1,23 +1,21 @@
 <script>
   // Adds a tag to a task by PICKING from the catalogue (`.jott/tags.json`),
-  // not by typing — so a tag always carries the colour the user chose, and the
-  // card shows it right away. If no tag fits (or none exist), a "create" row at
-  // the bottom makes one inline, with a colour picker. Reestruturação
-  // 2026-07-30. The look lives in styles/components/tag-picker.css.
+  // not by typing — the same name every time, never a near-duplicate. If no
+  // tag fits (or none exist), a "create" row at the bottom makes one inline.
+  // Reestruturação 2026-07-30; the colour left the tag on 2026-08-26 (a tag
+  // is a subject, the colour is the space's). The look lives in
+  // styles/components/tag-picker.css.
   import Icon from "./Icon.svelte";
   import { dismissable } from "../actions/dismissable.js";
   import { keepOnScreen } from "../actions/keepOnScreen.js";
   import { S } from "../services/strings.js";
-  import { accentColor, DEFAULT_ACCENT } from "../services/accent.js";
   import { cleanTagName } from "../services/taskFields.js";
-  import AccentPicker from "./AccentPicker.svelte";
+  import Badge from "./Badge.svelte";
 
   let { tags = [], applied = [], onPick, onCreate } = $props();
 
   let open = $state(false);
   let name = $state("");
-  /// One of the seven, by name — never a hex (services/accent.js).
-  let color = $state(DEFAULT_ACCENT);
 
   let available = $derived(tags.filter((t) => !applied.includes(t.name)));
 
@@ -29,7 +27,7 @@
   function create() {
     const clean = cleanTagName(name);
     if (!clean) return;
-    onCreate?.(clean, color);
+    onCreate?.(clean);
     close();
   }
 
@@ -64,11 +62,7 @@
                   close();
                 }}
               >
-                <span
-                  class="theme-swatch tag-picker__swatch"
-                  style={`--tag-color: ${accentColor(t.color) ?? "var(--theme-brand)"}`}
-                ></span>
-                {t.name}
+                <Badge label={`#${t.name}`} />
               </button>
             </li>
           {/each}
@@ -82,13 +76,6 @@
           bind:value={name}
         />
         <button class="theme-btn theme-btn--primary" type="submit">{S.create}</button>
-        <!-- Below the name, not beside it: the seven need a row of their own,
-             and a new tag is named first and coloured second. -->
-        <AccentPicker
-          value={color}
-          clearable={false}
-          onPick={(c) => (color = c || DEFAULT_ACCENT)}
-        />
       </form>
     </div>
   {/if}

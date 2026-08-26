@@ -16,17 +16,19 @@ beforeEach(resetScreens);
 describe("TagsView", () => {
   const props = (extra = {}) => ({ tags: [], onChanged: noop, onError: noop, reloadKey: 0, ...extra });
 
-  test("a word typed into a task is a row too, with its count and no colour", async () => {
+  test("a word typed into a task is a row too, with its count, outside the picker", async () => {
     bridge({ tag_usage: [{ name: "obra", count: 2 }, { name: "casa", count: 1 }] });
     render(TagsView, { props: props({ tags: [{ name: "obra", color: "blue" }] }) });
     expect(await screen.findByText("2 tasks")).toBeTruthy();
     expect(screen.getByText("1 task")).toBeTruthy();
     // The uncatalogued one says so, and has no bin — nothing to forget.
-    expect(screen.getByText("· no colour yet")).toBeTruthy();
+    expect(screen.getByText("· not in the picker yet")).toBeTruthy();
+    // The name is drawn as the card draws it: a neutral badge.
+    expect(screen.getByText("#obra").className).toContain("theme-badge");
     expect(screen.getAllByRole("button", { name: "Delete tag" })).toHaveLength(1);
   });
 
-  test("a coloured tag no task carries is still listed, as not in use", async () => {
+  test("a saved tag no task carries is still listed, as not in use", async () => {
     bridge({ tag_usage: [] });
     render(TagsView, { props: props({ tags: [{ name: "velha", color: null }] }) });
     expect(await screen.findByText("not in use")).toBeTruthy();

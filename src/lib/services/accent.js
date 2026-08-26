@@ -128,20 +128,6 @@ export function badgeStyle(value) {
   return c ? `--badge-color: ${c}; --badge-line: ${accentLine(value)}` : undefined;
 }
 
-/// Tag name → the CSS value its pill should be painted with, ready for
-/// `--tag-color`. The three screens that draw task cards each built this map
-/// by hand from the catalogue, and each of them handed the raw stored value
-/// straight to CSS — which is exactly where a name had to become a `var()`.
-/// Tags with no colour are left out, so the pill falls back to the theme.
-export function tagColors(tags = []) {
-  const map = {};
-  for (const tag of tags ?? []) {
-    const value = accentColor(tag?.color);
-    if (value) map[tag.name] = value;
-  }
-  return map;
-}
-
 /// The inline `style` of a `.theme-dot`: the place's colour, or `undefined`
 /// so the class's own fallback (the app's accent) answers — `undefined` is
 /// what makes Svelte leave the attribute off, where an empty string would

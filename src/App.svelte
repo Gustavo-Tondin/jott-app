@@ -85,7 +85,7 @@
   import { folderOf, leafOf, listName, listTitle } from "./lib/services/paths.js";
   import { formatDate } from "./lib/services/dates.js";
   import { groupColors, spaceColors } from "./lib/services/spaceColors.js";
-  import { ACCENTS, tagColors as tagColorMap } from "./lib/services/accent.js";
+  import { ACCENTS } from "./lib/services/accent.js";
   import { originOf } from "./lib/services/origin.js";
   import {
     NOTE_FONT_SIZES,
@@ -144,7 +144,6 @@
   // Name → the CSS value its pill is painted with, from the tag catalogue: the
   // map every screen hands to TaskRow so a card pill shows the tag's chosen
   // colour, not the default (services/accent.js).
-  let tagColors = $derived(tagColorMap(tags));
   let noteFolders = $state([]);
   /// What is pulled into the Day, as `"<list>#<id>"` — the set every card asks
   /// "am I in today?". It rides along with the snapshot rather than being
@@ -2811,7 +2810,6 @@
             <ListView
               dateFormat={layout.dateDisplayFormat}
               list={view.list}
-              {tagColors}
               readOnly={notebook.readOnly}
               onChanged={refreshNotebook}
               onError={fail}
