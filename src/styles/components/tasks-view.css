@@ -6,7 +6,7 @@
   .tasks-view {
     display: flex;
     flex-direction: column;
-    gap: var(--theme-space-16);
+    gap: var(--app-space-16);
     /* The pact that puts the composing bar at the bottom of the PANEL: this
        screen fills the scrollport (its parent .shell__content-inner is a full
        height flex column), the tasks screen fills this, and the bar takes the slack
@@ -46,7 +46,7 @@
   }
   .tasks-view.is-settling .tasks-view__pane .tasks-space > :not(.tasks-space__header, .task-composer) {
     translate: var(--pane-x, 0rem) 0;
-    transition: translate var(--theme-transition-medium);
+    transition: translate var(--app-transition-medium);
   }
   /* THE PAGE TURN. The new list comes in from the side the strip reads
      towards — from the end when the tab is further along, from the start when
@@ -58,10 +58,10 @@
      The first paint has no `data-enter` and stays still. The animation ends
      and leaves no transform behind (no fill mode), for the reason above. */
   .tasks-view__pane[data-enter="end"] .tasks-space > :not(.tasks-space__header, .task-composer) {
-    animation: tasks-view-turn-from-end var(--theme-duration-slow) var(--theme-ease-out);
+    animation: tasks-view-turn-from-end var(--app-duration-slow) var(--app-ease-out);
   }
   .tasks-view__pane[data-enter="start"] .tasks-space > :not(.tasks-space__header, .task-composer) {
-    animation: tasks-view-turn-from-start var(--theme-duration-slow) var(--theme-ease-out);
+    animation: tasks-view-turn-from-start var(--app-duration-slow) var(--app-ease-out);
   }
   @keyframes tasks-view-turn-from-end {
     from {
@@ -86,7 +86,7 @@
     display: grid;
     grid-template-columns: 1fr auto 1fr;
     align-items: center;
-    gap: var(--theme-space-8);
+    gap: var(--app-space-8);
   }
   .tasks-view__bar > .theme-segmented {
     grid-column: 2;
@@ -94,8 +94,8 @@
   .tasks-view__range {
     grid-column: 3;
     justify-self: end;
-    font-size: var(--theme-text-14);
-    color: var(--theme-ink-muted);
+    font-size: var(--app-text-14);
+    color: var(--app-ink-muted);
   }
 
   /* The Inbox / Today / Week strip IS the shared segmented control
@@ -138,18 +138,18 @@
        at half a thumb's height, and applied to a taller one it left the three
        pills floating inside a fat well instead of filling it. Height is the
        thing that changes on a phone; padding is not. */
-    padding: var(--theme-space-2);
+    padding: var(--app-space-2);
     block-size: 2.375rem;
   }
   .shell--compact .tasks-view__sub {
     flex: 1;
-    padding-inline: var(--theme-space-8);
-    font-size: var(--theme-text-16);
+    padding-inline: var(--app-space-8);
+    font-size: var(--app-text-16);
   }
   /* The range ("12–18 Aug") sat in the third column of a grid that is gone. */
   .shell--compact .tasks-view__range {
     display: block;
-    margin-block-start: var(--theme-space-8);
+    margin-block-start: var(--app-space-8);
     text-align: center;
   }
 }

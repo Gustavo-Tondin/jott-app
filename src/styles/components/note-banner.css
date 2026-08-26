@@ -11,8 +11,8 @@
  *
  * The block reaches past the prose, and the title chip lines up with the first
  * letter of the first paragraph — which is why the chip lives inside a box of
- * `--theme-content-max` centred in the block, rather than at the block's own
- * padding. The outer cap is `--theme-content-wide`, put on the screen's container
+ * `--app-content-max` centred in the block, rather than at the block's own
+ * padding. The outer cap is `--app-content-wide`, put on the screen's container
  * by the shell (`.shell__content-inner--note`, shell.css).
  *
  * WITHOUT a banner the same head is drawn with no colour and no height: the
@@ -26,15 +26,15 @@
     display: flex;
     align-items: end;
     min-block-size: var(--banner-height);
-    margin-block-end: var(--theme-space-24);
-    padding-block: var(--theme-space-12);
+    margin-block-end: var(--app-space-24);
+    padding-block: var(--app-space-12);
     /* The floor between the block's edge and the chip. It only ever shows on a
        narrow canvas: past 720px of prose the centring leaves far more room than
        this, and the chip lands on the text's own edge instead (user report,
        2026-08-19 — below that width the chip was touching the side). */
-    padding-inline: var(--theme-space-8);
-    background: var(--banner, var(--theme-brand));
-    border-radius: var(--theme-radius-lg);
+    padding-inline: var(--app-space-8);
+    background: var(--banner, var(--app-brand));
+    border-radius: var(--app-radius-lg);
     overflow: hidden;
   }
   /* No banner chosen: the block has no colour of its own, and what is left is
@@ -48,10 +48,10 @@
      reads as the note's own head either way. */
   .note-banner--empty {
     --banner-height: 0;
-    padding-block: var(--theme-space-64) 0;
+    padding-block: var(--app-space-64) 0;
     background: none;
     border-radius: 0;
-    margin-block-end: var(--theme-space-16);
+    margin-block-end: var(--app-space-16);
     /* Nothing is clipped here, and clipping would cut the ⋮'s panel off. */
     overflow: visible;
   }
@@ -67,7 +67,7 @@
      quiet step rather than the accent — what shows while it loads, and what
      stays if the file is gone. */
   .note-banner--image {
-    background: var(--theme-well);
+    background: var(--app-well);
   }
 
   /* The text column, inside the block. */
@@ -80,9 +80,9 @@
   .note-banner__line {
     position: relative;
     inline-size: 100%;
-    max-inline-size: calc(var(--theme-content-max) + var(--theme-space-24));
+    max-inline-size: calc(var(--app-content-max) + var(--app-space-24));
     margin-inline: auto;
-    padding-inline: var(--theme-space-12);
+    padding-inline: var(--app-space-12);
   }
 
   /* The title. Over a banner it is a chip — the ground's neutral over the
@@ -92,21 +92,21 @@
     /* The title reads in the note's face, not the interface's: it is the
        first line of the document, and the editor below it is already in
        that face (2026-08-24). */
-    font-family: var(--theme-font-note);
+    font-family: var(--app-font-note);
     display: inline-block;
     max-inline-size: 100%;
     margin: 0;
-    padding: var(--theme-space-6) var(--theme-space-12);
-    background: var(--theme-bg);
-    border-radius: var(--theme-radius-md);
-    color: var(--theme-ink);
+    padding: var(--app-space-6) var(--app-space-12);
+    background: var(--app-bg);
+    border-radius: var(--app-radius-md);
+    color: var(--app-ink);
     /* AT LEAST AS BIG AS AN H1 (user call, 2026-08-19). It is the name of the
        whole note, and it was reading smaller than the first heading inside it.
        Sized off the note's own ladder rather than a fixed step, so it keeps up
        when the reader changes the note's text size. */
-    font-size: var(--theme-note-h1);
-    font-weight: var(--theme-weight-bold);
-    line-height: var(--theme-leading-tight);
+    font-size: var(--app-note-h1);
+    font-weight: var(--app-weight-bold);
+    line-height: var(--app-leading-tight);
     overflow-wrap: anywhere;
   }
   /* The chip is pulled out by exactly its own padding, so the first LETTER of
@@ -114,7 +114,7 @@
      what "o título alinhado com o texto" means with a box around it. Without
      a banner there is no box and nothing to pull. */
   .note-banner:not(.note-banner--empty) .note-banner__title {
-    margin-inline-start: calc(var(--theme-space-12) * -1);
+    margin-inline-start: calc(var(--app-space-12) * -1);
   }
   .note-banner--empty .note-banner__title {
     padding-inline: 0;
@@ -127,37 +127,37 @@
   .note-banner__props {
     display: flex;
     flex-direction: column;
-    gap: var(--theme-space-4);
-    margin: var(--theme-space-8) 0 0;
-    font-family: var(--theme-font-sans);
-    font-size: var(--theme-text-12);
+    gap: var(--app-space-4);
+    margin: var(--app-space-8) 0 0;
+    font-family: var(--app-font-sans);
+    font-size: var(--app-text-12);
   }
   .note-banner__prop {
     display: flex;
     align-items: center;
-    gap: var(--theme-space-12);
+    gap: var(--app-space-12);
     min-block-size: 1.5rem;
   }
   .note-banner__prop-name {
     display: inline-flex;
     align-items: center;
-    gap: var(--theme-space-6);
+    gap: var(--app-space-6);
     inline-size: 5rem;
     flex: none;
-    color: var(--theme-ink-faint);
+    color: var(--app-ink-faint);
   }
   .note-banner__prop-value {
     margin: 0;
-    color: var(--theme-ink-muted);
+    color: var(--app-ink-muted);
   }
   .note-banner__tags {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: var(--theme-space-4);
+    gap: var(--app-space-4);
   }
   .note-banner__tag {
-    padding-inline-end: var(--theme-space-2);
+    padding-inline-end: var(--app-space-2);
   }
   .note-banner__tag-remove {
     display: inline-flex;
@@ -168,7 +168,7 @@
     cursor: pointer;
   }
   .note-banner--compact .note-banner__props {
-    margin-inline: var(--theme-space-8);
+    margin-inline: var(--app-space-8);
   }
   /* Renaming, from the name itself. It is a button and it must not look like
      one: the heading is the affordance, the pointer says the rest. */
@@ -184,15 +184,15 @@
 
   .note-banner__menu {
     position: absolute;
-    inset-block-start: var(--theme-space-8);
-    inset-inline-end: var(--theme-space-8);
+    inset-block-start: var(--app-space-8);
+    inset-inline-end: var(--app-space-8);
     z-index: 1;
   }
   /* Over a block it has to hold against whatever is under it — a photograph,
      a saturated fill — so there it travels with its own ground. On the bare
      head it is a plain icon button like every other. */
   .note-banner__more {
-    color: var(--theme-ink-muted);
+    color: var(--app-ink-muted);
   }
   /* ON A BANNER IT WAITS FOR THE POINTER (user call, 2026-08-19). A banner is a
      picture or a colour someone chose; a chip parked in its corner is the app
@@ -205,9 +205,9 @@
      only ever shows while the pointer is on the block, which is also when the
      ink under it is being looked at. */
   .note-banner__more--on-block {
-    background: var(--theme-hover);
+    background: var(--app-hover);
     opacity: 0;
-    transition: opacity var(--theme-transition-fast);
+    transition: opacity var(--app-transition-fast);
   }
   .note-banner:hover .note-banner__more--on-block,
   .note-banner__more--on-block:focus-visible,
@@ -217,21 +217,21 @@
   .note-banner__panel {
     display: flex;
     flex-direction: column;
-    gap: var(--theme-space-8);
-    padding: var(--theme-space-10);
+    gap: var(--app-space-8);
+    padding: var(--app-space-10);
   }
   .note-banner__action {
     padding: 0;
     background: none;
     border: none;
-    color: var(--theme-ink);
+    color: var(--app-ink);
     font: inherit;
-    font-size: var(--theme-text-13);
+    font-size: var(--app-text-13);
     text-align: start;
     cursor: pointer;
   }
   .note-banner__action:hover {
-    color: var(--theme-brand);
+    color: var(--app-brand);
   }
 }
 
@@ -249,8 +249,8 @@
        block reaches the glass and not the notch's idea of it. The canvas gives
        up its top padding for a note (shell.css), so there is none to undo
        above. */
-    margin-inline-start: calc((var(--theme-space-8) + var(--theme-safe-left)) * -1);
-    margin-inline-end: calc((var(--theme-space-8) + var(--theme-safe-right)) * -1);
+    margin-inline-start: calc((var(--app-space-8) + var(--app-safe-left)) * -1);
+    margin-inline-end: calc((var(--app-space-8) + var(--app-safe-right)) * -1);
     border-radius: 0;
   }
   .note-banner--compact.note-banner--empty {
@@ -258,16 +258,16 @@
        keeps the canvas's own margins — plus the top padding the canvas handed
        to the banner it does not have. */
     margin-inline: 0;
-    padding-block-start: var(--theme-space-16);
+    padding-block-start: var(--app-space-16);
   }
   /* Flush with the screen there is no slack to pull the chip into, so the
      column keeps a margin of its own and the chip sits inside it. */
   .note-banner--compact .note-banner__line {
-    padding-inline: var(--theme-space-8);
+    padding-inline: var(--app-space-8);
   }
   .note-banner--compact .note-banner__title {
     margin-inline-start: 0;
-    font-size: var(--theme-text-18);
+    font-size: var(--app-text-18);
   }
   .note-banner--compact.note-banner--empty .note-banner__line {
     padding-inline: 0;

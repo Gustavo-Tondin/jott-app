@@ -11,7 +11,7 @@ describe("fontValue", () => {
   });
 
   test("the note's fallback is the interface's face, whatever that resolved to", () => {
-    expect(fontValue("note", "Charter")).toBe('"Charter", var(--theme-font-sans)');
+    expect(fontValue("note", "Charter")).toBe('"Charter", var(--app-font-sans)');
   });
 
   test("nothing chosen is null, which is what REMOVES the property", () => {
@@ -40,14 +40,14 @@ describe("fontValue", () => {
 describe("fontVars", () => {
   test("all three at once, and an unanswered one is null", () => {
     expect(fontVars({ interfaceFont: "Fira Sans", monoFont: "" })).toEqual({
-      "--theme-font-sans": '"Fira Sans", "Inter", system-ui, sans-serif',
-      "--theme-font-note": null,
-      "--theme-font-mono": null,
+      "--app-font-sans": '"Fira Sans", "Inter", system-ui, sans-serif',
+      "--app-font-note": null,
+      "--app-font-mono": null,
     });
     expect(fontVars()).toEqual({
-      "--theme-font-sans": null,
-      "--theme-font-note": null,
-      "--theme-font-mono": null,
+      "--app-font-sans": null,
+      "--app-font-note": null,
+      "--app-font-mono": null,
     });
   });
 });

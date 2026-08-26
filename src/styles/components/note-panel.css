@@ -16,7 +16,7 @@
   }
 
   .note-panel__toolbar {
-    gap: var(--theme-space-4);
+    gap: var(--app-space-4);
   }
   .note-panel__gap {
     flex: 1;
@@ -33,23 +33,23 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: var(--theme-space-8);
-    padding: var(--theme-space-8);
+    gap: var(--app-space-8);
+    padding: var(--app-space-8);
   }
   .note-panel__origin {
     display: inline-flex;
     align-items: center;
-    gap: var(--theme-space-6);
+    gap: var(--app-space-6);
     min-inline-size: 0;
-    color: var(--theme-ink-muted);
-    font-size: var(--theme-text-13);
+    color: var(--app-ink-muted);
+    font-size: var(--app-text-13);
   }
   /* As a button it stands on the panel's own surface — the same lift the
      inspector's does, for the same reason: the foot sits on the ground, so a
      card is what makes it read as pressable. */
   .note-panel__origin--button {
     max-inline-size: 100%;
-    background: var(--theme-surface);
+    background: var(--app-surface);
   }
   .note-panel__origin-name {
     min-inline-size: 0;

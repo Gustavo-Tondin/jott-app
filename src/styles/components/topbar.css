@@ -13,10 +13,10 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: var(--theme-space-8);
+    gap: var(--app-space-8);
     flex-shrink: 0;
-    padding: var(--theme-space-12);
-    background: var(--theme-bg);
+    padding: var(--app-space-12);
+    background: var(--app-bg);
     /* The one height of everything on this bar: 42px from the wireframe,
        measured off the SVG, ON EVERY POINTER (user call, 2026-08-18). It is
        the one place the app's 48px touch minimum (styles/touch.css) does not
@@ -24,7 +24,7 @@
        size — otherwise the generic rule would raise some of these controls and
        not others, which is exactly how the row ended up with three different
        heights. */
-    --topbar-control: var(--theme-topbar-control);
+    --topbar-control: var(--app-topbar-control);
     /* The status bar is drawn OVER the app on Android (every 15+ app is
        edge-to-edge whether it asks or not), so the bar grows by exactly the
        strip the system owns — and NO MORE (user report twice, 2026-08-18 and
@@ -39,9 +39,9 @@
        stacked. The drawer's head drops its own top padding in the compact
        shell for the same reason (shell.css), so the two rows still line up the
        moment the drawer opens. */
-    padding-block-start: var(--theme-topbar-pad-block-start);
-    padding-inline-start: calc(var(--theme-space-12) + var(--theme-safe-left));
-    padding-inline-end: calc(var(--theme-space-12) + var(--theme-safe-right));
+    padding-block-start: var(--app-topbar-pad-block-start);
+    padding-inline-start: calc(var(--app-space-12) + var(--app-safe-left));
+    padding-inline-end: calc(var(--app-space-12) + var(--app-safe-right));
     user-select: none;
   }
 
@@ -82,9 +82,9 @@
     min-inline-size: var(--topbar-control);
     min-block-size: var(--topbar-control);
     flex: 0 0 auto;
-    border-radius: var(--theme-radius-md);
-    background: var(--theme-surface);
-    color: var(--theme-ink);
+    border-radius: var(--app-radius-md);
+    background: var(--app-surface);
+    color: var(--app-ink);
   }
 
   /* The drawer toggle while the drawer is open: invisible, and still occupying
@@ -101,8 +101,8 @@
      animatable property, it simply flips at the end of its window. */
   .topbar__button--drawer {
     transition:
-      opacity var(--theme-transition-medium),
-      visibility var(--theme-transition-medium);
+      opacity var(--app-transition-medium),
+      visibility var(--app-transition-medium);
   }
   .topbar__button--hidden {
     opacity: 0;
@@ -122,7 +122,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: var(--theme-space-8);
+    gap: var(--app-space-8);
   }
 
   /* The window's own buttons, on a narrow DESKTOP window (App.svelte renders
@@ -142,11 +142,11 @@
     display: flex;
     align-items: stretch;
     justify-content: center;
-    gap: var(--theme-space-2);
+    gap: var(--app-space-2);
     block-size: var(--topbar-control);
-    padding-inline: var(--theme-space-4);
-    border-radius: var(--theme-radius-md);
-    background: var(--theme-surface);
+    padding-inline: var(--app-space-4);
+    border-radius: var(--app-radius-md);
+    background: var(--app-surface);
   }
   .topbar__pill .topbar__button,
   .topbar__pill .page-nav__arrow {
@@ -156,7 +156,7 @@
        The inline axis is the one with a gap to subtract: on the block axis the
        button fills the pill's height on purpose (the row came out with three
        different heights when it did not), so there is nothing to inset. */
-    border-radius: calc(var(--theme-radius-md) - var(--theme-space-4));
+    border-radius: calc(var(--app-radius-md) - var(--app-space-4));
     /* Full height, MEASURED FROM THE PILL rather than restated: the pill is
        one control's worth tall and everything in it fills that, which is what
        keeps three targets inside one pill hittable — and what keeps the row
@@ -177,7 +177,7 @@
      rule the desktop header keeps, so the bar never changes shape. */
   .topbar .page-nav__arrow:disabled,
   .topbar .page-menu__toggle:disabled {
-    color: var(--theme-ink-faint);
+    color: var(--app-ink-faint);
     cursor: default;
   }
 }

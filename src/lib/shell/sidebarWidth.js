@@ -16,12 +16,12 @@ import { clamp } from "../services/num.js";
 /// the notebook name in the footer and the group rows have nowhere to go.
 /// Wider than the maximum and the centre panel — the actual work — is the
 /// side show. The default is what the stylesheet ships
-/// (`--theme-sidebar-left`).
+/// (`--app-sidebar-left`).
 export const SIDEBAR = { min: 176, max: 480, default: 220 };
 
 /// The right panel (task inspector / suggestions). Its floor is higher: it
 /// holds a date picker and a row of controls, not a list of names. Default is
-/// `--theme-sidebar-right`.
+/// `--app-sidebar-right`.
 // The floor was 208 until 2026-08-19, and it was the width of one row of the
 // formatting panel's six headings — so dragging the panel narrower simply
 // stopped there and the panel read as un-resizable (user report). The bar

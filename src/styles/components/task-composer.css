@@ -9,11 +9,11 @@
   .task-composer {
     display: flex;
     align-items: center;
-    gap: var(--theme-space-8);
-    padding: var(--theme-space-8) var(--theme-space-12);
-    background: var(--theme-surface);
-    border: 0.0625rem solid var(--theme-line);
-    border-radius: var(--theme-radius-md);
+    gap: var(--app-space-8);
+    padding: var(--app-space-8) var(--app-space-12);
+    background: var(--app-surface);
+    border: 0.0625rem solid var(--app-line);
+    border-radius: var(--app-radius-md);
   }
 
   /* The bar variant is pinned to the bottom of the scrolling content and the
@@ -29,7 +29,7 @@
     margin-block-start: auto;
     /* Small on purpose: the shadow is only here to say "the cards pass under
        this", not to lift the bar off the page (user call, 2026-08-06). */
-    box-shadow: 0 -0.0625rem 0.25rem color-mix(in srgb, var(--theme-ink) 8%, transparent);
+    box-shadow: 0 -0.0625rem 0.25rem color-mix(in srgb, var(--app-ink) 8%, transparent);
   }
 
   /* On a phone the bar leaves the flow and rides the bottom of the VIEWPORT.
@@ -46,13 +46,13 @@
   .shell--compact .task-composer--bar {
     position: fixed;
     z-index: 20;
-    inset-inline-start: calc(var(--theme-space-8) + var(--theme-safe-left));
-    inset-inline-end: calc(var(--theme-space-8) + var(--theme-safe-right));
+    inset-inline-start: calc(var(--app-space-8) + var(--app-safe-left));
+    inset-inline-end: calc(var(--app-space-8) + var(--app-safe-right));
     /* Above the keyboard when there is one, above the gesture bar when there
        is not. `max()` rather than a sum: with the keyboard up the gesture bar
        is behind it, and adding both would leave a strip of dead space. */
     inset-block-end: calc(
-      var(--theme-space-8) + max(var(--theme-safe-bottom), var(--theme-keyboard))
+      var(--app-space-8) + max(var(--app-safe-bottom), var(--app-keyboard))
     );
     margin-block-start: 0;
   }
@@ -79,7 +79,7 @@
   .shell--compact .task-composer__fields {
     order: -1;
     flex-basis: 100%;
-    gap: var(--theme-space-4);
+    gap: var(--app-space-4);
   }
   /* The one place the app's 48px touch minimum is spent on HEIGHT it does not
      need. These controls are a row of six with the full width to themselves —
@@ -96,7 +96,7 @@
      a screen with no composer must not reserve room for one. */
   .shell--compact .shell__content:has(.task-composer--bar) {
     /* Two rows now, so the room reserved for the bar grew by one. */
-    padding-block-end: calc(7.5rem + var(--theme-safe-bottom));
+    padding-block-end: calc(7.5rem + var(--app-safe-bottom));
   }
 
   /* ---- the grab handle (the bar that can be put away) ----
@@ -127,20 +127,20 @@
   .task-composer__grip {
     inline-size: 3.75rem;
     block-size: 0.25rem;
-    border-radius: var(--theme-radius-pill);
-    background: color-mix(in srgb, var(--palette-gray) 30%, transparent);
+    border-radius: var(--app-radius-pill);
+    background: color-mix(in srgb, var(--theme-color-gray) 30%, transparent);
   }
   .task-composer__handle:focus-visible {
     outline: none;
   }
   .task-composer__handle:focus-visible .task-composer__grip {
-    background: var(--theme-brand);
+    background: var(--app-brand);
   }
   /* Follows the drag (TaskComposer.svelte). Zero except while a pointer is
      pulling it down, so the bar is where it belongs the rest of the time. */
   .task-composer--bar {
     translate: 0 var(--composer-pulled, 0rem);
-    transition: translate var(--theme-transition-medium);
+    transition: translate var(--app-transition-medium);
   }
   /* While the finger is down the bar must track it exactly — a transition
      here would make the drag feel like it is on a leash. */
@@ -156,7 +156,7 @@
 
   /* Inside the dialog the row is the whole point, so it sits flush. */
   .task-composer--dialog {
-    background: var(--theme-surface-sunken);
+    background: var(--app-surface-sunken);
     border-color: transparent;
   }
 
@@ -178,7 +178,7 @@
     inline-size: 2.25rem;
     block-size: 2.25rem;
     padding: 0;
-    border-radius: var(--theme-radius-sm);
+    border-radius: var(--app-radius-sm);
   }
 
   /* Plain input: the row already IS the box, so a second border inside it
@@ -192,7 +192,7 @@
   .task-composer__fields {
     display: flex;
     align-items: center;
-    gap: var(--theme-space-2);
+    gap: var(--app-space-2);
     flex-shrink: 0;
   }
 
@@ -207,21 +207,21 @@
   /* Date / repeat: quiet until they hold something, then brand — the
      icon carries its own state, so nothing has to be spelled out in the row. */
   .task-composer__field {
-    color: var(--theme-ink-faint);
+    color: var(--app-ink-faint);
   }
   .task-composer__field--set {
-    color: var(--theme-brand);
+    color: var(--app-brand);
   }
   /* The flag wears the level's status colour once one is set — the same
      three the card's marks read (task-row.css). */
   .task-composer__field--p1 {
-    color: var(--theme-danger);
+    color: var(--app-danger);
   }
   .task-composer__field--p2 {
-    color: var(--theme-warning);
+    color: var(--app-warning);
   }
   .task-composer__field--p3 {
-    color: var(--theme-success);
+    color: var(--app-success);
   }
 
   .task-composer__repeat {
@@ -231,13 +231,13 @@
   .task-composer__repeat-panel {
     display: flex;
     align-items: center;
-    gap: var(--theme-space-6);
-    padding: var(--theme-space-8);
+    gap: var(--app-space-6);
+    padding: var(--app-space-8);
     white-space: nowrap;
   }
   .task-composer__repeat-label {
-    font-size: var(--theme-text-13);
-    color: var(--theme-ink-muted);
+    font-size: var(--app-text-13);
+    color: var(--app-ink-muted);
   }
   /* The same height as the unit beside it: it wears the shared `--sm` size,
      and only its width is its own. Enough for two digits and the caret. */

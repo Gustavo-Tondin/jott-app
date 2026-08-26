@@ -10,7 +10,7 @@
   .folder-picker {
     display: flex;
     flex-direction: column;
-    gap: var(--theme-space-12);
+    gap: var(--app-space-12);
     /* Tall enough to browse, never taller than the screen — and on a phone
        that screen is what the system bars leave. */
     max-block-size: min(32rem, 80vh);
@@ -19,16 +19,16 @@
   .folder-picker__head {
     display: flex;
     flex-direction: column;
-    gap: var(--theme-space-4);
+    gap: var(--app-space-4);
   }
 
   /* The whole path, wrapping. A folder browser that cannot say where it is
      makes the user count folders backwards to find out. */
   .folder-picker__path {
     margin: 0;
-    font-family: var(--theme-font-mono);
-    font-size: var(--theme-text-12);
-    color: var(--theme-ink-muted);
+    font-family: var(--app-font-mono);
+    font-size: var(--app-text-12);
+    color: var(--app-ink-muted);
     overflow-wrap: anywhere;
   }
 
@@ -44,7 +44,7 @@
   .folder-picker__row {
     display: flex;
     align-items: center;
-    gap: var(--theme-space-8);
+    gap: var(--app-space-8);
     inline-size: 100%;
     text-align: start;
   }
@@ -62,18 +62,18 @@
   /* Marks a folder that already holds a notebook, so opening one does not look
      like creating one. */
   .folder-picker__badge {
-    font-size: var(--theme-text-12);
-    color: var(--theme-brand);
+    font-size: var(--app-text-12);
+    color: var(--app-brand);
   }
 
   .folder-picker__empty {
-    padding: var(--theme-space-12);
-    color: var(--theme-ink-muted);
+    padding: var(--app-space-12);
+    color: var(--app-ink-muted);
   }
 
   .folder-picker__foot {
     display: flex;
     justify-content: flex-end;
-    gap: var(--theme-space-8);
+    gap: var(--app-space-8);
   }
 }

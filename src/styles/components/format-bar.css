@@ -7,8 +7,8 @@
      focus ring all come from there. Only the arrangement is written here. */
   .format-bar {
     display: flex;
-    gap: var(--theme-space-2);
-    padding: var(--theme-space-2);
+    gap: var(--app-space-2);
+    padding: var(--app-space-2);
   }
 
   /* Wrapped, so the panel's own width decides how many fit on a line: the six
@@ -66,21 +66,21 @@
      the bar's 2px of padding between. */
   .format-bar__button {
     flex: 0 0 auto;
-    border-radius: var(--format-inner-radius, var(--theme-radius-sm));
+    border-radius: var(--format-inner-radius, var(--app-radius-sm));
   }
 
   /* The rule between two categories — marking a word, naming a line, shaping a
      block (services/commands.js says which is which). */
   .format-bar__divider {
     flex: 0 0 auto;
-    background: var(--theme-line);
+    background: var(--app-line);
   }
   /* In the column it spans the panel and forces the wrap, so a category always
      starts its own row. */
   .format-bar--column .format-bar__divider {
     flex-basis: 100%;
     block-size: 0.0625rem;
-    margin-block: var(--theme-space-6);
+    margin-block: var(--app-space-6);
   }
   /* ---- the folded groups of the narrow bar ---- */
   .format-bar__fold {
@@ -91,7 +91,7 @@
   /* The opener, while its panel is open: the pressed state the wireframe
      draws, so it is clear WHICH of the two the panel belongs to. */
   .format-bar__button--on {
-    background: var(--theme-well);
+    background: var(--app-well);
   }
   /* The panel itself — a bar of its own, beside the bar. It carries its own
      ground rather than `theme-popover`'s: it is a strip of buttons, the same
@@ -104,14 +104,14 @@
      read as two layers stacked rather than one strip beside another. Its own
      ground against the note is what separates it. */
   .format-bar__panel {
-    --format-inner-radius: calc(var(--theme-radius-lg) - var(--theme-space-2));
+    --format-inner-radius: calc(var(--app-radius-lg) - var(--app-space-2));
     position: absolute;
-    inset-block-end: calc(100% + var(--theme-space-8));
+    inset-block-end: calc(100% + var(--app-space-8));
     display: flex;
-    gap: var(--theme-space-2);
-    padding: var(--theme-space-2);
-    background: var(--theme-bg);
-    border-radius: var(--theme-radius-lg);
+    gap: var(--app-space-2);
+    padding: var(--app-space-2);
+    background: var(--app-bg);
+    border-radius: var(--app-radius-lg);
     z-index: 1;
   }
   /* Out of a RAIL it opens sideways instead, so this is the fallback for the
@@ -131,22 +131,22 @@
     display: flex;
     align-items: center;
     justify-content: flex-start;
-    gap: var(--theme-space-8);
+    gap: var(--app-space-8);
     inline-size: auto;
-    padding-inline: var(--theme-space-8) var(--theme-space-12);
+    padding-inline: var(--app-space-8) var(--app-space-12);
   }
   .format-bar__button--labelled:disabled {
     opacity: 0.4;
     cursor: default;
   }
   .format-bar__label {
-    font-size: var(--theme-text-13);
+    font-size: var(--app-text-13);
     white-space: nowrap;
   }
   .format-bar__panel--beside {
     inset-block-end: auto;
     inset-block-start: 0;
-    inset-inline-start: calc(100% + var(--theme-space-8));
+    inset-inline-start: calc(100% + var(--app-space-8));
   }
 }
 
@@ -182,7 +182,7 @@
     z-index: 15;
     display: flex;
     justify-content: center;
-    gap: var(--theme-space-8);
+    gap: var(--app-space-8);
     pointer-events: none;
   }
   .format-floats > * {
@@ -194,14 +194,14 @@
   .format-floats--top,
   .format-floats--bottom {
     inset-inline: 0;
-    padding-inline: var(--theme-space-16);
+    padding-inline: var(--app-space-16);
   }
   .format-floats--top {
-    inset-block-start: var(--theme-space-8);
+    inset-block-start: var(--app-space-8);
     align-items: flex-start;
   }
   .format-floats--bottom {
-    inset-block-end: var(--theme-space-8);
+    inset-block-end: var(--app-space-8);
     align-items: flex-end;
   }
 
@@ -214,14 +214,14 @@
   .format-floats--right {
     inset-block: 0;
     flex-direction: column;
-    padding-block: var(--theme-space-16);
+    padding-block: var(--app-space-16);
   }
   .format-floats--left {
-    inset-inline-start: var(--theme-space-8);
+    inset-inline-start: var(--app-space-8);
     align-items: flex-start;
   }
   .format-floats--right {
-    inset-inline-end: var(--theme-space-8);
+    inset-inline-end: var(--app-space-8);
     align-items: flex-end;
   }
 
@@ -229,12 +229,12 @@
      Both minimums, not just the inline one: which axis the pill has to be
      able to give way in is now the side's answer, not a constant. */
   .format-float {
-    --format-inner-radius: calc(var(--theme-radius-lg) - var(--theme-space-2));
+    --format-inner-radius: calc(var(--app-radius-lg) - var(--app-space-2));
     min-inline-size: 0;
     min-block-size: 0;
-    background: var(--theme-bg);
-    border-radius: var(--theme-radius-lg);
-    box-shadow: var(--theme-shadow-popover);
+    background: var(--app-bg);
+    border-radius: var(--app-radius-lg);
+    box-shadow: var(--app-shadow-popover);
   }
   /* The bar gives way when the canvas is short of room — it is the one that
      scrolls. The dock button is a single square with nothing to give. */
@@ -249,7 +249,7 @@
      icon is what keeps the two panels reading as the same kind of thing —
      drawing a second, subtly different one would not. */
   .format-float__dock {
-    padding: var(--theme-space-8);
+    padding: var(--app-space-8);
   }
   .format-float__dock .theme-icon {
     scale: -1 1;
@@ -259,7 +259,7 @@
      the viewport and drawn outside `.window` (App.svelte says why), so it needs
      its own ground and its own top hairline — it is not sitting on any panel. */
   .format-strip {
-    --format-inner-radius: calc(var(--theme-radius-lg) - var(--theme-space-2));
+    --format-inner-radius: calc(var(--app-radius-lg) - var(--app-space-2));
     position: fixed;
     /* A pill with air on both sides, as the wireframe draws it — not a band
        across the screen. It is a thing floating above the keyboard, and a
@@ -280,18 +280,18 @@
        containing block here is the viewport, so the gutter is subtracted twice
        by hand. Past that ceiling the row scrolls, which is `.format-bar--row`'s
        job and not this one's. */
-    inset-inline: var(--theme-space-8);
+    inset-inline: var(--app-space-8);
     inline-size: fit-content;
-    max-inline-size: calc(100% - 2 * var(--theme-space-8));
+    max-inline-size: calc(100% - 2 * var(--app-space-8));
     margin-inline: auto;
     /* Against the top of the keyboard when one is up, above the gesture bar
        when it is not. `max()` rather than a sum: with the keyboard up the
        gesture bar is inside it. The same rule the task composer and the sheets
        follow (0.11.0). */
-    inset-block-end: max(var(--theme-safe-bottom), var(--theme-keyboard));
+    inset-block-end: max(var(--app-safe-bottom), var(--app-keyboard));
     z-index: 40;
-    background: var(--theme-bg);
-    border-radius: var(--theme-radius-lg);
-    margin-block-end: var(--theme-space-8);
+    background: var(--app-bg);
+    border-radius: var(--app-radius-lg);
+    margin-block-end: var(--app-space-8);
   }
 }

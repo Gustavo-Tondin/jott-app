@@ -4,7 +4,7 @@
    These `.theme-*` classes are the app's STABLE HOOKS: a component applies them
    instead of restyling each control, so every input/button/toggle looks the
    same everywhere, and a theme can restyle them in one place. They read only
-   tokens (`--theme-*`), never raw values.
+   tokens (`--app-*`), never raw values.
 
    Prefix is `theme-`, deliberately NOT the product name (`memo-`): the name is
    provisional and these class names are meant to outlive it — same reasoning as
@@ -22,30 +22,30 @@
   .theme-textarea,
   .theme-select {
     width: 100%;
-    padding: var(--theme-space-8) var(--theme-space-12);
-    background: var(--theme-surface);
-    color: var(--theme-ink);
-    border: 0.0625rem solid var(--theme-line);
-    border-radius: var(--theme-radius-md);
-    font-size: var(--theme-text-14);
+    padding: var(--app-space-8) var(--app-space-12);
+    background: var(--app-surface);
+    color: var(--app-ink);
+    border: 0.0625rem solid var(--app-line);
+    border-radius: var(--app-radius-md);
+    font-size: var(--app-text-14);
     font-family: inherit;
-    line-height: var(--theme-leading-normal);
+    line-height: var(--app-leading-normal);
   }
   .theme-input::placeholder,
   .theme-textarea::placeholder {
-    color: var(--theme-ink-faint);
+    color: var(--app-ink-faint);
   }
   .theme-input:hover:not(:disabled):not(:focus),
   .theme-textarea:hover:not(:disabled):not(:focus),
   .theme-select:hover:not(:disabled) {
-    border-color: var(--theme-brand-outline);
+    border-color: var(--app-brand-outline);
   }
   .theme-input:focus-visible,
   .theme-textarea:focus-visible,
   .theme-select:focus-visible {
     outline: none;
-    border-color: var(--theme-brand);
-    box-shadow: 0 0 0 0.1875rem var(--theme-brand-weak);
+    border-color: var(--app-brand);
+    box-shadow: 0 0 0 0.1875rem var(--app-brand-weak);
   }
   .theme-input:disabled,
   .theme-textarea:disabled,
@@ -59,16 +59,16 @@
   }
 
   /* Native arrow off, our own caret on — so the select matches everywhere.
-     The stroke hex inside the data: URI is a byte copy of --palette-gray
+     The stroke hex inside the data: URI is a byte copy of --theme-color-gray
      (tokens.css) — a URL cannot read a custom property, so a palette change
      has to update it by hand. */
   .theme-select {
     appearance: none;
     -webkit-appearance: none;
-    padding-right: var(--theme-space-32);
+    padding-right: var(--app-space-32);
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 4.5 6 8l3.5-3.5' fill='none' stroke='%23a39f9b' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
-    background-position: right var(--theme-space-12) center;
+    background-position: right var(--app-space-12) center;
     background-size: 0.75rem;
     cursor: pointer;
   }
@@ -85,13 +85,13 @@
   /* --- Size modifier: compact controls (inspector inline values, steppers) --- */
   .theme-input--sm,
   .theme-select--sm {
-    padding: var(--theme-space-4) var(--theme-space-8);
-    font-size: var(--theme-text-13);
-    border-radius: var(--theme-radius-sm);
+    padding: var(--app-space-4) var(--app-space-8);
+    font-size: var(--app-text-13);
+    border-radius: var(--app-radius-sm);
   }
   .theme-select--sm {
-    padding-right: var(--theme-space-24);
-    background-position: right var(--theme-space-8) center;
+    padding-right: var(--app-space-24);
+    background-position: right var(--app-space-8) center;
   }
 
   /* --- Bare select: no caret, compact, filled with the WELL. For tight rows
@@ -102,12 +102,12 @@
      steps away from a surface on either ground. --- */
   .theme-select--bare {
     width: auto;
-    padding: var(--theme-space-4) var(--theme-space-6);
+    padding: var(--app-space-4) var(--app-space-6);
     background-image: none;
-    background-color: var(--theme-well);
+    background-color: var(--app-well);
     border-color: transparent;
-    border-radius: var(--theme-radius-sm);
-    font-size: var(--theme-text-12);
+    border-radius: var(--app-radius-sm);
+    font-size: var(--app-text-12);
   }
 
   /* --- Number field: a typed count with no native spinners. The repeat rows
@@ -129,21 +129,21 @@
      Same reasoning as --bare above. --- */
   .theme-input--filled {
     width: auto;
-    padding: var(--theme-space-4) var(--theme-space-6);
-    background: var(--theme-well);
+    padding: var(--app-space-4) var(--app-space-6);
+    background: var(--app-well);
     border-color: transparent;
-    border-radius: var(--theme-radius-sm);
-    font-size: var(--theme-text-12);
+    border-radius: var(--app-radius-sm);
+    font-size: var(--app-text-12);
   }
   .theme-input--filled:hover:not(:disabled):not(:focus) {
-    border-color: var(--theme-brand-outline);
+    border-color: var(--app-brand-outline);
   }
 
   /* --- Plain: borderless, inherits the surrounding font/colour. An inline
      editable title or list item (inspector name / subtask). --- */
   .theme-input--plain {
     width: auto;
-    padding: var(--theme-space-4) var(--theme-space-2);
+    padding: var(--app-space-4) var(--app-space-2);
     background: none;
     border-color: transparent;
     color: inherit;
@@ -170,15 +170,15 @@
     width: 1.125rem;
     height: 1.125rem;
     margin: 0;
-    border: 0.09375rem solid var(--theme-ink);
-    border-radius: var(--theme-radius-xs);
+    border: 0.09375rem solid var(--app-ink);
+    border-radius: var(--app-radius-xs);
     background: none;
     cursor: pointer;
     position: relative;
     transition:
-      background var(--theme-transition-fast),
-      border-color var(--theme-transition-fast),
-      scale var(--theme-duration-medium) var(--theme-ease-spring);
+      background var(--app-transition-fast),
+      border-color var(--app-transition-fast),
+      scale var(--app-duration-medium) var(--app-ease-spring);
   }
   /* Held, the box shrinks a touch; let go, it springs back past full size as
      the tick lands — the POP. Ticking a task is the most repeated gesture in
@@ -190,8 +190,8 @@
     scale: 0.88;
   }
   .theme-checkbox:checked {
-    background: var(--theme-brand);
-    border-color: var(--theme-brand);
+    background: var(--app-brand);
+    border-color: var(--app-brand);
   }
   .theme-checkbox:checked::after {
     content: "";
@@ -200,7 +200,7 @@
     top: 0.125rem;
     width: 0.3125rem;
     height: 0.5625rem;
-    border: solid var(--theme-on-brand);
+    border: solid var(--app-on-brand);
     border-width: 0 0.125rem 0.125rem 0;
     transform: rotate(45deg);
   }
@@ -230,7 +230,7 @@
   }
   .theme-checkbox:focus-visible {
     outline: none;
-    box-shadow: 0 0 0 0.1875rem var(--theme-brand-weak);
+    box-shadow: 0 0 0 0.1875rem var(--app-brand-weak);
   }
   .theme-checkbox:disabled {
     opacity: 0.5;
@@ -248,11 +248,11 @@
     height: 1.25rem;
     margin: 0;
     border: none;
-    border-radius: var(--theme-radius-pill);
-    background: var(--theme-ink-faint);
+    border-radius: var(--app-radius-pill);
+    background: var(--app-ink-faint);
     cursor: pointer;
     position: relative;
-    transition: background var(--theme-transition-fast);
+    transition: background var(--app-transition-fast);
   }
   .theme-switch::after {
     content: "";
@@ -261,11 +261,11 @@
     left: 0.125rem;
     width: 1rem;
     height: 1rem;
-    border-radius: var(--theme-radius-pill);
-    background: var(--theme-on-brand);
+    border-radius: var(--app-radius-pill);
+    background: var(--app-on-brand);
     transition:
-      transform var(--theme-duration-medium) var(--theme-ease-spring),
-      width var(--theme-transition-fast);
+      transform var(--app-duration-medium) var(--app-ease-spring),
+      width var(--app-transition-fast);
   }
   /* Held, the knob stretches towards where it is about to go, and snaps to a
      circle again on release — a knob under a thumb is being pushed, and a
@@ -276,7 +276,7 @@
     width: 1.25rem;
   }
   .theme-switch:checked {
-    background: var(--theme-brand);
+    background: var(--app-brand);
   }
   .theme-switch:checked::after {
     transform: translateX(1rem);
@@ -286,7 +286,7 @@
   }
   .theme-switch:focus-visible {
     outline: none;
-    box-shadow: 0 0 0 0.1875rem var(--theme-brand-weak);
+    box-shadow: 0 0 0 0.1875rem var(--app-brand-weak);
   }
   .theme-switch:disabled {
     opacity: 0.5;
@@ -312,13 +312,13 @@
   }
   .theme-range::-webkit-slider-runnable-track {
     block-size: 0.25rem;
-    border-radius: var(--theme-radius-pill);
-    background: var(--theme-line);
+    border-radius: var(--app-radius-pill);
+    background: var(--app-line);
   }
   .theme-range::-moz-range-track {
     block-size: 0.25rem;
-    border-radius: var(--theme-radius-pill);
-    background: var(--theme-line);
+    border-radius: var(--app-radius-pill);
+    background: var(--app-line);
   }
   .theme-range::-webkit-slider-thumb {
     appearance: none;
@@ -329,20 +329,20 @@
     inline-size: 1rem;
     block-size: 1rem;
     border: none;
-    border-radius: var(--theme-radius-pill);
-    background: var(--theme-brand);
+    border-radius: var(--app-radius-pill);
+    background: var(--app-brand);
   }
   .theme-range::-moz-range-thumb {
     inline-size: 1rem;
     block-size: 1rem;
     border: none;
-    border-radius: var(--theme-radius-pill);
-    background: var(--theme-brand);
+    border-radius: var(--app-radius-pill);
+    background: var(--app-brand);
   }
   .theme-range:focus-visible {
     outline: none;
-    box-shadow: 0 0 0 0.1875rem var(--theme-brand-weak);
-    border-radius: var(--theme-radius-pill);
+    box-shadow: 0 0 0 0.1875rem var(--app-brand-weak);
+    border-radius: var(--app-radius-pill);
   }
   .theme-range:disabled {
     opacity: 0.5;
@@ -356,22 +356,22 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: var(--theme-space-8);
-    padding: var(--theme-space-8) var(--theme-space-16);
+    gap: var(--app-space-8);
+    padding: var(--app-space-8) var(--app-space-16);
     border: 0.0625rem solid transparent;
-    border-radius: var(--theme-radius-md);
+    border-radius: var(--app-radius-md);
     background: none;
-    color: var(--theme-ink);
-    font-size: var(--theme-text-13);
-    font-weight: var(--theme-weight-medium);
+    color: var(--app-ink);
+    font-size: var(--app-text-13);
+    font-weight: var(--app-weight-medium);
     font-family: inherit;
     white-space: nowrap;
     cursor: pointer;
     transition:
-      background var(--theme-transition-fast),
-      color var(--theme-transition-fast),
-      filter var(--theme-transition-fast),
-      scale var(--theme-transition-fast);
+      background var(--app-transition-fast),
+      color var(--app-transition-fast),
+      filter var(--app-transition-fast),
+      scale var(--app-transition-fast);
   }
   /* THE PRESS. Every button in the app gives by the same few percent while
      it is held — a `scale`, not a colour, because colour is already spoken
@@ -384,33 +384,33 @@
   }
   .theme-btn:focus-visible {
     outline: none;
-    box-shadow: 0 0 0 0.1875rem var(--theme-brand-weak);
+    box-shadow: 0 0 0 0.1875rem var(--app-brand-weak);
   }
   .theme-btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
   }
   .theme-btn--primary {
-    background: var(--theme-brand);
-    color: var(--theme-on-brand);
+    background: var(--app-brand);
+    color: var(--app-on-brand);
   }
   .theme-btn--primary:hover:not(:disabled) {
     filter: brightness(1.06);
   }
   .theme-btn--outline {
-    border-color: var(--theme-line);
-    color: var(--theme-ink-muted);
+    border-color: var(--app-line);
+    color: var(--app-ink-muted);
   }
   /* Hovers to the RAISED surface, not the sunken one: an outline button is a
      quiet action sitting on sunken ground (a task card, a suggestion row), so
      lifting is what reads as hover there. */
   .theme-btn--outline:hover:not(:disabled) {
-    background: var(--theme-surface);
-    color: var(--theme-ink);
+    background: var(--app-surface);
+    color: var(--app-ink);
   }
   .theme-btn--danger {
-    background: var(--theme-danger);
-    color: var(--theme-on-brand);
+    background: var(--app-danger);
+    color: var(--app-on-brand);
   }
   .theme-btn--danger:hover:not(:disabled) {
     filter: brightness(1.06);
@@ -425,16 +425,16 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: var(--theme-space-6);
+    padding: var(--app-space-6);
     background: none;
     border: none;
-    border-radius: var(--theme-radius-sm);
-    color: var(--theme-ink-muted);
+    border-radius: var(--app-radius-sm);
+    color: var(--app-ink-muted);
     cursor: pointer;
     transition:
-      background var(--theme-transition-fast),
-      color var(--theme-transition-fast),
-      scale var(--theme-transition-fast);
+      background var(--app-transition-fast),
+      color var(--app-transition-fast),
+      scale var(--app-transition-fast);
   }
   .theme-btn--icon:active:not(:disabled) {
     scale: 0.92;
@@ -442,8 +442,8 @@
   .theme-btn--icon:hover:not(:disabled) {
     /* The hover veil, not a solid grey: it must read on the grey sidebar and
        inside popovers just as well as on a white surface. */
-    background: var(--theme-hover);
-    color: var(--theme-ink);
+    background: var(--app-hover);
+    color: var(--app-ink);
   }
   .theme-btn--icon:disabled {
     opacity: 0.5;
@@ -451,17 +451,17 @@
   }
   /* Compact and full-width size modifiers. */
   .theme-btn--sm {
-    padding: var(--theme-space-4) var(--theme-space-10);
-    border-radius: var(--theme-radius-sm);
+    padding: var(--app-space-4) var(--app-space-10);
+    border-radius: var(--app-radius-sm);
   }
   /* Tiniest: the per-row action that must not compete with the row's own text
      (pull into the day, remove from the period). Regular weight on purpose —
      it is an affordance, not a call to action. */
   .theme-btn--xs {
-    padding: var(--theme-space-2) var(--theme-space-8);
-    border-radius: var(--theme-radius-xs);
-    font-size: var(--theme-text-12);
-    font-weight: var(--theme-weight-regular);
+    padding: var(--app-space-2) var(--app-space-8);
+    border-radius: var(--app-radius-xs);
+    font-size: var(--app-text-12);
+    font-weight: var(--app-weight-regular);
   }
   /* ---------------------------------------------------------------------------
      Chip (a small toggle/label, e.g. Completed / Suggestions)
@@ -476,17 +476,17 @@
   .theme-chip {
     display: inline-flex;
     align-items: center;
-    gap: var(--theme-space-6);
-    padding: var(--theme-space-6) var(--theme-space-10);
-    background: var(--theme-surface-sunken);
+    gap: var(--app-space-6);
+    padding: var(--app-space-6) var(--app-space-10);
+    background: var(--app-surface-sunken);
     border: 0.0625rem solid transparent;
-    border-radius: var(--theme-radius-sm);
-    color: var(--theme-ink-muted);
+    border-radius: var(--app-radius-sm);
+    color: var(--app-ink-muted);
     /* A <button> does not inherit the page font, and every wearer of this
        class is one — without this the chip in the task composer drew in the
        UA's font while the row around it was in the app's. */
     font-family: inherit;
-    font-size: var(--theme-text-12);
+    font-size: var(--app-text-12);
     cursor: pointer;
   }
   /* Ink on hover: the chip is a control everywhere it is worn (it opens a
@@ -494,7 +494,7 @@
      under the pointer belongs to the shape, not to one of its wearers. A chip
      that paints its own ground (the accent pill) overrides this. */
   .theme-chip:hover {
-    color: var(--theme-ink);
+    color: var(--app-ink);
   }
   .theme-chip:active {
     scale: 0.96;
@@ -506,13 +506,13 @@
   .theme-segmented {
     position: relative;
     display: inline-flex;
-    gap: var(--theme-space-2);
-    padding: var(--theme-space-2);
+    gap: var(--app-space-2);
+    padding: var(--app-space-2);
     /* The track is a WELL, not the page ground: the control sits on a raised
-       card (the capture box, a screen's toolbar), so reading --theme-bg there
+       card (the capture box, a screen's toolbar), so reading --app-bg there
        painted it in the colour of a panel it is not on. */
-    background-color: var(--theme-well);
-    border-radius: var(--theme-radius-md);
+    background-color: var(--app-well);
+    border-radius: var(--app-radius-md);
     /* The pill below is stacked under the items, and the stack must not leak
        out of the control: without its own context a `z-index: 0` pill would
        sit under whatever ground the PARENT paints. */
@@ -536,36 +536,36 @@
     inline-size: var(--seg-w);
     block-size: var(--seg-h);
     translate: var(--seg-x) var(--seg-y);
-    border-radius: calc(var(--theme-radius-md) - var(--theme-space-2));
-    background: var(--theme-brand);
+    border-radius: calc(var(--app-radius-md) - var(--app-space-2));
+    background: var(--app-brand);
     transition:
-      translate var(--theme-duration-medium) var(--theme-ease-spring),
-      inline-size var(--theme-duration-medium) var(--theme-ease-out),
-      block-size var(--theme-duration-medium) var(--theme-ease-out);
+      translate var(--app-duration-medium) var(--app-ease-spring),
+      inline-size var(--app-duration-medium) var(--app-ease-out),
+      block-size var(--app-duration-medium) var(--app-ease-out);
   }
   /* Each item is a filled rounded rectangle, not an outline pill (2026-08-06,
      from the Tasks screen shot): with a plain outline the group read as three
      loose links, and the active one had to shout to be told apart. Filled and
      quiet, the blue of the active one is enough. */
   .theme-segmented__item {
-    padding: var(--theme-space-6) var(--theme-space-16);
+    padding: var(--app-space-6) var(--app-space-16);
     border: none;
     /* The track's own corner less the 2px of well it sits in. */
-    border-radius: calc(var(--theme-radius-md) - var(--theme-space-2));
+    border-radius: calc(var(--app-radius-md) - var(--app-space-2));
     background: none;
-    color: var(--theme-ink-muted);
-    font-size: var(--theme-text-14);
-    font-weight: var(--theme-weight-semibold);
+    color: var(--app-ink-muted);
+    font-size: var(--app-text-14);
+    font-weight: var(--app-weight-semibold);
     cursor: pointer;
     /* Above the pill. */
     position: relative;
     z-index: 1;
     transition:
-      color var(--theme-transition-fast),
-      scale var(--theme-transition-fast);
+      color var(--app-transition-fast),
+      scale var(--app-transition-fast);
   }
   .theme-segmented__item:hover:not(.theme-segmented__item--active) {
-    color: var(--theme-ink);
+    color: var(--app-ink);
   }
   /* Pressed, the item gives a little under the finger — the same give every
      button in the app has (see .theme-btn). */
@@ -577,9 +577,9 @@
      were two quiet signals saying the same thing, and neither carried across
      the black chrome and the white canvas. Filled, the accent does it alone. */
   .theme-segmented__item--active {
-    background: var(--theme-brand);
-    color: var(--theme-on-brand);
-    font-weight: var(--theme-weight-semibold);
+    background: var(--app-brand);
+    color: var(--app-on-brand);
+    font-weight: var(--app-weight-semibold);
   }
   /* Once the track's pill has the colour, the item lets go of it. */
   .theme-segmented--glides .theme-segmented__item--active {
@@ -599,13 +599,13 @@
   .theme-badge {
     display: inline-flex;
     align-items: center;
-    gap: var(--theme-space-4);
+    gap: var(--app-space-4);
     max-inline-size: 100%;
-    padding: 0 var(--theme-space-6);
-    border: 0.0625rem solid var(--badge-line, var(--theme-line));
-    border-radius: var(--theme-radius-pill);
-    color: var(--badge-color, var(--theme-ink-muted));
-    font-size: var(--theme-text-10);
+    padding: 0 var(--app-space-6);
+    border: 0.0625rem solid var(--badge-line, var(--app-line));
+    border-radius: var(--app-radius-pill);
+    color: var(--badge-color, var(--app-ink-muted));
+    font-size: var(--app-text-10);
     font-weight: 500;
     line-height: 1.6;
     white-space: nowrap;
@@ -626,16 +626,16 @@
      --------------------------------------------------------------------------- */
   .theme-popover {
     position: absolute;
-    top: calc(100% + var(--theme-space-4));
+    top: calc(100% + var(--app-space-4));
     /* Above the modal (z-index 100), not just above the page: `keepOnScreen`
        re-parents a popover to <body>, so one opened from inside a dialog is a
        SIBLING of it and lost the stacking fight it should always win — a panel
        is on top of whatever opened it, by definition (2026-08-06). */
     z-index: 200;
-    background: var(--theme-surface);
-    border: 0.0625rem solid var(--theme-line);
-    border-radius: var(--theme-radius-md);
-    box-shadow: var(--theme-shadow-popover);
+    background: var(--app-surface);
+    border: 0.0625rem solid var(--app-line);
+    border-radius: var(--app-radius-md);
+    box-shadow: var(--app-shadow-popover);
     /* It UNFOLDS from the edge it hangs off: a fade plus a short growth from
        the top, decelerating — a menu that appears is a menu that was opened,
        and the motion says from where. `scale` rather than `transform`, which
@@ -644,7 +644,7 @@
        variants only decide which corner, and a centred origin reads right
        for both. */
     transform-origin: top center;
-    animation: theme-unfold var(--theme-duration-fast) var(--theme-ease-out);
+    animation: theme-unfold var(--app-duration-fast) var(--app-ease-out);
   }
   .theme-popover--end {
     inset-inline-end: 0;
@@ -666,14 +666,14 @@
      marks what you can act on; a title is read, not clicked. */
   .theme-title {
     margin: 0;
-    font-size: var(--theme-text-24);
-    font-weight: var(--theme-weight-bold);
-    letter-spacing: var(--theme-tracking-wide);
-    color: var(--theme-ink);
+    font-size: var(--app-text-24);
+    font-weight: var(--app-weight-bold);
+    letter-spacing: var(--app-tracking-wide);
+    color: var(--app-ink);
   }
   /* A block's own heading, one step down from the screen it sits in. */
   .theme-title--sm {
-    font-size: var(--theme-text-20);
+    font-size: var(--app-text-20);
   }
   /* (The 32px `--lg` step went away on 2026-08-18: it existed for a space's
      own heading, and a space is now titled by its screen — one row, the name
@@ -694,8 +694,8 @@
     flex: 0 0 auto;
     inline-size: var(--dot-size, 0.75rem);
     block-size: var(--dot-size, 0.75rem);
-    border-radius: var(--theme-radius-pill);
-    background: var(--dot, var(--theme-brand));
+    border-radius: var(--app-radius-pill);
+    background: var(--dot, var(--app-brand));
   }
 
   /* ---------------------------------------------------------------------------
@@ -707,10 +707,10 @@
   .theme-row {
     display: flex;
     align-items: center;
-    gap: var(--theme-space-12);
-    padding: var(--theme-space-8) var(--theme-space-12);
-    background: var(--theme-surface-sunken);
-    border-radius: var(--theme-radius-md);
+    gap: var(--app-space-12);
+    padding: var(--app-space-8) var(--app-space-12);
+    background: var(--app-surface-sunken);
+    border-radius: var(--app-radius-md);
   }
 
   /* ---------------------------------------------------------------------------
@@ -723,7 +723,7 @@
     height: 0;
     margin: 0;
     border: none;
-    border-top: 0.0625rem solid var(--theme-line);
+    border-top: 0.0625rem solid var(--app-line);
   }
 
   /* ---------------------------------------------------------------------------
@@ -737,20 +737,20 @@
     padding: 0;
     display: flex;
     flex-direction: column;
-    gap: var(--theme-space-4);
+    gap: var(--app-space-4);
   }
 
   /* The hairline under the pinned cards (2026-08-05): a list item of its own,
      so it rides along with the cards it separates. */
   .theme-pin-divider {
     height: 0.0625rem;
-    margin-block: var(--theme-space-4);
-    background: var(--theme-line);
+    margin-block: var(--app-space-4);
+    background: var(--app-line);
   }
   /* During a drag the line is the boundary being aimed at — dropping above it
      pins the card, below it unpins — so it steps forward. */
   .theme-task-list[data-reordering] > .theme-pin-divider {
-    background: var(--theme-brand);
+    background: var(--app-brand);
   }
 
   /* ---------------------------------------------------------------------------
@@ -764,13 +764,13 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: var(--theme-space-8);
+    gap: var(--app-space-8);
     margin: 0;
-    padding: var(--theme-space-8) var(--theme-space-16);
-    background: var(--theme-surface-sunken);
-    border-radius: var(--theme-radius-lg);
-    color: var(--theme-ink-muted);
-    font-size: var(--theme-text-14);
+    padding: var(--app-space-8) var(--app-space-16);
+    background: var(--app-surface-sunken);
+    border-radius: var(--app-radius-lg);
+    color: var(--app-ink-muted);
+    font-size: var(--app-text-14);
   }
 
   /* ---------------------------------------------------------------------------
@@ -789,33 +789,33 @@
     z-index: 100;
     display: grid;
     place-items: center;
-    background: color-mix(in srgb, var(--theme-ink) 32%, transparent);
-    animation: theme-fade-in var(--theme-duration-fast) var(--theme-ease);
+    background: color-mix(in srgb, var(--app-ink) 32%, transparent);
+    animation: theme-fade-in var(--app-duration-fast) var(--app-ease);
   }
   .theme-modal {
     display: flex;
     flex-direction: column;
-    gap: var(--theme-space-8);
-    inline-size: min(24rem, calc(100vw - var(--theme-space-32)));
-    padding: var(--theme-space-16);
+    gap: var(--app-space-8);
+    inline-size: min(24rem, calc(100vw - var(--app-space-32)));
+    padding: var(--app-space-16);
     /* Its OWN ground — a dialog takes the region's two neutrals swapped, the
        same pact a bottom sheet keeps (styles/themes/*.css). The colour on
-       screen is unchanged (after the swap this IS what `--theme-surface` used
+       screen is unchanged (after the swap this IS what `--app-surface` used
        to resolve to); what it buys is the step for the cards and fields inside
        it, which were coming out the same colour as the dialog holding them. */
-    background: var(--theme-bg);
-    border: 0.0625rem solid var(--theme-line);
-    border-radius: var(--theme-radius-lg);
-    box-shadow: var(--theme-shadow-popover);
+    background: var(--app-bg);
+    border: 0.0625rem solid var(--app-line);
+    border-radius: var(--app-radius-lg);
+    box-shadow: var(--app-shadow-popover);
     /* A dialog RISES a little as it fades in, decelerating: it comes up to
        meet the question, rather than switching on. Short, so a confirm does
        not keep a keyboard waiting. */
-    animation: theme-rise var(--theme-duration-medium) var(--theme-ease-out);
+    animation: theme-rise var(--app-duration-medium) var(--app-ease-out);
   }
   /* The composer dialog is a row of controls, so it needs more room than a
      single name field does. */
   .theme-modal--wide {
-    inline-size: min(43rem, calc(100vw - var(--theme-space-32)));
+    inline-size: min(43rem, calc(100vw - var(--app-space-32)));
   }
   /* Title on the left, the close on the right — a head, not two stacked
      blocks (user call, 2026-08-06). */
@@ -823,18 +823,18 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: var(--theme-space-8);
+    gap: var(--app-space-8);
   }
   .theme-modal__title {
     margin: 0;
-    font-size: var(--theme-text-14);
-    font-weight: var(--theme-weight-semibold);
-    color: var(--theme-ink);
+    font-size: var(--app-text-14);
+    font-weight: var(--app-weight-semibold);
+    color: var(--app-ink);
   }
   .theme-modal__actions {
     display: flex;
     justify-content: flex-end;
-    gap: var(--theme-space-8);
+    gap: var(--app-space-8);
   }
 
   /* ---------------------------------------------------------------------------
@@ -865,30 +865,30 @@
      what differs per box (margins, type, the error's tighter padding).
      --------------------------------------------------------------------------- */
   .theme-notice {
-    --notice-accent: var(--theme-brand);
-    --notice-tint: var(--theme-brand-weak);
+    --notice-accent: var(--app-brand);
+    --notice-tint: var(--app-brand-weak);
     background: var(--notice-tint);
     border: 0.0625rem solid var(--notice-accent);
-    padding: var(--theme-space-8) var(--theme-space-12);
-    border-radius: var(--theme-radius-md);
+    padding: var(--app-space-8) var(--app-space-12);
+    border-radius: var(--app-radius-md);
     /* A notice drops in rather than appearing: an error is the one thing on
        the screen the eye was not already looking at. */
-    animation: theme-rise var(--theme-duration-medium) var(--theme-ease-out);
+    animation: theme-rise var(--app-duration-medium) var(--app-ease-out);
   }
   /* Status is the STATUS roles, never a colour of the eight by name
      (2026-08-26): a theme that moves its danger moves the notice with it, and
      a component sheet never spells `red`. */
   .theme-notice--error {
-    --notice-accent: var(--theme-danger);
-    --notice-tint: var(--theme-danger-tint);
+    --notice-accent: var(--app-danger);
+    --notice-tint: var(--app-danger-tint);
   }
   .theme-notice--warning {
-    --notice-accent: var(--theme-warning);
-    --notice-tint: var(--theme-warning-tint);
+    --notice-accent: var(--app-warning);
+    --notice-tint: var(--app-warning-tint);
   }
   .theme-notice--success {
-    --notice-accent: var(--theme-success);
-    --notice-tint: var(--theme-success-tint);
+    --notice-accent: var(--app-success);
+    --notice-tint: var(--app-success-tint);
   }
   /* The parts (components/Notice.svelte, 2026-08-24): a glyph in the
      notice's own colour, the body beside it, the × at the end. The glyph
@@ -907,17 +907,17 @@
     min-inline-size: 0;
     display: flex;
     flex-direction: column;
-    gap: var(--theme-space-4);
+    gap: var(--app-space-4);
   }
   .theme-notice__title {
     margin: 0;
-    font-weight: var(--theme-weight-medium);
-    color: var(--theme-ink);
+    font-weight: var(--app-weight-medium);
+    color: var(--app-ink);
     overflow-wrap: anywhere;
   }
   .theme-notice__text {
-    color: var(--theme-ink-muted);
-    font-size: var(--theme-text-13);
+    color: var(--app-ink-muted);
+    font-size: var(--app-text-13);
     overflow-wrap: anywhere;
   }
   .theme-notice__text > p {
@@ -926,20 +926,20 @@
   .theme-notice__actions {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--theme-space-8);
-    margin-block-start: var(--theme-space-4);
+    gap: var(--app-space-8);
+    margin-block-start: var(--app-space-4);
   }
   .theme-notice__close {
     flex: none;
     margin-inline-start: auto;
     /* Optically level with the title's first line, not with the box. */
-    margin-block: calc(-1 * var(--theme-space-4)) calc(-1 * var(--theme-space-4));
+    margin-block: calc(-1 * var(--app-space-4)) calc(-1 * var(--app-space-4));
   }
   .theme-notice:has(.theme-notice__glyph) {
     display: flex;
     align-items: flex-start;
-    gap: var(--theme-space-10);
-    font-size: var(--theme-text-14);
+    gap: var(--app-space-10);
+    font-size: var(--app-text-14);
   }
 
   /* ---------------------------------------------------------------------------
@@ -952,26 +952,26 @@
   .theme-filter {
     display: flex;
     align-items: center;
-    gap: var(--theme-space-6);
-    padding: var(--theme-space-6) var(--theme-space-8);
-    border-radius: var(--theme-radius-md);
-    background: var(--theme-well);
-    color: var(--theme-ink-faint);
+    gap: var(--app-space-6);
+    padding: var(--app-space-6) var(--app-space-8);
+    border-radius: var(--app-radius-md);
+    background: var(--app-well);
+    color: var(--app-ink-faint);
   }
   .theme-filter__field {
     flex: 1;
     min-inline-size: 0;
     border: none;
     background: none;
-    color: var(--theme-ink);
+    color: var(--app-ink);
     font: inherit;
-    font-size: var(--theme-text-14);
+    font-size: var(--app-text-14);
   }
   .theme-filter__field:focus {
     outline: none;
   }
   .theme-filter:focus-within {
-    outline: 0.125rem solid var(--theme-brand-outline);
+    outline: 0.125rem solid var(--app-brand-outline);
     outline-offset: 0.0625rem;
   }
   .theme-filter__field::-webkit-search-cancel-button {
@@ -991,16 +991,16 @@
     flex-direction: column;
     align-items: center;
     text-align: center;
-    gap: var(--theme-space-6);
+    gap: var(--app-space-6);
     margin: 0;
-    padding-block: var(--theme-space-48);
-    padding-inline: var(--theme-space-16);
-    color: var(--theme-ink-muted);
-    animation: theme-rise var(--theme-duration-medium) var(--theme-ease-out);
+    padding-block: var(--app-space-48);
+    padding-inline: var(--app-space-16);
+    color: var(--app-ink-muted);
+    animation: theme-rise var(--app-duration-medium) var(--app-ease-out);
   }
   .theme-empty--compact {
-    padding-block: var(--theme-space-24);
-    gap: var(--theme-space-4);
+    padding-block: var(--app-space-24);
+    gap: var(--app-space-4);
   }
   .theme-empty__glyph {
     display: inline-flex;
@@ -1008,32 +1008,32 @@
     justify-content: center;
     inline-size: 3.5rem;
     block-size: 3.5rem;
-    margin-block-end: var(--theme-space-6);
-    border-radius: var(--theme-radius-pill);
-    background: var(--theme-surface-sunken);
-    color: var(--theme-ink-faint);
+    margin-block-end: var(--app-space-6);
+    border-radius: var(--app-radius-pill);
+    background: var(--app-surface-sunken);
+    color: var(--app-ink-faint);
   }
   .theme-empty--compact .theme-empty__glyph {
     inline-size: 2.5rem;
     block-size: 2.5rem;
-    margin-block-end: var(--theme-space-2);
+    margin-block-end: var(--app-space-2);
   }
   .theme-empty__title {
     margin: 0;
-    color: var(--theme-ink);
-    font-size: var(--theme-text-14);
-    font-weight: var(--theme-weight-medium);
+    color: var(--app-ink);
+    font-size: var(--app-text-14);
+    font-weight: var(--app-weight-medium);
   }
   .theme-empty__hint {
     margin: 0;
     max-inline-size: 28rem;
-    font-size: var(--theme-text-13);
-    color: var(--theme-ink-muted);
+    font-size: var(--app-text-13);
+    color: var(--app-ink-muted);
   }
   .theme-empty__action {
-    margin-block-start: var(--theme-space-8);
+    margin-block-start: var(--app-space-8);
     display: flex;
-    gap: var(--theme-space-8);
+    gap: var(--app-space-8);
   }
 
   /* ---------------------------------------------------------------------------
@@ -1047,23 +1047,23 @@
   .theme-loading {
     display: inline-flex;
     align-items: center;
-    gap: var(--theme-space-8);
-    color: var(--theme-ink-muted);
-    font-size: var(--theme-text-14);
-    animation: theme-fade-in var(--theme-duration-medium) var(--theme-ease-out);
+    gap: var(--app-space-8);
+    color: var(--app-ink-muted);
+    font-size: var(--app-text-14);
+    animation: theme-fade-in var(--app-duration-medium) var(--app-ease-out);
   }
   .theme-loading--screen {
     flex-direction: column;
     justify-content: center;
-    gap: var(--theme-space-12);
+    gap: var(--app-space-12);
     inline-size: 100%;
     block-size: 100%;
     min-block-size: 12rem;
-    padding: var(--theme-space-32);
+    padding: var(--app-space-32);
   }
   .theme-loading__spinner {
     display: inline-flex;
-    color: var(--theme-brand);
+    color: var(--app-brand);
     animation: theme-spin 0.9s linear infinite;
   }
   @media (prefers-reduced-motion: reduce) {
@@ -1106,11 +1106,11 @@
     margin: 0;
     padding: 0;
     columns: var(--columns);
-    column-gap: var(--theme-space-12);
+    column-gap: var(--app-space-12);
   }
   .theme-note-board > li {
     break-inside: avoid;
-    margin-block-end: var(--theme-space-12);
+    margin-block-end: var(--app-space-12);
   }
   .theme-note-board__break {
     break-after: column;
@@ -1125,10 +1125,10 @@
      spacing. */
   .shell--compact .theme-note-board {
     --columns: 2;
-    column-gap: var(--theme-space-8);
+    column-gap: var(--app-space-8);
   }
   .shell--compact .theme-note-board > li {
-    margin-block-end: var(--theme-space-8);
+    margin-block-end: var(--app-space-8);
   }
 
   /* ---------------------------------------------------------------------------
@@ -1153,11 +1153,11 @@
   .theme-pane-head {
     display: flex;
     align-items: center;
-    padding: var(--theme-space-8);
-    border-bottom: 0.0625rem solid var(--theme-line);
+    padding: var(--app-space-8);
+    border-bottom: 0.0625rem solid var(--app-line);
   }
   .theme-pane-foot {
-    border-top: 0.0625rem solid var(--theme-line);
+    border-top: 0.0625rem solid var(--app-line);
   }
 
   /* ---------------------------------------------------------------------------
@@ -1182,7 +1182,7 @@
   @keyframes theme-rise {
     from {
       opacity: 0;
-      translate: 0 var(--theme-space-8);
+      translate: 0 var(--app-space-8);
     }
   }
   /* Grows from its origin, fading in — a menu opening from its anchor. */

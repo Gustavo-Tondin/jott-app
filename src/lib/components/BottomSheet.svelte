@@ -28,7 +28,7 @@
   //
   // ON THE SCRIM, the outermost element, so it holds wherever the sheet is
   // mounted. Declared on the inner panel instead, the sheets rendered outside
-  // `.window` (the tabs) sat in no region and `--theme-scrim` resolved to
+  // `.window` (the tabs) sat in no region and `--app-scrim` resolved to
   // nothing — the veil was invisible and the page behind stayed lit.
   import { S } from "../services/strings.js";
   import { onBack } from "../services/back.js";

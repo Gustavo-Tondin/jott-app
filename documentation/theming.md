@@ -87,7 +87,7 @@ anything else — it just has to say so for each region.
 
 > **No role reads another role.**
 
-A role takes a literal value, a `--palette-*` entry, or a `color-mix` of two
+A role takes a literal value, a `--theme-color-*` entry, or a `color-mix` of two
 of those. One hop, never a chain. Reading any line of a theme tells you what
 the colour actually is, instead of sending you through three files. An
 architecture test enforces this, so a chain fails `npm test` rather than
@@ -117,15 +117,15 @@ its folder — which is why a theme copied out of the app works unchanged.
 
    | Role | What it is |
    |---|---|
-   | `--theme-bg` | the region's own fill |
-   | `--theme-surface`, `--theme-surface-sunken` | the step off it: cards, chips, fields, popovers |
-   | `--theme-ink`, `--theme-ink-muted` | text on the ground, and the same ink at 55% |
-   | `--theme-on-brand` | text on a filled accent — the region's own ground, so a bright accent takes dark ink |
-   | `--theme-hover` | the veil a row lifts with: ink at 8% |
-   | `--theme-shadow-popover` | what lifts a menu off the page |
-   | `--accent-<name>-1` … `-6` | each of the eight colours as a six-rung ladder, 1 strongest. H1–H6 stand on these rungs |
-   | `--accent-<name>`, `-line`, `-tint` | the base (rung 3), a border/focus alpha, and a quiet fill |
-   | `--theme-danger`, `-warning`, `-success` (+ `-tint`), `--theme-emphasis` | four of the eight, straight from the palette, so status never changes meaning with the accent; the `-tint` is the quiet fill behind a notice |
+   | `--app-bg` | the region's own fill |
+   | `--app-surface`, `--app-surface-sunken` | the step off it: cards, chips, fields, popovers |
+   | `--app-ink`, `--app-ink-muted` | text on the ground, and the same ink at 55% |
+   | `--app-on-brand` | text on a filled accent — the region's own ground, so a bright accent takes dark ink |
+   | `--app-hover` | the veil a row lifts with: ink at 8% |
+   | `--app-shadow-popover` | what lifts a menu off the page |
+   | `--app-<name>-1` … `-6` | each of the eight colours as a six-rung ladder, 1 strongest. H1–H6 stand on these rungs |
+   | `--app-<name>`, `-line`, `-tint` | the base (rung 3), a border/focus alpha, and a quiet fill |
+   | `--app-danger`, `-warning`, `-success` (+ `-tint`), `--app-emphasis` | four of the eight, straight from the palette, so status never changes meaning with the accent; the `-tint` is the quiet fill behind a notice |
 
 ### The four colour roles
 
@@ -135,10 +135,10 @@ mean the same thing:
 
 | Role | Question it answers | Who carries it | The one form |
 |---|---|---|---|
-| **origin** | where did this come from? | a space (its group's colour wins) | the sidebar's bar, the tab's dot — and, outside the space, a **badge** with the space's name: outline on `--accent-<name>-line`, text on rung 2 |
-| **subject** | what is it about? | a tag | the same badge, **neutral** — `#tag` in `--theme-ink-muted` on `--theme-line`; a tag has no colour of its own |
+| **origin** | where did this come from? | a space (its group's colour wins) | the sidebar's bar, the tab's dot — and, outside the space, a **badge** with the space's name: outline on `--app-<name>-line`, text on rung 2 |
+| **subject** | what is it about? | a tag | the same badge, **neutral** — `#tag` in `--app-ink-muted` on `--app-line`; a tag has no colour of its own |
 | **surface** | the face of a thing | a note's banner (`-fill`, step 300), a folder of notes (`-tint`), a notebook's card (`-solid`, step 500) | a fill; the picker previews the step it will paint with |
-| **status** | urgent? wrong? | priority, an overdue date, a notice | `--theme-danger` / `-warning` / `-success`, fixed — never one of the eight by name |
+| **status** | urgent? wrong? | priority, an overdue date, a notice | `--app-danger` / `-warning` / `-success`, fixed — never one of the eight by name |
 
 The rule that holds it together: **a card carries at most one colour of the
 palette, and it is its space's.** Everything else on it is neutral or status.
@@ -149,19 +149,19 @@ A theme that wants the badge to look different restyles `.theme-badge`
 
 Most of the file is them: each of the eight, as a ladder, for each region.
 They are ordinary values — a theme that wants its own palette writes literals
-and never mentions `--palette-*`. Three things to know before you do:
+and never mentions `--theme-color-*`. Three things to know before you do:
 
 - **Which of the eight is the accent stays the reader's choice** (Settings →
   Display), never the theme's. A theme says what `blue` *looks like*; the
-  person says whether the app wears blue. Assigning `--theme-brand` takes
+  person says whether the app wears blue. Assigning `--app-brand` takes
   that away.
 - **The ladder runs 1 (strongest) → 6 (faintest), and H1–H6 stand on those
   rungs in order.** Keep it monotonic or headings stop agreeing with their
   own size.
-- **`--accent-<name>-fill` is not in the theme file** — it is the same in
+- **`--app-<name>-fill` is not in the theme file** — it is the same in
   every theme and both regions, because a banner is a surface with nothing
   written on it and a yellow note should be yellow under any lamp. A notebook
-  theme can still override it (`:root { --accent-yellow-fill: #e8d9a0; }`),
+  theme can still override it (`:root { --app-yellow-fill: #e8d9a0; }`),
   since it is loaded after everything else.
 
 ### If your theme ships with the app
@@ -205,7 +205,7 @@ two grounds: taking the same steps as a hue would make its first rung a grey
 instead of white, and its tint the ground itself. Everything else about it is
 ordinary.
 
-One role is the same in every theme and both regions: `--accent-<name>-fill`
+One role is the same in every theme and both regions: `--app-<name>-fill`
 (step 300). A banner is a surface with nothing written on it — a yellow note
 is yellow under any lamp.
 

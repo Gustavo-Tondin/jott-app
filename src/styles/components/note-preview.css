@@ -28,10 +28,10 @@
        a heading, a bullet or a quote), which is why it sits under it. */
     --note-preview-lines: 12;
     display: block;
-    color: var(--theme-ink-muted);
-    font-size: var(--theme-text-13);
-    line-height: var(--theme-leading-normal);
-    max-block-size: calc(var(--note-preview-lines) * var(--theme-leading-normal) * 1em);
+    color: var(--app-ink-muted);
+    font-size: var(--app-text-13);
+    line-height: var(--app-leading-normal);
+    max-block-size: calc(var(--note-preview-lines) * var(--app-leading-normal) * 1em);
     overflow: hidden;
     overflow-wrap: anywhere;
   }
@@ -41,8 +41,8 @@
   .note-preview__more {
     display: block;
     margin-block-start: 0.2em;
-    color: var(--theme-ink-faint);
-    font-size: var(--theme-text-13);
+    color: var(--app-ink-faint);
+    font-size: var(--app-text-13);
     line-height: 1;
     letter-spacing: 0.1em;
   }
@@ -64,9 +64,9 @@
      more than below. The two largest step up in size; the four below say it
      with weight alone, because at 13px a fourth size is a rounding error. */
   .note-preview__heading {
-    font-weight: var(--theme-weight-bold);
-    line-height: var(--theme-leading-tight);
-    letter-spacing: var(--theme-tracking-tight);
+    font-weight: var(--app-weight-bold);
+    line-height: var(--app-leading-tight);
+    letter-spacing: var(--app-tracking-tight);
   }
   .note-preview__heading[data-level="1"] {
     font-size: 1.25em;
@@ -83,10 +83,10 @@
 
   /* ---- inline ---- */
   .note-preview__strong {
-    font-weight: var(--theme-weight-bold);
+    font-weight: var(--app-weight-bold);
   }
   /* Italic only. In the note the emphasis carries a colour of its own
-     (`--theme-emphasis`); here it would be the one coloured word on a grey
+     (`--app-emphasis`); here it would be the one coloured word on a grey
      card, which is more attention than the word asked for. */
   .note-preview__em {
     font-style: italic;
@@ -99,9 +99,9 @@
   }
   .note-preview__mono {
     padding: 0.05em 0.3em;
-    border-radius: var(--theme-radius-xs);
-    background: var(--theme-bg);
-    font-family: var(--theme-font-mono);
+    border-radius: var(--app-radius-xs);
+    background: var(--app-bg);
+    font-family: var(--app-font-mono);
     font-size: 0.9em;
   }
 
@@ -128,7 +128,7 @@
     block-size: 0.75em;
     align-self: center;
     border: 0.0625rem solid currentColor;
-    border-radius: var(--theme-radius-xs);
+    border-radius: var(--app-radius-xs);
   }
   .note-preview__box--done {
     background: currentColor;
@@ -143,7 +143,7 @@
      a grey card the bar is the shape saying "quote", and it does not need to
      be the brightest thing on it. */
   .note-preview__quote {
-    border-inline-start: 0.125rem solid var(--theme-line);
+    border-inline-start: 0.125rem solid var(--app-line);
     padding-inline-start: 0.6em;
   }
 
@@ -152,9 +152,9 @@
      the same trade the editor makes. */
   .note-preview__code {
     padding: 0.25em 0.5em;
-    border-radius: var(--theme-radius-xs);
-    background: var(--theme-bg);
-    font-family: var(--theme-font-mono);
+    border-radius: var(--app-radius-xs);
+    background: var(--app-bg);
+    font-family: var(--app-font-mono);
     font-size: 0.9em;
     white-space: pre-wrap;
   }
@@ -167,7 +167,7 @@
     display: flex;
     align-items: baseline;
     gap: 0.4em;
-    color: var(--theme-ink-muted);
+    color: var(--app-ink-muted);
   }
   .note-preview__table .icon {
     flex: 0 0 auto;
@@ -180,16 +180,16 @@
   .note-preview__rule {
     block-size: 0.0625rem;
     margin-block: 0.5em;
-    background: var(--theme-line);
+    background: var(--app-line);
   }
 
   /* The card inside a folder card, and any other ground that is already the
-     region's lower neutral: a chip painted `--theme-bg` there would be
+     region's lower neutral: a chip painted `--app-bg` there would be
      invisible, so it takes the other one. */
   .note-card--small .note-preview__mono,
   .note-card--small .note-preview__code,
   .note-group__popover .note-preview__mono,
   .note-group__popover .note-preview__code {
-    background: var(--theme-surface);
+    background: var(--app-surface);
   }
 }

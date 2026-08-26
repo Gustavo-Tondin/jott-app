@@ -3,7 +3,7 @@
   .tags-view {
     display: flex;
     flex-direction: column;
-    gap: var(--theme-space-12);
+    gap: var(--app-space-12);
     max-inline-size: 40rem;
     margin-inline: auto;
   }
@@ -11,7 +11,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: var(--theme-space-8);
+    gap: var(--app-space-8);
   }
   /* The empty state is the shared .theme-empty (controls.css); the filter
      is the shared .theme-filter, offered once the list is longer than a
@@ -28,18 +28,18 @@
     min-inline-size: 0;
     display: flex;
     flex-direction: column;
-    gap: var(--theme-space-2);
-    color: var(--theme-ink);
+    gap: var(--app-space-2);
+    color: var(--app-ink);
   }
   /* The second line (2026-08-24): how many tasks carry the word, and — for
      a word typed into a task and never catalogued — that it has no colour. */
   .tags-view__meta {
-    font-size: var(--theme-text-12);
-    color: var(--theme-ink-faint);
+    font-size: var(--app-text-12);
+    color: var(--app-ink-faint);
     min-block-size: 1em;
   }
   .tags-view__meta-note {
-    color: var(--theme-ink-faint);
+    color: var(--app-ink-faint);
   }
   /* An uncatalogued word's badge is dimmed: the picker does not know it yet. */
   .tags-view__item--uncatalogued .tags-view__badge {
@@ -51,12 +51,12 @@
   /* The place of the missing bin on an uncatalogued row, so the glasses line
      up down the column: the icon button's box (controls.css). */
   .tags-view__gap {
-    inline-size: calc(1.125rem + 2 * var(--theme-space-6));
+    inline-size: calc(1.125rem + 2 * var(--app-space-6));
     flex: none;
   }
   /* The trash is the shared .theme-btn--icon; only the danger tint on hover is
      this row's, matching every other destructive glyph in the app. */
   .tags-view__delete:hover:not(:disabled) {
-    color: var(--theme-danger);
+    color: var(--app-danger);
   }
 }

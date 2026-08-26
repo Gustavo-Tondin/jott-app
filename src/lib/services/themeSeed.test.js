@@ -41,7 +41,7 @@ describe("seedFrom", () => {
   test("a stylesheet with no key at all is left exactly as it was", () => {
     // Which is what "duplicate the theme I am wearing" runs into: a notebook
     // theme carries no key.
-    const css = '[data-region="canvas"] { --theme-bg: #fdf6e3; }';
+    const css = '[data-region="canvas"] { --app-bg: #fdf6e3; }';
     expect(seedFrom(css)).toBe(css);
   });
 
@@ -55,6 +55,6 @@ describe("seedFrom", () => {
     // this file rather than writing an empty one.
     expect(seeded).toContain('[data-region="chrome"]');
     expect(seeded).toContain('[data-region="canvas"]');
-    expect(seeded).toContain("--theme-bg");
+    expect(seeded).toContain("--app-bg");
   });
 });

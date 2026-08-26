@@ -3,12 +3,12 @@
 
    TWO TIERS, and the split is the whole point of this file:
 
-     1. --palette-*   Raw values (the Figma scale). Named after what they ARE
+     1. --theme-color-*   Raw values (the Figma scale). Named after what they ARE
                       (blue, gray-mute). A component must NEVER read these.
-     2. --theme-*     Semantic roles. Named after what they DO (bg, ink, line,
+     2. --app-*     Semantic roles. Named after what they DO (bg, ink, line,
                       brand). Components read ONLY these.
 
-   The COLOUR roles (--theme-bg/ink/line/brand/danger…) do NOT live here — a
+   The COLOUR roles (--app-bg/ink/line/brand/danger…) do NOT live here — a
    theme assigns them, per region, in themes/<name>.css. What stays here is the
    shared vocabulary every theme builds FROM: the palette a theme reads, plus
    the structural scales (spacing, radius, type, layout, motion) that are
@@ -22,7 +22,7 @@
    root size, so the design's px values are simply divided by 16 — but a reader
    who raises their browser/OS font size now scales the whole interface with it,
    instead of getting bigger text inside boxes that stayed put. The token names
-   keep their px numbers (`--theme-space-16`), because the design speaks in
+   keep their px numbers (`--app-space-16`), because the design speaks in
    those; only the values are relative. The one exception is a real device
    measurement — a media-query breakpoint, or a pointer distance in JS — which
    is about the screen, not the type.
@@ -91,14 +91,14 @@
        step AWAY from the pure one: darker on light, lighter on dark. A region
        takes the pair in whichever order its ground says (styles/themes/*.css).
        --------------------------------------------------------------------- */
-    --palette-white: #fbfbfb;
-    --palette-white-tint: #ecebea;
-    --palette-black: #1e1e1e;
-    --palette-black-tint: #2b2b2b;
+    --theme-color-white: #fbfbfb;
+    --theme-color-white-tint: #ecebea;
+    --theme-color-black: #1e1e1e;
+    --theme-color-black-tint: #2b2b2b;
     /* The one neutral that belongs to NEITHER mode: a warm grey used at low
        alpha for hairlines, tracks and disabled ink, so a single value reads on
        a white canvas and on a black sidebar alike. */
-    --palette-gray: #a39f9b;
+    --theme-color-gray: #a39f9b;
 
     /* ---------------------------------------------------------------------
        THE EIGHT — the colours the user picks from, for the app accent, a
@@ -137,69 +137,69 @@
        so its extremes would collide with them — which is why it, alone, takes
        its roles one step further out (see styles/themes/default.css).
        --------------------------------------------------------------------- */
-    --palette-yellow-100: #f2e8cf;
-    --palette-yellow-200: #dec483;
-    --palette-yellow-300: #d2a513;
-    --palette-yellow-400: #ac8602;
-    --palette-yellow-500: #8c6d02;
-    --palette-yellow-600: #634c02;
-    --palette-yellow-700: #382900;
+    --theme-color-yellow-100: #f2e8cf;
+    --theme-color-yellow-200: #dec483;
+    --theme-color-yellow-300: #d2a513;
+    --theme-color-yellow-400: #ac8602;
+    --theme-color-yellow-500: #8c6d02;
+    --theme-color-yellow-600: #634c02;
+    --theme-color-yellow-700: #382900;
 
-    --palette-orange-100: #ffe1d9;
-    --palette-orange-200: #feb19b;
-    --palette-orange-300: #fe8461;
-    --palette-orange-400: #e35930;
-    --palette-orange-500: #c43c09;
-    --palette-orange-600: #8d2600;
-    --palette-orange-700: #4a1b0d;
+    --theme-color-orange-100: #ffe1d9;
+    --theme-color-orange-200: #feb19b;
+    --theme-color-orange-300: #fe8461;
+    --theme-color-orange-400: #e35930;
+    --theme-color-orange-500: #c43c09;
+    --theme-color-orange-600: #8d2600;
+    --theme-color-orange-700: #4a1b0d;
 
-    --palette-pink-100: #fddfed;
-    --palette-pink-200: #f4aed1;
-    --palette-pink-300: #f37ebe;
-    --palette-pink-400: #d25a9e;
-    --palette-pink-500: #b43e83;
-    --palette-pink-600: #84245d;
-    --palette-pink-700: #441b32;
+    --theme-color-pink-100: #fddfed;
+    --theme-color-pink-200: #f4aed1;
+    --theme-color-pink-300: #f37ebe;
+    --theme-color-pink-400: #d25a9e;
+    --theme-color-pink-500: #b43e83;
+    --theme-color-pink-600: #84245d;
+    --theme-color-pink-700: #441b32;
 
-    --palette-green-100: #d8f0db;
-    --palette-green-200: #9cd8a4;
-    --palette-green-300: #53c76c;
-    --palette-green-400: #1da748;
-    --palette-green-500: #018534;
-    --palette-green-600: #006123;
-    --palette-green-700: #0a3515;
+    --theme-color-green-100: #d8f0db;
+    --theme-color-green-200: #9cd8a4;
+    --theme-color-green-300: #53c76c;
+    --theme-color-green-400: #1da748;
+    --theme-color-green-500: #018534;
+    --theme-color-green-600: #006123;
+    --theme-color-green-700: #0a3515;
 
-    --palette-blue-100: #ddeaff;
-    --palette-blue-200: #a8c8fd;
-    --palette-blue-300: #7aacfe;
-    --palette-blue-400: #538ae6;
-    --palette-blue-500: #396ec9;
-    --palette-blue-600: #224c95;
-    --palette-blue-700: #182b4b;
+    --theme-color-blue-100: #ddeaff;
+    --theme-color-blue-200: #a8c8fd;
+    --theme-color-blue-300: #7aacfe;
+    --theme-color-blue-400: #538ae6;
+    --theme-color-blue-500: #396ec9;
+    --theme-color-blue-600: #224c95;
+    --theme-color-blue-700: #182b4b;
 
-    --palette-red-100: #ffe1dd;
-    --palette-red-200: #feafa9;
-    --palette-red-300: #fd827b;
-    --palette-red-400: #ee4748;
-    --palette-red-500: #ce232e;
-    --palette-red-600: #980217;
-    --palette-red-700: #4e1515;
+    --theme-color-red-100: #ffe1dd;
+    --theme-color-red-200: #feafa9;
+    --theme-color-red-300: #fd827b;
+    --theme-color-red-400: #ee4748;
+    --theme-color-red-500: #ce232e;
+    --theme-color-red-600: #980217;
+    --theme-color-red-700: #4e1515;
 
-    --palette-purple-100: #ece4fe;
-    --palette-purple-200: #d1b8fd;
-    --palette-purple-300: #bc92fe;
-    --palette-purple-400: #a460fa;
-    --palette-purple-500: #8a42dc;
-    --palette-purple-600: #6325a4;
-    --palette-purple-700: #341d52;
+    --theme-color-purple-100: #ece4fe;
+    --theme-color-purple-200: #d1b8fd;
+    --theme-color-purple-300: #bc92fe;
+    --theme-color-purple-400: #a460fa;
+    --theme-color-purple-500: #8a42dc;
+    --theme-color-purple-600: #6325a4;
+    --theme-color-purple-700: #341d52;
 
-    --palette-neutral-100: #e9e8e8;
-    --palette-neutral-200: #c7c6c5;
-    --palette-neutral-300: #adaba9;
-    --palette-neutral-400: #8d8b89;
-    --palette-neutral-500: #737170;
-    --palette-neutral-600: #514f4e;
-    --palette-neutral-700: #2c2b2b;
+    --theme-color-neutral-100: #e9e8e8;
+    --theme-color-neutral-200: #c7c6c5;
+    --theme-color-neutral-300: #adaba9;
+    --theme-color-neutral-400: #8d8b89;
+    --theme-color-neutral-500: #737170;
+    --theme-color-neutral-600: #514f4e;
+    --theme-color-neutral-700: #2c2b2b;
 
     /* TIER 2 — the semantic COLOUR roles are NOT here. They are assigned once
        per REGION, in styles/themes/<name>.css — and the rule there is
@@ -211,18 +211,18 @@
        SPACING — the design's real values (not the global Fibonacci scale:
        this is a specific Figma design, fidelity wins). Named by px.
        --------------------------------------------------------------------- */
-    --theme-space-2: 0.125rem; /*  2px */
-    --theme-space-4: 0.25rem; /*  4px */
-    --theme-space-6: 0.375rem; /*  6px */
-    --theme-space-8: 0.5rem; /*  8px */
-    --theme-space-10: 0.625rem; /* 10px */
-    --theme-space-12: 0.75rem; /* 12px */
-    --theme-space-16: 1rem; /* 16px */
-    --theme-space-24: 1.5rem; /* 24px */
-    --theme-space-32: 2rem; /* 32px */
-    --theme-space-40: 2.5rem; /* 40px */
-    --theme-space-48: 3rem; /* 48px */
-    --theme-space-64: 4rem; /* 64px */
+    --app-space-2: 0.125rem; /*  2px */
+    --app-space-4: 0.25rem; /*  4px */
+    --app-space-6: 0.375rem; /*  6px */
+    --app-space-8: 0.5rem; /*  8px */
+    --app-space-10: 0.625rem; /* 10px */
+    --app-space-12: 0.75rem; /* 12px */
+    --app-space-16: 1rem; /* 16px */
+    --app-space-24: 1.5rem; /* 24px */
+    --app-space-32: 2rem; /* 32px */
+    --app-space-40: 2.5rem; /* 40px */
+    --app-space-48: 3rem; /* 48px */
+    --app-space-64: 4rem; /* 64px */
 
     /* ---------------------------------------------------------------------
        RADIUS — a ladder read by THE SIZE OF THE OBJECT, not by taste: the
@@ -244,13 +244,13 @@
        It is written as the `calc()` at the point of use, so the child follows
        when the parent's rung or padding changes; landing on a rung is a
        coincidence, and 10 or 14 is as correct an answer as 8. */
-    --theme-radius-xs: 0.375rem; /*  6px */
-    --theme-radius-sm: 0.5rem; /*  8px */
-    --theme-radius-md: 0.75rem; /* 12px */
-    --theme-radius-lg: 1rem; /* 16px */
-    --theme-radius-xl: 1.25rem; /* 20px */
+    --app-radius-xs: 0.375rem; /*  6px */
+    --app-radius-sm: 0.5rem; /*  8px */
+    --app-radius-md: 0.75rem; /* 12px */
+    --app-radius-lg: 1rem; /* 16px */
+    --app-radius-xl: 1.25rem; /* 20px */
     /* The pill: any value past half the tallest control rounds it fully. */
-    --theme-radius-pill: 62.5rem;
+    --app-radius-pill: 62.5rem;
 
     /* ---------------------------------------------------------------------
        TYPOGRAPHY
@@ -264,48 +264,48 @@
        statement: a note is read in whatever the app is read in until someone
        says otherwise. Only the two ends of the chain are stated; the middle
        is the user's answer. */
-    --theme-font-sans: "Inter", system-ui, sans-serif;
-    --theme-font-note: var(--theme-font-sans);
+    --app-font-sans: "Inter", system-ui, sans-serif;
+    --app-font-note: var(--app-font-sans);
     /* Code inside a note. Until 2026-08-24 this was the reader's own
        monospace and no webfont — the argument being that a note is a `.md`
        on disk and its code should look the way code looks in the editor they
        open it with. It ships with DM Mono now (user call): the app draws code
        in a face it can count on, and the reader's own monospace is one line
        down the stack and one click away in Display. */
-    --theme-font-mono: "DM Mono", ui-monospace, SFMono-Regular, "SF Mono",
+    --app-font-mono: "DM Mono", ui-monospace, SFMono-Regular, "SF Mono",
       Menlo, "Liberation Mono", monospace;
 
-    --theme-text-10: 0.625rem; /* 10px — task meta date */
-    --theme-text-12: 0.75rem; /* 12px — right panel, breadcrumb */
-    --theme-text-13: 0.8125rem; /* 13px — primary button */
-    --theme-text-14: 0.875rem; /* 14px — tabs, nav labels, body small */
-    --theme-text-16: 1rem; /* 16px — task title, nav, base body */
-    --theme-text-18: 1.125rem; /* 18px — nav-arrow icons */
-    --theme-text-20: 1.25rem; /* 20px — block title */
-    --theme-text-24: 1.5rem; /* 24px — block heading */
-    --theme-text-32: 2rem; /* 32px — space title */
+    --app-text-10: 0.625rem; /* 10px — task meta date */
+    --app-text-12: 0.75rem; /* 12px — right panel, breadcrumb */
+    --app-text-13: 0.8125rem; /* 13px — primary button */
+    --app-text-14: 0.875rem; /* 14px — tabs, nav labels, body small */
+    --app-text-16: 1rem; /* 16px — task title, nav, base body */
+    --app-text-18: 1.125rem; /* 18px — nav-arrow icons */
+    --app-text-20: 1.25rem; /* 20px — block title */
+    --app-text-24: 1.5rem; /* 24px — block heading */
+    --app-text-32: 2rem; /* 32px — space title */
 
-    --theme-weight-regular: 400;
-    --theme-weight-medium: 500;
-    --theme-weight-semibold: 600;
-    --theme-weight-bold: 700;
+    --app-weight-regular: 400;
+    --app-weight-medium: 500;
+    --app-weight-semibold: 600;
+    --app-weight-bold: 700;
 
-    --theme-tracking-tight: -0.01em;
-    --theme-tracking-wide: 0.06em; /* the letter-spacing:1px of headings/labels */
+    --app-tracking-tight: -0.01em;
+    --app-tracking-wide: 0.06em; /* the letter-spacing:1px of headings/labels */
 
-    --theme-leading-tight: 1.2;
-    --theme-leading-normal: 1.5;
-    --theme-leading-loose: 1.6; /* note body */
+    --app-leading-tight: 1.2;
+    --app-leading-normal: 1.5;
+    --app-leading-loose: 1.6; /* note body */
 
     /* ---------------------------------------------------------------------
        LAYOUT — the shell's fixed dimensions. Shared by the title bar and the
        three-panel row so the tab strip aligns with the centre panel by
        construction. Likely to change; changing them here moves both.
        --------------------------------------------------------------------- */
-    --theme-sidebar-left: 13.75rem;
-    --theme-sidebar-rail: 3.5rem; /* the left sidebar collapsed to an icon rail */
-    --theme-sidebar-right: 15rem;
-    --theme-titlebar-height: 2.375rem;
+    --app-sidebar-left: 13.75rem;
+    --app-sidebar-rail: 3.5rem; /* the left sidebar collapsed to an icon rail */
+    --app-sidebar-right: 15rem;
+    --app-titlebar-height: 2.375rem;
     /* The compact shell's top bar, in three parts, because two places need
        its total height and only one of them draws it: an open note lets its
        canvas scroll UNDER the bar (the wireframes "Editor screen", 2026-08-19
@@ -314,23 +314,23 @@
        than twice, so the bar cannot drift away from the space reserved for it.
        The top padding is the status bar's own strip, never stacked on top of
        the bar's air — components/topbar.css says why. */
-    --theme-topbar-control: 2.625rem;
-    --theme-topbar-pad-block-start: max(
-      var(--theme-space-12),
-      var(--theme-safe-top)
+    --app-topbar-control: 2.625rem;
+    --app-topbar-pad-block-start: max(
+      var(--app-space-12),
+      var(--app-safe-top)
     );
-    --theme-topbar-height: calc(
-      var(--theme-topbar-control) + var(--theme-topbar-pad-block-start) +
-        var(--theme-space-12)
+    --app-topbar-height: calc(
+      var(--app-topbar-control) + var(--app-topbar-pad-block-start) +
+        var(--app-space-12)
     );
-    --theme-content-max: 45rem;
+    --app-content-max: 45rem;
     /* An open note is the one screen with TWO widths (wireframe "Editor screen
        - maximized", 2026-08-19): its prose keeps the cap above, and its banner
        reaches past it to 900px. The wider box is what makes the banner read as
        the head of the page rather than as its first paragraph, and the title
        chip still lines up with the first letter of the text because it is
-       drawn inside a box of `--theme-content-max` within it. */
-    --theme-content-wide: 56.25rem;
+       drawn inside a box of `--app-content-max` within it. */
+    --app-content-wide: 56.25rem;
 
     /* HOW BIG A NOTE IS DRAWN, and the one heading size read from outside the
        editor. `data-note-size` on the root picks the rung (`noteFontSize`,
@@ -338,14 +338,14 @@
        `data-theme` and `data-accent` keep.
 
        The marks inside a note are `em` multiples of the body, so one
-       declaration moves the whole document. `--theme-note-h1` states the
+       declaration moves the whole document. `--app-note-h1` states the
        largest of those multiples as a length, because the note's TITLE is
        drawn outside the editor and has to match it (user call, 2026-08-19:
        "deixe o título maior também, pelo menos do tamanho de um H1"). Written
        once here, so the title cannot drift from the heading it is sized
        against. */
-    --theme-note-size: var(--theme-text-16);
-    --theme-note-h1: calc(var(--theme-note-size) * 1.6);
+    --app-note-size: var(--app-text-16);
+    --app-note-h1: calc(var(--app-note-size) * 1.6);
 
     /* ---------------------------------------------------------------------
        COMPACT — the shell rearranged for a screen too narrow to hold three
@@ -362,16 +362,16 @@
        is the device affordances, which ride on `data-platform` instead
        (shell/platform.js). Two questions, two mechanisms, no overlap.
        --------------------------------------------------------------------- */
-    --theme-drawer-width: 15rem; /* 240px — the wireframe's sidebar */
-    --theme-sheet-inset: 0.625rem; /* 10px — a bottom sheet floats, edge to edge is a page */
-    --theme-sheet-radius: var(--theme-radius-xl);
+    --app-drawer-width: 15rem; /* 240px — the wireframe's sidebar */
+    --app-sheet-inset: 0.625rem; /* 10px — a bottom sheet floats, edge to edge is a page */
+    --app-sheet-radius: var(--app-radius-xl);
 
     /* The smallest thing a finger may be asked to hit. Android asks for 48dp
        and iOS for 44pt; 48 is the stricter of the two, so it is the one used.
        It is a MINIMUM AREA, not a size: the wireframe's own metrics keep their
        drawn dimensions and the hit area grows underneath them, which is how
        both platforms' own controls do it. */
-    --theme-touch-min: 3rem; /* 48px */
+    --app-touch-min: 3rem; /* 48px */
 
     /* ---------------------------------------------------------------------
        SAFE AREAS — the strips the system bars own.
@@ -390,10 +390,10 @@
        `--android-inset-*` (MainActivity.kt) and `max()` takes whichever edge
        actually knows. On a desktop neither exists and both resolve to zero.
        --------------------------------------------------------------------- */
-    --theme-safe-top: max(env(safe-area-inset-top, 0rem), var(--android-inset-top, 0rem));
-    --theme-safe-right: max(env(safe-area-inset-right, 0rem), var(--android-inset-right, 0rem));
-    --theme-safe-bottom: max(env(safe-area-inset-bottom, 0rem), var(--android-inset-bottom, 0rem));
-    --theme-safe-left: max(env(safe-area-inset-left, 0rem), var(--android-inset-left, 0rem));
+    --app-safe-top: max(env(safe-area-inset-top, 0rem), var(--android-inset-top, 0rem));
+    --app-safe-right: max(env(safe-area-inset-right, 0rem), var(--android-inset-right, 0rem));
+    --app-safe-bottom: max(env(safe-area-inset-bottom, 0rem), var(--android-inset-bottom, 0rem));
+    --app-safe-left: max(env(safe-area-inset-left, 0rem), var(--android-inset-left, 0rem));
 
     /* How much of the PAGE the on-screen keyboard is covering.
 
@@ -413,7 +413,7 @@
        `shell/keyboard.js` subtracts whatever the page gave up and writes the
        remainder here. Zero everywhere else, which is what a desktop resolves
        to and what Android reports with no keyboard up. */
-    --theme-keyboard: 0rem;
+    --app-keyboard: 0rem;
 
     /* The formatting strip's own share of the bottom edge, while one is up.
        It floats over the page just above the keyboard, so a note has to end
@@ -421,7 +421,7 @@
        typed sits behind the buttons. Measured from the pill and written by
        App.svelte; zero on every screen that has no strip, which is all of them
        but a note being written on a phone. */
-    --theme-format-strip: 0rem;
+    --app-format-strip: 0rem;
 
     /* ---------------------------------------------------------------------
        MOTION
@@ -441,16 +441,16 @@
        ease-out  decelerating — for anything that ARRIVES (it lands softly)
        spring    a hair of overshoot — for a knob, a check, a pill that glides;
                  never for layout, where the overshoot would clip. */
-    --theme-duration-fast: 0.15s;
-    --theme-duration-medium: 0.25s;
-    --theme-duration-slow: 0.35s;
-    --theme-ease: ease;
-    --theme-ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
-    --theme-ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+    --app-duration-fast: 0.15s;
+    --app-duration-medium: 0.25s;
+    --app-duration-slow: 0.35s;
+    --app-ease: ease;
+    --app-ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+    --app-ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
 
     /* The two pairs every component already reads, now derived. */
-    --theme-transition-fast: var(--theme-duration-fast) var(--theme-ease);
-    --theme-transition-medium: var(--theme-duration-medium) var(--theme-ease-out);
+    --app-transition-fast: var(--app-duration-fast) var(--app-ease);
+    --app-transition-medium: var(--app-duration-medium) var(--app-ease-out);
 
     /* ---------------------------------------------------------------------
        WINDOW — frameless chrome the app draws itself (GNOME/Wayland gives no
@@ -475,7 +475,7 @@
        device's own corner is already rounder than anything the app would draw
        inside it.
        --------------------------------------------------------------------- */
-    --theme-window-radius: 1.25rem; /* 20px */
+    --app-window-radius: 1.25rem; /* 20px */
   }
 
   /* Windows 11 rounds a window by 8px, macOS by 10. Neither has been seen
@@ -483,20 +483,20 @@
      (CLAUDE.md, "Plataformas") — so these are the systems' documented values
      and not a measurement, and they are one line each to correct. */
   :root[data-os="windows"] {
-    --theme-window-radius: 0.5rem; /* 8px */
+    --app-window-radius: 0.5rem; /* 8px */
   }
   :root[data-os="macos"] {
-    --theme-window-radius: 0.625rem; /* 10px */
+    --app-window-radius: 0.625rem; /* 10px */
   }
 
   /* The two other rungs of the note's size ladder. Here rather than in
      editor.css, because the token is now read from outside the editor too —
-     the note's title is sized against `--theme-note-h1`. */
+     the note's title is sized against `--app-note-h1`. */
   :root[data-note-size="small"] {
-    --theme-note-size: var(--theme-text-14);
+    --app-note-size: var(--app-text-14);
   }
   :root[data-note-size="large"] {
-    --theme-note-size: var(--theme-text-18);
+    --app-note-size: var(--app-text-18);
   }
 
   /* ---------------------------------------------------------------------
@@ -505,7 +505,7 @@
 
      THE NUMBER IN THE NAME IS THE DESKTOP px, and it always was — the name
      denotes the RUNG, which is why 55 rules across 40 sheets can read
-     `--theme-text-13` without any of them knowing what a 13 is worth. So the
+     `--app-text-13` without any of them knowing what a 13 is worth. So the
      ramp gets a second setting rather than 55 overrides: on a coarse pointer
      the bottom four rungs each move up one step, and every rule that reads
      them moves with it, in step, for free.
@@ -523,10 +523,10 @@
      what the tightest of those rows was measured to hold. */
   @media (pointer: coarse) {
     :root {
-      --theme-text-10: 0.75rem; /* 12px — task meta date */
-      --theme-text-12: 0.8125rem; /* 13px — right panel, breadcrumb */
-      --theme-text-13: 0.875rem; /* 14px — buttons, menu rows */
-      --theme-text-14: 0.9375rem; /* 15px — tabs, nav labels, body small */
+      --app-text-10: 0.75rem; /* 12px — task meta date */
+      --app-text-12: 0.8125rem; /* 13px — right panel, breadcrumb */
+      --app-text-13: 0.875rem; /* 14px — buttons, menu rows */
+      --app-text-14: 0.9375rem; /* 15px — tabs, nav labels, body small */
     }
   }
 }
@@ -542,9 +542,9 @@
 @media (prefers-reduced-motion: reduce) {
   @layer tokens {
     :root {
-      --theme-duration-fast: 0.01s;
-      --theme-duration-medium: 0.01s;
-      --theme-duration-slow: 0.01s;
+      --app-duration-fast: 0.01s;
+      --app-duration-medium: 0.01s;
+      --app-duration-slow: 0.01s;
     }
   }
 }

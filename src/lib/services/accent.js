@@ -6,7 +6,7 @@
 // runs a seven-step tonal ramp, and which end of it a colour shows depends on
 // the ground it lands on. The black sidebar reads from the light end, the
 // white canvas from the dark end (styles/tokens.css, styles/themes/*.css). A
-// hex cannot do that; a name resolves to `var(--accent-orange)`, which every
+// hex cannot do that; a name resolves to `var(--app-orange)`, which every
 // region has already answered for itself.
 //
 // `neutral` is the white↔black family, and it is one colour rather than two
@@ -47,7 +47,7 @@ export function isAccent(value) {
 /// custom property unset so its `var(…, fallback)` applies.
 export function accentColor(value) {
   if (!value) return null;
-  if (isAccent(value)) return `var(--accent-${value})`;
+  if (isAccent(value)) return `var(--app-${value})`;
   return value;
 }
 
@@ -59,7 +59,7 @@ export function accentColor(value) {
 /// rest fade toward the ground, which is the closest a lone hex can get.
 export function accentRung(value, rung) {
   if (!value) return null;
-  if (isAccent(value)) return `var(--accent-${value}-${rung})`;
+  if (isAccent(value)) return `var(--app-${value}-${rung})`;
   const fade = [100, 90, 80, 68, 58, 48][rung - 1] ?? 100;
   return fade === 100 ? value : `color-mix(in srgb, ${value} ${fade}%, transparent)`;
 }
@@ -72,7 +72,7 @@ export function accentRung(value, rung) {
 /// written by hand is itself, as everywhere else.
 export function accentFill(value) {
   if (!value) return null;
-  if (isAccent(value)) return `var(--accent-${value}-fill)`;
+  if (isAccent(value)) return `var(--app-${value}-fill)`;
   return value;
 }
 
@@ -90,10 +90,10 @@ export function accentFill(value) {
 /// (`architecture.test.js`). Like the banner's fill and for the same reason,
 /// it does not follow the ground it lands on: a notebook's colour is what the
 /// user recognizes it by across the room, and it must be the same colour on
-/// every theme. The ink that goes over it is `--accent-on-solid`.
+/// every theme. The ink that goes over it is `--app-on-solid`.
 export function accentSolid(value) {
   if (!value) return null;
-  if (isAccent(value)) return `var(--accent-${value}-solid)`;
+  if (isAccent(value)) return `var(--app-${value}-solid)`;
   return value;
 }
 
@@ -104,7 +104,7 @@ export function accentSolid(value) {
 /// before the palette existed.
 export function accentTint(value) {
   if (!value) return null;
-  if (isAccent(value)) return `var(--accent-${value}-tint)`;
+  if (isAccent(value)) return `var(--app-${value}-tint)`;
   return `color-mix(in srgb, ${value} 18%, transparent)`;
 }
 
@@ -113,7 +113,7 @@ export function accentTint(value) {
 /// colour is mixed down, like its tint.
 export function accentLine(value) {
   if (!value) return null;
-  if (isAccent(value)) return `var(--accent-${value}-line)`;
+  if (isAccent(value)) return `var(--app-${value}-line)`;
   return `color-mix(in srgb, ${value} 45%, transparent)`;
 }
 

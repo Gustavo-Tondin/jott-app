@@ -646,10 +646,10 @@
   // the two never disagree about the gap.
   $effect(() => {
     setRootVar(
-      "--theme-format-strip",
-      stripUp && stripHeight ? `calc(${stripHeight}px + var(--theme-space-8))` : null,
+      "--app-format-strip",
+      stripUp && stripHeight ? `calc(${stripHeight}px + var(--app-space-8))` : null,
     );
-    return () => setRootVar("--theme-format-strip", null);
+    return () => setRootVar("--app-format-strip", null);
   });
 
   /// WHERE the note's formatting controls are: docked in the right panel, or
@@ -806,7 +806,7 @@
   // theme, black and white, and `neutral` for the accent rather than the blue
   // an absent attribute falls back to. That is also exactly what the notebooks
   // wireframe draws — its primary button is white on the black frame, which is
-  // what `--accent-neutral` resolves to in the chrome — and it is what leaves
+  // what `--app-neutral` resolves to in the chrome — and it is what leaves
   // the CARDS as the only coloured things on the screen, which is the whole
   // point of the colour being there.
   $effect(() =>
@@ -2290,8 +2290,8 @@
   class:window--pushed={compact && drawerOpen}
   class:window--sliding={drawerAt !== null}
   style={[
-    sidebarWidth ? `--theme-sidebar-left: ${sidebarWidth}px` : "",
-    panelWidth ? `--theme-sidebar-right: ${panelWidth}px` : "",
+    sidebarWidth ? `--app-sidebar-left: ${sidebarWidth}px` : "",
+    panelWidth ? `--app-sidebar-right: ${panelWidth}px` : "",
   ]
     .filter(Boolean)
     .join("; ") || undefined}

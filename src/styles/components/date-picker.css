@@ -19,40 +19,40 @@
      — 13rem leaves the Sunday column room instead of being cut off. */
   .date-picker__pop {
     width: 13rem;
-    padding: var(--theme-space-6);
+    padding: var(--app-space-6);
   }
 
   .date-picker__head {
     display: flex;
     align-items: center;
-    gap: var(--theme-space-2);
-    margin-bottom: var(--theme-space-6);
+    gap: var(--app-space-2);
+    margin-bottom: var(--app-space-6);
   }
   .date-picker__month {
     flex: 1;
     text-align: center;
-    font-size: var(--theme-text-13);
-    font-weight: var(--theme-weight-semibold);
-    color: var(--theme-ink);
+    font-size: var(--app-text-13);
+    font-weight: var(--app-weight-semibold);
+    color: var(--app-ink);
   }
   /* The close × sits a hair apart from the month arrows. */
   .date-picker__close {
-    margin-inline-start: var(--theme-space-2);
-    color: var(--theme-ink-faint);
+    margin-inline-start: var(--app-space-2);
+    color: var(--app-ink-faint);
   }
 
   .date-picker__grid {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    gap: var(--theme-space-2);
+    gap: var(--app-space-2);
   }
   .date-picker__weekday {
     display: flex;
     align-items: center;
     justify-content: center;
     height: 1.5rem;
-    font-size: var(--theme-text-10);
-    color: var(--theme-ink-faint);
+    font-size: var(--app-text-10);
+    color: var(--app-ink-faint);
   }
   .date-picker__day {
     display: flex;
@@ -62,28 +62,28 @@
     border: none;
     /* The popover's corner less the pop's padding — the last row's outer
        cells are what sit in it. */
-    border-radius: calc(var(--theme-radius-md) - var(--theme-space-6));
+    border-radius: calc(var(--app-radius-md) - var(--app-space-6));
     background: none;
-    color: var(--theme-ink);
+    color: var(--app-ink);
     font: inherit;
-    font-size: var(--theme-text-12);
+    font-size: var(--app-text-12);
     cursor: pointer;
   }
   .date-picker__day:hover:not(.date-picker__day--empty) {
-    background: var(--theme-surface-sunken);
+    background: var(--app-surface-sunken);
   }
   .date-picker__day--empty {
     cursor: default;
   }
   /* Today is outlined; the chosen day is filled with the brand. */
   .date-picker__day--today {
-    box-shadow: inset 0 0 0 0.0625rem var(--theme-brand-outline);
+    box-shadow: inset 0 0 0 0.0625rem var(--app-brand-outline);
   }
   .date-picker__day--selected,
   .date-picker__day--selected:hover {
-    background: var(--theme-brand);
-    color: var(--theme-on-brand);
-    font-weight: var(--theme-weight-semibold);
+    background: var(--app-brand);
+    color: var(--app-on-brand);
+    font-weight: var(--app-weight-semibold);
   }
 
   /* THE SMALLEST TARGET IN THE APP, on a finger (2026-08-20). The 13rem above
@@ -99,7 +99,7 @@
   @media (pointer: coarse) {
     .date-picker__pop {
       width: min(20rem, 88vw);
-      padding: var(--theme-space-8);
+      padding: var(--app-space-8);
     }
     .date-picker__weekday {
       height: 2rem;

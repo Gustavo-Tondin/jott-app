@@ -12,7 +12,7 @@ function popover({ anchorTop, anchorHeight = 36, panelHeight = 200, keyboard = 0
         </div>
       </div>
     </div>`;
-  document.documentElement.style.setProperty("--theme-keyboard", `${keyboard}px`);
+  document.documentElement.style.setProperty("--app-keyboard", `${keyboard}px`);
   window.innerWidth = 360;
   window.innerHeight = 780;
 
@@ -61,7 +61,7 @@ beforeEach(() => {
 afterEach(() => {
   action?.destroy?.();
   action = null;
-  document.documentElement.style.removeProperty("--theme-keyboard");
+  document.documentElement.style.removeProperty("--app-keyboard");
 });
 
 describe("where a popover lands", () => {
@@ -86,7 +86,7 @@ describe("where a popover lands", () => {
     // THE ONE THE USER HIT (2026-08-18): the composer sits just above the
     // keyboard, so there is plenty of window under it and no room at all. No
     // browser measurement says so inside an Android WebView — only
-    // `--theme-keyboard`, published by the activity.
+    // `--app-keyboard`, published by the activity.
     const { panel } = popover({ anchorTop: 420, keyboard: 300 });
     action = keepOnScreen(panel);
     // Under the anchor would be 460, and 460 + 200 runs past 780 - 300.
@@ -105,7 +105,7 @@ describe("where a popover lands", () => {
     // A panel with a field in it (the repeat popup) is opened first and the
     // keyboard comes up second — and the composer it hangs off is pinned above
     // that keyboard, so the anchor travels half the screen. Nothing in the
-    // browser announces this; the activity writing `--theme-keyboard` on the
+    // browser announces this; the activity writing `--app-keyboard` on the
     // root is the only signal, so that is what the action watches.
     const { anchor, panel } = popover({ anchorTop: 700 });
     action = keepOnScreen(panel);
@@ -120,7 +120,7 @@ describe("where a popover lands", () => {
       width: 48,
       height: 36,
     });
-    document.documentElement.style.setProperty("--theme-keyboard", "320px");
+    document.documentElement.style.setProperty("--app-keyboard", "320px");
     await Promise.resolve();
 
     // Above the anchor's NEW place, and clear of the keyboard.

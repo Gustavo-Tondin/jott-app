@@ -23,11 +23,11 @@
     display: grid;
     grid-template-columns: max-content minmax(0, 1fr);
     align-items: start;
-    gap: var(--theme-space-24);
+    gap: var(--app-space-24);
   }
   .settings--compact {
     grid-template-columns: minmax(0, 1fr);
-    gap: var(--theme-space-16);
+    gap: var(--app-space-16);
   }
   /* The read-only notice and the "Saved." flash answer for the whole screen,
      not for the section that happens to be open, so they cross both columns. */
@@ -44,9 +44,9 @@
      draws a single block with a label above its list, which is what lets a
      second group (the day this screen gains one) sit beside it as a peer. */
   .settings__nav {
-    background: var(--theme-surface);
-    border-radius: var(--theme-radius-lg);
-    padding: var(--theme-space-12) var(--theme-space-8) var(--theme-space-16);
+    background: var(--app-surface);
+    border-radius: var(--app-radius-lg);
+    padding: var(--app-space-12) var(--app-space-8) var(--app-space-16);
     /* Wide enough that the rows do not read as a narrow strip, and never so
        wide that a long label pushes the section out of the column. */
     min-inline-size: 12rem;
@@ -64,11 +64,11 @@
   /* The field itself is the shared .theme-filter (controls.css, 2026-08-24);
      what is left here is where it sits in the menu. */
   .settings__search {
-    margin: 0 var(--theme-space-4) var(--theme-space-12);
+    margin: 0 var(--app-space-4) var(--app-space-12);
   }
   .settings__search--inline {
     margin-inline: 0;
-    margin-block-end: var(--theme-space-8);
+    margin-block-end: var(--app-space-8);
     max-inline-size: 18rem;
   }
   /* A font picker is wider than the other controls of the page: a family
@@ -87,20 +87,20 @@
   }
   .settings__hit-where {
     flex-basis: 100%;
-    font-size: var(--theme-text-12);
-    color: var(--theme-ink-faint);
+    font-size: var(--app-text-12);
+    color: var(--app-ink-faint);
   }
   .settings__hit-empty {
-    padding-inline: var(--theme-space-12);
+    padding-inline: var(--app-space-12);
   }
 
   .settings__nav-title {
-    margin: 0 0 var(--theme-space-8);
-    padding-inline: var(--theme-space-12);
-    font-size: var(--theme-text-12);
-    letter-spacing: var(--theme-tracking-wide);
+    margin: 0 0 var(--app-space-8);
+    padding-inline: var(--app-space-12);
+    font-size: var(--app-text-12);
+    letter-spacing: var(--app-tracking-wide);
     text-transform: uppercase;
-    color: var(--theme-ink-muted);
+    color: var(--app-ink-muted);
   }
   .settings__nav-list {
     list-style: none;
@@ -108,26 +108,26 @@
     padding: 0;
     display: flex;
     flex-direction: column;
-    gap: var(--theme-space-2);
+    gap: var(--app-space-2);
   }
   .settings__nav-item {
     inline-size: 100%;
     display: flex;
     align-items: center;
-    gap: var(--theme-space-12);
-    padding: var(--theme-space-8) var(--theme-space-12);
+    gap: var(--app-space-12);
+    padding: var(--app-space-8) var(--app-space-12);
     border: none;
-    border-radius: var(--theme-radius-md);
+    border-radius: var(--app-radius-md);
     background: none;
-    color: var(--theme-ink-muted);
+    color: var(--app-ink-muted);
     font: inherit;
-    font-size: var(--theme-text-14);
+    font-size: var(--app-text-14);
     text-align: start;
     cursor: pointer;
   }
   .settings__nav-item:hover {
-    background: var(--theme-hover);
-    color: var(--theme-ink);
+    background: var(--app-hover);
+    color: var(--app-ink);
   }
   .settings__nav-label {
     flex: 1;
@@ -143,30 +143,30 @@
      is enough here, because the row it marks is one of six in one block. */
   .settings__nav-item--active,
   .settings__nav-item--active:hover {
-    background: var(--theme-well);
-    color: var(--theme-ink);
-    font-weight: var(--theme-weight-semibold);
+    background: var(--app-well);
+    color: var(--app-ink);
+    font-weight: var(--app-weight-semibold);
   }
 
   /* The second block of the menu (wireframe "Settings screen mobile",
      2026-08-20). A rule above it rather than a gap: the two blocks are peers
      inside one card, and a line is what says the card has two halves. */
   .settings__nav-title--split {
-    margin-block-start: var(--theme-space-16);
-    padding-block-start: var(--theme-space-16);
-    border-top: 0.0625rem solid var(--theme-line);
+    margin-block-start: var(--app-space-16);
+    padding-block-start: var(--app-space-16);
+    border-top: 0.0625rem solid var(--app-line);
   }
   /* A door into a group carries no icon (the wireframe's rule): it is not a
      subject, so the label starts where the subjects' icons do. */
   .settings__nav-item--group {
-    padding-inline-start: var(--theme-space-12);
+    padding-inline-start: var(--app-space-12);
   }
   /* What belongs to the group above it. The bar is the belonging — indent
      alone reads as a second level of the same list. */
   .settings__nav-nest {
-    margin-inline-start: var(--theme-space-16);
-    padding-inline-start: var(--theme-space-8);
-    border-inline-start: 0.0625rem solid var(--theme-line);
+    margin-inline-start: var(--app-space-16);
+    padding-inline-start: var(--app-space-8);
+    border-inline-start: 0.0625rem solid var(--app-line);
   }
 
   /* The way back to the menu, on the phone. It is NOT the top bar's arrow:
@@ -175,42 +175,42 @@
   .settings__back {
     display: inline-flex;
     align-items: center;
-    gap: var(--theme-space-4);
-    margin-block-end: var(--theme-space-12);
-    padding: var(--theme-space-6) var(--theme-space-8);
-    margin-inline-start: calc(var(--theme-space-8) * -1);
+    gap: var(--app-space-4);
+    margin-block-end: var(--app-space-12);
+    padding: var(--app-space-6) var(--app-space-8);
+    margin-inline-start: calc(var(--app-space-8) * -1);
     border: none;
-    border-radius: var(--theme-radius-sm);
+    border-radius: var(--app-radius-sm);
     background: none;
-    color: var(--theme-ink-muted);
+    color: var(--app-ink-muted);
     font: inherit;
-    font-size: var(--theme-text-14);
+    font-size: var(--app-text-14);
     cursor: pointer;
   }
   .settings__back:hover {
-    color: var(--theme-ink);
+    color: var(--app-ink);
   }
 }
 
 @layer components {
   .settings__section {
-    margin-bottom: var(--theme-space-24);
+    margin-bottom: var(--app-space-24);
   }
   .settings__section-title {
-    font-size: var(--theme-text-12);
-    letter-spacing: var(--theme-tracking-wide);
+    font-size: var(--app-text-12);
+    letter-spacing: var(--app-tracking-wide);
     text-transform: uppercase;
-    color: var(--theme-ink-muted);
-    margin: 0 0 var(--theme-space-8);
-    border-bottom: 0.0625rem solid var(--theme-line);
-    padding-bottom: var(--theme-space-4);
+    color: var(--app-ink-muted);
+    margin: 0 0 var(--app-space-8);
+    border-bottom: 0.0625rem solid var(--app-line);
+    padding-bottom: var(--app-space-4);
   }
   .settings__row {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: var(--theme-space-16);
-    padding: var(--theme-space-6) 0;
+    gap: var(--app-space-16);
+    padding: var(--app-space-6) 0;
     margin: 0;
   }
   /* The controls wear the shared .theme-input / .theme-select; the row only
@@ -221,13 +221,13 @@
     min-width: 12rem;
   }
   .settings__hint {
-    margin: 0 0 var(--theme-space-10);
-    font-size: var(--theme-text-13);
-    color: var(--theme-ink-faint);
+    margin: 0 0 var(--app-space-10);
+    font-size: var(--app-text-13);
+    color: var(--app-ink-faint);
   }
   .settings__path {
-    font-size: var(--theme-text-13);
-    color: var(--theme-ink-muted);
+    font-size: var(--app-text-13);
+    color: var(--app-ink-muted);
     word-break: break-all;
   }
   /* "Reset this section": at the foot, past a gap wider than any row's, and
@@ -236,9 +236,9 @@
   .settings__reset {
     display: flex;
     justify-content: flex-end;
-    margin-block-start: var(--theme-space-48);
-    padding-block-start: var(--theme-space-16);
-    border-block-start: 0.0625rem solid var(--theme-line);
+    margin-block-start: var(--app-space-48);
+    padding-block-start: var(--app-space-16);
+    border-block-start: 0.0625rem solid var(--app-line);
   }
   .settings__reset-btn {
     opacity: 0.55;
@@ -249,19 +249,19 @@
   }
   /* A read-only answer beside its label — the notebook's contents. */
   .settings__value {
-    font-size: var(--theme-text-13);
-    color: var(--theme-ink-muted);
+    font-size: var(--app-text-13);
+    color: var(--app-ink-muted);
   }
   .settings__notice {
-    background: var(--theme-surface-sunken);
-    border: 0.0625rem solid var(--theme-line);
-    padding: var(--theme-space-8) var(--theme-space-12);
-    border-radius: var(--theme-radius-md);
-    color: var(--theme-ink);
+    background: var(--app-surface-sunken);
+    border: 0.0625rem solid var(--app-line);
+    padding: var(--app-space-8) var(--app-space-12);
+    border-radius: var(--app-radius-md);
+    color: var(--app-ink);
   }
   .settings__saved {
-    color: var(--theme-brand);
-    font-size: var(--theme-text-13);
+    color: var(--app-brand);
+    font-size: var(--app-text-13);
   }
 }
 
@@ -269,9 +269,9 @@
    belongs to, and reads quieter — it is a detail of that one, not a peer. */
 @layer components {
   .settings__row--sub {
-    padding-inline-start: var(--theme-space-24);
-    font-size: var(--theme-text-14);
-    color: var(--theme-ink-muted);
+    padding-inline-start: var(--app-space-24);
+    font-size: var(--app-text-14);
+    color: var(--app-ink-muted);
   }
 
   /* A hairline between rows, so the eye can tell which switch belongs to which
@@ -279,11 +279,11 @@
      switches with nothing between them is a column of guesses). It is the
      faintest line the theme has: this is a reading aid, not a division. */
   .settings__section--features .settings__row + .settings__row {
-    border-top: 0.0625rem solid var(--theme-line-soft);
+    border-top: 0.0625rem solid var(--app-line-soft);
   }
   /* The line follows the indent, so it reads as belonging to the group. */
   .settings__section--features .settings__row--sub {
-    margin-inline-start: var(--theme-space-24);
+    margin-inline-start: var(--app-space-24);
     padding-inline-start: 0;
   }
 
@@ -292,7 +292,7 @@
   .settings__section--features
     .settings__row--sub
     + .settings__row:not(.settings__row--sub) {
-    margin-block-start: var(--theme-space-16);
+    margin-block-start: var(--app-space-16);
     border-top: none;
   }
 }
@@ -301,30 +301,30 @@
    it is: this is ON, it is called that, and there is more of it through here. */
 @layer components {
   .settings__function {
-    gap: var(--theme-space-12);
+    gap: var(--app-space-12);
   }
   /* A sub-switch drawn on this page (the fixed spaces): indented under its
      master, the way a child names its parent on a function's own page. */
   .settings__function--sub {
-    margin-inline-start: var(--theme-space-24);
+    margin-inline-start: var(--app-space-24);
   }
   /* The divider that sets the inline group apart from the functions above. */
   .settings__functions-break {
-    margin-block: var(--theme-space-8);
+    margin-block: var(--app-space-8);
   }
   /* The ? beside an inline group's label — quiet until asked. */
   .settings__function-help {
-    color: var(--theme-ink-faint);
+    color: var(--app-ink-faint);
   }
   .settings__function-help:hover {
-    color: var(--theme-ink);
+    color: var(--app-ink);
   }
   /* The help dialog's paragraphs, one thought each. */
   .settings__help-paragraph {
-    margin-block: var(--theme-space-8) 0;
-    color: var(--theme-ink-muted);
-    font-size: var(--theme-text-13);
-    line-height: var(--theme-leading-normal);
+    margin-block: var(--app-space-8) 0;
+    color: var(--app-ink-muted);
+    font-size: var(--app-text-13);
+    line-height: var(--app-leading-normal);
   }
   .settings__function-name {
     flex: 1;
@@ -338,12 +338,12 @@
   .settings__zoom {
     display: flex;
     align-items: center;
-    gap: var(--theme-space-8);
+    gap: var(--app-space-8);
   }
   .settings__zoom-value {
     min-inline-size: 3rem;
-    font-size: var(--theme-text-13);
-    color: var(--theme-ink-muted);
+    font-size: var(--app-text-13);
+    color: var(--app-ink-muted);
     text-align: end;
   }
 }
@@ -353,16 +353,16 @@
      names a group of rows, so it sits between the section title and a row's
      own label. */
   .settings__subtitle {
-    margin-block: var(--theme-space-16) var(--theme-space-4);
-    font-size: var(--theme-text-13);
-    font-weight: var(--theme-weight-semibold);
-    color: var(--theme-ink-muted);
+    margin-block: var(--app-space-16) var(--app-space-4);
+    font-size: var(--app-text-13);
+    font-weight: var(--app-weight-semibold);
+    color: var(--app-ink-muted);
   }
 
   .shortcut-row__keys {
     display: flex;
     align-items: center;
-    gap: var(--theme-space-4);
+    gap: var(--app-space-4);
   }
 
   /* The chord and the "recording" prompt take the same room, so the row does
@@ -374,19 +374,19 @@
   /* Monospaced, because a chord is read glyph by glyph and a proportional
      font makes `Ctrl+I` and `Ctrl+l` look alike. */
   .shortcut-row__chord {
-    font-family: var(--theme-font-mono);
+    font-family: var(--app-font-mono);
   }
 
   .shortcut-row__chord--none {
-    color: var(--theme-ink-muted);
+    color: var(--app-ink-muted);
   }
 
   /* Recording: the row is listening, and says so by the same accent the app
      uses for anything live. */
   .shortcut-row__recording {
-    border-color: var(--theme-brand);
-    color: var(--theme-brand);
-    font-family: var(--theme-font-sans);
+    border-color: var(--app-brand);
+    color: var(--app-brand);
+    font-family: var(--app-font-sans);
   }
 
   /* ---------------------------------------------------------------------------
@@ -396,8 +396,8 @@
      --------------------------------------------------------------------------- */
   .settings__themes {
     display: grid;
-    gap: var(--theme-space-6);
-    margin-block-end: var(--theme-space-8);
+    gap: var(--app-space-6);
+    margin-block-end: var(--app-space-8);
   }
 
   /* It wears .theme-row for its shape and adds only what a BUTTON needs: the
@@ -412,14 +412,14 @@
   }
 
   .settings__theme:hover {
-    background: var(--theme-hover);
+    background: var(--app-hover);
   }
 
   /* The one that is on. A border rather than a fill: the row below it may be
      an explanation about this very theme, and a filled row would read as a
      heading over it. */
   .settings__theme[aria-pressed="true"] {
-    border-color: var(--theme-brand);
+    border-color: var(--app-brand);
   }
 
   .settings__theme-name {
@@ -434,12 +434,12 @@
   .settings__theme-meta {
     display: flex;
     align-items: center;
-    gap: var(--theme-space-6);
-    color: var(--theme-ink-muted);
-    font-size: var(--theme-text-12);
+    gap: var(--app-space-6);
+    color: var(--app-ink-muted);
+    font-size: var(--app-text-12);
   }
 
   .settings__theme-version {
-    font-family: var(--theme-font-mono);
+    font-family: var(--app-font-mono);
   }
 }

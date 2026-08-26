@@ -10,24 +10,24 @@
   .titlebar {
     display: flex;
     align-items: center;
-    height: var(--theme-titlebar-height);
+    height: var(--app-titlebar-height);
     flex-shrink: 0;
-    background: var(--theme-bg);
+    background: var(--app-bg);
     /* The bar is a drag surface; text selection while dragging looks broken. */
     user-select: none;
   }
 
   /* ---- brand ---- */
   .titlebar__brand {
-    flex: 0 0 var(--theme-sidebar-left);
+    flex: 0 0 var(--app-sidebar-left);
     display: flex;
     align-items: center;
-    gap: var(--theme-space-10);
-    padding-inline: var(--theme-space-12);
+    gap: var(--app-space-10);
+    padding-inline: var(--app-space-12);
     min-width: 0;
     /* The same easing the sidebar's own width uses, so the two edges travel
        together instead of the bar snapping ahead of the panel. */
-    transition: flex-basis var(--theme-transition-medium);
+    transition: flex-basis var(--app-transition-medium);
   }
   /* Rail: the column narrows with the sidebar, and the wordmark is gone from
      the markup — 3.5rem holds the mark and nothing else.
@@ -37,7 +37,7 @@
      left padding means the mark holds its x, exactly like the sidebar's icons
      below it. */
   .titlebar--rail .titlebar__brand {
-    flex-basis: var(--theme-sidebar-rail);
+    flex-basis: var(--app-sidebar-rail);
   }
   /* Both brand slots hold an inline SVG whose paths are `currentColor`, so the
      logo is drawn in the frame's ink and follows every theme. Sized by height
@@ -50,7 +50,7 @@
        is the drag region — otherwise grabbing the logo would not move the
        window. */
     pointer-events: none;
-    color: var(--theme-ink);
+    color: var(--app-ink);
   }
   /* Plain `svg`, not `:global(svg)` (user report, 2026-08-17): `:global()` is
      Svelte's syntax for a component's own <style> block, and this file is

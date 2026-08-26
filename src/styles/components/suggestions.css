@@ -15,13 +15,13 @@
      finished day, and as a tinted outline it read as a disabled control
      sitting next to the "Completed" chip beside it. */
   .suggestions-pill {
-    background: var(--theme-brand);
-    color: var(--theme-on-brand);
+    background: var(--app-brand);
+    color: var(--app-on-brand);
   }
   /* Brightness rather than the chip's ink lift: it paints its own ground, so
      there is no muted text here to lift. */
   .suggestions-pill:hover {
-    color: var(--theme-on-brand);
+    color: var(--app-on-brand);
     filter: brightness(1.06);
   }
 
@@ -38,29 +38,29 @@
   }
   .suggestions-pane__head {
     justify-content: space-between;
-    gap: var(--theme-space-8);
-    padding: var(--theme-space-8) var(--theme-space-12);
+    gap: var(--app-space-8);
+    padding: var(--app-space-8) var(--app-space-12);
   }
   .suggestions-pane__title {
-    font-size: var(--theme-text-14);
-    font-weight: var(--theme-weight-semibold);
-    color: var(--theme-ink);
+    font-size: var(--app-text-14);
+    font-weight: var(--app-weight-semibold);
+    color: var(--app-ink);
   }
 
   .suggestions-pane__scroll {
     flex: 1;
     overflow-y: auto;
-    padding: var(--theme-space-8) var(--theme-space-12) var(--theme-space-16);
+    padding: var(--app-space-8) var(--app-space-12) var(--app-space-16);
   }
 
   .suggestions-pane__empty {
     margin: 0;
-    color: var(--theme-ink-muted);
-    font-size: var(--theme-text-14);
+    color: var(--app-ink-muted);
+    font-size: var(--app-text-14);
   }
 
   .suggestions-pane__group + .suggestions-pane__group {
-    margin-block-start: var(--theme-space-12);
+    margin-block-start: var(--app-space-12);
   }
   /* Every heading folds its section away (2026-08-06) — with one section per
      list the panel gets long, and the list you are not pulling from should be
@@ -69,37 +69,37 @@
     inline-size: 100%;
     display: flex;
     align-items: center;
-    gap: var(--theme-space-6);
-    margin: 0 0 var(--theme-space-4);
-    padding: var(--theme-space-4) var(--theme-space-6);
+    gap: var(--app-space-6);
+    margin: 0 0 var(--app-space-4);
+    padding: var(--app-space-4) var(--app-space-6);
     background: none;
     border: none;
-    border-radius: var(--theme-radius-sm);
+    border-radius: var(--app-radius-sm);
     font: inherit;
-    font-size: var(--theme-text-12);
-    font-weight: var(--theme-weight-semibold);
+    font-size: var(--app-text-12);
+    font-weight: var(--app-weight-semibold);
     letter-spacing: 0.03em;
     text-transform: uppercase;
-    color: var(--theme-ink-muted);
+    color: var(--app-ink-muted);
     text-align: start;
     cursor: pointer;
   }
   .suggestions-pane__group-title:hover {
-    background: var(--theme-hover);
-    color: var(--theme-ink);
+    background: var(--app-hover);
+    color: var(--app-ink);
   }
   /* The space before a list's name, quieter — the same two tones the list
      pickers use. */
   .suggestions-pane__count {
     margin-inline-start: auto;
-    font-weight: var(--theme-weight-regular);
-    color: var(--theme-ink-faint);
+    font-weight: var(--app-weight-regular);
+    color: var(--app-ink-faint);
   }
 
   /* Between "what is pressing" and "where to pull from": two different
      questions, so a rule rather than just more space. */
   .suggestions-pane__rule {
-    margin-block: var(--theme-space-16);
+    margin-block: var(--app-space-16);
   }
 
   .suggestions-pane__list {
@@ -108,7 +108,7 @@
     padding: 0;
     display: flex;
     flex-direction: column;
-    gap: var(--theme-space-2);
+    gap: var(--app-space-2);
   }
 
   /* One row: the task, and its date at the end. The list it comes from is the
@@ -117,17 +117,17 @@
     inline-size: 100%;
     display: flex;
     align-items: baseline;
-    gap: var(--theme-space-8);
-    padding: var(--theme-space-6) var(--theme-space-8);
+    gap: var(--app-space-8);
+    padding: var(--app-space-6) var(--app-space-8);
     background: none;
     border: none;
-    border-radius: var(--theme-radius-sm);
+    border-radius: var(--app-radius-sm);
     font: inherit;
     text-align: start;
     cursor: pointer;
   }
   .suggestions-pane__item:hover {
-    background: var(--theme-hover);
+    background: var(--app-hover);
   }
 
   /* ---- in the sheet (below 768px) ----
@@ -137,31 +137,31 @@
      that put the task inspector on cards (user call, 2026-08-18). So the rows
      become cards here, and grow to a thumb's target while they are at it. */
   .suggestions-pane--compact .suggestions-pane__item {
-    min-block-size: var(--theme-touch-min);
-    padding: var(--theme-space-8) var(--theme-space-12);
-    border-radius: var(--theme-radius-md);
-    background: var(--theme-surface);
+    min-block-size: var(--app-touch-min);
+    padding: var(--app-space-8) var(--app-space-12);
+    border-radius: var(--app-radius-md);
+    background: var(--app-surface);
   }
   .suggestions-pane--compact .suggestions-pane__list {
-    gap: var(--theme-space-4);
+    gap: var(--app-space-4);
   }
   .suggestions-pane--compact .suggestions-pane__text {
-    font-size: var(--theme-text-16);
+    font-size: var(--app-text-16);
   }
   .suggestions-pane__text {
     flex: 1;
     min-width: 0;
-    font-size: var(--theme-text-14);
-    color: var(--theme-ink);
+    font-size: var(--app-text-14);
+    color: var(--app-ink);
   }
   .suggestions-pane__meta {
     flex-shrink: 0;
     display: flex;
-    gap: var(--theme-space-8);
-    font-size: var(--theme-text-10);
-    color: var(--theme-ink-muted);
+    gap: var(--app-space-8);
+    font-size: var(--app-text-10);
+    color: var(--app-ink-muted);
   }
   .suggestions-pane__due {
-    color: var(--theme-ink-muted);
+    color: var(--app-ink-muted);
   }
 }

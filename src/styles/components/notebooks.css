@@ -15,16 +15,16 @@
     block-size: 100%;
     display: flex;
     flex-direction: column;
-    gap: var(--theme-space-24);
-    padding: var(--theme-space-32);
+    gap: var(--app-space-24);
+    padding: var(--app-space-32);
     /* The screen draws no bar of its own — no title bar on a phone, and only
        the window buttons on the desktop — so it is the thing that has to clear
        the system's strips. Everywhere else in the app that is the top bar's
        job (styles/components/topbar.css). */
-    padding-block-start: calc(var(--theme-space-32) + var(--theme-safe-top));
-    padding-block-end: calc(var(--theme-space-32) + var(--theme-safe-bottom));
-    padding-inline-start: calc(var(--theme-space-32) + var(--theme-safe-left));
-    padding-inline-end: calc(var(--theme-space-32) + var(--theme-safe-right));
+    padding-block-start: calc(var(--app-space-32) + var(--app-safe-top));
+    padding-block-end: calc(var(--app-space-32) + var(--app-safe-bottom));
+    padding-inline-start: calc(var(--app-space-32) + var(--app-safe-left));
+    padding-inline-end: calc(var(--app-space-32) + var(--app-safe-right));
   }
 
   /* Nothing remembered yet: no panel, and the whole group rides in the middle
@@ -32,7 +32,7 @@
      (wireframe "Empity Notebooks screen"). */
   .notebooks--empty {
     justify-content: center;
-    gap: var(--theme-space-48);
+    gap: var(--app-space-48);
   }
 
   .notebooks__brand {
@@ -40,7 +40,7 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: var(--theme-space-4);
+    gap: var(--app-space-4);
   }
   /* The wordmark is authored white and rewritten to `fill: currentColor`, so
      what sizes it is the box around it — the same pact the title bar keeps
@@ -63,8 +63,8 @@
 
   .notebooks__version {
     margin: 0;
-    font-size: var(--theme-text-12);
-    color: var(--theme-ink-muted);
+    font-size: var(--app-text-12);
+    color: var(--app-ink-muted);
   }
 
   /* The raised panel the list sits in. It takes the leftover height and
@@ -75,25 +75,25 @@
     min-block-size: 0;
     display: flex;
     flex-direction: column;
-    gap: var(--theme-space-12);
-    padding: var(--theme-space-16);
-    border-radius: var(--theme-radius-lg);
-    background: var(--theme-surface);
+    gap: var(--app-space-12);
+    padding: var(--app-space-16);
+    border-radius: var(--app-radius-lg);
+    background: var(--app-surface);
     overflow-y: auto;
   }
 
   /* A label, not a title: it names what the panel is FOR. Monospaced, tracked
      and upper-cased, which is how the wireframe draws it and the first reader
-     of `--theme-tracking-wide`. */
+     of `--app-tracking-wide`. */
   .notebooks__heading {
     margin: 0;
-    padding-inline: var(--theme-space-8);
-    font-family: var(--theme-font-mono);
-    font-size: var(--theme-text-16);
-    font-weight: var(--theme-weight-regular);
-    letter-spacing: var(--theme-tracking-wide);
+    padding-inline: var(--app-space-8);
+    font-family: var(--app-font-mono);
+    font-size: var(--app-text-16);
+    font-weight: var(--app-weight-regular);
+    letter-spacing: var(--app-tracking-wide);
     text-transform: uppercase;
-    color: var(--theme-ink);
+    color: var(--app-ink);
   }
 
   .notebooks__list {
@@ -102,12 +102,12 @@
     list-style: none;
     display: flex;
     flex-direction: column;
-    gap: var(--theme-space-8);
+    gap: var(--app-space-8);
   }
 
   /* THE CARD. The colour is the notebook's own, written on the row by the
      markup as `--notebook-color` (services/accent.js → `accentSolid`), and it
-     is a SOLID fill that carries text — see the `--accent-*-solid` block in
+     is a SOLID fill that carries text — see the `--app-*-solid` block in
      styles/roles.css for why that is a role of its own and why the ink over it
      is fixed rather than the region's.
 
@@ -117,9 +117,9 @@
   .notebooks__item {
     display: flex;
     align-items: center;
-    border-radius: var(--theme-radius-sm);
+    border-radius: var(--app-radius-sm);
     background: var(--notebook-color);
-    color: var(--accent-on-solid);
+    color: var(--app-on-solid);
   }
 
   /* The whole row opens the notebook; the ⋮ beside it is the only part that
@@ -131,8 +131,8 @@
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: var(--theme-space-2);
-    padding: var(--theme-space-10) var(--theme-space-16);
+    gap: var(--app-space-2);
+    padding: var(--app-space-10) var(--app-space-16);
     border: none;
     border-radius: inherit;
     background: none;
@@ -140,7 +140,7 @@
     font-family: inherit;
     text-align: start;
     cursor: pointer;
-    transition: scale var(--theme-transition-fast);
+    transition: scale var(--app-transition-fast);
   }
   .notebooks__card:active:not(:disabled) {
     scale: 0.995;
@@ -149,7 +149,7 @@
      card here, and a brand-coloured ring on a brand-coloured surface is not a
      ring. Inset, because the row has no room outside itself. */
   .notebooks__card:focus-visible {
-    outline: 0.125rem solid var(--accent-on-solid);
+    outline: 0.125rem solid var(--app-on-solid);
     outline-offset: -0.25rem;
   }
   .notebooks__card:disabled {
@@ -162,13 +162,13 @@
   .notebooks__line {
     display: flex;
     align-items: baseline;
-    gap: var(--theme-space-8);
+    gap: var(--app-space-8);
     inline-size: 100%;
     min-inline-size: 0;
   }
   .notebooks__name {
-    font-size: var(--theme-text-16);
-    font-weight: var(--theme-weight-bold);
+    font-size: var(--app-text-16);
+    font-weight: var(--app-weight-bold);
     /* The one thing on the card with no length limit — a folder can be called
        anything, and the row must not grow a scrollbar over it. */
     overflow: hidden;
@@ -181,8 +181,8 @@
      has a muted ink for it. */
   .notebooks__when,
   .notebooks__counts {
-    font-size: var(--theme-text-12);
-    color: color-mix(in srgb, var(--accent-on-solid) 78%, transparent);
+    font-size: var(--app-text-12);
+    color: color-mix(in srgb, var(--app-on-solid) 78%, transparent);
     white-space: nowrap;
   }
   .notebooks__when {
@@ -192,18 +192,18 @@
     text-overflow: ellipsis;
   }
   .notebooks__counts {
-    font-size: var(--theme-text-13);
+    font-size: var(--app-text-13);
   }
 
   /* The ⋮ takes the card's ink instead of the region's muted one, for the
      same reason the two lines above do. */
   .notebooks__menu {
     flex: none;
-    margin-inline-end: var(--theme-space-8);
+    margin-inline-end: var(--app-space-8);
     color: inherit;
   }
   .notebooks__menu:hover:not(:disabled) {
-    background: color-mix(in srgb, var(--accent-on-solid) 16%, transparent);
+    background: color-mix(in srgb, var(--app-on-solid) 16%, transparent);
     color: inherit;
   }
 
@@ -213,7 +213,7 @@
      which is the mobile wireframe, and a narrow desktop window besides. */
   .notebooks__actions {
     display: flex;
-    gap: var(--theme-space-16);
+    gap: var(--app-space-16);
     /* Never squeezed by the panel above, and never a source of stretch: these
        two are the floor of the screen and their height is their own. */
     flex: none;
@@ -229,18 +229,18 @@
     flex: 1 1 16rem;
     justify-content: space-between;
     min-block-size: 3rem;
-    padding-inline: var(--theme-space-16);
-    border-radius: var(--theme-radius-md);
-    font-size: var(--theme-text-16);
+    padding-inline: var(--app-space-16);
+    border-radius: var(--app-radius-md);
+    font-size: var(--app-text-16);
   }
   /* The second choice is offered, not urged: it sits on the raised surface
      rather than in the brand colour, the same step the panel above it uses. */
   .notebooks__action--alt {
-    background: var(--theme-surface);
-    color: var(--theme-ink);
+    background: var(--app-surface);
+    color: var(--app-ink);
   }
   .notebooks__action--alt:hover:not(:disabled) {
-    background: var(--theme-hover);
+    background: var(--app-hover);
   }
 
   /* With no list above them the two choices are the whole screen, so they
@@ -269,9 +269,9 @@
      (shell/compact.js). */
   @media (max-width: 768px) {
     .notebooks {
-      gap: var(--theme-space-16);
-      padding: var(--theme-space-16);
-      padding-block-start: calc(var(--theme-space-16) + var(--theme-safe-top));
+      gap: var(--app-space-16);
+      padding: var(--app-space-16);
+      padding-block-start: calc(var(--app-space-16) + var(--app-safe-top));
       /* A FLOOR, not just the reported inset. The two doors are the last thing
          on the screen and the gesture handle lives in the same strip, and on
          Android the inset is not always there to add: `env(safe-area-inset-bottom)`
@@ -282,11 +282,11 @@
          Whichever is larger: the system's answer when there is one, and a
          comfortable gap when there is not. */
       padding-block-end: max(
-        calc(var(--theme-space-16) + var(--theme-safe-bottom)),
-        var(--theme-space-32)
+        calc(var(--app-space-16) + var(--app-safe-bottom)),
+        var(--app-space-32)
       );
-      padding-inline-start: calc(var(--theme-space-16) + var(--theme-safe-left));
-      padding-inline-end: calc(var(--theme-space-16) + var(--theme-safe-right));
+      padding-inline-start: calc(var(--app-space-16) + var(--app-safe-left));
+      padding-inline-end: calc(var(--app-space-16) + var(--app-safe-right));
     }
     .notebooks__actions {
       flex-direction: column;

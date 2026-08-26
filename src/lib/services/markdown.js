@@ -394,7 +394,7 @@ export const blockLook = ViewPlugin.fromClass(
 /// component in this app carries a `<style>` block: a colour or a size written
 /// here would be a visual decision hiding in a service, out of reach of a
 /// theme and of anyone reading the stylesheet. Previously this table held the
-/// sizes and the `var(--theme-heading-N)` colours; they moved, the names
+/// sizes and the `var(--app-heading-N)` colours; they moved, the names
 /// stayed.
 ///
 /// Which ladder H1–H6 stand on — the accent's or the ink's — is still the

@@ -6,16 +6,16 @@
   .list-view {
     display: flex;
     flex-direction: column;
-    gap: var(--theme-space-16);
+    gap: var(--app-space-16);
   }
   /* The card column and the pinned hairline are the shared .theme-task-list /
      .theme-pin-divider (controls.css). */
   .list-view__empty {
-    color: var(--theme-ink-muted);
+    color: var(--app-ink-muted);
   }
   .list-view__form {
     display: flex;
-    gap: var(--theme-space-8);
+    gap: var(--app-space-8);
   }
   /* The text field fills the row; the button keeps its content width. Look and
      behaviour come from the shared .theme-input / .theme-btn controls. */

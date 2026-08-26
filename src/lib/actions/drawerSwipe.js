@@ -99,7 +99,7 @@ export function drawerSwipe(node, params) {
   let pointer = null;
 
   /// How far the drawer travels: MEASURED, never restated. Its width is a token
-  /// in rem (`--theme-drawer-width`), so a reader who raised their font size has
+  /// in rem (`--app-drawer-width`), so a reader who raised their font size has
   /// a wider drawer, and a copy of 240 here would send the gesture to the wrong
   /// place for exactly the people the rem is there to serve. The fallback is
   /// only for a drag that somehow starts before the drawer is in the DOM.

@@ -9,8 +9,8 @@
     height: 100%;
     display: flex;
     align-items: center;
-    gap: var(--theme-space-8);
-    padding-inline: var(--theme-space-8);
+    gap: var(--app-space-8);
+    padding-inline: var(--app-space-8);
     overflow-x: auto;
     scrollbar-width: none;
     /* A tab is grabbed and clicked, never its text: selecting the label mid-
@@ -27,7 +27,7 @@
     min-width: 0;
     display: flex;
     align-items: center;
-    gap: var(--theme-space-8);
+    gap: var(--app-space-8);
   }
 
   .tabs__item {
@@ -41,10 +41,10 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: var(--theme-space-8);
+    gap: var(--app-space-8);
     /* No vertical padding: the fixed height plus align-items:center is what
        keeps the label centred in the bar. */
-    padding-inline: var(--theme-space-10);
+    padding-inline: var(--app-space-10);
     /* The strip belongs to the PANEL, not to the frame it is drawn in
        (2026-08-13 wireframes). An open tab is the panel's top edge showing
        through the chrome — literally the canvas ground — and a closed one sits
@@ -53,30 +53,30 @@
        theme that midpoint is the grey between black and white; in the all-light
        and all-dark themes the two grounds are a step apart, so the same rule
        produces a whisper instead of a jump. One formula, three themes. */
-    background: color-mix(in srgb, var(--canvas-ground) 55%, var(--theme-bg));
+    background: color-mix(in srgb, var(--app-canvas-ground) 55%, var(--app-bg));
     border: none;
-    border-radius: var(--theme-radius-sm);
+    border-radius: var(--app-radius-sm);
     /* The CANVAS's ink, muted — not the chrome's faint grey (user report,
        2026-08-13: unreadable). The tab is made of canvas material, and in the
        factory theme that material is light, so the frame's pale ink landed
        grey-on-grey. Reading the ink from the same ground the fill comes from
        is what keeps the label legible in all three themes. */
-    color: color-mix(in srgb, var(--canvas-ink) 60%, transparent);
+    color: color-mix(in srgb, var(--app-canvas-ink) 60%, transparent);
     transition:
-      background var(--theme-transition-fast),
-      color var(--theme-transition-fast);
+      background var(--app-transition-fast),
+      color var(--app-transition-fast);
   }
   /* A closed tab rises a little towards the open one's ground under the
      pointer — the row reads as documents rising out of the frame, and hover
      is the one that is about to. */
   .tabs__item:hover:not(.tabs__item--active) {
-    background: color-mix(in srgb, var(--canvas-ground) 75%, var(--theme-bg));
+    background: color-mix(in srgb, var(--app-canvas-ground) 75%, var(--app-bg));
   }
   .tabs__item--active {
-    background: var(--canvas-ground);
+    background: var(--app-canvas-ground);
     /* And its ink is the CANVAS's, because that is what it is made of now. */
-    color: var(--canvas-ink);
-    font-weight: var(--theme-weight-bold);
+    color: var(--app-canvas-ink);
+    font-weight: var(--app-weight-bold);
   }
 
   /* The space dot: a .theme-dot (per-tab --dot, set inline by dotStyle),
@@ -88,12 +88,12 @@
      the tab's fill comes from the canvas. On a mid-grey closed tab that is
      the readable half. */
   .tabs__dot {
-    --dot-size: var(--theme-space-6);
+    --dot-size: var(--app-space-6);
   }
   /* The carried tab: the motion (no transition, lift, z-index) comes from the
      shared .reorder-item--carried; this adds the tab's own shadow. */
   .tabs__item.reorder-item--carried {
-    box-shadow: var(--theme-shadow-popover);
+    box-shadow: var(--app-shadow-popover);
   }
   .tabs__item.reorder-item--carried .tabs__label {
     cursor: grabbing;
@@ -106,7 +106,7 @@
     border: none;
     padding: 0;
     font: inherit;
-    font-size: var(--theme-text-14);
+    font-size: var(--app-text-14);
     color: inherit;
     cursor: pointer;
     text-align: start;
@@ -121,15 +121,15 @@
      are inside a tab, and a tab is made of the panel's material. */
   .tabs__close {
     flex-shrink: 0;
-    padding: var(--theme-space-2);
-    color: color-mix(in srgb, var(--canvas-ink) 50%, transparent);
+    padding: var(--app-space-2);
+    color: color-mix(in srgb, var(--app-canvas-ink) 50%, transparent);
   }
   .tabs__close:hover:not(:disabled) {
-    background: color-mix(in srgb, var(--canvas-ink) 10%, transparent);
-    color: var(--canvas-ink);
+    background: color-mix(in srgb, var(--app-canvas-ink) 10%, transparent);
+    color: var(--app-canvas-ink);
   }
   .tabs__item--active .tabs__close {
-    color: color-mix(in srgb, var(--canvas-ink) 60%, transparent);
+    color: color-mix(in srgb, var(--app-canvas-ink) 60%, transparent);
   }
 
   .tabs__add {
@@ -137,7 +137,7 @@
     width: 1.375rem;
     height: 1.375rem;
     padding: 0;
-    color: var(--theme-ink-faint);
+    color: var(--app-ink-faint);
   }
 }
 
@@ -154,43 +154,43 @@
   .tabs--compact {
     flex-direction: column;
     align-items: stretch;
-    gap: var(--theme-space-8);
-    padding: var(--theme-space-8);
+    gap: var(--app-space-8);
+    padding: var(--app-space-8);
     overflow: visible;
   }
   .tabs--compact .tabs__list {
     flex-direction: column;
     align-items: stretch;
-    gap: var(--theme-space-4);
+    gap: var(--app-space-4);
   }
 
   /* A row, not a chip: full width, and tall enough to hit without aiming. */
   .tabs--compact .tabs__item {
     inline-size: auto;
     max-inline-size: none;
-    min-block-size: var(--theme-touch-min);
-    gap: var(--theme-space-12);
-    padding-inline: var(--theme-space-12);
-    border-radius: var(--theme-radius-md);
+    min-block-size: var(--app-touch-min);
+    gap: var(--app-space-12);
+    padding-inline: var(--app-space-12);
+    border-radius: var(--app-radius-md);
     /* The sheet's RAISED step, not its ground. A sheet swaps the region's two
        neutrals so that what it holds has somewhere to rise to (themes/*.css),
-       and a row painted `--theme-bg` in here is painted the sheet itself —
+       and a row painted `--app-bg` in here is painted the sheet itself —
        which is how the whole stack came out as one flat wash (user report,
        2026-08-18). The wireframe draws exactly this: white rows on the tint. */
-    background: var(--theme-surface);
+    background: var(--app-surface);
   }
   .tabs--compact .tabs__label {
     flex: 1;
     text-align: start;
-    font-size: var(--theme-text-16);
+    font-size: var(--app-text-16);
   }
   /* The × is its own target here, not a 12px glyph tucked into a chip: a
      mis-hit closes the wrong document. */
   .tabs--compact .tabs__close {
-    inline-size: var(--theme-touch-min);
-    block-size: var(--theme-touch-min);
+    inline-size: var(--app-touch-min);
+    block-size: var(--app-touch-min);
     /* Pull the visual back to the row's edge; only the hit area is this wide. */
-    margin-inline-end: calc(var(--theme-space-12) * -1);
+    margin-inline-end: calc(var(--app-space-12) * -1);
     opacity: 1;
   }
 
@@ -200,18 +200,18 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: var(--theme-space-8);
+    gap: var(--app-space-8);
     inline-size: 100%;
-    min-block-size: var(--theme-touch-min);
+    min-block-size: var(--app-touch-min);
     border: none;
-    border-radius: var(--theme-radius-md);
+    border-radius: var(--app-radius-md);
     /* SOLID ink, the one filled thing in the sheet (wireframe "Mobile - tab
        panel"): it is the sheet's only verb, and as another pale row it read as
        a fourth tab that happened to say "new tab". */
-    background: var(--theme-ink);
-    color: var(--theme-bg);
-    font-size: var(--theme-text-16);
-    font-weight: var(--theme-weight-medium);
+    background: var(--app-ink);
+    color: var(--app-bg);
+    font-size: var(--app-text-16);
+    font-weight: var(--app-weight-medium);
     cursor: pointer;
   }
   .tabs__add-label {

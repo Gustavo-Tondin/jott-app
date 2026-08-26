@@ -11,8 +11,8 @@
   .window-controls {
     display: flex;
     align-items: center;
-    gap: var(--theme-space-8);
-    padding-inline: var(--theme-space-12);
+    gap: var(--app-space-8);
+    padding-inline: var(--app-space-12);
   }
 
   .window-controls__button {
@@ -22,25 +22,25 @@
     inline-size: 1.5rem;
     block-size: 1.5rem;
     padding: 0;
-    background: var(--theme-surface-sunken);
+    background: var(--app-surface-sunken);
     border: none;
-    border-radius: var(--theme-radius-pill);
-    color: var(--theme-ink);
+    border-radius: var(--app-radius-pill);
+    color: var(--app-ink);
     cursor: pointer;
     transition:
-      background var(--theme-transition-fast),
-      color var(--theme-transition-fast);
+      background var(--app-transition-fast),
+      color var(--app-transition-fast);
   }
   .window-controls__button:hover {
-    background: var(--theme-hover);
+    background: var(--app-hover);
   }
   .window-controls__button:active {
-    background: color-mix(in srgb, var(--theme-ink) 16%, transparent);
+    background: color-mix(in srgb, var(--app-ink) 16%, transparent);
   }
   /* The one coloured state on the whole bar, and only under the pointer. */
   .window-controls__button--close:hover {
-    background: var(--theme-danger);
-    color: var(--theme-on-brand);
+    background: var(--app-danger);
+    color: var(--app-on-brand);
   }
 
   .window-controls__glyph {

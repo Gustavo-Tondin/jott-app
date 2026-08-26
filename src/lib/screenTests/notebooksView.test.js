@@ -91,7 +91,7 @@ describe("NotebooksView", () => {
 
     await screen.findByText("Work");
     const row = container.querySelector(".notebooks__item");
-    expect(row.getAttribute("style")).toContain("var(--accent-orange-solid)");
+    expect(row.getAttribute("style")).toContain("var(--app-orange-solid)");
   });
 
   test("a notebook that never chose a colour still gets one", async () => {
@@ -103,7 +103,7 @@ describe("NotebooksView", () => {
 
     await screen.findByText("Plain");
     expect(container.querySelector(".notebooks__item").getAttribute("style")).toContain(
-      "var(--accent-blue-solid)",
+      "var(--app-blue-solid)",
     );
   });
 

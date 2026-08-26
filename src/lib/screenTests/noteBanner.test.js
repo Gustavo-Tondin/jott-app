@@ -55,12 +55,12 @@ describe("NoteBanner", () => {
     });
 
     const banner = container.querySelector(".note-banner");
-    expect(banner.getAttribute("style")).toContain("var(--accent-yellow-fill)");
+    expect(banner.getAttribute("style")).toContain("var(--app-yellow-fill)");
     // And the picker's swatch shows THAT step, not the region's base: the
     // colour chosen is the colour received (2026-08-26).
     await userEvent.click(screen.getByLabelText("banner options"));
     expect(screen.getByRole("button", { name: "yellow" }).getAttribute("style")).toContain(
-      "--dot: var(--accent-yellow-fill)",
+      "--dot: var(--app-yellow-fill)",
     );
     expect(container.querySelector(".note-banner__image")).toBeNull();
     // The title moves onto the chip over it — one title, in one place.

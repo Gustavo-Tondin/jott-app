@@ -151,7 +151,7 @@ fn path_without_bundle(path: &str, appdir: &str) -> String {
 /// Resolved at compile time by `cfg!`, which is the honest answer: a build
 /// either targets Android or it does not, and nothing at runtime can change
 /// it. The mirror image of this is width, which the CSS answers on its own
-/// (styles/tokens.css, `--theme-compact`): width decides the LAYOUT, this
+/// (styles/tokens.css, `--app-compact`): width decides the LAYOUT, this
 /// decides the AFFORDANCES.
 ///
 /// It NAMES THE DESKTOP it is on (2026-08-20) for the one thing that is not a

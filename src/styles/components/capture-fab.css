@@ -19,13 +19,13 @@
     inline-size: 4rem;
     block-size: 4rem;
     border: none;
-    border-radius: var(--theme-radius-lg);
-    background: var(--theme-brand);
-    color: var(--theme-on-brand);
+    border-radius: var(--app-radius-lg);
+    background: var(--app-brand);
+    color: var(--app-on-brand);
     cursor: pointer;
     transition:
-      scale var(--theme-transition-fast),
-      filter var(--theme-transition-fast);
+      scale var(--app-transition-fast),
+      filter var(--app-transition-fast);
   }
   .capture-fab__toggle:hover:not(:disabled) {
     filter: brightness(1.06);
@@ -37,7 +37,7 @@
      spring: the button that opened the choices is the one that closes them,
      and the turn says so without a second icon. */
   .capture-fab__toggle .theme-icon {
-    transition: rotate var(--theme-duration-medium) var(--theme-ease-spring);
+    transition: rotate var(--app-duration-medium) var(--app-ease-spring);
   }
   .capture-fab--open .capture-fab__toggle .theme-icon {
     rotate: 45deg;
@@ -51,36 +51,36 @@
      the choices must not push the page down and then let it snap back. */
   .capture-fab__choices {
     position: absolute;
-    inset-block-start: calc(100% + var(--theme-space-8));
+    inset-block-start: calc(100% + var(--app-space-8));
     inset-inline-end: 0;
     z-index: 30;
     display: flex;
     flex-direction: column;
-    gap: var(--theme-space-8);
+    gap: var(--app-space-8);
   }
 
   .capture-fab__choice {
     min-inline-size: 6rem;
     /* The finger minimum, stated: these two are the smallest controls in the
        whole capture path and the only ones that appear and vanish. */
-    min-block-size: var(--theme-touch-min);
-    padding-inline: var(--theme-space-16);
+    min-block-size: var(--app-touch-min);
+    padding-inline: var(--app-space-16);
     border: none;
-    border-radius: var(--theme-radius-md);
-    background: var(--theme-brand);
-    color: var(--theme-on-brand);
-    font-size: var(--theme-text-16);
-    font-weight: var(--theme-weight-semibold);
-    box-shadow: 0 0.25rem 0.75rem var(--theme-shadow-popover);
+    border-radius: var(--app-radius-md);
+    background: var(--app-brand);
+    color: var(--app-on-brand);
+    font-size: var(--app-text-16);
+    font-weight: var(--app-weight-semibold);
+    box-shadow: 0 0.25rem 0.75rem var(--app-shadow-popover);
     cursor: pointer;
     /* Each choice rises in from under the +, the second a beat after the
        first — the two arrive as a pair being dealt, not as a block switching
        on. */
-    animation: theme-rise var(--theme-duration-medium) var(--theme-ease-out) both;
-    transition: scale var(--theme-transition-fast);
+    animation: theme-rise var(--app-duration-medium) var(--app-ease-out) both;
+    transition: scale var(--app-transition-fast);
   }
   .capture-fab__choice:nth-child(2) {
-    animation-delay: calc(var(--theme-duration-fast) / 3);
+    animation-delay: calc(var(--app-duration-fast) / 3);
   }
   .capture-fab__choice:active {
     scale: 0.96;

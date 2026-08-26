@@ -6,7 +6,7 @@
   .accent-picker {
     display: flex;
     align-items: center;
-    gap: var(--theme-space-6);
+    gap: var(--app-space-6);
   }
   .accent-picker__swatch {
     inline-size: 1.25rem;
@@ -15,20 +15,20 @@
     /* The ring is always there, transparent until chosen: a border appearing on
        selection would shift the whole row by 2px. */
     border: 0.125rem solid transparent;
-    border-radius: var(--theme-radius-pill);
-    background: var(--dot, var(--theme-surface));
+    border-radius: var(--app-radius-pill);
+    background: var(--dot, var(--app-surface));
     cursor: pointer;
   }
   /* "No colour of its own" — the raised step, so it reads as an empty slot
      rather than as a grey option among the seven. */
   .accent-picker__swatch--clear {
-    background: var(--theme-surface);
-    border-color: var(--theme-line);
+    background: var(--app-surface);
+    border-color: var(--app-line);
   }
   /* Chosen: the region's ink, which contrasts with every one of the seven on
      either ground — an accent-coloured ring would vanish on its own swatch. */
   .accent-picker__swatch--on {
-    border-color: var(--theme-ink);
+    border-color: var(--app-ink);
   }
   .accent-picker__swatch:disabled {
     opacity: 0.5;
@@ -36,7 +36,7 @@
   }
   .accent-picker__swatch:focus-visible {
     outline: none;
-    box-shadow: 0 0 0 0.1875rem var(--theme-brand-weak);
+    box-shadow: 0 0 0 0.1875rem var(--app-brand-weak);
   }
 
   /* A finger's swatches (2026-08-20). The app's rule is to grow the box and
@@ -51,7 +51,7 @@
      the 360px the narrowest supported screen gives. */
   @media (pointer: coarse) {
     .accent-picker {
-      gap: var(--theme-space-8);
+      gap: var(--app-space-8);
     }
     .accent-picker__swatch {
       inline-size: 2rem;

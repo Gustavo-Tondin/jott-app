@@ -11,7 +11,7 @@
  * is drawn as a box rather than as text on the banner.
  *
  * The two neutrals do the work: the CARD is the region's raised step
- * (`--theme-surface`) and the CHIP is its ground (`--theme-bg`) — the same
+ * (`--app-surface`) and the CHIP is its ground (`--app-bg`) — the same
  * pairing the sheets and the tab rows stand on, so a chip reads as lifted off
  * the card in all three themes without a shadow or a hairline. */
 
@@ -23,15 +23,15 @@
        the corner sit on it too. Written as a variable so the four places that
        read it cannot drift apart — 6px was too tight to read a formatted
        preview through (user, 2026-08-20: "ela tá muito apertada"). */
-    --note-card-pad: var(--theme-space-12);
+    --note-card-pad: var(--app-space-12);
     position: relative;
     display: flex;
-    background: var(--theme-surface);
-    border-radius: var(--theme-radius-lg);
+    background: var(--app-surface);
+    border-radius: var(--app-radius-lg);
     padding: var(--note-card-pad);
     transition:
-      opacity var(--theme-transition-fast),
-      scale var(--theme-transition-fast);
+      opacity var(--app-transition-fast),
+      scale var(--app-transition-fast);
   }
   .note-card:hover {
     opacity: 0.7;
@@ -41,7 +41,7 @@
   }
   /* Picked, in selection mode: the same tint a chosen task card takes. */
   .note-card--picked {
-    background: var(--theme-brand-weak);
+    background: var(--app-brand-weak);
   }
   /* Pinned: the filled mark alone says so (user call, 2026-08-24: "mais
      simples, só com o ícone, sem outline" — the warning-coloured hairline
@@ -52,7 +52,7 @@
   .note-card__open {
     display: flex;
     flex-direction: column;
-    gap: var(--theme-space-8);
+    gap: var(--app-space-8);
     inline-size: 100%;
     min-inline-size: 0;
     padding: 0;
@@ -71,8 +71,8 @@
     block-size: 4.75rem;
     /* The card's corner less the card's padding: the banner is flush against
        three of its edges. */
-    border-radius: calc(var(--theme-radius-lg) - var(--note-card-pad));
-    background: var(--banner, var(--theme-brand));
+    border-radius: calc(var(--app-radius-lg) - var(--note-card-pad));
+    background: var(--banner, var(--app-brand));
     overflow: hidden;
   }
   .note-card__image {
@@ -84,27 +84,27 @@
   /* The address points at a picture that is not there. The placeholder is the
      grey square the wireframe draws, so the card keeps its shape. */
   .note-card__banner--image {
-    background: var(--theme-well);
+    background: var(--app-well);
   }
   .note-card__missing {
     display: flex;
     align-items: center;
     justify-content: center;
     block-size: 100%;
-    color: var(--theme-ink-faint);
+    color: var(--app-ink-faint);
   }
 
   /* The note's subjects, under the preview: neutral badges, wrapping. */
   .note-card__tags {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--theme-space-4);
+    gap: var(--app-space-4);
   }
   .note-card__title {
     min-inline-size: 0;
-    font-size: var(--theme-text-14);
-    font-weight: var(--theme-weight-bold);
-    color: var(--theme-ink);
+    font-size: var(--app-text-14);
+    font-weight: var(--app-weight-bold);
+    color: var(--app-ink);
     overflow-wrap: anywhere;
   }
   /* Over the banner's bottom edge, aligned to the start — the negative margin
@@ -112,11 +112,11 @@
   .note-card__title--chip {
     align-self: start;
     margin-block-start: -0.875rem;
-    margin-inline-start: var(--theme-space-6);
-    max-inline-size: calc(100% - var(--theme-space-12));
-    padding: var(--theme-space-2) var(--theme-space-8);
-    background: var(--theme-bg);
-    border-radius: var(--theme-radius-sm);
+    margin-inline-start: var(--app-space-6);
+    max-inline-size: calc(100% - var(--app-space-12));
+    padding: var(--app-space-2) var(--app-space-8);
+    background: var(--app-bg);
+    border-radius: var(--app-radius-sm);
   }
 
   /* A card is as tall as its own text, up to a ceiling — "notas com pouco
@@ -139,13 +139,13 @@
   }
   .note-card__more,
   .note-card__pin {
-    color: var(--theme-ink-muted);
+    color: var(--app-ink-muted);
   }
   /* Pinned reads as pinned without hovering: the mark is filled and steps up
      to full ink. Ink, not the warning yellow — a pin is a state of the note,
      not an alert on it (user call, 2026-08-24). */
   .note-card__pin--on {
-    color: var(--theme-ink);
+    color: var(--app-ink);
   }
   /* Unpinned, the mark is an offer and not a state — it waits for the pointer,
      the same rule the sidebar's tools follow. A touch screen never hovers, so
@@ -175,13 +175,13 @@
      the tighter padding — it holds one line, and the folder card around it is
      already padded. */
   .note-card--small {
-    --note-card-pad: var(--theme-space-8);
-    background: var(--theme-bg);
+    --note-card-pad: var(--app-space-8);
+    background: var(--app-bg);
     /* The folder card's corner less the padding it sits in. */
-    border-radius: calc(var(--theme-radius-lg) - var(--theme-space-8));
+    border-radius: calc(var(--app-radius-lg) - var(--app-space-8));
   }
   .note-card--small .note-card__title {
-    font-size: var(--theme-text-13);
+    font-size: var(--app-text-13);
     display: -webkit-box;
     -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
@@ -192,56 +192,56 @@
   .note-group {
     display: flex;
     flex-direction: column;
-    gap: var(--theme-space-8);
-    padding: var(--theme-space-8);
-    background: var(--accent-tint-color, var(--theme-brand-weak));
-    border-radius: var(--theme-radius-lg);
+    gap: var(--app-space-8);
+    padding: var(--app-space-8);
+    background: var(--accent-tint-color, var(--app-brand-weak));
+    border-radius: var(--app-radius-lg);
   }
   /* The card's own row: the name (which opens it) and the two controls a note
      card carries — the pin and the ⋮ (2026-08-19). */
   .note-group__bar {
     display: flex;
     align-items: center;
-    gap: var(--theme-space-2);
+    gap: var(--app-space-2);
   }
   .note-group__head {
     flex: 1;
     min-inline-size: 0;
     display: flex;
     align-items: center;
-    gap: var(--theme-space-6);
-    padding: var(--theme-space-2) var(--theme-space-4);
+    gap: var(--app-space-6);
+    padding: var(--app-space-2) var(--app-space-4);
     background: none;
     border: none;
     font: inherit;
-    color: var(--accent-color, var(--theme-brand));
+    color: var(--accent-color, var(--app-brand));
     cursor: pointer;
   }
   /* The pin and the ⋮ take the card's own colour here: on a tinted block the
      muted grey of an icon button reads as disabled. */
   .note-group__bar .note-card__pin,
   .note-group__bar .note-card__more {
-    color: var(--accent-color, var(--theme-brand));
+    color: var(--accent-color, var(--app-brand));
   }
   .note-group__name {
     flex: 1;
     min-inline-size: 0;
-    font-weight: var(--theme-weight-semibold);
+    font-weight: var(--app-weight-semibold);
     text-align: start;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
   .note-group__count {
-    font-size: var(--theme-text-12);
-    color: var(--theme-ink-muted);
+    font-size: var(--app-text-12);
+    color: var(--app-ink-muted);
   }
   /* Two by two, as the wireframe draws — a folder card says "there are notes
      in here", it does not list them. */
   .note-group__notes {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: var(--theme-space-6);
+    gap: var(--app-space-6);
   }
   .note-group__notes:empty {
     display: none;
@@ -278,37 +278,37 @@
     inline-size: min(28rem, 88vw);
     max-block-size: min(32rem, 70vh);
     overflow-y: auto;
-    padding: var(--theme-space-10);
+    padding: var(--app-space-10);
     display: flex;
     flex-direction: column;
-    gap: var(--theme-space-8);
+    gap: var(--app-space-8);
   }
   .note-group__panel-head {
     display: flex;
     align-items: center;
-    gap: var(--theme-space-6);
-    font-size: var(--theme-text-13);
+    gap: var(--app-space-6);
+    font-size: var(--app-text-13);
   }
   .note-group__panel-name {
     flex: 1;
     min-inline-size: 0;
-    font-weight: var(--theme-weight-semibold);
+    font-weight: var(--app-weight-semibold);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
   .note-group__close {
-    color: var(--theme-ink-muted);
+    color: var(--app-ink-muted);
   }
   /* A card inside the panel takes the OTHER neutral: the panel already stands
      on the raised step, so a card painted the same colour has nothing to be
      lifted off (the pairing every floating panel of the app keeps). */
   .note-group__popover .note-card {
-    background: var(--theme-bg);
+    background: var(--app-bg);
   }
   .note-group__subfolders {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--theme-space-6);
+    gap: var(--app-space-6);
   }
 }

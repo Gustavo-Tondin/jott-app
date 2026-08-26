@@ -11,13 +11,13 @@
   .menu__list {
     min-width: 11rem;
     margin: 0;
-    padding: var(--theme-space-4);
+    padding: var(--app-space-4);
     list-style: none;
   }
   /* The qualifier before the name: present so the row is unambiguous, quiet so
      the name is what the eye lands on. Same idea as the page header's context. */
   .menu__context {
-    color: var(--theme-ink-faint);
+    color: var(--app-ink-faint);
   }
   /* The tick of a choice group's chosen row. Rendered (empty) on the group's
      other rows too, so the labels stay aligned. */
@@ -29,24 +29,24 @@
      priority) shows it before the word: the shared .theme-dot, the row's
      `swatch` being the CSS value it is painted with. */
   .menu__swatch {
-    --dot-size: var(--theme-space-10);
-    margin-inline-end: var(--theme-space-6);
+    --dot-size: var(--app-space-10);
+    margin-inline-end: var(--app-space-6);
   }
   .menu__link {
     display: block;
     width: 100%;
-    padding: var(--theme-space-6) var(--theme-space-10);
+    padding: var(--app-space-6) var(--app-space-10);
     background: none;
     border: none;
     /* The popover's corner less the list's own padding. */
-    border-radius: calc(var(--theme-radius-md) - var(--theme-space-4));
-    color: var(--theme-ink);
+    border-radius: calc(var(--app-radius-md) - var(--app-space-4));
+    color: var(--app-ink);
     font: inherit;
-    font-size: var(--theme-text-13);
+    font-size: var(--app-text-13);
     text-align: start;
     white-space: nowrap;
     cursor: pointer;
-    transition: background var(--theme-transition-fast);
+    transition: background var(--app-transition-fast);
   }
   /* A row that opens a submenu: the caret sits at the far end, and the panel
      it opens is the same list, placed beside the row by keepOnScreen. */
@@ -54,16 +54,16 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: var(--theme-space-10);
+    gap: var(--app-space-10);
   }
   .menu__link--sub[aria-expanded="true"] {
-    background: var(--theme-surface-sunken);
+    background: var(--app-surface-sunken);
   }
   .menu__link:hover {
-    background: var(--theme-surface-sunken);
+    background: var(--app-surface-sunken);
   }
   .menu__link:disabled {
-    color: var(--theme-ink-faint);
+    color: var(--app-ink-faint);
     cursor: default;
   }
 
@@ -77,7 +77,7 @@
   @media (pointer: coarse) {
     .menu__list {
       min-width: min(14rem, 70vw);
-      padding: var(--theme-space-6);
+      padding: var(--app-space-6);
     }
   }
 }

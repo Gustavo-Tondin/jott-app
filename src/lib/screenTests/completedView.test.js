@@ -94,6 +94,6 @@ describe("CompletedView", () => {
     expect(screen.queryByText(/jott\.tasks/)).toBeNull();
     const badge = screen.getByText("Space 1/Tasks 1");
     expect(badge.className).toContain("theme-badge");
-    expect(badge.getAttribute("style")).toContain("--accent-orange-2");
+    expect(badge.getAttribute("style")).toContain("--app-orange-2");
   });
 });

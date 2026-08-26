@@ -18,20 +18,20 @@
 /// chain has to be written into the value.
 export const FONT_ROLES = {
   interface: {
-    token: "--theme-font-sans",
+    token: "--app-font-sans",
     fallback: ['"Inter"', "system-ui", "sans-serif"],
     /// The face the app carries for this role, named for the interface.
     shipped: "Inter",
   },
   note: {
-    token: "--theme-font-note",
+    token: "--app-font-note",
     // The note's default is the INTERFACE's face, whatever that resolved to,
     // which is exactly what the stylesheet says when nobody has chosen.
-    fallback: ["var(--theme-font-sans)"],
+    fallback: ["var(--app-font-sans)"],
     shipped: null,
   },
   mono: {
-    token: "--theme-font-mono",
+    token: "--app-font-mono",
     fallback: [
       '"DM Mono"',
       "ui-monospace",
@@ -82,7 +82,7 @@ export function fontValue(role, family) {
 }
 
 /// What the shell writes on the root for all three, ready for `setRootVar`:
-/// `{ "--theme-font-sans": … | null }`. One place decides, so the three
+/// `{ "--app-font-sans": … | null }`. One place decides, so the three
 /// cannot drift apart.
 export function fontVars({ interfaceFont, noteFont, monoFont } = {}) {
   return {

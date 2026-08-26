@@ -12,36 +12,36 @@
   .bulkbar {
     position: fixed;
     inset-block-end: calc(
-      var(--theme-space-16) + max(var(--theme-safe-bottom), var(--theme-keyboard))
+      var(--app-space-16) + max(var(--app-safe-bottom), var(--app-keyboard))
     );
     inset-inline-start: 50%;
     translate: -50% 0;
     z-index: 50;
     display: flex;
     align-items: center;
-    gap: var(--theme-space-8);
-    max-inline-size: calc(100vw - var(--theme-space-24));
-    padding: var(--theme-space-6) var(--theme-space-6) var(--theme-space-6) var(--theme-space-14);
-    background: var(--theme-surface);
-    border: 0.0625rem solid var(--theme-line);
-    border-radius: var(--theme-radius-pill);
-    box-shadow: var(--theme-shadow-popover);
+    gap: var(--app-space-8);
+    max-inline-size: calc(100vw - var(--app-space-24));
+    padding: var(--app-space-6) var(--app-space-6) var(--app-space-6) var(--app-space-14);
+    background: var(--app-surface);
+    border: 0.0625rem solid var(--app-line);
+    border-radius: var(--app-radius-pill);
+    box-shadow: var(--app-shadow-popover);
     /* Rises in from under the edge, the way the bottom sheet does — the
        selection was made up here, and the bar comes up to meet it. The
        `translate` keyframe has to carry the centring too, or the bar would
        jump sideways as the animation ended. */
-    animation: bulkbar-rise var(--theme-duration-medium) var(--theme-ease-out);
+    animation: bulkbar-rise var(--app-duration-medium) var(--app-ease-out);
   }
   @keyframes bulkbar-rise {
     from {
       opacity: 0;
-      translate: -50% var(--theme-space-16);
+      translate: -50% var(--app-space-16);
     }
   }
   .bulkbar__count {
-    color: var(--theme-ink-muted);
-    font-size: var(--theme-text-13);
-    font-weight: var(--theme-weight-semibold);
+    color: var(--app-ink-muted);
+    font-size: var(--app-text-13);
+    font-weight: var(--app-weight-semibold);
     white-space: nowrap;
   }
   /* Both are a .theme-select--sm / .theme-btn--sm from the caller; the pill

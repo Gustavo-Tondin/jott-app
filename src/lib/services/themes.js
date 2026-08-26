@@ -29,7 +29,7 @@ export const DEFAULT_THEME = "default";
 /// plain ink — the second runtime choice about colour, next to the theme and
 /// the accent itself (2026-08-17). It lives here rather than in accent.js
 /// because it is a look setting like the theme, not a colour: what it moves is
-/// which ramp `--theme-heading-*` reads, resolved in styles/roles.css.
+/// which ramp `--app-heading-*` reads, resolved in styles/roles.css.
 ///
 /// Only `ink` is ever written to the document; the accent is the app's own, so
 /// the attribute is absent and the default rule answers.

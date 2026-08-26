@@ -6,12 +6,12 @@
   .home {
     display: flex;
     flex-direction: column;
-    gap: var(--theme-space-32);
+    gap: var(--app-space-32);
   }
   .home__block {
     display: flex;
     flex-direction: column;
-    gap: var(--theme-space-12);
+    gap: var(--app-space-12);
   }
   /* Centred heading with the ⋮ at the far right, matching the tasks block
      above it (2026-08-13 wireframe). The mirrored ⋮ on the left is what makes
@@ -19,7 +19,7 @@
   .home__block-header {
     display: flex;
     align-items: center;
-    gap: var(--theme-space-8);
+    gap: var(--app-space-8);
   }
   .home__block-title {
     flex: 1;
@@ -32,11 +32,11 @@
   /* The rule between the two halves. Inset rather than full-bleed: it separates
      two blocks of one screen, and edge to edge it read as the end of the page. */
   .home__divider {
-    padding-inline: var(--theme-space-32);
+    padding-inline: var(--app-space-32);
   }
   .home__divider hr {
     border: none;
-    border-top: 0.125rem solid var(--theme-ink-faint);
+    border-top: 0.125rem solid var(--app-ink-faint);
     margin: 0;
   }
   /* Today's notes are the notes BOARD, in miniature (2026-08-19): the same

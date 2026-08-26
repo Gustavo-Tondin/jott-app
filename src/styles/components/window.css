@@ -14,10 +14,10 @@
     height: 100%;
     display: flex;
     flex-direction: column;
-    background: var(--theme-bg);
-    border-radius: var(--theme-window-radius);
+    background: var(--app-bg);
+    border-radius: var(--app-window-radius);
     overflow: hidden;
-    border: 0.0625rem solid var(--theme-line);
+    border: 0.0625rem solid var(--app-line);
   }
 
   /* Maximized/fullscreen: the window IS the screen — square corners, no

@@ -13,8 +13,8 @@
     z-index: 200;
     display: grid;
     place-items: center;
-    padding: var(--theme-space-24);
-    background: color-mix(in srgb, var(--palette-black) 88%, transparent);
+    padding: var(--app-space-24);
+    background: color-mix(in srgb, var(--theme-color-black) 88%, transparent);
   }
   .image-viewer:focus-visible {
     outline: none;
@@ -23,26 +23,26 @@
     max-inline-size: 100%;
     max-block-size: 100%;
     object-fit: contain;
-    border-radius: var(--theme-radius-lg);
+    border-radius: var(--app-radius-lg);
   }
   /* Above the picture rather than beside it: the picture takes whatever room
      there is, so there is no beside. */
   .image-viewer__close {
     position: absolute;
-    inset-block-start: var(--theme-space-16);
-    inset-inline-end: var(--theme-space-16);
+    inset-block-start: var(--app-space-16);
+    inset-inline-end: var(--app-space-16);
     display: flex;
     align-items: center;
     justify-content: center;
     inline-size: 2.5rem;
     block-size: 2.5rem;
-    background: color-mix(in srgb, var(--palette-white) 12%, transparent);
+    background: color-mix(in srgb, var(--theme-color-white) 12%, transparent);
     border: none;
-    border-radius: var(--theme-radius-pill);
-    color: var(--palette-white);
+    border-radius: var(--app-radius-pill);
+    color: var(--theme-color-white);
     cursor: pointer;
   }
   .image-viewer__close:hover {
-    background: color-mix(in srgb, var(--palette-white) 22%, transparent);
+    background: color-mix(in srgb, var(--theme-color-white) 22%, transparent);
   }
 }

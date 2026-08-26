@@ -541,7 +541,7 @@ mod tests {
     #[test]
     fn the_app_can_write_a_theme_and_read_it_straight_back() {
         let dir = config_dir();
-        let made = create(dir.path(), "mine", "[data-region=\"canvas\"] { --theme-bg: #fff; }")
+        let made = create(dir.path(), "mine", "[data-region=\"canvas\"] { --app-bg: #fff; }")
             .unwrap();
 
         assert_eq!(made.name, "mine");
@@ -549,7 +549,7 @@ mod tests {
         assert!(dir.path().join("themes/mine/manifest.json").is_file());
         assert_eq!(
             css(dir.path(), "mine").unwrap().css,
-            "[data-region=\"canvas\"] { --theme-bg: #fff; }"
+            "[data-region=\"canvas\"] { --app-bg: #fff; }"
         );
         assert_eq!(list(dir.path(), "1.0.0").len(), 1);
     }

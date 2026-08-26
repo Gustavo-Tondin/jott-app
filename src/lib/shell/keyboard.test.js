@@ -43,11 +43,11 @@ const ime = (px) => {
   document.dispatchEvent(new CustomEvent("android-insets"));
 };
 
-const keyboard = () => root.style.getPropertyValue("--theme-keyboard");
+const keyboard = () => root.style.getPropertyValue("--app-keyboard");
 
 afterEach(() => {
   root.style.removeProperty("--android-ime");
-  root.style.removeProperty("--theme-keyboard");
+  root.style.removeProperty("--app-keyboard");
   delete root.clientHeight;
 });
 

@@ -17,11 +17,11 @@ describe("the eight colours", () => {
     // This is the whole reason the app stores a name: each of the seven has a
     // light half and a dark half, and the region a colour lands in is what
     // chooses between them (styles/grounds.css). A hex could not.
-    expect(accentColor("orange")).toBe("var(--accent-orange)");
-    expect(accentTint("orange")).toBe("var(--accent-orange-tint)");
+    expect(accentColor("orange")).toBe("var(--app-orange)");
+    expect(accentTint("orange")).toBe("var(--app-orange-tint)");
     for (const name of ACCENTS) {
       expect(isAccent(name)).toBe(true);
-      expect(accentColor(name)).toBe(`var(--accent-${name})`);
+      expect(accentColor(name)).toBe(`var(--app-${name})`);
     }
   });
 
@@ -46,7 +46,7 @@ describe("the eight colours", () => {
 
   test("accentStyle writes the pair a coloured section needs", () => {
     expect(accentStyle("blue", { color: "--group-color", tint: "--group-tint" })).toBe(
-      "--group-color: var(--accent-blue); --group-tint: var(--accent-blue-tint)",
+      "--group-color: var(--app-blue); --group-tint: var(--app-blue-tint)",
     );
   });
 
@@ -64,7 +64,7 @@ describe("the eight colours", () => {
     expect(isAccent("neutral")).toBe(true);
     expect(ACCENTS).not.toContain("white");
     expect(ACCENTS).not.toContain("black");
-    expect(accentColor("neutral")).toBe("var(--accent-neutral)");
+    expect(accentColor("neutral")).toBe("var(--app-neutral)");
   });
 
   test("six rungs of emphasis, one per heading level", () => {
@@ -72,7 +72,7 @@ describe("the eight colours", () => {
     // changed every OTHER level, which reads as an accident rather than a
     // hierarchy. Rung 1 is the strongest, 6 the faintest.
     for (let rung = 1; rung <= 6; rung++) {
-      expect(accentRung("blue", rung)).toBe(`var(--accent-blue-${rung})`);
+      expect(accentRung("blue", rung)).toBe(`var(--app-blue-${rung})`);
     }
   });
 
@@ -94,9 +94,9 @@ describe("the eight colours", () => {
     // it, and 300 is the step that reads AS text on a dark ground, not the
     // step that carries text. 500 is; the palette pins it to 4.5:1 against the
     // light ground, and `architecture.test.js` measures white on it.
-    expect(accentSolid("blue")).toBe("var(--accent-blue-solid)");
+    expect(accentSolid("blue")).toBe("var(--app-blue-solid)");
     for (const name of ACCENTS) {
-      expect(accentSolid(name)).toBe(`var(--accent-${name}-solid)`);
+      expect(accentSolid(name)).toBe(`var(--app-${name}-solid)`);
     }
     // A raw colour written by hand is itself, as everywhere in this module.
     expect(accentSolid("#ff0000")).toBe("#ff0000");
@@ -106,7 +106,7 @@ describe("the eight colours", () => {
   });
 
   test("badgeStyle: rung 2 for the text, the line for the outline; nothing for no colour", () => {
-    expect(badgeStyle("blue")).toBe("--badge-color: var(--accent-blue-2); --badge-line: var(--accent-blue-line)");
+    expect(badgeStyle("blue")).toBe("--badge-color: var(--app-blue-2); --badge-line: var(--app-blue-line)");
     expect(badgeStyle("#123456")).toBe(
       "--badge-color: color-mix(in srgb, #123456 90%, transparent); --badge-line: color-mix(in srgb, #123456 45%, transparent)",
     );

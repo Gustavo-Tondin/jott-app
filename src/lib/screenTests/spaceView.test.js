@@ -67,7 +67,7 @@ describe("SpaceView", () => {
     expect(title.textContent).toContain("Project A");
     expect(title.getAttribute("style")).toBeNull();
     expect(title.querySelector(".theme-dot").getAttribute("style")).toContain(
-      "--dot: var(--accent-orange)",
+      "--dot: var(--app-orange)",
     );
     // And only one heading on the screen.
     expect(container.querySelectorAll("h1, h2, h3").length).toBe(1);
@@ -84,7 +84,7 @@ describe("SpaceView", () => {
       if (!el) throw new Error("no dot");
       return el;
     });
-    // Unset, so the class's own `var(--dot, --theme-brand)` answers.
+    // Unset, so the class's own `var(--dot, --app-brand)` answers.
     expect(dot.getAttribute("style")).toBeFalsy();
   });
 

@@ -41,9 +41,9 @@ export function priorityClass(value) {
 /// The CSS value each level's swatch is painted with in a menu — the same
 /// three status roles the card reads. Keyed by `priorityClass`.
 export const PRIORITY_SWATCH = {
-  p1: "var(--theme-danger)",
-  p2: "var(--theme-warning)",
-  p3: "var(--theme-success)",
+  p1: "var(--app-danger)",
+  p2: "var(--app-warning)",
+  p3: "var(--app-success)",
 };
 
 /// How often a task repeats. The empty unit is "it does not".

@@ -22,7 +22,7 @@
     /// Which region's colours to wear, for an instance that is mounted OUTSIDE
     /// every region — the canvas menu is rendered at the top of the app, so
     /// that the scrolling panel it was opened over cannot clip it, and there
-    /// it inherits no roles at all: `--theme-surface` and `--theme-line`
+    /// it inherits no roles at all: `--app-surface` and `--app-line`
     /// resolve to nothing and the panel comes up with no fill and no border,
     /// its rows reading straight off the page (user report, 2026-08-18). An
     /// instance that sits inside a region leaves this unset and inherits, which

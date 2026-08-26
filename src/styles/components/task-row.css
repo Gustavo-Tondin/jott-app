@@ -7,22 +7,22 @@
     position: relative;
     display: flex;
     align-items: center;
-    gap: var(--theme-space-12);
-    padding: var(--theme-space-10) var(--theme-space-12);
-    background: var(--theme-surface-sunken);
+    gap: var(--app-space-12);
+    padding: var(--app-space-10) var(--app-space-12);
+    background: var(--app-surface-sunken);
     /* No border (user call, 2026-08-13). The card already differs from the
        panel by a whole ground step; a hairline on top of that outlined every
        row in a list of a dozen and turned a calm column into a grid. */
     border: none;
-    border-radius: var(--theme-radius-md);
+    border-radius: var(--app-radius-md);
     cursor: pointer;
     /* The whole card is the drag handle (no grip since 2026-08-04): a drag
        must never start a text selection along the way. */
     user-select: none;
     -webkit-user-select: none;
     transition:
-      background var(--theme-transition-fast),
-      scale var(--theme-transition-fast);
+      background var(--app-transition-fast),
+      scale var(--app-transition-fast);
   }
   /* Pressed, the card gives by a hair — it is the whole drag handle, so the
      give is also what says "held" the instant before a drag or a swipe
@@ -34,7 +34,7 @@
   /* Selected: the accent tint alone carries it — no outline, for the same
      reason the card has no border. */
   .task-row--selected {
-    background: var(--theme-brand-weak);
+    background: var(--app-brand-weak);
   }
 
   /* The box is the shared .theme-checkbox at its large size (--lg, 20px) — a
@@ -46,13 +46,13 @@
     min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: var(--theme-space-4);
+    gap: var(--app-space-4);
   }
   .task-row__top {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: var(--theme-space-8);
+    gap: var(--app-space-8);
   }
   .task-row__title {
     flex: 1;
@@ -62,8 +62,8 @@
     border: none;
     padding: 0;
     font: inherit;
-    font-size: var(--theme-text-16);
-    color: var(--theme-ink);
+    font-size: var(--app-text-16);
+    color: var(--app-ink);
     cursor: pointer;
     white-space: nowrap;
     overflow: hidden;
@@ -72,19 +72,19 @@
        colour change, and a colour change is something that can fade in. */
     text-decoration: line-through transparent;
     transition:
-      color var(--theme-transition-fast),
-      text-decoration-color var(--theme-transition-medium);
+      color var(--app-transition-fast),
+      text-decoration-color var(--app-transition-medium);
   }
   /* No box or border on hover — at most the text goes a touch lighter, so the
      card stays calm (the rename input is borderless too, via --plain). */
   .task-row__title:hover:not(:disabled) {
-    color: var(--theme-ink-muted);
+    color: var(--app-ink-muted);
   }
   .task-row--selected .task-row__title {
-    font-weight: var(--theme-weight-semibold);
+    font-weight: var(--app-weight-semibold);
   }
   .task-row--done .task-row__title {
-    color: var(--theme-ink-muted);
+    color: var(--app-ink-muted);
     text-decoration-color: currentColor;
   }
   /* Checking: the exact strike the subtasks wear (user call, 2026-08-24:
@@ -93,7 +93,7 @@
      through the transitions the title already carries. No tint, no dress-up:
      the strike IS the moment of "done". */
   .task-row--finishing .task-row__title {
-    color: var(--theme-ink-faint);
+    color: var(--app-ink-faint);
     text-decoration-color: currentColor;
   }
 
@@ -120,20 +120,20 @@
        between the card folding and the Completed section arriving (user
        report with video, 2026-08-24). */
     animation:
-      task-row-hold calc(var(--theme-duration-slow) * 3) var(--theme-ease-out),
-      task-row-finish calc(var(--theme-duration-slow) * 0.6) var(--theme-ease-out)
-        calc(var(--theme-duration-slow) * 3) forwards;
+      task-row-hold calc(var(--app-duration-slow) * 3) var(--app-ease-out),
+      task-row-finish calc(var(--app-duration-slow) * 0.6) var(--app-ease-out)
+        calc(var(--app-duration-slow) * 3) forwards;
   }
   /* Unticking, from the Completed list: the same fold, shorter and without
      the tint — the card is leaving for the open list, not being celebrated.
      The strike fades out with it (`--done` stays on until the write). */
   .task-row--restoring {
     overflow: hidden;
-    animation: task-row-restore calc(var(--theme-duration-slow) * 2) var(--theme-ease-out) forwards;
+    animation: task-row-restore calc(var(--app-duration-slow) * 2) var(--app-ease-out) forwards;
   }
   .task-row--restoring .task-row__title {
     text-decoration-color: transparent;
-    color: var(--theme-ink);
+    color: var(--app-ink);
   }
   @keyframes task-row-restore {
     0%,
@@ -173,51 +173,51 @@
     flex: 1;
     min-width: 0;
     font: inherit;
-    font-size: var(--theme-text-16);
+    font-size: var(--app-text-16);
   }
   /* The bookmark pins the task to the top of its list. Quiet until it is on:
      an unpinned card should read as a card, not as a row of controls. */
   .task-row__bookmark {
     flex-shrink: 0;
-    padding: var(--theme-space-2);
-    color: var(--theme-ink-faint);
+    padding: var(--app-space-2);
+    color: var(--app-ink-faint);
   }
   /* Pinned is the filled glyph, in the card's own ink — the shape carries the
      state, so no colour is spent on it. */
   .task-row__bookmark--on {
-    color: var(--theme-ink);
+    color: var(--app-ink);
   }
 
   .task-row__meta {
     display: flex;
     align-items: center;
-    gap: var(--theme-space-12);
-    color: var(--theme-ink-muted);
+    gap: var(--app-space-12);
+    color: var(--app-ink-muted);
   }
   .task-row__field {
-    font-size: var(--theme-text-10);
-    color: var(--theme-ink-muted);
+    font-size: var(--app-text-10);
+    color: var(--app-ink-muted);
     white-space: nowrap;
   }
   /* Priority marks are coloured by level: ! low (green), !! medium (amber),
      !!! high (red). The base falls back to red for any out-of-range value. */
   .task-row__field--priority {
-    color: var(--theme-danger);
-    font-weight: var(--theme-weight-semibold);
+    color: var(--app-danger);
+    font-weight: var(--app-weight-semibold);
   }
   .task-row__field--p1 {
-    color: var(--theme-danger);
+    color: var(--app-danger);
   }
   .task-row__field--p2 {
-    color: var(--theme-warning);
+    color: var(--app-warning);
   }
   .task-row__field--p3 {
-    color: var(--theme-success);
+    color: var(--app-success);
   }
   /* An overdue due date reads as a warning, not a quiet note. */
   .task-row__field--overdue {
-    color: var(--theme-danger);
-    font-weight: var(--theme-weight-semibold);
+    color: var(--app-danger);
+    font-weight: var(--app-weight-semibold);
   }
   /* A tag is shown as a coloured pill, not text — the colour is the tag. That
      pill is the shared .theme-tag-pill (controls.css); the `task-row__tag`
@@ -233,7 +233,7 @@
   .task-row__actions {
     flex-shrink: 0;
     display: flex;
-    gap: var(--theme-space-4);
+    gap: var(--app-space-4);
   }
   /* A screen that slots in nothing must not still pay for the slot: as an
      empty flex item it kept the row's 12px gap, and every card on the screens

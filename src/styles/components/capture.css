@@ -9,10 +9,10 @@
   .capture {
     display: flex;
     flex-direction: column;
-    gap: var(--theme-space-12);
-    padding: var(--theme-space-24);
-    background: var(--theme-surface);
-    border-radius: var(--theme-radius-lg);
+    gap: var(--app-space-12);
+    padding: var(--app-space-24);
+    background: var(--app-surface);
+    border-radius: var(--app-radius-lg);
   }
   /* Everything below the head: what you are writing, and the button that
      commits it. The head sits ABOVE this row rather than inside it, which is
@@ -21,14 +21,14 @@
   .capture__main {
     display: flex;
     align-items: stretch;
-    gap: var(--theme-space-16);
+    gap: var(--app-space-16);
   }
   .capture__body {
     flex: 1;
     min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: var(--theme-space-12);
+    gap: var(--app-space-12);
   }
 
   /* The question, and the day it is being asked on. */
@@ -36,30 +36,30 @@
     display: flex;
     align-items: baseline;
     justify-content: space-between;
-    gap: var(--theme-space-16);
+    gap: var(--app-space-16);
   }
   .capture__question {
     display: flex;
     align-items: center;
-    gap: var(--theme-space-8);
+    gap: var(--app-space-8);
     margin: 0;
-    font-size: var(--theme-text-24);
-    font-weight: var(--theme-weight-medium);
-    letter-spacing: var(--theme-tracking-tight);
-    color: var(--theme-ink);
+    font-size: var(--app-text-24);
+    font-weight: var(--app-weight-medium);
+    letter-spacing: var(--app-tracking-tight);
+    color: var(--app-ink);
   }
   .capture__date {
     flex-shrink: 0;
-    font-size: var(--theme-text-14);
-    color: var(--theme-ink-muted);
+    font-size: var(--app-text-14);
+    color: var(--app-ink-muted);
   }
 
   /* The typing row: the mark of what is being made, then the field. */
   .capture__field {
     display: flex;
     align-items: flex-start;
-    gap: var(--theme-space-12);
-    color: var(--theme-ink-muted);
+    gap: var(--app-space-12);
+    color: var(--app-ink-muted);
   }
   /* An empty checkbox, drawn rather than input: it says "this becomes a task",
      and a real one would offer to tick something that does not exist yet. Its
@@ -69,9 +69,9 @@
     flex-shrink: 0;
     inline-size: 1.25rem;
     block-size: 1.25rem;
-    margin-block-start: var(--theme-space-2);
-    border: 0.09375rem solid var(--theme-ink);
-    border-radius: var(--theme-radius-xs);
+    margin-block-start: var(--app-space-2);
+    border: 0.09375rem solid var(--app-ink);
+    border-radius: var(--app-radius-xs);
   }
   /* A textarea, not an input, so a long capture wraps instead of scrolling
      sideways — but with none of a textarea's chrome: the card IS the field. */
@@ -83,10 +83,10 @@
     background: none;
     border: none;
     resize: none;
-    color: var(--theme-ink);
+    color: var(--app-ink);
     font: inherit;
-    font-size: var(--theme-text-16);
-    line-height: var(--theme-leading-normal);
+    font-size: var(--app-text-16);
+    line-height: var(--app-leading-normal);
     field-sizing: content;
   }
   .capture__input:focus,
@@ -94,7 +94,7 @@
     outline: none;
   }
   .capture__input::placeholder {
-    color: var(--theme-ink-faint);
+    color: var(--app-ink-faint);
   }
 
   .capture__kinds {
@@ -113,13 +113,13 @@
     block-size: 3.25rem;
     padding: 0;
     border: none;
-    border-radius: var(--theme-radius-md);
-    background: var(--theme-brand);
-    color: var(--theme-on-brand);
+    border-radius: var(--app-radius-md);
+    background: var(--app-brand);
+    color: var(--app-on-brand);
     cursor: pointer;
     transition:
-      opacity var(--theme-transition-fast),
-      filter var(--theme-transition-fast);
+      opacity var(--app-transition-fast),
+      filter var(--app-transition-fast);
   }
   .capture__submit:hover:not(:disabled) {
     filter: brightness(1.06);
@@ -133,7 +133,7 @@
   }
   .capture__submit:focus-visible {
     outline: none;
-    box-shadow: 0 0 0 0.1875rem var(--theme-brand-weak);
+    box-shadow: 0 0 0 0.1875rem var(--app-brand-weak);
   }
 
   /* Narrow panel (the inspector open on a small window): the button drops

@@ -84,8 +84,8 @@
        when the board was redrawn, 2026-08-18.) Both wear this class, so this
        rule is the one that reaches them. */
     .theme-btn--icon {
-      min-inline-size: var(--theme-touch-min);
-      min-block-size: var(--theme-touch-min);
+      min-inline-size: var(--app-touch-min);
+      min-block-size: var(--app-touch-min);
     }
 
     /* THE COMPACT TOP BAR IS THE ONE EXEMPTION, and it is a user call
@@ -101,7 +101,7 @@
        it is the shape that says "task" — so what gets the minimum is the row,
        which is the target anyway: the whole card opens the task. */
     .task-row {
-      min-block-size: var(--theme-touch-min);
+      min-block-size: var(--app-touch-min);
     }
 
     /* Rows that open something. A 46px row from the wireframe is two pixels
@@ -111,7 +111,7 @@
     .shell__nav-open,
     .settings__nav-item,
     .theme-row {
-      min-block-size: var(--theme-touch-min);
+      min-block-size: var(--app-touch-min);
     }
 
     /* THE MENU ROW, and the reason it is not in the list above any more
@@ -136,8 +136,8 @@
       display: flex;
       align-items: center;
       flex: 1;
-      min-block-size: var(--theme-touch-min);
-      padding-inline: var(--theme-space-12);
+      min-block-size: var(--app-touch-min);
+      padding-inline: var(--app-space-12);
     }
 
     /* THE BUTTONS THE 48px NEVER REACHED. `.theme-btn--icon` was covered from
@@ -149,7 +149,7 @@
        A minimum only, never a height: a button that wraps to two lines is
        taller than this and stays taller. */
     .theme-btn {
-      min-block-size: var(--theme-touch-min);
+      min-block-size: var(--app-touch-min);
     }
 
     /* AND THE ONE BUTTON THAT STATES ITS OWN BOX. The composer's ＋ is drawn
@@ -205,7 +205,7 @@
        composer was already being stretched by the minimum above and was the
        same stranded label, which is what a copied declaration hides. */
     .theme-chip {
-      padding-inline: var(--theme-space-16);
+      padding-inline: var(--app-space-16);
     }
 
     /* `--xs` IS IN THAT LIST, and the first draft of this rule had it at 32px
@@ -223,7 +223,7 @@
        axis that costs the card nothing. */
     .list-view__action {
       min-block-size: 2rem;
-      padding-inline: var(--theme-space-12);
+      padding-inline: var(--app-space-12);
     }
 
     /* The form controls. Both are a field a finger has to land in to type, and
@@ -237,7 +237,7 @@
        shrunk the one control that was big enough, from 80px to 48. */
     .theme-input,
     .theme-select {
-      min-block-size: var(--theme-touch-min);
+      min-block-size: var(--app-touch-min);
     }
 
     /* THE SWITCH IS THE EXCEPTION TO "grow the box, not the drawing", and it
@@ -271,7 +271,7 @@
        exactly the card's padding, the box's edge meets the card's edge and the
        glyph sits where the eye expects it, with the target intact. */
     .task-row__bookmark {
-      margin-inline-end: calc(-1 * var(--theme-space-12));
+      margin-inline-end: calc(-1 * var(--app-space-12));
     }
   }
 }

@@ -134,7 +134,7 @@ export function pxOf(el, name) {
   return Number.isFinite(value) ? value : 0;
 }
 
-/// Keeps `--theme-keyboard` — the token the strip, the composer and the sheets
+/// Keeps `--app-keyboard` — the token the strip, the composer and the sheets
 /// read — equal to what the keyboard actually covers. Returns the uninstall.
 ///
 /// Two things can change the answer and both are listened to: the activity
@@ -149,7 +149,7 @@ export function installKeyboard({ root = document.documentElement, win = window 
       screen: win.screen?.height,
       layout: root.clientHeight,
     });
-    root.style.setProperty("--theme-keyboard", `${cover}px`);
+    root.style.setProperty("--app-keyboard", `${cover}px`);
     unpan(win);
   };
 

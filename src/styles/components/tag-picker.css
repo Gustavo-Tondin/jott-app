@@ -7,19 +7,19 @@
   .tag-picker__trigger {
     display: inline-flex;
     align-items: center;
-    gap: var(--theme-space-4);
-    padding: var(--theme-space-2) var(--theme-space-8);
-    background: var(--theme-surface-sunken);
-    border: 0.0625rem dashed var(--theme-line);
-    border-radius: var(--theme-radius-pill);
-    color: var(--theme-ink-muted);
+    gap: var(--app-space-4);
+    padding: var(--app-space-2) var(--app-space-8);
+    background: var(--app-surface-sunken);
+    border: 0.0625rem dashed var(--app-line);
+    border-radius: var(--app-radius-pill);
+    color: var(--app-ink-muted);
     font: inherit;
-    font-size: var(--theme-text-12);
+    font-size: var(--app-text-12);
     cursor: pointer;
   }
   .tag-picker__trigger:hover {
-    color: var(--theme-ink);
-    border-color: var(--theme-brand-outline);
+    color: var(--app-ink);
+    border-color: var(--app-brand-outline);
   }
 
   /* Floating by the shared .theme-popover; the stack inside is its own. */
@@ -27,8 +27,8 @@
     min-inline-size: 12rem;
     display: flex;
     flex-direction: column;
-    gap: var(--theme-space-4);
-    padding: var(--theme-space-6);
+    gap: var(--app-space-4);
+    padding: var(--app-space-6);
   }
   .tag-picker__list {
     list-style: none;
@@ -38,26 +38,26 @@
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: var(--theme-space-2);
+    gap: var(--app-space-2);
   }
   .tag-picker__option {
     display: flex;
     align-items: center;
-    gap: var(--theme-space-6);
+    gap: var(--app-space-6);
     inline-size: 100%;
-    padding: var(--theme-space-4) var(--theme-space-6);
+    padding: var(--app-space-4) var(--app-space-6);
     background: none;
     border: none;
     /* The popover's corner less the panel's padding. */
-    border-radius: calc(var(--theme-radius-md) - var(--theme-space-6));
-    color: var(--theme-ink);
+    border-radius: calc(var(--app-radius-md) - var(--app-space-6));
+    color: var(--app-ink);
     font: inherit;
-    font-size: var(--theme-text-13);
+    font-size: var(--app-text-13);
     text-align: start;
     cursor: pointer;
   }
   .tag-picker__option:hover {
-    background: var(--theme-surface-sunken);
+    background: var(--app-surface-sunken);
   }
   /* Name + Create on one line. The colour row that used to follow is gone
      (2026-08-26): a tag has no colour of its own — the card's colour is the
@@ -65,7 +65,7 @@
   .tag-picker__create {
     display: flex;
     align-items: center;
-    gap: var(--theme-space-4);
+    gap: var(--app-space-4);
   }
   .tag-picker__name {
     flex: 1;

@@ -14,8 +14,8 @@
     flex-direction: column;
     min-height: 0;
     overflow: hidden;
-    color: var(--theme-ink);
-    font-size: var(--theme-text-12);
+    color: var(--app-ink);
+    font-size: var(--app-text-12);
   }
 
   /* The scrolling middle. Its scrollbar is HIDDEN — a GTK scrollbar ate into
@@ -28,10 +28,10 @@
     min-height: 0;
     display: flex;
     flex-direction: column;
-    gap: var(--theme-space-8);
+    gap: var(--app-space-8);
     overflow-y: auto;
     scrollbar-width: none;
-    padding-block: var(--theme-space-10);
+    padding-block: var(--app-space-10);
   }
   .inspector__scroll::-webkit-scrollbar {
     width: 0;
@@ -40,12 +40,12 @@
 
   /* ---- toolbar (the pane head) ---- */
   .inspector__toolbar {
-    gap: var(--theme-space-4);
+    gap: var(--app-space-4);
   }
   /* Lit when the task is in today — the one coloured control in the toolbar,
      because it is the only one that carries state. */
   .inspector__myday--on {
-    color: var(--theme-brand);
+    color: var(--app-brand);
   }
 
   .inspector__gap {
@@ -54,7 +54,7 @@
 
   /* ---- task header: a brand pill, one step up from the weak tint ----
 
-     NOT `--theme-brand-weak` on its own. That role is the app's faintest wash
+     NOT `--app-brand-weak` on its own. That role is the app's faintest wash
      and it is shared: the editor's text selection, every control's focus ring,
      a pinned note's card. It has to stay faint for those, and read as a FILLED
      pill here — where it is the one coloured thing in a sheet of grey, naming
@@ -63,25 +63,25 @@
 
      A mix at the point of use, rather than a role of its own: a new role would
      be eight colours across three themes and two regions, all to be read in
-     one place. Mixing toward `--theme-brand` moves with the accent and the
+     one place. Mixing toward `--app-brand` moves with the accent and the
      theme the same way the tint does — in the canvas it lands about a palette
      step darker (100 → ~200), which is the "little bit" that was asked for and
      still leaves the brand-coloured text on top well clear of it. */
   .inspector__header {
     display: flex;
     align-items: center;
-    gap: var(--theme-space-8);
-    margin-inline: var(--theme-space-8);
-    padding: var(--theme-space-8) var(--theme-space-10);
-    background: color-mix(in oklab, var(--theme-brand-weak) 80%, var(--theme-brand));
-    border-radius: var(--theme-radius-md);
-    color: var(--theme-brand);
+    gap: var(--app-space-8);
+    margin-inline: var(--app-space-8);
+    padding: var(--app-space-8) var(--app-space-10);
+    background: color-mix(in oklab, var(--app-brand-weak) 80%, var(--app-brand));
+    border-radius: var(--app-radius-md);
+    color: var(--app-brand);
   }
   .inspector__name {
     flex: 1;
     min-width: 0;
-    font-weight: var(--theme-weight-semibold);
-    color: var(--theme-ink);
+    font-weight: var(--app-weight-semibold);
+    color: var(--app-ink);
   }
 
   /* ---- subtasks: indented, each a surface card ---- */
@@ -92,40 +92,40 @@
   .inspector__subtasks {
     display: flex;
     flex-direction: column;
-    padding-inline: var(--theme-space-16) var(--theme-space-8);
+    padding-inline: var(--app-space-16) var(--app-space-8);
   }
   .inspector__subtask {
     position: relative;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: var(--theme-space-6);
+    gap: var(--app-space-6);
     /* Left inset reserves the gutter the drag grip sits in (absolute), so
        revealing it on hover never shifts the row. */
-    padding: var(--theme-space-6) var(--theme-space-10) var(--theme-space-6)
-      var(--theme-space-24);
-    background: var(--theme-surface);
-    border-block-end: 0.0625rem solid var(--theme-line);
+    padding: var(--app-space-6) var(--app-space-10) var(--app-space-6)
+      var(--app-space-24);
+    background: var(--app-surface);
+    border-block-end: 0.0625rem solid var(--app-line);
   }
   .inspector__subtask:first-child {
-    border-start-start-radius: var(--theme-radius-md);
-    border-start-end-radius: var(--theme-radius-md);
+    border-start-start-radius: var(--app-radius-md);
+    border-start-end-radius: var(--app-radius-md);
   }
   .inspector__subtask:last-child {
     border-block-end: none;
-    border-end-start-radius: var(--theme-radius-md);
-    border-end-end-radius: var(--theme-radius-md);
+    border-end-start-radius: var(--app-radius-md);
+    border-end-end-radius: var(--app-radius-md);
   }
   .inspector__subtask-main {
     display: flex;
     align-items: center;
-    gap: var(--theme-space-8);
+    gap: var(--app-space-8);
     flex: 1;
     min-width: 0;
   }
   .inspector__subtask .reorder-grip {
     position: absolute;
-    inset-inline-start: var(--theme-space-4);
+    inset-inline-start: var(--app-space-4);
     top: 50%;
     transform: translateY(-50%);
   }
@@ -141,11 +141,11 @@
        it in — the same send-off the task card gives its title. */
     text-decoration: line-through transparent;
     transition:
-      color var(--theme-transition-fast),
-      text-decoration-color var(--theme-transition-medium);
+      color var(--app-transition-fast),
+      text-decoration-color var(--app-transition-medium);
   }
   .inspector__subtask--done .inspector__subtask-input {
-    color: var(--theme-ink-faint);
+    color: var(--app-ink-faint);
     text-decoration-color: currentColor;
   }
   .inspector__subtask--add {
@@ -157,13 +157,13 @@
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: var(--theme-space-6);
-    padding-inline: var(--theme-space-8);
+    gap: var(--app-space-6);
+    padding-inline: var(--app-space-8);
   }
   /* A tag is the shared .theme-badge (neutral — 2026-08-26); the hook stays
      for the × that follows the name. */
   .inspector__tag {
-    padding-inline-end: var(--theme-space-2);
+    padding-inline-end: var(--app-space-2);
   }
   /* Small × inside a pill or a value — takes the colour of what holds it. */
   .inspector__tag-remove {
@@ -185,26 +185,26 @@
   .inspector__fields {
     display: flex;
     flex-direction: column;
-    gap: var(--theme-space-4);
-    padding-inline: var(--theme-space-8);
+    gap: var(--app-space-4);
+    padding-inline: var(--app-space-8);
   }
   .inspector__field {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: var(--theme-space-8);
+    gap: var(--app-space-8);
     min-height: 2.375rem;
-    padding: var(--theme-space-6) var(--theme-space-10);
-    background: var(--theme-surface);
-    border-radius: var(--theme-radius-md);
-    color: var(--theme-ink);
+    padding: var(--app-space-6) var(--app-space-10);
+    background: var(--app-surface);
+    border-radius: var(--app-radius-md);
+    color: var(--app-ink);
   }
   /* A field the task does not use reads faded — label, icon and control alike
      (user call 2026-08-05). What the task actually carries is the black text,
      so a glance at the panel says which fields are in play. The controls set
      their own colour, so they are told to inherit here. */
   .inspector__field--unset {
-    color: var(--theme-ink-faint);
+    color: var(--app-ink-faint);
   }
   .inspector__field--unset .theme-select,
   .inspector__field--unset .theme-input,
@@ -214,24 +214,24 @@
   .inspector__field-label {
     display: inline-flex;
     align-items: center;
-    gap: var(--theme-space-8);
+    gap: var(--app-space-8);
     min-width: 0;
   }
   /* The flag and its word in the level's status colour — the same three
      the card's marks and the composer's flag read. */
   .inspector__field-label--p1 {
-    color: var(--theme-danger);
+    color: var(--app-danger);
   }
   .inspector__field-label--p2 {
-    color: var(--theme-warning);
+    color: var(--app-warning);
   }
   .inspector__field-label--p3 {
-    color: var(--theme-success);
+    color: var(--app-success);
   }
   .inspector__field-value {
     display: inline-flex;
     align-items: center;
-    gap: var(--theme-space-4);
+    gap: var(--app-space-4);
   }
   .inspector__reminder {
     flex-wrap: wrap;
@@ -244,7 +244,7 @@
   .inspector__stepper {
     display: inline-flex;
     align-items: center;
-    gap: var(--theme-space-2);
+    gap: var(--app-space-2);
   }
   /* The count is a tight box, not a browser-default-wide control: a `<select>`
      sizes itself to its widest option, and left alone it reserves the room for
@@ -258,8 +258,8 @@
   .inspector__description-block {
     display: flex;
     flex-direction: column;
-    gap: var(--theme-space-4);
-    padding-inline: var(--theme-space-8);
+    gap: var(--app-space-4);
+    padding-inline: var(--app-space-8);
   }
   /* A wrapper now, not the textarea itself: inside it lives the plain editor
      (`.editor--plain`, editor.css), which is what lets a description carry
@@ -276,7 +276,7 @@
   .inspector__file-open {
     display: inline-flex;
     align-items: center;
-    gap: var(--theme-space-8);
+    gap: var(--app-space-8);
     flex: 1;
     min-inline-size: 0;
     padding: 0;
@@ -284,12 +284,12 @@
     border: none;
     color: inherit;
     font: inherit;
-    font-size: var(--theme-text-13);
+    font-size: var(--app-text-13);
     text-align: start;
     cursor: pointer;
   }
   .inspector__file-open:hover .inspector__file-name {
-    color: var(--theme-brand);
+    color: var(--app-brand);
   }
   .inspector__file-name {
     min-inline-size: 0;
@@ -301,14 +301,14 @@
   .inspector__add-file {
     inline-size: 100%;
     border: none;
-    color: var(--theme-ink-muted);
+    color: var(--app-ink-muted);
     font: inherit;
-    font-size: var(--theme-text-13);
+    font-size: var(--app-text-13);
     text-align: start;
     cursor: pointer;
   }
   .inspector__add-file:hover {
-    color: var(--theme-ink);
+    color: var(--app-ink);
   }
 
   /* ---- footer (the pane foot): origin · trash. Pinned at the bottom, always
@@ -317,20 +317,20 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: var(--theme-space-8);
+    padding: var(--app-space-8);
   }
   .inspector__origin {
     display: inline-flex;
     align-items: center;
-    gap: var(--theme-space-6);
-    color: var(--theme-ink-muted);
-    font-size: var(--theme-text-13);
+    gap: var(--app-space-6);
+    color: var(--app-ink-muted);
+    font-size: var(--app-text-13);
   }
   /* As a button it stands on the panel's own surface — the footer sits on the
      canvas, so a card is what makes it read as pressable. */
   .inspector__origin--button {
     max-width: 100%;
-    background: var(--theme-surface);
+    background: var(--app-surface);
   }
   .inspector__origin-name {
     min-width: 0;
@@ -349,7 +349,7 @@
      land on the far end of a row the eye reads from the near end. */
   @media (pointer: coarse) {
     .inspector__field {
-      min-height: var(--theme-touch-min);
+      min-height: var(--app-touch-min);
     }
   }
 }

@@ -55,7 +55,7 @@
      composer and the sheets each lifted themselves and the editor could not,
      because it is not a thing at the bottom edge — it is the whole panel.
 
-     `--theme-keyboard` is what the keyboard covers OF THE PAGE, which on a
+     `--app-keyboard` is what the keyboard covers OF THE PAGE, which on a
      WebView that already shrinks itself is zero (shell/keyboard.js). Off the
      phone it is zero too, and this is `height: 100%`.
 
@@ -67,7 +67,7 @@
      text that would otherwise sit behind it, so the note's own scroller pads
      for it (shell.css) and the window keeps ending exactly at the keyboard. */
   #app {
-    height: calc(100% - var(--theme-keyboard));
+    height: calc(100% - var(--app-keyboard));
   }
 
   /* The app scrolls INSIDE itself — every scrollport it has is a panel, and
@@ -91,7 +91,7 @@
 
   body {
     margin: 0;
-    font-family: var(--theme-font-sans);
+    font-family: var(--app-font-sans);
     /* Frameless window: the page is transparent ONLY so the rounded corners of
        the .window frame reveal the desktop through them — GNOME/Wayland draws
        no decoration of its own. The app's edge is the OS window's edge; there

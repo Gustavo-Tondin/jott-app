@@ -252,7 +252,7 @@ describe("NotesSpace", () => {
     const banner = container.querySelector(".note-card__banner");
     // The NAME becomes a var() of the palette, never a hex: which end of the
     // ramp shows is the region's call (services/accent.js).
-    expect(banner.getAttribute("style")).toContain("var(--accent-yellow-fill)");
+    expect(banner.getAttribute("style")).toContain("var(--app-yellow-fill)");
   });
 
   test("a note with no banner has no block above its title", async () => {

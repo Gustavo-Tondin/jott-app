@@ -134,29 +134,25 @@ describe("frontend architecture", () => {
     ]);
 
   test("no role in a theme reads another role", () => {
-    // THE rule (styles/themes/default.css). `--theme-bg: var(--ground)` and
-    // `--ground: var(--palette-black)` was the old shape: two files to answer
+    // THE rule (styles/themes/default.css). `--app-bg: var(--ground)` and
+    // `--ground: var(--theme-color-black)` was the old shape: two files to answer
     // "what colour is the sidebar?".
     //
     // What is forbidden is a role reading a ROLE. A literal is fine, and
-    // `var(--palette-*)` is just a literal with a name — the app's own palette,
+    // `var(--theme-color-*)` is just a literal with a name — the app's own palette,
     // which the three shipped themes share. A theme with colours of its own
     // writes hexes and reads nothing (user question, 2026-08-13: an earlier
-    // version of this test REQUIRED `--palette-*`, which quietly forbade the
+    // version of this test REQUIRED `--theme-color-*`, which quietly forbade the
     // one thing a theme exists to do).
     const offenders = [];
     for (const [name, css] of themes()) {
       for (const m of css.matchAll(/(--[a-z0-9-]+)\s*:\s*([^;]+);/g)) {
         for (const ref of m[2].matchAll(/var\(\s*(--[a-z0-9-]+)/g)) {
-          // `--canvas-*` counts as a role too: it is theme-assigned and
-          // component-read exactly like `--theme-*` (tabs.css reads it), so
-          // `--theme-bg: var(--canvas-ground)` would be the forbidden
+          // `--app-canvas-*` counts as a role too: it is theme-assigned and
+          // component-read exactly like `--app-*` (tabs.css reads it), so
+          // `--app-bg: var(--app-canvas-ground)` would be the forbidden
           // two-hop chain wearing a different prefix.
-          if (
-            ref[1].startsWith("--theme-") ||
-            ref[1].startsWith("--accent-") ||
-            ref[1].startsWith("--canvas-")
-          ) {
+          if (ref[1].startsWith("--app-")) {
             offenders.push(`${name}: ${m[1]} reads the role ${ref[1]}`);
           }
         }
@@ -201,8 +197,8 @@ describe("frontend architecture", () => {
         );
         const body = m?.[1] ?? "";
         return {
-          bg: body.match(/--theme-bg:\s*([^;]+);/)?.[1]?.trim(),
-          surface: body.match(/--theme-surface:\s*([^;]+);/)?.[1]?.trim(),
+          bg: body.match(/--app-bg:\s*([^;]+);/)?.[1]?.trim(),
+          surface: body.match(/--app-surface:\s*([^;]+);/)?.[1]?.trim(),
         };
       };
       const canvas = region("canvas");
@@ -213,8 +209,8 @@ describe("frontend architecture", () => {
         gaps.push(`${name}: the modal does not share the sheet's ground`);
       const sheetBody = rule?.[2] ?? "";
       const sheet = {
-        bg: sheetBody.match(/--theme-bg:\s*([^;]+);/)?.[1]?.trim(),
-        surface: sheetBody.match(/--theme-surface:\s*([^;]+);/)?.[1]?.trim(),
+        bg: sheetBody.match(/--app-bg:\s*([^;]+);/)?.[1]?.trim(),
+        surface: sheetBody.match(/--app-surface:\s*([^;]+);/)?.[1]?.trim(),
       };
       if (!sheet.bg || !sheet.surface) {
         gaps.push(`${name}: no .sheet ground`);
@@ -229,9 +225,9 @@ describe("frontend architecture", () => {
   test("status is read through the status roles, never a colour of the eight by name", () => {
     // The colour grammar (2026-08-26): priority, overdue, a notice's tone
     // are STATUS — fixed, so they keep their meaning when the accent is red
-    // or green — and a component sheet reaches them as `--theme-danger`,
-    // `--theme-warning`, `--theme-success` (and their `-tint`). Spelling
-    // `--accent-red` in a sheet is the same value today and a different one
+    // or green — and a component sheet reaches them as `--app-danger`,
+    // `--app-warning`, `--app-success` (and their `-tint`). Spelling
+    // `--app-red` in a sheet is the same value today and a different one
     // the day a theme moves its danger; the notice did exactly that.
     const sheets = [
       join(src, "styles", "controls.css"),
@@ -240,7 +236,7 @@ describe("frontend architecture", () => {
     const offenders = [];
     for (const f of sheets) {
       const css = readFileSync(f, "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
-      for (const m of css.matchAll(/var\(\s*(--accent-(?:red|yellow|green)[a-z0-9-]*)/g)) {
+      for (const m of css.matchAll(/var\(\s*(--app-(?:red|yellow|green)[a-z0-9-]*)/g)) {
         offenders.push(`${relative(src, f)}: ${m[1]}`);
       }
     }
@@ -248,17 +244,17 @@ describe("frontend architecture", () => {
   });
 
   test("every role a component reads is assigned by every theme", () => {
-    // Catches the other direction: a stylesheet reaching for a `--theme-*`
+    // Catches the other direction: a stylesheet reaching for a `--app-*`
     // that no theme defines renders as nothing at all. Checked against EACH
     // theme, not the union of all of them: a role assigned only in dark.css
     // is a role the other two themes leave unset, and the union would never
-    // notice. `--canvas-*` is in scope for the same reason as above — it is
+    // notice. `--app-canvas-*` is in scope for the same reason as above — it is
     // a theme-assigned role by another name.
     const shared = new Set();
     // roles.css holds the ones that are the same in every theme, plus the
     // accent branch — they count as assigned in all of them.
     for (const m of readFileSync(join(src, "styles", "roles.css"), "utf8").matchAll(
-      /(--(?:theme|canvas)-[a-z0-9-]+)\s*:/g,
+      /(--app-[a-z0-9-]+)\s*:/g,
     )) {
       shared.add(m[1]);
     }
@@ -266,7 +262,7 @@ describe("frontend architecture", () => {
       name,
       new Set([
         ...shared,
-        ...[...css.matchAll(/(--(?:theme|canvas)-[a-z0-9-]+)\s*:/g)].map((m) => m[1]),
+        ...[...css.matchAll(/(--app-[a-z0-9-]+)\s*:/g)].map((m) => m[1]),
       ]),
     ]);
     const missing = new Set();
@@ -276,10 +272,10 @@ describe("frontend architecture", () => {
     ];
     for (const f of sheets) {
       const css = readFileSync(f, "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
-      for (const m of css.matchAll(/var\(\s*(--(?:theme|canvas)-[a-z0-9-]+)/g)) {
+      for (const m of css.matchAll(/var\(\s*(--app-[a-z0-9-]+)/g)) {
         // Metrics (spacing, radius, type, layout, motion) live in tokens.css.
         if (
-          /^--theme-(space|radius|text|weight|tracking|leading|font|transition|duration|ease|sidebar|titlebar|topbar|content|note-|window|drawer|sheet|touch|safe|keyboard|format)/.test(
+          /^--app-(space|radius|text|weight|tracking|leading|font|transition|duration|ease|sidebar|titlebar|topbar|content|note-|window|drawer|sheet|touch|safe|keyboard|format)/.test(
             m[1],
           )
         )
@@ -382,7 +378,7 @@ describe("frontend architecture", () => {
     // skip such a colour and every test built on it would go green while
     // measuring nothing. That silent-skip shape already bit once (the ladder
     // test's first version); the count test below is the backstop.
-    for (const m of css.matchAll(/--palette-([a-z][a-z-]*?)-(\d00):\s*(#[0-9a-fA-F]{6})/g)) {
+    for (const m of css.matchAll(/--theme-color-([a-z][a-z-]*?)-(\d00):\s*(#[0-9a-fA-F]{6})/g)) {
       (steps[m[1]] ??= {})[m[2]] = m[3].toLowerCase();
     }
     return steps;
@@ -423,7 +419,7 @@ describe("frontend architecture", () => {
   });
 
   test("the solid accent carries white text, for all eight", () => {
-    // The promise `--accent-*-solid` makes (styles/roles.css): a notebook's
+    // The promise `--app-*-solid` makes (styles/roles.css): a notebook's
     // card is that notebook's colour with its name written across it, the same
     // colour on every theme — so the ink over it is fixed, and the fill has to
     // clear AA against that ink whichever of the eight was picked.
@@ -432,8 +428,8 @@ describe("frontend architecture", () => {
     // moment someone moves it to 400 for a brighter card, this is what says
     // the text stopped being readable.
     const roles = readFileSync(join(src, "styles", "roles.css"), "utf8");
-    const ink = roles.match(/--accent-on-solid:\s*var\((--palette-[a-z]+)\)/);
-    expect(ink, "roles.css assigns --accent-on-solid from the palette").toBeTruthy();
+    const ink = roles.match(/--app-on-solid:\s*var\((--theme-color-[a-z]+)\)/);
+    expect(ink, "roles.css assigns --app-on-solid from the palette").toBeTruthy();
     const tokens = readFileSync(join(src, "styles", "tokens.css"), "utf8");
     const inkHex = tokens
       .match(new RegExp(`${ink[1]}:\\s*(#[0-9a-fA-F]{6})`))?.[1]
@@ -443,7 +439,7 @@ describe("frontend architecture", () => {
     const families = palette();
     const offenders = [];
     for (const m of roles.matchAll(
-      /--accent-([a-z]+)-solid:\s*var\(--palette-\1-(\d00)\)/g,
+      /--app-([a-z]+)-solid:\s*var\(--theme-color-\1-(\d00)\)/g,
     )) {
       const hex = families[m[1]]?.[m[2]];
       if (!hex) {
@@ -456,11 +452,11 @@ describe("frontend architecture", () => {
     // All eight, so a colour added to the palette without a solid rung is a
     // notebook whose card cannot be drawn.
     expect(offenders).toEqual([]);
-    // `--accent-on-solid` is the ink, not a rung — it is what the eight are
+    // `--app-on-solid` is the ink, not a rung — it is what the eight are
     // written IN, and counting it as a ninth colour is how this line first
     // went green against nine.
     expect(
-      [...roles.matchAll(/--accent-(?!on-)[a-z]+-solid:/g)].length,
+      [...roles.matchAll(/--app-(?!on-)[a-z]+-solid:/g)].length,
       "one solid rung per colour",
     ).toBe(Object.keys(families).length);
   });
@@ -502,12 +498,12 @@ describe("frontend architecture", () => {
     // being one about ORDER — that part is checked on every rung.
     const steps = palette();
 
-    // Every literal in the palette, including the grounds (`--palette-black`,
-    // `--palette-white-tint`), which are not part of the tonal grid.
+    // Every literal in the palette, including the grounds (`--theme-color-black`,
+    // `--theme-color-white-tint`), which are not part of the tonal grid.
     const literals = Object.fromEntries(
       [
         ...readFileSync(join(src, "styles", "tokens.css"), "utf8").matchAll(
-          /(--palette-[a-z0-9-]+):\s*(#[0-9a-fA-F]{6})/g,
+          /(--theme-color-[a-z0-9-]+):\s*(#[0-9a-fA-F]{6})/g,
         ),
       ].map((m) => [m[1], m[2].toLowerCase()]),
     );
@@ -516,10 +512,10 @@ describe("frontend architecture", () => {
     /// two of them, which is what a half rung is.
     const resolve = (value) => {
       const mix = value.match(
-        /color-mix\(in oklab,\s*var\((--palette-[a-z0-9-]+)\),\s*var\((--palette-[a-z0-9-]+)\)\)/,
+        /color-mix\(in oklab,\s*var\((--theme-color-[a-z0-9-]+)\),\s*var\((--theme-color-[a-z0-9-]+)\)\)/,
       );
       if (mix) return midpoint(literals[mix[1]], literals[mix[2]]);
-      const one = value.match(/^var\((--palette-[a-z0-9-]+)\)$/);
+      const one = value.match(/^var\((--theme-color-[a-z0-9-]+)\)$/);
       return one ? (literals[one[1]] ?? null) : null;
     };
 
@@ -538,7 +534,7 @@ describe("frontend architecture", () => {
       }));
       const grounds = {};
       for (const b of blocks) {
-        const bg = b.body.match(/--theme-bg:\s*([^;]+);/);
+        const bg = b.body.match(/--app-bg:\s*([^;]+);/);
         if (bg) for (const region of b.regions) grounds[region] = resolve(bg[1].trim());
       }
       for (const b of blocks) {
@@ -548,7 +544,7 @@ describe("frontend architecture", () => {
           for (const name of Object.keys(steps)) {
             const rungs = [];
             for (let i = 1; i <= 6; i++) {
-              const m = b.body.match(new RegExp(`--accent-${name}-${i}:\\s*([^;]+);`));
+              const m = b.body.match(new RegExp(`--app-${name}-${i}:\\s*([^;]+);`));
               if (m) rungs.push(resolve(m[1].trim()));
             }
             if (rungs.length !== 6) continue;

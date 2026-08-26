@@ -50,7 +50,7 @@ import java.io.File
  * new WebView the page is already clear of it and an app that lifts by this
  * inset lifts twice. The three measurements above were taken on WebView 133,
  * before that landed, and they are kept because the same APK still meets both
- * WebViews. What the layout reads is `--theme-keyboard`, which the page
+ * WebViews. What the layout reads is `--app-keyboard`, which the page
  * derives by comparing this inset against its own initial containing block and
  * the height of the SCREEN — never against this window, which `adjustResize`
  * shrinks for the keyboard, and which therefore cannot say how much room there

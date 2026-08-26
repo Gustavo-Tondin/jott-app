@@ -17,9 +17,9 @@
   .notes-space__head {
     display: flex;
     align-items: center;
-    gap: var(--theme-space-8);
+    gap: var(--app-space-8);
     min-block-size: 2rem;
-    margin-block-end: var(--theme-space-12);
+    margin-block-end: var(--app-space-12);
   }
   .notes-space__title {
     flex: 1;
@@ -27,7 +27,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: var(--theme-space-10);
+    gap: var(--app-space-10);
     text-align: center;
   }
   /* Takes the ⋮'s room on the left without being seen or reached; it shrinks
@@ -50,23 +50,23 @@
   .quick-note {
     display: flex;
     align-items: end;
-    gap: var(--theme-space-8);
-    margin-block-end: var(--theme-space-16);
-    padding: var(--theme-space-8);
-    background: var(--theme-surface);
-    border-radius: var(--theme-radius-lg);
+    gap: var(--app-space-8);
+    margin-block-end: var(--app-space-16);
+    padding: var(--app-space-8);
+    background: var(--app-surface);
+    border-radius: var(--app-radius-lg);
   }
   .quick-note__field {
     flex: 1;
     min-inline-size: 0;
     /* The bar IS the field: no second box inside a box. */
-    padding: var(--theme-space-6) var(--theme-space-8);
+    padding: var(--app-space-6) var(--app-space-8);
     background: none;
     border: none;
-    color: var(--theme-ink);
+    color: var(--app-ink);
     font: inherit;
-    font-size: var(--theme-text-14);
-    line-height: var(--theme-leading-normal);
+    font-size: var(--app-text-14);
+    line-height: var(--app-leading-normal);
     resize: none;
     field-sizing: content;
     max-block-size: 12rem;
@@ -76,7 +76,7 @@
     outline: none;
   }
   .quick-note__field::placeholder {
-    color: var(--theme-ink-faint);
+    color: var(--app-ink-faint);
   }
   /* The one filled button of the screen, as the wireframe draws it. Square, so
      it stays a target as the field grows past one line. */
@@ -88,12 +88,12 @@
     inline-size: 2.5rem;
     block-size: 2.5rem;
     padding: 0;
-    border-radius: var(--theme-radius-md);
+    border-radius: var(--app-radius-md);
   }
 
   .notes-space__folders {
     flex-wrap: wrap;
-    margin-block-end: var(--theme-space-12);
+    margin-block-end: var(--app-space-12);
   }
 
   /* .notes-space__board is the shared .theme-note-board (controls.css): the
@@ -119,9 +119,9 @@
     outline: none;
   }
   .theme-note-board > .reorder-item--into > * {
-    outline: 0.125rem solid var(--theme-brand);
+    outline: 0.125rem solid var(--app-brand);
     outline-offset: 0.0625rem;
-    border-radius: var(--theme-radius-lg);
+    border-radius: var(--app-radius-lg);
   }
   .notes-space__board--tree {
     columns: 1;
@@ -130,10 +130,10 @@
      sized by this board and not the other way round (user call, 2026-08-19). */
   .notes-space__board--pair {
     columns: 2;
-    column-gap: var(--theme-space-8);
+    column-gap: var(--app-space-8);
   }
   .notes-space__board--pair > li {
-    margin-block-end: var(--theme-space-8);
+    margin-block-end: var(--app-space-8);
   }
 
   /* What a card LOOKS like is note-card.css now (2026-08-18): the board draws
@@ -143,7 +143,7 @@
 
 
   .notes-space__empty {
-    color: var(--theme-ink-muted);
+    color: var(--app-ink-muted);
   }
 }
 

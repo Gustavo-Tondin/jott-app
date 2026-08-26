@@ -33,27 +33,27 @@
   outline: none;
 }
 .editor .cm-content {
-  padding: var(--theme-space-8) 0;
+  padding: var(--app-space-8) 0;
   /* The note's own size (14 / 16 / 18 by `data-note-size`), from the token
      that names it. The token is in tokens.css because the note's TITLE is
      sized against the same ladder and is drawn outside this editor. */
-  font-size: var(--theme-note-size);
-  line-height: var(--theme-leading-loose);
+  font-size: var(--app-note-size);
+  line-height: var(--app-leading-loose);
   /* CodeMirror does not inherit the caret from the region; without this the
      cursor stayed near-black and disappeared on a dark ground. */
-  caret-color: var(--theme-ink);
-  color: var(--theme-ink);
+  caret-color: var(--app-ink);
+  color: var(--app-ink);
 }
 .editor .cm-line {
-  padding: 0 var(--theme-space-4);
+  padding: 0 var(--app-space-4);
 }
 .editor .cm-placeholder {
-  color: var(--theme-ink-faint);
+  color: var(--app-ink-faint);
 }
 /* The text cursor's own highlight, for the same reason as the caret. */
 .editor .cm-selectionBackground,
 .editor .cm-editor ::selection {
-  background: var(--theme-brand-weak);
+  background: var(--app-brand-weak);
 }
 
 /* =========================================================================
@@ -72,7 +72,7 @@
      · a quote is a BOX — the region's surface, with a 2px accent bar down
        the side and its far corners rounded;
      · bold is ink and a link is the accent, but italic is green
-       (--theme-emphasis);
+       (--app-emphasis);
      · the syntax marks are NOT dimmed on the line that shows them, and a
        bullet is ink like the text it introduces.
 
@@ -96,10 +96,10 @@
    replacing it. And translucent, so the text selection still reads on top. */
 .editor .cm-md-editing {
   background-image: linear-gradient(
-    color-mix(in srgb, var(--theme-brand-weak) 75%, transparent),
-    color-mix(in srgb, var(--theme-brand-weak) 75%, transparent)
+    color-mix(in srgb, var(--app-brand-weak) 75%, transparent),
+    color-mix(in srgb, var(--app-brand-weak) 75%, transparent)
   );
-  border-radius: var(--theme-radius-xs);
+  border-radius: var(--app-radius-xs);
 }
 
 /* ---- headings ----
@@ -109,51 +109,51 @@
    body size instead of pinning the note to one number. */
 .editor .cm-md-h1 {
   font-size: 1.6em;
-  font-weight: var(--theme-weight-bold);
-  line-height: var(--theme-leading-tight);
-  letter-spacing: var(--theme-tracking-tight);
-  color: var(--theme-heading-1);
+  font-weight: var(--app-weight-bold);
+  line-height: var(--app-leading-tight);
+  letter-spacing: var(--app-tracking-tight);
+  color: var(--app-heading-1);
 }
 .editor .cm-md-h2 {
   font-size: 1.35em;
-  font-weight: var(--theme-weight-bold);
-  line-height: var(--theme-leading-tight);
-  letter-spacing: var(--theme-tracking-tight);
-  color: var(--theme-heading-2);
+  font-weight: var(--app-weight-bold);
+  line-height: var(--app-leading-tight);
+  letter-spacing: var(--app-tracking-tight);
+  color: var(--app-heading-2);
 }
 .editor .cm-md-h3 {
   font-size: 1.15em;
-  font-weight: var(--theme-weight-bold);
-  color: var(--theme-heading-3);
+  font-weight: var(--app-weight-bold);
+  color: var(--app-heading-3);
 }
 .editor .cm-md-h4 {
-  font-weight: var(--theme-weight-bold);
-  color: var(--theme-heading-4);
+  font-weight: var(--app-weight-bold);
+  color: var(--app-heading-4);
 }
 .editor .cm-md-h5 {
-  font-weight: var(--theme-weight-bold);
-  color: var(--theme-heading-5);
+  font-weight: var(--app-weight-bold);
+  color: var(--app-heading-5);
 }
 .editor .cm-md-h6 {
-  font-weight: var(--theme-weight-bold);
-  color: var(--theme-heading-6);
+  font-weight: var(--app-weight-bold);
+  color: var(--app-heading-6);
 }
 /* A title needs air above it more than below: the paragraph it opens is
    already its own line. */
 .editor .cm-md-heading {
-  padding-block-start: var(--theme-space-12);
+  padding-block-start: var(--app-space-12);
 }
 
 /* ---- inline emphasis ---- */
 .editor .cm-md-strong {
-  font-weight: var(--theme-weight-bold);
+  font-weight: var(--app-weight-bold);
 }
 .editor .cm-md-em {
   font-style: italic;
-  color: var(--theme-emphasis);
+  color: var(--app-emphasis);
 }
 .editor .cm-md-strike {
-  color: var(--theme-ink-muted);
+  color: var(--app-ink-muted);
   text-decoration: line-through;
 }
 
@@ -163,13 +163,13 @@
    `(endereço)` half — visible only on the line being edited — steps back to
    muted ink, because it is plumbing and the text is the link. */
 .editor .cm-md-link {
-  color: var(--theme-brand);
+  color: var(--app-brand);
 }
 .editor .cm-md-link:hover {
   text-decoration: underline;
 }
 .editor .cm-md-url {
-  color: var(--theme-ink-muted);
+  color: var(--app-ink-muted);
 }
 
 /* ---- code ----
@@ -178,9 +178,9 @@
    "code", so the chip comes off. */
 .editor .cm-md-mono {
   padding: 0.05em 0.3em;
-  border-radius: var(--theme-radius-xs);
-  background: var(--theme-surface);
-  font-family: var(--theme-font-mono);
+  border-radius: var(--app-radius-xs);
+  background: var(--app-surface);
+  font-family: var(--app-font-mono);
   font-size: 0.9em;
 }
 .editor .cm-md-code .cm-md-mono {
@@ -189,9 +189,9 @@
   font-size: inherit;
 }
 .editor .cm-md-code {
-  background-color: var(--theme-surface);
-  padding-inline: var(--theme-space-10);
-  font-family: var(--theme-font-mono);
+  background-color: var(--app-surface);
+  padding-inline: var(--app-space-10);
+  font-family: var(--app-font-mono);
   font-size: 0.9em;
 }
 
@@ -199,23 +199,23 @@
    A box with a bar, not italic muted text: the shape carries the meaning, so
    the words keep the ink of the note around them. */
 .editor .cm-md-quote {
-  background-color: var(--theme-surface);
-  border-inline-start: 0.125rem solid var(--theme-brand);
-  padding-inline: var(--theme-space-10) var(--theme-space-8);
+  background-color: var(--app-surface);
+  border-inline-start: 0.125rem solid var(--app-brand);
+  padding-inline: var(--app-space-10) var(--app-space-8);
 }
 
 /* The two ends of a box are the only lines that round a corner. The side the
    bar is on stays square — a bar with a rounded box behind it reads as two
    pieces that missed each other. */
 .editor .cm-md-open {
-  border-start-start-radius: var(--theme-radius-xs);
-  border-start-end-radius: var(--theme-radius-xs);
-  padding-block-start: var(--theme-space-6);
+  border-start-start-radius: var(--app-radius-xs);
+  border-start-end-radius: var(--app-radius-xs);
+  padding-block-start: var(--app-space-6);
 }
 .editor .cm-md-close {
-  border-end-start-radius: var(--theme-radius-xs);
-  border-end-end-radius: var(--theme-radius-xs);
-  padding-block-end: var(--theme-space-6);
+  border-end-start-radius: var(--app-radius-xs);
+  border-end-end-radius: var(--app-radius-xs);
+  padding-block-end: var(--app-space-6);
 }
 .editor .cm-md-quote.cm-md-open,
 .editor .cm-md-quote.cm-md-close {
@@ -236,14 +236,14 @@
 .editor .cm-md-rule::after {
   content: "";
   position: absolute;
-  inset-inline: var(--theme-space-4);
+  inset-inline: var(--app-space-4);
   inset-block-start: 50%;
-  border-block-start: 0.0625rem solid var(--theme-line);
+  border-block-start: 0.0625rem solid var(--app-line);
 }
 /* On the line being edited the characters come back and the hairline goes,
    the same trade the rest of the live preview makes. */
 .editor .cm-md-rule.cm-md-editing .cm-md-separator {
-  color: var(--theme-ink-muted);
+  color: var(--app-ink-muted);
 }
 .editor .cm-md-rule.cm-md-editing::after {
   content: none;
@@ -253,7 +253,7 @@
    The • a `-` becomes on a line nobody is editing. Ink, not muted: it is the
    structure of the list, and it is what the eye runs down the margin. */
 .editor .cm-md-bullet {
-  color: var(--theme-ink);
+  color: var(--app-ink);
 }
 
 /* ---- folding by section (2026-08-24) ----
@@ -273,11 +273,11 @@
 }
 .editor .cm-fold-marker {
   display: inline-block;
-  color: var(--theme-ink-faint);
+  color: var(--app-ink-faint);
   cursor: pointer;
   transition:
-    rotate var(--theme-transition-fast),
-    opacity var(--theme-transition-fast);
+    rotate var(--app-transition-fast),
+    opacity var(--app-transition-fast);
 }
 .editor .cm-fold-marker--open {
   rotate: 90deg;
@@ -290,11 +290,11 @@
 /* What a folded section leaves behind: the quiet dots, on a step of ground
    so they read as something to press. */
 .editor .cm-foldPlaceholder {
-  padding-inline: var(--theme-space-6);
-  background: var(--theme-well);
+  padding-inline: var(--app-space-6);
+  background: var(--app-well);
   border: none;
-  border-radius: var(--theme-radius-xs);
-  color: var(--theme-ink-muted);
+  border-radius: var(--app-radius-xs);
+  color: var(--app-ink-muted);
   cursor: pointer;
 }
 
@@ -306,11 +306,11 @@
    same control to the eye. Here is only what sitting INSIDE a line of text
    asks for. */
 .editor .cm-task-checkbox {
-  margin-right: var(--theme-space-6);
+  margin-right: var(--app-space-6);
   vertical-align: text-bottom;
 }
 .editor .cm-md-done {
-  color: var(--theme-ink-muted);
+  color: var(--app-ink-muted);
   text-decoration: line-through;
 }
 
@@ -328,23 +328,23 @@
    of its own. */
 .editor .cm-embed--image {
   display: block;
-  margin-block: var(--theme-space-6);
+  margin-block: var(--app-space-6);
 }
 .editor .cm-embed--image img {
   display: block;
   max-inline-size: 100%;
-  border-radius: var(--theme-radius-md);
+  border-radius: var(--app-radius-md);
 }
 /* The file is named in the note but not in the library — deleted, renamed by
    hand, or a notebook that travelled without its `assets/`. Saying so beats a
    broken-image glyph. */
 .editor .cm-embed--missing {
   display: inline-block;
-  padding: var(--theme-space-2) var(--theme-space-6);
-  border: 0.0625rem dashed var(--theme-line);
-  border-radius: var(--theme-radius-sm);
-  color: var(--theme-ink-faint);
-  font-size: var(--theme-text-13);
+  padding: var(--app-space-2) var(--app-space-6);
+  border: 0.0625rem dashed var(--app-line);
+  border-radius: var(--app-radius-sm);
+  color: var(--app-ink-faint);
+  font-size: var(--app-text-13);
 }
 
 /* What the app cannot draw: a name and an icon, sized like a line of text so
@@ -352,16 +352,16 @@
 .editor .cm-embed--file {
   display: inline-flex;
   align-items: center;
-  gap: var(--theme-space-6);
+  gap: var(--app-space-6);
   max-inline-size: 100%;
-  padding: var(--theme-space-2) var(--theme-space-8);
-  background: var(--theme-surface);
-  border: 0.0625rem solid var(--theme-line);
-  border-radius: var(--theme-radius-sm);
+  padding: var(--app-space-2) var(--app-space-8);
+  background: var(--app-surface);
+  border: 0.0625rem solid var(--app-line);
+  border-radius: var(--app-radius-sm);
   cursor: pointer;
 }
 .editor .cm-embed--file:hover {
-  border-color: var(--theme-brand);
+  border-color: var(--app-brand);
 }
 .editor .cm-embed__name {
   overflow: hidden;
@@ -378,10 +378,10 @@
   inline-size: 1.75em;
   block-size: 1.75em;
   flex: none;
-  background: var(--theme-well);
-  border-radius: var(--theme-radius-xs);
-  color: var(--theme-ink-muted);
-  font-family: var(--theme-font-mono);
+  background: var(--app-well);
+  border-radius: var(--app-radius-xs);
+  color: var(--app-ink-muted);
+  font-family: var(--app-font-mono);
   font-size: 0.5em;
   letter-spacing: 0.02em;
 }
@@ -405,7 +405,7 @@
    rather than a browser blue: a link inside the notebook is the notebook's
    own colour. */
 .editor .cm-link-note {
-  color: var(--theme-brand);
+  color: var(--app-brand);
   text-decoration: underline;
   text-decoration-thickness: 0.0625rem;
   text-underline-offset: 0.125rem;
@@ -419,10 +419,10 @@
    CodeMirror's completion panel, dressed in the app's tokens — it ships with
    a light-only look of its own, the same problem the find panel had. */
 .editor .cm-tooltip.cm-tooltip-autocomplete {
-  background: var(--theme-surface);
-  border: 0.0625rem solid var(--theme-line);
-  border-radius: var(--theme-radius-md);
-  box-shadow: 0 0.25rem 0.75rem var(--theme-shadow-popover);
+  background: var(--app-surface);
+  border: 0.0625rem solid var(--app-line);
+  border-radius: var(--app-radius-md);
+  box-shadow: 0 0.25rem 0.75rem var(--app-shadow-popover);
   overflow: hidden;
 }
 .editor .cm-tooltip-autocomplete > ul {
@@ -432,13 +432,13 @@
 .editor .cm-tooltip-autocomplete > ul > li {
   display: flex;
   align-items: baseline;
-  gap: var(--theme-space-8);
-  padding: var(--theme-space-4) var(--theme-space-10);
-  color: var(--theme-ink);
+  gap: var(--app-space-8);
+  padding: var(--app-space-4) var(--app-space-10);
+  color: var(--app-ink);
 }
 .editor .cm-tooltip-autocomplete > ul > li[aria-selected] {
-  background: var(--theme-brand);
-  color: var(--theme-on-brand);
+  background: var(--app-brand);
+  color: var(--app-on-brand);
 }
 .editor .cm-completionLabel {
   flex: 1;
@@ -450,12 +450,12 @@
 /* Where a note lives, or whether a file is one the app draws — said quietly,
    because the name is the answer and this is only the tie-break. */
 .editor .cm-completionDetail {
-  color: var(--theme-ink-faint);
-  font-size: var(--theme-text-12);
+  color: var(--app-ink-faint);
+  font-size: var(--app-text-12);
   font-style: normal;
 }
 .editor .cm-tooltip-autocomplete > ul > li[aria-selected] .cm-completionDetail {
-  color: var(--theme-on-brand);
+  color: var(--app-on-brand);
   opacity: 0.75;
 }
 
@@ -465,56 +465,56 @@
    white box. Everything here is the panel taking the region's ground, the
    app's controls and the app's accent — the behaviour is untouched. */
 .editor .cm-panels {
-  background: var(--theme-surface);
-  color: var(--theme-ink);
-  border-color: var(--theme-line);
+  background: var(--app-surface);
+  color: var(--app-ink);
+  border-color: var(--app-line);
 }
 .editor .cm-panels.cm-panels-top {
-  border-bottom: 0.0625rem solid var(--theme-line);
+  border-bottom: 0.0625rem solid var(--app-line);
 }
 .editor .cm-panel.cm-search {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--theme-space-6);
-  padding: var(--theme-space-8);
-  font-size: var(--theme-text-14);
+  gap: var(--app-space-6);
+  padding: var(--app-space-8);
+  font-size: var(--app-text-14);
 }
 .editor .cm-panel.cm-search input[type="text"] {
   flex: 1 1 8rem;
   min-inline-size: 0;
-  padding: var(--theme-space-4) var(--theme-space-8);
-  background: var(--theme-bg);
-  color: var(--theme-ink);
-  border: 0.0625rem solid var(--theme-line);
-  border-radius: var(--theme-radius-sm);
+  padding: var(--app-space-4) var(--app-space-8);
+  background: var(--app-bg);
+  color: var(--app-ink);
+  border: 0.0625rem solid var(--app-line);
+  border-radius: var(--app-radius-sm);
   font: inherit;
 }
 .editor .cm-panel.cm-search input[type="text"]:focus-visible {
-  outline: 0.125rem solid var(--theme-brand);
+  outline: 0.125rem solid var(--app-brand);
   outline-offset: 0.0625rem;
 }
 .editor .cm-panel.cm-search button:not([name="close"]) {
-  padding: var(--theme-space-4) var(--theme-space-8);
-  background: var(--theme-bg);
-  color: var(--theme-ink);
-  border: 0.0625rem solid var(--theme-line);
-  border-radius: var(--theme-radius-sm);
+  padding: var(--app-space-4) var(--app-space-8);
+  background: var(--app-bg);
+  color: var(--app-ink);
+  border: 0.0625rem solid var(--app-line);
+  border-radius: var(--app-radius-sm);
   background-image: none;
   font: inherit;
   cursor: pointer;
 }
 .editor .cm-panel.cm-search button:not([name="close"]):hover {
-  background: var(--theme-hover);
+  background: var(--app-hover);
 }
 .editor .cm-panel.cm-search label {
   display: inline-flex;
   align-items: center;
-  gap: var(--theme-space-4);
-  color: var(--theme-ink-muted);
+  gap: var(--app-space-4);
+  color: var(--app-ink-muted);
 }
 .editor .cm-panel.cm-search [name="close"] {
-  color: var(--theme-ink-muted);
+  color: var(--app-ink-muted);
   background: none;
   border: none;
   cursor: pointer;
@@ -523,15 +523,15 @@
    others its tint — the same pair the rest of the app uses to say "this one"
    and "these too". */
 .editor .cm-searchMatch {
-  background: var(--theme-brand-weak);
+  background: var(--app-brand-weak);
 }
 .editor .cm-searchMatch-selected {
-  background: var(--theme-brand);
-  color: var(--theme-on-brand);
+  background: var(--app-brand);
+  color: var(--app-on-brand);
 }
 
 /* How big the body of a note is drawn (2026-08-18, `noteFontSize`) is now one
-   token, `--theme-note-size`, set in tokens.css with its three rungs — the
+   token, `--app-note-size`, set in tokens.css with its three rungs — the
    note's title is sized against the same ladder from outside this file.
 
    One declaration still moves the whole document, because the marks inside are
@@ -548,28 +548,28 @@
    CodeMirror's own in silence (the lesson at the top of this file). */
 .editor--plain {
   height: auto;
-  background: var(--theme-surface);
-  border: 0.0625rem solid var(--theme-line);
-  border-radius: var(--theme-radius-md);
+  background: var(--app-surface);
+  border: 0.0625rem solid var(--app-line);
+  border-radius: var(--app-radius-md);
 }
 .editor--plain:hover:not(:focus-within) {
-  border-color: var(--theme-brand-outline);
+  border-color: var(--app-brand-outline);
 }
 .editor--plain:focus-within {
-  border-color: var(--theme-brand);
-  box-shadow: 0 0 0 0.1875rem var(--theme-brand-weak);
+  border-color: var(--app-brand);
+  box-shadow: 0 0 0 0.1875rem var(--app-brand-weak);
 }
 /* The interface's own size, not the note's: this field sits in a form next
    to inputs and selects, and it matches THEM. */
 .editor--plain .cm-content {
-  font-size: var(--theme-text-14);
-  line-height: var(--theme-leading-normal);
-  padding: var(--theme-space-8) 0;
+  font-size: var(--app-text-14);
+  line-height: var(--app-leading-normal);
+  padding: var(--app-space-8) 0;
 }
 /* The textarea's inset, carried by the lines so the caret and the
    placeholder both land where a textarea would put them. */
 .editor--plain .cm-line {
-  padding: 0 var(--theme-space-12);
+  padding: 0 var(--app-space-12);
 }
 
 /* ---- tables (2026-08-24) ----
@@ -602,8 +602,8 @@
   border-collapse: separate;
   border-spacing: 0;
   inline-size: 100%;
-  border: 0.0625rem solid var(--theme-line);
-  border-radius: var(--theme-radius-xs);
+  border: 0.0625rem solid var(--app-line);
+  border-radius: var(--app-radius-xs);
   font-size: 0.95em;
   line-height: 1.4;
 }
@@ -613,8 +613,8 @@
   padding: 0;
   text-align: start;
   vertical-align: top;
-  border-inline-start: 0.0625rem solid var(--theme-line);
-  border-block-start: 0.0625rem solid var(--theme-line);
+  border-inline-start: 0.0625rem solid var(--app-line);
+  border-block-start: 0.0625rem solid var(--app-line);
 }
 .editor .cm-md-table__head:first-child,
 .editor .cm-md-table__body:first-child {
@@ -622,8 +622,8 @@
 }
 .editor thead .cm-md-table__head {
   border-block-start: 0;
-  background: var(--theme-surface);
-  font-weight: var(--theme-weight-semibold);
+  background: var(--app-surface);
+  font-weight: var(--app-weight-semibold);
 }
 .editor .cm-md-table--scroll .cm-md-table__grid {
   inline-size: max-content;
@@ -635,7 +635,7 @@
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   outline: none;
-  caret-color: var(--theme-brand);
+  caret-color: var(--app-brand);
 }
 /* An empty cell keeps its height: a contenteditable with nothing in it
    collapses, and a row of collapsed cells is a hairline nobody can click. */
@@ -647,7 +647,7 @@
   content: "\200B";
 }
 .editor .cm-md-table__cell:focus-visible {
-  box-shadow: inset 0 0 0 0.125rem var(--theme-brand);
+  box-shadow: inset 0 0 0 0.125rem var(--app-brand);
 }
 
 /* The handles: a bar above each column, a bar beside each body row, in the
@@ -658,13 +658,13 @@
 .editor .cm-md-table__handle {
   position: absolute;
   display: block;
-  border-radius: var(--theme-radius-xs);
-  background: var(--theme-line);
+  border-radius: var(--app-radius-xs);
+  background: var(--app-line);
   opacity: 0;
   cursor: grab;
   touch-action: none;
   user-select: none;
-  transition: opacity var(--theme-duration-fast) var(--theme-ease);
+  transition: opacity var(--app-duration-fast) var(--app-ease);
 }
 .editor .cm-md-table__handle--col {
   inset-block-start: -0.6em;
@@ -683,7 +683,7 @@
 }
 .editor .cm-md-table__handle:hover,
 .editor .cm-md-table--dragging .cm-md-table__handle {
-  background: var(--theme-brand);
+  background: var(--app-brand);
 }
 .editor .cm-md-table--dragging .cm-md-table__handle {
   cursor: grabbing;
@@ -691,8 +691,8 @@
 /* Where the dragged column or row would land: a line on the near edge of
    the cell (or row) that will follow it. */
 .editor .cm-md-table--dragging .cm-md-table__target {
-  box-shadow: inset 0.125rem 0 0 var(--theme-brand);
+  box-shadow: inset 0.125rem 0 0 var(--app-brand);
 }
 .editor .cm-md-table--dragging tr.cm-md-table__target > td {
-  box-shadow: inset 0 0.125rem 0 var(--theme-brand);
+  box-shadow: inset 0 0.125rem 0 var(--app-brand);
 }

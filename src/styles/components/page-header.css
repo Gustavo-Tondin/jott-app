@@ -17,8 +17,8 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: var(--theme-space-12);
-    padding: var(--theme-space-2) var(--theme-space-12);
+    gap: var(--app-space-12);
+    padding: var(--app-space-2) var(--app-space-12);
   }
 
   /* The page's name, centred and quiet: it says where you are, it is not the
@@ -28,30 +28,30 @@
     min-width: 0;
     margin: 0;
     text-align: center;
-    font-size: var(--theme-text-13);
-    font-weight: var(--theme-weight-semibold);
-    letter-spacing: var(--theme-tracking-wide);
+    font-size: var(--app-text-13);
+    font-weight: var(--app-weight-semibold);
+    letter-spacing: var(--app-tracking-wide);
     text-transform: uppercase;
-    color: var(--theme-ink-muted);
+    color: var(--app-ink-muted);
   }
   .page-header__subtitle {
-    margin-left: var(--theme-space-6);
-    font-weight: var(--theme-weight-regular);
+    margin-left: var(--app-space-6);
+    font-weight: var(--app-weight-regular);
   }
   /* The part before the slash is context, not the name: a neutral grey, so the
      leaf is what the eye lands on (user call, 2026-08-06). */
   .page-header__context {
-    color: var(--theme-ink-faint);
-    font-weight: var(--theme-weight-regular);
+    color: var(--app-ink-faint);
+    font-weight: var(--app-weight-regular);
   }
 
   /* The document's own name, clicked to rename it — the only place it
      appears, right under the tabs. */
   .page-header__name {
-    padding: var(--theme-space-2) var(--theme-space-6);
+    padding: var(--app-space-2) var(--app-space-6);
     background: none;
     border: none;
-    border-radius: var(--theme-radius-sm);
+    border-radius: var(--app-radius-sm);
     font: inherit;
     color: inherit;
     letter-spacing: inherit;
@@ -59,18 +59,18 @@
     cursor: pointer;
   }
   .page-header__name:hover {
-    background: var(--theme-surface-sunken);
-    color: var(--theme-ink);
+    background: var(--app-surface-sunken);
+    color: var(--app-ink);
   }
 
   .page-nav {
     display: flex;
-    gap: var(--theme-space-2);
+    gap: var(--app-space-2);
   }
   /* An arrow — or a ••• — with nowhere to go stays visible but plainly inert. */
   .page-header .page-nav__arrow:disabled,
   .page-header .page-menu__toggle:disabled {
-    color: var(--theme-ink-faint);
+    color: var(--app-ink-faint);
     cursor: default;
   }
 }
@@ -88,13 +88,13 @@
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
-    gap: var(--theme-space-12);
+    gap: var(--app-space-12);
     /* The chrome's own ground, because the canvas begins BELOW this block —
        the wireframe rounds the panel's top corners under it. */
-    background: var(--theme-bg);
-    padding: var(--theme-space-12) var(--theme-space-16) var(--theme-space-24);
-    padding-inline-start: calc(var(--theme-space-16) + var(--theme-safe-left));
-    padding-inline-end: calc(var(--theme-space-16) + var(--theme-safe-right));
+    background: var(--app-bg);
+    padding: var(--app-space-12) var(--app-space-16) var(--app-space-24);
+    padding-inline-start: calc(var(--app-space-16) + var(--app-safe-left));
+    padding-inline-end: calc(var(--app-space-16) + var(--app-safe-right));
   }
 
   .page-header__place {
@@ -106,14 +106,14 @@
   .page-header__name-large {
     display: flex;
     align-items: center;
-    gap: var(--theme-space-10);
+    gap: var(--app-space-10);
     margin: 0;
     min-width: 0;
-    font-size: var(--theme-text-32);
-    font-weight: var(--theme-weight-bold);
-    letter-spacing: var(--theme-tracking-tight);
-    line-height: var(--theme-leading-tight);
-    color: var(--theme-ink);
+    font-size: var(--app-text-32);
+    font-weight: var(--app-weight-bold);
+    letter-spacing: var(--app-tracking-tight);
+    line-height: var(--app-leading-tight);
+    color: var(--app-ink);
     /* A long space name truncates rather than pushing the action off screen. */
     overflow: hidden;
     text-overflow: ellipsis;
@@ -121,9 +121,9 @@
   }
 
   .page-header__date {
-    margin: var(--theme-space-4) 0 0;
-    font-size: var(--theme-text-14);
-    color: var(--theme-ink-muted);
+    margin: var(--app-space-4) 0 0;
+    font-size: var(--app-text-14);
+    color: var(--app-ink-muted);
   }
 
   /* The name is still the rename button on a note; it just carries the large

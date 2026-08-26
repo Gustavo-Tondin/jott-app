@@ -11,118 +11,118 @@
  */
 
 [data-theme="light"] {
-  --canvas-ground: var(--palette-white);
-  --canvas-ink: var(--palette-black);
+  --app-canvas-ground: var(--theme-color-white);
+  --app-canvas-ink: var(--theme-color-black);
 }
 
 /* ---- the two neutrals, in opposite order ------------------------------- */
 [data-theme="light"] [data-region="chrome"] {
-  --theme-bg: var(--palette-white-tint);
-  --theme-surface: var(--palette-white);
-  --theme-surface-sunken: var(--palette-white);
+  --app-bg: var(--theme-color-white-tint);
+  --app-surface: var(--theme-color-white);
+  --app-surface-sunken: var(--theme-color-white);
 }
 [data-theme="light"] [data-region="canvas"] {
-  --theme-bg: var(--palette-white);
-  --theme-surface: var(--palette-white-tint);
-  --theme-surface-sunken: var(--palette-white-tint);
+  --app-bg: var(--theme-color-white);
+  --app-surface: var(--theme-color-white-tint);
+  --app-surface-sunken: var(--theme-color-white-tint);
 }
 
 /* ---- everything a light ground shares ---------------------------------- */
 [data-theme="light"] [data-region="chrome"],
 [data-theme="light"] [data-region="canvas"] {
-  --theme-ink: var(--palette-black);
-  --theme-ink-muted: color-mix(in srgb, var(--palette-black) 55%, transparent);
-  --theme-on-brand: var(--palette-white);
-  --theme-hover: color-mix(in srgb, var(--palette-black) 8%, transparent);
-  --theme-shadow-popover: 0 0.375rem 1.25rem
-    color-mix(in srgb, var(--palette-black) 18%, transparent);
+  --app-ink: var(--theme-color-black);
+  --app-ink-muted: color-mix(in srgb, var(--theme-color-black) 55%, transparent);
+  --app-on-brand: var(--theme-color-white);
+  --app-hover: color-mix(in srgb, var(--theme-color-black) 8%, transparent);
+  --app-shadow-popover: 0 0.375rem 1.25rem
+    color-mix(in srgb, var(--theme-color-black) 18%, transparent);
 
-  --accent-yellow-1: var(--palette-yellow-600);
-  --accent-yellow-2: color-mix(in oklab, var(--palette-yellow-600), var(--palette-yellow-500));
-  --accent-yellow-3: var(--palette-yellow-500);
-  --accent-yellow-4: color-mix(in oklab, var(--palette-yellow-500), var(--palette-yellow-400));
-  --accent-yellow-5: var(--palette-yellow-400);
-  --accent-yellow-6: color-mix(in oklab, var(--palette-yellow-400), var(--palette-yellow-300));
-  --accent-yellow: var(--palette-yellow-500);
-  --accent-yellow-line: color-mix(in srgb, var(--palette-yellow-300) 60%, transparent);
-  --accent-yellow-tint: var(--palette-yellow-100);
+  --app-yellow-1: var(--theme-color-yellow-600);
+  --app-yellow-2: color-mix(in oklab, var(--theme-color-yellow-600), var(--theme-color-yellow-500));
+  --app-yellow-3: var(--theme-color-yellow-500);
+  --app-yellow-4: color-mix(in oklab, var(--theme-color-yellow-500), var(--theme-color-yellow-400));
+  --app-yellow-5: var(--theme-color-yellow-400);
+  --app-yellow-6: color-mix(in oklab, var(--theme-color-yellow-400), var(--theme-color-yellow-300));
+  --app-yellow: var(--theme-color-yellow-500);
+  --app-yellow-line: color-mix(in srgb, var(--theme-color-yellow-300) 60%, transparent);
+  --app-yellow-tint: var(--theme-color-yellow-100);
 
-  --accent-orange-1: var(--palette-orange-600);
-  --accent-orange-2: color-mix(in oklab, var(--palette-orange-600), var(--palette-orange-500));
-  --accent-orange-3: var(--palette-orange-500);
-  --accent-orange-4: color-mix(in oklab, var(--palette-orange-500), var(--palette-orange-400));
-  --accent-orange-5: var(--palette-orange-400);
-  --accent-orange-6: color-mix(in oklab, var(--palette-orange-400), var(--palette-orange-300));
-  --accent-orange: var(--palette-orange-500);
-  --accent-orange-line: color-mix(in srgb, var(--palette-orange-300) 60%, transparent);
-  --accent-orange-tint: var(--palette-orange-100);
+  --app-orange-1: var(--theme-color-orange-600);
+  --app-orange-2: color-mix(in oklab, var(--theme-color-orange-600), var(--theme-color-orange-500));
+  --app-orange-3: var(--theme-color-orange-500);
+  --app-orange-4: color-mix(in oklab, var(--theme-color-orange-500), var(--theme-color-orange-400));
+  --app-orange-5: var(--theme-color-orange-400);
+  --app-orange-6: color-mix(in oklab, var(--theme-color-orange-400), var(--theme-color-orange-300));
+  --app-orange: var(--theme-color-orange-500);
+  --app-orange-line: color-mix(in srgb, var(--theme-color-orange-300) 60%, transparent);
+  --app-orange-tint: var(--theme-color-orange-100);
 
-  --accent-pink-1: var(--palette-pink-600);
-  --accent-pink-2: color-mix(in oklab, var(--palette-pink-600), var(--palette-pink-500));
-  --accent-pink-3: var(--palette-pink-500);
-  --accent-pink-4: color-mix(in oklab, var(--palette-pink-500), var(--palette-pink-400));
-  --accent-pink-5: var(--palette-pink-400);
-  --accent-pink-6: color-mix(in oklab, var(--palette-pink-400), var(--palette-pink-300));
-  --accent-pink: var(--palette-pink-500);
-  --accent-pink-line: color-mix(in srgb, var(--palette-pink-300) 60%, transparent);
-  --accent-pink-tint: var(--palette-pink-100);
+  --app-pink-1: var(--theme-color-pink-600);
+  --app-pink-2: color-mix(in oklab, var(--theme-color-pink-600), var(--theme-color-pink-500));
+  --app-pink-3: var(--theme-color-pink-500);
+  --app-pink-4: color-mix(in oklab, var(--theme-color-pink-500), var(--theme-color-pink-400));
+  --app-pink-5: var(--theme-color-pink-400);
+  --app-pink-6: color-mix(in oklab, var(--theme-color-pink-400), var(--theme-color-pink-300));
+  --app-pink: var(--theme-color-pink-500);
+  --app-pink-line: color-mix(in srgb, var(--theme-color-pink-300) 60%, transparent);
+  --app-pink-tint: var(--theme-color-pink-100);
 
-  --accent-green-1: var(--palette-green-600);
-  --accent-green-2: color-mix(in oklab, var(--palette-green-600), var(--palette-green-500));
-  --accent-green-3: var(--palette-green-500);
-  --accent-green-4: color-mix(in oklab, var(--palette-green-500), var(--palette-green-400));
-  --accent-green-5: var(--palette-green-400);
-  --accent-green-6: color-mix(in oklab, var(--palette-green-400), var(--palette-green-300));
-  --accent-green: var(--palette-green-500);
-  --accent-green-line: color-mix(in srgb, var(--palette-green-300) 60%, transparent);
-  --accent-green-tint: var(--palette-green-100);
+  --app-green-1: var(--theme-color-green-600);
+  --app-green-2: color-mix(in oklab, var(--theme-color-green-600), var(--theme-color-green-500));
+  --app-green-3: var(--theme-color-green-500);
+  --app-green-4: color-mix(in oklab, var(--theme-color-green-500), var(--theme-color-green-400));
+  --app-green-5: var(--theme-color-green-400);
+  --app-green-6: color-mix(in oklab, var(--theme-color-green-400), var(--theme-color-green-300));
+  --app-green: var(--theme-color-green-500);
+  --app-green-line: color-mix(in srgb, var(--theme-color-green-300) 60%, transparent);
+  --app-green-tint: var(--theme-color-green-100);
 
-  --accent-blue-1: var(--palette-blue-600);
-  --accent-blue-2: color-mix(in oklab, var(--palette-blue-600), var(--palette-blue-500));
-  --accent-blue-3: var(--palette-blue-500);
-  --accent-blue-4: color-mix(in oklab, var(--palette-blue-500), var(--palette-blue-400));
-  --accent-blue-5: var(--palette-blue-400);
-  --accent-blue-6: color-mix(in oklab, var(--palette-blue-400), var(--palette-blue-300));
-  --accent-blue: var(--palette-blue-500);
-  --accent-blue-line: color-mix(in srgb, var(--palette-blue-300) 60%, transparent);
-  --accent-blue-tint: var(--palette-blue-100);
+  --app-blue-1: var(--theme-color-blue-600);
+  --app-blue-2: color-mix(in oklab, var(--theme-color-blue-600), var(--theme-color-blue-500));
+  --app-blue-3: var(--theme-color-blue-500);
+  --app-blue-4: color-mix(in oklab, var(--theme-color-blue-500), var(--theme-color-blue-400));
+  --app-blue-5: var(--theme-color-blue-400);
+  --app-blue-6: color-mix(in oklab, var(--theme-color-blue-400), var(--theme-color-blue-300));
+  --app-blue: var(--theme-color-blue-500);
+  --app-blue-line: color-mix(in srgb, var(--theme-color-blue-300) 60%, transparent);
+  --app-blue-tint: var(--theme-color-blue-100);
 
-  --accent-red-1: var(--palette-red-600);
-  --accent-red-2: color-mix(in oklab, var(--palette-red-600), var(--palette-red-500));
-  --accent-red-3: var(--palette-red-500);
-  --accent-red-4: color-mix(in oklab, var(--palette-red-500), var(--palette-red-400));
-  --accent-red-5: var(--palette-red-400);
-  --accent-red-6: color-mix(in oklab, var(--palette-red-400), var(--palette-red-300));
-  --accent-red: var(--palette-red-500);
-  --accent-red-line: color-mix(in srgb, var(--palette-red-300) 60%, transparent);
-  --accent-red-tint: var(--palette-red-100);
+  --app-red-1: var(--theme-color-red-600);
+  --app-red-2: color-mix(in oklab, var(--theme-color-red-600), var(--theme-color-red-500));
+  --app-red-3: var(--theme-color-red-500);
+  --app-red-4: color-mix(in oklab, var(--theme-color-red-500), var(--theme-color-red-400));
+  --app-red-5: var(--theme-color-red-400);
+  --app-red-6: color-mix(in oklab, var(--theme-color-red-400), var(--theme-color-red-300));
+  --app-red: var(--theme-color-red-500);
+  --app-red-line: color-mix(in srgb, var(--theme-color-red-300) 60%, transparent);
+  --app-red-tint: var(--theme-color-red-100);
 
-  --accent-purple-1: var(--palette-purple-600);
-  --accent-purple-2: color-mix(in oklab, var(--palette-purple-600), var(--palette-purple-500));
-  --accent-purple-3: var(--palette-purple-500);
-  --accent-purple-4: color-mix(in oklab, var(--palette-purple-500), var(--palette-purple-400));
-  --accent-purple-5: var(--palette-purple-400);
-  --accent-purple-6: color-mix(in oklab, var(--palette-purple-400), var(--palette-purple-300));
-  --accent-purple: var(--palette-purple-500);
-  --accent-purple-line: color-mix(in srgb, var(--palette-purple-300) 60%, transparent);
-  --accent-purple-tint: var(--palette-purple-100);
+  --app-purple-1: var(--theme-color-purple-600);
+  --app-purple-2: color-mix(in oklab, var(--theme-color-purple-600), var(--theme-color-purple-500));
+  --app-purple-3: var(--theme-color-purple-500);
+  --app-purple-4: color-mix(in oklab, var(--theme-color-purple-500), var(--theme-color-purple-400));
+  --app-purple-5: var(--theme-color-purple-400);
+  --app-purple-6: color-mix(in oklab, var(--theme-color-purple-400), var(--theme-color-purple-300));
+  --app-purple: var(--theme-color-purple-500);
+  --app-purple-line: color-mix(in srgb, var(--theme-color-purple-300) 60%, transparent);
+  --app-purple-tint: var(--theme-color-purple-100);
 
-  --accent-neutral-1: var(--palette-neutral-700);
-  --accent-neutral-2: color-mix(in oklab, var(--palette-neutral-700), var(--palette-neutral-600));
-  --accent-neutral-3: var(--palette-neutral-600);
-  --accent-neutral-4: color-mix(in oklab, var(--palette-neutral-600), var(--palette-neutral-500));
-  --accent-neutral-5: var(--palette-neutral-500);
-  --accent-neutral-6: color-mix(in oklab, var(--palette-neutral-500), var(--palette-neutral-400));
-  --accent-neutral: var(--palette-neutral-600);
-  --accent-neutral-line: color-mix(in srgb, var(--palette-neutral-300) 60%, transparent);
-  --accent-neutral-tint: var(--palette-neutral-200);
+  --app-neutral-1: var(--theme-color-neutral-700);
+  --app-neutral-2: color-mix(in oklab, var(--theme-color-neutral-700), var(--theme-color-neutral-600));
+  --app-neutral-3: var(--theme-color-neutral-600);
+  --app-neutral-4: color-mix(in oklab, var(--theme-color-neutral-600), var(--theme-color-neutral-500));
+  --app-neutral-5: var(--theme-color-neutral-500);
+  --app-neutral-6: color-mix(in oklab, var(--theme-color-neutral-500), var(--theme-color-neutral-400));
+  --app-neutral: var(--theme-color-neutral-600);
+  --app-neutral-line: color-mix(in srgb, var(--theme-color-neutral-300) 60%, transparent);
+  --app-neutral-tint: var(--theme-color-neutral-200);
 
-  --theme-danger: var(--palette-red-500);
-  --theme-warning: var(--palette-yellow-500);
-  --theme-success: var(--palette-green-500);
-  --theme-danger-tint: var(--palette-red-100);
-  --theme-warning-tint: var(--palette-yellow-100);
-  --theme-success-tint: var(--palette-green-100);
+  --app-danger: var(--theme-color-red-500);
+  --app-warning: var(--theme-color-yellow-500);
+  --app-success: var(--theme-color-green-500);
+  --app-danger-tint: var(--theme-color-red-100);
+  --app-warning-tint: var(--theme-color-yellow-100);
+  --app-success-tint: var(--theme-color-green-100);
 
   /* The one piece of Markdown with a colour of its own (Notes wireframe,
      Editor screen): emphasis. Bold is ink and a link is the accent, but italic
@@ -130,7 +130,7 @@
      to miss in a wall of text. A fixed colour rather than the accent, for the
      same reason the status three are fixed: it must not change meaning when
      the user picks green as their accent. */
-  --theme-emphasis: var(--palette-green-500);
+  --app-emphasis: var(--theme-color-green-500);
 }
 
 /* ---- a sheet: the canvas's two neutrals, the other way round --------------
@@ -150,7 +150,7 @@
  * The MODAL is the same shape by another route — a panel raised over the page,
  * with cards, fields and chips inside it — so it takes the same pair (user
  * call, 2026-08-18: every floating panel, not only the sheets). Its own ground
- * does not move: it painted `--theme-surface` before and paints `--theme-bg`
+ * does not move: it painted `--app-surface` before and paints `--app-bg`
  * now, and after the swap those are the same colour. What changes is that what
  * it HOLDS finally has a step to rise to. A popover is deliberately not in
  * here: a menu is a list of rows, not a panel with cards, and it has nothing
@@ -158,7 +158,7 @@
  */
 [data-theme="light"] .sheet,
 [data-theme="light"] .theme-modal {
-  --theme-bg: var(--palette-white-tint);
-  --theme-surface: var(--palette-white);
-  --theme-surface-sunken: var(--palette-white);
+  --app-bg: var(--theme-color-white-tint);
+  --app-surface: var(--theme-color-white);
+  --app-surface-sunken: var(--theme-color-white);
 }

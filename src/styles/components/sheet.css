@@ -12,14 +12,14 @@
     position: fixed;
     inset: 0;
     z-index: 60;
-    background: var(--theme-scrim);
+    background: var(--app-scrim);
     /* The sheet is pinned to the bottom of the scrim, which is the bottom of
        the LAYOUT viewport — and with `interactive-widget=resizes-content`
        (index.html) the virtual keyboard shrinks that viewport, so a sheet with
        a field in it rides up above the keyboard instead of under it. */
     display: flex;
     align-items: flex-end;
-    animation: theme-fade-in var(--theme-duration-fast) var(--theme-ease);
+    animation: theme-fade-in var(--app-duration-fast) var(--app-ease);
   }
 
   .sheet {
@@ -29,32 +29,32 @@
     min-height: 0;
     inline-size: 100%;
     max-block-size: var(--sheet-max, 72svh);
-    margin: var(--theme-sheet-inset);
+    margin: var(--app-sheet-inset);
     /* Clear of the gesture bar as well as of the wall. */
     /* Clear of the keyboard when one is up, of the gesture bar when not — a
        sheet with a field in it is the other place this matters. */
     margin-block-end: calc(
-      var(--theme-sheet-inset) + max(var(--theme-safe-bottom), var(--theme-keyboard))
+      var(--app-sheet-inset) + max(var(--app-safe-bottom), var(--app-keyboard))
     );
-    margin-inline-start: calc(var(--theme-sheet-inset) + var(--theme-safe-left));
-    margin-inline-end: calc(var(--theme-sheet-inset) + var(--theme-safe-right));
+    margin-inline-start: calc(var(--app-sheet-inset) + var(--app-safe-left));
+    margin-inline-end: calc(var(--app-sheet-inset) + var(--app-safe-right));
     /* Its OWN ground, which for a sheet is the region's raised step — the
        themes hand it that by swapping the pair (styles/themes/*.css). Reading
-       `--theme-bg` here rather than `--theme-surface` is what leaves the step
+       `--app-bg` here rather than `--app-surface` is what leaves the step
        free for everything inside the sheet to stand on. */
-    background: var(--theme-bg);
-    border-radius: var(--theme-sheet-radius);
+    background: var(--app-bg);
+    border-radius: var(--app-sheet-radius);
     overflow: hidden;
     /* Follows the drag (BottomSheet.svelte). Zero except while a pointer is
        pulling it down, so the sheet is where it belongs the rest of the time. */
     translate: 0 var(--sheet-pulled, 0rem);
-    transition: translate var(--theme-transition-medium);
+    transition: translate var(--app-transition-medium);
     /* It comes UP from below the bottom edge, decelerating as it lands — the
        way the drag that dismisses it goes, in reverse. `translate` is the same
        property the drag writes through `--sheet-pulled`, so the entrance and
        the drag cannot fight: the keyframe owns the property until it ends,
        and the drag owns it after. */
-    animation: sheet-rise var(--theme-duration-slow) var(--theme-ease-out);
+    animation: sheet-rise var(--app-duration-slow) var(--app-ease-out);
   }
   @keyframes sheet-rise {
     from {
@@ -80,7 +80,7 @@
     inline-size: 100%;
     /* Comfortably past the 48px minimum: this is the one control the user is
        asked to find without looking. */
-    block-size: var(--theme-touch-min);
+    block-size: var(--app-touch-min);
     padding: 0;
     border: none;
     background: none;
@@ -95,11 +95,11 @@
   .sheet__grip {
     inline-size: 3.75rem;
     block-size: 0.25rem;
-    border-radius: var(--theme-radius-pill);
-    background: color-mix(in srgb, var(--palette-gray) 30%, transparent);
+    border-radius: var(--app-radius-pill);
+    background: color-mix(in srgb, var(--theme-color-gray) 30%, transparent);
   }
   .sheet__handle:focus-visible .sheet__grip {
-    background: var(--theme-brand);
+    background: var(--app-brand);
   }
 
   .sheet__body {

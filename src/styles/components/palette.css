@@ -10,12 +10,12 @@
   .palette__panel {
     display: flex;
     flex-direction: column;
-    gap: var(--theme-space-8);
-    padding: var(--theme-space-8);
+    gap: var(--app-space-8);
+    padding: var(--app-space-8);
   }
   .palette__row {
     display: flex;
-    gap: var(--theme-space-6);
+    gap: var(--app-space-6);
   }
   /* The colour swatches moved out to the shared AccentPicker (2026-08-13) —
      three screens were drawing the same row. See components/accent-picker.css.
@@ -28,17 +28,17 @@
     height: 1.625rem;
     padding: 0;
     border: 0.0625rem solid transparent;
-    border-radius: var(--theme-radius-sm);
+    border-radius: var(--app-radius-sm);
     background: none;
-    color: var(--theme-ink-muted);
+    color: var(--app-ink-muted);
     cursor: pointer;
   }
   .palette__icon:hover {
-    background: var(--theme-surface-sunken);
+    background: var(--app-surface-sunken);
   }
   .palette__icon--on {
-    border-color: var(--theme-brand);
-    color: var(--theme-brand);
+    border-color: var(--app-brand);
+    color: var(--app-brand);
   }
 
   /* A finger's icon row (2026-08-20). Same call as the swatch beside it

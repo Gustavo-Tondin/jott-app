@@ -617,7 +617,7 @@ describe("App", () => {
 
     await waitFor(() =>
       expect(document.querySelector(".window").getAttribute("style")).toContain(
-        "--theme-sidebar-left: 300px",
+        "--app-sidebar-left: 300px",
       ),
     );
 
@@ -637,7 +637,7 @@ describe("App", () => {
 
     await waitFor(() =>
       expect(document.querySelector(".window").getAttribute("style")).toContain(
-        "--theme-sidebar-right: 320px",
+        "--app-sidebar-right: 320px",
       ),
     );
     // The handle exists only while a panel does.
@@ -674,7 +674,7 @@ describe("App", () => {
 
     await waitFor(() =>
       expect(document.querySelector(".window").getAttribute("style")).toContain(
-        "--theme-sidebar-left: 480px",
+        "--app-sidebar-left: 480px",
       ),
     );
   });

@@ -5,7 +5,7 @@
    THE RULE THIS FILE EXISTS TO PROTECT (2026-08-13)
    ---------------------------------------------------------------------------
 
-   **A `--theme-*` role is assigned a `--palette-*` value, or a `color-mix` of
+   **A `--app-*` role is assigned a `--theme-color-*` value, or a `color-mix` of
    one. Never another role.**
 
    One hop, always: component → role → palette → literal. Before this the
@@ -17,7 +17,7 @@
    this file because a theme cannot pre-write an answer the user has not given
    yet. There are two, and there is room for no others:
 
-     1. which of the eight `--theme-brand` points at   (`data-accent`)
+     1. which of the eight `--app-brand` points at   (`data-accent`)
      2. whether H1–H6 take the accent or the ink       (`data-headings`)
 
    Two hops on those branches (three for the heading, which lands on the brand),
@@ -48,19 +48,19 @@
        alpha so a single value reads on a white canvas and a black sidebar
        alike. Hence three roles from one palette entry, and no theme has ever
        wanted to change them. */
-    --theme-ink-faint: var(--palette-gray);
-    --theme-line: color-mix(in srgb, var(--palette-gray) 30%, transparent);
-    --theme-line-soft: color-mix(in srgb, var(--palette-gray) 16%, transparent);
+    --app-ink-faint: var(--theme-color-gray);
+    --app-line: color-mix(in srgb, var(--theme-color-gray) 30%, transparent);
+    --app-line-soft: color-mix(in srgb, var(--theme-color-gray) 16%, transparent);
     /* The third step, and the only one that goes the other way: a well pressed
        INTO a raised surface, for the one control that needs a track behind it
        (the segmented group). */
-    --theme-well: color-mix(in srgb, var(--palette-gray) 30%, transparent);
+    --app-well: color-mix(in srgb, var(--theme-color-gray) 30%, transparent);
     /* The veil a drawer or a bottom sheet lays over the page it opened on top
        of (the compact shell, 2026-08-18). Black at low alpha in EVERY theme,
        including the dark one: a scrim's job is to push the page back, and a
        light veil over a light page pushes nothing. Same reason as the three
        above — one value that reads on both grounds, so no theme restates it. */
-    --theme-scrim: color-mix(in srgb, #0d0d0d 20%, transparent);
+    --app-scrim: color-mix(in srgb, #0d0d0d 20%, transparent);
 
     /* THE FILL OF A COLOURED PIECE OF PAPER (2026-08-18).
 
@@ -74,14 +74,14 @@
        Eight lines rather than a computed name: a custom property cannot
        compose the name of another (same reason `data-accent` is eight rules
        below). One hop each, palette straight through. */
-    --accent-red-fill: var(--palette-red-300);
-    --accent-orange-fill: var(--palette-orange-300);
-    --accent-yellow-fill: var(--palette-yellow-300);
-    --accent-green-fill: var(--palette-green-300);
-    --accent-blue-fill: var(--palette-blue-300);
-    --accent-purple-fill: var(--palette-purple-300);
-    --accent-pink-fill: var(--palette-pink-300);
-    --accent-neutral-fill: var(--palette-neutral-300);
+    --app-red-fill: var(--theme-color-red-300);
+    --app-orange-fill: var(--theme-color-orange-300);
+    --app-yellow-fill: var(--theme-color-yellow-300);
+    --app-green-fill: var(--theme-color-green-300);
+    --app-blue-fill: var(--theme-color-blue-300);
+    --app-purple-fill: var(--theme-color-purple-300);
+    --app-pink-fill: var(--theme-color-pink-300);
+    --app-neutral-fill: var(--theme-color-neutral-300);
 
     /* THE FILL OF A COLOURED PIECE OF PAPER THAT CARRIES TEXT (2026-08-24).
 
@@ -100,29 +100,29 @@
        Same covenant as the fill: theme-blind and region-blind. A notebook's
        colour is what its owner recognizes it by, and it must be that colour on
        every theme, the way a yellow sticky note is yellow under any lamp. */
-    --accent-red-solid: var(--palette-red-500);
-    --accent-orange-solid: var(--palette-orange-500);
-    --accent-yellow-solid: var(--palette-yellow-500);
-    --accent-green-solid: var(--palette-green-500);
-    --accent-blue-solid: var(--palette-blue-500);
-    --accent-purple-solid: var(--palette-purple-500);
-    --accent-pink-solid: var(--palette-pink-500);
-    --accent-neutral-solid: var(--palette-neutral-500);
-    /* And the one ink that goes on any of them. Not `--theme-on-brand`: that
+    --app-red-solid: var(--theme-color-red-500);
+    --app-orange-solid: var(--theme-color-orange-500);
+    --app-yellow-solid: var(--theme-color-yellow-500);
+    --app-green-solid: var(--theme-color-green-500);
+    --app-blue-solid: var(--theme-color-blue-500);
+    --app-purple-solid: var(--theme-color-purple-500);
+    --app-pink-solid: var(--theme-color-pink-500);
+    --app-neutral-solid: var(--theme-color-neutral-500);
+    /* And the one ink that goes on any of them. Not `--app-on-brand`: that
        one is the REGION's answer, and flips to black where the region's accent
        is a bright step — which is right for a pill on the sidebar and wrong
        for a surface that refuses to follow the ground in the first place. */
-    --accent-on-solid: var(--palette-white);
+    --app-on-solid: var(--theme-color-white);
 
     /* A region carries its own ink, so anything inside it starts readable —
        including text a component forgot to colour. */
-    color: var(--theme-ink);
+    color: var(--app-ink);
   }
 
   /* ---------------------------------------------------------------------------
      THE APP ACCENT — the first runtime choice.
 
-     The theme names all eight for each region (`--accent-blue` and its four
+     The theme names all eight for each region (`--app-blue` and its four
      steps, already resolved to the end of the tonal grid that reads on that
      region's ground). `data-accent` on <html>, from the notebook's
      `accentColor` setting, picks which one is the brand. No attribute, or one
@@ -133,103 +133,103 @@
      both regions:  <html data-accent> … [data-region="chrome"] … ="canvas"
      --------------------------------------------------------------------------- */
   [data-region] {
-    --theme-brand-1: var(--accent-blue-1);
-    --theme-brand-2: var(--accent-blue-2);
-    --theme-brand-3: var(--accent-blue-3);
-    --theme-brand-4: var(--accent-blue-4);
-    --theme-brand-5: var(--accent-blue-5);
-    --theme-brand-6: var(--accent-blue-6);
-    --theme-brand: var(--accent-blue);
-    --theme-brand-weak: var(--accent-blue-tint);
-    --theme-brand-outline: var(--accent-blue-line);
+    --app-brand-1: var(--app-blue-1);
+    --app-brand-2: var(--app-blue-2);
+    --app-brand-3: var(--app-blue-3);
+    --app-brand-4: var(--app-blue-4);
+    --app-brand-5: var(--app-blue-5);
+    --app-brand-6: var(--app-blue-6);
+    --app-brand: var(--app-blue);
+    --app-brand-weak: var(--app-blue-tint);
+    --app-brand-outline: var(--app-blue-line);
   }
   [data-accent="yellow"] [data-region] {
-    --theme-brand-1: var(--accent-yellow-1);
-    --theme-brand-2: var(--accent-yellow-2);
-    --theme-brand-3: var(--accent-yellow-3);
-    --theme-brand-4: var(--accent-yellow-4);
-    --theme-brand-5: var(--accent-yellow-5);
-    --theme-brand-6: var(--accent-yellow-6);
-    --theme-brand: var(--accent-yellow);
-    --theme-brand-weak: var(--accent-yellow-tint);
-    --theme-brand-outline: var(--accent-yellow-line);
+    --app-brand-1: var(--app-yellow-1);
+    --app-brand-2: var(--app-yellow-2);
+    --app-brand-3: var(--app-yellow-3);
+    --app-brand-4: var(--app-yellow-4);
+    --app-brand-5: var(--app-yellow-5);
+    --app-brand-6: var(--app-yellow-6);
+    --app-brand: var(--app-yellow);
+    --app-brand-weak: var(--app-yellow-tint);
+    --app-brand-outline: var(--app-yellow-line);
   }
   [data-accent="orange"] [data-region] {
-    --theme-brand-1: var(--accent-orange-1);
-    --theme-brand-2: var(--accent-orange-2);
-    --theme-brand-3: var(--accent-orange-3);
-    --theme-brand-4: var(--accent-orange-4);
-    --theme-brand-5: var(--accent-orange-5);
-    --theme-brand-6: var(--accent-orange-6);
-    --theme-brand: var(--accent-orange);
-    --theme-brand-weak: var(--accent-orange-tint);
-    --theme-brand-outline: var(--accent-orange-line);
+    --app-brand-1: var(--app-orange-1);
+    --app-brand-2: var(--app-orange-2);
+    --app-brand-3: var(--app-orange-3);
+    --app-brand-4: var(--app-orange-4);
+    --app-brand-5: var(--app-orange-5);
+    --app-brand-6: var(--app-orange-6);
+    --app-brand: var(--app-orange);
+    --app-brand-weak: var(--app-orange-tint);
+    --app-brand-outline: var(--app-orange-line);
   }
   [data-accent="pink"] [data-region] {
-    --theme-brand-1: var(--accent-pink-1);
-    --theme-brand-2: var(--accent-pink-2);
-    --theme-brand-3: var(--accent-pink-3);
-    --theme-brand-4: var(--accent-pink-4);
-    --theme-brand-5: var(--accent-pink-5);
-    --theme-brand-6: var(--accent-pink-6);
-    --theme-brand: var(--accent-pink);
-    --theme-brand-weak: var(--accent-pink-tint);
-    --theme-brand-outline: var(--accent-pink-line);
+    --app-brand-1: var(--app-pink-1);
+    --app-brand-2: var(--app-pink-2);
+    --app-brand-3: var(--app-pink-3);
+    --app-brand-4: var(--app-pink-4);
+    --app-brand-5: var(--app-pink-5);
+    --app-brand-6: var(--app-pink-6);
+    --app-brand: var(--app-pink);
+    --app-brand-weak: var(--app-pink-tint);
+    --app-brand-outline: var(--app-pink-line);
   }
   [data-accent="green"] [data-region] {
-    --theme-brand-1: var(--accent-green-1);
-    --theme-brand-2: var(--accent-green-2);
-    --theme-brand-3: var(--accent-green-3);
-    --theme-brand-4: var(--accent-green-4);
-    --theme-brand-5: var(--accent-green-5);
-    --theme-brand-6: var(--accent-green-6);
-    --theme-brand: var(--accent-green);
-    --theme-brand-weak: var(--accent-green-tint);
-    --theme-brand-outline: var(--accent-green-line);
+    --app-brand-1: var(--app-green-1);
+    --app-brand-2: var(--app-green-2);
+    --app-brand-3: var(--app-green-3);
+    --app-brand-4: var(--app-green-4);
+    --app-brand-5: var(--app-green-5);
+    --app-brand-6: var(--app-green-6);
+    --app-brand: var(--app-green);
+    --app-brand-weak: var(--app-green-tint);
+    --app-brand-outline: var(--app-green-line);
   }
   [data-accent="blue"] [data-region] {
-    --theme-brand-1: var(--accent-blue-1);
-    --theme-brand-2: var(--accent-blue-2);
-    --theme-brand-3: var(--accent-blue-3);
-    --theme-brand-4: var(--accent-blue-4);
-    --theme-brand-5: var(--accent-blue-5);
-    --theme-brand-6: var(--accent-blue-6);
-    --theme-brand: var(--accent-blue);
-    --theme-brand-weak: var(--accent-blue-tint);
-    --theme-brand-outline: var(--accent-blue-line);
+    --app-brand-1: var(--app-blue-1);
+    --app-brand-2: var(--app-blue-2);
+    --app-brand-3: var(--app-blue-3);
+    --app-brand-4: var(--app-blue-4);
+    --app-brand-5: var(--app-blue-5);
+    --app-brand-6: var(--app-blue-6);
+    --app-brand: var(--app-blue);
+    --app-brand-weak: var(--app-blue-tint);
+    --app-brand-outline: var(--app-blue-line);
   }
   [data-accent="red"] [data-region] {
-    --theme-brand-1: var(--accent-red-1);
-    --theme-brand-2: var(--accent-red-2);
-    --theme-brand-3: var(--accent-red-3);
-    --theme-brand-4: var(--accent-red-4);
-    --theme-brand-5: var(--accent-red-5);
-    --theme-brand-6: var(--accent-red-6);
-    --theme-brand: var(--accent-red);
-    --theme-brand-weak: var(--accent-red-tint);
-    --theme-brand-outline: var(--accent-red-line);
+    --app-brand-1: var(--app-red-1);
+    --app-brand-2: var(--app-red-2);
+    --app-brand-3: var(--app-red-3);
+    --app-brand-4: var(--app-red-4);
+    --app-brand-5: var(--app-red-5);
+    --app-brand-6: var(--app-red-6);
+    --app-brand: var(--app-red);
+    --app-brand-weak: var(--app-red-tint);
+    --app-brand-outline: var(--app-red-line);
   }
   [data-accent="purple"] [data-region] {
-    --theme-brand-1: var(--accent-purple-1);
-    --theme-brand-2: var(--accent-purple-2);
-    --theme-brand-3: var(--accent-purple-3);
-    --theme-brand-4: var(--accent-purple-4);
-    --theme-brand-5: var(--accent-purple-5);
-    --theme-brand-6: var(--accent-purple-6);
-    --theme-brand: var(--accent-purple);
-    --theme-brand-weak: var(--accent-purple-tint);
-    --theme-brand-outline: var(--accent-purple-line);
+    --app-brand-1: var(--app-purple-1);
+    --app-brand-2: var(--app-purple-2);
+    --app-brand-3: var(--app-purple-3);
+    --app-brand-4: var(--app-purple-4);
+    --app-brand-5: var(--app-purple-5);
+    --app-brand-6: var(--app-purple-6);
+    --app-brand: var(--app-purple);
+    --app-brand-weak: var(--app-purple-tint);
+    --app-brand-outline: var(--app-purple-line);
   }
   [data-accent="neutral"] [data-region] {
-    --theme-brand-1: var(--accent-neutral-1);
-    --theme-brand-2: var(--accent-neutral-2);
-    --theme-brand-3: var(--accent-neutral-3);
-    --theme-brand-4: var(--accent-neutral-4);
-    --theme-brand-5: var(--accent-neutral-5);
-    --theme-brand-6: var(--accent-neutral-6);
-    --theme-brand: var(--accent-neutral);
-    --theme-brand-weak: var(--accent-neutral-tint);
-    --theme-brand-outline: var(--accent-neutral-line);
+    --app-brand-1: var(--app-neutral-1);
+    --app-brand-2: var(--app-neutral-2);
+    --app-brand-3: var(--app-neutral-3);
+    --app-brand-4: var(--app-neutral-4);
+    --app-brand-5: var(--app-neutral-5);
+    --app-brand-6: var(--app-neutral-6);
+    --app-brand: var(--app-neutral);
+    --app-brand-weak: var(--app-neutral-tint);
+    --app-brand-outline: var(--app-neutral-line);
   }
 
   /* ---------------------------------------------------------------------------
@@ -257,19 +257,19 @@
      and nothing else.
      --------------------------------------------------------------------------- */
   [data-region] {
-    --theme-heading-1: var(--theme-brand-1);
-    --theme-heading-2: var(--theme-brand-2);
-    --theme-heading-3: var(--theme-brand-3);
-    --theme-heading-4: var(--theme-brand-4);
-    --theme-heading-5: var(--theme-brand-5);
-    --theme-heading-6: var(--theme-brand-6);
+    --app-heading-1: var(--app-brand-1);
+    --app-heading-2: var(--app-brand-2);
+    --app-heading-3: var(--app-brand-3);
+    --app-heading-4: var(--app-brand-4);
+    --app-heading-5: var(--app-brand-5);
+    --app-heading-6: var(--app-brand-6);
   }
   [data-headings="ink"] [data-region] {
-    --theme-heading-1: var(--theme-ink);
-    --theme-heading-2: color-mix(in srgb, var(--theme-ink) 86%, transparent);
-    --theme-heading-3: color-mix(in srgb, var(--theme-ink) 72%, transparent);
-    --theme-heading-4: color-mix(in srgb, var(--theme-ink) 60%, transparent);
-    --theme-heading-5: color-mix(in srgb, var(--theme-ink) 50%, transparent);
-    --theme-heading-6: color-mix(in srgb, var(--theme-ink) 42%, transparent);
+    --app-heading-1: var(--app-ink);
+    --app-heading-2: color-mix(in srgb, var(--app-ink) 86%, transparent);
+    --app-heading-3: color-mix(in srgb, var(--app-ink) 72%, transparent);
+    --app-heading-4: color-mix(in srgb, var(--app-ink) 60%, transparent);
+    --app-heading-5: color-mix(in srgb, var(--app-ink) 50%, transparent);
+    --app-heading-6: color-mix(in srgb, var(--app-ink) 42%, transparent);
   }
 }

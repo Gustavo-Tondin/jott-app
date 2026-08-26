@@ -82,7 +82,7 @@ describe("HomeView", () => {
     expect(await screen.findByText("Logo do cliente")).toBeTruthy();
     const badge = screen.getByText("Design/Tasks");
     expect(badge.className).toContain("theme-badge");
-    expect(badge.getAttribute("style")).toContain("--accent-blue-2");
+    expect(badge.getAttribute("style")).toContain("--app-blue-2");
     // The fixed space is named too, in no colour of its own.
     expect(screen.getByText("Tasks").getAttribute("style")).toBeNull();
     expect(screen.queryByText(/jott\.tasks/)).toBeNull();

@@ -3,7 +3,7 @@
   .trash-view {
     display: flex;
     flex-direction: column;
-    gap: var(--theme-space-8);
+    gap: var(--app-space-8);
     max-inline-size: 44rem;
     margin-inline: auto;
   }
@@ -11,24 +11,24 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: var(--theme-space-12);
+    gap: var(--app-space-12);
   }
   .trash-view__head .theme-btn {
     display: inline-flex;
     align-items: center;
-    gap: var(--theme-space-6);
+    gap: var(--app-space-6);
   }
   /* The empty state is the shared .theme-empty (controls.css). */
   .trash-view__hint {
     margin: 0;
-    color: var(--theme-ink-muted);
-    font-size: var(--theme-text-14);
+    color: var(--app-ink-muted);
+    font-size: var(--app-text-14);
   }
   /* The kind filter (2026-08-24) is the shared .theme-segmented; the count
      beside each label stays a step quieter than the word. */
   .trash-view__kinds {
     align-self: flex-start;
-    margin-block-start: var(--theme-space-4);
+    margin-block-start: var(--app-space-4);
   }
   .trash-view__count {
     opacity: 0.7;
@@ -39,28 +39,28 @@
   .trash-view__glyph {
     display: inline-flex;
     flex: none;
-    color: var(--theme-ink-faint);
+    color: var(--app-ink-faint);
   }
   .trash-view__text {
     flex: 1;
     min-inline-size: 0;
     display: flex;
     flex-direction: column;
-    gap: var(--theme-space-2);
+    gap: var(--app-space-2);
   }
   .trash-view__list {
     list-style: none;
-    margin: var(--theme-space-8) 0 0;
+    margin: var(--app-space-8) 0 0;
     padding: 0;
     display: flex;
     flex-direction: column;
-    gap: var(--theme-space-4);
+    gap: var(--app-space-4);
   }
   /* The row itself is the shared .theme-row; only what is specific to a
      trashed item lives below. */
   .trash-view__label {
-    font-weight: var(--theme-weight-medium);
-    color: var(--theme-ink);
+    font-weight: var(--app-weight-medium);
+    color: var(--app-ink);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -70,8 +70,8 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    color: var(--theme-ink-muted);
-    font-size: var(--theme-text-12);
+    color: var(--app-ink-muted);
+    font-size: var(--app-text-12);
   }
   /* The two numbers of a row, in columns rather than after the text: a
      countdown that starts at a different x on every line cannot be read down
@@ -80,8 +80,8 @@
      the dates are tabular so their digits stack. */
   .trash-view__date,
   .trash-view__left {
-    color: var(--theme-ink-faint);
-    font-size: var(--theme-text-12);
+    color: var(--app-ink-faint);
+    font-size: var(--app-text-12);
     white-space: nowrap;
     text-align: end;
     font-variant-numeric: tabular-nums;
@@ -99,25 +99,25 @@
   .trash-view__actions {
     display: inline-flex;
     align-items: center;
-    gap: var(--theme-space-2);
-    margin-inline-start: var(--theme-space-4);
+    gap: var(--app-space-2);
+    margin-inline-start: var(--app-space-4);
   }
   .trash-view__restore {
-    color: var(--theme-brand);
+    color: var(--app-brand);
   }
   .trash-view__restore:hover:not(:disabled) {
-    color: var(--theme-brand);
-    background: var(--theme-brand-weak);
+    color: var(--app-brand);
+    background: var(--app-brand-weak);
   }
   .trash-view__purge {
-    color: var(--theme-danger);
+    color: var(--app-danger);
   }
   .trash-view__purge:hover:not(:disabled) {
-    color: var(--theme-danger);
-    background: var(--theme-danger-tint);
+    color: var(--app-danger);
+    background: var(--app-danger-tint);
   }
   /* Three days or fewer: the countdown is the one thing worth noticing. */
   .trash-view__left--soon {
-    color: var(--theme-warning);
+    color: var(--app-warning);
   }
 }

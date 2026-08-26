@@ -247,7 +247,7 @@
 
                A notebook that never chose one falls back HERE rather than in
                the sheet, because the sheet's own fallback would have to be
-               `--theme-brand` — the region's accent, which in the chrome is a
+               `--app-brand` — the region's accent, which in the chrome is a
                bright step meant to be read AS text, and white on it is not
                readable. `DEFAULT_ACCENT` is what the app ships as, solid. -->
           <li

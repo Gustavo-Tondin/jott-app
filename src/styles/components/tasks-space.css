@@ -8,12 +8,12 @@
   .tasks-space {
     display: flex;
     flex-direction: column;
-    gap: var(--theme-space-12);
+    gap: var(--app-space-12);
   }
   .tasks-space__header {
     display: flex;
     align-items: center;
-    gap: var(--theme-space-8);
+    gap: var(--app-space-8);
     min-block-size: 2rem;
   }
   /* The Home (2026-08-13): the title takes the whole row and centres in it,
@@ -24,7 +24,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: var(--theme-space-10);
+    gap: var(--app-space-10);
     text-align: center;
   }
   /* New task + the screen's ⋮, together on the right. `auto` rather than
@@ -34,7 +34,7 @@
   .tasks-space__tools {
     display: flex;
     align-items: center;
-    gap: var(--theme-space-4);
+    gap: var(--app-space-4);
     flex-shrink: 0;
     margin-inline-start: auto;
   }
@@ -44,12 +44,12 @@
      card inside it is `position: fixed`, and a transformed ancestor would
      become its containing block. */
   .tasks-space__list--completed {
-    animation: tasks-space-settle var(--theme-duration-medium) var(--theme-ease-out);
+    animation: tasks-space-settle var(--app-duration-medium) var(--app-ease-out);
   }
   @keyframes tasks-space-settle {
     from {
       opacity: 0;
-      margin-block-start: calc(-1 * var(--theme-space-8));
+      margin-block-start: calc(-1 * var(--app-space-8));
     }
   }
   .tasks-space__move {
@@ -61,10 +61,10 @@
   /* Both header buttons are .theme-btn--icon. The × on a completed card
      (wireframe) only adds the danger tint on hover. */
   .tasks-space__remove {
-    color: var(--theme-ink-faint);
+    color: var(--app-ink-faint);
   }
   .tasks-space__remove:hover {
-    color: var(--theme-danger);
+    color: var(--app-danger);
   }
 
   /* The card column and the pinned hairline are the shared .theme-task-list /
@@ -81,12 +81,12 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: var(--theme-space-8);
+    gap: var(--app-space-8);
     /* It appears with the first completed task, settling down from under the
        list the way its own list does (user calls, 2026-08-21 and
        2026-08-24) rather than popping there. */
-    animation: tasks-space-settle var(--theme-duration-medium) var(--theme-ease-out);
-    margin-top: var(--theme-space-4);
+    animation: tasks-space-settle var(--app-duration-medium) var(--app-ease-out);
+    margin-top: var(--app-space-4);
   }
   /* The toggle is anchored left and the pill right, whether or not the other
      one is there — `space-between` alone would send a lone toggle to the right
@@ -102,10 +102,10 @@
      2026-08-20 could not reach. */
 
   .tasks-space__note {
-    color: var(--theme-ink-muted);
-    font-size: var(--theme-text-14);
+    color: var(--app-ink-muted);
+    font-size: var(--app-text-14);
   }
   .tasks-space__note--warn {
-    color: var(--theme-danger);
+    color: var(--app-danger);
   }
 }

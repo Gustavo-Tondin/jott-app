@@ -25,7 +25,7 @@
      than `.reorder-item--carried`'s `transition: none` — so a vertical drag
      played out a quarter second behind the pointer (user report, 2026-08-06). */
   .swipe--returning {
-    transition: transform var(--theme-transition-medium);
+    transition: transform var(--app-transition-medium);
   }
 
   /* Hidden until a swipe is under way, and then only the one for the direction
@@ -45,11 +45,11 @@
        exception). */
     max-inline-size: max(
       0rem,
-      max(var(--swipe-x, 0rem), -1 * var(--swipe-x, 0rem)) - var(--theme-space-8)
+      max(var(--swipe-x, 0rem), -1 * var(--swipe-x, 0rem)) - var(--app-space-8)
     );
     overflow: hidden;
-    border-radius: var(--theme-radius-md);
-    color: var(--theme-on-brand);
+    border-radius: var(--app-radius-md);
+    color: var(--app-on-brand);
   }
 
   /* Swiping LEFT uncovers the right-hand end: delete. The square's right edge
@@ -58,7 +58,7 @@
   .swipe[data-swipe="left"] .swipe__action--delete {
     display: flex;
     inset-inline-end: var(--swipe-x, 0);
-    background: var(--theme-danger);
+    background: var(--app-danger);
   }
 
   /* Swiping RIGHT uncovers the left-hand end: the day. */
@@ -68,7 +68,7 @@
     /* Taking a task back OUT of the day, which is the undoing half of the
        gesture: warning, the colour the sun already carries on a card that is
        in today. */
-    background: var(--theme-warning);
+    background: var(--app-warning);
   }
   /* The same square when the gesture PUTS the task in the day (2026-08-20).
      The ACCENT, because this is the act the gesture is for and the accent is
@@ -77,6 +77,6 @@
      square that looked identical either way would make the gesture a coin
      toss. */
   .swipe[data-swipe="right"] .swipe__action--pull {
-    background: var(--theme-brand);
+    background: var(--app-brand);
   }
 }

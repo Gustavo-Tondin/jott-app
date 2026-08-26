@@ -11,8 +11,8 @@
   .assets-view__head {
     display: flex;
     align-items: center;
-    gap: var(--theme-space-12);
-    margin-block-end: var(--theme-space-6);
+    gap: var(--app-space-12);
+    margin-block-end: var(--app-space-6);
   }
   .assets-view__title {
     flex: 1;
@@ -21,9 +21,9 @@
   .assets-view__hint,
   .assets-view__empty,
   .assets-view__count {
-    color: var(--theme-ink-muted);
-    font-size: var(--theme-text-13);
-    margin-block-end: var(--theme-space-12);
+    color: var(--app-ink-muted);
+    font-size: var(--app-text-13);
+    margin-block-end: var(--app-space-12);
   }
 
   /* The file input is the button's business: the button is what the user sees
@@ -48,17 +48,17 @@
     padding: 0;
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
-    gap: var(--theme-space-8);
+    gap: var(--app-space-8);
     /* A cell with its places open must not stretch its whole row. */
     align-items: start;
   }
   .assets-view__item {
     display: flex;
     flex-direction: column;
-    gap: var(--theme-space-4);
-    padding: var(--theme-space-6);
-    background: var(--theme-surface);
-    border-radius: var(--theme-radius-sm);
+    gap: var(--app-space-4);
+    padding: var(--app-space-6);
+    background: var(--app-surface);
+    border-radius: var(--app-radius-sm);
     min-inline-size: 0;
   }
   /* A fixed frame, not a fixed image: pictures come in every proportion, and a
@@ -69,9 +69,9 @@
     inline-size: 100%;
     block-size: 5rem;
     padding: 0;
-    background: var(--theme-well);
+    background: var(--app-well);
     border: none;
-    border-radius: var(--theme-radius-xs);
+    border-radius: var(--app-radius-xs);
     overflow: hidden;
     cursor: pointer;
   }
@@ -83,7 +83,7 @@
     align-items: center;
     justify-content: center;
     block-size: 100%;
-    color: var(--theme-ink-faint);
+    color: var(--app-ink-faint);
   }
   .assets-view__thumb,
   .asset-picker__thumb {
@@ -93,21 +93,21 @@
     object-fit: cover;
   }
   .assets-view__name {
-    font-size: var(--theme-text-12);
-    font-weight: var(--theme-weight-semibold);
-    color: var(--theme-ink);
+    font-size: var(--app-text-12);
+    font-weight: var(--app-weight-semibold);
+    color: var(--app-ink);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
   .assets-view__meta {
-    color: var(--theme-ink-faint);
-    font-size: var(--theme-text-12);
+    color: var(--app-ink-faint);
+    font-size: var(--app-text-12);
   }
   .assets-view__actions {
     display: flex;
     align-items: center;
-    gap: var(--theme-space-4);
+    gap: var(--app-space-4);
   }
   /* The address IS the button: what it does is copy itself, so showing it and
      offering it are one control. Monospaced, because it is something to be
@@ -118,9 +118,9 @@
     padding: 0;
     background: none;
     border: none;
-    color: var(--theme-ink-muted);
-    font-family: var(--theme-font-mono);
-    font-size: var(--theme-text-12);
+    color: var(--app-ink-muted);
+    font-family: var(--app-font-mono);
+    font-size: var(--app-text-12);
     text-align: start;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -128,7 +128,7 @@
     cursor: pointer;
   }
   .assets-view__action:hover {
-    color: var(--theme-brand);
+    color: var(--app-brand);
   }
 
   /* Adding rides the bottom of the screen, the same edge the tasks screens
@@ -141,14 +141,14 @@
     z-index: 5;
     display: flex;
     justify-content: center;
-    margin-block-start: var(--theme-space-16);
-    padding: var(--theme-space-8) var(--theme-space-12);
-    background: var(--theme-surface);
-    border: 0.0625rem solid var(--theme-line);
-    border-radius: var(--theme-radius-md);
+    margin-block-start: var(--app-space-16);
+    padding: var(--app-space-8) var(--app-space-12);
+    background: var(--app-surface);
+    border: 0.0625rem solid var(--app-line);
+    border-radius: var(--app-radius-md);
     /* Small on purpose: the shadow is only here to say "the cells pass under
        this", not to lift the bar off the page (the composing bar's own words). */
-    box-shadow: 0 -0.0625rem 0.25rem color-mix(in srgb, var(--theme-ink) 8%, transparent);
+    box-shadow: 0 -0.0625rem 0.25rem color-mix(in srgb, var(--app-ink) 8%, transparent);
   }
   .assets-view__add {
     flex: 1;
@@ -160,26 +160,26 @@
   .shell--compact .assets-view__foot {
     position: fixed;
     z-index: 20;
-    inset-inline-start: calc(var(--theme-space-8) + var(--theme-safe-left));
-    inset-inline-end: calc(var(--theme-space-8) + var(--theme-safe-right));
+    inset-inline-start: calc(var(--app-space-8) + var(--app-safe-left));
+    inset-inline-end: calc(var(--app-space-8) + var(--app-safe-right));
     inset-block-end: calc(
-      var(--theme-space-8) + max(var(--theme-safe-bottom), var(--theme-keyboard))
+      var(--app-space-8) + max(var(--app-safe-bottom), var(--app-keyboard))
     );
     margin-block-start: 0;
   }
   /* …and the screen keeps its last row clear of it. Only where there IS one:
      a read-only notebook has no bar and must not reserve room for one. */
   .shell--compact .shell__content:has(.assets-view__foot) {
-    padding-block-end: calc(4.5rem + var(--theme-safe-bottom));
+    padding-block-end: calc(4.5rem + var(--app-safe-bottom));
   }
 
   /* A file is being held over the screen. The only way the person knows this
      place will take it — an outline rather than a fill, so nothing already
      drawn changes colour under the pointer. */
   .assets-view--taking {
-    outline: 0.125rem dashed var(--theme-brand);
-    outline-offset: var(--theme-space-8);
-    border-radius: var(--theme-radius-md);
+    outline: 0.125rem dashed var(--app-brand);
+    outline-offset: var(--app-space-8);
+    border-radius: var(--app-radius-md);
   }
 
   /* ---- what uses a file (2026-08-19) ----
@@ -188,17 +188,17 @@
      control when something does — the list of places is a detail of the row
      that asked for it. */
   .assets-view__unused {
-    color: var(--theme-ink-faint);
-    font-size: var(--theme-text-12);
+    color: var(--app-ink-faint);
+    font-size: var(--app-text-12);
   }
   .assets-view__used {
     align-self: flex-start;
     padding: 0;
     background: none;
     border: none;
-    color: var(--theme-brand);
+    color: var(--app-brand);
     font: inherit;
-    font-size: var(--theme-text-12);
+    font-size: var(--app-text-12);
     cursor: pointer;
   }
   .assets-view__used:hover {
@@ -206,29 +206,29 @@
   }
   .assets-view__places {
     list-style: none;
-    margin: var(--theme-space-4) 0 0;
+    margin: var(--app-space-4) 0 0;
     padding: 0;
     display: flex;
     flex-direction: column;
-    gap: var(--theme-space-2);
+    gap: var(--app-space-2);
   }
   .assets-view__place {
     display: flex;
     align-items: center;
-    gap: var(--theme-space-6);
+    gap: var(--app-space-6);
     inline-size: 100%;
-    padding: var(--theme-space-4) var(--theme-space-6);
-    background: var(--theme-well);
+    padding: var(--app-space-4) var(--app-space-6);
+    background: var(--app-well);
     border: none;
-    border-radius: var(--theme-radius-xs);
-    color: var(--theme-ink);
+    border-radius: var(--app-radius-xs);
+    color: var(--app-ink);
     font: inherit;
-    font-size: var(--theme-text-12);
+    font-size: var(--app-text-12);
     text-align: start;
     cursor: pointer;
   }
   .assets-view__place:hover {
-    background: var(--theme-brand-weak);
+    background: var(--app-brand-weak);
   }
   .assets-view__place-name {
     flex: 1;
@@ -240,7 +240,7 @@
   /* Which space it lives in — the tie-break when two notes are called the
      same, and never the main answer. */
   .assets-view__place-where {
-    color: var(--theme-ink-faint);
+    color: var(--app-ink-faint);
     flex: none;
   }
 
@@ -248,20 +248,20 @@
   .asset-picker {
     display: flex;
     flex-direction: column;
-    gap: var(--theme-space-12);
+    gap: var(--app-space-12);
     max-block-size: 70vh;
   }
   .asset-picker__head {
     display: flex;
     align-items: center;
-    gap: var(--theme-space-12);
+    gap: var(--app-space-12);
   }
   .asset-picker__head .theme-title {
     flex: 1;
     min-inline-size: 0;
   }
   .asset-picker__empty {
-    color: var(--theme-ink-muted);
+    color: var(--app-ink-muted);
   }
   .asset-picker__grid {
     list-style: none;
@@ -269,32 +269,32 @@
     padding: 0;
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(7rem, 1fr));
-    gap: var(--theme-space-8);
+    gap: var(--app-space-8);
     overflow-y: auto;
   }
   .asset-picker__item {
     display: flex;
     flex-direction: column;
-    gap: var(--theme-space-4);
+    gap: var(--app-space-4);
     inline-size: 100%;
-    padding: var(--theme-space-4);
-    background: var(--theme-surface);
+    padding: var(--app-space-4);
+    background: var(--app-surface);
     border: none;
-    border-radius: var(--theme-radius-sm);
+    border-radius: var(--app-radius-sm);
     font: inherit;
     cursor: pointer;
   }
   .asset-picker__item:hover {
-    background: var(--theme-brand-weak);
+    background: var(--app-brand-weak);
   }
   .asset-picker__item .asset-picker__thumb {
     block-size: 4.5rem;
-    border-radius: var(--theme-radius-xs);
-    background: var(--theme-well);
+    border-radius: var(--app-radius-xs);
+    background: var(--app-well);
   }
   .asset-picker__name {
-    color: var(--theme-ink-muted);
-    font-size: var(--theme-text-12);
+    color: var(--app-ink-muted);
+    font-size: var(--app-text-12);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;

@@ -5,7 +5,7 @@ afterEach(() => applyUserTheme(null));
 
 describe("applyUserTheme", () => {
   test("puts the stylesheet at the end of the head, unlayered", () => {
-    applyUserTheme("[data-region='canvas'] { --theme-bg: pink; }");
+    applyUserTheme("[data-region='canvas'] { --app-bg: pink; }");
 
     const style = document.getElementById("jott-user-theme");
     expect(style?.tagName).toBe("STYLE");

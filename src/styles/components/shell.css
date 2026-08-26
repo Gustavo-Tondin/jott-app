@@ -7,7 +7,7 @@
   .shell__main {
     flex: 1;
     min-height: 0;
-    font-family: var(--theme-font-sans);
+    font-family: var(--app-font-sans);
   }
 
   /* Hosting the picker rather than the shell (2026-08-24). The picker is a
@@ -27,8 +27,8 @@
   .shell__onboarding {
     max-inline-size: 32rem;
     margin-inline: auto;
-    padding-inline: var(--theme-space-32);
-    padding-block-end: var(--theme-space-32);
+    padding-inline: var(--app-space-32);
+    padding-block-end: var(--app-space-32);
   }
 
   /* The second choice on Android — the app's own private folder — is offered,
@@ -37,13 +37,13 @@
      cost of choosing it written out (nothing else on the phone can read it,
      and uninstalling takes it along). */
   .shell__onboarding-alt {
-    margin-block-start: var(--theme-space-8);
+    margin-block-start: var(--app-space-8);
   }
 
   .shell__onboarding-note {
-    margin-block-start: var(--theme-space-4);
-    font-size: var(--theme-text-12);
-    color: var(--theme-ink-muted);
+    margin-block-start: var(--app-space-4);
+    font-size: var(--app-text-12);
+    color: var(--app-ink-muted);
   }
 
   /* Flex, not grid: each side panel is a flex item whose width animates
@@ -55,7 +55,7 @@
     display: flex;
     height: 100%;
     min-height: 0;
-    padding: 0 var(--theme-space-4) var(--theme-space-4) var(--theme-space-4);
+    padding: 0 var(--app-space-4) var(--app-space-4) var(--app-space-4);
   }
 
   /* ---- sidebar ---- */
@@ -63,13 +63,13 @@
      pact the inspector keeps (.theme-pane-head/-foot). No gap/padding here: the
      chrome borders and the scroll region own the spacing. */
   .shell__sidebar {
-    flex: 0 0 var(--theme-sidebar-left);
+    flex: 0 0 var(--app-sidebar-left);
     display: flex;
     flex-direction: column;
     min-height: 0;
     /* Clip the labels as the rail narrows, and animate that width. */
     overflow: hidden;
-    transition: flex-basis var(--theme-transition-medium);
+    transition: flex-basis var(--app-transition-medium);
   }
 
   /* ---- head: hamburger · search · + (left), collapse toggle (right) ---- */
@@ -78,8 +78,8 @@
      They read as one row of tools rather than as three-and-one. */
   .shell__sidebar-head {
     justify-content: space-between;
-    gap: var(--theme-space-2);
-    padding: var(--theme-space-8) var(--theme-space-12);
+    gap: var(--app-space-2);
+    padding: var(--app-space-8) var(--app-space-12);
   }
   /* The head buttons are plain .theme-btn--icon; nothing extra to say. */
 
@@ -88,7 +88,7 @@
      narrowing over the same column of icons, never as items jumping to a new
      alignment mid-animation (minimized screen.pdf). ---- */
   .shell__sidebar--rail {
-    flex-basis: var(--theme-sidebar-rail);
+    flex-basis: var(--app-sidebar-rail);
   }
   /* Railed: only the expand toggle stays; the hamburger, the search and the +
      wait for the full sidebar — 3.5rem is one glyph wide, and that glyph has
@@ -112,10 +112,10 @@
     overflow-x: hidden;
     display: flex;
     flex-direction: column;
-    gap: var(--theme-space-8);
+    gap: var(--app-space-8);
     /* Block padding keeps the groups off the head/footer borders; the inline
        wall gap sits the group bar between the wall and the button. */
-    padding: var(--theme-space-12) 0;
+    padding: var(--app-space-12) 0;
   }
   /* Rail: the right-hand chrome gives way so the 56px column fits the icon
      band without overflowing (minimized screen.pdf); the LEFT paddings stay,
@@ -129,7 +129,7 @@
   }
 
   .shell__sidebar--rail .shell__nav-item {
-    padding: var(--theme-space-12);
+    padding: var(--app-space-12);
   }
   /* A space/group row is a DIV with the opening BUTTON inside it, so its
      inline padding lands on top of the row's — the icon ended up one whole
@@ -146,12 +146,12 @@
        fixed entries' icons came out muted grey instead of wearing the theme
        (user report). A section with no colour of its own IS the theme
        accent; that is not a fallback, it is the answer. */
-    --gc-strong: var(--theme-brand);
+    --gc-strong: var(--app-brand);
     display: flex;
     flex-direction: column;
-    gap: var(--theme-space-2);
+    gap: var(--app-space-2);
     border-left: 0.125rem solid var(--gc-strong);
-    padding-inline: var(--theme-space-4);
+    padding-inline: var(--app-space-4);
   }
   /* The wrapper the spaces reorder within — reproduces the gap they had as
      loose scroll children. */
@@ -160,13 +160,13 @@
     flex-direction: column;
     /* Tight (user call, 2026-08-11): the column reads as one list of places,
        not as a stack of separated sections. */
-    gap: var(--theme-space-2);
+    gap: var(--app-space-2);
   }
   /* A level inside a group (they nest, 2026-08-11). The indent is the
      CONTAINER's, not the row's, so it compounds with depth on its own — and a
      row does not have to know how deep it is. */
   .shell__spaces--nested {
-    padding-inline-start: var(--theme-space-12);
+    padding-inline-start: var(--app-space-12);
   }
   /* The rail is 56px of icon column: every icon keeps its x, at any depth. */
   .shell__sidebar--rail .shell__spaces--nested {
@@ -184,7 +184,7 @@
      Unset means "no colour of its own" and the fallback puts the row back on
      the theme accent. */
   .shell__group--space {
-    --gc-strong: var(--group-color, var(--theme-brand));
+    --gc-strong: var(--group-color, var(--app-brand));
   }
 
   /* Selected: the solid pill, in whatever colour the section carries — its own
@@ -193,7 +193,7 @@
      and no outline (user call). */
   .shell__group .shell__nav-item--active {
     background: var(--gc-strong);
-    color: var(--theme-on-brand);
+    color: var(--app-on-brand);
   }
 
   /* ---- how far the colour reaches (user call, 2026-08-13) ----
@@ -214,7 +214,7 @@
      reads on it — a coloured glyph on its own colour is invisible. */
   .shell__group .shell__nav-item--active > .shell__nav-open > .shell__nav-label,
   .shell__group .shell__nav-item--active .theme-icon {
-    color: var(--theme-on-brand);
+    color: var(--app-on-brand);
   }
 
   /* The caret at the end of a group head: the one affordance saying the head
@@ -239,11 +239,11 @@
   .shell__ws-tools {
     display: inline-flex;
     align-items: center;
-    gap: var(--theme-space-2);
+    gap: var(--app-space-2);
     flex-shrink: 0;
-    padding-inline-end: var(--theme-space-4);
+    padding-inline-end: var(--app-space-4);
     opacity: 0;
-    transition: opacity var(--theme-transition-fast);
+    transition: opacity var(--app-transition-fast);
   }
   .shell__nav-item--row:hover .shell__ws-tools,
   .shell__nav-item--active .shell__ws-tools,
@@ -261,8 +261,8 @@
   .shell__nav-item.reorder-item--carried,
   .shell__entry.reorder-item--carried,
   .shell__group--space.reorder-item--carried {
-    background: var(--theme-surface);
-    border-radius: var(--theme-radius-md);
+    background: var(--app-surface);
+    border-radius: var(--app-radius-md);
   }
   /* ---- the sidebar row ----
      One row of the navigation: a 42px band holding an icon and a label —
@@ -273,25 +273,25 @@
   .shell__nav-item {
     display: flex;
     align-items: center;
-    gap: var(--theme-space-8);
+    gap: var(--app-space-8);
     height: 2.625rem;
-    padding: var(--theme-space-12) var(--theme-space-8);
+    padding: var(--app-space-12) var(--app-space-8);
     background: none;
     border: none;
-    border-radius: var(--theme-radius-md);
-    color: var(--theme-ink-muted);
+    border-radius: var(--app-radius-md);
+    color: var(--app-ink-muted);
     font: inherit;
-    font-size: var(--theme-text-16);
+    font-size: var(--app-text-16);
     text-align: left;
     cursor: pointer;
     transition:
-      background var(--theme-transition-fast),
-      color var(--theme-transition-fast),
-      opacity var(--theme-transition-fast),
-      scale var(--theme-transition-fast);
+      background var(--app-transition-fast),
+      color var(--app-transition-fast),
+      opacity var(--app-transition-fast),
+      scale var(--app-transition-fast);
   }
   .shell__nav-item:hover {
-    background: var(--theme-hover);
+    background: var(--app-hover);
   }
   /* Pressed, the row gives by a hair — less than a button does (0.96): a row
      the width of the sidebar shrinking by 4% would visibly pull away from
@@ -303,22 +303,22 @@
      chrome the tint step is a near-black navy — enough to see, not enough to
      say "you are here" across a column of a dozen rows. Filled, it is the one
      thing in the sidebar that is not a shade of the ground. The label rides on
-     --theme-on-brand, which is the region's own ground, so it stays legible
+     --app-on-brand, which is the region's own ground, so it stays legible
      whichever half of the accent the ground picked. */
   .shell__nav-item--active {
-    background: var(--theme-brand);
-    color: var(--theme-on-brand);
-    font-weight: var(--theme-weight-semibold);
+    background: var(--app-brand);
+    color: var(--app-on-brand);
+    font-weight: var(--app-weight-semibold);
   }
   /* Hovering the row you are already on (user call, 2026-08-13): it DIMS, it
-     does not veil. The base `:hover` paints --theme-hover, a translucent grey
+     does not veil. The base `:hover` paints --app-hover, a translucent grey
      — over a solid accent pill that reads as a smudge on the colour rather
      than as feedback, and it wins on specificity, so the pill lost its colour
      under the pointer. Fading the whole row keeps the colour and still answers
      the pointer. Both selectors are needed: a space row repaints the
      background with its own colour further down. */
   .shell__nav-item--active:hover {
-    background: var(--theme-brand);
+    background: var(--app-brand);
     opacity: 0.7;
   }
   .shell__group .shell__nav-item--active:hover {
@@ -334,9 +334,9 @@
   }
   .shell__nav-item--secondary {
     height: auto;
-    padding-block: var(--theme-space-8);
-    font-size: var(--theme-text-14);
-    color: var(--theme-ink-faint);
+    padding-block: var(--app-space-8);
+    font-size: var(--app-text-14);
+    color: var(--app-ink-faint);
   }
 
   /* ---- space/group rows (2026-08-04): the SAME .shell__nav-item band
@@ -356,10 +356,10 @@
     min-width: 0;
     display: flex;
     align-items: center;
-    gap: var(--theme-space-8);
+    gap: var(--app-space-8);
     height: 100%;
     padding-block: 0;
-    padding-inline: var(--theme-space-8);
+    padding-inline: var(--app-space-8);
     background: none;
     border: none;
     color: inherit;
@@ -371,7 +371,7 @@
      levels deep a row would have to know how deep it is. */
   .shell__nav-item--member {
     height: 1.875rem;
-    font-size: var(--theme-text-14);
+    font-size: var(--app-text-14);
   }
   /* The rail keeps the members (user call, 2026-08-06): with the icon back
      they are still readable there, and hiding them made a grouped space
@@ -385,21 +385,21 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: var(--theme-space-8);
-    padding: var(--theme-space-10) var(--theme-space-12);
+    gap: var(--app-space-8);
+    padding: var(--app-space-10) var(--app-space-12);
   }
   .shell__notebook {
     flex: 1;
     min-width: 0;
     display: flex;
     align-items: baseline;
-    gap: var(--theme-space-6);
+    gap: var(--app-space-6);
     background: none;
     border: none;
     font: inherit;
-    font-size: var(--theme-text-14);
-    font-weight: var(--theme-weight-semibold);
-    color: var(--theme-ink-muted);
+    font-size: var(--app-text-14);
+    font-weight: var(--app-weight-semibold);
+    color: var(--app-ink-muted);
     cursor: pointer;
     text-align: left;
   }
@@ -412,20 +412,20 @@
   /* A .theme-btn--icon; the active state adds the brand colour. */
   .shell__settings {
     flex-shrink: 0;
-    padding: var(--theme-space-4);
+    padding: var(--app-space-4);
   }
   .shell__settings--active {
-    color: var(--theme-brand);
+    color: var(--app-brand);
   }
   .shell__badge {
-    color: var(--theme-danger);
-    font-size: var(--theme-text-10);
+    color: var(--app-danger);
+    font-size: var(--app-text-10);
   }
   .shell__count {
     flex-shrink: 0;
-    color: var(--theme-ink-faint);
-    font-size: var(--theme-text-12);
-    font-weight: var(--theme-weight-regular);
+    color: var(--app-ink-faint);
+    font-size: var(--app-text-12);
+    font-weight: var(--app-weight-regular);
   }
 
   /* ---- the sidebar's edge, as a handle (user call, 2026-08-17) ----
@@ -438,7 +438,7 @@
      control nobody needs pointed out. The cursor changing IS the affordance.
      The grab area stays 4px wide — it is the hit target, not a decoration. */
   .shell__resizer {
-    flex: 0 0 var(--theme-space-4);
+    flex: 0 0 var(--app-space-4);
     align-self: stretch;
     cursor: col-resize;
     background: none;
@@ -449,7 +449,7 @@
   /* Keyboard focus still has to be visible — that is the one state where
      nothing else says where you are (global rule). Never on hover. */
   .shell__resizer:focus-visible {
-    outline: 0.125rem solid var(--theme-brand);
+    outline: 0.125rem solid var(--app-brand);
     outline-offset: -0.125rem;
   }
   /* While dragging, the two edges that follow the sidebar's width must not
@@ -470,7 +470,7 @@
   /* ---- centre panel: takes whatever the two side panels leave.
      It is the CANVAS region (data-region in App.svelte), so it paints its own
      ground — in the factory theme, white inside the black frame. Everything it
-     holds raises off that with --theme-surface. ---- */
+     holds raises off that with --app-surface. ---- */
   .shell__centre {
     flex: 1 1 0;
     min-width: 0;
@@ -478,13 +478,13 @@
     flex-direction: column;
     min-height: 0;
     position: relative;
-    background: var(--theme-bg);
+    background: var(--app-bg);
     /* The window's corner less the gutter `.shell` leaves around this panel:
        the canvas is what the frame holds, and its two bottom corners are 4px
        inside the window's own. It follows the frame from system to system —
        a squarer window gets a squarer canvas, and the pair stays concentric
        without either being restated. */
-    border-radius: calc(var(--theme-window-radius) - var(--theme-space-4));
+    border-radius: calc(var(--app-window-radius) - var(--app-space-4));
     overflow: hidden;
   }
 
@@ -526,7 +526,7 @@
   .shell__panel > .suggestions-pane,
   .shell__panel > .note-panel {
     flex: 1;
-    width: var(--theme-sidebar-right);
+    width: var(--app-sidebar-right);
     min-height: 0;
   }
 
@@ -534,12 +534,12 @@
     flex: 1;
     min-height: 0;
     overflow-y: auto;
-    padding: var(--theme-space-12) var(--theme-space-16) var(--theme-space-40);
+    padding: var(--app-space-12) var(--app-space-16) var(--app-space-40);
   }
   /* Every screen's content is capped here, once, and centred — so a screen
      never has to know the width itself. */
   .shell__content-inner {
-    max-width: var(--theme-content-max);
+    max-width: var(--app-content-max);
     margin-inline: auto;
     /* The measuring stick every screen inside reads with a container query: a
        block has to answer to the COLUMN it is in, which narrows when the right
@@ -560,13 +560,13 @@
      max-width added, so everything inside — the banner, the editor's own
      centred column — keeps reading ONE variable. */
   .shell__content-inner--note {
-    max-width: var(--theme-content-wide);
+    max-width: var(--app-content-wide);
   }
   /* And so is Settings (2026-08-20, wireframe): a menu beside a section needs
      more than a column of prose — the user's number is 900px, which is the
      token the note's banner already reads. */
   .shell__content-inner--wide {
-    max-width: var(--theme-content-wide);
+    max-width: var(--app-content-wide);
   }
 
   /* ---- state boxes ----
@@ -576,38 +576,38 @@
      that would not open on the picker. What is the shell's is only where
      they sit — a step of air below, before the screen. ---- */
   .shell__notice {
-    margin-block-end: var(--theme-space-16);
+    margin-block-end: var(--app-space-16);
   }
   .shell__notice-path {
     word-break: break-all;
-    font-family: var(--theme-font-mono);
-    font-size: var(--theme-text-12);
+    font-family: var(--app-font-mono);
+    font-size: var(--app-text-12);
   }
   /* A conflict per row: what it is, and the door to its folder at the end. */
   .shell__conflict-list {
     list-style: none;
-    margin: var(--theme-space-6) 0 0;
+    margin: var(--app-space-6) 0 0;
     padding: 0;
     display: flex;
     flex-direction: column;
-    gap: var(--theme-space-4);
+    gap: var(--app-space-4);
   }
   .shell__conflict {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: var(--theme-space-8);
+    gap: var(--app-space-8);
     flex-wrap: wrap;
   }
   .shell__conflict-what {
     display: flex;
     flex-wrap: wrap;
     align-items: baseline;
-    gap: var(--theme-space-6);
+    gap: var(--app-space-6);
     min-inline-size: 0;
   }
   .shell__conflict-gone {
-    color: var(--theme-ink-faint);
+    color: var(--app-ink-faint);
   }
 }
 
@@ -646,19 +646,19 @@
     inset-inline-start: 0;
     z-index: 40;
     flex-basis: auto;
-    inline-size: var(--theme-drawer-width);
-    background: var(--theme-bg);
+    inline-size: var(--app-drawer-width);
+    background: var(--app-bg);
     /* Off-canvas until asked for. `visibility` rides along so a closed drawer
        is not a tab stop — `inert` on the element covers the pointer and the
        accessibility tree, this covers focus order in older engines. */
     translate: -100% 0;
     visibility: hidden;
     transition:
-      translate var(--theme-transition-medium),
-      visibility var(--theme-transition-medium);
-    padding-block-start: var(--theme-safe-top);
-    padding-block-end: var(--theme-safe-bottom);
-    padding-inline-start: var(--theme-safe-left);
+      translate var(--app-transition-medium),
+      visibility var(--app-transition-medium);
+    padding-block-start: var(--app-safe-top);
+    padding-block-end: var(--app-safe-bottom);
+    padding-inline-start: var(--app-safe-left);
   }
   .shell__sidebar--open {
     translate: 0 0;
@@ -694,10 +694,10 @@
     position: relative;
   }
   .window--compact .window__page {
-    transition: translate var(--theme-transition-medium);
+    transition: translate var(--app-transition-medium);
   }
   .window--pushed .window__page {
-    translate: var(--theme-drawer-width) 0;
+    translate: var(--app-drawer-width) 0;
   }
   .window--sliding .window__page {
     translate: var(--drawer-at, 0rem) 0;
@@ -759,13 +759,13 @@
        (services/caretScroll.js), a search hit — stop above the strip instead
        of behind it. The padding on `.shell__content` gives it the room to;
        this says where to stop. */
-    scroll-padding-block-end: var(--theme-format-strip);
+    scroll-padding-block-end: var(--app-format-strip);
   }
   .shell--compact .shell__content {
     overflow: visible;
-    background: var(--theme-bg);
-    border-start-start-radius: var(--theme-radius-xl);
-    border-start-end-radius: var(--theme-radius-xl);
+    background: var(--app-bg);
+    border-start-start-radius: var(--app-radius-xl);
+    border-start-end-radius: var(--app-radius-xl);
     /* Grows with its content but never shorter than what is left of the
        screen, so the canvas is never a short white card floating on the
        chrome. `1 0 auto` and not `min-block-size: 100%`: the header above it
@@ -776,9 +776,9 @@
        composer at the bottom of a SHORT list instead of under the last card. */
     display: flex;
     flex-direction: column;
-    padding: var(--theme-space-16) var(--theme-space-8) var(--theme-space-16);
-    padding-inline-start: calc(var(--theme-space-8) + var(--theme-safe-left));
-    padding-inline-end: calc(var(--theme-space-8) + var(--theme-safe-right));
+    padding: var(--app-space-16) var(--app-space-8) var(--app-space-16);
+    padding-inline-start: calc(var(--app-space-8) + var(--app-safe-left));
+    padding-inline-end: calc(var(--app-space-8) + var(--app-safe-right));
     /* Clear of the gesture bar — or of the formatting strip when a note has
        one, since the strip floats over this scroller and would otherwise sit
        on the last line being typed. `max()` rather than a sum: the strip
@@ -787,7 +787,7 @@
        composer that sticks to the bottom sits inside this padding, so the two
        do not have to agree about it. */
     padding-block-end: calc(
-      var(--theme-space-16) + max(var(--theme-safe-bottom), var(--theme-format-strip))
+      var(--app-space-16) + max(var(--app-safe-bottom), var(--app-format-strip))
     );
   }
   /* An open note keeps the canvas's rounded top and SCROLLS UNDER THE TOP BAR
@@ -804,7 +804,7 @@
 
      No scroll listener, and no second state to keep in sync: the bar is out of
      the flow and transparent the whole time, and the canvas reserves exactly
-     its height (`--theme-topbar-height`, tokens.css — the bar reads the same
+     its height (`--app-topbar-height`, tokens.css — the bar reads the same
      numbers, so the two cannot drift). It is the note alone: every other
      screen has a header of its own that belongs above the canvas, and pushing
      those under the bar would take the title with them.
@@ -813,7 +813,7 @@
      own top edge. */
   .shell--compact .shell__content--note {
     padding-block-start: 0;
-    margin-block-start: var(--theme-topbar-height);
+    margin-block-start: var(--app-topbar-height);
     /* And the banner is CUT to those corners. It reaches all three edges, so
        without this it painted straight over the two rounded ones and the
        canvas came back square (measured on the emulator, 2026-08-19).
@@ -850,12 +850,12 @@
        this wrapper — even for a quarter second — would be the containing
        block of the phone's fixed composing bar and of a card being carried.
        A fade and a breath of top margin arrive the same way without one. */
-    animation: shell-screen-rise var(--theme-duration-medium) var(--theme-ease-out);
+    animation: shell-screen-rise var(--app-duration-medium) var(--app-ease-out);
   }
   @keyframes shell-screen-rise {
     from {
       opacity: 0;
-      margin-block-start: var(--theme-space-8);
+      margin-block-start: var(--app-space-8);
     }
   }
 
@@ -878,26 +878,26 @@
     translate: 0 calc(var(--pull, 0rem) - 3rem);
     opacity: 0;
     transition:
-      translate var(--theme-transition-medium),
-      opacity var(--theme-transition-medium);
+      translate var(--app-transition-medium),
+      opacity var(--app-transition-medium);
   }
   .pull-search__glass {
     display: grid;
     place-items: center;
     inline-size: 2.5rem;
     block-size: 2.5rem;
-    border-radius: var(--theme-radius-pill);
-    background: var(--theme-surface);
-    color: var(--theme-ink-muted);
-    border: 0.0625rem solid var(--theme-line);
-    box-shadow: var(--theme-shadow-popover);
+    border-radius: var(--app-radius-pill);
+    background: var(--app-surface);
+    color: var(--app-ink-muted);
+    border: 0.0625rem solid var(--app-line);
+    box-shadow: var(--app-shadow-popover);
     scale: var(--pull-ratio, 0);
     rotate: calc(var(--pull-ratio, 0) * -30deg);
     transition:
-      background var(--theme-transition-fast),
-      color var(--theme-transition-fast),
-      scale var(--theme-transition-medium),
-      rotate var(--theme-transition-medium);
+      background var(--app-transition-fast),
+      color var(--app-transition-fast),
+      scale var(--app-transition-medium),
+      rotate var(--app-transition-medium);
   }
   .shell__centre.is-pulling .pull-search {
     opacity: 1;
@@ -905,13 +905,13 @@
   }
   .shell__centre.is-pulling .pull-search__glass {
     transition:
-      background var(--theme-transition-fast),
-      color var(--theme-transition-fast);
+      background var(--app-transition-fast),
+      color var(--app-transition-fast);
   }
   .shell__centre.is-pull-ready .pull-search__glass {
-    background: var(--theme-brand);
-    color: var(--theme-on-brand);
-    border-color: var(--theme-brand);
+    background: var(--app-brand);
+    color: var(--app-on-brand);
+    border-color: var(--app-brand);
     scale: 1.1;
   }
 }

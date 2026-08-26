@@ -6,13 +6,13 @@
   /* A dashed card: something
      that is not content yet, or not content this build understands. */
   .unsupported-space {
-    border: 0.0625rem dashed var(--theme-line);
-    border-radius: var(--theme-radius-lg);
-    padding: var(--theme-space-12) var(--theme-space-16);
-    color: var(--theme-ink-muted);
-    font-size: var(--theme-text-14);
+    border: 0.0625rem dashed var(--app-line);
+    border-radius: var(--app-radius-lg);
+    padding: var(--app-space-12) var(--app-space-16);
+    color: var(--app-ink-muted);
+    font-size: var(--app-text-14);
   }
   .unsupported-space__body {
-    margin: var(--theme-space-4) 0 0;
+    margin: var(--app-space-4) 0 0;
   }
 }
