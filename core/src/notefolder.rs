@@ -32,6 +32,9 @@ pub struct NoteEntry {
     pub preview: String,
     pub created: Option<NaiveDate>,
     pub pinned: bool,
+    /// The note's subjects (`tags:` in its properties) — what the card's
+    /// badges draw and a `#name` search answers with.
+    pub tags: Vec<String>,
     /// The head of the note, when it has one (`crate::note::Banner`). The card
     /// draws it; a note without one is a card with a title and nothing above
     /// it, which is the default.
@@ -116,6 +119,7 @@ impl NoteFolder {
                 preview,
                 created: note.created,
                 pinned: note.pinned,
+                tags: note.tags,
                 banner: note.banner,
             });
             Ok(())
@@ -376,6 +380,12 @@ impl NoteFolder {
 
     pub fn set_pinned(&self, relative: &str, pinned: bool) -> Result<()> {
         self.edit(relative, |note| note.pinned = pinned)
+    }
+
+    /// Replaces a note's tags (its `tags:` property); an empty list takes
+    /// the property out of the file.
+    pub fn set_tags(&self, relative: &str, tags: &[String]) -> Result<()> {
+        self.edit(relative, |note| note.set_tags(tags))
     }
 
     pub fn create_folder(&self, relative: &str) -> Result<()> {

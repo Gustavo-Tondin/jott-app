@@ -1403,6 +1403,18 @@ fn notes_can_be_pinned_renamed_moved_and_foldered() {
     let listed = ok(&app, "list_notes", json!({ "folder": "jott.notes" }));
     assert_eq!(listed[0]["pinned"], json!(true));
 
+    // The note's subjects travel the same road: replaced whole, normalised
+    // in the core, read back on the entry and on the open note.
+    ok(
+        &app,
+        "set_note_tags",
+        json!({ "folder": "jott.notes", "path": path, "tags": ["Briefing", "brioche caseiro", ""] }),
+    );
+    let listed = ok(&app, "list_notes", json!({ "folder": "jott.notes" }));
+    assert_eq!(listed[0]["tags"], json!(["Briefing", "brioche-caseiro"]));
+    let read = ok(&app, "read_note", json!({ "folder": "jott.notes", "path": path }));
+    assert_eq!(read["tags"], json!(["Briefing", "brioche-caseiro"]));
+
     let renamed = ok(
         &app,
         "rename_note",

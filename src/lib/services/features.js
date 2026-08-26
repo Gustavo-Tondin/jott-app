@@ -90,6 +90,10 @@ export const FEATURES = [
     label: () => S.featureNoteFolders,
   },
   { key: "pinNotes", parent: "notes", group: "has", label: () => S.featurePinNotes },
+  // A note's subjects — the `tags:` property under the title (2026-08-26),
+  // picked from the same catalogue a task's tags come from. Off, the line
+  // under the title goes and the property stays in the file.
+  { key: "noteTags", parent: "notes", group: "has", label: () => S.featureNoteTags },
   // Off, a table is the pipes it is in the file, and the panel loses its
   // table button; the commands still act on the caret's row and column.
   { key: "tables", parent: "notes", group: "has", label: () => S.featureTables },

@@ -184,6 +184,12 @@ impl Notebook {
         self.note_folder(space)?.set_pinned(path, pinned)
     }
 
+    /// Replaces a note's tags — its subjects, in the `tags:` property.
+    pub fn set_note_tags(&self, space: &str, path: &str, tags: &[String]) -> Result<()> {
+        self.ensure_writable()?;
+        self.note_folder(space)?.set_tags(path, tags)
+    }
+
     /// Sets — or clears, with `None` — a note's banner.
     pub fn set_note_banner(
         &self,

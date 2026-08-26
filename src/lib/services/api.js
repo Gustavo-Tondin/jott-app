@@ -265,6 +265,9 @@ export const api = {
     invoke("rename_note", { folder, path, title }),
   setNotePinned: (folder, path, pinned) =>
     invoke("set_note_pinned", { folder, path, pinned }),
+  // The note's subjects (`tags:` in its properties), replaced whole; the
+  // core normalises the names like a task's tags.
+  setNoteTags: (folder, path, tags) => invoke("set_note_tags", { folder, path, tags }),
   // The note's head, as the value the line carries: a colour name
   // (`"yellow"`), an asset address (`"assets/foto.png"`), or null to take it
   // off. Which of the two a value IS is decided in the core.

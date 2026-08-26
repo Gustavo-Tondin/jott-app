@@ -586,6 +586,7 @@
     {entry}
     {root}
     banners={f("banners")}
+    noteTags={f("noteTags")}
     {picking}
     selected={picked.has(entry.path)}
     menu={cardMenu(entry)}

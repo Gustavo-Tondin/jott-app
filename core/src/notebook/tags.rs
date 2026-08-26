@@ -36,6 +36,16 @@ impl Notebook {
                 }
             }
         }
+        // A note's subjects count too (2026-08-26): one vocabulary for tasks
+        // and notes, so the catalogue's numbers say what a word is really
+        // used for.
+        for (_, folder) in self.note_folders()? {
+            for entry in folder.notes()? {
+                for tag in &entry.tags {
+                    *counts.entry(tag.clone()).or_default() += 1;
+                }
+            }
+        }
         let mut usage: Vec<_> = counts
             .into_iter()
             .map(|(name, count)| crate::tags::TagUsage { name, count })

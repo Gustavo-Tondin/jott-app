@@ -24,6 +24,8 @@ pub struct NoteContent {
     pub body: String,
     pub pinned: bool,
     pub created: Option<String>,
+    /// The note's subjects — the `tags:` property (2026-08-26).
+    pub tags: Vec<String>,
     pub banner: Option<jott_core::Banner>,
 }
 
@@ -134,6 +136,7 @@ pub fn read_note<R: Runtime>(
             body: note.body,
             pinned: note.pinned,
             created: note.created.map(|d| d.to_string()),
+            tags: note.tags,
             banner: note.banner,
         })
     })
@@ -211,6 +214,20 @@ pub fn set_note_pinned<R: Runtime>(
     pinned: bool,
 ) -> CommandResult<()> {
     state.record(window.label(), "set_note_pinned", |nb| nb.set_note_pinned(&folder, &path, pinned))
+}
+
+/// Replaces a note's tags — its subjects, the `tags:` property. The names
+/// are normalised in the core like a task's; an empty list takes the
+/// property out of the file.
+#[tauri::command]
+pub fn set_note_tags<R: Runtime>(
+    state: State<'_, AppState>,
+    window: tauri::Window<R>,
+    folder: String,
+    path: String,
+    tags: Vec<String>,
+) -> CommandResult<()> {
+    state.record(window.label(), "set_note_tags", |nb| nb.set_note_tags(&folder, &path, &tags))
 }
 
 /// Sets — or clears, with `None` — a note's banner.

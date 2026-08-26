@@ -38,7 +38,24 @@ const FENCE: &str = "---";
 
 /// Keys this build owns. Everything else in the block is carried through
 /// untouched.
-const KNOWN_KEYS: [&str; 2] = ["created", "pinned"];
+const KNOWN_KEYS: [&str; 3] = ["created", "pinned", "tags"];
+
+/// The property Obsidian writes tags to, in the form it writes them:
+///
+/// ```text
+/// tags:
+///   - briefing
+///   - cliente
+/// ```
+///
+/// Read tolerantly — the block form above, the flow form `tags: [a, b]`, and
+/// a bare `tags: a, b` all count — and written back in the block form, so a
+/// vault and a Jott notebook read each other's notes. A note's tags are its
+/// SUBJECTS (2026-08-26): they connect notes and answer a `#name` search,
+/// and they live here, in the properties, never as `#word` inside the prose
+/// — a `#` in a paragraph is a heading or a hashtag someone wrote, not a tag.
+/// The names go through the same normaliser a task's tags do.
+const TAGS_KEY: &str = "tags";
 
 /// How much of the body a card shows.
 ///
@@ -108,6 +125,9 @@ impl Banner {
 pub struct Note {
     pub created: Option<NaiveDate>,
     pub pinned: bool,
+    /// The note's subjects, from the `tags:` property — normalised, in file
+    /// order, without repeats.
+    pub tags: Vec<String>,
     /// The head of the note, from the first line of the body.
     pub banner: Option<Banner>,
     /// Frontmatter lines this build does not own, exactly as read.
@@ -142,12 +162,30 @@ impl Note {
             body,
             ..Default::default()
         };
+        // Inside the `tags:` block, `- name` lines are tags; any other line
+        // closes it. A `- name` line anywhere else is someone's data.
+        let mut in_tags = false;
         for line in block.lines() {
+            let trimmed = line.trim();
+            if in_tags {
+                if let Some(item) = trimmed.strip_prefix('-') {
+                    note.add_tag(item);
+                    continue;
+                }
+                in_tags = false;
+            }
             match parse_entry(line) {
                 Some(("created", value)) => note.created = crate::task::parse_date(value),
                 Some(("pinned", value)) => note.pinned = value.trim() == "true",
+                Some((TAGS_KEY, value)) => {
+                    in_tags = true;
+                    // `[a, b]` or `a, b` on the same line; empty opens a block.
+                    for item in value.trim_matches(|c| c == '[' || c == ']').split(',') {
+                        note.add_tag(item);
+                    }
+                }
                 // Unknown key, or a line that is not `key: value` at all.
-                _ if line.trim().is_empty() => {}
+                _ if trimmed.is_empty() => {}
                 _ => note.extra.push(line.to_string()),
             }
         }
@@ -166,6 +204,10 @@ impl Note {
         }
         if self.pinned {
             fields.push("pinned: true".to_string());
+        }
+        if !self.tags.is_empty() {
+            fields.push(format!("{TAGS_KEY}:"));
+            fields.extend(self.tags.iter().map(|t| format!("  - {t}")));
         }
         fields.extend(self.extra.iter().cloned());
 
@@ -187,6 +229,36 @@ impl Note {
 
         let body = body.trim_start_matches('\n');
         format!("{FENCE}\n{}\n{FENCE}\n\n{body}", fields.join("\n"))
+    }
+
+    /// Adds one tag, normalised like a task's (`task::normalize_tag`);
+    /// blank and repeated names are dropped, quotes a YAML writer may have
+    /// put around it are not part of the name.
+    fn add_tag(&mut self, raw: &str) {
+        let clean = raw.trim().trim_matches(|c| c == '"' || c == '\'');
+        if let Some(tag) = crate::task::normalize_tag(clean) {
+            if !self.tags.contains(&tag) {
+                self.tags.push(tag);
+            }
+        }
+    }
+
+    /// Replaces the note's tags with `tags`, normalised and de-duplicated.
+    pub fn set_tags<S: AsRef<str>>(&mut self, tags: impl IntoIterator<Item = S>) {
+        self.tags.clear();
+        for tag in tags {
+            self.add_tag(tag.as_ref());
+        }
+    }
+
+    /// The tag that matches `query`, with or without its `#` — the way a
+    /// search box gets it typed.
+    pub fn matching_tag(&self, query: &str) -> Option<&str> {
+        let bare = query.trim().trim_start_matches('#').to_lowercase();
+        if bare.is_empty() {
+            return None;
+        }
+        self.tags.iter().find(|t| t.to_lowercase().contains(&bare)).map(String::as_str)
     }
 
     /// Records `today` as the creation date, if the note does not have one.
@@ -255,10 +327,13 @@ impl Note {
         preview.trim_end().to_string()
     }
 
-    /// Whether the note's text matches `query`, case-insensitively.
+    /// Whether the note's text or one of its tags matches `query`,
+    /// case-insensitively.
     pub fn matches(&self, query: &str) -> bool {
-        let query = query.trim().to_lowercase();
-        query.is_empty() || self.body.to_lowercase().contains(&query)
+        let needle = query.trim().to_lowercase();
+        needle.is_empty()
+            || self.body.to_lowercase().contains(&needle)
+            || self.matching_tag(&needle).is_some()
     }
 }
 
@@ -356,6 +431,44 @@ mod tests {
         assert_eq!(note.created, Some(ymd(2026, 7, 21)));
         assert!(note.pinned);
         assert_eq!(note.body, "Texto.\n");
+    }
+
+    #[test]
+    fn tags_read_in_every_form_and_write_back_the_obsidian_way() {
+        // Block form — what Obsidian writes — with a quoted item and a repeat.
+        let note = Note::parse(
+            "---\ncreated: 2026-07-21\ntags:\n  - briefing\n  - \"brioche caseiro\"\n  - briefing\ncolor: yellow\n---\n\nTexto.\n",
+        );
+        // Spaces become hyphens and case is kept, exactly as a task's tags.
+        assert_eq!(note.tags, vec!["briefing", "brioche-caseiro"]);
+        // The block closed at `color:`, which is still someone else's key.
+        assert_eq!(note.extra, vec!["color: yellow"]);
+        assert_eq!(
+            note.render(),
+            "---\ncreated: 2026-07-21\ntags:\n  - briefing\n  - brioche-caseiro\ncolor: yellow\n---\n\nTexto.\n"
+        );
+
+        // Flow form and a bare list read the same.
+        assert_eq!(Note::parse("---\ntags: [a, b]\n---\nx").tags, vec!["a", "b"]);
+        assert_eq!(Note::parse("---\ntags: a, #b\n---\nx").tags, vec!["a", "b"]);
+        // A `- item` outside the block is data the app does not own.
+        let odd = Note::parse("---\nlist:\n  - x\n---\nx");
+        assert!(odd.tags.is_empty());
+        assert_eq!(odd.extra, vec!["list:", "  - x"]);
+    }
+
+    #[test]
+    fn a_tag_answers_a_search_with_or_without_its_hash() {
+        let mut note = Note::parse("Sem assunto.\n");
+        note.set_tags(["briefing", "", "#briefing"]);
+        assert_eq!(note.tags, vec!["briefing"]);
+        assert!(note.matches("#brief"));
+        assert!(note.matches("BRIEFING"));
+        assert_eq!(note.matching_tag("#brief"), Some("briefing"));
+        assert!(!note.matches("cliente"));
+        // Emptied, the property leaves the file.
+        note.set_tags(Vec::<String>::new());
+        assert_eq!(note.render(), "Sem assunto.\n");
     }
 
     #[test]

@@ -22,6 +22,7 @@
   import Menu from "./Menu.svelte";
   import Icon from "./Icon.svelte";
   import NotePreview from "./NotePreview.svelte";
+  import Badge from "./Badge.svelte";
 
   let {
     /// A `NoteEntry` from the bridge.
@@ -56,6 +57,8 @@
     /// Whether this notebook draws banners at all (App Functions, 2026-08-20).
     /// Defaults to on, like every other switch a component is not told about.
     banners = true,
+    /// Whether the card draws the note's tags (App Functions, `noteTags`).
+    noteTags = true,
   } = $props();
 
   /// Only the middle button, and never while picking: in that mode a click is
@@ -119,6 +122,11 @@
 
     {#if !small}
       <NotePreview markdown={entry.preview} empty={S.emptyNote} />
+      {#if noteTags && entry.tags?.length}
+        <span class="note-card__tags">
+          {#each entry.tags as tag (tag)}<Badge label={`#${tag}`} />{/each}
+        </span>
+      {/if}
     {/if}
   </button>
 

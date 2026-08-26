@@ -87,6 +87,7 @@
   import { groupColors, spaceColors } from "./lib/services/spaceColors.js";
   import { ACCENTS } from "./lib/services/accent.js";
   import { originOf } from "./lib/services/origin.js";
+  import { cleanTagName } from "./lib/services/taskFields.js";
   import {
     NOTE_FONT_SIZES,
     isAppTheme,
@@ -1285,6 +1286,28 @@
       await api.setNotePinned(view.folder, view.path, !openNote.pinned);
       openNote = { ...openNote, pinned: !openNote.pinned };
     });
+
+  /// Replaces the open note's tags — its subjects, the `tags:` property.
+  /// One line of the note's own file, so it goes through the same flush the
+  /// banner does.
+  const setNoteTags = (next) =>
+    noteAction(async () => {
+      const tags = next.map(cleanTagName).filter(Boolean);
+      await api.setNoteTags(view.folder, view.path, tags);
+      openNote = { ...openNote, tags };
+    });
+
+  /// A tag typed into the note's picker that the catalogue does not know:
+  /// saved there first (so the next picker offers it), then applied.
+  async function createNoteTag(name) {
+    try {
+      await api.setTag(name, null);
+      await setNoteTags([...(openNote?.tags ?? []), name]);
+      refreshNotebook();
+    } catch (e) {
+      fail(e);
+    }
+  }
 
   /// Hangs a banner on the open note, or takes it off with `null`.
   ///
@@ -2876,6 +2899,13 @@
               onSet={setNoteBanner}
               onChooseImage={() => (pickingImage = "banner")}
               onRename={notebook.readOnly ? null : renameCurrentNote}
+              created={openNote.created ?? null}
+              tags={openNote.tags ?? []}
+              catalogue={tags}
+              dateFormat={layout.dateDisplayFormat}
+              tagsEnabled={f("noteTags")}
+              onSetTags={setNoteTags}
+              onCreateTag={createNoteTag}
             />
             <NoteEditor
               bind:this={noteEditor}

@@ -81,12 +81,16 @@ impl Notebook {
                     results.truncated = true;
                     break;
                 }
-                // The title already matching is the match; otherwise the body
-                // did, and the hit has to show where.
+                // The title already matching is the match; otherwise a tag
+                // or the body did, and the hit has to show where.
                 let snippet = if crate::search::contains(&entry.title, &needle) {
                     String::new()
                 } else {
-                    crate::search::snippet_around(&folder.read(&entry.path)?.body, &needle)
+                    let note = folder.read(&entry.path)?;
+                    match note.matching_tag(&needle) {
+                        Some(tag) => format!("#{tag}"),
+                        None => crate::search::snippet_around(&note.body, &needle),
+                    }
                 };
                 results.notes.push(SearchHit {
                     kind: HitKind::Note,

@@ -86,7 +86,13 @@
       // The banner travels with the note but is NOT part of the body: it is
       // the shell that draws it, above this editor (components/NoteBanner),
       // the same way the title and the pin are the page header's.
-      onLoaded?.({ pinned: note.pinned, title: note.title, banner: note.banner ?? null });
+      onLoaded?.({
+        pinned: note.pinned,
+        title: note.title,
+        banner: note.banner ?? null,
+        created: note.created ?? null,
+        tags: note.tags ?? [],
+      });
     } catch (e) {
       onError?.(e);
     } finally {

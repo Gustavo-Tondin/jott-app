@@ -120,6 +120,56 @@
     padding-inline: 0;
     background: none;
   }
+  /* The properties under the title (2026-08-26), the way Obsidian lays them
+     out: a quiet name column with a glyph, the value beside it. The tags are
+     the shared .theme-badge, neutral — a tag is a subject, and the one colour
+     a note wears is its space's. */
+  .note-banner__props {
+    display: flex;
+    flex-direction: column;
+    gap: var(--theme-space-4);
+    margin: var(--theme-space-8) 0 0;
+    font-family: var(--theme-font-sans);
+    font-size: var(--theme-text-12);
+  }
+  .note-banner__prop {
+    display: flex;
+    align-items: center;
+    gap: var(--theme-space-12);
+    min-block-size: 1.5rem;
+  }
+  .note-banner__prop-name {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--theme-space-6);
+    inline-size: 5rem;
+    flex: none;
+    color: var(--theme-ink-faint);
+  }
+  .note-banner__prop-value {
+    margin: 0;
+    color: var(--theme-ink-muted);
+  }
+  .note-banner__tags {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--theme-space-4);
+  }
+  .note-banner__tag {
+    padding-inline-end: var(--theme-space-2);
+  }
+  .note-banner__tag-remove {
+    display: inline-flex;
+    padding: 0;
+    background: none;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+  }
+  .note-banner--compact .note-banner__props {
+    margin-inline: var(--theme-space-8);
+  }
   /* Renaming, from the name itself. It is a button and it must not look like
      one: the heading is the affordance, the pointer says the rest. */
   .note-banner__rename {

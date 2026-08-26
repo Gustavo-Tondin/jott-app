@@ -171,6 +171,7 @@ pub fn configure<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builde
             commands::notes::rename_note,
             commands::notes::move_note,
             commands::notes::set_note_pinned,
+            commands::notes::set_note_tags,
             commands::notes::set_note_banner,
             commands::notes::duplicate_note,
             commands::notes::set_note_folder_color,

@@ -5,7 +5,7 @@
 
 import { cleanup, render, screen } from "@testing-library/svelte";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, test } from "vitest";
+import { beforeEach, describe, expect, test, vi } from "vitest";
 import { noop, resetScreens } from "../test/screens.js";
 import NoteBanner from "../components/NoteBanner.svelte";
 
@@ -85,5 +85,44 @@ describe("NoteBanner", () => {
       props: props({ banner: { kind: "color", value: "blue" }, readOnly: true }),
     });
     expect(screen.queryByLabelText("banner options")).toBeNull();
+  });
+
+  test("the properties line: created and the tags, picked from the catalogue", async () => {
+    // Obsidian's layout (2026-08-26): a quiet name column, the value beside
+    // it. The tags are neutral badges — a tag is a subject; the one colour a
+    // note wears is its space's — and the picker offers the task catalogue.
+    const set = vi.fn();
+    render(NoteBanner, {
+      props: props({
+        created: "2026-08-20",
+        tags: ["briefing"],
+        catalogue: [{ name: "briefing" }, { name: "cliente" }],
+        dateFormat: "dd/mm/yyyy",
+        onSetTags: set,
+      }),
+    });
+    expect(screen.getByText("20/08/2026")).toBeTruthy();
+    const badge = screen.getByText(/#briefing/);
+    expect(badge.className).toContain("theme-badge");
+    expect(badge.getAttribute("style")).toBeNull();
+
+    // Removing sends the whole list back, without the one.
+    await userEvent.click(screen.getByLabelText("remove #briefing"));
+    expect(set).toHaveBeenLastCalledWith([]);
+
+    // Picking: the catalogue minus what is applied.
+    await userEvent.click(screen.getByRole("button", { name: "add tag" }));
+    expect(screen.queryByText("#briefing", { selector: ".tag-picker__option .theme-badge" })).toBeNull();
+    await userEvent.click(screen.getByText("#cliente"));
+    expect(set).toHaveBeenLastCalledWith(["briefing", "cliente"]);
+  });
+
+  test("with note tags off the line is not drawn, and read-only draws no picker", () => {
+    render(NoteBanner, { props: props({ created: "2026-08-20", tags: ["x"], tagsEnabled: false }) });
+    expect(screen.queryByText("20/08/2026")).toBeNull();
+    cleanup();
+    render(NoteBanner, { props: props({ tags: ["x"], readOnly: true, onSetTags: noop }) });
+    expect(screen.getByText(/#x/)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "add tag" })).toBeNull();
   });
 });

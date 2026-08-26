@@ -19,6 +19,9 @@
   // it travels with the file.
   import { S } from "../services/strings.js";
   import { accentFill } from "../services/accent.js";
+  import { formatDate } from "../services/dates.js";
+  import Badge from "./Badge.svelte";
+  import TagPicker from "./TagPicker.svelte";
   import { assetUrl } from "../services/assets.js";
   import { dismissable } from "../actions/dismissable.js";
   import { keepOnScreen } from "../actions/keepOnScreen.js";
@@ -47,6 +50,22 @@
     /// (wireframe "New note mobile - no banner") — so the door to renaming has
     /// to be here as well as in the page ⋮.
     onRename = null,
+    /// The note's PROPERTIES, drawn as a line under the title the way
+    /// Obsidian draws them (2026-08-26): when it was created, and its tags
+    /// — its subjects, picked from the same catalogue a task's tags come
+    /// from. `tags` is what the note has, `catalogue` what the picker offers.
+    created = null,
+    tags = [],
+    catalogue = [],
+    dateFormat = "mm/dd/yyyy",
+    /// `(tags) => void` — the whole list, replaced. Null: nothing is editable.
+    onSetTags = null,
+    /// `(name) => void` — a tag typed into the picker that the catalogue does
+    /// not have yet; the shell saves it and applies it.
+    onCreateTag = null,
+    /// Whether this notebook shows note tags at all (App Functions). Off, the
+    /// properties line is not drawn — the `tags:` stays in the file.
+    tagsEnabled = true,
     /// Whether this notebook has banners at all (App Functions, 2026-08-20).
     /// Off, the head is the TITLE and nothing else — no band, no ⋮ to hang one
     /// with — and the `<!--banner:-->` line already in a file stays exactly
@@ -69,6 +88,15 @@
     open = false;
     onSet?.(value);
   };
+
+  let editsTags = $derived(tagsEnabled && !readOnly && !!onSetTags);
+  /// The line is drawn when there is something on it: a date, a tag, or the
+  /// door to adding one.
+  let showsProps = $derived(tagsEnabled && (!!created || tags.length > 0 || editsTags));
+  const addTag = (name) => {
+    if (!tags.includes(name)) onSetTags?.([...tags, name]);
+  };
+  const removeTag = (name) => onSetTags?.(tags.filter((t) => t !== name));
 </script>
 
 <div
@@ -137,5 +165,48 @@
         {title}
       {/if}
     </h1>
+    {#if showsProps}
+      <dl class="note-banner__props">
+        {#if created}
+          <div class="note-banner__prop">
+            <dt class="note-banner__prop-name">
+              <Icon name="calendar-blank" size="0.875rem" />
+              <span>{S.noteCreated}</span>
+            </dt>
+            <dd class="note-banner__prop-value">{formatDate(created, dateFormat)}</dd>
+          </div>
+        {/if}
+        <div class="note-banner__prop">
+          <dt class="note-banner__prop-name">
+            <Icon name="tag" size="0.875rem" />
+            <span>{S.noteTags}</span>
+          </dt>
+          <dd class="note-banner__prop-value note-banner__tags">
+            {#each tags as tag (tag)}
+              <span class="theme-badge note-banner__tag">
+                #{tag}
+                {#if editsTags}
+                  <button
+                    class="note-banner__tag-remove"
+                    onclick={() => removeTag(tag)}
+                    aria-label={S.removeTag(tag)}
+                  >
+                    <Icon name="x" size="0.625rem" />
+                  </button>
+                {/if}
+              </span>
+            {/each}
+            {#if editsTags}
+              <TagPicker
+                tags={catalogue}
+                applied={tags}
+                onPick={addTag}
+                onCreate={(name) => (onCreateTag ? onCreateTag(name) : addTag(name))}
+              />
+            {/if}
+          </dd>
+        </div>
+      </dl>
+    {/if}
   </div>
 </div>
