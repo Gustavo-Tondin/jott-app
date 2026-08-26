@@ -36,13 +36,13 @@ export const ACCENTS = [
 /// What the app ships as, and what an unknown or missing name falls back to.
 export const DEFAULT_ACCENT = "blue";
 
-/// True for one of the seven.
+/// True for one of the eight.
 export function isAccent(value) {
   return typeof value === "string" && ACCENTS.includes(value);
 }
 
 /// The CSS value for a stored colour choice: a ground-aware `var()` for one of
-/// the seven, the value itself for a raw colour, and `null` for "no colour of
+/// the eight, the value itself for a raw colour, and `null` for "no colour of
 /// its own" — callers fall back to the theme accent, usually by leaving the
 /// custom property unset so its `var(…, fallback)` applies.
 export function accentColor(value) {
@@ -98,7 +98,7 @@ export function accentSolid(value) {
 }
 
 /// The matching tint — the quiet fill behind something wearing this colour (a
-/// selected sidebar row, a highlighted card). For one of the seven it is the
+/// selected sidebar row, a highlighted card). For one of the eight it is the
 /// ground's own tint step; for a raw colour there is nothing to look up, so it
 /// is mixed down from the colour itself, which is what the app did everywhere
 /// before the palette existed.
@@ -106,6 +106,26 @@ export function accentTint(value) {
   if (!value) return null;
   if (isAccent(value)) return `var(--accent-${value}-tint)`;
   return `color-mix(in srgb, ${value} 18%, transparent)`;
+}
+
+/// The matching LINE — the quiet outline of something wearing this colour
+/// (the badge's border). The ground's own `-line` for one of the eight; a raw
+/// colour is mixed down, like its tint.
+export function accentLine(value) {
+  if (!value) return null;
+  if (isAccent(value)) return `var(--accent-${value}-line)`;
+  return `color-mix(in srgb, ${value} 45%, transparent)`;
+}
+
+/// The inline `style` of a `.theme-badge` wearing a colour — the ORIGIN
+/// badge, the one that says which space an item came from (2026-08-26).
+/// Text on rung 2 (the ladder's second step clears 4.5:1 on both grounds,
+/// which is what 10px text needs), outline on the colour's line. `undefined`
+/// when there is no colour, so the class's neutral defaults answer — which
+/// is exactly what a `#tag` badge is.
+export function badgeStyle(value) {
+  const c = accentRung(value, 2);
+  return c ? `--badge-color: ${c}; --badge-line: ${accentLine(value)}` : undefined;
 }
 
 /// Tag name → the CSS value its pill should be painted with, ready for

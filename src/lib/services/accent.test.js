@@ -8,6 +8,8 @@ import {
   accentSolid,
   accentTint,
   accentStyle,
+  accentLine,
+  badgeStyle,
   tagColors,
 } from "./accent.js";
 
@@ -114,5 +116,14 @@ describe("the eight colours", () => {
     for (const empty of [null, undefined, ""]) {
       expect(accentSolid(empty)).toBeNull();
     }
+  });
+
+  test("badgeStyle: rung 2 for the text, the line for the outline; nothing for no colour", () => {
+    expect(badgeStyle("blue")).toBe("--badge-color: var(--accent-blue-2); --badge-line: var(--accent-blue-line)");
+    expect(badgeStyle("#123456")).toBe(
+      "--badge-color: color-mix(in srgb, #123456 90%, transparent); --badge-line: color-mix(in srgb, #123456 45%, transparent)",
+    );
+    expect(badgeStyle(null)).toBeUndefined();
+    expect(accentLine("")).toBeNull();
   });
 });
