@@ -21,7 +21,7 @@
     align-items: center;
     gap: var(--app-space-8);
     max-inline-size: calc(100vw - var(--app-space-24));
-    padding: var(--app-space-6) var(--app-space-6) var(--app-space-6) var(--app-space-14);
+    padding: var(--app-space-6) var(--app-space-6) var(--app-space-6) var(--app-space-12);
     background: var(--app-surface);
     border: 0.0625rem solid var(--app-line);
     border-radius: var(--app-radius-pill);

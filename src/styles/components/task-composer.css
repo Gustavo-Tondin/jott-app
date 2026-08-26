@@ -128,7 +128,7 @@
     inline-size: 3.75rem;
     block-size: 0.25rem;
     border-radius: var(--app-radius-pill);
-    background: color-mix(in srgb, var(--theme-color-gray) 30%, transparent);
+    background: var(--app-well);
   }
   .task-composer__handle:focus-visible {
     outline: none;

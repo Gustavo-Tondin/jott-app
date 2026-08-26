@@ -60,8 +60,11 @@
 
   /* Native arrow off, our own caret on — so the select matches everywhere.
      The stroke hex inside the data: URI is a byte copy of --theme-color-gray
-     (tokens.css) — a URL cannot read a custom property, so a palette change
-     has to update it by hand. */
+     (styles/themes/jott.css) — a URL cannot read a custom property, so a
+     palette change has to update it by hand, and a test in
+     lib/architecture.test.js says when the two drift. A theme of the
+     notebook cannot reach it; the themable version (a mask on a wrapper)
+     is a follow-up. */
   .theme-select {
     appearance: none;
     -webkit-appearance: none;

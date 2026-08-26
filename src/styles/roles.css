@@ -61,6 +61,12 @@
        light veil over a light page pushes nothing. Same reason as the three
        above — one value that reads on both grounds, so no theme restates it. */
     --app-scrim: color-mix(in srgb, #0d0d0d 20%, transparent);
+    /* The deep scrim of a picture opened over the page (the image viewer),
+       and the ink written on it: black nearly opaque and white, on every
+       ground — a lightbox is dark by definition. Two roles so the component
+       sheet reads no palette entry (2026-08-26). */
+    --app-scrim-deep: color-mix(in srgb, var(--theme-color-black) 88%, transparent);
+    --app-on-scrim: var(--theme-color-white);
 
     /* THE FILL OF A COLOURED PIECE OF PAPER (2026-08-18).
 

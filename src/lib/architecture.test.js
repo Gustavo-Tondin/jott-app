@@ -7,7 +7,7 @@
 // src/styles/, and a theme can reach any hook because nothing hides behind
 // Svelte's scoping hash.
 import { describe, expect, test } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join, dirname, basename, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -233,6 +233,78 @@ describe("frontend architecture", () => {
     expect(gaps).toEqual([]);
   });
 
+  test("a component reads --app-*, never --theme-*", () => {
+    // THE three layers (2026-08-26): a THEME writes `--theme-*`, a MODE reads
+    // them and writes `--app-*`, a COMPONENT reads `--app-*`. A sheet or a
+    // script reaching into `--theme-*` would paint from the palette directly
+    // — right in the factory theme, wrong the day a notebook's theme moves a
+    // token the modes had a say about. Sheets, App.svelte and every module
+    // under lib/ except the tests and the seed (whose job is the theme file).
+    const files = [
+      join(src, "styles", "controls.css"),
+      join(src, "styles", "base.css"),
+      join(src, "styles", "touch.css"),
+      ...walk(join(src, "styles", "components"), ".css"),
+      join(src, "App.svelte"),
+      ...walk(join(src, "lib"), ".svelte"),
+      ...walk(join(src, "lib"), ".js").filter(
+        (f) => !f.endsWith(".test.js") && !f.endsWith("themeSeed.js"),
+      ),
+    ];
+    const offenders = [];
+    for (const f of files) {
+      if (!existsSync(f)) continue;
+      const text = readFileSync(f, "utf8")
+        .replace(/\/\*[\s\S]*?\*\//g, "")
+        .replace(/^\s*\/\/.*$/gm, "")
+        .replace(/<!--[\s\S]*?-->/g, "");
+      for (const m of text.matchAll(/--theme-[a-z0-9-]+/g)) {
+        offenders.push(`${relative(src, f)}: ${m[0]}`);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  test("a mode writes --app-* only, and the factory theme writes --theme-* only, as literals", () => {
+    // The other two edges of the same triangle. A mode (and roles.css, the
+    // shared mode) that wrote `--theme-*` would be a theme in disguise; a
+    // theme that wrote `--app-*` or read anything with `var()` would be a
+    // mode in disguise — and the one file the app writes into notebooks has
+    // to be the pure form, because it is the example everyone copies.
+    const offenders = [];
+    for (const [name, css] of [
+      ...themes(),
+      ["roles.css", readFileSync(join(src, "styles", "roles.css"), "utf8")],
+    ]) {
+      for (const m of css.replace(/\/\*[\s\S]*?\*\//g, "").matchAll(/(--theme-[a-z0-9-]+)\s*:/g)) {
+        offenders.push(`${name} writes ${m[1]}`);
+      }
+    }
+    const factory = readFileSync(join(src, "styles", "themes", "jott.css"), "utf8").replace(
+      /\/\*[\s\S]*?\*\//g,
+      "",
+    );
+    for (const m of factory.matchAll(/(--[a-z0-9-]+)\s*:\s*([^;]+);/g)) {
+      if (!m[1].startsWith("--theme-")) offenders.push(`themes/jott.css writes ${m[1]}`);
+      if (/var\(/.test(m[2])) offenders.push(`themes/jott.css: ${m[1]} reads ${m[2].trim()}`);
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  test("the select's caret is a byte copy of the theme's gray", () => {
+    // A `url()` cannot read a custom property, so the arrow of `.theme-select`
+    // carries the hex by hand (controls.css). This is what says when the two
+    // drift; the themable version is a follow-up.
+    const gray = readFileSync(join(src, "styles", "themes", "jott.css"), "utf8").match(
+      /--theme-color-gray:\s*#([0-9a-fA-F]{6})/,
+    )?.[1];
+    const caret = readFileSync(join(src, "styles", "controls.css"), "utf8").match(
+      /stroke='%23([0-9a-fA-F]{6})'/,
+    )?.[1];
+    expect(gray).toBeTruthy();
+    expect(caret?.toLowerCase()).toBe(gray.toLowerCase());
+  });
+
   test("status is read through the status roles, never a colour of the eight by name", () => {
     // The colour grammar (2026-08-26): priority, overdue, a notice's tone
     // are STATUS — fixed, so they keep their meaning when the accent is red
@@ -276,6 +348,15 @@ describe("frontend architecture", () => {
         ...[...css.matchAll(/(--app-[a-z0-9-]+)\s*:/g)].map((m) => m[1]),
       ]),
     ]);
+    // The metrics (spacing, radius, type, layout, motion) are tokens.css's,
+    // the same in every mode — so they count as assigned everywhere, and a
+    // component reading a `--app-*` nobody declares is caught whichever
+    // layer should have answered.
+    for (const m of readFileSync(join(src, "styles", "tokens.css"), "utf8")
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .matchAll(/(--app-[a-z0-9-]+)\s*:/g)) {
+      for (const [, set] of perTheme) set.add(m[1]);
+    }
     const missing = new Set();
     const sheets = [
       join(src, "styles", "controls.css"),
@@ -284,13 +365,6 @@ describe("frontend architecture", () => {
     for (const f of sheets) {
       const css = readFileSync(f, "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
       for (const m of css.matchAll(/var\(\s*(--app-[a-z0-9-]+)/g)) {
-        // Metrics (spacing, radius, type, layout, motion) live in tokens.css.
-        if (
-          /^--app-(space|radius|text|weight|tracking|leading|font|transition|duration|ease|sidebar|titlebar|topbar|content|note-|window|drawer|sheet|touch|safe|keyboard|format)/.test(
-            m[1],
-          )
-        )
-          continue;
         for (const [theme, set] of perTheme) {
           if (!set.has(m[1])) missing.add(`${basename(f)}: ${m[1]} not assigned by ${theme}`);
         }
