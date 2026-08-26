@@ -123,6 +123,14 @@ NOTHING IS DESTROYED
 A task or a file you delete in the app waits in .jott/trash/ before it goes
 for good — 30 days, unless you change that in Settings.
 
+THE .jott/timeline/ FOLDER IS JOTT'S MEMORY
+
+One file a year, one line per thing that was created, moved or deleted. It
+is only ever added to — Jott never rewrites or removes a line. It is what
+lets the app show you a note on the day you wrote it even after you delete
+it. Delete the folder and nothing you wrote is lost; Jott simply forgets
+everything that is no longer here.
+
 THE .jott/index/ FOLDER IS NOT YOURS TO EDIT
 
 Everything under .jott/index/ is bookkeeping Jott writes for itself — which

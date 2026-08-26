@@ -149,6 +149,15 @@ pub fn civil_now() -> NaiveDateTime {
     Local::now().naive_local()
 }
 
+/// The local calendar day an instant fell on — a file's mtime, mostly.
+///
+/// Here rather than at the call site for the same reason as everything else
+/// in this module: turning an instant into a DAY is a calendar decision, and
+/// the app makes those in one place.
+pub fn civil_date_of(time: std::time::SystemTime) -> NaiveDate {
+    DateTime::<Local>::from(time).date_naive()
+}
+
 /// This logical week's first day, by the system clock.
 pub fn this_week(offset: TurnOffset, starts_on: WeekStart) -> NaiveDate {
     logical_week_start_at(Local::now(), offset, starts_on)

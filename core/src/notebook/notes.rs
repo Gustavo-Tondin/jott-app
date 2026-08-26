@@ -95,7 +95,9 @@ impl Notebook {
         self.ensure_writable()?;
         let moved = self.note_folder(space)?.rename_folder(folder, name)?;
         self.move_folder_settings(space, folder, Some(&moved))?;
-        self.seen_moved(&seen::address_of(space, folder), &seen::address_of(space, &moved));
+        let (was, now) = (seen::address_of(space, folder), seen::address_of(space, &moved));
+        self.seen_moved(&was, &now);
+        self.logged_moved_under(&was, &now);
         Ok(moved)
     }
 
@@ -110,10 +112,12 @@ impl Notebook {
         // And so is what the index knew about the notes inside them: they
         // went up a level, they did not go away.
         let (parent, _) = crate::relpath::split_parent(folder);
-        self.seen_moved(
-            &seen::address_of(space, folder),
-            &seen::address_of(space, parent),
+        let (was, now) = (
+            seen::address_of(space, folder),
+            seen::address_of(space, parent),
         );
+        self.seen_moved(&was, &now);
+        self.logged_moved_under(&was, &now);
         Ok(moved)
     }
 
@@ -174,13 +178,17 @@ impl Notebook {
     /// Creates a note and returns its address.
     pub fn create_note(&self, space: &str, in_folder: &str, title: &str) -> Result<String> {
         self.ensure_writable()?;
-        self.note_folder(space)?.create(in_folder, title, self.today())
+        let path = self.note_folder(space)?.create(in_folder, title, self.today())?;
+        self.logged_note_born(space, &path, self.today());
+        Ok(path)
     }
 
     /// Files a quickly-captured text as a note, returning its address.
     pub fn quick_capture_note(&self, space: &str, in_folder: &str, text: &str) -> Result<String> {
         self.ensure_writable()?;
-        self.note_folder(space)?.quick_capture(in_folder, text, self.today())
+        let path = self.note_folder(space)?.quick_capture(in_folder, text, self.today())?;
+        self.logged_note_born(space, &path, self.today());
+        Ok(path)
     }
 
     /// Moves a note to another folder inside the same space. Returns the new
@@ -188,7 +196,9 @@ impl Notebook {
     pub fn move_note(&self, space: &str, path: &str, to_folder: &str) -> Result<String> {
         self.ensure_writable()?;
         let moved = self.note_folder(space)?.move_to(path, to_folder)?;
-        self.seen_moved(&seen::address_of(space, path), &seen::address_of(space, &moved));
+        let (was, now) = (seen::address_of(space, path), seen::address_of(space, &moved));
+        self.seen_moved(&was, &now);
+        self.logged_note_moved(&was, &now);
         Ok(moved)
     }
 
@@ -227,7 +237,9 @@ impl Notebook {
         let note_folder = self.note_folder(folder)?;
         let abs = note_folder.note_path(relative)?;
         self.trash_path(&abs)?;
-        self.seen_gone(&seen::address_of(folder, relative));
+        let address = seen::address_of(folder, relative);
+        self.seen_gone(&address);
+        self.logged_note_gone(&address, crate::timeline::Event::Deleted);
         Ok(())
     }
 
@@ -238,7 +250,11 @@ impl Notebook {
     /// itself does not know whether it may write.
     pub fn duplicate_note(&self, folder: &str, relative: &str) -> Result<String> {
         self.ensure_writable()?;
-        self.note_folder(folder)?.duplicate(relative)
+        let copy = self.note_folder(folder)?.duplicate(relative)?;
+        // A copy is a new thing, born today — it is not the note it came from
+        // wearing a second address.
+        self.logged_note_born(folder, &copy, self.today());
+        Ok(copy)
     }
 
     /// Moves a note to another notes space, into `to_folder` inside it.
@@ -280,10 +296,12 @@ impl Notebook {
         let target = crate::fsio::free_name(&dir, &name);
         std::fs::rename(&source, &target).ctx(&target)?;
         let landed = crate::relpath::relative_slash(target_space.dir(), &target);
-        self.seen_moved(
-            &seen::address_of(from_space, relative),
-            &seen::address_of(to_space, &landed),
+        let (was, now) = (
+            seen::address_of(from_space, relative),
+            seen::address_of(to_space, &landed),
         );
+        self.seen_moved(&was, &now);
+        self.logged_note_moved(&was, &now);
         Ok(landed)
     }
 
@@ -336,7 +354,9 @@ impl Notebook {
         let moved = notes.rename(path, title)?;
         let now = crate::notefolder::title_of(&moved);
         self.retarget_note_links(&was, &now)?;
-        self.seen_moved(&seen::address_of(folder, path), &seen::address_of(folder, &moved));
+        let (before, after) = (seen::address_of(folder, path), seen::address_of(folder, &moved));
+        self.seen_moved(&before, &after);
+        self.logged_note_moved(&before, &after);
         Ok(moved)
     }
 

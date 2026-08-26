@@ -381,16 +381,11 @@ impl History {
                     if fsio::file_name_of(&path) == ".git" {
                         continue;
                     }
-                    // The app's own indexes, for the same reason the watcher
-                    // skips them: they are derived, they are written by
-                    // READING (opening a note stamps `index/seen.json`), and
-                    // nothing in them is a thing the user did. The concrete
-                    // damage, measured 2026-08-26: the `.bak` beside the
-                    // index is watched by stamp only, and one stamp-only file
-                    // appearing makes the whole action unrecordable — so a
-                    // deleted note stopped being undoable the moment the
-                    // index gained a backup.
-                    if relative == derived_dir() {
+                    // The app's own bookkeeping, for the same reason the
+                    // watcher skips it (`crate::BOOKKEEPING_DIRS`): nothing
+                    // in there is a thing the user did, and the durable log
+                    // must never be rewritten by an undo.
+                    if is_bookkeeping(&relative) {
                         continue;
                     }
                     tree.dirs.insert(relative);
@@ -436,9 +431,12 @@ impl History {
     }
 }
 
-/// The one folder of the notebook the history does not watch: `.jott/index/`.
-fn derived_dir() -> PathBuf {
-    Path::new(crate::NOTEBOOK_CONFIG_DIR).join(crate::seen::INDEX_DIR)
+/// Whether a root-relative directory is one of the app's own
+/// (`crate::BOOKKEEPING_DIRS`), which the history does not watch.
+fn is_bookkeeping(relative: &Path) -> bool {
+    crate::BOOKKEEPING_DIRS
+        .iter()
+        .any(|dir| relative == Path::new(crate::NOTEBOOK_CONFIG_DIR).join(dir))
 }
 
 fn is_text(path: &Path) -> bool {

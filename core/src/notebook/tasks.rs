@@ -132,6 +132,10 @@ impl Notebook {
         if let Some(settled) = settled {
             self.update_states(|state| state.repoint(from, id, to, &settled))?;
         }
+        // The log follows a task by its id, so the line carries the id it
+        // ARRIVED with; when `add` had to re-issue one, the next sweep is
+        // what reconciles the two.
+        self.logged_task_moved(Some(id), from, to);
         Ok(moved)
     }
 
@@ -144,11 +148,36 @@ impl Notebook {
         task
     }
 
-    /// Creates a task in `path` and returns its **position**, not an id — a
-    /// new task has no id until something needs to address it.
+    /// Creates a task in `path` and returns its **position**.
+    ///
+    /// It is born WITH an id since 2026-08-26: the Timeline follows a task by
+    /// its id, and it tracks everything — so "a task earns an id when
+    /// something needs to address it" now means "at birth", and
+    /// `adopt_task_identity` hands one to every task already on disk.
     pub fn create_task(&self, path: &str, text: impl Into<String>) -> Result<usize> {
         let on_top = self.config.new_tasks_on_top;
-        self.with_list(path, |list| Ok(list.add_placed(Self::stamped_task(text), on_top)))
+        let (position, id, created) = self.with_list(path, |list| {
+            let position = list.add_placed(Self::stamped_task(text), on_top);
+            let id = list.ensure_id_at(position);
+            let created = list.tasks().nth(position).and_then(|task| task.created);
+            Ok((position, id, created))
+        })?;
+        if let (Some(id), Some(created)) = (&id, created) {
+            let text = self
+                .open_list(path)
+                .ok()
+                .and_then(|list| list.find(id).map(|task| task.text.clone()))
+                .unwrap_or_default();
+            self.log_timeline(vec![crate::timeline::Record::created(
+                crate::clock::civil_now(),
+                crate::timeline::Kind::Task,
+                path,
+                created,
+                text,
+            )
+            .with_id(id)]);
+        }
+        Ok(position)
     }
 
     // ------------------------------------------------------- complete / undo
@@ -306,19 +335,27 @@ impl Notebook {
         Ok(out)
     }
 
-    /// Stamps `created:` on every task that has none — the first piece of
-    /// the time axis (2026-08-26): the Timeline and the sweep read that date,
-    /// so a task written by hand, or by a build older than 2026-08-04, must
-    /// get one somewhere. "Somewhere" is here, on open — the only automatism
-    /// of the axis, and it only ever ADDS a field.
+    /// Gives every task the two things the time axis needs: a `created:` date
+    /// and an `id:`. Run on open; only ever ADDS fields.
     ///
-    /// Today is the honest guess for an open task: it entered the app today.
-    /// A task in `completed.md` gets its `completed:` date instead, when it
-    /// has one — a creation date later than the completion would be a lie
-    /// the by-creation ordering then repeats. Lists with nothing missing are
-    /// not rewritten; a hand-written file stays byte-identical unless a task
-    /// in it actually lacked the date. Returns how many tasks were stamped.
-    pub fn adopt_created(&self) -> Result<usize> {
+    /// **The date** (2026-08-26, F1): the Timeline and the sweep order by it,
+    /// so a task written by hand, or by a build older than 2026-08-04, has to
+    /// get one somewhere, and here is that somewhere. Today is the honest
+    /// guess for an open task — it entered the app today. A task in
+    /// `completed.md` gets its `completed:` date instead, when it has one: a
+    /// creation date later than the completion would be a lie the
+    /// by-creation ordering then repeats.
+    ///
+    /// **The id** (2026-08-26, F4): a task used to earn one only when
+    /// something needed to address it, which kept hand-written files
+    /// pristine. The Timeline follows a task by its id and tracks
+    /// everything, so "something needs to address it" became true of every
+    /// task — a task with no id is one the log cannot follow from one list
+    /// to the next.
+    ///
+    /// Lists with nothing missing are not rewritten. Returns how many tasks
+    /// were touched.
+    pub fn adopt_task_identity(&self) -> Result<usize> {
         self.ensure_writable()?;
         let today = crate::clock::civil_today();
         let mut stamped = 0;
@@ -328,6 +365,17 @@ impl Notebook {
             for task in list.tasks_mut().filter(|task| task.created.is_none()) {
                 task.created = Some(task.completed.unwrap_or(today));
                 changed += 1;
+            }
+            let missing: Vec<usize> = list
+                .tasks()
+                .enumerate()
+                .filter(|(_, task)| task.id.is_none())
+                .map(|(position, _)| position)
+                .collect();
+            for position in missing {
+                if list.ensure_id_at(position).is_some() {
+                    changed += 1;
+                }
             }
             if changed > 0 {
                 list.save()?;
@@ -374,6 +422,7 @@ impl Notebook {
         list.save()?;
         self.trash()
             .trash_task(path, index, content, &label, crate::clock::civil_today())?;
+        self.logged_task_gone(id, path, crate::timeline::Event::Deleted);
         // A reference to a gone task would render as a ghost row.
         self.update_states(|state| state.remove(path, id))
     }

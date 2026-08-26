@@ -36,6 +36,7 @@ pub mod state;
 pub mod tags;
 pub mod task;
 pub mod themes;
+pub mod timeline;
 pub mod trash;
 pub mod version;
 pub mod watcher;
@@ -52,6 +53,7 @@ pub use notebook::{
 };
 pub use search::{HitKind, SearchHit, SearchResults};
 pub use seen::Seen;
+pub use timeline::{Item as TimelineItem, Record as TimelineRecord};
 pub use settings::{Display, DisplayPrefs, NotebookSettings};
 pub use space::{FolderSettings, Group, GroupEntry, Space, SpaceConfig};
 pub use state::{Period, PeriodState, StateFile, TaskRef};
@@ -108,6 +110,24 @@ pub mod legacy {
     pub const NOTES_DIR: &str = "Notas";
     pub const COMPLETED_LIST: &str = "Completas";
 }
+
+/// The folders inside `.jott/` the app writes for ITSELF, and that neither
+/// the watcher nor the history looks at.
+///
+/// Two folders, two different reasons, one consequence:
+///
+/// - `index/` is **derived**. Opening a note stamps it, so announcing it
+///   would reload every screen each time a note is opened, and undoing a
+///   rename would have to undo a bookkeeping entry nobody asked for.
+/// - `timeline/` is **durable and append-only**. Nothing may ever rewrite a
+///   line of it — least of all `Ctrl+Z`, which would quietly delete history
+///   that is meant to outlive the session.
+///
+/// There is also a mechanical reason that bites either way: both hold files
+/// the history watches by STAMP rather than by content (`*.bak`, `*.jsonl`),
+/// and one stamp-only file appearing makes the whole action unrecordable —
+/// measured 2026-08-26, when deleting a note quietly stopped being undoable.
+pub const BOOKKEEPING_DIRS: [&str; 2] = [seen::INDEX_DIR, timeline::TIMELINE_DIR];
 
 /// Version of this crate, exposed so the shell can report it.
 pub fn version() -> &'static str {

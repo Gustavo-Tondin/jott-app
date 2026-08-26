@@ -34,6 +34,7 @@ MyNotebook/
     ├── config.json      ← preferences that travel with the notebook
     ├── themes/          ← the looks you brought in, if any
     ├── index/           ← Jott's own bookkeeping, rebuildable
+    ├── timeline/        ← the log of everything, one file a year
     ├── trash/           ← deleted things, waiting
     └── _FORMAT.txt      ← this document's short version, in every notebook
 ```
@@ -287,6 +288,21 @@ order you dragged things into.
   follows, delete it and the factory one comes back. The others are yours;
   the app only reads them, except for the one button that writes a starting
   point. Written in full in [`theming.md`](theming.md).
+
+- **`timeline/`** — the log of everything the notebook has ever held, one
+  file per calendar year (`2026.jsonl`), **JSON Lines, append only**. Each
+  line carries `v: 1`, a timestamp, an event (`created`, `moved`, `deleted`,
+  `restored`), what it is about (`note` or `task`), and where. Existence is
+  **derived**: the last event about a thing says where it is and whether it
+  is still there — which is how the app can show you a note on the day you
+  wrote it, months after you deleted it.
+
+  Jott never rewrites, compacts or removes a line, so this folder is
+  **durable**, unlike `index/`: a deleted thing cannot be rebuilt from
+  anything. Delete the folder yourself and the app keeps working — it simply
+  forgets everything that is no longer on disk. A reader should union every
+  `*.jsonl` in there (sync conflict copies included), skip lines it does not
+  understand, and expect duplicates.
 
 - **`trash/`** — everything deleted, with enough context to go back exactly
   where it was (a task returns to its line). Retention is configurable;

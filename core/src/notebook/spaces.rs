@@ -400,6 +400,9 @@ impl Notebook {
         // note under a moved space just changed address, and one whose stamp
         // stayed behind reads as never opened.
         self.seen_moved(&from_rel, &to_rel);
+        // Every note and task under it just changed address; the log has no
+        // folders, only things, so it takes a line each.
+        self.logged_moved_under(&from_rel, &to_rel);
         Ok(())
     }
 
@@ -463,6 +466,7 @@ impl Notebook {
         let sp = self.open_space(folder)?;
         self.trash_path(sp.root())?;
         self.seen_gone(folder);
+        self.logged_gone_under(folder);
         Ok(())
     }
 }

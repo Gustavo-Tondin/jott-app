@@ -156,6 +156,18 @@ impl Notebook {
         let mut file = self.open_state(period)?;
         file.state.add(Self::inbox_path(), &id);
         file.save()?;
+
+        let born = inbox.find(&id).and_then(|task| task.created);
+        if let Some(born) = born {
+            self.log_timeline(vec![crate::timeline::Record::created(
+                crate::clock::civil_now(),
+                crate::timeline::Kind::Task,
+                Self::inbox_path(),
+                born,
+                inbox.find(&id).map(|task| task.text.clone()).unwrap_or_default(),
+            )
+            .with_id(&id)]);
+        }
         Ok(id)
     }
 

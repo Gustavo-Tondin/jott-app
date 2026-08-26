@@ -90,6 +90,11 @@ impl Notebook {
                     dest
                 };
                 std::fs::rename(&source, &final_dest).ctx(&final_dest)?;
+                // The log knows it by the address it was deleted from; if the
+                // name was taken and it landed beside it, that is a move.
+                self.logged_note_gone(&entry.origin, crate::timeline::Event::Restored);
+                let landed = crate::relpath::relative_slash(&self.root, &final_dest);
+                self.logged_note_moved(&entry.origin, &landed);
             }
             crate::trash::TrashKind::Task => {
                 // A deleted task goes back to its origin list, **at the line it
@@ -108,6 +113,13 @@ impl Notebook {
                     for line in restored.lines() {
                         match line {
                             crate::list::Line::Task(task) => {
+                                if let Some(id) = task.id.as_deref() {
+                                    self.logged_task_gone(
+                                        id,
+                                        &entry.origin,
+                                        crate::timeline::Event::Restored,
+                                    );
+                                }
                                 list.insert_line_at(at, task.clone());
                                 at = at.saturating_add(1);
                             }

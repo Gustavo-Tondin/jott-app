@@ -268,6 +268,7 @@ mod spaces;
 mod suggestions;
 mod tags;
 mod tasks;
+mod timeline;
 mod trash;
 
 impl Notebook {
@@ -306,10 +307,14 @@ impl Notebook {
             // with; nothing is kept at the notebook root.
             notebook.ensure_fixed_spaces()?;
             notebook.write_format_guide()?;
-            // Every task gets a creation date (the time axis, 3.6). Derived
-            // like the two below: a list that will not take the stamp must
-            // not keep the notebook from opening.
-            let _ = notebook.adopt_created();
+            // Every task gets a creation date and an id (the time axis, 3.6).
+            // Derived like the ones below: a list that will not take the
+            // stamp must not keep the notebook from opening.
+            let _ = notebook.adopt_task_identity();
+            // And then the durable log is reconciled with what is actually on
+            // disk — this has to come AFTER the ids, since a task with no id
+            // is one the log cannot follow.
+            let _ = notebook.sweep_timeline();
             // What the "last seen" index knew about notes that are no longer
             // there. Derived, like the three below, and skipped outright when
             // the index is empty.

@@ -105,8 +105,13 @@ fn open_stamps_today_on_tasks_written_without_a_creation_date() {
     let on_disk = read(&inbox_path);
     assert!(on_disk.contains(&format!("created:{today}")), "{on_disk}");
     assert!(on_disk.contains("created:2026-01-05"), "{on_disk}");
-    // Still no id: a date is not a reason to track the task.
-    assert!(tasks[0].id.is_none());
+    // And an id, since 2026-08-26 (F4): the Timeline follows a task by its
+    // id and tracks everything, so every task earns one on open. This
+    // reverses the older rule — "an id only when something addresses it" —
+    // and the trade was made deliberately: a hand-written list of tasks no
+    // longer comes back byte-identical.
+    assert!(tasks[0].id.is_some());
+    assert_eq!(tasks[1].id.as_deref(), Some("a1b2c3"), "an id already there stays");
 }
 
 #[test]
@@ -133,14 +138,17 @@ fn open_stamps_a_completed_task_with_its_completion_date() {
 }
 
 #[test]
-fn open_leaves_a_list_alone_when_every_task_is_already_dated() {
+fn open_leaves_a_list_alone_when_every_task_already_has_both_stamps() {
     let dir = tempfile::tempdir().unwrap();
     Notebook::init(dir.path()).unwrap();
 
     let path = dir.path().join("jott.tasks/task-list.md");
     // Odd spacing and a trailing note the writer would normalise: the only
-    // way to prove the file was not rewritten is that it stayed odd.
-    let content = "- [ ]  dois espaços <!--created:2026-01-05-->\n\n\n";
+    // way to prove the file was not rewritten is that it stayed odd. Both
+    // stamps are already there — since F4 (2026-08-26) a missing id is
+    // reason enough to rewrite, and this test is about the file the app has
+    // nothing left to add to.
+    let content = "- [ ]  dois espaços <!--id:a1b2c3 created:2026-01-05-->\n\n\n";
     std::fs::write(&path, content).unwrap();
 
     Notebook::open(dir.path()).unwrap();

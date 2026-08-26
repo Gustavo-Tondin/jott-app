@@ -59,11 +59,15 @@ impl Change {
         }
 
         if path.starts_with(config_dir) {
-            // The rebuildable indexes are the app talking to itself. Opening
-            // a note writes `index/seen.json`, and announcing that would have
-            // every screen reload every time a note is opened — for a file no
-            // screen reads through the event.
-            if path.starts_with(config_dir.join(crate::seen::INDEX_DIR)) {
+            // The app's own bookkeeping is the app talking to itself
+            // (`crate::BOOKKEEPING_DIRS`). Opening a note writes
+            // `index/seen.json` and creating one appends to `timeline/`, and
+            // announcing either would have every screen reload every time a
+            // note is opened — for files no screen reads through the event.
+            if crate::BOOKKEEPING_DIRS
+                .iter()
+                .any(|dir| path.starts_with(config_dir.join(dir)))
+            {
                 return None;
             }
             // Anything under `themes/`, at any depth: the stylesheet, the
