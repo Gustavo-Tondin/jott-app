@@ -125,7 +125,25 @@ its folder — which is why a theme copied out of the app works unchanged.
    | `--theme-shadow-popover` | what lifts a menu off the page |
    | `--accent-<name>-1` … `-6` | each of the eight colours as a six-rung ladder, 1 strongest. H1–H6 stand on these rungs |
    | `--accent-<name>`, `-line`, `-tint` | the base (rung 3), a border/focus alpha, and a quiet fill |
-   | `--theme-danger`, `-warning`, `-success`, `--theme-emphasis` | four of the eight, straight from the palette, so status never changes meaning with the accent |
+   | `--theme-danger`, `-warning`, `-success` (+ `-tint`), `--theme-emphasis` | four of the eight, straight from the palette, so status never changes meaning with the accent; the `-tint` is the quiet fill behind a notice |
+
+### The four colour roles
+
+Where a colour the person chose ends up is not free-form — the interface
+keeps one form per role, so a blue dot, a blue badge and a blue block never
+mean the same thing:
+
+| Role | Question it answers | Who carries it | The one form |
+|---|---|---|---|
+| **origin** | where did this come from? | a space (its group's colour wins) | the sidebar's bar, the tab's dot — and, outside the space, a **badge** with the space's name: outline on `--accent-<name>-line`, text on rung 2 |
+| **subject** | what is it about? | a tag | the same badge, **neutral** — `#tag` in `--theme-ink-muted` on `--theme-line`; a tag has no colour of its own |
+| **surface** | the face of a thing | a note's banner (`-fill`, step 300), a folder of notes (`-tint`), a notebook's card (`-solid`, step 500) | a fill; the picker previews the step it will paint with |
+| **status** | urgent? wrong? | priority, an overdue date, a notice | `--theme-danger` / `-warning` / `-success`, fixed — never one of the eight by name |
+
+The rule that holds it together: **a card carries at most one colour of the
+palette, and it is its space's.** Everything else on it is neutral or status.
+A theme that wants the badge to look different restyles `.theme-badge`
+(`--badge-color`, `--badge-line`).
 
 ### Changing what the eight colours are
 

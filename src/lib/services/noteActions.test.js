@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
-import { noteCardMenu } from "./noteActions.js";
+import { bannerOf, noteCardMenu } from "./noteActions.js";
 
 const entry = { path: "Inbox/ideia.md", title: "ideia", pinned: false };
 
@@ -13,6 +13,15 @@ const targets = [
 ];
 
 beforeEach(() => Object.values(actions).forEach((fn) => fn.mockClear()));
+
+describe("bannerOf", () => {
+  test("the value decides the kind, exactly as the core does", () => {
+    expect(bannerOf("yellow")).toEqual({ kind: "color", value: "yellow" });
+    expect(bannerOf("assets/foto.jpg")).toEqual({ kind: "image", value: "assets/foto.jpg" });
+    expect(bannerOf(null)).toBeNull();
+    expect(bannerOf("")).toBeNull();
+  });
+});
 
 describe("noteCardMenu", () => {
   test("the four a card offers, in the board's order", () => {

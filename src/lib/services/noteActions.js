@@ -11,6 +11,7 @@
 // what a card offers can be tested without rendering anything.
 
 import { api } from "./api.js";
+import { isImage } from "./assets.js";
 import { askConfirm, DELETING } from "./dialog.js";
 import { S } from "./strings.js";
 
@@ -19,6 +20,15 @@ import { S } from "./strings.js";
 /// Every one takes the SPACE the note lives in, because a note's address is
 /// relative to it — the Home looks into a space it does not belong to, and
 /// naming it at the call site is what keeps that honest.
+/// The banner as the shell holds it — `{kind: "color" | "image", value}`
+/// — from the VALUE the file carries, or null for none. The same rule the
+/// core applies (`Banner::from_value`): an image extension is an image,
+/// anything else is a colour name. Only this module and the core know it.
+export function bannerOf(value) {
+  if (!value) return null;
+  return { kind: isImage(value) ? "image" : "color", value };
+}
+
 export function noteActions(act) {
   return {
     pin: (space, entry) => act(() => api.setNotePinned(space, entry.path, !entry.pinned)),

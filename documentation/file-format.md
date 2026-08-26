@@ -84,7 +84,7 @@ Details go on indented lines below it:
 |---|---|
 | `@2026-07-25` | a date, always year-month-day |
 | `#home` | a tag. Two mean something to the app: `#urgent` and `#pinned` |
-| `!1` … `!3` | priority, 1 highest |
+| `!1` … `!3` | priority, 1 highest — drawn as `!!!` … `!` on screen |
 | `repeat: every-week` | also `every-day`, `every-month`, `every-3-days`… |
 | `remind: 2026-07-24T18:00` | when to ring: date, `T`, hour and minute, in your local time — no zone. A space instead of the `T`, or seconds, read fine and are written back in this form. Independent of `@date`: a task without a date can ring, and a dated one rings only if asked (or if the notebook's automatic reminder is on — that one is a setting, never written here). On a repeating task it moves with the date |
 | `- [ ] …` | a subtask |
@@ -131,6 +131,9 @@ One note is one `.md` file. Optional YAML front matter at the very top:
 ---
 created: 2026-07-21
 pinned: true
+tags:
+  - briefing
+  - client
 ---
 
 Text of the note.
@@ -139,6 +142,14 @@ Text of the note.
 The block is optional — a plain `.md` you wrote by hand is a perfectly good
 note. Keys Jott doesn't know are left untouched. A checklist typed inside a
 note stays text: notes and tasks never mix.
+
+`tags:` are the note's **subjects** — the same words a task's `#tag` uses,
+picked from the same list, and what a `#name` search answers with. They live
+in the properties, never in the prose: a `#` inside a paragraph is a heading
+or a hashtag you wrote, not a tag. Jott reads the block form above (what
+Obsidian writes), `tags: [a, b]` and `tags: a, b`, and always writes the
+block form back. Names are normalised like a task's (spaces become hyphens,
+a leading `#` is dropped); an empty list takes the key out of the file.
 
 ### Banners
 
@@ -260,6 +271,13 @@ order you dragged things into.
 
   If you're writing a tool against a notebook, you can ignore this file: it
   holds preferences, not your content.
+
+- **`tags.json`** — the tag **vocabulary**: the names the pickers offer
+  (`{ "schemaVersion": 1, "tags": [{ "name": "briefing" }] }`), so a tag is
+  spelled the same way every time. Deleting it loses no tag — a tag is the
+  `#word` in a task and the `tags:` in a note, and both are read from the
+  files. A `color` on an entry is read and kept from notebooks written
+  before it was dropped; the app no longer shows or offers one.
 
 - **`themes/`** — the looks this notebook carries, each either a
   `<name>.css` or a `<name>/` holding `theme.css` and an optional

@@ -64,6 +64,10 @@ what the current version is.
   auto-selected — unless you turn on "dated tasks join the day".
 - Due dates, priorities, tags, repetition, descriptions, subtasks and file
   attachments; completed tasks kept in their own file, restorable.
+- A task shown outside its space — on Today, in a search, among the
+  suggestions, in Completed — wears a badge with the space it came from,
+  in that space's colour. Tags are neutral `#chips`: the one colour a card
+  carries is its space's.
 - Every task carries the day it entered the app — a line you typed by hand
   gets today's date the next time the notebook opens, and nothing else
   about it changes.
@@ -83,6 +87,9 @@ what the current version is.
   can dock to any edge or float.
 - `[[Note]]` links between notes and `[[/file.pdf]]` references to files,
   both with autocompletion; colour or image banners; pinning; bulk select.
+- **Note tags**, as properties under the title (`tags:` in the front matter,
+  the way Obsidian writes it), picked from the same list as task tags and
+  found by the same `#name` search.
 
 **The notebook**
 - **One image and file library** (`assets/`) for the whole notebook, with

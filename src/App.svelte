@@ -45,7 +45,7 @@
   import NoteBanner from "./lib/components/NoteBanner.svelte";
   import AssetPicker from "./lib/components/AssetPicker.svelte";
   import ImageViewer from "./lib/components/ImageViewer.svelte";
-  import { importBrought, isImage } from "./lib/services/assets.js";
+  import { importBrought } from "./lib/services/assets.js";
   import { embedMarkdown } from "./lib/services/embeds.js";
   import { TABLE_FORMATS } from "./lib/services/tableEditing.js";
   import { assetUrl } from "./lib/services/assets.js";
@@ -87,6 +87,7 @@
   import { groupColors, spaceColors } from "./lib/services/spaceColors.js";
   import { ACCENTS, accentFill } from "./lib/services/accent.js";
   import { originOf } from "./lib/services/origin.js";
+  import { bannerOf } from "./lib/services/noteActions.js";
   import { cleanTagName } from "./lib/services/taskFields.js";
   import {
     NOTE_FONT_SIZES,
@@ -1320,12 +1321,7 @@
   const setNoteBanner = (value) =>
     noteAction(async () => {
       await api.setNoteBanner(view.folder, view.path, value);
-      openNote = {
-        ...openNote,
-        banner: value
-          ? { kind: isImage(value) ? "image" : "color", value }
-          : null,
-      };
+      openNote = { ...openNote, banner: bannerOf(value) };
     });
 
   /// What a formatting button asks for. All but one go straight to the editor,
