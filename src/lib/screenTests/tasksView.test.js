@@ -273,11 +273,11 @@ describe("the suggestions panel", () => {
     expect(await screen.findByText("Suggestions for today")).toBeTruthy();
     expect(screen.getByText("Urgent")).toBeTruthy();
     // "From the lists" is gone: each list has its own heading now, space
-    // in front (user call, 2026-08-06).
+    // in front (user call, 2026-08-06) — and since 2026-08-26 the heading is
+    // the origin badge: the readable address in the space's colour.
     expect(screen.queryByText("From the lists")).toBeNull();
     const pane = document.querySelector(".suggestions-pane");
-    expect(within(pane).getByText("Compras")).toBeTruthy();
-    expect(within(pane).getByText("Tasks/")).toBeTruthy();
+    expect(within(pane).getByText("Tasks/Compras").className).toContain("theme-badge");
     // Dates in the panel read like every other date in the app.
     expect(screen.getByText("07/05/2026")).toBeTruthy();
 
@@ -331,7 +331,7 @@ describe("the suggestions panel", () => {
     const at = (label) => headings.findIndex((h) => h.includes(label));
     expect(at("Pulled recently")).toBeGreaterThan(at("Urgent"));
     // And before the plain lists, which are the last thing offered.
-    expect(at("Pulled recently")).toBeLessThan(at("Compras"));
+    expect(at("Pulled recently")).toBeLessThan(at("Tasks/Compras"));
   });
 
   test("opening a task takes the panel back, and Escape closes it", async () => {

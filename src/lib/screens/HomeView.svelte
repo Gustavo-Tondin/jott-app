@@ -69,6 +69,10 @@
     inbox = null,
     /// `(key) => boolean` — is this part of the app switched on?
     f = () => true,
+    /// `(item) => {label, color} | null` — where an item came from, for the
+    /// badge a card wears outside its space (services/origin.js). Null when
+    /// the screen IS the space, and nothing is said.
+    origin = null,
     readOnly = false,
     onChanged,
     onError,
@@ -293,6 +297,7 @@
       <TasksSpace
         source={tasksSource?.source ?? DAY_SOURCE}
         period={tasksSource ? null : "day"}
+        {origin}
         align="center"
         compose={composing ? "bar" : "none"}
         composeAutofocus={composing}

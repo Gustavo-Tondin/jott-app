@@ -90,10 +90,6 @@
   }
   /* The space before a list's name, quieter — the same two tones the list
      pickers use. */
-  .suggestions-pane__group-context {
-    color: var(--theme-ink-faint);
-    font-weight: var(--theme-weight-regular);
-  }
   .suggestions-pane__count {
     margin-inline-start: auto;
     font-weight: var(--theme-weight-regular);

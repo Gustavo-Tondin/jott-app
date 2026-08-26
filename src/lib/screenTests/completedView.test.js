@@ -10,6 +10,7 @@ import { back } from "../services/back.js";
 import { bridge, invoke } from "../test/bridge.js";
 import { noop, resetScreens, task } from "../test/screens.js";
 import CompletedView from "../screens/CompletedView.svelte";
+import { originOf } from "../services/origin.js";
 
 beforeEach(resetScreens);
 
@@ -69,12 +70,30 @@ describe("CompletedView", () => {
       ],
     });
 
+    // Where each came from is the origin badge — the space's readable name
+    // from the snapshot's lists, in the space's colour (services/origin.js),
+    // never the folder: `jott.tasks` reads "Tasks".
+    const lists = [
+      { path: "jott.tasks/completed.md", name: "completed", space: "Tasks" },
+      { path: "Space 1/Tasks 1/Completed.md", name: "Completed", space: "Space 1/Tasks 1" },
+    ];
+    const colors = { "Space 1/Tasks 1": "orange" };
     render(CompletedView, {
-      props: { readOnly: false, onChanged: noop, onError: noop, reloadKey: 0 },
+      props: {
+        readOnly: false,
+        onChanged: noop,
+        onError: noop,
+        reloadKey: 0,
+        origin: (item) => originOf(item, { lists, colors }),
+      },
     });
 
     expect(await screen.findByText("Da Inbox")).toBeTruthy();
     expect(screen.getByText("Do space")).toBeTruthy();
-    expect(screen.getByText(/Space 1\/Tasks 1/)).toBeTruthy();
+    expect(screen.getByText("Tasks")).toBeTruthy();
+    expect(screen.queryByText(/jott\.tasks/)).toBeNull();
+    const badge = screen.getByText("Space 1/Tasks 1");
+    expect(badge.className).toContain("theme-badge");
+    expect(badge.getAttribute("style")).toContain("--accent-orange-2");
   });
 });

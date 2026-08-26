@@ -9,6 +9,7 @@ import { beforeEach, describe, expect, test } from "vitest";
 import { bridge, invoke } from "../test/bridge.js";
 import { noop, resetScreens, task } from "../test/screens.js";
 import HomeView from "../screens/HomeView.svelte";
+import { originOf } from "../services/origin.js";
 
 beforeEach(resetScreens);
 
@@ -56,6 +57,35 @@ describe("HomeView", () => {
     expect(screen.getByText("ideia")).toBeTruthy();
     // The Home owns no notes: it asks for today's, it does not store them.
     expect(invoke).toHaveBeenCalledWith("notes_created_today", { folder: "jott.notes" });
+  });
+
+  test("a card pulled into the day says where it came from, in the space's colour", async () => {
+    // The colour grammar (2026-08-26): outside its space a card wears ONE
+    // colour, the origin badge — the space's readable name, never the folder.
+    const lists = [
+      { path: "jott.tasks/task-list.md", name: "task-list", space: "Tasks" },
+      { path: "Design/Tasks/task-list.md", name: "task-list", space: "Design/Tasks" },
+    ];
+    const colors = { "Design/Tasks": "blue" };
+    bridge({
+      period_tasks: [
+        { path: "jott.tasks/task-list.md", task: task("a1", "Arrumar site") },
+        { path: "Design/Tasks/task-list.md", task: task("b2", "Logo do cliente") },
+      ],
+      notes_created_today: [],
+    });
+
+    render(HomeView, {
+      props: props({ lists, origin: (item) => originOf(item, { lists, colors }) }),
+    });
+
+    expect(await screen.findByText("Logo do cliente")).toBeTruthy();
+    const badge = screen.getByText("Design/Tasks");
+    expect(badge.className).toContain("theme-badge");
+    expect(badge.getAttribute("style")).toContain("--accent-blue-2");
+    // The fixed space is named too, in no colour of its own.
+    expect(screen.getByText("Tasks").getAttribute("style")).toBeNull();
+    expect(screen.queryByText(/jott\.tasks/)).toBeNull();
   });
 
   test("today's notes are drawn as the board's cards, banner and all", async () => {

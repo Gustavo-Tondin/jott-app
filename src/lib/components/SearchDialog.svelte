@@ -12,6 +12,7 @@
   import { S } from "../services/strings.js";
   import Icon from "./Icon.svelte";
   import Modal from "./Modal.svelte";
+  import Badge from "./Badge.svelte";
 
   let {
     /// What to start looking for. Empty is the ordinary case (Ctrl+F asks a
@@ -25,6 +26,10 @@
     /// looking. The shell knows the readable name; this dialog never derives
     /// one from a path.
     scopeLabel = "",
+    /// `(hit) => {label, color} | null` — the origin badge of a hit
+    /// (services/origin.js). Inside a scope every hit is from the same place,
+    /// so the badge is not drawn.
+    origin = null,
     /// Called when the dialog wants to go away.
     onClose,
     /// Takes a task hit's list address and its id, when it has one.
@@ -142,8 +147,9 @@
     open(hit, { newTab: true });
   }
 
-  /// Where a hit lives, as one readable line: `Tasks · Inbox`.
-  const place = (hit) => [hit.space, hit.container].filter(Boolean).join(" · ");
+  /// Where a hit lives: the origin badge (outside a scope) and the container
+  /// beside it — `[Tasks] Inbox`.
+  const from = (hit) => (scope ? null : (origin?.(hit) ?? null));
 </script>
 
 <Modal
@@ -185,6 +191,7 @@
         {#if section.hits.length > 0}
           <p class="search__section">{section.label}</p>
           {#each section.hits as hit (`${hit.folder}/${hit.path}/${hit.id ?? hit.title}`)}
+            {@const badge = from(hit)}
             <button
               class="theme-row search__hit"
               class:search__hit--active={hit === hits[active]}
@@ -200,7 +207,9 @@
                 {/if}
               </span>
               <span class="search__hit-place">
-                {place(hit)}{#if hit.done}&nbsp;· {S.findDone}{/if}
+                {#if badge}<Badge label={badge.label} color={badge.color} />{/if}
+                {#if hit.container}<span>{hit.container}</span>{/if}
+                {#if hit.done}<span>{S.findDone}</span>{/if}
               </span>
             </button>
           {/each}

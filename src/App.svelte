@@ -86,6 +86,7 @@
   import { formatDate } from "./lib/services/dates.js";
   import { groupColors, spaceColors } from "./lib/services/spaceColors.js";
   import { ACCENTS, tagColors as tagColorMap } from "./lib/services/accent.js";
+  import { originOf } from "./lib/services/origin.js";
   import {
     NOTE_FONT_SIZES,
     isAppTheme,
@@ -1024,6 +1025,11 @@
   /// The colour of the space a view comes from — feeds the tab dot. A fixed
   /// space carries none, so its tab falls back to the theme brand in CSS.
   const colorOf = (v) => spColors[spaceOfView(v, layout)] ?? null;
+  /// The origin badge of an item shown outside its space (services/origin.js):
+  /// one closure over the snapshot, handed to every screen that draws cards
+  /// from more than one place.
+  const originOfItem = (item) =>
+    originOf(item, { lists: notebook.lists, spaces, colors: spColors });
 
   // ---- what can be done to the SCREEN itself (2026-08-17) ----
   // Four actions that make sense wherever the user is, so they are written
@@ -2748,6 +2754,7 @@
           {#if view.kind === "home"}
             <HomeView
               {compact}
+              origin={originOfItem}
               root={notebook.path}
               dot={colorOf(view)}
               composing={composingTask}
@@ -2778,6 +2785,7 @@
           {:else if view.kind === "tasks"}
             <TasksView
               dateFormat={layout.dateDisplayFormat}
+              origin={originOfItem}
               inbox={layout.inbox}
               {inboxSource}
               lists={notebook.lists}
@@ -2985,6 +2993,7 @@
           {:else}
             <CompletedView
               readOnly={notebook.readOnly}
+              origin={originOfItem}
               onChanged={refreshNotebook}
               onError={fail}
               {reloadKey}
@@ -3028,6 +3037,7 @@
         {#if suggesting}
           <SuggestionsPane
             period={suggesting}
+            origin={originOfItem}
             dateFormat={layout.dateDisplayFormat}
             {compact}
             {reloadKey}
@@ -3243,6 +3253,7 @@
 {#if searching}
   <SearchDialog
     query={searchQuery}
+    origin={originOfItem}
     scope={searchScope}
     scopeLabel={searchScope ? spaceName(searchScope) : ""}
     onClose={() => {

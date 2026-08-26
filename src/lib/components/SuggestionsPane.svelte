@@ -14,7 +14,8 @@
   // from Today to Week underneath must not leave a stale list here.
   import { api } from "../services/api.js";
   import { S } from "../services/strings.js";
-  import { listName, splitLabel } from "../services/paths.js";
+  import { listName, listLabel } from "../services/paths.js";
+  import Badge from "./Badge.svelte";
   import { formatDate } from "../services/dates.js";
   import { ensureTaskId } from "../services/taskId.js";
   import { makeScreen } from "../services/act.js";
@@ -27,6 +28,10 @@
     reloadKey = 0,
     /// `(key) => boolean` — is this part of the app switched on?
     f = () => true,
+    /// `(item) => {label, color} | null` — where an item came from, for the
+    /// badge a card wears outside its space (services/origin.js). Null when
+    /// the screen IS the space, and nothing is said.
+    origin = null,
     /// The narrow shell (shell/compact.js): the panel is a bottom sheet, which
     /// is dismissed by tapping the page behind it or pulling it down by its
     /// handle. Both are free, so the head drops its × and keeps the room for
@@ -92,10 +97,17 @@
       // The address the core hands over, never the folder or the file stem:
       // the fixed spaces are filed as `jott.*` and read as Home, Tasks and
       // Notes, and since 2026-08-13 every tasks list is called `task-list.md`,
-      // so the stem names nothing. Split so the heading can draw the group in
-      // the quieter grey and the space in the louder one.
-      const { context, name } = splitLabel(items[0] ?? { path });
-      return { key: `list:${path}`, label: name, context, items };
+      // so the stem names nothing. The heading is the origin badge: the name
+      // in the space's colour (services/origin.js), once per section rather
+      // than on every row.
+      const first = items[0] ?? { path };
+      const from = origin?.(first) ?? null;
+      return {
+        key: `list:${path}`,
+        label: from?.label ?? listLabel(first),
+        color: from?.color ?? null,
+        items,
+      };
     });
   });
 
@@ -125,10 +137,11 @@
         name={isCollapsed(section.key) ? "caret-right" : "caret-down"}
         size="0.75rem"
       />
-      {#if section.context}
-        <span class="suggestions-pane__group-context">{section.context}/</span>
+      {#if section.color !== undefined}
+        <Badge label={section.label} color={section.color} />
+      {:else}
+        <span>{section.label}</span>
       {/if}
-      <span>{section.label}</span>
       <small class="suggestions-pane__count">{section.items.length}</small>
     </button>
 

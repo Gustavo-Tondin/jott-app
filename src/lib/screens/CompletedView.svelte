@@ -7,9 +7,9 @@
   import { makeScreen } from "../services/act.js";
   import { S } from "../services/strings.js";
   import EmptyState from "../components/EmptyState.svelte";
-  import { folderOf } from "../services/paths.js";
+  import Badge from "../components/Badge.svelte";
 
-  let { readOnly, onChanged, onError, reloadKey } = $props();
+  let { readOnly, onChanged, onError, reloadKey, origin = null } = $props();
 
   /// `{ path, task }` pairs — the path is the Completed list the task sits
   /// in, and is what uncompleting must address (there is one per space).
@@ -40,6 +40,7 @@
     <!-- See ListView: position is part of the key so a duplicated id cannot
          take the whole screen down. -->
     {#each items as item, i (`${item.path}:${item.task.id ?? ""}#${i}`)}
+      {@const from = origin?.(item)}
       <li class="completed-view__item">
         <input
           class="theme-checkbox completed-view__checkbox"
@@ -50,11 +51,11 @@
           aria-label={S.uncheck}
         />
         <span class="completed-view__text">{item.task.text}</span>
-        <!-- Where the task lives, readable: the space folder of its Completed
-             list ("Design/Tasks"), which is how the wireframe names places. -->
+        <!-- Where the task lives: the origin badge (the space's readable name,
+             in its colour — services/origin.js), never the folder. -->
         <small class="completed-view__origin">
-          {folderOf(item.path)}{#if item.task.origin}
-            · {S.goesBackTo(item.task.origin)}{/if}
+          {#if from}<Badge label={from.label} color={from.color} />{/if}
+          {#if item.task.origin}<span>{S.goesBackTo(item.task.origin)}</span>{/if}
         </small>
       </li>
     {/each}

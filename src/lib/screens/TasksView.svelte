@@ -34,6 +34,10 @@
     dayRefs = null,
     /// `(key) => boolean` — is this part of the app switched on?
     f = () => true,
+    /// `(item) => {label, color} | null` — where an item came from, for the
+    /// badge a card wears outside its space (services/origin.js). Null when
+    /// the screen IS the space, and nothing is said.
+    origin = null,
     readOnly = false,
     reloadKey = 0,
     onChanged,
@@ -196,6 +200,7 @@
   {:else}
     <PeriodView
       period={sub}
+      {origin}
       {toolbar}
       header={false}
       compose="bar"

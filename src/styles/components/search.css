@@ -111,6 +111,9 @@
   /* Where it lives — `Tasks · Inbox`. */
   .search__hit-place {
     flex: none;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--theme-space-6);
     font-size: var(--theme-text-10);
     color: var(--theme-ink-muted);
     white-space: nowrap;

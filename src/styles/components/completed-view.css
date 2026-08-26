@@ -29,4 +29,9 @@
     color: var(--theme-ink-muted);
     font-size: var(--theme-text-12);
   }
+  .completed-view__origin {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--theme-space-6);
+  }
 }

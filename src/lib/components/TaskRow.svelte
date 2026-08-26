@@ -1,6 +1,6 @@
 <script>
   import { tick } from "svelte";
-  import { listTitle } from "../services/paths.js";
+  import Badge from "./Badge.svelte";
   import { formatDate } from "../services/dates.js";
   import { S } from "../services/strings.js";
   import Icon from "./Icon.svelte";
@@ -14,7 +14,9 @@
   let {
     task,
     list,
-    showList = false,
+    /// `{label, color}` — the space this card came from, when the card is
+    /// shown OUTSIDE it (the day, the week). Null inside its own space.
+    origin = null,
     selected = false,
     onComplete,
     onEdit,
@@ -159,7 +161,7 @@
       (task.subtasks?.length && f("subtasks")) ||
       (task.tags?.length && f("taskTags")) ||
       inDay ||
-      showList
+      origin
     ),
   );
 </script>
@@ -302,7 +304,7 @@
             title={`#${tag}`}
             style={tagColors[tag] ? `--tag-color: ${tagColors[tag]}` : ""}
           ></span>{/each}
-        {#if showList}<span class="task-row__field">{listTitle(list)}</span>{/if}
+        {#if origin}<Badge label={origin.label} color={origin.color} class="task-row__origin" />{/if}
       </div>
     {/if}
 

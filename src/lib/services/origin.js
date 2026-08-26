@@ -42,7 +42,7 @@ export function originOf(item, { lists = [], spaces = [], colors = {}, here = nu
   // tells lists apart — the same rule listLabel() keeps for the picker.
   if (address && item.kind !== "note") {
     const stem = entry?.name ?? listName(address);
-    if (stem && stem !== MAIN_LIST && stem !== "completed") {
+    if (stem && stem !== MAIN_LIST && stem.toLowerCase() !== "completed") {
       label = listLabel({ space: label, name: stem, path: address });
     }
   }

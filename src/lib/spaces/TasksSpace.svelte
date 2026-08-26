@@ -49,6 +49,10 @@
     dayRefs = null,
     /// `(key) => boolean` — is this part of the app switched on?
     f = () => true,
+    /// `(item) => {label, color} | null` — where an item came from, for the
+    /// badge a card wears outside its space (services/origin.js). Null when
+    /// the screen IS the space, and nothing is said.
+    origin = null,
     readOnly = false,
     reloadKey = 0,
     selectedTask = null,
@@ -554,7 +558,7 @@
         listClass="tasks-space__list"
         dividerClass="tasks-space__pin-divider"
         pinned={!period}
-        showList={!!period}
+        origin={period ? origin : null}
         {inDay}
         {f}
         onDelete={readOnly ? null : deleteEntry}
@@ -594,7 +598,7 @@
       <TaskCards
         items={shownCompleted}
         listClass="tasks-space__list tasks-space__list--completed"
-        showList={!!period}
+        origin={period ? origin : null}
         {f}
         {isSelected}
         onSelect={onSelectTask}
