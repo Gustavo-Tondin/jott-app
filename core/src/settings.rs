@@ -227,7 +227,7 @@ pub struct NotebookSettings {
     pub new_tasks_on_top: Option<bool>,
     pub auto_space_colors: Option<bool>,
     pub date_display_format: Option<String>,
-    /// One of the seven, by name; empty goes back to the app's own.
+    /// One of the eight, by name; empty goes back to the app's own.
     pub accent_color: Option<String>,
     /// A theme name; empty goes back to the app's own.
     pub theme: Option<String>,
@@ -367,7 +367,7 @@ impl NotebookSettings {
         if let Some(v) = &self.date_display_format {
             config.date_display_format = DateFormat::parse_or_default(v);
         }
-        // Not validated here: the seven colours and the list of themes are the
+        // Not validated here: the eight colours and the list of themes are the
         // interface's, and a name this build does not know must round-trip
         // (core/src/config.rs).
         if let Some(v) = &self.accent_color {

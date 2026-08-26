@@ -1,11 +1,15 @@
-//! The user's tags and their colours, in `.jott/tags.json`
-//! (reestruturação 2026-07-30).
+//! The user's tag catalogue, in `.jott/tags.json` (reestruturação
+//! 2026-07-30).
 //!
 //! A tag on a task is just `#word` text in the file — the app never needs this
-//! catalogue to *read* a task. What lives here is the user's **decoration**: a
-//! colour per tag, shown as a coloured pill on the card and as colour + text in
-//! the inspector. Same tolerant covenant as the other config files: a missing
-//! or malformed file falls back to empty, and an unknown key survives a rewrite.
+//! catalogue to *read* a task. What lives here is the **vocabulary**: the
+//! names the picker offers, so a tag is spelled the same way every time. Until
+//! 2026-08-26 it also held a colour per tag; the colour grammar took that away
+//! (a tag is a subject — the one colour a card wears is its space's), and the
+//! interface no longer offers it. The field is still read and written back
+//! for a notebook that has it, under the same tolerant covenant as the other
+//! config files: a missing or malformed file falls back to empty, and an
+//! unknown key survives a rewrite.
 
 use std::path::Path;
 
@@ -22,7 +26,9 @@ const SUPPORTED_TAGS_SCHEMA: u64 = 1;
 #[derive(Debug, Clone, PartialEq)]
 pub struct Tag {
     pub name: String,
-    /// Any CSS colour string, or `None` for the default accent.
+    /// A palette NAME (`"orange"`), kept for notebooks written before
+    /// 2026-08-26 and round-tripped; the interface neither shows nor offers
+    /// it any more. `None` for none.
     pub color: Option<String>,
 }
 

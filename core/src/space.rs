@@ -112,8 +112,12 @@ pub struct SpaceConfig {
     pub kind: String,
     /// Display name. Falls back to the folder name when absent.
     pub name: Option<String>,
-    /// The space's accent colour (any CSS colour string), shown on its
-    /// group bar in the sidebar. Absent means the sidebar's default accent.
+    /// The space's colour — a palette NAME (`"orange"`), never a hex, the
+    /// rule every colour in a Jott notebook follows (the interface owns the
+    /// list; the core carries the string). Shown on its group bar in the
+    /// sidebar and, since 2026-08-26, on the badge a card of this space wears
+    /// wherever it is shown outside it. Absent means the sidebar's default
+    /// accent.
     pub color: Option<String>,
     /// The space's icon (a Phosphor icon name the frontend knows). Absent
     /// falls back to the generic folder icon.

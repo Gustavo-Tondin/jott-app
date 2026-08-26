@@ -194,9 +194,9 @@ pub struct Config {
     pub auto_space_colors: bool,
     /// How dates are shown. The file always stores ISO.
     pub date_display_format: DateFormat,
-    /// Which of the app's seven complementary colours is the accent — the
+    /// Which of the app's eight colours is the accent — the
     /// colour of the open sidebar row, the primary button, a focus ring
-    /// (2026-08-13). A NAME (`"orange"`), never a hex: each of the seven has a
+    /// (2026-08-13). A NAME (`"orange"`), never a hex: each of the eight has a
     /// light half and a dark half, and which one is shown depends on the
     /// ground it lands on, which only the interface knows.
     ///
