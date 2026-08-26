@@ -99,8 +99,16 @@ label you typed by hand survives the app rewriting the line.
 ### The hidden comment
 
 ```markdown
-- [ ] Ship the proposal <!--id:k3f9a2 meta:{"…"}-->
+- [ ] Ship the proposal <!--id:k3f9a2 created:2026-07-21 meta:{"…"}-->
 ```
+
+`created:` is the day the task entered the app. Every task has one: the app
+stamps it when it creates a task, and a task you typed by hand gets today's
+date the next time the notebook opens (a line in `completed.md` gets its
+`completed:` date instead, so creation never lands after completion). It is
+the one field the app adds to a line it did not write — and adding is all it
+does: a date already there is never changed. `completed:` is stamped on
+completion and removed on undo.
 
 `id:` is added **only when the app needs to track that task** — when you pull
 it into your day or week, or complete it. You never write one, and you can

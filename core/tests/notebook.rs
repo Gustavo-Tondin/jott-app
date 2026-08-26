@@ -69,11 +69,117 @@ fn open_does_not_touch_lists_that_already_have_content() {
     Notebook::init(dir.path()).unwrap();
 
     let inbox_path = dir.path().join("jott.tasks/task-list.md");
-    let content = "- [ ] Comprar leite <!--id:a1b2c3-->\n";
+    let content = "- [ ] Comprar leite <!--id:a1b2c3 created:2026-01-05-->\n";
     std::fs::write(&inbox_path, content).unwrap();
 
     Notebook::open(dir.path()).unwrap();
     assert_eq!(read(&inbox_path), content, "reopening rewrote the list");
+}
+
+// ---------------------------------------------------- created is guaranteed
+// The time axis (strategy 3.6, 2026-08-26): every task carries the day it
+// entered the app, because the Timeline and the sweep read it.
+
+#[test]
+fn open_stamps_today_on_tasks_written_without_a_creation_date() {
+    let dir = tempfile::tempdir().unwrap();
+    Notebook::init(dir.path()).unwrap();
+
+    let inbox_path = dir.path().join("jott.tasks/task-list.md");
+    std::fs::write(
+        &inbox_path,
+        "- [ ] à mão\n- [ ] antiga <!--id:a1b2c3 created:2026-01-05-->\n",
+    )
+    .unwrap();
+
+    let notebook = Notebook::open(dir.path()).unwrap();
+    let today = jott_core::clock::civil_today();
+    let tasks = notebook.tasks_in("jott.tasks/task-list.md").unwrap();
+    assert_eq!(tasks[0].created, Some(today), "hand-written task gets today");
+    assert_eq!(
+        tasks[1].created.map(|d| d.to_string()).as_deref(),
+        Some("2026-01-05"),
+        "a date already there is never replaced"
+    );
+    // The date is in the file — it must survive any other editor.
+    let on_disk = read(&inbox_path);
+    assert!(on_disk.contains(&format!("created:{today}")), "{on_disk}");
+    assert!(on_disk.contains("created:2026-01-05"), "{on_disk}");
+    // Still no id: a date is not a reason to track the task.
+    assert!(tasks[0].id.is_none());
+}
+
+#[test]
+fn open_stamps_a_completed_task_with_its_completion_date() {
+    let dir = tempfile::tempdir().unwrap();
+    Notebook::init(dir.path()).unwrap();
+
+    // Yesterday, not a fixed day: a completed task older than the retention
+    // is reaped on open, and then there is nothing left to stamp.
+    let yesterday = jott_core::clock::civil_today() - chrono::Duration::days(1);
+    let done_path = dir.path().join("jott.tasks/completed.md");
+    std::fs::write(
+        &done_path,
+        format!("- [x] feita <!--id:d0d0d0 origin:task-list completed:{yesterday}-->\n"),
+    )
+    .unwrap();
+
+    Notebook::open(dir.path()).unwrap();
+    let on_disk = read(&done_path);
+    assert!(
+        on_disk.contains(&format!("created:{yesterday}")),
+        "created must not be later than completed: {on_disk}"
+    );
+}
+
+#[test]
+fn open_leaves_a_list_alone_when_every_task_is_already_dated() {
+    let dir = tempfile::tempdir().unwrap();
+    Notebook::init(dir.path()).unwrap();
+
+    let path = dir.path().join("jott.tasks/task-list.md");
+    // Odd spacing and a trailing note the writer would normalise: the only
+    // way to prove the file was not rewritten is that it stayed odd.
+    let content = "- [ ]  dois espaços <!--created:2026-01-05-->\n\n\n";
+    std::fs::write(&path, content).unwrap();
+
+    Notebook::open(dir.path()).unwrap();
+    assert_eq!(read(&path), content);
+}
+
+#[test]
+fn a_read_only_notebook_is_not_stamped() {
+    let dir = tempfile::tempdir().unwrap();
+    Notebook::init(dir.path()).unwrap();
+    let path = dir.path().join("jott.tasks/task-list.md");
+    std::fs::write(&path, "- [ ] sem data\n").unwrap();
+    std::fs::write(
+        dir.path().join(".jott/config.json"),
+        r#"{ "schemaVersion": 99 }"#,
+    )
+    .unwrap();
+
+    Notebook::open(dir.path()).unwrap();
+    assert_eq!(read(&path), "- [ ] sem data\n");
+}
+
+#[test]
+fn a_note_is_dated_on_its_first_write_not_on_open() {
+    // The note side of the same contract: reading never rewrites a note,
+    // so the date arrives with the first save the app itself makes.
+    let dir = tempfile::tempdir().unwrap();
+    Notebook::init(dir.path()).unwrap();
+    let path = dir.path().join("jott.notes/Ideia.md");
+    std::fs::write(&path, "Só texto.\n").unwrap();
+
+    let notebook = Notebook::open(dir.path()).unwrap();
+    assert_eq!(read(&path), "Só texto.\n", "open must not touch a note");
+
+    notebook
+        .write_note("jott.notes", "Ideia.md", "Só texto, editado.")
+        .unwrap();
+    let today = jott_core::clock::civil_today();
+    assert!(read(&path).starts_with(&format!("---\ncreated: {today}\n")));
 }
 
 #[test]

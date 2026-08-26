@@ -64,6 +64,9 @@ what the current version is.
   auto-selected — unless you turn on "dated tasks join the day".
 - Due dates, priorities, tags, repetition, descriptions, subtasks and file
   attachments; completed tasks kept in their own file, restorable.
+- Every task carries the day it entered the app — a line you typed by hand
+  gets today's date the next time the notebook opens, and nothing else
+  about it changes.
 - **Reminders**: a date and time on any task (presets or your own), or an
   automatic one for every dated task — the day of, or the day before, at an
   hour you choose. They ring through the system's notifications; on the

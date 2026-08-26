@@ -306,6 +306,37 @@ impl Notebook {
         Ok(out)
     }
 
+    /// Stamps `created:` on every task that has none — the first piece of
+    /// the time axis (2026-08-26): the Timeline and the sweep read that date,
+    /// so a task written by hand, or by a build older than 2026-08-04, must
+    /// get one somewhere. "Somewhere" is here, on open — the only automatism
+    /// of the axis, and it only ever ADDS a field.
+    ///
+    /// Today is the honest guess for an open task: it entered the app today.
+    /// A task in `completed.md` gets its `completed:` date instead, when it
+    /// has one — a creation date later than the completion would be a lie
+    /// the by-creation ordering then repeats. Lists with nothing missing are
+    /// not rewritten; a hand-written file stays byte-identical unless a task
+    /// in it actually lacked the date. Returns how many tasks were stamped.
+    pub fn adopt_created(&self) -> Result<usize> {
+        self.ensure_writable()?;
+        let today = crate::clock::civil_today();
+        let mut stamped = 0;
+        for address in self.list_paths()? {
+            let mut list = self.open_list(&address.path)?;
+            let mut changed = 0;
+            for task in list.tasks_mut().filter(|task| task.created.is_none()) {
+                task.created = Some(task.completed.unwrap_or(today));
+                changed += 1;
+            }
+            if changed > 0 {
+                list.save()?;
+                stamped += changed;
+            }
+        }
+        Ok(stamped)
+    }
+
     /// Rewrites `.jott/completed.json` from the current `Completed.md` files —
     /// the index the Completed screen reads. Reconstructible: this *is* the
     /// rebuild, run on open and after each completion change.

@@ -64,8 +64,10 @@ description, and Jott leaves it exactly as you wrote it.
 
 Two tags mean something to the app: #urgent and #pinned.
 
-The <!--id:...--> comments are Jott's. It adds one to a task only when it
-needs to keep track of it — when you pull it into your day or week, or
+The <!--id:... created:...--> comments are Jott's. Every task gets a
+created: date — the day it entered the app; a task you typed by hand gets
+today's date the next time the notebook opens. An id: is added only when it
+needs to keep track of the task — when you pull it into your day or week, or
 complete it. You never have to write those yourself, and you can leave them
 alone.
 

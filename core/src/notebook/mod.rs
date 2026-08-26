@@ -305,6 +305,10 @@ impl Notebook {
             // with; nothing is kept at the notebook root.
             notebook.ensure_fixed_spaces()?;
             notebook.write_format_guide()?;
+            // Every task gets a creation date (the time axis, 3.6). Derived
+            // like the two below: a list that will not take the stamp must
+            // not keep the notebook from opening.
+            let _ = notebook.adopt_created();
             // Clear expired trash and rebuild the aggregated Completed index —
             // both derived, so a failure here must not stop the notebook opening.
             let _ = notebook.reap_trash();
