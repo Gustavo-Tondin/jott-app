@@ -1,9 +1,9 @@
 # Latest installers
 
-Newest build of each kind, copied here by `packaging/collect.sh`
-(run by `packaging/release.sh`). Binaries are not versioned; only
-this file is. Source is at **v0.40.0** — a row behind it was
-built from an older tree.
+Newest build of each kind, copied here by `packaging/release.sh`
+(at the end of a release, or alone with `--collect`). Binaries are
+not versioned; only this file is. Source is at **v0.40.2** —
+a row behind it was built from an older tree.
 
 | Installer | File | Version | Built | Size |
 |---|---|---|---|---|

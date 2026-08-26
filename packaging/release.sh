@@ -53,6 +53,7 @@
 #   packaging/release.sh 0.24.0             # the whole cycle, stopping before the push
 #   packaging/release.sh 0.24.0 --dry-run   # print every command, change nothing
 #   packaging/release.sh --check            # only verify the derivations still work
+#   packaging/release.sh --collect          # only refresh packaging/releases/ from what is built
 #
 #   --skip-tests       skip npm test / cargo test / clippy
 #   --skip-preflight   skip the Windows cross-check (packaging/windows/windows-preflight.sh)
@@ -352,8 +353,93 @@ print(next((p["version"] for p in m["packages"] if p["name"] == sys.argv[1]), ""
 # ---------------------------------------------------------------------------
 
 VERSION=""
+# ---------------------------------------------------------------------------
+# packaging/releases/ — the newest installer of each kind, side by side
+#
+# The build tools scatter them: Tauri writes under target/release/bundle/, the
+# Windows cross-compile under target/x86_64-pc-windows-msvc/, gradle under
+# src-tauri/gen/android/app/build/outputs/, makepkg next to the PKGBUILD. All
+# of that is build output and gets cleaned; packaging/releases/ is the copy
+# that survives a `cargo clean` — and where the PREVIOUS APK is read from to
+# compare certificate and versionCode. One file per kind is kept: collecting
+# a newer one removes the older. Gitignored except for the README.
+# ---------------------------------------------------------------------------
+
+readonly RELEASES_DIR="$ROOT/packaging/releases"
+
+# newest <files...>: the most recently modified of those that exist.
+newest() {
+  local f best=""
+  for f in "$@"; do
+    [ -f "$f" ] || continue
+    if [ -z "$best" ] || [ "$f" -nt "$best" ]; then best="$f"; fi
+  done
+  [ -n "$best" ] && printf '%s\n' "$best"
+}
+
+# collect_one <kind> <glob-in-releases> <source globs...>
+collect_one() {
+  local kind="$1" keep="$2" src name; shift 2
+  src="$(newest "$@")" || { debug "releases: $kind — nothing built"; return 0; }
+  name="$(basename "$src")"
+  # gradle fixes the APK's name; the version comes from the file it was built from
+  if [ "$kind" = "Android APK" ]; then
+    name="Jott_$(sed -n 's/^tauri\.android\.versionName=//p' "$ANDROID_PROPERTIES" 2>/dev/null)_universal.apk"
+  fi
+  if [ -f "$RELEASES_DIR/$name" ] && cmp -s "$src" "$RELEASES_DIR/$name"; then
+    debug "releases: $kind — $name already there"
+    return 0
+  fi
+  find "$RELEASES_DIR" -maxdepth 1 -name "$keep" ! -name README.md -delete
+  cp -p "$src" "$RELEASES_DIR/$name"
+  log INFO "  releases/: $kind -> $name"
+}
+
+collect_releases() {
+  mkdir -p "$RELEASES_DIR"
+  collect_one "Linux AppImage" '*.AppImage'    target/release/bundle/appimage/*.AppImage
+  collect_one "Debian/Ubuntu"  '*.deb'         target/release/bundle/deb/*.deb
+  collect_one "Fedora"         '*.rpm'         target/release/bundle/rpm/*.rpm
+  collect_one "Arch"           '*.pkg.tar.zst' packaging/linux/*.pkg.tar.zst
+  collect_one "Windows"        '*.exe'         target/x86_64-pc-windows-msvc/release/bundle/nsis/*.exe target/release/bundle/nsis/*.exe
+  collect_one "Android APK"    '*.apk'         src-tauri/gen/android/app/build/outputs/apk/universal/release/*.apk
+
+  local source_version f name kind ver mark
+  source_version="$(source_version)"
+  {
+    echo "# Latest installers"
+    echo
+    echo "Newest build of each kind, copied here by \`packaging/release.sh\`"
+    echo "(at the end of a release, or alone with \`--collect\`). Binaries are"
+    echo "not versioned; only this file is. Source is at **v$source_version** —"
+    echo "a row behind it was built from an older tree."
+    echo
+    echo "| Installer | File | Version | Built | Size |"
+    echo "|---|---|---|---|---|"
+    for f in "$RELEASES_DIR"/*; do
+      name="$(basename "$f")"
+      [ -f "$f" ] && [ "$name" != README.md ] || continue
+      case "$name" in
+        *.AppImage)    kind="Linux AppImage" ;;
+        *.deb)         kind="Debian/Ubuntu" ;;
+        *.rpm)         kind="Fedora" ;;
+        *.pkg.tar.zst) kind="Arch" ;;
+        *.exe)         kind="Windows" ;;
+        *.apk)         kind="Android APK" ;;
+        *)             kind="—" ;;
+      esac
+      ver="$(printf '%s\n' "$name" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)"
+      mark=""; [ "$ver" = "$source_version" ] || mark=" ⚠ older"
+      printf '| %s | `%s` | %s%s | %s | %s |\n' "$kind" "$name" "$ver" "$mark" \
+        "$(date -r "$f" '+%Y-%m-%d')" "$(du -h "$f" | cut -f1)"
+    done
+  } > "$RELEASES_DIR/README.md"
+  log INFO "  releases/README.md lists what is there (source v$source_version)"
+}
+
 DRY_RUN=""
 CHECK_ONLY=""
+COLLECT_ONLY=""
 SKIP_TESTS=""
 SKIP_PREFLIGHT=""
 WITH_ANDROID=""
@@ -364,6 +450,7 @@ while [ $# -gt 0 ]; do
   case "$1" in
     --dry-run)        DRY_RUN=1 ;;
     --check)          CHECK_ONLY=1 ;;
+    --collect)        COLLECT_ONLY=1 ;;
     --skip-tests)     SKIP_TESTS=1 ;;
     --skip-preflight) SKIP_PREFLIGHT=1 ;;
     --android)        WITH_ANDROID=1 ;;
@@ -385,7 +472,13 @@ if [ -n "$CHECK_ONLY" ]; then
   exit 0
 fi
 
-[ -n "$VERSION" ] || die "give the new version: packaging/release.sh 0.24.0  (or --check)"
+if [ -n "$COLLECT_ONLY" ]; then
+  log INFO "collecting the newest installers into packaging/releases/"
+  collect_releases
+  exit 0
+fi
+
+[ -n "$VERSION" ] || die "give the new version: packaging/release.sh 0.24.0  (or --check, --collect)"
 printf '%s' "$VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$' \
   || die "version must be X.Y.Z, got '$VERSION'"
 
@@ -711,7 +804,7 @@ fi
 # README naming the version of each — the place to look for the newest
 # installers without digging through target/.
 if [ -z "$DRY_RUN" ]; then
-  packaging/collect.sh >>"$LOG" 2>&1 || log WARN "packaging/collect.sh failed — read $LOG"
+  collect_releases
 fi
 
 echo
