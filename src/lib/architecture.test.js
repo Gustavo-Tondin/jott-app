@@ -8,7 +8,7 @@
 // Svelte's scoping hash.
 import { describe, expect, test } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
-import { join, dirname, basename } from "node:path";
+import { join, dirname, basename, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const src = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -224,6 +224,27 @@ describe("frontend architecture", () => {
         gaps.push(`${name}: sheet is not the canvas pair swapped`);
     }
     expect(gaps).toEqual([]);
+  });
+
+  test("status is read through the status roles, never a colour of the eight by name", () => {
+    // The colour grammar (2026-08-26): priority, overdue, a notice's tone
+    // are STATUS — fixed, so they keep their meaning when the accent is red
+    // or green — and a component sheet reaches them as `--theme-danger`,
+    // `--theme-warning`, `--theme-success` (and their `-tint`). Spelling
+    // `--accent-red` in a sheet is the same value today and a different one
+    // the day a theme moves its danger; the notice did exactly that.
+    const sheets = [
+      join(src, "styles", "controls.css"),
+      ...walk(join(src, "styles", "components"), ".css"),
+    ];
+    const offenders = [];
+    for (const f of sheets) {
+      const css = readFileSync(f, "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
+      for (const m of css.matchAll(/var\(\s*(--accent-(?:red|yellow|green)[a-z0-9-]*)/g)) {
+        offenders.push(`${relative(src, f)}: ${m[1]}`);
+      }
+    }
+    expect(offenders).toEqual([]);
   });
 
   test("every role a component reads is assigned by every theme", () => {

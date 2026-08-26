@@ -120,6 +120,9 @@
   --theme-danger: var(--palette-red-500);
   --theme-warning: var(--palette-yellow-500);
   --theme-success: var(--palette-green-500);
+  --theme-danger-tint: var(--palette-red-100);
+  --theme-warning-tint: var(--palette-yellow-100);
+  --theme-success-tint: var(--palette-green-100);
 
   /* The one piece of Markdown with a colour of its own (Notes wireframe,
      Editor screen): emphasis. Bold is ink and a link is the accent, but italic

@@ -217,6 +217,17 @@
     gap: var(--theme-space-8);
     min-width: 0;
   }
+  /* The flag and its word in the level's status colour — the same three
+     the card's marks and the composer's flag read. */
+  .inspector__field-label--p1 {
+    color: var(--theme-danger);
+  }
+  .inspector__field-label--p2 {
+    color: var(--theme-warning);
+  }
+  .inspector__field-label--p3 {
+    color: var(--theme-success);
+  }
   .inspector__field-value {
     display: inline-flex;
     align-items: center;

@@ -114,7 +114,7 @@
   }
   .trash-view__purge:hover:not(:disabled) {
     color: var(--theme-danger);
-    background: color-mix(in srgb, var(--theme-danger) 14%, transparent);
+    background: var(--theme-danger-tint);
   }
   /* Three days or fewer: the countdown is the one thing worth noticing. */
   .trash-view__left--soon {

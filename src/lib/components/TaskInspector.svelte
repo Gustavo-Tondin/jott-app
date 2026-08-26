@@ -21,13 +21,7 @@
   import { completionBeat } from "../services/pace.js";
   import { S } from "../services/strings.js";
   import { leafOf, listTitle, splitLabel } from "../services/paths.js";
-  import {
-    PRIORITIES,
-    REPEAT_UNITS,
-    cleanTagName,
-    repeatCounts,
-    repeatText,
-  } from "../services/taskFields.js";
+  import { PRIORITIES, REPEAT_UNITS, cleanTagName, priorityClass, repeatCounts, repeatText } from "../services/taskFields.js";
   import { movedItem } from "../services/spaceOrder.js";
   import { reorderable } from "../actions/reorder.js";
   import Menu from "./Menu.svelte";
@@ -611,7 +605,7 @@
            the function is not lost. It can hide behind the global functions
            preference later. -->
       <div class="inspector__field" class:inspector__field--unset={!draft.priority}>
-        <span class="inspector__field-label">
+        <span class="inspector__field-label inspector__field-label--{priorityClass(draft.priority)}">
           <Icon name="flag" size="1rem" />
           {S.priorityLabel}
         </span>

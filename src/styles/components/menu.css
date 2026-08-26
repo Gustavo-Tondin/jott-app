@@ -25,6 +25,13 @@
     display: inline-block;
     inline-size: 1.125em;
   }
+  /* A row that names a colour (a folder's, a banner's) or a level (a task's
+     priority) shows it before the word: the shared .theme-dot, the row's
+     `swatch` being the CSS value it is painted with. */
+  .menu__swatch {
+    --dot-size: var(--theme-space-10);
+    margin-inline-end: var(--theme-space-6);
+  }
   .menu__link {
     display: block;
     width: 100%;

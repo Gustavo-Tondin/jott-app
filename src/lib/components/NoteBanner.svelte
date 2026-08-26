@@ -131,6 +131,7 @@
         <div class="theme-popover theme-popover--end note-banner__panel" use:keepOnScreen>
           <AccentPicker
             value={shown?.kind === "color" ? shown.value : null}
+            preview="fill"
             clearable={false}
             label={S.bannerColor}
             onPick={(name) => set(name)}

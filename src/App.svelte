@@ -85,7 +85,7 @@
   import { folderOf, leafOf, listName, listTitle } from "./lib/services/paths.js";
   import { formatDate } from "./lib/services/dates.js";
   import { groupColors, spaceColors } from "./lib/services/spaceColors.js";
-  import { ACCENTS } from "./lib/services/accent.js";
+  import { ACCENTS, accentFill } from "./lib/services/accent.js";
   import { originOf } from "./lib/services/origin.js";
   import { cleanTagName } from "./lib/services/taskFields.js";
   import {
@@ -1119,15 +1119,17 @@
   /// it (user call, 2026-08-19: "escolher a cor ou carregar uma imagem nos 3
   /// pontos do canvas ou clicando com o botão direito nele").
   ///
-  /// The palette is written out as words here and as swatches in the block's
-  /// own popover, because a menu row is a word — but the VALUE is the same
-  /// name either door, which is what keeps the file readable by hand.
+  /// The palette is written out as words here (with the fill each paints
+  /// with, as a dot before the word) and as swatches in the block's own
+  /// popover, because a menu row is a word — but the VALUE is the same name
+  /// either door, which is what keeps the file readable by hand.
   let bannerMenu = $derived({
     label: S.banner,
     items: [
       ...ACCENTS.map((name) => ({
         label: S.colorName(name),
         checked: openNote.banner?.value === name,
+        swatch: accentFill(name),
         run: () => setNoteBanner(name),
       })),
       { label: S.bannerImage, run: () => (pickingImage = "banner") },

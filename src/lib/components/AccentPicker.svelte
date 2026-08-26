@@ -5,16 +5,20 @@
   //
   // What it emits is a NAME (`"orange"`), never a hex: each colour runs a
   // seven-step tonal ramp, and which end shows is the ground's call, not the
-  // picker's (services/accent.js). The swatches themselves are painted with
-  // `accentColor`, so this row previews the steps of whatever region it was
-  // opened in — the sidebar shows the colours the sidebar will use, which is
-  // also what makes `neutral` legible here: on the sidebar it draws white.
-  import { ACCENTS, dotStyle } from "../services/accent.js";
+  // picker's (services/accent.js). The swatches preview the STEP the choice
+  // will paint with (`preview`): by default the region's own, so the sidebar
+  // shows the colours the sidebar will use — which is also what makes
+  // `neutral` legible here: on the sidebar it draws white — and `fill` for
+  // a banner, which is the same colour on every ground.
+  import { ACCENTS, swatchStyle } from "../services/accent.js";
   import { S } from "../services/strings.js";
 
   let {
-    /// The stored choice: one of the seven, a legacy raw colour, or null.
+    /// The stored choice: one of the eight, a legacy raw colour, or null.
     value = null,
+    /// Which step the swatches show — `"base"` | `"fill"` | `"solid"`
+    /// (services/accent.js `swatchStyle`). The step the choice will PAINT.
+    preview = "base",
     /// `(name) => void` — an empty string clears it, back to the theme accent.
     onPick,
     /// Whether the leading "no colour of its own" swatch is offered.
@@ -42,7 +46,7 @@
     <button
       class="accent-picker__swatch"
       class:accent-picker__swatch--on={value === name}
-      style={dotStyle(name)}
+      style={swatchStyle(name, preview)}
       aria-label={name}
       aria-pressed={value === name}
       {disabled}

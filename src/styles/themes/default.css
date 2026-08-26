@@ -44,7 +44,8 @@
  *   --accent-<name>         …its base: an icon, a link, a filled pill (rung 3)
  *   --accent-<name>-line    …at alpha, for a border or a focus ring
  *   --accent-<name>-tint    …its quiet fill (a selected row)
- *   --theme-danger/-warning/-success   three of the eight, straight from the
+ *   --theme-danger/-warning/-success   (+ -tint, the quiet fill behind a
+ *                                      notice) three of the eight, straight from the
  *                           palette so a status pill lives in the same world
  *   --theme-emphasis        a fourth of the eight: italic text in a note
  *
@@ -199,6 +200,9 @@
   --theme-danger: var(--palette-red-300);
   --theme-warning: var(--palette-yellow-300);
   --theme-success: var(--palette-green-300);
+  --theme-danger-tint: var(--palette-red-700);
+  --theme-warning-tint: var(--palette-yellow-700);
+  --theme-success-tint: var(--palette-green-700);
 
   /* The one piece of Markdown with a colour of its own (Notes wireframe,
      Editor screen): emphasis. Bold is ink and a link is the accent, but italic
@@ -306,6 +310,9 @@
   --theme-danger: var(--palette-red-500);
   --theme-warning: var(--palette-yellow-500);
   --theme-success: var(--palette-green-500);
+  --theme-danger-tint: var(--palette-red-100);
+  --theme-warning-tint: var(--palette-yellow-100);
+  --theme-success-tint: var(--palette-green-100);
 
   /* The one piece of Markdown with a colour of its own (Notes wireframe,
      Editor screen): emphasis. Bold is ink and a link is the accent, but italic

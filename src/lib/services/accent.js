@@ -134,7 +134,19 @@ export function badgeStyle(value) {
 /// write `style=""`. Four components computed this line by hand before it
 /// lived here.
 export function dotStyle(value) {
-  const c = accentColor(value);
+  return swatchStyle(value, "base");
+}
+
+/// The inline `style` of a swatch that PREVIEWS a choice — the picker's
+/// buttons. `preview` names the step the choice will paint with, so the
+/// swatch is the colour the person gets and not a cousin of it: `"base"` for
+/// a dot or a badge (the region's own step), `"fill"` for a banner (step
+/// 300), `"solid"` for a card with text on it (step 500). Until 2026-08-26
+/// the banner's picker drew the base and painted the fill — a dark yellow
+/// chosen, a light yellow received.
+export function swatchStyle(value, preview = "base") {
+  const c =
+    preview === "fill" ? accentFill(value) : preview === "solid" ? accentSolid(value) : accentColor(value);
   return c ? `--dot: ${c}` : undefined;
 }
 

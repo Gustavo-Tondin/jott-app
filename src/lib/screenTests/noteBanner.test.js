@@ -49,13 +49,19 @@ describe("NoteBanner", () => {
     expect(screen.getByText("Ideia")).toBeTruthy();
   });
 
-  test("a colour banner is painted with the palette, never a hex", () => {
+  test("a colour banner is painted with the palette, never a hex", async () => {
     const { container } = render(NoteBanner, {
       props: props({ banner: { kind: "color", value: "yellow" } }),
     });
 
     const banner = container.querySelector(".note-banner");
     expect(banner.getAttribute("style")).toContain("var(--accent-yellow-fill)");
+    // And the picker's swatch shows THAT step, not the region's base: the
+    // colour chosen is the colour received (2026-08-26).
+    await userEvent.click(screen.getByLabelText("banner options"));
+    expect(screen.getByRole("button", { name: "yellow" }).getAttribute("style")).toContain(
+      "--dot: var(--accent-yellow-fill)",
+    );
     expect(container.querySelector(".note-banner__image")).toBeNull();
     // The title moves onto the chip over it — one title, in one place.
     expect(screen.getByText("Ideia")).toBeTruthy();

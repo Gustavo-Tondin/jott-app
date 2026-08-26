@@ -875,17 +875,20 @@
        the screen the eye was not already looking at. */
     animation: theme-rise var(--theme-duration-medium) var(--theme-ease-out);
   }
+  /* Status is the STATUS roles, never a colour of the eight by name
+     (2026-08-26): a theme that moves its danger moves the notice with it, and
+     a component sheet never spells `red`. */
   .theme-notice--error {
-    --notice-accent: var(--accent-red);
-    --notice-tint: var(--accent-red-tint);
+    --notice-accent: var(--theme-danger);
+    --notice-tint: var(--theme-danger-tint);
   }
   .theme-notice--warning {
-    --notice-accent: var(--accent-yellow);
-    --notice-tint: var(--accent-yellow-tint);
+    --notice-accent: var(--theme-warning);
+    --notice-tint: var(--theme-warning-tint);
   }
   .theme-notice--success {
-    --notice-accent: var(--accent-green);
-    --notice-tint: var(--accent-green-tint);
+    --notice-accent: var(--theme-success);
+    --notice-tint: var(--theme-success-tint);
   }
   /* The parts (components/Notice.svelte, 2026-08-24): a glyph in the
      notice's own colour, the body beside it, the × at the end. The glyph

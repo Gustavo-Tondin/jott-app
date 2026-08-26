@@ -17,12 +17,34 @@ import { S } from "./strings.js";
 /// Kept as strings so a `<select>` and a menu can both carry them without one
 /// of the two having to remember to convert; `composeTask` and the inspector
 /// both send `Number(...) || null` on the way to the bridge.
+///
+/// The number and the glyph run OPPOSITE ways, on purpose: `!1` in the file
+/// is the HIGHEST (1 = first), and the card draws it as `!!!` — three marks
+/// for the one that matters most (`"!".repeat(4 - n)`, components/TaskRow).
+/// The colour goes with the level, not the digit: high is danger, medium is
+/// warning, low is success — status colours, fixed, never one of the eight.
 export const PRIORITIES = [
   { value: "", label: () => S.priorityNone },
   { value: "3", label: () => S.priorityLow },
   { value: "2", label: () => S.priorityMedium },
   { value: "1", label: () => S.priorityHigh },
 ];
+
+/// The class suffix a priority paints with — `"p1"` (high, danger) …
+/// `"p3"` (low, success), `""` for none — the same on the card, in the
+/// composer and in the inspector, so the colour of a level is decided once.
+export function priorityClass(value) {
+  const n = Number(value);
+  return n >= 1 && n <= 3 ? `p${n}` : "";
+}
+
+/// The CSS value each level's swatch is painted with in a menu — the same
+/// three status roles the card reads. Keyed by `priorityClass`.
+export const PRIORITY_SWATCH = {
+  p1: "var(--theme-danger)",
+  p2: "var(--theme-warning)",
+  p3: "var(--theme-success)",
+};
 
 /// How often a task repeats. The empty unit is "it does not".
 export const REPEAT_UNITS = [

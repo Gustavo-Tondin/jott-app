@@ -36,7 +36,7 @@
   import { S } from "../services/strings.js";
   import { listTitle, splitLabel } from "../services/paths.js";
   import { emptyIntent } from "../services/taskCompose.js";
-  import { PRIORITIES, REPEAT_UNITS, repeatCounts } from "../services/taskFields.js";
+  import { PRIORITIES, PRIORITY_SWATCH, REPEAT_UNITS, priorityClass, repeatCounts } from "../services/taskFields.js";
   import { dismissable } from "../actions/dismissable.js";
   import { keepOnScreen } from "../actions/keepOnScreen.js";
   import Icon from "./Icon.svelte";
@@ -85,9 +85,13 @@
 
   let repeating = $state(false);
 
+  /// The levels, each with the colour it paints with before the word — the
+  /// status colour of the level, the same the card draws (services/taskFields).
   let priorityMenu = $derived(
     PRIORITIES.map((option) => ({
-      label: (intent.priority === option.value ? "✓ " : "  ") + option.label(),
+      label: option.label(),
+      checked: intent.priority === option.value,
+      swatch: PRIORITY_SWATCH[priorityClass(option.value)],
       run: () => (intent.priority = option.value),
     })),
   );
@@ -273,7 +277,7 @@
       <Menu items={priorityMenu}>
         {#snippet trigger({ toggle })}
           <button
-            class="theme-btn--icon task-composer__field"
+            class="theme-btn--icon task-composer__field task-composer__field--{priorityClass(intent.priority)}"
             class:task-composer__field--set={!!intent.priority}
             type="button"
             onclick={toggle}

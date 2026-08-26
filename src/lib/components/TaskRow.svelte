@@ -1,6 +1,7 @@
 <script>
   import { tick } from "svelte";
   import Badge from "./Badge.svelte";
+  import { priorityClass } from "../services/taskFields.js";
   import { formatDate } from "../services/dates.js";
   import { S } from "../services/strings.js";
   import Icon from "./Icon.svelte";
@@ -292,10 +293,7 @@
             >{formatDate(task.due, dateFormat)}</span
           >{/if}
         {#if task.priority && f("priority")}<span
-            class="task-row__field task-row__field--priority"
-            class:task-row__field--p1={task.priority === 1}
-            class:task-row__field--p2={task.priority === 2}
-            class:task-row__field--p3={task.priority === 3}
+            class="task-row__field task-row__field--priority task-row__field--{priorityClass(task.priority)}"
             >{"!".repeat(Math.max(1, 4 - task.priority))}</span
           >{/if}
         {#each (f("taskTags") ? (task.tags ?? []) : []) as tag}<Badge

@@ -67,7 +67,10 @@
               <button class="menu__link" disabled={sub.disabled} onclick={() => choose(sub)}
                 >{#if sub.checked !== undefined}<span class="menu__check"
                     >{sub.checked ? "✓" : ""}</span
-                  >{/if}{sub.label}</button
+                  >{/if}{#if sub.swatch}<span
+                    class="theme-dot menu__swatch"
+                    style={`--dot: ${sub.swatch}`}
+                  ></span>{/if}{sub.label}</button
               >
             </li>
           {/each}
@@ -76,7 +79,10 @@
     {:else}
       <button class="menu__link" disabled={item.disabled} onclick={() => choose(item)}>
         {#if item.checked !== undefined}<span class="menu__check">{item.checked ? "✓" : ""}</span
-          >{/if}{#if item.context}<span class="menu__context">{item.context}/</span
+          >{/if}{#if item.swatch}<span
+            class="theme-dot menu__swatch"
+            style={`--dot: ${item.swatch}`}
+          ></span>{/if}{#if item.context}<span class="menu__context">{item.context}/</span
           >{/if}{item.label}
       </button>
     {/if}

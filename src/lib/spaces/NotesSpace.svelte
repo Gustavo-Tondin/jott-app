@@ -29,7 +29,7 @@
   import { makeScreen } from "../services/act.js";
   import { spaceMenu } from "../services/spaceMenu.js";
   import { arrange, pinnedFirst, planReorder } from "../services/spaceOrder.js";
-  import { ACCENTS, accentStyle, dotStyle as dotStyleOf } from "../services/accent.js";
+  import { ACCENTS, accentStyle, dotStyle as dotStyleOf, accentColor } from "../services/accent.js";
   import { board } from "../services/noteBoard.js";
   import { leafOf, listName } from "../services/paths.js";
   import { reorderable } from "../actions/reorder.js";
@@ -423,6 +423,9 @@
               ...ACCENTS.map((name) => ({
                 label: S.colorName(name),
                 checked: group.color === name,
+                // The row shows the colour it names — the region's own
+                // step, which is what the folder's card paints with.
+                swatch: accentColor(name),
                 run: () => colorFolder(group, name),
               })),
             ],
