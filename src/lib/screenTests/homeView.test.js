@@ -80,12 +80,15 @@ describe("HomeView", () => {
     });
 
     expect(await screen.findByText("Logo do cliente")).toBeTruthy();
-    const badge = screen.getByText("Design/Tasks");
-    expect(badge.className).toContain("theme-badge");
-    expect(badge.getAttribute("style")).toContain("--app-blue-2");
-    // The fixed space is named too, in no colour of its own.
-    expect(screen.getByText("Tasks").getAttribute("style")).toBeNull();
-    expect(screen.queryByText(/jott\.tasks/)).toBeNull();
+    // Colour alone, as a bar on the card's edge (wireframe "Home Screen -
+    // mobile", 2026-08-26): the name would compete with the task.
+    const bars = document.querySelectorAll(".task-row .theme-origin");
+    expect(bars).toHaveLength(2);
+    const styles = [...bars].map((b) => b.getAttribute("style"));
+    expect(styles).toContain("--dot: var(--app-blue);");
+    // The fixed space: the app's accent, which is the bar's own default.
+    expect(styles).toContain(null);
+    expect(screen.queryByText(/jott\.tasks|Design\/Tasks/)).toBeNull();
   });
 
   test("today's notes are drawn as the board's cards, banner and all", async () => {

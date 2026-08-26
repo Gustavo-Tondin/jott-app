@@ -153,6 +153,24 @@ Things worth knowing before you change them:
 - **Spacing and radius are the theme's too.** A squarer or roomier Jott is a
   theme, not a fork.
 
+### The four colour roles
+
+Where a colour the person chose ends up is not free-form — the interface
+keeps one form per role, so a blue bar, a blue badge and a blue block never
+mean the same thing:
+
+| Role | Question it answers | Who carries it | The one form |
+|---|---|---|---|
+| **origin** | where did this come from? | a space (its group's colour wins) | the sidebar's bar, the tab's dot — and, outside the space, **colour alone**: a bar on the card's left edge (`.theme-origin`), strong, no word |
+| **subject** | what is it about? | a tag | a **badge** (`.theme-badge`): `#tag` with the text on rung 2 and a soft outline on `-line` — in the colour of the card's space, so it agrees with the bar; neutral where there is no place to take it from (the tag manager) |
+| **surface** | the face of a thing | a note's banner (`-fill`, step 300), a folder of notes (`-tint`), a notebook's card (`-solid`, step 500) | a fill; the picker previews the step it will paint with |
+| **status** | urgent? wrong? | priority, an overdue date, a notice | `--app-danger` / `-warning` / `-success`, read from the theme's own status families — never one of the eight by name |
+
+The rule that holds it together: **a card carries at most one colour of the
+palette, and it is its space's.** Everything else on it is neutral or status.
+A theme that wants the badge to look different restyles `.theme-badge`
+(`--badge-color`, `--badge-line`), and the bar `.theme-origin`.
+
 ### Going further: a full theme
 
 A theme file may also write `--app-*` roles, or restyle any `.theme-*`

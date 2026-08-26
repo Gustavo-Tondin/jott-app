@@ -15,10 +15,15 @@
     gap: var(--app-space-4);
   }
   .completed-view__item {
+    position: relative;
     display: flex;
     align-items: center;
     gap: var(--app-space-8);
     padding: var(--app-space-4) 0;
+  }
+  /* The origin bar (.theme-origin) on the start side, in the space's colour. */
+  .completed-view__item--origin {
+    padding-inline-start: var(--app-space-16);
   }
   .completed-view__text {
     text-decoration: line-through;

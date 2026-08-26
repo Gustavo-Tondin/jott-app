@@ -18,7 +18,7 @@
   // a setting: it reads as part of the note in any other markdown editor, and
   // it travels with the file.
   import { S } from "../services/strings.js";
-  import { accentFill } from "../services/accent.js";
+  import { accentFill, badgeStyle } from "../services/accent.js";
   import { formatDate } from "../services/dates.js";
   import Badge from "./Badge.svelte";
   import TagPicker from "./TagPicker.svelte";
@@ -66,6 +66,8 @@
     /// Whether this notebook shows note tags at all (App Functions). Off, the
     /// properties line is not drawn — the `tags:` stays in the file.
     tagsEnabled = true,
+    /// The colour of the note's space (a name) — what its tags wear.
+    color = null,
     /// Whether this notebook has banners at all (App Functions, 2026-08-20).
     /// Off, the head is the TITLE and nothing else — no band, no ⋮ to hang one
     /// with — and the `<!--banner:-->` line already in a file stays exactly
@@ -184,7 +186,7 @@
           </dt>
           <dd class="note-banner__prop-value note-banner__tags">
             {#each tags as tag (tag)}
-              <span class="theme-badge note-banner__tag">
+              <span class="theme-badge note-banner__tag" style={badgeStyle(color)}>
                 #{tag}
                 {#if editsTags}
                   <button

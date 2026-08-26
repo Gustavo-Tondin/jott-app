@@ -90,6 +90,10 @@
   }
   /* The space before a list's name, quieter — the same two tones the list
      pickers use. */
+  /* The space's colour before its name (services/origin.js), small. */
+  .suggestions-pane__dot {
+    --dot-size: var(--app-space-8);
+  }
   .suggestions-pane__count {
     margin-inline-start: auto;
     font-weight: var(--app-weight-regular);

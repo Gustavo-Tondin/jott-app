@@ -73,6 +73,8 @@
     /// badge a card wears outside its space (services/origin.js). Null when
     /// the screen IS the space, and nothing is said.
     origin = null,
+    /// The colour of the notes space the cards come from (a name).
+    notesColor = null,
     readOnly = false,
     onChanged,
     onError,
@@ -375,6 +377,7 @@
                 {root}
                 banners={f("banners")}
                 noteTags={f("noteTags")}
+                tagColor={notesColor}
                 menu={cardMenu(note)}
                 onPin={readOnly || !f("pinNotes") ? null : () => cards.pin(notesSpace, note)}
                 onOpen={(_, opts) => openNote(note, opts)}

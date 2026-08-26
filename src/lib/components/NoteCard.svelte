@@ -59,6 +59,8 @@
     banners = true,
     /// Whether the card draws the note's tags (App Functions, `noteTags`).
     noteTags = true,
+    /// The colour of the space the card is in (a name) — what its tags wear.
+    tagColor = null,
   } = $props();
 
   /// Only the middle button, and never while picking: in that mode a click is
@@ -124,7 +126,7 @@
       <NotePreview markdown={entry.preview} empty={S.emptyNote} />
       {#if noteTags && entry.tags?.length}
         <span class="note-card__tags">
-          {#each entry.tags as tag (tag)}<Badge label={`#${tag}`} />{/each}
+          {#each entry.tags as tag (tag)}<Badge label={`#${tag}`} color={tagColor} />{/each}
         </span>
       {/if}
     {/if}

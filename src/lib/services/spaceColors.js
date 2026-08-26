@@ -16,12 +16,12 @@
 // in the middle of it would break the rainbow. Off, what was set is what
 // there is.
 
-import { DEFAULT_ACCENT } from "./accent.js";
+import { DEFAULT_ACCENT, HUES } from "./accent.js";
 import { sidebarEntries } from "./sidebarOrder.js";
 
 /// The seven in the order the rainbow goes around (user call, 2026-08-24) —
-/// not the palette's swatch order, which is what a picker reads.
-const HUES = ["blue", "purple", "pink", "red", "orange", "yellow", "green"];
+/// since 2026-08-26 the same order the picker draws: `accent.js` is the one
+/// source, and `neutral` is the eighth there too, always last here.
 
 /// The cycle: the seven starting from `accent` and going around, and
 /// `neutral` ALWAYS last, whichever hue starts — then it repeats. An accent

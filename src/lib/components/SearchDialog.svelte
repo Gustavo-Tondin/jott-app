@@ -12,7 +12,7 @@
   import { S } from "../services/strings.js";
   import Icon from "./Icon.svelte";
   import Modal from "./Modal.svelte";
-  import Badge from "./Badge.svelte";
+  import { dotStyle } from "../services/accent.js";
 
   let {
     /// What to start looking for. Empty is the ordinary case (Ctrl+F asks a
@@ -147,9 +147,11 @@
     open(hit, { newTab: true });
   }
 
-  /// Where a hit lives: the origin badge (outside a scope) and the container
-  /// beside it — `[Tasks] Inbox`.
+  /// Where a hit lives: a bar in the space's colour on the row's edge
+  /// (outside a scope — inside one every hit is from the same place) and
+  /// the readable line, `Tasks · Inbox`.
   const from = (hit) => (scope ? null : (origin?.(hit) ?? null));
+  const place = (hit) => [hit.space, hit.container].filter(Boolean).join(" · ");
 </script>
 
 <Modal
@@ -195,9 +197,11 @@
             <button
               class="theme-row search__hit"
               class:search__hit--active={hit === hits[active]}
+              class:search__hit--origin={!!badge}
               onclick={() => open(hit)}
               onauxclick={(event) => middleOpen(event, hit)}
             >
+              {#if badge}<span class="theme-origin" style={dotStyle(badge.color)} aria-hidden="true"></span>{/if}
               <span class="search__hit-main">
                 <span class="search__hit-title" class:search__hit-title--done={hit.done}>
                   {hit.title}
@@ -207,9 +211,7 @@
                 {/if}
               </span>
               <span class="search__hit-place">
-                {#if badge}<Badge label={badge.label} color={badge.color} />{/if}
-                {#if hit.container}<span>{hit.container}</span>{/if}
-                {#if hit.done}<span>{S.findDone}</span>{/if}
+                {place(hit)}{#if hit.done}&nbsp;· {S.findDone}{/if}
               </span>
             </button>
           {/each}

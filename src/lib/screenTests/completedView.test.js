@@ -92,8 +92,9 @@ describe("CompletedView", () => {
     expect(screen.getByText("Do space")).toBeTruthy();
     expect(screen.getByText("Tasks")).toBeTruthy();
     expect(screen.queryByText(/jott\.tasks/)).toBeNull();
-    const badge = screen.getByText("Space 1/Tasks 1");
-    expect(badge.className).toContain("theme-badge");
-    expect(badge.getAttribute("style")).toContain("--app-orange-2");
+    expect(screen.getByText("Space 1/Tasks 1")).toBeTruthy();
+    // And the colour, as the bar on the row's edge.
+    const bars = [...document.querySelectorAll(".completed-view__item--origin .theme-origin")];
+    expect(bars.map((b) => b.getAttribute("style"))).toEqual([null, "--dot: var(--app-orange);"]);
   });
 });

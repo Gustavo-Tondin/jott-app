@@ -19,19 +19,24 @@
 // chose is theirs, even if the app would no longer offer it. It simply does
 // not follow the ground, because it cannot.
 
-/// The eight, in palette order. This array IS the order every swatch row
-/// draws, so the palette reads the same in the space popup, the tag
-/// manager and the settings screen.
+/// The eight, in the order the rainbow goes around FROM BLUE — the app's
+/// own — with `neutral` closing the circle (user call, 2026-08-26; it was the
+/// Figma swatch order before). This array IS the order every swatch row
+/// draws, and the order the sidebar's rainbow deals (services/spaceColors.js),
+/// so the picker and the column agree.
 export const ACCENTS = [
-  "yellow",
-  "orange",
-  "pink",
-  "green",
   "blue",
-  "red",
   "purple",
+  "pink",
+  "red",
+  "orange",
+  "yellow",
+  "green",
   "neutral",
 ];
+
+/// The seven hues — the eight without `neutral`.
+export const HUES = ACCENTS.filter((name) => name !== "neutral");
 
 /// What the app ships as, and what an unknown or missing name falls back to.
 export const DEFAULT_ACCENT = "blue";

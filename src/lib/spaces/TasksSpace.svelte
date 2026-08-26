@@ -558,6 +558,7 @@
         dividerClass="tasks-space__pin-divider"
         pinned={!period}
         origin={period ? origin : null}
+        color={dot}
         {inDay}
         {f}
         onDelete={readOnly ? null : deleteEntry}
@@ -597,6 +598,7 @@
         items={shownCompleted}
         listClass="tasks-space__list tasks-space__list--completed"
         origin={period ? origin : null}
+        color={dot}
         {f}
         {isSelected}
         onSelect={onSelectTask}

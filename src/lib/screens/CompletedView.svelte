@@ -7,7 +7,7 @@
   import { makeScreen } from "../services/act.js";
   import { S } from "../services/strings.js";
   import EmptyState from "../components/EmptyState.svelte";
-  import Badge from "../components/Badge.svelte";
+  import { dotStyle } from "../services/accent.js";
 
   let { readOnly, onChanged, onError, reloadKey, origin = null } = $props();
 
@@ -41,7 +41,8 @@
          take the whole screen down. -->
     {#each items as item, i (`${item.path}:${item.task.id ?? ""}#${i}`)}
       {@const from = origin?.(item)}
-      <li class="completed-view__item">
+      <li class="completed-view__item" class:completed-view__item--origin={!!from}>
+        {#if from}<span class="theme-origin" style={dotStyle(from.color)} aria-hidden="true"></span>{/if}
         <input
           class="theme-checkbox completed-view__checkbox"
           type="checkbox"
@@ -54,8 +55,8 @@
         <!-- Where the task lives: the origin badge (the space's readable name,
              in its colour — services/origin.js), never the folder. -->
         <small class="completed-view__origin">
-          {#if from}<Badge label={from.label} color={from.color} />{/if}
-          {#if item.task.origin}<span>{S.goesBackTo(item.task.origin)}</span>{/if}
+          {#if from}<span>{from.label}</span>{/if}
+          {#if item.task.origin}<span>· {S.goesBackTo(item.task.origin)}</span>{/if}
         </small>
       </li>
     {/each}

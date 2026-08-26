@@ -1,6 +1,7 @@
 <script>
   import { tick } from "svelte";
   import Badge from "./Badge.svelte";
+  import { dotStyle } from "../services/accent.js";
   import { priorityClass } from "../services/taskFields.js";
   import { formatDate } from "../services/dates.js";
   import { S } from "../services/strings.js";
@@ -16,8 +17,12 @@
     task,
     list,
     /// `{label, color}` — the space this card came from, when the card is
-    /// shown OUTSIDE it (the day, the week). Null inside its own space.
+    /// shown OUTSIDE it (the day, the week): drawn as a bar of its colour on
+    /// the card's left edge. Null inside its own space.
     origin = null,
+    /// The colour of the space the card is IN — what its tags wear when
+    /// there is no origin to take it from (services/accent.js, a name).
+    color = null,
     selected = false,
     onComplete,
     onEdit,
@@ -194,12 +199,14 @@
   class:task-row--done={task.done}
   class:task-row--finishing={finishing && !task.done}
   class:task-row--restoring={finishing && task.done}
+  class:task-row--origin={!!origin}
   data-card={index}
   tabindex={focusable ? 0 : -1}
   onclick={() => onSelect?.(list, task)}
   onfocusin={() => onFocused?.()}
   use:gesture={swipeOptions}
 >
+  {#if origin}<span class="theme-origin" style={dotStyle(origin.color)} aria-hidden="true"></span>{/if}
   <!-- What a swipe uncovers: a square in the space the card leaves, at the end
        it is leaving (wireframe `Delete task.pdf`). Real markup, not a
        background image, so it draws the app's own Phosphor icons; which of the
@@ -298,9 +305,9 @@
           >{/if}
         {#each (f("taskTags") ? (task.tags ?? []) : []) as tag}<Badge
             label={`#${tag}`}
+            color={origin?.color ?? color}
             class="task-row__tag"
           />{/each}
-        {#if origin}<Badge label={origin.label} color={origin.color} class="task-row__origin" />{/if}
       </div>
     {/if}
 

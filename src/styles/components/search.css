@@ -64,6 +64,7 @@
   }
 
   .search__hit {
+    position: relative;
     inline-size: 100%;
     justify-content: space-between;
     border: none;
@@ -109,11 +110,12 @@
   }
 
   /* Where it lives — `Tasks · Inbox`. */
+  /* Room for the origin bar (.theme-origin) on the start side. */
+  .search__hit--origin {
+    padding-inline-start: var(--app-space-16);
+  }
   .search__hit-place {
     flex: none;
-    display: inline-flex;
-    align-items: center;
-    gap: var(--app-space-6);
     font-size: var(--app-text-10);
     color: var(--app-ink-muted);
     white-space: nowrap;

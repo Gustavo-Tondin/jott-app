@@ -16,6 +16,11 @@
     border: none;
     border-radius: var(--app-radius-md);
     cursor: pointer;
+  }
+  /* Room for the origin bar (.theme-origin, controls.css) on the start
+     side, only when there is one: inside its own space a card has no bar. */
+  .task-row--origin {
+    padding-inline-start: var(--app-space-16);
     /* The whole card is the drag handle (no grip since 2026-08-04): a drag
        must never start a text selection along the way. */
     user-select: none;

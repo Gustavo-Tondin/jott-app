@@ -2776,6 +2776,7 @@
             <HomeView
               {compact}
               origin={originOfItem}
+              notesColor={spColors[layout.homeNotesSource || layout.notesFolder] ?? null}
               root={notebook.path}
               dot={colorOf(view)}
               composing={composingTask}
@@ -2903,6 +2904,7 @@
               catalogue={tags}
               dateFormat={layout.dateDisplayFormat}
               tagsEnabled={f("noteTags")}
+              color={colorOf(view)}
               onSetTags={setNoteTags}
               onCreateTag={createNoteTag}
             />
@@ -3089,6 +3091,7 @@
           <TaskInspector
             task={selected.task}
             list={selected.list}
+            color={spColors[folderOf(selected.list)] ?? null}
             lists={moveTargets}
             {tags}
             {compact}

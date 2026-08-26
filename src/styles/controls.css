@@ -590,14 +590,32 @@
   }
 
   /* ---------------------------------------------------------------------------
-     Badge — a small READ-ONLY label on a card (2026-08-26): where an item
-     came from (its space, in the space's colour) or a `#tag` (neutral).
+     Origin — WHERE a card came from, as colour alone (wireframe "Home Screen
+     - mobile", 2026-08-26): a bar the height of the card on its left edge,
+     in the space's colour, strong. No word: the name would compete with the
+     task, and a pill said "tag" more than it said "place". The parent is
+     `position: relative` and leaves room on the start side (`--origin-room`
+     is what a wearer adds to its padding). `--dot` is the colour, as
+     dotStyle() writes it; unset, the app's accent (a fixed space).
+     --------------------------------------------------------------------------- */
+  .theme-origin {
+    position: absolute;
+    inset-block: var(--app-space-8);
+    inset-inline-start: var(--app-space-6);
+    inline-size: 0.25rem;
+    border-radius: var(--app-radius-pill);
+    background: var(--dot, var(--app-brand));
+    pointer-events: none;
+  }
+
+  /* ---------------------------------------------------------------------------
+     Badge — a small READ-ONLY label on a card (2026-08-26): a `#tag`, in the
+     colour of the card's space — the one colour a card wears — or neutral
+     where there is no place to take it from (the tag manager, the picker).
      Not a control — no hover, no active, no touch minimum: it is read, not
-     pressed, and a 44px origin label would be bigger than the task. Discreet
-     on purpose: the colour is in the text and in a soft outline, never a
-     fill, so a card carries at most ONE colour of the palette and it is the
-     space's. `--badge-color`/`--badge-line` come from badgeStyle(); unset,
-     the neutral defaults are the tag.
+     pressed. Discreet on purpose: the colour is in the text and in a soft
+     outline, never a fill. `--badge-color`/`--badge-line` come from
+     badgeStyle(); unset, the neutral defaults.
      --------------------------------------------------------------------------- */
   .theme-badge {
     display: inline-flex;

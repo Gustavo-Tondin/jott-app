@@ -22,6 +22,7 @@
   import { S } from "../services/strings.js";
   import { leafOf, listTitle, splitLabel } from "../services/paths.js";
   import { PRIORITIES, REPEAT_UNITS, cleanTagName, priorityClass, repeatCounts, repeatText } from "../services/taskFields.js";
+  import { badgeStyle } from "../services/accent.js";
   import { movedItem } from "../services/spaceOrder.js";
   import { reorderable } from "../actions/reorder.js";
   import Menu from "./Menu.svelte";
@@ -36,6 +37,8 @@
   let {
     task,
     list,
+    /// The colour of the task's space (a name) — what its tags wear.
+    color = null,
     readOnly = false,
     /// The narrow shell (shell/compact.js): this panel is a bottom sheet
     /// rather than a column, and a sheet closes by itself — see the toolbar.
@@ -543,7 +546,7 @@
          keeps the catalogue and the card in step. -->
     <div class="inspector__tags">
       {#each draft.tags as tag (tag)}
-        <span class="theme-badge inspector__tag">
+        <span class="theme-badge inspector__tag" style={badgeStyle(color)}>
           #{tag}
           {#if !readOnly}
             <button

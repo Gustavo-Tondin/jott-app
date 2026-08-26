@@ -64,10 +64,9 @@ what the current version is.
   auto-selected — unless you turn on "dated tasks join the day".
 - Due dates, priorities, tags, repetition, descriptions, subtasks and file
   attachments; completed tasks kept in their own file, restorable.
-- A task shown outside its space — on Today, in a search, among the
-  suggestions, in Completed — wears a badge with the space it came from,
-  in that space's colour. Tags are neutral `#chips`: the one colour a card
-  carries is its space's.
+- A task shown outside its space — on Today, in a search, in Completed —
+  carries a bar of its space's colour on its edge; its `#tags` are small
+  badges in that same colour. The one colour a card carries is its space's.
 - Every task carries the day it entered the app — a line you typed by hand
   gets today's date the next time the notebook opens, and nothing else
   about it changes.

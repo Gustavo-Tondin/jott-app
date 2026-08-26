@@ -15,7 +15,7 @@
   import { api } from "../services/api.js";
   import { S } from "../services/strings.js";
   import { listName, listLabel } from "../services/paths.js";
-  import Badge from "./Badge.svelte";
+  import { dotStyle } from "../services/accent.js";
   import { formatDate } from "../services/dates.js";
   import { ensureTaskId } from "../services/taskId.js";
   import { makeScreen } from "../services/act.js";
@@ -138,10 +138,9 @@
         size="0.75rem"
       />
       {#if section.color !== undefined}
-        <Badge label={section.label} color={section.color} />
-      {:else}
-        <span>{section.label}</span>
+        <span class="theme-dot suggestions-pane__dot" style={dotStyle(section.color)} aria-hidden="true"></span>
       {/if}
+      <span>{section.label}</span>
       <small class="suggestions-pane__count">{section.items.length}</small>
     </button>
 

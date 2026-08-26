@@ -590,6 +590,7 @@
     {root}
     banners={f("banners")}
     noteTags={f("noteTags")}
+    tagColor={dot}
     {picking}
     selected={picked.has(entry.path)}
     menu={cardMenu(entry)}
