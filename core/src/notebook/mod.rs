@@ -263,6 +263,7 @@ pub use notes::NoteFolderEntry;
 mod period;
 mod reminders;
 mod search;
+mod seen;
 mod spaces;
 mod suggestions;
 mod tags;
@@ -309,6 +310,10 @@ impl Notebook {
             // like the two below: a list that will not take the stamp must
             // not keep the notebook from opening.
             let _ = notebook.adopt_created();
+            // What the "last seen" index knew about notes that are no longer
+            // there. Derived, like the three below, and skipped outright when
+            // the index is empty.
+            let _ = notebook.prune_seen();
             // Clear expired trash and rebuild the aggregated Completed index —
             // both derived, so a failure here must not stop the notebook opening.
             let _ = notebook.reap_trash();

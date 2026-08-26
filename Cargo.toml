@@ -14,7 +14,7 @@ resolver = "2"
 #
 # Editing it by hand is fine; `packaging/release.sh <version>` does it and then
 # proves every derivation still lands on the same number.
-version = "0.43.0"
+version = "0.44.0"
 edition = "2021"
 license = "MIT"
 

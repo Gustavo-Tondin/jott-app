@@ -152,6 +152,23 @@ impl NoteFolder {
         Ok(found)
     }
 
+    /// Every note's address, without reading a single one.
+    ///
+    /// Between [`NoteFolder::notes`] and [`NoteFolder::count`]: the walk that
+    /// answers *which* notes exist, for the parts of the app that key on the
+    /// address alone (the "last seen" index, `crate::seen`) and would pay for
+    /// a parse of every file to learn nothing they use.
+    pub fn note_paths(&self) -> Result<Vec<String>> {
+        let mut found = Vec::new();
+        self.walk(&self.dir, &mut |path, relative| {
+            if is_note_file(path) {
+                found.push(relative.to_string());
+            }
+            Ok(())
+        })?;
+        Ok(found)
+    }
+
     /// Notes whose title or text matches `query`. An empty query is every
     /// note, so the search box starts showing everything.
     pub fn search(&self, query: &str) -> Result<Vec<NoteEntry>> {

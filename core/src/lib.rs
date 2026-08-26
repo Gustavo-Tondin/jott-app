@@ -29,6 +29,7 @@ pub mod relpath;
 pub mod reminders;
 pub mod rollover;
 pub mod search;
+pub mod seen;
 pub mod settings;
 pub mod space;
 pub mod state;
@@ -50,6 +51,7 @@ pub use notebook::{
     ListedTask, NoteFolderEntry, Notebook, NotebookContents, NotebookSummary, OriginAction,
 };
 pub use search::{HitKind, SearchHit, SearchResults};
+pub use seen::Seen;
 pub use settings::{Display, DisplayPrefs, NotebookSettings};
 pub use space::{FolderSettings, Group, GroupEntry, Space, SpaceConfig};
 pub use state::{Period, PeriodState, StateFile, TaskRef};

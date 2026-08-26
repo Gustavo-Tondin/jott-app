@@ -59,6 +59,13 @@ impl Change {
         }
 
         if path.starts_with(config_dir) {
+            // The rebuildable indexes are the app talking to itself. Opening
+            // a note writes `index/seen.json`, and announcing that would have
+            // every screen reload every time a note is opened — for a file no
+            // screen reads through the event.
+            if path.starts_with(config_dir.join(crate::seen::INDEX_DIR)) {
+                return None;
+            }
             // Anything under `themes/`, at any depth: the stylesheet, the
             // manifest, the folder appearing at all.
             if path.starts_with(config_dir.join(crate::themes::THEMES_DIR)) {
@@ -293,6 +300,23 @@ mod tests {
             Change::classify(config_dir.join("config.json"), &config_dir),
             Some(Change::Config)
         ));
+    }
+
+    #[test]
+    fn the_apps_own_indexes_wake_nobody() {
+        // Opening a note stamps `index/seen.json` (`crate::seen`). Announcing
+        // that would reload every screen every time a note is opened, for a
+        // file no screen reads through the event — and the index is derived,
+        // so nothing about the notebook changed.
+        let root = PathBuf::from("/caderno");
+        let config_dir = root.join(NOTEBOOK_CONFIG_DIR);
+        for name in [crate::seen::SEEN_FILE, "seen.json.bak"] {
+            assert_eq!(
+                Change::classify(config_dir.join(crate::seen::INDEX_DIR).join(name), &config_dir),
+                None,
+                "{name}"
+            );
+        }
     }
 
     #[test]

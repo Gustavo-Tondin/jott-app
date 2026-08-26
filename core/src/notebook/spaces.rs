@@ -396,6 +396,10 @@ impl Notebook {
         // The aggregated index holds paths too; it is reconstructible, so a
         // failure here must not fail the move.
         let _ = self.refresh_completed_index();
+        // So does the "last seen" one, keyed by root-relative address: every
+        // note under a moved space just changed address, and one whose stamp
+        // stayed behind reads as never opened.
+        self.seen_moved(&from_rel, &to_rel);
         Ok(())
     }
 
@@ -458,6 +462,7 @@ impl Notebook {
         }
         let sp = self.open_space(folder)?;
         self.trash_path(sp.root())?;
+        self.seen_gone(folder);
         Ok(())
     }
 }

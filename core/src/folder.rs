@@ -122,6 +122,13 @@ NOTHING IS DESTROYED
 
 A task or a file you delete in the app waits in .jott/trash/ before it goes
 for good — 30 days, unless you change that in Settings.
+
+THE .jott/index/ FOLDER IS NOT YOURS TO EDIT
+
+Everything under .jott/index/ is bookkeeping Jott writes for itself — which
+note you last had open, and the like. It holds nothing you wrote, it is
+rebuilt from what is around it, and deleting it costs you nothing but that
+bookkeeping. Everything you write lives in the .md files.
 ";
 
 /// A directory holding task lists. Cheap to build — it is a path, not a

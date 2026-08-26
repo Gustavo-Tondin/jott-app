@@ -127,6 +127,12 @@ pub fn read_note<R: Runtime>(
 ) -> CommandResult<NoteContent> {
     state.with_notebook(window.label(), |nb| {
         let note = nb.note_folder(&folder)?.read(&path)?;
+        // Opening a note is the moment the time axis calls "seen" (spec 3.6).
+        // Here and not in the core, because only this side knows the read was
+        // a person opening the note rather than a scan walking past it — and
+        // this is the ONE command the editor uses to open one. Best effort:
+        // an index that could not be written must not keep the note shut.
+        let _ = nb.mark_note_seen(&folder, &path);
         Ok(NoteContent {
             // The core's rule, not a second one: `trim_end_matches(".md")`
             // here used to strip REPEATED suffixes, so a note titled

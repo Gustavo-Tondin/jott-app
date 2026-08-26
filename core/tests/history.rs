@@ -104,3 +104,25 @@ fn importing_a_picture_is_not_recorded() {
         .unwrap();
     assert_eq!(history.undoable(), None);
 }
+
+#[test]
+fn the_last_seen_index_never_costs_an_action_its_undo() {
+    // Measured on 2026-08-26, when the index gained a backup file: the
+    // history watches `*.bak` by STAMP rather than by content, and one
+    // stamp-only file appearing makes the whole diff unrecordable — so
+    // deleting a note quietly stopped being undoable. `.jott/index/` is
+    // outside the history's scan now, and this is the guard.
+    let (dir, mut nb, mut history) = notebook();
+    let path = nb.create_note(NOTES_DIR, "Inbox", "Idea").unwrap();
+    // Twice, so the index has both a main file and a backup beside it.
+    nb.mark_note_seen(NOTES_DIR, &path).unwrap();
+    nb.write_note(NOTES_DIR, &path, "the idea\n").unwrap();
+    assert!(dir.path().join(".jott/index/seen.json").is_file());
+
+    nb.record(&mut history, "rename_note", |nb| {
+        nb.rename_note(NOTES_DIR, &path, "Other")
+    })
+    .unwrap();
+    assert_eq!(nb.undo(&mut history).unwrap().as_deref(), Some("rename_note"));
+    assert!(dir.path().join(NOTES_DIR).join(&path).exists());
+}

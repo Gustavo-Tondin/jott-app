@@ -33,6 +33,7 @@ MyNotebook/
 └── .jott/
     ├── config.json      ← preferences that travel with the notebook
     ├── themes/          ← the looks you brought in, if any
+    ├── index/           ← Jott's own bookkeeping, rebuildable
     ├── trash/           ← deleted things, waiting
     └── _FORMAT.txt      ← this document's short version, in every notebook
 ```
@@ -290,6 +291,15 @@ order you dragged things into.
 - **`trash/`** — everything deleted, with enough context to go back exactly
   where it was (a task returns to its line). Retention is configurable;
   0 means forever. The only destruction in Jott is you emptying the trash.
+
+- **`index/`** — bookkeeping Jott keeps for itself, **not a format and not
+  yours to edit**. Today it holds `seen.json`, a map of note address → the
+  local timestamp of the last time that note was opened, with a `seen.json.bak`
+  beside it that is read when the main file does not parse. It exists because
+  "last seen" must not be written *into* a note — reading a note would then
+  rewrite it. Everything here is rebuildable or simply losable: delete the
+  folder and you lose the last-seen stamps and nothing else. A tool written
+  against a notebook should ignore it.
 
 - **`_FORMAT.txt`** — the short version of this document, written into every
   notebook, in plain text. **Jott never overwrites it**: the file is yours.

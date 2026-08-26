@@ -141,6 +141,14 @@ pub fn civil_today() -> NaiveDate {
     Local::now().date_naive()
 }
 
+/// The wall clock as a local date AND time, no rollover offset — the stamp
+/// the "last seen" index writes (`crate::seen`). Beside [`civil_today`] for
+/// the same reason: `Local::now()` has one home, and the invariant test says
+/// so.
+pub fn civil_now() -> NaiveDateTime {
+    Local::now().naive_local()
+}
+
 /// This logical week's first day, by the system clock.
 pub fn this_week(offset: TurnOffset, starts_on: WeekStart) -> NaiveDate {
     logical_week_start_at(Local::now(), offset, starts_on)

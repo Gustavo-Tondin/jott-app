@@ -758,3 +758,134 @@ fn a_folder_of_notes_carries_a_colour_and_a_pin_in_the_space() {
     let on_disk = read(dir.path().join("jott.notes/.space.json"));
     assert!(!on_disk.contains("folders"), "{on_disk}");
 }
+
+// ------------------------------------------------------------- last seen
+//
+// The "seen" half of the time axis (spec 3.6, F2). Written beside the files
+// and never inside them, so reading a note never rewrites it; carried along
+// by every move the app makes, because an address that goes stale reads as
+// "never opened" — and the weekly sweep would then offer up the note its
+// owner reads every day.
+
+/// A notebook with one note in the fixed Notes space, already marked as seen.
+fn seen_notebook() -> (tempfile::TempDir, Notebook, String) {
+    let dir = tempfile::tempdir().unwrap();
+    let notebook = Notebook::init(dir.path()).unwrap();
+    let path = notebook.create_note("jott.notes", "Inbox", "Ideia").unwrap();
+    notebook.mark_note_seen("jott.notes", &path).unwrap();
+    (dir, notebook, path)
+}
+
+#[test]
+fn opening_a_note_is_remembered_beside_the_files_and_not_inside_them() {
+    let (dir, notebook, path) = seen_notebook();
+    let address = format!("jott.notes/{path}");
+
+    assert!(notebook.seen().at(&address).is_some());
+    // Beside: the index is a file of its own, under `.jott/index/`.
+    assert!(dir.path().join(".jott/index/seen.json").is_file());
+    // And not inside: the note itself carries no trace of having been read.
+    let text = read(dir.path().join("jott.notes").join(&path));
+    assert!(!text.contains("seen"), "{text}");
+}
+
+#[test]
+fn a_renamed_note_keeps_the_day_it_was_seen() {
+    let (_dir, notebook, path) = seen_notebook();
+    let was = notebook.seen().at(&format!("jott.notes/{path}")).unwrap();
+
+    let moved = notebook.rename_note("jott.notes", &path, "Outra").unwrap();
+    let seen = notebook.seen();
+    assert_eq!(seen.at(&format!("jott.notes/{moved}")), Some(was));
+    assert_eq!(seen.at(&format!("jott.notes/{path}")), None);
+}
+
+#[test]
+fn a_note_moved_to_another_space_keeps_it_too() {
+    let (dir, _notebook, path) = seen_notebook();
+    std::fs::create_dir_all(dir.path().join("Pessoal")).unwrap();
+    std::fs::write(
+        dir.path().join("Pessoal/.space.json"),
+        r#"{"schemaVersion":1,"type":"notes"}"#,
+    )
+    .unwrap();
+    let notebook = Notebook::open(dir.path()).unwrap();
+    let was = notebook.seen().at(&format!("jott.notes/{path}")).unwrap();
+
+    let landed = notebook
+        .move_note_to_space("jott.notes", &path, "Pessoal", "")
+        .unwrap();
+    let seen = notebook.seen();
+    assert_eq!(seen.at(&format!("Pessoal/{landed}")), Some(was));
+    assert_eq!(seen.at(&format!("jott.notes/{path}")), None);
+}
+
+#[test]
+fn a_renamed_folder_carries_the_notes_inside_it() {
+    let dir = tempfile::tempdir().unwrap();
+    let notebook = Notebook::init(dir.path()).unwrap();
+    notebook.create_note_folder("jott.notes", "2025").unwrap();
+    let path = notebook.create_note("jott.notes", "2025", "Ideia").unwrap();
+    notebook.mark_note_seen("jott.notes", &path).unwrap();
+
+    notebook
+        .rename_note_folder("jott.notes", "2025", "2026")
+        .unwrap();
+    assert!(notebook.seen().at("jott.notes/2026/Ideia.md").is_some());
+    assert_eq!(notebook.seen().at("jott.notes/2025/Ideia.md"), None);
+}
+
+#[test]
+fn a_deleted_folder_lets_its_notes_take_the_stamp_up_a_level() {
+    let dir = tempfile::tempdir().unwrap();
+    let notebook = Notebook::init(dir.path()).unwrap();
+    notebook.create_note_folder("jott.notes", "2025").unwrap();
+    let path = notebook.create_note("jott.notes", "2025", "Ideia").unwrap();
+    notebook.mark_note_seen("jott.notes", &path).unwrap();
+
+    notebook.delete_note_folder("jott.notes", "2025").unwrap();
+    // The notes moved up, and so did what the index knew about them.
+    assert!(notebook.seen().at("jott.notes/Ideia.md").is_some());
+}
+
+#[test]
+fn a_deleted_note_is_forgotten() {
+    let (_dir, notebook, path) = seen_notebook();
+    notebook.delete_note("jott.notes", &path).unwrap();
+    assert_eq!(notebook.seen().at(&format!("jott.notes/{path}")), None);
+}
+
+#[test]
+fn writing_a_note_counts_as_seeing_it() {
+    let dir = tempfile::tempdir().unwrap();
+    let notebook = Notebook::init(dir.path()).unwrap();
+    let path = notebook.create_note("jott.notes", "Inbox", "Ideia").unwrap();
+    // Created, not yet opened: nothing knows about it.
+    assert_eq!(notebook.seen().at(&format!("jott.notes/{path}")), None);
+
+    notebook.write_note("jott.notes", &path, "texto").unwrap();
+    assert!(notebook.seen().at(&format!("jott.notes/{path}")).is_some());
+}
+
+#[test]
+fn a_note_deleted_outside_the_app_is_pruned_on_open() {
+    let (dir, notebook, path) = seen_notebook();
+    let address = format!("jott.notes/{path}");
+    assert!(notebook.seen().at(&address).is_some());
+
+    std::fs::remove_file(dir.path().join("jott.notes").join(&path)).unwrap();
+    let notebook = Notebook::open(dir.path()).unwrap();
+    assert_eq!(notebook.seen().at(&address), None);
+}
+
+#[test]
+fn losing_the_index_loses_the_seen_and_nothing_else() {
+    let (dir, notebook, path) = seen_notebook();
+    notebook.write_note("jott.notes", &path, "o texto todo").unwrap();
+    let before = read(dir.path().join("jott.notes").join(&path));
+
+    std::fs::remove_dir_all(dir.path().join(".jott/index")).unwrap();
+    let notebook = Notebook::open(dir.path()).unwrap();
+    assert_eq!(notebook.seen().at(&format!("jott.notes/{path}")), None);
+    assert_eq!(read(dir.path().join("jott.notes").join(&path)), before);
+}

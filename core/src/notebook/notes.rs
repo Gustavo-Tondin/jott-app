@@ -95,6 +95,7 @@ impl Notebook {
         self.ensure_writable()?;
         let moved = self.note_folder(space)?.rename_folder(folder, name)?;
         self.move_folder_settings(space, folder, Some(&moved))?;
+        self.seen_moved(&seen::address_of(space, folder), &seen::address_of(space, &moved));
         Ok(moved)
     }
 
@@ -106,6 +107,13 @@ impl Notebook {
         // The subfolders moved UP rather than away, so their settings are not
         // dropped — they are re-keyed to where they landed.
         self.move_folder_settings(space, folder, None)?;
+        // And so is what the index knew about the notes inside them: they
+        // went up a level, they did not go away.
+        let (parent, _) = crate::relpath::split_parent(folder);
+        self.seen_moved(
+            &seen::address_of(space, folder),
+            &seen::address_of(space, parent),
+        );
         Ok(moved)
     }
 
@@ -156,7 +164,11 @@ impl Notebook {
     /// it does not have one — the lazy frontmatter's one writing moment.
     pub fn write_note(&self, space: &str, path: &str, body: &str) -> Result<()> {
         self.ensure_writable()?;
-        self.note_folder(space)?.write(path, body, self.today())
+        self.note_folder(space)?.write(path, body, self.today())?;
+        // Editing is seeing. The other half — opening one — is the bridge's
+        // call, since only it can tell reading-to-show from reading-to-scan.
+        let _ = self.mark_note_seen(space, path);
+        Ok(())
     }
 
     /// Creates a note and returns its address.
@@ -175,7 +187,9 @@ impl Notebook {
     /// address. Crossing into another space is [`Notebook::move_note_to_space`].
     pub fn move_note(&self, space: &str, path: &str, to_folder: &str) -> Result<String> {
         self.ensure_writable()?;
-        self.note_folder(space)?.move_to(path, to_folder)
+        let moved = self.note_folder(space)?.move_to(path, to_folder)?;
+        self.seen_moved(&seen::address_of(space, path), &seen::address_of(space, &moved));
+        Ok(moved)
     }
 
     /// Keeps a note at the top of the board, or stops.
@@ -212,7 +226,9 @@ impl Notebook {
         self.ensure_writable()?;
         let note_folder = self.note_folder(folder)?;
         let abs = note_folder.note_path(relative)?;
-        self.trash_path(&abs)
+        self.trash_path(&abs)?;
+        self.seen_gone(&seen::address_of(folder, relative));
+        Ok(())
     }
 
     /// Copies a note beside itself, returning the new address.
@@ -251,8 +267,9 @@ impl Notebook {
 
         if from_space == to_space {
             // The same move, within one space — no reason to have two code
-            // paths for it, and `move_to` is the one with the tests.
-            return source_space.move_to(relative, to_folder);
+            // paths for it, and `move_note` is the one that keeps the index
+            // pointing at the note.
+            return self.move_note(from_space, relative, to_folder);
         }
 
         let dir = target_space.folder_path(to_folder)?;
@@ -262,7 +279,12 @@ impl Notebook {
         // free-name dance every other move in the app goes through.
         let target = crate::fsio::free_name(&dir, &name);
         std::fs::rename(&source, &target).ctx(&target)?;
-        Ok(crate::relpath::relative_slash(target_space.dir(), &target))
+        let landed = crate::relpath::relative_slash(target_space.dir(), &target);
+        self.seen_moved(
+            &seen::address_of(from_space, relative),
+            &seen::address_of(to_space, &landed),
+        );
+        Ok(landed)
     }
 
     // ------------------------------------------------------------ assets
@@ -314,6 +336,7 @@ impl Notebook {
         let moved = notes.rename(path, title)?;
         let now = crate::notefolder::title_of(&moved);
         self.retarget_note_links(&was, &now)?;
+        self.seen_moved(&seen::address_of(folder, path), &seen::address_of(folder, &moved));
         Ok(moved)
     }
 
