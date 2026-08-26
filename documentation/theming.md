@@ -4,6 +4,15 @@ A theme is **one CSS file**. No build step, no JavaScript, no plugin API —
 which is why this is the smallest useful thing you can make for Jott, and it
 needs no Rust at all.
 
+Since 2026-08-26 there are two separate questions, and a theme answers only
+one of them:
+
+- **Mode** — *jott* (black frame, white page), *light*, *dark*. The app's
+  own three; a setting, per machine.
+- **Theme** — the palette: the colours, the spacing scale, the radius
+  ladder. The app ships one (`jott`), and **a theme wears any mode**: write
+  the colours once and they work light, dark and jott.
+
 There are two places a theme can live, and the file is the same either way:
 
 - **In your notebook**, under `.jott/themes/`. Nobody else has to agree —
@@ -11,17 +20,17 @@ There are two places a theme can live, and the file is the same either way:
   other machines. Start here.
 - **In the app**, by pull request, if you think everyone should have it.
 
-## The quickest path: let the app write the first one
+## The quickest path: edit the one that is already there
 
-Settings → Display → **New theme from this one**. It asks for a name and
-writes `.jott/themes/<name>/` into your notebook, containing the look you are
-wearing right now — every role already assigned, in the right shape. Then
-open `theme.css` in any editor and change colours. **Saving the file repaints
-the app**, so the loop is: save, look, save again.
+Every notebook carries the app's own palette as a file: **`.jott/themes/jott.css`**.
+The app writes it the first time it opens the notebook and never overwrites
+it. Open it, change a colour, save — **the app repaints**. Delete it and the
+next open brings the factory one back. That file is the whole contract: about
+a hundred `--theme-*` tokens in one `:root { … }`.
 
-That button exists because of a real cost: a theme assigns both regions in
-full, which is around 170 declarations. Typing those out of this page is not
-something anybody does; editing a file that already works is.
+To keep the factory palette and make another: Settings → Display → **New
+theme from this one**. It asks for a name and writes `.jott/themes/<name>/`
+with the palette you are wearing right now, in the same shape.
 
 ## Bringing one in by hand
 
@@ -71,115 +80,111 @@ left alone — that is how a self-contained theme carries an image.
 
 ## The idea in one screen
 
-The app has no "mode". It has **two regions**, and each declares its own
-ground:
+Three layers, one hop between each:
+
+```
+THEME   what you write            :root { --theme-color-blue-300: #66a3ff; … }
+  │     a mode is the function between the two, per region
+MODE    what the app ships        [data-mode="dark"] [data-region="chrome"] {
+                                    --app-bg: var(--theme-color-black);
+                                    --app-blue-3: var(--theme-color-blue-300); … }
+  │
+APP     what a component reads    .theme-btn { background: var(--app-brand); }
+```
+
+A **theme** writes `--theme-*` and nothing else. It knows nothing about
+regions, modes or roles. A **mode** reads the theme's tokens and decides
+what goes where, for the app's two regions:
 
 ```
 [data-region="chrome"]   title bar · tab strip · sidebar · right panel
 [data-region="canvas"]   the content panel in the middle
 ```
 
-The factory theme is a black chrome around a white canvas, and that contrast
-is the app's face. A theme is free to make both grounds dark, both light, or
-anything else — it just has to say so for each region.
+The jott mode is a black chrome around a white canvas, and that contrast is
+the app's face; light and dark paint both regions the same way. A
+**component** reads `--app-*` only.
 
 **One rule the whole design depends on:**
 
 > **No role reads another role.**
 
-A role takes a literal value, a `--theme-color-*` entry, or a `color-mix` of two
-of those. One hop, never a chain. Reading any line of a theme tells you what
-the colour actually is, instead of sending you through three files. An
-architecture test enforces this, so a chain fails `npm test` rather than
-being found later.
+A mode assigns each `--app-*` from a `--theme-*` token or a `color-mix` of
+two; a theme assigns each `--theme-*` a literal. One hop per layer, never a
+chain. Architecture tests enforce every edge of this triangle — a component
+reading `--theme-*`, a mode writing `--theme-*`, a theme reading anything —
+so a mistake fails `npm test` rather than being found later.
 
 ---
 
-## What a theme has to assign
+## What a theme declares
 
-Whichever of the two places it lives in, a theme is the same file — and it
-**replaces** the colours rather than patching them. That is the contract that
-keeps every role one hop from a real colour instead of a chain through three
-files.
+The contract is the factory file, `styles/themes/jott.css` in the repository
+and `.jott/themes/jott.css` in your notebook. A theme declares what it wants;
+whatever it leaves out keeps the factory value, because the factory palette
+is always loaded underneath.
 
-Selectors differ by destination, and only in the first line of each rule:
-
-| Living in | Rule reads | Why |
+| Group | Tokens | How many |
 |---|---|---|
-| your notebook | `[data-region="chrome"] { … }` | `data-theme` carries your theme's name, so no theme the app ships matches — yours is the only one painting. Renaming the folder cannot break it. |
-| the app | `[data-theme="solarized"] [data-region="chrome"] { … }` | every theme the app ships is loaded at once, and the attribute picks |
+| grounds | `--theme-color-white`, `-white-tint`, `-black`, `-black-tint`, `-gray` | 5 |
+| the eight | `--theme-color-<yellow \| orange \| pink \| green \| blue \| red \| purple \| neutral>-<100…700>` | 56 |
+| status | `--theme-color-<danger \| warning \| success>-<100…700>` | 21 |
+| shape | `--theme-radius-<xs \| sm \| md \| lg \| xl \| pill>`, `--theme-space-<2 4 6 8 10 12 16 24 32 40 48 64>` | 18 |
 
-A notebook theme *may* use the keyed form too, as long as the name matches
-its folder — which is why a theme copied out of the app works unchanged.
+Things worth knowing before you change them:
 
-**Assign the roles for both regions.** The list is at the top of
-   `default.css`, and it is the whole list — the short version:
-
-   | Role | What it is |
-   |---|---|
-   | `--app-bg` | the region's own fill |
-   | `--app-surface`, `--app-surface-sunken` | the step off it: cards, chips, fields, popovers |
-   | `--app-ink`, `--app-ink-muted` | text on the ground, and the same ink at 55% |
-   | `--app-on-brand` | text on a filled accent — the region's own ground, so a bright accent takes dark ink |
-   | `--app-hover` | the veil a row lifts with: ink at 8% |
-   | `--app-shadow-popover` | what lifts a menu off the page |
-   | `--app-<name>-1` … `-6` | each of the eight colours as a six-rung ladder, 1 strongest. H1–H6 stand on these rungs |
-   | `--app-<name>`, `-line`, `-tint` | the base (rung 3), a border/focus alpha, and a quiet fill |
-   | `--app-danger`, `-warning`, `-success` (+ `-tint`), `--app-emphasis` | four of the eight, straight from the palette, so status never changes meaning with the accent; the `-tint` is the quiet fill behind a notice |
-
-### The four colour roles
-
-Where a colour the person chose ends up is not free-form — the interface
-keeps one form per role, so a blue dot, a blue badge and a blue block never
-mean the same thing:
-
-| Role | Question it answers | Who carries it | The one form |
-|---|---|---|---|
-| **origin** | where did this come from? | a space (its group's colour wins) | the sidebar's bar, the tab's dot — and, outside the space, a **badge** with the space's name: outline on `--app-<name>-line`, text on rung 2 |
-| **subject** | what is it about? | a tag | the same badge, **neutral** — `#tag` in `--app-ink-muted` on `--app-line`; a tag has no colour of its own |
-| **surface** | the face of a thing | a note's banner (`-fill`, step 300), a folder of notes (`-tint`), a notebook's card (`-solid`, step 500) | a fill; the picker previews the step it will paint with |
-| **status** | urgent? wrong? | priority, an overdue date, a notice | `--app-danger` / `-warning` / `-success`, fixed — never one of the eight by name |
-
-The rule that holds it together: **a card carries at most one colour of the
-palette, and it is its space's.** Everything else on it is neutral or status.
-A theme that wants the badge to look different restyles `.theme-badge`
-(`--badge-color`, `--badge-line`).
-
-### Changing what the eight colours are
-
-Most of the file is them: each of the eight, as a ladder, for each region.
-They are ordinary values — a theme that wants its own palette writes literals
-and never mentions `--theme-color-*`. Three things to know before you do:
-
+- **Every colour family runs the same seven steps** (100 palest → 700
+  deepest) on one tone grid, and the modes read a *step* — 300 as the base
+  on a dark ground, 500 on a light one, 200/600 for emphasis, 100/700 for
+  the quiet fills. Keep the grid and the whole app follows; break it and a
+  heading may stop clearing its ground. Four steps are pinned to a contrast
+  floor: 200/600 at 7:1, 300/500 at 4.5:1 against their ground. (Tests
+  measure the factory file; a notebook theme is yours, and nothing checks it
+  but your eyes.)
+- **`neutral` is the eighth colour**, the white↔black family; the modes read
+  it one step further out because it runs on the same axis as the grounds.
+- **Status is its own three families.** `danger`, `warning`, `success` are
+  seeded from red, yellow and green, but they are separate tokens: make your
+  `red` sea-green and the error notice stays red — unless you change
+  `danger` too.
 - **Which of the eight is the accent stays the reader's choice** (Settings →
   Display), never the theme's. A theme says what `blue` *looks like*; the
-  person says whether the app wears blue. Assigning `--app-brand` takes
-  that away.
-- **The ladder runs 1 (strongest) → 6 (faintest), and H1–H6 stand on those
-  rungs in order.** Keep it monotonic or headings stop agreeing with their
-  own size.
-- **`--app-<name>-fill` is not in the theme file** — it is the same in
-  every theme and both regions, because a banner is a surface with nothing
-  written on it and a yellow note should be yellow under any lamp. A notebook
-  theme can still override it (`:root { --app-yellow-fill: #e8d9a0; }`),
-  since it is loaded after everything else.
+  person says whether the app wears blue.
+- **Spacing and radius are the theme's too.** A squarer or roomier Jott is a
+  theme, not a fork.
+
+### Going further: a full theme
+
+A theme file may also write `--app-*` roles, or restyle any `.theme-*`
+control or BEM block. It is injected at the end of `<head>` and outside every
+layer, so it wins over the modes and over `roles.css` — that is how a theme
+reaches `--app-<name>-fill`, the one role the modes keep the same on every
+ground. Two things to know:
+
+- A full theme keyed on its own name (`[data-theme="mine"] [data-region="chrome"] { … }`)
+  is named on the root only after its stylesheet is in the document; a
+  palette-only theme needs no key at all.
+- **What a mode assigns** is listed at the top of `styles/modes/jott.css`,
+  and it is the whole list: the two grounds and the ink, `--app-<name>-1…-6`
+  per colour (a six-rung ladder, 1 strongest; H1–H6 stand on these rungs),
+  the base, `-line` and `-tint`, the status roles and their `-tint`, the
+  hover veil and the popover shadow.
 
 ### If your theme ships with the app
 
-Three more lines, in three files:
+A palette is one file, `src/styles/themes/<name>.css`, plus the Settings
+line that offers it. A new *mode* is three lines in three files:
 
 ```
-src/app.css                    @import "./styles/themes/solarized.css";
-src/lib/services/themes.js     a line in THEMES
+src/app.css                    @import "./styles/modes/<name>.css";
+src/lib/services/themes.js     a line in MODES
 src/lib/services/strings.js    its label and one-line hint
 ```
 
 Then **`npm test`.** The architecture tests will tell you if a role reads
-another role, if your theme is missing a role the other themes assign, if a
-component reads a role you didn't assign, or if a floating panel doesn't get
+another role, if your mode is missing a role the other modes assign, if a
+component reads a role nobody assigns, or if a floating panel doesn't get
 the region's two neutrals swapped. They are the review, and they are fast.
-(They only see themes in the repository — a notebook theme is yours, and
-nothing checks it but your eyes.)
 
 ---
 
@@ -205,7 +210,7 @@ two grounds: taking the same steps as a hue would make its first rung a grey
 instead of white, and its tint the ground itself. Everything else about it is
 ordinary.
 
-One role is the same in every theme and both regions: `--app-<name>-fill`
+One role is the same in every mode and both regions: `--app-<name>-fill`
 (step 300). A banner is a surface with nothing written on it — a yellow note
 is yellow under any lamp.
 
@@ -215,35 +220,37 @@ is yellow under any lamp.
 
 ```
 src/styles/
-├── tokens.css        the palette (8 colours × 7 steps) and the metric scales
-├── roles.css         the roles that are the same everywhere, and the two
-│                     runtime choices: which colour is the accent, and whether
-│                     headings take it
-├── themes/*.css      one file per theme: the colours, per region
+├── themes/jott.css   THE THEME: the palette (8 + 3 status families × 7
+│                     steps, the grounds), the spacing and radius scales —
+│                     `--theme-*`, literals only. Written into notebooks.
+├── modes/*.css       one file per MODE: `--app-*` per region, read from
+│                     the theme's tokens
+├── roles.css         the shared mode: the roles that are the same in every
+│                     mode, and the two runtime choices (which colour is the
+│                     accent, and whether headings take it)
+├── tokens.css        the app's structural vocabulary — type, layout,
+│                     motion — as `--app-*`; spacing and radius point at
+│                     the theme's
 ├── controls.css      the shared .theme-* controls
 └── components/*.css  one file per BEM block
 ```
 
 Two conventions that will bite if you don't know them:
 
-- **`editor.css` is the only sheet outside `@layer`, and it has to be.**
-  CodeMirror injects its base theme as an unlayered `<style>` at the top of
-  `<head>`, and unlayered declarations beat layered ones regardless of
-  specificity. In a layer, our rules would lose silently.
+- **`editor.css` is the only component sheet outside `@layer`, and it has to
+  be.** CodeMirror injects its base theme as an unlayered `<style>` at the
+  top of `<head>`, and unlayered declarations beat layered ones regardless of
+  specificity. In a layer, our rules would lose silently. (The modes are
+  unlayered too, by design, and `themes/jott.css` is plain `:root` so the
+  bytes on disk match the bundle — `app.css` puts it in the tokens layer.)
 - **`:global(…)` is forbidden in `src/styles/`.** It is Svelte `<style>`
   syntax, and this project has no `<style>` blocks. To a browser it is an
   unknown pseudo-class, and the whole rule is discarded.
 
-**The honest downside**, so you know before you start: a theme is ~50
-assignments per region, most of them mechanical. It is verbose by design —
-the alternative was letting roles read roles, and then no line of a theme
-would tell you what a colour actually is. "New theme from this one" is the
-answer to the typing; making the *file* smaller without giving up the rule is
-still open, and a themer's opinion on how would be welcome in an issue.
-
 ## Not a theme, but nearby
 
-Accent colour (any of the eight), heading colour, note font size and three
-font choices are **settings**, not themes: they work on top of whichever
-theme is on, and they are per machine. A theme should look right under all
-eight accents — that's what the ladder is for.
+The mode, the accent colour (any of the eight), the heading colour, the note
+font size and the three font choices are **settings**, not themes: they work
+on top of whichever theme is on, and they are per machine. A theme should
+look right under all three modes and all eight accents — that is what the
+tone grid and the ladder are for.

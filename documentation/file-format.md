@@ -279,11 +279,13 @@ order you dragged things into.
   files. A `color` on an entry is read and kept from notebooks written
   before it was dropped; the app no longer shows or offers one.
 
-- **`themes/`** — the looks this notebook carries, each either a
+- **`themes/`** — the palettes this notebook carries, each either a
   `<name>.css` or a `<name>/` holding `theme.css` and an optional
-  `manifest.json`. Yours: the app only ever reads them, except for the one
-  button that writes a starting point. Written in full in
-  [`theming.md`](theming.md).
+  `manifest.json`. **`jott.css` is the app's own palette**, written here the
+  first time the notebook opens and never overwritten: edit it and the app
+  follows, delete it and the factory one comes back. The others are yours;
+  the app only reads them, except for the one button that writes a starting
+  point. Written in full in [`theming.md`](theming.md).
 
 - **`trash/`** — everything deleted, with enough context to go back exactly
   where it was (a task returns to its line). Retention is configurable;
