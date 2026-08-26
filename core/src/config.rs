@@ -206,11 +206,17 @@ pub struct Config {
     /// never heard of instead of silently resetting it. Empty means "whatever
     /// the app ships as".
     pub accent_color: String,
-    /// Which theme is on — `default`, `light`, `dark` (2026-08-13). Same
-    /// covenant as `accent_color` in every respect: a NAME, never colours; not
-    /// policed here, because the list of themes is the interface's and a
-    /// notebook written by a newer build must keep a theme this one cannot
-    /// draw. Empty means the one the app ships as.
+    /// Which MODE is on — `jott`, `light`, `dark` (2026-08-26; until then
+    /// the three were the `theme`). Same covenant as `accent_color`: a NAME,
+    /// not policed here. Empty means the one the app ships as. A file with
+    /// no `mode` and a `theme` of the old three reads that as the mode
+    /// (`settings::split_legacy_theme`) — tolerance, not migration.
+    pub mode: String,
+    /// Which THEME — the palette, `.jott/themes/<name>` — is on (2026-08-13,
+    /// re-cut 2026-08-26). Same covenant as `accent_color` in every respect:
+    /// a NAME, never colours; not policed here, because the list of themes is
+    /// the notebook's and a notebook written by a newer build must keep a
+    /// theme this one cannot draw. Empty means the one the app ships as.
     pub theme: String,
     /// Whether headings (H1–H6, and the titles that share their scale) are
     /// drawn in the accent or in plain ink (2026-08-17). `"ink"` turns the
@@ -370,6 +376,7 @@ impl Default for Config {
             auto_space_colors: false,
             date_display_format: DateFormat::default(),
             accent_color: String::new(),
+            mode: String::new(),
             theme: String::new(),
             heading_color: String::new(),
             note_font_size: String::new(),
@@ -532,6 +539,17 @@ impl Config {
             .unwrap_or_default();
 
         let defaults = Self::default();
+        // `mode` and `theme` (2026-08-26): a file written before the split
+        // has only `theme`, holding one of the old three looks — read as
+        // the mode it meant, leaving the palette as the app's own.
+        let (mode, theme) = match (string(&raw, "mode"), string(&raw, "theme")) {
+            (Some(mode), theme) => (mode, theme.unwrap_or_default()),
+            (None, Some(theme)) => match crate::settings::split_legacy_theme(&theme) {
+                (Some(mode), rest) => (mode.to_string(), rest.to_string()),
+                (None, rest) => (String::new(), rest.to_string()),
+            },
+            (None, None) => (defaults.mode.clone(), defaults.theme.clone()),
+        };
         Self {
             schema_version,
             rollover,
@@ -564,7 +582,8 @@ impl Config {
                 .map(DateFormat::parse_or_default)
                 .unwrap_or_default(),
             accent_color: string(&raw, "accentColor").unwrap_or(defaults.accent_color),
-            theme: string(&raw, "theme").unwrap_or(defaults.theme),
+            mode,
+            theme,
             heading_color: string(&raw, "headingColor").unwrap_or(defaults.heading_color),
             note_font_size: string(&raw, "noteFontSize").unwrap_or(defaults.note_font_size),
             interface_font: font(&raw, "interfaceFont", defaults.interface_font),
@@ -707,6 +726,7 @@ impl Config {
         // had one chosen says nothing about it.
         for (key, value) in [
             ("accentColor", &self.accent_color),
+            ("mode", &self.mode),
             ("theme", &self.theme),
             ("headingColor", &self.heading_color),
             ("noteFontSize", &self.note_font_size),
@@ -1089,12 +1109,15 @@ mod tests {
         assert_eq!(config.theme, "");
         assert!(!config.render().contains("\"theme\""));
 
+        // A palette name — never one of the four the app owns (`jott`,
+        // `default`, `light`, `dark`), which `themes::RESERVED` refuses
+        // precisely so that an old `theme: "dark"` can only mean a mode.
         let chosen = Config {
-            theme: "dark".into(),
+            theme: "solarized".into(),
             ..Config::default()
         };
         let reparsed = Config::parse(&chosen.render());
-        assert_eq!(reparsed.theme, "dark");
+        assert_eq!(reparsed.theme, "solarized");
 
         let mut back = reparsed;
         back.theme = String::new();
@@ -1103,6 +1126,17 @@ mod tests {
         // A theme this build cannot draw survives: the list is the interface's.
         let future = Config::parse(r#"{ "schemaVersion": 1, "theme": "solarized" }"#);
         assert_eq!(future.theme, "solarized");
+        assert_eq!(future.mode, "");
+
+        // A file from before the split (2026-08-26): `theme` held the look.
+        let old = Config::parse(r#"{ "schemaVersion": 1, "theme": "dark" }"#);
+        assert_eq!((old.mode.as_str(), old.theme.as_str()), ("dark", ""));
+        let older = Config::parse(r#"{ "schemaVersion": 1, "theme": "default" }"#);
+        assert_eq!((older.mode.as_str(), older.theme.as_str()), ("jott", ""));
+        // With `mode` present, `theme` is a palette name whatever it says.
+        let both = Config::parse(r#"{ "schemaVersion": 1, "mode": "light", "theme": "dark" }"#);
+        assert_eq!((both.mode.as_str(), both.theme.as_str()), ("light", "dark"));
+        assert!(both.render().contains("\"mode\": \"light\""));
         assert!(future.render().contains("solarized"));
     }
 

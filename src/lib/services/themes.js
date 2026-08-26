@@ -1,29 +1,42 @@
-// The themes the app ships, and which one is on.
+// The MODES the app ships, and which one is on — and the theme's name.
 //
-// A theme is a CSS file that assigns the colour roles for the app's two
-// regions (styles/themes/default.css says how to write one). All of them are
-// loaded at once and each scopes its selectors to its own name, so switching
-// is a single attribute on <html> — no dynamic import, no flash, and the same
-// mechanism a user theme dropped in `.jott/themes/<name>.css` will use post-v1.
+// Two questions since 2026-08-26, not one. A MODE is a CSS file that assigns
+// the app's colour roles for the two regions, reading the theme's tokens
+// (styles/modes/jott.css says how to write one): jott (black frame, white
+// page), light, dark. All three are loaded at once and each scopes its
+// selectors to its own name, so switching is a single attribute on <html>.
+// A THEME is the palette — `--theme-color-*`, and the radius and spacing
+// scales — the app's own (styles/themes/jott.css) or one the notebook carries
+// in `.jott/themes/<name>.css`; a theme wears any mode.
 //
-// This list is the ONLY place the app knows a theme's name. Adding one is:
+// This list is the ONLY place the app knows a mode's name. Adding one is:
 // write the CSS file, import it in app.css, add a line here.
 
 import { S } from "./strings.js";
 
 /// In the order the settings screen offers them.
-export const THEMES = [
-  {
-    key: "default",
-    label: () => S.themeDefault,
-    hint: () => S.themeDefaultHint,
-  },
-  { key: "light", label: () => S.themeLight, hint: () => S.themeLightHint },
-  { key: "dark", label: () => S.themeDark, hint: () => S.themeDarkHint },
+export const MODES = [
+  { key: "jott", label: () => S.modeJott, hint: () => S.modeJottHint },
+  { key: "light", label: () => S.modeLight, hint: () => S.modeLightHint },
+  { key: "dark", label: () => S.modeDark, hint: () => S.modeDarkHint },
 ];
 
 /// What the app ships as, and what an unknown or missing name falls back to.
-export const DEFAULT_THEME = "default";
+export const DEFAULT_MODE = "jott";
+
+/// Whether a name is one of the app's three modes.
+export function isMode(name) {
+  return MODES.some((mode) => mode.key === name);
+}
+
+/// The mode to put on <html>, or null for the one the app ships as — the
+/// pact every root attribute keeps: absent is the stylesheet's own default
+/// (`modes/jott.css` also answers to `:root:not([data-mode])`). A name that is
+/// not a mode reads as the default too, rather than as an attribute matching
+/// no stylesheet at all, which would leave the app with no colour roles.
+export function modeAttribute(stored) {
+  return isMode(stored) && stored !== DEFAULT_MODE ? stored : null;
+}
 
 /// Whether H1–H6 (and the titles that share their scale) take the accent or
 /// plain ink — the second runtime choice about colour, next to the theme and
@@ -70,28 +83,21 @@ export function noteFontSizeAttribute(stored) {
   return known && stored !== DEFAULT_NOTE_FONT_SIZE ? stored : null;
 }
 
-/// The theme to put on <html>.
+/// The theme (the palette) to name on <html>, or null for the app's own.
 ///
-/// An empty setting means "the one the app ships as". A name the app ships is
-/// itself. A name the NOTEBOOK ships (`.jott/themes/`, 2026-08-25) is itself
-/// too — but only once its stylesheet is actually in the document, which is
-/// what `worn` says: until then the attribute stays on the default, because
-/// an attribute matching no stylesheet at all leaves the app with no colour
-/// roles assigned — not a fallback, a blank window.
+/// An empty setting means "the palette the app ships as" — nothing on the
+/// root. A name the NOTEBOOK carries (`.jott/themes/`, 2026-08-25) is named
+/// only once its stylesheet is actually in the document, which is what `worn`
+/// says: until then the attribute stays off, because a palette-only theme
+/// needs no attribute at all (its `:root` tokens are what the modes read),
+/// and a full theme keyed on its own name would otherwise match no
+/// stylesheet.
 ///
-/// That is also what happens to a name from a build that is not this one, or
-/// a theme whose file was deleted while it was in use. The notebook KEEPS the
-/// name either way (the core never validates a look, and a theme removed by a
-/// sync should come back when it does), so this is a display decision every
-/// time it is read, not a value written back.
-/// Whether a name is one of the app's own three. Asked wherever the answer
-/// decides which SOURCE a theme comes from — the bundle, or the notebook.
-export function isAppTheme(name) {
-  return THEMES.some((theme) => theme.key === name);
-}
-
-export function themeAttribute(stored, worn = null) {
-  if (!stored) return DEFAULT_THEME;
-  if (isAppTheme(stored)) return stored;
-  return stored === worn ? stored : DEFAULT_THEME;
+/// A name from a build that is not this one, or a theme whose file was
+/// deleted while it was in use, reads as the app's own the same way. The
+/// notebook KEEPS the name either way (the core never validates a look, and
+/// a theme removed by a sync should come back when it does), so this is a
+/// display decision every time it is read, not a value written back.
+export function paletteAttribute(stored, worn = null) {
+  return stored && stored === worn ? stored : null;
 }

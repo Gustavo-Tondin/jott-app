@@ -69,10 +69,15 @@ describe("frontend architecture", () => {
     // unlayered by design so a theme wins without a specificity fight
     // (app.css explains). Everything else keeps every style rule under an
     // @layer ancestor — at-rules like @media may wrap it on the way.
-    const exempt = new Set(["editor.css", "default.css", "light.css", "dark.css"]);
+    const exempt = new Set([
+      "components/editor.css",
+      "modes/jott.css",
+      "modes/light.css",
+      "modes/dark.css",
+    ]);
     const offenders = [];
     for (const f of walk(join(src, "styles"), ".css")) {
-      if (exempt.has(basename(f)) ) continue;
+      if (exempt.has(relative(join(src, "styles"), f))) continue;
       const css = readFileSync(f, "utf8")
         .replace(/\/\*[\s\S]*?\*\//g, "")
         .replace(/url\([^)]*\)/g, "");
@@ -127,14 +132,17 @@ describe("frontend architecture", () => {
   // tells you what a colour IS; these three tests are what keep it that way.
   // ---------------------------------------------------------------------------
 
+  // The three MODES (2026-08-26; they were the three "themes" until the
+  // palette became the theme): each assigns the app's roles for the two
+  // regions, reading the theme's tokens.
   const themes = () =>
-    walk(join(src, "styles", "themes"), ".css").map((f) => [
+    walk(join(src, "styles", "modes"), ".css").map((f) => [
       basename(f),
       readFileSync(f, "utf8").replace(/\/\*[\s\S]*?\*\//g, ""),
     ]);
 
   test("no role in a theme reads another role", () => {
-    // THE rule (styles/themes/default.css). `--app-bg: var(--ground)` and
+    // THE rule (styles/modes/jott.css). `--app-bg: var(--ground)` and
     // `--ground: var(--theme-color-black)` was the old shape: two files to answer
     // "what colour is the sidebar?".
     //

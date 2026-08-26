@@ -529,13 +529,14 @@ export const S = {
   monday: "Monday",
   sunday: "Sunday",
   dateFormat: "Date format",
+  mode: "Mode",
+  modeJott: "Jott",
+  modeJottHint: "Black frame, white page.",
+  modeLight: "Light",
+  modeLightHint: "Light throughout.",
+  modeDark: "Dark",
+  modeDarkHint: "Dark throughout.",
   theme: "Theme",
-  themeDefault: "Jott",
-  themeDefaultHint: "Black frame, white page.",
-  themeLight: "Light",
-  themeLightHint: "Light throughout.",
-  themeDark: "Dark",
-  themeDarkHint: "Dark throughout.",
   // Themes the reader brought into the notebook (2026-08-25). The hint names
   // the folder because that IS the whole installation procedure — there is no
   // import button, and there should not be one.

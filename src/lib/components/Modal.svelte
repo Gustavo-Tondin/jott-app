@@ -16,7 +16,7 @@
   // region and would inherit no colour role at all. They declare the CANVAS: a
   // dialog is content — naming a place, composing a task, asking a question —
   // and it opens over the panel, so it is made of the panel's material and not
-  // of the frame's (styles/themes/default.css).
+  // of the frame's (styles/modes/jott.css).
   let {
     /// What the dialog is called, for the screen reader.
     label = "",

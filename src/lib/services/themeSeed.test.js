@@ -8,7 +8,7 @@ import { seedFrom } from "./themeSeed.js";
 // point of the last test is the REAL file (the architecture tests read the
 // stylesheets the same way, for the same reason).
 const defaultTheme = readFileSync(
-  join(dirname(fileURLToPath(import.meta.url)), "../../styles/themes/default.css"),
+  join(dirname(fileURLToPath(import.meta.url)), "../../styles/modes/jott.css"),
   "utf8",
 );
 

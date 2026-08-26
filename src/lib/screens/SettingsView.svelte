@@ -28,8 +28,8 @@
   import { TYPE_ICONS } from "../services/spaceIcon.js";
   import { openExternal, ISSUES_URL } from "../services/external.js";
   import {
-    THEMES,
-    DEFAULT_THEME,
+    MODES,
+    DEFAULT_MODE,
     HEADING_COLORS,
     DEFAULT_HEADING_COLOR,
     NOTE_FONT_SIZES,
@@ -406,6 +406,7 @@
     [
       "display",
       [
+        S.mode,
         S.theme,
         S.accentColor,
         S.headingColor,
@@ -1021,14 +1022,15 @@
           {@render sectionTitle(S.sectionDisplay)}
           <p class="settings__hint">{S.sectionDisplayHint}</p>
 
-          <h3 class="settings__subtitle">{S.theme}</h3>
+          <h3 class="settings__subtitle">{S.mode}</h3>
 
-          <!-- The theme leads the section: it decides the ground everything else is
-               drawn on, including which half of the accent shows. A segmented group
-               rather than a select — there are three, and each is a look you want to
-               see the name of side by side. -->
-          {@render segmentedRow(S.theme, THEMES, form.theme || DEFAULT_THEME, (key) =>
-            putDisplay({ theme: key }),
+          <!-- The MODE leads the section: it decides the ground everything else
+               is drawn on, including which half of the accent shows. A segmented
+               group rather than a select — there are three, and each is a look
+               you want to see the name of side by side. The THEME (the palette)
+               is the block below, and the two are independent (2026-08-26). -->
+          {@render segmentedRow(S.mode, MODES, form.mode || DEFAULT_MODE, (key) =>
+            putDisplay({ mode: key }),
           )}
 
           <!-- The notebook's own themes (2026-08-25). A block, not four more

@@ -10,7 +10,7 @@
      utilities   one-off helpers
      overrides   escape hatch
 
-   The factory theme (styles/themes/default.css) — and any user theme loaded
+   The factory theme (styles/modes/jott.css) — and any user theme loaded
    after it — is imported UNLAYERED, so it wins over every layer above
    without a specificity fight. See docs/project-strategy.md 4.5. */
 
@@ -87,11 +87,13 @@
 /* The themes come last and UNLAYERED: they must win over every layer above
    without a specificity fight.
 
-   ALL THREE ship, and `data-theme` on <html> picks (services/themes.js). One
-   attribute, no dynamic import, no flash — and it is the same mechanism a
-   user theme dropped in `.jott/themes/<name>.css` will use post-v1. Each file
-   scopes every selector to its own name, so importing them all is inert
-   except for the one that matches. */
-@import "./styles/themes/default.css";
-@import "./styles/themes/light.css";
-@import "./styles/themes/dark.css";
+   ALL THREE MODES ship, and `data-mode` on <html> picks (services/themes.js):
+   jott (black frame, white page), light, dark. One attribute, no dynamic
+   import, no flash. Each file scopes every selector to its own name, so
+   importing them all is inert except for the one that matches. A mode reads
+   the THEME's tokens (`--theme-color-*`) and writes the APP's (`--app-*`);
+   a theme of the notebook (`.jott/themes/<name>.css`) is injected at the end
+   of <head> by shell/userTheme.js and may redefine either layer. */
+@import "./styles/modes/jott.css";
+@import "./styles/modes/light.css";
+@import "./styles/modes/dark.css";

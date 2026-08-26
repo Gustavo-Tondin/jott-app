@@ -72,6 +72,9 @@ pub struct NotebookLayout {
     /// attributes on the document root, and waiting for a second round trip
     /// would flash the wrong colours. Empty means what the app ships as.
     pub accent_color: String,
+    /// The mode (`jott`/`light`/`dark`) and the theme (the palette's name),
+    /// two questions since 2026-08-26.
+    pub mode: String,
     pub theme: String,
     /// Whether headings take the accent or plain ink (2026-08-17). Rides here
     /// for the same reason as the other two: it is an attribute on the
@@ -147,6 +150,7 @@ impl NotebookInfo {
                 table_layout: notebook.config().table_layout.clone(),
                 auto_space_colors: display.auto_space_colors,
                 accent_color: display.accent_color,
+                mode: display.mode,
                 theme: display.theme,
                 heading_color: display.heading_color,
                 note_font_size: display.note_font_size,

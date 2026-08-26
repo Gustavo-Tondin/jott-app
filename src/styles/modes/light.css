@@ -1,7 +1,7 @@
 /* themes/light.css — everything light. Wireframe: "home screen - light".
  *
  * How a theme is written, and the one rule every value obeys (a role reads the
- * PALETTE, never another role): themes/default.css.
+ * PALETTE, never another role): modes/jott.css.
  *
  * Both regions are on a light ground, so they share their ink and all eight
  * accents — read from the dark end of the tonal grid (base 500, tinted with
@@ -10,26 +10,26 @@
  * grey is what makes the content panel read as a sheet laid over the frame.
  */
 
-[data-theme="light"] {
+[data-mode="light"] {
   --app-canvas-ground: var(--theme-color-white);
   --app-canvas-ink: var(--theme-color-black);
 }
 
 /* ---- the two neutrals, in opposite order ------------------------------- */
-[data-theme="light"] [data-region="chrome"] {
+[data-mode="light"] [data-region="chrome"] {
   --app-bg: var(--theme-color-white-tint);
   --app-surface: var(--theme-color-white);
   --app-surface-sunken: var(--theme-color-white);
 }
-[data-theme="light"] [data-region="canvas"] {
+[data-mode="light"] [data-region="canvas"] {
   --app-bg: var(--theme-color-white);
   --app-surface: var(--theme-color-white-tint);
   --app-surface-sunken: var(--theme-color-white-tint);
 }
 
 /* ---- everything a light ground shares ---------------------------------- */
-[data-theme="light"] [data-region="chrome"],
-[data-theme="light"] [data-region="canvas"] {
+[data-mode="light"] [data-region="chrome"],
+[data-mode="light"] [data-region="canvas"] {
   --app-ink: var(--theme-color-black);
   --app-ink-muted: color-mix(in srgb, var(--theme-color-black) 55%, transparent);
   --app-on-brand: var(--theme-color-white);
@@ -156,8 +156,8 @@
  * here: a menu is a list of rows, not a panel with cards, and it has nothing
  * to raise.
  */
-[data-theme="light"] .sheet,
-[data-theme="light"] .theme-modal {
+[data-mode="light"] .sheet,
+[data-mode="light"] .theme-modal {
   --app-bg: var(--theme-color-white-tint);
   --app-surface: var(--theme-color-white);
   --app-surface-sunken: var(--theme-color-white);

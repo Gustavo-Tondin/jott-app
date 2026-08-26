@@ -244,7 +244,7 @@
      Six PURE palette steps do not fit: past 500 on a dark ground and past 400
      on a light one the ramp is out of contrast (2.0:1 — invisible, not weak).
      So the ladder walks in HALF steps through the legible stretch, which the
-     theme spells out per colour (styles/themes/default.css). It ends around
+     theme spells out per colour (styles/modes/jott.css). It ends around
      3.8:1 on a dark ground and 2.7:1 on a light one: H6 is faint on purpose,
      and it is the only rung that is.
 

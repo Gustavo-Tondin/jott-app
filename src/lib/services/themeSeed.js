@@ -16,7 +16,7 @@
 // the folder cannot break it.
 
 /// Every form the app's own themes key themselves on.
-const KEYED = /\[data-theme="[^"]*"\]|:root:not\(\[data-theme\]\)/g;
+const KEYED = /\[data-(?:theme|mode)="[^"]*"\]|:root:not\(\[data-(?:theme|mode)\]\)/g;
 
 /// Everything up to a rule's `{`: its comments and its selector list.
 const PRELUDE = /([^{}]*)\{/g;

@@ -1,7 +1,7 @@
 /* themes/dark.css — everything dark. Wireframe: "home screen - dark".
  *
  * How a theme is written, and the one rule every value obeys (a role reads the
- * PALETTE, never another role): themes/default.css.
+ * PALETTE, never another role): modes/jott.css.
  *
  * The mirror of light.css. Both regions are on a dark ground and share their
  * ink and all eight accents — read from the light end of the tonal grid
@@ -13,26 +13,26 @@
  * thing on screen.
  */
 
-[data-theme="dark"] {
+[data-mode="dark"] {
   --app-canvas-ground: var(--theme-color-black);
   --app-canvas-ink: var(--theme-color-white);
 }
 
 /* ---- the two neutrals, in opposite order ------------------------------- */
-[data-theme="dark"] [data-region="chrome"] {
+[data-mode="dark"] [data-region="chrome"] {
   --app-bg: var(--theme-color-black-tint);
   --app-surface: var(--theme-color-black);
   --app-surface-sunken: var(--theme-color-black);
 }
-[data-theme="dark"] [data-region="canvas"] {
+[data-mode="dark"] [data-region="canvas"] {
   --app-bg: var(--theme-color-black);
   --app-surface: var(--theme-color-black-tint);
   --app-surface-sunken: var(--theme-color-black-tint);
 }
 
 /* ---- everything a dark ground shares ----------------------------------- */
-[data-theme="dark"] [data-region="chrome"],
-[data-theme="dark"] [data-region="canvas"] {
+[data-mode="dark"] [data-region="chrome"],
+[data-mode="dark"] [data-region="canvas"] {
   --app-ink: var(--theme-color-white);
   --app-ink-muted: color-mix(in srgb, var(--theme-color-white) 55%, transparent);
   --app-on-brand: var(--theme-color-black);
@@ -159,8 +159,8 @@
  * here: a menu is a list of rows, not a panel with cards, and it has nothing
  * to raise.
  */
-[data-theme="dark"] .sheet,
-[data-theme="dark"] .theme-modal {
+[data-mode="dark"] .sheet,
+[data-mode="dark"] .theme-modal {
   --app-bg: var(--theme-color-black-tint);
   --app-surface: var(--theme-color-black);
   --app-surface-sunken: var(--theme-color-black);

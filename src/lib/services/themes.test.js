@@ -1,38 +1,37 @@
 import { describe, expect, test } from "vitest";
-import { DEFAULT_THEME, isAppTheme, themeAttribute } from "./themes.js";
+import { DEFAULT_MODE, MODES, isMode, modeAttribute, paletteAttribute } from "./themes.js";
 
-describe("themeAttribute", () => {
-  test("an empty setting is the theme the app ships as", () => {
-    expect(themeAttribute("")).toBe(DEFAULT_THEME);
-    expect(themeAttribute(null)).toBe(DEFAULT_THEME);
+describe("modeAttribute", () => {
+  test("the app's own mode is no attribute at all", () => {
+    expect(DEFAULT_MODE).toBe("jott");
+    expect(modeAttribute("")).toBeNull();
+    expect(modeAttribute(null)).toBeNull();
+    expect(modeAttribute("jott")).toBeNull();
   });
 
-  test("one of the app's own is itself", () => {
-    expect(themeAttribute("dark")).toBe("dark");
-    expect(themeAttribute("light", null)).toBe("light");
+  test("the other two are themselves", () => {
+    expect(modeAttribute("dark")).toBe("dark");
+    expect(modeAttribute("light")).toBe("light");
   });
 
-  test("a notebook's theme is worn only once its stylesheet is in", () => {
-    // The setting says solarized and nothing has been loaded yet: naming it
-    // now would leave the window with no colour roles assigned at all, so the
-    // attribute holds on the default until the CSS lands.
-    expect(themeAttribute("solarized", null)).toBe(DEFAULT_THEME);
-    expect(themeAttribute("solarized", "solarized")).toBe("solarized");
-  });
-
-  test("a name from another build falls back rather than painting nothing", () => {
-    // The notebook KEEPS the name — a theme deleted by a sync should come back
-    // when it does — so this is decided every time it is read.
-    expect(themeAttribute("nebula", "solarized")).toBe(DEFAULT_THEME);
+  test("a name that is not a mode reads as the default, never as a blank window", () => {
+    // `default` was the jott mode's name until 2026-08-26; the core reads it
+    // as jott before it gets here, and anything else unknown is the same.
+    expect(modeAttribute("default")).toBeNull();
+    expect(modeAttribute("solarized")).toBeNull();
+    expect(MODES.map((m) => m.key)).toEqual(["jott", "light", "dark"]);
+    expect(isMode("light")).toBe(true);
+    expect(isMode("")).toBe(false);
   });
 });
 
-describe("isAppTheme", () => {
-  test("tells the bundle's three from anything else", () => {
-    expect(isAppTheme("default")).toBe(true);
-    expect(isAppTheme("light")).toBe(true);
-    expect(isAppTheme("dark")).toBe(true);
-    expect(isAppTheme("solarized")).toBe(false);
-    expect(isAppTheme("")).toBe(false);
+describe("paletteAttribute", () => {
+  test("a notebook theme is named only once its stylesheet is in the document", () => {
+    expect(paletteAttribute("solarized", null)).toBeNull();
+    expect(paletteAttribute("solarized", "solarized")).toBe("solarized");
+    // A stale `worn` — the theme just switched and the old sheet is still in
+    // — must not name the NEW one before its CSS has landed.
+    expect(paletteAttribute("nebula", "solarized")).toBeNull();
+    expect(paletteAttribute("", null)).toBeNull();
   });
 });

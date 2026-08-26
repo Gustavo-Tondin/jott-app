@@ -68,7 +68,7 @@
        colour list of the three themes that ship here, which share them because
        they are one design. A theme with colours of its own writes them inline
        and never mentions this block — the only rule a theme obeys is that no
-       role reads another role (styles/themes/default.css).
+       role reads another role (styles/modes/jott.css).
 
        NEUTRALS — two per mode, and the design never uses a third. `-tint` is
        the step AWAY from the pure one: darker on light, lighter on dark. A
@@ -84,7 +84,7 @@
        colour list of the three themes that ship here, which share them because
        they are one design. A theme with colours of its own writes them inline
        and never mentions this block — the only rule a theme obeys is that no
-       role reads another role (styles/themes/default.css).
+       role reads another role (styles/modes/jott.css).
 
        THE GROUNDS — the two neutrals a region is painted with, and the only
        colours here that are not part of the tonal scale below. `-tint` is the
@@ -135,7 +135,7 @@
 
        The `neutral` ramp runs along the same axis as the app's two grounds,
        so its extremes would collide with them — which is why it, alone, takes
-       its roles one step further out (see styles/themes/default.css).
+       its roles one step further out (see styles/modes/jott.css).
        --------------------------------------------------------------------- */
     --theme-color-yellow-100: #f2e8cf;
     --theme-color-yellow-200: #dec483;

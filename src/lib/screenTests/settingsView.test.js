@@ -32,6 +32,7 @@ describe("SettingsView", () => {
     confirmImageDownloads: true,
     accentColor: "",
     theme: "",
+    mode: "",
   };
 
   const notebook = { path: "/n", name: "n", readOnly: false };
@@ -298,9 +299,9 @@ describe("SettingsView", () => {
     );
   });
 
-  test("the theme and the accent are chosen here, and stored by name", async () => {
-    // Both are a NAME, never colours (2026-08-13): the theme picks which CSS
-    // file dresses the app, the accent which of the seven the brand is. Absent
+  test("the mode and the accent are chosen here, and stored by name", async () => {
+    // Both are a NAME, never colours (2026-08-13): the mode picks which CSS
+    // file dresses the app, the accent which of the eight the brand is. Absent
     // means the one the app ships as, so the default reads as chosen without
     // the notebook having to say so.
     bridge({ notebook_settings: settings, set_machine_display: null });
@@ -314,7 +315,7 @@ describe("SettingsView", () => {
     await userEvent.click(screen.getByRole("button", { name: "Dark" }));
     await waitFor(() =>
       expect(invoke).toHaveBeenCalledWith("set_machine_display", {
-        display: { theme: "dark" },
+        display: { mode: "dark" },
       }),
     );
 
@@ -350,7 +351,7 @@ describe("SettingsView", () => {
     await userEvent.click(dark);
     await waitFor(() =>
       expect(invoke).toHaveBeenCalledWith("set_machine_display", {
-        display: { theme: "dark" },
+        display: { mode: "dark" },
       }),
     );
   });

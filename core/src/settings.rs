@@ -37,6 +37,11 @@ use crate::{TurnOffset, WeekStart};
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
 pub struct DisplayPrefs {
+    /// The MODE (2026-08-26): `jott` (black frame, white page), `light`,
+    /// `dark`. Until then the three were the `theme`, which now names the
+    /// PALETTE; an old `theme` holding one of them reads as a mode
+    /// (`split_legacy_theme`), so nothing is migrated.
+    pub mode: Option<String>,
     pub theme: Option<String>,
     pub accent_color: Option<String>,
     pub heading_color: Option<String>,
@@ -77,6 +82,9 @@ impl DisplayPrefs {
     /// same pact [`NotebookSettings`] makes about the notebook's own
     /// preferences.
     pub fn patch(&mut self, patch: DisplayPrefs) {
+        let patch = patch.normalized();
+        *self = self.normalized();
+        take(&mut self.mode, patch.mode);
         take(&mut self.theme, patch.theme);
         take(&mut self.accent_color, patch.accent_color);
         take(&mut self.heading_color, patch.heading_color);
@@ -102,6 +110,38 @@ impl DisplayPrefs {
     }
 }
 
+impl DisplayPrefs {
+    /// The same choices with an old-style `theme` (`default`, `light`,
+    /// `dark`) read as the `mode` it meant. Applied wherever the struct is
+    /// read or patched, never written back on its own: a file this build
+    /// never touches keeps its old key, and a file it writes gets `mode`.
+    pub fn normalized(&self) -> Self {
+        let mut out = self.clone();
+        if out.mode.is_none() {
+            if let Some(theme) = out.theme.as_deref() {
+                if let (Some(mode), rest) = split_legacy_theme(theme) {
+                    out.mode = Some(mode.to_string());
+                    out.theme = Some(rest.to_string());
+                }
+            }
+        }
+        out
+    }
+}
+
+/// What an old `theme` value means now that the palette is the theme: the
+/// three names that were the app's own looks are MODES (`default` was the
+/// jott mode's first name), and anything else is a palette name. Returns the
+/// mode, if the value was one, and the theme that is left.
+pub fn split_legacy_theme(theme: &str) -> (Option<&'static str>, &str) {
+    match theme.trim() {
+        "default" | "jott" => (Some("jott"), ""),
+        "light" => (Some("light"), ""),
+        "dark" => (Some("dark"), ""),
+        other => (None, other),
+    }
+}
+
 /// Overwrites `slot` with `value` only when `value` says something — an
 /// absent key in the patch leaves the stored choice alone.
 fn take<T>(slot: &mut Option<T>, value: Option<T>) {
@@ -123,6 +163,7 @@ fn take<T>(slot: &mut Option<T>, value: Option<T>) {
 /// restore — and they must not drift about which side wins.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Display {
+    pub mode: String,
     pub theme: String,
     pub accent_color: String,
     pub heading_color: String,
@@ -143,7 +184,9 @@ pub struct Display {
 
 impl Display {
     pub fn resolve(machine: &DisplayPrefs, config: &Config) -> Self {
+        let machine = machine.normalized();
         Self {
+            mode: machine.mode.clone().unwrap_or_else(|| config.mode.clone()),
             theme: machine.theme.clone().unwrap_or_else(|| config.theme.clone()),
             accent_color: machine
                 .accent_color
@@ -229,7 +272,9 @@ pub struct NotebookSettings {
     pub date_display_format: Option<String>,
     /// One of the eight, by name; empty goes back to the app's own.
     pub accent_color: Option<String>,
-    /// A theme name; empty goes back to the app's own.
+    /// The mode (`jott` / `light` / `dark`); empty goes back to the app's own.
+    pub mode: Option<String>,
+    /// A theme (palette) name; empty goes back to the app's own.
     pub theme: Option<String>,
     /// `"ink"` draws headings in plain ink; empty (or anything else) accents.
     pub heading_color: Option<String>,
@@ -291,6 +336,7 @@ impl NotebookSettings {
             auto_space_colors: Some(display.auto_space_colors),
             date_display_format: Some(display.date_display_format.clone()),
             accent_color: Some(display.accent_color.clone()),
+            mode: Some(display.mode.clone()),
             theme: Some(display.theme.clone()),
             heading_color: Some(display.heading_color.clone()),
             note_font_size: Some(display.note_font_size.clone()),
@@ -372,6 +418,9 @@ impl NotebookSettings {
         // (core/src/config.rs).
         if let Some(v) = &self.accent_color {
             config.accent_color = v.trim().to_string();
+        }
+        if let Some(v) = &self.mode {
+            config.mode = v.trim().to_string();
         }
         if let Some(v) = &self.theme {
             config.theme = v.trim().to_string();
@@ -633,14 +682,14 @@ mod tests {
     #[test]
     fn what_the_machine_did_not_answer_comes_from_the_notebook() {
         let mut config = Config::default();
-        config.theme = "dark".to_string();
+        config.mode = "dark".to_string();
         config.accent_color = "orange".to_string();
         config.show_list_counts = false;
 
         // A machine that never picked anything wears the notebook's look,
         // which is what lets a notebook carry it to a new screen.
         let display = Display::resolve(&DisplayPrefs::default(), &config);
-        assert_eq!(display.theme, "dark");
+        assert_eq!(display.mode, "dark");
         assert_eq!(display.accent_color, "orange");
         assert!(!display.show_list_counts);
     }
@@ -648,17 +697,17 @@ mod tests {
     #[test]
     fn what_the_machine_answered_wins_over_the_notebook() {
         let mut config = Config::default();
-        config.theme = "dark".to_string();
+        config.mode = "dark".to_string();
         config.show_list_counts = false;
 
         let machine = DisplayPrefs {
-            theme: Some("default".to_string()),
+            mode: Some("jott".to_string()),
             show_list_counts: Some(true),
             ..DisplayPrefs::default()
         };
         let display = Display::resolve(&machine, &config);
 
-        assert_eq!(display.theme, "default", "esta tela escolheu");
+        assert_eq!(display.mode, "jott", "esta tela escolheu");
         assert!(display.show_list_counts);
         // Untouched by this machine: still the notebook's.
         assert_eq!(display.accent_color, config.accent_color);
@@ -722,7 +771,7 @@ mod tests {
     #[test]
     fn a_patch_keeps_every_choice_it_does_not_mention() {
         let mut stored = DisplayPrefs {
-            theme: Some("dark".to_string()),
+            mode: Some("dark".to_string()),
             accent_color: Some("orange".to_string()),
             ..DisplayPrefs::default()
         };
@@ -731,7 +780,7 @@ mod tests {
             ..DisplayPrefs::default()
         });
 
-        assert_eq!(stored.theme.as_deref(), Some("dark"));
+        assert_eq!(stored.mode.as_deref(), Some("dark"));
         assert_eq!(stored.accent_color.as_deref(), Some("orange"));
         assert_eq!(stored.note_font_size.as_deref(), Some("large"));
     }
@@ -742,17 +791,54 @@ mod tests {
         // comes back filled, and the Display half comes back from the MACHINE
         // even though the write went to the notebook.
         let mut config = Config::default();
-        settings(r#"{"theme": "light", "confirmDeletes": false, "dailyAt": "04:00"}"#)
+        settings(r#"{"mode": "light", "confirmDeletes": false, "dailyAt": "04:00"}"#)
             .apply_to(&mut config);
 
         let machine = DisplayPrefs {
-            theme: Some("dark".to_string()),
+            mode: Some("dark".to_string()),
             ..DisplayPrefs::default()
         };
         let read = NotebookSettings::of(&config, &Display::resolve(&machine, &config));
 
         assert_eq!(read.confirm_deletes, Some(false));
         assert_eq!(read.daily_at.as_deref(), Some("04:00"));
-        assert_eq!(read.theme.as_deref(), Some("dark"), "a tela venceu o caderno");
+        assert_eq!(read.mode.as_deref(), Some("dark"), "a tela venceu o caderno");
+    }
+
+    #[test]
+    fn an_old_theme_of_the_three_reads_as_a_mode() {
+        // Until 2026-08-26 `theme` held `default`/`light`/`dark`. Nothing is
+        // migrated: the value is read as the mode it meant, and the theme
+        // (the palette) it leaves behind is the app's own.
+        let machine = DisplayPrefs {
+            theme: Some("dark".to_string()),
+            ..DisplayPrefs::default()
+        };
+        let display = Display::resolve(&machine, &Config::default());
+        assert_eq!(display.mode, "dark");
+        assert_eq!(display.theme, "");
+
+        // A palette name is a palette name, and a `mode` already there wins.
+        let both = DisplayPrefs {
+            mode: Some("light".to_string()),
+            theme: Some("dark".to_string()),
+            ..DisplayPrefs::default()
+        };
+        let display = Display::resolve(&both, &Config::default());
+        assert_eq!((display.mode.as_str(), display.theme.as_str()), ("light", "dark"));
+        assert_eq!(split_legacy_theme(" default "), (Some("jott"), ""));
+        assert_eq!(split_legacy_theme("solarized"), (None, "solarized"));
+
+        // Patching an old file writes `mode` from then on.
+        let mut stored = DisplayPrefs {
+            theme: Some("light".to_string()),
+            ..DisplayPrefs::default()
+        };
+        stored.patch(DisplayPrefs {
+            accent_color: Some("red".into()),
+            ..DisplayPrefs::default()
+        });
+        assert_eq!(stored.mode.as_deref(), Some("light"));
+        assert_eq!(stored.theme.as_deref(), Some(""));
     }
 }

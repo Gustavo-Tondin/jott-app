@@ -442,10 +442,10 @@ fn a_section_resets_to_the_defaults_and_display_falls_back_to_the_notebook() {
 
     // Display: the machine said dark over a notebook that says nothing, and
     // the reset makes the machine stop answering.
-    ok(&app, "set_machine_display", json!({ "display": { "theme": "dark" } }));
-    assert_eq!(ok(&app, "notebook_settings", json!({}))["theme"], "dark");
+    ok(&app, "set_machine_display", json!({ "display": { "mode": "dark" } }));
+    assert_eq!(ok(&app, "notebook_settings", json!({}))["mode"], "dark");
     ok(&app, "reset_machine_display", json!({}));
-    assert_ne!(ok(&app, "notebook_settings", json!({}))["theme"], "dark");
+    assert_ne!(ok(&app, "notebook_settings", json!({}))["mode"], "dark");
 }
 
 #[test]
@@ -883,26 +883,26 @@ fn display_answers_to_this_machine_and_falls_back_to_the_notebook() {
     ok(
         &app,
         "set_notebook_settings",
-        json!({ "settings": { "theme": "dark", "noteFontSize": "large" } }),
+        json!({ "settings": { "mode": "dark", "noteFontSize": "large" } }),
     );
-    assert_eq!(ok(&app, "notebook_settings", json!({}))["theme"], "dark");
+    assert_eq!(ok(&app, "notebook_settings", json!({}))["mode"], "dark");
     let info = ok(&app, "current_notebook", json!({}));
-    assert_eq!(info["layout"]["theme"], "dark", "the first paint reads it too");
+    assert_eq!(info["layout"]["mode"], "dark", "the first paint reads it too");
 
     // This machine chooses. The notebook is not asked, and not touched.
     ok(
         &app,
         "set_machine_display",
-        json!({ "display": { "theme": "light" } }),
+        json!({ "display": { "mode": "light" } }),
     );
     let saved = ok(&app, "notebook_settings", json!({}));
-    assert_eq!(saved["theme"], "light", "this machine's answer wins");
+    assert_eq!(saved["mode"], "light", "this machine's answer wins");
     assert_eq!(
         saved["noteFontSize"], "large",
         "what this machine did not choose still comes from the notebook"
     );
     assert_eq!(
-        ok(&app, "current_notebook", json!({}))["layout"]["theme"],
+        ok(&app, "current_notebook", json!({}))["layout"]["mode"],
         "light"
     );
 
@@ -923,7 +923,7 @@ fn a_display_payload_keeps_the_choices_it_did_not_mention() {
     ok(
         &app,
         "set_machine_display",
-        json!({ "display": { "theme": "dark", "showListCounts": false } }),
+        json!({ "display": { "mode": "dark", "showListCounts": false } }),
     );
     ok(
         &app,
@@ -933,7 +933,7 @@ fn a_display_payload_keeps_the_choices_it_did_not_mention() {
 
     let saved = ok(&app, "notebook_settings", json!({}));
     assert_eq!(saved["accentColor"], "orange", "the field that was sent");
-    assert_eq!(saved["theme"], "dark", "survived the second call");
+    assert_eq!(saved["mode"], "dark", "survived the second call");
     assert_eq!(saved["showListCounts"], json!(false), "survived too");
     // And the counters obey the machine, not the notebook, now that it has
     // an answer of its own.

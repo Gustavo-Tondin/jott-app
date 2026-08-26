@@ -91,18 +91,18 @@
   import { cleanTagName } from "./lib/services/taskFields.js";
   import {
     NOTE_FONT_SIZES,
-    isAppTheme,
     noteFontSizeAttribute,
-    themeAttribute,
+    modeAttribute,
+    paletteAttribute,
   } from "./lib/services/themes.js";
   import { applyUserTheme, userThemeApplied } from "./lib/shell/userTheme.js";
   import { seedFrom } from "./lib/services/themeSeed.js";
   // The app's own three, as TEXT. `?raw` gives the source rather than a
   // stylesheet the page loads — these are already loaded, by app.css; what is
   // wanted here is the file's contents, to seed a theme the reader will edit.
-  import defaultThemeCss from "./styles/themes/default.css?raw";
-  import lightThemeCss from "./styles/themes/light.css?raw";
-  import darkThemeCss from "./styles/themes/dark.css?raw";
+  import jottModeCss from "./styles/modes/jott.css?raw";
+  import lightModeCss from "./styles/modes/light.css?raw";
+  import darkModeCss from "./styles/modes/dark.css?raw";
   import {
     formatBarMode as modeOfFormatBar,
     formatBarSide as sideOfFormatBar,
@@ -164,10 +164,10 @@
   /// so Settings can say it rather than let a theme quietly lose its images.
   let wornThemeBlocked = $state(0);
   /// The source of each theme the app ships, by name.
-  const APP_THEME_CSS = {
-    default: defaultThemeCss,
-    light: lightThemeCss,
-    dark: darkThemeCss,
+  const APP_MODE_CSS = {
+    jott: jottModeCss,
+    light: lightModeCss,
+    dark: darkModeCss,
   };
 
   /// Bumped when the watcher reports a stylesheet changing on disk. It is in
@@ -811,7 +811,8 @@
   // point of the colour being there.
   $effect(() =>
     setRootData({
-      theme: themeAttribute(showsPicker ? "" : layout.theme, wornTheme),
+      mode: modeAttribute(showsPicker ? "" : layout.mode),
+      theme: paletteAttribute(showsPicker ? "" : layout.theme, wornTheme),
       accent: showsPicker ? "neutral" : layout.accentColor || null,
       headings: !showsPicker && layout.headingColor === "ink" ? "ink" : null,
       noteSize: noteFontSizeAttribute(layout.noteFontSize),
@@ -836,7 +837,7 @@
     void themeRevision;
     const carried = userThemes.some((theme) => theme.name === wanted);
 
-    if (!wanted || isAppTheme(wanted) || !carried) {
+    if (!wanted || !carried) {
       applyUserTheme(null);
       wornTheme = null;
       wornThemeBlocked = 0;
@@ -1525,7 +1526,7 @@
   /// which is the same operation and needs no separate button.
   async function newThemeFrom(name) {
     const worn = userThemeApplied();
-    const css = seedFrom(worn ?? APP_THEME_CSS[layout.theme] ?? APP_THEME_CSS.default);
+    const css = seedFrom(worn ?? APP_MODE_CSS[layout.mode] ?? APP_MODE_CSS.jott);
     const made = await api.createUserTheme(name, css);
     userThemes = (await api.userThemes()) ?? [];
     return made;
