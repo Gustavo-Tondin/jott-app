@@ -104,3 +104,12 @@ Cutting a release is one command (`packaging/release.sh <version>`), which
 bumps that one file, proves every derivation followed, runs both suites plus
 clippy, tags, and stops to ask before pushing — because a pushed tag writes a
 draft release on a public repository.
+
+Everything that packages the app lives under `packaging/`, one folder per
+platform (`linux/` holds the `PKGBUILD` and the `.desktop` entry, `windows/`
+the preflight, `android/` notes on the APK — the Gradle project itself stays
+in `src-tauri/gen/android/`, where Tauri looks for it). At the end of a
+release the script copies the newest installer of each kind into
+`packaging/releases/` and writes a README there naming the version each one
+announces; `packaging/release.sh --collect` does only that step. The binaries
+are gitignored — only the README is versioned.
