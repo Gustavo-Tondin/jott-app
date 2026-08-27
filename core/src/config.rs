@@ -165,6 +165,13 @@ pub struct Config {
     /// is the user saying they have understood and would rather not be asked
     /// again.
     pub confirm_image_downloads: bool,
+    /// Whether the Timeline names what was deleted. Off by default
+    /// (2026-08-27): a thing thrown away may have been thrown away for
+    /// privacy, so a ghost reads as "deleted task" in its space's colour
+    /// and nothing more. The log keeps the birth title either way — this
+    /// is what the SCREEN says, and "Remove from timeline" is the door for
+    /// someone who wants the line itself gone.
+    pub timeline_ghost_titles: bool,
     /// Treat a task due today or overdue as urgent, without being told.
     ///
     /// On by default, but switchable: some people find an interface that
@@ -375,6 +382,7 @@ impl Default for Config {
             dated_tasks_join_period: true,
             confirm_deletes: true,
             confirm_image_downloads: true,
+            timeline_ghost_titles: false,
             auto_urgent_by_date: true,
             auto_remind: Default::default(),
             reminder_time: Default::default(),
@@ -573,6 +581,11 @@ impl Config {
                 "confirmImageDownloads",
                 defaults.confirm_image_downloads,
             ),
+            timeline_ghost_titles: flag(
+                &raw,
+                "timelineGhostTitles",
+                defaults.timeline_ghost_titles,
+            ),
             auto_urgent_by_date: flag(&raw, "autoUrgentByDate", defaults.auto_urgent_by_date),
             auto_remind: string(&raw, "autoRemind")
                 .as_deref()
@@ -692,6 +705,7 @@ impl Config {
                 "confirmImageDownloads",
                 Value::from(self.confirm_image_downloads),
             ),
+            ("timelineGhostTitles", Value::from(self.timeline_ghost_titles)),
             ("autoUrgentByDate", Value::from(self.auto_urgent_by_date)),
             ("autoRemind", Value::from(self.auto_remind.render())),
             ("reminderTime", Value::from(self.reminder_time.render())),

@@ -117,6 +117,12 @@ export const FEATURES = [
   { key: "homeSpace", parent: "fixedSpaces", group: "spaces", label: () => S.featureHomeSpace },
   { key: "tasksSpace", parent: "fixedSpaces", group: "spaces", label: () => S.featureTasksSpace },
   { key: "notesSpace", parent: "fixedSpaces", group: "spaces", label: () => S.featureNotesSpace },
+  // The time axis (Etapa 11, 2026-08-27): a function with one screen so
+  // far, the Timeline. Off, the screen leaves the sidebar's header and its
+  // tabs land elsewhere; the log under `.jott/timeline/` is written
+  // regardless, so switching it back on finds everything in place.
+  { key: "time", label: () => S.featureTime },
+  { key: "timeline", parent: "time", group: "screens", label: () => S.featureTimeline },
 ];
 
 /// The app's FUNCTIONS — the switches that, turned off, take a whole part of

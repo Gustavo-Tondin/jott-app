@@ -26,6 +26,10 @@
   import { DEFAULT_ACCENT } from "../services/accent.js";
   import { FONT_ROLES, fontOptions, fontValue } from "../services/fonts.js";
   import { TYPE_ICONS } from "../services/spaceIcon.js";
+
+  /// The glyph a function's menu entry wears: the space types' own, plus the
+  /// functions that are not a space type.
+  const FUNCTION_ICONS = { ...TYPE_ICONS, time: "path" };
   import { openExternal, ISSUES_URL } from "../services/external.js";
   import {
     MODES,
@@ -146,7 +150,7 @@
     FUNCTIONS.filter((fn) => hasPage(fn.key) && !fn.inline && on(features, fn.key)).map((fn) => ({
       key: `fn:${fn.key}`,
       feature: fn.key,
-      icon: TYPE_ICONS[fn.key] ?? "sliders-horizontal",
+      icon: FUNCTION_ICONS[fn.key] ?? "sliders-horizontal",
       label: fn.label,
       nested: true,
     })),
@@ -470,6 +474,7 @@
   const FUNCTION_EXTRAS = () => ({
     tasks: [S.autoUrgentByDate, S.newTasksGoTo, S.autoRemind, S.reminderTime],
     notes: [S.noteLayout, S.tableLayout, S.confirmImageDownloads],
+    time: [S.timelineGhostTitles],
   });
 
   /// Every page the search can look up. The functions' half is DERIVED — the
@@ -1574,6 +1579,37 @@
           <p class="settings__hint">{S.autoUrgentByDateHint}</p>
 
           {@render resetFooter("tasks")}
+        </section>
+      {/if}
+
+      {#if shows("fn:time")}
+        <section class="settings__section settings__section--features">
+          {@render sectionTitle(S.featureTime)}
+
+          <h3 class="settings__subtitle">{S.subScreens}</h3>
+          {#each childrenIn("time", "screens") as feature (feature.key)}
+            {@render featureRow(feature)}
+          {/each}
+
+          <!-- What the Timeline says about a deleted thing (2026-08-27):
+               counted only, by default — it may have been thrown away for
+               privacy. The log keeps the name either way; this is the
+               screen's word, and the row's own "Remove from timeline" is the
+               door for someone who wants the line gone. -->
+          <label class="settings__row">
+            <span class="settings__label">{S.timelineGhostTitles}</span>
+            <input
+              class="theme-checkbox"
+              type="checkbox"
+              bind:checked={form.timelineGhostTitles}
+              disabled={readOnly}
+              aria-label={S.timelineGhostTitles}
+              onchange={(e) => put({ timelineGhostTitles: e.currentTarget.checked })}
+            />
+          </label>
+          <p class="settings__hint">{S.timelineGhostTitlesHint}</p>
+
+          {@render resetFooter("time")}
         </section>
       {/if}
 

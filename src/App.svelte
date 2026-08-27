@@ -35,6 +35,7 @@
   import ListView from "./lib/screens/ListView.svelte";
   import TasksView from "./lib/screens/TasksView.svelte";
   import CompletedView from "./lib/screens/CompletedView.svelte";
+  import TimelineView from "./lib/screens/TimelineView.svelte";
   import TagsView from "./lib/screens/TagsView.svelte";
   import TrashView from "./lib/screens/TrashView.svelte";
   import AssetsView from "./lib/screens/AssetsView.svelte";
@@ -773,6 +774,7 @@
       quickNoteFolder: "Inbox",
       noteLayout: "",
       tableLayout: "",
+      timelineGhostTitles: false,
       accentColor: "",
       theme: "",
       headingColor: "",
@@ -3009,6 +3011,20 @@
               onOpenNote={(path, folder, opts) => showNote(path, folder, opts?.newTab)}
               onOpenTask={showFoundTask}
               onRemoteImage={(url) => fetchRemoteImage(url)}
+              {reloadKey}
+            />
+          {:else if view.kind === "timeline"}
+            <TimelineView
+              readOnly={notebook.readOnly}
+              today={clock?.today}
+              dateFormat={layout.dateDisplayFormat}
+              origin={originOfItem}
+              colors={spColors}
+              ghostTitles={layout.timelineGhostTitles}
+              onOpenTask={showFoundTask}
+              onOpenNote={(path, folder) => showNote(path, folder)}
+              onChanged={refreshNotebook}
+              onError={fail}
               {reloadKey}
             />
           {:else if view.kind === "trash"}

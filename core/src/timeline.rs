@@ -81,6 +81,14 @@ pub enum Event {
     Deleted,
     /// It came back from the trash.
     Restored,
+    /// A task was ticked — the only event carrying `on`, the civil day it
+    /// was completed (the task's own `completed:` when the sweep adopts one
+    /// finished before the log existed, which is why it is not just `at`).
+    Completed,
+    /// A completed task was unticked and went back to its list. The
+    /// Timeline counts the STATE, not the history: reopened, it leaves the
+    /// month's "completed" line, and ticking it again puts it back.
+    Reopened,
 }
 
 impl Event {
@@ -90,6 +98,8 @@ impl Event {
             Self::Moved => "moved",
             Self::Deleted => "deleted",
             Self::Restored => "restored",
+            Self::Completed => "completed",
+            Self::Reopened => "reopened",
         }
     }
 
@@ -99,6 +109,8 @@ impl Event {
             "moved" => Some(Self::Moved),
             "deleted" => Some(Self::Deleted),
             "restored" => Some(Self::Restored),
+            "completed" => Some(Self::Completed),
+            "reopened" => Some(Self::Reopened),
             _ => None,
         }
     }
@@ -125,6 +137,9 @@ pub struct Record {
     /// What it was called when it was born — `created` only. This is what a
     /// ghost has instead of content.
     pub title: Option<String>,
+    /// The day a task was completed — `completed` only. Absent reads as the
+    /// day of `at`.
+    pub on: Option<NaiveDate>,
 }
 
 impl Record {
@@ -145,6 +160,7 @@ impl Record {
             from: None,
             created: Some(created),
             title: Some(title.into()),
+            on: None,
         }
     }
 
@@ -164,6 +180,7 @@ impl Record {
             from: Some(from.into()),
             created: None,
             title: None,
+            on: None,
         }
     }
 
@@ -178,6 +195,38 @@ impl Record {
             from: None,
             created: None,
             title: None,
+            on: None,
+        }
+    }
+
+    /// A task ticked on `on`, now sitting in the Completed list at `path`.
+    /// Always about a task — a note has no such state.
+    pub fn completed(at: NaiveDateTime, path: impl Into<String>, on: NaiveDate) -> Self {
+        Self {
+            at,
+            event: Event::Completed,
+            kind: Kind::Task,
+            path: path.into(),
+            id: None,
+            from: None,
+            created: None,
+            title: None,
+            on: Some(on),
+        }
+    }
+
+    /// A task unticked, back in the list at `path`.
+    pub fn reopened(at: NaiveDateTime, path: impl Into<String>) -> Self {
+        Self {
+            at,
+            event: Event::Reopened,
+            kind: Kind::Task,
+            path: path.into(),
+            id: None,
+            from: None,
+            created: None,
+            title: None,
+            on: None,
         }
     }
 
@@ -204,6 +253,9 @@ impl Record {
         if let Some(created) = self.created {
             doc.insert("created".into(), created.to_string().into());
         }
+        if let Some(on) = self.on {
+            doc.insert("on".into(), on.to_string().into());
+        }
         serde_json::Value::Object(doc).to_string()
     }
 
@@ -228,6 +280,7 @@ impl Record {
             from: text("from"),
             created: text("created").and_then(|d| d.parse().ok()),
             title: text("title"),
+            on: text("on").and_then(|d| d.parse().ok()),
         })
     }
 
@@ -254,6 +307,15 @@ pub struct Item {
     pub title: String,
     /// The day it went, when it is gone. `None` means it is still there.
     pub deleted: Option<NaiveDate>,
+    /// The day a task was ticked, while it stays ticked. Cleared by
+    /// `reopened`, untouched by `deleted`: a finished task thrown away
+    /// still counts as finished in the month it was.
+    pub completed: Option<NaiveDate>,
+    /// The space it belongs to (root-relative path), when the notebook could
+    /// tell. `resolve` leaves it empty — the log knows addresses, not
+    /// spaces — and `Notebook::timeline` fills it, so the screen never
+    /// derives a space from a path.
+    pub space: Option<String>,
 }
 
 impl Item {
@@ -321,13 +383,16 @@ pub fn append(config_dir: impl AsRef<Path>, records: &[Record]) -> Result<()> {
 /// The union of all `*.jsonl` in there — **sync conflict copies included**,
 /// which is the point: two machines appending to `2026.jsonl` produce
 /// `2026.jsonl` and `2026 (conflicted copy).jsonl`, and both are the truth.
-/// Identical lines from different files count once.
+/// Identical lines from different files count once — but the SAME file
+/// saying the same thing twice is two things that happened (a task ticked,
+/// unticked and ticked again inside one minute writes two identical
+/// `completed` lines, and dropping the second would leave it open).
 pub fn read(config_dir: impl AsRef<Path>) -> Vec<Record> {
     let dir = dir_of(config_dir);
     let Ok(paths) = crate::fsio::dir_paths(&dir) else {
         return Vec::new();
     };
-    let mut seen = BTreeSet::new();
+    let mut seen_elsewhere: BTreeSet<Record> = BTreeSet::new();
     let mut records = Vec::new();
     for path in paths {
         if path.extension().is_none_or(|ext| ext != "jsonl") {
@@ -336,14 +401,17 @@ pub fn read(config_dir: impl AsRef<Path>) -> Vec<Record> {
         let Ok(text) = std::fs::read_to_string(&path) else {
             continue;
         };
+        let mut in_this_file = Vec::new();
         for line in text.lines() {
             let Some(record) = Record::parse(line) else {
                 continue;
             };
-            if seen.insert(record.clone()) {
-                records.push(record);
+            if !seen_elsewhere.contains(&record) {
+                in_this_file.push(record);
             }
         }
+        seen_elsewhere.extend(in_this_file.iter().cloned());
+        records.extend(in_this_file);
     }
     // Stable, so lines written in the same minute keep the order they were
     // written in — `created` before the `moved` that follows it.
@@ -357,74 +425,192 @@ pub fn read(config_dir: impl AsRef<Path>) -> Vec<Record> {
 /// Timeline's axis is the creation date, and an entry without one has nowhere
 /// to be drawn.
 pub fn resolve(records: &[Record]) -> Vec<Item> {
+    resolve_indexed(records).0
+}
+
+/// The calendar years the log has a file for, newest first — the Timeline's
+/// year pills. A sync conflict copy (`2026 (conflicted copy).jsonl`) counts
+/// for its year, like `read` counts its lines.
+pub fn years(config_dir: impl AsRef<Path>) -> Vec<i32> {
+    let dir = dir_of(config_dir);
+    let Ok(paths) = crate::fsio::dir_paths(&dir) else {
+        return Vec::new();
+    };
+    let mut years: Vec<i32> = paths
+        .iter()
+        .filter(|path| path.extension().is_some_and(|ext| ext == "jsonl"))
+        .filter_map(|path| path.file_stem()?.to_str().map(str::to_string))
+        .filter_map(|stem| {
+            let digits: String = stem.chars().take_while(char::is_ascii_digit).collect();
+            digits.parse::<i32>().ok()
+        })
+        .collect();
+    years.sort_unstable_by(|a, b| b.cmp(a));
+    years.dedup();
+    years
+}
+
+/// Which thing a "remove from the Timeline" is about: a task by its id, a
+/// note by the address it holds NOW (the chain of `moved` is followed back).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Key {
+    Task(String),
+    Note(String),
+}
+
+/// Forgets one thing: every line about it leaves every file of the log.
+///
+/// **The one rewrite of the log, and it is the user's** (2026-08-27) — the
+/// Timeline's "Remove from timeline", always behind a confirmation, the way
+/// purging the trash is. Nothing else in the app rewrites these files. Each
+/// touched file goes through `write_atomically` with a `.bak` beside it;
+/// lines this build cannot read are kept as they are, since they are not
+/// ours to judge. Returns how many lines went.
+pub fn remove(config_dir: impl AsRef<Path>, key: &Key) -> Result<usize> {
+    let dir = dir_of(&config_dir);
+    let records = read(&config_dir);
+    let (items, owner) = resolve_indexed(&records);
+    let Some(target) = items.iter().position(|item| match key {
+        Key::Task(id) => item.kind == Kind::Task && item.id.as_deref() == Some(id),
+        Key::Note(path) => item.kind == Kind::Note && &item.path == path,
+    }) else {
+        return Ok(0);
+    };
+    let doomed: BTreeSet<&Record> = records
+        .iter()
+        .zip(owner.iter())
+        .filter(|(_, owner)| **owner == Some(target))
+        .map(|(record, _)| record)
+        .collect();
+    if doomed.is_empty() {
+        return Ok(0);
+    }
+
+    let Ok(paths) = crate::fsio::dir_paths(&dir) else {
+        return Ok(0);
+    };
+    let mut removed = 0;
+    for path in paths {
+        if path.extension().is_none_or(|ext| ext != "jsonl") {
+            continue;
+        }
+        let Ok(text) = std::fs::read_to_string(&path) else {
+            continue;
+        };
+        let mut kept = String::with_capacity(text.len());
+        let mut dropped = 0;
+        for line in text.lines() {
+            let goes = Record::parse(line).is_some_and(|record| doomed.contains(&record));
+            if goes {
+                dropped += 1;
+            } else {
+                kept.push_str(line);
+                kept.push('\n');
+            }
+        }
+        if dropped == 0 {
+            continue;
+        }
+        let backup = path.with_extension("jsonl.bak");
+        let _ = std::fs::copy(&path, &backup);
+        crate::fsio::write_atomically(&path, kept.as_bytes())?;
+        removed += dropped;
+    }
+    Ok(removed)
+}
+
+/// `resolve`, also saying which item each line ended up belonging to
+/// (`None` for a line about nothing — never born, or born twice).
+fn resolve_indexed(records: &[Record]) -> (Vec<Item>, Vec<Option<usize>>) {
     let mut items: Vec<Item> = Vec::new();
-    // A task is found by id; a note by where it is right now, which is what
-    // each `moved` updates. Both maps point into `items`.
+    let mut owner: Vec<Option<usize>> = Vec::with_capacity(records.len());
     let mut by_id: HashMap<String, usize> = HashMap::new();
     let mut by_path: HashMap<String, usize> = HashMap::new();
 
     for record in records {
-        // Which entry this line is about. A task's id is the whole answer; a
-        // note's is the address the line names — `from` when it is moving.
         let at_path = record.from.clone().unwrap_or_else(|| record.path.clone());
         let found = match (record.kind, &record.id) {
             (Kind::Task, Some(id)) => by_id.get(id).copied(),
             (Kind::Task, None) => None,
             (Kind::Note, _) => by_path.get(&at_path).copied(),
         };
+        let mut about: Option<usize> = None;
 
         match record.event {
             Event::Created => {
-                let Some(created) = record.created else {
-                    continue;
-                };
-                // A second birth for a live thing is a duplicate line, not a
-                // second thing — but a birth at an address whose last
-                // occupant is gone IS a new note in an old place.
-                if found.is_some_and(|index| items[index].alive()) {
-                    continue;
-                }
-                items.push(Item {
-                    kind: record.kind,
-                    id: record.id.clone(),
-                    path: record.path.clone(),
-                    created,
-                    title: record.title.clone().unwrap_or_default(),
-                    deleted: None,
-                });
-                let index = items.len() - 1;
-                match &record.id {
-                    Some(id) => {
-                        by_id.insert(id.clone(), index);
-                    }
-                    None => {
-                        by_path.insert(record.path.clone(), index);
+                if let Some(created) = record.created {
+                    if let Some(index) = found.filter(|index| items[*index].alive()) {
+                        // The duplicate birth is still the same thing's line.
+                        about = Some(index);
+                    } else {
+                        items.push(Item {
+                            kind: record.kind,
+                            id: record.id.clone(),
+                            path: record.path.clone(),
+                            created,
+                            title: record.title.clone().unwrap_or_default(),
+                            deleted: None,
+                            completed: None,
+                            space: None,
+                        });
+                        let index = items.len() - 1;
+                        match &record.id {
+                            Some(id) => {
+                                by_id.insert(id.clone(), index);
+                            }
+                            None => {
+                                by_path.insert(record.path.clone(), index);
+                            }
+                        }
+                        about = Some(index);
                     }
                 }
             }
             Event::Moved => {
-                let Some(index) = found else { continue };
-                if record.kind == Kind::Note {
-                    by_path.remove(&at_path);
-                    by_path.insert(record.path.clone(), index);
+                if let Some(index) = found {
+                    if record.kind == Kind::Note {
+                        by_path.remove(&at_path);
+                        by_path.insert(record.path.clone(), index);
+                    }
+                    items[index].path = record.path.clone();
+                    about = Some(index);
                 }
-                items[index].path = record.path.clone();
             }
             Event::Deleted => {
-                let Some(index) = found else { continue };
-                items[index].deleted = Some(record.at.date());
+                if let Some(index) = found {
+                    items[index].deleted = Some(record.at.date());
+                    about = Some(index);
+                }
             }
             Event::Restored => {
-                let Some(index) = found else { continue };
-                items[index].deleted = None;
-                items[index].path = record.path.clone();
-                if record.kind == Kind::Note {
-                    by_path.insert(record.path.clone(), index);
+                if let Some(index) = found {
+                    items[index].deleted = None;
+                    items[index].path = record.path.clone();
+                    if record.kind == Kind::Note {
+                        by_path.insert(record.path.clone(), index);
+                    }
+                    about = Some(index);
+                }
+            }
+            Event::Completed => {
+                if let Some(index) = found {
+                    items[index].completed =
+                        Some(record.on.unwrap_or_else(|| record.at.date()));
+                    items[index].path = record.path.clone();
+                    about = Some(index);
+                }
+            }
+            Event::Reopened => {
+                if let Some(index) = found {
+                    items[index].completed = None;
+                    items[index].path = record.path.clone();
+                    about = Some(index);
                 }
             }
         }
+        owner.push(about);
     }
-    items
+    (items, owner)
 }
 
 #[cfg(test)]

@@ -2302,3 +2302,43 @@ fn asking_for_a_theme_the_notebook_does_not_have_fails_cleanly() {
     let err = invoke(&app, "user_theme_css", json!({ "name": "ghost" })).unwrap_err();
     assert_eq!(err["kind"], "theme");
 }
+
+#[test]
+fn the_timeline_comes_over_the_bridge_one_year_at_a_time() {
+    let (_lock, app, dir) = app_with_notebook();
+    task_with_id(&app, "jott.tasks/task-list.md", "uma");
+    ok(&app, "create_note", json!({ "folder": "jott.notes", "inFolder": "", "title": "Ideia" }));
+
+    let year = jott_core::clock::civil_today().format("%Y").to_string();
+    let years = ok(&app, "timeline_years", json!({}));
+    assert_eq!(years, json!([year.parse::<i32>().unwrap()]));
+
+    let items = ok(
+        &app,
+        "timeline",
+        json!({ "from": format!("{year}-01-01"), "to": format!("{year}-12-31") }),
+    );
+    let items = items.as_array().unwrap();
+    assert_eq!(items.len(), 2, "{items:?}");
+    for item in items {
+        assert!(item["space"].is_string(), "each is told its space: {item}");
+        assert!(item["completed"].is_null());
+    }
+    // A malformed bound is refused, not read as "no bound".
+    assert!(invoke(&app, "timeline", json!({ "from": "yesterday" })).is_err());
+
+    // Forgetting a note takes its lines and answers how many.
+    let note = items.iter().find(|i| i["kind"] == "note").unwrap();
+    let gone = ok(
+        &app,
+        "forget_from_timeline",
+        json!({ "target": { "kind": "note", "key": note["path"] } }),
+    );
+    assert_eq!(gone, 1);
+    let left = ok(&app, "timeline", json!({}));
+    assert_eq!(left.as_array().unwrap().len(), 1);
+    assert!(
+        dir.path().join(".jott/timeline").join(format!("{year}.jsonl.bak")).is_file(),
+        "with a backup beside the rewritten file"
+    );
+}

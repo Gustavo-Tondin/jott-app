@@ -262,6 +262,8 @@ pub struct NotebookSettings {
     /// Ask before fetching a picture from the internet. The user turns this
     /// off from the dialog itself ("don't ask again").
     pub confirm_image_downloads: Option<bool>,
+    /// Whether the Timeline names deleted things (`Config::timeline_ghost_titles`).
+    pub timeline_ghost_titles: Option<bool>,
     pub auto_urgent_by_date: Option<bool>,
     /// `off` / `dayOf` / `dayBefore` — see `reminders::AutoRemind`.
     pub auto_remind: Option<String>,
@@ -329,6 +331,7 @@ impl NotebookSettings {
             dated_tasks_join_period: Some(config.dated_tasks_join_period),
             confirm_deletes: Some(config.confirm_deletes),
             confirm_image_downloads: Some(config.confirm_image_downloads),
+            timeline_ghost_titles: Some(config.timeline_ghost_titles),
             auto_urgent_by_date: Some(config.auto_urgent_by_date),
             auto_remind: Some(config.auto_remind.render().to_string()),
             reminder_time: Some(config.reminder_time.render()),
@@ -394,6 +397,9 @@ impl NotebookSettings {
         }
         if let Some(v) = self.confirm_image_downloads {
             config.confirm_image_downloads = v;
+        }
+        if let Some(v) = self.timeline_ghost_titles {
+            config.timeline_ghost_titles = v;
         }
         if let Some(v) = self.auto_urgent_by_date {
             config.auto_urgent_by_date = v;
@@ -494,7 +500,7 @@ impl NotebookSettings {
 /// The pages of Settings a "Reset this section" can put back (2026-08-24),
 /// by the key the screen calls them. Display is not here: it is this
 /// machine's drawer, and the bridge clears it (`prefs::clear_display`).
-pub const RESETTABLE_SECTIONS: [&str; 4] = ["dates", "notebook", "tasks", "notes"];
+pub const RESETTABLE_SECTIONS: [&str; 5] = ["dates", "notebook", "tasks", "notes", "time"];
 
 /// Puts every notebook setting of one page back to what the app ships
 /// with, and nothing else — `Config::default()` is the source, so a new
@@ -524,6 +530,9 @@ pub fn reset_section(config: &mut Config, section: &str) -> bool {
             config.auto_remind = d.auto_remind;
             config.reminder_time = d.reminder_time;
             config.new_tasks_on_top = d.new_tasks_on_top;
+        }
+        "time" => {
+            config.timeline_ghost_titles = d.timeline_ghost_titles;
         }
         "notes" => {
             config.note_layout = d.note_layout;

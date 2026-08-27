@@ -25,6 +25,7 @@
 //! | [`period`] | the Day and the Week |
 //! | [`update`] | what answers for this INSTALL: the version check and the menu entry |
 //! | [`reminders`] | what should ring, the bell, and the tray the app waits in |
+//! | [`timeline`] | the durable log, read back for the Timeline screen |
 
 pub mod assets;
 pub mod lists;
@@ -36,4 +37,5 @@ pub mod settings;
 pub mod shell;
 pub mod spaces;
 pub mod tasks;
+pub mod timeline;
 pub mod update;

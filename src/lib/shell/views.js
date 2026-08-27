@@ -29,7 +29,7 @@ export function viewFromId(id) {
   if (id === "day" || id === "week") return { kind: "tasks" };
   if (id.startsWith("list:")) return { kind: "list", list: id.slice(5) };
   if (id.startsWith("sp:")) return { kind: "space", sp: id.slice(3) };
-  if (["home", "completed", "notes", "tasks", "settings", "assets"].includes(id)) {
+  if (["home", "completed", "notes", "tasks", "settings", "assets", "timeline"].includes(id)) {
     return { kind: id };
   }
   return null;
@@ -76,6 +76,8 @@ export function reachable(view, f = () => true, layout = null) {
     // hamburger stops offering it (shell/Sidebar.svelte).
     case "assets":
       return f("notes");
+    case "timeline":
+      return f("timeline");
     default:
       return true;
   }
@@ -117,6 +119,8 @@ export function titleOf(view, spaces = []) {
       return S.trash;
     case "assets":
       return S.assetsTitle;
+    case "timeline":
+      return S.timeline;
     case "list":
       return listTitle(view.list);
     case "note":

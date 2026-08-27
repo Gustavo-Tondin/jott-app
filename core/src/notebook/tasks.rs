@@ -231,6 +231,11 @@ impl Notebook {
         // them here is what used to make a task ticked in Today disappear from
         // the screen instead of sliding into its "Completed N" section.
         let task = self.transfer(id, path, &completed, OriginAction::Record, Some(true))?;
+        // The log follows the task under the id it ARRIVED with (see
+        // `transfer`); the day is the one `transfer` just stamped.
+        if let (Some(settled), Some(on)) = (task.id.as_deref(), task.completed) {
+            self.logged_task_completed(settled, &completed, on);
+        }
 
         // Keep the aggregated Completed index in step (best effort — a failed
         // index write must not fail the completion itself).
@@ -309,6 +314,9 @@ impl Notebook {
         // it again. Deleting the spawn here was the 2026-08-04 approach, and
         // it duplicated the chain whenever the spawn had already moved on.
         let task = self.transfer(id, completed, &target, OriginAction::Clear, Some(false))?;
+        if let Some(settled) = task.id.as_deref() {
+            self.logged_task_reopened(settled, &target);
+        }
 
         let _ = self.refresh_completed_index();
         Ok(task)

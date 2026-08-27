@@ -85,6 +85,17 @@ impl Notebook {
         ]);
     }
 
+    /// A task was ticked: it now sits in `list` (the space's Completed), and
+    /// `on` is the civil day stamped in its `completed:`.
+    pub(super) fn logged_task_completed(&self, id: &str, list: &str, on: NaiveDate) {
+        self.log_timeline(vec![Record::completed(Self::logged_at(), list, on).with_id(id)]);
+    }
+
+    /// A task was unticked and is back in `list`.
+    pub(super) fn logged_task_reopened(&self, id: &str, list: &str) {
+        self.log_timeline(vec![Record::reopened(Self::logged_at(), list).with_id(id)]);
+    }
+
     /// Everything the log has under `from` follows the folder to `to`.
     ///
     /// A renamed space or folder changes the address of every note under it
@@ -143,18 +154,49 @@ impl Notebook {
     /// What the notebook has held between two days, newest first — the
     /// Timeline screen's one question.
     ///
+    /// A thing is IN the window when it was born in it **or ticked in it**
+    /// (2026-08-27): the screen asks one year at a time, and a task created
+    /// in December and finished in January belongs to January's "completed"
+    /// line — filtered by birth alone it would vanish from the new year.
+    ///
     /// Ghosts carry the title they were born with; anything still on disk is
     /// given its current one, so a note renamed yesterday reads as it does
-    /// everywhere else. **Ask this when the screen opens, never per render:**
-    /// it reads the whole log and every list holding a live task.
+    /// everywhere else. Every item is told its space (`Item::space`), so the
+    /// screen never derives one from a path. **Ask this when the screen
+    /// opens, never per render:** it reads the whole log and every list
+    /// holding a live task.
     pub fn timeline(&self, from: Option<NaiveDate>, to: Option<NaiveDate>) -> Result<Vec<Item>> {
+        let within = |day: NaiveDate| {
+            from.is_none_or(|first| day >= first) && to.is_none_or(|last| day <= last)
+        };
         let mut items: Vec<Item> = self
             .timeline_items()
             .into_iter()
             .filter(Item::visible)
-            .filter(|item| from.is_none_or(|day| item.created >= day))
-            .filter(|item| to.is_none_or(|day| item.created <= day))
+            .filter(|item| within(item.created) || item.completed.is_some_and(within))
             .collect();
+
+        // The space each address lives in: the longest space path that is a
+        // prefix of it. A ghost whose whole space is gone gets none — its
+        // colour is not knowable any more, and the screen shows it plain.
+        let mut spaces: Vec<String> = self
+            .spaces()?
+            .iter()
+            .map(|space| crate::relpath::relative_slash(&self.root, space.root()))
+            .collect();
+        spaces.sort_by_key(|path| std::cmp::Reverse(path.len()));
+        for item in items.iter_mut() {
+            item.space = spaces
+                .iter()
+                .find(|space| {
+                    item.path.as_str() == space.as_str()
+                        || item
+                            .path
+                            .strip_prefix(space.as_str())
+                            .is_some_and(|rest| rest.starts_with('/'))
+                })
+                .cloned();
+        }
 
         // The live titles, one pass per list rather than one per task.
         let mut lists: std::collections::HashMap<String, Vec<(usize, String)>> =
@@ -186,6 +228,22 @@ impl Notebook {
 
         items.sort_by(|a, b| b.created.cmp(&a.created).then_with(|| a.title.cmp(&b.title)));
         Ok(items)
+    }
+
+    /// The years the log has a file for, newest first — the year pills.
+    pub fn timeline_years(&self) -> Vec<i32> {
+        timeline::years(self.config_dir())
+    }
+
+    /// Forgets one thing from the log — every line about it, in every year.
+    ///
+    /// The user's "Remove from timeline", and the only rewrite the log ever
+    /// gets (see `timeline::remove`). Not an action of the history: what
+    /// it destroys is memory, not content, and Ctrl+Z bringing a line back
+    /// would defeat the point of asking. Returns how many lines went.
+    pub fn forget_from_timeline(&self, key: &timeline::Key) -> Result<usize> {
+        self.ensure_writable()?;
+        timeline::remove(self.config_dir(), key)
     }
 
     // --------------------------------------------------------------- sweep
@@ -260,9 +318,13 @@ impl Notebook {
         // ---- tasks: keyed by id, so a move can actually be followed.
         let mut known_tasks: std::collections::HashMap<&str, (&str, bool)> =
             std::collections::HashMap::new();
+        let mut known_done: std::collections::HashSet<&str> = std::collections::HashSet::new();
         for item in items.iter().filter(|item| item.kind == Kind::Task) {
             if let Some(id) = item.id.as_deref() {
                 known_tasks.insert(id, (item.path.as_str(), item.alive()));
+                if item.completed.is_some() {
+                    known_done.insert(id);
+                }
             }
         }
         let mut seen_tasks = std::collections::HashSet::new();
@@ -294,6 +356,25 @@ impl Notebook {
                     Some((known, true)) if *known != address.path => lines
                         .push(Record::moved(at, Kind::Task, *known, &address.path).with_id(id)),
                     Some(_) => {}
+                }
+                // The ticked state, reconciled the same way: a finished task
+                // the log has never seen finish (a notebook older than the
+                // `completed` line, or ticked by hand in the file) is logged
+                // with the day its `completed:` says; one the log believes
+                // finished but that is open again is reopened.
+                match (task.done, known_done.contains(id)) {
+                    (true, false) => lines.push(
+                        Record::completed(
+                            at,
+                            &address.path,
+                            task.completed.unwrap_or_else(crate::clock::civil_today),
+                        )
+                        .with_id(id),
+                    ),
+                    (false, true) => {
+                        lines.push(Record::reopened(at, &address.path).with_id(id))
+                    }
+                    _ => {}
                 }
             }
         }

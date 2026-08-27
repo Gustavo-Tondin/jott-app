@@ -298,17 +298,26 @@ order you dragged things into.
 - **`timeline/`** — the log of everything the notebook has ever held, one
   file per calendar year (`2026.jsonl`), **JSON Lines, append only**. Each
   line carries `v: 1`, a timestamp, an event (`created`, `moved`, `deleted`,
-  `restored`), what it is about (`note` or `task`), and where. Existence is
-  **derived**: the last event about a thing says where it is and whether it
-  is still there — which is how the app can show you a note on the day you
-  wrote it, months after you deleted it.
+  `restored`, `completed`, `reopened`), what it is about (`note` or `task`),
+  and where. A `created` line also carries the day it was born and the
+  title it had; a `completed` line carries `on`, the civil day the task was
+  ticked (which may be earlier than the line, when the app adopted a task
+  finished before it was watching). Existence and state are **derived**:
+  the last event about a thing says where it is, whether it is still there
+  and whether it is ticked — which is how the app can show you a note on
+  the day you wrote it, months after you deleted it, and count a task in
+  the month it was finished rather than the month it was born.
 
-  Jott never rewrites, compacts or removes a line, so this folder is
+  Jott appends to these files and never compacts them, so this folder is
   **durable**, unlike `index/`: a deleted thing cannot be rebuilt from
-  anything. Delete the folder yourself and the app keeps working — it simply
-  forgets everything that is no longer on disk. A reader should union every
-  `*.jsonl` in there (sync conflict copies included), skip lines it does not
-  understand, and expect duplicates.
+  anything. **The one exception is yours:** "Remove from timeline" on an
+  item of the Timeline screen rewrites the year files without that item's
+  lines (a `.jsonl.bak` is left beside each touched file). Delete the folder
+  yourself and the app keeps working — it simply forgets everything that is
+  no longer on disk. A reader should union every `*.jsonl` in there (sync
+  conflict copies included), skip lines it does not understand, and expect
+  duplicates across files (the same line in two files is one event; the
+  same line twice in one file is two).
 
 - **`trash/`** — everything deleted, with enough context to go back exactly
   where it was (a task returns to its line). Retention is configurable;

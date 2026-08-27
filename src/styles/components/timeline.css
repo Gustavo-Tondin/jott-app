@@ -1,0 +1,330 @@
+/* timeline.css — the visual layer of TimelineView.svelte.
+ * Markup: src/lib/screens/TimelineView.svelte. Selectors are the stable BEM
+ * hooks a theme may restyle; components read tokens only.
+ *
+ * Wireframe "Timeline Screen" (desktop + mobile, 2026-08-27): a heading with
+ * three stat cards, a column of months down a thin rule, three foldable
+ * lines a month, and a year pill pinned in the top corner. Every duration is
+ * a `--app-duration-*` token, which is what lets the reduced-motion block in
+ * tokens.css turn the whole screen still. */
+
+@layer components {
+  .timeline {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: var(--app-space-32);
+    max-inline-size: var(--app-content-max);
+    margin-inline: auto;
+  }
+
+  /* ---- heading + the three cards ------------------------------------- */
+  .timeline__header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--app-space-24);
+  }
+  .timeline__title {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--app-space-10);
+  }
+  .timeline__title-dot {
+    --dot-size: 0.625rem;
+    background: var(--app-brand);
+  }
+  .timeline__today {
+    margin: var(--app-space-4) 0 0;
+    color: var(--app-ink-muted);
+    font-size: var(--app-text-14);
+  }
+  .timeline__stats {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--app-space-16);
+  }
+  .timeline__stat {
+    position: relative;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-rows: auto auto;
+    align-items: baseline;
+    column-gap: var(--app-space-6);
+    min-inline-size: 9rem;
+    padding: var(--app-space-12) var(--app-space-16);
+    padding-inline-end: var(--app-space-40);
+    background: var(--app-brand-weak);
+    border-radius: var(--app-radius-md);
+    color: var(--app-ink);
+  }
+  .timeline__stat-number {
+    font-size: var(--app-text-24);
+    font-weight: var(--app-weight-bold);
+    line-height: 1;
+  }
+  .timeline__stat-label {
+    font-size: var(--app-text-14);
+    color: var(--app-ink-muted);
+  }
+  .timeline__stat-when {
+    grid-column: 1 / -1;
+    margin-block-start: var(--app-space-6);
+    font-size: var(--app-text-12);
+    color: var(--app-ink-muted);
+  }
+  .timeline__stat-icon {
+    position: absolute;
+    inset-inline-end: var(--app-space-12);
+    inset-block-end: var(--app-space-12);
+    color: var(--app-brand);
+  }
+
+  /* ---- year pills, pinned in the corner ------------------------------ */
+  .timeline__years {
+    position: sticky;
+    inset-block-start: var(--app-space-8);
+    z-index: 2;
+    display: grid;
+    justify-items: end;
+    /* Every pill occupies the same cell: the active one is drawn, the rest
+       wait under it — the next year covers the current one in place. */
+    inline-size: 100%;
+    margin-block: calc(-1 * var(--app-space-32)) 0;
+    pointer-events: none;
+  }
+  .timeline__year {
+    grid-area: 1 / 1;
+    padding: var(--app-space-4) var(--app-space-12);
+    border: none;
+    border-radius: var(--app-radius-sm);
+    background: var(--app-surface-sunken);
+    color: var(--app-ink-muted);
+    font: inherit;
+    font-size: var(--app-text-20);
+    font-weight: var(--app-weight-medium);
+    letter-spacing: var(--app-tracking-wide);
+    opacity: 0;
+    translate: 0 -0.5rem;
+    pointer-events: none;
+    cursor: pointer;
+    transition:
+      opacity var(--app-duration-medium) var(--app-ease-out),
+      translate var(--app-duration-medium) var(--app-ease-out),
+      background var(--app-transition-fast),
+      color var(--app-transition-fast);
+  }
+  .timeline__year.is-active {
+    opacity: 1;
+    translate: 0 0;
+    pointer-events: auto;
+    background: var(--app-brand);
+    color: var(--app-on-brand);
+  }
+  /* Hovering the corner reveals the rest of the stack, one under the other,
+     so any year is a click away without a second control. */
+  .timeline__years:hover .timeline__year,
+  .timeline__years:focus-within .timeline__year {
+    position: relative;
+    grid-area: auto;
+    opacity: 1;
+    translate: 0 0;
+    pointer-events: auto;
+  }
+  .timeline__years:hover,
+  .timeline__years:focus-within {
+    gap: var(--app-space-4);
+  }
+
+  /* ---- the column ---------------------------------------------------- */
+  .timeline__months {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--app-space-40);
+  }
+  .timeline__month-head {
+    position: sticky;
+    inset-block-start: 0;
+    z-index: 1;
+    display: flex;
+    align-items: baseline;
+    gap: var(--app-space-8);
+    margin: 0;
+    padding-block: var(--app-space-8);
+    background: var(--app-bg);
+    font-weight: var(--app-weight-regular);
+  }
+  .timeline__month-name {
+    font-size: var(--app-text-24);
+    color: var(--app-ink);
+  }
+  .timeline__month-year {
+    font-size: var(--app-text-12);
+    color: var(--app-ink-muted);
+  }
+  .timeline__month-rule {
+    flex: 1;
+    block-size: 0.0625rem;
+    background: var(--app-line);
+    margin-inline-start: var(--app-space-8);
+  }
+  .timeline__lines {
+    list-style: none;
+    margin: 0;
+    /* The rule runs down the middle of the icons: 18px of glyph inside 8px
+       of padding = 34px, so the rule sits at 17px from the start edge. */
+    --timeline-rule-x: calc(var(--app-space-16) + var(--app-space-2) - 0.0625rem);
+    padding: var(--app-space-8) 0 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--app-space-16);
+    position: relative;
+  }
+  .timeline__lines::before {
+    content: "";
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: var(--timeline-rule-x);
+    inline-size: 0.0625rem;
+    background: var(--app-line);
+  }
+
+  /* A line arrives as it scrolls into view: a short rise, staggered by its
+     place in the month (`--reveal-index`, set in the markup). */
+  .timeline__line {
+    position: relative;
+    opacity: 0;
+    translate: 0 0.75rem;
+    transition:
+      opacity var(--app-duration-slow) var(--app-ease-out),
+      translate var(--app-duration-slow) var(--app-ease-out);
+    transition-delay: calc(var(--reveal-index, 0) * 0.04s);
+  }
+  .timeline__line.is-visible {
+    opacity: 1;
+    translate: 0 0;
+  }
+  .timeline__line-head {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--app-space-10);
+    padding: 0;
+    border: none;
+    background: none;
+    color: var(--app-ink);
+    font: inherit;
+    font-size: var(--app-text-16);
+    cursor: pointer;
+    text-align: start;
+  }
+  .timeline__line-head:disabled {
+    cursor: default;
+    color: var(--app-ink-muted);
+  }
+  .timeline__line-icon {
+    display: inline-flex;
+    padding: var(--app-space-8);
+    border-radius: var(--app-radius-sm);
+    background: var(--app-surface-sunken);
+    color: var(--app-ink);
+    /* Over the rule, so the line passes behind the glyph, not through it. */
+    position: relative;
+    box-shadow: 0 0 0 var(--app-space-4) var(--app-bg);
+  }
+  .timeline__line-head:not(:disabled):hover .timeline__line-icon {
+    background: var(--app-hover);
+  }
+
+  /* The fold: height animated through a grid track, which is the one way
+     CSS animates "auto" without measuring. */
+  .timeline__fold {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows var(--app-duration-medium) var(--app-ease-out);
+  }
+  .timeline__fold.is-open {
+    grid-template-rows: 1fr;
+  }
+  .timeline__rows {
+    list-style: none;
+    margin: 0;
+    padding: var(--app-space-8) 0 0 var(--app-space-40);
+    min-block-size: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: var(--app-space-4);
+  }
+  .timeline__rows[hidden] {
+    display: none;
+  }
+  .timeline__row {
+    display: flex;
+    align-items: center;
+    gap: var(--app-space-8);
+    min-block-size: 1.75rem;
+  }
+  .timeline__row-dot {
+    --dot-size: 0.5rem;
+  }
+  .timeline__row-open {
+    padding: var(--app-space-2) 0;
+    border: none;
+    background: none;
+    color: var(--app-ink);
+    font: inherit;
+    font-size: var(--app-text-14);
+    text-align: start;
+    cursor: pointer;
+    border-radius: var(--app-radius-xs);
+  }
+  .timeline__row-open:not(:disabled):hover {
+    text-decoration: underline;
+  }
+  .timeline__row-open:disabled {
+    cursor: default;
+  }
+  .timeline__row-text {
+    font-size: var(--app-text-14);
+    color: var(--app-ink-muted);
+  }
+  .timeline__row--done .timeline__row-open,
+  .timeline__row--ghost .timeline__row-open {
+    text-decoration: line-through;
+    color: var(--app-ink-muted);
+  }
+  .timeline__row--done .timeline__row-open:not(:disabled):hover {
+    text-decoration: line-through underline;
+  }
+  .timeline__row-menu {
+    opacity: 0;
+    transition: opacity var(--app-transition-fast);
+  }
+  .timeline__row:hover .timeline__row-menu,
+  .timeline__row:focus-within .timeline__row-menu {
+    opacity: 1;
+  }
+
+  .timeline__end {
+    display: flex;
+    justify-content: center;
+    min-block-size: var(--app-space-40);
+    padding-inline-start: var(--app-space-40);
+  }
+
+  /* ---- the phone: the heading sits on the dark chrome above the sheet ---- */
+  .shell--compact .timeline__stats {
+    inline-size: 100%;
+  }
+  .shell--compact .timeline__stat {
+    flex: 1 1 0;
+    min-inline-size: 0;
+  }
+}

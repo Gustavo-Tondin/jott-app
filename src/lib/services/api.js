@@ -235,6 +235,17 @@ export const api = {
 
   // Completed tasks aggregated across every space, for the Completed tab.
   completedTasks: () => invoke("completed_tasks"),
+
+  // The Timeline (2026-08-27). `from`/`to` are `yyyy-mm-dd` or null; the
+  // screen asks one year at a time. Reads the whole log and every list with
+  // a live task — ask when the screen opens, never per render.
+  timeline: (from = null, to = null) => invoke("timeline", { from, to }),
+  // The years the log has a file for, newest first — the year pills.
+  timelineYears: () => invoke("timeline_years"),
+  // Forgets one thing from the log for good: `{kind: "task", key: id}` or
+  // `{kind: "note", key: path}`. The one rewrite of the log, always behind
+  // a confirmation. Answers how many lines went.
+  forgetFromTimeline: (kind, key) => invoke("forget_from_timeline", { target: { kind, key } }),
   ensureTaskId: (list, position) => invoke("ensure_task_id", { list, position }),
   completeTask: (list, id) => invoke("complete_task", { list, id }),
   // `list` is the Completed list the task sits in — one per space.

@@ -324,6 +324,19 @@
         </button>
       {/snippet}
     </Menu>
+    <!-- The Timeline (2026-08-27): the one screen of the time axis, reached
+         from here and nowhere else — it is the notebook's, like the search
+         beside it, not any space's. -->
+    {#if f("timeline")}
+      <button
+        class="theme-btn--icon shell__head-action"
+        onclick={() => onOpen?.({ kind: "timeline" })}
+        aria-label={S.timeline}
+        title={S.timeline}
+      >
+        <Icon name="path" size="1.125rem" />
+      </button>
+    {/if}
     <!-- Search and + (user call, 2026-08-17). Both were only reachable by
          shortcut or by right-clicking the empty column — which is nowhere at
          all once the column is full. They keep the hamburger's company on the

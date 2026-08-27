@@ -106,6 +106,15 @@ what the current version is.
 - **Outside changes are detected** — edit a file in another editor, or let
   Syncthing/Drive sync it, and the app follows.
 
+**The time axis**
+- **A Timeline** of everything the notebook has ever held, month by month:
+  tasks created, tasks completed, notes created — each line folds open onto
+  its items. A living one opens from there; a deleted one is only counted,
+  in the colour of the space it was in (name it in Settings if you want),
+  and "Remove from timeline" forgets it for good. It reads an append-only
+  log in `.jott/timeline/`, one plain-text file a year, so a notebook older
+  than the app arrives with its history ([the format](documentation/file-format.md)).
+
 **Looks and input**
 - Three themes (default, light, dark) × eight accent colours, each with a
   six-rung ladder so headings and chrome agree with the theme.
@@ -164,7 +173,7 @@ One product decision remains, then it is proving things on hardware.
 
 | | |
 |---|---|
-| **The time axis** — a Timeline of everything you wrote, by day, and a weekly sweep of what you have not looked at in a while | decided 2026-08-25; every task and note already carries its creation date. The Timeline will read an append-only log in `.jott/timeline/` (one plain-text file per year, never rewritten — a deleted item stays as a dated mention, a living one opens from there), every task will get an id, and a last-seen record for notes will live in `.jott/index/` (regenerable — losing it loses nothing you wrote) |
+| **The time axis** — a weekly sweep of what you have not looked at in a while, and the age of things on screen | decided 2026-08-25; the Timeline shipped first (v0.48.0). Every task and note carries its creation date, every task an id, and a last-seen record for notes lives in `.jott/index/` (regenerable — losing it loses nothing you wrote). Next: a calendar of activity on the Home, sorting by age, then the sweep |
 | Android on real hardware | the build installs and runs, and has been used on one physical phone — everything since has been the emulator |
 | Clicking through what only tests have seen | app-level undo/redo, the mouse back button, the light and dark themes |
 

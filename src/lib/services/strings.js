@@ -329,6 +329,38 @@ export const S = {
   featureTasksSpace: "Tasks space",
   featureNotesSpace: "Notes space",
 
+  // The time axis (2026-08-27): the function and its one screen so far.
+  featureTime: "Time",
+  featureTimeline: "Timeline",
+  timelineGhostTitles: "Name deleted tasks and notes in the Timeline",
+  timelineGhostTitlesHint:
+    "Off, a deleted task or note is only counted — \u201c3 deleted tasks\u201d " +
+    "in the colour of its space. The log keeps the name either way; to " +
+    "drop the line itself, use \u201cRemove from timeline\u201d on the item.",
+
+  // The Timeline screen.
+  timeline: "Timeline",
+  myTimeline: "My Timeline",
+  thisMonth: "This month",
+  statNotes: "Notes",
+  statTasks: "Tasks",
+  statCompleted: "Completed",
+  tasksCreated: (n) => (n === 1 ? "1 Task created" : `${n} Tasks created`),
+  tasksCompleted: (n) => (n === 1 ? "1 Task completed" : `${n} Tasks completed`),
+  notesCreated: (n) => (n === 1 ? "1 Note created" : `${n} Notes created`),
+  deletedTasks: (n) => (n === 1 ? "1 deleted task" : `${n} deleted tasks`),
+  deletedNotes: (n) => (n === 1 ? "1 deleted note" : `${n} deleted notes`),
+  deletedTask: "Deleted task",
+  deletedNote: "Deleted note",
+  nothingInTimeline: "Nothing here yet.",
+  nothingInTimelineHint: "Every task and note you write lands here, on the month it was born.",
+  removeFromTimeline: "Remove from timeline",
+  removeFromTimelineDetail:
+    "This forgets it from the log for good — the task or note itself is not touched.",
+  timelineLoadingYear: (year) => `Reading ${year}\u2026`,
+  goToYear: (year) => `Go to ${year}`,
+  timelineOptions: "timeline item options",
+
   // The shortcuts table in Settings (2026-08-18).
   sectionShortcuts: "Shortcuts",
   sectionShortcutsHint:

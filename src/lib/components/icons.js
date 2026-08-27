@@ -57,6 +57,10 @@ import flag from "../../assets/icons/phosphor/regular/flag.svg?raw";
 import dotsSixVertical from "../../assets/icons/phosphor/regular/dots-six-vertical.svg?raw";
 import list from "../../assets/icons/phosphor/regular/list.svg?raw";
 import magnifyingGlass from "../../assets/icons/phosphor/regular/magnifying-glass.svg?raw";
+// The Timeline's door in the sidebar header (wireframe of 2026-08-27): a
+// winding path, the one glyph there that is not a verb.
+import path from "../../assets/icons/phosphor/regular/path.svg?raw";
+import checks from "../../assets/icons/phosphor/regular/checks.svg?raw";
 import lightbulb from "../../assets/icons/phosphor/regular/lightbulb.svg?raw";
 
 // The settings menu (2026-08-20, wireframe "Settings"). One glyph per section
@@ -177,6 +181,8 @@ export const ICONS = {
   "dots-six-vertical": dotsSixVertical,
   list,
   "magnifying-glass": magnifyingGlass,
+  path,
+  checks,
   monitor,
   notebook: notebookIcon,
   keyboard,

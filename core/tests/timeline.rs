@@ -286,3 +286,179 @@ fn undoing_an_action_never_rewrites_the_log() {
         "the undo restored the note, not the log"
     );
 }
+
+// ---------------------------------------------------------------- completed
+// The Timeline's month has a "tasks completed" line (wireframe of
+// 2026-08-27), and it counts the STATE: ticked is in, unticked is out.
+
+const COMPLETED: &str = "jott.tasks/completed.md";
+
+#[test]
+fn ticking_a_task_dates_its_completion_and_unticking_forgets_it() {
+    let (_dir, nb) = notebook();
+    nb.create_task(INBOX, "comprar pão").unwrap();
+    let id = all(&nb)[0].id.clone().unwrap();
+    assert_eq!(all(&nb)[0].completed, None);
+
+    nb.complete_task(INBOX, &id).unwrap();
+    let items = all(&nb);
+    assert_eq!(items.len(), 1, "{items:?}");
+    assert_eq!(items[0].completed, Some(today()));
+    assert_eq!(items[0].path, COMPLETED);
+
+    nb.uncomplete_task(COMPLETED, &id).unwrap();
+    let items = all(&nb);
+    assert_eq!(items[0].completed, None, "reopened: {items:?}");
+    assert_eq!(items[0].path, INBOX);
+
+    nb.complete_task(INBOX, &id).unwrap();
+    assert_eq!(all(&nb)[0].completed, Some(today()), "and ticked again");
+}
+
+#[test]
+fn a_finished_task_thrown_away_still_counts_as_finished() {
+    let (_dir, nb) = notebook();
+    nb.create_task(INBOX, "comprar pão").unwrap();
+    let id = all(&nb)[0].id.clone().unwrap();
+    nb.complete_task(INBOX, &id).unwrap();
+    nb.delete_task(COMPLETED, &id).unwrap();
+
+    // Born and deleted today: invisible — so ask the log directly.
+    let items = timeline::resolve(&timeline::read(_dir.path().join(".jott")));
+    assert_eq!(items.len(), 1, "{items:?}");
+    assert!(!items[0].alive());
+    assert_eq!(items[0].completed, Some(today()), "the month keeps its count");
+}
+
+#[test]
+fn the_window_holds_what_was_ticked_in_it_even_when_born_before() {
+    // The screen asks one year at a time. A task from last year finished
+    // this year is this year's "completed" line — filtered by birth alone it
+    // would be nowhere.
+    let (dir, _fresh) = notebook();
+    let long_ago = days_ago(400);
+    timeline::append(
+        dir.path().join(".jott"),
+        &[
+            Record::created(
+                long_ago.and_hms_opt(9, 0, 0).unwrap(),
+                Kind::Task,
+                INBOX,
+                long_ago,
+                "velha",
+            )
+            .with_id("old001"),
+            Record::completed(today().and_hms_opt(9, 0, 0).unwrap(), COMPLETED, today())
+                .with_id("old001"),
+        ],
+    )
+    .unwrap();
+    let nb = Notebook::open(dir.path()).unwrap();
+
+    let recent = nb.timeline(Some(days_ago(30)), None).unwrap();
+    let found = recent.iter().find(|item| item.id.as_deref() == Some("old001"));
+    assert!(found.is_some(), "ticked inside the window: {recent:?}");
+    assert_eq!(found.unwrap().created, long_ago, "born outside it");
+
+    let old = nb.timeline(None, Some(days_ago(300))).unwrap();
+    assert!(
+        old.iter().any(|item| item.id.as_deref() == Some("old001")),
+        "and in the window it was born in: {old:?}"
+    );
+}
+
+#[test]
+fn a_notebook_older_than_the_completed_line_arrives_with_its_completions() {
+    // Finished before the log knew how to say so (or ticked by hand in the
+    // file): the sweep logs it with the day the task's own `completed:` says.
+    let (dir, nb) = notebook();
+    nb.create_task(INBOX, "comprar pão").unwrap();
+    let id = all(&nb)[0].id.clone().unwrap();
+    nb.complete_task(INBOX, &id).unwrap();
+    drop(nb);
+
+    // Forget the log entirely; the files stay.
+    std::fs::remove_dir_all(timeline::dir_of(dir.path().join(".jott"))).unwrap();
+    let nb = Notebook::open(dir.path()).unwrap();
+    let items = all(&nb);
+    assert_eq!(items.len(), 1, "{items:?}");
+    assert_eq!(items[0].completed, Some(today()));
+    assert_eq!(items[0].path, COMPLETED);
+
+    // And a task unticked by hand is reopened by the next sweep.
+    nb.uncomplete_task(COMPLETED, &id).unwrap();
+    assert_eq!(all(&nb)[0].completed, None);
+}
+
+// -------------------------------------------------------------------- space
+
+#[test]
+fn every_item_is_told_its_space() {
+    let (_dir, nb) = notebook();
+    nb.create_note(NOTES_DIR, "Inbox", "Ideia").unwrap();
+    nb.create_task(INBOX, "pão").unwrap();
+    for item in all(&nb) {
+        let expected = match item.kind {
+            Kind::Note => "jott.notes",
+            Kind::Task => "jott.tasks",
+        };
+        assert_eq!(item.space.as_deref(), Some(expected), "{item:?}");
+    }
+}
+
+// ---------------------------------------------------------- years and remove
+
+#[test]
+fn the_years_are_the_files_the_log_has() {
+    let (dir, nb) = notebook();
+    assert_eq!(nb.timeline_years(), Vec::<i32>::new());
+    nb.create_note(NOTES_DIR, "Inbox", "Ideia").unwrap();
+    let this_year = today().format("%Y").to_string().parse::<i32>().unwrap();
+    assert_eq!(nb.timeline_years(), vec![this_year]);
+
+    // An older year, and a sync conflict copy of it.
+    let folder = timeline::dir_of(dir.path().join(".jott"));
+    std::fs::write(folder.join("2019.jsonl"), "").unwrap();
+    std::fs::write(folder.join("2019 (conflicted copy).jsonl"), "").unwrap();
+    assert_eq!(nb.timeline_years(), vec![this_year, 2019], "newest first, once each");
+}
+
+#[test]
+fn removing_one_thing_from_the_timeline_leaves_every_other_line_as_it_was() {
+    let (dir, nb) = notebook();
+    let keep = nb.create_note(NOTES_DIR, "Inbox", "Fica").unwrap();
+    let gone = nb.create_note(NOTES_DIR, "Inbox", "Some").unwrap();
+    nb.rename_note(NOTES_DIR, &gone, "Sumiu").unwrap();
+    nb.create_task(INBOX, "pão").unwrap();
+    let task_id = all(&nb)
+        .iter()
+        .find(|item| item.kind == Kind::Task)
+        .and_then(|item| item.id.clone())
+        .unwrap();
+
+    let year = timeline::dir_of(dir.path().join(".jott"))
+        .join(format!("{}.jsonl", today().format("%Y")));
+    let before = std::fs::read_to_string(&year).unwrap();
+    let survivors: Vec<&str> = before
+        .lines()
+        .filter(|line| !line.contains("Some.md") && !line.contains("Sumiu.md"))
+        .collect();
+
+    let removed = nb
+        .forget_from_timeline(&timeline::Key::Note("jott.notes/Inbox/Sumiu.md".into()))
+        .unwrap();
+    assert_eq!(removed, 2, "the birth and the rename");
+
+    let after = std::fs::read_to_string(&year).unwrap();
+    assert_eq!(after.lines().collect::<Vec<_>>(), survivors, "byte for byte");
+    assert!(year.with_extension("jsonl.bak").is_file(), "with a backup beside it");
+    let titles: Vec<String> = all(&nb).into_iter().map(|item| item.title).collect();
+    assert!(titles.contains(&"Fica".to_string()), "{titles:?}");
+    assert!(!titles.iter().any(|t| t == "Sumiu"), "{titles:?}");
+    let _ = keep;
+
+    // A task goes by its id, and asking twice is harmless.
+    assert_eq!(nb.forget_from_timeline(&timeline::Key::Task(task_id.clone())).unwrap(), 1);
+    assert_eq!(nb.forget_from_timeline(&timeline::Key::Task(task_id)).unwrap(), 0);
+    assert!(all(&nb).iter().all(|item| item.kind == Kind::Note));
+}

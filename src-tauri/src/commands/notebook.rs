@@ -67,6 +67,8 @@ pub struct NotebookLayout {
     pub note_layout: String,
     /// How a table sits in a note (`""` squeezed to fit / `scroll`).
     pub table_layout: String,
+    /// Whether the Timeline names what was deleted (`Config::timeline_ghost_titles`).
+    pub timeline_ghost_titles: bool,
     /// Whether the sidebar wears the rainbow — each entry the next of the
     /// seven from the accent on (services/spaceColors.js does the dealing).
     /// Resolved like the accent: this machine's answer over the notebook's.
@@ -153,6 +155,7 @@ impl NotebookInfo {
                 home_notes_source: notebook.config().home_notes_source.clone(),
                 note_layout: notebook.config().note_layout.clone(),
                 table_layout: notebook.config().table_layout.clone(),
+                timeline_ghost_titles: notebook.config().timeline_ghost_titles,
                 auto_space_colors: display.auto_space_colors,
                 accent_color: display.accent_color,
                 mode: display.mode,
