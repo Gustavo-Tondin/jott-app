@@ -10,8 +10,9 @@
 
 @layer components {
   /* The screen is full width (the pills need the canvas's own edge); the
-     content is a centred column of the wide measure — the heading and its
-     three cards do not fit the prose measure side by side. */
+     content is a centred column of the reading measure, like every other
+     screen (user call, 2026-08-27). The heading wraps its cards under
+     itself when they do not fit beside it. */
   .timeline {
     position: relative;
   }
@@ -19,7 +20,7 @@
     display: flex;
     flex-direction: column;
     gap: var(--app-space-32);
-    max-inline-size: var(--app-content-wide);
+    max-inline-size: var(--app-content-max);
     margin-inline: auto;
   }
 

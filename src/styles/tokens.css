@@ -183,11 +183,10 @@
         var(--app-space-12)
     );
     --app-content-max: 45rem;
-    /* The wide measure, for the two screens that put something BESIDE the
-       prose: Settings (menu beside a section) and the Timeline (heading
-       beside three cards). The note's banner read it too (wireframe "Editor
-       screen - maximized", 2026-08-19) until 2026-08-27, when the user asked
-       for one width per note. */
+    /* The wide measure, for the one screen that puts something BESIDE the
+       prose: Settings (menu beside a section). The note's banner read it too
+       (wireframe "Editor screen - maximized", 2026-08-19) until 2026-08-27,
+       when the user asked for one width per note. */
     --app-content-wide: 56.25rem;
 
     /* HOW BIG A NOTE IS DRAWN, and the one heading size read from outside the
