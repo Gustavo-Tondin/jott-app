@@ -9,12 +9,17 @@
  * tokens.css turn the whole screen still. */
 
 @layer components {
+  /* The screen is full width (the pills need the canvas's own edge); the
+     content is a centred column of the wide measure — the heading and its
+     three cards do not fit the prose measure side by side. */
   .timeline {
     position: relative;
+  }
+  .timeline__column {
     display: flex;
     flex-direction: column;
     gap: var(--app-space-32);
-    max-inline-size: var(--app-content-max);
+    max-inline-size: var(--app-content-wide);
     margin-inline: auto;
   }
 
@@ -22,7 +27,7 @@
   .timeline__header {
     display: flex;
     flex-wrap: wrap;
-    align-items: flex-start;
+    align-items: center;
     justify-content: space-between;
     gap: var(--app-space-24);
   }
@@ -50,17 +55,22 @@
   }
   .timeline__stat {
     position: relative;
-    display: grid;
-    grid-template-columns: auto 1fr;
-    grid-template-rows: auto auto;
-    align-items: baseline;
-    column-gap: var(--app-space-6);
-    min-inline-size: 9rem;
+    display: flex;
+    flex-direction: column;
+    gap: var(--app-space-6);
+    min-inline-size: 9.5rem;
     padding: var(--app-space-12) var(--app-space-16);
     padding-inline-end: var(--app-space-40);
     background: var(--app-brand-weak);
     border-radius: var(--app-radius-md);
     color: var(--app-ink);
+  }
+  /* Number and word on one baseline, always the same gap between them. */
+  .timeline__stat-line {
+    display: flex;
+    align-items: baseline;
+    gap: var(--app-space-6);
+    white-space: nowrap;
   }
   .timeline__stat-number {
     font-size: var(--app-text-24);
@@ -72,8 +82,6 @@
     color: var(--app-ink-muted);
   }
   .timeline__stat-when {
-    grid-column: 1 / -1;
-    margin-block-start: var(--app-space-6);
     font-size: var(--app-text-12);
     color: var(--app-ink-muted);
   }
@@ -87,14 +95,16 @@
   /* ---- year pills, pinned in the corner ------------------------------ */
   .timeline__years {
     position: sticky;
-    inset-block-start: var(--app-space-8);
+    inset-block-start: 0;
     z-index: 2;
     display: grid;
     justify-items: end;
     /* Every pill occupies the same cell: the active one is drawn, the rest
-       wait under it — the next year covers the current one in place. */
+       wait under it — the next year covers the current one in place. Zero
+       height, so the column below does not move down for it. */
     inline-size: 100%;
-    margin-block: calc(-1 * var(--app-space-32)) 0;
+    block-size: 0;
+    overflow: visible;
     pointer-events: none;
   }
   .timeline__year {
@@ -232,14 +242,17 @@
     display: inline-flex;
     padding: var(--app-space-8);
     border-radius: var(--app-radius-sm);
-    background: var(--app-surface-sunken);
+    /* Two layers on purpose: the tint over an OPAQUE ground. Both the
+       resting and the hover tint are translucent, and the rule runs right
+       behind the glyph — with the tint alone it showed through on hover. */
+    background-color: var(--app-bg);
+    background-image: linear-gradient(var(--app-surface-sunken), var(--app-surface-sunken));
     color: var(--app-ink);
-    /* Over the rule, so the line passes behind the glyph, not through it. */
     position: relative;
     box-shadow: 0 0 0 var(--app-space-4) var(--app-bg);
   }
   .timeline__line-head:not(:disabled):hover .timeline__line-icon {
-    background: var(--app-hover);
+    background-image: linear-gradient(var(--app-hover), var(--app-hover));
   }
 
   /* The fold: height animated through a grid track, which is the one way

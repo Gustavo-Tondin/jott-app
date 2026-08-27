@@ -417,6 +417,12 @@
   .shell__settings--active {
     color: var(--app-brand);
   }
+  /* The header's one screen door (the Timeline) lights up while its screen
+     is open — the same fact a space's row states, in the header's own way:
+     no pill, just the ink at full strength (user call, 2026-08-27). */
+  .shell__head-action--active {
+    color: var(--app-ink);
+  }
   .shell__badge {
     color: var(--app-danger);
     font-size: var(--app-text-10);
@@ -554,13 +560,13 @@
     flex-direction: column;
     min-block-size: 100%;
   }
-  /* An open note is the one screen that is wider than the cap: its banner
-     reaches to 900px while its prose stays at 45rem (note-banner.css draws the
-     two, tokens.css names them). The cap is redefined rather than a second
-     max-width added, so everything inside — the banner, the editor's own
-     centred column — keeps reading ONE variable. */
+  /* An open note keeps the reading measure, banner included (user call,
+     2026-08-27: the banner reached 900px while the prose stayed at 45rem,
+     and the two widths read as two pages). The cap is stated here rather
+     than left to the default so everything inside — the banner, the editor's
+     own centred column — keeps reading ONE variable. */
   .shell__content-inner--note {
-    max-width: var(--app-content-wide);
+    max-width: var(--app-content-max);
   }
   /* And so is Settings (2026-08-20, wireframe): a menu beside a section needs
      more than a column of prose — the user's number is 900px, which is the

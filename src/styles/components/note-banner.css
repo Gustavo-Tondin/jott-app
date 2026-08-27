@@ -12,8 +12,9 @@
  * The block reaches past the prose, and the title chip lines up with the first
  * letter of the first paragraph — which is why the chip lives inside a box of
  * `--app-content-max` centred in the block, rather than at the block's own
- * padding. The outer cap is `--app-content-wide`, put on the screen's container
- * by the shell (`.shell__content-inner--note`, shell.css).
+ * padding. The outer cap is put on the screen's container by the shell
+ * (`.shell__content-inner--note`, shell.css) — since 2026-08-27 the same
+ * `--app-content-max` as the prose (it was the 900px `--app-content-wide`).
  *
  * WITHOUT a banner the same head is drawn with no colour and no height: the
  * title does not move (user call, 2026-08-19). So the difference between the

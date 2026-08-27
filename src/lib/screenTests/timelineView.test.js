@@ -138,7 +138,9 @@ describe("TimelineView", () => {
     await userEvent.click(await screen.findByText("Call the accountant"));
     expect(onOpenTask).toHaveBeenCalledWith("jott.tasks/task-list.md", "Calltheaccountant");
     await userEvent.click(screen.getByText("Kickoff"));
-    expect(onOpenNote).toHaveBeenCalledWith("jott.notes/Kickoff.md", "jott.notes");
+    // The path INSIDE the space — the shell joins the two; handing it the
+    // root-relative address doubled the space (user report, 2026-08-27).
+    expect(onOpenNote).toHaveBeenCalledWith("Kickoff.md", "jott.notes");
   });
 
   test("remove from timeline asks, then forgets the item through the bridge", async () => {

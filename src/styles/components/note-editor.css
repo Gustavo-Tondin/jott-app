@@ -11,10 +11,9 @@
        family travels down from this one declaration — and the note's text is
        the only thing in the app that reads in it. */
     font-family: var(--app-font-note);
-    /* The prose keeps the app's reading width while the screen around it is
-       wider (`--app-content-wide`, tokens.css): only the banner reaches past the
-       cap, and it is the banner that reaches — the text stays where every
-       other screen's text is. */
+    /* The prose keeps the app's reading width — and since 2026-08-27 so
+       does the banner (`.shell__content-inner--note`, shell.css): the text
+       stays where every other screen's text is. */
     inline-size: 100%;
     max-inline-size: var(--app-content-max);
     margin-inline: auto;

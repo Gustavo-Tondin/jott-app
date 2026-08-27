@@ -330,6 +330,7 @@
     {#if f("timeline")}
       <button
         class="theme-btn--icon shell__head-action"
+        class:shell__head-action--active={isOpen({ kind: "timeline" })}
         onclick={() => onOpen?.({ kind: "timeline" })}
         aria-label={S.timeline}
         title={S.timeline}

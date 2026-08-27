@@ -183,8 +183,14 @@
 
   function openRow(row) {
     if (row.ghost || row.deleted) return;
-    if (row.kind === "note") onOpenNote?.(row.path, row.space);
-    else onOpenTask?.(row.path, row.id);
+    if (row.kind === "note") {
+      // The log's address is root-relative; the editor wants the path
+      // INSIDE the space (the shell puts the two back together).
+      const inside = row.space && row.path.startsWith(`${row.space}/`)
+        ? row.path.slice(row.space.length + 1)
+        : row.path;
+      onOpenNote?.(inside, row.space);
+    } else onOpenTask?.(row.path, row.id);
   }
 
   /// The colour a row wears: its space's, through the origin badge for a
@@ -216,40 +222,12 @@
 </script>
 
 <div class="timeline" bind:this={column}>
-  <header class="timeline__header">
-    <div class="timeline__heading">
-      <h2 class="theme-title timeline__title">
-        {S.myTimeline}<span class="theme-dot timeline__title-dot" aria-hidden="true"></span>
-      </h2>
-      <p class="timeline__today">{formatDate(today, dateFormat)}</p>
-    </div>
-    <ul class="timeline__stats" aria-label={S.thisMonth}>
-      <li class="timeline__stat">
-        <span class="timeline__stat-number">{stats.notes}</span>
-        <span class="timeline__stat-label">{S.statNotes}</span>
-        <span class="timeline__stat-when">{S.thisMonth}</span>
-        <span class="timeline__stat-icon" aria-hidden="true"><Icon name="notepad" size="1.125rem" /></span>
-      </li>
-      <li class="timeline__stat">
-        <span class="timeline__stat-number">{stats.created}</span>
-        <span class="timeline__stat-label">{S.statTasks}</span>
-        <span class="timeline__stat-when">{S.thisMonth}</span>
-        <span class="timeline__stat-icon" aria-hidden="true"><Icon name="check-square" size="1.125rem" /></span>
-      </li>
-      <li class="timeline__stat">
-        <span class="timeline__stat-number">{stats.completed}</span>
-        <span class="timeline__stat-label">{S.statCompleted}</span>
-        <span class="timeline__stat-when">{S.thisMonth}</span>
-        <span class="timeline__stat-icon" aria-hidden="true"><Icon name="checks" size="1.125rem" /></span>
-      </li>
-    </ul>
-  </header>
-
-  {#if years.length > 1 || (years.length === 1 && activeYear !== null)}
-    <!-- The pills: one per year the log has, stacked in the corner; only the
-         active one shows, and the next covers it as the column scrolls on
-         (user call, 2026-08-27). Each is a real button — a year not read yet
-         is read on the way. -->
+  {#if years.length > 0 && activeYear !== null}
+    <!-- The pills: one per year the log has, pinned at the canvas's own
+         corner — outside the centred column, so they sit at the edge of the
+         panel whatever its width (user call, 2026-08-27). Only the active
+         one shows, and the next covers it as the column scrolls on; each is
+         a real button, and a year not read yet is read on the way. -->
     <nav class="timeline__years" aria-label={S.timeline}>
       {#each years as year (year)}
         <button
@@ -264,6 +242,27 @@
       {/each}
     </nav>
   {/if}
+  <div class="timeline__column">
+  <header class="timeline__header">
+    <div class="timeline__heading">
+      <h2 class="theme-title timeline__title">
+        {S.myTimeline}<span class="theme-dot timeline__title-dot" aria-hidden="true"></span>
+      </h2>
+      <p class="timeline__today">{formatDate(today, dateFormat)}</p>
+    </div>
+    <ul class="timeline__stats" aria-label={S.thisMonth}>
+      {#each [["notes", S.statNotes, "notepad"], ["created", S.statTasks, "check-square"], ["completed", S.statCompleted, "checks"]] as [key, label, icon] (key)}
+        <li class="timeline__stat">
+          <span class="timeline__stat-line">
+            <span class="timeline__stat-number">{stats[key]}</span>
+            <span class="timeline__stat-label">{label}</span>
+          </span>
+          <span class="timeline__stat-when">{S.thisMonth}</span>
+          <span class="timeline__stat-icon" aria-hidden="true"><Icon name={icon} size="1.125rem" /></span>
+        </li>
+      {/each}
+    </ul>
+  </header>
 
   {#if empty}
     <EmptyState icon="path" title={S.nothingInTimeline} hint={S.nothingInTimelineHint} />
@@ -338,4 +337,5 @@
       {/if}
     </div>
   {/if}
+  </div>
 </div>
