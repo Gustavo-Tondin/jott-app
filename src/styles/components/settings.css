@@ -51,12 +51,23 @@
        wide that a long label pushes the section out of the column. */
     min-inline-size: 12rem;
     max-inline-size: 16rem;
+    /* The menu stays put while the section scrolls (user call, 2026-08-27):
+       sticky against the panel's scrollport (`.shell__content`, which is
+       what scrolls — `align-items: start` on the grid is what lets it). A
+       menu taller than the window scrolls on its own inside its cap. */
+    position: sticky;
+    inset-block-start: 0;
+    max-block-size: calc(100dvh - var(--app-space-64) - var(--app-space-40));
+    overflow-y: auto;
   }
   /* On the phone the menu IS the screen, so it takes the width it is given —
      the cap above is what keeps a long label from eating the section's column,
      and there is no section beside it here. */
   .settings--compact .settings__nav {
     max-inline-size: none;
+    position: static;
+    max-block-size: none;
+    overflow-y: visible;
   }
   /* ---- the search over every row (2026-08-20) ----
      It sits ABOVE the two blocks because it answers about both, and it is the
