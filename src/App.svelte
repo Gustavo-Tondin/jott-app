@@ -2647,6 +2647,7 @@
             class="shell__content-inner"
             class:shell__content-inner--note={view.kind === "note"}
             class:shell__content-inner--wide={view.kind === "settings"}
+            class:shell__content-inner--full={view.kind === "timeline"}
           >
           {#if error}
             <Notice

@@ -99,6 +99,9 @@
     z-index: 2;
     display: grid;
     justify-items: end;
+    /* The panel's padding is what stands between the pill and the corner;
+       reach across it so the pill touches the canvas's edge. */
+    margin-inline-end: calc(-1 * var(--app-space-16));
     /* Every pill occupies the same cell: the active one is drawn, the rest
        wait under it — the next year covers the current one in place. Zero
        height, so the column below does not move down for it. */
