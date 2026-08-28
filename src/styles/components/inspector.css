@@ -233,6 +233,20 @@
     align-items: center;
     gap: var(--app-space-4);
   }
+  /* The one field that is read and not set: when the task was written. No
+     control inside it, so the value sits where a control would and reads as
+     text — the muted ink says "this is a fact about the task", not "this is
+     something to press". */
+  .inspector__field--reading .inspector__field-value {
+    color: var(--app-ink-muted);
+  }
+  .inspector__age {
+    font-variant-numeric: tabular-nums;
+  }
+  .inspector__age--forgotten {
+    color: var(--app-warning);
+    font-weight: var(--app-weight-semibold);
+  }
   .inspector__reminder {
     flex-wrap: wrap;
     justify-content: flex-end;

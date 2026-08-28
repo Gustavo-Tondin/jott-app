@@ -39,8 +39,7 @@ pub fn list_notes<R: Runtime>(
     query: Option<String>,
 ) -> CommandResult<Vec<jott_core::NoteEntry>> {
     state.read(window.label(), |nb| {
-        let notes = nb.note_folder(&folder)?;
-        notes.search(query.as_deref().unwrap_or_default())
+        nb.notes_in(&folder, query.as_deref().unwrap_or_default())
     })
 }
 
@@ -53,7 +52,7 @@ pub fn inbox_notes<R: Runtime>(
     window: tauri::Window<R>,
     folder: String,
 ) -> CommandResult<Vec<jott_core::NoteEntry>> {
-    state.read(window.label(), |nb| nb.note_folder(&folder)?.inbox_notes())
+    state.read(window.label(), |nb| nb.inbox_notes_in(&folder))
 }
 
 /// The notes created today — what the Home shows. The Home owns no notes of
@@ -64,10 +63,7 @@ pub fn notes_created_today<R: Runtime>(
     window: tauri::Window<R>,
     folder: String,
 ) -> CommandResult<Vec<jott_core::NoteEntry>> {
-    state.read(window.label(), |nb| {
-        let today = nb.today();
-        nb.note_folder(&folder)?.created_on(today)
-    })
+    state.read(window.label(), |nb| nb.notes_created_today_in(&folder))
 }
 
 /// Writes a note from one blob of text — the Home's quick capture. The first

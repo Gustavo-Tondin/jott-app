@@ -124,6 +124,41 @@ pub fn age_days(
         .max(0)
 }
 
+/// An age as a SCREEN reads it: the number of days, and the band it falls in.
+///
+/// The two together, because every place that draws an age draws both — the
+/// stamp says `12d` and its colour says whether that is fine. Computing them
+/// apart at the call site is how one screen ends up calling forgotten what
+/// another still calls stale.
+///
+/// Derived on the way out of the notebook and never on the way in: nothing
+/// in a file says how old it is, which is the whole point of an age.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
+pub struct Age {
+    pub days: i64,
+    pub band: Band,
+}
+
+impl Age {
+    /// The age of something born on `created`, last seen at `seen`, whose file
+    /// was last written on `modified`, read against `thresholds`.
+    ///
+    /// A task passes `None` for both of the middle two — see the module doc.
+    pub fn of(
+        today: NaiveDate,
+        created: NaiveDate,
+        seen: Option<NaiveDateTime>,
+        modified: Option<NaiveDate>,
+        thresholds: Thresholds,
+    ) -> Self {
+        let days = age_days(today, created, seen, modified);
+        Self {
+            days,
+            band: thresholds.band(days),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -208,5 +243,20 @@ mod tests {
         };
         assert_eq!(odd.band(10), Band::Fresh);
         assert_eq!(odd.band(40), Band::Forgotten);
+    }
+
+    #[test]
+    fn an_age_carries_its_own_band() {
+        let age = Age::of(day(30), day(20), None, None, Thresholds::default());
+        assert_eq!(age.days, 10);
+        assert_eq!(age.band, Band::Stale);
+    }
+
+    #[test]
+    fn the_inbox_thresholds_travel_with_the_age() {
+        // The same ten days, read against the Inbox's shorter deadline.
+        let age = Age::of(day(30), day(20), None, None, Thresholds::default().in_inbox());
+        assert_eq!(age.days, 10);
+        assert_eq!(age.band, Band::Forgotten);
     }
 }

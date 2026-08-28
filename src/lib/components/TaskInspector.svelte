@@ -27,7 +27,7 @@
   import { reorderable } from "../actions/reorder.js";
   import Menu from "./Menu.svelte";
   import { formatAt, joinAt, normalizeAt, presets, splitAt } from "../services/reminders.js";
-  import { toIso } from "../services/dates.js";
+  import { formatDate, toIso } from "../services/dates.js";
   import Icon from "./Icon.svelte";
   import DatePicker from "./DatePicker.svelte";
   import AssetPicker from "./AssetPicker.svelte";
@@ -367,6 +367,11 @@
   /// The ⋮ menu's "Duplicate task": the core drops a copy right after it. The
   /// panel stays on the original; the copy shows up when the list reloads.
   const duplicate = () => onTask((task) => api.duplicateTask(task.list, task.id));
+
+  /// How old the open task is, stamped by the core on the listing this panel
+  /// was opened from (`core/age.rs`). Behind the time axis's own switch, and
+  /// absent on a task written outside the app with no date in it.
+  let age = $derived(f("time") && task?.created ? (task.age ?? null) : null);
 
   // The ⋮ menu items. More (the global field-visibility preference) land here
   // later; for now it is the one honest action.
@@ -711,6 +716,28 @@
               <Icon name="x" size="0.625rem" />
             </button>
           {/if}
+        </span>
+      </div>
+      {/if}
+
+      {#if age}
+      <!-- When the task was written, and how long ago that was (spec 3.6,
+           M7/M8). The one field here that is READ and not set: a creation
+           date the user could edit would be a creation date that means
+           nothing. The panel shows both halves because it has the room —
+           the card shows the number alone until it stops being useful. -->
+      <div class="inspector__field inspector__field--reading">
+        <span class="inspector__field-label">
+          <Icon name="clock" size="1rem" />
+          {S.createdLabel}
+        </span>
+        <span class="inspector__field-value">
+          {formatDate(task.created, dateFormat)}
+          <span
+            class="inspector__age"
+            class:inspector__age--forgotten={age.band === "forgotten"}
+            >{S.ageDays(age.days)}</span
+          >
         </span>
       </div>
       {/if}

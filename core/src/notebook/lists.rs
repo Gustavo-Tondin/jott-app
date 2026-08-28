@@ -158,7 +158,12 @@ impl Notebook {
         if !self.is_read_only() && tasks.dedupe_ids() > 0 {
             tasks.save()?;
         }
-        Ok(tasks.tasks().cloned().collect())
+        let mut out: Vec<Task> = tasks.tasks().cloned().collect();
+        // The age is stamped where the task LEAVES the notebook, never where
+        // it is parsed: a `TaskList` is the file, and the file says nothing
+        // about how old its lines are (`notebook::age`).
+        self.stamp_tasks(out.iter_mut());
+        Ok(out)
     }
 
     /// Gives the task at `position` in the list at `path` an id, and returns

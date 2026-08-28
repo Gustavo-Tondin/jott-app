@@ -4,6 +4,7 @@
   import { dotStyle } from "../services/accent.js";
   import { priorityClass } from "../services/taskFields.js";
   import { formatDate } from "../services/dates.js";
+  import { ageStamp } from "../services/age.js";
   import { S } from "../services/strings.js";
   import Icon from "./Icon.svelte";
 
@@ -158,6 +159,15 @@
     !task.done && !!task.due && !!today && task.due < today,
   );
 
+  // How old the task is — the time axis on a card (spec 3.6, M7/M8). The
+  // number comes stamped from the core; what is decided here is only that it
+  // is drawn at all, and the whole of the axis rides on one switch.
+  let stamp = $derived(
+    f("time")
+      ? ageStamp(task.age, { since: task.created, dateFormat, title: S.createdOn })
+      : null,
+  );
+
   let hasMeta = $derived(
     !!(
       (task.due && f("dueDate")) ||
@@ -165,6 +175,7 @@
       (task.priority && f("priority")) ||
       (task.subtasks?.length && f("subtasks")) ||
       (task.tags?.length && f("taskTags")) ||
+      stamp ||
       inDay ||
       origin
     ),
@@ -308,6 +319,15 @@
             color={origin?.color ?? color}
             class="task-row__tag"
           />{/each}
+        <!-- The age sits at the card's outer edge, under the bookmark (user
+             call, 2026-08-28): it is about the card as a whole, not one more
+             field of the task, and against the right edge it reads as a
+             margin note instead of competing with the date and the tags. -->
+        {#if stamp}<span
+            class="task-row__field task-row__field--age"
+            class:task-row__field--forgotten={stamp.band === "forgotten"}
+            title={stamp.title}>{stamp.text}</span
+          >{/if}
       </div>
     {/if}
 

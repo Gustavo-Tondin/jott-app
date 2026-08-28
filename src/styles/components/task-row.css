@@ -219,6 +219,22 @@
   .task-row__field--p3 {
     color: var(--app-success);
   }
+  /* How old the task is (spec 3.6). A quiet field like the rest — it is a
+     note about the task, not news — until the notebook calls it forgotten,
+     and then it takes the same warning ink an overdue date does. The two
+     never fight for attention: a task that is both is a task with one
+     problem said twice. */
+  .task-row__field--age {
+    /* Pushed to the card's right edge, under the bookmark. `auto` and not a
+       `space-between` on the row: the fields before it stay grouped at the
+       start whether there are four of them or none. */
+    margin-inline-start: auto;
+    flex-shrink: 0;
+    font-variant-numeric: tabular-nums;
+  }
+  .task-row__field--forgotten {
+    color: var(--app-warning);
+  }
   /* An overdue due date reads as a warning, not a quiet note. */
   .task-row__field--overdue {
     color: var(--app-danger);

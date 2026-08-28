@@ -378,6 +378,8 @@
                 banners={f("banners")}
                 noteTags={f("noteTags")}
                 tagColor={notesColor}
+                showAge={f("time")}
+                {dateFormat}
                 menu={cardMenu(note)}
                 onPin={readOnly || !f("pinNotes") ? null : () => cards.pin(notesSpace, note)}
                 onOpen={(_, opts) => openNote(note, opts)}

@@ -83,3 +83,52 @@ describe("TaskRow — completing", () => {
     await waitFor(() => expect(done).toEqual(["a1"]));
   });
 });
+
+// The time axis on a card (spec 3.6, M7/M8): the number comes stamped from
+// the core, and what is tested here is only that the card draws it, that the
+// switch takes it away, and that "forgotten" is the one band with a colour.
+describe("TaskRow — the age stamp", () => {
+  const stamped = (age, extra = {}) =>
+    row({
+      task: {
+        id: "a1",
+        text: "Fix website",
+        done: false,
+        tags: [],
+        subtasks: [],
+        created: "2026-08-16",
+        age,
+      },
+      ...extra,
+    });
+
+  test("draws the number of days beside the other fields", () => {
+    const { container } = stamped({ days: 12, band: "stale" });
+    const stamp = container.querySelector(".task-row__field--age");
+    expect(stamp.textContent.trim()).toBe("12d");
+    expect(stamp.classList.contains("task-row__field--forgotten")).toBe(false);
+    expect(stamp.getAttribute("title")).toBe("Created 08/16/2026");
+  });
+
+  test("a forgotten task takes the warning ink", () => {
+    const { container } = stamped({ days: 45, band: "forgotten" });
+    expect(
+      container
+        .querySelector(".task-row__field--age")
+        .classList.contains("task-row__field--forgotten"),
+    ).toBe(true);
+  });
+
+  test("with the time axis switched off there is no stamp at all", () => {
+    const { container } = stamped({ days: 12, band: "stale" }, { f: (key) => key !== "time" });
+    expect(container.querySelector(".task-row__field--age")).toBe(null);
+    // And nothing else was drawn in its place: a card with no other field
+    // keeps no empty meta row.
+    expect(container.querySelector(".task-row__meta")).toBe(null);
+  });
+
+  test("a task the core could not date says nothing", () => {
+    const { container } = row();
+    expect(container.querySelector(".task-row__field--age")).toBe(null);
+  });
+});

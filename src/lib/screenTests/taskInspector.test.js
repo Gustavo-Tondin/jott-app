@@ -668,4 +668,67 @@ describe("TaskInspector", () => {
     expect(screen.queryByText("Add files")).toBeNull();
     expect(screen.queryByLabelText("Remove attachment")).toBeNull();
   });
+
+  // ------------------------------------------------------------- the age
+  //
+  // The panel is where the time axis is spelled out (spec 3.6, M7/M8): the
+  // date the task was written AND how long ago that was, because here there
+  // is room for both. It is the one line in the fields block that cannot be
+  // edited — a creation date the user could set would mean nothing.
+
+  test("says when the task was written, and how long ago that was", async () => {
+    const old = task("a1", "Comprar tinta", {
+      created: "2026-08-16",
+      age: { days: 12, band: "stale" },
+    });
+
+    const { container } = render(TaskInspector, { props: props(old) });
+
+    await screen.findByDisplayValue("Comprar tinta");
+    const line = container.querySelector(".inspector__field--reading");
+    expect(line.textContent).toContain("Created");
+    expect(line.textContent).toContain("08/16/2026");
+    expect(within(line).getByText("12d")).toBeTruthy();
+    expect(
+      line.querySelector(".inspector__age").classList.contains("inspector__age--forgotten"),
+    ).toBe(false);
+  });
+
+  test("a forgotten task says so in the warning ink", async () => {
+    const forgotten = task("a1", "Comprar tinta", {
+      created: "2026-01-02",
+      age: { days: 238, band: "forgotten" },
+    });
+
+    const { container } = render(TaskInspector, { props: props(forgotten) });
+
+    await screen.findByDisplayValue("Comprar tinta");
+    expect(
+      container
+        .querySelector(".inspector__age")
+        .classList.contains("inspector__age--forgotten"),
+    ).toBe(true);
+  });
+
+  test("with the time axis off the line is not there", async () => {
+    const old = task("a1", "Comprar tinta", {
+      created: "2026-08-16",
+      age: { days: 12, band: "stale" },
+    });
+
+    const { container } = render(
+      TaskInspector,
+      { props: props(old, { f: (key) => key !== "time" }) },
+    );
+
+    await screen.findByDisplayValue("Comprar tinta");
+    expect(container.querySelector(".inspector__field--reading")).toBe(null);
+  });
+
+  test("a task with no creation date shows no line rather than an empty one", async () => {
+    render(TaskInspector, { props: props(task("a1", "Escrita à mão")) });
+
+    await screen.findByDisplayValue("Escrita à mão");
+    expect(document.querySelector(".inspector__field--reading")).toBe(null);
+  });
 });

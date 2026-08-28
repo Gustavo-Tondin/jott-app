@@ -42,7 +42,7 @@ pub mod trash;
 pub mod version;
 pub mod watcher;
 
-pub use age::{Band, Thresholds};
+pub use age::{Age, Band, Thresholds};
 pub use assets::{AssetEntry, Assets, ASSETS_DIR};
 pub use clock::{TurnOffset, WeekStart};
 pub use config::{Config, Rollover, RolloverMode};

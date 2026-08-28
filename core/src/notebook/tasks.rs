@@ -340,6 +340,9 @@ impl Notebook {
                 }
             }
         }
+        // A completed task ages by its `created` like any other (spec 3.6):
+        // it leaves the sweep, not the calendar.
+        self.stamp_tasks(out.iter_mut().map(|listed| &mut listed.task));
         Ok(out)
     }
 

@@ -2850,6 +2850,7 @@
           {:else if view.kind === "notes"}
             <NotesSpace
               {f}
+              dateFormat={layout.dateDisplayFormat}
               source={sourceOf(
                 // The arrangement comes from the space's own config — without
                 // it the ⋮ could not tick the sorting in force and dragging

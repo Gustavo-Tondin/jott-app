@@ -94,11 +94,37 @@
     color: var(--app-ink-faint);
   }
 
+  /* The card's last line: subjects on the left, the age on the right. One
+     row so a card that carries only one of the two does not grow a strip of
+     empty space beside it. */
+  .note-card__meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--app-space-8);
+  }
   /* The note's subjects, under the preview: neutral badges, wrapping. */
   .note-card__tags {
     display: flex;
     flex-wrap: wrap;
     gap: var(--app-space-4);
+    min-inline-size: 0;
+  }
+  /* When the note was last OPENED (spec 3.6b) — the eye, and a number of
+     days. Quiet, pushed to the end, and never wrapping: it is the smallest
+     thing on the card until the notebook calls it forgotten. */
+  .note-card__age {
+    flex-shrink: 0;
+    margin-inline-start: auto;
+    display: flex;
+    align-items: center;
+    gap: var(--app-space-2);
+    font-size: var(--app-text-10);
+    font-variant-numeric: tabular-nums;
+    color: var(--app-ink-muted);
+  }
+  .note-card__age--forgotten {
+    color: var(--app-warning);
   }
   .note-card__title {
     min-inline-size: 0;

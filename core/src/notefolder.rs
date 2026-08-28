@@ -39,6 +39,15 @@ pub struct NoteEntry {
     /// draws it; a note without one is a card with a title and nothing above
     /// it, which is the default.
     pub banner: Option<crate::note::Banner>,
+    /// When a person last had this note open (`crate::seen`), or `None` for a
+    /// note this build has never seen opened. Filled by the notebook, which
+    /// is the only thing that holds the index — a folder on its own knows
+    /// nothing about it.
+    pub seen: Option<chrono::NaiveDateTime>,
+    /// How old the note is, banded (`crate::age`). Filled beside `seen`, and
+    /// `None` on a note with no creation date, which is the one case where
+    /// the app has nothing to count from.
+    pub age: Option<crate::age::Age>,
 }
 
 /// A directory holding notes and folders of notes. Cheap to build: it is a
@@ -121,6 +130,11 @@ impl NoteFolder {
                 pinned: note.pinned,
                 tags: note.tags,
                 banner: note.banner,
+                // Stamped by the notebook on the way out (`notebook::age`):
+                // reading a folder answers what is in it, and how old that is
+                // is a question about the notebook around it.
+                seen: None,
+                age: None,
             });
             Ok(())
         })?;

@@ -205,6 +205,9 @@ impl Notebook {
             }
         }
 
+        // Both halves at once — pulled by hand and joined by date come off
+        // different paths and have to leave with the same stamp.
+        self.stamp_tasks(out.iter_mut().map(|listed| &mut listed.task));
         Ok(out)
     }
 

@@ -42,6 +42,7 @@ import tag from "../../assets/icons/phosphor/regular/tag.svg?raw";
 import sunOff from "../../assets/icons/jott/sun-off.svg?raw";
 import calendarBlank from "../../assets/icons/phosphor/regular/calendar-blank.svg?raw";
 import clock from "../../assets/icons/phosphor/regular/clock.svg?raw";
+import eye from "../../assets/icons/phosphor/regular/eye.svg?raw";
 import alarm from "../../assets/icons/phosphor/regular/alarm.svg?raw";
 import paperclip from "../../assets/icons/phosphor/regular/paperclip.svg?raw";
 import pencil from "../../assets/icons/phosphor/regular/pencil-simple.svg?raw";
@@ -167,6 +168,7 @@ export const ICONS = {
   "calendar-blank": calendarBlank,
   alarm,
   clock,
+  eye,
   paperclip,
   pencil,
   trash,

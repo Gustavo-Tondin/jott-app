@@ -19,6 +19,7 @@
   import { S } from "../services/strings.js";
   import { accentFill } from "../services/accent.js";
   import { assetUrl } from "../services/assets.js";
+  import { ageStamp, noteSince } from "../services/age.js";
   import Menu from "./Menu.svelte";
   import Icon from "./Icon.svelte";
   import NotePreview from "./NotePreview.svelte";
@@ -61,6 +62,11 @@
     noteTags = true,
     /// The colour of the space the card is in (a name) — what its tags wear.
     tagColor = null,
+    /// Whether the card says when the note was last opened (the time axis,
+    /// `Native Functions › Time`). The stamp itself comes with the entry.
+    showAge = true,
+    /// How a date is drawn once the stamp stops being a number of days.
+    dateFormat = "mm/dd/yyyy",
   } = $props();
 
   /// Only the middle button, and never while picking: in that mode a click is
@@ -79,6 +85,21 @@
   let isImage = $derived(banner?.kind === "image");
   let src = $derived(isImage ? assetUrl(root, banner.value) : "");
   let tint = $derived(banner?.kind === "color" ? accentFill(banner.value) : null);
+
+  // The other half of the time axis: a note is old when nobody has OPENED it
+  // in a while, not when nobody has written it (spec 3.6b). The core stamps
+  // the entry; the card only says whether the number it is showing is a
+  // reading or a birth, which is what the eye and the clock are for.
+  let since = $derived(noteSince(entry));
+  let age = $derived(
+    showAge && !small
+      ? ageStamp(entry.age, {
+          since,
+          dateFormat,
+          title: entry.seen ? S.lastSeenOn : S.createdOn,
+        })
+      : null,
+  );
 </script>
 
 <article
@@ -124,9 +145,26 @@
 
     {#if !small}
       <NotePreview markdown={entry.preview} empty={S.emptyNote} />
-      {#if noteTags && entry.tags?.length}
-        <span class="note-card__tags">
-          {#each entry.tags as tag (tag)}<Badge label={`#${tag}`} color={tagColor} />{/each}
+      <!-- The card's quiet last line: what the note is about on the left,
+           when it was last opened on the right. One row, so a card with
+           neither does not grow a strip of empty space. -->
+      {#if (noteTags && entry.tags?.length) || age}
+        <span class="note-card__meta">
+          {#if noteTags && entry.tags?.length}
+            <span class="note-card__tags">
+              {#each entry.tags as tag (tag)}<Badge label={`#${tag}`} color={tagColor} />{/each}
+            </span>
+          {/if}
+          {#if age}
+            <span
+              class="note-card__age"
+              class:note-card__age--forgotten={age.band === "forgotten"}
+              title={age.title ?? S.neverOpened}
+            >
+              <Icon name={entry.seen ? "eye" : "clock"} size="0.75rem" />
+              {age.text}
+            </span>
+          {/if}
         </span>
       {/if}
     {/if}

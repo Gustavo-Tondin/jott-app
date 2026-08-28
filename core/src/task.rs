@@ -224,6 +224,17 @@ pub struct Task {
     /// Metadata written by an older version of the app. Preserved verbatim so
     /// upgrading and downgrading does not destroy data.
     pub meta: Option<serde_json::Value>,
+    /// How old the task is — DERIVED, and the one field here that is not in
+    /// the file (2026-08-28). Nothing in a `.md` says how old a line is; the
+    /// notebook works it out from `created` as it hands the task out
+    /// (`crate::age`), so the card and the panel draw the same number as the
+    /// sort and, later, the sweep.
+    ///
+    /// `None` on a task nobody stamped — a parse, a write path, a test. It is
+    /// never read back in (`skip_deserializing`) and never rendered, so a
+    /// round trip through the file cannot invent one.
+    #[serde(skip_deserializing, default)]
+    pub age: Option<crate::age::Age>,
 }
 
 impl Task {

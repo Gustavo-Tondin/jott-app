@@ -91,6 +91,9 @@
     /// way — a folder that exists still holds its notes, and its notes are
     /// still listed.
     f = () => true,
+    /// How a date is drawn — the notebook's `dateDisplayFormat`, which the
+    /// age stamp falls back to once a card stops counting days.
+    dateFormat = "mm/dd/yyyy",
   } = $props();
 
 
@@ -599,6 +602,8 @@
     banners={f("banners")}
     noteTags={f("noteTags")}
     tagColor={dot}
+    showAge={f("time")}
+    {dateFormat}
     {picking}
     selected={picked.has(entry.path)}
     menu={cardMenu(entry)}

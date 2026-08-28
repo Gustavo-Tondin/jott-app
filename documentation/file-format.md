@@ -270,7 +270,9 @@ order you dragged things into.
   `{ "fresh": 7, "stale": 30, "inboxStale": 7 }`: below `fresh` something is
   fresh, below `stale` it is stale, and at or above it, forgotten. The inbox
   has a shorter one of its own, because an inbox is a place things pass
-  through.
+  through. Moving these numbers moves what the cards say: a task card shows
+  how long ago the task was written, a note card when it was last opened,
+  and "forgotten" is the one of the three that is drawn in warning ink.
 
   The pact is the same for every key: **a value that fails validation reads
   as the app's default, an absent key means untouched, and an unknown key

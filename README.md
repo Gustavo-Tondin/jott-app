@@ -114,6 +114,11 @@ what the current version is.
   and "Remove from timeline" forgets it for good. It reads an append-only
   log in `.jott/timeline/`, one plain-text file a year, so a notebook older
   than the app arrives with its history ([the format](documentation/file-format.md)).
+- **Cards say their age.** A task card and its panel show how long ago the
+  task was written; a note card shows when you last had it open — `12d`
+  while the number still means something, the date itself past two months.
+  Anything the notebook calls forgotten says so in warning ink. It all goes
+  away with **Native Functions › Time**.
 
 **Looks and input**
 - Three themes (default, light, dark) × eight accent colours, each with a

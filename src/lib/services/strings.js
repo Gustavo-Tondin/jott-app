@@ -1019,6 +1019,13 @@ export const S = {
   imageCount: (n) => (n === 1 ? "1 file" : `${n} files`),
   imageSize: (kb) => (kb < 1024 ? `${kb} KB` : `${(kb / 1024).toFixed(1)} MB`),
   missingImage: "image not found",
+  // The age stamp on a card (spec 3.6): short, because it sits in a meta row
+  // beside the date and the priority. The words are in the tooltip.
+  ageDays: (days) => (days === 0 ? "today" : `${days}d`),
+  lastSeenOn: (date) => `Last opened ${date}`,
+  createdLabel: "Created",
+  neverOpened: "Never opened in Jott",
+  createdOn: (date) => `Created ${date}`,
   // The picker, when what is being asked for is a picture and not any file.
   chooseImageOnly: "Only an image can be a banner or go inside a note.",
   openFile: "Open file",

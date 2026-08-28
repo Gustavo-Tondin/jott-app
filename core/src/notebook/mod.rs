@@ -254,6 +254,7 @@ pub struct Notebook {
 // A method one area needs from another is `pub(super)`: visible across the
 // notebook, and no wider. Private still means private to its own area, so the
 // helpers of an area cannot quietly become an interface.
+mod age;
 mod groups;
 mod library;
 pub use library::{NotebookContents, NotebookSummary};

@@ -7,6 +7,7 @@
 
 use crate::error::{Error, IoContext, Result};
 
+use crate::notefolder::NoteEntry;
 use crate::search::{HitKind, SearchHit};
 
 /// A folder of notes, as a screen lists it: where it is, and what the space
@@ -40,6 +41,33 @@ impl Notebook {
             .find(|(at, _)| at == prefix)
             .map(|(_, folder)| folder)
             .ok_or_else(|| Error::InvalidNotePath(prefix.to_string()))
+    }
+
+    /// The notes of a space, as a board lists them: the folder's own listing
+    /// (optionally filtered by `query`), stamped with the two things only the
+    /// notebook knows — when each was last seen, and how old that makes it.
+    ///
+    /// Three doors, one stamp: the board, the Home's inbox and the Home's
+    /// day all come through here, so a note cannot show an age on one screen
+    /// and nothing on another.
+    pub fn notes_in(&self, space: &str, query: &str) -> Result<Vec<NoteEntry>> {
+        let mut entries = self.note_folder(space)?.search(query)?;
+        self.stamp_notes(space, &mut entries);
+        Ok(entries)
+    }
+
+    /// Every note of a space's Inbox, stamped (the Home's widened view).
+    pub fn inbox_notes_in(&self, space: &str) -> Result<Vec<NoteEntry>> {
+        let mut entries = self.note_folder(space)?.inbox_notes()?;
+        self.stamp_notes(space, &mut entries);
+        Ok(entries)
+    }
+
+    /// The notes of a space created today, stamped (the Home's day).
+    pub fn notes_created_today_in(&self, space: &str) -> Result<Vec<NoteEntry>> {
+        let mut entries = self.note_folder(space)?.created_on(self.today())?;
+        self.stamp_notes(space, &mut entries);
+        Ok(entries)
     }
 
     /// Every folder of a notes space, with what the space remembers about it
