@@ -30,7 +30,8 @@
  *   --app-bg              the region's own fill
  *   --app-surface         the step off it: cards, chips, fields, popovers
  *   --app-surface-sunken  same value; the name survives from a three-neutral
- *                           design and is spelled in a hundred rules
+ *                           design and a handful of component rules still
+ *                           spell it
  *   --app-ink             text that reads on --app-bg
  *   --app-ink-muted       …the same ink at 55%
  *   --app-on-brand        text/icon ON a filled accent — the region's own
