@@ -69,6 +69,21 @@ pub struct NotebookLayout {
     pub table_layout: String,
     /// Whether the Timeline names what was deleted (`Config::timeline_ghost_titles`).
     pub timeline_ghost_titles: bool,
+    /// The two questions a dialog can be told to stop asking — deleting, and
+    /// fetching a picture off the web.
+    ///
+    /// They ride here for the reason the accent does, and one of their own:
+    /// the shell installs the confirm POLICY from the layout on every render
+    /// (`setConfirmPolicy`, services/dialog.js), and a policy that cannot see
+    /// the answer is a policy that never applies it. Left out until now, so
+    /// "don't ask again" wrote `confirmDeletes: false` into the config and
+    /// nothing ever read it back — the question came again the next time, and
+    /// every time after (user report, 2026-08-31: "o dont ask me again pra
+    /// deletar imagens não está funcionando"). Nothing was broken in the
+    /// saving, in the checkbox or in Settings, which is why it looked like it
+    /// had worked.
+    pub confirm_deletes: bool,
+    pub confirm_image_downloads: bool,
     /// Whether the sidebar wears the rainbow — each entry the next of the
     /// seven from the accent on (services/spaceColors.js does the dealing).
     /// Resolved like the accent: this machine's answer over the notebook's.
@@ -156,6 +171,8 @@ impl NotebookInfo {
                 note_layout: notebook.config().note_layout.clone(),
                 table_layout: notebook.config().table_layout.clone(),
                 timeline_ghost_titles: notebook.config().timeline_ghost_titles,
+                confirm_deletes: notebook.config().confirm_deletes,
+                confirm_image_downloads: notebook.config().confirm_image_downloads,
                 auto_space_colors: display.auto_space_colors,
                 accent_color: display.accent_color,
                 mode: display.mode,

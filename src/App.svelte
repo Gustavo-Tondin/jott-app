@@ -775,6 +775,8 @@
       noteLayout: "",
       tableLayout: "",
       timelineGhostTitles: false,
+      confirmDeletes: true,
+      confirmImageDownloads: true,
       accentColor: "",
       theme: "",
       headingColor: "",

@@ -916,3 +916,49 @@ describe("the bridge's two ends agree", () => {
     expect(UNCALLED.filter((c) => !registered.has(c))).toEqual([]);
   });
 });
+
+// A question that can be switched off has THREE ends, and two of them are in
+// different languages: the dialog names a setting (`remember: "x"`), the shell
+// installs it into the confirm policy from the notebook's layout, and the
+// bridge has to put it in that layout. The third end was the one missing
+// (2026-08-31) — `confirmDeletes` saved, showed correctly in Settings, and
+// never reached the layout, so "don't ask again" asked again forever. Nothing
+// failed and nothing logged; the switch was simply inert.
+describe("a question that can be switched off is wired end to end", () => {
+  const repo = join(src, "..");
+  // Every setting a dialog offers to stop asking, by key — read from the
+  // whole tree and not from a list, because a list is one more place to
+  // forget: the question added tomorrow has to be found without anyone
+  // remembering this file exists.
+  const remembered = new Set(
+    [join(src, "App.svelte"), ...walk(join(src, "lib"), ".svelte"), ...walk(join(src, "lib"), ".js")]
+      .filter((f) => !f.endsWith(".test.js"))
+      .flatMap((f) => [...readFileSync(f, "utf8").matchAll(/remember:\s*"(\w+)"/g)])
+      .map((m) => m[1]),
+  );
+
+  const shell = readFileSync(join(src, "App.svelte"), "utf8");
+  const layout = readFileSync(
+    join(repo, "src-tauri", "src", "commands", "notebook.rs"),
+    "utf8",
+  ).match(/pub struct NotebookLayout \{([\s\S]*?)\n\}/)[1];
+  const camel = (snake) => snake.replace(/_(\w)/g, (_, c) => c.toUpperCase());
+  const inLayout = new Set(
+    [...layout.matchAll(/pub (\w+):/g)].map((m) => camel(m[1])),
+  );
+
+  test("there is at least one, or this test is watching nothing", () => {
+    expect(remembered.size).toBeGreaterThan(0);
+  });
+
+  test("every one of them rides in the notebook's layout", () => {
+    expect([...remembered].filter((key) => !inLayout.has(key)).sort()).toEqual([]);
+  });
+
+  test("and the shell reads every one of them into the confirm policy", () => {
+    const policy = shell.match(/setConfirmPolicy\(\{([\s\S]*?)\n\s*\}\);/)[1];
+    expect(
+      [...remembered].filter((key) => !policy.includes(`${key}: layout.${key}`)).sort(),
+    ).toEqual([]);
+  });
+});

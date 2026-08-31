@@ -1557,6 +1557,35 @@ fn the_phase_nine_settings_round_trip_and_reach_the_layout() {
     assert!(on_disk.contains("yyyy/mm/dd"), "{on_disk}");
 }
 
+/// "Don't ask again" writes a setting; the LAYOUT is what makes it stick.
+///
+/// The shell installs its confirm policy from `info.layout` on every render
+/// (`setConfirmPolicy`, services/dialog.js), so a flag that saves correctly
+/// and never reaches the layout is a flag nothing applies: the checkbox
+/// worked, Settings showed the right state, and the question came back every
+/// single time (user report, 2026-08-31). The two ends are asserted together
+/// here because nothing else can hold them together.
+#[test]
+fn telling_the_app_to_stop_asking_reaches_the_layout() {
+    let (_lock, app, _dir) = app_with_notebook();
+
+    let layout = |app: &MockApp| ok(app, "notebook_snapshot", json!({}))["info"]["layout"].clone();
+    assert_eq!(layout(&app)["confirmDeletes"], json!(true));
+    assert_eq!(layout(&app)["confirmImageDownloads"], json!(true));
+
+    ok(
+        &app,
+        "set_notebook_settings",
+        json!({ "settings": { "confirmDeletes": false, "confirmImageDownloads": false } }),
+    );
+
+    assert_eq!(layout(&app)["confirmDeletes"], json!(false));
+    assert_eq!(layout(&app)["confirmImageDownloads"], json!(false));
+    // And the settings page still reads the same answer.
+    let saved = ok(&app, "notebook_settings", json!({}));
+    assert_eq!(saved["confirmDeletes"], json!(false));
+}
+
 #[test]
 fn a_nonsense_display_setting_is_normalized_instead_of_stored_wrong() {
     // A date shown wrong is worse than a date shown plainly, so the core
