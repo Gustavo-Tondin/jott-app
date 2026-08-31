@@ -15,6 +15,23 @@
 //     colour still says where the activity was;
 //   • within a line the order is by title, nothing else: the log knows the
 //     minute, and showing it was refused ("só por título", 2026-08-27).
+//
+// And one the repeat chain forced (2026-08-31). Every occurrence of a
+// repeating task is its OWN task, with its own id — `recurrence::respawn`
+// clones the text and `complete_task` links the two with `spawned:`, so a
+// daily chore writes thirty `created` lines and thirty `completed` ones into
+// a single month. The screen was a wall of the same sentence. They fold into
+// one row carrying a count, and the row IS the newest occurrence, so the
+// click still opens something real.
+//
+// It folds by TITLE and not by the chain, which the front cannot see: the
+// chain lives in `spawned:` inside the files, and the log carries no such
+// pointer. The cost is two tasks a person happened to name the same in one
+// month reading as one with a ×2 — accepted (user call, 2026-08-31), because
+// the alternative is a flag the core would have to stamp on every item to
+// answer a question the screen only asks about volume. NOTES ARE NEVER
+// FOLDED: a note is a file, two files with one title are two documents, and
+// a count with nothing to open would put one of them out of reach.
 
 import { S } from "./strings.js";
 
@@ -60,19 +77,49 @@ export function monthsOf(items = []) {
     }));
 }
 
+/// When one row stands for several: the newest occurrence, so a click opens
+/// something that is still there. `completed` when the line is about the day
+/// a task was ticked, `created` otherwise.
+const latestOf = (item) => item.completed || item.created || "";
+
 /// One line's rows, as drawn: the living (and the named ghosts) one row
-/// each, by title; the nameless ghosts folded into one row per space —
+/// each, by title, with repeated task titles folded into one row carrying a
+/// `count`; the nameless ghosts folded into one row per space —
 /// `{ghost: true, kind, space, count}` — after them, so a line reads
-/// "Buy milk · Make posts · 3 deleted tasks".
+/// "Buy milk · Take out the bins ×12 · 3 deleted tasks".
+///
+/// A row is a plain item when it stands for itself and an item plus `count`
+/// when it stands for more, so the screen has one shape to draw and one
+/// number to look at.
 ///
 /// `ghostTitles` is the notebook's `timelineGhostTitles`: on, a ghost keeps
-/// its row and its birth title, struck through.
+/// its row and its birth title, struck through — and keeps a row of its own,
+/// never folded into a live count.
 export function rowsOf(items = [], { ghostTitles = false } = {}) {
   const rows = [];
   const folded = new Map();
+  const repeated = new Map();
   for (const item of items) {
     if (!item.deleted || ghostTitles) {
-      rows.push(item);
+      // Only a live task folds: see the file's head for the note.
+      if (item.deleted || item.kind !== "task") {
+        rows.push(item);
+        continue;
+      }
+      const key = `${item.space ?? ""}\u0000${item.title ?? ""}`;
+      const standing = repeated.get(key);
+      if (!standing) {
+        const row = { ...item, count: 1 };
+        repeated.set(key, row);
+        rows.push(row);
+        continue;
+      }
+      standing.count += 1;
+      // The row becomes the newest of the chain, keeping the count it has
+      // already gathered.
+      if (latestOf(item) > latestOf(standing)) {
+        Object.assign(standing, item, { count: standing.count });
+      }
       continue;
     }
     const key = `${item.kind}:${item.space ?? ""}`;

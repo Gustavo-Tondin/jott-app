@@ -359,6 +359,12 @@ export const S = {
     "This forgets it from the log for good — the task or note itself is not touched.",
   timelineLoadingYear: (year) => `Reading ${year}\u2026`,
   goToYear: (year) => `Go to ${year}`,
+  // A repeating task writes one item per occurrence, and they fold into one
+  // row (services/timeline.js). The count is a multiplication sign and a
+  // number — the shortest thing that reads as "this happened N times" — and
+  // the title spells it out for a screen reader, which cannot say "×".
+  timelineTimes: (n) => `\u00d7${n}`,
+  timelineOccurrences: (n) => `${n} occurrences this month`,
   timelineOptions: "timeline item options",
 
   // The shortcuts table in Settings (2026-08-18).

@@ -312,6 +312,16 @@
     font-size: var(--app-text-14);
     color: var(--app-ink-muted);
   }
+  /* How many times a folded repeating task happened this month. Quiet, and
+     one step down in size: it is a footnote to the title, not a second title
+     — the line still reads "Take out the bins", with the number answering
+     "how often" only for the eye that goes looking. Tabular figures so a
+     column of them lines up. */
+  .timeline__row-count {
+    font-size: var(--app-text-12);
+    font-variant-numeric: tabular-nums;
+    color: var(--app-ink-faint);
+  }
   .timeline__row--done .timeline__row-open,
   .timeline__row--ghost .timeline__row-open {
     text-decoration: line-through;

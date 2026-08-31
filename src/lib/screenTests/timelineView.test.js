@@ -96,6 +96,41 @@ describe("TimelineView", () => {
     ).toEqual(["1 Notes This month", "5 Tasks This month", "1 Completed This month"]);
   });
 
+  // A repeating task writes one item per occurrence (core/recurrence.rs), and
+  // a daily chore filled the month with the same sentence.
+  test("a repeating task is one row carrying how many times it happened", async () => {
+    const bins = (day, id) =>
+      task("Take out the bins", `2026-08-${day}`, { id, path: "jott.tasks/task-list.md" });
+    bridge({
+      timeline_years: [2026],
+      timeline: [task("Buy milk", "2026-08-02"), bins("03", "a"), bins("06", "b"), bins("09", "c")],
+    });
+    mount();
+
+    await screen.findByText("4 Tasks created");
+    const rows = within(document.getElementById("2026-08-created")).getAllByRole("listitem");
+    expect(rows.map((li) => li.textContent.replace(/\s+/g, " ").trim())).toEqual([
+      "Buy milk",
+      "Take out the bins \u00d73",
+    ]);
+    // The line's own count is untouched: the header says how much happened,
+    // the rows say what.
+    expect(screen.getByText("4 Tasks created")).toBeTruthy();
+  });
+
+  test("the folded row opens the newest occurrence", async () => {
+    const onOpenTask = vi.fn();
+    const bins = (day, id) => task("Take out the bins", `2026-08-${day}`, { id });
+    bridge({
+      timeline_years: [2026],
+      timeline: [bins("03", "a"), bins("09", "newest"), bins("06", "b")],
+    });
+    mount({ onOpenTask });
+
+    await userEvent.click(await screen.findByRole("button", { name: "Take out the bins" }));
+    expect(onOpenTask).toHaveBeenCalledWith("jott.tasks/task-list.md", "newest");
+  });
+
   test("the current month starts open, an older one folded; a nameless ghost is one row per space", async () => {
     bridge({ timeline_years: [2026], timeline: ITEMS });
     mount();

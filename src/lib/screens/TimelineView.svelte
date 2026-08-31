@@ -306,6 +306,16 @@
                           <button class="timeline__row-open" disabled={!!row.deleted} onclick={() => openRow(row)}>
                             {rowTitle(row)}
                           </button>
+                          <!-- A repeating task folded into one row (the same
+                               chore, written once per occurrence). The count
+                               sits beside the title and not inside the button:
+                               it is a fact about the row, not part of what is
+                               opened. -->
+                          {#if row.count > 1}
+                            <span class="timeline__row-count" title={S.timelineOccurrences(row.count)}>
+                              {S.timelineTimes(row.count)}
+                            </span>
+                          {/if}
                           {#if !readOnly}
                             <Menu items={rowMenu(row)}>
                               {#snippet trigger({ toggle })}
