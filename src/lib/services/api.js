@@ -3,7 +3,41 @@
 // One place to see the whole surface, and one place to fix when a command
 // changes. Nothing in this file decides anything — it just names the bridge.
 
-import { invoke } from "@tauri-apps/api/core";
+import { invoke as callBridge } from "@tauri-apps/api/core";
+
+/// The bridge, with the COMMAND's NAME kept on whatever comes back wrong.
+///
+/// The error banner used to be able to say nothing at all: a failure that was
+/// not one of the core's `{kind, message}` fell through to `String(error)`,
+/// and a plain object stringifies to `[object Object]` — six words that name
+/// neither what failed nor where (user report on device, 2026-08-31: "aparece
+/// constantemente o aviso something went wrong [object Object]"). Half of the
+/// answer is [describeError], which no longer has a way to print that; the
+/// other half is here, because by the time the shell catches it there is
+/// nothing left in the value to say WHICH call it came from — and with
+/// forty-odd commands behind one banner, that is the question.
+///
+/// The value is annotated rather than replaced: `kind` is what the shell
+/// branches on (`e?.kind === "stale"` decides whether Ctrl+Z warns or fails),
+/// and wrapping would hide it. A frozen error keeps its own shape and loses
+/// only the name.
+/// Arguments are forwarded verbatim rather than named: a command with no
+/// arguments is called with one, and passing an explicit `undefined` second
+/// argument is a different call to anything watching the bridge.
+function invoke(...call) {
+  const [command] = call;
+  return Promise.resolve(callBridge(...call)).catch((cause) => {
+    if (cause && typeof cause === "object") {
+      try {
+        cause.command = command;
+      } catch {
+        // Frozen, or a proxy that refuses. Nothing is owed here.
+      }
+      throw cause;
+    }
+    throw { kind: "bridge", message: String(cause), command };
+  });
+}
 
 export const api = {
   // notebook
@@ -355,10 +389,33 @@ export const api = {
   quitApp: () => invoke("quit_app"),
 };
 
-/// Errors cross the bridge as { kind, message }; anything else is a bug.
+/// Errors cross the bridge as { kind, message }; anything else is a bug — but
+/// a bug the reader still has to be told about, and there is exactly one
+/// sentence that must never reach them: `[object Object]`.
+///
+/// So every branch here ends in something a person can act on, and the name
+/// of the command rides along whenever [invoke] managed to attach it. The
+/// order is what each shape can actually answer:
+///
+///   · `{kind, message}` — the core's own, and the only one the shell reads.
+///   · anything with a real `toString` (an Error, a DOMException, a string a
+///     plugin rejected with): that string IS the message.
+///   · a plain object: `String()` says nothing about it, so what is shown is
+///     its `message` if it has one and otherwise the object itself, as JSON.
 export function describeError(error) {
-  if (error && typeof error === "object" && "kind" in error) {
-    return `${error.kind}: ${error.message}`;
+  const where = error?.command ? ` (${error.command})` : "";
+  if (error && typeof error === "object") {
+    if ("kind" in error) return `${error.kind}: ${error.message ?? ""}${where}`;
+    const said = String(error);
+    if (said !== "[object Object]") return said + where;
+    if (typeof error.message === "string" && error.message) return error.message + where;
+    try {
+      return JSON.stringify(error) + where;
+    } catch {
+      // Circular, or a getter that throws. The reader gets the one thing that
+      // is still true, which is more than six words that are not.
+      return `unreadable error${where}`;
+    }
   }
-  return String(error);
+  return String(error) + where;
 }

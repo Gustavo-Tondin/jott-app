@@ -71,6 +71,16 @@ class CheckboxWidget extends WidgetType {
   }
 
   toDOM(view) {
+    // A wrapper, only so a finger has something bigger to hit than the box:
+    // the box itself cannot grow (it is drawn mid-sentence, and a bigger one
+    // would push the prose around), but an inline span can carry padding that
+    // widens the HIT AREA without touching the line — vertical padding on an
+    // inline box is hit-tested and does not raise the line's height. The
+    // lengths are in touch.css, under `(pointer: coarse)`, so nothing changes
+    // for a mouse.
+    const hit = document.createElement("span");
+    hit.className = "cm-task-box";
+
     const box = document.createElement("input");
     box.type = "checkbox";
     box.checked = this.checked;
@@ -79,10 +89,8 @@ class CheckboxWidget extends WidgetType {
     // to the eye, and the bare native input read as a glitch beside them
     // (user report, 2026-08-24).
     box.className = "cm-task-checkbox theme-checkbox";
-    box.addEventListener("mousedown", (event) => {
-      // `mousedown`, not `click`: the editor would otherwise move the cursor
-      // into the line first, which un-hides the syntax under the pointer.
-      event.preventDefault();
+
+    const flip = () =>
       view.dispatch({
         changes: {
           from: this.from,
@@ -90,8 +98,34 @@ class CheckboxWidget extends WidgetType {
           insert: this.checked ? "[ ]" : "[x]",
         },
       });
+
+    // THE FINGER IS ANSWERED FIRST, and it has to be answered on `touchstart`
+    // (user report on device, 2026-08-31: "click e interação com checklist no
+    // editor do celular está ruim"). A WebView synthesises `mousedown` only
+    // after the whole touch is over — and by then the browser has put the
+    // caret in the line, the line has gone raw, and the box the finger came
+    // down on is no longer in the document, so its listener never runs.
+    // Preventing the touch default is the only thing that stops that caret,
+    // and it takes the synthesised mouse events with it, so nothing here
+    // fires twice. What it costs is a pan begun with a finger resting on the
+    // box, which is a 20px target inside a note that scrolls everywhere else.
+    hit.addEventListener(
+      "touchstart",
+      (event) => {
+        event.preventDefault();
+        flip();
+      },
+      { passive: false },
+    );
+    // `mousedown`, not `click`: the editor would otherwise move the cursor
+    // into the line first, which un-hides the syntax under the pointer.
+    hit.addEventListener("mousedown", (event) => {
+      event.preventDefault();
+      flip();
     });
-    return box;
+
+    hit.appendChild(box);
+    return hit;
   }
 
   ignoreEvent() {

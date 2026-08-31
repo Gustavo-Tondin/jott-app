@@ -83,6 +83,11 @@
   /// `show()` rather than derived from `sub`, because a derivation cannot see
   /// where it came FROM.
   let enter = $state(null);
+  /// Where the strip's pill was before the last rebuild — see the snippet
+  /// below. A plain object, never read by the markup: it is the action that
+  /// writes it and the action that reads it back, and making it `$state`
+  /// would only invalidate the screen on every measurement.
+  const pill = {};
   const at = (key) => SUBS.findIndex((item) => item.key === key);
   function show(key) {
     if (key === sub) return;
@@ -146,10 +151,20 @@
 >
   <!-- The strip rides on the SCREEN's top row (2026-08-06), so the ⋮ ends up at
        the far right of the same line, with the day or the week's span just
-       before it — instead of a bar of its own with the ⋮ orphaned below. -->
+       before it — instead of a bar of its own with the ⋮ orphaned below.
+
+       WHICH PUTS IT INSIDE THE `{#key sub}` BELOW, since the row it rides on
+       is the tasks block's own header: every click destroys the nav it was
+       aimed at. The pill of the new one therefore has nowhere to glide from,
+       and lands on the chosen tab already there — "the animation only goes to
+       the right" (user, on device, 2026-08-31), which is what the list sliding
+       behind a pill that does not move reads as. `pill` is the memory that
+       crosses the rebuild: it lives out here, where the `{#key}` cannot reach
+       it, and the action starts the new track where the old one ended
+       (actions/segmented.js). -->
   {#snippet toolbar()}
     <div class="tasks-view__bar">
-      <nav class="theme-segmented tasks-view__subs" use:segmented>
+      <nav class="theme-segmented tasks-view__subs" use:segmented={pill}>
         {#each SUBS as item (item.key)}
           <button
             class="theme-segmented__item tasks-view__sub"

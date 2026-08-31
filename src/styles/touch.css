@@ -104,6 +104,24 @@
       min-block-size: var(--app-touch-min);
     }
 
+    /* THE CHECKBOX INSIDE A NOTE has no row to hand the target to: it sits in
+       the middle of a line of prose, and the line belongs to the caret. So it
+       is the only place in the app that grows a hit area WITHOUT growing the
+       control — the span around the box (services/markdown.js) takes padding
+       that is hit-tested and drawn nowhere.
+
+       Which way it grows is the whole of the rule. Up and down, because
+       vertical padding on an INLINE box does not raise the line's height, so
+       the target is the height of the line and the prose does not move. To
+       the left, into the indent the `- ` used to occupy, which is empty. NOT
+       to the right, where the first word of the item is: a finger that lands
+       on the text must put the caret there, not tick the box. */
+    .editor .cm-task-box {
+      padding-block: var(--app-space-8);
+      padding-inline-start: var(--app-space-12);
+      margin-inline-start: calc(var(--app-space-12) * -1);
+    }
+
     /* Rows that open something. A 46px row from the wireframe is two pixels
        short, and two pixels is the difference between hitting the space and
        hitting the one under it. */

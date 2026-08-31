@@ -309,6 +309,12 @@
   margin-right: var(--app-space-6);
   vertical-align: text-bottom;
 }
+/* The span around it (services/markdown.js) exists for the finger; with a
+   mouse it is nothing at all, and must not become a box of its own in the
+   middle of a line. */
+.editor .cm-task-box {
+  display: inline;
+}
 .editor .cm-md-done {
   color: var(--app-ink-muted);
   text-decoration: line-through;

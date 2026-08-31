@@ -349,3 +349,61 @@ describe("what the editor actually paints", () => {
     expect([...painted()].filter((c) => !styled.has(c)).sort()).toEqual([]);
   });
 });
+
+// The box a `- [ ]` becomes, driven through a real EditorView: what can break
+// here is the EVENT reaching it, and a pure function has no events. The
+// widget is the one place in the note where a finger has to be answered
+// before the browser answers it (user report on device, 2026-08-31).
+describe("the checkbox inside a note", () => {
+  /// A live editor over `doc`, with the caret parked on the last line so the
+  /// first one shows its widget rather than its syntax.
+  function live(doc) {
+    const parent = document.createElement("div");
+    document.body.appendChild(parent);
+    const view = new EditorView({
+      parent,
+      state: EditorState.create({
+        doc,
+        selection: { anchor: doc.length },
+        extensions: [markdown({ base: markdownLanguage }), markdownPreview],
+      }),
+    });
+    return { view, parent, close: () => (view.destroy(), parent.remove()) };
+  }
+
+  test("a tap ticks it, without waiting for a mouse that never comes", () => {
+    const doc = "- [ ] comprar leite\n\n";
+    const { view, close } = live(doc);
+    const hit = view.dom.querySelector(".cm-task-box");
+    expect(hit).not.toBe(null);
+
+    const touch = new Event("touchstart", { bubbles: true, cancelable: true });
+    hit.dispatchEvent(touch);
+    // Prevented, which is the whole point: it is what stops the browser
+    // putting the caret in the line — which would take this box out of the
+    // document before any mouse event could arrive.
+    expect(touch.defaultPrevented).toBe(true);
+    expect(view.state.doc.toString()).toBe("- [x] comprar leite\n\n");
+    close();
+  });
+
+  test("a click still ticks it, and the caret stays out of the line", () => {
+    const doc = "- [x] comprar leite\n\n";
+    const { view, close } = live(doc);
+    const hit = view.dom.querySelector(".cm-task-box");
+
+    const down = new MouseEvent("mousedown", { bubbles: true, cancelable: true });
+    hit.dispatchEvent(down);
+    expect(down.defaultPrevented).toBe(true);
+    expect(view.state.doc.toString()).toBe("- [ ] comprar leite\n\n");
+    close();
+  });
+
+  test("the box the eye sees is still the app's own", () => {
+    const { view, close } = live("- [ ] comprar leite\n\n");
+    const box = view.dom.querySelector(".cm-task-box .cm-task-checkbox");
+    expect(box.className).toContain("theme-checkbox");
+    expect(box.checked).toBe(false);
+    close();
+  });
+});

@@ -1,5 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
-import { COMPACT_MAX_WIDTH, COMPACT_QUERY, watchCompact } from "./compact.js";
+import {
+  COMPACT_MAX_HEIGHT,
+  COMPACT_MAX_WIDTH,
+  COMPACT_QUERY,
+  watchCompact,
+} from "./compact.js";
 
 /// A MediaQueryList stand-in that can flip and notify, in both spellings.
 function fakeMedia({ matches = false, legacy = false } = {}) {
@@ -25,6 +30,43 @@ describe("the breakpoint", () => {
   it("is stated once, in px, and the query is built from it", () => {
     expect(COMPACT_QUERY).toBe(`(max-width: ${COMPACT_MAX_WIDTH}px)`);
     expect(COMPACT_MAX_WIDTH).toBe(767);
+    expect(COMPACT_MAX_HEIGHT).toBe(540);
+  });
+});
+
+// The phone on its side is 780×360 (the emulator's 1080×2340 at 480dpi),
+// which is PAST the width breakpoint — so before this it was handed the
+// desktop shell: a permanent sidebar and a docked panel beside a canvas 360px
+// tall (user report on device, 2026-08-31).
+describe("a screen too short for three columns", () => {
+  const wide = { matches: false, addEventListener() {}, removeEventListener() {} };
+
+  const on = (height) => {
+    const seen = [];
+    watchCompact((v) => seen.push(v), {
+      matchMedia: () => wide,
+      screen: height === undefined ? undefined : { height },
+      addEventListener() {},
+      removeEventListener() {},
+    });
+    return seen[0];
+  };
+
+  it("is compact even when the window is wide", () => {
+    expect(on(360)).toBe(true); // phone, lying down
+  });
+
+  it("leaves a tablet and a laptop alone", () => {
+    expect(on(768)).toBe(false); // tablet, lying down
+    expect(on(1440)).toBe(false); // a monitor
+  });
+
+  // The lesson of shell/keyboard.js, in the one place it can be tested here:
+  // the answer must come from the SCREEN, which no keyboard can shrink. An
+  // engine that will not say how tall the screen is keeps the full shell.
+  it("does not call an unknown screen short", () => {
+    expect(on(undefined)).toBe(false);
+    expect(on(0)).toBe(false);
   });
 });
 
