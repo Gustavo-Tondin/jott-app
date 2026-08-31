@@ -7,7 +7,6 @@
      .theme-checkbox — this screen was still showing a bare browser <h2> and a
      bare native checkbox, the last two in the app. */
   .completed-view__list {
-    list-style: none;
     margin: var(--app-space-12) 0 0;
     padding: 0;
     display: flex;

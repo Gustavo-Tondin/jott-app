@@ -49,14 +49,11 @@
      appears, right under the tabs. */
   .page-header__name {
     padding: var(--app-space-2) var(--app-space-6);
-    background: none;
-    border: none;
     border-radius: var(--app-radius-sm);
     font: inherit;
     color: inherit;
     letter-spacing: inherit;
     text-transform: inherit;
-    cursor: pointer;
   }
   .page-header__name:hover {
     background: var(--app-surface-sunken);

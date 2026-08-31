@@ -17,7 +17,6 @@
     border: 0.125rem solid transparent;
     border-radius: var(--app-radius-pill);
     background: var(--dot, var(--app-surface));
-    cursor: pointer;
   }
   /* "No colour of its own" — the raised step, so it reads as an empty slot
      rather than as a grey option among the seven. */

@@ -18,11 +18,9 @@
     justify-content: center;
     inline-size: 4rem;
     block-size: 4rem;
-    border: none;
     border-radius: var(--app-radius-lg);
     background: var(--app-brand);
     color: var(--app-on-brand);
-    cursor: pointer;
     transition:
       scale var(--app-transition-fast),
       filter var(--app-transition-fast);
@@ -65,14 +63,12 @@
        whole capture path and the only ones that appear and vanish. */
     min-block-size: var(--app-touch-min);
     padding-inline: var(--app-space-16);
-    border: none;
     border-radius: var(--app-radius-md);
     background: var(--app-brand);
     color: var(--app-on-brand);
     font-size: var(--app-text-16);
     font-weight: var(--app-weight-semibold);
     box-shadow: 0 0.25rem 0.75rem var(--app-shadow-popover);
-    cursor: pointer;
     /* Each choice rises in from under the +, the second a beat after the
        first — the two arrive as a pair being dealt, not as a block switching
        on. */

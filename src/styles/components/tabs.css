@@ -102,13 +102,10 @@
   .tabs__label {
     flex: 1;
     min-width: 0;
-    background: none;
-    border: none;
     padding: 0;
     font: inherit;
     font-size: var(--app-text-14);
     color: inherit;
-    cursor: pointer;
     text-align: start;
     white-space: nowrap;
     overflow: hidden;
@@ -203,7 +200,6 @@
     gap: var(--app-space-8);
     inline-size: 100%;
     min-block-size: var(--app-touch-min);
-    border: none;
     border-radius: var(--app-radius-md);
     /* SOLID ink, the one filled thing in the sheet (wireframe "Mobile - tab
        panel"): it is the sheet's only verb, and as another pale row it read as
@@ -212,7 +208,6 @@
     color: var(--app-bg);
     font-size: var(--app-text-16);
     font-weight: var(--app-weight-medium);
-    cursor: pointer;
   }
   .tabs__add-label {
     /* The strings are lowercase everywhere ("new tab"); this is the one place

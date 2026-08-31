@@ -360,12 +360,9 @@
     height: 100%;
     padding-block: 0;
     padding-inline: var(--app-space-8);
-    background: none;
-    border: none;
     color: inherit;
     font: inherit;
     text-align: left;
-    cursor: pointer;
   }
   /* The indent belongs to the level's container (`--nested`), not here: at two
      levels deep a row would have to know how deep it is. */
@@ -394,13 +391,10 @@
     display: flex;
     align-items: baseline;
     gap: var(--app-space-6);
-    background: none;
-    border: none;
     font: inherit;
     font-size: var(--app-text-14);
     font-weight: var(--app-weight-semibold);
     color: var(--app-ink-muted);
-    cursor: pointer;
     text-align: left;
   }
   .shell__notebook-name {

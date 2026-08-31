@@ -363,13 +363,11 @@
     padding: var(--app-space-8) var(--app-space-16);
     border: 0.0625rem solid transparent;
     border-radius: var(--app-radius-md);
-    background: none;
     color: var(--app-ink);
     font-size: var(--app-text-13);
     font-weight: var(--app-weight-medium);
     font-family: inherit;
     white-space: nowrap;
-    cursor: pointer;
     transition:
       background var(--app-transition-fast),
       color var(--app-transition-fast),
@@ -429,8 +427,6 @@
     align-items: center;
     justify-content: center;
     padding: var(--app-space-6);
-    background: none;
-    border: none;
     border-radius: var(--app-radius-sm);
     color: var(--app-ink-muted);
     cursor: pointer;
@@ -552,14 +548,11 @@
      quiet, the blue of the active one is enough. */
   .theme-segmented__item {
     padding: var(--app-space-6) var(--app-space-16);
-    border: none;
     /* The track's own corner less the 2px of well it sits in. */
     border-radius: calc(var(--app-radius-md) - var(--app-space-2));
-    background: none;
     color: var(--app-ink-muted);
     font-size: var(--app-text-14);
     font-weight: var(--app-weight-semibold);
-    cursor: pointer;
     /* Above the pill. */
     position: relative;
     z-index: 1;
@@ -753,7 +746,6 @@
      four block sheets; components/TaskCards.svelte is the markup half.
      --------------------------------------------------------------------------- */
   .theme-task-list {
-    list-style: none;
     margin: 0;
     padding: 0;
     display: flex;
@@ -1123,7 +1115,6 @@
      --------------------------------------------------------------------------- */
   .theme-note-board {
     --columns: 11rem;
-    list-style: none;
     margin: 0;
     padding: 0;
     columns: var(--columns);

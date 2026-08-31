@@ -15,7 +15,6 @@
     color: var(--app-ink-muted);
     font: inherit;
     font-size: var(--app-text-12);
-    cursor: pointer;
   }
   .tag-picker__trigger:hover {
     color: var(--app-ink);
@@ -31,7 +30,6 @@
     padding: var(--app-space-6);
   }
   .tag-picker__list {
-    list-style: none;
     margin: 0;
     padding: 0;
     max-block-size: 12rem;
@@ -46,15 +44,12 @@
     gap: var(--app-space-6);
     inline-size: 100%;
     padding: var(--app-space-4) var(--app-space-6);
-    background: none;
-    border: none;
     /* The popover's corner less the panel's padding. */
     border-radius: calc(var(--app-radius-md) - var(--app-space-6));
     color: var(--app-ink);
     font: inherit;
     font-size: var(--app-text-13);
     text-align: start;
-    cursor: pointer;
   }
   .tag-picker__option:hover {
     background: var(--app-surface-sunken);

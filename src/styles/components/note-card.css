@@ -56,11 +56,8 @@
     inline-size: 100%;
     min-inline-size: 0;
     padding: 0;
-    background: none;
-    border: none;
     font: inherit;
     text-align: start;
-    cursor: pointer;
   }
 
   /* The banner. A fixed height, not a ratio: the cards sit in columns of
@@ -237,11 +234,8 @@
     align-items: center;
     gap: var(--app-space-6);
     padding: var(--app-space-2) var(--app-space-4);
-    background: none;
-    border: none;
     font: inherit;
     color: var(--accent-color, var(--app-brand));
-    cursor: pointer;
   }
   /* The pin and the ⋮ take the card's own colour here: on a tinted block the
      muted grey of an icon button reads as disabled. */

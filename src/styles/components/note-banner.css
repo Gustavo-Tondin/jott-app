@@ -202,21 +202,15 @@
   .note-banner__tag-remove {
     display: inline-flex;
     padding: 0;
-    background: none;
-    border: none;
     color: inherit;
-    cursor: pointer;
   }
   /* Renaming, from the name itself. It is a button and it must not look like
      one: the heading is the affordance, the pointer says the rest. */
   .note-banner__rename {
     padding: 0;
-    background: none;
-    border: none;
     color: inherit;
     font: inherit;
     text-align: start;
-    cursor: pointer;
   }
 
   .note-banner__menu {
@@ -259,13 +253,10 @@
   }
   .note-banner__action {
     padding: 0;
-    background: none;
-    border: none;
     color: var(--app-ink);
     font: inherit;
     font-size: var(--app-text-13);
     text-align: start;
-    cursor: pointer;
   }
   .note-banner__action:hover {
     color: var(--app-brand);

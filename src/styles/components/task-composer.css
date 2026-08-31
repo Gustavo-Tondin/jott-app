@@ -114,8 +114,6 @@
     justify-content: center;
     block-size: 1.75rem;
     padding: 0;
-    border: none;
-    background: none;
     cursor: grab;
     /* Stop the browser from claiming the vertical drag for a scroll — without
        this the pointermove events never arrive on a touchscreen. */

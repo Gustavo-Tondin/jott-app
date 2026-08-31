@@ -72,8 +72,6 @@
     gap: var(--app-space-6);
     margin: 0 0 var(--app-space-4);
     padding: var(--app-space-4) var(--app-space-6);
-    background: none;
-    border: none;
     border-radius: var(--app-radius-sm);
     font: inherit;
     font-size: var(--app-text-12);
@@ -82,7 +80,6 @@
     text-transform: uppercase;
     color: var(--app-ink-muted);
     text-align: start;
-    cursor: pointer;
   }
   .suggestions-pane__group-title:hover {
     background: var(--app-hover);
@@ -107,7 +104,6 @@
   }
 
   .suggestions-pane__list {
-    list-style: none;
     margin: 0;
     padding: 0;
     display: flex;
@@ -123,12 +119,9 @@
     align-items: baseline;
     gap: var(--app-space-8);
     padding: var(--app-space-6) var(--app-space-8);
-    background: none;
-    border: none;
     border-radius: var(--app-radius-sm);
     font: inherit;
     text-align: start;
-    cursor: pointer;
   }
   .suggestions-pane__item:hover {
     background: var(--app-hover);

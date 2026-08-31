@@ -67,9 +67,7 @@
     position: relative;
     inline-size: 100%;
     justify-content: space-between;
-    border: none;
     text-align: start;
-    cursor: pointer;
     color: inherit;
     font: inherit;
   }

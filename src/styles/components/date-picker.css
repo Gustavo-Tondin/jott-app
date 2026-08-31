@@ -9,7 +9,6 @@
   }
   /* The trigger is a filled pill (like the old field), but a button. */
   .date-picker__value {
-    cursor: pointer;
     text-align: center;
   }
 

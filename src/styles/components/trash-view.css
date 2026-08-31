@@ -49,7 +49,6 @@
     gap: var(--app-space-2);
   }
   .trash-view__list {
-    list-style: none;
     margin: var(--app-space-8) 0 0;
     padding: 0;
     display: flex;

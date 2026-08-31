@@ -29,9 +29,7 @@
     padding: 0;
     border: 0.0625rem solid transparent;
     border-radius: var(--app-radius-sm);
-    background: none;
     color: var(--app-ink-muted);
-    cursor: pointer;
   }
   .palette__icon:hover {
     background: var(--app-surface-sunken);

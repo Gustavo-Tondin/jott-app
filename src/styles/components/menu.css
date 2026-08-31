@@ -12,7 +12,6 @@
     min-width: 11rem;
     margin: 0;
     padding: var(--app-space-4);
-    list-style: none;
   }
   /* The qualifier before the name: present so the row is unambiguous, quiet so
      the name is what the eye lands on. Same idea as the page header's context. */
@@ -36,8 +35,6 @@
     display: block;
     width: 100%;
     padding: var(--app-space-6) var(--app-space-10);
-    background: none;
-    border: none;
     /* The popover's corner less the list's own padding. */
     border-radius: calc(var(--app-radius-md) - var(--app-space-4));
     color: var(--app-ink);
@@ -45,7 +42,6 @@
     font-size: var(--app-text-13);
     text-align: start;
     white-space: nowrap;
-    cursor: pointer;
     transition: background var(--app-transition-fast);
   }
   /* A row that opens a submenu: the caret sits at the far end, and the panel

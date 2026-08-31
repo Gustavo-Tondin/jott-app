@@ -37,10 +37,8 @@
     inline-size: 2.5rem;
     block-size: 2.5rem;
     background: color-mix(in srgb, var(--app-on-scrim) 12%, transparent);
-    border: none;
     border-radius: var(--app-radius-pill);
     color: var(--app-on-scrim);
-    cursor: pointer;
   }
   .image-viewer__close:hover {
     background: color-mix(in srgb, var(--app-on-scrim) 22%, transparent);

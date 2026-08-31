@@ -114,7 +114,6 @@
     color: var(--app-ink-muted);
   }
   .settings__nav-list {
-    list-style: none;
     margin: 0;
     padding: 0;
     display: flex;
@@ -127,14 +126,11 @@
     align-items: center;
     gap: var(--app-space-12);
     padding: var(--app-space-8) var(--app-space-12);
-    border: none;
     border-radius: var(--app-radius-md);
-    background: none;
     color: var(--app-ink-muted);
     font: inherit;
     font-size: var(--app-text-14);
     text-align: start;
-    cursor: pointer;
   }
   .settings__nav-item:hover {
     background: var(--app-hover);
@@ -190,13 +186,10 @@
     margin-block-end: var(--app-space-12);
     padding: var(--app-space-6) var(--app-space-8);
     margin-inline-start: calc(var(--app-space-8) * -1);
-    border: none;
     border-radius: var(--app-radius-sm);
-    background: none;
     color: var(--app-ink-muted);
     font: inherit;
     font-size: var(--app-text-14);
-    cursor: pointer;
   }
   .settings__back:hover {
     color: var(--app-ink);
@@ -419,7 +412,6 @@
     color: inherit;
     font: inherit;
     text-align: start;
-    cursor: pointer;
   }
 
   .settings__theme:hover {

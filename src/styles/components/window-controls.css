@@ -23,10 +23,8 @@
     block-size: 1.5rem;
     padding: 0;
     background: var(--app-surface-sunken);
-    border: none;
     border-radius: var(--app-radius-pill);
     color: var(--app-ink);
-    cursor: pointer;
     transition:
       background var(--app-transition-fast),
       color var(--app-transition-fast);

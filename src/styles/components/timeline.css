@@ -47,7 +47,6 @@
     font-size: var(--app-text-14);
   }
   .timeline__stats {
-    list-style: none;
     margin: 0;
     padding: 0;
     display: flex;
@@ -114,7 +113,6 @@
   .timeline__year {
     grid-area: 1 / 1;
     padding: var(--app-space-4) var(--app-space-12);
-    border: none;
     border-radius: var(--app-radius-sm);
     background: var(--app-surface-sunken);
     color: var(--app-ink-muted);
@@ -125,7 +123,6 @@
     opacity: 0;
     translate: 0 -0.5rem;
     pointer-events: none;
-    cursor: pointer;
     transition:
       opacity var(--app-duration-medium) var(--app-ease-out),
       translate var(--app-duration-medium) var(--app-ease-out),
@@ -156,7 +153,6 @@
 
   /* ---- the column ---------------------------------------------------- */
   .timeline__months {
-    list-style: none;
     margin: 0;
     padding: 0;
     display: flex;
@@ -190,7 +186,6 @@
     margin-inline-start: var(--app-space-8);
   }
   .timeline__lines {
-    list-style: none;
     margin: 0;
     /* The rule runs down the middle of the icons: 18px of glyph inside 8px
        of padding = 34px, so the rule sits at 17px from the start edge. */
@@ -230,12 +225,9 @@
     align-items: center;
     gap: var(--app-space-10);
     padding: 0;
-    border: none;
-    background: none;
     color: var(--app-ink);
     font: inherit;
     font-size: var(--app-text-16);
-    cursor: pointer;
     text-align: start;
   }
   .timeline__line-head:disabled {
@@ -270,7 +262,6 @@
     grid-template-rows: 1fr;
   }
   .timeline__rows {
-    list-style: none;
     margin: 0;
     padding: var(--app-space-8) 0 0 var(--app-space-40);
     min-block-size: 0;
@@ -293,13 +284,10 @@
   }
   .timeline__row-open {
     padding: var(--app-space-2) 0;
-    border: none;
-    background: none;
     color: var(--app-ink);
     font: inherit;
     font-size: var(--app-text-14);
     text-align: start;
-    cursor: pointer;
     border-radius: var(--app-radius-xs);
   }
   .timeline__row-open:not(:disabled):hover {

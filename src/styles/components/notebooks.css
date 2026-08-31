@@ -99,7 +99,6 @@
   .notebooks__list {
     margin: 0;
     padding: 0;
-    list-style: none;
     display: flex;
     flex-direction: column;
     gap: var(--app-space-8);
@@ -133,13 +132,10 @@
     align-items: flex-start;
     gap: var(--app-space-2);
     padding: var(--app-space-10) var(--app-space-16);
-    border: none;
     border-radius: inherit;
-    background: none;
     color: inherit;
     font-family: inherit;
     text-align: start;
-    cursor: pointer;
     transition: scale var(--app-transition-fast);
   }
   .notebooks__card:active:not(:disabled) {

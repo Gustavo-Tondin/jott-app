@@ -31,6 +31,44 @@
     resize: vertical;
   }
 
+  /* A button never wears the browser's chrome — every one in the app is
+     custom-drawn, so the reset owns the stripping. This is what ~90
+     `background: none; border: none; cursor: pointer` lines used to repeat,
+     one component at a time (removed 2026-08-31). A component that wants a
+     border or a fill paints it back on top, and inputs are NOT covered:
+     their browser border/background is real and each control strips its own. */
+  button {
+    background: none;
+    border: none;
+    cursor: pointer;
+  }
+
+  /* Every list in the app is a component — menus, rows, boards — and none
+     wants the browser's bullets or indent. Existing base rules still declare
+     their own margin/padding, so this only catches the next list someone
+     forgets. */
+  ul,
+  ol {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* Multi-line text breaks well: headings balance their lines, paragraphs
+     avoid the widowed last word. Wrapping only — no box changes size. */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
   :root {
     color-scheme: light;
   }
