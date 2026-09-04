@@ -547,11 +547,24 @@ export const S = {
     "while the desktop stays in Jott's own. Until one is chosen here, the " +
     "notebook's own choice is what shows.",
   sectionNotebook: "Notebook",
-  rolloverDaily: "When the day turns",
+  rolloverDaily: "A new day starts at",
   rolloverMode: "Unfinished tasks",
   rolloverModeReset: "go back to suggestions",
   rolloverModeCarry: "stay pulled",
-  rolloverAtHint: "Offset from midnight. -02:00 means 22:00 the evening before.",
+  // What the chosen hour DOES, said back (services/dayTurn.js). A signed
+  // offset from midnight was the old field, and nobody thinks in those
+  // (2026-09-04).
+  // Said the way the user said it (2026-09-04): "um dia novo começa às 21,
+  // quer dizer que hoje dura até as 21; às 21:01 é amanhã".
+  rolloverHint: {
+    midnight: "Today lasts until midnight, like the calendar's.",
+    evening: (time) =>
+      `Today lasts until ${time}; a minute later it is already tomorrow — for planning the next day before bed.`,
+    night: (time) =>
+      `Today lasts until ${time} tomorrow morning; only then does the date change — for nights that run late.`,
+    late: (time) =>
+      `Set by hand to an offset of +${time}: today only begins at ${time}, so most of the day shows yesterday's date. Pick an hour to fix it.`,
+  },
   weekStartsOn: "Week starts on",
   weekStartsOnHint: "The first day of the calendar strip on the Home.",
   subCalendar: "Calendar",

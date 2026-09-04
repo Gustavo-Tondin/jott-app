@@ -1016,3 +1016,65 @@ describe("SettingsView — the three faces (2026-08-24)", () => {
     expect(labels.some((l) => l.includes("Monospace font"))).toBe(true);
   });
 });
+
+describe("the turn of the day, asked as an hour", () => {
+  // A signed offset from midnight was the field until 2026-09-04, and even
+  // the author typed `21:00` meaning nine in the evening and got a day that
+  // began at nine the NEXT evening. The screen asks for a clock time now and
+  // says back what it does (services/dayTurn.js); the file keeps the offset.
+  const settings = {
+    dailyMode: "reset",
+    dailyAt: "-03:00",
+    weekStartsOn: "monday",
+    datedTasksJoinPeriod: true,
+    restoreLastScreen: false,
+    showListCounts: true,
+    dateDisplayFormat: "mm/dd/yyyy",
+    accentColor: "",
+    theme: "",
+    mode: "",
+  };
+  const props = () => ({
+    notebook: { path: "/n", name: "n", readOnly: false },
+    onChanged: noop,
+    onError: noop,
+  });
+
+  test("the stored offset shows as the hour it lands on, with a sentence", async () => {
+    bridge({ notebook_settings: settings, set_notebook_settings: null });
+    render(SettingsView, { props: props() });
+
+    await userEvent.click(await screen.findByRole("button", { name: "Date preferences" }));
+    const hour = await screen.findByLabelText("A new day starts at");
+    expect(hour.value).toBe("21:00");
+    expect(hour.type).toBe("time");
+    expect(screen.getByText(/Today lasts until 21:00; a minute later it is already tomorrow/)).toBeTruthy();
+
+    // A small hour is the night owl's, and the file gets a positive offset.
+    await fireEvent.change(hour, { target: { value: "02:30" } });
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("set_notebook_settings", {
+        settings: { dailyAt: "+02:30" },
+      }),
+    );
+  });
+
+  test("an offset set by hand past noon is shown for what it does, in warning ink", async () => {
+    bridge({ notebook_settings: { ...settings, dailyAt: "21:00" }, set_notebook_settings: null });
+    const { container } = render(SettingsView, { props: props() });
+
+    await userEvent.click(await screen.findByRole("button", { name: "Date preferences" }));
+    expect((await screen.findByLabelText("A new day starts at")).value).toBe("21:00");
+    const hint = container.querySelector(".settings__hint--warn");
+    expect(hint).not.toBeNull();
+    expect(hint.textContent).toMatch(/shows yesterday's date/);
+
+    // Picking the same hour again is what fixes it: 21:00 means the evening.
+    await fireEvent.change(screen.getByLabelText("A new day starts at"), { target: { value: "21:00" } });
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("set_notebook_settings", {
+        settings: { dailyAt: "-03:00" },
+      }),
+    );
+  });
+});

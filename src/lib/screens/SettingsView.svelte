@@ -14,6 +14,7 @@
   import { api } from "../services/api.js";
   import { makeScreen } from "../services/act.js";
   import { S } from "../services/strings.js";
+  import { offsetOf, turnMeaning, turnTimeOf } from "../services/dayTurn.js";
   import { askConfirm, askName } from "../services/dialog.js";
   import {
     FUNCTIONS,
@@ -230,6 +231,9 @@
   /// the core rejected would stay on screen — the state never changed, only
   /// the DOM did, so nothing would put it back.
   let form = $state({});
+  /// Which of the three the day's turn is (services/dayTurn.js), for the
+  /// sentence under the hour.
+  let dayTurn = $derived(turnMeaning(form.dailyAt));
   let saved = $state(false);
   let savedTimer = null;
 
@@ -1279,15 +1283,25 @@
 
           <label class="settings__row">
             <span class="settings__label">{S.rolloverDaily}</span>
+            <!-- A clock time, not the signed offset the file keeps
+                 (services/dayTurn.js says why, 2026-09-04): an evening hour
+                 means tomorrow starts tonight, a small hour means today
+                 runs past midnight. The hint below says which one the
+                 chosen hour is. -->
             <input
               class="theme-input"
-              bind:value={form.dailyAt}
+              type="time"
+              value={turnTimeOf(form.dailyAt)}
               disabled={readOnly}
               aria-label={S.rolloverDaily}
-              onchange={(e) => put({ dailyAt: e.currentTarget.value })}
+              onchange={(e) => put({ dailyAt: offsetOf(e.currentTarget.value) })}
             />
           </label>
-          <p class="settings__hint">{S.rolloverAtHint}</p>
+          <p class="settings__hint" class:settings__hint--warn={dayTurn === "late"}>
+            {dayTurn === "midnight"
+              ? S.rolloverHint.midnight
+              : S.rolloverHint[dayTurn](turnTimeOf(form.dailyAt))}
+          </p>
 
           <label class="settings__row">
             <span class="settings__label">{S.rolloverMode}</span>

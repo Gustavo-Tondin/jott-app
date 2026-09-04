@@ -229,6 +229,12 @@
     font-size: var(--app-text-13);
     color: var(--app-ink-faint);
   }
+  /* A hint that is a WARNING — the turn of the day set by hand to an offset
+     nobody meant (services/dayTurn.js): status ink, so it reads before the
+     row it explains. */
+  .settings__hint--warn {
+    color: var(--app-warning);
+  }
   .settings__path {
     font-size: var(--app-text-13);
     color: var(--app-ink-muted);
