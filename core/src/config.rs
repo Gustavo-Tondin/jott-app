@@ -14,7 +14,7 @@ use std::path::Path;
 
 use serde_json::{Map, Value};
 
-use crate::clock::{TurnOffset, WeekStart};
+use crate::clock::WeekStart;
 use crate::error::Result;
 
 /// Schema version this build understands. A notebook declaring more than this
@@ -50,11 +50,16 @@ impl RolloverMode {
     }
 }
 
-/// Rollover preferences for the day.
+/// Rollover preferences for the day. Until 2026-09-04 there was an `at` —
+/// the hour the day turned, as a signed offset from midnight. It went with
+/// the calendar on the Home (user call): the next day is planned on its own
+/// page, so the day is the calendar's day, and a knob nobody could set
+/// right (the author typed `21:00` and got yesterday until the evening)
+/// had nothing left to buy. An `at` a notebook still carries is an unknown
+/// key now, read by nothing.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct DailyRollover {
     pub mode: RolloverMode,
-    pub at: TurnOffset,
 }
 
 /// The turn of the day. Until 2026-09-04 a `weekly` half sat beside it; the
@@ -811,7 +816,6 @@ fn parse_rollover(block: &Map<String, Value>) -> Rollover {
     Rollover {
         daily: DailyRollover {
             mode: read_mode(daily),
-            at: read_at(daily),
         },
     }
 }
@@ -821,14 +825,6 @@ fn read_mode(block: Option<&Map<String, Value>>) -> RolloverMode {
         .and_then(|b| b.get("mode"))
         .and_then(Value::as_str)
         .map(RolloverMode::parse_or_default)
-        .unwrap_or_default()
-}
-
-fn read_at(block: Option<&Map<String, Value>>) -> TurnOffset {
-    block
-        .and_then(|b| b.get("at"))
-        .and_then(Value::as_str)
-        .map(TurnOffset::parse_or_default)
         .unwrap_or_default()
 }
 
@@ -864,7 +860,6 @@ fn render_age(age: &crate::age::Thresholds) -> Value {
 fn render_rollover(rollover: &Rollover) -> Value {
     let daily = Map::from_iter([
         ("mode".to_string(), Value::from(rollover.daily.mode.render())),
-        ("at".to_string(), Value::from(rollover.daily.at.render())),
     ]);
     Value::Object(Map::from_iter([("daily".to_string(), Value::Object(daily))]))
 }
@@ -942,7 +937,6 @@ mod tests {
         assert!(!config.new_tasks_on_top);
         assert!(!config.auto_space_colors);
         assert_eq!(config.rollover.daily.mode, RolloverMode::Reset);
-        assert_eq!(config.rollover.daily.at, TurnOffset::MIDNIGHT);
         assert_eq!(config.week_starts_on, WeekStart::Monday);
         assert!(!config.tasks_show_all);
         assert!(!config.is_read_only());
@@ -961,7 +955,8 @@ mod tests {
         );
 
         assert_eq!(config.rollover.daily.mode, RolloverMode::Carry);
-        assert_eq!(config.rollover.daily.at, TurnOffset::from_minutes(-120));
+        // `at` is from before 2026-09-04: read by nothing, kept by the file.
+        assert!(config.render().contains("\"at\": \"-02:00\""));
         assert_eq!(config.week_starts_on, WeekStart::Sunday);
     }
 
@@ -1077,7 +1072,6 @@ mod tests {
     fn render_round_trips() {
         let mut config = Config::default();
         config.rollover.daily.mode = RolloverMode::Carry;
-        config.rollover.daily.at = TurnOffset::from_minutes(-120);
         config.week_starts_on = WeekStart::Sunday;
 
         let reparsed = Config::parse(&config.render());
@@ -1105,11 +1099,11 @@ mod tests {
         let path = dir.path().join("nested").join("config.json");
 
         let mut config = Config::default();
-        config.rollover.daily.at = TurnOffset::from_minutes(90);
+        config.rollover.daily.mode = RolloverMode::Carry;
         config.save(&path).unwrap();
 
         let loaded = Config::load(&path);
-        assert_eq!(loaded.rollover.daily.at, TurnOffset::from_minutes(90));
+        assert_eq!(loaded.rollover.daily.mode, RolloverMode::Carry);
     }
 
     #[test]

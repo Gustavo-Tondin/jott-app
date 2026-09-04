@@ -83,7 +83,8 @@ what the current version is.
   desktop Jott waits in the tray after the window closes (and can start with
   the session), on Android the alarm is the system's and rings with the app
   closed.
-- A day rollover you configure, down to the hour.
+- At midnight, unfinished tasks either go back to being suggestions or
+  stay pulled — your call.
 
 **Notes**
 - A masonry card board, with folders as cards; or a plain board with every

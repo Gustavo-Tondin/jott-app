@@ -18,7 +18,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::config::{Config, DateFormat, RolloverMode};
-use crate::{TurnOffset, WeekStart};
+use crate::WeekStart;
 
 /// The Display choices, which answer to a SCREEN and not to a notebook
 /// (2026-08-20).
@@ -250,7 +250,6 @@ impl Display {
 #[serde(rename_all = "camelCase", default)]
 pub struct NotebookSettings {
     pub daily_mode: Option<String>,
-    pub daily_at: Option<String>,
     /// `monday` / `sunday` — what the Home's calendar strip starts on.
     pub week_starts_on: Option<String>,
     pub restore_last_screen: Option<bool>,
@@ -322,7 +321,6 @@ impl NotebookSettings {
         let rollover = &config.rollover;
         Self {
             daily_mode: Some(rollover.daily.mode.render().to_string()),
-            daily_at: Some(rollover.daily.at.render()),
             week_starts_on: Some(config.week_starts_on.render().to_string()),
             restore_last_screen: Some(display.restore_last_screen),
             show_list_counts: Some(display.show_list_counts),
@@ -367,9 +365,6 @@ impl NotebookSettings {
 
         if let Some(v) = &self.daily_mode {
             r.daily.mode = RolloverMode::parse_or_default(v);
-        }
-        if let Some(v) = &self.daily_at {
-            r.daily.at = TurnOffset::parse_or_default(v);
         }
         if let Some(v) = &self.week_starts_on {
             config.week_starts_on = WeekStart::parse_or_default(v);
@@ -788,7 +783,7 @@ mod tests {
         // comes back filled, and the Display half comes back from the MACHINE
         // even though the write went to the notebook.
         let mut config = Config::default();
-        settings(r#"{"mode": "light", "confirmDeletes": false, "dailyAt": "04:00"}"#)
+        settings(r#"{"mode": "light", "confirmDeletes": false, "dailyMode": "carry"}"#)
             .apply_to(&mut config);
 
         let machine = DisplayPrefs {
@@ -798,7 +793,7 @@ mod tests {
         let read = NotebookSettings::of(&config, &Display::resolve(&machine, &config));
 
         assert_eq!(read.confirm_deletes, Some(false));
-        assert_eq!(read.daily_at.as_deref(), Some("04:00"));
+        assert_eq!(read.daily_mode.as_deref(), Some("carry"));
         assert_eq!(read.mode.as_deref(), Some("dark"), "a tela venceu o caderno");
     }
 

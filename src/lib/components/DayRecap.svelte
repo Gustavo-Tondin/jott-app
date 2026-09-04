@@ -25,7 +25,7 @@
     ghostTitles = false,
     onOpenTask,
     onOpenNote,
-    /// `({done}) => void` — how many tasks were ticked that day, for the
+    /// `({done, created, notes}) => void` — the day's three counts, for the
     /// head's line.
     onLoaded,
     reloadKey = 0,
@@ -47,7 +47,11 @@
     apply: (read) => {
       items = read ?? [];
       open = new Set(["created", "completed", "notes"].map((key) => `${day}:${key}`));
-      onLoaded?.({ done: groups.completed.length });
+      onLoaded?.({
+        done: groups.completed.length,
+        created: groups.created.length,
+        notes: groups.notes.length,
+      });
     },
     onChanged: () => onChanged?.(),
     onError: (e) => onError?.(e),

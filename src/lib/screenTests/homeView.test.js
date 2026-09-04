@@ -114,7 +114,7 @@ describe("HomeView", () => {
 
     await screen.findByText("Arrumar site");
     await waitFor(() =>
-      expect(container.querySelector(".day-head__line").textContent).toBe("1 of 2 tasks done."),
+      expect(container.querySelector(".day-head__line").textContent).toBe("1 of 2 tasks completed."),
     );
     // The greeting is the machine's hour; whichever it is, it is one of the three.
     expect(container.querySelector(".day-head__greeting").textContent).toMatch(
@@ -220,7 +220,9 @@ describe("HomeView", () => {
     expect(screen.queryByText("No tasks yet")).toBeNull();
     expect(invoke).not.toHaveBeenCalledWith("day_tasks", { day: "2026-09-01" });
     await waitFor(() =>
-      expect(container.querySelector(".day-head__line").textContent).toBe("1 task done."),
+      expect(container.querySelector(".day-head__line").textContent).toBe(
+        "1 task completed, 1 task created, 1 note created.",
+      ),
     );
 
     // A living row still opens.

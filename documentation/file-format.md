@@ -262,7 +262,7 @@ order you dragged things into.
 ## `.jott/`
 
 - **`config.json`** — preferences that **travel with the notebook**, because
-  they answer to a *person*: rollover hours, retention days, confirmation
+  they answer to a *person*: what happens to unfinished tasks at midnight, retention days, confirmation
   prompts, feature switches, shortcut bindings, quick-capture destinations,
   sort orders, the fallback appearance, and the automatic reminder
   (`autoRemind`: `off` / `dayOf` / `dayBefore`, at `reminderTime`, `HH:MM`). Written in camelCase, guarded by

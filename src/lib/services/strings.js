@@ -547,24 +547,9 @@ export const S = {
     "while the desktop stays in Jott's own. Until one is chosen here, the " +
     "notebook's own choice is what shows.",
   sectionNotebook: "Notebook",
-  rolloverDaily: "A new day starts at",
-  rolloverMode: "Unfinished tasks",
+  rolloverMode: "At midnight, unfinished tasks",
   rolloverModeReset: "go back to suggestions",
   rolloverModeCarry: "stay pulled",
-  // What the chosen hour DOES, said back (services/dayTurn.js). A signed
-  // offset from midnight was the old field, and nobody thinks in those
-  // (2026-09-04).
-  // Said the way the user said it (2026-09-04): "um dia novo começa às 21,
-  // quer dizer que hoje dura até as 21; às 21:01 é amanhã".
-  rolloverHint: {
-    midnight: "Today lasts until midnight, like the calendar's.",
-    evening: (time) =>
-      `Today lasts until ${time}; a minute later it is already tomorrow — for planning the next day before bed.`,
-    night: (time) =>
-      `Today lasts until ${time} tomorrow morning; only then does the date change — for nights that run late.`,
-    late: (time) =>
-      `Set by hand to an offset of +${time}: today only begins at ${time}, so most of the day shows yesterday's date. Pick an hour to fix it.`,
-  },
   weekStartsOn: "Week starts on",
   weekStartsOnHint: "The first day of the calendar strip on the Home.",
   subCalendar: "Calendar",
@@ -837,8 +822,15 @@ export const S = {
   goodMorning: "Good morning",
   goodAfternoon: "Good afternoon",
   goodEvening: "Good evening",
-  tasksDone: (done, total) => `${done} of ${total} ${total === 1 ? "task" : "tasks"} done.`,
-  tasksDoneOn: (done) => `${done} ${done === 1 ? "task" : "tasks"} done.`,
+  tasksDone: (done, total) => `${done} of ${total} ${total === 1 ? "task" : "tasks"} completed.`,
+  /// A day gone by, in one line (user call, 2026-09-04): the three counts of
+  /// the recap, comma-separated, "completed" and never "done".
+  daySummary: ({ done, created, notes }) =>
+    [
+      `${done} ${done === 1 ? "task" : "tasks"} completed`,
+      `${created} ${created === 1 ? "task" : "tasks"} created`,
+      `${notes} ${notes === 1 ? "note" : "notes"} created`,
+    ].join(", ") + ".",
   tasksPlanned: (n) => `${n} ${n === 1 ? "task" : "tasks"} planned.`,
   nothingThatDay: "Nothing happened that day.",
   noNotesThatDay: "No notes written that day.",

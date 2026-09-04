@@ -88,12 +88,12 @@ export function greetingFor(hour) {
   return S.goodEvening;
 }
 
-/// The head's one line about a day: how much of it is done. `done` and
-/// `total` count the day's tasks (open + completed) for today and a day
-/// ahead; for a day gone by the caller passes what the log says was
-/// completed, and nothing is "left".
-export function summaryOf({ kind, done = 0, total = 0 }) {
-  if (kind === "past") return S.tasksDoneOn(done);
+/// The head's one line about a day. `done` and `total` count the day's
+/// tasks (open + completed) for today and a day ahead; for a day gone by
+/// the caller passes the log's three counts — completed, created, notes —
+/// and the line says all three (user call, 2026-09-04).
+export function summaryOf({ kind, done = 0, total = 0, created = 0, notes = 0 }) {
+  if (kind === "past") return S.daySummary({ done, created, notes });
   if (kind === "ahead") return S.tasksPlanned(total);
   return S.tasksDone(done, total);
 }

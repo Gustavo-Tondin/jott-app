@@ -327,7 +327,7 @@
         {ghostTitles}
         {onOpenTask}
         onOpenNote={(inside, space) => onOpenNote?.(inside, space, {})}
-        onLoaded={({ done }) => counted({ done, total: done })}
+        onLoaded={(counts) => counted(counts)}
         {reloadKey}
         {onChanged}
         {onError}

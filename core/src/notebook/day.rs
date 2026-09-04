@@ -17,7 +17,7 @@ use std::path::PathBuf;
 
 use chrono::NaiveDate;
 
-use crate::clock;
+use crate::clock::{self, TurnOffset};
 use crate::error::{Error, Result};
 use crate::plan::{PlanFile, PLAN_FILE};
 use crate::rollover;
@@ -46,9 +46,11 @@ impl Notebook {
         self.config_dir().join(PLAN_FILE)
     }
 
-    /// The current logical day, honouring the configured turn.
+    /// The current day — the calendar's, since 2026-09-04: the hour the day
+    /// turned was a preference until the Home's calendar let the next day
+    /// be planned on its own page, and then it had nothing left to buy.
     pub fn today(&self) -> NaiveDate {
-        clock::today(self.config.rollover.daily.at)
+        clock::today(TurnOffset::MIDNIGHT)
     }
 
     /// Which of the three a date is. `None` is today, said the short way —
@@ -73,7 +75,7 @@ impl Notebook {
         // The clock module reads the instant: this used to call Local::now()
         // here, which the invariant test now flags — the configured turn only
         // stays honest while clock.rs is the single reader.
-        clock::next_daily_turn(self.config.rollover.daily.at)
+        clock::next_daily_turn(TurnOffset::MIDNIGHT)
     }
 
     /// Today's state and the plan, each brought up to date against the

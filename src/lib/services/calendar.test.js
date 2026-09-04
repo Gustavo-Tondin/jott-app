@@ -65,12 +65,17 @@ describe("the calendar strip's arithmetic", () => {
   });
 
   test("the summary reads differently for each kind of day", () => {
-    expect(summaryOf({ kind: "today", done: 2, total: 5 })).toBe("2 of 5 tasks done.");
-    expect(summaryOf({ kind: "today", done: 1, total: 1 })).toBe("1 of 1 task done.");
-    expect(summaryOf({ kind: "today" })).toBe("0 of 0 tasks done.");
+    expect(summaryOf({ kind: "today", done: 2, total: 5 })).toBe("2 of 5 tasks completed.");
+    expect(summaryOf({ kind: "today", done: 1, total: 1 })).toBe("1 of 1 task completed.");
+    expect(summaryOf({ kind: "today" })).toBe("0 of 0 tasks completed.");
     expect(summaryOf({ kind: "ahead", total: 3 })).toBe("3 tasks planned.");
     expect(summaryOf({ kind: "ahead", total: 1 })).toBe("1 task planned.");
-    expect(summaryOf({ kind: "past", done: 4 })).toBe("4 tasks done.");
-    expect(summaryOf({ kind: "past", done: 1 })).toBe("1 task done.");
+    expect(summaryOf({ kind: "past", done: 4, created: 2, notes: 3 })).toBe(
+      "4 tasks completed, 2 tasks created, 3 notes created.",
+    );
+    expect(summaryOf({ kind: "past", done: 1, created: 1, notes: 1 })).toBe(
+      "1 task completed, 1 task created, 1 note created.",
+    );
+    expect(summaryOf({ kind: "past" })).toBe("0 tasks completed, 0 tasks created, 0 notes created.");
   });
 });

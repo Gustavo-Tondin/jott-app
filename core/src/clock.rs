@@ -1,10 +1,11 @@
 //! The logical day.
 //!
-//! The turn of the day is a user preference, not midnight: someone who plans
-//! tomorrow before going to bed wants it at 22:00, someone who works late
-//! wants it at 02:00. The `at` field expresses that as an offset from the
-//! midnight that opens the new period, negative values moving the turn back
-//! into the previous evening.
+//! The turn of the day WAS a user preference until 2026-09-04 — an offset
+//! from midnight, for the planner who sets up tomorrow before bed or the
+//! night owl. The Home's calendar plans the next day on its own page, so the
+//! day is the calendar's now and every caller passes `TurnOffset::MIDNIGHT`.
+//! The offset machinery stays, tested, because the shape of "which day is
+//! it" belongs here whatever the offset is.
 //!
 //! Hard rule: this module is the ONLY place in the core allowed to read the
 //! system clock. Calling `Local::now().date_naive()` anywhere else silently

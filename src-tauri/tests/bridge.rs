@@ -365,7 +365,6 @@ fn settings_round_trip_through_the_bridge() {
 
     let defaults = ok(&app, "notebook_settings", json!({}));
     assert_eq!(defaults["dailyMode"], "reset");
-    assert_eq!(defaults["dailyAt"], "00:00");
     assert_eq!(defaults["weekStartsOn"], "monday");
 
     ok(
@@ -374,7 +373,6 @@ fn settings_round_trip_through_the_bridge() {
         json!({
             "settings": {
                 "dailyMode": "carry",
-                "dailyAt": "-02:00",
                 "weekStartsOn": "sunday"
             }
         }),
@@ -382,13 +380,11 @@ fn settings_round_trip_through_the_bridge() {
 
     let saved = ok(&app, "notebook_settings", json!({}));
     assert_eq!(saved["dailyMode"], "carry");
-    assert_eq!(saved["dailyAt"], "-02:00");
     assert_eq!(saved["weekStartsOn"], "sunday");
 
     // And it really reached the file, not just the in-memory config.
     let on_disk = std::fs::read_to_string(dir.path().join(".jott/config.json")).unwrap();
     assert!(on_disk.contains("carry"));
-    assert!(on_disk.contains("-02:00"));
 }
 
 #[test]
@@ -562,7 +558,6 @@ fn nonsense_settings_are_normalized_instead_of_corrupting_the_config() {
         json!({
             "settings": {
                 "dailyMode": "banana",
-                "dailyAt": "99:99",
                 "weekStartsOn": "caturday"
             }
         }),
@@ -570,7 +565,6 @@ fn nonsense_settings_are_normalized_instead_of_corrupting_the_config() {
 
     let saved = ok(&app, "notebook_settings", json!({}));
     assert_eq!(saved["dailyMode"], "reset");
-    assert_eq!(saved["dailyAt"], "00:00");
     assert_eq!(saved["weekStartsOn"], "monday");
 }
 
