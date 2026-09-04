@@ -340,7 +340,7 @@ impl TaskList {
     /// ambiguous.
     ///
     /// The first occurrence always keeps the id, so references already stored
-    /// in a day/week state keep pointing at the same task.
+    /// in the day's state or the plan keep pointing at the same task.
     ///
     /// Returns how many lines changed, so the caller can skip a pointless save.
     pub fn dedupe_ids(&mut self) -> usize {

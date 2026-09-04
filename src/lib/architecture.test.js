@@ -894,9 +894,6 @@ describe("the bridge's two ends agree", () => {
     // Only the cross-space move is offered; `move_note_to_space` covers a
     // move inside one space too.
     "move_note",
-    // The calendar strip does not mark the days with a plan yet; the
-    // command exists for the day it does (2026-09-04).
-    "planned_days",
   ];
 
   test("every command the front names is registered", () => {

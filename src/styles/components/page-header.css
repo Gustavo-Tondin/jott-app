@@ -34,17 +34,6 @@
     text-transform: uppercase;
     color: var(--app-ink-muted);
   }
-  .page-header__subtitle {
-    margin-left: var(--app-space-6);
-    font-weight: var(--app-weight-regular);
-  }
-  /* The part before the slash is context, not the name: a neutral grey, so the
-     leaf is what the eye lands on (user call, 2026-08-06). */
-  .page-header__context {
-    color: var(--app-ink-faint);
-    font-weight: var(--app-weight-regular);
-  }
-
   /* The document's own name, clicked to rename it — the only place it
      appears, right under the tabs. */
   .page-header__name {
@@ -115,12 +104,6 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-  }
-
-  .page-header__date {
-    margin: var(--app-space-4) 0 0;
-    font-size: var(--app-text-14);
-    color: var(--app-ink-muted);
   }
 
   /* The name is still the rename button on a note; it just carries the large

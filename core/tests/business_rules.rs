@@ -19,6 +19,16 @@ fn ahead(notebook: &Notebook, days: i64) -> Option<chrono::NaiveDate> {
     Some(notebook.today() + chrono::Duration::days(days))
 }
 
+/// Creates a task in the Inbox and pulls it into today — the three
+/// primitives the app's composer chains (services/taskCompose.js).
+fn add_in_today(notebook: &Notebook, text: &str) -> jott_core::Result<String> {
+    let inbox = Notebook::inbox_path();
+    let position = notebook.create_task(&inbox, text)?;
+    let id = notebook.ensure_task_id(&inbox, position)?;
+    notebook.pull_into_day(None, &inbox, &id)?;
+    Ok(id)
+}
+
 /// A notebook with one task in the Inbox, returned with its id.
 fn notebook_with_task(dir: &Path, text: &str) -> (Notebook, String) {
     let notebook = Notebook::init(dir).unwrap();
@@ -70,8 +80,8 @@ fn creating_stamps_created_and_completing_stamps_completed() {
         "a created task is stamped with today's date"
     );
 
-    // Creating from Today/This Week goes through the same stamp.
-    notebook.add_task_in_day(None, "Da tela de hoje").unwrap();
+    // Creating from the day goes through the same stamp.
+    add_in_today(&notebook, "Da tela de hoje").unwrap();
     let inbox = read(dir.path().join("jott.tasks/task-list.md"));
     assert_eq!(inbox.matches(&format!("created:{today}")).count(), 2);
 
@@ -767,7 +777,6 @@ fn a_day_gone_by_cannot_be_planned() {
         notebook.pull_into_day(yesterday, "jott.tasks/task-list.md", &id).map(|_| ()),
         notebook.remove_from_day(yesterday, "jott.tasks/task-list.md", &id).map(|_| ()),
         notebook.set_day_order(yesterday, &[]),
-        notebook.add_task_in_day(yesterday, "tarde demais").map(|_| ()),
     ] {
         assert!(matches!(result, Err(Error::DayGone(_))), "{result:?}");
     }
@@ -815,7 +824,7 @@ fn a_planned_day_pours_into_today_when_it_arrives() {
     assert_eq!(ids, vec![already, old, due]);
 
     let plan = notebook.open_plan().unwrap().plan;
-    assert_eq!(plan.planned_days(), vec![today + chrono::Duration::days(1)]);
+    assert_eq!(plan.days.keys().copied().collect::<Vec<_>>(), vec![today + chrono::Duration::days(1)]);
     assert!(plan.contains(today + chrono::Duration::days(1), "jott.tasks/task-list.md", &later));
     // And the file agrees.
     let on_disk: serde_json::Value = serde_json::from_str(&read(dir.path().join(".jott/plan.json"))).unwrap();
@@ -873,9 +882,7 @@ fn a_task_created_in_today_is_physically_written_to_the_inbox() {
     let dir = tempfile::tempdir().unwrap();
     let notebook = Notebook::init(dir.path()).unwrap();
 
-    let id = notebook
-        .add_task_in_day(None, "Responder e-mail")
-        .unwrap();
+    let id = add_in_today(&notebook, "Responder e-mail").unwrap();
 
     let inbox = read(dir.path().join("jott.tasks/task-list.md"));
     assert!(inbox.contains("- [ ] Responder e-mail"));
@@ -1514,7 +1521,6 @@ fn a_notebook_from_a_newer_app_refuses_every_write() {
     assert!(notebook.complete_task("jott.tasks/task-list.md", &id).is_err());
     assert!(notebook.create_list("jott.tasks", "Compras").is_err());
     assert!(notebook.pull_into_day(None, "jott.tasks/task-list.md", &id).is_err());
-    assert!(notebook.add_task_in_day(None, "nova").is_err());
     assert!(notebook.delete_list("jott.tasks/Compras.md").is_err());
 
     // These used to be composed in the bridge from unguarded primitives
@@ -1870,8 +1876,8 @@ fn a_new_task_lands_at_the_bottom_unless_the_notebook_says_top() {
     let texts: Vec<String> = notebook.tasks_in(inbox).unwrap().into_iter().map(|t| t.text).collect();
     assert_eq!(texts, vec!["Terceira", "Primeira", "Segunda"]);
 
-    // The period door obeys the same setting.
-    notebook.add_task_in_day(None, "Quarta").unwrap();
+    // The day's door obeys the same setting.
+    add_in_today(&notebook, "Quarta").unwrap();
     let texts: Vec<String> = notebook.tasks_in(inbox).unwrap().into_iter().map(|t| t.text).collect();
     assert_eq!(texts[0], "Quarta");
 }

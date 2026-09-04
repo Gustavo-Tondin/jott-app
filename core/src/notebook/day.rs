@@ -17,7 +17,7 @@ use std::path::PathBuf;
 
 use chrono::NaiveDate;
 
-use crate::clock::{self, TurnOffset};
+use crate::clock;
 use crate::error::{Error, Result};
 use crate::plan::{PlanFile, PLAN_FILE};
 use crate::rollover;
@@ -50,7 +50,7 @@ impl Notebook {
     /// turned was a preference until the Home's calendar let the next day
     /// be planned on its own page, and then it had nothing left to buy.
     pub fn today(&self) -> NaiveDate {
-        clock::today(TurnOffset::MIDNIGHT)
+        clock::civil_today()
     }
 
     /// Which of the three a date is. `None` is today, said the short way —
@@ -75,7 +75,7 @@ impl Notebook {
         // The clock module reads the instant: this used to call Local::now()
         // here, which the invariant test now flags — the configured turn only
         // stays honest while clock.rs is the single reader.
-        clock::next_daily_turn(TurnOffset::MIDNIGHT)
+        clock::next_daily_turn()
     }
 
     /// Today's state and the plan, each brought up to date against the
@@ -208,53 +208,6 @@ impl Notebook {
         }
     }
 
-    /// Creates a task straight from a day: today, or one ahead.
-    ///
-    /// The task is written to the Inbox — a day never stores content of its
-    /// own, it only points at tasks that live in a real list (spec 3).
-    pub fn add_task_in_day(&self, day: Option<NaiveDate>, text: impl Into<String>) -> Result<String> {
-        self.ensure_writable()?;
-        let day = self.day_of(day);
-        if let Day::Gone(date) = day {
-            return Err(Error::DayGone(date));
-        }
-        let mut inbox = self.inbox()?;
-
-        // This one earns an id immediately: the day is about to reference
-        // it, and a reference needs something stable to point at.
-        let position = inbox.add_placed(Self::stamped_task(text), self.config.new_tasks_on_top);
-        let id = inbox
-            .ensure_id_at(position)
-            .expect("the task was just added at this position");
-        inbox.save()?;
-
-        match day {
-            Day::Ahead(date) => {
-                let mut file = self.open_plan()?;
-                file.plan.add(date, Self::inbox_path(), &id);
-                file.save()?;
-            }
-            _ => {
-                let mut file = self.open_state()?;
-                file.state.add(Self::inbox_path(), &id);
-                file.save()?;
-            }
-        }
-
-        let born = inbox.find(&id).and_then(|task| task.created);
-        if let Some(born) = born {
-            self.log_timeline(vec![crate::timeline::Record::created(
-                crate::clock::civil_now(),
-                crate::timeline::Kind::Task,
-                Self::inbox_path(),
-                born,
-                inbox.find(&id).map(|task| task.text.clone()).unwrap_or_default(),
-            )
-            .with_id(&id)]);
-        }
-        Ok(id)
-    }
-
     /// The tasks a day holds, resolved to the real thing, in the order they
     /// were pulled: today's state, or a day ahead's plan. A day gone by is
     /// empty — the Home reads it from the log (`Notebook::timeline`).
@@ -351,11 +304,5 @@ impl Notebook {
             }
             Day::Gone(date) => Err(Error::DayGone(date)),
         }
-    }
-
-    /// The days ahead with something planned, earliest first — for a
-    /// calendar that wants to mark them.
-    pub fn planned_days(&self) -> Result<Vec<NaiveDate>> {
-        Ok(self.open_plan()?.plan.planned_days())
     }
 }

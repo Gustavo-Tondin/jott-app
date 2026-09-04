@@ -21,12 +21,12 @@ import { folderOf, listName, listTitle } from "../services/paths.js";
 /// The inverse of `tabs.viewId` — keep the two in step.
 export function viewFromId(id) {
   if (!id) return null;
-  // Ids from before Today and This Week became sub-tabs of the Tasks screen.
-  // There is no "period" view any more — a session restored onto one used to
-  // fall through every screen branch to the Completed, which is the one place
-  // those ids never meant. Which sub-tab opens is the screen's own state, so
-  // the closest honest answer is the screen itself.
-  if (id === "day" || id === "week") return { kind: "tasks" };
+  // Ids from before the day moved to the Home (2026-09-04) and, before
+  // that, from before Today and This Week became tabs of the Tasks screen.
+  // A session restored onto one used to fall through every screen branch to
+  // the Completed, which is the one place those ids never meant; the day is
+  // the Home's now, and the week is any day on its calendar.
+  if (id === "day" || id === "week") return { kind: "home" };
   if (id.startsWith("list:")) return { kind: "list", list: id.slice(5) };
   if (id.startsWith("sp:")) return { kind: "space", sp: id.slice(3) };
   if (["home", "completed", "notes", "tasks", "settings", "assets", "timeline"].includes(id)) {

@@ -88,7 +88,7 @@ fn the_apps_own_writes_do_not_surface_as_temporary_files() {
     let notebook = Notebook::init(dir.path()).unwrap();
     let watcher = notebook.watch().unwrap();
 
-    notebook.add_task_in_day(None, "nova").unwrap();
+    notebook.create_task(&Notebook::inbox_path(), "nova").unwrap();
     wait_for(&watcher, |c| c.list_name().as_deref() == Some("Tasks"));
 
     // Drain whatever else the OS queued and check none of it is a temp file.

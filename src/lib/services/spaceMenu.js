@@ -35,7 +35,7 @@ export function spaceMenu({
   const items = [...lead];
 
   // An entry the caller gave nothing for is LEFT OUT, not shown dead: a source
-  // with no `.space.json` (a period — the Home's day, the Tasks screen)
+  // with no `.space.json` (a day on the Home, the Tasks screen over every list)
   // has no arrangement to set, so offering it would be a promise the screen
   // cannot keep (2026-08-06).
   if (sorts.length > 0) {

@@ -6,7 +6,7 @@
 //! that used to sit in Display and are NOT about a screen moved to the section
 //! they belong to rather than becoming exceptions — where a quick note lands
 //! is the notebook's (Notebook), and whether an overdue task counts as urgent
-//! is a rule about tasks (Day and week).
+//! is a rule about tasks (Date preferences).
 //!
 //! Both drawers are described here, in the core, for the same reason every
 //! other rule is: a second frontend has to resolve them the same way, and a

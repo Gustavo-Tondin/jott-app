@@ -3,7 +3,7 @@
 // An id is a write to the user's file, so it is handed out as late as
 // possible: reading a list never assigns one, and neither does opening a task
 // to look at it. Only an action that has to name that exact line — pulling it
-// into a period, completing it, saving a field — earns an id.
+// into a day, completing it, saving a field — earns an id.
 //
 // This lives outside `api.js` on purpose: `api.js` only names the bridge, and
 // this decides something.

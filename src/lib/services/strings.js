@@ -810,7 +810,6 @@ export const S = {
   todaysNotes: "Today notes",
   /// The blocks of a day that is not today, named by the day: "Sep 5 tasks".
   dayTasks: (day) => `${day} tasks`,
-  dayNotes: (day) => `${day} notes`,
   /// The strip's head: the month beside the title, and the day's own line
   /// once the head has scrolled away on a phone ("Sep 3").
   shortDay: (month, day) => `${month.slice(0, 3)} ${day}`,
@@ -833,7 +832,6 @@ export const S = {
     ].join(", ") + ".",
   tasksPlanned: (n) => `${n} ${n === 1 ? "task" : "tasks"} planned.`,
   nothingThatDay: "Nothing happened that day.",
-  noNotesThatDay: "No notes written that day.",
   inboxNotes: "Inbox notes",
   inboxTasks: "Inbox tasks",
   quickNoteTo: "to",

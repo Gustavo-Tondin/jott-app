@@ -29,7 +29,7 @@ pub enum Change {
     /// A `.md` file in any space — a task list, or (until phase 8 gives
     /// them their own kind) a note.
     List { path: PathBuf },
-    /// A day/week state file.
+    /// The day's state, or the plan.
     State { path: PathBuf },
     /// `.jott/config.json`.
     Config,

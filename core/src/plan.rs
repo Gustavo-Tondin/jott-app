@@ -57,15 +57,6 @@ impl Plan {
         self.days.values().all(Vec::is_empty)
     }
 
-    /// The days with something planned, earliest first.
-    pub fn planned_days(&self) -> Vec<NaiveDate> {
-        self.days
-            .iter()
-            .filter(|(_, items)| !items.is_empty())
-            .map(|(day, _)| *day)
-            .collect()
-    }
-
     /// Plans a task for `day`. Idempotent, like the day's `add`: the same
     /// task twice on one day is a no-op. A task can be planned for two
     /// different days — two days are two choices. Returns whether anything
@@ -198,7 +189,7 @@ mod tests {
         assert_eq!(plan.of(ymd(2026, 9, 5)).len(), 1);
         // Another day is another choice.
         assert!(plan.add(ymd(2026, 9, 6), "jott.tasks/task-list.md", "a"));
-        assert_eq!(plan.planned_days(), vec![ymd(2026, 9, 5), ymd(2026, 9, 6)]);
+        assert_eq!(plan.days.keys().copied().collect::<Vec<_>>(), vec![ymd(2026, 9, 5), ymd(2026, 9, 6)]);
     }
 
     #[test]
@@ -223,7 +214,7 @@ mod tests {
         let ids: Vec<&str> = due.iter().map(|r| r.id.as_str()).collect();
         assert_eq!(ids, vec!["old", "b", "a"]);
         // Only what is still ahead stays.
-        assert_eq!(plan.planned_days(), vec![ymd(2026, 9, 6)]);
+        assert_eq!(plan.days.keys().copied().collect::<Vec<_>>(), vec![ymd(2026, 9, 6)]);
         // And nothing is due twice.
         assert!(plan.take_due(ymd(2026, 9, 4)).is_empty());
     }
@@ -246,7 +237,7 @@ mod tests {
         assert!(plan.contains(ymd(2026, 9, 9), "Design/Tasks/Mercado.md", "b"));
 
         assert!(TaskRefs::remove(&mut plan, "Design/Tasks/completed.md", "a9"));
-        assert_eq!(plan.planned_days(), vec![ymd(2026, 9, 9)]);
+        assert_eq!(plan.days.keys().copied().collect::<Vec<_>>(), vec![ymd(2026, 9, 9)]);
         assert_eq!(plan.of(ymd(2026, 9, 9)).len(), 1);
     }
 

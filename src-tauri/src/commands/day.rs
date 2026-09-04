@@ -98,17 +98,6 @@ pub fn day_tasks<R: Runtime>(
     state.read(window.label(), |nb| nb.day_tasks(day))
 }
 
-/// The days ahead with something planned, earliest first.
-#[tauri::command]
-pub fn planned_days<R: Runtime>(
-    state: State<'_, AppState>,
-    window: tauri::Window<R>,
-) -> CommandResult<Vec<String>> {
-    state.read(window.label(), |nb| {
-        Ok(nb.planned_days()?.iter().map(ToString::to_string).collect())
-    })
-}
-
 /// The current logical day, which weekday the calendar strip starts on, and
 /// when the day turns next. The UI needs this both to draw the Home and to
 /// schedule the in-app rollover.

@@ -10,7 +10,7 @@ describe("spaceMenu", () => {
   });
 
   test("what the caller gave nothing for is left out, not shown dead", () => {
-    // A period source (the Home's day, the Tasks screen) has no
+    // A day (the Home) has no
     // `.space.json`: no arrangement to set. Offering it would be a
     // promise the screen cannot keep (2026-08-06).
     const items = spaceMenu({ lead: [{ label: "Select tasks…", run() {} }], sorts: [] });

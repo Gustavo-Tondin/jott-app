@@ -4,7 +4,7 @@
 //! by calling into Tauri, it belongs in `src-tauri` instead. Keeping the rule
 //! is what would let a different frontend reuse all of this untouched.
 //!
-//! Reading and writing the notebook is done. Day/week rules come next.
+//! Reading and writing the notebook, the day and the plan, the log.
 
 pub mod age;
 pub mod assets;
@@ -45,7 +45,7 @@ pub mod watcher;
 
 pub use age::{Age, Band, Thresholds};
 pub use assets::{AssetEntry, Assets, ASSETS_DIR};
-pub use clock::{TurnOffset, WeekStart};
+pub use clock::WeekStart;
 pub use config::{Config, Rollover, RolloverMode};
 pub use conflict::Conflict;
 pub use error::{Error, Result};

@@ -151,14 +151,11 @@ export function defaultOf(key) {
 }
 
 /// Is `key` switched on — the user's word if they gave one, else its default,
-/// always `false` when its parent is off, and `false` while anything it
-/// `needs` is off (My Day and Week go with the fixed Tasks screen).
+/// and always `false` when its parent is off.
 export function on(features, key) {
   const said = features?.[key];
   const self = typeof said === "boolean" ? said : defaultOf(key);
   if (!self) return false;
-  const needs = BY_KEY[key]?.needs ?? [];
-  if (!needs.every((need) => on(features, need))) return false;
   const parent = BY_KEY[key]?.parent;
   return parent ? on(features, parent) : true;
 }

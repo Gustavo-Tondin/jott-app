@@ -24,13 +24,13 @@ describe("viewFromId", () => {
     }
   });
 
-  test("a legacy day/week id opens the Tasks screen, not the Completed", () => {
+  test("a legacy day/week id opens the Home, not the Completed", () => {
     // Today and This Week stopped being views of their own when they became
     // sub-tabs of the Tasks screen. A session remembered on one of the old
     // ids used to come back as {kind: "period"}, which no screen branch
     // handled — the {:else} fell to the Completed view.
-    expect(viewFromId("day")).toEqual({ kind: "tasks" });
-    expect(viewFromId("week")).toEqual({ kind: "tasks" });
+    expect(viewFromId("day")).toEqual({ kind: "home" });
+    expect(viewFromId("week")).toEqual({ kind: "home" });
   });
 
   test("an id this build does not know means nothing, not the Home", () => {

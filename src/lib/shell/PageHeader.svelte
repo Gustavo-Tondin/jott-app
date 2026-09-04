@@ -2,9 +2,8 @@
   // The strip above the page. Two shapes, because the mobile wireframes make
   // it a different thing rather than a narrower one:
   //
-  //   full     [← →]  ·  TASKS/INDEX  ·  [⋮]      one quiet uppercase line
-  //   compact  Home ●                    [+]      the screen's name, big, with
-  //            12/08/26                           the date under it
+  //   full     [← →]  ·  TASKS  ·  [⋮]            one quiet uppercase line
+  //   compact  Tasks ●                             the screen's name, big
   //
   // In the compact shell the arrows and the ⋮ are NOT here — they moved up
   // into the top bar (shell/TopBar.svelte), which is why both are their own
@@ -23,10 +22,6 @@
 
   let {
     title,
-    /// What the title sits inside, drawn ahead of it in a quieter grey —
-    /// `Tasks/Index` reads as one place with a leaf, not as one long name.
-    context = "",
-    subtitle = "",
     canBack = false,
     canForward = false,
     onBack,
@@ -45,10 +40,6 @@
     /// the same fallback the tab dot takes — a mark that comes and goes says
     /// less than one that is always there to be read.
     dot = null,
-    /// Whatever this screen offers as its one big action, drawn at the right
-    /// of the compact header. Home fills it with the capture +; the screens
-    /// that compose inline (a tasks space, a notepad) leave it empty.
-    action,
   } = $props();
 
   /// The stored choice as CSS — a name becomes the ground-aware `var()`, a raw
@@ -57,7 +48,7 @@
   let dotStyle = $derived(dotStyleOf(dot));
 
   /// What the menu belongs to, so leaving the page closes it (PageMenu).
-  let pageKey = $derived(`${context} ${title} ${subtitle}`);
+  let pageKey = $derived(title);
 </script>
 
 {#if compact && !title}
@@ -86,18 +77,14 @@
              space you are in. -->
         <span class="theme-dot" style={dotStyle} aria-hidden="true"></span>
       </h1>
-      {#if subtitle}
-        <p class="page-header__date">{subtitle}</p>
-      {/if}
     </div>
-    {@render action?.()}
   </header>
 {:else}
   <header class="page-header">
     <PageNav {canBack} {canForward} {onBack} {onForward} />
 
     <h1 class="page-header__heading">
-      {#if context}<span class="page-header__context">{context}/</span>{/if}{#if onRenameTitle}
+      {#if onRenameTitle}
         <button
           class="page-header__name"
           title={S.promptRenameNote(title)}
@@ -107,8 +94,7 @@
         </button>
       {:else}
         {title}
-      {/if}{#if subtitle}<span class="page-header__subtitle"> — {subtitle}</span
-        >{/if}
+      {/if}
     </h1>
 
     <PageMenu items={menu} {pageKey} />

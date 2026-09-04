@@ -602,7 +602,6 @@ fn a_day_ahead_is_planned_and_read_over_the_bridge() {
         ok(&app, "pull_into_day", json!({ "day": day(3), "list": list, "id": id })),
         json!(true)
     );
-    assert_eq!(ok(&app, "planned_days", json!({})), json!([day(3)]));
     let planned = ok(&app, "day_tasks", json!({ "day": day(3) }));
     assert_eq!(planned[0]["task"]["text"], "Planejada");
     assert!(ok(&app, "day_tasks", json!({ "day": day(2) })).as_array().unwrap().is_empty());
@@ -619,7 +618,9 @@ fn a_day_ahead_is_planned_and_read_over_the_bridge() {
         ok(&app, "remove_from_day", json!({ "day": day(3), "list": list, "id": id })),
         json!(true)
     );
-    assert_eq!(ok(&app, "planned_days", json!({})), json!([]));
+    // The plan forgets a day emptied by hand — the file says so.
+    let plan: Value = serde_json::from_str(&std::fs::read_to_string(dir.path().join(".jott/plan.json")).unwrap()).unwrap();
+    assert!(plan["days"].as_object().unwrap().is_empty(), "{plan}");
 }
 
 /// Guards a bug that no IPC test can catch: a native dialog cannot be driven

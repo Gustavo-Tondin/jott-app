@@ -63,7 +63,7 @@ export function resetBridge() {
 }
 
 /// The commands asked for, in order — the assertion for a RULE about the order
-/// of calls (an id fetched only when something needs it, a period joined after
+/// of calls (an id fetched only when something needs it, a day joined after
 /// the task exists) rather than about one call's arguments.
 export function commandsCalled() {
   return invoke.mock.calls.map(([command]) => command);

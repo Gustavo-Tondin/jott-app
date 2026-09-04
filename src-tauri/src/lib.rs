@@ -196,7 +196,6 @@ pub fn configure<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builde
             commands::assets::asset_usage,
             // the day, and the days ahead (2026-09-04)
             commands::day::day_tasks,
-            commands::day::planned_days,
             commands::day::grouped_suggestions,
             commands::day::day_clock,
             commands::day::pull_into_day,
