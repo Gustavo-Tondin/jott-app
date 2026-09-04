@@ -8,7 +8,7 @@
 // Svelte's scoping hash.
 import { describe, expect, test } from "vitest";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
-import { join, dirname, basename, relative } from "node:path";
+import { join, dirname, basename, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const src = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -80,7 +80,11 @@ describe("frontend architecture", () => {
     ]);
     const offenders = [];
     for (const f of walk(join(src, "styles"), ".css")) {
-      if (exempt.has(relative(join(src, "styles"), f))) continue;
+      // Separators normalised: on Windows `relative` answers with a
+      // backslash, and the exemptions above are written with a slash — the
+      // editor.css exemption missed, and the CI failed there only.
+      const rel = relative(join(src, "styles"), f).split(sep).join("/");
+      if (exempt.has(rel)) continue;
       const css = readFileSync(f, "utf8")
         .replace(/\/\*[\s\S]*?\*\//g, "")
         .replace(/url\([^)]*\)/g, "");
