@@ -1,0 +1,254 @@
+/* day-head.css — the Home's head: the place, the month, a week of days and
+ * the day's one line. Markup: src/lib/components/DayHead.svelte. Selectors
+ * are the stable BEM hooks a theme may restyle; components read tokens only.
+ *
+ * Wireframes "Home Screen Desktop" and "Home Screen Mobile - default /
+ * overview / Scrolled Down" (2026-09-04). Measured off the desktop SVG: a
+ * 700px card of raised surface, 20px radius, 32px of padding; seven 84px
+ * cells with the chosen one an 84×84 pill of the brand colour; the title at
+ * 28px and the month at 20px on one baseline. On the phone the card is the
+ * chrome itself — no surface, no radius, the top bar floating over it — and
+ * the days are 44px cells with a 44×70 pill. */
+
+@layer components {
+  .day-head {
+    display: flex;
+    flex-direction: column;
+    gap: var(--app-space-16);
+    padding: var(--app-space-24) var(--app-space-32);
+    border-radius: var(--app-radius-xl);
+    background: var(--app-surface);
+    color: var(--app-ink);
+  }
+
+  /* ---- the top row: name and month on one baseline ---- */
+  .day-head__top {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--app-space-16);
+  }
+  .day-head__title {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--app-space-10);
+    padding: 0;
+    color: var(--app-ink);
+    font: inherit;
+    font-size: var(--app-text-24);
+    font-weight: var(--app-weight-medium);
+    letter-spacing: var(--app-tracking-tight);
+    border-radius: var(--app-radius-xs);
+  }
+  .day-head__title:hover .day-head__name {
+    text-decoration: underline;
+    text-decoration-thickness: 0.0625rem;
+    text-underline-offset: 0.2em;
+  }
+  .day-head__dot {
+    --dot-size: 0.625rem;
+  }
+  .day-head__month {
+    font-size: var(--app-text-20);
+    color: var(--app-ink);
+  }
+
+  /* ---- the week ---- */
+  .day-head__week {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: var(--app-space-4);
+  }
+  /* The carrousel (user call, 2026-09-04): three pages a week wide in a
+     scroller that snaps a page at a time, the week on show in the middle.
+     No scrollbar — the arrows, a swipe or a drag are the controls — and no
+     overscroll chaining, so pulling past the end does not drag the page. A
+     finger scrolls it natively; a mouse through actions/dragScroll.js. */
+  .day-head__scroller {
+    flex: 1;
+    min-inline-size: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    touch-action: pan-x pan-y;
+    cursor: grab;
+  }
+  .day-head__scroller::-webkit-scrollbar {
+    display: none;
+  }
+  .day-head__scroller:active {
+    cursor: grabbing;
+  }
+  .day-head__track {
+    display: flex;
+    margin: 0;
+    padding: 0;
+  }
+  .day-head__page {
+    flex: 0 0 100%;
+    min-inline-size: 0;
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+  }
+  .day-head__days {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: var(--app-space-4);
+    margin: 0;
+    padding: 0;
+  }
+  .day-head__slot {
+    display: flex;
+    justify-content: center;
+  }
+  /* A day: the weekday letter over the number, on a pill that fills only for
+     the chosen one. The whole column is the target — 84px is wide enough
+     that a finger never has to aim. */
+  .day-head__day {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--app-space-10);
+    inline-size: 100%;
+    max-inline-size: 5.25rem;
+    min-block-size: 5.25rem;
+    padding: var(--app-space-8) 0;
+    border-radius: var(--app-radius-lg);
+    color: var(--app-ink);
+    font: inherit;
+    transition:
+      background var(--app-transition-fast),
+      color var(--app-transition-fast);
+  }
+  .day-head__day:hover {
+    background: var(--app-hover);
+  }
+  .day-head__weekday {
+    font-size: var(--app-text-16);
+    color: var(--app-ink-muted);
+  }
+  .day-head__number {
+    font-size: var(--app-text-20);
+    font-weight: var(--app-weight-medium);
+    font-variant-numeric: tabular-nums;
+  }
+  /* Today, when it is not the chosen day, keeps a mark of its own: the
+     number in the brand colour, so the eye can find the way back. */
+  .day-head__day.is-today:not(.is-selected) .day-head__number {
+    color: var(--app-brand);
+  }
+  .day-head__day.is-selected {
+    background: var(--app-brand);
+    color: var(--app-on-brand);
+  }
+  .day-head__day.is-selected .day-head__weekday {
+    color: var(--app-on-brand);
+  }
+
+  /* The two arrows that turn the week on the desktop. Quiet until the row is
+     hovered: the wireframe draws none, and a trackpad or a tap on another
+     day is how most weeks will be turned — but a mouse needs a control. */
+  .day-head__turn {
+    flex: 0 0 auto;
+    opacity: 0;
+    transition: opacity var(--app-transition-fast);
+  }
+  .day-head__week:hover .day-head__turn,
+  .day-head__turn:focus-visible {
+    opacity: 1;
+  }
+
+  /* ---- the line ---- */
+  .day-head__summary {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--app-space-8);
+    margin: 0;
+    padding-inline: var(--app-space-24);
+    font-size: var(--app-text-20);
+    color: var(--app-ink);
+  }
+  .day-head__greeting {
+    color: var(--app-ink-muted);
+  }
+  .day-head__check {
+    display: inline-flex;
+    color: var(--app-ink);
+  }
+
+  /* The handle only the phone draws. */
+  .day-head__handle {
+    display: none;
+  }
+}
+
+/* =============================================================================
+   THE COMPACT SHAPE (below 768px, wireframes "Home Screen Mobile").
+   The head IS the chrome above the canvas: no card, no radius, the ground of
+   the region it declares, and room at the top for the bar that floats over it
+   (shell.css reserves the same height for an open note).
+   ============================================================================= */
+@layer components {
+  .day-head--compact {
+    gap: var(--app-space-12);
+    padding: var(--app-space-8) var(--app-space-12) 0;
+    padding-inline-start: calc(var(--app-space-12) + var(--app-safe-left));
+    padding-inline-end: calc(var(--app-space-12) + var(--app-safe-right));
+    margin-block-start: var(--app-topbar-height);
+    border-radius: 0;
+    background: var(--app-bg);
+  }
+  .day-head--compact .day-head__title {
+    font-size: var(--app-text-32);
+  }
+  .day-head--compact .day-head__month {
+    font-size: var(--app-text-20);
+  }
+  /* The arrows go: a phone turns the week with a swipe. */
+  .day-head--compact .day-head__turn {
+    display: none;
+  }
+  .day-head--compact .day-head__days {
+    gap: 0;
+  }
+  .day-head--compact .day-head__day {
+    max-inline-size: 2.75rem;
+    min-block-size: 4.375rem;
+    gap: var(--app-space-8);
+    border-radius: var(--app-radius-xl);
+  }
+  .day-head--compact .day-head__weekday {
+    font-size: var(--app-text-14);
+  }
+  .day-head--compact .day-head__number {
+    font-size: var(--app-text-20);
+  }
+  .day-head--compact .day-head__summary {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--app-space-2);
+    padding-inline: 0;
+    padding-block: var(--app-space-8) 0;
+    font-size: var(--app-text-20);
+  }
+  /* The grip: the sheets' handle, drawn on the chrome. The whole bar is the
+     target; the grip is what is seen. */
+  .day-head--compact .day-head__handle {
+    display: flex;
+    justify-content: center;
+    inline-size: 100%;
+    min-block-size: var(--app-space-24);
+    padding: var(--app-space-8) 0;
+  }
+  .day-head__grip {
+    inline-size: 3rem;
+    block-size: 0.25rem;
+    border-radius: var(--app-radius-pill);
+    background: var(--app-ink-faint);
+  }
+}

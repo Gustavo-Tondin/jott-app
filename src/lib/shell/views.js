@@ -44,6 +44,11 @@ export function viewFromId(id) {
 /// `layout` joined for the fixed spaces (2026-08-24): a hidden fixed space
 /// takes its own screens with it, and only the layout knows whether a list or
 /// a note lives in one — a user space's files stay reachable regardless.
+///
+/// Until 2026-09-04 the Home could host a fixed space whole
+/// (`homeTasksSource`/`homeNotesSource`) and that kept the space's files
+/// reachable with the space hidden; the Home is the day now, and a hidden
+/// fixed space is simply hidden.
 export function reachable(view, f = () => true, layout = null) {
   switch (view?.kind) {
     case "home":
@@ -55,11 +60,7 @@ export function reachable(view, f = () => true, layout = null) {
       if (!f("tasks")) return false;
       const home = layout?.tasksFolder;
       if (!home || folderOf(view.list) !== home) return true;
-      // The fixed space's files stay reachable while the HOME is showing
-      // that space (`homeTasksSource`): the Home is the door then, and a
-      // task opened from it must open (user report, 2026-08-24 — the notes
-      // twin below is the one that was clicked).
-      return f("tasksSpace") || layout.homeTasksSource === home;
+      return f("tasksSpace");
     }
     case "notes":
       return f("notes") && f("notesSpace");
@@ -67,7 +68,7 @@ export function reachable(view, f = () => true, layout = null) {
       if (!f("notes")) return false;
       const home = layout?.notesFolder;
       if (!home || view.folder !== home) return true;
-      return f("notesSpace") || layout.homeNotesSource === home;
+      return f("notesSpace");
     }
     case "tags":
       return f("taskTags");

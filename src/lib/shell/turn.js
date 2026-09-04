@@ -1,7 +1,7 @@
-// The day and the week roll over while the app is open too, not only when the
-// notebook is reopened. The core says WHEN (`nextDailyTurn`/`nextWeeklyTurn`
-// in the period clock); this schedules the wake-up, and reschedules it from
-// whatever clock the wake-up brought back.
+// The day rolls over while the app is open too, not only when the notebook
+// is reopened. The core says WHEN (`nextDailyTurn` in the day clock); this
+// schedules the wake-up, and reschedules it from whatever clock the wake-up
+// brought back.
 
 import { clamp } from "../services/num.js";
 
@@ -12,16 +12,13 @@ export const MIN_WAIT = 1000;
 /// leave the screen showing yesterday until something else refreshed it.
 export const MAX_WAIT = 60 * 60 * 1000;
 
-/// How long until the earlier of the two turns, held within the two bounds.
+/// How long until the turn, held within the two bounds.
 export function waitUntilTurn(clock, now = Date.now()) {
-  const next = Math.min(
-    new Date(clock.nextDailyTurn).getTime(),
-    new Date(clock.nextWeeklyTurn).getTime(),
-  );
+  const next = new Date(clock.nextDailyTurn).getTime();
   return clamp(next - now, MIN_WAIT, MAX_WAIT);
 }
 
-/// Keeps waking up at each turn. `clock()` answers the CURRENT period clock
+/// Keeps waking up at each turn. `clock()` answers the CURRENT day clock
 /// (it changes after every tick, which is why it is asked rather than
 /// passed); `tick` does the rollover; `onError` gets what `tick` throws. A
 /// failed tick is still followed by the next wait — the screen stays stale

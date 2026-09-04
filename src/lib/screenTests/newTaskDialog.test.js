@@ -8,7 +8,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, test } from "vitest";
 import { bridge, invoke } from "../test/bridge.js";
 import { noop, resetScreens } from "../test/screens.js";
-import PeriodView from "../screens/PeriodView.svelte";
+import TasksSpace from "../spaces/TasksSpace.svelte";
 import NewTaskDialog from "../components/NewTaskDialog.svelte";
 
 beforeEach(resetScreens);
@@ -16,7 +16,7 @@ beforeEach(resetScreens);
 describe("the New task popup", () => {
   // The blue button opens a centred dialog over a dimmed page (wireframe
   // "New task popup.pdf"). It only COMPOSES — the caller writes, which is why
-  // the same dialog can pull into the day from a period screen and not from a
+  // the same dialog can pull into the day from a day's screen and not from a
   // space widget.
   //
   // It is driven by a STORE (services/dialog.js), so the dialog and the screen
@@ -25,13 +25,15 @@ describe("the New task popup", () => {
   // (2026-08-13), and what that button used to guarantee is now asserted in
   // the HomeView block above.
   const props = {
-    period: "day",
-    clock: { today: "2026-07-21", weekStart: "2026-07-20" },
+    // The day's screen (2026-09-04): the tasks source over today.
+    source: { kind: "tasks", folder: null, name: "Today tasks" },
+    day: null,
+    today: "2026-07-21",
     lists: [
       { path: "jott.tasks/task-list.md", name: "Inbox" },
       { path: "jott.tasks/completed.md", name: "Completed" },
     ],
-    inbox: "jott.tasks/task-list.md",
+    defaultList: "jott.tasks/task-list.md",
     readOnly: false,
     onChanged: noop,
     onError: noop,
@@ -39,16 +41,15 @@ describe("the New task popup", () => {
   };
 
   const openOn = (extra = {}) => {
-    bridge({ period_tasks: [], period_sort: null, ...extra });
+    bridge({ day_tasks: [], day_sort: null, ...extra });
     render(NewTaskDialog);
     // `compose="button"` is the widget's default everywhere except the Tasks
-    // screen, which pins a bar instead; PeriodView passes the host's choice
-    // through, so the screen has to ask for the button explicitly.
-    render(PeriodView, { props: { ...props, compose: "button" } });
+    // screen, which pins a bar instead.
+    render(TasksSpace, { props: { ...props, compose: "button" } });
   };
 
-  test("the blue button composes a task and pulls it into the period", async () => {
-    openOn({ create_task: 0, ensure_task_id: "novo", pull_into_period: true });
+  test("the blue button composes a task and pulls it into the day", async () => {
+    openOn({ create_task: 0, ensure_task_id: "novo", pull_into_day: true });
 
     await userEvent.click(await screen.findByText("New task"));
 
@@ -65,8 +66,8 @@ describe("the New task popup", () => {
     // Created from the day's block, so it joins the day — otherwise it would
     // not appear where the button was clicked.
     await waitFor(() =>
-      expect(invoke).toHaveBeenCalledWith("pull_into_period", {
-        period: "day",
+      expect(invoke).toHaveBeenCalledWith("pull_into_day", {
+        day: null,
         list: "jott.tasks/task-list.md",
         id: "novo",
       }),

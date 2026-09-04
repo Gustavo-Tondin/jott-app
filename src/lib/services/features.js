@@ -31,26 +31,10 @@ import { S } from "./strings.js";
 /// The screen is built FROM this list, so a new switch is one entry here — not
 /// an entry plus a checkbox someone has to remember to add.
 export const FEATURES = [
+  // No `myDay` and no `week` since 2026-09-04: the day is the Home, and the
+  // week became any day ahead on the Home's calendar. Hiding the Home space
+  // (below) is what takes the day off the interface.
   { key: "tasks", label: () => S.featureTasks },
-  // `needs`: switched off with the FIXED TASKS SCREEN (user call,
-  // 2026-08-24): both period views are that screen's tabs (and the day's
-  // block on the Home), and hiding the screen is choosing a life without
-  // them — the Home can point at a list instead (`homeTasksSource`).
-  {
-    key: "myDay",
-    parent: "tasks",
-    group: "screens",
-    needs: ["tasksSpace"],
-    label: () => S.featureMyDay,
-  },
-  {
-    key: "week",
-    parent: "tasks",
-    group: "screens",
-    needs: ["tasksSpace"],
-    label: () => S.featureWeek,
-    default: false,
-  },
   { key: "dueDate", parent: "tasks", group: "fields", label: () => S.featureDueDate },
   { key: "priority", parent: "tasks", group: "fields", label: () => S.featurePriority },
   { key: "repeat", parent: "tasks", group: "fields", label: () => S.featureRepeat },

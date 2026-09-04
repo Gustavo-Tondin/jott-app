@@ -1,7 +1,7 @@
 // The one path a composed task takes to disk.
 //
 // Worth its own test because the ORDER of the bridge calls is the rule: the id
-// is asked for only when something needs it, and a period is joined after the
+// is asked for only when something needs it, and a day is joined after the
 // task exists. Getting either wrong is silent — the task still appears, just
 // with a comment nobody asked for, or missing from the day it was typed into.
 
@@ -47,17 +47,17 @@ describe("composeTask", () => {
     });
   });
 
-  test("a period is joined after the task exists", async () => {
+  test("a day is joined after the task exists", async () => {
     const id = await composeTask(
       { ...emptyIntent("Tasks/Inbox/Inbox.md"), text: "Regar" },
-      { period: "day" },
+      { into: null },
     );
 
     expect(id).toBe("a1");
     // Not before: pulling needs something to point at.
-    expect(commandsCalled()).toEqual(["create_task", "ensure_task_id", "pull_into_period"]);
-    expect(invoke).toHaveBeenCalledWith("pull_into_period", {
-      period: "day",
+    expect(commandsCalled()).toEqual(["create_task", "ensure_task_id", "pull_into_day"]);
+    expect(invoke).toHaveBeenCalledWith("pull_into_day", {
+      day: null,
       list: "Tasks/Inbox/Inbox.md",
       id: "a1",
     });

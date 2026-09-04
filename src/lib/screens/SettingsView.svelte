@@ -65,8 +65,6 @@
     taskTargets = [],
     /// The rows of the two "Home shows" pickers (2026-08-24): the block's
     /// default first, then every space of the right kind.
-    homeTasksChoices = [],
-    homeNotesChoices = [],
     /// The narrow shape (shell/compact.js). Not a width this screen measures:
     /// the shell measures once and tells everyone, the way the header and the
     /// top bar agree about which of them holds the arrows.
@@ -432,12 +430,11 @@
       "dates",
       [
         S.rolloverDaily,
-        S.rolloverWeekly,
         S.rolloverMode,
         S.weekStartsOn,
         S.datedTasksJoinPeriod,
-        // The page's OTHER name. It is titled "Date preferences" and the
-        // strategy doc calls the same thing "Day and week", so both find it.
+        // The page's OTHER name. It is titled "Date preferences" and what it
+        // decides is the day and the calendar, so both find it.
         S.sectionDay,
       ],
     ],
@@ -449,8 +446,6 @@
         S.switchNotebook,
         S.quickNoteFolder,
         S.quickTasksGoTo,
-        S.homeShowsTasks,
-        S.homeShowsNotes,
         S.confirmDeletes,
         S.completedRetention,
         S.trashRetention,
@@ -472,7 +467,7 @@
   /// with none simply has no entry, instead of the `fn.key === "tasks" ? …`
   /// chain this replaced.
   const FUNCTION_EXTRAS = () => ({
-    tasks: [S.autoUrgentByDate, S.newTasksGoTo, S.autoRemind, S.reminderTime],
+    tasks: [S.autoUrgentByDate, S.newTasksGoTo, S.autoRemind, S.reminderTime, S.tasksShowAll],
     notes: [S.noteLayout, S.tableLayout, S.confirmImageDownloads],
     time: [S.timelineGhostTitles],
   });
@@ -1308,32 +1303,10 @@
             </select>
           </label>
 
-          <h3 class="settings__subtitle">{S.week}</h3>
-
-          <label class="settings__row">
-            <span class="settings__label">{S.rolloverWeekly}</span>
-            <input
-              class="theme-input"
-              bind:value={form.weeklyAt}
-              disabled={readOnly}
-              aria-label={S.rolloverWeekly}
-              onchange={(e) => put({ weeklyAt: e.currentTarget.value })}
-            />
-          </label>
-
-          <label class="settings__row">
-            <span class="settings__label">{S.rolloverMode}</span>
-            <select
-              class="theme-select"
-              bind:value={form.weeklyMode}
-              disabled={readOnly}
-              aria-label={`${S.rolloverWeekly} — ${S.rolloverMode}`}
-              onchange={(e) => put({ weeklyMode: e.currentTarget.value })}
-            >
-              <option value="reset">{S.rolloverModeReset}</option>
-              <option value="carry">{S.rolloverModeCarry}</option>
-            </select>
-          </label>
+          <!-- The week stopped being a period on 2026-09-04 (the Home's
+               calendar plans any day ahead); what is left of it is the day
+               the strip starts on. -->
+          <h3 class="settings__subtitle">{S.subCalendar}</h3>
 
           <label class="settings__row">
             <span class="settings__label">{S.weekStartsOn}</span>
@@ -1348,6 +1321,7 @@
               <option value="sunday">{S.sunday}</option>
             </select>
           </label>
+          <p class="settings__hint">{S.weekStartsOnHint}</p>
 
           <label class="settings__row">
             <span class="settings__label">{S.datedTasksJoinPeriod}</span>
@@ -1578,6 +1552,25 @@
           {/each}
           <p class="settings__hint">{S.autoUrgentByDateHint}</p>
 
+          <!-- The fixed Tasks screen (2026-09-04): the Inbox alone, or every
+               list pulled together. A notebook setting on the function's
+               page, like the rows above — not a feature switch. -->
+          <h3 class="settings__subtitle">{S.subTasksScreen}</h3>
+          <label class="settings__row">
+            <span class="settings__label">{S.tasksShowAll}</span>
+            <select
+              class="theme-select"
+              value={form.tasksShowAll ? "all" : "inbox"}
+              disabled={readOnly}
+              aria-label={S.tasksShowAll}
+              onchange={(e) => put({ tasksShowAll: e.currentTarget.value === "all" })}
+            >
+              <option value="inbox">{S.tasksShowAllInbox}</option>
+              <option value="all">{S.tasksShowAllEvery}</option>
+            </select>
+          </label>
+          <p class="settings__hint">{S.tasksShowAllHint}</p>
+
           {@render resetFooter("tasks")}
         </section>
       {/if}
@@ -1774,41 +1767,6 @@
           </label>
           <p class="settings__hint">{S.quickTasksGoToHint}</p>
           {/if}
-
-          <!-- What the Home's two blocks show (user call, 2026-08-24: "home
-               shows deveria estar em notebook") — beside the captures they
-               feed, so entrance and display read as one subject. -->
-          <label class="settings__row">
-            <span class="settings__label">{S.homeShowsTasks}</span>
-            <select
-              class="theme-select"
-              bind:value={form.homeTasksSource}
-              disabled={readOnly}
-              aria-label={S.homeShowsTasks}
-              onchange={(e) => put({ homeTasksSource: e.currentTarget.value })}
-            >
-              {#each homeTasksChoices as choice (choice.value)}
-                <option value={choice.value}>{choice.label}</option>
-              {/each}
-            </select>
-          </label>
-          <p class="settings__hint">{S.homeShowsTasksHint}</p>
-
-          <label class="settings__row">
-            <span class="settings__label">{S.homeShowsNotes}</span>
-            <select
-              class="theme-select"
-              bind:value={form.homeNotesSource}
-              disabled={readOnly}
-              aria-label={S.homeShowsNotes}
-              onchange={(e) => put({ homeNotesSource: e.currentTarget.value })}
-            >
-              {#each homeNotesChoices as choice (choice.value)}
-                <option value={choice.value}>{choice.label}</option>
-              {/each}
-            </select>
-          </label>
-          <p class="settings__hint">{S.homeShowsNotesHint}</p>
 
           <h3 class="settings__subtitle">{S.subSafety}</h3>
 

@@ -9,9 +9,7 @@
 //                     main list (the Inbox every task space has) takes the
 //                     task.
 //
-// The fixed entries stay on offer while the fixed space is shown, and the
-// Inbox alone stays while the Home is SHOWING that space (`homeTasksSource`):
-// a task captured into it is read right there.
+// The fixed entries stay on offer while the fixed space is shown.
 
 import { folderOf, listName, MAIN_LIST } from "./paths.js";
 import { S } from "./strings.js";
@@ -25,11 +23,10 @@ export function taskTargets({
   lists = [],
   spaces = [],
   fixedShown = true,
-  inboxOnHome = false,
 }) {
   const out = [];
   const fixedFolder = inbox ? folderOf(inbox) : null;
-  if ((fixedShown || inboxOnHome) && inbox) {
+  if (fixedShown && inbox) {
     out.push({ list: inbox, label: S.inboxTasks, value: "" });
   }
   if (fixedShown) {

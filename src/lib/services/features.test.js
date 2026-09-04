@@ -17,10 +17,11 @@ describe("on", () => {
   test("with nothing said, a feature is however it ships", () => {
     expect(on({}, "tasks")).toBe(true);
     expect(on(undefined, "repeat")).toBe(true);
-    // The four that ship OFF (user call, 2026-08-06). `remind` left on
+    // The three that ship OFF (user call, 2026-08-06). `remind` left on
     // 2026-08-21 — a switch that only turned on a disabled button — and came
-    // back with its backend on 2026-08-25.
-    for (const key of ["week", "description", "files", "remind"]) {
+    // back with its backend on 2026-08-25. `week` was the fourth until the
+    // Home's calendar replaced it (2026-09-04).
+    for (const key of ["description", "files", "remind"]) {
       expect(on({}, key), key).toBe(false);
     }
     // A key this build has never heard of is ON: an older notebook must not be
@@ -28,19 +29,15 @@ describe("on", () => {
     expect(on({}, "invented-tomorrow")).toBe(true);
   });
 
-  test("hiding the fixed Tasks screen switches My Day and Week off with it", () => {
-    // `needs` (user call, 2026-08-24): both period views are that screen's
-    // tabs, and hiding the screen is choosing a life without them. Saying
-    // "week: true" does not resurrect it while the screen is hidden.
-    expect(on({ tasksSpace: false }, "myDay")).toBe(false);
-    expect(on({ tasksSpace: false, week: true }, "week")).toBe(false);
-    expect(on({ fixedSpaces: false }, "myDay")).toBe(false);
-    // The tasks FUNCTION itself stays on: user spaces keep working.
+  test("hiding the fixed Tasks screen leaves the tasks function on", () => {
+    // User spaces keep working; and the day is the Home's, not this
+    // screen's, since 2026-09-04 — there is no My Day switch to take down.
     expect(on({ tasksSpace: false }, "tasks")).toBe(true);
+    expect(on({ tasksSpace: false }, "myDay")).toBe(true);
   });
 
   test("the user's word beats the default, in both directions", () => {
-    expect(on({ week: true }, "week")).toBe(true);
+    expect(on({ description: true }, "description")).toBe(true);
     expect(on({ repeat: false }, "repeat")).toBe(false);
   });
 
@@ -56,7 +53,7 @@ describe("on", () => {
     // switched priority off.
     const features = { tasks: false };
     expect(on(features, "priority")).toBe(false);
-    expect(on(features, "myDay")).toBe(false);
+    expect(on(features, "remind")).toBe(false);
     // And the other half of the app is untouched.
     expect(on(features, "notes")).toBe(true);
   });
@@ -72,7 +69,7 @@ describe("on", () => {
     expect(on({ tasks: 0 }, "tasks")).toBe(true);
     expect(on({ tasks: "no" }, "tasks")).toBe(true);
     expect(on({ tasks: null }, "tasks")).toBe(true);
-    expect(on({ week: "yes" }, "week")).toBe(false);
+    expect(on({ description: "yes" }, "description")).toBe(false);
   });
 });
 
@@ -82,15 +79,15 @@ describe("stored", () => {
     expect(stored("repeat", true)).toBeNull();
     expect(stored("repeat", false)).toBe(false);
     // And the other way round for one that ships off.
-    expect(stored("week", false)).toBeNull();
-    expect(stored("week", true)).toBe(true);
+    expect(stored("description", false)).toBeNull();
+    expect(stored("description", true)).toBe(true);
   });
 });
 
 describe("defaultOf", () => {
   test("says how each one ships", () => {
     expect(defaultOf("tasks")).toBe(true);
-    expect(defaultOf("week")).toBe(false);
+    expect(defaultOf("description")).toBe(false);
     expect(defaultOf("anything-else")).toBe(true);
   });
 });

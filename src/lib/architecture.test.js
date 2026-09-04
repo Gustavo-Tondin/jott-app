@@ -894,11 +894,9 @@ describe("the bridge's two ends agree", () => {
     // Only the cross-space move is offered; `move_note_to_space` covers a
     // move inside one space too.
     "move_note",
-    // The pane reads `grouped_suggestions`, the flat list has no reader.
-    "period_suggestions",
-    // The composer creates in a list and then pulls into the period, so an
-    // id exists for the card before the period names it.
-    "add_task_in_period",
+    // The calendar strip does not mark the days with a plan yet; the
+    // command exists for the day it does (2026-09-04).
+    "planned_days",
   ];
 
   test("every command the front names is registered", () => {

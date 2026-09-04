@@ -1,4 +1,4 @@
-//! What happens to Today and This Week when the period turns.
+//! What happens to Today when the day turns.
 //!
 //! Nothing here destroys a task. The rollover only touches *references* in
 //! the state files — the task itself keeps living in its list's `.md`. In
@@ -14,7 +14,7 @@
 use chrono::NaiveDate;
 
 use crate::config::RolloverMode;
-use crate::state::PeriodState;
+use crate::state::DayState;
 
 /// Whether an address is a folder's `Completed.md` — where a ticked task
 /// lives, and where its period reference now follows it.
@@ -50,7 +50,7 @@ impl Rolled {
 /// moved backwards (wrong date corrected, travelling across timezones), not
 /// that a period elapsed. Re-dating it without dropping the references keeps a
 /// clock mistake from wiping a day the user had already planned.
-pub fn apply(state: &mut PeriodState, current: NaiveDate, mode: RolloverMode) -> Rolled {
+pub fn apply(state: &mut DayState, current: NaiveDate, mode: RolloverMode) -> Rolled {
     let from = state.date;
     if from == current {
         return Rolled::Unchanged;
@@ -109,8 +109,8 @@ mod tests {
         NaiveDate::from_ymd_opt(y, m, d).unwrap()
     }
 
-    fn state_with(date: NaiveDate, items: &[(&str, &str)]) -> PeriodState {
-        let mut state = PeriodState::new(date);
+    fn state_with(date: NaiveDate, items: &[(&str, &str)]) -> DayState {
+        let mut state = DayState::new(date);
         for (list, id) in items {
             state.add(*list, *id);
         }
@@ -284,7 +284,7 @@ mod tests {
 
     #[test]
     fn an_empty_state_turns_without_pretending_it_cleared_anything() {
-        let mut state = PeriodState::new(ymd(2026, 7, 20));
+        let mut state = DayState::new(ymd(2026, 7, 20));
         let rolled = apply(&mut state, ymd(2026, 7, 21), RolloverMode::Reset);
 
         assert_eq!(

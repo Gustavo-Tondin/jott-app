@@ -7,7 +7,6 @@
 use std::path::PathBuf;
 
 use jott_core::settings::Display;
-use jott_core::state::Period;
 use jott_core::{Conflict, Notebook};
 use serde::Serialize;
 use tauri::{AppHandle, Runtime, State};
@@ -15,7 +14,7 @@ use tauri::{AppHandle, Runtime, State};
 use crate::error::CommandResult;
 use crate::state::AppState;
 
-use super::period::{clock_of, PeriodClock};
+use super::day::{clock_of, DayClock};
 use super::settings::display_of;
 use super::spaces::{groups_of, spaces_of, GroupInfo, SpaceInfo};
 
@@ -56,12 +55,13 @@ pub struct NotebookLayout {
     pub reminder_time: String,
     pub close_inspector_on_click_away: bool,
     pub quick_note_folder: String,
-    /// The capture targets and Home sources of 2026-08-24 — path-like
-    /// strings the front resolves (services/noteTargets.js and its tasks
-    /// mirror); empty is each one's default.
+    /// The capture target of 2026-08-24 — a path-like string the front
+    /// resolves (services/noteTargets.js and its tasks mirror); empty is
+    /// the default.
     pub quick_task_list: String,
-    pub home_tasks_source: String,
-    pub home_notes_source: String,
+    /// Whether the fixed Tasks screen shows every list, arranged by space,
+    /// instead of the Inbox alone (2026-09-04).
+    pub tasks_show_all: bool,
     /// The board layout of a notes space that never chose one (`grid` /
     /// `tree`); empty means the app's own.
     pub note_layout: String,
@@ -166,8 +166,7 @@ impl NotebookInfo {
                 close_inspector_on_click_away: display.close_inspector_on_click_away,
                 quick_note_folder: notebook.config().quick_note_folder.clone(),
                 quick_task_list: notebook.config().quick_task_list.clone(),
-                home_tasks_source: notebook.config().home_tasks_source.clone(),
-                home_notes_source: notebook.config().home_notes_source.clone(),
+                tasks_show_all: notebook.config().tasks_show_all,
                 note_layout: notebook.config().note_layout.clone(),
                 table_layout: notebook.config().table_layout.clone(),
                 timeline_ghost_titles: notebook.config().timeline_ghost_titles,
@@ -586,7 +585,7 @@ pub fn remove_tag<R: Runtime>(state: State<'_, AppState>,
 #[serde(rename_all = "camelCase")]
 pub struct NotebookSnapshot {
     pub info: NotebookInfo,
-    pub clock: PeriodClock,
+    pub clock: DayClock,
     /// Empty when the user turned the counters off.
     pub counts: std::collections::BTreeMap<String, usize>,
     pub conflicts: Vec<Conflict>,
@@ -619,7 +618,7 @@ pub fn notebook_snapshot<R: Runtime>(
             spaces: spaces_of(nb)?,
             groups: groups_of(nb)?,
             tags: tags_of(nb),
-            day: nb.open_state(Period::Day)?.state.items,
+            day: nb.open_state()?.state.items,
         })
     })
 }

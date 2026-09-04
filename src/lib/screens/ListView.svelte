@@ -115,16 +115,12 @@
       {today}
     >
       {#snippet actions(entry)}
-        {#if f("myDay")}
+        <!-- The day is the Home's (2026-09-04): with the Home hidden there
+             is no day to pull into. -->
+        {#if f("homeSpace")}
           <button
             class="theme-btn theme-btn--outline theme-btn--xs list-view__action"
-            onclick={() => pull("day", list, entry.task)}>{S.pullToToday}</button
-          >
-        {/if}
-        {#if f("week")}
-          <button
-            class="theme-btn theme-btn--outline theme-btn--xs list-view__action"
-            onclick={() => pull("week", list, entry.task)}>{S.pullToWeek}</button
+            onclick={() => pull(null, list, entry.task)}>{S.pullToToday}</button
           >
         {/if}
       {/snippet}

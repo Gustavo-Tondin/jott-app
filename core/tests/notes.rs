@@ -249,7 +249,7 @@ fn a_checklist_in_a_note_stays_a_note() {
         "a note must never be listed as a task list: {lists:?}"
     );
     assert!(notebook
-        .suggestions_for(jott_core::state::Period::Day)
+        .suggestions_for(None)
         .unwrap()
         .is_empty());
 

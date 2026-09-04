@@ -72,24 +72,25 @@ describe("Home's composing bar, the keyboard, and the way out", () => {
       screen_to_restore: "home",
       note_folders: [],
       notes_created_today: [],
-      period_tasks: [],
+      day_tasks: [],
+      day_sort: null,
       grouped_suggestions: [],
       list_tasks: [],
       create_task: 0,
       ensure_task_id: "t1",
-      pull_into: null,
+      pull_into_day: null,
     });
   };
 
-  /// Opens the bar the way the thumb does: the +, then "Task".
+  /// Opens the bar the way the thumb does: the + (a task, for the day the
+  /// calendar has open — 2026-09-04, no "task or note?" any more).
   const openBar = async () => {
-    const toggle = await waitFor(() => {
-      const el = document.querySelector(".capture-fab__toggle");
+    const plus = await waitFor(() => {
+      const el = document.querySelector(".home-fab");
       if (!el) throw new Error("no +");
       return el;
     });
-    await userEvent.click(toggle);
-    await userEvent.click(document.querySelector(".capture-fab__choice"));
+    await userEvent.click(plus);
     return await waitFor(() => {
       const el = document.querySelector(".task-composer__input");
       if (!el) throw new Error("no bar");

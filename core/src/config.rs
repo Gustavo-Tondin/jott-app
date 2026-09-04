@@ -57,18 +57,14 @@ pub struct DailyRollover {
     pub at: TurnOffset,
 }
 
-/// Rollover preferences for the week. Independent from the day, on purpose.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub struct WeeklyRollover {
-    pub mode: RolloverMode,
-    pub at: TurnOffset,
-    pub starts_on: WeekStart,
-}
-
+/// The turn of the day. Until 2026-09-04 a `weekly` half sat beside it; the
+/// week stopped being a period when the Home's calendar let any day ahead
+/// be planned, and a `rollover.weekly` a notebook still carries is an
+/// unknown key now — it round-trips, and nothing reads it but the fallback
+/// for `weekStartsOn`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct Rollover {
     pub daily: DailyRollover,
-    pub weekly: WeeklyRollover,
 }
 
 /// How a date is shown. The file always stores ISO; this is display only.
@@ -125,6 +121,11 @@ impl DateFormat {
 pub struct Config {
     schema_version: u64,
     pub rollover: Rollover,
+    /// Which weekday the Home's calendar strip starts on. A DISPLAY choice
+    /// that travels with the notebook because it always did: it was
+    /// `rollover.weekly.startsOn` while the week was a period, and that key
+    /// is still read when this one is absent.
+    pub week_starts_on: WeekStart,
     /// Reopen on the screen the user left, instead of always landing on Today.
     ///
     /// Off by default: landing somewhere temporally relevant is the more
@@ -304,15 +305,10 @@ pub struct Config {
     /// root-relative path is a user task space (its main list). The same
     /// path-like contract `quick_note_folder` keeps (2026-08-24).
     pub quick_task_list: String,
-    /// What the Home's tasks block shows: empty is My Day; a root-relative
-    /// path is a task space hosted whole (its Inbox list) — the fixed one or
-    /// the user's (2026-08-24).
-    pub home_tasks_source: String,
-    /// What the Home's notes block shows: empty is the notes written today;
-    /// a root-relative path is that note space's Inbox, whole — the workflow
-    /// where captures pile up and the Home is where they are read back
-    /// (2026-08-24).
-    pub home_notes_source: String,
+    /// Whether the fixed Tasks screen shows every list of the notebook
+    /// pulled together and arranged by space (2026-09-04), instead of the
+    /// Inbox alone, which is the default.
+    pub tasks_show_all: bool,
     /// How a notes space draws its board when it has not chosen for itself
     /// (`grid` / `tree`). Empty means what the app ships as, which is the
     /// grid; the frontend owns that default, as it owns the list of layouts,
@@ -345,12 +341,13 @@ pub struct Config {
     /// user's filter chooses; a hand-arranged order is an app preference.
     /// Reusable: [`Config::apply_order`] applies any namespace to any list.
     pub order: BTreeMap<String, Vec<String>>,
-    /// How the Day and the Week are arranged (`"day"`/`"week"` → `name` /
-    /// `created` / `completed`). A period has no `.space.json` to keep its
-    /// own preference in — it is not a folder — so its arrangement lives with
-    /// the notebook, next to the manual `order` (2026-08-06). Absent means the
-    /// order the tasks were pulled in, which is the state file's own order.
-    pub period_sort: BTreeMap<String, String>,
+    /// How the day is arranged (`name` / `created` / `completed`) — every
+    /// day, today and the ones planned ahead alike. A day has no
+    /// `.space.json` to keep its own preference in — it is not a folder — so
+    /// its arrangement lives with the notebook, next to the manual `order`
+    /// (2026-08-06). Empty means the order the tasks were pulled in, which
+    /// is the state file's own order.
+    pub day_sort: String,
     /// Which parts of the app the user has an OPINION about (`tasks`, `notes`,
     /// and the task fields under them — 2026-08-06, princípio 3 / backlog I6).
     ///
@@ -377,6 +374,7 @@ impl Default for Config {
         Self {
             schema_version: SUPPORTED_SCHEMA_VERSION,
             rollover: Rollover::default(),
+            week_starts_on: WeekStart::default(),
             restore_last_screen: false,
             show_list_counts: true,
             dated_tasks_join_period: true,
@@ -403,15 +401,14 @@ impl Default for Config {
             close_inspector_on_click_away: false,
             quick_note_folder: crate::notefolder::NOTES_INBOX.to_string(),
             quick_task_list: String::new(),
-            home_tasks_source: String::new(),
-            home_notes_source: String::new(),
+            tasks_show_all: false,
             note_layout: String::new(),
             table_layout: String::new(),
             age: crate::age::Thresholds::default(),
             trash_retention_days: 30,
             completed_retention_days: 30,
             order: BTreeMap::new(),
-            period_sort: BTreeMap::new(),
+            day_sort: String::new(),
             features: BTreeMap::new(),
             spaces_sort: String::new(),
             raw: Map::new(),
@@ -553,6 +550,20 @@ impl Config {
             .map(parse_rollover)
             .unwrap_or_default();
 
+        // The week's first day moved out of `rollover.weekly` on 2026-09-04;
+        // a notebook written before that still says it there.
+        let week_starts_on = string(&raw, "weekStartsOn")
+            .or_else(|| {
+                raw.get("rollover")?
+                    .get("weekly")?
+                    .get("startsOn")?
+                    .as_str()
+                    .map(str::to_string)
+            })
+            .as_deref()
+            .map(WeekStart::parse_or_default)
+            .unwrap_or_default();
+
         let defaults = Self::default();
         // `mode` and `theme` (2026-08-26): a file written before the split
         // has only `theme`, holding one of the old three looks — read as
@@ -568,6 +579,7 @@ impl Config {
         Self {
             schema_version,
             rollover,
+            week_starts_on,
             restore_last_screen: flag(&raw, "restoreLastScreen", defaults.restore_last_screen),
             show_list_counts: flag(&raw, "showListCounts", defaults.show_list_counts),
             dated_tasks_join_period: flag(
@@ -619,10 +631,7 @@ impl Config {
             quick_note_folder: string(&raw, "quickNoteFolder")
                 .unwrap_or(defaults.quick_note_folder),
             quick_task_list: string(&raw, "quickTaskList").unwrap_or(defaults.quick_task_list),
-            home_tasks_source: string(&raw, "homeTasksSource")
-                .unwrap_or(defaults.home_tasks_source),
-            home_notes_source: string(&raw, "homeNotesSource")
-                .unwrap_or(defaults.home_notes_source),
+            tasks_show_all: flag(&raw, "tasksShowAll", defaults.tasks_show_all),
             note_layout: string(&raw, "noteLayout").unwrap_or(defaults.note_layout),
             table_layout: string(&raw, "tableLayout").unwrap_or(defaults.table_layout),
             age: parse_age(raw.get("age"), defaults.age),
@@ -636,17 +645,7 @@ impl Config {
                 .and_then(Value::as_i64)
                 .filter(|days| *days >= 0)
                 .unwrap_or(defaults.completed_retention_days),
-            period_sort: raw
-                .get("periodSort")
-                .and_then(Value::as_object)
-                .map(|obj| {
-                    obj.iter()
-                        .filter_map(|(key, value)| {
-                            Some((key.clone(), value.as_str()?.to_string()))
-                        })
-                        .collect()
-                })
-                .unwrap_or_default(),
+            day_sort: string(&raw, "daySort").unwrap_or_default(),
             features: raw
                 .get("features")
                 .and_then(Value::as_object)
@@ -693,6 +692,7 @@ impl Config {
         let mut owned = crate::jsondoc::owned([
             ("schemaVersion", Value::from(self.schema_version)),
             ("rollover", render_rollover(&self.rollover)),
+            ("weekStartsOn", Value::from(self.week_starts_on.render())),
             ("age", render_age(&self.age)),
             ("restoreLastScreen", Value::from(self.restore_last_screen)),
             ("showListCounts", Value::from(self.show_list_counts)),
@@ -721,8 +721,7 @@ impl Config {
             ),
             ("quickNoteFolder", Value::from(self.quick_note_folder.clone())),
             ("quickTaskList", Value::from(self.quick_task_list.clone())),
-            ("homeTasksSource", Value::from(self.home_tasks_source.clone())),
-            ("homeNotesSource", Value::from(self.home_notes_source.clone())),
+            ("tasksShowAll", Value::from(self.tasks_show_all)),
             ("trashRetentionDays", Value::from(self.trash_retention_days)),
             (
                 "completedRetentionDays",
@@ -760,6 +759,7 @@ impl Config {
             ("formatBarSide", &self.format_bar_side),
             ("noteLayout", &self.note_layout),
             ("tableLayout", &self.table_layout),
+            ("daySort", &self.day_sort),
         ] {
             put_or_clear(
                 &mut owned,
@@ -768,7 +768,7 @@ impl Config {
                 (!value.is_empty()).then(|| Value::from(value.clone())),
             );
         }
-        // The four maps this build owns WHOLE — and each of them is cleared
+        // The three maps this build owns WHOLE — and each of them is cleared
         // first, whether or not it has content, so the map that goes in is the
         // map that comes out. Merged into what the file had, a REMOVAL cannot
         // be expressed: taking a feature back to its default removes it from
@@ -786,10 +786,6 @@ impl Config {
             (
                 "features",
                 serde_json::to_value(&self.features).unwrap_or_default(),
-            ),
-            (
-                "periodSort",
-                serde_json::to_value(&self.period_sort).unwrap_or_default(),
             ),
             ("shortcuts", Value::Object(self.shortcuts.clone())),
         ] {
@@ -811,21 +807,11 @@ impl Config {
 
 fn parse_rollover(block: &Map<String, Value>) -> Rollover {
     let daily = block.get("daily").and_then(Value::as_object);
-    let weekly = block.get("weekly").and_then(Value::as_object);
 
     Rollover {
         daily: DailyRollover {
             mode: read_mode(daily),
             at: read_at(daily),
-        },
-        weekly: WeeklyRollover {
-            mode: read_mode(weekly),
-            at: read_at(weekly),
-            starts_on: weekly
-                .and_then(|w| w.get("startsOn"))
-                .and_then(Value::as_str)
-                .map(WeekStart::parse_or_default)
-                .unwrap_or_default(),
         },
     }
 }
@@ -880,22 +866,7 @@ fn render_rollover(rollover: &Rollover) -> Value {
         ("mode".to_string(), Value::from(rollover.daily.mode.render())),
         ("at".to_string(), Value::from(rollover.daily.at.render())),
     ]);
-    let weekly = Map::from_iter([
-        (
-            "mode".to_string(),
-            Value::from(rollover.weekly.mode.render()),
-        ),
-        ("at".to_string(), Value::from(rollover.weekly.at.render())),
-        (
-            "startsOn".to_string(),
-            Value::from(rollover.weekly.starts_on.render()),
-        ),
-    ]);
-
-    Value::Object(Map::from_iter([
-        ("daily".to_string(), Value::Object(daily)),
-        ("weekly".to_string(), Value::Object(weekly)),
-    ]))
+    Value::Object(Map::from_iter([("daily".to_string(), Value::Object(daily))]))
 }
 
 /// Sorts `items` in place by a manual order: ranked items first, in rank
@@ -972,8 +943,8 @@ mod tests {
         assert!(!config.auto_space_colors);
         assert_eq!(config.rollover.daily.mode, RolloverMode::Reset);
         assert_eq!(config.rollover.daily.at, TurnOffset::MIDNIGHT);
-        assert_eq!(config.rollover.weekly.mode, RolloverMode::Reset);
-        assert_eq!(config.rollover.weekly.starts_on, WeekStart::Monday);
+        assert_eq!(config.week_starts_on, WeekStart::Monday);
+        assert!(!config.tasks_show_all);
         assert!(!config.is_read_only());
     }
 
@@ -983,16 +954,31 @@ mod tests {
             r#"{
               "schemaVersion": 1,
               "rollover": {
-                "daily":  { "mode": "carry", "at": "-02:00" },
-                "weekly": { "mode": "reset", "at": "02:00", "startsOn": "sunday" }
-              }
+                "daily":  { "mode": "carry", "at": "-02:00" }
+              },
+              "weekStartsOn": "sunday"
             }"#,
         );
 
         assert_eq!(config.rollover.daily.mode, RolloverMode::Carry);
         assert_eq!(config.rollover.daily.at, TurnOffset::from_minutes(-120));
-        assert_eq!(config.rollover.weekly.at, TurnOffset::from_minutes(120));
-        assert_eq!(config.rollover.weekly.starts_on, WeekStart::Sunday);
+        assert_eq!(config.week_starts_on, WeekStart::Sunday);
+    }
+
+    #[test]
+    fn the_week_start_is_still_read_from_where_it_used_to_live() {
+        // Written while the week was a period (before 2026-09-04).
+        let config = Config::parse(
+            r#"{ "rollover": { "weekly": { "mode": "reset", "startsOn": "sunday" } } }"#,
+        );
+        assert_eq!(config.week_starts_on, WeekStart::Sunday);
+        // The new key wins once it exists.
+        let config = Config::parse(
+            r#"{ "weekStartsOn": "monday", "rollover": { "weekly": { "startsOn": "sunday" } } }"#,
+        );
+        assert_eq!(config.week_starts_on, WeekStart::Monday);
+        // And the rewrite says it in the new place.
+        assert!(config.render().contains("\"weekStartsOn\": \"monday\""));
     }
 
     #[test]
@@ -1007,12 +993,13 @@ mod tests {
             r#"{
               "schemaVersion": 1,
               "rollover": {
-                "daily": { "mode": "banana", "at": "25:99" },
-                "weekly": { "startsOn": 42 }
-              }
+                "daily": { "mode": "banana", "at": "25:99" }
+              },
+              "weekStartsOn": 42
             }"#,
         );
         assert_eq!(config.rollover, Rollover::default());
+        assert_eq!(config.week_starts_on, WeekStart::default());
     }
 
     #[test]
@@ -1091,10 +1078,11 @@ mod tests {
         let mut config = Config::default();
         config.rollover.daily.mode = RolloverMode::Carry;
         config.rollover.daily.at = TurnOffset::from_minutes(-120);
-        config.rollover.weekly.starts_on = WeekStart::Sunday;
+        config.week_starts_on = WeekStart::Sunday;
 
         let reparsed = Config::parse(&config.render());
         assert_eq!(reparsed.rollover, config.rollover);
+        assert_eq!(reparsed.week_starts_on, WeekStart::Sunday);
         assert_eq!(reparsed.schema_version(), config.schema_version());
     }
 
@@ -1117,11 +1105,11 @@ mod tests {
         let path = dir.path().join("nested").join("config.json");
 
         let mut config = Config::default();
-        config.rollover.weekly.at = TurnOffset::from_minutes(90);
+        config.rollover.daily.at = TurnOffset::from_minutes(90);
         config.save(&path).unwrap();
 
         let loaded = Config::load(&path);
-        assert_eq!(loaded.rollover.weekly.at, TurnOffset::from_minutes(90));
+        assert_eq!(loaded.rollover.daily.at, TurnOffset::from_minutes(90));
     }
 
     #[test]
@@ -1459,7 +1447,7 @@ mod tests {
 
     #[test]
     fn the_sidebar_sort_survives_a_rewrite_and_clears_out_of_the_file() {
-        // Like `order` and `periodSort`: an untouched notebook says nothing
+        // Like `order` and `daySort`: an untouched notebook says nothing
         // about it, and clearing has to REMOVE the key or a stale one in `raw`
         // outlives the change (2026-08-06).
         let mut config = Config::default();

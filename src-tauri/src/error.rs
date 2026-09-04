@@ -41,6 +41,7 @@ impl From<jott_core::Error> for CommandError {
             Error::LegacyNotebook(_) => "legacyNotebook",
             Error::AlreadyANotebook(_) => "alreadyANotebook",
             Error::TaskNotFound(_) => "taskNotFound",
+            Error::DayGone(_) => "dayGone",
             Error::InvalidListName(_) => "invalidListName",
             Error::InvalidSpaceName(_) => "invalidSpaceName",
             // The folder browser's own; the name predates the core variant.

@@ -78,7 +78,7 @@ impl Change {
             let name = path.file_name()?.to_string_lossy().to_string();
             return Some(match name.as_str() {
                 "config.json" => Self::Config,
-                "daily-state.json" | "weekly-state.json" => Self::State { path },
+                crate::state::DAILY_STATE_FILE | crate::plan::PLAN_FILE => Self::State { path },
                 _ => Self::Other { path },
             });
         }

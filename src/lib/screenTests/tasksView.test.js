@@ -8,6 +8,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { bridge, invoke } from "../test/bridge.js";
 import { noop, resetScreens, task } from "../test/screens.js";
+import { originOf } from "../services/origin.js";
 
 // The note editor's engine is stubbed by a textarea — `lib/test/screens.js`
 // says why. `vi.mock` is hoisted per file, so it cannot live there.
@@ -19,12 +20,13 @@ const { default: TasksView } = await import("../screens/TasksView.svelte");
 beforeEach(resetScreens);
 
 describe("TasksView", () => {
-  // The three tabs are the SAME widget (2026-08-06): Index over the notebook's
-  // own Inbox widget, Today and Week over a period. What the screen changes is
-  // only where a new task comes from — the pinned bar, not the blue button.
+  // The screen IS the tasks widget (2026-08-06) over the notebook's own
+  // Inbox; since 2026-09-04 it is that alone — the day is the Home's
+  // calendar. What the screen changes is only where a new task comes from —
+  // the pinned bar, not the blue button.
   const props = (extra = {}) => ({
     inbox: "jott.tasks/task-list.md",
-    clock: { today: "2026-07-20", weekStart: "2026-07-20" },
+    today: "2026-07-20",
     lists: [
       { path: "jott.tasks/task-list.md", name: "Inbox" },
       { path: "jott.tasks/completed.md", name: "Completed" },
@@ -108,66 +110,38 @@ describe("TasksView", () => {
     );
   });
 
-  test("switching to Today reads the period, and Week shows its span", async () => {
-    bridge({ list_tasks: [], period_tasks: [], grouped_suggestions: [] });
+  test("asked for every list, the screen reads the whole notebook, arranged by space", async () => {
+    // `tasksShowAll` (Settings › Tasks, 2026-09-04): one flat list of every
+    // open task, each card wearing its space's colour as the origin bar, and
+    // no Completed fold — the Completed screen is where finished work is.
+    const lists = [
+      { path: "jott.tasks/task-list.md", name: "task-list", space: "Tasks" },
+      { path: "Obra/task-list.md", name: "task-list", space: "Obra" },
+    ];
+    bridge({
+      all_tasks: [
+        { path: "jott.tasks/task-list.md", task: task("a1", "Da Inbox") },
+        { path: "Obra/task-list.md", task: task("b2", "Da obra") },
+      ],
+      list_tasks: [task("z9", "Nunca lida", { done: true })],
+    });
 
-    render(TasksView, { props: props() });
+    render(TasksView, {
+      props: props({
+        showAll: true,
+        lists,
+        origin: (item) => originOf(item, { lists, colors: { Obra: "orange" } }),
+      }),
+    });
 
-    await userEvent.click(await screen.findByText("Today"));
-    await waitFor(() =>
-      expect(invoke).toHaveBeenCalledWith("period_tasks", { period: "day" }),
+    expect(await screen.findByText("Da Inbox")).toBeTruthy();
+    expect(screen.getByText("Da obra")).toBeTruthy();
+    expect(invoke).not.toHaveBeenCalledWith("list_tasks", expect.anything());
+    expect(screen.queryByText(/Completed/)).toBeNull();
+    const bars = [...document.querySelectorAll(".task-row .theme-origin")].map((b) =>
+      b.getAttribute("style"),
     );
-
-    await userEvent.click(screen.getByText("Week"));
-    await waitFor(() =>
-      expect(invoke).toHaveBeenCalledWith("period_tasks", { period: "week" }),
-    );
-    // Monday the 20th through Sunday the 26th, in the notebook's shape.
-    // Day and month only: both ends share the year (user call, 2026-08-06).
-    expect(await screen.findByText("07/20 - 07/26")).toBeTruthy();
-  });
-
-  // Below 768px the page turns with a swipe (actions/paneSwipe.js); the strip
-  // and the swipe land on the same state.
-  test("a swipe turns the page in the compact shell, and only towards a page", async () => {
-    bridge({ list_tasks: [], period_tasks: [], grouped_suggestions: [] });
-    const { container } = render(TasksView, { props: props({ compact: true }) });
-    const pane = container.querySelector(".tasks-view");
-    Object.defineProperty(pane, "offsetWidth", { value: 360, configurable: true });
-    const ground = () => container.querySelector(".tasks-view__pane");
-    const swipe = (dx) => {
-      const at = (type, x, touches) => {
-        const event = new Event(type, { bubbles: true, cancelable: true });
-        const list = [{ clientX: x, clientY: 200 }];
-        Object.assign(event, { touches: touches ? list : [], changedTouches: list });
-        ground().dispatchEvent(event);
-      };
-      at("touchstart", 200, true);
-      at("touchmove", 200 + dx / 2, true);
-      at("touchmove", 200 + dx, true);
-      at("touchend", 200 + dx, false);
-    };
-
-    // Nothing before the Inbox: a swipe to the right is the drawer's.
-    expect(pane.getAttribute("data-swipes")).toBe("left");
-    swipe(200);
-    expect(invoke).not.toHaveBeenCalledWith("period_tasks", expect.anything());
-
-    swipe(-200);
-    await waitFor(() =>
-      expect(invoke).toHaveBeenCalledWith("period_tasks", { period: "day" }),
-    );
-    expect(pane.getAttribute("data-swipes")).toBe("x");
-    expect(ground().getAttribute("data-enter")).toBe("end");
-
-    swipe(-200);
-    await waitFor(() =>
-      expect(invoke).toHaveBeenCalledWith("period_tasks", { period: "week" }),
-    );
-    expect(pane.getAttribute("data-swipes")).toBe("right");
-
-    swipe(200);
-    await waitFor(() => expect(ground().getAttribute("data-enter")).toBe("start"));
+    expect(bars).toContain("--dot: var(--app-orange);");
   });
 
   // A press that rests on a card enters selection mode WITH that card picked
@@ -176,7 +150,7 @@ describe("TasksView", () => {
   test("holding a card selects it and raises the bulk bar", async () => {
     bridge({
       list_tasks: [task("a1", "Fix website"), task("a2", "Send invoice")],
-      period_tasks: [],
+      day_tasks: [],
       grouped_suggestions: [],
     });
     const { container } = render(TasksView, { props: props({ compact: true }) });
@@ -191,16 +165,6 @@ describe("TasksView", () => {
     expect(container.querySelector(".bulkbar__count").textContent).toBe("1 selected");
   });
 
-  test("the open tab is reported so the page header can name it", async () => {
-    const subs = [];
-    bridge({ list_tasks: [] });
-
-    render(TasksView, { props: props({ onSub: (label) => subs.push(label) }) });
-
-    await waitFor(() => expect(subs.at(-1)).toBe("Inbox"));
-    await userEvent.click(screen.getByText("Today"));
-    await waitFor(() => expect(subs.at(-1)).toBe("Today"));
-  });
 });
 
 describe("the suggestions panel", () => {
@@ -236,9 +200,8 @@ describe("the suggestions panel", () => {
         info: notebook,
         clock: {
           today: "2026-07-21",
-          weekStart: "2026-07-20",
+          weekStartsOn: "monday",
           nextDailyTurn: "2026-07-22T00:00:00Z",
-          nextWeeklyTurn: "2026-07-27T00:00:00Z",
         },
         counts: {},
         conflicts: [],
@@ -248,6 +211,7 @@ describe("the suggestions panel", () => {
       note_folders: [],
       notes_created_today: [],
       list_tasks: [],
+      day_sort: null,
       ...extra,
     });
 
@@ -258,9 +222,9 @@ describe("the suggestions panel", () => {
 
   test("the pill fills the right panel, grouped, and a row pulls", async () => {
     onHome({
-      period_tasks: [{ path: "jott.tasks/Compras.md", task: task("a1", "Arrumar site") }],
+      day_tasks: [{ path: "jott.tasks/Compras.md", task: task("a1", "Arrumar site") }],
       grouped_suggestions: suggestions,
-      pull_into_period: true,
+      pull_into_day: true,
     });
     render(App);
 
@@ -289,8 +253,8 @@ describe("the suggestions panel", () => {
 
     await userEvent.click(screen.getByText("Vencida"));
     await waitFor(() =>
-      expect(invoke).toHaveBeenCalledWith("pull_into_period", {
-        period: "day",
+      expect(invoke).toHaveBeenCalledWith("pull_into_day", {
+        day: null,
         list: "jott.tasks/Compras.md",
         id: "b2",
       }),
@@ -300,11 +264,11 @@ describe("the suggestions panel", () => {
   });
 
   test("what left the day comes back under its own heading", async () => {
-    // 2026-08-17: the core answers `recent` for a task that WAS in Today or
-    // the Week and left. The panel gives it a section of its own, after the
-    // week's live choices and before the plain lists.
+    // 2026-08-17: the core answers `recent` for a task that WAS in Today and
+    // left. The panel gives it a section of its own, after what is pressing
+    // and before the plain lists.
     onHome({
-      period_tasks: [],
+      day_tasks: [],
       grouped_suggestions: [
         ...suggestions,
         {
@@ -337,7 +301,7 @@ describe("the suggestions panel", () => {
   test("opening a task takes the panel back, and Escape closes it", async () => {
     // One right panel: the two must never try to share it.
     onHome({
-      period_tasks: [{ path: "jott.tasks/Compras.md", task: task("a1", "Arrumar site") }],
+      day_tasks: [{ path: "jott.tasks/Compras.md", task: task("a1", "Arrumar site") }],
       grouped_suggestions: suggestions,
     });
     render(App);

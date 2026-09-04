@@ -362,19 +362,24 @@ export const api = {
   // points at simply has no entry (2026-08-19).
   assetUsage: () => invoke("asset_usage"),
 
-  // day and week
-  periodTasks: (period) => invoke("period_tasks", { period }),
-  groupedSuggestions: (period) => invoke("grouped_suggestions", { period }),
-  pullInto: (period, list, id) => invoke("pull_into_period", { period, list, id }),
-  removeFrom: (period, list, id) =>
-    invoke("remove_from_period", { period, list, id }),
-  // A period has no `.space.json`: how it is arranged lives in the notebook
-  // config, and the hand-dragged order goes straight into the state file.
-  periodSort: (period) => invoke("period_sort", { period }),
-  setPeriodSort: (period, sort) => invoke("set_period_sort", { period, sort }),
-  setPeriodOrder: (period, refs) => invoke("set_period_order", { period, refs }),
-  periodClock: () => invoke("period_clock"),
-  refreshPeriods: () => invoke("refresh_periods"),
+  // the day, and the days ahead (2026-09-04). `day` is an ISO date or null
+  // — null is today; a day gone by is the log's, and the core refuses to
+  // plan it (`kind: "dayGone"`).
+  dayTasks: (day = null) => invoke("day_tasks", { day }),
+  // Every open task of the notebook, arranged by space — the fixed Tasks
+  // screen's "every list". Walks every list: ask when the screen opens.
+  allTasks: () => invoke("all_tasks"),
+  groupedSuggestions: (day = null) => invoke("grouped_suggestions", { day }),
+  pullInto: (day, list, id) => invoke("pull_into_day", { day, list, id }),
+  removeFrom: (day, list, id) => invoke("remove_from_day", { day, list, id }),
+  // A day has no `.space.json`: how it is arranged lives in the notebook
+  // config (one choice for every day), and the hand-dragged order goes
+  // straight into the day's file.
+  daySort: () => invoke("day_sort"),
+  setDaySort: (sort) => invoke("set_day_sort", { sort }),
+  setDayOrder: (day, refs) => invoke("set_day_order", { day, refs }),
+  dayClock: () => invoke("day_clock"),
+  refreshDay: () => invoke("refresh_day"),
   // reminders (2026-08-25): the core's sorted list, this machine's memory of
   // what already rang, the desktop bell, and the tray the app waits in.
   reminders: () => invoke("reminders"),

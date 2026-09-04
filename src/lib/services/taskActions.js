@@ -33,10 +33,10 @@ export function taskActions(act) {
         await api.setTaskPinned(list, id, pinned);
       }),
 
-    pull: (period, list, task) =>
+    pull: (day, list, task) =>
       act(async () => {
         const id = await ensureTaskId(list, task);
-        await api.pullInto(period, list, id);
+        await api.pullInto(day, list, id);
       }),
 
     /// To the trash, never destroyed — `.jott/trash/` keeps it, and the

@@ -32,6 +32,8 @@ MyNotebook/
 │   └── Clients/         ← a notes space you made
 └── .jott/
     ├── config.json      ← preferences that travel with the notebook
+    ├── daily-state.json ← what is pulled into today, as references
+    ├── plan.json        ← what is planned for the days ahead, as references
     ├── themes/          ← the looks you brought in, if any
     ├── index/           ← Jott's own bookkeeping, rebuildable
     ├── timeline/        ← the log of everything, one file a year
@@ -112,9 +114,9 @@ the one field the app adds to a line it did not write — and adding is all it
 does: a date already there is never changed. `completed:` is stamped on
 completion and removed on undo.
 
-`id:` is added **only when the app needs to track that task** — when you pull
-it into your day or week, or complete it. You never write one, and you can
-leave them alone.
+`id:` is what the app tracks a task by — the timeline log follows it, and
+so does a day you pull the task into. Every task gets one the next time the
+notebook opens. You never write one, and you can leave them alone.
 
 `meta:` is a slot that carries fields from **another version of the app**.
 This build never writes into it and never drops it. It is what lets a
@@ -281,6 +283,17 @@ order you dragged things into.
 
   If you're writing a tool against a notebook, you can ignore this file: it
   holds preferences, not your content.
+
+- **`daily-state.json`** and **`plan.json`** — the day. Both hold
+  **references** (`{ "path": "jott.tasks/task-list.md", "id": "g7h8i9" }`),
+  never task text: a task pulled into today exists in exactly one place, its
+  list. `daily-state.json` is today (`{ "date": "2026-09-04", "items":
+  [...] }`), and rolls over at the hour `config.json` names; `plan.json` is
+  the days ahead, keyed by day (`{ "days": { "2026-09-05": [...] } }`) — the
+  calendar on the Home writes it, and when a planned day arrives its
+  references are poured into today and the day leaves the plan. A task with
+  a date on it needs neither: it shows on its day on its own. Delete either
+  file and you lose which tasks were chosen for which day, and nothing else.
 
 - **`tags.json`** — the tag **vocabulary**: the names the pickers offer
   (`{ "schemaVersion": 1, "tags": [{ "name": "briefing" }] }`), so a tag is

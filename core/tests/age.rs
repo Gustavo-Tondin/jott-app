@@ -67,14 +67,14 @@ fn every_door_a_task_card_comes_through_stamps_it() {
         .ensure_task_id("jott.tasks/task-list.md", 0)
         .unwrap();
     notebook
-        .pull_into(jott_core::Period::Day, "jott.tasks/task-list.md", &id)
+        .pull_into_day(None, "jott.tasks/task-list.md", &id)
         .unwrap();
 
-    let day = notebook.period_tasks(jott_core::Period::Day).unwrap();
+    let day = notebook.day_tasks(None).unwrap();
     assert_eq!(day[0].task.age.map(|age| age.band), Some(Band::Forgotten));
 
     let offered = notebook
-        .grouped_suggestions(jott_core::Period::Week)
+        .grouped_suggestions(Some(today + Duration::days(1)))
         .unwrap();
     assert!(
         offered.iter().all(|s| s.task.age.is_some()),

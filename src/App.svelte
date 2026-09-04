@@ -76,7 +76,8 @@
   import BottomSheet from "./lib/components/BottomSheet.svelte";
   import { drawerSwipe } from "./lib/actions/drawerSwipe.js";
   import { pullToSearch } from "./lib/actions/pullToSearch.js";
-  import CaptureFab from "./lib/components/CaptureFab.svelte";
+  import DayHead from "./lib/components/DayHead.svelte";
+  import { dayKind } from "./lib/services/calendar.js";
   import { clampWidth, SIDEBAR, PANEL } from "./lib/shell/sidebarWidth.js";
   import { clampZoom, steppedZoom, zoomFontSize } from "./lib/shell/zoom.js";
   import ResizeHandles from "./lib/shell/ResizeHandles.svelte";
@@ -84,7 +85,6 @@
   import Sidebar from "./lib/shell/Sidebar.svelte";
   import PageHeader from "./lib/shell/PageHeader.svelte";
   import { folderOf, leafOf, listName, listTitle } from "./lib/services/paths.js";
-  import { formatDate } from "./lib/services/dates.js";
   import { groupColors, spaceColors } from "./lib/services/spaceColors.js";
   import { ACCENTS, accentFill } from "./lib/services/accent.js";
   import { originOf } from "./lib/services/origin.js";
@@ -729,9 +729,11 @@
     selected = { list, task };
   };
 
-  const suggest = (period) => {
+  /// `day` is null for today or an ISO day ahead — wrapped, because the
+  /// panel is closed when `suggesting` is null and today is a day too.
+  const suggest = (day) => {
     selected = null;
-    suggesting = period;
+    suggesting = { day: day ?? null };
   };
 
   /// The Fase 9 option, default off: with `closeInspectorOnClickAway` on,
@@ -904,7 +906,6 @@
       folders: noteFolders,
       spaces,
       fixedShown: f("notesSpace"),
-      inboxOnHome: !!layout.homeNotesSource && layout.homeNotesSource === layout.notesFolder,
     }),
   );
 
@@ -917,46 +918,39 @@
       lists: notebook?.lists ?? [],
       spaces,
       fixedShown: f("tasksSpace"),
-      inboxOnHome: !!layout.homeTasksSource && layout.homeTasksSource === layout.tasksFolder,
     }),
   );
   /// (`quickTask` above is the SHORTCUT that opens the dialog — this is
   /// where the quick capture lands.)
   let quickTaskTo = $derived(quickTaskTarget(layout.quickTaskList ?? "", quickTaskChoices));
 
-  /// What the Home's two blocks show instead of their defaults — a task
-  /// space hosted whole, a note space's Inbox — resolved against what
-  /// exists; null is each block's default reading (My Day / today's notes).
-  let homeTasks = $derived.by(() => {
-    const at = layout.homeTasksSource;
-    if (!at) return null;
-    const sp = spaces.find((s) => s.kind === "tasks" && s.path === at);
-    if (!sp) return null;
-    return { source: sourceOf(sp, { name: null }), label: sp.fixed ? S.inboxTasks : sp.name };
+  /// THE HOME'S DAY (2026-09-04): which day the calendar has open, or null
+  /// for today. The shell's, not the screen's: on a phone the head that
+  /// picks it sits on the chrome above the canvas and is drawn here, and
+  /// the screen below reads the same choice. Back to today whenever the
+  /// notebook's day turns — a calendar left on yesterday's "today" would be
+  /// showing the wrong day the moment the app was reopened.
+  let homeDay = $state(null);
+  /// `{done, total}` for that day, counted by the screen off what it read,
+  /// for the head to say.
+  let homeSummary = $state(null);
+  /// On a phone: whether the head's summary line is unfolded (the "overview"
+  /// wireframe).
+  let homeOverview = $state(false);
+  /// On a phone: whether the Home's collapsed bar is pinned under the top
+  /// bar — the head scrolled away — which is when the top bar's buttons sit
+  /// on the CANVAS and take its colours (user call, 2026-09-04).
+  let homeStuck = $state(false);
+  let seenToday = null;
+  $effect(() => {
+    const today = clock?.today ?? null;
+    if (today === seenToday) return;
+    seenToday = today;
+    homeDay = null;
   });
-  let homeNotes = $derived.by(() => {
-    const at = layout.homeNotesSource;
-    if (!at) return null;
-    const sp = spaces.find((s) => s.kind === "notes" && s.path === at);
-    if (!sp) return null;
-    return { space: sp.path, label: sp.fixed ? S.inboxNotes : sp.name };
-  });
-
-  /// The rows the two "Home shows" pickers offer (SettingsView) — the
-  /// defaults first, then every space of the right kind, the fixed one under
-  /// its Inbox name.
-  let homeTasksChoices = $derived([
-    { value: "", label: S.featureMyDay },
-    ...spaces
-      .filter((sp) => sp.kind === "tasks")
-      .map((sp) => ({ value: sp.path, label: sp.fixed ? S.inboxTasks : sp.name })),
-  ]);
-  let homeNotesChoices = $derived([
-    { value: "", label: S.todaysNotes },
-    ...spaces
-      .filter((sp) => sp.kind === "notes")
-      .map((sp) => ({ value: sp.path, label: sp.fixed ? S.inboxNotes : sp.name })),
-  ]);
+  /// What the chosen day is against today — the + composes for today and a
+  /// day ahead, never for a day gone by.
+  let homeKind = $derived(dayKind(homeDay ?? clock?.today, clock?.today));
 
   let userLists = $derived(
     (notebook?.lists ?? []).filter(
@@ -990,18 +984,10 @@
     return sp ? sourceOf(sp, { name: null }) : null;
   });
 
-  /// Which tab of the Tasks screen is open, so the page header can read
-  /// `Tasks/Index` while the browser tab keeps saying just `Tasks`.
-  let tasksSub = $state("");
   /// The Settings section the screen went into, for the compact header to name
   /// (screens/SettingsView.svelte). Empty while the menu is what is on screen,
   /// and always empty side by side — there the menu says which one is open.
   let settingsSub = $state("");
-  /// And what date that tab is looking at — the day for Today, the span for
-  /// Week, nothing for the Index. Below 768px the screen hands it up instead
-  /// of drawing it beside the strip: there it is the header's second line
-  /// (user call, 2026-08-18).
-  let tasksSpan = $state("");
 
   // What colour each space reads as — a member of a group follows the
   // group (2026-08-04), which the sidebar already did through --group-color
@@ -1979,8 +1965,8 @@
     stopTurns = scheduleTurns({
       clock: () => clock,
       tick: async () => {
-        await api.refreshPeriods();
-        clock = await api.periodClock();
+        await api.refreshDay();
+        clock = await api.dayClock();
         reload();
       },
       onError: fail,
@@ -2183,28 +2169,6 @@
   const showList = (path, newTab = false) =>
     (newTab ? openTab : goTo)({ kind: "list", list: path });
 
-  /// The Home +, "Note" half: makes an empty note in the notes inbox and opens
-  /// it straight away, with nothing asked first. The name is a placeholder the
-  /// header is already offering to rename — a prompt here would stop the one
-  /// gesture the button exists to make fast.
-  const captureNote = () =>
-    change(
-      async () => {
-        const folder = layout.notesFolder;
-        if (!folder) return null;
-        return {
-          folder,
-          path: await api.createNote(folder, layout.notesInbox, S.untitled),
-        };
-      },
-      // In `after`, so the note is opened on a snapshot that already carries
-      // it — the same reason creating a space opens it here and not inline.
-      (made) => {
-        if (!made) return;
-        focusNewNote = true;
-        showNote(made.path, made.folder);
-      },
-    );
 </script>
 
 <!-- The window takes the drop it was not offered, and does nothing with it.
@@ -2340,7 +2304,8 @@
       pageKey={title(view)}
       {mobile}
       buttons={windowButtons}
-      over={view.kind === "note"}
+      over={view.kind === "note" || view.kind === "home"}
+      region={view.kind === "home" && homeStuck ? "canvas" : "chrome"}
     />
   {:else if !compact}
     <TitleBar rail={railed} buttons={windowButtons} brand={!!notebook}>
@@ -2512,6 +2477,26 @@
             <span class="pull-search__glass"><Icon name="magnifying-glass" size="1.125rem" /></span>
           </div>
         {/if}
+        {#if compact && view.kind === "home"}
+          <!-- The Home's head IS its header on a phone (wireframes "Home
+               Screen Mobile", 2026-09-04): the name, the month, the week of
+               days and — behind the handle — the day's line, on the chrome
+               above the rounded canvas, with the top bar floating over it.
+               Drawn here and not by the screen because the screen is the
+               canvas, and this sits above it. -->
+          <DayHead
+            compact
+            today={clock?.today}
+            day={homeDay}
+            weekStartsOn={clock?.weekStartsOn ?? "monday"}
+            summary={homeSummary}
+            dot={colorOf(view)}
+            overview={homeOverview}
+            onPick={(iso) => (homeDay = iso)}
+            onHome={() => (homeDay = null)}
+            onToggleOverview={() => (homeOverview = !homeOverview)}
+          />
+        {:else}
         <PageHeader
           {compact}
           title={/* Below 768px an open note names itself: its head draws the
@@ -2521,28 +2506,9 @@
             (2026-08-18), and the wireframes give the room to the banner. */
           compact && view.kind === "note"
             ? ""
-            : view.kind === "tasks" && tasksSub
-              ? tasksSub
-              : compact && view.kind === "settings" && settingsSub
-                ? settingsSub
-                : title(view)}
-          context={view.kind === "tasks" && tasksSub ? S.tasks : ""}
-          subtitle={/* The day, ONCE, and only where a date means something.
-            On the desktop the two screens that carry one draw it themselves —
-            the capture box at its own top right (components/CaptureBox.svelte),
-            the Tasks strip beside its tabs — and the header repeating it three
-            inches above was two dates on one screen (user report, 2026-08-18).
-            Below 768px neither of those places survives: there is no capture
-            box (the + replaces it) and the strip is a phone wide, so the date
-            comes up here, under the name, which is where both mobile
-            wireframes draw it (user call, 2026-08-18). The Tasks screen sends
-            up what its open tab is looking at — the week's span on Week — and
-            falls back to today, as the wireframe shows on the Index. */
-          compact && (view.kind === "home" || view.kind === "tasks")
-            ? tasksSpan && view.kind === "tasks"
-              ? tasksSpan
-              : formatDate(clock?.today ?? "", layout.dateDisplayFormat)
-            : ""}
+            : compact && view.kind === "settings" && settingsSub
+              ? settingsSub
+              : title(view)}
           {canBack}
           {canForward}
           onBack={goBack}
@@ -2552,22 +2518,8 @@
             : null}
           menu={pageMenu}
           dot={colorOf(view)}
-          action={compact && view.kind === "home" && !notebook.readOnly
-            ? homeCapture
-            : undefined}
         />
-
-        <!-- Home is the one screen that is neither tasks nor notes, so it is
-             the one place the + still has to ask which. It only reports the
-             answer: HomeView holds the folders and does the writing. -->
-        {#snippet homeCapture()}
-          <CaptureFab
-            canTask={f("tasks") && (!!homeTasks || f("myDay")) && !!quickTaskTo}
-            canNote={f("notes") && quickTargets.length > 0}
-            onPick={(kind) =>
-              kind === "note" ? captureNote() : (composingTask = true)}
-          />
-        {/snippet}
+        {/if}
 
         <!-- CANVAS: what the screen is drawn on, and the box the floating
              controls are measured from. It exists so they can be placed
@@ -2637,11 +2589,31 @@
             </div>
           {/if}
 
+          <!-- THE HOME'S + (wireframes, 2026-09-04): a task, for the day the
+               calendar has open — today or one ahead, never one gone by. It
+               opens the day's own composer bar (HomeView → TasksSpace), the
+               same bar the tasks screens carry. Floating in the canvas's
+               corner on both shells; the Home used to carry a capture box
+               at its top on the desktop and a task-or-note + on the phone,
+               and both went with the calendar. -->
+          {#if view.kind === "home" && !notebook.readOnly && homeKind !== "past" && f("tasks") && !!quickTaskTo}
+            <button
+              type="button"
+              class="home-fab"
+              aria-label={S.capture}
+              title={S.capture}
+              onclick={() => (composingTask = true)}
+            >
+              <Icon name="plus-bold" size="1.5rem" />
+            </button>
+          {/if}
+
         <!-- svelte-ignore a11y_no_static_element_interactions -->
         <!-- svelte-ignore a11y_click_events_have_key_events -->
         <div
           class="shell__content"
           class:shell__content--note={view.kind === "note"}
+          class:shell__content--home={view.kind === "home"}
           onclick={clickedAway}
           oncontextmenu={openCanvasMenu}
         >
@@ -2781,15 +2753,15 @@
             <HomeView
               {compact}
               origin={originOfItem}
-              notesColor={spColors[layout.homeNotesSource || layout.notesFolder] ?? null}
+              notesColor={spColors[layout.notesFolder] ?? null}
+              colors={spColors}
+              ghostTitles={layout.timelineGhostTitles ?? false}
               root={notebook.path}
               dot={colorOf(view)}
               composing={composingTask}
               onCloseCompose={() => (composingTask = false)}
               dateFormat={layout.dateDisplayFormat}
               quickNoteFolder={layout.quickNoteFolder}
-              tasksSource={homeTasks}
-              notesSource={homeNotes}
               quickTask={quickTaskTo}
               notesFolder={layout.notesFolder}
               noteTargets={quickTargets}
@@ -2802,11 +2774,16 @@
               onChanged={refreshNotebook}
               onError={fail}
               onOpenNote={openNoteFromBoard}
+              onOpenTask={showFoundTask}
               onSelectTask={select}
               onSuggest={suggest}
               selectedTask={selected?.task ?? null}
               today={clock?.today}
-              todayLabel={formatDate(clock?.today ?? "", layout.dateDisplayFormat)}
+              weekStartsOn={clock?.weekStartsOn ?? "monday"}
+              day={homeDay}
+              onPickDay={(iso) => (homeDay = iso)}
+              onSummary={(summary) => (homeSummary = summary)}
+              onStuck={(is) => (homeStuck = is)}
               {f}
             />
           {:else if view.kind === "tasks"}
@@ -2815,10 +2792,11 @@
               origin={originOfItem}
               inbox={layout.inbox}
               {inboxSource}
+              showAll={layout.tasksShowAll ?? false}
               lists={notebook.lists}
               {tags}
               completedName={layout.completedName}
-              {clock}
+              today={clock?.today}
               readOnly={notebook.readOnly}
               onChanged={refreshNotebook}
               onError={fail}
@@ -2826,10 +2804,6 @@
               onSelect={select}
               selectedTask={selected?.task ?? null}
               {dayRefs}
-              {compact}
-              onSub={(label) => (tasksSub = label)}
-              onSpan={(span) => (tasksSpan = span)}
-              onSuggest={suggest}
               onSetSort={tasksArrangement.setSort}
               onSetOrder={tasksArrangement.setOrder}
               {f}
@@ -2953,8 +2927,6 @@
               onSwitchNotebook={chooseFolder}
               noteTargets={quickTargets}
               taskTargets={quickTaskChoices}
-              {homeTasksChoices}
-              {homeNotesChoices}
               {userThemes}
               {wornTheme}
               onNewTheme={newThemeFrom}
@@ -3085,7 +3057,7 @@
       {#snippet rightPanel()}
         {#if suggesting}
           <SuggestionsPane
-            period={suggesting}
+            day={suggesting.day}
             origin={originOfItem}
             dateFormat={layout.dateDisplayFormat}
             {compact}

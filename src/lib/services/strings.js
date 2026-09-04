@@ -18,10 +18,10 @@ const ACTION_NAMES = {
   create_list: "New list",
   rename_list: "Rename list",
   delete_list: "Delete list",
-  pull_into: "Add to the day or week",
-  remove_from: "Remove from the day or week",
-  set_period_order: "Reorder the day or week",
-  set_period_sort: "Sort the day or week",
+  pull_into: "Add to a day",
+  remove_from: "Remove from a day",
+  set_day_order: "Reorder the day",
+  set_day_sort: "Sort the day",
   quick_capture_note: "Quick note",
   create_note: "New note",
   delete_note: "Delete note",
@@ -135,7 +135,6 @@ export const S = {
   noSubfolders: "No folders here.",
   existingNotebook: "notebook",
   today: "Today",
-  week: "Week",
   completed: "Completed",
   // The right-rail hamburger and the lesser pages it opens.
   menu: "menu",
@@ -290,8 +289,6 @@ export const S = {
   // App Functions (2026-08-06): which parts of the app are switched on.
   featureTasks: "Tasks",
   featureNotes: "Notes",
-  featureMyDay: "My Day",
-  featureWeek: "Week",
   featureSubtasks: "Subtasks",
   featureTaskTags: "Task tags",
   featureDueDate: "Complete date",
@@ -316,12 +313,11 @@ export const S = {
     "and screens. Hiding one only takes it off the interface: the files " +
     "stay, and everything returns when the space does.",
   fixedSpacesHelpTasks:
-    "Tasks: hiding the screen turns My Day and Week off with it — both are " +
-    "its views. To keep tasks on the Home, point \u201cHome shows\u201d (Tasks page) " +
-    "at a list instead.",
+    "Tasks: hiding the screen hides the Inbox. The day lives on the Home, " +
+    "and stays: a task can still be pulled into today from any list.",
   fixedSpacesHelpNotes:
-    "Notes: quick notes can go to another notepad, and the Inbox stays a " +
-    "destination while the Home shows it (\u201cHome shows\u201d, Notes page).",
+    "Notes: quick notes can go to another notepad; the notes written today " +
+    "still show on the Home.",
   // Named "<Name> space", not the bare name: the bare "Tasks" would be the
   // second switch on the page wearing the label of the first — ambiguous to
   // a screen reader and to the settings search alike.
@@ -539,9 +535,9 @@ export const S = {
   // to one name is two controls nobody can tell apart by voice or by test.
   openFunction: (name) => `${name} options`,
   sectionDates: "Date preferences",
-  // Kept for the notebooks that still name the screen this way, and for the
-  // search index: the section was renamed, the subject was not.
-  sectionDay: "Day and week",
+  // The page's other name, for the search index: it decides what a day IS
+  // — when it turns, what the calendar strip starts on.
+  sectionDay: "Day and calendar",
   sectionDisplay: "Display",
   // Whose answers these are (2026-08-20). Said once at the top of the section
   // rather than on each row: the whole section moved to the machine, and a
@@ -552,17 +548,18 @@ export const S = {
     "notebook's own choice is what shows.",
   sectionNotebook: "Notebook",
   rolloverDaily: "When the day turns",
-  rolloverWeekly: "When the week turns",
   rolloverMode: "Unfinished tasks",
   rolloverModeReset: "go back to suggestions",
   rolloverModeCarry: "stay pulled",
   rolloverAtHint: "Offset from midnight. -02:00 means 22:00 the evening before.",
   weekStartsOn: "Week starts on",
-  datedTasksJoinPeriod: "A task with a date joins the day",
+  weekStartsOnHint: "The first day of the calendar strip on the Home.",
+  subCalendar: "Calendar",
+  datedTasksJoinPeriod: "A task with a date joins its day",
   datedTasksJoinPeriodHint:
-    "On by default: a task written for today shows up in Today on its own, " +
-    "and in the Week when its date falls inside it. Nothing is written to the " +
-    "notebook — take the date away and it leaves. Off, the day is a 100% " +
+    "On by default: a task dated for the 5th shows up on the 5th on its own, " +
+    "and one that is overdue shows up today. Nothing is written to the " +
+    "notebook — take the date away and it leaves. Off, a day is a 100% " +
     "deliberate choice and a date only ranks the suggestions.",
   monday: "Monday",
   sunday: "Sunday",
@@ -606,7 +603,7 @@ export const S = {
   headingColorInkHint: "Titles in plain text colour, like a document.",
   restoreLastScreen: "Reopen on the last screen",
   restoreLastScreenHint:
-    "Off by default: landing on Today is more predictable.",
+    "Off by default: landing on the Home is more predictable.",
   showListCounts: "Show task counts in the sidebar",
   autoUrgentByDate: "Treat overdue tasks as urgent",
   newTasksGoTo: "New tasks go to",
@@ -665,19 +662,21 @@ export const S = {
   subNoteHas: "What a note can have",
   subBoard: "Board",
   noteLayout: "Default layout",
-  homeShowsTasks: "Home shows (tasks)",
-  homeShowsNotes: "Home shows (notes)",
-  homeShowsTasksHint:
-    "What the tasks block on the Home shows: My Day, or a task list hosted " +
-    "whole — the Inbox, or one of your own.",
-  homeShowsNotesHint:
-    "What the notes block on the Home shows: the notes written today, or a " +
-    "note space's whole Inbox — captures pile up there, and the Home is " +
-    "where they are read back.",
+  // The fixed Tasks screen (2026-09-04): the Inbox alone, or every list of
+  // the notebook pulled together and arranged by space.
+  subTasksScreen: "Tasks screen",
+  /// The screen's own title when it shows every list.
+  allListsTitle: "All lists",
+  tasksShowAll: "Tasks screen shows",
+  tasksShowAllInbox: "the Inbox only",
+  tasksShowAllEvery: "every list, arranged by space",
+  tasksShowAllHint:
+    "Every list puts the tasks of all your spaces on one screen, each card " +
+    "wearing its space's colour. The Inbox stays where new tasks land.",
   quickTasksGoTo: "Quick tasks go to",
   quickTasksGoToHint:
-    "Where the Home's capture writes a task. It names a list of THIS " +
-    "notebook, like the note setting above.",
+    "Where the Home's + writes a task. It names a list of THIS notebook, " +
+    "like the note setting above.",
   subTables: "Tables",
   tableLayout: "Wide tables",
   tableLayoutFit: "Fit the content width",
@@ -807,29 +806,34 @@ export const S = {
   openSidebar: "open sidebar",
   closeSheet: "close",
   closeComposer: "close the new task bar",
-  // The Home's + on a phone: it opens the two composers rather than being one
-  // of them, because Home is the only screen that is neither tasks nor notes.
-  capture: "capture",
+  // The Home's + (2026-09-04): a task, for the day the calendar has open.
+  capture: "new task",
   todaysTasks: "Today tasks",
   todaysNotes: "Today notes",
+  /// The blocks of a day that is not today, named by the day: "Sep 5 tasks".
+  dayTasks: (day) => `${day} tasks`,
+  dayNotes: (day) => `${day} notes`,
+  /// The strip's head: the month beside the title, and the day's own line
+  /// once the head has scrolled away on a phone ("Sep 3").
+  shortDay: (month, day) => `${month.slice(0, 3)} ${day}`,
+  backToToday: "back to today",
+  previousWeek: "previous week",
+  nextWeek: "next week",
+  showOverview: "show the day's summary",
+  hideOverview: "hide the day's summary",
+  goodMorning: "Good morning",
+  goodAfternoon: "Good afternoon",
+  goodEvening: "Good evening",
+  tasksDone: (done, total) => `${done} of ${total} ${total === 1 ? "task" : "tasks"} done.`,
+  tasksDoneOn: (done) => `${done} ${done === 1 ? "task" : "tasks"} done.`,
+  tasksPlanned: (n) => `${n} ${n === 1 ? "task" : "tasks"} planned.`,
+  nothingThatDay: "Nothing happened that day.",
+  noNotesThatDay: "No notes written that day.",
   inboxNotes: "Inbox notes",
   inboxTasks: "Inbox tasks",
-  newNoteAction: "New note",
   quickNoteTo: "to",
-  // The Home's capture box (2026-08-13). It asks ONE question and both halves
-  // of the app answer it.
-  captureQuestion: "What do you want to capture?",
-  task: "Task",
-  note: "Note",
   newTaskPlaceholder: "New task…",
-  newNotePlaceholder: "New note…",
-  // Its own label, not the tasks block's: with both blocks centred and each
-  // ending in a ⋮, one name for both menus named two different things.
   notesOptions: "notes options",
-  // The + itself. It says the VERB, while the field says what is being made —
-  // sharing "New task" between the two made the box announce the same name
-  // twice and left a screen reader with no way to tell them apart.
-  captureAction: (kind) => (kind === "note" ? "capture note" : "capture task"),
   noNotesToday: "No notes written today.",
   collapseSidebar: "collapse sidebar",
   expandSidebar: "expand sidebar",
@@ -879,22 +883,17 @@ export const S = {
   addTask: "Add",
   emptyList: "No tasks in this list.",
   pullToToday: "→ Today",
-  pullToWeek: "→ Week",
 
-  // Today / Week
-  weekTitle: "This week",
-  /// The week's span, shown beside the Index/Today/Week strip.
-  weekRange: (from, to) => `${from} - ${to}`,
+  // The day
   suggestionsTitle: "Suggestions",
-  // The right panel's heading — it says which period it would pull into.
+  // The right panel's heading — it says which day it would pull into.
   suggestionsForDay: "Suggestions for today",
-  suggestionsForWeek: "Suggestions for this week",
+  suggestionsFor: (day) => `Suggestions for ${day}`,
   noSuggestions: "No tasks available.",
   groupUrgent: "Urgent",
   groupSoon: "Soon",
-  groupThisWeek: "This week",
-  // Was in Today or the Week and left — taken out by hand, or dropped when the
-  // period turned (2026-08-17).
+  // Was in Today and left — taken out by hand, or dropped when the day
+  // turned (2026-08-17).
   groupRecent: "Pulled recently",
   pull: "pull",
 
@@ -949,6 +948,7 @@ export const S = {
   ],
   // Sunday-first, matching JavaScript's getDay().
   weekdaysShort: ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"],
+  weekdays: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
   priorityLabel: "Priority",
   priorityNone: "none",
   priorityHigh: "high",

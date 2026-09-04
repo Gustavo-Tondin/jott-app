@@ -22,7 +22,7 @@
 //! | [`lists`] · [`tasks`] · [`notes`] | the content |
 //! | [`assets`] | the notebook's file library, and the two doors pictures come in through |
 //! | [`spaces`] | spaces and the groups that hold them |
-//! | [`period`] | the Day and the Week |
+//! | [`day`] | today, and the days ahead the Home's calendar plans |
 //! | [`update`] | what answers for this INSTALL: the version check and the menu entry |
 //! | [`reminders`] | what should ring, the bell, and the tray the app waits in |
 //! | [`timeline`] | the durable log, read back for the Timeline screen |
@@ -31,7 +31,7 @@ pub mod assets;
 pub mod lists;
 pub mod notebook;
 pub mod notes;
-pub mod period;
+pub mod day;
 pub mod reminders;
 pub mod settings;
 pub mod shell;

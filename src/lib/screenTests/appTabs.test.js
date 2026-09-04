@@ -59,7 +59,7 @@ describe("App shell with tabs", () => {
       screen_to_restore: null,
       note_folders: [noteFolder("Inbox")],
       notes_created_today: [],
-      period_tasks: [],
+      day_tasks: [],
       grouped_suggestions: [],
       list_tasks: [],
       ...extra,
@@ -213,24 +213,17 @@ describe("App shell with tabs", () => {
     expect(screen.getByText("delete list")).toBeTruthy();
   });
 
-  test("Tasks is one entry with its views inside it", async () => {
-    // Today and This Week are views of the same tasks, not places of their
-    // own, so the sidebar says so with one entry and its buttons. Week ships
-    // OFF (user call, 2026-08-06), so by default there are two.
+  test("Tasks is one entry, and one screen: the Inbox", async () => {
+    // Until 2026-09-04 the screen had Inbox / Today / Week inside it; the
+    // day is the Home's calendar now, and the tabs went with it.
     shell();
     render(App);
     await waitFor(() => expect(tabLabels().length).toBe(1));
 
-    expect(screen.queryByRole("button", { name: "Week" })).toBeNull();
-
     await userEvent.click(screen.getByRole("button", { name: "Tasks" }));
-    expect(await screen.findByRole("button", { name: "Today" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Inbox" })).toBeTruthy();
+    await waitFor(() => expect(document.querySelector(".tasks-view")).not.toBeNull());
+    expect(screen.queryByRole("button", { name: "Today" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Week" })).toBeNull();
-
-    // Switching view stays inside the tab — it is looking around one
-    // document, not opening another.
-    await userEvent.click(screen.getByRole("button", { name: "Today" }));
     expect(tabLabels()).toEqual(["Tasks"]);
   });
 });
@@ -278,7 +271,7 @@ describe("the compact shell", () => {
         groups: [],
       },
       screen_to_restore: "home",
-      period_tasks: [],
+      day_tasks: [],
       grouped_suggestions: [],
       notes_created_today: [],
       window_button_layout: "appmenu:minimize,maximize,close",
@@ -324,13 +317,13 @@ describe("the compact shell", () => {
     expect(screen.queryByLabelText("close window")).toBeNull();
   });
 
-  test("the tasks block keeps its own ⋮, with the twin that centres the strip", async () => {
+  test("the tasks block keeps its own ⋮, with the twin that centres the row", async () => {
     // Both places were tried on the device (user calls, 2026-08-18). The ⋮
     // moved up to the screen's black header and came straight back: one below
     // the top bar's own ⋮, two of them stacked in the corner read as one
     // control drawn twice. It belongs on the block's row — and the invisible
-    // twin opposite it is what keeps the Inbox/Today/Week strip centred on the
-    // screen rather than pushed off by the width of a menu button.
+    // twin opposite it is what keeps the row centred on the screen rather
+    // than pushed off by the width of a menu button.
     compactShell({
       platform: "android",
       screen_to_restore: "tasks",
@@ -339,9 +332,9 @@ describe("the compact shell", () => {
 
     const { container } = render(App);
 
-    // Waited on the screen's own strip, so this is not asserting on a shell
+    // Waited on the screen's own cards, so this is not asserting on a shell
     // that has not drawn the tasks screen yet.
-    await screen.findByText("Today");
+    await screen.findByText("Comprar leite");
     expect(container.querySelector(".tasks-space__more")).toBeTruthy();
     expect(container.querySelector(".tasks-space__mirror")).toBeTruthy();
     // The screen's header holds the place's name and Home's +, never a block's
@@ -404,36 +397,22 @@ describe("the compact shell", () => {
   test("the header carries the colour of the place on every screen", async () => {
     // A fixed space has no colour of its own and falls back to the app's
     // accent in CSS. A mark that comes and goes says less than one that is
-    // always there to be read (user call, 2026-08-18).
+    // always there to be read (user call, 2026-08-18). The Home's head is
+    // its header on a phone (2026-09-04) and carries the same dot.
     compactShell({ platform: "android" });
 
     const { container } = render(App);
 
     await screen.findByLabelText("open sidebar");
     await waitFor(() => {
-      if (!container.querySelector(".page-header--compact .theme-dot"))
-        throw new Error("no dot");
-    });
-  });
-
-  test("the day the tasks screen is looking at moves into the header", async () => {
-    // On the desktop it rides beside the Inbox/Today/Week strip; a phone has
-    // no room there, and the wireframe puts it under the screen's name.
-    compactShell({
-      platform: "android",
-      screen_to_restore: "tasks",
-      period_tasks: [],
+      if (!container.querySelector(".day-head--compact .day-head__dot")) throw new Error("no dot");
     });
 
-    const { container } = render(App);
-
-    await userEvent.click(await screen.findByText("Today"));
-
+    await userEvent.click(screen.getByLabelText("open sidebar"));
+    await userEvent.click(within(container.querySelector(".shell__sidebar")).getByText("Tasks"));
     await waitFor(() => {
-      const date = container.querySelector(".page-header__date");
-      if (!date?.textContent.includes("07/21")) throw new Error("not in the header");
+      if (!container.querySelector(".page-header--compact .theme-dot")) throw new Error("no dot");
     });
-    expect(container.querySelector(".tasks-view__range")).toBeNull();
   });
 
   test("opening the drawer hides the toggle without taking its place", async () => {
@@ -495,13 +474,24 @@ describe("the compact shell", () => {
     expect(container.querySelector(".topbar").classList.contains("topbar--over")).toBe(true);
   });
 
-  test("every other screen keeps the bar above the canvas", async () => {
-    // The note is the only screen with no header of its own. Pushing the
-    // others under the bar would take their title with them.
+  test("the Home lifts it too, and every other screen keeps the bar above the canvas", async () => {
+    // The Home's head is the chrome the page scrolls away under the bar
+    // (wireframes "Home Screen Mobile", 2026-09-04); the note is the other
+    // screen with no header of its own. Pushing the rest under the bar would
+    // take their title with them.
     withNote();
     const { container } = render(App);
 
     await screen.findByLabelText("open sidebar");
+    await waitFor(() => expect(container.querySelector(".day-head--compact")).not.toBeNull());
+    expect(container.querySelector(".topbar").classList.contains("topbar--over")).toBe(true);
+    // At rest the bar's buttons sit on the chrome; only a scrolled-away head
+    // moves them onto the canvas (actions/stuck.js — no observer here).
+    expect(container.querySelector(".topbar").getAttribute("data-region")).toBe("chrome");
+
+    await userEvent.click(screen.getByLabelText("open sidebar"));
+    await userEvent.click(within(container.querySelector(".shell__sidebar")).getByText("Notes"));
+    await waitFor(() => expect(container.querySelector(".day-head--compact")).toBeNull());
     expect(container.querySelector(".topbar").classList.contains("topbar--over")).toBe(false);
   });
 });

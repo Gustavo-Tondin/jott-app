@@ -62,7 +62,8 @@ describe("App functions — switching a part of the app off", () => {
       screen_to_restore: "home",
       note_folders: [],
       notes_created_today: [],
-      period_tasks: [],
+      day_tasks: [],
+      day_sort: null,
       grouped_suggestions: [],
       list_tasks: [],
     });
@@ -90,11 +91,11 @@ describe("App functions — switching a part of the app off", () => {
     expect(screen.getByText("Trash")).toBeTruthy();
   });
 
-  test("a hidden Tasks screen takes My Day and Week with it, and the function stays on", async () => {
-    // Fixed spaces (revised 2026-08-24): hiding the Tasks SPACE is not
-    // switching tasks off — user spaces keep working — but both period views
-    // are that screen's, so the Home loses the day too (`needs`,
-    // services/features.js). The notes half stays.
+  test("a hidden Tasks screen leaves the day on the Home, and the function on", async () => {
+    // Fixed spaces (revised 2026-08-24, and again 2026-09-04): hiding the
+    // Tasks SPACE is not switching tasks off — user spaces keep working —
+    // and the day is the HOME's now, not that screen's, so the Home keeps
+    // both halves.
     withFeatures({ tasksSpace: false });
     render(App);
 
@@ -106,7 +107,7 @@ describe("App functions — switching a part of the app off", () => {
     await within(sidebar).findByText("Home");
     expect(within(sidebar).queryByText("Tasks")).toBeNull();
     expect(await screen.findByText("Today notes")).toBeTruthy();
-    expect(screen.queryByText("Today tasks")).toBeNull();
+    expect(screen.getByText("Today tasks")).toBeTruthy();
     await userEvent.click(screen.getByLabelText("menu"));
     expect(screen.queryByText("Completed")).toBeNull();
     expect(screen.getByText("Trash")).toBeTruthy();
@@ -125,7 +126,7 @@ describe("App functions — switching a part of the app off", () => {
     // The restored screen was "home"; the landing is the Tasks screen.
     await waitFor(() => {
       expect(document.querySelector(".home")).toBeNull();
-      expect(document.querySelector(".tasks-view__subs")).not.toBeNull();
+      expect(document.querySelector(".tasks-view")).not.toBeNull();
     });
   });
 
@@ -153,25 +154,6 @@ describe("App functions — switching a part of the app off", () => {
     await screen.findByText("Today tasks");
     expect(screen.queryByText("Today notes")).toBeNull();
     expect(screen.queryByLabelText("Quick note…")).toBeNull();
-  });
-
-  test("with My Day off, the day is gone from the Home and from Tasks", async () => {
-    withFeatures({ myDay: false });
-    render(App);
-
-    await screen.findByText("Today notes");
-    expect(screen.queryByText("Today tasks")).toBeNull();
-
-    // And the Tasks screen loses the tab, keeping Index and Week.
-    const sidebar = document.querySelector(".shell__sidebar");
-    await userEvent.click(within(sidebar).getByText("Tasks"));
-    const strip = await waitFor(() => {
-      const el = document.querySelector(".tasks-view__subs");
-      expect(el).not.toBeNull();
-      return el;
-    });
-    expect(within(strip).getByText("Inbox")).toBeTruthy();
-    expect(within(strip).queryByText("Today")).toBeNull();
   });
 
   test("a task field switched off leaves the card and the panel, not the task", async () => {

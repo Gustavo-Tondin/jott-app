@@ -1,19 +1,14 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { MAX_WAIT, MIN_WAIT, scheduleTurns, waitUntilTurn } from "./turn.js";
 
-const clock = (daily, weekly = "2026-07-27T00:00:00Z") => ({
-  nextDailyTurn: daily,
-  nextWeeklyTurn: weekly,
-});
+const clock = (daily) => ({ nextDailyTurn: daily });
 
 describe("waitUntilTurn", () => {
   const now = new Date("2026-07-21T23:00:00Z").getTime();
 
-  test("waits for the earlier of the two turns", () => {
+  test("waits for the turn", () => {
     expect(waitUntilTurn(clock("2026-07-22T00:00:00Z"), now)).toBe(60 * 60 * 1000);
-    expect(waitUntilTurn(clock("2026-07-23T00:00:00Z", "2026-07-21T23:30:00Z"), now)).toBe(
-      30 * 60 * 1000,
-    );
+    expect(waitUntilTurn(clock("2026-07-21T23:30:00Z"), now)).toBe(30 * 60 * 1000);
   });
 
   test("a turn already past still waits a beat", () => {
@@ -21,9 +16,7 @@ describe("waitUntilTurn", () => {
   });
 
   test("a turn far away is capped, so a sleeping machine catches up", () => {
-    expect(waitUntilTurn(clock("2026-08-01T00:00:00Z", "2026-08-02T00:00:00Z"), now)).toBe(
-      MAX_WAIT,
-    );
+    expect(waitUntilTurn(clock("2026-08-01T00:00:00Z"), now)).toBe(MAX_WAIT);
   });
 });
 

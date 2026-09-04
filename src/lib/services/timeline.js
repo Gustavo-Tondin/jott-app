@@ -77,6 +77,30 @@ export function monthsOf(items = []) {
     }));
 }
 
+/// The three groups of ONE day — the Home's recap of a day gone by
+/// (2026-09-04). `monthsOf` cannot answer this: `Notebook::timeline(day,
+/// day)` hands back everything born OR ticked that day, and a task born
+/// earlier in the month and ticked today belongs to `completed` alone.
+export function dayGroups(items = [], day) {
+  const created = [];
+  const completed = [];
+  const notes = [];
+  for (const item of items) {
+    if (!item?.created) continue;
+    if (item.kind === "note") {
+      if (item.created === day) notes.push(item);
+      continue;
+    }
+    if (item.created === day) created.push(item);
+    if (item.completed === day) completed.push(item);
+  }
+  return {
+    created: created.sort(byTitle),
+    completed: completed.sort(byTitle),
+    notes: notes.sort(byTitle),
+  };
+}
+
 /// When one row stands for several: the newest occurrence, so a click opens
 /// something that is still there. `completed` when the line is about the day
 /// a task was ticked, `created` otherwise.

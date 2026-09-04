@@ -11,11 +11,7 @@
 //
 // The second form is what keeps the capture alive when the fixed Notes space
 // is hidden (Fixed spaces): the note goes to another notepad instead of into
-// a place with no door (user call, 2026-08-24). And the fixed INBOX itself
-// stays a door while the Home shows the whole Inbox — hidden space or not,
-// the notes captured there are read right on the Home (user call,
-// 2026-08-24: "a opção de mandar as notas pro inbox pode continuar
-// habilitada").
+// a place with no door (user call, 2026-08-24).
 //
 // A fixed folder and a space sharing a name is left ambiguous on purpose:
 // the fixed folder wins while the fixed space is shown, and the space is the
@@ -33,13 +29,10 @@ export function noteTargets({
   folders = [],
   spaces = [],
   fixedShown = true,
-  /// The Home shows the whole Inbox (`homeShowsAllInboxNotes`): the Inbox is
-  /// readable there even with the fixed space hidden, so it stays a target.
-  inboxOnHome = false,
 }) {
   const inbox = notesInbox || "Inbox";
   const out = [];
-  if ((fixedShown || inboxOnHome) && notesFolder) {
+  if (fixedShown && notesFolder) {
     // "Inbox notes", not the bare folder name: beside "Inbox tasks" in the
     // same section, a plain "Inbox" does not say which (user call,
     // 2026-08-24).

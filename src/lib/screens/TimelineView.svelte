@@ -23,20 +23,10 @@
   import { api } from "../services/api.js";
   import { makeScreen } from "../services/act.js";
   import { S } from "../services/strings.js";
-  import { askConfirm } from "../services/dialog.js";
-  import { dotStyle } from "../services/accent.js";
   import { formatDate } from "../services/dates.js";
-  import {
-    ghostLabel,
-    monthName,
-    monthStats,
-    monthsOf,
-    rowsOf,
-    yearRange,
-  } from "../services/timeline.js";
-  import { reveal } from "../actions/reveal.js";
+  import { monthName, monthStats, monthsOf, yearRange } from "../services/timeline.js";
   import Icon from "../components/Icon.svelte";
-  import Menu from "../components/Menu.svelte";
+  import TimelineLines from "../components/TimelineLines.svelte";
   import EmptyState from "../components/EmptyState.svelte";
   import Loading from "../components/Loading.svelte";
 
@@ -59,11 +49,8 @@
     onOpenNote,
   } = $props();
 
-  const LINES = [
-    { key: "created", icon: "check-square", label: (n) => S.tasksCreated(n) },
-    { key: "completed", icon: "checks", label: (n) => S.tasksCompleted(n) },
-    { key: "notes", icon: "notepad", label: (n) => S.notesCreated(n) },
-  ];
+  /// The three lines a month has, for the keys of the folds that start open.
+  const LINE_KEYS = ["created", "completed", "notes"];
 
   /// The years the log has, newest first — the pills.
   let years = $state([]);
@@ -104,7 +91,7 @@
       if (activeYear === null || !list.includes(activeYear)) activeYear = want;
       if (open.size === 0 && want !== null) {
         const current = today.slice(0, 7);
-        open = new Set(LINES.map((line) => `${current}:${line.key}`));
+        open = new Set(LINE_KEYS.map((key) => `${current}:${key}`));
       }
       for (const year of shown) readYear(year);
     },
@@ -171,54 +158,15 @@
     column?.querySelector(`[data-year="${year}"]`)?.scrollIntoView?.({ block: "start" });
   }
 
-  const lineKey = (month, line) => `${month.key}:${line.key}`;
-  const isOpen = (month, line) => open.has(lineKey(month, line));
-  function toggle(month, line) {
-    const key = lineKey(month, line);
+  function toggle(key) {
     const next = new Set(open);
     if (next.has(key)) next.delete(key);
     else next.add(key);
     open = next;
   }
 
-  function openRow(row) {
-    if (row.ghost || row.deleted) return;
-    if (row.kind === "note") {
-      // The log's address is root-relative; the editor wants the path
-      // INSIDE the space (the shell puts the two back together).
-      const inside = row.space && row.path.startsWith(`${row.space}/`)
-        ? row.path.slice(row.space.length + 1)
-        : row.path;
-      onOpenNote?.(inside, row.space);
-    } else onOpenTask?.(row.path, row.id);
-  }
-
-  /// The colour a row wears: its space's, through the origin badge for a
-  /// living thing (the badge also knows the readable name), the colour map
-  /// for a folded ghost that has only a space path.
-  const colorOf = (row) =>
-    row.ghost ? (colors[row.space] ?? null) : (origin?.(row)?.color ?? colors[row.space] ?? null);
-
-  const rowTitle = (row) =>
-    row.title || (row.kind === "note" ? S.deletedNote : S.deletedTask);
-
-  function rowMenu(row) {
-    if (readOnly) return [];
-    return [
-      {
-        label: S.removeFromTimeline,
-        run: async () => {
-          const yes = await askConfirm(S.removeFromTimeline, {
-            detail: S.removeFromTimelineDetail,
-            danger: S.removeFromTimeline,
-          });
-          if (!yes) return;
-          const key = row.kind === "note" ? row.path : row.id;
-          await act(() => api.forgetFromTimeline(row.kind, key));
-        },
-      },
-    ];
-  }
+  /// "Remove from timeline", once the row's menu has asked.
+  const forget = (kind, key) => act(() => api.forgetFromTimeline(kind, key));
 </script>
 
 <div class="timeline" bind:this={column}>
@@ -275,69 +223,19 @@
             <span class="timeline__month-year">{month.year}</span>
             <span class="timeline__month-rule" aria-hidden="true"></span>
           </h3>
-          <ul class="timeline__lines">
-            {#each LINES as line, i (line.key)}
-              {@const list = month[line.key]}
-              {@const shown = isOpen(month, line)}
-              <li class="timeline__line" use:reveal style={`--reveal-index: ${i}`}>
-                <button
-                  class="timeline__line-head"
-                  aria-expanded={shown}
-                  aria-controls={`${month.key}-${line.key}`}
-                  disabled={list.length === 0}
-                  onclick={() => toggle(month, line)}
-                >
-                  <span class="timeline__line-icon" aria-hidden="true"><Icon name={line.icon} size="1.125rem" /></span>
-                  <span class="timeline__line-label">{line.label(list.length)}</span>
-                </button>
-                <div class="timeline__fold" class:is-open={shown && list.length > 0}>
-                  <ul class="timeline__rows" id={`${month.key}-${line.key}`} hidden={!shown || list.length === 0}>
-                    {#each rowsOf(list, { ghostTitles }) as row, j (row.ghost ? `ghost:${row.kind}:${row.space}` : `${row.kind}:${row.id ?? row.path}#${j}`)}
-                      {@const color = colorOf(row)}
-                      <li
-                        class="timeline__row"
-                        class:timeline__row--done={line.key === "completed" || !!row.deleted}
-                        class:timeline__row--ghost={row.ghost || !!row.deleted}
-                      >
-                        <span class="theme-dot timeline__row-dot" style={dotStyle(color)} aria-hidden="true"></span>
-                        {#if row.ghost}
-                          <span class="timeline__row-text">{ghostLabel(row)}</span>
-                        {:else}
-                          <button class="timeline__row-open" disabled={!!row.deleted} onclick={() => openRow(row)}>
-                            {rowTitle(row)}
-                          </button>
-                          <!-- A repeating task folded into one row (the same
-                               chore, written once per occurrence). The count
-                               sits beside the title and not inside the button:
-                               it is a fact about the row, not part of what is
-                               opened. -->
-                          {#if row.count > 1}
-                            <span class="timeline__row-count" title={S.timelineOccurrences(row.count)}>
-                              {S.timelineTimes(row.count)}
-                            </span>
-                          {/if}
-                          {#if !readOnly}
-                            <Menu items={rowMenu(row)}>
-                              {#snippet trigger({ toggle })}
-                                <button
-                                  class="theme-btn--icon timeline__row-menu"
-                                  onclick={toggle}
-                                  aria-label={S.timelineOptions}
-                                  title={S.timelineOptions}
-                                >
-                                  <Icon name="dots-three" size="1rem" />
-                                </button>
-                              {/snippet}
-                            </Menu>
-                          {/if}
-                        {/if}
-                      </li>
-                    {/each}
-                  </ul>
-                </div>
-              </li>
-            {/each}
-          </ul>
+          <TimelineLines
+            groups={month}
+            prefix={month.key}
+            {open}
+            onToggle={toggle}
+            {readOnly}
+            {origin}
+            {colors}
+            {ghostTitles}
+            {onOpenTask}
+            {onOpenNote}
+            onForget={forget}
+          />
         </li>
       {/each}
     </ol>

@@ -164,8 +164,7 @@ fn a_second_tasks_space_feeds_lists_counts_and_suggestions() {
     // lists in different spaces never get confused, being addressed by
     // full path. (2026-08-11: a tasks space is one list, named after its
     // folder; the fixed one is `Tasks/Tasks.md`.)
-    use jott_core::state::Period;
-
+    
     let (dir, nb) = notebook();
     nb.create_space("Project A", "tasks").unwrap();
 
@@ -188,14 +187,14 @@ fn a_second_tasks_space_feeds_lists_counts_and_suggestions() {
     assert_eq!(counts.get("Project A/task-list.md"), Some(&1));
 
     // The day suggests from both folders.
-    let suggestions = nb.suggestions_for(Period::Day).unwrap();
+    let suggestions = nb.suggestions_for(None).unwrap();
     let texts: Vec<&str> = suggestions.iter().map(|s| s.task.text.as_str()).collect();
     assert!(texts.contains(&"tarefa do projeto"));
     assert!(texts.contains(&"tarefa pessoal"));
 
     // Completing in the project keeps everything inside the project's folder.
     let id = nb.ensure_task_id("Project A/task-list.md", 0).unwrap();
-    nb.pull_into(Period::Day, "Project A/task-list.md", &id).unwrap();
+    nb.pull_into_day(None, "Project A/task-list.md", &id).unwrap();
     nb.complete_task("Project A/task-list.md", &id).unwrap();
 
     let completed =
@@ -682,15 +681,15 @@ fn moving_a_space_between_groups_keeps_its_pulled_tasks() {
     let list = "Acme/task-list.md";
     nb.create_task(list, "call the client").unwrap();
     let id = nb.ensure_task_id(list, 0).unwrap();
-    nb.pull_into(jott_core::Period::Day, list, &id).unwrap();
+    nb.pull_into_day(None, list, &id).unwrap();
 
     nb.move_space("Acme", Some("Design")).unwrap();
 
     let moved = "Design/Acme/task-list.md";
     assert!(dir.path().join(moved).is_file());
-    let state = nb.open_state(jott_core::Period::Day).unwrap();
+    let state = nb.open_state().unwrap();
     assert!(state.state.contains(moved, &id), "{:?}", state.state);
-    assert_eq!(nb.period_tasks(jott_core::Period::Day).unwrap().len(), 1);
+    assert_eq!(nb.day_tasks(None).unwrap().len(), 1);
 }
 
 #[test]

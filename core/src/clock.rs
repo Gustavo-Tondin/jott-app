@@ -1,4 +1,4 @@
-//! Logical day and week.
+//! The logical day.
 //!
 //! The turn of the day is a user preference, not midnight: someone who plans
 //! tomorrow before going to bed wants it at 22:00, someone who works late
@@ -11,7 +11,7 @@
 //! ignores the configured turn, and the bug only shows up in the hours around
 //! midnight — exactly when nobody is testing.
 
-use chrono::{DateTime, Datelike, Duration, Local, NaiveDate, NaiveDateTime, TimeZone};
+use chrono::{DateTime, Duration, Local, NaiveDate, NaiveDateTime, TimeZone};
 
 /// Offset of the period turn from midnight, in minutes.
 ///
@@ -75,7 +75,9 @@ impl TurnOffset {
     }
 }
 
-/// Which weekday opens the week.
+/// Which weekday opens the week — what the Home's calendar strip starts on.
+/// A display preference since the week stopped being a period (2026-09-04);
+/// it lives here because the config and the settings both spell it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum WeekStart {
     #[default]
@@ -98,13 +100,6 @@ impl WeekStart {
         }
     }
 
-    /// How many days `date` is into its week.
-    fn days_since_start(self, date: NaiveDate) -> u32 {
-        match self {
-            Self::Monday => date.weekday().num_days_from_monday(),
-            Self::Sunday => date.weekday().num_days_from_sunday(),
-        }
-    }
 }
 
 /// The logical day containing `now`.
@@ -113,20 +108,6 @@ impl WeekStart {
 /// suite happens to run.
 pub fn logical_date_at(now: DateTime<Local>, offset: TurnOffset) -> NaiveDate {
     shift(now.naive_local(), offset).date()
-}
-
-/// First day of the logical week containing `now`.
-pub fn logical_week_start_at(
-    now: DateTime<Local>,
-    offset: TurnOffset,
-    starts_on: WeekStart,
-) -> NaiveDate {
-    week_start_of(logical_date_at(now, offset), starts_on)
-}
-
-/// First day of the week containing `date`.
-fn week_start_of(date: NaiveDate, starts_on: WeekStart) -> NaiveDate {
-    date - Duration::days(starts_on.days_since_start(date) as i64)
 }
 
 /// Today's logical date, by the system clock.
@@ -158,23 +139,13 @@ pub fn civil_date_of(time: std::time::SystemTime) -> NaiveDate {
     DateTime::<Local>::from(time).date_naive()
 }
 
-/// This logical week's first day, by the system clock.
-pub fn this_week(offset: TurnOffset, starts_on: WeekStart) -> NaiveDate {
-    logical_week_start_at(Local::now(), offset, starts_on)
-}
-
 /// When the next daily turn happens, from the system clock.
 ///
-/// The `_at` variants take the instant for the tests; these two exist so no
+/// The `_at` variant takes the instant for the tests; this one exists so no
 /// caller outside this module ever needs `Local::now()` — which is the whole
 /// invariant (see `core/tests/invariants.rs`).
 pub fn next_daily_turn(offset: TurnOffset) -> DateTime<Local> {
     next_daily_turn_at(Local::now(), offset)
-}
-
-/// When the next weekly turn happens, from the system clock.
-pub fn next_weekly_turn(offset: TurnOffset, starts_on: WeekStart) -> DateTime<Local> {
-    next_weekly_turn_at(Local::now(), offset, starts_on)
 }
 
 /// When the next daily turn happens, so a running app can schedule a timer
@@ -182,16 +153,6 @@ pub fn next_weekly_turn(offset: TurnOffset, starts_on: WeekStart) -> DateTime<Lo
 pub fn next_daily_turn_at(now: DateTime<Local>, offset: TurnOffset) -> DateTime<Local> {
     let next_day = logical_date_at(now, offset) + Duration::days(1);
     to_local(unshift(next_day, offset))
-}
-
-/// When the next weekly turn happens.
-pub fn next_weekly_turn_at(
-    now: DateTime<Local>,
-    offset: TurnOffset,
-    starts_on: WeekStart,
-) -> DateTime<Local> {
-    let next_week = logical_week_start_at(now, offset, starts_on) + Duration::days(7);
-    to_local(unshift(next_week, offset))
 }
 
 /// Wall clock → logical timeline.
@@ -316,33 +277,6 @@ mod tests {
     }
 
     #[test]
-    fn week_starts_on_the_configured_weekday() {
-        // 2026-07-20 is a Monday.
-        let monday = ymd(2026, 7, 20);
-        assert_eq!(week_start_of(monday, WeekStart::Monday), monday);
-        assert_eq!(week_start_of(monday, WeekStart::Sunday), ymd(2026, 7, 19));
-
-        let saturday = ymd(2026, 7, 25);
-        assert_eq!(week_start_of(saturday, WeekStart::Monday), monday);
-        assert_eq!(week_start_of(saturday, WeekStart::Sunday), ymd(2026, 7, 19));
-
-        let sunday = ymd(2026, 7, 26);
-        assert_eq!(week_start_of(sunday, WeekStart::Monday), monday);
-        assert_eq!(week_start_of(sunday, WeekStart::Sunday), sunday);
-    }
-
-    #[test]
-    fn week_start_respects_the_daily_offset() {
-        // Sunday 22:00 with at = -02:00 already belongs to Monday's week.
-        let offset = TurnOffset::from_minutes(-120);
-        let now = at((2026, 7, 19), (22, 0));
-        assert_eq!(
-            logical_week_start_at(now, offset, WeekStart::Monday),
-            ymd(2026, 7, 20)
-        );
-    }
-
-    #[test]
     fn parses_week_start_tolerantly() {
         assert_eq!(WeekStart::parse_or_default("sunday"), WeekStart::Sunday);
         assert_eq!(WeekStart::parse_or_default("SUNDAY"), WeekStart::Sunday);
@@ -361,19 +295,6 @@ mod tests {
         assert_eq!(
             logical_date_at(next, offset),
             logical_date_at(now, offset) + Duration::days(1)
-        );
-    }
-
-    #[test]
-    fn next_weekly_turn_opens_the_following_week() {
-        let offset = TurnOffset::MIDNIGHT;
-        let now = at((2026, 7, 22), (10, 0));
-        let next = next_weekly_turn_at(now, offset, WeekStart::Monday);
-
-        assert!(next > now);
-        assert_eq!(
-            logical_week_start_at(next, offset, WeekStart::Monday),
-            ymd(2026, 7, 27)
         );
     }
 

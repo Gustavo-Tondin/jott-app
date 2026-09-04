@@ -92,7 +92,7 @@ impl AppState {
     /// The exceptions are deliberate, and each has its own history or none:
     /// `write_note` (the editor's), `set_task_fields`/`ensure_task_id` (the
     /// inspector's), the asset commands (binaries are not recorded) and
-    /// `refresh_periods` (the clock's, not the user's).
+    /// `refresh_day` (the clock's, not the user's).
     pub fn record<T>(
         &self,
         window: &str,

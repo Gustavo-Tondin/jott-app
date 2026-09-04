@@ -251,8 +251,7 @@ impl Display {
 pub struct NotebookSettings {
     pub daily_mode: Option<String>,
     pub daily_at: Option<String>,
-    pub weekly_mode: Option<String>,
-    pub weekly_at: Option<String>,
+    /// `monday` / `sunday` — what the Home's calendar strip starts on.
     pub week_starts_on: Option<String>,
     pub restore_last_screen: Option<bool>,
     pub show_list_counts: Option<bool>,
@@ -296,8 +295,9 @@ pub struct NotebookSettings {
     pub close_inspector_on_click_away: Option<bool>,
     pub quick_note_folder: Option<String>,
     pub quick_task_list: Option<String>,
-    pub home_tasks_source: Option<String>,
-    pub home_notes_source: Option<String>,
+    /// Whether the fixed Tasks screen shows every list, arranged by space,
+    /// instead of the Inbox alone (2026-09-04).
+    pub tasks_show_all: Option<bool>,
     /// The board layout of a notes space that never chose one (`grid` /
     /// `tree`); empty goes back to the app's own.
     pub note_layout: Option<String>,
@@ -323,9 +323,7 @@ impl NotebookSettings {
         Self {
             daily_mode: Some(rollover.daily.mode.render().to_string()),
             daily_at: Some(rollover.daily.at.render()),
-            weekly_mode: Some(rollover.weekly.mode.render().to_string()),
-            weekly_at: Some(rollover.weekly.at.render()),
-            week_starts_on: Some(rollover.weekly.starts_on.render().to_string()),
+            week_starts_on: Some(config.week_starts_on.render().to_string()),
             restore_last_screen: Some(display.restore_last_screen),
             show_list_counts: Some(display.show_list_counts),
             dated_tasks_join_period: Some(config.dated_tasks_join_period),
@@ -351,8 +349,7 @@ impl NotebookSettings {
             close_inspector_on_click_away: Some(display.close_inspector_on_click_away),
             quick_note_folder: Some(config.quick_note_folder.clone()),
             quick_task_list: Some(config.quick_task_list.clone()),
-            home_tasks_source: Some(config.home_tasks_source.clone()),
-            home_notes_source: Some(config.home_notes_source.clone()),
+            tasks_show_all: Some(config.tasks_show_all),
             note_layout: Some(config.note_layout.clone()),
             table_layout: Some(config.table_layout.clone()),
             completed_retention_days: Some(config.completed_retention_days),
@@ -374,14 +371,8 @@ impl NotebookSettings {
         if let Some(v) = &self.daily_at {
             r.daily.at = TurnOffset::parse_or_default(v);
         }
-        if let Some(v) = &self.weekly_mode {
-            r.weekly.mode = RolloverMode::parse_or_default(v);
-        }
-        if let Some(v) = &self.weekly_at {
-            r.weekly.at = TurnOffset::parse_or_default(v);
-        }
         if let Some(v) = &self.week_starts_on {
-            r.weekly.starts_on = WeekStart::parse_or_default(v);
+            config.week_starts_on = WeekStart::parse_or_default(v);
         }
         if let Some(v) = self.restore_last_screen {
             config.restore_last_screen = v;
@@ -472,11 +463,8 @@ impl NotebookSettings {
         if let Some(v) = &self.quick_task_list {
             config.quick_task_list = v.trim().to_string();
         }
-        if let Some(v) = &self.home_tasks_source {
-            config.home_tasks_source = v.trim().to_string();
-        }
-        if let Some(v) = &self.home_notes_source {
-            config.home_notes_source = v.trim().to_string();
+        if let Some(v) = self.tasks_show_all {
+            config.tasks_show_all = v;
         }
         // Not validated, like the looks above: the layouts are the
         // interface's list, and a name this build does not know round-trips.
@@ -514,19 +502,19 @@ pub fn reset_section(config: &mut Config, section: &str) -> bool {
     match section {
         "dates" => {
             config.rollover = d.rollover;
+            config.week_starts_on = d.week_starts_on;
             config.dated_tasks_join_period = d.dated_tasks_join_period;
         }
         "notebook" => {
             config.quick_note_folder = d.quick_note_folder;
             config.quick_task_list = d.quick_task_list;
-            config.home_tasks_source = d.home_tasks_source;
-            config.home_notes_source = d.home_notes_source;
             config.confirm_deletes = d.confirm_deletes;
             config.completed_retention_days = d.completed_retention_days;
             config.trash_retention_days = d.trash_retention_days;
         }
         "tasks" => {
             config.auto_urgent_by_date = d.auto_urgent_by_date;
+            config.tasks_show_all = d.tasks_show_all;
             config.auto_remind = d.auto_remind;
             config.reminder_time = d.reminder_time;
             config.new_tasks_on_top = d.new_tasks_on_top;
@@ -627,7 +615,7 @@ mod tests {
             .apply_to(&mut config);
 
         assert_eq!(config.rollover.daily.mode, RolloverMode::default());
-        assert_eq!(config.rollover.weekly.starts_on, WeekStart::default());
+        assert_eq!(config.week_starts_on, WeekStart::default());
     }
 
     #[test]

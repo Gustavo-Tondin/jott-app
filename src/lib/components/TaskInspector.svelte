@@ -350,8 +350,8 @@
   const myDay = () =>
     onTask((task) =>
       inDay
-        ? api.removeFrom("day", task.list, task.id)
-        : api.pullInto("day", task.list, task.id),
+        ? api.removeFrom(null, task.list, task.id)
+        : api.pullInto(null, task.list, task.id),
     );
 
   /// The footer's list picker: move this task to another list. On success the
@@ -421,7 +421,7 @@
       </button>
       <span class="inspector__gap"></span>
     {/if}
-    {#if f("myDay")}
+    {#if f("homeSpace")}
     <button
       class="theme-btn theme-btn--icon inspector__myday"
       class:inspector__myday--on={inDay}

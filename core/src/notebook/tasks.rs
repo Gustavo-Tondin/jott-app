@@ -125,9 +125,9 @@ impl Notebook {
         target.save()?;
         source.save()?;
 
-        // Today and This Week reference the *task*, not the place: it stays
+        // Today and the plan reference the *task*, not the place: it stays
         // pulled wherever it goes, including into the folder's Completed —
-        // which is what puts a ticked task in the period's "Completed N"
+        // which is what puts a ticked task in the day's "Completed N"
         // section instead of making it vanish (2026-08-06).
         if let Some(settled) = settled {
             self.update_states(|state| state.repoint(from, id, to, &settled))?;
@@ -343,6 +343,46 @@ impl Notebook {
         // A completed task ages by its `created` like any other (spec 3.6):
         // it leaves the sweep, not the calendar.
         self.stamp_tasks(out.iter_mut().map(|listed| &mut listed.task));
+        Ok(out)
+    }
+
+    /// Every open task of the notebook, arranged by space — what the fixed
+    /// Tasks screen shows when asked for every list instead of the Inbox
+    /// alone (`Config::tasks_show_all`, 2026-09-04).
+    ///
+    /// The order is the sidebar's twice over: the fixed Tasks space first,
+    /// then the user's spaces in the order they were arranged there, and
+    /// inside a space its lists in the order they have there. Flat — the card wears its space as the
+    /// origin bar, which is how a task is told apart from its neighbour
+    /// everywhere outside its own space. Walks every list: ask when the
+    /// screen opens, never per render.
+    pub fn all_tasks(&self) -> Result<Vec<ListedTask>> {
+        let mut rank: std::collections::HashMap<String, usize> = self
+            .spaces()?
+            .iter()
+            .enumerate()
+            .map(|(rank, sp)| (crate::relpath::relative_slash(&self.root, sp.root()), rank + 1))
+            .collect();
+        rank.insert(crate::TASKS_DIR.to_string(), 0);
+        let mut lists = self.lists()?;
+        // Stable: inside one space the order `lists()` gave stays.
+        lists.sort_by_key(|entry| rank.get(list_dir_of(&entry.path)).copied().unwrap_or(usize::MAX));
+
+        let mut out = Vec::new();
+        for entry in lists {
+            if entry.name == COMPLETED_LIST {
+                continue;
+            }
+            for task in self.tasks_in(&entry.path)? {
+                if task.done {
+                    continue;
+                }
+                out.push(ListedTask {
+                    path: entry.path.clone(),
+                    task,
+                });
+            }
+        }
         Ok(out)
     }
 

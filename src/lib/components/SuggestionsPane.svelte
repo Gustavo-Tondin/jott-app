@@ -1,6 +1,7 @@
 <script>
-  // Suggestions, in the right-hand panel — what could still be pulled into the
-  // day or the week, grouped by why it is being offered.
+  // Suggestions, in the right-hand panel — what could still be pulled into a
+  // day (today, or one ahead on the Home's calendar), grouped by why it is
+  // being offered.
   //
   // It was a popover hanging off the pill until 2026-08-06 (user call): a list
   // this long, that you read through and act on several times in a row, wants
@@ -10,20 +11,20 @@
   // scrolling middle, and nothing else.
   //
   // It loads its own suggestions. The alternative was threading them down from
-  // whichever screen opened it, and the panel outlives that screen: switching
-  // from Today to Week underneath must not leave a stale list here.
+  // whichever screen opened it, and the panel outlives that screen: picking
+  // another day underneath must not leave a stale list here.
   import { api } from "../services/api.js";
   import { S } from "../services/strings.js";
   import { listName, listLabel } from "../services/paths.js";
   import { dotStyle } from "../services/accent.js";
-  import { formatDate } from "../services/dates.js";
+  import { formatDate, formatDayMonth } from "../services/dates.js";
   import { ensureTaskId } from "../services/taskId.js";
   import { makeScreen } from "../services/act.js";
   import Icon from "./Icon.svelte";
 
   let {
-    /// `"day"` or `"week"` — which period these would be pulled into.
-    period,
+    /// The ISO day these would be pulled into, or null for today.
+    day = null,
     dateFormat = "mm/dd/yyyy",
     reloadKey = 0,
     /// `(key) => boolean` — is this part of the app switched on?
@@ -45,24 +46,24 @@
   let suggestions = $state([]);
 
   $effect(() => {
-    period;
+    day;
     reloadKey;
     load();
   });
 
   const { load, act } = makeScreen({
-    read: () => api.groupedSuggestions(period),
+    read: () => api.groupedSuggestions(day),
     apply: (read) => (suggestions = read ?? []),
     onChanged: () => onChanged?.(),
     onError: (e) => onError?.(e),
   });
 
   // A suggestion may have no id yet — ids are handed out only when a task
-  // needs to be addressed, and pulling it into a period is exactly that.
+  // needs to be addressed, and pulling it into a day is exactly that.
   const pull = (list, task) =>
     act(async () => {
       const id = await ensureTaskId(list, task);
-      await api.pullInto(period, list, id);
+      await api.pullInto(day, list, id);
     });
 
   // Why something is being offered — the core's own grouping. "From the lists"
@@ -71,9 +72,8 @@
   const REASONS = [
     { key: "urgent", label: S.groupUrgent },
     { key: "soon", label: S.groupSoon },
-    { key: "thisWeek", label: S.groupThisWeek },
-    // What was in the period and left it (2026-08-17) — after the week's own
-    // choices, because this is a way back to an old decision, not a live one.
+    // What was in today and left it (2026-08-17): a way back to an old
+    // decision.
     { key: "recent", label: S.groupRecent },
   ];
 
@@ -122,7 +122,9 @@
     collapsed = next;
   }
 
-  let title = $derived(period === "week" ? S.suggestionsForWeek : S.suggestionsForDay);
+  let title = $derived(
+    day ? S.suggestionsFor(formatDayMonth(day, dateFormat)) : S.suggestionsForDay,
+  );
 </script>
 
 <!-- One section, whichever kind: a heading that folds it away, and the rows. -->

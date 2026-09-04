@@ -67,8 +67,14 @@
     /// and paints nothing, so the screen below scrolls UNDER it and leaves the
     /// buttons floating on their own pills (wireframes "Editor screen",
     /// 2026-08-19). An open note is the only screen that asks — every other
-    /// one has a header of its own that belongs above the canvas.
+    /// one has a header of its own that belongs above the canvas — and the
+    /// Home (2026-09-04), whose head is the chrome the page scrolls away.
     over = false,
+    /// Which ground the bar's buttons sit on: the chrome, or — once the
+    /// Home's head has scrolled away under it — the canvas (wireframe "Home
+    /// Screen Mobile - Scrolled Down"). The controls read the region's own
+    /// surface and ink, so the flip is one attribute.
+    region = "chrome",
   } = $props();
 </script>
 
@@ -77,7 +83,7 @@
 <header
   class="topbar"
   class:topbar--over={over}
-  data-region="chrome"
+  data-region={region}
   data-tauri-drag-region
 >
   <!-- THE WINDOW'S BUTTONS ARE NOT PART OF THE SPREAD (user call, 2026-08-18).

@@ -62,9 +62,13 @@ what the current version is.
 - **Ctrl+drag** a task card onto a list in the sidebar to move it there, or
   onto Home to pull it into the day; the same gesture moves a note into
   another notepad.
-- **Today** and **Week**: you pull in what you want to face, instead of
-  staring at the whole list. Suggestions are ordered by urgency, never
-  auto-selected — unless you turn on "dated tasks join the day".
+- **The Home is the day**: a week of days across the top, today lit. You
+  pull in what you want to face today instead of staring at the whole
+  list; pick a day ahead and plan it the same way (a dated task shows on
+  its day on its own); pick a day gone by and read what happened on it.
+  Suggestions are ordered by urgency, never auto-selected.
+- The Tasks screen is the Inbox — or, if you ask in Settings, every list
+  of every space on one screen, each card in its space's colour.
 - Due dates, priorities, tags, repetition, descriptions, subtasks and file
   attachments; completed tasks kept in their own file, restorable.
 - A task shown outside its space — on Today, in a search, in Completed —
@@ -79,7 +83,7 @@ what the current version is.
   desktop Jott waits in the tray after the window closes (and can start with
   the session), on Android the alarm is the system's and rings with the app
   closed.
-- A day/week rollover you configure, down to the hour.
+- A day rollover you configure, down to the hour.
 
 **Notes**
 - A masonry card board, with folders as cards; or a plain board with every
@@ -178,7 +182,7 @@ One product decision remains, then it is proving things on hardware.
 
 | | |
 |---|---|
-| **The time axis** — a weekly sweep of what you have not looked at in a while, and the age of things on screen | decided 2026-08-25; the Timeline shipped first (v0.48.0). Every task and note carries its creation date, every task an id, and a last-seen record for notes lives in `.jott/index/` (regenerable — losing it loses nothing you wrote). Next: a calendar of activity on the Home, sorting by age, then the sweep |
+| **The time axis** — a weekly sweep of what you have not looked at in a while, and the age of things on screen | decided 2026-08-25; the Timeline shipped first (v0.48.0). Every task and note carries its creation date, every task an id, and a last-seen record for notes lives in `.jott/index/` (regenerable — losing it loses nothing you wrote). The Home became a calendar (v0.50.0). Next: sorting by age, then the sweep |
 | Android on real hardware | the build installs and runs, and has been used on one physical phone — everything since has been the emulator |
 | Clicking through what only tests have seen | app-level undo/redo, the mouse back button, the light and dark themes |
 

@@ -442,15 +442,15 @@ describe("TaskInspector", () => {
   });
 
   test("the sun sends the task to My Day", async () => {
-    bridge({ pull_into_period: true, set_task_fields: null });
+    bridge({ pull_into_day: true, set_task_fields: null });
 
     render(TaskInspector, { props: props(task("a1", "Comprar leite")) });
 
     await userEvent.click(await screen.findByLabelText("Send to My Day"));
 
     await waitFor(() =>
-      expect(invoke).toHaveBeenCalledWith("pull_into_period", {
-        period: "day",
+      expect(invoke).toHaveBeenCalledWith("pull_into_day", {
+        day: null,
         list: "jott.tasks/Compras.md",
         id: "a1",
       }),

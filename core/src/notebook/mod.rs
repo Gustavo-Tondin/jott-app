@@ -6,8 +6,8 @@
 //! MyNotebook/
 //! ├── .jott/
 //! │   ├── config.json
-//! │   ├── daily-state.json
-//! │   └── weekly-state.json
+//! │   ├── daily-state.json  ← today, as references (state.rs)
+//! │   └── plan.json         ← the days ahead, as references (plan.rs)
 //! ├── jott.home/            ← fixed space, type `home` (views only)
 //! │   └── .space.json
 //! ├── jott.tasks/           ← fixed space, type `tasks`
@@ -75,12 +75,8 @@ pub enum SuggestionGroup {
     Urgent,
     /// Due in the next few days.
     Soon,
-    /// Already chosen for this week (only offered to the day).
-    ThisWeek,
-    /// Was in Today or This Week and left — taken out by hand, or dropped when
-    /// the period turned (2026-08-17). Below `ThisWeek` on purpose: what the
-    /// user chose for the week is a live decision, this one is a way back to
-    /// an old one.
+    /// Was in Today and left — taken out by hand, or dropped when the day
+    /// turned (2026-08-17). A way back to an old decision.
     Recent,
     /// Everything else, in the order the lists have it.
     Lists,
@@ -261,7 +257,8 @@ pub use library::{NotebookContents, NotebookSummary};
 mod lists;
 mod notes;
 pub use notes::NoteFolderEntry;
-mod period;
+mod day;
+pub use day::Day;
 mod reminders;
 mod search;
 mod seen;
@@ -308,6 +305,13 @@ impl Notebook {
             // with; nothing is kept at the notebook root.
             notebook.ensure_fixed_spaces()?;
             notebook.write_format_guide()?;
+            // The week stopped being a period on 2026-09-04; the file it
+            // kept is not read by anything and goes on open (user call).
+            let _ = std::fs::remove_file(
+                notebook
+                    .config_dir()
+                    .join(crate::state::LEGACY_WEEKLY_STATE_FILE),
+            );
             // Every task gets a creation date and an id (the time axis, 3.6).
             // Derived like the ones below: a list that will not take the
             // stamp must not keep the notebook from opening.

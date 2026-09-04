@@ -1,15 +1,17 @@
 <script>
   // The `tasks` source — the one block of tasks this app draws, anywhere it
-  // draws tasks: inside a space, as the Home's "Today tasks", and as each
-  // tab of the fixed Tasks screen.
+  // draws tasks: inside a space, as the Home's "Today tasks" (and any day
+  // the calendar has open), and as the fixed Tasks screen.
   //
   // Three props are what let the fixed screens host it instead of copying it
   // (2026-08-06):
   //
-  //   • `period`  — the source. Without it the source shows its OWN folder's
+  //   • `day`     — the source. Without it the source shows its OWN folder's
   //                 list (spec 3.5: a tasks source is one list). With it, the
-  //                 source is the Day or the Week, which spans lists, has no
-  //                 arrangement of its own, and offers suggestions.
+  //                 source is a DAY — today (`null`) or one ahead (an ISO
+  //                 day) — which spans lists, has no arrangement of its own,
+  //                 and offers suggestions. `all` is the third source: every
+  //                 open task of the notebook, for the fixed Tasks screen.
   //   • `header`  — whether the titled row is drawn. The Tasks screen has the
   //                 segmented strip above it already saying where you are.
   //   • `compose` — where a new task comes from: the blue button (everywhere
@@ -57,9 +59,13 @@
     reloadKey = 0,
     selectedTask = null,
     onSelectTask,
-    /// `"day"` / `"week"` — the source is the period state instead of the
-    /// source's own folder.
-    period = null,
+    /// The source is a day instead of the source's own folder: `null` is
+    /// today, an ISO day is one ahead. Left `undefined`, the folder answers.
+    day = undefined,
+    /// Every open task of the notebook, arranged by space (the fixed Tasks
+    /// screen's `tasksShowAll`, 2026-09-04). Read-only as an arrangement:
+    /// nothing is dragged across lists, and the sort is the space's own.
+    all = false,
     /// Whether to draw the titled header (title + New task + ⋮).
     header = true,
     /// Where the title sits on that row: `"start"` (a block inside a screen
@@ -75,9 +81,8 @@
     /// no colour of its own, which draws the dot in the app's accent.
     dot = undefined,
     /// Controls the HOST wants on the source's top row, between the title and
-    /// the ⋮ — the Tasks screen's Index/Today/Week strip and week span. They
-    /// go in the row rather than above it so the ⋮ stays at the far right of
-    /// the same line (user call, 2026-08-06).
+    /// the ⋮. They go in the row rather than above it so the ⋮ stays at the
+    /// far right of the same line (user call, 2026-08-06).
     toolbar,
     /// `"button"` (the blue New task), `"bar"` (the pinned composer) or
     /// `"none"` — the Home, where the capture box above the block is where
@@ -92,20 +97,27 @@
     /// as its `onDismiss`; the permanent bars leave it unset.
     composeDismiss = null,
     /// Where a composed task goes by default when the source has no list of
-    /// its own — the notebook's Inbox, for a period source.
+    /// its own — the notebook's Inbox, for a day.
     defaultList = null,
     // Persist the source's arrangement in its `.space.json` (the host binds
     // these to the source's folder; the source only reports).
     onSetSort,
     onSetOrder,
-    /// Asks the shell to show this period's suggestions in the right panel.
+    /// Asks the shell to show this day's suggestions in the right panel.
     onSuggest,
+    /// `({open, done}) => void` — how many the source holds, each time it is
+    /// read. The Home's head counts the day off it (2026-09-04) instead of
+    /// reading the day a second time.
+    onLoaded,
     onChanged,
     onError,
   } = $props();
 
+  /// Whether the source is a day at all — `null` is a day too (today).
+  let isDay = $derived(day !== undefined);
+
   // The source's own list, and the Completed file beside it. Both null for a
-  // period source, which owns no folder.
+  // day, which owns no folder.
   let paths = $derived(taskSpacePaths(source, lists, completedName));
 
 
@@ -113,44 +125,47 @@
   /// app's accent) to answer.
   let dotStyle = $derived(dotStyleOf(dot));
 
-  // Everything below works in ENTRIES — `{ task, list }` — because a period
+  // Everything below works in ENTRIES — `{ task, list }` — because a day
   // draws tasks from several lists at once and each card has to know which
   // file it came from. A folder source simply stamps its own two paths on.
   let open = $state([]);
   let done = $state([]);
   let showCompleted = $state(false);
-  /// A period's arrangement: it has no `.space.json`, so the notebook keeps it
+  /// A day's arrangement: it has no `.space.json`, so the notebook keeps it
   /// (2026-08-06) and the source reads it with the tasks.
-  let periodSort = $state(null);
+  let daySort = $state(null);
 
   $effect(() => {
     reloadKey;
-    period;
+    day;
+    all;
     paths.list;
     load();
   });
 
   const asEntry = (listed) => ({ task: listed.task, list: listed.path });
 
-  // The sun marks a card that is in today — but not on a screen that IS the
-  // day or the week, where it would be true of everything (user call).
+  // The sun marks a card that is in today — but not on a screen that IS a
+  // day, where it would be true of everything (user call).
   const inDay = (entry) =>
-    !period && !!entry.task.id && !!dayRefs?.has(`${entry.list}#${entry.task.id}`);
+    !isDay && !!entry.task.id && !!dayRefs?.has(`${entry.list}#${entry.task.id}`);
 
   async function read() {
-    if (period) {
-      // A completed task keeps its period reference and follows the task
-      // into the folder's Completed (2026-08-06), so one call answers both
+    if (isDay) {
+      // A completed task keeps its day reference and follows the task into
+      // the folder's Completed (2026-08-06), so one call answers both
       // halves of the screen — split by the checkbox.
-      const [entries, chosen] = await Promise.all([
-        api.periodTasks(period),
-        api.periodSort(period),
-      ]);
+      const [entries, chosen] = await Promise.all([api.dayTasks(day), api.daySort()]);
       return {
         open: (entries ?? []).filter((e) => !e.task.done).map(asEntry),
         done: (entries ?? []).filter((e) => e.task.done).map(asEntry),
         sort: chosen ?? null,
       };
+    }
+    if (all) {
+      // Every open task, already arranged by space; nothing done — the
+      // Completed screen is where finished work is read.
+      return { open: ((await api.allTasks()) ?? []).map(asEntry), done: [] };
     }
     if (!paths.list) return { open: [], done: [] };
     const [todo, finished] = await Promise.all([
@@ -168,9 +183,10 @@
     apply: (r) => {
       open = r.open;
       done = r.done;
-      // Only a period carries an arrangement of its own; a space's sort
+      // Only a day carries an arrangement of its own; a space's sort
       // lives in its `.space.json` and arrives with the source.
-      if (r.sort !== undefined) periodSort = r.sort;
+      if (r.sort !== undefined) daySort = r.sort;
+      onLoaded?.({ open: r.open.length, done: r.done.length });
     },
     onChanged: () => onChanged?.(),
     onError: (e) => onError?.(e),
@@ -179,8 +195,8 @@
 
   // ---- arrangement (Etapa 1) ----
   // Same shape whatever the source; only where the preference is kept differs.
-  // A period's "file order" is the order things were pulled in — the state
-  // file's own — and dragging rewrites exactly that, so a period never needs
+  // A day's "file order" is the order things were pulled in — the day's
+  // file's own — and dragging rewrites exactly that, so a day never needs
   // the `custom` ordering the folder source keeps in its `.space.json`.
   const accessors = {
     nameOf: (entry) => entry.task.text,
@@ -190,24 +206,26 @@
   };
   const isPinned = (entry) => !!entry.task.pinned;
 
-  let sort = $derived(period ? periodSort : (source.sort ?? null));
-  let order = $derived(period ? [] : (source.order ?? []));
+  let sort = $derived(isDay ? daySort : (source.sort ?? null));
+  let order = $derived(isDay || all ? [] : (source.order ?? []));
 
   // Pinning outranks the sort: whatever ordering is on, a pinned card is at
   // the top, with a divider under the last one.
   let shown = $derived(pinnedFirst(arrange(open, sort, order, accessors), isPinned));
   let shownCompleted = $derived(arrange(done, sort, order, accessors));
 
-  // A period has no `.space.json` and no folder, so it offers neither an
+  // A day has no `.space.json` and no folder, so it offers neither an
   // arrangement nor a move — `spaceMenu` leaves out what it is not given.
   let sortMenu = $derived(
     spaceMenu({
       lead: [{ label: S.selectTasks, run: () => (picking = true), disabled: readOnly }],
-      // `custom` is the folder source's saved arrangement; a period has none,
-      // because dragging it rewrites the state file itself.
-      sorts: period
-        ? [null, "name", "created", "completed"]
-        : [null, "name", "created", "completed", "custom"],
+      // `custom` is the folder source's saved arrangement; a day has none,
+      // because dragging it rewrites the day's file itself — and "every
+      // list" has none either, since nothing is dragged across lists.
+      sorts:
+        isDay || all
+          ? [null, "name", "created", "completed"]
+          : [null, "name", "created", "completed", "custom"],
       sort,
       hasOrder: order.length > 0,
       onSetSort: setSort,
@@ -216,11 +234,15 @@
 
   // ---- composing ----
   // Every list a task may be written into. A source with a list of its own
-  // opens the chip on it; a period opens it on the notebook's Inbox.
+  // opens the chip on it; a day opens it on the notebook's Inbox.
   let composeTargets = $derived(lists.filter((entry) => entry.name !== completedName));
   let composeList = $derived(paths.list ?? defaultList ?? null);
 
-  const write = (intent) => act(() => composeTask(intent, { period }));
+  /// What `composeTask` is told: a day joins the fresh task to itself,
+  /// anything else leaves it in its list.
+  let joining = $derived(isDay ? { into: day } : {});
+
+  const write = (intent) => act(() => composeTask(intent, joining));
 
   const newTask = () =>
     act(async () => {
@@ -231,7 +253,7 @@
         f,
       });
       if (!intent) return;
-      await composeTask(intent, { period });
+      await composeTask(intent, joining);
     });
 
   // ---- bulk selection (the ⋮'s "Select tasks…") ----
@@ -314,13 +336,12 @@
     });
   };
 
-  const setSort = (next) =>
-    period ? act(() => api.setPeriodSort(period, next)) : onSetSort?.(next);
+  const setSort = (next) => (isDay ? act(() => api.setDaySort(next)) : onSetSort?.(next));
 
-  // Dragging a period rewrites the state file — the day IS that list, so there
+  // Dragging a day rewrites the day's file — the day IS that list, so there
   // is nothing to mirror and nothing to fall out of step. Whatever sort was on
   // goes back to the pulled order, because that order is now what was built.
-  function reorderPeriod(from, to) {
+  function reorderDay(from, to) {
     const { next } = planReorder(shown, from, to, isPinned);
     return act(async () => {
       const refs = next
@@ -330,13 +351,13 @@
       for (const entry of shownCompleted) {
         if (entry.task.id) refs.push({ path: entry.list, id: entry.task.id });
       }
-      if (periodSort) await api.setPeriodSort(period, null);
-      await api.setPeriodOrder(period, refs);
+      if (daySort) await api.setDaySort(null);
+      await api.setDayOrder(day, refs);
     });
   }
 
   /// The pile dropped: the same two writes `reorderTasks` makes, for a block.
-  function reorderPeriodMany(froms, to) {
+  function reorderDayMany(froms, to) {
     const { next } = planReorderMany(shown, froms, to, isPinned);
     return act(async () => {
       const refs = next
@@ -345,8 +366,8 @@
       for (const entry of shownCompleted) {
         if (entry.task.id) refs.push({ path: entry.list, id: entry.task.id });
       }
-      if (periodSort) await api.setPeriodSort(period, null);
-      await api.setPeriodOrder(period, refs);
+      if (daySort) await api.setDaySort(null);
+      await api.setDayOrder(day, refs);
       exitPicking();
     });
   }
@@ -414,7 +435,7 @@
   const removeCompleted = (list, task) => act(() => api.deleteTask(list, task.id));
 
   // ---- the swipes (2026-08-06) ----
-  // Left deletes; right takes the card out of the period, and only on a screen
+  // Left deletes; right takes the card out of the day, and only on a screen
   // that IS one. No confirmation on the delete: it goes to the notebook's own
   // trash, so it is recoverable — and a dialog on every swipe kills the
   // gesture. The Delete key asks for the same thing (2026-08-18).
@@ -422,15 +443,16 @@
 
   /// What a rightward swipe means for one card: `{ adds, run }`.
   ///
-  /// Derived, not computed once: the same component instance serves Today, the
-  /// Week and a plain list, and a screen that stops being a period has to lose
-  /// the meaning with it.
+  /// Derived, not computed once: the same component instance serves a day
+  /// and a plain list, and a screen that stops being a day has to lose the
+  /// meaning with it.
   ///
-  /// IT GOES BOTH WAYS (user call, 2026-08-20). On a period the gesture takes
+  /// IT GOES BOTH WAYS (user call, 2026-08-20). On a day the gesture takes
   /// the card OUT — that is what the screen is, and there is nowhere to put it
-  /// that it is not already. Anywhere else it is a toggle: a task not in the
-  /// day is sent to it, one already there is taken out. The gesture that could
-  /// only ever remove was half a gesture — the way INTO the day was a menu.
+  /// that it is not already. Anywhere else it is a toggle: a task not in
+  /// today is sent to it, one already there is taken out. The gesture that
+  /// could only ever remove was half a gesture — the way INTO the day was a
+  /// menu.
   ///
   /// `adds` is what the revealed square draws, so the card says which of the
   /// two it is about to do before the finger is lifted.
@@ -450,7 +472,7 @@
           for (const entry of entries) {
             const id = await ensureTaskId(entry.list, entry.task);
             if (toDay) {
-              if (!inDay(entry)) await api.pullInto("day", entry.list, id);
+              if (!inDay(entry)) await api.pullInto(null, entry.list, id);
             } else if (target && target !== entry.list) {
               await api.moveTask(entry.list, id, target);
             }
@@ -461,13 +483,13 @@
     readOnly
       ? null
       : (entry) => {
-          if (period) {
+          if (isDay) {
             return {
               adds: false,
               run: () =>
                 act(async () => {
                   const id = await ensureTaskId(entry.list, entry.task);
-                  await api.removeFrom(period, entry.list, id);
+                  await api.removeFrom(day, entry.list, id);
                 }),
             };
           }
@@ -479,29 +501,29 @@
             run: () =>
               act(async () => {
                 const id = await ensureTaskId(entry.list, entry.task);
-                if (there) await api.removeFrom("day", entry.list, id);
-                else await api.pullInto("day", entry.list, id);
+                if (there) await api.removeFrom(null, entry.list, id);
+                else await api.pullInto(null, entry.list, id);
               }),
           };
         },
   );
 
   // Whether the row under the cards is drawn: it carries the Completed toggle
-  // and, in a period, the Suggestions pill the wireframe puts on that line.
-  let hasCompletedRow = $derived(done.length > 0 || (!!period && shown.length > 0));
+  // and, on a day, the Suggestions pill the wireframe puts on that line.
+  let hasCompletedRow = $derived(done.length > 0 || (isDay && shown.length > 0));
 </script>
 
 <!-- The pill shows up twice (inside the empty card, and on the Completed row),
      so it is a snippet rather than the same six lines written out again. -->
 {#snippet suggestPill()}
-  <button class="theme-chip suggestions-pill" onclick={() => onSuggest?.(period)}>
+  <button class="theme-chip suggestions-pill" onclick={() => onSuggest?.(day)}>
     <span>{S.suggestionsTitle}</span>
     <Icon name="lightbulb" size="1rem" />
   </button>
 {/snippet}
 
 <section class="tasks-space">
-  {#if !period && !source.folder}
+  {#if !isDay && !all && !source.folder}
     <p class="tasks-space__note tasks-space__note--warn">{S.spaceNoLists}</p>
   {:else}
     <!-- The header row is ALWAYS drawn, because the ⋮ belongs in the top right
@@ -566,10 +588,10 @@
            day offers a way forward instead of only saying it is empty. -->
       <div class="theme-empty-card tasks-space__empty">
         <span>{S.noTasksYet}</span>
-        {#if period && !readOnly}{@render suggestPill()}{/if}
+        {#if isDay && !readOnly}{@render suggestPill()}{/if}
       </div>
     {:else}
-      <!-- NO per-card × on a period (user call, 2026-08-20; the wireframes draw
+      <!-- NO per-card × on a day (user call, 2026-08-20; the wireframes draw
            the open cards clean, and the × only on a completed one). It stood
            for "take this out of my day" and read as "delete" — the one glyph
            on the screen that means destroy everywhere else, sitting on the
@@ -579,8 +601,8 @@
         items={shown}
         listClass="tasks-space__list"
         dividerClass="tasks-space__pin-divider"
-        pinned={!period}
-        origin={period ? origin : null}
+        pinned={!isDay}
+        origin={isDay || all ? origin : null}
         color={dot}
         onMoveTo={moveTo}
         {inDay}
@@ -588,15 +610,15 @@
         onDelete={readOnly ? null : deleteEntry}
         onDuplicate={readOnly ? null : (entry) => duplicate(entry.list, entry.task)}
         {daySwipe}
-        onReorder={readOnly ? null : period ? reorderPeriod : reorderTasks}
+        onReorder={readOnly || all ? null : isDay ? reorderDay : reorderTasks}
         onHold={readOnly ? null : holdCard}
         carried={carriedWith}
-        onReorderMany={readOnly ? null : period ? reorderPeriodMany : reorderTasksMany}
+        onReorderMany={readOnly || all ? null : isDay ? reorderDayMany : reorderTasksMany}
         {isSelected}
         onSelect={picking ? (_, task) => togglePick(task) : onSelectTask}
         onComplete={complete}
         onEdit={edit}
-        onPin={readOnly || period ? undefined : pin}
+        onPin={readOnly || isDay ? undefined : pin}
         {dateFormat}
         {today}
       />
@@ -613,7 +635,7 @@
             <span>{S.completedCount(done.length)}</span>
           </button>
         {/if}
-        {#if period && !readOnly}{@render suggestPill()}{/if}
+        {#if isDay && !readOnly}{@render suggestPill()}{/if}
       </div>
     {/if}
 
@@ -621,7 +643,7 @@
       <TaskCards
         items={shownCompleted}
         listClass="tasks-space__list tasks-space__list--completed"
-        origin={period ? origin : null}
+        origin={isDay ? origin : null}
         color={dot}
         onMoveTo={moveTo}
         {f}

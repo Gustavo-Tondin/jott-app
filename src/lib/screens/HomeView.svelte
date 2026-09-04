@@ -1,42 +1,49 @@
 <script>
-  // Home: the day. A capture box on top, today's tasks under it, today's notes
-  // below — the wireframe's opening screen ("Home screen - default", 2026-08-13).
+  // Home: the screen of TIME (wireframes "Home Screen Desktop" and "Home
+  // Screen Mobile", 2026-09-04). A week of days across the top with today
+  // lit, and below it whichever day is chosen:
   //
-  // It owns almost nothing. Since 2026-08-06 the tasks half is not even its own
-  // markup: it is THE tasks screen, hosted over the day (`period: "day"`), so
-  // Home shows exactly what a space shows — same cards, same "Completed N"
-  // — plus the Suggestions pill it adds when its source is a period.
-  // The home-grown block it had before was a partial copy, and it kept falling
-  // behind.
+  //   today      "Today tasks" — the day's screen, Completed and Suggestions
+  //              included — and under a rule the notes written today;
+  //   a day      the tasks planned for it, and nothing else: a day ahead is
+  //   ahead      for tasks (user call — no notes are written for a day that
+  //              has not come);
+  //   a day      the log's record of it — tasks created, tasks completed,
+  //   gone by    notes written — as the Timeline's three lines over one day
+  //              (components/DayRecap.svelte). Read, not planned.
   //
-  // What CHANGED with the new layout: Home no longer offers two ways to write.
-  // The tasks block's blue "New task" and the notes block's quick textarea both
-  // went into one CaptureBox at the top, which asks once and routes by its
-  // Task/Note segment. Both block headings are centred with their ⋮ at the far
-  // right, so the two halves read as the same kind of thing.
+  // It owns almost nothing. The tasks half is THE tasks screen, hosted over
+  // a day (`day`), so Home shows exactly what a space shows — same cards,
+  // same "Completed N" — plus the Suggestions pill it adds when its source
+  // is a day. Which day is chosen is the SHELL's (`day`, `onPickDay`): on a
+  // phone the head lives in the chrome above this canvas and the shell
+  // draws it there, so the choice has to sit above both.
   //
-  // The notes are still a view of the notes inbox filtered by `created`
-  // (spec 5), so nothing is moved when the day turns.
+  // The notes are still a view of the notes space filtered by `created`
+  // (spec 5), drawn by the SAME card the notes board draws — banner, title
+  // on its chip, first lines — in the same measured masonry
+  // (services/noteColumns.js). Only the drawing is shared — there is no
+  // arrangement to drag here, because what is on this screen is a QUESTION
+  // (what did I write today?) and not a place with an order of its own.
   //
-  // And since 2026-08-19 they are drawn by the SAME card the notes board draws
-  // — banner, title on its chip, first lines — in the same measured masonry
-  // (services/noteColumns.js). Home had a card of its own, a title on a step
-  // of surface, which is what it looked like before a note had a banner at
-  // all: two drawings of one thing, and the day's half of Home kept falling
-  // behind the other. Only the drawing is shared — there is no arrangement to
-  // drag here, because what is on this screen is a QUESTION (what did I write
-  // today?) and not a place with an order of its own.
+  // What LEFT with the calendar: the capture box (the + writes a task for
+  // the chosen day now, and the sidebar's + makes a note), and the two
+  // "Home shows" sources — the Home is the day, and hosts nothing else.
   import { api } from "../services/api.js";
   import { S } from "../services/strings.js";
   import { makeScreen } from "../services/act.js";
-  import { composeTask } from "../services/taskCompose.js";
+  import { dotStyle as dotStyleOf } from "../services/accent.js";
+  import { formatDayMonth } from "../services/dates.js";
+  import { dayKind, dayOfMonth, monthOf, weekdayName } from "../services/calendar.js";
   import TasksSpace from "../spaces/TasksSpace.svelte";
-  import CaptureBox from "../components/CaptureBox.svelte";
+  import DayHead from "../components/DayHead.svelte";
+  import DayRecap from "../components/DayRecap.svelte";
   import Menu from "../components/Menu.svelte";
   import ContextMenu from "../components/ContextMenu.svelte";
   import Icon from "../components/Icon.svelte";
   import NoteCard from "../components/NoteCard.svelte";
   import { measured } from "../actions/measure.js";
+  import { stuck } from "../actions/stuck.js";
   import { columnBreaks, columnCount, weightOfNote } from "../services/noteColumns.js";
   import { quickNoteTarget } from "../services/noteTargets.js";
   import { noteActions, noteCardMenu } from "../services/noteActions.js";
@@ -47,19 +54,12 @@
     /// against (services/assets.js).
     root = null,
     quickNoteFolder = null,
-    /// What the TASKS block shows instead of My Day — `{source, label}`, a
-    /// task space hosted whole (`homeTasksSource`, 2026-08-24). Null is the
-    /// day, as always.
-    tasksSource = null,
-    /// What the NOTES block shows instead of today's notes — `{space, label}`,
-    /// that space's Inbox whole (`homeNotesSource`). Null is today.
-    notesSource = null,
-    /// The list a quick task writes to, already resolved
+    /// The list a task composed here writes to, already resolved
     /// (services/taskTargets.js) — `{list, label, value}` or null for none.
     quickTask = null,
-    /// Where a quick note can go — the fixed space's folders and the user's
-    /// note spaces (services/noteTargets.js). Empty means nowhere: the note
-    /// half of the capture closes.
+    /// Where a note of the day can be moved, and where the sidebar's + files
+    /// one — the fixed space's folders and the user's note spaces
+    /// (services/noteTargets.js).
     noteTargets = [],
     /// Every list of the notebook, for the screen and its composer.
     lists = [],
@@ -70,55 +70,95 @@
     /// `(key) => boolean` — is this part of the app switched on?
     f = () => true,
     /// `(item) => {label, color} | null` — where an item came from, for the
-    /// badge a card wears outside its space (services/origin.js). Null when
-    /// the screen IS the space, and nothing is said.
+    /// badge a card wears outside its space (services/origin.js).
     origin = null,
     /// The colour of the notes space the cards come from (a name).
     notesColor = null,
+    /// `{[spacePath]: colourName}` — what a folded ghost row of a day gone
+    /// by is coloured by.
+    colors = {},
+    /// The notebook's `timelineGhostTitles`, for the same recap.
+    ghostTitles = false,
     readOnly = false,
     onChanged,
     onError,
     /// `(path, folder, { newTab }) => void` — a card of the day opens the note
     /// it draws, in this tab or beside it (the middle button, and the right
-    /// button's one row).
+    /// button's one row). A row of the recap opens the same way.
     onOpenNote,
+    /// `(path, id) => void` — a task of a day gone by, from the recap.
+    onOpenTask,
     onSelectTask,
     /// Asks the shell to open the right panel on the day's suggestions.
     onSuggest,
     selectedTask = null,
     reloadKey = 0,
     dateFormat = "mm/dd/yyyy",
+    /// `yyyy-mm-dd`, the notebook's clock.
     today = null,
-    /// The day, already formatted for reading — the capture box shows it.
-    todayLabel = "",
-    /// The colour of this place, as a NAME (services/accent.js) — the capture
-    /// card draws the same dot the compact header does beside its title.
+    /// The notebook's `weekStartsOn`.
+    weekStartsOn = "monday",
+    /// The chosen day, or null for today — the shell's state.
+    day = null,
+    /// `(iso | null) => void` — a day was picked (null: back to today).
+    onPickDay,
+    /// `({done, total} | null) => void` — how the chosen day stands, for the
+    /// head the shell draws on a phone.
+    onSummary,
+    /// `(stuck) => void` — on a phone, whether the collapsed bar is pinned
+    /// under the top bar (the head scrolled away), so the shell can set the
+    /// bar's buttons on the canvas.
+    onStuck,
+    /// The colour of this place, as a NAME (services/accent.js).
     dot = null,
-    /// The narrow shell (shell/compact.js). There the capture box is not a
-    /// fixture at the top of the screen: it opens from the header's +, because
-    /// 112px of permanent composer is most of what a phone can show at once.
+    /// The narrow shell (shell/compact.js). There the head is the shell's
+    /// (it sits on the chrome, above this canvas), and this screen draws only
+    /// the bar that takes its place once it has scrolled away.
     compact = false,
-    /// The header's + asked for a task (mobile wireframe "New task"): the
-    /// day's own composer bar opens, focused, and rides above the keyboard.
-    /// It is the SAME bar the tasks screens carry — nothing new is built for
-    /// the phone, and a task captured here still lands in the inbox and gets
-    /// pulled into the day.
+    /// The + asked for a task: the day's own composer bar opens, focused,
+    /// and rides above the keyboard. It is the SAME bar the tasks screens
+    /// carry — a task captured here still lands in the inbox and gets pulled
+    /// into the chosen day.
     composing = false,
     /// The way the bar is put away — its pull-down handle, and a task created
     /// with the keyboard already closed (TaskComposer.svelte, 2026-08-24).
     onCloseCompose = null,
   } = $props();
 
-  // The tasks block IS the tasks screen hosted over the day — no source
-  // folder of its own, so no arrangement to persist.
-  const DAY_SOURCE = { kind: "tasks", folder: null, name: S.todaysTasks };
+  let selected = $derived(day ?? today ?? "");
+  let kind = $derived(dayKind(selected, today));
+  let dotStyle = $derived(dotStyleOf(dot));
+
+  /// The tasks block IS the tasks screen hosted over the day — no source
+  /// folder of its own, so no arrangement to persist. Named for the day:
+  /// "Today tasks", or "Sep 5 tasks".
+  let dayLabel = $derived(formatDayMonth(selected, dateFormat));
+  let tasksSource = $derived({
+    kind: "tasks",
+    folder: null,
+    name: kind === "today" ? S.todaysTasks : S.dayTasks(dayLabel),
+  });
+
+  /// How the chosen day stands — counted off what the blocks read, never
+  /// read a second time. Cleared when the day changes so the head does not
+  /// show yesterday's count over today's name for a beat.
+  let summary = $state(null);
+  $effect(() => {
+    selected;
+    summary = null;
+    onSummary?.(null);
+  });
+  const counted = (next) => {
+    summary = next;
+    onSummary?.(next);
+  };
 
   let notes = $state([]);
-  /// Where the capture box's notes land. Null until the user picks it in the
-  /// notes ⋮: the destination comes from the notebook's `quickNoteFolder`, and
-  /// a state seeded from the prop would freeze on whatever it was at first
-  /// render. The value resolves against the offered targets, so a stored
-  /// choice that stopped existing falls back instead of swallowing notes.
+  /// Where the sidebar's + files a note. Null until the user picks it in
+  /// the notes ⋮: the destination comes from the notebook's
+  /// `quickNoteFolder`, and a state seeded from the prop would freeze on
+  /// whatever it was at first render. The value resolves against the
+  /// offered targets, so a stored choice that stopped existing falls back.
   let chosenTarget = $state(null);
   let captureTarget = $derived(
     quickNoteTarget(chosenTarget ?? quickNoteFolder, noteTargets),
@@ -126,99 +166,42 @@
 
   // The masonry, measured — the same two questions the notes board asks
   // (services/noteColumns.js): how many columns fit, and where to cut them.
-  // Left to `column-fill: balance` the browser empties one whenever the cards
-  // are few and one of them is long, which is the layout Home would show most
-  // days.
   let boardWidth = $state(0);
   let columns = $derived(columnCount(boardWidth));
   let breaks = $derived(columnBreaks(notes.map(weightOfNote), columns));
 
   $effect(() => {
     reloadKey;
-    notesSpace;
+    notesFolder;
+    kind;
     load();
   });
 
-  /// Which space the notes block reads (and opens its cards in): the chosen
-  /// source's, else the fixed one it always read.
-  let notesSpace = $derived(notesSource?.space ?? notesFolder);
-
-  /// Whether each block is on screen — the hosted source answers to its
-  /// FUNCTION (a space pointed at is a space wanted), the defaults to their
-  /// own switches, as always.
-  let showsTasks = $derived(tasksSource ? f("tasks") : f("myDay"));
-
   const { load, act } = makeScreen({
-    read: () =>
-      notesSpace
-        ? notesSource
-          ? api.inboxNotes(notesSpace)
-          : api.notesCreatedToday(notesSpace)
-        : [],
+    // Only today has notes to show on this half: a day gone by reads them
+    // from the log (the recap), a day ahead has none yet.
+    read: () => (notesFolder && kind === "today" ? api.notesCreatedToday(notesFolder) : []),
     // `?? []`: the bridge answering with nothing is not a list of notes.
     apply: (read) => (notes = read ?? []),
     onChanged: () => onChanged?.(),
     onError: (e) => onError?.(e),
   });
 
-  /// The capture box's one output. A note is written where the notes ⋮ points;
-  /// a task goes to the notebook's inbox AND is pulled into the day, because a
-  /// task captured from the day's screen that did not appear on it would read
-  /// as the box having swallowed it (the same call the screen's own composer
-  /// makes — services/taskCompose.js).
-  const capture = ({ kind, text }) =>
-    act(async () => {
-      if (kind === "note") {
-        if (!captureTarget) return;
-        // Nothing typed: the + makes the blank note and hands it over
-        // opened, which is the gesture the phone's + already makes
-        // (App.svelte, `captureNote`) and the one the notes board makes with
-        // its own empty field. The placeholder name is what the note's header
-        // is already offering to rename — asking first would stop the one
-        // gesture this button exists to make fast.
-        if (!text) {
-          const path = await api.createNote(
-            captureTarget.space,
-            captureTarget.folder,
-            S.untitled,
-          );
-          onOpenNote?.(path, captureTarget.space, { fresh: true });
-          return;
-        }
-        await api.quickCaptureNote(captureTarget.space, captureTarget.folder, text);
-        return;
-      }
-      // Where the notebook's quickTaskList points (falling back to the
-      // Inbox), and pulled into the day only while the day IS the block —
-      // hosting a list, the task appears right where it was written.
-      await composeTask(
-        { text, list: quickTask?.list ?? inbox },
-        { period: tasksSource ? null : "day" },
-      );
-    });
-
   /// Going to a note of the day. Home only ever LOOKS at the notes space, so
   /// it names the space it was given rather than letting the shell guess one
   /// — the address is the whole answer either way.
   const openNote = (note, { newTab = false } = {}) =>
-    onOpenNote?.(note.path, notesSpace, { newTab });
+    onOpenNote?.(note.path, notesFolder, { newTab });
 
-  /// What a card of the day offers (services/noteActions.js, 2026-08-25).
-  ///
-  /// It used to offer one row, on the right button, and the reason written
-  /// here was that what a note IS belongs where the note lives. That reading
-  /// cost the phone everything: with no right button, a note on the Home had
-  /// no action at all — and the card is right there, which is the whole point
-  /// of the Home. The rows are the board's, so the same card means the same
-  /// thing on both screens.
-  ///
-  /// Home only ever LOOKS at a notes space, so every action names the space
-  /// it was given rather than one of its own.
+  /// What a card of the day offers (services/noteActions.js, 2026-08-25):
+  /// the board's rows, so the same card means the same thing on both
+  /// screens. Home only ever LOOKS at a notes space, so every action names
+  /// the space it was given rather than one of its own.
   const cards = noteActions(act);
 
-  /// Where a note of the day can be moved: the same targets the capture
-  /// offers (services/noteTargets.js), which is the notebook's own list of
-  /// places a note belongs. One group, because from here they are one list.
+  /// Where a note of the day can be moved: the notebook's own list of places
+  /// a note belongs (services/noteTargets.js). One group, because from here
+  /// they are one list.
   let moveTargets = $derived(
     noteTargets.length === 0
       ? []
@@ -237,7 +220,7 @@
     noteCardMenu({
       entry: note,
       actions: cards,
-      space: notesSpace,
+      space: notesFolder,
       canPin: f("pinNotes"),
       moveTargets,
       readOnly,
@@ -258,10 +241,9 @@
     cardMenuAt = { x: event.clientX, y: event.clientY };
   }
 
-  /// The notes block's ⋮: where a captured note is filed. It was a select
-  /// living inside the old quick-note form; with the form gone it belongs
-  /// with the block it describes. The rows are the same targets Settings
-  /// offers — the fixed space's folders and the user's note spaces.
+  /// The notes block's ⋮: where a quick note is filed. The rows are the same
+  /// targets Settings offers — the fixed space's folders and the user's
+  /// note spaces.
   let notesMenu = $derived(
     noteTargets.length === 0
       ? []
@@ -274,31 +256,90 @@
           })),
         ],
   );
+
+  /// On a phone: whether the collapsed bar is pinned (the head scrolled
+  /// away), which is when it is drawn at all.
+  let barStuck = $state(false);
+  const pinned = (is) => {
+    barStuck = is;
+    onStuck?.(is);
+  };
 </script>
 
-<div class="home">
-  <!-- The note half of the capture lives as long as there is SOMEWHERE for a
-       note to go (services/noteTargets.js): the fixed Notes space hidden,
-       another notepad takes it — only with no note space at all does the
-       half close (user call, 2026-08-24). -->
-  {#if !readOnly && !compact && ((showsTasks && !!quickTask) || (f("notes") && !!captureTarget))}
-    <CaptureBox
-      date={todayLabel}
-      {dot}
-      canTask={showsTasks && !!(quickTask?.list ?? inbox)}
-      canNote={f("notes") && !!captureTarget}
-      onSubmit={capture}
-    />
+<div class="home" class:home--compact={compact}>
+  {#if !compact}
+    <!-- The head, pinned at the top of the canvas as the page scrolls (user
+         call, 2026-09-04: "fixo no topo"). The wrapper is what carries the
+         canvas ground behind the card, so the cards scroll under a solid
+         band and not under a floating card with the page showing through. -->
+    <div class="home__head">
+      <DayHead
+        {today}
+        {day}
+        {weekStartsOn}
+        {summary}
+        {dot}
+        onPick={(iso) => onPickDay?.(iso)}
+        onHome={() => onPickDay?.(null)}
+      />
+    </div>
+  {:else}
+    <!-- The bar that takes the head's place once it has scrolled away
+         (wireframe "Scrolled Down"): the name of the place and the day,
+         pinned under the floating top bar. Drawn only while pinned — at rest
+         the dark head above says all of this already. -->
+    <div class="home__bar" class:is-stuck={barStuck} use:stuck={pinned} aria-hidden={!barStuck}>
+      <span class="home__bar-title">
+        {S.home}
+        <span class="theme-dot home__bar-dot" style={dotStyle} aria-hidden="true"></span>
+      </span>
+      <span class="home__bar-date">
+        <span class="home__bar-day">{S.shortDay(monthOf(selected), dayOfMonth(selected))}</span>
+        <span class="home__bar-weekday">{weekdayName(selected)}</span>
+      </span>
+    </div>
   {/if}
 
-
-  <!-- The tasks half IS the day, so it goes with My Day (user call,
-       2026-08-06) — there is no day left to show. -->
-  {#if showsTasks}
+  {#if !f("tasks")}
+    <!-- With tasks off the Home is the notes written today, and nothing of
+         the day's tasks — the calendar still turns, since notes have a day. -->
+  {:else if kind === "past"}
+    <!-- A day gone by is a record: the log's three lines, read. -->
+    <section class="home__block home__block--recap">
+      <header class="home__block-header">
+        <span class="theme-mirror home__mirror" aria-hidden="true">
+          <span class="theme-btn--icon">
+            <Icon name="dots-three-vertical" size="1rem" />
+          </span>
+        </span>
+        <h2 class="theme-title home__block-title">{S.dayTasks(dayLabel)}</h2>
+        <span class="theme-mirror home__mirror" aria-hidden="true">
+          <span class="theme-btn--icon">
+            <Icon name="dots-three-vertical" size="1rem" />
+          </span>
+        </span>
+      </header>
+      <DayRecap
+        day={selected}
+        {readOnly}
+        {origin}
+        {colors}
+        {ghostTitles}
+        {onOpenTask}
+        onOpenNote={(inside, space) => onOpenNote?.(inside, space, {})}
+        onLoaded={({ done }) => counted({ done, total: done })}
+        {reloadKey}
+        {onChanged}
+        {onError}
+      />
+    </section>
+  {:else}
+    <!-- The tasks half IS the day: today, or the one ahead the calendar has
+         open. -->
     <section class="home__block">
       <TasksSpace
-        source={tasksSource?.source ?? DAY_SOURCE}
-        period={tasksSource ? null : "day"}
+        source={tasksSource}
+        day={kind === "today" ? null : selected}
         {origin}
         align="center"
         compose={composing ? "bar" : "none"}
@@ -315,81 +356,86 @@
         {selectedTask}
         {onSelectTask}
         {onSuggest}
+        onLoaded={({ open, done }) => counted({ done, total: open + done })}
         {f}
         {onChanged}
         {onError}
       />
     </section>
+
   {/if}
 
-  {#if showsTasks && f("notes")}
-    <div class="home__divider"><hr /></div>
-  {/if}
+  {#if kind === "today" && f("notes")}
+    {#if f("tasks")}
+      <div class="home__divider"><hr /></div>
+    {/if}
 
-  {#if f("notes")}
-    <section class="home__block">
-      <header class="home__block-header">
-        <!-- The mirrored ⋮ that balances the real one, so the heading is
-             centred on the panel and not on what is left of the row — the same
-             trick the tasks block uses (spaces/TasksSpace.svelte). -->
-        <span class="theme-mirror home__mirror" aria-hidden="true">
-          <span class="theme-btn--icon">
-            <Icon name="dots-three-vertical" size="1rem" />
+      <section class="home__block">
+        <header class="home__block-header">
+          <!-- The mirrored ⋮ that balances the real one, so the heading is
+               centred on the panel and not on what is left of the row — the same
+               trick the tasks block uses (spaces/TasksSpace.svelte). -->
+          <span class="theme-mirror home__mirror" aria-hidden="true">
+            <span class="theme-btn--icon">
+              <Icon name="dots-three-vertical" size="1rem" />
+            </span>
           </span>
-        </span>
-        <h2 class="theme-title home__block-title">
-          {notesSource?.label ?? S.todaysNotes}
-        </h2>
-        {#if !readOnly && notesMenu.length > 0}
-          <Menu items={notesMenu}>
-            {#snippet trigger({ toggle })}
-              <button
-                class="theme-btn--icon"
-                onclick={toggle}
-                aria-label={S.notesOptions}
-                title={S.notesOptions}
-              >
+          <h2 class="theme-title home__block-title">{S.todaysNotes}</h2>
+          {#if !readOnly && notesMenu.length > 0}
+            <Menu items={notesMenu}>
+              {#snippet trigger({ toggle })}
+                <button
+                  class="theme-btn--icon"
+                  onclick={toggle}
+                  aria-label={S.notesOptions}
+                  title={S.notesOptions}
+                >
+                  <Icon name="dots-three-vertical" size="1rem" />
+                </button>
+              {/snippet}
+            </Menu>
+          {:else}
+            <span class="theme-mirror home__mirror" aria-hidden="true">
+              <span class="theme-btn--icon">
                 <Icon name="dots-three-vertical" size="1rem" />
-              </button>
-            {/snippet}
-          </Menu>
-        {/if}
-      </header>
+              </span>
+            </span>
+          {/if}
+        </header>
 
-      {#if notes.length === 0}
-        <p class="theme-empty-card home__empty">{S.noNotesToday}</p>
-      {:else}
-        <!-- The board's card, drawn by the board's own component. No ⋮ and no
-             pin: what a note IS lives where the note lives, and Home is the
-             day looking in. -->
-        <ul
-          class="theme-note-board home__notes"
-          style="--columns: {columns}"
-          use:measured={(width) => (boardWidth = width)}
-        >
-          {#each notes as note, index (note.path)}
-            <li
-              class="home__note"
-              class:theme-note-board__break={breaks.has(index)}
-            >
-              <NoteCard
-                entry={note}
-                {root}
-                banners={f("banners")}
-                noteTags={f("noteTags")}
-                tagColor={notesColor}
-                showAge={f("time")}
-                {dateFormat}
-                menu={cardMenu(note)}
-                onPin={readOnly || !f("pinNotes") ? null : () => cards.pin(notesSpace, note)}
-                onOpen={(_, opts) => openNote(note, opts)}
-                onContextMenu={openCardMenu}
-              />
-            </li>
-          {/each}
-        </ul>
-      {/if}
-    </section>
+        {#if notes.length === 0}
+          <p class="theme-empty-card home__empty">{S.noNotesToday}</p>
+        {:else}
+          <!-- The board's card, drawn by the board's own component, with the
+               card's own actions (2026-08-25). -->
+          <ul
+            class="theme-note-board home__notes"
+            style="--columns: {columns}"
+            use:measured={(width) => (boardWidth = width)}
+          >
+            {#each notes as note, index (note.path)}
+              <li
+                class="home__note"
+                class:theme-note-board__break={breaks.has(index)}
+              >
+                <NoteCard
+                  entry={note}
+                  {root}
+                  banners={f("banners")}
+                  noteTags={f("noteTags")}
+                  tagColor={notesColor}
+                  showAge={f("time")}
+                  {dateFormat}
+                  menu={cardMenu(note)}
+                  onPin={readOnly || !f("pinNotes") ? null : () => cards.pin(notesFolder, note)}
+                  onOpen={(_, opts) => openNote(note, opts)}
+                  onContextMenu={openCardMenu}
+                />
+              </li>
+            {/each}
+          </ul>
+        {/if}
+      </section>
   {/if}
 </div>
 

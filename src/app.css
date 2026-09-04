@@ -62,18 +62,17 @@
 @import "./styles/components/suggestions.css";
 @import "./styles/components/task-row.css";
 
-@import "./styles/components/capture.css";
-@import "./styles/components/capture-fab.css";
 @import "./styles/components/sheet.css";
 @import "./styles/components/bulkbar.css";
 @import "./styles/components/search.css";
 @import "./styles/components/notebooks.css";
 @import "./styles/components/home.css";
+@import "./styles/components/day-head.css";
 @import "./styles/components/tasks-view.css";
 @import "./styles/components/list-view.css";
-@import "./styles/components/period-view.css";
 @import "./styles/components/completed-view.css";
 @import "./styles/components/timeline.css";
+@import "./styles/components/timeline-lines.css";
 @import "./styles/components/trash-view.css";
 @import "./styles/components/tags-view.css";
 @import "./styles/components/settings.css";

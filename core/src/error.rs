@@ -43,6 +43,11 @@ pub enum Error {
     #[error("no task with id {0}")]
     TaskNotFound(String),
 
+    /// A day that already went by, asked to hold a plan. Only today and the
+    /// days ahead can be planned; what a past day shows is the log.
+    #[error("{0} has passed; only today and the days ahead can be planned")]
+    DayGone(chrono::NaiveDate),
+
     #[error("invalid list name {0:?}")]
     InvalidListName(String),
 

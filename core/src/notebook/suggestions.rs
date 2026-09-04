@@ -1,12 +1,13 @@
-//! What the app offers for a period, and why.
+//! What the app offers for a day, and why.
 //!
 //! Suggestions are read-only: nothing here writes. The grouping
 //! ([`crate::notebook::SuggestionGroup`]) is the display order, so a group
 //! cannot be reordered by accident somewhere else in the code.
 
 use crate::error::Result;
-use crate::state::Period;
 use crate::task::Task;
+
+use super::day::Day;
 use crate::COMPLETED_LIST;
 
 use super::*;
@@ -15,13 +16,16 @@ use super::*;
 const SOON_WINDOW_DAYS: i64 = 3;
 
 impl Notebook {
-    /// Open tasks whose due date falls inside `period` — today for the Day,
-    /// the current week for the Week (a date earlier than either counts too:
-    /// overdue is still due).
-    pub(super) fn tasks_due_in(&self, period: Period) -> Result<Vec<ListedTask>> {
-        let last_day = match period {
-            Period::Day => self.today(),
-            Period::Week => self.current_week() + chrono::Duration::days(6),
+    /// Open tasks whose due date lands on `day`. For today a date earlier
+    /// than today counts too — overdue is still due, and today is the only
+    /// day left to face it on (user call, 2026-09-04). A day ahead takes
+    /// only what is due on it: what is overdue is today's, not the 5th's.
+    pub(super) fn tasks_due_on(&self, day: Day) -> Result<Vec<ListedTask>> {
+        let today = self.today();
+        let due_on = |due: chrono::NaiveDate| match day {
+            Day::Today => due <= today,
+            Day::Ahead(date) => due == date,
+            Day::Gone(_) => false,
         };
 
         let mut out = Vec::new();
@@ -35,7 +39,7 @@ impl Notebook {
                 if task.done {
                     continue;
                 }
-                if task.due.is_some_and(|due| due <= last_day) {
+                if task.due.is_some_and(due_on) {
                     out.push(ListedTask {
                         path: list.path.clone(),
                         task: task.clone(),
@@ -62,37 +66,26 @@ impl Notebook {
         task.due.is_some_and(|due| due <= self.today())
     }
 
-    /// What to offer pulling into a period, grouped and in display order.
+    /// What to offer pulling into a day, grouped and in display order.
+    /// `None` is today; a day ahead is offered the same lists, minus what it
+    /// already holds.
     ///
     /// Nothing here *selects* a task — the day stays a deliberate choice.
     /// Dates only change what is offered first.
-    pub fn grouped_suggestions(&self, period: Period) -> Result<Vec<Suggestion>> {
+    pub fn grouped_suggestions(&self, day: Option<chrono::NaiveDate>) -> Result<Vec<Suggestion>> {
         let today = self.today();
         let soon = today + chrono::Duration::days(SOON_WINDOW_DAYS);
 
-        let in_week: std::collections::HashSet<(String, String)> = if period == Period::Day {
-            self.open_state(Period::Week)?
-                .state
-                .items
-                .iter()
-                .map(|r| (r.path.clone(), r.id.clone()))
-                .collect()
-        } else {
-            Default::default()
-        };
-
-        // What left Today or This Week, newest first — either period counts,
-        // whichever one is being filled: "I took this out yesterday" is the
-        // same answer to both questions. Rank and membership come from the
+        // What left Today, newest first. Rank and membership come from the
         // same map, so the group is also ordered by how recently it left.
+        // Only today keeps such a memory: a day ahead that a task was taken
+        // out of is a plan that changed, not a departure to offer back.
         let mut recent_rank: std::collections::HashMap<(String, String), usize> =
             Default::default();
-        for source in [Period::Day, Period::Week] {
-            for reference in self.open_state(source)?.state.recent {
-                let key = (reference.path, reference.id);
-                if !recent_rank.contains_key(&key) {
-                    recent_rank.insert(key, recent_rank.len());
-                }
+        for reference in self.open_state()?.state.recent {
+            let key = (reference.path, reference.id);
+            if !recent_rank.contains_key(&key) {
+                recent_rank.insert(key, recent_rank.len());
             }
         }
         let rank_of = |path: &str, id: Option<&String>| -> Option<usize> {
@@ -108,20 +101,13 @@ impl Notebook {
             |path: &str| -> String { labels.get(list_dir_of(path)).cloned().unwrap_or_default() };
 
         let mut suggestions: Vec<Suggestion> = self
-            .suggestions_for(period)?
+            .suggestions_for(day)?
             .into_iter()
             .map(|entry| {
                 let group = if self.is_urgent(&entry.task) {
                     SuggestionGroup::Urgent
                 } else if entry.task.due.is_some_and(|due| due <= soon) {
                     SuggestionGroup::Soon
-                } else if entry
-                    .task
-                    .id
-                    .as_ref()
-                    .is_some_and(|id| in_week.contains(&(entry.path.clone(), id.clone())))
-                {
-                    SuggestionGroup::ThisWeek
                 } else if rank_of(&entry.path, entry.task.id.as_ref()).is_some() {
                     SuggestionGroup::Recent
                 } else {
@@ -151,19 +137,16 @@ impl Notebook {
         Ok(suggestions)
     }
 
-    /// What to offer pulling into a period, in the order the UI shows it.
+    /// What to offer pulling into a day, in the order the UI shows it: the
+    /// lists, in the order the user arranged them.
     ///
-    /// For the day, tasks already chosen for the week come first: they are
-    /// what the user decided mattered this week, so they are the best
-    /// candidates for today. Everything else in the lists follows.
-    ///
-    /// Anything already pulled into the period is left out, and so are
-    /// completed tasks and the folder's `completed` list itself.
-    pub fn suggestions_for(&self, period: Period) -> Result<Vec<ListedTask>> {
-        // What the period ALREADY shows — not just what was pulled into its
-        // state. Since 2026-08-14 a dated task joins the period on its own, and
+    /// Anything the day already shows is left out, and so are completed
+    /// tasks and the folder's `completed` list itself.
+    pub fn suggestions_for(&self, day: Option<chrono::NaiveDate>) -> Result<Vec<ListedTask>> {
+        // What the day ALREADY shows — not just what was pulled into its
+        // state. Since 2026-08-14 a dated task joins the day on its own, and
         // suggesting something the user is already looking at is noise.
-        let showing = ShownIndex::of(&self.period_tasks(period)?);
+        let showing = ShownIndex::of(&self.day_tasks(day)?);
         let mut out: Vec<ListedTask> = Vec::new();
         // Ids already offered. Id-only ON PURPOSE, narrower than
         // `is_same_task`: two id-less tasks with the same text in one list
@@ -182,13 +165,6 @@ impl Notebook {
             }
             out.push(candidate);
         };
-
-        // The week feeds the day, but nothing feeds the week except the lists.
-        if period == Period::Day {
-            for candidate in self.period_tasks(Period::Week)? {
-                push(candidate, &mut out);
-            }
-        }
 
         for entry in self.lists()? {
             if entry.name == COMPLETED_LIST {
@@ -209,7 +185,7 @@ impl Notebook {
 }
 
 /// The set form of [`super::is_same_task`], for asking "is this task already
-/// on the period's screen?" once per candidate without a scan per question.
+/// on the day's screen?" once per candidate without a scan per question.
 ///
 /// Three sets carry the predicate's three arms exactly: id against id when
 /// both exist; a candidate with no id falls back to text against ANY shown

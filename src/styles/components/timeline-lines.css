@@ -1,0 +1,150 @@
+/* timeline-lines.css — the three foldable lines of a stretch of the log.
+ * Markup: src/lib/components/TimelineLines.svelte, drawn by the Timeline
+ * (one block a month) and by the Home's recap of a day gone by (one block).
+ * Selectors are the stable BEM hooks a theme may restyle; components read
+ * tokens only. Moved out of timeline.css on 2026-09-04, byte for byte where
+ * the rule did not change its name. */
+
+@layer components {
+  .timeline-lines {
+    margin: 0;
+    /* The rule runs down the middle of the icons: 18px of glyph inside 8px
+       of padding = 34px, so the rule sits at 17px from the start edge. */
+    --timeline-rule-x: calc(var(--app-space-16) + var(--app-space-2) - 0.0625rem);
+    padding: var(--app-space-8) 0 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--app-space-16);
+    position: relative;
+  }
+  .timeline-lines::before {
+    content: "";
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: var(--timeline-rule-x);
+    inline-size: 0.0625rem;
+    background: var(--app-line);
+  }
+
+  /* A line arrives as it scrolls into view: a short rise, staggered by its
+     place in the block (`--reveal-index`, set in the markup). */
+  .timeline-lines__line {
+    position: relative;
+    opacity: 0;
+    translate: 0 0.75rem;
+    transition:
+      opacity var(--app-duration-slow) var(--app-ease-out),
+      translate var(--app-duration-slow) var(--app-ease-out);
+    transition-delay: calc(var(--reveal-index, 0) * 0.04s);
+  }
+  .timeline-lines__line.is-visible {
+    opacity: 1;
+    translate: 0 0;
+  }
+  .timeline-lines__line-head {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--app-space-10);
+    padding: 0;
+    color: var(--app-ink);
+    font: inherit;
+    font-size: var(--app-text-16);
+    text-align: start;
+  }
+  .timeline-lines__line-head:disabled {
+    cursor: default;
+    color: var(--app-ink-muted);
+  }
+  .timeline-lines__line-icon {
+    display: inline-flex;
+    padding: var(--app-space-8);
+    border-radius: var(--app-radius-sm);
+    /* Two layers on purpose: the tint over an OPAQUE ground. Both the
+       resting and the hover tint are translucent, and the rule runs right
+       behind the glyph — with the tint alone it showed through on hover. */
+    background-color: var(--app-bg);
+    background-image: linear-gradient(var(--app-surface-sunken), var(--app-surface-sunken));
+    color: var(--app-ink);
+    position: relative;
+    box-shadow: 0 0 0 var(--app-space-4) var(--app-bg);
+  }
+  .timeline-lines__line-head:not(:disabled):hover .timeline-lines__line-icon {
+    background-image: linear-gradient(var(--app-hover), var(--app-hover));
+  }
+
+  /* The fold: height animated through a grid track, which is the one way
+     CSS animates "auto" without measuring. */
+  .timeline-lines__fold {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows var(--app-duration-medium) var(--app-ease-out);
+  }
+  .timeline-lines__fold.is-open {
+    grid-template-rows: 1fr;
+  }
+  .timeline-lines__rows {
+    margin: 0;
+    padding: var(--app-space-8) 0 0 var(--app-space-40);
+    min-block-size: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: var(--app-space-4);
+  }
+  .timeline-lines__rows[hidden] {
+    display: none;
+  }
+  .timeline-lines__row {
+    display: flex;
+    align-items: center;
+    gap: var(--app-space-8);
+    min-block-size: 1.75rem;
+  }
+  .timeline-lines__row-dot {
+    --dot-size: 0.5rem;
+  }
+  .timeline-lines__row-open {
+    padding: var(--app-space-2) 0;
+    color: var(--app-ink);
+    font: inherit;
+    font-size: var(--app-text-14);
+    text-align: start;
+    border-radius: var(--app-radius-xs);
+  }
+  .timeline-lines__row-open:not(:disabled):hover {
+    text-decoration: underline;
+  }
+  .timeline-lines__row-open:disabled {
+    cursor: default;
+  }
+  .timeline-lines__row-text {
+    font-size: var(--app-text-14);
+    color: var(--app-ink-muted);
+  }
+  /* How many times a folded repeating task happened this month. Quiet, and
+     one step down in size: it is a footnote to the title, not a second title
+     — the line still reads "Take out the bins", with the number answering
+     "how often" only for the eye that goes looking. Tabular figures so a
+     column of them lines up. */
+  .timeline-lines__row-count {
+    font-size: var(--app-text-12);
+    font-variant-numeric: tabular-nums;
+    color: var(--app-ink-faint);
+  }
+  .timeline-lines__row--done .timeline-lines__row-open,
+  .timeline-lines__row--ghost .timeline-lines__row-open {
+    text-decoration: line-through;
+    color: var(--app-ink-muted);
+  }
+  .timeline-lines__row--done .timeline-lines__row-open:not(:disabled):hover {
+    text-decoration: line-through underline;
+  }
+  .timeline-lines__row-menu {
+    opacity: 0;
+    transition: opacity var(--app-transition-fast);
+  }
+  .timeline-lines__row:hover .timeline-lines__row-menu,
+  .timeline-lines__row:focus-within .timeline-lines__row-menu {
+    opacity: 1;
+  }
+}

@@ -1,6 +1,12 @@
-/* home.css — the visual layer of HomeView.svelte.
- * Markup: src/lib/screens/HomeView.svelte. Selectors are the stable BEM hooks a theme
- * may restyle; components read tokens only. */
+/* home.css — the visual layer of HomeView.svelte, and the Home's + the shell
+ * floats over it.
+ * Markup: src/lib/screens/HomeView.svelte (and the `.home-fab` in
+ * App.svelte). Selectors are the stable BEM hooks a theme may restyle;
+ * components read tokens only.
+ *
+ * Wireframes "Home Screen Desktop" and "Home Screen Mobile" (2026-09-04):
+ * the head (day-head.css) pinned at the top, two centred blocks under it
+ * with a rule between, and a round + floating in the bottom corner. */
 
 @layer components {
   .home {
@@ -8,6 +14,21 @@
     flex-direction: column;
     gap: var(--app-space-32);
   }
+
+  /* The head's band: pinned at the top of the scroller (user call,
+     2026-09-04, "fixo no topo"), on the canvas's own ground so the cards
+     scroll under something solid. The negative block margin reaches back
+     across the panel's top padding, so the band starts at the panel's edge
+     and not a padding below it. */
+  .home__head {
+    position: sticky;
+    inset-block-start: calc(-1 * var(--app-space-16));
+    z-index: 3;
+    margin-block-start: calc(-1 * var(--app-space-16));
+    padding-block: var(--app-space-16) var(--app-space-8);
+    background: var(--app-bg);
+  }
+
   .home__block {
     display: flex;
     flex-direction: column;
@@ -27,7 +48,6 @@
     text-align: center;
   }
   /* .home__mirror is the shared .theme-mirror (controls.css). */
-  /* .home__task-list is the shared .theme-task-list (controls.css). */
 
   /* The rule between the two halves. Inset rather than full-bleed: it separates
      two blocks of one screen, and edge to edge it read as the end of the page. */
@@ -40,18 +60,114 @@
     margin: 0;
   }
   /* Today's notes are the notes BOARD, in miniature (2026-08-19): the same
-     card (note-card.css) in the same masonry the notes screen flows in. The
-     column count and the cuts are measured in the markup, for the reason
-     services/noteColumns.js gives — the browser's own balancing empties a
-     column whenever the cards are few and one is long, which is most days on
-     Home. What is here is only the slot, as on the notes board.
+     card (note-card.css) in the same masonry the notes screen flows in.
+     .home__notes is the shared .theme-note-board (controls.css). The empty
+     state is the shared .theme-empty-card. */
 
-     It was a grid of title-on-a-step cards, drawn before a note could have a
-     banner at all: one thing drawn twice, and this was the copy that fell
-     behind. .home__notes is the shared .theme-note-board (controls.css), on
-     a phone included. */
+  /* A day gone by: the log's three lines (timeline-lines.css), in the
+     reading column the Timeline keeps. */
+  .home__block--recap .timeline-lines {
+    padding-inline-start: var(--app-space-8);
+  }
 
-  /* The empty state is the shared .theme-empty-card (controls.css) — the same
-     card the tasks block draws, which is what the wireframe shows in both.
-     The hook stays for a theme to reach this one in particular. */
+  /* ---- the + (both shells) ----
+     Round, brand, in the bottom corner of the canvas (wireframes, 2026-09-04)
+     — the verb of the screen, and the one loud thing on it. Absolute in
+     `.shell__canvas`, which is the box every floating control is measured
+     from (shell.css says why); 64px, comfortably past what a finger needs. */
+  .home-fab {
+    position: absolute;
+    inset-block-end: var(--app-space-24);
+    inset-inline-end: var(--app-space-24);
+    z-index: 4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    inline-size: 4.5rem;
+    block-size: 4.5rem;
+    border-radius: var(--app-radius-pill);
+    background: var(--app-brand);
+    color: var(--app-on-brand);
+    box-shadow: 0 0.5rem 1.25rem var(--app-shadow-popover);
+    transition:
+      scale var(--app-transition-fast),
+      filter var(--app-transition-fast);
+  }
+  .home-fab:hover {
+    filter: brightness(1.06);
+  }
+  .home-fab:active {
+    scale: 0.94;
+  }
+}
+
+/* =============================================================================
+   THE COMPACT SCREEN (below 768px, wireframes "Home Screen Mobile").
+   The head is the shell's, on the chrome above this canvas; what the screen
+   draws here is the bar that stands in for it once it has scrolled away.
+   ============================================================================= */
+@layer components {
+  .home--compact {
+    gap: var(--app-space-24);
+  }
+  /* Pinned under the floating top bar, on the canvas's ground, and drawn
+     only once pinned (`is-stuck`, actions/stuck.js): at rest it would only
+     repeat the head a hand's width above it. The negative margins reach to
+     the panel's edges so the band runs the whole width. */
+  .home__bar {
+    position: sticky;
+    inset-block-start: var(--app-topbar-height);
+    z-index: 3;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--app-space-12);
+    margin: calc(-1 * var(--app-space-16)) calc(-1 * var(--app-space-8)) 0;
+    padding: var(--app-space-4) var(--app-space-16) var(--app-space-12);
+    background: var(--app-bg);
+    opacity: 0;
+    visibility: hidden;
+    transition:
+      opacity var(--app-transition-fast),
+      visibility var(--app-transition-fast);
+  }
+  .home__bar.is-stuck {
+    opacity: 1;
+    visibility: visible;
+  }
+  .home__bar-title {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--app-space-10);
+    font-size: var(--app-text-32);
+    font-weight: var(--app-weight-medium);
+    letter-spacing: var(--app-tracking-tight);
+    color: var(--app-ink);
+  }
+  .home__bar-dot {
+    --dot-size: 0.625rem;
+  }
+  .home__bar-date {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    padding-block-start: var(--app-space-4);
+    color: var(--app-ink-muted);
+    font-size: var(--app-text-14);
+    line-height: 1.3;
+  }
+  .home__bar-day {
+    color: var(--app-ink);
+    font-size: var(--app-text-16);
+  }
+  /* The + floats over the phone's screen, clear of the gesture bar; the
+     canvas grows with the page there, so the corner has to be the
+     viewport's. */
+  .shell--compact .home-fab {
+    position: fixed;
+    inset-block-end: calc(var(--app-space-24) + var(--app-safe-bottom));
+    inset-inline-end: calc(var(--app-space-24) + var(--app-safe-right));
+    inline-size: 4rem;
+    block-size: 4rem;
+  }
 }

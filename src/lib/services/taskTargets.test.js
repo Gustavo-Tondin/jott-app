@@ -40,11 +40,6 @@ describe("taskTargets", () => {
     expect(targets.map((t) => t.value)).toEqual(["Design/Tasks"]);
   });
 
-  test("…unless the Home is showing that space: then the Inbox stays a door", () => {
-    const targets = taskTargets({ ...SETUP, fixedShown: false, inboxOnHome: true });
-    expect(targets.map((t) => t.value)).toEqual(["", "Design/Tasks"]);
-  });
-
   test("a note space is never a place for a task", () => {
     expect(taskTargets(SETUP).some((t) => t.value === "Design Notes")).toBe(false);
   });

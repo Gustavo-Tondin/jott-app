@@ -5,7 +5,7 @@
 // task" dialog, the pinned bar on the Tasks screen, and whatever screen hosts
 // them), and because the order of the bridge calls matters:
 //
-//   create_task → ensure_task_id → set_task_fields → pull_into_period
+//   create_task → ensure_task_id → set_task_fields → pull_into_day
 //
 // `create_task` answers with a POSITION, not an id: ids are handed out only
 // when something needs to address the task. So the id is asked for exactly
@@ -22,10 +22,11 @@ export function emptyIntent(list = null) {
 
 /// Writes the intent. Returns the new task's id, or null when it needed none.
 ///
-/// `period` pulls the fresh task into Today or This Week — which is what the
-/// Home's "New task" does, since a task created from the day's block that did
-/// not join the day would simply not appear (user call, 2026-08-06).
-export async function composeTask(intent, { period = null } = {}) {
+/// `into` pulls the fresh task into a day — `null` for today, an ISO day for
+/// one ahead — which is what the Home's composer does, since a task created
+/// from the day's screen that did not join the day would simply not appear
+/// (user call, 2026-08-06). Left out, the task only lands in its list.
+export async function composeTask(intent, { into } = {}) {
   const text = (intent?.text ?? "").trim();
   if (!text || !intent?.list) return null;
 
@@ -36,11 +37,12 @@ export async function composeTask(intent, { period = null } = {}) {
   if (repeat) fields.repeat = repeat;
   const wants = Object.keys(fields).length > 0;
 
+  const joins = into !== undefined;
   const position = await api.createTask(intent.list, text);
-  if (!wants && !period) return null;
+  if (!wants && !joins) return null;
 
   const id = await api.ensureTaskId(intent.list, position);
   if (wants) await api.setTaskFields(intent.list, id, fields);
-  if (period) await api.pullInto(period, intent.list, id);
+  if (joins) await api.pullInto(into, intent.list, id);
   return id;
 }

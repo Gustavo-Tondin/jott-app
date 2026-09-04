@@ -4,7 +4,7 @@
 //! core, where a second frontend can reach it. This module only carries the
 //! arguments across.
 
-use jott_core::{OriginAction, Task};
+use jott_core::{ListedTask, OriginAction, Task};
 use tauri::{Runtime, State};
 
 use crate::error::CommandResult;
@@ -28,7 +28,7 @@ pub fn create_task<R: Runtime>(
 /// Gives the task at `position` a stable id, and returns it.
 ///
 /// The UI works with positions; the moment the user acts on a task — pulls it
-/// into a period, completes it — it needs a name that survives reordering.
+/// into a day, completes it — it needs a name that survives reordering.
 #[tauri::command]
 pub fn ensure_task_id<R: Runtime>(
     state: State<'_, AppState>,
@@ -145,4 +145,15 @@ pub fn uncomplete_task<R: Runtime>(
 pub fn delete_task<R: Runtime>(state: State<'_, AppState>,
     window: tauri::Window<R>, list: String, id: String) -> CommandResult<()> {
     state.record(window.label(), "delete_task", |nb| nb.delete_task(&list, &id))
+}
+
+/// Every open task of the notebook, arranged by space — the fixed Tasks
+/// screen's "every list" (2026-09-04). Walks every list: ask when the screen
+/// opens, never per render.
+#[tauri::command]
+pub fn all_tasks<R: Runtime>(
+    state: State<'_, AppState>,
+    window: tauri::Window<R>,
+) -> CommandResult<Vec<ListedTask>> {
+    state.read(window.label(), |nb| nb.all_tasks())
 }

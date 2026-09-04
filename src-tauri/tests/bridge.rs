@@ -189,18 +189,20 @@ fn the_full_task_lifecycle_over_the_bridge() {
     assert_eq!(tasks[0]["text"], "Comprar leite integral");
     assert_eq!(tasks[0]["done"], json!(false));
 
-    // Pull into both periods, then complete: the references FOLLOW the task
-    // into the Completed (2026-08-06), which is what puts it in the period
-    // screen's "Completed N" section instead of making it vanish.
+    // Plan it for tomorrow and pull it into today, then complete: the
+    // references FOLLOW the task into the Completed (2026-08-06), which is
+    // what puts it in the day's "Completed N" section instead of making it
+    // vanish.
+    let tomorrow = (chrono::Local::now().date_naive() + chrono::Duration::days(1)).to_string();
     ok(
         &app,
-        "pull_into_period",
-        json!({ "period": "week", "list": "jott.tasks/Compras.md", "id": id }),
+        "pull_into_day",
+        json!({ "day": tomorrow, "list": "jott.tasks/Compras.md", "id": id }),
     );
     ok(
         &app,
-        "pull_into_period",
-        json!({ "period": "day", "list": "jott.tasks/Compras.md", "id": id }),
+        "pull_into_day",
+        json!({ "day": null, "list": "jott.tasks/Compras.md", "id": id }),
     );
     let day = ok(&app, "notebook_snapshot", json!({}))["day"].clone();
     assert_eq!(day[0]["path"], "jott.tasks/Compras.md");
@@ -212,7 +214,7 @@ fn the_full_task_lifecycle_over_the_bridge() {
     );
     let day = ok(&app, "notebook_snapshot", json!({}))["day"].clone();
     assert_eq!(day[0]["path"], "jott.tasks/completed.md");
-    let pulled = ok(&app, "period_tasks", json!({ "period": "day" }));
+    let pulled = ok(&app, "day_tasks", json!({ "day": null }));
     assert_eq!(pulled[0]["task"]["done"], json!(true));
 
     let completed = std::fs::read_to_string(dir.path().join("jott.tasks/completed.md")).unwrap();
@@ -275,10 +277,22 @@ fn reminders_cross_the_bridge_with_the_machine_memory_of_what_rang() {
 fn creating_a_task_from_today_writes_it_to_the_inbox() {
     let (_lock, app, dir) = app_with_notebook();
 
+    ok(
+        &app,
+        "create_task",
+        json!({ "list": "jott.tasks/task-list.md", "text": "Responder e-mail" }),
+    );
+    // The composer creates in a list and then pulls into the day, so an id
+    // exists for the card before the day names it.
     let id = ok(
         &app,
-        "add_task_in_period",
-        json!({ "period": "day", "text": "Responder e-mail" }),
+        "ensure_task_id",
+        json!({ "list": "jott.tasks/task-list.md", "position": 0 }),
+    );
+    ok(
+        &app,
+        "pull_into_day",
+        json!({ "day": null, "list": "jott.tasks/task-list.md", "id": id }),
     );
     let id = id.as_str().unwrap();
 
@@ -292,8 +306,8 @@ fn creating_a_task_from_today_writes_it_to_the_inbox() {
     assert_eq!(
         ok(
             &app,
-            "remove_from_period",
-            json!({ "period": "day", "list": "jott.tasks/task-list.md", "id": id })
+            "remove_from_day",
+            json!({ "day": null, "list": "jott.tasks/task-list.md", "id": id })
         ),
         json!(true)
     );
@@ -361,8 +375,6 @@ fn settings_round_trip_through_the_bridge() {
             "settings": {
                 "dailyMode": "carry",
                 "dailyAt": "-02:00",
-                "weeklyMode": "reset",
-                "weeklyAt": "02:00",
                 "weekStartsOn": "sunday"
             }
         }),
@@ -391,8 +403,8 @@ fn the_snapshot_carries_what_is_pulled_into_the_day() {
     assert_eq!(ok(&app, "notebook_snapshot", json!({}))["day"], json!([]));
     ok(
         &app,
-        "pull_into_period",
-        json!({ "period": "day", "list": list, "id": id }),
+        "pull_into_day",
+        json!({ "day": null, "list": list, "id": id }),
     );
 
     let day = ok(&app, "notebook_snapshot", json!({}))["day"].clone();
@@ -480,7 +492,7 @@ fn the_sidebar_sort_round_trips() {
 }
 
 #[test]
-fn a_period_can_be_sorted_and_dragged_over_the_bridge() {
+fn a_day_can_be_sorted_and_dragged_over_the_bridge() {
     let (_lock, app, _dir) = app_with_notebook();
     let list = "jott.tasks/task-list.md";
     let a = task_with_id(&app, list, "um");
@@ -488,28 +500,24 @@ fn a_period_can_be_sorted_and_dragged_over_the_bridge() {
     for id in [&a, &b] {
         ok(
             &app,
-            "pull_into_period",
-            json!({ "period": "day", "list": list, "id": id }),
+            "pull_into_day",
+            json!({ "day": null, "list": list, "id": id }),
         );
     }
 
-    assert_eq!(ok(&app, "period_sort", json!({ "period": "day" })), Value::Null);
-    ok(
-        &app,
-        "set_period_sort",
-        json!({ "period": "day", "sort": "name" }),
-    );
-    assert_eq!(ok(&app, "period_sort", json!({ "period": "day" })), "name");
+    assert_eq!(ok(&app, "day_sort", json!({})), Value::Null);
+    ok(&app, "set_day_sort", json!({ "sort": "name" }));
+    assert_eq!(ok(&app, "day_sort", json!({})), "name");
 
     // Dragging rewrites the state file itself — the day IS that list.
     ok(
         &app,
-        "set_period_order",
-        json!({ "period": "day", "refs": [
+        "set_day_order",
+        json!({ "day": null, "refs": [
             { "path": list, "id": b }, { "path": list, "id": a },
         ]}),
     );
-    let pulled = ok(&app, "period_tasks", json!({ "period": "day" }));
+    let pulled = ok(&app, "day_tasks", json!({ "day": null }));
     assert_eq!(pulled[0]["task"]["text"], "dois");
     assert_eq!(pulled[1]["task"]["text"], "um");
 }
@@ -555,8 +563,6 @@ fn nonsense_settings_are_normalized_instead_of_corrupting_the_config() {
             "settings": {
                 "dailyMode": "banana",
                 "dailyAt": "99:99",
-                "weeklyMode": "",
-                "weeklyAt": "nope",
                 "weekStartsOn": "caturday"
             }
         }),
@@ -569,27 +575,57 @@ fn nonsense_settings_are_normalized_instead_of_corrupting_the_config() {
 }
 
 #[test]
-fn the_clock_command_reports_the_logical_periods() {
+fn the_clock_command_reports_the_logical_day() {
     let (_lock, app, _dir) = app_with_notebook();
 
-    let clock = ok(&app, "period_clock", json!({}));
+    let clock = ok(&app, "day_clock", json!({}));
     let today = clock["today"].as_str().unwrap();
-    let week_start = clock["weekStart"].as_str().unwrap();
 
     // Shape matters more than the value: the UI parses these.
     assert_eq!(today.len(), 10, "expected YYYY-MM-DD, got {today}");
-    assert!(week_start <= today, "week must start on or before today");
+    assert_eq!(clock["weekStartsOn"], "monday");
     assert!(clock["nextDailyTurn"].as_str().unwrap().contains('T'));
 }
 
 #[test]
-fn refresh_periods_returns_both_states() {
+fn refresh_day_returns_todays_state() {
     let (_lock, app, _dir) = app_with_notebook();
 
-    let states = ok(&app, "refresh_periods", json!({}));
-    assert_eq!(states.as_array().unwrap().len(), 2);
-    assert!(states[0]["date"].is_string());
-    assert!(states[1]["items"].is_array());
+    let state = ok(&app, "refresh_day", json!({}));
+    assert!(state["date"].is_string());
+    assert!(state["items"].is_array());
+}
+
+#[test]
+fn a_day_ahead_is_planned_and_read_over_the_bridge() {
+    let (_lock, app, dir) = app_with_notebook();
+    let list = "jott.tasks/task-list.md";
+    let id = task_with_id(&app, list, "Planejada");
+    let today = chrono::Local::now().date_naive();
+    let day = |offset: i64| (today + chrono::Duration::days(offset)).to_string();
+
+    assert_eq!(
+        ok(&app, "pull_into_day", json!({ "day": day(3), "list": list, "id": id })),
+        json!(true)
+    );
+    assert_eq!(ok(&app, "planned_days", json!({})), json!([day(3)]));
+    let planned = ok(&app, "day_tasks", json!({ "day": day(3) }));
+    assert_eq!(planned[0]["task"]["text"], "Planejada");
+    assert!(ok(&app, "day_tasks", json!({ "day": day(2) })).as_array().unwrap().is_empty());
+    assert!(dir.path().join(".jott/plan.json").exists());
+
+    // Yesterday is the log's, not a list: refused with its own kind.
+    let err = invoke(&app, "pull_into_day", json!({ "day": day(-1), "list": list, "id": id })).unwrap_err();
+    assert_eq!(err["kind"], "dayGone");
+    // And a day that is not a day is refused rather than read as today.
+    let err = invoke(&app, "day_tasks", json!({ "day": "amanhã" })).unwrap_err();
+    assert_eq!(err["kind"], "invalidNotePath");
+
+    assert_eq!(
+        ok(&app, "remove_from_day", json!({ "day": day(3), "list": list, "id": id })),
+        json!(true)
+    );
+    assert_eq!(ok(&app, "planned_days", json!({})), json!([]));
 }
 
 /// Guards a bug that no IPC test can catch: a native dialog cannot be driven
@@ -650,33 +686,28 @@ fn dialog_helpers_are_never_called_from_a_blocking_command() {
 }
 
 #[test]
-fn the_day_offers_the_week_first_then_the_rest() {
+fn the_day_offers_the_lists_and_stops_offering_what_it_holds() {
     let (_lock, app, _dir) = app_with_notebook();
     ok(&app, "create_list", json!({ "folder": "jott.tasks", "name": "Compras" }));
 
     let solta = task_with_id(&app, "jott.tasks/task-list.md", "Tarefa solta");
-    let semana = task_with_id(&app, "jott.tasks/Compras.md", "Escolhida pra semana");
-    ok(
-        &app,
-        "pull_into_period",
-        json!({ "period": "week", "list": "jott.tasks/Compras.md", "id": semana }),
-    );
+    let compras = task_with_id(&app, "jott.tasks/Compras.md", "Das compras");
 
-    let suggestions = ok(&app, "period_suggestions", json!({ "period": "day" }));
-    assert_eq!(suggestions[0]["task"]["id"], semana);
+    let suggestions = ok(&app, "grouped_suggestions", json!({ "day": null }));
+    assert_eq!(suggestions[0]["task"]["id"], compras);
     assert_eq!(suggestions[0]["path"], "jott.tasks/Compras.md");
     assert_eq!(suggestions[1]["task"]["id"], solta);
 
     // Once pulled, it stops being a suggestion and shows up as pulled.
     ok(
         &app,
-        "pull_into_period",
-        json!({ "period": "day", "list": "jott.tasks/Compras.md", "id": semana }),
+        "pull_into_day",
+        json!({ "day": null, "list": "jott.tasks/Compras.md", "id": compras }),
     );
-    let pulled = ok(&app, "period_tasks", json!({ "period": "day" }));
-    assert_eq!(pulled[0]["task"]["text"], "Escolhida pra semana");
+    let pulled = ok(&app, "day_tasks", json!({ "day": null }));
+    assert_eq!(pulled[0]["task"]["text"], "Das compras");
 
-    let suggestions = ok(&app, "period_suggestions", json!({ "period": "day" }));
+    let suggestions = ok(&app, "grouped_suggestions", json!({ "day": null }));
     assert_eq!(suggestions.as_array().unwrap().len(), 1);
 }
 
@@ -840,7 +871,7 @@ fn suggestions_arrive_grouped() {
         json!({ "settings": { "datedTasksJoinPeriod": false } }),
     );
 
-    let suggestions = ok(&app, "grouped_suggestions", json!({ "period": "day" }));
+    let suggestions = ok(&app, "grouped_suggestions", json!({ "day": null }));
 
     assert_eq!(suggestions[0]["task"]["text"], "Vencida");
     assert_eq!(suggestions[0]["group"], "urgent");
@@ -859,7 +890,7 @@ fn a_dated_task_reaches_the_day_over_the_bridge() {
     )
     .unwrap();
 
-    let day = ok(&app, "period_tasks", json!({ "period": "day" }));
+    let day = ok(&app, "day_tasks", json!({ "day": null }));
     assert_eq!(day.as_array().unwrap().len(), 1);
     assert_eq!(day[0]["task"]["text"], "Para hoje");
 
@@ -954,11 +985,11 @@ fn a_partial_settings_payload_keeps_what_it_did_not_mention() {
     ok(
         &app,
         "set_notebook_settings",
-        json!({ "settings": { "weeklyAt": "02:00" } }),
+        json!({ "settings": { "weekStartsOn": "sunday" } }),
     );
 
     let saved = ok(&app, "notebook_settings", json!({}));
-    assert_eq!(saved["weeklyAt"], "02:00", "the field that was sent");
+    assert_eq!(saved["weekStartsOn"], "sunday", "the field that was sent");
     assert_eq!(saved["dailyMode"], "carry", "survived the second call");
     assert_eq!(saved["showListCounts"], json!(false), "survived too");
 }
@@ -1669,8 +1700,8 @@ fn a_space_moved_into_a_group_keeps_its_pulled_tasks() {
     let id = task_with_id(&app, "Acme/task-list.md", "call the client");
     ok(
         &app,
-        "pull_into_period",
-        json!({ "period": "day", "list": "Acme/task-list.md", "id": id }),
+        "pull_into_day",
+        json!({ "day": null, "list": "Acme/task-list.md", "id": id }),
     );
 
     ok(&app, "move_space", json!({ "name": "Acme", "intoGroup": "Design" }));
@@ -1678,7 +1709,7 @@ fn a_space_moved_into_a_group_keeps_its_pulled_tasks() {
     let day = ok(&app, "notebook_snapshot", json!({}))["day"].clone();
     assert_eq!(day[0]["path"], "Design/Acme/task-list.md");
     assert_eq!(
-        ok(&app, "period_tasks", json!({ "period": "day" }))
+        ok(&app, "day_tasks", json!({ "day": null }))
             .as_array()
             .unwrap()
             .len(),

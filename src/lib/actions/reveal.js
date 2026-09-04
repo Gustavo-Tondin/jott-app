@@ -13,8 +13,10 @@
 // here would take every action mounted after it down with it — the same
 // lesson `measure.js` learned.
 export function reveal(node, options = {}) {
-  const { margin = "0px 0px -10% 0px" } = options;
-  if (typeof IntersectionObserver !== "function") {
+  const { margin = "0px 0px -10% 0px", enabled = true } = options;
+  // Told not to (the Home's recap, one short block that is already on
+  // screen): visible at once, the same as having no observer.
+  if (!enabled || typeof IntersectionObserver !== "function") {
     node.classList.add("is-visible");
     return {};
   }

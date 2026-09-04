@@ -241,18 +241,21 @@ describe("ListView", () => {
     );
   });
 
-  test("pulling sends the task to the right period", async () => {
-    bridge({ list_tasks: [task("a1", "Comprar leite")], pull_into_period: true });
+  test("pulling sends the task to today", async () => {
+    // No "→ Week" since 2026-09-04: the week became any day ahead on the
+    // Home's calendar, and a list offers only the one day it can name.
+    bridge({ list_tasks: [task("a1", "Comprar leite")], pull_into_day: true });
 
     render(ListView, {
       props: { list: "jott.tasks/Compras.md", readOnly: false, onChanged: noop, onError: noop, reloadKey: 0 },
     });
 
-    await userEvent.click(await screen.findByText("→ Week"));
+    expect(screen.queryByText("→ Week")).toBeNull();
+    await userEvent.click(await screen.findByText("→ Today"));
 
     await waitFor(() =>
-      expect(invoke).toHaveBeenCalledWith("pull_into_period", {
-        period: "week",
+      expect(invoke).toHaveBeenCalledWith("pull_into_day", {
+        day: null,
         list: "jott.tasks/Compras.md",
         id: "a1",
       }),
@@ -307,7 +310,7 @@ describe("ListView", () => {
     bridge({
       list_tasks: [task(null, "Escrita à mão")],
       ensure_task_id: "new1",
-      pull_into_period: true,
+      pull_into_day: true,
     });
 
     render(ListView, {
@@ -317,8 +320,8 @@ describe("ListView", () => {
     await userEvent.click(await screen.findByText("→ Today"));
 
     await waitFor(() =>
-      expect(invoke).toHaveBeenCalledWith("pull_into_period", {
-        period: "day",
+      expect(invoke).toHaveBeenCalledWith("pull_into_day", {
+        day: null,
         list: "jott.tasks/Compras.md",
         id: "new1",
       }),

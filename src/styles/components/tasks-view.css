@@ -1,6 +1,11 @@
 /* tasks-view.css — the visual layer of TasksView.svelte.
  * Markup: src/lib/screens/TasksView.svelte. Selectors are the stable BEM hooks a theme
- * may restyle; components read tokens only. */
+ * may restyle; components read tokens only.
+ *
+ * Until 2026-09-04 this file also drew the Inbox / Today / Week strip and
+ * the page turn between the tabs; the day moved to the Home's calendar and
+ * the tabs went with it, so what is left is the frame that pins the
+ * composing bar to the bottom of the panel. */
 
 @layer components {
   .tasks-view {
@@ -20,136 +25,7 @@
     display: flex;
     flex-direction: column;
   }
-  .tasks-view__pane > .tasks-space,
-  .tasks-view__pane > .period-view {
+  .tasks-view__pane > .tasks-space {
     flex: 1;
-  }
-
-  /* WHAT TURNS IS THE LIST (user call, 2026-08-21, on seeing the whole
-     canvas slide): the strip, the header and the composing bar are the same
-     on all three tabs, so they stay put, and only what differs — the cards,
-     the Completed row, the empty note — moves. Hence the selector: every
-     child of the tasks block that is not its header or its bar.
-
-     NO STANDING `translate`. A transform on an ancestor, even `0 0`, makes it
-     the containing block of every `position: fixed` descendant — and two of
-     those live in here: the card being carried by a drag (actions/reorder.js
-     lifts it fixed, at viewport coordinates) and the phone's composing bar.
-     With a standing translate on the pane the carried card landed a panel's
-     width to the right and the bar sat mid-screen (both seen, 2026-08-21).
-     So the property is only ever set while a swipe is in flight
-     (`is-turning`: the finger has it, no transition) or gliding home
-     (`is-settling`: a transition back to zero, for one beat), and is `none`
-     the rest of the time. */
-  .tasks-view.is-turning .tasks-view__pane .tasks-space > :not(.tasks-space__header, .task-composer) {
-    translate: var(--pane-x, 0rem) 0;
-  }
-  .tasks-view.is-settling .tasks-view__pane .tasks-space > :not(.tasks-space__header, .task-composer) {
-    translate: var(--pane-x, 0rem) 0;
-    transition: translate var(--app-transition-medium);
-  }
-  /* THE PAGE TURN. The new list comes in from the side the strip reads
-     towards — from the end when the tab is further along, from the start when
-     it is further back — sliding a short way and fading, decelerating as it
-     lands. A short way, not the whole width: the old list is gone by the time
-     this one exists (the `{#key}` replaces it), and a full-width slide with
-     nothing leaving read as the screen arriving from off-stage. An eighth of
-     the way says WHICH way without pretending the other page is still there.
-     The first paint has no `data-enter` and stays still. The animation ends
-     and leaves no transform behind (no fill mode), for the reason above. */
-  .tasks-view__pane[data-enter="end"] .tasks-space > :not(.tasks-space__header, .task-composer) {
-    animation: tasks-view-turn-from-end var(--app-duration-slow) var(--app-ease-out);
-  }
-  .tasks-view__pane[data-enter="start"] .tasks-space > :not(.tasks-space__header, .task-composer) {
-    animation: tasks-view-turn-from-start var(--app-duration-slow) var(--app-ease-out);
-  }
-  @keyframes tasks-view-turn-from-end {
-    from {
-      opacity: 0;
-      translate: 12% 0;
-    }
-  }
-  @keyframes tasks-view-turn-from-start {
-    from {
-      opacity: 0;
-      translate: -12% 0;
-    }
-  }
-
-  /* The strip lives ON the screen's top row (2026-08-06), to the left of its ⋮.
-     Three columns with equal outer ones keep the segmented centred whatever the
-     span reads, and the span sits at the right of the row — next to the ⋮, as
-     asked. */
-  .tasks-view__bar {
-    flex: 1;
-    min-width: 0;
-    display: grid;
-    grid-template-columns: 1fr auto 1fr;
-    align-items: center;
-    gap: var(--app-space-8);
-  }
-  .tasks-view__bar > .theme-segmented {
-    grid-column: 2;
-  }
-  .tasks-view__range {
-    grid-column: 3;
-    justify-self: end;
-    font-size: var(--app-text-14);
-    color: var(--app-ink-muted);
-  }
-
-  /* The Inbox / Today / Week strip IS the shared segmented control
-     (.theme-segmented in controls.css) — this screen used to spell out the
-     same declarations again, value for value. The `tasks-view__subs` /
-     `__sub` / `__sub--active` hooks stay on the markup with no rules of their
-     own, so a theme can still target this particular strip without having to
-     restyle every segmented control in the app. */
-}
-
-/* =============================================================================
-   THE COMPACT SCREEN (below 768px — mobile wireframes, 2026-08-18).
-   ============================================================================= */
-@layer components {
-  /* The Inbox / Today / Week strip stretches to the full width of the screen
-     and gets taller.
-
-     The wireframe draws it 24px tall with 32px of padding around the pills,
-     and both numbers were revised at the desk (user call): 24px is half the
-     48dp a thumb needs, and 32px of inner padding on a 360px screen spends a
-     fifth of the row on air. 38px of height — his figure — puts three real
-     targets across the row, and the padding stays the shared control's 2px
-     (second user call, same day: at 16px the pills floated inside a fat well
-     instead of filling it). */
-  /* It takes the whole row it is given, and that row is CENTRED between the
-     block's ⋮ and the invisible twin of it on the other side (user call,
-     2026-08-18, after seeing both: the ⋮ tried living up in the screen's black
-     header, one below the top bar's own ⋮, and two ⋮ stacked in a corner read
-     as one control drawn twice). So the strip is narrower than the panel by
-     one control on each side — and centred on the SCREEN, which is what the
-     twin is for. */
-  .shell--compact .tasks-view__bar {
-    display: block;
-  }
-  .shell--compact .tasks-view__bar > .theme-segmented {
-    display: flex;
-    inline-size: 100%;
-    /* The track's padding is the SHARED control's 2px, here as everywhere else
-       (user call, 2026-08-18). The wireframe's 16px was read off a strip drawn
-       at half a thumb's height, and applied to a taller one it left the three
-       pills floating inside a fat well instead of filling it. Height is the
-       thing that changes on a phone; padding is not. */
-    padding: var(--app-space-2);
-    block-size: 2.375rem;
-  }
-  .shell--compact .tasks-view__sub {
-    flex: 1;
-    padding-inline: var(--app-space-8);
-    font-size: var(--app-text-16);
-  }
-  /* The range ("12–18 Aug") sat in the third column of a grid that is gone. */
-  .shell--compact .tasks-view__range {
-    display: block;
-    margin-block-start: var(--app-space-8);
-    text-align: center;
   }
 }

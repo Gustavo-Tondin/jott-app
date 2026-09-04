@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { ghostLabel, monthStats, monthsOf, rowsOf, yearRange } from "./timeline.js";
+import { dayGroups, ghostLabel, monthStats, monthsOf, rowsOf, yearRange } from "./timeline.js";
 
 const task = (title, created, extra = {}) => ({
   kind: "task",
@@ -164,5 +164,26 @@ describe("services/timeline", () => {
       "2026-08-27",
     );
     expect(stats).toEqual({ notes: 1, created: 1, completed: 1 });
+  });
+});
+
+describe("dayGroups", () => {
+  // The Home's recap of a day gone by (2026-09-04): the window the core
+  // answers holds everything born OR ticked that day, and each item lands
+  // in the line it earned that day — a task born earlier and ticked on the
+  // day is completed only.
+  test("one day's three groups, by what happened on it", () => {
+    const items = [
+      { kind: "task", id: "a", path: "l.md", created: "2026-09-01", title: "Born and done", completed: "2026-09-01" },
+      { kind: "task", id: "b", path: "l.md", created: "2026-08-20", title: "Old, done today", completed: "2026-09-01" },
+      { kind: "task", id: "c", path: "l.md", created: "2026-09-01", title: "Born, still open" },
+      { kind: "note", path: "n/x.md", created: "2026-09-01", title: "Written" },
+      { kind: "note", path: "n/y.md", created: "2026-08-31", title: "Yesterday's" },
+    ];
+    const groups = dayGroups(items, "2026-09-01");
+    expect(groups.created.map((i) => i.title)).toEqual(["Born and done", "Born, still open"]);
+    expect(groups.completed.map((i) => i.title)).toEqual(["Born and done", "Old, done today"]);
+    expect(groups.notes.map((i) => i.title)).toEqual(["Written"]);
+    expect(dayGroups([], "2026-09-01")).toEqual({ created: [], completed: [], notes: [] });
   });
 });
