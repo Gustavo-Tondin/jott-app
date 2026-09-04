@@ -1944,7 +1944,7 @@ dependencies = [
 
 [[package]]
 name = "jott"
-version = "0.50.3"
+version = "0.50.4"
 dependencies = [
  "chrono",
  "gdk",
@@ -1968,7 +1968,7 @@ dependencies = [
 
 [[package]]
 name = "jott-core"
-version = "0.50.3"
+version = "0.50.4"
 dependencies = [
  "chrono",
  "notify",
