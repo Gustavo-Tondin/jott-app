@@ -159,15 +159,27 @@
     flex-direction: column;
     gap: var(--app-space-40);
   }
+  /* The band covers what passes UNDER it, all the way to the top of the
+     scroller (user report, 2026-09-07: "as palavras passam por trás dele e
+     aparecem em cima de novo"). Pinned at 0 it stops at the scroller's own
+     top padding, and a row crossing that strip is drawn ABOVE the month —
+     measured: a 12px sliver with a line of a row in it at every scroll
+     position. So the band reaches back across the padding: the negative
+     offset takes it that far past the edge, the padding puts the words back
+     where they were, and the negative margin gives the space back to the
+     flow, so nothing below moves. `--timeline-head-reach` is the block
+     padding of `.shell__content` (shell.css) — the one number this screen
+     borrows from the shell. */
   .timeline__month-head {
+    --timeline-head-reach: var(--app-space-12);
     position: sticky;
-    inset-block-start: 0;
+    inset-block-start: calc(-1 * var(--timeline-head-reach));
     z-index: 1;
     display: flex;
     align-items: baseline;
     gap: var(--app-space-8);
-    margin: 0;
-    padding-block: var(--app-space-8);
+    margin: calc(-1 * var(--timeline-head-reach)) 0 0;
+    padding-block: calc(var(--app-space-8) + var(--timeline-head-reach)) var(--app-space-8);
     background: var(--app-bg);
     font-weight: var(--app-weight-regular);
   }

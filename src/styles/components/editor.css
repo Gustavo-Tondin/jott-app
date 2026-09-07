@@ -616,7 +616,7 @@
   background: var(--app-surface);
   border: 0.0625rem solid var(--app-line);
   border-radius: var(--app-radius-md);
-  box-shadow: 0 0.25rem 0.75rem var(--app-shadow-popover);
+  box-shadow: var(--app-shadow-popover);
   overflow: hidden;
 }
 .editor .cm-tooltip-autocomplete > ul {

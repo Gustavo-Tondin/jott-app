@@ -88,6 +88,9 @@ file and live only in the commit history.
   the screen and cards scrolled behind the buttons above it.
 - On the desktop, the Home's head — the title and the week — scrolls away
   with the page instead of holding the top of it.
+- On the Timeline, the pinned month covers the rows passing under it: they
+  no longer reappear in a sliver above the month's name.
+- The list `[[` offers while you type has its shadow back.
 - Bold and italic no longer fight. `***word***` is both, and removing one
   leaves the other standing.
 - Typing a `*` against an existing one no longer opens a new pair — deleting
