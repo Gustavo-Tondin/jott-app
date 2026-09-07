@@ -285,18 +285,20 @@ jobs:
           manifest.write_text(json.dumps(data, indent=2))
           PY
 
-          # It goes back up with a LABEL. GitHub's asset list shows the label
-          # "in place of the filename", which is the closest thing there is to
-          # taking this row off the page — and it cannot come off: the URL
+          # It goes back up under its own name. It carried a label for one
+          # release — "Update manifest — not a download", which GitHub shows in
+          # place of the filename — and it reads better without it: the file is
+          # called latest.json, and the name says more than a note about it.
+          #
+          # The row cannot come off the page either way: the URL
           # `releases/latest/download/latest.json` is compiled into every copy
           # of Jott already installed, in two places (the updater plugin's
           # endpoint in tauri.conf.json, and UPDATE_MANIFEST_URL in
           # commands/update.rs). Delete the asset and the daily check 404s for
-          # everyone out there, silently and forever. So it stays, and says
-          # what it is instead of looking like a download somebody missed.
+          # everyone out there, silently and forever.
           gh api -X DELETE "repos/$REPO/releases/assets/$json_id" >/dev/null
           gh api --method POST \
-            "https://uploads.github.com/repos/$REPO/releases/$id/assets?name=latest.json&label=Update%20manifest%20%E2%80%94%20not%20a%20download" \
+            "https://uploads.github.com/repos/$REPO/releases/$id/assets?name=latest.json" \
             -H "Content-Type: application/json" \
             --input latest.json >/dev/null
-          echo "latest.json rewritten, labelled and uploaded."
+          echo "latest.json rewritten and uploaded."
