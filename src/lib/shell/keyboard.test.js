@@ -10,7 +10,7 @@
 // for the rest of the session (device video, 2026-08-21).
 
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { installKeyboard, keyboardCover } from "./keyboard.js";
+import { installKeyboard, keyboardCover, pageSpace } from "./keyboard.js";
 
 const root = document.documentElement;
 
@@ -49,6 +49,7 @@ afterEach(() => {
   root.style.removeProperty("--android-ime");
   root.style.removeProperty("--app-keyboard");
   delete root.clientHeight;
+  delete root.clientWidth;
 });
 
 describe("what the keyboard covers", () => {
@@ -77,6 +78,39 @@ describe("what the keyboard covers", () => {
 
   it("is the whole inset when the screen height is unknown", () => {
     expect(keyboardCover({ ime: 300, layout: 780 })).toBe(300);
+  });
+});
+
+describe("the room a floating panel has", () => {
+  /// The width side of the same measurement, stated the way `layout` states
+  /// the height — jsdom reports zero for both.
+  const wide = (px) =>
+    Object.defineProperty(root, "clientWidth", { value: px, configurable: true });
+
+  it("is the whole page while no keyboard is up", () => {
+    layout(780);
+    wide(360);
+
+    expect(pageSpace({ root })).toEqual({ top: 0, left: 0, right: 360, bottom: 780 });
+  });
+
+  it("stops where the keyboard begins", () => {
+    layout(780);
+    wide(360);
+    root.style.setProperty("--app-keyboard", "320px");
+
+    // Not `innerHeight`: on the WebView that shrinks the visual viewport that
+    // number ALREADY stops at the keyboard, and subtracting the cover from it
+    // would take the keyboard twice.
+    expect(pageSpace({ root }).bottom).toBe(460);
+  });
+
+  it("never answers a negative room", () => {
+    layout(300);
+    wide(360);
+    root.style.setProperty("--app-keyboard", "500px");
+
+    expect(pageSpace({ root }).bottom).toBe(0);
   });
 });
 

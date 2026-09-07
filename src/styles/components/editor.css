@@ -640,10 +640,24 @@
   border-radius: var(--app-radius-md);
   box-shadow: var(--app-shadow-popover);
   overflow: hidden;
+  /* A COLUMN, so that the height CodeMirror writes on this box reaches the
+     list inside it. When the room is tight — the phone, with the keyboard
+     up and the caret near it — it sets an inline `height` HERE (not a
+     max-height, and not on the list). With the list at its own
+     `max-height` and this box `overflow: hidden`, the rows past the cut
+     were simply gone: the list had a scrollbar of its own and no way to
+     show what was under the edge. As a column with a shrinkable child, the
+     clamp becomes the list's height and the list scrolls. */
+  display: flex;
+  flex-direction: column;
 }
 .editor .cm-editor .cm-tooltip.cm-tooltip-autocomplete > ul {
   font: inherit;
+  /* Its own ceiling where there is room, and NOTHING where there is not:
+     `min-block-size: 0` is what lets a flex child shrink below its content
+     (the panel's own comment above says why it must). */
   max-height: 15rem;
+  min-block-size: 0;
   /* THE RING, and it is the app's menu (menu.css: `.menu__list` carries the
      same 4px). Without it the first and last option touch the panel's
      rounded edge, so the selected row's fill squares off exactly where the

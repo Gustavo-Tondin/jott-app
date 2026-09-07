@@ -134,6 +134,34 @@ export function pxOf(el, name) {
   return Number.isFinite(value) ? value : 0;
 }
 
+/// The room a floating panel has, in the coordinates a `position: fixed`
+/// panel is placed in — which is the same layout viewport [keyboardCover]
+/// answers about, less what the keyboard is covering of it.
+///
+/// It exists for CodeMirror's tooltips, and it exists BECAUSE its own answer
+/// cannot see the keyboard: `windowSpace` in @codemirror/view reads
+/// `documentElement.clientHeight`, and on the M139 WebView that is still the
+/// whole window with the keyboard over the bottom of it (the file comment
+/// above). So a completion panel opened on the last visible line was placed,
+/// and sized, as if there were room under the keys.
+///
+/// `--app-keyboard` is exactly the right number to subtract and the visual
+/// viewport is exactly the wrong one: `innerHeight` on that WebView ALREADY
+/// stops at the keyboard, so subtracting the cover from it would take the
+/// keyboard twice — the mistake 0.22.1 made in the layout and left a note
+/// reduced to a sliver (above).
+///
+/// On a desktop the token is unset, [pxOf] answers zero, and this is
+/// CodeMirror's own answer to the character.
+export function pageSpace({ root = document.documentElement } = {}) {
+  return {
+    top: 0,
+    left: 0,
+    right: root.clientWidth,
+    bottom: Math.max(0, root.clientHeight - pxOf(root, "--app-keyboard")),
+  };
+}
+
 /// Keeps `--app-keyboard` — the token the strip, the composer and the sheets
 /// read — equal to what the keyboard actually covers. Returns the uninstall.
 ///

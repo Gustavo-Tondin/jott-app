@@ -55,6 +55,10 @@ file and live only in the commit history.
   trimmed with an ellipsis rather than stretching the panel across the
   screen. The column of `abc` marks CodeMirror drew beside every name is
   gone — the space each note lives in is already on the row.
+- And it knows where the phone's keyboard is: typing `[[` on a line near the
+  keys opens the list above the caret instead of under them, and where the
+  room is tight the list scrolls rather than losing its last options off the
+  edge.
 - In landscape, the drawer is wide enough for the five header buttons.
 - A note's text is centred on its page again. The fold arrow beside each
   line was taking its width out of the left side only, so the whole note sat

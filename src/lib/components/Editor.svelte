@@ -6,7 +6,7 @@
   // its auto-save untouched when the engine changed underneath.
   import { onDestroy, onMount } from "svelte";
   import { Compartment, EditorState } from "@codemirror/state";
-  import { EditorView, keymap, placeholder as placeholderExt } from "@codemirror/view";
+  import { EditorView, keymap, placeholder as placeholderExt, tooltips } from "@codemirror/view";
   import {
     defaultKeymap,
     history,
@@ -31,6 +31,7 @@
   import { noteTables, refreshTables } from "../services/tableWidget.js";
   import { activeCell, tableStatus } from "../services/tableEditing.js";
   import { fromNotebook, referenceCompletions } from "../services/linkComplete.js";
+  import { pageSpace } from "../shell/keyboard.js";
   import { assetUrl } from "../services/assets.js";
   import { fileIcon } from "../services/fileIcons.js";
   import * as md from "../services/markdownCommands.js";
@@ -279,6 +280,24 @@
               }),
             ],
           }),
+          // WHERE THAT PANEL IS ALLOWED TO BE, and it has to be told: the
+          // room CodeMirror works out for itself is
+          // `documentElement.clientHeight` (`windowSpace`), and on the
+          // Android WebView that is the whole window with the keyboard over
+          // the bottom third of it. So `[[` typed on the last visible line
+          // opened a panel placed — and sized — under the keys.
+          //
+          // `pageSpace` answers in the same coordinates a `position: fixed`
+          // panel is placed in and subtracts the one number the app already
+          // measures for exactly this (`--app-keyboard`, shell/keyboard.js).
+          // Told the truth, CodeMirror does the rest itself: it flips the
+          // panel ABOVE the caret when the room below has gone, and clamps
+          // its height when the room is only tight (editor.css lets that
+          // clamp reach the list instead of clipping it).
+          //
+          // On a desktop the token is unset and this is CodeMirror's own
+          // answer to the character.
+          tooltips({ tooltipSpace: () => pageSpace() }),
           // Pairs that close themselves (2026-08-19). After the completion so
           // its Backspace and its keymap are the ones already in place, and
           // internally in front of CodeMirror's own bracket handler — the
