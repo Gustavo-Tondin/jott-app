@@ -1071,11 +1071,13 @@ describe("App", () => {
   test("the sidebar's footer opens the notebooks screen, in a window of its own", async () => {
     // It used to open the system's folder picker straight away, which was the
     // only way to change notebook there was. A window of its own is what lets
-    // the notebook underneath stay open.
-    shell({ open_window: "jott-abc" });
+    // the notebook underneath stay open. Since 2026-09-07 the name opens a
+    // MENU of notebooks first, and the screen is its last row.
+    shell({ open_window: "jott-abc", recent_notebooks: [] });
     render(App);
 
     await userEvent.click(await screen.findByTitle("/n"));
+    await userEvent.click(await screen.findByText("Manage notebooks…"));
     await waitFor(() => expect(invoke).toHaveBeenCalledWith("open_window", { notebook: null }));
     // The notebook under it is untouched — no window, no folder picker.
     expect(invoke).not.toHaveBeenCalledWith("pick_notebook_folder", expect.anything());
@@ -1177,7 +1179,7 @@ describe("App", () => {
       addListener: () => {},
       removeListener: () => {},
     });
-    shell({ platform: "android" });
+    shell({ platform: "android", recent_notebooks: [] });
     render(App);
 
     // Open the drawer from the compact bar, and PROVE it opened — the first
@@ -1188,7 +1190,9 @@ describe("App", () => {
       expect(document.querySelector(".shell__sidebar--open")).not.toBeNull(),
     );
 
+    // The name opens the notebook menu (2026-09-07); its last row is the screen.
     await userEvent.click(await screen.findByTitle("/n"));
+    await userEvent.click(await screen.findByText("Manage notebooks…"));
 
     // The screen came up...
     expect(await screen.findByText("Create a new notebook")).toBeTruthy();

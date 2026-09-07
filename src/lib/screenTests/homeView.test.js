@@ -347,6 +347,30 @@ describe("HomeView", () => {
     );
   });
 
+  test("the + can create a note: untitled, in the capture target, opened fresh", async () => {
+    // The shell's + menu calls this door (user report, 2026-09-07: the +
+    // offered only a task). The target is the notes ⋮'s choice, else the
+    // notebook's quickNoteFolder — here "Clientes".
+    bridge({ day_tasks: [], day_sort: null, notes_created_today: [], create_note: "Clientes/Untitled.md" });
+    const opened = [];
+    const view = render(HomeView, {
+      props: props({ quickNoteFolder: "Clientes", onOpenNote: (...args) => opened.push(args) }),
+    });
+    await waitFor(() => expect(invoke).toHaveBeenCalledWith("notes_created_today", expect.anything()));
+
+    view.component.createNote();
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("create_note", {
+        folder: "jott.notes",
+        inFolder: "Clientes",
+        title: "New note",
+      }),
+    );
+    await waitFor(() =>
+      expect(opened).toEqual([["Clientes/Untitled.md", "jott.notes", { fresh: true }]]),
+    );
+  });
+
   test("a read-only notebook still opens a card of the day in a new tab", async () => {
     // The one row that is not a write.
     bridge({ day_tasks: [], day_sort: null, notes_created_today: [aNote()] });

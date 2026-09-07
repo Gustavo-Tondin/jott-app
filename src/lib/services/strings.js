@@ -107,6 +107,10 @@ export const S = {
     }
   },
   notebookOptions: "notebook options",
+  // The footer's menu of notebooks (2026-09-07): the recent ones, to switch
+  // in place, and the door to the screen that manages them.
+  notebookMenu: "switch notebook",
+  manageNotebooks: "Manage notebooks\u2026",
   // The picker window's OWN ⋮ — two questions about windows, not about any
   // one notebook, which is why it hangs off the screen and not off a card.
   notebooksOptions: "screen options",
@@ -804,8 +808,9 @@ export const S = {
   openSidebar: "open sidebar",
   closeSheet: "close",
   closeComposer: "close the new task bar",
-  // The Home's + (2026-09-04): a task, for the day the calendar has open.
-  capture: "new task",
+  // The Home's + (2026-09-04): a task or a note (2026-09-07), for the day the
+  // calendar has open.
+  capture: "new",
   todaysTasks: "Today tasks",
   todaysNotes: "Today notes",
   /// The blocks of a day that is not today, named by the day: "Sep 5 tasks".

@@ -19,6 +19,7 @@
   import { spaceIcon } from "../services/spaceIcon.js";
   import { accentStyle } from "../services/accent.js";
   import { openIn } from "../services/counts.js";
+  import { notebookRows } from "../services/notebookMenu.js";
 
   let {
     notebook,
@@ -40,6 +41,14 @@
     /// now the same footer opens the screen that LISTS them (2026-08-24), and
     /// the folder picker is one of its two doors.
     onNotebooks,
+    /// `() => Promise<RecentNotebook[]>` — what the footer's menu lists
+    /// (2026-09-07): the notebooks this machine has opened. Asked when the
+    /// menu OPENS, never before — the bridge summarises every notebook to
+    /// answer it, which is a walk of every folder.
+    onListNotebooks = null,
+    /// `(path, newWindow) => void` — a row of that menu: this window becomes
+    /// that notebook, or (the middle button) a new window does.
+    onSwitchNotebook = null,
     // Drag-to-reorder handlers (the shared action reports from→to). The shell
     // persists the order in the config.
     onReorderLists,
@@ -116,6 +125,23 @@
     event.preventDefault();
     run();
   }
+
+  // ---- the footer's notebook menu (2026-09-07) ----
+  // "Menu flutuante pra trocar de caderno mais rápido": the name in the
+  // footer opens the list of notebooks this machine knows, the open one
+  // ticked, and the last row is the screen that manages them — which is
+  // where the name used to go straight away. The list is fetched on open.
+  let recentNotebooks = $state([]);
+  function openNotebookMenu(toggle) {
+    toggle();
+    onListNotebooks?.().then((list) => (recentNotebooks = list ?? []));
+  }
+  let notebookMenu = $derived(
+    notebookRows(recentNotebooks, notebook?.path, {
+      onSwitch: onSwitchNotebook,
+      onManage: onNotebooks,
+    }),
+  );
 
   // ---- one ordered column ----
   // Groups and loose spaces used to be two `{#each}` blocks in two
@@ -300,17 +326,22 @@
     <Menu
       align="start"
       items={[
+        // Each row is a screen, so each takes the middle button too: the
+        // `gesture` a row is run with says whether to open in a new tab
+        // (components/MenuItems.svelte, 2026-09-07).
         ...(f("tasks") && f("tasksSpace")
-          ? [{ label: S.completed, run: () => onOpen?.({ kind: "completed" }) }]
+          ? [{ label: S.completed, run: (g) => onOpen?.({ kind: "completed" }, !!g?.newTab) }]
           : []),
         ...(f("taskTags")
-          ? [{ label: S.tagsManagement, run: () => onOpen?.({ kind: "tags" }) }]
+          ? [{ label: S.tagsManagement, run: (g) => onOpen?.({ kind: "tags" }, !!g?.newTab) }]
           : []),
         // The notebook's images (2026-08-18). Here, with the other three, for
         // the same reason they are here: it belongs to the NOTEBOOK, not to
         // any one space, so no space's ⋮ could own it.
-        ...(f("notes") ? [{ label: S.assetsTitle, run: () => onOpen?.({ kind: "assets" }) }] : []),
-        { label: S.trash, run: () => onOpen?.({ kind: "trash" }) },
+        ...(f("notes")
+          ? [{ label: S.assetsTitle, run: (g) => onOpen?.({ kind: "assets" }, !!g?.newTab) }]
+          : []),
+        { label: S.trash, run: (g) => onOpen?.({ kind: "trash" }, !!g?.newTab) },
       ]}
     >
       {#snippet trigger({ toggle })}
@@ -332,6 +363,7 @@
         class="theme-btn--icon shell__head-action"
         class:shell__head-action--active={isOpen({ kind: "timeline" })}
         onclick={() => onOpen?.({ kind: "timeline" })}
+        onauxclick={(e) => middleOpen(e, () => onOpen?.({ kind: "timeline" }, true))}
         aria-label={S.timeline}
         title={S.timeline}
       >
@@ -671,18 +703,25 @@
   <ContextMenu at={menuAt} items={menuShown} onClose={() => (menuAt = null)} />
 
   <div class="shell__sidebar-footer theme-pane-foot">
-    <button
-      class="shell__notebook"
-      title={notebook.path}
-      onclick={onNotebooks}
-    >
-      <span class="shell__notebook-name">{notebook.name}</span>
-      {#if notebook.readOnly}<span class="shell__badge">{S.readOnly}</span>{/if}
-    </button>
+    <Menu align="start" items={notebookMenu}>
+      {#snippet trigger({ toggle })}
+        <button
+          class="shell__notebook"
+          title={notebook.path}
+          aria-label={S.notebookMenu}
+          onclick={() => openNotebookMenu(toggle)}
+        >
+          <span class="shell__notebook-name">{notebook.name}</span>
+          {#if notebook.readOnly}<span class="shell__badge">{S.readOnly}</span>{/if}
+          <Icon name="caret-up" size="0.75rem" />
+        </button>
+      {/snippet}
+    </Menu>
     <button
       class="theme-btn--icon shell__settings"
       class:shell__settings--active={isOpen({ kind: "settings" })}
       onclick={() => onOpen({ kind: "settings" })}
+      onauxclick={(e) => middleOpen(e, () => onOpen?.({ kind: "settings" }, true))}
       aria-label={S.settings}
       title={S.settings}
     >

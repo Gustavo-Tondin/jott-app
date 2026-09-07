@@ -385,11 +385,17 @@
     gap: var(--app-space-8);
     padding: var(--app-space-10) var(--app-space-12);
   }
-  .shell__notebook {
+  /* The name is the trigger of a menu (2026-09-07) — the wrapper `Menu`
+     draws takes the row's flexible half, and the button fills it. */
+  .shell__sidebar-footer > .menu {
     flex: 1;
     min-width: 0;
+  }
+  .shell__notebook {
+    inline-size: 100%;
+    min-width: 0;
     display: flex;
-    align-items: baseline;
+    align-items: center;
     gap: var(--app-space-6);
     font: inherit;
     font-size: var(--app-text-14);
@@ -402,6 +408,18 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+  /* The caret says "this opens": faint, and it takes the ink on hover with
+     the name. */
+  .shell__notebook > .theme-icon {
+    flex-shrink: 0;
+    color: var(--app-ink-faint);
+  }
+  .shell__notebook:hover {
+    color: var(--app-ink);
+  }
+  .shell__notebook:hover > .icon {
+    color: inherit;
   }
   /* A .theme-btn--icon; the active state adds the brand colour. */
   .shell__settings {

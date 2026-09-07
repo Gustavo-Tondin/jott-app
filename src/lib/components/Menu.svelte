@@ -30,9 +30,9 @@
     >
       <MenuItems
         {items}
-        onChoose={(item) => {
+        onChoose={(item, gesture) => {
           close();
-          item.run?.();
+          item.run?.(gesture);
         }}
       />
     </ul>

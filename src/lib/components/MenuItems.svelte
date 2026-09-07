@@ -27,8 +27,11 @@
 
   let {
     items = [],
-    /// `(item) => void` — the host closes its panel and runs the item. A
-    /// disabled row never reaches it.
+    /// `(item, gesture) => void` — the host closes its panel and runs the
+    /// item. A disabled row never reaches it. `gesture` is `{newTab: true}`
+    /// when the row was pressed with the MIDDLE button (2026-09-07): a row
+    /// that opens a screen may open it in a new tab, the way every other
+    /// door of the app does, and a row that does something else ignores it.
     onChoose,
   } = $props();
 
@@ -37,9 +40,16 @@
 
   const isSubmenu = (item) => Array.isArray(item.items);
 
-  function choose(item) {
+  function choose(item, gesture = {}) {
     if (item.disabled) return;
-    onChoose?.(item);
+    onChoose?.(item, gesture);
+  }
+
+  /// The middle button on a row.
+  function middle(event, item) {
+    if (event.button !== 1) return;
+    event.preventDefault();
+    choose(item, { newTab: true });
   }
 </script>
 
@@ -64,7 +74,11 @@
         <ul class="theme-popover menu__list menu__sub" use:keepOnScreen={{ side: "inline" }}>
           {#each item.items as sub (sub.label)}
             <li class="menu__item">
-              <button class="menu__link" disabled={sub.disabled} onclick={() => choose(sub)}
+              <button
+                class="menu__link"
+                disabled={sub.disabled}
+                onclick={() => choose(sub)}
+                onauxclick={(e) => middle(e, sub)}
                 >{#if sub.checked !== undefined}<span class="menu__check"
                     >{sub.checked ? "✓" : ""}</span
                   >{/if}{#if sub.swatch}<span
@@ -77,7 +91,12 @@
         </ul>
       {/if}
     {:else}
-      <button class="menu__link" disabled={item.disabled} onclick={() => choose(item)}>
+      <button
+        class="menu__link"
+        disabled={item.disabled}
+        onclick={() => choose(item)}
+        onauxclick={(e) => middle(e, item)}
+      >
         {#if item.checked !== undefined}<span class="menu__check">{item.checked ? "✓" : ""}</span
           >{/if}{#if item.swatch}<span
             class="theme-dot menu__swatch"

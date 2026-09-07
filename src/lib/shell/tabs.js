@@ -38,11 +38,16 @@ export const canGoForward = (tab) => !!tab && tab.at < tab.views.length - 1;
 ///
 /// Focusing rather than duplicating is what keeps a click on the same list
 /// from filling the bar with copies of it.
-export function open(tabs, active, view) {
+///
+/// `focus: false` is the browser's middle click (user call, 2026-09-07: "não
+/// foque a página, só abra em uma nova guia"): the tab is opened — or found —
+/// and the one you are reading stays in front. It used to jump, which turns a
+/// gesture meant for queueing up three things to read into three round trips.
+export function open(tabs, active, view, { focus = true } = {}) {
   const id = viewId(view);
   const existing = tabs.findIndex((tab) => viewId(currentView(tab)) === id);
-  if (existing >= 0) return { tabs, active: existing };
-  return { tabs: [...tabs, tabOf(view)], active: tabs.length };
+  if (existing >= 0) return { tabs, active: focus ? existing : active };
+  return { tabs: [...tabs, tabOf(view)], active: focus ? tabs.length : active };
 }
 
 /// Navigates the active tab to `view`, in place.

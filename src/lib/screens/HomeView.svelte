@@ -187,6 +187,20 @@
     onError: (e) => onError?.(e),
   });
 
+  /// The + asked for a NOTE (user report, 2026-09-07: "O botão de + não dá a
+  /// opção de criar nota, só tarefa"). Same door as the board's empty quick
+  /// field and the sidebar's +: an untitled note in the capture target, opened
+  /// with the cursor in the body (`fresh`). The target is this screen's — the
+  /// one the notes block's ⋮ chose, else the notebook's `quickNoteFolder`.
+  export function createNote() {
+    const target = captureTarget;
+    if (!target || readOnly) return;
+    act(async () => {
+      const path = await api.createNote(target.space, target.folder, S.newNoteTitle);
+      onOpenNote?.(path, target.space, { fresh: true });
+    });
+  }
+
   /// Going to a note of the day. Home only ever LOOKS at the notes space, so
   /// it names the space it was given rather than letting the shell guess one
   /// — the address is the whole answer either way.

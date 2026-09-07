@@ -82,9 +82,9 @@
       {#key at}
         <MenuItems
           {items}
-          onChoose={(item) => {
+          onChoose={(item, gesture) => {
             onClose?.();
-            item.run?.();
+            item.run?.(gesture);
           }}
         />
       {/key}

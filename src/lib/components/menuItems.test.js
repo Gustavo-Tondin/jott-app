@@ -24,6 +24,24 @@ describe("MenuItems", () => {
     expect(tree.querySelector(".menu__check").textContent).toBe("");
   });
 
+  test("the middle button runs the row with the new-tab gesture", async () => {
+    // A row that opens a screen reads it; any other row is free to ignore it.
+    const runs = [];
+    const { container } = render(MenuItems, {
+      props: {
+        items: [{ label: "Trash", run() {} }],
+        onChoose: (item, gesture) => runs.push([item.label, gesture]),
+      },
+    });
+    const row = container.querySelector(".menu__link");
+    await fireEvent(row, new MouseEvent("auxclick", { button: 1, bubbles: true, cancelable: true }));
+    await fireEvent.click(row);
+    expect(runs).toEqual([
+      ["Trash", { newTab: true }],
+      ["Trash", {}],
+    ]);
+  });
+
   test("a row outside a choice group gets no slot at all", () => {
     const { container } = render(MenuItems, {
       props: { items: [{ label: "Rename", run() {} }] },

@@ -36,6 +36,18 @@ describe("tabs", () => {
     expect(again.active).toBe(0);
   });
 
+  test("opening without focus leaves the reader where they are", () => {
+    // The middle button (user call, 2026-09-07): the tab is there, behind.
+    const first = bar(home);
+    const behind = open(first.tabs, first.active, notes, { focus: false });
+    expect(behind.tabs.length).toBe(2);
+    expect(behind.active).toBe(0);
+    // Already open, still no jump.
+    const again = open(behind.tabs, behind.active, notes, { focus: false });
+    expect(again.tabs.length).toBe(2);
+    expect(again.active).toBe(0);
+  });
+
   test("each tab carries its own history", () => {
     // Global history would make "back" jump between tabs, which is the
     // confusion tabs exist to avoid.

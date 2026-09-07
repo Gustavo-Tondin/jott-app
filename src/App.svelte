@@ -235,6 +235,24 @@
   /// focused, pinned above the keyboard. It is the same bar the tasks screens
   /// carry — the + only asks for it (mobile wireframe "New task").
   let composingTask = $state(false);
+  /// The Home's + opens a two-row menu — a task, a note (user report,
+  /// 2026-09-07: the + offered only a task). Where it opens is the button's
+  /// own corner, and the rows are only the halves that are switched on and
+  /// have somewhere to write: no task list, no task row; no note target, no
+  /// note row. With neither, there is no +.
+  let fabMenuAt = $state(null);
+  let homeView = $state(null);
+  let fabMenu = $derived([
+    ...(f("tasks") && !!quickTaskTo ? [{ label: S.newTask, run: () => (composingTask = true) }] : []),
+    ...(f("notes") && quickTargets.length > 0
+      ? [{ label: S.newNote, run: () => homeView?.createNote() }]
+      : []),
+  ]);
+  function openFabMenu(event) {
+    const box = event.currentTarget.getBoundingClientRect();
+    fabMenuAt = { x: box.left, y: box.top };
+  }
+
   /// Set when a note was just created from the +, and consumed the moment the
   /// editor reports it has loaded: a new note opens with the cursor in the
   /// BODY, not in the title (user call, 2026-08-18 — "fazer começar digitando
@@ -325,9 +343,15 @@
   let view = $derived(reachable(rawView, f, layout) ? rawView : landing(f));
 
   /// Opens a view in its own tab (focusing it if already open).
-  function openTab(next) {
-    ({ tabs, active } = Tabs.open(tabs, active, next));
+  function openTab(next, opts) {
+    ({ tabs, active } = Tabs.open(tabs, active, next, opts));
   }
+
+  /// The one door every "open this" gesture comes through: a click follows
+  /// like a link, a NEW TAB (middle click, "Open in new tab") opens BEHIND the
+  /// one being read — the browser's rule, and the user's call (2026-09-07).
+  const openIn = (next, newTab = false) =>
+    newTab ? openTab(next, { focus: false }) : goTo(next);
 
   /// Navigates the active tab, replacing what it shows.
   function goTo(next) {
@@ -1686,6 +1710,28 @@
     }
   }
 
+  /// The footer's menu (2026-09-07): what it lists, and what a row does.
+  /// A failure to list is reported and reads as an empty list — the manage
+  /// row is still there, so the menu never opens on nothing.
+  const listNotebooks = () => api.recentNotebooks().catch((e) => (fail(e), []));
+
+  /// THIS window becomes `path` — the tabs start over, because every one of
+  /// them named a place in the notebook being left. The middle button asks
+  /// for a window instead, where there are windows to ask for.
+  async function switchNotebook(path, newWindow = false) {
+    if (newWindow && !mobile) {
+      try {
+        await api.openWindow(path);
+      } catch (e) {
+        fail(e);
+      }
+      return;
+    }
+    tabs = [{ views: [{ kind: "home" }], at: 0 }];
+    active = 0;
+    await openAt(path);
+  }
+
   /// The picker's two doors: ask for a folder, then open what is there.
   async function chooseFolder({ create = false } = {}) {
     try {
@@ -2096,7 +2142,7 @@
   /// does — a new tab is a deliberate gesture (middle click, or the option in
   /// the context menu), never the default.
   const showNote = (path, folder = layout.notesFolder, newTab = false) =>
-    (newTab ? openTab : goTo)({ kind: "note", folder, path });
+    openIn({ kind: "note", folder, path }, newTab);
 
   /// The folders of the OPEN note's space — where it can be filed without
   /// leaving the space. The shell's own `noteFolders` cannot answer: it is the
@@ -2166,8 +2212,7 @@
     showNote(path, folder ?? undefined, newTab);
   };
 
-  const showList = (path, newTab = false) =>
-    (newTab ? openTab : goTo)({ kind: "list", list: path });
+  const showList = (path, newTab = false) => openIn({ kind: "list", list: path }, newTab);
 
 </script>
 
@@ -2224,9 +2269,11 @@
     sliding={drawerAt !== null}
     onToggleRail={() =>
       compact ? (drawerOpen = false) : (railed = !railed)}
-    onOpen={(next, newTab = false) => (newTab ? openTab : goTo)(next)}
+    onOpen={openIn}
     onOpenList={showList}
     onNotebooks={showNotebooks}
+    onListNotebooks={listNotebooks}
+    onSwitchNotebook={switchNotebook}
     onReorderLists={reorderLists}
     {f}
     onReorderEntries={reorderEntries}
@@ -2596,13 +2643,15 @@
                corner on both shells; the Home used to carry a capture box
                at its top on the desktop and a task-or-note + on the phone,
                and both went with the calendar. -->
-          {#if view.kind === "home" && !notebook.readOnly && homeKind !== "past" && f("tasks") && !!quickTaskTo}
+          {#if view.kind === "home" && !notebook.readOnly && homeKind !== "past" && fabMenu.length > 0}
             <button
               type="button"
               class="home-fab"
               aria-label={S.capture}
               title={S.capture}
-              onclick={() => (composingTask = true)}
+              aria-haspopup="menu"
+              aria-expanded={fabMenuAt !== null}
+              onclick={openFabMenu}
             >
               <Icon name="plus-bold" size="1.5rem" />
             </button>
@@ -2751,6 +2800,7 @@
                caught it; it is still the one that would catch it again. -->
           {#if view.kind === "home"}
             <HomeView
+              bind:this={homeView}
               {compact}
               origin={originOfItem}
               notesColor={spColors[layout.notesFolder] ?? null}
@@ -3249,6 +3299,15 @@
   items={canvasMenu}
   region="canvas"
   onClose={() => (canvasMenuAt = null)}
+/>
+
+<!-- The Home's + (2026-09-07): task or note. The same floating panel the
+     right button opens, anchored at the button's corner. -->
+<ContextMenu
+  at={fabMenuAt}
+  items={fabMenu}
+  region="canvas"
+  onClose={() => (fabMenuAt = null)}
 />
 
 <!-- The image library, as a question: which picture? Mounted out here with the

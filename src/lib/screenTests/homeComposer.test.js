@@ -6,7 +6,7 @@
 // Screen tests with the bridge mocked. What they catch, what they deliberately
 // do not, and the fakes they share: `lib/test/screens.js`.
 
-import { fireEvent, render, waitFor, within } from "@testing-library/svelte";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/svelte";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { bridge } from "../test/bridge.js";
@@ -82,8 +82,8 @@ describe("Home's composing bar, the keyboard, and the way out", () => {
     });
   };
 
-  /// Opens the bar the way the thumb does: the + (a task, for the day the
-  /// calendar has open — 2026-09-04, no "task or note?" any more).
+  /// Opens the bar the way the thumb does: the + and its "New task" row (the
+  /// + asks task-or-note again since 2026-09-07 — it had offered only a task).
   const openBar = async () => {
     const plus = await waitFor(() => {
       const el = document.querySelector(".home-fab");
@@ -91,6 +91,7 @@ describe("Home's composing bar, the keyboard, and the way out", () => {
       return el;
     });
     await userEvent.click(plus);
+    await userEvent.click(await screen.findByText("New task"));
     return await waitFor(() => {
       const el = document.querySelector(".task-composer__input");
       if (!el) throw new Error("no bar");

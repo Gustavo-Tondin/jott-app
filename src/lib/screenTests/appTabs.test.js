@@ -6,7 +6,7 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/svelte";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, test, vi } from "vitest";
-import { bridge } from "../test/bridge.js";
+import { bridge, invoke } from "../test/bridge.js";
 import { noop, noteFolder, resetScreens, task } from "../test/screens.js";
 
 // The note editor's engine is stubbed by a textarea — `lib/test/screens.js`
@@ -99,7 +99,7 @@ describe("App shell with tabs", () => {
     expect(screen.getAllByRole("tab")[1].getAttribute("aria-selected")).toBe("true");
   });
 
-  test("middle click opens a document in a new tab", async () => {
+  test("middle click opens a document in a new tab, behind the current one", async () => {
     shell();
     render(App);
     await waitFor(() => expect(tabLabels()).toEqual(["Home"]));
@@ -110,6 +110,31 @@ describe("App shell with tabs", () => {
     );
 
     await waitFor(() => expect(tabLabels()).toEqual(["Home", "Compras"]));
+    // The reader stays on Home (user call, 2026-09-07).
+    expect(screen.getAllByRole("tab")[0].getAttribute("aria-selected")).toBe("true");
+  });
+
+  test("the middle button reaches Settings, the Timeline and the hamburger's rows", async () => {
+    // The three doors that did not answer it (user report, 2026-09-07): the
+    // gear and the path icon are buttons of the sidebar's own, and the
+    // hamburger's rows are menu rows, which never carried the gesture.
+    shell();
+    render(App);
+    await waitFor(() => expect(tabLabels()).toEqual(["Home"]));
+    const middle = () => new MouseEvent("auxclick", { button: 1, bubbles: true, cancelable: true });
+
+    await fireEvent(screen.getByRole("button", { name: "Settings" }), middle());
+    await waitFor(() => expect(tabLabels()).toEqual(["Home", "Settings"]));
+
+    await fireEvent(screen.getByRole("button", { name: "Timeline" }), middle());
+    await waitFor(() => expect(tabLabels()).toEqual(["Home", "Settings", "Timeline"]));
+
+    await userEvent.click(screen.getByRole("button", { name: "menu" }));
+    await fireEvent(await screen.findByText("Trash"), middle());
+    await waitFor(() => expect(tabLabels()).toEqual(["Home", "Settings", "Timeline", "Trash"]));
+
+    // All of them behind: Home is still the tab in front.
+    expect(screen.getAllByRole("tab")[0].getAttribute("aria-selected")).toBe("true");
   });
 
   test("a note of the day opens in a new tab, by the middle button and by the right one", async () => {
@@ -144,10 +169,11 @@ describe("App shell with tabs", () => {
     );
     await userEvent.click(await screen.findByText("Open in new tab"));
 
-    // Already open: the second tab is FOCUSED rather than duplicated, the
-    // same rule following a link keeps (shell/tabs.js).
+    // Already open: not duplicated — and NOT focused either (user call,
+    // 2026-09-07): a new tab opens behind the one being read, the browser's
+    // rule for the middle button and for "Open in new tab" alike.
     await waitFor(() => expect(tabLabels()).toEqual(["Home", "Ideia"]));
-    expect(screen.getAllByRole("tab")[1].getAttribute("aria-selected")).toBe("true");
+    expect(screen.getAllByRole("tab")[0].getAttribute("aria-selected")).toBe("true");
   });
 
   test("the sidebar navigates the tab you are on; middle click makes a new one", async () => {
@@ -169,6 +195,38 @@ describe("App shell with tabs", () => {
       new MouseEvent("auxclick", { button: 1, bubbles: true, cancelable: true }),
     );
     await waitFor(() => expect(tabLabels()).toEqual(["Home", "Tasks"]));
+  });
+
+  test("the footer's notebook menu lists the recent ones and switches in place", async () => {
+    // "Menu flutuante pra trocar de caderno mais rápido" (2026-09-07): the
+    // name in the footer opens the list, the open one is ticked, a row makes
+    // THIS window that notebook (tabs start over), and the last row is the
+    // notebooks screen.
+    shell({
+      recent_notebooks: [
+        { path: "/nb/Casa", name: "Casa", accentColor: "orange", tasks: 1, notes: 0 },
+        { path: "/nb/Trabalho", name: "Trabalho", accentColor: "", tasks: 0, notes: 2 },
+      ],
+    });
+    render(App);
+    await waitFor(() => expect(tabLabels()).toEqual(["Home"]));
+
+    await userEvent.click(screen.getByRole("button", { name: "switch notebook" }));
+    const rows = await waitFor(() => {
+      const els = [...document.querySelectorAll(".menu__list .menu__link")];
+      if (els.length < 3) throw new Error("menu still loading");
+      return els;
+    });
+    expect(rows.map((el) => el.textContent.replace(/✓/g, "").trim())).toEqual([
+      "Casa",
+      "Trabalho",
+      "Manage notebooks…",
+    ]);
+
+    await userEvent.click(rows[1]);
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("open_notebook", expect.objectContaining({ path: "/nb/Trabalho" })),
+    );
   });
 
   test("closing a tab lands on its neighbour, and the last one stays", async () => {
