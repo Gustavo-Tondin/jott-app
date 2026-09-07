@@ -18,10 +18,13 @@ file and live only in the commit history.
 
 ### New
 
-- On the phone, the Home behaves like a sheet: the title stays put, the week
-  and the day's summary fold and unfold under your finger, and the page
-  slides up over them — its ground rises behind the title and the buttons
-  before the cards start to move, and the title takes the page's colour.
+- On the phone, the Home behaves like a sheet: the week and the day's
+  summary fold and unfold under your finger, and the page slides up over
+  them — its ground rises behind the title and the buttons while the cards
+  hold still, the title takes the page's colour as the ground passes it,
+  and once the page is full the title scrolls away with the cards. The page
+  rests in two places, head open or page full; a fast scroll from the
+  bottom stops at the full page, and one more pull opens the head.
 - The **+** on the Home opens two buttons again, **Task** and **Note**.
 - The Home opens on the greeting and "x of y tasks done today".
 - Find & replace in a note has a simpler panel: the field, two arrows, a

@@ -23,13 +23,11 @@
   // days are under the eye, so nothing is seen to move.
   import { tick } from "svelte";
   import { S } from "../services/strings.js";
-  import { dotStyle as dotStyleOf } from "../services/accent.js";
   import {
     addDays,
     dayKind,
     dayOfMonth,
     greetingFor,
-    monthOf,
     summaryOf,
     weekOf,
     weekdayLetter,
@@ -37,6 +35,7 @@
   } from "../services/calendar.js";
   import { dragScroll } from "../actions/dragScroll.js";
   import { flick } from "../actions/flick.js";
+  import DayTitle from "./DayTitle.svelte";
   import Icon from "./Icon.svelte";
 
   let {
@@ -71,7 +70,6 @@
 
   let selected = $derived(day ?? today ?? "");
   let kind = $derived(dayKind(selected, today));
-  let dotStyle = $derived(dotStyleOf(dot));
 
   /// How many weeks the strip has been turned away from the chosen day.
   /// Turning shows another week WITHOUT choosing a day in it (user call:
@@ -230,93 +228,67 @@
     if (nearest !== shownLevel) onLevel?.(nearest);
   }
 
-  // ---- the row that stays (2026-09-07) ----
-  // On a phone the top row — the name and, once scrolled, the day — is
-  // STICKY under the floating top bar, with no ground of its own: the rest of
-  // the head scrolls away beneath it and the canvas comes up behind it. When
-  // the canvas is what is behind it, the row says so with the canvas's own
-  // ink (`data-region`), which is the wireframe "Scrolled Down": the title
-  // enters the canvas rather than being covered by it (user call: "o canvas
-  // não cobre o título home e a data, com eles entrando no canvas e mudando
-  // pra cor do ink do canvas"). Whether the canvas is behind it is read off
-  // the handle — the last piece of chrome — having scrolled above the row's
-  // bottom edge.
+  // ---- the row, and the sheet (2026-09-07) ----
+  // On a phone the top row — the name and the month, or the day — is STICKY
+  // at the top of the scroller, under the floating top bar, with no ground
+  // of its own; the fold and the handle stick under it. The canvas is a
+  // SHEET that rides up over all three (shell.css lifts it above them), in
+  // three acts, and none of them is driven by script: every piece is
+  // `position: sticky` and flow, and the one number the sheet needs from
+  // here is this row's height, written on the scroller as `--row-h` when
+  // it changes — never on scroll.
+  //
+  //   1. the sheet rides up over the fold and the handle, which stay put,
+  //      until its top edge meets this row;
+  //   2. the sheet's GROUND goes on rising behind the title and then behind
+  //      the buttons, while its CONTENT holds still (the cards are sticky at
+  //      `--row-h` below the top, shell.css). A second copy of this row
+  //      lives inside the sheet (App.svelte → DayTitle.svelte), pinned at
+  //      the same spot in the canvas's ink and clipped to the sheet's box:
+  //      the ground REVEALS it as it rises, pixel by pixel, and this one
+  //      disappears under the same edge — the title enters the canvas
+  //      (user call: "com eles entrando no canvas e mudando pra cor do ink
+  //      do canvas", and 2026-09-07: "pixel a pixel, na borda do chão");
+  //   3. the sheet has filled the screen: the copy is the top of its
+  //      content and leaves the screen with the cards (user call: "quero
+  //      que fique no começo do canvas, e ao rolar pra baixo, continue lá no
+  //      topo, desaparecendo da tela"). This row stays stuck underneath,
+  //      unseen.
+  //
+  // The first cut wrote a translate on the content and on this row at every
+  // scroll event, and it fought the finger: a scroll event lands a frame
+  // after the compositor has moved the page, and a padding that changed
+  // with it made Chromium re-snap the page mid-gesture ("re-snap after
+  // layout") — that was the chrome closing by itself (measured on device,
+  // 2026-09-07; docs/platform-gotchas.md).
   let topEl = $state(null);
-  let handleEl = $state(null);
-  let overCanvas = $state(false);
-  /// The row's own height, for the fold and the handle to stick UNDER it
-  /// (day-head.css reads `--row-h`).
-  let rowHeight = $state(0);
   $effect(() => {
     if (!compact || !topEl || typeof ResizeObserver !== "function") return;
-    const watcher = new ResizeObserver(() => (rowHeight = topEl.offsetHeight));
-    watcher.observe(topEl);
-    return () => watcher.disconnect();
-  });
-  $effect(() => {
-    if (!compact || !topEl) return;
-    // Re-read when the chrome under the row changes height: the level, the
-    // row itself.
-    shownLevel;
-    rowHeight;
     // The nearest ancestor that DECLARES a scroll, not `scrollableAround`:
     // that one asks whether there is something to scroll yet, and at mount
-    // the page is often still shorter than the screen — the listener would
-    // never be installed (measured on device, 2026-09-07).
+    // the page is often still shorter than the screen. Where no stylesheet
+    // says who scrolls (a test), it is the section's parent — the section
+    // has no box of its own (day-head.css), so that IS the scroller.
     let scroller = topEl.parentElement;
     while (scroller && !/auto|scroll/.test(getComputedStyle(scroller).overflowY)) {
       scroller = scroller.parentElement;
     }
+    scroller ??= topEl.parentElement?.parentElement;
     if (!scroller) return;
-    // THE SHEET, IN THREE ACTS (the reference the user sent, 2026-09-07, and
-    // his reading of the first cut: "o conteúdo do canvas deve parar onde
-    // está e o fundo do canvas continuar rolando, se expandindo por trás do
-    // título, e depois, por trás dos botões"):
-    //
-    //   1. the canvas rides up over the fold and the handle, which stick in
-    //      place — plain scrolling, until its top edge meets the row;
-    //   2. for the next `rowHeight` pixels of scroll the canvas's CONTENT holds
-    //      still while its GROUND goes on rising behind the title and then
-    //      behind the floating buttons — `--sheet-hold`, written on the
-    //      scroller and read by shell.css as a translate on the content;
-    //   3. the ground has filled the screen: the row takes that ground as its
-    //      own (`--full`), becomes the top of the sheet, and scrolls away with
-    //      the cards (`--sheet-off`, the row moved up by the scroll past the
-    //      full point — it is sticky only for the two acts before).
-    //
-    // The title's ink flips to the canvas's when the ground has risen past
-    // the middle of the title — not at the first touch, when the ground
-    // behind the letters was still the chrome's.
-    const read = () => {
-      const chrome = heightOf(shownLevel) + (handleEl?.offsetHeight ?? 0);
-      const hold = Math.max(0, Math.min(rowHeight, scroller.scrollTop - chrome));
-      scroller.style.setProperty("--sheet-hold", `${hold}px`);
-      // Act three: the row is not pinned — it is the top of the sheet now, and
-      // leaves the screen with the cards (user call: "quero que fique no
-      // começo do canvas, e ao rolar pra baixo, continue lá no topo,
-      // desaparecendo da tela"). It stays `sticky` for the first two acts and
-      // is moved up by exactly what the page scrolls past the full point.
-      const off = Math.max(0, scroller.scrollTop - chrome - rowHeight);
-      scroller.style.setProperty("--sheet-off", `${off}px`);
-      full = rowHeight > 0 && hold >= rowHeight - 1;
-      const row = topEl.getBoundingClientRect();
-      const title = topEl.querySelector(".day-head__title")?.getBoundingClientRect();
-      const titleMiddle = title ? title.top + title.height / 2 : row.bottom;
-      overCanvas = hold >= row.bottom - titleMiddle;
-    };
-    read();
-    scroller.addEventListener("scroll", read, { passive: true });
+    const watcher = new ResizeObserver(() => {
+      scroller.style.setProperty("--row-h", `${topEl.offsetHeight}px`);
+    });
+    watcher.observe(topEl);
     return () => {
-      scroller.removeEventListener("scroll", read);
-      scroller.style.removeProperty("--sheet-hold");
-      scroller.style.removeProperty("--sheet-off");
+      watcher.disconnect();
+      scroller.style.removeProperty("--row-h");
     };
   });
-  /// The sheet's ground has filled the screen behind the row.
-  let full = $state(false);
-  /// The right side of the row: the month while the week is on show, the
-  /// chosen day when it is not — folded, or scrolled away under the row.
-  let showsDate = $derived(compact && (folded || overCanvas));
+  /// The right side of the row on the chrome: the month while the week is
+  /// on show, the chosen day when the head is folded to one line — nothing
+  /// else on screen says which day is chosen then. The copy in the sheet
+  /// always says the day.
+  let showsDate = $derived(compact && folded);
 </script>
 
 <!-- On a phone the whole head answers a vertical drag (actions/flick.js):
@@ -330,45 +302,16 @@
   class:day-head--dragging={dragging}
   data-region={compact ? "chrome" : undefined}
   aria-label={S.home}
-  style={foldHeight === null ? undefined : `--fold-h: ${foldHeight}px; --row-h: ${rowHeight}px`}
+  style={foldHeight === null ? undefined : `--fold-h: ${foldHeight}px`}
   use:flick={{ enabled: compact, onMove: dragMove, onEnd: dragEnd }}
 >
-  <div
-    class="day-head__top"
-    class:day-head__top--over={overCanvas}
-    class:day-head__top--full={full}
-    data-region={compact ? (overCanvas ? "canvas" : "chrome") : undefined}
-    bind:this={topEl}
-  >
-    <button class="day-head__title" onclick={() => onHome?.()} title={S.backToToday}>
-      <span class="day-head__name">{S.home}</span>
-      <span class="theme-dot day-head__dot" style={dotStyle} aria-hidden="true"></span>
-    </button>
-    <!-- One box, two contents, ONE height (day-head.css sizes it for the
-         two-line date): swapping the month for the date must not move the
-         row, because the fold and the handle stick under it and the sheet's
-         hold is measured from it — a row that grew by a line mid-scroll
-         fought the finger (user report on device, 2026-09-07). -->
-    <span class="day-head__aside">
-      {#if compact}
-        <!-- Both are always in the box, one over the other (a grid cell each,
-             day-head.css), and the box is as tall as the taller — so the row
-             measures the same whichever is showing. A `min-block-size` guessed
-             from font sizes was 6px short on device (2026-09-07). With the week
-             out of sight the month gives way to the day itself: nothing else
-             on screen says which day is chosen. -->
-        <span class="day-head__month" class:is-hidden={showsDate} aria-hidden={showsDate}>
-          {monthOf(shown)}
-        </span>
-        <span class="day-head__date" class:is-hidden={!showsDate} aria-hidden={!showsDate}>
-          <span class="day-head__date-day">{S.shortDay(monthOf(selected), dayOfMonth(selected))}</span>
-          <span class="day-head__date-weekday">{weekdayName(selected)}</span>
-        </span>
-      {:else}
-        <span class="day-head__month">{monthOf(shown)}</span>
-      {/if}
-    </span>
-  </div>
+  {#if compact}
+    <!-- The page's resting place at its start, chrome open: the snap point
+         lives on a box that never moves (a sticky one carries its snap area
+         along, and the page would chase it). -->
+    <div class="day-head__anchor" aria-hidden="true"></div>
+  {/if}
+  <DayTitle bind:el={topEl} {dot} month={shown} {selected} {compact} {showsDate} {onHome} />
 
   <!-- The fold: the week and the summary, clipped to the level's height on a
        phone (`--fold-h`), the whole of it on the desktop. `inert` while
@@ -439,7 +382,6 @@
       aria-expanded={shownLevel > 0}
       aria-label={gripLabel}
       onclick={gripTap}
-      bind:this={handleEl}
     >
       <span class="day-head__grip" aria-hidden="true"></span>
     </button>

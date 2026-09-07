@@ -195,46 +195,98 @@
    ============================================================================= */
 @layer components {
   /* THE SECTION HAS NO BOX OF ITS OWN ON A PHONE (2026-09-07): `display:
-     contents` puts its three children straight into the scroller, which is
-     what lets the top row be STICKY against the scroller rather than against
-     a parent that scrolls away with it. The paddings the section carried
-     move to the children; the ground is the chrome's, showing through. */
+     contents` puts its children straight into the scroller, which is what
+     lets each of them be STICKY against the scroller rather than against a
+     parent that scrolls away with it. The paddings the section carried
+     move to the children; the ground is the chrome's, showing through.
+     `flex: none` on every child: the scroller is a column, and a column
+     shrinks what does not fit — the row lost 17px to the sheet in the
+     prototype before the sheet had even moved. */
   .day-head--compact {
     display: contents;
   }
   .day-head--compact > * {
+    flex: none;
     padding-inline-start: calc(var(--app-space-12) + var(--app-safe-left));
     padding-inline-end: calc(var(--app-space-12) + var(--app-safe-right));
   }
-  /* The row that stays: under the floating top bar, no ground, the canvas
-     coming up behind it as the page scrolls (DayHead.svelte says how it knows
-     when it has, and flips the region for the ink). */
+  /* THE SHEET, IN THREE ACTS (DayHead.svelte tells them; the reference the
+     user sent, 2026-09-07: a dark head that does not scroll, a light sheet
+     that slides up over it and, reaching the title, takes it into its own
+     ink). Everything here is `position: sticky` and flow — nothing is
+     moved by script on scroll, because a scroll event lands a frame after
+     the compositor has moved the page, and a page moved back by script
+     fights the finger (measured on device, 2026-09-07).
+
+     The row, the fold and the handle stick at the top of the scroller, one
+     under the other, and NEVER let go: the sheet (shell.css, z-index 2)
+     rides up over them, and from the moment it covers the row they are
+     simply out of sight underneath it. The row has no z-index of its own,
+     so the sheet wins; it has no ground of its own, so the fold behind the
+     letters is the chrome's until the sheet's ground has risen there.
+
+     THE ROW IS DRAWN TWICE. This one, on the chrome, in the chrome's ink;
+     and a copy inside the sheet (App.svelte → DayTitle.svelte,
+     `.day-head__top--sheet` below), in the canvas's ink, pinned at the very
+     same spot and clipped to the sheet's box. As the ground rises through
+     the row, it hides this copy and reveals that one along the same edge,
+     pixel by pixel — the title enters the canvas (user call, 2026-09-07:
+     "pixel a pixel, na borda do chão"). No region is flipped, no colour
+     transitions, and no script decides where the middle of the title is. */
   .day-head--compact .day-head__top {
     position: sticky;
     inset-block-start: 0;
-    z-index: 4;
-    /* Act three (DayHead.svelte): once the sheet has filled the screen the
-       row is the sheet's own top and goes off the screen with the cards —
-       moved up by what the page scrolled past that point. */
-    translate: 0 calc(-1 * var(--sheet-off, 0rem));
-    /* The head's resting place: the page at its start, chrome open. With the
-       canvas full as the other snap point (shell.css), a pull that ends near
-       the top settles here instead of being drawn back to the sheet (user
-       report, 2026-09-07: "fica aberto meio segundo e depois fecha sozinho"). */
-    scroll-snap-align: start;
     padding-block: calc(var(--app-topbar-height) + var(--app-space-8)) var(--app-space-12);
-    /* NO GROUND OF ITS OWN while the sheet rises: the canvas's ground comes
-       up behind the title and then behind the buttons, seen through this row
-       (DayHead.svelte, the three acts). Only once the sheet has filled the
-       screen (`--full`) does the row take that ground — the same colour that
-       is already behind it, so nothing jumps — and the cards then scroll
-       under the title instead of through it. */
     background: transparent;
     color: var(--app-ink);
-    transition: color var(--app-transition-medium);
   }
-  .day-head--compact .day-head__top--full {
-    background: var(--app-bg);
+  /* The page's resting place at its start, chrome open. The snap point
+     lives on this empty, static box and not on the sticky row: a snap area
+     is the element's box AFTER it has been stuck or moved, and a page
+     snapping to a target that travels with it chased its own tail (the old
+     row carried both a translate and the snap, and the chrome "closed by
+     itself"). With the sheet's own top as the other point (shell.css), a
+     pull that ends nearer the top settles here and STAYS. */
+  .day-head__anchor {
+    block-size: 0;
+    padding: 0;
+    scroll-snap-align: start;
+  }
+  /* THE COPY IN THE SHEET. Its band is a box twice the row's height that
+     starts one row ABOVE the sheet's top edge, laid out of the flow so the
+     cards do not move down to make room. The copy is sticky at the top of
+     the scroller inside that band, which gives it exactly three positions:
+     above the sheet while the sheet is still low (clipped away, unseen); at
+     the top of the screen — the same spot as the chrome's row — from the
+     moment the sheet's top edge reaches the row until it reaches the top of
+     the screen (the band still has room below, so the copy may stay); and
+     from then on pushed up by the band's own end, that is, riding away at
+     the sheet's top edge with the cards. Where the band begins is `--row-h`,
+     the chrome row's measured height, which DayHead.svelte writes on the
+     scroller; the two copies coincide by both being stuck at the top, not
+     by that number, so a fraction of a pixel in it costs nothing.
+
+     `overflow: clip` on the sheet (shell.css) is the mask. `clip`, never
+     `hidden`: hidden would make the sheet a scroll container, and a sticky
+     box sticks to the NEAREST scroll container — the copy would pin to the
+     sheet instead of the screen and never hold still. The band lets taps
+     through to the cards; the copy itself still answers one, because once
+     the sheet is full it is the title under the finger. */
+  .day-head__band {
+    position: absolute;
+    inset-block-start: calc(-1 * var(--day-head-row));
+    inset-inline: 0;
+    block-size: calc(2 * var(--day-head-row));
+    pointer-events: none;
+  }
+  .day-head__top--sheet {
+    position: sticky;
+    inset-block-start: 0;
+    padding-inline-start: calc(var(--app-space-12) + var(--app-safe-left));
+    padding-inline-end: calc(var(--app-space-12) + var(--app-safe-right));
+    padding-block: calc(var(--app-topbar-height) + var(--app-space-8)) var(--app-space-12);
+    pointer-events: auto;
+    color: var(--app-ink);
   }
   /* The fold: clipped to the level's height, and it MOVES between heights —
      except while a finger is on it, when it has to be exactly where the
@@ -249,14 +301,14 @@
      scroll, a light sheet that slides up over it and, reaching the title,
      takes it into its own ink). Both are sticky — the fold under the row,
      the handle under the fold — one layer BELOW the canvas (shell.css lifts
-     the canvas to 2); the row above it all at 4. `sticky` also gives the
+     the canvas to 2), as the row is. `sticky` also gives the
      boxes inside a containing block, so `offsetTop` measures against the
      fold and not against the scroller (which put the row's height into
      every level — measured on device); `flex: none`, so the scroller's
      column never shrinks the fold below the height it was given. */
   .day-head--compact .day-head__fold {
     position: sticky;
-    inset-block-start: var(--row-h, 0rem);
+    inset-block-start: var(--day-head-row);
     z-index: 1;
     flex: none;
     gap: var(--app-space-12);
@@ -266,16 +318,18 @@
   }
   .day-head--compact .day-head__handle {
     position: sticky;
-    inset-block-start: calc(var(--row-h, 0rem) + var(--fold-h, 0rem));
+    inset-block-start: calc(var(--day-head-row) + var(--fold-h, 0rem));
     z-index: 1;
   }
   .day-head--dragging .day-head__fold {
     transition: none;
   }
-  .day-head--compact .day-head__title {
+  .day-head--compact .day-head__title,
+  .day-head__top--sheet .day-head__title {
     font-size: var(--app-text-32);
   }
-  .day-head--compact .day-head__month {
+  .day-head--compact .day-head__month,
+  .day-head__top--sheet .day-head__month {
     font-size: var(--app-text-20);
   }
   /* The arrows go: a phone turns the week with a swipe. */
@@ -325,15 +379,18 @@
   /* The right side of the row, at the two-line date's height whether it
      holds the date or the month — so the row never changes height
      (DayHead.svelte says what that cost). */
-  .day-head--compact .day-head__aside {
+  .day-head--compact .day-head__aside,
+  .day-head__top--sheet .day-head__aside {
     display: grid;
     justify-items: end;
     align-items: start;
   }
-  .day-head--compact .day-head__aside > * {
+  .day-head--compact .day-head__aside > *,
+  .day-head__top--sheet .day-head__aside > * {
     grid-area: 1 / 1;
   }
-  .day-head--compact .day-head__aside > .is-hidden {
+  .day-head--compact .day-head__aside > .is-hidden,
+  .day-head__top--sheet .day-head__aside > .is-hidden {
     visibility: hidden;
   }
   .day-head__date-day {

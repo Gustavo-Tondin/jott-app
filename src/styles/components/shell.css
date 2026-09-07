@@ -578,7 +578,12 @@
      than left to the default so everything inside — the banner, the editor's
      own centred column — keeps reading ONE variable. */
   .shell__content-inner--note {
-    max-width: var(--app-content-max);
+    /* The note's PAGE: the reading column plus the room the editor's fold
+       gutter takes beside it, so the text inside still measures
+       --app-content-max and lands under the title (2026-09-07, and
+       styles/tokens.css says why it is one token). The banner has its own,
+       narrower cap and centres itself, so it does not move. */
+    max-width: var(--app-content-note);
   }
   /* And so is Settings (2026-08-20, wireframe): a menu beside a section needs
      more than a column of prose — the user's number is 900px, which is the
@@ -795,13 +800,19 @@
     overflow-y: auto;
     border-radius: 0;
     background: none;
-    /* The Home's sheet has a resting place: the canvas filling the screen
-       (shell__content--home below is the snap point). `proximity`, so the
-       list inside scrolls freely; the point only catches a scroll that ends
-       near it — and a fling that would pass through it (user call,
+    /* The Home's sheet has two resting places: the page at its start, chrome
+       open (the head's anchor, day-head.css), and the canvas filling the
+       screen (shell__content--home below). `proximity`, so the list inside
+       scrolls freely; a point only catches a scroll that ends near it — and
+       the sheet's catches a fling that would pass through it (user call,
        2026-09-07: from the bottom, a fast scroll up stops with the title
        still on the sheet; one more pull reveals the chrome and the week). */
     scroll-snap-type: y proximity;
+    /* The height of the Home's title row, measured by DayHead.svelte and
+       written here as `--row-h` once it exists; until then, near enough —
+       the bar's height and a line of 32px type. Everything about the sheet
+       (day-head.css, and the rules below) reads this one name. */
+    --day-head-row: var(--row-h, calc(var(--app-topbar-height) + 5rem));
     /* The formatting strip floats over this scroller's bottom edge, so the
        edge is not where the visible part ends. Saying it HERE rather than in
        the editor is what makes anything scrolling into view — the caret
@@ -890,26 +901,62 @@
     flex: 1;
     inline-size: 100%;
   }
-  /* The Home's sheet, act two (DayHead.svelte): while the canvas's ground
-     goes on rising behind the title, its CONTENT holds still — moved back
-     down by exactly what the page scrolled, `--sheet-hold`, which the head
-     writes on the scroller. The room at the end is what that shift takes
-     from the bottom: without it the last row of the page could never be
-     scrolled into view. */
-  .shell--compact .shell__content--home .shell__content-inner {
-    translate: 0 var(--sheet-hold, 0rem);
-  }
-  /* The sheet's resting place: its top edge at the top of the scroller —
-     which is exactly where the hold ends and the row takes the ground. A
-     fling through it stops here (`always`). And the room the hold takes
-     from the bottom is given back HERE, on the box that paints the ground:
-     the shifted content would otherwise hang past the canvas's end, over the
-     chrome (user report on device, 2026-09-07: "um fundo quadrado na cor do
-     chrome" under the last note). */
+  /* THE HOME'S SHEET (DayHead.svelte tells the three acts, day-head.css
+     draws the title's part). Two things are the sheet's own:
+
+     Its CONTENT holds still while its ground goes on rising behind the title
+     and the buttons — the cards are sticky, one title row below the top of
+     the screen, so the moment the sheet's top edge meets the row they stop
+     where they are. They are let go again when the sheet's own end catches
+     up with them: the empty row's height after them (`::after`) is exactly
+     the room the ground travels while they wait, so the release lands on
+     the very scroll position where the sheet's top edge reaches the top of
+     the screen — and from there the title copy and the cards move together.
+     `flex: none`, or the column would stretch the cards to the sheet's
+     height and there would be no end to catch up with.
+
+     And it is CLIPPED to its own rounded box (`clip`, not `hidden` —
+     day-head.css says why), which is what turns the rising ground into the
+     mask that reveals the title copy. A `position: fixed` bar or a carried
+     card inside is not clipped: clipping never reaches a box whose
+     containing block is the viewport. What DOES reach one is a transform
+     on the way up — the first cut moved the cards by `translate` and made
+     itself the containing block of both — so nothing here may transform.
+
+     `min-block-size: 100%`: a short list must still fill the screen when the
+     sheet is up, so the sheet is never a card floating on the chrome and
+     the full state is always reachable — with three tasks the page scrolls
+     exactly the head's height and the row's, and no further. */
   .shell--compact .shell__content--home {
     scroll-snap-align: start;
     scroll-snap-stop: always;
-    padding-block-end: calc(var(--app-space-40) + var(--sheet-hold, 0rem));
+    overflow: clip;
+    min-block-size: 100%;
+    padding-block-end: var(--app-space-40);
+  }
+  .shell--compact .shell__content--home .shell__content-inner {
+    position: sticky;
+    inset-block-start: calc(var(--day-head-row) + var(--app-space-16));
+    flex: none;
+    min-block-size: 0;
+  }
+  /* The empty row after the cards (see above) is also the page's THIRD
+     resting place: its own end. Without one, a list whose end lies within
+     the snap's reach of the full sheet (about a third of the screen) could
+     never rest there — let go at the bottom, the page was drawn back up to
+     the sheet's top and the last card went under the edge (measured on
+     device, 2026-09-07). The scroll margin puts the snap position exactly
+     at the end of the scroll: the sheet's own bottom padding (the 40px
+     above, which is what the Home keeps under its last card), less the
+     scroll padding the scroller already keeps for the formatting strip. A
+     short list then puts this point ON the full sheet's — one place, not
+     two a padding apart. */
+  .shell--compact .shell__content--home::after {
+    content: "";
+    flex: none;
+    block-size: var(--day-head-row);
+    scroll-snap-align: end;
+    scroll-margin-block-end: calc(var(--app-space-40) - var(--app-format-strip, 0rem));
   }
 
   /* ---- the screen's entrance ----

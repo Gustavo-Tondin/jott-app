@@ -77,6 +77,7 @@
   import { drawerSwipe } from "./lib/actions/drawerSwipe.js";
   import { pullToSearch } from "./lib/actions/pullToSearch.js";
   import DayHead from "./lib/components/DayHead.svelte";
+  import DayTitle from "./lib/components/DayTitle.svelte";
   import CaptureFab from "./lib/components/CaptureFab.svelte";
   import { dayKind } from "./lib/services/calendar.js";
   import { clampWidth, SIDEBAR, PANEL } from "./lib/shell/sidebarWidth.js";
@@ -2655,6 +2656,28 @@
           onclick={clickedAway}
           oncontextmenu={openCanvasMenu}
         >
+          {#if compact && view.kind === "home"}
+            <!-- THE TITLE, A SECOND TIME, INSIDE THE SHEET (2026-09-07). The
+                 canvas is the sheet that rides up over the Home's dark head;
+                 this copy of the head's title row is pinned at the same spot
+                 as the one on the chrome, in the canvas's own ink, and clipped
+                 to the sheet — so the sheet's rising ground reveals it pixel
+                 by pixel, and once the sheet is full it is the top of the
+                 page and scrolls away with the cards. DayHead.svelte tells
+                 the three acts; day-head.css draws them. Always the day, not
+                 the month: the week is out of sight by the time this shows. -->
+            <div class="day-head__band">
+              <DayTitle
+                sheet
+                compact
+                showsDate
+                dot={colorOf(view)}
+                month={homeDay ?? clock?.today ?? ""}
+                selected={homeDay ?? clock?.today ?? ""}
+                onHome={() => (homeDay = null)}
+              />
+            </div>
+          {/if}
           <div
             class="shell__content-inner"
             class:shell__content-inner--note={view.kind === "note"}

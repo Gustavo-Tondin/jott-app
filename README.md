@@ -71,7 +71,8 @@ what the current version is.
 - The Home's **+** opens two buttons, Task and Note (a blank note opens with
   the cursor in the body). On a phone the Home's head folds: drag it up for
   one line, down for the week and the day's summary; scroll, and the canvas
-  slides up over it while the title stays put.
+  slides up over it, takes the title into its own colour as it passes, and
+  rests either with the head open or filling the screen.
 - **The Home is the day**: a week of days across the top, today lit. You
   pull in what you want to face today instead of staring at the whole
   list; pick a day ahead and plan it the same way (a dated task shows on

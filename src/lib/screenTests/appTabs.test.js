@@ -473,6 +473,90 @@ describe("the compact shell", () => {
     });
   });
 
+  // ---- the Home's sheet (2026-09-07) ----
+  //
+  // On a phone the canvas is a sheet that rides up over the Home's dark
+  // head, and the head's title row is drawn twice: on the chrome, and again
+  // inside the sheet in the canvas's ink, pinned at the same spot — the
+  // sheet's rising ground swaps one for the other (day-head.css). Nothing
+  // moves by script; what the test can hold is that both rows exist, say
+  // the right thing, and that the copy is neither read twice nor drawn on
+  // any other screen.
+
+  test("the Home's sheet carries a copy of the title, saying the day", async () => {
+    compactShell({ platform: "android" });
+    const { container } = render(App);
+
+    await screen.findByLabelText("open sidebar");
+    await waitFor(() => {
+      if (!container.querySelector(".day-head--compact .day-head__top")) throw new Error("no row");
+    });
+
+    // The chrome's row, with the week on show, says the month.
+    const chrome = container.querySelector(".day-head--compact .day-head__top");
+    expect(chrome.classList.contains("day-head__top--sheet")).toBe(false);
+    expect(chrome.querySelector(".day-head__month").classList.contains("is-hidden")).toBe(false);
+    expect(chrome.getAttribute("aria-hidden")).toBeNull();
+
+    // The copy lives inside the sheet, says the day, and is hidden from
+    // assistive tech — one title, not two.
+    const copy = container.querySelector(".shell__content--home .day-head__band .day-head__top--sheet");
+    expect(copy).not.toBeNull();
+    expect(copy.getAttribute("aria-hidden")).toBe("true");
+    expect(copy.querySelector(".day-head__date").classList.contains("is-hidden")).toBe(false);
+    expect(copy.querySelector(".day-head__month").classList.contains("is-hidden")).toBe(true);
+    expect(copy.querySelector(".day-head__title").getAttribute("tabindex")).toBe("-1");
+    // Same words on both — it is one row drawn twice.
+    expect(copy.querySelector(".day-head__name").textContent).toBe(
+      chrome.querySelector(".day-head__name").textContent,
+    );
+
+    // Any other screen: no band, no copy.
+    await userEvent.click(screen.getByLabelText("open sidebar"));
+    await userEvent.click(within(container.querySelector(".shell__sidebar")).getByText("Tasks"));
+    await waitFor(() => expect(container.querySelector(".day-head--compact")).toBeNull());
+    expect(container.querySelector(".day-head__band")).toBeNull();
+  });
+
+  test("the head tells the scroller how tall its row is, once, and takes it back", async () => {
+    // `--row-h` is the one number the sheet reads (day-head.css, shell.css):
+    // where the title copy's band begins and where the cards hold still.
+    // Written by a ResizeObserver, so on size — never on scroll. jsdom has
+    // no observer; this one fires on the next turn after it is asked to
+    // watch, as the real one does after layout (and never inside the
+    // effect that created it, which the runtime would refuse).
+    const observed = [];
+    globalThis.ResizeObserver = class {
+      constructor(cb) {
+        this.cb = cb;
+      }
+      observe(el) {
+        observed.push(el);
+        setTimeout(() => this.cb([]), 0);
+      }
+      disconnect() {}
+    };
+    try {
+      compactShell({ platform: "android" });
+      const { container } = render(App);
+
+      await screen.findByLabelText("open sidebar");
+      await waitFor(() => {
+        if (!container.querySelector(".shell__centre").style.getPropertyValue("--row-h")) {
+          throw new Error("not written");
+        }
+      });
+      expect(observed).toContain(container.querySelector(".day-head--compact .day-head__top"));
+
+      await userEvent.click(screen.getByLabelText("open sidebar"));
+      await userEvent.click(within(container.querySelector(".shell__sidebar")).getByText("Tasks"));
+      await waitFor(() => expect(container.querySelector(".day-head--compact")).toBeNull());
+      expect(container.querySelector(".shell__centre").style.getPropertyValue("--row-h")).toBe("");
+    } finally {
+      delete globalThis.ResizeObserver;
+    }
+  });
+
   test("opening the drawer hides the toggle without taking its place", async () => {
     // Two open-sidebar buttons ended up side by side (user report). The fix is
     // `visibility`, not removal: a button that leaves the row lets everything
