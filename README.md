@@ -20,14 +20,14 @@ interface (not a packaged website).
 Grab the file for your platform from the
 [**latest release**](https://github.com/Gustavo-Tondin/jott-app/releases/latest):
 
-| Platform | File | Notes |
+| Your system | Download | Then |
 |---|---|---|
-| Linux (any distro) | `.AppImage` | `chmod +x`, then run. To remove it, delete the file. |
-| Debian / Ubuntu | `.deb` | Installs into the app menu; uninstall with the package manager. |
-| Fedora | `.rpm` | Same as above. |
-| Arch | — | Build from source: `cd packaging/linux && makepkg -sid` |
-| Windows | `.exe` | Installs for the current user — no administrator password. Uninstall from Settings → Apps. |
-| Android | `.apk` | Open the release page **on the phone**, download and tap the file. Android asks once to allow installs from your browser. |
+| **Windows** | `jott-windows.exe` | Run it — no administrator password. Uninstall from Settings → Apps. |
+| **Ubuntu / Debian** | `jott-ubuntu.deb` | Open the file, or `sudo apt install ./jott-ubuntu.deb` |
+| **Fedora** | `jott-fedora.rpm` | Open the file, or `sudo dnf install ./jott-fedora.rpm` |
+| **Any other Linux** | `jott-linux.AppImage` | `chmod +x jott-linux.AppImage`, then run it. To remove it, delete the file. |
+| **Arch** | — | Build from source: `cd packaging/linux && makepkg -sid` |
+| **Android** | `jott-android.apk` | Open the release page **on the phone**, download and tap the file. Android asks once to allow installs from your browser. |
 
 **Updates.** Jott checks GitHub once a day for a new version (you can turn
 this off in Settings — it is the only connection the app ever makes, and it

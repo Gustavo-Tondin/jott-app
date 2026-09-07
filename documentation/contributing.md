@@ -77,7 +77,9 @@ than copying its declarations — a copy is a piece the next pass over the
 original will not reach.
 
 **8. Don't bump the version.** It lives in exactly one file and the release
-script owns it.
+script owns it. Something a user will notice does belong in `CHANGELOG.md`,
+under the section for the next version — the release page is built from it,
+so write the bullet for someone who has never read this repository.
 
 **9. The file format is a contract.** Changing what the app writes into
 somebody's notebook means updating [`file-format.md`](file-format.md) in the

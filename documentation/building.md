@@ -113,3 +113,17 @@ release the script copies the newest installer of each kind into
 `packaging/releases/` and writes a README there naming the version each one
 announces; `packaging/release.sh --collect` does only that step. The binaries
 are gitignored — only the README is versioned.
+
+Installers are published under names that say what they are and nothing else:
+`jott-windows.exe`, `jott-ubuntu.deb`, `jott-fedora.rpm`,
+`jott-linux.AppImage`, `jott-android.apk`. The version is not in them — the
+release above them says it. The bundler names its output after itself, so the
+workflow's `assets` job renames the uploaded files (and `packaging/releases/`
+uses the same names, because the APK is built locally and uploaded by hand).
+`latest.json`, which the in-app update check reads, points at those files by
+URL, so the same job rewrites it with the new names; a signature covers a
+file's bytes, not its name.
+
+Release notes come from `CHANGELOG.md`: the workflow reads the `## vX.Y.Z`
+section for the tag it is building and puts the install instructions above it.
+`packaging/release.sh` refuses to tag a version with no section.
