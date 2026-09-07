@@ -67,6 +67,7 @@
 @import "./styles/components/search.css";
 @import "./styles/components/notebooks.css";
 @import "./styles/components/home.css";
+@import "./styles/components/capture-fab.css";
 @import "./styles/components/day-head.css";
 @import "./styles/components/tasks-view.css";
 @import "./styles/components/list-view.css";

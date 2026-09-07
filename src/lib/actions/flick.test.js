@@ -47,6 +47,19 @@ describe("a vertical flick", () => {
     expect(move.defaultPrevented).toBe(false);
   });
 
+  it("reports the drag live, and where it let go", () => {
+    const node = document.createElement("div");
+    const moves = [];
+    let ended = null;
+    flick(node, { onMove: (dy) => moves.push(dy), onEnd: (dy) => (ended = dy) });
+    touch(node, "touchstart", 100, 200);
+    touch(node, "touchmove", 100, 230);
+    touch(node, "touchmove", 100, 260);
+    touch(node, "touchend", 100, 260);
+    expect(moves).toEqual([30, 60]);
+    expect(ended).toBe(60);
+  });
+
   it("marks the element so the page's own pull declines it", () => {
     const { node, action } = head();
     expect(node.hasAttribute("data-flicks")).toBe(true);

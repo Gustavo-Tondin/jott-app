@@ -10,6 +10,12 @@
 // of a scroller only): this one moves nothing while the finger is down and
 // answers one question at the end — up or down, if far enough.
 //
+// `onMove(dy)` reports the drag while the finger is down, once it is clearly
+// vertical — for a head that wants to FOLLOW the finger rather than jump at
+// the end (user call, 2026-09-07: "animado junto com o gesto do dedo") — and
+// `onEnd(dy)` says how far it got when it let go, before `onUp`/`onDown`
+// decide. Both are optional; the direction callbacks alone still work.
+//
 // The gesture is claimed only once it is clearly vertical (`LOCK`), and then
 // the `touchmove` is cancelled so the scroller the head lives in does not
 // scroll under it — the measured lesson of actions/drawerSwipe.js: in the
@@ -55,18 +61,25 @@ export function flick(node, params = {}) {
       drag.axis = "y";
     }
     drag.dy = dy;
+    opts.onMove?.(dy);
     return true;
   }
 
   function finish() {
     const settled = drag;
     drag = null;
-    if (!settled?.axis || Math.abs(settled.dy) < THRESHOLD) return;
+    if (!settled?.axis) return;
+    opts.onEnd?.(settled.dy);
+    if (Math.abs(settled.dy) < THRESHOLD) return;
     if (settled.dy < 0) opts.onUp?.();
     else opts.onDown?.();
   }
 
-  const abandon = () => (drag = null);
+  function abandon() {
+    const was = drag;
+    drag = null;
+    if (was?.axis) opts.onEnd?.(0);
+  }
 
   // ---- the finger ----
   function touchStart(event) {

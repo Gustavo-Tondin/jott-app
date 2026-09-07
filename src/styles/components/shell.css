@@ -805,6 +805,10 @@
   }
   .shell--compact .shell__content {
     overflow: visible;
+    /* Over the Home's sticky head (day-head.css): the canvas is the sheet
+       that rides up over the dark head, so it paints above it. */
+    position: relative;
+    z-index: 2;
     background: var(--app-bg);
     border-start-start-radius: var(--app-radius-xl);
     border-start-end-radius: var(--app-radius-xl);

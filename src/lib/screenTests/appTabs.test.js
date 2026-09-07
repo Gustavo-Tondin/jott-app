@@ -532,11 +532,11 @@ describe("the compact shell", () => {
     expect(container.querySelector(".topbar").classList.contains("topbar--over")).toBe(true);
   });
 
-  test("the Home lifts it too, and every other screen keeps the bar above the canvas", async () => {
-    // The Home's head is the chrome the page scrolls away under the bar
-    // (wireframes "Home Screen Mobile", 2026-09-04); the note is the other
-    // screen with no header of its own. Pushing the rest under the bar would
-    // take their title with them.
+  test("the bar floats over every screen, on the chrome", async () => {
+    // First the note's (2026-08-19), then the Home's (2026-09-04), and since
+    // 2026-09-07 every screen's (user call: "sem fundo em todas as páginas,
+    // igual na home e no editor") — the other screens' header reserves the
+    // bar's height itself (page-header.css).
     withNote();
     const { container } = render(App);
 
@@ -550,6 +550,6 @@ describe("the compact shell", () => {
     await userEvent.click(screen.getByLabelText("open sidebar"));
     await userEvent.click(within(container.querySelector(".shell__sidebar")).getByText("Notes"));
     await waitFor(() => expect(container.querySelector(".day-head--compact")).toBeNull());
-    expect(container.querySelector(".topbar").classList.contains("topbar--over")).toBe(false);
+    expect(container.querySelector(".topbar").classList.contains("topbar--over")).toBe(true);
   });
 });

@@ -173,8 +173,14 @@
     align-items: stretch;
   }
 
-  /* An arrow with nowhere to go stays visible but plainly inert — the same
-     rule the desktop header keeps, so the bar never changes shape. */
+  /* An arrow with somewhere to go is INK; one with nowhere to go stays
+     visible but plainly inert (user report on device, 2026-09-07: the two
+     read alike — the button's resting colour is the muted ink, and on the
+     dark chrome muted and faint are a hair apart). The same rule the
+     desktop header keeps, so the bar never changes shape. */
+  .topbar .page-nav__arrow:not(:disabled) {
+    color: var(--app-ink);
+  }
   .topbar .page-nav__arrow:disabled,
   .topbar .page-menu__toggle:disabled {
     color: var(--app-ink-faint);

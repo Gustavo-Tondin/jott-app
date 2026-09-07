@@ -78,7 +78,10 @@
     /* The chrome's own ground, because the canvas begins BELOW this block —
        the wireframe rounds the panel's top corners under it. */
     background: var(--app-bg);
-    padding: var(--app-space-12) var(--app-space-16) var(--app-space-24);
+    /* Under the floating top bar (2026-09-07): the bar paints nothing and
+       sits over every screen now, so the header starts below its height —
+       the same reservation the note's canvas makes (shell.css). */
+    padding: calc(var(--app-topbar-height) + var(--app-space-4)) var(--app-space-16) var(--app-space-24);
     padding-inline-start: calc(var(--app-space-16) + var(--app-safe-left));
     padding-inline-end: calc(var(--app-space-16) + var(--app-safe-right));
   }

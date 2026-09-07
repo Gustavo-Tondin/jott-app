@@ -77,6 +77,7 @@
   import { drawerSwipe } from "./lib/actions/drawerSwipe.js";
   import { pullToSearch } from "./lib/actions/pullToSearch.js";
   import DayHead from "./lib/components/DayHead.svelte";
+  import CaptureFab from "./lib/components/CaptureFab.svelte";
   import { dayKind } from "./lib/services/calendar.js";
   import { clampWidth, SIDEBAR, PANEL } from "./lib/shell/sidebarWidth.js";
   import { clampZoom, steppedZoom, zoomFontSize } from "./lib/shell/zoom.js";
@@ -235,23 +236,14 @@
   /// focused, pinned above the keyboard. It is the same bar the tasks screens
   /// carry — the + only asks for it (mobile wireframe "New task").
   let composingTask = $state(false);
-  /// The Home's + opens a two-row menu — a task, a note (user report,
-  /// 2026-09-07: the + offered only a task). Where it opens is the button's
-  /// own corner, and the rows are only the halves that are switched on and
-  /// have somewhere to write: no task list, no task row; no note target, no
-  /// note row. With neither, there is no +.
-  let fabMenuAt = $state(null);
+  /// The Home's + (components/CaptureFab.svelte): a task, a note — the two
+  /// floating buttons the phone had before the calendar (asked back,
+  /// 2026-09-07). Each half is offered only where it can be written: no task
+  /// list, no Task; no note target, no Note; with one of them the + composes
+  /// it directly, with neither there is no +.
   let homeView = $state(null);
-  let fabMenu = $derived([
-    ...(f("tasks") && !!quickTaskTo ? [{ label: S.newTask, run: () => (composingTask = true) }] : []),
-    ...(f("notes") && quickTargets.length > 0
-      ? [{ label: S.newNote, run: () => homeView?.createNote() }]
-      : []),
-  ]);
-  function openFabMenu(event) {
-    const box = event.currentTarget.getBoundingClientRect();
-    fabMenuAt = { x: box.left, y: box.top };
-  }
+  let canCaptureTask = $derived(f("tasks") && !!quickTaskTo);
+  let canCaptureNote = $derived(f("notes") && quickTargets.length > 0);
 
   /// Set when a note was just created from the +, and consumed the moment the
   /// editor reports it has loaded: a new note opens with the cursor in the
@@ -2350,7 +2342,7 @@
       pageKey={title(view)}
       {mobile}
       buttons={windowButtons}
-      over={view.kind === "note" || view.kind === "home"}
+      over
       region="chrome"
     />
   {:else if !compact}
@@ -2642,18 +2634,14 @@
                corner on both shells; the Home used to carry a capture box
                at its top on the desktop and a task-or-note + on the phone,
                and both went with the calendar. -->
-          {#if view.kind === "home" && !notebook.readOnly && homeKind !== "past" && fabMenu.length > 0}
-            <button
-              type="button"
-              class="home-fab"
-              aria-label={S.capture}
-              title={S.capture}
-              aria-haspopup="menu"
-              aria-expanded={fabMenuAt !== null}
-              onclick={openFabMenu}
-            >
-              <Icon name="plus-bold" size="1.5rem" />
-            </button>
+          {#if view.kind === "home" && !notebook.readOnly && homeKind !== "past" && (canCaptureTask || canCaptureNote)}
+            <div class="home-fab">
+              <CaptureFab
+                canTask={canCaptureTask}
+                canNote={canCaptureNote}
+                onPick={(kind) => (kind === "note" ? homeView?.createNote() : (composingTask = true))}
+              />
+            </div>
           {/if}
 
         <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -3299,14 +3287,6 @@
   onClose={() => (canvasMenuAt = null)}
 />
 
-<!-- The Home's + (2026-09-07): task or note. The same floating panel the
-     right button opens, anchored at the button's corner. -->
-<ContextMenu
-  at={fabMenuAt}
-  items={fabMenu}
-  region="canvas"
-  onClose={() => (fabMenuAt = null)}
-/>
 
 <!-- The image library, as a question: which picture? Mounted out here with the
      other dialogs, and it opens over whatever screen asked — the banner's ⋮ or

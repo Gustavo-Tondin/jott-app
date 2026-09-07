@@ -808,9 +808,24 @@ export const S = {
   openSidebar: "open sidebar",
   closeSheet: "close",
   closeComposer: "close the new task bar",
+  // The note's find & replace panel (services/searchPanel.js, 2026-09-07).
+  noteFindPlaceholder: "Find",
+  noteReplacePlaceholder: "Replace with",
+  findNext: "next match",
+  findPrevious: "previous match",
+  findOptions: "search options",
+  findMatchCase: "Match case",
+  findByWord: "Whole words",
+  findRegexp: "Regular expression",
+  findClose: "close search",
+  replaceOne: "Replace",
+  replaceAll: "All",
   // The Home's + (2026-09-04): a task or a note (2026-09-07), for the day the
   // calendar has open.
   capture: "new",
+  // The two choices the + opens (components/CaptureFab.svelte).
+  task: "Task",
+  note: "Note",
   todaysTasks: "Today tasks",
   todaysNotes: "Today notes",
   /// The blocks of a day that is not today, named by the day: "Sep 5 tasks".

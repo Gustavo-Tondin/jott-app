@@ -82,16 +82,17 @@ describe("Home's composing bar, the keyboard, and the way out", () => {
     });
   };
 
-  /// Opens the bar the way the thumb does: the + and its "New task" row (the
-  /// + asks task-or-note again since 2026-09-07 — it had offered only a task).
+  /// Opens the bar the way the thumb does: the + and its Task button (the
+  /// two floating choices are back since 2026-09-07 — it had offered only a
+  /// task).
   const openBar = async () => {
     const plus = await waitFor(() => {
-      const el = document.querySelector(".home-fab");
+      const el = document.querySelector(".home-fab .capture-fab__toggle");
       if (!el) throw new Error("no +");
       return el;
     });
     await userEvent.click(plus);
-    await userEvent.click(await screen.findByText("New task"));
+    await userEvent.click(await screen.findByText("Task"));
     return await waitFor(() => {
       const el = document.querySelector(".task-composer__input");
       if (!el) throw new Error("no bar");
