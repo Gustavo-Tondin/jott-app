@@ -724,6 +724,17 @@
        travels with the page when the drawer pushes it. */
     position: relative;
   }
+  /* Wider than the wireframe's 240px on a phone (user report on device,
+     2026-09-07, after the cutout fix: "ainda está um pouco pequeno o sidebar
+     para os botões do header, tanto na vertical quanto na horizontal"). The
+     head is five 48px touch targets — 240px exactly, with no air between
+     them at the wireframe's width. 272px gives the row 8px of breathing per
+     gap and still leaves a third of a portrait screen peeking. One token, so
+     the drawer, its push and the drag that follows it (drawerSwipe measures
+     the element) all move together. */
+  .window--compact {
+    --app-drawer-width: 17rem;
+  }
   .window--compact .window__page {
     transition: translate var(--app-transition-medium);
   }
