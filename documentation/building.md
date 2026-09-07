@@ -105,6 +105,20 @@ bumps that one file, proves every derivation followed, runs both suites plus
 clippy, tags, and stops to ask before pushing — because a pushed tag writes a
 draft release on a public repository.
 
+Versions move one minor at a time — 0.52, 0.53, 0.54 — with a patch always
+allowed on top of the newest tag and exactly one jump allowed, the one to 1.0.
+The script refuses to tag anything else: a release holding a lot of work is
+still the next number.
+
+Publishing is the other half, and it is `packaging/release.sh --publish`. It
+attaches the APK (nothing in CI can build it), publishes the draft **and marks
+it Latest in the same call** — a release born as a draft does not take that
+alias on its own, and `releases/latest/...` would go on serving the previous
+version — then waits until `releases/latest/download/latest.json` really
+answers the new version before pointing anything at it. When a checkout of the
+website is present, it also writes the version onto its download page and a
+new entry onto its changelog page, from this same `CHANGELOG.md`.
+
 Everything that packages the app lives under `packaging/`, one folder per
 platform (`linux/` holds the `PKGBUILD` and the `.desktop` entry, `windows/`
 the preflight, `android/` notes on the APK — the Gradle project itself stays

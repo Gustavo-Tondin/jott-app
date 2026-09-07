@@ -48,12 +48,19 @@
 # It never deletes anything. target/ can be 100 GB and the disk can be full;
 # the script SAYS so and carries on, because what to remove is not its call.
 #
+# And it never skips a number. From v0.52.0 on, versions move one minor at a
+# time — 0.52, 0.53, 0.54 — with a patch always allowed on top of the newest
+# tag and one jump allowed, the one to 1.0. A release holding a lot of work is
+# still the next number.
+#
 # USAGE
 #
 #   packaging/release.sh 0.24.0             # the whole cycle, stopping before the push
 #   packaging/release.sh 0.24.0 --dry-run   # print every command, change nothing
 #   packaging/release.sh --check            # only verify the derivations still work
 #   packaging/release.sh --collect          # only refresh packaging/releases/ from what is built
+#   packaging/release.sh --publish          # after the workflow: publish the draft,
+#                                           # make it Latest, and push the site
 #
 #   The release notes come from CHANGELOG.md — the `## vX.Y.Z` section for the
 #   version being cut. The script refuses to tag a version that has none.
@@ -365,6 +372,77 @@ print(next((p["version"] for p in m["packages"] if p["name"] == sys.argv[1]), ""
 }
 
 # ---------------------------------------------------------------------------
+# The cadence — one step at a time, and no number skipped
+#
+# From v0.52.0 on, versions move 0.1 at a time: 0.52 -> 0.53 -> 0.54. The only
+# jump is the one to 1.0. A version that holds a lot of work is still the next
+# number: how much went into it is what the notes are for.
+#
+# The rule starts AT v0.52.0 rather than at the first tag, because the tags
+# before it were cut under no rule at all — v0.51.0 was never even tagged —
+# and a guard that refuses to run against the history it inherits is a guard
+# nobody can switch on.
+#
+# A patch on top of the newest tag stays legal at every point. A fix for
+# something already installed out there is not a step forward, it is the same
+# step again; refusing it would make the only way to fix a shipped version be
+# to announce a new one.
+# ---------------------------------------------------------------------------
+
+readonly CADENCE_FROM="0.52.0"
+
+# True when $1 sorts strictly before $2. sort -V, not string order: 0.9.0
+# comes before 0.52.0 and no caller has to know that.
+version_lt() {
+  [ "$1" != "$2" ] && [ "$(printf '%s\n%s\n' "$1" "$2" | sort -V | head -1)" = "$1" ]
+}
+
+# Prints "<next> <hotfix> [1.0.0]" — every version that may legally follow the
+# newest tag. Nothing at all when there is no tag to follow.
+cadence_options() {
+  local last from major minor patch
+  last="$(git tag --list 'v*' --sort=-v:refname | head -1)"
+  [ -n "$last" ] || return 0
+  from="${last#v}"
+  IFS=. read -r major minor patch <<<"$from"
+  printf '%s %s' "$major.$((minor + 1)).0" "$major.$minor.$((patch + 1))"
+  [ "$major" = "0" ] && printf ' 1.0.0'
+  printf '\n'
+}
+
+# Dies unless $1 is one of them. Against the newest TAG, not the source
+# version: the source is where the next release is being written, and what
+# must not be skipped is what was released.
+check_cadence() {
+  local want="$1" last from options next hotfix jump option
+  last="$(git tag --list 'v*' --sort=-v:refname | head -1)"
+  if [ -z "$last" ]; then
+    log INFO "  cadence: no tag to follow — v$want starts the count"
+    return 0
+  fi
+
+  from="${last#v}"
+  if version_lt "$from" "$CADENCE_FROM"; then
+    log INFO "  cadence: starts at v$CADENCE_FROM, newest tag is $last — not checked"
+    return 0
+  fi
+
+  options="$(cadence_options)"
+  read -r next hotfix jump <<<"$options"
+  for option in $options; do
+    if [ "$want" = "$option" ]; then
+      log INFO "  cadence: $last -> v$want"
+      return 0
+    fi
+  done
+
+  log ERROR "v$want does not follow $last."
+  log ERROR "  The next version is v$next, or v$hotfix to fix what $last shipped${jump:+, or v$jump for the jump to 1.0}."
+  log ERROR "  A number is never skipped because a version holds a lot of work."
+  die "v$want breaks the cadence"
+}
+
+# ---------------------------------------------------------------------------
 # Arguments
 # ---------------------------------------------------------------------------
 
@@ -524,9 +602,351 @@ collect_releases() {
   log INFO "  releases/README.md lists what is there (source v$source_version)"
 }
 
+# ---------------------------------------------------------------------------
+# --publish — the half that happens AFTER the workflow
+#
+# Cutting a release ends at a pushed tag. Twelve minutes later there is a
+# DRAFT release with the installers on it, and an APK to attach by hand. What
+# came next used to be four manual steps, three of which are traps:
+#
+#   1. Publishing is not just un-drafting. A release that was BORN a draft
+#      does not take the `Latest` alias when it stops being one — measured on
+#      v0.50.4, 2026-09-04 — so releases/latest/download/... went on serving
+#      the previous version to everyone, silently. `make_latest` goes in the
+#      same call, always.
+#   2. A draft is invisible to every lookup BY TAG (`GET /releases/tags/...`
+#      answers 404, and that is what `gh release view|upload|edit <tag>` call
+#      underneath). It is found by LISTING and matching tag_name — the same
+#      trap the workflow's `assets` job fell into.
+#   3. The site links to releases/latest/download/<name> and to nothing else,
+#      so it must not be told about a version before that alias has actually
+#      moved. It is asked with a cache-buster, because the edge keeps serving
+#      the old JSON for a couple of minutes after the release changes.
+#
+# Then the site, which is the second place a release is published since
+# 2026-09-07: the version and date on the download page, and a new entry on
+# the changelog page, written out of the same CHANGELOG.md section the GitHub
+# release page carries. Two files, one commit, one push.
+#
+# The whole thing is idempotent. Run it again after a failure and it publishes
+# nothing twice, rewrites the same two files to the same bytes, and finds
+# nothing to commit.
+# ---------------------------------------------------------------------------
+
+# Where the site is checked out. Not everyone who clones this repository has
+# it; if the path is not there the release still finishes, the site half is
+# skipped, and the log says so.
+readonly SITE_DIR="${JOTT_SITE_DIR:-$HOME/Documentos/GitHub/Jott-web}"
+
+# The five names the workflow's `assets` job renames the uploaded artifacts
+# to. The download page links to all five, so a missing one is a dead button
+# rather than a missing option.
+readonly PUBLISHED_ASSETS="jott-linux.AppImage jott-ubuntu.deb jott-fedora.rpm jott-windows.exe jott-android.apk"
+
+readonly AUDIT="$HOME/.claude/scripts/audit-secrets.sh"
+
+# owner/name, from the remote, for either URL form.
+github_repo() {
+  git config --get remote.origin.url \
+    | sed -e 's#^git@github\.com:#https://github.com/#' \
+          -e 's#^.*github\.com/##' \
+          -e 's#\.git$##'
+}
+
+# The release id for a tag, draft or not. See trap 2 above for why this is not
+# `gh release view`.
+release_id() {
+  gh api "repos/$1/releases" --paginate --jq ".[] | select(.tag_name==\"$2\") | .id" \
+    2>/dev/null | head -1
+}
+
+# What the world's copy of latest.json says, right now: the same URL every
+# installed Jott checks once a day. The query string defeats the CDN cache;
+# without it this reads the answer from before the release was published.
+latest_manifest_version() {
+  curl -fsSL --max-time 20 --connect-timeout 10 \
+    "https://github.com/$1/releases/latest/download/latest.json?cb=$(date +%s%N)" 2>/dev/null \
+    | sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"v\{0,1\}\([^"]*\)".*/\1/p' | head -1
+}
+
+# publish_release <version> — the GitHub half. Leaves the release published,
+# Latest, and with every installer the site links to attached.
+publish_release() {
+  local version="$1" tag="v$1" repo id draft names missing name apk apk_version answer got tries
+
+  require gh    "install the GitHub CLI (https://cli.github.com)"
+  require curl  "install curl"
+
+  repo="$(github_repo)"
+  [ -n "$repo" ] || die "could not read the GitHub repository out of remote.origin.url"
+
+  id="$(release_id "$repo" "$tag")"
+  [ -n "$id" ] || die "$repo has no release for $tag. The workflow writes one about 12 minutes after the tag is pushed — watch it with: gh run watch"
+
+  draft="$(gh api "repos/$repo/releases/$id" --jq .draft 2>/dev/null)"
+  log INFO "  $repo release $tag is id $id (draft: ${draft:-unknown})"
+
+  # What is on it, against what the download page links to.
+  names="$(gh api "repos/$repo/releases/$id/assets" --paginate --jq '.[].name' 2>/dev/null)"
+  missing=""
+  for name in $PUBLISHED_ASSETS; do
+    printf '%s\n' "$names" | grep -qx "$name" || missing="$missing $name"
+  done
+
+  # The APK is the one the CI cannot build: it is signed here, with a keystore
+  # that is not in Secrets. If it is missing and the copy in packaging/
+  # releases/ is this very version, it goes up as part of publishing — that
+  # folder is where a hand upload would have taken it from anyway.
+  apk=""
+  case " $missing " in
+    *" jott-android.apk "*)
+      apk_version="$(version_of jott-android.apk)"
+      if [ -f "$RELEASES_DIR/jott-android.apk" ] && [ "$apk_version" = "$version" ]; then
+        apk="$RELEASES_DIR/jott-android.apk"
+      elif [ -f "$RELEASES_DIR/jott-android.apk" ]; then
+        log WARN "  packaging/releases/jott-android.apk is v$apk_version, not v$version — not attaching it"
+      fi
+      ;;
+  esac
+
+  if [ -n "$missing" ]; then
+    log WARN "  not on the release yet:$missing"
+    log WARN "    The download page links to all five by name — a missing one is a dead link."
+  else
+    log INFO "  all five installers are on the release"
+  fi
+
+  if [ "$draft" != "true" ] && [ -z "$apk" ]; then
+    log INFO "  already published — nothing to do on GitHub"
+  else
+    echo
+    echo "  On $repo:"
+    [ -n "$apk" ]           && echo "    · attach jott-android.apk (v$version) to $tag"
+    [ "$draft" = "true" ]   && echo "    · publish $tag and make it Latest — this is public, and"
+    [ "$draft" = "true" ]   && echo "      every installed Jott starts offering it within a day"
+    if [ -n "$ASSUME_YES" ]; then
+      answer="yes"
+    else
+      printf '  go ahead? '
+      read -r answer
+    fi
+    case "$answer" in
+      yes|y) ;;
+      *) die "stopped. Nothing was published." ;;
+    esac
+
+    if [ -n "$apk" ]; then
+      # By id and through the uploads host: `gh release upload` goes by tag,
+      # and the release is still a draft here.
+      gh api --method POST \
+        "https://uploads.github.com/repos/$repo/releases/$id/assets?name=jott-android.apk" \
+        -H "Content-Type: application/vnd.android.package-archive" \
+        --input "$apk" >>"$LOG" 2>&1 \
+        || die "could not attach the APK — read $LOG"
+      log INFO "  attached jott-android.apk"
+    fi
+
+    if [ "$draft" = "true" ]; then
+      # draft is a boolean (-F), make_latest is a STRING enum (-f). Sending
+      # make_latest is the whole point: see trap 1 above.
+      gh api -X PATCH "repos/$repo/releases/$id" \
+        -F draft=false -f make_latest=true >>"$LOG" 2>&1 \
+        || die "could not publish the release — read $LOG"
+      log INFO "  published $tag and set it as Latest"
+    fi
+  fi
+
+  # And now the question the site depends on: does the alias answer this
+  # version? Asked rather than assumed, because the answer arrives a minute
+  # or so after the call above returns.
+  log INFO "  asking releases/latest what version it serves"
+  tries=0
+  while :; do
+    got="$(latest_manifest_version "$repo")"
+    [ "$got" = "$version" ] && break
+    tries=$((tries + 1))
+    [ "$tries" -ge 6 ] && break
+    log INFO "    it says ${got:-nothing} — waiting 10s ($tries/6)"
+    sleep 10
+  done
+
+  if [ "$got" != "$version" ]; then
+    log ERROR "releases/latest still serves ${got:-nothing}, not $version."
+    log ERROR "  The site links to releases/latest/download/<file> and nothing else, so"
+    log ERROR "  writing it now would announce $version over the previous installers."
+    log ERROR "  Check that $tag is published AND marked Latest, then run:"
+    log ERROR "    packaging/release.sh --publish $version"
+    die "the Latest alias has not moved to $version"
+  fi
+  log INFO "  releases/latest serves $version — the permanent links are live"
+}
+
+# write_site <version> — the two files, from CHANGELOG.md. Prints nothing on
+# its own; the python says what it changed.
+write_site() {
+  local version="$1" today
+  today="$(date +%F)"
+  python3 - "$version" "$today" "$SITE_DIR" "$ROOT/CHANGELOG.md" <<'PY'
+import html
+import pathlib
+import re
+import sys
+
+version, today = sys.argv[1], sys.argv[2]
+site, changelog_md = pathlib.Path(sys.argv[3]), pathlib.Path(sys.argv[4])
+REPO = "https://github.com/Gustavo-Tondin/jott-app"
+MONTHS = ("January", "February", "March", "April", "May", "June", "July",
+          "August", "September", "October", "November", "December")
+
+year, month, day = (int(part) for part in today.split("-"))
+pretty = f"{day} {MONTHS[month - 1]} {year}"
+
+
+def inline(text):
+    """Markdown as this changelog writes it: bold, code, and nothing else.
+
+    Escaped FIRST, so a `<u>` inside a code span survives as text instead of
+    becoming a tag."""
+    out = html.escape(text, quote=False)
+    out = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", out)
+    out = re.sub(r"`([^`]+)`", r"<code>\1</code>", out)
+    return out
+
+
+def groups_of(version):
+    """[(heading, [bullet, ...]), ...] for one ## vX.Y.Z section."""
+    lines = changelog_md.read_text().splitlines()
+    try:
+        start = lines.index(f"## v{version}") + 1
+    except ValueError:
+        sys.exit(f"{changelog_md} has no '## v{version}' section")
+
+    found = []
+    for line in lines[start:]:
+        if line.startswith("## "):
+            break
+        if line.startswith("### "):
+            found.append((line[4:].strip(), []))
+        elif line.startswith("- "):
+            if not found:
+                sys.exit(f"a bullet outside any ### heading in v{version}")
+            found[-1][1].append(line[2:].strip())
+        elif line.strip() and found and found[-1][1]:
+            # a wrapped bullet: the file wraps at 76 columns, the page does not
+            found[-1][1][-1] += " " + line.strip()
+    if not any(bullets for _, bullets in found):
+        sys.exit(f"the v{version} section has no bullets")
+    return found
+
+
+def entry_html(version):
+    out = [
+        f'            <article class="release">',
+        f'              <div class="release__head">',
+        f'                <h2 class="release__version">v{version}</h2>',
+        f'                <time class="release__date" datetime="{today}">{pretty}</time>',
+        f'                <a class="link" href="{REPO}/releases/tag/v{version}">Release and files ↗</a>',
+        f'              </div>',
+        f'              <div class="release__notes prose">',
+    ]
+    for heading, bullets in groups_of(version):
+        if not bullets:
+            continue
+        out.append(f'                <h3 class="label">{inline(heading)}</h3>')
+        out.append('                <ul>')
+        out.extend(f'                  <li>{inline(b)}</li>' for b in bullets)
+        out.append('                </ul>')
+    out += ['              </div>', '            </article>']
+    return "\n".join(out) + "\n"
+
+
+def edit(name, change):
+    path = site / name
+    before = path.read_text()
+    after = change(before)
+    if after == before:
+        print(f"  {name}: already right")
+        return
+    path.write_text(after)
+    print(f"  {name}: written")
+
+
+def download(text):
+    text, n = re.subn(r"(<strong data-app-version>)[^<]*(</strong>)",
+                      rf"\g<1>v{version}\g<2>", text)
+    if n != 1:
+        sys.exit(f"download.html: expected one data-app-version, found {n}")
+    text, n = re.subn(r'<time data-app-date datetime="[^"]*">[^<]*</time>',
+                      f'<time data-app-date datetime="{today}">{pretty}</time>', text)
+    if n != 1:
+        sys.exit(f"download.html: expected one data-app-date, found {n}")
+    return text
+
+
+def changelog(text):
+    entry = entry_html(version)
+    mine = re.compile(
+        r'[ ]*<article class="release">.*?'
+        rf'<h2 class="release__version">v{re.escape(version)}</h2>.*?</article>\n',
+        re.DOTALL)
+    # Rewriting rather than inserting is what makes a second run a no-op — and
+    # what lets a fixed changelog bullet reach a page already published.
+    if mine.search(text):
+        return mine.sub(lambda _: entry, text, count=1)
+    anchor = "<!-- newest first; release.sh inserts the new entry right here -->\n"
+    if anchor not in text:
+        sys.exit("changelog.html: the insertion anchor is gone — put it back inside .releases")
+    return text.replace(anchor, anchor + entry, 1)
+
+
+edit("download.html", download)
+edit("changelog.html", changelog)
+PY
+}
+
+# publish_site <version> — write, audit, commit, push. The site is a public
+# repository of its own, so it gets the same audit the app does.
+publish_site() {
+  local version="$1" answer
+
+  if [ ! -d "$SITE_DIR/.git" ]; then
+    log WARN "  no site checkout at $SITE_DIR — the site half is skipped"
+    log WARN "    Point JOTT_SITE_DIR at it, or update the page by hand."
+    return 0
+  fi
+
+  log INFO "  site: $SITE_DIR"
+  write_site "$version" | tee -a "$LOG"
+
+  if [ -z "$(git -C "$SITE_DIR" status --porcelain -- download.html changelog.html)" ]; then
+    log INFO "  the site already says v$version — nothing to commit"
+    return 0
+  fi
+
+  git -C "$SITE_DIR" --no-pager diff --stat -- download.html changelog.html | tee -a "$LOG"
+
+  if [ -x "$AUDIT" ]; then
+    if "$AUDIT" "$SITE_DIR" >>"$LOG" 2>&1; then
+      log INFO "  site audit clean"
+    else
+      tail -20 "$LOG"
+      die "the secret audit flagged something in the site — read $LOG"
+    fi
+  else
+    log WARN "  audit-secrets.sh not available; the site went unaudited"
+  fi
+
+  git -C "$SITE_DIR" add download.html changelog.html
+  git -C "$SITE_DIR" commit -m "chore(release): o site aponta a v$version" >>"$LOG" 2>&1 \
+    || die "the site commit failed — read $LOG"
+  git -C "$SITE_DIR" push >>"$LOG" 2>&1 || { tail -20 "$LOG"; die "the site push failed"; }
+  log INFO "  site pushed — download and changelog now say v$version"
+}
+
 DRY_RUN=""
 CHECK_ONLY=""
 COLLECT_ONLY=""
+PUBLISH_ONLY=""
 SKIP_TESTS=""
 SKIP_PREFLIGHT=""
 WITH_ANDROID=""
@@ -538,6 +958,7 @@ while [ $# -gt 0 ]; do
     --dry-run)        DRY_RUN=1 ;;
     --check)          CHECK_ONLY=1 ;;
     --collect)        COLLECT_ONLY=1 ;;
+    --publish)        PUBLISH_ONLY=1 ;;
     --skip-tests)     SKIP_TESTS=1 ;;
     --skip-preflight) SKIP_PREFLIGHT=1 ;;
     --android)        WITH_ANDROID=1 ;;
@@ -556,12 +977,39 @@ if [ -n "$CHECK_ONLY" ]; then
   log INFO "version, and the derivations from it:"
   check_versions
   log INFO "every derivation lands on $AGREED_VERSION"
+  cadence_last="$(git tag --list 'v*' --sort=-v:refname | head -1)"
+  if [ -z "$cadence_last" ]; then
+    log INFO "no tag yet — the first release starts the cadence"
+  elif version_lt "${cadence_last#v}" "$CADENCE_FROM"; then
+    log INFO "the cadence starts at v$CADENCE_FROM; the newest tag, $cadence_last, predates it"
+  else
+    log INFO "after $cadence_last, the versions allowed are: $(cadence_options | sed 's/ /, v/g; s/^/v/')"
+  fi
   exit 0
 fi
 
 if [ -n "$COLLECT_ONLY" ]; then
   log INFO "collecting the newest installers into packaging/releases/"
   collect_releases
+  exit 0
+fi
+
+# The second half of a release, run once the workflow has finished: publish
+# the draft, make it Latest, and point the site at it. With no version given
+# it publishes the one in the source, which is the one that was just cut.
+if [ -n "$PUBLISH_ONLY" ]; then
+  [ -n "$VERSION" ] || VERSION="$(source_version)"
+  printf '%s' "$VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$' \
+    || die "version must be X.Y.Z, got '$VERSION'"
+  log INFO "publishing v$VERSION — GitHub first, then the site"
+  publish_release "$VERSION"
+  publish_site "$VERSION"
+  echo
+  log INFO "v$VERSION is out, in both places:"
+  log INFO "  https://github.com/$(github_repo)/releases/tag/v$VERSION"
+  log INFO "  the site's download and changelog pages"
+  log INFO "  back up the keys:  cd ~/Documentos/GitHub/jott-vault && ./sync.sh"
+  log INFO "  full log: $LOG"
   exit 0
 fi
 
@@ -589,6 +1037,8 @@ fi
 
 git rev-parse "v$VERSION" >/dev/null 2>&1 \
   && die "tag v$VERSION already exists. Pick another version, or delete it first."
+
+check_cadence "$VERSION"
 
 log INFO "current version, and the derivations from it:"
 check_versions
@@ -713,7 +1163,7 @@ fi
 # ---------------------------------------------------------------------------
 
 log INFO "step 5/8 — secret audit"
-audit="$HOME/.claude/scripts/audit-secrets.sh"
+audit="$AUDIT"
 if [ -x "$audit" ]; then
   if [ -n "$DRY_RUN" ]; then
     log DRY  "$audit ."
@@ -905,11 +1355,11 @@ if [ -z "$DRY_RUN" ]; then
 fi
 
 echo
-log INFO "v$VERSION done here. What is left is yours:"
-log INFO "  1. watch the workflow:  gh run watch"
-log INFO "  2. attach the APK to the draft, if you built one"
-log INFO "  3. read the draft release, then PUBLISH it"
-log INFO "     (releases/latest only resolves for a PUBLISHED release — a draft is not an update)"
+log INFO "v$VERSION is cut. The rest waits on the workflow:"
+log INFO "  1. watch it:  gh run watch          (~12 min, leaves a DRAFT release)"
+log INFO "  2. read the draft"
+log INFO "  3. publish it, and the site with it:  packaging/release.sh --publish $VERSION"
+log INFO "     (attaches the APK, sets Latest, waits for the alias to move, pushes the site)"
 log INFO "  4. back up the keys:  cd ~/Documentos/GitHub/jott-vault && ./sync.sh"
 log INFO "  full log: $LOG"
 exit 0
