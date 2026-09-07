@@ -49,6 +49,12 @@ file and live only in the commit history.
   whether there is anywhere to go.
 - The **+** on the Home has a shadow again — it had been floating flat over
   the page.
+- The list `[[` offers while you type is a proper menu now: the app's font
+  instead of a code font, rows with room to breathe and a tap target on a
+  phone, the chosen row rounded inside the panel, and a long note title
+  trimmed with an ellipsis rather than stretching the panel across the
+  screen. The column of `abc` marks CodeMirror drew beside every name is
+  gone — the space each note lives in is already on the row.
 - In landscape, the drawer is wide enough for the five header buttons.
 - A note's text is centred on its page again. The fold arrow beside each
   line was taking its width out of the left side only, so the whole note sat

@@ -609,32 +609,92 @@
   text-decoration-thickness: 0.125rem;
 }
 
-/* ---- what `[[` offers while it is typed (2026-08-19) ----
+/* ---- what `[[` offers while it is typed (2026-08-19; the cascade fixed
+   2026-09-07) ----
    CodeMirror's completion panel, dressed in the app's tokens — it ships with
-   a light-only look of its own, the same problem the find panel had. */
-.editor .cm-tooltip.cm-tooltip-autocomplete {
+   a light-only look of its own, the same problem the find panel had.
+
+   AND THE DRESSING WAS HALF IGNORED, because the base theme OUT-SPECIFIED
+   it. The rules it injects read
+
+     .ͼ1 .cm-tooltip.cm-tooltip-autocomplete > ul > li
+
+   — a generated class on the editor plus two on the panel: three classes
+   where ours had two, and specificity does not care that ours is read
+   later. Measured in a real CodeMirror over the real sheets (2026-09-07,
+   `CSS.getMatchedStylesForNode` on an open panel): the list came out
+   `font-family: monospace` with `padding: 1px 3px` and `max-height: 10em`
+   — its numbers, not ours — and the selected row was the app's blue only
+   because our `<style>` happened to be read last, an exact tie at (0,3,2)
+   against its own `#17c` that a build could break the other way.
+
+   So every rule here names the panel THE WAY THE BASE THEME DOES and puts
+   `.cm-editor` in front: four classes, one more than it can have, whichever
+   style element the browser reads last. Same lesson as `.cm-panels` in the
+   find panel below, and the reason the whole block is written this way even
+   where two classes already won — a rule that wins by luck reads exactly
+   like a rule that wins. */
+.editor .cm-editor .cm-tooltip.cm-tooltip-autocomplete {
   background: var(--app-surface);
   border: 0.0625rem solid var(--app-line);
   border-radius: var(--app-radius-md);
   box-shadow: var(--app-shadow-popover);
   overflow: hidden;
 }
-.editor .cm-tooltip-autocomplete > ul {
+.editor .cm-editor .cm-tooltip.cm-tooltip-autocomplete > ul {
   font: inherit;
   max-height: 15rem;
+  /* THE RING, and it is the app's menu (menu.css: `.menu__list` carries the
+     same 4px). Without it the first and last option touch the panel's
+     rounded edge, so the selected row's fill squares off exactly where the
+     panel turns — the same misfit the top bar's pill had. */
+  padding: var(--app-space-4);
+  /* A cap, and it is what makes the ellipsis below possible at all: the
+     panel is as wide as its longest option, and a note title can be a
+     sentence — so the label had `text-overflow` with nothing to overflow.
+     `min()` keeps the panel on a phone. */
+  max-inline-size: min(24rem, 90vw);
 }
-.editor .cm-tooltip-autocomplete > ul > li {
+/* A ROW OF THIS PANEL IS A ROW OF THE APP'S MENUS — same 6/10, same corner
+   (menu.css). The corner is the arithmetic the app writes everywhere else:
+   the panel's radius less the ring the row sits in, so the fill of the
+   chosen option is concentric with the curve around it. Before this, the
+   row wore CodeMirror's `padding: 1px 3px` (measured), which is a code
+   editor's density in a list of the reader's own note titles. */
+.editor .cm-editor .cm-tooltip.cm-tooltip-autocomplete > ul > li {
   display: flex;
   align-items: baseline;
   gap: var(--app-space-8);
-  padding: var(--app-space-4) var(--app-space-10);
+  padding: var(--app-space-6) var(--app-space-10);
+  border-radius: calc(var(--app-radius-md) - var(--app-space-4));
   color: var(--app-ink);
 }
-.editor .cm-tooltip-autocomplete > ul > li[aria-selected] {
+.editor .cm-editor .cm-tooltip.cm-tooltip-autocomplete > ul > li[aria-selected] {
   background: var(--app-brand);
   color: var(--app-on-brand);
 }
-.editor .cm-completionLabel {
+/* ON A FINGER, the app's 48px (touch.css) — and it has to be said HERE, not
+   there: touch.css lives in `@layer components`, and the base theme this
+   panel fights is unlayered, so a padding written there would lose the
+   cascade whatever it said. The row is already a flex box, so a minimum is
+   all it takes; `align-items: center` so the label sits in the middle of the
+   taller row instead of on its baseline. */
+@media (pointer: coarse) {
+  .editor .cm-editor .cm-tooltip.cm-tooltip-autocomplete > ul > li {
+    align-items: center;
+    min-block-size: var(--app-touch-min);
+    padding-inline: var(--app-space-12);
+  }
+}
+/* CodeMirror's type glyph, and there is nothing to put in it: for a "text"
+   completion it draws the literal word `abc` (its own `::after`) on every
+   row of a list where every option is a note or a file — and which of the
+   two it is is already said, quietly, in the detail. A column of `abc` down
+   the left of the app's own names. */
+.editor .cm-editor .cm-completionIcon {
+  display: none;
+}
+.editor .cm-editor .cm-completionLabel {
   flex: 1;
   min-inline-size: 0;
   overflow: hidden;
@@ -642,13 +702,16 @@
   white-space: nowrap;
 }
 /* Where a note lives, or whether a file is one the app draws — said quietly,
-   because the name is the answer and this is only the tie-break. */
-.editor .cm-completionDetail {
+   because the name is the answer and this is only the tie-break. The base
+   theme gives this one `font-style: italic` and a left margin of its own;
+   the row already has a gap, so the margin goes with the italic. */
+.editor .cm-editor .cm-completionDetail {
+  margin-inline-start: 0;
   color: var(--app-ink-faint);
   font-size: var(--app-text-12);
   font-style: normal;
 }
-.editor .cm-tooltip-autocomplete > ul > li[aria-selected] .cm-completionDetail {
+.editor .cm-editor .cm-tooltip.cm-tooltip-autocomplete > ul > li[aria-selected] .cm-completionDetail {
   color: var(--app-on-brand);
   opacity: 0.75;
 }
