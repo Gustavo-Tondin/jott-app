@@ -48,8 +48,9 @@ file and live only in the commit history.
   phone that room is trimmed to what the arrow itself measures, so the text
   keeps the width.
 - The note's title starts exactly where its text starts, on any screen.
-- The fold arrow beside a heading sits on the heading's first line instead
-  of floating in the air above it.
+- The fold arrow sits on the first line of what it folds — a heading or a
+  list item, wrapped over several lines or not — instead of floating above
+  it.
 
 ## v0.51.0
 

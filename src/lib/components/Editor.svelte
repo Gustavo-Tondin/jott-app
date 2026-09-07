@@ -24,6 +24,7 @@
   import { markdownPreview } from "../services/markdown.js";
   import { autocompletion } from "@codemirror/autocomplete";
   import { autoClose, plainAutoClose } from "../services/autoClose.js";
+  import { foldLineClasses } from "../services/foldLines.js";
   import { blockMiddlePaste } from "../services/middlePaste.js";
   import { keepCaretInView } from "../services/caretScroll.js";
   import { fileEmbeds, refreshEmbeds } from "../services/embeds.js";
@@ -235,6 +236,11 @@
           // CodeMirror's default glyphs so `editor.css` can draw and turn
           // ONE chevron, the app's caret.
           codeFolding({ placeholderText: "…" }),
+          // What each foldable line IS, written on the gutter's own element
+          // so the chevron can land on the item's first line whatever that
+          // line is — a heading opens with air and reads at its own size, a
+          // bullet reads at the note's (services/foldLines.js).
+          foldLineClasses,
           foldGutter({
             markerDOM(open) {
               const mark = document.createElement("span");

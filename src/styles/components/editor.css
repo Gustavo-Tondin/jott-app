@@ -108,21 +108,21 @@
    styles/roles.css. Sizes are in `em` so the whole scale follows the app's
    body size instead of pinning the note to one number. */
 .editor .cm-md-h1 {
-  font-size: 1.6em;
+  font-size: calc(1em * var(--editor-h1));
   font-weight: var(--app-weight-bold);
   line-height: var(--app-leading-tight);
   letter-spacing: var(--app-tracking-tight);
   color: var(--app-heading-1);
 }
 .editor .cm-md-h2 {
-  font-size: 1.35em;
+  font-size: calc(1em * var(--editor-h2));
   font-weight: var(--app-weight-bold);
   line-height: var(--app-leading-tight);
   letter-spacing: var(--app-tracking-tight);
   color: var(--app-heading-2);
 }
 .editor .cm-md-h3 {
-  font-size: 1.15em;
+  font-size: calc(1em * var(--editor-h3));
   font-weight: var(--app-weight-bold);
   color: var(--app-heading-3);
 }
@@ -139,9 +139,10 @@
   color: var(--app-heading-6);
 }
 /* A title needs air above it more than below: the paragraph it opens is
-   already its own line. */
+   already its own line. NAMED, because the fold chevron beside a heading has
+   to step over exactly this much to reach the line it belongs to. */
 .editor .cm-md-heading {
-  padding-block-start: var(--app-space-12);
+  padding-block-start: var(--editor-heading-air);
 }
 
 /* ---- inline emphasis ---- */
@@ -277,6 +278,17 @@
 .editor {
   --editor-indent: 1.75em;
   --editor-marker: 1.25em;
+  /* The heading ladder, as bare numbers: the heading reads them as `em` of the
+     note's own size, and the fold gutter — which is outside the note's text and
+     cannot use its `em` — multiplies them by `--app-note-size` to know how tall
+     the line beside it is. h4 to h6 are the note's size, so they have no rung.
+     One source, or a chevron drifts off a heading nobody thought to update. */
+  --editor-h1: 1.6;
+  --editor-h2: 1.35;
+  --editor-h3: 1.15;
+  /* The air a heading's line opens with, and the ONE thing that makes a
+     heading's chevron sit differently from a bullet's. */
+  --editor-heading-air: var(--app-space-12);
 }
 /* `text-indent: 0` ON THE SPANS IS LOAD-BEARING (measured in the harness,
    2026-09-07): `text-indent` inherits, and an inline-block is a block
@@ -360,37 +372,94 @@
 }
 .editor .cm-fold-marker {
   display: inline-block;
-  /* ON THE FIRST LINE OF THE ITEM (user call with a screenshot, 2026-09-07:
+  /* ON THE FIRST LINE OF THE ITEM (user calls with screenshots, 2026-09-07:
      "tem espaço sobrando em cima do título, então a calha não fica alinhada
-     com ele" · "a calha deve alinhar a primeira linha de um item").
+     com ele" · "a calha deve alinhar a primeira linha de um item, seja titulo,
+     bullet com indents ou o que for").
 
-     CodeMirror gives the gutter's cell the height of the WHOLE line and
-     leaves the marker at its top, so the chevron was floating in the air a
-     heading's line opens with (`.cm-md-heading` above). Measured over the
-     real sheet at 16px (Chrome, CDP): the chevron's ink sits 10px under the
-     cell's top and the middle of the first line is 12 (the air) plus half
-     that heading's own line — 17.8px down for an h1, 15.8 for an h2, 16.7
-     for an h3, 14.8 for h4-h6.
+     CodeMirror gives the gutter's cell the height of the WHOLE item and
+     leaves the marker at the top of it, so the chevron sat above the text of
+     a heading and in the middle of nothing on an item of several lines. It is
+     moved down to the middle of the FIRST line, which is half that line's
+     height, less half the chevron's own box — `line-height: 1` above is what
+     makes that box a known quantity instead of whatever the gutter inherited.
 
-     ONE number for all of them, because nothing in the gutter can see which
-     level it stands beside: 2 (the air, less the marker's own half-line) plus
-     half of an average heading line, which is why it is written against the
-     note's size — the six levels run 1.6em to 1em, and the whole ladder moves
-     when the reader changes that size. Off by at most 1.8px, and — unlike
-     centring the marker in the cell — still on the FIRST line of a heading
-     that wraps, which is what a phone does to most of them.
+     THE DEFAULT IS THE NOTE'S OWN TEXT — a bullet (indented or not), a
+     paragraph, a quote. A heading is the exception, and the only one: its
+     line opens with air (`--editor-heading-air`) and reads at its own rung of
+     the ladder. Which line is which comes from `services/foldLines.js`, on
+     the gutter's element; the arithmetic stays here, in the tokens that drew
+     the line — so the whole thing follows the reader's note size.
 
      `translate`, not padding on the cell: the gutter is a flex column of
-     cells whose heights CodeMirror writes itself, and a padding there makes
-     the items refuse to shrink to those heights, which desynchronises the
-     whole gutter from the text (measured in the same session). This moves
-     ink and nothing else, and composes with the `rotate` below. */
-  translate: 0 calc(var(--app-space-2) + var(--app-note-size) * 0.875);
+     cells whose heights CodeMirror writes itself, and padding there makes the
+     items refuse to shrink to those heights, which desynchronises the entire
+     gutter from the text (measured, 2026-09-07). This moves ink and nothing
+     else, and composes with the `rotate` below. */
+  /* The two that make the arithmetic below mean what it says: the chevron's
+     box is one em tall, and it starts at the TOP of the cell instead of
+     hanging from the gutter's own baseline — which was leaving it 2.8px low
+     whatever the line (measured, 2026-09-07). */
+  line-height: 1;
+  vertical-align: top;
+  translate: 0 calc((var(--app-note-size) * var(--app-leading-loose) - 1em) / 2);
   color: var(--app-ink-faint);
   cursor: pointer;
   transition:
     rotate var(--app-transition-fast),
     opacity var(--app-transition-fast);
+}
+/* A heading's chevron: over the air its line opens with, and centred on a
+   line of that heading's own size. h3 to h6 keep the note's leading (only h1
+   and h2 tighten it), which is why the two halves of the ladder differ by
+   more than the rung.
+
+   Measured against the rendered first line (Chrome, CDP, 2026-09-07): dead on
+   for h3, h4 and every line that reads at the note's leading — bullets
+   included, wrapped or not — and 0.4px high on an h1, 0.8px on an h2. That
+   residue is a tighter leading meeting the line's own strut, which no
+   arithmetic here can see; it is under a pixel and it stays. */
+.editor .cm-fold-line--h1 .cm-fold-marker {
+  translate: 0
+    calc(
+      var(--editor-heading-air) +
+        (
+            var(--app-note-size) * var(--editor-h1) *
+              var(--app-leading-tight) - 1em
+          ) /
+          2
+    );
+}
+.editor .cm-fold-line--h2 .cm-fold-marker {
+  translate: 0
+    calc(
+      var(--editor-heading-air) +
+        (
+            var(--app-note-size) * var(--editor-h2) *
+              var(--app-leading-tight) - 1em
+          ) /
+          2
+    );
+}
+.editor .cm-fold-line--h3 .cm-fold-marker {
+  translate: 0
+    calc(
+      var(--editor-heading-air) +
+        (
+            var(--app-note-size) * var(--editor-h3) *
+              var(--app-leading-loose) - 1em
+          ) /
+          2
+    );
+}
+.editor .cm-fold-line--h4 .cm-fold-marker,
+.editor .cm-fold-line--h5 .cm-fold-marker,
+.editor .cm-fold-line--h6 .cm-fold-marker {
+  translate: 0
+    calc(
+      var(--editor-heading-air) +
+        (var(--app-note-size) * var(--app-leading-loose) - 1em) / 2
+    );
 }
 .editor .cm-fold-marker--open {
   rotate: 90deg;
