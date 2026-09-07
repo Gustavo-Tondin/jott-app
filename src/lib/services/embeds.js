@@ -28,14 +28,14 @@
 //
 // Without the slash it is a NOTE (2026-08-19), carried by title — the reason
 // is on `noteMarkdown`. Both are drawn by the same rule as every other piece
-// of syntax in this editor: the line the cursor is on shows what was typed,
-// every other line shows what it means.
+// of syntax in this editor (`revealedBy`): the reference the selection is
+// INSIDE shows what was typed, every other one shows what it means.
 
 import { RangeSetBuilder, StateEffect, StateField } from "@codemirror/state";
 import { Decoration, EditorView, WidgetType } from "@codemirror/view";
 import { ASSETS_DIR, isImage } from "./assets.js";
 import { leafOf } from "./paths.js";
-import { activeLines } from "./markdown.js";
+import { revealedBy } from "./markdown.js";
 
 /// Anything in double brackets. Which of the two it is, is the slash.
 const REFERENCE = /\[\[([^[\]\n]+)\]\]/g;
@@ -224,10 +224,10 @@ class EmbedWidget extends WidgetType {
   }
 }
 
-/// The decorations for `ranges` — one per file reference on an inactive line.
+/// The decorations for `ranges` — one per file reference nobody is inside.
 export function embedDecorationsFor(state, ranges, ctx = {}) {
   const builder = new RangeSetBuilder();
-  const active = activeLines(state);
+  const reveals = revealedBy(state);
 
   // What this notebook draws at all (App Functions, 2026-08-20). A reference
   // the user switched off is left as the text it is — the file is untouched
@@ -240,31 +240,38 @@ export function embedDecorationsFor(state, ranges, ctx = {}) {
     let line = state.doc.lineAt(from);
     while (line.from <= to) {
       const found = referencesIn(line.text, line.from).filter((ref) => shows(ref.kind));
-      if (!active.has(line.number)) {
-        for (const embed of found) {
-          builder.add(embed.from, embed.to, Decoration.replace({ widget: new EmbedWidget(embed, ctx) }));
+      // TWO PASSES, because the builder takes positions in order and the two
+      // answers land in different places: a chip replaces the reference where
+      // it stands, and a revealed picture hangs off the END of the line. With
+      // one revealed reference before a hidden one on the same line, a single
+      // pass would offer `line.to` and then walk backwards.
+      const opened = [];
+      for (const embed of found) {
+        if (reveals(embed.from, embed.to)) {
+          opened.push(embed);
+          continue;
         }
-      } else {
-        // The line being edited shows its text — and a PICTURE keeps showing
-        // too, below it (user call, 2026-08-19). Clicking a photo used to make
-        // it vanish and leave an address behind, which reads as having broken
-        // something. So: one click reveals the link above the photo, and the
-        // photo is still there to be clicked again.
-        //
-        // Only pictures. A chip is the size of the text that would replace it
-        // and says the same thing twice; a photo is the thing itself.
-        for (const embed of found) {
-          if (embed.kind !== "file" || !embed.image) continue;
-          builder.add(
-            line.to,
-            line.to,
-            Decoration.widget({
-              widget: new EmbedWidget({ ...embed, opened: true }, ctx),
-              block: true,
-              side: 1,
-            }),
-          );
-        }
+        builder.add(embed.from, embed.to, Decoration.replace({ widget: new EmbedWidget(embed, ctx) }));
+      }
+      // The reference being edited shows its text — and a PICTURE keeps
+      // showing too, below it (user call, 2026-08-19). Clicking a photo used
+      // to make it vanish and leave an address behind, which reads as having
+      // broken something. So: one click reveals the link above the photo, and
+      // the photo is still there to be clicked again.
+      //
+      // Only pictures. A chip is the size of the text that would replace it
+      // and says the same thing twice; a photo is the thing itself.
+      for (const embed of opened) {
+        if (embed.kind !== "file" || !embed.image) continue;
+        builder.add(
+          line.to,
+          line.to,
+          Decoration.widget({
+            widget: new EmbedWidget({ ...embed, opened: true }, ctx),
+            block: true,
+            side: 1,
+          }),
+        );
       }
       if (line.to >= state.doc.length) break;
       line = state.doc.lineAt(line.to + 1);

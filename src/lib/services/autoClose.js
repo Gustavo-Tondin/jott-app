@@ -146,12 +146,24 @@ export function markInput(state, mark) {
       return { range: EditorSelection.cursor(pos + mark.length) };
     }
 
-    // 3. Open a pair, where a mark can begin. `_` is the exception: CommonMark
-    //    gives no meaning to `foo_bar_`, so closing after a word would write a
-    //    pair that renders as nothing — and it would fight snake_case, which
-    //    is the other thing `_` is typed for.
+    // 3. Open a pair, where a mark can begin. Three things stop it:
+    //
+    //    * `_` after a word: CommonMark gives no meaning to `foo_bar_`, so
+    //      closing there writes a pair that renders as nothing — and it would
+    //      fight snake_case, which is the other thing `_` is typed for.
+    //    * THE SAME MARK ALREADY TOUCHING THE CARET, on either side (user
+    //      report, 2026-09-07). Deleting one of the four asterisks of
+    //      `**word**` leaves `**word*`, and typing the missing one back has
+    //      exactly one right answer: one character. A pair there wrote
+    //      `**word***`, which is the bug — and the rule reads the same from
+    //      the other side, so `*` typed in front of `**word**` is one
+    //      character too. The two states where a mark against the caret DOES
+    //      mean something are already answered above: the empty pair the app
+    //      itself opened (1) and the finished pair the caret steps out of (2).
     const opens =
       (!ahead || /\s/.test(ahead) || CLOSE_BEFORE.includes(ahead)) &&
+      ahead !== mark &&
+      behind !== mark &&
       !(mark === "_" && isWord(behind));
     if (opens) {
       return {

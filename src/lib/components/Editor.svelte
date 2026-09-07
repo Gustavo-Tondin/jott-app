@@ -23,6 +23,7 @@
   import { markdownPreview } from "../services/markdown.js";
   import { autocompletion } from "@codemirror/autocomplete";
   import { autoClose, plainAutoClose } from "../services/autoClose.js";
+  import { blockMiddlePaste } from "../services/middlePaste.js";
   import { keepCaretInView } from "../services/caretScroll.js";
   import { fileEmbeds, refreshEmbeds } from "../services/embeds.js";
   import { noteTables, refreshTables } from "../services/tableWidget.js";
@@ -277,6 +278,10 @@
           // reason is written at the top of the module. A plain field gets
           // the bracket half only (`plainAutoClose` carries the why).
           plain ? plainAutoClose : autoClose,
+          // The middle button pastes the desktop's primary selection into an
+          // editable element on Linux; here it means nothing (the reason is
+          // written in the module, 2026-09-07). Every field, plain or not.
+          blockMiddlePaste,
           // The keyboard's own help, switched back ON (2026-08-20).
           // CodeMirror ships `spellcheck="false" autocorrect="off"
           // autocapitalize="off"` on its content element — the right defaults

@@ -88,8 +88,8 @@
    boxes down the page and swallowed the selection itself. Which lines those
    are is `caretLines` in services/markdown.js, next to the reason.
 
-   Note that the lines showing their RAW SYNTAX are still every line the
-   selection touches (`activeLines`) — the two questions parted ways here.
+   Note that the RAW SYNTAX follows a different question — the mark the
+   selection is inside (`revealedBy`) — the two parted ways here.
 
    A background IMAGE rather than a colour, so it veils whatever ground the
    line already has (a quote's surface, a code block's box) instead of
@@ -254,6 +254,60 @@
    structure of the list, and it is what the eye runs down the margin. */
 .editor .cm-md-bullet {
   color: var(--app-ink);
+}
+
+/* ---- indentation (2026-09-07) ----
+   Three asks in one user call: a wider level, a guide down each level, and a
+   wrapped item that hangs from its first letter instead of coming back under
+   the bullet. Which spans and counts exist is services/listIndent.js; every
+   LENGTH is here, in `em` like the rest of the editor, so the two follow the
+   note's size together and a theme can move them.
+
+   The whole trick is that the two columns have FIXED widths: a level is
+   `--editor-indent` wide whatever four spaces would measure, and a marker
+   (`- `, `12. `, the checkbox) takes at least `--editor-marker`. That is what
+   lets the line compute how far its text starts (`--cm-hang`) from two counts
+   the service writes on it — and hang the wrapped lines exactly there. */
+.editor {
+  --editor-indent: 1.75em;
+  --editor-marker: 1.5em;
+}
+.editor .cm-md-indent {
+  display: inline-block;
+  inline-size: var(--editor-indent);
+  white-space: pre;
+}
+.editor .cm-md-marker {
+  display: inline-block;
+  min-inline-size: var(--editor-marker);
+  white-space: pre;
+}
+.editor .cm-md-indented {
+  --cm-hang: calc(
+    var(--cm-level, 0) * var(--editor-indent) + var(--cm-marker, 0) * var(--editor-marker)
+  );
+  position: relative;
+  padding-inline-start: calc(var(--app-space-4) + var(--cm-hang));
+  text-indent: calc(-1 * var(--cm-hang));
+}
+/* The guides: one hairline per level, standing under the middle of the
+   parent's marker column, the full height of the line — wrapped lines too,
+   which is why it is the line's and not the span's. A pseudo-element rather
+   than the line's own background, because the editing band already lives
+   there (`.cm-md-editing`) and two backgrounds on one rule would fight. */
+.editor .cm-md-indented::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: var(--app-space-4);
+  inline-size: calc(var(--cm-level, 0) * var(--editor-indent));
+  background-image: repeating-linear-gradient(
+    to right,
+    transparent 0 calc(var(--editor-marker) / 2),
+    var(--app-line) calc(var(--editor-marker) / 2) calc(var(--editor-marker) / 2 + 0.0625rem),
+    transparent calc(var(--editor-marker) / 2 + 0.0625rem) var(--editor-indent)
+  );
+  pointer-events: none;
 }
 
 /* ---- folding by section (2026-08-24) ----
@@ -469,7 +523,15 @@
    CodeMirror's own panel, dressed in the app's tokens. It ships with a
    light-only look of its own, which on the dark themes was white text in a
    white box. Everything here is the panel taking the region's ground, the
-   app's controls and the app's accent — the behaviour is untouched. */
+   app's controls and the app's accent — the behaviour is untouched.
+
+   THE FIELDS ARE REACHED BY `.cm-textfield`, NEVER BY `input[type=text]`
+   (user report, 2026-09-07: "ctrl + h, substituir está sem css"). The panel's
+   two inputs are built with `elt("input", {class: "cm-textfield", …})` and
+   NO type attribute — the DOM defaults the property to text, but an attribute
+   selector asks about the attribute, which is not there. So both fields were
+   bare all along; Ctrl+H is only where it shows, because the replace row is
+   the one that carries two of them under a bare button strip. */
 .editor .cm-panels {
   background: var(--app-surface);
   color: var(--app-ink);
@@ -483,10 +545,11 @@
   flex-wrap: wrap;
   align-items: center;
   gap: var(--app-space-6);
-  padding: var(--app-space-8);
+  /* Room on the right for the close button, which is absolute in the corner. */
+  padding: var(--app-space-8) var(--app-space-24) var(--app-space-8) var(--app-space-8);
   font-size: var(--app-text-14);
 }
-.editor .cm-panel.cm-search input[type="text"] {
+.editor .cm-panel.cm-search .cm-textfield {
   flex: 1 1 8rem;
   min-inline-size: 0;
   padding: var(--app-space-4) var(--app-space-8);
@@ -496,7 +559,7 @@
   border-radius: var(--app-radius-sm);
   font: inherit;
 }
-.editor .cm-panel.cm-search input[type="text"]:focus-visible {
+.editor .cm-panel.cm-search .cm-textfield:focus-visible {
   outline: 0.125rem solid var(--app-brand);
   outline-offset: 0.0625rem;
 }
@@ -520,11 +583,38 @@
   color: var(--app-ink-muted);
 }
 .editor .cm-panel.cm-search [name="close"] {
+  position: absolute;
+  inset-block-start: var(--app-space-4);
+  inset-inline-end: var(--app-space-6);
+  padding: 0 var(--app-space-4);
   color: var(--app-ink-muted);
   background: none;
   border: none;
+  font-size: var(--app-text-16);
+  line-height: 1;
   cursor: pointer;
 }
+.editor .cm-panel.cm-search [name="close"]:hover {
+  color: var(--app-ink);
+}
+/* The panel is a flex row and CodeMirror's own margins would fight the gap;
+   the `<br>` it puts before the replace field is the row break, which in a
+   flex container only breaks when it is told to fill the line. */
+.editor .cm-panel.cm-search input,
+.editor .cm-panel.cm-search button,
+.editor .cm-panel.cm-search label {
+  margin: 0;
+}
+.editor .cm-panel.cm-search br {
+  flex-basis: 100%;
+  block-size: 0;
+}
+/* The three switches are the app's accent, like every other native box. */
+.editor .cm-panel.cm-search input[type="checkbox"] {
+  accent-color: var(--app-brand);
+  margin: 0;
+}
+
 /* The matches themselves: the one the cursor is on wears the accent, the
    others its tint — the same pair the rest of the app uses to say "this one"
    and "these too". */

@@ -87,7 +87,10 @@ describe("live preview", () => {
     expect(marks).not.toContain("http://y.dev");
   });
 
-  test("a selection spanning lines leaves all of them raw", () => {
+  test("a selection that COVERS a line leaves it formatted", () => {
+    // The rule turned over (user call, 2026-09-07): a selection swallowing a
+    // line whole is someone taking the text somewhere, not writing it — so
+    // both `# ` stay hidden and the page does not jump into asterisks.
     const doc = "# Um\n# Dois\n";
     const state = EditorState.create({
       doc,
@@ -95,7 +98,16 @@ describe("live preview", () => {
       extensions: [markdown({ base: markdownLanguage })],
     });
     const set = decorationsFor(state, [{ from: 0, to: doc.length }]);
-    expect(set.size).toBe(0);
+    expect(set.size).toBe(2);
+  });
+
+  test("a selection INSIDE a mark shows it, on that mark alone", () => {
+    // "só deveria aparecer a sintaxe quando selecionados diretamente": the
+    // selected word shows its asterisks; the heading above it, which the
+    // selection never reaches, keeps reading as a heading.
+    const doc = "# Título\ntexto **forte** e *solto*\n";
+    const from = doc.indexOf("forte");
+    expect(hidden(doc, { anchor: from, head: from + 5 })).toEqual(["# ", "*", "*"]);
   });
 
   test("plain text has nothing to hide", () => {
@@ -155,13 +167,13 @@ describe("the shape of a block", () => {
     expect(lines.has(4)).toBe(false);
   });
 
-  test("but the selected lines still show their raw syntax", () => {
-    // The two questions parted ways: the band is about the caret, the raw
-    // marks are about what is selected — which is what the reference image
-    // shows as well (every selected line has its `##` and `**` visible).
+  test("and a selection over the whole note shows no syntax either", () => {
+    // Both questions answer "nothing" here, for two different reasons: the
+    // band is about the caret (there is none), and the marks are about what
+    // the selection is INSIDE (it is outside all of them, covering).
     const doc = "# Título\n**forte**\n";
     const range = { anchor: 0, head: doc.length };
-    expect(hidden(doc, range)).toEqual([]);
+    expect(hidden(doc, range)).toEqual(["# ", "**", "**"]);
     const lines = dressed(doc, range);
     expect([...lines.values()].flat()).not.toContain("cm-md-editing");
   });
@@ -238,6 +250,7 @@ describe("what the editor actually paints", () => {
     "texto **forte**, *solto*, ~~riscado~~, `code` e [link](http://x.dev)",
     "",
     "- item",
+    "    - aninhado",
     "- [x] feito",
     "",
     "> citação",
@@ -261,19 +274,28 @@ describe("what the editor actually paints", () => {
     const shown = new Set();
     const parent = document.createElement("div");
     document.body.appendChild(parent);
+    // The caret goes to the START and to the END of each line: syntax is
+    // revealed per MARK now (`revealedBy`), not per line, so a caret parked
+    // at the head of a line never reaches the `[link](…)` that ends it — and
+    // the URL's class would read as one the editor never paints.
+    const anchors = [];
     for (let line = 1; line <= sample.split("\n").length; line++) {
+      const start = lineStart(sample, line);
+      anchors.push(start, start + sample.split("\n")[line - 1].length);
+    }
+    for (const [i, anchor] of anchors.entries()) {
       const view = new EditorView({
         parent,
         state: EditorState.create({
           doc: sample,
-          selection: { anchor: lineStart(sample, line) },
+          selection: { anchor },
           extensions: [
             markdown({ base: markdownLanguage }),
             markdownPreview,
             activeCell,
             // Every other line with the scroll layout: both dresses have
             // to be painted for the sheet to be allowed to name them.
-            noteTables({ layout: () => (line % 2 ? "scroll" : "") }),
+            noteTables({ layout: () => (i % 2 ? "scroll" : "") }),
           ],
         }),
       });

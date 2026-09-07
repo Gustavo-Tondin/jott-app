@@ -49,6 +49,22 @@ describe("inline marks", () => {
     expect(run(toggleItalic, "*leite*", 1, 6)).toBe("leite");
   });
 
+  it("bold and italic stack instead of fighting", () => {
+    // The report (2026-09-07): pressing italic on a bold word deleted one
+    // asterisk from each end, so the word came back plain-ish instead of
+    // bold-italic. Three asterisks is both marks at once, and taking either
+    // one off has to leave the other standing.
+    expect(run(toggleItalic, "**leite**", 2, 7)).toBe("***leite***");
+    expect(run(toggleBold, "*leite*", 1, 6)).toBe("***leite***");
+    expect(run(toggleItalic, "***leite***", 3, 8)).toBe("**leite**");
+    expect(run(toggleBold, "***leite***", 3, 8)).toBe("*leite*");
+    // Selecting the marks along with the word asks the same question.
+    expect(run(toggleItalic, "**leite**", 0, 9)).toBe("***leite***");
+    expect(run(toggleBold, "**leite**", 0, 9)).toBe("leite");
+    // And the cursor mid-word means that word, marks and all.
+    expect(run(toggleItalic, "**leite**", 4)).toBe("***leite***");
+  });
+
   it("takes the word under the cursor when nothing is selected", () => {
     // Ctrl+B mid-word means that word, which is what everyone expects.
     expect(run(toggleBold, "comprar leite hoje", 10)).toBe("comprar **leite** hoje");

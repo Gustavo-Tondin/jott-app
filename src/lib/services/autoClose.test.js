@@ -125,6 +125,15 @@ describe("markdown marks close themselves", () => {
     expect(type(view, "*")).toBe("**text**|");
   });
 
+  it("a mark typed against the same mark is ONE character", () => {
+    // The bug report (2026-09-07): one of the four asterisks of `**word**` is
+    // deleted by accident, and typing it back has to give the bold word
+    // again — not `**word***`.
+    expect(type(editor("**word*", 7), "*")).toBe("**word**|");
+    // The same from the other side: in front of a finished pair, one mark.
+    expect(type(editor("**word**", 0), "*")).toBe("*|**word**");
+  });
+
   it("strikethrough and inline code pair the same way", () => {
     expect(type(editor(), "~~")).toBe("~~|~~");
     expect(type(editor(), "`")).toBe("`|`");

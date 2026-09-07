@@ -1,8 +1,11 @@
 // Live preview for Markdown — the Obsidian behaviour, on CodeMirror 6.
 //
-// The rule, and the whole point of the phase: **the line the cursor is on
-// shows its syntax; every other line shows the result.** You see `## Título`
-// while you are writing it, and `Título` the moment you leave.
+// The rule, and the whole point of the phase: **the syntax the cursor is
+// inside shows itself; everything else shows the result.** You see `## Título`
+// while you are writing it, and `Título` the moment you leave — and since
+// 2026-09-07 the same holds for a `**word**` in the middle of a line: its
+// asterisks come back when the caret or the selection is in it, not when the
+// caret is merely on the line (`revealedBy`).
 //
 // Three independent pieces do that:
 //
@@ -17,11 +20,11 @@
 //
 // Pieces 2 and 3 ask two DIFFERENT questions about the selection, and the
 // difference is deliberate (user report, 2026-08-19). The raw syntax follows
-// `activeLines` — every line the selection touches, because that is what a
-// person selecting text is working on. The band follows `caretLines` — only a
-// bare caret, never a selection: the band and the text selection are the same
-// colour, so drawing the band under a selection painted twenty rounded boxes
-// down the page and hid the selection inside them.
+// `revealedBy` — the piece of syntax the selection is INSIDE, whatever line it
+// is on. The band follows `caretLines` — only a bare caret, never a selection:
+// the band and the text selection are the same colour, so drawing the band
+// under a selection painted twenty rounded boxes down the page and hid the
+// selection inside them.
 //
 // Nothing here changes the file. Hiding is a decoration over the document;
 // the `.md` on disk keeps every character the user typed, which is the whole
@@ -31,6 +34,7 @@ import { HighlightStyle, syntaxHighlighting, syntaxTree } from "@codemirror/lang
 import { RangeSetBuilder } from "@codemirror/state";
 import { Decoration, EditorView, ViewPlugin, WidgetType } from "@codemirror/view";
 import { tags } from "@lezer/highlight";
+import { listIndent } from "./listIndent.js";
 
 /// Syntax that is noise once the line reads as formatted text.
 ///
@@ -159,20 +163,62 @@ class BulletWidget extends WidgetType {
 /// The three marks a bullet list can be written with.
 const BULLETS = new Set(["-", "*", "+"]);
 
-/// Line numbers the selection touches — the lines that stay raw.
+/// Does the selection ask to see the syntax of the span `from`…`to`?
+///
+/// **Touching it without covering it** — one line, and the whole rule (user
+/// call, 2026-09-07: "só deveria aparecer a sintaxe quando selecionados
+/// diretamente ou com a linha seletor de onde está digitando dentro do texto,
+/// não quando a linha/bloco está selecionada").
+///
+/// Until now this was a question about LINES: every line the selection touched
+/// went raw, so dragging across a paragraph — or pressing Ctrl+A — turned the
+/// whole note into asterisks and brackets, the text jumping as it went. The
+/// two halves of the new rule are each half of that report:
+///
+///   * TOUCHING is what "directly selected" means. The caret inside a bold
+///     word, or a selection that starts or ends inside it, is someone working
+///     on that word, and the marks are what they are working with. A span the
+///     selection never reaches keeps reading as formatted text, even when the
+///     line it sits on is selected from end to end.
+///   * NOT COVERING is what tells editing apart from selecting. A selection
+///     that swallows a span whole — the line, the paragraph, the document — is
+///     someone taking the text somewhere, not writing it, and every mark it
+///     covers stays out of the way.
 ///
 /// Exported because the file embeds (`services/embeds.js`) obey the same rule
-/// and must obey the SAME answer: a line that shows its `[[/foto.jpg]]` is a
-/// line showing its syntax, and two implementations of "which lines are
-/// active" would eventually disagree on one of them.
-export function activeLines(state) {
-  const lines = new Set();
-  for (const range of state.selection.ranges) {
-    const first = state.doc.lineAt(range.from).number;
-    const last = state.doc.lineAt(range.to).number;
-    for (let n = first; n <= last; n++) lines.add(n);
+/// and must obey the SAME answer: two implementations of "is this being
+/// edited" would eventually disagree about one of them.
+export function revealedBy(state) {
+  const ranges = state.selection.ranges;
+  return (from, to) =>
+    ranges.some(
+      (range) =>
+        range.from <= to &&
+        range.to >= from &&
+        !(range.from <= from && range.to >= to),
+    );
+}
+
+/// Marks whose span is the LINE they sit on, not the node they belong to.
+///
+/// A `-` belongs to a list item that may hold three paragraphs and a nested
+/// list under it, and a `>` to a quote that runs for ten lines; asking about
+/// the parent there would strip the bullet off a whole block because the caret
+/// landed in one of its children. What a reader means by "the bullet of this
+/// line" is the line.
+const LINE_SCOPED = new Set(["HeaderMark", "QuoteMark", "ListMark", "TaskMarker"]);
+
+/// The span a mark is asked about: its own line, or the piece of syntax it
+/// belongs to — the `**…**` around an `EmphasisMark`, the `[…](…)` around a
+/// `LinkMark`. The parent is what makes both marks of a pair answer together:
+/// without it, a caret between the two asterisks would show one of them.
+function scopeOf(state, node) {
+  if (LINE_SCOPED.has(node.name)) {
+    const line = state.doc.lineAt(node.from);
+    return [line.from, line.to];
   }
-  return lines;
+  const parent = node.node.parent;
+  return parent ? [parent.from, parent.to] : [node.from, node.to];
 }
 
 /// Line numbers that carry a bare CARET — the lines the band is drawn on.
@@ -189,8 +235,8 @@ export function activeLines(state) {
 /// twice in the same colour is what the screenshot showed. The band is for the
 /// other case, the one it was drawn for — where the caret sits while typing.
 ///
-/// The raw syntax still follows `activeLines`, which is what the reference
-/// image shows too: the marks of every selected line are visible there.
+/// The raw syntax follows `revealedBy` instead — the span the selection is
+/// inside, which is a finer question than the line and is asked per mark.
 export function caretLines(state) {
   const lines = new Set();
   for (const range of state.selection.ranges) {
@@ -207,15 +253,16 @@ export function caretLines(state) {
 /// and the cursor, and nothing about layout.
 export function decorationsFor(state, ranges) {
   const builder = new RangeSetBuilder();
-  const active = activeLines(state);
+  const reveals = revealedBy(state);
+  /// Is this mark being worked on — and so drawn as the text it is?
+  const raw = (node) => reveals(...scopeOf(state, node));
 
   for (const { from, to } of ranges) {
     syntaxTree(state).iterate({
       from,
       to,
       enter: (node) => {
-        const line = state.doc.lineAt(node.from);
-        if (active.has(line.number)) return;
+        if (raw(node)) return;
 
         if (node.name === "TaskMarker") {
           const text = state.doc.sliceString(node.from, node.to);
@@ -267,6 +314,17 @@ export function decorationsFor(state, ranges) {
         }
 
         if (!HIDEABLE.has(node.name)) return;
+
+        // The brackets of a link that goes NOWHERE stay. The parser reads any
+        // `[text]` as a Link — a shortcut reference, in CommonMark's terms —
+        // and the inner half of the app's own `[[Nota]]` and `[[/foto.jpg]]`
+        // is exactly that shape. Hiding those marks left `[Nota]` on the
+        // screen: half the syntax, which is neither the text nor the meaning.
+        // Only a link with an address is a link to the reader.
+        if (node.name === "LinkMark") {
+          const parent = node.node.parent;
+          if (parent?.name === "Link" && !parent.getChild("URL")) return;
+        }
 
         let end = node.to;
         if (
@@ -457,4 +515,5 @@ export const markdownPreview = [
   syntaxHighlighting(markdownLook),
   livePreview,
   blockLook,
+  listIndent,
 ];

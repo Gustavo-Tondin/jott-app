@@ -48,11 +48,12 @@ function edit(view, { changes, selection }) {
 }
 
 /// Wrap the selection in `open`…`close`, or take them off when they are
-/// already there. `close` defaults to `open`, which is every markdown mark;
-/// the two differ only for the one mark markdown does not have (`<u>`).
+/// already there — for a mark whose two halves are DIFFERENT text. Markdown
+/// has exactly one of those (`<u>`); everything else goes through
+/// `toggleRun` below, which knows that the same character repeated nests.
 ///
 /// With nothing selected it works on the WORD under the cursor, because that
-/// is what someone means by pressing Ctrl+B mid-word; with no word either, it
+/// is what someone means by pressing the key mid-word; with no word either, it
 /// leaves the marks and puts the cursor between them, ready to type.
 function toggleWrap(open, close = open) {
   return (view) => {
@@ -102,6 +103,90 @@ function toggleWrap(open, close = open) {
   };
 }
 
+/// How many `char` in a row sit immediately before / after a position.
+function runBefore(doc, pos, char) {
+  let n = 0;
+  while (pos - n > 0 && doc.sliceString(pos - n - 1, pos - n) === char) n++;
+  return n;
+}
+
+function runAfter(doc, pos, char) {
+  let n = 0;
+  while (pos + n < doc.length && doc.sliceString(pos + n, pos + n + 1) === char) n++;
+  return n;
+}
+
+/// A mark written as ONE CHARACTER REPEATED — `*`, `**`, `~~`, `` ` ``. All of
+/// Markdown's inline marks but the underline, and the reason they cannot be
+/// toggled by matching text (user report, 2026-09-07: "itálico e bold na mesma
+/// frase estão conflitando nos atalhos"):
+///
+///   `**word**` with `word` selected, Ctrl+I — the old rule saw `*` on each
+///   side of the selection, read "the italic is already on", and deleted one
+///   asterisk from each end. Pressing italic UNBOLDED the word.
+///
+/// So the question is not "is my mark the text next to the selection" but HOW
+/// MANY of that character stand around it, counting the ones caught inside the
+/// selection as being around it. `***word***` is bold and italic at once; one
+/// asterisk each side is italic, two is bold, three is both. Which is what
+/// makes the arithmetic below the whole rule:
+///
+///   * a one-character mark is on when the run is ODD (1 or 3), and taking it
+///     off removes one of each side — `***x***` → `**x**`, the bold intact;
+///   * a two-character mark is on when the run is at least two, and taking it
+///     off removes two — `***x***` → `*x*`, the italic intact.
+function toggleRun(char, width) {
+  return (view) => {
+    const state = view.state;
+    const changes = [];
+    const ranges = [];
+
+    for (const range of state.selection.ranges) {
+      const span = range.empty ? wordAt(state, range.head) : range;
+      // Marks caught INSIDE the selection count as marks AROUND it: selecting
+      // `**bold**` whole and pressing Ctrl+B means the word, not the
+      // asterisks — and it is the same answer as selecting just the word.
+      let from = span.from;
+      let to = span.to;
+      while (
+        from < to &&
+        state.sliceDoc(from, from + 1) === char &&
+        state.sliceDoc(to - 1, to) === char
+      ) {
+        from++;
+        to--;
+      }
+
+      const around = Math.min(runBefore(state.doc, from, char), runAfter(state.doc, to, char));
+      const on = width === 1 ? around % 2 === 1 : around >= width;
+      const mark = char.repeat(width);
+
+      if (on) {
+        changes.push({ from: from - width, to: from, insert: "" });
+        changes.push({ from: to, to: to + width, insert: "" });
+        ranges.push(
+          from === to
+            ? EditorSelection.cursor(from - width)
+            : EditorSelection.range(from - width, to - width),
+        );
+      } else {
+        changes.push({ from, insert: mark });
+        changes.push({ from: to, insert: mark });
+        ranges.push(
+          from === to
+            ? EditorSelection.cursor(from + width)
+            : EditorSelection.range(from + width, to + width),
+        );
+      }
+    }
+
+    return edit(view, {
+      changes,
+      selection: EditorSelection.create(ranges, state.selection.mainIndex),
+    });
+  };
+}
+
 /// The word around `pos`. Word characters only — punctuation ends it, so
 /// bolding inside `foo, bar` takes one of them and not both.
 function wordAt(state, pos) {
@@ -115,10 +200,10 @@ function wordAt(state, pos) {
   return { from: line.from + from, to: line.from + to };
 }
 
-export const toggleBold = toggleWrap("**");
-export const toggleItalic = toggleWrap("*");
-export const toggleStrike = toggleWrap("~~");
-export const toggleInlineCode = toggleWrap("`");
+export const toggleBold = toggleRun("*", 2);
+export const toggleItalic = toggleRun("*", 1);
+export const toggleStrike = toggleRun("~", 2);
+export const toggleInlineCode = toggleRun("`", 1);
 /// Underline, which **Markdown does not have** — so it is written as the HTML
 /// it is (user call, 2026-08-19, weighing the two candidates):
 ///
