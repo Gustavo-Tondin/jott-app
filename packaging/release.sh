@@ -916,7 +916,13 @@ publish_site() {
   fi
 
   log INFO "  site: $SITE_DIR"
-  write_site "$version" | tee -a "$LOG"
+  # Not `write_site | tee`: in a pipeline the status belongs to tee, and a
+  # python that died on a missing anchor would report success and leave the
+  # site claiming the previous version.
+  local written status
+  written="$(write_site "$version" 2>&1)"; status=$?
+  printf '%s\n' "$written" | tee -a "$LOG"
+  [ "$status" -eq 0 ] || die "the site was not written"
 
   if [ -z "$(git -C "$SITE_DIR" status --porcelain -- download.html changelog.html)" ]; then
     log INFO "  the site already says v$version — nothing to commit"
