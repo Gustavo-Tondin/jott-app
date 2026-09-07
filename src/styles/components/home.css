@@ -5,8 +5,8 @@
  * components read tokens only.
  *
  * Wireframes "Home Screen Desktop" and "Home Screen Mobile" (2026-09-04):
- * the head (day-head.css) pinned at the top, two centred blocks under it
- * with a rule between, and a round + floating in the bottom corner. */
+ * the head (day-head.css) at the top, two centred blocks under it with a
+ * rule between, and a round + floating in the bottom corner. */
 
 @layer components {
   .home {
@@ -15,19 +15,13 @@
     gap: var(--app-space-32);
   }
 
-  /* The head's band: pinned at the top of the scroller (user call,
-     2026-09-04, "fixo no topo"), on the canvas's own ground so the cards
-     scroll under something solid. The negative block margin reaches back
-     across the panel's top padding, so the band starts at the panel's edge
-     and not a padding below it. */
-  .home__head {
-    position: sticky;
-    inset-block-start: calc(-1 * var(--app-space-16));
-    z-index: 3;
-    margin-block-start: calc(-1 * var(--app-space-16));
-    padding-block: var(--app-space-16) var(--app-space-8);
-    background: var(--app-bg);
-  }
+  /* The head scrolls away with the page (user call, 2026-09-07). It was
+     pinned at the top of the scroller from 2026-09-04 to here — sticky, on
+     the canvas's own ground, reaching back over the panel's top padding so
+     the cards passed under a solid band. On the desktop there is room for
+     the whole page, and a head that stays costs a third of it; the phone's
+     head is another thing entirely (the sheet, in day-head.css) and is
+     drawn by the App, not by this wrapper. Nothing is left to declare. */
 
   .home__block {
     display: flex;

@@ -79,6 +79,8 @@ file and live only in the commit history.
   camera cutout.
 - The sticky "Home • Sep 7" bar is gone: it reserved empty space at the top of
   the screen and cards scrolled behind the buttons above it.
+- On the desktop, the Home's head — the title and the week — scrolls away
+  with the page instead of holding the top of it.
 - Bold and italic no longer fight. `***word***` is both, and removing one
   leaves the other standing.
 - Typing a `*` against an existing one no longer opens a new pair — deleting

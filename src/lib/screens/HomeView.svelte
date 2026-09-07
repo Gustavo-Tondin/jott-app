@@ -270,10 +270,9 @@
 
 <div class="home" class:home--compact={compact}>
   {#if !compact}
-    <!-- The head, pinned at the top of the canvas as the page scrolls (user
-         call, 2026-09-04: "fixo no topo"). The wrapper is what carries the
-         canvas ground behind the card, so the cards scroll under a solid
-         band and not under a floating card with the page showing through. -->
+    <!-- The head, at the top of the page and scrolling away with it (user
+         call, 2026-09-07). The wrapper is all that is left of the band it
+         used to carry while it was pinned there — see home.css. -->
     <div class="home__head">
       <DayHead
         {today}
