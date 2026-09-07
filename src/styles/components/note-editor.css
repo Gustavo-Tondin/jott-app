@@ -13,9 +13,19 @@
     font-family: var(--app-font-note);
     /* The prose keeps the app's reading width — and since 2026-08-27 so
        does the banner (`.shell__content-inner--note`, shell.css): the text
-       stays where every other screen's text is. */
+       stays where every other screen's text is.
+
+       The box is the note's PAGE, not the column (2026-09-07): the fold
+       gutter stands to the left of every line and takes its width out of the
+       row, so the page is the column plus that gutter, plus the same room
+       given back here on the right. The text between them measures
+       --app-content-max and is centred — its first letter under the title's,
+       which the banner pulls to exactly that edge. Squeeze the page and the
+       two paddings are what survive, which is how the chevron keeps its
+       column on a phone (styles/tokens.css carries the whole reasoning). */
     inline-size: 100%;
-    max-inline-size: var(--app-content-max);
+    max-inline-size: var(--app-content-note);
+    padding-inline-end: var(--app-editor-gutter);
     margin-inline: auto;
   }
 

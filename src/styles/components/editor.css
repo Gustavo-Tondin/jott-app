@@ -352,7 +352,10 @@
 }
 .editor .cm-foldGutter .cm-gutterElement {
   padding: 0;
-  inline-size: 1.1em;
+  /* The width is a token because the gutter takes it OUT of the text's
+     column — the note's body and the canvas both leave room for it, and the
+     three cannot disagree (styles/tokens.css says the whole of it). */
+  inline-size: var(--app-editor-gutter);
   text-align: center;
 }
 .editor .cm-fold-marker {

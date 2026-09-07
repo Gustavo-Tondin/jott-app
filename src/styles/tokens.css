@@ -188,6 +188,33 @@
        (wireframe "Editor screen - maximized", 2026-08-19) until 2026-08-27,
        when the user asked for one width per note. */
     --app-content-wide: 56.25rem;
+    /* The fold chevron's column, and the note's page around it (2026-09-07).
+
+       The gutter CodeMirror puts beside every line is IN the row, not over
+       it: its width comes out of the text's, and only on the left. Measured
+       in a 1280px window before this token existed: the note's page ran
+       280→1000, its text started at 301.6 and could reach 996 — 21.6px of
+       inset on one side against 4 on the other, a page visibly off its own
+       axis (user call, 2026-09-07).
+
+       So the page is stated as the reading column PLUS what the editor puts
+       beside its text: the gutter on the left, the same room given back on
+       the right, and the padding a line carries on each side
+       (components/editor.css). The text then measures --app-content-max
+       exactly and sits centred — 21.6px in from both edges, its first letter
+       under the title's, which the banner's own paddings had been landing on
+       all along. On a canvas narrower than the cap the two insets are what
+       survive, so the chevron always has its column and is never clipped.
+
+       Written here because THREE boxes have to agree: the canvas
+       (components/shell.css), the note's body (components/note-editor.css)
+       and the gutter itself. In `rem` and not `em` like the editor's other
+       lengths: the chevron is drawn at the interface's size, not the note's
+       — it does not follow `data-note-size`, and never did. */
+    --app-editor-gutter: 1.1rem;
+    --app-content-note: calc(
+      var(--app-content-max) + 2 * (var(--app-editor-gutter) + var(--app-space-4))
+    );
 
     /* HOW BIG A NOTE IS DRAWN, and the one heading size read from outside the
        editor. `data-note-size` on the root picks the rung (`noteFontSize`,

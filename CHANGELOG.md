@@ -41,6 +41,10 @@ file and live only in the commit history.
 - On the phone, the floating top-bar buttons have no background on every
   screen, and the back/forward arrows show whether there is anywhere to go.
 - In landscape, the drawer is wide enough for the five header buttons.
+- A note's text is centred on its page again. The fold arrow beside each
+  line was taking its width out of the left side only, so the whole note sat
+  off its axis; the arrow now has the same room kept for it on both sides,
+  at any window width, and the text reads at the app's full measure.
 
 ## v0.51.0
 
