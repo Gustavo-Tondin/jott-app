@@ -88,19 +88,30 @@
     background: var(--app-well);
   }
 
-  /* The text column, inside the block. */
-  /* The text column, inside the block — and TWELVE PIXELS WIDER than the prose
+  /* The text column, inside the block — WIDER than the prose by its own inset
      on each side, with that much padding back. That is what gives the chip
      somewhere to be pulled into: its own padding comes off the line's, so the
      first letter lands on the prose's first letter while the box itself never
      crosses the block's own padding. On a canvas too narrow for the cap the
-     line is simply the block, and the chip stops at the padding above. */
+     line is simply the block, and the chip stops at the padding above.
+
+     The inset is COMPUTED from the editor's, not typed (2026-09-07): the note's
+     text starts at the fold gutter plus the padding a line carries
+     (components/editor.css), the block already spends 8 of that, and what is
+     left is this. Before, it was a hand-written 12 that happened to be 1.6px
+     off on the desktop — and 6px off on a phone, where the gutter narrows
+     (styles/tokens.css) and the title stayed put while the text moved. Written
+     as one name because the cap has to agree with the padding: the line is the
+     column plus its two insets, or its content is no longer the column. */
   .note-banner__line {
+    --banner-inset: calc(
+      var(--app-editor-gutter) + var(--app-space-4) - var(--app-space-8)
+    );
     position: relative;
     inline-size: 100%;
-    max-inline-size: calc(var(--app-content-max) + var(--app-space-24));
+    max-inline-size: calc(var(--app-content-max) + 2 * var(--banner-inset));
     margin-inline: auto;
-    padding-inline: var(--app-space-12);
+    padding-inline: var(--banner-inset);
   }
 
   /* The title. Over a banner it is a chip — the ground's neutral over the
@@ -114,7 +125,10 @@
     display: inline-block;
     max-inline-size: 100%;
     margin: 0;
-    padding: var(--app-space-6) var(--app-space-12);
+    /* The inline padding is the line's own inset, so the chip's box lands on
+       the block's padding and its first letter on the line's content edge —
+       one number for both, at any screen (the line above says why). */
+    padding: var(--app-space-6) var(--banner-inset);
     background: var(--app-bg);
     border-radius: var(--app-radius-md);
     color: var(--app-ink);
@@ -132,7 +146,7 @@
      what "o título alinhado com o texto" means with a box around it. Without
      a banner there is no box and nothing to pull. */
   .note-banner:not(.note-banner--empty) .note-banner__title {
-    margin-inline-start: calc(var(--app-space-12) * -1);
+    margin-inline-start: calc(var(--banner-inset) * -1);
   }
   .note-banner--empty .note-banner__title {
     padding-inline: 0;
@@ -148,12 +162,12 @@
        and this one inside the head, which is 8px wider on each side; without
        this the properties sat 8px to the left of the title on a canvas too
        narrow to centre either (measured 2026-08-26, Chrome headless over the
-       built stylesheet). Widening the cap by the same 16 keeps the two in
+       built stylesheet). Widening the cap by the same amount keeps the two in
        step once the canvas IS wide enough to centre them. */
     max-inline-size: calc(
-      var(--app-content-max) + var(--app-space-24) + var(--app-space-16)
+      var(--app-content-max) + 2 * (var(--banner-inset) + var(--app-space-8))
     );
-    padding-inline: calc(var(--app-space-12) + var(--app-space-8));
+    padding-inline: calc(var(--banner-inset) + var(--app-space-8));
   }
   /* Laid out the way Obsidian lays them out: a quiet name column with a glyph,
      the value beside it. The tags are the shared .theme-badge in the space's

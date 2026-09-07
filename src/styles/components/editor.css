@@ -360,6 +360,32 @@
 }
 .editor .cm-fold-marker {
   display: inline-block;
+  /* ON THE FIRST LINE OF THE ITEM (user call with a screenshot, 2026-09-07:
+     "tem espaço sobrando em cima do título, então a calha não fica alinhada
+     com ele" · "a calha deve alinhar a primeira linha de um item").
+
+     CodeMirror gives the gutter's cell the height of the WHOLE line and
+     leaves the marker at its top, so the chevron was floating in the air a
+     heading's line opens with (`.cm-md-heading` above). Measured over the
+     real sheet at 16px (Chrome, CDP): the chevron's ink sits 10px under the
+     cell's top and the middle of the first line is 12 (the air) plus half
+     that heading's own line — 17.8px down for an h1, 15.8 for an h2, 16.7
+     for an h3, 14.8 for h4-h6.
+
+     ONE number for all of them, because nothing in the gutter can see which
+     level it stands beside: 2 (the air, less the marker's own half-line) plus
+     half of an average heading line, which is why it is written against the
+     note's size — the six levels run 1.6em to 1em, and the whole ladder moves
+     when the reader changes that size. Off by at most 1.8px, and — unlike
+     centring the marker in the cell — still on the FIRST line of a heading
+     that wraps, which is what a phone does to most of them.
+
+     `translate`, not padding on the cell: the gutter is a flex column of
+     cells whose heights CodeMirror writes itself, and a padding there makes
+     the items refuse to shrink to those heights, which desynchronises the
+     whole gutter from the text (measured in the same session). This moves
+     ink and nothing else, and composes with the `rotate` below. */
+  translate: 0 calc(var(--app-space-2) + var(--app-note-size) * 0.875);
   color: var(--app-ink-faint);
   cursor: pointer;
   transition:

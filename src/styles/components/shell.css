@@ -761,6 +761,12 @@
   }
 
   .shell--compact {
+    /* The fold chevron's column, narrowed to what the glyph measures
+       (styles/tokens.css). It is declared on the SHELL and not on the note's
+       body because two components read it: the editor, which keeps the room
+       on both sides of its text, and the note's banner, whose title lines up
+       with that text (components/note-banner.css). */
+    --app-editor-gutter: var(--app-editor-gutter-compact);
     position: relative;
     /* NO FRAME (user report, 2026-08-18). The 4px the desktop keeps around the
        canvas is the app's own edge, drawn inside a window that already floats

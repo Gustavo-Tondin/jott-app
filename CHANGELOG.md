@@ -47,6 +47,9 @@ file and live only in the commit history.
   at any window width, and the text reads at the app's full measure. On a
   phone that room is trimmed to what the arrow itself measures, so the text
   keeps the width.
+- The note's title starts exactly where its text starts, on any screen.
+- The fold arrow beside a heading sits on the heading's first line instead
+  of floating in the air above it.
 
 ## v0.51.0
 
