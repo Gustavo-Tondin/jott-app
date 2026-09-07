@@ -255,6 +255,10 @@
   });
   $effect(() => {
     if (!compact || !topEl) return;
+    // Re-read when the chrome under the row changes height: the level, the
+    // row itself.
+    shownLevel;
+    rowHeight;
     // The nearest ancestor that DECLARES a scroll, not `scrollableAround`:
     // that one asks whether there is something to scroll yet, and at mount
     // the page is often still shorter than the screen — the listener would
@@ -264,19 +268,45 @@
       scroller = scroller.parentElement;
     }
     if (!scroller) return;
-    // The canvas has reached the row once the page has scrolled by everything
-    // that sits between them — the fold and the handle, which stick in place
-    // and let the canvas ride up over them (the reference the user sent,
-    // 2026-09-07: the sheet slides up over the dark head and the title flips
-    // to the sheet's ink the moment it gets there).
+    // THE SHEET, IN THREE ACTS (the reference the user sent, 2026-09-07, and
+    // his reading of the first cut: "o conteúdo do canvas deve parar onde
+    // está e o fundo do canvas continuar rolando, se expandindo por trás do
+    // título, e depois, por trás dos botões"):
+    //
+    //   1. the canvas rides up over the fold and the handle, which stick in
+    //      place — plain scrolling, until its top edge meets the row;
+    //   2. for the next `rowHeight` pixels of scroll the canvas's CONTENT holds
+    //      still while its GROUND goes on rising behind the title and then
+    //      behind the floating buttons — `--sheet-hold`, written on the
+    //      scroller and read by shell.css as a translate on the content;
+    //   3. the ground has filled the screen: the row takes that ground as its
+    //      own (`--full`, so the cards scroll under it and not through it),
+    //      and the content scrolls again.
+    //
+    // The title's ink flips to the canvas's when the ground has risen past
+    // the middle of the title — not at the first touch, when the ground
+    // behind the letters was still the chrome's.
     const read = () => {
       const chrome = heightOf(shownLevel) + (handleEl?.offsetHeight ?? 0);
-      overCanvas = scroller.scrollTop >= chrome - 1;
+      const hold = Math.max(0, Math.min(rowHeight, scroller.scrollTop - chrome));
+      scroller.style.setProperty("--sheet-hold", `${hold}px`);
+      scroller.style.setProperty("--sheet-max", `${rowHeight}px`);
+      full = rowHeight > 0 && hold >= rowHeight - 1;
+      const row = topEl.getBoundingClientRect();
+      const title = topEl.querySelector(".day-head__title")?.getBoundingClientRect();
+      const titleMiddle = title ? title.top + title.height / 2 : row.bottom;
+      overCanvas = hold >= row.bottom - titleMiddle;
     };
     read();
     scroller.addEventListener("scroll", read, { passive: true });
-    return () => scroller.removeEventListener("scroll", read);
+    return () => {
+      scroller.removeEventListener("scroll", read);
+      scroller.style.removeProperty("--sheet-hold");
+      scroller.style.removeProperty("--sheet-max");
+    };
   });
+  /// The sheet's ground has filled the screen behind the row.
+  let full = $state(false);
   /// The right side of the row: the month while the week is on show, the
   /// chosen day when it is not — folded, or scrolled away under the row.
   let showsDate = $derived(compact && (folded || overCanvas));
@@ -299,6 +329,7 @@
   <div
     class="day-head__top"
     class:day-head__top--over={overCanvas}
+    class:day-head__top--full={full}
     data-region={compact ? (overCanvas ? "canvas" : "chrome") : undefined}
     bind:this={topEl}
   >

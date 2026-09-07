@@ -55,6 +55,9 @@
 #   packaging/release.sh --check            # only verify the derivations still work
 #   packaging/release.sh --collect          # only refresh packaging/releases/ from what is built
 #
+#   The release notes come from CHANGELOG.md — the `## vX.Y.Z` section for the
+#   version being cut. The script refuses to tag a version that has none.
+#
 #   --skip-tests       skip npm test / cargo test / clippy
 #   --skip-preflight   skip the Windows cross-check (packaging/windows/windows-preflight.sh)
 #   --android          also build and verify the APK (needs the Android SDK)
@@ -182,6 +185,19 @@ derives() {
 #
 #   versionCode = major * 1000000 + minor * 1000 + patch
 # ---------------------------------------------------------------------------
+
+# The release page's "what changed" half is CHANGELOG.md — the workflow reads
+# the `## vX.Y.Z` section for the tag it is building. Written after the tag, it
+# would be written for a page that is already published, so it is checked
+# before anything is bumped. Prints the section, or nothing.
+changelog_section() {
+  [ -f CHANGELOG.md ] || return 0
+  awk -v want="## v$1" '
+    $0 == want { inside = 1; next }
+    inside && /^## / { exit }
+    inside { print }
+  ' CHANGELOG.md
+}
 
 readonly ANDROID_PROPERTIES="src-tauri/gen/android/app/tauri.properties"
 
@@ -362,10 +378,23 @@ VERSION=""
 # of that is build output and gets cleaned; packaging/releases/ is the copy
 # that survives a `cargo clean` — and where the PREVIOUS APK is read from to
 # compare certificate and versionCode. One file per kind is kept: collecting
-# a newer one removes the older. Gitignored except for the README.
+# a newer one removes the older. Gitignored except for the README (and the
+# versions.tsv beside it, which is ignored too).
 # ---------------------------------------------------------------------------
 
 readonly RELEASES_DIR="$ROOT/packaging/releases"
+# The version is no longer in the file NAME — here or on the release page. A
+# person installing for the first time does not need to read a version out of
+# a filename to find their own operating system, and the release above the
+# files already says which version it is. THESE ARE THE SAME FIVE NAMES the
+# workflow's `assets` job renames the uploaded artifacts to, and they have to
+# stay the same ones: the APK is built here and uploaded to the release by
+# hand, so this folder is where its name comes from.
+#
+# What the name stops carrying, this file remembers: one `name<TAB>version`
+# line per collected installer, so the README below can still say which
+# version each row was built from. Gitignored with the binaries.
+readonly VERSIONS_FILE="$RELEASES_DIR/versions.tsv"
 
 # newest <files...>: the most recently modified of those that exist.
 newest() {
@@ -377,32 +406,88 @@ newest() {
   [ -n "$best" ] && printf '%s\n' "$best"
 }
 
-# collect_one <kind> <glob-in-releases> <source globs...>
+remember_version() {
+  local name="$1" version="$2" tmp="$WORK/versions.tsv"
+  touch "$VERSIONS_FILE"
+  grep -v "^$name	" "$VERSIONS_FILE" > "$tmp" 2>/dev/null || true
+  printf '%s\t%s\n' "$name" "$version" >> "$tmp"
+  sort -o "$VERSIONS_FILE" "$tmp"
+}
+
+version_of() {
+  [ -f "$VERSIONS_FILE" ] || { printf '?'; return 0; }
+  awk -F'\t' -v n="$1" '$1 == n { print $2; found = 1; exit } END { if (!found) print "?" }' \
+    "$VERSIONS_FILE"
+}
+
+# collect_one <kind> <name-it-gets> <source globs...>
 collect_one() {
-  local kind="$1" keep="$2" src name; shift 2
+  local kind="$1" name="$2" src version; shift 2
   src="$(newest "$@")" || { debug "releases: $kind — nothing built"; return 0; }
-  name="$(basename "$src")"
-  # gradle fixes the APK's name; the version comes from the file it was built from
-  if [ "$kind" = "Android APK" ]; then
-    name="Jott_$(sed -n 's/^tauri\.android\.versionName=//p' "$ANDROID_PROPERTIES" 2>/dev/null)_universal.apk"
+  # Read the version from what the build wrote, while it still says so: the
+  # bundler puts it in the file name, and gradle — which fixes the APK's name
+  # — leaves it in the properties file the build was given.
+  if [ "$kind" = "Android" ]; then
+    version="$(sed -n 's/^tauri\.android\.versionName=//p' "$ANDROID_PROPERTIES" 2>/dev/null)"
+  else
+    version="$(basename "$src" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)"
   fi
+  # One file per kind: an older build of the same kind goes, including one
+  # that still carries a version in its name from before this folder was
+  # renamed. Only ever inside packaging/releases/, and only build copies.
+  find "$RELEASES_DIR" -maxdepth 1 -name "*.${name##*.}" ! -name "$name" -delete
   if [ -f "$RELEASES_DIR/$name" ] && cmp -s "$src" "$RELEASES_DIR/$name"; then
     debug "releases: $kind — $name already there"
+    remember_version "$name" "${version:-?}"
     return 0
   fi
-  find "$RELEASES_DIR" -maxdepth 1 -name "$keep" ! -name README.md -delete
   cp -p "$src" "$RELEASES_DIR/$name"
-  log INFO "  releases/: $kind -> $name"
+  remember_version "$name" "${version:-?}"
+  log INFO "  releases/: $kind -> $name (${version:-unknown version})"
+}
+
+# The folder used to hold the bundler's own names. Nothing is rebuilt for a
+# file that is already here, so a file that never gets rebuilt would keep its
+# old name forever — rename what is here, reading the version out of the name
+# while the name still carries it.
+adopt_existing() {
+  local f name ver clear
+  for f in "$RELEASES_DIR"/*; do
+    [ -f "$f" ] || continue
+    name="$(basename "$f")"
+    case "$name" in README.md|versions.tsv) continue ;; esac
+    case "$name" in
+      *.AppImage)    clear=jott-linux.AppImage ;;
+      *.deb)         clear=jott-ubuntu.deb ;;
+      *.rpm)         clear=jott-fedora.rpm ;;
+      *.pkg.tar.zst) clear=jott-arch.pkg.tar.zst ;;
+      *.exe)         clear=jott-windows.exe ;;
+      *.apk)         clear=jott-android.apk ;;
+      *)             continue ;;
+    esac
+    [ "$name" = "$clear" ] && continue
+    # A file already under the clear name was collected later than this one.
+    if [ -e "$RELEASES_DIR/$clear" ]; then
+      log INFO "  releases/: dropping $name ($clear is newer)"
+      rm -f "$f"
+      continue
+    fi
+    ver="$(printf '%s' "$name" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)"
+    mv -f "$f" "$RELEASES_DIR/$clear"
+    remember_version "$clear" "${ver:-?}"
+    log INFO "  releases/: $name -> $clear (${ver:-unknown version})"
+  done
 }
 
 collect_releases() {
   mkdir -p "$RELEASES_DIR"
-  collect_one "Linux AppImage" '*.AppImage'    target/release/bundle/appimage/*.AppImage
-  collect_one "Debian/Ubuntu"  '*.deb'         target/release/bundle/deb/*.deb
-  collect_one "Fedora"         '*.rpm'         target/release/bundle/rpm/*.rpm
-  collect_one "Arch"           '*.pkg.tar.zst' packaging/linux/*.pkg.tar.zst
-  collect_one "Windows"        '*.exe'         target/x86_64-pc-windows-msvc/release/bundle/nsis/*.exe target/release/bundle/nsis/*.exe
-  collect_one "Android APK"    '*.apk'         src-tauri/gen/android/app/build/outputs/apk/universal/release/*.apk
+  adopt_existing
+  collect_one "Linux AppImage" jott-linux.AppImage      target/release/bundle/appimage/*.AppImage
+  collect_one "Debian/Ubuntu"  jott-ubuntu.deb          target/release/bundle/deb/*.deb
+  collect_one "Fedora"         jott-fedora.rpm          target/release/bundle/rpm/*.rpm
+  collect_one "Arch"           jott-arch.pkg.tar.zst    packaging/linux/*.pkg.tar.zst
+  collect_one "Windows"        jott-windows.exe         target/x86_64-pc-windows-msvc/release/bundle/nsis/*.exe target/release/bundle/nsis/*.exe
+  collect_one "Android"        jott-android.apk         src-tauri/gen/android/app/build/outputs/apk/universal/release/*.apk
 
   local source_version f name kind ver mark
   source_version="$(source_version)"
@@ -410,25 +495,27 @@ collect_releases() {
     echo "# Latest installers"
     echo
     echo "Newest build of each kind, copied here by \`packaging/release.sh\`"
-    echo "(at the end of a release, or alone with \`--collect\`). Binaries are"
-    echo "not versioned; only this file is. Source is at **v$source_version** —"
-    echo "a row behind it was built from an older tree."
+    echo "(at the end of a release, or alone with \`--collect\`). These are the"
+    echo "names the release page uses too — the version is not in them, it is in"
+    echo "the table. Binaries are not versioned; only this file is. Source is at"
+    echo "**v$source_version** — a row behind it was built from an older tree."
     echo
     echo "| Installer | File | Version | Built | Size |"
     echo "|---|---|---|---|---|"
     for f in "$RELEASES_DIR"/*; do
       name="$(basename "$f")"
-      [ -f "$f" ] && [ "$name" != README.md ] || continue
+      [ -f "$f" ] || continue
+      case "$name" in README.md|versions.tsv) continue ;; esac
       case "$name" in
         *.AppImage)    kind="Linux AppImage" ;;
         *.deb)         kind="Debian/Ubuntu" ;;
         *.rpm)         kind="Fedora" ;;
         *.pkg.tar.zst) kind="Arch" ;;
         *.exe)         kind="Windows" ;;
-        *.apk)         kind="Android APK" ;;
+        *.apk)         kind="Android" ;;
         *)             kind="—" ;;
       esac
-      ver="$(printf '%s\n' "$name" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)"
+      ver="$(version_of "$name")"
       mark=""; [ "$ver" = "$source_version" ] || mark=" ⚠ older"
       printf '| %s | `%s` | %s%s | %s | %s |\n' "$kind" "$name" "$ver" "$mark" \
         "$(date -r "$f" '+%Y-%m-%d')" "$(du -h "$f" | cut -f1)"
@@ -527,6 +614,16 @@ fi
 # download page for anyone to point at.
 
 [ -f LICENSE ] || log WARN "no LICENSE file — a public repo without one is not open source to anybody"
+
+if printf '%s' "$(changelog_section "$VERSION")" | grep -q '[^[:space:]]'; then
+  log INFO "  CHANGELOG.md has a section for v$VERSION"
+else
+  log ERROR "CHANGELOG.md has no '## v$VERSION' section with anything under it."
+  log ERROR "  The release page is built from it: install instructions from the"
+  log ERROR "  workflow, everything else from that section. Write it, commit it,"
+  log ERROR "  and run this again."
+  die "no release notes for v$VERSION"
+fi
 
 if command -v gh >/dev/null 2>&1; then
   previous_tag="$(git tag --list 'v*' --sort=-v:refname | head -1)"

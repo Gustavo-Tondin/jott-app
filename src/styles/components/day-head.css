@@ -214,15 +214,18 @@
     inset-block-start: 0;
     z-index: 4;
     padding-block: calc(var(--app-topbar-height) + var(--app-space-8)) var(--app-space-12);
-    /* The ground of whichever region the row is in: the chrome's while the
-       head is behind it (the same colour as what is behind, so nothing is
-       seen), the canvas's once the canvas has reached it — so the cards
-       scroll UNDER the title instead of through it (the reference). */
-    background: var(--app-bg);
+    /* NO GROUND OF ITS OWN while the sheet rises: the canvas's ground comes
+       up behind the title and then behind the buttons, seen through this row
+       (DayHead.svelte, the three acts). Only once the sheet has filled the
+       screen (`--full`) does the row take that ground — the same colour that
+       is already behind it, so nothing jumps — and the cards then scroll
+       under the title instead of through it. */
+    background: transparent;
     color: var(--app-ink);
-    transition:
-      color var(--app-transition-medium),
-      background var(--app-transition-medium);
+    transition: color var(--app-transition-medium);
+  }
+  .day-head--compact .day-head__top--full {
+    background: var(--app-bg);
   }
   /* The fold: clipped to the level's height, and it MOVES between heights —
      except while a finger is on it, when it has to be exactly where the

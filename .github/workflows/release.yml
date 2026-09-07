@@ -71,6 +71,69 @@ jobs:
       - run: npm test
       - run: cargo test --workspace
 
+      # The notes are composed, not typed into this file.
+      #
+      # Half of the page is the same every release — WHICH FILE DO I CLICK —
+      # and it is the half a first-time visitor needs; it lives right here,
+      # beside the names the next job gives those files. The other half is
+      # what changed, and that is written while the code is written, in
+      # CHANGELOG.md, one `## vX.Y.Z` section per version.
+      #
+      # `github.ref_name` is the tag for a real release and a BRANCH for a
+      # manual workflow_dispatch run, so a missing section is normal and never
+      # fails the build — it degrades to a link to the commits.
+      #
+      # The heredoc body sits flush against the left margin because a heredoc
+      # keeps every leading space; YAML strips this block's own indentation,
+      # so "flush left here" is "flush left in the script".
+      - name: Compose the release notes
+        id: notes
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME#v}"
+          changed="$(awk -v want="## v$version" '
+            $0 == want { inside = 1; next }
+            inside && /^## / { exit }
+            inside { print }
+          ' CHANGELOG.md)"
+          # Trim the blank lines the section starts and ends with.
+          changed="$(printf '%s\n' "$changed" | sed -e '/./,$!d' | tac | sed -e '/./,$!d' | tac)"
+
+          {
+          cat <<'INSTALL'
+          ## Install
+
+          | Your system | Download | Then |
+          |---|---|---|
+          | **Windows** | `jott-windows.exe` | Run it — no administrator password. Windows says *"Windows protected your PC"*: click **More info**, then **Run anyway** (Jott is not code-signed). |
+          | **Ubuntu / Debian** | `jott-ubuntu.deb` | Open the file, or `sudo apt install ./jott-ubuntu.deb` |
+          | **Fedora** | `jott-fedora.rpm` | Open the file, or `sudo dnf install ./jott-fedora.rpm` |
+          | **Any other Linux** | `jott-linux.AppImage` | `chmod +x jott-linux.AppImage`, then run it. On Arch, build `packaging/linux/PKGBUILD`. |
+          | **Android** | `jott-android.apk` | Open this page **on the phone**, download it and tap the file. Android asks once to allow installs from your browser. |
+
+          Jott checks for a new version once a day, and that is the only connection it
+          makes — turn it off in Settings. The AppImage and the Windows build update
+          themselves; the other packages bring you back to this page. `latest.json` is
+          that check, not a download.
+          INSTALL
+            echo
+            echo "## What changed"
+            echo
+            if [ -n "$changed" ]; then
+              printf '%s\n' "$changed"
+            else
+              echo "See the [commits](https://github.com/$GITHUB_REPOSITORY/commits/$GITHUB_REF_NAME)."
+            fi
+          } > "$RUNNER_TEMP/notes.md"
+
+          cat "$RUNNER_TEMP/notes.md"
+          {
+            echo 'body<<JOTT_NOTES_EOF'
+            cat "$RUNNER_TEMP/notes.md"
+            echo 'JOTT_NOTES_EOF'
+          } >> "$GITHUB_OUTPUT"
+
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -92,50 +155,35 @@ jobs:
           releaseName: Jott ${{ github.ref_name }}
           releaseDraft: true
           prerelease: false
-          releaseBody: |
-            Jott ${{ github.ref_name }}
+          releaseBody: ${{ steps.notes.outputs.body }}
 
-            Tasks and notes that live on your computer, in plain Markdown
-            files you can open without the app. No account, no server, no
-            internet required. Linux, Windows and Android from one codebase.
-
-            **Linux** — `.AppImage` runs anywhere (`chmod +x`, then run; to
-            remove it, delete the file). `.deb` and `.rpm` for Debian/Ubuntu
-            and Fedora install into the applications menu and uninstall
-            through the package manager. On Arch, build the `PKGBUILD` in
-            `packaging/linux/`.
-
-            **Windows** — run the `.exe` installer. It installs for the
-            current user (no administrator password), adds a Start Menu entry
-            and uninstalls from Settings → Apps.
-
-            **Android** — download the `.apk` and open it; Android asks once
-            to allow installs from your browser. A newer APK installs over
-            the old one, keeping your data. Uninstall like any app.
-
-            **Updating** — Jott checks GitHub once a day (it can be turned
-            off in Settings) and shows a notice when a new version is out.
-            The AppImage and the Windows build update themselves in place;
-            package-manager installs and the APK are pointed back to this
-            page. `latest.json` is what that check reads — it carries the
-            signature that proves a download is genuine. It is not a download.
-
-            Jott is not code-signed. A certificate would not switch the
-            warning off either — since 2024 Microsoft makes every certificate
-            build reputation from downloads — but it would move that
-            reputation from the file to the certificate, so it stops starting
-            over with each version. On first run Windows shows "Windows
-            protected your PC" — click **More info**, then **Run anyway**.
-
-  # The bundler writes a .sig beside every artifact it signs, and the action
-  # uploads all of them. None is ever fetched: the updater reads `latest.json`,
-  # which carries each signature INLINE — the 416 bytes in the `signature` field
-  # are byte for byte the .sig file. So they are four rows on the release page
-  # that nobody downloads and that make the real installers harder to find.
+  # Makes the release page usable by someone who has never seen it. Two
+  # duties, in this order.
   #
-  # A separate job because the matrix legs upload in parallel: cleaning up from
+  # ONE — drop the .sig assets. The bundler writes a .sig beside every artifact
+  # it signs, and the action uploads all of them. None is ever fetched: the
+  # updater reads latest.json, which carries each signature INLINE — the 416
+  # bytes in the `signature` field are byte for byte the .sig file. So they are
+  # four rows on the release page that nobody downloads and that make the real
+  # installers harder to find.
+  #
+  # TWO — rename the installers to say what they are. The bundler names them
+  # after itself (Jott_0.50.4_amd64.deb, Jott-0.50.4-1.x86_64.rpm,
+  # Jott_0.50.4_x64-setup.exe), which asks a first-time visitor to decode a
+  # filename to find their own operating system. They become jott-ubuntu.deb,
+  # jott-fedora.rpm, jott-windows.exe, jott-linux.AppImage — and the version
+  # leaves the name, because the release above it already says the version.
+  #
+  # THE TRAP IN TWO: latest.json points AT those files, by URL. Rename an asset
+  # and leave it alone and every installed AppImage and .exe gets a 404 the
+  # next time it updates itself. So latest.json is rewritten with the new names
+  # and uploaded again. The signature covers the file's BYTES, not its name, so
+  # it stays valid — and the release is still a draft here, so the seconds
+  # between the delete and the upload are not seconds anyone can read.
+  #
+  # A separate job because the matrix legs upload in parallel: doing this from
   # inside one of them could run before the other has finished uploading.
-  tidy:
+  assets:
     needs: package
     # `always()` so a broken Windows leg still leaves a tidy Linux release, and
     # the tag guard because a manual `workflow_dispatch` run has no release to
@@ -147,13 +195,15 @@ jobs:
       contents: write
 
     steps:
-      - name: Drop the .sig assets from the release
+      - name: Tidy and rename the release assets
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ github.ref_name }}
           REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
+          cd "$RUNNER_TEMP"
+
           # The release is a DRAFT (releaseDraft: true above), and a draft is
           # invisible to every lookup BY TAG: `GET /releases/tags/{tag}` —
           # which is what `gh release view <tag>` and `gh release
@@ -169,17 +219,80 @@ jobs:
           # If both legs failed there is no release at all; that is not a
           # reason to fail the run on top of the failure that caused it.
           if [ -z "$id" ]; then
-            echo "No release for $TAG — nothing to tidy."
+            echo "No release for $TAG — nothing to do."
             exit 0
           fi
           echo "Release $TAG is id $id."
-          sigs=$(gh api "repos/$REPO/releases/$id/assets" --paginate \
-                   --jq '.[] | select(.name|endswith(".sig")) | "\(.id) \(.name)"')
-          if [ -z "$sigs" ]; then
-            echo "No .sig assets on $TAG."
+
+          gh api "repos/$REPO/releases/$id/assets" --paginate \
+            --jq '.[] | "\(.id)\t\(.name)"' > assets.tsv
+          cat assets.tsv
+
+          while IFS=$'\t' read -r asset_id name; do
+            case "$name" in
+              *.sig)
+                echo "Removing $name"
+                gh api -X DELETE "repos/$REPO/releases/assets/$asset_id" >/dev/null
+                ;;
+            esac
+          done < assets.tsv
+
+          # Only the five names we publish are touched. Anything else — an
+          # updater archive, something uploaded by hand — keeps its name, and
+          # so keeps whatever latest.json says about it.
+          : > renames.tsv
+          while IFS=$'\t' read -r asset_id name; do
+            case "$name" in
+              *.AppImage) clear=jott-linux.AppImage ;;
+              *.deb)      clear=jott-ubuntu.deb ;;
+              *.rpm)      clear=jott-fedora.rpm ;;
+              *.exe)      clear=jott-windows.exe ;;
+              *.apk)      clear=jott-android.apk ;;
+              *)          continue ;;
+            esac
+            [ "$name" = "$clear" ] && continue
+            echo "Renaming $name -> $clear"
+            gh api -X PATCH "repos/$REPO/releases/assets/$asset_id" \
+              -f name="$clear" >/dev/null
+            printf '%s\t%s\n' "$name" "$clear" >> renames.tsv
+          done < assets.tsv
+
+          if [ ! -s renames.tsv ]; then
+            echo "Nothing to rename."
             exit 0
           fi
-          printf '%s\n' "$sigs" | while read -r asset_id name; do
-            echo "Removing $name ($asset_id)"
-            gh api -X DELETE "repos/$REPO/releases/assets/$asset_id"
-          done
+
+          json_id=$(awk -F'\t' '$2 == "latest.json" { print $1 }' assets.tsv | head -1)
+          if [ -z "$json_id" ]; then
+            echo "No latest.json on this release — nothing pointing at the renamed files."
+            exit 0
+          fi
+
+          gh api "repos/$REPO/releases/assets/$json_id" \
+            -H "Accept: application/octet-stream" > latest.json
+          python3 - <<'PY'
+          import json
+          import pathlib
+
+          renames = dict(
+              line.split("\t")
+              for line in pathlib.Path("renames.tsv").read_text().splitlines()
+              if line
+          )
+          manifest = pathlib.Path("latest.json")
+          data = json.loads(manifest.read_text())
+          for platform in data.get("platforms", {}).values():
+              url = platform.get("url", "")
+              folder, _, filename = url.rpartition("/")
+              if filename in renames:
+                  platform["url"] = f"{folder}/{renames[filename]}"
+                  print(f"latest.json: {filename} -> {renames[filename]}")
+          manifest.write_text(json.dumps(data, indent=2))
+          PY
+
+          gh api -X DELETE "repos/$REPO/releases/assets/$json_id" >/dev/null
+          gh api --method POST \
+            "https://uploads.github.com/repos/$REPO/releases/$id/assets?name=latest.json" \
+            -H "Content-Type: application/json" \
+            --input latest.json >/dev/null
+          echo "latest.json rewritten and uploaded."

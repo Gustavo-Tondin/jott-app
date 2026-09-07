@@ -883,6 +883,16 @@
     flex: 1;
     inline-size: 100%;
   }
+  /* The Home's sheet, act two (DayHead.svelte): while the canvas's ground
+     goes on rising behind the title, its CONTENT holds still — moved back
+     down by exactly what the page scrolled, `--sheet-hold`, which the head
+     writes on the scroller. The room at the end is what that shift takes
+     from the bottom: without it the last row of the page could never be
+     scrolled into view. */
+  .shell--compact .shell__content--home .shell__content-inner {
+    translate: 0 var(--sheet-hold, 0rem);
+    padding-block-end: var(--sheet-max, 0rem);
+  }
 
   /* ---- the screen's entrance ----
      A new view rises into the canvas (App.svelte keys it on the view). The
