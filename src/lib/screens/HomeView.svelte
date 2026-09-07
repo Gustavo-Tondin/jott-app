@@ -43,7 +43,6 @@
   import Icon from "../components/Icon.svelte";
   import NoteCard from "../components/NoteCard.svelte";
   import { measured } from "../actions/measure.js";
-  import { stuck } from "../actions/stuck.js";
   import { columnBreaks, columnCount, weightOfNote } from "../services/noteColumns.js";
   import { quickNoteTarget } from "../services/noteTargets.js";
   import { noteActions, noteCardMenu } from "../services/noteActions.js";
@@ -105,10 +104,6 @@
     /// `({done, total} | null) => void` — how the chosen day stands, for the
     /// head the shell draws on a phone.
     onSummary,
-    /// `(stuck) => void` — on a phone, whether the collapsed bar is pinned
-    /// under the top bar (the head scrolled away), so the shell can set the
-    /// bar's buttons on the canvas.
-    onStuck,
     /// The colour of this place, as a NAME (services/accent.js).
     dot = null,
     /// The narrow shell (shell/compact.js). There the head is the shell's
@@ -271,13 +266,6 @@
         ],
   );
 
-  /// On a phone: whether the collapsed bar is pinned (the head scrolled
-  /// away), which is when it is drawn at all.
-  let barStuck = $state(false);
-  const pinned = (is) => {
-    barStuck = is;
-    onStuck?.(is);
-  };
 </script>
 
 <div class="home" class:home--compact={compact}>
@@ -296,21 +284,6 @@
         onPick={(iso) => onPickDay?.(iso)}
         onHome={() => onPickDay?.(null)}
       />
-    </div>
-  {:else}
-    <!-- The bar that takes the head's place once it has scrolled away
-         (wireframe "Scrolled Down"): the name of the place and the day,
-         pinned under the floating top bar. Drawn only while pinned — at rest
-         the dark head above says all of this already. -->
-    <div class="home__bar" class:is-stuck={barStuck} use:stuck={pinned} aria-hidden={!barStuck}>
-      <span class="home__bar-title">
-        {S.home}
-        <span class="theme-dot home__bar-dot" style={dotStyle} aria-hidden="true"></span>
-      </span>
-      <span class="home__bar-date">
-        <span class="home__bar-day">{S.shortDay(monthOf(selected), dayOfMonth(selected))}</span>
-        <span class="home__bar-weekday">{weekdayName(selected)}</span>
-      </span>
     </div>
   {/if}
 

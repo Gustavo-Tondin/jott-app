@@ -543,8 +543,8 @@ describe("the compact shell", () => {
     await screen.findByLabelText("open sidebar");
     await waitFor(() => expect(container.querySelector(".day-head--compact")).not.toBeNull());
     expect(container.querySelector(".topbar").classList.contains("topbar--over")).toBe(true);
-    // At rest the bar's buttons sit on the chrome; only a scrolled-away head
-    // moves them onto the canvas (actions/stuck.js — no observer here).
+    // The bar's buttons sit on the chrome — the head is chrome, and nothing
+    // takes its place once it has scrolled away (2026-09-07).
     expect(container.querySelector(".topbar").getAttribute("data-region")).toBe("chrome");
 
     await userEvent.click(screen.getByLabelText("open sidebar"));

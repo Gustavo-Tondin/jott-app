@@ -43,7 +43,7 @@ const RESIST = 0.55;
 /// "limite o de pesquisar às partes vazias da tela").
 const CLAIMED =
   "input, textarea, [contenteditable], .cm-editor, .sheet, .theme-modal, .theme-popover," +
-  " [data-swipes], [data-reorderable], .task-row, .note-card, .theme-row, .theme-btn, .theme-btn--icon";
+  " [data-swipes], [data-reorderable], [data-flicks], .task-row, .note-card, .theme-row, .theme-btn, .theme-btn--icon";
 
 export function pullToSearch(node, params) {
   let opts = params ?? {};

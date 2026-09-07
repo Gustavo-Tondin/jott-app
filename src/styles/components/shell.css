@@ -671,7 +671,13 @@
     inset-inline-start: 0;
     z-index: 40;
     flex-basis: auto;
-    inline-size: var(--app-drawer-width);
+    /* The wireframe's 240px PLUS the system's left inset: on a phone lying on
+       its side the camera cutout is a 58px strip down that edge, and the
+       drawer pads by it (below) — so a drawer 240px wide had 182px of room,
+       and the fifth button of its head fell outside the box (user report on
+       device, 2026-09-07: "sidebar está muito pequena, não aparece todos os
+       itens no header"). The page is pushed by the same length. */
+    inline-size: calc(var(--app-drawer-width) + var(--app-safe-left));
     background: var(--app-bg);
     /* Off-canvas until asked for. `visibility` rides along so a closed drawer
        is not a tab stop — `inert` on the element covers the pointer and the
@@ -722,7 +728,7 @@
     transition: translate var(--app-transition-medium);
   }
   .window--pushed .window__page {
-    translate: var(--app-drawer-width) 0;
+    translate: calc(var(--app-drawer-width) + var(--app-safe-left)) 0;
   }
   .window--sliding .window__page {
     translate: var(--drawer-at, 0rem) 0;
@@ -894,7 +900,12 @@
      go early and the transition glides it back under the edge. */
   .pull-search {
     position: absolute;
-    inset-block-start: 0;
+    /* Under the floating top bar, not under the top edge (user report on
+       device, 2026-09-07: "a interação de pesquisa está bugada no celular,
+       ficando atrás dos botões flutuantes"). The bar is absolute over this
+       scroller at z-index 20 and 78px tall; a glass rising from y=0 spent its
+       whole travel behind the bar's buttons. */
+    inset-block-start: var(--app-topbar-height);
     inset-inline: 0;
     z-index: 5;
     display: flex;

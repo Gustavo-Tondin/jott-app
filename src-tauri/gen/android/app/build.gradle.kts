@@ -69,6 +69,13 @@ android {
     buildTypes {
         getByName("debug") {
             manifestPlaceholders["usesCleartextTraffic"] = "true"
+            // Signed like the release when the keystore is here: a debug build
+            // then installs OVER the shipped app on a real device (same
+            // signature, same data) and its WebView is inspectable — which is
+            // how a phone-only bug gets measured instead of guessed.
+            if (hasReleaseKey) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             isDebuggable = true
             isJniDebuggable = true
             isMinifyEnabled = false

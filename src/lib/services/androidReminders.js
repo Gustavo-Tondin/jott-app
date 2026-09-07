@@ -6,6 +6,7 @@
 // tests' stand-in for the bridge covers the `@tauri-apps/api/*` modules, not
 // the plugin's.
 
+import { invoke } from "@tauri-apps/api/core";
 import { notice, parseAt } from "./reminders.js";
 
 /// How many upcoming reminders are handed to the system at once. Android
@@ -23,23 +24,42 @@ export function reminderId(reminder) {
 }
 
 /// Replaces every pending reminder with the upcoming ones of `reminders`.
+///
+/// Two plugin doors are deliberately NOT used, both measured on a Pixel 9a
+/// (2026-09-07) after the user's report "Something went wrong — lateinit
+/// property notifications has not been initialized":
+///
+///   * `cancelAll()` sends `cancel` with no argument, and the Android half
+///     reads that argument into a `lateinit` list — the exception above, on
+///     every sync, before anything was scheduled. The pending list is asked
+///     for and cancelled BY ID instead, the one shape both halves agree on.
+///   * `sendNotification()` goes through `window.Notification` → `show`, which
+///     sets the alarm but never writes the notification to the plugin's
+///     store — so `pending()` answered `[]` with an alarm live, the
+///     re-registration after a reboot (which reads that store) had nothing
+///     to re-register, and a reminder the user removed could never be found
+///     to cancel. `batch` is the command that schedules AND stores; the JS
+///     package has no wrapper for it, so it is invoked by name.
 export async function syncAndroidReminders(reminders, { now = new Date(), strings } = {}) {
   const plugin = await import("@tauri-apps/plugin-notification");
   if (!(await plugin.isPermissionGranted())) {
     if ((await plugin.requestPermission()) !== "granted") return false;
   }
-  await plugin.cancelAll();
+  const pending = (await plugin.pending()) ?? [];
+  if (pending.length) await plugin.cancel(pending.map((n) => n.id));
   const upcoming = reminders.filter((r) => parseAt(r.at) > now).slice(0, SCHEDULED_AHEAD);
-  for (const reminder of upcoming) {
+  if (upcoming.length === 0) return true;
+  const notifications = upcoming.map((reminder) => {
     const { title, body } = notice(reminder, strings);
-    plugin.sendNotification({
+    return {
       id: reminderId(reminder),
       title,
       body,
       schedule: plugin.Schedule.at(parseAt(reminder.at), false, true),
       extra: { list: reminder.list, id: reminder.id ?? "" },
-    });
-  }
+    };
+  });
+  await invoke("plugin:notification|batch", { notifications });
   return true;
 }
 

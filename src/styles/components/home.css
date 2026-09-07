@@ -103,62 +103,15 @@
 
 /* =============================================================================
    THE COMPACT SCREEN (below 768px, wireframes "Home Screen Mobile").
-   The head is the shell's, on the chrome above this canvas; what the screen
-   draws here is the bar that stands in for it once it has scrolled away.
+   The head is the shell's, on the chrome above this canvas, and it scrolls
+   away with the page. Nothing stands in for it once it has (user call,
+   2026-09-07, "sem barra grudada"): the sticky bar that used to take its
+   place also took ~100px of the canvas's top while hidden, and the cards
+   scrolled behind the floating buttons above it.
    ============================================================================= */
 @layer components {
   .home--compact {
     gap: var(--app-space-24);
-  }
-  /* Pinned under the floating top bar, on the canvas's ground, and drawn
-     only once pinned (`is-stuck`, actions/stuck.js): at rest it would only
-     repeat the head a hand's width above it. The negative margins reach to
-     the panel's edges so the band runs the whole width. */
-  .home__bar {
-    position: sticky;
-    inset-block-start: var(--app-topbar-height);
-    z-index: 3;
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: var(--app-space-12);
-    margin: calc(-1 * var(--app-space-16)) calc(-1 * var(--app-space-8)) 0;
-    padding: var(--app-space-4) var(--app-space-16) var(--app-space-12);
-    background: var(--app-bg);
-    opacity: 0;
-    visibility: hidden;
-    transition:
-      opacity var(--app-transition-fast),
-      visibility var(--app-transition-fast);
-  }
-  .home__bar.is-stuck {
-    opacity: 1;
-    visibility: visible;
-  }
-  .home__bar-title {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--app-space-10);
-    font-size: var(--app-text-32);
-    font-weight: var(--app-weight-medium);
-    letter-spacing: var(--app-tracking-tight);
-    color: var(--app-ink);
-  }
-  .home__bar-dot {
-    --dot-size: 0.625rem;
-  }
-  .home__bar-date {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    padding-block-start: var(--app-space-4);
-    color: var(--app-ink-muted);
-    font-size: var(--app-text-14);
-    line-height: 1.3;
-  }
-  .home__bar-day {
-    color: var(--app-ink);
-    font-size: var(--app-text-16);
   }
   /* The + floats over the phone's screen, clear of the gesture bar; the
      canvas grows with the page there, so the corner has to be the

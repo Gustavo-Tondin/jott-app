@@ -71,7 +71,7 @@
   import { scheduleTurns } from "./lib/shell/turn.js";
   import { setRootData, setRootVar } from "./lib/shell/rootStyle.js";
   import { fontVars } from "./lib/services/fonts.js";
-  import { watchCompact } from "./lib/shell/compact.js";
+  import { watchCompact, isShortScreen } from "./lib/shell/compact.js";
   import TopBar from "./lib/shell/TopBar.svelte";
   import BottomSheet from "./lib/components/BottomSheet.svelte";
   import { drawerSwipe } from "./lib/actions/drawerSwipe.js";
@@ -958,13 +958,12 @@
   /// `{done, total}` for that day, counted by the screen off what it read,
   /// for the head to say.
   let homeSummary = $state(null);
-  /// On a phone: whether the head's summary line is unfolded (the "overview"
-  /// wireframe).
-  let homeOverview = $state(false);
-  /// On a phone: whether the Home's collapsed bar is pinned under the top
-  /// bar — the head scrolled away — which is when the top bar's buttons sit
-  /// on the CANVAS and take its colours (user call, 2026-09-04).
-  let homeStuck = $state(false);
+  /// On a phone: how much of the head is unfolded (components/DayHead.svelte,
+  /// 2026-09-07) — 0 is the one line (name and date), 1 the week, 2 the week
+  /// and the day's summary. A drag on the chrome moves it. It STARTS folded
+  /// on a short screen: a phone on its side gave the head six tenths of the
+  /// height (measured 2026-09-07, 923×411).
+  let homeLevel = $state(isShortScreen() ? 0 : 1);
   let seenToday = null;
   $effect(() => {
     const today = clock?.today ?? null;
@@ -2352,7 +2351,7 @@
       {mobile}
       buttons={windowButtons}
       over={view.kind === "note" || view.kind === "home"}
-      region={view.kind === "home" && homeStuck ? "canvas" : "chrome"}
+      region="chrome"
     />
   {:else if !compact}
     <TitleBar rail={railed} buttons={windowButtons} brand={!!notebook}>
@@ -2538,10 +2537,10 @@
             weekStartsOn={clock?.weekStartsOn ?? "monday"}
             summary={homeSummary}
             dot={colorOf(view)}
-            overview={homeOverview}
+            level={homeLevel}
             onPick={(iso) => (homeDay = iso)}
             onHome={() => (homeDay = null)}
-            onToggleOverview={() => (homeOverview = !homeOverview)}
+            onLevel={(next) => (homeLevel = next)}
           />
         {:else}
         <PageHeader
@@ -2833,7 +2832,6 @@
               day={homeDay}
               onPickDay={(iso) => (homeDay = iso)}
               onSummary={(summary) => (homeSummary = summary)}
-              onStuck={(is) => (homeStuck = is)}
               {f}
             />
           {:else if view.kind === "tasks"}

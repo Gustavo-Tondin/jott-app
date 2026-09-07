@@ -823,6 +823,11 @@ export const S = {
   nextWeek: "next week",
   showOverview: "show the day's summary",
   hideOverview: "hide the day's summary",
+  // The head's three heights on a phone (2026-09-07): the name and the date,
+  // the week, the week and the summary. The grip's label says what the next
+  // tap does; the drag on the chrome does the same without a label.
+  showWeek: "show the week",
+  hideWeek: "show less",
   goodMorning: "Good morning",
   goodAfternoon: "Good afternoon",
   goodEvening: "Good evening",

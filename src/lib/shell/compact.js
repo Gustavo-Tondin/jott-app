@@ -54,10 +54,14 @@ export const COMPACT_QUERY = `(max-width: ${COMPACT_MAX_WIDTH}px)`;
 ///
 /// Unknown is NOT short: an engine with no `screen` (jsdom) keeps the full
 /// shell, which is the layout that works at every size, only cramped.
-function shortScreen(view) {
+///
+/// Exported (2026-09-07) because the Home's head reads the same fact once, to
+/// start folded where there is no height to unfold into.
+export function isShortScreen(view = globalThis) {
   const height = view?.screen?.height;
   return typeof height === "number" && height > 0 && height <= COMPACT_MAX_HEIGHT;
 }
+const shortScreen = isShortScreen;
 
 /// Watches the size and calls back with true/false, starting with the value
 /// as it is right now. Returns the unsubscribe.
