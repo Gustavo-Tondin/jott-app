@@ -2,8 +2,11 @@
 //
 // Explicit imports (not a glob) keep the bundle tree-shaken: only the handful
 // the interface actually draws is compiled in. The FULL Phosphor set lives on
-// disk under `src/assets/icons/phosphor/` — vendored for the future per-space
-// icon picker (roadmap, Fase 13), where it will be read lazily, not bundled.
+// disk under `src/assets/icons/phosphor/` and reaches the app another way:
+// `services/iconLibrary.js` globs it into one chunk that is read lazily —
+// by the icon picker (SpaceAppearance, 2026-09-07) and by `Icon.svelte` when
+// a name is not in this map, which is how a sidebar entry wears an icon a
+// person chose there. What the INTERFACE draws by itself stays here.
 //
 // `?raw` gives the file's text; each SVG uses `fill="currentColor"`, so an icon
 // takes the colour of whatever renders it. Keys carry the weight when it is not

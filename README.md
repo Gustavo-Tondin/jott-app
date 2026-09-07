@@ -68,6 +68,9 @@ what the current version is.
 - The notebook's name at the foot of the sidebar opens a menu of the
   notebooks this machine knows: pick one to switch in place, middle-click to
   open it in a new window, or go to the screen that manages them.
+- Every space and group has a colour and an icon of its own, chosen from a
+  palette of eight and from the whole [Phosphor](https://phosphoricons.com)
+  set, with a search that also knows what each icon is about.
 - The Home's **+** opens two buttons, Task and Note (a blank note opens with
   the cursor in the body). On a phone the Home's head folds: drag it up for
   one line, down for the week and the day's summary; scroll, and the canvas

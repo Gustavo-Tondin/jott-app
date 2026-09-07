@@ -27,6 +27,10 @@ file and live only in the commit history.
 - The Home opens on the greeting and "x of y tasks done today".
 - Find & replace is a card floating over the note: the field, two arrows, a
   gear with the three options, and the replace row lined up under it.
+- **Colour & icon** on a space or a group now offers the whole Phosphor set —
+  1,500 icons behind a search field that also knows what each one is about
+  ("money" finds the bank). The ten it used to offer still lead the grid, and
+  the empty slot puts the type's own icon back.
 
 ### Fixed
 

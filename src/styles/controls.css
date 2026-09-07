@@ -988,7 +988,11 @@
     outline-offset: 0.0625rem;
   }
   .theme-filter__field::-webkit-search-cancel-button {
+    /* `appearance: none` strips the native drawing; WebKitGTK keeps a ⌫ of
+       its own in the box regardless (seen on the virtual display,
+       2026-09-07), so the box goes too. */
     appearance: none;
+    display: none;
   }
 
   /* ---------------------------------------------------------------------------

@@ -12,20 +12,62 @@
     flex-direction: column;
     gap: var(--app-space-8);
     padding: var(--app-space-8);
+    /* Eight tiles and their gaps, plus the padding (2026-09-07, when the row
+       became a grid over the whole set): the colour row above it is narrower
+       and the grid below wraps to whatever this is. Capped to the viewport
+       less keepOnScreen's margin, so the phone's 360 never clips a column. */
+    --palette-tile: 1.625rem;
+    --palette-gap: var(--app-space-6);
+    /* The grid's scrollbar sits inside its box (`scrollbar-gutter`), so the
+       width allows for it — without the allowance a thin bar ate the eighth
+       column (seen on the virtual display, 2026-09-07). */
+    --palette-scrollbar: 0.75rem;
+    inline-size: min(
+      calc(
+        8 * var(--palette-tile) + 7 * var(--palette-gap) + var(--palette-scrollbar) +
+          2 * var(--app-space-8)
+      ),
+      calc(100vw - var(--app-space-16))
+    );
   }
-  .palette__row {
-    display: flex;
-    gap: var(--app-space-6);
+  .palette__search {
+    /* The shared filter well, at the popup's density: the Tags and Settings
+       screens wear it with page padding around, here it sits between two
+       rows of tiles. */
+    padding-block: var(--app-space-4);
   }
   /* The colour swatches moved out to the shared AccentPicker (2026-08-13) —
      three screens were drawing the same row. See components/accent-picker.css.
-     What stays here is the icon row, which is this popup's alone. */
+     What stays here is the icon grid, which is this popup's alone.
+
+     A page of tiles that scrolls (2026-09-07): about five rows of glyphs
+     show at once, and the component adds a page as the bottom nears. The
+     height is a teller of tiles, not a round number — a cut row says
+     "there is more" better than any affordance drawn on purpose. `contain`
+     keeps a flick at the end of the grid from scrolling the sidebar behind
+     the popup, which on the phone is the page. */
+  .palette__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, var(--palette-tile));
+    justify-content: space-between;
+    gap: var(--palette-gap);
+    max-block-size: calc(5.5 * var(--palette-tile) + 5 * var(--palette-gap));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-gutter: stable;
+  }
+  .palette__status {
+    margin: 0;
+    color: var(--app-ink-faint);
+    font-size: var(--app-text-12);
+  }
   .palette__icon {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 1.625rem;
-    height: 1.625rem;
+    width: var(--palette-tile);
+    height: var(--palette-tile);
     padding: 0;
     border: 0.0625rem solid transparent;
     border-radius: var(--app-radius-sm);
@@ -34,9 +76,19 @@
   .palette__icon:hover {
     background: var(--app-surface-sunken);
   }
+  /* "No icon of its own": an empty slot, drawn as the clear swatch of the
+     colour row is (components/accent-picker.css) — a line, no glyph. Before
+     `--on` in the cascade, so the slot chosen still wears the brand ring. */
+  .palette__icon--clear {
+    border-color: var(--app-line);
+  }
   .palette__icon--on {
     border-color: var(--app-brand);
     color: var(--app-brand);
+  }
+  .palette__icon:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 0.1875rem var(--app-brand-weak);
   }
 
   /* A finger's icon row (2026-08-20). Same call as the swatch beside it
@@ -45,9 +97,9 @@
      its neighbours. The glyph inside rides the app's icon scale on its own
      (components/icon.css), so only the tile is stated here. */
   @media (pointer: coarse) {
-    .palette__icon {
-      width: 2.25rem;
-      height: 2.25rem;
+    .palette__panel {
+      --palette-tile: 2.25rem;
+      --palette-gap: var(--app-space-8);
     }
   }
 }

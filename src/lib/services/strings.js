@@ -193,6 +193,11 @@ export const S = {
   color: "colour",
   icon: "icon",
   defaultAppearance: "default",
+  // The icon picker (2026-09-07): the field over the grid, and the line
+  // under it that says how many of the 1512 answer.
+  searchIcons: "Search icons",
+  iconsCount: (n) => (n === 1 ? "1 icon" : `${n} icons`),
+  iconsNone: "No icon matches that.",
   unsupportedSpaceTitle: (kind) =>
     kind ? `"${kind}" space` : "Space without a type",
   unsupportedSpaceBody:
