@@ -20,6 +20,12 @@ impl Notebook {
     /// than today counts too — overdue is still due, and today is the only
     /// day left to face it on (user call, 2026-09-04). A day ahead takes
     /// only what is due on it: what is overdue is today's, not the 5th's.
+    ///
+    /// Today also keeps what it finished: a dated task ticked TODAY comes
+    /// back from its Completed list, done, so the day counts it the way it
+    /// counts a task pulled by hand ("1 of 3 done", not "0 of 2" — user
+    /// call, 2026-09-07). Ticked on another day it is history, not a plan,
+    /// and stays out.
     pub(super) fn tasks_due_on(&self, day: Day) -> Result<Vec<ListedTask>> {
         let today = self.today();
         let due_on = |due: chrono::NaiveDate| match day {
@@ -31,12 +37,17 @@ impl Notebook {
         let mut out = Vec::new();
         for list in self.list_paths()? {
             // Completed lists are where finished tasks go; a date on one of
-            // them is history, not a plan.
-            if list.name == COMPLETED_LIST {
+            // them is history, not a plan — except for what was finished
+            // today, which today still shows under "Completed N".
+            let finished = list.name == COMPLETED_LIST;
+            if finished && day != Day::Today {
                 continue;
             }
             for task in self.open_list(&list.path)?.tasks() {
-                if task.done {
+                if task.done != finished {
+                    continue;
+                }
+                if finished && task.completed != Some(today) {
                     continue;
                 }
                 if task.due.is_some_and(due_on) {

@@ -1300,15 +1300,42 @@ fn a_task_dated_ahead_joins_its_own_day_and_no_other() {
 }
 
 #[test]
-fn a_completed_dated_task_stays_out_of_the_day() {
-    // A date on a finished task is history, not a plan.
+fn a_dated_task_ticked_today_stays_in_the_day_as_done() {
+    // Ticking it on the Home used to make it vanish, and the summary went
+    // from "0 of 3" to "0 of 2" instead of "1 of 3" (user report,
+    // 2026-09-07). Today keeps what it finished, the way it keeps a task
+    // pulled by hand.
     let dir = tempfile::tempdir().unwrap();
     let notebook = Notebook::init(dir.path()).unwrap();
-    write_dated_list(dir.path(), "Inbox", &[("Vencida ontem", -1)]);
+    write_dated_list(dir.path(), "Inbox", &[("Vencida ontem", -1), ("Para hoje", 0)]);
     let id = notebook.ensure_task_id("jott.tasks/Inbox.md", 0).unwrap();
     notebook.complete_task("jott.tasks/Inbox.md", &id).unwrap();
 
+    let day = notebook.day_tasks(None).unwrap();
+    assert_eq!(day.len(), 2, "the ticked one is still counted");
+    let ticked = day.iter().find(|l| l.task.text == "Vencida ontem").unwrap();
+    assert!(ticked.task.done);
+    assert_eq!(ticked.path, "jott.tasks/completed.md", "read from where it went");
+    assert_eq!(day.iter().filter(|l| l.task.done).count(), 1);
+    // Nothing was written into the state for it: still added on READ.
+    assert!(notebook.open_state().unwrap().state.is_empty());
+}
+
+#[test]
+fn a_dated_task_ticked_on_another_day_stays_out_of_the_day() {
+    // A date on a task finished some other day is history, not a plan.
+    let dir = tempfile::tempdir().unwrap();
+    let notebook = Notebook::init(dir.path()).unwrap();
+    let today = notebook.today();
+    let yesterday = today - chrono::Duration::days(1);
+    std::fs::write(
+        dir.path().join("jott.tasks/completed.md"),
+        format!("- [x] Feita ontem <!--id:d1 completed:{yesterday} origin:Inbox-->\n  @{yesterday}\n"),
+    )
+    .unwrap();
+
     assert!(notebook.day_tasks(None).unwrap().is_empty());
+    assert!(notebook.day_tasks(ahead(&notebook, 1)).unwrap().is_empty());
 }
 
 // ----------------------------------------------------------- recorrência

@@ -60,6 +60,10 @@ file and live only in the commit history.
   room is tight the list scrolls rather than losing its last options off the
   edge.
 - In landscape, the drawer is wide enough for the five header buttons.
+- Ticking a dated task on the Home keeps it on the day, under Completed,
+  so the summary reads "1 of 3 tasks done" instead of the task vanishing
+  and the count dropping to "0 of 2". A dated task finished on another day
+  stays out, as before.
 - A note's text is centred on its page again. The fold arrow beside each
   line was taking its width out of the left side only, so the whole note sat
   off its axis; the arrow now has the same room kept for it on both sides,
