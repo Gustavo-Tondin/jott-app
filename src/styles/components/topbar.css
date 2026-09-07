@@ -66,9 +66,9 @@
     background: none;
   }
 
-  /* Every control on this bar is the SAME square on the chrome's raised
-     surface — the wireframe draws no difference between them, because there
-     is none: they are all "one tap, one job".
+  /* Every control on this bar is the SAME square on the raised surface of
+     the region the bar declares — the wireframe draws no difference between
+     them, because there is none: they are all "one tap, one job".
 
      One length, named once, and everything on the bar reads it: the two loose
      buttons, the pill, and the pill's own children. Before that, the app's
@@ -85,6 +85,33 @@
     border-radius: var(--app-radius-md);
     background: var(--app-surface);
     color: var(--app-ink);
+    /* Lifted off the page, and said so (user call, 2026-09-07: "uma sombra
+       bem pequena e suave por trás dos botões"). It earns its keep on the
+       canvas: once the page has risen the plate wears the canvas's own
+       raised surface, which is a hair off the page it floats on. */
+    box-shadow: var(--app-shadow-float);
+  }
+
+  /* THE PLATES WEAR THE GROUND BEHIND THEM, and it changes under them.
+     The bar paints nothing, so what shows behind these squares is whatever
+     the page is standing on: the chrome at rest — the page header of every
+     screen, the Home's own head — and the canvas once the page has come all
+     the way up under the bar (user call, 2026-09-07: "se estão sob o canva,
+     fundo claro e texto escuro; sob o chrome, fundo escuro e texto claro").
+
+     Nothing here says which: the two declarations above already read the
+     REGION's surface and ink, and the bar is told its region by the shell
+     (App.svelte, actions/risen.js). This is only the crossing itself — a
+     plate that changed colour in one frame in the middle of a scroll read as
+     a flicker rather than as a ground passing behind it. The duration is a
+     token, so a reader who asked for less motion gets the change without the
+     fade (tokens.css). */
+  .topbar .topbar__button,
+  .topbar .page-menu__toggle,
+  .topbar__pill {
+    transition:
+      background var(--app-transition-fast),
+      color var(--app-transition-fast);
   }
 
   /* The drawer toggle while the drawer is open: invisible, and still occupying
@@ -99,10 +126,16 @@
      drawer's own travel, so the two finish together. `visibility` is in the
      transition list only to be held until the fade is done — it is not an
      animatable property, it simply flips at the end of its window. */
-  .topbar__button--drawer {
+  /* Two classes deep on purpose: the colour transition above is, and the
+     shorthand it writes would otherwise drop this fade — the drawer toggle
+     would blink out at the first frame of the drawer's travel, which is the
+     glitch this rule exists to avoid. */
+  .topbar .topbar__button--drawer {
     transition:
       opacity var(--app-transition-medium),
-      visibility var(--app-transition-medium);
+      visibility var(--app-transition-medium),
+      background var(--app-transition-fast),
+      color var(--app-transition-fast);
   }
   .topbar__button--hidden {
     opacity: 0;
@@ -147,16 +180,35 @@
     padding-inline: var(--app-space-4);
     border-radius: var(--app-radius-md);
     background: var(--app-surface);
+    box-shadow: var(--app-shadow-float);
   }
   .topbar__pill .topbar__button,
   .topbar__pill .page-nav__arrow {
     background: none;
-    /* The pill's corner less the inline padding they sit in — the hover plate
-       is what touches the pill's edge, and 4px in from it is where it starts.
-       The inline axis is the one with a gap to subtract: on the block axis the
-       button fills the pill's height on purpose (the row came out with three
-       different heights when it did not), so there is nothing to inset. */
-    border-radius: calc(var(--app-radius-md) - var(--app-space-4));
+    /* One plate, and the pill is it: a square of its own on a raised pill
+       reads as two nested cards, and its own shadow would be a card
+       floating inside another. */
+    box-shadow: none;
+    /* THE HOVER PLATE IS INSET FROM THE PILL ON EVERY SIDE (user report,
+       2026-09-07: "o efeito hover dos botões individuais não encaixa muito
+       bem em cima da caixa dos botões"). It used to fill the pill's height,
+       so it met the pill's top and bottom edges with a corner of its own —
+       a smaller curve crossing a larger one right where the pill turns, at
+       both ends of the row.
+
+       The target does NOT shrink: the button still fills the pill (the row
+       came out with three different heights when it did not, 2026-08-18).
+       Only the paint moves in, by the same 4px the pill already insets its
+       children by on the inline axis — so what is drawn is the pill's own
+       box less its padding, on all four sides.
+
+       And the corner is that arithmetic too: the radius here is the PILL's,
+       and clipping to the content box reduces it by exactly the padding
+       (`interno = externo − padding`), so the plate is concentric with the
+       curve it sits inside without a second number to keep in step. */
+    padding: var(--app-space-4);
+    background-clip: content-box;
+    border-radius: var(--app-radius-md);
     /* Full height, MEASURED FROM THE PILL rather than restated: the pill is
        one control's worth tall and everything in it fills that, which is what
        keeps three targets inside one pill hittable — and what keeps the row
@@ -168,6 +220,21 @@
     min-block-size: 0;
     inline-size: 2.75rem;
     min-inline-size: 0;
+  }
+  /* …AND THE CLIP IS RESTATED WHERE THE HOVER LANDS. The hover in
+     controls.css writes `background`, the SHORTHAND, and a shorthand resets
+     every longhand it covers — including `background-clip`, back to
+     `border-box`. So the plate above was inset at rest and full-size the
+     moment it could be seen (measured in Chromium over the real sheets,
+     2026-09-07: `backgroundClip` read `content-box`, then `border-box` with
+     the hover forced).
+
+     One class deeper than the rule that resets it, so which sheet the
+     bundler puts last decides nothing. The colour still comes from
+     controls.css — this says only where it is allowed to paint. */
+  .topbar .topbar__pill .topbar__button:hover,
+  .topbar .topbar__pill .page-nav__arrow:hover {
+    background-clip: content-box;
   }
   .topbar__pill .page-nav {
     align-items: stretch;

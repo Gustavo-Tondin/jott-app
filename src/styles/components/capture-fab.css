@@ -25,7 +25,14 @@
     border-radius: var(--app-radius-pill);
     background: var(--app-brand);
     color: var(--app-on-brand);
-    box-shadow: 0 0.5rem 1.25rem var(--app-shadow-popover);
+    /* THE + IS LIFTED, and until 2026-09-07 it was not: the shadow written
+       here was `0 0.5rem 1.25rem var(--app-shadow-popover)`, and that token
+       is a WHOLE shadow (roles per region, modes/*.css) — offsets inside
+       offsets, so the declaration was invalid and the browser dropped it.
+       The + has floated flat over the page ever since (user call: "o botão
+       de + da home podia ter uma sombra também"). `--app-shadow-drop` is
+       the colour on its own, which is what this needed. */
+    box-shadow: 0 0.25rem 0.625rem var(--app-shadow-drop);
     transition:
       scale var(--app-transition-fast),
       filter var(--app-transition-fast);
@@ -73,7 +80,9 @@
     color: var(--app-on-brand);
     font-size: var(--app-text-16);
     font-weight: var(--app-weight-semibold);
-    box-shadow: 0 0.25rem 0.75rem var(--app-shadow-popover);
+    /* The same shadow one step shallower — these ride above the + and are
+       smaller. Same fix as above: the colour, not the whole shadow. */
+    box-shadow: 0 0.125rem 0.5rem var(--app-shadow-drop);
     /* Each choice rises in from the +, the one nearer it first — the two
        arrive as a pair being dealt, not as a block switching on. */
     animation: theme-rise var(--app-duration-medium) var(--app-ease-out) both;

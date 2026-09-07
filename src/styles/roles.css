@@ -67,6 +67,24 @@
        sheet reads no palette entry (2026-08-26). */
     --app-scrim-deep: color-mix(in srgb, var(--theme-color-black) 88%, transparent);
     --app-on-scrim: var(--theme-color-white);
+    /* THE SHADOW A FLOATING CONTROL DROPS (user call, 2026-09-07: "uma
+       sombra bem pequena e suave por trás dos botões", and the Home's + as
+       well). Small and soft, and the only thing that keeps a plate from
+       dissolving into the ground it now wears — the compact top bar's
+       buttons take the surface of the region behind them (topbar.css), so
+       over the canvas a light plate lands on a light page.
+
+       Black at low alpha in EVERY theme, for the same reason as the scrim
+       above: a shadow is light behaving, not a colour the palette picks,
+       and a pale shadow on a dark ground is a halo. Where the ground is
+       already dark it barely shows, which is right — the plate is told
+       apart there by being LIGHTER than its ground, not by its shadow.
+
+       Two roles, so no component sheet reads a palette entry: the colour on
+       its own, for a control that wants its own distance, and the one small
+       shadow the floating plates share. */
+    --app-shadow-drop: color-mix(in srgb, var(--theme-color-black) 22%, transparent);
+    --app-shadow-float: 0 0.0625rem 0.1875rem var(--app-shadow-drop);
 
     /* THE FILL OF A COLOURED PIECE OF PAPER (2026-08-18).
 

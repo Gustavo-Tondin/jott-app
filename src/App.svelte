@@ -76,6 +76,7 @@
   import BottomSheet from "./lib/components/BottomSheet.svelte";
   import { drawerSwipe } from "./lib/actions/drawerSwipe.js";
   import { pullToSearch } from "./lib/actions/pullToSearch.js";
+  import { risen } from "./lib/actions/risen.js";
   import DayHead from "./lib/components/DayHead.svelte";
   import DayTitle from "./lib/components/DayTitle.svelte";
   import CaptureFab from "./lib/components/CaptureFab.svelte";
@@ -211,6 +212,18 @@
   /// disagree about which of them is holding the back/forward arrows.
   let compact = $state(false);
   $effect(() => watchCompact((v) => (compact = v)));
+
+  /// The scroller of the compact shell, and whether the canvas has risen to
+  /// the top of it (actions/risen.js). The floating top bar paints nothing,
+  /// so its buttons have to wear the ground BEHIND them (user call,
+  /// 2026-09-07: "se estão sob o canva, fundo claro e texto escuro; sob o
+  /// chrome, fundo escuro e texto claro"). That ground changes as the page
+  /// moves: at rest it is the chrome — the page header of every screen, the
+  /// Home's own head — and once the canvas has come all the way up it is the
+  /// canvas. One boolean, one attribute on the bar, and the buttons read the
+  /// region's own surface and ink (topbar.css).
+  let centre = $state(null);
+  let canvasRisen = $state(false);
 
   /// The three panels the compact shell cannot keep on screen at once, and so
   /// opens on demand. All three are transient by nature, so none of them is
@@ -2346,7 +2359,7 @@
       {mobile}
       buttons={windowButtons}
       over
-      region="chrome"
+      region={canvasRisen ? "canvas" : "chrome"}
     />
   {:else if !compact}
     <TitleBar rail={railed} buttons={windowButtons} brand={!!notebook}>
@@ -2505,6 +2518,7 @@
       <section
         class="shell__centre"
         data-region="canvas"
+        bind:this={centre}
         use:pullToSearch={{ enabled: compact && !!notebook, onPull: openSearch }}
       >
         <!-- The search, pulled down from the top of the page (2026-08-21,
@@ -2655,6 +2669,11 @@
           class:shell__content--home={view.kind === "home"}
           onclick={clickedAway}
           oncontextmenu={openCanvasMenu}
+          use:risen={{
+            root: centre,
+            enabled: compact,
+            onRisen: (up) => (canvasRisen = up),
+          }}
         >
           {#if compact && view.kind === "home"}
             <!-- THE TITLE, A SECOND TIME, INSIDE THE SHEET (2026-09-07). The

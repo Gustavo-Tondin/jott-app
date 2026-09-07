@@ -151,7 +151,8 @@ what the current version is.
   machine has; interface zoom; note text size.
 - Configurable keyboard shortcuts for ~50 commands.
 - One responsive shell: sidebar and panels on the desktop, drawer and bottom
-  sheets on the phone.
+  sheets on the phone, where the top bar floats over the page and its buttons
+  take the colour of whatever has scrolled under them.
 
 ## Your data on disk
 

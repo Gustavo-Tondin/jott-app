@@ -40,8 +40,15 @@ file and live only in the commit history.
   space after the bullet, ordered numbers and a freshly typed `- ` stay
   inside the line, the checkbox of a task line lines up, and an item with
   sub-items draws its guide down to them.
-- On the phone, the floating top-bar buttons have no background on every
-  screen, and the back/forward arrows show whether there is anywhere to go.
+- On the phone, the top bar floats over every screen with no background of
+  its own, and its buttons wear the ground behind them: dark on the header,
+  light once the page has slid all the way up under them. They drop a small
+  soft shadow so they still read as lifted off the page, and hovering one
+  inside the back/forward group now lights a plate that sits neatly within
+  the group instead of overlapping its corners. The back/forward arrows show
+  whether there is anywhere to go.
+- The **+** on the Home has a shadow again — it had been floating flat over
+  the page.
 - In landscape, the drawer is wide enough for the five header buttons.
 - A note's text is centred on its page again. The fold arrow beside each
   line was taking its width out of the left side only, so the whole note sat

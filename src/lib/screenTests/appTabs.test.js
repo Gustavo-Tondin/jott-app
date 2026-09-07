@@ -627,13 +627,61 @@ describe("the compact shell", () => {
     await screen.findByLabelText("open sidebar");
     await waitFor(() => expect(container.querySelector(".day-head--compact")).not.toBeNull());
     expect(container.querySelector(".topbar").classList.contains("topbar--over")).toBe(true);
-    // The bar's buttons sit on the chrome — the head is chrome, and nothing
-    // takes its place once it has scrolled away (2026-09-07).
+    // At rest the buttons sit on the chrome, because that is what is behind
+    // them: the Home's head here, every other screen's page header. The
+    // canvas has not risen — and in jsdom it never does, there being no
+    // IntersectionObserver (actions/risen.js).
     expect(container.querySelector(".topbar").getAttribute("data-region")).toBe("chrome");
 
     await userEvent.click(screen.getByLabelText("open sidebar"));
     await userEvent.click(within(container.querySelector(".shell__sidebar")).getByText("Notes"));
     await waitFor(() => expect(container.querySelector(".day-head--compact")).toBeNull());
     expect(container.querySelector(".topbar").classList.contains("topbar--over")).toBe(true);
+  });
+
+  test("the buttons take the canvas once the page has risen under them", async () => {
+    // The bar paints nothing, so its buttons wear the ground behind them
+    // (user call, 2026-09-07: "se estão sob o canva, fundo claro e texto
+    // escuro; sob o chrome, fundo escuro e texto claro"). The crossing is
+    // watched by a probe at the canvas's top edge; jsdom has no observer, so
+    // the one the shell uses is stood up here and fired by hand — this is
+    // the wiring test, and the action has its own (actions/risen.test.js).
+    const observers = [];
+    class Fake {
+      constructor(callback) {
+        this.callback = callback;
+        this.targets = [];
+        observers.push(this);
+      }
+      observe(target) {
+        this.targets.push(target);
+      }
+      disconnect() {}
+    }
+    vi.stubGlobal("IntersectionObserver", Fake);
+    try {
+      withNote();
+      const { container } = render(App);
+
+      await screen.findByLabelText("open sidebar");
+      const canvas = container.querySelector(".shell__content");
+      const watcher = observers.find((o) => canvas.contains(o.targets[0]));
+      expect(watcher).toBeTruthy();
+      expect(container.querySelector(".topbar").getAttribute("data-region")).toBe("chrome");
+
+      watcher.callback([{ isIntersecting: false }], watcher);
+      await waitFor(() =>
+        expect(container.querySelector(".topbar").getAttribute("data-region")).toBe("canvas"),
+      );
+
+      // …and back down again: the head comes out from under the bar and the
+      // buttons go dark with it.
+      watcher.callback([{ isIntersecting: true }], watcher);
+      await waitFor(() =>
+        expect(container.querySelector(".topbar").getAttribute("data-region")).toBe("chrome"),
+      );
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });

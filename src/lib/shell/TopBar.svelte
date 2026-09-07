@@ -71,10 +71,15 @@
     /// páginas, igual na home e no editor") — the page header of the other
     /// screens reserves the bar's height itself (page-header.css).
     over = false,
-    /// Which ground the bar's buttons sit on: the chrome, or — once the
-    /// Home's head has scrolled away under it — the canvas (wireframe "Home
+    /// Which ground the bar's buttons sit on, and it CHANGES under them
+    /// (user call, 2026-09-07: "se estão sob o canva, fundo claro e texto
+    /// escuro; sob o chrome, fundo escuro e texto claro"). The bar paints
+    /// nothing, so the buttons wear what is behind them: the chrome at rest
+    /// — every screen's page header, the Home's own head — and the canvas
+    /// once the page has risen all the way up under the bar (wireframe "Home
     /// Screen Mobile - Scrolled Down"). The controls read the region's own
-    /// surface and ink, so the flip is one attribute.
+    /// surface and ink, so the flip is one attribute; who watches for it is
+    /// the shell (App.svelte, actions/risen.js).
     region = "chrome",
   } = $props();
 </script>
