@@ -952,10 +952,12 @@
   let homeSummary = $state(null);
   /// On a phone: how much of the head is unfolded (components/DayHead.svelte,
   /// 2026-09-07) — 0 is the one line (name and date), 1 the week, 2 the week
-  /// and the day's summary. A drag on the chrome moves it. It STARTS folded
-  /// on a short screen: a phone on its side gave the head six tenths of the
-  /// height (measured 2026-09-07, 923×411).
-  let homeLevel = $state(isShortScreen() ? 0 : 1);
+  /// and the day's summary. A drag on the chrome moves it. The app OPENS on
+  /// the whole of it — the greeting and "x of y tasks done today" are the
+  /// first thing seen (user call, same day) — except on a short screen: a
+  /// phone on its side gave the head six tenths of the height (measured
+  /// 2026-09-07, 923×411), so there it starts folded.
+  let homeLevel = $state(isShortScreen() ? 0 : 2);
   let seenToday = null;
   $effect(() => {
     const today = clock?.today ?? null;

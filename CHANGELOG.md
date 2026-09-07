@@ -23,6 +23,7 @@ file and live only in the commit history.
   slides up over them — its ground rises behind the title and the buttons
   before the cards start to move, and the title takes the page's colour.
 - The **+** on the Home opens two buttons again, **Task** and **Note**.
+- The Home opens on the greeting and "x of y tasks done today".
 - Find & replace in a note has a simpler panel: the field, two arrows, a
   gear with the three options, and the replace row lined up under it.
 - The new-task bar on the Home (desktop) closes with Escape, or by dragging

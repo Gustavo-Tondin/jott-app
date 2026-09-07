@@ -290,7 +290,6 @@
       const chrome = heightOf(shownLevel) + (handleEl?.offsetHeight ?? 0);
       const hold = Math.max(0, Math.min(rowHeight, scroller.scrollTop - chrome));
       scroller.style.setProperty("--sheet-hold", `${hold}px`);
-      scroller.style.setProperty("--sheet-max", `${rowHeight}px`);
       full = rowHeight > 0 && hold >= rowHeight - 1;
       const row = topEl.getBoundingClientRect();
       const title = topEl.querySelector(".day-head__title")?.getBoundingClientRect();
@@ -302,7 +301,6 @@
     return () => {
       scroller.removeEventListener("scroll", read);
       scroller.style.removeProperty("--sheet-hold");
-      scroller.style.removeProperty("--sheet-max");
     };
   });
   /// The sheet's ground has filled the screen behind the row.
@@ -337,16 +335,23 @@
       <span class="day-head__name">{S.home}</span>
       <span class="theme-dot day-head__dot" style={dotStyle} aria-hidden="true"></span>
     </button>
-    {#if showsDate}
-      <!-- With the week out of sight the month gives way to the day itself:
-           nothing else on screen says which day is chosen. -->
-      <span class="day-head__date">
-        <span class="day-head__date-day">{S.shortDay(monthOf(selected), dayOfMonth(selected))}</span>
-        <span class="day-head__date-weekday">{weekdayName(selected)}</span>
-      </span>
-    {:else}
-      <span class="day-head__month">{monthOf(shown)}</span>
-    {/if}
+    <!-- One box, two contents, ONE height (day-head.css sizes it for the
+         two-line date): swapping the month for the date must not move the
+         row, because the fold and the handle stick under it and the sheet's
+         hold is measured from it — a row that grew by a line mid-scroll
+         fought the finger (user report on device, 2026-09-07). -->
+    <span class="day-head__aside">
+      {#if showsDate}
+        <!-- With the week out of sight the month gives way to the day
+             itself: nothing else on screen says which day is chosen. -->
+        <span class="day-head__date">
+          <span class="day-head__date-day">{S.shortDay(monthOf(selected), dayOfMonth(selected))}</span>
+          <span class="day-head__date-weekday">{weekdayName(selected)}</span>
+        </span>
+      {:else}
+        <span class="day-head__month">{monthOf(shown)}</span>
+      {/if}
+    </span>
   </div>
 
   <!-- The fold: the week and the summary, clipped to the level's height on a

@@ -313,6 +313,15 @@
     align-items: flex-end;
     line-height: 1.2;
   }
+  /* The right side of the row, at the two-line date's height whether it
+     holds the date or the month — so the row never changes height
+     (DayHead.svelte says what that cost). */
+  .day-head--compact .day-head__aside {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    min-block-size: calc(1.2 * (var(--app-text-20) + var(--app-text-14)));
+  }
   .day-head__date-day {
     font-size: var(--app-text-20);
     color: var(--app-ink);

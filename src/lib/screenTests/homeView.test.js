@@ -114,7 +114,7 @@ describe("HomeView", () => {
 
     await screen.findByText("Arrumar site");
     await waitFor(() =>
-      expect(container.querySelector(".day-head__line").textContent).toBe("1 of 2 tasks completed."),
+      expect(container.querySelector(".day-head__line").textContent).toBe("1 of 2 tasks done today."),
     );
     // The greeting is the machine's hour; whichever it is, it is one of the three.
     expect(container.querySelector(".day-head__greeting").textContent).toMatch(

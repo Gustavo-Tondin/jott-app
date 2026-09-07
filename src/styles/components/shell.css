@@ -795,6 +795,13 @@
     overflow-y: auto;
     border-radius: 0;
     background: none;
+    /* The Home's sheet has a resting place: the canvas filling the screen
+       (shell__content--home below is the snap point). `proximity`, so the
+       list inside scrolls freely; the point only catches a scroll that ends
+       near it — and a fling that would pass through it (user call,
+       2026-09-07: from the bottom, a fast scroll up stops with the title
+       still on the sheet; one more pull reveals the chrome and the week). */
+    scroll-snap-type: y proximity;
     /* The formatting strip floats over this scroller's bottom edge, so the
        edge is not where the visible part ends. Saying it HERE rather than in
        the editor is what makes anything scrolling into view — the caret
@@ -891,7 +898,18 @@
      scrolled into view. */
   .shell--compact .shell__content--home .shell__content-inner {
     translate: 0 var(--sheet-hold, 0rem);
-    padding-block-end: var(--sheet-max, 0rem);
+  }
+  /* The sheet's resting place: its top edge at the top of the scroller —
+     which is exactly where the hold ends and the row takes the ground. A
+     fling through it stops here (`always`). And the room the hold takes
+     from the bottom is given back HERE, on the box that paints the ground:
+     the shifted content would otherwise hang past the canvas's end, over the
+     chrome (user report on device, 2026-09-07: "um fundo quadrado na cor do
+     chrome" under the last note). */
+  .shell--compact .shell__content--home {
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+    padding-block-end: calc(var(--app-space-40) + var(--sheet-hold, 0rem));
   }
 
   /* ---- the screen's entrance ----

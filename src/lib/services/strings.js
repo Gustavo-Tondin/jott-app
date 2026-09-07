@@ -846,7 +846,7 @@ export const S = {
   goodMorning: "Good morning",
   goodAfternoon: "Good afternoon",
   goodEvening: "Good evening",
-  tasksDone: (done, total) => `${done} of ${total} ${total === 1 ? "task" : "tasks"} completed.`,
+  tasksDone: (done, total) => `${done} of ${total} ${total === 1 ? "task" : "tasks"} done today.`,
   /// A day gone by, in one line (user call, 2026-09-04): the three counts of
   /// the recap, comma-separated, "completed" and never "done".
   daySummary: ({ done, created, notes }) =>
