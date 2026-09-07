@@ -68,8 +68,10 @@ what the current version is.
 - The notebook's name at the foot of the sidebar opens a menu of the
   notebooks this machine knows: pick one to switch in place, middle-click to
   open it in a new window, or go to the screen that manages them.
-- The Home's **+** offers a task or a note (a blank note opens with the
-  cursor in the body).
+- The Home's **+** opens two buttons, Task and Note (a blank note opens with
+  the cursor in the body). On a phone the Home's head folds: drag it up for
+  one line, down for the week and the day's summary; scroll, and the canvas
+  slides up over it while the title stays put.
 - **The Home is the day**: a week of days across the top, today lit. You
   pull in what you want to face today instead of staring at the whole
   list; pick a day ahead and plan it the same way (a dated task shows on
@@ -103,7 +105,7 @@ what the current version is.
   cursor or selection is inside — selecting a whole line, or the whole
   note, keeps everything formatted. Bold and italic stack (`***both***`),
   and nested lists draw a guide per level with wrapped lines hanging from
-  the first letter.
+  the first letter. Find & replace is a field, two arrows and a gear.
 - `[[Note]]` links between notes and `[[/file.pdf]]` references to files,
   both with autocompletion; colour or image banners; pinning; bulk select.
 - **Note tags**, as properties under the title (`tags:` in the front matter,
