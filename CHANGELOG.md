@@ -23,8 +23,14 @@ file and live only in the commit history.
 - On the phone the Home is a sheet: the week and the day's summary fold
   under your finger while the page slides up over them. It rests in two
   places — head open, or page full.
-- The **+** on the Home opens two buttons again, **Task** and **Note**.
+- The Home's head has three heights — name and date, the week, the week with
+  the day's summary. Drag to fold it, or tap the grip to move one step.
+- The **+** on the Home opens two buttons, **Task** and **Note**. The note is
+  created untitled where quick captures go, cursor in the body.
 - The Home opens on the greeting and "x of y tasks done today".
+- The notebook's name at the bottom of the sidebar opens a menu of the
+  notebooks you have opened before, the current one marked and each in its
+  own colour. Middle-click one to open it in a new window.
 - Find & replace is a card floating over the note: the field, two arrows, a
   gear with the three options, and the replace row lined up under it.
 - **Colour & icon** on a space or a group now offers the whole Phosphor set —
@@ -34,55 +40,29 @@ file and live only in the commit history.
 
 ### Fixed
 
+- **Android reminders now actually go off.** Syncing them failed before it
+  scheduled anything, and nothing re-registered after a reboot.
 - Lists in the editor: no stray space after the bullet, ordered numbers and
   a freshly typed `- ` stay inside the line, the task checkbox lines up, and
   an item with sub-items draws its guide down to them.
 - On the phone the top bar floats over every screen with no background of
   its own; its buttons wear the ground behind them, drop a small shadow, and
   the arrows show whether there is anywhere to go.
-- The **+** on the Home has a shadow again — it had been floating flat.
+- Pull-to-search on the phone started behind the floating buttons of the top
+  bar; it now starts below them.
+- The sticky "Home • Sep 7" bar is gone: it reserved empty space and cards
+  scrolled behind the buttons above it.
+- On the desktop, the Home's head scrolls away with the page instead of
+  holding the top of it.
+- Ticking a dated task on the Home keeps it on the day, under Completed, so
+  the summary reads "1 of 3 tasks done" instead of the task vanishing. One
+  finished on another day stays out, as before.
 - The list `[[` offers is a proper menu now: the app's font, rows with a tap
   target, the chosen one rounded inside the panel, long titles trimmed, and
   no more column of `abc` marks beside every name.
 - It also knows where the phone's keyboard is: near the keys the list opens
   above the caret instead of under them, and scrolls when the room is tight.
-- In landscape, the drawer is wide enough for the five header buttons.
-- Ticking a dated task on the Home keeps it on the day, under Completed, so
-  the summary reads "1 of 3 tasks done" instead of the task vanishing. One
-  finished on another day stays out, as before.
-- A note's text is centred on its page again: the fold arrow now keeps the
-  same room on both sides, at any width, so the note reads at full measure.
-- The note's title starts exactly where its text starts, on any screen.
-- The fold arrow sits on the first line of what it folds — heading or list
-  item, wrapped or not — instead of floating above it.
-
-## v0.51.0
-
-### New
-
-- The notebook's name at the bottom of the sidebar opens a menu of the
-  notebooks you have opened before, the current one marked and each in its
-  own colour. Middle-click one to open it in a new window.
-- The **+** on the Home offers **New note** as well as **New task**. The
-  note is created untitled where quick captures go, cursor in the body.
-- On the phone the Home header has three heights — name and date, the week,
-  the week with the day's summary. Drag to fold and unfold; the grip moves
-  one step per tap.
-
-### Fixed
-
-- **Android reminders now actually go off.** Syncing them failed before it
-  scheduled anything, and nothing re-registered after a reboot.
-- Pull-to-search on the phone started behind the floating buttons of the top
-  bar; it now starts below them.
-- In landscape, the drawer no longer loses its fifth header button behind
-  the camera cutout.
-- The sticky "Home • Sep 7" bar is gone: it reserved empty space and cards
-  scrolled behind the buttons above it.
-- On the desktop, the Home's head scrolls away with the page instead of
-  holding the top of it.
 - On the Timeline, the pinned month covers the rows passing under it.
-- The list `[[` offers while you type has its shadow back.
 - Bold and italic no longer fight: `***word***` is both, and removing one
   leaves the other standing.
 - Typing a `*` against an existing one no longer opens a new pair.
@@ -90,8 +70,11 @@ file and live only in the commit history.
   bold reveals the asterisks, selecting the line or the note reveals
   nothing, and `[text]` without a link keeps its brackets.
 - Middle-clicking inside a note no longer pastes the X11 primary selection.
-- The list marker column adds up: bullets, numbers and checkboxes stay
-  inside the line instead of hanging outside it.
+- A note's text is centred on its page again: the fold arrow now keeps the
+  same room on both sides, at any width, so the note reads at full measure.
+- The note's title starts exactly where its text starts, on any screen.
+- The fold arrow sits on the first line of what it folds — heading or list
+  item, wrapped or not — instead of floating above it.
 
 ### Improved
 
@@ -101,8 +84,12 @@ file and live only in the commit history.
 - Indentation is drawn: a wider column per level with a thin guide, wrapped
   lines hanging from the first letter, and an item with children drawing its
   guide down to them.
-- Find and replace has a panel of its own — fields, ↑ ↓, the three switches
-  in a popover, and a close button in the corner.
 - The drawer on the phone is wider (272px), so its five buttons have room in
   both orientations.
 - The bar for a new task closes with Esc, or by dragging it sideways.
+
+## v0.51.0
+
+Never published. The work under this heading shipped in v0.52.0, and these
+notes were folded into that section rather than left for a release page that
+will never exist.
