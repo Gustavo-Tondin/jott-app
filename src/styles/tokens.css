@@ -246,6 +246,19 @@
        is the device affordances, which ride on `data-platform` instead
        (shell/platform.js). Two questions, two mechanisms, no overlap.
        --------------------------------------------------------------------- */
+    /* The fold chevron's column on a phone (user call, 2026-09-07: "não tem
+       problema se ficar apertado pra calha e um pouco ruim de clicar, ela
+       deve somente caber ali visualmente"). The room the column keeps is
+       given back on the other side of the text, so on a narrow screen it is
+       paid twice — 35px of a 360px page went to a chevron.
+
+       0.625rem is what MEASURED room the glyph needs: the marker's ink is
+       8.16px (the `›` plus the 1px CodeMirror pads it with, at the
+       interface's 16px), and `.cm-gutter` clips what does not fit. So 10px
+       leaves it a hair on each side and 8px already cuts it. Read under
+       `.shell--compact` (components/note-editor.css), which is the app's one
+       answer to "is this a phone" — never a second media query. */
+    --app-editor-gutter-compact: 0.625rem; /* 10px — 8.16px of chevron, and a hair */
     --app-drawer-width: 15rem; /* 240px — the wireframe's sidebar */
     --app-sheet-inset: 0.625rem; /* 10px — a bottom sheet floats, edge to edge is a page */
     --app-sheet-radius: var(--app-radius-xl);

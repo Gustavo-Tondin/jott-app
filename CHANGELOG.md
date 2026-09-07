@@ -44,7 +44,9 @@ file and live only in the commit history.
 - A note's text is centred on its page again. The fold arrow beside each
   line was taking its width out of the left side only, so the whole note sat
   off its axis; the arrow now has the same room kept for it on both sides,
-  at any window width, and the text reads at the app's full measure.
+  at any window width, and the text reads at the app's full measure. On a
+  phone that room is trimmed to what the arrow itself measures, so the text
+  keeps the width.
 
 ## v0.51.0
 

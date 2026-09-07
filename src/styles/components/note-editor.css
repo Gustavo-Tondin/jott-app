@@ -29,6 +29,22 @@
     margin-inline: auto;
   }
 
+  /* On a phone the note's page pays for the chevron's column twice — once on
+     the left, where the gutter stands, and once on the right, where the same
+     room is kept so the text stays centred. The column narrows to what the
+     glyph measures (styles/tokens.css), which hands ~15px back to the text
+     and costs the chevron its finger-sized target: the user's call, and the
+     chevron is an offer, not a control anyone has to hit.
+
+     Redeclaring the token rather than restating the two lengths: the body's
+     padding here and the gutter's own width (components/editor.css) both
+     read this one name, so they cannot disagree about the column. The note's
+     page cap (--app-content-note, on the canvas above) keeps the desktop's
+     number and is simply never reached at this width. */
+  .shell--compact .note-editor__body {
+    --app-editor-gutter: var(--app-editor-gutter-compact);
+  }
+
   /* On a phone the note IS the screen, so the editor takes what is left of it
      rather than a share of the window.
 
