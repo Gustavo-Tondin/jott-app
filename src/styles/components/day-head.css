@@ -213,6 +213,15 @@
     position: sticky;
     inset-block-start: 0;
     z-index: 4;
+    /* Act three (DayHead.svelte): once the sheet has filled the screen the
+       row is the sheet's own top and goes off the screen with the cards —
+       moved up by what the page scrolled past that point. */
+    translate: 0 calc(-1 * var(--sheet-off, 0rem));
+    /* The head's resting place: the page at its start, chrome open. With the
+       canvas full as the other snap point (shell.css), a pull that ends near
+       the top settles here instead of being drawn back to the sheet (user
+       report, 2026-09-07: "fica aberto meio segundo e depois fecha sozinho"). */
+    scroll-snap-align: start;
     padding-block: calc(var(--app-topbar-height) + var(--app-space-8)) var(--app-space-12);
     /* NO GROUND OF ITS OWN while the sheet rises: the canvas's ground comes
        up behind the title and then behind the buttons, seen through this row
@@ -317,10 +326,15 @@
      holds the date or the month — so the row never changes height
      (DayHead.svelte says what that cost). */
   .day-head--compact .day-head__aside {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    min-block-size: calc(1.2 * (var(--app-text-20) + var(--app-text-14)));
+    display: grid;
+    justify-items: end;
+    align-items: start;
+  }
+  .day-head--compact .day-head__aside > * {
+    grid-area: 1 / 1;
+  }
+  .day-head--compact .day-head__aside > .is-hidden {
+    visibility: hidden;
   }
   .day-head__date-day {
     font-size: var(--app-text-20);

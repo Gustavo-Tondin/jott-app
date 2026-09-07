@@ -280,8 +280,9 @@
     //      behind the floating buttons — `--sheet-hold`, written on the
     //      scroller and read by shell.css as a translate on the content;
     //   3. the ground has filled the screen: the row takes that ground as its
-    //      own (`--full`, so the cards scroll under it and not through it),
-    //      and the content scrolls again.
+    //      own (`--full`), becomes the top of the sheet, and scrolls away with
+    //      the cards (`--sheet-off`, the row moved up by the scroll past the
+    //      full point — it is sticky only for the two acts before).
     //
     // The title's ink flips to the canvas's when the ground has risen past
     // the middle of the title — not at the first touch, when the ground
@@ -290,6 +291,13 @@
       const chrome = heightOf(shownLevel) + (handleEl?.offsetHeight ?? 0);
       const hold = Math.max(0, Math.min(rowHeight, scroller.scrollTop - chrome));
       scroller.style.setProperty("--sheet-hold", `${hold}px`);
+      // Act three: the row is not pinned — it is the top of the sheet now, and
+      // leaves the screen with the cards (user call: "quero que fique no
+      // começo do canvas, e ao rolar pra baixo, continue lá no topo,
+      // desaparecendo da tela"). It stays `sticky` for the first two acts and
+      // is moved up by exactly what the page scrolls past the full point.
+      const off = Math.max(0, scroller.scrollTop - chrome - rowHeight);
+      scroller.style.setProperty("--sheet-off", `${off}px`);
       full = rowHeight > 0 && hold >= rowHeight - 1;
       const row = topEl.getBoundingClientRect();
       const title = topEl.querySelector(".day-head__title")?.getBoundingClientRect();
@@ -301,6 +309,7 @@
     return () => {
       scroller.removeEventListener("scroll", read);
       scroller.style.removeProperty("--sheet-hold");
+      scroller.style.removeProperty("--sheet-off");
     };
   });
   /// The sheet's ground has filled the screen behind the row.
@@ -341,10 +350,17 @@
          hold is measured from it — a row that grew by a line mid-scroll
          fought the finger (user report on device, 2026-09-07). -->
     <span class="day-head__aside">
-      {#if showsDate}
-        <!-- With the week out of sight the month gives way to the day
-             itself: nothing else on screen says which day is chosen. -->
-        <span class="day-head__date">
+      {#if compact}
+        <!-- Both are always in the box, one over the other (a grid cell each,
+             day-head.css), and the box is as tall as the taller — so the row
+             measures the same whichever is showing. A `min-block-size` guessed
+             from font sizes was 6px short on device (2026-09-07). With the week
+             out of sight the month gives way to the day itself: nothing else
+             on screen says which day is chosen. -->
+        <span class="day-head__month" class:is-hidden={showsDate} aria-hidden={showsDate}>
+          {monthOf(shown)}
+        </span>
+        <span class="day-head__date" class:is-hidden={!showsDate} aria-hidden={!showsDate}>
           <span class="day-head__date-day">{S.shortDay(monthOf(selected), dayOfMonth(selected))}</span>
           <span class="day-head__date-weekday">{weekdayName(selected)}</span>
         </span>
