@@ -656,22 +656,35 @@
 /* ---- find and replace (2026-08-17; redrawn 2026-09-07) ----
    CodeMirror's search, in the app's own panel (services/searchPanel.js): a
    field, two arrows, a gear that opens the three switches, a close — and the
-   replace row under it. CodeMirror's `.cm-panels` wrapper still frames it,
-   so the frame takes the region's ground and line. */
-.editor .cm-panels {
-  background: var(--app-surface);
+   replace row under it.
+
+   The wrapper is CodeMirror's, and dressing IT was the mistake: a panel
+   wearing the region's surface, square at the corners, with a lone line
+   under it reads as a slab the editor grew, not as a panel (2026-09-07).
+   The wrapper takes the region's GROUND instead — opaque, because the note
+   scrolls under it — and the panel itself is the card: border, radius and
+   the popover's lift, like every other floating panel of the app. The
+   selectors name `.cm-editor` so they answer above the base theme's own
+   `.cm-panels` rules whichever `<style>` the browser reads last. */
+.editor .cm-editor .cm-panels {
+  background: var(--app-bg);
   color: var(--app-ink);
-  border-color: var(--app-line);
+  border: 0;
 }
-.editor .cm-panels.cm-panels-top {
-  border-bottom: 0.0625rem solid var(--app-line);
+.editor .cm-editor .cm-panels.cm-panels-top {
+  border-bottom: 0;
 }
 .editor .editor-search {
   position: relative;
   display: flex;
   flex-direction: column;
   gap: var(--app-space-6);
+  margin: var(--app-space-8);
   padding: var(--app-space-8);
+  background: var(--app-surface);
+  border: 0.0625rem solid var(--app-line);
+  border-radius: var(--app-radius-md);
+  box-shadow: var(--app-shadow-popover);
   font-size: var(--app-text-14);
 }
 .editor .editor-search__row {
@@ -706,10 +719,18 @@
   gap: var(--app-space-4);
   inline-size: calc(4 * 1.75rem + 3 * var(--app-space-4));
 }
+/* Replace and All are the only worded buttons in the panel: on the card's own
+   ground a bare `.theme-btn` was two words floating, so they take the well as
+   a plate — the same one a quiet action wears everywhere else. */
 .editor .editor-search__action {
   flex: 0 0 auto;
   padding: var(--app-space-4) var(--app-space-8);
+  background: var(--app-well);
   font-size: var(--app-text-13);
+}
+.editor .editor-search__action:hover:not(:disabled) {
+  background: var(--app-hover);
+  color: var(--app-ink);
 }
 /* The three switches, under the gear. */
 .editor .editor-search__options[hidden] {
