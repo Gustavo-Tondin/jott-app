@@ -65,7 +65,9 @@ describe("live preview", () => {
     // A bullet IS the formatted form, so it is the one mark that gets replaced
     // by something to LOOK at (a •) rather than by nothing.
     const doc = "- um item\n";
-    expect(hidden(doc, doc.length)).toEqual(["-"]);
+    // With the space after it (2026-09-07): the widget IS the marker column,
+    // and a stray space beside it split that column in two.
+    expect(hidden(doc, doc.length)).toEqual(["- "]);
   });
 
   test("a checkbox replaces the marker, and the bullet goes with it", () => {
@@ -75,7 +77,7 @@ describe("live preview", () => {
     // front of it is HIDDEN rather than drawn — on a task line the checkbox
     // is the bullet, and the `- ` goes with it so the box sits on the
     // bullet's x (user report, 2026-08-24: "• ☐ item" read as two marks).
-    expect(hidden(doc, doc.length)).toEqual(["- ", "[ ]"]);
+    expect(hidden(doc, doc.length)).toEqual(["- ", "[ ] "]);
   });
 
   test("hides the address of a link, keeps the address that IS the link", () => {

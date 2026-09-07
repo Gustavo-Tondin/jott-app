@@ -137,7 +137,9 @@
   /* Follows the drag (TaskComposer.svelte). Zero except while a pointer is
      pulling it down, so the bar is where it belongs the rest of the time. */
   .task-composer--bar {
-    translate: 0 var(--composer-pulled, 0rem);
+    /* Down under a finger on the handle; sideways under a mouse on the bar
+       (TaskComposer.svelte, 2026-09-07). */
+    translate: var(--composer-slid, 0rem) var(--composer-pulled, 0rem);
     transition: translate var(--app-transition-medium);
   }
   /* While the finger is down the bar must track it exactly — a transition

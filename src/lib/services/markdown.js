@@ -266,9 +266,16 @@ export function decorationsFor(state, ranges) {
 
         if (node.name === "TaskMarker") {
           const text = state.doc.sliceString(node.from, node.to);
+          // The space after the box goes with it (2026-09-07): the marker
+          // column (services/listIndent.js) wraps `- [ ] ` in one span, and a
+          // text node left over after the widget split that span in two —
+          // each a box of its own width, and the hanging indent no longer
+          // added up. The widget's own width is the column now (editor.css).
+          let end = node.to;
+          if (state.doc.sliceString(end, end + 1) === " ") end += 1;
           builder.add(
             node.from,
-            node.to,
+            end,
             Decoration.replace({
               widget: new CheckboxWidget(
                 text.toLowerCase() === "[x]",
@@ -293,11 +300,11 @@ export function decorationsFor(state, ranges) {
               builder.add(node.from, end, HIDDEN);
               return;
             }
-            builder.add(
-              node.from,
-              node.to,
-              Decoration.replace({ widget: new BulletWidget() }),
-            );
+            // With the space after it, for the reason the task box gives
+            // above: one widget, one span, one column.
+            let end = node.to;
+            if (state.doc.sliceString(end, end + 1) === " ") end += 1;
+            builder.add(node.from, end, Decoration.replace({ widget: new BulletWidget() }));
           }
           return;
         }

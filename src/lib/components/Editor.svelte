@@ -19,6 +19,7 @@
   // the match count — and reusing it means the app is not maintaining a
   // second search engine for one screen.
   import { openSearchPanel, search, searchKeymap } from "@codemirror/search";
+  import { REPLACE_FIELD, searchPanel } from "../services/searchPanel.js";
   import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
   import { markdownPreview } from "../services/markdown.js";
   import { autocompletion } from "@codemirror/autocomplete";
@@ -169,7 +170,7 @@
           // The panel sits at the TOP, where the document's own header is —
           // at the bottom it lands on the window edge, under the status of
           // nothing.
-          search({ top: true }),
+          search({ top: true, createPanel: searchPanel }),
           // NOT `highlightSelectionMatches` (user call, 2026-08-26). It is
           // the VSCode behaviour of painting every other occurrence of the
           // selected word, and a note is prose: selecting "token" lit up the
@@ -428,7 +429,7 @@
     openFind();
     // After the panel is in the DOM: it is created by the dispatch above.
     queueMicrotask(() => {
-      const field = view?.dom.querySelector('.cm-search input[name="replace"]');
+      const field = view?.dom.querySelector(`.editor-search input[name="${REPLACE_FIELD}"]`);
       field?.focus();
       field?.select?.();
     });

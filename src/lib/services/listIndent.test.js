@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
-import { indentDecorationsFor, indentOf, listIndent } from "./listIndent.js";
+import { TASK_COLUMNS, indentDecorationsFor, indentOf, listIndent } from "./listIndent.js";
 import { INDENT } from "./markdownCommands.js";
 
 const I = INDENT;
@@ -14,9 +14,9 @@ describe("what the start of a line is made of", () => {
     expect(indentOf(`${I}${I}12. a`)).toEqual({ levels: 2, markerFrom: 8, markerTo: 12, marker: 1 });
   });
 
-  it("a task box is a second marker column", () => {
+  it("a task box is a wider marker column", () => {
     // The checkbox stands where the bullet would, and is wider than one.
-    expect(indentOf("- [ ] a").marker).toBe(2);
+    expect(indentOf("- [ ] a").marker).toBe(TASK_COLUMNS);
     expect(indentOf("- [x] a").markerTo).toBe(6);
   });
 
@@ -52,6 +52,8 @@ describe("the decorations", () => {
   it("wraps each level and the marker, and writes the two counts on the line", () => {
     // Under a parent: four spaces with no list above them is a code block.
     const doc = `- a\n${I}- item`;
+    // The first line is a PARENT: it draws the stub the child's guide meets.
+    expect(drawn(doc)[0]).toEqual([0, 0, "cm-md-indented cm-md-indented--parent", "--cm-level:0;--cm-marker:1"]);
     expect(drawn(doc).slice(2)).toEqual([
       [4, 4, "cm-md-indented", "--cm-level:1;--cm-marker:1"],
       [4, 8, "cm-md-indent", undefined],
@@ -82,6 +84,8 @@ describe("the decorations", () => {
       "--cm-level:0;--cm-marker:1",
       "--cm-level:1;--cm-marker:0",
     ]);
+    // A continuation is nested content too: the item above it is a parent.
+    expect(drawn(doc)[0][2]).toContain("--parent");
   });
 });
 

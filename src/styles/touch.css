@@ -116,10 +116,10 @@
        the left, into the indent the `- ` used to occupy, which is empty. NOT
        to the right, where the first word of the item is: a finger that lands
        on the text must put the caret there, not tick the box. */
-    .editor .cm-task-box {
-      padding-block: var(--app-space-8);
-      padding-inline-start: var(--app-space-12);
-      margin-inline-start: calc(var(--app-space-12) * -1);
+    .editor .cm-task-box::before {
+      content: "";
+      position: absolute;
+      inset: calc(-1 * var(--app-space-8)) 0 calc(-1 * var(--app-space-8)) calc(-1 * var(--app-space-12));
     }
 
     /* Rows that open something. A 46px row from the wireframe is two pixels

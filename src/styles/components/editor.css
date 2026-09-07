@@ -254,6 +254,12 @@
    structure of the list, and it is what the eye runs down the margin. */
 .editor .cm-md-bullet {
   color: var(--app-ink);
+  /* The bullet IS the marker column (services/listIndent.js): a box as wide
+     as the column, the dot at its start, so the text after it lands exactly
+     where a wrapped line will (2026-09-07). */
+  display: inline-block;
+  inline-size: var(--editor-marker);
+  text-indent: 0;
 }
 
 /* ---- indentation (2026-09-07) ----
@@ -270,16 +276,24 @@
    the service writes on it — and hang the wrapped lines exactly there. */
 .editor {
   --editor-indent: 1.75em;
-  --editor-marker: 1.5em;
+  --editor-marker: 1.25em;
 }
+/* `text-indent: 0` ON THE SPANS IS LOAD-BEARING (measured in the harness,
+   2026-09-07): `text-indent` inherits, and an inline-block is a block
+   container that applies it to ITS first line — so the `1.` of an ordered
+   item and the raw `- ` of the line being edited were pulled a whole hang to
+   the left, out of the line's box, while the • (an inline widget, no box of
+   its own) stayed put. That was "o `-` fica fora do seletor de linha". */
 .editor .cm-md-indent {
   display: inline-block;
   inline-size: var(--editor-indent);
+  text-indent: 0;
   white-space: pre;
 }
 .editor .cm-md-marker {
   display: inline-block;
   min-inline-size: var(--editor-marker);
+  text-indent: 0;
   white-space: pre;
 }
 .editor .cm-md-indented {
@@ -307,6 +321,22 @@
     var(--app-line) calc(var(--editor-marker) / 2) calc(var(--editor-marker) / 2 + 0.0625rem),
     transparent calc(var(--editor-marker) / 2 + 0.0625rem) var(--editor-indent)
   );
+  pointer-events: none;
+}
+/* A parent item (services/listIndent.js says how it is known) draws the stub
+   its children's guide meets: from under its first visual line — `1lh`, the
+   line the marker sits on — to its bottom, in the same column the children
+   draw theirs. Wrapped lines of the item are covered too, which is the
+   "bloco de texto pertencente ao item" of the user's call (2026-09-07). */
+.editor .cm-md-indented--parent::after {
+  content: "";
+  position: absolute;
+  inset-block: 1lh 0;
+  inset-inline-start: calc(
+    var(--app-space-4) + var(--cm-level, 0) * var(--editor-indent) + var(--editor-marker) / 2
+  );
+  inline-size: 0.0625rem;
+  background: var(--app-line);
   pointer-events: none;
 }
 
@@ -360,14 +390,20 @@
    same control to the eye. Here is only what sitting INSIDE a line of text
    asks for. */
 .editor .cm-task-checkbox {
-  margin-right: var(--app-space-6);
   vertical-align: text-bottom;
 }
-/* The span around it (services/markdown.js) exists for the finger; with a
-   mouse it is nothing at all, and must not become a box of its own in the
-   middle of a line. */
+/* The span around it (services/markdown.js) is the marker column of a task
+   line — two columns wide (`--cm-marker: 2`, services/listIndent.js), the
+   box at its start — so the text after it lands where its wrapped lines
+   will. On a finger it also grows a hit area, drawn as a pseudo-element
+   (touch.css) so the line's height never moves. */
 .editor .cm-task-box {
-  display: inline;
+  position: relative;
+  display: inline-block;
+  /* 1.4 columns — `TASK_COLUMNS` in services/listIndent.js, the same number
+     the line's hang is computed with. */
+  inline-size: calc(1.4 * var(--editor-marker));
+  text-indent: 0;
 }
 .editor .cm-md-done {
   color: var(--app-ink-muted);
@@ -519,19 +555,11 @@
   opacity: 0.75;
 }
 
-/* ---- find and replace (2026-08-17) ----
-   CodeMirror's own panel, dressed in the app's tokens. It ships with a
-   light-only look of its own, which on the dark themes was white text in a
-   white box. Everything here is the panel taking the region's ground, the
-   app's controls and the app's accent — the behaviour is untouched.
-
-   THE FIELDS ARE REACHED BY `.cm-textfield`, NEVER BY `input[type=text]`
-   (user report, 2026-09-07: "ctrl + h, substituir está sem css"). The panel's
-   two inputs are built with `elt("input", {class: "cm-textfield", …})` and
-   NO type attribute — the DOM defaults the property to text, but an attribute
-   selector asks about the attribute, which is not there. So both fields were
-   bare all along; Ctrl+H is only where it shows, because the replace row is
-   the one that carries two of them under a bare button strip. */
+/* ---- find and replace (2026-08-17; redrawn 2026-09-07) ----
+   CodeMirror's search, in the app's own panel (services/searchPanel.js): a
+   field, two arrows, a gear that opens the three switches, a close — and the
+   replace row under it. CodeMirror's `.cm-panels` wrapper still frames it,
+   so the frame takes the region's ground and line. */
 .editor .cm-panels {
   background: var(--app-surface);
   color: var(--app-ink);
@@ -540,81 +568,78 @@
 .editor .cm-panels.cm-panels-top {
   border-bottom: 0.0625rem solid var(--app-line);
 }
-.editor .cm-panel.cm-search {
+.editor .editor-search {
+  position: relative;
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
+  flex-direction: column;
   gap: var(--app-space-6);
-  /* Room on the right for the close button, which is absolute in the corner. */
-  padding: var(--app-space-8) var(--app-space-24) var(--app-space-8) var(--app-space-8);
+  padding: var(--app-space-8);
   font-size: var(--app-text-14);
 }
-.editor .cm-panel.cm-search .cm-textfield {
+.editor .editor-search__row {
+  display: flex;
+  align-items: center;
+  gap: var(--app-space-4);
+}
+/* The field grows; everything else is a square. `.theme-input` is worn, and
+   the size is the panel's own. */
+.editor .editor-search__field {
   flex: 1 1 8rem;
   min-inline-size: 0;
   padding: var(--app-space-4) var(--app-space-8);
-  background: var(--app-bg);
-  color: var(--app-ink);
-  border: 0.0625rem solid var(--app-line);
-  border-radius: var(--app-radius-sm);
   font: inherit;
 }
-.editor .cm-panel.cm-search .cm-textfield:focus-visible {
-  outline: 0.125rem solid var(--app-brand);
-  outline-offset: 0.0625rem;
+.editor .editor-search__button {
+  flex: 0 0 auto;
+  inline-size: 1.75rem;
+  block-size: 1.75rem;
+  padding: 0;
 }
-.editor .cm-panel.cm-search button:not([name="close"]) {
+.editor .editor-search__button.is-active {
+  color: var(--app-brand);
+  background: var(--app-brand-weak);
+}
+/* The replace row lines its field up under the find field: the two buttons
+   after it share a box exactly as wide as the four squares above. */
+.editor .editor-search__actions {
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--app-space-4);
+  inline-size: calc(4 * 1.75rem + 3 * var(--app-space-4));
+}
+.editor .editor-search__action {
+  flex: 0 0 auto;
   padding: var(--app-space-4) var(--app-space-8);
-  background: var(--app-bg);
-  color: var(--app-ink);
-  border: 0.0625rem solid var(--app-line);
+  font-size: var(--app-text-13);
+}
+/* The three switches, under the gear. */
+.editor .editor-search__options[hidden] {
+  display: none;
+}
+.editor .editor-search__options {
+  position: absolute;
+  inset-block-start: calc(100% - var(--app-space-4));
+  inset-inline-end: var(--app-space-8);
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-4);
+  padding: var(--app-space-8);
+}
+.editor .editor-search__option {
+  display: flex;
+  align-items: center;
+  gap: var(--app-space-8);
+  padding: var(--app-space-4) var(--app-space-6);
   border-radius: var(--app-radius-sm);
-  background-image: none;
-  font: inherit;
+  color: var(--app-ink);
+  white-space: nowrap;
   cursor: pointer;
 }
-.editor .cm-panel.cm-search button:not([name="close"]):hover {
+.editor .editor-search__option:hover {
   background: var(--app-hover);
 }
-.editor .cm-panel.cm-search label {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--app-space-4);
-  color: var(--app-ink-muted);
-}
-.editor .cm-panel.cm-search [name="close"] {
-  position: absolute;
-  inset-block-start: var(--app-space-4);
-  inset-inline-end: var(--app-space-6);
-  padding: 0 var(--app-space-4);
-  color: var(--app-ink-muted);
-  background: none;
-  border: none;
-  font-size: var(--app-text-16);
-  line-height: 1;
-  cursor: pointer;
-}
-.editor .cm-panel.cm-search [name="close"]:hover {
-  color: var(--app-ink);
-}
-/* The panel is a flex row and CodeMirror's own margins would fight the gap;
-   the `<br>` it puts before the replace field is the row break, which in a
-   flex container only breaks when it is told to fill the line. */
-.editor .cm-panel.cm-search input,
-.editor .cm-panel.cm-search button,
-.editor .cm-panel.cm-search label {
-  margin: 0;
-}
-.editor .cm-panel.cm-search br {
-  flex-basis: 100%;
-  block-size: 0;
-}
-/* The three switches are the app's accent, like every other native box. */
-.editor .cm-panel.cm-search input[type="checkbox"] {
-  accent-color: var(--app-brand);
-  margin: 0;
-}
-
 /* The matches themselves: the one the cursor is on wears the accent, the
    others its tint — the same pair the rest of the app uses to say "this one"
    and "these too". */

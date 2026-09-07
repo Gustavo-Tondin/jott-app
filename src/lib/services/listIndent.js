@@ -74,9 +74,28 @@ export function indentOf(text) {
     // Where the marker sits in the line, in characters from its start.
     markerFrom: spaces.length,
     markerTo: spaces.length + (marker ? marker[0].length : 0),
-    // Columns: a bullet or a number is one, a bullet with a box is two.
-    marker: marker ? (/\[/.test(marker[0]) ? 2 : 1) : 0,
+    // Columns: a bullet or a number is one; a bullet with a box is wider —
+    // the checkbox and its breath, measured in the harness (2026-09-07) at
+    // 1.4 columns. The task box in editor.css is sized by the same number.
+    marker: marker ? (/\[/.test(marker[0]) ? TASK_COLUMNS : 1) : 0,
   };
+}
+
+/// How many marker columns a task's checkbox takes (`- [ ] `).
+export const TASK_COLUMNS = 1.4;
+
+/// Is the next non-blank line indented deeper than `levels`?
+function nextDeeper(state, line, levels) {
+  let n = line.number + 1;
+  while (n <= state.doc.lines) {
+    const next = state.doc.line(n);
+    if (next.text.trim()) {
+      const shape = indentOf(next.text);
+      return !!shape && shape.levels > levels;
+    }
+    n++;
+  }
+  return false;
 }
 
 const INDENT_MARK = Decoration.mark({ class: "cm-md-indent" });
@@ -98,11 +117,18 @@ export function indentDecorationsFor(state, ranges) {
       // indentation itself may belong to the paragraph above.
       if (inOpaqueBlock(state, line.from + shape.markerFrom)) continue;
 
+      // A PARENT — an item with something nested under it — draws the guide
+      // from under its own marker down through its wrapped lines, so the
+      // children's guide has something to meet (user call, 2026-09-07:
+      // "conectando na linha dos itens indentados"). Read off the next
+      // non-blank line; the stylesheet draws the stub.
+      const parent = shape.marker > 0 && nextDeeper(state, line, shape.levels);
+
       builder.add(
         line.from,
         line.from,
         Decoration.line({
-          class: "cm-md-indented",
+          class: parent ? "cm-md-indented cm-md-indented--parent" : "cm-md-indented",
           attributes: { style: `--cm-level:${shape.levels};--cm-marker:${shape.marker}` },
         }),
       );

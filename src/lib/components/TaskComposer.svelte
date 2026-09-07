@@ -141,6 +141,55 @@
     if (far) putAway();
   }
 
+  /// Escape puts the bar away when it has the focus (user call, 2026-09-07:
+  /// "no desktop gostaria que desse pra fechar apertando esc com ele
+  /// selecionado, ou arrastando pros lados"). Swallowed, so the shell's own
+  /// Escape does not also close what is behind it — a menu of a field is
+  /// open in front of the bar first, and the `dismissable` it wears already
+  /// took that press before it got here.
+  function onKey(event) {
+    if (event.key !== "Escape" || !onDismiss) return;
+    event.preventDefault();
+    event.stopPropagation();
+    putAway();
+  }
+
+  /// A SIDEWAYS drag on the bar's own body puts it away too — the desktop's
+  /// gesture, where the handle is not drawn. The finger has the handle; the
+  /// mouse has the bar. It starts only on the bar itself (never on a field,
+  /// a button or the input, which own their own drags) and is decided by
+  /// direction: mostly horizontal and far enough, or nothing happened.
+  let slid = $state(0);
+  let slideFrom = null;
+  const SLIDE_AWAY = 96;
+  const CLAIMED = "input, button, select, textarea, [role='menu'], .theme-popover";
+
+  function onSlideDown(event) {
+    if (!onDismiss || event.button !== 0 || event.pointerType === "touch") return;
+    if (event.target.closest(CLAIMED)) return;
+    slideFrom = { x: event.clientX, y: event.clientY, id: event.pointerId };
+    slid = 0;
+  }
+
+  function onSlideMove(event) {
+    if (!slideFrom || event.pointerId !== slideFrom.id) return;
+    const dx = event.clientX - slideFrom.x;
+    const dy = event.clientY - slideFrom.y;
+    if (Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy)) {
+      form?.setPointerCapture?.(slideFrom.id);
+      slid = dx;
+    }
+  }
+
+  function onSlideUp(event) {
+    if (!slideFrom || event.pointerId !== slideFrom.id) return;
+    form?.releasePointerCapture?.(slideFrom.id);
+    slideFrom = null;
+    const far = Math.abs(slid) >= SLIDE_AWAY;
+    slid = 0;
+    if (far) putAway();
+  }
+
   /// The bar leaves, and the keyboard leaves WITH it (user call, 2026-08-24):
   /// pulled down with the keys still up, they were left standing over
   /// nothing. Whatever of ours holds the focus lets go before the bar goes.
@@ -192,14 +241,20 @@
   }
 </script>
 
+<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 <form
   bind:this={form}
   class="task-composer task-composer--{variant}"
-  class:task-composer--dragging={pulled > 0}
-  style={onDismiss ? `--composer-pulled: ${pulled}px` : undefined}
+  class:task-composer--dragging={pulled > 0 || slid !== 0}
+  style={onDismiss ? `--composer-pulled: ${pulled}px; --composer-slid: ${slid}px` : undefined}
   onsubmit={(e) => (e.preventDefault(), submit())}
   onfocusin={() => (engaged = true)}
   onfocusout={letGo}
+  onkeydown={onKey}
+  onpointerdown={onSlideDown}
+  onpointermove={onSlideMove}
+  onpointerup={onSlideUp}
+  onpointercancel={onSlideUp}
 >
   {#if onDismiss}
     <!-- The panels' own gesture on the bar that can be put away: a drag is
