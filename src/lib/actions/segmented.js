@@ -1,30 +1,34 @@
 // The pill of a segmented control, gliding to the active item. Used on the
-// TRACK (`<nav class="theme-segmented" use:segmented={memory}>`); items keep
+// TRACK (`<nav class="theme-segmented" use:segmented>`); items keep
 // `theme-segmented__item--active`. It MEASURES the active item and writes
 // `--seg-*` + `theme-segmented--glides` (buttons.css) — nothing at width 0
-// (jsdom). With a `memory` object a rebuilt track starts where the old ended.
+// (jsdom). Options: `memory`, so a rebuilt track starts where the old ended;
+// `active`/`glides`, so a control that is not a segmented one (the week strip
+// of the Home) borrows the movement without wearing the class.
 
 const ACTIVE = ".theme-segmented__item--active";
 const GLIDES = "theme-segmented--glides";
 
 /// The four numbers the pill is drawn from, written onto the track.
-function paint(node, at) {
+function paint(node, glides, at) {
   node.style.setProperty("--seg-x", `${at.x}px`);
   node.style.setProperty("--seg-y", `${at.y}px`);
   node.style.setProperty("--seg-w", `${at.w}px`);
   node.style.setProperty("--seg-h", `${at.h}px`);
-  node.classList.add(GLIDES);
+  node.classList.add(glides);
 }
 
 const sameSpot = (a, b) =>
   !!a && !!b && a.x === b.x && a.y === b.y && a.w === b.w && a.h === b.h;
 
-export function segmented(node, memory) {
+export function segmented(node, options = {}) {
+  const { memory = null, active = ACTIVE, glides = GLIDES } = options;
+
   function measure({ fromMemory = false } = {}) {
-    const item = node.querySelector(ACTIVE);
+    const item = node.querySelector(active);
     const w = item?.offsetWidth ?? 0;
     if (!item || !w) {
-      node.classList.remove(GLIDES);
+      node.classList.remove(glides);
       return;
     }
     const at = { x: item.offsetLeft, y: item.offsetTop, w, h: item.offsetHeight };
@@ -33,10 +37,10 @@ export function segmented(node, memory) {
     // is what makes them two style resolutions rather than one — without it
     // the browser only ever sees the second, which is the jump this avoids.
     if (fromMemory && memory?.at && !sameSpot(memory.at, at)) {
-      paint(node, memory.at);
+      paint(node, glides, memory.at);
       void node.offsetWidth;
     }
-    paint(node, at);
+    paint(node, glides, at);
     if (memory) memory.at = at;
   }
 

@@ -18,6 +18,7 @@
   } from "../services/calendar.js";
   import { dragScroll } from "../actions/dragScroll.js";
   import { flick } from "../actions/flick.js";
+  import { segmented } from "../actions/segmented.js";
   import DayTitle from "./DayTitle.svelte";
   import Icon from "./Icon.svelte";
 
@@ -49,6 +50,12 @@
     /// about the person reading. A prop so a test can pin it.
     hour = new Date().getHours(),
   } = $props();
+
+  /// The chosen day wears a pill that GLIDES between days, the movement of a
+  /// segmented control (actions/segmented.js) borrowed by a track that is not
+  /// one — hence its own class rather than `theme-segmented--glides`. One per
+  /// week: only the page holding the chosen day draws a pill.
+  const DAY_PILL = { active: ".day-head__day.is-selected", glides: "day-head__days--glides" };
 
   let selected = $derived(day ?? today ?? "");
   let kind = $derived(dayKind(selected, today));
@@ -274,7 +281,7 @@
         <ol class="day-head__track">
           {#each weeks as week, w (week[0] ?? w)}
             <li class="day-head__page" class:is-current={w === 1}>
-              <ol class="day-head__days">
+              <ol class="day-head__days" use:segmented={DAY_PILL}>
                 {#each week as iso (iso)}
                   <li class="day-head__slot">
                     <button

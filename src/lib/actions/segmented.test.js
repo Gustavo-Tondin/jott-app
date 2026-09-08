@@ -87,7 +87,7 @@ describe("segmented", () => {
     it("starts the new pill where the old one ended", () => {
       const memory = {};
       const first = track();
-      segmented(first.node, memory).destroy();
+      segmented(first.node, { memory }).destroy();
       expect(memory.at).toEqual({ x: 2, y: 2, w: 60, h: 28 });
 
       // The rebuild: a brand-new nav, with the OTHER item active.
@@ -100,7 +100,7 @@ describe("segmented", () => {
         if (name === "--seg-x") painted.push(value);
         write(name, value);
       };
-      segmented(next.node, memory);
+      segmented(next.node, { memory });
 
       // Twice: the remembered spot first, so the browser has a value to
       // transition FROM, then the real one.
@@ -111,7 +111,7 @@ describe("segmented", () => {
 
     it("does not flash when the rebuild changes nothing", () => {
       const memory = {};
-      segmented(track().node, memory).destroy();
+      segmented(track().node, { memory }).destroy();
       const next = track();
       const painted = [];
       const write = next.node.style.setProperty.bind(next.node.style);
@@ -119,7 +119,7 @@ describe("segmented", () => {
         if (name === "--seg-x") painted.push(value);
         write(name, value);
       };
-      segmented(next.node, memory);
+      segmented(next.node, { memory });
       expect(painted).toEqual(["2px"]);
     });
 
@@ -129,6 +129,39 @@ describe("segmented", () => {
       expect(node.style.getPropertyValue("--seg-x")).toBe("2px");
       expect(node.classList.contains("theme-segmented--glides")).toBe(true);
     });
+  });
+
+  // The Home's week strip is not a segmented control — it borrows the
+  // movement without wearing the class, or it would be a modifier with no
+  // base (an architecture test refuses that).
+  it("takes the active item and the class it writes from the caller", () => {
+    document.body.innerHTML = `
+      <ol class="day-head__days">
+        <li><button class="day-head__day">8</button></li>
+        <li><button class="day-head__day is-selected">9</button></li>
+      </ol>`;
+    const node = document.querySelector(".day-head__days");
+    const [a, b] = node.querySelectorAll("button");
+    lay(a, { left: 0, width: 84, top: 0, height: 84 });
+    lay(b, { left: 88, width: 84, top: 0, height: 84 });
+
+    segmented(node, { active: ".day-head__day.is-selected", glides: "day-head__days--glides" });
+
+    expect(node.classList.contains("day-head__days--glides")).toBe(true);
+    expect(node.classList.contains("theme-segmented--glides")).toBe(false);
+    expect(node.style.getPropertyValue("--seg-x")).toBe("88px");
+    expect(node.style.getPropertyValue("--seg-w")).toBe("84px");
+  });
+
+  // A week the chosen day is not in draws no pill at all: the strip has
+  // three weeks on it and only one of them is showing a day.
+  it("draws nothing on a track with no active item", () => {
+    document.body.innerHTML = `
+      <ol class="day-head__days"><li><button class="day-head__day">8</button></li></ol>`;
+    const node = document.querySelector(".day-head__days");
+    lay(node.querySelector("button"), { left: 0, width: 84, top: 0, height: 84 });
+    segmented(node, { active: ".day-head__day.is-selected", glides: "day-head__days--glides" });
+    expect(node.classList.contains("day-head__days--glides")).toBe(false);
   });
 
   it("survives an engine with no ResizeObserver", () => {

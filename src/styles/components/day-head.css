@@ -92,6 +92,36 @@
     gap: var(--app-space-4);
     margin: 0;
     padding: 0;
+    /* The pill below is placed from a day's `offsetLeft`, which answers to
+       the nearest POSITIONED ancestor — without this it would measure
+       against `.day-head__week` and land a whole arrow to the left. */
+    position: relative;
+    /* Own stacking context: without it the `z-index: 0` pill would sit under
+       whatever ground the card paints. */
+    isolation: isolate;
+  }
+  /* THE PILL THAT GLIDES (actions/segmented.js), the same movement the
+     segmented control wears: one pseudo-element placed from the chosen day's
+     box, so moving along a week is ONE thing travelling and not seven states
+     swapping. Only the week holding the chosen day has one — the class is
+     written by the action once it has measured, so the pill never travels in
+     from the corner on the first paint. */
+  .day-head__days--glides::before {
+    content: "";
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline-start: 0;
+    z-index: 0;
+    inline-size: var(--seg-w);
+    block-size: var(--seg-h);
+    translate: var(--seg-x) var(--seg-y);
+    border-radius: var(--app-radius-lg);
+    background: var(--app-brand);
+    /* Spring on the travel only: an overshooting box would clip the number. */
+    transition:
+      translate var(--app-duration-medium) var(--app-ease-spring),
+      inline-size var(--app-duration-medium) var(--app-ease-out),
+      block-size var(--app-duration-medium) var(--app-ease-out);
   }
   .day-head__slot {
     display: flex;
@@ -105,6 +135,9 @@
     align-items: center;
     justify-content: center;
     gap: var(--app-space-10);
+    /* Above the pill. */
+    position: relative;
+    z-index: 1;
     inline-size: 100%;
     max-inline-size: 5.25rem;
     min-block-size: 5.25rem;
@@ -139,6 +172,10 @@
   }
   .day-head__day.is-selected .day-head__weekday {
     color: var(--app-on-brand);
+  }
+  /* Once the track's pill carries the colour, the day lets go of it. */
+  .day-head__days--glides .day-head__day.is-selected {
+    background: transparent;
   }
 
   /* The desktop's arrows, quiet until the row is hovered: the wireframe draws
@@ -324,6 +361,10 @@
     max-inline-size: 2.75rem;
     min-block-size: 4.375rem;
     gap: var(--app-space-8);
+    border-radius: var(--app-radius-xl);
+  }
+  /* The phone's cell is a taller, rounder pill: the travelling one copies it. */
+  .day-head--compact .day-head__days--glides::before {
     border-radius: var(--app-radius-xl);
   }
   .day-head--compact .day-head__weekday {
