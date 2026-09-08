@@ -1,13 +1,8 @@
 <script>
   // The shell: three panels, document tabs, and the router that decides which
-  // screen a tab is showing.
-  //
-  // Phase 8.5 put the pieces where the wireframe puts them. What this file
-  // owns is arrangement and navigation; every screen below it owns its own
-  // data, and every rule about tabs lives in `tabs.js`. Nothing visual lives
-  // here: the shell's look is `styles/components/shell.css` over the token
-  // layer, and what this file writes on the root (theme, accent, platform)
-  // goes through `shell/rootStyle.js`.
+  // screen a tab is showing. It owns arrangement and navigation only: screens
+  // own their data, tabs.js owns the tab rules, shell.css owns the look, and
+  // what goes on the root (theme, accent, platform) goes through rootStyle.js.
   import { listen } from "@tauri-apps/api/event";
   import { api, describeError } from "./lib/services/api.js";
   import { askName, askTask, setConfirmPolicy } from "./lib/services/dialog.js";
@@ -100,13 +95,10 @@
   let notebook = $state(null);
   let clock = $state(null);
   let error = $state(null);
-  /// The shell's states (Etapa 7, 2026-08-24). `opening` is the path being
-  /// opened while the disk has not answered — the picker gives way to a
-  /// "Opening…" screen rather than sitting there with its buttons greyed.
-  /// `failedOpen` is the door that would not open: the path and the reason,
-  /// so the picker can offer to try that one again instead of a bare line.
-  /// `conflictsHidden` is the set of conflicts the user asked to stop seeing
-  /// THIS session (a joined key): a new conflict brings the box back.
+  /// The shell's states. `opening`: the path being opened while the disk has
+  /// not answered. `failedOpen`: the path and reason of a door that would not
+  /// open, so the picker can offer to retry it. `conflictsHidden`: the
+  /// conflicts hidden THIS session (a joined key); a new one brings the box back.
   let opening = $state(null);
   let failedOpen = $state(null);
   let conflictsHidden = $state("");
@@ -189,13 +181,8 @@
 
   /// The scroller of the compact shell, and whether the canvas has risen to
   /// the top of it (actions/risen.js). The floating top bar paints nothing,
-  /// so its buttons have to wear the ground BEHIND them (user call,
-  /// 2026-09-07: "se estão sob o canva, fundo claro e texto escuro; sob o
-  /// chrome, fundo escuro e texto claro"). That ground changes as the page
-  /// moves: at rest it is the chrome — the page header of every screen, the
-  /// Home's own head — and once the canvas has come all the way up it is the
-  /// canvas. One boolean, one attribute on the bar, and the buttons read the
-  /// region's own surface and ink (topbar.css).
+  /// so its buttons wear the ground behind them: the chrome at rest, the
+  /// canvas once it has come all the way up (topbar.css reads the attribute).
   let centre = $state(null);
   let canvasRisen = $state(false);
 
@@ -208,16 +195,10 @@
   /// finger and its own transition is off, so it arrives where the hand is
   /// instead of easing towards it.
   let drawerAt = $state(null);
-  /// …and it is published on the DOCUMENT ROOT, not on the window.
-  ///
-  /// The window and the drawer are siblings (the drawer is rendered outside
-  /// `.window`, see below), so a custom property set on one of them does not
-  /// reach the other — and this one has to move BOTH: the app slides right by
-  /// exactly what the drawer slides in by. Written on `.window` it reached
-  /// only the window, the drawer stayed at its closed wall for the whole drag,
-  /// and the gesture read as the page sliding off to reveal a white strip that
-  /// the sidebar only filled once the finger was lifted (user report,
-  /// 2026-08-18: "primeiro o canvas desliza, depois a sidebar aparece").
+  /// …and it is published on the DOCUMENT ROOT, not on the window: the window
+  /// and the drawer are siblings, and both have to move by the same amount.
+  /// Written on `.window` the drawer stayed at its wall for the whole drag
+  /// (see docs/historico.md).
   $effect(() => setRootVar("--drawer-at", drawerAt === null ? null : `${drawerAt}px`));
   let tabsOpen = $state(false);
   /// True while the Home's + has asked for a TASK: the day's composer opens,
@@ -240,31 +221,20 @@
   let focusNewNote = $state(false);
 
   /// The notebooks screen, shown OVER a window that already has a notebook.
-  ///
-  /// Only the phone ever sets it: Android has one Activity and no second
-  /// window to put anything in, so "show me my notebooks" can only mean
-  /// "here". On the desktop the same request opens a window of its own
-  /// (`showNotebooks`), which is what lets a second notebook be opened without
-  /// closing the first.
+  /// Only the phone sets it: Android has one Activity and no second window.
+  /// On the desktop the same request opens a window of its own
+  /// (`showNotebooks`), which is what lets two notebooks be open at once.
   let showingPicker = $state(false);
 
   /// Whether this window is showing the notebooks screen rather than a
-  /// notebook. Three things read it and they must not disagree: the bar above
-  /// the panel, the panel itself, and the look the app wears (styles on the root).
-  ///
-  /// Not `!notebook`: the phone shows this screen OVER an open notebook, for
-  /// the reason just above.
+  /// notebook — read by the bar, the panel and the root styles, which must
+  /// not disagree. Not `!notebook`: the phone shows it OVER an open notebook.
   let showsPicker = $derived(!notebook || showingPicker);
 
   // Going anywhere closes them: a drawer still open over the page you just
-  // navigated to is the sidebar hiding the thing you asked for.
-  //
-  // "Anywhere" includes the notebooks screen (user report, 2026-08-24). It is
-  // not a `view` — it is not a page of a notebook at all — so it reached this
-  // rule through neither dependency, and tapping the notebook's name in the
-  // drawer's own footer swapped the panel behind a drawer that stayed open
-  // over it. Read here rather than closed at the call site, so there is one
-  // answer to "what closes the drawer" instead of two that can drift.
+  // navigated to is the sidebar hiding the thing you asked for. "Anywhere"
+  // includes the notebooks screen, which is not a `view` — read here so
+  // there is one answer to "what closes the drawer".
   $effect(() => {
     view;
     showsPicker;
@@ -350,21 +320,14 @@
   const goBack = () => ({ tabs, active } = Tabs.back(tabs, active));
   const goForward = () => ({ tabs, active } = Tabs.forward(tabs, active));
 
-  // ---- "back", from wherever it is asked (2026-08-20) ----
-  // Until now the back arrow in the title bar was the only caller, and the two
-  // the platform provides did nothing with it: Android's back gesture closed
-  // the app from anywhere at all, and a mouse's back button was inert. Both
-  // arrive here now (services/back.js).
-  //
-  // This is the SHELL's handler and so the bottom of the stack — a dialog or a
-  // sheet registers while it is mounted and is asked first, which is what
-  // makes "close what is open before leaving where you are" true without
-  // anyone listing what can be open. What is left for the shell is what only
-  // it holds: the two overlays it draws itself, then the tab's own history.
-  //
-  // Answering `false` is a real answer, not a failure: on Android it hands the
-  // press back to the system, and closing the app is the right end of the road
-  // when there is nowhere left to go back to.
+  // ---- "back", from wherever it is asked ----
+  // The title bar's arrow, Android's back gesture and a mouse's back button
+  // all arrive here (services/back.js). This is the SHELL's handler and the
+  // bottom of the stack: a dialog or a sheet registers while mounted and is
+  // asked first. What is left is what only the shell holds: its two overlays,
+  // then the tab's history. `false` is a real answer: on Android it hands the
+  // press to the system, and closing the app is right when there is nowhere
+  // left to go.
   /// Whether the open tab has somewhere to go back or forward to — read by
   /// the two bars, the back gesture and the forward button alike.
   let canBack = $derived(Tabs.canGoBack(tabs[active]));
@@ -414,12 +377,9 @@
   });
 
   /// What each command id DOES. The registry says a command exists and what
-  /// it is called; this is the only place that knows what a notebook is, and
-  /// so the only place that can run one.
-  ///
-  /// A command absent from here is not broken — it is one the editor answers
-  /// (`Editor.svelte` maps the `editor` scope to CodeMirror commands from the
-  /// same registry).
+  /// it is called; this is the only place that knows what a notebook is.
+  /// A command absent from here is one the editor answers (`Editor.svelte`
+  /// maps the `editor` scope to CodeMirror commands from the same registry).
   const RUNS = {
     "task.new": () => notebook && quickTask(),
     "note.new": () => notebook && f("notes") && quickNote(),
@@ -530,12 +490,10 @@
     run();
   }
 
-  // ---- the app's history (Ctrl+Z / Ctrl+Shift+Z, 2026-08-24) ----
-  // The core keeps it (`jott_core::history`): every action that changed the
-  // notebook on the user's word, as the files it touched. The shell only
-  // asks, reloads, and says what happened — a box that goes away on its own,
-  // because an undo the user cannot see (a reorder in another space) still
-  // has to be announced, and one they can see needs no ok.
+  // ---- the app's history (Ctrl+Z / Ctrl+Shift+Z) ----
+  // The core keeps it (`jott_core::history`). The shell only asks, reloads,
+  // and announces — a box that goes away on its own, because an undo the user
+  // cannot see (a reorder in another space) still has to be said.
   let undoNotice = $state(null);
   let undoNoticeTimer = null;
 
@@ -573,12 +531,8 @@
   let searchQuery = $state("");
 
   /// Goes to a task found by the search: its list opens, and the task itself
-  /// opens in the panel — what was searched for is the task, not the list it
-  /// happens to live in.
-  ///
-  /// A task with no id cannot be addressed (an id is handed out only when
-  /// something needs to address it), so that one just opens its list. Same if
-  /// the read fails: the list is already open, and the panel is the bonus.
+  /// opens in the panel. A task with no id cannot be addressed, so that one
+  /// just opens its list; same if the read fails.
   async function showFoundTask(path, id) {
     showList(path);
     if (!id) return;
@@ -637,12 +591,9 @@
   let stripHeight = $state(0);
 
   // The strip floats over the page, so the note's scroller has to pad for it
-  // or the last line — and the cursor with it — sits behind the buttons
-  // (measured on the emulator, 2026-08-20). PADDING, not a shorter window:
-  // taking it off `#app` ended the whole frame above the keys and showed the
-  // document's background in the gap (user report on device, 2026-08-21).
-  // The air the pill leaves under itself is added in CSS rather than here, so
-  // the two never disagree about the gap.
+  // or the last line sits behind the buttons. PADDING, not a shorter window:
+  // shortening `#app` showed the document's background above the keys (see
+  // docs/platform-gotchas.md#android). The air under the pill is CSS's.
   $effect(() => {
     setRootVar(
       "--app-format-strip",
@@ -652,15 +603,9 @@
   });
 
   /// WHERE the note's formatting controls are: docked in the right panel, or
-  /// floating over the top of the canvas (user call, 2026-08-19). Not whether
-  /// they are there at all — writing a note is what the panel is for, and the
-  /// two shapes are the same controls in a different frame
-  /// (components/FormatBar.svelte).
-  ///
-  /// Session state, like the sidebar's rail: it answers "how am I writing
-  /// right now", which is not something a notebook has an opinion about. On a
-  /// phone it is neither — the strip appears while the editor has the cursor,
-  /// because there the question is answered by the keyboard being up.
+  /// floating over the canvas. Session state, like the sidebar's rail — not
+  /// something a notebook has an opinion about. On a phone it is neither: the
+  /// strip appears while the editor has the cursor.
   let formatting = $state(true);
 
   /// Is a note being written, at all — the condition both shapes share.
@@ -676,14 +621,9 @@
     suggesting ? "suggestions" : selected ? "task" : formatBarOpen && !compact ? "format" : null,
   );
 
-  /// WHEN the floating bar shows, and WHICH SIDE of the canvas it hugs
-  /// (2026-08-21). Display, so it answers to this screen: where a bar sits
-  /// over a document is a fact about the monitor it is on, and a phone has no
-  /// floating bar to place at all.
-  ///
-  /// Read with the app's own answer as the fallback, the same way every other
-  /// by-name choice is — an empty string means "never chosen", and the
-  /// notebook's own empty string reaches here unchanged.
+  /// WHEN the floating bar shows, and WHICH SIDE it hugs. Display, so it
+  /// answers to this screen. Read with the app's own answer as the fallback:
+  /// an empty string means "never chosen".
   let formatBarMode = $derived(modeOfFormatBar(layout.formatBar));
   let formatBarSide = $derived(sideOfFormatBar(layout.formatBarSide));
 
@@ -699,15 +639,9 @@
   let noteSelected = $state(false);
 
   /// ...and the floating bar, which takes over whenever the panel does not
-  /// hold them: undocked, or busy with something else.
-  ///
-  /// The mode is the LAST condition and only ever takes the bar away: `off`
-  /// never floats it, `selection` floats it while something is selected. The
-  /// docked panel is untouched by either — turning the floating bar off is a
-  /// choice about a bar over the document, not about having the controls
-  /// (core/src/settings.rs). The phone's strip is untouched too: it is the
-  /// only formatting there is down there, and it is tied to the keyboard
-  /// rather than to this.
+  /// hold them. The mode is the LAST condition and only ever takes the bar
+  /// away: `off` never floats it, `selection` floats it while something is
+  /// selected; the docked panel and the phone's strip are untouched by either.
   let formatBarFloats = $derived(
     writing &&
       !compact &&
@@ -716,12 +650,9 @@
       (formatBarMode !== "selection" || noteSelected),
   );
 
-  // Opening a note closes whatever the right panel was holding (user call,
-  // 2026-08-19: "ao entrar num editor de notas, se tem uma tarefa aberta, ela
-  // deve fechar imediatamente"). A task inspector belongs to the task list it
-  // was opened from; left standing over a note it describes something that is
-  // not on screen any more — the same reason leaving a place drops its
-  // selection (spaces/NotesSpace.svelte).
+  // Opening a note closes whatever the right panel was holding: a task
+  // inspector left standing over a note describes something no longer on
+  // screen — the same reason leaving a place drops its selection.
   $effect(() => {
     if (view.kind !== "note") return;
     selected = null;
@@ -747,12 +678,9 @@
     suggesting = { day: day ?? null };
   };
 
-  /// The Fase 9 option, default off: with `closeInspectorOnClickAway` on,
-  /// clicking the truly empty content area closes the inspector. Only the
-  /// container itself counts — a click on any screen element (a task row, a
-  /// button) has its own meaning and must never double as "close". This
-  /// handler went missing in the Fase 9 refactor while the template kept
-  /// calling it, so every content click threw a ReferenceError.
+  /// With `closeInspectorOnClickAway` on (default off), clicking the truly
+  /// empty content area closes the inspector. Only the container itself
+  /// counts — a click on any screen element has its own meaning.
   function clickedAway(event) {
     if (!layout.closeInspectorOnClickAway) return;
     if (event.target !== event.currentTarget) return;
@@ -798,28 +726,15 @@
   );
 
   // Theme, accent and heading colour are ATTRIBUTES on the document root,
-  // because that is where they reach both regions at once — the chrome and the
-  // canvas each resolve them to their own values (styles/themes/*.css,
-  // styles/roles.css). All three themes are loaded, each scoped to its own
-  // name, so switching is this one attribute: no dynamic import and no flash.
-  // All three ride in the layout, so they are set on a notebook's first paint
-  // rather than after a second round trip.
+  // where both regions read them (styles/themes/*.css, styles/roles.css). All
+  // themes are loaded, scoped by name, so switching is one attribute. All
+  // ride in the layout, so they are set on a notebook's first paint. Absent
+  // attribute = what the app ships as (`ink`, `noteSize`, the accent).
   //
-  // Only `ink` is written for the headings: the accent is what the app ships
-  // as, and an absent attribute is what the default rule in roles.css answers.
-  // `noteSize` is how big a note's body is drawn. Absent for the size the app
-  // ships as, like the accent and the headings.
-  //
-  // WITH NO NOTEBOOK, THE APP HAS NO LOOK OF ITS OWN (user call, 2026-08-24).
-  // Every one of these choices is now kept per machine AND per notebook
-  // (src-tauri/src/prefs.rs), so a window with no notebook has nothing to read
-  // them from — and the honest answer is the app's own neutral: the default
-  // theme, black and white, and `neutral` for the accent rather than the blue
-  // an absent attribute falls back to. That is also exactly what the notebooks
-  // wireframe draws — its primary button is white on the black frame, which is
-  // what `--app-neutral` resolves to in the chrome — and it is what leaves
-  // the CARDS as the only coloured things on the screen, which is the whole
-  // point of the colour being there.
+  // WITH NO NOTEBOOK, THE APP HAS NO LOOK OF ITS OWN: every choice is kept per
+  // machine AND per notebook (src-tauri/src/prefs.rs), so a window without
+  // one wears the neutral — default theme, black and white, `neutral` accent
+  // — which leaves the picker's cards as the only coloured things.
   $effect(() =>
     setRootData({
       mode: modeAttribute(showsPicker ? "" : layout.mode),
@@ -830,23 +745,17 @@
     }),
   );
 
-  // The NOTEBOOK's theme: its stylesheet fetched and put in the document.
+  // The NOTEBOOK's theme: its stylesheet fetched and put in the document. A
+  // theme is text on the reader's disk, so it travels over the bridge
+  // (shell/userTheme.js). An empty setting wears `jott`, the copy of the
+  // factory palette the core writes into `.jott/themes/`; the embedded copy
+  // is loaded underneath either way, so a failed fetch never leaves the app
+  // without one.
   //
-  // The modes are `@import`ed by app.css and cost nothing to switch between;
-  // a theme is text on the reader's disk, so it travels over the bridge
-  // (shell/userTheme.js says why it lands where it lands). Since 2026-08-26
-  // that includes the app's OWN: an empty setting wears `jott`, the copy of
-  // the factory palette the core writes into `.jott/themes/` — so editing
-  // that file re-tunes the notebook, and deleting it brings the factory
-  // back. The embedded copy is loaded underneath either way, so a fetch that
-  // fails leaves the app on the factory palette, never without one.
-  //
-  // The order matters and is the whole reason `wornTheme` exists: the CSS goes
-  // in FIRST, and only then does the attribute start naming the theme. Naming
-  // it first would leave a frame — or a whole session, if the fetch fails —
-  // with an attribute that matches no stylesheet at all, which is not a
-  // fallback but a window with no colour roles assigned. The factory `jott`
-  // is never named: it is the default, and a palette needs no attribute.
+  // The order is the whole reason `wornTheme` exists: the CSS goes in FIRST,
+  // and only then does the attribute name the theme — an attribute that
+  // matches no stylesheet is a window with no colour roles assigned. The
+  // factory `jott` is never named: a default needs no attribute.
   $effect(() => {
     // Read every dependency before the first await: an effect only tracks
     // what it touched synchronously.
@@ -935,23 +844,17 @@
   /// where the quick capture lands.)
   let quickTaskTo = $derived(quickTaskTarget(layout.quickTaskList ?? "", quickTaskChoices));
 
-  /// THE HOME'S DAY (2026-09-04): which day the calendar has open, or null
-  /// for today. The shell's, not the screen's: on a phone the head that
-  /// picks it sits on the chrome above the canvas and is drawn here, and
-  /// the screen below reads the same choice. Back to today whenever the
-  /// notebook's day turns — a calendar left on yesterday's "today" would be
-  /// showing the wrong day the moment the app was reopened.
+  /// THE HOME'S DAY: which day the calendar has open, or null for today. The
+  /// shell's, not the screen's: on a phone the head that picks it is drawn
+  /// here, on the chrome. Back to today whenever the notebook's day turns.
   let homeDay = $state(null);
   /// `{done, total}` for that day, counted by the screen off what it read,
   /// for the head to say.
   let homeSummary = $state(null);
-  /// On a phone: how much of the head is unfolded (components/DayHead.svelte,
-  /// 2026-09-07) — 0 is the one line (name and date), 1 the week, 2 the week
-  /// and the day's summary. A drag on the chrome moves it. The app OPENS on
-  /// the whole of it — the greeting and "x of y tasks done today" are the
-  /// first thing seen (user call, same day) — except on a short screen: a
-  /// phone on its side gave the head six tenths of the height (measured
-  /// 2026-09-07, 923×411), so there it starts folded.
+  /// On a phone: how much of the head is unfolded (components/DayHead.svelte)
+  /// — 0 the one line, 1 the week, 2 the week and the day's summary. The app
+  /// OPENS on the whole of it, except on a short screen (a phone on its side),
+  /// where it starts folded.
   let homeLevel = $state(isShortScreen() ? 0 : 2);
   let seenToday = null;
   $effect(() => {
@@ -1001,24 +904,16 @@
   /// and always empty side by side — there the menu says which one is open.
   let settingsSub = $state("");
 
-  // What colour each space reads as — a member of a group follows the
-  // group (2026-08-04), which the sidebar already did through --group-color
-  // and the title and the tab dot did not.
-  // The rainbow (2026-08-24) is the notebook's call and travels in the
-  // layout; the dealing itself is the service's, so the sidebar, the title
-  // and the tab dot all agree about which space is the orange one.
+  // What colour each space reads as — a member of a group follows the group.
+  // The rainbow is the notebook's call and travels in the layout; the dealing
+  // is the service's, so sidebar, title and tab dot agree.
   let autoColors = $derived({ auto: !!layout?.autoSpaceColors, accent: layout?.accentColor ?? null });
   let spColors = $derived(spaceColors(spaces, groups, autoColors));
   let grColors = $derived(groupColors(spaces, groups, autoColors));
 
   // Where the open task can move: ANY tasks list of the notebook, minus the
-  // Completed files (moving into Completed is what completing a task does).
-  //
-  // It used to be the folder's siblings only, and a tasks space is one list (spec
-  // 3.5) — so the footer button had a single entry, itself, and reading as a
-  // dead control was the honest outcome of offering nothing (user report,
-  // 2026-08-06). The bulk "Move to…" in the space already offered the whole
-  // notebook; these two are the same move and now say the same thing.
+  // Completed files (moving into Completed is what completing does). The same
+  // set the space's bulk "Move to…" offers.
   let moveTargets = $derived(
     (notebook?.lists ?? []).filter((entry) => entry.name !== layout.completedName),
   );
@@ -1291,16 +1186,9 @@
     }
   }
 
-  /// Writes a new theme into the notebook, seeded with the look in use.
-  ///
-  /// The seed is the whole reason this button exists: a theme assigns both
-  /// regions in full, which is ~170 declarations, and copying those out of a
-  /// documentation page is not something anybody does. What is written is a
-  /// file that already works and is already the right shape — the editing is
-  /// then changing colours, which is the part a person actually wants to do.
-  ///
-  /// Wearing a notebook theme and asking for a new one duplicates THAT one,
-  /// which is the same operation and needs no separate button.
+  /// Writes a new theme into the notebook, seeded with the look in use: a
+  /// theme is ~170 declarations, and a file that already works is the only
+  /// honest starting point. Wearing a notebook theme duplicates THAT one.
   async function newThemeFrom(name) {
     const css = seedFrom({ factory: factoryThemeCss, worn: userThemeApplied() });
     const made = await api.createUserTheme(name, css);
@@ -1308,13 +1196,9 @@
     return made;
   }
 
-  /// Opens a notebook and settles the app around it.
-  ///
-  /// `create` is which door was used (2026-08-24): true only for the picker's
-  /// "Create a new notebook", which is allowed to make one out of a folder
-  /// that is not one yet. Every other caller — a card on the picker, the "Open
-  /// a notebook" door, the last notebook reopened at launch — demands a
-  /// notebook, and is told plainly when the folder is not one.
+  /// Opens a notebook and settles the app around it. `create` is true only
+  /// for the picker's "Create a new notebook", which may make one out of a
+  /// folder that is not one yet; every other door demands a notebook.
   async function openAt(path, { create = false } = {}) {
     busy = true;
     error = null;
@@ -1347,27 +1231,14 @@
   $effect(() => watchStorageAccess((next) => (storage = next)));
 
   // The keyboard went away, so whatever it was typing into should stop being
-  // typed into (user report on device, 2026-08-20: dismissing it with the back
-  // gesture left the note focused, the caret blinking on a line nobody was
-  // writing, and the formatting strip floating above a keyboard that was no
-  // longer there).
+  // typed into — whatever holds the focus, not the editor by name. Android
+  // only reports the edge, so this cannot fire mid-typing (androidStorage.js).
   //
-  // Whatever holds the focus, not the editor by name: the keyboard was up
-  // because SOMETHING had it — a note, a task composer, a rename field — and
-  // the same thing is true of all of them. Android only reports the edge, so
-  // this cannot fire while someone is still typing (services/androidStorage.js).
-  //
-  // The Home's composer does NOT go with it (user call, 2026-08-24, replacing
-  // the 2026-08-21 rule): once asked for, the bar stays — through the keyboard
-  // coming and going — until a task is created with the keyboard already
-  // closed, or it is pulled down by its handle (TaskComposer.svelte). Closing
-  // the keyboard mid-thought was deleting the thought.
-  //
-  // One exception, measured on device (2026-08-24): a composer CONTROL
-  // holding the focus — a chip, a field button, or a panel portaled out by
-  // `keepOnScreen` — is not "done typing": the keyboard stepped aside for the
-  // menu the tap just opened, and blurring here killed that menu before it
-  // drew.
+  // The Home's composer does NOT go with it: once asked for, the bar stays
+  // until a task is created or it is pulled down (TaskComposer.svelte). And a
+  // composer CONTROL holding the focus (a chip, a portaled panel) is not "done
+  // typing": the keyboard stepped aside for the menu the tap just opened
+  // (see docs/platform-gotchas.md#android).
   $effect(() =>
     onKeyboardHidden(() => {
       const focused = document.activeElement;
@@ -1389,28 +1260,17 @@
   let privateFolder = $state(null);
 
   /// The in-app folder browser is open (Android only), holding the `resolve`
-  /// of whoever is waiting for a folder. Null when it is closed.
-  ///
-  /// A callback rather than a flag since 2026-08-24: the browser used to end
-  /// in one place (open this notebook), and now the picker's ⋮ asks the same
-  /// question to answer a different one (move this notebook into it). The
-  /// browser does not need to know which.
+  /// of whoever is waiting for a folder; null when closed. A callback, not a
+  /// flag: two doors ask the same question (open this notebook / move it).
   let picking = $state(null);
 
   /// Asks the machine which folder, and answers with the path — or null when
-  /// the user backed out.
-  ///
-  /// Three questions wearing one function. The desktop opens the system's
-  /// picker, which is better at this than anything the app could draw. Android
-  /// needs the file permission FIRST — without it there is nothing to browse —
-  /// and then opens the system's chooser too, converted back to a path by the
-  /// Activity (services/androidStorage.js says why that is sound). The app's
-  /// own browser is what is left when the chooser names a folder that cannot
-  /// be turned into a path: it is the fallback, not the answer.
-  ///
-  /// Asking for the permission answers null: the user leaves the app for
-  /// Android's settings screen, and whatever they were doing is over. The
-  /// `storage` watcher brings them back to a screen that can now ask properly.
+  /// the user backed out. The desktop opens the system's picker. Android
+  /// needs the file permission FIRST, then the system's chooser, converted to
+  /// a path by the Activity (services/androidStorage.js); the app's own
+  /// browser is the fallback for a chooser answer that is not a path. Asking
+  /// for the permission answers null: the user leaves for Android's settings,
+  /// and the `storage` watcher brings them back.
   async function pickAFolder() {
     if (storage === "notNeeded") return (await api.pickFolder()) ?? null;
     if (storage !== "granted") {
@@ -1436,17 +1296,10 @@
     }
   }
 
-  /// A card on the notebooks screen was clicked.
-  ///
-  /// With `pickerCloses` on — the default, and the way someone who works in
-  /// one notebook at a time wants it — THIS window stops being the picker and
-  /// becomes the notebook. Opening a new window and closing this one has the
-  /// same outcome and a frame of empty window in between, so the window is
-  /// reused: what the setting is really about is whether the picker survives
-  /// the choice, not how many windows are spawned on the way.
-  ///
-  /// With it off, the notebook opens in a window of its own and the picker
-  /// stays where it is — and that is two notebooks open at once.
+  /// A card on the notebooks screen was clicked. With `pickerCloses` on (the
+  /// default) THIS window becomes the notebook — reused, not replaced, so no
+  /// frame of empty window. With it off, the notebook opens in a window of
+  /// its own and the picker stays: two notebooks open at once.
   async function openFromPicker(path) {
     // A picker shown over a notebook (the phone) always lands here: there is
     // no second window to open it in.
@@ -1506,12 +1359,10 @@
 
 
   // ---- changing the notebook ----
-  // Every one of these takes the same shape: do it, re-read the snapshot, and
-  // route a failure to the error banner instead of an unhandled rejection —
-  // which is exactly the `act` every screen already uses (services/act.js).
-  // The shell was the one caller writing it out by hand, eighteen times over.
-  // `change(fn, after)` runs `after` on the RELOADED notebook, which is what
-  // lets a new space be opened once the snapshot carries it.
+  // Every write is the same `act` every screen uses (services/act.js): do it,
+  // re-read the snapshot, route a failure to the banner. `change(fn, after)`
+  // runs `after` on the RELOADED notebook, so a new space can be opened once
+  // the snapshot carries it.
   const change = makeAct({ load: refreshNotebook, onError: fail });
 
   /// Only where there is somewhere to write. A read-only notebook still
@@ -1538,12 +1389,8 @@
 
   /// The sidebar's whole running order — groups and loose spaces alike,
   /// flattened to names. One namespace orders both: a group's members are
-  /// contiguous in it, which is what lets the sidebar read a group's place off
-  /// its members instead of keeping a second ordering in step (2026-08-06).
-  ///
-  /// It used to renumber `userSpaces` from indices that came from the
-  /// LOOSE ones — so with any group in the notebook the drag reordered the
-  /// wrong things, and a group could not be dragged at all.
+  /// contiguous, which is what lets the sidebar read a group's place off its
+  /// members instead of keeping a second ordering in step.
   const reorderEntries = (names) => canWrite() && change(() => api.setOrder("spaces", names));
 
   /// Two spaces dropped one on the other become a group. The name is asked
@@ -1651,21 +1498,15 @@
   /// address does not change under a window.
   const entry = entryOf();
 
-  // What the window opens on.
-  //
-  // Three answers, and only the third asks the machine anything. A window
-  // created by `open_window` already carries its instruction in its address —
-  // it is a second window, and reopening the last notebook in it would ignore
-  // the reason it was opened.
+  // What the window opens on. Three answers, and only the third asks the
+  // machine: a window created by `open_window` carries its instruction in
+  // its address.
   (async () => {
     try {
-      // Kept for the picker, which offers it as the second choice on Android.
-      // The platform used to open it silently, because there was nothing else
-      // it could give: no folder picker, and a Storage Access Framework URI
-      // the core cannot read. That was revised on 2026-08-19 — the app asks
-      // for file access and browses real folders (androidStorage.js), so this
-      // folder is a fallback and not a default. Anyone already using it is
-      // unaffected: `last_notebook` reopens it.
+      // Kept for the picker, which offers it as the second choice on Android:
+      // a fallback, not a default, now that the app asks for file access and
+      // browses real folders (androidStorage.js). `last_notebook` reopens it
+      // for anyone already using it.
       privateFolder = await api.defaultFolder();
 
       if (entry.kind === "picker") return;
@@ -1819,11 +1660,9 @@
 </script>
 
 <!-- The window takes the drop it was not offered, and does nothing with it.
-     With `dragDropEnabled: false` (`tauri.conf.json`) the webview handles
-     drops itself, and WebKit's own answer to a file dropped on a page is to
-     NAVIGATE to it — which here means the app replaced by a picture, with no
-     way back. Refusing by default is what makes the editor's own handler the
-     only place a file can land. -->
+     With `dragDropEnabled: false` the webview handles drops itself, and
+     WebKit NAVIGATES to a dropped file — the app replaced by a picture.
+     Refusing here makes the editor's handler the only place a file lands. -->
 <svelte:window
   onkeydown={onKeydown}
   ondragover={(e) => e.preventDefault()}
@@ -1838,23 +1677,18 @@
   }}
 />
 
-<!-- The window is frameless: this bar draws the brand, the document tabs and
-     the min/max/close controls itself, and is the only handle to move or close
-     the window — so it renders even before a notebook is open. -->
-<!-- `data-region` is what gives an element its colour ground (styles/themes/*.css):
-     the whole window is the CHROME, and the content panel below overrides it
-     with the CANVAS. In the factory theme that is black around white. -->
+<!-- The window is frameless: this bar draws the brand, the tabs and the
+     window controls, and is the only handle to move or close the window —
+     so it renders before a notebook is open. -->
+<!-- `data-region` gives an element its colour ground: the window is the
+     CHROME, the content panel below overrides it with the CANVAS. -->
 <!-- The dragged sidebar width is written HERE, not on the panel: the title
-     bar's brand column is as wide as the sidebar and lives outside the shell,
-     so both edges have to read the same variable. Unset means the token in
-     tokens.css stands, which keeps the stylesheet the source of the default. -->
-<!-- The sidebar is written ONCE and placed twice. On the desktop it is a
-     column in this row; below 768px it is a drawer that has to cover the
-     top bar and sit still while the app slides out from under it, which
-     it can only do from outside `.window` (the drawer's own toolbar is
-     the top of the screen in the wireframe, not a strip below the app's).
-     The props are the sidebar's contract and must not fork with the
-     place. -->
+     bar's brand column is as wide as the sidebar and lives outside the shell.
+     Unset means the token in tokens.css stands. -->
+<!-- The sidebar is written ONCE and placed twice: a column in this row on
+     the desktop, a drawer outside `.window` below 768px (it has to cover the
+     top bar and sit still while the app slides). The props are its contract
+     and must not fork with the place. -->
 {#snippet sidebar()}
   <Sidebar
     {notebook}
@@ -1926,19 +1760,13 @@
        happens and it is now the window's own child (see below). Inert at every
        other width: a plain flex column that fills the frame. -->
   <div class="window__page">
-  <!-- Two bars, and the shell picks. The compact one holds the drawer toggle
-       and the page ⋮, which the desktop bar has never had, and holds neither
-       the brand nor the window buttons — see shell/TopBar.svelte. -->
-  <!-- No page chrome over the notebooks screen (user report, 2026-08-24). The
-       compact bar carries the drawer toggle, the history arrows and the page
-       ⋮ — every one of them an affordance of being INSIDE a notebook, and on
-       the picker they offered a sidebar for a notebook that is not open. The
-       wireframe draws the phone's picker with nothing above the logo, and
-       that is why: it is a screen, not a page of the app.
-
-       The desktop keeps its title bar, and has to: the window is frameless, so
-       that strip is the only way to move or close it. It is already stripped
-       to the window buttons alone (`brand={!!notebook}`, and no tabs). -->
+  <!-- Two bars, and the shell picks: the compact one holds the drawer toggle
+       and the page ⋮, and neither the brand nor the window buttons
+       (shell/TopBar.svelte). -->
+  <!-- No page chrome over the notebooks screen: the compact bar's controls
+       are affordances of being INSIDE a notebook. The desktop keeps its title
+       bar, stripped to the window buttons — the frameless window has no
+       other handle. -->
   {#if compact && !showsPicker}
     <TopBar
       {canBack}
@@ -2012,13 +1840,10 @@
         onDrag: (at) => (drawerAt = at),
       }}
     >
-      <!-- LEFT: spaces on top, notebook and settings pinned to the
-           bottom, as the wireframe has them. Collapses to an icon rail.
-
-           Below 768px it is the SAME sidebar, only presented as a drawer that
-           pushes the page aside (user call: "o sidebar esquerdo fica
-           basicamente igual"). The scrim is a sibling rather than a wrapper so
-           the drawer keeps its place in the flex row and simply slides. -->
+      <!-- LEFT: spaces on top, notebook and settings pinned to the bottom.
+           Collapses to an icon rail. Below 768px it is the SAME sidebar as a
+           drawer that pushes the page aside; the scrim is a sibling, not a
+           wrapper, so the drawer keeps its place in the flex row. -->
 
       {#if !compact}
         {@render sidebar()}
@@ -2047,24 +1872,19 @@
         bind:this={centre}
         use:pullToSearch={{ enabled: compact && !!notebook, onPull: openSearch }}
       >
-        <!-- The search, pulled down from the top of the page (2026-08-21,
-             actions/pullToSearch.js): a glass that grows out of the top edge
-             as the page is pulled, and pops when it is far enough. Below
-             768px the search is otherwise a ⋮ away; the pull puts it under the
-             thumb. Drawn here and not in the header because the header
-             scrolls away with the page in the compact shell. -->
+        <!-- The search, pulled down from the top of the page
+             (actions/pullToSearch.js). Drawn here and not in the header
+             because the header scrolls away with the page below 768px. -->
         {#if compact}
           <div class="pull-search" aria-hidden="true">
             <span class="pull-search__glass"><Icon name="magnifying-glass" size="1.125rem" /></span>
           </div>
         {/if}
         {#if compact && view.kind === "home"}
-          <!-- The Home's head IS its header on a phone (wireframes "Home
-               Screen Mobile", 2026-09-04): the name, the month, the week of
-               days and — behind the handle — the day's line, on the chrome
-               above the rounded canvas, with the top bar floating over it.
-               Drawn here and not by the screen because the screen is the
-               canvas, and this sits above it. -->
+          <!-- The Home's head IS its header on a phone: name, month, the week
+               and — behind the handle — the day's line, on the chrome above
+               the canvas. Drawn here because the screen is the canvas, and
+               this sits above it. -->
           <DayHead
             compact
             today={clock?.today}
@@ -2103,25 +1923,14 @@
         {/if}
 
         <!-- CANVAS: what the screen is drawn on, and the box the floating
-             controls are measured from. It exists so they can be placed
-             against the TOP OF THE SCREEN rather than the top of the panel —
-             measured from the panel they landed on the page header, the dock
-             button right on top of its ⋮ (user report, 2026-08-19). The
-             header is outside this box, so "below the header" needs no number
-             that would have to be kept in step with it. -->
+             controls are measured from, so they sit against the TOP OF THE
+             SCREEN and not the top of the panel; the header is outside it. -->
         <div class="shell__canvas">
-          <!-- The formatting controls, floating (user call, 2026-08-19): the
-               same narrow bar the phone gets, centred over the top of the
-               canvas, on a LIGHT ground because here it floats over the
-               document and not over a phone's chrome. It is what a note has
-               whenever the right panel is not holding them — closed, or busy
-               with a task.
-
-               THE TWO PILLS TRAVEL TOGETHER, centred as one (user call,
-               2026-08-19: "logo à direita dos outros botões"). A row, not two
-               placements: pinning the button to the canvas's far edge put it
-               in the corner the page ⋮ already owns, and any gap written as a
-               number would drift the moment the bar gains a glyph. -->
+          <!-- The formatting controls, floating: the same narrow bar the phone
+               gets, centred over the top of the canvas on a LIGHT ground. It is
+               what a note has whenever the right panel is not holding them.
+               THE TWO PILLS TRAVEL TOGETHER, centred as one row: a gap written
+               as a number would drift the moment the bar gains a glyph. -->
           {#if formatBarFloats}
             <div class="format-floats format-floats--{formatBarSide}">
               <div class="format-float">
@@ -2139,20 +1948,10 @@
                 />
               </div>
 
-              <!-- The way BACK to the docked panel (user call, 2026-08-19).
-                   Sending the controls to the side was one click on the
-                   panel's ×; bringing them back was two, buried in the page ⋮
-                   under a submenu — and nothing on screen said the panel was
-                   still there to reopen.
-
-                   Its own pill, not a tenth button on the bar: it does not
-                   format anything. Same ground, same radius, same shadow, so
-                   the two read as one family and still as two things — which
-                   is what "mesmo formato com fundo, mas separado" asks for.
-
-                   Only when the panel was CLOSED. The bar also floats while
-                   the panel is busy holding a task or the suggestions, and
-                   there the button would promise a move that is already
+              <!-- The way BACK to the docked panel: its own pill, not a tenth
+                   button on the bar, because it does not format anything.
+                   Only when the panel was CLOSED — while it holds a task or
+                   the suggestions the button would promise a move already
                    made. -->
               {#if !formatting}
                 <div class="format-float format-float--dock">
@@ -2170,13 +1969,10 @@
             </div>
           {/if}
 
-          <!-- THE HOME'S + (wireframes, 2026-09-04): a task, for the day the
-               calendar has open — today or one ahead, never one gone by. It
-               opens the day's own composer bar (HomeView → TasksSpace), the
-               same bar the tasks screens carry. Floating in the canvas's
-               corner on both shells; the Home used to carry a capture box
-               at its top on the desktop and a task-or-note + on the phone,
-               and both went with the calendar. -->
+          <!-- THE HOME'S +: a task, for the day the calendar has open — today
+               or one ahead, never one gone by. It opens the day's own composer
+               bar (HomeView → TasksSpace), floating in the canvas's corner on
+               both shells. -->
           {#if view.kind === "home" && !notebook.readOnly && homeKind !== "past" && (canCaptureTask || canCaptureNote)}
             <div class="home-fab">
               <CaptureFab
@@ -2202,15 +1998,11 @@
           }}
         >
           {#if compact && view.kind === "home"}
-            <!-- THE TITLE, A SECOND TIME, INSIDE THE SHEET (2026-09-07). The
-                 canvas is the sheet that rides up over the Home's dark head;
-                 this copy of the head's title row is pinned at the same spot
-                 as the one on the chrome, in the canvas's own ink, and clipped
-                 to the sheet — so the sheet's rising ground reveals it pixel
-                 by pixel, and once the sheet is full it is the top of the
-                 page and scrolls away with the cards. DayHead.svelte tells
-                 the three acts; day-head.css draws them. Always the day, not
-                 the month: the week is out of sight by the time this shows. -->
+            <!-- THE TITLE, A SECOND TIME, INSIDE THE SHEET: pinned where the
+                 chrome's copy is, in the canvas's ink and clipped to the sheet,
+                 so the rising ground reveals it pixel by pixel and it then
+                 scrolls away with the cards (DayHead.svelte tells the three
+                 acts; day-head.css draws them). Always the day, not the month. -->
             <div class="day-head__band">
               <DayTitle
                 sheet
@@ -2374,19 +2166,11 @@
   </main>
   </div>
 
-  <!-- The drawer, below 768px. INSIDE `.window`, and absolutely placed against
-       it (user call, 2026-08-18: "o sidebar deve continuar dentro do app,
-       somente estar invisível fora da janela").
-
-       It was outside for two frames' worth of good reasons — it has to cover
-       the top bar, and it has to stay still while the app slides out from
-       under it — and both are met here too, now that what slides is
-       `.window__page` and not the window: the drawer is that box's sibling, so
-       the transform never reaches it, and a higher layer puts it over the bar.
-       What being outside cost was the app's own edge: the window kept its
-       rounded corners and hairline while the drawer sat beside it, un-clipped,
-       so an open drawer showed the desktop through the seam between the two.
-       Inside, the frame clips it — off-canvas is simply outside the window. -->
+  <!-- The drawer, below 768px. INSIDE `.window`, absolutely placed: what
+       slides is `.window__page`, so the transform never reaches its sibling,
+       and a higher layer puts it over the bar. Inside, the frame clips it —
+       outside, an open drawer showed the desktop through the seam (see
+       docs/historico.md). -->
   {#if compact && notebook}
     {#if drawerOpen || drawerAt !== null}
       <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -2405,21 +2189,11 @@
 </div>
 
 <!-- The formatting strip, below 768px: it rides above the on-screen keyboard
-     while a note has the cursor (user call, 2026-08-18).
-
-     `position: fixed` and OUTSIDE `.window`, the same two reasons the drawer
-     is: the page slides under it, and a transform on an ancestor would make it
-     the containing block of anything fixed inside. Outside the window it is in
-     no region at all, so it declares one — CHROME (2026-08-19, wireframe "New
-     note mobile"): it is drawn dark against the light page, the way the top
-     bar and the drawer are, because it belongs to the app around the note and
-     not to the note. On the desktop the same bar floats over the canvas and is
-     light, and that difference is exactly the difference between the two
-     places it sits.
-
-     Tied to the editor having FOCUS, not to the screen being a note: with the
-     keyboard down the strip would be a bar floating over nothing, and the
-     wireframe puts it against the keyboard's top edge. -->
+     while a note has the cursor. `position: fixed` and OUTSIDE `.window`, for
+     the drawer's two reasons: the page slides under it, and a transformed
+     ancestor would become its containing block. Outside the window it is in
+     no region, so it declares CHROME: it belongs to the app around the note.
+     Tied to the editor having FOCUS, not to the screen being a note. -->
 {#if stripUp}
   <div class="format-strip" data-region="chrome" bind:clientHeight={stripHeight}>
     <FormatBar
