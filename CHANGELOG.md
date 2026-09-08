@@ -29,6 +29,20 @@ file and live only in the commit history.
   stays closed; the "Suggest more fields in the task panel" row brings it
   back.
 
+### Improved
+
+- Settings say less. The explanations left the rows and wait behind a **?**
+  next to the ones that need one; the categories on a page sit further
+  apart; and on a phone a group of three or more choices is a drop-down.
+- About reads in order: the version with its **Check now** on the same line,
+  then the system rows, then the help rows, and **Quit Jott** last.
+- The theme is a drop-down beside its label, like the other rows, and
+  **New theme from this one…** is its last option: it copies the look on
+  screen, puts it on and opens the theme's folder (desktop only).
+- On a phone the back arrow at the top returns from a Settings page to the
+  menu, the same as the swipe — the page no longer draws a back button of
+  its own.
+
 ## v0.52.1
 
 ### Improved

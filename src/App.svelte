@@ -21,7 +21,7 @@
     pickFolderNatively,
     onKeyboardHidden,
   } from "./lib/services/androidStorage.js";
-  import { onBack, installBack } from "./lib/services/back.js";
+  import { back, onBack, installBack } from "./lib/services/back.js";
   import ContextMenu from "./lib/components/ContextMenu.svelte";
   import { entryOf } from "./lib/shell/entry.js";
   import Icon from "./lib/components/Icon.svelte";
@@ -321,6 +321,11 @@
   const closeTab = (i) => ({ tabs, active } = Tabs.close(tabs, active, i));
   const goBack = () => ({ tabs, active } = Tabs.back(tabs, active));
   const goForward = () => ({ tabs, active } = Tabs.forward(tabs, active));
+  /// What the arrow and the keyboard ask: the STACK, not the tab's history
+  /// straight away — a screen with a step of its own to undo (Settings on
+  /// the phone, back to its menu) answers first, and the shell's handler
+  /// below is what walks the tab when nobody else took the press.
+  const goBackAnywhere = () => back();
 
   // ---- "back", from wherever it is asked ----
   // The title bar's arrow, Android's back gesture and a mouse's back button
@@ -332,7 +337,13 @@
   // left to go.
   /// Whether the open tab has somewhere to go back or forward to — read by
   /// the two bars, the back gesture and the forward button alike.
-  let canBack = $derived(Tabs.canGoBack(tabs[active]));
+  /// The Settings section the screen went into, for the compact header to name
+  /// (screens/SettingsView.svelte). Empty while the menu is what is on screen,
+  /// and always empty side by side — there the menu says which one is open.
+  let settingsSub = $state("");
+  // Or Settings has a section open over its menu: the arrow has somewhere
+  // to go even with no tab history behind it.
+  let canBack = $derived(Tabs.canGoBack(tabs[active]) || settingsSub !== "");
   let canForward = $derived(Tabs.canGoForward(tabs[active]));
   $effect(() =>
     installBack({
@@ -349,7 +360,7 @@
       if (zoomedImage) return ((zoomedImage = null), true);
       if (canvasMenuAt) return ((canvasMenuAt = null), true);
       if (drawerOpen) return ((drawerOpen = false), true);
-      if (canBack) return (goBack(), true);
+      if (Tabs.canGoBack(tabs[active])) return (goBack(), true);
       return false;
     }),
   );
@@ -404,7 +415,7 @@
     "tab.next": () => cycleTab(1),
     "tab.previous": () => cycleTab(-1),
     "tab.last": () => selectTab(tabs.length - 1),
-    "nav.back": goBack,
+    "nav.back": goBackAnywhere,
     "nav.forward": goForward,
     ...Object.fromEntries(
       Array.from({ length: 8 }, (_, i) => [`tab.go${i + 1}`, () => selectTab(i)]),
@@ -940,11 +951,6 @@
     // `name: null` — the Tasks screen titles itself, not with the space.
     return sp ? sourceOf(sp, { name: null }) : null;
   });
-
-  /// The Settings section the screen went into, for the compact header to name
-  /// (screens/SettingsView.svelte). Empty while the menu is what is on screen,
-  /// and always empty side by side — there the menu says which one is open.
-  let settingsSub = $state("");
 
   // What colour each space reads as — a member of a group follows the group.
   // The rainbow is the notebook's call and travels in the layout; the dealing
@@ -1813,7 +1819,7 @@
     <TopBar
       {canBack}
       {canForward}
-      onBack={goBack}
+      onBack={goBackAnywhere}
       onForward={goForward}
       onOpenDrawer={() => (drawerOpen = true)}
       {drawerOpen}
@@ -1954,7 +1960,7 @@
               : title(view)}
           {canBack}
           {canForward}
-          onBack={goBack}
+          onBack={goBackAnywhere}
           onForward={goForward}
           onRenameTitle={view.kind === "note" && !notebook.readOnly
             ? renameCurrentNote
@@ -1974,7 +1980,7 @@
             <div class="shell__toast">
               <Notice
                 tone="info"
-                icon="undo"
+                icon={false}
                 title={S.undoOfferText(undoOffer)}
                 floating
                 onDismiss={dropOffer}

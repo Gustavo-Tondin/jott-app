@@ -18,8 +18,8 @@
   // door to its own page. What a function HAS — a task's fields, a note's
   // banners — is not here; it is one page in.
   import Icon from "../../components/Icon.svelte";
-  import Modal from "../../components/Modal.svelte";
   import { hasPage, on } from "../../services/features.js";
+  import HelpTip from "./HelpTip.svelte";
   import SettingsSection from "./SettingsSection.svelte";
 
   let {
@@ -32,14 +32,9 @@
     compact = false,
     readOnly = false,
   } = $props();
-
-  /// Which function's help is open — the ? beside an inline group's label
-  /// (the fixed spaces). Null when none is.
-  let helpFor = $state(null);
 </script>
 
-<SettingsSection title={S.sectionNative} {compact} features>
-  <p class="settings__hint">{S.sectionNativeHint}</p>
+<SettingsSection title={S.sectionNative} help={S.sectionNativeHint} {compact} features>
 
   {#each FUNCTIONS as fn (fn.key)}
     <!-- An `inline` group (the fixed spaces) draws its children right here,
@@ -58,15 +53,7 @@
       />
       <span class="settings__label settings__function-name">{fn.label()}</span>
       {#if fn.help}
-        <button
-          type="button"
-          class="theme-btn--icon settings__function-help"
-          aria-label={S.fixedSpacesHelp}
-          title={S.fixedSpacesHelp}
-          onclick={() => (helpFor = fn.key)}
-        >
-          <Icon name="question" size="1rem" />
-        </button>
+        <HelpTip label={fn.label()} text={fn.help()} />
       {/if}
       {#if hasPage(fn.key) && !fn.inline}
         <button
@@ -97,13 +84,4 @@
     {/if}
   {/each}
 
-  {#if helpFor}
-    {@const helped = FUNCTIONS.find((fn) => fn.key === helpFor)}
-    <Modal label={S.fixedSpacesHelp} onClose={() => (helpFor = null)}>
-      <h2 class="theme-title">{helped?.label()}</h2>
-      {#each helped?.help?.() ?? [] as paragraph}
-        <p class="settings__help-paragraph">{paragraph}</p>
-      {/each}
-    </Modal>
-  {/if}
 </SettingsSection>

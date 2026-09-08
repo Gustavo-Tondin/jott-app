@@ -145,8 +145,9 @@
     return () => onSection?.("");
   });
 
-  // The back gesture (services/back.js) returns to the menu before it
-  // leaves Settings — only on the narrow shell, where a section is a screen.
+  // "Back" (services/back.js) — the header's arrow, the phone's gesture and
+  // the mouse's button alike — returns to the menu before it leaves Settings.
+  // Only on the narrow shell, where a section is a screen.
   $effect(() => {
     if (!compact || !section) return;
     return onBack(() => ((chosen = null), true));
@@ -384,19 +385,6 @@
 
   {#if !compact || section}
     <div class="settings__panel">
-      <!-- The way back, drawn: the top bar's arrow is the TAB's history, and a
-           window narrowed past 768px has no back gesture at all. -->
-      {#if compact}
-        <button
-          type="button"
-          class="settings__back"
-          onclick={() => (chosen = null)}
-        >
-          <Icon name="caret-left" size="1rem" />
-          <span>{S.settingsBackToMenu}</span>
-        </button>
-      {/if}
-
       {#if shows("about")}
         <AboutSection {compact} {mobile} {onError} />
       {/if}
@@ -406,6 +394,7 @@
           bind:form
           {putDisplay}
           {compact}
+          {mobile}
           {readOnly}
           {zoom}
           {onZoom}

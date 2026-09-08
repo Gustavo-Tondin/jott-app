@@ -176,24 +176,6 @@
     border-inline-start: 0.0625rem solid var(--app-line);
   }
 
-  /* The way back to the menu, on the phone. It is NOT the top bar's arrow:
-     that one is the tab's history and would leave Settings altogether, and a
-     desktop window merely narrowed past 768px has no back gesture at all. */
-  .settings__back {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--app-space-4);
-    margin-block-end: var(--app-space-12);
-    padding: var(--app-space-6) var(--app-space-8);
-    margin-inline-start: calc(var(--app-space-8) * -1);
-    border-radius: var(--app-radius-sm);
-    color: var(--app-ink-muted);
-    font: inherit;
-    font-size: var(--app-text-14);
-  }
-  .settings__back:hover {
-    color: var(--app-ink);
-  }
 }
 
 @layer components {
@@ -201,13 +183,42 @@
     margin-bottom: var(--app-space-24);
   }
   .settings__section-title {
+    display: flex;
+    align-items: center;
+    gap: var(--app-space-6);
     font-size: var(--app-text-12);
     letter-spacing: var(--app-tracking-wide);
     text-transform: uppercase;
     color: var(--app-ink-muted);
-    margin: 0 0 var(--app-space-8);
+    margin: 0 0 var(--app-space-16);
     border-bottom: 0.0625rem solid var(--app-line);
     padding-bottom: var(--app-space-4);
+  }
+  /* On the phone the shell's header holds the title, so the page's ? sits
+     alone on the first line, at the end. */
+  .settings__section-help {
+    display: flex;
+    justify-content: flex-end;
+    margin-block-end: var(--app-space-4);
+  }
+  /* A label and its ?, on one line. */
+  .settings__label {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--app-space-6);
+    min-inline-size: 0;
+  }
+  /* Two things at the end of a row (the version and its button). */
+  .settings__row-end {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--app-space-8);
+  }
+  /* The row that ends the session, past a rule and a breath. */
+  .settings__row--last {
+    margin-block-start: var(--app-space-32);
+    padding-block-start: var(--app-space-16);
+    border-block-start: 0.0625rem solid var(--app-line);
   }
   .settings__row {
     display: flex;
@@ -316,19 +327,41 @@
   .settings__functions-break {
     margin-block: var(--app-space-8);
   }
-  /* The ? beside an inline group's label — quiet until asked. */
-  .settings__function-help {
+  /* The ? beside a label (screens/settings/HelpTip.svelte): the anchor the
+     panel is measured from, the button quiet until asked, and the panel a
+     column of prose at a reading width — it fades in rather than unfolding,
+     because a paragraph scaling up from a point reads as a jump. */
+  .settings__help {
+    position: relative;
+    display: inline-flex;
+    flex: none;
+  }
+  .settings__help-btn {
     color: var(--app-ink-faint);
   }
-  .settings__function-help:hover {
+  .settings__help-btn:hover,
+  .settings__help-btn--open {
     color: var(--app-ink);
   }
-  /* The help dialog's paragraphs, one thought each. */
+  .settings__help-panel {
+    inline-size: min(20rem, calc(100vw - var(--app-space-32)));
+    padding: var(--app-space-10) var(--app-space-12);
+    animation: theme-fade-in var(--app-duration-fast) var(--app-ease);
+    /* Normal weight, whatever the label the ? sits in is set in. */
+    font-weight: var(--app-weight-regular);
+    text-transform: none;
+    letter-spacing: normal;
+  }
+  /* The help's paragraphs, one thought each, the last line never a widow. */
   .settings__help-paragraph {
-    margin-block: var(--app-space-8) 0;
+    margin: 0;
     color: var(--app-ink-muted);
     font-size: var(--app-text-13);
     line-height: var(--app-leading-normal);
+    text-wrap: pretty;
+  }
+  .settings__help-paragraph + .settings__help-paragraph {
+    margin-block-start: var(--app-space-8);
   }
   .settings__function-name {
     flex: 1;
@@ -357,10 +390,19 @@
      names a group of rows, so it sits between the section title and a row's
      own label. */
   .settings__subtitle {
-    margin-block: var(--app-space-16) var(--app-space-4);
+    display: flex;
+    align-items: center;
+    gap: var(--app-space-6);
+    margin-block: var(--app-space-32) var(--app-space-6);
     font-size: var(--app-text-13);
     font-weight: var(--app-weight-semibold);
     color: var(--app-ink-muted);
+  }
+  /* The first category sits right under the title. */
+  .settings__subtitle:first-child,
+  .settings__section-title + .settings__subtitle,
+  .settings__section-help + .settings__subtitle {
+    margin-block-start: 0;
   }
 
   .shortcut-row__keys {

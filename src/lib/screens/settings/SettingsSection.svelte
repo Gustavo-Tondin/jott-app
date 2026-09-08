@@ -2,11 +2,15 @@
   // The frame every Settings page shares: the title said ONCE, the page's
   // rows, and the optional "Reset this section" set apart at the foot.
   import { S } from "../../services/strings.js";
+  import HelpTip from "./HelpTip.svelte";
 
   let {
     title,
     /// The narrow shape: the shell's header already carries the title.
     compact = false,
+    /// What the whole page answers for, behind a ? — beside the title, or
+    /// alone on the first line where the shell holds the title.
+    help = null,
     /// The tighter row rhythm of a page of switches.
     features = false,
     /// Puts the page back to what the app ships with. Null: no footer.
@@ -20,7 +24,12 @@
   <!-- The section's name, ONCE. Side by side it is the panel's heading; on
        the phone the shell's header already carries it (shell/PageHeader.svelte). -->
   {#if !compact}
-    <h2 class="settings__section-title">{title}</h2>
+    <h2 class="settings__section-title">
+      {title}
+      {#if help}<HelpTip label={title} text={help} />{/if}
+    </h2>
+  {:else if help}
+    <div class="settings__section-help"><HelpTip label={title} text={help} /></div>
   {/if}
 
   {@render children()}

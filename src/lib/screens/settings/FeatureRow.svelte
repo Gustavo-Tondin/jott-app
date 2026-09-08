@@ -2,12 +2,16 @@
   // One switch of a function's page. Off limits with the notebook read-only,
   // and with its parent switch off: a child is never on under an off parent.
   import { on } from "../../services/features.js";
+  import HelpTip from "./HelpTip.svelte";
 
-  let { feature, features, readOnly = false, onSet } = $props();
+  let { feature, features, readOnly = false, onSet, help = null } = $props();
 </script>
 
 <label class="settings__row">
-  <span class="settings__label">{feature.label()}</span>
+  <span class="settings__label">
+    {feature.label()}
+    {#if help}<HelpTip label={feature.label()} text={help} />{/if}
+  </span>
   <input
     class="theme-switch"
     type="checkbox"

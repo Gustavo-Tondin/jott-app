@@ -4,14 +4,14 @@
   /// The rows the settings search can find on this page.
   export const index = () => [
     S.updateVersion,
+    S.updateCheckNow,
     S.updateAutoCheck,
     S.closeToTray,
     S.autostart,
-    S.quitApp,
-    S.updateCheckNow,
-    S.yourFiles,
     S.menuEntryLabel,
+    S.yourFiles,
     S.reportIssue,
+    S.quitApp,
   ];
 </script>
 
@@ -24,6 +24,7 @@
   import { openExternal, ISSUES_URL } from "../../services/external.js";
   import { installUpdate, manualCheck, openReleasePage } from "../../services/update.js";
   import { addToMenu, removeFromMenu } from "../../services/desktopEntry.js";
+  import HelpTip from "./HelpTip.svelte";
   import SettingsSection from "./SettingsSection.svelte";
 
   let {
@@ -126,13 +127,25 @@
 <SettingsSection title={S.sectionAbout} {compact}>
   <h3 class="settings__subtitle">{S.subVersion}</h3>
 
-  <p class="settings__row">
+  <!-- The number and the button that asks about it, on one line. -->
+  <div class="settings__row">
     <span class="settings__label">{S.updateVersion}</span>
-    <code class="settings__path">Jott {version}</code>
-  </p>
+    <span class="settings__row-end">
+      <code class="settings__path">Jott {version}</code>
+      <button
+        type="button"
+        class="theme-btn theme-btn--outline theme-btn--xs"
+        disabled={checking}
+        onclick={checkNow}>{checking ? S.updateChecking : S.updateCheckNow}</button
+      >
+    </span>
+  </div>
 
   <label class="settings__row">
-    <span class="settings__label">{S.updateAutoCheck}</span>
+    <span class="settings__label">
+      {S.updateAutoCheck}
+      <HelpTip label={S.updateAutoCheck} text={S.updateAutoCheckHint} />
+    </span>
     <input
       class="theme-switch"
       type="checkbox"
@@ -141,50 +154,7 @@
       onchange={(e) => setUpdateAuto(e.currentTarget.checked)}
     />
   </label>
-  <p class="settings__hint">{S.updateAutoCheckHint}</p>
 
-  {#if !mobile}
-    <label class="settings__row">
-      <span class="settings__label">{S.closeToTray}</span>
-      <input
-        class="theme-switch"
-        type="checkbox"
-        checked={closeToTray}
-        aria-label={S.closeToTray}
-        onchange={(e) => setCloseToTray(e.currentTarget.checked)}
-      />
-    </label>
-    <p class="settings__hint">{S.closeToTrayHint}</p>
-
-    <label class="settings__row">
-      <span class="settings__label">{S.autostart}</span>
-      <input
-        class="theme-switch"
-        type="checkbox"
-        checked={autostart}
-        aria-label={S.autostart}
-        onchange={(e) => setAutostart(e.currentTarget.checked)}
-      />
-    </label>
-    <p class="settings__hint">{S.autostartHint}</p>
-
-    <div class="settings__row">
-      <span class="settings__label">{S.quitApp}</span>
-      <button class="theme-btn" type="button" onclick={() => api.quitApp()}>
-        {S.quitApp}
-      </button>
-    </div>
-  {/if}
-
-  <div class="settings__row">
-    <span class="settings__label">{S.updateCheckNow}</span>
-    <button
-      type="button"
-      class="theme-btn theme-btn--outline theme-btn--xs"
-      disabled={checking}
-      onclick={checkNow}>{checking ? S.updateChecking : S.updateCheckNow}</button
-    >
-  </div>
   {#if checked}
     <p class="settings__notice">
       {#if checked.newer}
@@ -211,37 +181,73 @@
     </p>
   {/if}
 
-  <h3 class="settings__subtitle">{S.subThisApp}</h3>
+  {#if !mobile}
+    <h3 class="settings__subtitle">{S.subSystem}</h3>
+
+    <label class="settings__row">
+      <span class="settings__label">
+        {S.closeToTray}
+        <HelpTip label={S.closeToTray} text={S.closeToTrayHint} />
+      </span>
+      <input
+        class="theme-switch"
+        type="checkbox"
+        checked={closeToTray}
+        aria-label={S.closeToTray}
+        onchange={(e) => setCloseToTray(e.currentTarget.checked)}
+      />
+    </label>
+
+    <label class="settings__row">
+      <span class="settings__label">
+        {S.autostart}
+        <HelpTip label={S.autostart} text={S.autostartHint} />
+      </span>
+      <input
+        class="theme-switch"
+        type="checkbox"
+        checked={autostart}
+        aria-label={S.autostart}
+        onchange={(e) => setAutostart(e.currentTarget.checked)}
+      />
+    </label>
+
+    <!-- Only an AppImage sees this: a single file installs nothing, so there
+         is no entry to find it by; a deb/rpm/pacman Jott was put in the menu at
+         install time and must not get a second one. -->
+    {#if menuEntry.supported}
+      <label class="settings__row">
+        <span class="settings__label">
+          {S.menuEntryLabel}
+          <HelpTip label={S.menuEntryLabel} text={S.menuEntryHint} />
+        </span>
+        <input
+          class="theme-switch"
+          type="checkbox"
+          checked={menuEntry.installed}
+          disabled={menuBusy}
+          aria-label={S.menuEntryLabel}
+          onchange={(e) => setMenuEntry(e.currentTarget.checked)}
+        />
+      </label>
+    {/if}
+  {/if}
+
+  <h3 class="settings__subtitle">{S.subHelp}</h3>
 
   <!-- Principle 4 said out loud: every notebook documents its own format in
        plain text, and this points at the file. -->
   <div class="settings__row">
-    <span class="settings__label">{S.yourFiles}</span>
+    <span class="settings__label">
+      {S.yourFiles}
+      <HelpTip label={S.yourFiles} text={S.yourFilesHint} />
+    </span>
     <button
       type="button"
       class="theme-btn theme-btn--outline theme-btn--xs"
       onclick={openFormatDoc}>{S.yourFilesAction}</button
     >
   </div>
-  <p class="settings__hint">{S.yourFilesHint}</p>
-
-  <!-- Only an AppImage sees this: a single file installs nothing, so there
-       is no entry to find it by; a deb/rpm/pacman Jott was put in the menu at
-       install time and must not get a second one. -->
-  {#if menuEntry.supported}
-    <label class="settings__row">
-      <span class="settings__label">{S.menuEntryLabel}</span>
-      <input
-        class="theme-switch"
-        type="checkbox"
-        checked={menuEntry.installed}
-        disabled={menuBusy}
-        aria-label={S.menuEntryLabel}
-        onchange={(e) => setMenuEntry(e.currentTarget.checked)}
-      />
-    </label>
-    <p class="settings__hint">{S.menuEntryHint}</p>
-  {/if}
 
   <div class="settings__row">
     <span class="settings__label">{S.reportIssue}</span>
@@ -252,4 +258,14 @@
       >{S.reportIssueAction}</button
     >
   </div>
+
+  <!-- Last, past a rule: the one row that ends the session. -->
+  {#if !mobile}
+    <div class="settings__row settings__row--last">
+      <span class="settings__label">{S.quitApp}</span>
+      <button class="theme-btn" type="button" onclick={() => api.quitApp()}>
+        {S.quitApp}
+      </button>
+    </div>
+  {/if}
 </SettingsSection>

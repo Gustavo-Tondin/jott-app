@@ -10,6 +10,7 @@
   // for the board, the tables and the one download prompt.
   import { childrenIn, on } from "../../services/features.js";
   import FeatureRow from "./FeatureRow.svelte";
+  import HelpTip from "./HelpTip.svelte";
   import SettingsSection from "./SettingsSection.svelte";
 
   let {
@@ -26,9 +27,9 @@
 <SettingsSection title={S.featureNotes} {compact} features {onReset} resetDisabled={readOnly}>
   <h3 class="settings__subtitle">{S.subNoteHas}</h3>
   {#each childrenIn("notes", "has") as feature (feature.key)}
-    <FeatureRow {feature} {features} {readOnly} {onSet} />
+    <FeatureRow {feature} {features} {readOnly} {onSet}
+      help={feature.key === "banners" ? S.featureBannersHint : null} />
   {/each}
-  <p class="settings__hint">{S.featureBannersHint}</p>
 
   <h3 class="settings__subtitle">{S.subBoard}</h3>
 
@@ -36,7 +37,10 @@
        wins. With folders off there is no tree to draw, so the row goes
        quiet the way a child switch does. -->
   <label class="settings__row">
-    <span class="settings__label">{S.noteLayout}</span>
+    <span class="settings__label">
+      {S.noteLayout}
+      <HelpTip label={S.noteLayout} text={S.noteLayoutHint} />
+    </span>
     <select
       class="theme-select"
       value={form.noteLayout === "tree" ? "tree" : ""}
@@ -48,7 +52,6 @@
       <option value="tree">{S.treeView}</option>
     </select>
   </label>
-  <p class="settings__hint">{S.noteLayoutHint}</p>
 
   <h3 class="settings__subtitle">{S.subTables}</h3>
 
@@ -68,7 +71,6 @@
       <option value="scroll">{S.tableLayoutScroll}</option>
     </select>
   </label>
-  <p class="settings__hint">{S.tableLayoutHint}</p>
 
   <h3 class="settings__subtitle">{S.subImages}</h3>
 
@@ -76,7 +78,10 @@
        offered the way back. Principle 9 is why it exists — one of the two
        connections the app makes. -->
   <label class="settings__row">
-    <span class="settings__label">{S.confirmImageDownloads}</span>
+    <span class="settings__label">
+      {S.confirmImageDownloads}
+      <HelpTip label={S.confirmImageDownloads} text={S.confirmImageDownloadsHint} />
+    </span>
     <input
       class="theme-checkbox"
       type="checkbox"
@@ -86,5 +91,4 @@
       onchange={(e) => put({ confirmImageDownloads: e.currentTarget.checked })}
     />
   </label>
-  <p class="settings__hint">{S.confirmImageDownloadsHint}</p>
 </SettingsSection>

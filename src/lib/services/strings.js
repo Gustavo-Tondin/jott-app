@@ -73,6 +73,9 @@ const UNDO_OFFERS = {
   delete_group: "Group deleted",
   delete_note_folder: "Folder deleted",
   remove_from: "Removed from the day",
+  move_task: "Task moved",
+  move_note: "Note moved",
+  move_note_to_space: "Note moved",
 };
 
 export const S = {
@@ -329,6 +332,8 @@ export const S = {
   featureTables: "Tables",
   featureFixedSpaces: "Fixed spaces",
   fixedSpacesHelp: "What hiding a fixed space does",
+  // The ? beside a setting (2026-09-08): the explanation, off the page until asked.
+  helpAbout: (label) => `About ${label}`,
   fixedSpacesHelpIntro:
     "The app's own spaces — Home, Tasks and Notes — as sidebar shortcuts " +
     "and screens. Hiding one only takes it off the interface: the files " +
@@ -386,9 +391,7 @@ export const S = {
 
   // The shortcuts table in Settings (2026-08-18).
   sectionShortcuts: "Shortcuts",
-  sectionShortcutsHint:
-    "Click a key to record a new one, Escape to leave it as it was. Bindings " +
-    "travel with the notebook, so the same keys answer wherever it is opened.",
+  sectionShortcutsHint: "Click a key to record a new one. Escape keeps it.",
   // Named for what the user is DOING, not for the word the code uses.
   shortcutScope: (scope) =>
     ({
@@ -423,9 +426,6 @@ export const S = {
   noteSizeMedium: "Medium",
   noteSizeLarge: "Large",
   noteFontSizeLabel: "Note text size",
-  noteFontSizeHint:
-    "How big the body of a note is drawn. The interface's own zoom is the " +
-    "other half of the question, and lives on the keyboard (Ctrl +/-).",
 
   // The floating formatting bar of an open note (2026-08-21). Display, so it
   // answers to this screen — and on a phone there is no floating bar at all:
@@ -444,7 +444,6 @@ export const S = {
   formatBarSideLeft: "Left",
   formatBarSideRight: "Right",
   formatBarSideBottom: "Bottom",
-  formatBarSideHint: "Which edge of the note it hugs. It is centred on that edge.",
 
   // Commands (2026-08-18): the name of every keyboard command, read by the
   // shortcuts table in Settings and by the formatting panel's tooltips. They
@@ -549,7 +548,6 @@ export const S = {
   // 2026-08-20): what the app can DO, as opposed to how it is set up. Its rows
   // are a door into a group, which is why neither of them carries an icon.
   settingsFunctions: "App functions",
-  settingsBackToMenu: "All settings",
   sectionNative: "Native Functions",
   sectionNativeHint:
     "Everything Jott can do. Switching one off takes it out of the whole " +
@@ -576,7 +574,6 @@ export const S = {
   rolloverModeReset: "go back to suggestions",
   rolloverModeCarry: "stay pulled",
   weekStartsOn: "Week starts on",
-  weekStartsOnHint: "The first day of the calendar strip on the Home.",
   subCalendar: "Calendar",
   datedTasksJoinPeriod: "A task with a date joins its day",
   datedTasksJoinPeriodHint:
@@ -600,9 +597,6 @@ export const S = {
   // import button, and there should not be one.
   themeJott: "Jott",
   themeJottMeta: "the app's own",
-  themeJottHint:
-    "Its palette is in this notebook as .jott/themes/jott.css — edit it and " +
-    "the app follows; delete it and the factory one comes back.",
   themesFromNotebookHint:
     "A theme is a .css file — or a folder with theme.css inside — in " +
     ".jott/themes/. It sets the colours, spacing and radius, and wears any " +
@@ -617,16 +611,12 @@ export const S = {
       ? "1 address pointing off this machine was blocked."
       : `${n} addresses pointing off this machine were blocked.`,
   accentColor: "Accent colour",
-  accentColorHint:
-    "The colour of the open place, the primary button and every focus ring. Each colour runs from light to dark; the app picks the step that reads on whatever it lands on.",
   headingColor: "Headings",
   headingColorAccent: "Accent",
   headingColorAccentHint: "Titles take the colour of the place they live in.",
   headingColorInk: "Ink",
   headingColorInkHint: "Titles in plain text colour, like a document.",
   restoreLastScreen: "Reopen on the last screen",
-  restoreLastScreenHint:
-    "Off by default: landing on the Home is more predictable.",
   showListCounts: "Show task counts in the sidebar",
   autoUrgentByDate: "Treat overdue tasks as urgent",
   newTasksGoTo: "New tasks go to",
@@ -648,15 +638,11 @@ export const S = {
   autostartHint: "Opens hidden in the tray.",
   quitApp: "Quit Jott",
   closeOnClickAway: "Close the task panel when clicking outside",
-  closeOnClickAwayHint:
-    "Off by default: it fires easily, and losing a half-typed task costs more than the shortcut is worth.",
   quickNoteFolder: "Quick note goes to",
-  quickNoteFolderHint:
-    "Where the Home's capture box files a note. It names a folder of THIS " +
-    "notebook, so it stays with the notebook and not with the device.",
 
   // The function pages (2026-08-20). One subtitle per group of rows: a
   // function page is a list of what the function HAS, then of how it behaves.
+  subColours: "Colours",
   subText: "Text",
   subEditor: "Editor",
   subInterface: "Interface",
@@ -677,10 +663,9 @@ export const S = {
     const size = mb < 0.1 ? `${Math.ceil(bytes / 1024)} KB` : `${mb.toFixed(1)} MB`;
     return `${n(notes, "note", "notes")} \u00b7 ${n(tasks, "task", "tasks")} \u00b7 ${n(files, "file", "files")} \u00b7 ${size}`;
   },
-  dateFormatElsewhere:
-    "How a date is WRITTEN answers to this device, so it lives in Display → Interface.",
   shortcutFilter: "Filter commands",
   subScreens: "Screens",
+  subBehaviour: "Behaviour",
   subFields: "Fields",
   subNoteHas: "What a note can have",
   subBoard: "Board",
@@ -693,9 +678,6 @@ export const S = {
   tasksShowAll: "Tasks screen shows",
   tasksShowAllInbox: "the Inbox only",
   tasksShowAllEvery: "every list, arranged by space",
-  tasksShowAllHint:
-    "Every list puts the tasks of all your spaces on one screen, each card " +
-    "wearing its space's colour. The Inbox stays where new tasks land.",
   // The task panel's card (2026-09-08): the fields that are off, and the
   // door to Settings › Tasks. `offerTaskFields` is the row that brings it back.
   moreFieldsTitle: "Tasks can do more",
@@ -707,16 +689,10 @@ export const S = {
     "A card at the end of the task panel names the fields that are off and " +
     "points here. Closing it once switches this off.",
   quickTasksGoTo: "Quick tasks go to",
-  quickTasksGoToHint:
-    "Where the Home's + writes a task. It names a list of THIS notebook, " +
-    "like the note setting above.",
   subTables: "Tables",
   tableLayout: "Wide tables",
   tableLayoutFit: "Fit the content width",
   tableLayoutScroll: "Scroll sideways",
-  tableLayoutHint:
-    "A table wider than the note's column either squeezes its cells to fit, " +
-    "wrapping the text, or keeps its width and scrolls sideways on its own.",
   noteLayoutHint:
     "How a notes space draws its board until it chooses for itself — each " +
     "space keeps its own choice, from its ⋮ → Layout.",
@@ -745,9 +721,7 @@ export const S = {
 
   // Display / Text (2026-08-20): the zoom was only ever on the keyboard.
   interfaceZoom: "Interface zoom",
-  interfaceZoomHint:
-    "How big the app itself is drawn — the same thing Ctrl + and Ctrl - do. " +
-    "The note's own size is the row above.",
+  interfaceZoomHint: "The same thing Ctrl + and Ctrl − do.",
 
   // The search over every row of every page (2026-08-20).
   settingsSearch: "Search settings",
@@ -761,18 +735,14 @@ export const S = {
   fontDefaultNote: "Same as the interface",
   fontGeneric: "This system",
   fontInstalled: "Installed",
-  interfaceFontHint: "Everything the app draws — menus, lists, buttons.",
-  noteFontHint: "The text of a note and its title. Reads in the interface font until you pick one.",
-  monoFontHint: "Code inside a note, and the paths the app shows.",
-  fontsNotListed:
-    "Jott can only list installed fonts on Linux. The two it carries and the system's own are always here.",
+  fontsNotListed: "Installed fonts are only listed on Linux.",
   settingsSearchIn: (section) => `in ${section}`,
   completedRetention: "Clear completed after (days)",
   completedRetentionHint:
     "A finished task leaves its Completed list after this many days and waits " +
     "in the trash, so it is still recoverable. 0 keeps it forever.",
-  trashRetention: "Empty the trash after (days)",
   trashRetentionHint: "0 keeps deleted items until you clear them yourself.",
+  trashRetention: "Empty the trash after (days)",
   notebookPath: "Folder",
   readOnlyNotice:
     "This notebook was written by a newer version of Jott and is open for reading only.",
@@ -781,7 +751,8 @@ export const S = {
   // subject (2026-08-20): what this app IS, next to what version it is.
   sectionAbout: "About",
   subVersion: "Version",
-  subThisApp: "This app",
+  subSystem: "System",
+  subHelp: "Help",
   yourFiles: "Your files",
   yourFilesHint:
     "Every notebook documents its own format, in plain text, inside " +
@@ -789,7 +760,7 @@ export const S = {
   yourFilesAction: "Open the folder",
   reportIssue: "Report an issue",
   reportIssueAction: "Open GitHub",
-  updateVersion: "This app",
+  updateVersion: "Version",
   updateAutoCheck: "Check for updates automatically",
   updateAutoCheckHint:
     "Once a day, Jott asks github.com for the number of the latest release — the only connection the app ever makes, and nothing about you or your notebook travels with it. Off means checking stays yours, with the button below.",

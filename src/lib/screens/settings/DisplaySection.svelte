@@ -48,6 +48,7 @@
   } from "../../services/formatBar.js";
   import AccentPicker from "../../components/AccentPicker.svelte";
   import { ZOOM_STEPS } from "../../shell/zoom.js";
+  import HelpTip from "./HelpTip.svelte";
   import SettingsSection from "./SettingsSection.svelte";
 
   let {
@@ -56,6 +57,8 @@
     /// Sends one Display choice to this machine's drawer.
     putDisplay,
     compact = false,
+    /// Android (shell/platform.js): no file manager to open a theme in.
+    mobile = false,
     readOnly = false,
     /// The interface's own zoom (a `font-size` on the root, the shell's): this
     /// screen asks rather than writes.
@@ -94,14 +97,12 @@
       role: "interface",
       key: "interfaceFont",
       label: S.interfaceFontLabel,
-      hint: S.interfaceFontHint,
       fallback: S.fontDefault(FONT_ROLES.interface.shipped),
     },
     {
       role: "note",
       key: "noteFont",
       label: S.noteFontLabel,
-      hint: S.noteFontHint,
       // Not a face's name: the note's default IS the interface's answer,
       // whatever that turned out to be.
       fallback: S.fontDefaultNote,
@@ -110,24 +111,50 @@
       role: "mono",
       key: "monoFont",
       label: S.monoFontLabel,
-      hint: S.monoFontHint,
       fallback: S.fontDefault(FONT_ROLES.mono.shipped),
     },
   ];
 
-  /// Makes a theme out of the look on screen, and puts it on at once — a
-  /// theme written and not worn is a file nobody can tell took. The name is
-  /// asked for: it is the folder, the attribute value and the list's label.
+  /// Makes a theme out of the look on screen, puts it on at once — a theme
+  /// written and not worn is a file nobody can tell took — and opens its
+  /// folder, where the editing happens. The name is asked for: it is the
+  /// folder, the attribute value and the option's label.
   async function makeTheme() {
     const name = await askName();
     if (!name) return;
     try {
       const made = await onNewTheme(name);
       putDisplay({ theme: made.name });
+      await api.openInFileManager(`.jott/themes/${made.name}/theme.css`);
     } catch (e) {
       onError?.(e);
     }
   }
+
+  /// The option that is a door, not a theme.
+  // A slash: no theme folder can be called this (relpath::is_safe_leaf).
+  const NEW_THEME = "/new";
+
+  /// What a theme says about itself, on its option: the label, then author
+  /// and version when the manifest has them.
+  const themeOption = (theme) =>
+    [theme.label, theme.author && S.themeBy(theme.author), theme.version]
+      .filter(Boolean)
+      .join(" · ");
+
+  function pickTheme(event) {
+    const value = event.currentTarget.value;
+    if (value === NEW_THEME) {
+      // The door is not a choice: the box goes back to what is worn.
+      event.currentTarget.value = form.theme || "";
+      makeTheme();
+      return;
+    }
+    putDisplay({ theme: value });
+  }
+
+  /// The theme the box names, when the notebook carries it.
+  let chosenTheme = $derived(userThemes.find((t) => t.name === form.theme) ?? null);
 
   // The zoom is applied when the drag ENDS, never during it: every measure
   // is `rem`, so applying it mid-drag moves this very slider under the
@@ -144,22 +171,40 @@
 
 <!-- A row whose control is a segmented group: one button per option, the
      current one pressed; `options` carry `key`, `label()` and maybe `hint()`.
-     Not a <label>: it would claim the first button for its own click. -->
-{#snippet segmentedRow(label, options, current, apply)}
+     Not a <label>: it would claim the first button for its own click.
+     Below 768px three or more segments no longer fit beside their label, so
+     the row wears a <select> instead — the same choice, one control wide. -->
+{#snippet segmentedRow(label, options, current, apply, help = null)}
   <div class="settings__row">
-    <span class="settings__label">{label}</span>
-    <div class="theme-segmented" role="group" aria-label={label} use:segmented>
-      {#each options as option (option.key)}
-        <button
-          type="button"
-          class="theme-segmented__item"
-          class:theme-segmented__item--active={current === option.key}
-          aria-pressed={current === option.key}
-          title={option.hint?.()}
-          onclick={() => apply(option.key)}>{option.label()}</button
-        >
-      {/each}
-    </div>
+    <span class="settings__label">
+      {label}
+      {#if help}<HelpTip {label} text={help} />{/if}
+    </span>
+    {#if compact && options.length > 2}
+      <select
+        class="theme-select"
+        value={current}
+        aria-label={label}
+        onchange={(e) => apply(e.currentTarget.value)}
+      >
+        {#each options as option (option.key)}
+          <option value={option.key}>{option.label()}</option>
+        {/each}
+      </select>
+    {:else}
+      <div class="theme-segmented" role="group" aria-label={label} use:segmented>
+        {#each options as option (option.key)}
+          <button
+            type="button"
+            class="theme-segmented__item"
+            class:theme-segmented__item--active={current === option.key}
+            aria-pressed={current === option.key}
+            title={option.hint?.()}
+            onclick={() => apply(option.key)}>{option.label()}</button
+          >
+        {/each}
+      </div>
+    {/if}
   </div>
 {/snippet}
 
@@ -192,76 +237,52 @@
       {/each}
     </select>
   </label>
-  <p class="settings__hint">{row.hint}</p>
 {/snippet}
 
-<SettingsSection title={S.sectionDisplay} {compact} {onReset}>
-  <p class="settings__hint">{S.sectionDisplayHint}</p>
+<SettingsSection title={S.sectionDisplay} help={S.sectionDisplayHint} {compact} {onReset}>
 
-  <h3 class="settings__subtitle">{S.mode}</h3>
+  <h3 class="settings__subtitle">{S.subColours}</h3>
 
   <!-- The MODE leads: it decides the ground everything else is drawn on. A
        segmented group — three looks you want to see side by side. The THEME
-       (the palette) is the block below; the two are independent. -->
+       (the palette) is the row below; the two are independent. -->
   {@render segmentedRow(S.mode, MODES, form.mode || DEFAULT_MODE, (key) =>
     putDisplay({ mode: key }),
   )}
 
   <!-- The THEME — the palette: the app's own (`.jott/themes/jott.css` in
-       every notebook) and the ones the reader brought in. A block, not
-       segments: these have authors and versions, and any number of them. -->
-  <h3 class="settings__subtitle">{S.theme}</h3>
-  <div class="settings__themes">
-    <button
-      type="button"
-      class="theme-row settings__theme"
-      aria-pressed={!form.theme}
-      onclick={() => putDisplay({ theme: "" })}
+       every notebook), the ones the reader brought in, and the door to a
+       new one — which copies the look on screen and opens its folder, so it
+       is only offered where there is a file manager to open. -->
+  <label class="settings__row">
+    <span class="settings__label">
+      {S.theme}
+      <HelpTip label={S.theme} text={S.themesFromNotebookHint} />
+    </span>
+    <select
+      class="theme-select"
+      value={form.theme || ""}
+      aria-label={S.theme}
+      onchange={pickTheme}
     >
-      <span class="settings__theme-name">{S.themeJott}</span>
-      <span class="settings__theme-meta">{S.themeJottMeta}</span>
-    </button>
-    {#if !form.theme}
-      <p class="settings__hint">{S.themeJottHint}</p>
-    {/if}
-    {#each userThemes as theme (theme.name)}
-      {@const active = form.theme === theme.name}
-      <button
-        type="button"
-        class="theme-row settings__theme"
-        aria-pressed={active}
-        onclick={() => putDisplay({ theme: theme.name })}
-      >
-        <span class="settings__theme-name">{theme.label}</span>
-        <span class="settings__theme-meta">
-          {#if theme.author}{S.themeBy(theme.author)}{/if}
-          {#if theme.version}<span class="settings__theme-version"
-              >{theme.version}</span
-            >{/if}
-        </span>
-      </button>
-      <!-- Said on the row it is about, and only while it matters:
-           a warning about a theme nobody is wearing is noise. -->
-      {#if !theme.supported}
-        <p class="settings__hint">{S.themeNeedsNewerApp(theme.minAppVersion)}</p>
+      <option value="">{S.themeJott} · {S.themeJottMeta}</option>
+      {#each userThemes as theme (theme.name)}
+        <option value={theme.name}>{themeOption(theme)}</option>
+      {/each}
+      {#if onNewTheme && !readOnly && !mobile}
+        <option value={NEW_THEME}>{S.newThemeAction}…</option>
       {/if}
-      {#if active && wornTheme !== theme.name}
-        <p class="settings__hint">{S.themeUnreadable}</p>
-      {:else if active && blockedInTheme > 0}
-        <p class="settings__hint">{S.themeBlockedRefs(blockedInTheme)}</p>
-      {/if}
-    {/each}
-  </div>
-  <p class="settings__hint">{S.themesFromNotebookHint}</p>
-
-  <!-- The door for someone who has no theme: what it writes is the look on
-       screen right now, which is also how a theme is duplicated. -->
-  {#if onNewTheme && !readOnly}
-    <div class="settings__row">
-      <button type="button" class="theme-btn" onclick={makeTheme}
-        >{S.newThemeAction}</button
-      >
-    </div>
+    </select>
+  </label>
+  <!-- Said under the row, and only while it matters: a warning about a
+       theme nobody is wearing is noise. -->
+  {#if chosenTheme && !chosenTheme.supported}
+    <p class="settings__hint">{S.themeNeedsNewerApp(chosenTheme.minAppVersion)}</p>
+  {/if}
+  {#if chosenTheme && wornTheme !== chosenTheme.name}
+    <p class="settings__hint">{S.themeUnreadable}</p>
+  {:else if chosenTheme && blockedInTheme > 0}
+    <p class="settings__hint">{S.themeBlockedRefs(blockedInTheme)}</p>
   {/if}
 
   <!-- Not a <label>: the picker is a group of buttons, and a label wrapping
@@ -275,7 +296,6 @@
       onPick={(c) => putDisplay({ accentColor: c })}
     />
   </div>
-  <p class="settings__hint">{S.accentColorHint}</p>
 
   <!-- A setting and not a theme: a note titled in its space's colour is the
        app's face, and a reader who wants a document turns it off. -->
@@ -291,7 +311,10 @@
   <!-- The interface's own size, for whoever never learned Ctrl +/-. The
        shell owns the value, so this asks it to change. -->
   <div class="settings__row">
-    <span class="settings__label">{S.interfaceZoom}</span>
+    <span class="settings__label">
+      {S.interfaceZoom}
+      <HelpTip label={S.interfaceZoom} text={S.interfaceZoomHint} />
+    </span>
     <div class="settings__zoom">
       <input
         class="theme-range"
@@ -313,7 +336,6 @@
       >
     </div>
   </div>
-  <p class="settings__hint">{S.interfaceZoomHint}</p>
 
   <!-- How big a note reads: this machine's, like everything here — a phone
        and a monitor do not agree, and the notebook is the same notebook. -->
@@ -323,7 +345,6 @@
     form.noteFontSize || DEFAULT_NOTE_FONT_SIZE,
     (key) => putDisplay({ noteFontSize: key }),
   )}
-  <p class="settings__hint">{S.noteFontSizeHint}</p>
 
   <!-- The three faces. Display, like the size above: which fonts exist is a
        fact about THIS machine, and a notebook carried elsewhere must not
@@ -346,8 +367,8 @@
     FORMAT_BAR_MODES,
     form.formatBar || DEFAULT_FORMAT_BAR,
     (key) => putDisplay({ formatBar: key }),
+    S.formatBarHint,
   )}
-  <p class="settings__hint">{S.formatBarHint}</p>
 
   <!-- Four sides, the bar centred on the one it is given — an edge, not a
        corner. Off is the one state with no answer to give. -->
@@ -357,7 +378,6 @@
     form.formatBarSide || DEFAULT_FORMAT_BAR_SIDE,
     (key) => putDisplay({ formatBarSide: key }),
   )}
-  <p class="settings__hint">{S.formatBarSideHint}</p>
 
   <h3 class="settings__subtitle">{S.subInterface}</h3>
 
@@ -373,7 +393,10 @@
   </label>
 
   <label class="settings__row">
-    <span class="settings__label">{S.autoSpaceColors}</span>
+    <span class="settings__label">
+      {S.autoSpaceColors}
+      <HelpTip label={S.autoSpaceColors} text={S.autoSpaceColorsHint} />
+    </span>
     <input
       class="theme-checkbox"
       type="checkbox"
@@ -382,7 +405,6 @@
       onchange={(e) => putDisplay({ autoSpaceColors: e.currentTarget.checked })}
     />
   </label>
-  <p class="settings__hint">{S.autoSpaceColorsHint}</p>
 
   <label class="settings__row">
     <span class="settings__label">{S.restoreLastScreen}</span>
@@ -394,7 +416,6 @@
       onchange={(e) => putDisplay({ restoreLastScreen: e.currentTarget.checked })}
     />
   </label>
-  <p class="settings__hint">{S.restoreLastScreenHint}</p>
 
   <label class="settings__row">
     <span class="settings__label">{S.closeOnClickAway}</span>
@@ -407,7 +428,6 @@
         putDisplay({ closeInspectorOnClickAway: e.currentTarget.checked })}
     />
   </label>
-  <p class="settings__hint">{S.closeOnClickAwayHint}</p>
 
   <label class="settings__row">
     <span class="settings__label">{S.dateFormat}</span>

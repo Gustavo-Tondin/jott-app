@@ -28,9 +28,10 @@ it. Open it, change a colour, save — **the app repaints**. Delete it and the
 next open brings the factory one back. That file is the whole contract: about
 a hundred `--theme-*` tokens in one `:root { … }`.
 
-To keep the factory palette and make another: Settings → Display → **New
-theme from this one**. It asks for a name and writes `.jott/themes/<name>/`
-with the palette you are wearing right now, in the same shape.
+To keep the factory palette and make another: Settings → Display → Theme →
+**New theme from this one…** (the last option of the drop-down, on the
+desktop). It asks for a name, writes `.jott/themes/<name>/` with the palette
+you are wearing right now, in the same shape, puts it on and opens the folder.
 
 ## Bringing one in by hand
 

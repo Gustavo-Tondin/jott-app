@@ -18,6 +18,7 @@
   // Notebook: where it is, where the two quick captures land, and what it
   // keeps. Every choice is the notebook's own (`put`).
   import { api } from "../../services/api.js";
+  import HelpTip from "./HelpTip.svelte";
   import SettingsSection from "./SettingsSection.svelte";
 
   let {
@@ -49,7 +50,7 @@
 
 <!-- One of the two capture destinations: a select over the targets the
      shell computed, bound to the notebook key it writes. -->
-{#snippet targetRow(label, key, targets, hint)}
+{#snippet targetRow(label, key, targets)}
   <label class="settings__row">
     <span class="settings__label">{label}</span>
     <select
@@ -64,7 +65,6 @@
       {/each}
     </select>
   </label>
-  <p class="settings__hint">{hint}</p>
 {/snippet}
 
 <SettingsSection title={S.sectionNotebook} {compact} {onReset} resetDisabled={readOnly}>
@@ -103,12 +103,12 @@
        keep the capture alive with the fixed space hidden; with nowhere to go
        the row goes too. -->
   {#if noteTargets.length > 0}
-    {@render targetRow(S.quickNoteFolder, "quickNoteFolder", noteTargets, S.quickNoteFolderHint)}
+    {@render targetRow(S.quickNoteFolder, "quickNoteFolder", noteTargets)}
   {/if}
 
   <!-- The tasks mirror: both captures name their landing place side by side. -->
   {#if taskTargets.length > 0}
-    {@render targetRow(S.quickTasksGoTo, "quickTaskList", taskTargets, S.quickTasksGoToHint)}
+    {@render targetRow(S.quickTasksGoTo, "quickTaskList", taskTargets)}
   {/if}
 
   <h3 class="settings__subtitle">{S.subSafety}</h3>
@@ -116,7 +116,10 @@
   <!-- Rescued, like its sibling in Notes: the "don't ask again" of the
        delete dialog wrote it and nothing offered the way back. -->
   <label class="settings__row">
-    <span class="settings__label">{S.confirmDeletes}</span>
+    <span class="settings__label">
+      {S.confirmDeletes}
+      <HelpTip label={S.confirmDeletes} text={S.confirmDeletesHint} />
+    </span>
     <input
       class="theme-checkbox"
       type="checkbox"
@@ -126,7 +129,6 @@
       onchange={(e) => put({ confirmDeletes: e.currentTarget.checked })}
     />
   </label>
-  <p class="settings__hint">{S.confirmDeletesHint}</p>
 
   <h3 class="settings__subtitle">{S.subKeeping}</h3>
 
@@ -136,7 +138,10 @@
   </p>
 
   <label class="settings__row">
-    <span class="settings__label">{S.completedRetention}</span>
+    <span class="settings__label">
+      {S.completedRetention}
+      <HelpTip label={S.completedRetention} text={S.completedRetentionHint} />
+    </span>
     <input
       class="theme-input theme-number"
       type="number"
@@ -148,10 +153,12 @@
         put({ completedRetentionDays: Number(e.currentTarget.value) })}
     />
   </label>
-  <p class="settings__hint">{S.completedRetentionHint}</p>
 
   <label class="settings__row">
-    <span class="settings__label">{S.trashRetention}</span>
+    <span class="settings__label">
+      {S.trashRetention}
+      <HelpTip label={S.trashRetention} text={S.trashRetentionHint} />
+    </span>
     <input
       class="theme-input theme-number"
       type="number"
@@ -162,5 +169,4 @@
       onchange={(e) => put({ trashRetentionDays: Number(e.currentTarget.value) })}
     />
   </label>
-  <p class="settings__hint">{S.trashRetentionHint}</p>
 </SettingsSection>

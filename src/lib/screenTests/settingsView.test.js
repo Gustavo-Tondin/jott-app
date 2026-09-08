@@ -99,11 +99,11 @@ describe("SettingsView", () => {
     const box = await screen.findByPlaceholderText("Search settings");
     await userEvent.type(box, "formatting bar");
     // The HIT itself, not the menu entry that is on screen either way.
-    expect(await screen.findByRole("button", { name: /Formatting bar/ })).toBeTruthy();
+    expect(await screen.findByRole("button", { name: /^Formatting bar/ })).toBeTruthy();
 
     await userEvent.clear(box);
     await userEvent.type(box, "bar position");
-    expect(await screen.findByRole("button", { name: /Bar position/ })).toBeTruthy();
+    expect(await screen.findByRole("button", { name: /^Bar position/ })).toBeTruthy();
   });
 
   test("the Notebook section says what the notebook holds", async () => {
@@ -177,7 +177,8 @@ describe("SettingsView", () => {
 
   test("a theme the notebook carries is offered beside the app's own", async () => {
     // The whole installation procedure is putting a file in `.jott/themes/`,
-    // so the block appears by itself — and only when there is something in it.
+    // so the option appears by itself (2026-09-08: one <select> beside the
+    // label, where the other rows keep their choice).
     bridge({ notebook_settings: settings, set_machine_display: null });
     render(SettingsView, {
       props: props({
@@ -196,12 +197,13 @@ describe("SettingsView", () => {
     });
 
     await openSection("Display");
-    const row = await screen.findByRole("button", { name: /Solarized/ });
-    // What the manifest says about itself, on the row.
-    expect(row.textContent).toContain("by Ethan");
-    expect(row.textContent).toContain("1.2.0");
+    const pick = await screen.findByRole("combobox", { name: "Theme" });
+    const option = [...pick.options].find((o) => o.value === "solarized");
+    // What the manifest says about itself, on the option.
+    expect(option.textContent).toContain("by Ethan");
+    expect(option.textContent).toContain("1.2.0");
 
-    await userEvent.click(row);
+    await userEvent.selectOptions(pick, "solarized");
     await waitFor(() =>
       expect(invoke).toHaveBeenCalledWith("set_machine_display", {
         display: { theme: "solarized" },
@@ -210,19 +212,20 @@ describe("SettingsView", () => {
   });
 
   test("with no theme of its own the notebook still offers Jott, the app's palette", async () => {
-    // The theme block is never empty (2026-08-26): the app's own palette is a
+    // The theme box is never empty (2026-08-26): the app's own palette is a
     // theme too — the editable `.jott/themes/jott.css` — and it is the one on
-    // when nothing is chosen. The hint that says where a theme goes stands,
+    // when nothing is chosen. Where a theme goes is behind the row's ?,
     // because that is the answer to "how do I get one".
     bridge({ notebook_settings: settings, set_machine_display: null });
     render(SettingsView, { props: props() });
 
     await openSection("Display");
-    const rows = screen.getAllByRole("button", { pressed: true });
-    const jott = rows.find((b) => b.className.includes("settings__theme"));
-    expect(jott.textContent).toContain("Jott");
-    expect(screen.getByText(/jott\.css/)).toBeTruthy();
-    expect(screen.getByText(/A theme is a .css file/)).toBeTruthy();
+    const pick = await screen.findByRole("combobox", { name: "Theme" });
+    expect(pick.value).toBe("");
+    expect(pick.selectedOptions[0].textContent).toContain("Jott");
+
+    await userEvent.click(screen.getByRole("button", { name: "About Theme" }));
+    expect(await screen.findByText(/A theme is a .css file/)).toBeTruthy();
   });
 
   test("choosing Jott again clears the theme, and leaves the mode alone", async () => {
@@ -237,11 +240,9 @@ describe("SettingsView", () => {
       }),
     });
     await openSection("Display");
-    const jott = screen
-      .getAllByRole("button", { name: /Jott/ })
-      .find((b) => b.className.includes("settings__theme"));
-    expect(jott.getAttribute("aria-pressed")).toBe("false");
-    await userEvent.click(jott);
+    const pick = await screen.findByRole("combobox", { name: "Theme" });
+    expect(pick.value).toBe("solarized");
+    await userEvent.selectOptions(pick, "");
     await waitFor(() =>
       expect(invoke).toHaveBeenCalledWith("set_machine_display", { display: { theme: "" } }),
     );
@@ -299,11 +300,14 @@ describe("SettingsView", () => {
     await screen.findByText(/2 addresses pointing off this machine were blocked/);
   });
 
-  test("a theme can be made out of the look on screen, and is worn at once", async () => {
+  test("a theme can be made out of the look on screen, worn at once, and opened", async () => {
     // The seeding happens in the shell (it is what knows which stylesheet is
-    // on); this screen asks for a name, hands it over, and puts the result on
-    // — a theme written and not worn gives the reader no way to tell it took.
-    bridge({ notebook_settings: settings, set_machine_display: null });
+    // on); this screen asks for a name, hands it over, puts the result on —
+    // a theme written and not worn gives the reader no way to tell it took —
+    // and opens the folder, which is where the editing happens. The door is
+    // the last option of the theme box, and the box goes back to what is
+    // worn: a door is not a choice.
+    bridge({ notebook_settings: settings, set_machine_display: null, open_in_file_manager: null });
     const made = [];
     render(SettingsView, {
       props: props({
@@ -315,7 +319,8 @@ describe("SettingsView", () => {
     });
 
     await openSection("Display");
-    await userEvent.click(screen.getByRole("button", { name: "New theme from this one" }));
+    const pick = await screen.findByRole("combobox", { name: "Theme" });
+    await userEvent.selectOptions(pick, "/new");
     await answerName("Solarized");
 
     await waitFor(() => expect(made).toEqual(["Solarized"]));
@@ -324,6 +329,21 @@ describe("SettingsView", () => {
         display: { theme: "Solarized" },
       }),
     );
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("open_in_file_manager", {
+        path: ".jott/themes/Solarized/theme.css",
+      }),
+    );
+    expect(pick.value).not.toBe("/new");
+  });
+
+  test("a phone is not offered the door to a new theme", async () => {
+    // Nothing there to open the folder in.
+    bridge({ notebook_settings: settings });
+    render(SettingsView, { props: props({ mobile: true, onNewTheme: async () => ({}) }) });
+    await openSection("Display");
+    const pick = await screen.findByRole("combobox", { name: "Theme" });
+    expect([...pick.options].map((o) => o.value)).not.toContain("/new");
   });
 
   test("the mode and the accent are chosen here, and stored by name", async () => {
@@ -694,10 +714,69 @@ describe("SettingsView", () => {
     expect(screen.queryByRole("button", { name: "Notebook" })).toBe(null);
     expect(said.at(-1)).toBe("Display");
 
-    await userEvent.click(screen.getByRole("button", { name: "All settings" }));
+    // No "back" of its own (2026-09-08): the app's one gesture — the header's
+    // arrow, the phone's swipe, the mouse's button — is what returns.
+    expect(screen.queryByRole("button", { name: /All settings/ })).toBe(null);
+    expect(back()).toBe(true);
     expect(await screen.findByRole("button", { name: "Notebook" })).toBeTruthy();
     expect(screen.queryByLabelText("Date format")).toBe(null);
     expect(said.at(-1)).toBe("");
+  });
+
+  test("below 768px a group of three or more choices is a select", async () => {
+    // Three segments and a label do not share a phone's width; two do.
+    bridge({ notebook_settings: settings, set_machine_display: null });
+    render(SettingsView, { props: props({ compact: true }) });
+    await openSection("Display");
+
+    expect(screen.queryByRole("button", { name: "Large" })).toBe(null);
+    const size = await screen.findByRole("combobox", { name: "Note text size" });
+    await userEvent.selectOptions(size, "large");
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("set_machine_display", {
+        display: { noteFontSize: "large" },
+      }),
+    );
+    // Two choices still sit side by side.
+    expect(screen.getByRole("button", { name: "Ink" })).toBeTruthy();
+  });
+
+  test("the ? beside a row opens its explanation, and does not touch the switch", async () => {
+    // The prose left the page (2026-09-08): a row is its label and its
+    // control, and what it means waits behind the ? — inside the row's
+    // <label>, where a click must not flip the switch on the way.
+    bridge({ notebook_settings: settings, set_notebook_settings: null });
+    render(SettingsView, { props: props() });
+    await openSection("Notebook");
+
+    expect(screen.queryByText(/Nothing is destroyed either way/)).toBe(null);
+    await userEvent.click(screen.getByRole("button", { name: "About Ask before deleting" }));
+    expect(await screen.findByText(/Nothing is destroyed either way/)).toBeTruthy();
+    expect(invoke).not.toHaveBeenCalledWith("set_notebook_settings", expect.anything());
+
+    await userEvent.keyboard("{Escape}");
+    await waitFor(() =>
+      expect(screen.queryByText(/Nothing is destroyed either way/)).toBe(null),
+    );
+  });
+
+  test("About reads version, system, help — and Quit last", async () => {
+    bridge({ notebook_settings: settings, app_version: "0.52.1", auto_update_check: true });
+    render(SettingsView, { props: props() });
+    await openSection("About");
+    await screen.findByText(/Jott 0\.52\.1/);
+
+    const labels = [...document.querySelectorAll(".settings__label")].map((el) =>
+      el.textContent.trim(),
+    );
+    const at = (name) => labels.findIndex((l) => l.startsWith(name));
+    expect(at("Version")).toBeLessThan(at("Check for updates automatically"));
+    expect(at("Check for updates automatically")).toBeLessThan(at("Keep Jott running"));
+    expect(at("Keep Jott running")).toBeLessThan(at("Your files"));
+    expect(at("Quit Jott")).toBe(labels.length - 1);
+    // Check now sits on the version's own line.
+    const version = screen.getByText(/Jott 0\.52\.1/).closest(".settings__row");
+    expect(version.textContent).toContain("Check now");
   });
 
   test("the phone's back gesture returns to the menu before leaving Settings", async () => {
@@ -1009,7 +1088,7 @@ describe("SettingsView — the three faces (2026-08-24)", () => {
     render(SettingsView, { props: displayProps() });
     await userEvent.click(await screen.findByRole("button", { name: "Display" }));
 
-    expect(await screen.findByText(/only list installed fonts on Linux/)).toBeTruthy();
+    expect(await screen.findByText(/only listed on Linux/)).toBeTruthy();
     // And the picker still has real choices.
     const picker = screen.getByRole("combobox", { name: "Monospace font" });
     expect([...picker.options].map((o) => o.value)).toContain("monospace");

@@ -5,9 +5,9 @@
   /// the search derives from `features.js`.
   export const index = () => [
     S.autoUrgentByDate,
-    S.newTasksGoTo,
     S.autoRemind,
     S.reminderTime,
+    S.newTasksGoTo,
     S.tasksShowAll,
     S.offerTaskFields,
   ];
@@ -18,6 +18,7 @@
   // switch, and the notebook rules that hang off them.
   import { childrenIn, on } from "../../services/features.js";
   import FeatureRow from "./FeatureRow.svelte";
+  import HelpTip from "./HelpTip.svelte";
   import SettingsSection from "./SettingsSection.svelte";
 
   let {
@@ -32,22 +33,6 @@
 </script>
 
 <SettingsSection title={S.featureTasks} {compact} features {onReset} resetDisabled={readOnly}>
-  <!-- A notebook rule, not a field: where a capture lands. Above the
-       screens because it is the first thing a new task does. -->
-  <label class="settings__row">
-    <span class="settings__label">{S.newTasksGoTo}</span>
-    <select
-      class="theme-select"
-      value={form.newTasksOnTop ? "top" : "bottom"}
-      disabled={readOnly}
-      aria-label={S.newTasksGoTo}
-      onchange={(e) => put({ newTasksOnTop: e.currentTarget.value === "top" })}
-    >
-      <option value="bottom">{S.newTasksBottom}</option>
-      <option value="top">{S.newTasksTop}</option>
-    </select>
-  </label>
-
   <h3 class="settings__subtitle">{S.subScreens}</h3>
   {#each childrenIn("tasks", "screens") as feature (feature.key)}
     <FeatureRow {feature} {features} {readOnly} {onSet} />
@@ -61,7 +46,10 @@
          field off. -->
     {#if feature.key === "priority"}
       <label class="settings__row settings__row--sub">
-        <span class="settings__label">{S.autoUrgentByDate}</span>
+        <span class="settings__label">
+          {S.autoUrgentByDate}
+          <HelpTip label={S.autoUrgentByDate} text={S.autoUrgentByDateHint} />
+        </span>
         <input
           class="theme-checkbox"
           type="checkbox"
@@ -76,7 +64,10 @@
          field off there is no bell for it to ring. -->
     {#if feature.key === "remind"}
       <label class="settings__row settings__row--sub">
-        <span class="settings__label">{S.autoRemind}</span>
+        <span class="settings__label">
+          {S.autoRemind}
+          <HelpTip label={S.autoRemind} text={S.autoRemindHint} />
+        </span>
         <select
           class="theme-select"
           bind:value={form.autoRemind}
@@ -100,29 +91,29 @@
           onchange={(e) => put({ reminderTime: e.currentTarget.value })}
         />
       </label>
-      <p class="settings__hint">{S.autoRemindHint}</p>
     {/if}
   {/each}
-  <p class="settings__hint">{S.autoUrgentByDateHint}</p>
 
-  <!-- The task panel's card that points here while a field is off. Its
-       "Not now" only switches this off; this row is the way back. -->
+  <!-- The notebook's rules for tasks, after the fields they apply to. -->
+  <h3 class="settings__subtitle">{S.subBehaviour}</h3>
+
+  <!-- Where a capture lands. -->
   <label class="settings__row">
-    <span class="settings__label">{S.offerTaskFields}</span>
-    <input
-      class="theme-switch"
-      type="checkbox"
-      bind:checked={form.offerTaskFields}
+    <span class="settings__label">{S.newTasksGoTo}</span>
+    <select
+      class="theme-select"
+      value={form.newTasksOnTop ? "top" : "bottom"}
       disabled={readOnly}
-      aria-label={S.offerTaskFields}
-      onchange={(e) => put({ offerTaskFields: e.currentTarget.checked })}
-    />
+      aria-label={S.newTasksGoTo}
+      onchange={(e) => put({ newTasksOnTop: e.currentTarget.value === "top" })}
+    >
+      <option value="bottom">{S.newTasksBottom}</option>
+      <option value="top">{S.newTasksTop}</option>
+    </select>
   </label>
-  <p class="settings__hint">{S.offerTaskFieldsHint}</p>
 
   <!-- The fixed Tasks screen: the Inbox alone, or every list pulled together.
        A notebook setting on the function's page — not a feature switch. -->
-  <h3 class="settings__subtitle">{S.subTasksScreen}</h3>
   <label class="settings__row">
     <span class="settings__label">{S.tasksShowAll}</span>
     <select
@@ -136,5 +127,21 @@
       <option value="all">{S.tasksShowAllEvery}</option>
     </select>
   </label>
-  <p class="settings__hint">{S.tasksShowAllHint}</p>
+
+  <!-- The task panel's card that points here while a field is off. Its
+       "Not now" only switches this off; this row is the way back. -->
+  <label class="settings__row">
+    <span class="settings__label">
+      {S.offerTaskFields}
+      <HelpTip label={S.offerTaskFields} text={S.offerTaskFieldsHint} />
+    </span>
+    <input
+      class="theme-switch"
+      type="checkbox"
+      bind:checked={form.offerTaskFields}
+      disabled={readOnly}
+      aria-label={S.offerTaskFields}
+      onchange={(e) => put({ offerTaskFields: e.currentTarget.checked })}
+    />
+  </label>
 </SettingsSection>

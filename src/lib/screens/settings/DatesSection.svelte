@@ -15,6 +15,7 @@
 <script>
   // Date preferences: what a date DOES. How one is written answers to the
   // device, and lives in Display.
+  import HelpTip from "./HelpTip.svelte";
   import SettingsSection from "./SettingsSection.svelte";
 
   let {
@@ -63,10 +64,12 @@
       <option value="sunday">{S.sunday}</option>
     </select>
   </label>
-  <p class="settings__hint">{S.weekStartsOnHint}</p>
 
   <label class="settings__row">
-    <span class="settings__label">{S.datedTasksJoinPeriod}</span>
+    <span class="settings__label">
+      {S.datedTasksJoinPeriod}
+      <HelpTip label={S.datedTasksJoinPeriod} text={S.datedTasksJoinPeriodHint} />
+    </span>
     <input
       class="theme-checkbox"
       type="checkbox"
@@ -76,9 +79,7 @@
       onchange={(e) => put({ datedTasksJoinPeriod: e.currentTarget.checked })}
     />
   </label>
-  <p class="settings__hint">{S.datedTasksJoinPeriodHint}</p>
 
   <!-- This section decides what a date DOES; how one is written answers to
        the device and sits in Display — said out loud here. -->
-  <p class="settings__hint">{S.dateFormatElsewhere}</p>
 </SettingsSection>
