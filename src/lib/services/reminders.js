@@ -107,11 +107,7 @@ export function waitUntil(at, now = new Date()) {
   return clamp(parseAt(at).getTime() - now.getTime(), MIN_WAIT, MAX_WAIT);
 }
 
-/// What the notification says: the task, and — when the reminder is the
-/// automatic one for a dated task — that it is about the date.
+/// What the notification says: the task that asked to be reminded.
 export function notice(reminder, strings) {
-  return {
-    title: reminder.auto ? strings.reminderDueTitle : strings.reminderTitle,
-    body: reminder.text,
-  };
+  return { title: strings.reminderTitle, body: reminder.text };
 }
