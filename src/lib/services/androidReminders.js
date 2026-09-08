@@ -5,16 +5,10 @@
 
 import { invoke } from "@tauri-apps/api/core";
 import { notice, parseAt } from "./reminders.js";
-import { summaryAt } from "./daySummary.js";
-import { toIso } from "./dates.js";
 
 /// How many upcoming reminders the system holds at once. Android caps
 /// pending alarms per app (500), and every open re-syncs.
 const SCHEDULED_AHEAD = 50;
-
-/// The day summary's alarm id. Fixed, so every sync replaces the one alarm
-/// instead of stacking one per sync.
-const SUMMARY_ID = 1;
 
 /// A stable 31-bit id for a reminder, so re-syncing replaces rather than
 /// duplicates and a click can name what it came from.
@@ -30,24 +24,7 @@ export function reminderId(reminder) {
 /// `batch` by name (`sendNotification()` sets the alarm but never stores it,
 /// so `pending()` and the reboot re-registration miss it); `sourceJson` is
 /// set here because the plugin reads it back and never writes it. See docs/platform-gotchas.md#android
-/// The day summary as an alarm, or null when there is nothing to announce:
-/// the next `time` still ahead, carrying the text the day reads RIGHT NOW.
-/// Android holds no timer of ours, so the count is the one the last sync saw
-/// — every open and every notebook change re-syncs it.
-function summaryAlarm(summary, now) {
-  if (!summary?.notice || !summary.time) return null;
-  let at = summaryAt(toIso(now), summary.time);
-  if (at <= now) {
-    at = new Date(at);
-    at.setDate(at.getDate() + 1);
-  }
-  return { at, ...summary.notice };
-}
-
-export async function syncAndroidReminders(
-  reminders,
-  { now = new Date(), strings, summary = null, onError } = {},
-) {
+export async function syncAndroidReminders(reminders, { now = new Date(), strings, onError } = {}) {
   const plugin = await import("@tauri-apps/plugin-notification");
   if (!(await plugin.isPermissionGranted())) {
     if ((await plugin.requestPermission()) !== "granted") return false;
@@ -62,8 +39,7 @@ export async function syncAndroidReminders(
   }
   if (pending.length) await plugin.cancel(pending.map((n) => n.id));
   const upcoming = reminders.filter((r) => parseAt(r.at) > now).slice(0, SCHEDULED_AHEAD);
-  const alarm = summaryAlarm(summary, now);
-  if (upcoming.length === 0 && !alarm) return true;
+  if (upcoming.length === 0) return true;
   const notifications = upcoming.map((reminder) => {
     const { title, body } = notice(reminder, strings);
     const notification = {
@@ -71,22 +47,10 @@ export async function syncAndroidReminders(
       title,
       body,
       schedule: plugin.Schedule.at(parseAt(reminder.at), false, true),
-      // The summary is about the day, not about a task: tapping it only
-      // opens the app, which is what an empty list means to `onAction`.
       extra: { list: reminder.list, id: reminder.id ?? "" },
     };
     return { ...notification, sourceJson: JSON.stringify(notification) };
   });
-  if (alarm) {
-    const notification = {
-      id: SUMMARY_ID,
-      title: alarm.title,
-      body: alarm.body,
-      schedule: plugin.Schedule.at(alarm.at, false, true),
-      extra: { list: "", id: "" },
-    };
-    notifications.push({ ...notification, sourceJson: JSON.stringify(notification) });
-  }
   await invoke("plugin:notification|batch", { notifications });
   return true;
 }

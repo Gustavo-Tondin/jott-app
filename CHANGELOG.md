@@ -34,24 +34,12 @@ file and live only in the commit history.
   off, with a button straight to Settings › Tasks. Close it once and it
   stays closed; the "Suggest more fields in the task panel" row brings it
   back.
-- **Day summary** (Settings › Tasks): one notification at the hour you
-  choose, listing the tasks the day holds. It takes the place of ringing
-  every dated task — a task now rings on its own only if you gave it a
-  reminder.
-- **Repeat: freely** — a task that comes back the moment it is ticked, with
-  no date. Only one of it is ever open; every time you finish it, another
-  copy joins Completed. Bringing one back from Completed takes the copy it
-  left behind with it.
 
 ### Fixed
 
 - The checkbox drawn in a note's summary on a card is a rounded square at
   every size again — it was turning into a circle on a small card, because
   the box grew with the text and its corner did not.
-- **The "system-ui" font choice does something on Linux.** It now draws the
-  interface in the font the desktop itself uses; before, the app's own face
-  was so close to what the system answered with that the choice looked
-  ignored.
 
 ### Improved
 
@@ -81,6 +69,7 @@ file and live only in the commit history.
 - "Close the task panel when clicking outside" now works anywhere on the
   content, not only on the bare margin. A click that opens another task or
   lands in a field keeps the panel. The row is desktop only.
+- The automatic reminder can ring both the day before and on the due day.
 - New tasks go to the **top** of the list by default.
 - Banners and note tags start switched off; the Notes page turns them on.
 - The Timeline's deleted names are two switches — one for tasks, one for notes.

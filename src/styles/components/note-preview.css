@@ -104,14 +104,19 @@
     min-inline-size: 0;
   }
   /* A checklist inside a note is text (spec 5), and this is a picture of it:
-     a drawn box, never an input — nothing on a card is interactive. */
+     a drawn box, never an input — nothing on a card is interactive.
+     THE RADIUS IS `em`, like the box: a rem radius on a box that scales with
+     the text is a different SHAPE at every size — a circle when the card is
+     small, a square when it is large. A third of the side is the ratio the
+     app's own checkbox has (1.125rem box, radius-xs), so the same `- [ ]`
+     reads the same on the card and in the editor. */
   .note-preview__box {
     flex: none;
     inline-size: 0.75em;
     block-size: 0.75em;
     align-self: center;
     border: 0.0625rem solid currentColor;
-    border-radius: var(--app-radius-xs);
+    border-radius: 0.25em;
   }
   .note-preview__box--done {
     background: currentColor;

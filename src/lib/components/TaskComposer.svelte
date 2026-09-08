@@ -7,14 +7,7 @@
   import { S } from "../services/strings.js";
   import { listTitle, splitLabel } from "../services/paths.js";
   import { emptyIntent } from "../services/taskCompose.js";
-  import {
-    PRIORITIES,
-    PRIORITY_SWATCH,
-    REPEAT_UNITS,
-    priorityClass,
-    repeatCounted,
-    repeatCounts,
-  } from "../services/taskFields.js";
+  import { PRIORITIES, PRIORITY_SWATCH, REPEAT_UNITS, priorityClass, repeatCounts } from "../services/taskFields.js";
   import { dismissable } from "../actions/dismissable.js";
   import { keepOnScreen } from "../actions/keepOnScreen.js";
   import Icon from "./Icon.svelte";
@@ -330,8 +323,8 @@
             class="theme-popover theme-popover--end task-composer__repeat-panel"
             use:keepOnScreen
           >
-            {#if repeatCounted(intent.repeatUnit)}
-              <span class="task-composer__repeat-label">{S.repeatEvery}</span>
+            <span class="task-composer__repeat-label">{S.repeatEvery}</span>
+            {#if intent.repeatUnit}
               <!-- Chosen, never typed: on a phone a number field opens the
                    keyboard over its own panel. `repeatCounts` carries whatever
                    this task already says, even off the scale. -->

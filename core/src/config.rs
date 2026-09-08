@@ -133,14 +133,13 @@ pub struct Config {
     /// Treat a task due today or overdue as urgent. Switchable; a hand-written
     /// `#urgent` tag always counts.
     pub auto_urgent_by_date: bool,
-    /// `HH:MM`: the hour the inspector's reminder presets land on.
+    /// Ring for every dated task without being asked (`off` / `dayOf` /
+    /// `dayBefore` / `both`), at `reminder_time`. Computed, never written into the
+    /// task — see `reminders`.
+    pub auto_remind: crate::reminders::AutoRemind,
+    /// `HH:MM`: when the automatic reminder rings, and the hour the
+    /// inspector's presets land on.
     pub reminder_time: crate::reminders::ReminderTime,
-    /// One notification at the start of the day, listing what the day holds.
-    /// The notebook's answer to "remind me of my dates" — a task rings only
-    /// if it asked (`remind:`), the day is announced once.
-    pub day_summary: bool,
-    /// `HH:MM`: when that announcement is made.
-    pub day_summary_time: crate::reminders::ReminderTime,
     /// Where a new task lands in its list: above the first (`true`) or below
     /// the last. `List::add_first` keeps whatever sits above the checklist there.
     pub new_tasks_on_top: bool,
@@ -267,10 +266,8 @@ impl Default for Config {
             timeline_ghost_tasks: false,
             timeline_ghost_notes: false,
             auto_urgent_by_date: true,
+            auto_remind: Default::default(),
             reminder_time: Default::default(),
-            day_summary: false,
-            day_summary_time: crate::reminders::ReminderTime::parse("08:00")
-                .expect("08:00 is a valid time"),
             new_tasks_on_top: true,
             auto_space_colors: false,
             date_display_format: DateFormat::default(),
@@ -463,16 +460,14 @@ impl Config {
             timeline_ghost_tasks: flag(&raw, "timelineGhostTasks", defaults.timeline_ghost_tasks),
             timeline_ghost_notes: flag(&raw, "timelineGhostNotes", defaults.timeline_ghost_notes),
             auto_urgent_by_date: flag(&raw, "autoUrgentByDate", defaults.auto_urgent_by_date),
+            auto_remind: string(&raw, "autoRemind")
+                .as_deref()
+                .map(crate::reminders::AutoRemind::parse_or_default)
+                .unwrap_or_default(),
             reminder_time: string(&raw, "reminderTime")
                 .as_deref()
                 .map(crate::reminders::ReminderTime::parse_or_default)
                 .unwrap_or_default(),
-            day_summary: flag(&raw, "daySummary", defaults.day_summary),
-            day_summary_time: string(&raw, "daySummaryTime")
-                .as_deref()
-                .map(crate::reminders::ReminderTime::parse)
-                .unwrap_or_default()
-                .unwrap_or(defaults.day_summary_time),
             new_tasks_on_top: flag(&raw, "newTasksOnTop", defaults.new_tasks_on_top),
             auto_space_colors: flag(&raw, "autoSpaceColors", defaults.auto_space_colors),
             date_display_format: string(&raw, "dateDisplayFormat")
@@ -575,9 +570,8 @@ impl Config {
             ("timelineGhostTasks", Value::from(self.timeline_ghost_tasks)),
             ("timelineGhostNotes", Value::from(self.timeline_ghost_notes)),
             ("autoUrgentByDate", Value::from(self.auto_urgent_by_date)),
+            ("autoRemind", Value::from(self.auto_remind.render())),
             ("reminderTime", Value::from(self.reminder_time.render())),
-            ("daySummary", Value::from(self.day_summary)),
-            ("daySummaryTime", Value::from(self.day_summary_time.render())),
             ("newTasksOnTop", Value::from(self.new_tasks_on_top)),
             ("autoSpaceColors", Value::from(self.auto_space_colors)),
             (
@@ -602,10 +596,6 @@ impl Config {
         // notebook stays free of empty keys — and going back to the default
         // must REMOVE the key, or a stale one in `raw` survives the rewrite.
         let mut cleared: Vec<&str> = Vec::new();
-        // A key this build no longer writes. It used to ring every dated task
-        // without being asked; the day summary replaced it, and a leftover
-        // value would say nothing to anyone.
-        cleared.push("autoRemind");
         let put_or_clear = crate::jsondoc::put_or_clear;
         // Absent means the dragged order, the default.
         put_or_clear(

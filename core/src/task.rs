@@ -35,9 +35,6 @@ pub enum RepeatUnit {
     Day,
     Week,
     Month,
-    /// No period at all: the task comes back the moment it is completed,
-    /// undated, and only ever ONE of it is open at a time.
-    Free,
 }
 
 impl RepeatUnit {
@@ -46,7 +43,6 @@ impl RepeatUnit {
             Self::Day => "day",
             Self::Week => "week",
             Self::Month => "month",
-            Self::Free => "free",
         }
     }
 
@@ -62,18 +58,10 @@ impl RepeatUnit {
     }
 }
 
-/// What a periodless repetition is written as. Not an `every-` value: there
-/// is no count and no unit to name.
-const FREELY: &str = "freely";
-
 impl Repeat {
-    /// Parses `every-week`, `every-3-days` or `freely`.
+    /// Parses `every-week` or `every-3-days`.
     pub fn parse(text: &str) -> Option<Self> {
-        let text = text.trim();
-        if text == FREELY {
-            return Some(Self::free());
-        }
-        let rest = text.strip_prefix("every-")?;
+        let rest = text.trim().strip_prefix("every-")?;
         match rest.split_once('-') {
             Some((count, unit)) => Some(Self {
                 every: count.parse().ok().filter(|n| *n > 0)?,
@@ -86,23 +74,8 @@ impl Repeat {
         }
     }
 
-    /// The periodless repetition. `every` is 1 so the value is comparable
-    /// with anything the front sends; nothing reads it.
-    pub fn free() -> Self {
-        Self {
-            every: 1,
-            unit: RepeatUnit::Free,
-        }
-    }
-
-    pub fn is_free(self) -> bool {
-        self.unit == RepeatUnit::Free
-    }
-
     pub fn render(self) -> String {
-        if self.is_free() {
-            FREELY.to_string()
-        } else if self.every == 1 {
+        if self.every == 1 {
             format!("every-{}", self.unit.as_str())
         } else {
             // Plural reads naturally: every-3-days.
