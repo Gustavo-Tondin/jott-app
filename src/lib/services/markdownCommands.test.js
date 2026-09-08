@@ -17,7 +17,9 @@ import {
   toggleStrike,
   toggleTaskList,
   toggleUnderline,
+  newlineInMarkup,
 } from "./markdownCommands.js";
+import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 
 // A view is only ever `{state, dispatch}` to a command, so the commands can be
 // driven with no DOM at all — which is the reason they are written as plain
@@ -197,5 +199,56 @@ describe("read-only", () => {
       clearHeading,
     ])
       expect(command(view)).toBe(false);
+  });
+});
+
+// Enter in a list. The command only answers inside Markdown, so these states
+// carry the language — the tree is what tells it which list the cursor is in.
+describe("Enter in a list", () => {
+  function markdownEditor(doc, at = doc.length) {
+    const view = {
+      state: EditorState.create({
+        doc,
+        selection: EditorSelection.single(at),
+        extensions: [markdown({ base: markdownLanguage })],
+      }),
+      dispatch(tr) {
+        view.state = tr.state;
+      },
+    };
+    return view;
+  }
+  const enter = (doc, at) => {
+    const view = markdownEditor(doc, at);
+    const handled = newlineInMarkup(view);
+    return { handled, doc: view.state.doc.toString(), cursor: view.state.selection.main.head };
+  };
+
+  it("carries the marker on", () => {
+    expect(enter("- a")).toEqual({ handled: true, doc: "- a\n- ", cursor: 6 });
+    expect(enter("1. a")).toEqual({ handled: true, doc: "1. a\n2. ", cursor: 8 });
+  });
+
+  // The case the report came from: the second item is empty, and CodeMirror's
+  // own Enter put a blank line ABOVE it to make the list loose.
+  it("on an empty second item ends the list — no blank line above it", () => {
+    expect(enter("- a\n- ")).toEqual({ handled: true, doc: "- a\n", cursor: 4 });
+    expect(enter("- a\n- b\n- ")).toEqual({ handled: true, doc: "- a\n- b\n", cursor: 8 });
+  });
+
+  // …and a list that IS loose (written by hand, or by the build before this
+  // one) is continued tight: no blank line before the next marker.
+  it("continues a loose list without a blank line", () => {
+    expect(enter("- a\n\n- b")).toEqual({ handled: true, doc: "- a\n\n- b\n- ", cursor: 11 });
+    expect(enter("1. a\n\n2. b")).toEqual({ handled: true, doc: "1. a\n\n2. b\n3. ", cursor: 14 });
+    expect(enter("- a\n\n- b\n  - c")).toEqual({
+      handled: true,
+      doc: "- a\n\n- b\n  - c\n  - ",
+      cursor: 19,
+    });
+  });
+
+  it("stays out of plain text, so the default Enter answers there", () => {
+    expect(enter("just a line").handled).toBe(false);
   });
 });

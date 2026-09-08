@@ -12,6 +12,7 @@
 
 import { EditorSelection } from "@codemirror/state";
 import { indentLess, indentMore, redo, undo } from "@codemirror/commands";
+import { insertNewlineContinueMarkupCommand } from "@codemirror/lang-markdown";
 import { TABLE_COMMANDS } from "./tableEditing.js";
 
 /// One level of indentation, as SPACES.
@@ -448,6 +449,50 @@ const indentAndCount = (cmd) => (view) => {
 /// panel's buttons press the very same functions. `note.replace` is the one
 /// exception and stays in the component — it opens a panel, which needs the
 /// view the component owns.
+/// Enter inside a list or a quote: the next line carries the marker on, and
+/// Enter on an EMPTY item ends the list. Never a blank line.
+///
+/// CodeMirror's own binding keeps CommonMark's "loose list" alive, twice.
+/// Enter on the empty SECOND item of a list inserted a blank line above it —
+/// the list was being made loose — and once a list is loose, every Enter in
+/// it put a blank line before the next marker. Typed on a phone, both read as
+/// "Enter skips a line" (user report, 2026-09-08). `nonTightLists: false`
+/// turns the first off; the dispatch below turns the second off by dropping
+/// the blank line the command wrote. A blank line between items is what
+/// Shift+Enter is for.
+const continueMarkup = insertNewlineContinueMarkupCommand({ nonTightLists: false });
+
+export function newlineInMarkup(view) {
+  return continueMarkup({
+    state: view.state,
+    dispatch: (tr) => view.dispatch(tightened(tr, view.state)),
+  });
+}
+
+/// The same transaction with the loose list's blank line taken out. The
+/// continuation is the one change that spans three lines — break, blank,
+/// break and marker — and the cursor lands at the end of it.
+function tightened(tr, state) {
+  const specs = [];
+  let cursor = null;
+  tr.changes.iterChanges((fromA, toA, _fromB, _toB, inserted) => {
+    let insert = inserted.toString();
+    if (inserted.lines === 3) {
+      insert = state.lineBreak + inserted.line(3).text;
+      cursor = toA;
+    }
+    specs.push({ from: fromA, to: toA, insert });
+  });
+  if (cursor === null) return tr;
+  const changes = state.changes(specs);
+  return state.update({
+    changes,
+    selection: EditorSelection.cursor(changes.mapPos(cursor, 1)),
+    scrollIntoView: true,
+    userEvent: "input",
+  });
+}
+
 export const EDITOR_COMMANDS = {
   "md.bold": toggleBold,
   "md.underline": toggleUnderline,

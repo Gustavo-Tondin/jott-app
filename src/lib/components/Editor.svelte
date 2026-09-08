@@ -5,7 +5,7 @@
   // did when this was a `<textarea>` — which is what let the note editor keep
   // its auto-save untouched when the engine changed underneath.
   import { onDestroy, onMount } from "svelte";
-  import { Compartment, EditorState } from "@codemirror/state";
+  import { Compartment, EditorState, Prec } from "@codemirror/state";
   import { EditorView, keymap, placeholder as placeholderExt, tooltips } from "@codemirror/view";
   import {
     defaultKeymap,
@@ -20,7 +20,7 @@
   // second search engine for one screen.
   import { openSearchPanel, search, searchKeymap } from "@codemirror/search";
   import { REPLACE_FIELD, searchPanel } from "../services/searchPanel.js";
-  import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
+  import { deleteMarkupBackward, markdown, markdownLanguage } from "@codemirror/lang-markdown";
   import { markdownPreview } from "../services/markdown.js";
   import { autocompletion } from "@codemirror/autocomplete";
   import { autoClose, plainAutoClose } from "../services/autoClose.js";
@@ -196,12 +196,13 @@
           // Before `defaultKeymap`, whose Shift+Enter inserts a blank line:
           // the first keymap to answer wins.
           //
-          // Enter is deliberately NOT here. `markdown()` binds it at high
-          // precedence already (`markdownKeymap`), and it does both things
-          // asked for — keeps the previous line's indentation and carries the
-          // list marker on. Binding it a second time here would be a second
-          // source for one behaviour. Shift+Enter is the way OUT of both, and
-          // that one nobody had.
+          // Enter and Backspace are `markdown()`'s own pair — carry the list
+          // marker on, take it back — bound HERE at the same high precedence
+          // instead of by `addKeymap` (2026-09-08), because the Enter is the
+          // app's own: CodeMirror's kept CommonMark's loose lists alive, and
+          // a list typed on a phone "skipped a line" (markdownCommands.js
+          // says how). Shift+Enter is the way OUT of both, and that one
+          // nobody had.
           //
           // Tab and Shift+Tab used to be here too. They moved into the
           // registry (`md.indent` / `md.outdent`, 2026-08-19) the moment the
@@ -209,6 +210,12 @@
           // settings row all describing one behaviour is exactly what the
           // registry exists to keep from drifting.
           keymap.of([{ key: "Shift-Enter", run: insertNewline }]),
+          Prec.high(
+            keymap.of([
+              { key: "Enter", run: md.newlineInMarkup },
+              { key: "Backspace", run: deleteMarkupBackward },
+            ]),
+          ),
           // The formatting commands, bound from the SAME registry the shell
           // and the settings screen read (`services/commands.js`), so a
           // rebinding reaches the editor with nothing to keep in sync.
@@ -222,7 +229,7 @@
           // would drag in ~110 parsers for an app whose notes are the small
           // ones of the day (spec 5, principle 4). A code block still reads
           // as code — monospace, set apart — it just is not colourised.
-          markdown({ base: markdownLanguage }),
+          markdown({ base: markdownLanguage, addKeymap: false }),
           markdownPreview,
           // Tables as grids (2026-08-24), edited in place. The field that
           // says which cell is current comes first: the widget dispatches
