@@ -30,7 +30,6 @@
   import { notice, toAt } from "./lib/services/reminders.js";
   import { onAndroidReminderTap, syncAndroidReminders } from "./lib/services/androidReminders.js";
   import ContextMenu from "./lib/components/ContextMenu.svelte";
-  import NotebooksView from "./lib/screens/NotebooksView.svelte";
   import { entryOf } from "./lib/shell/entry.js";
   import ListView from "./lib/screens/ListView.svelte";
   import TasksView from "./lib/screens/TasksView.svelte";
@@ -40,8 +39,6 @@
   import TrashView from "./lib/screens/TrashView.svelte";
   import AssetsView from "./lib/screens/AssetsView.svelte";
   import Icon from "./lib/components/Icon.svelte";
-  import Notice from "./lib/components/Notice.svelte";
-  import Loading from "./lib/components/Loading.svelte";
   import EmptyState from "./lib/components/EmptyState.svelte";
   import NoteBanner from "./lib/components/NoteBanner.svelte";
   import AssetPicker from "./lib/components/AssetPicker.svelte";
@@ -65,6 +62,7 @@
   import SettingsView from "./lib/screens/SettingsView.svelte";
   import TabBar from "./lib/shell/TabBar.svelte";
   import AppBanners from "./lib/shell/AppBanners.svelte";
+  import NotebookPicker from "./lib/shell/NotebookPicker.svelte";
   import TitleBar from "./lib/shell/TitleBar.svelte";
   import { buttonLayout } from "./lib/shell/windowButtons.js";
   import { isMobile, osAttribute, platformAttribute } from "./lib/shell/platform.js";
@@ -2390,96 +2388,27 @@
        hands it whatever height is left. With a notebook open the shell inside
        lays itself out and this does nothing. -->
   <main class="shell__main" class:shell__main--picker={showsPicker}>
-    {#if showsPicker && opening}
-      <!-- Between the click and the notebook: the disk is reading, and the
-           picker with its buttons greyed said nothing about it. -->
-      <Loading screen label={S.openingNotebook(leafOf(opening))} />
-    {:else if showsPicker}
-      <!-- The door of the app (wireframes "Notebooks screen", 2026-08-24). It
-           replaced a paragraph and one button: the app remembers the notebooks
-           this machine has opened, so the usual answer to "which notebook?" is
-           already on the screen and the folder picker is for the other days.
-
-           Android keeps the two extra sentences below it, and they stay HERE
-           rather than moving into the screen: they are about the PERMISSION
-           this platform needs and the container it offers when that permission
-           is refused, which is a fact about the machine and not about the list
-           of notebooks. -->
-      <NotebooksView
+    {#if showsPicker}
+      <NotebookPicker
+        {opening}
         {version}
         {busy}
         {compact}
+        {storage}
+        {privateFolder}
+        {recentCount}
+        {error}
+        {failedOpen}
         onChoose={chooseFolder}
         onOpen={openFromPicker}
+        onOpenAt={openAt}
         onPickFolder={pickAFolder}
         onListed={(n) => (recentCount = n)}
         onClose={showingPicker ? () => (showingPicker = false) : null}
+        onDismissError={() => (error = null)}
+        onDismissFailed={() => (failedOpen = null)}
         onError={fail}
       />
-      <!-- Only when it has something to say, and the private-folder offer only
-           on a phone with NOTHING to offer above it (user report, 2026-08-24).
-           `privateFolder` is non-null on every Android run, so the condition
-           it was written under — a screen that existed only before the first
-           notebook — kept a paragraph about where a notebook could live under
-           a list of notebooks that already do. -->
-      {#if storage === "denied" || (privateFolder && recentCount === 0) || error || failedOpen}
-        <section class="shell__onboarding">
-          {#if storage === "denied"}
-            <p class="shell__onboarding-intro">{S.storageIntro}</p>
-            <button
-              class="theme-btn theme-btn--primary shell__onboarding-action"
-              onclick={() => chooseFolder({ create: true })}
-              disabled={busy}>{S.allowFiles}</button
-            >
-          {/if}
-          {#if privateFolder && recentCount === 0}
-            <button
-              class="theme-btn shell__onboarding-alt"
-              onclick={() => openAt(privateFolder, { create: true })}
-              disabled={busy}>{S.usePrivateFolder}</button
-            >
-            <p class="shell__onboarding-note">{S.privateFolderNote}</p>
-          {/if}
-          {#if failedOpen}
-            <!-- The door that would not open (Etapa 7): which one, why, and
-                 the two ways on — the same door again (a drive that was not
-                 mounted yet, a permission just granted) or another one. -->
-            <Notice
-              tone="error"
-              title={S.openFailedTitle}
-              class="shell__notice"
-              onDismiss={() => (failedOpen = null)}
-              dismissLabel={S.dismissError}
-            >
-              <p><code class="shell__notice-path">{failedOpen.path}</code></p>
-              <p>{failedOpen.message}</p>
-              {#snippet actions()}
-                <button
-                  class="theme-btn theme-btn--primary theme-btn--xs"
-                  disabled={busy}
-                  onclick={() => openAt(failedOpen.path, { create: failedOpen.create })}
-                  >{S.openFailedRetry}</button
-                >
-                <button
-                  class="theme-btn theme-btn--outline theme-btn--xs"
-                  disabled={busy}
-                  onclick={() => chooseFolder({ create: false })}>{S.openFailedOther}</button
-                >
-              {/snippet}
-            </Notice>
-          {:else if error}
-            <Notice
-              tone="error"
-              title={S.errorTitle}
-              class="shell__notice"
-              onDismiss={() => (error = null)}
-              dismissLabel={S.dismissError}
-            >
-              <p>{error}</p>
-            </Notice>
-          {/if}
-        </section>
-      {/if}
   {:else}
     <div
       class="shell"
