@@ -140,6 +140,16 @@
     {/if}
 
     <span class="note-card__title" class:note-card__title--chip={banner && !small}>
+      {#if entry.pinned && !small}
+        <!-- The state, on a phone: the pin BUTTON is not drawn there (the
+             corner is the ⋮'s, note-card.css says why), so the filled mark
+             sits at the head of the title instead — the same glyph, in ink,
+             where the eye starts reading. Nothing on a desktop, which keeps
+             the button. -->
+        <span class="note-card__pinned" title={S.unpin}>
+          <Icon name="bookmark-simple-fill" size="0.75rem" />
+        </span>
+      {/if}
       {entry.title}
     </span>
 
