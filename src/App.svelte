@@ -88,16 +88,10 @@
   import PageHeader from "./lib/shell/PageHeader.svelte";
   import { folderOf, leafOf, listName, listTitle } from "./lib/services/paths.js";
   import { groupColors, spaceColors } from "./lib/services/spaceColors.js";
-  import { ACCENTS, accentFill } from "./lib/services/accent.js";
   import { originOf } from "./lib/services/origin.js";
   import { bannerOf } from "./lib/services/noteActions.js";
   import { cleanTagName } from "./lib/services/taskFields.js";
-  import {
-    NOTE_FONT_SIZES,
-    noteFontSizeAttribute,
-    modeAttribute,
-    paletteAttribute,
-  } from "./lib/services/themes.js";
+  import { noteFontSizeAttribute, modeAttribute, paletteAttribute } from "./lib/services/themes.js";
   import { applyUserTheme, userThemeApplied } from "./lib/shell/userTheme.js";
   import { seedFrom } from "./lib/services/themeSeed.js";
   // The app's own three, as TEXT. `?raw` gives the source rather than a
@@ -117,6 +111,7 @@
   } from "./lib/services/desktopEntry.js";
   import { S } from "./lib/services/strings.js";
   import * as Tabs from "./lib/shell/tabs.js";
+  import { bannerMenuOf, noteActionsOf, pageMenuOf, screenActionsOf } from "./lib/shell/menus.js";
   import { landing, reachable, spaceOfView, titleOf, viewFromId } from "./lib/shell/views.js";
   import { noteTargets } from "./lib/services/noteTargets.js";
   import { quickTaskTarget, taskTargets } from "./lib/services/taskTargets.js";
@@ -1108,59 +1103,28 @@
     searching = true;
   }
 
-  /// The four screen actions, in the order both menus show them.
-  let screenActions = $derived.by(() => {
-    if (notebook?.readOnly) {
-      // Reading is still reading: finding and opening the folder cost nothing.
-      return [
-        { label: S.findInPlace(hereLabel), run: findHere },
-        { label: S.openInFileManager, run: revealHere },
-      ];
-    }
-    const items = [];
-    if (renamableSpace) {
-      items.push({
-        label: S.renameThisSpace,
-        run: () => renameSpaceTo(renamableSpace.path, renamableSpace.name),
-      });
-    }
-    items.push({ label: S.openInFileManager, run: revealHere });
-    items.push(
-      view.kind === "note"
-        ? { label: S.findInNote, run: findHere }
-        : { label: S.findInPlace(hereLabel), run: findHere },
-    );
-    // Replacing is a note's own gesture: a task list is rows in a screen, not
-    // a document with a body to rewrite.
-    if (view.kind === "note") {
-      items.push({ label: S.replaceInNote, run: () => noteEditor?.openReplace() });
-    }
-    return items;
-  });
+  /// The four screen actions, in the order both menus show them (shell/menus.js).
+  let screenActions = $derived(
+    screenActionsOf({
+      readOnly: !!notebook?.readOnly,
+      isNote: view.kind === "note",
+      hereLabel,
+      renamableSpace,
+      findHere,
+      revealHere,
+      renameSpace: renameSpaceTo,
+      openReplace: () => noteEditor?.openReplace(),
+    }),
+  );
 
-  /// The open note's banner, as one row with the eight colours folded under
-  /// it (user call, 2026-08-19: "escolher a cor ou carregar uma imagem nos 3
-  /// pontos do canvas ou clicando com o botão direito nele").
-  ///
-  /// The palette is written out as words here (with the fill each paints
-  /// with, as a dot before the word) and as swatches in the block's own
-  /// popover, because a menu row is a word — but the VALUE is the same name
-  /// either door, which is what keeps the file readable by hand.
-  let bannerMenu = $derived({
-    label: S.banner,
-    items: [
-      ...ACCENTS.map((name) => ({
-        label: S.colorName(name),
-        checked: openNote.banner?.value === name,
-        swatch: accentFill(name),
-        run: () => setNoteBanner(name),
-      })),
-      { label: S.bannerImage, run: () => (pickingImage = "banner") },
-      ...(openNote.banner
-        ? [{ label: S.removeBanner, run: () => setNoteBanner(null) }]
-        : []),
-    ],
-  });
+  /// The open note's banner: one row, the eight colours folded under it.
+  let bannerMenu = $derived(
+    bannerMenuOf({
+      banner: openNote.banner,
+      setBanner: setNoteBanner,
+      pickImage: () => (pickingImage = "banner"),
+    }),
+  );
 
   /// The formatting buttons this notebook does not draw (App Functions,
   /// 2026-08-20). One list, three bars: the panel, the desktop strip and the
@@ -1194,90 +1158,41 @@
       : screenActions,
   );
 
-  /// What an open NOTE can be asked to do — written once and served twice
-  /// (2026-08-19): the page's ••• and the ⋮ of the note's own panel
-  /// (components/NotePanel.svelte). Two lists would have drifted the first
-  /// time one of them grew an item.
-  let noteActions = $derived.by(() => {
-    if (notebook?.readOnly || view.kind !== "note") return [];
-    const own = [];
-    {
-      own.push(
-        // Each of these is a switch of its own (App Functions, 2026-08-20):
-        // an item that acts on something the notebook does not have would be
-        // a promise the app cannot keep.
-        ...(f("pinNotes")
-          ? [{ label: openNote.pinned ? S.unpin : S.pin, run: toggleNotePin }]
-          : []),
-        { label: S.renameNote, run: renameCurrentNote },
-        { label: S.deleteNote, run: deleteCurrentNote },
-        // The banner, from the page's own ⋮ and — through `screenActions` —
-        // from the right button on the canvas (user call, 2026-08-19). The
-        // block carries the same choices in its corner; this is the door for
-        // someone who did not think to look there, and the only one when the
-        // note is scrolled past its head.
-        ...(f("banners") ? [bannerMenu] : []),
-        ...(f("embeds")
-          ? [{ label: S.insertImage, run: () => (pickingImage = "body") }]
-          : []),
-        // The reading size, where a reader asks for it — on the note itself,
-        // not only two screens away in Settings (user call, 2026-08-18). It is
-        // the same notebook setting either way.
-        {
-          label: S.noteTextSize,
-          items: NOTE_FONT_SIZES.map((size) => ({
-            label: size.label(),
-            checked: layout.noteFontSize === size.key,
-            run: () => setNoteFontSize(size.key),
-          })),
-        },
-      );
-      // Only on the desktop: the compact strip answers to the keyboard being
-      // up, so there is nothing here to switch.
-      if (!compact)
-        own.push({
-          label: S.formatting,
-          items: [
-            {
-              label: S.formattingDocked,
-              checked: formatting,
-              run: () => (formatting = true),
-            },
-            {
-              // What the other half IS depends on Settings: with the floating
-              // bar off, undocking the panel does not float anything, so the
-              // menu says so rather than promising a bar that never comes
-              // (2026-08-21).
-              label: formatBarMode === "off" ? S.formattingHidden : S.formattingFloating,
-              checked: !formatting,
-              run: () => (formatting = false),
-            },
-          ],
-        });
-    }
-    return own;
-  });
+  /// What an open NOTE can be asked to do — the page's ••• and the ⋮ of the
+  /// note's own panel read the same list (components/NotePanel.svelte).
+  let noteActions = $derived(
+    noteActionsOf({
+      readOnly: !!notebook?.readOnly,
+      isNote: view.kind === "note",
+      f,
+      pinned: openNote.pinned,
+      togglePin: toggleNotePin,
+      rename: renameCurrentNote,
+      remove: deleteCurrentNote,
+      bannerMenu,
+      pickImage: () => (pickingImage = "body"),
+      fontSize: layout.noteFontSize,
+      setFontSize: setNoteFontSize,
+      compact,
+      formatting,
+      setFormatting: (on) => (formatting = on),
+      formatBarMode,
+    }),
+  );
 
   /// The page menu of the current screen — the `•••` of the wireframe.
-  let pageMenu = $derived.by(() => {
-    // A note's own actions belong here, not to a second bar inside the page.
-    const own = [...noteActions];
-    // Lists are created inside the space itself now, not from here.
-    // Renaming or deleting a list the app recreates on every open would only
-    // confuse — the core refuses it anyway, so the menu must not offer it.
-    if (
-      !notebook?.readOnly &&
-      view.kind === "list" &&
-      view.list !== layout.inbox &&
-      view.list !== layout.completed
-    ) {
-      own.push(
-        { label: S.renameList, run: renameCurrentList },
-        { label: S.deleteList, run: deleteCurrentList },
-      );
-    }
-    return [...own, ...screenActions];
-  });
+  let pageMenu = $derived(
+    pageMenuOf({
+      noteActions,
+      screenActions,
+      readOnly: !!notebook?.readOnly,
+      view,
+      inbox: layout.inbox,
+      completed: layout.completed,
+      renameList: renameCurrentList,
+      deleteList: deleteCurrentList,
+    }),
+  );
 
   // ---- the canvas's own right-click menu ----
   // The same actions, at the pointer. Only the EMPTY canvas: a click on a task
