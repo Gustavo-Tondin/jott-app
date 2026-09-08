@@ -6,21 +6,18 @@
 use chrono::NaiveDate;
 use jott_core::{NoteFolder, Notebook};
 
+mod common;
+use common::{init, read};
+
 fn today() -> NaiveDate {
     NaiveDate::from_ymd_opt(2026, 7, 21).unwrap()
 }
 
 fn folder() -> (tempfile::TempDir, NoteFolder) {
-    let dir = tempfile::tempdir().unwrap();
-    Notebook::init(dir.path()).unwrap();
+    let (dir, _) = init();
     let notes = NoteFolder::new(dir.path().join("jott.notes"));
     notes.ensure_default_folders().unwrap();
     (dir, notes)
-}
-
-
-fn read(path: impl AsRef<std::path::Path>) -> String {
-    std::fs::read_to_string(path).unwrap()
 }
 
 #[test]
@@ -29,8 +26,7 @@ fn the_inbox_folder_comes_back_on_open_and_is_born_with_a_user_space() {
     // a protection without the recreation would guard something the app does
     // not maintain. (It never ran before 2026-08-19: `ensure_default_folders`
     // existed, documented as running on every open, and had no caller.)
-    let dir = tempfile::tempdir().unwrap();
-    Notebook::init(dir.path()).unwrap();
+    let (dir, _) = init();
     assert!(dir.path().join("jott.notes/Inbox").is_dir());
 
     std::fs::remove_dir(dir.path().join("jott.notes/Inbox")).unwrap();
@@ -385,8 +381,7 @@ fn a_deleted_note_goes_to_the_notebooks_trash_and_comes_back() {
     // It goes to the notebook's OWN trash, not the desktop's: that one has no
     // restore, does not exist on Android, and does not travel with a synced
     // notebook.
-    let dir = tempfile::tempdir().unwrap();
-    let nb = Notebook::init(dir.path()).unwrap();
+    let (dir, nb) = init();
     let notes = nb.note_folder("jott.notes").unwrap();
 
     let path = notes.create("", "arrependimento", today()).unwrap();
@@ -430,8 +425,7 @@ fn a_note_moves_to_another_space_without_overwriting_what_is_there() {
     // "Select notes… → move to" (2026-08-18) crosses the border between two
     // spaces, which `NoteFolder::move_to` cannot do and should not: a space
     // has no way to reach into another one. The notebook is what knows both.
-    let dir = tempfile::tempdir().unwrap();
-    let nb = Notebook::init(dir.path()).unwrap();
+    let (dir, nb) = init();
     let other = nb.create_space("Ideias", "notes").unwrap();
 
     let notes = nb.note_folder("jott.notes").unwrap();
@@ -462,8 +456,7 @@ fn a_moved_note_keeps_pointing_at_the_same_image() {
     // the note (user call, 2026-08-18): moving is now a two-click bulk action,
     // and a `../../assets/x.png` would have to be rewritten on every one of
     // them. Nothing is rewritten here — that is the test.
-    let dir = tempfile::tempdir().unwrap();
-    let nb = Notebook::init(dir.path()).unwrap();
+    let (dir, nb) = init();
     let other = nb.create_space("Ideias", "notes").unwrap();
     nb.import_asset("foto.png", b"png-bytes").unwrap();
 
@@ -491,8 +484,7 @@ fn the_library_says_which_files_are_used_and_where() {
     // What the Images screen asks (2026-08-19): a file nobody points at is
     // room being taken up, and a file that IS pointed at is worth a way to
     // what points at it.
-    let dir = tempfile::tempdir().unwrap();
-    let nb = Notebook::init(dir.path()).unwrap();
+    let (_dir, nb) = init();
     nb.import_asset("usada.png", b"x").unwrap();
     nb.import_asset("banner.png", b"x").unwrap();
     nb.import_asset("anexo.pdf", b"x").unwrap();
@@ -530,8 +522,7 @@ fn a_file_named_by_a_plain_markdown_link_still_counts_as_used() {
     // written the address by hand, or in a link, or in a note that predates
     // the syntax. Saying "unused" about a file a note is showing would be a
     // lie with a delete button next to it.
-    let dir = tempfile::tempdir().unwrap();
-    let nb = Notebook::init(dir.path()).unwrap();
+    let (_dir, nb) = init();
     nb.import_asset("foto.png", b"x").unwrap();
 
     let notes = nb.note_folder("jott.notes").unwrap();
@@ -545,8 +536,7 @@ fn a_file_named_by_a_plain_markdown_link_still_counts_as_used() {
 fn renaming_a_file_follows_it_into_every_note_and_task() {
     // A rename that left `[[/foto.jpg]]` pointing at a name nobody has any
     // more would break every note using the file (user call, 2026-08-19).
-    let dir = tempfile::tempdir().unwrap();
-    let nb = Notebook::init(dir.path()).unwrap();
+    let (dir, nb) = init();
     nb.import_asset("foto.jpg", b"x").unwrap();
     nb.import_asset("foto.jpg.bak", b"x").unwrap();
 
@@ -590,8 +580,7 @@ fn renaming_a_file_follows_it_into_every_note_and_task() {
 fn renaming_a_note_follows_it_into_every_link() {
     // A link carries the TITLE, which survives a note being MOVED and goes
     // stale the instant it is renamed. This is the other half of that trade.
-    let dir = tempfile::tempdir().unwrap();
-    let nb = Notebook::init(dir.path()).unwrap();
+    let (dir, nb) = init();
     let other = nb.create_space("Ideias", "notes").unwrap();
 
     let notes = nb.note_folder("jott.notes").unwrap();
@@ -617,8 +606,7 @@ fn renaming_a_note_follows_it_into_every_link() {
 
 #[test]
 fn a_deleted_asset_goes_to_the_trash_like_everything_else() {
-    let dir = tempfile::tempdir().unwrap();
-    let nb = Notebook::init(dir.path()).unwrap();
+    let (dir, nb) = init();
     let address = nb.import_asset("logo.png", b"png-bytes").unwrap();
     assert_eq!(address, "assets/logo.png");
     assert!(dir.path().join("assets/logo.png").is_file());
@@ -704,8 +692,7 @@ fn a_folder_of_notes_carries_a_colour_and_a_pin_in_the_space() {
     // A folder of notes is a plain directory — the app writes no marker inside
     // the user's tree — so what it is coloured and whether it is pinned live in
     // the space's own `.space.json` (user call, 2026-08-19).
-    let dir = tempfile::tempdir().unwrap();
-    Notebook::init(dir.path()).unwrap();
+    let (dir, _) = init();
     let notes = NoteFolder::new(dir.path().join("jott.notes"));
     notes.ensure_default_folders().unwrap();
     notes.create_folder("Clientes").unwrap();
@@ -769,8 +756,7 @@ fn a_folder_of_notes_carries_a_colour_and_a_pin_in_the_space() {
 
 /// A notebook with one note in the fixed Notes space, already marked as seen.
 fn seen_notebook() -> (tempfile::TempDir, Notebook, String) {
-    let dir = tempfile::tempdir().unwrap();
-    let notebook = Notebook::init(dir.path()).unwrap();
+    let (dir, notebook) = init();
     let path = notebook.create_note("jott.notes", "Inbox", "Ideia").unwrap();
     notebook.mark_note_seen("jott.notes", &path).unwrap();
     (dir, notebook, path)
@@ -822,8 +808,7 @@ fn a_note_moved_to_another_space_keeps_it_too() {
 
 #[test]
 fn a_renamed_folder_carries_the_notes_inside_it() {
-    let dir = tempfile::tempdir().unwrap();
-    let notebook = Notebook::init(dir.path()).unwrap();
+    let (_dir, notebook) = init();
     notebook.create_note_folder("jott.notes", "2025").unwrap();
     let path = notebook.create_note("jott.notes", "2025", "Ideia").unwrap();
     notebook.mark_note_seen("jott.notes", &path).unwrap();
@@ -837,8 +822,7 @@ fn a_renamed_folder_carries_the_notes_inside_it() {
 
 #[test]
 fn a_deleted_folder_lets_its_notes_take_the_stamp_up_a_level() {
-    let dir = tempfile::tempdir().unwrap();
-    let notebook = Notebook::init(dir.path()).unwrap();
+    let (_dir, notebook) = init();
     notebook.create_note_folder("jott.notes", "2025").unwrap();
     let path = notebook.create_note("jott.notes", "2025", "Ideia").unwrap();
     notebook.mark_note_seen("jott.notes", &path).unwrap();
@@ -857,8 +841,7 @@ fn a_deleted_note_is_forgotten() {
 
 #[test]
 fn writing_a_note_counts_as_seeing_it() {
-    let dir = tempfile::tempdir().unwrap();
-    let notebook = Notebook::init(dir.path()).unwrap();
+    let (_dir, notebook) = init();
     let path = notebook.create_note("jott.notes", "Inbox", "Ideia").unwrap();
     // Created, not yet opened: nothing knows about it.
     assert_eq!(notebook.seen().at(&format!("jott.notes/{path}")), None);
