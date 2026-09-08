@@ -315,15 +315,16 @@ describe("what the editor actually paints", () => {
     return shown;
   }
 
-  /// Every `cm-md-*` class the stylesheet has a rule for.
+  /// Every `cm-md-*` class the editor sheets have a rule for.
   function dressedByCss() {
     // Not `new URL(…, import.meta.url)`: Vite rewrites that shape into an
     // asset URL, which `readFileSync` cannot open.
     const here = dirname(fileURLToPath(import.meta.url));
-    const css = readFileSync(
-      join(here, "..", "..", "styles", "components", "editor.css"),
-      "utf8",
-    ).replace(/\/\*[\s\S]*?\*\//g, "");
+    const sheets = ["editor.css", "editor-search.css", "editor-tables.css"];
+    const css = sheets
+      .map((n) => readFileSync(join(here, "..", "..", "styles", "components", n), "utf8"))
+      .join("\n")
+      .replace(/\/\*[\s\S]*?\*\//g, "");
     return new Set([...css.matchAll(/\.(cm-md-[a-z0-9-]+)/g)].map((m) => m[1]));
   }
 

@@ -256,8 +256,9 @@ src/styles/
 
 Two conventions that will bite if you don't know them:
 
-- **`editor.css` is the only component sheet outside `@layer`, and it has to
-  be.** CodeMirror injects its base theme as an unlayered `<style>` at the
+- **The `editor*.css` sheets (`editor.css`, `editor-search.css`,
+  `editor-tables.css`) are the only component sheets outside `@layer`, and
+  they have to be.** CodeMirror injects its base theme as an unlayered `<style>` at the
   top of `<head>`, and unlayered declarations beat layered ones regardless of
   specificity. In a layer, our rules would lose silently. (The modes are
   unlayered too, by design, and `themes/jott.css` is plain `:root` so the

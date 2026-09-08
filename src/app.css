@@ -52,6 +52,8 @@
 
 @import "./styles/components/icon.css";
 @import "./styles/components/editor.css";
+@import "./styles/components/editor-search.css";
+@import "./styles/components/editor-tables.css";
 @import "./styles/components/note-editor.css";
 @import "./styles/components/note-banner.css";
 @import "./styles/components/note-card.css";

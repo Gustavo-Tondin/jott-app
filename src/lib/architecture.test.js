@@ -60,17 +60,19 @@ describe("frontend architecture", () => {
     expect(missing).toEqual([]);
   });
 
-  test("editor.css is the only sheet with rules outside @layer", () => {
+  test("the editor sheets are the only ones with rules outside @layer", () => {
     // Unlayered beats layered no matter the specificity, so a sheet that
     // loses its `@layer` wrapper silently jumps above every layered sheet —
     // a style that "works" for the wrong reason. Two exceptions, by name:
-    // components/editor.css must stay unlayered to tie with CodeMirror's
-    // injected <style> (its header explains), and themes/* are imported
+    // components/editor*.css must stay unlayered to tie with CodeMirror's
+    // injected <style> (their headers explain), and themes/* are imported
     // unlayered by design so a theme wins without a specificity fight
     // (app.css explains). Everything else keeps every style rule under an
     // @layer ancestor — at-rules like @media may wrap it on the way.
     const exempt = new Set([
       "components/editor.css",
+      "components/editor-search.css",
+      "components/editor-tables.css",
       // The factory theme is written into notebooks byte for byte, where it
       // is injected plain — so the layer is app.css's `@import … layer()`.
       "themes/jott.css",
