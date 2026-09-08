@@ -37,6 +37,8 @@ file and live only in the commit history.
   bring the words back as it widens — nothing wraps or overlaps any more.
 - In the task panel the date a task was written stands on a line of its own,
   just above the footer: the date alone, without the label or the day count.
+- A pinned note or folder wears a thin ring in the accent colour, so it
+  stands out from the cards around it without a block of its own.
 
 ## v0.52.0
 

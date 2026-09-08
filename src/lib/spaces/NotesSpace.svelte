@@ -789,6 +789,7 @@
             <article
               class="note-group"
               class:note-group--open={anchorFolder === group.path}
+              class:note-group--pinned={group.pinned}
               style={accentStyle(group.color ?? dot)}
               use:dismissable={{
                 active: anchorFolder === group.path,

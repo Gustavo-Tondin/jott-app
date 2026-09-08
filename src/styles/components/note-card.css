@@ -43,11 +43,20 @@
   .note-card--picked {
     background: var(--app-brand-weak);
   }
-  /* Pinned: the filled mark alone says so (user call, 2026-08-24: "mais
-     simples, só com o ícone, sem outline" — the warning-coloured hairline
-     read as an alert around the note, not as a pin). Being floated FIRST on
-     the board is the separation; `.note-card--pinned` stays on the markup as
-     the hook a theme may restyle. */
+  /* Pinned: a hairline ring in the accent, inside the corner. It came and
+     went: the first ring was the WARNING yellow and read as an alert around
+     the note (user call, 2026-08-24: "mais simples, só com o ícone, sem
+     outline"); the mark alone then left a pinned card looking like every
+     other (user call, 2026-09-08: "adicione uma borda ao redor do card ou
+     algo assim pra dar um destaque"). The accent is the app's own voice —
+     the ring the date picker draws around today — so it says "kept", not
+     "careful". A ring rather than a block of its own: floated FIRST is the
+     separation, and a heading over a single pinned card would be heavier
+     than the card (same call: "ficaria feio se tivesse só uma pinned").
+     Inset, so a card pins without moving its neighbours. */
+  .note-card--pinned {
+    box-shadow: inset 0 0 0 0.0625rem var(--app-brand-outline);
+  }
 
   .note-card__open {
     display: flex;
@@ -242,6 +251,12 @@
     padding: var(--app-space-8);
     background: var(--accent-tint-color, var(--app-brand-weak));
     border-radius: var(--app-radius-lg);
+  }
+  /* A pinned folder wears the same ring a pinned note does, in its own
+     colour: the card is already tinted with it, and a ring of the same hue
+     reads as the card stepping forward, not as a second colour on it. */
+  .note-group--pinned {
+    box-shadow: inset 0 0 0 0.0625rem var(--accent-color, var(--app-brand-outline));
   }
   /* The card's own row: the name (which opens it) and the two controls a note
      card carries — the pin and the ⋮ (2026-08-19). */
