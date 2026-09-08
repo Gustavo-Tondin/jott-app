@@ -131,7 +131,7 @@ impl Notebook {
     /// the `lists` and `notes` areas) — they
     /// differ only in the type they ask for and the folder value they build,
     /// so the walk itself is written once. A space is its own content
-    /// folder now: the widget level between them was cut (2026-08-11).
+    /// folder.
     pub(super) fn typed_space_dirs(&self, kind: &str) -> Result<Vec<(String, PathBuf)>> {
         let mut found = Vec::new();
         for space in self.spaces()? {
@@ -369,10 +369,9 @@ impl Notebook {
 
     /// Moves a marked folder under a new parent, keeping its name.
     ///
-    /// Every list under it just changed address, so the Day/Week references
+    /// Every list under it just changed address, so the day references
     /// follow — a reference left pointing at the old path reads as a task that
-    /// vanished. (It is the same repointing a moved widget used to do; a moved
-    /// space never did it, which is the bug this closes.)
+    /// vanished.
     pub(super) fn relocate(&mut self, from: &Path, target_parent: &Path, name: &str) -> Result<()> {
         let to = target_parent.join(name);
         if from == to {

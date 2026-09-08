@@ -7,7 +7,7 @@
 //! there.
 //!
 //! The turn is decided by comparing the state's `date` with the current
-//! logical period, never by counting elapsed days. The app may sit closed for
+//! day, never by counting elapsed days. The app may sit closed for
 //! a week, and turning three days at once has to land exactly where turning
 //! one does.
 
@@ -17,7 +17,7 @@ use crate::config::RolloverMode;
 use crate::state::DayState;
 
 /// Whether an address is a folder's `Completed.md` — where a ticked task
-/// lives, and where its period reference now follows it.
+/// lives, and where its day reference now follows it.
 fn is_completed_list(path: &str) -> bool {
     crate::relpath::leaf_of(path).strip_suffix(".md") == Some(crate::COMPLETED_LIST)
 }
@@ -25,14 +25,14 @@ fn is_completed_list(path: &str) -> bool {
 /// What a rollover did, so the caller knows whether to write the file.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Rolled {
-    /// Still the same logical period — nothing to do.
+    /// Still the same day — nothing to do.
     Unchanged,
-    /// The period turned.
+    /// The day turned.
     Turned {
         from: NaiveDate,
         to: NaiveDate,
         /// References dropped — everything in `reset`, and in `carry` only
-        /// the tasks that were completed during the period.
+        /// the tasks that were completed during the day.
         cleared: usize,
     },
 }
@@ -44,11 +44,11 @@ impl Rolled {
     }
 }
 
-/// Rolls `state` forward to `current` if the period turned.
+/// Rolls `state` forward to `current` if the day turned.
 ///
 /// A state dated in the *future* is never cleared: that means the system clock
 /// moved backwards (wrong date corrected, travelling across timezones), not
-/// that a period elapsed. Re-dating it without dropping the references keeps a
+/// that a day elapsed. Re-dating it without dropping the references keeps a
 /// clock mistake from wiping a day the user had already planned.
 pub fn apply(state: &mut DayState, current: NaiveDate, mode: RolloverMode) -> Rolled {
     let from = state.date;
@@ -60,9 +60,9 @@ pub fn apply(state: &mut DayState, current: NaiveDate, mode: RolloverMode) -> Ro
     let cleared = match mode {
         // Carrying keeps the unfinished work pulled — but a reference that
         // now points into a `Completed.md` is a task that was ticked during
-        // the period, and carrying that into the next one would put yesterday's
+        // the day, and carrying that into the next one would put yesterday's
         // finished work in today's list (2026-08-06, since a completed task
-        // keeps its period reference so it can show under "Completed N").
+        // keeps its day reference so it can show under "Completed N").
         RolloverMode::Carry => {
             let before = state.len();
             state
@@ -76,7 +76,7 @@ pub fn apply(state: &mut DayState, current: NaiveDate, mode: RolloverMode) -> Ro
             // The unfinished ones become "recently pulled" — the day turned
             // under them, and offering them back is the whole point of the
             // group (2026-08-17). What points into a `Completed.md` was ticked
-            // during the period, so it left by being done, not by being
+            // during the day, so it left by being done, not by being
             // dropped.
             let gone: Vec<_> = state
                 .items
@@ -118,7 +118,7 @@ mod tests {
     }
 
     #[test]
-    fn same_period_changes_nothing() {
+    fn same_day_changes_nothing() {
         let mut state = state_with(ymd(2026, 7, 20), &[("Inbox", "a")]);
         let rolled = apply(&mut state, ymd(2026, 7, 20), RolloverMode::Reset);
 
@@ -163,7 +163,7 @@ mod tests {
     }
 
     #[test]
-    fn carry_leaves_behind_what_was_completed_during_the_period() {
+    fn carry_leaves_behind_what_was_completed_during_the_day() {
         // A completed task keeps its reference so it can show under
         // "Completed N" (2026-08-06) — but carrying yesterday's finished work
         // into today's list is exactly what carry must not do.
@@ -233,7 +233,7 @@ mod tests {
     #[test]
     fn turning_many_days_at_once_lands_where_turning_one_does() {
         // The app can stay closed for a week; the result must not depend on
-        // how many periods elapsed.
+        // how many days elapsed.
         let mut after_one = state_with(ymd(2026, 7, 20), &[("Inbox", "a")]);
         apply(&mut after_one, ymd(2026, 7, 21), RolloverMode::Reset);
 
@@ -265,7 +265,7 @@ mod tests {
 
     #[test]
     fn a_clock_moving_backwards_re_dates_without_clearing() {
-        // Wrong system date corrected, or a flight west. No period actually
+        // Wrong system date corrected, or a flight west. No day actually
         // elapsed, so the planned day survives.
         let mut state = state_with(ymd(2026, 7, 20), &[("Inbox", "a")]);
         let rolled = apply(&mut state, ymd(2026, 7, 18), RolloverMode::Reset);

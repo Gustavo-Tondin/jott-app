@@ -1,6 +1,6 @@
 //! The notebook: the folder the user picked, and everything inside it.
 //!
-//! Layout (spec 3.5, rewritten 2026-08-11 — no widget layer):
+//! Layout (spec 3.5):
 //!
 //! ```text
 //! MyNotebook/
@@ -410,8 +410,7 @@ impl Notebook {
         ensure_marker(&self.root.join(crate::HOME_DIR), "home", "Home")?;
 
         // Tasks and Notes: a typed space that owns its files directly —
-        // the tasks one is a single list plus its Completed (spec 3.5, no
-        // widget layer).
+        // the tasks one is a single list plus its Completed (spec 3.5).
         for (folder, kind, label) in [
             (TASKS_DIR, "tasks", "Tasks"),
             (NOTES_DIR, "notes", "Notes"),

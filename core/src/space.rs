@@ -5,8 +5,7 @@
 //! → file**. A folder *with* a `.space.json` is a space; every other
 //! folder is ignored — a stray folder dropped into the notebook must never
 //! turn into interface on its own. A space has a single function — its
-//! `type` (`tasks` or `notes`) — and owns its files directly; the widget
-//! layer that used to sit between the space and its files was cut.
+//! `type` (`tasks` or `notes`) — and owns its files directly.
 //! The type comes from the config, never from the folder name, so two task
 //! spaces can be called `Backlog/` and `Bugs/`.
 //!
@@ -100,9 +99,8 @@ impl FolderSettings {
 
 /// A space's `.space.json`, in memory.
 ///
-/// Since the 2026-08-11 pivot this also carries what used to live in the
-/// widget's own config: the `type` (the space's single function) and the
-/// `sort`/`order` arrangement of its content.
+/// Carries the `type` (the space's single function) and the `sort`/`order`
+/// arrangement of its content.
 #[derive(Debug, Clone)]
 pub struct SpaceConfig {
     schema_version: u64,
