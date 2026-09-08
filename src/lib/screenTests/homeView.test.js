@@ -41,14 +41,19 @@ describe("HomeView", () => {
     ...extra,
   });
 
-  const aNote = (extra = {}) => ({
-    path: "Inbox/ideia.md",
-    title: "ideia",
-    folder: "Inbox",
-    preview: "uma ideia",
-    created: "2026-09-03",
-    pinned: false,
-    ...extra,
+  /// A row of `notes_created_today`: the note and the SPACE holding it
+  /// (the core's `ListedNote`) — the day answers for every notes space.
+  const aNote = (extra = {}, folder = "jott.notes") => ({
+    folder,
+    note: {
+      path: "Inbox/ideia.md",
+      title: "ideia",
+      folder: "Inbox",
+      preview: "uma ideia",
+      created: "2026-09-03",
+      pinned: false,
+      ...extra,
+    },
   });
 
   test("shows the day's tasks and the notes written today", async () => {
@@ -64,8 +69,9 @@ describe("HomeView", () => {
     expect(screen.getByText("ideia")).toBeTruthy();
     expect(screen.getByText("Today tasks")).toBeTruthy();
     expect(screen.getByText("Today notes")).toBeTruthy();
-    // The Home owns no notes: it asks for today's, it does not store them.
-    expect(invoke).toHaveBeenCalledWith("notes_created_today", { folder: "jott.notes" });
+    // The Home owns no notes: it asks for today's, it does not store them —
+    // and it names no space, because every one of them answers.
+    expect(invoke).toHaveBeenCalledWith("notes_created_today");
     // And today is the day it asks for, said the short way.
     expect(invoke).toHaveBeenCalledWith("day_tasks", { day: null });
   });
@@ -320,6 +326,50 @@ describe("HomeView", () => {
     expect(container.querySelector(".note-card__pin")).toBeTruthy();
   });
 
+  test("the day shows notes from EVERY space, each acting on its own", async () => {
+    // The Home is the screen of TIME: a note written today counts wherever
+    // it was filed (user call, 2026-09-08). Each card names ITS space —
+    // opening, pinning and the ⋮ would otherwise write to the wrong one.
+    bridge({
+      day_tasks: [],
+      day_sort: null,
+      set_note_pinned: null,
+      notes_created_today: [
+        aNote(),
+        aNote({ path: "Inbox/viagem.md", title: "viagem" }, "Trip to Lisbon"),
+      ],
+    });
+    const opened = [];
+    const { container } = render(HomeView, {
+      props: props({
+        onOpenNote: (...args) => opened.push(args),
+        // The badge a card wears outside its space — what the tasks half of
+        // this very screen already draws.
+        origin: (item) => (item.folder === "jott.notes" ? null : { label: "Trip", color: "orange" }),
+      }),
+    });
+
+    expect(await screen.findByText("viagem")).toBeTruthy();
+    expect(screen.getByText("ideia")).toBeTruthy();
+
+    const cards = [...container.querySelectorAll(".note-card")];
+    expect(cards.length).toBe(2);
+    // Only the one from another space wears the origin dot.
+    expect(container.querySelectorAll(".note-card__origin").length).toBe(1);
+
+    await userEvent.click(cards[1].querySelector(".note-card__open"));
+    expect(opened).toEqual([["Inbox/viagem.md", "Trip to Lisbon", { newTab: false }]]);
+
+    await userEvent.click(cards[1].querySelector(".note-card__pin"));
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("set_note_pinned", {
+        folder: "Trip to Lisbon",
+        path: "Inbox/viagem.md",
+        pinned: true,
+      }),
+    );
+  });
+
   test("a card of the day offers the same rows the board offers", async () => {
     bridge({ day_tasks: [], day_sort: null, notes_created_today: [aNote()], set_note_pinned: null });
 
@@ -356,7 +406,7 @@ describe("HomeView", () => {
     const view = render(HomeView, {
       props: props({ quickNoteFolder: "Clientes", onOpenNote: (...args) => opened.push(args) }),
     });
-    await waitFor(() => expect(invoke).toHaveBeenCalledWith("notes_created_today", expect.anything()));
+    await waitFor(() => expect(invoke).toHaveBeenCalledWith("notes_created_today"));
 
     view.component.createNote();
     await waitFor(() =>

@@ -40,6 +40,9 @@ file and live only in the commit history.
 - **Sending a task to a day now shows.** The sun pops on the card the moment
   it joins one, a card swiped sideways springs back into place, and a
   suggestion taken lifts out of the panel while the task rises into the day.
+- **Today notes shows the notes you wrote today wherever you wrote them** —
+  every notepad, not only the Notes space. Each card carries a dot in its
+  space's colour, and opening, pinning or renaming it acts on that space.
 - A note nobody named draws no title on its card: the first lines of the
   note say what it is, instead of a column of "New note".
 - Settings say less. The explanations left the rows and wait behind a **?**

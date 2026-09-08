@@ -49,7 +49,8 @@ pub use error::{Error, Result};
 pub use history::History;
 pub use list::{Line, TaskList};
 pub use notebook::{
-    ListedTask, NoteFolderEntry, Notebook, NotebookContents, NotebookSummary, OriginAction,
+    ListedNote, ListedTask, NoteFolderEntry, Notebook, NotebookContents, NotebookSummary,
+    OriginAction,
 };
 pub use search::{HitKind, SearchHit, SearchResults};
 pub use seen::Seen;

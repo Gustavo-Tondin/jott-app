@@ -56,11 +56,26 @@ impl Notebook {
         Ok(entries)
     }
 
-    /// The notes of a space created today, stamped (the Home's day).
-    pub fn notes_created_today_in(&self, space: &str) -> Result<Vec<NoteEntry>> {
-        let mut entries = self.note_folder(space)?.created_on(self.today())?;
-        self.stamp_notes(space, &mut entries);
-        Ok(entries)
+    /// Every note of the notebook created on `date`, stamped, each with the
+    /// space holding it — the Home's day. **Every notes space answers**: a
+    /// note written today was written today wherever it was filed, and the
+    /// Home is the screen of TIME, not of one place.
+    pub fn notes_created_on(&self, date: chrono::NaiveDate) -> Result<Vec<ListedNote>> {
+        let mut out = Vec::new();
+        for (prefix, folder) in self.note_folders()? {
+            let mut entries = folder.created_on(date)?;
+            self.stamp_notes(&prefix, &mut entries);
+            out.extend(entries.into_iter().map(|note| ListedNote {
+                folder: prefix.clone(),
+                note,
+            }));
+        }
+        Ok(out)
+    }
+
+    /// The same, for the notebook's own today — the clock lives here.
+    pub fn notes_created_today(&self) -> Result<Vec<ListedNote>> {
+        self.notes_created_on(self.today())
     }
 
     /// Every folder of a notes space, with what the space remembers about it

@@ -55,15 +55,15 @@ pub fn inbox_notes<R: Runtime>(
     state.read(window.label(), |nb| nb.inbox_notes_in(&folder))
 }
 
-/// The notes created today — what the Home shows. The Home owns no notes of
-/// its own; this is a view of the inbox (spec 5).
+/// The notes created today — what the Home shows, from EVERY notes space
+/// (each answer says which one). The Home owns no notes of its own; this is
+/// a view filtered by `created` (spec 5), so nothing is moved or written.
 #[tauri::command]
 pub fn notes_created_today<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
-    folder: String,
-) -> CommandResult<Vec<jott_core::NoteEntry>> {
-    state.read(window.label(), |nb| nb.notes_created_today_in(&folder))
+) -> CommandResult<Vec<jott_core::ListedNote>> {
+    state.read(window.label(), |nb| nb.notes_created_today())
 }
 
 /// Writes a note from one blob of text — the Home's quick capture. The first

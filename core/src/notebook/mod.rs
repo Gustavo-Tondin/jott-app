@@ -33,6 +33,16 @@ pub struct ListedTask {
     pub task: Task,
 }
 
+/// A note together with the notes SPACE it lives in — `folder` is the
+/// space's root-relative address (`jott.notes`), `note.path` is relative to
+/// it. The pair every command that answers across spaces returns, the way
+/// [`ListedTask`] does for a task.
+#[derive(Debug, Clone, PartialEq, serde::Serialize)]
+pub struct ListedNote {
+    pub folder: String,
+    pub note: crate::notefolder::NoteEntry,
+}
+
 /// Why a suggestion is where it is. The order of the variants **is** the
 /// display order.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, serde::Serialize)]

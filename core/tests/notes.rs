@@ -351,6 +351,36 @@ fn the_home_sees_notes_created_today_without_owning_any() {
 }
 
 #[test]
+fn the_day_gathers_notes_from_every_space_not_just_the_fixed_one() {
+    // The Home is the screen of TIME (user call, 2026-09-08): a note written
+    // today was written today wherever it was filed. Each answer carries the
+    // space, because every action on the card names it.
+    let (_dir, notebook) = init();
+    let today = notebook.today();
+    notebook.create_space("Ideias", "notes").unwrap();
+
+    notebook.create_note("jott.notes", "Inbox", "de hoje").unwrap();
+    notebook.create_note("Ideias", "Inbox", "uma ideia").unwrap();
+    // A tasks space is not asked at all, and yesterday's note stays out.
+    let old = jott_core::NoteFolder::new(_dir.path().join("Ideias"));
+    old.create("Inbox", "de ontem", today - chrono::Duration::days(1)).unwrap();
+
+    let day = notebook.notes_created_today().unwrap();
+    let mut seen: Vec<(String, String)> = day
+        .into_iter()
+        .map(|listed| (listed.folder, listed.note.title))
+        .collect();
+    seen.sort();
+    assert_eq!(
+        seen,
+        vec![
+            ("Ideias".to_string(), "uma ideia".to_string()),
+            ("jott.notes".to_string(), "de hoje".to_string()),
+        ],
+    );
+}
+
+#[test]
 fn quick_capture_names_the_note_after_what_was_written() {
     let (_dir, notes) = folder();
 

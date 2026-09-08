@@ -179,6 +179,16 @@
     padding-inline-end: var(--app-space-32);
   }
 
+  /* Where the note came from, on a screen showing more than one space (the
+     Home's day): a dot before the title, in the space's colour. Smaller than
+     the one a place wears beside its own name — on a card it is a note about
+     the note, not the card's subject. */
+  .note-card__origin {
+    --dot-size: 0.5rem;
+    margin-inline-end: var(--app-space-6);
+    vertical-align: 0.0625rem;
+  }
+
   /* Nothing above the text — no title, no banner — so the first lines lead
      the card and the corner tools sit over them. The first block keeps clear
      of the ⋮, the way a title does on a phone. */

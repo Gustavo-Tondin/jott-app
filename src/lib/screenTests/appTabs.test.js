@@ -136,13 +136,17 @@ describe("App shell with tabs", () => {
     // The whole chain, because every link in it is where this could break: the
     // card reports the gesture (components/NoteCard.svelte), the screen names
     // the note (screens/HomeView.svelte), and only the shell opens a tab.
+    // A row of the day: the note and the SPACE holding it (`ListedNote`).
     const note = {
-      path: "Inbox/Ideia.md",
-      title: "Ideia",
-      folder: "Inbox",
-      preview: "",
-      created: "2026-07-21",
-      pinned: false,
+      folder: "jott.notes",
+      note: {
+        path: "Inbox/Ideia.md",
+        title: "Ideia",
+        folder: "Inbox",
+        preview: "",
+        created: "2026-07-21",
+        pinned: false,
+      },
     };
     shell({ notes_created_today: [note] });
     render(App);

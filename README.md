@@ -80,7 +80,8 @@ what the current version is.
   pull in what you want to face today instead of staring at the whole
   list; pick a day ahead and plan it the same way (a dated task shows on
   its day on its own); pick a day gone by and read what happened on it.
-  Suggestions are ordered by urgency, never auto-selected.
+  Suggestions are ordered by urgency, never auto-selected. Today's notes
+  come from **every** notepad, each card marked with its space's colour.
 - The Tasks screen is the Inbox — or, if you ask in Settings, every list
   of every space on one screen, each card in its space's colour.
 - Due dates, priorities, tags, repetition, descriptions, subtasks and file

@@ -5,7 +5,7 @@
   // DRAWS: opening, picking, pinning and the ⋮'s items are the board's; the
   // middle and right buttons only report WHICH card was asked for.
   import { S } from "../services/strings.js";
-  import { accentFill } from "../services/accent.js";
+  import { accentFill, dotStyle } from "../services/accent.js";
   import { assetUrl } from "../services/assets.js";
   import { ageStamp, noteSince } from "../services/age.js";
   import { isUntitled } from "../services/noteTitle.js";
@@ -51,6 +51,11 @@
     showAge = true,
     /// How a date is drawn once the stamp stops being a number of days.
     dateFormat = "mm/dd/yyyy",
+    /// `{label, color}` or null — where the note came from, on a screen that
+    /// shows more than one space (the Home's day): a dot in the space's
+    /// colour before the title (services/origin.js). Quieter than the bar a
+    /// task row wears, because a card is already a block of its own.
+    origin = null,
   } = $props();
 
   /// Only the middle button, and never while picking: in that mode a click is
@@ -73,6 +78,10 @@
   /// of those says nothing: the card draws its text instead. The small card
   /// inside a folder keeps it — the title is all it has.
   let titled = $derived(small || !isUntitled(entry.title));
+  /// Whether the card draws its title row at all — the origin dot lives in
+  /// it, so a card with no title still has one when it has somewhere to
+  /// have come from.
+  let head = $derived(titled || !!origin);
 
   // A note is old when nobody has OPENED it in a while, not when nobody has
   // written it. The core stamps the entry; the card only says whether the
@@ -92,7 +101,7 @@
 <article
   class="note-card"
   class:note-card--small={small}
-  class:note-card--bare={!titled && !banner}
+  class:note-card--bare={!head && !banner}
   class:note-card--picked={selected}
   class:note-card--pinned={entry.pinned}
   oncontextmenu={onContextMenu && !picking
@@ -125,8 +134,18 @@
       </span>
     {/if}
 
-    {#if titled}
+    {#if head}
       <span class="note-card__title" class:note-card__title--chip={banner && !small}>
+        <!-- Where the note came from, on a screen that shows more than one
+             space: the space's colour as a dot, the same mark a place wears
+             beside its own name (services/origin.js). -->
+        {#if origin}
+          <span
+            class="theme-dot note-card__origin"
+            style={dotStyle(origin.color)}
+            title={origin.label}
+          ></span>
+        {/if}
         {#if entry.pinned && !small}
           <!-- On a phone the pin BUTTON is not drawn (the corner is the ⋮'s,
                note-card.css), so the filled mark sits at the head of the title
@@ -135,7 +154,7 @@
             <Icon name="bookmark-simple-fill" size="0.75rem" />
           </span>
         {/if}
-        {entry.title}
+        {#if titled}{entry.title}{/if}
       </span>
     {/if}
 

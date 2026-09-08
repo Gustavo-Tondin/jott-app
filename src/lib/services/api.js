@@ -265,7 +265,9 @@ export const api = {
     invoke("set_note_folder_color", { folder, path, color }),
   setNoteFolderPinned: (folder, path, pinned) =>
     invoke("set_note_folder_pinned", { folder, path, pinned }),
-  notesCreatedToday: (folder) => invoke("notes_created_today", { folder }),
+  // Every notes space answers, so no space is named: each row is
+  // `{folder, note}` (the core's `ListedNote`).
+  notesCreatedToday: () => invoke("notes_created_today"),
   inboxNotes: (folder) => invoke("inbox_notes", { folder }),
   quickCaptureNote: (folder, inFolder, text) =>
     invoke("quick_capture_note", { folder, inFolder, text }),

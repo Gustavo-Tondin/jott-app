@@ -122,6 +122,9 @@
     onSummary?.(next);
   };
 
+  /// `{folder, note}` — the note and the notes SPACE holding it, straight
+  /// from the bridge (`ListedNote`). Every action here names that space: the
+  /// Home looks into spaces it does not live in, and now into several.
   let notes = $state([]);
   /// Where the sidebar's + files a note. Null until the user picks in the
   /// notes ⋮ — a state seeded from `quickNoteFolder` would freeze at first
@@ -139,15 +142,16 @@
 
   $effect(() => {
     reloadKey;
-    notesFolder;
     kind;
     load();
   });
 
   const { load, act } = makeScreen({
     // Only today has notes to show on this half: a day gone by reads them
-    // from the log (the recap), a day ahead has none yet.
-    read: () => (notesFolder && kind === "today" ? api.notesCreatedToday(notesFolder) : []),
+    // from the log (the recap), a day ahead has none yet. EVERY notes space
+    // answers — a note written today was written today wherever it was
+    // filed — so each row carries the space that holds it.
+    read: () => (kind === "today" ? api.notesCreatedToday() : []),
     // `?? []`: the bridge answering with nothing is not a list of notes.
     apply: (read) => (notes = read ?? []),
     onChanged: () => onChanged?.(),
@@ -166,10 +170,10 @@
     });
   }
 
-  /// Home only ever LOOKS at the notes space, so it names the space it was
-  /// given rather than letting the shell guess one.
-  const openNote = (note, { newTab = false } = {}) =>
-    onOpenNote?.(note.path, notesFolder, { newTab });
+  /// Home only ever LOOKS at a notes space, so it names the space the ROW
+  /// came from rather than letting the shell guess one.
+  const openNote = (row, { newTab = false } = {}) =>
+    onOpenNote?.(row.note.path, row.folder, { newTab });
 
   /// What a card of the day offers: the board's rows (services/noteActions.js),
   /// so the same card means the same thing on both screens.
@@ -191,11 +195,11 @@
         ],
   );
 
-  const cardMenu = (note, { openInNewTab = null } = {}) =>
+  const cardMenu = (row, { openInNewTab = null } = {}) =>
     noteCardMenu({
-      entry: note,
+      entry: row.note,
       actions: cards,
-      space: notesFolder,
+      space: row.folder,
       canPin: f("pinNotes"),
       moveTargets,
       readOnly,
@@ -207,11 +211,11 @@
   let cardMenuAt = $state(null);
   let cardMenuShown = $state([]);
 
-  function openCardMenu(event, note) {
+  function openCardMenu(event, row) {
     event.preventDefault();
     event.stopPropagation();
-    cardMenuShown = cardMenu(note, {
-      openInNewTab: () => openNote(note, { newTab: true }),
+    cardMenuShown = cardMenu(row, {
+      openInNewTab: () => openNote(row, { newTab: true }),
     });
     cardMenuAt = { x: event.clientX, y: event.clientY };
   }
@@ -365,24 +369,27 @@
             style="--columns: {columns}"
             use:measured={(width) => (boardWidth = width)}
           >
-            {#each board.order as index (notes[index].path)}
-              {@const note = notes[index]}
+            <!-- Keyed by SPACE and address: two spaces may hold the same
+                 `Inbox/Ideia.md`, and the day shows both. -->
+            {#each board.order as index (`${notes[index].folder}/${notes[index].note.path}`)}
+              {@const row = notes[index]}
               <li
                 class="home__note"
                 class:theme-note-board__break={board.breaks.has(index)}
               >
                 <NoteCard
-                  entry={note}
+                  entry={row.note}
                   {root}
                   banners={f("banners")}
                   noteTags={f("noteTags")}
-                  tagColor={notesColor}
+                  tagColor={colors[row.folder] ?? notesColor}
+                  origin={origin?.({ kind: "note", folder: row.folder, path: row.note.path })}
                   showAge={f("time")}
                   {dateFormat}
-                  menu={cardMenu(note)}
-                  onPin={readOnly || !f("pinNotes") ? null : () => cards.pin(notesFolder, note)}
-                  onOpen={(_, opts) => openNote(note, opts)}
-                  onContextMenu={openCardMenu}
+                  menu={cardMenu(row)}
+                  onPin={readOnly || !f("pinNotes") ? null : () => cards.pin(row.folder, row.note)}
+                  onOpen={(_, opts) => openNote(row, opts)}
+                  onContextMenu={(event) => openCardMenu(event, row)}
                 />
               </li>
             {/each}
