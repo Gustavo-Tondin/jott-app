@@ -9,7 +9,6 @@
   // layer, and what this file writes on the root (theme, accent, platform)
   // goes through `shell/rootStyle.js`.
   import { listen } from "@tauri-apps/api/event";
-  import { slide } from "svelte/transition";
   import { api, describeError } from "./lib/services/api.js";
   import { askName, askTask, setConfirmPolicy } from "./lib/services/dialog.js";
   import { composeTask } from "./lib/services/taskCompose.js";
@@ -42,8 +41,6 @@
   import ImageViewer from "./lib/components/ImageViewer.svelte";
   import { TABLE_FORMATS } from "./lib/services/tableEditing.js";
   import { assetUrl } from "./lib/services/assets.js";
-  import TaskInspector from "./lib/components/TaskInspector.svelte";
-  import SuggestionsPane from "./lib/components/SuggestionsPane.svelte";
   import NewTaskDialog from "./lib/components/NewTaskDialog.svelte";
   import SearchDialog from "./lib/components/SearchDialog.svelte";
   import SpaceView from "./lib/screens/SpaceView.svelte";
@@ -52,12 +49,12 @@
   import { movedItem } from "./lib/services/spaceOrder.js";
   import NoteEditor from "./lib/components/NoteEditor.svelte";
   import FormatBar from "./lib/components/FormatBar.svelte";
-  import NotePanel from "./lib/components/NotePanel.svelte";
   import HomeView from "./lib/screens/HomeView.svelte";
   import SettingsView from "./lib/screens/SettingsView.svelte";
   import TabBar from "./lib/shell/TabBar.svelte";
   import AppBanners from "./lib/shell/AppBanners.svelte";
   import NotebookPicker from "./lib/shell/NotebookPicker.svelte";
+  import RightPanel from "./lib/shell/RightPanel.svelte";
   import TitleBar from "./lib/shell/TitleBar.svelte";
   import { buttonLayout } from "./lib/shell/windowButtons.js";
   import { isMobile, osAttribute, platformAttribute } from "./lib/shell/platform.js";
@@ -684,6 +681,13 @@
 
   /// The right panel's tenant, when the controls are docked.
   let formatBarOpen = $derived(formatting && writing && !suggesting && !selected);
+
+  /// WHAT the right panel holds, decided once (shell/RightPanel.svelte): the
+  /// docked formatting never opens a panel on a phone — there the strip over
+  /// the keyboard is the only formatting there is.
+  let panelTenant = $derived(
+    suggesting ? "suggestions" : selected ? "task" : formatBarOpen && !compact ? "format" : null,
+  );
 
   /// WHEN the floating bar shows, and WHICH SIDE of the canvas it hugs
   /// (2026-08-21). Display, so it answers to this screen: where a bar sits
@@ -2550,99 +2554,40 @@
         </div>
       </section>
 
-      <!-- RIGHT: one panel, one thing in it — the task inspector, the day's
-           suggestions (2026-08-06), or an open note's formatting (2026-08-18). The wrapper is a flex column whose width
-           slides on open/close — the same width animation the left rail uses,
-           so both side panels move the same way (no grid flicker, since the
-           shell is flex). The inner panel keeps a fixed width so its content is
-           clipped, not reflowed, while it slides. -->
-      <!-- Its own handle, on the side it opens from (user call, 2026-08-17).
-           Only while there is a panel to resize; the same separator the
-           sidebar's edge is, mirrored. -->
-      {#if (suggesting || selected || formatBarOpen) && !compact}
-        <!-- Its own handle, on the side the panel opens from: the same
-             separator, mirrored (`sign`). -->
-        <PanelResizer
-          limits={PANEL}
-          sign={-1}
-          width={panelWidth}
-          label={S.resizePanel}
-          onWidth={(w) => (panelWidth = w)}
-          onCommit={(w) => api.rememberPanelWidth(w).catch(() => {})}
-          onResizing={(on) => (resizing = on)}
-        />
-      {/if}
-
-      <!-- What the right panel is holding, written ONCE and framed twice: a
-           sliding column on the desktop, a bottom sheet below 768px, where
-           there is no "right" left to open into. The props are the panel's
-           contract and must not fork with the frame. -->
-      {#snippet rightPanel()}
-        {#if suggesting}
-          <SuggestionsPane
-            day={suggesting.day}
-            origin={originOfItem}
-            dateFormat={layout.dateDisplayFormat}
-            {compact}
-            {reloadKey}
-            onChanged={refreshAll}
-            onError={fail}
-            onClose={() => (suggesting = null)}
-            {f}
-          />
-        {:else if formatBarOpen}
-          <NotePanel
-            onRun={runFormat}
-            hidden={hiddenFormats}
-            inactive={inactiveFormats}
-            menu={noteActions}
-            where={leafOf(openNoteFolder) || S.allNotes}
-            targets={noteMoveTargets}
-            onDelete={deleteCurrentNote}
-            onClose={() => (formatting = false)}
-            readOnly={notebook.readOnly}
-          />
-        {:else if selected}
-          <TaskInspector
-            task={selected.task}
-            list={selected.list}
-            color={spColors[folderOf(selected.list)] ?? null}
-            lists={moveTargets}
-            {tags}
-            {compact}
-            root={notebook.path}
-            readOnly={notebook.readOnly}
-            dateFormat={layout.dateDisplayFormat}
-            reminderTime={layout.reminderTime ?? "09:00"}
-            inDay={!!selected.task?.id &&
-              dayRefs.has(`${selected.list}#${selected.task.id}`)}
-            {f}
-            onSaved={refreshAll}
-            onError={fail}
-            onClose={() => (selected = null)}
-            onMoved={(to) => (selected = { ...selected, list: to })}
-            onOpenNote={openNoteByTitle}
-          />
-        {/if}
-      {/snippet}
-
-      {#if suggesting || selected || (formatBarOpen && !compact)}
-        {#if compact}
-          <!-- 72% of the screen, from the wireframe: tall enough for the
-               inspector's form, short enough that the list it belongs to is
-               still visible behind it. -->
-          <BottomSheet
-            label={suggesting ? S.suggestionsTitle : S.taskName}
-            onClose={() => (suggesting ? (suggesting = null) : (selected = null))}
-          >
-            {@render rightPanel()}
-          </BottomSheet>
-        {:else}
-          <div class="shell__panel" transition:slide={{ axis: "x", duration: 200 }}>
-            {@render rightPanel()}
-          </div>
-        {/if}
-      {/if}
+      <RightPanel
+        tenant={panelTenant}
+        {compact}
+        width={panelWidth}
+        onWidth={(w) => (panelWidth = w)}
+        onResizing={(on) => (resizing = on)}
+        {f}
+        readOnly={notebook.readOnly}
+        dateFormat={layout.dateDisplayFormat}
+        {reloadKey}
+        onChanged={refreshAll}
+        onError={fail}
+        onOpenNote={openNoteByTitle}
+        {suggesting}
+        origin={originOfItem}
+        onCloseSuggestions={() => (suggesting = null)}
+        onRun={runFormat}
+        {hiddenFormats}
+        {inactiveFormats}
+        noteMenu={noteActions}
+        noteFolder={openNoteFolder}
+        noteTargets={noteMoveTargets}
+        onDeleteNote={deleteCurrentNote}
+        onUndock={() => (formatting = false)}
+        {selected}
+        {spColors}
+        {moveTargets}
+        {tags}
+        root={notebook.path}
+        reminderTime={layout.reminderTime ?? "09:00"}
+        {dayRefs}
+        onCloseTask={() => (selected = null)}
+        onMovedTask={(to) => (selected = { ...selected, list: to })}
+      />
     </div>
   {/if}
   </main>
