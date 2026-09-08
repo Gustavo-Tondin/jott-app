@@ -2267,6 +2267,42 @@ fn an_action_is_undone_and_redone_over_the_bridge() {
 }
 
 #[test]
+fn the_floating_offer_asks_what_undo_would_take_back() {
+    // The offer names one action; by the time it is clicked another may have
+    // been recorded, and `undoable` is how the shell tells before acting.
+    let (_lock, app, _dir) = app_with_notebook();
+    let list = "jott.tasks/task-list.md";
+    assert_eq!(ok(&app, "undoable", json!({})), Value::Null);
+
+    let id = task_with_id(&app, list, "Ligar pro dentista");
+    assert_eq!(ok(&app, "undoable", json!({})), json!("create_task"));
+
+    ok(&app, "delete_task", json!({ "list": list, "id": id }));
+    assert_eq!(ok(&app, "undoable", json!({})), json!("delete_task"));
+
+    // Asking undoes nothing: the task is still gone, and undo still works.
+    assert!(ok(&app, "list_tasks", json!({ "list": list })).as_array().unwrap().is_empty());
+    assert_eq!(ok(&app, "undo", json!({})), json!("delete_task"));
+    assert_eq!(ok(&app, "undoable", json!({})), json!("create_task"));
+}
+
+#[test]
+fn the_task_panel_offer_is_a_notebook_setting_with_a_way_back() {
+    // "Not now" on the panel's card writes `offerTaskFields: false`; the
+    // Settings › Tasks row and its reset turn it back on.
+    let (_lock, app, _dir) = app_with_notebook();
+    assert_eq!(ok(&app, "notebook_settings", json!({}))["offerTaskFields"], json!(true));
+    assert_eq!(ok(&app, "notebook_snapshot", json!({}))["info"]["layout"]["offerTaskFields"], json!(true));
+
+    ok(&app, "set_notebook_settings", json!({ "settings": { "offerTaskFields": false } }));
+    assert_eq!(ok(&app, "notebook_settings", json!({}))["offerTaskFields"], json!(false));
+    assert_eq!(ok(&app, "notebook_snapshot", json!({}))["info"]["layout"]["offerTaskFields"], json!(false));
+
+    ok(&app, "reset_settings", json!({ "section": "tasks" }));
+    assert_eq!(ok(&app, "notebook_settings", json!({}))["offerTaskFields"], json!(true));
+}
+
+#[test]
 fn a_file_that_moved_on_makes_the_undo_stale() {
     let (_lock, app, dir) = app_with_notebook();
     let list = "jott.tasks/task-list.md";

@@ -140,6 +140,13 @@ impl AppState {
         Ok(notebook.redo(history)?)
     }
 
+    /// The label `undo` would answer with, without undoing anything.
+    pub fn undoable(&self, window: &str) -> CommandResult<Option<String>> {
+        let guard = self.lock()?;
+        let open = guard.get(window).ok_or_else(CommandError::no_notebook)?;
+        Ok(open.history.undoable().map(str::to_string))
+    }
+
     /// Whether ANY window has the notebook at `path` open.
     ///
     /// The one question about an open notebook that is not asked BY it: the

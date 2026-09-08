@@ -4,6 +4,7 @@
 // changes. Nothing in this file decides anything — it just names the bridge.
 
 import { invoke as callBridge } from "@tauri-apps/api/core";
+import { announce } from "./undoOffer.js";
 
 /// The bridge, with the COMMAND's NAME kept on whatever comes back wrong.
 ///
@@ -26,7 +27,11 @@ import { invoke as callBridge } from "@tauri-apps/api/core";
 /// argument is a different call to anything watching the bridge.
 function invoke(...call) {
   const [command] = call;
-  return Promise.resolve(callBridge(...call)).catch((cause) => {
+  return Promise.resolve(callBridge(...call))
+    // A command that answered is said by name (services/undoOffer.js): the
+    // floating undo is offered from here, not from every screen that deletes.
+    .then((result) => (announce(command), result))
+    .catch((cause) => {
     if (cause && typeof cause === "object") {
       try {
         cause.command = command;
@@ -120,6 +125,8 @@ export const api = {
   // was dropped rather than written over them.
   undo: () => invoke("undo"),
   redo: () => invoke("redo"),
+  /// What `undo` would take back, without taking it: the floating offer's check.
+  undoable: () => invoke("undoable"),
 
   // search
   // Two answers (tasks, notes) plus whether anything was left out. `limit` is

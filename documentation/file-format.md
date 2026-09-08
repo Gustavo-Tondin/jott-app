@@ -264,7 +264,8 @@ order you dragged things into.
 - **`config.json`** — preferences that **travel with the notebook**, because
   they answer to a *person*: what happens to unfinished tasks at midnight, retention days, confirmation
   prompts, feature switches, shortcut bindings, quick-capture destinations,
-  sort orders, the fallback appearance, and the automatic reminder
+  sort orders, the fallback appearance, the task panel's offer of the
+  fields that are off (`offerTaskFields`), and the automatic reminder
   (`autoRemind`: `off` / `dayOf` / `dayBefore`, at `reminderTime`, `HH:MM`). Written in camelCase, guarded by
   `schemaVersion`.
 

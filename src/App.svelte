@@ -5,6 +5,8 @@
   // what goes on the root (theme, accent, platform) goes through rootStyle.js.
   import { listen } from "@tauri-apps/api/event";
   import { api, describeError } from "./lib/services/api.js";
+  import { onOffer } from "./lib/services/undoOffer.js";
+  import Notice from "./lib/components/Notice.svelte";
   import { askName, askTask, setConfirmPolicy } from "./lib/services/dialog.js";
   import { composeTask } from "./lib/services/taskCompose.js";
   import { makeAct } from "./lib/services/act.js";
@@ -505,6 +507,7 @@
 
   async function takeBack(kind) {
     if (notebook?.readOnly) return;
+    dropOffer();
     try {
       const label = kind === "undo" ? await api.undo() : await api.redo();
       await refreshNotebook();
@@ -518,6 +521,45 @@
       if (e?.kind === "stale") sayUndo("warning", S.undoStale);
       else fail(e);
     }
+  }
+
+  // ---- the floating undo (services/undoOffer.js) ----
+  // Offered where the action happened, for a moment. The click asks the
+  // bridge what Ctrl+Z would take back FIRST: an action recorded since the
+  // offer is never the one undone.
+  let undoOffer = $state(null);
+  let undoOfferTimer = null;
+
+  function dropOffer() {
+    clearTimeout(undoOfferTimer);
+    undoOffer = null;
+  }
+
+  $effect(() =>
+    onOffer((command) => {
+      if (notebook?.readOnly) return;
+      clearTimeout(undoOfferTimer);
+      undoOffer = command;
+      undoOfferTimer = setTimeout(dropOffer, 6000);
+    }),
+  );
+
+  async function takeOffer() {
+    const offered = undoOffer;
+    dropOffer();
+    try {
+      if ((await api.undoable()) !== offered) return sayUndo("warning", S.undoOfferGone);
+    } catch (e) {
+      return fail(e);
+    }
+    await takeBack("undo");
+  }
+
+  /// The task panel's card: the panel closes (a sheet would stay over the
+  /// screen on the phone) and Settings opens on the Tasks page.
+  function openTaskFunctions() {
+    selected = null;
+    openIn({ kind: "settings", section: "fn:tasks" });
   }
 
   /// The search dialog is open over whatever screen is showing.
@@ -1926,6 +1968,26 @@
              controls are measured from, so they sit against the TOP OF THE
              SCREEN and not the top of the panel; the header is outside it. -->
         <div class="shell__canvas">
+          {#if undoOffer}
+            <!-- The floating undo: one line over the canvas's bottom edge,
+                 gone on its own, on Undo, or on the ×. -->
+            <div class="shell__toast">
+              <Notice
+                tone="info"
+                icon="undo"
+                title={S.undoOfferText(undoOffer)}
+                floating
+                onDismiss={dropOffer}
+                dismissLabel={S.dismissError}
+              >
+                {#snippet actions()}
+                  <button class="theme-btn theme-btn--primary theme-btn--xs" onclick={takeOffer}
+                    >{S.undoOfferAction}</button
+                  >
+                {/snippet}
+              </Notice>
+            </div>
+          {/if}
           <!-- The formatting controls, floating: the same narrow bar the phone
                gets, centred over the top of the canvas on a LIGHT ground. It is
                what a note has whenever the right panel is not holding them.
@@ -2158,6 +2220,8 @@
         root={notebook.path}
         reminderTime={layout.reminderTime ?? "09:00"}
         {dayRefs}
+        offerFields={layout.offerTaskFields ?? true}
+        onMoreFields={openTaskFunctions}
         onCloseTask={() => (selected = null)}
         onMovedTask={(to) => (selected = { ...selected, list: to })}
       />

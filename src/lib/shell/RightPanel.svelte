@@ -57,6 +57,8 @@
     root = "",
     reminderTime = "09:00",
     dayRefs = new Set(),
+    offerFields = false,
+    onMoreFields,
     onCloseTask,
     onMovedTask,
   } = $props();
@@ -125,6 +127,8 @@
       onClose={onCloseTask}
       onMoved={onMovedTask}
       {onOpenNote}
+      {offerFields}
+      {onMoreFields}
     />
   {/if}
 {/snippet}

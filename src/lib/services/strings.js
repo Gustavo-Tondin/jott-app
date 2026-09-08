@@ -63,6 +63,18 @@ const ACTION_NAMES = {
   reset_shortcuts: "Reset shortcuts",
 };
 
+/// What the floating undo says an action did (2026-09-08): the thing that
+/// vanished, past tense. A command not named here reads as its action.
+const UNDO_OFFERS = {
+  delete_task: "Task deleted",
+  delete_note: "Note deleted",
+  delete_list: "List deleted",
+  delete_space: "Space deleted",
+  delete_group: "Group deleted",
+  delete_note_folder: "Folder deleted",
+  remove_from: "Removed from the day",
+};
+
 export const S = {
   // App shell
   // Android only: the notebook lives wherever the user says, and that needs
@@ -499,6 +511,10 @@ export const S = {
   nothingToUndo: "Nothing to undo",
   nothingToRedo: "Nothing to redo",
   undoStale: "That can't be undone: the files changed since (a sync, another window).",
+  // The floating offer (services/undoOffer.js): one line, one button.
+  undoOfferText: (command) => UNDO_OFFERS[command] ?? S.actionName(command),
+  undoOfferAction: "Undo",
+  undoOfferGone: "Something else changed since, so nothing was undone. Ctrl+Z steps back through it all.",
   actionName: (command) => ACTION_NAMES[command] ?? command.replaceAll("_", " "),
   // What the openers of the narrow bar say. They open nothing but more
   // buttons, so they are named after what is INSIDE them.
@@ -680,6 +696,16 @@ export const S = {
   tasksShowAllHint:
     "Every list puts the tasks of all your spaces on one screen, each card " +
     "wearing its space's colour. The Inbox stays where new tasks land.",
+  // The task panel's card (2026-09-08): the fields that are off, and the
+  // door to Settings › Tasks. `offerTaskFields` is the row that brings it back.
+  moreFieldsTitle: "Tasks can do more",
+  moreFieldsBody: (names) => `Switched off right now: ${names}.`,
+  moreFieldsOpen: "Add functions",
+  moreFieldsDismiss: "Not now",
+  offerTaskFields: "Suggest more fields in the task panel",
+  offerTaskFieldsHint:
+    "A card at the end of the task panel names the fields that are off and " +
+    "points here. Closing it once switches this off.",
   quickTasksGoTo: "Quick tasks go to",
   quickTasksGoToHint:
     "Where the Home's + writes a task. It names a list of THIS notebook, " +

@@ -151,4 +151,15 @@ describe("tabs", () => {
     );
     expect(viewId(null)).toBe("");
   });
+
+
+  test("the same screen told something new is refreshed in place", () => {
+    // Settings asked for a section while Settings is already open: not a
+    // second entry, and not ignored either.
+    const { tabs, active } = bar({ kind: "settings" });
+    const told = navigate(tabs, active, { kind: "settings", section: "fn:tasks" });
+    expect(told.tabs[0].views.length).toBe(1);
+    expect(currentView(told.tabs[told.active]).section).toBe("fn:tasks");
+    expect(navigate(told.tabs, told.active, currentView(told.tabs[0])).tabs).toBe(told.tabs);
+  });
 });

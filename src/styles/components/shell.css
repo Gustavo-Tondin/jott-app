@@ -599,6 +599,24 @@
     font-family: var(--app-font-mono);
     font-size: var(--app-text-12);
   }
+  /* The floating undo (App.svelte, services/undoOffer.js): over the
+     canvas's bottom edge, centred in what the Home's + leaves free (its
+     slot is `.home-fab`, home.css). The box is the floating Notice
+     (controls/feedback.css); the wrapper only places it, and lets clicks
+     through around it. */
+  .shell__toast {
+    position: absolute;
+    inset-block-end: var(--app-space-24);
+    inset-inline: var(--app-space-24) calc(4.5rem + var(--app-space-24) * 2);
+    display: flex;
+    justify-content: center;
+    z-index: 5;
+    pointer-events: none;
+  }
+  .shell__toast > .theme-notice {
+    pointer-events: auto;
+    max-inline-size: 100%;
+  }
   /* A conflict per row: what it is, and the door to its folder at the end. */
   .shell__conflict-list {
     list-style: none;
@@ -776,6 +794,14 @@
        this says where to stop. */
     scroll-padding-block-end: var(--app-format-strip);
   }
+  /* Below 768px the canvas scrolls, so the toast is fixed above the safe
+     area, clear of the + (4rem there). */
+  .shell--compact .shell__toast {
+    position: fixed;
+    inset-block-end: calc(var(--app-space-24) + var(--app-safe-bottom));
+    inset-inline: var(--app-space-16) calc(4rem + var(--app-space-24) * 2 + var(--app-safe-right));
+  }
+
   .shell--compact .shell__content {
     overflow: visible;
     /* Over the Home's sticky head (day-head.css): the canvas is the sheet

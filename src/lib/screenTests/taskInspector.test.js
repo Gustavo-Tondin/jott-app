@@ -733,4 +733,64 @@ describe("TaskInspector", () => {
     await screen.findByDisplayValue("Escrita à mão");
     expect(document.querySelector(".inspector__created")).toBe(null);
   });
+
+
+  // The card at the end of the panel (2026-09-08): while a task field is
+  // off, the panel names it and opens Settings › Tasks. "Not now" is a
+  // notebook setting, so it is asked once and has a row to come back by.
+  test("with a field off, the panel offers the rest and its door", async () => {
+    const onMoreFields = vi.fn();
+    render(TaskInspector, {
+      props: props(task("a1", "Comprar leite"), {
+        f: (key) => key !== "priority",
+        offerFields: true,
+        onMoreFields,
+      }),
+    });
+
+    await screen.findByText("Tasks can do more");
+    expect(screen.getByText("Switched off right now: Priority.")).toBeTruthy();
+    await userEvent.click(screen.getByRole("button", { name: "Add functions" }));
+    expect(onMoreFields).toHaveBeenCalled();
+  });
+
+  test("\"Not now\" is written to the notebook once; every field on, or read-only, offers nothing", async () => {
+    const onSaved = vi.fn();
+    bridge({ set_notebook_settings: null });
+    const first = render(TaskInspector, {
+      props: props(task("a1", "Comprar leite"), {
+        f: (key) => key !== "priority",
+        offerFields: true,
+        onSaved,
+      }),
+    });
+
+    await userEvent.click(await screen.findByRole("button", { name: "Not now" }));
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("set_notebook_settings", {
+        settings: { offerTaskFields: false },
+      }),
+    );
+    await waitFor(() => expect(onSaved).toHaveBeenCalled());
+    first.unmount();
+
+    // Every field on: nothing to offer, whatever the setting says.
+    const second = render(TaskInspector, {
+      props: props(task("b2", "Pagar boleto"), { offerFields: true }),
+    });
+    await screen.findByDisplayValue("Pagar boleto");
+    expect(screen.queryByText("Tasks can do more")).toBeNull();
+    second.unmount();
+
+    // Read-only: "Not now" could not be written, so the card is not shown.
+    render(TaskInspector, {
+      props: props(task("c3", "Ligar"), {
+        f: (key) => key !== "priority",
+        offerFields: true,
+        readOnly: true,
+      }),
+    });
+    await screen.findByDisplayValue("Ligar");
+    expect(screen.queryByText("Tasks can do more")).toBeNull();
+  });
 });

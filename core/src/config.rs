@@ -314,6 +314,10 @@ pub struct Config {
     /// pulled together and arranged by space (2026-09-04), instead of the
     /// Inbox alone, which is the default.
     pub tasks_show_all: bool,
+    /// Whether the task panel offers the task fields that are switched off
+    /// (a card that opens Settings › Tasks). Closing that card once turns
+    /// this off; the Settings row turns it back on.
+    pub offer_task_fields: bool,
     /// How a notes space draws its board when it has not chosen for itself
     /// (`grid` / `tree`). Empty means what the app ships as, which is the
     /// grid; the frontend owns that default, as it owns the list of layouts,
@@ -407,6 +411,7 @@ impl Default for Config {
             quick_note_folder: crate::notefolder::NOTES_INBOX.to_string(),
             quick_task_list: String::new(),
             tasks_show_all: false,
+            offer_task_fields: true,
             note_layout: String::new(),
             table_layout: String::new(),
             age: crate::age::Thresholds::default(),
@@ -637,6 +642,7 @@ impl Config {
                 .unwrap_or(defaults.quick_note_folder),
             quick_task_list: string(&raw, "quickTaskList").unwrap_or(defaults.quick_task_list),
             tasks_show_all: flag(&raw, "tasksShowAll", defaults.tasks_show_all),
+            offer_task_fields: flag(&raw, "offerTaskFields", defaults.offer_task_fields),
             note_layout: string(&raw, "noteLayout").unwrap_or(defaults.note_layout),
             table_layout: string(&raw, "tableLayout").unwrap_or(defaults.table_layout),
             age: parse_age(raw.get("age"), defaults.age),
@@ -727,6 +733,7 @@ impl Config {
             ("quickNoteFolder", Value::from(self.quick_note_folder.clone())),
             ("quickTaskList", Value::from(self.quick_task_list.clone())),
             ("tasksShowAll", Value::from(self.tasks_show_all)),
+            ("offerTaskFields", Value::from(self.offer_task_fields)),
             ("trashRetentionDays", Value::from(self.trash_retention_days)),
             (
                 "completedRetentionDays",
@@ -939,6 +946,7 @@ mod tests {
         assert_eq!(config.rollover.daily.mode, RolloverMode::Reset);
         assert_eq!(config.week_starts_on, WeekStart::Monday);
         assert!(!config.tasks_show_all);
+        assert!(config.offer_task_fields);
         assert!(!config.is_read_only());
     }
 

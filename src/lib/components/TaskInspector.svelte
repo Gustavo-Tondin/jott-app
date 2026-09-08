@@ -23,12 +23,14 @@
   import { leafOf, listTitle, splitLabel } from "../services/paths.js";
   import { PRIORITIES, REPEAT_UNITS, cleanTagName, priorityClass, repeatCounts, repeatText } from "../services/taskFields.js";
   import { badgeStyle } from "../services/accent.js";
+  import { childrenIn } from "../services/features.js";
   import { movedItem } from "../services/spaceOrder.js";
   import { reorderable } from "../actions/reorder.js";
   import Menu from "./Menu.svelte";
   import { formatAt, joinAt, normalizeAt, presets, splitAt } from "../services/reminders.js";
   import { formatDate, toIso } from "../services/dates.js";
   import Icon from "./Icon.svelte";
+  import Notice from "./Notice.svelte";
   import DatePicker from "./DatePicker.svelte";
   import AssetPicker from "./AssetPicker.svelte";
   import TagPicker from "./TagPicker.svelte";
@@ -52,6 +54,10 @@
     onClose,
     // Told the new list path after a move, so the shell can re-point at it.
     onMoved,
+    /// Whether to offer the task fields that are off (`offerTaskFields`,
+    /// Settings › Tasks), and where the card's button goes.
+    offerFields = false,
+    onMoreFields,
     // How long to wait after the last keystroke. A prop so tests can drop it
     // to zero instead of sleeping — a real user never sets this.
     saveDelay = 500,
@@ -378,6 +384,20 @@
   let optionsMenu = $derived([
     { label: S.duplicateTask, run: duplicate, disabled: readOnly },
   ]);
+
+  /// The fields Settings › Tasks could switch on, and whether to say so:
+  /// only while there is one, and only where "Not now" can be written.
+  let offFields = $derived(childrenIn("tasks", "fields").filter((field) => !f(field.key)));
+  let offering = $derived(offerFields && !readOnly && offFields.length > 0);
+
+  /// "Not now" is written to the notebook, so it is asked once — and the
+  /// Settings row is the way back (an option that only switches off is a
+  /// defect).
+  const dismissOffer = () =>
+    api
+      .setNotebookSettings({ offerTaskFields: false })
+      .then(() => onSaved?.())
+      .catch(onError);
 
   /// The footer's trash: the task goes to the notebook's own trash — never
   /// destroyed — and the panel closes, since it pointed at it.
@@ -783,6 +803,27 @@
         {/if}
       {/if}
     </div>
+    {/if}
+
+    {#if offering}
+      <!-- The door to the rest: while a task field is off, the panel says
+           so once, at its end — the fields are the panel's subject, and
+           Settings › Tasks is where they are switched on. -->
+      <Notice
+        tone="info"
+        icon="sliders-horizontal"
+        title={S.moreFieldsTitle}
+        class="inspector__offer"
+        onDismiss={dismissOffer}
+        dismissLabel={S.moreFieldsDismiss}
+      >
+        <p>{S.moreFieldsBody(offFields.map((field) => field.label()).join(", "))}</p>
+        {#snippet actions()}
+          <button class="theme-btn theme-btn--primary theme-btn--xs" onclick={onMoreFields}
+            >{S.moreFieldsOpen}</button
+          >
+        {/snippet}
+      </Notice>
     {/if}
   </div>
 

@@ -56,6 +56,7 @@ pub fn configure<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builde
             commands::notebook::notebook_snapshot,
             commands::notebook::undo,
             commands::notebook::redo,
+            commands::notebook::undoable,
             commands::notebook::notebook_contents,
             commands::timeline::timeline,
             commands::timeline::timeline_years,

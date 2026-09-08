@@ -934,6 +934,18 @@ describe("SettingsView", () => {
     await userEvent.click(await screen.findByRole("button", { name: "Check now" }));
     await screen.findByText("You have the latest version.");
   });
+
+  test("`open` lands on a function's page, the way the task panel's card asks", async () => {
+    bridge({ notebook_settings: settings });
+    render(SettingsView, { props: props({ open: "fn:tasks" }) });
+
+    // The Tasks page, not the landing: its own rows are on screen, among
+    // them the way back for the card that opened it.
+    await screen.findByText("Tasks screen shows");
+    expect(
+      screen.getByRole("checkbox", { name: "Suggest more fields in the task panel" }),
+    ).toBeTruthy();
+  });
 });
 
 describe("SettingsView — the three faces (2026-08-24)", () => {

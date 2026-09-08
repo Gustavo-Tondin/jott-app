@@ -16,6 +16,19 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`,
 tag a version that has no section here. Versions before v0.51.0 predate the
 file and live only in the commit history.
 
+## v0.53.0
+
+### New
+
+- A floating **Undo** after a delete or after taking a task off the day:
+  one line at the bottom of the screen, gone by itself in a few seconds.
+  It only ever takes back that action — if something else happened since,
+  it says so and leaves it to Ctrl+Z.
+- The task panel ends with a card naming the task fields that are switched
+  off, with a button straight to Settings › Tasks. Close it once and it
+  stays closed; the "Suggest more fields in the task panel" row brings it
+  back.
+
 ## v0.52.1
 
 ### Improved

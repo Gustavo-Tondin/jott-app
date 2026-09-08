@@ -34,6 +34,9 @@
 
   let {
     notebook,
+    /// A section to land on, by menu key (`"fn:tasks"`): the door a card
+    /// elsewhere opens. Applied when it changes; the menu stays the user's.
+    open = null,
     /// Where a quick note can go — `{label, value}` rows for the picker
     /// (services/noteTargets.js). Empty means nowhere: the row hides.
     noteTargets = [],
@@ -113,6 +116,10 @@
 
   /// What the user last opened, and `null` for the menu itself.
   let chosen = $state(null);
+
+  $effect(() => {
+    if (open) chosen = open;
+  });
 
   /// What opens beside the menu before a choice: Display, not the first
   /// row — nobody opens Settings to read a version number.

@@ -266,6 +266,7 @@
   />
 {:else if view.kind === "settings"}
   <SettingsView
+    open={view.section ?? null}
     {compact}
     {mobile}
     {notebook}

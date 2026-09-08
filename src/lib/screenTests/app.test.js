@@ -1163,6 +1163,56 @@ describe("App", () => {
     expect(callsTo("last_notebook")).toHaveLength(0);
   });
 
+  // ---- the floating undo (services/undoOffer.js, 2026-09-08) ----
+  test("deleting a task offers it back where it went, and Undo takes it", async () => {
+    shell({ delete_task: null, undoable: "delete_task", undo: "delete_task" });
+    render(App);
+
+    await openTask("Comprar leite");
+    await userEvent.click(screen.getByRole("button", { name: /delete task/i }));
+
+    await screen.findByText("Task deleted");
+    await userEvent.click(screen.getByRole("button", { name: "Undo" }));
+
+    // Asked what Ctrl+Z would take back first, then took it.
+    await waitFor(() => expect(invoke).toHaveBeenCalledWith("undo"));
+    const order = invoke.mock.calls.map(([cmd]) => cmd);
+    expect(order.indexOf("undoable")).toBeLessThan(order.lastIndexOf("undo"));
+    await screen.findByText("Undone: Delete task");
+    expect(screen.queryByText("Task deleted")).toBeNull();
+  });
+
+  test("an offer that is no longer the last action undoes nothing", async () => {
+    // Something was recorded between the delete and the click (a rename in
+    // another tab): the click says so instead of taking that back.
+    shell({ delete_task: null, undoable: "rename_list", undo: "rename_list" });
+    render(App);
+
+    await openTask("Comprar leite");
+    await userEvent.click(screen.getByRole("button", { name: /delete task/i }));
+    await userEvent.click(await screen.findByRole("button", { name: "Undo" }));
+
+    await screen.findByText(/nothing was undone/);
+    expect(invoke).not.toHaveBeenCalledWith("undo");
+  });
+
+  test("the task panel's card closes the panel and opens Settings on Tasks", async () => {
+    const fewer = { ...notebook, layout: { ...notebook.layout, features: { priority: false } } };
+    shell({
+      open_notebook: fewer,
+      notebook_snapshot: { ...snapshot(), info: fewer },
+      // The Settings screen draws nothing until the notebook's settings answer.
+      notebook_settings: { offerTaskFields: true },
+    });
+    render(App);
+
+    await openTask("Comprar leite");
+    await userEvent.click(await screen.findByRole("button", { name: "Add functions" }));
+
+    await screen.findByText("Tasks screen shows");
+    expect(screen.queryByLabelText("task name")).toBeNull();
+  });
+
   test("on a phone the notebooks screen closes the drawer it was opened from", async () => {
     // User report, 2026-08-24: tapping the notebook's name in the drawer's own
     // footer swapped the panel behind a drawer that stayed open over it. The

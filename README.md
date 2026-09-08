@@ -125,7 +125,8 @@ what the current version is.
   Two notebooks can be open side by side, one per window.
 - **Nothing is destroyed** — everything deleted goes to the notebook's trash
   and comes back exactly where it was. Undo/redo (Ctrl+Z) for app actions,
-  separate from the editor's own.
+  separate from the editor's own — and a floating **Undo** right after a
+  delete or after taking a task off the day.
 - **Outside changes are detected** — edit a file in another editor, or let
   Syncthing/Drive sync it, and the app follows.
 

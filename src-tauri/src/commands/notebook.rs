@@ -62,6 +62,9 @@ pub struct NotebookLayout {
     /// Whether the fixed Tasks screen shows every list, arranged by space,
     /// instead of the Inbox alone (2026-09-04).
     pub tasks_show_all: bool,
+    /// Whether the task panel offers the task fields that are off
+    /// (`Config::offer_task_fields`).
+    pub offer_task_fields: bool,
     /// The board layout of a notes space that never chose one (`grid` /
     /// `tree`); empty means the app's own.
     pub note_layout: String,
@@ -167,6 +170,7 @@ impl NotebookInfo {
                 quick_note_folder: notebook.config().quick_note_folder.clone(),
                 quick_task_list: notebook.config().quick_task_list.clone(),
                 tasks_show_all: notebook.config().tasks_show_all,
+                offer_task_fields: notebook.config().offer_task_fields,
                 note_layout: notebook.config().note_layout.clone(),
                 table_layout: notebook.config().table_layout.clone(),
                 timeline_ghost_titles: notebook.config().timeline_ghost_titles,
@@ -503,6 +507,17 @@ pub fn redo<R: Runtime>(
     window: tauri::Window<R>,
 ) -> CommandResult<Option<String>> {
     state.redo(window.label())
+}
+
+/// The name of the action `undo` would take back, or `null`. The floating
+/// undo offer asks this before it acts: an action recorded since the offer
+/// is not the one the user was shown.
+#[tauri::command]
+pub fn undoable<R: Runtime>(
+    state: State<'_, AppState>,
+    window: tauri::Window<R>,
+) -> CommandResult<Option<String>> {
+    state.undoable(window.label())
 }
 
 #[tauri::command]

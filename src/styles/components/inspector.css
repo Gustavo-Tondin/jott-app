@@ -341,6 +341,15 @@
     color: var(--app-ink);
   }
 
+  /* ---- the card at the end of the scroll: the fields that are off ----
+     The shell's Notice (controls/feedback.css), inset like the cards, last
+     because it is about what is NOT here. Gone once closed (Settings ›
+     Tasks brings it back) and with every field on. */
+  .inspector__offer {
+    flex-shrink: 0;
+    margin-inline: var(--app-space-8);
+  }
+
   /* ---- when the task was written: a fact, over the foot ----
      Off the cards on purpose (user call, 2026-09-08): everything in the
      scroll is something to set, and this is the one thing about the task

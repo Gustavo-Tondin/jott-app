@@ -9,6 +9,7 @@
     S.autoRemind,
     S.reminderTime,
     S.tasksShowAll,
+    S.offerTaskFields,
   ];
 </script>
 
@@ -103,6 +104,21 @@
     {/if}
   {/each}
   <p class="settings__hint">{S.autoUrgentByDateHint}</p>
+
+  <!-- The task panel's card that points here while a field is off. Its
+       "Not now" only switches this off; this row is the way back. -->
+  <label class="settings__row">
+    <span class="settings__label">{S.offerTaskFields}</span>
+    <input
+      class="theme-switch"
+      type="checkbox"
+      bind:checked={form.offerTaskFields}
+      disabled={readOnly}
+      aria-label={S.offerTaskFields}
+      onchange={(e) => put({ offerTaskFields: e.currentTarget.checked })}
+    />
+  </label>
+  <p class="settings__hint">{S.offerTaskFieldsHint}</p>
 
   <!-- The fixed Tasks screen: the Inbox alone, or every list pulled together.
        A notebook setting on the function's page — not a feature switch. -->

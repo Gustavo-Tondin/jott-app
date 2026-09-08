@@ -297,6 +297,8 @@ pub struct NotebookSettings {
     /// Whether the fixed Tasks screen shows every list, arranged by space,
     /// instead of the Inbox alone (2026-09-04).
     pub tasks_show_all: Option<bool>,
+    /// Whether the task panel offers the fields that are off (`Config`).
+    pub offer_task_fields: Option<bool>,
     /// The board layout of a notes space that never chose one (`grid` /
     /// `tree`); empty goes back to the app's own.
     pub note_layout: Option<String>,
@@ -348,6 +350,7 @@ impl NotebookSettings {
             quick_note_folder: Some(config.quick_note_folder.clone()),
             quick_task_list: Some(config.quick_task_list.clone()),
             tasks_show_all: Some(config.tasks_show_all),
+            offer_task_fields: Some(config.offer_task_fields),
             note_layout: Some(config.note_layout.clone()),
             table_layout: Some(config.table_layout.clone()),
             completed_retention_days: Some(config.completed_retention_days),
@@ -461,6 +464,9 @@ impl NotebookSettings {
         if let Some(v) = self.tasks_show_all {
             config.tasks_show_all = v;
         }
+        if let Some(v) = self.offer_task_fields {
+            config.offer_task_fields = v;
+        }
         // Not validated, like the looks above: the layouts are the
         // interface's list, and a name this build does not know round-trips.
         if let Some(v) = &self.note_layout {
@@ -510,6 +516,7 @@ pub fn reset_section(config: &mut Config, section: &str) -> bool {
         "tasks" => {
             config.auto_urgent_by_date = d.auto_urgent_by_date;
             config.tasks_show_all = d.tasks_show_all;
+            config.offer_task_fields = d.offer_task_fields;
             config.auto_remind = d.auto_remind;
             config.reminder_time = d.reminder_time;
             config.new_tasks_on_top = d.new_tasks_on_top;
