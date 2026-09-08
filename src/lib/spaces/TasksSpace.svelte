@@ -461,23 +461,25 @@
   /// Inbox — the same move the inspector's "Move to" makes, so a task keeps
   /// its id and Ctrl+Z brings it back; the Home pulls them into the day,
   /// which is what the Home is.
-  const moveTo = readOnly
-    ? null
-    : (entries, zone) =>
-        act(async () => {
-          const toDay = zone.dataset.dayDrop != null;
-          const target = toDay
-            ? null
-            : taskSpacePaths({ folder: zone.dataset.spaceDrop }, lists, completedName).list;
-          for (const entry of entries) {
-            const id = await ensureTaskId(entry.list, entry.task);
-            if (toDay) {
-              if (!inDay(entry)) await api.pullInto(null, entry.list, id);
-            } else if (target && target !== entry.list) {
-              await api.moveTask(entry.list, id, target);
+  const moveTo = $derived(
+    readOnly
+      ? null
+      : (entries, zone) =>
+          act(async () => {
+            const toDay = zone.dataset.dayDrop != null;
+            const target = toDay
+              ? null
+              : taskSpacePaths({ folder: zone.dataset.spaceDrop }, lists, completedName).list;
+            for (const entry of entries) {
+              const id = await ensureTaskId(entry.list, entry.task);
+              if (toDay) {
+                if (!inDay(entry)) await api.pullInto(null, entry.list, id);
+              } else if (target && target !== entry.list) {
+                await api.moveTask(entry.list, id, target);
+              }
             }
-          }
-        });
+          }),
+  );
 
   const daySwipe = $derived(
     readOnly

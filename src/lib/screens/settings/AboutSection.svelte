@@ -19,6 +19,7 @@
   // About: the version, this install's own switches (updates, tray, session
   // start, the menu entry) and the doors out. Machine preferences, not
   // notebook ones — none of it goes through the notebook or minds `readOnly`.
+  import { untrack } from "svelte";
   import { api } from "../../services/api.js";
   import { openExternal, ISSUES_URL } from "../../services/external.js";
   import { installUpdate, manualCheck, openReleasePage } from "../../services/update.js";
@@ -52,7 +53,8 @@
   // update switch, and read the same way.
   let closeToTray = $state(true);
   let autostart = $state(false);
-  if (!mobile) {
+  // Read once, on purpose: the platform does not change under a running app.
+  if (!untrack(() => mobile)) {
     api.closeToTray().then((on) => (closeToTray = on ?? true)).catch(() => {});
     api.autostart().then((on) => (autostart = !!on)).catch(() => {});
   }
