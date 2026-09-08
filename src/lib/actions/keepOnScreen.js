@@ -60,9 +60,15 @@ export function keepOnScreen(node, params) {
     // jsdom (and a not-yet-laid-out mount) reports an empty rect.
     if (rect.width === 0 && rect.height === 0) return;
 
-    // The bottom of the space a panel may use: the window, less whatever the
-    // keyboard is covering.
-    const floor = window.innerHeight - keyboardInset() - MARGIN;
+    // The bottom of the space a panel may use: the page, less whatever the
+    // keyboard is covering. The ICB, never `innerHeight`: the Android WebView
+    // (M139) shrinks the latter under the keyboard while the page keeps its
+    // height, and the keyboard would be taken off twice (shell/keyboard.js).
+    // jsdom reports an ICB of 0, and there `innerHeight` is the page.
+    const root = document.documentElement;
+    const pageHeight = root.clientHeight || window.innerHeight;
+    const pageWidth = root.clientWidth || window.innerWidth;
+    const floor = pageHeight - keyboardInset() - MARGIN;
 
     // The edges the panel opens from: the anchor's, pushed out to the box it
     // was told to clear.
@@ -80,7 +86,7 @@ export function keepOnScreen(node, params) {
       top = a.top;
       // No room on the right: flip to the other side rather than being
       // clamped on top of the menu that opened it.
-      if (left + rect.width > window.innerWidth - MARGIN) {
+      if (left + rect.width > pageWidth - MARGIN) {
         left = before - GAP - rect.width;
       }
     } else if (top + rect.height > floor) {
@@ -89,7 +95,7 @@ export function keepOnScreen(node, params) {
       const above = over - GAP - rect.height;
       if (above >= MARGIN) top = above;
     }
-    left = Math.min(left, window.innerWidth - MARGIN - rect.width);
+    left = Math.min(left, pageWidth - MARGIN - rect.width);
     left = Math.max(MARGIN, left);
     top = Math.min(top, floor - rect.height);
     top = Math.max(MARGIN, top);

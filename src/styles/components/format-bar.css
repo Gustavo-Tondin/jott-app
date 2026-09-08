@@ -89,7 +89,10 @@
     background: var(--app-bg);
     border-radius: var(--app-radius-md);
     box-shadow: var(--app-shadow-popover);
-    z-index: 1;
+    /* The popover layer (controls/overlays.css), not the bar's own: keepOnScreen
+       re-parents this panel to <body>, where a 1 sits UNDER the compact
+       canvas (2) — on a phone the panel opened behind the note. */
+    z-index: 200;
   }
   /* The table's panel writes a verb beside each glyph (FormatBar.svelte): a
      column of rows, and a greyed row reads as "not here". */
