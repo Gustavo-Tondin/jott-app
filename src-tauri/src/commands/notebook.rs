@@ -108,6 +108,9 @@ pub struct NotebookLayout {
     /// a note opens.
     pub format_bar: String,
     pub format_bar_side: String,
+    /// Whether note text is hyphenated as it is drawn. An attribute on the
+    /// document root, so it rides here for the reason the accent does.
+    pub hyphenate_notes: bool,
     pub shortcuts: serde_json::Map<String, serde_json::Value>,
     /// Which parts of the app are switched on. Only what was switched OFF is
     /// listed; the frontend's `services/features.js` reads a missing key as
@@ -177,6 +180,7 @@ impl NotebookInfo {
                 mono_font: display.mono_font,
                 format_bar: display.format_bar,
                 format_bar_side: display.format_bar_side,
+                hyphenate_notes: display.hyphenate_notes,
                 shortcuts: notebook.config().shortcuts.clone(),
                 features: notebook.config().features.clone(),
             },

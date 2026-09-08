@@ -41,6 +41,9 @@ pub struct DisplayPrefs {
     /// THIS screen — a phone has neither, a wide monitor and a laptop disagree.
     pub format_bar: Option<String>,
     pub format_bar_side: Option<String>,
+    /// Hyphenate note text on screen. Display, because it is a fact about
+    /// this SCREEN: a phone's column breaks words a monitor never has to.
+    pub hyphenate_notes: Option<bool>,
     pub date_display_format: Option<String>,
     pub show_list_counts: Option<bool>,
     pub restore_last_screen: Option<bool>,
@@ -79,6 +82,7 @@ impl DisplayPrefs {
         take(&mut self.mono_font, safe_font(patch.mono_font));
         take(&mut self.format_bar, patch.format_bar);
         take(&mut self.format_bar_side, patch.format_bar_side);
+        take(&mut self.hyphenate_notes, patch.hyphenate_notes);
         take(&mut self.date_display_format, patch.date_display_format);
         take(&mut self.show_list_counts, patch.show_list_counts);
         take(&mut self.auto_space_colors, patch.auto_space_colors);
@@ -148,6 +152,7 @@ pub struct Display {
     pub mono_font: String,
     pub format_bar: String,
     pub format_bar_side: String,
+    pub hyphenate_notes: bool,
     pub date_display_format: String,
     pub show_list_counts: bool,
     pub restore_last_screen: bool,
@@ -200,6 +205,7 @@ impl Display {
                 .format_bar_side
                 .clone()
                 .unwrap_or_else(|| config.format_bar_side.clone()),
+            hyphenate_notes: machine.hyphenate_notes.unwrap_or(config.hyphenate_notes),
             date_display_format: machine
                 .date_display_format
                 .clone()
@@ -272,6 +278,8 @@ pub struct NotebookSettings {
     pub format_bar: Option<String>,
     pub format_bar_side: Option<String>,
     pub close_inspector_on_click_away: Option<bool>,
+    /// Hyphenate note text on screen (Display).
+    pub hyphenate_notes: Option<bool>,
     pub quick_note_folder: Option<String>,
     pub quick_task_list: Option<String>,
     /// Whether the fixed Tasks screen shows every list, arranged by space,
@@ -327,6 +335,7 @@ impl NotebookSettings {
             format_bar: Some(display.format_bar.clone()),
             format_bar_side: Some(display.format_bar_side.clone()),
             close_inspector_on_click_away: Some(display.close_inspector_on_click_away),
+            hyphenate_notes: Some(display.hyphenate_notes),
             quick_note_folder: Some(config.quick_note_folder.clone()),
             quick_task_list: Some(config.quick_task_list.clone()),
             tasks_show_all: Some(config.tasks_show_all),
@@ -445,6 +454,9 @@ impl NotebookSettings {
         }
         if let Some(v) = self.close_inspector_on_click_away {
             config.close_inspector_on_click_away = v;
+        }
+        if let Some(v) = self.hyphenate_notes {
+            config.hyphenate_notes = v;
         }
         if let Some(v) = &self.quick_note_folder {
             if !v.trim().is_empty() {

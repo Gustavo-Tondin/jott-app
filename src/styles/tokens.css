@@ -153,6 +153,12 @@
     --app-note-size: var(--app-text-16);
     --app-note-h1: calc(var(--app-note-size) * 1.6);
 
+    /* Whether note text is hyphenated as it is DRAWN — `data-hyphens` on the
+       root (`hyphenateNotes`, Settings › Display), absent for off. Read by
+       the editor and the card's preview; the .md file never sees it, the
+       engine only breaks the word on the line. */
+    --app-hyphens: manual;
+
     /* How tall a note card on the board may grow: the shell writes the
        reader's number here (`cardLines`, Settings › Display), absent for the
        default. A card is banner, title and this many LINES of preview, so
@@ -247,6 +253,12 @@
 
   /* The other two rungs of the note's size ladder; here, not editor.css,
      because the note's title reads `--app-note-h1` from outside the editor. */
+  /* Beside the note's size for the same reason: the preview on a card is
+     drawn outside the editor and answers to the same choice. */
+  :root[data-hyphens="on"] {
+    --app-hyphens: auto;
+  }
+
   :root[data-note-size="small"] {
     --app-note-size: var(--app-text-14);
   }

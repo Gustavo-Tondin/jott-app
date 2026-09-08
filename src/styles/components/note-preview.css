@@ -19,6 +19,10 @@
     max-block-size: calc(var(--note-preview-lines) * var(--app-leading-normal) * 1em);
     overflow: hidden;
     overflow-wrap: anywhere;
+    /* The same choice the note itself answers to (tokens.css): a card is a
+       narrow column, which is where a ragged edge shows most. */
+    hyphens: var(--app-hyphens);
+    hyphenate-limit-chars: 6 3 3;
   }
 
   /* The three quiet dots under a cut preview. Faint, not muted: a sign, not

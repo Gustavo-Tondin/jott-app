@@ -594,3 +594,16 @@ fn a_missing_file_loads_the_defaults() {
     let config = Config::load(dir.path().join("absent.json"));
     assert_eq!(config.rollover, Rollover::default());
 }
+
+#[test]
+fn hyphenation_is_off_by_default_and_round_trips() {
+    let mut config = Config::default();
+    assert!(!config.hyphenate_notes, "off by default: it is a preference");
+
+    config.hyphenate_notes = true;
+    assert!(Config::parse(&config.render()).hyphenate_notes);
+
+    // It is a screen preference, so a garbled value must not stop the
+    // notebook from opening.
+    assert!(!Config::parse(r#"{ "schemaVersion": 1, "hyphenateNotes": "yes" }"#).hyphenate_notes);
+}

@@ -68,6 +68,20 @@ describe("SettingsView", () => {
     );
   });
 
+  test("hyphenation is offered beside the note's size, and answers to the machine", async () => {
+    // It is DRAWN and never written — the .md file keeps every word whole —
+    // so it belongs with the rest of how a note reads on this screen.
+    bridge({ notebook_settings: settings, set_machine_display: null });
+    render(SettingsView, { props: props() });
+
+    await userEvent.click(await screen.findByRole("checkbox", { name: "Hyphenate note text" }));
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("set_machine_display", {
+        display: { hyphenateNotes: true },
+      }),
+    );
+  });
+
   test("the floating formatting bar's mode and side are this machine's too", async () => {
     // Display, and the section is the rule: where a bar sits over a document
     // is a fact about this screen, not about the notebook (core/settings.rs).

@@ -186,6 +186,10 @@ pub struct Config {
     /// Which SIDE of the canvas the floating bar hugs (`top` / `left` /
     /// `right` / `bottom`), always centred on it. Empty means `top`. Unpoliced.
     pub format_bar_side: String,
+    /// Hyphenate the text of a note as it is DRAWN, so a long word breaks at
+    /// the end of a line instead of leaving a ragged hole. Never written: the
+    /// file keeps every word whole (the frontend asks the engine, `hyphens`).
+    pub hyphenate_notes: bool,
     /// The user's keyboard bindings, `command id → chord`. Opaque to the
     /// core: kept and handed back untouched, so bindings from a newer build
     /// survive; the frontend ignores what it cannot honour
@@ -284,6 +288,7 @@ impl Default for Config {
             mono_font: String::new(),
             format_bar: String::new(),
             format_bar_side: String::new(),
+            hyphenate_notes: false,
             shortcuts: Map::new(),
             close_inspector_on_click_away: false,
             quick_note_folder: crate::notefolder::NOTES_INBOX.to_string(),
@@ -489,6 +494,7 @@ impl Config {
             mono_font: font(&raw, "monoFont", defaults.mono_font),
             format_bar: string(&raw, "formatBar").unwrap_or(defaults.format_bar),
             format_bar_side: string(&raw, "formatBarSide").unwrap_or(defaults.format_bar_side),
+            hyphenate_notes: flag(&raw, "hyphenateNotes", defaults.hyphenate_notes),
             close_inspector_on_click_away: flag(
                 &raw,
                 "closeInspectorOnClickAway",
@@ -592,6 +598,7 @@ impl Config {
                 "closeInspectorOnClickAway",
                 Value::from(self.close_inspector_on_click_away),
             ),
+            ("hyphenateNotes", Value::from(self.hyphenate_notes)),
             ("quickNoteFolder", Value::from(self.quick_note_folder.clone())),
             ("quickTaskList", Value::from(self.quick_task_list.clone())),
             ("tasksShowAll", Value::from(self.tasks_show_all)),

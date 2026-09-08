@@ -743,6 +743,7 @@
       timelineGhostNotes: false,
       confirmDeletes: true,
       confirmImageDownloads: true,
+      hyphenateNotes: false,
       accentColor: "",
       theme: "",
       headingColor: "",
@@ -761,6 +762,9 @@
       accent: showsPicker ? "neutral" : layout.accentColor || null,
       headings: !showsPicker && layout.headingColor === "ink" ? "ink" : null,
       noteSize: noteFontSizeAttribute(layout.noteFontSize),
+      // Hyphenation is a fact about the whole document (the engine needs the
+      // page's language), so it is an attribute like the rest — absent is off.
+      hyphens: layout.hyphenateNotes ? "on" : null,
     }),
   );
 

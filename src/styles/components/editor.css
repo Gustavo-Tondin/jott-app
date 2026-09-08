@@ -31,6 +31,18 @@
 }
 .editor .cm-line {
   padding: 0 var(--app-space-4);
+  /* Hyphenation, when the reader asked for it (tokens.css). The engine needs
+     three or more letters each side of the break, or it splits words nobody
+     would; and it needs the page's `lang` (index.html) plus the system's
+     hyphenation rules for it — where either is missing it draws nothing. */
+  hyphens: var(--app-hyphens);
+  hyphenate-limit-chars: 6 3 3;
+}
+/* Never code: a broken identifier is a wrong one, and the mono face is read
+   character by character. */
+.editor .cm-md-mono,
+.editor .cm-md-code {
+  hyphens: manual;
 }
 .editor .cm-placeholder {
   color: var(--app-ink-faint);

@@ -9,6 +9,7 @@
     S.headingColor,
     S.interfaceZoom,
     S.noteFontSizeLabel,
+    S.hyphenateNotesLabel,
     S.cardHeightLabel,
     S.noteLayout,
     S.interfaceFontLabel,
@@ -368,6 +369,23 @@
     form.noteFontSize || DEFAULT_NOTE_FONT_SIZE,
     (key) => putDisplay({ noteFontSize: key }),
   )}
+
+  <!-- Hyphenation is DRAWN and never written: the engine breaks the word at
+       the end of the line, the .md file keeps it whole. This machine's, like
+       the size above — a phone's column asks for it, a monitor does not. -->
+  <label class="settings__row">
+    <span class="settings__label">
+      {S.hyphenateNotesLabel}
+      <HelpTip label={S.hyphenateNotesLabel} text={S.hyphenateNotesHint} />
+    </span>
+    <input
+      class="theme-checkbox"
+      type="checkbox"
+      bind:checked={form.hyphenateNotes}
+      aria-label={S.hyphenateNotesLabel}
+      onchange={(e) => putDisplay({ hyphenateNotes: e.currentTarget.checked })}
+    />
+  </label>
 
   <!-- The three faces. Display, like the size above: which fonts exist is a
        fact about THIS machine, and a notebook carried elsewhere must not

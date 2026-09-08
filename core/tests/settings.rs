@@ -327,3 +327,23 @@ fn an_old_theme_of_the_three_reads_as_a_mode() {
     assert_eq!(stored.mode.as_deref(), Some("light"));
     assert_eq!(stored.theme.as_deref(), Some(""));
 }
+
+#[test]
+fn hyphenation_answers_to_the_screen_and_falls_back_to_the_notebook() {
+    let mut config = Config::default();
+    config.hyphenate_notes = true;
+
+    // A machine that never answered reads the notebook's choice...
+    let carried = Display::resolve(&DisplayPrefs::default(), &config);
+    assert!(carried.hyphenate_notes);
+
+    // ...and one that did overrides it, without writing to the notebook:
+    // a narrow screen wants hyphens where the monitor that owns the
+    // notebook does not.
+    let machine = DisplayPrefs {
+        hyphenate_notes: Some(false),
+        ..DisplayPrefs::default()
+    };
+    assert!(!Display::resolve(&machine, &config).hyphenate_notes);
+    assert!(config.hyphenate_notes, "the notebook was not touched");
+}

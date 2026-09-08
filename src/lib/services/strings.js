@@ -408,6 +408,12 @@ export const S = {
   noteSizeMedium: "Medium",
   noteSizeLarge: "Large",
   noteFontSizeLabel: "Note text size",
+  hyphenateNotesLabel: "Hyphenate note text",
+  hyphenateNotesHint:
+    "Breaks a long word across two lines so the right edge stops jumping. " +
+    "It only happens on screen: the .md file keeps every word whole. Needs " +
+    "the system's English hyphenation rules — where they are missing, " +
+    "nothing changes.",
 
   // The floating formatting bar of an open note. Display, so it answers to
   // this screen. On a phone there is no floating bar: the controls ride
