@@ -16,7 +16,6 @@
   import { askConfirm } from "../services/dialog.js";
   import {
     FUNCTIONS,
-    childrenIn,
     childrenOf,
     hasPage,
     on,
@@ -27,13 +26,16 @@
   /// The glyph a function's menu entry wears: the space types' own, plus the
   /// functions that are not a space type.
   const FUNCTION_ICONS = { ...TYPE_ICONS, time: "path" };
-  import Modal from "../components/Modal.svelte";
   import Icon from "../components/Icon.svelte";
   import AboutSection from "./settings/AboutSection.svelte";
   import DisplaySection from "./settings/DisplaySection.svelte";
   import DatesSection from "./settings/DatesSection.svelte";
   import ShortcutsSection from "./settings/ShortcutsSection.svelte";
   import NotebookSection from "./settings/NotebookSection.svelte";
+  import NativeSection from "./settings/NativeSection.svelte";
+  import TasksPage from "./settings/TasksPage.svelte";
+  import TimePage from "./settings/TimePage.svelte";
+  import NotesPage from "./settings/NotesPage.svelte";
   import { onBack } from "../services/back.js";
   import { plain } from "../services/plain.js";
 
@@ -142,10 +144,6 @@
 
   /// What the user last opened, and `null` for the menu itself.
   let chosen = $state(null);
-
-  /// Which function's help is open — the ? beside an inline group's label
-  /// (the fixed spaces). Null when none is.
-  let helpFor = $state(null);
 
   /// What opens beside the menu when nothing has been chosen yet. NOT the
   /// first row: the wireframe lists About first and draws DISPLAY as the
@@ -481,20 +479,6 @@
   </li>
 {/snippet}
 
-{#snippet featureRow(feature)}
-  <label class="settings__row">
-    <span class="settings__label">{feature.label()}</span>
-    <input
-      class="theme-switch"
-      type="checkbox"
-      checked={on(features, feature.key)}
-      disabled={readOnly || (!!feature.parent && !on(features, feature.parent))}
-      aria-label={feature.label()}
-      onchange={(e) => setFeature(feature.key, e.currentTarget.checked)}
-    />
-  </label>
-{/snippet}
-
 <!-- Two arrangements of one screen (wireframes "Settings", 2026-08-20):
 
        desktop  the menu hugs its rows on the left, the section fills what is
@@ -633,293 +617,49 @@
       {/if}
 
       {#if shows("native")}
-        <!-- Native Functions: every function of the app, with its switch and
-             the door to its own page. What a function HAS — a task's fields, a
-             note's banners — is not here; it is one page in (2026-08-20). -->
-        <section class="settings__section settings__section--features">
-          {@render sectionTitle(S.sectionNative)}
-          <p class="settings__hint">{S.sectionNativeHint}</p>
-
-          {#each FUNCTIONS as fn (fn.key)}
-            <!-- An `inline` group (the fixed spaces) draws its children right
-                 here, indented under their master switch and set apart by a
-                 divider, instead of behind a page of its own (user call,
-                 2026-08-24). -->
-            {#if fn.inline}
-              <hr class="theme-divider settings__functions-break" />
-            {/if}
-            <div class="settings__row settings__function">
-              <input
-                class="theme-switch"
-                type="checkbox"
-                checked={on(features, fn.key)}
-                disabled={readOnly}
-                aria-label={fn.label()}
-                onchange={(e) => setFeature(fn.key, e.currentTarget.checked)}
-              />
-              <span class="settings__label settings__function-name">{fn.label()}</span>
-              {#if fn.help}
-                <button
-                  type="button"
-                  class="theme-btn--icon settings__function-help"
-                  aria-label={S.fixedSpacesHelp}
-                  title={S.fixedSpacesHelp}
-                  onclick={() => (helpFor = fn.key)}
-                >
-                  <Icon name="question" size="1rem" />
-                </button>
-              {/if}
-              {#if hasPage(fn.key) && !fn.inline}
-                <button
-                  type="button"
-                  class="theme-btn--icon settings__function-open"
-                  disabled={!on(features, fn.key)}
-                  aria-label={S.openFunction(fn.label())}
-                  onclick={() => (chosen = `fn:${fn.key}`)}
-                >
-                  <Icon name="caret-right" size="1rem" />
-                </button>
-              {/if}
-            </div>
-            {#if fn.inline}
-              {#each childrenOf(fn.key) as sub (sub.key)}
-                <div class="settings__row settings__function settings__function--sub">
-                  <input
-                    class="theme-switch"
-                    type="checkbox"
-                    checked={on(features, sub.key)}
-                    disabled={readOnly || !on(features, fn.key)}
-                    aria-label={sub.label()}
-                    onchange={(e) => setFeature(sub.key, e.currentTarget.checked)}
-                  />
-                  <span class="settings__label settings__function-name">{sub.label()}</span>
-                </div>
-              {/each}
-            {/if}
-          {/each}
-
-          {#if helpFor}
-            {@const helped = FUNCTIONS.find((fn) => fn.key === helpFor)}
-            <Modal label={S.fixedSpacesHelp} onClose={() => (helpFor = null)}>
-              <h2 class="theme-title">{helped?.label()}</h2>
-              {#each helped?.help?.() ?? [] as paragraph}
-                <p class="settings__help-paragraph">{paragraph}</p>
-              {/each}
-            </Modal>
-          {/if}
-        </section>
+        <NativeSection
+          {features}
+          onSet={setFeature}
+          onOpen={(key) => (chosen = key)}
+          {compact}
+          {readOnly}
+        />
       {/if}
 
       {#if shows("fn:tasks")}
-        <section class="settings__section settings__section--features">
-          {@render sectionTitle(S.featureTasks)}
-
-          <!-- A notebook rule, not a field: where a capture lands. Above the
-               screens because it is the first thing a new task does. -->
-          <label class="settings__row">
-            <span class="settings__label">{S.newTasksGoTo}</span>
-            <select
-              class="theme-select"
-              value={form.newTasksOnTop ? "top" : "bottom"}
-              disabled={readOnly}
-              aria-label={S.newTasksGoTo}
-              onchange={(e) => put({ newTasksOnTop: e.currentTarget.value === "top" })}
-            >
-              <option value="bottom">{S.newTasksBottom}</option>
-              <option value="top">{S.newTasksTop}</option>
-            </select>
-          </label>
-
-          <h3 class="settings__subtitle">{S.subScreens}</h3>
-          {#each childrenIn("tasks", "screens") as feature (feature.key)}
-            {@render featureRow(feature)}
-          {/each}
-
-          <h3 class="settings__subtitle">{S.subFields}</h3>
-          {#each childrenIn("tasks", "fields") as feature (feature.key)}
-            {@render featureRow(feature)}
-            <!-- The one rule that hangs off a field rather than off a screen:
-                 it paints the PRIORITY, so it belongs on the line below it
-                 (2026-08-20, moving back out of Day and week). With priority
-                 off there is nothing for it to paint, and it says so by being
-                 disabled rather than by disappearing. -->
-            {#if feature.key === "priority"}
-              <label class="settings__row settings__row--sub">
-                <span class="settings__label">{S.autoUrgentByDate}</span>
-                <input
-                  class="theme-checkbox"
-                  type="checkbox"
-                  bind:checked={form.autoUrgentByDate}
-                  disabled={readOnly || !on(features, "priority")}
-                  aria-label={S.autoUrgentByDate}
-                  onchange={(e) => put({ autoUrgentByDate: e.currentTarget.checked })}
-                />
-              </label>
-            {/if}
-            <!-- The automatic reminder hangs off Remind me the same way: it
-                 rings dated tasks at the reminder time (2026-08-25), and
-                 with the field off there is no bell for it to ring. -->
-            {#if feature.key === "remind"}
-              <label class="settings__row settings__row--sub">
-                <span class="settings__label">{S.autoRemind}</span>
-                <select
-                  class="theme-select"
-                  bind:value={form.autoRemind}
-                  disabled={readOnly || !on(features, "remind")}
-                  aria-label={S.autoRemind}
-                  onchange={(e) => put({ autoRemind: e.currentTarget.value })}
-                >
-                  <option value="off">{S.autoRemindOff}</option>
-                  <option value="dayOf">{S.autoRemindDayOf}</option>
-                  <option value="dayBefore">{S.autoRemindDayBefore}</option>
-                </select>
-              </label>
-              <label class="settings__row settings__row--sub">
-                <span class="settings__label">{S.reminderTime}</span>
-                <input
-                  class="theme-input"
-                  type="time"
-                  bind:value={form.reminderTime}
-                  disabled={readOnly || !on(features, "remind")}
-                  aria-label={S.reminderTime}
-                  onchange={(e) => put({ reminderTime: e.currentTarget.value })}
-                />
-              </label>
-              <p class="settings__hint">{S.autoRemindHint}</p>
-            {/if}
-          {/each}
-          <p class="settings__hint">{S.autoUrgentByDateHint}</p>
-
-          <!-- The fixed Tasks screen (2026-09-04): the Inbox alone, or every
-               list pulled together. A notebook setting on the function's
-               page, like the rows above — not a feature switch. -->
-          <h3 class="settings__subtitle">{S.subTasksScreen}</h3>
-          <label class="settings__row">
-            <span class="settings__label">{S.tasksShowAll}</span>
-            <select
-              class="theme-select"
-              value={form.tasksShowAll ? "all" : "inbox"}
-              disabled={readOnly}
-              aria-label={S.tasksShowAll}
-              onchange={(e) => put({ tasksShowAll: e.currentTarget.value === "all" })}
-            >
-              <option value="inbox">{S.tasksShowAllInbox}</option>
-              <option value="all">{S.tasksShowAllEvery}</option>
-            </select>
-          </label>
-          <p class="settings__hint">{S.tasksShowAllHint}</p>
-
-          {@render resetFooter("tasks")}
-        </section>
+        <TasksPage
+          bind:form
+          {put}
+          {features}
+          onSet={setFeature}
+          {compact}
+          {readOnly}
+          onReset={() => resetSection("tasks")}
+        />
       {/if}
 
       {#if shows("fn:time")}
-        <section class="settings__section settings__section--features">
-          {@render sectionTitle(S.featureTime)}
-
-          <h3 class="settings__subtitle">{S.subScreens}</h3>
-          {#each childrenIn("time", "screens") as feature (feature.key)}
-            {@render featureRow(feature)}
-          {/each}
-
-          <!-- What the Timeline says about a deleted thing (2026-08-27):
-               counted only, by default — it may have been thrown away for
-               privacy. The log keeps the name either way; this is the
-               screen's word, and the row's own "Remove from timeline" is the
-               door for someone who wants the line gone. -->
-          <label class="settings__row">
-            <span class="settings__label">{S.timelineGhostTitles}</span>
-            <input
-              class="theme-checkbox"
-              type="checkbox"
-              bind:checked={form.timelineGhostTitles}
-              disabled={readOnly}
-              aria-label={S.timelineGhostTitles}
-              onchange={(e) => put({ timelineGhostTitles: e.currentTarget.checked })}
-            />
-          </label>
-          <p class="settings__hint">{S.timelineGhostTitlesHint}</p>
-
-          {@render resetFooter("time")}
-        </section>
+        <TimePage
+          bind:form
+          {put}
+          {features}
+          onSet={setFeature}
+          {compact}
+          {readOnly}
+          onReset={() => resetSection("time")}
+        />
       {/if}
 
       {#if shows("fn:notes")}
-        <section class="settings__section settings__section--features">
-          {@render sectionTitle(S.featureNotes)}
-
-          <h3 class="settings__subtitle">{S.subNoteHas}</h3>
-          {#each childrenIn("notes", "has") as feature (feature.key)}
-            {@render featureRow(feature)}
-          {/each}
-          <p class="settings__hint">{S.featureBannersHint}</p>
-
-          <h3 class="settings__subtitle">{S.subBoard}</h3>
-
-          <!-- The default for a space that never chose (proposta §9-A). A
-               space's own choice lives in its .space.json and wins; with
-               folders off there is no tree to draw, so the row goes quiet
-               the way a child switch does. -->
-          <label class="settings__row">
-            <span class="settings__label">{S.noteLayout}</span>
-            <select
-              class="theme-select"
-              value={form.noteLayout === "tree" ? "tree" : ""}
-              disabled={readOnly || !on(features, "noteFolders")}
-              aria-label={S.noteLayout}
-              onchange={(e) => put({ noteLayout: e.currentTarget.value })}
-            >
-              <option value="">{S.gridView}</option>
-              <option value="tree">{S.treeView}</option>
-            </select>
-          </label>
-          <p class="settings__hint">{S.noteLayoutHint}</p>
-
-          <h3 class="settings__subtitle">{S.subTables}</h3>
-
-          <!-- How a table sits in the note's column (user call, 2026-08-24):
-               squeezed to the content width by default, or as wide as its
-               cells with a sideways scroll of its own. A notebook setting,
-               like the board layout above — it is about the notes, not about
-               this screen. -->
-          <label class="settings__row">
-            <span class="settings__label">{S.tableLayout}</span>
-            <select
-              class="theme-select"
-              value={form.tableLayout === "scroll" ? "scroll" : ""}
-              disabled={readOnly || !on(features, "tables")}
-              aria-label={S.tableLayout}
-              onchange={(e) => put({ tableLayout: e.currentTarget.value })}
-            >
-              <option value="">{S.tableLayoutFit}</option>
-              <option value="scroll">{S.tableLayoutScroll}</option>
-            </select>
-          </label>
-          <p class="settings__hint">{S.tableLayoutHint}</p>
-
-          <h3 class="settings__subtitle">{S.subImages}</h3>
-
-          <!-- Rescued (2026-08-20): the value was only ever written by the
-               dialog's own "don't ask again", so it could be switched off and
-               never back on. Principle 9 is the reason it exists at all — this
-               is one of the two connections the app makes. -->
-          <label class="settings__row">
-            <span class="settings__label">{S.confirmImageDownloads}</span>
-            <input
-              class="theme-checkbox"
-              type="checkbox"
-              bind:checked={form.confirmImageDownloads}
-              disabled={readOnly}
-              aria-label={S.confirmImageDownloads}
-              onchange={(e) => put({ confirmImageDownloads: e.currentTarget.checked })}
-            />
-          </label>
-          <p class="settings__hint">{S.confirmImageDownloadsHint}</p>
-
-
-
-          {@render resetFooter("notes")}
-        </section>
+        <NotesPage
+          bind:form
+          {put}
+          {features}
+          onSet={setFeature}
+          {compact}
+          {readOnly}
+          onReset={() => resetSection("notes")}
+        />
       {/if}
 
       {#if shows("notebook")}
