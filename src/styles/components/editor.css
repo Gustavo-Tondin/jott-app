@@ -1,27 +1,14 @@
-/* editor.css — the visual layer of Editor.svelte.
- * Markup: src/lib/components/Editor.svelte. Selectors are the stable BEM hooks a theme
- * may restyle; components read tokens only.
- *
- * THE ONE STYLESHEET IN THE APP WITHOUT `@layer` (2026-08-18), and it has to
- * be: CodeMirror injects its base theme as a <style> it puts FIRST in <head>,
- * and that style is UNLAYERED. An unlayered declaration beats a layered one
- * whatever the specificity, so `@layer components { .editor .cm-content { … } }`
- * lost every fight it picked — silently. It was losing them: the padding of a
- * line, the padding of the content, the placeholder's colour and the caret's
- * were CodeMirror's, and the note body was rendering in MONOSPACE (its
- * `.cm-scroller { font-family: monospace }`) instead of the app's font.
- *
- * Unlayered, this file lands in the same bucket as CodeMirror's and wins on
- * order — style-mod inserts before <head>'s first child, so ours is always
- * later. Nothing here reaches outside `.editor`, so nothing else in the app
- * notices the promotion. */
+/* editor.css — the visual layer of Editor.svelte (src/lib/components/Editor.svelte).
+ * UNLAYERED, and it has to be: CodeMirror injects its base theme as an unlayered
+ * <style>, and an unlayered declaration beats any layer. It also wins by
+ * specificity (its generated `.ͼ1`): name the piece the way it does and put
+ * `.cm-editor` in front. Nothing here reaches outside `.editor`. See docs/platform-gotchas.md#codemirror */
 
 .editor {
   height: 100%;
 }
-/* The app's font, taken back on BOTH elements: CodeMirror puts
-   `font-family: monospace` on the scroller, and a rule on the editor above it
-   never reaches a declaration made on the element itself. */
+/* On BOTH elements: CodeMirror puts `font-family: monospace` on the scroller
+   itself, so a rule above it never reaches. */
 .editor .cm-editor,
 .editor .cm-scroller {
   font: inherit;
@@ -34,13 +21,11 @@
 }
 .editor .cm-content {
   padding: var(--app-space-8) 0;
-  /* The note's own size (14 / 16 / 18 by `data-note-size`), from the token
-     that names it. The token is in tokens.css because the note's TITLE is
-     sized against the same ladder and is drawn outside this editor. */
+  /* The note's size token lives in tokens.css: the note's title is sized
+     against the same ladder, outside this editor. */
   font-size: var(--app-note-size);
   line-height: var(--app-leading-loose);
-  /* CodeMirror does not inherit the caret from the region; without this the
-     cursor stayed near-black and disappeared on a dark ground. */
+  /* CodeMirror does not inherit the caret from the region. */
   caret-color: var(--app-ink);
   color: var(--app-ink);
 }
@@ -50,50 +35,21 @@
 .editor .cm-placeholder {
   color: var(--app-ink-faint);
 }
-/* The text cursor's own highlight, for the same reason as the caret. */
+/* Not inherited either. */
 .editor .cm-selectionBackground,
 .editor .cm-editor ::selection {
   background: var(--app-brand-weak);
 }
 
 /* =========================================================================
-   THE SHAPE OF MARKDOWN (2026-08-18)
-
-   What each piece of Markdown looks like once the line reads as formatted
-   text. The names come from services/markdown.js, which hands out classes
-   and not one measurement — a size or a colour written there would be a
-   visual decision hiding in a service, out of a theme's reach.
-
-   Drawn from the Notes wireframes (Wireframes/Desktop/Notes, "Editor
-   screen"), which decide four things this file could not have guessed:
-
-     · the line being edited wears a soft band of the accent, rounded, the
-       width of the text column;
-     · a quote is a BOX — the region's surface, with a 2px accent bar down
-       the side and its far corners rounded;
-     · bold is ink and a link is the accent, but italic is green
-       (--app-emphasis);
-     · the syntax marks are NOT dimmed on the line that shows them, and a
-       bullet is ink like the text it introduces.
-
-   Everything else here (code, rule, checked task) is the same shape language
-   applied where the wireframes are silent.
+   THE SHAPE OF MARKDOWN — services/markdown.js hands out the class names and
+   not one measurement; every size and colour is here, in a theme's reach.
    ========================================================================= */
 
 /* ---- the editing zone ----
-   THE LINE THE CARET IS ON, and only while it is a bare caret — a selection
-   draws none (user report with a screenshot, 2026-08-19: "o seletor de linha
-   somente no bloco onde está a | de texto"). The band and the text selection
-   are the same colour, so a band under a selection stacked twenty rounded
-   boxes down the page and swallowed the selection itself. Which lines those
-   are is `caretLines` in services/markdown.js, next to the reason.
-
-   Note that the RAW SYNTAX follows a different question — the mark the
-   selection is inside (`revealedBy`) — the two parted ways here.
-
-   A background IMAGE rather than a colour, so it veils whatever ground the
-   line already has (a quote's surface, a code block's box) instead of
-   replacing it. And translucent, so the text selection still reads on top. */
+   The line the caret is on, only while it is a bare caret (`caretLines` in
+   services/markdown.js). A background IMAGE, translucent: it veils whatever
+   ground the line has (quote, code) and the selection still reads on top. */
 .editor .cm-md-editing {
   background-image: linear-gradient(
     color-mix(in srgb, var(--app-brand-weak) 75%, transparent),
@@ -103,10 +59,8 @@
 }
 
 /* ---- headings ----
-   Six sizes for six levels; the colour is the accent ladder (or the ink one,
-   if the reader turned headings off the accent in Settings), assigned by
-   styles/roles.css. Sizes are in `em` so the whole scale follows the app's
-   body size instead of pinning the note to one number. */
+   Colours come from the ladder styles/roles.css assigns; sizes in `em` so the
+   scale follows the body. */
 .editor .cm-md-h1 {
   font-size: calc(1em * var(--editor-h1));
   font-weight: var(--app-weight-bold);
@@ -138,9 +92,7 @@
   font-weight: var(--app-weight-bold);
   color: var(--app-heading-6);
 }
-/* A title needs air above it more than below: the paragraph it opens is
-   already its own line. NAMED, because the fold chevron beside a heading has
-   to step over exactly this much to reach the line it belongs to. */
+/* NAMED: the fold chevron beside a heading steps over exactly this much. */
 .editor .cm-md-heading {
   padding-block-start: var(--editor-heading-air);
 }
@@ -158,11 +110,8 @@
   text-decoration: line-through;
 }
 
-/* ---- links ----
-   The accent, and the underline only under the pointer: a note is mostly
-   prose, and a permanent underline turns every reference into a scar. The
-   `(endereço)` half — visible only on the line being edited — steps back to
-   muted ink, because it is plumbing and the text is the link. */
+/* ---- links ---- underline only under the pointer; the `(url)` half steps
+   back to muted ink. */
 .editor .cm-md-link {
   color: var(--app-brand);
 }
@@ -173,10 +122,8 @@
   color: var(--app-ink-muted);
 }
 
-/* ---- code ----
-   Two shapes from one tag: `InlineCode` and the text inside a fenced block
-   both carry it. Inline it is a chip; inside the block the box already says
-   "code", so the chip comes off. */
+/* ---- code ---- one tag, two shapes: inline is a chip; inside a fenced
+   block the box already says "code", so the chip comes off. */
 .editor .cm-md-mono {
   padding: 0.05em 0.3em;
   border-radius: var(--app-radius-xs);
@@ -196,18 +143,15 @@
   font-size: 0.9em;
 }
 
-/* ---- quote ----
-   A box with a bar, not italic muted text: the shape carries the meaning, so
-   the words keep the ink of the note around them. */
+/* ---- quote ---- a box with a bar; the words keep the note's ink. */
 .editor .cm-md-quote {
   background-color: var(--app-surface);
   border-inline-start: 0.125rem solid var(--app-brand);
   padding-inline: var(--app-space-10) var(--app-space-8);
 }
 
-/* The two ends of a box are the only lines that round a corner. The side the
-   bar is on stays square — a bar with a rounded box behind it reads as two
-   pieces that missed each other. */
+/* Only the two ends of a box round a corner; the side the bar is on stays
+   square. */
 .editor .cm-md-open {
   border-start-start-radius: var(--app-radius-xs);
   border-start-end-radius: var(--app-radius-xs);
@@ -224,10 +168,9 @@
   border-end-start-radius: 0;
 }
 
-/* ---- horizontal rule ----
-   The dashes ARE the rule, so on a line nobody is editing they step aside
-   and let a real hairline take their place. Drawn on a pseudo-element, which
-   costs no height: the line keeps measuring the way CodeMirror expects. */
+/* ---- horizontal rule ---- the dashes go transparent and a pseudo-element
+   draws the hairline: no height added, so the line measures as CodeMirror
+   expects. */
 .editor .cm-md-rule {
   position: relative;
 }
@@ -241,8 +184,7 @@
   inset-block-start: 50%;
   border-block-start: 0.0625rem solid var(--app-line);
 }
-/* On the line being edited the characters come back and the hairline goes,
-   the same trade the rest of the live preview makes. */
+/* On the line being edited the characters come back and the hairline goes. */
 .editor .cm-md-rule.cm-md-editing .cm-md-separator {
   color: var(--app-ink-muted);
 }
@@ -250,52 +192,37 @@
   content: none;
 }
 
-/* ---- lists ----
-   The • a `-` becomes on a line nobody is editing. Ink, not muted: it is the
-   structure of the list, and it is what the eye runs down the margin. */
+/* ---- lists ---- */
 .editor .cm-md-bullet {
   color: var(--app-ink);
   /* The bullet IS the marker column (services/listIndent.js): a box as wide
-     as the column, the dot at its start, so the text after it lands exactly
-     where a wrapped line will (2026-09-07). */
+     as the column, so the text lands where a wrapped line will. */
   display: inline-block;
   inline-size: var(--editor-marker);
   text-indent: 0;
 }
 
-/* ---- indentation (2026-09-07) ----
-   Three asks in one user call: a wider level, a guide down each level, and a
-   wrapped item that hangs from its first letter instead of coming back under
-   the bullet. Which spans and counts exist is services/listIndent.js; every
-   LENGTH is here, in `em` like the rest of the editor, so the two follow the
-   note's size together and a theme can move them.
-
-   The whole trick is that the two columns have FIXED widths: a level is
-   `--editor-indent` wide whatever four spaces would measure, and a marker
-   (`- `, `12. `, the checkbox) takes at least `--editor-marker`. That is what
-   lets the line compute how far its text starts (`--cm-hang`) from two counts
-   the service writes on it — and hang the wrapped lines exactly there. */
+/* ---- indentation ----
+   Which spans and counts exist is services/listIndent.js; every LENGTH is
+   here, in `em`. The two columns have FIXED widths, which is what lets a line
+   compute where its text starts (`--cm-hang`) from the two counts the service
+   writes on it — and hang its wrapped lines exactly there. */
 .editor {
   --editor-indent: 1.75em;
   --editor-marker: 1.25em;
-  /* The heading ladder, as bare numbers: the heading reads them as `em` of the
-     note's own size, and the fold gutter — which is outside the note's text and
-     cannot use its `em` — multiplies them by `--app-note-size` to know how tall
-     the line beside it is. h4 to h6 are the note's size, so they have no rung.
-     One source, or a chevron drifts off a heading nobody thought to update. */
+  /* The heading ladder as bare numbers: the heading reads them as `em`, the
+     fold gutter (outside the note's text) multiplies them by
+     `--app-note-size`. h4–h6 are the note's size, so no rung. One source. */
   --editor-h1: 1.6;
   --editor-h2: 1.35;
   --editor-h3: 1.15;
-  /* The air a heading's line opens with, and the ONE thing that makes a
-     heading's chevron sit differently from a bullet's. */
+  /* The air a heading's line opens with — the one thing that makes its
+     chevron sit differently from a bullet's. */
   --editor-heading-air: var(--app-space-12);
 }
-/* `text-indent: 0` ON THE SPANS IS LOAD-BEARING (measured in the harness,
-   2026-09-07): `text-indent` inherits, and an inline-block is a block
-   container that applies it to ITS first line — so the `1.` of an ordered
-   item and the raw `- ` of the line being edited were pulled a whole hang to
-   the left, out of the line's box, while the • (an inline widget, no box of
-   its own) stayed put. That was "o `-` fica fora do seletor de linha". */
+/* `text-indent: 0` ON THE SPANS IS LOAD-BEARING: it inherits, and an
+   inline-block applies it to ITS first line — the marker would be pulled a
+   whole hang out of the line's box. */
 .editor .cm-md-indent {
   display: inline-block;
   inline-size: var(--editor-indent);
@@ -316,11 +243,9 @@
   padding-inline-start: calc(var(--app-space-4) + var(--cm-hang));
   text-indent: calc(-1 * var(--cm-hang));
 }
-/* The guides: one hairline per level, standing under the middle of the
-   parent's marker column, the full height of the line — wrapped lines too,
-   which is why it is the line's and not the span's. A pseudo-element rather
-   than the line's own background, because the editing band already lives
-   there (`.cm-md-editing`) and two backgrounds on one rule would fight. */
+/* The guides: one hairline per level, under the middle of the parent's
+   marker column, the full height of the line (wrapped lines too). A
+   pseudo-element, because the editing band already owns the background. */
 .editor .cm-md-indented::before {
   content: "";
   position: absolute;
@@ -335,11 +260,8 @@
   );
   pointer-events: none;
 }
-/* A parent item (services/listIndent.js says how it is known) draws the stub
-   its children's guide meets: from under its first visual line — `1lh`, the
-   line the marker sits on — to its bottom, in the same column the children
-   draw theirs. Wrapped lines of the item are covered too, which is the
-   "bloco de texto pertencente ao item" of the user's call (2026-09-07). */
+/* A parent item draws the stub its children's guide meets: from under its
+   first visual line (`1lh`) to its bottom, in the children's column. */
 .editor .cm-md-indented--parent::after {
   content: "";
   position: absolute;
@@ -352,54 +274,29 @@
   pointer-events: none;
 }
 
-/* ---- folding by section (2026-08-24) ----
-   The gutter CodeMirror adds for the fold markers, stripped back to nothing
-   but the chevron: no ground, no rule — the margin of the page, not a panel
-   beside it. One glyph does both states, turned when open, and the open ones
-   keep quiet until the pointer comes near: a folded section is a FACT worth
-   showing always, an unfolded one only an offer. */
+/* ---- folding by section ----
+   CodeMirror's fold gutter stripped to the chevron: no ground, no rule. One
+   glyph for both states, turned when open; open ones show only near the
+   pointer. */
 .editor .cm-gutters {
   background: none;
   border: none;
 }
 .editor .cm-foldGutter .cm-gutterElement {
   padding: 0;
-  /* The width is a token because the gutter takes it OUT of the text's
-     column — the note's body and the canvas both leave room for it, and the
-     three cannot disagree (styles/tokens.css says the whole of it). */
+  /* A token because the gutter takes this width OUT of the text's column:
+     the note's body and the canvas leave the same room (styles/tokens.css). */
   inline-size: var(--app-editor-gutter);
   text-align: center;
 }
 .editor .cm-fold-marker {
   display: inline-block;
-  /* ON THE FIRST LINE OF THE ITEM (user calls with screenshots, 2026-09-07:
-     "tem espaço sobrando em cima do título, então a calha não fica alinhada
-     com ele" · "a calha deve alinhar a primeira linha de um item, seja titulo,
-     bullet com indents ou o que for").
-
-     CodeMirror gives the gutter's cell the height of the WHOLE item and
-     leaves the marker at the top of it, so the chevron sat above the text of
-     a heading and in the middle of nothing on an item of several lines. It is
-     moved down to the middle of the FIRST line, which is half that line's
-     height, less half the chevron's own box — `line-height: 1` above is what
-     makes that box a known quantity instead of whatever the gutter inherited.
-
-     THE DEFAULT IS THE NOTE'S OWN TEXT — a bullet (indented or not), a
-     paragraph, a quote. A heading is the exception, and the only one: its
-     line opens with air (`--editor-heading-air`) and reads at its own rung of
-     the ladder. Which line is which comes from `services/foldLines.js`, on
-     the gutter's element; the arithmetic stays here, in the tokens that drew
-     the line — so the whole thing follows the reader's note size.
-
-     `translate`, not padding on the cell: the gutter is a flex column of
-     cells whose heights CodeMirror writes itself, and padding there makes the
-     items refuse to shrink to those heights, which desynchronises the entire
-     gutter from the text (measured, 2026-09-07). This moves ink and nothing
-     else, and composes with the `rotate` below. */
-  /* The two that make the arithmetic below mean what it says: the chevron's
-     box is one em tall, and it starts at the TOP of the cell instead of
-     hanging from the gutter's own baseline — which was leaving it 2.8px low
-     whatever the line (measured, 2026-09-07). */
+  /* CodeMirror gives the cell the height of the WHOLE item and leaves the
+     marker at its top; this centres it on the FIRST line. `translate`, never
+     padding on the cell: padding stops the cells shrinking to the heights
+     CodeMirror writes and desynchronises the gutter. */
+  /* `line-height: 1` makes the chevron's box one em; `vertical-align: top`
+     starts it at the cell's top instead of the gutter's baseline. */
   line-height: 1;
   vertical-align: top;
   translate: 0 calc((var(--app-note-size) * var(--app-leading-loose) - 1em) / 2);
@@ -409,16 +306,9 @@
     rotate var(--app-transition-fast),
     opacity var(--app-transition-fast);
 }
-/* A heading's chevron: over the air its line opens with, and centred on a
-   line of that heading's own size. h3 to h6 keep the note's leading (only h1
-   and h2 tighten it), which is why the two halves of the ladder differ by
-   more than the rung.
-
-   Measured against the rendered first line (Chrome, CDP, 2026-09-07): dead on
-   for h3, h4 and every line that reads at the note's leading — bullets
-   included, wrapped or not — and 0.4px high on an h1, 0.8px on an h2. That
-   residue is a tighter leading meeting the line's own strut, which no
-   arithmetic here can see; it is under a pixel and it stays. */
+/* A heading's chevron: over the air its line opens with, centred on a line of
+   its own rung. h1/h2 tighten the leading, h3–h6 keep the note's — which line
+   is which comes from services/foldLines.js. */
 .editor .cm-fold-line--h1 .cm-fold-marker {
   translate: 0
     calc(
@@ -469,8 +359,7 @@
 .editor .cm-activeLineGutter .cm-fold-marker--open {
   opacity: 1;
 }
-/* What a folded section leaves behind: the quiet dots, on a step of ground
-   so they read as something to press. */
+/* What a folded section leaves behind. */
 .editor .cm-foldPlaceholder {
   padding-inline: var(--app-space-6);
   background: var(--app-well);
@@ -481,25 +370,18 @@
 }
 
 /* ---- checklists ----
-   A note's checkbox is two characters in the file (spec 5), but it reads as
-   done the way a task of the app does — struck through and stepped back.
-   The look itself comes from `.theme-checkbox`, which the widget wears
-   (services/markdown.js) — the box in a note and the box on a task are the
-   same control to the eye. Here is only what sitting INSIDE a line of text
-   asks for. */
+   The box wears `.theme-checkbox` (services/markdown.js); here is only what
+   sitting inside a line of text asks for. */
 .editor .cm-task-checkbox {
   vertical-align: text-bottom;
 }
-/* The span around it (services/markdown.js) is the marker column of a task
-   line — two columns wide (`--cm-marker: 2`, services/listIndent.js), the
-   box at its start — so the text after it lands where its wrapped lines
-   will. On a finger it also grows a hit area, drawn as a pseudo-element
-   (touch.css) so the line's height never moves. */
+/* The marker column of a task line, two columns wide (`--cm-marker: 2`). On
+   a finger it grows a hit area as a pseudo-element (touch.css), so the
+   line's height never moves. */
 .editor .cm-task-box {
   position: relative;
   display: inline-block;
-  /* 1.4 columns — `TASK_COLUMNS` in services/listIndent.js, the same number
-     the line's hang is computed with. */
+  /* `TASK_COLUMNS` in services/listIndent.js — the same number the hang uses. */
   inline-size: calc(1.4 * var(--editor-marker));
   text-indent: 0;
 }
@@ -508,18 +390,15 @@
   text-decoration: line-through;
 }
 
-/* ---- the notebook's files, inside the note (2026-08-19) ----
-   `[[/foto.jpg]]` becomes what it names: a picture is drawn, anything else is
-   a chip that opens the file. Both replace the reference on lines the cursor
-   is not on, so what is drawn always sits where the text was. */
+/* ---- the notebook's files, inside the note ----
+   `[[/foto.jpg]]` becomes what it names: a picture, or a chip that opens the
+   file. Both replace the reference on lines the cursor is not on. */
 .editor .cm-embed {
   display: inline-block;
   max-inline-size: 100%;
   vertical-align: top;
 }
-/* A picture takes the line it is on. Block, not inline: an image sharing a
-   baseline with text would ride on it, and a picture in a note is a paragraph
-   of its own. */
+/* Block, not inline: an image sharing a baseline with text would ride on it. */
 .editor .cm-embed--image {
   display: block;
   margin-block: var(--app-space-6);
@@ -529,9 +408,7 @@
   max-inline-size: 100%;
   border-radius: var(--app-radius-md);
 }
-/* The file is named in the note but not in the library — deleted, renamed by
-   hand, or a notebook that travelled without its `assets/`. Saying so beats a
-   broken-image glyph. */
+/* Named in the note but not in the library. */
 .editor .cm-embed--missing {
   display: inline-block;
   padding: var(--app-space-2) var(--app-space-6);
@@ -541,8 +418,7 @@
   font-size: var(--app-text-13);
 }
 
-/* What the app cannot draw: a name and an icon, sized like a line of text so
-   it sits in a paragraph without pushing it around. */
+/* What the app cannot draw: a name and an icon, sized like a line of text. */
 .editor .cm-embed--file {
   display: inline-flex;
   align-items: center;
@@ -562,9 +438,8 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-/* The app's own fallback: the extension, drawn as a small tile. Replaced by
-   the system's icon when the system has one (`commands::file_icon`) — which
-   is a nicety, so the tile has to read on its own. */
+/* The extension as a tile; the system's icon replaces it when there is one
+   (`commands::file_icon`), so the tile has to read on its own. */
 .editor .cm-embed__glyph {
   display: flex;
   align-items: center;
@@ -594,10 +469,7 @@
   object-fit: contain;
 }
 
-/* ---- a link to another note (2026-08-19) ----
-   The brackets go; the title stays and reads as what it is. The app's accent
-   rather than a browser blue: a link inside the notebook is the notebook's
-   own colour. */
+/* ---- a link to another note ---- the brackets go, the title stays. */
 .editor .cm-link-note {
   color: var(--app-brand);
   text-decoration: underline;
@@ -609,72 +481,38 @@
   text-decoration-thickness: 0.125rem;
 }
 
-/* ---- what `[[` offers while it is typed (2026-08-19; the cascade fixed
-   2026-09-07) ----
-   CodeMirror's completion panel, dressed in the app's tokens — it ships with
-   a light-only look of its own, the same problem the find panel had.
-
-   AND THE DRESSING WAS HALF IGNORED, because the base theme OUT-SPECIFIED
-   it. The rules it injects read
-
-     .ͼ1 .cm-tooltip.cm-tooltip-autocomplete > ul > li
-
-   — a generated class on the editor plus two on the panel: three classes
-   where ours had two, and specificity does not care that ours is read
-   later. Measured in a real CodeMirror over the real sheets (2026-09-07,
-   `CSS.getMatchedStylesForNode` on an open panel): the list came out
-   `font-family: monospace` with `padding: 1px 3px` and `max-height: 10em`
-   — its numbers, not ours — and the selected row was the app's blue only
-   because our `<style>` happened to be read last, an exact tie at (0,3,2)
-   against its own `#17c` that a build could break the other way.
-
-   So every rule here names the panel THE WAY THE BASE THEME DOES and puts
-   `.cm-editor` in front: four classes, one more than it can have, whichever
-   style element the browser reads last. Same lesson as `.cm-panels` in the
-   find panel below, and the reason the whole block is written this way even
-   where two classes already won — a rule that wins by luck reads exactly
-   like a rule that wins. */
+/* ---- what `[[` offers while it is typed ----
+   CodeMirror's completion panel in the app's tokens. Every rule names the
+   panel THE WAY THE BASE THEME DOES (`.cm-tooltip.cm-tooltip-autocomplete >
+   ul > li`) with `.cm-editor` in front: one class more than it can have,
+   whichever <style> the browser reads last. */
 .editor .cm-editor .cm-tooltip.cm-tooltip-autocomplete {
   background: var(--app-surface);
   border: 0.0625rem solid var(--app-line);
   border-radius: var(--app-radius-md);
   box-shadow: var(--app-shadow-popover);
   overflow: hidden;
-  /* A COLUMN, so that the height CodeMirror writes on this box reaches the
-     list inside it. When the room is tight — the phone, with the keyboard
-     up and the caret near it — it sets an inline `height` HERE (not a
-     max-height, and not on the list). With the list at its own
-     `max-height` and this box `overflow: hidden`, the rows past the cut
-     were simply gone: the list had a scrollbar of its own and no way to
-     show what was under the edge. As a column with a shrinkable child, the
-     clamp becomes the list's height and the list scrolls. */
+  /* A COLUMN, so the inline `height` CodeMirror writes on this box when the
+     room is tight becomes the list's height and the list scrolls, instead of
+     the rows past the cut being clipped away. */
   display: flex;
   flex-direction: column;
 }
 .editor .cm-editor .cm-tooltip.cm-tooltip-autocomplete > ul {
   font: inherit;
-  /* Its own ceiling where there is room, and NOTHING where there is not:
-     `min-block-size: 0` is what lets a flex child shrink below its content
-     (the panel's own comment above says why it must). */
+  /* `min-block-size: 0` lets the flex child shrink below its content. */
   max-height: 15rem;
   min-block-size: 0;
-  /* THE RING, and it is the app's menu (menu.css: `.menu__list` carries the
-     same 4px). Without it the first and last option touch the panel's
-     rounded edge, so the selected row's fill squares off exactly where the
-     panel turns — the same misfit the top bar's pill had. */
+  /* THE RING, the app's menu's 4px (menu.css `.menu__list`): without it the
+     selected row's fill squares off exactly where the panel turns. */
   padding: var(--app-space-4);
-  /* A cap, and it is what makes the ellipsis below possible at all: the
-     panel is as wide as its longest option, and a note title can be a
-     sentence — so the label had `text-overflow` with nothing to overflow.
-     `min()` keeps the panel on a phone. */
+  /* A cap is what makes the label's ellipsis possible at all; `min()` keeps
+     the panel on a phone. */
   max-inline-size: min(24rem, 90vw);
 }
-/* A ROW OF THIS PANEL IS A ROW OF THE APP'S MENUS — same 6/10, same corner
-   (menu.css). The corner is the arithmetic the app writes everywhere else:
-   the panel's radius less the ring the row sits in, so the fill of the
-   chosen option is concentric with the curve around it. Before this, the
-   row wore CodeMirror's `padding: 1px 3px` (measured), which is a code
-   editor's density in a list of the reader's own note titles. */
+/* A row of this panel is a row of the app's menus (menu.css): same 6/10, and
+   the corner is the panel's radius less the ring, so the fill is concentric
+   with the curve. */
 .editor .cm-editor .cm-tooltip.cm-tooltip-autocomplete > ul > li {
   display: flex;
   align-items: baseline;
@@ -687,12 +525,8 @@
   background: var(--app-brand);
   color: var(--app-on-brand);
 }
-/* ON A FINGER, the app's 48px (touch.css) — and it has to be said HERE, not
-   there: touch.css lives in `@layer components`, and the base theme this
-   panel fights is unlayered, so a padding written there would lose the
-   cascade whatever it said. The row is already a flex box, so a minimum is
-   all it takes; `align-items: center` so the label sits in the middle of the
-   taller row instead of on its baseline. */
+/* The touch minimum HERE, not in touch.css: that sheet is layered and the
+   base theme this panel fights is not, so a padding there would lose. */
 @media (pointer: coarse) {
   .editor .cm-editor .cm-tooltip.cm-tooltip-autocomplete > ul > li {
     align-items: center;
@@ -700,11 +534,8 @@
     padding-inline: var(--app-space-12);
   }
 }
-/* CodeMirror's type glyph, and there is nothing to put in it: for a "text"
-   completion it draws the literal word `abc` (its own `::after`) on every
-   row of a list where every option is a note or a file — and which of the
-   two it is is already said, quietly, in the detail. A column of `abc` down
-   the left of the app's own names. */
+/* CodeMirror's type glyph draws the literal word `abc` on every row; the
+   detail already says which of note/file it is. */
 .editor .cm-editor .cm-completionIcon {
   display: none;
 }
@@ -715,10 +546,8 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-/* Where a note lives, or whether a file is one the app draws — said quietly,
-   because the name is the answer and this is only the tie-break. The base
-   theme gives this one `font-style: italic` and a left margin of its own;
-   the row already has a gap, so the margin goes with the italic. */
+/* The base theme gives this `font-style: italic` and a left margin; the row
+   already has a gap. */
 .editor .cm-editor .cm-completionDetail {
   margin-inline-start: 0;
   color: var(--app-ink-faint);
@@ -730,22 +559,14 @@
   opacity: 0.75;
 }
 
-/* How big the body of a note is drawn (2026-08-18, `noteFontSize`) is now one
-   token, `--app-note-size`, set in tokens.css with its three rungs — the
-   note's title is sized against the same ladder from outside this file.
-
-   One declaration still moves the whole document, because the marks inside are
-   sized in `em` (the headings above are `1.6em`, `1.35em`…): they are
-   multiples of the body and follow it in proportion. */
+/* The body's size is one token, `--app-note-size` (tokens.css); every mark
+   above is in `em`, so one declaration moves the whole document. */
 
 /* =========================================================================
-   THE PLAIN FIELD (2026-08-19)
-
-   `Editor.svelte` with `plain`: a text field that speaks the `[[` language —
-   today, the task description. It reads as one of the inspector's fields,
-   but the declarations live HERE because
-   this is the unlayered sheet: a layered rule on `.cm-content` loses to
-   CodeMirror's own in silence (the lesson at the top of this file). */
+   THE PLAIN FIELD — `Editor.svelte` with `plain`: a text field that speaks
+   the `[[` language (the task description). Declared HERE because a layered
+   rule on `.cm-content` loses to CodeMirror's own in silence.
+   ========================================================================= */
 .editor--plain {
   height: auto;
   background: var(--app-surface);
@@ -759,15 +580,14 @@
   border-color: var(--app-brand);
   box-shadow: 0 0 0 0.1875rem var(--app-brand-weak);
 }
-/* The interface's own size, not the note's: this field sits in a form next
-   to inputs and selects, and it matches THEM. */
+/* The interface's size, not the note's: it sits in a form next to inputs. */
 .editor--plain .cm-content {
   font-size: var(--app-text-14);
   line-height: var(--app-leading-normal);
   padding: var(--app-space-8) 0;
 }
-/* The textarea's inset, carried by the lines so the caret and the
-   placeholder both land where a textarea would put them. */
+/* The textarea's inset, carried by the lines so caret and placeholder land
+   where a textarea would put them. */
 .editor--plain .cm-line {
   padding: 0 var(--app-space-12);
 }

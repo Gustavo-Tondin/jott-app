@@ -3,21 +3,14 @@
  * `--pull-ratio`, `is-pulling` and `is-pull-ready` on the scroller). */
 
 @layer components {
-  /* ---- pull to search (actions/pullToSearch.js) ----
-     The glass sits folded under the top edge of the scroller and comes out
-     as the page is pulled: `--pull` is how far the finger has got, with the
-     action's resistance already applied. It grows from nothing to full size
-     over the first part of the pull, and the disc turns brand-solid the
-     moment the release would open the search (`is-pull-ready`) — that is the
-     "you can let go now", told by colour rather than by a second glyph. Let
-     go early and the transition glides it back under the edge. */
+  /* `--pull` is how far the finger has got, resistance already applied; the
+     disc turns brand-solid at `is-pull-ready` — "you can let go now", said by
+     colour, not by a second glyph. Let go early and it glides back under. */
   .pull-search {
     position: absolute;
-    /* Under the floating top bar, not under the top edge (user report on
-       device, 2026-09-07: "a interação de pesquisa está bugada no celular,
-       ficando atrás dos botões flutuantes"). The bar is absolute over this
-       scroller at z-index 20 and 78px tall; a glass rising from y=0 spent its
-       whole travel behind the bar's buttons. */
+    /* Under the floating top bar, not the top edge: the bar is absolute over
+       this scroller at z-index 20, and a glass rising from y=0 travels behind
+       its buttons. */
     inset-block-start: var(--app-topbar-height);
     inset-inline: 0;
     z-index: 5;

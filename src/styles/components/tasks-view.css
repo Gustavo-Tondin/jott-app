@@ -1,21 +1,15 @@
-/* tasks-view.css — the visual layer of TasksView.svelte.
- * Markup: src/lib/screens/TasksView.svelte. Selectors are the stable BEM hooks a theme
- * may restyle; components read tokens only.
- *
- * Until 2026-09-04 this file also drew the Inbox / Today / Week strip and
- * the page turn between the tabs; the day moved to the Home's calendar and
- * the tabs went with it, so what is left is the frame that pins the
- * composing bar to the bottom of the panel. */
+/* tasks-view.css — the visual layer of TasksView.svelte: the frame that pins
+ * the composing bar to the bottom of the panel. Selectors are the stable BEM
+ * hooks a theme may restyle; components read tokens only. */
 
 @layer components {
   .tasks-view {
     display: flex;
     flex-direction: column;
     gap: var(--app-space-16);
-    /* The pact that puts the composing bar at the bottom of the PANEL: this
-       screen fills the scrollport (its parent .shell__content-inner is a full
-       height flex column), the tasks screen fills this, and the bar takes the slack
-       with `margin-block-start: auto`. */
+    /* The pact that pins the composing bar to the PANEL's bottom: this screen
+       fills the scrollport, the tasks screen fills this, and the bar takes the
+       slack with `margin-block-start: auto`. */
     flex: 1;
     min-block-size: 0;
   }

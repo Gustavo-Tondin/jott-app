@@ -6,13 +6,9 @@
 
 @layer components {
   /* ---------------------------------------------------------------------------
-     Origin — WHERE a card came from, as colour alone (wireframe "Home Screen
-     - mobile", 2026-08-26): a bar the height of the card on its left edge,
-     in the space's colour, strong. No word: the name would compete with the
-     task, and a pill said "tag" more than it said "place". The parent is
-     `position: relative` and leaves room on the start side (`--origin-room`
-     is what a wearer adds to its padding). `--dot` is the colour, as
-     dotStyle() writes it; unset, the app's accent (a fixed space).
+     Origin — WHERE a card came from, as colour alone: a bar on its left edge.
+     The parent is `position: relative` and adds `--origin-room` to its
+     padding. `--dot` is the colour (dotStyle()); unset, the app's accent.
      --------------------------------------------------------------------------- */
   .theme-origin {
     position: absolute;
@@ -25,13 +21,9 @@
   }
 
   /* ---------------------------------------------------------------------------
-     Badge — a small READ-ONLY label on a card (2026-08-26): a `#tag`, in the
-     colour of the card's space — the one colour a card wears — or neutral
-     where there is no place to take it from (the tag manager, the picker).
-     Not a control — no hover, no active, no touch minimum: it is read, not
-     pressed. Discreet on purpose: the colour is in the text and in a soft
-     outline, never a fill. `--badge-color`/`--badge-line` come from
-     badgeStyle(); unset, the neutral defaults.
+     Badge — a small READ-ONLY label (a `#tag`): no hover, no active, no touch
+     minimum. Colour in the text and a soft outline, never a fill.
+     `--badge-color`/`--badge-line` come from badgeStyle(); unset, neutral.
      --------------------------------------------------------------------------- */
   .theme-badge {
     display: inline-flex;
@@ -51,16 +43,9 @@
   }
 
   /* ---------------------------------------------------------------------------
-     Title — what names a block or a screen: the brand-coloured heading above a
-     list of tasks, notes, tags, trashed items. Seven of these were declared
-     separately, five of them identical; the two that differed did so by
-     accident (a missing letter-spacing), not by design.
+     Title — what names a block or a screen. Ink, not the accent: the accent
+     marks what you can act on; a title is read, not clicked.
      --------------------------------------------------------------------------- */
-  /* Ink, not the accent (2026-08-13 wireframes): a block heading names what is
-     under it, and colouring every one of them brand-blue spent the accent on
-     the thing that needed it least — while the one control that must be found
-     (the + that captures) was the same blue three inches below. The accent now
-     marks what you can act on; a title is read, not clicked. */
   .theme-title {
     margin: 0;
     font-size: var(--app-text-24);
@@ -72,16 +57,9 @@
   .theme-title--sm {
     font-size: var(--app-text-20);
   }
-  /* (The 32px `--lg` step went away on 2026-08-18: it existed for a space's
-     own heading, and a space is now titled by its screen — one row, the name
-     centred with the ⋮ at the end, at the same size every other screen names
-     itself.) */
-
   /* ---------------------------------------------------------------------------
-     Dot — the colour of a place, beside its name. Three screens draw it (the
-     compact header, the Home card, a space's title) and it was written out
-     three times before this. `--dot` is the instance's colour; without one it
-     falls back to the app's accent, which is what a FIXED space has.
+     Dot — the colour of a place, beside its name. `--dot` is the instance's
+     colour; unset, the app's accent (a FIXED space).
      --------------------------------------------------------------------------- */
   .theme-dot {
     /* Inline-block so it also answers outside a flex row (a title that is
@@ -96,9 +74,7 @@
   }
 
   /* ---------------------------------------------------------------------------
-     Divider — one horizontal rule, shared by the sidebar and the inspector so
-     the line between blocks is defined once. Put it on an <hr> (no default
-     border) or any element.
+     Divider — one horizontal rule, on an <hr> or any element.
      --------------------------------------------------------------------------- */
   .theme-divider {
     width: 100%;

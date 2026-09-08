@@ -27,12 +27,9 @@
       filter var(--app-transition-fast),
       scale var(--app-transition-fast);
   }
-  /* THE PRESS. Every button in the app gives by the same few percent while
-     it is held — a `scale`, not a colour, because colour is already spoken
-     for by hover and the press has to read on top of it, on a finger that
-     never hovered at all. Small enough that a label does not visibly blur;
-     it is felt more than seen, and it is what tells a finger the tap landed
-     before anything else has had time to happen. */
+  /* THE PRESS: every button gives by the same few percent while held — a
+     `scale`, not a colour, because colour is hover's and a finger never
+     hovered. Small enough that a label does not blur. */
   .theme-btn:active:not(:disabled) {
     scale: 0.96;
   }
@@ -69,12 +66,9 @@
   .theme-btn--danger:hover:not(:disabled) {
     filter: brightness(1.06);
   }
-  /* Icon-only button (a lone glyph, e.g. the •••, the gear, every ×).
-     Self-sufficient on purpose: it carries its own reset, so it works with or
-     without .theme-btn — used alone it must never fall back to the browser's
-     bordered grey box (which is exactly how the widget ⋮ shipped broken).
-     THE app-wide contract for icon buttons: transparent at rest, and hover
-     shows the rounded slightly-darker plate behind the glyph. */
+  /* Icon-only button (a lone glyph: •••, the gear, every ×). Self-sufficient:
+     it carries its own reset and works with or without .theme-btn. The
+     contract: transparent at rest, a rounded plate behind the glyph on hover. */
   .theme-btn--icon {
     display: inline-flex;
     align-items: center;
@@ -106,9 +100,8 @@
     padding: var(--app-space-4) var(--app-space-10);
     border-radius: var(--app-radius-sm);
   }
-  /* Tiniest: the per-row action that must not compete with the row's own text
-     (pull into the day, remove from the period). Regular weight on purpose —
-     it is an affordance, not a call to action. */
+  /* Tiniest: a per-row action that must not compete with the row's text.
+     Regular weight on purpose — an affordance, not a call to action. */
   .theme-btn--xs {
     padding: var(--app-space-2) var(--app-space-8);
     border-radius: var(--app-radius-xs);
@@ -118,13 +111,8 @@
   /* ---------------------------------------------------------------------------
      Chip (a small toggle/label, e.g. Completed / Suggestions)
      --------------------------------------------------------------------------- */
-  /* THE one declaration of the shape. Both of the chips at the foot of a task
-     list (Completed N, Suggestions) were written out again in their own
-     component sheets until 2026-08-21 — inline-flex for inline-flex, radius
-     for radius — and the copies were what the touch pass of 2026-08-20 could
-     not reach: the size rule named the class the design was written around and
-     missed the two buttons it was named after. They wear this class now, and
-     only what they do NOT share is left in their own sheets. */
+  /* THE one declaration of the shape: a wearer keeps only what it does NOT
+     share (see docs/design-system.md, "um .theme-* se veste"). */
   .theme-chip {
     display: inline-flex;
     align-items: center;
@@ -134,17 +122,13 @@
     border: 0.0625rem solid transparent;
     border-radius: var(--app-radius-sm);
     color: var(--app-ink-muted);
-    /* A <button> does not inherit the page font, and every wearer of this
-       class is one — without this the chip in the task composer drew in the
-       UA's font while the row around it was in the app's. */
+    /* A <button> does not inherit the page font, and every wearer is one. */
     font-family: inherit;
     font-size: var(--app-text-12);
     cursor: pointer;
   }
-  /* Ink on hover: the chip is a control everywhere it is worn (it opens a
-     menu, it folds the completed list away), so the muted rest state lifting
-     under the pointer belongs to the shape, not to one of its wearers. A chip
-     that paints its own ground (the accent pill) overrides this. */
+  /* Ink on hover belongs to the shape: the chip is a control everywhere it
+     is worn. A chip that paints its own ground (the accent pill) overrides. */
   .theme-chip:hover {
     color: var(--app-ink);
   }
@@ -160,25 +144,18 @@
     display: inline-flex;
     gap: var(--app-space-2);
     padding: var(--app-space-2);
-    /* The track is a WELL, not the page ground: the control sits on a raised
-       card (the capture box, a screen's toolbar), so reading --app-bg there
-       painted it in the colour of a panel it is not on. */
+    /* A WELL, not --app-bg: the control sits on a raised card, and the page
+       ground there is the colour of a panel it is not on. */
     background-color: var(--app-well);
     border-radius: var(--app-radius-md);
-    /* The pill below is stacked under the items, and the stack must not leak
-       out of the control: without its own context a `z-index: 0` pill would
-       sit under whatever ground the PARENT paints. */
+    /* Own stacking context: without it the `z-index: 0` pill below would sit
+       under whatever ground the PARENT paints. */
     isolation: isolate;
   }
-  /* THE PILL THAT GLIDES (actions/segmented.js). One pseudo-element on the
-     track, placed and sized in px by the action from the active item's own
-     box, that slides to the new choice instead of the colour jumping from one
-     item to the next. Drawn only once `--glides` says it has been measured,
-     so it never travels in from the corner on first paint; and the active
-     item goes transparent on the same class, so the fact is painted once.
-     The glide is the spring curve — a hair past the mark and back — because
-     the pill is a thing that MOVES, and a thing that moves has weight. The
-     width eases out plainly: an overshooting width would clip the label. */
+  /* THE PILL THAT GLIDES (actions/segmented.js): one pseudo-element the
+     action places from the active item's box. Drawn only once `--glides`
+     says it was measured, so it never travels in from the corner on first
+     paint. Spring on translate only: an overshooting width clips the label. */
   .theme-segmented--glides::before {
     content: "";
     position: absolute;
@@ -195,10 +172,8 @@
       inline-size var(--app-duration-medium) var(--app-ease-out),
       block-size var(--app-duration-medium) var(--app-ease-out);
   }
-  /* Each item is a filled rounded rectangle, not an outline pill (2026-08-06,
-     from the Tasks screen shot): with a plain outline the group read as three
-     loose links, and the active one had to shout to be told apart. Filled and
-     quiet, the blue of the active one is enough. */
+  /* A filled rounded rectangle, not an outline pill: outlined, the group read
+     as loose links and the active one had to shout. */
   .theme-segmented__item {
     padding: var(--app-space-6) var(--app-space-16);
     /* The track's own corner less the 2px of well it sits in. */
@@ -216,15 +191,12 @@
   .theme-segmented__item:hover:not(.theme-segmented__item--active) {
     color: var(--app-ink);
   }
-  /* Pressed, the item gives a little under the finger — the same give every
-     button in the app has (see .theme-btn). */
+  /* The same give every button has (see .theme-btn). */
   .theme-segmented__item:active {
     scale: 0.96;
   }
-  /* The active one is a SOLID accent pill on the well (2026-08-13 wireframes),
-     not a tint with an outline: at this size a tinted fill and a tinted border
-     were two quiet signals saying the same thing, and neither carried across
-     the black chrome and the white canvas. Filled, the accent does it alone. */
+  /* A SOLID accent pill, not a tint with an outline: at this size neither
+     quiet signal carried across the black chrome and the white canvas. */
   .theme-segmented__item--active {
     background: var(--app-brand);
     color: var(--app-on-brand);

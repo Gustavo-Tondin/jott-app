@@ -6,10 +6,8 @@
 
 @layer components {
   /* ---------------------------------------------------------------------------
-     Row — one entry in a list of things: a sunken bar holding a label and a
-     couple of trailing details. What the Tags and Trash screens are made of,
-     and what any future list of records (attachments, history) should reuse
-     instead of restating these five declarations.
+     Row — one entry in a list of records: a sunken bar with a label and
+     trailing details (Tags, Trash). Any list of records reuses it.
      --------------------------------------------------------------------------- */
   .theme-row {
     display: flex;
@@ -21,9 +19,8 @@
   }
 
   /* ---------------------------------------------------------------------------
-     Task list — the column of task cards, wherever tasks are drawn (Home, a
-     list screen, a tasks space). It was the same five declarations copied into
-     four block sheets; components/TaskCards.svelte is the markup half.
+     Task list — the column of task cards, wherever tasks are drawn;
+     components/TaskCards.svelte is the markup half.
      --------------------------------------------------------------------------- */
   .theme-task-list {
     margin: 0;
@@ -33,8 +30,8 @@
     gap: var(--app-space-4);
   }
 
-  /* The hairline under the pinned cards (2026-08-05): a list item of its own,
-     so it rides along with the cards it separates. */
+  /* The hairline under the pinned cards: a list item of its own, so it rides
+     along with the cards it separates. */
   .theme-pin-divider {
     height: 0.0625rem;
     margin-block: var(--app-space-4);
@@ -47,10 +44,8 @@
   }
 
   /* ---------------------------------------------------------------------------
-     Empty card — "No tasks yet" / "No notes yet": a quiet pill, centred, where
-     a list would be. The wireframe draws the same card in every block, and the
-     Home printed a bare <p> while the space drew the card. It is a container,
-     not just a label: the Home's empty tasks card holds the Suggestions pill.
+     Empty card — "No tasks yet": a quiet pill where a list would be. A
+     container, not just a label (the Home's holds the Suggestions pill).
      --------------------------------------------------------------------------- */
   .theme-empty-card {
     align-self: center;
@@ -67,14 +62,9 @@
   }
 
   /* ---------------------------------------------------------------------------
-     Mirror — the hidden twin of a header's tools (the ⋮, the bulk-select
-     strip). It was the same four declarations in home.css, notes-space.css
-     and tasks-space.css; each keeps its own `__mirror` hook in the markup.
-
-     The hidden twin of the tools (see the markup): it takes the same room on
-     the left, so a host's centred strip sits on the panel's centre line. It
-     shrinks away before the strip does, so a narrow panel gives up the
-     centring rather than the content.
+     Mirror — the hidden twin of a header's tools: same room on the left, so
+     the centred strip sits on the panel's centre line. It shrinks away before
+     the strip does, so a narrow panel gives up the centring, not the content.
      --------------------------------------------------------------------------- */
   .theme-mirror {
     display: inline-flex;
@@ -84,34 +74,9 @@
   }
 
   /* ---------------------------------------------------------------------------
-     Note board — the masonry of note cards, wherever notes are drawn (the
-     notes screen, a notes space, today's notes on Home). It was the same
-     rules in home.css and notes-space.css; the `<ul>` wears it and a block
-     sheet keeps only what differs. The column COUNT is measured in the markup
-     (services/noteColumns.js) and handed over as `--columns`; the markup also
-     renders the cards column by column and marks the one that ends each with
-     `.theme-note-board__break`, so the board READS BY ROWS (1 2 3 over 4 5 6)
-     although multicol fills down a column.
-
-     Multicol and not a grid of rows (2026-08-18, wireframes "Notes screen" and
-     "Space Notes"): a card is as tall as its own text, and the next one starts
-     where it ended. A grid of rows made every card in a row as tall as the
-     longest of them, which is what left the ragged white gaps the wireframes
-     do not have.
-
-     `columns: <width>` and not a count: the board narrows when the right panel
-     opens, and a width lets the browser drop a column instead of squeezing
-     three. `break-inside` is what keeps a card from being cut in half at the
-     bottom of a column.
-
-     11rem is the MINIMUM a card may be (user call, 2026-08-19: "as notas devem
-     ter um min width que, quando a tela não chega nesse valor, diminui uma
-     coluna"). Read against the column it lives in: three of them plus two gaps
-     need 552px, so the full reading width (720px) draws three — the wireframe's
-     count — and the board drops to two as soon as the panel or the window takes
-     that room away. 15rem never fitted three at all; 13rem needed 660px, which
-     a 1009px window with a panel open does not have. Below the minimum the
-     browser drops a column on its own: that is what `column-width` IS.
+     Note board — the masonry of note cards. `columns: <width>` (11rem, the
+     minimum a card may be), not a count, so the browser drops a column instead
+     of squeezing; `__break` ends each so the board READS BY ROWS (noteColumns.js).
      --------------------------------------------------------------------------- */
   .theme-note-board {
     --columns: 11rem;
@@ -127,14 +92,9 @@
   .theme-note-board__break {
     break-after: column;
   }
-  /* TWO columns, always. A 15rem column resolves to ONE on a 360px screen, and
-     a board of one column per card is a list — which loses the only thing a
-     board is for, seeing several notes at once. A count, not a width, says
-     what the wireframe draws and lets the cards be as narrow as they have to
-     be. On a phone the board is two narrower columns, with the tighter gap the
-     notes screen uses there — the count itself is measured (the inline
-     `--columns` in the markup wins over this), so what is left to say is the
-     spacing. */
+  /* TWO columns on a phone: a width resolves to ONE on 360px, and a board of
+     one column is a list. The measured inline `--columns` wins over this; what
+     is left to say is the tighter spacing. */
   .shell--compact .theme-note-board {
     --columns: 2;
     column-gap: var(--app-space-8);
@@ -144,24 +104,16 @@
   }
 
   /* ---------------------------------------------------------------------------
-     Pane chrome — the head and foot shared by the side panes (the sidebar and
-     the inspector). Each is a fixed row at its edge of the pane (flex-shrink:0,
-     so it never scrolls away while the middle scrolls), carrying the hairline
-     divider toward the content. Defined once so both panes read and behave the
-     same: chrome pinned at the edges, content scrolling between them.
-
-     The layout pact each pane must keep: be a flex column, with the head first,
-     a `flex:1; overflow-y:auto` middle, and the foot last. Then the head stays
-     glued at the top and the foot glued at the bottom, both always visible.
+     Pane chrome — the head and foot of a side pane, pinned at its edges. The
+     pact a wearer keeps: a flex column, head first, a `flex:1; overflow-y:auto`
+     middle, foot last.
      --------------------------------------------------------------------------- */
   .theme-pane-head,
   .theme-pane-foot {
     flex-shrink: 0;
   }
-  /* The head is a row of controls: every pane that wears it laid it out the
-     same way (flex, centred, a space-8 padding); the gap and the alignment
-     along the row are each pane's own, and the two heads that pad wider at
-     the sides (sidebar, suggestions) say so themselves. */
+  /* A row of controls; gap, alignment and any wider side padding are each
+     pane's own. */
   .theme-pane-head {
     display: flex;
     align-items: center;

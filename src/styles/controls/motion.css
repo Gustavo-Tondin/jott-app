@@ -6,11 +6,8 @@
 
 @layer components {
   /* ---------------------------------------------------------------------------
-     The keyframes the controls above play. Named, so a component sheet that
-     needs the same entrance (a sheet rising, a notice dropping in) plays the
-     one already written rather than spelling another. Every duration they are
-     played at is a token, which is what lets prefers-reduced-motion switch
-     them all off from tokens.css.
+     Named keyframes, so a component sheet plays one already written. Every
+     duration is a token: prefers-reduced-motion switches them off in tokens.css.
      --------------------------------------------------------------------------- */
   @keyframes theme-fade-in {
     from {

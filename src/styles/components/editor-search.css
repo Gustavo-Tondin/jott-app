@@ -2,19 +2,10 @@
  * (services/searchPanel.js). Unlayered like editor.css, and for the same reason:
  * the match highlights tie with CodeMirror's injected, unlayered <style>. */
 
-/* ---- find and replace (2026-08-17; redrawn 2026-09-07) ----
-   CodeMirror's search, in the app's own panel (services/searchPanel.js): a
-   field, two arrows, a gear that opens the three switches, a close — and the
-   replace row under it.
-
-   The wrapper is CodeMirror's, and dressing IT was the mistake: a panel
-   wearing the region's surface, square at the corners, with a lone line
-   under it reads as a slab the editor grew, not as a panel (2026-09-07).
-   The wrapper takes the region's GROUND instead — opaque, because the note
-   scrolls under it — and the panel itself is the card: border, radius and
-   the popover's lift, like every other floating panel of the app. The
-   selectors name `.cm-editor` so they answer above the base theme's own
-   `.cm-panels` rules whichever `<style>` the browser reads last. */
+/* ---- find and replace ----
+   CodeMirror's wrapper takes the region's GROUND (opaque: the note scrolls
+   under it); the panel itself is the card. The selectors name `.cm-editor`
+   to answer above the base theme's `.cm-panels` whichever <style> is last. */
 .editor .cm-editor .cm-panels {
   background: var(--app-bg);
   color: var(--app-ink);
@@ -41,8 +32,7 @@
   align-items: center;
   gap: var(--app-space-4);
 }
-/* The field grows; everything else is a square. `.theme-input` is worn, and
-   the size is the panel's own. */
+/* The field grows; everything else is a square. */
 .editor .editor-search__field {
   flex: 1 1 8rem;
   min-inline-size: 0;
@@ -59,8 +49,8 @@
   color: var(--app-brand);
   background: var(--app-brand-weak);
 }
-/* The replace row lines its field up under the find field: the two buttons
-   after it share a box exactly as wide as the four squares above. */
+/* The two buttons share a box exactly as wide as the four squares above, so
+   the replace field lines up under the find field. */
 .editor .editor-search__actions {
   flex: 0 0 auto;
   display: flex;
@@ -68,9 +58,7 @@
   gap: var(--app-space-4);
   inline-size: calc(4 * 1.75rem + 3 * var(--app-space-4));
 }
-/* Replace and All are the only worded buttons in the panel: on the card's own
-   ground a bare `.theme-btn` was two words floating, so they take the well as
-   a plate — the same one a quiet action wears everywhere else. */
+/* The only worded buttons in the panel take the well as a plate. */
 .editor .editor-search__action {
   flex: 0 0 auto;
   padding: var(--app-space-4) var(--app-space-8);
@@ -108,9 +96,7 @@
 .editor .editor-search__option:hover {
   background: var(--app-hover);
 }
-/* The matches themselves: the one the cursor is on wears the accent, the
-   others its tint — the same pair the rest of the app uses to say "this one"
-   and "these too". */
+/* The match the cursor is on wears the accent, the others its tint. */
 .editor .cm-searchMatch {
   background: var(--app-brand-weak);
 }

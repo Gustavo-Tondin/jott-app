@@ -1,47 +1,24 @@
-/* note-editor.css — the visual layer of NoteEditor.svelte.
- * Markup: src/lib/components/NoteEditor.svelte. Selectors are the stable BEM hooks a theme
- * may restyle; components read tokens only. */
+/* note-editor.css — the visual layer of NoteEditor.svelte (the box around the
+ * editor). Selectors are the stable BEM hooks a theme may restyle. */
 
 @layer components {
   .note-editor__body {
     min-height: 60vh;
-    /* The note's own face (Display → Note font, 2026-08-24). It is declared
-       HERE, on the box around the editor, and not inside editor.css: that
-       sheet already hands the two CodeMirror elements `font: inherit`, so the
-       family travels down from this one declaration — and the note's text is
-       the only thing in the app that reads in it. */
+    /* The note font is declared HERE, not in editor.css: that sheet hands the
+       CodeMirror elements `font: inherit`, so the family travels down. */
     font-family: var(--app-font-note);
-    /* The prose keeps the app's reading width — and since 2026-08-27 so
-       does the banner (`.shell__content-inner--note`, shell.css): the text
-       stays where every other screen's text is.
-
-       The box is the note's PAGE, not the column (2026-09-07): the fold
-       gutter stands to the left of every line and takes its width out of the
-       row, so the page is the column plus that gutter, plus the same room
-       given back here on the right. The text between them measures
-       --app-content-max and is centred — its first letter under the title's,
-       which the banner pulls to exactly that edge. Squeeze the page and the
-       two paddings are what survive, which is how the chevron keeps its
-       column on a phone (styles/tokens.css carries the whole reasoning). */
+    /* The box is the note's PAGE, not the column: the fold gutter takes its
+       width out of the row, so the page is the column plus the gutter, plus
+       the same room given back on the right (styles/tokens.css). */
     inline-size: 100%;
     max-inline-size: var(--app-content-note);
     padding-inline-end: var(--app-editor-gutter);
     margin-inline: auto;
   }
 
-  /* On a phone the note IS the screen, so the editor takes what is left of it
-     rather than a share of the window.
-
-     Half of WHAT IS LEFT, keyboard subtracted — not half of the viewport.
-     `svh` was chosen for this on the belief that
-     `interactive-widget=resizes-content` (index.html) makes the keyboard
-     shrink the layout viewport; measured inside the WebView, it does not:
-     with the keyboard up, `innerHeight` still read 780 and every viewport
-     unit with it, so a 50svh minimum was 390px of editor in the 268px left
-     above the keys — the note pushed its own last line under them
-     (measured on the emulator, 2026-08-20). `--app-keyboard` is what the
-     keyboard covers of this page (shell/keyboard.js), and off the phone it
-     is zero, which leaves this exactly 50svh. */
+  /* Half of what is LEFT above the keyboard: `svh` does not shrink with the
+     keyboard in the WebView, so `--app-keyboard` (shell/keyboard.js) is
+     subtracted by hand; off the phone it is zero. See docs/platform-gotchas.md#android */
   .shell--compact .note-editor__body {
     min-block-size: calc((100svh - var(--app-keyboard)) / 2);
   }

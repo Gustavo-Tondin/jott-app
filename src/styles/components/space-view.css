@@ -1,12 +1,10 @@
-/* space-view.css — the visual layer of SpaceView.svelte.
- * Markup: src/lib/screens/SpaceView.svelte. A centred space title in the
- * space's own colour, and under it the one screen its type asks for
- * (2026-08-11). Selectors are the stable BEM hooks a theme
- * may restyle; components read tokens only. */
+/* space-view.css — the visual layer of SpaceView.svelte: the read-only badge
+ * line and the frame around the one screen the space's type asks for.
+ * Selectors are the stable BEM hooks a theme may restyle; components read
+ * tokens only. */
 
 @layer components {
-  /* The screen names itself now (spaces/TasksSpace.svelte,
-     spaces/NotesSpace.svelte), so all this file still owns is the line the
+  /* The screen names itself (spaces/*.svelte); this is only the line the
      read-only badge stands on, above it. */
   .space-view__note {
     margin: 0 0 var(--app-space-12);
@@ -19,9 +17,9 @@
     margin-inline-start: var(--app-space-8);
   }
 
-  /* The same pact the Tasks screen keeps (tasks-view.css): the screen fills
-     the scrollport so the tasks composer can take the slack and sit at the
-     bottom of the PANEL instead of under the last card. */
+  /* The same pact as tasks-view.css: the screen fills the scrollport so the
+     composer takes the slack and sits at the PANEL's bottom, not under the
+     last card. */
   .space-view__screen {
     display: flex;
     flex-direction: column;

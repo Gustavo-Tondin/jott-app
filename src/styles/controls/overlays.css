@@ -6,35 +6,22 @@
 
 @layer components {
   /* ---------------------------------------------------------------------------
-     Popover — a transient surface floating under whatever opened it: the
-     dropdown menu, the space palette, the tag picker, the calendar. Four
-     of them declared the same six properties, and three different raw shadows.
-     Pair it with the `dismissable` action, which is the behaviour half.
-
-     Anchoring is the modifier: --end pins the panel's right edge to the
-     trigger's (the default for a menu opened from a ⋮ near the right), --start
-     its left. The panel's own size stays with the component: only it knows
-     that a calendar needs 13rem to fit seven columns.
+     Popover — a transient surface under whatever opened it; `dismissable` is
+     the behaviour half. `--end`/`--start` pin one edge to the trigger's; the
+     panel's own size stays with the component.
      --------------------------------------------------------------------------- */
   .theme-popover {
     position: absolute;
     top: calc(100% + var(--app-space-4));
-    /* Above the modal (z-index 100), not just above the page: `keepOnScreen`
-       re-parents a popover to <body>, so one opened from inside a dialog is a
-       SIBLING of it and lost the stacking fight it should always win — a panel
-       is on top of whatever opened it, by definition (2026-08-06). */
+    /* Above the modal (100): `keepOnScreen` re-parents a popover to <body>,
+       so one opened from inside a dialog is its SIBLING and must still win. */
     z-index: 200;
     background: var(--app-surface);
     border: 0.0625rem solid var(--app-line);
     border-radius: var(--app-radius-md);
     box-shadow: var(--app-shadow-popover);
-    /* It UNFOLDS from the edge it hangs off: a fade plus a short growth from
-       the top, decelerating — a menu that appears is a menu that was opened,
-       and the motion says from where. `scale` rather than `transform`, which
-       keepOnScreen may write while placing the panel. The origin is the top
-       because every anchor in the app is above its panel; the `--start`/`--end`
-       variants only decide which corner, and a centred origin reads right
-       for both. */
+    /* Unfolds from the top, where every anchor in the app is. `scale`, not
+       `transform`, which keepOnScreen may write while placing the panel. */
     transform-origin: top center;
     animation: theme-unfold var(--app-duration-fast) var(--app-ease-out);
   }
@@ -46,14 +33,9 @@
   }
 
   /* ---------------------------------------------------------------------------
-     Modal — a dialog centred over a dimmed page (wireframe "New task popup",
-     2026-08-06). The backdrop is the click-outside target and the dimmer; the
-     card is the surface. Two dialogs draw this now (the name prompt and the new
-     task composer), so it belongs here rather than in either one's sheet.
-
-     Unlike .theme-popover, this one is NOT anchored to a trigger: it is the
-     shape for "answer this before going back", not for "a panel next to what
-     you clicked".
+     Modal — a dialog centred over a dimmed page: the backdrop is the
+     click-outside target and the dimmer, the card is the surface. Not
+     anchored to a trigger, unlike .theme-popover.
      --------------------------------------------------------------------------- */
   .theme-modal-backdrop {
     position: fixed;
@@ -70,27 +52,21 @@
     gap: var(--app-space-8);
     inline-size: min(24rem, calc(100vw - var(--app-space-32)));
     padding: var(--app-space-16);
-    /* Its OWN ground — a dialog takes the region's two neutrals swapped, the
-       same pact a bottom sheet keeps (styles/themes/*.css). The colour on
-       screen is unchanged (after the swap this IS what `--app-surface` used
-       to resolve to); what it buys is the step for the cards and fields inside
-       it, which were coming out the same colour as the dialog holding them. */
+    /* A dialog takes the region's two neutrals swapped (the bottom sheet's
+       pact, styles/modes/*.css): that is what gives the fields inside it a
+       step off the dialog holding them. */
     background: var(--app-bg);
     border: 0.0625rem solid var(--app-line);
     border-radius: var(--app-radius-lg);
     box-shadow: var(--app-shadow-popover);
-    /* A dialog RISES a little as it fades in, decelerating: it comes up to
-       meet the question, rather than switching on. Short, so a confirm does
-       not keep a keyboard waiting. */
+    /* Short, so a confirm does not keep a keyboard waiting. */
     animation: theme-rise var(--app-duration-medium) var(--app-ease-out);
   }
-  /* The composer dialog is a row of controls, so it needs more room than a
-     single name field does. */
+  /* A row of controls (the composer) needs more room than a name field. */
   .theme-modal--wide {
     inline-size: min(43rem, calc(100vw - var(--app-space-32)));
   }
-  /* Title on the left, the close on the right — a head, not two stacked
-     blocks (user call, 2026-08-06). */
+  /* Title on the left, the close on the right — one row. */
   .theme-modal__head {
     display: flex;
     align-items: center;

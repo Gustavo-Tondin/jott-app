@@ -1,12 +1,7 @@
-/* window.css — the frameless window's own frame.
- *
- * The OS gives no rounding to an undecorated window on GNOME/Wayland, so the
- * app draws its own. `overflow: hidden` clips the content to the rounded
- * corners; the transparent page behind (reset.css) lets the corners show
- * through. The app's edge is the OS window's edge — no gutter, no
- * webview-drawn shadow (it accumulated alpha on WebKitGTK repaints until it
- * turned into a black ring). The hairline border is what separates the app
- * from whatever is behind it. */
+/* window.css — the frameless window's own frame: the OS draws no rounding on
+ * an undecorated window, so the app rounds and clips itself over the
+ * transparent page (reset.css). No webview-drawn shadow: WebKitGTK repaints
+ * accumulate its alpha into a black ring. The hairline is the app's edge. */
 
 @layer components {
   .window {
@@ -20,25 +15,16 @@
     border: 0.0625rem solid var(--app-line);
   }
 
-  /* Maximized/fullscreen: the window IS the screen — square corners, no
-     hairline, no dead pixels at the edges.
-
-     ALWAYS ON ANDROID (user call, 2026-08-18), where the app is never anything
-     but the whole screen. A rounded corner drawn by the app has to agree with
-     the corner radius of the physical display, and phones do not agree with
-     each other — where the device's own radius is larger the app's rounding
-     falls inside it and reads as a rendering fault. The OS already rounds the
-     screen; the app draws square and lets it. */
+  /* Maximized, fullscreen and always on Android: the window IS the screen,
+     so square corners and no hairline — the OS rounds the display itself, and
+     an app radius smaller than the device's reads as a rendering fault. */
   .window--flush {
     border-radius: 0;
     border: none;
   }
 
-  /* ---- resize grips (ResizeHandles.svelte) ----
-     Eight invisible strips over the window's edges and corners. The layer
-     itself lets clicks through; only the strips catch the pointer, each with
-     the cursor that says which way it resizes. App renders them only when the
-     window is not flush. */
+  /* ---- resize grips (ResizeHandles.svelte) — eight invisible strips; the
+     layer lets clicks through, only the strips catch the pointer. ---- */
   .window__resize {
     position: absolute;
     inset: 0;
@@ -105,9 +91,8 @@
     cursor: nesw-resize;
   }
 
-  /* While dragging, the two edges that follow the sidebar's width must not
-     also be animating towards it — the panel would lag a frame behind the
-     pointer the whole way. */
+  /* While the sidebar is dragged, what follows its width must not also be
+     animating towards it, or it lags a frame behind the pointer. */
   .window--resizing .shell__sidebar,
   .window--resizing .titlebar__brand,
   .window--resizing .shell__panel > .inspector,
@@ -120,30 +105,22 @@
     user-select: none;
   }
 
-  /* Everything the drawer pushes aside. The top bar goes with it — the
-     wireframe translates the whole 360px frame, pill and all — but the WINDOW
-     stays where it is: it is the app's edge, it owns the rounded corners and
-     the hairline, and moving it dragged those across the screen and left the
-     desktop showing through the seam beside the drawer. */
+  /* Everything the drawer pushes aside, top bar included. The WINDOW stays:
+     it is the app's edge and owns the corners and the hairline — moving it
+     dragged those across the screen and showed the desktop beside the drawer. */
   .window__page {
     flex: 1;
     min-block-size: 0;
     display: flex;
     flex-direction: column;
-    /* The box an open note's top bar is lifted out of the flow against
-       (`.topbar--over`). It has to be THIS one and not the window: the window
-       is what the drawer's scrim and the sheets are measured from, and the bar
-       travels with the page when the drawer pushes it. */
+    /* What `.topbar--over` is positioned against — this box, not the window:
+       the scrim and the sheets measure from the window, and the bar has to
+       travel with the page when the drawer pushes it. */
     position: relative;
   }
-  /* Wider than the wireframe's 240px on a phone (user report on device,
-     2026-09-07, after the cutout fix: "ainda está um pouco pequeno o sidebar
-     para os botões do header, tanto na vertical quanto na horizontal"). The
-     head is five 48px touch targets — 240px exactly, with no air between
-     them at the wireframe's width. 272px gives the row 8px of breathing per
-     gap and still leaves a third of a portrait screen peeking. One token, so
-     the drawer, its push and the drag that follows it (drawerSwipe measures
-     the element) all move together. */
+  /* 272px: the head's five 48px touch targets plus 8px of air per gap, with
+     a third of a portrait screen still peeking. ONE token, so the drawer, its
+     push and the drag (drawerSwipe measures the element) move together. */
   .window--compact {
     --app-drawer-width: 17rem;
   }

@@ -2,32 +2,24 @@
  * Unlayered like editor.css, and for the same reason: it dresses CodeMirror's
  * widget beside CodeMirror's own unlayered <style>. */
 
-/* ---- tables (2026-08-24) ----
-   The grid a pipe table is drawn as, always — the one block that never
-   shows its syntax (services/tableWidget.js says why). The cells are
-   editable in place, so the grid is a piece of the note and reads in its
-   ink and its size; only the header is set apart, by weight and the lower
-   neutral, the way the reference rendering the user showed does it.
-
-   The wrapper keeps air ABOVE and to the LEFT for the drag handles, which
-   sit outside the grid so they never cover a cell's first letter. Widths in
-   `em` like the rest of the editor: the grid follows the note's font size. */
+/* ---- tables ----
+   The one block that never shows its syntax (services/tableWidget.js). The
+   wrapper keeps air ABOVE and to the LEFT for the drag handles, outside the
+   grid. Widths in `em`: the grid follows the note's font size. */
 .editor .cm-md-table {
   position: relative;
   margin-block: 0.5em;
   padding-block-start: 0.75em;
   padding-inline-start: 0.75em;
 }
-/* A wide table scrolls inside its own box instead of pushing the line out —
-   the canvas must never scroll sideways. */
+/* The canvas must never scroll sideways: a wide table scrolls in its own box. */
 .editor .cm-md-table__scroll {
   overflow-x: auto;
   max-inline-size: 100%;
 }
-/* Two ways to sit in the column (Settings → Notes, 2026-08-24). The default
-   SQUEEZES: the grid takes the content width and the cells wrap, so a wide
-   table costs height and never a scrollbar. `--scroll` lets it run as wide
-   as its cells and scroll sideways inside its own box. */
+/* Two ways to sit in the column (Settings → Notes): the default SQUEEZES
+   (cells wrap, height instead of a scrollbar); `--scroll` runs as wide as
+   its cells and scrolls inside its own box. */
 .editor .cm-md-table__grid {
   border-collapse: separate;
   border-spacing: 0;
@@ -67,8 +59,8 @@
   outline: none;
   caret-color: var(--app-brand);
 }
-/* An empty cell keeps its height: a contenteditable with nothing in it
-   collapses, and a row of collapsed cells is a hairline nobody can click. */
+/* An empty contenteditable collapses; the zero-width space keeps the row
+   clickable. */
 .editor .cm-md-table--scroll .cm-md-table__cell {
   white-space: pre;
   overflow-wrap: normal;
@@ -80,11 +72,9 @@
   box-shadow: inset 0 0 0 0.125rem var(--app-brand);
 }
 
-/* The handles: a bar above each column, a bar beside each body row, in the
-   air the wrapper keeps for them. Hidden until the pointer is over the table
-   or a cell has the focus — on a phone the second is the only way in.
-   `touch-action: none` is what lets a finger drag one without the page
-   scrolling underneath. */
+/* The handles, in the air the wrapper keeps. Shown on hover or while a cell
+   has focus (on a phone the second is the only way in). `touch-action: none`
+   is what lets a finger drag one without the page scrolling underneath. */
 .editor .cm-md-table__handle {
   position: absolute;
   display: block;
@@ -118,8 +108,7 @@
 .editor .cm-md-table--dragging .cm-md-table__handle {
   cursor: grabbing;
 }
-/* Where the dragged column or row would land: a line on the near edge of
-   the cell (or row) that will follow it. */
+/* Where the dragged column or row would land. */
 .editor .cm-md-table--dragging .cm-md-table__target {
   box-shadow: inset 0.125rem 0 0 var(--app-brand);
 }

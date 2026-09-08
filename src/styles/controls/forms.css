@@ -38,13 +38,9 @@
     opacity: 0.6;
     cursor: not-allowed;
   }
-  /* Native arrow off, our own caret on — so the select matches everywhere.
-     The stroke hex inside the data: URI is a byte copy of --theme-color-gray
-     (styles/themes/jott.css) — a URL cannot read a custom property, so a
-     palette change has to update it by hand, and a test in
-     lib/architecture.test.js says when the two drift. A theme of the
-     notebook cannot reach it; the themable version (a mask on a wrapper)
-     is a follow-up. */
+  /* Own caret. A `url()` cannot read a custom property: the stroke hex is a
+     byte copy of --theme-color-gray (themes/jott.css), and an architecture
+     test says when the two drift. A notebook theme cannot reach it. */
   .theme-select {
     appearance: none;
     -webkit-appearance: none;
@@ -77,11 +73,8 @@
     background-position: right var(--app-space-8) center;
   }
 
-  /* --- Bare select: no caret, compact, filled with the WELL. For tight rows
-     where the dropdown arrow would only cost space (inspector fields).
-     The well and not the raised step (2026-08-13): these pills sit ON a row
-     that is already the raised step, so painting them the same colour made the
-     value vanish into its own row. The translucent grey is the one fill that
+  /* --- Bare select: no caret, compact, filled with the WELL — it sits on a
+     row that is already the raised step, and the well is the one fill that
      steps away from a surface on either ground. --- */
   .theme-select--bare {
     width: auto;
@@ -93,9 +86,7 @@
     font-size: var(--app-text-12);
   }
 
-  /* --- Number field: a typed count with no native spinners. The repeat rows
-     used to wear this and are selectors now (services/taskFields.js); what is
-     left of it is Settings, where the numbers are open-ended. --- */
+  /* --- Number field: a typed count with no native spinners (Settings). --- */
   .theme-number {
     width: 3.25rem;
     text-align: center;
@@ -163,12 +154,9 @@
       border-color var(--app-transition-fast),
       scale var(--app-duration-medium) var(--app-ease-spring);
   }
-  /* Held, the box shrinks a touch; let go, it springs back past full size as
-     the tick lands — the POP. Ticking a task is the most repeated gesture in
-     the app, and the one that most deserves to feel like something happened.
-     The pop is the release of the press and not a keyframe on `:checked`,
-     deliberately: a keyframe would also play for every box that MOUNTS
-     checked, and the Completed list opening would be forty ticks popping. */
+  /* The POP is the release of the press, not a keyframe on `:checked`: a
+     keyframe would also play for every box that MOUNTS checked (the Completed
+     list opening would be forty ticks popping). */
   .theme-checkbox:active:not(:disabled) {
     scale: 0.88;
   }
@@ -250,11 +238,9 @@
       transform var(--app-duration-medium) var(--app-ease-spring),
       width var(--app-transition-fast);
   }
-  /* Held, the knob stretches towards where it is about to go, and snaps to a
-     circle again on release — a knob under a thumb is being pushed, and a
-     thing being pushed deforms a little. Same width whichever way it is
-     going; the right edge is what moves on the checked side, so it stays
-     pinned by `translateX(1rem − the extra)` below. */
+  /* Held, the knob stretches towards where it is going. Same width either
+     way; on the checked side the right edge is what moves, so it stays pinned
+     by `translateX(1rem − the extra)` below. */
   .theme-switch:active:not(:disabled)::after {
     width: 1.25rem;
   }
@@ -277,12 +263,8 @@
   }
 
   /* ---------------------------------------------------------------------------
-     Range — a value the user drags (2026-08-20, the interface zoom).
-
-     Drawn by hand because the platform's own is a different object on each
-     engine, and the app runs on three: WebKitGTK, the Android WebView and
-     whatever the tests mount. Track and thumb are the same two roles every
-     other control here uses, so a theme dresses it without knowing it exists.
+     Range — a value the user drags. Drawn by hand: the native one is a
+     different object on each engine (WebKitGTK, Android WebView, jsdom).
      --------------------------------------------------------------------------- */
   .theme-range {
     appearance: none;

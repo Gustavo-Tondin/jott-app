@@ -14,8 +14,8 @@
     display: flex;
     gap: var(--app-space-8);
   }
-  /* The text field fills the row; the button keeps its content width. Look and
-     behaviour come from the shared .theme-input / .theme-btn controls. */
+  /* The field fills the row, the button keeps its width; look and behaviour
+     are the shared .theme-input / .theme-btn. */
   .list-view__form .theme-input {
     flex: 1 1 auto;
     width: auto;

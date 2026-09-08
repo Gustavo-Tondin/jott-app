@@ -237,9 +237,8 @@
     color: var(--app-danger);
     font-weight: var(--app-weight-semibold);
   }
-  /* A tag is shown as a coloured pill, not text — the colour is the tag. That
-     pill is the shared .theme-tag-pill (controls/marks.css); the `task-row__tag`
-     hook stays on the markup, ruleless, so a theme can single out the pill on
+  /* A tag is the shared .theme-badge (controls/marks.css); the `task-row__tag`
+     hook stays on the markup, ruleless, so a theme can single out the badge on
      a task card without touching the control everywhere else. */
 
   /* The per-screen actions (pull to day/week, remove) that some lists slot in.
