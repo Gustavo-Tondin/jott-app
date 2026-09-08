@@ -26,9 +26,6 @@
     onKeyboardHidden,
   } from "./lib/services/androidStorage.js";
   import { onBack, installBack } from "./lib/services/back.js";
-  import { scheduleReminders } from "./lib/shell/reminders.js";
-  import { notice, toAt } from "./lib/services/reminders.js";
-  import { onAndroidReminderTap, syncAndroidReminders } from "./lib/services/androidReminders.js";
   import ContextMenu from "./lib/components/ContextMenu.svelte";
   import { entryOf } from "./lib/shell/entry.js";
   import ListView from "./lib/screens/ListView.svelte";
@@ -110,6 +107,7 @@
   import { bannerMenuOf, noteActionsOf, pageMenuOf, screenActionsOf } from "./lib/shell/menus.js";
   import { makeNoteDocument } from "./lib/shell/noteDocument.js";
   import { makeNotebookWrites } from "./lib/shell/notebookWrites.js";
+  import { makeRemindersHost } from "./lib/shell/remindersHost.js";
   import { landing, reachable, spaceOfView, titleOf, viewFromId } from "./lib/shell/views.js";
   import { noteTargets } from "./lib/services/noteTargets.js";
   import { quickTaskTarget, taskTargets } from "./lib/services/taskTargets.js";
@@ -1614,76 +1612,14 @@
   const notesArrangement = arrangementOf(() => layout.notesFolder);
   const tasksArrangement = arrangementOf(() => tasksSpaceFolder);
 
-  // ---- reminders (2026-08-25) ----
-  // The core lists what should ring; on desktop `shell/reminders.js` keeps
-  // the timer (the window may be hidden in the tray, the timer runs on) and
-  // the bridge shows the system's notification; on Android the list is
-  // handed to the system's alarm service instead. Either way the machine
-  // remembers up to where it rang, so a relaunch neither repeats nor
-  // swallows.
-  let reminders = [];
-  /// `undefined` until asked; `null` when this machine never rang this
-  /// notebook — and then "now" becomes the mark, so nothing old rings.
-  let remindedUntil = undefined;
-  let remindersLoop = null;
-
-  async function ringReminders(due, now) {
-    for (const reminder of due) {
-      const { title, body } = notice(reminder, S);
-      await api.notifyReminder(title, body, { list: reminder.list, id: reminder.id ?? null });
-    }
-    remindedUntil = now;
-    await api.rememberRemindedUntil(now);
-  }
-
-  async function refreshReminders() {
-    if (!notebook || !f("remind")) {
-      reminders = [];
-      remindersLoop?.stop();
-      remindersLoop = null;
-      if (mobile && notebook) await syncAndroidReminders([], { strings: S }).catch(() => {});
-      return;
-    }
-    reminders = (await api.reminders()) ?? [];
-    if (remindedUntil === undefined) {
-      remindedUntil = (await api.remindedUntil()) ?? null;
-      if (remindedUntil === null) {
-        remindedUntil = toAt(new Date());
-        await api.rememberRemindedUntil(remindedUntil);
-      }
-    }
-    if (mobile) {
-      if (!androidTapInstalled) {
-        androidTapInstalled = true;
-        onAndroidReminderTap((target) => showFoundTask(target.list, target.id)).catch(() => {});
-      }
-      // A `pending()` that throws (the store of an older build) is worth a
-      // line in the log and not a notice: the sync goes on without it.
-      await syncAndroidReminders(reminders, {
-        strings: S,
-        onError: (error) => console.warn("reminders: pending() failed", error),
-      }).catch(fail);
-      return;
-    }
-    if (remindersLoop) remindersLoop.rearm();
-    else
-      remindersLoop = scheduleReminders({
-        list: () => reminders,
-        until: () => remindedUntil,
-        ring: ringReminders,
-        onError: fail,
-      });
-  }
-
-  // A clicked notification names its task; the list opens and the panel
-  // with it, exactly as a search hit does.
-  listen("reminder://open", (event) => {
-    const target = event.payload ?? {};
-    if (target.list) showFoundTask(target.list, target.id || null);
+  // ---- reminders (shell/remindersHost.js) ----
+  const { refresh: refreshReminders } = makeRemindersHost({
+    open: () => !!notebook,
+    enabled: () => f("remind"),
+    mobile: () => mobile,
+    openTask: showFoundTask,
+    fail,
   });
-  // Installed on the first refresh rather than here: `mobile` is answered
-  // by the bridge after mount, and at this point it still says desktop.
-  let androidTapInstalled = false;
 
   // The rollover has to happen with the app open too, not only when the
   // notebook is reopened. The core says when; `shell/turn.js` schedules the
