@@ -1986,7 +1986,12 @@
         androidTapInstalled = true;
         onAndroidReminderTap((target) => showFoundTask(target.list, target.id)).catch(() => {});
       }
-      await syncAndroidReminders(reminders, { strings: S }).catch(fail);
+      // A `pending()` that throws (the store of an older build) is worth a
+      // line in the log and not a notice: the sync goes on without it.
+      await syncAndroidReminders(reminders, {
+        strings: S,
+        onError: (error) => console.warn("reminders: pending() failed", error),
+      }).catch(fail);
       return;
     }
     if (remindersLoop) remindersLoop.rearm();

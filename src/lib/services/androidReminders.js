@@ -40,24 +40,46 @@ export function reminderId(reminder) {
 ///     to re-register, and a reminder the user removed could never be found
 ///     to cancel. `batch` is the command that schedules AND stores; the JS
 ///     package has no wrapper for it, so it is invoked by name.
-export async function syncAndroidReminders(reminders, { now = new Date(), strings } = {}) {
+///
+/// And one field the plugin never fills in for itself, `sourceJson` (same
+/// phone, 2026-09-08: "attempt to invoke virtual method 'int
+/// Notification.getId()' on a null object reference"). The store keeps each
+/// notification as the text of that field, and nothing in the plugin's
+/// Android half ever sets it — so `batch` wrote the string `"null"`, the
+/// next `pending()` read it back as a null object, and asked it for its id.
+/// The text is sent along with the notification, and it is the notification
+/// itself, so what the store reads back is what was scheduled.
+///
+/// A phone that already holds those nulls throws on `pending()` until every
+/// one of them has fired (an alarm that fires deletes its own entry). Until
+/// then the sync goes on without the cancel: the ids are stable, so `batch`
+/// replaces the alarms of the reminders that still exist and overwrites their
+/// entries with readable ones; a reminder removed in the meantime rings once
+/// more, and its entry goes with it.
+export async function syncAndroidReminders(reminders, { now = new Date(), strings, onError } = {}) {
   const plugin = await import("@tauri-apps/plugin-notification");
   if (!(await plugin.isPermissionGranted())) {
     if ((await plugin.requestPermission()) !== "granted") return false;
   }
-  const pending = (await plugin.pending()) ?? [];
+  let pending = [];
+  try {
+    pending = (await plugin.pending()) ?? [];
+  } catch (error) {
+    onError?.(error);
+  }
   if (pending.length) await plugin.cancel(pending.map((n) => n.id));
   const upcoming = reminders.filter((r) => parseAt(r.at) > now).slice(0, SCHEDULED_AHEAD);
   if (upcoming.length === 0) return true;
   const notifications = upcoming.map((reminder) => {
     const { title, body } = notice(reminder, strings);
-    return {
+    const notification = {
       id: reminderId(reminder),
       title,
       body,
       schedule: plugin.Schedule.at(parseAt(reminder.at), false, true),
       extra: { list: reminder.list, id: reminder.id ?? "" },
     };
+    return { ...notification, sourceJson: JSON.stringify(notification) };
   });
   await invoke("plugin:notification|batch", { notifications });
   return true;

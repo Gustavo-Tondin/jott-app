@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { bridge, callsTo, invoke, resetBridge } from "../test/bridge.js";
+import { bridge, callsTo, fails, invoke, resetBridge } from "../test/bridge.js";
 import { reminderId, syncAndroidReminders } from "./androidReminders.js";
 import { S } from "./strings.js";
 
@@ -36,6 +36,47 @@ describe("syncing the phone's reminders", () => {
     expect(batch.notifications[0].extra).toEqual({ list: reminders[0].list, id: "abc123" });
     // `schedule` is the plugin's own shape, built by its own helper.
     expect(batch.notifications[0].schedule.at.date).toEqual(new Date("2026-09-08T09:00"));
+  });
+
+  // The store keeps the text of `sourceJson`, and the plugin never writes
+  // it: without this the store held `"null"` and `pending()` blew up on the
+  // next sync. It is the notification itself, so what is read back is what
+  // was scheduled — the schedule's date included, as the ISO string the
+  // Android half parses.
+  it("sends each notification its own JSON, for the store the plugin reads back", async () => {
+    bridge({
+      "plugin:notification|is_permission_granted": true,
+      "plugin:notification|get_pending": [],
+      "plugin:notification|batch": [1],
+    });
+    await syncAndroidReminders(reminders, { now: new Date("2026-09-07T12:00"), strings: S });
+    const [sent] = callsTo("plugin:notification|batch")[0].notifications;
+    const stored = JSON.parse(sent.sourceJson);
+    expect(stored.id).toBe(sent.id);
+    expect(stored.title).toBe(sent.title);
+    expect(stored.extra).toEqual(sent.extra);
+    expect(stored.schedule.at.date).toBe(new Date("2026-09-08T09:00").toISOString());
+    expect(stored.sourceJson).toBeUndefined();
+  });
+
+  // A phone whose store already holds the nulls of an older build: the
+  // sync must not stop at the question it cannot answer.
+  it("goes on scheduling when `pending()` throws, and says so", async () => {
+    bridge({
+      "plugin:notification|is_permission_granted": true,
+      "plugin:notification|get_pending": fails("Attempt to invoke virtual method 'int getId()' on a null object reference"),
+      "plugin:notification|batch": [1],
+    });
+    const errors = [];
+    const ok = await syncAndroidReminders(reminders, {
+      now: new Date("2026-09-07T12:00"),
+      strings: S,
+      onError: (e) => errors.push(e.message),
+    });
+    expect(ok).toBe(true);
+    expect(callsTo("plugin:notification|cancel")).toEqual([]);
+    expect(callsTo("plugin:notification|batch")).toHaveLength(1);
+    expect(errors).toHaveLength(1);
   });
 
   it("with nothing pending, nothing is cancelled", async () => {
