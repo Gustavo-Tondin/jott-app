@@ -20,94 +20,68 @@ file and live only in the commit history.
 
 ### New
 
-- **Rename a note from its card** — the ⋮ on the board and the right button
-  both offer it, so a note no longer has to be opened to be named.
-- **Note card height** (Settings › Display): a slider, three to sixteen
-  lines of the note. It says how much of a note a card on the board shows
-  before it stops, and it answers to this machine — the same notebook can
-  read differently on a monitor and a phone.
+- **Rename a note from its card** — the ⋮ on the board and the right mouse
+  button both offer it, so a note no longer has to be opened to be named.
+- **Note card height** (Settings › Display): a slider, three to sixteen lines
+  of the note, answering to this machine.
 - **The notes board's layout moved to Settings › Display** (grid or folders),
-  and answers to this machine too. A space that chose for itself, from its
-  ⋮ → Layout, still keeps its own.
-- A floating **Undo** after a delete, a move to another list or space, or
-  after taking a task off the day: one line at the bottom of the screen,
-  gone by itself in a few seconds.
-  It only ever takes back that action — if something else happened since,
-  it says so and leaves it to Ctrl+Z.
+  and answers to this machine too. A space that chose its own still keeps it.
+- A floating **Undo** after a delete, a move, or a task taken off the day —
+  one line at the bottom of the screen, gone by itself in a few seconds.
 - The task panel ends with a card naming the task fields that are switched
-  off, with a button straight to Settings › Tasks. Close it once and it
-  stays closed; the "Suggest more fields in the task panel" row brings it
-  back.
-- **Day summary** (Settings › Tasks): one notification at the hour you
-  choose, listing the tasks the day holds. It takes the place of ringing
-  every dated task — a task now rings on its own only if you gave it a
+  off, with a button straight to Settings › Tasks.
+- **Day summary** (Settings › Tasks): one notification at the hour you choose,
+  listing the day's tasks. A task now rings on its own only if you gave it a
   reminder.
-- **Repeat: freely** — a task that comes back the moment it is ticked, with
-  no date. Only one of it is ever open; every time you finish it, another
-  copy joins Completed. Bringing one back from Completed takes the copy it
-  left behind with it.
+- **Repeat: freely** — a task that comes back undated the moment it is ticked,
+  one open copy at a time.
 
 ### Fixed
 
 - The checkbox drawn in a note's summary on a card is a rounded square at
-  every size again — it was turning into a circle on a small card, because
-  the box grew with the text and its corner did not.
-- **The "system-ui" font choice does something on Linux.** It now draws the
-  interface in the font the desktop itself uses; before, the app's own face
-  was so close to what the system answered with that the choice looked
-  ignored.
+  every size again, however small the card.
+- **The "system-ui" font choice does something on Linux** — the interface now
+  draws in the font the desktop itself uses.
 
 ### Improved
 
 - **The completed section reads newest-first** — the task you just ticked is
-  at the top of it, not at the bottom of everything you ever finished.
-- **Sending a task to a day now shows.** The sun pops on the card the moment
-  it joins one, a card swiped sideways springs back into place, and a
-  suggestion taken lifts out of the panel while the task rises into the day.
+  at the top of it.
+- **Sending a task to a day now shows**: the sun pops on the card, a card
+  swiped sideways springs back, a suggestion taken lifts out of the panel.
 - **Today notes shows the notes you wrote today wherever you wrote them** —
-  every notepad, not only the Notes space. Each card carries a dot in its
-  space's colour, and opening, pinning or renaming it acts on that space.
-- A note nobody named draws no title on its card: the first lines of the
-  note say what it is, instead of a column of "New note".
-- Settings say less. The explanations left the rows and wait behind a **?**
-  next to the ones that need one; the categories on a page sit further
-  apart; and on a phone a group of three or more choices is a drop-down.
-- About reads in order: the version with its **Check now** on the same line,
-  then the system rows, then the help rows, and **Quit Jott** last.
-- The theme is a drop-down beside its label, like the other rows, and
-  **New theme from this one…** is its last option: it copies the look on
-  screen, puts it on and opens the theme's folder (desktop only).
+  every notepad, each card carrying a dot in its space's colour.
+- A note nobody named draws no title on its card: the first lines of the note
+  say what it is.
+- Settings say less: the explanations wait behind a **?**, and on a phone a
+  group of three or more choices is a drop-down.
+- About reads in order — the version with its **Check now**, the system rows,
+  the help rows, and **Quit Jott** last.
+- The theme is a drop-down beside its label, and **New theme from this one…**
+  is its last option: it copies the look on screen (desktop only).
 - On a phone the back arrow at the top returns from a Settings page to the
-  menu, the same as the swipe — the page no longer draws a back button of
-  its own.
-- The formatting bar setting says how the bar **opens** with a note:
-  floating, in the side panel, or off. While the note is open the ⋮ menu
-  still moves it between the first two. Off is off everywhere, the phone's
-  strip included; a phone is offered floating or off.
+  menu, the same as the swipe.
+- The formatting bar setting says how the bar **opens** with a note: floating,
+  in the side panel, or off. The ⋮ still moves it between the first two.
 - "Close the task panel when clicking outside" now works anywhere on the
-  content, not only on the bare margin. A click that opens another task or
-  lands in a field keeps the panel. The row is desktop only.
+  content, not only on the bare margin. The row is desktop only.
 - New tasks go to the **top** of the list by default.
 - Banners and note tags start switched off; the Notes page turns them on.
 - The Timeline's deleted names are two switches — one for tasks, one for notes.
-- The "Suggest more fields in the task panel" row left Settings: the card is
-  a one-time offer, and the Tasks page it points to already holds the fields.
-- **Pasting from another app keeps the formatting.** Bold, italic, links,
-  lists, checklists, quotes, code and tables copied out of Keep, Docs, Notion
-  or a web page arrive as Markdown instead of bare text. One Ctrl+Z gives
-  back the plain paste.
-- The fold arrow in a note stands only beside something that HOLDS
-  something — a heading, a list item with a sublist, a quote, a code block, a
-  table. Ordinary prose no longer offers one.
-- The foot of the side panel names the **space** the task or note is in.
-  Every space keeps a list called Inbox, so "Inbox" alone never said which.
+- The "Suggest more fields in the task panel" row left Settings: the card is a
+  one-time offer, and the Tasks page already holds the fields.
+- **Pasting from another app keeps the formatting** — bold, links, lists,
+  quotes, code and tables arrive as Markdown. One Ctrl+Z gives back the
+  plain paste.
+- The fold arrow in a note stands only beside something that HOLDS something —
+  a heading, a list item with a sublist, a quote, a code block, a table.
+- The foot of the side panel names the **space** the task or note is in, since
+  every space keeps a list called Inbox.
 - The side panel slides open and shut, the way the sidebar does.
 - The notebook menu marks the open notebook with its own colour instead of a
   tick, and rules **Manage notebooks** off from the list.
-- The icon picker holds still: choosing an icon no longer re-orders the grid
-  under the pointer.
-- The floating formatting bar takes the same corner as the rest of the app,
-  and the panel that folds out of it lifts off the page like the bar does.
+- The icon picker holds still: choosing an icon no longer re-orders the grid.
+- The floating formatting bar takes the same corner as the rest of the app.
 
 ## v0.52.1
 
