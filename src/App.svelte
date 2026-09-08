@@ -64,6 +64,7 @@
   import HomeView from "./lib/screens/HomeView.svelte";
   import SettingsView from "./lib/screens/SettingsView.svelte";
   import TabBar from "./lib/shell/TabBar.svelte";
+  import AppBanners from "./lib/shell/AppBanners.svelte";
   import TitleBar from "./lib/shell/TitleBar.svelte";
   import { buttonLayout } from "./lib/shell/windowButtons.js";
   import { isMobile, osAttribute, platformAttribute } from "./lib/shell/platform.js";
@@ -110,7 +111,7 @@
     formatBarSide as sideOfFormatBar,
   } from "./lib/services/formatBar.js";
   import { reader } from "./lib/services/features.js";
-  import { autoCheck, installUpdate, openReleasePage } from "./lib/services/update.js";
+  import { autoCheck, installUpdate } from "./lib/services/update.js";
   import {
     offerIfDue as offerMenuEntry,
     addToMenu,
@@ -2708,115 +2709,23 @@
             class:shell__content-inner--wide={view.kind === "settings"}
             class:shell__content-inner--full={view.kind === "timeline"}
           >
-          {#if error}
-            <Notice
-              tone="error"
-              title={S.errorTitle}
-              class="shell__notice"
-              onDismiss={() => (error = null)}
-              dismissLabel={S.dismissError}
-            >
-              <p>{error}</p>
-            </Notice>
-          {/if}
-
-          {#if undoNotice}
-            <Notice
-              tone={undoNotice.tone}
-              icon={undoNotice.tone === "success" ? "undo" : null}
-              title={undoNotice.text}
-              class="shell__notice"
-              onDismiss={() => (undoNotice = null)}
-              dismissLabel={S.dismissError}
-            />
-          {/if}
-
-          {#if conflicts.length > 0 && conflictsHidden !== conflictsKey(conflicts)}
-            <!-- The one case where the user can silently lose work: two
-                 devices edited the same file and the sync tool kept both.
-                 A row per copy, each with the door to its folder (the core's
-                 `folder_of` turns the file into the folder around it), and
-                 "hide for now" for the session — a NEW conflict brings the
-                 box back, because the key is the list of paths. -->
-            <Notice
-              tone="warning"
-              title={S.conflictsTitle(conflicts.length)}
-              class="shell__notice"
-              onDismiss={() => (conflictsHidden = conflictsKey(conflicts))}
-              dismissLabel={S.conflictsHide}
-            >
-              <p>{S.conflictsBody}</p>
-              <ul class="shell__conflict-list">
-                {#each conflicts as conflict (conflict.path)}
-                  <li class="shell__conflict">
-                    <span class="shell__conflict-what">
-                      {#if conflict.list}<strong>{conflict.list}</strong>{/if}
-                      <code class="shell__notice-path">{conflict.relative ?? conflict.path}</code>
-                      {#if !conflict.original}<span class="shell__conflict-gone">({S.conflictOriginalGone})</span>{/if}
-                    </span>
-                    {#if conflict.relative}
-                      <button
-                        class="theme-btn theme-btn--outline theme-btn--xs"
-                        onclick={() => api.openInFileManager(conflict.relative).catch(fail)}
-                        >{S.conflictReveal}</button
-                      >
-                    {/if}
-                  </li>
-                {/each}
-              </ul>
-            </Notice>
-          {/if}
-
-          {#if update}
-            <!-- Good news, quietly: one line and two buttons, gone for the
-                 session on "Later". Which button depends on the install —
-                 an AppImage or the Windows build can replace itself, a
-                 package-manager install gets the release page instead. -->
-            <Notice tone="success" title={S.updateBanner(update.latest)} class="shell__notice">
-              {#snippet actions()}
-                {#if update.canInstall}
-                  <button
-                    class="theme-btn theme-btn--primary theme-btn--xs"
-                    disabled={installing}
-                    onclick={installNow}
-                    >{installing ? S.updateInstalling : S.updateInstall}</button
-                  >
-                {:else}
-                  <button
-                    class="theme-btn theme-btn--primary theme-btn--xs"
-                    onclick={() => openReleasePage(update.url).catch(fail)}
-                    >{S.updateDownload}</button
-                  >
-                {/if}
-                <button
-                  class="theme-btn theme-btn--outline theme-btn--xs"
-                  onclick={() => (update = null)}>{S.updateDismiss}</button
-                >
-              {/snippet}
-            </Notice>
-          {/if}
-
-          {#if menuOffer}
-            <!-- The one thing an AppImage cannot do for itself until it is
-                 asked: a single file installs nothing, so the desktop has no
-                 entry and no icon to find. Offered once — "No thanks" is
-                 remembered on this machine, "Add to menu" is not, so moving
-                 the file asks again. -->
-            <Notice tone="success" icon="info" title={S.menuEntryBanner} class="shell__notice">
-              {#snippet actions()}
-                <button
-                  class="theme-btn theme-btn--primary theme-btn--xs"
-                  disabled={addingToMenu}
-                  onclick={addToMenuNow}
-                  >{addingToMenu ? S.menuEntryAdding : S.menuEntryAdd}</button
-                >
-                <button
-                  class="theme-btn theme-btn--outline theme-btn--xs"
-                  onclick={dismissMenuOffer}>{S.menuEntryDismiss}</button
-                >
-              {/snippet}
-            </Notice>
-          {/if}
+          <AppBanners
+            {error}
+            onDismissError={() => (error = null)}
+            {undoNotice}
+            onDismissUndo={() => (undoNotice = null)}
+            conflicts={conflictsHidden === conflictsKey(conflicts) ? [] : conflicts}
+            onHideConflicts={() => (conflictsHidden = conflictsKey(conflicts))}
+            {update}
+            {installing}
+            onInstall={installNow}
+            onDismissUpdate={() => (update = null)}
+            {menuOffer}
+            {addingToMenu}
+            onAddToMenu={addToMenuNow}
+            onDismissMenuOffer={dismissMenuOffer}
+            onError={fail}
+          />
 
           <!-- Keyed on the view: a new screen is a NEW element, and the
                stylesheet lets it rise in (2026-08-21) — opening a space from
