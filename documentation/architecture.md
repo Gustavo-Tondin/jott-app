@@ -62,6 +62,13 @@ events go to the owning window rather than broadcast, and why closing a
 window has to drop its watcher thread. There is a two-window test in
 `src-tauri/tests/bridge.rs`.
 
+A window's own writes do not come back to it as change events. Every write
+records the stamp it left behind (`core/src/selfwrite.rs`), the bridge
+attributes it to the window that made it, and that window's watcher drops the
+event while the file still carries the stamp — a file somebody else touched
+since no longer does, and is reported. A second window on the same notebook
+still hears the write, which is why the attribution is per window.
+
 ## `src/` — the frontend
 
 | Folder | What it holds |
