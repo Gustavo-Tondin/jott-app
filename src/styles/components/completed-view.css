@@ -28,8 +28,7 @@
     text-decoration: line-through;
     color: var(--app-ink-muted);
   }
-  .completed-view__origin,
-  .completed-view__empty {
+  .completed-view__origin {
     color: var(--app-ink-muted);
     font-size: var(--app-text-12);
   }

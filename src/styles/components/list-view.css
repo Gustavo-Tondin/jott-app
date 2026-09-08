@@ -10,9 +10,6 @@
   }
   /* The card column and the pinned hairline are the shared .theme-task-list /
      .theme-pin-divider (controls/layout.css). */
-  .list-view__empty {
-    color: var(--app-ink-muted);
-  }
   .list-view__form {
     display: flex;
     gap: var(--app-space-8);

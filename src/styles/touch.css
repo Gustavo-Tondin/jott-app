@@ -246,13 +246,7 @@
 
     /* The form controls. Both are a field a finger has to land in to type, and
        at 8px of padding around a 14px label they came out at 37px — the same
-       shortfall the worded button had, from the same cause.
-
-       THE TEXTAREA IS NOT HERE, and leaving it in was a bug caught before it
-       shipped: it already carries `min-height: 5rem` (styles/controls/forms.css),
-       a minimum and this one are the SAME property in the cascade, and this
-       sheet is imported last — so the rule meant to grow a control would have
-       shrunk the one control that was big enough, from 80px to 48. */
+       shortfall the worded button had, from the same cause. */
     .theme-input,
     .theme-select {
       min-block-size: var(--app-touch-min);

@@ -6,10 +6,9 @@
 
 @layer components {
   /* ---------------------------------------------------------------------------
-     Text fields: input, textarea, select
+     Text fields: input, select
      --------------------------------------------------------------------------- */
   .theme-input,
-  .theme-textarea,
   .theme-select {
     width: 100%;
     padding: var(--app-space-8) var(--app-space-12);
@@ -21,33 +20,24 @@
     font-family: inherit;
     line-height: var(--app-leading-normal);
   }
-  .theme-input::placeholder,
-  .theme-textarea::placeholder {
+  .theme-input::placeholder {
     color: var(--app-ink-faint);
   }
   .theme-input:hover:not(:disabled):not(:focus),
-  .theme-textarea:hover:not(:disabled):not(:focus),
   .theme-select:hover:not(:disabled) {
     border-color: var(--app-brand-outline);
   }
   .theme-input:focus-visible,
-  .theme-textarea:focus-visible,
   .theme-select:focus-visible {
     outline: none;
     border-color: var(--app-brand);
     box-shadow: 0 0 0 0.1875rem var(--app-brand-weak);
   }
   .theme-input:disabled,
-  .theme-textarea:disabled,
   .theme-select:disabled {
     opacity: 0.6;
     cursor: not-allowed;
   }
-  .theme-textarea {
-    min-height: 5rem;
-    resize: vertical;
-  }
-
   /* Native arrow off, our own caret on — so the select matches everywhere.
      The stroke hex inside the data: URI is a byte copy of --theme-color-gray
      (styles/themes/jott.css) — a URL cannot read a custom property, so a

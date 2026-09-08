@@ -19,7 +19,6 @@
     min-inline-size: 0;
   }
   .assets-view__hint,
-  .assets-view__empty,
   .assets-view__count {
     color: var(--app-ink-muted);
     font-size: var(--app-text-13);
