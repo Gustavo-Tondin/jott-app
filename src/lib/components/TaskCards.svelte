@@ -53,6 +53,10 @@
     /// the LIST's question, not the card's: only the screen that read twice
     /// knows which of these were not there before (spaces/TasksSpace.svelte).
     arrived = () => false,
+    /// `(entry) => boolean` — has this task JUST joined the day? Asked of the
+    /// list for the same reason: the card that answers may be a new element,
+    /// built after the write (services/recent.js).
+    joined = () => false,
     /// `(key) => boolean` — is this part of the app switched on?
     f = () => true,
     dateFormat = "mm/dd/yyyy",
@@ -212,6 +216,7 @@
       {color}
       inDay={inDay(entry)}
       arriving={arrived(entry)}
+      joined={joined(entry)}
       {f}
       {onSelect}
       selected={isSelected(entry.task)}

@@ -10,6 +10,7 @@
   import { ensureTaskId } from "../services/taskId.js";
   import { listName, listLabel, taskSpacePaths } from "../services/paths.js";
   import { makeScreen } from "../services/act.js";
+  import { tracker, HELD } from "../services/recent.js";
   import { taskActions, isSelectedTask } from "../services/taskActions.js";
   import { dotStyle as dotStyleOf } from "../services/accent.js";
   import { spaceMenu } from "../services/spaceMenu.js";
@@ -150,27 +151,43 @@
     };
   }
 
-  // ---- who has just arrived ----
-  // A card that was not in the last read of THIS source rises into place
-  // (task-row.css) instead of simply being there — the other end of the
-  // send-off, and what a task pulled into a day does when it lands. The first
-  // read of a source plays nothing: everything would be new at once.
-  let seen = null;
-  let arrivals = $state(new Set());
+  // ---- what has just landed ----
+  // Two marks, both from services/recent.js and both living for a MOMENT
+  // rather than for one read (the watcher's reload arrives a few frames after
+  // the write, rebuilding the list's nodes): a card new to THIS list rises
+  // into place, and a task new to the DAY lights its sun (task-row.css).
   const keyOf = (entry) => (entry.task.id ? `${entry.list}#${entry.task.id}` : "");
   /// What the cards are a reading OF. Changing day, or the list underneath,
-  /// is a new list rather than an arrival in the old one.
+  /// is a new list rather than a list of arrivals.
   let sourceKey = $derived(`${String(day)}|${all}|${paths.list ?? ""}`);
 
-  function sift(entries) {
-    const keys = new Set(entries.map(keyOf).filter(Boolean));
-    arrivals =
-      seen?.source === sourceKey
-        ? new Set([...keys].filter((key) => !seen.keys.has(key)))
-        : new Set();
-    seen = { source: sourceKey, keys };
-  }
+  const siftArrivals = tracker();
+  let arrivals = $state(new Set());
+  const sift = (entries) =>
+    (arrivals = siftArrivals(sourceKey, entries.map(keyOf).filter(Boolean)));
   const arrived = (entry) => arrivals.has(keyOf(entry));
+
+  // The day is the NOTEBOOK's answer (`dayRefs`), not this screen's read: a
+  // task joins it from here, from the panel beside it, or from another window.
+  const siftJoined = tracker();
+  let joinedDay = $state(new Set());
+  $effect(() => {
+    joinedDay = siftJoined("day", dayRefs ?? new Set());
+  });
+  const joined = (entry) => !isDay && joinedDay.has(keyOf(entry));
+
+  // A mark nobody reads again would stay on the card: the sets are fed by
+  // reads, and the last read of a burst is not followed by another.
+  $effect(() => {
+    if (arrivals.size === 0) return;
+    const forget = setTimeout(() => (arrivals = new Set()), HELD);
+    return () => clearTimeout(forget);
+  });
+  $effect(() => {
+    if (joinedDay.size === 0) return;
+    const forget = setTimeout(() => (joinedDay = new Set()), HELD);
+    return () => clearTimeout(forget);
+  });
 
   const { load, act } = makeScreen({
     read,
@@ -574,6 +591,7 @@
         onMoveTo={moveTo}
         {inDay}
         {arrived}
+        {joined}
         {f}
         onDelete={readOnly ? null : deleteEntry}
         onDuplicate={readOnly ? null : (entry) => duplicate(entry.list, entry.task)}

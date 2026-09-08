@@ -11,6 +11,7 @@
   import { S } from "../services/strings.js";
   import EmptyState from "../components/EmptyState.svelte";
   import { makeScreen } from "../services/act.js";
+  import { tracker, HELD } from "../services/recent.js";
   import { taskActions, isSelectedTask } from "../services/taskActions.js";
   import { pinnedFirst, planReorder } from "../services/spaceOrder.js";
   import TaskCards from "../components/TaskCards.svelte";
@@ -32,8 +33,23 @@
     f = () => true,
   } = $props();
 
-  const inDay = (entry) =>
-    !!entry.task.id && !!dayRefs?.has(`${entry.list}#${entry.task.id}`);
+  const keyOf = (entry) => (entry.task.id ? `${entry.list}#${entry.task.id}` : "");
+  const inDay = (entry) => !!keyOf(entry) && !!dayRefs?.has(keyOf(entry));
+
+  // A task that has JUST joined the day lights its sun (task-row.css). The
+  // mark lives for a moment rather than for one read — services/recent.js
+  // says why — and the day it reads is the notebook's, not this screen's.
+  const siftJoined = tracker();
+  let joinedDay = $state(new Set());
+  $effect(() => {
+    joinedDay = siftJoined("day", dayRefs ?? new Set());
+  });
+  $effect(() => {
+    if (joinedDay.size === 0) return;
+    const forget = setTimeout(() => (joinedDay = new Set()), HELD);
+    return () => clearTimeout(forget);
+  });
+  const joined = (entry) => joinedDay.has(keyOf(entry));
 
   let tasks = $state([]);
   let newText = $state("");
@@ -104,6 +120,7 @@
       onReorder={reorder}
       {isSelected}
       {inDay}
+      {joined}
       {f}
       onDelete={readOnly ? null : deleteEntry}
       onDuplicate={readOnly ? null : (entry) => duplicate(entry.list, entry.task)}

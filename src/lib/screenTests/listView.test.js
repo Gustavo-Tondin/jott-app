@@ -421,3 +421,46 @@ describe("date display", () => {
     expect(await screen.findByText("07/05/2026")).toBeTruthy();
   });
 });
+
+// Sending a task to the day is answered ON the card — the sun pops and the
+// card washes over. The mark comes from the notebook's day (`dayRefs`), and
+// it has to outlive the SECOND read: every write is answered by a reload and
+// then by the file watcher's own, a few frames later (services/recent.js).
+describe("a task sent to the day", () => {
+  const props = (over = {}) => ({
+    list: "jott.tasks/Compras.md",
+    readOnly: false,
+    onChanged: noop,
+    onError: noop,
+    reloadKey: 0,
+    dayRefs: new Set(),
+    ...over,
+  });
+  const card = (container, text) =>
+    [...container.querySelectorAll(".task-row")].find((one) => one.textContent.includes(text));
+
+  test("lights up when it joins, and stays lit through the reload that follows", async () => {
+    bridge({ list_tasks: [task("a1", "Comprar leite"), task("a2", "Regar plantas")] });
+    const { container, rerender } = render(ListView, { props: props() });
+    await screen.findByText("Comprar leite");
+    expect(card(container, "Comprar leite").classList.contains("task-row--joined")).toBe(false);
+
+    // The day now holds it — the notebook answered the write.
+    await rerender(props({ dayRefs: new Set(["jott.tasks/Compras.md#a1"]) }));
+    await waitFor(() =>
+      expect(card(container, "Comprar leite").classList.contains("task-row--joined")).toBe(true),
+    );
+    expect(
+      card(container, "Comprar leite")
+        .querySelector(".task-row__sun")
+        .classList.contains("task-row__sun--lit"),
+    ).toBe(true);
+
+    // The watcher's reload, a few frames later: the same day, nothing new —
+    // and the play must not be cut short.
+    await rerender(props({ dayRefs: new Set(["jott.tasks/Compras.md#a1"]), reloadKey: 1 }));
+    expect(card(container, "Comprar leite").classList.contains("task-row--joined")).toBe(true);
+    // And the card beside it was never in the day at all.
+    expect(card(container, "Regar plantas").classList.contains("task-row--joined")).toBe(false);
+  });
+});

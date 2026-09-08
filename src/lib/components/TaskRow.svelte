@@ -38,6 +38,11 @@
     /// cannot tell a card that has just arrived from one drawn for the first
     /// time (components/TaskCards.svelte).
     arriving = false,
+    /// The task has JUST joined the day: the card flashes and its sun pops
+    /// (task-row.css). Also the list's to answer — the write hands the task an
+    /// id, which changes the card's key, so the element that plays this is
+    /// usually not the element the gesture was made on.
+    joined = false,
     /// `(key) => boolean` — is this part of the app switched on? A field
     /// switched off leaves the CARD, not the file.
     f = () => true,
@@ -104,18 +109,6 @@
     onComplete(list, task);
   }
 
-  // THE SUN LIGHTS UP the moment the task joins a day. The marker is drawn
-  // for the first time then, so the pop plays on the element as it appears —
-  // and only for a card that was already on screen without it, never for one
-  // that arrives with the sun already on.
-  let joined = $state(false);
-  let wasInDay = null;
-  $effect(() => {
-    const now = inDay;
-    if (wasInDay === false && now) joined = true;
-    wasInDay = now;
-  });
-
   function startEditing() {
     draft = task.text;
     editing = true;
@@ -180,6 +173,7 @@
   class:task-row--selected={selected}
   class:task-row--done={task.done}
   class:task-row--arriving={arriving}
+  class:task-row--joined={joined}
   class:task-row--finishing={finishing && !task.done}
   class:task-row--restoring={finishing && task.done}
   class:task-row--origin={!!origin}
@@ -270,10 +264,7 @@
                reserved for tags. -->
           <span class="task-row__field">{doneSubtasks}/{task.subtasks.length}</span>
         {/if}
-        {#if inDay}<span
-            class="task-row__sun"
-            class:task-row__sun--lit={joined}
-            onanimationend={() => (joined = false)}
+        {#if inDay}<span class="task-row__sun" class:task-row__sun--lit={joined}
             ><Icon name="sun" size="0.875rem" /></span
           >{/if}
         {#if task.repeat && f("repeat")}<Icon name="arrow-clockwise" size="0.875rem" />{/if}

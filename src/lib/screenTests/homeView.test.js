@@ -625,6 +625,27 @@ describe("HomeView", () => {
       expect(arriving("Arrumar site")).toBe(false);
     });
 
+    test("the arrival outlives the reload the watcher sends after the write", async () => {
+      // Measured 2026-09-08: the write is answered by one reload and the file
+      // watcher's own a few frames later. A mark that lived for ONE read was
+      // gone before a single frame of the play was drawn.
+      bridge(day(task("a1", "Arrumar site")));
+      const { rerender } = render(HomeView, { props: props() });
+      await screen.findByText("Arrumar site");
+
+      bridge(day(task("a1", "Arrumar site"), task("b2", "Entregar logo")));
+      await rerender(props({ reloadKey: 1 }));
+      await screen.findByText("Entregar logo");
+      await waitFor(() => expect(arriving("Entregar logo")).toBe(true));
+
+      // The watcher's reload: the same day, nothing new in it.
+      const reads = () => invoke.mock.calls.filter(([cmd]) => cmd === "day_tasks").length;
+      const before = reads();
+      await rerender(props({ reloadKey: 2 }));
+      await waitFor(() => expect(reads()).toBeGreaterThan(before));
+      expect(arriving("Entregar logo")).toBe(true);
+    });
+
     test("turning to another day is a new list, not a day of arrivals", async () => {
       bridge({
         day_tasks: (args) =>

@@ -133,40 +133,24 @@ describe("TaskRow — the age stamp", () => {
   });
 });
 
-// Joining a day is answered on the card itself: the sun pops in the accent
-// and settles (task-row.css). What is tested here is WHEN the pop is asked
-// for — the animation itself is the stylesheet's.
-describe("TaskRow — the sun lighting up", () => {
+// Joining a day is answered on the card: the sun pops in the accent and the
+// card washes over (task-row.css). WHEN it plays is the list's call, not the
+// row's — the write hands the task an id, and the element that plays is
+// usually not the one the gesture was made on (services/recent.js).
+describe("TaskRow — joining the day", () => {
   const sunOf = (container) => container.querySelector(".task-row__sun");
 
-  test("pops when the task joins the day, under the eye of whoever asked", async () => {
-    const { container, rerender } = row({ inDay: false });
-    expect(sunOf(container)).toBe(null);
-
-    await rerender({
-      list: "jott.tasks/task-list.md",
-      task: { id: "a1", text: "Fix website", done: false, tags: [], subtasks: [] },
-      inDay: true,
-    });
-
+  test("the sun pops and the card washes when the list says it just joined", () => {
+    const { container, card } = row({ inDay: true, joined: true });
     expect(sunOf(container).classList.contains("task-row__sun--lit")).toBe(true);
+    expect(card.classList.contains("task-row--joined")).toBe(true);
   });
 
-  test("a card drawn already in the day is simply in it — no pop", () => {
-    const { container } = row({ inDay: true });
+  test("a card drawn already in the day is simply in it — nothing plays", () => {
+    const { container, card } = row({ inDay: true });
     expect(sunOf(container)).toBeTruthy();
     expect(sunOf(container).classList.contains("task-row__sun--lit")).toBe(false);
-  });
-
-  test("the pop is over when the animation ends, so it never plays twice", async () => {
-    const { container, rerender } = row({ inDay: false });
-    await rerender({
-      list: "jott.tasks/task-list.md",
-      task: { id: "a1", text: "Fix website", done: false, tags: [], subtasks: [] },
-      inDay: true,
-    });
-    await fireEvent.animationEnd(sunOf(container));
-    expect(sunOf(container).classList.contains("task-row__sun--lit")).toBe(false);
+    expect(card.classList.contains("task-row--joined")).toBe(false);
   });
 });
 

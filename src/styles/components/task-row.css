@@ -102,20 +102,40 @@
      which does not compress — holds a step of open space at the first frame. */
   .task-row--arriving {
     overflow: hidden;
-    animation: task-row-arrive var(--app-duration-medium) var(--app-ease-out);
+    animation: task-row-arrive var(--app-duration-slow) var(--app-ease-out);
   }
   @keyframes task-row-arrive {
     from {
       opacity: 0;
       max-block-size: 0;
       padding-block: 0;
-      translate: 0 var(--app-space-12);
+      translate: 0 var(--app-space-16);
+    }
+    /* The ceiling is held back to the middle of the play, or the box reaches
+       the card's real height in the first frames and only the climb is left
+       to see: the space has to open FOR the card, in front of the eye. */
+    45% {
+      max-block-size: 5rem;
     }
     to {
       opacity: 1;
       max-block-size: 8rem;
       padding-block: var(--app-space-10);
       translate: 0 0;
+    }
+  }
+
+  /* JOINING THE DAY, on the card that stays where it is: a wash of the accent
+     — the colour of the act — flooding and draining away. The sun popping in
+     the meta row is the same news said small; on a swipe, where the eye is on
+     the card sliding home, the small one alone goes unseen. */
+  .task-row--joined {
+    animation: task-row-joined calc(var(--app-duration-slow) * 1.6) var(--app-ease-out);
+  }
+  @keyframes task-row-joined {
+    from,
+    25% {
+      background: color-mix(in oklab, var(--app-brand-weak) 80%, var(--app-brand));
     }
   }
 
