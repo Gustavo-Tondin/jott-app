@@ -8,7 +8,7 @@ the table. Binaries are not versioned; only this file is. Source is at
 
 | Installer | File | Version | Built | Size |
 |---|---|---|---|---|
-| Android | `jott-android.apk` | 0.52.1 ⚠ older | 2026-09-07 | 65M |
+| Android | `jott-android.apk` | 0.53.0 | 2026-09-08 | 65M |
 | Arch | `jott-arch.pkg.tar.zst` | 0.52.1 ⚠ older | 2026-09-08 | 7,0M |
 | Fedora | `jott-fedora.rpm` | 0.23.0 ⚠ older | 2026-08-21 | 7,1M |
 | Linux AppImage | `jott-linux.AppImage` | 0.38.0 ⚠ older | 2026-08-25 | 107M |
