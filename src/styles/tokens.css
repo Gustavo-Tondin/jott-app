@@ -1,26 +1,12 @@
 /* =============================================================================
    tokens.css — the app's structural vocabulary: type, layout, motion.
-
-   THREE LAYERS, one hop between each (2026-08-26):
-
-     1. --theme-*   What a THEME writes: colours (`--theme-color-*`), spacing
-                    and radius. styles/themes/jott.css is the app's own; a
-                    notebook's `.jott/themes/<name>.css` replaces any of it.
-     2. --app-*     What the APP reads. A MODE (styles/modes/*.css) assigns the
-                    colour roles per region from the theme's tokens; this
-                    file assigns the metrics. Components read ONLY these.
-     3. components  read `--app-*`, never `--theme-*`, never a literal.
-
-   See docs/project-strategy.md 4.5 and documentation/theming.md.
-
-   EVERY LENGTH IS IN `rem` (2026-08-06, user call). 1rem = 16px at the default
-   root size, so the design's px values are simply divided by 16 — but a reader
-   who raises their browser/OS font size now scales the whole interface with it,
-   instead of getting bigger text inside boxes that stayed put. The token names
-   keep their px numbers (`--app-space-16`), because the design speaks in
-   those; only the values are relative. The one exception is a real device
-   measurement — a media-query breakpoint, or a pointer distance in JS — which
-   is about the screen, not the type.
+   Three layers, one hop each: a THEME writes `--theme-*` (colours, spacing,
+   radius; styles/themes/jott.css, or a notebook's .jott/themes/<name>.css);
+   a MODE (styles/modes/*.css) and this file write `--app-*` (colour roles per
+   region there, metrics here); a component reads `--app-*` only, never a
+   `--theme-*` or a literal. See documentation/theming.md.
+   Every length is in `rem` (design px ÷ 16); the name keeps the px number.
+   The only px is a real device measurement — a breakpoint, a pointer distance.
    ============================================================================= */
 
 /* Inter, self-hosted (local-first: no font CDN at runtime). Variable weight,
@@ -33,11 +19,9 @@
   src: url("../assets/fonts/Inter-latin-wght-normal.woff2") format("woff2");
 }
 
-/* DM Mono, self-hosted for the same reason (2026-08-24, user call): the app's
-   monospace, in the two weights it is drawn in — 400 for code and paths, 500
-   where the interface sets one in medium. Italic is not carried: nothing in
-   the app writes code in italic, and a face nobody draws is 22KB nobody
-   asked for. Licence and provenance: src/assets/fonts/LICENSES.md. */
+/* DM Mono, self-hosted, in the two weights the app draws: 400 for code and
+   paths, 500 where the interface sets medium. No italic — nothing in the app
+   writes code in italic. Licence and provenance: src/assets/fonts/LICENSES.md. */
 @font-face {
   font-family: "DM Mono";
   font-style: normal;
@@ -56,19 +40,8 @@
 @layer tokens {
   :root {
     /* ---------------------------------------------------------------------
-       THE COLOURS ARE NOT HERE (2026-08-26). They are the THEME's —
-       `--theme-color-*` in styles/themes/jott.css, which every notebook can
-       replace with its own. The colour ROLES are not here either: a MODE
-       (styles/modes/*.css) assigns them per region as `--app-*`, reading the
-       theme's tokens. What stays in this file is the app's structural
-       vocabulary — type, layout, motion — as `--app-*`, plus the two scales
-       a theme may also set (spacing, radius), which below simply read the
-       theme's value so a component never has to know which layer answered.
-       --------------------------------------------------------------------- */
-
-    /* ---------------------------------------------------------------------
-       SPACING — the design's real values (not the global Fibonacci scale:
-       this is a specific Figma design, fidelity wins). Named by px.
+       SPACING — the design's own values, named by px. Read from the theme,
+       so a component never knows which layer answered.
        --------------------------------------------------------------------- */
     --app-space-2: var(--theme-space-2); /*  2px */
     --app-space-4: var(--theme-space-4); /*  4px */
@@ -84,25 +57,15 @@
     --app-space-64: var(--theme-space-64); /* 64px */
 
     /* ---------------------------------------------------------------------
-       RADIUS — a ladder read by THE SIZE OF THE OBJECT, not by taste: the
-       bigger the box, the rounder the corner, so a card never carries the
-       corner of the chip inside it. Which rung a thing takes is decided by
-       its height (or, for a surface, by what it is):
-
-         xs  6px  a mark, not a box — checkbox, inline code, a 20px tile
-         sm  8px  a small control, up to ~32px — icon button, menu row, chip
-         md 12px  a standard control or list row, ~36-48px — field, task row,
-                  button, popover, sidebar entry
-         lg 16px  a card or a floating panel — note card, dialog, format bar
-         xl 20px  a full region — a bottom sheet, the canvas a phone raises
-
-       NESTING IS ARITHMETIC, NOT A RUNG: a box sitting flush inside another
-       takes `outer - padding`, which is the only value that keeps the two
-       curves concentric (user call, 2026-08-20, from the Inbox/Today/Week
-       track — the blue item read as a square jammed into a rounded well).
-       It is written as the `calc()` at the point of use, so the child follows
-       when the parent's rung or padding changes; landing on a rung is a
-       coincidence, and 10 or 14 is as correct an answer as 8. */
+       RADIUS — read by the SIZE of the object, never by taste:
+         xs  6px  a mark (checkbox, inline code, a 20px tile)
+         sm  8px  a small control up to ~32px (icon button, menu row, chip)
+         md 12px  a control or list row, ~36-48px (field, task row, popover)
+         lg 16px  a card or floating panel (note card, dialog, format bar)
+         xl 20px  a full region (bottom sheet, the canvas a phone raises)
+       Nesting is arithmetic, not a rung: a flush child takes
+       `calc(outer - padding)` at the point of use, whatever value that lands on.
+       --------------------------------------------------------------------- */
     --app-radius-xs: var(--theme-radius-xs); /*  6px */
     --app-radius-sm: var(--theme-radius-sm); /*  8px */
     --app-radius-md: var(--theme-radius-md); /* 12px */
@@ -114,22 +77,13 @@
     /* ---------------------------------------------------------------------
        TYPOGRAPHY
        --------------------------------------------------------------------- */
-    /* The three faces, and all three are CHOOSABLE (Display, 2026-08-24):
-       the shell writes the chosen family in front of these stacks as an
-       inline custom property on the root, so what is written here is what
-       the app falls back to — the face it carries, then the machine's.
-
-       The note's own face defaults to the interface's, which is the honest
-       statement: a note is read in whatever the app is read in until someone
-       says otherwise. Only the two ends of the chain are stated; the middle
-       is the user's answer. */
+    /* All three faces are choosable (Display): the shell writes the chosen
+       family in front of these stacks as an inline custom property on the
+       root, so these are the fallbacks — the face the app carries, then the
+       machine's. The note's face defaults to the interface's. */
     --app-font-sans: "Inter", system-ui, sans-serif;
     --app-font-note: var(--app-font-sans);
-    /* Code inside a note. Until 2026-08-24 this was the reader's own
-       monospace and no webfont — the argument being that a note is a `.md`
-       on disk and its code should look the way code looks in the editor they
-       open it with. It ships with DM Mono now (user call): the app draws code
-       in a face it can count on, and the reader's own monospace is one line
+    /* Code inside a note: DM Mono first, the reader's own monospace one step
        down the stack and one click away in Display. */
     --app-font-mono: "DM Mono", ui-monospace, SFMono-Regular, "SF Mono",
       Menlo, "Liberation Mono", monospace;
@@ -157,22 +111,17 @@
     --app-leading-loose: 1.6; /* note body */
 
     /* ---------------------------------------------------------------------
-       LAYOUT — the shell's fixed dimensions. Shared by the title bar and the
-       three-panel row so the tab strip aligns with the centre panel by
-       construction. Likely to change; changing them here moves both.
+       LAYOUT — the shell's fixed dimensions, shared by the title bar and the
+       three-panel row so the tab strip aligns with the centre panel.
        --------------------------------------------------------------------- */
     --app-sidebar-left: 13.75rem;
     --app-sidebar-rail: 3.5rem; /* the left sidebar collapsed to an icon rail */
     --app-sidebar-right: 15rem;
     --app-titlebar-height: 2.375rem;
-    /* The compact shell's top bar, in three parts, because two places need
-       its total height and only one of them draws it: an open note lets its
-       canvas scroll UNDER the bar (the wireframes "Editor screen", 2026-08-19
-       — the buttons float over the text once the page has moved), so the
-       canvas has to start exactly where the bar ends. Written once here rather
-       than twice, so the bar cannot drift away from the space reserved for it.
-       The top padding is the status bar's own strip, never stacked on top of
-       the bar's air — components/topbar.css says why. */
+    /* The compact top bar in three parts: an open note scrolls its canvas
+       UNDER the bar, so the canvas must start exactly where the bar ends —
+       both read the same total. The top padding is the status bar's own strip,
+       never stacked on the bar's air (components/topbar.css). */
     --app-topbar-control: 2.625rem;
     --app-topbar-pad-block-start: max(
       var(--app-space-12),
@@ -184,160 +133,78 @@
     );
     --app-content-max: 45rem;
     /* The wide measure, for the one screen that puts something BESIDE the
-       prose: Settings (menu beside a section). The note's banner read it too
-       (wireframe "Editor screen - maximized", 2026-08-19) until 2026-08-27,
-       when the user asked for one width per note. */
+       prose: Settings (menu beside a section). */
     --app-content-wide: 56.25rem;
-    /* The fold chevron's column, and the note's page around it (2026-09-07).
-
-       The gutter CodeMirror puts beside every line is IN the row, not over
-       it: its width comes out of the text's, and only on the left. Measured
-       in a 1280px window before this token existed: the note's page ran
-       280→1000, its text started at 301.6 and could reach 996 — 21.6px of
-       inset on one side against 4 on the other, a page visibly off its own
-       axis (user call, 2026-09-07).
-
-       So the page is stated as the reading column PLUS what the editor puts
-       beside its text: the gutter on the left, the same room given back on
-       the right, and the padding a line carries on each side
-       (components/editor.css). The text then measures --app-content-max
-       exactly and sits centred — 21.6px in from both edges, its first letter
-       under the title's, which the banner's own paddings had been landing on
-       all along. On a canvas narrower than the cap the two insets are what
-       survive, so the chevron always has its column and is never clipped.
-
-       Written here because THREE boxes have to agree: the canvas
-       (components/shell.css), the note's body (components/note-editor.css)
-       and the gutter itself. In `rem` and not `em` like the editor's other
-       lengths: the chevron is drawn at the interface's size, not the note's
-       — it does not follow `data-note-size`, and never did. */
+    /* The fold chevron's column, and the note's page around it: the reading
+       column plus CodeMirror's left-only gutter, the same room given back on
+       the right, and a line's padding each side (components/editor.css), so
+       the text measures --app-content-max, centred. Read by the canvas
+       (shell.css), the note body (note-editor.css) and the gutter — all three
+       must agree. `rem`, not `em`: the chevron follows the interface's size. */
     --app-editor-gutter: 1.1rem;
     --app-content-note: calc(
       var(--app-content-max) + 2 * (var(--app-editor-gutter) + var(--app-space-4))
     );
 
-    /* HOW BIG A NOTE IS DRAWN, and the one heading size read from outside the
-       editor. `data-note-size` on the root picks the rung (`noteFontSize`,
-       2026-08-18) — absent for the size the app ships as, the same pact
-       `data-theme` and `data-accent` keep.
-
-       The marks inside a note are `em` multiples of the body, so one
-       declaration moves the whole document. `--app-note-h1` states the
-       largest of those multiples as a length, because the note's TITLE is
-       drawn outside the editor and has to match it (user call, 2026-08-19:
-       "deixe o título maior também, pelo menos do tamanho de um H1"). Written
-       once here, so the title cannot drift from the heading it is sized
-       against. */
+    /* How big a note is drawn: `data-note-size` on the root picks the rung
+       (`noteFontSize`), absent for the default. Marks inside a note are `em`
+       multiples of the body; `--app-note-h1` states the largest as a length
+       because the note's TITLE is drawn outside the editor and must match it. */
     --app-note-size: var(--app-text-16);
     --app-note-h1: calc(var(--app-note-size) * 1.6);
 
     /* ---------------------------------------------------------------------
-       COMPACT — the shell rearranged for a screen too narrow to hold three
-       columns side by side (2026-08-18, the mobile wireframes).
-
-       THE BREAKPOINT IS IN px, and it is the one exception this file allows
-       (see the header): a media query asks about the SCREEN, not about the
-       reader's type size. Answering it in rem would move the breakpoint when
-       someone raises their font — the layout would collapse to a drawer on a
-       desktop window that never got narrower.
-
-       Width alone decides this. A desktop window dragged under 768px has the
-       same problem a phone has and gets the same answer; what it does NOT get
-       is the device affordances, which ride on `data-platform` instead
-       (shell/platform.js). Two questions, two mechanisms, no overlap.
+       COMPACT — the shell rearranged for a screen too narrow for three
+       columns. The breakpoint is in px, the one exception here: a media
+       query asks about the SCREEN, and in rem it would move with the reader's
+       font. Width alone decides; device affordances ride on `data-platform`.
        --------------------------------------------------------------------- */
-    /* The fold chevron's column on a phone (user call, 2026-09-07: "não tem
-       problema se ficar apertado pra calha e um pouco ruim de clicar, ela
-       deve somente caber ali visualmente"). The room the column keeps is
-       given back on the other side of the text, so on a narrow screen it is
-       paid twice — 35px of a 360px page went to a chevron.
-
-       0.625rem is what MEASURED room the glyph needs: the marker's ink is
-       8.16px (the `›` plus the 1px CodeMirror pads it with, at the
-       interface's 16px), and `.cm-gutter` clips what does not fit. So 10px
-       leaves it a hair on each side and 8px already cuts it. Read under
-       `.shell--compact` (components/note-editor.css), which is the app's one
-       answer to "is this a phone" — never a second media query. */
+    /* The chevron's column on a phone. 0.625rem is the minimum the glyph
+       needs: its ink is 8.16px at the interface's 16px and `.cm-gutter` clips
+       what does not fit, so 8px already cuts it. Read under `.shell--compact`
+       (components/note-editor.css), never through a second media query. */
     --app-editor-gutter-compact: 0.625rem; /* 10px — 8.16px of chevron, and a hair */
     --app-drawer-width: 15rem; /* 240px — the wireframe's sidebar */
     --app-sheet-inset: 0.625rem; /* 10px — a bottom sheet floats, edge to edge is a page */
     --app-sheet-radius: var(--app-radius-xl);
 
-    /* The smallest thing a finger may be asked to hit. Android asks for 48dp
-       and iOS for 44pt; 48 is the stricter of the two, so it is the one used.
-       It is a MINIMUM AREA, not a size: the wireframe's own metrics keep their
-       drawn dimensions and the hit area grows underneath them, which is how
-       both platforms' own controls do it. */
+    /* The smallest thing a finger may be asked to hit: Android's 48dp, the
+       stricter of the two platforms. A minimum hit AREA, not a drawn size. */
     --app-touch-min: 3rem; /* 48px */
 
     /* ---------------------------------------------------------------------
-       SAFE AREAS — the strips the system bars own.
-
-       Android 15+ lays every app out edge-to-edge whether it asks or not, so
-       these are not an opt-in to a fullscreen mode: they are the app being
-       told where the status bar and the gesture handle already are. The
-       fallback of 0 is what every desktop resolves to, so a rule can add them
-       unconditionally and cost a desktop window nothing.
-
-       EACH IS THE LARGER OF TWO ANSWERS, because the WebView only half
-       answers: `env(safe-area-inset-top)` gives the status bar correctly
-       (43px, measured), while `env(safe-area-inset-bottom)` gives 0 with the
-       gesture handle plainly on screen — which put the task composer under it.
-       So the activity publishes all four from the window as
-       `--android-inset-*` (MainActivity.kt) and `max()` takes whichever edge
-       actually knows. On a desktop neither exists and both resolve to zero.
+       SAFE AREAS — the strips the system bars own, each the larger of two
+       answers: the WebView's `env()` only half answers (bottom reads 0 under
+       the gesture handle), so MainActivity.kt publishes `--android-inset-*`.
+       Both resolve to 0 on a desktop. See docs/platform-gotchas.md#android
        --------------------------------------------------------------------- */
     --app-safe-top: max(env(safe-area-inset-top, 0rem), var(--android-inset-top, 0rem));
     --app-safe-right: max(env(safe-area-inset-right, 0rem), var(--android-inset-right, 0rem));
     --app-safe-bottom: max(env(safe-area-inset-bottom, 0rem), var(--android-inset-bottom, 0rem));
     --app-safe-left: max(env(safe-area-inset-left, 0rem), var(--android-inset-left, 0rem));
 
-    /* How much of the PAGE the on-screen keyboard is covering.
-
-       ASKED FOR, not read from the platform: none of the three web answers
-       works inside a WebView — `interactive-widget=resizes-content` is a
-       Chrome-the-browser flag, `visualViewport` never shrank, and
-       `env(keyboard-inset-height)` reported 0 even with the API switched on
-       and a field focused. All three were measured against the running app.
-       So the activity reads the IME inset from the window and publishes it as
-       `--android-ime` (src-tauri/gen/android/.../MainActivity.kt).
-
-       That inset is NOT this number, and the difference is the whole reason
-       this token exists: the inset is what the keyboard covers of the WINDOW,
-       while the layout needs what it covers of the PAGE — and since Chrome
-       M139 the WebView may have shrunk the page for the keyboard already, in
-       which case an app that also lifts by the inset lifts twice.
-       `shell/keyboard.js` subtracts whatever the page gave up and writes the
-       remainder here. Zero everywhere else, which is what a desktop resolves
-       to and what Android reports with no keyboard up. */
+    /* How much of the PAGE the on-screen keyboard covers. No web answer works
+       in the WebView, so MainActivity.kt publishes the IME inset of the WINDOW
+       as `--android-ime`; the WebView (Chrome M139+) may have shrunk the page
+       already, so shell/keyboard.js subtracts what the page gave up and writes
+       the remainder here. 0 everywhere else. See docs/platform-gotchas.md#android */
     --app-keyboard: 0rem;
 
-    /* The formatting strip's own share of the bottom edge, while one is up.
-       It floats over the page just above the keyboard, so a note has to end
-       above THE STRIP rather than above the keys — otherwise the line being
-       typed sits behind the buttons. Measured from the pill and written by
-       App.svelte; zero on every screen that has no strip, which is all of them
-       but a note being written on a phone. */
+    /* The formatting strip's share of the bottom edge while one is up: it
+       floats above the keyboard, so a note must end above THE STRIP. Read from
+       the pill and written by App.svelte; 0 wherever there is no strip. */
     --app-format-strip: 0rem;
 
     /* ---------------------------------------------------------------------
-       MOTION
+       MOTION — three durations, three curves, and every transition is spelt
+       from them (never a literal `120ms` in a component sheet), so the one
+       reduced-motion query at the end of this file stills the whole app.
+         fast    a hover, a press, an ink change     — felt, not seen
+         medium  something moving from A to B        — a pill, a panel
+         slow    something ENTERING the screen       — a sheet, a pane
+         ease / ease-out   a colour or an opacity / anything that ARRIVES
+         spring            a hair of overshoot: a knob, a check; never layout
        --------------------------------------------------------------------- */
-    /* Three durations and three curves, and every transition in the app is
-       spelt from them — never a literal `120ms` in a component sheet. That is
-       what lets ONE media query (at the end of this file) turn the whole app
-       still for a reader who asked the system for less motion: the durations
-       go to zero and every `transition`, `animation` and glide collapses with
-       them, without an `!important` anywhere.
-
-       fast    a hover, a press, an ink change              — felt, not seen
-       medium  something moving from A to B on screen       — a pill, a panel
-       slow    something ENTERING the screen                — a sheet, a pane
-
-       ease      the browser's own curve, for a colour or an opacity
-       ease-out  decelerating — for anything that ARRIVES (it lands softly)
-       spring    a hair of overshoot — for a knob, a check, a pill that glides;
-                 never for layout, where the overshoot would clip. */
     --app-duration-fast: 0.15s;
     --app-duration-medium: 0.25s;
     --app-duration-slow: 0.35s;
@@ -345,40 +212,21 @@
     --app-ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
     --app-ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
 
-    /* The two pairs every component already reads, now derived. */
+    /* The two pairs component sheets read. */
     --app-transition-fast: var(--app-duration-fast) var(--app-ease);
     --app-transition-medium: var(--app-duration-medium) var(--app-ease-out);
 
     /* ---------------------------------------------------------------------
-       WINDOW — frameless chrome the app draws itself (GNOME/Wayland gives no
-       rounding to an undecorated window). Kept as a token so a theme can
-       soften or square the corners. There is no shadow token: the app's edge
-       IS the OS window's edge (no transparent gutter), so a webview-drawn
-       shadow has nowhere to render — and on WebKitGTK it accumulated alpha
-       on every repaint until it turned into a black ring.
-
-       IT COPIES THE HOST (user call, 2026-08-20). No system tells an app what
-       it rounds its windows by — GNOME's is a shell setting, KDE's belongs to
-       the decoration, Windows' lives in the DWM — so the value cannot be
-       asked for; it is KNOWN per system and picked by `data-os`
-       (shell/platform.js). Getting it wrong is visible: where the compositor
-       masks the window at its own radius and the app draws a bigger one, the
-       app's corner is clipped by the mask and the two curves fight.
-
-       Linux is the default, at the 20px of GNOME's rounded corners — the
-       desktop this app is developed and clicked on, so the unknown case lands
-       on the one that has been looked at. Android never gets here: there the
-       window IS the screen and draws square (`.window--flush`), because the
-       device's own corner is already rounder than anything the app would draw
-       inside it.
+       WINDOW — the frameless corner the app draws, copying the HOST: no
+       system reports its radius, so it is KNOWN per `data-os` (shell/platform.js);
+       a bigger radius than the compositor's mask is clipped. GNOME's 20px is
+       the default. No shadow token: see docs/platform-gotchas.md#webview-e-gestos
        --------------------------------------------------------------------- */
     --app-window-radius: 1.25rem; /* 20px */
   }
 
-  /* Windows 11 rounds a window by 8px, macOS by 10. Neither has been seen
-     running — the app is cross-compiled for Windows and has no Mac at all
-     (CLAUDE.md, "Plataformas") — so these are the systems' documented values
-     and not a measurement, and they are one line each to correct. */
+  /* Windows 11 rounds by 8px, macOS by 10 — the systems' documented values,
+     not a measurement; neither has been seen running. */
   :root[data-os="windows"] {
     --app-window-radius: 0.5rem; /* 8px */
   }
@@ -386,9 +234,8 @@
     --app-window-radius: 0.625rem; /* 10px */
   }
 
-  /* The two other rungs of the note's size ladder. Here rather than in
-     editor.css, because the token is now read from outside the editor too —
-     the note's title is sized against `--app-note-h1`. */
+  /* The other two rungs of the note's size ladder; here, not editor.css,
+     because the note's title reads `--app-note-h1` from outside the editor. */
   :root[data-note-size="small"] {
     --app-note-size: var(--app-text-14);
   }
@@ -397,27 +244,11 @@
   }
 
   /* ---------------------------------------------------------------------
-     THE TYPE RAMP ON A FINGER (2026-08-20, user report from the phone:
-     "botões e textos/ícones de menus" too small).
-
-     THE NUMBER IN THE NAME IS THE DESKTOP px, and it always was — the name
-     denotes the RUNG, which is why 55 rules across 40 sheets can read
-     `--app-text-13` without any of them knowing what a 13 is worth. So the
-     ramp gets a second setting rather than 55 overrides: on a coarse pointer
-     the bottom four rungs each move up one step, and every rule that reads
-     them moves with it, in step, for free.
-
-     ONLY THE BOTTOM MOVES. 16 and up are already comfortable at arm's length
-     and are the sizes the wireframes composed with — growing them would
-     re-flow the layouts. What was unreadable is the tail the design uses for
-     meta and chrome: a 10px date is drawn on a phone at roughly half the
-     size the platform's own smallest label uses.
-
-     THE CEILING IS +2px, and it is a budget rather than a taste: at 360 CSS
-     px the rows that read these tokens (a task card's date beside its tags, a
-     sidebar row's label beside its count) have no slack to give, so type that
-     grows past the air around it buys legibility with wrapping. Two steps is
-     what the tightest of those rows was measured to hold. */
+     THE TYPE RAMP ON A FINGER. The number in the name is the desktop px and
+     denotes the RUNG, so on a coarse pointer the bottom four rungs each move
+     up one step and every rule that reads them follows. Only the bottom
+     moves: 16 and up are what the layouts were composed with. The ceiling
+     is +2px — at 360 CSS px the tightest rows have no more slack to give. */
   @media (pointer: coarse) {
     :root {
       --app-text-10: 0.75rem; /* 12px — task meta date */
@@ -429,12 +260,9 @@
 }
 
 /* =============================================================================
-   LESS MOTION. A system-wide preference, answered in one place: the durations
-   go to zero, and because nothing in the app spells a duration any other way,
-   so does every transition, every glide and every keyframe. The app still
-   CHANGES — a pill is on the new tab, a sheet is up — it just no longer
-   travels there. `0.01s` rather than `0s` so that `transitionend` and
-   `animationend` still fire for anything listening for them.
+   LESS MOTION — one place: the durations go to zero and every transition,
+   glide and keyframe with them. `0.01s` rather than `0s` so `transitionend`
+   and `animationend` still fire for anything listening.
    ============================================================================= */
 @media (prefers-reduced-motion: reduce) {
   @layer tokens {

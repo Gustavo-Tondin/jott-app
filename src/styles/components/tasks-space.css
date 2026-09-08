@@ -1,8 +1,7 @@
 /* tasks-space.css — the visual layer of TasksSpace.svelte.
- * Markup: src/lib/spaces/TasksSpace.svelte. Faithful to the wireframe
- * (2026-07-30): a titled block like Home — a brand-blue title + a "New task"
- * button, the space's tasks as cards, and a collapsible "Completed N".
- * Selectors are the stable BEM hooks a theme may restyle. */
+ * Markup: src/lib/spaces/TasksSpace.svelte. A titled block like the Home:
+ * title + "New task", the space's tasks as cards, a collapsible
+ * "Completed N". Selectors are the stable BEM hooks a theme may restyle. */
 
 @layer components {
   .tasks-space {
@@ -16,8 +15,8 @@
     gap: var(--app-space-8);
     min-block-size: 2rem;
   }
-  /* The Home (2026-08-13): the title takes the whole row and centres in it,
-     with the mirrored ⋮ balancing the real one at the other end. */
+  /* Centred header (the Home): the title takes the whole row, the mirrored ⋮
+     balancing the real one at the other end. */
   .tasks-space__header--center .tasks-space__title {
     flex: 1;
     min-width: 0;
@@ -27,10 +26,8 @@
     gap: var(--app-space-10);
     text-align: center;
   }
-  /* New task + the screen's ⋮, together on the right. `auto` rather than
-     `space-between` on the header: with no title (the Tasks screen) the tools
-     still have to hug the right edge, and with a host toolbar in the middle
-     they must not steal its room. */
+  /* `auto` rather than `space-between` on the header: with no title the tools
+     still hug the right edge, and a host toolbar in the middle keeps its room. */
   .tasks-space__tools {
     display: flex;
     align-items: center;
@@ -38,11 +35,9 @@
     flex-shrink: 0;
     margin-inline-start: auto;
   }
-  /* The completed list coming out from UNDER the cards above it — fading in
-     while it settles downward into place (user call, 2026-08-24: "como se
-     estivesse saindo de baixo da lista"). Margin, not a transform: a carried
-     card inside it is `position: fixed`, and a transformed ancestor would
-     become its containing block. */
+  /* The completed list settles out from UNDER the cards above. Margin, not a
+     transform: a carried card inside it is `position: fixed`, and a
+     transformed ancestor would become its containing block. */
   .tasks-space__list--completed {
     animation: tasks-space-settle var(--app-duration-medium) var(--app-ease-out);
   }
@@ -68,38 +63,31 @@
   }
 
   /* The card column and the pinned hairline are the shared .theme-task-list /
-     .theme-pin-divider (controls/layout.css); these hooks stay for a theme to reach
-     this screen's list in particular. */
+     .theme-pin-divider (controls/layout.css); the hooks stay for a theme. */
 
-  /* The empty state is the shared .theme-empty-card (controls/layout.css) — a quiet
-     centred card that, in a period, also holds the Suggestions pill. The hook
-     stays for a theme to reach this screen's in particular. */
+  /* The empty state is the shared .theme-empty-card (controls/layout.css); in
+     a period it also holds the Suggestions pill. The hook stays for a theme. */
 
   /* The row under the cards: "Completed N" on the left, and in a period the
-     Suggestions pill on the right (wireframe 2026-08-06). */
+     Suggestions pill on the right. */
   .tasks-space__completed-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: var(--app-space-8);
-    /* It appears with the first completed task, settling down from under the
-       list the way its own list does (user calls, 2026-08-21 and
-       2026-08-24) rather than popping there. */
+    /* Appears with the first completed task, settling from under the list the
+       way its own list does. */
     animation: tasks-space-settle var(--app-duration-medium) var(--app-ease-out);
     margin-top: var(--app-space-4);
   }
-  /* The toggle is anchored left and the pill right, whether or not the other
-     one is there — `space-between` alone would send a lone toggle to the right
-     edge on a plain list (user call, 2026-08-06). */
+  /* Toggle left, pill right, whether or not the other is there —
+     `space-between` alone would send a lone toggle to the right edge. */
   .tasks-space__completed-row > .suggestions-pill {
     margin-inline-start: auto;
   }
 
-  /* The "Completed N" toggle is the shared chip with nothing added — a quiet
-     pill with a caret, which is what `.theme-chip` already draws (down to the
-     ink lift on hover). It wears the class in the markup and has no rule of
-     its own here; a copy of the declaration is what the touch pass of
-     2026-08-20 could not reach. */
+  /* The "Completed N" toggle is the shared `.theme-chip` with nothing added:
+     it wears the class in the markup and has no rule of its own here. */
 
   .tasks-space__note {
     color: var(--app-ink-muted);

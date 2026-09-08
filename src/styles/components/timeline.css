@@ -1,17 +1,12 @@
 /* timeline.css — the visual layer of TimelineView.svelte.
  * Markup: src/lib/screens/TimelineView.svelte. Selectors are the stable BEM
- * hooks a theme may restyle; components read tokens only.
- *
- * Wireframe "Timeline Screen" (desktop + mobile, 2026-08-27): a heading with
- * three stat cards, a column of months down a thin rule, three foldable
- * lines a month, and a year pill pinned in the top corner. Every duration is
- * a `--app-duration-*` token, which is what lets the reduced-motion block in
- * tokens.css turn the whole screen still. */
+ * hooks a theme may restyle. A heading with three stat cards, months down a
+ * thin rule, a year pill pinned in the top corner. Every duration is a
+ * `--app-duration-*` token, so the reduced-motion block can still it. */
 
 @layer components {
-  /* The screen is full width (the pills need the canvas's own edge); the
-     content is a centred column of the reading measure, like every other
-     screen (user call, 2026-08-27). The heading wraps its cards under
+  /* Full width (the pills need the canvas's own edge); the content is a
+     centred column of the reading measure. The heading wraps its cards under
      itself when they do not fit beside it. */
   .timeline {
     position: relative;
@@ -24,7 +19,7 @@
     margin-inline: auto;
   }
 
-  /* ---- heading + the three cards ------------------------------------- */
+  /* ---- heading + the three cards ---- */
   .timeline__header {
     display: flex;
     flex-wrap: wrap;
@@ -92,7 +87,7 @@
     color: var(--app-brand);
   }
 
-  /* ---- year pills, pinned in the corner ------------------------------ */
+  /* ---- year pills, pinned in the corner ---- */
   .timeline__years {
     position: sticky;
     inset-block-start: 0;
@@ -103,8 +98,7 @@
        reach across it so the pill touches the canvas's edge. */
     margin-inline-end: calc(-1 * var(--app-space-16));
     /* Every pill occupies the same cell: the active one is drawn, the rest
-       wait under it — the next year covers the current one in place. Zero
-       height, so the column below does not move down for it. */
+       wait under it. Zero height, so the column below does not move. */
     inline-size: 100%;
     block-size: 0;
     overflow: visible;
@@ -151,7 +145,7 @@
     gap: var(--app-space-4);
   }
 
-  /* ---- the column ---------------------------------------------------- */
+  /* ---- the column ---- */
   .timeline__months {
     margin: 0;
     padding: 0;
@@ -159,17 +153,11 @@
     flex-direction: column;
     gap: var(--app-space-40);
   }
-  /* The band covers what passes UNDER it, all the way to the top of the
-     scroller (user report, 2026-09-07: "as palavras passam por trás dele e
-     aparecem em cima de novo"). Pinned at 0 it stops at the scroller's own
-     top padding, and a row crossing that strip is drawn ABOVE the month —
-     measured: a 12px sliver with a line of a row in it at every scroll
-     position. So the band reaches back across the padding: the negative
-     offset takes it that far past the edge, the padding puts the words back
-     where they were, and the negative margin gives the space back to the
-     flow, so nothing below moves. `--timeline-head-reach` is the block
-     padding of `.shell__content` (shell.css) — the one number this screen
-     borrows from the shell. */
+  /* The band must cover what passes UNDER it up to the scroller's top: pinned
+     at 0 it stops at the scroller's own padding, and rows show in that strip.
+     So it reaches back across the padding (negative offset + margin; the
+     padding puts the words back). `--timeline-head-reach` is `.shell__content`'s
+     block padding (shell.css), the one number borrowed from the shell. */
   .timeline__month-head {
     --timeline-head-reach: var(--app-space-12);
     position: sticky;
@@ -198,7 +186,7 @@
     margin-inline-start: var(--app-space-8);
   }
   /* The three lines a month and their rows: components/TimelineLines.svelte,
-     timeline-lines.css (2026-09-04) — the Home's recap draws the same. */
+     timeline-lines.css — the Home's recap draws the same. */
 
   .timeline__end {
     display: flex;
@@ -207,7 +195,7 @@
     padding-inline-start: var(--app-space-40);
   }
 
-  /* ---- the phone: the heading sits on the dark chrome above the sheet ---- */
+  /* ---- the phone ---- */
   .shell--compact .timeline__stats {
     inline-size: 100%;
   }

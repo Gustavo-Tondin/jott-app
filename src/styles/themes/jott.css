@@ -1,42 +1,27 @@
-/* =============================================================================
-   themes/jott.css — the theme the app ships with: JOTT'S OWN PALETTE.
+/* themes/jott.css — the factory theme, and the file a theme author copies.
+   A theme is one `:root { … }` of `--theme-*` literals and nothing else: the
+   modes (styles/modes/*.css) read them and write `--app-*`, and a component
+   reads only `--app-*`. So a theme that only writes colours wears every mode. */
 
-   This file is the whole contract a THEME has with the app (2026-08-26). A
-   theme is a `:root { … }` of `--theme-*` tokens — colours, radius, spacing —
-   and nothing else. It does not know about regions, modes or roles: the
-   MODES (styles/modes/*.css) read these tokens and decide what goes where
-   (`--app-*`), and a component reads only what a mode wrote. So a theme that
-   only writes colours wears the jott, light and dark modes alike.
+/* The app writes a copy into `.jott/themes/jott.css` when it is missing and
+   never overwrites it; this embedded copy always loads underneath, so a token
+   a notebook's theme leaves out still has a value. No `@layer`: the notebook
+   copy is injected plain, and this file stays byte-identical to it. */
 
-   The app writes a copy of this file into every notebook, at
-   `.jott/themes/jott.css`, when it is missing — and never overwrites it.
-   Edit it and the app follows; delete it and the next open brings the
-   factory one back. This embedded copy is always loaded underneath, so a
-   token a notebook's theme leaves out still has a value.
-
-   TONE GRID — every colour family runs the same seven steps, so a step means
-   the same thing whatever the hue (CIE L* targets):
-     100 → 92  pale ink, the quiet fill on a LIGHT ground
+/* TONE GRID — every family runs the same seven steps (CIE L* targets):
+     100 → 92  pale ink, quiet fill on a LIGHT ground
      200 → 80  emphasis on a DARK ground (H1, H2)
      300 → 70  base on a DARK ground (H3, icons, fills)
      400 → 58  the soft step, the only one both grounds share (H4–H6)
      500 → 48  base on a LIGHT ground
      600 → 34  emphasis on a LIGHT ground
-     700 → 18  deep fill, the quiet fill on a DARK ground
-   Four steps are pinned to a CONTRAST FLOOR rather than a tone: 200/600 at
-   7:1 and 300/500 at 4.5:1 against their ground (tests in
-   lib/architecture.test.js measure it). A theme of its own keeps the floors
-   or accepts unreadable headings — the tests only guard this file.
-
-   No `@layer` here: this file is byte-identical to the one written into the
-   notebook, and there it is injected plain. app.css imports it into the
-   tokens layer.
-   ============================================================================= */
+     700 → 18  deep fill, quiet fill on a DARK ground
+   Contrast floors, not tones: 200/600 at 7:1 and 300/500 at 4.5:1 against
+   their ground (lib/architecture.test.js measures this file only). */
 :root {
-  /* THE GROUNDS — the two neutrals a region is painted with. `-tint` is the
-     step AWAY from the pure one: darker on light, lighter on dark. A mode
-     takes the pair in whichever order its ground says. `gray` belongs to
-     neither ground: the warm grey used at low alpha for hairlines, tracks
+  /* THE GROUNDS — the two neutrals a region is painted with; `-tint` is the
+     step AWAY from the pure one (darker on light, lighter on dark). `gray`
+     belongs to neither: a warm grey used at low alpha for hairlines, tracks
      and disabled ink, so one value reads on white and on black alike. */
   --theme-color-white: #fbfbfb;
   --theme-color-white-tint: #ecebea;

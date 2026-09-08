@@ -1,130 +1,80 @@
-/* touch.css — what changes when the pointer is a finger.
- *
- * NOT the same question as "is the window narrow" (shell/compact.js) and not
- * the same as "is this Android" (shell/platform.js). It is the third question,
- * and CSS is the only place that can answer it: a Linux laptop with a
- * touchscreen belongs here and a phone in a desktop-width window still does.
- *
- * Two media features, each for its own thing:
- *
- *   (hover: none)      the primary pointer cannot hover — so anything the app
- *                      only shows ON hover is unreachable and must be shown.
- *   (pointer: coarse)  the primary pointer is imprecise — so anything smaller
- *                      than 48px needs its HIT AREA grown, without the drawing
- *                      changing size.
- *
- * It is imported last of the component sheets, because everything here exists
- * to override a rule one of them wrote. */
+/* touch.css — what changes when the pointer is a finger. Not "is the window
+ * narrow" (shell/compact.js) nor "is this Android" (shell/platform.js): only
+ * CSS can answer it. `(hover: none)` shows what the app only shows ON hover;
+ * `(pointer: coarse)` grows HIT AREAS to 48px under the drawing, never the
+ * drawing. Imported last of the component sheets: every rule here overrides one. */
 
-/* ===========================================================================
-   REACHABILITY — the four places the app hides a control behind a hover.
-   Audited 2026-08-18: of 43 `:hover` blocks in the app only these reveal
-   something. The rest change a background or an ink, which a touch device
-   simply never shows — losing a highlight costs nothing, losing the only
-   handle a row can be dragged by costs the feature.
-   =========================================================================== */
+/* ---- REACHABILITY — the controls the app hides behind a hover ----
+   Only hovers that REVEAL something belong here; a lost highlight costs nothing. */
 @media (hover: none) {
   @layer components {
-    /* The drag handle. Without this, reordering is not "hard" on a touch
-       screen — it is IMPOSSIBLE: the grip is at `opacity: 0` and the only
-       thing that ever raised it was a pointer resting on the row. */
+    /* The drag handle: at `opacity: 0` until a pointer rests on the row, so
+       without this reordering is impossible on a touch screen. */
     .reorder-grip {
       opacity: 1;
     }
 
     /* A space's colour/icon tools in the sidebar, revealed by hovering its
-       row. On touch only the ACTIVE row ever showed them, so every other
-       space's appearance was unreachable from the sidebar. */
+       row; on touch only the ACTIVE row ever showed them. */
     .shell__ws-tools {
       opacity: 1;
     }
 
-    /* The × that takes a tag off a task. (The grip beside a subtask is the
-       shared `.reorder-grip` above — one rule already covers it.) */
+    /* The × that takes a tag off a task (a subtask's grip is the shared
+       `.reorder-grip` above). */
     .inspector__tag-remove {
       opacity: 1;
     }
 
-    /* The pin on a note card (2026-08-19). Unpinned it waits for a pointer,
-       and on a touch screen that pointer never comes — pinning would be
-       reachable only through the ⋮ two taps away.
-
-       WIDE touch screens only. Below 768px the pin is not drawn at all
-       (note-card.css says why), which is the same call the banner's ⋮ below
-       already makes. */
+    /* The pin on a note card, WIDE touch screens only: below 768px the pin is
+       not drawn at all (note-card.css). */
     .shell:not(.shell--compact) .note-card__pin {
       opacity: 1;
     }
 
-    /* Same for the ⋮ on a banner. Below 768px it is not drawn at all (the page
-       menu carries it), so this is for a touch screen WIDE enough to still get
-       the desktop shell — a tablet, and the app's own window on one. */
+    /* Same for the ⋮ on a banner: below 768px the page menu carries it, so
+       this is for a touch screen wide enough to get the desktop shell. */
     .note-banner__more--on-block {
       opacity: 1;
     }
   }
 }
 
-/* ===========================================================================
-   HIT AREAS — 48px, the stricter of Android's 48dp and iOS's 44pt.
-
+/* ---- HIT AREAS — 48px, the stricter of Android's 48dp and iOS's 44pt ----
    Grown UNDER the drawing, never by resizing it: the icons keep the sizes the
-   wireframes give them and the box behind them reaches the minimum. That is
-   how both platforms' own controls do it, and it is why the interface does not
-   turn into a row of oversized glyphs on a phone.
-   =========================================================================== */
+   wireframes give them and the box behind them reaches the minimum. */
 @media (pointer: coarse) {
   @layer components {
-    /* The app's one icon-button class, and so the one rule that covers most of
-       this: at 6px of padding around an 18px glyph it is a 30px target.
-
-       The ⋮ on a note card, and the × on a completed task: both are drawn small
-       and sit at the edge of a card, which is exactly where a thumb lands by
-       accident. (The pin star that used to be here went into the card's own ⋮
-       when the board was redrawn, 2026-08-18.) Both wear this class, so this
-       rule is the one that reaches them. */
+    /* The app's one icon-button class: 6px of padding around an 18px glyph is
+       a 30px target. Reaches the ⋮ on a note card and the × on a completed
+       task, both at the edge of a card where a thumb lands by accident. */
     .theme-btn--icon {
       min-inline-size: var(--app-touch-min);
       min-block-size: var(--app-touch-min);
     }
 
-    /* THE COMPACT TOP BAR IS THE ONE EXEMPTION, and it is a user call
-       (2026-08-18): its controls stay at the wireframe's 42px. They are
-       exempt on their own terms rather than by accident — the bar sits at the
-       very top of the screen with nothing above it and nothing between its
-       three targets but 12px of its own padding, so a miss lands on the bar
-       itself and not on a neighbouring control. The rule is stated in
-       topbar.css, where the length lives; here is only the note that the
-       48px minimum above deliberately does not reach it. */
+    /* THE COMPACT TOP BAR IS THE ONE EXEMPTION: its controls stay at 42px,
+       and the 48px minimum above deliberately does not reach them. The rule
+       is stated in topbar.css, where the length lives. */
 
-    /* A task row. The checkbox inside it is drawn at 20px and must NOT grow —
-       it is the shape that says "task" — so what gets the minimum is the row,
-       which is the target anyway: the whole card opens the task. */
+    /* A task row. The 20px checkbox must NOT grow — it is the shape that says
+       "task" — so the row takes the minimum; the whole card opens the task. */
     .task-row {
       min-block-size: var(--app-touch-min);
     }
 
-    /* THE CHECKBOX INSIDE A NOTE has no row to hand the target to: it sits in
-       the middle of a line of prose, and the line belongs to the caret. So it
-       is the only place in the app that grows a hit area WITHOUT growing the
-       control — the span around the box (services/markdown.js) takes padding
-       that is hit-tested and drawn nowhere.
-
-       Which way it grows is the whole of the rule. Up and down, because
-       vertical padding on an INLINE box does not raise the line's height, so
-       the target is the height of the line and the prose does not move. To
-       the left, into the indent the `- ` used to occupy, which is empty. NOT
-       to the right, where the first word of the item is: a finger that lands
-       on the text must put the caret there, not tick the box. */
+    /* The checkbox inside a note has no row to hand the target to: the span
+       around it (services/markdown.js) takes a hit-tested, invisible box. Up
+       and down (vertical padding on an INLINE box does not raise the line) and
+       left into the empty `- ` indent; NOT right, where a finger must put the caret. */
     .editor .cm-task-box::before {
       content: "";
       position: absolute;
       inset: calc(-1 * var(--app-space-8)) 0 calc(-1 * var(--app-space-8)) calc(-1 * var(--app-space-12));
     }
 
-    /* Rows that open something. A 46px row from the wireframe is two pixels
-       short, and two pixels is the difference between hitting the space and
-       hitting the one under it. */
+    /* Rows that open something: the wireframe's 46px row is two pixels short,
+       and two pixels is the space under the one aimed at. */
     .shell__nav-item,
     .shell__nav-open,
     .settings__nav-item,
@@ -132,21 +82,11 @@
       min-block-size: var(--app-touch-min);
     }
 
-    /* THE MENU ROW, and the reason it is not in the list above any more
-       (2026-08-20, user report from the phone). The minimum was on
-       `.menu__item` — which is the `<li>` — and the thing a finger hits is the
-       `<button>` inside it. A block-level child does not take its parent's
-       minimum, so the button stayed at the 31px its padding and 13px label
-       give it and the list grew 17px of DEAD GAP under every row: a tap in the
-       bottom third of a menu row landed on the list and did nothing.
-
-       Three declarations, because the row has to be rebuilt to carry a
-       minimum at all. The `<li>` becomes a flex box so the button can fill it
-       (its submenu is a `.theme-popover`, absolutely positioned and out of
-       flow, so it is not made a sibling column by this). The button takes the
-       minimum. And the button centres what it holds, which it would have done
-       on its own — `.menu__link` declares `display: block`, and that is what
-       turns a <button>'s native vertical centring off. */
+    /* The menu row: the minimum goes on the `<button>`, not the `<li>` — a
+       block child does not take its parent's minimum, and the rest is dead
+       gap. The `<li>` turns flex so the button fills it (its submenu is an
+       absolute `.theme-popover`, so it is not made a column); `display: flex`
+       restores the centring that `.menu__link`'s `display: block` turns off. */
     .menu__item {
       display: flex;
     }
@@ -158,107 +98,57 @@
       padding-inline: var(--app-space-12);
     }
 
-    /* THE BUTTONS THE 48px NEVER REACHED. `.theme-btn--icon` was covered from
-       the start because it is a lone glyph and obviously small; the button
-       with a WORD in it was not, and it is the one under a finger at the end
-       of every dialog, sheet and onboarding screen — 8px of padding around a
-       13px label is a 33px target for Save, Delete and Create.
-
-       A minimum only, never a height: a button that wraps to two lines is
-       taller than this and stays taller. */
+    /* The worded button: 8px of padding around a 13px label is a 33px target
+       for Save, Delete and Create. A minimum only, never a height — a button
+       that wraps to two lines stays taller. */
     .theme-btn {
       min-block-size: var(--app-touch-min);
     }
 
-    /* AND THE ONE BUTTON THAT STATES ITS OWN BOX. The composer's ＋ is drawn
-       as a 36px square in every wireframe, phone and desktop alike, and says
-       so in components/task-composer.css — but `min-block-size` beats
-       `block-size`, and this sheet is the last one loaded, so the rule above
-       quietly stretched it to 36 wide by 48 tall (user report on device,
-       2026-08-21: "está meio alto"). The square is given back here rather
-       than fought for with specificity there, next to the fields' icons,
-       which were exempted for the same reason and whose comment already
-       claims this button keeps its square.
-
-       Its target is not lost with it: the ＋ is the last thing in a row that
-       is itself 48 tall, at the end of a bar with nothing under it but the
-       keyboard, and Enter submits the same form. */
+    /* The composer's ＋ is a 36px square (components/task-composer.css), and
+       `min-block-size` beats `block-size`: the `.theme-btn` rule above would
+       stretch it to 36×48. The square is given back here, last in the
+       cascade; the row it ends is itself 48 tall, so the target survives. */
     .task-composer__add {
       min-block-size: 2.25rem;
     }
 
-    /* The quiet sizes keep their density and still clear iOS's 44pt. They ride
-       inside a row or a toolbar that is itself a target, so the full 48 here
-       would spend the whole strip's height on one control.
-
-       THE SEGMENTED CONTROL IS NOT IN THIS LIST, and the omission is the
-       point: its item fills a track whose compact height is a settled user
-       call (2.375rem, components/tasks-view.css, 2026-08-18 — the wireframe's
-       padding was measured off a strip drawn at half a thumb's height). A
-       minimum here would push the item past the track that draws it and the
-       three pills would hang out of their own well. The track is the target
-       anyway, and it is one the thumb cannot miss: it spans the screen. */
+    /* Quiet sizes: clear iOS's 44pt, keep their density — each rides inside a
+       row or toolbar that is itself a target. The segmented control is left
+       out on purpose: its item fills a 2.375rem track (components/tasks-view.css)
+       and a minimum would push the pills out of their well; the track is the target. */
     .theme-btn--sm,
     .theme-btn--xs,
     .theme-chip {
       min-block-size: 2.75rem;
     }
 
-    /* THIS RULE ONCE NAMED TWO BUTTONS ONE BY ONE (2026-08-20, user: "o botão
-       completed e suggestion ainda estão pequenos"): Completed and Suggestions
-       were copies of `.theme-chip` rather than wearers of it, so the size pass
-       reached the class the design was written around and not the two buttons
-       it was named after — at 25px they were the smallest targets left on the
-       phone. They wear the class since 2026-08-21 and the list is one name
-       again.
-
-       And the sides grow with the height (user call, same day: "o padding
-       vertical do suggestions ficou bom, mas teria que aumentar um pouco o
-       lateral"). The minimum above only ever moved one axis, so a pill that
-       went from 26px to 44px tall kept the 10px flanks it was drawn with and
-       came out as a wide thin label in a tall box — the text was no longer
-       centred in anything, it was stranded in it. 16px reads as a pill again.
-
-       Every chip, not just the two on the task strip: the one in the task
-       composer was already being stretched by the minimum above and was the
-       same stranded label, which is what a copied declaration hides. */
+    /* The sides grow with the height: a pill raised from 26 to 44px tall on
+       its 10px flanks is a stranded label, not a pill. Every chip, so a button
+       must WEAR `.theme-chip` rather than copy it — a copy is out of this
+       rule's reach. */
     .theme-chip {
       padding-inline: var(--app-space-16);
     }
 
-    /* `--xs` IS IN THAT LIST, and the first draft of this rule had it at 32px
-       on the belief that it is always the affordance at the end of a row that
-       the row itself catches the miss for. Counted on the phone: of its eleven
-       uses only the two in ListView are that. The other nine are the target of
-       whatever holds them — the chord button that rebinds a shortcut, four
-       buttons in Settings, and Install/Later on the update banner — and at
-       20px of drawn height they were the smallest worded buttons in the app.
-
-       So the ONE shape that really does ride inside a task card is the one
-       named here, and it keeps its density: the card is 48px and is itself the
-       tap that opens the task, so a miss lands on something useful. What it
-       gains is width, which is the axis a thumb is imprecise on and the one
-       axis that costs the card nothing. */
+    /* The one `--xs` that rides inside a task card keeps its density: the card
+       is 48px and is itself the tap that opens the task. It gains width
+       instead — the axis a thumb is imprecise on. Every other `--xs` is the
+       target of what holds it, and stays in the list above. */
     .list-view__action {
       min-block-size: 2rem;
       padding-inline: var(--app-space-12);
     }
 
-    /* The form controls. Both are a field a finger has to land in to type, and
-       at 8px of padding around a 14px label they came out at 37px — the same
-       shortfall the worded button had, from the same cause. */
+    /* The form controls: 8px of padding around a 14px label is a 37px field. */
     .theme-input,
     .theme-select {
       min-block-size: var(--app-touch-min);
     }
 
-    /* THE SWITCH IS THE EXCEPTION TO "grow the box, not the drawing", and it
-       has to be: the switch IS the target — there is no box behind it to grow,
-       and the row it sits in toggles nothing (Settings puts the label on the
-       left and the switch at the far right, so a tap on the row is a tap on
-       air). At 36x20 it is the smallest thing the app asks a thumb to hit.
-       Grown to 44x26 with the knob and its travel kept in proportion, it is
-       still plainly a switch and no longer a coin toss. */
+    /* The switch is the exception to "grow the box, not the drawing": there is
+       no box behind it, and the row it sits in toggles nothing. 36x20 becomes
+       44x26 with the knob and its travel kept in proportion. */
     .theme-switch {
       inline-size: 2.75rem;
       block-size: 1.625rem;
@@ -267,21 +157,15 @@
       inline-size: 1.375rem;
       block-size: 1.375rem;
     }
-    /* The travel is the track less the knob less its 2px of air at each end,
-       and it is restated here because it is a LENGTH, not a ratio: left at the
-       desktop's 16px the knob would stop 4px short of the right wall and 2px
-       from the left, and a knob that does not land symmetrically is the one
-       detail that makes a switch look broken rather than small. */
+    /* The travel (track − knob − 2px of air each end) is a LENGTH, not a
+       ratio: at the desktop's 16px the knob would stop 4px short of the wall. */
     .theme-switch:checked::after {
       transform: translateX(1.125rem);
     }
 
     /* A control at the END of a card gives its grown box back to the card's
-       padding. Inflating the box moves the DRAWING too — the glyph is centred
-       in it — so a 16px pin ended up 28px from the card's edge and read as
-       adrift in the middle of the row (user report, 2026-08-18). Pulled out by
-       exactly the card's padding, the box's edge meets the card's edge and the
-       glyph sits where the eye expects it, with the target intact. */
+       padding: the glyph is centred in the box, so pulled out by exactly the
+       padding the box's edge meets the card's and the glyph stays put. */
     .task-row__bookmark {
       margin-inline-end: calc(-1 * var(--app-space-12));
     }

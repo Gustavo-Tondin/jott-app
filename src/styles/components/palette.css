@@ -12,15 +12,12 @@
     flex-direction: column;
     gap: var(--app-space-8);
     padding: var(--app-space-8);
-    /* Eight tiles and their gaps, plus the padding (2026-09-07, when the row
-       became a grid over the whole set): the colour row above it is narrower
-       and the grid below wraps to whatever this is. Capped to the viewport
-       less keepOnScreen's margin, so the phone's 360 never clips a column. */
+    /* Eight tiles, their gaps and the padding: the grid below wraps to this
+       width, capped to the viewport less keepOnScreen's margin (360px phone). */
     --palette-tile: 1.625rem;
     --palette-gap: var(--app-space-6);
-    /* The grid's scrollbar sits inside its box (`scrollbar-gutter`), so the
-       width allows for it — without the allowance a thin bar ate the eighth
-       column (seen on the virtual display, 2026-09-07). */
+    /* The grid's scrollbar sits inside its box (`scrollbar-gutter`); without
+       this allowance a thin bar eats the eighth column. */
     --palette-scrollbar: 0.75rem;
     inline-size: min(
       calc(
@@ -31,21 +28,14 @@
     );
   }
   .palette__search {
-    /* The shared filter well, at the popup's density: the Tags and Settings
-       screens wear it with page padding around, here it sits between two
-       rows of tiles. */
+    /* The shared filter well at the popup's density: here it sits between
+       two rows of tiles, not inside page padding. */
     padding-block: var(--app-space-4);
   }
-  /* The colour swatches moved out to the shared AccentPicker (2026-08-13) —
-     three screens were drawing the same row. See components/accent-picker.css.
-     What stays here is the icon grid, which is this popup's alone.
-
-     A page of tiles that scrolls (2026-09-07): about five rows of glyphs
-     show at once, and the component adds a page as the bottom nears. The
-     height is a teller of tiles, not a round number — a cut row says
-     "there is more" better than any affordance drawn on purpose. `contain`
-     keeps a flick at the end of the grid from scrolling the sidebar behind
-     the popup, which on the phone is the page. */
+  /* The colour row is the shared AccentPicker (components/accent-picker.css);
+     only the icon grid is this popup's. About five rows show, the cut row
+     saying "there is more"; `contain` keeps a flick at the grid's end from
+     scrolling the sidebar (on the phone, the page) behind the popup. */
   .palette__grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, var(--palette-tile));
@@ -91,11 +81,9 @@
     box-shadow: 0 0 0 0.1875rem var(--app-brand-weak);
   }
 
-  /* A finger's icon row (2026-08-20). Same call as the swatch beside it
-     (components/accent-picker.css): the tile is the drawing and the target
-     both, so it grows rather than gaining an invisible box that would overlap
-     its neighbours. The glyph inside rides the app's icon scale on its own
-     (components/icon.css), so only the tile is stated here. */
+  /* On a finger the tile grows rather than gaining an invisible box that
+     would overlap its neighbours: it is the drawing and the target both
+     (same call as the swatch in components/accent-picker.css). */
   @media (pointer: coarse) {
     .palette__panel {
       --palette-tile: 2.25rem;

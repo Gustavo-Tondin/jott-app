@@ -1,18 +1,12 @@
 /* page-header.css — the visual layer of PageHeader.svelte.
- * Markup: src/lib/shell/PageHeader.svelte. Selectors are the stable BEM hooks a theme
- * may restyle; components read tokens only.
- *
- * Tokenised on 2026-08-04. This header predated the shared layer and carried
- * its own greys (#666, #eee, #222, #ccc, #fff) plus a second implementation of
- * the dropdown menu. The arrows and the ••• are now .theme-btn--icon, and the
- * dropdown is the Menu component — so the header stopped being the one place a
- * theme could not reach. */
+ * Markup: src/lib/shell/PageHeader.svelte. Selectors are the stable BEM hooks
+ * a theme may restyle. The arrows and the ••• are .theme-btn--icon, and the
+ * dropdown is the Menu component. */
 
 @layer components {
-  /* Arrows · title · menu, spread across the strip (user call, 2026-08-06).
-     The title hugs its text instead of stretching: a heading that owns the
-     whole width is a heading whose box you cannot see, and the ••• had nothing
-     holding it against the right edge. */
+  /* Arrows · title · menu, spread across the strip. The title hugs its text:
+     a heading that owns the whole width leaves the ••• nothing to hold it
+     against the right edge. */
   .page-header {
     display: flex;
     align-items: center;
@@ -61,14 +55,9 @@
   }
 }
 
-/* =============================================================================
-   THE COMPACT HEADER (below 768px — mobile wireframes, 2026-08-18).
-
+/* ---- THE COMPACT HEADER (below 768px) ----
    A different shape, not a narrower one: the arrows and the ⋮ are up in the
-   top bar, and what is left is the name of the place, large, with the date
-   under it. Measured off the SVG: the block runs from the bar's bottom edge
-   (66px) to the canvas's rounded top (178px).
-   ============================================================================= */
+   top bar; what is left is the name of the place, large, the date under it. */
 @layer components {
   .page-header--compact {
     display: flex;
@@ -78,9 +67,9 @@
     /* The chrome's own ground, because the canvas begins BELOW this block —
        the wireframe rounds the panel's top corners under it. */
     background: var(--app-bg);
-    /* Under the floating top bar (2026-09-07): the bar paints nothing and
-       sits over every screen now, so the header starts below its height —
-       the same reservation the note's canvas makes (shell.css). */
+    /* Under the floating top bar, which paints nothing and sits over every
+       screen: the header starts below its height — the same reservation the
+       note's canvas makes (shell.css). */
     padding: calc(var(--app-topbar-height) + var(--app-space-4)) var(--app-space-16) var(--app-space-24);
     padding-inline-start: calc(var(--app-space-16) + var(--app-safe-left));
     padding-inline-end: calc(var(--app-space-16) + var(--app-safe-right));

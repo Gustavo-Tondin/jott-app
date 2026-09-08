@@ -1,11 +1,7 @@
 /* sheet.css — the bottom sheet and the scrim behind it.
- * Markup: src/lib/components/BottomSheet.svelte.
- *
- * What the right-hand panel and the tab strip become below 768px. Measured off
- * the mobile wireframes: the sheet FLOATS — 10px clear of both walls and of
- * the bottom, 16px corners all round — rather than sitting flush against the
- * edges. That gap is the whole difference between a panel that rose over the
- * page and a page that was replaced. */
+ * Markup: src/lib/components/BottomSheet.svelte. What the right-hand panel
+ * and the tab strip become below 768px. The sheet FLOATS — clear of the
+ * walls and the bottom, rounded all round — rather than sitting flush. */
 
 @layer components {
   .sheet-scrim {
@@ -13,10 +9,9 @@
     inset: 0;
     z-index: 60;
     background: var(--app-scrim);
-    /* The sheet is pinned to the bottom of the scrim, which is the bottom of
-       the LAYOUT viewport — and with `interactive-widget=resizes-content`
-       (index.html) the virtual keyboard shrinks that viewport, so a sheet with
-       a field in it rides up above the keyboard instead of under it. */
+    /* The sheet is pinned to the bottom of the LAYOUT viewport, which
+       `interactive-widget=resizes-content` (index.html) shrinks with the
+       keyboard — so a sheet with a field in it rides above it. */
     display: flex;
     align-items: flex-end;
     animation: theme-fade-in var(--app-duration-fast) var(--app-ease);
@@ -30,18 +25,15 @@
     inline-size: 100%;
     max-block-size: var(--sheet-max, 72svh);
     margin: var(--app-sheet-inset);
-    /* Clear of the gesture bar as well as of the wall. */
-    /* Clear of the keyboard when one is up, of the gesture bar when not — a
-       sheet with a field in it is the other place this matters. */
+    /* Clear of the keyboard when one is up, of the gesture bar when not. */
     margin-block-end: calc(
       var(--app-sheet-inset) + max(var(--app-safe-bottom), var(--app-keyboard))
     );
     margin-inline-start: calc(var(--app-sheet-inset) + var(--app-safe-left));
     margin-inline-end: calc(var(--app-sheet-inset) + var(--app-safe-right));
-    /* Its OWN ground, which for a sheet is the region's raised step — the
-       themes hand it that by swapping the pair (styles/themes/*.css). Reading
-       `--app-bg` here rather than `--app-surface` is what leaves the step
-       free for everything inside the sheet to stand on. */
+    /* Its OWN ground: the themes hand a sheet the region's raised step by
+       swapping the pair (styles/themes/*.css). Reading `--app-bg` leaves the
+       step free for everything inside the sheet to stand on. */
     background: var(--app-bg);
     border-radius: var(--app-sheet-radius);
     overflow: hidden;
@@ -49,11 +41,9 @@
        pulling it down, so the sheet is where it belongs the rest of the time. */
     translate: 0 var(--sheet-pulled, 0rem);
     transition: translate var(--app-transition-medium);
-    /* It comes UP from below the bottom edge, decelerating as it lands — the
-       way the drag that dismisses it goes, in reverse. `translate` is the same
-       property the drag writes through `--sheet-pulled`, so the entrance and
-       the drag cannot fight: the keyframe owns the property until it ends,
-       and the drag owns it after. */
+    /* Comes UP from below, decelerating. `translate` is the property the drag
+       writes through `--sheet-pulled`: the keyframe owns it until it ends and
+       the drag after, so the two cannot fight. */
     animation: sheet-rise var(--app-duration-slow) var(--app-ease-out);
   }
   @keyframes sheet-rise {
@@ -68,10 +58,9 @@
   }
 
   /* ---- the grab handle ----
-     A button as well as a drag surface: dragging is the only gesture that
-     dismisses, and a gesture is not reachable from a keyboard or a screen
-     reader, so tapping it closes too. Full width so the whole top strip of
-     the sheet is grabbable, not just the 60px the grip draws. */
+     A button as well as a drag surface: a gesture is not reachable from a
+     keyboard or a screen reader, so tapping closes too. Full width so the
+     whole top strip is grabbable, not just the grip. */
   .sheet__handle {
     flex: 0 0 auto;
     display: flex;
@@ -108,9 +97,8 @@
     overflow-y: auto;
   }
 
-  /* Whatever the sheet is holding fills it. On the desktop these two are
-     fixed-width columns clipped by a sliding wrapper; here the sheet is the
-     wrapper and the width is the screen's. */
+  /* Whatever the sheet holds fills it: on the desktop these are fixed-width
+     columns in a sliding wrapper; here the width is the screen's. */
   .sheet__body > .inspector,
   .sheet__body > .suggestions-pane {
     flex: 1;

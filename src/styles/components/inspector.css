@@ -1,14 +1,11 @@
-/* inspector.css — the layout of TaskInspector.svelte.
- *
- * The panel itself is transparent: it is the WHITE CARDS inside (subtasks,
- * fields, description) that sit on the canvas, not a white slab. Controls are
- * the shared `.theme-*` classes; buttons are `.theme-btn--icon`; the lines are
- * `.theme-divider`. Only what is specific to this panel lives here. */
+/* inspector.css — the layout of TaskInspector.svelte. The panel itself is
+ * transparent: the CARDS inside (subtasks, fields, description) sit on the
+ * canvas. Controls are the shared `.theme-*` classes; only what is specific
+ * to this panel lives here. */
 
 @layer components {
-  /* The pane: a flex column of pinned head, scrolling middle, pinned foot —
-     the layout pact of .theme-pane-head/-foot. The panel itself does not
-     scroll; the middle does. Transparent, so the cards read as cards. */
+  /* The pane: pinned head, scrolling middle, pinned foot (the pact of
+     .theme-pane-head/-foot). The panel does not scroll; the middle does. */
   .inspector {
     display: flex;
     flex-direction: column;
@@ -18,11 +15,9 @@
     font-size: var(--app-text-12);
   }
 
-  /* The scrolling middle. Its scrollbar is HIDDEN — a GTK scrollbar ate into
-     the dividers on a panel this narrow; content still scrolls by wheel/drag,
-     and with no scrollbar the inner dividers reach both edges. One even gap
-     between every block, so the dividers breathe the same above and below;
-     block-padding keeps the first/last off the head/foot borders. */
+  /* The scrolling middle, scrollbar HIDDEN: a GTK scrollbar ate into the
+     dividers on a panel this narrow. One even gap between blocks; the block
+     padding keeps the first/last off the head/foot borders. */
   .inspector__scroll {
     flex: 1;
     min-height: 0;
@@ -53,20 +48,9 @@
   }
 
   /* ---- task header: a brand pill, one step up from the weak tint ----
-
-     NOT `--app-brand-weak` on its own. That role is the app's faintest wash
-     and it is shared: the editor's text selection, every control's focus ring,
-     a pinned note's card. It has to stay faint for those, and read as a FILLED
-     pill here — where it is the one coloured thing in a sheet of grey, naming
-     the task the whole panel is about (user call on device, 2026-08-21: "está
-     muito apagado, use um azul um pouco mais forte").
-
-     A mix at the point of use, rather than a role of its own: a new role would
-     be eight colours across three themes and two regions, all to be read in
-     one place. Mixing toward `--app-brand` moves with the accent and the
-     theme the same way the tint does — in the canvas it lands about a palette
-     step darker (100 → ~200), which is the "little bit" that was asked for and
-     still leaves the brand-coloured text on top well clear of it. */
+     NOT `--app-brand-weak` alone: that wash is shared (selection, focus ring,
+     pinned card) and must stay faint. Mixed at the point of use rather than a
+     new role, so it follows accent and theme the way the tint does. */
   .inspector__header {
     display: flex;
     align-items: center;
@@ -84,11 +68,8 @@
     color: var(--app-ink);
   }
 
-  /* ---- subtasks: indented, each a surface card ---- */
-  /* ONE card for the whole checklist, not one per row (user call,
-     2026-08-21: with many subtasks a surface per row was "muito poluído").
-     The rows sit on the list's own surface, separated by a hairline, and the
-     card's corner is the list's. */
+  /* ---- subtasks: ONE surface card for the whole checklist ----
+     The rows are separated by a hairline, and the card's corner is the list's. */
   .inspector__subtasks {
     display: flex;
     flex-direction: column;
@@ -160,8 +141,7 @@
     gap: var(--app-space-6);
     padding-inline: var(--app-space-8);
   }
-  /* A tag is the shared .theme-badge (neutral — 2026-08-26); the hook stays
-     for the × that follows the name. */
+  /* A tag is the shared .theme-badge; the hook stays for the × after the name. */
   .inspector__tag {
     padding-inline-end: var(--app-space-2);
   }
@@ -178,10 +158,9 @@
     opacity: 1;
   }
 
-  /* ---- fields: icon · label · value, each a surface card ---- */
-  /* A container, so the rows can answer to the PANEL's width and not the
-     window's: the same panel is a 176px column on a desktop and a full-width
-     sheet on a phone (components/sheet.css). */
+  /* ---- fields: icon · label · value, each a surface card ----
+     A container, so the rows answer to the PANEL's width: a 176px column on a
+     desktop, a full-width sheet on a phone (components/sheet.css). */
   .inspector__fields {
     display: flex;
     flex-direction: column;
@@ -201,10 +180,8 @@
     border-radius: var(--app-radius-md);
     color: var(--app-ink);
   }
-  /* A field the task does not use reads faded — label, icon and control alike
-     (user call 2026-08-05). What the task actually carries is the black text,
-     so a glance at the panel says which fields are in play. The controls set
-     their own colour, so they are told to inherit here. */
+  /* A field the task does not use reads faded, label, icon and control alike;
+     the controls set their own colour, so they inherit here. */
   .inspector__field--unset {
     color: var(--app-ink-faint);
   }
@@ -218,10 +195,9 @@
     align-items: center;
     gap: var(--app-space-8);
     min-width: 0;
-    /* The label yields to the control, never the other way round: a date
-       pill or a select that shrinks is a value that cannot be read, while a
-       word can wrap — and below the width where it would, it goes (the
-       container query at the end of the block). */
+    /* The label yields to the control, never the other way round: a shrunk
+       value cannot be read, a word can wrap — and below the width where it
+       would, it goes (the container query below). */
     flex: 1 1 auto;
   }
   .inspector__field-value,
@@ -229,12 +205,10 @@
   .inspector__field > .theme-select {
     flex: 0 0 auto;
   }
-  /* Narrow panel: the icon alone names the row. The word is not removed —
-     it is what a screen reader and the row's tooltip still read — only
-     taken off the screen, and only once the panel is near its minimum
-     (176px): at the default width the word stays, wrapping if it must
-     (user call, 2026-09-08 — icons alone at 240 read as too much taken
-     away). 11rem of content is a 192px panel. */
+  /* Narrow panel: the icon alone names the row. The word is only taken off
+     the screen (a screen reader and the tooltip still read it), and only near
+     the panel's 176px minimum — 11rem of content is a 192px panel; at the
+     default width the word stays, wrapping if it must. */
   .inspector__field-word {
     min-width: 0;
   }
@@ -280,9 +254,8 @@
     align-items: center;
     gap: var(--app-space-2);
   }
-  /* The count is a tight box, not a browser-default-wide control: a `<select>`
-     sizes itself to its widest option, and left alone it reserves the room for
-     "30" plus a caret in a row that already has a unit beside it. */
+  /* A `<select>` sizes itself to its widest option; a tight box, so it does
+     not reserve room for "30" plus a caret beside the unit. */
   .inspector__repeat-every {
     min-inline-size: 2.75rem;
     text-align: center;
@@ -295,18 +268,16 @@
     gap: var(--app-space-4);
     padding-inline: var(--app-space-8);
   }
-  /* A wrapper now, not the textarea itself: inside it lives the plain editor
-     (`.editor--plain`, editor.css), which is what lets a description carry
-     `[[note]]` references. The grid is what stretches the editor's box to
-     this minimum height. */
+  /* A wrapper around the plain editor (`.editor--plain`, editor.css), which
+     lets a description carry `[[note]]` references. The grid stretches the
+     editor's box to this minimum height. */
   .inspector__description {
     min-height: 7rem;
     display: grid;
   }
 
-  /* One attachment: the name is the button that opens it, the × takes it off
-     the task. Deleting the FILE is the library screen's job — here the two
-     would be one click apart and mean very different things. */
+  /* One attachment: the name opens it, the × takes it off the task. Deleting
+     the FILE is the library screen's job — here the two would be a click apart. */
   .inspector__file-open {
     display: inline-flex;
     align-items: center;
@@ -341,19 +312,16 @@
   }
 
   /* ---- the card at the end of the scroll: the fields that are off ----
-     The shell's Notice (controls/feedback.css), inset like the cards, last
-     because it is about what is NOT here. Gone once closed (Settings ›
-     Tasks brings it back) and with every field on. */
+     The shell's Notice (controls/feedback.css), inset like the cards. Gone
+     once closed (Settings › Tasks brings it back) and with every field on. */
   .inspector__offer {
     flex-shrink: 0;
     margin-inline: var(--app-space-8);
   }
 
   /* ---- when the task was written: a fact, over the foot ----
-     Off the cards on purpose (user call, 2026-09-08): everything in the
-     scroll is something to set, and this is the one thing about the task
-     that is only read. Under the scroll, pinned like the foot, in the faint
-     ink; the warning ink is the "forgotten" band, the same the card wears. */
+     Off the cards: everything in the scroll is set, this is only read. Pinned
+     like the foot, in the faint ink; the warning ink is the "forgotten" band. */
   .inspector__created {
     display: flex;
     align-items: center;
@@ -397,14 +365,10 @@
     white-space: nowrap;
   }
 
-  /* A finger's inspector (2026-08-20). Below 768px this whole panel is a
-     bottom sheet (components/sheet.css) — every row in it is under a thumb
-     rather than under a pointer, and a row here is not a `.theme-row`, so the
-     app's 48px minimum never reached it: `min-height: 2.375rem` above is 38.
-
-     Only the rows that HOLD a control need it. A field is a label at one end
-     and a select, a date pill or a switch at the other, and the tap has to
-     land on the far end of a row the eye reads from the near end. */
+  /* A finger's inspector: below 768px the panel is a bottom sheet
+     (components/sheet.css), and a field is not a `.theme-row`, so the app's
+     48px minimum never reached it. Only the rows that HOLD a control need it:
+     the tap lands on the far end of a row the eye reads from the near end. */
   @media (pointer: coarse) {
     .inspector__field {
       min-height: var(--app-touch-min);

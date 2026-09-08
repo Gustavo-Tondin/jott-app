@@ -1,106 +1,12 @@
-/* modes/jott.css — the factory theme: black chrome, white canvas.
- *
- * =============================================================================
- * HOW TO WRITE A THEME
- * =============================================================================
- *
- * A theme is one file that assigns colour roles for two REGIONS. That is all.
- *
- *   [data-region="chrome"]   title bar · tab strip · sidebar · right panel
- *   [data-region="canvas"]   the content panel in the middle
- *
- * ONE RULE, and the whole design depends on it:
- *
- *   **no role reads another role.**
- *
- * A role that reads a role is a chain, and a chain means opening three files
- * to find out what a colour actually is. Reading any line here tells you the
- * answer instead.
- *
- * A value may be a literal (`#1e1e1e`), a `--theme-color-*` entry, or a
- * `color-mix` of either. **`--theme-color-*` is not a layer a theme must build
- * from** — it is Jott's own colour list (styles/tokens.css), shared by the
- * three themes that ship here because they are one design. A theme with
- * colours of its own writes them inline and never mentions the palette; the
- * palette then simply goes unread, which costs nothing (custom properties are
- * inherited strings, not work). Only the chain is forbidden.
- *
- * WHAT A REGION MUST ASSIGN (the list is short, and it is the whole list):
- *
- *   --app-bg              the region's own fill
- *   --app-surface         the step off it: cards, chips, fields, popovers
- *   --app-surface-sunken  same value; the name survives from a three-neutral
- *                           design and a handful of component rules still
- *                           spell it
- *   --app-ink             text that reads on --app-bg
- *   --app-ink-muted       …the same ink at 55%
- *   --app-on-brand        text/icon ON a filled accent — the region's own
- *                           ground, so a bright accent takes dark ink and a
- *                           deep one takes light ink
- *   --app-hover           the veil a row darkens/lightens with: ink at 8%
- *   --app-shadow-popover  what lifts a menu off the page: ink at 18%
- *   --app-<name>-1…-6    each of the eight as a SIX-RUNG ladder of emphasis,
- *                           1 the strongest and 6 the faintest — the rungs
- *                           H1–H6 stand on (see below)
- *   --app-<name>         …its base: an icon, a link, a filled pill (rung 3)
- *   --app-<name>-line    …at alpha, for a border or a focus ring
- *   --app-<name>-tint    …its quiet fill (a selected row)
- *   --app-danger/-warning/-success   (+ -tint, the quiet fill behind a
- *                                      notice) read the theme's three STATUS
- *                                      families (danger/warning/success), never
- *                                      red/yellow/green by name (2026-08-26) —
- *                                      notice) three of the eight, straight from the
- *                           palette so a status pill lives in the same world
- *   --app-emphasis        a fourth of the eight: italic text in a note
- *
- * NOT here, because they are the same everywhere: --app-ink-faint, --line,
- * --line-soft, --well (styles/roles.css). Nor --app-brand: the user chooses
- * which of the eight it is at runtime, and roles.css does the picking.
- *
- * Every colour runs 100 (lightest) → 700 (darkest) on ONE tonal grid
- * (tokens.css), so a region only has to say which end it reads from:
- *
- *   ON A DARK GROUND  → ink `--theme-color-white`; ladder 200→450, base 300,
- *                       line 500 @45%, tint 700
- *   ON A LIGHT GROUND → ink `--theme-color-black`; ladder 600→350, base 500,
- *                       line 300 @60%, tint 100
- *
- * THE LADDER WALKS IN HALF STEPS, and that is not decoration: six PURE steps
- * do not fit. Past 500 on a dark ground and past 400 on a light one the ramp
- * is out of contrast (2.0:1 — invisible, not weak), so six rungs have to come
- * out of four steps. A half step is `color-mix(in oklab, <step>, <next>)`,
- * which is still one hop from the palette. The ladder ends around 3.8:1 on a
- * dark ground and 2.7:1 on a light one: rung 6 is faint on purpose, and it is
- * the only one that is.
- *
- * `neutral` — the white↔black family — is the ONE colour that reads one step
- * further out (its ladder is 100→350, base 200, tint 600, and the mirror on a
- * light ground). Its ramp runs along the same axis as the app's two grounds,
- * so taking the same steps as a hue would make its first rung a grey instead
- * of white, and its tint the ground itself. Everything else about it is
- * ordinary.
- *
- * To add a theme: copy this file, change the name in every selector, add it to
- * app.css and to THEMES in src/lib/services/themes.js. Post-v1 the app loads
- * user themes from `.jott/themes/<name>.css`, which is why the selectors are
- * keyed on `data-theme` — every theme ships at once and the attribute picks.
- *
- * -----------------------------------------------------------------------------
- * WHAT MAKES THIS ONE THE DEFAULT
- * -----------------------------------------------------------------------------
- * Black chrome around a white canvas. The two regions are not one step apart,
- * they are opposite — that contrast IS the app's face, and it is why the
- * chrome takes the deepest black (#1E1E1E) rather than the softer #2B2B2B the
- * all-dark theme uses for the same panels. Wireframe: "Home screen - default".
- *
- * `:root:not([data-mode])` rides along in every selector so the app is
- * already dressed before the notebook's setting has been read.
- */
+/* modes/jott.css — the factory theme: black chrome, white canvas, and the
+ * reference for writing a mode (documentation/theming.md): assign the colour
+ * roles per REGION (`data-region="chrome"` / `"canvas"`); a value is a
+ * `--theme-color-*`, a literal, or a `color-mix` of either — no role reads
+ * another role. Ladders walk in oklab half steps: six pure steps run out of
+ * contrast. `:root:not([data-mode])` dresses the app before the setting loads. */
 
-/* The canvas, named at the root: the CHROME needs it too, because the tab
-   strip is drawn in the frame but belongs to the panel — an open tab is the
-   panel's top edge showing through, and a closed one is the exact midpoint
-   between the two grounds (components/tabs.css). Every theme declares these. */
+/* The canvas, named at the root, because the CHROME draws the tab strip in
+   the panel's colours (components/tabs.css). Every mode declares these. */
 [data-mode="jott"],
 :root:not([data-mode]) {
   --app-canvas-ground: var(--theme-color-white);
@@ -208,12 +114,8 @@
   --app-warning-tint: var(--theme-color-warning-700);
   --app-success-tint: var(--theme-color-success-700);
 
-  /* The one piece of Markdown with a colour of its own (Notes wireframe,
-     Editor screen): emphasis. Bold is ink and a link is the accent, but italic
-     is green — it is the only inline mark whose SHAPE alone (a slant) is easy
-     to miss in a wall of text. A fixed colour rather than the accent, for the
-     same reason the status three are fixed: it must not change meaning when
-     the user picks green as their accent. */
+  /* Emphasis is the one Markdown mark with a colour of its own: a slant alone
+     is easy to miss. Fixed like the status three — never the accent. */
   --app-emphasis: var(--theme-color-success-300);
 }
 
@@ -318,38 +220,16 @@
   --app-warning-tint: var(--theme-color-warning-100);
   --app-success-tint: var(--theme-color-success-100);
 
-  /* The one piece of Markdown with a colour of its own (Notes wireframe,
-     Editor screen): emphasis. Bold is ink and a link is the accent, but italic
-     is green — it is the only inline mark whose SHAPE alone (a slant) is easy
-     to miss in a wall of text. A fixed colour rather than the accent, for the
-     same reason the status three are fixed: it must not change meaning when
-     the user picks green as their accent. */
+  /* Emphasis is the one Markdown mark with a colour of its own: a slant alone
+     is easy to miss. Fixed like the status three — never the accent. */
   --app-emphasis: var(--theme-color-success-500);
 }
 
 /* ---- a sheet: the canvas's two neutrals, the other way round --------------
- *
- * A bottom sheet is a panel RAISED over the page (styles/components/sheet.css),
- * and the app has exactly two neutrals per mode — so a panel that takes the
- * page's raised step for its own ground leaves nothing for the cards, chips and
- * fields inside it: they came out the same colour as the sheet they sit on, and
- * the task inspector read as a flat wash (user report, 2026-08-18).
- *
- * So the sheet swaps the pair. That is not a new colour and not a third
- * neutral: it is exactly what the CHROME region of a light-ground theme already
- * is — ground on the tint, cards on the white — which is the look the user
- * asked for ("iguais aos painéis fora do canvas no modo claro"). Written out
- * per theme, from the palette, because a theme is where a ground is decided.
- *
- * The MODAL is the same shape by another route — a panel raised over the page,
- * with cards, fields and chips inside it — so it takes the same pair (user
- * call, 2026-08-18: every floating panel, not only the sheets). Its own ground
- * does not move: it painted `--app-surface` before and paints `--app-bg`
- * now, and after the swap those are the same colour. What changes is that what
- * it HOLDS finally has a step to rise to. A popover is deliberately not in
- * here: a menu is a list of rows, not a panel with cards, and it has nothing
- * to raise.
- */
+ * A panel RAISED over the page (sheet.css, .theme-modal) swaps the pair so the
+ * cards, chips and fields inside it still have a step to rise to — the chrome
+ * of a light-ground mode, restated per mode because a mode decides grounds.
+ * A popover is deliberately not here: a menu is rows, with nothing to raise. */
 [data-mode="jott"] .sheet,
 [data-mode="jott"] .theme-modal,
 :root:not([data-mode]) .sheet,

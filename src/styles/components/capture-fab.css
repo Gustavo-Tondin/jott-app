@@ -1,11 +1,7 @@
 /* capture-fab.css — the Home's + and the two buttons it opens.
- * Markup: src/lib/components/CaptureFab.svelte; where the whole thing sits
- * (the canvas's bottom corner) is `.home-fab` in home.css — this file is
- * only the + itself and its choices.
- *
- * Round, brand, 72px on the desktop and 64px on a phone (home.css sizes the
- * slot; the toggle fills it): the verb of the screen, and the one loud thing
- * on it. */
+ * Markup: src/lib/components/CaptureFab.svelte; where it sits is `.home-fab`
+ * in home.css, which sizes the slot — this file is only the + itself and its
+ * choices. Round, brand: the verb of the screen, the one loud thing on it. */
 
 @layer components {
   .capture-fab {
@@ -25,13 +21,10 @@
     border-radius: var(--app-radius-pill);
     background: var(--app-brand);
     color: var(--app-on-brand);
-    /* THE + IS LIFTED, and until 2026-09-07 it was not: the shadow written
-       here was `0 0.5rem 1.25rem var(--app-shadow-popover)`, and that token
-       is a WHOLE shadow (roles per region, modes/*.css) — offsets inside
-       offsets, so the declaration was invalid and the browser dropped it.
-       The + has floated flat over the page ever since (user call: "o botão
-       de + da home podia ter uma sombra também"). `--app-shadow-drop` is
-       the colour on its own, which is what this needed. */
+    /* `--app-shadow-drop` is the shadow COLOUR on its own. Never
+       `--app-shadow-popover` here: that token is a WHOLE shadow (modes/*.css),
+       and offsets around it make the declaration invalid — the browser drops
+       it and the + floats flat. */
     box-shadow: 0 0.25rem 0.625rem var(--app-shadow-drop);
     transition:
       scale var(--app-transition-fast),
@@ -43,9 +36,8 @@
   .capture-fab__toggle:active:not(:disabled) {
     scale: 0.94;
   }
-  /* Open, the + turns into a × — the same glyph, an eighth of a turn, on the
-     spring: the button that opened the choices is the one that closes them,
-     and the turn says so without a second icon. */
+  /* Open, the + turns into a ×: the same glyph, an eighth of a turn, on the
+     spring — the button that opened the choices is the one that closes them. */
   .capture-fab__toggle .theme-icon {
     transition: rotate var(--app-duration-medium) var(--app-ease-spring);
   }
@@ -80,8 +72,7 @@
     color: var(--app-on-brand);
     font-size: var(--app-text-16);
     font-weight: var(--app-weight-semibold);
-    /* The same shadow one step shallower — these ride above the + and are
-       smaller. Same fix as above: the colour, not the whole shadow. */
+    /* The same shadow one step shallower: the colour, not the whole shadow. */
     box-shadow: 0 0.125rem 0.5rem var(--app-shadow-drop);
     /* Each choice rises in from the +, the one nearer it first — the two
        arrive as a pair being dealt, not as a block switching on. */

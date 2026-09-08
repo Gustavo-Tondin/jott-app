@@ -1,20 +1,15 @@
 @layer components {
-  /* The formatting controls of an open note: a column of buttons in the right
-     panel, a scrolling row above the keyboard on a phone. One component, so
-     one block, with the direction as the modifier.
-
-     The buttons themselves are `.theme-btn--icon` — hover, colour and the
-     focus ring all come from there. Only the arrangement is written here. */
+  /* The formatting controls of an open note: a column in the right panel, a
+     scrolling row above the keyboard on a phone — one block, the direction as
+     the modifier. Buttons are `.theme-btn--icon`; only the arrangement is here. */
   .format-bar {
     display: flex;
     gap: var(--app-space-2);
     padding: var(--app-space-2);
   }
 
-  /* Wrapped, so the panel's own width decides how many fit on a line: the six
-     headings end up together and the inline marks above them, and dragging the
-     panel narrower simply drops the last glyph of a row onto the next one
-     (user call, 2026-08-19: "as fileiras de ícones sejam flex"). */
+  /* Wrapped, so the panel's own width decides how many fit on a line; dragging
+     it narrower drops the last glyph of a row onto the next one. */
   .format-bar--column {
     flex-wrap: wrap;
     align-content: flex-start;
@@ -32,21 +27,10 @@
     display: none;
   }
 
-  /* Against a side edge: the same one line, stood on end. It scrolls in the
-     other axis for the same reason the row does — seven glyphs fit on any
-     screen the app is used on, and a second column would be a second thing to
-     aim at rather than a bar.
-
-     THE CAP IS NOT DECORATION, and it is the one thing the row does not need
-     (measured in Firefox on the real stylesheet, 2026-08-21: a 240px canvas
-     had the rail hanging 30px off the bottom of it). A block box with `width:
-     auto` FILLS its parent, so the row's `overflow-x` has a width to scroll
-     inside as soon as the pill it sits in shrinks — but `height: auto` is the
-     CONTENT's height, so a rail simply stayed 254px tall while the pill around
-     it gave way. `overflow-y` with nothing to overflow scrolls nothing. The
-     cap is what turns the pill's used height into the rail's ceiling; putting
-     the scroller on the pill instead was measured too, and left the bar its
-     full height with the overflow still on the canvas. */
+  /* Against a side edge: the same one line, stood on end, scrolled in the
+     other axis. The cap is NOT decoration: `width: auto` fills the parent but
+     `height: auto` is the content's, so without it the rail never overflows
+     and hangs off the canvas. See docs/platform-gotchas.md#css-e-cascata */
   .format-bar--rail {
     flex-direction: column;
     flex-wrap: nowrap;
@@ -59,11 +43,9 @@
     display: none;
   }
 
-  /* A floating container states what its inside corner is, and the buttons
-     read it: the same button is docked in the right panel (no rounded parent,
-     so its own `theme-btn--icon` corner stands) and floating inside a strip,
-     a pill or a fold panel, where it is flush against a `lg` edge with only
-     the bar's 2px of padding between. */
+  /* A floating container states its inside corner and the buttons read it:
+     docked in the right panel the button's own corner stands; inside a strip,
+     a pill or a fold panel it is flush against an `lg` edge with 2px between. */
   .format-bar__button {
     flex: 0 0 auto;
     border-radius: var(--format-inner-radius, var(--app-radius-sm));
@@ -93,16 +75,10 @@
   .format-bar__button--on {
     background: var(--app-well);
   }
-  /* The panel itself — a bar of its own, beside the bar. It carries its own
-     ground rather than `theme-popover`'s: it is a strip of buttons, the same
-     strip as the one it belongs to, and the wireframe draws the two as twins.
-     Where it lands is `keepOnScreen`'s call (FormatBar.svelte says why); these
-     two are the fallback until it has measured.
-
-     NO SHADOW (user call, 2026-08-20). Twins means twins: the bar it comes out
-     of already floats, and a second lifted plate a few pixels above the first
-     read as two layers stacked rather than one strip beside another. Its own
-     ground against the note is what separates it. */
+  /* The panel: a bar of its own beside the bar — twins, so its own ground
+     rather than `theme-popover`'s and NO SHADOW (the bar already floats; a
+     second lifted plate reads as two layers). The insets are the fallback
+     until `keepOnScreen` (FormatBar.svelte) has measured. */
   .format-bar__panel {
     --format-inner-radius: calc(var(--app-radius-lg) - var(--app-space-2));
     position: absolute;
@@ -114,14 +90,8 @@
     border-radius: var(--app-radius-lg);
     z-index: 1;
   }
-  /* Out of a RAIL it opens sideways instead, so this is the fallback for the
-     other axis — the one frame of a mount before `keepOnScreen` has measured.
-     `inset-block-end: auto` because the two would otherwise both be set, and
-     a box with both block insets and no height of its own collapses (the
-     lesson the action's own comment carries). */
-  /* The table's panel writes a verb beside each glyph (FormatBar.svelte says
-     why) — so it is a column of rows rather than a strip of squares, and a
-     greyed row reads as "not here", not as a broken button. */
+  /* The table's panel writes a verb beside each glyph (FormatBar.svelte): a
+     column of rows, and a greyed row reads as "not here". */
   .format-bar__panel--labelled {
     flex-direction: column;
     align-items: stretch;
@@ -143,6 +113,9 @@
     font-size: var(--app-text-13);
     white-space: nowrap;
   }
+  /* Out of a RAIL the panel opens sideways: the fallback for the other axis.
+     `inset-block-end: auto`, because a box with both block insets set and no
+     height of its own collapses. */
   .format-bar__panel--beside {
     inset-block-end: auto;
     inset-block-start: 0;
@@ -151,32 +124,11 @@
 }
 
 @layer components {
-  /* The floating bar of a DESKTOP with no right panel open (user call,
-     2026-08-19). Same narrow bar as the phone's, centred over the top of the
-     canvas just under the page header — and on a LIGHT ground, because here it
-     floats over the document itself rather than over a phone's chrome.
-
-     THE ROW IS WHAT IS PLACED, not each pill. It is `absolute` inside
-     `.shell__canvas` (which is `relative`) — the box that begins UNDER the
-     page header, so the pills stay put while the note scrolls beneath them and
-     "below the header" is where the box is rather than a number that would
-     have to be kept in step with it. Measured from the panel instead, the bar
-     sat on the header and the dock button landed on its ⋮ (user report,
-     2026-08-19).
-
-     The pills are centred together, because the second one belongs beside the
-     first ("logo à direita dos outros botões") and a second placement would be
-     one more thing to keep in agreement with the first.
-
-     WHICH EDGE it hugs is a Display choice since 2026-08-21 — top, left,
-     right or bottom, and always CENTRED on that edge. So the four modifiers
-     say two things each and nothing else: which way the box is stretched, and
-     which way the pills stack. Centring is the base's, in both axes, because
-     it is the half that never varies.
-
-     The box spans the canvas along whichever edge it is on, so it must not
-     catch what was aimed at the note underneath: only the pills take the
-     pointer. */
+  /* The floating bar of a DESKTOP with no right panel open: the phone's narrow
+     bar on a light ground, over the document. THE ROW IS WHAT IS PLACED, not
+     each pill: `absolute` inside `.shell__canvas`, the box that begins under
+     the page header. Which edge is a Display choice; a modifier says only the
+     stretched axis and the stacking. Only the pills take the pointer. */
   .format-floats {
     position: absolute;
     z-index: 15;
@@ -206,10 +158,8 @@
   }
 
   /* Against a side: the same box turned a quarter — as TALL as the canvas,
-     the pills stacked, and the rail inside them stood on end
-     (`.format-bar--rail`). The dock pill goes under the bar rather than
-     beside it, which is the same "just after the other buttons" it has on the
-     top edge, read in the axis this one runs in. */
+     the pills stacked, the rail stood on end (`.format-bar--rail`), the dock
+     pill under the bar. */
   .format-floats--left,
   .format-floats--right {
     inset-block: 0;
@@ -225,9 +175,8 @@
     align-items: flex-end;
   }
 
-  /* A pill: the ground, the radius and the shadow the two of them share.
-     Both minimums, not just the inline one: which axis the pill has to be
-     able to give way in is now the side's answer, not a constant. */
+  /* A pill: the ground, radius and shadow the two share. Both minimums: which
+     axis gives way is the side's answer. */
   .format-float {
     --format-inner-radius: calc(var(--app-radius-lg) - var(--app-space-2));
     min-inline-size: 0;
@@ -244,10 +193,8 @@
   .format-float--dock {
     flex: 0 0 auto;
   }
-  /* The glyph is the sidebar's, MIRRORED: the vendored icon draws the panel on
-     the leading edge and this one lives on the trailing edge. Flipping the one
-     icon is what keeps the two panels reading as the same kind of thing —
-     drawing a second, subtly different one would not. */
+  /* The sidebar's glyph, MIRRORED: the vendored icon draws the panel on the
+     leading edge; flipping it keeps the two panels reading as one kind. */
   .format-float__dock {
     padding: var(--app-space-8);
   }
@@ -261,33 +208,17 @@
   .format-strip {
     --format-inner-radius: calc(var(--app-radius-lg) - var(--app-space-2));
     position: fixed;
-    /* A pill with air on both sides, as the wireframe draws it — not a band
-       across the screen. It is a thing floating above the keyboard, and a
-       floating thing has edges.
-
-       It HUGS its buttons and sits in the middle (user call, 2026-08-19, once
-       the bar folded down to seven glyphs): the two insets say how far it may
-       spread, `fit-content` takes only what the row needs, and the auto margins
-       centre what is left over — the rule that a positioned box with both
-       insets set and a width of its own is centred by `margin: auto`. Stretched
-       edge to edge, the pill was mostly empty ground with the glyphs bunched on
-       the left.
-
-       `max-inline-size` says the ceiling OUTRIGHT rather than trusting the
-       insets to hold it: a fixed box whose width outgrows them is
-       over-constrained, and the rule is that the end inset is the one dropped —
-       measured, the pill ran off the right edge instead of scrolling. The
-       containing block here is the viewport, so the gutter is subtracted twice
-       by hand. Past that ceiling the row scrolls, which is `.format-bar--row`'s
-       job and not this one's. */
+    /* A pill with air on both sides: the insets bound it, `fit-content` takes
+       only what the row needs, the auto margins centre the rest. The ceiling
+       is stated OUTRIGHT — an over-constrained fixed box drops its END inset
+       and runs off the edge rather than scroll; past it `.format-bar--row` scrolls. */
     inset-inline: var(--app-space-8);
     inline-size: fit-content;
     max-inline-size: calc(100% - 2 * var(--app-space-8));
     margin-inline: auto;
-    /* Against the top of the keyboard when one is up, above the gesture bar
-       when it is not. `max()` rather than a sum: with the keyboard up the
-       gesture bar is inside it. The same rule the task composer and the sheets
-       follow (0.11.0). */
+    /* Against the keyboard when one is up, above the gesture bar when not:
+       `max()`, not a sum — with the keyboard up the gesture bar is inside it.
+       The same rule the task composer and the sheets follow. */
     inset-block-end: max(var(--app-safe-bottom), var(--app-keyboard));
     z-index: 40;
     background: var(--app-bg);

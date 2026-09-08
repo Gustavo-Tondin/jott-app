@@ -1,19 +1,14 @@
 /* suggestions.css — the visual layer of SuggestionsPane.svelte and of the pill
  * that opens it (markup: components/SuggestionsPane.svelte and the
- * `suggestPill` snippet of spaces/TasksSpace.svelte).
- *
- * The list moved out of a popover and into the right panel on 2026-08-06
- * (user call): something you read through and act on several times wants the
- * panel, not a card floating over the tasks you are comparing it against.
+ * `suggestPill` snippet of spaces/TasksSpace.svelte). The list lives in the
+ * right panel, not a popover: it is read through and acted on several times.
  * Selectors are the stable BEM hooks a theme may restyle. */
 
 @layer components {
-  /* ---- the pill that opens it (wireframe "Suggestions 💡") ----
-     It IS the shared chip (markup: `theme-chip suggestions-pill`), so only the
-     one thing that makes it different is here: SOLID accent, not a tint with
-     an outline (2026-08-13 wireframe). It is the one thing offered on a
-     finished day, and as a tinted outline it read as a disabled control
-     sitting next to the "Completed" chip beside it. */
+  /* ---- the pill that opens it ----
+     It IS the shared chip (`theme-chip suggestions-pill`); the one difference
+     is here: SOLID accent, not a tint with an outline — as a tinted outline it
+     reads as a disabled control next to the "Completed" chip. */
   .suggestions-pill {
     background: var(--app-brand);
     color: var(--app-on-brand);
@@ -26,9 +21,8 @@
   }
 
   /* ---- the panel ----
-     Keeps the pane pact of controls/layout.css: flex column, fixed head, scrolling
-     middle. It shares the right panel with the inspector, so it has to behave
-     the same way in it. */
+     Keeps the pane pact of controls/layout.css (flex column, fixed head,
+     scrolling middle): it shares the right panel with the inspector. */
   .suggestions-pane {
     display: flex;
     flex-direction: column;
@@ -62,9 +56,7 @@
   .suggestions-pane__group + .suggestions-pane__group {
     margin-block-start: var(--app-space-12);
   }
-  /* Every heading folds its section away (2026-08-06) — with one section per
-     list the panel gets long, and the list you are not pulling from should be
-     one click out of the way. */
+  /* Every heading folds its section away: one section per list gets long. */
   .suggestions-pane__group-title {
     inline-size: 100%;
     display: flex;
@@ -85,8 +77,6 @@
     background: var(--app-hover);
     color: var(--app-ink);
   }
-  /* The space before a list's name, quieter — the same two tones the list
-     pickers use. */
   /* The space's colour before its name (services/origin.js), small. */
   .suggestions-pane__dot {
     --dot-size: var(--app-space-8);
@@ -111,8 +101,8 @@
     gap: var(--app-space-2);
   }
 
-  /* One row: the task, and its date at the end. The list it comes from is the
-     heading above it now, so the second line the row used to carry is gone. */
+  /* One row: the task, and its date at the end (the list it comes from is
+     the heading above). */
   .suggestions-pane__item {
     inline-size: 100%;
     display: flex;
@@ -128,11 +118,9 @@
   }
 
   /* ---- in the sheet (below 768px) ----
-     The panel is the same, but its ground is not: a sheet swaps the region's
-     two neutrals so what it holds has somewhere to rise to (themes/*.css), and
-     a list of transparent rows on that ground is a flat wash — the same report
-     that put the task inspector on cards (user call, 2026-08-18). So the rows
-     become cards here, and grow to a thumb's target while they are at it. */
+     Same panel, other ground: a sheet swaps the region's two neutrals
+     (themes/*.css), and transparent rows on it are a flat wash. So the rows
+     become cards here, at a thumb's target. */
   .suggestions-pane--compact .suggestions-pane__item {
     min-block-size: var(--app-touch-min);
     padding: var(--app-space-8) var(--app-space-12);

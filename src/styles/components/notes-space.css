@@ -1,19 +1,11 @@
 /* notes-space.css — the visual layer of NotesSpace.svelte.
- * Markup: src/lib/spaces/NotesSpace.svelte. Selectors are the stable BEM hooks a theme
- * may restyle; components read tokens only.
- *
- * Tokenised on 2026-08-04. This was the last block in the app still written in
- * raw hex (#ddd, #eef2ff, #666, #d9c26a…), which meant it was the one block a
- * theme could not recolour — the contract of .jott/themes/<name>.css says
- * every colour is the theme's to change. The search field, the bar buttons and
- * the folder chips are now the shared controls; the note card is
- * note-card.css, and the Home draws THAT one too (home.css .home__notes),
- * since they are the same card. */
+ * Markup: src/lib/spaces/NotesSpace.svelte. Selectors are the stable BEM hooks
+ * a theme may restyle. The note card itself is note-card.css, and the Home
+ * draws that same card (home.css .home__notes). */
 
 @layer components {
-  /* The place's own row (2026-08-18): name centred, ⋮ at the far right, and
-     the mirrored ⋮ on the left keeping the name centred on the panel. Same
-     three parts as the tasks screen's header — see tasks-space.css. */
+  /* Name centred, ⋮ at the far right, the mirrored ⋮ on the left keeping the
+     name centred on the panel (same three parts as tasks-space.css). */
   .notes-space__head {
     display: flex;
     align-items: center;
@@ -30,23 +22,18 @@
     gap: var(--app-space-10);
     text-align: center;
   }
-  /* Takes the ⋮'s room on the left without being seen or reached; it shrinks
-     away before the title does, so a narrow panel gives up the centring rather
-     than the name (same rule as tasks-space.css). It is the shared
-     .theme-mirror (controls/layout.css). */
-  /* With no title (below 768px, where the shell's header carries the name) the
-     ⋮ still has to hug the right edge. The auto margin goes on the Menu's own
-     wrapper, which is the flex child — the button inside it is not. */
+  /* The mirror is the shared .theme-mirror (controls/layout.css). With no
+     title (below 768px the shell's header carries the name) the ⋮ still hugs
+     the right edge: the auto margin goes on the Menu's own wrapper, which is
+     the flex child — the button inside it is not. */
   .notes-space__head > .menu {
     flex-shrink: 0;
     margin-inline-start: auto;
   }
 
-  /* ---- the quick note bar (2026-08-19, wireframes "Grid") ----
-     One field and one +, on the surface step so it reads as a thing to write
-     IN rather than a strip of the page. What is typed is the note's body, so
-     the field grows with it like the editor would — `field-sizing` where it
-     exists, and a floor of one line everywhere. */
+  /* ---- the quick note bar ----
+     One field and one +, on the surface step. The field grows with what is
+     typed — `field-sizing` where it exists, a floor of one line everywhere. */
   .quick-note {
     display: flex;
     align-items: end;
@@ -78,8 +65,8 @@
   .quick-note__field::placeholder {
     color: var(--app-ink-faint);
   }
-  /* The one filled button of the screen, as the wireframe draws it. Square, so
-     it stays a target as the field grows past one line. */
+  /* The one filled button of the screen. Square, so it stays a target as the
+     field grows past one line. */
   .quick-note__add {
     flex: 0 0 auto;
     display: inline-flex;
@@ -96,13 +83,10 @@
     margin-block-end: var(--app-space-12);
   }
 
-  /* .notes-space__board is the shared .theme-note-board (controls/layout.css): the
-     masonry, its slot and the compact two-column setting all live there. */
-  /* The tree view is one column: it is already filtered to a folder, so it
-     reads as a list on purpose. */
-  /* The screen fills the canvas (user call, 2026-08-21): a board hugging its
-     cards left the lower half of the screen as nothing, and a ring drawn at
-     its edge cut off. */
+  /* `.notes-space__board` is the shared .theme-note-board (controls/layout.css):
+     masonry, slot and compact columns live there. The tree view is one column
+     on purpose (already filtered to a folder). The screen fills the canvas: a
+     board hugging its cards leaves a ring drawn at its edge cut off. */
   .notes-space {
     flex: 1;
     display: flex;
@@ -111,10 +95,9 @@
   .notes-space__board {
     flex: 1;
   }
-  /* The drop ring goes on the CARD, not on the slot. The slot is a box in a
-     multi-column layout, and an outline on a fragmenting box is drawn per
-     fragment — it came out as a stray line along the bottom of the previous
-     column (screenshot, 2026-08-21). The card inside does not fragment. */
+  /* The drop ring goes on the CARD, not the slot: the slot fragments across
+     columns, and an outline on a fragmenting box is drawn per fragment.
+     See docs/platform-gotchas.md#css-e-cascata */
   .theme-note-board > .reorder-item--into {
     outline: none;
   }
@@ -126,8 +109,8 @@
   .notes-space__board--tree {
     columns: 1;
   }
-  /* Inside an open folder: two columns whatever the room, because the panel is
-     sized by this board and not the other way round (user call, 2026-08-19). */
+  /* Inside an open folder: two columns whatever the room — the panel is sized
+     by this board, not the other way round. */
   .notes-space__board--pair {
     columns: 2;
     column-gap: var(--app-space-8);
@@ -136,20 +119,15 @@
     margin-block-end: var(--app-space-8);
   }
 
-  /* What a card LOOKS like is note-card.css now (2026-08-18): the board draws
-     none of it, because the same card is drawn inside a folder card too. What
-     is left here is the slot it sits in — and the pin star that used to sit in
-     its corner is gone with it, into the card's own ⋮. */
-
+  /* What a card LOOKS like is note-card.css: the same card is drawn inside a
+     folder card too. Only the slot is here. */
 
   .notes-space__empty {
     color: var(--app-ink-muted);
   }
 }
 
-/* =============================================================================
-   THE COMPACT BOARD (below 768px — "Notes Screen - mobile").
-   ============================================================================= */
+/* ---- THE COMPACT BOARD (below 768px) ---- */
 @layer components {
   /* The two columns themselves are the shared .theme-note-board's
      (controls/layout.css). The tree view stays one column: it is a list on purpose. */

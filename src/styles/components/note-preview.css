@@ -1,31 +1,15 @@
 /* note-preview.css — the head of a note, drawn on its card.
- * Markup: src/lib/components/NotePreview.svelte. Blocks come from
- * services/notePreview.js; this sheet is the whole of what they look like.
- *
- * **One ink, and it is the muted one** (user call, 2026-08-20: "com peso e
- * tudo formatado, mas cinza opaco como agora"). The note itself gives its
- * headings the accent ladder — inside a note that is the reader's own
- * document, and the colour is a map of it. A board is twenty notes at once,
- * and twenty accented headings would be twenty things asking to be looked at
- * before the titles do. So the hierarchy here is carried by SIZE, WEIGHT and
- * SHAPE only: the same structure the note has, at the volume a thumbnail
- * should speak in.
- *
- * Everything is in `em`, so the whole preview follows the card's own font size
- * — the same trade the editor makes (styles/components/editor.css).
- *
- * Every element is a `<span>` made to behave: the card is a `<button>`, which
- * may only hold phrasing content. See the component's header. */
+ * Markup: src/lib/components/NotePreview.svelte; blocks come from
+ * services/notePreview.js. ONE INK, the muted one: hierarchy is carried by
+ * size, weight and shape only. Everything in `em`, so the preview follows the
+ * card's font size. Every element is a `<span>`: the card is a `<button>`. */
 
 @layer components {
   .note-preview {
-    /* The clamp is a LINE COUNT, not a height: it is what makes the cut land
-       between lines rather than through one. The cut itself is a clean line
-       — the fade that used to soften it read as a smudge over the text
-       (user call, 2026-08-24) — and "there is more" is said by the three
-       dots the component appends only when the clamp actually cut something.
-       An ellipsis IN the text still has nowhere to sit (the last line may be
-       a heading, a bullet or a quote), which is why it sits under it. */
+    /* The clamp is a LINE COUNT, not a height: the cut lands between lines.
+       A clean cut, no fade; "there is more" is the three dots the component
+       appends only when the clamp cut something — an ellipsis IN the text
+       has nowhere to sit (the last line may be a heading or a bullet). */
     --note-preview-lines: 12;
     display: block;
     color: var(--app-ink-muted);
@@ -60,9 +44,8 @@
   }
 
   /* ---- headings ----
-     Six levels, and the same rule the note keeps: a title needs air above it
-     more than below. The two largest step up in size; the four below say it
-     with weight alone, because at 13px a fourth size is a rounding error. */
+     A title needs air above more than below. The two largest step up in
+     size; the rest say it with weight: at 13px a fourth size is noise. */
   .note-preview__heading {
     font-weight: var(--app-weight-bold);
     line-height: var(--app-leading-tight);
@@ -85,9 +68,8 @@
   .note-preview__strong {
     font-weight: var(--app-weight-bold);
   }
-  /* Italic only. In the note the emphasis carries a colour of its own
-     (`--app-emphasis`); here it would be the one coloured word on a grey
-     card, which is more attention than the word asked for. */
+  /* Italic only: the note's `--app-emphasis` would be the one coloured word
+     on a grey card. */
   .note-preview__em {
     font-style: italic;
   }
@@ -106,8 +88,8 @@
   }
 
   /* ---- lists ----
-     The marker hangs in its own column, so a wrapped item lines up under its
-     first word instead of under the bullet. */
+     The marker hangs in its own column: a wrapped item lines up under its
+     first word, not under the bullet. */
   .note-preview__item {
     display: flex;
     gap: 0.45em;
@@ -139,17 +121,15 @@
   }
 
   /* ---- quote ----
-     The bar, in the line colour rather than the accent the note gives it: on
-     a grey card the bar is the shape saying "quote", and it does not need to
-     be the brightest thing on it. */
+     The bar in the line colour, not the note's accent: on a grey card the
+     shape alone says "quote". */
   .note-preview__quote {
     border-inline-start: 0.125rem solid var(--app-line);
     padding-inline-start: 0.6em;
   }
 
   /* ---- code block ----
-     The box says "code" and the box is enough; inside it the chip comes off,
-     the same trade the editor makes. */
+     The box says "code"; inside it the chip comes off. */
   .note-preview__code {
     padding: 0.25em 0.5em;
     border-radius: var(--app-radius-xs);
@@ -160,9 +140,8 @@
   }
 
   /* ---- table ----
-     The glyph and the header's cells on one line (user call, 2026-08-24):
-     a card says there is a table and what it is about, and leaves the grid
-     to the note. */
+     The glyph and the header's cells on one line; the grid stays in the
+     note. */
   .note-preview__table {
     display: flex;
     align-items: baseline;
@@ -175,17 +154,15 @@
   }
 
   /* ---- rule ----
-     A hairline, and it keeps its own air: three dashes in a note are a break
-     between two things, and a break with no room around it is a border. */
+     A hairline with its own air: a break with no room around it is a border. */
   .note-preview__rule {
     block-size: 0.0625rem;
     margin-block: 0.5em;
     background: var(--app-line);
   }
 
-  /* The card inside a folder card, and any other ground that is already the
-     region's lower neutral: a chip painted `--app-bg` there would be
-     invisible, so it takes the other one. */
+  /* Grounds that are already the region's lower neutral: a chip painted
+     `--app-bg` there would be invisible. */
   .note-card--small .note-preview__mono,
   .note-card--small .note-preview__code,
   .note-group__popover .note-preview__mono,

@@ -1,9 +1,7 @@
 /* task-composer.css — the visual layer of TaskComposer.svelte.
- * Markup: src/lib/components/TaskComposer.svelte. Faithful to the wireframes
- * "Tasks screen - default", "New task mobile" and "New task popup.pdf"
- * (2026-08-06, revised 2026-08-20): one wide rounded row, an unticked square
- * on the left, the quick fields tucked to the right, and the brand-filled ＋
- * closing it. Selectors are the stable BEM hooks a theme may restyle. */
+ * Markup: src/lib/components/TaskComposer.svelte. One wide rounded row: an
+ * unticked square, the input, the quick fields, the brand-filled ＋ closing
+ * it. Selectors are the stable BEM hooks a theme may restyle. */
 
 @layer components {
   .task-composer {
@@ -17,9 +15,7 @@
   }
 
   /* The bar variant is pinned to the bottom of the scrolling content and the
-     cards pass UNDERNEATH it (user call, 2026-08-06) — hence the opaque
-     surface and the shadow, which is what tells the two layers apart. The
-     margin above keeps it from touching the last card. */
+     cards pass UNDERNEATH it — hence the opaque surface and the shadow. */
   .task-composer--bar {
     position: sticky;
     bottom: 0;
@@ -27,53 +23,33 @@
     /* `auto` pushes it to the bottom of the panel even when the list is
        short — the wireframe draws it there, not floating under two cards. */
     margin-block-start: auto;
-    /* Small on purpose: the shadow is only here to say "the cards pass under
-       this", not to lift the bar off the page (user call, 2026-08-06). */
+    /* Small on purpose: it says "the cards pass under this", not "lifted". */
     box-shadow: 0 -0.0625rem 0.25rem color-mix(in srgb, var(--app-ink) 8%, transparent);
   }
 
-  /* On a phone the bar leaves the flow and rides the bottom of the VIEWPORT.
-     Sticky is right on the desktop — the panel is tall, so `bottom: 0` pins it
-     the moment the list would scroll past — but on a short screen the list is
-     often shorter than the panel, and sticky then leaves the bar wherever the
-     content ended: halfway up, with the keyboard open under it (measured on
-     the emulator, Home with an empty day).
-
-     Fixed to the layout viewport, which `interactive-widget=resizes-content`
-     shrinks when the keyboard comes up (index.html) — so "the bottom of the
-     screen" and "just above the keyboard" are the same place, and the wireframe
-     "New task mobile" is what comes out. */
+  /* On a phone the bar rides the bottom of the VIEWPORT: a list shorter than
+     the panel leaves a sticky bar wherever the content ended. Fixed to the
+     layout viewport, which `interactive-widget=resizes-content` (index.html)
+     shrinks with the keyboard — so the bottom IS just above the keyboard. */
   .shell--compact .task-composer--bar {
     position: fixed;
     z-index: 20;
     inset-inline-start: calc(var(--app-space-8) + var(--app-safe-left));
     inset-inline-end: calc(var(--app-space-8) + var(--app-safe-right));
-    /* Above the keyboard when there is one, above the gesture bar when there
-       is not. `max()` rather than a sum: with the keyboard up the gesture bar
-       is behind it, and adding both would leave a strip of dead space. */
+    /* `max()` rather than a sum: with the keyboard up the gesture bar is
+       behind it, and adding both would leave a strip of dead space. */
     inset-block-end: calc(
       var(--app-space-8) + max(var(--app-safe-bottom), var(--app-keyboard))
     );
     margin-block-start: 0;
   }
-  /* TWO ROWS ON A PHONE (user call, 2026-08-18): the quick fields go on a line
-     of their OWN, above the ＋ and the writing.
-
-     On one line they were four 48px targets sharing 360px with a text field,
-     and both lost — the field had barely room for "Cre|" and the icons sat
-     shoulder to shoulder with no room to miss. Wrapped, each keeps its full
-     target and the field gets the whole width.
-
-     Done by WRAPPING, not by a second row in the markup: `order: -1` and a
-     full-width basis put the fields on the first line, so the composer stays
-     one form with one tab order, and the desktop keeps the single row the
-     wireframe draws. */
+  /* TWO ROWS ON A PHONE: the quick fields take a line of their OWN above the
+     ＋ and the input, so each keeps its full target. Done by WRAPPING
+     (`order: -1` + a full-width basis), not a second row in the markup: one
+     form, one tab order, and the desktop keeps its single row. */
   .shell--compact .task-composer {
     flex-wrap: wrap;
-    /* No gap at all between the two lines, and each line only as tall as its
-       controls (below). Two 48px rows one under the other put a finger's worth
-       of air in the middle of a bar that is 344px wide and holds six things
-       (user report, 2026-08-18: "o gap está muito alto"). */
+    /* No gap between the two lines; each line only as tall as its controls. */
     row-gap: 0;
   }
   .shell--compact .task-composer__fields {
@@ -81,12 +57,9 @@
     flex-basis: 100%;
     gap: var(--app-space-4);
   }
-  /* The one place the app's 48px touch minimum is spent on HEIGHT it does not
-     need. These controls are a row of six with the full width to themselves —
-     they keep the 48px in the axis a thumb actually misses in, and give back
-     the vertical, where the only thing above or below either row is the other
-     row of the same bar. (The ＋ states its own 36px square in both layouts —
-     the wireframes draw the same button on the phone and on the desktop.) */
+  /* The 48px touch minimum is kept in the inline axis only: a row of six with
+     the full width, and the only thing above or below is the bar's other row.
+     (The ＋ states its own 36px square in both layouts.) */
   .shell--compact .task-composer__fields .theme-btn--icon {
     min-block-size: 2.25rem;
     block-size: 2.25rem;
@@ -95,15 +68,13 @@
   /* …and the screen keeps its last card clear of it. Only where there IS one:
      a screen with no composer must not reserve room for one. */
   .shell--compact .shell__content:has(.task-composer--bar) {
-    /* Two rows now, so the room reserved for the bar grew by one. */
+    /* Room for the bar's two rows. */
     padding-block-end: calc(7.5rem + var(--app-safe-bottom));
   }
 
   /* ---- the grab handle (the bar that can be put away) ----
-     The Home's on-demand bar grows the panels' own handle across its top:
-     pull it down to dismiss, tap it to close — the sheet's exact pact
-     (sheet.css, BottomSheet.svelte). Only drawn when the composer has an
-     `onDismiss`; the permanent bars have no handle to find. */
+     Pull down to dismiss, tap to close — the sheet's pact (sheet.css,
+     BottomSheet.svelte). Only drawn when the composer has an `onDismiss`. */
   .task-composer__handle {
     /* Above the fields row (order -1) in the compact wrap, and a line of its
        own at any width. */
@@ -134,11 +105,10 @@
   .task-composer__handle:focus-visible .task-composer__grip {
     background: var(--app-brand);
   }
-  /* Follows the drag (TaskComposer.svelte). Zero except while a pointer is
-     pulling it down, so the bar is where it belongs the rest of the time. */
+  /* Follows the drag (TaskComposer.svelte): zero except while a pointer is
+     pulling it. */
   .task-composer--bar {
-    /* Down under a finger on the handle; sideways under a mouse on the bar
-       (TaskComposer.svelte, 2026-09-07). */
+    /* Down under a finger on the handle; sideways under a mouse on the bar. */
     translate: var(--composer-slid, 0rem) var(--composer-pulled, 0rem);
     transition: translate var(--app-transition-medium);
   }
@@ -148,8 +118,7 @@
     transition: none;
   }
   /* The handle belongs to the phone: the wide shell never opens this bar on
-     demand, and in its single-row layout a full-width handle would squeeze
-     the row instead of topping it. */
+     demand, and a full-width handle would squeeze its single row. */
   .shell:not(.shell--compact) .task-composer__handle {
     display: none;
   }
@@ -160,19 +129,15 @@
     border-color: transparent;
   }
 
-  /* The square that opens the row: the card checkbox, on the card checkbox's
-     x, worn by something that is not a control. It carries the LOOK from
-     `.theme-checkbox` and has to give back the two things that class assumes
-     about an input — a hand cursor and a hit area — because there is nothing
-     here to click. */
+  /* The card checkbox worn by something that is not a control: it keeps the
+     LOOK of `.theme-checkbox` and gives back the cursor and the hit area. */
   .task-composer__mark {
     pointer-events: none;
     cursor: default;
   }
 
-  /* The submit, and the one filled-brand plate on a Tasks screen (wireframe,
-     2026-08-20). Square, 36px, radius 8 — the ＋ is the whole label, so the
-     button's own padding goes and the box is stated instead. */
+  /* The submit, the one filled-brand plate on a Tasks screen. The ＋ is the
+     whole label, so the box is stated instead of the button's padding. */
   .task-composer__add {
     flex-shrink: 0;
     inline-size: 2.25rem;

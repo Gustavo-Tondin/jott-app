@@ -1,14 +1,8 @@
 /* day-head.css — the Home's head: the place, the month, a week of days and
- * the day's one line. Markup: src/lib/components/DayHead.svelte. Selectors
- * are the stable BEM hooks a theme may restyle; components read tokens only.
- *
- * Wireframes "Home Screen Desktop" and "Home Screen Mobile - default /
- * overview / Scrolled Down" (2026-09-04). Measured off the desktop SVG: a
- * 700px card of raised surface, 20px radius, 32px of padding; seven 84px
- * cells with the chosen one an 84×84 pill of the brand colour; the title at
- * 28px and the month at 20px on one baseline. On the phone the card is the
- * chrome itself — no surface, no radius, the top bar floating over it — and
- * the days are 44px cells with a 44×70 pill. */
+ * the day's one line. Markup: src/lib/components/DayHead.svelte; selectors are
+ * the BEM hooks a theme may restyle. Desktop: a 700px card, seven 84px cells,
+ * the chosen one an 84×84 pill. Phone: the card IS the chrome — no surface, no
+ * radius, the top bar floating over it — 44px cells and a 44×70 pill. */
 
 @layer components {
   .day-head {
@@ -60,11 +54,10 @@
     align-items: center;
     gap: var(--app-space-4);
   }
-  /* The carrousel (user call, 2026-09-04): three pages a week wide in a
-     scroller that snaps a page at a time, the week on show in the middle.
-     No scrollbar — the arrows, a swipe or a drag are the controls — and no
-     overscroll chaining, so pulling past the end does not drag the page. A
-     finger scrolls it natively; a mouse through actions/dragScroll.js. */
+  /* The carrousel: three pages a week wide, snapping a page at a time, the
+     week on show in the middle. No scrollbar (arrows, swipe or drag), no
+     overscroll chaining. A finger scrolls it natively; a mouse through
+     actions/dragScroll.js. */
   .day-head__scroller {
     flex: 1;
     min-inline-size: 0;
@@ -104,9 +97,8 @@
     display: flex;
     justify-content: center;
   }
-  /* A day: the weekday letter over the number, on a pill that fills only for
-     the chosen one. The whole column is the target — 84px is wide enough
-     that a finger never has to aim. */
+  /* A day: the weekday letter over the number, on a pill filled only for the
+     chosen one. The whole column is the target. */
   .day-head__day {
     display: flex;
     flex-direction: column;
@@ -149,9 +141,8 @@
     color: var(--app-on-brand);
   }
 
-  /* The two arrows that turn the week on the desktop. Quiet until the row is
-     hovered: the wireframe draws none, and a trackpad or a tap on another
-     day is how most weeks will be turned — but a mouse needs a control. */
+  /* The desktop's arrows, quiet until the row is hovered: the wireframe draws
+     none, but a mouse needs a control. */
   .day-head__turn {
     flex: 0 0 auto;
     opacity: 0;
@@ -187,21 +178,14 @@
   }
 }
 
-/* =============================================================================
-   THE COMPACT SHAPE (below 768px, wireframes "Home Screen Mobile").
-   The head IS the chrome above the canvas: no card, no radius, the ground of
-   the region it declares, and room at the top for the bar that floats over it
-   (shell.css reserves the same height for an open note).
-   ============================================================================= */
+/* ---- THE COMPACT SHAPE (below 768px) ----
+   The head IS the chrome above the canvas: no card, no radius, and room at the
+   top for the bar that floats over it (shell.css reserves the same for a note). */
 @layer components {
-  /* THE SECTION HAS NO BOX OF ITS OWN ON A PHONE (2026-09-07): `display:
-     contents` puts its children straight into the scroller, which is what
-     lets each of them be STICKY against the scroller rather than against a
-     parent that scrolls away with it. The paddings the section carried
-     move to the children; the ground is the chrome's, showing through.
-     `flex: none` on every child: the scroller is a column, and a column
-     shrinks what does not fit — the row lost 17px to the sheet in the
-     prototype before the sheet had even moved. */
+  /* No box of its own on a phone: `display: contents` puts the children
+     straight into the scroller, so each can be STICKY against it. The
+     section's paddings move to the children. `flex: none` on every child:
+     the scroller is a column, and a column shrinks what does not fit. */
   .day-head--compact {
     display: contents;
   }
@@ -210,29 +194,11 @@
     padding-inline-start: calc(var(--app-space-12) + var(--app-safe-left));
     padding-inline-end: calc(var(--app-space-12) + var(--app-safe-right));
   }
-  /* THE SHEET, IN THREE ACTS (DayHead.svelte tells them; the reference the
-     user sent, 2026-09-07: a dark head that does not scroll, a light sheet
-     that slides up over it and, reaching the title, takes it into its own
-     ink). Everything here is `position: sticky` and flow — nothing is
-     moved by script on scroll, because a scroll event lands a frame after
-     the compositor has moved the page, and a page moved back by script
-     fights the finger (measured on device, 2026-09-07).
-
-     The row, the fold and the handle stick at the top of the scroller, one
-     under the other, and NEVER let go: the sheet (shell.css, z-index 2)
-     rides up over them, and from the moment it covers the row they are
-     simply out of sight underneath it. The row has no z-index of its own,
-     so the sheet wins; it has no ground of its own, so the fold behind the
-     letters is the chrome's until the sheet's ground has risen there.
-
-     THE ROW IS DRAWN TWICE. This one, on the chrome, in the chrome's ink;
-     and a copy inside the sheet (App.svelte → DayTitle.svelte,
-     `.day-head__top--sheet` below), in the canvas's ink, pinned at the very
-     same spot and clipped to the sheet's box. As the ground rises through
-     the row, it hides this copy and reveals that one along the same edge,
-     pixel by pixel — the title enters the canvas (user call, 2026-09-07:
-     "pixel a pixel, na borda do chão"). No region is flipped, no colour
-     transitions, and no script decides where the middle of the title is. */
+  /* THE SHEET, IN THREE ACTS (DayHead.svelte). Everything here is `sticky`
+     and flow — nothing is moved by script on scroll; see
+     docs/platform-gotchas.md#webview-e-gestos. Row, fold and handle stick at
+     the scroller's top and NEVER let go: the sheet (shell.css, z-index 2)
+     rides over them, so the row carries no z-index and no ground of its own. */
   .day-head--compact .day-head__top {
     position: sticky;
     inset-block-start: 0;
@@ -240,38 +206,21 @@
     background: transparent;
     color: var(--app-ink);
   }
-  /* The page's resting place at its start, chrome open. The snap point
-     lives on this empty, static box and not on the sticky row: a snap area
-     is the element's box AFTER it has been stuck or moved, and a page
-     snapping to a target that travels with it chased its own tail (the old
-     row carried both a translate and the snap, and the chrome "closed by
-     itself"). With the sheet's own top as the other point (shell.css), a
-     pull that ends nearer the top settles here and STAYS. */
+  /* The page's resting place at its start, chrome open. The snap point lives
+     on this empty, static box and never on the sticky row: a snap area is the
+     box AFTER it has been stuck, and a target that travels with the page
+     chases its own tail. The sheet's top is the other point (shell.css). */
   .day-head__anchor {
     block-size: 0;
     padding: 0;
     scroll-snap-align: start;
   }
-  /* THE COPY IN THE SHEET. Its band is a box twice the row's height that
-     starts one row ABOVE the sheet's top edge, laid out of the flow so the
-     cards do not move down to make room. The copy is sticky at the top of
-     the scroller inside that band, which gives it exactly three positions:
-     above the sheet while the sheet is still low (clipped away, unseen); at
-     the top of the screen — the same spot as the chrome's row — from the
-     moment the sheet's top edge reaches the row until it reaches the top of
-     the screen (the band still has room below, so the copy may stay); and
-     from then on pushed up by the band's own end, that is, riding away at
-     the sheet's top edge with the cards. Where the band begins is `--row-h`,
-     the chrome row's measured height, which DayHead.svelte writes on the
-     scroller; the two copies coincide by both being stuck at the top, not
-     by that number, so a fraction of a pixel in it costs nothing.
-
-     `overflow: clip` on the sheet (shell.css) is the mask. `clip`, never
-     `hidden`: hidden would make the sheet a scroll container, and a sticky
-     box sticks to the NEAREST scroll container — the copy would pin to the
-     sheet instead of the screen and never hold still. The band lets taps
-     through to the cards; the copy itself still answers one, because once
-     the sheet is full it is the title under the finger. */
+  /* THE ROW IS DRAWN TWICE: the chrome's above, and a copy in the sheet
+     (DayTitle.svelte), clipped to the sheet's box, so the rising ground swaps
+     one for the other along the same edge. The band starts one row ABOVE the
+     sheet's top, is two rows tall and out of flow; the copy is sticky inside
+     it, so it holds at the top until the band's end pushes it up. The copies
+     coincide by both being stuck, not by `--day-head-row`'s exact value. */
   .day-head__band {
     position: absolute;
     inset-block-start: calc(-1 * var(--day-head-row));
@@ -279,6 +228,8 @@
     block-size: calc(2 * var(--day-head-row));
     pointer-events: none;
   }
+  /* Sticks to the NEAREST scroll container: the sheet's mask must be
+     `overflow: clip`, never `hidden` (shell.css). */
   .day-head__top--sheet {
     position: sticky;
     inset-block-start: 0;
@@ -296,16 +247,10 @@
     flex-direction: column;
     gap: var(--app-space-16);
   }
-  /* THE FOLD AND THE HANDLE STAY PUT while the canvas rides up over them
-     (the reference the user sent, 2026-09-07: a dark head that does not
-     scroll, a light sheet that slides up over it and, reaching the title,
-     takes it into its own ink). Both are sticky — the fold under the row,
-     the handle under the fold — one layer BELOW the canvas (shell.css lifts
-     the canvas to 2), as the row is. `sticky` also gives the
-     boxes inside a containing block, so `offsetTop` measures against the
-     fold and not against the scroller (which put the row's height into
-     every level — measured on device); `flex: none`, so the scroller's
-     column never shrinks the fold below the height it was given. */
+  /* The fold and the handle stay put while the canvas rides up over them:
+     sticky, one under the other, one layer BELOW the canvas (shell.css lifts
+     it to 2). `sticky` also makes the fold a containing block, so `offsetTop`
+     measures against it and not the scroller. `flex: none`: never shrunk. */
   .day-head--compact .day-head__fold {
     position: sticky;
     inset-block-start: var(--day-head-row);
@@ -351,9 +296,7 @@
   .day-head--compact .day-head__number {
     font-size: var(--app-text-20);
   }
-  /* Two lines: the greeting on its own, then the box and the count together
-     (user call, 2026-09-07: "o ícone e o x of y tasks done deveria estar na
-     mesma linha"). */
+  /* Two lines: the greeting on its own, then the box and the count together. */
   .day-head--compact .day-head__summary {
     flex-wrap: wrap;
     align-items: center;
@@ -365,20 +308,16 @@
   .day-head--compact .day-head__greeting {
     flex-basis: 100%;
   }
-  /* Folded to one line (level 0, 2026-09-07): the name on the left and the
-     day on the right, the week gone. The date takes the month's place and
-     the month's size, with the weekday under it in the muted ink — the same
-     two lines the sticky bar used to draw on the canvas, now on the chrome
-     where the head already is. */
+  /* Folded to one line (level 0): the name left, the day right, the week
+     gone. The date takes the month's place and size, the weekday under it. */
   .day-head__date {
     display: flex;
     flex-direction: column;
     align-items: flex-end;
     line-height: 1.2;
   }
-  /* The right side of the row, at the two-line date's height whether it
-     holds the date or the month — so the row never changes height
-     (DayHead.svelte says what that cost). */
+  /* The right side of the row, at the two-line date's height whether it holds
+     the date or the month, so the row never changes height (DayHead.svelte). */
   .day-head--compact .day-head__aside,
   .day-head__top--sheet .day-head__aside {
     display: grid;

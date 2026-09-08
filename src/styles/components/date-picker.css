@@ -7,15 +7,14 @@
     position: relative;
     display: inline-flex;
   }
-  /* The trigger is a filled pill (like the old field), but a button. */
+  /* The trigger is a filled pill, but a button. */
   .date-picker__value {
     text-align: center;
   }
 
-  /* The popup floats below the field, anchored to its right edge. The right
-     panel is ~240px and the inspector clips overflow (its overflow-y:auto
-     forces overflow-x to clip too), so the popup has to fit inside that width
-     — 13rem leaves the Sunday column room instead of being cut off. */
+  /* Anchored to the field's right edge. The right panel is ~240px and the
+     inspector's overflow-y:auto clips x too, so the popup must fit inside
+     that width — 13rem leaves the Sunday column room. */
   .date-picker__pop {
     width: 13rem;
     padding: var(--app-space-6);
@@ -85,16 +84,10 @@
     font-weight: var(--app-weight-semibold);
   }
 
-  /* THE SMALLEST TARGET IN THE APP, on a finger (2026-08-20). The 13rem above
-     is bought from the right panel's width, and it buys 26px days: 208px less
-     12px of padding less six 2px gaps, over seven columns. A day cell is
-     square by `aspect-ratio`, so it is the PANEL that has to grow — a minimum
-     on the cell alone would give tall cells in narrow columns.
-
-     The 240px ceiling the desktop obeys is not there below 768px: the
-     inspector that clipped this popup is a bottom sheet the width of the
-     screen (components/sheet.css). So the panel takes what the screen has,
-     short of both walls, and the days land at ~42px. */
+  /* The smallest target in the app on a finger: 13rem buys 26px days. The
+     cell is square by `aspect-ratio`, so it is the PANEL that grows — a
+     minimum on the cell alone gives tall cells in narrow columns. Below
+     768px the inspector is a full-width sheet, so the panel takes the screen. */
   @media (pointer: coarse) {
     .date-picker__pop {
       width: min(20rem, 88vw);

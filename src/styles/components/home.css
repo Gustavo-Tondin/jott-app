@@ -1,11 +1,7 @@
 /* home.css — the visual layer of HomeView.svelte, and the Home's + the shell
- * floats over it.
- * Markup: src/lib/screens/HomeView.svelte (and the `.home-fab` in
- * App.svelte). Selectors are the stable BEM hooks a theme may restyle;
- * components read tokens only.
- *
- * Wireframes "Home Screen Desktop" and "Home Screen Mobile" (2026-09-04):
- * the head (day-head.css) at the top, two centred blocks under it with a
+ * floats over it. Markup: src/lib/screens/HomeView.svelte (and `.home-fab`
+ * in App.svelte). Selectors are the stable BEM hooks a theme may restyle.
+ * The head (day-head.css) at the top, two centred blocks under it with a
  * rule between, and a round + floating in the bottom corner. */
 
 @layer components {
@@ -15,22 +11,16 @@
     gap: var(--app-space-32);
   }
 
-  /* The head scrolls away with the page (user call, 2026-09-07). It was
-     pinned at the top of the scroller from 2026-09-04 to here — sticky, on
-     the canvas's own ground, reaching back over the panel's top padding so
-     the cards passed under a solid band. On the desktop there is room for
-     the whole page, and a head that stays costs a third of it; the phone's
-     head is another thing entirely (the sheet, in day-head.css) and is
-     drawn by the App, not by this wrapper. Nothing is left to declare. */
+  /* The head scrolls away with the page, never sticky; on the phone it is the
+     sheet in day-head.css, drawn by the App. Nothing to declare here. */
 
   .home__block {
     display: flex;
     flex-direction: column;
     gap: var(--app-space-12);
   }
-  /* Centred heading with the ⋮ at the far right, matching the tasks block
-     above it (2026-08-13 wireframe). The mirrored ⋮ on the left is what makes
-     "centred" mean centred on the PANEL — see the markup. */
+  /* Centred heading with the ⋮ at the far right; the mirrored ⋮ on the left
+     is what makes "centred" mean centred on the PANEL. */
   .home__block-header {
     display: flex;
     align-items: center;
@@ -53,10 +43,9 @@
     border-top: 0.125rem solid var(--app-ink-faint);
     margin: 0;
   }
-  /* Today's notes are the notes BOARD, in miniature (2026-08-19): the same
-     card (note-card.css) in the same masonry the notes screen flows in.
-     .home__notes is the shared .theme-note-board (controls/layout.css). The empty
-     state is the shared .theme-empty-card. */
+  /* Today's notes are the notes board in miniature: `.home__notes` is the
+     shared .theme-note-board (controls/layout.css), the empty state the
+     shared .theme-empty-card. */
 
   /* A day gone by: the log's three lines (timeline-lines.css), in the
      reading column the Timeline keeps. */
@@ -65,10 +54,8 @@
   }
 
   /* ---- the + (both shells) ----
-     Round, brand, in the bottom corner of the canvas (wireframes, 2026-09-04)
-     — the verb of the screen, and the one loud thing on it. Absolute in
-     `.shell__canvas`, which is the box every floating control is measured
-     from (shell.css says why); 64px, comfortably past what a finger needs. */
+     Absolute in `.shell__canvas`, the box every floating control is measured
+     from (shell.css); comfortably past what a finger needs. */
   .home-fab {
     position: absolute;
     inset-block-end: var(--app-space-24);
@@ -81,21 +68,15 @@
      (capture-fab.css) — this is only where it sits and how big. */
 }
 
-/* =============================================================================
-   THE COMPACT SCREEN (below 768px, wireframes "Home Screen Mobile").
+/* ---- THE COMPACT SCREEN (below 768px) ----
    The head is the shell's, on the chrome above this canvas, and it scrolls
-   away with the page. Nothing stands in for it once it has (user call,
-   2026-09-07, "sem barra grudada"): the sticky bar that used to take its
-   place also took ~100px of the canvas's top while hidden, and the cards
-   scrolled behind the floating buttons above it.
-   ============================================================================= */
+   away with the page; nothing stands in for it once it has. */
 @layer components {
   .home--compact {
     gap: var(--app-space-24);
   }
-  /* The + floats over the phone's screen, clear of the gesture bar; the
-     canvas grows with the page there, so the corner has to be the
-     viewport's. */
+  /* Clear of the gesture bar; the canvas grows with the page on the phone,
+     so the corner has to be the viewport's. */
   .shell--compact .home-fab {
     position: fixed;
     inset-block-end: calc(var(--app-space-24) + var(--app-safe-bottom));

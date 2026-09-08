@@ -11,15 +11,10 @@
     will-change: transform;
   }
 
-  /* The one being carried: it tracks the pointer 1:1 (no transition), lifts a
-     little, and rides above its neighbours as it passes them.
-
-     The action takes it OUT OF FLOW while it is carried (`position: fixed`,
-     set inline, with a placeholder holding its place) — every list the app
-     drags in lives inside something that scrolls, and a scroller clips what
-     leaves it. So the z-index here has to clear the page, not just its own
-     siblings; it stays under the dialogs (100) and the popovers (200), which
-     is where a carried card belongs. */
+  /* The carried one: tracks the pointer 1:1, lifts, rides above its
+     neighbours. The action takes it OUT OF FLOW (`position: fixed`, inline,
+     with a placeholder) because every list lives in a scroller that clips —
+     so the z-index clears the page; under the dialogs (100), popovers (200). */
   .reorder-item--carried {
     transition: none;
     z-index: 60;
@@ -29,18 +24,10 @@
        cannot say by moving. */
     box-shadow: var(--app-shadow-popover);
   }
-  /* ON A TOUCH SCREEN THE ITEM ALSO GROWS (user call, 2026-08-19: "seria bom
-     ter um delay e indicativo no mobile"). A finger has to REST on an item to
-     pick it up now (reorder.js, HOLD_MS), and the moment it is picked up is
-     the moment nothing has moved yet — so without this the screen says nothing
-     at all until the hand moves, and the wait reads as the app ignoring it.
-
-     `scale` and not `transform`: the action writes `transform` every frame to
-     follow the finger, and the two are separate properties the browser
-     composes — so the lift survives the drag instead of being overwritten by
-     its first move. A pointer needs none of this: the cursor already turned
-     into a grabbing hand, and the drag begins on movement rather than on
-     time. */
+  /* ON A TOUCH SCREEN THE ITEM ALSO GROWS: a finger has to REST on an item to
+     pick it up (reorder.js, HOLD_MS), and nothing has moved at that moment.
+     `scale`, not `transform`: the action writes `transform` every frame, and
+     the two compose — so the lift survives the first move. */
   @media (pointer: coarse) {
     .reorder-item--carried {
       scale: 1.03;
@@ -53,27 +40,24 @@
     break-inside: avoid;
   }
 
-  /* The item the drop will go INTO, rather than next to (`onDropInto`,
-     2026-08-06): a ring instead of a gap, because nothing is making room —
-     the carried item is about to become part of this one. */
+  /* The item the drop goes INTO, rather than next to (`onDropInto`): a ring
+     instead of a gap, because nothing is making room. */
   .reorder-item--into {
     outline: 0.125rem solid var(--app-brand);
     outline-offset: 0.0625rem;
     border-radius: var(--app-radius-md);
   }
 
-  /* Carried FREE of its list (Ctrl held, 2026-08-26): on its way to a space
-     in the sidebar or to the Home. Above everything, and the panels it
-     crosses must not catch it. */
+  /* Carried FREE of its list (Ctrl held): on its way to the sidebar or the
+     Home. Above everything, and the panels it crosses must not catch it. */
   .reorder-item--free {
     z-index: 1000;
     pointer-events: none;
     cursor: grabbing;
   }
 
-  /* Carried clear of its list: it is about to LEAVE it (a space dragged
-     out of a group). A dashed edge rather than the solid ring of `--into` —
-     one says "this receives it", the other says "this is on its way out". */
+  /* About to LEAVE its list (a space dragged out of a group). Dashed where
+     `--into` is solid: one receives, the other is on its way out. */
   .reorder-item--leaving {
     outline: 0.125rem dashed var(--app-brand);
     outline-offset: 0.125rem;
@@ -81,10 +65,9 @@
     opacity: 0.75;
   }
 
-  /* A grip: the handle a row is dragged by (rows, unlike tabs, are clicked to
-     open, so the drag needs its own surface). Hidden until its row is hovered —
-     each row reveals it in its own stylesheet (`.<row>:hover .reorder-grip`),
-     since the row class differs and top-level hooks stay class-first here. */
+  /* A grip: the drag handle of a row that is clicked to open. Hidden until
+     its row is hovered — each row reveals it in its own sheet
+     (`.<row>:hover .reorder-grip`), since top-level hooks stay class-first. */
   .reorder-grip {
     display: inline-flex;
     align-items: center;
@@ -104,9 +87,7 @@
   }
 
   /* ---- the pile (a selection carried together) ----
-     The ones that travel with the carried item stay in their slots, dimmed
-     and a hair smaller — they are spoken for, and the eye reads them as the
-     rest of what is in the hand. */
+     The ones travelling with the carried item stay in their slots, dimmed. */
   .reorder-item--stacked {
     opacity: 0.35;
     scale: 0.97;
@@ -114,10 +95,8 @@
       opacity var(--app-transition-fast),
       scale var(--app-transition-fast);
   }
-  /* The carried one wears the pile: two sheets peeking out under it, and the
-     count in the corner. The sheets are box-shadows in the surface and line
-     colours of the region, so the pile is made of the same paper as the card.
-     Only with more than one in hand — a single card carries no pile. */
+  /* The carried one wears the pile: two sheets (box-shadows in the region's
+     surface and line colours) and the count. Only with more than one in hand. */
   .reorder-item--carried[data-carry]:not([data-carry="1"]) {
     box-shadow:
       0 0.25rem 0 -0.0625rem var(--app-line),

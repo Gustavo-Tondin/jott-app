@@ -1,18 +1,7 @@
-/* app.css — the aggregator, and nothing else. It sets the cascade order once
-   (@layer) and imports every stylesheet in that order. No rules live here.
-
-   Cascade order, weakest → strongest:
-     reset       browser normalisation            (styles/reset.css)
-     tokens      the design values                (styles/tokens.css)
-     base        element defaults reading tokens  (styles/base.css)
-     components  the stable BEM/theme-* hooks     (styles/controls/*.css,
-                                                   styles/components/*.css)
-     utilities   one-off helpers
-     overrides   escape hatch
-
-   The factory theme (styles/modes/jott.css) — and any user theme loaded
-   after it — is imported UNLAYERED, so it wins over every layer above
-   without a specificity fight. See docs/project-strategy.md 4.5. */
+/* app.css — the aggregator: sets the cascade order once (@layer) and imports
+   every sheet in it. No rules live here. Weakest → strongest: reset · tokens ·
+   base · components · utilities · overrides; the modes come last and
+   UNLAYERED, so they win over every layer without a specificity fight. */
 
 @layer reset, tokens, base, components, utilities, overrides;
 
@@ -22,9 +11,8 @@
    `:root` so the same bytes can be written into a notebook; the layer comes
    from here. */
 @import "./styles/themes/jott.css" layer(tokens);
-/* roles.css holds the two things a theme does not repeat: the roles that are
-   the same everywhere, and which of the seven the app accent is. It sits in
-   `base` because it is app structure, not look. See its header. */
+/* roles.css: what a theme does not repeat, in `base` because it is app
+   structure, not look. */
 @import "./styles/roles.css";
 @import "./styles/base.css";
 /* The shared `.theme-*` controls, one family per sheet. */
@@ -36,8 +24,7 @@
 @import "./styles/controls/feedback.css";
 @import "./styles/controls/motion.css";
 
-/* Component blocks (one file per BEM block) land here as each one leaves its
-   component's <style> — Fase 10, lote B. */
+/* Component blocks, one file per BEM block. */
 @import "./styles/components/window.css";
 @import "./styles/components/shell.css";
 @import "./styles/components/pull-search.css";
@@ -99,16 +86,10 @@
    of them wrote, once the pointer turns out to be a finger. */
 @import "./styles/touch.css";
 
-/* The themes come last and UNLAYERED: they must win over every layer above
-   without a specificity fight.
-
-   ALL THREE MODES ship, and `data-mode` on <html> picks (services/themes.js):
-   jott (black frame, white page), light, dark. One attribute, no dynamic
-   import, no flash. Each file scopes every selector to its own name, so
-   importing them all is inert except for the one that matches. A mode reads
-   the THEME's tokens (`--theme-color-*`) and writes the APP's (`--app-*`);
-   a theme of the notebook (`.jott/themes/<name>.css`) is injected at the end
-   of <head> by shell/userTheme.js and may redefine either layer. */
+/* The modes come last and UNLAYERED. All three ship; `data-mode` on <html>
+   picks (services/themes.js) and each file scopes every selector to its own
+   name, so the others are inert. A notebook theme (`.jott/themes/<name>.css`)
+   is injected at the end of <head> by shell/userTheme.js and may redefine either layer. */
 @import "./styles/modes/jott.css";
 @import "./styles/modes/light.css";
 @import "./styles/modes/dark.css";

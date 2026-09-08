@@ -33,8 +33,7 @@
   .tabs__item {
     position: relative;
     flex: 0 1 auto;
-    /* A floor so a tab always reads as a card against the bar, a hairline for
-       the same reason (user call, 2026-08-04); the ceiling as before. */
+    /* A floor so a tab always reads as a card against the bar. */
     min-width: 8rem;
     max-width: 12rem;
     height: 1.75rem;
@@ -45,30 +44,22 @@
     /* No vertical padding: the fixed height plus align-items:center is what
        keeps the label centred in the bar. */
     padding-inline: var(--app-space-10);
-    /* The strip belongs to the PANEL, not to the frame it is drawn in
-       (2026-08-13 wireframes). An open tab is the panel's top edge showing
-       through the chrome — literally the canvas ground — and a closed one sits
-       exactly halfway between the two grounds, so the row reads as documents
-       rising out of the frame toward the one that is open. In the factory
-       theme that midpoint is the grey between black and white; in the all-light
-       and all-dark themes the two grounds are a step apart, so the same rule
-       produces a whisper instead of a jump. One formula, three themes. */
+    /* The strip belongs to the PANEL: an open tab is the canvas ground showing
+       through the chrome, a closed one sits halfway between the two grounds.
+       One formula, three themes — where the grounds are a step apart the
+       same rule produces a whisper instead of a jump. */
     background: color-mix(in srgb, var(--app-canvas-ground) 55%, var(--app-bg));
     border: none;
     border-radius: var(--app-radius-sm);
-    /* The CANVAS's ink, muted — not the chrome's faint grey (user report,
-       2026-08-13: unreadable). The tab is made of canvas material, and in the
-       factory theme that material is light, so the frame's pale ink landed
-       grey-on-grey. Reading the ink from the same ground the fill comes from
-       is what keeps the label legible in all three themes. */
+    /* The CANVAS's ink, muted — never the chrome's faint grey: the tab is
+       made of canvas material, and the frame's pale ink lands grey-on-grey
+       on it. Ink and fill read from the same ground. */
     color: color-mix(in srgb, var(--app-canvas-ink) 60%, transparent);
     transition:
       background var(--app-transition-fast),
       color var(--app-transition-fast);
   }
-  /* A closed tab rises a little towards the open one's ground under the
-     pointer — the row reads as documents rising out of the frame, and hover
-     is the one that is about to. */
+  /* Hover: a closed tab rises a little towards the open one's ground. */
   .tabs__item:hover:not(.tabs__item--active) {
     background: color-mix(in srgb, var(--app-canvas-ground) 75%, var(--app-bg));
   }
@@ -79,14 +70,10 @@
     font-weight: var(--app-weight-bold);
   }
 
-  /* The space dot: a .theme-dot (per-tab --dot, set inline by dotStyle),
-     the theme brand when the view comes from a fixed space. Full strength on
-     every tab (2026-08-13 wireframe) — the dot is the only thing naming WHERE
-     a closed tab comes from, and fading it left the row of closed tabs
-     looking identical. Only the size is the tab's own.
-     NOTE the colour resolves against the CHROME (the strip's region), while
-     the tab's fill comes from the canvas. On a mid-grey closed tab that is
-     the readable half. */
+  /* The space dot: a .theme-dot (per-tab --dot from dotStyle; the brand for
+     a fixed space). Full strength on every tab — it is the only thing naming
+     WHERE a closed tab comes from. NOTE the colour resolves against the
+     CHROME while the fill comes from the canvas; that is the readable half. */
   .tabs__dot {
     --dot-size: var(--app-space-6);
   }
@@ -112,10 +99,9 @@
     text-overflow: ellipsis;
   }
 
-  /* Both are .theme-btn--icon; only their tight-fit sizing is their own
-     (the shared padding would outgrow the 28px tab strip). */
-  /* Both × read against the CANVAS, for the same reason the label does: they
-     are inside a tab, and a tab is made of the panel's material. */
+  /* .theme-btn--icon; only the tight-fit sizing is its own (the shared
+     padding would outgrow the 28px strip). The × reads against the CANVAS,
+     like the label: a tab is made of the panel's material. */
   .tabs__close {
     flex-shrink: 0;
     padding: var(--app-space-2);
@@ -138,15 +124,10 @@
   }
 }
 
-/* =============================================================================
-   THE TAB SHEET (below 768px — "Mobile - tab panel").
-
-   The same tabs, stacked. A strip works because a desktop window is wide and a
-   tab only has to be recognised, not read; on a phone three tabs on a strip
-   are three truncated glyphs, so they become rows with room for their names.
-   Measured off the SVG: 46px rows, a 10px dot at the left wall, the × at the
-   right, and a full-width "New tab" under them.
-   ============================================================================= */
+/* ---- THE TAB SHEET (below 768px) ----
+   The same tabs, stacked: on a phone three tabs on a strip are three
+   truncated glyphs, so they become rows with room for their names, and a
+   full-width "New tab" under them. */
 @layer components {
   .tabs--compact {
     flex-direction: column;
@@ -169,11 +150,9 @@
     gap: var(--app-space-12);
     padding-inline: var(--app-space-12);
     border-radius: var(--app-radius-md);
-    /* The sheet's RAISED step, not its ground. A sheet swaps the region's two
-       neutrals so that what it holds has somewhere to rise to (themes/*.css),
-       and a row painted `--app-bg` in here is painted the sheet itself —
-       which is how the whole stack came out as one flat wash (user report,
-       2026-08-18). The wireframe draws exactly this: white rows on the tint. */
+    /* The sheet's RAISED step, not its ground: a sheet swaps the region's two
+       neutrals (themes/*.css), and a row painted `--app-bg` in here is
+       painted the sheet itself. */
     background: var(--app-surface);
   }
   .tabs--compact .tabs__label {
@@ -201,9 +180,8 @@
     inline-size: 100%;
     min-block-size: var(--app-touch-min);
     border-radius: var(--app-radius-md);
-    /* SOLID ink, the one filled thing in the sheet (wireframe "Mobile - tab
-       panel"): it is the sheet's only verb, and as another pale row it read as
-       a fourth tab that happened to say "new tab". */
+    /* SOLID ink, the one filled thing in the sheet: it is the sheet's only
+       verb, and as another pale row it reads as a fourth tab. */
     background: var(--app-ink);
     color: var(--app-bg);
     font-size: var(--app-text-16);

@@ -1,35 +1,26 @@
 /* notebooks.css — the visual layer of NotebooksView.svelte.
- * Markup: src/lib/screens/NotebooksView.svelte. Selectors are the stable BEM hooks a theme
- * may restyle; components read tokens only.
- *
- * The screen is in the CHROME region: with no notebook open there is no
- * content panel to declare a canvas, so the picker stands on the window's own
- * ground — which is what the wireframes draw, a black screen with one raised
- * panel on it. */
+ * Markup: src/lib/screens/NotebooksView.svelte. Selectors are the stable BEM
+ * hooks a theme may restyle. The screen is in the CHROME region: with no
+ * notebook open there is no content panel to declare a canvas. */
 
 @layer components {
-  /* Three bands down the window: the logo, the list, the two ways in. The
-     middle one takes what is left, so the choices sit on the floor of the
-     window at any height rather than following a list that grew. */
+  /* Three bands: the logo, the list, the two ways in. The middle one takes
+     what is left, so the choices sit on the floor of the window. */
   .notebooks {
     block-size: 100%;
     display: flex;
     flex-direction: column;
     gap: var(--app-space-24);
     padding: var(--app-space-32);
-    /* The screen draws no bar of its own — no title bar on a phone, and only
-       the window buttons on the desktop — so it is the thing that has to clear
-       the system's strips. Everywhere else in the app that is the top bar's
-       job (styles/components/topbar.css). */
+    /* The screen draws no bar of its own, so it clears the system's strips
+       itself; everywhere else that is the top bar's job (topbar.css). */
     padding-block-start: calc(var(--app-space-32) + var(--app-safe-top));
     padding-block-end: calc(var(--app-space-32) + var(--app-safe-bottom));
     padding-inline-start: calc(var(--app-space-32) + var(--app-safe-left));
     padding-inline-end: calc(var(--app-space-32) + var(--app-safe-right));
   }
 
-  /* Nothing remembered yet: no panel, and the whole group rides in the middle
-     of the window instead of the logo sitting at the top of an empty screen
-     (wireframe "Empity Notebooks screen"). */
+  /* Nothing remembered yet: no panel, the whole group rides in the middle. */
   .notebooks--empty {
     justify-content: center;
     gap: var(--app-space-48);
@@ -42,19 +33,15 @@
     align-items: center;
     gap: var(--app-space-4);
   }
-  /* The wordmark is authored white and rewritten to `fill: currentColor`, so
-     what sizes it is the box around it — the same pact the title bar keeps
-     (titlebar.css). Width, never height: the file's own ratio decides the
-     rest. */
+  /* The wordmark is `fill: currentColor`, sized by the box around it (the
+     title bar's pact). Width, never height: the file's own ratio decides. */
   .notebooks__wordmark svg {
     display: block;
     inline-size: 11rem;
     block-size: auto;
   }
-  /* The screen's own ⋮, pinned to the top corner of the band the logo is
-     centred in — so the logo stays centred on the WINDOW and not on what is
-     left beside a button. Absolute for that reason alone; the brand band is
-     the positioned ancestor. */
+  /* Absolute so the logo stays centred on the WINDOW, not on what is left
+     beside a button; the brand band is the positioned ancestor. */
   .notebooks__screen-menu {
     position: absolute;
     inset-block-start: 0;
@@ -67,9 +54,8 @@
     color: var(--app-ink-muted);
   }
 
-  /* The raised panel the list sits in. It takes the leftover height and
-     scrolls inside itself: the choices at the bottom are the two things always
-     reachable, and a list of twenty notebooks must not push them off screen. */
+  /* Takes the leftover height and scrolls inside itself: a long list must
+     not push the two choices below off screen. */
   .notebooks__panel {
     flex: 1;
     min-block-size: 0;
@@ -82,9 +68,6 @@
     overflow-y: auto;
   }
 
-  /* A label, not a title: it names what the panel is FOR. Monospaced, tracked
-     and upper-cased, which is how the wireframe draws it and the first reader
-     of `--app-tracking-wide`. */
   .notebooks__heading {
     margin: 0;
     padding-inline: var(--app-space-8);
@@ -104,15 +87,10 @@
     gap: var(--app-space-8);
   }
 
-  /* THE CARD. The colour is the notebook's own, written on the row by the
-     markup as `--notebook-color` (services/accent.js → `accentSolid`), and it
-     is a SOLID fill that carries text — see the `--app-*-solid` block in
-     styles/roles.css for why that is a role of its own and why the ink over it
-     is fixed rather than the region's.
-
-     On the row and not on the button inside it: the ⋮ shares this surface and
-     has to read on it too, and a colour set in two places is a colour that
-     drifts. */
+  /* THE CARD. `--notebook-color` is written on the row by the markup
+     (services/accent.js → `accentSolid`): a SOLID fill that carries text, so
+     the ink over it is fixed (`--app-*-solid`, roles.css). On the row, not on
+     the button inside it: the ⋮ shares this surface. */
   .notebooks__item {
     display: flex;
     align-items: center;
@@ -121,9 +99,8 @@
     color: var(--app-on-solid);
   }
 
-  /* The whole row opens the notebook; the ⋮ beside it is the only part that
-     does not. Hence a button that fills the row rather than a link on the
-     name — the target is the card, which is what the eye is aiming at. */
+  /* The whole row opens the notebook; the ⋮ is the only part that does not.
+     Hence a button that fills the row rather than a link on the name. */
   .notebooks__card {
     flex: 1;
     min-inline-size: 0;
@@ -141,9 +118,8 @@
   .notebooks__card:active:not(:disabled) {
     scale: 0.995;
   }
-  /* The ring is the card's own ink rather than the accent: the accent IS the
-     card here, and a brand-coloured ring on a brand-coloured surface is not a
-     ring. Inset, because the row has no room outside itself. */
+  /* The ring is the card's own ink: the accent IS the card here. Inset,
+     because the row has no room outside itself. */
   .notebooks__card:focus-visible {
     outline: 0.125rem solid var(--app-on-solid);
     outline-offset: -0.25rem;
@@ -152,9 +128,8 @@
     cursor: default;
   }
 
-  /* Name, and beside it the quiet things: when this machine last opened it,
-     and whether it opens read-only. Baseline-aligned so the small type sits on
-     the name's line and not in the middle of it. */
+  /* Name, then the quiet things (last opened, read-only). Baseline-aligned
+     so the small type sits on the name's line. */
   .notebooks__line {
     display: flex;
     align-items: baseline;
@@ -165,16 +140,14 @@
   .notebooks__name {
     font-size: var(--app-text-16);
     font-weight: var(--app-weight-bold);
-    /* The one thing on the card with no length limit — a folder can be called
-       anything, and the row must not grow a scrollbar over it. */
+    /* A folder can be called anything; the row must not grow a scrollbar. */
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  /* Both quiet lines are the same ink at the same alpha: they are the same
-     kind of remark, and the card has one colour to spend. Alpha rather than a
-     muted role, because the ground here is the notebook's colour and no theme
-     has a muted ink for it. */
+  /* Both quiet lines share one ink at one alpha. Alpha rather than a muted
+     role: the ground is the notebook's colour, and no theme has a muted ink
+     for it. */
   .notebooks__when,
   .notebooks__counts {
     font-size: var(--app-text-12);
@@ -191,8 +164,7 @@
     font-size: var(--app-text-13);
   }
 
-  /* The ⋮ takes the card's ink instead of the region's muted one, for the
-     same reason the two lines above do. */
+  /* The ⋮ takes the card's ink, not the region's muted one. */
   .notebooks__menu {
     flex: none;
     margin-inline-end: var(--app-space-8);
@@ -205,22 +177,16 @@
 
   /* ---- the two ways in ---- */
 
-  /* One row, side by side while there is room and stacked when there is not —
-     which is the mobile wireframe, and a narrow desktop window besides. */
+  /* Side by side while there is room, stacked when there is not. */
   .notebooks__actions {
     display: flex;
     gap: var(--app-space-16);
-    /* Never squeezed by the panel above, and never a source of stretch: these
-       two are the floor of the screen and their height is their own. */
+    /* Never squeezed by the panel above: these two are the floor. */
     flex: none;
   }
-  /* Label at the leading edge, glyph at the trailing one — a wide button is
-     read as a row, and centring both would leave a lake between them.
-     `flex-basis` is on the INLINE axis here because the row is a row; the
-     stacked arrangements below have to say so again, and that is exactly what
-     `flex: 1 1 16rem` got wrong when the same rule met a column (measured in
-     the emulator, 2026-08-24: two buttons 256px tall, and the list of
-     notebooks squeezed to 32px between them). */
+  /* Label at the leading edge, glyph at the trailing one. `flex-basis` is on
+     the INLINE axis because the row is a row; the stacked arrangements below
+     must restate it, or a column reads 16rem as a HEIGHT. */
   .notebooks__action {
     flex: 1 1 16rem;
     justify-content: space-between;
@@ -229,8 +195,7 @@
     border-radius: var(--app-radius-md);
     font-size: var(--app-text-16);
   }
-  /* The second choice is offered, not urged: it sits on the raised surface
-     rather than in the brand colour, the same step the panel above it uses. */
+  /* Offered, not urged: the raised surface rather than the brand colour. */
   .notebooks__action--alt {
     background: var(--app-surface);
     color: var(--app-ink);
@@ -239,9 +204,8 @@
     background: var(--app-hover);
   }
 
-  /* With no list above them the two choices are the whole screen, so they
-     stack and stop short of the window's edges — the wireframe's empty state
-     is a column of two, not a band across the bottom. */
+  /* With no list above them the two choices stack and stop short of the
+     window's edges. */
   .notebooks--empty .notebooks__actions {
     flex-direction: column;
     inline-size: 100%;
@@ -249,34 +213,24 @@
     margin-inline: auto;
   }
 
-  /* STACKED MEANS THE BASIS CHANGES AXIS. In a column `flex-basis` is a
-     HEIGHT, so the row's `1 1 16rem` would ask for two 16rem-tall buttons and
-     grow them from there. Each is its own height here, which `min-block-size`
-     above already sets. */
+  /* STACKED MEANS THE BASIS CHANGES AXIS: in a column `flex-basis` is a
+     HEIGHT. `min-block-size` above already sets each one's own. */
   .notebooks--empty .notebooks__action {
     flex: 0 0 auto;
   }
 
-  /* A media query and not a container one: this is the SCREEN's own padding
-     and the arrangement of the band across its floor, which is page layout —
-     and a container query never matches the container it is declared on
-     anyway, which is how the phone kept the desktop's 2rem inset (measured in
-     the emulator, 2026-08-24). 768px is the width the whole app calls compact
-     (shell/compact.js). */
+  /* A media query, not a container one: this is page layout, and a container
+     query never matches the container it is declared on. 768px is the width
+     the whole app calls compact (shell/compact.js). */
   @media (max-width: 768px) {
     .notebooks {
       gap: var(--app-space-16);
       padding: var(--app-space-16);
       padding-block-start: calc(var(--app-space-16) + var(--app-safe-top));
-      /* A FLOOR, not just the reported inset. The two doors are the last thing
-         on the screen and the gesture handle lives in the same strip, and on
-         Android the inset is not always there to add: `env(safe-area-inset-bottom)`
-         answers 0 in that WebView (the reason MainActivity.kt publishes
-         `--android-inset-*` at all), and it had not published yet on the run
-         this was measured on (emulator, 2026-08-24) — which left the second
-         button 16px from the bottom of the screen with the handle across it.
-         Whichever is larger: the system's answer when there is one, and a
-         comfortable gap when there is not. */
+      /* A FLOOR, not just the reported inset: the gesture handle lives in this
+         strip, and `env(safe-area-inset-bottom)` answers 0 in the Android
+         WebView (hence `--android-inset-*` from MainActivity.kt). Whichever
+         is larger. See docs/platform-gotchas.md#android */
       padding-block-end: max(
         calc(var(--app-space-16) + var(--app-safe-bottom)),
         var(--app-space-32)

@@ -1,17 +1,8 @@
 /* swipe.css — the visual half of the `swipe` action (lib/actions/swipe.js).
- *
- * Faithful to `Delete task.pdf`: the card slides aside and a coloured SQUARE
- * appears in the space it left, at the opposite end. Not a band behind the
- * card — the first attempt was a full-bleed pseudo-element and it painted the
- * whole row red (user report, 2026-08-06). It could not do otherwise: a
- * transform makes the row a stacking context, so no descendant of it can ever
- * sit behind the row's own background.
- *
- * So the square is placed OUTSIDE the row's box, in the gap the travel opens,
- * and is clipped to that gap. Nothing overlaps anything, and there is no
- * z-index to lose. The square itself is markup (`.swipe__action`), so it can
- * carry a real Phosphor icon; this sheet only says where it goes.
- * Selectors are the stable hooks a theme may restyle. */
+ * The card slides aside and a coloured SQUARE appears in the gap it opens, at
+ * the opposite end. The square sits OUTSIDE the row's box, never behind it:
+ * a transform makes the row a stacking context, so no descendant can sit
+ * behind the row's own background. The square is markup (`.swipe__action`). */
 
 @layer components {
   .swipe {
@@ -19,11 +10,10 @@
     transform: translateX(var(--swipe-x, 0));
   }
 
-  /* The glide home. A class that is ADDED for the return, never a transition
-     the card carries at all times: a standing `transition: transform` also
-     caught the REORDER writing its own transform — with higher specificity
-     than `.reorder-item--carried`'s `transition: none` — so a vertical drag
-     played out a quarter second behind the pointer (user report, 2026-08-06). */
+  /* The glide home: a class ADDED for the return, never a standing transition.
+     A standing `transition: transform` also catches the REORDER writing its
+     transform (higher specificity than `.reorder-item--carried`'s
+     `transition: none`), and a vertical drag then lags the pointer. */
   .swipe--returning {
     transition: transform var(--app-transition-medium);
   }
@@ -37,12 +27,10 @@
     align-items: center;
     justify-content: center;
     inline-size: 2.75rem;
-    /* Clipped to the gap so far, less the breathing space the wireframe leaves
-       between card and square: it grows out of the gap instead of poking out
-       from under the card. `--swipe-x` is signed, so its own negation is the
-       travel; the zeros are in `rem` for the app's invariant (`--swipe-x`
-       itself arrives in device pixels from the pointer, the documented
-       exception). */
+    /* Clipped to the gap so far, less the breathing space between card and
+       square. `--swipe-x` is signed, so its own negation is the travel; the
+       zeros are in `rem` for the app's invariant (`--swipe-x` itself arrives
+       in device pixels from the pointer, the documented exception). */
     max-inline-size: max(
       0rem,
       max(var(--swipe-x, 0rem), -1 * var(--swipe-x, 0rem)) - var(--app-space-8)
@@ -52,9 +40,8 @@
     color: var(--app-on-brand);
   }
 
-  /* Swiping LEFT uncovers the right-hand end: delete. The square's right edge
-     is pinned to where the row's used to be — the row moved by `--swipe-x`, so
-     the same value puts it back. */
+  /* Swiping LEFT uncovers the right-hand end: delete. The row moved by
+     `--swipe-x`, so the same value pins the square where the row's edge was. */
   .swipe[data-swipe="left"] .swipe__action--delete {
     display: flex;
     inset-inline-end: var(--swipe-x, 0);
@@ -65,17 +52,13 @@
   .swipe[data-swipe="right"] .swipe__action--unpull {
     display: flex;
     inset-inline-start: calc(-1 * var(--swipe-x, 0rem));
-    /* Taking a task back OUT of the day, which is the undoing half of the
-       gesture: warning, the colour the sun already carries on a card that is
-       in today. */
+    /* Taking a task back OUT of the day: warning, the colour the sun already
+       carries on a card that is in today. */
     background: var(--app-warning);
   }
-  /* The same square when the gesture PUTS the task in the day (2026-08-20).
-     The ACCENT, because this is the act the gesture is for and the accent is
-     what the app paints the thing you are doing with (user call, 2026-08-20).
-     The two stay different colours on purpose: they are opposite acts, and a
-     square that looked identical either way would make the gesture a coin
-     toss. */
+  /* The same square when the gesture PUTS the task in the day: the ACCENT,
+     the colour of the act the gesture is for. The two stay different on
+     purpose — opposite acts must not look alike. */
   .swipe[data-swipe="right"] .swipe__action--pull {
     background: var(--app-brand);
   }

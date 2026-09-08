@@ -1,12 +1,8 @@
-/* topbar.css — the compact shell's top bar.
- * Markup: src/lib/shell/TopBar.svelte. Rendered instead of `.titlebar` below
- * 768px (App.svelte reads `data-compact`, shell/compact.js).
- *
- * From the mobile wireframes, measured off the SVG: three 42px controls on a
- * 66px bar, 12px of air on every side, and a 166px pill centred between the
- * two end buttons. The centring is by construction — the end buttons are the
- * same width, so `space-between` puts the pill in the middle without a magic
- * number to keep in sync with the bar's width. */
+/* topbar.css — the compact shell's top bar, rendered instead of `.titlebar`
+ * below 768px (App.svelte reads `data-compact`). Markup: shell/TopBar.svelte.
+ * From the wireframe: three 42px controls on a 66px bar, 12px of air, the pill
+ * centred by construction — the end buttons are the same width, so
+ * `space-between` needs no magic number. */
 
 @layer components {
   .topbar {
@@ -17,47 +13,25 @@
     flex-shrink: 0;
     padding: var(--app-space-12);
     background: var(--app-bg);
-    /* The one height of everything on this bar: 42px from the wireframe,
-       measured off the SVG, ON EVERY POINTER (user call, 2026-08-18). It is
-       the one place the app's 48px touch minimum (styles/touch.css) does not
-       reach, which is why every rule below states the minimum as well as the
-       size — otherwise the generic rule would raise some of these controls and
-       not others, which is exactly how the row ended up with three different
-       heights. */
+    /* The one height of everything on this bar, ON EVERY POINTER: the app's
+       48px touch minimum (styles/touch.css) does not reach it, so every rule
+       below states the minimum as well as the size — or the generic rule
+       raises some controls and not others. */
     --topbar-control: var(--app-topbar-control);
-    /* The status bar is drawn OVER the app on Android (every 15+ app is
-       edge-to-edge whether it asks or not), so the bar grows by exactly the
-       strip the system owns — and NO MORE (user report twice, 2026-08-18 and
-       again 2026-08-19: "os botões ainda estão muito longe do topo do
-       celular"). The inset already IS the strip the system owns; the 8px of
-       air that used to be added on top of it put the first button at y=51 with
-       the status bar ending at 43, which read as a gap rather than as a bar
-       under another bar. Now they meet.
-
-       Where there is no inset — every desktop window — the bar's own 12px
-       stands, which is what `max` says: never less than that, never the two
-       stacked. The drawer's head drops its own top padding in the compact
-       shell for the same reason (shell.css), so the two rows still line up the
-       moment the drawer opens. */
+    /* Android draws the status bar OVER the app, so the bar grows by exactly
+       the strip the system owns and NO MORE — air added on top reads as a gap.
+       With no inset (every desktop window) the bar's own 12px stands: `max`,
+       never the two stacked. The drawer's head matches (shell.css). */
     padding-block-start: var(--app-topbar-pad-block-start);
     padding-inline-start: calc(var(--app-space-12) + var(--app-safe-left));
     padding-inline-end: calc(var(--app-space-12) + var(--app-safe-right));
     user-select: none;
   }
 
-  /* Over the page rather than above it — what an open note asks for below
-     768px (shell.css says why, and reserves exactly this bar's height).
-     Lifted off the flow and painting NOTHING, so the note scrolls beneath it
-     and the buttons are left floating on the pills they already wear.
-
-     It lives HERE, next to the rule it overrides, and not with the shell rules
-     that turn it on: both are one class deep and in the same layer, so the one
-     the browser keeps is the one that comes later in the bundle — and that is
-     import order, which is not a thing to encode a visual decision in. On the
-     emulator the bar stayed black (measured rgb(30,30,30), 2026-08-19).
-
-     Over the canvas but UNDER the drawer and the sheets: it is chrome the page
-     slides beneath, not a layer above the app. */
+  /* Over the page for an open note below 768px (shell.css reserves this bar's
+     height): paints NOTHING, so the note scrolls beneath the floating buttons.
+     Next to the rule it overrides on purpose — same layer and specificity, so
+     bundle order would otherwise decide. UNDER the drawer and the sheets. */
   .topbar--over {
     position: absolute;
     inset-block-start: 0;
@@ -66,15 +40,10 @@
     background: none;
   }
 
-  /* Every control on this bar is the SAME square on the raised surface of
-     the region the bar declares — the wireframe draws no difference between
-     them, because there is none: they are all "one tap, one job".
-
-     One length, named once, and everything on the bar reads it: the two loose
-     buttons, the pill, and the pill's own children. Before that, the app's
-     48px touch minimum reached the two loose buttons and neither the pill nor
-     what is inside it, and the row came out with three different heights
-     (user report, 2026-08-18: "os botões do topo têm alturas diferentes"). */
+  /* Every control on this bar is the SAME square on the region's raised
+     surface. One length, read by the loose buttons, the pill and the pill's
+     children — otherwise the touch minimum reaches some and not others and
+     the row has three heights. */
   .topbar .topbar__button,
   .topbar .page-menu__toggle {
     inline-size: var(--topbar-control);
@@ -85,27 +54,14 @@
     border-radius: var(--app-radius-md);
     background: var(--app-surface);
     color: var(--app-ink);
-    /* Lifted off the page, and said so (user call, 2026-09-07: "uma sombra
-       bem pequena e suave por trás dos botões"). It earns its keep on the
-       canvas: once the page has risen the plate wears the canvas's own
-       raised surface, which is a hair off the page it floats on. */
+    /* Lifted off whatever ground is behind it. */
     box-shadow: var(--app-shadow-float);
   }
 
-  /* THE PLATES WEAR THE GROUND BEHIND THEM, and it changes under them.
-     The bar paints nothing, so what shows behind these squares is whatever
-     the page is standing on: the chrome at rest — the page header of every
-     screen, the Home's own head — and the canvas once the page has come all
-     the way up under the bar (user call, 2026-09-07: "se estão sob o canva,
-     fundo claro e texto escuro; sob o chrome, fundo escuro e texto claro").
-
-     Nothing here says which: the two declarations above already read the
-     REGION's surface and ink, and the bar is told its region by the shell
-     (App.svelte, actions/risen.js). This is only the crossing itself — a
-     plate that changed colour in one frame in the middle of a scroll read as
-     a flicker rather than as a ground passing behind it. The duration is a
-     token, so a reader who asked for less motion gets the change without the
-     fade (tokens.css). */
+  /* The plates wear the ground behind them, and it changes under them (the
+     chrome at rest, the canvas once the page has risen). Which is the shell's
+     call (App.svelte, actions/risen.js): surface and ink above read the
+     REGION. This only fades the crossing, so it does not flicker mid-scroll. */
   .topbar .topbar__button,
   .topbar .page-menu__toggle,
   .topbar__pill {
@@ -114,22 +70,10 @@
       color var(--app-transition-fast);
   }
 
-  /* The drawer toggle while the drawer is open: invisible, and still occupying
-     its square (user call, 2026-08-18). The open drawer has its own close
-     button right beside this one, so two buttons ended up side by side — but
-     `display: none` would let the pill slide left as the drawer opens, and the
-     bar must not move under the finger that opened it.
-
-     It FADES (user call, 2026-08-18): the drawer slides in over a quarter of a
-     second, and a button that blinks out at the first frame of that reads as a
-     glitch rather than as a control standing down. Same duration as the
-     drawer's own travel, so the two finish together. `visibility` is in the
-     transition list only to be held until the fade is done — it is not an
-     animatable property, it simply flips at the end of its window. */
-  /* Two classes deep on purpose: the colour transition above is, and the
-     shorthand it writes would otherwise drop this fade — the drawer toggle
-     would blink out at the first frame of the drawer's travel, which is the
-     glitch this rule exists to avoid. */
+  /* The drawer toggle while the drawer is open: invisible, still occupying
+     its square (the pill must not slide under the finger). Fades over the
+     drawer's own travel; `visibility` is listed only to be held until the fade
+     ends. Two classes deep: the colour transition above would otherwise win. */
   .topbar .topbar__button--drawer {
     transition:
       opacity var(--app-transition-medium),
@@ -143,12 +87,9 @@
     pointer-events: none;
   }
 
-  /* The app's own three controls, and the only things the spread applies to
-     (user call, 2026-08-18). They take all the width the window's buttons
-     leave and share it between them, which is what keeps the pill centred ON
-     THE APP'S PART OF THE BAR; the window's buttons stay at the edge with the
-     ⋮ against them, instead of the ⋮ being spread out to the middle of the
-     right-hand half. */
+  /* The app's own three controls, and the only things the spread applies to:
+     they share what the window's buttons leave, so the pill stays centred ON
+     THE APP'S PART OF THE BAR and the ⋮ stays against the window's buttons. */
   .topbar__controls {
     flex: 1;
     min-inline-size: 0;
@@ -159,10 +100,9 @@
   }
 
   /* The window's own buttons, on a narrow DESKTOP window (App.svelte renders
-     them only off Android). They keep the SIZE the title bar gives them — they
-     are the OS's controls, not the app's — and give up only its side padding,
-     which here would be added to the group's gap and to the bar's own inset
-     and push them a third of an inch off the corner. */
+     them only off Android). They keep the title bar's SIZE — they are the
+     OS's — and drop only its side padding, which would stack on the gap and
+     the bar's inset. */
   .topbar .window-controls {
     flex: 0 0 auto;
     padding-inline: 0;
@@ -185,53 +125,27 @@
   .topbar__pill .topbar__button,
   .topbar__pill .page-nav__arrow {
     background: none;
-    /* One plate, and the pill is it: a square of its own on a raised pill
-       reads as two nested cards, and its own shadow would be a card
-       floating inside another. */
+    /* One plate, and the pill is it: no shadow of its own. */
     box-shadow: none;
-    /* THE HOVER PLATE IS INSET FROM THE PILL ON EVERY SIDE (user report,
-       2026-09-07: "o efeito hover dos botões individuais não encaixa muito
-       bem em cima da caixa dos botões"). It used to fill the pill's height,
-       so it met the pill's top and bottom edges with a corner of its own —
-       a smaller curve crossing a larger one right where the pill turns, at
-       both ends of the row.
-
-       The target does NOT shrink: the button still fills the pill (the row
-       came out with three different heights when it did not, 2026-08-18).
-       Only the paint moves in, by the same 4px the pill already insets its
-       children by on the inline axis — so what is drawn is the pill's own
-       box less its padding, on all four sides.
-
-       And the corner is that arithmetic too: the radius here is the PILL's,
-       and clipping to the content box reduces it by exactly the padding
-       (`interno = externo − padding`), so the plate is concentric with the
-       curve it sits inside without a second number to keep in step. */
+    /* The hover plate is inset from the pill on every side by the pill's own
+       4px, so it never crosses the pill's corner with a corner of its own. The
+       target does NOT shrink — only the paint moves in; the radius is the
+       PILL's, and clipping to the content box reduces it by exactly the padding. */
     padding: var(--app-space-4);
     background-clip: content-box;
     border-radius: var(--app-radius-md);
-    /* Full height, MEASURED FROM THE PILL rather than restated: the pill is
-       one control's worth tall and everything in it fills that, which is what
-       keeps three targets inside one pill hittable — and what keeps the row
-       level (user report, 2026-08-18: the buttons had three different heights,
-       because the app's 48px touch minimum reached the two loose buttons and
-       not the pill). Both minima are zeroed here for that reason: inside the
-       pill, the pill is the target's height. */
+    /* Full height, MEASURED FROM THE PILL rather than restated, and both
+       minima zeroed: inside the pill, the pill is the target's height —
+       otherwise the touch minimum gives the row three heights. */
     block-size: auto;
     min-block-size: 0;
     inline-size: 2.75rem;
     min-inline-size: 0;
   }
-  /* …AND THE CLIP IS RESTATED WHERE THE HOVER LANDS. The hover in
-     controls/buttons.css writes `background`, the SHORTHAND, and a shorthand resets
-     every longhand it covers — including `background-clip`, back to
-     `border-box`. So the plate above was inset at rest and full-size the
-     moment it could be seen (measured in Chromium over the real sheets,
-     2026-09-07: `backgroundClip` read `content-box`, then `border-box` with
-     the hover forced).
-
-     One class deeper than the rule that resets it, so which sheet the
-     bundler puts last decides nothing. The colour still comes from
-     controls/buttons.css — this says only where it is allowed to paint. */
+  /* The clip restated where the hover lands: controls/buttons.css writes the
+     `background` SHORTHAND on hover, which resets `background-clip` back to
+     `border-box`. One class deeper than that rule, so bundle order decides
+     nothing; the colour still comes from there. */
   .topbar .topbar__pill .topbar__button:hover,
   .topbar .topbar__pill .page-nav__arrow:hover {
     background-clip: content-box;
@@ -241,10 +155,8 @@
   }
 
   /* An arrow with somewhere to go is INK; one with nowhere to go stays
-     visible but plainly inert (user report on device, 2026-09-07: the two
-     read alike — the button's resting colour is the muted ink, and on the
-     dark chrome muted and faint are a hair apart). The same rule the
-     desktop header keeps, so the bar never changes shape. */
+     visible but plainly inert (on the dark chrome muted and faint are a hair
+     apart). The same rule the desktop header keeps, so the bar never changes shape. */
   .topbar .page-nav__arrow:not(:disabled) {
     color: var(--app-ink);
   }

@@ -4,9 +4,8 @@
 
 @layer components {
   /* Flex, not a three-column grid: only the brand column has a width to match
-     (the sidebar's, rail included). The tabs take the rest up to the window
-     controls, which are as wide as the system asked for — and on whichever
-     side it asked for (2026-08-06). */
+     (the sidebar's). The tabs take the rest up to the window controls, which
+     are as wide — and on whichever side — as the system asked for. */
   .titlebar {
     display: flex;
     align-items: center;
@@ -29,34 +28,27 @@
        together instead of the bar snapping ahead of the panel. */
     transition: flex-basis var(--app-transition-medium);
   }
-  /* Rail: the column narrows with the sidebar, and the wordmark is gone from
-     the markup — 3.5rem holds the mark and nothing else.
-     ONLY the width changes. Re-centring the mark (or dropping the padding)
-     would snap it sideways on the first frame while the width was still
-     travelling, which read as a jump (user report, 2026-08-06); keeping the
-     left padding means the mark holds its x, exactly like the sidebar's icons
-     below it. */
+  /* Rail: the column narrows and the wordmark leaves the markup. ONLY the
+     width changes — re-centring the mark or dropping the padding snaps it
+     sideways while the width is still travelling. Keeping the left padding
+     holds its x, like the sidebar's icons below it. */
   .titlebar--rail .titlebar__brand {
     flex-basis: var(--app-sidebar-rail);
   }
-  /* Both brand slots hold an inline SVG whose paths are `currentColor`, so the
-     logo is drawn in the frame's ink and follows every theme. Sized by height
-     alone — the drawing keeps its own proportion. */
+  /* Both slots hold an inline SVG whose paths are `currentColor`, drawn in
+     the frame's ink. Sized by height alone. */
   .titlebar__mark,
   .titlebar__wordmark {
     display: flex;
     align-items: center;
-    /* Non-interactive: let clicks fall through to the brand container, which
-       is the drag region — otherwise grabbing the logo would not move the
-       window. */
+    /* Clicks fall through to the brand container, which is the drag region —
+       otherwise grabbing the logo would not move the window. */
     pointer-events: none;
     color: var(--app-ink);
   }
-  /* Plain `svg`, not `:global(svg)` (user report, 2026-08-17): `:global()` is
-     Svelte's syntax for a component's own <style> block, and this file is
-     ordinary CSS. The browser read it as an unknown pseudo-class and threw
-     the WHOLE rule away — so the logo had no height, and a logo with no
-     height is a logo nobody has ever seen. Guarded by architecture.test.js. */
+  /* Plain `svg`, never `:global(svg)`: this is ordinary CSS, and the browser
+     throws the WHOLE rule away on the unknown pseudo-class. Guarded by
+     architecture.test.js. See docs/platform-gotchas.md#css-e-cascata */
   .titlebar__mark svg,
   .titlebar__wordmark svg {
     display: block;
@@ -68,8 +60,7 @@
     block-size: 1rem;
   }
   /* Mark + word. Shorter than the mark on purpose: the full logo carries the
-     descender of the J, so matching heights would make it look bigger than
-     the rail's. */
+     J's descender, so matching heights would make it look bigger. */
   .titlebar__wordmark svg {
     block-size: 0.875rem;
   }

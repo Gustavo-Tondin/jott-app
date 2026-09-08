@@ -1,36 +1,13 @@
-/* note-banner.css — the head of an open note: its banner and its title.
- * Markup: src/lib/components/NoteBanner.svelte. Selectors are the stable BEM
- * hooks a theme may restyle; components read tokens only.
- *
- * Wireframes "Editor screen - maximized" and "Editor Screen mobile"
- * (2026-08-19). TWO widths on one screen, and they are the whole idea:
- *
- *   |<------------------- 900px, the banner block ------------------->|
- *         |<-------------- 720px, the note's own text -------------->|
- *         [ Title ]
- *
- * The block reaches past the prose, and the title chip lines up with the first
- * letter of the first paragraph — which is why the chip lives inside a box of
- * `--app-content-max` centred in the block, rather than at the block's own
- * padding. The outer cap is put on the screen's container by the shell
- * (`.shell__content-inner--note`, shell.css) — since 2026-08-27 the same
- * `--app-content-max` as the prose (it was the 900px `--app-content-wide`).
- *
- * WITHOUT a banner the same head is drawn with no colour and no height: the
- * title does not move (user call, 2026-08-19). So the difference between the
- * two states is `--banner-height` and a background, never a different box.
- *
- * THE HEAD IS TWO PARTS (2026-08-26). `__block` is everything with a
- * background — the colour or the picture, with the title standing on it — and
- * the properties sit BELOW it, on the canvas's own ground. They used to be
- * inside, under the title, and there is no ink colour that reads against every
- * photograph a person might pick. Outside, they land in the same place with or
- * without a banner, which is the other half of what the user asked for. */
+/* note-banner.css — the head of an open note: banner, title, properties.
+ * Markup: src/lib/components/NoteBanner.svelte; selectors are the BEM hooks a
+ * theme may restyle. The title chip lines up with the prose's first letter (a
+ * `--app-content-max` box centred in the block). With or without a banner it
+ * is the SAME box — only `--banner-height` and a background differ. */
 
 @layer components {
-  /* The head: the block, then the properties. It carries no ground of its
-     own — it is the anchor for the ⋮, which hangs over the block's corner and
-     must not be clipped by it. */
+  /* The head: the block, then the properties below it on the canvas. No
+     ground of its own: it anchors the ⋮, which hangs over the block's corner
+     and must not be clipped by it. */
   .note-banner {
     position: relative;
     margin-block-end: var(--app-space-24);
@@ -42,31 +19,19 @@
     align-items: end;
     min-block-size: var(--banner-height);
     padding-block: var(--app-space-12);
-    /* The floor between the block's edge and the chip. It only ever shows on a
-       narrow canvas: past 720px of prose the centring leaves far more room than
-       this, and the chip lands on the text's own edge instead (user report,
-       2026-08-19 — below that width the chip was touching the side). */
+    /* The floor between the block's edge and the chip on a narrow canvas;
+       past 720px of prose the centring leaves far more. */
     padding-inline: var(--app-space-8);
     background: var(--banner, var(--app-brand));
     border-radius: var(--app-radius-lg);
     overflow: hidden;
   }
-  /* No banner chosen: the block has no colour of its own, and what is left is
-     the title.
-
-     It still opens with AIR (user call, 2026-08-19: "deixe o title mais pra
-     baixo quando não tem banner"). With a banner the title sits at the foot of
-     a 7rem block; with none it started at the very top of the canvas — under
-     the floating formatting bar, which is exactly where the report showed the
-     two on top of each other. The space is enough to clear that bar, and it
-     reads as the note's own head either way. */
+  /* No banner: no colour of its own, and the head still opens with AIR — the
+     title must clear the floating format bar. */
   .note-banner--empty .note-banner__block {
     --banner-height: 0;
-    /* 4rem is where the title lands ANYWAY when there is a banner: a 7rem
-       block, minus its padding and the height of the title chip, puts the
-       first line at about 60px — so this number is not a guess, it is the
-       other state measured (2026-08-26, "normalizar as posições"). It also
-       clears the floating format bar, which is why it exists at all. */
+    /* 4rem is where the title lands anyway with a banner (7rem block less its
+       padding and the chip ≈ 60px), so the two states measure alike. */
     padding-block: var(--app-space-64) 0;
     background: none;
     border-radius: 0;
@@ -88,21 +53,11 @@
     background: var(--app-well);
   }
 
-  /* The text column, inside the block — WIDER than the prose by its own inset
-     on each side, with that much padding back. That is what gives the chip
-     somewhere to be pulled into: its own padding comes off the line's, so the
-     first letter lands on the prose's first letter while the box itself never
-     crosses the block's own padding. On a canvas too narrow for the cap the
-     line is simply the block, and the chip stops at the padding above.
-
-     The inset is COMPUTED from the editor's, not typed (2026-09-07): the note's
-     text starts at the fold gutter plus the padding a line carries
-     (components/editor.css), the block already spends 8 of that, and what is
-     left is this. Before, it was a hand-written 12 that happened to be 1.6px
-     off on the desktop — and 6px off on a phone, where the gutter narrows
-     (styles/tokens.css) and the title stayed put while the text moved. Written
-     as one name because the cap has to agree with the padding: the line is the
-     column plus its two insets, or its content is no longer the column. */
+  /* The text column: WIDER than the prose by its own inset each side, padded
+     back by it — that is what the chip is pulled into. The inset is COMPUTED
+     from the editor's (gutter + line padding, components/editor.css) less the
+     8 the block spends, so it tracks the gutter on a phone. The cap is the
+     column plus two insets, or its content is no longer the column. */
   .note-banner__line {
     --banner-inset: calc(
       var(--app-editor-gutter) + var(--app-space-4) - var(--app-space-8)
@@ -114,37 +69,29 @@
     padding-inline: var(--banner-inset);
   }
 
-  /* The title. Over a banner it is a chip — the ground's neutral over the
-     block's colour, the same lift the cards use; with no banner it is the
-     heading itself, and there is nothing under it to lift off. */
+  /* The title: a chip over a banner (the ground's neutral over the block's
+     colour, the cards' lift); with no banner, the heading itself. */
   .note-banner__title {
-    /* The title reads in the note's face, not the interface's: it is the
-       first line of the document, and the editor below it is already in
-       that face (2026-08-24). */
+    /* In the note's face, not the interface's: it is the document's first line. */
     font-family: var(--app-font-note);
     display: inline-block;
     max-inline-size: 100%;
     margin: 0;
-    /* The inline padding is the line's own inset, so the chip's box lands on
-       the block's padding and its first letter on the line's content edge —
-       one number for both, at any screen (the line above says why). */
+    /* The inline padding is the line's own inset: the chip's box lands on the
+       block's padding and its first letter on the line's content edge. */
     padding: var(--app-space-6) var(--banner-inset);
     background: var(--app-bg);
     border-radius: var(--app-radius-md);
     color: var(--app-ink);
-    /* AT LEAST AS BIG AS AN H1 (user call, 2026-08-19). It is the name of the
-       whole note, and it was reading smaller than the first heading inside it.
-       Sized off the note's own ladder rather than a fixed step, so it keeps up
-       when the reader changes the note's text size. */
+    /* At least as big as an H1, sized off the note's own ladder so it follows
+       the note's text size. */
     font-size: var(--app-note-h1);
     font-weight: var(--app-weight-bold);
     line-height: var(--app-leading-tight);
     overflow-wrap: anywhere;
   }
-  /* The chip is pulled out by exactly its own padding, so the first LETTER of
-     the title lands over the first letter of the first paragraph — which is
-     what "o título alinhado com o texto" means with a box around it. Without
-     a banner there is no box and nothing to pull. */
+  /* Pulled out by exactly its own padding, so the title's first LETTER lands
+     over the prose's. Without a banner there is no box and nothing to pull. */
   .note-banner:not(.note-banner--empty) .note-banner__title {
     margin-inline-start: calc(var(--banner-inset) * -1);
   }
@@ -152,27 +99,20 @@
     padding-inline: 0;
     background: none;
   }
-  /* The properties, in the same column as the title and one step below the
-     block (2026-08-26). The gap belongs to the LINE and not to the list, so
-     the two states of the head measure it the same way. */
+  /* The properties, in the title's column and one step below the block. The
+     gap belongs to the LINE, so both states of the head measure it alike. */
   .note-banner__line--props {
     margin-block-start: var(--app-space-10);
-    /* The block's own padding, added back — `interno = externo − padding`,
-       written where it is used. The title's line is centred inside the block
-       and this one inside the head, which is 8px wider on each side; without
-       this the properties sat 8px to the left of the title on a canvas too
-       narrow to centre either (measured 2026-08-26, Chrome headless over the
-       built stylesheet). Widening the cap by the same amount keeps the two in
-       step once the canvas IS wide enough to centre them. */
+    /* The block's own padding, added back: the title's line is centred in the
+       block, this one in the head, which is 8px wider each side. Cap and
+       padding both, so the two stay in step at any width. */
     max-inline-size: calc(
       var(--app-content-max) + 2 * (var(--banner-inset) + var(--app-space-8))
     );
     padding-inline: calc(var(--banner-inset) + var(--app-space-8));
   }
-  /* Laid out the way Obsidian lays them out: a quiet name column with a glyph,
-     the value beside it. The tags are the shared .theme-badge in the space's
-     colour — a tag is a subject, and the one colour a note wears is its
-     space's. */
+  /* A quiet name column with a glyph, the value beside it. The tags are the
+     shared .theme-badge in the space's colour. */
   .note-banner__props {
     display: flex;
     flex-direction: column;
@@ -187,11 +127,8 @@
     gap: var(--app-space-12);
     min-block-size: 1.5rem;
   }
-  /* A step firmer than they were (user report, 2026-08-26: "pouco contraste").
-     They were faint-over-muted, which is the pairing for something beside the
-     text; this line is ABOUT the note, and the value is a thing to read. The
-     name stays a step quieter than the value — that is the hierarchy, and it
-     survives the lift. */
+  /* Muted over ink, not faint over muted: this line is ABOUT the note. The
+     name stays a step quieter than the value — that is the hierarchy. */
   .note-banner__prop-name {
     display: inline-flex;
     align-items: center;
@@ -233,22 +170,15 @@
     inset-inline-end: var(--app-space-8);
     z-index: 1;
   }
-  /* Over a block it has to hold against whatever is under it — a photograph,
-     a saturated fill — so there it travels with its own ground. On the bare
-     head it is a plain icon button like every other. */
+  /* Over a block it travels with its own ground; on the bare head it is a
+     plain icon button like every other. */
   .note-banner__more {
     color: var(--app-ink-muted);
   }
-  /* ON A BANNER IT WAITS FOR THE POINTER (user call, 2026-08-19). A banner is a
-     picture or a colour someone chose; a chip parked in its corner is the app
-     signing it. On the bare head there is nothing to keep clean and it stays —
-     that head IS the way in to choosing a banner at all. */
-  /* It is an icon button like every other one in the app (user call,
-     2026-08-19): the same veil the shared `.theme-btn--icon` hover uses, and
-     the same square corner — it was the one button anywhere wearing a solid
-     white pill. The veil is enough to read against a photograph because it
-     only ever shows while the pointer is on the block, which is also when the
-     ink under it is being looked at. */
+  /* On a banner it waits for the pointer: a chip parked on a picture someone
+     chose is the app signing it. On the bare head it stays — that head IS the
+     way in to choosing a banner. The veil is the shared icon-button hover; it
+     reads against a photograph because it only shows under the pointer. */
   .note-banner__more--on-block {
     background: var(--app-hover);
     opacity: 0;
@@ -277,49 +207,35 @@
   }
 }
 
-/* =============================================================================
-   THE COMPACT HEAD (below 768px — "Editor Screen mobile").
-   ============================================================================= */
+/* ---- THE COMPACT HEAD (below 768px) ---- */
 @layer components {
-  /* Flush with the screen: on a phone the note IS the screen, and the
-     wireframe draws the banner touching all three edges, under the app's own
-     bar. The negative margins undo the canvas's padding (shell.css), which is
-     the only thing between the block and the edge. */
+  /* Flush with the screen, under the app's own bar: the negative margins undo
+     the canvas's padding (shell.css), the only thing between block and edge. */
   .note-banner--compact .note-banner__block {
     --banner-height: 6.25rem;
-    /* The canvas's own padding, undone — including the safe areas, so the
-       block reaches the glass and not the notch's idea of it. The canvas gives
-       up its top padding for a note (shell.css), so there is none to undo
-       above. Only the BLOCK bleeds: the properties below it are text on the
-       canvas and keep the canvas's own margins. */
+    /* Including the safe areas, so the block reaches the glass. The canvas
+       gives up its top padding for a note (shell.css), so there is none to
+       undo above. Only the BLOCK bleeds; the properties keep the canvas's margins. */
     margin-inline-start: calc((var(--app-space-8) + var(--app-safe-left)) * -1);
     margin-inline-end: calc((var(--app-space-8) + var(--app-safe-right)) * -1);
     border-radius: 0;
   }
   .note-banner--compact.note-banner--empty .note-banner__block {
-    /* Nothing to bleed: with no block the head is text on the canvas, and it
-       keeps the canvas's own margins — plus the top padding the canvas handed
-       to the banner it does not have. Shorter than the desktop's air: the app
-       bar is right above, and half the screen of white would be the note
-       hiding from its own reader. */
+    /* Nothing to bleed: the bare head is text on the canvas and keeps its margins. */
     margin-inline: 0;
-    /* The same arithmetic as the desktop, on the compact block: 6.25rem of
-       banner minus its padding and a smaller chip puts the title at about
-       54px. It used to be 16, which is what made a note without a banner
-       start somewhere else entirely on a phone. */
+    /* The desktop's arithmetic on the compact block: 6.25rem less its padding
+       and a smaller chip puts the title at about 54px. */
     padding-block-start: var(--app-space-48);
   }
   /* Flush with the screen there is no slack to pull the chip into, so the
-     column keeps a margin of its own and the chip sits inside it. The
-     properties line is NOT inside the bleeding block, so it takes none of
-     this — it is already on the canvas's margin. */
+     column keeps a margin and the chip sits inside it. The properties line is
+     NOT inside the block and takes none of this. */
   .note-banner--compact .note-banner__block .note-banner__line {
     padding-inline: var(--app-space-8);
   }
-  /* Same arithmetic on a phone, different numbers: the block bleeds to the
-     glass and pads 8 back, its line pads another 8, and the chip pads 12 —
-     so the title's first letter sits 20 from the canvas. The properties are
-     not inside any of that, so they say 20 outright. */
+  /* Same arithmetic, phone numbers: the block pads 8 back, its line 8 more,
+     the chip 12 — the title's first letter sits 20 from the canvas, and the
+     properties say 20 outright. */
   .note-banner--compact .note-banner__line--props {
     max-inline-size: 100%;
     padding-inline: calc(var(--app-space-8) + var(--app-space-12));
@@ -328,16 +244,13 @@
     margin-inline-start: 0;
     font-size: var(--app-text-18);
   }
-  /* With no block to bleed there is no 8 to pad back, and the bare title has
-     no chip of its own — so the line carries the whole 20 itself, and a note
-     without a banner starts exactly where one with a banner does. */
+  /* No block, no 8 to pad back, no chip: the line carries the whole 20, so a
+     bare note starts where a bannered one does. */
   .note-banner--compact.note-banner--empty .note-banner__block .note-banner__line {
     padding-inline: var(--app-space-12);
   }
-  /* No ⋮ of its own below 768px (user call, 2026-08-19): the banner's choices
-     are in the page menu of the top bar, which is the ⋮ a phone already has —
-     and the only one, since the header that would carry a second is not drawn
-     for a note there. */
+  /* No ⋮ of its own below 768px: the banner's choices are in the top bar's
+     page menu, the only ⋮ a phone has for a note. */
   .note-banner--compact .note-banner__menu {
     display: none;
   }

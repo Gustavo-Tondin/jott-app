@@ -1,103 +1,44 @@
 /* =============================================================================
-   roles.css — the two things a THEME does not have to repeat.
-
-   ---------------------------------------------------------------------------
-   THE RULE THIS FILE EXISTS TO PROTECT (2026-08-13)
-   ---------------------------------------------------------------------------
-
-   **A `--app-*` role is assigned a `--theme-color-*` value, or a `color-mix` of
-   one. Never another role.**
-
-   One hop, always: component → role → palette → literal. Before this the
-   chain was role → ground → palette (and role → accent → accent-name →
-   palette for the brand), and reading a colour meant opening three files to
-   find out what it actually was.
-
-   The exceptions are the RUNTIME CHOICES, and they all live at the bottom of
-   this file because a theme cannot pre-write an answer the user has not given
-   yet. There are two, and there is room for no others:
-
-     1. which of the eight `--app-brand` points at   (`data-accent`)
-     2. whether H1–H6 take the accent or the ink       (`data-headings`)
-
-   Two hops on those branches (three for the heading, which lands on the brand),
-   and one hop everywhere else in the app.
-
-   ---------------------------------------------------------------------------
-   WHAT IS HERE, AND WHY IT IS NOT IN THE THEMES
-   ---------------------------------------------------------------------------
-
-   1. The roles that are the SAME in every theme and every region — the warm
-      grey that belongs to no mode, at the three alphas the app uses. A theme
-      may still override any of them; it just does not have to write them six
-      times to say nothing.
-   2. The two runtime choices, above.
-
-   Everything else — the neutrals, the ink, the eight, the status colours — is
-   the theme's, spelled out per region in `themes/<name>.css`.
+   roles.css — the two things a THEME does not have to repeat:
+     1. the roles that are the SAME in every theme and region (warm grey at
+        three alphas, scrims, shadows, coloured fills); a theme may override any.
+     2. the two RUNTIME choices a theme cannot pre-write: which of the eight
+        `--app-brand` points at (`data-accent`), and whether H1–H6 take the
+        accent or the ink (`data-headings`) — the only places a role reads a
+        role; everywhere else a role reads a `--theme-color-*` or a
+        `color-mix` of one, never another role.
    ============================================================================= */
 
 @layer base {
-  /* A REGION is a part of the app with its own ground: `data-region="chrome"`
-     on the window (title bar, tabs, sidebar, right panel) and
-     `data-region="canvas"` on the content panel (App.svelte). A popover
-     portaled to <body> carries the region it was opened from
-     (actions/keepOnScreen.js). */
+  /* A REGION has its own ground: `data-region="chrome"` on the window frame,
+     `"canvas"` on the content panel (App.svelte). A popover portaled to <body>
+     carries the region it opened from (actions/keepOnScreen.js). */
   [data-region] {
-    /* The one neutral that belongs to neither mode: a warm grey, used at low
-       alpha so a single value reads on a white canvas and a black sidebar
-       alike. Hence three roles from one palette entry, and no theme has ever
-       wanted to change them. */
+    /* The one neutral of neither mode: a warm grey at low alpha, so one
+       value reads on a white canvas and a black sidebar alike. */
     --app-ink-faint: var(--theme-color-gray);
     --app-line: color-mix(in srgb, var(--theme-color-gray) 30%, transparent);
     --app-line-soft: color-mix(in srgb, var(--theme-color-gray) 16%, transparent);
-    /* The third step, and the only one that goes the other way: a well pressed
-       INTO a raised surface, for the one control that needs a track behind it
-       (the segmented group). */
+    /* A well pressed INTO a raised surface — the track behind the segmented group. */
     --app-well: color-mix(in srgb, var(--theme-color-gray) 30%, transparent);
-    /* The veil a drawer or a bottom sheet lays over the page it opened on top
-       of (the compact shell, 2026-08-18). Black at low alpha in EVERY theme,
-       including the dark one: a scrim's job is to push the page back, and a
-       light veil over a light page pushes nothing. Same reason as the three
-       above — one value that reads on both grounds, so no theme restates it. */
+    /* The veil a drawer or sheet lays over the page: black at low alpha in
+       EVERY theme, the dark one included — a light veil pushes nothing back. */
     --app-scrim: color-mix(in srgb, #0d0d0d 20%, transparent);
-    /* The deep scrim of a picture opened over the page (the image viewer),
-       and the ink written on it: black nearly opaque and white, on every
-       ground — a lightbox is dark by definition. Two roles so the component
-       sheet reads no palette entry (2026-08-26). */
+    /* The image viewer's scrim and the ink on it — a lightbox is dark on every
+       ground. Two roles so the component sheet reads no palette entry. */
     --app-scrim-deep: color-mix(in srgb, var(--theme-color-black) 88%, transparent);
     --app-on-scrim: var(--theme-color-white);
-    /* THE SHADOW A FLOATING CONTROL DROPS (user call, 2026-09-07: "uma
-       sombra bem pequena e suave por trás dos botões", and the Home's + as
-       well). Small and soft, and the only thing that keeps a plate from
-       dissolving into the ground it now wears — the compact top bar's
-       buttons take the surface of the region behind them (topbar.css), so
-       over the canvas a light plate lands on a light page.
-
-       Black at low alpha in EVERY theme, for the same reason as the scrim
-       above: a shadow is light behaving, not a colour the palette picks,
-       and a pale shadow on a dark ground is a halo. Where the ground is
-       already dark it barely shows, which is right — the plate is told
-       apart there by being LIGHTER than its ground, not by its shadow.
-
-       Two roles, so no component sheet reads a palette entry: the colour on
-       its own, for a control that wants its own distance, and the one small
-       shadow the floating plates share. */
+    /* The shadow a floating control drops — what keeps a plate from dissolving
+       into the ground it wears (the compact top bar's buttons, topbar.css).
+       Black at low alpha in EVERY theme: a pale shadow on a dark ground is a
+       halo. Two roles: the colour alone, and the one small shadow plates share. */
     --app-shadow-drop: color-mix(in srgb, var(--theme-color-black) 22%, transparent);
     --app-shadow-float: 0 0.0625rem 0.1875rem var(--app-shadow-drop);
 
-    /* THE FILL OF A COLOURED PIECE OF PAPER (2026-08-18).
-
-       A note's banner is a surface, not text: nothing is written ON it (the
-       title sits on a chip of its own), so it is the one colour in the app
-       that is NOT pinned to the ground it lands on. It is the same in every
-       theme and every region, for the same reason a yellow sticky note is
-       yellow under any lamp — and step 300 is the palette's own vivid rung,
-       the one the wireframes draw the note banners in.
-
-       Eight lines rather than a computed name: a custom property cannot
-       compose the name of another (same reason `data-accent` is eight rules
-       below). One hop each, palette straight through. */
+    /* The fill of a coloured piece of paper (a note's banner): a surface with
+       nothing written ON it, so the one colour NOT pinned to its ground — the
+       same in every theme and region, at the palette's vivid step 300. Eight
+       lines because a custom property cannot compose another's name. */
     --app-red-fill: var(--theme-color-red-300);
     --app-orange-fill: var(--theme-color-orange-300);
     --app-yellow-fill: var(--theme-color-yellow-300);
@@ -107,23 +48,10 @@
     --app-pink-fill: var(--theme-color-pink-300);
     --app-neutral-fill: var(--theme-color-neutral-300);
 
-    /* THE FILL OF A COLOURED PIECE OF PAPER THAT CARRIES TEXT (2026-08-24).
-
-       The eight above are the banner's fill: a surface with nothing written on
-       it, at the palette's vivid step 300. The notebooks screen needs the same
-       idea one step further — a card wearing the colour of the notebook it
-       opens, with the notebook's name and its two counts written across it.
-       Step 300 cannot hold them: it is the step that reads AS text on a dark
-       ground, not the step that carries text.
-
-       Step 500 is, and the scale already proves it: `styles/tokens.css` pins
-       500 to 4.5:1 against the light ground, which read the other way round is
-       the promise made here — white on it clears AA for all eight, measured in
-       `lib/architecture.test.js`.
-
-       Same covenant as the fill: theme-blind and region-blind. A notebook's
-       colour is what its owner recognizes it by, and it must be that colour on
-       every theme, the way a yellow sticky note is yellow under any lamp. */
+    /* The fill that CARRIES text (a notebook's card): step 500, which the
+       palette pins to 4.5:1 against the light ground, so white on it clears
+       AA for all eight (lib/architecture.test.js). Theme- and region-blind,
+       like the fill above: a notebook's colour is what its owner knows it by. */
     --app-red-solid: var(--theme-color-red-500);
     --app-orange-solid: var(--theme-color-orange-500);
     --app-yellow-solid: var(--theme-color-yellow-500);
@@ -132,10 +60,8 @@
     --app-purple-solid: var(--theme-color-purple-500);
     --app-pink-solid: var(--theme-color-pink-500);
     --app-neutral-solid: var(--theme-color-neutral-500);
-    /* And the one ink that goes on any of them. Not `--app-on-brand`: that
-       one is the REGION's answer, and flips to black where the region's accent
-       is a bright step — which is right for a pill on the sidebar and wrong
-       for a surface that refuses to follow the ground in the first place. */
+    /* The ink on any of them. Not `--app-on-brand`: that is the REGION's
+       answer and flips to black where the region's accent is a bright step. */
     --app-on-solid: var(--theme-color-white);
 
     /* A region carries its own ink, so anything inside it starts readable —
@@ -144,17 +70,10 @@
   }
 
   /* ---------------------------------------------------------------------------
-     THE APP ACCENT — the first runtime choice.
-
-     The theme names all eight for each region (`--app-blue` and its four
-     steps, already resolved to the end of the tonal grid that reads on that
-     region's ground). `data-accent` on <html>, from the notebook's
-     `accentColor` setting, picks which one is the brand. No attribute, or one
-     this build does not know, is blue — what the app ships as.
-
-     Eight rules rather than one, because a custom property cannot compose the
-     name of another. Written as a descendant selector so one attribute reaches
-     both regions:  <html data-accent> … [data-region="chrome"] … ="canvas"
+     THE APP ACCENT — the first runtime choice. `data-accent` on <html> (the
+     notebook's `accentColor`) picks which of the eight is the brand; absent
+     or unknown is blue. Eight rules because a custom property cannot compose
+     the name of another; a descendant selector so one attribute reaches both regions.
      --------------------------------------------------------------------------- */
   [data-region] {
     --app-brand-1: var(--app-blue-1);
@@ -257,28 +176,10 @@
   }
 
   /* ---------------------------------------------------------------------------
-     THE HEADING COLOUR — the second runtime choice, and the second (and last)
-     place a role reads a role.
-
-     SIX RUNGS FOR SIX LEVELS (user call, 2026-08-17: "each one its own colour,
-     even if H6 comes out weak"). It started at three — H1/H2 strong, H3 base,
-     H4–H6 soft — and reading it back, the colour changing every other level
-     read as an accident rather than a hierarchy.
-
-     Six PURE palette steps do not fit: past 500 on a dark ground and past 400
-     on a light one the ramp is out of contrast (2.0:1 — invisible, not weak).
-     So the ladder walks in HALF steps through the legible stretch, which the
-     theme spells out per colour (styles/modes/jott.css). It ends around
-     3.8:1 on a dark ground and 2.7:1 on a light one: H6 is faint on purpose,
-     and it is the only rung that is.
-
-     H1–H6 take the accent by default: a note titled in the colour of the place
-     it lives in is what the app looks like. `headingColor: "ink"` in the
-     notebook's settings turns that off for a reader who wants a document to
-     read as a document, and it is a SETTING rather than a theme because both
-     answers are right on every theme. The ink ladder is the same six rungs of
-     emphasis, spent on alpha instead of tone, so switching moves the colour
-     and nothing else.
+     THE HEADING COLOUR — the second runtime choice, and the last place a role
+     reads a role. Six rungs in HALF steps, because six pure palette steps run
+     out of contrast (styles/modes/jott.css); H6 is faint on purpose. Accent by
+     default; `headingColor: "ink"` spends the same six rungs on alpha instead.
      --------------------------------------------------------------------------- */
   [data-region] {
     --app-heading-1: var(--app-brand-1);

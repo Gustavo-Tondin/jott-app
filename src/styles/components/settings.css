@@ -1,23 +1,10 @@
-/* settings.css — the visual layer of SettingsView.svelte.
- * Markup: src/lib/screens/SettingsView.svelte. Selectors are the stable BEM hooks a theme
- * may restyle; components read tokens only. */
+/* settings.css — the visual layer of SettingsView.svelte
+ * (src/lib/screens/SettingsView.svelte). */
 
-/* =============================================================================
-   THE SCREEN'S SHAPE (2026-08-20, wireframes "Settings").
-
-   Two arrangements of one screen, and `.settings--compact` is which — the
-   shell's own measurement (shell/compact.js), never a second media query that
-   could disagree with it:
-
-     desktop  MENU | SECTION, inside the 900px column the shell caps
-              (.shell__content-inner--wide, shell.css). The menu HUGS its rows
-              (`max-content`) and the section takes what is left, so the menu's
-              width is its longest label and not a number that has to be kept
-              in step with one.
-     phone    one column: the menu is the screen, and a row goes INTO the
-              section. Nothing here says so — with a single grid column the
-              same two boxes stack, and only one of them is rendered at a time.
-   ============================================================================= */
+/* Two arrangements of one screen, and `.settings--compact` is which — the
+   shell's own measurement (shell/compact.js), never a second media query.
+   Desktop: MENU | SECTION in the shell's 900px column, the menu hugging its
+   rows (`max-content`). Phone: one column, one box rendered at a time. */
 @layer components {
   .settings {
     display: grid;
@@ -39,10 +26,8 @@
     min-inline-size: 0;
   }
 
-  /* ---- the menu ----
-     One sunken card holding the rows, not a row of sunken cards: the wireframe
-     draws a single block with a label above its list, which is what lets a
-     second group (the day this screen gains one) sit beside it as a peer. */
+  /* ---- the menu ---- one sunken card holding the rows, not a row of cards,
+     so a second group can sit beside the first as a peer. */
   .settings__nav {
     background: var(--app-surface);
     border-radius: var(--app-radius-lg);
@@ -51,29 +36,24 @@
        wide that a long label pushes the section out of the column. */
     min-inline-size: 12rem;
     max-inline-size: 16rem;
-    /* The menu stays put while the section scrolls (user call, 2026-08-27):
-       sticky against the panel's scrollport (`.shell__content`, which is
-       what scrolls — `align-items: start` on the grid is what lets it). A
-       menu taller than the window scrolls on its own inside its cap. */
+    /* Sticky against the panel's scrollport (`.shell__content`; the grid's
+       `align-items: start` is what allows it). A menu taller than the window
+       scrolls on its own inside its cap. */
     position: sticky;
     inset-block-start: 0;
     max-block-size: calc(100dvh - var(--app-space-64) - var(--app-space-40));
     overflow-y: auto;
   }
-  /* On the phone the menu IS the screen, so it takes the width it is given —
-     the cap above is what keeps a long label from eating the section's column,
-     and there is no section beside it here. */
+  /* On the phone the menu IS the screen: it takes the width it is given,
+     and there is no section beside it to protect. */
   .settings--compact .settings__nav {
     max-inline-size: none;
     position: static;
     max-block-size: none;
     overflow-y: visible;
   }
-  /* ---- the search over every row (2026-08-20) ----
-     It sits ABOVE the two blocks because it answers about both, and it is the
-     one control in the menu that is not a place to go. */
-  /* The field itself is the shared .theme-filter (controls/feedback.css, 2026-08-24);
-     what is left here is where it sits in the menu. */
+  /* The search sits ABOVE both blocks because it answers about both. The
+     field is the shared .theme-filter; only its place in the menu is here. */
   .settings__search {
     margin: 0 var(--app-space-4) var(--app-space-12);
   }
@@ -82,10 +62,9 @@
     margin-block-end: var(--app-space-8);
     max-inline-size: 18rem;
   }
-  /* A font picker is wider than the other controls of the page: a family
-     name is prose ("Noto Sans CJK JP"), not a word, and the closed box has
-     to show enough of it to tell two Notos apart. It still gives way on a
-     phone — `max` and not a fixed width. */
+  /* A font picker is wider than the page's other controls: a family name
+     is prose ("Noto Sans CJK JP"), and the closed box must tell two Notos
+     apart. `min`, not a fixed width, so it still gives way on a phone. */
   .settings__font {
     inline-size: min(18rem, 60%);
   }
@@ -143,11 +122,9 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  /* The selected row is a WELL, not the accent pill the sidebar wears. The
-     sidebar's pill says which place in the notebook you are in, and it is on
-     screen at the same time as this one — two accent pills would be "you are
-     here" said twice, about two different things. A step deeper into the card
-     is enough here, because the row it marks is one of six in one block. */
+  /* The selected row is a WELL, not the sidebar's accent pill: both are on
+     screen at once, and two accent pills would say "you are here" twice
+     about two different things. */
   .settings__nav-item--active,
   .settings__nav-item--active:hover {
     background: var(--app-well);
@@ -155,16 +132,15 @@
     font-weight: var(--app-weight-semibold);
   }
 
-  /* The second block of the menu (wireframe "Settings screen mobile",
-     2026-08-20). A rule above it rather than a gap: the two blocks are peers
-     inside one card, and a line is what says the card has two halves. */
+  /* The second block of the menu. A rule rather than a gap: the two blocks
+     are peers inside one card, and the line says the card has two halves. */
   .settings__nav-title--split {
     margin-block-start: var(--app-space-16);
     padding-block-start: var(--app-space-16);
     border-top: 0.0625rem solid var(--app-line);
   }
-  /* A door into a group carries no icon (the wireframe's rule): it is not a
-     subject, so the label starts where the subjects' icons do. */
+  /* A door into a group carries no icon: it is not a subject, so the label
+     starts where the subjects' icons do. */
   .settings__nav-item--group {
     padding-inline-start: var(--app-space-12);
   }
@@ -245,9 +221,8 @@
     color: var(--app-ink-muted);
     word-break: break-all;
   }
-  /* "Reset this section": at the foot, past a gap wider than any row's, and
-     dimmed until pointed at — it undoes the whole page, so it is neither
-     where a finger lands nor what the eye is drawn to. */
+  /* "Reset this section" undoes the whole page, so it sits at the foot past
+     the widest gap and dims until pointed at. */
   .settings__reset {
     display: flex;
     justify-content: flex-end;
@@ -280,8 +255,7 @@
   }
 }
 
-/* App functions (2026-08-06): a sub-option is indented under the switch it
-   belongs to, and reads quieter — it is a detail of that one, not a peer. */
+/* A sub-option is indented under the switch it belongs to, and reads quieter. */
 @layer components {
   .settings__row--sub {
     padding-inline-start: var(--app-space-24);
@@ -289,10 +263,8 @@
     color: var(--app-ink-muted);
   }
 
-  /* A hairline between rows, so the eye can tell which switch belongs to which
-     name (user report, 2026-08-06 — a column of labels and a column of
-     switches with nothing between them is a column of guesses). It is the
-     faintest line the theme has: this is a reading aid, not a division. */
+  /* A hairline between rows, so the eye can tell which switch belongs to
+     which name — the faintest line the theme has: a reading aid, not a division. */
   .settings__section--features .settings__row + .settings__row {
     border-top: 0.0625rem solid var(--app-line-soft);
   }
@@ -312,8 +284,7 @@
   }
 }
 
-/* Native Functions (2026-08-20). The row reads left to right as the sentence
-   it is: this is ON, it is called that, and there is more of it through here. */
+/* Native Functions: the row reads left to right — ON, its name, and the door to more. */
 @layer components {
   .settings__function {
     gap: var(--app-space-12);
@@ -328,9 +299,8 @@
     margin-block: var(--app-space-8);
   }
   /* The ? beside a label (screens/settings/HelpTip.svelte): the anchor the
-     panel is measured from, the button quiet until asked, and the panel a
-     column of prose at a reading width — it fades in rather than unfolding,
-     because a paragraph scaling up from a point reads as a jump. */
+     panel is measured from. The panel fades in rather than unfolding —
+     a paragraph scaling up from a point reads as a jump. */
   .settings__help {
     position: relative;
     display: inline-flex;
@@ -386,9 +356,8 @@
 }
 
 @layer components {
-  /* The shortcuts table (2026-08-18). A scope heading inside a section: it
-     names a group of rows, so it sits between the section title and a row's
-     own label. */
+  /* A scope heading inside a section: it names a group of rows, so it sits
+     between the section title and a row's own label. */
   .settings__subtitle {
     display: flex;
     align-items: center;
@@ -435,11 +404,8 @@
     font-family: var(--app-font-sans);
   }
 
-  /* ---------------------------------------------------------------------------
-     Themes the notebook carries (2026-08-25). A column of rows rather than more
-     segments: each carries an author and a version, and there can be any number
-     of them.
-     --------------------------------------------------------------------------- */
+  /* Themes the notebook carries: a column of rows rather than more segments —
+     each carries an author and a version, and there can be any number. */
   .settings__themes {
     display: grid;
     gap: var(--app-space-6);

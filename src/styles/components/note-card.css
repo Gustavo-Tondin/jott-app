@@ -1,28 +1,14 @@
 /* note-card.css — a note, and a folder of notes, as cards on the board.
- * Markup: src/lib/components/NoteCard.svelte and the folder card inside
- * src/lib/spaces/NotesSpace.svelte. Selectors are the stable BEM hooks a theme
- * may restyle; components read tokens only.
- *
- * Wireframes: "Notes screen - default", "Space Notes - Desktop",
- * "Notes Screen - mobile" (2026-08-18). A card is three things stacked — a
- * banner, the title on a chip that straddles its bottom edge, and the first
- * lines of the text. The chip is what makes the title readable over a
- * photograph without a scrim over the whole picture, and it is why the title
- * is drawn as a box rather than as text on the banner.
- *
- * The two neutrals do the work: the CARD is the region's raised step
- * (`--app-surface`) and the CHIP is its ground (`--app-bg`) — the same
- * pairing the sheets and the tab rows stand on, so a chip reads as lifted off
- * the card in all three themes without a shadow or a hairline. */
+ * Markup: components/NoteCard.svelte and the folder card in
+ * spaces/NotesSpace.svelte; selectors are the BEM hooks a theme may restyle.
+ * A card is a banner, the title on a chip straddling its bottom edge, and the
+ * first lines of text. CARD is `--app-surface`, CHIP is `--app-bg`: no shadow. */
 
 @layer components {
   .note-card {
-    /* The card's own padding, named once: the banner's corner and the corner
-       of the small card are both this number subtracted from the card's own
-       (`interno = externo − padding`, the rule of the house), and the tools in
-       the corner sit on it too. Written as a variable so the four places that
-       read it cannot drift apart — 6px was too tight to read a formatted
-       preview through (user, 2026-08-20: "ela tá muito apertada"). */
+    /* The card's own padding, named once: the banner's corner and the small
+       card's are this subtracted from the card's (`interno = externo −
+       padding`), and the corner tools sit on it too. */
     --note-card-pad: var(--app-space-12);
     position: relative;
     display: flex;
@@ -43,17 +29,8 @@
   .note-card--picked {
     background: var(--app-brand-weak);
   }
-  /* Pinned: a hairline ring in the accent, inside the corner. It came and
-     went: the first ring was the WARNING yellow and read as an alert around
-     the note (user call, 2026-08-24: "mais simples, só com o ícone, sem
-     outline"); the mark alone then left a pinned card looking like every
-     other (user call, 2026-09-08: "adicione uma borda ao redor do card ou
-     algo assim pra dar um destaque"). The accent is the app's own voice —
-     the ring the date picker draws around today — so it says "kept", not
-     "careful". A ring rather than a block of its own: floated FIRST is the
-     separation, and a heading over a single pinned card would be heavier
-     than the card (same call: "ficaria feio se tivesse só uma pinned").
-     Inset, so a card pins without moving its neighbours. */
+  /* Pinned: a hairline ring in the accent — "kept", not the warning's
+     "careful" — inset, so a card pins without moving its neighbours. */
   .note-card--pinned {
     box-shadow: inset 0 0 0 0.0625rem var(--app-brand-outline);
   }
@@ -69,9 +46,8 @@
     text-align: start;
   }
 
-  /* The banner. A fixed height, not a ratio: the cards sit in columns of
-     different lengths and a ratio would make every card a different shape,
-     which is the one thing a board of cards must not be. */
+  /* The banner: a fixed height, not a ratio — the cards sit in columns of
+     different lengths, and a ratio would make every card a different shape. */
   .note-card__banner {
     display: block;
     block-size: 4.75rem;
@@ -100,9 +76,8 @@
     color: var(--app-ink-faint);
   }
 
-  /* The card's last line: subjects on the left, the age on the right. One
-     row so a card that carries only one of the two does not grow a strip of
-     empty space beside it. */
+  /* The last line: subjects left, age right, in one row so a card with only
+     one of the two does not grow an empty strip. */
   .note-card__meta {
     display: flex;
     align-items: center;
@@ -116,9 +91,8 @@
     gap: var(--app-space-4);
     min-inline-size: 0;
   }
-  /* When the note was last OPENED (spec 3.6b) — the eye, and a number of
-     days. Quiet, pushed to the end, and never wrapping: it is the smallest
-     thing on the card until the notebook calls it forgotten. */
+  /* When the note was last OPENED (spec 3.6b): quiet, pushed to the end,
+     never wrapping. */
   .note-card__age {
     flex-shrink: 0;
     margin-inline-start: auto;
@@ -151,17 +125,11 @@
     border-radius: var(--app-radius-sm);
   }
 
-  /* A card is as tall as its own text, up to a ceiling — "notas com pouco
-     conteúdo mostram tudo, as com muito são cortadas" (user, 2026-08-19).
-     The text itself, and the ceiling with it, moved to
-     styles/components/note-preview.css on 2026-08-20, when the preview stopped
-     being one run of collapsed syntax and became the blocks it describes. */
+  /* The preview text and its ceiling: styles/components/note-preview.css. */
 
-  /* The pin and the ⋮, in the corner of the card. Over the banner when there is
-     one, so they are always in the same place.
-     The ROW is what is placed, not the buttons: the panel the ⋮ opens is
-     anchored to `.menu` (menu.css), so moving the button alone would leave the
-     dropdown hanging off the bottom of the card. */
+  /* The pin and the ⋮, in the card's corner, over the banner when there is
+     one. The ROW is what is placed: the ⋮'s panel is anchored to `.menu`
+     (menu.css), so moving the button alone leaves the dropdown hanging. */
   .note-card__tools {
     position: absolute;
     inset-block-start: var(--note-card-pad);
@@ -173,15 +141,13 @@
   .note-card__pin {
     color: var(--app-ink-muted);
   }
-  /* Pinned reads as pinned without hovering: the mark is filled and steps up
-     to full ink. Ink, not the warning yellow — a pin is a state of the note,
-     not an alert on it (user call, 2026-08-24). */
+  /* Pinned reads as pinned without hovering: full ink, not the warning yellow
+     — a state of the note, not an alert on it. */
   .note-card__pin--on {
     color: var(--app-ink);
   }
-  /* Unpinned, the mark is an offer and not a state — it waits for the pointer,
-     the same rule the sidebar's tools follow. A touch screen never hovers, so
-     there it is simply always there (styles/touch.css keeps that pact). */
+  /* Unpinned, the mark is an offer: it waits for the pointer. A touch screen
+     never hovers, so there it is always shown (styles/touch.css). */
   .note-card__pin {
     opacity: 0;
   }
@@ -190,26 +156,14 @@
   .note-card__pin--on {
     opacity: 1;
   }
-  /* …and on a phone the OFFER is not there at all (user call, 2026-08-20:
-     "está mal posicionado no mobile, oculte ele, deixando somente os 3
-     pontos"). The corner is holding two buttons in the width of one, over a
-     banner, at the edge of the thumb's reach — and Pin/Unpin is the first
-     item of the ⋮ that stays.
-
-     The filled mark of a PINNED card survives (2026-08-24): with the outline
-     gone it is the one sign of the state, and a state with no sign is a
-     setting the user cannot see. */
+  /* On a phone the OFFER is not drawn at all: the corner holds two buttons in
+     the width of one, over a banner, and Pin/Unpin is the ⋮'s first item. */
   .shell--compact .note-card__pin {
     display: none;
   }
-  /* …and the PINNED state moves to the head of the title (user report,
-     2026-09-08: "o design das notas pinned no celular está ruim"). The
-     filled mark used to stay in the corner as a second button beside the ⋮
-     — two 48px targets in the width of one, over the first line of the
-     title, on the one screen where the pin is not even the way to unpin
-     (the ⋮'s first item is). A mark before the title says the same thing
-     and presses nothing. Drawn ONLY here: on a desktop the button in the
-     corner is the sign, and the title carries no second one. */
+  /* The PINNED state moves to the head of the title on a phone: a mark before
+     the title says the same as a second corner button and presses nothing.
+     Drawn ONLY here — on a desktop the corner button is the sign. */
   .note-card__pinned {
     display: none;
   }
@@ -219,16 +173,14 @@
     margin-inline-end: var(--app-space-4);
     color: var(--app-ink);
   }
-  /* The corner is the ⋮'s alone on a phone, and the title keeps clear of it
-     — before this the first line ran under the button. A chip title sits
-     on the banner, below the tools, and needs no room. */
+  /* The corner is the ⋮'s alone on a phone, and the title keeps clear of it.
+     A chip title sits on the banner, below the tools, and needs no room. */
   .shell--compact .note-card:not(.note-card--small) .note-card__title:not(.note-card__title--chip) {
     padding-inline-end: var(--app-space-32);
   }
 
-  /* The small card inside a folder card: a title, and nothing else. It keeps
-     the tighter padding — it holds one line, and the folder card around it is
-     already padded. */
+  /* The small card inside a folder card: a title and nothing else, tighter
+     padding — the folder card around it is already padded. */
   .note-card--small {
     --note-card-pad: var(--app-space-8);
     background: var(--app-bg);
@@ -252,14 +204,12 @@
     background: var(--accent-tint-color, var(--app-brand-weak));
     border-radius: var(--app-radius-lg);
   }
-  /* A pinned folder wears the same ring a pinned note does, in its own
-     colour: the card is already tinted with it, and a ring of the same hue
-     reads as the card stepping forward, not as a second colour on it. */
+  /* A pinned folder wears the ring in its own colour: the card is already
+     tinted with it, so the ring reads as the card stepping forward. */
   .note-group--pinned {
     box-shadow: inset 0 0 0 0.0625rem var(--accent-color, var(--app-brand-outline));
   }
-  /* The card's own row: the name (which opens it) and the two controls a note
-     card carries — the pin and the ⋮ (2026-08-19). */
+  /* The card's own row: the name (which opens it), the pin and the ⋮. */
   .note-group__bar {
     display: flex;
     align-items: center;
@@ -305,31 +255,22 @@
     display: none;
   }
 
-  /* ---- the folder, OPEN (2026-08-19) ----
-     A popover over the board, anchored to the card it belongs to — not a
-     screen you navigate into, which is what it used to be and which left no
-     visible way back. Two columns of the very same cards the board draws
-     ("um pop over de um grid de 2 colunas que se comporta igual ao normal").
-
-     It hangs off the card's top edge and is as wide as two of its columns, so
-     it reads as the card unfolding rather than as a panel that happened to
-     open nearby. `theme-popover` gives it the ground, the radius and the
-     shadow every floating panel of the app stands on. */
+  /* ---- the folder, OPEN ----
+     A popover over the board, anchored to its card: two columns of the very
+     same cards the board draws, hanging off the card's top edge and as wide as
+     two of its columns, so it reads as the card unfolding. */
   .note-group--open {
     position: relative;
     z-index: 20;
   }
   .note-group__popover {
-    /* BELOW the dialogs, unlike every other popover (2026-08-19). The rule in
-       controls/overlays.css puts a popover at 200 so one opened from inside a dialog
-       wins — that is a MENU next to what you clicked. This panel is the other
-       way round: it holds the buttons that OPEN dialogs (rename, delete), and
-       at 200 the question landed behind the panel that asked it. */
+    /* BELOW the dialogs, unlike every other popover (200 in
+       controls/overlays.css): this panel holds the buttons that OPEN dialogs,
+       and at 200 the question landed behind the panel that asked it. */
     z-index: 50;
     /* Placed by `keepOnScreen`, which portals it to the body and clamps it
-       inside the window — a board is a scroll container, and a panel that
-       opens near its edge would otherwise be cut off by it. These two are the
-       fallback for before the action has measured anything. */
+       inside the window (a board is a scroll container that would cut it
+       off). These two are the fallback before it has measured. */
     position: absolute;
     inset-block-start: 100%;
     inset-inline-start: 0;
@@ -358,9 +299,8 @@
   .note-group__close {
     color: var(--app-ink-muted);
   }
-  /* A card inside the panel takes the OTHER neutral: the panel already stands
-     on the raised step, so a card painted the same colour has nothing to be
-     lifted off (the pairing every floating panel of the app keeps). */
+  /* A card inside the panel takes the OTHER neutral: the panel already
+     stands on the raised step. */
   .note-group__popover .note-card {
     background: var(--app-bg);
   }

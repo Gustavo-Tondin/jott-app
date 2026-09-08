@@ -17,8 +17,7 @@
     max-width: 100%;
   }
 
-  /* Form controls inherit the app's font instead of the browser's — the single
-     most common thing every component used to repeat by hand. */
+  /* Form controls inherit the app's font and colour instead of the browser's. */
   input,
   button,
   textarea,
@@ -31,22 +30,16 @@
     resize: vertical;
   }
 
-  /* A button never wears the browser's chrome — every one in the app is
-     custom-drawn, so the reset owns the stripping. This is what ~90
-     `background: none; border: none; cursor: pointer` lines used to repeat,
-     one component at a time (removed 2026-08-31). A component that wants a
-     border or a fill paints it back on top, and inputs are NOT covered:
-     their browser border/background is real and each control strips its own. */
+  /* Every button in the app is custom-drawn, so the reset strips the browser's
+     chrome once; a component paints a border or fill back on top. Inputs are
+     NOT covered: their border/background is real, each control strips its own. */
   button {
     background: none;
     border: none;
     cursor: pointer;
   }
 
-  /* Every list in the app is a component — menus, rows, boards — and none
-     wants the browser's bullets or indent. Existing base rules still declare
-     their own margin/padding, so this only catches the next list someone
-     forgets. */
+  /* Every list in the app is a component; none wants bullets or indent. */
   ul,
   ol {
     list-style: none;
@@ -78,51 +71,22 @@
     height: 100%;
   }
 
-  /* The app ENDS where the keyboard begins (2026-08-20).
-
-     This is the one line that makes a phone keyboard behave the way it does in
-     a native app, and it replaces every component doing the same sum by hand.
-     Android would do it for us — `adjustResize` is exactly this — but only for
-     a window that lets the system fit its content, and this one draws edge to
-     edge, so the keyboard arrives as an inset and the page keeps its full
-     height with the bottom third of it covered.
-
-     What that cost, before this line: the note's scroller ran on UNDER the
-     keyboard, so CodeMirror believed the cursor was on screen while the line
-     being typed was behind the keys, and nothing scrolled. The strip, the
-     composer and the sheets each lifted themselves and the editor could not,
-     because it is not a thing at the bottom edge — it is the whole panel.
-
-     `--app-keyboard` is what the keyboard covers OF THE PAGE, which on a
-     WebView that already shrinks itself is zero (shell/keyboard.js). Off the
-     phone it is zero too, and this is `height: 100%`.
-
-     THE KEYBOARD ONLY. The floating formatting strip was subtracted here too
-     for a while, and it ended the whole window 48px above the keys with the
-     document's own background showing through the gap — a black band under
-     the note, with the strip stranded in it (user report on device,
-     2026-08-21). The strip floats OVER the page; what owes it room is the
-     text that would otherwise sit behind it, so the note's own scroller pads
-     for it (shell.css) and the window keeps ending exactly at the keyboard. */
+  /* The app ENDS where the keyboard begins: the window draws edge to edge, so
+     the keyboard arrives as an inset and the page keeps its height — this line
+     is what lets the editor scroll the typed line into view. `--app-keyboard`
+     is what the keyboard covers OF THE PAGE (shell/keyboard.js), 0 off the
+     phone. THE KEYBOARD ONLY: the formatting strip floats OVER the page and
+     the note's scroller pads for it (shell.css). See docs/platform-gotchas.md#android */
   #app {
     height: calc(100% - var(--app-keyboard));
   }
 
-  /* The app scrolls INSIDE itself — every scrollport it has is a panel, and
-     the page around them has nothing to scroll to. Saying so is what stops the
-     compact shell's open drawer from becoming a horizontal scrollbar: it
-     pushes the whole window sideways with a transform, and the part now
-     hanging past the right edge is overflow like any other (user report,
-     2026-08-18: "fica habilitado scroll lateral no canvas").
-
-     ON THE APP'S OWN ROOT, not on `html`/`body`: clipping here is enough —
-     nothing can reach the document to overflow it — and the page around it
-     stays exactly as it was. `html` is the element whose background the
-     browser propagates to the window itself, and this app needs that to stay
-     transparent for its own rounded corners; the fewer properties it carries,
-     the fewer chances of an engine treating that root differently. The fixed
-     drawer is NOT clipped by this: `#app` has no transform, so it is not the
-     containing block of a fixed child. */
+  /* The app scrolls INSIDE itself: every scrollport is a panel, so the page
+     has nothing to scroll to. Clipping here stops the compact shell's open
+     drawer (a transform that pushes the window sideways) from growing a
+     horizontal scrollbar. On `#app`, not `html`/`body`: `html` propagates its
+     background to the window and must stay transparent for the rounded corners.
+     The fixed drawer is not clipped: `#app` has no transform. */
   #app {
     overflow: hidden;
   }
@@ -130,11 +94,9 @@
   body {
     margin: 0;
     font-family: var(--app-font-sans);
-    /* Frameless window: the page is transparent ONLY so the rounded corners of
-       the .window frame reveal the desktop through them — GNOME/Wayland draws
-       no decoration of its own. The app's edge is the OS window's edge; there
-       is no gutter and no webview-drawn shadow (semi-transparent pixels
-       accumulate alpha on WebKitGTK repaints and darken over time). */
+    /* Frameless window: transparent ONLY so the .window frame's rounded corners
+       reveal the desktop. No gutter, no webview-drawn shadow — see
+       docs/platform-gotchas.md#webview-e-gestos */
     background: transparent;
   }
 }

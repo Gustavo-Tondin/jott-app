@@ -5,10 +5,9 @@
  * one component; when the last wearer goes, the class goes with it. */
 
 @layer components {
-  /* ---------------------------------------------------------------------------
-     Row — one entry in a list of records: a sunken bar with a label and
-     trailing details (Tags, Trash). Any list of records reuses it.
-     --------------------------------------------------------------------------- */
+  /* ---- Row ----
+     One entry in a list of records (Tags, Trash): a sunken bar with a label
+     and trailing details. */
   .theme-row {
     display: flex;
     align-items: center;
@@ -18,10 +17,9 @@
     border-radius: var(--app-radius-md);
   }
 
-  /* ---------------------------------------------------------------------------
-     Task list — the column of task cards, wherever tasks are drawn;
-     components/TaskCards.svelte is the markup half.
-     --------------------------------------------------------------------------- */
+  /* ---- Task list ----
+     The column of task cards wherever tasks are drawn; TaskCards.svelte is
+     the markup half. */
   .theme-task-list {
     margin: 0;
     padding: 0;
@@ -43,10 +41,9 @@
     background: var(--app-brand);
   }
 
-  /* ---------------------------------------------------------------------------
-     Empty card — "No tasks yet": a quiet pill where a list would be. A
-     container, not just a label (the Home's holds the Suggestions pill).
-     --------------------------------------------------------------------------- */
+  /* ---- Empty card ----
+     "No tasks yet": a quiet pill where a list would be. A container, not
+     just a label (the Home's holds the Suggestions pill). */
   .theme-empty-card {
     align-self: center;
     display: flex;
@@ -61,11 +58,9 @@
     font-size: var(--app-text-14);
   }
 
-  /* ---------------------------------------------------------------------------
-     Mirror — the hidden twin of a header's tools: same room on the left, so
-     the centred strip sits on the panel's centre line. It shrinks away before
-     the strip does, so a narrow panel gives up the centring, not the content.
-     --------------------------------------------------------------------------- */
+  /* ---- Mirror ----
+     The hidden twin of a header's tools: same room on the left, so the
+     centred strip sits on the panel's centre line. It shrinks away first. */
   .theme-mirror {
     display: inline-flex;
     visibility: hidden;
@@ -73,11 +68,10 @@
     flex-shrink: 1;
   }
 
-  /* ---------------------------------------------------------------------------
-     Note board — the masonry of note cards. `columns: <width>` (11rem, the
-     minimum a card may be), not a count, so the browser drops a column instead
-     of squeezing; `__break` ends each so the board READS BY ROWS (noteColumns.js).
-     --------------------------------------------------------------------------- */
+  /* ---- Note board ----
+     The masonry of note cards. `columns: <width>` (11rem, the minimum a card
+     may be), not a count, so a column is dropped instead of squeezed;
+     `__break` ends each so the board READS BY ROWS (noteColumns.js). */
   .theme-note-board {
     --columns: 11rem;
     margin: 0;
@@ -103,11 +97,9 @@
     margin-block-end: var(--app-space-8);
   }
 
-  /* ---------------------------------------------------------------------------
-     Pane chrome — the head and foot of a side pane, pinned at its edges. The
-     pact a wearer keeps: a flex column, head first, a `flex:1; overflow-y:auto`
-     middle, foot last.
-     --------------------------------------------------------------------------- */
+  /* ---- Pane chrome ----
+     The head and foot of a side pane. The pact a wearer keeps: a flex column,
+     head first, a `flex:1; overflow-y:auto` middle, foot last. */
   .theme-pane-head,
   .theme-pane-foot {
     flex-shrink: 0;

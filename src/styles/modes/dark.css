@@ -1,17 +1,7 @@
-/* themes/dark.css — everything dark. Wireframe: "home screen - dark".
- *
- * How a theme is written, and the one rule every value obeys (a role reads the
- * PALETTE, never another role): modes/jott.css.
- *
- * The mirror of light.css. Both regions are on a dark ground and share their
- * ink and all eight accents — read from the light end of the tonal grid
- * (base 300, tinted with 700); the two neutrals swap order between them.
- *
- * Note which way round: here the chrome is the LIGHTER of the two (#2B2B2B)
- * and the canvas the deeper black, so the panel recedes and the frame comes
- * forward — the opposite of the factory theme, where the frame is the deepest
- * thing on screen.
- */
+/* modes/dark.css — everything dark. Both regions share ink and the eight
+ * accents from the light end of the grid (base 300, tint 700); the two
+ * neutrals swap order: the chrome is the LIGHTER (black-tint), the canvas the
+ * deeper black — the opposite of the factory mode. Rules: modes/jott.css. */
 
 [data-mode="dark"] {
   --app-canvas-ground: var(--theme-color-black);
@@ -127,38 +117,16 @@
   --app-warning-tint: var(--theme-color-warning-700);
   --app-success-tint: var(--theme-color-success-700);
 
-  /* The one piece of Markdown with a colour of its own (Notes wireframe,
-     Editor screen): emphasis. Bold is ink and a link is the accent, but italic
-     is green — it is the only inline mark whose SHAPE alone (a slant) is easy
-     to miss in a wall of text. A fixed colour rather than the accent, for the
-     same reason the status three are fixed: it must not change meaning when
-     the user picks green as their accent. */
+  /* Emphasis is the one Markdown mark with a colour of its own: a slant alone
+     is easy to miss. Fixed like the status three — never the accent. */
   --app-emphasis: var(--theme-color-success-300);
 }
 
 /* ---- a sheet: the canvas's two neutrals, the other way round --------------
- *
- * A bottom sheet is a panel RAISED over the page (styles/components/sheet.css),
- * and the app has exactly two neutrals per mode — so a panel that takes the
- * page's raised step for its own ground leaves nothing for the cards, chips and
- * fields inside it: they came out the same colour as the sheet they sit on, and
- * the task inspector read as a flat wash (user report, 2026-08-18).
- *
- * So the sheet swaps the pair. That is not a new colour and not a third
- * neutral: it is exactly what the CHROME region of a light-ground theme already
- * is — ground on the tint, cards on the white — which is the look the user
- * asked for ("iguais aos painéis fora do canvas no modo claro"). Written out
- * per theme, from the palette, because a theme is where a ground is decided.
- *
- * The MODAL is the same shape by another route — a panel raised over the page,
- * with cards, fields and chips inside it — so it takes the same pair (user
- * call, 2026-08-18: every floating panel, not only the sheets). Its own ground
- * does not move: it painted `--app-surface` before and paints `--app-bg`
- * now, and after the swap those are the same colour. What changes is that what
- * it HOLDS finally has a step to rise to. A popover is deliberately not in
- * here: a menu is a list of rows, not a panel with cards, and it has nothing
- * to raise.
- */
+ * A panel RAISED over the page (sheet.css, .theme-modal) swaps the pair so the
+ * cards, chips and fields inside it still have a step to rise to — the chrome
+ * of a light-ground mode, restated per mode because a mode decides grounds.
+ * A popover is deliberately not here: a menu is rows, with nothing to raise. */
 [data-mode="dark"] .sheet,
 [data-mode="dark"] .theme-modal {
   --app-bg: var(--theme-color-black-tint);

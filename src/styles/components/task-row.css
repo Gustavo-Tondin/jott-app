@@ -10,9 +10,8 @@
     gap: var(--app-space-12);
     padding: var(--app-space-10) var(--app-space-12);
     background: var(--app-surface-sunken);
-    /* No border (user call, 2026-08-13). The card already differs from the
-       panel by a whole ground step; a hairline on top of that outlined every
-       row in a list of a dozen and turned a calm column into a grid. */
+    /* No border: the card already differs from the panel by a whole ground
+       step, and a hairline on top turns a column into a grid. */
     border: none;
     border-radius: var(--app-radius-md);
     cursor: pointer;
@@ -21,18 +20,16 @@
      side, only when there is one: inside its own space a card has no bar. */
   .task-row--origin {
     padding-inline-start: var(--app-space-16);
-    /* The whole card is the drag handle (no grip since 2026-08-04): a drag
-       must never start a text selection along the way. */
+    /* The whole card is the drag handle: a drag must never start a text
+       selection along the way. */
     user-select: none;
     -webkit-user-select: none;
     transition:
       background var(--app-transition-fast),
       scale var(--app-transition-fast);
   }
-  /* Pressed, the card gives by a hair — it is the whole drag handle, so the
-     give is also what says "held" the instant before a drag or a swipe
-     starts. Not while it is being carried: the reorder's own transform and a
-     scale on top of it would wobble. */
+  /* Pressed, the card gives by a hair. Not while carried: the reorder's own
+     transform and a scale on top of it would wobble. */
   .task-row:active:not(.reorder-item--carried) {
     scale: 0.99;
   }
@@ -42,9 +39,8 @@
     background: var(--app-brand-weak);
   }
 
-  /* The box is the shared .theme-checkbox at its large size (--lg, 20px) — a
-     done card's box is just the checked state (brand fill, no distinct
-     border; user call 2026-08-04), so nothing to add here. */
+  /* The box is the shared .theme-checkbox (--lg); a done card's box is just
+     the checked state, so nothing to add here. */
 
   .task-row__body {
     flex: 1;
@@ -89,45 +85,29 @@
     color: var(--app-ink-muted);
     text-decoration-color: currentColor;
   }
-  /* Checking: the exact strike the subtasks wear (user call, 2026-08-24:
-     "use a mesma animação de checked usada pras subtasks, que está muito
-     bonita") — the ink steps back to faint and the line fades in, in place,
-     through the transitions the title already carries. No tint, no dress-up:
-     the strike IS the moment of "done". */
+  /* Checking: the subtasks' strike — the ink steps back to faint and the line
+     fades in, through the transitions the title already carries. */
   .task-row--finishing .task-row__title {
     color: var(--app-ink-faint);
     text-decoration-color: currentColor;
   }
 
-  /* THE SEND-OFF (TaskRow.svelte says when it plays and what waits on it).
-     The tick lands and the title strikes through, subtask-style (above); the
-     card then HOLDS for about a second — long enough to read, and to tick
-     again when it was a slip — and folds away FAST (user call, 2026-08-24:
-     "depois de 1s, o card encolhe rápido e surge no completed"): fading,
-     shrinking a hair, and closing its height so the cards below rise into
-     the gap instead of jumping there on the next frame. `forwards`, so it
-     stays folded until the list is redrawn without it. The height closes
-     through `max-block-size`, the one way to animate a height that is not
-     known in advance; the ceiling is taller than any card, so the visible
-     fold is even quicker than its keyframe window.
-     The name is read by the row, which waits for it: renaming it here is
-     renaming it there. */
+  /* THE SEND-OFF. TaskRow.svelte waits on the animation BY NAME: renaming it
+     here is renaming it there. Strike, hold about a second, fold FAST;
+     `forwards` keeps it folded until the list is redrawn. The height closes
+     through `max-block-size`, the one way to animate an unknown height. */
   .task-row--finishing {
     overflow: hidden;
-    /* TWO animations, deliberately: the HOLD is the clock the row waits on —
-       about a second of reading, and of ticking again when it was a slip —
-       and the FOLD (~200ms, delayed past the hold) is what the eye sees
-       while the write and the re-read already run underneath. Committing at
-       the fold's START instead of its end is what closed the blank moment
-       between the card folding and the Completed section arriving (user
-       report with video, 2026-08-24). */
+    /* TWO animations: the HOLD is the clock the row waits on (time to read, and
+       to tick again on a slip); the FOLD, delayed past it, is what the eye
+       sees while the write already runs underneath. Committing at the fold's
+       START is what closes the blank moment before Completed arrives. */
     animation:
       task-row-hold calc(var(--app-duration-slow) * 3) var(--app-ease-out),
       task-row-finish calc(var(--app-duration-slow) * 0.6) var(--app-ease-out)
         calc(var(--app-duration-slow) * 3) forwards;
   }
-  /* Unticking, from the Completed list: the same fold, shorter and without
-     the tint — the card is leaving for the open list, not being celebrated.
+  /* Unticking, from the Completed list: the same fold, shorter, no tint.
      The strike fades out with it (`--done` stays on until the write). */
   .task-row--restoring {
     overflow: hidden;
@@ -216,15 +196,11 @@
   .task-row__field--p3 {
     color: var(--app-success);
   }
-  /* How old the task is (spec 3.6). A quiet field like the rest — it is a
-     note about the task, not news — until the notebook calls it forgotten,
-     and then it takes the same warning ink an overdue date does. The two
-     never fight for attention: a task that is both is a task with one
-     problem said twice. */
+  /* Task age (spec 3.6): quiet until the notebook calls it forgotten, then
+     the same warning ink an overdue date takes. */
   .task-row__field--age {
-    /* Pushed to the card's right edge, under the bookmark. `auto` and not a
-       `space-between` on the row: the fields before it stay grouped at the
-       start whether there are four of them or none. */
+    /* Pushed to the right edge with `auto`, not `space-between` on the row:
+       the fields before it stay grouped at the start. */
     margin-inline-start: auto;
     flex-shrink: 0;
     font-variant-numeric: tabular-nums;
@@ -238,25 +214,17 @@
     font-weight: var(--app-weight-semibold);
   }
   /* A tag is the shared .theme-badge (controls/marks.css); the `task-row__tag`
-     hook stays on the markup, ruleless, so a theme can single out the badge on
-     a task card without touching the control everywhere else. */
+     hook stays on the markup, ruleless, for a theme to single it out. */
 
-  /* The per-screen actions (pull to day/week, remove) that some lists slot in.
-     Home passes none, so its cards stay as clean as the wireframe.
-     Only the slot's arrangement lives here: each screen slots in the shared
-     quiet button (.theme-btn--outline.theme-btn--xs). This used to restyle a
-     bare `button` descendant instead — which no theme could reach by class,
-     and which silently styled ListView's buttons from another file. */
+  /* The per-screen actions slot (pull to day, remove); the Home passes none.
+     Only the arrangement lives here — each screen slots in the shared quiet
+     button. Never restyle a bare `button` descendant: no theme can reach it. */
   .task-row__actions {
     flex-shrink: 0;
     display: flex;
     gap: var(--app-space-4);
   }
-  /* A screen that slots in nothing must not still pay for the slot: as an
-     empty flex item it kept the row's 12px gap, and every card on the screens
-     that pass no actions — the Home's, the Tasks screen's — ended with a strip
-     of nothing between the pin and the card's edge (user report,
-     2026-08-18). */
+  /* An empty slot must not still pay the row's gap. */
   .task-row__actions:empty {
     display: none;
   }

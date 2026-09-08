@@ -5,11 +5,10 @@
  * one component; when the last wearer goes, the class goes with it. */
 
 @layer components {
-  /* ---------------------------------------------------------------------------
-     Origin — WHERE a card came from, as colour alone: a bar on its left edge.
-     The parent is `position: relative` and adds `--origin-room` to its
-     padding. `--dot` is the colour (dotStyle()); unset, the app's accent.
-     --------------------------------------------------------------------------- */
+  /* ---- Origin ----
+     WHERE a card came from, as colour alone: a bar on its left edge. The
+     parent is `position: relative` and adds `--origin-room` to its padding.
+     `--dot` is the colour (dotStyle()); unset, the app's accent. */
   .theme-origin {
     position: absolute;
     inset-block: var(--app-space-8);
@@ -20,11 +19,10 @@
     pointer-events: none;
   }
 
-  /* ---------------------------------------------------------------------------
-     Badge — a small READ-ONLY label (a `#tag`): no hover, no active, no touch
+  /* ---- Badge ----
+     A small READ-ONLY label (a `#tag`): no hover, no active, no touch
      minimum. Colour in the text and a soft outline, never a fill.
-     `--badge-color`/`--badge-line` come from badgeStyle(); unset, neutral.
-     --------------------------------------------------------------------------- */
+     `--badge-color`/`--badge-line` come from badgeStyle(); unset, neutral. */
   .theme-badge {
     display: inline-flex;
     align-items: center;
@@ -42,10 +40,9 @@
     text-overflow: ellipsis;
   }
 
-  /* ---------------------------------------------------------------------------
-     Title — what names a block or a screen. Ink, not the accent: the accent
-     marks what you can act on; a title is read, not clicked.
-     --------------------------------------------------------------------------- */
+  /* ---- Title ----
+     What names a block or a screen. Ink, not the accent: the accent marks
+     what you can act on; a title is read, not clicked. */
   .theme-title {
     margin: 0;
     font-size: var(--app-text-24);
@@ -57,10 +54,9 @@
   .theme-title--sm {
     font-size: var(--app-text-20);
   }
-  /* ---------------------------------------------------------------------------
-     Dot — the colour of a place, beside its name. `--dot` is the instance's
-     colour; unset, the app's accent (a FIXED space).
-     --------------------------------------------------------------------------- */
+  /* ---- Dot ----
+     The colour of a place, beside its name. `--dot` is the instance's colour;
+     unset, the app's accent (a FIXED space). */
   .theme-dot {
     /* Inline-block so it also answers outside a flex row (a title that is
        plain text with the dot after it). */
@@ -73,9 +69,8 @@
     background: var(--dot, var(--app-brand));
   }
 
-  /* ---------------------------------------------------------------------------
-     Divider — one horizontal rule, on an <hr> or any element.
-     --------------------------------------------------------------------------- */
+  /* ---- Divider ----
+     One horizontal rule, on an <hr> or any element. */
   .theme-divider {
     width: 100%;
     height: 0;
