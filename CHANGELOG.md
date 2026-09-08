@@ -16,6 +16,14 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`,
 tag a version that has no section here. Versions before v0.51.0 predate the
 file and live only in the commit history.
 
+## v0.54.0
+
+### Fixed
+
+- On a phone, the timeline's month and year no longer sit in the status bar: they stop below the top bar, where they can be read.
+- The page no longer scrolls up into the status bar behind the floating buttons — the top bar paints the ground it is over, everywhere but an open note and the Home.
+- On Android the clock and the system icons follow the app's own colours instead of the phone's dark mode: no more white clock on a white bar.
+
 ## v0.53.0
 
 ### New

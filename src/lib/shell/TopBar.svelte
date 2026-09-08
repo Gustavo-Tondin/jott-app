@@ -43,6 +43,11 @@
     /// on their own pills. Every screen asks; the page header reserves the
     /// bar's height itself (page-header.css).
     over = false,
+    /// Whether that bar PAINTS the ground it is over. Every screen but the
+    /// note and the Home wants it: those two have something of their own to
+    /// show under the bar (a banner, a rising sheet), and everywhere else the
+    /// page passed up into the status bar behind the buttons.
+    ground = false,
     /// Which ground the bar's buttons sit on, and it CHANGES under them: the
     /// bar paints nothing, so the buttons wear what is behind them — the
     /// chrome at rest, the canvas once the page has risen under the bar. The
@@ -56,6 +61,7 @@
 <header
   class="topbar"
   class:topbar--over={over}
+  class:topbar--ground={ground}
   data-region={region}
   data-tauri-drag-region
 >

@@ -196,6 +196,18 @@
   }
 
   /* ---- the phone ---- */
+  /* THE FLOATING TOP BAR IS OVER THE PAGE (topbar.css): a sticky thing pinned
+     at the scroller's top lands in the status bar, which is where the month
+     and the year pill were. Both stop below the bar instead, and the band has
+     no padding to reach back across — on a phone the scroller is the whole
+     page, and the bar itself paints the strip above. */
+  .shell--compact .timeline__years {
+    inset-block-start: var(--app-topbar-height);
+  }
+  .shell--compact .timeline__month-head {
+    --timeline-head-reach: 0rem;
+    inset-block-start: var(--app-topbar-height);
+  }
   .shell--compact .timeline__stats {
     inline-size: 100%;
   }

@@ -19,6 +19,7 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.activity.enableEdgeToEdge
 import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsAnimationCompat
 import androidx.core.view.WindowInsetsCompat
 import org.json.JSONObject
@@ -69,6 +70,10 @@ class MainActivity : TauriActivity() {
   /// The last insets seen, so they can be re-published once there is a
   /// document to publish them to (see [publish]).
   private var pending: String? = null
+  /// The two grounds the page last reported behind the system bars — the
+  /// status bar's and the navigation bar's — or null while it has not said
+  /// (see [paintBars]).
+  private var darkBars: Pair<Boolean, Boolean>? = null
   /// The height of the keyboard the last time it was reported, so that its
   /// GOING AWAY can be told apart from it merely being absent. Only the edge
   /// is worth an event (see the listener).
@@ -337,12 +342,31 @@ class MainActivity : TauriActivity() {
     }
   }
 
+  /**
+   * Draws each system bar's icons for the darkness of the ground under it, and
+   * remembers the pair. The two are asked separately because the app's own
+   * mode paints the top of the screen and the bottom in different colours.
+   *
+   * `enableEdgeToEdge` decides this once, from the PHONE's dark mode, and the
+   * app's mode is a setting of its own: a light app under a dark phone got
+   * white icons on its white bar and the clock disappeared. The page measures
+   * the ground it paints and says (shell/systemBars.js). Remembered because
+   * coming back to the app is not a page event.
+   */
+  private fun paintBars(dark: Boolean, darkNav: Boolean) {
+    darkBars = dark to darkNav
+    val bars = WindowCompat.getInsetsController(window, window.decorView)
+    bars.isAppearanceLightStatusBars = !dark
+    bars.isAppearanceLightNavigationBars = !darkNav
+  }
+
   override fun onWindowFocusChanged(hasFocus: Boolean) {
     super.onWindowFocusChanged(hasFocus)
     // Coming back from elsewhere: the bars may have changed while away, and
     // the page may have been reloaded under us. Both are cheap to redo.
     if (hasFocus) {
       publish()
+      darkBars?.let { paintBars(it.first, it.second) }
       webView?.let { ViewCompat.requestApplyInsets(it) }
       // Coming back from the system Settings screen is how the file permission
       // is granted, and nothing else tells the page that it changed.
@@ -387,6 +411,18 @@ class MainActivity : TauriActivity() {
           Manifest.permission.WRITE_EXTERNAL_STORAGE,
         ) == PackageManager.PERMISSION_GRANTED
       }
+
+    /**
+     * Which ground each system bar is over — the status bar's at the top of
+     * the page, the navigation bar's at the bottom — true where it is dark, so
+     * that bar's icons are drawn light. See [paintBars] for why the page is
+     * the one that knows. `runOnUiThread` because a JavascriptInterface method
+     * runs on the WebView's own thread and the window is the UI thread's.
+     */
+    @JavascriptInterface
+    fun systemBars(dark: Boolean, darkNav: Boolean) {
+      runOnUiThread { paintBars(dark, darkNav) }
+    }
 
     /**
      * Asks for it. Answers nothing: the user leaves the app to decide, and

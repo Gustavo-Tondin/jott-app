@@ -46,6 +46,7 @@
   import { installKeyboard } from "./lib/shell/keyboard.js";
   import { scheduleTurns } from "./lib/shell/turn.js";
   import { setRootData, setRootVar } from "./lib/shell/rootStyle.js";
+  import { tellSystemBars } from "./lib/shell/systemBars.js";
   import { fontVars } from "./lib/services/fonts.js";
   import { watchCompact, isShortScreen } from "./lib/shell/compact.js";
   import TopBar from "./lib/shell/TopBar.svelte";
@@ -757,6 +758,24 @@
       noteSize: noteFontSizeAttribute(layout.noteFontSize),
     }),
   );
+
+  // ANDROID'S OWN BARS follow the ground the app paints behind them, which the
+  // system cannot know: it reads the phone's dark mode, and the app's mode is
+  // its own (shell/systemBars.js). Read AFTER the attributes above and in the
+  // same flush, because the probe measures what they have just written. The
+  // status bar is over whatever the top bar is over, so its icons flip with
+  // the buttons; the navigation bar is over the canvas, which on a phone
+  // reaches the bottom of the screen — with no notebook open, over neither.
+  $effect(() => {
+    void layout.mode;
+    void layout.theme;
+    void layout.accentColor;
+    void wornTheme;
+    tellSystemBars(
+      showsPicker || !canvasRisen ? "chrome" : "canvas",
+      showsPicker ? "chrome" : "canvas",
+    );
+  });
 
   // How many lines of a note a card shows: a NUMBER, so it is a custom
   // property and not an attribute — the slider reaches values no rung would
@@ -1755,6 +1774,7 @@
       {mobile}
       buttons={windowButtons}
       over
+      ground={view.kind !== "note" && view.kind !== "home"}
       region={canvasRisen ? "canvas" : "chrome"}
     />
   {:else if !compact}
