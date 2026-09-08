@@ -43,8 +43,6 @@
   import NoteBanner from "./lib/components/NoteBanner.svelte";
   import AssetPicker from "./lib/components/AssetPicker.svelte";
   import ImageViewer from "./lib/components/ImageViewer.svelte";
-  import { importBrought } from "./lib/services/assets.js";
-  import { embedMarkdown } from "./lib/services/embeds.js";
   import { TABLE_FORMATS } from "./lib/services/tableEditing.js";
   import { assetUrl } from "./lib/services/assets.js";
   import TaskInspector from "./lib/components/TaskInspector.svelte";
@@ -89,8 +87,6 @@
   import { folderOf, leafOf, listName, listTitle } from "./lib/services/paths.js";
   import { groupColors, spaceColors } from "./lib/services/spaceColors.js";
   import { originOf } from "./lib/services/origin.js";
-  import { bannerOf } from "./lib/services/noteActions.js";
-  import { cleanTagName } from "./lib/services/taskFields.js";
   import { noteFontSizeAttribute, modeAttribute, paletteAttribute } from "./lib/services/themes.js";
   import { applyUserTheme, userThemeApplied } from "./lib/shell/userTheme.js";
   import { seedFrom } from "./lib/services/themeSeed.js";
@@ -112,6 +108,7 @@
   import { S } from "./lib/services/strings.js";
   import * as Tabs from "./lib/shell/tabs.js";
   import { bannerMenuOf, noteActionsOf, pageMenuOf, screenActionsOf } from "./lib/shell/menus.js";
+  import { makeNoteDocument } from "./lib/shell/noteDocument.js";
   import { landing, reachable, spaceOfView, titleOf, viewFromId } from "./lib/shell/views.js";
   import { noteTargets } from "./lib/services/noteTargets.js";
   import { quickTaskTarget, taskTargets } from "./lib/services/taskTargets.js";
@@ -1209,110 +1206,47 @@
   }
 
   // --- the open note's document actions, owned by the shell because each
-  // one changes what the tab points at ---
+  // one changes what the tab points at (shell/noteDocument.js) ---
 
   let noteEditor = $state(null);
 
-  /// Anything still being typed goes out first: renaming or deleting
-  /// underneath a pending write would lose it.
-  const noteAction = (fn) =>
-    change(async () => {
-      await noteEditor?.flushPending();
-      await fn();
-    }, reload);
-
-  const toggleNotePin = () =>
-    noteAction(async () => {
-      await api.setNotePinned(view.folder, view.path, !openNote.pinned);
-      openNote = { ...openNote, pinned: !openNote.pinned };
-    });
-
-  /// Replaces the open note's tags — its subjects, the `tags:` property.
-  /// One line of the note's own file, so it goes through the same flush the
-  /// banner does.
-  const setNoteTags = (next) =>
-    noteAction(async () => {
-      const tags = next.map(cleanTagName).filter(Boolean);
-      await api.setNoteTags(view.folder, view.path, tags);
-      openNote = { ...openNote, tags };
-    });
-
-  /// A tag typed into the note's picker that the catalogue does not know:
-  /// saved there first (so the next picker offers it), then applied.
-  async function createNoteTag(name) {
-    try {
-      await api.setTag(name, null);
-      await setNoteTags([...(openNote?.tags ?? []), name]);
-      refreshNotebook();
-    } catch (e) {
-      fail(e);
-    }
-  }
-
-  /// Hangs a banner on the open note, or takes it off with `null`.
-  ///
-  /// It writes ONE line of the note's own file (`core/src/note.rs`), so it
-  /// goes through the same flush the other document actions do: a pending body
-  /// write and a banner write both rewrite the file, and the last one there
-  /// would win.
-  const setNoteBanner = (value) =>
-    noteAction(async () => {
-      await api.setNoteBanner(view.folder, view.path, value);
-      openNote = { ...openNote, banner: bannerOf(value) };
-    });
-
-  /// What a formatting button asks for. All but one go straight to the editor,
-  /// which owns the cursor; the paperclip asks the SHELL for a file, because
-  /// the library is the notebook's and the editor only ever speaks text — the
-  /// same split the picker has kept since 2026-08-18.
-  const runFormat = (id) => {
-    if (id === "md.attach") pickingImage = "body";
-    else noteEditor?.run(id);
-  };
-
-  /// What the image picker does with what was chosen, by what it was opened
-  /// for. Closing it is the same either way.
-  function useImage(address) {
-    const purpose = pickingImage;
-    pickingImage = null;
-    if (purpose === "banner") setNoteBanner(address);
-    else noteEditor?.insert(embedMarkdown(address));
-  }
-
-  /// Files the user brought into the open note — pasted, or dropped on it
-  /// (2026-08-19). They go into the notebook's library like any other file,
-  /// and the note gets the markdown for them where the caret is.
-  ///
-  /// Importing here rather than in the editor is the same split the picker
-  /// keeps: the editor writes text, and what an address MEANS is the shell's
-  /// question. One markdown line per file, each on its own line, because two
-  /// pictures pasted at once are two pictures and not a sentence.
-  async function addFilesToNote(brought) {
-    if (notebook?.readOnly) return;
-    if (brought?.files?.length || brought?.paths?.length) {
-      try {
-        for (const address of await importBrought(brought)) {
-          noteEditor?.insert(`${embedMarkdown(address)}\n`);
-        }
-      } catch (e) {
-        fail(e);
-      }
-      return;
-    }
-    // Nothing local, but an address on the web: a picture copied from a page.
-    // Drawing it means FETCHING it, which is the one thing this app does that
-    // leaves the machine — so it is asked for, until the person says to stop
-    // asking (principle 9, and `confirmImageDownloads`).
-    if (brought?.remote) {
-      const address = await fetchRemoteImage(brought.remote);
-      if (address) noteEditor?.insert(`${embedMarkdown(address)}\n`);
-      return;
-    }
-    // The desktop said it was handing over a file and handed over something
-    // this app cannot read. Saying WHAT it was beats doing nothing at all —
-    // it is the difference between a bug report and a mystery.
-    fail(S.noFileInGesture(brought?.types ?? []));
-  }
+  const {
+    toggleNotePin,
+    setNoteTags,
+    createNoteTag,
+    setNoteBanner,
+    runFormat,
+    useImage,
+    addFilesToNote,
+    fetchRemoteImage,
+    openNoteByTitle,
+    renameCurrentNote,
+    deleteCurrentNote,
+    moveOpenNote,
+  } = makeNoteDocument({
+    view: () => view,
+    note: () => openNote,
+    setNote: (next) => (openNote = next),
+    editor: () => noteEditor,
+    readOnly: () => !!notebook?.readOnly,
+    // Wrapped, not passed: `change`, `reload` and `showNote` are declared
+    // further down and the factory runs now.
+    change: (run, then) => change(run, then),
+    fail,
+    reload: () => reload(),
+    refreshNotebook,
+    replaceTabView: (from, to) => (tabs = Tabs.replaceView(tabs, Tabs.viewId(from), to)),
+    closeActiveTab: () => closeTab(active),
+    goTo,
+    showNote: (path, folder) => showNote(path, folder),
+    openSearchAt: (title) => {
+      searchScope = null;
+      searchQuery = title;
+      searching = true;
+    },
+    picking: () => pickingImage,
+    pickImage: (purpose) => (pickingImage = purpose),
+  });
 
   // Which questions are still being asked, and how to stop asking one —
   // installed once, here, because the shell is the only thing that holds the
@@ -1327,89 +1261,6 @@
       save: (key) => change(() => api.setNotebookSettings({ [key]: false })),
     });
   });
-
-  /// Fetches a picture that is only on the web, having asked first.
-  ///
-  /// The one thing this app does that leaves the machine, so it says which
-  /// host it will contact before doing it (principle 9) — until the person
-  /// says to stop asking, which is a setting of the notebook and not of the
-  /// session. Answers with the address it took, or `null`.
-  async function fetchRemoteImage(url) {
-    const ok = await askConfirm(S.downloadImageTitle, {
-      detail: S.downloadImageBody,
-      code: hostOf(url),
-      danger: S.downloadImageConfirm,
-      remember: "confirmImageDownloads",
-    });
-    if (!ok) return null;
-    try {
-      const address = await api.importAssetFromUrl(url);
-      reload();
-      return address;
-    } catch (e) {
-      fail(e);
-      return null;
-    }
-  }
-
-  /// The host, which is the part worth reading — and the whole address when it
-  /// will not parse, because the question still has to say what it is doing.
-  function hostOf(url) {
-    try {
-      return new URL(url).host;
-    } catch {
-      return url;
-    }
-  }
-
-  /// Opens the note a `[[link]]` names (2026-08-19).
-  ///
-  /// A link carries a TITLE, so a title has to be turned into a note — and
-  /// the notebook's own search is what already knows every note there is.
-  /// Exact matches only: `[[Ideias]]` means the note called Ideias, not every
-  /// note with the word in it.
-  ///
-  /// Two of them is not a guess the app gets to make (it made one in v0.5.0
-  /// and it was wrong): the search box opens at that title and the person
-  /// picks. None of them is worth saying — a link that names nothing looks
-  /// exactly like one that works.
-  async function openNoteByTitle(title) {
-    const wanted = String(title ?? "").trim().toLowerCase();
-    if (!wanted) return;
-    try {
-      const found = (await api.search(title, 50))?.notes ?? [];
-      const exact = found.filter((note) => note.title.trim().toLowerCase() === wanted);
-      if (exact.length === 1) showNote(exact[0].path, exact[0].folder);
-      else if (exact.length === 0) fail(S.noteNotFound(title));
-      else {
-        searchScope = null;
-        searchQuery = title;
-        searching = true;
-      }
-    } catch (e) {
-      fail(e);
-    }
-  }
-
-  const renameCurrentNote = () =>
-    noteAction(async () => {
-      const next = await askName(S.promptRenameNote(openNote.title), openNote.title);
-      if (!next || next.trim() === openNote.title) return;
-      const moved = await api.renameNote(view.folder, view.path, next.trim());
-      // The tab follows the file rather than pointing at a name that is gone.
-      tabs = Tabs.replaceView(tabs, Tabs.viewId(view), {
-        kind: "note",
-        folder: view.folder,
-        path: moved,
-      });
-    });
-
-  const deleteCurrentNote = () =>
-    noteAction(async () => {
-      if (!(await askConfirm(S.confirmDeleteNote(openNote.title), DELETING))) return;
-      await api.deleteNote(view.folder, view.path);
-      closeTab(active);
-    });
 
   function fail(e) {
     error = describeError(e);
@@ -2119,14 +1970,6 @@
           })),
       );
   });
-
-  /// Moves the open note, and follows it: the tab points at an address, and
-  /// the address just changed.
-  const moveOpenNote = (space, into) =>
-    noteAction(async () => {
-      const landed = await api.moveNoteToSpace(view.folder, view.path, space, into);
-      goTo({ kind: "note", folder: space, path: landed });
-    });
 
   /// A note opened FROM a board. `fresh` says the board has just created it
   /// empty (the quick-note bar's + on an empty field), so the cursor goes
