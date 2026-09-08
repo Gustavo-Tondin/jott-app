@@ -43,7 +43,7 @@ describe("isDarkColor", () => {
 });
 
 describe("tellSystemBars", () => {
-  it("weighs each bar's own ground, and leaves no probe behind", () => {
+  it("weighs each bar's own ground", () => {
     // The app's own mode is exactly this: dark chrome at the top of the
     // screen, light canvas at the bottom, and the two bars disagree.
     const systemBars = vi.fn();
@@ -54,7 +54,23 @@ describe("tellSystemBars", () => {
       }),
     ).toEqual({ top: true, bottom: false });
     expect(systemBars).toHaveBeenCalledWith(true, false);
-    expect(document.body.children.length).toBe(0);
+  });
+
+  it("keeps ONE probe per region and says the same thing only once", () => {
+    // Both are about the same thing: the caller runs on every refresh of the
+    // notebook, and a probe thrown away costs a style recalculation while a
+    // crossing into Java costs more. Nothing here may grow with the calls.
+    const systemBars = vi.fn();
+    window.JottAndroid = { systemBars };
+    const doc = ground({ chrome: "rgb(30, 30, 30)", canvas: "rgb(251, 251, 251)" });
+    for (let i = 0; i < 5; i++) tellSystemBars("chrome", "canvas", { doc });
+    expect(document.body.children.length).toBe(2);
+    expect(systemBars).toHaveBeenCalledTimes(1);
+
+    // A ground that CHANGED is said, though — the theme moved under it.
+    tellSystemBars("canvas", "canvas", { doc });
+    expect(systemBars).toHaveBeenCalledTimes(2);
+    expect(systemBars).toHaveBeenLastCalledWith(false, false);
   });
 
   it("says nothing where there is no bridge, and nothing it cannot weigh", () => {
