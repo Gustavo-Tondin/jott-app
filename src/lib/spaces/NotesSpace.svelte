@@ -34,12 +34,7 @@
   import { leafOf, listName } from "../services/paths.js";
   import { reorderable } from "../actions/reorder.js";
   import { measured } from "../actions/measure.js";
-  import {
-    columnBreaks,
-    columnCount,
-    weightOfGroup,
-    weightOfNote,
-  } from "../services/noteColumns.js";
+  import { columnCount, columnLayout } from "../services/noteColumns.js";
   import { dismissable } from "../actions/dismissable.js";
   import { keepOnScreen } from "../actions/keepOnScreen.js";
   import Menu from "../components/Menu.svelte";
@@ -526,23 +521,20 @@
 
   // ---- the masonry (2026-08-19) ----
   //
-  // The board measures itself and decides its own column count, then tells the
-  // browser where to cut. Leaving both to `column-fill: balance` is what left a
-  // whole column empty whenever the cards were few and one of them was long
-  // (reported twice). services/noteColumns.js carries the reasoning; what is
-  // here is only the wiring — and the cards stay direct children of the board,
-  // which is what keeps the drag working.
+  // The board measures itself and decides its own column count, then renders
+  // the cards column by column and tells the browser where to cut, so it
+  // reads by rows (services/noteColumns.js). The cards stay direct children
+  // of the board, which is what keeps the drag working — and reorder.js
+  // counts DOM slots, so its indices go through `columned.order` (or `shown`)
+  // before they mean a card. The tree view is one column: no cuts.
   let boardWidth = $state(0);
   /// The board element, so the folder cards inside it can be offered as drop
   /// zones (a note dropped on a folder is filed into it).
   let boardEl = $state(null);
   let columns = $derived(columnCount(boardWidth));
-  let breaks = $derived(
-    columnBreaks(
-      laidOut.map((it) => (isGroup(it) ? weightOfGroup(it) : weightOfNote(it))),
-      columns,
-    ),
-  );
+  let columned = $derived(columnLayout(laidOut.length, layout === "tree" ? 1 : columns));
+  /// The cards in DOM order — what a reorder.js index points at.
+  let shown = $derived(columned.order.map((i) => laidOut[i]));
 
   // Dragging a card on the board saves what the user built as the custom
   // order (of card addresses — a folder's among them since 2026-08-19). Only
@@ -582,7 +574,7 @@
   async function reorderCards(from, to) {
     // A card is never pinned into a block of its own here, so only the new
     // arrangement matters out of the plan.
-    const { next } = planReorder(laidOut, from, to, () => false);
+    const { next } = planReorder(laidOut, columned.order[from], columned.order[to], () => false);
     try {
       // The shell persists and refreshes; the new order comes back with the
       // snapshot.
@@ -746,28 +738,29 @@
         // A folder card is where a NOTE is filed. Carrying a folder there is
         // no zone at all: it is only being put somewhere in the order.
         dropZones: (from) =>
-          isGroup(laidOut[from])
+          isGroup(shown[from])
             ? []
             : [...(boardEl?.querySelectorAll(".notes-space__group") ?? [])],
         onDropZone: (from, zone) =>
           zone.dataset.spaceDrop != null
-            ? moveCardTo(laidOut[from], zone.dataset.spaceDrop)
-            : fileInto(laidOut[from], zone.dataset.folder),
+            ? moveCardTo(shown[from], zone.dataset.spaceDrop)
+            : fileInto(shown[from], zone.dataset.folder),
         // The free drag (Ctrl, 2026-08-26): a NOTE carried to a notepad in
         // the sidebar goes into its Inbox folder. A folder card offers none.
         free: readOnly ? null : (e) => e.ctrlKey || e.metaKey,
         freeZones: (from) =>
-          isGroup(laidOut[from])
+          isGroup(shown[from])
             ? []
             : [...document.querySelectorAll('[data-space-drop][data-space-kind="notes"]')],
-        canDropInto: (from, to) => !isGroup(laidOut[from]) && !isGroup(laidOut[to]),
-        onDropInto: (from, to) => groupNotes(laidOut[from], laidOut[to]),
+        canDropInto: (from, to) => !isGroup(shown[from]) && !isGroup(shown[to]),
+        onDropInto: (from, to) => groupNotes(shown[from], shown[to]),
       }}
     >
       <!-- ONE loop, because the board is one arrangement: a folder card and a
            note card sit side by side wherever the order puts them, and either
            can be carried. See `laidOut`. -->
-      {#each laidOut as card, index (card.path)}
+      {#each columned.order as index (laidOut[index].path)}
+        {@const card = laidOut[index]}
         {#if isGroup(card)}
           {@const group = card}
           <!-- A folder, as the wireframes draw it: a tinted block with the notes
@@ -784,7 +777,7 @@
           <li
             class="notes-space__group"
             data-folder={group.path}
-            class:theme-note-board__break={breaks.has(index)}
+            class:theme-note-board__break={columned.breaks.has(index)}
           >
             <article
               class="note-group"
@@ -919,10 +912,15 @@
                   {#if inside.cards.length === 0}
                     <p class="notes-space__empty">{S.noNotes}</p>
                   {:else}
+                    {@const cards = laid(inside.cards)}
+                    {@const pair = columnLayout(cards.length, 2)}
                     <ul class="theme-note-board notes-space__board notes-space__board--pair">
-                      {#each laid(inside.cards) as entry (entry.path)}
-                        <li class="notes-space__item">
-                          {@render noteItem(entry)}
+                      {#each pair.order as i (cards[i].path)}
+                        <li
+                          class="notes-space__item"
+                          class:theme-note-board__break={pair.breaks.has(i)}
+                        >
+                          {@render noteItem(cards[i])}
                         </li>
                       {/each}
                     </ul>
@@ -934,7 +932,7 @@
         {:else}
           <li
             class="notes-space__item"
-            class:theme-note-board__break={breaks.has(index)}
+            class:theme-note-board__break={columned.breaks.has(index)}
           >
             {@render noteItem(card)}
           </li>

@@ -18,6 +18,12 @@ file and live only in the commit history.
 
 ## v0.52.1
 
+### Improved
+
+- The notes board reads by rows: the first three notes go across the top,
+  the next three under them, and so on. It used to run down each column,
+  which scrambled an order sorted by time.
+
 ### Fixed
 
 - Enter in a list no longer skips a line: the next bullet comes right under

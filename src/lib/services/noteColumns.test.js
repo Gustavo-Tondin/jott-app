@@ -1,12 +1,6 @@
 import { describe, expect, it } from "vitest";
-import {
-  CARD_MIN,
-  columnBreaks,
-  columnCount,
-  PREVIEW_LINES,
-  weightOfGroup,
-  weightOfNote,
-} from "./noteColumns.js";
+import { CARD_MIN, columnCount, columnLayout } from "./noteColumns.js";
+import { movedItem } from "./spaceOrder.js";
 
 describe("how many columns fit", () => {
   it("gives three at the app's reading width and drops one as it narrows", () => {
@@ -31,66 +25,39 @@ describe("how many columns fit", () => {
   });
 });
 
-describe("where the columns break", () => {
+describe("how the board is laid out", () => {
+  it("reads by rows: 1 2 3 over 4 5 6, rendered column by column", () => {
+    const { order, breaks } = columnLayout(9, 3);
+    expect(order).toEqual([0, 3, 6, 1, 4, 7, 2, 5, 8]);
+    expect([...breaks]).toEqual([6, 7]);
+  });
+
+  it("keeps reading by rows when the last row is short", () => {
+    const { order, breaks } = columnLayout(5, 3);
+    expect(order).toEqual([0, 3, 1, 4, 2]);
+    expect([...breaks]).toEqual([3, 4]);
+  });
+
   it("gives every column a card when there are fewer cards than columns", () => {
-    // THE bug this file exists for: the browser's own balancing put four cards
-    // in two of three columns and left the third empty.
-    expect([...columnBreaks([1, 1], 3)]).toEqual([0]);
-    expect([...columnBreaks([9, 1, 1], 3)]).toEqual([0, 1]);
+    // The browser's own balancing put four cards in two of three columns and
+    // left the third empty; a break after each card keeps it from choosing.
+    const { order, breaks } = columnLayout(2, 3);
+    expect(order).toEqual([0, 1]);
+    expect([...breaks]).toEqual([0]);
   });
 
-  it("cuts the run into columns of roughly equal weight", () => {
-    // Four ones into two columns: two each.
-    expect([...columnBreaks([1, 1, 1, 1], 2)]).toEqual([1]);
-    // One heavy card is a column of its own.
-    expect([...columnBreaks([6, 1, 1, 1, 1, 1, 1], 2)]).toEqual([0]);
+  it("breaks nothing when there is one column, or nothing at all", () => {
+    expect(columnLayout(3, 1)).toEqual({ order: [0, 1, 2], breaks: new Set() });
+    expect(columnLayout(0, 3)).toEqual({ order: [], breaks: new Set() });
   });
 
-  it("fills every column on a board with barely more cards than columns", () => {
-    // THE case that was still broken after the first fix (user report,
-    // 2026-08-19): a folder card, an empty note, a short one and a long one,
-    // into three columns. No column ever reached its share of the weight in
-    // time, so nothing broke, and the browser's own balancing put them all in
-    // two columns — the very thing the breaks exist to prevent.
-    expect([...columnBreaks([5, 2, 8, 13], 3)]).toEqual([1, 2]);
-    // Five cards, one enormous: it takes a column, and the rest still spread.
-    expect([...columnBreaks([50, 1, 1, 1, 1], 3)]).toEqual([0, 1]);
-  });
-
-  it("keeps the last columns from being starved", () => {
-    // A first card heavy enough to claim every share must still leave one card
-    // for each remaining column.
-    const breaks = [...columnBreaks([50, 1, 1], 3)];
-    expect(breaks).toEqual([0, 1]);
-  });
-
-  it("breaks nothing when there is one column", () => {
-    expect(columnBreaks([1, 2, 3], 1).size).toBe(0);
-    expect(columnBreaks([], 3).size).toBe(0);
-  });
-});
-
-describe("what a card weighs", () => {
-  it("counts the banner and the preview it will draw", () => {
-    expect(weightOfNote({ preview: "" })).toBe(2);
-    expect(weightOfNote({ preview: "", banner: { kind: "color", value: "red" } })).toBe(7);
-    // The preview is clamped on screen, so it is clamped here too.
-    expect(weightOfNote({ preview: "x".repeat(4000) })).toBe(2 + PREVIEW_LINES);
-  });
-
-  it("counts the BLOCKS, not the characters", () => {
-    // Six one-word bullets are six lines however little they say — counting
-    // characters called that card empty and packed the column around it.
-    const listy = weightOfNote({ preview: "- um\n- dois\n- três\n- quatro" });
-    expect(listy).toBe(weightOfNote({ preview: "x".repeat(4 * 34) }));
-    // And a heading is taller than the line under it.
-    expect(weightOfNote({ preview: "# Título" })).toBeGreaterThan(
-      weightOfNote({ preview: "Título" }),
-    );
-  });
-
-  it("counts a folder card by the small cards inside it", () => {
-    expect(weightOfGroup({ notes: [] })).toBe(2);
-    expect(weightOfGroup({ notes: [1, 2, 3, 4] })).toBe(8);
+  it("maps a drag between DOM slots back onto the board's own order", () => {
+    // What the board does with reorder.js's indices: the DOM runs 1 4 2 5 3 6,
+    // so card 4 (DOM slot 1) dropped on card 2's slot (DOM slot 2) lands
+    // between 1 and 2.
+    const cards = ["1", "2", "3", "4", "5", "6"];
+    const { order } = columnLayout(cards.length, 3);
+    expect(order).toEqual([0, 3, 1, 4, 2, 5]);
+    expect(movedItem(cards, order[1], order[2])).toEqual(["1", "4", "2", "3", "5", "6"]);
   });
 });

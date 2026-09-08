@@ -1094,10 +1094,12 @@
      notes screen, a notes space, today's notes on Home). It was the same
      rules in home.css and notes-space.css; the `<ul>` wears it and a block
      sheet keeps only what differs. The column COUNT is measured in the markup
-     (services/noteColumns.js) and handed over as `--columns`; the cuts it
-     decides are `.theme-note-board__break` on the card that ends a column.
+     (services/noteColumns.js) and handed over as `--columns`; the markup also
+     renders the cards column by column and marks the one that ends each with
+     `.theme-note-board__break`, so the board READS BY ROWS (1 2 3 over 4 5 6)
+     although multicol fills down a column.
 
-     The board flows in COLUMNS (2026-08-18, wireframes "Notes screen" and
+     Multicol and not a grid of rows (2026-08-18, wireframes "Notes screen" and
      "Space Notes"): a card is as tall as its own text, and the next one starts
      where it ended. A grid of rows made every card in a row as tall as the
      longest of them, which is what left the ragged white gaps the wireframes
