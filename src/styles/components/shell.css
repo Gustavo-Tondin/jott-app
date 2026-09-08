@@ -1,7 +1,6 @@
 /* shell.css — the `shell` block: the three-panel arrangement, the sidebar,
- * the centre panel and the onboarding screen. Markup lives in App.svelte and
- * lib/shell/Sidebar.svelte; everything visual about it lives here, globally,
- * so a theme can restyle any hook without fighting Svelte's scoping. */
+ * the centre panel and the compact (drawer) shell. Markup: App.svelte and
+ * lib/shell/Sidebar.svelte. */
 
 @layer components {
   .shell__main {
@@ -10,20 +9,16 @@
     font-family: var(--app-font-sans);
   }
 
-  /* Hosting the picker rather than the shell (2026-08-24). The picker is a
-     screen with a floor — its two choices sit on it — so it needs to be told
-     how tall it may be, which a block child of a flex item is not. */
+  /* The picker is a screen with a floor, so it has to be told how tall it may
+     be — a block child of a flex item is not. */
   .shell__main--picker {
     display: flex;
     flex-direction: column;
     min-block-size: 0;
   }
 
-  /* What is left of the old onboarding screen: the two sentences Android has
-     to say, and the error box, under the picker (styles/components/notebooks.css).
-     It used to BE the screen — a paragraph, a button, and 4rem of air above
-     it. Now it is a footnote to one, so the air is gone and the box only
-     appears when it has something to say. */
+  /* The footnote under the picker: what Android has to say, and the error
+     box (styles/components/notebooks.css). */
   .shell__onboarding {
     max-inline-size: 32rem;
     margin-inline: auto;
@@ -31,11 +26,8 @@
     padding-block-end: var(--app-space-32);
   }
 
-  /* The second choice on Android — the app's own private folder — is offered,
-     not urged: it is what someone gets by declining file access, and it is the
-     smaller of the two. Hence a plain button under the primary one, with the
-     cost of choosing it written out (nothing else on the phone can read it,
-     and uninstalling takes it along). */
+  /* The app's private folder on Android: offered, not urged — a plain button
+     under the primary one, with its cost written out. */
   .shell__onboarding-alt {
     margin-block-start: var(--app-space-8);
   }
@@ -46,11 +38,8 @@
     color: var(--app-ink-muted);
   }
 
-  /* Flex, not grid: each side panel is a flex item whose width animates
-     (the left rail collapses, the right inspector slides in/out). Grid was
-     dropped because toggling its column count mid-transition auto-placed the
-     transitioning panel into the first free cell — a one-frame flash on the
-     left. Flex just grows the centre as a panel shrinks. */
+  /* Flex, not grid: a side panel's width animates, and grid auto-places a
+     panel into the first free cell while its column count changes. */
   .shell {
     display: flex;
     height: 100%;
@@ -58,10 +47,9 @@
     padding: 0 var(--app-space-4) var(--app-space-4) var(--app-space-4);
   }
 
-  /* ---- sidebar ---- */
-  /* The pane: pinned head, scrolling middle, pinned footer — the same layout
-     pact the inspector keeps (.theme-pane-head/-foot). No gap/padding here: the
-     chrome borders and the scroll region own the spacing. */
+  /* ---- sidebar: pinned head, scrolling middle, pinned footer (the pane
+     pact of .theme-pane-head/-foot). The chrome borders and the scroll region
+     own the spacing. ---- */
   .shell__sidebar {
     flex: 0 0 var(--app-sidebar-left);
     display: flex;
@@ -72,27 +60,21 @@
     transition: flex-basis var(--app-transition-medium);
   }
 
-  /* ---- head: hamburger · search · + (left), collapse toggle (right) ---- */
-  /* Four controls, evenly spread across the head (user call, 2026-08-17):
-     hamburger · search · + · collapse, the first and the last on the walls.
-     They read as one row of tools rather than as three-and-one. */
+  /* ---- head: hamburger · search · + · collapse, evenly spread, the first
+     and the last on the walls ---- */
   .shell__sidebar-head {
     justify-content: space-between;
     gap: var(--app-space-2);
     padding: var(--app-space-8) var(--app-space-12);
   }
-  /* The head buttons are plain .theme-btn--icon; nothing extra to say. */
-
-  /* ---- rail: the collapsed sidebar. Only the labels go away — every icon
-     keeps the exact position it had, so collapsing reads as the panel
-     narrowing over the same column of icons, never as items jumping to a new
-     alignment mid-animation (minimized screen.pdf). ---- */
+  /* ---- rail: the collapsed sidebar. Only the labels go away; every icon
+     keeps its x, so collapsing reads as the panel narrowing over one column
+     of icons. ---- */
   .shell__sidebar--rail {
     flex-basis: var(--app-sidebar-rail);
   }
-  /* Railed: only the expand toggle stays; the hamburger, the search and the +
-     wait for the full sidebar — 3.5rem is one glyph wide, and that glyph has
-     to be the way back out. */
+  /* Railed, only the expand toggle stays: 3.5rem is one glyph wide, and that
+     glyph has to be the way back out. */
   .shell__sidebar--rail .shell__menu,
   .shell__sidebar--rail .shell__head-action {
     display: none;
@@ -107,20 +89,16 @@
     flex: 1;
     min-height: 0;
     overflow-y: auto;
-    /* Never sideways: the rail is narrow and anything peeking past it must be
-       clipped, not become a horizontal scrollbar. */
+    /* Never sideways: what peeks past the rail is clipped, not scrolled. */
     overflow-x: hidden;
     display: flex;
     flex-direction: column;
     gap: var(--app-space-8);
-    /* Block padding keeps the groups off the head/footer borders; the inline
-       wall gap sits the group bar between the wall and the button. */
+    /* Block padding keeps the groups off the head/footer borders. */
     padding: var(--app-space-12) 0;
   }
-  /* Rail: the right-hand chrome gives way so the 56px column fits the icon
-     band without overflowing (minimized screen.pdf); the LEFT paddings stay,
-     so every icon keeps its x. The member indent resets for the same reason.
-     The "new space/group" affordances wait for the full sidebar. */
+  /* Rail: the right-hand padding gives way so the 56px column fits the icon
+     band; the LEFT paddings stay, so every icon keeps its x. */
   .shell__sidebar--rail .shell__sidebar-scroll {
     padding-inline-end: 0;
   }
@@ -131,21 +109,15 @@
   .shell__sidebar--rail .shell__nav-item {
     padding: var(--app-space-12);
   }
-  /* A space/group row is a DIV with the opening BUTTON inside it, so its
-     inline padding lands on top of the row's — the icon ended up one whole
-     step right of the fixed entries' (user report, 2026-08-06). In the rail the
-     row already spaces it; the button adds nothing. */
+  /* A space/group row is a DIV with the opening BUTTON inside it: in the rail
+     the row already spaces the icon, so the button adds nothing. */
   .shell__sidebar--rail .shell__nav-open {
     padding-inline: 0;
   }
   /* Every section of the sidebar is marked by a 2px bar in the wall gap. */
   .shell__group {
-    /* --gc-strong is the section's colour, declared HERE so every section
-       has it — the fixed entries (Home/Tasks/Notes) and the user lists
-       included. It was only on `--space` until 2026-08-13, which is why the
-       fixed entries' icons came out muted grey instead of wearing the theme
-       (user report). A section with no colour of its own IS the theme
-       accent; that is not a fallback, it is the answer. */
+    /* --gc-strong is the section's colour, declared HERE so every section has
+       it, the fixed entries included: no colour of its own IS the accent. */
     --gc-strong: var(--app-brand);
     display: flex;
     flex-direction: column;
@@ -153,18 +125,15 @@
     border-left: 0.125rem solid var(--gc-strong);
     padding-inline: var(--app-space-4);
   }
-  /* The wrapper the spaces reorder within — reproduces the gap they had as
-     loose scroll children. */
+  /* The wrapper the spaces reorder within. */
   .shell__spaces {
     display: flex;
     flex-direction: column;
-    /* Tight (user call, 2026-08-11): the column reads as one list of places,
-       not as a stack of separated sections. */
+    /* Tight: one list of places, not a stack of sections. */
     gap: var(--app-space-2);
   }
-  /* A level inside a group (they nest, 2026-08-11). The indent is the
-     CONTAINER's, not the row's, so it compounds with depth on its own — and a
-     row does not have to know how deep it is. */
+  /* A level inside a group. The indent is the CONTAINER's, not the row's, so
+     it compounds with depth and a row never knows how deep it is. */
   .shell__spaces--nested {
     padding-inline-start: var(--app-space-12);
   }
@@ -173,37 +142,22 @@
     padding-inline-start: 0;
   }
 
-  /* ---- space colour system ----
-     A space (or the group it belongs to) picks one of the seven, and
-     Sidebar.svelte writes the choice as --group-color, read here for the
-     bar/text/icon. It already follows the region's ground (services/accent.js
-     → styles/themes/*.css), so the same orange is the light half here on the
-     black sidebar and the dark half on the white canvas. No colour is mixed
-     at this level any more.
-
-     Unset means "no colour of its own" and the fallback puts the row back on
-     the theme accent. */
+  /* ---- space colour: Sidebar.svelte writes the pick as --group-color, which
+     already follows the region's ground (services/accent.js). Unset means no
+     colour of its own, and the fallback is the accent. ---- */
   .shell__group--space {
     --gc-strong: var(--group-color, var(--app-brand));
   }
 
-  /* Selected: the solid pill, in whatever colour the section carries — its own
-     for a coloured space, the group's for a member, the theme accent for
-     the fixed entries. One shape for "this is the open place", whatever it is,
-     and no outline (user call). */
+  /* Selected: the solid pill in whatever colour the section carries — one
+     shape for "this is the open place", no outline. */
   .shell__group .shell__nav-item--active {
     background: var(--gc-strong);
     color: var(--app-on-brand);
   }
 
-  /* ---- how far the colour reaches (user call, 2026-08-13) ----
-     The ICON always wears it, at every level: it is the mark of which place a
-     row belongs to, and on a column of a dozen rows it is what you scan.
-     The LABEL wears it only on a group HEAD — the group is the thing being
-     named by the colour, and colouring its members' names too turned a section
-     into a solid block of one hue with nothing standing out in it. So: heads
-     read as coloured titles, everything under them as plain rows with a
-     coloured mark. */
+  /* How far the colour reaches: the ICON always wears it, at every level; the
+     LABEL only on a group HEAD. */
   .shell__group .theme-icon {
     color: var(--gc-strong);
   }
@@ -211,31 +165,24 @@
     color: var(--gc-strong);
   }
   /* On the open row the pill IS the colour, so both go back to the ink that
-     reads on it — a coloured glyph on its own colour is invisible. */
+     reads on it. */
   .shell__group .shell__nav-item--active > .shell__nav-open > .shell__nav-label,
   .shell__group .shell__nav-item--active .theme-icon {
     color: var(--app-on-brand);
   }
 
   /* The caret at the end of a group head: the one affordance saying the head
-     is a toggle and not a place to open (user call, 2026-08-13). It points
-     down when the group is open, right when it is folded — the direction the
-     members will go. */
+     is a toggle, not a place to open. */
   .shell__group-caret {
     flex-shrink: 0;
     margin-inline-start: auto;
     opacity: 0.7;
   }
-  /* Not on the rail (user report, 2026-08-17): with the label gone, the caret
-     sat beside the icon as a second glyph in a column that holds one, and it
-     pointed at members nobody can read there anyway. */
+  /* Not on the rail: a second glyph in a column that holds one. */
   .shell__sidebar--rail .shell__group-caret {
     display: none;
   }
-  /* Where the colour/icon popup hangs. The ⋮ that used to live here is gone
-     (user call, 2026-08-06): it only showed on hover, it ate the end of every
-     name, and the right button carries the same menu without costing a pixel.
-     The wrapper is only in the DOM while the popup is open. */
+  /* Where the colour/icon popup hangs; only in the DOM while it is open. */
   .shell__ws-tools {
     display: inline-flex;
     align-items: center;
@@ -247,8 +194,7 @@
   }
   .shell__nav-item--row:hover .shell__ws-tools,
   .shell__nav-item--active .shell__ws-tools,
-  /* Opened from the right-click menu, which can happen without the pointer
-     resting on the row — it has to show regardless. */
+  /* Opened from the right-click menu, without the pointer on the row. */
   .shell__ws-tools--open {
     opacity: 1;
   }
@@ -256,20 +202,16 @@
   .shell__sidebar--rail .shell__ws-tools {
     display: none;
   }
-  /* A carried sidebar item needs a solid backdrop while it rides over its
-     neighbours (the sidebar itself is transparent). */
+  /* A carried item needs a solid backdrop over its neighbours. */
   .shell__nav-item.reorder-item--carried,
   .shell__entry.reorder-item--carried,
   .shell__group--space.reorder-item--carried {
     background: var(--app-surface);
     border-radius: var(--app-radius-md);
   }
-  /* ---- the sidebar row ----
-     One row of the navigation: a 42px band holding an icon and a label —
-     `.shell__nav-item`, whether it is a fixed entry (a button) or a
-     space/group row (the `--row` div variant further down, whose inner
-     `.shell__nav-open` opens so the ⋮ can sit INSIDE the highlight). The
-     band is written once. */
+  /* ---- the sidebar row: one 42px band, icon and label, whether a fixed
+     entry (a button) or a space/group row (`--row`, a div whose inner
+     `.shell__nav-open` opens so the ⋮ sits INSIDE the highlight). ---- */
   .shell__nav-item {
     display: flex;
     align-items: center;
@@ -293,30 +235,22 @@
   .shell__nav-item:hover {
     background: var(--app-hover);
   }
-  /* Pressed, the row gives by a hair — less than a button does (0.96): a row
-     the width of the sidebar shrinking by 4% would visibly pull away from
-     both walls. */
+  /* Pressed, the row gives by a hair — less than a button: a row the width
+     of the sidebar shrinking 4% would pull away from both walls. */
   .shell__nav-item:active {
     scale: 0.98;
   }
-  /* The open place is a SOLID accent pill (2026-08-13 wireframes). On the black
-     chrome the tint step is a near-black navy — enough to see, not enough to
-     say "you are here" across a column of a dozen rows. Filled, it is the one
-     thing in the sidebar that is not a shade of the ground. The label rides on
-     --app-on-brand, which is the region's own ground, so it stays legible
-     whichever half of the accent the ground picked. */
+  /* The open place is a SOLID accent pill; the label rides on --app-on-brand,
+     the region's own ground, so it reads whichever half of the accent the
+     ground picked. */
   .shell__nav-item--active {
     background: var(--app-brand);
     color: var(--app-on-brand);
     font-weight: var(--app-weight-semibold);
   }
-  /* Hovering the row you are already on (user call, 2026-08-13): it DIMS, it
-     does not veil. The base `:hover` paints --app-hover, a translucent grey
-     — over a solid accent pill that reads as a smudge on the colour rather
-     than as feedback, and it wins on specificity, so the pill lost its colour
-     under the pointer. Fading the whole row keeps the colour and still answers
-     the pointer. Both selectors are needed: a space row repaints the
-     background with its own colour further down. */
+  /* Hovering the open row DIMS it, it does not veil: the base `:hover`'s
+     translucent grey wins on specificity and smudges the pill. Both selectors
+     are needed — a space row repaints the background with its own colour. */
   .shell__nav-item--active:hover {
     background: var(--app-brand);
     opacity: 0.7;
@@ -339,14 +273,9 @@
     color: var(--app-ink-faint);
   }
 
-  /* ---- space/group rows (2026-08-04): the SAME .shell__nav-item band
-     the fixed entries use, so these come AFTER it — they are its modifiers,
-     and being written before it was exactly why `--member` never got its
-     shorter height (same specificity, the base won on order; 2026-08-05).
-     `--row` is the div variant whose inner .shell__nav-open button opens (so
-     the ⋮ sits inside the highlight); `--head` is the group head, which
-     collapses its members; `--member` is a space inside a group —
-     shorter, icon-less, following the group's colour, gone in the rail. ---- */
+  /* ---- space/group rows: modifiers of .shell__nav-item, so they come AFTER
+     it (same specificity, order decides). `--head` collapses its members;
+     `--member` is a space inside a group, shorter. ---- */
   .shell__nav-item--row {
     padding: 0;
     position: relative;
@@ -364,20 +293,14 @@
     font: inherit;
     text-align: left;
   }
-  /* The indent belongs to the level's container (`--nested`), not here: at two
-     levels deep a row would have to know how deep it is. */
+  /* The indent belongs to the level's container (`--nested`), not here. */
   .shell__nav-item--member {
     height: 1.875rem;
     font-size: var(--app-text-14);
   }
-  /* The rail keeps the members (user call, 2026-08-06): with the icon back
-     they are still readable there, and hiding them made a grouped space
-     unreachable without expanding the sidebar. Nothing to say here — the
-     rail's own `.shell__nav-item` padding already wins over the member's
-     indent (two classes to one), so their icons land in the same column as
-     every other one. */
-  /* The pane foot: pinned at the bottom, always visible. The top-border divider
-     comes from .theme-pane-foot — the same chrome the inspector's foot uses. */
+  /* The rail keeps the members: its `.shell__nav-item` padding wins over the
+     member's (two classes to one), so their icons land in the same column. */
+  /* The pane foot; its top hairline is .theme-pane-foot's. */
   .shell__sidebar-footer {
     display: flex;
     align-items: center;
@@ -385,8 +308,8 @@
     gap: var(--app-space-8);
     padding: var(--app-space-10) var(--app-space-12);
   }
-  /* The name is the trigger of a menu (2026-09-07) — the wrapper `Menu`
-     draws takes the row's flexible half, and the button fills it. */
+  /* The name is the trigger of a menu: the wrapper `Menu` draws takes the
+     row's flexible half, and the button fills it. */
   .shell__sidebar-footer > .menu {
     flex: 1;
     min-width: 0;
@@ -409,8 +332,7 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  /* The caret says "this opens": faint, and it takes the ink on hover with
-     the name. */
+  /* The caret says "this opens": faint, ink on hover with the name. */
   .shell__notebook > .theme-icon {
     flex-shrink: 0;
     color: var(--app-ink-faint);
@@ -421,7 +343,7 @@
   .shell__notebook:hover > .icon {
     color: inherit;
   }
-  /* A .theme-btn--icon; the active state adds the brand colour. */
+  /* A .theme-btn--icon; active adds the brand colour. */
   .shell__settings {
     flex-shrink: 0;
     padding: var(--app-space-4);
@@ -429,9 +351,8 @@
   .shell__settings--active {
     color: var(--app-brand);
   }
-  /* The header's one screen door (the Timeline) lights up while its screen
-     is open — the same fact a space's row states, in the header's own way:
-     no pill, just the ink at full strength (user call, 2026-08-27). */
+  /* The header's one screen door (the Timeline) lights up while its screen is
+     open: no pill, just the ink at full strength. */
   .shell__head-action--active {
     color: var(--app-ink);
   }
@@ -446,35 +367,25 @@
     font-weight: var(--app-weight-regular);
   }
 
-  /* ---- the sidebar's edge, as a handle (user call, 2026-08-17) ----
-     A flex item of its own rather than something floating over the panel: the
-     column it takes is a column nothing else wants, and a real box is what
-     makes the grab area bigger than the hairline it draws. It disappears with
-     the rail, whose width is not the user's to choose. */
-  /* Invisible (user call, 2026-08-17): it drew a line and lit up accent under
-     the pointer, which put a loud blue bar between the two panels for a
-     control nobody needs pointed out. The cursor changing IS the affordance.
-     The grab area stays 4px wide — it is the hit target, not a decoration. */
+  /* ---- the sidebar's edge as a handle: a flex item of its own, 4px wide,
+     invisible — the cursor changing IS the affordance. Gone with the rail,
+     whose width is not the user's to choose. ---- */
   .shell__resizer {
     flex: 0 0 var(--app-space-4);
     align-self: stretch;
     cursor: col-resize;
     background: none;
-    /* The drag is a pointer gesture; the browser's own touch panning would
-       fight it. */
+    /* The drag is a pointer gesture; touch panning would fight it. */
     touch-action: none;
   }
-  /* Keyboard focus still has to be visible — that is the one state where
-     nothing else says where you are (global rule). Never on hover. */
+  /* Keyboard focus still has to be visible. Never on hover. */
   .shell__resizer:focus-visible {
     outline: 0.125rem solid var(--app-brand);
     outline-offset: -0.125rem;
   }
 
-  /* ---- centre panel: takes whatever the two side panels leave.
-     It is the CANVAS region (data-region in App.svelte), so it paints its own
-     ground — in the factory theme, white inside the black frame. Everything it
-     holds raises off that with --app-surface. ---- */
+  /* ---- centre panel: whatever the two side panels leave. It is the CANVAS
+     region (data-region in App.svelte), so it paints its own ground. ---- */
   .shell__centre {
     flex: 1 1 0;
     min-width: 0;
@@ -483,25 +394,15 @@
     min-height: 0;
     position: relative;
     background: var(--app-bg);
-    /* The window's corner less the gutter `.shell` leaves around this panel:
-       the canvas is what the frame holds, and its two bottom corners are 4px
-       inside the window's own. It follows the frame from system to system —
-       a squarer window gets a squarer canvas, and the pair stays concentric
-       without either being restated. */
+    /* The window's corner less the 4px gutter `.shell` leaves: the two stay
+       concentric from system to system without either being restated. */
     border-radius: calc(var(--app-window-radius) - var(--app-space-4));
     overflow: hidden;
   }
 
-  /* The screen itself, below the page header — and the containing block of
-     what floats over it (the formatting pills of an open note,
-     format-bar.css), which have to stay put while the note scrolls under them.
-
-     It exists for that second job. Measured from `.shell__centre` the pills
-     were placed against the top of the PANEL, header included, so the bar sat
-     on the header and the dock button landed on its ⋮ (user report,
-     2026-08-19). This box starts where the header ends, which is the whole
-     answer — no height to state, and nothing to keep in step with a header
-     that sizes itself. */
+  /* The screen below the page header, and the containing block of what floats
+     over it (the format bar): it starts where the header ends, so nothing has
+     to know the header's height. */
   .shell__canvas {
     flex: 1 1 auto;
     min-block-size: 0;
@@ -510,22 +411,16 @@
     position: relative;
   }
 
-  /* ---- right panel: the inspector's wrapper (App.svelte). Clips its fixed-
-     width child so the Svelte slide reveals/hides it without reflowing the
-     content inside. ---- */
+  /* ---- right panel: the wrapper (App.svelte) clips its fixed-width child so
+     the slide reveals it without reflowing the content inside. ---- */
   .shell__panel {
     flex: 0 0 auto;
     display: flex;
     min-height: 0;
     overflow: hidden;
   }
-  /* Whatever the panel is showing keeps the same fixed width, so the slide
-     clips its content instead of reflowing it mid-animation.
-     EVERY thing the panel can hold has to be in this list. The formatting bar
-     was not (2026-08-18, user report: "a tela continua gigante"): with no width
-     of its own, a wrapping flex box takes whatever the row will give it, and
-     the panel — which is sized BY its child — grew to half the window and left
-     the note in a column. */
+  /* EVERY thing the panel can hold has to be in this list: the panel is sized
+     BY its child, and a child with no width of its own takes half the row. */
   .shell__panel > .inspector,
   .shell__panel > .suggestions-pane,
   .shell__panel > .note-panel {
@@ -540,57 +435,38 @@
     overflow-y: auto;
     padding: var(--app-space-12) var(--app-space-16) var(--app-space-40);
   }
-  /* Every screen's content is capped here, once, and centred — so a screen
-     never has to know the width itself. */
+  /* Every screen's content is capped here, once, and centred. */
   .shell__content-inner {
     max-width: var(--app-content-max);
     margin-inline: auto;
-    /* The measuring stick every screen inside reads with a container query: a
-       block has to answer to the COLUMN it is in, which narrows when the right
-       panel opens, not to the window. */
+    /* The container every screen inside queries: the COLUMN, which narrows
+       when the right panel opens, not the window. */
     container-type: inline-size;
-    /* A flex column that fills the scrollport, so a screen can push something
-       to the BOTTOM of the panel (the Tasks screen's composing bar) instead of
-       to the bottom of its own content. `min-block-size: 100%` resolves here
-       because .shell__content is a flex item with a definite height, and the
-       padding lives on the parent, so nothing overflows. */
+    /* A flex column that fills the scrollport, so a screen can push its
+       composing bar to the BOTTOM of the panel. `100%` resolves because the
+       parent is a flex item with a definite height and owns the padding. */
     display: flex;
     flex-direction: column;
     min-block-size: 100%;
   }
-  /* An open note keeps the reading measure, banner included (user call,
-     2026-08-27: the banner reached 900px while the prose stayed at 45rem,
-     and the two widths read as two pages). The cap is stated here rather
-     than left to the default so everything inside — the banner, the editor's
-     own centred column — keeps reading ONE variable. */
   .shell__content-inner--note {
-    /* The note's PAGE: the reading column plus the room the editor's fold
-       gutter takes beside it, so the text inside still measures
-       --app-content-max and lands under the title (2026-09-07, and
-       styles/tokens.css says why it is one token). The banner has its own,
-       narrower cap and centres itself, so it does not move. */
+    /* The note's PAGE: the reading column plus the fold gutter beside it, so
+       the text still measures --app-content-max (styles/tokens.css). The
+       banner has its own narrower cap and centres itself. */
     max-width: var(--app-content-note);
   }
-  /* And so is Settings (2026-08-20, wireframe): a menu beside a section needs
-     more than a column of prose — the user's number is 900px, which is the
-     token the note's banner already reads. */
+  /* Settings: a menu beside a section needs more than a column of prose. */
   .shell__content-inner--wide {
     max-width: var(--app-content-wide);
   }
-  /* And the Timeline has NO cap (2026-08-27): its column centres itself at
-     the reading measure, and what needs the whole panel is the year pill,
-     pinned at the canvas's own right edge — not at the edge of a box in
-     the middle of it. */
+  /* The Timeline has NO cap: its column centres itself, and the year pill is
+     pinned at the canvas's own right edge. */
   .shell__content-inner--full {
     max-width: none;
   }
 
-  /* ---- state boxes ----
-     Every box the shell speaks through is the shared Notice
-     (components/Notice.svelte on .theme-notice, controls/feedback.css): the error,
-     the sync conflict, the update, the AppImage's menu offer, and the door
-     that would not open on the picker. What is the shell's is only where
-     they sit — a step of air below, before the screen. ---- */
+  /* ---- state boxes: every one is the shared Notice (.theme-notice,
+     controls/feedback.css); the shell's is only where they sit. ---- */
   .shell__notice {
     margin-block-end: var(--app-space-16);
   }
@@ -599,11 +475,9 @@
     font-family: var(--app-font-mono);
     font-size: var(--app-text-12);
   }
-  /* The floating undo (App.svelte, services/undoOffer.js): over the
-     canvas's bottom edge, centred in what the Home's + leaves free (its
-     slot is `.home-fab`, home.css). The box is the floating Notice
-     (controls/feedback.css); the wrapper only places it, and lets clicks
-     through around it. */
+  /* The floating undo (services/undoOffer.js): over the canvas's bottom edge,
+     centred in what the Home's + leaves free (`.home-fab`, home.css). The
+     wrapper only places the floating Notice and lets clicks through. */
   .shell__toast {
     position: absolute;
     inset-block-end: var(--app-space-24);
@@ -619,7 +493,7 @@
     pointer-events: auto;
     max-inline-size: 100%;
   }
-  /* A conflict per row: what it is, and the door to its folder at the end. */
+  /* A conflict per row: what it is, and the door to its folder. */
   .shell__conflict-list {
     list-style: none;
     margin: var(--app-space-6) 0 0;
@@ -648,51 +522,28 @@
 }
 
 /* =============================================================================
-   THE COMPACT SHELL (below 768px — mobile wireframes, 2026-08-18).
-
-   Three columns do not fit on a phone, so two of them stop being columns: the
-   sidebar becomes a drawer, and the right panel becomes a bottom sheet
-   (styles/components/sheet.css). What is left in the row is the centre, at
-   full width.
-
-   Everything here hangs off classes the components already carry —
-   `.shell--compact`, and the drawer modifiers that exist only in this shell.
-   THE BREAKPOINT ITSELF IS NOWHERE IN THIS FILE: one matchMedia answers the
-   width question (shell/compact.js) and the markup carries the answer down,
-   so there is no second copy of 768 to drift.
+   THE COMPACT SHELL: the sidebar becomes a drawer, the right panel a bottom
+   sheet (sheet.css). The breakpoint is NOWHERE in this file: shell/compact.js
+   answers it once and the markup carries `.shell--compact` down.
    ============================================================================= */
 @layer components {
-  /* ---- the drawer ----
-     It PUSHES rather than overlays: the wireframe translates the whole app
-     240px to the right and leaves it peeking, which is what says the page is
-     still there and one tap away. The app slides as a TRANSFORM, never as a
-     reflow — reflowing the centre panel mid-slide would relayout every task
-     row twice per open.
-
-     ABSOLUTE, against `.window` itself (App.svelte): the drawer's own toolbar
-     is the top of the SCREEN in the wireframe, not a strip below the app's top
-     bar, so it has to cover that bar; and it has to sit still while the app
-     slides out from under it, which is why what slides is `.window__page` and
-     not the window — the drawer is that box's sibling and the transform never
-     reaches it. Inside the frame it is also CLIPPED by it, which is the whole
-     point: off-canvas means outside the window, not beside it. */
+  /* ---- the drawer PUSHES the page (a transform on `.window__page`,
+     window.css), never reflows it. Absolute against `.window`: it covers the
+     top bar, sits still while the page slides, and is clipped by the frame —
+     off-canvas means outside the window. ---- */
   .shell__sidebar--drawer {
     position: absolute;
     inset-block: 0;
     inset-inline-start: 0;
     z-index: 40;
     flex-basis: auto;
-    /* The wireframe's 240px PLUS the system's left inset: on a phone lying on
-       its side the camera cutout is a 58px strip down that edge, and the
-       drawer pads by it (below) — so a drawer 240px wide had 182px of room,
-       and the fifth button of its head fell outside the box (user report on
-       device, 2026-09-07: "sidebar está muito pequena, não aparece todos os
-       itens no header"). The page is pushed by the same length. */
+    /* The drawer's width PLUS the system's left inset, which it pads by
+       below (the camera cutout in landscape); the page is pushed by the same
+       length. */
     inline-size: calc(var(--app-drawer-width) + var(--app-safe-left));
     background: var(--app-bg);
     /* Off-canvas until asked for. `visibility` rides along so a closed drawer
-       is not a tab stop — `inert` on the element covers the pointer and the
-       accessibility tree, this covers focus order in older engines. */
+       is not a tab stop in engines where `inert` does not cover focus. */
     translate: -100% 0;
     visibility: hidden;
     transition:
@@ -707,97 +558,63 @@
     visibility: visible;
   }
 
-  /* ---- while a finger is carrying it (actions/drawerSwipe.js) ----
-     `--drawer-at` is how far the drag has got, in px. The drawer sits THERE
-     rather than at either end, and its transition is off so it arrives under
-     the hand instead of easing towards it. It is also visible for the whole
-     drag: a drawer that is half open is half open, whichever end it started
-     from. The rules are stronger than the two above by one class, which is
-     what lets a drag override both the open and the closed position. */
+  /* ---- carried by a finger (actions/drawerSwipe.js): `--drawer-at` is how
+     far the drag has got, no transition, visible throughout. One class
+     stronger than the two above, so a drag overrides both positions. ---- */
   .shell__sidebar--drawer.is-sliding {
     translate: calc(var(--drawer-at, 0rem) - 100%) 0;
     visibility: visible;
     transition: none;
   }
 
-  /* The drawer's head meets the status bar, exactly as the top bar does — the
-     two rows sit side by side the moment the drawer opens, so they have to
-     agree about where the system's strip ends (user call, 2026-08-19). The
-     sidebar itself already pads by the inset; this is the 8px of air the head
-     adds on top of it, which the bar no longer adds either. */
+  /* The drawer's head meets the status bar exactly as the top bar does: the
+     sidebar already pads by the inset, so the head adds no air of its own. */
   .shell--compact .shell__sidebar-head {
     padding-block-start: 0;
   }
 
   .shell--compact {
-    /* The fold chevron's column, narrowed to what the glyph measures
-       (styles/tokens.css). It is declared on the SHELL and not on the note's
-       body because two components read it: the editor, which keeps the room
-       on both sides of its text, and the note's banner, whose title lines up
-       with that text (components/note-banner.css). */
+    /* The fold gutter, narrowed to the glyph (styles/tokens.css). On the SHELL
+       because two components read it: the editor and the note's banner. */
     --app-editor-gutter: var(--app-editor-gutter-compact);
     position: relative;
-    /* NO FRAME (user report, 2026-08-18). The 4px the desktop keeps around the
-       canvas is the app's own edge, drawn inside a window that already floats
-       on a desktop; a phone has no desktop behind it, the app IS the screen,
-       and the strip only read as a black seam the canvas failed to reach.
-       Same call as the square corners: at the edges of a phone the app is
-       flush. */
+    /* NO FRAME: on a phone the app IS the screen, and the desktop's 4px gutter
+       read as a seam the canvas failed to reach. */
     padding: 0;
-    /* The browser keeps the vertical pan and hands us the horizontal one —
-       without this it claims the whole gesture and the drawer never sees a
-       single move (actions/drawerSwipe.js). */
+    /* The browser keeps the vertical pan and hands us the horizontal one;
+       without this the drawer never sees a move (actions/drawerSwipe.js). */
     touch-action: pan-y;
   }
 
-  /* Tapping the page closes the drawer. Fixed and full-screen, under the
-     drawer and over everything else.
-
-     AND IT DRAWS NOTHING (user report, 2026-08-18: "fica um overlay no app que
-     muda a cor do preto do lado ficando esquisito"). A veil is what a sheet
-     lays over the page it covers; this drawer does not cover the page, it
-     PUSHES it — the app stays whole, just moved, and dimming a frame that is
-     entirely visible only made its black read as a different black. What is
-     left is the one thing the element is actually for: catching the tap. */
+  /* Tapping the page closes the drawer. It DRAWS NOTHING: the drawer pushes
+     the page rather than covering it, so there is nothing to veil. */
   .shell__drawer-scrim {
     position: absolute;
     inset: 0;
     z-index: 35;
   }
 
-  /* ---- the centre, now the whole row ----
-     THE SCROLLER MOVES UP. On the desktop `.shell__content` scrolls under a
-     pinned header; here the header scrolls away with the page (the "scrolled
-     down" wireframes), so the section scrolls and the content inside it does
-     not. The header is chrome, the content below it is the canvas, and the
-     canvas keeps the rounded top the wireframe draws at y=178. */
+  /* ---- the centre, now the whole row. THE SCROLLER MOVES UP: the header
+     scrolls away with the page, so the section scrolls and `.shell__content`
+     does not. ---- */
   .shell--compact .shell__centre {
     overflow-y: auto;
     border-radius: 0;
     background: none;
-    /* The Home's sheet has two resting places: the page at its start, chrome
-       open (the head's anchor, day-head.css), and the canvas filling the
-       screen (shell__content--home below). `proximity`, so the list inside
-       scrolls freely; a point only catches a scroll that ends near it — and
-       the sheet's catches a fling that would pass through it (user call,
-       2026-09-07: from the bottom, a fast scroll up stops with the title
-       still on the sheet; one more pull reveals the chrome and the week). */
+    /* The Home's sheet has resting places (day-head.css, `--home` below).
+       `proximity`, so the list scrolls freely and a point only catches a
+       scroll that ends near it. */
     scroll-snap-type: y proximity;
-    /* The height of the Home's title row, measured by DayHead.svelte and
-       written here as `--row-h` once it exists; until then, near enough —
-       the bar's height and a line of 32px type. Everything about the sheet
-       (day-head.css, and the rules below) reads this one name. */
+    /* The Home's title row, measured by DayHead.svelte as `--row-h`; until
+       then, near enough. Everything about the sheet reads this one name. */
     --day-head-row: var(--row-h, calc(var(--app-topbar-height) + 5rem));
-    /* The formatting strip floats over this scroller's bottom edge, so the
-       edge is not where the visible part ends. Saying it HERE rather than in
-       the editor is what makes anything scrolling into view — the caret
-       (services/caretScroll.js), a search hit — stop above the strip instead
-       of behind it. The padding on `.shell__content` gives it the room to;
-       this says where to stop. */
+    /* The formatting strip floats over this scroller's bottom edge: said
+       HERE, anything scrolling into view (the caret, a search hit) stops above
+       it instead of behind it. */
     scroll-padding-block-end: var(--app-format-strip);
   }
-  /* Below 768px the canvas scrolls, so the toast is fixed above the safe
-     area, clear of the + (4rem there). */
+  /* The canvas scrolls here, so the toast is fixed above the safe area, clear
+     of the + (4rem). */
   .shell--compact .shell__toast {
     position: fixed;
     inset-block-end: calc(var(--app-space-24) + var(--app-safe-bottom));
@@ -806,110 +623,56 @@
 
   .shell--compact .shell__content {
     overflow: visible;
-    /* Over the Home's sticky head (day-head.css): the canvas is the sheet
-       that rides up over the dark head, so it paints above it. */
+    /* The canvas is the sheet that rides up over the Home's sticky head
+       (day-head.css), so it paints above it. */
     position: relative;
     z-index: 2;
     background: var(--app-bg);
     border-start-start-radius: var(--app-radius-xl);
     border-start-end-radius: var(--app-radius-xl);
-    /* Grows with its content but never shorter than what is left of the
-       screen, so the canvas is never a short white card floating on the
-       chrome. `1 0 auto` and not `min-block-size: 100%`: the header above it
-       is inside the same scroller, and 100% of the scrollport would make every
-       screen overscroll by exactly the header's height. */
+    /* Never shorter than what is left of the screen. `1 0 auto`, not
+       `min-block-size: 100%`: the header is inside the same scroller, and 100%
+       would overscroll every screen by its height. */
     flex: 1 0 auto;
-    /* A column, so the inner block can fill it — which is what puts a sticky
-       composer at the bottom of a SHORT list instead of under the last card. */
+    /* A column, so the inner block can fill it and a sticky composer sits at
+       the bottom of a SHORT list. */
     display: flex;
     flex-direction: column;
     padding: var(--app-space-16) var(--app-space-8) var(--app-space-16);
     padding-inline-start: calc(var(--app-space-8) + var(--app-safe-left));
     padding-inline-end: calc(var(--app-space-8) + var(--app-safe-right));
-    /* Clear of the gesture bar — or of the formatting strip when a note has
-       one, since the strip floats over this scroller and would otherwise sit
-       on the last line being typed. `max()` rather than a sum: the strip
-       stands where the gesture bar is when there is no keyboard, and above the
-       keys when there is, so only ever one of the two is in the way. The
-       composer that sticks to the bottom sits inside this padding, so the two
-       do not have to agree about it. */
+    /* Clear of the gesture bar, or of the formatting strip. `max()`, not a
+       sum: only ever one of the two is in the way. */
     padding-block-end: calc(
       var(--app-space-16) + max(var(--app-safe-bottom), var(--app-format-strip))
     );
   }
-  /* An open note keeps the canvas's rounded top and SCROLLS UNDER THE TOP BAR
-     (wireframes "Editor screen", user call 2026-08-19). The two states the
-     wireframes draw are one arrangement, not two:
-
-       at rest   the canvas begins exactly where the bar ends, rounded, with
-                 its banner bleeding into the three edges it can reach — and
-                 what shows behind the bar is the chrome the page stands on,
-                 which is why the bar itself paints nothing;
-       scrolled  the page has moved up under the bar, so the text passes
-                 beneath it and the buttons are left floating over the note,
-                 each on the pill it already wears.
-
-     No scroll listener, and no second state to keep in sync: the bar is out of
-     the flow and transparent the whole time, and the canvas reserves exactly
-     its height (`--app-topbar-height`, tokens.css — the bar reads the same
-     numbers, so the two cannot drift). It is the note alone: every other
-     screen has a header of its own that belongs above the canvas, and pushing
-     those under the bar would take the title with them.
-
-     `padding-block-start: 0` stays for the banner, which reaches the canvas's
-     own top edge. */
+  /* An open note SCROLLS UNDER THE TOP BAR: the bar is out of the flow and
+     transparent, and the canvas reserves exactly its height
+     (`--app-topbar-height`, tokens.css), so no scroll listener. Zero top
+     padding for the banner, which reaches the canvas's own edge. */
   .shell--compact .shell__content--note {
     padding-block-start: 0;
     margin-block-start: var(--app-topbar-height);
-    /* And the banner is CUT to those corners. It reaches all three edges, so
-       without this it painted straight over the two rounded ones and the
-       canvas came back square (measured on the emulator, 2026-08-19).
-
-       `clip` and not `hidden`: hidden makes the box a scroll container, and
-       this one must not scroll — the screen it belongs to is what scrolls, and
-       a second scroller inside it would swallow the gesture. */
+    /* The banner is CUT to the rounded corners. `clip`, not `hidden`: hidden
+       makes a scroll container, and a second scroller would swallow the
+       gesture. */
     overflow: clip;
   }
 
 
-  /* `inline-size: 100%` is load-bearing, not belt-and-braces. The desktop rule
-     centres this block with `margin-inline: auto`, and an auto inline margin
-     BEATS the stretch a flex item would otherwise get in the cross axis — so
-     as a flex child it fell back to its content width, and `container-type:
-     inline-size` (which is what lets the screens inside ask about their
-     column) means it has no content width to fall back TO. The block collapsed
-     to zero and every screen rendered one word per line. Measured on the
-     emulator, 2026-08-18. */
+  /* `inline-size: 100%` is load-bearing: `margin-inline: auto` beats the flex
+     stretch, and with `container-type: inline-size` there is no content width
+     to fall back to — the block collapses to zero. See
+     docs/platform-gotchas.md#css-e-cascata. */
   .shell--compact .shell__content-inner {
     flex: 1;
     inline-size: 100%;
   }
-  /* THE HOME'S SHEET (DayHead.svelte tells the three acts, day-head.css
-     draws the title's part). Two things are the sheet's own:
-
-     Its CONTENT holds still while its ground goes on rising behind the title
-     and the buttons — the cards are sticky, one title row below the top of
-     the screen, so the moment the sheet's top edge meets the row they stop
-     where they are. They are let go again when the sheet's own end catches
-     up with them: the empty row's height after them (`::after`) is exactly
-     the room the ground travels while they wait, so the release lands on
-     the very scroll position where the sheet's top edge reaches the top of
-     the screen — and from there the title copy and the cards move together.
-     `flex: none`, or the column would stretch the cards to the sheet's
-     height and there would be no end to catch up with.
-
-     And it is CLIPPED to its own rounded box (`clip`, not `hidden` —
-     day-head.css says why), which is what turns the rising ground into the
-     mask that reveals the title copy. A `position: fixed` bar or a carried
-     card inside is not clipped: clipping never reaches a box whose
-     containing block is the viewport. What DOES reach one is a transform
-     on the way up — the first cut moved the cards by `translate` and made
-     itself the containing block of both — so nothing here may transform.
-
-     `min-block-size: 100%`: a short list must still fill the screen when the
-     sheet is up, so the sheet is never a card floating on the chrome and
-     the full state is always reachable — with three tasks the page scrolls
-     exactly the head's height and the row's, and no further. */
+  /* THE HOME'S SHEET (DayHead.svelte tells the three acts). The cards are
+     sticky one title row below the top and `flex: none`; the `::after` row is
+     the room the ground travels while they wait. `clip` is the mask; nothing
+     here may transform. See docs/platform-gotchas.md#webview-e-gestos. */
   .shell--compact .shell__content--home {
     scroll-snap-align: start;
     scroll-snap-stop: always;
@@ -923,17 +686,9 @@
     flex: none;
     min-block-size: 0;
   }
-  /* The empty row after the cards (see above) is also the page's THIRD
-     resting place: its own end. Without one, a list whose end lies within
-     the snap's reach of the full sheet (about a third of the screen) could
-     never rest there — let go at the bottom, the page was drawn back up to
-     the sheet's top and the last card went under the edge (measured on
-     device, 2026-09-07). The scroll margin puts the snap position exactly
-     at the end of the scroll: the sheet's own bottom padding (the 40px
-     above, which is what the Home keeps under its last card), less the
-     scroll padding the scroller already keeps for the formatting strip. A
-     short list then puts this point ON the full sheet's — one place, not
-     two a padding apart. */
+  /* The empty row is also the page's THIRD resting place, its own end; the
+     scroll margin puts that snap point exactly at the end of the scroll, so
+     a short list rests ON the full sheet's point, not a padding apart. */
   .shell--compact .shell__content--home::after {
     content: "";
     flex: none;
@@ -942,18 +697,14 @@
     scroll-margin-block-end: calc(var(--app-space-40) - var(--app-format-strip, 0rem));
   }
 
-  /* ---- the screen's entrance ----
-     A new view rises into the canvas (App.svelte keys it on the view). The
-     wrapper otherwise does nothing: it fills the column it was given. */
+  /* ---- the screen's entrance (App.svelte keys it on the view). ---- */
   .shell__screen {
     flex: 1;
     min-block-size: 0;
     display: flex;
     flex-direction: column;
-    /* Not `theme-rise`: that one moves by `translate`, and a transform on
-       this wrapper — even for a quarter second — would be the containing
-       block of the phone's fixed composing bar and of a card being carried.
-       A fade and a breath of top margin arrive the same way without one. */
+    /* Not `theme-rise`: its `translate` would make this wrapper the containing
+       block of the fixed composing bar and of a carried card. */
     animation: shell-screen-rise var(--app-duration-medium) var(--app-ease-out);
   }
   @keyframes shell-screen-rise {
