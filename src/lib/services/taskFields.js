@@ -32,13 +32,22 @@ export const PRIORITY_SWATCH = {
   p3: "var(--app-success)",
 };
 
-/// How often a task repeats. The empty unit is "it does not".
+/// How often a task repeats. The empty unit is "it does not"; `free` is the
+/// one with no period — it comes back the moment it is ticked, undated, and
+/// only one of it is ever open (`core/src/recurrence.rs`).
 export const REPEAT_UNITS = [
   { value: "", label: () => S.noRepeat },
+  { value: "free", label: () => S.repeatFreely },
   { value: "day", label: () => S.repeatDays },
   { value: "week", label: () => S.repeatWeeks },
   { value: "month", label: () => S.repeatMonths },
 ];
+
+/// Whether a unit is counted ("every 3 weeks"). `free` is not: there is no
+/// period to multiply, so both pickers drop the counter and the word "every".
+export function repeatCounted(unit) {
+  return !!unit && unit !== "free";
+}
 
 /// How high the "every N" selector counts. A COUNT, NOT A TYPED NUMBER (a
 /// number input is a keyboard on a phone and spinners on a desktop); past
@@ -60,6 +69,7 @@ export function repeatCounts(current) {
 /// parse. Takes anything carrying `repeatEvery` + `repeatUnit`.
 export function repeatText(fields) {
   if (!fields?.repeatUnit) return null;
+  if (!repeatCounted(fields.repeatUnit)) return "freely";
   const every = Math.max(1, Number(fields.repeatEvery) || 1);
   return every === 1
     ? `every-${fields.repeatUnit}`

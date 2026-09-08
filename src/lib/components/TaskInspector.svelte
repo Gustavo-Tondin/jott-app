@@ -12,7 +12,15 @@
   import { completionBeat } from "../services/pace.js";
   import { S } from "../services/strings.js";
   import { leafOf, listTitle, splitLabel } from "../services/paths.js";
-  import { PRIORITIES, REPEAT_UNITS, cleanTagName, priorityClass, repeatCounts, repeatText } from "../services/taskFields.js";
+  import {
+    PRIORITIES,
+    REPEAT_UNITS,
+    cleanTagName,
+    priorityClass,
+    repeatCounted,
+    repeatCounts,
+    repeatText,
+  } from "../services/taskFields.js";
   import { badgeStyle } from "../services/accent.js";
   import { childrenIn } from "../services/features.js";
   import { movedItem } from "../services/spaceOrder.js";
@@ -614,7 +622,7 @@
           <span class="inspector__field-word">{S.repeatLabel}</span>
         </span>
         <span class="inspector__stepper">
-          {#if draft.repeatUnit}
+          {#if repeatCounted(draft.repeatUnit)}
             <!-- Chosen, never typed — the same list as the composer's, so the two
                  cannot disagree about what "every N" may be. -->
             <select

@@ -2,7 +2,15 @@
 // this module existed, which is exactly how two copies of a rule drift.
 
 import { describe, expect, test } from "vitest";
-import { PRIORITIES, REPEAT_MAX, REPEAT_UNITS, cleanTagName, repeatCounts, repeatText } from "./taskFields.js";
+import {
+  PRIORITIES,
+  REPEAT_MAX,
+  REPEAT_UNITS,
+  cleanTagName,
+  repeatCounted,
+  repeatCounts,
+  repeatText,
+} from "./taskFields.js";
 
 describe("repeatText", () => {
   test("builds only what the core can parse", () => {
@@ -42,7 +50,20 @@ describe("the option tables", () => {
 
   test("the empty repeat unit is 'it does not repeat'", () => {
     expect(REPEAT_UNITS[0].value).toBe("");
-    expect(REPEAT_UNITS.map((u) => u.value)).toEqual(["", "day", "week", "month"]);
+    expect(REPEAT_UNITS.map((u) => u.value)).toEqual(["", "free", "day", "week", "month"]);
+  });
+
+  test("only a periodic unit is counted", () => {
+    // "every 3 freely" is not a thing: the counter and the word "every" go.
+    expect(repeatCounted("week")).toBe(true);
+    expect(repeatCounted("free")).toBe(false);
+    expect(repeatCounted("")).toBe(false);
+  });
+});
+
+describe("the value the file gets", () => {
+  test("freely is written as itself, with no count", () => {
+    expect(repeatText({ repeatUnit: "free", repeatEvery: 3 })).toBe("freely");
   });
 });
 
