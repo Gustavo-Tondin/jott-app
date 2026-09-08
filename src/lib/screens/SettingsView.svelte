@@ -29,12 +29,13 @@
   const FUNCTION_ICONS = { ...TYPE_ICONS, time: "path" };
   import Modal from "../components/Modal.svelte";
   import Icon from "../components/Icon.svelte";
-  import ShortcutRow from "../components/ShortcutRow.svelte";
   import AboutSection from "./settings/AboutSection.svelte";
   import DisplaySection from "./settings/DisplaySection.svelte";
+  import DatesSection from "./settings/DatesSection.svelte";
+  import ShortcutsSection from "./settings/ShortcutsSection.svelte";
+  import NotebookSection from "./settings/NotebookSection.svelte";
   import { onBack } from "../services/back.js";
-  import { SCOPES, commandsIn } from "../services/commands.js";
-  import { bound } from "../services/shortcuts.js";
+  import { plain } from "../services/plain.js";
 
   let {
     notebook,
@@ -239,18 +240,6 @@
   // here would silently start re-running the day someone reads state inside.
   load();
 
-  /// What the notebook holds, read once per visit to the Notebook section
-  /// (2026-08-24): the core walks the whole tree for the size, so this is
-  /// asked when the section opens and not on every render.
-  let contents = $state(null);
-  $effect(() => {
-    if (section !== "notebook") return;
-    api
-      .notebookContents()
-      .then((read) => (contents = read))
-      .catch((e) => onError?.(e));
-  });
-
   /// Sends one key. The core keeps everything it was not told about.
   const put = (patch) => act(() => api.setNotebookSettings(patch), flash);
 
@@ -413,15 +402,6 @@
 
   let query = $state("");
 
-  /// Loose enough to find "atalho" written as "Atalhos" and "Día" as "dia":
-  /// the app is read by people who type in a hurry, and a search that only
-  /// answers to exact case is a search that looks broken.
-  const plain = (text) =>
-    String(text ?? "")
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[̀-ͯ]/g, "");
-
   let hits = $derived.by(() => {
     const needle = plain(query.trim());
     if (!needle) return [];
@@ -447,16 +427,6 @@
     chosen = key;
     query = "";
   }
-
-  // ---- the shortcuts table's own filter (2026-08-20) ----
-  // ~50 commands in three scopes is the longest page here, and the table is
-  // read by someone hunting for one line of it.
-  let chordQuery = $state("");
-  const matching = (scope) => {
-    const needle = plain(chordQuery.trim());
-    const all = commandsIn(scope);
-    return needle ? all.filter((c) => plain(c.label()).includes(needle)) : all;
-  };
 
 
 </script>
@@ -644,118 +614,22 @@
       {/if}
 
       {#if shows("dates")}
-        <section class="settings__section">
-          {@render sectionTitle(S.sectionDates)}
-
-          <!-- No hour for the turn of the day (user call, 2026-09-04): with
-               the next day planned on its own page of the Home's calendar,
-               the day is the calendar's day, and the one knob left is what
-               happens to what was not finished. -->
-          <h3 class="settings__subtitle">{S.today}</h3>
-
-          <label class="settings__row">
-            <span class="settings__label">{S.rolloverMode}</span>
-            <select
-              class="theme-select"
-              bind:value={form.dailyMode}
-              disabled={readOnly}
-              aria-label={S.rolloverMode}
-              onchange={(e) => put({ dailyMode: e.currentTarget.value })}
-            >
-              <option value="reset">{S.rolloverModeReset}</option>
-              <option value="carry">{S.rolloverModeCarry}</option>
-            </select>
-          </label>
-
-          <!-- The week stopped being a period on 2026-09-04 (the Home's
-               calendar plans any day ahead); what is left of it is the day
-               the strip starts on. -->
-          <h3 class="settings__subtitle">{S.subCalendar}</h3>
-
-          <label class="settings__row">
-            <span class="settings__label">{S.weekStartsOn}</span>
-            <select
-              class="theme-select"
-              bind:value={form.weekStartsOn}
-              disabled={readOnly}
-              aria-label={S.weekStartsOn}
-              onchange={(e) => put({ weekStartsOn: e.currentTarget.value })}
-            >
-              <option value="monday">{S.monday}</option>
-              <option value="sunday">{S.sunday}</option>
-            </select>
-          </label>
-          <p class="settings__hint">{S.weekStartsOnHint}</p>
-
-          <label class="settings__row">
-            <span class="settings__label">{S.datedTasksJoinPeriod}</span>
-            <input
-              class="theme-checkbox"
-              type="checkbox"
-              bind:checked={form.datedTasksJoinPeriod}
-              disabled={readOnly}
-              aria-label={S.datedTasksJoinPeriod}
-              onchange={(e) => put({ datedTasksJoinPeriod: e.currentTarget.checked })}
-            />
-          </label>
-          <p class="settings__hint">{S.datedTasksJoinPeriodHint}</p>
-
-          <!-- Where the OTHER half of the subject lives. This section decides
-               what a date DOES; how one is written answers to the device, so
-               it sits in Display and this says so out loud rather than leaving
-               someone to hunt (2026-08-20). -->
-          <p class="settings__hint">{S.dateFormatElsewhere}</p>
-
-          {@render resetFooter("dates")}
-        </section>
+        <DatesSection
+          bind:form
+          {put}
+          {compact}
+          {readOnly}
+          onReset={() => resetSection("dates")}
+        />
       {/if}
 
       {#if shows("shortcuts")}
-        <section class="settings__section">
-          {@render sectionTitle(S.sectionShortcuts)}
-          <p class="settings__hint">{S.sectionShortcutsHint}</p>
-
-          <div class="theme-filter settings__search settings__search--inline">
-            <Icon name="magnifying-glass" size="1rem" />
-            <input
-              class="theme-filter__field settings__search-field"
-              type="search"
-              bind:value={chordQuery}
-              placeholder={S.shortcutFilter}
-              aria-label={S.shortcutFilter}
-            />
-          </div>
-
-          <!-- Grouped by SCOPE, because a scope is what decides whether two commands
-               may share a chord: two that can never both answer (a task list and a
-               text cursor are not focused at once) legitimately can. The groups are
-               named for what the user is doing, not for the word the code uses. -->
-          {#each SCOPES as scope (scope)}
-            {@const rows = matching(scope)}
-            {#if rows.length > 0}
-              <h3 class="settings__subtitle">{S.shortcutScope(scope)}</h3>
-              {#each rows as command (command.id)}
-                <ShortcutRow
-                  {command}
-                  chord={$bound.get(command.id) ?? null}
-                  bound={$bound}
-                  disabled={readOnly}
-                  onBind={(chord) => bindShortcut(command.id, chord)}
-                />
-              {/each}
-            {/if}
-          {/each}
-
-          <div class="settings__row">
-            <span class="settings__label"></span>
-            <button
-              type="button"
-              class="theme-btn theme-btn--outline theme-btn--xs"
-              disabled={readOnly}
-              onclick={resetShortcuts}>{S.resetShortcuts}</button
-            >
-          </div>
-        </section>
+        <ShortcutsSection
+          {compact}
+          {readOnly}
+          onBind={bindShortcut}
+          onResetAll={resetShortcuts}
+        />
       {/if}
 
       {#if shows("native")}
@@ -1049,144 +923,18 @@
       {/if}
 
       {#if shows("notebook")}
-        <section class="settings__section">
-          {@render sectionTitle(S.sectionNotebook)}
-
-          <h3 class="settings__subtitle">{S.subLocation}</h3>
-
-          <p class="settings__row">
-            <span class="settings__label">{S.notebookPath}</span>
-            <code class="settings__path">{notebook?.path}</code>
-          </p>
-
-          <div class="settings__row">
-            <span class="settings__label">{S.openNotebookFolder}</span>
-            <button
-              type="button"
-              class="theme-btn theme-btn--outline theme-btn--xs"
-              onclick={() => api.openInFileManager().catch(onError)}
-              >{S.openNotebookFolderAction}</button
-            >
-          </div>
-
-          <!-- The second door to the picker. The first is the notebook's name
-               at the foot of the sidebar, which nobody guesses is a button
-               (2026-08-20) — and with the sidebar closed on a phone there was
-               no door at all. -->
-          {#if onSwitchNotebook}
-            <div class="settings__row">
-              <span class="settings__label">{S.switchNotebook}</span>
-              <button
-                type="button"
-                class="theme-btn theme-btn--outline theme-btn--xs"
-                onclick={() => onSwitchNotebook()}>{S.switchNotebookAction}</button
-              >
-            </div>
-          {/if}
-
-          <!-- Where a quick note lands names a folder of THIS notebook, so it
-               could not follow Display onto the machine (2026-08-20): machine
-               preferences are one file for every notebook the app opens, and
-               a folder name from one would be nonsense in the next.
-
-               The choices are the fixed Notes space's folders and the user's
-               own note spaces (services/noteTargets.js, 2026-08-24) — which
-               is what keeps the capture alive when the fixed space is
-               hidden. With nowhere to go at all, the row goes too: a choice
-               between places with no door is not a choice. -->
-          {#if noteTargets.length > 0}
-          <label class="settings__row">
-            <span class="settings__label">{S.quickNoteFolder}</span>
-            <select
-              class="theme-select"
-              bind:value={form.quickNoteFolder}
-              disabled={readOnly}
-              aria-label={S.quickNoteFolder}
-              onchange={(e) => put({ quickNoteFolder: e.currentTarget.value })}
-            >
-              {#each noteTargets as target (target.value)}
-                <option value={target.value}>{target.label}</option>
-              {/each}
-            </select>
-          </label>
-          <p class="settings__hint">{S.quickNoteFolderHint}</p>
-          {/if}
-
-          <!-- The tasks mirror (user call, 2026-08-24): both captures name
-               their landing place side by side, in the notebook's section. -->
-          {#if taskTargets.length > 0}
-          <label class="settings__row">
-            <span class="settings__label">{S.quickTasksGoTo}</span>
-            <select
-              class="theme-select"
-              bind:value={form.quickTaskList}
-              disabled={readOnly}
-              aria-label={S.quickTasksGoTo}
-              onchange={(e) => put({ quickTaskList: e.currentTarget.value })}
-            >
-              {#each taskTargets as target (target.value)}
-                <option value={target.value}>{target.label}</option>
-              {/each}
-            </select>
-          </label>
-          <p class="settings__hint">{S.quickTasksGoToHint}</p>
-          {/if}
-
-          <h3 class="settings__subtitle">{S.subSafety}</h3>
-
-          <!-- Rescued, like its sibling in Notes: the "don't ask again" of the
-               delete dialog wrote it and nothing offered the way back. -->
-          <label class="settings__row">
-            <span class="settings__label">{S.confirmDeletes}</span>
-            <input
-              class="theme-checkbox"
-              type="checkbox"
-              bind:checked={form.confirmDeletes}
-              disabled={readOnly}
-              aria-label={S.confirmDeletes}
-              onchange={(e) => put({ confirmDeletes: e.currentTarget.checked })}
-            />
-          </label>
-          <p class="settings__hint">{S.confirmDeletesHint}</p>
-
-          <h3 class="settings__subtitle">{S.subKeeping}</h3>
-
-          <p class="settings__row">
-            <span class="settings__label">{S.notebookContents}</span>
-            <span class="settings__value">{contents ? S.notebookContentsLine(contents) : "…"}</span>
-          </p>
-
-          <label class="settings__row">
-            <span class="settings__label">{S.completedRetention}</span>
-            <input
-              class="theme-input theme-number"
-              type="number"
-              min="0"
-              bind:value={form.completedRetentionDays}
-              disabled={readOnly}
-              aria-label={S.completedRetention}
-              onchange={(e) =>
-                put({ completedRetentionDays: Number(e.currentTarget.value) })}
-            />
-          </label>
-          <p class="settings__hint">{S.completedRetentionHint}</p>
-
-          <label class="settings__row">
-            <span class="settings__label">{S.trashRetention}</span>
-            <input
-              class="theme-input theme-number"
-              type="number"
-              min="0"
-              bind:value={form.trashRetentionDays}
-              disabled={readOnly}
-              aria-label={S.trashRetention}
-              onchange={(e) => put({ trashRetentionDays: Number(e.currentTarget.value) })}
-            />
-          </label>
-          <p class="settings__hint">{S.trashRetentionHint}</p>
-
-          {@render resetFooter("notebook")}
-        </section>
+        <NotebookSection
+          {notebook}
+          bind:form
+          {put}
+          {compact}
+          {readOnly}
+          {noteTargets}
+          {taskTargets}
+          {onSwitchNotebook}
+          onReset={() => resetSection("notebook")}
+          {onError}
+        />
       {/if}
     </div>
   {/if}
