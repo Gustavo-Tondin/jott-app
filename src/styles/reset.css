@@ -99,4 +99,11 @@
        docs/platform-gotchas.md#webview-e-gestos */
     background: transparent;
   }
+  /* Android has no corners to reveal, and the WebView can pan the page under a
+     keyboard that `#app` already ended at (M139): what showed below the app
+     was the window's own black. The strip wears the canvas's ground, the
+     colour of what stands right above it. See docs/platform-gotchas.md#android */
+  :root[data-platform="android"] body {
+    background: var(--app-canvas-ground);
+  }
 }
