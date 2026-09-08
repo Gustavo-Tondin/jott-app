@@ -282,7 +282,6 @@ export const S = {
   confirmDeleteForever: (label) => `Delete "${label}" for good?`,
   confirmEmptyTrash: (n) => (n === 1 ? "Delete the 1 item for good?" : `Delete all ${n} items for good?`),
   deleteForeverDetail: "This cannot be undone — it is the one thing in Jott that is not kept.",
-  tagsTitle: "Tags",
   tagsEmpty: "No tags yet. Add one from a task.",
   tagsEmptyHint: "Type #word in a task, or name a tag here so the picker offers it.",
   tagsLoading: "Counting the tags…",
@@ -298,7 +297,6 @@ export const S = {
   // Removing a tag only forgets the colour (core: `remove_tag`) — the detail
   // must not promise a trash trip that never happens.
   tagTextStays: "It leaves the picker; the #tag text in tasks stays.",
-  deleteTask: "Delete task",
 
   // App Functions: which parts of the app are switched on.
   featureTasks: "Tasks",
@@ -598,14 +596,13 @@ export const S = {
   newTasksBottom: "Bottom of the list",
   autoUrgentByDateHint:
     "The #urgent tag written by hand always counts, either way.",
-  autoRemind: "Remind me about dated tasks",
-  autoRemindOff: "Never",
-  autoRemindDayOf: "On the due day",
-  autoRemindDayBefore: "The day before",
-  autoRemindBoth: "The day before and on the due day",
+  dayNotice: "Day summary",
+  dayNoticeTime: "Summary time",
+  dayNoticeHint:
+    "One notification at the start of the day, listing the tasks the day holds. " +
+    "A task only rings on its own if you gave it a reminder.",
   reminderTime: "Reminder time",
-  autoRemindHint:
-    "A task with a reminder of its own keeps it. Presets in the task panel land on the reminder time too.",
+  reminderTimeHint: "The hour the task panel's reminder presets land on.",
   closeToTray: "Keep Jott running in the tray when the window closes",
   closeToTrayHint:
     "Reminders ring while Jott waits in the tray. On GNOME the tray icon needs the AppIndicator extension.",
@@ -832,7 +829,6 @@ export const S = {
   inboxNotes: "Inbox notes",
   inboxTasks: "Inbox tasks",
   quickNoteTo: "to",
-  newTaskPlaceholder: "New task…",
   notesOptions: "notes options",
   noNotesToday: "No notes written today.",
   collapseSidebar: "collapse sidebar",
@@ -964,9 +960,14 @@ export const S = {
   remindTimeLabel: "reminder time",
   remindDateLabel: "reminder date",
   reminderTitle: "Reminder",
-  reminderDueTitle: "Task due",
+  /// The day summary notification, at the start of the day. Not `daySummary`
+  /// — that one is the Home's recap of a day gone by.
+  dayNoticeTitle: (n) => (n === 1 ? "You have 1 task today" : `You have ${n} tasks today`),
+  dayNoticeMore: (n) => (n === 1 ? "…and 1 more" : `…and ${n} more`),
   repeatEvery: "every",
   noRepeat: "never",
+  /// No period: back the moment it is ticked, one open at a time.
+  repeatFreely: "freely",
   repeatDays: "day",
   repeatWeeks: "week",
   repeatMonths: "month",

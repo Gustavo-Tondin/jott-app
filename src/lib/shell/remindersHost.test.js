@@ -2,15 +2,16 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { bridge, callsTo, commandsCalled, invoke, listen, resetBridge } from "../test/bridge.js";
 import { makeRemindersHost } from "./remindersHost.js";
 
-const at = (id, when) => ({ list: "jott.tasks/task-list.md", id, position: 0, text: id, at: when, auto: false });
+const at = (id, when) => ({ list: "jott.tasks/task-list.md", id, position: 0, text: id, at: when });
 
-function host({ open = true, enabled = true, mobile = false } = {}) {
+function host({ open = true, enabled = true, mobile = false, summary = null } = {}) {
   const calls = { openTask: vi.fn(), fail: vi.fn() };
-  const flags = { open, enabled, mobile };
+  const flags = { open, enabled, mobile, summary };
   const h = makeRemindersHost({
     open: () => flags.open,
     enabled: () => flags.enabled,
     mobile: () => flags.mobile,
+    summary: () => flags.summary ?? { on: false, time: "" },
     ...calls,
   });
   return { h, flags, calls };
@@ -82,6 +83,61 @@ describe("the reminders host", () => {
     expect(callsTo("plugin:notification|batch")).toHaveLength(1);
     await vi.advanceTimersByTimeAsync(60 * 60 * 1000);
     expect(callsTo("notify_reminder")).toEqual([]);
+  });
+
+  it("announces the day summary at its hour, once, and remembers the day", async () => {
+    const { h } = host({ summary: { on: true, time: "11:00" } });
+    bridge({
+      reminders: [],
+      reminded_until: "2026-09-08T09:00",
+      day_summarized_on: null,
+      remember_day_summarized_on: null,
+      day_tasks: [{ task: { text: "Pagar aluguel", done: false } }],
+      notify_reminder: null,
+    });
+    await h.refresh();
+    expect(callsTo("notify_reminder")).toEqual([]);
+
+    await vi.advanceTimersByTimeAsync(60 * 60 * 1000);
+    const [said] = callsTo("notify_reminder");
+    expect(said.title).toBe("You have 1 task today");
+    expect(said.body).toBe("• Pagar aluguel");
+    // Nothing to open: the empty target only brings the window back.
+    expect(said.target).toEqual({ list: "", id: null });
+    expect(callsTo("remember_day_summarized_on")).toEqual([{ day: "2026-09-08" }]);
+
+    // And the rest of the day is quiet.
+    await vi.advanceTimersByTimeAsync(6 * 60 * 60 * 1000);
+    expect(callsTo("notify_reminder")).toHaveLength(1);
+  });
+
+  it("the summary answers to its own switch, not to the Remind field", async () => {
+    // The field off means no task rings; the day is still announced.
+    const { h } = host({ enabled: false, summary: { on: true, time: "09:00" } });
+    bridge({
+      day_summarized_on: null,
+      remember_day_summarized_on: null,
+      day_tasks: [{ task: { text: "Ligar pro dentista", done: false } }],
+      notify_reminder: null,
+    });
+    await h.refresh();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(commandsCalled().filter((c) => c === "reminders")).toHaveLength(0);
+    expect(callsTo("notify_reminder")).toHaveLength(1);
+  });
+
+  it("an empty day is not announced, but the day still counts as announced", async () => {
+    const { h } = host({ enabled: false, summary: { on: true, time: "09:00" } });
+    bridge({
+      day_summarized_on: null,
+      remember_day_summarized_on: null,
+      day_tasks: [],
+      notify_reminder: null,
+    });
+    await h.refresh();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(callsTo("notify_reminder")).toEqual([]);
+    expect(callsTo("remember_day_summarized_on")).toEqual([{ day: "2026-09-08" }]);
   });
 
   it("a clicked notification opens its task", () => {

@@ -51,6 +51,28 @@ pub fn system_fonts() -> Vec<String> {
         .unwrap_or_default()
 }
 
+/// The family this desktop draws its own interface in — what the CSS
+/// `system-ui` is SUPPOSED to mean. It is asked because it is not what
+/// `system-ui` answers with here: WebKitGTK resolves it through fontconfig
+/// (Adwaita Sans on this machine) and never looks at the desktop's setting,
+/// while Chrome and Firefox do. Empty when there is nothing to ask (every
+/// system but Linux, where `system-ui` already means the right thing).
+/// See docs/platform-gotchas.md#webview-e-gestos
+#[tauri::command]
+pub fn system_ui_font() -> String {
+    if !cfg!(target_os = "linux") {
+        return String::new();
+    }
+    host_command("gsettings")
+        .args(["get", "org.gnome.desktop.interface", "font-name"])
+        .output()
+        .ok()
+        .filter(|out| out.status.success())
+        .and_then(|out| String::from_utf8(out.stdout).ok())
+        .and_then(|text| jott_core::fonts::ui_family(&text))
+        .unwrap_or_default()
+}
+
 /// The bundle's environment, wiped off a child that answers for the HOST:
 /// inside the AppImage a system binary would load the BUNDLED GLib, and
 /// `spawn` resolves the program against the PARENT's PATH (bundle first) —

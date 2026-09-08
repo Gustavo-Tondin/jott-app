@@ -239,8 +239,8 @@ fn reminders_cross_the_bridge_with_the_machine_memory_of_what_rang() {
     let file = std::fs::read_to_string(dir.path().join("jott.tasks/task-list.md")).unwrap();
     assert!(file.contains("  remind: 2026-07-24T18:00"), "{file}");
 
-    // A dated task with no reminder of its own rings under the automatic
-    // rule, once the notebook asks for one.
+    // A date alone never rings: the day summary announces those, one
+    // notification for the whole day.
     let position = ok(&app, "create_task", json!({ "list": "jott.tasks/task-list.md", "text": "Aluguel" }));
     let other = ok(&app, "ensure_task_id", json!({ "list": "jott.tasks/task-list.md", "position": position }));
     ok(
@@ -248,29 +248,34 @@ fn reminders_cross_the_bridge_with_the_machine_memory_of_what_rang() {
         "set_task_fields",
         json!({ "list": "jott.tasks/task-list.md", "id": other, "fields": { "due": "2026-08-01" } }),
     );
-    let before = ok(&app, "reminders", json!({}));
-    assert_eq!(before.as_array().unwrap().len(), 1);
-
-    ok(
-        &app,
-        "set_notebook_settings",
-        json!({ "settings": { "autoRemind": "dayBefore", "reminderTime": "07:30" } }),
-    );
-    let after = ok(&app, "reminders", json!({}));
-    let ats: Vec<_> = after.as_array().unwrap().iter().map(|r| r["at"].as_str().unwrap().to_string()).collect();
-    assert_eq!(ats, ["2026-07-24T18:00", "2026-07-31T07:30"], "soonest first");
-    assert_eq!(after[1]["auto"], json!(true));
-    assert_eq!(after[1]["id"], json!(other));
+    let reminders = ok(&app, "reminders", json!({}));
+    let ats: Vec<_> = reminders.as_array().unwrap().iter().map(|r| r["at"].as_str().unwrap().to_string()).collect();
+    assert_eq!(ats, ["2026-07-24T18:00"], "only the task that asked");
 
     // The machine's memory of what rang: per notebook, never by default.
     assert_eq!(ok(&app, "reminded_until", json!({})), Value::Null);
     ok(&app, "remember_reminded_until", json!({ "until": "2026-07-24T18:00" }));
     assert_eq!(ok(&app, "reminded_until", json!({})), json!("2026-07-24T18:00"));
 
-    // The settings screen reads the two keys back.
+    // The same memory for the day summary, a day rather than a moment, and
+    // the two settings the shell schedules it from.
+    assert_eq!(ok(&app, "day_summarized_on", json!({})), Value::Null);
+    ok(&app, "remember_day_summarized_on", json!({ "day": "2026-07-24" }));
+    assert_eq!(ok(&app, "day_summarized_on", json!({})), json!("2026-07-24"));
+
+    ok(
+        &app,
+        "set_notebook_settings",
+        json!({ "settings": { "daySummary": true, "daySummaryTime": "07:30", "reminderTime": "10:00" } }),
+    );
     let settings = ok(&app, "notebook_settings", json!({}));
-    assert_eq!(settings["autoRemind"], json!("dayBefore"));
-    assert_eq!(settings["reminderTime"], json!("07:30"));
+    assert_eq!(settings["daySummary"], json!(true));
+    assert_eq!(settings["daySummaryTime"], json!("07:30"));
+    assert_eq!(settings["reminderTime"], json!("10:00"));
+    // And the layout carries them, because the shell arms the timer on open.
+    let layout = ok(&app, "notebook_snapshot", json!({}))["info"]["layout"].clone();
+    assert_eq!(layout["daySummary"], json!(true));
+    assert_eq!(layout["daySummaryTime"], json!("07:30"));
 }
 
 #[test]

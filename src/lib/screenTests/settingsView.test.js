@@ -526,31 +526,37 @@ describe("SettingsView", () => {
     expect(invoke).not.toHaveBeenCalledWith("set_notebook_settings", expect.anything());
   });
 
-  test("the automatic reminder and its hour are notebook rules under Remind me", async () => {
-    // Both hang off the Remind me switch (2026-08-25), so the switch has to
-    // be on for them to answer.
-    bridge({ notebook_settings: { ...settings, autoRemind: "off", reminderTime: "09:00" } });
+  test("the presets' hour hangs off Remind me, and the day summary does not", async () => {
+    // The hour is the field's (2026-08-25) and needs the switch on; the day
+    // summary is about the DAY and is a notebook rule of its own (2026-09-08).
+    bridge({
+      notebook_settings: {
+        ...settings,
+        reminderTime: "09:00",
+        daySummary: false,
+        daySummaryTime: "08:00",
+      },
+    });
     render(SettingsView, {
       props: props({ notebook: { ...notebook, layout: { features: { remind: true } } } }),
     });
     await openSection("Tasks");
 
-    await userEvent.selectOptions(
-      await screen.findByLabelText("Remind me about dated tasks"),
-      "dayBefore",
-    );
-    await waitFor(() =>
-      expect(invoke).toHaveBeenCalledWith("set_notebook_settings", {
-        settings: { autoRemind: "dayBefore" },
-      }),
-    );
-
-    const time = screen.getByLabelText("Reminder time");
+    const time = await screen.findByLabelText("Reminder time");
     await fireEvent.input(time, { target: { value: "07:30" } });
     await fireEvent.change(time, { target: { value: "07:30" } });
     await waitFor(() =>
       expect(invoke).toHaveBeenCalledWith("set_notebook_settings", {
         settings: { reminderTime: "07:30" },
+      }),
+    );
+
+    // The summary's hour only answers once the summary is on.
+    expect(screen.getByLabelText("Summary time").disabled).toBe(true);
+    await userEvent.click(screen.getByLabelText("Day summary"));
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("set_notebook_settings", {
+        settings: { daySummary: true },
       }),
     );
   });

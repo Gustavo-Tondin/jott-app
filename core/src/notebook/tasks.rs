@@ -173,7 +173,13 @@ impl Notebook {
             .find(id)
             .cloned()
             .map(|task| (crate::recurrence::respawn(&task), task));
-        if let Some((Some(next), task)) = planned {
+        if let Some((Some(mut next), task)) = planned {
+            // A `freely` occurrence comes back undated, so the day it is
+            // written is the only mark it has (`stamped_task` does the same
+            // for a task the user types).
+            if next.created.is_none() {
+                next.created = Some(crate::clock::civil_today());
+            }
             match self.find_spawned(&source, &completed, &task, &next) {
                 // The chain already has this occurrence: just (re)point at it.
                 Some(existing) => {
@@ -215,6 +221,11 @@ impl Notebook {
     /// `Some(id)` means it exists (`None` inside when the twin has no id);
     /// `None` means generate. The `spawned:` pointer is authoritative while it
     /// resolves; a dangling one, or a task from before it existed, falls back to an exact twin.
+    ///
+    /// A `freely` occurrence is undated, so its twin is any open copy of the
+    /// same text — the task being completed excluded, since it still sits in
+    /// the source. Completed copies do not count for it: the rule is one
+    /// OPEN at a time, and `completed.md` may hold as many as were ticked.
     fn find_spawned(
         &self,
         source: &TaskList,
@@ -223,21 +234,30 @@ impl Notebook {
         next: &Task,
     ) -> Option<Option<String>> {
         let done_list = self.open_list(completed_path).ok();
+        let free = next.repeat.is_some_and(|repeat| repeat.is_free());
 
         if let Some(sid) = &task.spawned {
             let alive = source.find(sid).is_some()
-                || done_list
-                    .as_ref()
-                    .is_some_and(|done| done.find(sid).is_some());
+                || (!free
+                    && done_list
+                        .as_ref()
+                        .is_some_and(|done| done.find(sid).is_some()));
             if alive {
                 return Some(Some(sid.clone()));
             }
         }
 
-        let is_twin =
-            |t: &&Task| t.text == next.text && t.repeat == next.repeat && t.due == next.due;
+        let is_twin = |t: &&Task| {
+            t.text == next.text
+                && t.repeat == next.repeat
+                && t.due == next.due
+                && t.id != task.id
+        };
         if let Some(twin) = source.tasks().filter(|t| !t.done).find(is_twin) {
             return Some(twin.id.clone());
+        }
+        if free {
+            return None;
         }
         if let Some(twin) = done_list.as_ref().and_then(|done| done.tasks().find(is_twin)) {
             return Some(twin.id.clone());
@@ -271,8 +291,37 @@ impl Notebook {
         if let Some(settled) = task.id.as_deref() {
             self.logged_task_reopened(settled, &target);
         }
+        // Except when it repeats `freely`: one of those is open at a time, so
+        // the copy this completion left behind goes to the trash and the
+        // restored task is the one that stands.
+        let task = self.drop_free_occurrence(task, &target)?;
 
         let _ = self.refresh_completed_index();
+        Ok(task)
+    }
+
+    /// Removes the occurrence a `freely` task spawned when it was completed,
+    /// now that the task itself is back in `list`. The occurrence goes to the
+    /// trash like any delete, and the pointer goes with it. A task that does
+    /// not repeat freely, or whose occurrence is gone (completed in turn, or
+    /// deleted), comes back untouched.
+    fn drop_free_occurrence(&self, mut task: Task, list: &str) -> Result<Task> {
+        if !task.repeat.is_some_and(|repeat| repeat.is_free()) {
+            return Ok(task);
+        }
+        let Some(spawn) = task.spawned.clone() else {
+            return Ok(task);
+        };
+        if self.open_list(list)?.find(&spawn).is_some() {
+            self.delete_task(list, &spawn)?;
+        }
+        if let Some(id) = task.id.clone() {
+            self.with_list(list, |open| {
+                open.task_mut(&id)?.spawned = None;
+                Ok(())
+            })?;
+        }
+        task.spawned = None;
         Ok(task)
     }
 
