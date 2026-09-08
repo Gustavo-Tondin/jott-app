@@ -21,6 +21,7 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 ### Improved
 
 - **The Home's + is bigger on a phone** — the same 72px it has on the desktop, up from 64px.
+- **Typing in a note on Android no longer stalls after a pause.** The app's own auto-save was reloading every screen and refetching every picture in the note; it now recognises its own writes, and the save itself left the thread that draws.
 
 ## v0.53.0
 
