@@ -21,6 +21,7 @@
     pickFolderNatively,
     onKeyboardHidden,
   } from "./lib/services/androidStorage.js";
+  import { untrack } from "svelte";
   import { back, onBack, installBack } from "./lib/services/back.js";
   import ContextMenu from "./lib/components/ContextMenu.svelte";
   import { entryOf } from "./lib/shell/entry.js";
@@ -634,9 +635,15 @@
   /// than props down through two components: the question is about the
   /// document's focus, which is a window-level fact.
   let editorFocused = $state(false);
-  /// The formatting strip is up: a note has the cursor, on a phone.
+  /// The formatting strip is up: a note has the cursor, on a phone — and
+  /// the bar is not switched off (Settings › Display).
   let stripUp = $derived(
-    compact && !!notebook && view.kind === "note" && editorFocused && !notebook.readOnly,
+    compact &&
+      !!notebook &&
+      view.kind === "note" &&
+      editorFocused &&
+      !notebook.readOnly &&
+      formatBarMode !== "off",
   );
   /// …and how tall it is, measured rather than restated — the pill sizes
   /// itself from its buttons, and a number here would drift the first time one
@@ -656,16 +663,20 @@
   });
 
   /// WHERE the note's formatting controls are: docked in the right panel, or
-  /// floating over the canvas. Session state, like the sidebar's rail — not
-  /// something a notebook has an opinion about. On a phone it is neither: the
-  /// strip appears while the editor has the cursor.
+  /// floating over the canvas. Session state, like the sidebar's rail; what
+  /// it STARTS as is the Display choice, applied every time a note opens
+  /// (below). On a phone it is neither: the strip appears while the editor
+  /// has the cursor.
   let formatting = $state(true);
 
   /// Is a note being written, at all — the condition both shapes share.
   let writing = $derived(view.kind === "note" && !notebook?.readOnly);
 
-  /// The right panel's tenant, when the controls are docked.
-  let formatBarOpen = $derived(formatting && writing && !suggesting && !selected);
+  /// The right panel's tenant, when the controls are docked. Off is off
+  /// everywhere: the panel does not hold them either.
+  let formatBarOpen = $derived(
+    formatting && writing && !suggesting && !selected && formatBarMode !== "off",
+  );
 
   /// WHAT the right panel holds, decided once (shell/RightPanel.svelte): the
   /// docked formatting never opens a panel on a phone — there the strip over
@@ -674,33 +685,30 @@
     suggesting ? "suggestions" : selected ? "task" : formatBarOpen && !compact ? "format" : null,
   );
 
-  /// WHEN the floating bar shows, and WHICH SIDE it hugs. Display, so it
-  /// answers to this screen. Read with the app's own answer as the fallback:
-  /// an empty string means "never chosen".
+  /// HOW the bar opens with a note, and WHICH SIDE the floating one hugs.
+  /// Display, so it answers to this screen. Read with the app's own answer
+  /// as the fallback: an empty string means "never chosen".
   let formatBarMode = $derived(modeOfFormatBar(layout.formatBar));
   let formatBarSide = $derived(sideOfFormatBar(layout.formatBarSide));
+
+  // Opening a note puts the bar where Display says it opens. The mode is
+  // read untracked on purpose: the choice is about how a note OPENS, and
+  // changing it in Settings must not move the bar of a note already open.
+  $effect(() => {
+    if (view.kind !== "note") return;
+    void view.path;
+    formatting = untrack(() => formatBarMode) === "panel";
+  });
 
   /// Standing on its end against a side edge, rather than lying along the top
   /// or the bottom (user call, 2026-08-21). It is the same seven glyphs
   /// either way; only the axis differs (components/FormatBar.svelte).
   let formatBarRail = $derived(formatBarSide === "left" || formatBarSide === "right");
 
-  /// Whether the open note has something selected right now — what "on
-  /// selection" is asking about. Reported BY the editor, because the
-  /// selection is CodeMirror's state and nothing outside it sees the same
-  /// thing (components/Editor.svelte).
-  let noteSelected = $state(false);
-
   /// ...and the floating bar, which takes over whenever the panel does not
-  /// hold them. The mode is the LAST condition and only ever takes the bar
-  /// away: `off` never floats it, `selection` floats it while something is
-  /// selected; the docked panel and the phone's strip are untouched by either.
+  /// hold them — unless the bar is off altogether.
   let formatBarFloats = $derived(
-    writing &&
-      !compact &&
-      !formatBarOpen &&
-      formatBarMode !== "off" &&
-      (formatBarMode !== "selection" || noteSelected),
+    writing && !compact && !formatBarOpen && formatBarMode !== "off",
   );
 
   // Opening a note closes whatever the right panel was holding: a task
@@ -731,12 +739,20 @@
     suggesting = { day: day ?? null };
   };
 
-  /// With `closeInspectorOnClickAway` on (default off), clicking the truly
-  /// empty content area closes the inspector. Only the container itself
-  /// counts — a click on any screen element has its own meaning.
+  /// With `closeInspectorOnClickAway` on (default off), a click on the
+  /// content beside the panel closes the task inspector — anywhere on it,
+  /// not only the bare container, which a full screen never shows. Two
+  /// clicks keep it: one that chose a task (the panel now shows that one),
+  /// and one that landed on a field or an editor, where the person is
+  /// typing. Desktop only: on a phone the panel is a sheet with its own
+  /// way out.
+  let selectedAtPress = null;
+  const pressedAway = () => (selectedAtPress = selected);
   function clickedAway(event) {
-    if (!layout.closeInspectorOnClickAway) return;
-    if (event.target !== event.currentTarget) return;
+    if (!layout.closeInspectorOnClickAway || compact || !selected) return;
+    if (selected !== selectedAtPress) return;
+    if (event.target.closest("input, textarea, select, [contenteditable], .cm-editor, [role='row']"))
+      return;
     selected = null;
   }
 
@@ -768,7 +784,8 @@
       quickNoteFolder: "Inbox",
       noteLayout: "",
       tableLayout: "",
-      timelineGhostTitles: false,
+      timelineGhostTasks: false,
+      timelineGhostNotes: false,
       confirmDeletes: true,
       confirmImageDownloads: true,
       accentColor: "",
@@ -2057,6 +2074,7 @@
           class="shell__content"
           class:shell__content--note={view.kind === "note"}
           class:shell__content--home={view.kind === "home"}
+          onpointerdown={pressedAway}
           onclick={clickedAway}
           oncontextmenu={openCanvasMenu}
           use:risen={{
@@ -2171,7 +2189,6 @@
             onFiles={addFilesToNote}
             onOpenNoteByTitle={openNoteByTitle}
             onZoomImage={(address) => (zoomedImage = address)}
-            onSelection={(has) => (noteSelected = has)}
             onTable={(status) => (noteTable = status)}
             onNoteLoaded={(state) => {
               openNote = state;

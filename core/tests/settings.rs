@@ -13,12 +13,12 @@ fn settings(json: &str) -> NotebookSettings {
 #[test]
 fn resetting_a_section_touches_only_that_page() {
     let mut config = Config::default();
-    config.new_tasks_on_top = true;
+    config.new_tasks_on_top = false;
     config.trash_retention_days = 7;
     config.theme = "dark".to_string();
 
     assert!(reset_section(&mut config, "tasks"));
-    assert!(!config.new_tasks_on_top, "the Tasks page went back");
+    assert!(config.new_tasks_on_top, "the Tasks page went back");
     assert_eq!(config.trash_retention_days, 7, "the Notebook page did not");
     assert_eq!(config.theme, "dark");
 

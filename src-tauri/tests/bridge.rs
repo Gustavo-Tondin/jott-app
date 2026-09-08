@@ -441,10 +441,10 @@ fn switching_a_feature_off_reaches_the_layout_and_touches_nothing_else() {
 #[test]
 fn a_section_resets_to_the_defaults_and_display_falls_back_to_the_notebook() {
     let (_lock, app, _dir) = app_with_notebook();
-    ok(&app, "set_notebook_settings", json!({ "settings": { "newTasksOnTop": true, "trashRetentionDays": 7 } }));
+    ok(&app, "set_notebook_settings", json!({ "settings": { "newTasksOnTop": false, "trashRetentionDays": 7 } }));
     ok(&app, "reset_settings", json!({ "section": "tasks" }));
     let read = ok(&app, "notebook_settings", json!({}));
-    assert_eq!(read["newTasksOnTop"], false, "the Tasks page went back");
+    assert_eq!(read["newTasksOnTop"], true, "the Tasks page went back");
     assert_eq!(read["trashRetentionDays"], 7, "the Notebook page did not");
     assert!(invoke(&app, "reset_settings", json!({ "section": "banana" })).is_err());
 
@@ -812,7 +812,9 @@ fn reordering_rewrites_the_file_in_the_new_order() {
 
     let on_disk = std::fs::read_to_string(dir.path().join("jott.tasks/task-list.md")).unwrap();
     // Each created task carries its creation stamp in the hidden comment
-    // (2026-08-04); the order test only cares about the visible text.
+    // (2026-08-04); the order test only cares about the visible text. New
+    // tasks land on top, so the list read Terceira, Segunda, Primeira before
+    // the move brought Primeira back to the head.
     let order: Vec<&str> = on_disk
         .lines()
         .filter(|l| l.starts_with("- ["))
@@ -820,7 +822,7 @@ fn reordering_rewrites_the_file_in_the_new_order() {
         .collect();
     assert_eq!(
         order,
-        vec!["- [ ] Terceira", "- [ ] Primeira", "- [ ] Segunda"],
+        vec!["- [ ] Primeira", "- [ ] Terceira", "- [ ] Segunda"],
         "a ordem no arquivo é a ordem da tela"
     );
 }

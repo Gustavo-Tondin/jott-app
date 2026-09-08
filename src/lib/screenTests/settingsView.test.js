@@ -74,10 +74,10 @@ describe("SettingsView", () => {
     bridge({ notebook_settings: settings, set_machine_display: null });
     render(SettingsView, { props: props() });
 
-    await userEvent.click(await screen.findByRole("button", { name: "On selection" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Floating" }));
     await waitFor(() =>
       expect(invoke).toHaveBeenCalledWith("set_machine_display", {
-        display: { formatBar: "selection" },
+        display: { formatBar: "floating" },
       }),
     );
 
@@ -1018,12 +1018,9 @@ describe("SettingsView", () => {
     bridge({ notebook_settings: settings });
     render(SettingsView, { props: props({ open: "fn:tasks" }) });
 
-    // The Tasks page, not the landing: its own rows are on screen, among
-    // them the way back for the card that opened it.
+    // The Tasks page, not the landing: its own rows are on screen.
     await screen.findByText("Tasks screen shows");
-    expect(
-      screen.getByRole("checkbox", { name: "Suggest more fields in the task panel" }),
-    ).toBeTruthy();
+    expect(screen.getByLabelText("New tasks go to")).toBeTruthy();
   });
 });
 

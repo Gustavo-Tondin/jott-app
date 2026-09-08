@@ -9,7 +9,6 @@
     S.reminderTime,
     S.newTasksGoTo,
     S.tasksShowAll,
-    S.offerTaskFields,
   ];
 </script>
 
@@ -78,6 +77,7 @@
           <option value="off">{S.autoRemindOff}</option>
           <option value="dayOf">{S.autoRemindDayOf}</option>
           <option value="dayBefore">{S.autoRemindDayBefore}</option>
+          <option value="both">{S.autoRemindBoth}</option>
         </select>
       </label>
       <label class="settings__row settings__row--sub">
@@ -126,22 +126,5 @@
       <option value="inbox">{S.tasksShowAllInbox}</option>
       <option value="all">{S.tasksShowAllEvery}</option>
     </select>
-  </label>
-
-  <!-- The task panel's card that points here while a field is off. Its
-       "Not now" only switches this off; this row is the way back. -->
-  <label class="settings__row">
-    <span class="settings__label">
-      {S.offerTaskFields}
-      <HelpTip label={S.offerTaskFields} text={S.offerTaskFieldsHint} />
-    </span>
-    <input
-      class="theme-switch"
-      type="checkbox"
-      bind:checked={form.offerTaskFields}
-      disabled={readOnly}
-      aria-label={S.offerTaskFields}
-      onchange={(e) => put({ offerTaskFields: e.currentTarget.checked })}
-    />
   </label>
 </SettingsSection>

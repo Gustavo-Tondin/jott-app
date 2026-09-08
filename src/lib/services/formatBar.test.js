@@ -32,11 +32,16 @@ describe("formatBar", () => {
     for (const side of FORMAT_BAR_SIDES) expect(formatBarSide(side.key)).toBe(side.key);
   });
 
-  it("ships showing the bar, along the top — where it has always been", () => {
+  it("ships docked in the side panel, floating along the top — where it has always been", () => {
     // The default is not a taste: it is the shape the app had before the
     // setting existed, so nobody's note moves on upgrade.
-    expect(DEFAULT_FORMAT_BAR).toBe("always");
+    expect(DEFAULT_FORMAT_BAR).toBe("panel");
     expect(DEFAULT_FORMAT_BAR_SIDE).toBe("top");
+  });
+
+  it("offers the panel only where there is one", () => {
+    expect(FORMAT_BAR_MODES.map((m) => m.key)).toEqual(["floating", "panel", "off"]);
+    expect(FORMAT_BAR_MODES.find((m) => m.key === "panel").desktopOnly).toBe(true);
   });
 
   it("offers four SIDES and not eight corners — the bar is centred on its edge", () => {

@@ -76,8 +76,9 @@
     /// `{[spacePath]: colourName}` — what a folded ghost row of a day gone
     /// by is coloured by.
     colors = {},
-    /// The notebook's `timelineGhostTitles`, for the same recap.
-    ghostTitles = false,
+    /// The notebook's `timelineGhostTasks` / `timelineGhostNotes`, for the same recap.
+    ghostTasks = false,
+    ghostNotes = false,
     readOnly = false,
     onChanged,
     onError,
@@ -310,7 +311,8 @@
         {readOnly}
         {origin}
         {colors}
-        {ghostTitles}
+        {ghostTasks}
+        {ghostNotes}
         {onOpenTask}
         onOpenNote={(inside, space) => onOpenNote?.(inside, space, {})}
         onLoaded={(counts) => counted(counts)}

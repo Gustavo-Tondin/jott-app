@@ -103,10 +103,11 @@ describe("noteActionsOf", () => {
     ]);
   });
 
-  test("the phone has no formatting switch, and the floating bar off names itself", () => {
+  test("the phone has no formatting switch, and neither has a bar switched off", () => {
     expect(labels(noteActionsOf({ ...base, compact: true }))).not.toContain(S.formatting);
-    const sub = noteActionsOf({ ...base, formatBarMode: "off" }).at(-1).items;
-    expect(labels(sub)).toEqual([S.formattingDocked, S.formattingHidden]);
+    expect(labels(noteActionsOf({ ...base, formatBarMode: "off" }))).not.toContain(S.formatting);
+    const sub = noteActionsOf({ ...base, formatBarMode: "floating" }).at(-1).items;
+    expect(labels(sub)).toEqual([S.formattingDocked, S.formattingFloating]);
     sub[1].run();
     expect(base.setFormatting).toHaveBeenCalledWith(false);
   });

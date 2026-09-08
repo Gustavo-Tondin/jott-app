@@ -260,10 +260,12 @@ pub struct NotebookSettings {
     /// Ask before fetching a picture from the internet. The user turns this
     /// off from the dialog itself ("don't ask again").
     pub confirm_image_downloads: Option<bool>,
-    /// Whether the Timeline names deleted things (`Config::timeline_ghost_titles`).
-    pub timeline_ghost_titles: Option<bool>,
+    /// Whether the Timeline names deleted tasks, and deleted notes
+    /// (`Config::timeline_ghost_tasks` / `_notes`).
+    pub timeline_ghost_tasks: Option<bool>,
+    pub timeline_ghost_notes: Option<bool>,
     pub auto_urgent_by_date: Option<bool>,
-    /// `off` / `dayOf` / `dayBefore` — see `reminders::AutoRemind`.
+    /// `off` / `dayOf` / `dayBefore` / `both` — see `reminders::AutoRemind`.
     pub auto_remind: Option<String>,
     /// `HH:MM`.
     pub reminder_time: Option<String>,
@@ -329,7 +331,8 @@ impl NotebookSettings {
             dated_tasks_join_period: Some(config.dated_tasks_join_period),
             confirm_deletes: Some(config.confirm_deletes),
             confirm_image_downloads: Some(config.confirm_image_downloads),
-            timeline_ghost_titles: Some(config.timeline_ghost_titles),
+            timeline_ghost_tasks: Some(config.timeline_ghost_tasks),
+            timeline_ghost_notes: Some(config.timeline_ghost_notes),
             auto_urgent_by_date: Some(config.auto_urgent_by_date),
             auto_remind: Some(config.auto_remind.render().to_string()),
             reminder_time: Some(config.reminder_time.render()),
@@ -387,8 +390,11 @@ impl NotebookSettings {
         if let Some(v) = self.confirm_image_downloads {
             config.confirm_image_downloads = v;
         }
-        if let Some(v) = self.timeline_ghost_titles {
-            config.timeline_ghost_titles = v;
+        if let Some(v) = self.timeline_ghost_tasks {
+            config.timeline_ghost_tasks = v;
+        }
+        if let Some(v) = self.timeline_ghost_notes {
+            config.timeline_ghost_notes = v;
         }
         if let Some(v) = self.auto_urgent_by_date {
             config.auto_urgent_by_date = v;
@@ -522,7 +528,8 @@ pub fn reset_section(config: &mut Config, section: &str) -> bool {
             config.new_tasks_on_top = d.new_tasks_on_top;
         }
         "time" => {
-            config.timeline_ghost_titles = d.timeline_ghost_titles;
+            config.timeline_ghost_tasks = d.timeline_ghost_tasks;
+            config.timeline_ghost_notes = d.timeline_ghost_notes;
         }
         "notes" => {
             config.note_layout = d.note_layout;

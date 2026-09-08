@@ -42,8 +42,9 @@
     origin = null,
     /// `{[spacePath]: colourName}` — what a folded ghost row is coloured by.
     colors = {},
-    /// The notebook's `timelineGhostTitles`.
-    ghostTitles = false,
+    /// The notebook's `timelineGhostTasks` / `timelineGhostNotes`.
+    ghostTasks = false,
+    ghostNotes = false,
     /// `(path, id) => void` — a living task; `(path, folder) => void` — a note.
     onOpenTask,
     onOpenNote,
@@ -231,7 +232,8 @@
             {readOnly}
             {origin}
             {colors}
-            {ghostTitles}
+            {ghostTasks}
+            {ghostNotes}
             {onOpenTask}
             {onOpenNote}
             onForget={forget}

@@ -10,7 +10,7 @@
 // Two rules the wireframe fixed:
 //
 //   • a thing thrown away loses its name unless the notebook says otherwise
-//     (`timelineGhostTitles`) — it may have been thrown away FOR privacy —
+//     (`timelineGhostTasks` / `timelineGhostNotes`) — it may have been thrown away FOR privacy —
 //     and what is left is folded into "N deleted tasks" per space, so the
 //     colour still says where the activity was;
 //   • within a line the order is by title, nothing else: the log knows the
@@ -116,15 +116,17 @@ const latestOf = (item) => item.completed || item.created || "";
 /// when it stands for more, so the screen has one shape to draw and one
 /// number to look at.
 ///
-/// `ghostTitles` is the notebook's `timelineGhostTitles`: on, a ghost keeps
-/// its row and its birth title, struck through — and keeps a row of its own,
-/// never folded into a live count.
-export function rowsOf(items = [], { ghostTitles = false } = {}) {
+/// `ghostTasks` / `ghostNotes` are the notebook's `timelineGhostTasks` /
+/// `timelineGhostNotes`: on, a ghost of that kind keeps its row and its
+/// birth title, struck through — and keeps a row of its own, never folded
+/// into a live count.
+export function rowsOf(items = [], { ghostTasks = false, ghostNotes = false } = {}) {
   const rows = [];
   const folded = new Map();
   const repeated = new Map();
+  const named = (item) => (item.kind === "task" ? ghostTasks : ghostNotes);
   for (const item of items) {
-    if (!item.deleted || ghostTitles) {
+    if (!item.deleted || named(item)) {
       // Only a live task folds: see the file's head for the note.
       if (item.deleted || item.kind !== "task") {
         rows.push(item);

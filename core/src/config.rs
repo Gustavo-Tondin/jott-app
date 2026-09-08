@@ -177,7 +177,9 @@ pub struct Config {
     /// and nothing more. The log keeps the birth title either way — this
     /// is what the SCREEN says, and "Remove from timeline" is the door for
     /// someone who wants the line itself gone.
-    pub timeline_ghost_titles: bool,
+    pub timeline_ghost_tasks: bool,
+    /// The same, for deleted notes.
+    pub timeline_ghost_notes: bool,
     /// Treat a task due today or overdue as urgent, without being told.
     ///
     /// On by default, but switchable: some people find an interface that
@@ -185,17 +187,17 @@ pub struct Config {
     /// `#urgent` tag written by hand always counts, either way.
     pub auto_urgent_by_date: bool,
     /// Ring for every dated task without being asked (`off` / `dayOf` /
-    /// `dayBefore`), at `reminder_time`. Computed, never written into the
+    /// `dayBefore` / `both`), at `reminder_time`. Computed, never written into the
     /// task — see `reminders`.
     pub auto_remind: crate::reminders::AutoRemind,
     /// `HH:MM`: when the automatic reminder rings, and the hour the
     /// inspector's presets land on.
     pub reminder_time: crate::reminders::ReminderTime,
-    /// Where a new task lands in its list: above the first task (`true`) or
-    /// below the last (`false`, the default — what every list did until
-    /// 2026-08-21). A quick capture wants to see what it just wrote; a plan
-    /// written in order wants the order kept. The file decides nothing here:
-    /// `List::add_first` keeps whatever sits above the checklist above it.
+    /// Where a new task lands in its list: above the first task (`true`, the
+    /// default) or below the last (`false`). A quick capture wants to see
+    /// what it just wrote; a plan written in order wants the order kept. The
+    /// file decides nothing here: `List::add_first` keeps whatever sits
+    /// above the checklist above it.
     pub new_tasks_on_top: bool,
     /// The sidebar's rainbow (2026-08-24): every top-level entry takes the
     /// next of the seven, in sidebar order, starting from the accent — the
@@ -389,11 +391,12 @@ impl Default for Config {
             dated_tasks_join_period: true,
             confirm_deletes: true,
             confirm_image_downloads: true,
-            timeline_ghost_titles: false,
+            timeline_ghost_tasks: false,
+            timeline_ghost_notes: false,
             auto_urgent_by_date: true,
             auto_remind: Default::default(),
             reminder_time: Default::default(),
-            new_tasks_on_top: false,
+            new_tasks_on_top: true,
             auto_space_colors: false,
             date_display_format: DateFormat::default(),
             accent_color: String::new(),
@@ -603,11 +606,8 @@ impl Config {
                 "confirmImageDownloads",
                 defaults.confirm_image_downloads,
             ),
-            timeline_ghost_titles: flag(
-                &raw,
-                "timelineGhostTitles",
-                defaults.timeline_ghost_titles,
-            ),
+            timeline_ghost_tasks: flag(&raw, "timelineGhostTasks", defaults.timeline_ghost_tasks),
+            timeline_ghost_notes: flag(&raw, "timelineGhostNotes", defaults.timeline_ghost_notes),
             auto_urgent_by_date: flag(&raw, "autoUrgentByDate", defaults.auto_urgent_by_date),
             auto_remind: string(&raw, "autoRemind")
                 .as_deref()
@@ -716,7 +716,8 @@ impl Config {
                 "confirmImageDownloads",
                 Value::from(self.confirm_image_downloads),
             ),
-            ("timelineGhostTitles", Value::from(self.timeline_ghost_titles)),
+            ("timelineGhostTasks", Value::from(self.timeline_ghost_tasks)),
+            ("timelineGhostNotes", Value::from(self.timeline_ghost_notes)),
             ("autoUrgentByDate", Value::from(self.auto_urgent_by_date)),
             ("autoRemind", Value::from(self.auto_remind.render())),
             ("reminderTime", Value::from(self.reminder_time.render())),

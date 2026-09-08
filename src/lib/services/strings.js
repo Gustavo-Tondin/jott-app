@@ -354,9 +354,10 @@ export const S = {
   // The time axis (2026-08-27): the function and its one screen so far.
   featureTime: "Time",
   featureTimeline: "Timeline",
-  timelineGhostTitles: "Name deleted tasks and notes in the Timeline",
-  timelineGhostTitlesHint:
-    "Off, a deleted task or note is only counted — \u201c3 deleted tasks\u201d " +
+  timelineGhostTasks: "Name deleted tasks in the Timeline",
+  timelineGhostNotes: "Name deleted notes in the Timeline",
+  timelineGhostHint:
+    "Off, a deleted item is only counted — \u201c3 deleted tasks\u201d " +
     "in the colour of its space. The log keeps the name either way; to " +
     "drop the line itself, use \u201cRemove from timeline\u201d on the item.",
 
@@ -420,7 +421,6 @@ export const S = {
   // (2026-08-21). The pair is still a pair — the controls are in the panel or
   // they are not on screen — and the second half has to say which of the two
   // it is, or the menu offers a bar that will never come.
-  formattingHidden: "Hidden",
   noteTextSize: "Text size",
   noteSizeSmall: "Small",
   noteSizeMedium: "Medium",
@@ -432,13 +432,12 @@ export const S = {
   // the controls ride above the keyboard, which the hint says out loud rather
   // than hiding a row that would then be unfindable.
   formatBarLabel: "Formatting bar",
-  formatBarAlways: "Always",
-  formatBarSelection: "On selection",
+  formatBarFloating: "Floating",
+  formatBarPanel: "In the side panel",
   formatBarOff: "Off",
   formatBarHint:
-    "The bar that floats over an open note. Turning it off leaves the same " +
-    "controls in the side panel. On a phone they ride above the keyboard, " +
-    "and this does not change that.",
+    "How the bar opens with a note. While the note is open, the ⋮ menu " +
+    "moves it between floating and the side panel.",
   formatBarSideLabel: "Bar position",
   formatBarSideTop: "Top",
   formatBarSideLeft: "Left",
@@ -628,6 +627,7 @@ export const S = {
   autoRemindOff: "Never",
   autoRemindDayOf: "On the due day",
   autoRemindDayBefore: "The day before",
+  autoRemindBoth: "The day before and on the due day",
   reminderTime: "Reminder time",
   autoRemindHint:
     "A task with a reminder of its own keeps it. Presets in the task panel land on the reminder time too.",
@@ -684,10 +684,6 @@ export const S = {
   moreFieldsBody: (names) => `Switched off right now: ${names}.`,
   moreFieldsOpen: "Add functions",
   moreFieldsDismiss: "Not now",
-  offerTaskFields: "Suggest more fields in the task panel",
-  offerTaskFieldsHint:
-    "A card at the end of the task panel names the fields that are off and " +
-    "points here. Closing it once switches this off.",
   quickTasksGoTo: "Quick tasks go to",
   subTables: "Tables",
   tableLayout: "Wide tables",

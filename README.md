@@ -92,8 +92,8 @@ what the current version is.
   gets today's date the next time the notebook opens, and nothing else
   about it changes.
 - **Reminders**: a date and time on any task (presets or your own), or an
-  automatic one for every dated task — the day of, or the day before, at an
-  hour you choose. They ring through the system's notifications; on the
+  automatic one for every dated task — the day of, the day before, or both,
+  at an hour you choose. They ring through the system's notifications; on the
   desktop Jott waits in the tray after the window closes (and can start with
   the session), on Android the alarm is the system's and rings with the app
   closed.

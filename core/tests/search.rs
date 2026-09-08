@@ -222,8 +222,9 @@ fn says_out_loud_when_it_left_something_out() {
 fn counts_how_often_each_tag_is_used_whether_catalogued_or_not() {
     let (_dir, notebook) = notebook();
     for (i, tags) in [vec!["obra"], vec!["obra", "casa"], vec![]].iter().enumerate() {
+        // A new task lands on top: position 0 is the one just written.
         notebook.create_task(INBOX, format!("Tarefa {i}")).unwrap();
-        let id = notebook.ensure_task_id(INBOX, i).unwrap();
+        let id = notebook.ensure_task_id(INBOX, 0).unwrap();
         let mut list = notebook.open_list(INBOX).unwrap();
         list.task_mut(&id).unwrap().tags = tags.iter().map(|t| t.to_string()).collect();
         list.save().unwrap();

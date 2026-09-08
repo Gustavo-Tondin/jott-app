@@ -136,7 +136,7 @@ describe("services/timeline", () => {
         task("Standup", "2026-08-01", { id: "a" }),
         task("Standup", "2026-08-02", { id: "b", deleted: "2026-08-03" }),
       ],
-      { ghostTitles: true },
+      { ghostTasks: true },
     );
     expect(rows.length).toBe(2);
     expect(rows[0].count).toBe(1);
@@ -146,10 +146,22 @@ describe("services/timeline", () => {
   test("with ghost titles on, a ghost keeps its row and its birth name", () => {
     const rows = rowsOf(
       [task("Buy milk", "2026-08-01"), task("secret", "2026-08-02", { deleted: "2026-08-05" })],
-      { ghostTitles: true },
+      { ghostTasks: true },
     );
     expect(rows.map((r) => r.title)).toEqual(["Buy milk", "secret"]);
     expect(rows.every((r) => !r.ghost)).toBe(true);
+  });
+
+  test("each kind has its own switch: tasks named, notes still folded", () => {
+    const rows = rowsOf(
+      [
+        task("secret", "2026-08-02", { deleted: "2026-08-05" }),
+        { kind: "note", path: "Notes/Diary.md", title: "Diary", created: "2026-08-03", deleted: "2026-08-06" },
+      ],
+      { ghostTasks: true, ghostNotes: false },
+    );
+    expect(rows.find((r) => r.kind === "task").title).toBe("secret");
+    expect(rows.find((r) => r.kind === "note").ghost).toBe(true);
   });
 
   test("the header counts this month only", () => {

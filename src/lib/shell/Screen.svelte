@@ -111,7 +111,8 @@
     {origin}
     notesColor={spColors[layout.notesFolder] ?? null}
     colors={spColors}
-    ghostTitles={layout.timelineGhostTitles ?? false}
+    ghostTasks={layout.timelineGhostTasks ?? false}
+    ghostNotes={layout.timelineGhostNotes ?? false}
     root={notebook.path}
     dot={colorOf(view)}
     {composing}
@@ -335,7 +336,8 @@
     dateFormat={layout.dateDisplayFormat}
     {origin}
     colors={spColors}
-    ghostTitles={layout.timelineGhostTitles}
+    ghostTasks={layout.timelineGhostTasks}
+    ghostNotes={layout.timelineGhostNotes}
     {onOpenTask}
     onOpenNote={(path, folder) => onShowNote(path, folder)}
     {onChanged}

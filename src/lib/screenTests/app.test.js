@@ -521,7 +521,7 @@ describe("App", () => {
   };
 
   test("the floating bar hugs the side it was told, standing on end at the edges", async () => {
-    withNote(placing("always", "left"));
+    withNote(placing("panel", "left"));
     const { container } = render(App);
     await floatTheBar();
 
@@ -550,41 +550,30 @@ describe("App", () => {
     expect(container.querySelector(".format-bar--row")).toBeTruthy();
   });
 
-  test("OFF takes the floating bar away and leaves the panel alone", async () => {
+  test("OFF is off everywhere: no floating bar, and the panel does not hold it", async () => {
     withNote(placing("off", "top"));
-    render(App);
+    const { container } = render(App);
 
     await userEvent.click(await screen.findByRole("button", { name: "Notes" }));
     await userEvent.click(await screen.findByText("Ideia"));
-    // Docked, the controls are exactly where they were: turning the bar off
-    // is a choice about a bar over the DOCUMENT, not about having formatting.
-    expect(await screen.findByLabelText("Formatting")).toBeTruthy();
-
-    await userEvent.click(screen.getByLabelText("collapse panel"));
-    // Nothing floats — and with it, no dock pill either, which is why the
-    // page ⋮ is the way back and says "Hidden" rather than "Floating".
     await waitFor(() => expect(screen.queryByLabelText("Formatting")).toBeNull());
+    expect(container.querySelector(".format-floats")).toBeNull();
     expect(screen.queryByLabelText("Dock the formatting panel")).toBeNull();
   });
 
-  test("ON SELECTION waits for something to be selected, and goes when it goes", async () => {
-    withNote(placing("selection", "top"));
+  test("FLOATING opens the note with the bar over it, and the ⋮ can still dock it", async () => {
+    withNote(placing("floating", "top"));
     const { container } = render(App);
-    await floatTheBar();
 
-    // Nothing selected: no bar over the note.
-    await waitFor(() => expect(container.querySelector(".format-floats")).toBeNull());
-
-    // The stub is a textarea, so a selection is its two offsets — what the
-    // real engine reports is `editorSelection.test.js`. By tag and not by
-    // label: the drop target around it carries the same one.
-    const body = container.querySelector(".note-editor__body textarea");
-    body.setSelectionRange(0, 3);
-    await fireEvent.select(body);
+    await userEvent.click(await screen.findByRole("button", { name: "Notes" }));
+    await userEvent.click(await screen.findByText("Ideia"));
     await waitFor(() => expect(container.querySelector(".format-floats")).toBeTruthy());
+    // No panel beside it: the bar is the only formatting on screen.
+    expect(screen.queryByLabelText("collapse panel")).toBeNull();
 
-    body.setSelectionRange(3, 3);
-    await fireEvent.select(body);
+    // The session's own move is still there: the dock pill brings the panel back.
+    await userEvent.click(screen.getByLabelText("Dock the formatting panel"));
+    expect(await screen.findByLabelText("collapse panel")).toBeTruthy();
     await waitFor(() => expect(container.querySelector(".format-floats")).toBeNull());
   });
 
@@ -849,6 +838,26 @@ describe("App", () => {
     await fireEvent.click(container.querySelector(".shell__content"));
 
     expect(screen.queryByLabelText("task name")).not.toBeNull();
+  });
+
+  test("switched on, a click on the content closes the panel — not one that chose a task or a field", async () => {
+    // Anywhere on the content, not only the bare container, which a full
+    // screen never shows (user report, 2026-09-08). Two clicks keep it: one
+    // that picked another task (the panel shows that one now), and one into
+    // a field, where the person is about to type.
+    const info = { ...notebook, layout: { ...notebook.layout, closeInspectorOnClickAway: true } };
+    shell({ open_notebook: info, notebook_snapshot: { ...snapshot(), info } });
+    const { container } = render(App);
+
+    await openTask("Comprar leite");
+    await userEvent.click(screen.getByText("Pagar boleto"));
+    await waitFor(() => expect(screen.getByLabelText("task name").value).toBe("Pagar boleto"));
+
+    await userEvent.click(screen.getByPlaceholderText("New task…"));
+    expect(screen.queryByLabelText("task name")).not.toBeNull();
+
+    await userEvent.click(container.querySelector(".shell__content-inner"));
+    await waitFor(() => expect(screen.queryByLabelText("task name")).toBeNull());
   });
 
   test("escape closes the panel, but first only the open calendar", async () => {

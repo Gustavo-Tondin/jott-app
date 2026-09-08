@@ -266,7 +266,7 @@ order you dragged things into.
   prompts, feature switches, shortcut bindings, quick-capture destinations,
   sort orders, the fallback appearance, the task panel's offer of the
   fields that are off (`offerTaskFields`), and the automatic reminder
-  (`autoRemind`: `off` / `dayOf` / `dayBefore`, at `reminderTime`, `HH:MM`). Written in camelCase, guarded by
+  (`autoRemind`: `off` / `dayOf` / `dayBefore` / `both`, at `reminderTime`, `HH:MM`). Written in camelCase, guarded by
   `schemaVersion`.
 
   **`age`** holds where the three ages begin, in days —

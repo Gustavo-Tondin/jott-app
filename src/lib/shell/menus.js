@@ -104,19 +104,14 @@ export function noteActionsOf({
     },
   ];
   // Only on the desktop: the compact strip answers to the keyboard being up,
-  // so there is nothing here to switch.
-  if (!compact)
+  // so there is nothing here to switch. And only with a bar to move: off
+  // (Settings › Display) is off everywhere.
+  if (!compact && formatBarMode !== "off")
     own.push({
       label: S.formatting,
       items: [
         { label: S.formattingDocked, checked: formatting, run: () => setFormatting(true) },
-        {
-          // With the floating bar off, undocking the panel floats nothing, so
-          // the menu says so rather than promising a bar that never comes.
-          label: formatBarMode === "off" ? S.formattingHidden : S.formattingFloating,
-          checked: !formatting,
-          run: () => setFormatting(false),
-        },
+        { label: S.formattingFloating, checked: !formatting, run: () => setFormatting(false) },
       ],
     });
   return own;

@@ -35,8 +35,9 @@
     origin = null,
     /// `{[spacePath]: colourName}` — what a folded ghost row is coloured by.
     colors = {},
-    /// The notebook's `timelineGhostTitles`.
-    ghostTitles = false,
+    /// The notebook's `timelineGhostTasks` / `timelineGhostNotes`.
+    ghostTasks = false,
+    ghostNotes = false,
     /// `(path, id) => void` — a living task; `(inside, space) => void` — a
     /// note, addressed inside its space.
     onOpenTask,
@@ -118,7 +119,7 @@
       </button>
       <div class="timeline-lines__fold" class:is-open={shown && list.length > 0}>
         <ul class="timeline-lines__rows" id={`${prefix}-${line.key}`} hidden={!shown || list.length === 0}>
-          {#each rowsOf(list, { ghostTitles }) as row, j (row.ghost ? `ghost:${row.kind}:${row.space}` : `${row.kind}:${row.id ?? row.path}#${j}`)}
+          {#each rowsOf(list, { ghostTasks, ghostNotes }) as row, j (row.ghost ? `ghost:${row.kind}:${row.space}` : `${row.kind}:${row.id ?? row.path}#${j}`)}
             {@const color = colorOf(row)}
             <li
               class="timeline-lines__row"

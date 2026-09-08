@@ -43,6 +43,19 @@ file and live only in the commit history.
 - On a phone the back arrow at the top returns from a Settings page to the
   menu, the same as the swipe — the page no longer draws a back button of
   its own.
+- The formatting bar setting says how the bar **opens** with a note:
+  floating, in the side panel, or off. While the note is open the ⋮ menu
+  still moves it between the first two. Off is off everywhere, the phone's
+  strip included; a phone is offered floating or off.
+- "Close the task panel when clicking outside" now works anywhere on the
+  content, not only on the bare margin. A click that opens another task or
+  lands in a field keeps the panel. The row is desktop only.
+- The automatic reminder can ring both the day before and on the due day.
+- New tasks go to the **top** of the list by default.
+- Banners and note tags start switched off; the Notes page turns them on.
+- The Timeline's deleted names are two switches — one for tasks, one for notes.
+- The "Suggest more fields in the task panel" row left Settings: the card is
+  a one-time offer, and the Tasks page it points to already holds the fields.
 
 ## v0.52.1
 

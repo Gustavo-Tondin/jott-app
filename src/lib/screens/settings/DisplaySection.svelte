@@ -364,7 +364,7 @@
        cannot show — the hint says so, and a phone answers for itself. -->
   {@render segmentedRow(
     S.formatBarLabel,
-    FORMAT_BAR_MODES,
+    FORMAT_BAR_MODES.filter((mode) => !(mobile && mode.desktopOnly)),
     form.formatBar || DEFAULT_FORMAT_BAR,
     (key) => putDisplay({ formatBar: key }),
     S.formatBarHint,
@@ -417,17 +417,21 @@
     />
   </label>
 
-  <label class="settings__row">
-    <span class="settings__label">{S.closeOnClickAway}</span>
-    <input
-      class="theme-checkbox"
-      type="checkbox"
-      bind:checked={form.closeInspectorOnClickAway}
-      aria-label={S.closeOnClickAway}
-      onchange={(e) =>
-        putDisplay({ closeInspectorOnClickAway: e.currentTarget.checked })}
-    />
-  </label>
+  <!-- Desktop only: on a phone the task panel is a sheet, and tapping
+       beside it is how a sheet closes. -->
+  {#if !mobile}
+    <label class="settings__row">
+      <span class="settings__label">{S.closeOnClickAway}</span>
+      <input
+        class="theme-checkbox"
+        type="checkbox"
+        bind:checked={form.closeInspectorOnClickAway}
+        aria-label={S.closeOnClickAway}
+        onchange={(e) =>
+          putDisplay({ closeInspectorOnClickAway: e.currentTarget.checked })}
+      />
+    </label>
+  {/if}
 
   <label class="settings__row">
     <span class="settings__label">{S.dateFormat}</span>

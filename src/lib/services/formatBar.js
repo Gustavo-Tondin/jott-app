@@ -1,5 +1,5 @@
-// The two Display choices about the note's floating formatting bar
-// (2026-08-21): WHEN it shows, and WHICH edge of the canvas it hugs.
+// The two Display choices about the note's formatting bar (2026-08-21):
+// HOW it opens with a note, and WHICH edge of the canvas the floating one hugs.
 //
 // A table each, in one place, because three consumers read them and must not
 // disagree — the Settings rows that offer them, the shell that acts on them,
@@ -14,18 +14,17 @@
 // interface, not to correct the file.
 import { S } from "./strings.js";
 
-/// When the bar floats over an open note.
-///
-/// `off` is not "no formatting": the same controls stay in the right panel,
-/// which is what the panel is for. It takes away the bar over the DOCUMENT,
-/// which is the one that costs a strip of the page.
+/// How the bar opens with a note: floating over it, docked in the side
+/// panel, or not at all. Only the OPENING — while the note is open the page
+/// menu moves it between the first two. On a phone there is no panel to
+/// dock in: `panel` reads as `floating` there, and the row does not offer it.
 export const FORMAT_BAR_MODES = [
-  { key: "always", label: () => S.formatBarAlways },
-  { key: "selection", label: () => S.formatBarSelection },
+  { key: "floating", label: () => S.formatBarFloating },
+  { key: "panel", label: () => S.formatBarPanel, desktopOnly: true },
   { key: "off", label: () => S.formatBarOff },
 ];
 
-export const DEFAULT_FORMAT_BAR = "always";
+export const DEFAULT_FORMAT_BAR = "panel";
 
 /// Which edge it hugs — a SIDE, never a corner (user call, 2026-08-21): the
 /// bar is always centred on the edge it is given, so there are four answers

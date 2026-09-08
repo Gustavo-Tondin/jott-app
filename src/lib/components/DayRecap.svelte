@@ -21,8 +21,9 @@
     origin = null,
     /// `{[spacePath]: colourName}` — what a folded ghost row is coloured by.
     colors = {},
-    /// The notebook's `timelineGhostTitles`.
-    ghostTitles = false,
+    /// The notebook's `timelineGhostTasks` / `timelineGhostNotes`.
+    ghostTasks = false,
+    ghostNotes = false,
     onOpenTask,
     onOpenNote,
     /// `({done, created, notes}) => void` — the day's three counts, for the
@@ -85,7 +86,8 @@
       {readOnly}
       {origin}
       {colors}
-      {ghostTitles}
+      {ghostTasks}
+      {ghostNotes}
       {onOpenTask}
       {onOpenNote}
       onForget={forget}

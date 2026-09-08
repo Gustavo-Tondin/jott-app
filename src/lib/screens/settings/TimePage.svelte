@@ -2,7 +2,7 @@
   import { S } from "../../services/strings.js";
 
   /// The rows on this page that are NOT one of its switches.
-  export const index = () => [S.timelineGhostTitles];
+  export const index = () => [S.timelineGhostTasks, S.timelineGhostNotes];
 </script>
 
 <script>
@@ -31,20 +31,23 @@
   {/each}
 
   <!-- What the Timeline says about a deleted thing: counted only, by
-       default — it may have been thrown away for privacy. The row's own
-       "Remove from timeline" is the door for someone who wants the line gone. -->
-  <label class="settings__row">
-    <span class="settings__label">
-      {S.timelineGhostTitles}
-      <HelpTip label={S.timelineGhostTitles} text={S.timelineGhostTitlesHint} />
-    </span>
-    <input
-      class="theme-checkbox"
-      type="checkbox"
-      bind:checked={form.timelineGhostTitles}
-      disabled={readOnly}
-      aria-label={S.timelineGhostTitles}
-      onchange={(e) => put({ timelineGhostTitles: e.currentTarget.checked })}
-    />
-  </label>
+       default — it may have been thrown away for privacy. One switch per
+       kind. The row's own "Remove from timeline" is the door for someone
+       who wants the line gone. -->
+  {#each [["timelineGhostTasks", S.timelineGhostTasks], ["timelineGhostNotes", S.timelineGhostNotes]] as [key, label] (key)}
+    <label class="settings__row">
+      <span class="settings__label">
+        {label}
+        <HelpTip {label} text={S.timelineGhostHint} />
+      </span>
+      <input
+        class="theme-checkbox"
+        type="checkbox"
+        bind:checked={form[key]}
+        disabled={readOnly}
+        aria-label={label}
+        onchange={(e) => put({ [key]: e.currentTarget.checked })}
+      />
+    </label>
+  {/each}
 </SettingsSection>

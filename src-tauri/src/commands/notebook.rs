@@ -70,8 +70,9 @@ pub struct NotebookLayout {
     pub note_layout: String,
     /// How a table sits in a note (`""` squeezed to fit / `scroll`).
     pub table_layout: String,
-    /// Whether the Timeline names what was deleted (`Config::timeline_ghost_titles`).
-    pub timeline_ghost_titles: bool,
+    /// Whether the Timeline names deleted tasks, and deleted notes.
+    pub timeline_ghost_tasks: bool,
+    pub timeline_ghost_notes: bool,
     /// The two questions a dialog can be told to stop asking — deleting, and
     /// fetching a picture off the web.
     ///
@@ -173,7 +174,8 @@ impl NotebookInfo {
                 offer_task_fields: notebook.config().offer_task_fields,
                 note_layout: notebook.config().note_layout.clone(),
                 table_layout: notebook.config().table_layout.clone(),
-                timeline_ghost_titles: notebook.config().timeline_ghost_titles,
+                timeline_ghost_tasks: notebook.config().timeline_ghost_tasks,
+                timeline_ghost_notes: notebook.config().timeline_ghost_notes,
                 confirm_deletes: notebook.config().confirm_deletes,
                 confirm_image_downloads: notebook.config().confirm_image_downloads,
                 auto_space_colors: display.auto_space_colors,

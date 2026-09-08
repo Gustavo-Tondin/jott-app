@@ -157,7 +157,7 @@ describe("TimelineView", () => {
 
   test("with ghost titles on, a ghost keeps its name, struck through and not clickable", async () => {
     bridge({ timeline_years: [2026], timeline: ITEMS });
-    mount({ ghostTitles: true });
+    mount({ ghostTasks: true, ghostNotes: true });
 
     const ghost = await screen.findByText("secret");
     expect(ghost.disabled).toBe(true);

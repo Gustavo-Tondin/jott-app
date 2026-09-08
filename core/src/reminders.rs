@@ -2,8 +2,8 @@
 //!
 //! Two sources, one list. A task can carry its own `remind:` moment (see
 //! [`crate::task::Task::remind`]), and the notebook can ask for an
-//! **automatic** reminder for every dated task — the day of, or the day
-//! before, at the notebook's reminder time. The automatic one is computed
+//! **automatic** reminder for every dated task — the day of, the day
+//! before, or both, at the notebook's reminder time. The automatic one is computed
 //! here and never written to the task: it is a setting about the notebook,
 //! not a fact about the task, and turning it off must not leave a trail in
 //! a hundred files.
@@ -25,6 +25,8 @@ pub enum AutoRemind {
     DayOf,
     /// The day before, at the reminder time.
     DayBefore,
+    /// Both: the day before and the due day, two reminders.
+    Both,
 }
 
 impl AutoRemind {
@@ -33,6 +35,7 @@ impl AutoRemind {
             "off" => Some(Self::Off),
             "dayOf" => Some(Self::DayOf),
             "dayBefore" => Some(Self::DayBefore),
+            "both" => Some(Self::Both),
             _ => None,
         }
     }
@@ -47,6 +50,7 @@ impl AutoRemind {
             Self::Off => "off",
             Self::DayOf => "dayOf",
             Self::DayBefore => "dayBefore",
+            Self::Both => "both",
         }
     }
 }
@@ -102,11 +106,43 @@ pub struct Reminder {
     pub auto: bool,
 }
 
-/// The reminders of one task, under the notebook's rule. Zero or one.
+/// The reminders of one task, under the notebook's rule: none, the task's
+/// own, or the automatic one — two of those under `Both`.
 ///
 /// A done task never rings. A task's own `remind:` wins over the automatic
 /// one: someone who chose "the day before at 18:00" for one task does not
 /// want a second ring at 09:00 the day of.
+pub fn reminders_of(
+    list: &str,
+    position: usize,
+    task: &Task,
+    auto: AutoRemind,
+    time: ReminderTime,
+) -> Vec<Reminder> {
+    if task.done {
+        return Vec::new();
+    }
+    let moments: Vec<(NaiveDateTime, bool)> = match task.remind {
+        Some(at) => vec![(at, false)],
+        None => automatic_moments(task, auto, time)
+            .into_iter()
+            .map(|at| (at, true))
+            .collect(),
+    };
+    moments
+        .into_iter()
+        .map(|(at, is_auto)| Reminder {
+            list: list.to_string(),
+            id: task.id.clone(),
+            position,
+            text: task.text.clone(),
+            at: render_datetime(at),
+            auto: is_auto,
+        })
+        .collect()
+}
+
+/// The task's first reminder, for callers that want one. See `reminders_of`.
 pub fn reminder_of(
     list: &str,
     position: usize,
@@ -114,31 +150,20 @@ pub fn reminder_of(
     auto: AutoRemind,
     time: ReminderTime,
 ) -> Option<Reminder> {
-    if task.done {
-        return None;
-    }
-    let (at, is_auto) = match task.remind {
-        Some(at) => (at, false),
-        None => (automatic_moment(task, auto, time)?, true),
-    };
-    Some(Reminder {
-        list: list.to_string(),
-        id: task.id.clone(),
-        position,
-        text: task.text.clone(),
-        at: render_datetime(at),
-        auto: is_auto,
-    })
+    reminders_of(list, position, task, auto, time).into_iter().next()
 }
 
-fn automatic_moment(task: &Task, auto: AutoRemind, time: ReminderTime) -> Option<NaiveDateTime> {
-    let due = task.due?;
-    let day = match auto {
-        AutoRemind::Off => return None,
-        AutoRemind::DayOf => due,
-        AutoRemind::DayBefore => due - Duration::days(1),
+fn automatic_moments(task: &Task, auto: AutoRemind, time: ReminderTime) -> Vec<NaiveDateTime> {
+    let Some(due) = task.due else {
+        return Vec::new();
     };
-    Some(day.and_time(time.time()))
+    let days = match auto {
+        AutoRemind::Off => return Vec::new(),
+        AutoRemind::DayOf => vec![due],
+        AutoRemind::DayBefore => vec![due - Duration::days(1)],
+        AutoRemind::Both => vec![due - Duration::days(1), due],
+    };
+    days.into_iter().map(|day| day.and_time(time.time())).collect()
 }
 
 /// Sorts soonest first; ties keep list order, which is the order they came in.
@@ -204,7 +229,7 @@ mod tests {
 
     #[test]
     fn config_values_round_trip_and_refuse_nonsense() {
-        for v in [AutoRemind::Off, AutoRemind::DayOf, AutoRemind::DayBefore] {
+        for v in [AutoRemind::Off, AutoRemind::DayOf, AutoRemind::DayBefore, AutoRemind::Both] {
             assert_eq!(AutoRemind::parse(v.render()), Some(v));
         }
         assert_eq!(AutoRemind::parse("sometimes"), None);

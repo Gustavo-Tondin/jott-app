@@ -1032,21 +1032,26 @@ fn completed_aggregates_across_spaces_and_writes_the_index() {
 // ------------------------------------------------------ where a new task lands
 
 #[test]
-fn a_new_task_lands_at_the_bottom_unless_the_notebook_says_top() {
+fn a_new_task_lands_on_top_unless_the_notebook_says_bottom() {
     let (_dir, mut notebook, _) = notebook_with_task("Primeira");
     let inbox = "jott.tasks/task-list.md";
 
-    assert_eq!(notebook.create_task(inbox, "Segunda").unwrap(), 1);
+    // The default: above the first (2026-09-08).
+    assert_eq!(notebook.create_task(inbox, "Segunda").unwrap(), 0);
     let texts: Vec<String> = notebook.tasks_in(inbox).unwrap().into_iter().map(|t| t.text).collect();
-    assert_eq!(texts, vec!["Primeira", "Segunda"]);
+    assert_eq!(texts, vec!["Segunda", "Primeira"]);
+
+    let mut config = notebook.config().clone();
+    config.new_tasks_on_top = false;
+    notebook.set_config(config).unwrap();
+
+    assert_eq!(notebook.create_task(inbox, "Terceira").unwrap(), 2);
+    let texts: Vec<String> = notebook.tasks_in(inbox).unwrap().into_iter().map(|t| t.text).collect();
+    assert_eq!(texts, vec!["Segunda", "Primeira", "Terceira"]);
 
     let mut config = notebook.config().clone();
     config.new_tasks_on_top = true;
     notebook.set_config(config).unwrap();
-
-    assert_eq!(notebook.create_task(inbox, "Terceira").unwrap(), 0);
-    let texts: Vec<String> = notebook.tasks_in(inbox).unwrap().into_iter().map(|t| t.text).collect();
-    assert_eq!(texts, vec!["Terceira", "Primeira", "Segunda"]);
 
     // The day's door obeys the same setting.
     add_in_today(&notebook, "Quarta").unwrap();

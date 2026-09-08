@@ -21,15 +21,13 @@ impl Notebook {
                 continue;
             }
             for (position, task) in self.open_list(&list.path)?.tasks().enumerate() {
-                if let Some(reminder) = reminders::reminder_of(
+                out.extend(reminders::reminders_of(
                     &list.path,
                     position,
                     task,
                     config.auto_remind,
                     config.reminder_time,
-                ) {
-                    out.push(reminder);
-                }
+                ));
             }
         }
         reminders::sort(&mut out);

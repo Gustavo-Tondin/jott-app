@@ -41,7 +41,7 @@ fn defaults_match_the_spec() {
     assert_eq!(config.schema_version(), 1);
     assert!(!config.restore_last_screen);
     assert!(config.show_list_counts);
-    assert!(!config.new_tasks_on_top);
+    assert!(config.new_tasks_on_top);
     assert!(!config.auto_space_colors);
     assert_eq!(config.rollover.daily.mode, RolloverMode::Reset);
     assert_eq!(config.week_starts_on, WeekStart::Monday);
