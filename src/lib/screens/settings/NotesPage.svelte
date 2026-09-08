@@ -32,10 +32,9 @@
 
   <h3 class="settings__subtitle">{S.subBoard}</h3>
 
-  <!-- The default for a space that never chose (proposta §9-A). A
-       space's own choice lives in its .space.json and wins; with
-       folders off there is no tree to draw, so the row goes quiet
-       the way a child switch does. -->
+  <!-- The default for a space that never chose; a space's own .space.json
+       wins. With folders off there is no tree to draw, so the row goes
+       quiet the way a child switch does. -->
   <label class="settings__row">
     <span class="settings__label">{S.noteLayout}</span>
     <select
@@ -53,11 +52,9 @@
 
   <h3 class="settings__subtitle">{S.subTables}</h3>
 
-  <!-- How a table sits in the note's column (user call, 2026-08-24):
-       squeezed to the content width by default, or as wide as its
-       cells with a sideways scroll of its own. A notebook setting,
-       like the board layout above — it is about the notes, not about
-       this screen. -->
+  <!-- How a table sits in the note's column: squeezed to the content width,
+       or as wide as its cells with a sideways scroll. A notebook setting,
+       like the board layout above — about the notes, not this screen. -->
   <label class="settings__row">
     <span class="settings__label">{S.tableLayout}</span>
     <select
@@ -75,10 +72,9 @@
 
   <h3 class="settings__subtitle">{S.subImages}</h3>
 
-  <!-- Rescued (2026-08-20): the value was only ever written by the
-       dialog's own "don't ask again", so it could be switched off and
-       never back on. Principle 9 is the reason it exists at all — this
-       is one of the two connections the app makes. -->
+  <!-- Rescued: the dialog's own "don't ask again" wrote it and nothing
+       offered the way back. Principle 9 is why it exists — one of the two
+       connections the app makes. -->
   <label class="settings__row">
     <span class="settings__label">{S.confirmImageDownloads}</span>
     <input

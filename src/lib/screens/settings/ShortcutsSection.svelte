@@ -1,11 +1,9 @@
 <script module>
   import { S } from "../../services/strings.js";
 
-  /// The rows the settings search can find on this page. The ~50 commands
-  /// are deliberately NOT here: the page carries a filter of its own over
-  /// `commands.js`, and pouring them into a search for settings would bury
-  /// the eight pages under them. What is indexed is the door — the page, by
-  /// both its names.
+  /// The rows the settings search can find: the door, by both its names.
+  /// The ~50 commands are deliberately NOT here — the page has a filter of
+  /// its own, and they would bury the eight pages.
   export const index = () => [S.sectionShortcuts, S.resetShortcuts];
 </script>
 
@@ -29,9 +27,8 @@
     onResetAll,
   } = $props();
 
-  // ---- the shortcuts table's own filter (2026-08-20) ----
-  // ~50 commands in three scopes is the longest page here, and the table is
-  // read by someone hunting for one line of it.
+  // The table's own filter: ~50 commands in three scopes is the longest
+  // page here, read by someone hunting for one line.
   let chordQuery = $state("");
   const matching = (scope) => {
     const needle = plain(chordQuery.trim());
@@ -54,10 +51,8 @@
     />
   </div>
 
-  <!-- Grouped by SCOPE, because a scope is what decides whether two commands
-       may share a chord: two that can never both answer (a task list and a
-       text cursor are not focused at once) legitimately can. The groups are
-       named for what the user is doing, not for the word the code uses. -->
+  <!-- Grouped by SCOPE: a scope decides whether two commands may share a
+       chord — two that never both answer legitimately can. -->
   {#each SCOPES as scope (scope)}
     {@const rows = matching(scope)}
     {#if rows.length > 0}

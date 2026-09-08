@@ -32,16 +32,14 @@
     noteTargets = [],
     /// …and where a quick task can (services/taskTargets.js). Same contract.
     taskTargets = [],
-    /// Opens the notebook picker. It is the shell's flow — the same one the
-    /// sidebar's foot has always had; this is its second door (2026-08-20).
+    /// Opens the notebook picker — the shell's flow, its second door.
     onSwitchNotebook,
     onReset,
     onError,
   } = $props();
 
-  /// What the notebook holds, read once per visit to the Notebook section
-  /// (2026-08-24): the core walks the whole tree for the size, so this is
-  /// asked when the section opens and not on every render.
+  /// What the notebook holds, read once per visit: the core walks the whole
+  /// tree for the size.
   let contents = $state(null);
   api
     .notebookContents()
@@ -87,10 +85,8 @@
     >
   </div>
 
-  <!-- The second door to the picker. The first is the notebook's name
-       at the foot of the sidebar, which nobody guesses is a button
-       (2026-08-20) — and with the sidebar closed on a phone there was
-       no door at all. -->
+  <!-- The second door to the picker: the first is the notebook's name at the
+       foot of the sidebar, which nobody guesses is a button. -->
   {#if onSwitchNotebook}
     <div class="settings__row">
       <span class="settings__label">{S.switchNotebook}</span>
@@ -102,22 +98,15 @@
     </div>
   {/if}
 
-  <!-- Where a quick note lands names a folder of THIS notebook, so it
-       could not follow Display onto the machine (2026-08-20): machine
-       preferences are one file for every notebook the app opens, and
-       a folder name from one would be nonsense in the next.
-
-       The choices are the fixed Notes space's folders and the user's
-       own note spaces (services/noteTargets.js, 2026-08-24) — which
-       is what keeps the capture alive when the fixed space is
-       hidden. With nowhere to go at all, the row goes too: a choice
-       between places with no door is not a choice. -->
+  <!-- Where a quick note lands names a folder of THIS notebook, so it cannot
+       follow Display onto the machine. The choices (services/noteTargets.js)
+       keep the capture alive with the fixed space hidden; with nowhere to go
+       the row goes too. -->
   {#if noteTargets.length > 0}
     {@render targetRow(S.quickNoteFolder, "quickNoteFolder", noteTargets, S.quickNoteFolderHint)}
   {/if}
 
-  <!-- The tasks mirror (user call, 2026-08-24): both captures name
-       their landing place side by side, in the notebook's section. -->
+  <!-- The tasks mirror: both captures name their landing place side by side. -->
   {#if taskTargets.length > 0}
     {@render targetRow(S.quickTasksGoTo, "quickTaskList", taskTargets, S.quickTasksGoToHint)}
   {/if}

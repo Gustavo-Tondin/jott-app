@@ -17,11 +17,8 @@
 </script>
 
 <section class="settings__section" class:settings__section--features={features}>
-  <!-- The section's name, ONCE. Side by side it is the panel's own heading,
-       which is what says which of the menu's rows you are reading. On the
-       phone you went INTO the section and the header above already carries
-       its name (shell/PageHeader.svelte) — repeating it here would be the
-       "nome dito duas vezes" the space screens were fixed for. -->
+  <!-- The section's name, ONCE. Side by side it is the panel's heading; on
+       the phone the shell's header already carries it (shell/PageHeader.svelte). -->
   {#if !compact}
     <h2 class="settings__section-title">{title}</h2>
   {/if}

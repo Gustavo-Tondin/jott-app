@@ -28,10 +28,8 @@
 </script>
 
 <SettingsSection title={S.sectionDates} {compact} {onReset} resetDisabled={readOnly}>
-  <!-- No hour for the turn of the day (user call, 2026-09-04): with
-       the next day planned on its own page of the Home's calendar,
-       the day is the calendar's day, and the one knob left is what
-       happens to what was not finished. -->
+  <!-- No hour for the turn of the day: the day is the calendar's day, and
+       the one knob left is what happens to what was not finished. -->
   <h3 class="settings__subtitle">{S.today}</h3>
 
   <label class="settings__row">
@@ -48,9 +46,8 @@
     </select>
   </label>
 
-  <!-- The week stopped being a period on 2026-09-04 (the Home's
-       calendar plans any day ahead); what is left of it is the day
-       the strip starts on. -->
+  <!-- The week is not a period (the Home's calendar plans any day ahead);
+       what is left of it is the day the strip starts on. -->
   <h3 class="settings__subtitle">{S.subCalendar}</h3>
 
   <label class="settings__row">
@@ -81,9 +78,7 @@
   </label>
   <p class="settings__hint">{S.datedTasksJoinPeriodHint}</p>
 
-  <!-- Where the OTHER half of the subject lives. This section decides
-       what a date DOES; how one is written answers to the device, so
-       it sits in Display and this says so out loud rather than leaving
-       someone to hunt (2026-08-20). -->
+  <!-- This section decides what a date DOES; how one is written answers to
+       the device and sits in Display — said out loud here. -->
   <p class="settings__hint">{S.dateFormatElsewhere}</p>
 </SettingsSection>

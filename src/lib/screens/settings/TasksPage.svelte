@@ -55,11 +55,9 @@
   <h3 class="settings__subtitle">{S.subFields}</h3>
   {#each childrenIn("tasks", "fields") as feature (feature.key)}
     <FeatureRow {feature} {features} {readOnly} {onSet} />
-    <!-- The one rule that hangs off a field rather than off a screen:
-         it paints the PRIORITY, so it belongs on the line below it
-         (2026-08-20, moving back out of Day and week). With priority
-         off there is nothing for it to paint, and it says so by being
-         disabled rather than by disappearing. -->
+    <!-- The one rule that hangs off a field: it paints the PRIORITY, so it
+         sits on the line below it — disabled rather than gone with the
+         field off. -->
     {#if feature.key === "priority"}
       <label class="settings__row settings__row--sub">
         <span class="settings__label">{S.autoUrgentByDate}</span>
@@ -73,9 +71,8 @@
         />
       </label>
     {/if}
-    <!-- The automatic reminder hangs off Remind me the same way: it
-         rings dated tasks at the reminder time (2026-08-25), and
-         with the field off there is no bell for it to ring. -->
+    <!-- The automatic reminder hangs off Remind me the same way: with the
+         field off there is no bell for it to ring. -->
     {#if feature.key === "remind"}
       <label class="settings__row settings__row--sub">
         <span class="settings__label">{S.autoRemind}</span>
@@ -107,9 +104,8 @@
   {/each}
   <p class="settings__hint">{S.autoUrgentByDateHint}</p>
 
-  <!-- The fixed Tasks screen (2026-09-04): the Inbox alone, or every
-       list pulled together. A notebook setting on the function's
-       page, like the rows above — not a feature switch. -->
+  <!-- The fixed Tasks screen: the Inbox alone, or every list pulled together.
+       A notebook setting on the function's page — not a feature switch. -->
   <h3 class="settings__subtitle">{S.subTasksScreen}</h3>
   <label class="settings__row">
     <span class="settings__label">{S.tasksShowAll}</span>

@@ -16,7 +16,7 @@
 <script>
   // Native Functions: every function of the app, with its switch and the
   // door to its own page. What a function HAS — a task's fields, a note's
-  // banners — is not here; it is one page in (2026-08-20).
+  // banners — is not here; it is one page in.
   import Icon from "../../components/Icon.svelte";
   import Modal from "../../components/Modal.svelte";
   import { hasPage, on } from "../../services/features.js";
@@ -42,10 +42,8 @@
   <p class="settings__hint">{S.sectionNativeHint}</p>
 
   {#each FUNCTIONS as fn (fn.key)}
-    <!-- An `inline` group (the fixed spaces) draws its children right
-         here, indented under their master switch and set apart by a
-         divider, instead of behind a page of its own (user call,
-         2026-08-24). -->
+    <!-- An `inline` group (the fixed spaces) draws its children right here,
+         under their master switch, instead of behind a page of its own. -->
     {#if fn.inline}
       <hr class="theme-divider settings__functions-break" />
     {/if}

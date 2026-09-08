@@ -57,47 +57,38 @@
     putDisplay,
     compact = false,
     readOnly = false,
-    /// The interface's own zoom, and the way to change it. It belongs to the
-    /// shell (it is a `font-size` on the root, applied there), so this screen
-    /// asks rather than writes — the same handshake the notebook picker has.
+    /// The interface's own zoom (a `font-size` on the root, the shell's): this
+    /// screen asks rather than writes.
     zoom = 1,
     onZoom,
-    /// The themes the notebook carries (`.jott/themes/`, 2026-08-25) — the
-    /// shell reads them, because it is the shell that wears one. Empty means
-    /// the notebook has none, and the whole block is absent rather than an
-    /// empty list with an explanation nobody asked for.
+    /// The themes the notebook carries (`.jott/themes/`), read by the shell.
+    /// Empty: the block is absent rather than an empty list.
     userThemes = [],
-    /// Which of them is actually in the document. A name in `userThemes` that
-    /// is not this one is a theme that failed to load — worth saying, because
-    /// the app is then wearing the default while the setting says otherwise.
+    /// Which of them is actually in the document — a chosen theme that is
+    /// not this one failed to load, and the row says so.
     wornTheme = null,
     /// How many remote references were neutralised in it.
     blockedInTheme = 0,
-    /// Writes a new theme into the notebook, seeded with the look in use, and
-    /// answers with it. The shell's, because the shell is what knows which
-    /// stylesheet is on (App.svelte → newThemeFrom).
+    /// Writes a new theme seeded with the look in use (App.svelte → newThemeFrom).
     onNewTheme,
     onReset,
     onError,
   } = $props();
 
-  // Slash-only, and month-first is the default (user call, 2026-08-06).
+  // Slash-only, and month-first is the default.
   const DATE_SHAPES = ["mm/dd/yyyy", "dd/mm/yyyy", "yyyy/mm/dd"];
 
-  /// What this machine has installed (2026-08-24). Asked when the page
-  /// opens: a font library does not change while the app is up, and the
-  /// answer walks the machine's font directories. Empty off Linux, and the
-  /// pickers then offer the app's own faces plus the generic families —
-  /// which is why the list being empty is not an error state.
+  /// What this machine has installed, asked when the page opens. Empty off
+  /// Linux — the pickers then offer the app's faces plus the generics, so
+  /// an empty list is not an error state.
   let installedFonts = $state([]);
   api
     .systemFonts()
     .then((names) => (installedFonts = names ?? []))
     .catch(() => (installedFonts = []));
 
-  /// The three rows of the Display page, in the order they are drawn. Each
-  /// is a role of `services/fonts.js` plus what this screen calls it — the
-  /// row itself is one snippet, so a fourth face would be one line here.
+  /// The three rows of the Display page: a role of `services/fonts.js` plus
+  /// what this screen calls it. A fourth face would be one line here.
   const FONT_ROWS = () => [
     {
       role: "interface",
@@ -124,12 +115,9 @@
     },
   ];
 
-  /// Makes a theme out of the look on screen, and puts it on.
-  ///
-  /// Wearing it immediately is the point: a theme written and not worn is a
-  /// file, and the reader has no way to tell whether it took. The name is
-  /// asked for rather than generated because it is the folder name, the
-  /// attribute value and what the list will show — three things at once.
+  /// Makes a theme out of the look on screen, and puts it on at once — a
+  /// theme written and not worn is a file nobody can tell took. The name is
+  /// asked for: it is the folder, the attribute value and the list's label.
   async function makeTheme() {
     const name = await askName();
     if (!name) return;
@@ -141,18 +129,10 @@
     }
   }
 
-  // ---- the interface zoom (2026-08-20) ----
-  //
-  // **The zoom is applied when the drag ENDS, never during it**, and that is
-  // not a nicety: every measure in the app is `rem`, so changing the zoom
-  // resizes and MOVES this very slider under the finger. The pointer then sits
-  // over a different step, which fires another change, which moves it again —
-  // the control fought back while it was being dragged (user report,
-  // 2026-08-20).
-  //
-  // So the drag moves a local index and nothing else; `change` — which is
-  // exactly "the user settled on a value", on the mouse and on the keyboard —
-  // is what asks the shell for it.
+  // The zoom is applied when the drag ENDS, never during it: every measure
+  // is `rem`, so applying it mid-drag moves this very slider under the
+  // finger and it fights back (docs/platform-gotchas.md). The drag moves a
+  // local index; `change` is what asks the shell.
   let dragged = $state(null);
   let zoomStep = $derived(dragged ?? Math.max(0, ZOOM_STEPS.indexOf(zoom)));
 
@@ -163,9 +143,8 @@
 </script>
 
 <!-- A row whose control is a segmented group: one button per option, the
-     current one pressed. `options` carry `key`, `label()` and, when there is
-     something to say on hover, `hint()`. Not a <label>: a label wrapping a
-     group of buttons would claim the first one for its own click. -->
+     current one pressed; `options` carry `key`, `label()` and maybe `hint()`.
+     Not a <label>: it would claim the first button for its own click. -->
 {#snippet segmentedRow(label, options, current, apply)}
   <div class="settings__row">
     <span class="settings__label">{label}</span>
@@ -184,15 +163,10 @@
   </div>
 {/snippet}
 
-<!-- A font row: the label, and a select holding the app's own answer, the
-     generic families, and what the machine has installed. The value is a
-     family NAME and the empty one means "the app's own" — the same pact every
-     Display key keeps, where absent is the default rather than a value.
-
-     Each option previews itself, which is the whole reason a font picker is
-     not a plain list of words: the name of a face says much less than the
-     face does. Only the option can do it — a <select>'s closed box draws in
-     the control's own font on every engine. -->
+<!-- A font row: the app's own answer, the generic families, and what the
+     machine has installed; the empty value means "the app's own". Each
+     option previews itself — a <select>'s closed box draws in the control's
+     own font on every engine, so only the option can. -->
 {#snippet fontRow(row)}
   {@const options = fontOptions(row.role, installedFonts, {
     default: row.fallback,
@@ -208,11 +182,9 @@
       onchange={(e) => putDisplay({ [row.key]: e.currentTarget.value })}
     >
       {#each options as option (option.value)}
-        <!-- The same value the choice would write on the root, so the row
-             previews what picking it does — including the fallback, which is
-             what a font the machine lost would show. `fontValue` is also
-             what keeps a generic family unquoted: `font-family: "serif"`
-             names a font nobody has. -->
+        <!-- The value the choice would write on the root, so the row previews
+             it — the fallback included. `fontValue` keeps a generic family
+             unquoted: `font-family: "serif"` names a font nobody has. -->
         <option value={option.value} style={fontValue(row.role, option.value)
             ? `font-family: ${fontValue(row.role, option.value)}`
             : null}>{option.label}</option
@@ -228,22 +200,16 @@
 
   <h3 class="settings__subtitle">{S.mode}</h3>
 
-  <!-- The MODE leads the section: it decides the ground everything else
-       is drawn on, including which half of the accent shows. A segmented
-       group rather than a select — there are three, and each is a look
-       you want to see the name of side by side. The THEME (the palette)
-       is the block below, and the two are independent (2026-08-26). -->
+  <!-- The MODE leads: it decides the ground everything else is drawn on. A
+       segmented group — three looks you want to see side by side. The THEME
+       (the palette) is the block below; the two are independent. -->
   {@render segmentedRow(S.mode, MODES, form.mode || DEFAULT_MODE, (key) =>
     putDisplay({ mode: key }),
   )}
 
-  <!-- The THEME — the palette (2026-08-26): the app's own, which every
-       notebook carries as an editable `.jott/themes/jott.css`, and the
-       ones the reader brought in (2026-08-25). A block, not more
-       segments: these have authors and versions to show, there can be
-       any number of them, and none of that fits in a segment. The
-       mode above and the theme here are two questions — wearing a
-       theme leaves the mode where it was. -->
+  <!-- The THEME — the palette: the app's own (`.jott/themes/jott.css` in
+       every notebook) and the ones the reader brought in. A block, not
+       segments: these have authors and versions, and any number of them. -->
   <h3 class="settings__subtitle">{S.theme}</h3>
   <div class="settings__themes">
     <button
@@ -288,9 +254,8 @@
   </div>
   <p class="settings__hint">{S.themesFromNotebookHint}</p>
 
-  <!-- …and the door for someone who has none and does not want to
-       start from an empty file. What it writes is the look on screen
-       right now, which is also how a theme is duplicated. -->
+  <!-- The door for someone who has no theme: what it writes is the look on
+       screen right now, which is also how a theme is duplicated. -->
   {#if onNewTheme && !readOnly}
     <div class="settings__row">
       <button type="button" class="theme-btn" onclick={makeTheme}
@@ -312,10 +277,8 @@
   </div>
   <p class="settings__hint">{S.accentColorHint}</p>
 
-  <!-- Two answers, both right depending on what the notebook is for, which
-       is why this is a setting and not a theme: a note titled in the colour
-       of its space is the app's face, and a reader who wants a document to
-       read as a document turns it off. -->
+  <!-- A setting and not a theme: a note titled in its space's colour is the
+       app's face, and a reader who wants a document turns it off. -->
   {@render segmentedRow(
     S.headingColor,
     HEADING_COLORS,
@@ -325,10 +288,8 @@
 
   <h3 class="settings__subtitle">{S.subText}</h3>
 
-  <!-- The interface's own size. It was only ever on the keyboard
-       (Ctrl +/-), which is no answer at all on a phone or for someone
-       who never learned the chord. The shell owns the value — it is a
-       `font-size` on the root — so this asks it to change. -->
+  <!-- The interface's own size, for whoever never learned Ctrl +/-. The
+       shell owns the value, so this asks it to change. -->
   <div class="settings__row">
     <span class="settings__label">{S.interfaceZoom}</span>
     <div class="settings__zoom">
@@ -354,9 +315,8 @@
   </div>
   <p class="settings__hint">{S.interfaceZoomHint}</p>
 
-  <!-- How big a note reads. This machine's, like everything in this
-       section: a phone held at arm's length and a monitor at a desk do
-       not agree about it, and the notebook is the same notebook. -->
+  <!-- How big a note reads: this machine's, like everything here — a phone
+       and a monitor do not agree, and the notebook is the same notebook. -->
   {@render segmentedRow(
     S.noteFontSizeLabel,
     NOTE_FONT_SIZES,
@@ -365,10 +325,9 @@
   )}
   <p class="settings__hint">{S.noteFontSizeHint}</p>
 
-  <!-- The three faces (2026-08-24). Display, like the size above it:
-       which fonts exist is a fact about THIS machine, and a notebook
-       carried to another one must not arrive naming a font that is
-       not there. -->
+  <!-- The three faces. Display, like the size above: which fonts exist is a
+       fact about THIS machine, and a notebook carried elsewhere must not
+       arrive naming a font that is not there. -->
   {#each FONT_ROWS() as row (row.key)}
     {@render fontRow(row)}
   {/each}
@@ -378,16 +337,10 @@
 
   <h3 class="settings__subtitle">{S.subEditor}</h3>
 
-  <!-- The bar that floats over an open note (2026-08-21). Display,
-       because where a bar sits over a document is a fact about this
-       screen: a wide monitor has room for it against an edge and a
-       laptop may want it gone.
-
-       It is NOT hidden on a phone, even though the floating bar is a
-       desktop thing. The hint says so instead — a row that vanishes
-       below 768px is a row the search finds and then cannot show,
-       and this section is per-machine anyway, so a phone simply
-       answers for itself. -->
+  <!-- The bar that floats over an open note. Display, because where a bar
+       sits over a document is a fact about this screen. Not hidden on a
+       phone: a row that vanishes below 768px is one the search finds and
+       cannot show — the hint says so, and a phone answers for itself. -->
   {@render segmentedRow(
     S.formatBarLabel,
     FORMAT_BAR_MODES,
@@ -396,9 +349,8 @@
   )}
   <p class="settings__hint">{S.formatBarHint}</p>
 
-  <!-- Four sides, and the bar is always centred on the one it is
-       given — so this asks for an edge, not a corner. Off is the one
-       state where the question has no answer to give. -->
+  <!-- Four sides, the bar centred on the one it is given — an edge, not a
+       corner. Off is the one state with no answer to give. -->
   {@render segmentedRow(
     S.formatBarSideLabel,
     FORMAT_BAR_SIDES,

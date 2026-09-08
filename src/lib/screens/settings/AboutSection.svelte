@@ -29,16 +29,13 @@
   let {
     compact = false,
     /// Android (shell/platform.js): no tray and no session to start with, so
-    /// the two rows about them are not drawn — a switch that cannot do
-    /// anything is worse than none.
+    /// the two rows about them are not drawn.
     mobile = false,
     onError,
   } = $props();
 
-  // ---- updates (2026-08-19) ----
-  // Machine preferences, not notebook ones: the same notebook synced to a
-  // phone and a desktop is served by two binaries, each updated its own way.
-  // That is why none of this goes through `put` or minds `readOnly`.
+  // Machine preferences: the same notebook synced to a phone and a desktop
+  // is served by two binaries, each updated its own way.
   let version = $state("");
   let updateAuto = $state(true);
   let checking = $state(false);
@@ -49,8 +46,7 @@
   api.appVersion().then((v) => (version = v ?? "")).catch(() => {});
   api.autoUpdateCheck().then((on) => (updateAuto = on ?? true)).catch(() => {});
 
-  // The tray and the session start (2026-08-25) — this INSTALL's, like the
-  // update switch, and read the same way.
+  // The tray and the session start — this INSTALL's, like the update switch.
   let closeToTray = $state(true);
   let autostart = $state(false);
   // Read once, on purpose: the platform does not change under a running app.
@@ -76,9 +72,8 @@
   };
 
   /// The menu entry, on the installs that have one to write. `supported`
-  /// false — a packaged Jott, Windows, Android — hides the row entirely
-  /// rather than showing a switch that would refuse: the package manager
-  /// already put this app in the menu.
+  /// false (a packaged Jott, Windows, Android) hides the row: the package
+  /// manager already put this app in the menu.
   let menuEntry = $state({ supported: false, installed: false });
   let menuBusy = $state(false);
 
@@ -122,9 +117,8 @@
     }
   }
 
-  /// The `.jott` folder, where the notebook documents its own format. The
-  /// command opens the FOLDER around an address, so naming the file is how
-  /// you ask for the folder that holds it (`commands::folder_to_open`).
+  /// The `.jott` folder, where the notebook documents its own format: the
+  /// command opens the FOLDER around an address (`commands::folder_to_open`).
   const openFormatDoc = () =>
     api.openInFileManager(".jott/_FORMAT.txt").catch(onError);
 </script>
@@ -219,9 +213,8 @@
 
   <h3 class="settings__subtitle">{S.subThisApp}</h3>
 
-  <!-- Principle 4 said out loud: every notebook documents its own
-       format in plain text, and until now the app never pointed at the
-       file that does it. -->
+  <!-- Principle 4 said out loud: every notebook documents its own format in
+       plain text, and this points at the file. -->
   <div class="settings__row">
     <span class="settings__label">{S.yourFiles}</span>
     <button
@@ -232,11 +225,9 @@
   </div>
   <p class="settings__hint">{S.yourFilesHint}</p>
 
-  <!-- Only an AppImage sees this. A single file installs nothing, so
-       the desktop has no entry and no icon to find it by; a
-       deb/rpm/pacman Jott was put in the menu at install time and
-       must not get a second one. Reversible because it writes two
-       files outside the notebook. -->
+  <!-- Only an AppImage sees this: a single file installs nothing, so there
+       is no entry to find it by; a deb/rpm/pacman Jott was put in the menu at
+       install time and must not get a second one. -->
   {#if menuEntry.supported}
     <label class="settings__row">
       <span class="settings__label">{S.menuEntryLabel}</span>

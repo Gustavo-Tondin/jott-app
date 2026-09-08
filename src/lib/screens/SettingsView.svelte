@@ -1,15 +1,8 @@
 <script>
-  // The settings screen: every documented key of the notebook, editable.
-  //
-  // Two rules it follows, both inherited from the core:
-  //
-  // 1. **Every field is optional on the way in.** `set_notebook_settings`
-  //    keeps whatever it is not told about, so this screen can send one key
-  //    at a time and never has to hold — or risk overwriting — the rest.
-  // 2. **The core normalises.** An offset it cannot parse falls back to the
-  //    default rather than being stored wrong, so the UI never has to
-  //    validate a second time. What it *does* do is stop a bad value from
-  //    being offered at all: modes, week start and date shape are selects.
+  // The settings screen: every documented key of the notebook, editable,
+  // one key at a time. The core keeps what it is not told about and
+  // normalises what it is — modes, week start and date shape are selects
+  // so a bad value is never offered.
   import { api } from "../services/api.js";
   import { makeScreen } from "../services/act.js";
   import { S } from "../services/strings.js";
@@ -46,55 +39,31 @@
     noteTargets = [],
     /// …and where a quick task can (services/taskTargets.js). Same contract.
     taskTargets = [],
-    /// The rows of the two "Home shows" pickers (2026-08-24): the block's
-    /// default first, then every space of the right kind.
-    /// The narrow shape (shell/compact.js). Not a width this screen measures:
-    /// the shell measures once and tells everyone, the way the header and the
-    /// top bar agree about which of them holds the arrows.
+    /// The narrow shape (shell/compact.js): measured once by the shell.
     compact = false,
-    /// Android (shell/platform.js): no tray and no session to start with, so
-    /// the two rows about them are not drawn — a switch that cannot do
-    /// anything is worse than none.
+    /// Android (shell/platform.js): no tray and no session to start with.
     mobile = false,
-    /// The interface's own zoom, and the way to change it. It belongs to the
-    /// shell (it is a `font-size` on the root, applied there), so this screen
-    /// asks rather than writes — the same handshake the notebook picker has.
+    /// The interface's own zoom, and the way to change it (the shell's).
     zoom = 1,
     onZoom,
-    /// Opens the notebook picker. It is the shell's flow — the same one the
-    /// sidebar's foot has always had; this is its second door (2026-08-20).
+    /// Opens the notebook picker — the shell's flow, its second door.
     onSwitchNotebook,
-    /// The themes the notebook carries (`.jott/themes/`, 2026-08-25) — the
-    /// shell reads them, because it is the shell that wears one. Empty means
-    /// the notebook has none, and the whole block is absent rather than an
-    /// empty list with an explanation nobody asked for.
+    /// The notebook's own themes, which one is worn, and how many remote
+    /// references it lost — read by the shell, which wears the theme.
     userThemes = [],
-    /// Which of them is actually in the document. A name in `userThemes` that
-    /// is not this one is a theme that failed to load — worth saying, because
-    /// the app is then wearing the default while the setting says otherwise.
     wornTheme = null,
-    /// How many remote references were neutralised in it.
     blockedInTheme = 0,
-    /// Writes a new theme into the notebook, seeded with the look in use, and
-    /// answers with it. The shell's, because the shell is what knows which
-    /// stylesheet is on (App.svelte → newThemeFrom).
+    /// Writes a new theme seeded with the look in use (App.svelte → newThemeFrom).
     onNewTheme,
-    /// The open section's name, reported up so the compact header can draw it.
-    /// The same handshake the Tasks screen has for its tabs (`onSub`): the
-    /// header belongs to the shell, and only the screen knows what it opened.
+    /// The open section's name, reported up for the compact header.
     onSection,
     onChanged,
     onError,
   } = $props();
 
-  /// The menu's first block: how the app is SET UP (wireframe "Settings
-  /// screen mobile", 2026-08-20).
-  ///
-  /// One entry per section — the split is what already exists here, so a
-  /// section gains a row by being written and nothing else. The icon names
-  /// what the section is ABOUT rather than the word it uses, and the label is
-  /// a function for the same reason every other string is: it is read at
-  /// render time, so translating later adds a file and not a second list.
+  /// The menu's first block: how the app is SET UP. One entry per section,
+  /// so a section gains a row by being written; the icon names what the
+  /// section is ABOUT; `index()` is the rows the search can find on it.
   const SETUP = [
     { key: "about", icon: "info", label: () => S.sectionAbout, index: aboutIndex },
     { key: "display", icon: "monitor", label: () => S.sectionDisplay, index: displayIndex },
@@ -105,24 +74,16 @@
       icon: "keyboard",
       label: () => S.sectionShortcuts,
       index: shortcutsIndex,
-      // A chord is a keyboard's, and a phone has none to press one on (user
-      // call, 2026-08-20): the section would be a table of rows nobody can
-      // record. The bindings are untouched — they travel with the notebook
-      // and keep answering wherever there are keys.
+      // A chord is a keyboard's, and a phone has none to press one on. The
+      // bindings are untouched — they travel with the notebook.
       desktopOnly: true,
     },
   ];
 
-  /// The menu's second block: what the app can DO.
-  ///
-  /// `Native Functions` is the list of every function with its switch; under
-  /// it, indented, sit the pages of the functions that are ON and have
-  /// sub-functions of their own. Both facts are read from `services/features.js`
-  /// rather than written here, so a function that gains a child gains a page,
-  /// and one switched off takes its page out of the menu.
-  ///
-  /// `Expansions` — what the community writes — is the same shape and is not
-  /// built yet; the block exists so it has somewhere to land.
+  /// The menu's second block: what the app can DO. `Native Functions` lists
+  /// every function with its switch; under it, indented, the pages of the
+  /// functions that are ON and have sub-functions — both read from
+  /// `services/features.js`. `Expansions` (community) is not built yet.
   const NATIVE = { key: "native", label: () => S.sectionNative, group: true };
 
   /// The pages of the functions, by key: the component, and the rows on it
@@ -134,9 +95,8 @@
   };
 
   let functionPages = $derived(
-    // An inline group (the fixed spaces) has children but no page: its rows
-    // are drawn on Native Functions itself, so a menu entry would be a door
-    // to nowhere (user report, 2026-08-24).
+    // An inline group (the fixed spaces) draws its rows on Native Functions
+    // itself: a menu entry would be a door to nowhere.
     FUNCTIONS.filter((fn) => hasPage(fn.key) && !fn.inline && on(features, fn.key)).map((fn) => ({
       key: `fn:${fn.key}`,
       feature: fn.key,
@@ -154,21 +114,14 @@
   /// What the user last opened, and `null` for the menu itself.
   let chosen = $state(null);
 
-  /// What opens beside the menu when nothing has been chosen yet. NOT the
-  /// first row: the wireframe lists About first and draws DISPLAY as the
-  /// selected one, which is the honest default — nobody opens Settings to read
-  /// a version number.
+  /// What opens beside the menu before a choice: Display, not the first
+  /// row — nobody opens Settings to read a version number.
   const LANDING = "display";
 
-  /// Which section is DRAWN. Derived rather than stored, so the things that
-  /// can invalidate a choice need no handler of their own:
-  ///
-  ///   - the arrangement changes under it (a window resized past 768px, a
-  ///     phone rotated) — side by side something always has to be open beside
-  ///     the menu, on the phone the menu is a screen and nothing is;
-  ///   - what was open leaves the menu (Shortcuts on a phone; the Notes page
-  ///     the moment Notes is switched off) — it falls back to whichever of
-  ///     the two above applies.
+  /// Which section is DRAWN. Derived, so a choice invalidated by a resize
+  /// (side by side something is always open; on the phone nothing is) or by
+  /// a row leaving the menu (Shortcuts on a phone, a page switched off)
+  /// needs no handler: it falls back to LANDING or to the menu.
   let section = $derived(
     (menu.some((entry) => entry.key === chosen) ? chosen : null) ??
       (compact ? null : LANDING),
@@ -178,31 +131,26 @@
     menu.find((entry) => entry.key === section)?.label() ?? "",
   );
 
-  // The compact header names the section you went INTO — the mobile wireframe
-  // titles that screen "Display", not "Settings". Reported and not guessed:
-  // the header is the shell's, and this is the only place that knows.
+  // The compact header names the section you went INTO — reported, not
+  // guessed: the header is the shell's, and only this screen knows.
   $effect(() => {
     onSection?.(compact && section ? sectionLabel : "");
     return () => onSection?.("");
   });
 
-  // Android's back gesture — and the mouse's fourth button — return to the
-  // menu before they leave Settings (services/back.js). Registered only while
-  // a section is open on the narrow shell: that is the one arrangement where
-  // "back" has somewhere of its own to go.
+  // The back gesture (services/back.js) returns to the menu before it
+  // leaves Settings — only on the narrow shell, where a section is a screen.
   $effect(() => {
     if (!compact || !section) return;
     return onBack(() => ((chosen = null), true));
   });
 
-  /// Whether a section is drawn at all. Side by side that is the one the menu
-  /// has selected; on the phone the section IS the screen, and the menu is
-  /// the other one.
+  /// Whether a section is drawn: side by side the one the menu selected;
+  /// on the phone the section IS the screen.
   const shows = (key) => section === key;
 
-  /// Which parts of the app are switched on. They travel in the notebook's
-  /// layout (every screen needs them on every render), so the screen reads
-  /// them from there and writes them with their own command.
+  /// Which parts of the app are switched on: read from the notebook's
+  /// layout, written with their own command.
   let features = $derived(notebook?.layout?.features ?? {});
 
   // Back to the default? Then the notebook forgets it, and the file keeps
@@ -211,18 +159,14 @@
     act(() => api.setFeature(key, stored(key, value)), flash);
 
   let settings = $state(null);
-  /// What the controls are bound to.
-  ///
-  /// Separate from `settings` on purpose: a control needs a *bound* variable
-  /// to be pushed back by Svelte. With a plain `value=` attribute, a value
-  /// the core rejected would stay on screen — the state never changed, only
-  /// the DOM did, so nothing would put it back.
+  /// What the controls are bound to. Separate from `settings` on purpose: a
+  /// control needs a BOUND variable to be pushed back by Svelte — with a
+  /// plain `value=`, a value the core rejected would stay on screen.
   let form = $state({});
   let saved = $state(false);
   let savedTimer = null;
 
-  /// The "Saved" that blinks after a write — it was pasted into three
-  /// handlers before it had a name.
+  /// The "Saved" that blinks after a write.
   function flash() {
     saved = true;
     clearTimeout(savedTimer);
@@ -251,31 +195,20 @@
   const put = (patch) => act(() => api.setNotebookSettings(patch), flash);
 
   /// Sends one Display choice, which answers to THIS MACHINE and not to the
-  /// notebook (2026-08-20, user call: "no meu celular quero usar tema escuro e
-  /// no desktop tema Jott").
-  ///
-  /// The same one-key-at-a-time pact as `put`, to a different drawer — and it
-  /// is why none of the Display controls mind `readOnly`: a notebook open for
-  /// reading still does not get to decide what this screen looks like. The
-  /// reading side needs nothing: `notebook_settings` already answers with the
-  /// value in force, this machine's over the notebook's.
+  /// notebook — the same one-key pact as `put`, to a different drawer. It is
+  /// why no Display control minds `readOnly`. See docs/historico.md.
   const putDisplay = (patch) => act(() => api.setMachineDisplay(patch), flash);
 
-  /// Records a chord for a command, or clears it with `null`.
-  ///
-  /// It goes to the notebook and comes back through the layout, the way every
-  /// other setting on this screen does — nothing here holds a local copy of
-  /// the bindings, so the table, the keymap and the tooltips can never
-  /// disagree about what is bound.
+  /// Records a chord for a command, or clears it with `null`. It goes to the
+  /// notebook and comes back through the layout: nothing here holds a copy
+  /// of the bindings, so table, keymap and tooltips never disagree.
   const bindShortcut = (id, chord) => act(() => api.setShortcut(id, chord), flash);
 
   const resetShortcuts = () => act(() => api.resetShortcuts());
 
-  /// "Reset this section" (2026-08-24): every option on the page goes back
-  /// to what the app ships with — the core's defaults for a notebook page,
-  /// and this machine going quiet for Display. Asked first, always: the
-  /// button is deliberately small and far from the options, but a wrong
-  /// click here undoes a page of choices at once.
+  /// "Reset this section": every option on the page goes back to what the
+  /// app ships with. Asked first, always — a wrong click here undoes a
+  /// page of choices at once.
   async function resetSection(section) {
     const ok = await askConfirm(S.resetSectionTitle, {
       detail: S.resetSectionDetail,
@@ -290,23 +223,15 @@
 
   let readOnly = $derived(!!notebook?.readOnly);
 
-  // ---- the search over every row (2026-08-20) ----
+  // ---- the search over every row ----
   //
-  // A menu of eight rows hides nothing, but the ROWS inside them are ~50 and
-  // only the open section draws any of them. So the search indexes them
-  // directly and answers "which page is this on?", which is the question
-  // somebody actually has.
-  //
-  // The index has two halves, and the split is the whole point (2026-08-21):
-  // what is already DATA is derived from its own table, and only what exists
-  // solely as markup is written out by hand — by each section, beside the
-  // markup it names (`index()`). A hand-written row that names a switch would
-  // be the drift this guards against — the switch would then have two labels
-  // to keep in step — and a test of the architecture refuses one.
+  // The rows are ~50 and only the open section draws any, so the search
+  // indexes them directly and answers "which page is this on?".
 
-  /// Every page the search can look up. The functions' half is DERIVED — the
-  /// switches from `features.js`, whatever group each was filed under — so a
-  /// switch added there is findable the same day, without a second line here.
+  /// Every page the search can look up, in two halves: the switches are
+  /// DERIVED from `features.js`; what exists only as markup is written by
+  /// each section, beside it (`index()`). A hand-written row that named a
+  /// switch would be drift — a test of the architecture refuses one.
   const INDEX = () => [
     ...SETUP.map((entry) => [entry.key, entry.index()]),
     ["native", nativeIndex()],
@@ -339,9 +264,8 @@
     return found;
   });
 
-  /// Opens a page from a search hit, and clears the query — the search asked a
-  /// question and the page is the answer; leaving the field full would leave
-  /// the menu showing results for a page already open.
+  /// Opens a page from a search hit, and clears the query — the page is the
+  /// answer, and a full field would show results for a page already open.
   function goTo(key) {
     chosen = key;
     query = "";
@@ -365,10 +289,9 @@
         <Icon name={entry.icon} size="1.125rem" />
       {/if}
       <span class="settings__nav-label">{entry.label()}</span>
-      <!-- The caret promises a page to go into. On the phone that is every
-           row; side by side only a row that is not already open beside the
-           menu — and the two group rows keep theirs either way, because what
-           they lead to is a LIST and the arrow is what says so. -->
+      <!-- The caret promises a page to go into: every row on the phone; side
+           by side only a row not already open — and the group rows, whose
+           page is a LIST. -->
       {#if compact || entry.group}
         <Icon name="caret-right" size="1rem" />
       {/if}
@@ -376,14 +299,10 @@
   </li>
 {/snippet}
 
-<!-- Two arrangements of one screen (wireframes "Settings", 2026-08-20):
-
-       desktop  the menu hugs its rows on the left, the section fills what is
-                left of a 900px column;
-       phone    the menu IS the screen, and a row takes you into the section.
-
-     Which one is drawn is `compact` — the shell's measurement, not a second
-     media query that could disagree with it. -->
+<!-- Two arrangements of one screen: side by side, the menu hugs its rows and
+     the section fills the rest of a 900px column; on the phone the menu IS
+     the screen and a row goes into the section. `compact` is the shell's
+     measurement, not a second media query. -->
 <div class="settings" class:settings--compact={compact}>
   {#if readOnly}
     <p class="settings__notice">{S.readOnlyNotice}</p>
@@ -458,10 +377,8 @@
 
   {#if !compact || section}
     <div class="settings__panel">
-      <!-- The way back to the menu, drawn rather than left to the gesture: the
-           top bar's arrow is the TAB's history and would leave Settings
-           altogether, and a window merely narrowed past 768px has no back
-           gesture at all. -->
+      <!-- The way back, drawn: the top bar's arrow is the TAB's history, and a
+           window narrowed past 768px has no back gesture at all. -->
       {#if compact}
         <button
           type="button"

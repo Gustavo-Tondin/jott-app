@@ -29,11 +29,9 @@
     <FeatureRow {feature} {features} {readOnly} {onSet} />
   {/each}
 
-  <!-- What the Timeline says about a deleted thing (2026-08-27):
-       counted only, by default — it may have been thrown away for
-       privacy. The log keeps the name either way; this is the
-       screen's word, and the row's own "Remove from timeline" is the
-       door for someone who wants the line gone. -->
+  <!-- What the Timeline says about a deleted thing: counted only, by
+       default — it may have been thrown away for privacy. The row's own
+       "Remove from timeline" is the door for someone who wants the line gone. -->
   <label class="settings__row">
     <span class="settings__label">{S.timelineGhostTitles}</span>
     <input
