@@ -16,6 +16,28 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`,
 tag a version that has no section here. Versions before v0.51.0 predate the
 file and live only in the commit history.
 
+## v0.52.1
+
+### Fixed
+
+- Enter in a list no longer skips a line: the next bullet comes right under
+  the last one, and Enter on an empty bullet ends the list. Shift+Enter is
+  still the way to a blank line.
+- On Android the app no longer fails with "Something went wrong …
+  Notification.getId() on a null object reference": the reminders the phone
+  keeps between launches are now stored in a form it can read back.
+- The Trash fits a phone and a narrow window: the date and the countdown go
+  under the item's name instead of pushing the buttons off the screen.
+- A pinned note on the phone shows its mark at the head of the title, and the
+  card's corner keeps only the ⋮.
+
+### Improved
+
+- The task panel's fields keep the icon alone when the panel is narrow and
+  bring the words back as it widens — nothing wraps or overlaps any more.
+- In the task panel the date a task was written stands on a line of its own,
+  just above the footer: the date alone, without the label or the day count.
+
 ## v0.52.0
 
 ### New
