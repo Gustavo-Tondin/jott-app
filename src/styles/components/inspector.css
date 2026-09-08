@@ -229,17 +229,16 @@
   .inspector__field > .theme-select {
     flex: 0 0 auto;
   }
-  /* Narrow panel: the icon alone names the row (user call, 2026-09-08:
-     "quando diminui o suficiente podia ficar só os ícones"). The word is
-     not removed — it is what a screen reader and the row's tooltip still
-     read — only taken off the screen. The width is the one at which
-     "Complete date" and its date pill stop sharing a line (measured
-     2026-09-08: the word broke in two from a 254px panel down, and the
-     panel's default is 240) — 15rem of content is a 256px panel. */
+  /* Narrow panel: the icon alone names the row. The word is not removed —
+     it is what a screen reader and the row's tooltip still read — only
+     taken off the screen, and only once the panel is near its minimum
+     (176px): at the default width the word stays, wrapping if it must
+     (user call, 2026-09-08 — icons alone at 240 read as too much taken
+     away). 11rem of content is a 192px panel. */
   .inspector__field-word {
     min-width: 0;
   }
-  @container inspector-fields (max-width: 15rem) {
+  @container inspector-fields (max-width: 11rem) {
     .inspector__field-word {
       position: absolute;
       inline-size: 0.0625rem;

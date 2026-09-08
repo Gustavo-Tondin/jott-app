@@ -23,6 +23,8 @@
     /// Lifted off the page as one line (the undo offer) — a modifier the box
     /// wears itself, so the base class and it never part.
     floating = false,
+    /// A narrow box: title row on top, text and actions full-width below.
+    stacked = false,
     children = null,
     actions = null,
     class: className = "",
@@ -30,7 +32,7 @@
 </script>
 
 <div
-  class="theme-notice theme-notice--{tone} {floating ? 'theme-notice--floating' : ''} {className}"
+  class="theme-notice theme-notice--{tone} {floating ? 'theme-notice--floating' : ''} {stacked ? 'theme-notice--stacked' : ''} {className}"
   role={tone === "error" ? "alert" : "status"}
 >
   <span class="theme-notice__glyph" aria-hidden="true">

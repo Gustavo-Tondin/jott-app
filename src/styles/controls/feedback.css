@@ -13,6 +13,10 @@
   .theme-notice {
     --notice-accent: var(--app-brand);
     --notice-tint: var(--app-brand-weak);
+    display: flex;
+    align-items: flex-start;
+    gap: var(--app-space-10);
+    font-size: var(--app-text-14);
     background: var(--notice-tint);
     border: 0.0625rem solid var(--notice-accent);
     padding: var(--app-space-8) var(--app-space-12);
@@ -75,11 +79,34 @@
     /* Optically level with the title's first line, not with the box. */
     margin-block: calc(-1 * var(--app-space-4)) calc(-1 * var(--app-space-4));
   }
-  .theme-notice:has(.theme-notice__glyph) {
-    display: flex;
-    align-items: flex-start;
-    gap: var(--app-space-10);
-    font-size: var(--app-text-14);
+  /* Stacked (the task panel's card): a narrow box reads as a grid — glyph,
+     title and × on the first row, the text and the actions under them on
+     the full width of the box — and a size down, since it is an aside. */
+  .theme-notice--stacked {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    row-gap: var(--app-space-6);
+    font-size: var(--app-text-13);
+  }
+  .theme-notice--stacked .theme-notice__glyph {
+    margin-block-start: 0;
+  }
+  .theme-notice--stacked .theme-notice__body {
+    display: contents;
+  }
+  .theme-notice--stacked .theme-notice__close {
+    margin-block: 0;
+  }
+  .theme-notice--stacked .theme-notice__text,
+  .theme-notice--stacked .theme-notice__actions {
+    grid-column: 1 / -1;
+  }
+  .theme-notice--stacked .theme-notice__text {
+    font-size: var(--app-text-12);
+  }
+  .theme-notice--stacked .theme-notice__actions {
+    margin-block-start: 0;
   }
   /* Floating (the undo offer): opaque, because it sits over content and the
      tint alone is a wash; shadowed like a popover; ONE LINE. */

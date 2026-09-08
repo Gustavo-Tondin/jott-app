@@ -814,6 +814,7 @@
         icon="sliders-horizontal"
         title={S.moreFieldsTitle}
         class="inspector__offer"
+        stacked
         onDismiss={dismissOffer}
         dismissLabel={S.moreFieldsDismiss}
       >
