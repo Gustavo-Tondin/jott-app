@@ -10,12 +10,14 @@
     transform: translateX(var(--swipe-x, 0));
   }
 
-  /* The glide home: a class ADDED for the return, never a standing transition.
+  /* The bounce home: a class ADDED for the return, never a standing transition.
      A standing `transition: transform` also catches the REORDER writing its
      transform (higher specificity than `.reorder-item--carried`'s
-     `transition: none`), and a vertical drag then lags the pointer. */
+     `transition: none`), and a vertical drag then lags the pointer.
+     The SPRING, not the plain ease-out: the card overshoots its place and
+     settles — the elastic answer to a finger that let go. */
   .swipe--returning {
-    transition: transform var(--app-transition-medium);
+    transition: transform var(--app-duration-medium) var(--app-ease-spring);
   }
 
   /* Hidden until a swipe is under way, and then only the one for the direction

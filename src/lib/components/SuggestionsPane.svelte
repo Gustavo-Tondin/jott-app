@@ -3,6 +3,7 @@
   // a day, grouped by why it is offered. Same pact as the task inspector it
   // shares the panel with: fixed head, scrolling middle. It loads its own
   // list: the panel outlives the screen that opened it (a day picked underneath).
+  import { tick } from "svelte";
   import { api } from "../services/api.js";
   import { S } from "../services/strings.js";
   import { listName, listLabel } from "../services/paths.js";
@@ -10,6 +11,7 @@
   import { formatDate, formatDayMonth } from "../services/dates.js";
   import { ensureTaskId } from "../services/taskId.js";
   import { makeScreen } from "../services/act.js";
+  import { played } from "../services/motion.js";
   import Icon from "./Icon.svelte";
 
   let {
@@ -42,7 +44,11 @@
 
   const { load, act } = makeScreen({
     read: () => api.groupedSuggestions(day),
-    apply: (read) => (suggestions = read ?? []),
+    apply: (read) => {
+      suggestions = read ?? [];
+      // The list that comes back no longer holds the row that left.
+      leaving = null;
+    },
     onChanged: () => onChanged?.(),
     onError: (e) => onError?.(e),
   });
@@ -54,6 +60,24 @@
       const id = await ensureTaskId(list, task);
       await api.pullInto(day, list, id);
     });
+
+  // TAKING ONE PLAYS BEFORE IT IS WRITTEN: the row lifts out of the list and
+  // the gap closes behind it, so the eye follows the task up and out towards
+  // the day, where the card rises into place. The stylesheet owns how long
+  // (suggestions.css); nothing playing (jsdom, reduced motion) writes at once.
+  const LIFT = new Set(["suggestions-pane-lift"]);
+  /// The key of the row on its way out — one at a time: a second press while
+  /// one is leaving would write two tasks off one animation.
+  let leaving = $state(null);
+
+  async function take(event, entry, key) {
+    if (leaving) return;
+    const row = event.currentTarget.closest("li");
+    leaving = key;
+    await tick();
+    await played(row, LIFT);
+    pull(entry.path, entry.task);
+  }
 
   // Why something is being offered — the core's own grouping. There is no
   // "From the lists" heading: each list gets its own section (`byList`).
@@ -132,11 +156,15 @@
     {#if !isCollapsed(section.key)}
       <ul class="suggestions-pane__list">
         {#each section.items as entry, i (`${entry.path}/${entry.task.id ?? ""}#${i}`)}
+          {@const key = `${section.key}:${i}`}
           <!-- The whole row is the pull: a suggestion exists to be pulled. -->
-          <li>
+          <li
+            class="suggestions-pane__row"
+            class:suggestions-pane__row--leaving={leaving === key}
+          >
             <button
               class="suggestions-pane__item"
-              onclick={() => pull(entry.path, entry.task)}
+              onclick={(event) => take(event, entry, key)}
               title={S.pull}
             >
               <span class="suggestions-pane__text">{entry.task.text}</span>

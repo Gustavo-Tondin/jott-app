@@ -6,6 +6,7 @@
   import { formatDate } from "../services/dates.js";
   import { ageStamp } from "../services/age.js";
   import { S } from "../services/strings.js";
+  import { played, CEILING } from "../services/motion.js";
   import Icon from "./Icon.svelte";
 
   // One task line, drawn as a card: checkbox, title (plus bookmark), and a
@@ -32,6 +33,11 @@
     /// This task is pulled into the Day. A quiet marker in the meta row — NOT
     /// a button: the row is a summary, and the card is already click-to-open.
     inDay = false,
+    /// This card was not in the list at the last read: it plays the arrival
+    /// (task-row.css) instead of simply being there. The LIST decides — a row
+    /// cannot tell a card that has just arrived from one drawn for the first
+    /// time (components/TaskCards.svelte).
+    arriving = false,
     /// `(key) => boolean` — is this part of the app switched on? A field
     /// switched off leaves the CARD, not the file.
     f = () => true,
@@ -78,9 +84,6 @@
   // at once; a ceiling guards a play that never reports. Ticking again undoes.
   let row = $state(null);
   let finishing = $state(false);
-  // Above the send-off's ~1.23s (task-row.css), so the guard never cuts
-  // the fold short.
-  const CEILING = 1500;
   // The FINISHING row waits on the HOLD, not the fold: the fold plays while
   // the write and the re-read already run underneath (task-row.css says why).
   // Unticking still waits its whole play — it has no second act.
@@ -95,19 +98,23 @@
     }
     finishing = true;
     await tick();
-    const playing = (row?.getAnimations?.({ subtree: true }) ?? []).filter((a) =>
-      SEND_OFFS.has(a.animationName),
-    );
-    if (playing.length) {
-      await Promise.race([
-        Promise.all(playing.map((a) => a.finished)).catch(() => {}),
-        new Promise((r) => setTimeout(r, CEILING)),
-      ]);
-    }
+    await played(row, SEND_OFFS, CEILING);
     if (!finishing) return;
     finishing = false;
     onComplete(list, task);
   }
+
+  // THE SUN LIGHTS UP the moment the task joins a day. The marker is drawn
+  // for the first time then, so the pop plays on the element as it appears —
+  // and only for a card that was already on screen without it, never for one
+  // that arrives with the sun already on.
+  let joined = $state(false);
+  let wasInDay = null;
+  $effect(() => {
+    const now = inDay;
+    if (wasInDay === false && now) joined = true;
+    wasInDay = now;
+  });
 
   function startEditing() {
     draft = task.text;
@@ -172,6 +179,7 @@
   class:swipe={gesture !== noAction}
   class:task-row--selected={selected}
   class:task-row--done={task.done}
+  class:task-row--arriving={arriving}
   class:task-row--finishing={finishing && !task.done}
   class:task-row--restoring={finishing && task.done}
   class:task-row--origin={!!origin}
@@ -262,7 +270,12 @@
                reserved for tags. -->
           <span class="task-row__field">{doneSubtasks}/{task.subtasks.length}</span>
         {/if}
-        {#if inDay}<Icon name="sun" size="0.875rem" />{/if}
+        {#if inDay}<span
+            class="task-row__sun"
+            class:task-row__sun--lit={joined}
+            onanimationend={() => (joined = false)}
+            ><Icon name="sun" size="0.875rem" /></span
+          >{/if}
         {#if task.repeat && f("repeat")}<Icon name="arrow-clockwise" size="0.875rem" />{/if}
         {#if task.remind && f("remind")}<Icon name="alarm" size="0.875rem" />{/if}
         {#if task.due && f("dueDate")}<span

@@ -92,6 +92,33 @@
     text-decoration-color: currentColor;
   }
 
+  /* THE ARRIVAL — the send-off run backwards, for a card that was not in the
+     list at the last read (spaces/TasksSpace.svelte decides who). The space
+     opens from nothing and the card climbs INTO it from below: it rises out
+     of the room made for it rather than blinking into the middle of the list.
+     No `forwards` — when it ends the card is simply a card. The 8rem is the
+     send-off's, and for the same reason: an unknown height opens and closes
+     through `max-block-size`. `padding-block: 0` with it, or the padding —
+     which does not compress — holds a step of open space at the first frame. */
+  .task-row--arriving {
+    overflow: hidden;
+    animation: task-row-arrive var(--app-duration-medium) var(--app-ease-out);
+  }
+  @keyframes task-row-arrive {
+    from {
+      opacity: 0;
+      max-block-size: 0;
+      padding-block: 0;
+      translate: 0 var(--app-space-12);
+    }
+    to {
+      opacity: 1;
+      max-block-size: 8rem;
+      padding-block: var(--app-space-10);
+      translate: 0 0;
+    }
+  }
+
   /* THE SEND-OFF. TaskRow.svelte waits on the animation BY NAME: renaming it
      here is renaming it there. Strike, hold about a second, fold FAST;
      `forwards` keeps it folded until the list is redrawn. The height closes
@@ -175,6 +202,31 @@
     align-items: center;
     gap: var(--app-space-12);
     color: var(--app-ink-muted);
+  }
+  /* The sun marks a card that is in a day, and LIGHTS UP the moment it joins
+     one: a pop in the accent — the colour of the act — settling into the meta
+     row's own ink. It answers the button, the swipe and the inspector alike,
+     because it plays on the state, not on the gesture. */
+  .task-row__sun {
+    /* A transform needs a box: the wrapper is a span. */
+    display: inline-flex;
+  }
+  .task-row__sun--lit {
+    animation: task-row-sun-pop var(--app-duration-slow) var(--app-ease-spring);
+  }
+  @keyframes task-row-sun-pop {
+    from {
+      scale: 0.3;
+      color: var(--app-brand);
+    }
+    55% {
+      scale: 1.2;
+      color: var(--app-brand);
+    }
+    to {
+      scale: 1;
+      color: var(--app-ink-muted);
+    }
   }
   .task-row__field {
     font-size: var(--app-text-10);

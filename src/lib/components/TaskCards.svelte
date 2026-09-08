@@ -49,6 +49,10 @@
     /// screen that IS the day or the week: there it would be true of every
     /// card, which says nothing.
     inDay = () => false,
+    /// `(entry) => boolean` — did this card arrive since the last read? It is
+    /// the LIST's question, not the card's: only the screen that read twice
+    /// knows which of these were not there before (spaces/TasksSpace.svelte).
+    arrived = () => false,
     /// `(key) => boolean` — is this part of the app switched on?
     f = () => true,
     dateFormat = "mm/dd/yyyy",
@@ -207,6 +211,7 @@
       origin={origin?.(entry) ?? null}
       {color}
       inDay={inDay(entry)}
+      arriving={arrived(entry)}
       {f}
       {onSelect}
       selected={isSelected(entry.task)}

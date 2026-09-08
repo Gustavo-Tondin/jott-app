@@ -132,3 +132,49 @@ describe("TaskRow — the age stamp", () => {
     expect(container.querySelector(".task-row__field--age")).toBe(null);
   });
 });
+
+// Joining a day is answered on the card itself: the sun pops in the accent
+// and settles (task-row.css). What is tested here is WHEN the pop is asked
+// for — the animation itself is the stylesheet's.
+describe("TaskRow — the sun lighting up", () => {
+  const sunOf = (container) => container.querySelector(".task-row__sun");
+
+  test("pops when the task joins the day, under the eye of whoever asked", async () => {
+    const { container, rerender } = row({ inDay: false });
+    expect(sunOf(container)).toBe(null);
+
+    await rerender({
+      list: "jott.tasks/task-list.md",
+      task: { id: "a1", text: "Fix website", done: false, tags: [], subtasks: [] },
+      inDay: true,
+    });
+
+    expect(sunOf(container).classList.contains("task-row__sun--lit")).toBe(true);
+  });
+
+  test("a card drawn already in the day is simply in it — no pop", () => {
+    const { container } = row({ inDay: true });
+    expect(sunOf(container)).toBeTruthy();
+    expect(sunOf(container).classList.contains("task-row__sun--lit")).toBe(false);
+  });
+
+  test("the pop is over when the animation ends, so it never plays twice", async () => {
+    const { container, rerender } = row({ inDay: false });
+    await rerender({
+      list: "jott.tasks/task-list.md",
+      task: { id: "a1", text: "Fix website", done: false, tags: [], subtasks: [] },
+      inDay: true,
+    });
+    await fireEvent.animationEnd(sunOf(container));
+    expect(sunOf(container).classList.contains("task-row__sun--lit")).toBe(false);
+  });
+});
+
+// A card that was not in the list at the last read rises into place. The row
+// only wears what the list decides (spaces/TasksSpace.svelte).
+describe("TaskRow — arriving", () => {
+  test("wears the arrival only when the list says it has just arrived", () => {
+    expect(row().card.classList.contains("task-row--arriving")).toBe(false);
+    expect(row({ arriving: true }).card.classList.contains("task-row--arriving")).toBe(true);
+  });
+});

@@ -37,6 +37,9 @@ file and live only in the commit history.
 
 ### Improved
 
+- **Sending a task to a day now shows.** The sun pops on the card the moment
+  it joins one, a card swiped sideways springs back into place, and a
+  suggestion taken lifts out of the panel while the task rises into the day.
 - A note nobody named draws no title on its card: the first lines of the
   note say what it is, instead of a column of "New note".
 - Settings say less. The explanations left the rows and wait behind a **?**

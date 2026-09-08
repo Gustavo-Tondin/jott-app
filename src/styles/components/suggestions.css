@@ -101,6 +101,28 @@
     gap: var(--app-space-2);
   }
 
+  /* THE ROW ON ITS WAY OUT. A suggestion taken lifts and the list closes
+     behind it, so the eye follows it up and out — towards the day, where the
+     card rises into place (task-row.css). SuggestionsPane.svelte waits on the
+     animation BY NAME: renaming it here is renaming it there. `forwards`
+     holds the gap shut until the reload redraws the list without the row. */
+  .suggestions-pane__row--leaving {
+    overflow: hidden;
+    animation: suggestions-pane-lift var(--app-duration-medium) var(--app-ease-out)
+      forwards;
+  }
+  @keyframes suggestions-pane-lift {
+    from {
+      opacity: 1;
+      max-block-size: 4rem;
+    }
+    to {
+      opacity: 0;
+      max-block-size: 0;
+      translate: 0 calc(-1 * var(--app-space-12));
+    }
+  }
+
   /* One row: the task, and its date at the end (the list it comes from is
      the heading above). */
   .suggestions-pane__item {

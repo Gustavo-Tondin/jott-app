@@ -263,6 +263,36 @@ describe("the suggestions panel", () => {
     expect(screen.queryByText("Suggestions for today")).not.toBeNull();
   });
 
+  test("the row taken lifts out of the list before the task is written", async () => {
+    // The other end of the arrival on the card: the suggestion leaves the
+    // panel upwards, and only then is the day written (suggestions.css owns
+    // how long). Nothing playing writes at once, which is every other test here.
+    onHome({ day_tasks: [], grouped_suggestions: suggestions, pull_into_day: true });
+    render(App);
+
+    await userEvent.click(await screen.findByText("Suggestions"));
+    const taken = (await screen.findByText("Vencida")).closest("li");
+    // An engine that reports the lift playing, and lets the test end it.
+    let end;
+    const finished = new Promise((resolve) => (end = resolve));
+    taken.getAnimations = () => [{ animationName: "suggestions-pane-lift", finished }];
+
+    await userEvent.click(screen.getByText("Vencida"));
+    await waitFor(() =>
+      expect(taken.classList.contains("suggestions-pane__row--leaving")).toBe(true),
+    );
+    expect(invoke).not.toHaveBeenCalledWith("pull_into_day", expect.anything());
+
+    end();
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("pull_into_day", {
+        day: null,
+        list: "jott.tasks/Compras.md",
+        id: "b2",
+      }),
+    );
+  });
+
   test("what left the day comes back under its own heading", async () => {
     // 2026-08-17: the core answers `recent` for a task that WAS in Today and
     // left. The panel gives it a section of its own, after what is pressing

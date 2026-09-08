@@ -150,9 +150,32 @@
     };
   }
 
+  // ---- who has just arrived ----
+  // A card that was not in the last read of THIS source rises into place
+  // (task-row.css) instead of simply being there — the other end of the
+  // send-off, and what a task pulled into a day does when it lands. The first
+  // read of a source plays nothing: everything would be new at once.
+  let seen = null;
+  let arrivals = $state(new Set());
+  const keyOf = (entry) => (entry.task.id ? `${entry.list}#${entry.task.id}` : "");
+  /// What the cards are a reading OF. Changing day, or the list underneath,
+  /// is a new list rather than an arrival in the old one.
+  let sourceKey = $derived(`${String(day)}|${all}|${paths.list ?? ""}`);
+
+  function sift(entries) {
+    const keys = new Set(entries.map(keyOf).filter(Boolean));
+    arrivals =
+      seen?.source === sourceKey
+        ? new Set([...keys].filter((key) => !seen.keys.has(key)))
+        : new Set();
+    seen = { source: sourceKey, keys };
+  }
+  const arrived = (entry) => arrivals.has(keyOf(entry));
+
   const { load, act } = makeScreen({
     read,
     apply: (r) => {
+      sift(r.open);
       open = r.open;
       done = r.done;
       // Only a day carries an arrangement of its own; a space's sort
@@ -550,6 +573,7 @@
         color={dot}
         onMoveTo={moveTo}
         {inDay}
+        {arrived}
         {f}
         onDelete={readOnly ? null : deleteEntry}
         onDuplicate={readOnly ? null : (entry) => duplicate(entry.list, entry.task)}

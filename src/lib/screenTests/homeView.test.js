@@ -546,6 +546,53 @@ describe("HomeView", () => {
     expect(screen.queryByText("Move widget to")).toBeNull();
   });
 
+  // A task pulled into the day LANDS: the card that was not in the last read
+  // rises out of the space that opens for it (task-row.css). What the screen
+  // decides is WHO gets it; the movement is the stylesheet's.
+  describe("a task landing in the day", () => {
+    const card = (text) =>
+      [...document.querySelectorAll(".task-row")].find((one) => one.textContent.includes(text));
+    const arriving = (text) => card(text).classList.contains("task-row--arriving");
+    const day = (...tasks) => ({
+      day_tasks: tasks.map((one) => ({ path: "jott.tasks/Inbox.md", task: one })),
+      day_sort: null,
+      notes_created_today: [],
+    });
+
+    test("only the card that was not there before rises into place", async () => {
+      bridge(day(task("a1", "Arrumar site")));
+      const { rerender } = render(HomeView, { props: props() });
+      await screen.findByText("Arrumar site");
+      // Nothing plays on the first read: the whole list would animate at once.
+      expect(arriving("Arrumar site")).toBe(false);
+
+      bridge(day(task("a1", "Arrumar site"), task("b2", "Entregar logo")));
+      await rerender(props({ reloadKey: 1 }));
+
+      await screen.findByText("Entregar logo");
+      await waitFor(() => expect(arriving("Entregar logo")).toBe(true));
+      // And the one that was already in the day is simply still there.
+      expect(arriving("Arrumar site")).toBe(false);
+    });
+
+    test("turning to another day is a new list, not a day of arrivals", async () => {
+      bridge({
+        day_tasks: (args) =>
+          args.day === "2026-09-05"
+            ? [{ path: "jott.tasks/Inbox.md", task: task("c3", "Entregar logo") }]
+            : [{ path: "jott.tasks/Inbox.md", task: task("a1", "Arrumar site") }],
+        day_sort: null,
+        notes_created_today: [],
+      });
+      const { rerender } = render(HomeView, { props: props() });
+      await screen.findByText("Arrumar site");
+
+      await rerender(props({ day: "2026-09-05" }));
+      await screen.findByText("Entregar logo");
+      expect(arriving("Entregar logo")).toBe(false);
+    });
+  });
+
   test("with tasks off, the Home is the notes written today", async () => {
     bridge({ notes_created_today: [aNote()] });
 
