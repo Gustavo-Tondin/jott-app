@@ -6,7 +6,7 @@
  * screen scroll down - side panel"): a pinned head, a scrolling middle and a
  * pinned foot. One panel, three tenants, one silhouette — what changes is what
  * the middle holds. The head and the foot are the shared `.theme-pane-head` /
- * `.theme-pane-foot` (controls.css), so the hairlines are the same too. */
+ * `.theme-pane-foot` (controls/layout.css), so the hairlines are the same too. */
 
 @layer components {
   .note-panel {

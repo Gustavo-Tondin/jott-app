@@ -321,7 +321,7 @@
   }
   .note-group__popover {
     /* BELOW the dialogs, unlike every other popover (2026-08-19). The rule in
-       controls.css puts a popover at 200 so one opened from inside a dialog
+       controls/overlays.css puts a popover at 200 so one opened from inside a dialog
        wins — that is a MENU next to what you clicked. This panel is the other
        way round: it holds the buttons that OPEN dialogs (rename, delete), and
        at 200 the question landed behind the panel that asked it. */

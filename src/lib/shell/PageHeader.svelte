@@ -72,7 +72,7 @@
         {:else}
           {title}
         {/if}
-        <!-- The colour of the place (controls.css). With the sidebar behind a
+        <!-- The colour of the place (controls/marks.css). With the sidebar behind a
              drawer this dot is the only thing on screen still saying which
              space you are in. -->
         <span class="theme-dot" style={dotStyle} aria-hidden="true"></span>

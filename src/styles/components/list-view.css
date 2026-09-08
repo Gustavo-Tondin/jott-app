@@ -9,7 +9,7 @@
     gap: var(--app-space-16);
   }
   /* The card column and the pinned hairline are the shared .theme-task-list /
-     .theme-pin-divider (controls.css). */
+     .theme-pin-divider (controls/layout.css). */
   .list-view__empty {
     color: var(--app-ink-muted);
   }

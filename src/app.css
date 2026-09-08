@@ -5,7 +5,7 @@
      reset       browser normalisation            (styles/reset.css)
      tokens      the design values                (styles/tokens.css)
      base        element defaults reading tokens  (styles/base.css)
-     components  the stable BEM/theme-* hooks     (styles/controls.css,
+     components  the stable BEM/theme-* hooks     (styles/controls/*.css,
                                                    styles/components/*.css)
      utilities   one-off helpers
      overrides   escape hatch
@@ -27,7 +27,14 @@
    `base` because it is app structure, not look. See its header. */
 @import "./styles/roles.css";
 @import "./styles/base.css";
-@import "./styles/controls.css";
+/* The shared `.theme-*` controls, one family per sheet. */
+@import "./styles/controls/forms.css";
+@import "./styles/controls/buttons.css";
+@import "./styles/controls/marks.css";
+@import "./styles/controls/overlays.css";
+@import "./styles/controls/layout.css";
+@import "./styles/controls/feedback.css";
+@import "./styles/controls/motion.css";
 
 /* Component blocks (one file per BEM block) land here as each one leaves its
    component's <style> — Fase 10, lote B. */

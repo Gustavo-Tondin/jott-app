@@ -41,7 +41,7 @@
     min-width: 0;
     text-align: center;
   }
-  /* .home__mirror is the shared .theme-mirror (controls.css). */
+  /* .home__mirror is the shared .theme-mirror (controls/layout.css). */
 
   /* The rule between the two halves. Inset rather than full-bleed: it separates
      two blocks of one screen, and edge to edge it read as the end of the page. */
@@ -55,7 +55,7 @@
   }
   /* Today's notes are the notes BOARD, in miniature (2026-08-19): the same
      card (note-card.css) in the same masonry the notes screen flows in.
-     .home__notes is the shared .theme-note-board (controls.css). The empty
+     .home__notes is the shared .theme-note-board (controls/layout.css). The empty
      state is the shared .theme-empty-card. */
 
   /* A day gone by: the log's three lines (timeline-lines.css), in the

@@ -3,7 +3,7 @@
   // saying what is not here, and — when there is one — the way forward.
   //
   // Nine screens said "nothing here" as a bare <p>, each in its own class.
-  // The shape is shared now (.theme-empty, controls.css); a screen passes the
+  // The shape is shared now (.theme-empty, controls/feedback.css); a screen passes the
   // words and, through `children`, the button that would fill it. The hint
   // is optional and stays muted: the title is the fact, the hint is the
   // advice.

@@ -1,0 +1,237 @@
+/* controls/buttons.css — the button, the chip and the segmented control.
+ * `.theme-*` are the app's STABLE HOOKS: a component wears them instead of
+ * restyling each control, a theme restyles them in one place, and they read
+ * only `--app-*` tokens. A class earns its place by being worn in more than
+ * one component; when the last wearer goes, the class goes with it. */
+
+@layer components {
+  /* ---------------------------------------------------------------------------
+     Buttons
+     --------------------------------------------------------------------------- */
+  .theme-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--app-space-8);
+    padding: var(--app-space-8) var(--app-space-16);
+    border: 0.0625rem solid transparent;
+    border-radius: var(--app-radius-md);
+    color: var(--app-ink);
+    font-size: var(--app-text-13);
+    font-weight: var(--app-weight-medium);
+    font-family: inherit;
+    white-space: nowrap;
+    transition:
+      background var(--app-transition-fast),
+      color var(--app-transition-fast),
+      filter var(--app-transition-fast),
+      scale var(--app-transition-fast);
+  }
+  /* THE PRESS. Every button in the app gives by the same few percent while
+     it is held — a `scale`, not a colour, because colour is already spoken
+     for by hover and the press has to read on top of it, on a finger that
+     never hovered at all. Small enough that a label does not visibly blur;
+     it is felt more than seen, and it is what tells a finger the tap landed
+     before anything else has had time to happen. */
+  .theme-btn:active:not(:disabled) {
+    scale: 0.96;
+  }
+  .theme-btn:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 0.1875rem var(--app-brand-weak);
+  }
+  .theme-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  .theme-btn--primary {
+    background: var(--app-brand);
+    color: var(--app-on-brand);
+  }
+  .theme-btn--primary:hover:not(:disabled) {
+    filter: brightness(1.06);
+  }
+  .theme-btn--outline {
+    border-color: var(--app-line);
+    color: var(--app-ink-muted);
+  }
+  /* Hovers to the RAISED surface, not the sunken one: an outline button is a
+     quiet action sitting on sunken ground (a task card, a suggestion row), so
+     lifting is what reads as hover there. */
+  .theme-btn--outline:hover:not(:disabled) {
+    background: var(--app-surface);
+    color: var(--app-ink);
+  }
+  .theme-btn--danger {
+    background: var(--app-danger);
+    color: var(--app-on-brand);
+  }
+  .theme-btn--danger:hover:not(:disabled) {
+    filter: brightness(1.06);
+  }
+  /* Icon-only button (a lone glyph, e.g. the •••, the gear, every ×).
+     Self-sufficient on purpose: it carries its own reset, so it works with or
+     without .theme-btn — used alone it must never fall back to the browser's
+     bordered grey box (which is exactly how the widget ⋮ shipped broken).
+     THE app-wide contract for icon buttons: transparent at rest, and hover
+     shows the rounded slightly-darker plate behind the glyph. */
+  .theme-btn--icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--app-space-6);
+    border-radius: var(--app-radius-sm);
+    color: var(--app-ink-muted);
+    cursor: pointer;
+    transition:
+      background var(--app-transition-fast),
+      color var(--app-transition-fast),
+      scale var(--app-transition-fast);
+  }
+  .theme-btn--icon:active:not(:disabled) {
+    scale: 0.92;
+  }
+  .theme-btn--icon:hover:not(:disabled) {
+    /* The hover veil, not a solid grey: it must read on the grey sidebar and
+       inside popovers just as well as on a white surface. */
+    background: var(--app-hover);
+    color: var(--app-ink);
+  }
+  .theme-btn--icon:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  /* Compact and full-width size modifiers. */
+  .theme-btn--sm {
+    padding: var(--app-space-4) var(--app-space-10);
+    border-radius: var(--app-radius-sm);
+  }
+  /* Tiniest: the per-row action that must not compete with the row's own text
+     (pull into the day, remove from the period). Regular weight on purpose —
+     it is an affordance, not a call to action. */
+  .theme-btn--xs {
+    padding: var(--app-space-2) var(--app-space-8);
+    border-radius: var(--app-radius-xs);
+    font-size: var(--app-text-12);
+    font-weight: var(--app-weight-regular);
+  }
+  /* ---------------------------------------------------------------------------
+     Chip (a small toggle/label, e.g. Completed / Suggestions)
+     --------------------------------------------------------------------------- */
+  /* THE one declaration of the shape. Both of the chips at the foot of a task
+     list (Completed N, Suggestions) were written out again in their own
+     component sheets until 2026-08-21 — inline-flex for inline-flex, radius
+     for radius — and the copies were what the touch pass of 2026-08-20 could
+     not reach: the size rule named the class the design was written around and
+     missed the two buttons it was named after. They wear this class now, and
+     only what they do NOT share is left in their own sheets. */
+  .theme-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--app-space-6);
+    padding: var(--app-space-6) var(--app-space-10);
+    background: var(--app-surface-sunken);
+    border: 0.0625rem solid transparent;
+    border-radius: var(--app-radius-sm);
+    color: var(--app-ink-muted);
+    /* A <button> does not inherit the page font, and every wearer of this
+       class is one — without this the chip in the task composer drew in the
+       UA's font while the row around it was in the app's. */
+    font-family: inherit;
+    font-size: var(--app-text-12);
+    cursor: pointer;
+  }
+  /* Ink on hover: the chip is a control everywhere it is worn (it opens a
+     menu, it folds the completed list away), so the muted rest state lifting
+     under the pointer belongs to the shape, not to one of its wearers. A chip
+     that paints its own ground (the accent pill) overrides this. */
+  .theme-chip:hover {
+    color: var(--app-ink);
+  }
+  .theme-chip:active {
+    scale: 0.96;
+  }
+
+  /* ---------------------------------------------------------------------------
+     Segmented control (a pill group, e.g. Inbox / Today / Week)
+     --------------------------------------------------------------------------- */
+  .theme-segmented {
+    position: relative;
+    display: inline-flex;
+    gap: var(--app-space-2);
+    padding: var(--app-space-2);
+    /* The track is a WELL, not the page ground: the control sits on a raised
+       card (the capture box, a screen's toolbar), so reading --app-bg there
+       painted it in the colour of a panel it is not on. */
+    background-color: var(--app-well);
+    border-radius: var(--app-radius-md);
+    /* The pill below is stacked under the items, and the stack must not leak
+       out of the control: without its own context a `z-index: 0` pill would
+       sit under whatever ground the PARENT paints. */
+    isolation: isolate;
+  }
+  /* THE PILL THAT GLIDES (actions/segmented.js). One pseudo-element on the
+     track, placed and sized in px by the action from the active item's own
+     box, that slides to the new choice instead of the colour jumping from one
+     item to the next. Drawn only once `--glides` says it has been measured,
+     so it never travels in from the corner on first paint; and the active
+     item goes transparent on the same class, so the fact is painted once.
+     The glide is the spring curve — a hair past the mark and back — because
+     the pill is a thing that MOVES, and a thing that moves has weight. The
+     width eases out plainly: an overshooting width would clip the label. */
+  .theme-segmented--glides::before {
+    content: "";
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline-start: 0;
+    z-index: 0;
+    inline-size: var(--seg-w);
+    block-size: var(--seg-h);
+    translate: var(--seg-x) var(--seg-y);
+    border-radius: calc(var(--app-radius-md) - var(--app-space-2));
+    background: var(--app-brand);
+    transition:
+      translate var(--app-duration-medium) var(--app-ease-spring),
+      inline-size var(--app-duration-medium) var(--app-ease-out),
+      block-size var(--app-duration-medium) var(--app-ease-out);
+  }
+  /* Each item is a filled rounded rectangle, not an outline pill (2026-08-06,
+     from the Tasks screen shot): with a plain outline the group read as three
+     loose links, and the active one had to shout to be told apart. Filled and
+     quiet, the blue of the active one is enough. */
+  .theme-segmented__item {
+    padding: var(--app-space-6) var(--app-space-16);
+    /* The track's own corner less the 2px of well it sits in. */
+    border-radius: calc(var(--app-radius-md) - var(--app-space-2));
+    color: var(--app-ink-muted);
+    font-size: var(--app-text-14);
+    font-weight: var(--app-weight-semibold);
+    /* Above the pill. */
+    position: relative;
+    z-index: 1;
+    transition:
+      color var(--app-transition-fast),
+      scale var(--app-transition-fast);
+  }
+  .theme-segmented__item:hover:not(.theme-segmented__item--active) {
+    color: var(--app-ink);
+  }
+  /* Pressed, the item gives a little under the finger — the same give every
+     button in the app has (see .theme-btn). */
+  .theme-segmented__item:active {
+    scale: 0.96;
+  }
+  /* The active one is a SOLID accent pill on the well (2026-08-13 wireframes),
+     not a tint with an outline: at this size a tinted fill and a tinted border
+     were two quiet signals saying the same thing, and neither carried across
+     the black chrome and the white canvas. Filled, the accent does it alone. */
+  .theme-segmented__item--active {
+    background: var(--app-brand);
+    color: var(--app-on-brand);
+    font-weight: var(--app-weight-semibold);
+  }
+  /* Once the track's pill has the colour, the item lets go of it. */
+  .theme-segmented--glides .theme-segmented__item--active {
+    background: transparent;
+  }
+}

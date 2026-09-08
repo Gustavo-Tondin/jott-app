@@ -859,7 +859,7 @@
    THE PLAIN FIELD (2026-08-19)
 
    `Editor.svelte` with `plain`: a text field that speaks the `[[` language —
-   today, the task description. It dresses as `.theme-textarea` (controls.css)
+   today, the task description. It dresses as `.theme-textarea` (controls/forms.css)
    so the inspector reads as one form, but the declarations live HERE because
    this is the unlayered sheet: a layered rule on `.cm-content` loses to
    CodeMirror's own in silence (the lesson at the top of this file). */

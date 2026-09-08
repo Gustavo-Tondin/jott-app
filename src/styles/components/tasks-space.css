@@ -56,7 +56,7 @@
     max-inline-size: 14rem;
   }
 
-  /* .tasks-space__mirror is the shared .theme-mirror (controls.css). */
+  /* .tasks-space__mirror is the shared .theme-mirror (controls/layout.css). */
 
   /* Both header buttons are .theme-btn--icon. The × on a completed card
      (wireframe) only adds the danger tint on hover. */
@@ -68,10 +68,10 @@
   }
 
   /* The card column and the pinned hairline are the shared .theme-task-list /
-     .theme-pin-divider (controls.css); these hooks stay for a theme to reach
+     .theme-pin-divider (controls/layout.css); these hooks stay for a theme to reach
      this screen's list in particular. */
 
-  /* The empty state is the shared .theme-empty-card (controls.css) — a quiet
+  /* The empty state is the shared .theme-empty-card (controls/layout.css) — a quiet
      centred card that, in a period, also holds the Suggestions pill. The hook
      stays for a theme to reach this screen's in particular. */
 

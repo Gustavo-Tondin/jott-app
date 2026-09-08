@@ -33,7 +33,7 @@
   /* Takes the ⋮'s room on the left without being seen or reached; it shrinks
      away before the title does, so a narrow panel gives up the centring rather
      than the name (same rule as tasks-space.css). It is the shared
-     .theme-mirror (controls.css). */
+     .theme-mirror (controls/layout.css). */
   /* With no title (below 768px, where the shell's header carries the name) the
      ⋮ still has to hug the right edge. The auto margin goes on the Menu's own
      wrapper, which is the flex child — the button inside it is not. */
@@ -96,7 +96,7 @@
     margin-block-end: var(--app-space-12);
   }
 
-  /* .notes-space__board is the shared .theme-note-board (controls.css): the
+  /* .notes-space__board is the shared .theme-note-board (controls/layout.css): the
      masonry, its slot and the compact two-column setting all live there. */
   /* The tree view is one column: it is already filtered to a folder, so it
      reads as a list on purpose. */
@@ -152,7 +152,7 @@
    ============================================================================= */
 @layer components {
   /* The two columns themselves are the shared .theme-note-board's
-     (controls.css). The tree view stays one column: it is a list on purpose. */
+     (controls/layout.css). The tree view stays one column: it is a list on purpose. */
   .shell--compact .notes-space__board--tree {
     columns: 1;
   }

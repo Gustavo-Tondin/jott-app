@@ -9,7 +9,7 @@
 // measured anything) that item is simply drawn solid, as it always was. What
 // the action adds is a SECOND painting of the same fact — one pill, drawn by
 // the track, that slides to wherever the active item is — and the class
-// `theme-segmented--glides`, which tells controls.css to let the pill carry
+// `theme-segmented--glides`, which tells controls/buttons.css to let the pill carry
 // the colour and the item go transparent. Two things never say "active" at
 // once: the pill is only drawn once it has been measured, and the item is
 // only cleared once the pill is drawn.

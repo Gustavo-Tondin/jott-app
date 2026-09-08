@@ -5,7 +5,7 @@
   // page; without it, it is an inline row for a panel or a list.
   //
   // A live region, so a screen reader hears the wait instead of a silence.
-  // The turn stops under `prefers-reduced-motion` (controls.css) and the
+  // The turn stops under `prefers-reduced-motion` (controls/feedback.css) and the
   // glyph stays: the word carries the meaning, the motion only the mood.
   import Icon from "./Icon.svelte";
 

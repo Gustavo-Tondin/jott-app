@@ -222,7 +222,7 @@
     min-inline-size: 0;
   }
   /* …AND THE CLIP IS RESTATED WHERE THE HOVER LANDS. The hover in
-     controls.css writes `background`, the SHORTHAND, and a shorthand resets
+     controls/buttons.css writes `background`, the SHORTHAND, and a shorthand resets
      every longhand it covers — including `background-clip`, back to
      `border-box`. So the plate above was inset at rest and full-size the
      moment it could be seen (measured in Chromium over the real sheets,
@@ -231,7 +231,7 @@
 
      One class deeper than the rule that resets it, so which sheet the
      bundler puts last decides nothing. The colour still comes from
-     controls.css — this says only where it is allowed to paint. */
+     controls/buttons.css — this says only where it is allowed to paint. */
   .topbar .topbar__pill .topbar__button:hover,
   .topbar .topbar__pill .page-nav__arrow:hover {
     background-clip: content-box;

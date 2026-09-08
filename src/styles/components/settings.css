@@ -72,7 +72,7 @@
   /* ---- the search over every row (2026-08-20) ----
      It sits ABOVE the two blocks because it answers about both, and it is the
      one control in the menu that is not a place to go. */
-  /* The field itself is the shared .theme-filter (controls.css, 2026-08-24);
+  /* The field itself is the shared .theme-filter (controls/feedback.css, 2026-08-24);
      what is left here is where it sits in the menu. */
   .settings__search {
     margin: 0 var(--app-space-4) var(--app-space-12);

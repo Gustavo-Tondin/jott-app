@@ -249,7 +249,8 @@ src/styles/
 ├── tokens.css        the app's structural vocabulary — type, layout,
 │                     motion — as `--app-*`; spacing and radius point at
 │                     the theme's
-├── controls.css      the shared .theme-* controls
+├── controls/*.css    the shared .theme-* controls, one family per sheet
+│                     (forms, buttons, marks, overlays, layout, feedback, motion)
 └── components/*.css  one file per BEM block
 ```
 

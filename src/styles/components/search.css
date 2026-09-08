@@ -2,7 +2,7 @@
  * Markup: src/lib/components/SearchDialog.svelte.
  *
  * The card, the dimmed backdrop and the rows are the shared .theme-modal* and
- * .theme-row of controls.css — including where it opens, which is the centre
+ * .theme-row of controls/layout.css — including where it opens, which is the centre
  * of the screen. What is here is only what belongs to a SEARCH: a wider card,
  * and a result area that scrolls on its own so the field never leaves the
  * screen however many hits there are. */

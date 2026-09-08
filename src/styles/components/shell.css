@@ -601,7 +601,7 @@
 
   /* ---- state boxes ----
      Every box the shell speaks through is the shared Notice
-     (components/Notice.svelte on .theme-notice, controls.css): the error,
+     (components/Notice.svelte on .theme-notice, controls/feedback.css): the error,
      the sync conflict, the update, the AppImage's menu offer, and the door
      that would not open on the picker. What is the shell's is only where
      they sit — a step of air below, before the screen. ---- */

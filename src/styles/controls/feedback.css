@@ -1,0 +1,229 @@
+/* controls/feedback.css — the notice, the filter, the empty state and the loading arc.
+ * `.theme-*` are the app's STABLE HOOKS: a component wears them instead of
+ * restyling each control, a theme restyles them in one place, and they read
+ * only `--app-*` tokens. A class earns its place by being worn in more than
+ * one component; when the last wearer goes, the class goes with it. */
+
+@layer components {
+  /* ---------------------------------------------------------------------------
+     Notice — the state box the shell draws above the content (an error, a sync
+     conflict, a newer version). One shape, three colours: a tinted fill, the
+     colour itself as the hairline, and the region's ink for the text — so it
+     reads the same on the white canvas and on the black onboarding screen
+     alike, in whatever theme is on. The colours are fixed like the status
+     ones, so the box does not change meaning when the accent happens to be
+     red, yellow or green. App.svelte is the markup half; shell.css keeps
+     what differs per box (margins, type, the error's tighter padding).
+     --------------------------------------------------------------------------- */
+  .theme-notice {
+    --notice-accent: var(--app-brand);
+    --notice-tint: var(--app-brand-weak);
+    background: var(--notice-tint);
+    border: 0.0625rem solid var(--notice-accent);
+    padding: var(--app-space-8) var(--app-space-12);
+    border-radius: var(--app-radius-md);
+    /* A notice drops in rather than appearing: an error is the one thing on
+       the screen the eye was not already looking at. */
+    animation: theme-rise var(--app-duration-medium) var(--app-ease-out);
+  }
+  /* Status is the STATUS roles, never a colour of the eight by name
+     (2026-08-26): a theme that moves its danger moves the notice with it, and
+     a component sheet never spells `red`. */
+  .theme-notice--error {
+    --notice-accent: var(--app-danger);
+    --notice-tint: var(--app-danger-tint);
+  }
+  .theme-notice--warning {
+    --notice-accent: var(--app-warning);
+    --notice-tint: var(--app-warning-tint);
+  }
+  .theme-notice--success {
+    --notice-accent: var(--app-success);
+    --notice-tint: var(--app-success-tint);
+  }
+  /* The parts (components/Notice.svelte, 2026-08-24): a glyph in the
+     notice's own colour, the body beside it, the × at the end. The glyph
+     is what tells the four boxes apart before a word is read; the title is
+     the line that is read first, and the text under it stays a step
+     quieter. Actions wrap under the text rather than fighting it for the
+     row — on the phone the row is the width of a sentence. */
+  .theme-notice__glyph {
+    display: inline-flex;
+    flex: none;
+    color: var(--notice-accent);
+    margin-block-start: 0.0625rem;
+  }
+  .theme-notice__body {
+    flex: 1;
+    min-inline-size: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--app-space-4);
+  }
+  .theme-notice__title {
+    margin: 0;
+    font-weight: var(--app-weight-medium);
+    color: var(--app-ink);
+    overflow-wrap: anywhere;
+  }
+  .theme-notice__text {
+    color: var(--app-ink-muted);
+    font-size: var(--app-text-13);
+    overflow-wrap: anywhere;
+  }
+  .theme-notice__text > p {
+    margin: 0;
+  }
+  .theme-notice__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--app-space-8);
+    margin-block-start: var(--app-space-4);
+  }
+  .theme-notice__close {
+    flex: none;
+    margin-inline-start: auto;
+    /* Optically level with the title's first line, not with the box. */
+    margin-block: calc(-1 * var(--app-space-4)) calc(-1 * var(--app-space-4));
+  }
+  .theme-notice:has(.theme-notice__glyph) {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--app-space-10);
+    font-size: var(--app-text-14);
+  }
+
+  /* ---------------------------------------------------------------------------
+     Filter field — a glass and a search input on a well (2026-08-24).
+     It was the Settings menu's own (`.settings__search`) until the Tags
+     screen needed the same thing; the shape lives here now and the two
+     wearers keep only their margins. The engines' own clear button is
+     dropped: it draws in its own colour, in a field that has none.
+     --------------------------------------------------------------------------- */
+  .theme-filter {
+    display: flex;
+    align-items: center;
+    gap: var(--app-space-6);
+    padding: var(--app-space-6) var(--app-space-8);
+    border-radius: var(--app-radius-md);
+    background: var(--app-well);
+    color: var(--app-ink-faint);
+  }
+  .theme-filter__field {
+    flex: 1;
+    min-inline-size: 0;
+    border: none;
+    background: none;
+    color: var(--app-ink);
+    font: inherit;
+    font-size: var(--app-text-14);
+  }
+  .theme-filter__field:focus {
+    outline: none;
+  }
+  .theme-filter:focus-within {
+    outline: 0.125rem solid var(--app-brand-outline);
+    outline-offset: 0.0625rem;
+  }
+  .theme-filter__field::-webkit-search-cancel-button {
+    /* `appearance: none` strips the native drawing; WebKitGTK keeps a ⌫ of
+       its own in the box regardless (seen on the virtual display,
+       2026-09-07), so the box goes too. */
+    appearance: none;
+    display: none;
+  }
+
+  /* ---------------------------------------------------------------------------
+     Empty state (components/EmptyState.svelte, Etapa 7 — 2026-08-24).
+     A glyph on a sunken disc, the fact in ink, the advice in muted, and the
+     way forward as a button. Centred in whatever holds it, with air above
+     and below so a screen with nothing in it does not read as a screen that
+     failed to draw. `--compact` is the same shape in a panel or a column,
+     where that air would be most of the panel.
+     --------------------------------------------------------------------------- */
+  .theme-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: var(--app-space-6);
+    margin: 0;
+    padding-block: var(--app-space-48);
+    padding-inline: var(--app-space-16);
+    color: var(--app-ink-muted);
+    animation: theme-rise var(--app-duration-medium) var(--app-ease-out);
+  }
+  .theme-empty--compact {
+    padding-block: var(--app-space-24);
+    gap: var(--app-space-4);
+  }
+  .theme-empty__glyph {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    inline-size: 3.5rem;
+    block-size: 3.5rem;
+    margin-block-end: var(--app-space-6);
+    border-radius: var(--app-radius-pill);
+    background: var(--app-surface-sunken);
+    color: var(--app-ink-faint);
+  }
+  .theme-empty--compact .theme-empty__glyph {
+    inline-size: 2.5rem;
+    block-size: 2.5rem;
+    margin-block-end: var(--app-space-2);
+  }
+  .theme-empty__title {
+    margin: 0;
+    color: var(--app-ink);
+    font-size: var(--app-text-14);
+    font-weight: var(--app-weight-medium);
+  }
+  .theme-empty__hint {
+    margin: 0;
+    max-inline-size: 28rem;
+    font-size: var(--app-text-13);
+    color: var(--app-ink-muted);
+  }
+  .theme-empty__action {
+    margin-block-start: var(--app-space-8);
+    display: flex;
+    gap: var(--app-space-8);
+  }
+
+  /* ---------------------------------------------------------------------------
+     Loading (components/Loading.svelte, Etapa 7 — 2026-08-24).
+     A turning arc and a word. Inline by default; `--screen` fills the page
+     and centres, for the notebook being opened. The motion is the one
+     animation in the app that loops, so it is the one that has to stop under
+     reduced motion — the duration tokens go to 0.01s there, and a 0.01s loop
+     would be a strobe. The glyph stays; the word carries the meaning.
+     --------------------------------------------------------------------------- */
+  .theme-loading {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--app-space-8);
+    color: var(--app-ink-muted);
+    font-size: var(--app-text-14);
+    animation: theme-fade-in var(--app-duration-medium) var(--app-ease-out);
+  }
+  .theme-loading--screen {
+    flex-direction: column;
+    justify-content: center;
+    gap: var(--app-space-12);
+    inline-size: 100%;
+    block-size: 100%;
+    min-block-size: 12rem;
+    padding: var(--app-space-32);
+  }
+  .theme-loading__spinner {
+    display: inline-flex;
+    color: var(--app-brand);
+    animation: theme-spin 0.9s linear infinite;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .theme-loading__spinner {
+      animation: none;
+    }
+  }
+}

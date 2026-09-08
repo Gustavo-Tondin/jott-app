@@ -1,0 +1,40 @@
+/* controls/motion.css — the keyframes every control plays.
+ * `.theme-*` are the app's STABLE HOOKS: a component wears them instead of
+ * restyling each control, a theme restyles them in one place, and they read
+ * only `--app-*` tokens. A class earns its place by being worn in more than
+ * one component; when the last wearer goes, the class goes with it. */
+
+@layer components {
+  /* ---------------------------------------------------------------------------
+     The keyframes the controls above play. Named, so a component sheet that
+     needs the same entrance (a sheet rising, a notice dropping in) plays the
+     one already written rather than spelling another. Every duration they are
+     played at is a token, which is what lets prefers-reduced-motion switch
+     them all off from tokens.css.
+     --------------------------------------------------------------------------- */
+  @keyframes theme-fade-in {
+    from {
+      opacity: 0;
+    }
+  }
+  /* A full turn, for the loading arc — the only loop in the app. */
+  @keyframes theme-spin {
+    to {
+      rotate: 1turn;
+    }
+  }
+  /* Up from a little below, fading in — a panel arriving. */
+  @keyframes theme-rise {
+    from {
+      opacity: 0;
+      translate: 0 var(--app-space-8);
+    }
+  }
+  /* Grows from its origin, fading in — a menu opening from its anchor. */
+  @keyframes theme-unfold {
+    from {
+      opacity: 0;
+      scale: 0.96;
+    }
+  }
+}

@@ -14,7 +14,7 @@
 import { clamp } from "./num.js";
 
 /// The narrowest a card may be, in px, and the gap between columns. Both are
-/// the CSS values (controls.css, `.theme-note-board`, `--app-space-12`); they are repeated
+/// the CSS values (controls/layout.css, `.theme-note-board`, `--app-space-12`); they are repeated
 /// here because the count has to be computed, not read back off the layout.
 export const CARD_MIN = 176;
 export const COLUMN_GAP = 12;

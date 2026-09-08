@@ -17,7 +17,7 @@
     border-radius: var(--app-radius-md);
     cursor: pointer;
   }
-  /* Room for the origin bar (.theme-origin, controls.css) on the start
+  /* Room for the origin bar (.theme-origin, controls/marks.css) on the start
      side, only when there is one: inside its own space a card has no bar. */
   .task-row--origin {
     padding-inline-start: var(--app-space-16);
@@ -238,7 +238,7 @@
     font-weight: var(--app-weight-semibold);
   }
   /* A tag is shown as a coloured pill, not text — the colour is the tag. That
-     pill is the shared .theme-tag-pill (controls.css); the `task-row__tag`
+     pill is the shared .theme-tag-pill (controls/marks.css); the `task-row__tag`
      hook stays on the markup, ruleless, so a theme can single out the pill on
      a task card without touching the control everywhere else. */
 

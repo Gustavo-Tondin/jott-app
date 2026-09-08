@@ -27,7 +27,7 @@
     align-items: center;
     gap: var(--app-space-6);
   }
-  /* The empty state is the shared .theme-empty (controls.css). */
+  /* The empty state is the shared .theme-empty (controls/feedback.css). */
   .trash-view__hint {
     margin: 0;
     color: var(--app-ink-muted);

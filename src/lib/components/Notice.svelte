@@ -8,7 +8,7 @@
   // (optional — an error is often the title alone); `actions` is the row of
   // buttons at the end. `onDismiss` draws the × — a notice without it stays
   // until what it reports is gone. The colours are the fixed status ones
-  // (.theme-notice, controls.css): a box does not change meaning when the
+  // (.theme-notice, controls/feedback.css): a box does not change meaning when the
   // accent happens to be red or green.
   import Icon from "./Icon.svelte";
 

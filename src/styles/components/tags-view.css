@@ -13,13 +13,13 @@
     justify-content: space-between;
     gap: var(--app-space-8);
   }
-  /* The empty state is the shared .theme-empty (controls.css); the filter
+  /* The empty state is the shared .theme-empty (controls/feedback.css); the filter
      is the shared .theme-filter, offered once the list is longer than a
      glance (TagsView.svelte, FILTER_FROM). */
   .tags-view__filter {
     max-inline-size: 18rem;
   }
-  /* .tags-view__list is the shared .theme-task-list (controls.css). */
+  /* .tags-view__list is the shared .theme-task-list (controls/layout.css). */
   /* The row itself is the shared .theme-row; only what is specific to a tag
      lives below. */
   /* The name is the shared .theme-badge, as the card draws it. */
@@ -49,7 +49,7 @@
     align-self: flex-start;
   }
   /* The place of the missing bin on an uncatalogued row, so the glasses line
-     up down the column: the icon button's box (controls.css). */
+     up down the column: the icon button's box (controls/buttons.css). */
   .tags-view__gap {
     inline-size: calc(1.125rem + 2 * var(--app-space-6));
     flex: none;

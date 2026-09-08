@@ -245,7 +245,7 @@ describe("frontend architecture", () => {
     // token the modes had a say about. Sheets, App.svelte and every module
     // under lib/ except the tests and the seed (whose job is the theme file).
     const files = [
-      join(src, "styles", "controls.css"),
+      ...walk(join(src, "styles", "controls"), ".css"),
       join(src, "styles", "base.css"),
       join(src, "styles", "touch.css"),
       ...walk(join(src, "styles", "components"), ".css"),
@@ -297,12 +297,12 @@ describe("frontend architecture", () => {
 
   test("the select's caret is a byte copy of the theme's gray", () => {
     // A `url()` cannot read a custom property, so the arrow of `.theme-select`
-    // carries the hex by hand (controls.css). This is what says when the two
+    // carries the hex by hand (controls/forms.css). This is what says when the two
     // drift; the themable version is a follow-up.
     const gray = readFileSync(join(src, "styles", "themes", "jott.css"), "utf8").match(
       /--theme-color-gray:\s*#([0-9a-fA-F]{6})/,
     )?.[1];
-    const caret = readFileSync(join(src, "styles", "controls.css"), "utf8").match(
+    const caret = readFileSync(join(src, "styles", "controls", "forms.css"), "utf8").match(
       /stroke='%23([0-9a-fA-F]{6})'/,
     )?.[1];
     expect(gray).toBeTruthy();
@@ -317,7 +317,7 @@ describe("frontend architecture", () => {
     // `--app-red` in a sheet is the same value today and a different one
     // the day a theme moves its danger; the notice did exactly that.
     const sheets = [
-      join(src, "styles", "controls.css"),
+      ...walk(join(src, "styles", "controls"), ".css"),
       ...walk(join(src, "styles", "components"), ".css"),
     ];
     const offenders = [];
@@ -363,7 +363,7 @@ describe("frontend architecture", () => {
     }
     const missing = new Set();
     const sheets = [
-      join(src, "styles", "controls.css"),
+      ...walk(join(src, "styles", "controls"), ".css"),
       ...walk(join(src, "styles", "components"), ".css"),
     ];
     for (const f of sheets) {
@@ -688,7 +688,7 @@ describe("frontend architecture", () => {
     // how the rename dialog's OK button shipped (user report, 2026-08-19).
     //
     // `theme-btn--icon` is the documented exception — it carries its own reset
-    // so a lone glyph works with or without the base (controls.css says so).
+    // so a lone glyph works with or without the base (controls/buttons.css says so).
     // A tag is read as a whole — `class="…"` AND `class:x` directives — so a
     // modifier applied through a directive is held to the same rule. The
     // scanner walks to the tag's real `>`: an attribute may hold an arrow
@@ -743,7 +743,10 @@ describe("frontend architecture", () => {
     // @media/@container does not stop an element selector from applying
     // app-wide.
     const offenders = [];
-    for (const f of walk(join(src, "styles", "components"), ".css")) {
+    for (const f of [
+      ...walk(join(src, "styles", "controls"), ".css"),
+      ...walk(join(src, "styles", "components"), ".css"),
+    ]) {
       const css = readFileSync(f, "utf8")
         .replace(/\/\*[\s\S]*?\*\//g, "")
         .replace(/url\([^)]*\)/g, "");

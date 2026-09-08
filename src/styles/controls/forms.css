@@ -1,0 +1,344 @@
+/* controls/forms.css — the text fields, checkbox, switch and range.
+ * `.theme-*` are the app's STABLE HOOKS: a component wears them instead of
+ * restyling each control, a theme restyles them in one place, and they read
+ * only `--app-*` tokens. A class earns its place by being worn in more than
+ * one component; when the last wearer goes, the class goes with it. */
+
+@layer components {
+  /* ---------------------------------------------------------------------------
+     Text fields: input, textarea, select
+     --------------------------------------------------------------------------- */
+  .theme-input,
+  .theme-textarea,
+  .theme-select {
+    width: 100%;
+    padding: var(--app-space-8) var(--app-space-12);
+    background: var(--app-surface);
+    color: var(--app-ink);
+    border: 0.0625rem solid var(--app-line);
+    border-radius: var(--app-radius-md);
+    font-size: var(--app-text-14);
+    font-family: inherit;
+    line-height: var(--app-leading-normal);
+  }
+  .theme-input::placeholder,
+  .theme-textarea::placeholder {
+    color: var(--app-ink-faint);
+  }
+  .theme-input:hover:not(:disabled):not(:focus),
+  .theme-textarea:hover:not(:disabled):not(:focus),
+  .theme-select:hover:not(:disabled) {
+    border-color: var(--app-brand-outline);
+  }
+  .theme-input:focus-visible,
+  .theme-textarea:focus-visible,
+  .theme-select:focus-visible {
+    outline: none;
+    border-color: var(--app-brand);
+    box-shadow: 0 0 0 0.1875rem var(--app-brand-weak);
+  }
+  .theme-input:disabled,
+  .theme-textarea:disabled,
+  .theme-select:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  .theme-textarea {
+    min-height: 5rem;
+    resize: vertical;
+  }
+
+  /* Native arrow off, our own caret on — so the select matches everywhere.
+     The stroke hex inside the data: URI is a byte copy of --theme-color-gray
+     (styles/themes/jott.css) — a URL cannot read a custom property, so a
+     palette change has to update it by hand, and a test in
+     lib/architecture.test.js says when the two drift. A theme of the
+     notebook cannot reach it; the themable version (a mask on a wrapper)
+     is a follow-up. */
+  .theme-select {
+    appearance: none;
+    -webkit-appearance: none;
+    padding-right: var(--app-space-32);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 4.5 6 8l3.5-3.5' fill='none' stroke='%23a39f9b' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right var(--app-space-12) center;
+    background-size: 0.75rem;
+    cursor: pointer;
+  }
+
+  /* The native date/time picker button — tint it to match, not the OS default. */
+  .theme-input::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    opacity: 0.55;
+  }
+  .theme-input::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
+  }
+
+  /* --- Size modifier: compact controls (inspector inline values, steppers) --- */
+  .theme-input--sm,
+  .theme-select--sm {
+    padding: var(--app-space-4) var(--app-space-8);
+    font-size: var(--app-text-13);
+    border-radius: var(--app-radius-sm);
+  }
+  .theme-select--sm {
+    padding-right: var(--app-space-24);
+    background-position: right var(--app-space-8) center;
+  }
+
+  /* --- Bare select: no caret, compact, filled with the WELL. For tight rows
+     where the dropdown arrow would only cost space (inspector fields).
+     The well and not the raised step (2026-08-13): these pills sit ON a row
+     that is already the raised step, so painting them the same colour made the
+     value vanish into its own row. The translucent grey is the one fill that
+     steps away from a surface on either ground. --- */
+  .theme-select--bare {
+    width: auto;
+    padding: var(--app-space-4) var(--app-space-6);
+    background-image: none;
+    background-color: var(--app-well);
+    border-color: transparent;
+    border-radius: var(--app-radius-sm);
+    font-size: var(--app-text-12);
+  }
+
+  /* --- Number field: a typed count with no native spinners. The repeat rows
+     used to wear this and are selectors now (services/taskFields.js); what is
+     left of it is Settings, where the numbers are open-ended. --- */
+  .theme-number {
+    width: 3.25rem;
+    text-align: center;
+    appearance: textfield;
+    -moz-appearance: textfield;
+  }
+  .theme-number::-webkit-outer-spin-button,
+  .theme-number::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  /* --- Filled value: a small pill in the WELL (a date/number value in a row).
+     Same reasoning as --bare above. --- */
+  .theme-input--filled {
+    width: auto;
+    padding: var(--app-space-4) var(--app-space-6);
+    background: var(--app-well);
+    border-color: transparent;
+    border-radius: var(--app-radius-sm);
+    font-size: var(--app-text-12);
+  }
+  .theme-input--filled:hover:not(:disabled):not(:focus) {
+    border-color: var(--app-brand-outline);
+  }
+
+  /* --- Plain: borderless, inherits the surrounding font/colour. An inline
+     editable title or list item (inspector name / subtask). --- */
+  .theme-input--plain {
+    width: auto;
+    padding: var(--app-space-4) var(--app-space-2);
+    background: none;
+    border-color: transparent;
+    color: inherit;
+    font: inherit;
+  }
+  /* A plain field is an inline editable label, not a box: it must never grow a
+     border or a ring, in any state. Without this, the base .theme-input hover
+     rule paints a brand-outline border that clips the text corners. */
+  .theme-input--plain:hover:not(:disabled):not(:focus),
+  .theme-input--plain:focus,
+  .theme-input--plain:focus-visible {
+    outline: none;
+    box-shadow: none;
+    border-color: transparent;
+  }
+
+  /* ---------------------------------------------------------------------------
+     Checkbox (a native input, restyled — kept native for the keyboard)
+     --------------------------------------------------------------------------- */
+  .theme-checkbox {
+    appearance: none;
+    -webkit-appearance: none;
+    flex-shrink: 0;
+    width: 1.125rem;
+    height: 1.125rem;
+    margin: 0;
+    border: 0.09375rem solid var(--app-ink);
+    border-radius: var(--app-radius-xs);
+    background: none;
+    cursor: pointer;
+    position: relative;
+    transition:
+      background var(--app-transition-fast),
+      border-color var(--app-transition-fast),
+      scale var(--app-duration-medium) var(--app-ease-spring);
+  }
+  /* Held, the box shrinks a touch; let go, it springs back past full size as
+     the tick lands — the POP. Ticking a task is the most repeated gesture in
+     the app, and the one that most deserves to feel like something happened.
+     The pop is the release of the press and not a keyframe on `:checked`,
+     deliberately: a keyframe would also play for every box that MOUNTS
+     checked, and the Completed list opening would be forty ticks popping. */
+  .theme-checkbox:active:not(:disabled) {
+    scale: 0.88;
+  }
+  .theme-checkbox:checked {
+    background: var(--app-brand);
+    border-color: var(--app-brand);
+  }
+  .theme-checkbox:checked::after {
+    content: "";
+    position: absolute;
+    left: 0.3125rem;
+    top: 0.125rem;
+    width: 0.3125rem;
+    height: 0.5625rem;
+    border: solid var(--app-on-brand);
+    border-width: 0 0.125rem 0.125rem 0;
+    transform: rotate(45deg);
+  }
+  /* Bigger, for a checkbox that anchors a card rather than a row (a task). */
+  .theme-checkbox--lg {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+  .theme-checkbox--lg:checked::after {
+    left: 0.375rem;
+    top: 0.125rem;
+    width: 0.3125rem;
+    height: 0.625rem;
+    border-width: 0 0.125rem 0.125rem 0;
+  }
+  /* Smaller still, for a nested list like the inspector's subtasks. */
+  .theme-checkbox--sm {
+    width: 0.9375rem;
+    height: 0.9375rem;
+  }
+  .theme-checkbox--sm:checked::after {
+    left: 0.25rem;
+    top: 0.0625rem;
+    width: 0.25rem;
+    height: 0.5rem;
+    border-width: 0 0.09375rem 0.09375rem 0;
+  }
+  .theme-checkbox:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 0.1875rem var(--app-brand-weak);
+  }
+  .theme-checkbox:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  /* ---------------------------------------------------------------------------
+     Switch / toggle (a native checkbox drawn as a track + knob)
+     --------------------------------------------------------------------------- */
+  .theme-switch {
+    appearance: none;
+    -webkit-appearance: none;
+    flex-shrink: 0;
+    width: 2.25rem;
+    height: 1.25rem;
+    margin: 0;
+    border: none;
+    border-radius: var(--app-radius-pill);
+    background: var(--app-ink-faint);
+    cursor: pointer;
+    position: relative;
+    transition: background var(--app-transition-fast);
+  }
+  .theme-switch::after {
+    content: "";
+    position: absolute;
+    top: 0.125rem;
+    left: 0.125rem;
+    width: 1rem;
+    height: 1rem;
+    border-radius: var(--app-radius-pill);
+    background: var(--app-on-brand);
+    transition:
+      transform var(--app-duration-medium) var(--app-ease-spring),
+      width var(--app-transition-fast);
+  }
+  /* Held, the knob stretches towards where it is about to go, and snaps to a
+     circle again on release — a knob under a thumb is being pushed, and a
+     thing being pushed deforms a little. Same width whichever way it is
+     going; the right edge is what moves on the checked side, so it stays
+     pinned by `translateX(1rem − the extra)` below. */
+  .theme-switch:active:not(:disabled)::after {
+    width: 1.25rem;
+  }
+  .theme-switch:checked {
+    background: var(--app-brand);
+  }
+  .theme-switch:checked::after {
+    transform: translateX(1rem);
+  }
+  .theme-switch:checked:active:not(:disabled)::after {
+    transform: translateX(0.75rem);
+  }
+  .theme-switch:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 0.1875rem var(--app-brand-weak);
+  }
+  .theme-switch:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  /* ---------------------------------------------------------------------------
+     Range — a value the user drags (2026-08-20, the interface zoom).
+
+     Drawn by hand because the platform's own is a different object on each
+     engine, and the app runs on three: WebKitGTK, the Android WebView and
+     whatever the tests mount. Track and thumb are the same two roles every
+     other control here uses, so a theme dresses it without knowing it exists.
+     --------------------------------------------------------------------------- */
+  .theme-range {
+    appearance: none;
+    -webkit-appearance: none;
+    inline-size: 9rem;
+    block-size: 1.25rem;
+    margin: 0;
+    background: none;
+    cursor: pointer;
+  }
+  .theme-range::-webkit-slider-runnable-track {
+    block-size: 0.25rem;
+    border-radius: var(--app-radius-pill);
+    background: var(--app-line);
+  }
+  .theme-range::-moz-range-track {
+    block-size: 0.25rem;
+    border-radius: var(--app-radius-pill);
+    background: var(--app-line);
+  }
+  .theme-range::-webkit-slider-thumb {
+    appearance: none;
+    -webkit-appearance: none;
+    /* The thumb is centred on a 0.25rem track by hand: WebKit places it from
+       the top of the track, not from its middle. */
+    margin-block-start: -0.375rem;
+    inline-size: 1rem;
+    block-size: 1rem;
+    border: none;
+    border-radius: var(--app-radius-pill);
+    background: var(--app-brand);
+  }
+  .theme-range::-moz-range-thumb {
+    inline-size: 1rem;
+    block-size: 1rem;
+    border: none;
+    border-radius: var(--app-radius-pill);
+    background: var(--app-brand);
+  }
+  .theme-range:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 0.1875rem var(--app-brand-weak);
+    border-radius: var(--app-radius-pill);
+  }
+  .theme-range:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}

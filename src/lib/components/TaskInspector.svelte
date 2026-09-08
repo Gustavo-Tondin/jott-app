@@ -855,7 +855,7 @@
 </aside>
 
 <!-- The library, as a question: which file? It is `position: fixed` over the
-     whole viewport (controls.css), so it opens out of the panel it was asked
+     whole viewport (controls/overlays.css), so it opens out of the panel it was asked
      from rather than inside it. `imagesOnly` is false here: a task attaches a
      PDF as readily as a photo (2026-08-18). -->
 {#if picking}
