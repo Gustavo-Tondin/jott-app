@@ -6,9 +6,18 @@
     gap: var(--app-space-8);
     max-inline-size: 44rem;
     margin-inline: auto;
+    /* The rows answer to THIS width, not the window's: a phone and a narrow
+       desktop window with the sidebar open put the same question. A
+       container's width may not come from its contents, so it is said: the
+       page's, up to the ceiling above (measured collapsing to a sliver
+       without it, 2026-09-08). */
+    inline-size: 100%;
+    container-type: inline-size;
+    container-name: trash;
   }
   .trash-view__head {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
     gap: var(--app-space-12);
@@ -91,6 +100,11 @@
   .trash-view__left {
     min-inline-size: 8.5rem;
   }
+  /* The pair is one element in the markup so the phone can move it as one;
+     here it is not a box at all, and the two stay columns of the row. */
+  .trash-view__when {
+    display: contents;
+  }
   /* The two verbs of a row, icon-only (user call, 2026-08-21): the circular
      arrow in the accent says "back", the bin in the danger colour says
      "gone". Both are plates the shared .theme-btn--icon already draws; the
@@ -118,5 +132,47 @@
   /* Three days or fewer: the countdown is the one thing worth noticing. */
   .trash-view__left--soon {
     color: var(--app-warning);
+  }
+
+  /* Narrow, the row is two lines (user report, 2026-09-08: the columns were
+     cut off on the phone, and on a desktop window made small). The two fixed
+     columns and the two buttons are 25rem before a single letter of the name,
+     so under 36rem the date and the countdown go under the name, aligned to
+     it, one at each end of the line — still a column each, so the countdown
+     can be read down the list. The name keeps its ellipsis; the segmented
+     filter and the head wrap on their own. */
+  @container trash (max-width: 36rem) {
+    .trash-view__item {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      grid-template-areas:
+        "glyph text actions"
+        ". when when";
+      column-gap: var(--app-space-12);
+      row-gap: var(--app-space-4);
+    }
+    .trash-view__glyph {
+      grid-area: glyph;
+    }
+    .trash-view__text {
+      grid-area: text;
+    }
+    .trash-view__actions {
+      grid-area: actions;
+      margin-inline-start: 0;
+    }
+    .trash-view__when {
+      grid-area: when;
+      display: flex;
+      justify-content: space-between;
+      gap: var(--app-space-8);
+    }
+    .trash-view__date,
+    .trash-view__left {
+      min-inline-size: 0;
+    }
+    .trash-view__date {
+      text-align: start;
+    }
   }
 }

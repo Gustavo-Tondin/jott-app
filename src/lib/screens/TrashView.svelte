@@ -122,9 +122,13 @@
               <span class="trash-view__label">{entry.label}</span>
               <span class="trash-view__origin">{entry.origin}</span>
             </span>
-            <span class="trash-view__date">{formatDate(entry.deleted, dateFormat)}</span>
-            <span class="trash-view__left" class:trash-view__left--soon={entry.daysLeft != null && entry.daysLeft <= 3}>
-              {entry.daysLeft == null ? S.trashKeptForever : S.trashDaysLeft(entry.daysLeft)}
+            <!-- The two numbers together: columns of the row on a desktop,
+                 a line of their own under the name on a phone (trash-view.css). -->
+            <span class="trash-view__when">
+              <span class="trash-view__date">{formatDate(entry.deleted, dateFormat)}</span>
+              <span class="trash-view__left" class:trash-view__left--soon={entry.daysLeft != null && entry.daysLeft <= 3}>
+                {entry.daysLeft == null ? S.trashKeptForever : S.trashDaysLeft(entry.daysLeft)}
+              </span>
             </span>
             {#if !readOnly}
               <span class="trash-view__actions">
