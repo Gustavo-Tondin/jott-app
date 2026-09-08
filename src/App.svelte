@@ -11,7 +11,7 @@
   import { listen } from "@tauri-apps/api/event";
   import { slide } from "svelte/transition";
   import { api, describeError } from "./lib/services/api.js";
-  import { askConfirm, askName, askTask, DELETING, setConfirmPolicy } from "./lib/services/dialog.js";
+  import { askName, askTask, setConfirmPolicy } from "./lib/services/dialog.js";
   import { composeTask } from "./lib/services/taskCompose.js";
   import { makeAct } from "./lib/services/act.js";
   import { ask, typing, userBindings } from "./lib/services/shortcuts.js";
@@ -84,7 +84,7 @@
   import PanelResizer from "./lib/shell/PanelResizer.svelte";
   import Sidebar from "./lib/shell/Sidebar.svelte";
   import PageHeader from "./lib/shell/PageHeader.svelte";
-  import { folderOf, leafOf, listName, listTitle } from "./lib/services/paths.js";
+  import { folderOf, leafOf } from "./lib/services/paths.js";
   import { groupColors, spaceColors } from "./lib/services/spaceColors.js";
   import { originOf } from "./lib/services/origin.js";
   import { noteFontSizeAttribute, modeAttribute, paletteAttribute } from "./lib/services/themes.js";
@@ -109,6 +109,7 @@
   import * as Tabs from "./lib/shell/tabs.js";
   import { bannerMenuOf, noteActionsOf, pageMenuOf, screenActionsOf } from "./lib/shell/menus.js";
   import { makeNoteDocument } from "./lib/shell/noteDocument.js";
+  import { makeNotebookWrites } from "./lib/shell/notebookWrites.js";
   import { landing, reachable, spaceOfView, titleOf, viewFromId } from "./lib/shell/views.js";
   import { noteTargets } from "./lib/services/noteTargets.js";
   import { quickTaskTarget, taskTargets } from "./lib/services/taskTargets.js";
@@ -1575,138 +1576,43 @@
 
   const setSpacesSort = (sort) => canWrite() && change(() => api.setSpacesSort(sort));
 
-  // ---- space management (Fase 11) ----
-  // A space has one function, chosen at creation (spec 3.5): the caller
-  // says whether it is a list (tasks) or a notepad (notes), and — since
-  // groups nest — which group it is being made inside.
-  async function createSpace(kind = "tasks", group = null) {
-    const name = await askName(
-      kind === "notes" ? S.promptNewNotepad : S.promptNewList,
-      "",
-      { confirm: S.create },
-    );
-    if (!name?.trim()) return;
-    change(
-      () => api.createSpaceIn(name.trim(), kind, group),
-      (folder) => openTab({ kind: "space", sp: folder }),
-    );
-  }
-
-  async function renameSpaceTo(folder, current) {
-    const to = await askName(S.promptRenameSpace(current), current);
-    if (to == null) return;
-    change(() => api.renameSpace(folder, to.trim()));
-  }
-
-  const setSpaceAppearance = (folder, color, icon) =>
-    change(() => api.setSpaceAppearance(folder, color ?? null, icon ?? null));
-
-  async function deleteSpaceAt(folder, name) {
-    if (!(await askConfirm(S.confirmDeleteSpace(name), DELETING))) return;
-    change(
-      () => api.deleteSpace(folder),
-      // If we were looking at it, it is gone — go Home.
-      () => view.kind === "space" && view.sp === folder && goTo({ kind: "home" }),
-    );
-  }
-
-  // ---- groups (reestruturação 2026-07-30; they nest since 2026-08-11) ----
-  async function createGroup(group = null) {
-    const name = await askName(S.nameGroup, "", { confirm: S.create });
-    if (!name) return;
-    change(() => api.createGroup(name, group));
-  }
-
-  /// A group moved into another group, or back out of one (`null`).
-  const moveGroupTo = (name, intoGroup) => change(() => api.moveGroup(name, intoGroup));
-
-  async function renameGroupTo(folder, current) {
-    const to = await askName(S.renameGroup, current);
-    if (to == null) return;
-    change(() => api.renameGroup(folder, to));
-  }
-
-  // The group's colour and icon — the group is where the colour is chosen
-  // now; a space inside one follows it (user call, 2026-08-04).
-  const setGroupAppearanceAt = (folder, color, icon) =>
-    change(() => api.setGroupAppearance(folder, color, icon));
-
-  async function deleteGroupAt(folder, name) {
-    if (!(await askConfirm(S.confirmDeleteGroup(name), DELETING))) return;
-    change(() => api.deleteGroup(folder));
-  }
-
-  const moveSpaceTo = (name, intoGroup) => change(() => api.moveSpace(name, intoGroup));
-
-  // A space's arrangement lives in its own .space.json. The refresh
-  // brings the new sort/order back through the snapshot, which is what
-  // re-arranges the cards on screen. `folder()` is asked at each call, never
-  // read once: the space a screen shows is reactive, and the two writers are
-  // handed down as props when the shell is built.
-  const arrangementOf = (folder) => ({
-    setSort: (sort) => {
-      const at = folder();
-      return at && change(() => api.setSpaceSort(at, sort));
-    },
-    setOrder: (order) => {
-      const at = folder();
-      return at && change(() => api.setSpaceOrder(at, order));
-    },
-    setNoteLayout: (layout) => {
-      const at = folder();
-      return at && change(() => api.setSpaceNoteLayout(at, layout));
-    },
+  // ---- what the shell writes to the notebook (shell/notebookWrites.js) ----
+  const {
+    createSpace,
+    renameSpaceTo,
+    setSpaceAppearance,
+    deleteSpaceAt,
+    moveSpaceTo,
+    createGroup,
+    renameGroupTo,
+    setGroupAppearanceAt,
+    deleteGroupAt,
+    moveGroupTo,
+    arrangementOf,
+    renameCurrentList,
+    deleteCurrentList,
+  } = makeNotebookWrites({
+    change,
+    view: () => view,
+    goTo,
+    openTab,
+    replaceTabView: (from, to) => (tabs = Tabs.replaceView(tabs, Tabs.viewId(from), to)),
+    reload,
+    inbox: () => layout.inbox,
+    setError: (text) => (error = text),
   });
+
   const spaceArrangement = arrangementOf(() => (view.kind === "space" ? view.sp : null));
 
-  /// The FIXED Notes screen is a space too, and it had none of this (user
-  /// report, 2026-08-19: "arrastar não move"). The board dragged, called an
-  /// `onSetOrder` nobody had passed, and redrew in the old order — silently,
-  /// because an optional handler that is missing simply does nothing. Its
-  /// arrangement lives in `jott.notes/.space.json` like any other space's.
+  /// The FIXED Notes and Tasks screens are spaces too, and each had no
+  /// arrangement of its own: the board dragged, called an `onSetOrder` nobody
+  /// had passed, and redrew in the old order — silently, because an optional
+  /// handler that is missing simply does nothing (see docs/historico.md).
+  /// Notes' lives in `jott.notes/.space.json`; Tasks' in the space that
+  /// holds the Inbox, which `inboxSource` above already READS.
   let notesSpace = $derived(spaces.find((sp) => sp.path === layout.notesFolder) ?? null);
   const notesArrangement = arrangementOf(() => layout.notesFolder);
-
-  /// ...and the FIXED Tasks screen had exactly the same hole (user report,
-  /// 2026-08-19: on a phone "ele quer ficar selecionando e movendo as tarefas",
-  /// and when the gesture was fixed the cards still snapped back). It is the
-  /// space that holds the Inbox, so its arrangement lives in that space's
-  /// `.space.json` — which `inboxSource` above already READS. Only the writing
-  /// was missing, and a missing optional handler does nothing at all: the drag
-  /// played out in full and the order was thrown away on release.
   const tasksArrangement = arrangementOf(() => tasksSpaceFolder);
-
-  async function renameCurrentList() {
-    if (view.kind !== "list") return;
-    const from = view.list;
-    const current = listName(from);
-    const to = await askName(S.promptRenameList(current), current);
-    if (!to || to.trim() === current) return;
-    change(
-      () => api.renameList(from, to.trim()),
-      () => {
-        // A rename never changes the folder: swap only the file name, and let
-        // the tab follow the file instead of pointing at a name that is gone.
-        const next = { kind: "list", list: `${folderOf(from)}/${to.trim()}.md` };
-        tabs = Tabs.replaceView(tabs, Tabs.viewId({ kind: "list", list: from }), next);
-        reload();
-      },
-    );
-  }
-
-  async function deleteCurrentList() {
-    if (view.kind !== "list") return;
-    const list = view.list;
-    if (!(await askConfirm(S.confirmDeleteList(listTitle(list)), DELETING))) return;
-    change(
-      () => api.deleteList(list),
-      (rescued) => {
-        goTo({ kind: "list", list: layout.inbox });
-        reload();
-        if (rescued > 0) error = S.tasksRescued(rescued, listTitle(list));
-      },
-    );
-  }
 
   // ---- reminders (2026-08-25) ----
   // The core lists what should ring; on desktop `shell/reminders.js` keeps

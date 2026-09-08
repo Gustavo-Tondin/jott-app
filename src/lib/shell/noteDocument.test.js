@@ -32,7 +32,8 @@ function shell({ readOnly = false } = {}) {
   };
   const change = async (run, then) => {
     try {
-      then?.(await run());
+      const result = await run();
+      then?.(result);
     } catch (e) {
       calls.fail(e);
     }
