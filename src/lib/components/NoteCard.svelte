@@ -8,6 +8,7 @@
   import { accentFill } from "../services/accent.js";
   import { assetUrl } from "../services/assets.js";
   import { ageStamp, noteSince } from "../services/age.js";
+  import { isUntitled } from "../services/noteTitle.js";
   import Menu from "./Menu.svelte";
   import Icon from "./Icon.svelte";
   import NotePreview from "./NotePreview.svelte";
@@ -68,6 +69,11 @@
   let src = $derived(isImage ? assetUrl(root, banner.value) : "");
   let tint = $derived(banner?.kind === "color" ? accentFill(banner.value) : null);
 
+  /// A note nobody has named carries the app's own "New note", and a column
+  /// of those says nothing: the card draws its text instead. The small card
+  /// inside a folder keeps it — the title is all it has.
+  let titled = $derived(small || !isUntitled(entry.title));
+
   // A note is old when nobody has OPENED it in a while, not when nobody has
   // written it. The core stamps the entry; the card only says whether the
   // number is a reading or a birth (the eye and the clock).
@@ -86,6 +92,7 @@
 <article
   class="note-card"
   class:note-card--small={small}
+  class:note-card--bare={!titled && !banner}
   class:note-card--picked={selected}
   class:note-card--pinned={entry.pinned}
   oncontextmenu={onContextMenu && !picking
@@ -118,17 +125,19 @@
       </span>
     {/if}
 
-    <span class="note-card__title" class:note-card__title--chip={banner && !small}>
-      {#if entry.pinned && !small}
-        <!-- On a phone the pin BUTTON is not drawn (the corner is the ⋮'s,
-             note-card.css), so the filled mark sits at the head of the title
-             instead. Nothing on a desktop, which keeps the button. -->
-        <span class="note-card__pinned" title={S.unpin}>
-          <Icon name="bookmark-simple-fill" size="0.75rem" />
-        </span>
-      {/if}
-      {entry.title}
-    </span>
+    {#if titled}
+      <span class="note-card__title" class:note-card__title--chip={banner && !small}>
+        {#if entry.pinned && !small}
+          <!-- On a phone the pin BUTTON is not drawn (the corner is the ⋮'s,
+               note-card.css), so the filled mark sits at the head of the title
+               instead. Nothing on a desktop, which keeps the button. -->
+          <span class="note-card__pinned" title={S.unpin}>
+            <Icon name="bookmark-simple-fill" size="0.75rem" />
+          </span>
+        {/if}
+        {entry.title}
+      </span>
+    {/if}
 
     {#if !small}
       <NotePreview markdown={entry.preview} empty={S.emptyNote} />

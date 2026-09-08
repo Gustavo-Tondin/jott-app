@@ -4,7 +4,13 @@ import { bannerOf, noteCardMenu } from "./noteActions.js";
 const entry = { path: "Inbox/ideia.md", title: "ideia", pinned: false };
 
 /// Nothing is called here — the rows are what is under test.
-const actions = { pin: vi.fn(), moveTo: vi.fn(), duplicate: vi.fn(), remove: vi.fn() };
+const actions = {
+  pin: vi.fn(),
+  moveTo: vi.fn(),
+  rename: vi.fn(),
+  duplicate: vi.fn(),
+  remove: vi.fn(),
+};
 const labels = (rows) => rows.map((row) => row.label);
 
 /// Somewhere to move to, since that row only exists when there is.
@@ -24,9 +30,15 @@ describe("bannerOf", () => {
 });
 
 describe("noteCardMenu", () => {
-  test("the four a card offers, in the board's order", () => {
+  test("the five a card offers, in the board's order", () => {
     const rows = noteCardMenu({ entry, actions, space: "jott.notes", moveTargets: targets });
-    expect(labels(rows)).toEqual(["Pin", "Move to…", "Duplicate", "Delete"]);
+    expect(labels(rows)).toEqual(["Pin", "Move to…", "Rename", "Duplicate", "Delete"]);
+  });
+
+  test("renaming is offered on the card, not only on the open note", () => {
+    const rows = noteCardMenu({ entry, actions, space: "Ideias" });
+    rows.find((row) => row.label === "Rename").run();
+    expect(actions.rename).toHaveBeenCalledWith("Ideias", entry);
   });
 
   test("every action names the space the card was drawn for", () => {
@@ -50,7 +62,7 @@ describe("noteCardMenu", () => {
       canPin: false,
       moveTargets: targets,
     });
-    expect(labels(rows)).toEqual(["Move to…", "Duplicate", "Delete"]);
+    expect(labels(rows)).toEqual(["Move to…", "Rename", "Duplicate", "Delete"]);
   });
 
   test("nowhere to move means no row at all", () => {

@@ -64,6 +64,26 @@ export function noteFontSizeAttribute(stored) {
   return known && stored !== DEFAULT_NOTE_FONT_SIZE ? stored : null;
 }
 
+/// How tall a note card on the board may grow. What actually gives a card
+/// its height is the number of PREVIEW lines it draws (`--app-card-lines`,
+/// styles/tokens.css), so the cut always lands between lines. A Display
+/// choice: the same board is a wall of cards on a monitor and a column on a
+/// phone.
+export const CARD_HEIGHTS = [
+  { key: "short", label: () => S.cardHeightShort },
+  { key: "medium", label: () => S.cardHeightMedium },
+  { key: "tall", label: () => S.cardHeightTall },
+];
+
+export const DEFAULT_CARD_HEIGHT = "tall";
+
+/// The attribute value to write, or null for the height the app ships as —
+/// the same pact `noteFontSizeAttribute` keeps.
+export function cardHeightAttribute(stored) {
+  const known = CARD_HEIGHTS.some((height) => height.key === stored);
+  return known && stored !== DEFAULT_CARD_HEIGHT ? stored : null;
+}
+
 /// The theme (the palette) to name on <html>, or null for the app's own. A
 /// name the NOTEBOOK carries (`.jott/themes/`) is named only once its
 /// stylesheet is in the document (`worn`), or a full theme keyed on its name

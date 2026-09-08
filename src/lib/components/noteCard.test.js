@@ -76,3 +76,42 @@ describe("NoteCard — last opened", () => {
     expect(container.querySelector(".note-card__age")).toBe(null);
   });
 });
+
+describe("NoteCard — a note nobody named", () => {
+  test("the app's own name is not drawn: the text speaks for the card", () => {
+    const { container } = card({ title: "New note", path: "Inbox/New note.md" });
+    expect(container.querySelector(".note-card__title")).toBe(null);
+    expect(container.querySelector(".note-preview").textContent).toContain("um texto");
+  });
+
+  test("the second one filed under the same name goes untitled too", () => {
+    const { container } = card({ title: "New note 2", path: "Inbox/New note 2.md" });
+    expect(container.querySelector(".note-card__title")).toBe(null);
+  });
+
+  test("a title the user chose is drawn, numbered or not", () => {
+    expect(card().container.querySelector(".note-card__title").textContent.trim()).toBe("Ideia");
+    expect(
+      card({ title: "New notebook" }).container.querySelector(".note-card__title"),
+    ).not.toBe(null);
+  });
+
+  test("with nothing above it, the text keeps clear of the corner tools", () => {
+    // `note-card--bare`: no title AND no banner, so the first block of the
+    // preview is what the ⋮ would sit on (styles/components/note-card.css).
+    const bare = card({ title: "New note" }).container.querySelector(".note-card");
+    expect(bare.classList.contains("note-card--bare")).toBe(true);
+    // A banner already carries the tools, so the text is left alone.
+    const bannered = card({
+      title: "New note",
+      banner: { kind: "color", value: "yellow" },
+    }).container.querySelector(".note-card");
+    expect(bannered.classList.contains("note-card--bare")).toBe(false);
+    expect(card().container.querySelector(".note-card--bare")).toBe(null);
+  });
+
+  test("the small card keeps its title — it is all it has", () => {
+    const { container } = card({ title: "New note" }, { small: true });
+    expect(container.querySelector(".note-card__title").textContent.trim()).toBe("New note");
+  });
+});

@@ -179,6 +179,13 @@
     padding-inline-end: var(--app-space-32);
   }
 
+  /* Nothing above the text — no title, no banner — so the first lines lead
+     the card and the corner tools sit over them. The first block keeps clear
+     of the ⋮, the way a title does on a phone. */
+  .note-card--bare .note-preview > :first-child {
+    padding-inline-end: var(--app-space-24);
+  }
+
   /* The small card inside a folder card: a title and nothing else, tighter
      padding — the folder card around it is already padded. */
   .note-card--small {

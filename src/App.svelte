@@ -66,7 +66,12 @@
   import { folderOf, leafOf } from "./lib/services/paths.js";
   import { groupColors, spaceColors } from "./lib/services/spaceColors.js";
   import { originOf } from "./lib/services/origin.js";
-  import { noteFontSizeAttribute, modeAttribute, paletteAttribute } from "./lib/services/themes.js";
+  import {
+    noteFontSizeAttribute,
+    cardHeightAttribute,
+    modeAttribute,
+    paletteAttribute,
+  } from "./lib/services/themes.js";
   import { applyUserTheme, userThemeApplied } from "./lib/shell/userTheme.js";
   import { seedFrom } from "./lib/services/themeSeed.js";
   // The app's own three, as TEXT. `?raw` gives the source rather than a
@@ -727,6 +732,7 @@
       quickNoteFolder: "Inbox",
       noteLayout: "",
       tableLayout: "",
+      cardHeight: "",
       timelineGhostTasks: false,
       timelineGhostNotes: false,
       confirmDeletes: true,
@@ -749,6 +755,7 @@
       accent: showsPicker ? "neutral" : layout.accentColor || null,
       headings: !showsPicker && layout.headingColor === "ink" ? "ink" : null,
       noteSize: noteFontSizeAttribute(layout.noteFontSize),
+      cardHeight: cardHeightAttribute(layout.cardHeight),
     }),
   );
 

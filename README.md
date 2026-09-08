@@ -112,6 +112,8 @@ what the current version is.
   the first letter. Find & replace is a field, two arrows and a gear.
 - `[[Note]]` links between notes and `[[/file.pdf]]` references to files,
   both with autocompletion; colour or image banners; pinning; bulk select.
+  A card's ⋮ renames the note without opening it, and a note you never
+  named shows its text instead of the app's "New note".
 - **Paste from anywhere keeps its formatting** — text copied out of Keep,
   Docs, Notion or a web page arrives as Markdown (bold, italic, links, lists,
   checklists, quotes, code, tables) rather than the stripped plain text.
@@ -156,7 +158,8 @@ what the current version is.
   The app writes the first one for you, out of the look already on screen
   ([how](documentation/theming.md)).
 - Three font choices (interface, note body, monospace) from the fonts your
-  machine has; interface zoom; note text size.
+  machine has; interface zoom; note text size; how tall a note card on the
+  board may grow.
 - Configurable keyboard shortcuts for ~50 commands.
 - One responsive shell: sidebar and panels on the desktop, drawer and bottom
   sheets on the phone, where the top bar floats over the page and its buttons

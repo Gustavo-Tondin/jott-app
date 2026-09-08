@@ -9,6 +9,7 @@
     S.headingColor,
     S.interfaceZoom,
     S.noteFontSizeLabel,
+    S.cardHeightLabel,
     S.interfaceFontLabel,
     S.noteFontLabel,
     S.monoFontLabel,
@@ -39,6 +40,8 @@
     DEFAULT_HEADING_COLOR,
     NOTE_FONT_SIZES,
     DEFAULT_NOTE_FONT_SIZE,
+    CARD_HEIGHTS,
+    DEFAULT_CARD_HEIGHT,
   } from "../../services/themes.js";
   import {
     FORMAT_BAR_MODES,
@@ -380,6 +383,18 @@
   )}
 
   <h3 class="settings__subtitle">{S.subInterface}</h3>
+
+  <!-- How tall a card on the notes board may grow. Display, because it
+       answers to a SCREEN: what is a wall of cards on a monitor is one
+       column on a phone. What it moves is the number of preview lines, so a
+       card never ends mid-line (styles/components/note-preview.css). -->
+  {@render segmentedRow(
+    S.cardHeightLabel,
+    CARD_HEIGHTS,
+    form.cardHeight || DEFAULT_CARD_HEIGHT,
+    (key) => putDisplay({ cardHeight: key }),
+    S.cardHeightHint,
+  )}
 
   <label class="settings__row">
     <span class="settings__label">{S.showListCounts}</span>

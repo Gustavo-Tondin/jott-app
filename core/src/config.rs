@@ -215,6 +215,11 @@ pub struct Config {
     /// content width, cells wrapping); `scroll` lets it run wide. An unknown
     /// name round-trips.
     pub table_layout: String,
+    /// How tall a note card on the board may grow (`short` / `medium` /
+    /// `tall`); empty means the app's own. A Display choice, so this is the
+    /// notebook's answer for a machine that has none. Unpoliced, like the
+    /// looks above: the list of heights is the interface's.
+    pub card_height: String,
     /// Where "fresh", "stale" and "forgotten" begin, in days (`crate::age`).
     /// A notebook preference, not a machine one.
     pub age: crate::age::Thresholds,
@@ -284,6 +289,7 @@ impl Default for Config {
             offer_task_fields: true,
             note_layout: String::new(),
             table_layout: String::new(),
+            card_height: String::new(),
             age: crate::age::Thresholds::default(),
             trash_retention_days: 30,
             completed_retention_days: 30,
@@ -490,6 +496,7 @@ impl Config {
             offer_task_fields: flag(&raw, "offerTaskFields", defaults.offer_task_fields),
             note_layout: string(&raw, "noteLayout").unwrap_or(defaults.note_layout),
             table_layout: string(&raw, "tableLayout").unwrap_or(defaults.table_layout),
+            card_height: string(&raw, "cardHeight").unwrap_or(defaults.card_height),
             age: parse_age(raw.get("age"), defaults.age),
             trash_retention_days: raw
                 .get("trashRetentionDays")
@@ -611,6 +618,7 @@ impl Config {
             ("formatBarSide", &self.format_bar_side),
             ("noteLayout", &self.note_layout),
             ("tableLayout", &self.table_layout),
+            ("cardHeight", &self.card_height),
             ("daySort", &self.day_sort),
         ] {
             put_or_clear(

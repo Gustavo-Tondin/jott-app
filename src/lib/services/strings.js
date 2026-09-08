@@ -690,6 +690,15 @@ export const S = {
   interfaceZoom: "Interface zoom",
   interfaceZoomHint: "The same thing Ctrl + and Ctrl − do.",
 
+  // Display / Interface: how tall a note card on the board may grow.
+  cardHeightLabel: "Note card height",
+  cardHeightHint:
+    "How much of a note a card on the board shows before it stops. The rest " +
+    "of the note is always there — the card ends with an ellipsis.",
+  cardHeightShort: "Short",
+  cardHeightMedium: "Medium",
+  cardHeightTall: "Tall",
+
   // The search over every row of every page.
   settingsSearch: "Search settings",
   settingsSearchEmpty: "Nothing here matches that.",

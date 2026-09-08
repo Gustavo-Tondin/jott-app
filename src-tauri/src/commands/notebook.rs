@@ -89,6 +89,10 @@ pub struct NotebookLayout {
     /// reason: an attribute on the document root, wanted on the first paint.
     pub heading_color: String,
     pub note_font_size: String,
+    /// How tall a note card on the board may grow (`short` / `medium` /
+    /// `tall`); empty is the app's own. An attribute on the document root,
+    /// so it rides here for the reason the accent does.
+    pub card_height: String,
     /// The three faces the app is read in, by family name; empty is the one
     /// the app carries. Custom properties on the document root, so they ride
     /// here for the reason the accent does.
@@ -161,6 +165,7 @@ impl NotebookInfo {
                 theme: display.theme,
                 heading_color: display.heading_color,
                 note_font_size: display.note_font_size,
+                card_height: display.card_height,
                 interface_font: display.interface_font,
                 note_font: display.note_font,
                 mono_font: display.mono_font,

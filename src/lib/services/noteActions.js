@@ -5,7 +5,7 @@
 
 import { api } from "./api.js";
 import { isImage } from "./assets.js";
-import { askConfirm, DELETING } from "./dialog.js";
+import { askConfirm, askName, DELETING } from "./dialog.js";
 import { S } from "./strings.js";
 
 /// The banner as the shell holds it — `{kind: "color" | "image", value}` —
@@ -22,6 +22,15 @@ export function bannerOf(value) {
 export function noteActions(act) {
   return {
     pin: (space, entry) => act(() => api.setNotePinned(space, entry.path, !entry.pinned)),
+
+    /// A note is titled by its FILE, so renaming one moves it: the screen
+    /// reloads on the change and the card comes back at its new address.
+    rename: (space, entry) =>
+      act(async () => {
+        const next = await askName(S.promptRenameNote(entry.title), entry.title);
+        if (!next || next.trim() === entry.title) return;
+        await api.renameNote(space, entry.path, next.trim());
+      }),
 
     duplicate: (space, entry) => act(() => api.duplicateNote(space, entry.path)),
 
@@ -80,6 +89,7 @@ export function noteCardMenu({
       ),
     });
   }
+  rows.push({ label: S.renameNote, run: () => actions.rename(space, entry) });
   rows.push({ label: S.duplicateNote, run: () => actions.duplicate(space, entry) });
   rows.push({ label: S.deleteNote, run: () => actions.remove(space, entry) });
   return rows;

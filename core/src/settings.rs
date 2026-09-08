@@ -24,6 +24,10 @@ pub struct DisplayPrefs {
     pub accent_color: Option<String>,
     pub heading_color: Option<String>,
     pub note_font_size: Option<String>,
+    /// How tall a note card on the board may grow (`short` / `medium` /
+    /// `tall`). Display, because it answers to a SCREEN: the same board is a
+    /// wall of cards on a monitor and a column on a phone.
+    pub card_height: Option<String>,
     /// The three faces. Display, because which fonts exist is a fact about
     /// THIS machine and must not travel with the notebook. Absent is "this
     /// machine did not answer", and the notebook's own choice stands.
@@ -63,6 +67,7 @@ impl DisplayPrefs {
         take(&mut self.accent_color, patch.accent_color);
         take(&mut self.heading_color, patch.heading_color);
         take(&mut self.note_font_size, patch.note_font_size);
+        take(&mut self.card_height, patch.card_height);
         // A family name is written into a CSS declaration, so a name that
         // could end the declaration is dropped here rather than at every
         // reader. An empty name is how the app's own face is asked for.
@@ -133,6 +138,7 @@ pub struct Display {
     pub accent_color: String,
     pub heading_color: String,
     pub note_font_size: String,
+    pub card_height: String,
     pub interface_font: String,
     pub note_font: String,
     pub mono_font: String,
@@ -165,6 +171,10 @@ impl Display {
                 .note_font_size
                 .clone()
                 .unwrap_or_else(|| config.note_font_size.clone()),
+            card_height: machine
+                .card_height
+                .clone()
+                .unwrap_or_else(|| config.card_height.clone()),
             interface_font: machine
                 .interface_font
                 .clone()
@@ -240,6 +250,9 @@ pub struct NotebookSettings {
     /// `"ink"` draws headings in plain ink; empty (or anything else) accents.
     pub heading_color: Option<String>,
     pub note_font_size: Option<String>,
+    /// How tall a note card on the board may grow; empty goes back to the
+    /// app's own.
+    pub card_height: Option<String>,
     /// The three faces, by family name; empty goes back to the app's own. A
     /// name that could not be written into CSS is refused on the way IN — the
     /// one Display value that arrives from a machine's own font library
@@ -299,6 +312,7 @@ impl NotebookSettings {
             theme: Some(display.theme.clone()),
             heading_color: Some(display.heading_color.clone()),
             note_font_size: Some(display.note_font_size.clone()),
+            card_height: Some(display.card_height.clone()),
             interface_font: Some(display.interface_font.clone()),
             note_font: Some(display.note_font.clone()),
             mono_font: Some(display.mono_font.clone()),
@@ -381,6 +395,9 @@ impl NotebookSettings {
         }
         if let Some(v) = &self.note_font_size {
             config.note_font_size = v.trim().to_string();
+        }
+        if let Some(v) = &self.card_height {
+            config.card_height = v.trim().to_string();
         }
         // The one Display value with a gate: a family name is written into a
         // CSS declaration, so a name that could end the declaration is not

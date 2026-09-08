@@ -9,8 +9,9 @@
     /* The clamp is a LINE COUNT, not a height: the cut lands between lines.
        A clean cut, no fade; "there is more" is the three dots the component
        appends only when the clamp cut something — an ellipsis IN the text
-       has nowhere to sit (the last line may be a heading or a bullet). */
-    --note-preview-lines: 12;
+       has nowhere to sit (the last line may be a heading or a bullet). The
+       count is the reader's: Settings › Display › Note card height. */
+    --note-preview-lines: var(--app-card-lines);
     display: block;
     color: var(--app-ink-muted);
     font-size: var(--app-text-13);

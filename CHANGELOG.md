@@ -20,6 +20,11 @@ file and live only in the commit history.
 
 ### New
 
+- **Rename a note from its card** — the ⋮ on the board and the right button
+  both offer it, so a note no longer has to be opened to be named.
+- **Note card height** (Settings › Display): short, medium or tall. It says
+  how much of a note a card shows before it stops, and it answers to this
+  machine — the same notebook can read differently on a monitor and a phone.
 - A floating **Undo** after a delete, a move to another list or space, or
   after taking a task off the day: one line at the bottom of the screen,
   gone by itself in a few seconds.
@@ -32,6 +37,8 @@ file and live only in the commit history.
 
 ### Improved
 
+- A note nobody named draws no title on its card: the first lines of the
+  note say what it is, instead of a column of "New note".
 - Settings say less. The explanations left the rows and wait behind a **?**
   next to the ones that need one; the categories on a page sit further
   apart; and on a phone a group of three or more choices is a drop-down.

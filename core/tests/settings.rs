@@ -271,6 +271,30 @@ fn what_is_written_is_what_is_read_back() {
 }
 
 #[test]
+fn the_card_height_answers_to_the_machine_and_falls_back_to_the_notebook() {
+    // A Display key like any other: the screen decides, and a notebook
+    // carried to a machine that never chose keeps its own answer.
+    let mut config = Config::default();
+    settings(r#"{"cardHeight": "  medium  "}"#).apply_to(&mut config);
+    assert_eq!(config.card_height, "medium", "trimmed, never judged");
+
+    let quiet = Display::resolve(&DisplayPrefs::default(), &config);
+    assert_eq!(quiet.card_height, "medium");
+
+    let machine = DisplayPrefs {
+        card_height: Some("short".to_string()),
+        ..DisplayPrefs::default()
+    };
+    let display = Display::resolve(&machine, &config);
+    assert_eq!(display.card_height, "short");
+    assert_eq!(
+        NotebookSettings::of(&config, &display).card_height.as_deref(),
+        Some("short"),
+        "the screen reads back what this machine answered",
+    );
+}
+
+#[test]
 fn an_old_theme_of_the_three_reads_as_a_mode() {
     // Until 2026-08-26 `theme` held `default`/`light`/`dark`. Nothing is
     // migrated: the value is read as the mode it meant, and the theme
