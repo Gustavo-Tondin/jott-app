@@ -1,5 +1,11 @@
 import { describe, expect, test } from "vitest";
-import { arrange, pinnedFirst, landsPinned, planReorder } from "./spaceOrder.js";
+import {
+  arrange,
+  arrangeCompleted,
+  pinnedFirst,
+  landsPinned,
+  planReorder,
+} from "./spaceOrder.js";
 
 // The accessors a tasks space uses; a notepad swaps in title/created.
 const accessors = {
@@ -14,6 +20,37 @@ const tasks = [
   { id: "a1", text: "Amora", created: "2026-08-01" },
   { id: "b2", text: "caju", completed: "2026-08-02" },
 ];
+
+describe("arrangeCompleted", () => {
+  test("the last one ticked reads first", () => {
+    // The file grows by appending, so the completed half is read backwards:
+    // what was just finished is at the top of the section.
+    expect(arrangeCompleted(tasks, null, accessors).map((t) => t.id)).toEqual([
+      "b2",
+      "a1",
+      "c3",
+    ]);
+    // `custom` is the dragged order of the OPEN half and says nothing here.
+    expect(arrangeCompleted(tasks, "custom", accessors).map((t) => t.id)).toEqual([
+      "b2",
+      "a1",
+      "c3",
+    ]);
+  });
+
+  test("a chosen arrangement still decides", () => {
+    expect(arrangeCompleted(tasks, "name", accessors).map((t) => t.text)).toEqual([
+      "Amora",
+      "banana",
+      "caju",
+    ]);
+    expect(arrangeCompleted(tasks, "completed", accessors).map((t) => t.id)).toEqual([
+      "c3",
+      "b2",
+      "a1",
+    ]);
+  });
+});
 
 describe("arrange", () => {
   test("the file order is the default, and unknown sorts fall back to it", () => {

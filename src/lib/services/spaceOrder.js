@@ -36,6 +36,16 @@ export function arrange(items, sort, order, { nameOf, createdOf, completedOf, ke
   }
 }
 
+/// How the COMPLETED half reads: the last one ticked at the top. The file
+/// grows by appending, so its order is the reverse of what someone looking
+/// for what they just finished expects. A chosen arrangement still decides —
+/// except `custom`, which is the dragged order of the open half and says
+/// nothing about a task that left the list.
+export function arrangeCompleted(items, sort, accessors) {
+  if (sort && sort !== "custom") return arrange(items, sort, [], accessors);
+  return [...items].reverse();
+}
+
 /// Floats the pinned items to the top, keeping the arrangement inside each
 /// half. Applied AFTER `arrange`: pinning outranks the sort.
 export function pinnedFirst(items, isPinned = (item) => !!item.pinned) {

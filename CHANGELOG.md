@@ -22,9 +22,13 @@ file and live only in the commit history.
 
 - **Rename a note from its card** — the ⋮ on the board and the right button
   both offer it, so a note no longer has to be opened to be named.
-- **Note card height** (Settings › Display): short, medium or tall. It says
-  how much of a note a card shows before it stops, and it answers to this
-  machine — the same notebook can read differently on a monitor and a phone.
+- **Note card height** (Settings › Display): a slider, three to sixteen
+  lines of the note. It says how much of a note a card on the board shows
+  before it stops, and it answers to this machine — the same notebook can
+  read differently on a monitor and a phone.
+- **The notes board's layout moved to Settings › Display** (grid or folders),
+  and answers to this machine too. A space that chose for itself, from its
+  ⋮ → Layout, still keeps its own.
 - A floating **Undo** after a delete, a move to another list or space, or
   after taking a task off the day: one line at the bottom of the screen,
   gone by itself in a few seconds.
@@ -34,15 +38,29 @@ file and live only in the commit history.
   off, with a button straight to Settings › Tasks. Close it once and it
   stays closed; the "Suggest more fields in the task panel" row brings it
   back.
+- **Day summary** (Settings › Tasks): one notification at the hour you
+  choose, listing the tasks the day holds. It takes the place of ringing
+  every dated task — a task now rings on its own only if you gave it a
+  reminder.
+- **Repeat: freely** — a task that comes back the moment it is ticked, with
+  no date. Only one of it is ever open; every time you finish it, another
+  copy joins Completed. Bringing one back from Completed takes the copy it
+  left behind with it.
 
 ### Fixed
 
 - The checkbox drawn in a note's summary on a card is a rounded square at
   every size again — it was turning into a circle on a small card, because
   the box grew with the text and its corner did not.
+- **The "system-ui" font choice does something on Linux.** It now draws the
+  interface in the font the desktop itself uses; before, the app's own face
+  was so close to what the system answered with that the choice looked
+  ignored.
 
 ### Improved
 
+- **The completed section reads newest-first** — the task you just ticked is
+  at the top of it, not at the bottom of everything you ever finished.
 - **Sending a task to a day now shows.** The sun pops on the card the moment
   it joins one, a card swiped sideways springs back into place, and a
   suggestion taken lifts out of the panel while the task rises into the day.
@@ -69,7 +87,6 @@ file and live only in the commit history.
 - "Close the task panel when clicking outside" now works anywhere on the
   content, not only on the bare margin. A click that opens another task or
   lands in a field keeps the panel. The row is desktop only.
-- The automatic reminder can ring both the day before and on the due day.
 - New tasks go to the **top** of the list by default.
 - Banners and note tags start switched off; the Notes page turns them on.
 - The Timeline's deleted names are two switches — one for tasks, one for notes.

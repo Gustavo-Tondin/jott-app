@@ -15,7 +15,13 @@
   import { dotStyle as dotStyleOf } from "../services/accent.js";
   import { spaceMenu } from "../services/spaceMenu.js";
   import { composeTask } from "../services/taskCompose.js";
-  import { arrange, pinnedFirst, planReorder, planReorderMany } from "../services/spaceOrder.js";
+  import {
+    arrange,
+    arrangeCompleted,
+    pinnedFirst,
+    planReorder,
+    planReorderMany,
+  } from "../services/spaceOrder.js";
   import BulkBar from "../components/BulkBar.svelte";
   import TaskCards from "../components/TaskCards.svelte";
   import TaskComposer from "../components/TaskComposer.svelte";
@@ -223,7 +229,7 @@
   // Pinning outranks the sort: whatever ordering is on, a pinned card is at
   // the top, with a divider under the last one.
   let shown = $derived(pinnedFirst(arrange(open, sort, order, accessors), isPinned));
-  let shownCompleted = $derived(arrange(done, sort, order, accessors));
+  let shownCompleted = $derived(arrangeCompleted(done, sort, accessors));
 
   // A day has no `.space.json` and no folder, so it offers neither an
   // arrangement nor a move — `spaceMenu` leaves out what it is not given.
@@ -351,8 +357,9 @@
       const refs = next
         .filter((entry) => entry.task.id)
         .map((entry) => ({ path: entry.list, id: entry.task.id }));
-      // The completed cards keep their place, so undoing one does not lose it.
-      for (const entry of shownCompleted) {
+      // The completed cards keep their place, so undoing one does not lose it
+      // — their FILE order, never the reading (`arrangeCompleted` reverses).
+      for (const entry of done) {
         if (entry.task.id) refs.push({ path: entry.list, id: entry.task.id });
       }
       if (daySort) await api.setDaySort(null);
@@ -367,7 +374,7 @@
       const refs = next
         .filter((entry) => entry.task.id)
         .map((entry) => ({ path: entry.list, id: entry.task.id }));
-      for (const entry of shownCompleted) {
+      for (const entry of done) {
         if (entry.task.id) refs.push({ path: entry.list, id: entry.task.id });
       }
       if (daySort) await api.setDaySort(null);
@@ -386,7 +393,7 @@
       for (const entry of next) {
         ids.push(entry.task.id ?? (await ensureTaskId(entry.list, entry.task)));
       }
-      for (const entry of shownCompleted) {
+      for (const entry of done) {
         if (entry.task.id) ids.push(entry.task.id);
       }
       await onSetOrder?.(ids);
@@ -412,8 +419,9 @@
         ids.push(entry.task.id ?? (await ensureTaskId(entry.list, entry.task)));
       }
       // The completed cards keep their place in the saved order, so undoing
-      // one later does not lose where it sat.
-      for (const entry of shownCompleted) {
+      // one later does not lose where it sat — their FILE order, not the
+      // reading (`arrangeCompleted` reverses it).
+      for (const entry of done) {
         if (entry.task.id) ids.push(entry.task.id);
       }
       await onSetOrder?.(ids);
