@@ -10,7 +10,7 @@
 // first, and the browser owns that. At the top, a downward drag is given a
 // meaning the page did not have — the action writes how far it has got, in
 // px and with resistance, as `--pull` on the node and marks it `is-pulling`;
-// the stylesheet draws the indicator from that (shell.css). Past THRESHOLD the
+// the stylesheet draws the indicator from that (components/pull-search.css). Past THRESHOLD the
 // node is marked `is-pull-ready`, the moment the release would open the
 // search; let go there and `onPull()` is called. Let go earlier and the
 // indicator glides back, and nothing happened.

@@ -104,4 +104,57 @@
     left: 0;
     cursor: nesw-resize;
   }
+
+  /* While dragging, the two edges that follow the sidebar's width must not
+     also be animating towards it — the panel would lag a frame behind the
+     pointer the whole way. */
+  .window--resizing .shell__sidebar,
+  .window--resizing .titlebar__brand,
+  .window--resizing .shell__panel > .inspector,
+  .window--resizing .shell__panel > .suggestions-pane,
+  .window--resizing .shell__panel > .format-bar {
+    transition: none;
+  }
+  .window--resizing {
+    cursor: col-resize;
+    user-select: none;
+  }
+
+  /* Everything the drawer pushes aside. The top bar goes with it — the
+     wireframe translates the whole 360px frame, pill and all — but the WINDOW
+     stays where it is: it is the app's edge, it owns the rounded corners and
+     the hairline, and moving it dragged those across the screen and left the
+     desktop showing through the seam beside the drawer. */
+  .window__page {
+    flex: 1;
+    min-block-size: 0;
+    display: flex;
+    flex-direction: column;
+    /* The box an open note's top bar is lifted out of the flow against
+       (`.topbar--over`). It has to be THIS one and not the window: the window
+       is what the drawer's scrim and the sheets are measured from, and the bar
+       travels with the page when the drawer pushes it. */
+    position: relative;
+  }
+  /* Wider than the wireframe's 240px on a phone (user report on device,
+     2026-09-07, after the cutout fix: "ainda está um pouco pequeno o sidebar
+     para os botões do header, tanto na vertical quanto na horizontal"). The
+     head is five 48px touch targets — 240px exactly, with no air between
+     them at the wireframe's width. 272px gives the row 8px of breathing per
+     gap and still leaves a third of a portrait screen peeking. One token, so
+     the drawer, its push and the drag that follows it (drawerSwipe measures
+     the element) all move together. */
+  .window--compact {
+    --app-drawer-width: 17rem;
+  }
+  .window--compact .window__page {
+    transition: translate var(--app-transition-medium);
+  }
+  .window--pushed .window__page {
+    translate: calc(var(--app-drawer-width) + var(--app-safe-left)) 0;
+  }
+  .window--sliding .window__page {
+    translate: var(--drawer-at, 0rem) 0;
+    transition: none;
+  }
 }

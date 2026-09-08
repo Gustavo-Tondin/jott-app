@@ -1,0 +1,66 @@
+/* pull-search.css — the glass that rises under the top edge while the page
+ * is pulled down to open the search (actions/pullToSearch.js writes `--pull`,
+ * `--pull-ratio`, `is-pulling` and `is-pull-ready` on the scroller). */
+
+@layer components {
+  /* ---- pull to search (actions/pullToSearch.js) ----
+     The glass sits folded under the top edge of the scroller and comes out
+     as the page is pulled: `--pull` is how far the finger has got, with the
+     action's resistance already applied. It grows from nothing to full size
+     over the first part of the pull, and the disc turns brand-solid the
+     moment the release would open the search (`is-pull-ready`) — that is the
+     "you can let go now", told by colour rather than by a second glyph. Let
+     go early and the transition glides it back under the edge. */
+  .pull-search {
+    position: absolute;
+    /* Under the floating top bar, not under the top edge (user report on
+       device, 2026-09-07: "a interação de pesquisa está bugada no celular,
+       ficando atrás dos botões flutuantes"). The bar is absolute over this
+       scroller at z-index 20 and 78px tall; a glass rising from y=0 spent its
+       whole travel behind the bar's buttons. */
+    inset-block-start: var(--app-topbar-height);
+    inset-inline: 0;
+    z-index: 5;
+    display: flex;
+    justify-content: center;
+    pointer-events: none;
+    translate: 0 calc(var(--pull, 0rem) - 3rem);
+    opacity: 0;
+    transition:
+      translate var(--app-transition-medium),
+      opacity var(--app-transition-medium);
+  }
+  .pull-search__glass {
+    display: grid;
+    place-items: center;
+    inline-size: 2.5rem;
+    block-size: 2.5rem;
+    border-radius: var(--app-radius-pill);
+    background: var(--app-surface);
+    color: var(--app-ink-muted);
+    border: 0.0625rem solid var(--app-line);
+    box-shadow: var(--app-shadow-popover);
+    scale: var(--pull-ratio, 0);
+    rotate: calc(var(--pull-ratio, 0) * -30deg);
+    transition:
+      background var(--app-transition-fast),
+      color var(--app-transition-fast),
+      scale var(--app-transition-medium),
+      rotate var(--app-transition-medium);
+  }
+  .shell__centre.is-pulling .pull-search {
+    opacity: 1;
+    transition: none;
+  }
+  .shell__centre.is-pulling .pull-search__glass {
+    transition:
+      background var(--app-transition-fast),
+      color var(--app-transition-fast);
+  }
+  .shell__centre.is-pull-ready .pull-search__glass {
+    background: var(--app-brand);
+    color: var(--app-on-brand);
+    border-color: var(--app-brand);
+    scale: 1.1;
+  }
+}
