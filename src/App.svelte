@@ -27,34 +27,21 @@
   import { onBack, installBack } from "./lib/services/back.js";
   import ContextMenu from "./lib/components/ContextMenu.svelte";
   import { entryOf } from "./lib/shell/entry.js";
-  import ListView from "./lib/screens/ListView.svelte";
-  import TasksView from "./lib/screens/TasksView.svelte";
-  import CompletedView from "./lib/screens/CompletedView.svelte";
-  import TimelineView from "./lib/screens/TimelineView.svelte";
-  import TagsView from "./lib/screens/TagsView.svelte";
-  import TrashView from "./lib/screens/TrashView.svelte";
-  import AssetsView from "./lib/screens/AssetsView.svelte";
   import Icon from "./lib/components/Icon.svelte";
-  import EmptyState from "./lib/components/EmptyState.svelte";
-  import NoteBanner from "./lib/components/NoteBanner.svelte";
   import AssetPicker from "./lib/components/AssetPicker.svelte";
   import ImageViewer from "./lib/components/ImageViewer.svelte";
   import { TABLE_FORMATS } from "./lib/services/tableEditing.js";
   import { assetUrl } from "./lib/services/assets.js";
   import NewTaskDialog from "./lib/components/NewTaskDialog.svelte";
   import SearchDialog from "./lib/components/SearchDialog.svelte";
-  import SpaceView from "./lib/screens/SpaceView.svelte";
-  import NotesSpace from "./lib/spaces/NotesSpace.svelte";
   import { sourceOf } from "./lib/spaces/registry.js";
   import { movedItem } from "./lib/services/spaceOrder.js";
-  import NoteEditor from "./lib/components/NoteEditor.svelte";
   import FormatBar from "./lib/components/FormatBar.svelte";
-  import HomeView from "./lib/screens/HomeView.svelte";
-  import SettingsView from "./lib/screens/SettingsView.svelte";
   import TabBar from "./lib/shell/TabBar.svelte";
   import AppBanners from "./lib/shell/AppBanners.svelte";
   import NotebookPicker from "./lib/shell/NotebookPicker.svelte";
   import RightPanel from "./lib/shell/RightPanel.svelte";
+  import Screen from "./lib/shell/Screen.svelte";
   import TitleBar from "./lib/shell/TitleBar.svelte";
   import { buttonLayout } from "./lib/shell/windowButtons.js";
   import { isMobile, osAttribute, platformAttribute } from "./lib/shell/platform.js";
@@ -2265,288 +2252,82 @@
                the sidebar or the search arrives rather than switches. -->
           {#key Tabs.viewId(view)}
           <div class="shell__screen">
-          <!-- The screens, each handed what it needs, one prop at a time.
-               TRIED AND REVERTED (2026-08-18): gathering the five or six props
-               they share into one `$derived` object and spreading it. It reads
-               shorter and it is wrong — a spread makes every prop of the child
-               a getter over ONE object, so a screen's `$effect(() => { list;
-               reloadKey; load(); })` re-runs whenever anything else in that
-               object changes. Selecting a task re-read the whole list from
-               disk, and the fresh objects lost the identity the selection is
-               matched by, so the card stopped being highlighted. The test
-               "an opened task is highlighted even with no id yet" is what
-               caught it; it is still the one that would catch it again. -->
-          {#if view.kind === "home"}
-            <HomeView
-              bind:this={homeView}
-              {compact}
-              origin={originOfItem}
-              notesColor={spColors[layout.notesFolder] ?? null}
-              colors={spColors}
-              ghostTitles={layout.timelineGhostTitles ?? false}
-              root={notebook.path}
-              dot={colorOf(view)}
-              composing={composingTask}
-              onCloseCompose={() => (composingTask = false)}
-              dateFormat={layout.dateDisplayFormat}
-              quickNoteFolder={layout.quickNoteFolder}
-              quickTask={quickTaskTo}
-              notesFolder={layout.notesFolder}
-              noteTargets={quickTargets}
-              lists={notebook.lists}
-              {tags}
-              completedName={layout.completedName}
-              inbox={layout.inbox}
-              readOnly={notebook.readOnly}
-              {reloadKey}
-              onChanged={refreshNotebook}
-              onError={fail}
-              onOpenNote={openNoteFromBoard}
-              onOpenTask={showFoundTask}
-              onSelectTask={select}
-              onSuggest={suggest}
-              selectedTask={selected?.task ?? null}
-              today={clock?.today}
-              weekStartsOn={clock?.weekStartsOn ?? "monday"}
-              day={homeDay}
-              onPickDay={(iso) => (homeDay = iso)}
-              onSummary={(summary) => (homeSummary = summary)}
-              {f}
-            />
-          {:else if view.kind === "tasks"}
-            <TasksView
-              dateFormat={layout.dateDisplayFormat}
-              origin={originOfItem}
-              inbox={layout.inbox}
-              {inboxSource}
-              showAll={layout.tasksShowAll ?? false}
-              lists={notebook.lists}
-              {tags}
-              completedName={layout.completedName}
-              today={clock?.today}
-              readOnly={notebook.readOnly}
-              onChanged={refreshNotebook}
-              onError={fail}
-              {reloadKey}
-              onSelect={select}
-              selectedTask={selected?.task ?? null}
-              {dayRefs}
-              onSetSort={tasksArrangement.setSort}
-              onSetOrder={tasksArrangement.setOrder}
-              {f}
-            />
-          {:else if view.kind === "list"}
-            <ListView
-              dateFormat={layout.dateDisplayFormat}
-              list={view.list}
-              readOnly={notebook.readOnly}
-              onChanged={refreshNotebook}
-              onError={fail}
-              {reloadKey}
-              onSelect={select}
-              selectedId={selected?.task?.id ?? null}
-              selectedTask={selected?.task ?? null}
-              today={clock?.today}
-              {dayRefs}
-              {f}
-            />
-          {:else if view.kind === "notes"}
-            <NotesSpace
-              {f}
-              dateFormat={layout.dateDisplayFormat}
-              source={sourceOf(
-                // The arrangement comes from the space's own config — without
-                // it the ⋮ could not tick the sorting in force and dragging
-                // had nowhere to be saved. The folder falls back to the
-                // layout's answer so the screen still opens if the space list
-                // has not caught up.
-                {
-                  kind: "notes",
-                  known: true,
-                  path: notesSpace?.path ?? layout.notesFolder,
-                  sort: notesSpace?.sort,
-                  order: notesSpace?.order,
-                  noteLayout: notesSpace?.noteLayout,
-                },
-                // The screen names itself, and what it is called is what the
-                // app calls this place everywhere else — the sidebar entry,
-                // the tab, the header. (The wireframe writes "Inbox" there,
-                // from a time when this screen was thought of as showing that
-                // one folder; the board shows the whole space, so the space's
-                // name is the honest label.)
-                { name: title(view) },
-              )}
-              onSetSort={notesArrangement.setSort}
-              onSetOrder={notesArrangement.setOrder}
-              onSetLayout={notesArrangement.setNoteLayout}
-              defaultLayout={layout.noteLayout}
-              header={!compact}
-              dot={colorOf(view)}
-              readOnly={notebook.readOnly}
-              notesInbox={layout.notesInbox}
-              root={notebook.path}
-              {noteSpaces}
-              {reloadKey}
-              onChanged={refreshNotebook}
-              onError={fail}
-              onOpenNote={openNoteFromBoard}
-            />
-          {:else if view.kind === "note"}
-            <!-- The note's head: its banner and its title, as the "Editor
-                 screen" wireframes draw them. Without a banner the block has
-                 no colour and no height, and the title stays exactly where it
-                 was (user call, 2026-08-19). -->
-            <NoteBanner
-              enabled={f("banners")}
-              banner={openNote.banner}
-              title={openNote.title}
-              root={notebook.path}
-              readOnly={notebook.readOnly}
-              {compact}
-              onSet={setNoteBanner}
-              onChooseImage={() => (pickingImage = "banner")}
-              onRename={notebook.readOnly ? null : renameCurrentNote}
-              created={openNote.created ?? null}
-              tags={openNote.tags ?? []}
-              catalogue={tags}
-              dateFormat={layout.dateDisplayFormat}
-              tagsEnabled={f("noteTags")}
-              color={colorOf(view)}
-              onSetTags={setNoteTags}
-              onCreateTag={createNoteTag}
-            />
-            <NoteEditor
-              bind:this={noteEditor}
-              folder={view.folder}
-              path={view.path}
-              readOnly={notebook.readOnly}
-              onSaved={refreshNotebook}
-              onError={fail}
-              onFiles={addFilesToNote}
-              onOpenFile={(address) => api.openAsset(address).catch(fail)}
-              onOpenNote={openNoteByTitle}
-              onZoomImage={(address) => (zoomedImage = address)}
-              onSelection={(has) => (noteSelected = has)}
-              onTable={(status) => (noteTable = status)}
-              version={reloadKey}
-              wikiLinks={f("wikiLinks")}
-              embeds={f("embeds")}
-              tables={f("tables")}
-              tableLayout={layout.tableLayout}
-              root={notebook.path}
-              onLoaded={(state) => {
-                openNote = state;
-                // Consumed here, not in the editor: only the shell knows this
-                // note was created a moment ago rather than opened.
-                if (focusNewNote) {
-                  focusNewNote = false;
-                  noteEditor?.focusBody();
-                }
-              }}
-            />
-          {:else if view.kind === "settings"}
-            <SettingsView
-              {compact}
-              {mobile}
-              {notebook}
-              {zoom}
-              onZoom={setZoom}
-              onSwitchNotebook={chooseFolder}
-              noteTargets={quickTargets}
-              taskTargets={quickTaskChoices}
-              {userThemes}
-              {wornTheme}
-              onNewTheme={newThemeFrom}
-              blockedInTheme={wornThemeBlocked}
-              onSection={(label) => (settingsSub = label)}
-              onChanged={refreshNotebook}
-              onError={fail}
-            />
-          {:else if view.kind === "space"}
-            {@const current = userSpaces.find((w) => w.path === view.sp)}
-            {#if current}
-              <SpaceView
-                {compact}
-                space={current}
-                color={spColors[current.path] ?? null}
-                lists={notebook.lists}
-                {tags}
-                completedName={layout.completedName}
-                notesInbox={layout.notesInbox}
-                root={notebook.path}
-                {noteSpaces}
-                today={clock?.today}
-                dateFormat={layout.dateDisplayFormat}
-                {dayRefs}
-                {f}
-                readOnly={notebook.readOnly}
-                {reloadKey}
-                selectedTask={selected?.task ?? null}
-                onSelectTask={select}
-                onOpenNote={openNoteFromBoard}
-                onSetSpaceSort={spaceArrangement.setSort}
-                onSetSpaceOrder={spaceArrangement.setOrder}
-                onSetSpaceNoteLayout={spaceArrangement.setNoteLayout}
-                noteLayout={layout.noteLayout}
-                onChanged={refreshNotebook}
-                onError={fail}
-              />
-            {:else}
-              <EmptyState icon="folder" title={S.missingSpace} />
-            {/if}
-          {:else if view.kind === "tags"}
-            <TagsView
-              {tags}
-              onSearch={(name) => {
-                searchScope = null;
-                searchQuery = `#${name}`;
-                searching = true;
-              }}
-              onChanged={refreshNotebook}
-              onError={fail}
-            />
-          {:else if view.kind === "assets"}
-            <AssetsView
-              root={notebook.path}
-              readOnly={notebook.readOnly}
-              onChanged={refreshAll}
-              onError={fail}
-              onOpenNote={(path, folder, opts) => showNote(path, folder, opts?.newTab)}
-              onOpenTask={showFoundTask}
-              onRemoteImage={(url) => fetchRemoteImage(url)}
-              {reloadKey}
-            />
-          {:else if view.kind === "timeline"}
-            <TimelineView
-              readOnly={notebook.readOnly}
-              today={clock?.today}
-              dateFormat={layout.dateDisplayFormat}
-              origin={originOfItem}
-              colors={spColors}
-              ghostTitles={layout.timelineGhostTitles}
-              onOpenTask={showFoundTask}
-              onOpenNote={(path, folder) => showNote(path, folder)}
-              onChanged={refreshNotebook}
-              onError={fail}
-              {reloadKey}
-            />
-          {:else if view.kind === "trash"}
-            <TrashView
-              onChanged={refreshNotebook}
-              onError={fail}
-              {reloadKey}
-              dateFormat={layout.dateDisplayFormat}
-              readOnly={notebook?.readOnly ?? false}
-            />
-          {:else}
-            <CompletedView
-              readOnly={notebook.readOnly}
-              origin={originOfItem}
-              onChanged={refreshNotebook}
-              onError={fail}
-              {reloadKey}
-            />
-          {/if}
+          <Screen
+            {view}
+            {notebook}
+            {layout}
+            {clock}
+            {compact}
+            {mobile}
+            {f}
+            {reloadKey}
+            {tags}
+            {dayRefs}
+            {spColors}
+            {noteSpaces}
+            {userSpaces}
+            {notesSpace}
+            {inboxSource}
+            {quickTargets}
+            {quickTaskChoices}
+            {quickTaskTo}
+            {userThemes}
+            {wornTheme}
+            {wornThemeBlocked}
+            {zoom}
+            {openNote}
+            {selected}
+            origin={originOfItem}
+            {colorOf}
+            titleOf={title}
+            onChanged={refreshNotebook}
+            onChangedAll={refreshAll}
+            onError={fail}
+            onOpenNote={openNoteFromBoard}
+            onOpenTask={showFoundTask}
+            onSelectTask={select}
+            onSuggest={suggest}
+            onShowNote={showNote}
+            onSearchTag={(name) => {
+              searchScope = null;
+              searchQuery = `#${name}`;
+              searching = true;
+            }}
+            composing={composingTask}
+            onCloseCompose={() => (composingTask = false)}
+            {homeDay}
+            onPickDay={(iso) => (homeDay = iso)}
+            onSummary={(summary) => (homeSummary = summary)}
+            bind:homeView
+            {tasksArrangement}
+            {notesArrangement}
+            {spaceArrangement}
+            bind:noteEditor
+            onSetBanner={setNoteBanner}
+            onChooseImage={() => (pickingImage = "banner")}
+            onRenameNote={renameCurrentNote}
+            onSetTags={setNoteTags}
+            onCreateTag={createNoteTag}
+            onFiles={addFilesToNote}
+            onOpenNoteByTitle={openNoteByTitle}
+            onZoomImage={(address) => (zoomedImage = address)}
+            onSelection={(has) => (noteSelected = has)}
+            onTable={(status) => (noteTable = status)}
+            onNoteLoaded={(state) => {
+              openNote = state;
+              // Consumed here, not in the editor: only the shell knows this
+              // note was created a moment ago rather than opened.
+              if (focusNewNote) {
+                focusNewNote = false;
+                noteEditor?.focusBody();
+              }
+            }}
+            onRemoteImage={(url) => fetchRemoteImage(url)}
+            onZoom={setZoom}
+            onSwitchNotebook={chooseFolder}
+            onNewTheme={newThemeFrom}
+            onSection={(label) => (settingsSub = label)}
+          />
           </div>
           {/key}
           </div>
