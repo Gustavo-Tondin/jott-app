@@ -58,6 +58,12 @@ error; only a click finds it.
 **4. Nothing is destroyed.** Deletion moves into `.jott/trash/`. Every write
 goes through `fsio::write_atomically`, never `fs::write`.
 
+**5. Comments state the contract, not the story.** A comment says what a
+piece guarantees or the non-obvious trap it avoids, in a few lines. How the
+code got that way — dates, bug reports, what it used to do — does not
+belong in the source; keep it in the commit message. A file header is five
+lines at most.
+
 **5. Code and comments in English**, including error messages inside the
 code. Commit messages follow [Conventional
 Commits](https://www.conventionalcommits.org) — the existing history is in
