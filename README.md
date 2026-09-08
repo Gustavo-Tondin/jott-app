@@ -75,6 +75,7 @@ Pre-1.0, and used daily. The [releases page](https://github.com/Gustavo-Tondin/j
 - Three themes (default, light, dark) × eight accent colours, each with a six-rung ladder so headings and chrome agree with the theme.
 - **Themes you bring in yourself**: drop a `.css` file into your notebook's `.jott/themes/` and pick it in Settings — saving the file repaints the app. The app writes the first one for you, out of the look already on screen ([how](documentation/theming.md)).
 - Three font choices (interface, note body, monospace) from the fonts your machine has; interface zoom; note text size; how the notes board is laid out and how tall its cards may grow. All of it per machine.
+- **Automatic hyphenation** of note text, off by default: a long word breaks at the end of a line instead of leaving a hole in the right edge. It happens on screen only — the `.md` file keeps every word whole — and it uses the hyphenation rules your system has installed.
 - Configurable keyboard shortcuts for ~50 commands.
 - One responsive shell: sidebar and panels on the desktop, drawer and bottom sheets on the phone, where the top bar floats over the page and its buttons take the colour of whatever has scrolled under them.
 

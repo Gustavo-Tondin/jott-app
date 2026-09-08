@@ -8,6 +8,10 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 
 ## v0.54.0
 
+### New
+
+- **Hyphenate note text** (Settings › Display › Text), off by default: a long word breaks across two lines instead of leaving a hole in the right edge. It is only ever drawn — the `.md` file keeps every word whole.
+
 ### Fixed
 
 - **The Home's title enters the canvas again on a phone.** As the sheet rises through the title row, the canvas-coloured copy is revealed along the ground's edge, pixel by pixel; since v0.53.0 it stayed hidden until the sheet had reached the top and then dropped in late.
@@ -21,6 +25,8 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 
 ### Improved
 
+- **The app's page now declares English**, so the editor's spell-check and the new hyphenation use English rules instead of Portuguese ones.
+- **The chosen day glides** on the Home's week, the way the pill of a segmented control moves, instead of jumping from one day to the next.
 - **The Home's + is bigger on a phone** — the same 72px it has on the desktop, up from 64px.
 
 ## v0.53.0
