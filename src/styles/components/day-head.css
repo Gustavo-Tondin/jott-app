@@ -123,6 +123,12 @@
       inline-size var(--app-duration-medium) var(--app-ease-out),
       block-size var(--app-duration-medium) var(--app-ease-out);
   }
+  /* THE FIRST AND LAST DAY have no room for the spring: they sit flush with
+     the scroller's box, which cuts the overshoot off. The state is written by
+     the action, which is the only one that has measured. */
+  .day-head__days--glides.is-at-edge::before {
+    transition-timing-function: var(--app-ease-out);
+  }
   .day-head__slot {
     display: flex;
     justify-content: center;

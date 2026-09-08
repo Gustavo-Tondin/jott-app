@@ -172,6 +172,13 @@
       inline-size var(--app-duration-medium) var(--app-ease-out),
       block-size var(--app-duration-medium) var(--app-ease-out);
   }
+  /* An item flush with the track's edge is reached without the spring, which
+     would overshoot outside it (actions/segmented.js). The well's own padding
+     keeps every item off the edge here, so this waits for a track that has
+     none. */
+  .theme-segmented--glides.is-at-edge::before {
+    transition-timing-function: var(--app-ease-out);
+  }
   /* A filled rounded rectangle, not an outline pill: outlined, the group read
      as loose links and the active one had to shout. */
   .theme-segmented__item {
