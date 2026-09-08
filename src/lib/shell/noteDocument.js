@@ -20,17 +20,12 @@ export function hostOf(url) {
   }
 }
 
-/// - `view()` / `note()` / `editor()` — what the shell shows right now.
-/// - `setNote(next)` — the open note's record, after a write.
-/// - `readOnly()` — whether the notebook takes writes at all.
-/// - `change(run, then)` — the shell's recorded action (`services/act.js`).
+/// - `view()` / `note()` / `editor()` — what the shell shows; `setNote(next)`.
+/// - `readOnly()`; `change(run, then)` — the recorded action (`services/act.js`).
 /// - `fail` / `reload` / `refreshNotebook` — the shell's error and refresh.
-/// - `replaceTabView(from, to)` / `closeActiveTab()` / `goTo(view)` — the
-///   tab that follows the file.
-/// - `showNote(path, folder)` — opens a note; `openSearchAt(title)` — the
-///   search box, at a title, when a link is ambiguous.
-/// - `picking()` / `pickImage(purpose)` — the image picker: what it was
-///   opened for (`"banner"` or `"body"`), and opening it (`null` closes).
+/// - `replaceTabView(from, to)` / `closeActiveTab()` / `goTo(view)` — the tab follows the file.
+/// - `showNote(path, folder)`; `openSearchAt(title)` — when a link is ambiguous.
+/// - `picking()` / `pickImage(purpose)` — `"banner"` | `"body"`; `null` closes.
 export function makeNoteDocument({
   view,
   note,
@@ -87,12 +82,8 @@ export function makeNoteDocument({
     }
   }
 
-  /// Hangs a banner on the open note, or takes it off with `null`.
-  ///
-  /// It writes ONE line of the note's own file (`core/src/note.rs`), so it
-  /// goes through the same flush the other document actions do: a pending body
-  /// write and a banner write both rewrite the file, and the last one there
-  /// would win.
+  /// Hangs a banner on the open note, or takes it off with `null`. It writes
+  /// ONE line of the note's file, so it takes the same flush as the body.
   const setNoteBanner = (value) =>
     noteAction(async () => {
       await api.setNoteBanner(view().folder, view().path, value);
@@ -117,12 +108,9 @@ export function makeNoteDocument({
     else editor()?.insert(embedMarkdown(address));
   }
 
-  /// Fetches a picture that is only on the web, having asked first.
-  ///
-  /// The one thing this app does that leaves the machine, so it says which
-  /// host it will contact before doing it (principle 9) — until the person
-  /// says to stop asking, which is a setting of the notebook and not of the
-  /// session. Answers with the address it took, or `null`.
+  /// Fetches a picture that is only on the web, having asked first — the one
+  /// thing this app does that leaves the machine (principle 9). `remember` is
+  /// a notebook setting. Answers with the address it took, or `null`.
   async function fetchRemoteImage(url) {
     const ok = await askConfirm(S.downloadImageTitle, {
       detail: S.downloadImageBody,
@@ -141,14 +129,9 @@ export function makeNoteDocument({
     }
   }
 
-  /// Files the user brought into the open note — pasted, or dropped on it.
-  /// They go into the notebook's library like any other file, and the note
-  /// gets the markdown for them where the caret is.
-  ///
-  /// Importing here rather than in the editor is the same split the picker
-  /// keeps: the editor writes text, and what an address MEANS is the shell's
-  /// question. One markdown line per file, each on its own line, because two
-  /// pictures pasted at once are two pictures and not a sentence.
+  /// Files brought into the open note go into the library, and the note gets
+  /// the markdown where the caret is, one line per file. Importing here, not
+  /// in the editor: the editor writes text; what an address MEANS is the shell's.
   async function addFilesToNote(brought) {
     if (readOnly()) return;
     if (brought?.files?.length || brought?.paths?.length) {
@@ -161,10 +144,7 @@ export function makeNoteDocument({
       }
       return;
     }
-    // Nothing local, but an address on the web: a picture copied from a page.
-    // Drawing it means FETCHING it, which is the one thing this app does that
-    // leaves the machine — so it is asked for, until the person says to stop
-    // asking (principle 9, and `confirmImageDownloads`).
+    // Nothing local, but an address on the web: fetched, after asking.
     if (brought?.remote) {
       const address = await fetchRemoteImage(brought.remote);
       if (address) editor()?.insert(`${embedMarkdown(address)}\n`);
@@ -176,17 +156,10 @@ export function makeNoteDocument({
     fail(S.noFileInGesture(brought?.types ?? []));
   }
 
-  /// Opens the note a `[[link]]` names.
-  ///
-  /// A link carries a TITLE, so a title has to be turned into a note — and
-  /// the notebook's own search is what already knows every note there is.
-  /// Exact matches only: `[[Ideias]]` means the note called Ideias, not every
-  /// note with the word in it.
-  ///
-  /// Two of them is not a guess the app gets to make (see docs/historico.md):
-  /// the search box opens at that title and the person picks. None of them is
-  /// worth saying — a link that names nothing looks exactly like one that
-  /// works.
+  /// Opens the note a `[[link]]` names. A link carries a TITLE, so the search
+  /// finds the note; exact matches only. Two matches is not a guess the app
+  /// makes — the search box opens at that title. None: a message, because a
+  /// dead link looks exactly like a live one.
   async function openNoteByTitle(title) {
     const wanted = String(title ?? "").trim().toLowerCase();
     if (!wanted) return;

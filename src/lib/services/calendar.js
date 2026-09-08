@@ -1,15 +1,7 @@
-// The Home's calendar strip and the day it names (2026-09-04).
-//
-// The Home became the screen of TIME: a week of days across the top, today
-// selected, and the page below reading whichever day is chosen — today's
-// tasks and notes, a day ahead's plan, a day gone by's record. What is here
-// is the arithmetic the strip needs and nothing the screen draws: which
-// seven days a week holds, what a day is against today, what the head says.
-//
-// Every date is the ISO day the files speak (`2026-09-04`), and every
-// answer is derived from a string the caller already has — nothing here
-// reads the clock, so "today" is always the notebook's (`clock.today`),
-// never the machine's.
+// The Home's calendar strip and the day it names: the arithmetic the strip
+// needs, nothing the screen draws. Every date is the ISO day the files speak
+// (`2026-09-04`); nothing here reads the clock, so "today" is always the
+// notebook's (`clock.today`), never the machine's.
 
 import { S } from "./strings.js";
 import { toIso } from "./dates.js";
@@ -88,10 +80,9 @@ export function greetingFor(hour) {
   return S.goodEvening;
 }
 
-/// The head's one line about a day. `done` and `total` count the day's
-/// tasks (open + completed) for today and a day ahead; for a day gone by
-/// the caller passes the log's three counts — completed, created, notes —
-/// and the line says all three (user call, 2026-09-04).
+/// The head's one line about a day. `done`/`total` count the day's tasks for
+/// today and a day ahead; a day gone by takes the log's three counts —
+/// completed, created, notes — and the line says all three.
 export function summaryOf({ kind, done = 0, total = 0, created = 0, notes = 0 }) {
   if (kind === "past") return S.daySummary({ done, created, notes });
   if (kind === "ahead") return S.tasksPlanned(total);

@@ -1,30 +1,11 @@
-// The one shape every screen uses to change the notebook: do it,
-// reload what is on screen, tell the shell — and route a failure to the error
+// The one shape every screen uses to change the notebook: do it, reload
+// what is on screen, tell the shell — and route a failure to the error
 // banner instead of an unhandled rejection.
-//
-// It was written six times over (ListView, PeriodView, HomeView, TagsView and
-// both space screens), each copy slightly its own — and a seventh time in the
-// shell, eighteen times over. Princípio 7: the behaviour that shows up
-// everywhere is a capability, not a snippet to paste.
 
-/// Builds the `act(fn, after)` of a screen.
-///
-/// `load` re-reads what the screen shows (the disk is the source of truth, so
-/// nothing is patched in memory); `onChanged` lets the shell refresh the
-/// counts and the sidebar; `onError` gets anything that throws. All three are
-/// optional — a screen that only reads still gets the error routing.
-///
-/// `after` is the second half of a change: what has to happen once the screen
-/// has been re-read, holding whatever `fn` answered — open the space that was
-/// just created, leave the screen that was just deleted, follow the file that
-/// was just renamed. It runs AFTER the reload, which is the whole point: doing
-/// it before would navigate to something the snapshot does not carry yet. It
-/// never runs when `fn` threw.
-///
-/// Pass the shell's callbacks WRAPPED (`onError: (e) => onError?.(e)`), never
-/// the prop itself: `act` is built once, so handing it the prop would freeze
-/// the value it had at first render — the reason Svelte warns about
-/// `state_referenced_locally` here.
+/// Builds a screen's `act(fn, after)`. `load` re-reads what the screen shows
+/// (disk is the truth); `onChanged` lets the shell refresh; `onError` gets
+/// what throws. `after` runs AFTER the reload with what `fn` answered, never
+/// when `fn` threw. Pass the shell's callbacks WRAPPED — built once, a prop freezes.
 export function makeAct({ load, onChanged, onError } = {}) {
   return async function act(fn, after) {
     try {
@@ -52,15 +33,9 @@ export function makeLoad({ read, apply, onError }) {
 }
 
 /// Builds the pair every screen holds — `load` and the `act` that reloads
-/// through it — from one description: `read`/`apply` for the load,
-/// `onChanged`/`onError` for both. It was the same eleven lines at the top of
-/// nine screens.
-///
-/// Pass the shell's callbacks WRAPPED (`onChanged: () => onChanged?.()`),
-/// never the prop itself: both halves are built once, and handing them the
-/// prop would freeze the value it had at first render (see `makeAct`). What
-/// stays in the screen is the `$effect` that calls `load` when its key
-/// changes — that is the screen's own reactive fact.
+/// through it — from one description. Pass the shell's callbacks WRAPPED, as
+/// with `makeAct`; the `$effect` that calls `load` when the key changes stays
+/// in the screen.
 export function makeScreen({ read, apply, onChanged, onError }) {
   const load = makeLoad({ read, apply, onError });
   return { load, act: makeAct({ load, onChanged, onError }) };

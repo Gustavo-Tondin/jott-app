@@ -1,33 +1,8 @@
-// `use:flick={{ onUp, onDown, enabled }}` — a short vertical drag on an
-// element, reported as a direction once the finger lets go.
-//
-// For the Home's head on a phone (user call, 2026-09-07: "área de interação
-// diferente no canvas e no chrome no touch"): dragging DOWN on the chrome
-// unfolds one more level of the head, dragging UP folds one away, and the
-// canvas below keeps scrolling like a page. It is not `actions/swipe.js`
-// (a card's horizontal reveal, clamped at 76px, with two actions to show)
-// and not `actions/pullToSearch.js` (a distance painted live, from the top
-// of a scroller only): this one moves nothing while the finger is down and
-// answers one question at the end — up or down, if far enough.
-//
-// `onMove(dy)` reports the drag while the finger is down, once it is clearly
-// vertical — for a head that wants to FOLLOW the finger rather than jump at
-// the end (user call, 2026-09-07: "animado junto com o gesto do dedo") — and
-// `onEnd(dy)` says how far it got when it let go, before `onUp`/`onDown`
-// decide. Both are optional; the direction callbacks alone still work.
-//
-// The gesture is claimed only once it is clearly vertical (`LOCK`), and then
-// the `touchmove` is cancelled so the scroller the head lives in does not
-// scroll under it — the measured lesson of actions/drawerSwipe.js: in the
-// Android WebView a `pointercancel` arrives two moves into any drag the
-// browser reads as a scroll, and only a `preventDefault` on the `touchmove`
-// keeps the gesture. A drag that goes sideways first is someone else's (the
-// week strip scrolls that way) and is let go untouched. A mouse gets the same
-// through pointer events.
-//
-// The element is marked `data-flicks` while the action lives, so the
-// scroller's own pull (pullToSearch) declines a drag that starts here — the
-// two are both "drag down at the top of the page", and only one may answer.
+// `use:flick={{ onUp, onDown, onMove, onEnd, enabled }}` — a short vertical
+// drag, answered as a direction on release. It moves nothing itself: `onMove(dy)`
+// follows the finger once the drag is clearly vertical, `onEnd(dy)` fires
+// before `onUp`/`onDown` decide. A drag that goes sideways first is left to the
+// browser. `data-flicks` marks the element so pullToSearch declines a drag here.
 
 /// The first movement decides which gesture this is.
 const LOCK = 8;
@@ -87,6 +62,9 @@ export function flick(node, params = {}) {
     const t = event.touches[0];
     begin(t.clientX, t.clientY);
   }
+  // Once the drag is ours the `touchmove` is cancelled, or the Android WebView
+  // sends `pointercancel` and keeps it as a scroll.
+  // See docs/platform-gotchas.md#webview-e-gestos
   function touchMove(event) {
     if (!drag) return;
     if (event.touches.length !== 1) return abandon();

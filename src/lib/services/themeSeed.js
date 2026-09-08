@@ -1,17 +1,8 @@
-// The starting point of a new theme: the PALETTE in use, as a file.
-//
-// "New theme from this one" (Settings › Display, 2026-08-25) writes a theme
-// the reader will edit. Since 2026-08-26 a theme is `:root { --theme-… }` —
-// the colours, the spacing, the radius — and nothing about regions or modes,
-// which is what lets one palette wear the jott, light and dark modes alike
-// (styles/themes/jott.css says the whole contract). So the seed is the
-// factory file's tokens, with whatever the theme being worn overrides on
-// top: duplicate the app's own and you get the app's own; duplicate a theme
-// and you get its values, even out of a full stylesheet that also restyles
-// regions (only its `--theme-*` come along — the copy is a palette).
-//
-// Pure text, no DOM: `getComputedStyle` would answer with the mode's `--app-*`
-// resolved and the theme's literals lost, and a test could not run it.
+// The starting point of a new theme ("New theme from this one"): the factory
+// file's `--theme-*` tokens with the worn theme's overrides on top, as one
+// `:root` rule. Only `--theme-*` come along — the copy is a palette, never
+// regions or modes (styles/themes/jott.css is the contract). Pure text, no DOM:
+// `getComputedStyle` would answer with `--app-*` resolved and the literals lost.
 
 /// A `--theme-*` declaration, wherever it sits in a stylesheet.
 const TOKEN = /(--theme-[a-z0-9-]+)\s*:\s*([^;{}]+);/g;

@@ -1,30 +1,14 @@
-// Whether to offer the app a place in the desktop's application menu.
-//
-// The bridge owns the facts — is there an entry to write at all, is one
-// already there, was the offer waved away. This module owns the one POLICY
-// question those three answer: does the launch show the offer?
-//
-// It is a module rather than three lines in `App.svelte` for the same reason
-// `update.js` is: the rule is worth a test, and the screen that shows it
-// should not be the place that decides it.
+// Whether to offer the app a place in the desktop's application menu. The
+// bridge owns the facts (is there an entry to write, is one there, was the
+// offer waved away); this owns the one POLICY question: does the launch show
+// the offer? A module, like `update.js`, because the rule is worth a test.
 
 import { api } from "./api.js";
 
-/// The launch-time look. Resolves to the state when there is something to
-/// OFFER, and to `null` in every other case — a packaged install, an entry
-/// that is already there and current, an offer already refused, or a bridge
-/// that does not know the command (an older build, or the mobile bundle).
-///
-/// It also does one thing without asking: **refresh an entry that has gone
-/// stale.** An in-place update replaces the `.AppImage` and nothing else, so a
-/// version with a redrawn icon or a new name would leave every integrated
-/// machine showing the old one forever. Rewriting it is not a new decision —
-/// the user already said yes to being in the menu, and this is that same
-/// answer applied to the current files. Silent for the same reason: there is
-/// no question to ask.
-///
-/// Silent on failure like the update check: not being in the menu is not a
-/// problem worth interrupting a launch over.
+/// The launch-time look: the state when there is something to OFFER, else
+/// `null` (packaged install, entry present, refused, no such command). A
+/// STALE entry is rewritten without asking — an in-place update replaces
+/// only the `.AppImage`, and the user already said yes. Silent on failure.
 export async function offerIfDue() {
   try {
     const state = await api.desktopEntryState();

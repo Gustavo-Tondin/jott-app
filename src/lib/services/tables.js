@@ -1,30 +1,8 @@
-// A Markdown table as a VALUE — the half of the feature that never sees the
-// editor (2026-08-24).
-//
-// What lives here: reading a GFM pipe table out of its lines, writing one back
-// aligned, and the structural edits the formatting panel offers (a column, a
-// row, a move, a removal). What does NOT live here: any position in a
-// document, any DOM, any CodeMirror. `tableEditing.js` maps this onto the
-// open note, `tableWidget.js` draws it; both are testable only with an
-// editor, this one with a string.
-//
-// **The file is the product (principle 4)**, which decides two things:
-//
-//   1. Reading is TOLERANT. A row with too few cells, too many, without the
-//      outer pipes, with the delimiter written `|---|---|` and the cells
-//      unpadded — all of it is a table (the reference note the user showed
-//      had two of these shapes side by side). GitHub reads it; so does this.
-//   2. Writing is STRICT. Every write comes out padded so the columns line up
-//      in a monospaced font, outer pipes on, one space of air in each cell —
-//      the shape a person reading the raw `.md` in any other editor can
-//      follow with the eye. Alignment marks (`:---:`) a file already carries
-//      are kept as they are: the app offers no control for them, and a
-//      setting the user wrote by hand is not the app's to drop.
-//
-// A model is `{header: string[], align: (null|"left"|"center"|"right")[],
-// rows: string[][]}`. Cell text is what a person SEES — a pipe inside a cell
-// is `|` here and `\|` in the file; `escapeCell`/`unescapeCell` are the only
-// two places that know the difference.
+// A Markdown table as a VALUE: parse a GFM pipe table, write it back aligned,
+// and the structural edits — no document position, no DOM, no CodeMirror.
+// Reading is TOLERANT (no outer pipes, short/long rows, unpadded delimiter);
+// writing is STRICT (padded, outer pipes on), alignment marks kept as found.
+// Cell text is what a person SEES: only `escapeCell`/`unescapeCell` know `\|`.
 
 /// The smallest a column can be. Three, because that is the shortest
 /// delimiter GFM accepts (`---`) — a narrower column would have to write a
@@ -48,11 +26,8 @@ export function isDelimiterRow(line) {
 }
 
 /// The cells of one row, as the person sees them: outer pipes dropped, each
-/// cell trimmed, `\|` read back as a pipe.
-///
-/// A pipe inside a code span still splits — that IS the GFM rule (the spec
-/// says the only escape is the backslash), and a reader that split
-/// differently from GitHub would draw one table here and another there.
+/// cell trimmed, `\|` read back as a pipe. A pipe inside a code span still
+/// splits — that IS the GFM rule, and GitHub splits the same way.
 export function splitRow(line) {
   let text = line.trim();
   if (text.startsWith("|")) text = text.slice(1);
@@ -97,13 +72,10 @@ export function escapeCell(text) {
   return text.replace(/\r?\n/g, " ").replace(/\|/g, "\\|");
 }
 
-/// Reads a table out of its lines. The first line is the header, the second
-/// the delimiter (skipped when present — a table pasted without one is still
-/// read, so the app can write it back WITH one), the rest the body.
-///
-/// The width of the table is the header's: GFM drops the extra cells of a
-/// long row and fills a short one, and so does this — which is also what
-/// makes every write come out rectangular.
+/// Reads a table out of its lines: header, delimiter (skipped when present —
+/// a table without one is still read, and written back WITH one), body.
+/// The width is the header's: extra cells are dropped, short rows filled,
+/// as GFM does — which makes every write rectangular.
 export function parseTable(lines) {
   const list = Array.isArray(lines) ? lines : String(lines ?? "").split("\n");
   const kept = list.filter((line) => line.trim() !== "");
@@ -162,8 +134,7 @@ export function renderTable(model) {
 }
 
 /// A fresh table: `columns` headed "Column 1", "Column 2"…, and `rows` empty
-/// body rows. The shape the Insert button writes (2 × 2 including the header,
-/// user call 2026-08-24).
+/// body rows. The shape the Insert button writes (2 × 2 including the header).
 export function emptyTable({ columns = 2, rows = 1, label = (n) => `Column ${n}` } = {}) {
   const header = Array.from({ length: columns }, (_, i) => label(i + 1));
   return {
@@ -174,11 +145,9 @@ export function emptyTable({ columns = 2, rows = 1, label = (n) => `Column ${n}`
 }
 
 // ---- structural edits -----------------------------------------------------
-//
-// Each returns a NEW model and leaves the one it was given alone; the caller
-// decides whether anything is written. `at` is a column or a body-row index
-// (the header is not a body row: it is row -1 to the widget, and no edit
-// here moves or removes it — a GFM table without one is not a table).
+// Each returns a NEW model and leaves the given one alone. `at` is a column or
+// a body-row index; the header is row -1 to the widget, and no edit here
+// moves or removes it — a GFM table without one is not a table.
 
 const clone = (model) => ({
   header: [...model.header],

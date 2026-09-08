@@ -1,23 +1,8 @@
-// The auto-save engine — a debounced write with a captured target.
-//
-// It existed twice, ~50 lines each (TaskInspector and NoteEditor, the
-// latter's header saying "the mechanics are the same"), and the mechanics
-// are exactly the part a copy loses:
-//
-//   • The TARGET is captured when the document opens and read synchronously
-//     when the write fires — the user can click another task while a write
-//     is still on its way, and that write has to land on the document it was
-//     typed into.
-//   • The BASELINE (what the document looked like when it was last known
-//     saved) advances only after the write lands, and only if the panel is
-//     still on the same target: a failed write has to be retried by the next
-//     edit, not quietly counted as saved.
-//   • The SNAPSHOT rides along with the value it was taken from, so marking
-//     the write as done later cannot swallow something typed in between.
-//
-// None of this is reactive state on purpose: nothing here should re-render
-// anything, and a reactive `pending` would make the caller's auto-save
-// effect trigger itself.
+// The auto-save engine — a debounced write with a captured target. The
+// TARGET is read synchronously when the write fires, so it lands on the
+// document it was typed into; the BASELINE advances only after the write
+// lands and only on the same target, so a failed write is retried by the
+// next edit. Nothing reactive: a reactive `pending` would retrigger the caller.
 
 /// Builds one engine. `write(target, value)` performs the actual save (and
 /// whatever success reporting the caller wants); `onError` gets anything it
@@ -56,9 +41,8 @@ export function autosave({ delay = 500, write, onError }) {
 
   return {
     /// A new document under the panel. Whatever was typed into the previous
-    /// one goes out first, addressed to it, before the slot is replaced —
-    /// `send` reads the slot synchronously, so the order here is what makes
-    /// that address right.
+    /// one goes out first, addressed to it — `send` reads the slot
+    /// synchronously, so the order here is what makes that address right.
     open(target, snapshot) {
       flush();
       slot = target;

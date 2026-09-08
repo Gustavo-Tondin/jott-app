@@ -1,16 +1,8 @@
-// The MODES the app ships, and which one is on — and the theme's name.
-//
-// Two questions since 2026-08-26, not one. A MODE is a CSS file that assigns
-// the app's colour roles for the two regions, reading the theme's tokens
-// (styles/modes/jott.css says how to write one): jott (black frame, white
-// page), light, dark. All three are loaded at once and each scopes its
-// selectors to its own name, so switching is a single attribute on <html>.
-// A THEME is the palette — `--theme-color-*`, and the radius and spacing
-// scales — the app's own (styles/themes/jott.css) or one the notebook carries
-// in `.jott/themes/<name>.css`; a theme wears any mode.
-//
-// This list is the ONLY place the app knows a mode's name. Adding one is:
-// write the CSS file, import it in app.css, add a line here.
+// The MODES the app ships, which one is on, and the theme's name. A MODE is
+// a CSS file assigning the colour roles for the two regions from the theme's
+// tokens (jott, light, dark — all loaded, each scoped to its name, so a
+// switch is one attribute on <html>). A THEME is the palette, the app's own
+// or one in `.jott/themes/`. This list is the ONLY place a mode's name is known.
 
 import { S } from "./strings.js";
 
@@ -29,23 +21,18 @@ export function isMode(name) {
   return MODES.some((mode) => mode.key === name);
 }
 
-/// The mode to put on <html>, or null for the one the app ships as — the
-/// pact every root attribute keeps: absent is the stylesheet's own default
-/// (`modes/jott.css` also answers to `:root:not([data-mode])`). A name that is
-/// not a mode reads as the default too, rather than as an attribute matching
-/// no stylesheet at all, which would leave the app with no colour roles.
+/// The mode to put on <html>, or null for the one the app ships as — absent
+/// is the stylesheet's own default (`modes/jott.css` answers
+/// `:root:not([data-mode])`). An unknown name reads as the default too, or
+/// the attribute would match no stylesheet and leave the app with no colour roles.
 export function modeAttribute(stored) {
   return isMode(stored) && stored !== DEFAULT_MODE ? stored : null;
 }
 
-/// Whether H1–H6 (and the titles that share their scale) take the accent or
-/// plain ink — the second runtime choice about colour, next to the theme and
-/// the accent itself (2026-08-17). It lives here rather than in accent.js
-/// because it is a look setting like the theme, not a colour: what it moves is
-/// which ramp `--app-heading-*` reads, resolved in styles/roles.css.
-///
-/// Only `ink` is ever written to the document; the accent is the app's own, so
-/// the attribute is absent and the default rule answers.
+/// Whether H1–H6 (and the titles sharing their scale) take the accent or
+/// plain ink. A look setting like the theme, not a colour: it moves which
+/// ramp `--app-heading-*` reads (styles/roles.css). Only `ink` is ever
+/// written; the accent is the default, so the attribute is absent.
 export const HEADING_COLORS = [
   {
     key: "accent",
@@ -57,16 +44,10 @@ export const HEADING_COLORS = [
 
 export const DEFAULT_HEADING_COLOR = "accent";
 
-/// How big a note's body is drawn (2026-08-18).
-///
-/// A NOTE setting and not an interface one: it travels with the notebook,
-/// because it is reading taste and follows the writer to another screen. The
-/// interface's own zoom (Ctrl+= / Ctrl+-) is the other question and is a
-/// machine preference.
-///
-/// It is cheap because the editor was already built in `em`: the heading
-/// sizes in `editor.css` are multiples of the body, so one size on the root of
-/// the editor moves the whole document in proportion.
+/// How big a note's body is drawn. A NOTE setting, travelling with the
+/// notebook (reading taste); the interface's zoom is a machine preference.
+/// Cheap because the editor is built in `em`: one size on the editor root
+/// moves the whole document in proportion.
 export const NOTE_FONT_SIZES = [
   { key: "small", label: () => S.noteSizeSmall },
   { key: "medium", label: () => S.noteSizeMedium },
@@ -83,21 +64,11 @@ export function noteFontSizeAttribute(stored) {
   return known && stored !== DEFAULT_NOTE_FONT_SIZE ? stored : null;
 }
 
-/// The theme (the palette) to name on <html>, or null for the app's own.
-///
-/// An empty setting means "the palette the app ships as" — nothing on the
-/// root. A name the NOTEBOOK carries (`.jott/themes/`, 2026-08-25) is named
-/// only once its stylesheet is actually in the document, which is what `worn`
-/// says: until then the attribute stays off, because a palette-only theme
-/// needs no attribute at all (its `:root` tokens are what the modes read),
-/// and a full theme keyed on its own name would otherwise match no
-/// stylesheet.
-///
-/// A name from a build that is not this one, or a theme whose file was
-/// deleted while it was in use, reads as the app's own the same way. The
-/// notebook KEEPS the name either way (the core never validates a look, and
-/// a theme removed by a sync should come back when it does), so this is a
-/// display decision every time it is read, not a value written back.
+/// The theme (the palette) to name on <html>, or null for the app's own. A
+/// name the NOTEBOOK carries (`.jott/themes/`) is named only once its
+/// stylesheet is in the document (`worn`), or a full theme keyed on its name
+/// would match nothing. An unknown or deleted theme reads as the app's own;
+/// the notebook KEEPS the name (a display decision, never written back).
 export function paletteAttribute(stored, worn = null) {
   return stored && stored === worn ? stored : null;
 }

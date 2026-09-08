@@ -1,15 +1,8 @@
-// How old something is, as a card draws it (spec 3.6, M7 + M8).
-//
-// The AGE ITSELF is never worked out here — it comes stamped from the core
-// (`core/age.rs`, by way of `notebook::age`), because the rule behind it
-// reads a "seen" index this side of the app has never held and thresholds
-// that belong to the notebook. What is decided here is the *drawing*: how
-// many days is still a number, when it becomes a date, and which of the
-// three bands is loud enough to take a colour.
-//
-// Two shapes, one function: a task ages from `created` and a note from the
-// last time it was opened, and the only difference on screen is which date
-// the stamp falls back to once the number stops being useful.
+// How old something is, as a card draws it. The AGE ITSELF comes stamped
+// from the core (`core/age.rs`), which holds the "seen" index and the
+// thresholds; decided here is the drawing: how many days is still a number,
+// when it becomes a date, and which band takes a colour. A task ages from
+// `created`, a note from the last time it was opened.
 
 import { formatDate } from "./dates.js";
 import { S } from "./strings.js";
@@ -18,14 +11,10 @@ import { S } from "./strings.js";
 /// the reader has to do — and the stamp becomes the date itself (spec 3.6b).
 export const ABSOLUTE_AFTER = 60;
 
-/// The stamp for one card: `{ text, band, title }`, or `null` when there is
-/// nothing to say.
-///
-/// `since` is the ISO day the number counts from — a task's `created`, a
-/// note's last "seen" — and is what the stamp shows once it goes absolute.
-/// A card whose age the core could not work out (a file written by hand,
-/// with no date in it) draws nothing at all: an invented age is worse than
-/// no age.
+/// The stamp for one card: `{ text, band, title }`, or `null`. `since` is
+/// the ISO day the number counts from (a task's `created`, a note's last
+/// "seen") and what shows once it goes absolute. No age from the core (a
+/// hand-written file): nothing at all — an invented age is worse than none.
 export function ageStamp(age, { since, dateFormat = "mm/dd/yyyy", title = null } = {}) {
   if (!age || typeof age.days !== "number") return null;
   const absolute = age.days > ABSOLUTE_AFTER && !!since;

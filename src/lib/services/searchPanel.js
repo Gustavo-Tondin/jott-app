@@ -1,21 +1,8 @@
-// The note's find & replace panel — the app's own DOM for CodeMirror's own
-// search (user call, 2026-09-07: "deixe o design UX do ctrl + h / replace
-// mais simples, trocando next e previous por flechas pra baixo e pra cima, e
-// botando as opções de check dentro de um submenu").
-//
-// CodeMirror ships a panel of its own, and everything that SEARCHES stays its
-// (`SearchQuery`, `findNext`, `replaceAll`, the highlights, the keymap): what
-// changes is only the furniture. Its panel is a strip of words — "next",
-// "previous", "all", three labelled checkboxes, "replace", "replace all" —
-// nine controls on one line; this one is a field, two arrows, a gear that
-// opens the three switches, a close, and the replace row under it. The panel
-// is handed to `search({createPanel})`, which is the door CodeMirror leaves
-// open for exactly this.
-//
-// Plain DOM, not Svelte: a panel is created by CodeMirror with the view and
-// lives inside the editor's own element, outside any component tree. The
-// classes are `editor-search__*`, dressed in editor.css beside the rest of
-// the editor's furniture.
+// The note's find & replace panel: the app's own DOM handed to CodeMirror's
+// `search({createPanel})`. Everything that SEARCHES stays CodeMirror's
+// (`SearchQuery`, `findNext`, `replaceAll`, highlights, keymap); only the
+// furniture changes. Plain DOM, not Svelte — the panel lives inside the
+// editor's element, outside any component tree. Classes: `editor-search__*`.
 
 import { runScopeHandlers } from "@codemirror/view";
 import {

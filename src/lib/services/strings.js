@@ -1,8 +1,6 @@
-// Every string the user reads, in one place.
-//
-// Spec 4.4: the interface is English until i18n lands after v1, and the
-// strings are born centralized — translating later means adding a file here,
-// not hunting text through components. Functions take the variable parts.
+// Every string the user reads, in one place. English until i18n lands after
+// v1; translating later means adding a file here, not hunting text through
+// components. Functions take the variable parts.
 
 /// The actions the app records, in words — keyed by the bridge command.
 const ACTION_NAMES = {
@@ -63,8 +61,8 @@ const ACTION_NAMES = {
   reset_shortcuts: "Reset shortcuts",
 };
 
-/// What the floating undo says an action did (2026-09-08): the thing that
-/// vanished, past tense. A command not named here reads as its action.
+/// What the floating undo says an action did: the thing that vanished, past
+/// tense. A command not named here reads as its action.
 const UNDO_OFFERS = {
   delete_task: "Task deleted",
   delete_note: "Note deleted",
@@ -91,7 +89,7 @@ export const S = {
   privateFolderNote:
     "Kept inside the app. Nothing else on the phone can read it, and " +
     "uninstalling Jott deletes it.",
-  // The notebooks screen (2026-08-24) — the picker the app opens on.
+  // The notebooks screen — the picker the app opens on.
   pickANotebook: "Pick a notebook",
   createNotebook: "Create a new notebook",
   openNotebook: "Open a notebook",
@@ -102,7 +100,7 @@ export const S = {
       tasks === 1 ? "1 task" : `${tasks} tasks`
     }`,
   // When this machine last opened it. The desktop draws it beside the name;
-  // the phone does not draw it at all (the wireframes).
+  // the phone does not draw it at all.
   ago: ({ unit, count } = {}) => {
     switch (unit) {
       case "now":
@@ -122,8 +120,8 @@ export const S = {
     }
   },
   notebookOptions: "notebook options",
-  // The footer's menu of notebooks (2026-09-07): the recent ones, to switch
-  // in place, and the door to the screen that manages them.
+  // The footer's menu of notebooks: the recent ones, to switch in place, and
+  // the door to the screen that manages them.
   notebookMenu: "switch notebook",
   manageNotebooks: "Manage notebooks\u2026",
   // The picker window's OWN ⋮ — two questions about windows, not about any
@@ -172,28 +170,25 @@ export const S = {
   conflictsBody:
     "Another device edited the same files. Jott does not choose for you — " +
     "open the folder and decide which version stays.",
-  // The row per conflict (2026-08-24): the list it belongs to, the copy the
-  // sync tool wrote, and the door to the folder it sits in.
+  // The row per conflict: its list, the copy the sync tool wrote, and the
+  // door to the folder it sits in.
   conflictReveal: "Show in folder",
   conflictOriginalGone: "the original is gone",
   conflictsHide: "Hide for now",
   dismissError: "ok",
-  // The shell's states (Etapa 7, 2026-08-24).
+  // The shell's states.
   errorTitle: "Something went wrong",
   openingNotebook: (name) => (name ? `Opening ${name}…` : "Opening the notebook…"),
   openFailedTitle: "This notebook could not be opened",
   openFailedRetry: "Try again",
   openFailedOther: "Open another one",
 
-  // Spaces (phase 7.5)
+  // Spaces
   readOnlySpace: "read-only (newer version)",
   missingSpace: "This page is no longer in the notebook.",
-  // A space has one function, and the interface says which by name when it is
-  // being MADE: a tasks one is a LIST, a notes one is a NOTEPAD. "Space" is
-  // what the container itself is called, on screen and on disk alike — the app
-  // and the file format say the same word since 2026-08-17 (user call), so
-  // there is no second vocabulary to translate. Home, Tasks and Notes are the
-  // **fixed spaces**.
+  // A space has one function, named when it is MADE: a tasks one is a LIST,
+  // a notes one a NOTEPAD. "Space" is the container's word on screen, in the
+  // code and on disk alike. Home, Tasks and Notes are the fixed spaces.
   newList: "New list",
   newNotepad: "New notepad",
   promptNewList: "Name of the new list:",
@@ -208,8 +203,7 @@ export const S = {
   color: "colour",
   icon: "icon",
   defaultAppearance: "default",
-  // The icon picker (2026-09-07): the field over the grid, and the line
-  // under it that says how many of the 1512 answer.
+  // The icon picker: the field over the grid, and the count line under it.
   searchIcons: "Search icons",
   iconsCount: (n) => (n === 1 ? "1 icon" : `${n} icons`),
   iconsNone: "No icon matches that.",
@@ -219,7 +213,7 @@ export const S = {
     "This version of Jott does not know how to show this space. " +
     "Its files are untouched — a newer version may support it.",
   spaceNoLists: "No list in this space yet.",
-  // Reestruturação 2026-07-30 — inline naming, groups, trash, tags.
+  // Inline naming, groups, trash, tags.
   cancel: "Cancel",
   create: "Create",
   newTask: "New task",
@@ -228,7 +222,7 @@ export const S = {
   // read (services/paths.js → listTitle).
   mainList: "Inbox",
   noTasksYet: "No tasks yet",
-  // The ⋮ of a space's own screen: arrangement and bulk selection (Etapa 1).
+  // The ⋮ of a space's own screen: arrangement and bulk selection.
   spaceOptions: "space options",
   selectTasks: "Select tasks…",
   selectedCount: (n) => `${n} selected`,
@@ -255,7 +249,7 @@ export const S = {
   deleteGroup: "Delete group",
   collapseGroup: "collapse group",
   expandGroup: "expand group",
-  // The tasks screen's ⋮ (2026-08-05): the sortings open a submenu.
+  // The tasks screen's ⋮: the sortings open a submenu.
   sortTasks: "Sort",
   pinTask: "Pin to top",
   unpinTask: "Unpin",
@@ -267,9 +261,8 @@ export const S = {
   // instead of a hint that repeats on every visit.
   trashEmptyHint: "Anything you delete waits here, and can be put back.",
   trashLoading: "Reading the trash…",
-  // The kind filter over the list (2026-08-24): a deleted task and a deleted
-  // file are two different regrets, and a long trash is easier to read one
-  // kind at a time. The counts say how many of each are waiting.
+  // The kind filter over the trash list; the counts say how many of each
+  // are waiting.
   trashAll: "All",
   trashTasks: "Tasks",
   trashFiles: "Files",
@@ -281,9 +274,8 @@ export const S = {
   // The countdown the reaper acts on (`trash::days_left`), in the row.
   trashDaysLeft: (n) => (n <= 0 ? "clears today" : n === 1 ? "1 day left" : `${n} days left`),
   trashKeptForever: "kept until you restore it",
-  // The two icon buttons of a row, and the one destructive act the app has
-  // besides the reaper. The dialogs say "for good" because nothing else in
-  // the app is — this is the one place the second sentence is not a promise.
+  // The one destructive act besides the reaper. The dialogs say "for good"
+  // because nothing else in the app is.
   restoreItem: "Restore",
   deleteForever: "Delete forever",
   emptyTrash: "Empty trash",
@@ -294,8 +286,7 @@ export const S = {
   tagsEmpty: "No tags yet. Add one from a task.",
   tagsEmptyHint: "Type #word in a task, or name a tag here so the picker offers it.",
   tagsLoading: "Counting the tags…",
-  // The Tags screen lists every #word in use, not only the coloured ones
-  // (2026-08-24): a count per tag, and a filter once there are many.
+  // The Tags screen lists every #word in use, not only the coloured ones.
   tagsFilter: "Filter tags",
   tagsFilterEmpty: "No tag matches that.",
   tagUses: (n) => (n === 0 ? "not in use" : n === 1 ? "1 task" : `${n} tasks`),
@@ -304,13 +295,12 @@ export const S = {
   // A label now, not a caption: the control is the trash glyph.
   deleteTag: "Delete tag",
   confirmDeleteTag: (name) => `Delete the tag "${name}"?`,
-  // What removing a tag actually does (core: `remove_tag`): only the colour
-  // is forgotten — the detail must not promise a trash trip that never
-  // happens.
+  // Removing a tag only forgets the colour (core: `remove_tag`) — the detail
+  // must not promise a trash trip that never happens.
   tagTextStays: "It leaves the picker; the #tag text in tasks stays.",
   deleteTask: "Delete task",
 
-  // App Functions (2026-08-06): which parts of the app are switched on.
+  // App Functions: which parts of the app are switched on.
   featureTasks: "Tasks",
   featureNotes: "Notes",
   featureSubtasks: "Subtasks",
@@ -332,7 +322,7 @@ export const S = {
   featureTables: "Tables",
   featureFixedSpaces: "Fixed spaces",
   fixedSpacesHelp: "What hiding a fixed space does",
-  // The ? beside a setting (2026-09-08): the explanation, off the page until asked.
+  // The ? beside a setting: the explanation, off the page until asked.
   helpAbout: (label) => `About ${label}`,
   fixedSpacesHelpIntro:
     "The app's own spaces — Home, Tasks and Notes — as sidebar shortcuts " +
@@ -351,7 +341,7 @@ export const S = {
   featureTasksSpace: "Tasks space",
   featureNotesSpace: "Notes space",
 
-  // The time axis (2026-08-27): the function and its one screen so far.
+  // The time axis: the function and its one screen so far.
   featureTime: "Time",
   featureTimeline: "Timeline",
   timelineGhostTasks: "Name deleted tasks in the Timeline",
@@ -390,7 +380,7 @@ export const S = {
   timelineOccurrences: (n) => `${n} occurrences this month`,
   timelineOptions: "timeline item options",
 
-  // The shortcuts table in Settings (2026-08-18).
+  // The shortcuts table in Settings.
   sectionShortcuts: "Shortcuts",
   sectionShortcutsHint: "Click a key to record a new one. Escape keeps it.",
   // Named for what the user is DOING, not for the word the code uses.
@@ -409,28 +399,21 @@ export const S = {
   resetShortcuts: "Reset to defaults",
 
   formatting: "Formatting",
-  // WHERE the controls sit, not whether they exist: writing a note is what
-  // they are for, so the choice is a place (user call, 2026-08-19).
+  // WHERE the controls sit, not whether they exist: the choice is a place.
   formattingDocked: "In the side panel",
   formattingFloating: "Floating over the note",
-  // The button beside the floating bar. It says where the controls GO,
-  // not what it does to them — the panel is a place, the same way the two
-  // menu items above are.
+  // The button beside the floating bar says where the controls GO, not what
+  // it does to them — the panel is a place.
   formattingDock: "Dock the formatting panel",
-  // What "floating" means once the floating bar is turned OFF in Settings
-  // (2026-08-21). The pair is still a pair — the controls are in the panel or
-  // they are not on screen — and the second half has to say which of the two
-  // it is, or the menu offers a bar that will never come.
   noteTextSize: "Text size",
   noteSizeSmall: "Small",
   noteSizeMedium: "Medium",
   noteSizeLarge: "Large",
   noteFontSizeLabel: "Note text size",
 
-  // The floating formatting bar of an open note (2026-08-21). Display, so it
-  // answers to this screen — and on a phone there is no floating bar at all:
-  // the controls ride above the keyboard, which the hint says out loud rather
-  // than hiding a row that would then be unfindable.
+  // The floating formatting bar of an open note. Display, so it answers to
+  // this screen. On a phone there is no floating bar: the controls ride
+  // above the keyboard.
   formatBarLabel: "Formatting bar",
   formatBarFloating: "Floating",
   formatBarPanel: "In the side panel",
@@ -444,9 +427,8 @@ export const S = {
   formatBarSideRight: "Right",
   formatBarSideBottom: "Bottom",
 
-  // Commands (2026-08-18): the name of every keyboard command, read by the
-  // shortcuts table in Settings and by the formatting panel's tooltips. They
-  // are the imperative the user would say out loud, not a description.
+  // Commands: the name of every keyboard command, read by the shortcuts
+  // table and the panel's tooltips — the imperative the user would say.
   cmdNewTask: "New task",
   cmdNewNote: "New note",
   cmdSearch: "Search",
@@ -488,8 +470,7 @@ export const S = {
   cmdQuote: "Quote",
   cmdRule: "Horizontal rule",
   cmdReplace: "Find and replace",
-  // The panel's second row and its last two (2026-08-19, wireframe "Format
-  // panel").
+  // The panel's second row and its last two.
   cmdUnderline: "Underline",
   cmdIndent: "Indent",
   cmdOutdent: "Outdent",
@@ -501,9 +482,8 @@ export const S = {
   // Shortcuts page does not list "Undo" twice.
   cmdUndoAction: "Undo last action",
   cmdRedoAction: "Redo last action",
-  // What the shell says after one (2026-08-24). `actionName` turns the
-  // command the bridge answered into words; a command this table has not
-  // met yet still reads ("set note banner"), it just reads like a command.
+  // What the shell says after one. `actionName` turns the command the bridge
+  // answered into words; a command the table has not met still reads.
   undone: (what) => `Undone: ${what}`,
   redone: (what) => `Redone: ${what}`,
   nothingToUndo: "Nothing to undo",
@@ -521,7 +501,7 @@ export const S = {
   formatBlocks: "Block",
   formatLists: "List",
   formatInsert: "Insert",
-  // Tables (2026-08-24).
+  // Tables.
   formatTable: "Table",
   cmdTableInsert: "Insert table",
   cmdTableAddColumn: "Add column to the right",
@@ -535,17 +515,14 @@ export const S = {
   tableMoveColumn: "Move column",
   tableMoveRow: "Move row",
 
-  // Settings (phase 9)
+  // Settings
   settings: "Settings",
   settingsSaved: "Saved.",
-  // The label above the menu of sections (2026-08-20, wireframe "Settings").
-  // It names the LIST, which is why it is not the screen's own title repeated:
-  // the day this menu gains a second group, that group gets a label of its own
-  // beside this one.
+  // The label above the menu of sections. It names the LIST, not the screen:
+  // a second group of the menu would get a label of its own beside it.
   settingsSections: "Settings",
-  // The second block of the menu (wireframe "Settings screen mobile",
-  // 2026-08-20): what the app can DO, as opposed to how it is set up. Its rows
-  // are a door into a group, which is why neither of them carries an icon.
+  // The second block of the menu: what the app can DO. Its rows are a door
+  // into a group, which is why neither carries an icon.
   settingsFunctions: "App functions",
   sectionNative: "Native Functions",
   sectionNativeHint:
@@ -561,9 +538,8 @@ export const S = {
   // — when it turns, what the calendar strip starts on.
   sectionDay: "Day and calendar",
   sectionDisplay: "Display",
-  // Whose answers these are (2026-08-20). Said once at the top of the section
-  // rather than on each row: the whole section moved to the machine, and a
-  // note repeated eight times reads as a warning instead of a fact.
+  // Whose answers these are — said once at the top of the section, not on
+  // each row.
   sectionDisplayHint:
     "These answer for this device, not for the notebook — a phone can be dark " +
     "while the desktop stays in Jott's own. Until one is chosen here, the " +
@@ -591,9 +567,8 @@ export const S = {
   modeDark: "Dark",
   modeDarkHint: "Dark throughout.",
   theme: "Theme",
-  // Themes the reader brought into the notebook (2026-08-25). The hint names
-  // the folder because that IS the whole installation procedure — there is no
-  // import button, and there should not be one.
+  // Themes the reader brought into the notebook. The hint names the folder
+  // because that IS the whole installation procedure — no import button.
   themeJott: "Jott",
   themeJottMeta: "the app's own",
   themesFromNotebookHint:
@@ -640,8 +615,7 @@ export const S = {
   closeOnClickAway: "Close the task panel when clicking outside",
   quickNoteFolder: "Quick note goes to",
 
-  // The function pages (2026-08-20). One subtitle per group of rows: a
-  // function page is a list of what the function HAS, then of how it behaves.
+  // The function pages. One subtitle per group of rows.
   subColours: "Colours",
   subText: "Text",
   subEditor: "Editor",
@@ -670,16 +644,15 @@ export const S = {
   subNoteHas: "What a note can have",
   subBoard: "Board",
   noteLayout: "Default layout",
-  // The fixed Tasks screen (2026-09-04): the Inbox alone, or every list of
-  // the notebook pulled together and arranged by space.
+  // The fixed Tasks screen: the Inbox alone, or every list arranged by space.
   subTasksScreen: "Tasks screen",
   /// The screen's own title when it shows every list.
   allListsTitle: "All lists",
   tasksShowAll: "Tasks screen shows",
   tasksShowAllInbox: "the Inbox only",
   tasksShowAllEvery: "every list, arranged by space",
-  // The task panel's card (2026-09-08): the fields that are off, and the
-  // door to Settings › Tasks. `offerTaskFields` is the row that brings it back.
+  // The task panel's card: the fields that are off, and the door to
+  // Settings › Tasks.
   moreFieldsTitle: "Tasks can do more",
   moreFieldsBody: (names) => `Switched off right now: ${names}.`,
   moreFieldsOpen: "Add functions",
@@ -707,23 +680,21 @@ export const S = {
     "file, so drawing it means fetching it. The question says which site is " +
     "being contacted.",
 
-  // Notebook / Location (2026-08-20). Both of these were reachable only from
-  // somewhere else — the folder from no menu at all, the switch from the
-  // sidebar's foot.
+  // Notebook / Location.
   openNotebookFolder: "Open notebook folder",
   openNotebookFolderAction: "Open",
   switchNotebook: "Switch notebook",
   switchNotebookAction: "Choose…",
 
-  // Display / Text (2026-08-20): the zoom was only ever on the keyboard.
+  // Display / Text.
   interfaceZoom: "Interface zoom",
   interfaceZoomHint: "The same thing Ctrl + and Ctrl − do.",
 
-  // The search over every row of every page (2026-08-20).
+  // The search over every row of every page.
   settingsSearch: "Search settings",
   settingsSearchEmpty: "Nothing here matches that.",
-  // The three faces (Display, 2026-08-24). The default row names the face
-  // the app carries, so "Default" is never a mystery.
+  // The three faces (Display). The default row names the face the app
+  // carries, so "Default" is never a mystery.
   interfaceFontLabel: "Interface font",
   noteFontLabel: "Note font",
   monoFontLabel: "Monospace font",
@@ -743,8 +714,7 @@ export const S = {
   readOnlyNotice:
     "This notebook was written by a newer version of Jott and is open for reading only.",
 
-  // About — was "Updates" until the section grew the other half of its
-  // subject (2026-08-20): what this app IS, next to what version it is.
+  // About: what this app IS, next to what version it is.
   sectionAbout: "About",
   subVersion: "Version",
   subSystem: "System",
@@ -770,8 +740,8 @@ export const S = {
   updateDownload: "Download",
   updateDismiss: "Later",
 
-  // The application menu (2026-08-21). Only an AppImage ever sees these: a
-  // deb/rpm/pacman Jott was put in the menu by its package manager.
+  // The application menu. Only an AppImage sees these: a deb/rpm/pacman Jott
+  // was put in the menu by its package manager.
   menuEntryBanner: "Jott is running as a single file, so it is not in your applications menu yet.",
   menuEntryAdd: "Add to menu",
   menuEntryAdding: "Adding…",
@@ -780,7 +750,7 @@ export const S = {
   menuEntryHint:
     "Writes a launcher and an icon into your home folder (~/.local/share) so Jott shows up in the applications list and in search, the way an installed app does. It points at this file where it is now — move the file and switch this off and on again. Nothing outside your home folder is touched.",
 
-  // Shell (phase 8.5)
+  // Shell
   home: "Home",
   tasks: "Tasks",
   inboxTab: "Inbox",
@@ -799,14 +769,13 @@ export const S = {
   goForward: "forward",
   pageMenu: "page menu",
 
-  // The compact shell (below 768px, 2026-08-18). The tab strip is a sheet you
-  // pull up rather than a row you read, so its button has to SAY how many are
-  // behind it — the count is the only thing left on screen about them.
+  // The compact shell (below 768px). The tab strip is a sheet, so its button
+  // has to SAY how many tabs are behind it.
   openTabs: (count) => (count === 1 ? "1 open tab" : `${count} open tabs`),
   openSidebar: "open sidebar",
   closeSheet: "close",
   closeComposer: "close the new task bar",
-  // The note's find & replace panel (services/searchPanel.js, 2026-09-07).
+  // The note's find & replace panel (services/searchPanel.js).
   noteFindPlaceholder: "Find",
   noteReplacePlaceholder: "Replace with",
   findNext: "next match",
@@ -818,8 +787,7 @@ export const S = {
   findClose: "close search",
   replaceOne: "Replace",
   replaceAll: "All",
-  // The Home's + (2026-09-04): a task or a note (2026-09-07), for the day the
-  // calendar has open.
+  // The Home's +: a task or a note, for the day the calendar has open.
   capture: "new",
   // The two choices the + opens (components/CaptureFab.svelte).
   task: "Task",
@@ -836,17 +804,16 @@ export const S = {
   nextWeek: "next week",
   showOverview: "show the day's summary",
   hideOverview: "hide the day's summary",
-  // The head's three heights on a phone (2026-09-07): the name and the date,
-  // the week, the week and the summary. The grip's label says what the next
-  // tap does; the drag on the chrome does the same without a label.
+  // The head's three heights on a phone: name and date, the week, the week
+  // and the summary. The grip's label says what the next tap does.
   showWeek: "show the week",
   hideWeek: "show less",
   goodMorning: "Good morning",
   goodAfternoon: "Good afternoon",
   goodEvening: "Good evening",
   tasksDone: (done, total) => `${done} of ${total} ${total === 1 ? "task" : "tasks"} done today.`,
-  /// A day gone by, in one line (user call, 2026-09-04): the three counts of
-  /// the recap, comma-separated, "completed" and never "done".
+  /// A day gone by, in one line: the three counts of the recap,
+  /// comma-separated, "completed" and never "done".
   daySummary: ({ done, created, notes }) =>
     [
       `${done} ${done === 1 ? "task" : "tasks"} completed`,
@@ -865,19 +832,17 @@ export const S = {
   expandSidebar: "expand sidebar",
   untitled: "Untitled",
 
-  // Notes (phase 8)
+  // Notes
   notes: "Notes",
-  // The board's ⋮, where creating lives now (user call, 2026-08-19): the row
-  // of buttons above the grid went away, and what it did is menu items and the
-  // quick-note bar.
+  // The board's ⋮, where creating lives: menu items and the quick-note bar.
   newNote: "New note",
   newNoteTitle: "New note",
   promptNewNote: "Title of the new note:",
   promptRenameNote: (title) => `New title for "${title}":`,
   promptNewNoteFolder: "Name of the new folder:",
   newNoteFolder: "New group",
-  // A folder of notes is a card on the board, and carries the same two
-  // controls a note card does (2026-08-19).
+  // A folder of notes is a card on the board, with the same two controls a
+  // note card has.
   folderOptions: "folder options",
   renameFolder: "Rename",
   deleteFolder: "Delete",
@@ -918,8 +883,7 @@ export const S = {
   noSuggestions: "No tasks available.",
   groupUrgent: "Urgent",
   groupSoon: "Soon",
-  // Was in Today and left — taken out by hand, or dropped when the day
-  // turned (2026-08-17).
+  // Was in Today and left — taken out by hand, or dropped when the day turned.
   groupRecent: "Pulled recently",
   pull: "pull",
 
@@ -1000,9 +964,8 @@ export const S = {
   repeatWeeks: "week",
   repeatMonths: "month",
 
-  // Notebook-wide search (2026-08-14). Prefixed `find*` because `search*`
-  // already names the notes board's own box, and two different boxes sharing a
-  // label would be a bug waiting to happen.
+  // Notebook-wide search. Prefixed `find*` because `search*` already names
+  // the notes board's own box.
   findTitle: "Search",
   findPlaceholder: "Search tasks and notes…",
   findHint: "Type to search the whole notebook.",
@@ -1011,14 +974,13 @@ export const S = {
   findNotes: "Notes",
   findMore: "Showing the first matches only — narrow the search to see the rest.",
   findDone: "completed",
-  // The same box, narrowed to one space (2026-08-17). It says which one, or
-  // the user cannot tell why the notebook seems to have gone quiet.
+  // The same box, narrowed to one space. It says which one.
   findIn: (place) => `Search in ${place}…`,
   findHintIn: (place) => `Type to search ${place}.`,
   findNothingIn: (query, place) => `Nothing found for “${query}” in ${place}.`,
 
-  // The page ⋮ and the canvas right-click menu (2026-08-17): what can be done
-  // to the SCREEN itself, wherever the pointer is.
+  // The page ⋮ and the canvas right-click menu: what can be done to the
+  // SCREEN itself, wherever the pointer is.
   renameThisSpace: "Rename space",
   openInFileManager: "Open in file manager",
   findInPlace: (place) => `Find in ${place}`,
@@ -1026,16 +988,15 @@ export const S = {
   replaceInNote: "Replace in note",
   thisNotebook: "this notebook",
 
-  // The sidebar head (2026-08-17): search, and the + that makes things.
+  // The sidebar head: search, and the + that makes things.
   search: "search",
   newEntry: "new list, notepad or group",
   resizeSidebar: "resize sidebar",
   resizePanel: "resize panel",
   sidebarWidthValue: (px) => `sidebar width: ${px} pixels`,
 
-  // The file library (2026-08-18): one folder the whole notebook shares,
-  // reached from the sidebar's hamburger. Images are drawn (banners, pictures
-  // in a note); anything else is a file a task points at.
+  // The file library: one folder the whole notebook shares. Images are drawn;
+  // anything else is a file a task points at.
   assetsTitle: "Files",
   assetsHint:
     "Every file you add lives in the notebook's assets folder. Notes and tasks " +
@@ -1051,8 +1012,8 @@ export const S = {
   imageCount: (n) => (n === 1 ? "1 file" : `${n} files`),
   imageSize: (kb) => (kb < 1024 ? `${kb} KB` : `${(kb / 1024).toFixed(1)} MB`),
   missingImage: "image not found",
-  // The age stamp on a card (spec 3.6): short, because it sits in a meta row
-  // beside the date and the priority. The words are in the tooltip.
+  // The age stamp on a card: short, because it sits in a meta row. The words
+  // are in the tooltip.
   ageDays: (days) => (days === 0 ? "today" : `${days}d`),
   lastSeenOn: (date) => `Last opened ${date}`,
   createdLabel: "Created",
@@ -1063,8 +1024,8 @@ export const S = {
   openFile: "Open file",
   removeAttachment: "Remove attachment",
 
-  // The note's banner (2026-08-18) — a colour or a picture at the head of a
-  // note, written on its first line.
+  // The note's banner — a colour or a picture at the head of a note, on its
+  // first line.
   banner: "Banner",
   bannerOptions: "banner options",
   bannerColor: "Colour",
@@ -1086,22 +1047,16 @@ export const S = {
   chooseImage: "Choose an image",
   chooseFile: "Choose a file",
   insertImage: "Insert image…",
-  // Links between notes (2026-08-19). A title that names no note is worth
-  // saying out loud: the link is a promise the notebook did not keep.
+  // Links between notes. A title that names no note is worth saying out loud.
   noteNotFound: (title) => `No note called “${title}”.`,
 
-  // The Images screen saying which files are carrying their weight
-  // (2026-08-19). A file nobody points at is room being taken up — worth
-  // saying, right beside the button that deletes it.
   // A drag or a paste that declared a file and carried none. The types are in
-  // the message on purpose: they are the only clue to what the desktop
-  // actually sent, and they turn a mystery into a bug report.
+  // the message on purpose: the only clue to what the desktop actually sent.
   noFileInGesture: (types) =>
     `Nothing could be read from that${types.length ? ` (${types.join(", ")})` : ""}.`,
 
-  // Deleting, in the app's own dialog rather than the system's (2026-08-19).
-  // Nothing in this app is destroyed, and the second sentence is where that
-  // gets said — the system dialog had no room for it.
+  // Deleting, in the app's own dialog: the second sentence is where "nothing
+  // is destroyed" gets said.
   deleteAction: "Delete",
   dontAskAgain: "Don’t ask again",
   goesToTrash: "It goes to the trash, and can be restored from there.",
@@ -1110,8 +1065,8 @@ export const S = {
       ? "One note or task is showing this file. That link will stop working."
       : `${n} notes and tasks are showing this file. Those links will stop working.`,
 
-  // Fetching a picture from the internet (2026-08-19). The one thing the app
-  // does that leaves the machine, so it says so — and says WHERE to.
+  // Fetching a picture from the internet — the one thing the app does that
+  // leaves the machine, so it says WHERE to.
   downloadImageTitle: "Download this picture?",
   downloadImageBody:
     "This picture is not on your computer. To put it in the note, Jott has to fetch it from:",
@@ -1123,7 +1078,7 @@ export const S = {
   assetUsedIn: (n) => (n === 1 ? "Used in 1 place" : `Used in ${n} places`),
   assetGoTo: (title) => `Go to “${title}”`,
 
-  // Picking notes on the board, the way tasks are picked (2026-08-18).
+  // Picking notes on the board, the way tasks are picked.
   selectNotes: "Select notes…",
   moveNotesTo: "Move to…",
   notesFolderCount: (n) => (n === 1 ? "1 note" : `${n} notes`),

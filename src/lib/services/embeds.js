@@ -1,35 +1,8 @@
-// A file of the notebook, inside a note: `[[/foto.jpg]]`.
-//
-// The syntax is the app's own, decided by the user on 2026-08-19 after
-// looking at Obsidian's wikilinks. Two halves of that decision, and the
-// reasons they were taken:
-//
-//   - **The double bracket** is the shape a reference to something INSIDE the
-//     notebook takes — files and notes alike, which is what makes it one
-//     syntax and not two. A `![alt](assets/foto.jpg)` says the same
-//     thing in CommonMark and would render in any other editor; what it does
-//     not say is that the address belongs to this notebook rather than to the
-//     web.
-//   - **The leading slash** is what separates a FILE from a note. `[[Ideias]]`
-//     is a note; `[[/foto.jpg]]` is a file of the library. One character, read
-//     the same way a path reads, and it keeps the two namespaces from ever
-//     having to be told apart by guessing.
-//
-// The cost, written down so nobody rediscovers it as a surprise: this is not
-// CommonMark. Open the `.md` in another editor and the line reads as the
-// literal text `[[/foto.jpg]]` — the file is still there, still named, still
-// findable, but not drawn. It is also not Obsidian's: there an embed is
-// `![[…]]` and a bare `[[…]]` is a link.
-//
-// **The library is flat** (`core/src/assets.rs`), so the name inside the
-// brackets is the whole address: `[[/foto.jpg]]` is `assets/foto.jpg` and
-// nothing else. A name with a slash left in it addresses nothing here and is
-// left as the text the user wrote.
-//
-// Without the slash it is a NOTE (2026-08-19), carried by title — the reason
-// is on `noteMarkdown`. Both are drawn by the same rule as every other piece
-// of syntax in this editor (`revealedBy`): the reference the selection is
-// INSIDE shows what was typed, every other one shows what it means.
+// A file of the notebook inside a note: `[[/foto.jpg]]`. The double bracket
+// is a reference to something INSIDE the notebook; the leading slash tells a
+// FILE from a note (`[[Ideias]]`). Not CommonMark and not Obsidian's `![[…]]`:
+// another editor shows the literal text. The library is flat, so the name is
+// the whole address. Drawn by the same `revealedBy` rule as every other mark.
 
 import { RangeSetBuilder, StateEffect, StateField } from "@codemirror/state";
 import { Decoration, EditorView, WidgetType } from "@codemirror/view";
@@ -46,26 +19,17 @@ export function embedMarkdown(address) {
   return name ? `[[/${name}]]` : "";
 }
 
-/// The text a note carries for another note.
-///
-/// The TITLE and not the address, decided with the same question the assets
-/// were decided with (2026-08-18): what survives the note being moved. A note
-/// is moved between folders and between spaces in two clicks now, and an
-/// address written into a body would go stale on every one of them. A title
-/// goes stale on a RENAME, and that half is paid in the core: renaming a note
-/// follows it into every link (`Notebook::rename_note`).
-///
-/// The cost that remains, and it is real: two notes may share a title.
-/// Clicking one of those opens the SEARCH at that title rather than guessing —
-/// the app picked the wrong twin once already (v0.5.0) and will not again.
+/// The text a note carries for another note: the TITLE, not the address —
+/// a title survives the note being moved, and a rename follows it into every
+/// link in the core (`Notebook::rename_note`). Two notes may share a title:
+/// clicking one opens the SEARCH at that title rather than guessing.
 export function noteMarkdown(title) {
   const clean = String(title ?? "").trim();
   return clean ? `[[${clean}]]` : "";
 }
 
-/// How a file is named inside the brackets — `/foto.jpg`. What the Images
-/// screen offers to copy (user call, 2026-08-19): the piece you paste between
-/// a pair of brackets, not the folder it happens to live in.
+/// How a file is named inside the brackets — `/foto.jpg`: the piece you paste
+/// between a pair of brackets, not the folder it lives in.
 export function referenceName(address) {
   const name = leafOf(String(address ?? ""));
   return name ? `/${name}` : "";
@@ -76,10 +40,8 @@ function embedAddress(name) {
   return `${ASSETS_DIR}/${name}`;
 }
 
-/// Every reference in a piece of text, as absolute document offsets.
-///
-/// Pure, and takes text rather than a view: what counts as a reference is a
-/// fact about the document, and nothing about layout.
+/// Every reference in a piece of text, as absolute document offsets. Pure,
+/// and takes text rather than a view.
 export function referencesIn(text, offset = 0) {
   const found = [];
   for (const match of String(text ?? "").matchAll(REFERENCE)) {
@@ -101,22 +63,17 @@ export function referencesIn(text, offset = 0) {
   return found;
 }
 
-/// What a file reference becomes on a line the cursor is not on.
-///
-/// An image is DRAWN; anything else is a chip with the file's name and, when
-/// the system can say what that kind of file looks like, the system's own
-/// icon for it. Clicking the chip opens the file in whatever the system uses
-/// for it — the same door the task attachments knock on (`open_asset`).
+/// What a file reference becomes on a line the cursor is not on: an image is
+/// DRAWN; anything else is a chip with the name and the system's icon when it
+/// has one. Clicking the chip opens the file the way task attachments do (`open_asset`).
 class EmbedWidget extends WidgetType {
   constructor(embed, ctx) {
     super();
     this.embed = embed;
     this.ctx = ctx;
-    // Resolved HERE, when the decoration is built, and not in `toDOM`: it is
-    // part of what makes this widget this widget. Asking the context again
-    // later would answer the same thing on both sides of an `eq`, and
-    // CodeMirror would keep the old `<img>` for ever — which is exactly what
-    // kept a deleted picture on screen (2026-08-19).
+    // Resolved HERE and not in `toDOM`: the URL is part of the widget's
+    // identity, so `eq` sees a changed library — otherwise CodeMirror keeps
+    // the old `<img>` for ever and a deleted picture stays on screen.
     this.url = embed.kind === "file" ? (ctx.url?.(embed.address) ?? "") : "";
   }
 
@@ -229,10 +186,8 @@ export function embedDecorationsFor(state, ranges, ctx = {}) {
   const builder = new RangeSetBuilder();
   const reveals = revealedBy(state);
 
-  // What this notebook draws at all (App Functions, 2026-08-20). A reference
-  // the user switched off is left as the text it is — the file is untouched
-  // either way, which is the same promise every other switch makes. Asked per
-  // KIND because the two are separate switches: `[[Nota]]` is WikiLinks, and
+  // What this notebook draws at all (App Functions): a reference the user
+  // switched off is left as text. Asked per KIND — `[[Nota]]` is WikiLinks,
   // `[[/foto.jpg]]` is Embedded images and files.
   const shows = (kind) => ctx.shows?.(kind) ?? true;
 
@@ -240,11 +195,9 @@ export function embedDecorationsFor(state, ranges, ctx = {}) {
     let line = state.doc.lineAt(from);
     while (line.from <= to) {
       const found = referencesIn(line.text, line.from).filter((ref) => shows(ref.kind));
-      // TWO PASSES, because the builder takes positions in order and the two
-      // answers land in different places: a chip replaces the reference where
-      // it stands, and a revealed picture hangs off the END of the line. With
-      // one revealed reference before a hidden one on the same line, a single
-      // pass would offer `line.to` and then walk backwards.
+      // TWO PASSES, because the builder takes positions in order: a chip
+      // replaces the reference where it stands, a revealed picture hangs off
+      // the END of the line. One pass would offer `line.to` then walk back.
       const opened = [];
       for (const embed of found) {
         if (reveals(embed.from, embed.to)) {
@@ -254,13 +207,8 @@ export function embedDecorationsFor(state, ranges, ctx = {}) {
         builder.add(embed.from, embed.to, Decoration.replace({ widget: new EmbedWidget(embed, ctx) }));
       }
       // The reference being edited shows its text — and a PICTURE keeps
-      // showing too, below it (user call, 2026-08-19). Clicking a photo used
-      // to make it vanish and leave an address behind, which reads as having
-      // broken something. So: one click reveals the link above the photo, and
-      // the photo is still there to be clicked again.
-      //
-      // Only pictures. A chip is the size of the text that would replace it
-      // and says the same thing twice; a photo is the thing itself.
+      // showing below it, so a click reveals the link without the photo
+      // vanishing. Only pictures: a chip would say the same thing twice.
       for (const embed of opened) {
         if (embed.kind !== "file" || !embed.image) continue;
         builder.add(
@@ -280,26 +228,14 @@ export function embedDecorationsFor(state, ranges, ctx = {}) {
   return builder.finish();
 }
 
-/// Draws the notebook's files inside the note.
-///
-/// Built with its context rather than importing one: the URL of a file needs
-/// the open notebook's root, and opening one is the shell's business. The
-/// editor stays a component that knows about text (`Editor.svelte`).
-///
-/// **A `StateField` and not a `ViewPlugin`**, which is not a style choice:
-/// the picture that stays under the line being edited is a BLOCK widget, and
-/// CodeMirror does not accept block decorations from a plugin — they were
-/// dropped in silence, and the photo simply did not come back (2026-08-19).
-/// The cost is reading the whole document instead of the visible part, which
-/// for a note is the same thing.
-/// "The library changed — draw it again."
-///
-/// A `StateField` only recomputes when a transaction arrives, and deleting a
-/// file happens in another screen entirely: without this, the open note went
-/// on showing a picture whose file was in the trash (user report,
-/// 2026-08-19).
+/// "The library changed — draw it again." A `StateField` only recomputes on
+/// a transaction, and deleting a file happens in another screen entirely.
 export const refreshEmbeds = StateEffect.define();
 
+/// Draws the notebook's files inside the note. Built with its context: a
+/// file's URL needs the open notebook's root, which is the shell's business.
+/// A `StateField`, not a `ViewPlugin`: a plugin's BLOCK decorations (the
+/// picture under the edited line) are dropped in silence. See docs/platform-gotchas.md#codemirror
 export function fileEmbeds(ctx = {}) {
   const whole = (state) => embedDecorationsFor(state, [{ from: 0, to: state.doc.length }], ctx);
   return StateField.define({

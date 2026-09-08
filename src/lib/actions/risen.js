@@ -1,32 +1,8 @@
-// `use:risen` — tells when an element's top edge has reached the top of the
-// scroller it lives in, that is, when it has risen UNDER whatever floats
-// there (the compact shell's top bar, App.svelte).
-//
-// It exists because the floating bar paints nothing: what shows behind its
-// buttons is the ground the page happens to be standing on, and in the
-// compact shell that ground changes as the page moves. At rest it is the
-// chrome — the page header on every screen, the Home's head — and once the
-// canvas has risen all the way it is the canvas. The buttons read the region
-// the bar declares, so the whole flip is one attribute (topbar.css); this is
-// the only thing that has to know WHEN.
-//
-// NO SCROLL LISTENER, and nothing here moves anything. A scroll handler lands
-// a frame after the compositor has moved the page, which is why the Home's
-// sheet is sticky and flow alone (shell.css) — but the question here is not
-// "how far", it is a single crossing, and that is exactly what an
-// IntersectionObserver answers: one callback at the edge, off the scroll path.
-//
-// THE PROBE IS INSIDE THE BOX. One hairline pinned at the element's own top,
-// which is what makes the crossing observable without the observer having to
-// be told the bar's height: the probe leaves the scrollport at the very
-// moment the element's top edge does. It has to be INSIDE and not one pixel
-// above, because the boxes this watches carry `overflow: clip` (the Home's
-// sheet, an open note) — a probe outside the box is clipped away, and a
-// clipped probe never intersects anything.
-//
-// No observer (jsdom, an old engine): nothing has risen. An action that threw
-// here would take every action mounted after it down with it — the lesson
-// `measure.js` learned.
+// `use:risen` — reports through `onRisen(bool)` when an element's top edge
+// has risen UNDER the compact shell's floating top bar (topbar.css reads the
+// flip). One hairline probe INSIDE the box (outside it is clipped away by
+// `overflow: clip`) and an IntersectionObserver — no scroll listener, nothing
+// moved. No observer (jsdom): nothing has risen, and nothing throws.
 export function risen(node, options = {}) {
   let current = options;
   let observer = null;

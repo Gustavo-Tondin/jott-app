@@ -1,40 +1,24 @@
-// Writing Markdown by keyboard — the other half of `markdown.js`.
-//
-// `markdown.js` decides how a document LOOKS; this decides how it is written.
-// They are separate files because they are separate jobs: one reads the tree
-// and names classes, this one edits text and never draws anything.
-//
-// Every function here is a CodeMirror command — `(view) => boolean`, true when
-// it did something — so they drop straight into a keymap and into a button
-// with no adapter between. What binds them to chords is `commands.js`, which
-// is also what a tooltip reads: one command, one name, one key, whichever door
-// the user comes through.
+// Writing Markdown by keyboard — the other half of `markdown.js`, which
+// decides how a document LOOKS. Every function here is a CodeMirror command
+// (`(view) => boolean`), so it drops into a keymap and a button alike; what
+// binds them to chords is `commands.js`.
 
 import { EditorSelection } from "@codemirror/state";
 import { indentLess, indentMore, redo, undo } from "@codemirror/commands";
 import { insertNewlineContinueMarkupCommand } from "@codemirror/lang-markdown";
 import { TABLE_COMMANDS } from "./tableEditing.js";
 
-/// One level of indentation, as SPACES.
-///
-/// Four, not two (user call, 2026-08-24). Two was the least that nests a
-/// `- ` bullet, but an ORDERED item needs at least the parent's marker width
-/// — under `3. ` the content column is 3 — or CommonMark reads the "nested"
-/// item as a sibling and the numbering never restarts, which is exactly the
-/// screenshot that changed this. Four covers `99. `, and reads wider, which
-/// was asked for in the same breath. A note stays legible in whatever editor
-/// opens the file next — the files are the product (principle 4). Tabs are
-/// avoided for the same reason: their width is the reader's setting, so a
-/// nested list written with them lands differently everywhere.
+/// One level of indentation, as SPACES. Four: an ORDERED item needs at least
+/// the parent's marker width (under `3. ` it is 3) or CommonMark reads it as
+/// a sibling; four covers `99. `. Never tabs — their width is the reader's.
 export const INDENT = "    ";
 
 // ---- inline marks ---------------------------------------------------------
 
-/// The one transaction every command ends in: its `changes` and, when the
-/// command moves the cursor, its `selection` — scrolled into view and tagged
-/// `input.format`, so undo groups it apart from typing. The read-only guard
-/// lives here and nowhere else: on a read-only view a command answers
-/// `false`, which is what lets the key fall through to the next binding.
+/// The one transaction every command ends in: `changes`, an optional
+/// `selection`, scrolled into view and tagged `input.format` so undo groups
+/// it apart from typing. The read-only guard lives here and nowhere else: a
+/// command answers `false` there, which lets the key fall through.
 function edit(view, { changes, selection }) {
   if (view.state.readOnly) return false;
   view.dispatch(
@@ -48,14 +32,10 @@ function edit(view, { changes, selection }) {
   return true;
 }
 
-/// Wrap the selection in `open`…`close`, or take them off when they are
-/// already there — for a mark whose two halves are DIFFERENT text. Markdown
-/// has exactly one of those (`<u>`); everything else goes through
-/// `toggleRun` below, which knows that the same character repeated nests.
-///
-/// With nothing selected it works on the WORD under the cursor, because that
-/// is what someone means by pressing the key mid-word; with no word either, it
-/// leaves the marks and puts the cursor between them, ready to type.
+/// Wrap the selection in `open`…`close`, or take them off — for a mark whose
+/// two halves DIFFER (`<u>` is the only one; the rest go through `toggleRun`).
+/// Nothing selected: the WORD under the cursor; no word either: the marks,
+/// with the cursor between them.
 function toggleWrap(open, close = open) {
   return (view) => {
     const changes = [];
@@ -117,25 +97,10 @@ function runAfter(doc, pos, char) {
   return n;
 }
 
-/// A mark written as ONE CHARACTER REPEATED — `*`, `**`, `~~`, `` ` ``. All of
-/// Markdown's inline marks but the underline, and the reason they cannot be
-/// toggled by matching text (user report, 2026-09-07: "itálico e bold na mesma
-/// frase estão conflitando nos atalhos"):
-///
-///   `**word**` with `word` selected, Ctrl+I — the old rule saw `*` on each
-///   side of the selection, read "the italic is already on", and deleted one
-///   asterisk from each end. Pressing italic UNBOLDED the word.
-///
-/// So the question is not "is my mark the text next to the selection" but HOW
-/// MANY of that character stand around it, counting the ones caught inside the
-/// selection as being around it. `***word***` is bold and italic at once; one
-/// asterisk each side is italic, two is bold, three is both. Which is what
-/// makes the arithmetic below the whole rule:
-///
-///   * a one-character mark is on when the run is ODD (1 or 3), and taking it
-///     off removes one of each side — `***x***` → `**x**`, the bold intact;
-///   * a two-character mark is on when the run is at least two, and taking it
-///     off removes two — `***x***` → `*x*`, the italic intact.
+/// A mark written as ONE CHARACTER REPEATED. Matching text fails: `**word**`
+/// with `word` selected and Ctrl+I saw `*` on each side and UNBOLDED it. So
+/// the rule counts HOW MANY of the character stand around the span (`***x***`
+/// is both): a one-char mark is on when the run is odd, a two-char when ≥ 2.
 function toggleRun(char, width) {
   return (view) => {
     const state = view.state;
@@ -205,18 +170,9 @@ export const toggleBold = toggleRun("*", 2);
 export const toggleItalic = toggleRun("*", 1);
 export const toggleStrike = toggleRun("~", 2);
 export const toggleInlineCode = toggleRun("`", 1);
-/// Underline, which **Markdown does not have** — so it is written as the HTML
-/// it is (user call, 2026-08-19, weighing the two candidates):
-///
-///   * `<u>text</u>` is valid CommonMark (inline HTML) and renders as an
-///     underline in Obsidian, in VS Code and on GitHub. The cost is a tag
-///     visible in the raw text.
-///   * `__text__` would read cleaner and would be a LIE: in CommonMark that is
-///     bold, so the file would say something else everywhere but here — and it
-///     would collide with the B button two glyphs away.
-///
-/// The panel draws the button because the wireframe does; the file stays
-/// portable, which is principle 4.
+/// Underline, which Markdown does not have, written as the HTML it is:
+/// `<u>` is valid CommonMark and renders in Obsidian, VS Code and GitHub.
+/// `__text__` would be bold in CommonMark and collide with the B button.
 export const toggleUnderline = toggleWrap("<u>", "</u>");
 
 /// A link around the selection: `[text](url)`, cursor left in the url, where
@@ -231,14 +187,10 @@ export function insertLink(view) {
   });
 }
 
-/// A reference to another note: `[[title]]`, with the cursor between the
-/// brackets so the autocomplete opens on the next keystroke
-/// (services/linkComplete.js). A selection becomes the title.
-///
-/// The same brackets carry a FILE, with a leading slash (`[[/foto.jpg]]`) —
-/// which is why this writes the note form and the paperclip beside it writes
-/// the other: the two are one syntax with two namespaces (services/embeds.js),
-/// and the button says which one you meant.
+/// A reference to another note: `[[title]]`, cursor between the brackets so
+/// the autocomplete opens (services/linkComplete.js); a selection becomes the
+/// title. The same brackets with a leading slash carry a FILE — the paperclip
+/// writes that form (services/embeds.js).
 export function insertReference(view) {
   const range = view.state.selection.main;
   const text = view.state.sliceDoc(range.from, range.to);
@@ -353,12 +305,9 @@ export function setHeading(level) {
   );
 }
 
-/// Strips a heading, whatever its level — `Mod+Alt+0`, the way back that
-/// pressing a level does not give when the line is a different one.
-///
-/// Its own command rather than another `setLineMark`: that helper strips
-/// WHATEVER mark it finds when a line does not match, and this must leave a
-/// bullet or a quote exactly where it is. It only ever removes a `#`.
+/// Strips a heading, whatever its level (`Mod+Alt+0`). Not a `setLineMark`:
+/// that helper strips WHATEVER mark it finds, and this must leave a bullet
+/// or a quote exactly where it is.
 export function clearHeading(view) {
   const changes = [];
   for (const range of view.state.selection.ranges) {
@@ -384,14 +333,9 @@ const LIST_LINE = /^\s*(?:[-*+]|\d+[.)])\s/;
 const ORDERED_LINE = /^(\s*)(\d+)([.)])\s/;
 
 /// Rewrites the numbers of the contiguous list block around the cursor so
-/// each depth counts its own run: an indented item starts a new count under
-/// the item above it, and the line that comes back out continues the outer
-/// list where it left off — `1. 2. 3.`, indent the fourth and it reads `1.`;
-/// bring the next line back out and it reads `4.` (user call, 2026-08-24).
-///
-/// Depth is the indentation width, which is what this editor itself writes
-/// (`INDENT`); only a number that is wrong is touched, so the file changes by
-/// exactly what the eye sees change.
+/// each depth counts its own run, and a line that comes back out continues
+/// the outer list. Depth is indentation width (`INDENT`); only a number that
+/// is wrong is touched.
 export function renumberLists(view) {
   const doc = view.state.doc;
   let at = doc.lineAt(view.state.selection.main.head).number;
@@ -442,24 +386,10 @@ const indentAndCount = (cmd) => (view) => {
 
 // ---- what the registry's editor ids run ----------------------------------
 
-/// Command id → the editor command it runs.
-///
-/// Here rather than in the component because two places need it and a copy
-/// would drift: the editor builds its keymap from it, and the formatting
-/// panel's buttons press the very same functions. `note.replace` is the one
-/// exception and stays in the component — it opens a panel, which needs the
-/// view the component owns.
-/// Enter inside a list or a quote: the next line carries the marker on, and
-/// Enter on an EMPTY item ends the list. Never a blank line.
-///
-/// CodeMirror's own binding keeps CommonMark's "loose list" alive, twice.
-/// Enter on the empty SECOND item of a list inserted a blank line above it —
-/// the list was being made loose — and once a list is loose, every Enter in
-/// it put a blank line before the next marker. Typed on a phone, both read as
-/// "Enter skips a line" (user report, 2026-09-08). `nonTightLists: false`
-/// turns the first off; the dispatch below turns the second off by dropping
-/// the blank line the command wrote. A blank line between items is what
-/// Shift+Enter is for.
+/// Enter inside a list or a quote carries the marker on; Enter on an EMPTY
+/// item ends the list. Never a blank line: `nonTightLists: false` stops the
+/// binding making the list loose, and `tightened` drops the blank line it
+/// writes once a list is loose. See docs/platform-gotchas.md#codemirror
 const continueMarkup = insertNewlineContinueMarkupCommand({ nonTightLists: false });
 
 export function newlineInMarkup(view) {
@@ -493,15 +423,16 @@ function tightened(tr, state) {
   });
 }
 
+/// Command id → the editor command it runs. Shared by the editor's keymap and
+/// the formatting panel's buttons, so a copy cannot drift. `note.replace`
+/// stays in the component: it opens a panel that needs the view it owns.
 export const EDITOR_COMMANDS = {
   "md.bold": toggleBold,
   "md.underline": toggleUnderline,
   "md.reference": insertReference,
-  // Indentation and history are CodeMirror's own, bound here as well as to
-  // their keys so the panel's buttons press the very same function (the point
-  // of this table). `indentMore`/`indentLess` are what Tab and Shift+Tab run
-  // in the editor already — wrapped so an ordered list keeps counting right
-  // across the depth change (`renumberLists`).
+  // CodeMirror's own, bound here too so the panel's buttons press the very
+  // same function; indent/outdent are wrapped so an ordered list keeps
+  // counting across the depth change (`renumberLists`).
   "md.indent": indentAndCount(indentMore),
   "md.outdent": indentAndCount(indentLess),
   "edit.undo": undo,
@@ -516,9 +447,8 @@ export const EDITOR_COMMANDS = {
   "md.quote": toggleQuote,
   "md.rule": insertRule,
   "md.paragraph": clearHeading,
-  // Tables (2026-08-24): the same door, a different file — they need the
-  // editor's state to know which cell is current, and that state lives in
-  // `tableEditing.js` next to the commands that read it.
+  // Tables: the same door, a different file — they need the editor's state
+  // that lives in `tableEditing.js`, next to the commands that read it.
   ...TABLE_COMMANDS,
   ...Object.fromEntries(
     Array.from({ length: 6 }, (_, i) => [`md.h${i + 1}`, setHeading(i + 1)]),

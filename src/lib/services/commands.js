@@ -1,43 +1,20 @@
-// Every command the app can be ASKED to run, in one list.
-//
-// Before this file the same knowledge was written three times and agreed by
-// luck: `shortcuts.js` held a switch of key→meaning, the menus held their own
-// arrays of label→function, and nothing held the pair. Adding the settings
-// screen would have made a fourth copy — and an editable table (the point of
-// that screen) cannot be built on a switch statement at all, because a chord
-// only becomes known at runtime.
-//
-// So a command is declared here ONCE — what it is called, where it can be
-// asked for, and which chord asks for it by default — and the doing lives
-// where the doing belongs:
-//
-//   * the shell (App.svelte) maps ids to what a notebook can do,
-//   * the editor (Editor.svelte) maps ids to CodeMirror commands,
-//   * the settings screen draws this list,
-//   * a button in the formatting panel names an id, so hovering it can show
-//     the chord that is bound to it RIGHT NOW rather than one written into
-//     the button and left to rot.
-//
-// This file knows no notebook and no DOM. That is what keeps it testable and
-// what stops it from becoming a second shell.
+// Every command the app can be ASKED to run, declared ONCE: its name, where
+// it can be asked for, and its default chord. The doing lives elsewhere (the
+// shell, the editor, the settings screen, the panel's buttons — which read
+// the chord bound RIGHT NOW). This file knows no notebook and no DOM.
 
 import { S } from "./strings.js";
 import { isBindable, normalize } from "./keys.js";
 
-/// Where a command can be asked for. A scope is not a category — it decides
-/// which chords may collide: two commands may share a chord only if they can
-/// never both answer.
-///
-///   `global`  anywhere in the app
-///   `tasks`   while a task list has focus and no text field does
-///   `editor`  while the cursor is in a note
+/// Where a command can be asked for — `global` anywhere, `tasks` while a
+/// task list has focus and no text field does, `editor` while the cursor is
+/// in a note. A scope decides which chords may collide: two commands share
+/// one only if they can never both answer.
 export const SCOPES = ["global", "tasks", "editor"];
 
-/// The commands, in the order the settings screen draws them.
-///
-/// `keys` is the DEFAULT chord — what the app ships as. A user's own binding
-/// overrides it and lives in the notebook's config; nothing here is read from
-/// disk, so this list is the same on every machine.
+/// The commands, in the order the settings screen draws them. `keys` is the
+/// DEFAULT chord; a user's binding lives in the notebook's config, and
+/// nothing here is read from disk.
 export const COMMANDS = [
   // ---- global ----------------------------------------------------------
   { id: "task.new", scope: "global", keys: "Mod+T", label: () => S.cmdNewTask },
@@ -52,14 +29,10 @@ export const COMMANDS = [
     keys: "Mod+Shift+F",
     label: () => S.cmdSearchEverywhere,
   },
-  // The notebooks screen (2026-08-24). Mod+O because it is the app's "open":
-  // on the desktop it opens a WINDOW of its own, which is what lets a second
-  // notebook be open beside this one.
-  // The app's history (2026-08-24): the same chords the editor answers, in
-  // the scope the editor is not in. `twin` says the clash is the point: the
-  // editor claims the press first, and what reaches the shell is the same
-  // gesture aimed at the app. A press inside a field is the field's (the
-  // shell checks `typing`), inside the inspector the inspector's.
+  // Mod+O is the app's "open": on the desktop it opens a WINDOW of its own.
+  // `twin` says the clash of the app's undo with the editor's is the point:
+  // the editor claims the press first; what reaches the shell is the same
+  // gesture aimed at the app. Inside a field the press is the field's.
   {
     id: "app.undo",
     scope: "global",
@@ -130,16 +103,8 @@ export const COMMANDS = [
   { id: "task.duplicate", scope: "tasks", keys: "Mod+D", label: () => S.cmdTaskDuplicate },
 
   // ---- the note editor -------------------------------------------------
-  // `icon` marks the ones the formatting panel draws, in this order. A command
-  // without an icon is reachable by key and by the settings screen only —
-  // the panel is a shortlist of what one reaches for while writing, not a
-  // mirror of the list.
-  //
-  // `group` is what that panel puts a rule between (user call, 2026-08-18):
-  // marking a WORD, naming a LINE, and shaping a BLOCK are three different
-  // gestures, and eighteen glyphs in a row read as one undifferentiated wall.
-  // It lives here rather than in the panel because it says what a command IS,
-  // not how it is drawn — the same reason `scope` is here.
+  // `icon` marks the ones the formatting panel draws, in this order. `group`
+  // is what the panel puts a rule between: what a command IS, like `scope`.
   // ---- marking a WORD ----
   { id: "md.bold", scope: "editor", group: "mark", keys: "Mod+B", icon: "bold", label: () => S.cmdBold },
   {
@@ -168,11 +133,8 @@ export const COMMANDS = [
   },
 
   // ---- shaping a BLOCK ----
-  // Tab and Shift+Tab are declared HERE and nowhere else (2026-08-19): the
-  // editor used to bind them in a keymap of its own, which made two sources
-  // for one behaviour the moment the panel grew a button for it. Now the
-  // registry is the only one, and rebinding them in Settings reaches the
-  // editor like every other chord does.
+  // Tab and Shift+Tab are declared HERE and nowhere else, so rebinding them
+  // in Settings reaches the editor like every other chord.
   {
     id: "md.indent",
     scope: "editor",
@@ -265,11 +227,9 @@ export const COMMANDS = [
     label: () => S.cmdAttach,
   },
 
-  // ---- a TABLE (2026-08-24) ----
-  // Its own category, with its own panel: five of the six only mean
-  // something inside a table, and the panel greys them outside one. No
-  // chord by default — the row in Settings is there for the person who
-  // wants one.
+  // ---- a TABLE ----
+  // Five of the six only mean something inside a table, and the panel greys
+  // them outside one. No chord by default.
   { id: "table.insert", scope: "editor", group: "table", keys: null, icon: "table", label: () => S.cmdTableInsert },
   {
     id: "table.addColumn",
@@ -335,15 +295,10 @@ export function commandsIn(scope) {
   return COMMANDS.filter((c) => c.scope === scope);
 }
 
-/// The chord bound to every command: the defaults, with the user's own
-/// bindings laid over them.
-///
-/// `custom` is whatever the notebook's config holds — untrusted by
-/// construction, since a file can be hand-edited. An entry naming a command
-/// this build does not have is ignored (a newer build's binding must not
-/// crash an older one); an unbindable chord is ignored (it would swallow
-/// typing); and an explicit `null` UNBINDS, which is the only way to say "I
-/// want this command to have no key".
+/// The chord bound to every command: the defaults with the user's own laid
+/// over. `custom` is the notebook's config — untrusted: an unknown command id
+/// is ignored (a newer build's binding must not crash an older one), an
+/// unbindable chord is ignored, and an explicit `null` UNBINDS.
 export function bindings(custom = {}) {
   const out = new Map();
   for (const command of COMMANDS) {
@@ -375,14 +330,9 @@ export function keymapFor(scope, bound) {
 }
 
 /// Which OTHER command already answers to `chord` in a scope that could hear
-/// it at the same time — what the settings screen shows before letting a
-/// binding be saved.
-///
-/// Scopes are not independent: `global` is heard everywhere, so a global
-/// command clashes with an editor one, while two commands in `tasks` and
-/// `editor` never both answer (a task list and a text cursor are not focused
-/// at once). The one exception is a declared `twin` (the app's undo and the
-/// editor's): the same gesture in two places, meant to share the chord.
+/// it at the same time. `global` is heard everywhere, so it clashes with
+/// `editor`; `tasks` and `editor` never both answer. A declared `twin` is
+/// exempt: the same gesture in two places, meant to share the chord.
 export function conflictOf(id, chord, bound) {
   const chords = normalize(chord);
   if (!chords) return null;

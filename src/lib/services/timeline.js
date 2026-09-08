@@ -1,37 +1,8 @@
-// The Timeline screen's arithmetic — what the log adds up to, month by month.
-//
-// The core answers `Notebook::timeline(from, to)` with flat items
-// (`{kind, id, path, created, title, deleted, completed, space}`); the
-// screen draws MONTHS (wireframe "Timeline Screen", 2026-08-27), each with
-// three lines — tasks created, tasks completed, notes created — that fold
-// open onto the items. Everything between the two shapes is here, with no
-// DOM and no bridge, so the screen only has to draw.
-//
-// Two rules the wireframe fixed:
-//
-//   • a thing thrown away loses its name unless the notebook says otherwise
-//     (`timelineGhostTasks` / `timelineGhostNotes`) — it may have been thrown away FOR privacy —
-//     and what is left is folded into "N deleted tasks" per space, so the
-//     colour still says where the activity was;
-//   • within a line the order is by title, nothing else: the log knows the
-//     minute, and showing it was refused ("só por título", 2026-08-27).
-//
-// And one the repeat chain forced (2026-08-31). Every occurrence of a
-// repeating task is its OWN task, with its own id — `recurrence::respawn`
-// clones the text and `complete_task` links the two with `spawned:`, so a
-// daily chore writes thirty `created` lines and thirty `completed` ones into
-// a single month. The screen was a wall of the same sentence. They fold into
-// one row carrying a count, and the row IS the newest occurrence, so the
-// click still opens something real.
-//
-// It folds by TITLE and not by the chain, which the front cannot see: the
-// chain lives in `spawned:` inside the files, and the log carries no such
-// pointer. The cost is two tasks a person happened to name the same in one
-// month reading as one with a ×2 — accepted (user call, 2026-08-31), because
-// the alternative is a flag the core would have to stamp on every item to
-// answer a question the screen only asks about volume. NOTES ARE NEVER
-// FOLDED: a note is a file, two files with one title are two documents, and
-// a count with nothing to open would put one of them out of reach.
+// The Timeline screen's arithmetic — what the log adds up to, month by month,
+// with no DOM and no bridge. A thing thrown away loses its name unless the
+// notebook says otherwise (`timelineGhostTasks`/`timelineGhostNotes`) and is
+// folded into "N deleted tasks" per space. Within a line the order is by
+// title only. Repeated task titles fold into one row with a count; NOTES NEVER FOLD.
 
 import { S } from "./strings.js";
 
@@ -45,11 +16,9 @@ export function yearRange(year) {
 
 const byTitle = (a, b) => a.title.localeCompare(b.title, undefined, { sensitivity: "base" });
 
-/// The three groups of one month, each still a flat list of items:
-/// `created` (tasks born that month), `completed` (tasks ticked that month,
-/// whenever born) and `notes` (notes born that month). Months come newest
-/// first, and a month with nothing in it does not exist — the column shows
-/// activity, not the calendar.
+/// The three groups of one month, each still a flat list: `created` (tasks
+/// born that month), `completed` (tasks ticked that month, whenever born),
+/// `notes`. Months newest first; a month with nothing in it does not exist.
 export function monthsOf(items = []) {
   const months = new Map();
   const bucket = (key) => {
@@ -77,10 +46,10 @@ export function monthsOf(items = []) {
     }));
 }
 
-/// The three groups of ONE day — the Home's recap of a day gone by
-/// (2026-09-04). `monthsOf` cannot answer this: `Notebook::timeline(day,
-/// day)` hands back everything born OR ticked that day, and a task born
-/// earlier in the month and ticked today belongs to `completed` alone.
+/// The three groups of ONE day — the Home's recap of a day gone by.
+/// `monthsOf` cannot answer this: `Notebook::timeline(day, day)` hands back
+/// everything born OR ticked that day, and a task born earlier and ticked
+/// today belongs to `completed` alone.
 export function dayGroups(items = [], day) {
   const created = [];
   const completed = [];
@@ -106,20 +75,11 @@ export function dayGroups(items = [], day) {
 /// a task was ticked, `created` otherwise.
 const latestOf = (item) => item.completed || item.created || "";
 
-/// One line's rows, as drawn: the living (and the named ghosts) one row
-/// each, by title, with repeated task titles folded into one row carrying a
-/// `count`; the nameless ghosts folded into one row per space —
-/// `{ghost: true, kind, space, count}` — after them, so a line reads
-/// "Buy milk · Take out the bins ×12 · 3 deleted tasks".
-///
-/// A row is a plain item when it stands for itself and an item plus `count`
-/// when it stands for more, so the screen has one shape to draw and one
-/// number to look at.
-///
-/// `ghostTasks` / `ghostNotes` are the notebook's `timelineGhostTasks` /
-/// `timelineGhostNotes`: on, a ghost of that kind keeps its row and its
-/// birth title, struck through — and keeps a row of its own, never folded
-/// into a live count.
+/// One line's rows, as drawn: the living (and the named ghosts) one row each,
+/// by title, repeated task titles folded into one row carrying a `count`
+/// (the row IS the newest occurrence, so a click opens something real); the
+/// nameless ghosts folded into `{ghost: true, kind, space, count}` after
+/// them. `ghostTasks`/`ghostNotes` on: a ghost keeps its row and birth title, never folded.
 export function rowsOf(items = [], { ghostTasks = false, ghostNotes = false } = {}) {
   const rows = [];
   const folded = new Map();
@@ -127,7 +87,9 @@ export function rowsOf(items = [], { ghostTasks = false, ghostNotes = false } = 
   const named = (item) => (item.kind === "task" ? ghostTasks : ghostNotes);
   for (const item of items) {
     if (!item.deleted || named(item)) {
-      // Only a live task folds: see the file's head for the note.
+      // Only a live task folds — by TITLE, not by the repeat chain (`spawned:`
+      // lives in the files; the log carries no pointer). A note is a file:
+      // two files with one title are two documents, never one row.
       if (item.deleted || item.kind !== "task") {
         rows.push(item);
         continue;

@@ -1,45 +1,21 @@
-// Which parts of the app are switched on — App Functions (2026-08-06).
-//
-// Principle 3 says the first use should be the basics, with the rest arriving
-// as the user learns; until now the app offered everything, always. Switching
-// something off takes it out of the interface ENTIRELY — button, menu, tab,
-// card column, sidebar entry — and touches nothing on disk: a task keeps its
-// `!2` in the `.md` while priority is off, and gets it back the moment it
-// returns.
-//
-// The question "is this on?" lands in about twenty files, so it is answered
-// here and nowhere else. Three rules it carries that a caller would otherwise
-// have to remember every time:
-//
-//   1. **A feature has its own default.** Most ship on; Week, Remind me,
-//      Description and Add files ship OFF (user call, 2026-08-06) — a first
-//      run should be the basics, and those four are either unfinished or a
-//      second thought. The notebook records only what the user changed, so
-//      this list is the only place a default is written down. It is also the
-//      list the settings screen draws itself from, which is why it cannot also
-//      live in the core: two tables in two languages is one table too many.
-//   2. **A child follows its parent.** With `tasks` off, every task field is
-//      off too, whatever the file says about it.
-//   3. **Returning to the default FORGETS the setting** (`stored()` answers
-//      `null`), so the file keeps only what differs from how the app ships.
+// Which parts of the app are switched on — App Functions. Switching one off
+// takes it out of the interface ENTIRELY and touches nothing on disk. Three
+// rules: a feature has its own default (this list is the only place it is
+// written, and the settings screen draws itself from it); a child follows its
+// parent; returning to the default FORGETS the setting (`stored()` → `null`).
 
 import { S } from "./strings.js";
 
 /// Every switch, in the order the settings screen draws them. `parent` is what
 /// a sub-option belongs to; the screen indents by it and `on()` inherits it.
-///
-/// The screen is built FROM this list, so a new switch is one entry here — not
-/// an entry plus a checkbox someone has to remember to add.
+/// The screen is built FROM this list, so a new switch is one entry here.
 export const FEATURES = [
-  // No `myDay` and no `week` since 2026-09-04: the day is the Home, and the
-  // week became any day ahead on the Home's calendar. Hiding the Home space
-  // (below) is what takes the day off the interface.
+  // No `myDay` and no `week`: the day is the Home, and any day ahead is on the
+  // Home's calendar. Hiding the Home space (below) takes the day off the interface.
   { key: "tasks", label: () => S.featureTasks },
   { key: "dueDate", parent: "tasks", group: "fields", label: () => S.featureDueDate },
   { key: "priority", parent: "tasks", group: "fields", label: () => S.featurePriority },
   { key: "repeat", parent: "tasks", group: "fields", label: () => S.featureRepeat },
-  // Back with its backend (2026-08-25): the switch left on 2026-08-21 when
-  // all it turned on was a disabled button.
   {
     key: "remind",
     parent: "tasks",
@@ -74,47 +50,37 @@ export const FEATURES = [
     label: () => S.featureNoteFolders,
   },
   { key: "pinNotes", parent: "notes", group: "has", label: () => S.featurePinNotes },
-  // A note's subjects — the `tags:` property under the title (2026-08-26),
-  // picked from the same catalogue a task's tags come from. Off, the line
-  // under the title goes and the property stays in the file.
+  // A note's subjects — the `tags:` property under the title, from the same
+  // catalogue as task tags. Off, the line goes and the property stays in the file.
   { key: "noteTags", parent: "notes", group: "has", label: () => S.featureNoteTags, default: false },
   // Off, a table is the pipes it is in the file, and the panel loses its
   // table button; the commands still act on the caret's row and column.
   { key: "tables", parent: "notes", group: "has", label: () => S.featureTables },
-  // The three FIXED spaces (user call, 2026-08-24). Not functions — Tasks and
-  // Notes above stay on — but the app's own spaces as sidebar entries and
-  // screens: hiding one only takes it off the interface, the folders stay on
-  // disk untouched. `inline` draws the children indented on the Native
-  // Functions page itself, under their master switch, instead of behind a
-  // page of their own ("um separador, escrito fixed spaces com toggle, e
-  // identado, home, tasks, notes, cada um com seu toggle").
+  // The three FIXED spaces. Not functions — Tasks and Notes above stay on —
+  // but the app's own spaces as sidebar entries and screens: hiding one only
+  // takes it off the interface, the folders stay on disk. `inline` draws the
+  // children indented on the Native Functions page itself, not behind a page.
   {
     key: "fixedSpaces",
     inline: true,
     label: () => S.featureFixedSpaces,
-    // A help button beside the label opens these (user call, 2026-08-24:
-    // "deveria ser intuitivo — um botão de ajuda perto de fixed spaces"):
-    // what hiding does and does not do, case by case, before the first
-    // switch is flipped.
+    // A help button beside the label opens these: what hiding does and does
+    // not do, case by case, before the first switch is flipped.
     help: () => [S.fixedSpacesHelpIntro, S.fixedSpacesHelpTasks, S.fixedSpacesHelpNotes],
   },
   { key: "homeSpace", parent: "fixedSpaces", group: "spaces", label: () => S.featureHomeSpace },
   { key: "tasksSpace", parent: "fixedSpaces", group: "spaces", label: () => S.featureTasksSpace },
   { key: "notesSpace", parent: "fixedSpaces", group: "spaces", label: () => S.featureNotesSpace },
-  // The time axis (Etapa 11, 2026-08-27): a function with one screen so
-  // far, the Timeline. Off, the screen leaves the sidebar's header and its
-  // tabs land elsewhere; the log under `.jott/timeline/` is written
+  // The time axis: a function with one screen so far, the Timeline. Off, the
+  // screen leaves the sidebar; the log under `.jott/timeline/` is written
   // regardless, so switching it back on finds everything in place.
   { key: "time", label: () => S.featureTime },
   { key: "timeline", parent: "time", group: "screens", label: () => S.featureTimeline },
 ];
 
-/// The app's FUNCTIONS — the switches that, turned off, take a whole part of
-/// the interface with them (wireframe "Settings screen mobile", 2026-08-20).
-///
-/// They are exactly the ones with no parent, which is why this is derived and
-/// not a third field somebody has to remember to set: a sub-function belongs
-/// to a function by naming it, and everything that names nothing IS one.
+/// The app's FUNCTIONS — the switches that, off, take a whole part of the
+/// interface with them. Exactly the ones with no parent: derived, not a third
+/// field somebody has to remember to set.
 export const FUNCTIONS = FEATURES.filter((feature) => !feature.parent);
 
 /// Whether a function has sub-functions of its own — the arrow at the end of
@@ -124,12 +90,8 @@ export function hasPage(key) {
   return FEATURES.some((feature) => feature.parent === key);
 }
 
-/// Every sub-function of `parent`, whatever subtitle it was filed under.
-///
-/// The page draws its rows a group at a time, but the SEARCH asks a different
-/// question — "does this word appear anywhere under Tasks?" — and answering it
-/// by listing the groups it knows about is how a switch filed under a new one
-/// becomes invisible without breaking anything (2026-08-21).
+/// Every sub-function of `parent`, whatever group it was filed under — what
+/// the search asks; listing known groups would hide a switch filed under a new one.
 export function childrenOf(parent) {
   return FEATURES.filter((f) => f.parent === parent);
 }

@@ -1,90 +1,26 @@
-// Opening and closing the sidebar drawer with a drag (user call, 2026-08-18).
-//
-//   swipe right from the left edge  → open
-//   swipe left, anywhere            → close
-//
-// NOT `actions/swipe.js`. That one is for a CARD: it clamps the travel at 76px
-// because past the reveal there is nothing more to show, and it reports a
-// direction rather than a distance. A drawer travels its whole 240px and has to
-// arrive under the finger, so the two share the shape of the problem and none
-// of the numbers.
-//
-// It listens on the DOCUMENT, in the capture phase, above both the page and the
-// drawer, and that is what makes the conflict manageable. Three gestures could
-// otherwise claim the same pointer — this one, a card's `swipe`, and a row's
-// `reorderable` — and two of them calling `setPointerCapture` on one pointer
-// leaves the first deaf to every move after (the drag that froze and snapped
-// back, 2026-08-06).
-//
-// THE DRAWER OPENS FROM AN EMPTY AREA (user call, 2026-08-18). Swiping a card
-// still swipes the card; the sidebar answers a swipe that started on nothing
-// in particular. So the decision is made from the TARGET, before anything
-// moves:
-//
-//   - the finger went down on something that owns the horizontal gesture — a
-//     card marked `data-swipes` by actions/swipe.js, or text that can be
-//     selected — → this action never engages, and the event reaches it
-//     untouched;
-//   - anywhere else → the drawer takes it;
-//   - open → the page is behind the (invisible) sheet that catches the tap, so
-//     the only things under the finger are that sheet and the drawer, and a
-//     leftward drag on either closes.
-//
-// Reading the mark instead of listing card classes is what keeps the two in
-// step: whatever starts using `swipe` next is excluded on the same day.
-//
-// TOUCH EVENTS ON A FINGER, POINTER EVENTS ON A MOUSE — measured, not chosen.
-// Written first on pointer events alone (they are the modern API and the rest
-// of the app uses them), it did not work on the device at all: two moves in,
-// Android's WebView fires `pointercancel` and stops, because a horizontal drag
-// over a scrolling panel is a gesture the browser claims for itself. The
-// `touchmove`s keep arriving the whole time — that is the difference — and a
-// `preventDefault()` on the first of them is what actually takes the gesture
-// back. Hence the two paths, and hence `{ passive: false }`.
-//
-// A `touch-action` of `pan-y` alone does NOT prevent this, and neither does
-// dropping `setPointerCapture`; both were tried against the running app.
-//
-// Used on the shell:
+// The sidebar drawer by drag: right from an EMPTY area opens, left anywhere
+// closes. Listens on the DOCUMENT in capture phase and declines a target that
+// already owns a sideways drag (`[data-swipes]`, sheets, modals, text under a
+// mouse). A finger goes by touch events (docs/platform-gotchas.md#webview-e-gestos).
 //   <div class="shell" use:drawerSwipe={{ enabled, open, onOpen, onClose, onDrag }}>
 
 import { clamp } from "../services/num.js";
 
-/// What already means something else when dragged sideways. `[data-swipes]` is
-/// every card carrying actions/swipe.js; then text a drag SELECTS, where
-/// hijacking the gesture would take away the only way to select anything; then
-/// the things that are raised OVER the shell — a bottom sheet, a modal, a
-/// popover. Those three came in with the listeners moving to the document (see
-/// the header): they are not inside the shell, so the old arrangement excluded
-/// them by construction, and a sheet whose own content slides sideways must not
-/// also be dragging the app's drawer out from under it.
+/// What already owns a sideways drag: cards carrying actions/swipe.js, and the
+/// surfaces raised OVER the shell, whose own content may slide sideways.
 const CLAIMED =
   "[data-swipes], .sheet, .sheet-scrim, .theme-modal, .theme-modal-backdrop," +
   " .theme-popover";
-/// …and what is claimed BY A MOUSE ONLY: text, where dragging is how a
-/// selection is made and hijacking it would leave no way to select anything.
-///
-/// A FINGER DOES NOT SELECT BY DRAGGING. Touch selection is a long press and
-/// then the handles; a plain horizontal drag across text means nothing to the
-/// platform, which is why every Android app with a drawer opens it from over
-/// its own content. Claiming text on both paths is what left a phone with no
-/// way to reach the sidebar while a note was open — the editor is one
-/// `.cm-editor` filling the screen (user report on device, 2026-08-20).
-///
-/// The obvious alternative, an exception for the leading EDGE, was tried
-/// against the running app and does not work at all: on gesture navigation the
-/// left edge is the SYSTEM's back gesture, and a drag that starts there never
-/// reaches the page. Measured — the app went back a screen instead of opening
-/// anything.
+/// …and what only a MOUSE claims: text, where dragging selects. A finger does
+/// not select by dragging, and the left edge is the system's back gesture on
+/// Android — so touch must open the drawer from over the content (an editor
+/// filling the screen included). See docs/platform-gotchas.md#android
 const CLAIMED_BY_MOUSE = "input, textarea, [contenteditable], .cm-editor";
 /// The first movement decides which gesture this is. Ahead of the lock nothing
 /// moves at all, so a vertical scroll never nudges the drawer sideways.
 const LOCK = 8;
-/// How far the drawer has to travel AWAY FROM WHERE THE DRAG STARTED for
-/// letting go to finish the job. Measured from the start, not from the closed
-/// end: a single absolute threshold reads correctly opening and backwards
-/// closing — a drag that took the drawer more than halfway shut still sat past
-/// the mark and sprang back open (caught by drawerSwipe.test.js).
+/// How far the drawer must travel AWAY FROM WHERE THE DRAG STARTED for letting
+/// go to commit — from the start, not the closed end, so closing reads right too.
 const COMMIT = 0.4;
 /// …unless it was a flick: px per ms, past which the direction is taken as the
 /// answer however short the travel. Without it a quick, small flick — which is
@@ -98,19 +34,14 @@ export function drawerSwipe(node, params) {
   /// gesture is identified by there being one finger.
   let pointer = null;
 
-  /// How far the drawer travels: MEASURED, never restated. Its width is a token
-  /// in rem (`--app-drawer-width`), so a reader who raised their font size has
-  /// a wider drawer, and a copy of 240 here would send the gesture to the wrong
-  /// place for exactly the people the rem is there to serve. The fallback is
-  /// only for a drag that somehow starts before the drawer is in the DOM.
+  /// How far the drawer travels: MEASURED, never restated — its width is a rem
+  /// token (`--app-drawer-width`). The fallback is for a drag before the mount.
   const width = () =>
     document.querySelector(opts.target ?? ".shell__sidebar--drawer")?.offsetWidth ||
     240;
 
-  /// Engage, or decline. Returns whether the gesture is now ours to watch.
-  ///
-  /// `mouse` is what decides whether text counts as claimed — see
-  /// CLAIMED_BY_MOUSE. The two callers already know which they are.
+  /// Engage, or decline. Returns whether the gesture is now ours to watch;
+  /// `mouse` decides whether text counts as claimed (CLAIMED_BY_MOUSE).
   function begin(target, x, y, at, mouse = false) {
     if (opts.enabled === false) return false;
     const open = !!opts.open;
@@ -193,9 +124,7 @@ export function drawerSwipe(node, params) {
     if (event.touches.length !== 1) return abandon();
     const t = event.touches[0];
     if (follow(t.clientX, t.clientY) && event.cancelable) {
-      // The line that makes the whole thing work on a device: without it the
-      // WebView takes the gesture, fires `pointercancel`, and the drawer never
-      // moves again (see the header).
+      // Without this the WebView takes the gesture and fires `pointercancel`.
       event.preventDefault();
       event.stopPropagation();
     }
@@ -241,20 +170,10 @@ export function drawerSwipe(node, params) {
     abandon();
   }
 
-  // ON THE DOCUMENT, not on the node the action is used on.
-  //
-  // The drawer and the transparent sheet over the pushed page are rendered
-  // OUTSIDE the shell (App.svelte: they have to sit still while the shell
-  // slides, which a child of the sliding thing cannot do). So while the drawer
-  // is open nothing the finger can reach is inside the node any more, and
-  // every closing gesture landed on an element the listeners never saw. The
-  // document sees all of them, and the target check above is what keeps the
-  // gesture from stealing anyone else's.
-  //
-  // Capture phase throughout: the decision about whose gesture this is has to
-  // be made on the way DOWN the tree, before a card sees it. `passive: false`
-  // on the moves, because a passive listener may not call `preventDefault` —
-  // and that call is the one thing standing between this and a dead gesture.
+  // ON THE DOCUMENT: the drawer and the scrim render outside the shell
+  // (App.svelte), so an open drawer's closing gesture never lands in the node.
+  // Capture phase, so whose gesture it is gets decided before a card sees it;
+  // `passive: false`, because a passive listener may not `preventDefault`.
   const LISTEN = { capture: true, passive: false };
   const handlers = [
     ["touchstart", touchStart],

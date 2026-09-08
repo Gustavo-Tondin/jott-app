@@ -1,16 +1,8 @@
-// Raw SVG strings for the icons the UI renders today.
-//
-// Explicit imports (not a glob) keep the bundle tree-shaken: only the handful
-// the interface actually draws is compiled in. The FULL Phosphor set lives on
-// disk under `src/assets/icons/phosphor/` and reaches the app another way:
-// `services/iconLibrary.js` globs it into one chunk that is read lazily —
-// by the icon picker (SpaceAppearance, 2026-09-07) and by `Icon.svelte` when
-// a name is not in this map, which is how a sidebar entry wears an icon a
-// person chose there. What the INTERFACE draws by itself stays here.
-//
-// `?raw` gives the file's text; each SVG uses `fill="currentColor"`, so an icon
-// takes the colour of whatever renders it. Keys carry the weight when it is not
-// regular (`-bold`, `-fill`).
+// Raw SVG strings for the icons the INTERFACE draws by itself. Explicit
+// imports (not a glob) keep the bundle tree-shaken; the FULL Phosphor set
+// under `src/assets/icons/phosphor/` is read lazily by `services/iconLibrary.js`
+// (the icon picker, and `Icon.svelte` for a name not in this map). `?raw`
+// gives the text; `fill="currentColor"`. Keys carry the weight (`-bold`, `-fill`).
 
 import xBold from "../../assets/icons/phosphor/bold/x.svg?raw";
 import plusBold from "../../assets/icons/phosphor/bold/plus.svg?raw";
@@ -23,8 +15,6 @@ import checkSquare from "../../assets/icons/phosphor/regular/check-square.svg?ra
 import note from "../../assets/icons/phosphor/regular/note.svg?raw";
 import folder from "../../assets/icons/phosphor/regular/folder.svg?raw";
 import folders from "../../assets/icons/phosphor/regular/folders.svg?raw";
-// The notebooks screen's second choice: a folder that is not one of the
-// app's yet — "open a notebook" reaches OUT to the machine (2026-08-24).
 import folderPlus from "../../assets/icons/phosphor/regular/folder-plus.svg?raw";
 import gear from "../../assets/icons/phosphor/regular/gear.svg?raw";
 import bookmarkSimple from "../../assets/icons/phosphor/regular/bookmark-simple.svg?raw";
@@ -40,8 +30,8 @@ import listChecks from "../../assets/icons/phosphor/regular/list-checks.svg?raw"
 import notepad from "../../assets/icons/phosphor/regular/notepad.svg?raw";
 import sun from "../../assets/icons/phosphor/regular/sun.svg?raw";
 import tag from "../../assets/icons/phosphor/regular/tag.svg?raw";
-// The app's own glyph (2026-08-24): the sun with a stroke through it — a task
-// leaving the day. Phosphor has no such icon; the file is the designer's.
+// The app's own glyph: the sun with a stroke through it — a task leaving the
+// day. Not Phosphor.
 import sunOff from "../../assets/icons/jott/sun-off.svg?raw";
 import calendarBlank from "../../assets/icons/phosphor/regular/calendar-blank.svg?raw";
 import clock from "../../assets/icons/phosphor/regular/clock.svg?raw";
@@ -61,31 +51,22 @@ import flag from "../../assets/icons/phosphor/regular/flag.svg?raw";
 import dotsSixVertical from "../../assets/icons/phosphor/regular/dots-six-vertical.svg?raw";
 import list from "../../assets/icons/phosphor/regular/list.svg?raw";
 import magnifyingGlass from "../../assets/icons/phosphor/regular/magnifying-glass.svg?raw";
-// The Timeline's door in the sidebar header (wireframe of 2026-08-27): a
-// winding path, the one glyph there that is not a verb.
 import path from "../../assets/icons/phosphor/regular/path.svg?raw";
 import checks from "../../assets/icons/phosphor/regular/checks.svg?raw";
 import lightbulb from "../../assets/icons/phosphor/regular/lightbulb.svg?raw";
 
-// The settings menu (2026-08-20, wireframe "Settings"). One glyph per section
-// of the screen, each naming what the section is ABOUT rather than the word it
-// uses: a screen for how the app looks, a calendar for when the day turns, a
-// notebook for the folder itself, a keyboard for the chords, sliders for the
-// switches, and the arrow that brings a new version down.
+// The settings menu: one glyph per section, naming what the section is ABOUT.
 import monitor from "../../assets/icons/phosphor/regular/monitor.svg?raw";
 import notebookIcon from "../../assets/icons/phosphor/regular/notebook.svg?raw";
 import keyboard from "../../assets/icons/phosphor/regular/keyboard.svg?raw";
 import slidersHorizontal from "../../assets/icons/phosphor/regular/sliders-horizontal.svg?raw";
 import info from "../../assets/icons/phosphor/regular/info.svg?raw";
 
-// The image library and the note banner (2026-08-18). `image` is the placeholder
-// a picture leaves when it is missing — the same grey square the wireframes
-// draw on a card whose banner is an image.
+// The image library and the note banner; `image` is also the placeholder a
+// missing picture leaves.
 import image from "../../assets/icons/phosphor/regular/image.svg?raw";
 
-// Writing Markdown by keyboard and by the formatting panel (2026-08-18). The
-// six heading glyphs are one icon each rather than a number in a box: Phosphor
-// draws them as `H1`…`H6`, which is what the mark itself is called.
+// Markdown formatting. The six heading glyphs are Phosphor's own `H1`…`H6`.
 import textB from "../../assets/icons/phosphor/regular/text-b.svg?raw";
 import textItalic from "../../assets/icons/phosphor/regular/text-italic.svg?raw";
 import textStrikethrough from "../../assets/icons/phosphor/regular/text-strikethrough.svg?raw";
@@ -101,11 +82,9 @@ import textHFour from "../../assets/icons/phosphor/regular/text-h-four.svg?raw";
 import textHFive from "../../assets/icons/phosphor/regular/text-h-five.svg?raw";
 import textHSix from "../../assets/icons/phosphor/regular/text-h-six.svg?raw";
 
-// The panel completed (2026-08-19, wireframe "Format panel"): underline,
-// indent/outdent, the brackets that link to a note, and undo/redo. `text-h` and
-// `text-a-underline` are the two OPENERS of the narrow bar — a whole group
-// folded behind one glyph, which is how the mobile wireframe fits six rows on
-// one line.
+// Formatting panel: underline, indent/outdent, the note-link brackets and
+// undo/redo. `text-h` and `text-a-underline` are OPENERS of the narrow bar —
+// a whole group folded behind one glyph.
 import textUnderline from "../../assets/icons/phosphor/regular/text-underline.svg?raw";
 import textIndent from "../../assets/icons/phosphor/regular/text-indent.svg?raw";
 import textOutdent from "../../assets/icons/phosphor/regular/text-outdent.svg?raw";
@@ -114,26 +93,21 @@ import arrowArcLeft from "../../assets/icons/phosphor/regular/arrow-arc-left.svg
 import arrowArcRight from "../../assets/icons/phosphor/regular/arrow-arc-right.svg?raw";
 import textH from "../../assets/icons/phosphor/regular/text-h.svg?raw";
 import textAUnderline from "../../assets/icons/phosphor/regular/text-a-underline.svg?raw";
-// Tables (2026-08-24): the opener, the two that add, the two that name what
-// a removal takes (the panel writes the verb beside them).
+// Tables: the opener, the two that add, the two that name what a removal
+// takes (the panel writes the verb beside them).
 import table from "../../assets/icons/phosphor/regular/table.svg?raw";
 import columnsPlusRight from "../../assets/icons/phosphor/regular/columns-plus-right.svg?raw";
 import rowsPlusBottom from "../../assets/icons/phosphor/regular/rows-plus-bottom.svg?raw";
 import columns from "../../assets/icons/phosphor/regular/columns.svg?raw";
 import rows from "../../assets/icons/phosphor/regular/rows.svg?raw";
 
-// The narrow bar folds EVERY category, not two of them (user report,
-// 2026-08-19: "faltam diversos botões"). Three more openers, each named after
-// what it holds: a paragraph for the shapes a block takes, a plain list for the
-// three list kinds, and a plus for what is put INTO the note. None of the three
-// repeats a glyph a command already wears — an opener that looked like `bullet`
-// would read as the command itself.
+// The narrow bar's other three openers, each named after what it holds. None
+// repeats a glyph a command already wears — it would read as the command itself.
 import paragraph from "../../assets/icons/phosphor/regular/paragraph.svg?raw";
 import listDashes from "../../assets/icons/phosphor/regular/list-dashes.svg?raw";
 import plusCircle from "../../assets/icons/phosphor/regular/plus-circle.svg?raw";
-// The shell's states (Etapa 7, 2026-08-24): the turning arc of "still
-// reading", the two warnings of an error and a conflict, and the file a
-// trashed folder or note is drawn as.
+// The shell's states: still reading, error, conflict, and the file a trashed
+// folder or note is drawn as.
 import circleNotch from "../../assets/icons/phosphor/regular/circle-notch.svg?raw";
 import warning from "../../assets/icons/phosphor/regular/warning.svg?raw";
 import warningCircle from "../../assets/icons/phosphor/regular/warning-circle.svg?raw";

@@ -1,17 +1,8 @@
-// The one place the Tauri bridge is faked (2026-08-21).
-//
-// No test file installs a mock of its own: `vite.config.js` aliases the three
-// `@tauri-apps/api/*` modules onto this file whenever VITEST is set, so a test
-// gets the bridge already stubbed and cannot invent a fifth shape of it. Four
-// incompatible shapes used to live in the tree — a hoisted `vi.fn`, a closure
-// one, an inert one, and a partial stub of `services/api.js` one level up —
-// and each new test copied whichever one it landed beside.
-//
-// The stub answers at the level the app really speaks: `invoke(command, args)`.
-// Faking `services/api.js` instead hides the mapping from a method to a command
-// name and to an argument shape, which is precisely the half of the bridge that
-// breaks — and it breaks silently, because a stubbed method cannot disagree
-// with a command that was renamed in Rust.
+// The one place the Tauri bridge is faked: `vite.config.js` aliases the three
+// `@tauri-apps/api/*` modules onto this file whenever VITEST is set, so no test
+// installs a mock of its own. The stub answers at the level the app speaks,
+// `invoke(command, args)` — faking `services/api.js` would hide the method →
+// command-name → argument-shape mapping, the half of the bridge that breaks silently.
 
 import { vi } from "vitest";
 
@@ -40,11 +31,9 @@ export const invoke = vi.fn((command, args) => {
 /// compiled in, a read-only home, a machine with no network.
 export const fails = (message) => () => Promise.reject(new Error(message));
 
-/// Answers each command with whatever `responses` says.
-///
-/// Call it as many times per test as needed — the last call wins, and a second
-/// one replaces the table rather than adding to it, so a test can put the
-/// bridge into a new state mid-way without the old answers leaking in.
+/// Answers each command with whatever `responses` says. The last call wins
+/// and REPLACES the table, so a test can put the bridge into a new state
+/// mid-way without the old answers leaking in.
 export function bridge(responses = {}, { fallback: otherwise } = {}) {
   answers = responses;
   if (otherwise !== undefined) fallback = otherwise;

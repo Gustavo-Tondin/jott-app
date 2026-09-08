@@ -1,20 +1,8 @@
-// What `[[` offers while it is being typed.
-//
-// One trigger, two namespaces — the same split `services/embeds.js` writes
-// down: `[[` asks about NOTES, `[[/` asks about the notebook's FILES. Typing
-// the slash switches the list under the cursor, which is the whole reason the
-// slash was chosen as the marker (user call, 2026-08-19).
-//
-// Nothing is invented here: notes come from the notebook's own search — the
-// same one Ctrl+F asks — and files from the library listing. Arrow keys and
-// Enter are CodeMirror's own (`completionKeymap`), so the gesture is the one
-// every other editor already taught the user.
-//
-// The empty query is deliberately different in the two halves, because the
-// two questions are: the library is a flat folder small enough to show whole,
-// so `[[/` lists everything at once; the notebook's search answers nothing to
-// an empty query on purpose (`core/src/search.rs`), so `[[` waits for a
-// letter rather than dumping every note.
+// What `[[` offers while it is being typed. Two namespaces, as
+// `services/embeds.js` writes them: `[[` asks about NOTES (the notebook's
+// search, which answers nothing to an empty query — `core/src/search.rs`),
+// `[[/` about the notebook's FILES (the library, small enough to list whole).
+// Arrow keys and Enter are CodeMirror's own (`completionKeymap`).
 
 import { api } from "./api.js";
 import { embedMarkdown, noteMarkdown } from "./embeds.js";
@@ -28,14 +16,9 @@ const matches = (haystack, needle) =>
   String(haystack).toLowerCase().includes(needle.toLowerCase());
 
 /// Writes the picked reference, and eats a `]]` the bracket-closing already
-/// put to the right of the caret (`services/autoClose.js`, 2026-08-19).
-///
-/// A picked option writes the WHOLE reference, brackets included — so with
-/// `[[` now typed as two keystrokes that leave `[[|]]`, a plain string `apply`
-/// replaced only up to the caret and the note ended up holding
-/// `[[/foto.jpg]]]]`. The closing brackets are read off the document at the
-/// moment of picking rather than assumed, because the caret may equally be
-/// sitting in a `[[…]]` the user typed out by hand.
+/// put to the right of the caret (`services/autoClose.js`). A picked option
+/// writes the WHOLE reference, brackets included; the closing brackets are
+/// read off the document, since the caret may sit in a hand-typed `[[…]]`.
 function writes(text) {
   return (view, _completion, from, to) => {
     const after = view.state.sliceDoc(to, to + 2);
@@ -48,10 +31,8 @@ function writes(text) {
   };
 }
 
-/// CodeMirror's completion source for `[[`.
-///
-/// Built with its two answers rather than importing them, for the same reason
-/// the embeds are: so the rule can be tested without a bridge.
+/// CodeMirror's completion source for `[[`. Built with its two answers rather
+/// than importing them, so the rule can be tested without a bridge.
 export function referenceCompletions({ notes, files } = {}) {
   return async (context) => {
     // Everything between `[[` and the cursor. What sits to the RIGHT of it is
@@ -68,16 +49,10 @@ export function referenceCompletions({ notes, files } = {}) {
     return {
       from: open.from,
       options,
-      // **`filter: false`, and it is not an optimisation.** CodeMirror filters
-      // options by the text between `from` and the cursor, and `from` has to
-      // be the first `[` — that is what a picked option REPLACES. So the text
-      // it would filter by is `[[fo`, and no name in either list has brackets
-      // in it: every option was thrown away and the panel never opened. The
-      // narrowing is done here instead, where the two halves already know how
-      // to ask (`fileOptions` filters, and the search does its own).
-      //
-      // With no `validFor`, CodeMirror re-asks on each keystroke — which is
-      // exactly what makes that narrowing happen.
+      // `filter: false`, and it is not an optimisation: CodeMirror would filter
+      // by the text from `from` (the first `[`, what a pick REPLACES) — `[[fo`
+      // matches no name, and the panel never opened. The narrowing is done by
+      // the two halves. No `validFor`, so CodeMirror re-asks on each keystroke.
       filter: false,
     };
   };
@@ -94,8 +69,7 @@ async function fileOptions(files, typed) {
       // between a picture in the note and a chip.
       detail: asset.image ? "image" : "file",
       type: asset.image ? "image" : "file",
-      // What picking one writes comes from the module that OWNS the syntax —
-      // a second copy of it here is the drift this app keeps designing out.
+      // What picking one writes comes from the module that OWNS the syntax.
       apply: writes(embedMarkdown(asset.path)),
     }));
 }

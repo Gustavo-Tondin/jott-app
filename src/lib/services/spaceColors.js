@@ -1,32 +1,15 @@
-// The colour a space READS as, which is not always the colour stored in
-// its own `.space.json`.
-//
-// Colour belongs to the group (user call 2026-08-04): a space inside one
-// follows it, and its own colour — the one it had while loose — stops counting
-// until it leaves. Without a single answer to this the sidebar said one thing
-// (it inherits, through --group-color) and the space title and the tab dot
-// said another, so joining a group left the old colour behind in two places.
-//
-// Since 2026-08-24 the sidebar can also wear the RAINBOW (`autoSpaceColors`,
-// a Display choice — the Blue Topaz look): the seven hues go around starting
-// from the accent, one per top-level entry, in sidebar order, with `neutral`
-// closing every lap. The fixed spaces wear the accent itself; the first list
-// or group takes the hue after it, and so on, cycling. It ignores the colour a
-// space chose — it is a look for the whole column, and a hand-picked orange
-// in the middle of it would break the rainbow. Off, what was set is what
-// there is.
+// The colour a space READS as — not always the one in its `.space.json`:
+// colour belongs to the group, and a member's own stops counting until it
+// leaves. With `autoSpaceColors` (Display) the sidebar wears the RAINBOW
+// instead: the seven hues from the accent, one per top-level entry in
+// sidebar order, `neutral` closing every lap, ignoring what a space chose.
 
 import { DEFAULT_ACCENT, HUES } from "./accent.js";
 import { sidebarEntries } from "./sidebarOrder.js";
 
-/// The seven in the order the rainbow goes around (user call, 2026-08-24) —
-/// since 2026-08-26 the same order the picker draws: `accent.js` is the one
-/// source, and `neutral` is the eighth there too, always last here.
-
-/// The cycle: the seven starting from `accent` and going around, and
-/// `neutral` ALWAYS last, whichever hue starts — then it repeats. An accent
-/// that is not one of the seven (`neutral`, or nothing chosen) starts from
-/// the app's own.
+/// The cycle: the seven from `accent` going around (the order `accent.js`
+/// draws them — the one source), then `neutral`, ALWAYS last. An accent that
+/// is not one of the seven starts from the app's own.
 export function rainbowFrom(accent) {
   const start = Math.max(0, HUES.indexOf(HUES.includes(accent) ? accent : DEFAULT_ACCENT));
   return [...HUES.map((_, i) => HUES[(start + i) % HUES.length]), "neutral"];

@@ -1,12 +1,8 @@
-// Reminders on the front: the moment a task rings, as the file writes it.
-//
-// The core decides WHAT rings (`core/src/reminders.rs` — a task's own
-// `remind:` or the notebook's automatic rule for dated tasks) and hands a
-// sorted list of `{list, id, position, text, at, auto}`. This module knows
-// the shape of `at` (`2026-07-25T09:00`, local, minute precision — sortable
-// as a string, which is why comparisons below are string comparisons), the
-// presets the inspector offers, and which of the list are due. Scheduling is
-// `shell/reminders.js`; nothing here touches a timer or the bridge.
+// Reminders on the front. The core decides WHAT rings and hands a sorted
+// list of `{list, id, position, text, at, auto}`; this module knows the
+// shape of `at` (`2026-07-25T09:00`, local, minute precision — sortable as a
+// string, so comparisons below are string comparisons), the presets, and
+// which are due. Scheduling is `shell/reminders.js`; no timer or bridge here.
 
 import { clamp } from "./num.js";
 import { formatDate, toIso } from "./dates.js";
@@ -70,15 +66,10 @@ function atTime(date, time) {
   return out;
 }
 
-/// The presets the inspector offers, each already resolved to a moment.
-/// `time` is the notebook's reminder time (`HH:MM`), `due` the task's date
-/// (`yyyy-mm-dd`) or "". Only moments still ahead are offered: a preset that
-/// rings immediately is a trap, not a shortcut.
-///
-///   - laterToday: three hours from now, on the hour (Microsoft To Do's rule)
-///   - tomorrow: tomorrow at `time`
-///   - nextWeek: next Monday at `time`
-///   - onDue: the due day at `time`, only for a dated task
+/// The presets the inspector offers, each resolved to a moment: laterToday
+/// (three hours from now, on the hour), tomorrow and nextWeek (next Monday)
+/// at `time` (the notebook's `HH:MM`), onDue (the due day at `time`, dated
+/// tasks only). Only moments still ahead: a preset that rings at once is a trap.
 export function presets({ now = new Date(), due = "", time = "09:00" } = {}) {
   const out = [];
   const later = new Date(now);
@@ -97,10 +88,9 @@ export function presets({ now = new Date(), due = "", time = "09:00" } = {}) {
   return out;
 }
 
-/// The reminders that should ring NOW: at or before `now`, and after
-/// `until` — the moment up to which this machine already rang (null =
-/// never, and then nothing from the past rings: a first launch is not an
-/// avalanche of every old reminder).
+/// The reminders that should ring NOW: at or before `now` and after `until`,
+/// the moment up to which this machine already rang (null = never, and then
+/// nothing from the past rings — a first launch is not an avalanche).
 export function dueNow(reminders, { now = new Date(), until = null } = {}) {
   const limit = toAt(now);
   return reminders.filter((r) => r.at <= limit && until !== null && r.at > until);

@@ -1,31 +1,8 @@
-// Pulling the page down past its top to open the search (user call,
-// 2026-08-21, after the Things 3 preview: "puxa a lista pra baixo, aparece a
-// lupa, solta, abre a busca").
-//
-// Used on the SCROLLER of the compact shell:
-//   <section use:pullToSearch={{ enabled, onPull }}>
-//     <div class="pull-search">…</div>
-//
-// Only from the very top: a list that is scrolled has a scroll to finish
-// first, and the browser owns that. At the top, a downward drag is given a
-// meaning the page did not have — the action writes how far it has got, in
-// px and with resistance, as `--pull` on the node and marks it `is-pulling`;
-// the stylesheet draws the indicator from that (components/pull-search.css). Past THRESHOLD the
-// node is marked `is-pull-ready`, the moment the release would open the
-// search; let go there and `onPull()` is called. Let go earlier and the
-// indicator glides back, and nothing happened.
-//
-// Touch events on a finger, for the reason the drawer measured on the device
-// (actions/drawerSwipe.js): once the browser decides a vertical drag is its
-// scroll it sends `pointercancel` and stops, and only a `preventDefault` on the
-// `touchmove` keeps the gesture. It is called only once the pull is ours —
-// before that, the drag IS a scroll and must stay one. A mouse gets the same
-// gesture through pointer events: nothing competes for a mouse drag.
-//
-// Whose gesture it is: a drag that starts on a card that swipes or reorders
-// is that card's until it has gone sideways or rested, and this action's
-// axis lock declines anything that is not mostly downward. A drag that starts
-// in the editor, a field or a raised panel is never a pull.
+// `use:pullToSearch={{ enabled, onPull }}` on the compact shell's SCROLLER:
+// a downward drag from `scrollTop` 0 writes `--pull`/`--pull-ratio` on the
+// node and marks it `is-pulling`, then `is-pull-ready` past THRESHOLD
+// (components/pull-search.css draws it); released there, `onPull()`. A drag
+// that starts on CLAIMED, or is not mostly downward, is left to its owner.
 
 import { clamp } from "../services/num.js";
 
@@ -37,10 +14,8 @@ const MAX = 112;
 const LOCK = 8;
 /// The rubber band: the indicator covers this fraction of what the finger does.
 const RESIST = 0.55;
-/// …and never from a card or a list of them: a finger on a card is scrolling,
-/// swiping or about to rest and pick it up, and the glass appearing mid-drag
-/// read as a fourth gesture fighting the three (user call, 2026-08-21:
-/// "limite o de pesquisar às partes vazias da tela").
+/// Never from a card or a list of them: a finger there is scrolling, swiping
+/// or about to rest and pick the card up.
 const CLAIMED =
   "input, textarea, [contenteditable], .cm-editor, .sheet, .theme-modal, .theme-popover," +
   " [data-swipes], [data-reorderable], [data-flicks], .task-row, .note-card, .theme-row, .theme-btn, .theme-btn--icon";
@@ -58,10 +33,8 @@ export function pullToSearch(node, params) {
       return;
     }
     node.style.setProperty("--pull", `${px}px`);
-    // The same distance as a share of the mark (0 → 1 at the threshold), for
-    // the parts of the drawing that are a size or an angle rather than a
-    // distance — dividing a length by a length is not something every engine
-    // the app ships on can do in `calc()`.
+    // The same distance as a share of the threshold (0 → 1), for sizes and
+    // angles: not every engine the app ships on divides lengths in `calc()`.
     node.style.setProperty("--pull-ratio", `${Math.min(1, px / THRESHOLD).toFixed(3)}`);
     node.classList.add("is-pulling");
     node.classList.toggle("is-pull-ready", px >= THRESHOLD);
@@ -115,6 +88,9 @@ export function pullToSearch(node, params) {
     const t = event.touches[0];
     begin(event.target, t.clientX, t.clientY);
   }
+  // `preventDefault` only once the pull is ours — before that the drag IS a
+  // scroll; without it the WebView sends `pointercancel` and keeps the drag.
+  // See docs/platform-gotchas.md#webview-e-gestos
   function touchMove(event) {
     if (!drag) return;
     if (event.touches.length !== 1) return abandon();

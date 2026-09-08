@@ -1,32 +1,17 @@
-// How wide the two side panels may be, and what a dragged value resolves to.
-//
-// The rule lives here rather than in the shell because it is the one part of
-// the drag that has nothing to do with pointers: given a number from anywhere
-// — the machine preferences file, a keyboard nudge, a pointer — what width
-// does the app actually use? That question is answerable without a DOM, so it
-// is answered under test.
-//
-// Pixels, not rem, on purpose: this is a real screen measurement, the same
-// exception the resize grips and the drop zones make. Everything the CSS
-// itself declares stays in rem.
+// How wide the two side panels may be, and what a dragged value resolves to —
+// answerable without a DOM, so answered under test. Pixels, not rem: a real
+// screen measurement, the same exception the resize grips make.
 
 import { clamp } from "../services/num.js";
 
-/// The left sidebar. Narrower than the minimum and it stops being a sidebar:
-/// the notebook name in the footer and the group rows have nowhere to go.
-/// Wider than the maximum and the centre panel — the actual work — is the
-/// side show. The default is what the stylesheet ships
-/// (`--app-sidebar-left`).
+/// The left sidebar. Below the floor the footer's notebook name and the group
+/// rows have nowhere to go; past the ceiling the centre panel is the side
+/// show. The default is the stylesheet's (`--app-sidebar-left`).
 export const SIDEBAR = { min: 176, max: 480, default: 220 };
 
-/// The right panel (task inspector / suggestions). Its floor is higher: it
-/// holds a date picker and a row of controls, not a list of names. Default is
-/// `--app-sidebar-right`.
-// The floor was 208 until 2026-08-19, and it was the width of one row of the
-// formatting panel's six headings — so dragging the panel narrower simply
-// stopped there and the panel read as un-resizable (user report). The bar
-// wraps at any width; what a floor has to protect is the inspector's fields
-// still being usable, and 176 is the same one the sidebar keeps.
+/// The right panel (task inspector / suggestions). The floor protects the
+/// inspector's fields, not the formatting bar (which wraps at any width);
+/// default is `--app-sidebar-right`.
 export const PANEL = { min: 176, max: 560, default: 240 };
 
 // Kept as named exports because they read better in the tests that guard the
@@ -34,11 +19,9 @@ export const PANEL = { min: 176, max: 560, default: 240 };
 export const MIN_SIDEBAR = SIDEBAR.min;
 export const MAX_SIDEBAR = SIDEBAR.max;
 
-/// A width the app is willing to use, or `null` when there is no answer.
-///
-/// `null` matters: it is what tells the shell to leave the CSS token alone
-/// instead of pinning the panel to a number, so the stylesheet stays the
-/// single source of the default.
+/// A width the app is willing to use, or `null` when there is no answer —
+/// which tells the shell to leave the CSS token alone, so the stylesheet stays
+/// the single source of the default.
 export function clampWidth(value, limits = SIDEBAR) {
   const px = typeof value === "string" ? Number.parseFloat(value) : value;
   if (typeof px !== "number" || !Number.isFinite(px)) return null;

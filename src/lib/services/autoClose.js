@@ -1,61 +1,20 @@
-// Auto-closing pairs in the note editor — the Obsidian gesture (user call,
-// 2026-08-19).
-//
-// Typing an opener writes the closer too and parks the caret between them, so
-// `**` is two keystrokes and the way out is the arrow key.
-//
-// **There is no escape hatch, and that was decided rather than forgotten.**
-// The ask was "hold Shift for a single character", and it cannot be built: on
-// this keyboard `(` is Shift+9, `"` is Shift+' and `*` is Shift+8, so all
-// three reach the app with `shiftKey` already true and nothing tells them
-// apart. What stands in for it is what Obsidian itself relies on — typing the
-// closer steps over the one already there, Backspace between a fresh pair
-// takes both, and a mark never closes with a word pressed up against it.
-//
-// Two families, two mechanisms, and the split was MEASURED against the real
-// library rather than read out of its source:
-//
-//   * `(`, `[`, `{`, `"` are brackets, and CodeMirror's `closeBrackets` is
-//     already right about them — including the part that matters most here,
-//     that `[` twice writes `[[|]]`, which is what opens the reference
-//     autocomplete (`services/linkComplete.js`).
-//   * `*`, `_`, `~`, `` ` `` are Markdown marks, and `closeBrackets` is wrong
-//     about them in precisely the case that was asked for. Its `handleSame` is
-//     built for programming-language strings, where a quote inside a quote
-//     ends the string; in Markdown a mark inside the same mark is BOLD.
-//     Measured: typing `*` twice gave `**|` (the second one stepped over the
-//     first one's closer) instead of `**|**`, and pressing `*` at the end of
-//     `**text|**` gave `**text*|***` instead of stepping out.
-//
-// So the marks are handled here, in full — including the keystroke that turns
-// out to be an ordinary character, because handing that one back would let
-// `closeBrackets` answer it with the behaviour above.
-//
-// **Ownership is deliberately NOT tracked**, and that too is a measurement.
-// CodeMirror remembers which closers it wrote, and forgets one the moment
-// anything is typed against it (`MapMode.TrackAfter`) — which is every closer
-// this file cares about, since `**text|**` is the state you reach by typing
-// inside the pair. A memory that is always empty when consulted is not a
-// memory. The rules below are structural instead: what the caret is standing
-// between decides, and the same document always gets the same answer.
+// Auto-closing pairs in the note editor: an opener writes the closer and parks
+// the caret between; there is no escape hatch (`(`, `"` and `*` all arrive with
+// `shiftKey` true). Brackets are `closeBrackets`'s; the Markdown marks are
+// handled here in full and structurally — no ownership memory, CodeMirror
+// forgets a closer once anything is typed against it. See docs/platform-gotchas.md#codemirror
 
 import { EditorSelection, EditorState, Prec } from "@codemirror/state";
 import { EditorView, keymap } from "@codemirror/view";
 import { closeBrackets, closeBracketsKeymap } from "@codemirror/autocomplete";
 import { markdownLanguage } from "@codemirror/lang-markdown";
 
-/// The Markdown marks that pair.
-///
-/// `=` is deliberately absent: `==highlight==` is not CommonMark, and pairing
-/// it would invite writing it — which changes the dialect of the file, a
-/// decision about the format (spec 5) and not about the keyboard.
+/// The Markdown marks that pair. `=` is absent: `==highlight==` is not
+/// CommonMark, and pairing it would invite writing it.
 export const MARKS = ["*", "_", "~", "`"];
 
-/// The brackets that pair.
-///
-/// `'` is deliberately absent, unlike CodeMirror's default: in Portuguese
-/// prose an apostrophe is a letter (`d'água`) far more often than it is a
-/// quote, and a pair written into the middle of a word is worse than no pair.
+/// The brackets that pair. `'` is absent, unlike CodeMirror's default: in
+/// Portuguese prose an apostrophe is a letter (`d'água`) far more than a quote.
 export const BRACKETS = ["(", "[", "{", '"'];
 
 /// How deep the same mark nests before the app stops opening new pairs.
@@ -84,12 +43,8 @@ function runAfter(doc, pos, mark) {
 }
 
 /// Is the caret inside a free-standing, balanced, EMPTY run of `mark` — the
-/// `*|*` that typing one mark leaves behind?
-///
-/// The two outer checks are what tell that state apart from `**text*|*`, where
-/// the runs are also balanced at one each: there, the run behind the caret has
-/// a word pressed against it, which makes it the END of something rather than
-/// the start.
+/// `*|*` typing one leaves? The outer checks tell it apart from `**text*|*`,
+/// where the run behind the caret has a word pressed against it.
 function insideEmptyPair(doc, pos, mark) {
   const before = runBefore(doc, pos, mark);
   const after = runAfter(doc, pos, mark);
@@ -146,20 +101,10 @@ export function markInput(state, mark) {
       return { range: EditorSelection.cursor(pos + mark.length) };
     }
 
-    // 3. Open a pair, where a mark can begin. Three things stop it:
-    //
-    //    * `_` after a word: CommonMark gives no meaning to `foo_bar_`, so
-    //      closing there writes a pair that renders as nothing — and it would
-    //      fight snake_case, which is the other thing `_` is typed for.
-    //    * THE SAME MARK ALREADY TOUCHING THE CARET, on either side (user
-    //      report, 2026-09-07). Deleting one of the four asterisks of
-    //      `**word**` leaves `**word*`, and typing the missing one back has
-    //      exactly one right answer: one character. A pair there wrote
-    //      `**word***`, which is the bug — and the rule reads the same from
-    //      the other side, so `*` typed in front of `**word**` is one
-    //      character too. The two states where a mark against the caret DOES
-    //      mean something are already answered above: the empty pair the app
-    //      itself opened (1) and the finished pair the caret steps out of (2).
+    // 3. Open a pair, where a mark can begin. Two things stop it: `_` after a
+    //    word (`foo_bar_` means nothing in CommonMark and fights snake_case),
+    //    and the SAME MARK already touching the caret on either side — typing
+    //    the missing asterisk of `**word*` back has one right answer, one char.
     const opens =
       (!ahead || /\s/.test(ahead) || CLOSE_BEFORE.includes(ahead)) &&
       ahead !== mark &&
@@ -197,13 +142,9 @@ const markHandler = EditorView.inputHandler.of((view, from, to, insert) => {
   return true;
 });
 
-/// Everything the editor needs for pairs to close themselves.
-///
-/// The marks are declared to `closeBrackets` as well as handled here, and that
-/// is not a contradiction: its input handler never sees them (the one above
-/// answers first, always), but its Backspace command reads the same list — so
-/// deleting the caret out of a fresh `*|*` takes both, exactly as it does out
-/// of `(|)`.
+/// Everything the editor needs for pairs to close themselves. The marks are
+/// declared to `closeBrackets` too: its input handler never sees them (the one
+/// above answers first), but its Backspace reads the list, so `*|*` takes both.
 export const autoClose = [
   markdownLanguage.data.of({
     closeBrackets: { brackets: [...BRACKETS, ...MARKS] },
@@ -213,15 +154,9 @@ export const autoClose = [
   Prec.high(keymap.of(closeBracketsKeymap)),
 ];
 
-/// The bracket half alone, for a PLAIN-TEXT field (the task description,
-/// 2026-08-19).
-///
-/// `[` twice still leaves `[[|]]` — which is what opens the reference
-/// autocomplete (`services/linkComplete.js`) — but the Markdown marks stay
-/// ordinary characters: a description is never rendered as Markdown, so a
-/// paired `*` would decorate nothing and just be a stray character to delete.
-/// Declared as global language data because a plain field has no language to
-/// hang the list on.
+/// The bracket half alone, for a PLAIN-TEXT field (the task description):
+/// `[[` still opens the reference autocomplete, but the marks stay ordinary
+/// characters. Global language data because a plain field has no language.
 export const plainAutoClose = [
   EditorState.languageData.of(() => [{ closeBrackets: { brackets: BRACKETS } }]),
   closeBrackets(),

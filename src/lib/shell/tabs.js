@@ -1,13 +1,6 @@
-// Document tabs — the model, with no Svelte in it.
-//
-// A tab holds a small navigation history, not a single view: the back and
-// forward arrows in the wireframe belong to the tab they sit above, the way
-// they do in a browser. Global history would make "back" jump between tabs,
-// which is exactly the confusion tabs exist to avoid.
-//
-// A *view* is the plain object the screens already use — `{kind: "list",
-// list}`, `{kind: "note", folder, path}`, and so on. Tabs add no vocabulary
-// of their own; they just hold views.
+// Document tabs — the model, with no Svelte in it. A tab holds its own
+// navigation history (back and forward belong to the tab, as in a browser);
+// a *view* is the plain object the screens use, and tabs add no vocabulary.
 
 import { movedItem } from "../services/spaceOrder.js";
 
@@ -34,15 +27,9 @@ export const currentView = (tab) => tab?.views[tab.at] ?? null;
 export const canGoBack = (tab) => !!tab && tab.at > 0;
 export const canGoForward = (tab) => !!tab && tab.at < tab.views.length - 1;
 
-/// Opens `view`: focuses the tab already showing it, or appends a new one.
-///
-/// Focusing rather than duplicating is what keeps a click on the same list
-/// from filling the bar with copies of it.
-///
-/// `focus: false` is the browser's middle click (user call, 2026-09-07: "não
-/// foque a página, só abra em uma nova guia"): the tab is opened — or found —
-/// and the one you are reading stays in front. It used to jump, which turns a
-/// gesture meant for queueing up three things to read into three round trips.
+/// Opens `view`: focuses the tab already showing it, or appends one — a click
+/// on the same list never fills the bar with copies. `focus: false` is the
+/// browser's middle click: opened or found, and the tab you are on stays in front.
 export function open(tabs, active, view, { focus = true } = {}) {
   const id = viewId(view);
   const existing = tabs.findIndex((tab) => viewId(currentView(tab)) === id);
@@ -50,11 +37,8 @@ export function open(tabs, active, view, { focus = true } = {}) {
   return { tabs: [...tabs, tabOf(view)], active: focus ? tabs.length : active };
 }
 
-/// Navigates the active tab to `view`, in place.
-///
-/// Anything ahead of the current position is dropped — the same rule a
-/// browser follows: taking a new path from here makes the old forward
-/// unreachable, and pretending otherwise is worse than losing it.
+/// Navigates the active tab to `view`, in place. Anything ahead is dropped,
+/// as a browser does: a new path from here makes the old forward unreachable.
 export function navigate(tabs, active, view) {
   const tab = tabs[active];
   if (!tab) return open(tabs, active, view);
@@ -120,10 +104,8 @@ export function move(tabs, active, from, to) {
   return { tabs: next, active: at };
 }
 
-/// Replaces the view of whichever tab is showing `fromId`.
-///
-/// Used when a document is renamed under an open tab: the tab must follow the
-/// file, not keep pointing at a name that no longer exists.
+/// Replaces the view of whichever tab is showing `fromId` — a document renamed
+/// under an open tab: the tab follows the file.
 export function replaceView(tabs, fromId, view) {
   return tabs.map((tab) => {
     if (viewId(currentView(tab)) !== fromId) return tab;

@@ -1,18 +1,8 @@
-// What a VIEW is, on its own — with no Svelte around it.
-//
-// A view is the plain object the whole app navigates with (`{kind: "list",
-// list}`, `{kind: "note", folder, path}`, `{kind: "space", sp}`). `tabs.js`
-// holds them and knows their identity; this holds the four questions the shell
-// asks ABOUT one:
-//
-//   • what does it call itself?      (the tab, the page header)
-//   • which space is it inside?      (the tab's dot, the ⋮'s "find here")
-//   • is it still somewhere the app goes, with this notebook's parts?
-//   • which view does a remembered screen id mean?
-//
-// They lived in App.svelte, where each was a function nobody could test
-// without mounting the whole shell — and the last one is the exact inverse of
-// `viewId` in tabs.js, which does have tests.
+// What a VIEW is, with no Svelte around it: the plain object the app
+// navigates with (`{kind: "list", list}`, `{kind: "note", folder, path}`,
+// `{kind: "space", sp}`). `tabs.js` holds them; this answers the shell's
+// questions about one — its title, its space, whether it is still somewhere
+// the app goes, and which view a remembered screen id means.
 
 import { S } from "../services/strings.js";
 import { folderOf, listName, listTitle } from "../services/paths.js";
@@ -21,11 +11,7 @@ import { folderOf, listName, listTitle } from "../services/paths.js";
 /// The inverse of `tabs.viewId` — keep the two in step.
 export function viewFromId(id) {
   if (!id) return null;
-  // Ids from before the day moved to the Home (2026-09-04) and, before
-  // that, from before Today and This Week became tabs of the Tasks screen.
-  // A session restored onto one used to fall through every screen branch to
-  // the Completed, which is the one place those ids never meant; the day is
-  // the Home's now, and the week is any day on its calendar.
+  // Ids of screens that no longer exist (`day`, `week`) mean the Home.
   if (id === "day" || id === "week") return { kind: "home" };
   if (id.startsWith("list:")) return { kind: "list", list: id.slice(5) };
   if (id.startsWith("sp:")) return { kind: "space", sp: id.slice(3) };
@@ -36,19 +22,9 @@ export function viewFromId(id) {
 }
 
 /// Is this view still somewhere the app goes? A part switched off takes its
-/// screens with it (App Functions, 2026-08-06), and a tab left pointing at one
-/// — restored from the last session, or open when the switch flipped — shows
-/// the landing screen rather than a dead panel. Nothing is closed behind the
-/// user's back: the tab stays.
-///
-/// `layout` joined for the fixed spaces (2026-08-24): a hidden fixed space
-/// takes its own screens with it, and only the layout knows whether a list or
-/// a note lives in one — a user space's files stay reachable regardless.
-///
-/// Until 2026-09-04 the Home could host a fixed space whole
-/// (`homeTasksSource`/`homeNotesSource`) and that kept the space's files
-/// reachable with the space hidden; the Home is the day now, and a hidden
-/// fixed space is simply hidden.
+/// screens with it, and a tab left pointing at one shows the landing screen —
+/// the tab itself stays. `layout` places the fixed spaces: a hidden fixed
+/// space takes its screens; a user space's files stay reachable regardless.
 export function reachable(view, f = () => true, layout = null) {
   switch (view?.kind) {
     case "home":
@@ -84,10 +60,9 @@ export function reachable(view, f = () => true, layout = null) {
   }
 }
 
-/// Where the app lands when a view is not somewhere it goes any more. Home,
-/// unless Home itself is hidden (Fixed spaces, 2026-08-24) — then the first
-/// fixed screen still standing, and Home regardless when none is: the app has
-/// to land somewhere, and a notebook with every door closed still opens.
+/// Where the app lands when a view is not somewhere it goes any more: Home,
+/// unless hidden — then the first fixed screen standing, and Home regardless
+/// when none is, because a notebook with every door closed still opens.
 export function landing(f = () => true) {
   if (f("homeSpace")) return { kind: "home" };
   if (f("tasks") && f("tasksSpace")) return { kind: "tasks" };
@@ -95,13 +70,9 @@ export function landing(f = () => true) {
   return { kind: "home" };
 }
 
-/// What a view calls itself. Derived, never stored: renaming a list has to
-/// reach the tab showing it.
-///
-/// A space is looked up by its path in `spaces`, because the DISPLAY name
-/// travels with the notebook — the fixed three are filed as `jott.*` and read
-/// as Home, Tasks and Notes, and deriving a name from a path put the folder on
-/// screen the moment those were renamed (2026-08-13).
+/// What a view calls itself. Derived, never stored, so a rename reaches the
+/// tab. A space is looked up in `spaces`: the DISPLAY name travels with the
+/// notebook (the fixed three are filed as `jott.*`), never derived from a path.
 export function titleOf(view, spaces = []) {
   switch (view?.kind) {
     case "home":
@@ -133,15 +104,9 @@ export function titleOf(view, spaces = []) {
   }
 }
 
-/// The space a view lives in, as a root-relative path — null on a screen that
-/// is inside none (Home, Settings, the Trash).
-///
-/// The space of a file address is everything ABOVE the file, not the first
-/// segment: `Design/Tasks/task-list.md` lives in `Design/Tasks`, and taking
-/// the first answered "Design" — a group, which owns no colour (2026-08-13).
-///
-/// `layout` is what places the three fixed screens, which have no `sp` of
-/// their own; without it, only the views that name a space answer.
+/// The space a view lives in, as a root-relative path — null on a screen
+/// inside none. It is everything ABOVE the file (`Design/Tasks`, not the group
+/// `Design`). `layout` places the three fixed screens, which have no `sp`.
 export function spaceOfView(view, layout = {}) {
   switch (view?.kind) {
     case "space":

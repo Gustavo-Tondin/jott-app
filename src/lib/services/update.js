@@ -1,17 +1,8 @@
-// Knowing when a newer Jott exists, and what to do about it.
-//
-// The check itself lives in Rust (`check_for_update`): one GET for the
-// release feed's `latest.json`, nothing sent but the request. This module
-// owns the POLICY around it — when the automatic check is due, what silence
-// means, and which of the two endings an update has:
-//
-//   - installs that can replace themselves (the AppImage, the Windows build)
-//     hand over to the updater plugin, which verifies the download against
-//     the public key baked into the app before touching anything;
-//   - every other install (deb/rpm/pacman, the APK) belongs to a package
-//     manager, so the honest offer is the release page in the browser.
-//
-// The bridge already answered which ending applies (`canInstall`).
+// Knowing when a newer Jott exists. The check is Rust's (`check_for_update`,
+// one GET for `latest.json`); this owns the POLICY: when the automatic check
+// is due, what silence means, and which ending applies (`canInstall`) —
+// installs that can replace themselves hand over to the updater plugin, which
+// verifies against the baked-in public key; the rest get the release page.
 
 import { api } from "./api.js";
 import { openExternal } from "./external.js";
@@ -69,9 +60,8 @@ export async function installUpdate() {
   return true;
 }
 
-/// The other ending: the release page, in the system browser. The opening
-/// itself is `services/external.js` — this keeps the name the update flow
-/// calls it by, and every outward link in the app goes through the one door.
+/// The other ending: the release page in the system browser, through the
+/// one door every outward link uses (`services/external.js`).
 export async function openReleasePage(url) {
   await openExternal(url);
 }

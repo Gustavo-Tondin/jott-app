@@ -1,17 +1,8 @@
-// The two Display choices about the note's formatting bar (2026-08-21):
-// HOW it opens with a note, and WHICH edge of the canvas the floating one hugs.
-//
-// A table each, in one place, because three consumers read them and must not
-// disagree — the Settings rows that offer them, the shell that acts on them,
-// and the search index that has to find them. The same shape `themes.js`
-// keeps for the theme and the note size: a key, a label read at render time
-// (so a language change reaches it), and the app's own answer beside it.
-//
-// The keys are what the core stores, unvalidated and by NAME — a mode this
-// build has never heard of round-trips through `.jott/config.json` untouched
-// (core/src/config.rs). Which is also why nothing here forces an unknown
-// value back to the default: `on` below falls back for the sake of the
-// interface, not to correct the file.
+// The two Display choices about the note's formatting bar: HOW it opens
+// with a note, and WHICH edge the floating one hugs. Tables, because three
+// consumers must agree (Settings rows, the shell, the search index); same
+// shape as `themes.js`. Keys are stored by NAME, unvalidated — an unknown
+// mode round-trips untouched; `formatBarMode` falls back for the interface only.
 import { S } from "./strings.js";
 
 /// How the bar opens with a note: floating over it, docked in the side
@@ -26,10 +17,8 @@ export const FORMAT_BAR_MODES = [
 
 export const DEFAULT_FORMAT_BAR = "panel";
 
-/// Which edge it hugs — a SIDE, never a corner (user call, 2026-08-21): the
-/// bar is always centred on the edge it is given, so there are four answers
-/// and not eight. Left and right stand it on end (`FormatBar`'s `rail`),
-/// which is the shell's reading of these two keys.
+/// Which edge it hugs — a SIDE, never a corner: the bar is centred on its
+/// edge, so four answers. Left and right stand it on end (`FormatBar`'s `rail`).
 export const FORMAT_BAR_SIDES = [
   { key: "top", label: () => S.formatBarSideTop },
   { key: "left", label: () => S.formatBarSideLeft },
@@ -39,10 +28,9 @@ export const FORMAT_BAR_SIDES = [
 
 export const DEFAULT_FORMAT_BAR_SIDE = "top";
 
-/// The mode in force, for the interface to act on. Empty means the machine
-/// never chose and the notebook had nothing either; an unknown name means a
-/// newer build wrote one — both draw the bar the app ships with, because a
-/// note with no controls at all would be the worse guess.
+/// The mode in force. Empty (nobody chose) and an unknown name (a newer
+/// build wrote it) both draw the bar the app ships with — a note with no
+/// controls would be the worse guess.
 export const formatBarMode = (stored) =>
   FORMAT_BAR_MODES.some((mode) => mode.key === stored) ? stored : DEFAULT_FORMAT_BAR;
 

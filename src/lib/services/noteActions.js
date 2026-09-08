@@ -1,51 +1,39 @@
-// The actions a note CARD offers, wherever it is drawn — the notes board, a
-// notes space, the Home (2026-08-25).
-//
-// The board had them and the Home had none: its cards carried only "open in
-// new tab", on the right button, which on a phone is no action at all. Rather
-// than a second copy of four bodies and a menu, both screens read this.
-//
-// The split is the same one `taskActions.js` keeps: the doing is here, bound
-// to a screen's `act` (services/act.js) so a failure lands in that screen's
-// error line and the reload is its own; the menu ROWS are a pure function, so
-// what a card offers can be tested without rendering anything.
+// The actions a note CARD offers wherever it is drawn (board, notes space,
+// Home). Same split as `taskActions.js`: the doing is bound to a screen's
+// `act` (services/act.js) so a failure lands in that screen's error line;
+// the menu ROWS are a pure function, testable without rendering.
 
 import { api } from "./api.js";
 import { isImage } from "./assets.js";
 import { askConfirm, DELETING } from "./dialog.js";
 import { S } from "./strings.js";
 
-/// The card actions, bound to a screen's `act`.
-///
-/// Every one takes the SPACE the note lives in, because a note's address is
-/// relative to it — the Home looks into a space it does not belong to, and
-/// naming it at the call site is what keeps that honest.
-/// The banner as the shell holds it — `{kind: "color" | "image", value}`
-/// — from the VALUE the file carries, or null for none. The same rule the
-/// core applies (`Banner::from_value`): an image extension is an image,
-/// anything else is a colour name. Only this module and the core know it.
+/// The banner as the shell holds it — `{kind: "color" | "image", value}` —
+/// from the VALUE the file carries, or null. Same rule as the core's
+/// `Banner::from_value`: an image extension is an image, else a colour name.
 export function bannerOf(value) {
   if (!value) return null;
   return { kind: isImage(value) ? "image" : "color", value };
 }
 
+/// The card actions, bound to a screen's `act`. Every one takes the SPACE
+/// the note lives in: a note's address is relative to it, and the Home looks
+/// into spaces it does not belong to.
 export function noteActions(act) {
   return {
     pin: (space, entry) => act(() => api.setNotePinned(space, entry.path, !entry.pinned)),
 
     duplicate: (space, entry) => act(() => api.duplicateNote(space, entry.path)),
 
-    /// To the trash, never destroyed. The question is `confirmDeletes`, which
-    /// the reader can turn off — and can, because nothing here is destroyed.
+    /// To the trash, never destroyed — which is why `confirmDeletes` may be off.
     remove: (space, entry) =>
       act(async () => {
         if (!(await askConfirm(S.confirmDeleteNote(entry.title), DELETING))) return;
         await api.deleteNote(space, entry.path);
       }),
 
-    /// `where` is what the picker's rows carry: `["space", "folder"]`, JSON.
-    /// One string because a menu row holds one value, and the pair is what
-    /// `move_note_to_space` needs.
+    /// `where` is what the picker's rows carry: `["space", "folder"]` as JSON,
+    /// because a menu row holds one value.
     moveTo: (space, entry, where) =>
       act(async () => {
         const [target, into] = JSON.parse(where);
@@ -54,26 +42,20 @@ export function noteActions(act) {
   };
 }
 
-/// The rows of a note card's ⋮ — pure, so a screen's menu can be read in a
-/// test without a DOM.
-///
-/// `moveTargets` is a list of groups (`{label, options: [{value, label}]}`),
-/// which is what puts the space's own folders under one subtitle and the
-/// other notepads under theirs. Empty means no "Move to" row at all rather
-/// than a row that opens onto nothing.
+/// The rows of a note card's ⋮ — pure, so a menu can be read in a test.
+/// `moveTargets` is a list of groups (`{label, options: [{value, label}]}`);
+/// empty means no "Move to" row at all.
 export function noteCardMenu({
   entry,
   actions,
   space,
   canPin = true,
   moveTargets = [],
-  /// A notebook open for reading offers OPENING and nothing else. It is the
-  /// one row that is not a write, which is why it is above this line and not
-  /// below it.
+  /// A read-only notebook offers OPENING and nothing else — the one row
+  /// that is not a write, hence above this line.
   readOnly = false,
-  /// `() => void`, or null. The ⋮ of a board does not carry it — a card there
-  /// is already a click away from opening — while the right button does, on
-  /// both screens.
+  /// `() => void`, or null: a board's ⋮ does not carry it (the card is a
+  /// click from opening); the right button does.
   openInNewTab = null,
 }) {
   const rows = [];

@@ -1,15 +1,8 @@
-// Where a quick task can land, and how the notebook names the choice — the
-// tasks mirror of `noteTargets.js` (2026-08-24), keeping the same path-like
-// contract in .jott/config.json (`quickTaskList`):
-//
-//   ""              — the fixed Tasks space's Inbox (how every notebook
-//                     starts);
-//   "compras"       — a list of the fixed space, by its file name;
-//   "Design/Tasks"  — a user task space, by its root-relative path — its
-//                     main list (the Inbox every task space has) takes the
-//                     task.
-//
-// The fixed entries stay on offer while the fixed space is shown.
+// Where a quick task can land, and how `.jott/config.json` names the choice
+// (`quickTaskList`) — the tasks mirror of `noteTargets.js`:
+//   ""             — the fixed Tasks space's Inbox (the default);
+//   "compras"      — a list of the fixed space, by its file name;
+//   "Design/Tasks" — a user task space, by root-relative path; its main list takes it.
 
 import { folderOf, listName, MAIN_LIST } from "./paths.js";
 import { S } from "./strings.js";
@@ -32,11 +25,9 @@ export function taskTargets({
   if (fixedShown) {
     for (const entry of lists ?? []) {
       if (!entry?.path || entry.path === inbox || entry.path === completed) continue;
-      // `lists` carries EVERY list of the notebook — the user spaces' own
-      // task-list/completed included, and every one of those shares a file
-      // name with the next. Only the FIXED space's lists belong here (the
-      // duplicate keys blanked the whole Settings section on the desktop,
-      // 2026-08-24); a user space enters below, whole.
+      // `lists` carries EVERY list of the notebook, the user spaces' own
+      // task-list/completed included — and those share file names, so they
+      // would be duplicate keys. Only the FIXED space's lists belong here.
       if (folderOf(entry.path) !== fixedFolder) continue;
       const name = listName(entry.path);
       out.push({ list: entry.path, label: entry.name ?? name, value: name });

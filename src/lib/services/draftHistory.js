@@ -1,18 +1,8 @@
-// The task inspector's own undo — a history of DRAFTS, not of actions.
-//
-// Three histories answer Ctrl+Z in this app, and they are deliberately not
-// one (user call, 2026-08-24): the note's is CodeMirror's, the app's is the
-// core's (`jott_core::history`, what takes back a delete or a reorder), and
-// the one in between is this — the fields of the task open in the inspector.
-// Every field edit there is an autosave, and an autosave is not an action
-// anyone wants "Undo" to list twenty times over; what they want is the field
-// back the way it was, without leaving the panel.
-//
-// So this keeps snapshots of the draft (the inspector already stringifies it
-// for the autosave's dirty check) and hands one back on undo. It knows
-// nothing about tasks: a snapshot is an opaque string, and a `key` says what
-// changed so that typing into one field for a while is one step back, not
-// one per keystroke — the same 500 ms the autosave waits.
+// The task inspector's own undo — a history of DRAFTS, not of actions. The
+// note's Ctrl+Z is CodeMirror's, the app's is the core's (`jott_core::history`);
+// this one gives an inspector field back without leaving the panel. A snapshot
+// is an opaque string; `key` names the field so a run of typing into one is a
+// single step, merged within the same 500 ms the autosave waits.
 
 /// `merge` is how long two edits to the same field stay one step; `limit`
 /// how many steps are kept; `now` is a clock, for tests.

@@ -1,21 +1,8 @@
-// Where a quick note can land, and how the notebook names the choice.
-//
-// The Home's capture writes into ONE folder of ONE notes space. Which one is
-// the notebook's `quickNoteFolder` — a plain string in .jott/config.json,
-// which people read and edit (principle 4), so the value stays path-like:
-//
-//   "Inbox", "Ideas"    — a folder of the FIXED Notes space (the shape every
-//                         notebook wrote before 2026-08-24);
-//   "Design Notes"      — a user note space, by its root-relative path — its
-//                         own Inbox takes the note.
-//
-// The second form is what keeps the capture alive when the fixed Notes space
-// is hidden (Fixed spaces): the note goes to another notepad instead of into
-// a place with no door (user call, 2026-08-24).
-//
-// A fixed folder and a space sharing a name is left ambiguous on purpose:
-// the fixed folder wins while the fixed space is shown, and the space is the
-// only reading left when it is hidden.
+// Where a quick note lands: the notebook's `quickNoteFolder`, a path-like
+// string people edit. `"Inbox"`/`"Ideas"` name a folder of the FIXED Notes
+// space; `"Design Notes"` a user note space by root-relative path (its own
+// Inbox takes the note) — what keeps the capture alive when the fixed space
+// is hidden. Same name for both: the folder wins while the fixed space shows.
 
 import { S } from "./strings.js";
 
@@ -33,9 +20,8 @@ export function noteTargets({
   const inbox = notesInbox || "Inbox";
   const out = [];
   if (fixedShown && notesFolder) {
-    // "Inbox notes", not the bare folder name: beside "Inbox tasks" in the
-    // same section, a plain "Inbox" does not say which (user call,
-    // 2026-08-24).
+    // "Inbox notes", not the bare folder name: beside "Inbox tasks" a plain
+    // "Inbox" does not say which.
     out.push({ space: notesFolder, folder: inbox, label: S.inboxNotes, value: inbox });
   }
   if (fixedShown && notesFolder) {

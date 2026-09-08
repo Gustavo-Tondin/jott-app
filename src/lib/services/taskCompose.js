@@ -1,16 +1,8 @@
-// Creating a task from what the composer collected — text, list, and the
-// quick fields the wireframe's bar offers (due date, repeat).
-//
-// It exists because three callers write the same task the same way (the "New
-// task" dialog, the pinned bar on the Tasks screen, and whatever screen hosts
-// them), and because the order of the bridge calls matters:
-//
+// Creating a task from what the composer collected — text, list, quick fields.
+// The order of the bridge calls matters:
 //   create_task → ensure_task_id → set_task_fields → pull_into_day
-//
-// `create_task` answers with a POSITION, not an id: ids are handed out only
-// when something needs to address the task. So the id is asked for exactly
-// when it is needed — a plain "buy milk" typed into the bar still lands in the
-// file without a comment on its line.
+// `create_task` answers with a POSITION, not an id: the id is asked for only
+// when something needs it, so a plain "buy milk" lands without a comment.
 
 import { api } from "./api.js";
 import { repeatText } from "./taskFields.js";
@@ -21,11 +13,9 @@ export function emptyIntent(list = null) {
 }
 
 /// Writes the intent. Returns the new task's id, or null when it needed none.
-///
 /// `into` pulls the fresh task into a day — `null` for today, an ISO day for
-/// one ahead — which is what the Home's composer does, since a task created
-/// from the day's screen that did not join the day would simply not appear
-/// (user call, 2026-08-06). Left out, the task only lands in its list.
+/// one ahead (the Home's composer: a task created from the day's screen that
+/// did not join the day would not appear). Left out, it only lands in its list.
 export async function composeTask(intent, { into } = {}) {
   const text = (intent?.text ?? "").trim();
   if (!text || !intent?.list) return null;

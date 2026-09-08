@@ -1,129 +1,22 @@
-// Drag-to-reorder, as one reusable Svelte action — the single capability the
-// tabs, subtasks, tasks, notes, lists and spaces all reorder through.
-//
-// Pointer-based, never native drag-and-drop: HTML5 DnD in WebKitGTK paints a
-// red "no-drop" cursor over every gap the pointer crosses, and no amount of
-// dragover-accepting silenced the flicker (the same reason the tabs went this
-// way first). Driving it by pointer means the OS never starts a drag, so there
-// is nothing to fight, and a release in the wrong place simply does nothing.
-//
-// Used on the CONTAINER of the items:
-//   <ul use:reorderable={{ axis: "y", item: ".row", onReorder }}>
-// Every direct child of the container matching `item` is a slot; on drop the
-// action calls `onReorder(from, to)` with indices into that filtered list.
-// Pass `handle` to start a drag only from a grip inside each item; omit it to
-// drag by the whole item (what the tabs do).
-//
-// `axis: "grid"` is the 2D variant, for a wrapping board of cards (the notes
-// widget): the carried card follows the pointer on both axes, the target slot
-// is the card whose centre is nearest, and each card between the two slots
-// glides into its neighbour's place — the same gap-opening feel, generalised.
-//
-// A drag that starts off ACROSS the axis is not ours and is dropped on the
-// spot: on a task card a sideways drag is the swipe (lib/actions/swipe.js), and
-// the two must never both engage — they each capture the pointer, and the
-// second capture leaves the first deaf to every move that follows. That was the
-// frozen drag of 2026-08-06. The direction decides, in the first few pixels;
-// there is nothing to wait for.
-//
-// Two options exist for lists that need more than "put it between those two":
-//
-//   `onDropInto`  — the middle of an item is a target of its own, drawn as a
-//                   ring around it instead of a gap beside it. It is how a
-//                   space dropped ON another makes a group of the two.
-//                   `canDropInto(from, to)` narrows it when the list holds
-//                   more than one kind of thing: the notes board carries note
-//                   cards and FOLDER cards in one arrangement, and only two
-//                   notes make a folder of themselves. Without it the ring
-//                   would light up around a target that then does nothing,
-//                   which is a promise the drop cannot keep.
-//   `dropZones`   — elements OUTSIDE this list that can receive the carried
-//                   item, as `(from) => elements` — `from` being the index of
-//                   the item being carried, so a caller may offer no zone at
-//                   all for some of them (a folder card is where a NOTE is
-//                   filed; a folder dropped on a folder is not). Reordering
-//                   is per container,
-//                   and a sidebar of nested groups is many containers: without
-//                   this, moving a list from one group to another meant
-//                   dragging it out to the root first and in again — two
-//                   gestures for one intent (user call, 2026-08-11). A zone
-//                   under the pointer wins over everything else, including
-//                   "released clear of the list": the pointer is not nowhere,
-//                   it is on that group.
-//   `free`        — `(pointerdown event) => boolean`: a drag that is FREE of
-//                   the list (Ctrl held, 2026-08-26). No rest, no axis lock,
-//                   no gap opening — the carried item follows the pointer on
-//                   both axes, the list stays as it was, and the only thing
-//                   that can receive it is one of the `freeZones` (a space
-//                   in the sidebar, the Home). Released anywhere else it
-//                   snaps back. `freeZones` has the shape of `dropZones` and
-//                   is what a free drag asks instead of it — the notes board
-//                   keeps its folder cards for the ordinary drag and offers
-//                   the sidebar only to the free one. `onDropZone` answers
-//                   both.
-//   `onDragOut`   — released clear of the container, the item is asking to
-//                   LEAVE it. A space dragged out of a group is how it
-//                   stops being a member; without it, joining would be a one
-//                   way door. While the pointer is out there the carried item
-//                   says so (`.reorder-item--leaving`) and the list it is
-//                   abandoning stops opening a gap: there is no slot to aim
-//                   at inside it any more.
-//
-// The feel, Chrome's: the carried item tracks the pointer 1:1 (no transition),
-// and the others glide aside to open the gap where it will land (a transform
-// transition, from .reorder-item in reorder.css). The commit is synchronous —
-// remove the transitions, clear the transforms and reorder in one frame, so
-// the browser paints the settled result once, with no flash or backtrack.
+// Drag-to-reorder as one Svelte action, used on the CONTAINER of the items:
+//   <ul use:reorderable={{ axis: "y" | "x" | "grid", item, handle, onReorder }}>
+// Pointer-driven, never native DnD (WebKitGTK paints a no-drop cursor). A drag
+// that sets off ACROSS the axis is left to the card's swipe: two captures on
+// one pointer leave the first deaf. See docs/platform-gotchas.md#webview-e-gestos
 
-/// TOUCH ONLY: how long a finger rests on an item before it is carried.
-///
-/// A finger has one gesture for two intents here, and the app cannot tell them
-/// apart from the first pixels: dragging a card up the list and SCROLLING the
-/// list are the same movement on the same axis. Five pixels of it used to be
-/// enough to pick the card up, so scrolling a screen of tasks carried one along
-/// instead (user report, 2026-08-19: "ele quer ficar selecionando e movendo as
-/// tarefas ao invés de scrollar").
-///
-/// The axis lock cannot help — that one separates the sideways swipe from the
-/// vertical drag, and here both intents are vertical. Time is what separates
-/// them, which is what every phone list does: rest to pick up, move to scroll.
-///
-/// A mouse keeps the old immediate drag: a pointer has no second intent to
-/// disambiguate, and a wheel scrolls without pressing anything.
+/// Options beyond `onReorder(from, to)`: `onDropInto(from, i)` + `canDropInto`
+/// (an item's middle is a target); `dropZones(from) => elements` outside the
+/// list + `onDropZone(from, zone)`; `onDragOut(from)` (released clear of the
+/// container); `free(e)` + `freeZones` (no axis lock, no gap, zones only);
+/// `onHold(from)` (true = the caller took the rest); `carried(from)` +
+/// `onReorderMany(indices, to)` (a selection travels together); `holdMs`; `hold`.
+
+/// TOUCH ONLY: how long a finger rests on an item before it is carried. Drag
+/// and scroll share the vertical axis, so time tells them apart (rest to pick
+/// up, move to scroll). A mouse drags at once.
 const HOLD_MS = 400;
-/// ...and how far the finger may stray while waiting. Past this it was never
-/// resting: the gesture is a scroll (or the card's swipe), and this action
-/// lets go of it entirely.
+/// How far the finger may stray while resting; past it the gesture is a scroll.
 const HOLD_SLOP = 8;
-
-// Two more options, for a list whose items can be PICKED (2026-08-21, after
-// the Things 3 preview: "segura pra marcar um item, click pra selecionar cada
-// um, e ao segurar de novo em cima de um já clicado começa o arrastar todos"):
-//
-//   `onHold(from)`   — the pointer RESTED on an item (HOLD_MS, not moving) and
-//                      the caller is asked first. Returning true means "I took
-//                      that": the item is not lifted and the gesture ends —
-//                      how a long press enters selection mode. Returning false
-//                      lets the hold pick the item up as before. With it set,
-//                      a MOUSE that rests also asks (the immediate mouse drag
-//                      is unchanged: moving before the wait is up drags).
-//   `carried(from)`  — the indices that travel TOGETHER when `from` is picked
-//                      up: the selection, when the item is part of one. The
-//                      first is the one under the pointer; the others stay in
-//                      their slots, dimmed (`.reorder-item--stacked`), and the
-//                      carried item wears their count (`data-carry`). On
-//                      release `onReorderMany(indices, to)` is called instead
-//                      of `onReorder` — or `onDropZone`/`onDropInto` with the
-//                      same indices in place of `from`, where those apply.
-//
-// And two about the REST itself (2026-08-24):
-//
-//   `holdMs`         — how long the finger rests before the hold fires, when
-//                      this list wants more than the default HOLD_MS.
-//   `hold: true`     — with a `handle`, still ask a FINGER to rest: for the
-//                      list whose handle is also its button, where pressing
-//                      it proves nothing. A mouse on the handle stays
-//                      immediate.
 
 export function reorderable(node, params) {
   let opts = params ?? {};
@@ -154,12 +47,9 @@ export function reorderable(node, params) {
 
   function onPointerDown(e) {
     if (e.button !== 0 || drag) return; // left button only
-    // The INNERMOST reorderable owns the gesture. Nested lists (a group's
-    // members inside the sidebar's column) would otherwise both start, and the
-    // member would drag its whole group along with it (user report,
-    // 2026-08-06). `stopPropagation` in the markup cannot do this: Svelte
-    // delegates pointerdown to the root, so it runs AFTER an ancestor's real
-    // listener has already seen the event.
+    // The INNERMOST reorderable owns the gesture: nested lists would both
+    // start. `stopPropagation` in markup cannot do it — Svelte delegates
+    // pointerdown to the root, after an ancestor's real listener ran.
     if (e.target.closest("[data-reorderable]") !== node) return;
     if (opts.handle && !e.target.closest(opts.handle)) return;
     const el = e.target.closest(opts.item ?? "*");
@@ -183,18 +73,9 @@ export function reorderable(node, params) {
       free: !!(opts.freeZones && opts.free?.(e)),
     };
     if (drag.free) return;
-    // A finger on an item that is dragged BY ITSELF has to rest first (see
-    // HOLD_MS). Where the caller gave a handle there is usually nothing to
-    // wait for: pressing a grip is already the whole intent, and the grip
-    // takes the gesture off the scroller with `touch-action: none`. Unless
-    // the handle IS the row — the sidebar's "grip" is also the button that
-    // opens the space — where `hold: true` asks the finger to rest there too
-    // (user call, 2026-08-24: scrolling the column kept picking spaces up).
-    // A mouse on a handle keeps the immediate drag either way.
-    //
-    // `holdMs` lets a list ask for a longer rest than the default: the tasks
-    // give the wait to entering selection mode, and at 400ms a slow scroll
-    // kept entering it by accident (user call, 2026-08-24).
+    // A finger on an item dragged by itself rests first (HOLD_MS). With a
+    // `handle` the grip is the intent — unless `hold: true` says the handle
+    // is also the row's button. A mouse on a handle is always immediate.
     const rests = opts.handle
       ? opts.hold && e.pointerType === "touch"
       : e.pointerType === "touch" || opts.onHold;
@@ -315,9 +196,8 @@ export function reorderable(node, params) {
       drag.el.style.transform = `translate(${dx}px, ${dy}px)`;
       const rects = drag.rects;
 
-      // A declared zone under the pointer wins over every slot — on the notes
-      // board a zone is a folder CARD, and dropping a note on one files it in
-      // there (2026-08-19). Same rule the sidebar's columns keep.
+      // A declared zone under the pointer wins over every slot (a folder
+      // card on the notes board).
       const zone = zoneAt(e);
       if (drag.zone !== zone) {
         drag.zone?.classList.remove("reorder-item--into");
@@ -421,10 +301,8 @@ export function reorderable(node, params) {
 
     const list = items();
 
-    // Out of the container altogether: it is leaving, not moving within. Say
-    // so on the carried item and stop pretending there is a slot for it here
-    // (user report, 2026-08-06 — dragging a space out of a group gave no
-    // sign of what would happen).
+    // Out of the container altogether: leaving, not moving within — say so
+    // on the carried item and stop opening a gap.
     drag.leaving = !!opts.onDragOut && outside(e);
     drag.el.classList.toggle("reorder-item--leaving", drag.leaving);
     if (drag.leaving) {
@@ -469,19 +347,9 @@ export function reorderable(node, params) {
     });
   }
 
-  /// Takes the carried item OUT OF FLOW and leaves a placeholder its exact
-  /// size behind (2026-08-19).
-  ///
-  /// Why: every list this action serves lives inside something that scrolls,
-  /// and a scroller clips what sticks out of it — so a card dragged towards
-  /// the top of the notes board was cut in half by the edge of the page
-  /// (user report). `position: fixed` is the one way out: its containing block
-  /// is the viewport, so no ancestor's overflow reaches it.
-  ///
-  /// The placeholder is what keeps the rest of the list still. Without it the
-  /// list closes the gap the moment the item leaves the flow, and every
-  /// measurement taken a line above would be describing a layout that no
-  /// longer exists.
+  /// Takes the carried item OUT OF FLOW (`position: fixed`, so no scroller
+  /// clips it) and leaves a placeholder its exact size behind, so the list
+  /// keeps its layout and the rects measured above stay true.
   function lift(rect) {
     const ghost = node.ownerDocument.createElement(drag.el.tagName);
     ghost.className = "reorder-ghost";
@@ -626,20 +494,10 @@ export function reorderable(node, params) {
     );
   }
 
-  /// A carried item is driven by TOUCH events, not pointer ones — measured
-  /// against the running app, not chosen (2026-08-19).
-  ///
-  /// Once the finger has rested and the item is picked up, the very next
-  /// movement is one the browser has already decided belongs to the scroller:
-  /// it fires `pointercancel` and stops sending moves, and the item stays
-  /// where it was picked up while the finger travels on. The `touchmove`s keep
-  /// arriving throughout — that is the difference — and a `preventDefault()`
-  /// on them is what takes the gesture back. It is the same thing the drawer's
-  /// swipe documents (actions/drawerSwipe.js), where `touch-action: pan-y` and
-  /// dropping `setPointerCapture` were both tried and neither helped.
-  ///
-  /// Before the hold is up nothing is prevented: there the gesture IS the
-  /// scroll, and that is the whole point of waiting.
+  /// A carried item is driven by TOUCH events: once picked up, the WebView
+  /// fires `pointercancel` and stops sending moves, while `touchmove`s keep
+  /// arriving — `preventDefault()` on them takes the gesture back. Nothing is
+  /// prevented before the hold is up. See docs/platform-gotchas.md#webview-e-gestos
   const touchOf = (e) =>
     [...e.changedTouches].find((t) => t.identifier === drag.touchId) ?? e.changedTouches[0];
 
@@ -672,11 +530,8 @@ export function reorderable(node, params) {
     });
   }
 
-  /// The browser taking the gesture for its scroller. It kills a drag that has
-  /// not been picked up yet — but NOT one that has: past the hold the finger
-  /// is carrying an item, the touch path above has the gesture back, and
-  /// letting the cancel through would drop the item the moment it started to
-  /// move.
+  /// The browser taking the gesture for its scroller: kills a drag not yet
+  /// picked up, never one past the hold (the touch path has it back).
   function onPointerCancel() {
     if (drag?.touch && drag.moved) return;
     cancel();

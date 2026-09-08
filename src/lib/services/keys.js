@@ -1,16 +1,8 @@
-// What a key press is CALLED, in one place.
-//
-// Three things need to agree on the name of a chord and they used to have no
-// way to: the shell reads a DOM event, CodeMirror reads its own dialect
-// ("Mod-b"), and the settings screen shows a human "Ctrl+B". Written three
-// times, they drift — and the moment shortcuts became editable (the whole
-// point of the settings screen), a chord the user typed has to travel from a
-// DOM event all the way into CodeMirror's keymap without changing meaning.
-//
-// So a chord is ONE string, in one shape: modifiers in a fixed order, then the
-// key. `Mod` is the platform's own modifier — Ctrl on Linux and Windows, Cmd
-// on macOS — which is why it is spelled `Mod` here and drawn as `Ctrl` or `⌘`
-// only at the last moment, on screen.
+// What a key press is CALLED, in one place — the shell (DOM event), CodeMirror
+// ("Mod-b") and the settings screen ("Ctrl+B") must agree. A chord is ONE
+// string: modifiers in a fixed order, then the key. `Mod` is the platform's
+// own modifier (Ctrl on Linux/Windows, Cmd on macOS), drawn as `Ctrl` or `⌘`
+// only on screen.
 
 /// The order modifiers are written in. Fixed, because "Ctrl+Shift+F" and
 /// "Shift+Ctrl+F" must not be two different keys in a config file.
@@ -37,11 +29,8 @@ const NAMED = new Set([
   ...Array.from({ length: 12 }, (_, i) => `F${i + 1}`),
 ]);
 
-/// The chord a DOM event is, or null when it is not one.
-///
-/// Returns null for a press that is only modifiers: holding Ctrl is not a
-/// shortcut, it is the first half of one, and answering it would fire on the
-/// way to every chord.
+/// The chord a DOM event is, or null when it is not one — a press that is
+/// only modifiers is the first half of a chord, not a shortcut.
 export function chordOf(event) {
   if (!event) return null;
   const key = keyName(event.key, event.code);
@@ -108,12 +97,9 @@ export function normalize(chord) {
   return [...mods, parts.key].join("+");
 }
 
-/// Is this chord safe to hand out as a shortcut?
-///
-/// A bare letter is not: it is someone typing. A bare `Shift+letter` is not
-/// either, for the same reason. What is left — anything carrying Mod or Alt,
-/// and the named keys that mean nothing when typed into a document — is the
-/// space the app may claim.
+/// Is this chord safe to hand out as a shortcut? A bare letter or a bare
+/// `Shift+letter` is someone typing; anything carrying Mod or Alt, and the
+/// named keys that mean nothing typed into a document, is the app's to claim.
 export function isBindable(chord) {
   const parts = partsOf(chord);
   if (!parts) return false;

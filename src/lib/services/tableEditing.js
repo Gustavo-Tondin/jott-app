@@ -1,19 +1,8 @@
-// Tables in the open note — the commands, and the one piece of editor state
-// they read (2026-08-24).
-//
-// `tables.js` knows what a table IS; this file knows where one is in the
-// document and which cell the person is in. It draws nothing (that is
-// `tableWidget.js`), which is what keeps it runnable against a bare
-// `EditorState` in a test and importable by `markdownCommands.js`, the table
-// every formatting button and chord presses through.
-//
-// **Where the cell comes from.** A table is drawn as a widget whose cells are
-// edited in place, so the CodeMirror selection never sits inside one — the
-// widget says which cell holds the focus through `setActiveCell`, and the
-// commands read that. With the widget switched off (App Functions) the same
-// table is raw text under the caret, and the commands still work: the row
-// and column are then counted from the caret's line and the pipes before it.
-// One question, two answers, the widget's first.
+// Table commands and the one piece of editor state they read. `tables.js`
+// knows what a table IS; this knows where one is and which cell is current.
+// Draws nothing (that is `tableWidget.js`), so it runs against a bare
+// `EditorState`. The cell comes from the widget (`setActiveCell`) first, else
+// from the caret's line and the pipes before it when the table is raw text.
 
 import { EditorSelection, StateEffect, StateField } from "@codemirror/state";
 import { syntaxTree } from "@codemirror/language";

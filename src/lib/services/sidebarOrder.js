@@ -1,30 +1,13 @@
-// The sidebar's column: groups — which nest — and the lists and notepads
-// they hold, in one running order.
-//
-// Groups and loose entries used to be two `{#each}` blocks in two containers,
-// which is why a group could not be dragged at all and a space could not
-// be dragged past one (2026-08-06). Merging them raised one question — where
-// does a GROUP sit? — and the answer here is: **where its members sit**.
-//
-// That is what keeps the notebook honest. The config already holds one ordered
-// list of space names (`order.spaces`); a group's members are simply
-// contiguous in it, so the group needs no ordering of its own and there is no
-// second list to fall out of step. An empty group has no member to borrow a
-// place from and waits at the end — and, having no name in the order, it also
-// cannot be dragged anywhere until something is in it.
-//
-// Since 2026-08-11 a group may hold other groups, so this is a TREE: every
-// group entry carries its `children`, and each level of the sidebar reorders
-// within itself. The flat name list still describes the whole thing, because a
-// subtree's names are contiguous in it.
-//
-// Pure on purpose: what a drag MEANS is a decision, and decisions are testable
-// without a DOM (same reason `spaceOrder.planReorder` exists).
+// The sidebar's column — groups (which nest) and the lists and notepads
+// they hold — as a tree in one running order. A group has no order of its
+// own: it sits WHERE ITS MEMBERS SIT in the config's flat `order.spaces`,
+// where a subtree's names are contiguous. An empty group waits at the end
+// and cannot be dragged. Pure on purpose, like `spaceOrder.planReorder`.
 
-/// Rank compare that survives two `Infinity`s (which subtract to NaN, and a
 import { movedItem } from "./spaceOrder.js";
 
-/// NaN comparator silently keeps whatever order it was handed).
+/// Rank compare that survives two `Infinity`s: they subtract to NaN, and a
+/// NaN comparator silently keeps whatever order it was handed.
 const byRank = (a, b) => (a.rank === b.rank ? 0 : a.rank < b.rank ? -1 : 1);
 
 /// The column, as a tree. `spaces` comes from the core already ordered;
@@ -70,12 +53,10 @@ export function namesOf(entry) {
   return entry.kind === "group" ? entry.children.flatMap(namesOf) : [entry.sp.path];
 }
 
-/// The flat list of names after dragging `from` to `to` **within one level** —
-/// what the config's `order.spaces` becomes.
-///
-/// `parentKey` is the key of the group whose children were dragged, or `null`
-/// for the top level. Every other level is copied out untouched, so a drag
-/// deep in the tree rewrites only its own run of names.
+/// The flat list of names after dragging `from` to `to` within ONE level —
+/// what `order.spaces` becomes. `parentKey` is the key of the group whose
+/// children were dragged (`null` = top level); every other level is copied
+/// out untouched.
 export function reorderedAt(tree, parentKey, from, to) {
   const moved = (list) => movedItem(list, from, to);
   // Below the moved level nothing changes, so the rest is `namesOf`.
@@ -96,7 +77,7 @@ export function dropMeaning(entries, from, into) {
   if (!moving || !target || moving === target) return null;
 
   if (target.kind === "group") {
-    // Groups nest now (2026-08-11), so a group dropped on a group joins it.
+    // A group dropped on a group joins it.
     return moving.kind === "group"
       ? { kind: "groupIntoGroup", group: target.group, moving: moving.group }
       : { kind: "intoGroup", group: target.group, space: moving.sp };

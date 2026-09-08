@@ -1,15 +1,7 @@
-// The interface zoom (Ctrl+= / Ctrl+- / Ctrl+0).
-//
-// One `font-size` on the root scales the whole interface, because every
-// measure in the design system is `rem` — no component knows this happened.
-// It is a MACHINE preference, like the sidebar's width (0.9.0): it answers
-// to a monitor and a pair of eyes, not to a notebook, so it does not travel
-// with the files.
-//
-// The rule lives here rather than in the shell for the same reason
-// `sidebarWidth.js` exists: given a number from anywhere — the preferences
-// file, a keystroke — what zoom does the app actually use? That question is
-// answerable without a DOM, so it is answered under test.
+// The interface zoom (Ctrl+= / Ctrl+- / Ctrl+0): one `font-size` on the root
+// scales everything, because every measure is `rem`. A MACHINE preference,
+// like the sidebar's width — it answers to a monitor, not to a notebook. The
+// rule lives here, DOM-free, so it is answered under test (cf. sidebarWidth.js).
 
 import { clamp } from "../services/num.js";
 

@@ -6,25 +6,10 @@
 import { invoke as callBridge } from "@tauri-apps/api/core";
 import { announce } from "./undoOffer.js";
 
-/// The bridge, with the COMMAND's NAME kept on whatever comes back wrong.
-///
-/// The error banner used to be able to say nothing at all: a failure that was
-/// not one of the core's `{kind, message}` fell through to `String(error)`,
-/// and a plain object stringifies to `[object Object]` — six words that name
-/// neither what failed nor where (user report on device, 2026-08-31: "aparece
-/// constantemente o aviso something went wrong [object Object]"). Half of the
-/// answer is [describeError], which no longer has a way to print that; the
-/// other half is here, because by the time the shell catches it there is
-/// nothing left in the value to say WHICH call it came from — and with
-/// forty-odd commands behind one banner, that is the question.
-///
-/// The value is annotated rather than replaced: `kind` is what the shell
-/// branches on (`e?.kind === "stale"` decides whether Ctrl+Z warns or fails),
-/// and wrapping would hide it. A frozen error keeps its own shape and loses
-/// only the name.
-/// Arguments are forwarded verbatim rather than named: a command with no
-/// arguments is called with one, and passing an explicit `undefined` second
-/// argument is a different call to anything watching the bridge.
+/// The bridge, with the command's name attached to whatever comes back
+/// wrong. The value is annotated, never wrapped: `kind` is what the shell
+/// branches on. Arguments are forwarded verbatim — an explicit `undefined`
+/// second argument is a different call to anything watching the bridge.
 function invoke(...call) {
   const [command] = call;
   return Promise.resolve(callBridge(...call))
@@ -59,34 +44,25 @@ export const api = {
   // shared storage; anything outside it lands there too, rather than erroring.
   listFolders: (path = null) => invoke("list_folders", { path }),
   createFolder: (parent, name) => invoke("create_folder", { parent, name }),
-  // `create` says which door was used (2026-08-24): true is "Create a new
-  // notebook", which makes one in a folder that is not one yet; false demands
-  // a notebook and refuses anything else. Never left out — the whole point of
-  // the flag is that the two answers differ.
+  // `create` true makes a notebook in a folder that is not one yet; false
+  // demands an existing notebook. Never left out.
   openNotebook: (path, create = false) =>
     invoke("open_notebook", { path, create }),
-  // The picker (2026-08-24). Every notebook this MACHINE has opened, newest
-  // first, each with its colour and its two numbers — read without opening
-  // any of them (`Notebook::summarize`). A folder that is gone or unplugged
-  // is simply not in the answer.
+  // Every notebook this MACHINE has opened, newest first, read without
+  // opening any (`Notebook::summarize`); a folder that is gone is left out.
   recentNotebooks: () => invoke("recent_notebooks"),
   // Takes one off that list. Nothing on disk is touched.
   forgetNotebook: (path) => invoke("forget_notebook", { path }),
-  // The three the ⋮ of a card offers. A notebook's name IS its folder name,
-  // so renaming and moving are the same operation on the folder; both answer
-  // with the new path, and refuse to overwrite anything.
+  // A notebook's name IS its folder name, so rename and move are the same
+  // operation on the folder; both answer the new path and never overwrite.
   renameNotebook: (path, name) => invoke("rename_notebook", { path, name }),
   moveNotebook: (path, into) => invoke("move_notebook", { path, into }),
   revealNotebook: (path) => invoke("reveal_notebook", { path }),
-  // A second window (2026-08-24) — what makes two notebooks open at once
-  // possible. `notebook` null opens the picker; a path opens that folder
-  // there. Nothing is handed across: the new window asks for its own notebook
-  // and is filed under its own label. Android refuses — one Activity, one
-  // window.
+  // `notebook` null opens the picker; a path opens that folder in the new
+  // window, which asks for its own notebook. Android refuses (one Activity).
   openWindow: (notebook = null) => invoke("open_window", { notebook }),
-  // The two rows of the picker's own ⋮, both machine preferences: whether the
-  // picker gets out of the way once it has opened something, and whether the
-  // app comes back to the picker or to the work.
+  // Two machine preferences: whether the picker gets out of the way once it
+  // opened something, and whether the app opens on the picker or the work.
   pickerCloses: () => invoke("picker_closes"),
   rememberPickerCloses: (closes) => invoke("remember_picker_closes", { closes }),
   opensOnPicker: () => invoke("opens_on_picker"),
@@ -102,9 +78,8 @@ export const api = {
   // ask when a section opens, not on every render.
   notebookContents: () => invoke("notebook_contents"),
   setNotebookSettings: (settings) => invoke("set_notebook_settings", { settings }),
-  // The Display choices answer to THIS machine, not to the notebook
-  // (2026-08-20) — a phone can be dark while the desktop stays in Jott's own
-  // black-on-white. Same pact as the one above: send the key that changed.
+  // Display answers to THIS machine, not to the notebook. Same pact as
+  // above: send only the key that changed.
   setMachineDisplay: (display) => invoke("set_machine_display", { display }),
   screenToRestore: () => invoke("screen_to_restore"),
   // Which window buttons the desktop wants, and on which side. The window is
@@ -117,21 +92,17 @@ export const api = {
   platform: () => invoke("platform"),
   rememberScreen: (screen) => invoke("remember_screen", { screen }),
 
-  // The session history (2026-08-24): what Ctrl+Z / Ctrl+Shift+Z take back
-  // and do again, OUTSIDE the editor and the inspector — a delete, a reorder,
-  // a rename, a setting. Both answer the command's name (`services/strings.js`
-  // turns it into words) or null when there was nothing; a `stale` error
-  // means the files moved on since (a sync, another window) and the entry
-  // was dropped rather than written over them.
+  // The session history, outside the editor. Both answer the command's name
+  // (`services/strings.js` turns it into words) or null; a `stale` error
+  // means the files moved on since and the entry was dropped, not written.
   undo: () => invoke("undo"),
   redo: () => invoke("redo"),
   /// What `undo` would take back, without taking it: the floating offer's check.
   undoable: () => invoke("undoable"),
 
   // search
-  // Two answers (tasks, notes) plus whether anything was left out. `limit` is
-  // the core's own when the caller has no opinion. `scope` is a space's path
-  // — the whole notebook when it is null (2026-08-17).
+  // Two answers (tasks, notes) plus whether anything was left out. `limit`
+  // null is the core's own; `scope` null is the whole notebook.
   search: (query, limit = null, scope = null) =>
     invoke("search", { query, limit, scope }),
 
@@ -139,10 +110,8 @@ export const api = {
   // root-relative address (a space, a list, a note), empty for the root. What
   // opens is always the FOLDER around it, never the document.
   openInFileManager: (path = null) => invoke("open_in_file_manager", { path }),
-  /// The font families this machine has installed (2026-08-24), sorted and
-  /// safe to name in CSS. Empty off Linux, where there is no fontconfig to
-  /// ask — the picker then offers what the app carries plus the generics.
-  /// Asked when the Display page opens, never per render.
+  /// This machine's font families, sorted and safe to name in CSS. Empty off
+  /// Linux (no fontconfig). Asked when the Display page opens, never per render.
   systemFonts: () => invoke("system_fonts"),
 
   // How wide the sidebar was dragged. A machine preference (the monitor
@@ -159,9 +128,8 @@ export const api = {
   zoom: () => invoke("zoom"),
   rememberZoom: (zoom) => invoke("remember_zoom", { zoom }),
 
-  // update (2026-08-19). The check itself is Rust's — the webview's CSP does
-  // not reach github.com, and should not. The two prefs are machine ones:
-  // they answer for this INSTALL, which is updated its own way on each device.
+  // update. The check itself is Rust's — the webview's CSP does not reach
+  // github.com. The two prefs answer for this INSTALL, a machine matter.
   appVersion: () => invoke("app_version"),
   checkForUpdate: () => invoke("check_for_update"),
   autoUpdateCheck: () => invoke("auto_update_check"),
@@ -217,19 +185,17 @@ export const api = {
   setSpaceNoteLayout: (space, layout) =>
     invoke("set_space_note_layout", { space, layout }),
 
-  // Switching a part of the app on or off (App Functions, 2026-08-06).
+  // Switching a part of the app on or off (App Functions).
   setFeature: (key, on) => invoke("set_feature", { key, on }),
 
-  // A command's chord. `chord: null` unbinds it; neither string is judged by
-  // the core (2026-08-18). A binding travels with the notebook: a chord
-  // answers to a pair of hands, and those move between machines.
+  // A command's chord. `chord: null` unbinds; neither string is judged by
+  // the core. A binding travels with the notebook, not the machine.
   setShortcut: (id, chord) => invoke("set_shortcut", { id, chord }),
   resetShortcuts: () => invoke("reset_shortcuts"),
 
-  /// The themes the OPEN NOTEBOOK carries (`.jott/themes/`, 2026-08-25) —
-  /// name, label, author, version, and whether this build is new enough for
-  /// it. Walks a folder: asked when the Display page opens and when the
-  /// watcher says a stylesheet changed, never per render.
+  /// The themes the open notebook carries (`.jott/themes/`): name, label,
+  /// author, version, and whether this build is new enough. Walks a folder:
+  /// ask when the Display page opens or a stylesheet changed, never per render.
   userThemes: () => invoke("user_themes"),
   /// One of their stylesheets, already stripped of anything that would reach
   /// the network. `{ name, css, blocked }` — `blocked` counts what was
@@ -244,8 +210,7 @@ export const api = {
   spacesSort: () => invoke("spaces_sort"),
   setSpacesSort: (sort) => invoke("set_spaces_sort", { sort }),
 
-  // Groups (reestruturação 2026-07-30): a folder that holds spaces.
-  // A group is made at the root, or inside another group (they nest).
+  // Groups: a folder that holds spaces and other groups (they nest).
   createGroup: (name, group = null) => invoke("create_group", { name, group }),
   renameGroup: (folder, name) => invoke("rename_group", { folder, name }),
   setGroupAppearance: (folder, color, icon) =>
@@ -258,8 +223,7 @@ export const api = {
   createSpaceIn: (name, kind, group) =>
     invoke("create_space_in", { name, kind, group }),
 
-  // Trash (internal, `.jott/trash/`) — restore, let it expire, or, on the
-  // user's word alone, delete for good (2026-08-21).
+  // Trash (`.jott/trash/`) — restore, let it expire, or delete for good.
   trashEntries: () => invoke("trash_entries"),
   restoreFromTrash: (id) => invoke("restore_from_trash", { id }),
   purgeFromTrash: (id) => invoke("purge_from_trash", { id }),
@@ -267,9 +231,8 @@ export const api = {
   deleteTask: (list, id) => invoke("delete_task", { list, id }),
 
   // Tags catalogue (name + colour).
-  /// Every tag in use in the tasks with its count, catalogued or not — what
-  /// the Tags screen lists beside the catalogue (2026-08-24). Walks every
-  /// list: ask when the screen opens, not on each render.
+  /// Every tag in use with its count, catalogued or not. Walks every list:
+  /// ask when the screen opens, not on each render.
   tagUsage: () => invoke("tag_usage"),
   setTag: (name, color) => invoke("set_tag", { name, color }),
   removeTag: (name) => invoke("remove_tag", { name }),
@@ -277,9 +240,8 @@ export const api = {
   // Completed tasks aggregated across every space, for the Completed tab.
   completedTasks: () => invoke("completed_tasks"),
 
-  // The Timeline (2026-08-27). `from`/`to` are `yyyy-mm-dd` or null; the
-  // screen asks one year at a time. Reads the whole log and every list with
-  // a live task — ask when the screen opens, never per render.
+  // The Timeline. `from`/`to` are `yyyy-mm-dd` or null; reads the whole log
+  // and every list with a live task — ask when the screen opens, never per render.
   timeline: (from = null, to = null) => invoke("timeline", { from, to }),
   // The years the log has a file for, newest first — the year pills.
   timelineYears: () => invoke("timeline_years"),
@@ -296,9 +258,8 @@ export const api = {
   // `folder` is a notes space's address ("Notes"); `path` is relative to it
   // ("Inbox/ideia.md") — the space owns its subtree.
   listNotes: (folder, query) => invoke("list_notes", { folder, query }),
-  // `{ path, color, pinned }` per folder — the colour and the pin live in the
-  // space's `.space.json`, since a folder of notes is a plain directory
-  // (2026-08-19).
+  // `{ path, color, pinned }` per folder — colour and pin live in the
+  // space's `.space.json`, since a folder of notes is a plain directory.
   noteFolders: (folder) => invoke("note_folders", { folder }),
   setNoteFolderColor: (folder, path, color) =>
     invoke("set_note_folder_color", { folder, path, color }),
@@ -337,19 +298,17 @@ export const api = {
   // Returns how many entries moved up to the parent — nothing is destroyed.
   deleteNoteFolder: (folder, path) => invoke("delete_note_folder", { folder, path }),
 
-  // assets — the notebook's image library (`assets/`, 2026-08-18)
-  // What a note points at is an ADDRESS (`assets/foto.png`); the URL an <img>
-  // loads it from is built in services/assets.js, not here.
+  // assets — the notebook's image library (`assets/`). What a note points at
+  // is an ADDRESS; the URL an <img> loads is built in services/assets.js.
   assets: () => invoke("assets"),
   // `data` is base64: Tauri's raw request body does not exist on Android, and
   // the same `<input type="file">` has to work on both.
   importAsset: (name, data) => invoke("import_asset", { name, data }),
   // The same import, for a file that arrived as a `file://` address instead
-  // of as bytes — which is how the desktop hands over a drag (2026-08-19).
+  // of as bytes — how the desktop hands over a drag.
   importAssetFromPath: (path) => invoke("import_asset_from_path", { path }),
-  // The files sitting on the SYSTEM clipboard, as `file://` addresses — the
-  // only door left when the webview's own clipboard says nothing, which for a
-  // pasted file is always (2026-08-19).
+  // The files on the SYSTEM clipboard, as `file://` addresses — the only door
+  // when the webview's clipboard says nothing, which for a pasted file is always.
   clipboardFiles: () => invoke("clipboard_files"),
   // Fetches a picture from the internet into the library. The one call in this
   // app that leaves the machine, and never made without being asked.
@@ -365,13 +324,12 @@ export const api = {
   // chip a non-drawable file gets inside a note (services/fileIcons.js).
   // `null` where the system has no answer, which is not a failure.
   fileIcon: (name) => invoke("file_icon", { name }),
-  // Where each file of the library is used, keyed by address. A file nobody
-  // points at simply has no entry (2026-08-19).
+  // Where each file of the library is used, keyed by address; a file nobody
+  // points at has no entry.
   assetUsage: () => invoke("asset_usage"),
 
-  // the day, and the days ahead (2026-09-04). `day` is an ISO date or null
-  // — null is today; a day gone by is the log's, and the core refuses to
-  // plan it (`kind: "dayGone"`).
+  // the day, and the days ahead. `day` is an ISO date or null (today); a day
+  // gone by is the log's, and the core refuses to plan it (`kind: "dayGone"`).
   dayTasks: (day = null) => invoke("day_tasks", { day }),
   // Every open task of the notebook, arranged by space — the fixed Tasks
   // screen's "every list". Walks every list: ask when the screen opens.
@@ -387,8 +345,8 @@ export const api = {
   setDayOrder: (day, refs) => invoke("set_day_order", { day, refs }),
   dayClock: () => invoke("day_clock"),
   refreshDay: () => invoke("refresh_day"),
-  // reminders (2026-08-25): the core's sorted list, this machine's memory of
-  // what already rang, the desktop bell, and the tray the app waits in.
+  // reminders: the core's sorted list, this machine's memory of what rang,
+  // the desktop bell, and the tray the app waits in.
   reminders: () => invoke("reminders"),
   remindedUntil: () => invoke("reminded_until"),
   rememberRemindedUntil: (until) => invoke("remember_reminded_until", { until }),
@@ -401,19 +359,10 @@ export const api = {
   quitApp: () => invoke("quit_app"),
 };
 
-/// Errors cross the bridge as { kind, message }; anything else is a bug — but
-/// a bug the reader still has to be told about, and there is exactly one
-/// sentence that must never reach them: `[object Object]`.
-///
-/// So every branch here ends in something a person can act on, and the name
-/// of the command rides along whenever [invoke] managed to attach it. The
-/// order is what each shape can actually answer:
-///
-///   · `{kind, message}` — the core's own, and the only one the shell reads.
-///   · anything with a real `toString` (an Error, a DOMException, a string a
-///     plugin rejected with): that string IS the message.
-///   · a plain object: `String()` says nothing about it, so what is shown is
-///     its `message` if it has one and otherwise the object itself, as JSON.
+/// Errors cross the bridge as `{kind, message}`; anything else is a bug the
+/// reader must still be told about, and `[object Object]` must never reach
+/// them. In order: the core's own shape; anything with a real `toString`;
+/// a plain object's `message`, else the object itself as JSON.
 export function describeError(error) {
   const where = error?.command ? ` (${error.command})` : "";
   if (error && typeof error === "object") {
@@ -424,8 +373,7 @@ export function describeError(error) {
     try {
       return JSON.stringify(error) + where;
     } catch {
-      // Circular, or a getter that throws. The reader gets the one thing that
-      // is still true, which is more than six words that are not.
+      // Circular, or a getter that throws.
       return `unreadable error${where}`;
     }
   }

@@ -1,36 +1,16 @@
-// Swiping a card sideways, as a reusable Svelte action.
-//
-// Two actions live on the same card and must not fight: reordering (vertical)
-// and this one (horizontal). **The direction decides**, in the first few
-// pixels, and each drops the gesture the moment it sees the other's axis.
-//
-// It has to be that clean, because both would otherwise call
-// `setPointerCapture` on the same pointer — and the second capture leaves the
-// first deaf to every move that follows. That was the drag that froze and then
-// snapped back (user report, 2026-08-06); a press-and-hold was tried first and
-// made it worse, since holding does not stop the other action from engaging.
-//
-// Used on the ITEM:
+// Swiping a card sideways. Used on the ITEM:
 //   <li use:swipe={{ onLeft, onRight, leftEnabled, rightEnabled }}>
-//
-// LEFT reveals the action on the right (delete), RIGHT reveals the one on the
-// left (take out of the day) — the direction the card travels uncovers the side
-// it travels away from, which is how every list on a phone behaves.
-//
-// The reveal itself is CSS: the action carries `data-swipe` with the direction
-// and `--swipe-x` with how far, and swipe.css does the rest. Nothing is
-// committed until release: released short of the threshold, the card comes
-// back and nothing happened.
+// LEFT reveals the action on the right, RIGHT the one on the left; the reveal
+// is CSS (`data-swipe` + `--swipe-x`, swipe.css), committed only on release.
+// The direction decides in the first pixels — the reorder owns the vertical.
 
 import { clamp } from "../services/num.js";
 
 /// How far the card must travel for the release to count. Just past the point
 /// where the action square is fully out, so committing and seeing it line up.
 const THRESHOLD = 60;
-/// And no further. Without a stop the card kept sliding while the square, which
-/// is already at full size, sat there being re-measured every frame — it read
-/// as the square fighting to grow (user report, 2026-08-06). Past the reveal
-/// there is nothing left to show, so the gesture stops moving.
+/// And no further: past the reveal there is nothing left to show, and a card
+/// that kept sliding read as the action square fighting to grow.
 const MAX = 76;
 /// The first movement decides which gesture this is. Ahead of the axis lock the
 /// card does not move at all, so a vertical drag never nudges it sideways.
@@ -59,11 +39,8 @@ export function swipe(node, params) {
     node.removeAttribute("data-swipe");
     node.classList.remove("swipe--dragging");
     if (!travelled) return;
-    // The glide home is a class we ADD, never a transition the card carries
-    // all the time: a standing `transition: transform` also caught the reorder
-    // writing its own transform, so every drag played out a quarter second
-    // late (user report, 2026-08-06). Now nothing animates unless a swipe is
-    // actually coming back.
+    // The glide home is a class ADDED for the return only: a standing
+    // `transition: transform` would also catch the reorder's transform.
     node.classList.add("swipe--returning");
     clearTimeout(returning);
     returning = setTimeout(() => node.classList.remove("swipe--returning"), 260);
@@ -71,15 +48,8 @@ export function swipe(node, params) {
 
   function onPointerDown(e) {
     if (e.button !== 0 || drag) return;
-    // A real control owns its own press: sliding the card out from under the
-    // checkbox you are about to tick would be a trap. Anything else marks
-    // itself `data-no-swipe`.
-    //
-    // What is NOT excluded is every `<button>`, which is what the first
-    // version said (2026-08-06) — and the card's TITLE is a button covering
-    // most of its width, so the gesture could only start from the thin padding
-    // around it and looked broken everywhere. The title is the card's own
-    // surface: clicking it does what clicking the card does.
+    // A real control owns its own press; anything else opts out with
+    // `data-no-swipe`. NOT `<button>`: the card's title is one, covering it.
     if (e.target.closest("input, select, textarea, a, [data-no-swipe]")) return;
     drag = { id: e.pointerId, x: e.clientX, y: e.clientY, axis: null };
   }
@@ -90,13 +60,8 @@ export function swipe(node, params) {
     const dy = e.clientY - drag.y;
 
     if (!drag.axis) {
-      // A reorder already has this pointer: the finger rested on the card long
-      // enough to pick it up (reorder.js, HOLD_MS), and it is now being
-      // carried. Taking the gesture here would be the second
-      // `setPointerCapture` on one pointer, which leaves the first action deaf
-      // to every move that follows — the frozen drag of 2026-08-06, which is
-      // also why press-and-hold failed the first time it was tried. Reading
-      // the mark the container raises is what makes holding safe now.
+      // A reorder already has this pointer (held long enough to be picked
+      // up): a second `setPointerCapture` would leave the first action deaf.
       if (node.closest("[data-reordering]")) {
         drag = null;
         return;
@@ -159,15 +124,10 @@ export function swipe(node, params) {
     reset();
   }
 
-  /// A FINGER DRIVES THIS BY TOUCH EVENTS, measured on the running app
-  /// (2026-08-19): a sideways drag over a list that scrolls vertically gets
-  /// `pointerdown, pointermove, pointercancel` and nothing more — the browser
-  /// claims the gesture two moves in, so the card never moved at all on a
-  /// phone. The `touchmove`s keep coming, and a `preventDefault()` on them is
-  /// what takes the gesture back. Exactly what the drawer's swipe documents
-  /// (actions/drawerSwipe.js) and what the reorder needed for the same reason.
-  ///
-  /// A mouse keeps the pointer path: there is no scroller competing for it.
+  /// A FINGER DRIVES THIS BY TOUCH EVENTS: over a list that scrolls, the
+  /// WebView fires `pointercancel` two moves in, while `touchmove`s keep
+  /// coming and `preventDefault()` on them takes the gesture back. A mouse
+  /// keeps the pointer path. See docs/platform-gotchas.md#webview-e-gestos
   function onTouchMove(e) {
     if (!drag) return;
     const t = e.changedTouches[0];
@@ -176,9 +136,7 @@ export function swipe(node, params) {
     const dx = t.clientX - drag.x;
     const dy = t.clientY - drag.y;
     if (!drag.axis) {
-      // The reorder has the card (it was held long enough to be picked up):
-      // the gesture is not ours, and taking it would leave both half-driving
-      // the same finger — the frozen drag of 2026-08-06.
+      // The reorder has the card: not ours.
       if (node.closest("[data-reordering]")) {
         drag = null;
         return;
@@ -212,11 +170,8 @@ export function swipe(node, params) {
   node.addEventListener("touchend", onTouchEnd);
   node.addEventListener("touchcancel", onTouchEnd);
 
-  // Marks the card as owning the horizontal gesture, so the drawer's swipe
-  // (actions/drawerSwipe.js) knows to keep its hands off it: the sidebar opens
-  // from an EMPTY area, and a card is not one (user call, 2026-08-18). Set by
-  // the action rather than written into every card's markup, so any future
-  // user of `swipe` is excluded the moment it starts using it.
+  // Marks the card as owning the horizontal gesture, so drawerSwipe keeps off
+  // it. Set by the action, so any future user of `swipe` is excluded too.
   node.dataset.swipes = "x";
 
   return {

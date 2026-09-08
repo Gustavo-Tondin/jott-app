@@ -1,28 +1,14 @@
 // The vocabulary of a task's fields — what the two places that EDIT a task
-// (the composer row and the inspector panel) must agree on.
-//
-// They did not. Priority was a list of four options in the composer and four
-// hand-written `<option>`s in the inspector, with the values typed as strings
-// on one side and numbers on the other; the repeat units were the same four
-// lines twice; and `repeatText` was implemented twice, with the same comment
-// above both copies explaining the same rule. A field offered in two shapes is
-// a field that will eventually mean two things.
+// (the composer row and the inspector panel) must agree on. A field offered
+// in two shapes is a field that will eventually mean two things.
 
 import { S } from "./strings.js";
 
 /// The four priorities, in the order both controls draw them. `value` is what
-/// the FILE stores: 1 is the loudest, and 0 (or "") is none — the core reads
-/// `!1`/`!2`/`!3` and writes nothing at all for none.
-///
-/// Kept as strings so a `<select>` and a menu can both carry them without one
-/// of the two having to remember to convert; `composeTask` and the inspector
-/// both send `Number(...) || null` on the way to the bridge.
-///
-/// The number and the glyph run OPPOSITE ways, on purpose: `!1` in the file
-/// is the HIGHEST (1 = first), and the card draws it as `!!!` — three marks
-/// for the one that matters most (`"!".repeat(4 - n)`, components/TaskRow).
-/// The colour goes with the level, not the digit: high is danger, medium is
-/// warning, low is success — status colours, fixed, never one of the eight.
+/// the FILE stores, as strings so a `<select>` and a menu both carry them
+/// (`Number(...) || null` on the way to the bridge): `!1` is the HIGHEST and
+/// the card draws it as `!!!` (`"!".repeat(4 - n)`); "" is none, written as
+/// nothing. Colour goes with the level: high danger, medium warning, low success.
 export const PRIORITIES = [
   { value: "", label: () => S.priorityNone },
   { value: "3", label: () => S.priorityLow },
@@ -54,20 +40,14 @@ export const REPEAT_UNITS = [
   { value: "month", label: () => S.repeatMonths },
 ];
 
-/// How high the "every N" selector counts.
-///
-/// A COUNT, NOT A TYPED NUMBER (user call, 2026-08-18): the field asks for one
-/// of a few small numbers, and a number input answers it with a keyboard on a
-/// phone and a pair of spinners nobody can hit on a desktop. Thirty is where
-/// the units take over — past "every 30 days" the honest answer is a month.
+/// How high the "every N" selector counts. A COUNT, NOT A TYPED NUMBER (a
+/// number input is a keyboard on a phone and spinners on a desktop); past
+/// "every 30 days" the honest answer is a month.
 export const REPEAT_MAX = 30;
 
-/// The counts to offer, with `current` folded in wherever it belongs.
-///
-/// Folding it in is what keeps the selector from LYING about a task it did not
-/// write: a file may carry `repeat:45d`, typed by hand or written by an older
-/// build, and a list that cannot say 45 would show the field blank and quietly
-/// save a different task the next time it is touched.
+/// The counts to offer, with `current` folded in wherever it belongs, so the
+/// selector never LIES about a task it did not write: a file may carry
+/// `repeat:45d`, and a list that cannot say 45 would save a different task.
 export function repeatCounts(current) {
   const counts = Array.from({ length: REPEAT_MAX }, (_, i) => i + 1);
   const n = Number(current);
@@ -76,11 +56,8 @@ export function repeatCounts(current) {
 }
 
 /// The `repeat:` value the core parses, or null when there is no repetition.
-///
 /// Built rather than typed: the core silently DROPS a `repeat:` it cannot
-/// parse, so an invalid one must never be possible to express. Takes anything
-/// carrying `repeatEvery` + `repeatUnit` — the composer's intent and the
-/// inspector's draft are the same two fields under two names.
+/// parse. Takes anything carrying `repeatEvery` + `repeatUnit`.
 export function repeatText(fields) {
   if (!fields?.repeatUnit) return null;
   const every = Math.max(1, Number(fields.repeatEvery) || 1);
@@ -89,12 +66,9 @@ export function repeatText(fields) {
     : `every-${every}-${fields.repeatUnit}s`;
 }
 
-/// A tag name the metadata line can carry.
-///
-/// A tag with a space in it would break that line on the next read: the loose
-/// word stops it from being all-tokens, and the whole thing turns into a
-/// description. Cheaper to fix the tag than to lose the fields. The leading
-/// `#` goes too — it is how a tag is WRITTEN, not part of its name.
+/// A tag name the metadata line can carry. A tag with a space would break
+/// that line on the next read (no longer all-tokens, it turns into a
+/// description). The leading `#` goes too — how a tag is WRITTEN, not its name.
 export function cleanTagName(raw) {
   return (raw ?? "").trim().replace(/^#+/, "").replace(/\s+/g, "-");
 }

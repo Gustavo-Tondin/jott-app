@@ -1,36 +1,8 @@
-// How indentation is DRAWN in a note — the third piece of the live preview,
-// beside `markdown.js` (what each mark looks like) and `markdownCommands.js`
-// (how a level is written: four spaces, `INDENT`).
-//
-// Three things a nested list asks for, all from one user call (2026-09-07),
-// and none of which the raw characters give:
-//
-//   1. **A level is wider than four spaces.** The file says `    ` because a
-//      file has to say something every editor agrees on; on screen that is
-//      about one em in a proportional face, and a nested list read as barely
-//      nested. Each run of `INDENT` at the start of a line is wrapped in a
-//      `.cm-md-indent` span that the stylesheet gives a fixed width
-//      (`--editor-indent`), so the text is untouched and the eye gets a
-//      column.
-//   2. **A thin guide down the left of each level** — the Obsidian line that
-//      ties a child to its parent. It is not drawn here: it is a background of
-//      the LINE, one stripe per level, sized by `--cm-level` below. A
-//      background rather than a border on the span, because a span is one
-//      line tall and a wrapped item is not.
-//   3. **A wrapped line hangs.** The second visual line of `- a long item`
-//      used to come back under the bullet; it now lines up with the first
-//      letter of the text. That is `text-indent: -W; padding-left: W` on the
-//      line, and W is knowable ONLY because pieces 1 and the marker column
-//      below have fixed widths: `--cm-level` levels of `--editor-indent`,
-//      plus `--cm-marker` columns of `--editor-marker`.
-//
-// So this module hands out two marks (`cm-md-indent`, `cm-md-marker`), one
-// line class (`cm-md-indented`) and two counts — and not a single length. The
-// lengths are in editor.css, where a theme can reach them.
-//
-// What is left alone: a line inside a code block (indentation is content
-// there), a line inside a quote (the quote's own bar and padding rule it), and
-// a blank line.
+// How indentation is DRAWN in a note, beside `markdown.js` (what each mark
+// looks like) and `markdownCommands.js` (a level is four spaces, `INDENT`).
+// Hands out two marks (`cm-md-indent`, `cm-md-marker`), one line class
+// (`cm-md-indented`) and two counts (`--cm-level`, `--cm-marker`) — never a
+// length: those live in editor.css. Code, quote and blank lines are left alone.
 
 import { syntaxTree } from "@codemirror/language";
 import { RangeSetBuilder } from "@codemirror/state";
@@ -55,12 +27,10 @@ function inOpaqueBlock(state, pos) {
   return false;
 }
 
-/// What the start of a line is made of: how many whole indentation levels,
-/// where the marker (if any) starts and ends, and how many marker columns it
-/// takes. `null` for a line with nothing to draw.
-///
-/// Pure, so the rule is testable as text: `- a` is `{levels: 0, marker: 1}`,
-/// `        - [ ] b` is `{levels: 2, marker: 2}`.
+/// What the start of a line is made of: whole indentation levels, where the
+/// marker (if any) starts and ends, and how many marker columns it takes.
+/// `null` for a line with nothing to draw. Pure, so the rule is testable as
+/// text: `- a` is `{levels: 0, marker: 1}`.
 export function indentOf(text) {
   if (!text.trim()) return null;
   const spaces = /^[ \t]*/.exec(text)[0];
@@ -74,9 +44,8 @@ export function indentOf(text) {
     // Where the marker sits in the line, in characters from its start.
     markerFrom: spaces.length,
     markerTo: spaces.length + (marker ? marker[0].length : 0),
-    // Columns: a bullet or a number is one; a bullet with a box is wider —
-    // the checkbox and its breath, measured in the harness (2026-09-07) at
-    // 1.4 columns. The task box in editor.css is sized by the same number.
+    // Columns: a bullet or a number is one; a bullet with a box is wider
+    // (`TASK_COLUMNS`); the task box in editor.css is sized by the same number.
     marker: marker ? (/\[/.test(marker[0]) ? TASK_COLUMNS : 1) : 0,
   };
 }
@@ -101,10 +70,8 @@ function nextDeeper(state, line, levels) {
 const INDENT_MARK = Decoration.mark({ class: "cm-md-indent" });
 const MARKER_MARK = Decoration.mark({ class: "cm-md-marker" });
 
-/// The decorations for `ranges` of `state`.
-///
-/// Same shape as `decorationsFor` in markdown.js: a state and plain ranges,
-/// so the rule is testable without a DOM.
+/// The decorations for `ranges` of `state`. Same shape as `decorationsFor`
+/// in markdown.js: a state and plain ranges, testable without a DOM.
 export function indentDecorationsFor(state, ranges) {
   const builder = new RangeSetBuilder();
   for (const { from, to } of ranges) {
@@ -119,9 +86,7 @@ export function indentDecorationsFor(state, ranges) {
 
       // A PARENT — an item with something nested under it — draws the guide
       // from under its own marker down through its wrapped lines, so the
-      // children's guide has something to meet (user call, 2026-09-07:
-      // "conectando na linha dos itens indentados"). Read off the next
-      // non-blank line; the stylesheet draws the stub.
+      // children's guide has something to meet; the stylesheet draws the stub.
       const parent = shape.marker > 0 && nextDeeper(state, line, shape.levels);
 
       builder.add(
@@ -151,11 +116,9 @@ export function indentDecorationsFor(state, ranges) {
   return builder.finish();
 }
 
-/// Draws the indentation of every visible line.
-///
-/// A `ViewPlugin`, like `blockLook`: nothing here is a block widget, and only
-/// the visible lines need the work. Its decorations are not atomic — the
-/// caret walks through the spaces as it always did; they only LOOK wider.
+/// Draws the indentation of every visible line. A `ViewPlugin`, like
+/// `blockLook`: nothing here is a block widget. Its decorations are not
+/// atomic — the caret walks through the spaces; they only LOOK wider.
 export const listIndent = ViewPlugin.fromClass(
   class {
     constructor(view) {

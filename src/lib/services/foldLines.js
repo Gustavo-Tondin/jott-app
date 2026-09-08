@@ -1,25 +1,8 @@
-// What KIND of line each fold chevron stands beside.
-//
-// CodeMirror gives a gutter cell the height of the WHOLE line it stands
-// beside and leaves the marker at its top, so a chevron only lands on the
-// item's first line if something moves it — and how far depends on what that
-// line is: a heading opens with air and reads at its own size, while a list
-// item, a paragraph or a quote reads at the note's (user call, 2026-09-07:
-// "a calha deve alinhar a primeira linha de um item, seja titulo, bullet com
-// indents ou o que for" — folding already works on both).
-//
-// Nothing inside the gutter can see the line beside it, so the line says what
-// it is: this puts a class on the gutter's own element and
-// `styles/components/editor.css` does the arithmetic, in the same tokens that
-// drew the line in the first place. The DEFAULT — no class — is the note's
-// own text, which is what a bullet, a paragraph and a quote all are.
-//
-// Read from the TEXT and not from the syntax tree, unlike the line classes in
-// `markdown.js`: this is a state facet, so it is computed when the DOCUMENT
-// changes, while the tree goes on parsing after that — a heading below the
-// first parse would keep the wrong offset until the next keystroke. The cost
-// is Setext headings (`Title` over `=====`), which read here as ordinary text
-// and whose chevron sits a heading's air too high. The app writes `#`.
+// What KIND of line each fold chevron stands beside. CodeMirror leaves the
+// marker at the top of a cell as tall as the whole line, and the offset to
+// the item's first line depends on the kind (a heading opens with air): a
+// class goes on the gutter element and `styles/components/editor.css` does
+// the arithmetic; no class = the note's text. See docs/platform-gotchas.md#codemirror
 
 import { RangeSetBuilder } from "@codemirror/state";
 import { GutterMarker, gutterLineClass } from "@codemirror/view";
@@ -28,7 +11,10 @@ import { GutterMarker, gutterLineClass } from "@codemirror/view";
 /// the space that separates the hashes from the title.
 const ATX_HEADING = /^ {0,3}(#{1,6})(?:[ \t]|$)/;
 
-/// The level a line is drawn at, or 0 for everything else.
+/// The level a line is drawn at, or 0. Read from the TEXT, not the syntax
+/// tree: a state facet is computed on the document change while the tree
+/// goes on parsing, so a tree-read heading would keep the wrong offset until
+/// the next keystroke. Setext headings read as text; the app writes `#`.
 export function headingLevelOf(text) {
   const found = ATX_HEADING.exec(text);
   return found ? found[1].length : 0;

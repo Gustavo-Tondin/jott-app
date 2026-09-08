@@ -1,29 +1,8 @@
-// Closing a transient surface — the one behaviour every popup in the app
-// needs, as one reusable Svelte action (the sibling of `reorderable`).
-//
-// A menu, a colour palette, a tag picker, a calendar: each closes when the
-// pointer goes down outside it, and when Escape is pressed. Four components
-// wrote that out themselves, and the details are exactly where a copy drifts:
-//
-//   - CAPTURE phase, not bubble. A popup opened from inside the inspector has
-//     to see the event before the shell does.
-//   - Escape is SWALLOWED (stopPropagation). Without it, one Escape closes the
-//     calendar *and* the inspector behind it — the edit the user was making.
-//   - The listeners exist only while the surface is OPEN. A popup that keeps a
-//     document listener after closing fires on every click for the rest of the
-//     session.
-//
-// Used on the popup's ROOT — the wrapper holding both the trigger and the
-// panel, not the panel alone:
-//
+// Closes a transient surface on outside pointerdown or Escape. Used on the
+// popup's ROOT (trigger + panel) — else the trigger's own click reopens it:
 //   <div use:dismissable={{ active: open, onDismiss: () => (open = false) }}>
-//
-// That matters. If "inside" were only the panel, clicking the trigger to close
-// would count as an outside click: pointerdown closes it, the click that
-// follows toggles it back open, and the popup never closes by its own button.
-//
-// `active` is what mounts and unmounts the listeners, so the action can live on
-// a wrapper that is always in the DOM while the panel inside it comes and goes.
+// CAPTURE phase; Escape is swallowed so the surface behind stays; the
+// listeners exist only while `active`, so the wrapper may stay mounted.
 
 export function dismissable(node, params) {
   let opts = params ?? {};

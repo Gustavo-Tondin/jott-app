@@ -1,34 +1,8 @@
-// A Markdown table drawn as a table, and edited as one (2026-08-24).
-//
-// The other blocks of the live preview show their syntax on the line the
-// caret is on. A table does not: it is ALWAYS the grid (user call,
-// 2026-08-24, "A"), because a table of pipes is the one piece of Markdown
-// nobody can read raw, and the two things asked for — Tab from cell to cell,
-// and dragging a column by its handle — only mean anything on a grid.
-//
-// So the block is replaced by a widget whose cells are `contenteditable`, and
-// every keystroke in a cell is written straight back into the document as
-// the whole table re-rendered (`tables.renderTable`): the `.md` on disk is
-// always the aligned text, undo is CodeMirror's own, and autosave never
-// learns a table exists. What makes that bearable to type in is
-// `updateDOM`: the re-rendered widget patches only the cells whose text
-// changed, and the cell being typed in already holds its text, so the focus
-// and the caret stay where the finger is.
-//
-// **The focus is inside the widget, not in CodeMirror.** That is the whole
-// trick and its whole cost. CodeMirror ignores what happens in a widget's DOM
-// (`ignoreEvent`, and its observer skips mutations there), which is what lets
-// a cell be a plain editable element; in return nothing of the editor's —
-// its keymap, its selection, its `hasFocus` — sees the cell, so this file
-// answers Tab, Enter and Escape itself, and tells the commands which cell is
-// current through `tableEditing.setActiveCell`.
-//
-// Dragging: a handle above each column and beside each body row, shown while
-// the pointer is over the table or a cell has the focus (the phone has no
-// hover). Pointer events, so one code path serves the mouse and the finger;
-// `touch-action: none` on the handle (editor.css) is what keeps the finger's
-// drag from scrolling the page instead. The header row has no handle: it is
-// not a body row, and a GFM table without one is not a table.
+// A Markdown table drawn as a grid of `contenteditable` cells — ALWAYS the
+// grid, never the pipes. Every keystroke re-renders the whole table back into
+// the document (`tables.renderTable`); `updateDOM` patches only changed cells,
+// so focus and caret stay put. The focus lives in the widget, NOT in CodeMirror:
+// its keymap and selection never see a cell, so Tab/Enter/Escape are answered here.
 
 import { StateEffect, StateField } from "@codemirror/state";
 import { Decoration, EditorView, ViewPlugin, WidgetType } from "@codemirror/view";
@@ -80,7 +54,7 @@ class TableWidget extends WidgetType {
   }
 
   /// The layout as a class on the wrapper — `scroll` runs wide, the default
-  /// squeezes to the column (Settings → Notes, 2026-08-24).
+  /// squeezes to the column.
   dress(dom) {
     dom.classList.toggle("cm-md-table--scroll", this.layout === "scroll");
   }
@@ -249,10 +223,10 @@ class TableWidget extends WidgetType {
     this.wireDrag(dom, view);
   }
 
-  /// Dragging a column or a row by its handle. The target index is read from
-  /// the geometry of the cells under the pointer, so it works whatever the
-  /// column widths are; the class on the target cell is what draws the
-  /// insertion line (editor.css).
+  /// Dragging a column or a row by its handle, with pointer events (one path
+  /// for mouse and finger; `touch-action: none` on the handle in editor.css
+  /// keeps the finger's drag from scrolling). The target index is read from
+  /// cell geometry; the class on the target cell draws the insertion line.
   wireDrag(dom, view) {
     let drag = null;
 
@@ -391,15 +365,10 @@ export function tableDecorationsFor(state, ctx = {}) {
   return Decoration.set(decorations, true);
 }
 
-/// Draws every table of the note as a grid.
-///
-/// `ctx.shows` says whether the notebook draws tables at all (App Functions);
-/// off, the text stays the pipes it is, and the commands still work on the
-/// caret's row and column (`tableEditing.currentCell`). `ctx.layout` answers
-/// `""` (squeezed to fit) or `scroll`; both are read again on `refreshTables`.
-///
-/// A `StateField`, for the reason `fileEmbeds` gives: a block decoration
-/// from a `ViewPlugin` is dropped in silence.
+/// Draws every table of the note as a grid. `ctx.shows` says whether tables
+/// are drawn at all (off, the pipes stay; the commands still work on the
+/// caret's cell); `ctx.layout` is `""` or `scroll`; both re-read on `refreshTables`.
+/// A `StateField`, not a `ViewPlugin`: see docs/platform-gotchas.md#codemirror.
 export function noteTables(ctx = {}) {
   const context = { ...ctx, focus: focusIn };
   const field = StateField.define({

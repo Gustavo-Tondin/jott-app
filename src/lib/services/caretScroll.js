@@ -1,24 +1,8 @@
-// Keeping the line being typed on screen.
-//
-// CodeMirror scrolls the cursor into view by walking up from its own DOM and
-// scrolling whatever it finds on the way. The walk has one assumption that
-// this app breaks: it treats an element whose content is taller than its box
-// as a scroller, and this shell has one that is nothing of the sort —
-// `.shell__canvas` is 481px tall with 697px of note spilling out of it on
-// purpose, because the thing that scrolls is the PANEL AROUND IT (the header
-// scrolls away with the note, shell.css). So CodeMirror set `scrollTop` on an
-// element with `overflow: visible`, nothing moved, and — this is the part that
-// bites — it then CLIPPED the cursor's rectangle to that element's box before
-// carrying on. Trimmed to the edge, the cursor looked perfectly visible to the
-// real scroller one level up, which therefore did nothing.
-//
-// Measured on the emulator (2026-08-20): typing three lines at the end of a
-// note put the caret 62px below the visible bottom, with 216px of unused
-// scroll underneath it and no scrolling at all. On a phone that bottom edge is
-// the top of the keyboard, so the line being typed simply disappeared.
-//
-// This is not an Android bug and the fix is not an Android fix — the same
-// layout does the same thing in a narrow window on the desktop.
+// Keeping the line being typed on screen. CodeMirror's scroll-into-view walk
+// treats any element whose content overflows as a scroller; `.shell__canvas`
+// overflows on purpose (the panel around it scrolls), so CodeMirror scrolls
+// nothing and clips the caret's rectangle to that box, and the real scroller
+// sees a visible caret. Not Android-only. See docs/platform-gotchas.md#codemirror
 
 import { EditorView } from "@codemirror/view";
 
@@ -46,24 +30,15 @@ export function scrollNeeded({ top, bottom }, box, margin = 0) {
 }
 
 /// The part of `el` that is genuinely visible, in viewport coordinates.
-///
-/// `clientHeight`, not the rectangle's height: a horizontal scrollbar sits
-/// inside the box and the last line would hide under it.
-///
-/// And `scroll-padding` off the top and bottom, which is the platform's way of
-/// saying "something floats over this edge" — here the formatting strip above
-/// the keyboard, and the title bar the note scrolls under. Without it the
-/// cursor was scrolled to the true edge of the scroller and landed BEHIND the
-/// strip, which is the same disappearing line this file exists for, arriving
-/// from the other side (measured on device, 2026-08-21).
+/// `clientHeight`, not the rectangle's height (a horizontal scrollbar hides
+/// the last line), minus `scroll-padding` top and bottom — the formatting
+/// strip and the title bar float over those edges, and the caret landed behind them.
 export function visibleBox(el) {
   const rect = el.getBoundingClientRect();
   const style = getComputedStyle(el);
-  // BOTH SPELLINGS. The stylesheets say `scroll-padding-block-end`, because
-  // logical properties are the house rule; a browser resolves that to the
-  // physical `scroll-padding-bottom` in the computed style, and jsdom does
-  // not. Reading only one of them means either the app or the test is
-  // measuring something that is always zero.
+  // BOTH SPELLINGS: the stylesheets say `scroll-padding-block-end`; a browser
+  // resolves it to the physical `scroll-padding-bottom` in computed style and
+  // jsdom does not. Reading one means the app or the test measures zero.
   const pad = (...names) =>
     Math.max(0, ...names.map((n) => Number.parseFloat(style.getPropertyValue(n)) || 0));
   return {
@@ -101,16 +76,10 @@ export const keepCaretInView = [
     follow(view, range.head, options.yMargin || 0);
     return false;
   }),
-  // And when nothing asked at all, which is the case that made the note
-  // unusable on a phone: TYPING does not request a scroll. CodeMirror leaves
-  // ordinary input to the browser, which scrolls the caret into view on its
-  // own — inside a contenteditable in a plain page. Measured in the app's
-  // WebView, typing five lines at the end of a note scrolled nothing and left
-  // the caret 62px under the keyboard (2026-08-20).
-  //
-  // `requestMeasure`, not a read in the listener: the update is still being
-  // applied, and asking the DOM for a rectangle mid-update is what makes an
-  // editor stutter.
+  // And when nothing asked at all: TYPING does not request a scroll —
+  // CodeMirror leaves ordinary input to the browser, which in the app's
+  // WebView scrolled nothing. `requestMeasure`, not a read in the listener:
+  // the update is still being applied, and a DOM read mid-update stutters.
   EditorView.updateListener.of((update) => {
     if (!update.docChanged && !update.selectionSet) return;
     if (!update.view.hasFocus) return;

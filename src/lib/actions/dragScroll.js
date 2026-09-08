@@ -1,16 +1,8 @@
 // `use:dragScroll` — lets a MOUSE drag a horizontal scroller the way a finger
-// does (the Home's calendar strip, 2026-09-04: "mais interativo, mostrando
-// as datas seguintes").
-//
-// A finger already scrolls the strip natively, and a trackpad's sideways
-// swipe too; a mouse has no such gesture, so this one reads the pointer and
-// moves `scrollLeft` with it. Let go, the scroller's own `scroll-snap`
-// settles on the nearest page — that is why the action only scrolls and
-// never decides where the strip lands.
-//
-// A drag that moved is not a click: the click that follows the release is
-// swallowed once, so dragging across a day does not also pick it. Touch and
-// pen pointers are left to the browser.
+// does. It only moves `scrollLeft`: on release the scroller's own
+// `scroll-snap` settles on the nearest page, so the action never decides
+// where the strip lands. A drag that moved is not a click — the click that
+// follows the release is swallowed once. Touch and pen are left to the browser.
 export function dragScroll(node, options = {}) {
   let { threshold = 4 } = options;
   let drag = null;

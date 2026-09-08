@@ -1,29 +1,15 @@
-// Where an item came from — the badge a card wears OUTSIDE its space.
-//
-// The colour grammar (2026-08-26): a task or a note has ONE colour, the
-// colour of the space it lives in (a group's, when the space is inside one —
-// `spaceColors.js`). Inside that space the colour is on the sidebar and the
-// title and saying it again on every card would be noise; outside it — the
-// Home, a search hit, a suggestion, the Completed list, the Timeline — the
-// card is the only thing that can say where it belongs, and it says so with
-// a badge: the space's readable name, in the space's colour.
-//
-// The NAME comes from the core, never from the path (`ListEntry.space`,
-// `SearchHit.space`, `Suggestion.space` — the fixed `jott.tasks` folder reads
-// "Tasks"). Where the core did not send it (a completed task carries only its
-// address), it is looked up in the lists the snapshot already holds; an
-// address nothing answers for gets no badge rather than a folder name on
-// screen.
+// Where an item came from — the badge a card wears OUTSIDE its space. An
+// item has ONE colour, its space's (`spaceColors.js`); inside the space it
+// is on the sidebar and the title, outside it (Home, search, Completed,
+// Timeline) the badge says it: the space's readable NAME, from the core,
+// never from the path. An address nothing answers for gets no badge.
 
 import { folderOf, listLabel, MAIN_LIST, listName } from "./paths.js";
 
-/// `{label, color}` for the badge, or `null` when there is nothing to say:
-/// the item is inside `here` (its own space), or no name is known for it.
-///
-/// `item` is any of the shapes the screens hold: a card `{list, task}`, a
-/// search hit `{path, folder, kind, space}`, a suggestion or a completed
-/// entry `{path, space?}`. `lists` are the snapshot's `notebook.lists`,
-/// `spaces` its `notebook.spaces`, `colors` the map `spaceColors()` built.
+/// `{label, color}` for the badge, or `null`: the item is inside `here`, or
+/// no name is known. `item` is any shape the screens hold (`{list, task}`, a
+/// search hit, a suggestion, a completed entry with only an address — then
+/// the name is looked up in `lists`/`spaces`); `colors` is `spaceColors()`'s.
 export function originOf(item, { lists = [], spaces = [], colors = {}, here = null } = {}) {
   if (!item) return null;
   const address = item.list ?? item.path ?? null;

@@ -1,27 +1,8 @@
-// The head of a note, as the blocks a card draws.
-//
-// The card is not a second editor. The note's own live preview is CodeMirror
-// (`services/markdown.js`), and running fifty of those on a board would cost
-// fifty editors to draw text nobody can click. So this is the other half of
-// the same idea, from the other end: a tiny reader that turns the markdown
-// the core sends (`Note::preview`) into blocks and spans, and a component
-// that draws them (`components/NotePreview.svelte`).
-//
-// **Nothing here is interactive** (user call, 2026-08-20: "sem link nem nada
-// interativo desde o grid"). A reference is its own text, a link is its
-// words, an image is not loaded at all — the whole card is one link, to the
-// note, and a second target inside it would only fight with that.
-//
-// **Nothing here carries colour either.** The hierarchy is size, weight and
-// shape; the ink stays the muted grey the preview always had ("mas cinza
-// opaco como agora"). A board is a place to recognise a note from across the
-// screen, not to read it — accented headings on twenty cards at once turn the
-// board into a stained-glass window.
-//
-// What it deliberately does NOT do: nested lists (the indent is dropped, the
-// bullet stays), tables, footnotes, HTML beyond `<u>`. A preview that fails
-// to parse something shows it as the text it is, which is the honest fallback
-// for a format the user owns.
+// The head of a note, as the blocks a card draws — a tiny reader for the
+// markdown the core sends (`Note::preview`), not a second editor. Nothing here
+// is interactive (the whole card is one link) and nothing carries colour.
+// Not handled, on purpose: nested lists (indent dropped), tables beyond the
+// header, footnotes, HTML beyond `<u>`; what fails to parse shows as text.
 
 import { referencesIn } from "./embeds.js";
 import { isDelimiterRow, isTableRow, splitRow } from "./tables.js";
@@ -36,9 +17,7 @@ const ORDERED = /^\s*(\d{1,9})[.)]\s+(.*)$/;
 const QUOTE = /^\s*>\s?(.*)$/;
 
 /// A markdown image — `![alt](address)`. Dropped whole: the note has a banner
-/// for a picture, and a card that fetched the images of every note on the
-/// board would read the disk once per card to draw a thumbnail nobody asked
-/// for.
+/// for a picture, and a card must not read the disk to draw a thumbnail.
 const IMAGE = /!\[[^\]]*\]\([^)\s]*(?:\s+"[^"]*")?\)/g;
 /// A link — the words are the content, the address is plumbing.
 const LINK = /\[([^\]]*)\]\([^)\s]*(?:\s+"[^"]*")?\)/g;
@@ -47,11 +26,9 @@ const LINK = /\[([^\]]*)\]\([^)\s]*(?:\s+"[^"]*")?\)/g;
 /// or every strong span would parse as two empty emphases.
 const MARKS = [
   { style: "code", pattern: /`([^`\n]+)`/, literal: true },
-  // `***assim***` — the one nesting of a mark inside ITSELF that is worth a
-  // pattern of its own. Everything else nests by alternating the two
-  // delimiters (`**a _b_**`), which falls out of the recursion for free; a
-  // `**a *b***` is read as one strong run with a literal `*` in it, and that
-  // is the limit written down rather than a delimiter-run parser on a card.
+  // `***both***` — the one nesting of a mark inside ITSELF with a pattern of
+  // its own; other nesting alternates delimiters and falls out of the
+  // recursion. `**a *b***` reads as one strong run with a literal `*`: known limit.
   { style: "both", pattern: /\*\*\*([\s\S]+?)\*\*\*/ },
   { style: "strong", pattern: /\*\*([\s\S]+?)\*\*/ },
   { style: "strong", pattern: /__([\s\S]+?)__/ },
@@ -61,13 +38,10 @@ const MARKS = [
   { style: "em", pattern: /_([^_\n]+)_/ },
 ];
 
-/// The blocks of a piece of markdown.
-///
-/// Each is `{kind, …}`: `heading` (with `level`), `paragraph`, `bullet`,
-/// `ordered` (with `marker`), `task` (with `done`), `quote`, `code` (with
-/// `text`), `rule` or `table` (its header's cells as `spans`, one line —
-/// the card says "there is a table here, about this", not the table; user
-/// call 2026-08-24). All but `code` and `rule` carry `spans`.
+/// The blocks of a piece of markdown. Each is `{kind, …}`: `heading` (with
+/// `level`), `paragraph`, `bullet`, `ordered` (with `marker`), `task` (with
+/// `done`), `quote`, `code` (with `text`), `rule` or `table` (its header's
+/// cells only — "there is a table here"). All but `code` and `rule` carry `spans`.
 export function previewBlocks(markdown) {
   const lines = String(markdown ?? "").split("\n");
   const blocks = [];
@@ -191,10 +165,8 @@ export function spansOf(text, style = {}) {
 }
 
 /// The references, links and images taken out before anything is styled.
-///
-/// `referencesIn` is asked what a `[[…]]` means rather than a regex written
-/// here: the syntax has one owner (`services/embeds.js`), and a second reader
-/// of it would be the copy that goes stale.
+/// `referencesIn` owns the `[[…]]` syntax (`services/embeds.js`); a second
+/// reader here would be the copy that goes stale.
 function plainText(text) {
   const original = String(text ?? "");
   const line = original.replace(IMAGE, "");
@@ -213,11 +185,9 @@ function plainText(text) {
   out += line.slice(at);
   out = out.replace(LINK, "$1");
 
-  // Taking a picture out of the middle of a sentence leaves the space on both
-  // sides of it, and the card read "veja a foto  ." — then, once the pair was
-  // collapsed, "veja a foto ." The punctuation is closed up too, and ONLY
-  // where something was actually removed: the same tidying applied to every
-  // line would edit what the writer typed.
+  // Removing a picture mid-sentence leaves double spaces and "foto ." — tidied
+  // ONLY where something was actually removed, so the writer's own spacing
+  // elsewhere is never edited.
   if (!dropped) return out;
   return out
     .replace(/[ \t]{2,}/g, " ")

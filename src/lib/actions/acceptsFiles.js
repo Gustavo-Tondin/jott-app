@@ -1,30 +1,17 @@
 // `use:acceptsFiles` — a place that takes a file the user drags or pastes.
-//
-// Two screens want this (the note's editor and the Images library) and both
-// want it in the same shape, including the parts that are easy to get wrong
-// and impossible to notice:
-//
-//   - **Capture, not bubble.** CodeMirror handles a paste itself; by the time
-//     the event bubbled back out, the address would already be pasted as text.
-//   - **`preventDefault` before awaiting.** The reading is asynchronous and a
-//     `DataTransfer` is disconnected the moment its event finishes dispatching
-//     (`services/gesture.js`). Claiming the gesture has to happen first.
-//   - **`dragover` has to say yes** or no `drop` ever arrives.
-//
-// The one thing the two callers differ on is WHERE a paste is listened for,
-// and each has a reason. See `paste` below.
+// Capture phase (CodeMirror would paste the address as text first);
+// `preventDefault` BEFORE awaiting (a `DataTransfer` is disconnected once its
+// event finishes dispatching, `services/gesture.js`); `dragover` must say yes
+// or no `drop` ever arrives.
 
 import { looksLikeFiles, readGesture } from "../services/gesture.js";
 
 /// @param options `{ onFiles, disabled, paste, over }`
 ///   - `onFiles({files, paths, remote, types})` — what the gesture brought.
 ///   - `disabled` — a read-only notebook takes nothing.
-///   - `paste` — `"node"` listens on the element, which works wherever the
-///     element also holds the focus (a note's editor). `"document"` is for a
-///     screen with nothing to type in, where a paste is delivered to `<body>`
-///     and would never reach the element at all. `"none"` takes drops only.
-///   - `over(active)` — called as a file enters and leaves, for a screen that
-///     wants to show it will take one.
+///   - `paste` — `"node"` listens on the element (which must hold the focus);
+///     `"document"` for a screen with nothing to type in; `"none"`: drops only.
+///   - `over(active)` — a file entering and leaving, for a screen that shows it.
 export function acceptsFiles(node, options = {}) {
   let current = options;
 
