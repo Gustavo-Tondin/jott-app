@@ -57,22 +57,36 @@ export function isSafeFamily(name) {
 /// The `font-family` value for a role, or null — which REMOVES the property
 /// and leaves the stylesheet in charge. A generic family goes in unquoted
 /// (quoting `sans-serif` names a font nobody has); anything else is quoted.
-export function fontValue(role, family) {
+///
+/// `systemFamily` is the family this desktop draws its own interface in, as
+/// the bridge answers it (`system_ui_font`). It goes in FRONT of `system-ui`
+/// because the keyword does not mean the same thing everywhere: WebKitGTK
+/// resolves it through fontconfig and never reads the desktop's setting, so
+/// picking "system-ui" changed nothing visible on Linux. With no answer the
+/// keyword stands on its own, which is right on Windows and Android.
+export function fontValue(role, family, systemFamily = "") {
   const spec = FONT_ROLES[role];
   if (!spec) return null;
   const name = (family ?? "").trim();
   if (!name || !isSafeFamily(name)) return null;
+  if (name === "system-ui") {
+    const desktop = (systemFamily ?? "").trim();
+    const chain = isSafeFamily(desktop) ? [`"${desktop}"`, "system-ui"] : ["system-ui"];
+    // The app's own face is NOT in this chain: it would win the moment the
+    // desktop's family went missing, and the choice would look ignored.
+    return [...chain, "sans-serif"].join(", ");
+  }
   const first = GENERIC_FAMILIES.includes(name) ? name : `"${name}"`;
   return [first, ...spec.fallback].join(", ");
 }
 
 /// What the shell writes on the root for all three, ready for `setRootVar`:
 /// `{ "--app-font-sans": … | null }`.
-export function fontVars({ interfaceFont, noteFont, monoFont } = {}) {
+export function fontVars({ interfaceFont, noteFont, monoFont } = {}, systemFamily = "") {
   return {
-    [FONT_ROLES.interface.token]: fontValue("interface", interfaceFont),
-    [FONT_ROLES.note.token]: fontValue("note", noteFont),
-    [FONT_ROLES.mono.token]: fontValue("mono", monoFont),
+    [FONT_ROLES.interface.token]: fontValue("interface", interfaceFont, systemFamily),
+    [FONT_ROLES.note.token]: fontValue("note", noteFont, systemFamily),
+    [FONT_ROLES.mono.token]: fontValue("mono", monoFont, systemFamily),
   };
 }
 
