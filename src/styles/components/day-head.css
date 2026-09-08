@@ -227,9 +227,14 @@
     inset-inline: 0;
     block-size: calc(2 * var(--day-head-row));
     pointer-events: none;
+    /* The band is also the RULER the copy rides by: two rows tall around the
+       sheet's edge, so its `exit` across the top of the scroller is 342px of
+       scroll and the half of it that matters is the reveal. */
+    view-timeline: --home-sheet block;
   }
   /* Sticks to the NEAREST scroll container: the sheet's mask must be
-     `overflow: clip`, never `hidden` (shell.css). */
+     `overflow: clip`, never `hidden` (shell.css). Where the engine can be
+     asked instead, it is — see the ride below. */
   .day-head__top--sheet {
     position: sticky;
     inset-block-start: 0;
@@ -238,6 +243,37 @@
     padding-block: calc(var(--app-topbar-height) + var(--app-space-8)) var(--app-space-12);
     pointer-events: auto;
     color: var(--app-ink);
+  }
+  /* THE RIDE — why this copy is not simply stuck at the top. A box that is
+     STUCK inside a clipping ancestor is clipped at its UNSTUCK place in
+     Chromium: the copy was hidden for the whole rise and dropped in at the
+     end (measured on device, docs/platform-gotchas.md#webview-e-gestos).
+     So it sits AT the sheet's edge and a scroll-driven translate holds it
+     against the top of the screen while the sheet climbs the last row — a
+     translate under a clip is the ordinary path, and the ground still reveals
+     it pixel by pixel. Before the range it is one row above the edge (clipped
+     away); after it, it rides off with the cards. An engine without scroll
+     timelines keeps the stuck copy above, which is what it draws correctly. */
+  @supports (animation-timeline: view()) {
+    .day-head__top--sheet {
+      position: absolute;
+      inset-block-start: var(--day-head-row);
+      inset-inline: 0;
+      animation: day-head-ride linear both;
+      animation-timeline: --home-sheet;
+      /* `exit` starts when the band's top edge reaches the top of the
+         scroller (the sheet one row below it) and ends a band later; the
+         reveal is its first half. */
+      animation-range: exit 0% exit 50%;
+    }
+    @keyframes day-head-ride {
+      from {
+        translate: 0 calc(-1 * var(--day-head-row));
+      }
+      to {
+        translate: none;
+      }
+    }
   }
   /* The fold: clipped to the level's height, and it MOVES between heights —
      except while a finger is on it, when it has to be exactly where the
