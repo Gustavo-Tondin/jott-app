@@ -212,10 +212,10 @@ describe("App shell with tabs", () => {
       if (els.length < 3) throw new Error("menu still loading");
       return els;
     });
-    expect(rows.map((el) => el.textContent.replace(/✓/g, "").trim())).toEqual([
+    expect(rows.map((el) => el.textContent.trim())).toEqual([
       "Casa",
       "Trabalho",
-      "Manage notebooks…",
+      "Manage notebooks",
     ]);
 
     await userEvent.click(rows[1]);

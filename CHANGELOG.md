@@ -73,6 +73,15 @@ file and live only in the commit history.
 - The fold arrow in a note stands only beside something that HOLDS
   something — a heading, a list item with a sublist, a quote, a code block, a
   table. Ordinary prose no longer offers one.
+- The foot of the side panel names the **space** the task or note is in.
+  Every space keeps a list called Inbox, so "Inbox" alone never said which.
+- The side panel slides open and shut, the way the sidebar does.
+- The notebook menu marks the open notebook with its own colour instead of a
+  tick, and rules **Manage notebooks** off from the list.
+- The icon picker holds still: choosing an icon no longer re-orders the grid
+  under the pointer.
+- The floating formatting bar takes the same corner as the rest of the app,
+  and the panel that folds out of it lifts off the page like the bar does.
 
 ## v0.52.1
 

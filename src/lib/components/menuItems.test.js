@@ -24,6 +24,16 @@ describe("MenuItems", () => {
     expect(tree.querySelector(".menu__check").textContent).toBe("");
   });
 
+  test("a separator is a rule, not a row: nothing to press", () => {
+    const { container } = render(MenuItems, {
+      props: {
+        items: [{ label: "Work", run() {} }, { separator: true }, { label: "Manage", run() {} }],
+      },
+    });
+    expect(container.querySelectorAll(".menu__rule").length).toBe(1);
+    expect(container.querySelectorAll(".menu__link").length).toBe(2);
+  });
+
   test("the middle button runs the row with the new-tab gesture", async () => {
     // A row that opens a screen reads it; any other row is free to ignore it.
     const runs = [];

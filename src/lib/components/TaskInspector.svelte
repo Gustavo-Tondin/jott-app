@@ -323,6 +323,14 @@
         : api.pullInto(null, task.list, task.id),
     );
 
+  /// Where the task lives, as the FOOT says it: the name the picker gives the
+  /// same list — the space, since every space's main list is called Inbox and
+  /// "Inbox" alone never says which one. Falls back to the file's own title
+  /// while the list of targets has not arrived.
+  let here = $derived(
+    splitLabel(lists.find((l) => l.path === list) ?? {}).name || listTitle(list),
+  );
+
   /// The footer's list picker: move this task to another list. On success the
   /// shell re-points at the new list.
   const moveList = (to) =>
@@ -790,7 +798,7 @@
     {#if readOnly || lists.length <= 1}
       <span class="inspector__origin">
         <Icon name="tray" size="1rem" />
-        {listTitle(list)}
+        {here}
       </span>
     {:else}
       <Menu
@@ -813,7 +821,7 @@
             title={S.moveToList}
           >
             <Icon name="tray" size="1rem" />
-            <span class="inspector__origin-name">{listTitle(list)}</span>
+            <span class="inspector__origin-name">{here}</span>
           </button>
         {/snippet}
       </Menu>

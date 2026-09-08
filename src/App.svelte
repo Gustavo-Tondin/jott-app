@@ -1579,6 +1579,11 @@
   /// The folder of the open note within its space — `""` at the space's root.
   let openNoteFolder = $derived(view.kind === "note" ? folderOf(view.path) : "");
 
+  /// The SPACE the open note lives in, by the name it wears on screen: the
+  /// panel's foot answers "where is this note", and a folder called Inbox is
+  /// only half of that — every notes space has one.
+  let openNoteSpace = $derived(view.kind === "note" ? spaceName(view.folder) : "");
+
   /// Where the open note could go: its own space's folders, then every other
   /// notes space (into its inbox). The same set the board's cards offer.
   let noteMoveTargets = $derived.by(() => {
@@ -2106,6 +2111,7 @@
         {inactiveFormats}
         noteMenu={noteActions}
         noteFolder={openNoteFolder}
+        noteSpace={openNoteSpace}
         noteTargets={noteMoveTargets}
         onDeleteNote={deleteCurrentNote}
         onUndock={() => (formatting = false)}

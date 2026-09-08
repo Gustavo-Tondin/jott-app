@@ -3,6 +3,7 @@
   // `open`): a preset palette and the WHOLE Phosphor set behind a search
   // field. Picking calls onColor/onIcon; an empty string clears. Stays open
   // across picks; closes on outside pointer or Escape (swallowed) via onClose.
+  import { untrack } from "svelte";
   import Icon from "./Icon.svelte";
   import AccentPicker from "./AccentPicker.svelte";
   import { dismissable } from "../actions/dismissable.js";
@@ -63,10 +64,18 @@
     return globalThis.matchMedia?.("(pointer: coarse)")?.matches ?? false;
   }
 
-  // The one the space wears today rides just behind the ten, so it is on
-  // screen the moment the popup opens — `lightbulb` is a long scroll away
-  // in the alphabet, and a person changing an icon starts from the old one.
-  let lead = $derived(icon && !LEAD.includes(icon) ? [...LEAD, icon] : LEAD);
+  // The one the space wore WHEN THE POPUP OPENED rides just behind the ten, so
+  // it is on screen the moment the popup opens — `lightbulb` is a long scroll
+  // away in the alphabet, and a person changing an icon starts from the old
+  // one. Read once, untracked: were it the live `icon`, every pick would
+  // rewrite the head of the grid and the glyphs would swap places under the
+  // pointer.
+  let wore = $state(null);
+  $effect(() => {
+    if (!open) wore = null;
+    else if (wore === null) wore = untrack(() => icon) || "";
+  });
+  let lead = $derived(wore && !LEAD.includes(wore) ? [...LEAD, wore] : LEAD);
   let entries = $derived(
     library ? leadFirst(library, lead) : LEAD.map((name) => ({ name, tags: [] })),
   );

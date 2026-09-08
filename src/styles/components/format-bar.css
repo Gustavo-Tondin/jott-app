@@ -45,7 +45,7 @@
 
   /* A floating container states its inside corner and the buttons read it:
      docked in the right panel the button's own corner stands; inside a strip,
-     a pill or a fold panel it is flush against an `lg` edge with 2px between. */
+     a pill or a fold panel it is flush against an `md` edge with 2px between. */
   .format-bar__button {
     flex: 0 0 auto;
     border-radius: var(--format-inner-radius, var(--app-radius-sm));
@@ -75,19 +75,20 @@
   .format-bar__button--on {
     background: var(--app-well);
   }
-  /* The panel: a bar of its own beside the bar — twins, so its own ground
-     rather than `theme-popover`'s and NO SHADOW (the bar already floats; a
-     second lifted plate reads as two layers). The insets are the fallback
-     until `keepOnScreen` (FormatBar.svelte) has measured. */
+  /* The panel: a bar of its own beside the bar — twins, so the float's plate
+     exactly (ground, corner and lift), and only the position is its own. The
+     insets are the fallback until `keepOnScreen` (FormatBar.svelte) has
+     measured. */
   .format-bar__panel {
-    --format-inner-radius: calc(var(--app-radius-lg) - var(--app-space-2));
+    --format-inner-radius: calc(var(--app-radius-md) - var(--app-space-2));
     position: absolute;
     inset-block-end: calc(100% + var(--app-space-8));
     display: flex;
     gap: var(--app-space-2);
     padding: var(--app-space-2);
     background: var(--app-bg);
-    border-radius: var(--app-radius-lg);
+    border-radius: var(--app-radius-md);
+    box-shadow: var(--app-shadow-popover);
     z-index: 1;
   }
   /* The table's panel writes a verb beside each glyph (FormatBar.svelte): a
@@ -175,14 +176,15 @@
     align-items: flex-end;
   }
 
-  /* A pill: the ground, radius and shadow the two share. Both minimums: which
-     axis gives way is the side's answer. */
+  /* A pill: the ground, radius and shadow the two share — the corner every
+     floating surface in the app takes (`md`, controls/overlays.css), not one
+     of its own. Both minimums: which axis gives way is the side's answer. */
   .format-float {
-    --format-inner-radius: calc(var(--app-radius-lg) - var(--app-space-2));
+    --format-inner-radius: calc(var(--app-radius-md) - var(--app-space-2));
     min-inline-size: 0;
     min-block-size: 0;
     background: var(--app-bg);
-    border-radius: var(--app-radius-lg);
+    border-radius: var(--app-radius-md);
     box-shadow: var(--app-shadow-popover);
   }
   /* The bar gives way when the canvas is short of room — it is the one that
@@ -206,7 +208,7 @@
      the viewport and drawn outside `.window` (App.svelte says why), so it needs
      its own ground and its own top hairline — it is not sitting on any panel. */
   .format-strip {
-    --format-inner-radius: calc(var(--app-radius-lg) - var(--app-space-2));
+    --format-inner-radius: calc(var(--app-radius-md) - var(--app-space-2));
     position: fixed;
     /* A pill with air on both sides: the insets bound it, `fit-content` takes
        only what the row needs, the auto margins centre the rest. The ceiling
@@ -222,7 +224,7 @@
     inset-block-end: max(var(--app-safe-bottom), var(--app-keyboard));
     z-index: 40;
     background: var(--app-bg);
-    border-radius: var(--app-radius-lg);
+    border-radius: var(--app-radius-md);
     margin-block-end: var(--app-space-8);
   }
 }

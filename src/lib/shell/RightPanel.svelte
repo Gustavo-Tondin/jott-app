@@ -5,6 +5,7 @@
   // sheet never disagree. The wrapper's width slides like the left rail's;
   // the inner panel keeps a fixed width so content is clipped, not reflowed.
   import { slide } from "svelte/transition";
+  import { cubicOut } from "svelte/easing";
   import PanelResizer from "./PanelResizer.svelte";
   import { PANEL } from "./sidebarWidth.js";
   import BottomSheet from "../components/BottomSheet.svelte";
@@ -39,7 +40,10 @@
     hiddenFormats = [],
     inactiveFormats = [],
     noteMenu = [],
+    // where the open note is filed: the space it lives in, and the folder
+    // inside it (`""` at the space's root)
     noteFolder = "",
+    noteSpace = "",
     noteTargets = [],
     onDeleteNote,
     onUndock,
@@ -96,7 +100,7 @@
       hidden={hiddenFormats}
       inactive={inactiveFormats}
       menu={noteMenu}
-      where={leafOf(noteFolder) || S.allNotes}
+      where={[noteSpace, leafOf(noteFolder)].filter(Boolean).join("/") || S.allNotes}
       targets={noteTargets}
       onDelete={onDeleteNote}
       onClose={onUndock}
@@ -138,7 +142,17 @@
       {@render content()}
     </BottomSheet>
   {:else}
-    <div class="shell__panel" transition:slide={{ axis: "x", duration: 200 }}>
+    <!-- `|global` is load-bearing: a local transition runs only when its OWN
+         block is created or destroyed, and what goes when the panel closes is
+         the `{#if tenant}` above — an ancestor. Without it the column vanished
+         in one frame. The width slides the left rail's own way, so the two
+         edges of the window move alike: `--app-duration-medium` and the
+         ease-out curve, spelled here because a JS transition cannot read a
+         CSS token. -->
+    <div
+      class="shell__panel"
+      transition:slide|global={{ axis: "x", duration: 250, easing: cubicOut }}
+    >
       {@render content()}
     </div>
   {/if}

@@ -7,15 +7,19 @@ const recent = [
 ];
 
 describe("the footer's notebook menu", () => {
-  it("ticks the open notebook, colours each row, and ends with the manage door", () => {
+  it("dots the open notebook, keeps the others' slot, and ends with the manage door", () => {
     const rows = notebookRows(recent, "/home/g/Work", {});
-    expect(rows.map((r) => r.label)).toEqual(["Work", "Personal", "Manage notebooks…"]);
-    expect(rows[0].checked).toBe(true);
-    expect(rows[1].checked).toBe(false);
+    expect(rows.map((r) => r.label)).toEqual(["Work", "Personal", undefined, "Manage notebooks"]);
+    // The dot IS the tick: painted on the open one, unpainted on the rest so
+    // the names stay on one line.
     expect(rows[0].swatch).toContain("orange");
-    // No colour chosen reads as the app's own, never as no swatch.
-    expect(rows[1].swatch).toBeTruthy();
-    expect(rows[2].checked).toBeUndefined();
+    expect(rows[1].swatch).toBe("transparent");
+    expect(rows.some((r) => r.checked !== undefined)).toBe(false);
+  });
+
+  it("rules the manage door off from the notebooks", () => {
+    const rows = notebookRows(recent, null, {});
+    expect(rows.at(-2)).toEqual({ separator: true });
   });
 
   it("a row switches in place, or into a new window by the middle button", () => {
@@ -38,7 +42,13 @@ describe("the footer's notebook menu", () => {
       { path: "/home/g/Personal", name: "Personal" },
     ];
     const rows = notebookRows(twins, null, {});
-    expect(rows.map((r) => r.context)).toEqual(["Design", "Client", undefined, undefined]);
+    expect(rows.map((r) => r.context)).toEqual([
+      "Design",
+      "Client",
+      undefined,
+      undefined,
+      undefined,
+    ]);
   });
 
   it("the manage door runs its callback", () => {

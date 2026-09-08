@@ -31,6 +31,11 @@
     --dot-size: var(--app-space-10);
     margin-inline-end: var(--app-space-6);
   }
+  /* A rule between two runs of rows (`{separator: true}`), inset by the list's
+     own padding so it stops where the rows' hover ground does. */
+  .menu__rule {
+    margin-block: var(--app-space-4);
+  }
   .menu__link {
     display: block;
     width: 100%;

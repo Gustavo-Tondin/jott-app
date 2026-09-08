@@ -123,7 +123,7 @@ export const S = {
   // The footer's menu of notebooks: the recent ones, to switch in place, and
   // the door to the screen that manages them.
   notebookMenu: "switch notebook",
-  manageNotebooks: "Manage notebooks\u2026",
+  manageNotebooks: "Manage notebooks",
   // The picker window's OWN ⋮ — two questions about windows, not about any
   // one notebook, which is why it hangs off the screen and not off a card.
   notebooksOptions: "screen options",

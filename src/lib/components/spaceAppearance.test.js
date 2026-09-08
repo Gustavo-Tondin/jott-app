@@ -67,6 +67,19 @@ describe("SpaceAppearance", () => {
     expect(onIcon).toHaveBeenLastCalledWith("");
   });
 
+  test("picking never re-orders the grid under the pointer", async () => {
+    // The head of the grid is the icon the space wore WHEN THE POPUP OPENED.
+    // Were it the live one, every pick would move the glyphs about.
+    const { rerender } = render(SpaceAppearance, { props: { open: true, icon: "lightbulb" } });
+    await waitFor(() => expect(screen.getByText(/1512 icons/)).toBeTruthy(), LIBRARY_WAIT);
+    const before = tiles().map((t) => t.getAttribute("aria-label"));
+    expect(before[11]).toBe("lightbulb");
+
+    await rerender({ open: true, icon: "acorn" });
+    await tick();
+    expect(tiles().map((t) => t.getAttribute("aria-label"))).toEqual(before);
+  }, 30_000);
+
   test("a space inside a group gets the icons but not the colours", () => {
     render(SpaceAppearance, { props: { open: true, colors: false } });
     expect(panel().querySelector(".accent-picker")).toBeNull();

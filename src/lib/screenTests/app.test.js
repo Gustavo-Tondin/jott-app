@@ -986,7 +986,7 @@ describe("App", () => {
     render(App);
 
     await userEvent.click(await screen.findByTitle("/n"));
-    await userEvent.click(await screen.findByText("Manage notebooks…"));
+    await userEvent.click(await screen.findByText("Manage notebooks"));
     await waitFor(() => expect(invoke).toHaveBeenCalledWith("open_window", { notebook: null }));
     // The notebook under it is untouched — no window, no folder picker.
     expect(invoke).not.toHaveBeenCalledWith("pick_notebook_folder", expect.anything());
@@ -1151,7 +1151,7 @@ describe("App", () => {
 
     // The name opens the notebook menu (2026-09-07); its last row is the screen.
     await userEvent.click(await screen.findByTitle("/n"));
-    await userEvent.click(await screen.findByText("Manage notebooks…"));
+    await userEvent.click(await screen.findByText("Manage notebooks"));
 
     // The screen came up...
     expect(await screen.findByText("Create a new notebook")).toBeTruthy();

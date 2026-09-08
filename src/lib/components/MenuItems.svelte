@@ -3,6 +3,7 @@
   // (at the pointer). An item: `{label, context?, checked?, disabled?, run?,
   // swatch?, items?}` — `items` makes a submenu. `checked` is tri-state: true
   // ticks, false keeps the empty slot so siblings align, undefined = no slot.
+  // `{separator: true}` is a rule between two runs of rows, nothing to press.
   // Renders `<li>`s only — the panel is the host's; `openSub` is per-mount.
   import { keepOnScreen } from "../actions/keepOnScreen.js";
   import Icon from "./Icon.svelte";
@@ -33,12 +34,14 @@
   }
 </script>
 
-<!-- The key carries the `context` too: two same-named leaves (a notebook holds
-     several lists called Inbox) would otherwise be one duplicate key, and
-     Svelte aborts rendering the whole list. -->
-{#each items as item (`${item.context ?? ""}/${item.label}`)}
+<!-- The key carries the `context` and the index too: two same-named leaves (a
+     notebook holds several lists called Inbox) would otherwise be one duplicate
+     key, and Svelte aborts rendering the whole list. -->
+{#each items as item, i (`${i}/${item.context ?? ""}/${item.label ?? ""}`)}
   <li class="menu__item">
-    {#if isSubmenu(item)}
+    {#if item.separator}
+      <hr class="theme-divider menu__rule" />
+    {:else if isSubmenu(item)}
       <!-- An empty submenu is a disabled row: "Move to" with nowhere to move
            says so, instead of opening nothing. -->
       <button
