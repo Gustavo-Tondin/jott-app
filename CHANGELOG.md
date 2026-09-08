@@ -17,11 +17,11 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 - On a phone, the timeline's month and year no longer sit in the status bar: they stop below the top bar, where they can be read.
 - The page no longer scrolls up into the status bar behind the floating buttons — the top bar paints the ground it is over, everywhere but an open note and the Home.
 - On Android the clock and the system icons follow the app's own colours instead of the phone's dark mode: no more white clock on a white bar.
+- **Typing in a note on Android no longer stalls after a pause.** The app's own auto-save was reloading every screen and refetching every picture in the note; it now recognises its own writes, and the save itself left the thread that draws.
 
 ### Improved
 
 - **The Home's + is bigger on a phone** — the same 72px it has on the desktop, up from 64px.
-- **Typing in a note on Android no longer stalls after a pause.** The app's own auto-save was reloading every screen and refetching every picture in the note; it now recognises its own writes, and the save itself left the thread that draws.
 
 ## v0.53.0
 
