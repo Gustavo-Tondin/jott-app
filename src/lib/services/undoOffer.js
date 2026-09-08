@@ -2,6 +2,7 @@
 // task taken off the day — is offered back where it happened, for a moment,
 // with no chord to remember. `api.js` reports every command that answered;
 // this decides which ones are worth offering, and the shell draws the offer.
+// A move counts too: the thing is still somewhere, but not where it was.
 
 /// The commands worth an offer: what they take away is gone from the screen
 /// the moment they answer, which is when a second thought arrives.
@@ -13,6 +14,9 @@ const OFFERED = new Set([
   "delete_group",
   "delete_note_folder",
   "remove_from",
+  "move_task",
+  "move_note",
+  "move_note_to_space",
 ]);
 
 let listener = null;

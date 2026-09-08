@@ -20,8 +20,9 @@ file and live only in the commit history.
 
 ### New
 
-- A floating **Undo** after a delete or after taking a task off the day:
-  one line at the bottom of the screen, gone by itself in a few seconds.
+- A floating **Undo** after a delete, a move to another list or space, or
+  after taking a task off the day: one line at the bottom of the screen,
+  gone by itself in a few seconds.
   It only ever takes back that action — if something else happened since,
   it says so and leaves it to Ctrl+Z.
 - The task panel ends with a card naming the task fields that are switched

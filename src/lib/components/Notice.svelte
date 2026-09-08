@@ -16,6 +16,7 @@
 
   let {
     tone = "info",
+    /// A glyph by name; `null` is the tone's own, `false` is none.
     icon = null,
     title,
     onDismiss = null,
@@ -35,9 +36,11 @@
   class="theme-notice theme-notice--{tone} {floating ? 'theme-notice--floating' : ''} {stacked ? 'theme-notice--stacked' : ''} {className}"
   role={tone === "error" ? "alert" : "status"}
 >
-  <span class="theme-notice__glyph" aria-hidden="true">
-    <Icon name={icon ?? GLYPH[tone] ?? GLYPH.info} size="1.125rem" />
-  </span>
+  {#if icon !== false}
+    <span class="theme-notice__glyph" aria-hidden="true">
+      <Icon name={icon ?? GLYPH[tone] ?? GLYPH.info} size="1.125rem" />
+    </span>
+  {/if}
   <div class="theme-notice__body">
     <p class="theme-notice__title">{title}</p>
     {#if children}

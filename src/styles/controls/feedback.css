@@ -89,13 +89,20 @@
     row-gap: var(--app-space-6);
     font-size: var(--app-text-13);
   }
+  /* Placed by hand: with the body's box gone, the × would otherwise land
+     after the actions, at the bottom. */
   .theme-notice--stacked .theme-notice__glyph {
+    grid-area: 1 / 1;
     margin-block-start: 0;
   }
   .theme-notice--stacked .theme-notice__body {
     display: contents;
   }
+  .theme-notice--stacked .theme-notice__title {
+    grid-area: 1 / 2;
+  }
   .theme-notice--stacked .theme-notice__close {
+    grid-area: 1 / 3;
     margin-block: 0;
   }
   .theme-notice--stacked .theme-notice__text,
