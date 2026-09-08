@@ -126,3 +126,245 @@ fn the_last_seen_index_never_costs_an_action_its_undo() {
     assert_eq!(nb.undo(&mut history).unwrap().as_deref(), Some("rename_note"));
     assert!(dir.path().join(NOTES_DIR).join(&path).exists());
 }
+
+/// The history over bare files, without a notebook: what one action
+/// records, what undo puts back byte for byte, and what it refuses.
+mod files {
+    use std::path::Path;
+
+    use jott_core::{fsio, Error, History, Result};
+
+    fn write(root: &Path, rel: &str, text: &str) {
+        fsio::write_atomically(root.join(rel), text.as_bytes()).unwrap();
+    }
+
+    fn read(root: &Path, rel: &str) -> Option<String> {
+        std::fs::read_to_string(root.join(rel)).ok()
+    }
+
+    #[test]
+    fn an_edit_is_undone_and_redone_byte_for_byte() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        write(root, "a/note.md", "one\n");
+        let mut history = History::new();
+
+        history
+            .record(root, "edit", || {
+                write(root, "a/note.md", "two\n");
+                Ok(())
+            })
+            .unwrap();
+        assert_eq!(history.undoable(), Some("edit"));
+        assert_eq!(history.redoable(), None);
+
+        assert_eq!(history.undo(root).unwrap().as_deref(), Some("edit"));
+        assert_eq!(read(root, "a/note.md").as_deref(), Some("one\n"));
+        assert_eq!(history.undoable(), None);
+        assert_eq!(history.redoable(), Some("edit"));
+
+        assert_eq!(history.redo(root).unwrap().as_deref(), Some("edit"));
+        assert_eq!(read(root, "a/note.md").as_deref(), Some("two\n"));
+        assert_eq!(history.redo(root).unwrap(), None);
+    }
+
+    #[test]
+    fn a_created_file_is_removed_on_undo_with_its_empty_folder() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        write(root, "keep.md", "");
+        let mut history = History::new();
+
+        history
+            .record(root, "create", || {
+                write(root, "new/deeper/note.md", "hi");
+                Ok(())
+            })
+            .unwrap();
+        history.undo(root).unwrap();
+        assert!(!root.join("new").exists());
+        assert!(root.join("keep.md").exists());
+
+        history.redo(root).unwrap();
+        assert_eq!(read(root, "new/deeper/note.md").as_deref(), Some("hi"));
+    }
+
+    #[test]
+    fn a_removed_file_comes_back_on_undo() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        write(root, "gone.md", "bye");
+        let mut history = History::new();
+
+        history
+            .record(root, "delete", || {
+                std::fs::remove_file(root.join("gone.md")).unwrap();
+                Ok(())
+            })
+            .unwrap();
+        history.undo(root).unwrap();
+        assert_eq!(read(root, "gone.md").as_deref(), Some("bye"));
+    }
+
+    #[test]
+    fn an_empty_folder_is_a_change_too() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        let mut history = History::new();
+
+        history
+            .record(root, "folder", || {
+                std::fs::create_dir_all(root.join("empty")).unwrap();
+                Ok(())
+            })
+            .unwrap();
+        assert_eq!(history.undoable(), Some("folder"));
+        history.undo(root).unwrap();
+        assert!(!root.join("empty").exists());
+        history.redo(root).unwrap();
+        assert!(root.join("empty").is_dir());
+    }
+
+    #[test]
+    fn an_action_that_touches_a_binary_is_not_recorded() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        let mut history = History::new();
+
+        history
+            .record(root, "import", || {
+                write(root, "assets/pic.png", "PNG");
+                write(root, "note.md", "![](assets/pic.png)");
+                Ok(())
+            })
+            .unwrap();
+        assert_eq!(history.undoable(), None);
+    }
+
+    #[test]
+    fn an_action_that_changes_nothing_leaves_no_entry() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        write(root, "note.md", "same");
+        let mut history = History::new();
+
+        history
+            .record(root, "noop", || {
+                write(root, "note.md", "same");
+                Ok(())
+            })
+            .unwrap();
+        assert_eq!(history.undoable(), None);
+    }
+
+    #[test]
+    fn a_failed_action_leaves_no_entry() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        let mut history = History::new();
+
+        let result: Result<()> = history.record(root, "fail", || {
+            write(root, "note.md", "half");
+            Err(Error::Protected("x".into()))
+        });
+        assert!(result.is_err());
+        assert_eq!(history.undoable(), None);
+    }
+
+    #[test]
+    fn a_file_changed_outside_refuses_the_undo_and_forgets_it() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        write(root, "note.md", "one");
+        let mut history = History::new();
+
+        history
+            .record(root, "first", || {
+                write(root, "note.md", "two");
+                Ok(())
+            })
+            .unwrap();
+        history
+            .record(root, "second", || {
+                write(root, "note.md", "three");
+                Ok(())
+            })
+            .unwrap();
+        write(root, "note.md", "synced from elsewhere");
+
+        let err = history.undo(root).unwrap_err();
+        assert!(matches!(err, Error::Stale(ref label) if label == "second"));
+        assert_eq!(
+            read(root, "note.md").as_deref(),
+            Some("synced from elsewhere")
+        );
+        // Both rested on that file: nothing older is offered either.
+        assert_eq!(history.undoable(), None);
+    }
+
+    #[test]
+    fn a_new_action_after_an_undo_forgets_the_redo() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        write(root, "note.md", "one");
+        let mut history = History::new();
+
+        history
+            .record(root, "a", || {
+                write(root, "note.md", "two");
+                Ok(())
+            })
+            .unwrap();
+        history.undo(root).unwrap();
+        history
+            .record(root, "b", || {
+                write(root, "note.md", "three");
+                Ok(())
+            })
+            .unwrap();
+        assert_eq!(history.redoable(), None);
+        assert_eq!(history.undoable(), Some("b"));
+        history.undo(root).unwrap();
+        assert_eq!(read(root, "note.md").as_deref(), Some("one"));
+    }
+    #[test]
+    fn a_quiet_write_is_absorbed_into_the_action_before_it() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        let mut history = History::new();
+
+        history
+            .record(root, "create", || {
+                write(root, "list.md", "- [ ] task\n");
+                Ok(())
+            })
+            .unwrap();
+        // The inspector saves a field: not an action, but the app's own.
+        write(root, "list.md", "- [ ] task !2\n");
+        history.absorb(root).unwrap();
+
+        assert_eq!(history.undo(root).unwrap().as_deref(), Some("create"));
+        assert!(!root.join("list.md").exists());
+        history.redo(root).unwrap();
+        assert_eq!(read(root, "list.md").as_deref(), Some("- [ ] task !2\n"));
+    }
+
+    #[test]
+    fn a_quiet_write_under_a_redoable_action_forgets_the_redo() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        write(root, "note.md", "one");
+        let mut history = History::new();
+
+        history
+            .record(root, "pin", || {
+                write(root, "note.md", "two");
+                Ok(())
+            })
+            .unwrap();
+        history.undo(root).unwrap();
+        write(root, "note.md", "typed after the undo");
+        history.absorb(root).unwrap();
+        assert_eq!(history.redoable(), None);
+    }
+}
