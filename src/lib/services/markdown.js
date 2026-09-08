@@ -149,7 +149,7 @@ function scopeOf(state, node) {
 /// Line numbers that carry a bare CARET — the lines the band is drawn on. A
 /// selection produces NO band: band and selection are the same colour, and one
 /// under the other hid the selection. The raw syntax follows `revealedBy`.
-export function caretLines(state) {
+function caretLines(state) {
   const lines = new Set();
   for (const range of state.selection.ranges) {
     if (!range.empty) continue;
@@ -252,7 +252,7 @@ export function decorationsFor(state, ranges) {
 }
 
 /// Hides syntax on every line the cursor is not on.
-export const livePreview = ViewPlugin.fromClass(
+const livePreview = ViewPlugin.fromClass(
   class {
     constructor(view) {
       this.decorations = decorationsFor(view.state, view.visibleRanges);
@@ -360,7 +360,7 @@ export function blockDecorationsFor(state, ranges) {
 /// Dresses whole lines: the blocks that have a shape, and the editing zone.
 /// Not the library's `highlightActiveLine`, whose rule differs. Not fed to
 /// `atomicRanges`: nothing here replaces text.
-export const blockLook = ViewPlugin.fromClass(
+const blockLook = ViewPlugin.fromClass(
   class {
     constructor(view) {
       this.decorations = blockDecorationsFor(view.state, view.visibleRanges);
@@ -381,7 +381,7 @@ export const blockLook = ViewPlugin.fromClass(
 /// What each piece of Markdown IS — a class per role, never a measurement or
 /// a colour: the look lives in styles/components/editor.css, in reach of a
 /// theme. Which ladder H1–H6 stand on is the `headingColor` setting (roles.css).
-export const markdownLook = HighlightStyle.define([
+const markdownLook = HighlightStyle.define([
   { tag: tags.heading1, class: "cm-md-h1" },
   { tag: tags.heading2, class: "cm-md-h2" },
   { tag: tags.heading3, class: "cm-md-h3" },

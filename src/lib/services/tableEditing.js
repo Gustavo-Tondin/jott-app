@@ -57,7 +57,7 @@ export function tablesIn(state) {
 }
 
 /// The table holding `pos`, or null.
-export function tableAt(state, pos) {
+function tableAt(state, pos) {
   return tablesIn(state).find((table) => pos >= table.from && pos <= table.to) ?? null;
 }
 

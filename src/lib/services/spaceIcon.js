@@ -14,7 +14,7 @@ export const TYPE_ICONS = {
 
 /// The fallback for a type this build has never heard of: a plain folder says
 /// "something is here" without pretending to know what.
-export const DEFAULT_ICON = "folder";
+const DEFAULT_ICON = "folder";
 
 /// The icon for a space — its own, or the one its type wears.
 export function spaceIcon(space) {

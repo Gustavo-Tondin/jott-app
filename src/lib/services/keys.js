@@ -67,7 +67,7 @@ function keyName(key, code) {
 
 /// Reads a chord back into its pieces. Tolerant on purpose: it is fed strings
 /// from a config file, which a user may have typed by hand.
-export function partsOf(chord) {
+function partsOf(chord) {
   const raw = String(chord ?? "")
     .split("+")
     .map((p) => p.trim())
@@ -144,7 +144,7 @@ const KEY_LABELS = {
   Escape: "Esc",
 };
 
-export function isMac() {
+function isMac() {
   if (typeof navigator === "undefined") return false;
   return /mac/i.test(navigator.platform ?? navigator.userAgent ?? "");
 }

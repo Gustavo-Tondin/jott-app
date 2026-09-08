@@ -8,7 +8,7 @@ import { notice, parseAt } from "./reminders.js";
 
 /// How many upcoming reminders the system holds at once. Android caps
 /// pending alarms per app (500), and every open re-syncs.
-export const SCHEDULED_AHEAD = 50;
+const SCHEDULED_AHEAD = 50;
 
 /// A stable 31-bit id for a reminder, so re-syncing replaces rather than
 /// duplicates and a click can name what it came from.

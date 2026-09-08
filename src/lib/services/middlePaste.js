@@ -7,7 +7,7 @@
 import { EditorView } from "@codemirror/view";
 
 /// How long after a middle press a `paste` is still that press, in ms.
-export const MIDDLE_PASTE_WINDOW = 500;
+const MIDDLE_PASTE_WINDOW = 500;
 
 const lastMiddlePress = new WeakMap();
 

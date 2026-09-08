@@ -10,17 +10,17 @@ import { clamp } from "./num.js";
 /// the CSS values (controls/layout.css, `.theme-note-board`, `--app-space-12`); they are repeated
 /// here because the count has to be computed, not read back off the layout.
 export const CARD_MIN = 176;
-export const COLUMN_GAP = 12;
+const COLUMN_GAP = 12;
 
 /// The most columns the board ever draws. Three is what the wireframe shows at
 /// the app's reading width; past that a card would be narrower than its own
 /// banner deserves.
-export const MAX_COLUMNS = 3;
+const MAX_COLUMNS = 3;
 
 /// Never fewer than two columns above this width: a board of one column is
 /// a list, and a list loses the only thing a board is for. Below it there is
 /// genuinely no room for two.
-export const PAIR_FLOOR = 300;
+const PAIR_FLOOR = 300;
 
 /// How many columns fit in `width` px.
 export function columnCount(width, min = CARD_MIN, gap = COLUMN_GAP) {

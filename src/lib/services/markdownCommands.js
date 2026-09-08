@@ -166,19 +166,19 @@ function wordAt(state, pos) {
   return { from: line.from + from, to: line.from + to };
 }
 
-export const toggleBold = toggleRun("*", 2);
-export const toggleItalic = toggleRun("*", 1);
-export const toggleStrike = toggleRun("~", 2);
-export const toggleInlineCode = toggleRun("`", 1);
+const toggleBold = toggleRun("*", 2);
+const toggleItalic = toggleRun("*", 1);
+const toggleStrike = toggleRun("~", 2);
+const toggleInlineCode = toggleRun("`", 1);
 /// Underline, which Markdown does not have, written as the HTML it is:
 /// `<u>` is valid CommonMark and renders in Obsidian, VS Code and GitHub.
 /// `__text__` would be bold in CommonMark and collide with the B button.
-export const toggleUnderline = toggleWrap("<u>", "</u>");
+const toggleUnderline = toggleWrap("<u>", "</u>");
 
 /// A link around the selection: `[text](url)`, cursor left in the url, where
 /// the next thing to type is. With nothing selected the cursor goes to the
 /// TEXT instead — there is nothing to link yet.
-export function insertLink(view) {
+function insertLink(view) {
   const range = view.state.selection.main;
   const text = view.state.sliceDoc(range.from, range.to);
   return edit(view, {
@@ -191,7 +191,7 @@ export function insertLink(view) {
 /// the autocomplete opens (services/linkComplete.js); a selection becomes the
 /// title. The same brackets with a leading slash carry a FILE — the paperclip
 /// writes that form (services/embeds.js).
-export function insertReference(view) {
+function insertReference(view) {
   const range = view.state.selection.main;
   const text = view.state.sliceDoc(range.from, range.to);
   return edit(view, {
@@ -201,7 +201,7 @@ export function insertReference(view) {
 }
 
 /// A horizontal rule on its own line.
-export function insertRule(view) {
+function insertRule(view) {
   const line = view.state.doc.lineAt(view.state.selection.main.head);
   const insert = line.text.trim() ? "\n\n---\n" : "---\n";
   return edit(view, {
@@ -279,26 +279,26 @@ function setLineMark(kind, make) {
   };
 }
 
-export const toggleBullet = setLineMark(
+const toggleBullet = setLineMark(
   (mark) => mark.kind === "bullet",
   () => "- ",
 );
-export const toggleOrdered = setLineMark(
+const toggleOrdered = setLineMark(
   (mark) => mark.kind === "ordered",
   (_body, i) => `${i + 1}. `,
 );
-export const toggleQuote = setLineMark(
+const toggleQuote = setLineMark(
   (mark) => mark.kind === "quote",
   () => "> ",
 );
-export const toggleTaskList = setLineMark(
+const toggleTaskList = setLineMark(
   (mark) => mark.kind === "task",
   () => "- [ ] ",
 );
 
 /// `# ` through `###### `, and pressing the level a line already is turns it
 /// back into a paragraph — the same toggle the list commands are.
-export function setHeading(level) {
+function setHeading(level) {
   return setLineMark(
     (mark) => mark.kind === "heading" && mark.match[2].length === level,
     () => `${"#".repeat(level)} `,
@@ -308,7 +308,7 @@ export function setHeading(level) {
 /// Strips a heading, whatever its level (`Mod+Alt+0`). Not a `setLineMark`:
 /// that helper strips WHATEVER mark it finds, and this must leave a bullet
 /// or a quote exactly where it is.
-export function clearHeading(view) {
+function clearHeading(view) {
   const changes = [];
   for (const range of view.state.selection.ranges) {
     for (const line of linesOf(view.state, range)) {
@@ -336,7 +336,7 @@ const ORDERED_LINE = /^(\s*)(\d+)([.)])\s/;
 /// each depth counts its own run, and a line that comes back out continues
 /// the outer list. Depth is indentation width (`INDENT`); only a number that
 /// is wrong is touched.
-export function renumberLists(view) {
+function renumberLists(view) {
   const doc = view.state.doc;
   let at = doc.lineAt(view.state.selection.main.head).number;
   // The command may have left the cursor on a line that stopped being a list

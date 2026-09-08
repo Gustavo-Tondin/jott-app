@@ -1,25 +1,25 @@
 import { describe, it, expect } from "vitest";
 import { EditorSelection, EditorState } from "@codemirror/state";
-import {
-  INDENT,
-  clearHeading,
-  insertLink,
-  insertReference,
-  insertRule,
-  markOf,
-  setHeading,
-  toggleBold,
-  toggleBullet,
-  toggleInlineCode,
-  toggleItalic,
-  toggleOrdered,
-  toggleQuote,
-  toggleStrike,
-  toggleTaskList,
-  toggleUnderline,
-  newlineInMarkup,
-} from "./markdownCommands.js";
+import { EDITOR_COMMANDS, INDENT, markOf, newlineInMarkup } from "./markdownCommands.js";
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
+
+// Reached through the table, the way the panel and the shortcuts reach them.
+const {
+  "md.paragraph": clearHeading,
+  "md.link": insertLink,
+  "md.reference": insertReference,
+  "md.rule": insertRule,
+  "md.bold": toggleBold,
+  "md.bullet": toggleBullet,
+  "md.code": toggleInlineCode,
+  "md.italic": toggleItalic,
+  "md.ordered": toggleOrdered,
+  "md.quote": toggleQuote,
+  "md.strike": toggleStrike,
+  "md.task": toggleTaskList,
+  "md.underline": toggleUnderline,
+} = EDITOR_COMMANDS;
+const setHeading = (level) => EDITOR_COMMANDS[`md.h${level}`];
 
 // A view is only ever `{state, dispatch}` to a command, so the commands can be
 // driven with no DOM at all — which is the reason they are written as plain

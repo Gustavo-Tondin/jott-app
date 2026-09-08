@@ -62,7 +62,7 @@ function alignOf(cell) {
 }
 
 /// `\|` → `|`. The file's spelling of a pipe that is content, not structure.
-export function unescapeCell(text) {
+function unescapeCell(text) {
   return text.replace(/\\\|/g, "|");
 }
 
@@ -102,12 +102,12 @@ function fit(cells, width) {
 
 /// How wide `text` is, in characters a monospaced font draws one column each.
 /// Code points, not UTF-16 units — an emoji is one glyph, not two.
-export function widthOf(text) {
+function widthOf(text) {
   return [...escapeCell(text)].length;
 }
 
 /// The width each column needs: its widest cell, never under `MIN_WIDTH`.
-export function columnWidths({ header, rows }) {
+function columnWidths({ header, rows }) {
   return header.map((_, col) =>
     Math.max(MIN_WIDTH, widthOf(header[col] ?? ""), ...rows.map((row) => widthOf(row[col] ?? ""))),
   );

@@ -26,7 +26,7 @@ function unpan(win) {
 /// Reads a `px` custom property off `el`, as a number. Anything unparseable —
 /// unset, empty, a unit this does not speak — is zero, which is the answer
 /// that leaves the layout as it is rather than moving it somewhere invented.
-export function pxOf(el, name) {
+function pxOf(el, name) {
   const raw = getComputedStyle(el).getPropertyValue(name);
   const value = Number.parseFloat(raw);
   return Number.isFinite(value) ? value : 0;

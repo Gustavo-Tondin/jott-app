@@ -15,7 +15,7 @@ export const MARKS = ["*", "_", "~", "`"];
 
 /// The brackets that pair. `'` is absent, unlike CodeMirror's default: in
 /// Portuguese prose an apostrophe is a letter (`d'água`) far more than a quote.
-export const BRACKETS = ["(", "[", "{", '"'];
+const BRACKETS = ["(", "[", "{", '"'];
 
 /// How deep the same mark nests before the app stops opening new pairs.
 /// Three is `***bold italic***`, the last nesting Markdown gives a meaning to.
@@ -61,7 +61,7 @@ function insideEmptyPair(doc, pos, mark) {
 
 /// What typing `mark` at the selection means. A transaction spec, always —
 /// the ordinary keystroke included, for the reason in the header.
-export function markInput(state, mark) {
+function markInput(state, mark) {
   const changes = state.changeByRange((range) => {
     // A selection is wrapped, the way `closeBrackets` wraps one: select a
     // word, press `*`, get `*word*`.

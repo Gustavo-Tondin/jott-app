@@ -38,7 +38,7 @@ export const FONT_ROLES = {
 
 /// Offered under the installed ones, and the whole answer on a machine the
 /// app cannot ask (no fontconfig outside Linux).
-export const GENERIC_FAMILIES = ["system-ui", "sans-serif", "serif", "monospace"];
+const GENERIC_FAMILIES = ["system-ui", "sans-serif", "serif", "monospace"];
 
 /// Whether a family name can be written into a CSS value — the core's
 /// `fonts::is_safe_family`, repeated because a name can also arrive from a
