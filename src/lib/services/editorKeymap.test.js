@@ -18,6 +18,7 @@ import {
 import { foldable, indentUnit } from "@codemirror/language";
 import { searchKeymap } from "@codemirror/search";
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
+import { foldsContainersOnly } from "./foldLines.js";
 import * as md from "./markdownCommands.js";
 import { bindings, commandsIn } from "./commands.js";
 import { toCodeMirror } from "./keys.js";
@@ -44,7 +45,7 @@ function editor(doc, at = doc.length) {
             .map(([id, run]) => ({ key: toCodeMirror(bound.get(id)), run, preventDefault: true })),
         ),
         keymap.of([...searchKeymap, ...defaultKeymap, ...historyKeymap]),
-        markdown({ base: markdownLanguage }),
+        markdown({ base: markdownLanguage, extensions: [foldsContainersOnly] }),
       ],
     }),
   });
@@ -161,6 +162,25 @@ describe("folding by section (2026-08-24)", () => {
     // A plain line has nothing to fold.
     const plain = view.state.doc.line(2);
     expect(foldable(view.state, plain.from, plain.to)).toBeNull();
+    done();
+  });
+
+  it("a paragraph of several lines is NOT a section", () => {
+    // The chevron stands beside a container, never beside prose: by default
+    // `markdown()` folds every block that is not a heading or a list, which
+    // put one on any paragraph that wrapped onto a second line.
+    const doc = "um paragrafo que\nsegue na linha de baixo\ne acaba aqui";
+    const { view, done } = editor(doc, 0);
+    const first = view.state.doc.line(1);
+    expect(foldable(view.state, first.from, first.to)).toBeNull();
+    done();
+  });
+
+  it("a quote, a fenced block and a list item still fold", () => {
+    const doc = "> uma citacao\n> em duas linhas";
+    const { view, done } = editor(doc, 0);
+    const first = view.state.doc.line(1);
+    expect(foldable(view.state, first.from, first.to)).not.toBeNull();
     done();
   });
 });

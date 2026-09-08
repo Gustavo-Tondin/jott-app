@@ -56,6 +56,13 @@ file and live only in the commit history.
 - The Timeline's deleted names are two switches — one for tasks, one for notes.
 - The "Suggest more fields in the task panel" row left Settings: the card is
   a one-time offer, and the Tasks page it points to already holds the fields.
+- **Pasting from another app keeps the formatting.** Bold, italic, links,
+  lists, checklists, quotes, code and tables copied out of Keep, Docs, Notion
+  or a web page arrive as Markdown instead of bare text. One Ctrl+Z gives
+  back the plain paste.
+- The fold arrow in a note stands only beside something that HOLDS
+  something — a heading, a list item with a sublist, a quote, a code block, a
+  table. Ordinary prose no longer offers one.
 
 ## v0.52.1
 

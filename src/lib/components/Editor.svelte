@@ -19,8 +19,9 @@
   import { markdownPreview } from "../services/markdown.js";
   import { autocompletion } from "@codemirror/autocomplete";
   import { autoClose, plainAutoClose } from "../services/autoClose.js";
-  import { foldLineClasses } from "../services/foldLines.js";
+  import { foldLineClasses, foldsContainersOnly } from "../services/foldLines.js";
   import { blockMiddlePaste } from "../services/middlePaste.js";
+  import { richPaste } from "../services/richPaste.js";
   import { keepCaretInView } from "../services/caretScroll.js";
   import { fileEmbeds, refreshEmbeds } from "../services/embeds.js";
   import { noteTables, refreshTables } from "../services/tableWidget.js";
@@ -174,7 +175,11 @@
           // lists and strikethrough. No `codeLanguages`: per-language highlighting
           // would drag in ~110 parsers (principle 4); a code block still reads
           // as code, just not colourised.
-          markdown({ base: markdownLanguage, addKeymap: false }),
+          markdown({
+            base: markdownLanguage,
+            addKeymap: false,
+            extensions: [foldsContainersOnly],
+          }),
           markdownPreview,
           // Tables as grids, edited in place. The field that says which cell is
           // current comes first: the widget dispatches into it, the commands
@@ -183,8 +188,9 @@
           noteTables({ shows: () => tables, layout: () => tableLayout }),
           // Folding by SECTION: the chevron beside a heading folds up to the
           // next heading of the same or higher level (the ranges are
-          // `markdown()`'s own). The markers carry a class instead of the
-          // default glyphs so `editor.css` can draw and turn ONE chevron.
+          // `markdown()`'s own, minus the paragraph — `foldsContainersOnly`).
+          // The markers carry a class instead of the default glyphs so
+          // `editor.css` can draw and turn ONE chevron.
           codeFolding({ placeholderText: "…" }),
           // What each foldable line IS, written on the gutter's own element
           // so the chevron can land on the item's first line whatever that
@@ -237,6 +243,11 @@
           // The middle button pastes the primary selection on Linux; here it
           // means nothing (the module says why). Every field, plain or not.
           blockMiddlePaste,
+          // What another app formatted, kept: the clipboard's HTML read as
+          // this note's Markdown (services/richPaste.js). After the middle
+          // button, whose cancel has to answer first. A plain field takes
+          // text and nothing else.
+          plain ? [] : richPaste,
           // The keyboard's own help, ON: CodeMirror ships spellcheck/autocorrect/
           // autocapitalize off, the wrong defaults for a notebook. On Android
           // they decide whether Gboard's suggestion strip appears at all, and a

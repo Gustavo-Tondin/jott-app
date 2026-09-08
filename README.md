@@ -112,6 +112,10 @@ what the current version is.
   the first letter. Find & replace is a field, two arrows and a gear.
 - `[[Note]]` links between notes and `[[/file.pdf]]` references to files,
   both with autocompletion; colour or image banners; pinning; bulk select.
+- **Paste from anywhere keeps its formatting** — text copied out of Keep,
+  Docs, Notion or a web page arrives as Markdown (bold, italic, links, lists,
+  checklists, quotes, code, tables) rather than the stripped plain text.
+  One Ctrl+Z gives back the plain paste.
 - **Note tags**, as properties under the title (`tags:` in the front matter,
   the way Obsidian writes it), picked from the same list as task tags and
   found by the same `#name` search.
