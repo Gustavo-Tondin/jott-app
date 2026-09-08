@@ -166,7 +166,7 @@ pub fn remove(data_dir: &Path) -> Result<()> {
 ///
 /// Comparing both files against what we would write now turns that into
 /// something the launch can fix silently: same consent, refreshed files.
-pub fn is_current(data_dir: &Path, template: &str, exec: &Path, icon: &[u8]) -> bool {
+fn is_current(data_dir: &Path, template: &str, exec: &Path, icon: &[u8]) -> bool {
     let entry = entry(data_dir);
     let Ok(text) = std::fs::read_to_string(&entry.desktop) else {
         return false;
@@ -204,7 +204,7 @@ pub fn status(data_dir: &Path, template: &str, exec: &Path, icon: &[u8]) -> Stat
 /// leaves an entry behind that opens nothing, and reporting that as installed
 /// would hide the one click that fixes it. Comparing the `Exec=` line is what
 /// turns a stale entry back into an offer.
-pub fn is_installed(data_dir: &Path, exec: &Path) -> bool {
+fn is_installed(data_dir: &Path, exec: &Path) -> bool {
     let Ok(text) = std::fs::read_to_string(entry(data_dir).desktop) else {
         return false;
     };

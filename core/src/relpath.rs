@@ -38,7 +38,7 @@ pub fn is_safe_leaf(name: &str) -> bool {
 }
 
 /// True when `relative` is a safe path inside some base folder.
-pub fn is_safe_relative(relative: &str) -> bool {
+fn is_safe_relative(relative: &str) -> bool {
     !relative.trim().is_empty()
         && !relative.starts_with('/')
         && !relative.contains("..")

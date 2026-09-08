@@ -306,7 +306,7 @@ const NEUTRAL_URL: &str = "url(\"about:invalid\")";
 /// self-contained theme carries its own image.
 ///
 /// Returns the stylesheet and how many references were neutralised.
-pub fn sanitize(css: &str) -> (String, usize) {
+fn sanitize(css: &str) -> (String, usize) {
     let (css, imports) = strip_remote_imports(css);
     let (css, urls) = neutralise_remote_urls(&css);
     (css, imports + urls)

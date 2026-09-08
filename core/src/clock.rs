@@ -73,7 +73,7 @@ pub fn next_daily_turn() -> DateTime<Local> {
 
 /// The midnight after `now`, so a running app can schedule a timer instead
 /// of only rolling over when the notebook is opened.
-pub fn next_daily_turn_at(now: DateTime<Local>) -> DateTime<Local> {
+fn next_daily_turn_at(now: DateTime<Local>) -> DateTime<Local> {
     let next_day = now.date_naive() + Duration::days(1);
     to_local(
         next_day

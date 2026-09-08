@@ -56,7 +56,7 @@ impl Notebook {
     /// Which of the three a date is. `None` is today, said the short way —
     /// the bridge passes the calendar's choice through as it is, and the
     /// Home opens on today without naming it.
-    pub fn day_of(&self, day: Option<NaiveDate>) -> Day {
+    fn day_of(&self, day: Option<NaiveDate>) -> Day {
         let today = self.today();
         match day {
             None => Day::Today,

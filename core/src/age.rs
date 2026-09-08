@@ -98,7 +98,7 @@ impl Thresholds {
 /// `seen` is when a person had it open; `modified` is the file's mtime, used
 /// **only** when there is no `seen` — see the module doc for why that
 /// asymmetry is the point.
-pub fn touched_on(
+fn touched_on(
     created: NaiveDate,
     seen: Option<NaiveDateTime>,
     modified: Option<NaiveDate>,
@@ -113,7 +113,7 @@ pub fn touched_on(
 /// How many days old something is. Never negative: a creation date in the
 /// future (a hand-written file, a clock that jumped) reads as brand new
 /// rather than as a number that would sort above everything.
-pub fn age_days(
+fn age_days(
     today: NaiveDate,
     created: NaiveDate,
     seen: Option<NaiveDateTime>,

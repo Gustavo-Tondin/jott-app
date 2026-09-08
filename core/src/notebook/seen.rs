@@ -69,7 +69,7 @@ impl Notebook {
 
     /// Every note in the notebook, by root-relative address, without parsing
     /// one of them.
-    pub fn note_addresses(&self) -> Result<std::collections::HashSet<String>> {
+    fn note_addresses(&self) -> Result<std::collections::HashSet<String>> {
         let mut found = std::collections::HashSet::new();
         for (prefix, folder) in self.note_folders()? {
             for path in folder.note_paths()? {

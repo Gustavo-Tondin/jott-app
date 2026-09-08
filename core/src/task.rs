@@ -247,7 +247,7 @@ impl Task {
         }
     }
 
-    pub fn has_tag(&self, tag: &str) -> bool {
+    fn has_tag(&self, tag: &str) -> bool {
         self.tags.iter().any(|t| t == tag)
     }
 
