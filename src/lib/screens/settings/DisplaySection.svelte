@@ -94,14 +94,6 @@
     .then((names) => (installedFonts = names ?? []))
     .catch(() => (installedFonts = []));
 
-  /// And the family the desktop draws itself in, so the "system-ui" row
-  /// PREVIEWS what it will actually give (services/fonts.js).
-  let systemUiFont = $state("");
-  api
-    .systemUiFont()
-    .then((name) => (systemUiFont = name ?? ""))
-    .catch(() => (systemUiFont = ""));
-
   /// The three rows of the Display page: a role of `services/fonts.js` plus
   /// what this screen calls it. A fourth face would be one line here.
   const FONT_ROWS = () => [
@@ -253,8 +245,8 @@
         <!-- The value the choice would write on the root, so the row previews
              it — the fallback included. `fontValue` keeps a generic family
              unquoted: `font-family: "serif"` names a font nobody has. -->
-        <option value={option.value} style={fontValue(row.role, option.value, systemUiFont)
-            ? `font-family: ${fontValue(row.role, option.value, systemUiFont)}`
+        <option value={option.value} style={fontValue(row.role, option.value)
+            ? `font-family: ${fontValue(row.role, option.value)}`
             : null}>{option.label}</option
         >
       {/each}

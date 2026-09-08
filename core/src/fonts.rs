@@ -20,63 +20,6 @@ pub fn is_safe_family(name: &str) -> bool {
             .any(|c| c.is_control() || matches!(c, '"' | '\'' | '\\' | ';' | '{' | '}' | '<' | '>'))
 }
 
-/// The style words a desktop font description may carry between the family
-/// and the size (Pango's `FAMILY [STYLES] SIZE`). Dropped from the end, one
-/// at a time, so `Cantarell Bold 11` is the family `Cantarell`.
-const STYLE_WORDS: [&str; 22] = [
-    "thin",
-    "ultra-light",
-    "extralight",
-    "extra-light",
-    "light",
-    "semilight",
-    "semi-light",
-    "book",
-    "regular",
-    "medium",
-    "semibold",
-    "semi-bold",
-    "demibold",
-    "bold",
-    "ultra-bold",
-    "extrabold",
-    "extra-bold",
-    "black",
-    "heavy",
-    "italic",
-    "oblique",
-    "condensed",
-];
-
-/// The family in a DESKTOP's font description — what `gtk-font-name` and
-/// `org.gnome.desktop.interface font-name` hold, as `gsettings` prints it:
-/// `'TRIAL Rooftop 11'` is the family `TRIAL Rooftop`. The quotes, the size
-/// and any trailing style words go; `None` when nothing usable is left.
-///
-/// It exists because CSS `system-ui` does NOT answer with this family on
-/// every engine — the desktop has to be asked, and the name written in front
-/// of the stack (see documentation/theming.md).
-pub fn ui_family(description: &str) -> Option<String> {
-    let text = description.trim().trim_matches(['\'', '"']).trim();
-    let mut words: Vec<&str> = text.split_whitespace().collect();
-    // The size is last, and may be fractional (`11.5`) or absolute (`11px`).
-    if words
-        .last()
-        .is_some_and(|w| w.trim_end_matches("px").parse::<f32>().is_ok())
-    {
-        words.pop();
-    }
-    while words.len() > 1
-        && words
-            .last()
-            .is_some_and(|w| STYLE_WORDS.contains(&w.to_lowercase().as_str()))
-    {
-        words.pop();
-    }
-    let family = words.join(" ");
-    is_safe_family(&family).then_some(family)
-}
-
 /// The families in a `fc-list : family` listing, ready to show. One line per
 /// face; a line may carry several comma-separated names, and the FIRST is the
 /// one fontconfig answers to. Unsafe names are dropped, not escaped. The list is
@@ -125,33 +68,6 @@ fn sort_key(name: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn the_desktops_font_name_is_read_down_to_the_family() {
-        // What `gsettings get org.gnome.desktop.interface font-name` prints.
-        assert_eq!(ui_family("'TRIAL Rooftop 11'\n").as_deref(), Some("TRIAL Rooftop"));
-        assert_eq!(ui_family("Cantarell 11").as_deref(), Some("Cantarell"));
-        assert_eq!(ui_family("Cantarell Bold 11").as_deref(), Some("Cantarell"));
-        assert_eq!(ui_family("\"Noto Sans\"").as_deref(), Some("Noto Sans"));
-        assert_eq!(ui_family("Inter Semi-Bold Italic 12.5").as_deref(), Some("Inter"));
-    }
-
-    #[test]
-    fn a_family_that_is_only_a_style_word_survives_it() {
-        // The words are dropped from the END and never all of them: a family
-        // really called "Black" is a family.
-        assert_eq!(ui_family("Black 11").as_deref(), Some("Black"));
-        assert_eq!(ui_family("Roboto Condensed 11").as_deref(), Some("Roboto"));
-    }
-
-    #[test]
-    fn nothing_usable_is_none() {
-        assert_eq!(ui_family(""), None);
-        assert_eq!(ui_family("   "), None);
-        assert_eq!(ui_family("11"), None);
-        // The same gate as every other family name: it lands in a CSS value.
-        assert_eq!(ui_family("Ev'il; }"), None);
-    }
 
     #[test]
     fn one_family_per_name_however_many_faces_it_has() {

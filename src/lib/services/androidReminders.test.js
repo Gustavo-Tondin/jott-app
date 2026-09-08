@@ -38,44 +38,6 @@ describe("syncing the phone's reminders", () => {
     expect(batch.notifications[0].schedule.at.date).toEqual(new Date("2026-09-08T09:00"));
   });
 
-  it("carries the day summary as one alarm, at the next hour it is due", async () => {
-    // Android holds no timer of ours: the summary is an alarm like the rest,
-    // with the count the last sync saw (docs/roadmap — every open re-syncs).
-    bridge({
-      "plugin:notification|is_permission_granted": true,
-      "plugin:notification|get_pending": [],
-      "plugin:notification|batch": [1],
-    });
-    await syncAndroidReminders(reminders, {
-      now: new Date(2026, 8, 7, 12, 0),
-      strings: S,
-      summary: { time: "08:00", notice: { title: "You have 2 tasks today", body: "• a\n• b" } },
-    });
-    const [batch] = callsTo("plugin:notification|batch");
-    const summary = batch.notifications.at(-1);
-    expect(summary.title).toBe("You have 2 tasks today");
-    // 12:00 is past today's 08:00, so the alarm is tomorrow's.
-    expect(summary.schedule.at.date).toEqual(new Date(2026, 8, 8, 8, 0));
-    // Nothing to open: tapping it only brings the app back.
-    expect(summary.extra).toEqual({ list: "", id: "" });
-  });
-
-  it("schedules the summary even on a day with no reminder at all", async () => {
-    bridge({
-      "plugin:notification|is_permission_granted": true,
-      "plugin:notification|get_pending": [],
-      "plugin:notification|batch": [1],
-    });
-    await syncAndroidReminders([], {
-      now: new Date(2026, 8, 7, 6, 0),
-      strings: S,
-      summary: { time: "08:00", notice: { title: "You have 1 task today", body: "• a" } },
-    });
-    const [batch] = callsTo("plugin:notification|batch");
-    expect(batch.notifications).toHaveLength(1);
-    expect(batch.notifications[0].schedule.at.date).toEqual(new Date(2026, 8, 7, 8, 0));
-  });
-
   // The store keeps the text of `sourceJson`, and the plugin never writes
   // it: without this the store held `"null"` and `pending()` blew up on the
   // next sync. It is the notification itself, so what is read back is what

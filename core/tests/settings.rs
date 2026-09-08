@@ -98,7 +98,9 @@ fn a_look_is_a_name_the_core_never_judges() {
 }
 
 #[test]
-fn the_default_note_layout_is_a_notebook_setting() {
+fn the_board_layout_and_the_card_height_answer_to_the_machine() {
+    // Both are Display (user call, 2026-09-08): the notebook keeps a
+    // fallback, this screen decides. The section is the rule.
     let mut config = Config::default();
     settings(r#"{"noteLayout": " tree "}"#).apply_to(&mut config);
     assert_eq!(config.note_layout, "tree");
@@ -106,8 +108,27 @@ fn the_default_note_layout_is_a_notebook_setting() {
         NotebookSettings::of(&config, &Display::resolve(&Default::default(), &config))
             .note_layout
             .as_deref(),
-        Some("tree")
+        Some("tree"),
+        "no answer from the machine leaves the notebook's",
     );
+
+    let machine = DisplayPrefs {
+        note_layout: Some("grid".to_string()),
+        card_lines: Some(6),
+        ..DisplayPrefs::default()
+    };
+    let display = Display::resolve(&machine, &config);
+    assert_eq!((display.note_layout.as_str(), display.card_lines), ("grid", 6));
+    let read = NotebookSettings::of(&config, &display);
+    assert_eq!(read.note_layout.as_deref(), Some("grid"));
+    assert_eq!(read.card_lines, Some(6));
+
+    // The card's ceiling is a NUMBER now, and a meaningless one never
+    // reaches the file; the range itself is the interface's.
+    settings(r#"{"cardLines": 5}"#).apply_to(&mut config);
+    assert_eq!(config.card_lines, 5);
+    settings(r#"{"cardLines": 0}"#).apply_to(&mut config);
+    assert_eq!(config.card_lines, 5);
     // Absent on the way in leaves it alone; empty sends it back to the
     // app's own.
     settings(r#"{}"#).apply_to(&mut config);
@@ -268,30 +289,6 @@ fn what_is_written_is_what_is_read_back() {
     assert_eq!(read.confirm_deletes, Some(false));
     assert_eq!(read.daily_mode.as_deref(), Some("carry"));
     assert_eq!(read.mode.as_deref(), Some("dark"), "a tela venceu o caderno");
-}
-
-#[test]
-fn the_card_height_answers_to_the_machine_and_falls_back_to_the_notebook() {
-    // A Display key like any other: the screen decides, and a notebook
-    // carried to a machine that never chose keeps its own answer.
-    let mut config = Config::default();
-    settings(r#"{"cardHeight": "  medium  "}"#).apply_to(&mut config);
-    assert_eq!(config.card_height, "medium", "trimmed, never judged");
-
-    let quiet = Display::resolve(&DisplayPrefs::default(), &config);
-    assert_eq!(quiet.card_height, "medium");
-
-    let machine = DisplayPrefs {
-        card_height: Some("short".to_string()),
-        ..DisplayPrefs::default()
-    };
-    let display = Display::resolve(&machine, &config);
-    assert_eq!(display.card_height, "short");
-    assert_eq!(
-        NotebookSettings::of(&config, &display).card_height.as_deref(),
-        Some("short"),
-        "the screen reads back what this machine answered",
-    );
 }
 
 #[test]

@@ -113,9 +113,6 @@ export const api = {
   /// This machine's font families, sorted and safe to name in CSS. Empty off
   /// Linux (no fontconfig). Asked when the Display page opens, never per render.
   systemFonts: () => invoke("system_fonts"),
-  // The family the desktop draws ITSELF in — what CSS `system-ui` should
-  // mean and does not, on every engine (services/fonts.js).
-  systemUiFont: () => invoke("system_ui_font"),
 
   // How wide the sidebar was dragged. A machine preference (the monitor
   // decides, not the notebook), so it lives beside the last notebook.
@@ -355,9 +352,6 @@ export const api = {
   reminders: () => invoke("reminders"),
   remindedUntil: () => invoke("reminded_until"),
   rememberRemindedUntil: (until) => invoke("remember_reminded_until", { until }),
-  // the day summary: the machine remembers the DAY it was announced on.
-  daySummarizedOn: () => invoke("day_summarized_on"),
-  rememberDaySummarizedOn: (day) => invoke("remember_day_summarized_on", { day }),
   notifyReminder: (title, body, target) =>
     invoke("notify_reminder", { title, body, target }),
   closeToTray: () => invoke("close_to_tray"),

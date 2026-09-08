@@ -2,12 +2,13 @@
   import { S } from "../../services/strings.js";
 
   /// The rows on this page that are NOT one of its switches.
-  export const index = () => [S.noteLayout, S.tableLayout, S.confirmImageDownloads];
+  export const index = () => [S.tableLayout, S.confirmImageDownloads];
 </script>
 
 <script>
   // The Notes function's page: what a note has, and the notebook's defaults
-  // for the board, the tables and the one download prompt.
+  // for the tables and the one download prompt. How the BOARD looks is
+  // Display's — it answers to the screen, not to the notebook.
   import { childrenIn, on } from "../../services/features.js";
   import FeatureRow from "./FeatureRow.svelte";
   import HelpTip from "./HelpTip.svelte";
@@ -31,33 +32,11 @@
       help={feature.key === "banners" ? S.featureBannersHint : null} />
   {/each}
 
-  <h3 class="settings__subtitle">{S.subBoard}</h3>
-
-  <!-- The default for a space that never chose; a space's own .space.json
-       wins. With folders off there is no tree to draw, so the row goes
-       quiet the way a child switch does. -->
-  <label class="settings__row">
-    <span class="settings__label">
-      {S.noteLayout}
-      <HelpTip label={S.noteLayout} text={S.noteLayoutHint} />
-    </span>
-    <select
-      class="theme-select"
-      value={form.noteLayout === "tree" ? "tree" : ""}
-      disabled={readOnly || !on(features, "noteFolders")}
-      aria-label={S.noteLayout}
-      onchange={(e) => put({ noteLayout: e.currentTarget.value })}
-    >
-      <option value="">{S.gridView}</option>
-      <option value="tree">{S.treeView}</option>
-    </select>
-  </label>
-
   <h3 class="settings__subtitle">{S.subTables}</h3>
 
   <!-- How a table sits in the note's column: squeezed to the content width,
-       or as wide as its cells with a sideways scroll. A notebook setting,
-       like the board layout above — about the notes, not this screen. -->
+       or as wide as its cells with a sideways scroll. A notebook setting:
+       it is about the note, which travels, not about this screen. -->
   <label class="settings__row">
     <span class="settings__label">{S.tableLayout}</span>
     <select

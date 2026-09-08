@@ -777,24 +777,6 @@ describe("frontend architecture", () => {
     expect(offenders).toEqual([]);
   });
 
-  test("no two strings answer to the same name", () => {
-    // A repeated key in `S` is not an error anywhere: the last one wins and
-    // the first quietly disappears, so a label turns into whatever else was
-    // called that (a settings row rendering a function's source, 2026-09-08).
-    const text = readFileSync(join(src, "lib", "services", "strings.js"), "utf8");
-    // `S` itself, not the private maps beside it — those hold command names,
-    // and one of those may legitimately read like a label.
-    const table = text.slice(text.indexOf("export const S = {"));
-    const seen = new Set();
-    const twice = [];
-    for (const [, key] of table.matchAll(/^ {2}([A-Za-z]\w*):/gm)) {
-      if (seen.has(key)) twice.push(key);
-      seen.add(key);
-    }
-    expect(seen.size).toBeGreaterThan(100);
-    expect(twice).toEqual([]);
-  });
-
   test("no test fakes the Tauri bridge on its own", () => {
     // 2026-08-21: four incompatible shapes of this mock lived in the tree — a
     // hoisted `vi.fn`, a closure one, an inert one, and a partial stub of

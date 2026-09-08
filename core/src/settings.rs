@@ -239,12 +239,10 @@ pub struct NotebookSettings {
     pub timeline_ghost_tasks: Option<bool>,
     pub timeline_ghost_notes: Option<bool>,
     pub auto_urgent_by_date: Option<bool>,
-    /// `HH:MM` — the hour the inspector's reminder presets land on.
+    /// `off` / `dayOf` / `dayBefore` / `both` — see `reminders::AutoRemind`.
+    pub auto_remind: Option<String>,
+    /// `HH:MM`.
     pub reminder_time: Option<String>,
-    /// One notification at the start of the day, listing what it holds, and
-    /// `HH:MM` for when it is made.
-    pub day_summary: Option<bool>,
-    pub day_summary_time: Option<String>,
     pub new_tasks_on_top: Option<bool>,
     pub auto_space_colors: Option<bool>,
     pub date_display_format: Option<String>,
@@ -309,9 +307,8 @@ impl NotebookSettings {
             timeline_ghost_tasks: Some(config.timeline_ghost_tasks),
             timeline_ghost_notes: Some(config.timeline_ghost_notes),
             auto_urgent_by_date: Some(config.auto_urgent_by_date),
+            auto_remind: Some(config.auto_remind.render().to_string()),
             reminder_time: Some(config.reminder_time.render()),
-            day_summary: Some(config.day_summary),
-            day_summary_time: Some(config.day_summary_time.render()),
             new_tasks_on_top: Some(config.new_tasks_on_top),
             auto_space_colors: Some(display.auto_space_colors),
             date_display_format: Some(display.date_display_format.clone()),
@@ -374,20 +371,11 @@ impl NotebookSettings {
         if let Some(v) = self.auto_urgent_by_date {
             config.auto_urgent_by_date = v;
         }
+        if let Some(v) = &self.auto_remind {
+            config.auto_remind = crate::reminders::AutoRemind::parse_or_default(v);
+        }
         if let Some(v) = &self.reminder_time {
             config.reminder_time = crate::reminders::ReminderTime::parse_or_default(v);
-        }
-        if let Some(v) = self.day_summary {
-            config.day_summary = v;
-        }
-        // An unreadable hour keeps the stored one: the summary has no "off"
-        // hour to fall back to, and the switch above is how it is turned off.
-        if let Some(at) = self
-            .day_summary_time
-            .as_deref()
-            .and_then(crate::reminders::ReminderTime::parse)
-        {
-            config.day_summary_time = at;
         }
         if let Some(v) = self.new_tasks_on_top {
             config.new_tasks_on_top = v;
@@ -509,9 +497,8 @@ pub fn reset_section(config: &mut Config, section: &str) -> bool {
             config.auto_urgent_by_date = d.auto_urgent_by_date;
             config.tasks_show_all = d.tasks_show_all;
             config.offer_task_fields = d.offer_task_fields;
+            config.auto_remind = d.auto_remind;
             config.reminder_time = d.reminder_time;
-            config.day_summary = d.day_summary;
-            config.day_summary_time = d.day_summary_time;
             config.new_tasks_on_top = d.new_tasks_on_top;
         }
         "time" => {

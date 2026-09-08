@@ -64,24 +64,26 @@ export function noteFontSizeAttribute(stored) {
   return known && stored !== DEFAULT_NOTE_FONT_SIZE ? stored : null;
 }
 
-/// How tall a note card on the board may grow. What actually gives a card
-/// its height is the number of PREVIEW lines it draws (`--app-card-lines`,
-/// styles/tokens.css), so the cut always lands between lines. A Display
-/// choice: the same board is a wall of cards on a monitor and a column on a
-/// phone.
-export const CARD_HEIGHTS = [
-  { key: "short", label: () => S.cardHeightShort },
-  { key: "medium", label: () => S.cardHeightMedium },
-  { key: "tall", label: () => S.cardHeightTall },
-];
+/// How tall a note card on the board may grow, as the number of PREVIEW
+/// LINES it draws (`--app-card-lines`, styles/tokens.css) — so the cut always
+/// lands between lines. The RANGE is the interface's: the core keeps the
+/// number and judges nothing. A Display choice, like the note's size.
+export const CARD_LINES = { min: 3, max: 16, default: 12 };
 
-export const DEFAULT_CARD_HEIGHT = "tall";
+/// The line count to draw with: the stored one when it is a number the
+/// slider can reach, the app's own otherwise — a value from a newer build
+/// (or a hand-edited file) reads as the default instead of a broken card.
+export function cardLines(stored) {
+  const lines = Math.round(Number(stored));
+  if (!Number.isFinite(lines)) return CARD_LINES.default;
+  return Math.min(CARD_LINES.max, Math.max(CARD_LINES.min, lines));
+}
 
-/// The attribute value to write, or null for the height the app ships as —
-/// the same pact `noteFontSizeAttribute` keeps.
-export function cardHeightAttribute(stored) {
-  const known = CARD_HEIGHTS.some((height) => height.key === stored);
-  return known && stored !== DEFAULT_CARD_HEIGHT ? stored : null;
+/// What to write on the root, or null for the app's own — the same pact
+/// `noteFontSizeAttribute` keeps: the default is spelled by writing nothing.
+export function cardLinesVar(stored) {
+  const lines = cardLines(stored);
+  return lines === CARD_LINES.default ? null : String(lines);
 }
 
 /// The theme (the palette) to name on <html>, or null for the app's own. A

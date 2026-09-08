@@ -89,8 +89,8 @@ Details go on indented lines below it:
 | `@2026-07-25` | a date, always year-month-day |
 | `#home` | a tag. Two mean something to the app: `#urgent` and `#pinned` |
 | `!1` … `!3` | priority, 1 highest — drawn as `!!!` … `!` on screen |
-| `repeat: every-week` | also `every-day`, `every-month`, `every-3-days`… — and `freely`, which has no period: completing it writes an undated copy back into the list, and only one of those is ever open at a time |
-| `remind: 2026-07-24T18:00` | when to ring: date, `T`, hour and minute, in your local time — no zone. A space instead of the `T`, or seconds, read fine and are written back in this form. Independent of `@date`: a task without a date can ring, and a dated one rings only if asked — a date on its own never rings (the notebook's day summary announces the day instead, and is a setting, never written here). On a repeating task it moves with the date |
+| `repeat: every-week` | also `every-day`, `every-month`, `every-3-days`… |
+| `remind: 2026-07-24T18:00` | when to ring: date, `T`, hour and minute, in your local time — no zone. A space instead of the `T`, or seconds, read fine and are written back in this form. Independent of `@date`: a task without a date can ring, and a dated one rings only if asked (or if the notebook's automatic reminder is on — that one is a setting, never written here). On a repeating task it moves with the date |
 | `- [ ] …` | a subtask |
 | a line of **only** links into `assets/` | the task's attachments |
 | anything else | description |
@@ -265,9 +265,8 @@ order you dragged things into.
   they answer to a *person*: what happens to unfinished tasks at midnight, retention days, confirmation
   prompts, feature switches, shortcut bindings, quick-capture destinations,
   sort orders, the fallback appearance, the task panel's offer of the
-  fields that are off (`offerTaskFields`), the hour the reminder presets
-  land on (`reminderTime`, `HH:MM`) and the day summary (`daySummary`, a
-  flag, at `daySummaryTime`, `HH:MM`). Written in camelCase, guarded by
+  fields that are off (`offerTaskFields`), and the automatic reminder
+  (`autoRemind`: `off` / `dayOf` / `dayBefore` / `both`, at `reminderTime`, `HH:MM`). Written in camelCase, guarded by
   `schemaVersion`.
 
   **`age`** holds where the three ages begin, in days —

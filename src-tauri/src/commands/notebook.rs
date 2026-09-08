@@ -48,10 +48,6 @@ pub struct NotebookLayout {
     /// `HH:MM` — the hour the inspector's reminder presets land on (the
     /// notebook's `reminderTime`).
     pub reminder_time: String,
-    /// Whether the day is announced once at the start of it, and at what
-    /// `HH:MM` — the shell keeps that timer, so it needs both on every open.
-    pub day_summary: bool,
-    pub day_summary_time: String,
     pub close_inspector_on_click_away: bool,
     pub quick_note_folder: String,
     /// The capture target — a path-like string the front resolves
@@ -152,8 +148,6 @@ impl NotebookInfo {
                 notes_inbox: jott_core::notefolder::NOTES_INBOX.to_string(),
                 date_display_format: display.date_display_format,
                 reminder_time: notebook.config().reminder_time.render(),
-                day_summary: notebook.config().day_summary,
-                day_summary_time: notebook.config().day_summary_time.render(),
                 close_inspector_on_click_away: display.close_inspector_on_click_away,
                 quick_note_folder: notebook.config().quick_note_folder.clone(),
                 quick_task_list: notebook.config().quick_task_list.clone(),

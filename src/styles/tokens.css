@@ -153,10 +153,10 @@
     --app-note-size: var(--app-text-16);
     --app-note-h1: calc(var(--app-note-size) * 1.6);
 
-    /* How tall a note card on the board may grow: `data-card-height` on the
-       root picks the rung (`cardHeight`), absent for the default. A card is
-       banner, title and this many LINES of preview, so the cut always lands
-       between lines (components/note-preview.css). */
+    /* How tall a note card on the board may grow: the shell writes the
+       reader's number here (`cardLines`, Settings › Display), absent for the
+       default. A card is banner, title and this many LINES of preview, so
+       the cut always lands between lines (components/note-preview.css). */
     --app-card-lines: 12;
 
     /* ---------------------------------------------------------------------
@@ -249,13 +249,6 @@
     --app-note-size: var(--app-text-18);
   }
 
-  /* The two shorter rungs of the card's ceiling; the default is `tall`. */
-  :root[data-card-height="short"] {
-    --app-card-lines: 5;
-  }
-  :root[data-card-height="medium"] {
-    --app-card-lines: 8;
-  }
 
   /* ---------------------------------------------------------------------
      THE TYPE RAMP ON A FINGER. The number in the name is the desktop px and

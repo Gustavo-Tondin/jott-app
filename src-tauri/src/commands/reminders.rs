@@ -45,30 +45,6 @@ pub fn remember_reminded_until<R: Runtime>(
     Ok(())
 }
 
-/// The last day this machine announced the window's notebook summary
-/// (`2026-09-08`), or `None` when it never has.
-#[tauri::command]
-pub fn day_summarized_on<R: Runtime>(
-    state: State<'_, AppState>,
-    app: AppHandle<R>,
-    window: tauri::Window<R>,
-) -> CommandResult<Option<String>> {
-    let root = state.read(window.label(), |nb| Ok(nb.root().to_path_buf()))?;
-    Ok(crate::prefs::summarized_on(&app, &root))
-}
-
-#[tauri::command]
-pub fn remember_day_summarized_on<R: Runtime>(
-    state: State<'_, AppState>,
-    app: AppHandle<R>,
-    window: tauri::Window<R>,
-    day: String,
-) -> CommandResult<()> {
-    let root = state.read(window.label(), |nb| Ok(nb.root().to_path_buf()))?;
-    crate::prefs::remember_summarized_on(&app, &root, &day);
-    Ok(())
-}
-
 /// What a notification carries back when it is clicked: enough to open the
 /// task. Emitted to the window as `reminder://open`.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]

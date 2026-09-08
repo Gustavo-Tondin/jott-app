@@ -5,9 +5,8 @@
   /// the search derives from `features.js`.
   export const index = () => [
     S.autoUrgentByDate,
+    S.autoRemind,
     S.reminderTime,
-    S.dayNotice,
-    S.dayNoticeTime,
     S.newTasksGoTo,
     S.tasksShowAll,
   ];
@@ -60,14 +59,29 @@
         />
       </label>
     {/if}
-    <!-- The hour the field's presets land on hangs off it: with Remind me
-         off there is no preset to land anywhere. -->
+    <!-- The automatic reminder hangs off Remind me the same way: with the
+         field off there is no bell for it to ring. -->
     {#if feature.key === "remind"}
       <label class="settings__row settings__row--sub">
         <span class="settings__label">
-          {S.reminderTime}
-          <HelpTip label={S.reminderTime} text={S.reminderTimeHint} />
+          {S.autoRemind}
+          <HelpTip label={S.autoRemind} text={S.autoRemindHint} />
         </span>
+        <select
+          class="theme-select"
+          bind:value={form.autoRemind}
+          disabled={readOnly || !on(features, "remind")}
+          aria-label={S.autoRemind}
+          onchange={(e) => put({ autoRemind: e.currentTarget.value })}
+        >
+          <option value="off">{S.autoRemindOff}</option>
+          <option value="dayOf">{S.autoRemindDayOf}</option>
+          <option value="dayBefore">{S.autoRemindDayBefore}</option>
+          <option value="both">{S.autoRemindBoth}</option>
+        </select>
+      </label>
+      <label class="settings__row settings__row--sub">
+        <span class="settings__label">{S.reminderTime}</span>
         <input
           class="theme-input"
           type="time"
@@ -82,35 +96,6 @@
 
   <!-- The notebook's rules for tasks, after the fields they apply to. -->
   <h3 class="settings__subtitle">{S.subBehaviour}</h3>
-
-  <!-- One notification at the start of the day, about the DAY — not about a
-       task, so it does not hang off the Remind field. -->
-  <label class="settings__row">
-    <span class="settings__label">
-      {S.dayNotice}
-      <HelpTip label={S.dayNotice} text={S.dayNoticeHint} />
-    </span>
-    <input
-      class="theme-checkbox"
-      type="checkbox"
-      bind:checked={form.daySummary}
-      disabled={readOnly}
-      aria-label={S.dayNotice}
-      onchange={(e) => put({ daySummary: e.currentTarget.checked })}
-    />
-  </label>
-
-  <label class="settings__row settings__row--sub">
-    <span class="settings__label">{S.dayNoticeTime}</span>
-    <input
-      class="theme-input"
-      type="time"
-      bind:value={form.daySummaryTime}
-      disabled={readOnly || !form.daySummary}
-      aria-label={S.dayNoticeTime}
-      onchange={(e) => put({ daySummaryTime: e.currentTarget.value })}
-    />
-  </label>
 
   <!-- Where a capture lands. -->
   <label class="settings__row">
