@@ -43,7 +43,7 @@
   import Icon from "../components/Icon.svelte";
   import NoteCard from "../components/NoteCard.svelte";
   import { measured } from "../actions/measure.js";
-  import { columnBreaks, columnCount, weightOfNote } from "../services/noteColumns.js";
+  import { columnCount, columnLayout } from "../services/noteColumns.js";
   import { quickNoteTarget } from "../services/noteTargets.js";
   import { noteActions, noteCardMenu } from "../services/noteActions.js";
 
@@ -160,10 +160,10 @@
   );
 
   // The masonry, measured — the same two questions the notes board asks
-  // (services/noteColumns.js): how many columns fit, and where to cut them.
+  // (services/noteColumns.js): how many columns fit, and which card goes where.
   let boardWidth = $state(0);
   let columns = $derived(columnCount(boardWidth));
-  let breaks = $derived(columnBreaks(notes.map(weightOfNote), columns));
+  let board = $derived(columnLayout(notes.length, columns));
 
   $effect(() => {
     reloadKey;
@@ -399,10 +399,11 @@
             style="--columns: {columns}"
             use:measured={(width) => (boardWidth = width)}
           >
-            {#each notes as note, index (note.path)}
+            {#each board.order as index (notes[index].path)}
+              {@const note = notes[index]}
               <li
                 class="home__note"
-                class:theme-note-board__break={breaks.has(index)}
+                class:theme-note-board__break={board.breaks.has(index)}
               >
                 <NoteCard
                   entry={note}
