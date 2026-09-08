@@ -79,6 +79,19 @@ impl Change {
         Some(Self::Other { path })
     }
 
+    /// The file this change is about, where it names one. `Config` is the one
+    /// kind that does not: it is always the same file.
+    pub fn path(&self) -> Option<&Path> {
+        match self {
+            Self::List { path }
+            | Self::State { path }
+            | Self::Theme { path }
+            | Self::Conflict { path }
+            | Self::Other { path } => Some(path),
+            Self::Config => None,
+        }
+    }
+
     /// The list name, for a change to a task list.
     pub fn list_name(&self) -> Option<String> {
         match self {

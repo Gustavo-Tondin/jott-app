@@ -22,6 +22,9 @@ pub fn write_atomically(path: impl AsRef<Path>, bytes: &[u8]) -> Result<()> {
 
     std::fs::write(&tmp, bytes).ctx(&tmp)?;
     std::fs::rename(&tmp, path).ctx(path)?;
+    // What the app writes, the app's own watcher must not report back to it
+    // (`crate::selfwrite`); the stamp is read here, while it is still ours.
+    crate::selfwrite::remember(path);
     Ok(())
 }
 

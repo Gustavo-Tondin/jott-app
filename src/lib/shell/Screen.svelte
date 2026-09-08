@@ -32,6 +32,9 @@
     mobile = false,
     f,
     reloadKey = 0,
+    /// Bumped only when the notebook's LIBRARY changed. The open note's
+    /// pictures hang off it; `reloadKey` would refetch them on every save.
+    libraryKey = 0,
     tags = [],
     dayRefs = new Set(),
     spColors = {},
@@ -227,12 +230,14 @@
     {onSetTags}
     {onCreateTag}
   />
+  <!-- No `onSaved`: a note's body reaches nothing the shell draws (counts,
+       spaces, tags all live elsewhere), and refreshing the notebook on every
+       pause in typing was five round trips on the thread that draws. -->
   <NoteEditor
     bind:this={noteEditor}
     folder={view.folder}
     path={view.path}
     readOnly={notebook.readOnly}
-    onSaved={onChanged}
     {onError}
     {onFiles}
     onOpenFile={(address) => api.openAsset(address).catch(onError)}
@@ -240,7 +245,7 @@
     {onZoomImage}
     {onSelection}
     {onTable}
-    version={reloadKey}
+    version={libraryKey}
     wikiLinks={f("wikiLinks")}
     embeds={f("embeds")}
     tables={f("tables")}

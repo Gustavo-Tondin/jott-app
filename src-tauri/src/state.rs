@@ -5,8 +5,10 @@
 //! window that closes takes its entry and watcher thread (`AppState::close`).
 
 use std::collections::HashMap;
-use std::sync::Mutex;
+use std::path::PathBuf;
+use std::sync::{Arc, Mutex};
 
+use jott_core::selfwrite::{self, Stamp};
 use jott_core::{History, Notebook, NotebookWatcher};
 use tauri::{AppHandle, Emitter, Runtime};
 
@@ -29,9 +31,33 @@ struct OpenNotebook {
     /// session thing: it is born with the entry and dies with it, and a
     /// second window on the same notebook has its own.
     history: History,
+    /// What THIS window has written in the last few seconds, by the stamp
+    /// each write left behind. The window's own watcher drops the events
+    /// about them: the front already knows what it just saved, and reloading
+    /// on the echo cost a refresh of every screen and a refetch of every
+    /// picture on every keystroke pause. Shared with the watcher thread.
+    own_writes: OwnWrites,
     /// Dropping this stops the watcher thread, which is exactly what should
     /// happen when the window opens another notebook or closes.
     _watcher: WatcherHandle,
+}
+
+/// Paths a window wrote, with the stamp each ended up carrying.
+type OwnWrites = Arc<Mutex<HashMap<PathBuf, Stamp>>>;
+
+/// Folds everything written while `f` ran into `own`, so the watcher can
+/// recognise it. Anything written by somebody else in the meantime keeps a
+/// different stamp and is reported as theirs (`jott_core::selfwrite`).
+fn attribute<T>(own: &OwnWrites, f: impl FnOnce() -> T) -> T {
+    let mark = selfwrite::mark();
+    let result = f();
+    if let Ok(mut writes) = own.lock() {
+        // Only what is still on disk as we left it is worth remembering; the
+        // log purges itself, and so does this, on the same few seconds.
+        writes.retain(|path, stamp| selfwrite::unchanged(path, stamp));
+        writes.extend(selfwrite::since(mark));
+    }
+    result
 }
 
 impl AppState {
@@ -81,8 +107,9 @@ impl AppState {
     ) -> CommandResult<T> {
         let mut guard = self.lock()?;
         let open = guard.get_mut(window).ok_or_else(CommandError::no_notebook)?;
-        let OpenNotebook { notebook, history, .. } = open;
-        Ok(notebook.record(history, label, f)?)
+        let OpenNotebook { notebook, history, own_writes, .. } = open;
+        let own = own_writes.clone();
+        Ok(attribute(&own, || notebook.record(history, label, f))?)
     }
 
     /// `read` for a write that is NOT an action of its own — the editor's
@@ -95,7 +122,8 @@ impl AppState {
     ) -> CommandResult<T> {
         let mut guard = self.lock()?;
         let open = guard.get_mut(window).ok_or_else(CommandError::no_notebook)?;
-        let result = f(&open.notebook)?;
+        let own = open.own_writes.clone();
+        let result = attribute(&own, || f(&open.notebook))?;
         // A scan that fails leaves the history as it was; the write itself
         // already happened, and that is what the caller asked for.
         let _ = open.history.absorb(open.notebook.root());
@@ -146,13 +174,15 @@ impl AppState {
         window: &str,
         notebook: Notebook,
     ) -> CommandResult<()> {
-        let watcher = WatcherHandle::start(app.clone(), window, &notebook)?;
+        let own_writes: OwnWrites = Default::default();
+        let watcher = WatcherHandle::start(app.clone(), window, &notebook, own_writes.clone())?;
         let mut guard = self.lock()?;
         guard.insert(
             window.to_string(),
             OpenNotebook {
                 notebook,
                 history: History::new(),
+                own_writes,
                 _watcher: watcher,
             },
         );
@@ -208,6 +238,7 @@ impl WatcherHandle {
         app: AppHandle<R>,
         window: &str,
         notebook: &Notebook,
+        own_writes: OwnWrites,
     ) -> CommandResult<Self> {
         // Captured by the thread: the event has to reach the window whose
         // notebook actually changed, and nobody else's.
@@ -236,6 +267,23 @@ impl WatcherHandle {
                         changes.push(change);
                     }
                 }
+
+                // The window's own saves come back as events; the front
+                // already acted on them. Dropped by STAMP, so a file somebody
+                // else touched after us is still reported (`selfwrite`).
+                let changes: Vec<_> = match own_writes.lock() {
+                    Ok(writes) => changes
+                        .into_iter()
+                        .filter(|change| {
+                            change.path().is_none_or(|path| {
+                                !writes
+                                    .get(path)
+                                    .is_some_and(|stamp| selfwrite::unchanged(path, stamp))
+                            })
+                        })
+                        .collect(),
+                    Err(_) => changes,
+                };
 
                 for change in changes {
                     // A synced-in `config.json` must take effect: the notebook

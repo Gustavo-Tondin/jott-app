@@ -115,6 +115,11 @@
   let busy = $state(true);
   /// Bumped to tell the open screen to re-read from disk.
   let reloadKey = $state(0);
+  /// Bumped when the LIBRARY changed — and only then. It rides in the URL of
+  /// every picture an open note draws (`services/assets.js`), so a picture
+  /// deleted elsewhere stops drawing; bumping it for anything else made every
+  /// note refetch every picture on each save (2026-09-09).
+  let libraryKey = $state(0);
   let counts = $state({});
   let conflicts = $state([]);
   let spaces = $state([]);
@@ -1498,6 +1503,9 @@
       return;
     }
     if (kind === "list" || kind === "config") await refreshNotebook();
+    // A file inside the notebook that is not a `.md` is a file of the
+    // library: the pictures an open note draws may no longer be there.
+    if (kind === "other") libraryKey += 1;
     reload();
   });
 
@@ -2053,6 +2061,7 @@
             {mobile}
             {f}
             {reloadKey}
+            {libraryKey}
             {tags}
             {dayRefs}
             {spColors}

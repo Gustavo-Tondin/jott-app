@@ -146,8 +146,11 @@ pub fn read_note<R: Runtime>(
 
 /// Replaces a note's body. The core adopts today as its creation date if it
 /// does not have one — the lazy frontmatter's one writing moment.
+/// `async` so the write leaves the main thread: on Android the notebook sits
+/// on FUSE-backed storage and the main thread is the one that draws, so a
+/// save that ran there held back the letters typed right after it.
 #[tauri::command]
-pub fn write_note<R: Runtime>(
+pub async fn write_note<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
     folder: String,

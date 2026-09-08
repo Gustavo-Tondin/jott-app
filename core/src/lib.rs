@@ -29,6 +29,7 @@ pub mod reminders;
 pub mod rollover;
 pub mod search;
 pub mod seen;
+pub mod selfwrite;
 pub mod settings;
 pub mod space;
 pub mod state;
