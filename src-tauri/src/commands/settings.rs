@@ -1,11 +1,7 @@
-//! What the user chose — the two drawers of the Settings screen.
-//!
-//! **The rule of the split is the SECTION, not the key: Display is this
-//! machine, every other section is the notebook** (2026-08-20). Both halves of
-//! that rule live in `jott_core::settings`, which is also where the two merge
-//! policies are; this module is the door to them, plus the machine
-//! preferences that never had a notebook side at all (the panel widths, the
-//! zoom, the screen to reopen).
+//! What the user chose — the two drawers of the Settings screen. The rule of
+//! the split is the SECTION, not the key: Display is this machine, every other
+//! section is the notebook. Both halves live in `jott_core::settings`; this
+//! module is the door, plus the machine preferences with no notebook side.
 
 use jott_core::settings::{Display, NotebookSettings};
 use jott_core::Notebook;
@@ -14,25 +10,17 @@ use tauri::{AppHandle, Runtime, State};
 use crate::error::{CommandError, CommandResult};
 use crate::state::AppState;
 
-/// The display choices in force, machine over notebook.
-///
-/// One function, because four doors answer with these values — the layout, the
-/// settings screen, the sidebar's counters and the screen to restore — and
-/// they must not drift about which side wins. WHICH side wins is
-/// `jott_core::settings::Display`; what this side adds is where the machine's
-/// half is kept.
+/// The display choices in force, machine over notebook. One function, because
+/// four doors answer with these values and must not drift. WHICH side wins is
+/// `jott_core::settings::Display`; this side adds where the machine's half is.
 pub(crate) fn display_of<R: Runtime>(app: &AppHandle<R>, notebook: &Notebook) -> Display {
-    // The machine's half is kept PER NOTEBOOK since 2026-08-24 — the work
-    // notebook can be the dark one here without dragging the personal one into
-    // the dark with it. Which side wins is still the core's.
+    // The machine's half is kept PER NOTEBOOK; which side wins is the core's.
     Display::resolve(&crate::prefs::display(app, notebook.root()), notebook.config())
 }
 
-/// Which screen to open on launch.
-///
-/// `None` means "use the default" — either the user never left one, or the
-/// notebook has `restoreLastScreen` off. The value itself is machine-local;
-/// the preference to use it travels with the notebook.
+/// Which screen to open on launch. `None` means the default — the user never
+/// left one, or `restoreLastScreen` is off. The value is machine-local; the
+/// preference to use it travels with the notebook.
 #[tauri::command]
 pub fn screen_to_restore<R: Runtime>(
     app: AppHandle<R>,
@@ -112,20 +100,9 @@ pub fn notebook_settings<R: Runtime>(
     state.with_notebook(window.label(), |nb| Ok(NotebookSettings::of(nb.config(), &display_of(&app, nb))))
 }
 
-/// Saves one or more Display choices, on this machine and FOR THIS NOTEBOOK
-/// (2026-08-20, scoped to a notebook 2026-08-24).
-///
-/// It goes nowhere near the notebook's own files, which is why it needs no
-/// `ensure_writable` and why a read-only notebook does not stop it — the same
-/// reasoning the update check is written under. What it does need is to know
-/// WHICH notebook it is dressing, and that is the asking window's.
-///
-/// Every field is optional on the way in: the screen sends the one key that
-/// changed.
-/// "Reset this section" on a notebook page (2026-08-24). The core says
-/// which keys a page holds; an unknown page is refused rather than quietly
-/// doing nothing, so a renamed section shows up as an error and not as a
-/// button that stopped working.
+/// "Reset this section" on a notebook page. The core says which keys a page
+/// holds; an unknown page is refused rather than quietly doing nothing, so a
+/// renamed section shows up as an error and not as a dead button.
 #[tauri::command]
 pub fn reset_settings<R: Runtime>(
     state: State<'_, AppState>,
@@ -155,6 +132,10 @@ pub fn reset_machine_display<R: Runtime>(
     Ok(())
 }
 
+/// Saves one or more Display choices, on this machine and FOR THIS NOTEBOOK —
+/// the asking window's. Never touches the notebook's files, so a read-only
+/// notebook does not stop it. Every field is optional: the screen sends the
+/// one key that changed.
 #[tauri::command]
 pub fn set_machine_display<R: Runtime>(
     app: AppHandle<R>,
@@ -196,11 +177,10 @@ pub fn set_order<R: Runtime>(
     state.record(window.label(), "set_order", |nb| nb.set_order(&namespace, names))
 }
 
-/// Records what the user said about a part of the app (`tasks`, `notes`, and
-/// the task fields under them). `on: null` forgets the opinion — the interface
-/// sends that when a switch returns to its default, so the file only carries
-/// what differs from how the app ships. Nothing on disk changes either way:
-/// this is about what the interface offers, never about the notebook.
+/// Records what the user said about a part of the app (`tasks`, `notes`, the
+/// task fields). `on: null` forgets the opinion — sent when a switch returns
+/// to its default, so the file only carries what differs from how the app
+/// ships. Nothing on disk changes: this is about what the interface offers.
 #[tauri::command]
 pub fn set_feature<R: Runtime>(
     state: State<'_, AppState>,
@@ -211,11 +191,9 @@ pub fn set_feature<R: Runtime>(
     state.record(window.label(), "set_feature", |nb| nb.set_feature(&key, on))
 }
 
-/// Binds a command to a chord, or unbinds it with `chord: null`.
-///
-/// Neither string is judged here or in the core: the registry of commands and
-/// the spelling of a chord are the frontend's (`services/commands.js`,
-/// `services/keys.js`), and a binding this build cannot honour is simply
+/// Binds a command to a chord, or unbinds it with `chord: null`. Neither
+/// string is judged here or in the core (`services/commands.js` and
+/// `services/keys.js` own them); a binding this build cannot honour is
 /// ignored on the way in rather than destroyed on the way out.
 #[tauri::command]
 pub fn set_shortcut<R: Runtime>(
@@ -249,14 +227,9 @@ pub fn set_spaces_sort<R: Runtime>(state: State<'_, AppState>,
     state.record(window.label(), "set_spaces_sort", |nb| nb.set_spaces_sort(&sort))
 }
 
-/// The themes the open notebook carries (`.jott/themes/`).
-///
-/// Read on demand — when the settings screen opens, and again when the
-/// watcher says a stylesheet changed — never per render: it walks a folder.
-///
-/// The app's version is handed to the core rather than looked up there,
-/// because `CARGO_PKG_VERSION` is a fact about the binary and the core is a
-/// library that any binary may link.
+/// The themes the open notebook carries (`.jott/themes/`). Read on demand,
+/// never per render — it walks a folder. The app's version is handed to the
+/// core because `CARGO_PKG_VERSION` is a fact about the binary, not the library.
 #[tauri::command]
 pub fn user_themes<R: Runtime>(
     state: State<'_, AppState>,
@@ -267,12 +240,9 @@ pub fn user_themes<R: Runtime>(
     })
 }
 
-/// One theme's stylesheet, for the frontend to put in the document.
-///
-/// The bytes cross the bridge rather than being loaded by the page itself,
-/// and that is the point: the core has already refused anything past the size
-/// cap and neutralised every reference that would leave the machine, so what
-/// arrives is text that can only paint.
+/// One theme's stylesheet, for the frontend to put in the document. The bytes
+/// cross the bridge rather than being loaded by the page: the core has already
+/// refused anything past the size cap and neutralised every outbound reference.
 #[tauri::command]
 pub fn user_theme_css<R: Runtime>(
     state: State<'_, AppState>,
@@ -282,13 +252,9 @@ pub fn user_theme_css<R: Runtime>(
     state.with_notebook(window.label(), |nb| Ok(nb.theme_css(&name)?))
 }
 
-/// Writes a new theme into the notebook, seeded with a stylesheet the frontend
-/// hands over — the one the app is wearing.
-///
-/// The CSS comes from the bundle rather than from here because that is where
-/// it lives: `src/styles/themes/*.css` is imported by the page, and asking the
-/// backend for a file the frontend already has would be a second copy to keep
-/// in step.
+/// Writes a new theme into the notebook, seeded with the stylesheet the
+/// frontend hands over — the one the app is wearing, which lives in the
+/// bundle (`src/styles/themes/*.css`) and not here.
 #[tauri::command]
 pub fn create_user_theme<R: Runtime>(
     state: State<'_, AppState>,

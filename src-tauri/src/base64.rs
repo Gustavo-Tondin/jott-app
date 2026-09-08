@@ -1,21 +1,12 @@
-//! Base64, only as far as the bridge needs it: decoding an image the webview
-//! read from disk.
-//!
-//! Why it is here and not in `jott_core`: this is not business logic, it is
-//! the shape bytes take while crossing the IPC. The core deals in `&[u8]`.
-//!
-//! Why it is written out rather than pulled from a crate: Tauri accepts raw
-//! bytes in a command "on all platforms except Android" (its own words, in
-//! `tauri::ipc::Request`), and Android is a target of this app — so an import
-//! has to travel as text, and the decoder is forty lines. A dependency for
-//! forty lines is a dependency to keep pinned, audited and updated for the
-//! life of the project.
+//! Base64, only as far as the bridge needs it: the shape bytes take while
+//! crossing the IPC (the core deals in `&[u8]`). Written out rather than
+//! pulled from a crate: Tauri accepts raw bytes in a command on every
+//! platform except Android (`tauri::ipc::Request`), so an image travels as
+//! text, and the decoder is forty lines.
 
 /// Decodes standard base64 (with or without `=` padding, whitespace ignored).
-///
-/// `None` for anything that is not base64 — the payload comes from the
-/// webview, and a silent half-decoded image would be written to the user's
-/// notebook as a corrupt file.
+/// `None` for anything that is not base64: a silent half-decoded image would
+/// be written to the user's notebook as a corrupt file.
 pub fn decode(text: &str) -> Option<Vec<u8>> {
     let mut out = Vec::with_capacity(text.len() / 4 * 3);
     // Six bits at a time into a 24-bit window; every four symbols empty it.

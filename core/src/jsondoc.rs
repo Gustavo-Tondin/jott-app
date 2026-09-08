@@ -1,20 +1,8 @@
-//! The tolerant JSON document every config file in the notebook is.
-//!
-//! `.jott/config.json`, `.space.json`, `.group.json` and
-//! `.jott/tags.json` all make the **same four promises** (spec 3.4 and 3.5):
-//!
-//! - a missing or unreadable file reads as "nothing set", never an error —
-//!   a broken preference must not stop someone opening their notebook;
-//! - a missing or malformed *value* takes the default, one key at a time;
-//! - an **unknown key survives the rewrite**, at any depth, so a notebook
-//!   opened by two versions of the app does not lose the newer one's data;
-//! - a value this build cleared is actively *removed*, not left behind.
-//!
-//! Each file used to implement all four itself. That is how the last two bugs
-//! in this area happened, both the same shape: a cleared optional whose old
-//! value survived in `raw` (space colour, 2026-07-28; `Config::order`, the
-//! same day). Written once, a new config file inherits the promises instead of
-//! re-earning them.
+//! The tolerant JSON document every config file is (`config.json`,
+//! `.space.json`, `.group.json`, `tags.json`). Four promises: a missing or
+//! unreadable file reads as "nothing set"; a malformed VALUE takes the
+//! default one key at a time; an unknown key survives the rewrite at any
+//! depth; a value this build cleared is actively REMOVED, not left behind.
 
 use std::path::Path;
 
@@ -62,28 +50,11 @@ pub fn flag(raw: &Doc, key: &str, default: bool) -> bool {
     raw.get(key).and_then(Value::as_bool).unwrap_or(default)
 }
 
-/// Renders the document to write: the file exactly as it was read, with the
-/// keys this build owns written over it, and the ones it cleared removed.
-///
-/// `cleared` is what makes clearing work. The merge only writes the keys that
-/// are *set*, so without it a value still sitting in `raw` survives — clearing
-/// a colour would silently keep the old one.
-///
-/// **The clearing happens FIRST, before the merge**, and that is what lets a
-/// key be both cleared and owned: "whatever the file had here does not
-/// survive, and here is what goes in its place". A key that is only cleared
-/// behaves exactly as it always did, since nothing writes it back.
-///
-/// That distinction is the whole of a bug measured on device (2026-08-20): the
-/// merge is DEEP, on purpose — it is what keeps an unknown sibling key alive
-/// next to one this build writes — and **a deep merge cannot express a
-/// removal**. Every map the app owns whole was affected. Switching a feature
-/// back to its default removes it from `features`; the removal was merged over
-/// a `features` that still had it, so the file kept the old answer and the
-/// switch could be turned off but never on again. The same silence was hiding
-/// in `order`, `periodSort` and `shortcuts` — unbinding a chord never took.
-/// `space.rs` had already met it and worked around it by hand, which is where
-/// this belongs instead.
+/// Renders the document to write: the file as read, with `cleared` keys
+/// removed FIRST and then the `owned` keys deep-merged over it. The merge
+/// keeps unknown siblings alive and therefore cannot express a removal:
+/// a map the app owns whole must be in `cleared` AND `owned`, or a key
+/// dropped from it silently survives on disk.
 pub fn render(raw: &Doc, owned: Doc, cleared: &[&str]) -> String {
     let mut doc = Value::Object(raw.clone());
     if let Value::Object(map) = &mut doc {
@@ -113,13 +84,9 @@ fn merge(target: &mut Value, patch: Value) {
     }
 }
 
-/// Writes an optional value, or clears its key when there is nothing to say.
-///
-/// The one rule behind every optional a config file carries (a colour, a sort,
-/// a name): it is written only once the user has chosen something, and going
-/// back to the default has to *remove* the key, or a stale one in `raw`
-/// survives the rewrite. `config.rs` and `space.rs` each spelled this out by
-/// hand; the policy belongs next to [`render`], which is what it feeds.
+/// Writes an optional value, or clears its key when there is nothing to
+/// say — the rule behind every optional a config carries: going back to the
+/// default must REMOVE the key, or a stale one in `raw` survives the rewrite.
 pub fn put_or_clear<'a>(
     owned: &mut Doc,
     cleared: &mut Vec<&'a str>,
@@ -197,12 +164,8 @@ mod tests {
 
     #[test]
     fn a_key_that_is_both_cleared_and_owned_is_replaced_whole() {
-        // The deep merge cannot express a REMOVAL inside a map. A caller that
-        // owns the whole map says so by clearing the key AND writing it: the
-        // old value is gone before the merge, so what goes in is what comes
-        // out. Every map in config.rs lives under this rule, and getting it
-        // wrong is what let a settings switch be turned off but never on
-        // again (2026-08-20).
+        // The deep merge cannot express a REMOVAL inside a map: a caller that
+        // owns the whole map clears the key AND writes it.
         let raw = parse(r#"{ "features": { "a": true, "b": false }, "keep": 1 }"#);
         let text = render(
             &raw,
@@ -217,8 +180,8 @@ mod tests {
 
     #[test]
     fn a_cleared_key_is_removed_instead_of_surviving_in_the_raw() {
-        // The bug this project paid for twice: the merge only writes what is
-        // set, so a cleared optional kept its old value on disk.
+        // The merge only writes what is set; without `cleared` the old value
+        // would stay on disk.
         let raw = parse(r##"{ "schemaVersion": 1, "color": "#f00", "icon": "flag" }"##);
         let text = render(&raw, owned([("icon", Value::from("star"))]), &["color"]);
         let written = parse(&text);

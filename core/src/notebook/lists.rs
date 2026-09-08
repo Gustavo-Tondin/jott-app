@@ -1,9 +1,7 @@
-//! The notebook's task lists: where they live, how they are read, and
-//! the three that change them (create, rename, delete).
-//!
-//! A list is addressed by its **root-relative path** (`jott.tasks/task-list.md`)
-//! since phase 7; [`super::split_list_path`] is the one place that takes such an
-//! address apart, because the address arrives from user input.
+//! The notebook's task lists: where they live, how they are read, and the
+//! three that change them (create, rename, delete). A list is addressed by
+//! its root-relative path (`jott.tasks/task-list.md`); [`super::split_list_path`]
+//! is the one place that takes such an address apart — it is user input.
 
 use std::collections::BTreeMap;
 
@@ -23,17 +21,15 @@ impl Notebook {
     }
 
     /// The address of the Completed list that serves `list_path` — the one in
-    /// the **same folder** (spec 3.5: one Completed per tasks space, so a
-    /// completed task never leaves the space it lived in).
+    /// the SAME folder: a completed task never leaves its space.
     pub fn completed_path_of(list_path: &str) -> Result<String> {
         let (dir, _) = split_list_path(list_path)?;
         Ok(format!("{dir}/{COMPLETED_LIST}.md"))
     }
 
     /// Resolves a root-relative list address (`Tasks/Compras.md`) into the
-    /// folder that owns it and the list name. Every operation that receives a
-    /// list goes through here — the address is user input, exactly like a
-    /// list name used to be.
+    /// folder that owns it and the list name. Every operation that receives
+    /// a list goes through here — the address is user input.
     pub(super) fn resolve_list(&self, path: &str) -> Result<(crate::folder::TaskFolder, String)> {
         let (dir, name) = split_list_path(path)?;
         Ok((
@@ -42,9 +38,8 @@ impl Notebook {
         ))
     }
 
-    /// Every tasks space's folder in the notebook, with its root-relative
-    /// prefix. This is the walk behind lists, counts, conflicts and
-    /// suggestions — one definition of "where tasks live", not four.
+    /// Every tasks space's folder, with its root-relative prefix — the one
+    /// definition of "where tasks live" behind lists, counts and conflicts.
     pub(super) fn task_folders(&self) -> Result<Vec<(String, crate::folder::TaskFolder)>> {
         Ok(self
             .typed_space_dirs("tasks")?
@@ -53,10 +48,8 @@ impl Notebook {
             .collect())
     }
 
-    /// Every list address across every tasks space — the flat form of the
-    /// walk above, for the callers that want addresses rather than folder
-    /// handles. This exact double loop used to be written out at each of
-    /// those call sites.
+    /// Every list address across every tasks space — the flat form of
+    /// `task_folders`, for callers that want addresses, not folder handles.
     pub(super) fn list_paths(&self) -> Result<Vec<ListAddress>> {
         let mut out = Vec::new();
         for (prefix, folder) in self.task_folders()? {
@@ -83,18 +76,15 @@ impl Notebook {
                 name: list.name,
             });
         }
-        // Manual order lives per folder — the sidebar reorders one folder's
-        // lists at a time. So: group by folder and sort by name first, then let
-        // the stored order rearrange each folder's run. Anything the order does
-        // not mention (Inbox, Completed, a freshly created list) keeps its
-        // alphabetical place, after the named ones.
+        // Manual order lives per folder: group by folder, sort by name, then
+        // let the stored order rearrange each run. Anything unmentioned keeps
+        // its alphabetical place after the named ones.
         entries.sort_by(|a, b| {
             list_dir_of(&a.path)
                 .cmp(list_dir_of(&b.path))
                 .then_with(|| a.name.cmp(&b.name))
         });
-        // The same helper the spaces go through — the "manual order lives in
-        // the config" rule has one implementation, applied here once per folder.
+        // The same helper the spaces go through, once per folder.
         for run in entries.chunk_by_mut(|a, b| list_dir_of(&a.path) == list_dir_of(&b.path)) {
             let namespace = format!("lists:{}", list_dir_of(&run[0].path));
             self.config.apply_order(&namespace, run, |entry| &entry.name);
@@ -114,11 +104,9 @@ impl Notebook {
         Ok(counts)
     }
 
-    /// Conflicting copies sitting in the notebook right now.
-    ///
-    /// Scans the config folder and every tasks space's folder, which is where
-    /// sync tools leave them. Reporting is all this does — the user decides
-    /// what to keep.
+    /// Conflicting copies sitting in the notebook right now: the config
+    /// folder and every tasks space's folder. Reporting only — the user
+    /// decides what to keep.
     pub fn conflicts(&self) -> Result<Vec<Conflict>> {
         let mut found = Vec::new();
         let mut dirs = vec![self.config_dir()];
@@ -144,34 +132,25 @@ impl Notebook {
         folder.open_list(&name)
     }
 
-    /// Tasks of a list, ready to show.
-    ///
-    /// Reading does **not** hand out ids: a task only gets one when something
-    /// needs to address it (see [`Notebook::ensure_task_id`]). Opening a list
-    /// therefore leaves a hand-written file exactly as it was.
-    ///
-    /// The one thing reading does fix is a *duplicated* id, because that makes
-    /// two lines indistinguishable to every later operation. That is rare, so
-    /// the file is only rewritten when it actually happens.
+    /// Tasks of a list, ready to show. Reading does NOT hand out ids
+    /// ([`Notebook::ensure_task_id`] does), so a hand-written file stays as
+    /// it was; the one fix on read is a DUPLICATED id, which makes two lines
+    /// indistinguishable, and the file is rewritten only then.
     pub fn tasks_in(&self, path: &str) -> Result<Vec<Task>> {
         let mut tasks = self.open_list(path)?;
         if !self.is_read_only() && tasks.dedupe_ids() > 0 {
             tasks.save()?;
         }
         let mut out: Vec<Task> = tasks.tasks().cloned().collect();
-        // The age is stamped where the task LEAVES the notebook, never where
-        // it is parsed: a `TaskList` is the file, and the file says nothing
-        // about how old its lines are (`notebook::age`).
+        // Age is stamped where the task LEAVES the notebook, never where it is
+        // parsed: a `TaskList` is the file (`notebook::age`).
         self.stamp_tasks(out.iter_mut());
         Ok(out)
     }
 
     /// Gives the task at `position` in the list at `path` an id, and returns
-    /// it.
-    ///
-    /// The frontend shows tasks by position; the moment the user acts on one
-    /// — pulls it into a period, completes it — it needs a stable name. This
-    /// is where a task earns one.
+    /// it. The frontend shows tasks by position; the moment the user acts on
+    /// one it needs a stable name, and this is where it earns one.
     pub fn ensure_task_id(&self, path: &str, position: usize) -> Result<String> {
         self.ensure_writable()?;
         let mut tasks = self.open_list(path)?;
@@ -198,9 +177,8 @@ impl Notebook {
         self.open_list(&Self::inbox_path())
     }
 
-    /// Whether a list is one the app protects: the folder's main list (the
-    /// space *is* that list, spec 3.5) and its Completed. Both come back
-    /// on every open, and neither can be renamed or deleted.
+    /// Whether a list is one the app protects: the folder's main list and its
+    /// Completed. Both come back on every open; neither is renamed or deleted.
     fn is_protected_list(folder: &crate::folder::TaskFolder, name: &str) -> bool {
         name == COMPLETED_LIST || name == folder.main_list_name()
     }
@@ -225,11 +203,10 @@ impl Notebook {
         TaskList::load(path)
     }
 
-    /// Renames a user list (addressed by path) to a new **name**, in the same
-    /// folder — a rename never moves a list between spaces. Repoints
-    /// everything that referred to it: the `origin` of completed tasks in the
-    /// folder's own Completed (otherwise undo would send them to a list that
-    /// no longer exists) and the day/week states.
+    /// Renames a user list (by path) to a new NAME in the same folder — never
+    /// across spaces. Repoints the `origin` of completed tasks in the
+    /// folder's Completed (undo must not send them to a gone list) and the
+    /// day states.
     pub fn rename_list(&self, from: &str, to_name: &str) -> Result<()> {
         self.ensure_writable()?;
         let (folder, from_name) = self.resolve_list(from)?;
@@ -251,8 +228,8 @@ impl Notebook {
 
         std::fs::rename(&source, &target).ctx(&target)?;
 
-        // Origins live in the folder's own Completed and hold bare names —
-        // relative to the space, so the folder stays portable (spec 3.5).
+        // Origins live in the folder's own Completed and hold bare names,
+        // relative to the space, so the folder stays portable.
         let mut completed = folder.open_list(COMPLETED_LIST)?;
         if completed.repoint_origin(&from_name, to_name) > 0 {
             completed.save()?;
@@ -263,12 +240,9 @@ impl Notebook {
         self.update_states(|state| state.rename_path(from, &to_path))
     }
 
-    /// Deletes a user list, moving whatever was still in it to the **same
-    /// folder's** Inbox.
-    ///
-    /// Deleting a list is a filing decision, not a decision to throw work
-    /// away — principle 2, the data is the user's. An empty list disappears
-    /// silently; one with tasks leaves them in the folder's Inbox.
+    /// Deletes a user list, moving whatever was still in it to the SAME
+    /// folder's Inbox: deleting a list is a filing decision, not a decision
+    /// to throw work away.
     pub fn delete_list(&self, path: &str) -> Result<usize> {
         self.ensure_writable()?;
         let (folder, name) = self.resolve_list(path)?;
@@ -293,11 +267,8 @@ impl Notebook {
         }
 
         // Inbox first, then the file goes away: a crash in between leaves a
-        // duplicate, never a hole.
-        //
-        // To the trash rather than gone: the rescue above only carries the
-        // *tasks*, and a list file may also hold a heading, a note to self,
-        // whatever prose the user wrote around them. That is theirs too.
+        // duplicate, never a hole. To the trash, not gone: the rescue carries
+        // only the tasks, and the file may hold the user's prose too.
         inbox.save()?;
         self.trash_path(&file)?;
         let rescued = rescued.len();

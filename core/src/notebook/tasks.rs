@@ -1,9 +1,7 @@
 //! What happens to a single task: moving it between lists, completing it,
-//! undoing that, and deleting it.
-//!
-//! [`Notebook::transfer`] is the primitive under all of them — one pass over
-//! each file, target written before source, so a crash between the two writes
-//! duplicates a task instead of losing one.
+//! undoing that, and deleting it. [`Notebook::transfer`] is the primitive
+//! under all of them — target written before source, so a crash between the
+//! two writes duplicates a task instead of losing one.
 
 use crate::error::{Error, Result};
 use crate::list::TaskList;
@@ -42,11 +40,8 @@ impl Notebook {
         self.with_list(path, |list| list.duplicate(id))
     }
 
-    /// Pins a task to the top of its list, or unpins it (the card's bookmark).
-    ///
-    /// Filing, not a label: it rides in the hidden comment, so a pinned task
-    /// reads the same to anyone opening the file in another editor and no
-    /// `#pinned` tag turns up in the tag manager.
+    /// Pins a task to the top of its list, or unpins it. Filing, not a
+    /// label: it rides in the hidden comment, so no `#pinned` tag appears.
     pub fn set_task_pinned(&self, path: &str, id: &str, pinned: bool) -> Result<()> {
         self.with_list(path, |list| {
             list.task_mut(id)?.pinned = pinned;
@@ -55,19 +50,12 @@ impl Notebook {
     }
 
     /// Replaces a task's text, keeping everything else.
-    ///
-    /// Here and not composed in the bridge (moved 2026-08-19, with the two
-    /// below): `ensure_writable` lives on the notebook, so a caller holding a
-    /// bare `TaskList` writes into a read-only notebook without noticing —
-    /// which is exactly what the bridge used to do.
     pub fn edit_task_text(&self, path: &str, id: &str, text: String) -> Result<()> {
         self.with_list(path, |list| list.edit_text(id, text))
     }
 
-    /// Edits any field of a task in one call.
-    ///
-    /// One method instead of one per field: the UI edits a task in a panel and
-    /// saves it as a whole, and a half-applied edit would be worse than none.
+    /// Edits any field of a task in one call: the panel saves the task as a
+    /// whole, and a half-applied edit would be worse than none.
     pub fn set_task_fields(&self, path: &str, id: &str, fields: crate::task::TaskFields) -> Result<()> {
         self.with_list(path, |list| {
             fields.apply_to(list.task_mut(id)?);
@@ -81,11 +69,8 @@ impl Notebook {
     }
 
     /// The move primitive. `done` optionally flips the checkbox in the same
-    /// write, so completing a task is one pass over each file instead of two.
-    ///
-    /// A recorded origin is the source's **name**, not its path: origins are
-    /// only ever resolved inside the same folder (undo goes back to a sibling
-    /// list), and a bare name keeps the folder portable as a template.
+    /// write. A recorded origin is the source's **name**, not its path:
+    /// origins resolve only inside the same folder, keeping it portable.
     fn transfer(
         &self,
         id: &str,
@@ -126,9 +111,7 @@ impl Notebook {
         source.save()?;
 
         // Today and the plan reference the *task*, not the place: it stays
-        // pulled wherever it goes, including into the folder's Completed —
-        // which is what puts a ticked task in the day's "Completed N"
-        // section instead of making it vanish (2026-08-06).
+        // pulled wherever it goes, including into the folder's Completed.
         if let Some(settled) = settled {
             self.update_states(|state| state.repoint(from, id, to, &settled))?;
         }
@@ -140,20 +123,15 @@ impl Notebook {
     }
 
     /// A fresh task stamped with today's civil date — every task the app
-    /// creates goes through here, so the by-creation ordering always has a
-    /// date to read (2026-08-04).
+    /// creates goes through here.
     pub(super) fn stamped_task(text: impl Into<String>) -> Task {
         let mut task = Task::new(text);
         task.created = Some(crate::clock::civil_today());
         task
     }
 
-    /// Creates a task in `path` and returns its **position**.
-    ///
-    /// It is born WITH an id since 2026-08-26: the Timeline follows a task by
-    /// its id, and it tracks everything — so "a task earns an id when
-    /// something needs to address it" now means "at birth", and
-    /// `adopt_task_identity` hands one to every task already on disk.
+    /// Creates a task in `path` and returns its **position**. Born WITH an
+    /// id: the Timeline follows a task by its id, and it tracks everything.
     pub fn create_task(&self, path: &str, text: impl Into<String>) -> Result<usize> {
         let on_top = self.config.new_tasks_on_top;
         let (position, id, created) = self.with_list(path, |list| {
@@ -183,17 +161,9 @@ impl Notebook {
     // ------------------------------------------------------- complete / undo
 
     /// Completes a task: it moves to the **same folder's** Completed with its
-    /// origin recorded, and stops being pulled into Today and This Week.
-    ///
-    /// A repeating task leaves its next occurrence behind in the same list,
-    /// so finishing it is also what schedules it — there is no scheduler.
-    /// Every occurrence is its own item: the spawn is born **with an id**, and
-    /// the completed copy records it as `spawned:<id>` — the chain's memory.
-    /// Re-completing a restored occurrence finds its spawn still alive and
-    /// does not generate another; only the newest occurrence (which never
-    /// spawned) schedules the next (decision with the user, 2026-08-05,
-    /// replacing the delete-the-spawn undo of 2026-08-04 that duplicated the
-    /// chain whenever it had already moved on).
+    /// origin recorded. A repeating task leaves its next occurrence in the
+    /// same list, born **with an id** that the completed copy records as
+    /// `spawned:<id>`; re-completing a restored occurrence spawns nothing new.
     pub fn complete_task(&self, path: &str, id: &str) -> Result<Task> {
         self.ensure_writable()?;
         let completed = Self::completed_path_of(path)?;
@@ -226,10 +196,8 @@ impl Notebook {
             }
         }
 
-        // The task moves; the Day and Week references FOLLOW it into the
-        // Completed (done inside `transfer`, for every move alike). Removing
-        // them here is what used to make a task ticked in Today disappear from
-        // the screen instead of sliding into its "Completed N" section.
+        // The Day references FOLLOW the task into the Completed (inside
+        // `transfer`); removing them here would make a ticked task vanish.
         let task = self.transfer(id, path, &completed, OriginAction::Record, Some(true))?;
         // The log follows the task under the id it ARRIVED with (see
         // `transfer`); the day is the one `transfer` just stamped.
@@ -243,16 +211,10 @@ impl Notebook {
         Ok(task)
     }
 
-    /// Whether the chain already carries the occurrence `task` would generate
-    /// on completion. `Some(id)` means it exists (and `id` is what `spawned:`
-    /// should point at — `None` inside when the twin has no id to record);
-    /// a `None` return means it truly is missing and should be generated.
-    ///
-    /// The `spawned:` pointer is authoritative while it resolves — in the
-    /// task's own list or its Completed. A dangling pointer (the spawn was
-    /// deleted) falls through to generating again. Tasks completed before the
-    /// pointer existed fall back to an exact twin of the computed occurrence:
-    /// same text, repeat and due date, open in the list or already completed.
+    /// Whether the chain already carries the occurrence `task` would generate:
+    /// `Some(id)` means it exists (`None` inside when the twin has no id);
+    /// `None` means generate. The `spawned:` pointer is authoritative while it
+    /// resolves; a dangling one, or a task from before it existed, falls back to an exact twin.
     fn find_spawned(
         &self,
         source: &TaskList,
@@ -284,14 +246,9 @@ impl Notebook {
     }
 
     /// Un-completes a task, sending it back to the list it came from.
-    ///
-    /// `completed` is the address of the Completed list holding the task —
-    /// with one Completed per space (spec 3.5), the id alone cannot say
-    /// which folder to undo in. The origin is a bare name resolved **inside
-    /// that same folder**; a task with no usable origin — hand-written, or
-    /// pointing at a name that is no longer valid — lands in the folder's
-    /// Inbox rather than nowhere. The origin list is recreated when it no
-    /// longer exists.
+    /// `completed` addresses the Completed holding it (one per space). The
+    /// origin is a bare name resolved **inside that folder**, recreated if
+    /// gone; without a usable one the task lands in the main list, never nowhere.
     pub fn uncomplete_task(&self, completed: &str, id: &str) -> Result<Task> {
         self.ensure_writable()?;
         let (folder, _) = self.resolve_list(completed)?;
@@ -308,11 +265,8 @@ impl Notebook {
         let (dir, _) = split_list_path(completed)?;
         let target = format!("{dir}/{target_name}.md");
 
-        // The restore keeps `spawned:` — the occurrence this completion
-        // generated stays where it is (every occurrence is its own item), and
-        // the pointer is exactly what stops a re-completion from generating
-        // it again. Deleting the spawn here was the 2026-08-04 approach, and
-        // it duplicated the chain whenever the spawn had already moved on.
+        // The restore keeps `spawned:`: the occurrence stays where it is, and
+        // the pointer is what stops a re-completion from generating it again.
         let task = self.transfer(id, completed, &target, OriginAction::Clear, Some(false))?;
         if let Some(settled) = task.id.as_deref() {
             self.logged_task_reopened(settled, &target);
@@ -346,16 +300,10 @@ impl Notebook {
         Ok(out)
     }
 
-    /// Every open task of the notebook, arranged by space — what the fixed
-    /// Tasks screen shows when asked for every list instead of the Inbox
-    /// alone (`Config::tasks_show_all`, 2026-09-04).
-    ///
-    /// The order is the sidebar's twice over: the fixed Tasks space first,
-    /// then the user's spaces in the order they were arranged there, and
-    /// inside a space its lists in the order they have there. Flat — the card wears its space as the
-    /// origin bar, which is how a task is told apart from its neighbour
-    /// everywhere outside its own space. Walks every list: ask when the
-    /// screen opens, never per render.
+    /// Every open task of the notebook, arranged by space — the fixed Tasks
+    /// screen's "all lists" view (`Config::tasks_show_all`). Order is the
+    /// sidebar's: fixed Tasks first, then the user's spaces as arranged, then
+    /// each space's lists. Walks every list: ask on open, never per render.
     pub fn all_tasks(&self) -> Result<Vec<ListedTask>> {
         let mut rank: std::collections::HashMap<String, usize> = self
             .spaces()?
@@ -386,26 +334,10 @@ impl Notebook {
         Ok(out)
     }
 
-    /// Gives every task the two things the time axis needs: a `created:` date
-    /// and an `id:`. Run on open; only ever ADDS fields.
-    ///
-    /// **The date** (2026-08-26, F1): the Timeline and the sweep order by it,
-    /// so a task written by hand, or by a build older than 2026-08-04, has to
-    /// get one somewhere, and here is that somewhere. Today is the honest
-    /// guess for an open task — it entered the app today. A task in
-    /// `completed.md` gets its `completed:` date instead, when it has one: a
-    /// creation date later than the completion would be a lie the
-    /// by-creation ordering then repeats.
-    ///
-    /// **The id** (2026-08-26, F4): a task used to earn one only when
-    /// something needed to address it, which kept hand-written files
-    /// pristine. The Timeline follows a task by its id and tracks
-    /// everything, so "something needs to address it" became true of every
-    /// task — a task with no id is one the log cannot follow from one list
-    /// to the next.
-    ///
-    /// Lists with nothing missing are not rewritten. Returns how many tasks
-    /// were touched.
+    /// Gives every task a `created:` date and an `id:`, on open; only ever
+    /// ADDS fields, and lists with nothing missing are not rewritten. An open
+    /// task gets today; one in `completed.md` gets its `completed:` date, so
+    /// creation never postdates completion. Returns how many were touched.
     pub fn adopt_task_identity(&self) -> Result<usize> {
         self.ensure_writable()?;
         let today = crate::clock::civil_today();
@@ -478,15 +410,10 @@ impl Notebook {
         self.update_states(|state| state.remove(path, id))
     }
 
-    /// Files away completed tasks older than `completedRetentionDays`, in every
-    /// space's `completed.md`. Run on open, beside the trash reaper.
-    ///
-    /// Nothing is destroyed — each one goes to `.jott/trash/`, where the trash
-    /// retention then applies, so a task is always recoverable for a while
-    /// after it leaves the screen. `0` days means never (2026-08-06).
-    ///
-    /// A task with no `completed:` stamp is left alone: it was written by hand
-    /// or by an older build, and the app has no idea how old it is.
+    /// Files away completed tasks older than `completedRetentionDays` into
+    /// `.jott/trash/` (never destroyed), in every space's `completed.md`. Run
+    /// on open. `0` days means never. A task with no `completed:` stamp is
+    /// left alone: the app has no idea how old it is.
     pub fn reap_completed(&self) -> Result<usize> {
         self.ensure_writable()?;
         let days = self.config.completed_retention_days;

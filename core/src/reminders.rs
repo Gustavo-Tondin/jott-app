@@ -1,15 +1,8 @@
-//! Reminders: when a task should ring.
-//!
-//! Two sources, one list. A task can carry its own `remind:` moment (see
-//! [`crate::task::Task::remind`]), and the notebook can ask for an
-//! **automatic** reminder for every dated task — the day of, the day
-//! before, or both, at the notebook's reminder time. The automatic one is computed
-//! here and never written to the task: it is a setting about the notebook,
-//! not a fact about the task, and turning it off must not leave a trail in
-//! a hundred files.
-//!
-//! Who rings is the shell (a timer while the app is open, the system's
-//! alarm service on Android). This module only answers "what, and when".
+//! Reminders: when a task should ring. Two sources, one list: the task's own
+//! `remind:` moment ([`crate::task::Task::remind`]) and the notebook's
+//! **automatic** rule for every dated task (day of, day before, or both, at
+//! the reminder time). The automatic one is computed here and never written
+//! to the task. Who rings is the shell; this module answers "what, and when".
 
 use chrono::{Duration, NaiveDateTime, NaiveTime};
 use serde::{Deserialize, Serialize};
@@ -106,12 +99,10 @@ pub struct Reminder {
     pub auto: bool,
 }
 
-/// The reminders of one task, under the notebook's rule: none, the task's
-/// own, or the automatic one — two of those under `Both`.
-///
-/// A done task never rings. A task's own `remind:` wins over the automatic
-/// one: someone who chose "the day before at 18:00" for one task does not
-/// want a second ring at 09:00 the day of.
+/// The reminders of one task under the notebook's rule: none, the task's
+/// own, or the automatic one (two under `Both`). A done task never rings,
+/// and a task's own `remind:` wins over the automatic one — it does not
+/// also get the automatic ring.
 pub fn reminders_of(
     list: &str,
     position: usize,

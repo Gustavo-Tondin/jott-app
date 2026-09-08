@@ -1,23 +1,8 @@
-//! The notebook's side of the durable log (`crate::timeline`).
-//!
-//! Three jobs, and they are worth telling apart:
-//!
-//! - **Writing what the app did.** Every create, move and delete the user
-//!   asks for adds a line, from the operation that performed it. This is the
-//!   accurate half: it knows the day something actually went.
-//! - **Sweeping on open.** Whatever the app did not see — a notebook that
-//!   predates the log, a note deleted in a file manager, a build that had no
-//!   hook — is reconciled against the disk when the notebook opens. This is
-//!   the honest-but-late half: a note deleted last Tuesday and noticed today
-//!   is logged as gone today.
-//! - **Reading it back.** [`Notebook::timeline`] resolves the log and gives
-//!   the live entries their current titles.
-//!
-//! Every write here is **best effort and silent**. The log is a memory of the
-//! notebook, not part of it: failing to append must never fail the rename,
-//! the deletion or the note being written. What must not happen is the
-//! opposite — a line saying something the disk disagrees with — and that is
-//! what the sweep exists to correct.
+//! The notebook's side of the durable log (`crate::timeline`): writing what
+//! the app did (accurate), sweeping on open for what it did not see (late:
+//! logged as gone today), and reading it back with live titles. Every write
+//! is best effort and silent — failing to append must never fail the
+//! operation; the sweep corrects a line the disk disagrees with.
 
 use super::*;
 
@@ -96,13 +81,9 @@ impl Notebook {
         self.log_timeline(vec![Record::reopened(Self::logged_at(), list).with_id(id)]);
     }
 
-    /// Everything the log has under `from` follows the folder to `to`.
-    ///
-    /// A renamed space or folder changes the address of every note under it
-    /// at once, and the log has no folders — only things. The lines come from
-    /// the LOG rather than from the disk on purpose: what has to be
-    /// repointed is exactly what the log believes is there, and the disk has
-    /// already moved by the time this is called.
+    /// Everything the log has under `from` follows the folder to `to`. The
+    /// lines come from the LOG, not the disk: what must be repointed is what
+    /// the log believes is there, and the disk has already moved.
     pub(super) fn logged_moved_under(&self, from: &str, to: &str) {
         if from == to {
             return;
@@ -151,20 +132,11 @@ impl Notebook {
         timeline::resolve(&timeline::read(self.config_dir()))
     }
 
-    /// What the notebook has held between two days, newest first — the
-    /// Timeline screen's one question.
-    ///
-    /// A thing is IN the window when it was born in it **or ticked in it**
-    /// (2026-08-27): the screen asks one year at a time, and a task created
-    /// in December and finished in January belongs to January's "completed"
-    /// line — filtered by birth alone it would vanish from the new year.
-    ///
-    /// Ghosts carry the title they were born with; anything still on disk is
-    /// given its current one, so a note renamed yesterday reads as it does
-    /// everywhere else. Every item is told its space (`Item::space`), so the
-    /// screen never derives one from a path. **Ask this when the screen
-    /// opens, never per render:** it reads the whole log and every list
-    /// holding a live task.
+    /// What the notebook has held between two days, newest first. A thing is
+    /// IN the window when born in it OR ticked in it (a task finished in the
+    /// next year belongs to that year's "completed"). Live items get their
+    /// current title and their space (`Item::space`); ghosts keep the birth
+    /// title. Ask on screen open, never per render: reads the whole log.
     pub fn timeline(&self, from: Option<NaiveDate>, to: Option<NaiveDate>) -> Result<Vec<Item>> {
         let within = |day: NaiveDate| {
             from.is_none_or(|first| day >= first) && to.is_none_or(|last| day <= last)
@@ -176,9 +148,8 @@ impl Notebook {
             .filter(|item| within(item.created) || item.completed.is_some_and(within))
             .collect();
 
-        // The space each address lives in: the longest space path that is a
-        // prefix of it. A ghost whose whole space is gone gets none — its
-        // colour is not knowable any more, and the screen shows it plain.
+        // The longest space path that prefixes the address. A ghost whose
+        // whole space is gone gets none, and the screen shows it plain.
         let mut spaces: Vec<String> = self
             .spaces()?
             .iter()
@@ -206,8 +177,7 @@ impl Notebook {
                 continue;
             }
             match (item.kind, item.id.clone()) {
-                // A note is titled by its file, and the log's copy is the one
-                // it was born with.
+                // A note is titled by its file; the log's copy is the birth one.
                 (Kind::Note, _) => item.title = crate::notefolder::title_of(&item.path),
                 (Kind::Task, Some(id)) => {
                     lists.entry(item.path.clone()).or_default().push((index, id))
@@ -236,11 +206,9 @@ impl Notebook {
     }
 
     /// Forgets one thing from the log — every line about it, in every year.
-    ///
-    /// The user's "Remove from timeline", and the only rewrite the log ever
-    /// gets (see `timeline::remove`). Not an action of the history: what
-    /// it destroys is memory, not content, and Ctrl+Z bringing a line back
-    /// would defeat the point of asking. Returns how many lines went.
+    /// The only rewrite the log gets (`timeline::remove`). Not an action of
+    /// the history: Ctrl+Z bringing a line back would defeat the point of
+    /// asking. Returns how many lines went.
     pub fn forget_from_timeline(&self, key: &timeline::Key) -> Result<usize> {
         self.ensure_writable()?;
         timeline::remove(self.config_dir(), key)
@@ -248,31 +216,19 @@ impl Notebook {
 
     // --------------------------------------------------------------- sweep
 
-    /// Reconciles the log with the disk. Returns how many lines it wrote.
-    ///
-    /// Run on open, beside the other derived passes. What it can and cannot
-    /// do is the whole design:
-    ///
-    /// - Something on disk the log has never heard of gets a `created` with
-    ///   its REAL date — a task's `created:`, a note's frontmatter, and the
-    ///   file's mtime as the last resort. That is what lets a notebook older
-    ///   than the log arrive with its history intact.
-    /// - Something the log believes is alive whose address holds nothing gets
-    ///   a `deleted`, dated today, because today is when we found out.
-    /// - A task whose id turns up in a different list gets a `moved`; a NOTE
-    ///   that changed address outside the app cannot be matched (its identity
-    ///   IS the address), so it reads as one thing gone and another born.
-    ///   Moving notes in a file manager therefore costs their history — the
-    ///   price of not writing an id into every note the user owns.
+    /// Reconciles the log with the disk on open; returns how many lines it
+    /// wrote. Unknown on disk → `created` with its REAL date (`created:`,
+    /// frontmatter, mtime last). Alive in the log but absent → `deleted`
+    /// today. A task in another list → `moved`; a note moved outside the app
+    /// cannot be matched (its identity IS the address): one gone, one born.
     pub fn sweep_timeline(&self) -> Result<usize> {
         self.ensure_writable()?;
         let items = self.timeline_items();
         let at = Self::logged_at();
         let mut lines: Vec<Record> = Vec::new();
 
-        // ---- notes: keyed by address, and the address is all we have.
-        // The map answers three questions at once: never heard of it (born),
-        // heard of it and it is gone (restored), heard of it and it is here.
+        // ---- notes: keyed by address. The map answers: never heard of it
+        // (born), heard of it and gone (restored), heard of it and here.
         let mut known_notes: std::collections::HashMap<&str, bool> =
             std::collections::HashMap::new();
         for item in items.iter().filter(|item| item.kind == Kind::Note) {
@@ -284,14 +240,12 @@ impl Notebook {
                 let address = super::seen::address_of(&prefix, &relative);
                 match known_notes.get(address.as_str()) {
                     Some(true) => {}
-                    // Back from the trash — restored by hand, or a folder
-                    // that came back whole.
+                    // Back from the trash by hand, or a folder restored whole.
                     Some(false) => {
                         lines.push(Record::gone(at, Kind::Note, &address, Event::Restored))
                     }
                     None => {
-                        // Unknown: read it — the only notes the sweep parses
-                        // are the ones it has never seen.
+                        // The only notes the sweep parses are unknown ones.
                         let born = folder
                             .read(&relative)
                             .ok()
@@ -334,9 +288,8 @@ impl Notebook {
             };
             for task in list.tasks() {
                 let Some(id) = task.id.as_deref() else {
-                    // A task with no id cannot be followed; `adopt_task_identity`
-                    // hands one to every task on open, so this is one written
-                    // between the two passes.
+                    // No id, cannot be followed; `adopt_task_identity` hands
+                    // one to every task on open.
                     continue;
                 };
                 seen_tasks.insert(id.to_string());
@@ -357,11 +310,9 @@ impl Notebook {
                         .push(Record::moved(at, Kind::Task, *known, &address.path).with_id(id)),
                     Some(_) => {}
                 }
-                // The ticked state, reconciled the same way: a finished task
-                // the log has never seen finish (a notebook older than the
-                // `completed` line, or ticked by hand in the file) is logged
-                // with the day its `completed:` says; one the log believes
-                // finished but that is open again is reopened.
+                // The ticked state, reconciled the same way: finished but never
+                // logged → `completed` on the day its `completed:` says;
+                // logged finished but open again → `reopened`.
                 match (task.done, known_done.contains(id)) {
                     (true, false) => lines.push(
                         Record::completed(
@@ -389,9 +340,8 @@ impl Notebook {
         Ok(written)
     }
 
-    /// The day a file was last written — the sweep's last resort for a birth
-    /// date, and a poor one: a sync tool rewrites mtime without anyone having
-    /// touched the file. Today, when even that cannot be read.
+    /// The file's mtime as a birth date — the sweep's last resort, and a poor
+    /// one (sync tools rewrite it). Today when even that cannot be read.
     fn file_day(&self, path: &std::path::Path) -> NaiveDate {
         std::fs::metadata(path)
             .and_then(|meta| meta.modified())

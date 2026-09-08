@@ -1,15 +1,8 @@
 //! What happens to Today when the day turns.
 //!
-//! Nothing here destroys a task. The rollover only touches *references* in
-//! the state files — the task itself keeps living in its list's `.md`. In
-//! `reset` mode an unfinished task stops being pulled and goes back to being
-//! a suggestion; in `carry` mode it stays pulled. Either way it is still
-//! there.
-//!
-//! The turn is decided by comparing the state's `date` with the current
-//! day, never by counting elapsed days. The app may sit closed for
-//! a week, and turning three days at once has to land exactly where turning
-//! one does.
+//! Nothing here destroys a task: the rollover only touches *references* in
+//! the state files. The turn is decided by comparing the state's `date` with
+//! the current day, never by counting elapsed days.
 
 use chrono::NaiveDate;
 
@@ -44,12 +37,9 @@ impl Rolled {
     }
 }
 
-/// Rolls `state` forward to `current` if the day turned.
-///
-/// A state dated in the *future* is never cleared: that means the system clock
-/// moved backwards (wrong date corrected, travelling across timezones), not
-/// that a day elapsed. Re-dating it without dropping the references keeps a
-/// clock mistake from wiping a day the user had already planned.
+/// Rolls `state` forward to `current` if the day turned. A state dated in the
+/// FUTURE is re-dated but never cleared: the clock moved backwards (a wrong
+/// date corrected, a timezone), not a day elapsed.
 pub fn apply(state: &mut DayState, current: NaiveDate, mode: RolloverMode) -> Rolled {
     let from = state.date;
     if from == current {
@@ -58,11 +48,10 @@ pub fn apply(state: &mut DayState, current: NaiveDate, mode: RolloverMode) -> Ro
 
     let went_backwards = from > current;
     let cleared = match mode {
-        // Carrying keeps the unfinished work pulled — but a reference that
-        // now points into a `Completed.md` is a task that was ticked during
-        // the day, and carrying that into the next one would put yesterday's
-        // finished work in today's list (2026-08-06, since a completed task
-        // keeps its day reference so it can show under "Completed N").
+        // Carrying keeps the unfinished work pulled, but a reference into a
+        // `Completed.md` was ticked during the day (it keeps its day reference
+        // to show under "Completed N"); carrying it would put yesterday's
+        // finished work in today's list.
         RolloverMode::Carry => {
             let before = state.len();
             state
@@ -73,11 +62,9 @@ pub fn apply(state: &mut DayState, current: NaiveDate, mode: RolloverMode) -> Ro
         RolloverMode::Reset if went_backwards => 0,
         RolloverMode::Reset => {
             let dropped = state.len();
-            // The unfinished ones become "recently pulled" — the day turned
-            // under them, and offering them back is the whole point of the
-            // group (2026-08-17). What points into a `Completed.md` was ticked
-            // during the day, so it left by being done, not by being
-            // dropped.
+            // The unfinished ones become "recently pulled": the day turned
+            // under them, and offering them back is the group's point. What
+            // points into a `Completed.md` left by being done, not dropped.
             let gone: Vec<_> = state
                 .items
                 .iter()
@@ -165,8 +152,8 @@ mod tests {
     #[test]
     fn carry_leaves_behind_what_was_completed_during_the_day() {
         // A completed task keeps its reference so it can show under
-        // "Completed N" (2026-08-06) — but carrying yesterday's finished work
-        // into today's list is exactly what carry must not do.
+        // "Completed N" — but carrying yesterday's finished work into today's
+        // list is exactly what carry must not do.
         let mut state = state_with(
             ymd(2026, 7, 20),
             &[
@@ -192,7 +179,7 @@ mod tests {
     #[test]
     fn reset_remembers_the_unfinished_ones_it_dropped() {
         // The day turned under them: they are exactly what the user may want
-        // back, and "recently pulled" is where they come back (2026-08-17).
+        // back, and "recently pulled" is where they come back.
         let mut state = state_with(
             ymd(2026, 8, 16),
             &[

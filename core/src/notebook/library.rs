@@ -1,23 +1,8 @@
-//! The notebook seen from OUTSIDE — before it is opened, and after it is
-//! closed.
-//!
-//! Every other module in `notebook/` answers questions about the notebook the
-//! app is working in. This one answers the questions the PICKER asks about
-//! notebooks it is not working in: what to draw on a card for each of them,
-//! and the two things a picker may do to a notebook without entering it —
-//! rename it and move it.
-//!
-//! Which notebooks the picker lists is not here. That is the machine's own
-//! memory (`src-tauri/src/prefs.rs`), for the same reason the last notebook
-//! is: a list of recently opened folders answers to a computer, and syncing
-//! it would make two machines argue about paths that exist on only one of
-//! them.
-//!
-//! **Nothing here writes to the notebook it is summarizing.** [`Notebook::open`]
-//! deliberately does — it recreates the fixed spaces, clears expired trash and
-//! rebuilds the completed index — and a picker drawing eight cards must not
-//! touch eight notebooks on disk to do it. So the summary builds the value by
-//! hand from the config, and every count below is a read.
+//! The notebook seen from OUTSIDE: what the picker draws on a card for a
+//! notebook it is not working in, and the two things it may do without
+//! entering it — rename and move. Which notebooks it lists is the machine's
+//! memory (`src-tauri/src/prefs.rs`). **Nothing here writes to the notebook
+//! it summarizes** — unlike [`Notebook::open`] — so the summary is built by hand.
 
 use std::path::{Path, PathBuf};
 
@@ -31,14 +16,10 @@ pub struct NotebookSummary {
     /// The folder's name, which is what the user recognizes the notebook by —
     /// the same answer [`super::NotebookInfo`] gives for the open one.
     pub name: String,
-    /// The accent chosen INSIDE this notebook, by name (`"orange"`), so the
-    /// card can wear the colour of the place it opens. Empty means the
-    /// notebook never chose one and reads as the app's own.
-    ///
-    /// Deliberately the notebook's, not the machine's: `settings::Display`
-    /// lets this computer override the accent while it is open, and a picker
-    /// painting every card in that one override would say nothing about the
-    /// notebooks it is offering.
+    /// The accent chosen INSIDE this notebook, by name (`"orange"`); empty
+    /// means the app's own. The notebook's, not the machine's: a picker
+    /// painting every card in this computer's `settings::Display` override
+    /// would say nothing about the notebooks it offers.
     pub accent_color: String,
     /// Open tasks across every tasks space — what is still to do in there.
     pub tasks: usize,
@@ -83,15 +64,10 @@ impl Notebook {
         })
     }
 
-    /// What a picker draws for a notebook it has not opened.
-    ///
-    /// Refuses a folder that is not a notebook — a picker's list is paths
-    /// remembered from an earlier run, and a folder deleted or moved outside
-    /// the app is simply no longer one. A notebook in the pre-phase-7 layout
-    /// is NOT refused here: it carries a `.jott/`, it is still the user's
-    /// notebook, and it summarizes to zero counts. Refusing it would drop it
-    /// off the screen silently; opening it says why, which is the honest
-    /// place for that message ([`Notebook::open`]).
+    /// What a picker draws for a notebook it has not opened. Refuses a folder
+    /// that is not a notebook (deleted or moved outside the app). A
+    /// pre-phase-7 notebook is NOT refused here: it summarizes to zero counts,
+    /// and opening it is what says why ([`Notebook::open`]).
     pub fn summarize(path: impl AsRef<Path>) -> Result<NotebookSummary> {
         let root = path.as_ref().to_path_buf();
         if !Self::is_notebook(&root) {
@@ -114,14 +90,9 @@ impl Notebook {
         })
     }
 
-    /// How many notes sit in the Inbox of every notes space.
-    ///
-    /// The Inbox is where a note lands when nobody said where it goes
-    /// (`notefolder::NOTES_INBOX`), so this number is the one the picker
-    /// promises: what came in and has not been put away. A space whose Inbox
-    /// the user deleted counts zero rather than failing — the folder comes
-    /// back on the next open, and a missing directory is an empty one
-    /// everywhere else in the core (`fsio::dir_paths`).
+    /// How many notes sit in the Inbox of every notes space — what came in
+    /// and has not been put away. A space whose Inbox the user deleted counts
+    /// zero rather than failing (a missing directory is an empty one, `fsio::dir_paths`).
     fn notes_waiting(&self) -> Result<usize> {
         let mut waiting = 0;
         for (_, folder) in self.note_folders()? {
@@ -130,19 +101,10 @@ impl Notebook {
         Ok(waiting)
     }
 
-    /// Renames a notebook the app does not have open, by renaming its folder.
-    ///
-    /// The notebook's name IS its folder name (that is what `summarize`
-    /// reads), so there is nothing else to write — and nothing inside the
-    /// notebook points at its own root, so no link can break.
-    ///
-    /// Returns the new path, which the caller has to remember: whoever was
-    /// holding the old one — a list of recents, the last-opened preference —
-    /// is now holding a path that does not exist.
-    ///
-    /// Refuses to overwrite. `fs::rename` would happily replace an EMPTY
-    /// directory at the destination, and "rename" is not a word that may cost
-    /// someone a folder.
+    /// Renames a notebook the app does not have open, by renaming its folder
+    /// (the name IS the folder; nothing inside points at its own root).
+    /// Returns the new path, which the caller has to remember. Refuses to
+    /// overwrite: `fs::rename` would replace an EMPTY directory at the destination.
     pub fn rename_at(path: impl AsRef<Path>, name: &str) -> Result<PathBuf> {
         let root = path.as_ref().to_path_buf();
         if !Self::is_notebook(&root) {
@@ -169,22 +131,10 @@ impl Notebook {
         Ok(target)
     }
 
-    /// Moves a notebook the app does not have open into another folder.
-    ///
-    /// Same contract as [`Notebook::rename_at`]: the folder travels whole, the
-    /// new path comes back, and nothing at the destination is overwritten.
-    ///
-    /// `into` is a folder of the MACHINE, so it is not judged the way an
-    /// address inside a notebook is — it comes from a folder picker, not from
-    /// a text field. What is checked is what a rename cannot recover from: a
-    /// destination that is not a folder, one that already holds something by
-    /// this name, and a destination INSIDE the notebook being moved, which
-    /// would ask the folder to contain itself.
-    ///
-    /// A move across drives is refused by the operating system rather than
-    /// copied here: `fs::rename` cannot cross a filesystem, and a copy that
-    /// failed halfway would leave the notebook in two places with no way to
-    /// tell which one is whole. The error carries the system's own words.
+    /// Moves a notebook the app does not have open into another folder; same
+    /// contract as [`Notebook::rename_at`]. `into` comes from a folder picker,
+    /// so only the unrecoverable is checked: not a folder, name taken, or INSIDE
+    /// the notebook. Across drives the OS refuses (`fs::rename`) — never copied here.
     pub fn move_at(path: impl AsRef<Path>, into: impl AsRef<Path>) -> Result<PathBuf> {
         let root = path.as_ref().to_path_buf();
         let into = into.as_ref().to_path_buf();

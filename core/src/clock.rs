@@ -1,21 +1,13 @@
-//! The day, by the system clock.
-//!
-//! The turn of the day was a user preference until 2026-09-04 — an offset
-//! from midnight, for the planner who sets up tomorrow before bed or the
-//! night owl. The Home's calendar plans the next day on its own page, so the
-//! day is the calendar's now: it turns at local midnight, and the offset
-//! went with the setting.
+//! The day, by the system clock. The day turns at local midnight, no offset.
 //!
 //! Hard rule: this module is the ONLY place in the core allowed to read the
-//! system clock. `Local::now()` has one home, so that "which day is it" is
-//! answered the same way everywhere — and so that a test can pin the
-//! instant (the `_at` variants) instead of depending on when it runs.
+//! system clock, so "which day is it" is answered one way everywhere and a
+//! test can pin the instant (the `_at` variants).
 
 use chrono::{DateTime, Duration, Local, NaiveDate, NaiveDateTime, TimeZone};
 
 /// Which weekday opens the week — what the Home's calendar strip starts on.
-/// A display preference since the week stopped being a period (2026-09-04);
-/// it lives here because the config and the settings both spell it.
+/// A display preference; here because the config and the settings both spell it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum WeekStart {
     #[default]
@@ -41,7 +33,7 @@ impl WeekStart {
 }
 
 /// Today's date, by the system clock — the notebook's day and the stamp a
-/// trash item or a completion gets, one and the same since 2026-09-04.
+/// trash item or a completion gets, one and the same.
 pub fn civil_today() -> NaiveDate {
     Local::now().date_naive()
 }
@@ -53,20 +45,15 @@ pub fn civil_now() -> NaiveDateTime {
     Local::now().naive_local()
 }
 
-/// The local calendar day an instant fell on — a file's mtime, mostly.
-///
-/// Here rather than at the call site for the same reason as everything else
-/// in this module: turning an instant into a DAY is a calendar decision, and
-/// the app makes those in one place.
+/// The local calendar day an instant fell on — a file's mtime, mostly. Turning
+/// an instant into a DAY is a calendar decision, made in one place.
 pub fn civil_date_of(time: std::time::SystemTime) -> NaiveDate {
     DateTime::<Local>::from(time).date_naive()
 }
 
 /// When the next day turns — the coming midnight — from the system clock.
-///
-/// The `_at` variant takes the instant for the tests; this one exists so no
-/// caller outside this module ever needs `Local::now()` — which is the whole
-/// invariant (see `core/tests/invariants.rs`).
+/// The `_at` variant takes the instant for the tests; this one keeps
+/// `Local::now()` out of every caller (see `core/tests/invariants.rs`).
 pub fn next_daily_turn() -> DateTime<Local> {
     next_daily_turn_at(Local::now())
 }
@@ -82,12 +69,10 @@ fn next_daily_turn_at(now: DateTime<Local>) -> DateTime<Local> {
     )
 }
 
-/// Resolves a local wall clock time to an instant.
-///
-/// DST makes this partial: on a spring-forward night the instant may not
-/// exist at all, and on a fall-back night it happens twice. Taking the
-/// earliest match, and stepping forward until the clock exists, keeps the
-/// rollover firing once on those two nights a year instead of never.
+/// Resolves a local wall clock time to an instant. DST makes this partial:
+/// the instant may not exist (spring forward) or happen twice (fall back).
+/// Earliest match, stepping forward until the clock exists, keeps the
+/// rollover firing once on those nights instead of never.
 fn to_local(naive: NaiveDateTime) -> DateTime<Local> {
     for extra_minutes in 0..=120 {
         let candidate = naive + Duration::minutes(extra_minutes);
@@ -99,10 +84,8 @@ fn to_local(naive: NaiveDateTime) -> DateTime<Local> {
 }
 
 /// The wall clock as an INSTANT, for comparing against a file's mtime
-/// (`history::Stamp::is_racy`, 2026-08-24). Not a date: no calendar decision
-/// can be taken from it, which is why it lives here beside the logical day
-/// rather than being one more `SystemTime::now()` the invariant test would
-/// have to forbid.
+/// (`history::Stamp::is_racy`). Not a date: no calendar decision can be taken
+/// from it. Here so the invariant test has one `SystemTime::now()` to allow.
 pub fn system_now() -> std::time::SystemTime {
     std::time::SystemTime::now()
 }

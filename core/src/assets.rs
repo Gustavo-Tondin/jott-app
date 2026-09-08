@@ -1,60 +1,22 @@
-//! The asset library: the files a notebook carries.
-//!
-//! One folder, `assets/`, at the root of the notebook — not inside a space,
-//! because a file is not the property of the note that shows it: the same
-//! photo can be the banner of one note, an illustration inside another and a
-//! task's attachment tomorrow. A library shared by the whole notebook is the
-//! only shape that lets an address survive a note being moved.
-//!
-//! **Any file goes in; only an image is DRAWN** (user call, 2026-08-18, when
-//! task attachments started using it). A PDF, a spreadsheet, a zip are all
-//! things a task points at, and the library is where they live; whether one
-//! can be a banner, or an `![](…)` inside a note, is a separate question that
-//! [`is_image_name`] answers.
-//!
-//! ```text
-//! MyNotebook/
-//! ├── assets/
-//! │   ├── sunset.jpg
-//! │   └── logo.png
-//! └── jott.notes/…
-//! ```
-//!
-//! **An address is root-relative** (`assets/sunset.jpg`), decided by the user
-//! on 2026-08-18. A note-relative address (`../../assets/sunset.jpg`) would
-//! render in any other markdown editor, which was the argument for it; it also
-//! breaks the moment the note moves between folders or spaces, and moving
-//! notes is now a bulk action the user reaches in two clicks. Stability won.
-//!
-//! Nothing here decides what an address MEANS in a document. The app writes
-//! three forms, and none of them is this module's business:
-//! `[[/x.png]]` in a note's body (the app's own syntax, decided 2026-08-19 —
-//! `src/lib/services/embeds.js`), `<!--banner: assets/x.png-->` on a note's
-//! first line (see [`crate::note`]), and a markdown link on a task's file
-//! line (see [`crate::task::Attachment`]).
+//! The asset library: one flat `assets/` folder at the notebook root, shared
+//! by every note and task so an address (`assets/sunset.jpg`, root-relative)
+//! survives a note being moved. Any file goes in; only an image is DRAWN
+//! ([`is_image_name`]). What an address means in a document is decided by
+//! `embeds.js` (`[[/x.png]]`), [`crate::note`] (banner) and [`crate::task::Attachment`].
 
 use std::path::{Path, PathBuf};
 
 use crate::error::{Error, IoContext, Result};
 use crate::relpath;
 
-/// Folder holding the notebook's images, relative to its root.
-///
-/// No `jott.` prefix, unlike the three fixed spaces: those are *spaces*, and
-/// the prefix is what keeps the words "Tasks" and "Notes" free for the user to
-/// name their own with. This is not a space and never appears in the sidebar
-/// — it is one plain folder of plain image files, which is the whole point
-/// (principle 4).
+/// The library folder, relative to the notebook root. No `jott.` prefix: it
+/// is not a space and never appears in the sidebar.
 pub const ASSETS_DIR: &str = "assets";
 
-/// What the app DRAWS, lowercase. Not a filter on what may be stored — a
-/// filter on what a banner, a note's `![](…)` and a thumbnail can be.
-///
-/// A closed list rather than "whatever the OS thinks": the webview is what has
-/// to draw these, and an address the app wrote must be one the app can show.
-/// Public because it is THE list — [`extension_for_type`] answers a downloaded
-/// image's content-type out of it, and a second copy in the bridge drifted once
-/// before it was moved here.
+/// What the app DRAWS, lowercase — a filter on banners, `![](…)` and
+/// thumbnails, not on what may be stored. Closed list: the webview has to
+/// draw these. THE list: [`extension_for_type`] answers out of it, and the
+/// bridge must not keep a copy.
 pub const IMAGE_EXTENSIONS: [&str; 8] = [
     "png", "jpg", "jpeg", "gif", "webp", "svg", "avif", "bmp",
 ];
@@ -71,9 +33,8 @@ pub struct AssetEntry {
     /// Seconds since the epoch, for "newest first". Absent when the
     /// filesystem does not answer, which is not a reason to hide the file.
     pub modified: Option<u64>,
-    /// Whether the interface can DRAW it — a thumbnail, a banner, an image in
-    /// a note. Everything else is a file with a name, which is all an
-    /// attachment ever needs to be.
+    /// Whether the interface can DRAW it (thumbnail, banner, image in a
+    /// note). Everything else is a file with a name.
     pub image: bool,
 }
 
@@ -92,16 +53,12 @@ impl Assets {
         &self.dir
     }
 
-    /// Every file in the folder, newest first.
-    ///
-    /// A missing folder is an empty library, never an error: the notebook only
-    /// grows one the first time something is imported (`fsio::dir_paths`
-    /// already keeps that promise).
+    /// Every file in the folder, newest first. A missing folder is an empty
+    /// library, never an error: it only exists after the first import.
     pub fn list(&self) -> Result<Vec<AssetEntry>> {
         let mut found: Vec<AssetEntry> = Vec::new();
         for path in crate::fsio::dir_paths(&self.dir)? {
-            // A hidden entry is another tool's business, and a folder someone
-            // made in here is not an asset — the library is flat.
+            // Hidden entries are another tool's; the library is flat.
             if crate::fsio::is_hidden(&path) || !path.is_file() {
                 continue;
             }
@@ -119,9 +76,7 @@ impl Assets {
                 }),
             });
         }
-        // Newest first, then by name — the same shape the notes board reads
-        // in, and the only order in which a just-imported file is where the
-        // eye goes looking for it.
+        // Newest first, then by name — the same order as the notes board.
         found.sort_by(|a, b| {
             b.modified
                 .cmp(&a.modified)
@@ -131,11 +86,7 @@ impl Assets {
     }
 
     /// Writes a file into the library, returning its root-relative address.
-    ///
-    /// A colliding name is suffixed, never overwritten — the same free-name
-    /// dance every other write in the app goes through. Losing the picture
-    /// someone imported last week to a second file called `image.png` would be
-    /// silent, and silent is the one thing a file operation must not be.
+    /// A colliding name is suffixed, never overwritten.
     pub fn import(&self, file_name: &str, bytes: &[u8]) -> Result<String> {
         let name = sanitize_name(file_name)?;
         std::fs::create_dir_all(&self.dir).ctx(&self.dir)?;
@@ -145,10 +96,8 @@ impl Assets {
     }
 
     /// The file behind an address, or an error when it is not one of ours.
-    ///
-    /// Every address the interface hands back goes through here: it is user
-    /// input the moment someone types it into a note, and `..` in a markdown
-    /// link is a perfectly ordinary thing to write.
+    /// Every address from the interface is user input (`..` in a link is
+    /// ordinary), so it goes through here.
     pub fn file(&self, address: &str) -> Result<PathBuf> {
         let name = name_of(address).ok_or_else(|| invalid(address))?;
         if !relpath::is_safe_leaf(name) {
@@ -167,12 +116,9 @@ pub fn address(name: &str) -> String {
     format!("{ASSETS_DIR}/{name}")
 }
 
-/// The file name inside an address, for an address of the library — `None`
-/// for anything that does not live in it.
-///
-/// Deliberately strict: `assets/x.png` and nothing else. An address that
-/// points outside is not "an asset the app failed to find", it is a link the
-/// user wrote to their own file, and the app has no business resolving it.
+/// The file name inside a library address — `None` for anything else.
+/// Strict: `assets/x.png` and nothing else. An address pointing outside is a
+/// link the user wrote to their own file, not the app's to resolve.
 pub fn name_of(address: &str) -> Option<&str> {
     let rest = address.strip_prefix(ASSETS_DIR)?.strip_prefix('/')?;
     (!rest.is_empty() && !rest.contains('/')).then_some(rest)
@@ -188,17 +134,12 @@ pub fn is_image_name(name: &str) -> bool {
     IMAGE_EXTENSIONS.contains(&ext.as_str())
 }
 
-/// The extension a picture of this content type is stored under. `None` for
-/// anything the app cannot draw — the same closed list above, for the same
-/// reason: an address the app wrote must be one it can show.
-///
-/// Downloading the picture is the bridge's (it is the one thing this app does
-/// that leaves the machine); deciding what came back IS a picture, and what to
-/// call the file it lands in, is the library's.
+/// The extension a picture of this content type is stored under; `None` for
+/// anything the app cannot draw (same closed list). Downloading is the
+/// bridge's; deciding what came back is a picture is the library's.
 pub fn extension_for_type(content_type: &str) -> Option<&'static str> {
-    // The two subtypes whose conventional extension is not the subtype
-    // itself; everything else is answered by the closed list, so a format
-    // added there is accepted here without a second list to update.
+    // The two subtypes whose extension is not the subtype itself; the rest
+    // is answered by the closed list, so a format added there is accepted here.
     let extension = match content_type.strip_prefix("image/")? {
         "jpeg" | "jpg" => "jpg",
         "svg+xml" => "svg",
@@ -210,12 +151,9 @@ pub fn extension_for_type(content_type: &str) -> Option<&'static str> {
         .copied()
 }
 
-/// A name for the file, from the last readable piece of an address.
-///
-/// The query string is dropped and so is the extension the URL claims: the
-/// content type decides that ([`extension_for_type`]). `image` when there is
-/// nothing to go on — the library suffixes a colliding name rather than
-/// overwriting it.
+/// A name for the file, from the last readable piece of an address. Query
+/// string and claimed extension are dropped (the content type decides,
+/// [`extension_for_type`]); `image` when there is nothing to go on.
 pub fn name_from_url(url: &str) -> String {
     let path = url
         .trim_start_matches("https://")
@@ -238,8 +176,7 @@ pub fn name_from_url(url: &str) -> String {
 
 /// An imported name becomes a file name, so it has to survive being one.
 fn sanitize_name(name: &str) -> Result<String> {
-    // Whatever the browser handed over may carry a path (some file pickers
-    // send `folder/file.png`); only the leaf is ours.
+    // Some file pickers send `folder/file.png`; only the leaf is ours.
     let leaf = name.rsplit(['/', '\\']).next().unwrap_or(name);
     let cleaned = leaf.trim().replace('\0', "-");
     let cleaned = cleaned.trim().trim_start_matches('.').trim().to_string();
@@ -255,8 +192,8 @@ mod tests {
 
     #[test]
     fn a_name_is_made_from_the_address_and_the_type() {
-        // The real one from the user's clipboard, query string and all: the
-        // extension comes from the content type, never from the URL.
+        // Query string and all: the extension comes from the content type,
+        // never from the URL.
         assert_eq!(
             name_from_url(
                 "https://cdnb.artstation.com/p/assets/images/087/large/daoz-51.jpg?1747030361"
@@ -312,11 +249,8 @@ mod tests {
 
     #[test]
     fn any_file_is_stored_and_the_listing_says_which_are_drawable() {
-        // Decided 2026-08-18, when task attachments started using the library:
-        // a PDF, a spreadsheet and a zip are all things a task points at, and
-        // this is where they live. What `image` decides is whether the
-        // interface DRAWS it — a thumbnail, a banner — or shows a file with a
-        // name, which is all an attachment needs to be.
+        // A PDF, a spreadsheet, a zip all live here; `image` only says whether
+        // the interface DRAWS it or shows a file with a name.
         let (_dir, assets) = library();
         assets.import("ok.png", b"x").unwrap();
         assets.import("nota-fiscal.pdf", b"xx").unwrap();
@@ -376,9 +310,8 @@ mod tests {
     fn the_newest_asset_is_listed_first() {
         let (_dir, assets) = library();
         assets.import("old.png", b"x").unwrap();
-        // Two files written in the same second would tie, and the tie-break is
-        // the name; stamping the older one back an hour is what makes this a
-        // test of the ORDER rather than of the filesystem's clock resolution.
+        // Same-second writes tie on the name; stamping the older one back an
+        // hour makes this a test of the order, not of the clock resolution.
         let old = assets.file("assets/old.png").unwrap();
         let hour_ago = std::time::SystemTime::now() - std::time::Duration::from_secs(3600);
         std::fs::File::options()

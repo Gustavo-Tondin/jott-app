@@ -1,14 +1,8 @@
 //! Spaces: the folders that hold the user's content, and the primitives that
-//! move any marked folder around.
-//!
-//! A space is a folder carrying a `.space.json` with its type — `tasks` or
-//! `notes`, chosen at creation and never changed (spec 3.5). Its identity is
-//! its **root-relative path**, not its leaf name: two groups may each hold a
-//! `Tasks/`, which is an arrangement a user builds on purpose (2026-08-13).
-//!
-//! [`Notebook::create_marked_folder`], [`Notebook::relocate`] and
-//! [`Notebook::parent_group_of`] serve groups too (see [`super::groups`]): a
-//! group is the same kind of marked folder, under a different marker.
+//! move any marked folder around. A space carries a `.space.json` with its
+//! type (`tasks` or `notes`, fixed at creation); its identity is its
+//! **root-relative path**, not its leaf. `create_marked_folder`, `relocate`
+//! and `parent_group_of` serve groups too (`super::groups`).
 
 use std::path::{Path, PathBuf};
 
@@ -30,17 +24,12 @@ fn type_rank(kind: &str) -> u8 {
 }
 
 impl Notebook {
-    /// The spaces of this notebook: every first-level folder carrying a
-    /// `.space.json`, alphabetically by folder name.
-    ///
-    /// Folders without the marker are ignored on purpose — a stray folder
-    /// dropped into the notebook (downloads, an attachments dir, whatever a
-    /// sync tool leaves) must never turn into interface on its own.
+    /// The spaces of this notebook: every folder carrying a `.space.json`,
+    /// at the root or inside a group. Folders without the marker are ignored:
+    /// a stray folder must never turn into interface on its own.
     pub fn spaces(&self) -> Result<Vec<crate::space::Space>> {
-        // Spaces live at the root and inside groups, and groups nest (spec
-        // 3.5), so `group_dirs` walks the whole tree. A space's identity is
-        // its ROOT-RELATIVE PATH, never the leaf name: `Design/Tasks` and
-        // `Personal/Tasks` are two legitimate spaces (see `open_space`).
+        // Groups nest, so `group_dirs` walks the whole tree. A space's
+        // identity is its ROOT-RELATIVE PATH, never the leaf (see `open_space`).
         let mut found = Vec::new();
         self.collect_spaces(&self.root, &mut found)?;
         for group_dir in self.group_dirs()? {
@@ -52,10 +41,9 @@ impl Notebook {
             crate::relpath::relative_slash(&self.root, sp.root())
         };
         found.sort_by_key(path_of);
-        // `name` sorts by what the user READS, which is not the folder name a
-        // space was created under (2026-08-06). Anything else — including
-        // the default — is the hand-dragged order; fixed spaces are not
-        // named in it and simply keep their place.
+        // `name` sorts by what the user READS, not the folder. Anything else,
+        // including the default, is the hand-dragged order; fixed spaces are
+        // not named in it and keep their place.
         let by_name = |a: &crate::space::Space, b: &crate::space::Space| {
             a.display_name()
                 .to_lowercase()
@@ -63,9 +51,8 @@ impl Notebook {
         };
         match self.config.spaces_sort.as_str() {
             "name" => found.sort_by(by_name),
-            // `type` puts every list before every notepad — the two functions
-            // a space can have (spec 3.5) — and reads by name inside each half,
-            // so the arrangement is stable under a rename.
+            // `type` puts every list before every notepad, by name inside
+            // each half, so the arrangement is stable under a rename.
             "type" => found.sort_by(|a, b| {
                 type_rank(a.kind())
                     .cmp(&type_rank(b.kind()))
@@ -83,10 +70,8 @@ impl Notebook {
         Ok(found)
     }
 
-    /// Every space's root-relative path, mapped to the name the user
-    /// reads. The one place that answers "what is this address called?" —
-    /// the frontend used to derive it from the path, which put the folder on
-    /// screen the moment the fixed folders gained their `jott.` prefix.
+    /// Every space's root-relative path, mapped to the name the user reads —
+    /// the one place that answers "what is this address called?".
     pub(super) fn space_labels(&self) -> Result<std::collections::HashMap<String, String>> {
         Ok(self
             .spaces()?
@@ -94,15 +79,9 @@ impl Notebook {
             .map(|sp| {
                 let path = crate::relpath::relative_slash(&self.root, sp.root());
                 // The label is the space's READABLE ADDRESS, not just its
-                // name (user call, 2026-08-13): `Design/Tasks` for one inside a
-                // group, `Mercado` for a loose one. Two spaces called Tasks
-                // in two different groups are a normal thing to have, and named
-                // alone they were the same word twice in the same picker.
-                //
-                // Building it from the path costs nothing now that a group's
-                // name IS its folder — there is no second name to look up. Only
-                // the leaf can differ from its folder, and only for the app's
-                // own `jott.*` spaces, so only the leaf is substituted.
+                // name: `Design/Tasks` inside a group, `Mercado` when loose —
+                // two spaces called Tasks in two groups are normal. A group's
+                // name IS its folder; only the leaf can differ (`jott.*`).
                 let mut parts: Vec<&str> = path.split('/').collect();
                 if let Some(last) = parts.last_mut() {
                     *last = sp.display_name();
@@ -127,11 +106,7 @@ impl Notebook {
     }
 
     /// Every space folder of a given type, as (root-relative prefix,
-    /// absolute dir). The walk behind `task_folders` and `note_folders` (in
-    /// the `lists` and `notes` areas) — they
-    /// differ only in the type they ask for and the folder value they build,
-    /// so the walk itself is written once. A space is its own content
-    /// folder.
+    /// absolute dir): the walk behind `task_folders` and `note_folders`.
     pub(super) fn typed_space_dirs(&self, kind: &str) -> Result<Vec<(String, PathBuf)>> {
         let mut found = Vec::new();
         for space in self.spaces()? {
@@ -163,11 +138,8 @@ impl Notebook {
     }
 
     /// The three spaces the app creates and recreates — never renamed,
-    /// deleted, nor treated as user content. They carry the `jott.` prefix, so
-    /// the plain names (`Tasks`, `Notes`, `Home`) are the user's to take.
-    /// Public because the interface greys out what this refuses — a second
-    /// copy of the three names in the bridge would drift from the rule that
-    /// actually enforces them.
+    /// deleted, nor treated as user content. Public because the interface
+    /// greys out what this refuses, from this rule and not a copy of it.
     pub fn is_fixed_space(folder: &str) -> bool {
         folder == crate::HOME_DIR || folder == TASKS_DIR || folder == NOTES_DIR
     }
@@ -178,31 +150,24 @@ impl Notebook {
         if !crate::relpath::is_safe_leaf(name) {
             return Err(Error::InvalidSpaceName(name.to_string()));
         }
-        // `assets/` is the notebook's image library (2026-08-18) and lives at
-        // the root, so a space of that name would end up holding it. Refused
-        // by NAME rather than only where it would actually collide, the same
-        // way `completed` and `task-list` are: a word the app writes files
-        // under is not a word the user gets to name a folder with, and a rule
-        // that depends on where you are is a rule nobody can predict.
+        // `assets/` is the notebook's image library at the root. Refused by
+        // NAME wherever the space would go, like `completed` and `task-list`:
+        // a word the app writes files under is not a folder name.
         if name.eq_ignore_ascii_case(crate::assets::ASSETS_DIR) {
             return Err(Error::InvalidSpaceName(format!("{name} is reserved")));
         }
         Ok(())
     }
 
-    /// Creates a user space at the root: a folder carrying a
-    /// `.space.json` with the chosen type (`tasks` or `notes`) — the
-    /// space's single function, chosen at creation and never changed
-    /// (spec 3.5). A space is born usable: `task-list.md` plus
-    /// `completed.md` for tasks, the Inbox folder for notes. Returns the
-    /// folder name.
+    /// Creates a user space at the root: a folder carrying a `.space.json`
+    /// with the chosen type (`tasks` or `notes`), born usable (`task-list.md`
+    /// plus `completed.md`, or the Inbox folder). Returns the folder name.
     pub fn create_space(&self, name: &str, kind: &str) -> Result<String> {
         self.create_space_in(name, kind, None)
     }
 
-    /// Creates a space at the root or inside a group. The folder name is
-    /// the identity — unique across the notebook (spec 3.5), so a space
-    /// in a group is addressed the same as one at the root. Returns the name.
+    /// Creates a space at the root or inside a group; returns its
+    /// root-relative path, the address it is opened by.
     pub fn create_space_in(
         &self,
         name: &str,
@@ -226,10 +191,8 @@ impl Notebook {
             crate::space::SPACE_CONFIG_FILE,
             &config.render(),
         )?;
-        // Born usable, whichever kind: a tasks space gets its one list and the
-        // Completed beside it, under the names every tasks space uses
-        // (2026-08-13); a notes space gets its Inbox folder, where the app
-        // files what is captured without a destination.
+        // Born usable: a tasks space gets its list and Completed; a notes
+        // space gets its Inbox folder.
         let dir = self.resolve_space_path(&folder)?;
         if kind == "tasks" {
             crate::folder::TaskFolder::new(dir).ensure_default_lists()?;
@@ -239,13 +202,9 @@ impl Notebook {
         Ok(folder)
     }
 
-    /// Creates a folder that carries a marker — a space or a group.
-    ///
-    /// Creating either is the same act: a name that has to be a safe leaf, free
-    /// across the whole notebook (spec 3.5 — the leaf name *is* the identity),
-    /// on a folder that does not exist yet, plus the marker file that turns it
-    /// into interface. Only the marker differs, so the marker (and its body)
-    /// is a parameter.
+    /// Creates a folder that carries a marker — a space or a group: a safe
+    /// leaf, free among its siblings, plus the marker file that turns it into
+    /// interface. Only the marker (and its body) differs.
     pub(super) fn create_marked_folder(
         &self,
         name: &str,
@@ -255,22 +214,16 @@ impl Notebook {
     ) -> Result<String> {
         let folder = name.trim();
         Self::check_space_name(folder)?;
-        // A space called `completed` used to be refused, because its list
-        // was named after its folder and would have collided with its own
-        // `completed.md`. Fixed file names removed the collision, but the name
-        // is still refused: a folder and a file called the same thing inside it
-        // is a trap for whoever opens the notebook without the app.
+        // `completed` and `task-list` are refused by name: a folder and a
+        // file called the same thing inside it is a trap outside the app.
         if Self::is_fixed_space(folder)
             || folder.eq_ignore_ascii_case(COMPLETED_LIST)
             || folder.eq_ignore_ascii_case(crate::MAIN_LIST)
         {
             return Err(Error::InvalidSpaceName(format!("{folder} is reserved")));
         }
-        // Free HERE, not notebook-wide (2026-08-13). A name had to be unique
-        // across the whole notebook while the leaf was the identity; now the
-        // PATH is, so two groups may each hold a `Tasks/` — which is exactly
-        // what a user builds on purpose. The only collision left is the real
-        // one: a sibling of the same name.
+        // Free HERE, not notebook-wide: the PATH is the identity, so two
+        // groups may each hold a `Tasks/`. The only collision is a sibling.
         let dir = parent.join(folder);
         if dir.exists() {
             return Err(Error::InvalidSpaceName(format!("{folder} already exists")));
@@ -325,16 +278,8 @@ impl Notebook {
     }
 
     /// Opens a space by its **root-relative path** (`Mercado`,
-    /// `Design/Tasks`).
-    ///
-    /// The path, not the leaf name (2026-08-13). The leaf used to be the
-    /// identity, "unique across the notebook", and that invariant died the
-    /// moment the folder became the name: two groups may each hold a `Tasks/`,
-    /// which is exactly the arrangement a user builds on purpose. The old
-    /// lookup searched the root and then every group for a matching leaf, so
-    /// with two matches it silently opened the first — and the sidebar
-    /// highlighted BOTH, because both answered to the same address (user
-    /// report, screen recording 2026-08-13).
+    /// `Design/Tasks`) — the path, not the leaf: two groups may each hold a
+    /// `Tasks/`, and a leaf lookup would open the first and highlight both.
     pub(super) fn open_space(&self, path: &str) -> Result<crate::space::Space> {
         let dir = self.resolve_space_path(path)?;
         crate::space::Space::open(dir)
@@ -347,10 +292,9 @@ impl Notebook {
             .ok_or_else(|| Error::InvalidSpaceName(path.to_string()))
     }
 
-    /// Moves a space into a group (`Some`) or back to the root (`None`),
-    /// renaming its folder. Identity is the root-relative PATH (2026-08-13),
-    /// and the path is exactly what a move changes — so the states and the
-    /// stored arrangements are repointed by `relocate`.
+    /// Moves a space into a group (`Some`) or back to the root (`None`). The
+    /// path is the identity and is what a move changes, so the states and
+    /// the stored arrangements are repointed by `relocate`.
     pub fn move_space(&mut self, name: &str, into_group: Option<&str>) -> Result<()> {
         self.ensure_writable()?;
         if Self::is_fixed_space(name) {
@@ -367,11 +311,8 @@ impl Notebook {
         self.relocate(&from, &target_parent, &leaf)
     }
 
-    /// Moves a marked folder under a new parent, keeping its name.
-    ///
-    /// Every list under it just changed address, so the day references
-    /// follow — a reference left pointing at the old path reads as a task that
-    /// vanished.
+    /// Moves a marked folder under a new parent, keeping its name. Every
+    /// list under it just changed address, so the day references follow.
     pub(super) fn relocate(&mut self, from: &Path, target_parent: &Path, name: &str) -> Result<()> {
         let to = target_parent.join(name);
         if from == to {
@@ -388,16 +329,12 @@ impl Notebook {
 
         self.update_states(|state| state.rename_prefix(&from_rel, &to_rel))?;
         // The hand-dragged arrangements are addressed by folder too, and a
-        // stale one fails silently: the space just falls to the end of a
-        // column the user arranged (services/sidebarOrder.js reads what is
-        // stored, and what is stored no longer names anything).
+        // stale one fails silently (the space falls to the end of the column).
         self.edit_config_if(|config| config.relocate_orders(&from_rel, &to_rel))?;
         // The aggregated index holds paths too; it is reconstructible, so a
         // failure here must not fail the move.
         let _ = self.refresh_completed_index();
-        // So does the "last seen" one, keyed by root-relative address: every
-        // note under a moved space just changed address, and one whose stamp
-        // stayed behind reads as never opened.
+        // So does the "last seen" index, keyed by root-relative address.
         self.seen_moved(&from_rel, &to_rel);
         // Every note and task under it just changed address; the log has no
         // folders, only things, so it takes a line each.
@@ -413,17 +350,10 @@ impl Notebook {
             .map(|parent| crate::relpath::relative_slash(&self.root, parent))
     }
 
-    /// Renames a space by renaming its **FOLDER** (user call, 2026-08-13).
-    ///
-    /// It used to write a `name` into the marker and leave the folder alone,
-    /// which kept the identity stable but made the name a second copy of it —
-    /// and the two drifted the moment anything was renamed. The folder is the
-    /// name now, in both directions: rename it here and the disk follows;
-    /// rename it in a file manager and the sidebar follows.
-    ///
-    /// The app's own `jott.*` spaces cannot take that route — their folder
-    /// name is an identifier the app recreates — so those, and only those,
-    /// still keep their label in the marker.
+    /// Renames a space by renaming its **FOLDER**: the folder is the name in
+    /// both directions (here, and in a file manager). The app's own `jott.*`
+    /// spaces cannot take that route — their folder is an identifier the app
+    /// recreates — so those, and only those, keep their label in the marker.
     pub fn rename_space(&mut self, folder: &str, new_name: &str) -> Result<()> {
         self.ensure_writable()?;
         let sp = self.open_space(folder)?;
@@ -437,9 +367,8 @@ impl Notebook {
         let from = sp.root().to_path_buf();
         let parent = from.parent().unwrap_or(&self.root).to_path_buf();
         self.relocate(&from, &parent, name)?;
-        // The marker's `name` is dead weight from here on: it is no longer
-        // read for a user space, and leaving it would show up in a diff as
-        // a name that disagrees with the folder.
+        // The marker's `name` is no longer read for a user space; left in
+        // place it would disagree with the folder.
         let moved = parent.join(name).join(crate::space::SPACE_CONFIG_FILE);
         edit_marked_config(moved, |config| config.name = None)
     }

@@ -1,13 +1,7 @@
-//! The notebook's `.jott/config.json`.
-//!
-//! Holds the preferences that belong to the *notebook* and therefore travel
-//! with it when it syncs. Machine preferences (last window, last notebook
-//! opened) live in the OS config folder instead, and never here.
-//!
-//! Reading is deliberately forgiving (spec 3.4): a missing key takes the
-//! default, a malformed value takes the default, and an unreadable file is
-//! recreated. What is never forgiven is *losing* data — an unknown key
-//! written by another version of the app survives a rewrite untouched.
+//! The notebook's `.jott/config.json`: preferences that travel with the
+//! notebook. Machine preferences live in the OS config folder, never here.
+//! Reading is forgiving (missing or malformed key = default, unreadable file
+//! recreated); an unknown key written by another version survives a rewrite.
 
 use std::collections::BTreeMap;
 use std::path::Path;
@@ -24,10 +18,8 @@ pub const SUPPORTED_SCHEMA_VERSION: u64 = 1;
 /// What happens to unfinished tasks when the period turns.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum RolloverMode {
-    /// Empty the state; unfinished tasks go back to being suggestions.
-    ///
-    /// The default, because the day and the week are an active choice of what
-    /// to do in that period — not a queue that piles up on its own.
+    /// Empty the state; unfinished tasks go back to being suggestions. The
+    /// default: the day is an active choice, not a queue that piles up.
     #[default]
     Reset,
     /// Keep the pulled references, so they show up already pulled.
@@ -50,36 +42,25 @@ impl RolloverMode {
     }
 }
 
-/// Rollover preferences for the day. Until 2026-09-04 there was an `at` —
-/// the hour the day turned, as a signed offset from midnight. It went with
-/// the calendar on the Home (user call): the next day is planned on its own
-/// page, so the day is the calendar's day, and a knob nobody could set
-/// right (the author typed `21:00` and got yesterday until the evening)
-/// had nothing left to buy. An `at` a notebook still carries is an unknown
-/// key now, read by nothing.
+/// Rollover preferences for the day. A `daily.at` a notebook still carries
+/// is an unknown key now: it round-trips, and nothing reads it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct DailyRollover {
     pub mode: RolloverMode,
 }
 
-/// The turn of the day. Until 2026-09-04 a `weekly` half sat beside it; the
-/// week stopped being a period when the Home's calendar let any day ahead
-/// be planned, and a `rollover.weekly` a notebook still carries is an
-/// unknown key now — it round-trips, and nothing reads it but the fallback
-/// for `weekStartsOn`.
+/// The turn of the day. A `rollover.weekly` a notebook still carries is an
+/// unknown key: it round-trips, and only the `weekStartsOn` fallback reads it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct Rollover {
     pub daily: DailyRollover,
 }
 
 /// How a date is shown. The file always stores ISO; this is display only.
-///
-/// A closed set rather than a free pattern, for the same reason the repeat
-/// field is a select: a value the app cannot parse would have to fall back
-/// silently, and a date shown wrong is worse than a date shown plainly.
+/// A closed set, not a free pattern: an unparseable value would fall back silently.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum DateFormat {
-    /// `07/25/2026` — the default since 2026-08-06 (user call).
+    /// `07/25/2026` — the default.
     #[default]
     MonthDayYear,
     /// `25/07/2026`
@@ -89,10 +70,8 @@ pub enum DateFormat {
 }
 
 impl DateFormat {
-    /// The shapes on offer all use `/` (user call, 2026-08-06): mixing `-`
-    /// and `/` in the same picker read as two unrelated settings. The hyphen
-    /// spellings a notebook may already carry still parse, so nobody's config
-    /// silently changes meaning — they just land on the matching slash shape.
+    /// Every shape uses `/`; the hyphen spellings a notebook may still carry
+    /// parse too, landing on the matching slash shape.
     pub fn parse_or_default(text: &str) -> Self {
         match text.trim().to_ascii_lowercase().as_str() {
             "dd/mm/yyyy" | "dd-mm-yyyy" => Self::DayMonthYear,
@@ -126,65 +105,33 @@ impl DateFormat {
 pub struct Config {
     schema_version: u64,
     pub rollover: Rollover,
-    /// Which weekday the Home's calendar strip starts on. A DISPLAY choice
-    /// that travels with the notebook because it always did: it was
-    /// `rollover.weekly.startsOn` while the week was a period, and that key
-    /// is still read when this one is absent.
+    /// Which weekday the Home's calendar strip starts on. Travels with the
+    /// notebook; `rollover.weekly.startsOn` is still read when this is absent.
     pub week_starts_on: WeekStart,
-    /// Reopen on the screen the user left, instead of always landing on Today.
-    ///
-    /// Off by default: landing somewhere temporally relevant is the more
-    /// predictable behaviour, and this is the kind of thing people want only
-    /// once they have a habit. The *preference* lives here so it applies on
-    /// every machine; the screen it points at is machine-specific and lives in
-    /// the OS config folder.
+    /// Reopen on the screen the user left instead of Today. The preference
+    /// lives here; the screen it points at is machine-specific (OS config folder).
     pub restore_last_screen: bool,
     /// Show how many open tasks each list has, in the navigation.
     pub show_list_counts: bool,
-    /// A task with a date shows up in the Day (and in the Week) on its own,
-    /// without being pulled by hand.
-    ///
-    /// On by default (2026-08-14). Until then Day and Week were 100% manual,
-    /// and a date only changed the ORDER of the suggestions — which meant a
-    /// task written for today sat in a list until the user went looking for
-    /// it, and the app quietly failed at the one thing a date is for.
-    ///
-    /// This never writes to the state: a dated task is added when the period
-    /// is READ, so nothing has to be cleaned up when the day turns, un-dating
-    /// a task takes it straight back out, and a task pulled by hand keeps
-    /// being pulled by hand.
+    /// A dated task shows up in the Day on its own, without being pulled.
+    /// Never writes to the state: the task is added when the period is READ,
+    /// so un-dating takes it straight out and a hand-pulled task stays pulled.
     pub dated_tasks_join_period: bool,
-    /// Ask before deleting. On by default, and turned off from the dialog
-    /// itself ("don't ask again", 2026-08-19).
-    ///
-    /// Honest to offer only because nothing in this app is destroyed: a
-    /// deleted note, list, space or file goes to `.jott/trash/` and comes
-    /// back. Someone who has understood that is entitled to stop being asked.
+    /// Ask before deleting. Turned off from the dialog itself ("don't ask
+    /// again"); safe to offer because every delete goes to `.jott/trash/`.
     pub confirm_deletes: bool,
-    /// Ask before the app fetches an image from the internet.
-    ///
-    /// Pasting a picture copied from a web page hands the app a `https://`
-    /// address and nothing else, so drawing it means DOWNLOADING it — the one
-    /// thing this app does that reaches outside the machine. On by default,
-    /// and the dialog it controls says which host is being contacted
-    /// (principle 9: every external connection is explained). Turning it off
-    /// is the user saying they have understood and would rather not be asked
-    /// again.
+    /// Ask before the app fetches an image from the internet: a pasted
+    /// `https://` picture must be DOWNLOADED to be drawn, the one thing that
+    /// reaches outside the machine. The dialog names the host (principle 9).
     pub confirm_image_downloads: bool,
-    /// Whether the Timeline names what was deleted. Off by default
-    /// (2026-08-27): a thing thrown away may have been thrown away for
-    /// privacy, so a ghost reads as "deleted task" in its space's colour
-    /// and nothing more. The log keeps the birth title either way — this
-    /// is what the SCREEN says, and "Remove from timeline" is the door for
-    /// someone who wants the line itself gone.
+    /// Whether the Timeline names what was deleted. Off: a ghost reads as
+    /// "deleted task" in its space's colour. The log keeps the birth title
+    /// either way — this is only what the SCREEN says.
     pub timeline_ghost_tasks: bool,
     /// The same, for deleted notes.
     pub timeline_ghost_notes: bool,
-    /// Treat a task due today or overdue as urgent, without being told.
-    ///
-    /// On by default, but switchable: some people find an interface that
-    /// paints deadlines red on its own more stressful than useful. The
-    /// `#urgent` tag written by hand always counts, either way.
+    /// Treat a task due today or overdue as urgent. Switchable; a hand-written
+    /// `#urgent` tag always counts.
     pub auto_urgent_by_date: bool,
     /// Ring for every dated task without being asked (`off` / `dayOf` /
     /// `dayBefore` / `both`), at `reminder_time`. Computed, never written into the
@@ -193,186 +140,106 @@ pub struct Config {
     /// `HH:MM`: when the automatic reminder rings, and the hour the
     /// inspector's presets land on.
     pub reminder_time: crate::reminders::ReminderTime,
-    /// Where a new task lands in its list: above the first task (`true`, the
-    /// default) or below the last (`false`). A quick capture wants to see
-    /// what it just wrote; a plan written in order wants the order kept. The
-    /// file decides nothing here: `List::add_first` keeps whatever sits
-    /// above the checklist above it.
+    /// Where a new task lands in its list: above the first (`true`) or below
+    /// the last. `List::add_first` keeps whatever sits above the checklist there.
     pub new_tasks_on_top: bool,
-    /// The sidebar's rainbow (2026-08-24): every top-level entry takes the
-    /// next of the seven, in sidebar order, starting from the accent — the
-    /// fixed spaces wear the accent, the first list the colour after it, and
-    /// so on around. It IGNORES the colour a space chose: it is a look for
-    /// the whole column, not a default for the gaps. A Display choice — this
-    /// value is the notebook's recoil for a machine that never answered
-    /// (`settings::Display::resolve`), like `theme` and `accent_color`.
+    /// The sidebar's rainbow: every top-level entry takes the next of the
+    /// seven colours in sidebar order, starting from the accent. It IGNORES
+    /// the colour a space chose. A Display choice: the notebook's fallback
+    /// for a machine that never answered (`settings::Display::resolve`).
     pub auto_space_colors: bool,
     /// How dates are shown. The file always stores ISO.
     pub date_display_format: DateFormat,
-    /// Which of the app's eight colours is the accent — the
-    /// colour of the open sidebar row, the primary button, a focus ring
-    /// (2026-08-13). A NAME (`"orange"`), never a hex: each of the eight has a
-    /// light half and a dark half, and which one is shown depends on the
-    /// ground it lands on, which only the interface knows.
-    ///
-    /// The core does not police the value. It is a look, the list of names is
-    /// a product decision that lives with the interface (like `features`), and
-    /// a notebook written by a newer build must round-trip a name this one has
-    /// never heard of instead of silently resetting it. Empty means "whatever
-    /// the app ships as".
+    /// Which of the app's colours is the accent. A NAME (`"orange"`), never a
+    /// hex: each has a light and a dark half, and only the interface knows the
+    /// ground it lands on. Not policed here — a name from a newer build
+    /// round-trips. Empty means what the app ships as.
     pub accent_color: String,
-    /// Which MODE is on — `jott`, `light`, `dark` (2026-08-26; until then
-    /// the three were the `theme`). Same covenant as `accent_color`: a NAME,
-    /// not policed here. Empty means the one the app ships as. A file with
-    /// no `mode` and a `theme` of the old three reads that as the mode
-    /// (`settings::split_legacy_theme`) — tolerance, not migration.
+    /// Which MODE is on (`jott`, `light`, `dark`). A NAME, not policed here;
+    /// empty means the app's own. A file with no `mode` and a `theme` of the
+    /// old three reads that as the mode (`settings::split_legacy_theme`).
     pub mode: String,
-    /// Which THEME — the palette, `.jott/themes/<name>` — is on (2026-08-13,
-    /// re-cut 2026-08-26). Same covenant as `accent_color` in every respect:
-    /// a NAME, never colours; not policed here, because the list of themes is
-    /// the notebook's and a notebook written by a newer build must keep a
-    /// theme this one cannot draw. Empty means the one the app ships as.
+    /// Which THEME (`.jott/themes/<name>`) is on. Same covenant as
+    /// `accent_color`: a NAME, not policed here; a theme this build cannot
+    /// draw round-trips. Empty means the app's own.
     pub theme: String,
-    /// Whether headings (H1–H6, and the titles that share their scale) are
-    /// drawn in the accent or in plain ink (2026-08-17). `"ink"` turns the
-    /// colour off; anything else, including empty, means the accent — which is
-    /// what the app ships as, because a note titled in the colour of the place
-    /// it lives in is what the interface looks like.
-    ///
-    /// Same covenant as `accent_color` and `theme`: a NAME, never a colour,
-    /// not policed here. It is a look, and the answers belong to the
-    /// interface.
+    /// Whether headings are drawn in the accent or in plain ink: `"ink"`
+    /// turns the colour off; anything else, including empty, means the
+    /// accent. Same covenant as `accent_color`: a NAME, not policed here.
     pub heading_color: String,
-    /// How big the body of a note is drawn — `small`, `medium`, `large`
-    /// (2026-08-18).
-    ///
-    /// Same covenant as the three above: a NAME, never a measurement, and not
-    /// policed here. It travels WITH the notebook, unlike the interface's
-    /// zoom, which is a machine preference: this one is reading taste and
-    /// should follow the writer to another screen, while zoom answers to a
-    /// monitor. Empty means the size the app ships as.
+    /// How big a note's body is drawn (`small` / `medium` / `large`). A NAME,
+    /// not policed here. Travels WITH the notebook, unlike the interface's
+    /// zoom, which answers to a monitor. Empty means the app's own size.
     pub note_font_size: String,
-    /// The three faces the app can be read in (2026-08-24): the interface,
-    /// the body of a note, and the monospace of code and paths.
-    ///
-    /// A family NAME, exactly as the machine spells it, or empty for what the
-    /// app ships with — Inter for the first two and DM Mono for the third,
-    /// both carried inside the app. Not policed here beyond the name being
-    /// writable into CSS (`fonts::is_safe_family`): which fonts exist is a
-    /// fact about a MACHINE, and a notebook carried to another one must not
-    /// lose the answer just because that machine has a different library.
-    /// The interface's face is the note's default too, so a notebook that
-    /// chose only the first reads its notes in it.
+    /// The three faces: interface, note body, monospace. A family NAME as the
+    /// machine spells it, or empty for the bundled default. Policed only by
+    /// `fonts::is_safe_family` (it goes into CSS): which fonts exist is a fact
+    /// about a MACHINE, and a notebook moved to another one keeps the answer.
     pub interface_font: String,
     pub note_font: String,
     pub mono_font: String,
-    /// When the note's floating formatting bar is drawn — `always`,
-    /// `selection` (only while something is selected), `off` (2026-08-21).
-    ///
-    /// It says nothing about the DOCKED panel, which is what the right side
-    /// is for: turning the floating bar off leaves the controls exactly where
-    /// the panel puts them. Empty means `always`, which is what the app ships
-    /// as.
-    ///
-    /// Same covenant as the looks above: a NAME, never behaviour spelled out,
-    /// and not policed here — the list of modes is the interface's.
+    /// When the floating formatting bar is drawn (`always` / `selection` /
+    /// `off`). Says nothing about the DOCKED panel. Empty means `always`.
+    /// A NAME, not policed here — the list of modes is the interface's.
     pub format_bar: String,
-    /// Which SIDE of the canvas the floating bar hugs — `top`, `left`,
-    /// `right`, `bottom` (2026-08-21). It is always centred on that side;
-    /// what the user picks is the edge, not a corner.
-    ///
-    /// Empty means `top`, where the bar has always been. Same covenant: a
-    /// name, unpoliced.
+    /// Which SIDE of the canvas the floating bar hugs (`top` / `left` /
+    /// `right` / `bottom`), always centred on it. Empty means `top`. Unpoliced.
     pub format_bar_side: String,
-    /// The user's own keyboard bindings, as `command id → chord`
-    /// (2026-08-18).
-    ///
-    /// Opaque to the core, deliberately: which commands exist and what a
-    /// chord is spelled like are the interface's business, and a notebook
-    /// written by a newer build carries bindings this one has never heard of.
-    /// It keeps them and hands them back untouched — the frontend ignores what
-    /// it cannot honour (`services/commands.js`).
-    ///
-    /// A binding travels WITH the notebook, unlike the window widths and the
-    /// zoom: a chord answers to a pair of hands, and those move between
-    /// machines. It is the same choice Obsidian makes (hotkeys live in the
-    /// vault).
+    /// The user's keyboard bindings, `command id → chord`. Opaque to the
+    /// core: kept and handed back untouched, so bindings from a newer build
+    /// survive; the frontend ignores what it cannot honour
+    /// (`services/commands.js`). Travels WITH the notebook, unlike zoom.
     pub shortcuts: Map<String, Value>,
-    /// Close the task panel when clicking outside it.
-    ///
-    /// Off by default, and that default is a decision: it shipped on, fired
-    /// too easily, and losing a half-typed task cost more than the shortcut
-    /// was worth (2026-07-21). Kept as an option because the gesture is
-    /// muscle memory for some people.
+    /// Close the task panel when clicking outside it. Off by default: it
+    /// fires too easily and loses a half-typed task; kept for muscle memory.
     pub close_inspector_on_click_away: bool,
     /// Where the Home's quick capture writes, relative to the notes space.
     pub quick_note_folder: String,
     /// Where the Home's quick capture writes a TASK: empty is the fixed
     /// space's Inbox; a list's name is a list of the fixed space; a
-    /// root-relative path is a user task space (its main list). The same
-    /// path-like contract `quick_note_folder` keeps (2026-08-24).
+    /// root-relative path is a user task space (its main list). Same
+    /// path-like contract as `quick_note_folder`.
     pub quick_task_list: String,
     /// Whether the fixed Tasks screen shows every list of the notebook
-    /// pulled together and arranged by space (2026-09-04), instead of the
-    /// Inbox alone, which is the default.
+    /// arranged by space, instead of the Inbox alone (the default).
     pub tasks_show_all: bool,
     /// Whether the task panel offers the task fields that are switched off
     /// (a card that opens Settings › Tasks). Closing that card once turns
     /// this off; the Settings row turns it back on.
     pub offer_task_fields: bool,
-    /// How a notes space draws its board when it has not chosen for itself
-    /// (`grid` / `tree`). Empty means what the app ships as, which is the
-    /// grid; the frontend owns that default, as it owns the list of layouts,
-    /// so a name from a newer build round-trips unjudged. A space that did
-    /// choose keeps its own `noteLayout` in its `.space.json` and ignores
-    /// this one.
+    /// How a notes space draws its board (`grid` / `tree`) when it has not
+    /// chosen for itself in its `.space.json`. Empty means the app's own; the
+    /// frontend owns the default and the list, so an unknown name round-trips.
     pub note_layout: String,
-    /// How a table in a note sits in the column (2026-08-24): empty is the
-    /// app's own — squeezed to the content width, cells wrapping — and
-    /// `scroll` lets it run wide and scroll sideways. Same pact as the board
-    /// layout: the interface owns the list, an unknown name round-trips.
+    /// How a table sits in the column: empty is the app's own (squeezed to
+    /// content width, cells wrapping); `scroll` lets it run wide. An unknown
+    /// name round-trips.
     pub table_layout: String,
-    /// Where "fresh", "stale" and "forgotten" begin, in days
-    /// (`crate::age`, spec 3.6). A notebook preference and not a machine
-    /// one: how long something may sit before it counts as forgotten is a
-    /// judgement about the person's own work, and it travels with the
-    /// notebook.
+    /// Where "fresh", "stale" and "forgotten" begin, in days (`crate::age`).
+    /// A notebook preference, not a machine one.
     pub age: crate::age::Thresholds,
     /// How many days a trashed item waits in `.jott/trash/` before the reaper
-    /// clears it for good (reestruturação 2026-07-30).
+    /// clears it for good.
     pub trash_retention_days: i64,
-    /// How many days a completed task stays in its folder's `Completed.md`
-    /// before the reaper files it away (2026-08-06). It is not destroyed: it
-    /// goes to `.jott/trash/`, where `trash_retention_days` then applies.
-    /// `0` means never — the Completed keeps growing, which is a valid choice.
+    /// How many days a completed task stays in `Completed.md` before the
+    /// reaper moves it to `.jott/trash/` (where `trash_retention_days` then
+    /// applies). `0` means never.
     pub completed_retention_days: i64,
-    /// Manual ordering the user set by dragging, keyed by a namespace string
-    /// (`"spaces"`, `"lists:<folder>"`, …) → the item names in order. It
-    /// lives here, not in the files, because on disk items sort by whatever the
-    /// user's filter chooses; a hand-arranged order is an app preference.
-    /// Reusable: [`Config::apply_order`] applies any namespace to any list.
+    /// Manual ordering set by dragging, keyed by namespace (`"spaces"`,
+    /// `"lists:<folder>"`, …) → item names in order. Lives here, not in the
+    /// files: on disk items sort by the filter. [`Config::apply_order`] applies it.
     pub order: BTreeMap<String, Vec<String>>,
-    /// How the day is arranged (`name` / `created` / `completed`) — every
-    /// day, today and the ones planned ahead alike. A day has no
-    /// `.space.json` to keep its own preference in — it is not a folder — so
-    /// its arrangement lives with the notebook, next to the manual `order`
-    /// (2026-08-06). Empty means the order the tasks were pulled in, which
-    /// is the state file's own order.
+    /// How the day is arranged (`name` / `created` / `completed`), today and
+    /// the days planned ahead alike. A day has no `.space.json`, so it lives
+    /// here. Empty means the state file's own (pulled) order.
     pub day_sort: String,
-    /// Which parts of the app the user has an OPINION about (`tasks`, `notes`,
-    /// and the task fields under them — 2026-08-06, princípio 3 / backlog I6).
-    ///
-    /// **Absent means "the default", and the core does not know what that is.**
-    /// It cannot: the defaults are a product decision that differs per feature
-    /// (Week, Remind me, Description and Add files start off), and duplicating
-    /// that table in Rust and in JS would be two tables to keep in step. So
-    /// this map holds only what was deliberately changed, and
-    /// `src/lib/services/features.js` owns the defaults — one list, which is
-    /// also the one the settings screen draws itself from.
+    /// Which parts of the app the user has an OPINION about. **Absent means
+    /// "the default", and the core does not know what that is**: the defaults
+    /// live in `src/lib/services/features.js` alone, so this map holds only
+    /// what was deliberately changed.
     pub features: BTreeMap<String, bool>,
-    /// How the sidebar arranges the user's spaces and groups: `name` for
-    /// alphabetical, anything else (the default) for the hand-dragged `order`
-    /// (2026-08-06).
+    /// How the sidebar arranges spaces and groups: `name` for alphabetical,
+    /// anything else (the default) for the hand-dragged `order`.
     pub spaces_sort: String,
     /// The document exactly as it was read, so keys this build does not know
     /// about are written back instead of being silently dropped. This is what
@@ -434,22 +301,15 @@ impl Config {
         self.schema_version
     }
 
-    /// True when the file came from a newer app than this one.
-    ///
-    /// Spec 3.4: open read-only rather than risk corrupting a file written by
-    /// a version that knows fields we do not.
+    /// True when the file came from a newer app than this one: open
+    /// read-only rather than corrupt fields this build does not know.
     pub fn is_read_only(&self) -> bool {
         self.schema_version > SUPPORTED_SCHEMA_VERSION
     }
 
-    /// Reorders `items` in place by the manual order stored under `namespace`:
-    /// named items come first in the stored order, and everything else keeps
-    /// its current relative order, after them. A no-op when nothing is stored
-    /// for the namespace, so new items and untracked lists behave as before.
-    ///
-    /// One helper for every draggable list — spaces, a folder's lists, and
-    /// whatever comes next — so the "manual order in the config" rule lives in
-    /// exactly one place.
+    /// Reorders `items` in place by the manual order under `namespace`: named
+    /// items first in stored order, the rest keep their relative order after
+    /// them. A no-op when nothing is stored for the namespace.
     pub fn apply_order<T>(&self, namespace: &str, items: &mut [T], name_of: impl Fn(&T) -> &str) {
         let Some(order) = self.order.get(namespace) else {
             return;
@@ -488,22 +348,10 @@ impl Config {
         }
     }
 
-    /// Repoints every stored arrangement after a folder moved or was renamed.
-    /// Returns true when something changed.
-    ///
-    /// The arrangements are addressed by folder, in two different shapes, and
-    /// both go stale on a rename — silently, which is the worst kind: the
-    /// space simply falls to the end of a hand-dragged column and nobody
-    /// can see why. So:
-    ///
-    /// - the `lists:<dir>` namespace KEY carries a root-relative path, and any
-    ///   key under the moved dir moves with it;
-    /// - the sidebar's `spaces` order holds bare folder names, so an entry
-    ///   equal to the old leaf becomes the new one. Safe to do across every
-    ///   namespace because a folder name is unique in the notebook (spec 3.5).
-    ///
-    /// It matters most for a GROUP rename, where the group's own leaf changes
-    /// and every `lists:` key beneath it changes with it.
+    /// Repoints every stored arrangement after a folder moved or was renamed;
+    /// true when something changed. A `lists:<dir>` KEY is a root-relative
+    /// path and moves with the dir; the `spaces` order holds bare leaves, so
+    /// the old leaf becomes the new one (folder names are unique, spec 3.5).
     pub fn relocate_orders(&mut self, from_rel: &str, to_rel: &str) -> bool {
         if from_rel == to_rel {
             return false;
@@ -543,9 +391,8 @@ impl Config {
         changed
     }
 
-    /// Reads the config. A missing or unreadable file yields the defaults —
-    /// same treatment a missing `task-list.md` gets, and for the same reason: a broken
-    /// preference file must never stop someone from opening their notebook.
+    /// Reads the config. A missing or unreadable file yields the defaults: a
+    /// broken preference file must never stop someone opening their notebook.
     pub fn load(path: impl AsRef<Path>) -> Self {
         Self::from_doc(crate::jsondoc::load(path))
     }
@@ -563,8 +410,7 @@ impl Config {
             .map(parse_rollover)
             .unwrap_or_default();
 
-        // The week's first day moved out of `rollover.weekly` on 2026-09-04;
-        // a notebook written before that still says it there.
+        // Older notebooks still say it in `rollover.weekly.startsOn`.
         let week_starts_on = string(&raw, "weekStartsOn")
             .or_else(|| {
                 raw.get("rollover")?
@@ -578,9 +424,8 @@ impl Config {
             .unwrap_or_default();
 
         let defaults = Self::default();
-        // `mode` and `theme` (2026-08-26): a file written before the split
-        // has only `theme`, holding one of the old three looks — read as
-        // the mode it meant, leaving the palette as the app's own.
+        // A file from before the mode/theme split has only `theme`, holding
+        // one of the old three looks: read it as the mode it meant.
         let (mode, theme) = match (string(&raw, "mode"), string(&raw, "theme")) {
             (Some(mode), theme) => (mode, theme.unwrap_or_default()),
             (None, Some(theme)) => match crate::settings::split_legacy_theme(&theme) {
@@ -668,9 +513,8 @@ impl Config {
                         .collect()
                 })
                 .unwrap_or_default(),
-            // Kept whole, values and all: the core does not know what a
-            // command is or what a chord looks like, and a binding it cannot
-            // read is one a newer build wrote.
+            // Kept whole: the core does not know what a command or a chord
+            // is, and a binding it cannot read is one a newer build wrote.
             shortcuts: raw
                 .get("shortcuts")
                 .and_then(Value::as_object)
@@ -741,24 +585,19 @@ impl Config {
                 Value::from(self.completed_retention_days),
             ),
         ]);
-        // Everything below is written only once the user has chosen or
-        // arranged something, so an untouched notebook stays free of empty
-        // keys — and going back to the default has to *remove* the key, or a
-        // stale one in `raw` survives the rewrite. One rule, three shapes of
-        // "nothing to say": the empty sort, the empty name, the empty map.
+        // Written only once the user has chosen something, so an untouched
+        // notebook stays free of empty keys — and going back to the default
+        // must REMOVE the key, or a stale one in `raw` survives the rewrite.
         let mut cleared: Vec<&str> = Vec::new();
         let put_or_clear = crate::jsondoc::put_or_clear;
-        // The sidebar's arrangement: absent means the dragged order, which is
-        // the default, so an untouched notebook says nothing about it.
+        // Absent means the dragged order, the default.
         put_or_clear(
             &mut owned,
             &mut cleared,
             "spacesSort",
             (!self.spaces_sort.is_empty()).then(|| Value::from(self.spaces_sort.clone())),
         );
-        // The accent, the theme and the rest of the by-name choices, same
-        // rule: absent means what the app ships as, so a notebook that never
-        // had one chosen says nothing about it.
+        // The by-name choices: absent means what the app ships as.
         for (key, value) in [
             ("accentColor", &self.accent_color),
             ("mode", &self.mode),
@@ -781,19 +620,10 @@ impl Config {
                 (!value.is_empty()).then(|| Value::from(value.clone())),
             );
         }
-        // The three maps this build owns WHOLE — and each of them is cleared
-        // first, whether or not it has content, so the map that goes in is the
-        // map that comes out. Merged into what the file had, a REMOVAL cannot
-        // be expressed: taking a feature back to its default removes it from
-        // `features`, the merge put the shorter map over the longer one, and
-        // the file kept the old answer — so a switch could be turned off and
-        // never on again (user report on device, 2026-08-20; the same silence
-        // swallowed an unbound chord and a cleared order). `jsondoc::render`
-        // says why the merge is deep, and why clearing runs before it.
-        //
-        // Nothing inside one is lost by it: each of these round-trips through
-        // its own typed map, so a key this build has never heard of comes back
-        // out the way it went in.
+        // The maps this build owns WHOLE are cleared first, content or not,
+        // so the map that goes in is the map that comes out: merged into what
+        // the file had, a REMOVAL (a feature back to default, an unbound
+        // chord, a cleared order) cannot be expressed. See `jsondoc::render`.
         for (key, value) in [
             ("order", serde_json::to_value(&self.order).unwrap_or_default()),
             (
@@ -836,10 +666,8 @@ fn read_mode(block: Option<&Map<String, Value>>) -> RolloverMode {
         .unwrap_or_default()
 }
 
-/// Reads the `age` object, one key at a time. Same pact as every other
-/// value in this file: a number that makes no sense (missing, a string, a
-/// negative day count) reads as the app's default, and any key this build
-/// does not know round-trips untouched through `raw`.
+/// Reads the `age` object, one key at a time: a number that makes no sense
+/// (missing, a string, negative) reads as the default; unknown keys round-trip.
 fn parse_age(raw: Option<&Value>, defaults: crate::age::Thresholds) -> crate::age::Thresholds {
     let Some(obj) = raw.and_then(Value::as_object) else {
         return defaults;
@@ -873,11 +701,8 @@ fn render_rollover(rollover: &Rollover) -> Value {
 }
 
 /// Sorts `items` in place by a manual order: ranked items first, in rank
-/// order, and everything unranked after them in the order it already had.
-///
-/// The comparator under every hand-dragged arrangement — the sidebar's
-/// spaces, a folder's lists, a period's references — so the rule "mentioned
-/// first, the rest untouched" is written once.
+/// order, the unranked after them in the order they had. The one comparator
+/// under every hand-dragged arrangement.
 pub fn by_rank<T>(items: &mut [T], rank: impl Fn(&T) -> Option<usize>) {
     items.sort_by(|a, b| match (rank(a), rank(b)) {
         (Some(x), Some(y)) => x.cmp(&y),
@@ -888,14 +713,11 @@ pub fn by_rank<T>(items: &mut [T], rank: impl Fn(&T) -> Option<usize>) {
     });
 }
 
-/// The tolerant readers moved to [`crate::jsondoc`], where every config file
-/// shares them — including the deep merge that keeps an unknown key alive.
+// The tolerant readers are shared by every config file (`jsondoc`).
 use crate::jsondoc::{flag, string};
 
-/// A font family name, read the tolerant way: absent, blank, or a name that
-/// could not be written into CSS all fall back to the default, which is the
-/// app's own face. The same pact as every other value here — a bad one is not
-/// an error, it is the app's answer (2026-08-24).
+/// A font family name, read the tolerant way: absent, blank, or not writable
+/// into CSS all fall back to the default (the app's own face).
 fn font(raw: &crate::jsondoc::Doc, key: &str, default: String) -> String {
     string(raw, key)
         .filter(|name| crate::fonts::is_safe_family(name))

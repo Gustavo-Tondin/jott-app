@@ -1,10 +1,7 @@
 //! Groups: folders that arrange spaces in the sidebar and hold no content of
-//! their own.
-//!
-//! They nest (2026-08-11), and they carry the very same [`crate::space::SpaceConfig`]
-//! a space does, under `.group.json` instead of `.space.json` — which is why
-//! creating, moving and renaming one go through the primitives in
-//! [`super::spaces`] rather than through a second copy of them.
+//! their own. They nest, and carry the same [`crate::space::SpaceConfig`] a
+//! space does, under `.group.json` — so create/move/rename go through the
+//! primitives in [`super::spaces`], never a second copy.
 
 use std::path::PathBuf;
 
@@ -30,9 +27,9 @@ impl Notebook {
         )
     }
 
-    /// Renames a group by renaming its FOLDER — the same rule as a space
-    /// (2026-08-13). Everything under it moves with it, so the Day/Week
-    /// references and the stored arrangements are repointed by `relocate`.
+    /// Renames a group by renaming its FOLDER — the same rule as a space.
+    /// Everything under it moves with it; `relocate` repoints the day
+    /// references and the stored arrangements.
     pub fn rename_group(&mut self, folder: &str, new_name: &str) -> Result<()> {
         self.ensure_writable()?;
         let name = new_name.trim();
@@ -131,12 +128,9 @@ impl Notebook {
         Ok((dir, config))
     }
 
-    /// The absolute directory of every group, at any depth.
-    ///
-    /// Groups nest (2026-08-11): a group is a folder carrying a `.group.json`,
-    /// inside the root or inside another group. The walk goes down from the
-    /// root through the groups it finds — a space's own subfolders are its
-    /// content and are never entered.
+    /// The absolute directory of every group, at any depth: a folder carrying
+    /// a `.group.json`, in the root or in another group. A space's own
+    /// subfolders are its content and are never entered.
     pub(super) fn group_dirs(&self) -> Result<Vec<PathBuf>> {
         let mut found = Vec::new();
         let mut pending = vec![self.root.clone()];
@@ -152,17 +146,10 @@ impl Notebook {
         Ok(found)
     }
 
-    /// The groups of the notebook, each with the group it sits in (if any) and
-    /// the **root-relative paths** of the spaces it holds directly — a
-    /// space in a child group belongs to that child, not to this one.
-    ///
-    /// Paths, not leaf names, since 2026-08-13: two groups may each hold a
-    /// `Tasks/`, and by leaf they were indistinguishable.
-    ///
-    /// The members come out in the notebook's own space order, not
-    /// alphabetically: the sidebar reads a group's place off its members, and
-    /// sorting them here would quietly discard the order the user dragged
-    /// (user report, 2026-08-11).
+    /// The groups of the notebook, each with its parent group (if any) and the
+    /// **root-relative paths** of the spaces it holds directly. Members keep
+    /// the notebook's space order, not alphabetical: the sidebar reads a
+    /// group's place off its members, and sorting would discard the drag order.
     pub fn groups(&self) -> Result<Vec<crate::space::GroupEntry>> {
         let ordered = self.spaces()?;
         let mut groups = Vec::new();

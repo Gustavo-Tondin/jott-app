@@ -1,9 +1,6 @@
-//! The notes side of a notebook: which folders hold notes, and the one
-//! operation on a note the notebook itself owns.
-//!
-//! Reading and writing a note is [`crate::notefolder::NoteFolder`]'s job;
-//! deleting is here because it goes through the trash, which is the
-//! notebook's.
+//! The notes side of a notebook: which folders hold notes, and the guarded
+//! doors to a note. Reading and writing a note is
+//! [`crate::notefolder::NoteFolder`]'s job; the trash is the notebook's.
 
 use crate::error::{Error, IoContext, Result};
 
@@ -43,13 +40,9 @@ impl Notebook {
             .ok_or_else(|| Error::InvalidNotePath(prefix.to_string()))
     }
 
-    /// The notes of a space, as a board lists them: the folder's own listing
-    /// (optionally filtered by `query`), stamped with the two things only the
-    /// notebook knows — when each was last seen, and how old that makes it.
-    ///
-    /// Three doors, one stamp: the board, the Home's inbox and the Home's
-    /// day all come through here, so a note cannot show an age on one screen
-    /// and nothing on another.
+    /// The notes of a space, as a board lists them (optionally filtered by
+    /// `query`), stamped with when each was last seen and how old that makes
+    /// it. The board, the Home's inbox and the Home's day all come through here.
     pub fn notes_in(&self, space: &str, query: &str) -> Result<Vec<NoteEntry>> {
         let mut entries = self.note_folder(space)?.search(query)?;
         self.stamp_notes(space, &mut entries);
@@ -71,11 +64,8 @@ impl Notebook {
     }
 
     /// Every folder of a notes space, with what the space remembers about it
-    /// (`crate::space::FolderSettings`).
-    ///
-    /// One answer, not two: the folders come off the disk and their colours
-    /// out of `.space.json`, and a screen that had to ask twice would have to
-    /// keep the two in step itself.
+    /// (`crate::space::FolderSettings`) — one answer, so no screen keeps the
+    /// disk and `.space.json` in step itself.
     pub fn note_folder_entries(&self, space: &str) -> Result<Vec<NoteFolderEntry>> {
         let settings = self.open_space(space)?.config.folders;
         Ok(self
@@ -112,13 +102,9 @@ impl Notebook {
         })
     }
 
-    /// Renames a folder of notes, carrying its colour and its pin along.
-    ///
-    /// Here rather than on [`crate::notefolder::NoteFolder`] because half of
-    /// what a folder IS lives in the space's config: renaming on the folder
-    /// alone moved the directory and left its colour behind on a name that no
-    /// longer exists. Subfolders travel too — they are keyed by a path that
-    /// starts with the old one.
+    /// Renames a folder of notes, carrying its colour and its pin along
+    /// (half of what a folder IS lives in the space's config). Subfolders
+    /// travel too — they are keyed by a path that starts with the old one.
     pub fn rename_note_folder(&self, space: &str, folder: &str, name: &str) -> Result<String> {
         self.ensure_writable()?;
         let moved = self.note_folder(space)?.rename_folder(folder, name)?;
@@ -137,8 +123,7 @@ impl Notebook {
         // The subfolders moved UP rather than away, so their settings are not
         // dropped — they are re-keyed to where they landed.
         self.move_folder_settings(space, folder, None)?;
-        // And so is what the index knew about the notes inside them: they
-        // went up a level, they did not go away.
+        // And so is what the "seen" index knew about the notes inside.
         let (parent, _) = crate::relpath::split_parent(folder);
         let (was, now) = (
             seen::address_of(space, folder),
@@ -186,11 +171,9 @@ impl Notebook {
         })
     }
 
-    // The guarded doors to a note. `NoteFolder` itself has no idea whether
-    // the notebook may write — `ensure_writable` lives here — so every write
-    // the interface asks for goes through the notebook, never through a bare
-    // `NoteFolder` (moved from the bridge, 2026-08-19: composing the folder
-    // there wrote into read-only notebooks without noticing).
+    // The guarded doors to a note: `NoteFolder` has no idea whether the
+    // notebook may write (`ensure_writable` lives here), so every write the
+    // interface asks for goes through the notebook, never a bare `NoteFolder`.
 
     /// Replaces a note's body. The folder adopts today as its creation date if
     /// it does not have one — the lazy frontmatter's one writing moment.
@@ -272,10 +255,6 @@ impl Notebook {
     }
 
     /// Copies a note beside itself, returning the new address.
-    ///
-    /// Here as well as on the folder because writing is the notebook's gate:
-    /// a read-only notebook (a newer schema) must refuse it, and the folder
-    /// itself does not know whether it may write.
     pub fn duplicate_note(&self, folder: &str, relative: &str) -> Result<String> {
         self.ensure_writable()?;
         let copy = self.note_folder(folder)?.duplicate(relative)?;
@@ -285,18 +264,10 @@ impl Notebook {
         Ok(copy)
     }
 
-    /// Moves a note to another notes space, into `to_folder` inside it.
-    ///
-    /// The counterpart of `NoteFolder::move_to`, which only ever moves within
-    /// one space — a space cannot reach into another, and should not: crossing
-    /// the border is the notebook's business, because the notebook is what
-    /// knows both sides. Returns the new address, relative to the space it
-    /// landed in.
-    ///
-    /// Nothing in the note is rewritten. Asset addresses are relative to the
-    /// notebook ROOT (`assets/x.png`, user call 2026-08-18), so an image keeps
-    /// pointing at the same file however far the note travels — which is the
-    /// whole reason that form was chosen over `../../assets/x.png`.
+    /// Moves a note to another notes space, into `to_folder` inside it;
+    /// returns the new address, relative to the space it landed in. Nothing
+    /// in the note is rewritten: asset addresses are relative to the notebook
+    /// ROOT, so an image keeps pointing at the same file however far it travels.
     pub fn move_note_to_space(
         &self,
         from_space: &str,
@@ -310,8 +281,7 @@ impl Notebook {
         let target_space = self.note_folder(to_space)?;
 
         if from_space == to_space {
-            // The same move, within one space — no reason to have two code
-            // paths for it, and `move_note` is the one that keeps the index
+            // Within one space, `move_note` is the path that keeps the index
             // pointing at the note.
             return self.move_note(from_space, relative, to_folder);
         }
@@ -347,13 +317,8 @@ impl Notebook {
         self.assets().import(file_name, bytes)
     }
 
-    /// Sends an asset to the notebook's trash.
-    ///
-    /// Never `remove_file`: an image can be the banner of a note written a
-    /// year ago, and a deletion that cannot be undone is exactly the kind this
-    /// app does not do (the same rule notes, tasks and lists follow). The
-    /// notes that pointed at it now point at nothing — which the interface
-    /// draws as a missing image, and the trash is where it comes back from.
+    /// Sends an asset to the notebook's trash — never `remove_file`: the
+    /// notes that pointed at it draw a missing image until it comes back.
     pub fn delete_asset(&self, address: &str) -> Result<()> {
         self.ensure_writable()?;
         let abs = self.assets().file(address)?;
@@ -366,15 +331,10 @@ impl Notebook {
         self.assets().file(address)
     }
 
-    /// Renames a note, and follows it into every note that links to it.
-    ///
-    /// A note link carries the TITLE (`crate::links`, and the reason is in
-    /// `embeds.js`), which is what survives a note being MOVED — and what goes
-    /// stale the instant it is renamed. This is the other half of that trade,
-    /// paid here so the user never sees the cost (user call, 2026-08-19).
-    ///
-    /// The rename happens first: rewriting links to a note that failed to be
-    /// renamed would point them at nothing.
+    /// Renames a note, and follows it into every note that links to it: a
+    /// note link carries the TITLE (`crate::links`), which goes stale the
+    /// instant it is renamed. The rename happens first — rewriting links to a
+    /// note that failed to be renamed would point them at nothing.
     pub fn rename_note(&self, folder: &str, path: &str, title: &str) -> Result<String> {
         self.ensure_writable()?;
         let notes = self.note_folder(folder)?;
@@ -388,11 +348,8 @@ impl Notebook {
         Ok(moved)
     }
 
-    /// Points every `[[link]]` at `new` instead of `old`, notebook-wide.
-    ///
-    /// The whole notebook and not one space: a note in Design may well link to
-    /// one in Pessoal, and a link that only worked inside its own space would
-    /// be a different feature from the one the brackets promise.
+    /// Points every `[[link]]` at `new` instead of `old`, notebook-wide: a
+    /// note in one space may well link to one in another.
     fn retarget_note_links(&self, old: &str, new: &str) -> Result<()> {
         if old == new {
             return Ok(());
@@ -408,23 +365,10 @@ impl Notebook {
         Ok(())
     }
 
-    /// Renames a file of the library, and follows it everywhere.
-    ///
-    /// **The whole point is the "and follows it"** (user call, 2026-08-19): a
-    /// rename that left `[[/foto.jpg]]` pointing at a name nobody has any more
-    /// would be a rename that broke every note using the file — the same
-    /// question the delete dialog answers by warning, answered here by simply
-    /// not breaking anything.
-    ///
-    /// Which forms are rewritten, and why not all of them, is written down in
-    /// [`crate::links`]. The banner is retargeted separately because the core
-    /// lifts it off the body; a task's attachment is a field, and is moved as
-    /// one.
-    ///
-    /// The file moves first: if the move fails there is nothing to point at,
-    /// and rewriting the notes would have been a lie. A colliding name is
-    /// suffixed, never overwritten, and the address that comes back is the one
-    /// the file actually took.
+    /// Renames a file of the library, and follows it everywhere (which forms
+    /// are rewritten: [`crate::links`]; the banner apart, since the core lifts
+    /// it off the body; a task's attachment as a field). The file moves first;
+    /// a colliding name is suffixed, and the address returned is the one taken.
     pub fn rename_asset(&self, address: &str, new_name: &str) -> Result<String> {
         self.ensure_writable()?;
         let assets = self.assets();
@@ -494,24 +438,10 @@ impl Notebook {
         Ok(())
     }
 
-    /// Where each file of the library is used, keyed by its address.
-    ///
-    /// The Images screen asks this so it can say which files are carrying
-    /// their weight and which are only taking up room — and, for the ones
-    /// that are, offer the way to what uses them (user call, 2026-08-19). A
-    /// file nobody points at simply has no entry.
-    ///
-    /// A place is a [`SearchHit`], and deliberately so: it is the shape the
-    /// interface already knows how to draw and how to OPEN, from the search
-    /// box. A second shape meaning the same thing would be a second thing to
-    /// keep in step.
-    ///
-    /// **Matched by exact reference, not by parsing.** For each file name the
-    /// text is asked whether it carries `[[/name]]` (what this app writes) or
-    /// `assets/name` (a markdown link, a banner, a note written by hand). The
-    /// cost is one pass per file per note, which for a library of tens and a
-    /// notebook of hundreds is milliseconds on a screen opened rarely — and
-    /// what is bought is that a name can never be half-read out of a link.
+    /// Where each file of the library is used, keyed by its address; a file
+    /// nobody points at has no entry. A place is a [`SearchHit`], the shape
+    /// the interface already draws and opens. **Matched by exact reference,
+    /// not by parsing**: `[[/name]]` or `assets/name`, one pass per file per note.
     pub fn asset_usage(&self) -> Result<std::collections::HashMap<String, Vec<SearchHit>>> {
         let mut used: std::collections::HashMap<String, Vec<SearchHit>> =
             std::collections::HashMap::new();
@@ -574,11 +504,8 @@ impl Notebook {
     }
 }
 
-/// The name a rename asks for, checked as a file name.
-///
-/// An extension left off is taken from the old name rather than refused: a
-/// person renaming `IMG_2049.jpg` to `férias` means `férias.jpg`, and making
-/// them retype `.jpg` is making them do the app's arithmetic.
+/// The name a rename asks for, checked as a file name. An extension left
+/// off is taken from the old name: `IMG_2049.jpg` → `férias` means `férias.jpg`.
 fn clean_asset_name(wanted: &str, old: &str) -> Result<String> {
     let wanted = wanted.trim();
     let with_extension = match (wanted.rsplit_once('.'), old.rsplit_once('.')) {

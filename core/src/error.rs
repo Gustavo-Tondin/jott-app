@@ -18,8 +18,8 @@ pub enum Error {
     #[error("{0} is not a space")]
     NotASpace(PathBuf),
 
-    /// A notebook in the pre-phase-7 layout. Refused with a clear message
-    /// instead of converted: no migrations before v1 (decision 2026-07-21).
+    /// A notebook in the legacy layout. Refused with a clear message instead
+    /// of converted: no migrations before v1.
     #[error(
         "{0} was created by an older version of Jott and uses a layout this \
          build no longer reads; create a new notebook"
@@ -97,12 +97,8 @@ pub enum Error {
 pub type Result<T> = std::result::Result<T, Error>;
 
 /// The guard every writer shares: refuse to write a file whose `schemaVersion`
-/// came from a newer build.
-///
-/// The notebook config, the space config and the notebook itself each spelled
-/// this out; three copies of one rule is three chances for the next config
-/// file to forget it. Reading a future file is
-/// fine — rewriting one is how data written by a newer app gets destroyed.
+/// came from a newer build. Reading a future file is fine; rewriting one is
+/// how data written by a newer app gets destroyed.
 pub fn guard_schema(found: u64, supported: u64) -> Result<()> {
     if found > supported {
         return Err(Error::ReadOnlyNotebook { found, supported });

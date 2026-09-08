@@ -1,17 +1,8 @@
-//! Browsing the machine's folders, to pick where a notebook goes.
-//!
-//! This is the app's own browser rather than the system's, and it exists for
-//! Android: there is no `pick_folder` there, and the Storage Access Framework
-//! — the platform's answer — hands back a `content://` URI that `std::fs`
-//! cannot open. With the all-files permission granted, ordinary paths work
-//! again, and a folder browser is a list of directories.
-//!
-//! Which folder the browsing is bounded BY is the bridge's to say: the root is
-//! shared storage on a phone and the home folder on a desktop, and both come
-//! from the environment. Everything below takes that root as an argument —
-//! which is also what lets the containment rule be tested against a temporary
-//! folder rather than against whatever `$HOME` happens to be on the machine
-//! running the tests.
+//! The app's own folder browser, to pick where a notebook goes. Exists for
+//! Android: no `pick_folder`, and the SAF hands back a `content://` URI that
+//! `std::fs` cannot open. The bounding root is the bridge's to say (shared
+//! storage on a phone, home on a desktop) and is always an argument, so the
+//! containment rule is testable against a temporary folder.
 
 use std::path::{Path, PathBuf};
 
@@ -29,9 +20,8 @@ pub struct FolderListing {
     pub name: String,
     /// One rung up, or `None` at the top of what the app may browse.
     pub parent: Option<String>,
-    /// The folders inside, sorted, hidden ones left out. Files are not listed:
-    /// the question this browser asks is "which FOLDER", and a list of every
-    /// photo on the phone would only be scrolled past.
+    /// The folders inside, sorted, hidden ones left out. Files are not
+    /// listed: the question is "which FOLDER".
     pub folders: Vec<FolderEntry>,
 }
 
@@ -46,28 +36,21 @@ pub struct FolderEntry {
 }
 
 /// Lists the folders inside `path`, or inside `root` when it is `None`.
-///
-/// **`path` is never trusted to be inside the root**: it arrives from the UI,
-/// and a browser that accepted `..` would walk out of shared storage into
-/// wherever the process happens to be allowed. Anything outside answers the
-/// root instead of an error — the browser lands somewhere usable rather than
-/// showing a failure the user cannot act on.
+/// `path` comes from the UI and is never trusted to be inside the root;
+/// anything outside answers the root instead of an error, so the browser
+/// lands somewhere usable.
 pub fn listing(root: &Path, path: Option<String>) -> Result<FolderListing> {
-    // Canonicalized so the containment check below compares like with like:
-    // on Windows `canonicalize` returns a verbatim path (`\\?\C:\...`), and a
-    // verbatim path never starts_with a non-verbatim one — every candidate
-    // would silently land back on the root (caught by CI, 2026-08-19).
+    // Canonicalized so the containment check compares like with like: on
+    // Windows `canonicalize` returns a verbatim path (`\\?\C:\...`), which
+    // never starts_with a non-verbatim one.
     let raw_root = root;
     let root = root.canonicalize().unwrap_or_else(|_| root.to_path_buf());
     let at = match path {
         Some(path) => {
             let candidate = PathBuf::from(path);
-            // `canonicalize` resolves `..` and symlinks, which is what makes
-            // the containment check mean anything. A path that does not
-            // exist cannot be canonicalized — a folder deleted between the
-            // listing and the tap — so that one is judged against the RAW
-            // root (again like with like), and only with no `..` inside:
-            // unresolved dot-dots would walk out of what starts_with saw.
+            // `canonicalize` resolves `..` and symlinks. A path that no longer
+            // exists (deleted between listing and tap) is judged against the
+            // RAW root, and only with no `..` inside.
             match candidate.canonicalize() {
                 Ok(resolved) if resolved.starts_with(&root) => resolved,
                 Err(_)
@@ -116,13 +99,9 @@ pub fn label(path: &Path) -> String {
     }
 }
 
-/// Creates a folder inside `parent`, so the notebook can be put somewhere that
-/// does not exist yet — which is most of the time, on a phone whose shared
-/// storage came with the manufacturer's folders and nothing else.
-///
-/// The name goes through the same guard as every name the user types
-/// ([`crate::relpath::is_safe_leaf`]), so a slash or a `..` cannot make this
-/// write anywhere but inside `parent`.
+/// Creates a folder inside `parent`. The name goes through
+/// [`crate::relpath::is_safe_leaf`], so a slash or `..` cannot write outside
+/// `parent`.
 pub fn create_folder(root: &Path, parent: String, name: &str) -> Result<String> {
     let name = name.trim();
     if !crate::relpath::is_safe_leaf(name) {
@@ -140,9 +119,8 @@ pub fn create_folder(root: &Path, parent: String, name: &str) -> Result<String> 
 mod tests {
     use super::*;
 
-    /// The folder browser Android needs (2026-08-19). Its rules are the ones a
-    /// path from the UI makes necessary: it may not walk out of the root, and
-    /// a typed name may not be a path.
+    /// A tree for the browser: it may not walk out of the root, and a typed
+    /// name may not be a path.
     fn tree() -> tempfile::TempDir {
         let dir = tempfile::tempdir().unwrap();
         std::fs::create_dir_all(dir.path().join("Documents/Jott/.jott")).unwrap();
@@ -159,8 +137,7 @@ mod tests {
         let listing = listing(dir.path(), Some(at.to_string_lossy().into_owned())).unwrap();
 
         let names: Vec<&str> = listing.folders.iter().map(|f| f.name.as_str()).collect();
-        // Sorted, no files, and no dot-folders — `.thumbnails` is another
-        // tool's business and `note.md` is not an answer to "which folder?".
+        // Sorted, no files, no dot-folders.
         assert_eq!(names, ["Jott", "Photos"]);
         assert!(listing.folders[0].notebook, "Jott/ holds a .jott");
         assert!(!listing.folders[1].notebook);
@@ -174,8 +151,7 @@ mod tests {
 
         let at = dir.path().join("Documents");
         let listing = listing(dir.path(), Some(at.to_string_lossy().into_owned())).unwrap();
-        // Canonicalized on both sides: the browser answers canonical
-        // paths, and on Windows those carry the verbatim prefix.
+        // The browser answers canonical paths (verbatim prefix on Windows).
         let root = dir.path().canonicalize().unwrap();
         assert_eq!(listing.parent.as_deref(), root.to_str());
     }
@@ -185,19 +161,16 @@ mod tests {
         let dir = tree();
         let outside = dir.path().join("Documents/../../..");
 
-        // Not an error: the browser has to land somewhere the user can act
-        // on, and "that path is not allowed" is not a folder.
+        // Not an error: the browser has to land somewhere the user can act on.
         let listing = listing(dir.path(), Some(outside.to_string_lossy().into_owned())).unwrap();
-        // The browser answers canonical paths — see the parent assertion
-        // in the test below.
+        // The browser answers canonical paths.
         let root = dir.path().canonicalize().unwrap();
         assert_eq!(listing.path, root.to_string_lossy());
     }
 
     #[test]
     fn a_missing_folder_is_an_empty_one() {
-        // `fsio::dir_paths`' rule, which matters here because a folder can
-        // be deleted by another app between the listing and the tap.
+        // A folder can be deleted by another app between listing and tap.
         let dir = tree();
         let gone = dir.path().join("Documents/gone");
         let listing = listing(dir.path(), Some(gone.to_string_lossy().into_owned())).unwrap();
@@ -211,9 +184,8 @@ mod tests {
 
         let made = create_folder(dir.path(), at.clone(), " Notebook ").unwrap();
         assert!(dir.path().join("Documents/Notebook").is_dir());
-        // Canonical on both sides — see the parent assertion above. And
-        // compared as paths, not strings: Path equality goes through
-        // components, which is what forgives `\` vs `/` on Windows.
+        // Canonical on both sides, compared as paths, not strings: component
+        // equality forgives `\` vs `/` on Windows.
         let expected = dir
             .path()
             .canonicalize()

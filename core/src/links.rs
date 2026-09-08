@@ -1,34 +1,12 @@
-//! Rewriting the references a notebook carries, when what they point at is
-//! renamed.
-//!
-//! A note's body holds two kinds of reference, both written `[[…]]` and told
-//! apart by a leading slash (the syntax is decided in
-//! `src/lib/services/embeds.js`, and the reasons live there):
-//!
-//! ```text
-//! [[/foto.jpg]]     a file of the library
-//! [[Guardiões]]     another note, by TITLE
-//! ```
-//!
-//! …plus the two forms the app writes in CommonMark, which name a file by its
-//! address rather than by the brackets: `](assets/foto.jpg)` in a link or an
-//! image, and `<!--banner: assets/foto.jpg-->` on a note's first line. The
-//! banner is lifted off the body by [`crate::note`], so it is retargeted where
-//! it lives; the other two are text, and are this module's business.
-//!
-//! **Only the forms the app WRITES are rewritten**, and that is a decision
-//! rather than a shortcut. Rewriting every `assets/foto.jpg` found loose in
-//! prose would mean deciding where the name ends, and a file called
-//! `foto.jpg` would eat the start of `foto.jpg.bak` — silently, inside
-//! someone's note. A reference the app can recognise is a reference the app
-//! can move; a sentence about a file is a sentence.
+//! Rewriting the references a notebook carries when their target is renamed.
+//! A body holds `[[/foto.jpg]]` (a library file) and `[[Guardiões]]` (a note,
+//! by TITLE; the slash separates the namespaces, see `embeds.js`), plus the
+//! `](assets/foto.jpg)` form; the banner is retargeted by [`crate::note`]. Only
+//! forms the app WRITES are rewritten: a loose scan would eat `foto.jpg` out of `foto.jpg.bak`.
 
 /// The body with every reference to the file `old` pointing at `new`, or
-/// `None` when there was nothing to change.
-///
-/// `None` rather than an unchanged copy so a rename can leave alone every note
-/// that never mentioned the file — the difference between touching four files
-/// and touching four hundred.
+/// `None` when nothing changed — so a rename leaves alone every note that
+/// never mentioned the file.
 pub fn retarget_file(body: &str, old: &str, new: &str) -> Option<String> {
     if old == new {
         return None;
@@ -43,10 +21,9 @@ pub fn retarget_file(body: &str, old: &str, new: &str) -> Option<String> {
     changed
 }
 
-/// The body with every link to the note called `old` pointing at `new`.
-///
-/// A note link carries the TITLE (see `embeds.js`), so renaming a note is
-/// exactly the moment its links would go stale — this is what keeps them.
+/// The body with every link to the note called `old` pointing at `new`. A
+/// note link carries the TITLE (see `embeds.js`), so a rename is exactly
+/// when its links would go stale.
 pub fn retarget_note(body: &str, old: &str, new: &str) -> Option<String> {
     // The leading slash is the file namespace, and a note's title can never
     // start with one (a title is a file name). Refusing here is what keeps a

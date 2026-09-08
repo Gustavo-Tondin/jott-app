@@ -1,19 +1,8 @@
-//! A folder of task lists — the thing a `tasks` space owns.
-//!
-//! Extracted from `Notebook` in phase 7 (step B): every operation here used
-//! to be written against the one hard-coded `Tasks/` directory. Making "a
-//! folder of lists" a value is what lets a second tasks space exist
-//! without bolting an `if` onto twenty functions — the notebook
-//! orchestrates, the folder does the file work.
-//!
-//! A tasks space is **one list** (spec 3.5): `task-list.md` plus its
-//! `completed.md`, the same two names in every space since 2026-08-13 — the
-//! folder is what tells them apart. Extra `.md` files a user drops in are
-//! still read — tolerance, not a second model.
-//!
-//! Nothing here knows about states, periods or completion rules: those are
-//! business decisions that coordinate *across* files, and they stay in
-//! [`crate::notebook::Notebook`].
+//! A folder of task lists — the thing a `tasks` space owns. The notebook
+//! orchestrates, the folder does the file work: nothing here knows about
+//! states, periods or completion rules. A tasks space is ONE list
+//! (`task-list.md` plus `completed.md`, the same names in every space);
+//! extra `.md` files a user drops in are still read — tolerance, not a model.
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -23,10 +12,7 @@ use crate::list::TaskList;
 use crate::COMPLETED_LIST;
 
 /// Written into `.jott/` once, for whoever opens the notebook without the app.
-/// Deliberately short: someone reading this is looking at a text file, not at
-/// documentation. It covers BOTH worlds — a notebook holds notes as well as
-/// lists, and the note format is as much a documented promise (spec 5) as the
-/// task one.
+/// Deliberately short, and it covers notes as well as lists.
 const FORMAT_GUIDE: &str = "\
 Your tasks and notes are plain Markdown, in the folders next to this one.
 Edit them in any text editor — Jott reads whatever you write.
@@ -155,12 +141,9 @@ impl TaskFolder {
         &self.dir
     }
 
-    /// Path of a list by name. Rejects anything that could escape the
-    /// folder — list names reach this from user input.
-    ///
-    /// `"` is rejected because it is the quote character of the hidden
-    /// comment (`origin:"Meu Mercado"`): allowing it in a name would let a
-    /// list break the parsing of every task completed from it.
+    /// Path of a list by name. Rejects anything that could escape the folder
+    /// (list names reach this from user input), and `"`: it is the quote of
+    /// the hidden comment (`origin:"Meu Mercado"`) and would break its parsing.
     pub fn list_path(&self, name: &str) -> Result<PathBuf> {
         if !crate::relpath::is_safe_leaf(name) || name.contains('"') {
             return Err(Error::InvalidListName(name.to_string()));
@@ -190,12 +173,8 @@ impl TaskFolder {
         TaskList::load(self.list_path(name)?)
     }
 
-    /// How many open tasks each list has, for the navigation.
-    ///
-    /// One pass over the whole folder instead of one read per list. Counts
-    /// **open** tasks, and skips the completed list entirely — everything in
-    /// it is done. Reading never adopts ids: counting is not a reason to
-    /// write to every file.
+    /// How many OPEN tasks each list has, in one pass; the completed list is
+    /// skipped. Reading never adopts ids: counting is not a reason to write.
     pub fn open_task_counts(&self) -> Result<BTreeMap<String, usize>> {
         let mut counts = BTreeMap::new();
         for name in self.list_names()? {
@@ -212,14 +191,8 @@ impl TaskFolder {
         Ok(counts)
     }
 
-    /// The folder's main list — spec 3.5: a tasks space is ONE list, and
-    /// since 2026-08-13 that list has the same name in every space.
-    ///
-    /// It used to be derived: the `.md` named after the folder, falling back
-    /// to "the single `.md` that is not the Completed one" when the user had
-    /// renamed it by hand. Both halves of that rule existed to survive a name
-    /// drifting away from its folder, and a fixed name means it cannot drift.
-    /// Kept as a method rather than inlining the constant so every call site
+    /// The folder's main list: a tasks space is ONE list, with the same name
+    /// in every space. A method rather than the constant so every call site
     /// still reads as a question about this folder.
     pub fn main_list_name(&self) -> &'static str {
         crate::MAIN_LIST
@@ -227,8 +200,6 @@ impl TaskFolder {
 
     /// Recreates `task-list.md` and `completed.md` when missing. Called on
     /// every open: the user may have deleted them, and the app must not break.
-    /// With fixed names this can no longer invent a third file — recreating a
-    /// deleted list writes back exactly the name that was deleted.
     pub fn ensure_default_lists(&self) -> Result<()> {
         std::fs::create_dir_all(&self.dir).ctx(&self.dir)?;
         for name in [crate::MAIN_LIST, COMPLETED_LIST] {
@@ -240,11 +211,8 @@ impl TaskFolder {
         Ok(())
     }
 
-    /// Drops a plain-text guide next to the lists, for whoever opens the
-    /// folder without the app.
-    ///
-    /// `.txt` on purpose: the app only reads `.md`, so the guide never shows
-    /// up as a list.
+    /// Drops a plain-text guide next to the lists. `.txt` on purpose: the app
+    /// only reads `.md`, so the guide never shows up as a list.
     pub fn write_format_guide(&self) -> Result<()> {
         let path = self.dir.join("_FORMAT.txt");
         if path.exists() {

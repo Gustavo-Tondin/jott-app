@@ -23,14 +23,9 @@ use super::spaces::{groups_of, spaces_of, GroupInfo, SpaceInfo};
 /// byte for byte (`jott_core::themes::ensure_default`).
 const FACTORY_THEME_CSS: &str = include_str!("../../../src/styles/themes/jott.css");
 
-/// The addresses the core creates, so the frontend never hard-codes them.
-///
-/// The frontend used to mirror these in a `names.js` — and when the core
-/// renamed `Completas` to `Completed` in phase 5, the completed screen kept
-/// reading a file that no longer existed and showed "nothing done yet"
-/// forever. Coming over the bridge, a rename reaches every screen at once.
-///
-/// Since phase 7 these are **paths**, not names: `Tasks/Inbox.md`.
+/// The addresses the core creates, so the frontend never hard-codes them —
+/// coming over the bridge, a rename reaches every screen at once. These are
+/// **paths**, not names: `Tasks/Inbox.md`.
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct NotebookLayout {
@@ -41,7 +36,7 @@ pub struct NotebookLayout {
     /// The folder new lists are created in, until the UI is space-aware.
     pub tasks_folder: String,
     /// The per-folder completed list's NAME (`Completed`) — every tasks
-    /// space has one, and the UI must not hard-code it (the names.js lesson).
+    /// space has one, and the UI must not hard-code it.
     pub completed_name: String,
     /// The fixed Notes space's folder, and the folder loose notes land in.
     pub notes_folder: String,
@@ -51,16 +46,15 @@ pub struct NotebookLayout {
     /// closes the task panel, and where the quick capture writes.
     pub date_display_format: String,
     /// `HH:MM` — the hour the inspector's reminder presets land on (the
-    /// notebook's `reminderTime`, 2026-08-25).
+    /// notebook's `reminderTime`).
     pub reminder_time: String,
     pub close_inspector_on_click_away: bool,
     pub quick_note_folder: String,
-    /// The capture target of 2026-08-24 — a path-like string the front
-    /// resolves (services/noteTargets.js and its tasks mirror); empty is
-    /// the default.
+    /// The capture target — a path-like string the front resolves
+    /// (services/noteTargets.js and its tasks mirror); empty is the default.
     pub quick_task_list: String,
     /// Whether the fixed Tasks screen shows every list, arranged by space,
-    /// instead of the Inbox alone (2026-09-04).
+    /// instead of the Inbox alone.
     pub tasks_show_all: bool,
     /// Whether the task panel offers the task fields that are off
     /// (`Config::offer_task_fields`).
@@ -74,57 +68,42 @@ pub struct NotebookLayout {
     pub timeline_ghost_tasks: bool,
     pub timeline_ghost_notes: bool,
     /// The two questions a dialog can be told to stop asking — deleting, and
-    /// fetching a picture off the web.
-    ///
-    /// They ride here for the reason the accent does, and one of their own:
-    /// the shell installs the confirm POLICY from the layout on every render
-    /// (`setConfirmPolicy`, services/dialog.js), and a policy that cannot see
-    /// the answer is a policy that never applies it. Left out until now, so
-    /// "don't ask again" wrote `confirmDeletes: false` into the config and
-    /// nothing ever read it back — the question came again the next time, and
-    /// every time after (user report, 2026-08-31: "o dont ask me again pra
-    /// deletar imagens não está funcionando"). Nothing was broken in the
-    /// saving, in the checkbox or in Settings, which is why it looked like it
-    /// had worked.
+    /// fetching a picture off the web. They ride here because the shell installs
+    /// the confirm POLICY from the layout on every render (`setConfirmPolicy`,
+    /// services/dialog.js); left out, "don't ask again" is never read back.
     pub confirm_deletes: bool,
     pub confirm_image_downloads: bool,
     /// Whether the sidebar wears the rainbow — each entry the next of the
     /// seven from the accent on (services/spaceColors.js does the dealing).
     /// Resolved like the accent: this machine's answer over the notebook's.
     pub auto_space_colors: bool,
-    /// Which of the seven the app is accented with, and which theme is on,
-    /// both by name (2026-08-13). They ride in the layout rather than the
-    /// settings because the shell needs them on the FIRST paint — both are
-    /// attributes on the document root, and waiting for a second round trip
-    /// would flash the wrong colours. Empty means what the app ships as.
+    /// Which of the seven the app is accented with, by name. Rides in the
+    /// layout because the shell needs it on the FIRST paint (an attribute on
+    /// the document root); a second round trip would flash the wrong colours.
+    /// Empty means what the app ships as.
     pub accent_color: String,
-    /// The mode (`jott`/`light`/`dark`) and the theme (the palette's name),
-    /// two questions since 2026-08-26.
+    /// The mode (`jott`/`light`/`dark`) and the theme (the palette's name).
     pub mode: String,
     pub theme: String,
-    /// Whether headings take the accent or plain ink (2026-08-17). Rides here
-    /// for the same reason as the other two: it is an attribute on the
-    /// document root, wanted on the first paint.
+    /// Whether headings take the accent or plain ink. Rides here for the same
+    /// reason: an attribute on the document root, wanted on the first paint.
     pub heading_color: String,
     pub note_font_size: String,
-    /// The three faces the app is read in (2026-08-24), by family name;
-    /// empty is the one the app carries. They ride in the layout for the
-    /// reason the accent does — each is a custom property on the document
-    /// root, and a second round trip would draw the first paint in the
-    /// wrong face.
+    /// The three faces the app is read in, by family name; empty is the one
+    /// the app carries. Custom properties on the document root, so they ride
+    /// here for the reason the accent does.
     pub interface_font: String,
     pub note_font: String,
     pub mono_font: String,
-    /// When the note's floating formatting bar shows, and which side it hugs
-    /// (2026-08-21). It rides in the layout for the same reason the accent
-    /// does: the bar is drawn as soon as a note opens, and asking for the
-    /// settings separately would show it in the wrong place first.
+    /// When the note's floating formatting bar shows, and which side it hugs.
+    /// Rides here for the reason the accent does: the bar is drawn as soon as
+    /// a note opens.
     pub format_bar: String,
     pub format_bar_side: String,
     pub shortcuts: serde_json::Map<String, serde_json::Value>,
-    /// Which parts of the app are switched on (2026-08-06). Only what was
-    /// switched OFF is listed; the frontend's `services/features.js` reads a
-    /// missing key as on, and applies a child's parent for it.
+    /// Which parts of the app are switched on. Only what was switched OFF is
+    /// listed; the frontend's `services/features.js` reads a missing key as
+    /// on, and applies a child's parent for it.
     pub features: std::collections::BTreeMap<String, bool>,
 }
 
@@ -155,15 +134,13 @@ impl NotebookInfo {
             layout: NotebookLayout {
                 inbox: Notebook::inbox_path(),
                 completed: Notebook::completed_path_of(&Notebook::inbox_path())?,
-                // 2026-08-11: a space owns its files directly — tasks land
-                // in the fixed `Tasks/` space, loose notes in `Notes/`.
+                // A space owns its files directly: tasks land in the fixed
+                // `Tasks/` space, loose notes in `Notes/`.
                 tasks_folder: jott_core::TASKS_DIR.to_string(),
                 completed_name: jott_core::COMPLETED_LIST.to_string(),
                 notes_folder: jott_core::NOTES_DIR.to_string(),
-                // The core's name, never a mirror: this used to be hard-coded
-                // to "" and every note the Home created landed in the space's
-                // ROOT instead of the Inbox the spec (and the config default)
-                // point at.
+                // The core's name, never a mirror of it: a "" here sends every
+                // note the Home creates into the space's ROOT, not the Inbox.
                 notes_inbox: jott_core::notefolder::NOTES_INBOX.to_string(),
                 date_display_format: display.date_display_format,
                 reminder_time: notebook.config().reminder_time.render(),
@@ -196,19 +173,10 @@ impl NotebookInfo {
     }
 }
 
-/// Opens a notebook.
-///
-/// `create` says which QUESTION the user was asked (2026-08-24). The picker
-/// offers two doors — "Create a new notebook" and "Open a notebook" — and
-/// until they meant different things here, both did the same: a folder that
-/// was not a notebook silently became one, so a mistyped path under "open"
-/// scattered `.jott/` and three spaces into whatever folder was picked, and
-/// the app then reported success.
-///
-/// With `create` false the folder has to be a notebook already, and is refused
-/// with the core's own words when it is not. True is the create door, and is
-/// still `open_or_init`: picking a folder that already holds a notebook is not
-/// a mistake there, it is the same intention arriving by the other road.
+/// Opens a notebook. `create` says which door the user came through: false is
+/// "Open" and the folder must already be a notebook (refused with the core's
+/// words otherwise); true is "Create", still `open_or_init`, since a folder
+/// that already holds a notebook is the same intention by the other road.
 #[tauri::command]
 pub fn open_notebook<R: Runtime>(
     app: AppHandle<R>,
@@ -222,10 +190,8 @@ pub fn open_notebook<R: Runtime>(
     } else {
         Notebook::open(&path)?
     };
-    // The factory palette, written once into every notebook opened here
-    // (2026-08-26): derived, so a failure to write it is not a failure to
-    // open. The bytes are the front-end's own file, so the copy on disk is
-    // the copy in the bundle.
+    // The factory palette, written once into every notebook opened here:
+    // derived, so failing to write it is not a failure to open.
     let _ = notebook.ensure_default_theme(FACTORY_THEME_CSS);
     let info = NotebookInfo::of(&notebook, display_of(&app, &notebook))?;
     allow_assets(&app, &path);
@@ -234,21 +200,10 @@ pub fn open_notebook<R: Runtime>(
     Ok(info)
 }
 
-/// Lets the webview LOAD the images of this notebook, and only those.
-///
-/// A banner and an inline image are drawn by an `<img>`, and an `<img>` cannot
-/// call a command — it needs a URL. Tauri's asset protocol is that URL
-/// (`convertFileSrc`), and it answers only for paths in its scope. The scope
-/// is empty in `tauri.conf.json` and filled HERE, at the moment a notebook is
-/// opened, with one folder: `<notebook>/assets`. A notebook is a folder the
-/// user picks at runtime, so a scope written in the config could only have
-/// been `**` — every file on the machine reachable from a webview, to draw
-/// pictures from one directory.
-///
-/// Not recursive: the library is flat by construction (`jott_core::assets`).
-///
-/// A failure here is not a reason to refuse the notebook: everything else in
-/// the app works, and what breaks is images not drawing.
+/// Lets the webview LOAD the images of this notebook, and only those: Tauri's
+/// asset protocol (`convertFileSrc`) answers only inside its scope, empty in
+/// `tauri.conf.json` and filled HERE with `<notebook>/assets` (flat). A failure
+/// only stops images drawing. See docs/platform-gotchas.md#ponte-e-empacotamento
 fn allow_assets<R: Runtime>(app: &AppHandle<R>, root: &std::path::Path) {
     use tauri::Manager;
     let dir = root.join(jott_core::ASSETS_DIR);
@@ -265,56 +220,34 @@ pub fn last_notebook<R: Runtime>(app: AppHandle<R>) -> Option<PathBuf> {
     crate::prefs::last_notebook(&app)
 }
 
-// ---- the picker (2026-08-24) ----
+// ---- the picker ----
 
 /// One card on the notebooks screen: the notebook, plus when this machine
-/// last opened it.
-///
-/// Flattened rather than nested, because a card is one thing: the frontend
-/// reads `entry.name` and `entry.opened` side by side, and a `summary.`
-/// prefix on half of them would only say which side of the bridge each field
-/// came from.
+/// last opened it. Flattened, because a card is one thing.
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RecentNotebook {
     #[serde(flatten)]
     pub notebook: jott_core::NotebookSummary,
     /// RFC 3339, local. The desktop draws it as "42 min ago"; the phone does
-    /// not draw it at all (the wireframes, 2026-08-24).
+    /// not draw it at all.
     pub opened: String,
 }
 
-/// Every notebook this machine has opened, newest first, each with the two
-/// numbers and the colour its card wears.
-///
-/// **A notebook that cannot be summarized is left out rather than reported.**
-/// The list is paths remembered from earlier runs: a folder may have been
-/// deleted, renamed outside the app, or be sitting on a drive that is not
-/// plugged in. None of that is an error the user can act on from a picker, and
-/// one unreachable folder must not cost them the whole screen. It stays in the
-/// preferences file, so the day the drive comes back the card does too
-/// (`prefs::recent_notebooks`).
-///
-/// Reading, never writing: `Notebook::summarize` is the door precisely because
-/// `Notebook::open` would recreate spaces and reap trash in every notebook on
-/// the screen.
+/// Every notebook this machine has opened, newest first. One that cannot be
+/// summarized is LEFT OUT, not reported: an unplugged drive must not cost the
+/// whole screen, and it stays in prefs so the card returns with the drive.
+/// Reading only — `Notebook::open` would recreate spaces and reap trash.
 #[tauri::command]
 pub fn recent_notebooks<R: Runtime>(app: AppHandle<R>) -> Vec<RecentNotebook> {
     crate::prefs::recent_notebooks(&app)
         .into_iter()
         .filter_map(|entry| {
             let mut notebook = Notebook::summarize(&entry.path).ok()?;
-            // The colour the card wears is the one that notebook is DRESSED
-            // in on this machine, not only the one written inside it: since
-            // 2026-08-24 the Display choices are kept per machine and per
-            // notebook, and the accent picked in Settings lands there. A card
-            // reading the notebook's own value alone showed the app's default
-            // blue for every notebook whose colour had ever been chosen —
-            // which is every notebook (user report, same day).
-            //
-            // The core stays out of it: `summarize` answers what is IN the
-            // notebook, and where this machine keeps its overrides is this
-            // side's business, exactly as `display_of` has it.
+            // The colour the card wears is the one this machine DRESSES the
+            // notebook in (Display is per machine and per notebook), not only
+            // the one written inside it. `summarize` answers what is IN the
+            // notebook; the override is this side's, as in `display_of`.
             if let Some(chosen) = crate::prefs::display(&app, &entry.path).accent_color {
                 notebook.accent_color = chosen;
             }
@@ -332,11 +265,9 @@ pub fn forget_notebook<R: Runtime>(app: AppHandle<R>, path: PathBuf) {
     crate::prefs::forget_notebook(&app, &path);
 }
 
-/// Renames a notebook from the picker, by renaming its folder.
-///
-/// The rule and the refusals are the core's (`Notebook::rename_at`); what is
-/// this side's is the guard below and the bookkeeping after. Answers with the
-/// new path, which is what the screen reloads around.
+/// Renames a notebook from the picker, by renaming its folder. The rule and
+/// the refusals are the core's (`Notebook::rename_at`); this side guards and
+/// does the bookkeeping. Answers the new path, which the screen reloads around.
 #[tauri::command]
 pub fn rename_notebook<R: Runtime>(
     app: AppHandle<R>,
@@ -365,13 +296,10 @@ pub fn move_notebook<R: Runtime>(
     Ok(moved)
 }
 
-/// Refuses to move the folder out from under the notebook the app is working
-/// in.
-///
-/// The picker only shows with nothing open, so this should never fire — which
-/// is exactly why it is here rather than trusted: the two commands take a path
-/// from the frontend, and the cost of being wrong is every open file handle
-/// pointing at a directory that no longer exists at that address.
+/// Refuses to move the folder out from under a notebook the app is working
+/// in. The picker only shows with nothing open, so this should never fire —
+/// which is why it is checked rather than trusted: the path comes from the
+/// frontend, and being wrong leaves every open handle at a dead address.
 fn ensure_closed(state: &State<'_, AppState>, path: &std::path::Path) -> CommandResult<()> {
     if state.holds(path) {
         return Err(crate::error::CommandError::new(
@@ -432,14 +360,9 @@ pub(crate) fn counts_of(
 }
 
 /// Everything in the notebook matching `query`, as two answers (tasks, notes).
-///
-/// `limit` is optional: the screen that opens the box does not have an opinion
-/// about how many hits fit, and the core's own default is the answer when it
-/// says nothing.
-///
-/// `scope` narrows the question to one space, by its root-relative path — what
-/// the ⋮ of a screen asks (2026-08-17). Absent (or empty) is the whole
-/// notebook, which is what Ctrl+F asks.
+/// `limit` absent takes the core's default. `scope` narrows the question to
+/// one space by its root-relative path (a screen's ⋮); absent or empty is the
+/// whole notebook (Ctrl+F).
 #[tauri::command]
 pub fn search<R: Runtime>(
     state: State<'_, AppState>,
@@ -490,10 +413,9 @@ pub fn trash_entries<R: Runtime>(state: State<'_, AppState>,
 }
 
 /// `Ctrl+Z` — takes back the last action this window recorded (see
-/// `AppState::record`). Answers the command's name, for the screen to say
-/// what was undone, or `null` when there was nothing to undo. A `stale`
-/// error means the files moved on since (a sync, the other window) and the
-/// entry was dropped rather than written over them.
+/// `AppState::record`). Answers the command's name, or `null` when there was
+/// nothing to undo. A `stale` error means the files moved on since (a sync,
+/// the other window) and the entry was dropped rather than written over them.
 #[tauri::command]
 pub fn undo<R: Runtime>(
     state: State<'_, AppState>,
@@ -591,13 +513,9 @@ pub fn remove_tag<R: Runtime>(state: State<'_, AppState>,
     state.record(window.label(), "remove_tag", |nb| nb.remove_tag(&name))
 }
 
-/// Everything the shell of the UI needs after any change, in one round trip.
-///
-/// Every action used to fan out into four `invoke()`s (info, clock, counts,
-/// conflicts) — and the auto-save fires that cascade on every pause in
-/// typing. One command keeps the cost flat as notebooks grow. This is
-/// consolidation of round trips only: nothing is cached, the files stay the
-/// source of truth, and each call re-reads them.
+/// Everything the shell of the UI needs after any change, in one round trip
+/// (the auto-save fires it on every pause in typing). Consolidation of round
+/// trips only: nothing is cached, each call re-reads the files.
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct NotebookSnapshot {
@@ -607,13 +525,13 @@ pub struct NotebookSnapshot {
     pub counts: std::collections::BTreeMap<String, usize>,
     pub conflicts: Vec<Conflict>,
     pub spaces: Vec<SpaceInfo>,
-    /// The groups of spaces in the sidebar (reestruturação 2026-07-30).
+    /// The groups of spaces in the sidebar.
     pub groups: Vec<GroupInfo>,
     /// The user's tag catalogue (name + colour), for the card pills.
     pub tags: Vec<TagInfo>,
     /// What is pulled into the Day, as references. Every screen that draws a
-    /// card marks the ones that are in today (2026-08-06), and asking per
-    /// screen is exactly the fan-out this snapshot exists to avoid.
+    /// card marks the ones in today, and asking per screen is the fan-out
+    /// this snapshot exists to avoid.
     pub day: Vec<jott_core::state::TaskRef>,
 }
 

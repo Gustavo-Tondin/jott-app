@@ -16,16 +16,10 @@ use super::*;
 const SOON_WINDOW_DAYS: i64 = 3;
 
 impl Notebook {
-    /// Open tasks whose due date lands on `day`. For today a date earlier
-    /// than today counts too — overdue is still due, and today is the only
-    /// day left to face it on (user call, 2026-09-04). A day ahead takes
-    /// only what is due on it: what is overdue is today's, not the 5th's.
-    ///
-    /// Today also keeps what it finished: a dated task ticked TODAY comes
-    /// back from its Completed list, done, so the day counts it the way it
-    /// counts a task pulled by hand ("1 of 3 done", not "0 of 2" — user
-    /// call, 2026-09-07). Ticked on another day it is history, not a plan,
-    /// and stays out.
+    /// Open tasks whose due date lands on `day`. Today also takes what is
+    /// overdue (overdue is still due); a day ahead takes only its own date.
+    /// Today also keeps a dated task ticked TODAY, read back from its Completed
+    /// list, so "1 of 3 done" counts it; ticked on another day, it stays out.
     pub(super) fn tasks_due_on(&self, day: Day) -> Result<Vec<ListedTask>> {
         let today = self.today();
         let due_on = |due: chrono::NaiveDate| match day {
@@ -61,12 +55,8 @@ impl Notebook {
         Ok(out)
     }
 
-    /// Whether a task counts as urgent right now.
-    ///
-    /// Two sources with equal weight (spec 3.2): the `#urgent` tag the user
-    /// wrote, and a date that is today or already past. The date half can be
-    /// switched off for people who do not want the interface flagging
-    /// deadlines on its own.
+    /// Whether a task counts as urgent right now: the `#urgent` tag, or a
+    /// due date that is today or past (the date half is a config switch).
     fn is_urgent(&self, task: &Task) -> bool {
         if task.is_marked_urgent() {
             return true;
@@ -79,10 +69,7 @@ impl Notebook {
 
     /// What to offer pulling into a day, grouped and in display order.
     /// `None` is today; a day ahead is offered the same lists, minus what it
-    /// already holds.
-    ///
-    /// Nothing here *selects* a task — the day stays a deliberate choice.
-    /// Dates only change what is offered first.
+    /// already holds. Nothing here selects a task; dates only order the offer.
     pub fn grouped_suggestions(&self, day: Option<chrono::NaiveDate>) -> Result<Vec<Suggestion>> {
         let today = self.today();
         let soon = today + chrono::Duration::days(SOON_WINDOW_DAYS);
@@ -149,14 +136,11 @@ impl Notebook {
     }
 
     /// What to offer pulling into a day, in the order the UI shows it: the
-    /// lists, in the order the user arranged them.
-    ///
-    /// Anything the day already shows is left out, and so are completed
-    /// tasks and the folder's `completed` list itself.
+    /// lists, in the order the user arranged them. Anything the day already
+    /// shows is left out, and so are completed tasks and `completed` itself.
     pub fn suggestions_for(&self, day: Option<chrono::NaiveDate>) -> Result<Vec<ListedTask>> {
-        // What the day ALREADY shows — not just what was pulled into its
-        // state. Since 2026-08-14 a dated task joins the day on its own, and
-        // suggesting something the user is already looking at is noise.
+        // What the day ALREADY shows, not just what was pulled into its
+        // state: a dated task joins the day on its own.
         let showing = ShownIndex::of(&self.day_tasks(day)?);
         let mut out: Vec<ListedTask> = Vec::new();
         // Ids already offered. Id-only ON PURPOSE, narrower than
@@ -195,14 +179,10 @@ impl Notebook {
     }
 }
 
-/// The set form of [`super::is_same_task`], for asking "is this task already
-/// on the day's screen?" once per candidate without a scan per question.
-///
-/// Three sets carry the predicate's three arms exactly: id against id when
-/// both exist; a candidate with no id falls back to text against ANY shown
-/// task; a candidate with an id still text-matches a shown task that has
-/// none (an id is handed out lazily, so the same task can be id-less on one
-/// side and named on the other).
+/// The set form of [`super::is_same_task`], answering "is this task already
+/// on the day's screen?" per candidate without a scan. Three sets carry the
+/// predicate's three arms: id against id; an id-less candidate text-matches
+/// ANY shown task; a candidate with an id still text-matches an id-less one.
 struct ShownIndex {
     ids: std::collections::HashSet<(String, String)>,
     texts_all: std::collections::HashSet<(String, String)>,

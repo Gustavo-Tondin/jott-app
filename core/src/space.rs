@@ -1,22 +1,8 @@
-//! Spaces: the folders of the notebook that carry a `.space.json`,
-//! and the groups (`.group.json`) that gather them in the sidebar.
-//!
-//! Model (spec 3.5, rewritten 2026-08-11): **notebook → [group] → space
-//! → file**. A folder *with* a `.space.json` is a space; every other
-//! folder is ignored — a stray folder dropped into the notebook must never
-//! turn into interface on its own. A space has a single function — its
-//! `type` (`tasks` or `notes`) — and owns its files directly.
-//! The type comes from the config, never from the folder name, so two task
-//! spaces can be called `Backlog/` and `Bugs/`.
-//!
-//! The config file follows the same covenant as `.jott/config.json`:
-//!
-//! - a missing or malformed value falls back to a default, never an error;
-//! - an **unknown key survives the rewrite** — including a space of
-//!   unknown type. A template written for a future version must open as
-//!   "not supported yet", never be destroyed;
-//! - a `schemaVersion` above what this build knows opens the space
-//!   read-only, and saving is refused.
+//! Spaces: folders carrying a `.space.json`, and the groups (`.group.json`)
+//! that gather them in the sidebar. A folder without its marker is never
+//! interface. The `type` comes from the config, never from the folder name.
+//! The config keeps the `.jott/config.json` covenant: bad value → default,
+//! unknown key (and unknown type) survives, newer `schemaVersion` → read-only.
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -110,12 +96,10 @@ pub struct SpaceConfig {
     pub kind: String,
     /// Display name. Falls back to the folder name when absent.
     pub name: Option<String>,
-    /// The space's colour — a palette NAME (`"orange"`), never a hex, the
-    /// rule every colour in a Jott notebook follows (the interface owns the
-    /// list; the core carries the string). Shown on its group bar in the
-    /// sidebar and, since 2026-08-26, on the badge a card of this space wears
-    /// wherever it is shown outside it. Absent means the sidebar's default
-    /// accent.
+    /// The space's colour — a palette NAME (`"orange"`), never a hex; the
+    /// interface owns the list, the core carries the string. Shown on its
+    /// sidebar bar and on the badge a card of this space wears outside it.
+    /// Absent means the sidebar's default accent.
     pub color: Option<String>,
     /// The space's icon (a Phosphor icon name the frontend knows). Absent
     /// falls back to the generic folder icon.
@@ -124,28 +108,20 @@ pub struct SpaceConfig {
     /// `custom`). `None` — or a value this build has never heard of — reads
     /// as the file order. A view preference, so the core stores it verbatim.
     pub sort: Option<String>,
-    /// How a NOTES space draws its board: `grid` (cards) or `tree` (by
-    /// folder). `None` means the notebook's default (`Config::note_layout`),
-    /// so a space that never chose follows the setting when it changes; a
-    /// value this build has never heard of is kept verbatim and read as the
-    /// default, like `sort`. Meaningless on a tasks space, and never written
-    /// there by the app.
+    /// How a NOTES space draws its board: `grid` or `tree`. `None` means the
+    /// notebook's default (`Config::note_layout`), so a space that never chose
+    /// follows the setting; an unknown value is kept verbatim and read as the
+    /// default, like `sort`. Meaningless on a tasks space, never written there.
     pub note_layout: Option<String>,
     /// The hand-dragged arrangement (task ids for a tasks space, note
     /// paths for a notes one), read when `sort` is `custom`. Lives here and
     /// never in the content files — the order is an app preference, the `.md`
     /// is the user's.
     pub order: Vec<String>,
-    /// What each FOLDER of notes inside this space carries: a colour, and
-    /// whether it is kept at the top. Keyed by the folder's address relative
-    /// to the space (`Clientes`, `Clientes/2026`).
-    ///
-    /// **Here and not in the folder itself** (2026-08-19): a folder of notes
-    /// is a plain directory, and the app does not scatter marker files through
-    /// the user's own tree — that is the same reason a note folder has never
-    /// had a colour before. The space already carries the arrangement of its
-    /// contents (`sort`/`order`); this is one more line of the same sentence.
-    /// A folder with nothing to say has no entry at all.
+    /// What each FOLDER of notes inside this space carries (colour, pinned),
+    /// keyed by the folder's address relative to the space (`Clientes/2026`).
+    /// Here and not in the folder: a note folder is a plain directory, and the
+    /// app never scatters marker files through the user's tree.
     pub folders: BTreeMap<String, FolderSettings>,
     /// The document as read, for the unknown-key promise.
     raw: jsondoc::Doc,
@@ -248,11 +224,10 @@ impl SpaceConfig {
     pub fn render(&self) -> String {
         let mut owned = jsondoc::owned([("schemaVersion", Value::from(self.schema_version))]);
         let mut cleared = Vec::new();
-        // `type` is never cleared, only overwritten: a space whose type
-        // this build cannot read (a future shape, an object where we expect a
-        // string) keeps whatever is on disk — that is the whole "unsupported
-        // space, folder untouched" promise of spec 3.5. A group's config
-        // reuses this struct and simply has no `type` to write.
+        // `type` is never cleared, only overwritten: a space whose type this
+        // build cannot read keeps whatever is on disk — the "unsupported
+        // space, folder untouched" promise. A group's config reuses this
+        // struct and simply has no `type` to write.
         if !self.kind.is_empty() {
             owned.insert("type".into(), Value::from(self.kind.clone()));
         }
@@ -284,20 +259,10 @@ impl SpaceConfig {
             .filter(|(_, settings)| !settings.is_empty())
             .map(|(name, settings)| (name.clone(), Value::Object(settings.to_entry())))
             .collect();
-        // `folders` is a key this build replaces whole instead of merging
-        // into. jsondoc merges deeply, on purpose — that is what keeps an
-        // unknown sibling key alive — but a deep merge cannot express a
-        // REMOVAL, and a folder that was renamed or deleted has to stop being
-        // in the file. Each entry carries what it was read with
-        // (`FolderSettings::raw`), so nothing inside one is lost by clearing
-        // the map before the merge.
-        //
-        // Cleared whether or not it has content, which is what says "replace"
-        // rather than "remove": `render` clears before it merges, so the map
-        // that goes in is the map that comes out. This file met the problem
-        // first and used to lift `folders` out of the base document by hand;
-        // the same silence turned out to be swallowing four maps in
-        // config.rs, which is why the mechanism moved into jsondoc.
+        // `folders` is replaced whole, not merged: the deep merge keeps an
+        // unknown sibling alive but cannot express a REMOVAL, and a renamed
+        // or deleted folder has to leave the file. Each entry carries its own
+        // `raw`, so clearing the map before the merge loses nothing inside.
         cleared.push("folders");
         if !folders.is_empty() {
             owned.insert("folders".into(), Value::Object(folders));
@@ -352,20 +317,10 @@ impl Space {
         &self.folder_name
     }
 
-    /// What the UI shows: **the folder name** (user call, 2026-08-13).
-    ///
-    /// The marker's `name` used to win, and that made the name a second copy
-    /// of something the filesystem already stores. Two copies drift: renaming
-    /// a space in the app wrote the marker and left the folder — and the
-    /// list file inside it — under the old name, so the sidebar and the disk
-    /// disagreed. It also went one way only: renaming the folder in a file
-    /// manager changed nothing on screen.
-    ///
-    /// The **app's own folders are the exception**, and the only one. They are
-    /// called `jott.tasks`, `jott.notes`, `jott.home` precisely so the plain
-    /// words stay free for the user, so their folder name is an identifier and
-    /// not a label; their marker carries the name the interface reads. A user
-    /// space cannot take that route — there, the folder IS the name.
+    /// What the UI shows: **the folder name**. The marker's `name` would be a
+    /// second copy of what the filesystem stores, and two copies drift. The
+    /// app's own folders (`jott.tasks`, `jott.notes`, `jott.home`) are the one
+    /// exception: their folder name is an identifier, their marker the label.
     pub fn display_name(&self) -> &str {
         if !is_app_folder(&self.folder_name) {
             return &self.folder_name;
@@ -390,15 +345,9 @@ impl Space {
 }
 
 /// The direct subfolders of `parent` that carry `marker`, sorted by name.
-///
-/// **This is the rule of spec 3.5, in one place:** a folder only becomes
-/// interface by carrying its marker file — never on its own. A folder someone
-/// dropped in (a download, an attachments dir, whatever a sync tool leaves) is
-/// ignored, and so is anything hidden.
-///
-/// The two discoveries of the app are the same scan with a different marker:
-/// spaces (`.space.json`) inside the notebook or a group, and groups
-/// (`.group.json`) at the root.
+/// The rule of spec 3.5 in one place: a folder only becomes interface by
+/// carrying its marker file; anything else (a download, a sync leftover) and
+/// anything hidden is ignored. Spaces and groups are this scan, two markers.
 pub fn marker_dirs(parent: &Path, marker: &str) -> Result<Vec<PathBuf>> {
     let mut found: Vec<PathBuf> = crate::fsio::dir_paths(parent)?
         .into_iter()
@@ -417,12 +366,10 @@ pub fn is_app_folder(folder: &str) -> bool {
     folder.starts_with("jott.")
 }
 
-/// A group of spaces (reestruturação 2026-07-30): a folder carrying a
-/// `.group.json`, holding spaces **and other groups** (nesting, since
-/// 2026-08-11). It organizes the left sidebar and owns no files of its own.
-/// The marker **reuses [`SpaceConfig`]** — a group config is just
-/// name/colour/icon, the same tolerant fields — so there is no second reader
-/// to keep in sync.
+/// A group of spaces: a folder carrying a `.group.json`, holding spaces and
+/// other groups (nesting). It organizes the left sidebar and owns no files.
+/// The marker **reuses [`SpaceConfig`]** — name/colour/icon, the same
+/// tolerant fields — so there is no second reader to keep in sync.
 pub struct Group;
 
 impl Group {
@@ -433,8 +380,8 @@ impl Group {
 }
 
 /// A group as the navigation shows it: its folder (identity), the group it
-/// sits in (groups nest since 2026-08-11), its config (name/colour/icon) and
-/// the leaf names of the spaces it holds directly.
+/// sits in, its config (name/colour/icon) and the leaf names of the spaces it
+/// holds directly.
 #[derive(Debug, Clone)]
 pub struct GroupEntry {
     pub folder: String,
@@ -588,10 +535,8 @@ mod tests {
 
     #[test]
     fn the_folder_is_the_name_and_only_the_app_folders_may_say_otherwise() {
-        // 2026-08-13: the marker's `name` stopped being a second copy of the
-        // folder. It drifted — renaming in the app wrote the marker and left
-        // the folder — and it only ever went one way, so renaming the folder
-        // in a file manager changed nothing on screen.
+        // The marker's `name` is not a second copy of the folder: two copies
+        // drift, and only ever one way.
         let dir = tempfile::tempdir().unwrap();
         let sp = space_at(&dir.path().join("Trabalho"), r#"{ "schemaVersion": 1 }"#);
         assert_eq!(sp.display_name(), "Trabalho");

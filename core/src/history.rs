@@ -1,39 +1,8 @@
 //! The session's history of actions on a notebook — what `Ctrl+Z` undoes.
-//!
-//! The notebook is a folder of text files, and every action the app offers
-//! ends as a change to some of them: a delete moves a note into `.jott/trash/`
-//! and adds a line to `trash.json`, a reorder rewrites `config.json`, a
-//! completion moves a line between two `.md` files. So instead of teaching
-//! fifty commands how to undo themselves — a rename that also repoints the
-//! links in six other notes would need a very careful inverse — the history
-//! records what each action DID to the files: the bytes every touched file
-//! held before, and the bytes it holds after. Undo writes the "before" back,
-//! redo the "after". One rule serves every action, including the ones not
-//! written yet.
-//!
-//! It is a session thing: it lives in memory, per open notebook, and dies with
-//! the window. Nothing about it reaches the disk, and a notebook opened twice
-//! (two windows) has two histories that do not know each other — which is
-//! also why an entry checks, before it is undone, that the files still hold
-//! what it left there (`Error::Stale`): a sync tool, the other window or a
-//! hand edit may have moved on, and undoing over that would destroy the
-//! newer text.
-//!
-//! What is recorded is the notebook's TEXT files (`.md`, `.json`, `.txt`, up
-//! to [`MAX_FILE_BYTES`]) and its directories. Anything else — the pictures
-//! of `assets/`, a file too big — is watched by size and date only: an action
-//! that changes one of those is not recorded at all, because an undo that put
-//! the notes back but not the picture they point at would be half an undo.
-//! The library screen keeps its own trash for that.
-//!
-//! The note being typed is deliberately NOT in here: the editor has its own
-//! history (CodeMirror's), and the app one would fight it — see the bridge,
-//! which does not route `write_note` through `record`. The same goes for the
-//! task inspector's saves. Those writes are still the app's own, though, and
-//! [`History::absorb`] folds them into the entry they land on: after "create
-//! task" and a priority typed into the inspector, undo takes the task away
-//! and redo brings it back WITH the priority — and neither is refused as a
-//! change from outside.
+//! An entry holds the bytes each touched file had before and after the
+//! action; undo writes "before" back, redo "after". Per window, in memory,
+//! never on disk, and refused (`Error::Stale`) once the files moved on. Only
+//! text files ≤ [`MAX_FILE_BYTES`] and directories are recorded.
 
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::path::{Path, PathBuf};
@@ -78,14 +47,9 @@ struct Cached {
     stamp: Stamp,
     content: Arc<[u8]>,
     /// Whether the file was still inside the racy window when these bytes
-    /// were read. Recorded HERE, and never asked again at lookup time,
-    /// because raciness is a fact about the moment the cache was FILLED: a
-    /// same-length rewrite one tick after that read leaves the stamp
-    /// identical for good, and by the time anyone looks the stamp is old and
-    /// would pass for trustworthy (2026-08-24). It is git's smudge — an entry
-    /// recorded as racy is never believed again, and the next scan re-reads
-    /// it and re-stamps it, which clears the flag once the file has stopped
-    /// being fresh.
+    /// were read. Recorded HERE, never asked at lookup: raciness is a fact
+    /// about the moment the cache was FILLED — a same-length rewrite one tick
+    /// later leaves the stamp identical for good. The next scan re-reads it.
     racy: bool,
 }
 
@@ -97,21 +61,10 @@ struct Stamp {
 }
 
 impl Stamp {
-    /// Whether this stamp could describe two different contents — git's
-    /// "racy" rule. A file written twice inside one tick of the
-    /// filesystem's clock keeps its mtime, and a rewrite of the same length
-    /// keeps its size: the stamp says "unchanged" while the bytes changed.
-    /// Measured in CI (2026-08-24): `one\n` → `two\n` in the same second
-    /// was recorded as no edit at all on ubuntu and on Windows, where the
-    /// clock is coarser than the ext4 one this was written against. A
-    /// stamp younger than two seconds is therefore never trusted from the
-    /// cache — the file is read again, which is the only honest answer.
-    ///
-    /// **This is asked when an entry is written, not when it is read**
-    /// (2026-08-24): asking at read time left the window open, because the
-    /// dangerous pair is "cache filled while the file was fresh" + "rewrite
-    /// one tick later", and by the time anyone reads it the stamp is old.
-    /// See `Cached::racy`.
+    /// Git's "racy" rule: a file written twice inside one tick of the
+    /// filesystem clock keeps its mtime, and a same-length rewrite its size.
+    /// A stamp younger than two seconds is never trusted from the cache.
+    /// Asked when an entry is WRITTEN, not read — see `Cached::racy`.
     fn is_racy(&self) -> bool {
         match self
             .modified
@@ -178,13 +131,9 @@ impl History {
     }
 
     /// Runs `action` and records what it changed under `root`, as one entry
-    /// named `label`. Whatever could be redone is forgotten: a new action
-    /// after an undo is a fork, and the other branch is gone.
-    ///
-    /// The action's own error passes through unrecorded. A scan that fails
-    /// (a folder that cannot be read) does not stop the action either — the
-    /// user asked for the action, not for its history — it just leaves no
-    /// entry behind.
+    /// named `label`. A new action after an undo is a fork: the redo branch
+    /// is gone. The action's own error passes through unrecorded; a scan that
+    /// fails does not stop the action either — it just leaves no entry.
     pub fn record<T>(
         &mut self,
         root: &Path,
@@ -206,15 +155,10 @@ impl History {
         Ok(result)
     }
 
-    /// Folds a write the app made WITHOUT recording it — the editor's save,
-    /// the inspector's — into the history: the last recorded action that
-    /// touched each changed file now ends where that write left it, so undo
-    /// still runs (back to before the action) and redo brings the file back
-    /// with the quiet write included. A redoable action resting on such a
-    /// file is forgotten: the file has moved on under it.
-    ///
-    /// Without this, every quiet write would make the entry before it look
-    /// like a change from outside, and `undo` would refuse it as stale.
+    /// Folds a write the app made WITHOUT recording it (the editor's save,
+    /// the inspector's) into the history: the last recorded entry touching
+    /// each changed file now ends where that write left it, so undo still
+    /// runs and redo includes it. A redoable entry resting on it is forgotten.
     pub fn absorb(&mut self, root: &Path) -> Result<()> {
         let now = self.scan(root)?;
         if let Some(last) = self.last.take() {
@@ -267,12 +211,9 @@ impl History {
         self.entries.get(self.done).map(Entry::label)
     }
 
-    /// Takes back the last action; answers its name, or `None` when there is
-    /// nothing to take back.
-    ///
-    /// An entry whose files no longer hold what the action left is refused
-    /// with [`Error::Stale`] and dropped — with everything before it, since
-    /// those rest on the same files. Refusing is the point: the newer text
+    /// Takes back the last action; answers its name, or `None`. An entry whose
+    /// files no longer hold what the action left is refused with
+    /// [`Error::Stale`] and dropped with everything before it — the newer text
     /// came from somewhere, and it is not the app's to overwrite.
     pub fn undo(&mut self, root: &Path) -> Result<Option<String>> {
         let Some(index) = self.done.checked_sub(1) else {
@@ -629,8 +570,8 @@ mod tests {
 
     #[test]
     fn a_same_length_rewrite_in_the_same_tick_is_still_seen() {
-        // The CI failure of 2026-08-24: same size, same second, and the
-        // cache answered the old bytes. The racy rule reads it again.
+        // Same size, same second: without the racy rule the cache answers
+        // the old bytes.
         let dir = tempfile::tempdir().unwrap();
         let root = dir.path();
         write(root, "note.md", "one");
@@ -643,13 +584,10 @@ mod tests {
 
     #[test]
     fn a_same_tick_rewrite_is_still_seen_after_the_window_closes() {
-        // The hole the first racy fix left open (2026-08-24). Raciness was
-        // asked at LOOKUP time — "is this stamp young?" — but it is a fact
-        // about the moment the cache was FILLED: a same-length rewrite one
-        // tick after that read leaves the stamp identical for good, and by
-        // the time anyone looks the stamp is old and passes for trustworthy.
-        // Reproduced by forcing the mtime back, which is what a filesystem
-        // with a coarse clock does on its own.
+        // Raciness is a fact about the moment the cache was FILLED, not about
+        // the stamp at lookup: a same-length rewrite one tick later leaves the
+        // stamp identical for good. Forcing the mtime back reproduces what a
+        // coarse filesystem clock does on its own.
         let dir = tempfile::tempdir().unwrap();
         let root = dir.path();
         write(root, "note.md", "one");

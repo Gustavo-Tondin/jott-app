@@ -1,26 +1,8 @@
-//! When each note was last looked at — `.jott/index/seen.json`.
-//!
-//! The second half of the time axis (spec 3.6). `created` says when a thing
-//! was born and travels inside the file; "last seen" says when someone last
-//! had it open, and travels **beside** the files: writing it into the note
-//! would mean READING a note rewrites it, which is the one thing a notebook
-//! of plain files must never do to a file the user did not touch.
-//!
-//! Three decisions worth keeping in mind while reading this:
-//!
-//! - **Notes only** (user call, 2026-08-26). A task shows the age of its
-//!   `created` and nothing else, so nothing here ever keys a task.
-//! - **Opening counts, glancing does not.** The index is written when a note
-//!   is opened or edited — never when a board draws its cards, which would
-//!   make everything on screen permanently fresh.
-//! - **It is an INDEX, not a format.** No screen shows the file, the public
-//!   `file-format.md` declares it regenerable and not-to-be-edited, and
-//!   losing it loses the "seen" and nothing else. That is what buys the right
-//!   to keep it in `.jott/index/` rather than in the notebook proper.
-//!
-//! The one durability trick: `seen.json.bak` is written before each rewrite,
-//! and a main file that does not parse is read from the backup instead. A
-//! half-written index would otherwise silently make every note look unseen.
+//! When each note was last looked at — `.jott/index/seen.json`, kept BESIDE
+//! the files because reading a note must never rewrite it. Notes only (a
+//! task shows its `created` age); written on open or edit, never when a
+//! board draws its cards; a regenerable INDEX, not a format. `seen.json.bak`
+//! is written before each rewrite and read when the main file does not parse.
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -29,29 +11,21 @@ use chrono::NaiveDateTime;
 
 use crate::error::Result;
 
-/// The folder of the notebook's rebuildable indexes, inside `.jott/`.
-///
-/// Kept apart from the durable side of `.jott/` on purpose: everything under
-/// here can be thrown away and recomputed (or simply lost) without the user
-/// losing anything they wrote.
+/// The folder of the notebook's rebuildable indexes, inside `.jott/`:
+/// everything under it can be thrown away without losing anything written.
 pub const INDEX_DIR: &str = "index";
 
 /// The index file itself, inside [`INDEX_DIR`].
 pub const SEEN_FILE: &str = "seen.json";
 
-/// The addresses of the notes that have been opened, and when.
-///
-/// Keys are **root-relative** (`jott.notes/Inbox/ideia.md`), the same address
-/// every other part of the app carries, so a note is identified the same way
-/// here as it is in a search hit or a timeline line. Values are local
-/// wall-clock stamps, minute resolution, in the format the rest of the app
-/// writes dates and times in (`crate::task::render_datetime`).
+/// The addresses of the notes that have been opened, and when. Keys are
+/// root-relative (`jott.notes/Inbox/ideia.md`); values are local wall-clock
+/// stamps to the minute (`crate::task::render_datetime`).
 #[derive(Debug, Clone, Default)]
 pub struct Seen {
     entries: BTreeMap<String, NaiveDateTime>,
-    /// Whether the main file was readable when this was loaded. False means
-    /// we are running off the backup (or off nothing), and rewriting the
-    /// backup from the broken main file would destroy the only good copy.
+    /// Whether the main file was readable on load. False means running off
+    /// the backup, and rewriting the backup would destroy the only good copy.
     intact: bool,
 }
 
@@ -66,12 +40,9 @@ fn backup_of(path: &Path) -> PathBuf {
     PathBuf::from(name)
 }
 
-/// Reads the map out of a file's text, or `None` when it is not one.
-///
-/// Tolerant in one direction only: a value that is not a readable stamp is
-/// dropped, an unreadable *document* is a failure. The difference matters —
-/// one bad entry must not throw away the other nine hundred, and a truncated
-/// file must not read as "nobody ever opened anything".
+/// Reads the map out of a file's text, or `None` when it is not one. One
+/// unreadable stamp is dropped; an unreadable DOCUMENT is a failure, so a
+/// truncated file never reads as "nobody ever opened anything".
 fn parse(text: &str) -> Option<BTreeMap<String, NaiveDateTime>> {
     let doc: serde_json::Value = serde_json::from_str(text).ok()?;
     let map = doc.as_object()?;
@@ -86,12 +57,9 @@ fn parse(text: &str) -> Option<BTreeMap<String, NaiveDateTime>> {
 }
 
 impl Seen {
-    /// Loads the index of the notebook whose `.jott/` is `config_dir`.
-    ///
-    /// A missing file is an empty index, not an error: a notebook that was
-    /// never opened by this build has no "seen" to remember, and that is the
-    /// normal case, not a fault. A main file that does not parse falls back
-    /// to `seen.json.bak`.
+    /// Loads the index of the notebook whose `.jott/` is `config_dir`. A
+    /// missing file is an empty index, not an error; a main file that does
+    /// not parse falls back to `seen.json.bak`.
     pub fn load(config_dir: impl AsRef<Path>) -> Self {
         let path = path_of(config_dir);
         let main = std::fs::read_to_string(&path).ok();
@@ -164,10 +132,8 @@ impl Seen {
         true
     }
 
-    /// Drops what the index knew about an address, and about everything under
-    /// it. One method rather than two because an address is either a file or
-    /// a folder and never both, so asking about children can never hit the
-    /// wrong entry.
+    /// Drops what the index knew about an address and everything under it.
+    /// One method: an address is a file or a folder, never both.
     pub fn forget(&mut self, path: &str) -> bool {
         let under = format!("{path}/");
         let before = self.entries.len();
@@ -176,14 +142,9 @@ impl Seen {
         before != self.entries.len()
     }
 
-    /// Follows an address that moved: the entry itself, and every entry under
-    /// it. `to` may be a folder that already exists (a note moving into
-    /// another folder) or a space — the address is rebuilt, never spliced.
-    ///
-    /// This is what keeps a rename from making a note look untouched: without
-    /// it, renaming a note the user reads every day would reset its age to
-    /// "never opened", and the weekly sweep would then offer it up as
-    /// forgotten.
+    /// Follows an address that moved: the entry itself and every entry under
+    /// it; the address is rebuilt, never spliced. Without it a rename would
+    /// reset a note's age to "never opened".
     pub fn retarget(&mut self, from: &str, to: &str) -> bool {
         if from == to {
             return false;
@@ -238,8 +199,7 @@ mod tests {
             .unwrap()
     }
 
-    /// A notebook's `.jott/`, empty. The index folder inside it is the
-    /// index's own to create.
+    /// A notebook's `.jott/`, empty; the index folder is the index's to create.
     fn temp() -> tempfile::TempDir {
         tempfile::tempdir().unwrap()
     }

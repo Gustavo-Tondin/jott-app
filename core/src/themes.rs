@@ -1,30 +1,8 @@
-//! Themes the reader brings into their own notebook (2026-08-25).
-//!
-//! The app ships three looks, and until now that was the whole list: a fourth
-//! meant a pull request. This module reads the other source — `.jott/themes/`,
-//! inside the notebook, which travels with it the way every other preference
-//! that answers to a *person* does.
-//!
-//! **Two shapes, because they answer two different moments.** A single
-//! `<name>.css` is the ten-second one: copy a file in, it is a theme. A folder
-//! `<name>/` with `theme.css` beside a `manifest.json` is the one a theme
-//! MEANT to be shared takes — it carries an author, a version, and the field
-//! that cannot be invented later, `minAppVersion`. Without it a stylesheet
-//! written for a future Jott would dress an older one and quietly leave half
-//! the app uncoloured; with it the app can say so instead.
-//!
-//! **The name is the folder (or the file), and it is also the `data-theme`
-//! value.** That is what lets a theme copied from `styles/themes/default.css`
-//! work unchanged, keyed selectors and all — and equally lets a short theme
-//! skip the name entirely and assign the two regions directly, because when
-//! the attribute matches no theme the app ships, none of them apply.
-//!
-//! **Nothing here reaches the network.** A stylesheet is text the app injects
-//! into its own document, so a `url()` pointing at a host would call home
-//! every time the app opened — from a file the reader may have downloaded
-//! rather than written. Remote references are neutralised on the way through,
-//! and the count is reported so the interface can say what happened rather
-//! than silently changing somebody's theme.
+//! Themes the reader brings into their own notebook: `.jott/themes/`. Two
+//! shapes — a loose `<name>.css`, or `<name>/` with `theme.css` beside a
+//! `manifest.json` (author, version, `minAppVersion`). The name is the folder
+//! or file, and it is the `data-theme` value. **Nothing here reaches the
+//! network:** remote `@import`/`url()` are neutralised and counted.
 
 use std::path::{Path, PathBuf};
 
@@ -42,23 +20,18 @@ const CSS_FILE: &str = "theme.css";
 /// Its optional metadata.
 const MANIFEST_FILE: &str = "manifest.json";
 
-/// The names a notebook theme cannot take. `jott` is the app's own — the
-/// factory palette it writes into every notebook (`ensure_default`) and
-/// reads back, but never lists as somebody's theme nor lets `create`
-/// overwrite. `default`, `light` and `dark` were the three looks until
-/// 2026-08-26 and are MODES now; a `theme` holding one of them in an old
-/// config file is read as the mode it meant (`settings::split_legacy_theme`),
-/// and that reading is only unambiguous if no palette can carry the name.
+/// The names a notebook theme cannot take. `jott` is the app's own palette
+/// (`ensure_default`), never listed nor overwritten by `create`. `default`,
+/// `light` and `dark` are MODES; an old config's `theme` holding one is read
+/// as the mode (`settings::split_legacy_theme`), unambiguous only if reserved.
 pub const RESERVED: [&str; 4] = ["jott", "default", "light", "dark"];
 
 /// The app's own theme, as it is called on disk: `.jott/themes/jott.css`.
 pub const FACTORY_NAME: &str = "jott";
 
-/// The most stylesheet the app will inject, in bytes.
-///
-/// A real theme is a few hundred lines; the cap exists for the other case. It
-/// is generous on purpose — Obsidian's Blue Topaz is 1.3 MB of CSS, and a
-/// theme of that shape should load rather than be told it is too big.
+/// The most stylesheet the app will inject, in bytes. Generous on purpose:
+/// Obsidian's Blue Topaz is 1.3 MB of CSS, and a theme of that shape should
+/// load rather than be told it is too big.
 pub const MAX_CSS_BYTES: u64 = 4 * 1024 * 1024;
 
 /// A theme the notebook carries.
@@ -85,13 +58,10 @@ pub fn dir(config_dir: impl AsRef<Path>) -> PathBuf {
     config_dir.as_ref().join(THEMES_DIR)
 }
 
-/// Every theme in the notebook, in reading order.
-///
-/// Never an error: a notebook with no `themes/` folder has no themes, which
-/// is the ordinary case and not a failure (`fsio::dir_paths`). A file that is
-/// not a stylesheet, a folder with no `theme.css`, a name the app already
-/// uses, a name that could not be an attribute value — each is skipped, and
-/// the rest of the list still arrives.
+/// Every theme in the notebook, in reading order. Never an error: no
+/// `themes/` folder means no themes. A file that is not a stylesheet, a folder
+/// with no `theme.css`, a reserved or unsafe name — each is skipped, and the
+/// rest of the list still arrives.
 pub fn list(config_dir: impl AsRef<Path>, app_version: &str) -> Vec<UserTheme> {
     let mut themes: Vec<UserTheme> = fsio::dir_paths(dir(config_dir))
         .unwrap_or_default()
@@ -168,17 +138,10 @@ fn is_usable_name(name: &str) -> bool {
     is_safe_name(name) && !RESERVED.contains(&name.to_lowercase().as_str())
 }
 
-/// Writes the app's own palette into the notebook as `themes/jott.css`, if
-/// it is not there — and only then. `true` when it wrote.
-///
-/// The file is the reader's from the moment it exists: editing it is how a
-/// notebook re-tunes the factory palette without naming a theme, and
-/// deleting it is how it gets the factory back (the next open rewrites it).
-/// Overwriting on every open would make the first of those impossible; never
-/// writing it would leave the format theoretical. The app keeps its own
-/// embedded copy underneath, so a broken file here never leaves the app
-/// without a value. `css` is handed in by the bridge, which is where the
-/// stylesheet lives (`include_str!` of the front-end's file).
+/// Writes the app's own palette into the notebook as `themes/jott.css` if it
+/// is not there — and only then; `true` when it wrote. The file is the
+/// reader's from then on: editing it re-tunes the factory palette, deleting it
+/// gets the factory back on the next open. `css` comes from the bridge.
 pub fn ensure_default(config_dir: impl AsRef<Path>, css: &str) -> Result<bool> {
     let folder = dir(&config_dir);
     if folder.join(FACTORY_NAME).join(CSS_FILE).is_file()
@@ -237,18 +200,10 @@ fn read_entry(path: &Path, app_version: &str) -> Option<UserTheme> {
     })
 }
 
-/// Writes a new theme into the notebook, as a folder with a manifest.
-///
-/// **The app can write one, and that is the difference between a format and a
-/// format somebody uses.** A theme assigns both regions in full — the same
-/// contract the app's own three keep — which is ~170 declarations nobody is
-/// going to type from a documentation page. So the interface hands over the
-/// stylesheet the app is wearing right now, and the reader edits colours in a
-/// file that already works.
-///
-/// The folder shape rather than a loose file, because a theme made to be kept
-/// is a theme that wants a name and a version. Refuses to overwrite: a theme
-/// is somebody's work, even five minutes old.
+/// Writes a new theme into the notebook, as a folder with a manifest. The
+/// interface hands over the stylesheet the app is wearing right now (~170
+/// declarations nobody types from a doc page), so the reader edits colours in
+/// a file that already works. Refuses to overwrite: a theme is somebody's work.
 pub fn create(config_dir: impl AsRef<Path>, name: &str, css: &str) -> Result<UserTheme> {
     if !is_usable_name(name) {
         return Err(Error::Theme(format!(
@@ -294,18 +249,10 @@ fn is_remote(target: &str) -> bool {
 /// so fetches the page again — it makes no request at all.
 const NEUTRAL_URL: &str = "url(\"about:invalid\")";
 
-/// Neutralises everything in a stylesheet that would reach the network.
-///
-/// Two forms carry an address: `@import`, which pulls in another stylesheet,
-/// and `url()`, which is every image, font and cursor. A remote `@import` is
-/// dropped whole — a rewritten one would still be an import of nothing — and
-/// a remote `url()` becomes `about:invalid`, which keeps the declaration
-/// syntactically intact so the rest of the rule still applies.
-///
-/// `data:` is left alone: it is bytes already in the file, which is how a
-/// self-contained theme carries its own image.
-///
-/// Returns the stylesheet and how many references were neutralised.
+/// Neutralises everything in a stylesheet that would reach the network. A
+/// remote `@import` is dropped whole; a remote `url()` becomes `about:invalid`,
+/// which keeps the declaration intact so the rest of the rule still applies.
+/// `data:` is left alone. Returns the stylesheet and how many were neutralised.
 fn sanitize(css: &str) -> (String, usize) {
     let (css, imports) = strip_remote_imports(css);
     let (css, urls) = neutralise_remote_urls(&css);

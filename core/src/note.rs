@@ -1,36 +1,8 @@
-//! A note: frontmatter plus body.
-//!
-//! Spec: `docs/project-strategy.md` section 5. Notes and tasks are **separate
-//! worlds** — a checklist written inside a note stays a note; it never
-//! becomes an interactive list, never earns an `id`, never shows up in
-//! suggestions. Nothing here reuses the task model, and it must stay that
-//! way: the shared parts are the infrastructure (atomic writes, the watcher,
-//! conflicts), never the data model.
-//!
-//! ```markdown
-//! ---
-//! created: 2026-07-21
-//! pinned: true
-//! ---
-//!
-//! <!--banner: yellow-->
-//!
-//! Text of the note.
-//! ```
-//!
-//! The **banner** is the first line of the body, and it is an HTML comment on
-//! purpose (user call, 2026-08-18): every markdown renderer in the world hides
-//! it, so a note with a banner is still a plain note in Obsidian, in VS Code
-//! and on GitHub — and it is the same idiom a task already uses to carry its
-//! id. Without the line a note has no banner and shows only its title, which
-//! is the default and stays the default.
-//!
-//! The frontmatter is **lazy**, like the task `id`: a note written by hand
-//! with no frontmatter at all is a perfectly valid note, and `created` is
-//! adopted the first time the app saves it. A key the app does not know about
-//! is preserved verbatim — the same promise `config.json` makes, for the same
-//! reason: two versions of the app sharing one notebook must not eat each
-//! other's data.
+//! A note: frontmatter plus body. Notes and tasks are **separate worlds** —
+//! a checklist inside a note stays text; nothing here reuses the task model.
+//! The frontmatter is lazy (none is valid; `created` is adopted on first
+//! save) and an unknown key round-trips. The banner is the body's first line,
+//! an HTML comment (`<!--banner: yellow-->`) that every renderer hides.
 
 use chrono::NaiveDate;
 
@@ -40,39 +12,20 @@ const FENCE: &str = "---";
 /// untouched.
 const KNOWN_KEYS: [&str; 3] = ["created", "pinned", "tags"];
 
-/// The property Obsidian writes tags to, in the form it writes them:
-///
-/// ```text
-/// tags:
-///   - briefing
-///   - cliente
-/// ```
-///
-/// Read tolerantly — the block form above, the flow form `tags: [a, b]`, and
-/// a bare `tags: a, b` all count — and written back in the block form, so a
-/// vault and a Jott notebook read each other's notes. A note's tags are its
-/// SUBJECTS (2026-08-26): they connect notes and answer a `#name` search,
-/// and they live here, in the properties, never as `#word` inside the prose
-/// — a `#` in a paragraph is a heading or a hashtag someone wrote, not a tag.
-/// The names go through the same normaliser a task's tags do.
+/// The property Obsidian writes tags to. Read tolerantly — block form
+/// (`- name` lines), flow form `[a, b]`, bare `a, b` — and written back in
+/// block form, so a vault and a Jott notebook read each other's notes. Tags
+/// live here, never as `#word` in the prose; names go through `normalize_tag`.
 const TAGS_KEY: &str = "tags";
 
-/// How much of the body a card shows.
-///
-/// Enough to FILL the tallest card the board draws, because the cut is the
-/// card's, not this one's: a note with little in it shows all of it, and a long
-/// one is clamped by the column it is in (note-card.css), which is what puts
-/// the fade on a real line ending instead of mid-air. 240 was short enough
-/// that the tallest card in the wireframe ran out of text before it ran out of
-/// room.
+/// How much of the body a card shows: enough to FILL the tallest card the
+/// board draws, because the cut is the card's (note-card.css), which puts the
+/// fade on a real line ending. 240 ran out of text before it ran out of room.
 const PREVIEW_CHARS: usize = 400;
 
-/// And how many LINES of it, whatever the characters say.
-///
-/// A note whose head is twenty empty-ish lines (a list of one-word items, a
-/// table of dates) would otherwise spend the whole budget arriving nowhere,
-/// and the card would be a column of stubs. The card draws fewer than this;
-/// the margin is what lets it clamp on a line the reader can see ending.
+/// And how many LINES of it, whatever the characters say: a head of many
+/// short lines would otherwise spend the whole budget arriving nowhere. The
+/// card draws fewer; the margin lets it clamp on a line the reader sees ending.
 const PREVIEW_LINES: usize = 24;
 
 /// What opens the banner line, and what closes it.
@@ -80,17 +33,9 @@ const BANNER_OPEN: &str = "<!--banner:";
 const BANNER_CLOSE: &str = "-->";
 
 /// The head of a note: a colour, or an image from the notebook's library.
-///
-/// Which one it is comes from the VALUE, not from a second keyword: an address
-/// ending in an image extension is an image, anything else is a colour. The
-/// two are never confusable — `yellow` is not a file and `assets/sunset.jpg`
-/// is not a colour — and one keyword is one thing for the user to remember
-/// when writing it by hand, which is the point of a plain-text format.
-///
-/// A colour is a NAME from the app's palette (`services/accent.js`), never a
-/// hex: the same rule every other colour in a Jott notebook follows, so the
-/// banner of a note reads correctly on the light chrome and on the dark one. A
-/// hex written by hand is carried through untouched, like everywhere else.
+/// Which one comes from the VALUE, not a second keyword: an address ending in
+/// an image extension is an image, anything else is a colour. A colour is a
+/// palette NAME (`services/accent.js`), never a hex; a hand-typed hex passes.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 #[serde(tag = "kind", content = "value", rename_all = "lowercase")]
 pub enum Banner {
@@ -192,11 +137,9 @@ impl Note {
         note
     }
 
-    /// Renders the note back to text.
-    ///
-    /// With nothing to record, **no frontmatter block is written at all** —
-    /// that is the lazy half of the rule, and it is what keeps a plain note
-    /// plain for someone editing it in another app.
+    /// Renders the note back to text. With nothing to record, **no
+    /// frontmatter block is written at all** — the lazy half of the rule,
+    /// which keeps a plain note plain for someone editing it in another app.
     pub fn render(&self) -> String {
         let mut fields: Vec<String> = Vec::new();
         if let Some(created) = self.created {
@@ -271,19 +214,10 @@ impl Note {
         }
     }
 
-    /// The head of the body, **as Markdown**, for a card to draw.
-    ///
-    /// Lines are kept, and so is every mark on them. The card renders the
-    /// structure it finds (`services/notePreview.js`) instead of showing a
-    /// paragraph of collapsed syntax — before 2026-08-20 this collapsed the
-    /// whole head with `split_whitespace`, and a card opened with
-    /// `# Título > **Nota** ## Seção` run together as one grey tira.
-    ///
-    /// `title` is the note's own, and the reason this takes an argument at
-    /// all: a note almost always opens with a heading repeating the file name,
-    /// and drawing it would print the title of the card twice (user call,
-    /// 2026-08-20 — "sim, pule"). Only the FIRST heading, only when it says
-    /// the same thing, and only for the card: the file keeps every character.
+    /// The head of the body, **as Markdown**, for a card to draw: lines and
+    /// marks are kept, the card renders the structure (`services/notePreview.js`).
+    /// `title` is the note's own: a FIRST heading that repeats it is skipped, so
+    /// the card does not print its title twice. The file keeps every character.
     pub fn preview(&self, title: &str) -> String {
         let mut lines = self.body.lines().skip_while(|line| line.trim().is_empty()).peekable();
 
@@ -337,12 +271,10 @@ impl Note {
     }
 }
 
-/// Splits the banner line off the top of a body.
-///
-/// Only the FIRST line, and only when it is the whole line: a `<!--banner:…-->`
-/// written in the middle of a paragraph is a comment someone wrote, not the
-/// head of the note. The blank line under it goes too, so that reading and
-/// writing a note back is byte-for-byte stable.
+/// Splits the banner line off the top of a body. Only the FIRST line, and
+/// only when it is the whole line: a `<!--banner:…-->` mid-paragraph is a
+/// comment someone wrote. The blank line under it goes too, so a read and a
+/// write back are byte-for-byte stable.
 fn split_banner(body: &str) -> (Option<Banner>, String) {
     let (first, rest) = match body.split_once('\n') {
         Some((first, rest)) => (first, rest),
@@ -363,11 +295,9 @@ fn split_banner(body: &str) -> (Option<Banner>, String) {
     (Some(banner), rest.trim_start_matches('\n').to_string())
 }
 
-/// The words of an ATX heading (`## Título` -> `Título`), or `None`.
-///
-/// Only the form the app itself writes. A Setext heading (a line underlined
-/// with `===`) is left alone: it is two lines, and reading one back to skip
-/// the other is more machinery than the one case it buys.
+/// The words of an ATX heading (`## Título` -> `Título`), or `None`. Only the
+/// form the app itself writes: a Setext heading (underlined with `===`) is
+/// two lines, more machinery than the one case it buys.
 fn heading_text(line: &str) -> Option<&str> {
     let line = line.trim();
     let hashes = line.len() - line.trim_start_matches('#').len();
@@ -551,8 +481,8 @@ mod tests {
 
     #[test]
     fn preview_skips_a_first_heading_that_repeats_the_title() {
-        // User call, 2026-08-20: almost every note opens with `# ` and its own
-        // name, and the card was printing the title twice.
+        // Almost every note opens with `# ` and its own name; the card would
+        // print the title twice.
         let note = Note::parse("# Receita\n\nDuas xícaras.\n");
         assert_eq!(note.preview("Receita"), "Duas xícaras.");
 

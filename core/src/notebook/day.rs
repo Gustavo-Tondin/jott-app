@@ -1,17 +1,8 @@
 //! The day: today's state file, the plan for the days ahead, the rollover
 //! that keeps them current, and everything that puts a task in a day or
-//! takes it out.
-//!
-//! Both files hold **references** (`path#id`), never task text — the task
-//! lives in its list, and a day is a choice about it. Every read goes
-//! through [`Notebook::open_state`], so a notebook that sat closed for a
-//! week is current the moment anything looks at it: the day rolled over,
-//! and whatever was planned for the days that went by has been poured into
-//! today.
-//!
-//! Until 2026-09-04 this was "the Day and the Week", two state files of the
-//! same shape. The Home's calendar replaced the week with any day ahead, and
-//! the week's bucket went with it (`state.rs` says what happens to the file).
+//! takes it out. Both files hold references (`path#id`), never task text.
+//! Every read goes through [`Notebook::open_state`], so a notebook closed
+//! for a week is current the moment anything looks at it.
 
 use std::path::PathBuf;
 
@@ -46,16 +37,12 @@ impl Notebook {
         self.config_dir().join(PLAN_FILE)
     }
 
-    /// The current day — the calendar's, since 2026-09-04: the hour the day
-    /// turned was a preference until the Home's calendar let the next day
-    /// be planned on its own page, and then it had nothing left to buy.
+    /// The current day — the calendar's.
     pub fn today(&self) -> NaiveDate {
         clock::civil_today()
     }
 
-    /// Which of the three a date is. `None` is today, said the short way —
-    /// the bridge passes the calendar's choice through as it is, and the
-    /// Home opens on today without naming it.
+    /// Which of the three a date is. `None` is today, said the short way.
     fn day_of(&self, day: Option<NaiveDate>) -> Day {
         let today = self.today();
         match day {
@@ -66,25 +53,19 @@ impl Notebook {
         }
     }
 
-    /// When the next turn of the day happens.
-    ///
-    /// The rollover must also fire while the app is *open*, not only when the
-    /// notebook is reopened. The core cannot own a timer without dragging in a
-    /// runtime, so it answers "when" and the app schedules the wake-up.
+    /// When the next turn of the day happens. The rollover must also fire
+    /// while the app is open; the core owns no timer, so it answers "when"
+    /// and the app schedules the wake-up.
     pub fn next_turn_at(&self) -> chrono::DateTime<chrono::Local> {
-        // The clock module reads the instant: this used to call Local::now()
-        // here, which the invariant test now flags — the configured turn only
-        // stays honest while clock.rs is the single reader.
+        // `clock` is the single reader of the instant; `Local::now()` here
+        // fails the invariant test.
         clock::next_daily_turn()
     }
 
-    /// Today's state and the plan, each brought up to date against the
-    /// other: the day rolled over, and every planned day that has arrived —
-    /// or went by while the app was closed — poured into today, in the order
-    /// it was planned, after whatever today already held.
-    ///
-    /// Read-only notebooks get the same picture in memory and nothing on
-    /// disk.
+    /// Today's state and the plan, brought up to date: the day rolled over,
+    /// and every planned day that arrived (or went by while closed) poured
+    /// into today, in planned order, after what today already held.
+    /// Read-only notebooks get the same picture in memory, nothing on disk.
     fn sync_day(&self) -> Result<(StateFile, PlanFile)> {
         let today = self.today();
         let mut state = StateFile::load(self.state_path(), today);
@@ -111,12 +92,8 @@ impl Notebook {
         Ok((state, plan))
     }
 
-    /// Opens today's state with the rollover already applied and the plan
-    /// poured in.
-    ///
-    /// Every read goes through here, so a notebook that sat closed for a week
-    /// is up to date the moment anything looks at it — the app never has to
-    /// remember to roll over first.
+    /// Opens today's state with the rollover applied and the plan poured in.
+    /// Every read goes through here: the app never rolls over by hand.
     pub fn open_state(&self) -> Result<StateFile> {
         Ok(self.sync_day()?.0)
     }
@@ -126,13 +103,9 @@ impl Notebook {
         Ok(self.sync_day()?.1)
     }
 
-    /// Applies `mutate` to today's state **and** the plan, saving the ones
-    /// that changed.
-    ///
-    /// The two are always updated together — completing, deleting, renaming
-    /// or removing a list has to reach both, or a reference to a task that
-    /// moved renders as a ghost row in one of the two. Four callers wrote
-    /// this loop out; the next one gets it right by construction.
+    /// Applies `mutate` to today's state AND the plan, saving the ones that
+    /// changed. Always both: a change that reaches only one leaves a ghost
+    /// row in the other.
     pub(super) fn update_states(&self, mutate: impl Fn(&mut dyn TaskRefs) -> bool) -> Result<()> {
         let (mut state, mut plan) = self.sync_day()?;
         if mutate(&mut state.state) {
@@ -177,13 +150,9 @@ impl Notebook {
         }
     }
 
-    /// Removes a task from a day. The task itself is untouched.
-    ///
-    /// Leaving today is remembered (2026-08-17): what was taken out of the
-    /// day is the likeliest thing to be put back, so it comes back as its
-    /// own group of suggestions instead of falling into the middle of its
-    /// list. Leaving a day ahead is not — that is a plan changing, and there
-    /// is nothing to offer back.
+    /// Removes a task from a day; the task itself is untouched. Leaving today
+    /// is remembered (`recall`) so it comes back as its own group of
+    /// suggestions; leaving a day ahead is not — that is a plan changing.
     pub fn remove_from_day(&self, day: Option<NaiveDate>, path: &str, id: &str) -> Result<bool> {
         self.ensure_writable()?;
         match self.day_of(day) {
@@ -208,13 +177,10 @@ impl Notebook {
         }
     }
 
-    /// The tasks a day holds, resolved to the real thing, in the order they
-    /// were pulled: today's state, or a day ahead's plan. A day gone by is
-    /// empty — the Home reads it from the log (`Notebook::timeline`).
-    ///
-    /// A reference whose task no longer exists (deleted in another editor) is
-    /// skipped instead of failing: the notebook is shared with other tools, so
-    /// a stale reference is a normal state, not corruption.
+    /// The tasks a day holds, resolved, in the order pulled: today's state or
+    /// a day ahead's plan. A day gone by is empty (the Home reads the log).
+    /// A reference whose task is gone is skipped, not an error: a stale
+    /// reference is a normal state in a shared folder.
     pub fn day_tasks(&self, day: Option<NaiveDate>) -> Result<Vec<ListedTask>> {
         let day = self.day_of(day);
         let refs: Vec<TaskRef> = match day {
@@ -229,10 +195,8 @@ impl Notebook {
                 continue;
             };
             if let Some(task) = list.find(&reference.id) {
-                // A day ahead holds only what is still to do: a task ticked
-                // before its day is done with, and vanishes from it (user
-                // call, 2026-09-04). Today keeps its ticked ones, under
-                // "Completed N".
+                // A day ahead holds only what is still to do; today keeps
+                // its ticked ones, under "Completed N".
                 if task.done && day != Day::Today {
                     continue;
                 }
@@ -243,11 +207,9 @@ impl Notebook {
             }
         }
 
-        // A task with a date joins its day on its own (2026-08-14), unless
-        // the user switched that off. Added on READ, never written to the
-        // state: un-dating a task takes it back out, the turn of the day has
-        // nothing to clean up, and what the user pulled by hand stays exactly
-        // as pulled.
+        // A dated task joins its day on its own, unless switched off. Added
+        // on READ, never written to the state: un-dating takes it back out,
+        // and what the user pulled by hand stays exactly as pulled.
         if self.config.dated_tasks_join_period {
             for candidate in self.tasks_due_on(day)? {
                 if !out.iter().any(|listed| is_same_task(listed, &candidate)) {
@@ -256,18 +218,14 @@ impl Notebook {
             }
         }
 
-        // Both halves at once — pulled by hand and joined by date come off
-        // different paths and have to leave with the same stamp.
+        // Both halves at once: pulled by hand and joined by date leave with
+        // the same stamp.
         self.stamp_tasks(out.iter_mut().map(|listed| &mut listed.task));
         Ok(out)
     }
 
     /// How the day is arranged, if the user chose something. One choice for
-    /// every day: today and the days ahead are the same screen.
-    ///
-    /// A day is not a folder, so there is no config file of its own to keep
-    /// this in; it lives with the notebook, beside the manual `order`
-    /// (2026-08-06).
+    /// every day, kept in the notebook config: a day is not a folder.
     pub fn day_sort(&self) -> Option<&str> {
         Some(self.config.day_sort.as_str()).filter(|sort| !sort.is_empty())
     }
@@ -281,11 +239,8 @@ impl Notebook {
     }
 
     /// Rearranges a day to match `refs` — the order the user just dragged.
-    ///
-    /// The file IS the day's list, so a hand-made order belongs in it rather
-    /// than mirrored in the config: there is nothing to fall out of step
-    /// with. A reference the caller did not mention keeps its place at the
-    /// end, so a list that changed under the drag loses nothing.
+    /// The file IS the day's list, so the order lives there. A reference the
+    /// caller did not mention keeps its place at the end.
     pub fn set_day_order(&self, day: Option<NaiveDate>, refs: &[TaskRef]) -> Result<()> {
         self.ensure_writable()?;
         match self.day_of(day) {

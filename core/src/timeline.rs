@@ -1,33 +1,8 @@
-//! The log of everything the notebook ever held — `.jott/timeline/<year>.jsonl`.
-//!
-//! The Timeline screen reads THIS, not the files (architecture agreed with
-//! the user on 2026-08-26, spec 3.6). The reason is the ghost: a note deleted
-//! last month should still show up on the day it was born, as a mention with
-//! no content — and no walk over the files can tell you about a file that is
-//! not there. So every thing that is born gets a line, and every thing that
-//! moves, goes or comes back gets another.
-//!
-//! Four properties hold this together, and each one is load-bearing:
-//!
-//! - **Append only.** The app never rewrites, compacts or removes a line.
-//!   That is what makes the log safe without a backup: the worst a crash can
-//!   do is leave a torn line at the end, which the reader skips. It is also
-//!   why this folder is DURABLE — `.jott/index/` is the rebuildable one, and
-//!   a ghost rebuilds from nothing.
-//! - **Existence is derived.** No line says "this note exists"; the LAST
-//!   event about a thing says where it is and whether it is still there.
-//! - **The reader unions every `*.jsonl` in the folder**, sync conflict
-//!   copies included, and dedupes. Two devices appending to the same year is
-//!   then extra data rather than lost data — the notebook is its own backup
-//!   (principle 4).
-//! - **What it cannot read, it ignores.** An unknown event, an unknown kind,
-//!   a line from a `v: 2` writer, a half-written line: skipped, never fatal.
-//!   A newer build's extra keys survive for free, because nothing here ever
-//!   writes a line back.
-//!
-//! Identity is not the same on both sides, and cannot be: a task is its `id:`
-//! (which is why every task gets one when the notebook opens), and a note is
-//! its file — the root-relative path, chained forward by each `moved`.
+//! The durable log of everything the notebook ever held —
+//! `.jott/timeline/<year>.jsonl`. The Timeline reads THIS, not the files, so a
+//! deleted thing still shows as a ghost. Append only; existence is derived
+//! from the LAST line about a thing; every `*.jsonl` is unioned (conflict
+//! copies too); what cannot be read is skipped. Task = `id:`, note = path.
 
 use std::collections::{BTreeSet, HashMap};
 use std::path::{Path, PathBuf};
@@ -81,13 +56,12 @@ pub enum Event {
     Deleted,
     /// It came back from the trash.
     Restored,
-    /// A task was ticked — the only event carrying `on`, the civil day it
-    /// was completed (the task's own `completed:` when the sweep adopts one
-    /// finished before the log existed, which is why it is not just `at`).
+    /// A task was ticked — the only event carrying `on`, the civil day it was
+    /// completed (the task's own `completed:` when the sweep adopts one
+    /// finished before the log existed, so not just `at`).
     Completed,
-    /// A completed task was unticked and went back to its list. The
-    /// Timeline counts the STATE, not the history: reopened, it leaves the
-    /// month's "completed" line, and ticking it again puts it back.
+    /// A completed task unticked. The Timeline counts the STATE, not the
+    /// history: reopened, it leaves the month's "completed" count.
     Reopened,
 }
 
@@ -130,12 +104,10 @@ pub struct Record {
     pub id: Option<String>,
     /// Where it came from — `moved` only.
     pub from: Option<String>,
-    /// The day it was born — `created` only. Not the same as `at`: a notebook
-    /// swept for the first time stamps today's line with yesterday's
-    /// creation.
+    /// The day it was born — `created` only. Not `at`: a first sweep stamps
+    /// today's line with an older creation.
     pub created: Option<NaiveDate>,
-    /// What it was called when it was born — `created` only. This is what a
-    /// ghost has instead of content.
+    /// What it was called when born — `created` only; all a ghost has.
     pub title: Option<String>,
     /// The day a task was completed — `completed` only. Absent reads as the
     /// day of `at`.
@@ -301,9 +273,8 @@ pub struct Item {
     pub path: String,
     /// The day it was born. The Timeline's one axis.
     pub created: NaiveDate,
-    /// What it was called when it was born. For something still on disk the
-    /// caller replaces this with the current title; for a ghost it is all
-    /// there is.
+    /// The title at birth. The caller replaces it with the current one for
+    /// something still on disk; for a ghost it is all there is.
     pub title: String,
     /// The day it went, when it is gone. `None` means it is still there.
     pub deleted: Option<NaiveDate>,
@@ -311,10 +282,8 @@ pub struct Item {
     /// `reopened`, untouched by `deleted`: a finished task thrown away
     /// still counts as finished in the month it was.
     pub completed: Option<NaiveDate>,
-    /// The space it belongs to (root-relative path), when the notebook could
-    /// tell. `resolve` leaves it empty — the log knows addresses, not
-    /// spaces — and `Notebook::timeline` fills it, so the screen never
-    /// derives a space from a path.
+    /// The space it belongs to (root-relative). `resolve` leaves it empty and
+    /// `Notebook::timeline` fills it: the screen never derives it from a path.
     pub space: Option<String>,
 }
 
@@ -324,12 +293,8 @@ impl Item {
         self.deleted.is_none()
     }
 
-    /// Whether the Timeline shows it at all.
-    ///
-    /// Something created and deleted on the SAME day never happened, as far
-    /// as the screen is concerned (user call, 2026-08-26): a note opened by
-    /// mistake and thrown away an hour later is not a memory, it is noise on
-    /// the day you were working. Deleted any later, it stays as a ghost.
+    /// Whether the Timeline shows it at all: created and deleted on the SAME
+    /// day never happened; deleted any later, it stays as a ghost.
     pub fn visible(&self) -> bool {
         match self.deleted {
             None => true,
@@ -343,12 +308,9 @@ pub fn dir_of(config_dir: impl AsRef<Path>) -> PathBuf {
     config_dir.as_ref().join(TIMELINE_DIR)
 }
 
-/// Adds lines to the log, each into its year's file.
-///
-/// **The one append in the app.** Everywhere else writes whole files through
-/// `fsio::write_atomically`, because everywhere else the file has a current
-/// value; here the file IS the history, and rewriting it to add a line would
-/// be a chance to lose every line before it.
+/// Adds lines to the log, each into its year's file. The one append in the
+/// app: the file IS the history, and rewriting it to add a line would be a
+/// chance to lose every line before it.
 pub fn append(config_dir: impl AsRef<Path>, records: &[Record]) -> Result<()> {
     if records.is_empty() {
         return Ok(());
@@ -358,8 +320,7 @@ pub fn append(config_dir: impl AsRef<Path>, records: &[Record]) -> Result<()> {
     let dir = dir_of(config_dir);
     std::fs::create_dir_all(&dir).ctx(&dir)?;
 
-    // Grouped so a sweep writing four hundred lines opens one file, not four
-    // hundred.
+    // Grouped per file so a big sweep opens each year once.
     let mut by_file: HashMap<String, String> = HashMap::new();
     for record in records {
         let text = by_file.entry(record.file_name()).or_default();
@@ -378,15 +339,10 @@ pub fn append(config_dir: impl AsRef<Path>, records: &[Record]) -> Result<()> {
     Ok(())
 }
 
-/// Every line the folder holds, in the order things happened.
-///
-/// The union of all `*.jsonl` in there — **sync conflict copies included**,
-/// which is the point: two machines appending to `2026.jsonl` produce
-/// `2026.jsonl` and `2026 (conflicted copy).jsonl`, and both are the truth.
-/// Identical lines from different files count once — but the SAME file
-/// saying the same thing twice is two things that happened (a task ticked,
-/// unticked and ticked again inside one minute writes two identical
-/// `completed` lines, and dropping the second would leave it open).
+/// Every line the folder holds, in the order things happened: the union of
+/// all `*.jsonl`, sync conflict copies included. Identical lines from
+/// different files count once; the SAME file repeating a line is two events
+/// (ticked, unticked, ticked again within a minute must not collapse).
 pub fn read(config_dir: impl AsRef<Path>) -> Vec<Record> {
     let dir = dir_of(config_dir);
     let Ok(paths) = crate::fsio::dir_paths(&dir) else {
@@ -413,17 +369,14 @@ pub fn read(config_dir: impl AsRef<Path>) -> Vec<Record> {
         seen_elsewhere.extend(in_this_file.iter().cloned());
         records.extend(in_this_file);
     }
-    // Stable, so lines written in the same minute keep the order they were
-    // written in — `created` before the `moved` that follows it.
+    // Stable: lines from the same minute keep their written order.
     records.sort_by_key(|record| record.at);
     records
 }
 
-/// What the log adds up to: one entry per thing, with where it ended up.
-///
-/// A line about something with no birth is skipped rather than invented: the
-/// Timeline's axis is the creation date, and an entry without one has nowhere
-/// to be drawn.
+/// What the log adds up to: one entry per thing, with where it ended up. A
+/// line about something never born is skipped: no creation date, no place
+/// on the axis.
 pub fn resolve(records: &[Record]) -> Vec<Item> {
     resolve_indexed(records).0
 }
@@ -458,14 +411,10 @@ pub enum Key {
     Note(String),
 }
 
-/// Forgets one thing: every line about it leaves every file of the log.
-///
-/// **The one rewrite of the log, and it is the user's** (2026-08-27) — the
-/// Timeline's "Remove from timeline", always behind a confirmation, the way
-/// purging the trash is. Nothing else in the app rewrites these files. Each
-/// touched file goes through `write_atomically` with a `.bak` beside it;
-/// lines this build cannot read are kept as they are, since they are not
-/// ours to judge. Returns how many lines went.
+/// Forgets one thing: every line about it leaves every file of the log. The
+/// one rewrite of the log, and only the user's "Remove from timeline" calls
+/// it. Each touched file is rewritten atomically with a `.bak` beside it;
+/// lines this build cannot read are kept. Returns how many lines went.
 pub fn remove(config_dir: impl AsRef<Path>, key: &Key) -> Result<usize> {
     let dir = dir_of(&config_dir);
     let records = read(&config_dir);

@@ -1,12 +1,6 @@
-//! Watching the notebook for changes made outside the app.
-//!
-//! The notebook is a plain folder, so the app is never the only writer:
-//! Syncthing pulls a new `Inbox.md` in the background, the user edits a list
-//! in Obsidian, a file manager restores a backup. Without this, the app would
-//! happily show and then overwrite stale content.
-//!
-//! What is *not* here on purpose: reacting to the events. The core reports
-//! what changed; deciding to reload a view belongs to the app.
+//! Watching the notebook for changes made outside the app (sync tools, other
+//! editors, backups). The core only reports what changed; reacting — deciding
+//! to reload a view — belongs to the app.
 
 use std::path::{Path, PathBuf};
 use std::sync::mpsc::{channel, Receiver};
@@ -18,24 +12,19 @@ use serde::Serialize;
 use crate::error::{Error, Result};
 use crate::NOTEBOOK_CONFIG_DIR;
 
-/// Which part of the notebook changed.
-///
-/// Serialized as `{ "kind": "list", "path": "..." }`, since the app listens
-/// for these over the Tauri event bridge. The tags are part of the contract
-/// with the frontend.
+/// Which part of the notebook changed. Serialized as
+/// `{ "kind": "list", "path": "..." }`; the tags are the frontend's contract.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(tag = "kind", rename_all = "lowercase")]
 pub enum Change {
-    /// A `.md` file in any space — a task list, or (until phase 8 gives
-    /// them their own kind) a note.
+    /// A `.md` file in any space — a task list or a note.
     List { path: PathBuf },
     /// The day's state, or the plan.
     State { path: PathBuf },
     /// `.jott/config.json`.
     Config,
-    /// A stylesheet under `.jott/themes/`. Its own kind because the answer is
-    /// its own: nothing about the notebook changed, and re-reading the theme
-    /// is what makes writing one bearable — save the file, see the colour.
+    /// Anything under `.jott/themes/`. Its own kind: nothing about the
+    /// notebook changed, only the theme needs re-reading.
     Theme { path: PathBuf },
     /// A sync tool left a conflicting copy behind. Checked before the other
     /// kinds: the app has to surface this, not treat it as a new list.
@@ -59,11 +48,9 @@ impl Change {
         }
 
         if path.starts_with(config_dir) {
-            // The app's own bookkeeping is the app talking to itself
-            // (`crate::BOOKKEEPING_DIRS`). Opening a note writes
-            // `index/seen.json` and creating one appends to `timeline/`, and
-            // announcing either would have every screen reload every time a
-            // note is opened — for files no screen reads through the event.
+            // The app's own bookkeeping (`crate::BOOKKEEPING_DIRS`) is the app
+            // talking to itself: announcing it would reload every screen on
+            // every note opened, for files no screen reads through the event.
             if crate::BOOKKEEPING_DIRS
                 .iter()
                 .any(|dir| path.starts_with(config_dir.join(dir)))
@@ -83,12 +70,8 @@ impl Change {
             });
         }
 
-        // Any `.md` outside `.jott/` is content — a list in *any* space,
-        // or (phase 8) a note. The old rule only knew `Tasks/`, so a list in
-        // a user space came back as `Other`, the UI never reloaded, and
-        // the app's next save would overwrite the external edit in silence.
-        // A note classified as `List` merely causes a harmless reload; phase
-        // 8 refines the kinds.
+        // Any `.md` outside `.jott/` is content, in ANY space: a missed
+        // reload lets the next save overwrite an external edit in silence.
         if path.extension().is_some_and(|ext| ext == "md") {
             return Some(Self::List { path });
         }
@@ -115,12 +98,9 @@ pub struct NotebookWatcher {
 }
 
 impl NotebookWatcher {
-    /// Starts watching a notebook, recursively.
-    ///
-    /// Note the app will also see its *own* writes come back through here.
-    /// Reloading from disk on an echo is harmless — the file is the source of
-    /// truth either way — so the core does not try to guess which writes were
-    /// ours.
+    /// Starts watching a notebook, recursively. The app's own writes echo
+    /// back through here too; reloading on an echo is harmless, so the core
+    /// does not guess which writes were ours.
     pub fn start(root: impl AsRef<Path>) -> Result<Self> {
         let root = root.as_ref().to_path_buf();
         let config_dir = root.join(NOTEBOOK_CONFIG_DIR);
@@ -157,10 +137,8 @@ impl NotebookWatcher {
         self.events.recv_timeout(timeout).ok()
     }
 
-    /// Drains everything queued, deduplicated.
-    ///
-    /// One save from another tool typically produces several OS events; the
-    /// app wants "the Inbox changed" once, not five times.
+    /// Drains everything queued, deduplicated: one save from another tool
+    /// produces several OS events, and the app wants the change once.
     pub fn drain(&self) -> Vec<Change> {
         let mut changes: Vec<Change> = Vec::new();
         while let Some(change) = self.try_next() {
@@ -172,35 +150,16 @@ impl NotebookWatcher {
     }
 }
 
-/// How deep the fallback walk goes before giving up. A notebook is folders of
-/// markdown, not a filesystem; anything past this is somebody having pointed
-/// the app at their whole phone, and the depth is there so a symlink loop
-/// cannot spin forever.
+/// How deep the fallback walk goes. Bounds a symlink loop; a real notebook
+/// is nowhere near this deep.
 const MAX_DEPTH: u32 = 24;
 
 /// Watches `dir` and everything under it, LEAVING OUT what cannot be read.
-///
-/// WHY NOT JUST `RecursiveMode::Recursive` — that is one call, and it is all
-/// or nothing: `notify` walks the tree itself and returns `Err` for the whole
-/// root the moment one directory refuses to open. On Android that is not an
-/// edge case but the normal shape of shared storage: `/sdcard/Android/data` is
-/// carved out of MANAGE_EXTERNAL_STORAGE and stays unreadable to an app
-/// holding it, so picking `/sdcard` (or any folder above it) failed the watch,
-/// and `state.rs` propagates that — the notebook would not open at all (user
-/// report on device, 2026-08-20: "Permission denied (os error 13) about
-/// ["/sdcard/Android/data"]").
-///
-/// So the recursive call is still the FIRST thing tried, because it is one
-/// inotify registration for the common case where every folder is readable.
-/// Only when it refuses does this descend by hand: watch this directory alone,
-/// then try each child the same way. An unreadable branch is skipped and its
-/// siblings are kept, which is the whole point.
-///
-/// What the fallback costs: a directory created LATER inside a degraded branch
-/// is not watched, because nothing re-walks. The parent is watched, so its
-/// creation is still reported and the app still reloads — only later changes
-/// *inside* it are missed until the notebook is reopened. That is the price of
-/// the notebook opening at all.
+/// `RecursiveMode::Recursive` is all or nothing — one unreadable folder
+/// (`/sdcard/Android/data`, always) fails the whole root and the notebook
+/// would not open. It is tried first; on refusal this descends by hand,
+/// skipping unreadable branches. Cost: a folder created later inside a
+/// degraded branch is not watched. See docs/platform-gotchas.md#android
 fn watch_tree(watcher: &mut RecommendedWatcher, dir: &Path, depth: u32) -> Result<()> {
     if watcher.watch(dir, RecursiveMode::Recursive).is_ok() {
         return Ok(());
@@ -308,10 +267,8 @@ mod tests {
 
     #[test]
     fn the_apps_own_indexes_wake_nobody() {
-        // Opening a note stamps `index/seen.json` (`crate::seen`). Announcing
-        // that would reload every screen every time a note is opened, for a
-        // file no screen reads through the event — and the index is derived,
-        // so nothing about the notebook changed.
+        // Opening a note stamps `index/seen.json`; announcing it would reload
+        // every screen for a derived file no screen reads.
         let root = PathBuf::from("/caderno");
         let config_dir = root.join(NOTEBOOK_CONFIG_DIR);
         for name in [crate::seen::SEEN_FILE, "seen.json.bak"] {
@@ -354,14 +311,10 @@ mod tests {
         );
     }
 
-    /// The one that had to be measured against a real directory: a notebook
-    /// whose tree holds a folder nobody may open. That is Android's shared
-    /// storage every time (`/sdcard/Android/data`), and a single recursive
-    /// `watch()` refuses the whole root over it, which took the notebook down
-    /// with it.
-    ///
-    /// Root-only guard: root reads everything, so the unreadable folder would
-    /// be readable and the test would prove nothing.
+    /// A tree holding a folder nobody may open (Android's
+    /// `/sdcard/Android/data`): a single recursive `watch()` must not take
+    /// the notebook down. Guarded: as root the folder is readable and the
+    /// test proves nothing.
     #[test]
     #[cfg(unix)]
     fn an_unreadable_folder_does_not_stop_the_watch() {
@@ -390,9 +343,8 @@ mod tests {
 
     #[test]
     fn a_list_in_a_user_space_is_a_list_not_other() {
-        // The old rule only knew Tasks/: an external edit to a user
-        // space's list came back as Other, the UI never reloaded, and
-        // the app's next save overwrote the edit in silence.
+        // `Other` here means the UI never reloads and the next save overwrites
+        // the external edit in silence.
         let root = Path::new("/caderno");
         let config_dir = config_dir(root);
 

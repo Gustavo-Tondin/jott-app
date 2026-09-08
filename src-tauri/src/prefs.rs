@@ -1,9 +1,7 @@
 //! Machine preferences — the ones that must NOT travel with the notebook.
-//!
-//! Which notebook was open last is a property of this computer, not of the
-//! notebook: syncing it would make two machines fight over which notebook is
-//! "the" one. So it lives in the OS config folder, while everything about the
-//! notebook itself lives in `.jott/config.json` (spec 3.4).
+//! Which notebook was open last is a property of this computer; syncing it
+//! would make two machines fight. Lives in the OS config folder, while the
+//! notebook's own lives in `.jott/config.json`.
 
 use std::path::{Path, PathBuf};
 
@@ -12,17 +10,14 @@ use tauri::{AppHandle, Manager, Runtime};
 
 const FILE_NAME: &str = "machine-prefs.json";
 
-// What a machine may choose to look like, and how a patch of those choices is
-// taken, are `jott_core::settings`' — the rule of the split ("Display is this
-// machine, every other section is the notebook") is a rule about the product
-// and not about where a file is kept. This module knows only the file.
+// What a machine may choose to look like, and how a patch is taken, are
+// `jott_core::settings`' — a rule about the product, not about where a file
+// is kept. This module knows only the file.
 pub use jott_core::settings::DisplayPrefs;
 
-/// A notebook this machine has opened, and when it last did.
-///
-/// The picker's whole list is this, and it is a machine preference for exactly
-/// the reason `last_notebook` is one: a list of folders on THIS computer says
-/// nothing on another, where those paths may not exist at all.
+/// A notebook this machine has opened, and when it last did. The picker's
+/// whole list — a machine preference because paths on THIS computer say
+/// nothing on another.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Recent {
@@ -31,90 +26,50 @@ pub struct Recent {
     pub opened: String,
 }
 
-/// How many notebooks the picker remembers. A cap rather than none, because
-/// this file is rewritten on every open and an unbounded list would grow for
-/// as long as the app is installed; twenty is far past the point where the
-/// screen stops being a list and starts being a search.
+/// How many notebooks the picker remembers: the file is rewritten on every
+/// open, and twenty is past the point where a list becomes a search.
 const RECENTS_KEPT: usize = 20;
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct MachinePrefs {
     last_notebook: Option<PathBuf>,
-    /// Every notebook this machine has opened, newest first — what the
-    /// notebooks screen lists (2026-08-24).
-    ///
-    /// Nothing is dropped for being unreachable: a notebook on an external
-    /// drive is not gone, it is unplugged, and forgetting it the first time
-    /// the app opens without the drive would be the app throwing away the
-    /// user's own list. What cannot be summarized simply does not draw a card
-    /// (`commands::notebook::recent_notebooks`), and the ⋮ is where a notebook
-    /// is forgotten on purpose.
+    /// Every notebook this machine has opened, newest first. Nothing is dropped
+    /// for being unreachable — an unplugged drive is not a gone notebook; what
+    /// cannot be summarized does not draw a card, and the ⋮ forgets on purpose.
     #[serde(default)]
     recent_notebooks: Vec<Recent>,
     /// The screen the user was on, as an opaque string the frontend owns
-    /// (`today`, `week`, `list:Compras`…).
-    ///
-    /// Deliberately opaque: the shell has no business knowing what a screen
-    /// is, and the frontend can add screens without touching Rust. Only used
-    /// when `restoreLastScreen` is on — which since 2026-08-20 is a display
-    /// preference of this machine too, so the switch and the value it governs
-    /// finally answer to the same thing.
+    /// (`today`, `list:Compras`…) — the shell has no business knowing what a
+    /// screen is. Only used when `restoreLastScreen` (a display preference) is on.
     last_screen: Option<String>,
-    /// What each NOTEBOOK looks like on this machine (2026-08-24).
-    ///
-    /// Per machine AND per notebook, which is a sharper rule than the one this
-    /// file started with: a monitor and a pair of eyes are what a theme and a
-    /// zoom answer to, but they answer to them PER NOTEBOOK — the work
-    /// notebook can be the dark one here without dragging the personal one
-    /// into the dark too. The notebooks screen is what made the difference
-    /// visible: with a single set of choices per machine, every card on it
-    /// wore the same colour and the colour stopped identifying anything.
-    ///
-    /// Keyed by the notebook's absolute path, so it travels with a rename
-    /// (`notebook_moved`) exactly as the recents list does.
+    /// What each NOTEBOOK looks like on this machine: per machine AND per
+    /// notebook, so the work notebook can be the dark one without dragging the
+    /// personal one along. Keyed by the notebook's absolute path, so it
+    /// travels with a rename (`notebook_moved`) as the recents list does.
     #[serde(default)]
     notebook_display: std::collections::BTreeMap<PathBuf, DisplayPrefs>,
-    /// The ONE set of choices this file used to hold, before they were scoped
-    /// to a notebook.
-    ///
-    /// Kept, and read as the seed for a notebook with no entry of its own, so
-    /// the change costs nobody the theme they had picked — the first notebook
-    /// opened after it comes up dressed the way the machine was left. Never
+    /// The machine-wide choices from before they were scoped to a notebook.
+    /// Read as the seed for a notebook with no entry of its own; never
     /// written to again.
     #[serde(default)]
     display: DisplayPrefs,
-    /// How wide the user dragged the left sidebar, in CSS pixels
-    /// (2026-08-17).
-    ///
-    /// A machine preference for the same reason the last screen is one: it is
-    /// answering to a monitor, not to a notebook. Syncing it would make a
-    /// 27-inch desktop dictate the layout of a laptop. Absent means the
-    /// app's own width, and the frontend clamps whatever it reads — a value
-    /// hand-edited to 3000 must not push every panel off screen.
+    /// How wide the user dragged the left sidebar, in CSS pixels. A machine
+    /// preference: it answers to a monitor, not a notebook. Absent means the
+    /// app's own width; the frontend clamps whatever it reads.
     sidebar_width: Option<f64>,
     /// The same, for the right panel (task inspector / suggestions).
     panel_width: Option<f64>,
-    /// How far the interface is zoomed, as a multiplier of the base 16px
-    /// (2026-08-18).
-    ///
-    /// A machine preference for the same reason the two widths are: it
-    /// answers to a monitor and a pair of eyes. The NOTE's own font size is
-    /// the opposite case — that is reading taste, it travels with the
-    /// notebook, and it lives in `.jott/config.json`.
+    /// How far the interface is zoomed, as a multiplier of the base 16px. A
+    /// machine preference (a monitor and a pair of eyes); the NOTE's font size
+    /// is reading taste and travels with the notebook.
     zoom: Option<f64>,
-    /// Whether the app may look for a new version by itself (2026-08-19).
-    ///
-    /// A machine preference because it answers for this INSTALL, not for the
-    /// notebook: the same notebook synced to a phone and a desktop is served
-    /// by two different binaries, updated two different ways. Absent means
-    /// on — the check is the one connection the app makes, it is explained
-    /// in the settings screen, and this switch is how it is refused.
+    /// Whether the app may look for a new version by itself. Answers for this
+    /// INSTALL: the same notebook on a phone and a desktop is served by two
+    /// binaries. Absent means on — the check is explained in Settings.
     auto_update_check: Option<bool>,
-    /// Closing the window keeps the app alive in the tray (2026-08-25), so
-    /// reminders still ring. `None` is the default: on. A machine
-    /// preference because whether there IS a tray to live in is a fact
-    /// about this desktop, not about any notebook.
+    /// Closing the window keeps the app alive in the tray, so reminders still
+    /// ring. `None` means on. Whether there IS a tray is a fact about this desktop.
     close_to_tray: Option<bool>,
     /// Up to what moment this machine has already rung a notebook's
     /// reminders, keyed by the notebook's absolute path. What stops a
@@ -127,34 +82,21 @@ struct MachinePrefs {
     /// launch.
     last_update_check: Option<String>,
     /// Whether the user waved away the offer to put Jott in the application
-    /// menu (2026-08-21).
-    ///
-    /// A machine preference for the same reason the update switch is one: it
-    /// answers for THIS install. The same notebook opened from an AppImage
-    /// here and a pacman package there is one notebook and two installs, and
-    /// only one of them has a menu entry to write. Absent means never asked —
-    /// the offer only appears where there is something to offer, so the
-    /// default costs nothing on a packaged install.
+    /// menu. Answers for THIS install: an AppImage and a pacman package are
+    /// two installs, and only one has a menu entry to write. Absent means
+    /// never asked — the offer only appears where there is something to offer.
     desktop_entry_dismissed: Option<bool>,
-    /// Whether the picker's window closes once it has opened a notebook
-    /// (2026-08-24), and whether the app opens on the picker rather than on
-    /// the last notebook. Both are set in the picker's own ⋮.
-    ///
-    /// Machine preferences, like everything else in this file, and for a
-    /// sharper reason than most: they are about WINDOWS, and how many windows
-    /// are worth having open is a question about the screen in front of the
-    /// user. The same notebook synced to a laptop and a phone must not carry
-    /// an answer from one to the other — the phone has no second window at all.
+    /// Whether the picker's window closes once it has opened a notebook, and
+    /// whether the app opens on the picker rather than on the last notebook.
+    /// Set in the picker's ⋮. About WINDOWS, so about this screen: the phone
+    /// has no second window at all.
     picker_closes: Option<bool>,
     opens_on_picker: Option<bool>,
 }
 
-/// Overrides where machine preferences are stored.
-///
-/// Lets someone keep the app's config somewhere else (a portable install, a
-/// different XDG layout), and lets the tests point each case at its own
-/// folder — these preferences are global to the machine, so tests running in
-/// parallel would otherwise fight over one file.
+/// Overrides where machine preferences are stored — a portable install, a
+/// different XDG layout, and each test pointed at its own folder (these are
+/// global to the machine, so parallel tests would fight over one file).
 const CONFIG_DIR_ENV: &str = "JOTT_CONFIG_DIR";
 
 fn path_of<R: Runtime>(app: &AppHandle<R>) -> Option<PathBuf> {
@@ -223,13 +165,9 @@ pub fn forget_notebook<R: Runtime>(app: &AppHandle<R>, notebook: &Path) {
     });
 }
 
-/// Follows a notebook that was renamed or moved.
-///
-/// Every path this file holds is absolute, so a folder that travels leaves
-/// behind a list pointing at somewhere that no longer exists — the card would
-/// vanish on the next launch, and the notebook with it as far as the picker is
-/// concerned. Called by whoever did the moving, with the path the core
-/// answered (`Notebook::rename_at` / `move_at`).
+/// Follows a notebook that was renamed or moved: every path here is absolute,
+/// so a folder that travels would leave a card pointing nowhere. Called by
+/// whoever did the moving, with the path the core answered.
 pub fn notebook_moved<R: Runtime>(app: &AppHandle<R>, from: &Path, to: &Path) {
     update(app, |prefs| {
         for entry in &mut prefs.recent_notebooks {
@@ -243,9 +181,7 @@ pub fn notebook_moved<R: Runtime>(app: &AppHandle<R>, from: &Path, to: &Path) {
         if prefs.last_notebook.as_deref() == Some(from) {
             prefs.last_notebook = Some(to.to_path_buf());
         }
-        // Its appearance is filed under the same absolute path, and a look
-        // that vanished because a folder was renamed would be the app
-        // undressing a notebook for moving house.
+        // Its appearance is filed under the same absolute path and moves with it.
         if let Some(look) = prefs.notebook_display.remove(from) {
             prefs.notebook_display.insert(to.to_path_buf(), look);
         }
@@ -276,11 +212,9 @@ pub fn remember_sidebar_width<R: Runtime>(app: &AppHandle<R>, width: f64) {
     update(app, |prefs| prefs.sidebar_width = Some(width));
 }
 
-/// How far the interface is zoomed, if it was ever changed.
-///
-/// Not validated here, unlike the two widths: the frontend clamps whatever it
-/// reads, so a value hand-edited to 40 is brought back into range on the way
-/// to the screen rather than dropped.
+/// How far the interface is zoomed, if it was ever changed. Not validated
+/// here: the frontend clamps whatever it reads, so a hand-edited 40 is
+/// brought back into range rather than dropped.
 pub fn zoom<R: Runtime>(app: &AppHandle<R>) -> Option<f64> {
     load(app).zoom
 }

@@ -1,20 +1,8 @@
-//! What the shell holds between `invoke()` calls.
-//!
-//! Exactly one thing: which notebook each WINDOW has open, plus the watcher
-//! keeping an eye on it. Everything else is read from disk on demand — the
-//! files are the source of truth, and caching them here would be a second one.
-//!
-//! ONE NOTEBOOK PER WINDOW (2026-08-24). It used to be one notebook, full
-//! stop: a single `Option<Notebook>` that every command read. That is what the
-//! app was — one window, one notebook — until the notebooks screen made a
-//! second window possible, and a second window means two notebooks answering
-//! at once. A command therefore has to say WHICH, and the only honest answer
-//! is the window the `invoke()` came from: every command that touches a
-//! notebook takes a `Window` and hands its label in here.
-//!
-//! The label is Tauri's own name for a window, unique for as long as it
-//! exists. A window that closes takes its entry (and its watcher thread) with
-//! it — see `AppState::close`.
+//! What the shell holds between `invoke()` calls: which notebook each WINDOW
+//! has open, plus its watcher. Everything else is read from disk on demand —
+//! the files are the source of truth. One notebook PER WINDOW: every command
+//! that touches a notebook takes a `Window` and hands its label in here; a
+//! window that closes takes its entry and watcher thread (`AppState::close`).
 
 use std::collections::HashMap;
 use std::sync::Mutex;
@@ -71,13 +59,8 @@ impl AppState {
         f(&mut open.notebook)
     }
 
-    /// `with_notebook` for the common case: a closure that is one core call.
-    ///
-    /// Almost every command is a wire around a single `Notebook` method, and
-    /// the core's own `Result` is what that method hands back. Lifting it into
-    /// a `CommandResult` here is what keeps each command from spelling
-    /// `|nb| Ok(nb.x(..)?)` — the `Ok(..?)` was the same conversion written
-    /// seventy times.
+    /// `with_notebook` for the common case: a closure that is one core call,
+    /// lifting the core's `Result` so a command need not spell `|nb| Ok(nb.x(..)?)`.
     pub fn read<T>(
         &self,
         window: &str,
@@ -86,13 +69,10 @@ impl AppState {
         self.with_notebook(window, |nb| Ok(f(nb)?))
     }
 
-    /// `write` for an ACTION — one the user can take back. Every command that
-    /// changes the notebook on the user's word goes through here, named by
-    /// the command, and lands in the window's history (`jott_core::history`).
-    /// The exceptions are deliberate, and each has its own history or none:
-    /// `write_note` (the editor's), `set_task_fields`/`ensure_task_id` (the
-    /// inspector's), the asset commands (binaries are not recorded) and
-    /// `refresh_day` (the clock's, not the user's).
+    /// `write` for an ACTION — one the user can take back: named by the
+    /// command, landed in the window's history. Deliberate exceptions, each
+    /// with a history of its own or none: `write_note`, `set_task_fields`/
+    /// `ensure_task_id`, the asset commands and `refresh_day`.
     pub fn record<T>(
         &self,
         window: &str,
@@ -147,17 +127,10 @@ impl AppState {
         Ok(open.history.undoable().map(str::to_string))
     }
 
-    /// Whether ANY window has the notebook at `path` open.
-    ///
-    /// The one question about an open notebook that is not asked BY it: the
-    /// picker acts on notebooks it has not opened, and has to be sure the one
-    /// in its hands is not under another window (`commands::notebook`). Any
-    /// window and not just the asking one — with two windows the folder being
-    /// renamed may well be the OTHER one's, which is exactly the case a
-    /// single-notebook app never had.
-    ///
-    /// Unusable state answers "yes", which is the safe way round — it refuses
-    /// an operation instead of moving a folder the app may still be holding.
+    /// Whether ANY window has the notebook at `path` open — the picker asks
+    /// about notebooks it has not opened, and with two windows the folder may
+    /// be the OTHER one's. Unusable state answers "yes": refusing beats moving
+    /// a folder the app may still be holding.
     pub fn holds(&self, path: &std::path::Path) -> bool {
         match self.lock() {
             Ok(guard) => guard.values().any(|open| open.notebook.root() == path),
@@ -186,13 +159,9 @@ impl AppState {
         Ok(())
     }
 
-    /// Which window, if any, is working in the notebook at `path`.
-    ///
-    /// The picker asks before opening one: a notebook is a folder, two windows
-    /// on it are two writers on the same files, and a second window on a
-    /// notebook already open is never what someone meant by clicking its card
-    /// (user report, 2026-08-24). The answer is a label, which is what
-    /// `set_focus` takes.
+    /// Which window, if any, is working in the notebook at `path`. The picker
+    /// asks before opening: a second window on an open notebook is two writers
+    /// on the same files. The answer is a label, which `set_focus` takes.
     pub fn window_holding(&self, path: &std::path::Path) -> Option<String> {
         let guard = self.lock().ok()?;
         guard
@@ -201,12 +170,8 @@ impl AppState {
             .map(|(label, _)| label.clone())
     }
 
-    /// Forgets a window, because it closed.
-    ///
-    /// Not housekeeping: the entry owns a watcher THREAD, and a map that only
-    /// ever grows would leave one running per window the user ever opened,
-    /// each polling a folder nobody is looking at. Called from the window's
-    /// own destroyed event (`lib.rs`).
+    /// Forgets a window, because it closed. The entry owns a watcher THREAD.
+    /// Called from the window's own destroyed event (`lib.rs`).
     pub fn close(&self, window: &str) {
         if let Ok(mut guard) = self.lock() {
             guard.remove(window);
@@ -273,20 +238,15 @@ impl WatcherHandle {
                 }
 
                 for change in changes {
-                    // A synced-in `config.json` must actually take effect:
-                    // the notebook caches its Config by value and only reads
-                    // it on open, so without this re-read the app would
-                    // announce the change and keep serving the stale copy
-                    // until restarted. Re-reading our own write back is
-                    // harmless — it loads what was just saved.
+                    // A synced-in `config.json` must take effect: the notebook
+                    // caches its Config by value and only reads it on open.
+                    // Re-reading our own write back is harmless.
                     if matches!(change, jott_core::watcher::Change::Config) {
                         use tauri::Manager;
                         app.state::<AppState>().reload_config(&window);
                     }
-                    // To the ONE window (2026-08-24). Broadcast, every window
-                    // reloaded on every other window's save — and with two
-                    // notebooks open that is two screens flickering because
-                    // something was typed in the third.
+                    // To the ONE window: a broadcast would reload every window
+                    // on every other window's save.
                     if let Err(e) = app.emit_to(&window, NOTEBOOK_CHANGED_EVENT, &change) {
                         eprintln!("[jott] could not emit change event: {e}");
                     }

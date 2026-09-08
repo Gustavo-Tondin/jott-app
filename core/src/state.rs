@@ -1,20 +1,8 @@
-//! The day's state — `.jott/daily-state.json`.
-//!
-//! The file holds *references* to tasks (list + id), never the task text.
-//! The `.md` file in the list stays the single source of truth: a task pulled
-//! into today exists in exactly one place on disk, so editing it in Obsidian
-//! and seeing it in the app can never disagree.
-//!
-//! `date` is the logical day this state belongs to. Rollover works by
-//! comparing that field to the current logical day (see [`crate::rollover`]).
-//! Days that have not come yet live in a file of their own, the plan
-//! (`crate::plan`); the two share [`TaskRefs`], so whatever follows a task
-//! around — a move, a rename, a delete — reaches both without a second loop.
-//!
-//! Until 2026-09-04 there was a `weekly-state.json` beside this one: the
-//! week as a period of its own. The calendar on the Home replaced it — any
-//! day ahead can be planned, so a week-sized bucket had nothing left to
-//! hold — and a notebook that still carries the file loses it on open.
+//! The day's state — `.jott/daily-state.json`: references to tasks (list +
+//! id), never task text; the `.md` stays the single source of truth. `date`
+//! is the logical day, compared against today by [`crate::rollover`]. Days
+//! ahead live in the plan (`crate::plan`); both share [`TaskRefs`] so what
+//! follows a task around reaches both. The legacy weekly file is removed on open.
 
 use std::path::{Path, PathBuf};
 
@@ -29,13 +17,9 @@ pub const DAILY_STATE_FILE: &str = "daily-state.json";
 /// The week's file, from before the calendar. Removed on open; never read.
 pub const LEGACY_WEEKLY_STATE_FILE: &str = "weekly-state.json";
 
-/// A pointer to a task that lives in a list.
-///
-/// `path` is the list's file, **relative to the notebook root**
-/// (`Tasks/Inbox.md`) — never a bare name. With more than one folder of
-/// tasks there are two lists called `Inbox`, and a name stops identifying
-/// anything (phase 7). The states live in `.jott/`, which stays with the
-/// notebook, so the notebook root is the natural anchor.
+/// A pointer to a task that lives in a list. `path` is the list's file,
+/// relative to the notebook root (`Tasks/Inbox.md`) — never a bare name,
+/// which two folders with an `Inbox` would make ambiguous.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TaskRef {
     pub path: String,
@@ -55,32 +39,21 @@ impl TaskRef {
 /// answers "what did I just take out of the day", not "what did I ever plan".
 pub const RECENT_LIMIT: usize = 20;
 
-/// What every holder of task references must be able to do when a task
-/// moves, when its list is renamed, or when it is deleted. The day's state
-/// and the plan both hold references; `Notebook::update_states` reaches
-/// them through this, so a fourth holder would be a third `impl` and not a
-/// fourth loop.
+/// What every holder of task references must do when a task moves, its list
+/// is renamed, or it is deleted. The day's state and the plan both hold
+/// references; `Notebook::update_states` reaches them through this.
 pub trait TaskRefs {
     /// Removes a reference. Returns whether anything changed.
     fn remove(&mut self, path: &str, id: &str) -> bool;
-    /// Follows **one task** to another list, keeping it referenced.
-    ///
-    /// The reference is to a task, not to a place: moving a task between lists
-    /// — including into the folder's `Completed.md` when it is ticked — must
-    /// not drop it out of Today. Completing used to `remove` here instead, and
-    /// that is why a task ticked in Today simply vanished from the screen
-    /// rather than sliding into its "Completed N" section (2026-08-06).
-    ///
-    /// `to_id` is passed separately because the destination list re-issues an
-    /// id on collision, so the task may not arrive under the name it left with.
-    /// Returns whether anything changed.
+    /// Follows ONE task to another list, keeping it referenced: moving —
+    /// including into `Completed.md` when ticked — must not drop it out of
+    /// Today. `to_id` is separate because the destination re-issues an id on
+    /// collision. Returns whether anything changed.
     fn repoint(&mut self, from: &str, id: &str, to: &str, to_id: &str) -> bool;
     /// Repoints references after a list is renamed or its tasks moved.
     fn rename_path(&mut self, from: &str, to: &str) -> bool;
-    /// Reparents every reference that lives under `from` (a folder, without the
-    /// trailing slash) to the same place under `to`. Used when a whole folder
-    /// moves — a space changing group — where the lists keep their names
-    /// but their addresses change.
+    /// Reparents every reference under `from` (a folder, no trailing slash)
+    /// to the same place under `to` — a whole folder moving.
     fn rename_prefix(&mut self, from: &str, to: &str) -> bool;
 }
 
@@ -144,13 +117,9 @@ pub struct DayState {
     pub date: NaiveDate,
     #[serde(default)]
     pub items: Vec<TaskRef>,
-    /// Tasks that WERE in this period and left it, newest first — taken out by
-    /// hand, or dropped by a rollover that resets (2026-08-17). References
-    /// only, exactly like `items`: the task itself is untouched in its list,
-    /// and a stale entry here simply matches nothing.
-    ///
-    /// Skipped when empty so a notebook that never removed anything keeps the
-    /// file it always had.
+    /// Tasks that left this period, newest first — taken out by hand, or
+    /// dropped by a resetting rollover. References only, like `items`: a
+    /// stale entry matches nothing. Skipped when empty.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub recent: Vec<TaskRef>,
 }
@@ -181,9 +150,7 @@ impl DayState {
     /// Returns whether anything changed.
     pub fn add(&mut self, path: impl Into<String>, id: impl Into<String>) -> bool {
         let reference = TaskRef::new(path, id);
-        // Back in the period means it is no longer something that left it:
-        // offering it under "recently pulled" while it sits on the screen
-        // would be the panel arguing with itself.
+        // Back in the period, it is no longer something that left it.
         self.recent.retain(|r| r != &reference);
         if self.items.contains(&reference) {
             return false;
@@ -192,11 +159,8 @@ impl DayState {
         true
     }
 
-    /// Remembers references that left the period, newest first.
-    ///
-    /// Only what the user can still act on is worth keeping, so the list is
-    /// deduplicated and capped at [`RECENT_LIMIT`]; a task that leaves twice
-    /// moves to the front instead of being listed twice.
+    /// Remembers references that left the period, newest first, deduplicated
+    /// and capped at [`RECENT_LIMIT`]; leaving twice moves it to the front.
     pub fn recall(&mut self, gone: impl IntoIterator<Item = TaskRef>) {
         for reference in gone {
             self.recent.retain(|r| r != &reference);
@@ -233,10 +197,9 @@ pub struct StateFile {
 }
 
 impl StateFile {
-    /// Reads a state file. A missing or corrupt file yields an empty state for
-    /// `fallback_date` — the same forgiveness the config gets, for the same
-    /// reason: state is a convenience, and losing it must never block opening
-    /// the notebook. The tasks themselves are safe in their `.md` files.
+    /// Reads a state file. A missing or corrupt file yields an empty state
+    /// for `fallback_date`: losing state must never block opening the
+    /// notebook — the tasks are safe in their `.md` files.
     pub fn load(path: impl AsRef<Path>, fallback_date: NaiveDate) -> Self {
         let path = path.as_ref().to_path_buf();
         let state = std::fs::read_to_string(&path)

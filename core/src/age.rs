@@ -1,35 +1,13 @@
-//! How old something is, and which of the three bands it falls in.
-//!
-//! **One age, computed in one place** (spec 3.6). Every screen that wants to
-//! say "this has been sitting here a while" — the sweep, the sort by age, the
-//! stamp on a card — asks this module, so they can never disagree about what
-//! old means.
-//!
-//! The rule, and the one subtlety in it:
-//!
-//! ```text
-//! age = today − the most recent of (created, last seen)
-//! ```
-//!
-//! …with the file's **mtime as a last resort only**, when nothing has ever
-//! been seen. That "only" is the subtlety, and it is the whole reason this is
-//! not a one-liner at the call site: a sync tool rewrites mtime on files
-//! nobody has opened in a year, so folding mtime into the maximum would make
-//! a synced notebook look brand new — exactly the case the feature exists
-//! for. `created` is the floor either way: nothing is older than its own
-//! birth.
-//!
-//! **Notes only have a "seen"** (user call, 2026-08-26). A task shows the age
-//! of its creation date and nothing else, which is simply this function with
-//! `seen` and `modified` left empty.
+//! How old something is, and which band it falls in — one age, computed in
+//! one place. `age = today − max(created, last seen)`, with the file's mtime
+//! as a last resort ONLY when nothing was ever seen: a sync tool rewrites
+//! mtime, and folding it into the maximum would make a synced notebook look
+//! brand new. Only notes have a "seen"; a task passes `None` for both.
 
 use chrono::{NaiveDate, NaiveDateTime};
 
-/// The three names the app gives an age.
-///
-/// Named rather than numeric because the *number* is a setting and the
-/// *meaning* is not: a person who moves the threshold to 90 days still has
-/// fresh, stale and forgotten things.
+/// The three names the app gives an age. Named, not numeric: the number is
+/// a setting, the meaning is not.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Band {
@@ -50,8 +28,7 @@ pub struct Thresholds {
     /// Below this, stale; at or above it, forgotten.
     pub stale: i64,
     /// The Inbox's own "stale", shorter by default: an inbox is a place
-    /// things pass through, so a week there means something different from a
-    /// week in a space someone built on purpose (spec 3.6).
+    /// things pass through.
     pub inbox_stale: i64,
 }
 
@@ -76,12 +53,8 @@ impl Thresholds {
         }
     }
 
-    /// Which band an age in days falls in.
-    ///
-    /// Thresholds that cross over (a `stale` below `fresh`, which a
-    /// hand-edited config can carry) are read in the only order that keeps
-    /// three bands: fresh wins first, so the file never produces a band that
-    /// cannot be reached.
+    /// Which band an age in days falls in. Crossed thresholds (a hand-edited
+    /// `stale` below `fresh`) still give three reachable bands: fresh first.
     pub fn band(self, days: i64) -> Band {
         if days < self.fresh {
             Band::Fresh
@@ -93,11 +66,8 @@ impl Thresholds {
     }
 }
 
-/// The day something last counted as touched.
-///
-/// `seen` is when a person had it open; `modified` is the file's mtime, used
-/// **only** when there is no `seen` — see the module doc for why that
-/// asymmetry is the point.
+/// The day something last counted as touched. `modified` (mtime) is used
+/// ONLY when there is no `seen` — see the module doc.
 fn touched_on(
     created: NaiveDate,
     seen: Option<NaiveDateTime>,
@@ -124,15 +94,9 @@ fn age_days(
         .max(0)
 }
 
-/// An age as a SCREEN reads it: the number of days, and the band it falls in.
-///
-/// The two together, because every place that draws an age draws both — the
-/// stamp says `12d` and its colour says whether that is fine. Computing them
-/// apart at the call site is how one screen ends up calling forgotten what
-/// another still calls stale.
-///
-/// Derived on the way out of the notebook and never on the way in: nothing
-/// in a file says how old it is, which is the whole point of an age.
+/// An age as a SCREEN reads it: days and band together, so no two screens
+/// disagree. Derived on the way out of the notebook, never on the way in:
+/// nothing in a file says how old it is.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
 pub struct Age {
     pub days: i64,
@@ -140,10 +104,9 @@ pub struct Age {
 }
 
 impl Age {
-    /// The age of something born on `created`, last seen at `seen`, whose file
-    /// was last written on `modified`, read against `thresholds`.
-    ///
-    /// A task passes `None` for both of the middle two — see the module doc.
+    /// The age of something born on `created`, last seen at `seen`, whose
+    /// file was last written on `modified`, read against `thresholds`. A
+    /// task passes `None` for both middle arguments.
     pub fn of(
         today: NaiveDate,
         created: NaiveDate,
@@ -183,8 +146,8 @@ mod tests {
 
     #[test]
     fn sync_does_not_rejuvenate_what_nobody_opened() {
-        // The case the whole asymmetry exists for: a sync tool rewrote every
-        // mtime today, and the note has been open once, back in January.
+        // A sync tool rewrote every mtime today; the note was last open in
+        // January.
         let born = NaiveDate::from_ymd_opt(2026, 1, 1).unwrap();
         let january = NaiveDate::from_ymd_opt(2026, 1, 5)
             .unwrap()

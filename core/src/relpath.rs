@@ -1,19 +1,8 @@
-//! Resolving a user-supplied relative path inside a folder, safely.
-//!
-//! Every address the app takes — a list, a space folder, a note — arrives
-//! from somewhere the user controls: a config file, a text field, a template
-//! someone downloaded. The rule is always the same, so it lives here once
-//! instead of being re-derived (slightly differently) in each module.
-//!
-//! What is refused, and why:
-//!
-//! - `..` in any form — the whole point;
-//! - an absolute path, which would ignore the base entirely;
-//! - a component starting with `.` — hidden files are the app's business
-//!   (`.jott`, `.space.json`), never content;
-//! - `\` and NUL, which mean different things on different platforms and
-//!   nothing good on any of them;
-//! - an empty component (`a//b`), which hides intent.
+//! Resolving a user-supplied relative path inside a folder, safely. Every
+//! address the app takes comes from somewhere the user controls, so the rule
+//! lives here once. Refused: `..` in any form; an absolute path; a component
+//! starting with `.` (hidden files are the app's, never content); `\` and
+//! NUL; an empty component (`a//b`).
 
 use std::path::{Path, PathBuf};
 
@@ -22,17 +11,10 @@ pub fn is_safe_component(part: &str) -> bool {
     !part.trim().is_empty() && !part.starts_with('.') && !part.contains(['\\', '\0'])
 }
 
-/// True when `name` is safe as a **single** folder or file name the user typed.
-///
-/// The difference from [`is_safe_component`]: a leaf may not contain `/` at
-/// all. A list called `sub/lista` is not a list in a subfolder — it is a name
-/// the app would silently turn into a folder.
-///
-/// Every door that takes a name from the user goes through here — a list name,
-/// a space name, a group name. They used to each spell the rule out with
-/// a slightly different set of checks; each still raises **its own** error, and
-/// adds its own extra restriction (a list name also refuses `"`, a space
-/// folder also refuses `completed`), but the rule underneath is one.
+/// True when `name` is safe as a **single** folder or file name the user typed:
+/// unlike [`is_safe_component`], a leaf may not contain `/` at all (`sub/lista`
+/// would silently become a folder). Every door that takes a name goes through
+/// here; each raises its own error and adds its own extra restriction.
 pub fn is_safe_leaf(name: &str) -> bool {
     is_safe_component(name) && !name.contains('/') && !name.contains("..")
 }
@@ -51,16 +33,10 @@ pub fn safe_join(base: &Path, relative: &str) -> Option<PathBuf> {
     is_safe_relative(relative).then(|| base.join(relative))
 }
 
-/// The inverse: `abs` written relative to `base`, always with `/`.
-///
-/// Every address the app hands out or stores — a list path in a state file, a
-/// space prefix, a note address, a trashed item's origin — is a root-relative
-/// string with forward slashes, because those strings are written into files
-/// that sync between machines. A Windows `\` in one of them would address
-/// nothing on the next machine to open the notebook.
-///
-/// A path that is not under `base` is returned whole, which is the only honest
-/// answer and never happens in practice.
+/// The inverse: `abs` written relative to `base`, always with `/`. Every
+/// address the app stores is written into files that sync between machines,
+/// and a Windows `\` would address nothing on the next one. A path not under
+/// `base` is returned whole.
 pub fn relative_slash(base: &Path, abs: &Path) -> String {
     abs.strip_prefix(base)
         .unwrap_or(abs)
@@ -69,9 +45,7 @@ pub fn relative_slash(base: &Path, abs: &Path) -> String {
 }
 
 /// The last component of a slash-separated address — the whole address when
-/// it has no `/`. The root-relative strings the app hands around are always
-/// `/`-joined (see [`relative_slash`]), so this is the one split every module
-/// used to spell out with its own `rsplit('/')`.
+/// it has no `/`. Root-relative addresses are always `/`-joined ([`relative_slash`]).
 pub fn leaf_of(relative: &str) -> &str {
     relative.rsplit('/').next().unwrap_or(relative)
 }

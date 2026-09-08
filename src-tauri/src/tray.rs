@@ -1,13 +1,8 @@
-//! The tray icon: where the app lives once its window is closed (2026-08-25).
-//!
-//! A reminder that only rings while a window is open is a reminder for
-//! people who never close the app. So closing the window HIDES it — the
-//! notebook stays open, the watcher keeps watching, and the shell's timer
-//! keeps counting — and the tray is the door back in, and the only "Quit".
-//!
-//! GNOME shows no tray without the AppIndicator extension. The process still
-//! lives and the reminders still ring; what is missing is the door. Settings
-//! says so next to the switch, and the switch turns the behaviour off.
+//! The tray icon: where the app lives once its window is closed. Closing
+//! HIDES the window — notebook, watcher and the shell's reminder timer stay
+//! alive — and the tray is the door back in and the only "Quit". GNOME
+//! shows no tray without the AppIndicator extension: process and reminders
+//! still live; Settings says so beside the switch that turns this off.
 
 use tauri::menu::{Menu, MenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};

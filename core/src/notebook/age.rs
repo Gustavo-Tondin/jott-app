@@ -1,17 +1,8 @@
-//! Stamping an age on what the notebook hands out.
-//!
-//! The rule itself is `crate::age`; this is the one place that FEEDS it —
-//! today from the notebook's clock, the thresholds from its config, the "last
-//! seen" from its index. A screen therefore never computes an age, and two
-//! screens cannot disagree about one.
-//!
-//! Two shapes, because the two things being stamped know different amounts
-//! about themselves. A task has only its creation date (spec 3.6b: no "seen"
-//! for tasks), so stamping one is a pure function of the notebook's day. A
-//! note has a seen stamp and a file on disk, so stamping a listing of them
-//! loads the index ONCE and asks the disk for an mtime only where the index
-//! has nothing — which is also the only case the mtime is allowed to speak
-//! (`crate::age`).
+//! Stamping an age on what the notebook hands out. The rule is `crate::age`;
+//! this is the one place that FEEDS it (today, thresholds, "last seen"), so
+//! no screen computes an age. A task has only its creation date (no "seen"
+//! for tasks); a note has a seen stamp and a file, so stamping a listing loads
+//! the index ONCE and asks the disk for an mtime only where the index is empty.
 
 use super::*;
 
@@ -27,10 +18,8 @@ impl Notebook {
     }
 
     /// Stamps one task's age, in place. A task with no `created` gets none:
-    /// the notebook adopts a creation date when it opens
-    /// (`adopt_task_identity`), so this is a file written by another tool
-    /// between then and now, and inventing an age for it would be a lie the
-    /// card draws.
+    /// the notebook adopts one on open (`adopt_task_identity`), so this file
+    /// was written by another tool since, and an invented age would be a lie.
     pub(super) fn stamp_task(&self, task: &mut Task, today: NaiveDate) {
         task.age = task
             .created
@@ -45,15 +34,10 @@ impl Notebook {
         }
     }
 
-    /// Stamps a listing of notes from ONE notes space: the last time each was
-    /// seen, and the age that follows from it.
-    ///
-    /// `space` is the space's root-relative address, because that is what the
-    /// index is keyed by; the entries' own paths are relative to it.
-    ///
-    /// The Inbox reads against its own shorter deadline (spec 3.6c): things
-    /// pass through an inbox, so a fortnight there means something a
-    /// fortnight in a space someone built does not.
+    /// Stamps a listing of notes from ONE notes space: last seen, and the age
+    /// that follows. `space` is the root-relative address the index is keyed
+    /// by; the entries' own paths are relative to it. The Inbox reads against
+    /// its own shorter deadline: things pass through an inbox.
     pub(super) fn stamp_notes(&self, space: &str, entries: &mut [NoteEntry]) {
         if entries.is_empty() {
             return;

@@ -1,64 +1,38 @@
-//! The Settings screen's two drawers, and the rule that tells them apart.
-//!
-//! **The rule of the split is the SECTION, not the key: Display is this
-//! machine, every other section is the notebook** (2026-08-20, user call: "no
-//! meu celular quero tema escuro e no desktop tema Jott"). The two choices
-//! that used to sit in Display and are NOT about a screen moved to the section
-//! they belong to rather than becoming exceptions — where a quick note lands
-//! is the notebook's (Notebook), and whether an overdue task counts as urgent
-//! is a rule about tasks (Date preferences).
-//!
-//! Both drawers are described here, in the core, for the same reason every
-//! other rule is: a second frontend has to resolve them the same way, and a
-//! policy that only exists in the bridge is invisible to it. What the core
-//! does NOT do is decide where either drawer is stored — the notebook's half
-//! goes into `.jott/config.json` ([`crate::config::Config`]) and the machine's
-//! into whatever file the shell keeps per install.
+//! The Settings screen's two drawers, and the rule that tells them apart:
+//! **the split is the SECTION, not the key — Display is this machine, every
+//! other section is the notebook.** Both are resolved here in the core so a
+//! second frontend agrees; where each is stored is the shell's business
+//! (`.jott/config.json` via [`crate::config::Config`] vs. a per-install file).
 
 use serde::{Deserialize, Serialize};
 
 use crate::config::{Config, DateFormat, RolloverMode};
 use crate::WeekStart;
 
-/// The Display choices, which answer to a SCREEN and not to a notebook
-/// (2026-08-20).
-///
-/// This is the whole of the Settings screen's Display section, which is what
-/// makes the split a rule instead of a list to remember — see the module
-/// header.
-///
-/// Every field is optional, and absent is not "off": it means **this machine
-/// has no answer, so the notebook's is used**. That fallback is what keeps the
-/// look travelling — a notebook opened on a machine that never chose comes up
-/// dressed the way it was left, and diverges the moment something is picked
-/// here. It is also why nothing has to be migrated: a notebook written before
-/// the split keeps its values in `.jott/config.json`, they keep being read,
-/// and another version of Jott still finds them where it left them.
+/// The Display choices, which answer to a SCREEN, not a notebook — the whole
+/// Display section, which is what makes the split a rule. Every field is
+/// optional, and absent is not "off": **this machine has no answer, so the
+/// notebook's is used** — which is also why nothing had to be migrated.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
 pub struct DisplayPrefs {
-    /// The MODE (2026-08-26): `jott` (black frame, white page), `light`,
-    /// `dark`. Until then the three were the `theme`, which now names the
-    /// PALETTE; an old `theme` holding one of them reads as a mode
-    /// (`split_legacy_theme`), so nothing is migrated.
+    /// The MODE: `jott` (black frame, white page), `light`, `dark`. An old
+    /// `theme` holding one of them reads as a mode (`split_legacy_theme`), so
+    /// nothing is migrated; `theme` now names the PALETTE.
     pub mode: Option<String>,
     pub theme: Option<String>,
     pub accent_color: Option<String>,
     pub heading_color: Option<String>,
     pub note_font_size: Option<String>,
-    /// The three faces (2026-08-24). Display, and the section is what decides
-    /// it: which fonts exist is a fact about THIS machine, so the answer must
-    /// not travel with the notebook to a machine that does not have them.
-    /// Absent is not "the app's own" — it is "this machine did not answer",
-    /// and then the notebook's own choice stands (the recuo that spares a
-    /// migration).
+    /// The three faces. Display, because which fonts exist is a fact about
+    /// THIS machine and must not travel with the notebook. Absent is "this
+    /// machine did not answer", and the notebook's own choice stands.
     pub interface_font: Option<String>,
     pub note_font: Option<String>,
     pub mono_font: Option<String>,
     /// When the floating formatting bar shows, and which side of the canvas
-    /// it hugs (2026-08-21). Display, and it is the section that decides:
-    /// where a bar sits over a document is a fact about THIS screen — a phone
-    /// has neither, and a wide monitor and a laptop do not agree about it.
+    /// it hugs. Display: where a bar sits over a document is a fact about
+    /// THIS screen — a phone has neither, a wide monitor and a laptop disagree.
     pub format_bar: Option<String>,
     pub format_bar_side: Option<String>,
     pub date_display_format: Option<String>,
@@ -89,11 +63,9 @@ impl DisplayPrefs {
         take(&mut self.accent_color, patch.accent_color);
         take(&mut self.heading_color, patch.heading_color);
         take(&mut self.note_font_size, patch.note_font_size);
-        // The one value a machine sends that came from ITS font library: a
-        // family name is written into a CSS declaration, so a name that could
-        // end the declaration is dropped here rather than stored and dealt
-        // with at every reader. An empty name is not a bad one — it is how
-        // the app's own face is asked for.
+        // A family name is written into a CSS declaration, so a name that
+        // could end the declaration is dropped here rather than at every
+        // reader. An empty name is how the app's own face is asked for.
         take(&mut self.interface_font, safe_font(patch.interface_font));
         take(&mut self.note_font, safe_font(patch.note_font));
         take(&mut self.mono_font, safe_font(patch.mono_font));
@@ -150,17 +122,10 @@ fn take<T>(slot: &mut Option<T>, value: Option<T>) {
     }
 }
 
-/// The display choices in force, machine over notebook.
-///
-/// Since 2026-08-20 the Settings screen's Display section answers to a SCREEN
-/// and not to a notebook ([`DisplayPrefs`]): a phone can be dark while the
-/// desktop stays in Jott's own black-on-white. What this machine has not
-/// chosen falls back to the notebook, which is what lets a notebook still
-/// carry a look to a machine that never picked one.
-///
-/// One type with one constructor, because four doors answer with these values
-/// — the layout, the settings screen, the sidebar's counters and the screen to
-/// restore — and they must not drift about which side wins.
+/// The display choices in force, machine over notebook: what this machine has
+/// not chosen falls back to the notebook ([`DisplayPrefs`]). One type with one
+/// constructor, because four doors answer with these values — layout, settings
+/// screen, sidebar counters, screen to restore — and must not drift on who wins.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Display {
     pub mode: String,
@@ -177,8 +142,8 @@ pub struct Display {
     pub show_list_counts: bool,
     pub restore_last_screen: bool,
     pub close_inspector_on_click_away: bool,
-    /// The sidebar's rainbow (2026-08-24): every entry takes the next of
-    /// the seven, starting from the accent. This screen's, like the accent.
+    /// The sidebar's rainbow: every entry takes the next of the seven,
+    /// starting from the accent. This screen's, like the accent.
     pub auto_space_colors: bool,
 }
 
@@ -236,16 +201,10 @@ impl Display {
     }
 }
 
-/// The notebook preferences, flattened for the UI.
-///
-/// Every field is a plain string or bool: the frontend should not have to know
-/// the core's types, and a value it cannot parse still round-trips.
-///
-/// Everything is optional on the way **in**: a missing field keeps whatever is
-/// stored, instead of failing the whole call. Otherwise adding a preference
-/// here would break every caller that does not know about it yet — including
-/// an older frontend against a newer shell. On the way **out** all fields are
-/// filled.
+/// The notebook preferences, flattened for the UI: plain strings and bools,
+/// so a value the frontend cannot parse still round-trips. Everything is
+/// optional on the way **in** — a missing field keeps what is stored, so a
+/// new preference breaks no older caller. On the way **out** all are filled.
 #[derive(Debug, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
 pub struct NotebookSettings {
@@ -281,11 +240,10 @@ pub struct NotebookSettings {
     /// `"ink"` draws headings in plain ink; empty (or anything else) accents.
     pub heading_color: Option<String>,
     pub note_font_size: Option<String>,
-    /// The three faces, by family name; empty goes back to the one the app
-    /// carries (2026-08-24). A name that could not be written into CSS is
-    /// refused on the way IN — this is the one Display value that arrives
-    /// from a machine's own font library, and the config reader keeps the
-    /// same gate (`fonts::is_safe_family`).
+    /// The three faces, by family name; empty goes back to the app's own. A
+    /// name that could not be written into CSS is refused on the way IN — the
+    /// one Display value that arrives from a machine's own font library
+    /// (`fonts::is_safe_family`, same gate as the config reader).
     pub interface_font: Option<String>,
     pub note_font: Option<String>,
     pub mono_font: Option<String>,
@@ -297,7 +255,7 @@ pub struct NotebookSettings {
     pub quick_note_folder: Option<String>,
     pub quick_task_list: Option<String>,
     /// Whether the fixed Tasks screen shows every list, arranged by space,
-    /// instead of the Inbox alone (2026-09-04).
+    /// instead of the Inbox alone.
     pub tasks_show_all: Option<bool>,
     /// Whether the task panel offers the fields that are off (`Config`).
     pub offer_task_fields: Option<bool>,
@@ -308,19 +266,16 @@ pub struct NotebookSettings {
     /// `scroll`); empty goes back to the app's own.
     pub table_layout: Option<String>,
     /// Days a completed task stays in its `Completed.md` before the reaper
-    /// files it away into the trash; 0 means never (2026-08-06).
+    /// files it away into the trash; 0 means never.
     pub completed_retention_days: Option<i64>,
     /// Days a trashed item waits before the trash reaper clears it for good.
     pub trash_retention_days: Option<i64>,
 }
 
 impl NotebookSettings {
-    /// Everything in force, for the settings screen to draw.
-    ///
-    /// The Display half comes from `display` and not from `config`, because
-    /// that half answers to this machine — see the module header. Reading
-    /// changes nothing on either side: the values already in force are what
-    /// come back.
+    /// Everything in force, for the settings screen to draw. The Display half
+    /// comes from `display`, not `config`: it answers to this machine. Reading
+    /// changes nothing on either side.
     pub fn of(config: &Config, display: &Display) -> Self {
         let rollover = &config.rollover;
         Self {
@@ -361,11 +316,9 @@ impl NotebookSettings {
         }
     }
 
-    /// Writes the preferences that arrived into `config`.
-    ///
-    /// A value that arrives unparseable falls back to the core's default,
-    /// so the UI cannot write a broken config; a value that does not arrive
-    /// at all is left exactly as it was.
+    /// Writes the preferences that arrived into `config`. An unparseable value
+    /// falls back to the core's default, so the UI cannot write a broken
+    /// config; a value that does not arrive is left exactly as it was.
     pub fn apply_to(&self, config: &mut Config) {
         let r = &mut config.rollover;
 
@@ -492,18 +445,15 @@ impl NotebookSettings {
     }
 }
 
-/// The pages of Settings a "Reset this section" can put back (2026-08-24),
-/// by the key the screen calls them. Display is not here: it is this
-/// machine's drawer, and the bridge clears it (`prefs::clear_display`).
+/// The pages of Settings a "Reset this section" can put back, by the key the
+/// screen calls them. Display is not here: it is this machine's drawer, and
+/// the bridge clears it (`prefs::clear_display`).
 pub const RESETTABLE_SECTIONS: [&str; 5] = ["dates", "notebook", "tasks", "notes", "time"];
 
-/// Puts every notebook setting of one page back to what the app ships
-/// with, and nothing else — `Config::default()` is the source, so a new
-/// default reaches the reset without a second list. `false` for a section
-/// that has no page here (including `display`, which is not the notebook's).
-///
-/// What each page holds is what the screen DRAWS on it: a key that moves
-/// between pages moves here too, or the button lies.
+/// Puts every notebook setting of one page back to what the app ships with —
+/// `Config::default()` is the source, so a new default needs no second list.
+/// `false` for a section with no page here (`display` included). What each
+/// page holds is what the screen DRAWS on it: a key that moves, moves here too.
 pub fn reset_section(config: &mut Config, section: &str) -> bool {
     let d = Config::default();
     match section {

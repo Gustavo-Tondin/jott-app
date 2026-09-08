@@ -1,33 +1,8 @@
 //! The notebook: the folder the user picked, and everything inside it.
-//!
-//! Layout (spec 3.5):
-//!
-//! ```text
-//! MyNotebook/
-//! ├── .jott/
-//! │   ├── config.json
-//! │   ├── daily-state.json  ← today, as references (state.rs)
-//! │   └── plan.json         ← the days ahead, as references (plan.rs)
-//! ├── jott.home/            ← fixed space, type `home` (views only)
-//! │   └── .space.json
-//! ├── jott.tasks/           ← fixed space, type `tasks`
-//! │   ├── .space.json
-//! │   ├── task-list.md
-//! │   └── completed.md
-//! ├── jott.notes/           ← fixed space, type `notes`
-//! └── Design/               ← a group (.group.json), holding spaces
-//!     └── Clients/          ← a space of the user's, in that group
-//! ```
-//!
-//! The app's own folders carry the `jott.` prefix so the plain words stay the
-//! user's to take (2026-08-11), and the two files of a tasks space are named
-//! the same in every one of them (2026-08-13) — the FOLDER is the name.
-//!
-//! Since phase 7 every list is addressed by its **root-relative path**
-//! (`jott.tasks/task-list.md`), never by a bare name — two folders of tasks
-//! mean two lists called `Inbox`, and a name stops identifying anything. A
-//! notebook in the pre-phase-7 layout is refused on open with a clear message
-//! (no migrations before v1 — decision 2026-07-21).
+//! `.jott/` holds config and the day/plan state; `jott.home`, `jott.tasks`
+//! and `jott.notes` are the fixed spaces; the user's spaces sit at the root
+//! or inside groups (`.group.json`). Every list is addressed by its
+//! **root-relative path** (`jott.tasks/task-list.md`), never by a bare name.
 
 use std::path::{Path, PathBuf};
 
@@ -38,9 +13,7 @@ use crate::task::Task;
 use crate::{NOTEBOOK_CONFIG_DIR, NOTES_DIR, TASKS_DIR};
 
 /// What to do with a task's `origin` field when moving it between lists.
-///
-/// The writer stays mechanical on purpose — deciding *when* to record an
-/// origin is business logic, and it lives in the caller.
+/// The writer stays mechanical: deciding *when* to record is the caller's.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum OriginAction {
     /// Record the source list, so the move can be undone later.
@@ -51,23 +24,17 @@ pub enum OriginAction {
     Keep,
 }
 
-/// A task together with the list it lives in.
-///
-/// Day and Week show tasks from several lists at once, so the list's address
-/// has to travel with the task — without it the UI could not tell the core
-/// which file to act on. `path` is relative to the notebook root
-/// (`jott.tasks/Compras.md`); the display name is the file stem, derived by
-/// whoever shows it.
+/// A task together with the list it lives in. `path` is relative to the
+/// notebook root (`jott.tasks/Compras.md`); the display name is the file
+/// stem, derived by whoever shows it.
 #[derive(Debug, Clone, PartialEq, serde::Serialize)]
 pub struct ListedTask {
     pub path: String,
     pub task: Task,
 }
 
-/// Why a suggestion is where it is.
-///
-/// The order of the variants **is** the display order, so a group cannot be
-/// reordered by accident somewhere else in the code.
+/// Why a suggestion is where it is. The order of the variants **is** the
+/// display order.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub enum SuggestionGroup {
@@ -76,7 +43,7 @@ pub enum SuggestionGroup {
     /// Due in the next few days.
     Soon,
     /// Was in Today and left — taken out by hand, or dropped when the day
-    /// turned (2026-08-17). A way back to an old decision.
+    /// turned. A way back to an old decision.
     Recent,
     /// Everything else, in the order the lists have it.
     Lists,
@@ -103,14 +70,9 @@ pub struct ListEntry {
     /// The file stem (`Compras`) — what the user reads.
     pub name: String,
     /// Where it lives, as the user reads it: the space's **readable
-    /// address** — `Design/Tasks` inside a group, `Mercado` when loose, and
-    /// `Tasks` for the fixed one whose folder is `jott.tasks` (2026-08-13).
-    ///
-    /// Never derived in the frontend. The three fixed spaces live in
-    /// `jott.*` folders so the plain names stay free for the user, and the
-    /// interface has always called them Home, Tasks and Notes — deriving this
-    /// from the path on the other side would put the folder on screen
-    /// (2026-08-11).
+    /// address** — `Design/Tasks` inside a group, `Mercado` when loose,
+    /// `Tasks` for the fixed `jott.tasks`. Never derived in the frontend:
+    /// that would put the `jott.*` folder on screen.
     pub space: String,
 }
 
@@ -127,13 +89,9 @@ pub(super) struct ListAddress {
 }
 
 /// Splits a root-relative list address into folder part and list name:
-/// `jott.tasks/Compras.md` → (`jott.tasks`, `Compras`).
-///
-/// Rejects everything that could escape the notebook — the address arrives
-/// from user input and config files. Note the inversion from the old
-/// name-based rule: `/` stopped being forbidden and became the separator;
-/// what is forbidden now is any component that climbs (`..`), hides (leading
-/// `.`) or breaks the comment format (`"`).
+/// `jott.tasks/Compras.md` → (`jott.tasks`, `Compras`). Rejects everything
+/// that could escape the notebook: `/` is the separator; a component that
+/// climbs (`..`), hides (leading `.`) or breaks the comment format (`"`) is refused.
 fn split_list_path(path: &str) -> Result<(&str, &str)> {
     let invalid = || Error::InvalidListName(path.to_string());
 
@@ -141,9 +99,8 @@ fn split_list_path(path: &str) -> Result<(&str, &str)> {
     // A list always lives inside a space folder, never at the root.
     let (dir, name) = stem.rsplit_once('/').ok_or_else(invalid)?;
 
-    // Each component has to stand on its own — the canonical predicate, so the
-    // address a config file hands us is judged by the same rule as a name the
-    // user types.
+    // Each component is judged by the canonical predicate, the same rule a
+    // name the user types gets.
     let bad = |part: &str| !crate::relpath::is_safe_component(part);
     if path.starts_with('/')
         || path.contains(['\\', '\0', '"'])
@@ -166,8 +123,7 @@ pub(super) fn list_dir_of(path: &str) -> &str {
 
 /// The label for a space prefix, out of the map [`Notebook::space_labels`]
 /// builds — the prefix itself when the map has no entry, so an address never
-/// shows up blank. This lookup used to be a closure copy-pasted wherever
-/// labels were needed.
+/// shows up blank.
 pub(super) fn space_label_of(
     labels: &std::collections::HashMap<String, String>,
     prefix: &str,
@@ -178,13 +134,10 @@ pub(super) fn space_label_of(
         .unwrap_or_else(|| prefix.to_string())
 }
 
-/// Whether two listed tasks are the same task.
-///
-/// Same list first; then id against id when both carry one. Most tasks have
-/// no id — one is handed out only when something needs to address the task —
-/// so two id-less tasks in the same list are the same one when their text is.
-/// The rule was written out in full wherever a period or a suggestion had to
-/// dedupe; a divergence here is a task shown twice or not at all.
+/// Whether two listed tasks are the same task: same list first; then id
+/// against id when both carry one, else text against text. The one rule
+/// every period and suggestion dedupes by — a divergence is a task shown
+/// twice or not at all.
 pub(super) fn is_same_task(a: &ListedTask, b: &ListedTask) -> bool {
     a.path == b.path
         && match (a.task.id.as_deref(), b.task.id.as_deref()) {
@@ -200,12 +153,9 @@ fn cleared_to_none(value: &str) -> Option<String> {
     (!value.is_empty()).then(|| value.to_string())
 }
 
-/// Reads a marked node's config, edits it, and writes it back.
-///
-/// A space and a group carry the **same** [`SpaceConfig`] — name,
-/// colour, icon — under different file names, so renaming one and renaming the
-/// other were the same three lines twice, as were the two appearance setters.
-/// Only the path differs, so only the path is a parameter.
+/// Reads a marked node's config, edits it, and writes it back. A space and a
+/// group carry the **same** [`SpaceConfig`] under different file names, so
+/// only the path is a parameter.
 fn edit_marked_config(
     path: PathBuf,
     edit: impl FnOnce(&mut crate::space::SpaceConfig),
@@ -217,9 +167,7 @@ fn edit_marked_config(
 
 impl Notebook {
     /// Sets a marked folder's accent colour and icon; an empty string clears
-    /// each. The body behind both public appearance setters — a space and a
-    /// group differ only in where their marker lives, so only the path
-    /// arrives here.
+    /// each. The body behind both public appearance setters.
     fn set_marked_appearance(
         &self,
         path: PathBuf,
@@ -241,15 +189,10 @@ pub struct Notebook {
     config: Config,
 }
 
-// One area of the notebook per module. They all write into the SAME
-// `impl Notebook`, so nothing about the type changes from the outside — the
-// split is about where a reader looks, not a new boundary. What lives in this
-// file is what every area needs: opening a notebook, its config, and the
-// guards.
-//
-// A method one area needs from another is `pub(super)`: visible across the
-// notebook, and no wider. Private still means private to its own area, so the
-// helpers of an area cannot quietly become an interface.
+// One area of the notebook per module, all writing into the SAME
+// `impl Notebook`: the split is about where a reader looks, not a boundary.
+// This file holds what every area needs (opening, config, guards). A method
+// one area needs from another is `pub(super)`; private stays private to its area.
 mod age;
 mod groups;
 mod library;
@@ -276,14 +219,8 @@ impl Notebook {
     }
 
     /// Opens an existing notebook, recreating the default lists if the user
-    /// deleted them outside the app.
-    ///
-    /// A notebook in the pre-phase-7 layout is **refused with a clear
-    /// message**, never converted in silence — decided on 2026-07-21: there
-    /// is exactly one (test) notebook in the world, and carrying migration
-    /// code for a format that still changes weekly is weight without a user.
-    /// From v1 on this inverts, permanently: breaking an existing notebook
-    /// stops being an option and every format change ships with a migration.
+    /// deleted them outside the app. A notebook in the pre-phase-7 layout is
+    /// **refused with a clear message**, never converted: no migrations before v1.
     pub fn open(path: impl AsRef<Path>) -> Result<Self> {
         let root = path.as_ref().to_path_buf();
         if !Self::is_notebook(&root) {
@@ -305,24 +242,19 @@ impl Notebook {
             // with; nothing is kept at the notebook root.
             notebook.ensure_fixed_spaces()?;
             notebook.write_format_guide()?;
-            // The week stopped being a period on 2026-09-04; the file it
-            // kept is not read by anything and goes on open (user call).
+            // The weekly state file is read by nothing and goes on open.
             let _ = std::fs::remove_file(
                 notebook
                     .config_dir()
                     .join(crate::state::LEGACY_WEEKLY_STATE_FILE),
             );
-            // Every task gets a creation date and an id (the time axis, 3.6).
-            // Derived like the ones below: a list that will not take the
-            // stamp must not keep the notebook from opening.
+            // Every task gets a creation date and an id. Derived, like the
+            // ones below: a failure must not keep the notebook from opening.
             let _ = notebook.adopt_task_identity();
-            // And then the durable log is reconciled with what is actually on
-            // disk — this has to come AFTER the ids, since a task with no id
+            // The durable log is reconciled AFTER the ids: a task with no id
             // is one the log cannot follow.
             let _ = notebook.sweep_timeline();
-            // What the "last seen" index knew about notes that are no longer
-            // there. Derived, like the three below, and skipped outright when
-            // the index is empty.
+            // Forget the "last seen" stamps of notes no longer there.
             let _ = notebook.prune_seen();
             // Clear expired trash and rebuild the aggregated Completed index —
             // both derived, so a failure here must not stop the notebook opening.
@@ -354,26 +286,16 @@ impl Notebook {
     }
 
     /// Recreates the three fixed spaces — Home, Tasks, Notes — when their
-    /// folder or marker is missing. Called on init and on every open, same
-    /// treatment the default lists get: the user may delete things outside
-    /// the app, and the app must not break.
-    ///
-    /// Only the **markers** are recreated; the contents of the folders are
-    /// never touched. A `.space.json` the user edited is left exactly as
-    /// it is — recreating is not rewriting.
+    /// folder or marker is missing, on init and on every open. Only the
+    /// **markers** are recreated; the contents are never touched, and a
+    /// `.space.json` the user edited is left as it is.
     fn ensure_fixed_spaces(&self) -> Result<()> {
         use crate::space::SPACE_CONFIG_FILE;
 
-        // Recreate a marker only when missing — never rewrite an existing one
-        // (recreating is not rewriting: it must not clobber a user's edits).
-        //
-        // The one thing it does complete: a fixed marker with no `type`. The
-        // three fixed spaces are the app's own, and their function is not
-        // a user choice — Tasks is a tasks space, always. Without this a
-        // marker written before `type` existed opens as "unsupported", which
-        // is a lie about a folder the app itself created. A USER space is
-        // never touched: there, the type is a decision, and guessing it would
-        // be inventing one.
+        // Never rewrite an existing marker. The one thing completed is a
+        // fixed marker with no `type`: a fixed space's function is not a user
+        // choice, and without it the marker opens as "unsupported". A USER
+        // space is never touched — there, the type is a decision.
         let ensure_marker = |dir: &std::path::Path, kind: &str, label: &str| -> Result<()> {
             std::fs::create_dir_all(dir).ctx(dir)?;
             let marker = dir.join(SPACE_CONFIG_FILE);
@@ -388,10 +310,8 @@ impl Notebook {
             if config.is_read_only() {
                 return Ok(());
             }
-            // The display name is what the interface has always shown for
-            // these three, and it is NOT the folder — the folder carries the
-            // app's `jott.` prefix. Filled only when absent: a fixed
-            // space the user renamed keeps the name they gave it.
+            // The display name is NOT the folder (which carries the `jott.`
+            // prefix). Filled only when absent: a renamed fixed space keeps its name.
             let fill_name = config.name.is_none();
             if config.kind.is_empty() || fill_name {
                 if config.kind.is_empty() {
@@ -409,8 +329,7 @@ impl Notebook {
         // Home: pure views, no files of its own.
         ensure_marker(&self.root.join(crate::HOME_DIR), "home", "Home")?;
 
-        // Tasks and Notes: a typed space that owns its files directly —
-        // the tasks one is a single list plus its Completed (spec 3.5).
+        // Tasks and Notes: a typed space that owns its files directly.
         for (folder, kind, label) in [
             (TASKS_DIR, "tasks", "Tasks"),
             (NOTES_DIR, "notes", "Notes"),
@@ -420,10 +339,8 @@ impl Notebook {
             if kind == "tasks" {
                 crate::folder::TaskFolder::new(dir.clone()).ensure_default_lists()?;
             } else {
-                // The notes counterpart of the line above: the Inbox folder is
-                // protected from rename and delete BECAUSE it comes back on
-                // every open — a protection without the recreation would be
-                // guarding something the app does not maintain.
+                // The Inbox folder is protected from rename and delete
+                // BECAUSE it comes back on every open.
                 crate::notefolder::NoteFolder::new(dir).ensure_default_folders()?;
             }
         }
@@ -450,28 +367,17 @@ impl Notebook {
     }
 
     /// Which folder a root-relative address lives in — a space, a list, a
-    /// note; empty means the notebook root.
-    ///
-    /// A file address answers the folder AROUND it. Handing over the `.md`
-    /// would be a different promise from the one the caller makes, which is
-    /// "show me where this sits" — the notebook is plain files (principle 4),
-    /// and that is what this exists to say out loud.
-    ///
-    /// The address is checked here exactly like every other address the app
-    /// takes ([`crate::relpath::safe_join`]), so nothing can point outside
-    /// the notebook. `is_dir` is a question about disk; an address that names
-    /// nothing at all still resolves to the folder it would have been in,
-    /// which is the honest answer for a notebook edited by other tools.
+    /// note; empty means the notebook root. A file address answers the folder
+    /// AROUND it. Checked like every other address ([`crate::relpath::safe_join`]);
+    /// an address that names nothing resolves to the folder it would be in.
     pub fn folder_of(&self, path: Option<&str>) -> Result<PathBuf> {
         let root = self.root.clone();
         let Some(relative) = path.map(str::trim).filter(|p| !p.is_empty()) else {
             return Ok(root);
         };
-        // The app's own folder is hidden, which `safe_join` refuses on
-        // purpose (a hidden name is nobody's note) — but `.jott/_FORMAT.txt`
-        // is the one address inside it the app itself hands out (Settings →
-        // About opens it), so the config folder is walked into explicitly.
-        // Only ONE level, and only under it: `.jott/../x` is still refused.
+        // `safe_join` refuses the hidden `.jott/` on purpose, but
+        // `.jott/_FORMAT.txt` is an address the app itself hands out, so the
+        // config folder is walked into explicitly — one level, under it only.
         let joined = match relative.strip_prefix(&format!("{NOTEBOOK_CONFIG_DIR}/")) {
             Some(inside) => crate::relpath::safe_join(&self.config_dir(), inside),
             None => crate::relpath::safe_join(&root, relative),
@@ -483,12 +389,6 @@ impl Notebook {
             joined.parent().map(Path::to_path_buf).unwrap_or(root)
         })
     }
-
-    // `tasks_dir`/`tasks_folder`/`notes_dir` lived here until 2026-08-04. They
-    // answered "where do the tasks live?" with `Tasks/`, which stopped being
-    // true in the 2026-07-30 restructure — every tasks space holds its own
-    // lists. The one answer now is `task_folders()`; a second, wrong one is
-    // worse than none.
 
     pub fn config_dir(&self) -> PathBuf {
         self.root.join(NOTEBOOK_CONFIG_DIR)
@@ -517,8 +417,7 @@ impl Notebook {
     }
 
     /// Writes a new theme into the notebook, from the stylesheet the app is
-    /// wearing. The one write in this module that puts CSS on disk — and the
-    /// reason the format is usable at all (`themes::create`).
+    /// wearing (`themes::create`).
     pub fn create_theme(&self, name: &str, css: &str) -> Result<crate::themes::UserTheme> {
         self.ensure_writable()?;
         crate::themes::create(self.config_dir(), name, css)
@@ -537,23 +436,16 @@ impl Notebook {
         self.config.is_read_only()
     }
 
-    /// Re-reads the preferences from disk.
-    ///
-    /// The notebook caches its `Config` by value and only ever loads it on
-    /// open — so a `config.json` written by someone else (a sync tool, a
-    /// text editor) would be announced by the watcher and then ignored:
-    /// every command kept answering from the stale copy until the app
-    /// restarted. The bridge calls this when the watcher sees the file
-    /// change (2026-08-19).
+    /// Re-reads the preferences from disk. The `Config` is cached by value,
+    /// so a `config.json` written by someone else would be announced by the
+    /// watcher and then ignored; the bridge calls this when the watcher sees it.
     pub fn reload_config(&mut self) {
         self.config = Config::load(self.config_path());
     }
 
     /// Runs `action` against this notebook and records what it changed in
     /// `history`, under `label` — the door every action `Ctrl+Z` can take
-    /// back goes through (`crate::history`). The action gets `&mut self`
-    /// because a few of them (the config setters) need it; the rest ignore
-    /// the mutability.
+    /// back goes through (`crate::history`).
     pub fn record<T>(
         &mut self,
         history: &mut History,
@@ -592,9 +484,7 @@ impl Notebook {
     }
 
     /// Applies `change` to a copy of the config and writes it — the one door
-    /// for every setter that touches a single field. The guard, the save and
-    /// the swap are [`Notebook::set_config`]'s; this only spares each caller
-    /// the clone-mutate-save dance, which seven of them spelled out.
+    /// for every setter that touches a single field.
     pub(super) fn edit_config(&mut self, change: impl FnOnce(&mut Config)) -> Result<()> {
         self.edit_config_if(|config| {
             change(config);
@@ -634,13 +524,9 @@ impl Notebook {
         self.edit_config(|config| config.set_feature(key, on))
     }
 
-    /// Binds a command to a chord, or unbinds it with `chord: None`.
-    ///
-    /// The core does not judge either string: which commands exist and how a
-    /// chord is spelled belong to the interface, and a notebook a newer build
-    /// wrote carries bindings this one cannot read. Unbinding REMOVES the key
-    /// rather than writing an empty one, so a config only ever carries what
-    /// differs from the app's own table.
+    /// Binds a command to a chord, or unbinds it with `chord: None`. Neither
+    /// string is judged here (they belong to the interface). Unbinding
+    /// REMOVES the key, so a config carries only what differs from the app's table.
     pub fn set_shortcut(&mut self, id: &str, chord: Option<String>) -> Result<()> {
         self.edit_config(|config| match chord {
             Some(chord) => {

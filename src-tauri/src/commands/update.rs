@@ -1,10 +1,7 @@
-//! What answers for this INSTALL, not for the notebook.
-//!
-//! The same notebook synced to a phone and a desktop is served by two
-//! different binaries, updated two different ways — and only one of them has a
-//! menu entry to write. So both things here are machine preferences, and both
-//! are refusable: the update check is the one connection the app makes
-//! (principle 9), and the menu entry writes two files outside the notebook.
+//! What answers for this INSTALL, not for the notebook: the same notebook on
+//! a phone and a desktop is served by two binaries, updated two ways, and only
+//! one has a menu entry to write. Both are machine preferences and refusable:
+//! the update check is the one connection the app makes (principle 9).
 
 use std::path::PathBuf;
 
@@ -77,14 +74,9 @@ pub struct UpdateCheck {
     pub url: String,
 }
 
-/// Asks the release feed for the newest published version.
-///
-/// The second thing this app does that leaves the machine, after
-/// `import_asset_from_url`, and fenced the same way (`crate::net`): https
-/// only, timeouts on both ends, a size ceiling. Consent is handled a level up — the automatic
-/// check is a machine preference the settings screen explains and switches
-/// off, so this command only runs because that switch (or a click on
-/// "check now") said so.
+/// Asks the release feed for the newest published version. Fenced by
+/// `crate::net` (https only, timeouts, a size ceiling). Consent is a level up:
+/// this only runs because the auto-check switch or "check now" said so.
 #[tauri::command]
 pub async fn check_for_update() -> CommandResult<UpdateCheck> {
     let (url, overridden) = match std::env::var(UPDATE_URL_ENV) {
@@ -122,20 +114,13 @@ fn fetch_latest_version(url: &str, overridden: bool) -> CommandResult<String> {
 // The application menu
 // ---------------------------------------------------------------------------
 
-/// The icon the entry points at, carried in the binary.
-///
-/// Read from the AppImage's own insides instead? It does ship `jott.png` at
-/// its root, but reaching it means asking the AppImage to extract itself into
-/// a temporary folder — a subprocess, a scratch directory and a dependency on
-/// AppImage internals, to fetch twelve kilobytes that are already ours. The
-/// same file the PKGBUILD installs, compiled in, cannot go missing.
+/// The icon the entry points at, carried in the binary: the AppImage ships
+/// `jott.png` too, but reaching it means asking it to extract itself. Same
+/// file the PKGBUILD installs.
 const ICON_PNG: &[u8] = include_bytes!("../../icons/128x128@2x.png");
 
-/// The entry text, from the file the PKGBUILD installs.
-///
-/// One template, two installs: whatever the packaged Jott calls itself in the
-/// menu, the AppImage calls itself too. Editing `packaging/linux/jott.desktop` moves
-/// both, and there is no second copy to forget.
+/// The entry text, from the file the PKGBUILD installs — one template, two
+/// installs; editing `packaging/linux/jott.desktop` moves both.
 const DESKTOP_TEMPLATE: &str = include_str!("../../../packaging/linux/jott.desktop");
 
 /// What the frontend needs to decide whether to offer, and what to show.
@@ -158,12 +143,9 @@ pub struct DesktopEntryState {
     pub dismissed: bool,
 }
 
-/// Where the running app lives, when it is an AppImage.
-///
-/// `$APPIMAGE` is set by the AppImage's own runtime to the absolute path of
-/// the `.AppImage` file — the same signal `check_for_update` reads to know
-/// this install can replace itself. `std::env::current_exe()` is the wrong
-/// question here: inside an AppImage it answers with the unpacked binary in a
+/// Where the running app lives, when it is an AppImage: `$APPIMAGE` is the
+/// absolute path of the `.AppImage` file. `current_exe()` is the wrong
+/// question — inside an AppImage it answers with the unpacked binary in a
 /// temporary mount that disappears when the app closes.
 fn appimage_path() -> Option<PathBuf> {
     let raw = std::env::var_os("APPIMAGE")?;
@@ -171,11 +153,8 @@ fn appimage_path() -> Option<PathBuf> {
     path.is_absolute().then_some(path)
 }
 
-/// The user's data directory, per the XDG spec.
-///
-/// `$XDG_DATA_HOME` first because a machine that sets it means it: writing to
-/// `~/.local/share` anyway would put the entry where that desktop is not
-/// looking.
+/// The user's data directory, per the XDG spec: `$XDG_DATA_HOME` first
+/// because a machine that sets it means it.
 fn data_dir() -> Option<PathBuf> {
     match std::env::var_os("XDG_DATA_HOME") {
         Some(dir) if !dir.is_empty() => Some(PathBuf::from(dir)),
@@ -204,11 +183,8 @@ pub fn desktop_entry_state<R: Runtime>(app: AppHandle<R>) -> DesktopEntryState {
     }
 }
 
-/// Writes the entry, or takes it away again.
-///
-/// Reversible on purpose: this writes two files outside the notebook, and a
-/// feature that can only be turned on is a feature the user cannot undo
-/// without being told where the files are.
+/// Writes the entry, or takes it away again — reversible because it writes
+/// two files outside the notebook.
 #[tauri::command]
 pub fn set_desktop_entry(on: bool) -> CommandResult<()> {
     let dir = data_dir().ok_or_else(|| {
@@ -238,12 +214,9 @@ mod tests {
 
     use super::*;
 
-    /// The real template, not a stand-in.
-    ///
-    /// `jott_core::desktop` is tested against a template of its own, which
-    /// proves the rewriting. What it cannot prove is that the file this crate
-    /// compiles in is a usable entry — and that file is shared with the
-    /// PKGBUILD, so an edit meant for the packaged install lands here too.
+    /// The real template, not a stand-in: `jott_core::desktop` proves the
+    /// rewriting; this proves the file this crate compiles in — shared with the
+    /// PKGBUILD — is a usable entry.
     #[test]
     fn the_packaged_template_makes_a_launchable_entry() {
         let exec = Path::new("/home/x/AppImages/Jott.AppImage");
@@ -263,12 +236,9 @@ mod tests {
         assert!(!text.contains("Icon=jott\n"));
     }
 
-    /// The desktop's own validator, on the entry this crate would write.
-    ///
-    /// Asserting on the text proves what we MEANT; `desktop-file-validate` is
-    /// the freedesktop reference implementation and proves what a launcher
-    /// will make of it. Skipped where the tool is absent — that is a missing
-    /// measurement, not a failure, and CI must not go red for it.
+    /// `desktop-file-validate` is the freedesktop reference and proves what a
+    /// launcher will make of the entry. Skipped where the tool is absent — a
+    /// missing measurement, not a failure.
     #[test]
     fn the_entry_passes_the_freedesktop_validator() {
         let Ok(dir) = tempfile::tempdir() else { return };

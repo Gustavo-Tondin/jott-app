@@ -1,11 +1,8 @@
 //! The notebook's file library — `assets/` at the root, one flat folder.
-//!
-//! Three doors bring a file in, because a picture arrives three ways: as bytes
-//! from an `<input type="file">` or a paste, as a path from a drag out of the
-//! file manager, and as an `https://` address copied from a web page. What a
-//! downloaded file is CALLED and whether it is a picture at all are the
-//! library's rules (`jott_core::assets`); fetching the bytes is this side's,
-//! and it is the one thing this app does that leaves the machine.
+//! Three doors bring a file in: bytes (`<input type="file">`, paste), a path
+//! (drag from the file manager), an `https://` address (copied off a page).
+//! Naming and "is it a picture" are `jott_core::assets`'; fetching bytes is
+//! this side's, and the one thing this app does that leaves the machine.
 
 use std::path::PathBuf;
 
@@ -24,11 +21,8 @@ pub fn assets<R: Runtime>(state: State<'_, AppState>,
 }
 
 /// Writes an image into the library, returning the address a note carries.
-///
-/// The bytes arrive as base64 because that is the one transport that works
-/// everywhere: `tauri::ipc::Request`'s raw body is documented as unavailable
-/// on Android, and the webview's `<input type="file">` is the same code path
-/// on desktop and on a phone. See `crate::base64` for the decoder.
+/// Base64 because it is the one transport that works everywhere: the raw IPC
+/// body is unavailable on Android (`crate::base64` decodes).
 #[tauri::command]
 pub fn import_asset<R: Runtime>(
     state: State<'_, AppState>,
@@ -41,18 +35,10 @@ pub fn import_asset<R: Runtime>(
     state.quiet(window.label(), |nb| nb.import_asset(&name, &bytes))
 }
 
-/// Copies a file of THIS machine into the library, by its path.
-///
-/// The other door for the same gesture. `import_asset` takes the bytes,
-/// because that is all a `<input type="file">` and a pasted image ever have;
-/// a file dragged from the file manager arrives as a `file://` address and
-/// nothing else, and reading it here beats sending a photo through the IPC as
-/// base64 (user report, 2026-08-19 — the drag was doing nothing at all).
-///
-/// The path is chosen by the person doing the dragging, in their own file
-/// manager, which is the same trust the folder picker already carries. What
-/// this can do is READ that one file and write a copy into `assets/` — the
-/// notebook is the only thing it can write to.
+/// Copies a file of THIS machine into the library, by its path — a drag from
+/// the file manager arrives as a `file://` address and nothing else. The path
+/// is chosen by the person dragging, the same trust the folder picker carries;
+/// all this can WRITE is a copy into `assets/`.
 #[tauri::command]
 pub fn import_asset_from_path<R: Runtime>(state: State<'_, AppState>,
     window: tauri::Window<R>, path: PathBuf) -> CommandResult<String> {
@@ -81,17 +67,10 @@ pub fn delete_asset<R: Runtime>(state: State<'_, AppState>,
     state.quiet(window.label(), |nb| nb.delete_asset(&path))
 }
 
-/// Opens an attachment in whatever the system uses for that kind of file.
-///
-/// The app's other door, `open_in_file_manager`, opens the FOLDER and never
-/// the document (2026-08-17) — deliberately, because there it is the user's
-/// own notebook being browsed. An attachment is the other case: it exists to
-/// be opened, and a task's paperclip that only revealed a folder would be a
-/// second click for nothing (user call, 2026-08-18).
-///
-/// The address is resolved by the library, which is what keeps this from
-/// becoming "open any file on this machine": only a direct child of `assets/`
-/// resolves at all.
+/// Opens an attachment in whatever the system uses for that kind of file —
+/// unlike `open_in_file_manager`, which opens the FOLDER. The address is
+/// resolved by the library: only a direct child of `assets/` resolves at all,
+/// which keeps this from being "open any file on this machine".
 #[tauri::command]
 pub fn open_asset<R: Runtime>(state: State<'_, AppState>,
     window: tauri::Window<R>, path: String) -> CommandResult<()> {
@@ -105,25 +84,10 @@ pub fn open_asset<R: Runtime>(state: State<'_, AppState>,
     open_path(&file)
 }
 
-/// Downloads a picture from the internet into the library.
-///
-/// **The one thing this app does that leaves the machine**, and it is asked
-/// for explicitly every time until the person says to stop asking
-/// (`confirmImageDownloads`, principle 9). It exists because pasting an image
-/// copied from a web page hands the app an `https://` address and nothing
-/// else — no bytes anywhere — so drawing it means fetching it.
-///
-/// The request is fenced on four sides (the first three are `crate::net`'s):
-///
-///   - **`https` only.** A picture is not worth a plaintext request, and
-///     `file://` here would be this command reading the disk.
-///   - **Timeouts**, on connecting and on the whole call: a page that never
-///     answers must not be a note that never finishes pasting.
-///   - **A size ceiling.** The body is read through `take`, so a server
-///     claiming a small file and sending a stream cannot fill the disk.
-///   - **It has to BE a picture** — the content type is checked, and the
-///     extension the file is stored under comes from that type rather than
-///     from the URL, which may have none (`…/large/daoz-51.jpg?1747030361`).
+/// Downloads a picture from the internet into the library — the one thing this
+/// app does that leaves the machine, asked for until told to stop
+/// (`confirmImageDownloads`). Fenced by `crate::net` (https only, timeouts, size
+/// ceiling) and by content type: the extension comes from the type, not the URL.
 #[tauri::command]
 pub async fn import_asset_from_url<R: Runtime>(
     state: State<'_, AppState>,
@@ -158,34 +122,19 @@ fn fetch_image(url: &str) -> CommandResult<(String, Vec<u8>)> {
     ))
 }
 
-/// The files sitting on the system clipboard, as `file://` addresses.
-///
-/// **Why this exists, measured rather than assumed** (2026-08-19, with the
-/// gesture logged from inside the running window): pasting a file copied in
-/// the file manager reaches the webview as a paste whose only type is
-/// `text/uri-list` — and every way the DOM has of reading that type comes back
-/// EMPTY. `dataTransfer.files` is empty, `getData("text/uri-list")` is `""`,
-/// and so is `items[…].getAsString()`. There is nothing left to read on that
-/// side, so the question is asked of the system instead, which has the answer
-/// and always did.
-///
-/// (A DRAG is different and does not come through here: there the webview
-/// hands the address over in the `text/html` flavour, which the frontend
-/// reads — see `services/assets.js`.)
-///
-/// Async for the reason `file_icon` is: GTK is not thread-safe, so the read
-/// happens on the main thread, and a synchronous command might BE on it.
+/// The files sitting on the system clipboard, as `file://` addresses. A file
+/// copied in the file manager reaches the webview as a paste whose only type
+/// is `text/uri-list`, and every DOM read of it comes back EMPTY — so the
+/// system is asked. (A drag is different: `text/html`, read by services/assets.js.)
+/// Async for the reason `file_icon` is. See docs/platform-gotchas.md#webview-e-gestos
 #[tauri::command]
 pub async fn clipboard_files<R: Runtime>(app: AppHandle<R>) -> Vec<String> {
     clipboard_uris(&app).unwrap_or_default()
 }
 
-/// Runs `f` on the GTK main thread and waits — bounded — for its answer.
-///
-/// GTK3 is not thread-safe: the clipboard and the icon theme may only be
-/// touched from the main thread. The wait is bounded because both callers
-/// are niceties — a missing icon or an empty paste must never hang a
-/// command.
+/// Runs `f` on the GTK main thread and waits — bounded — for its answer. GTK3
+/// is not thread-safe; the wait is bounded because both callers are niceties
+/// and must never hang a command.
 #[cfg(target_os = "linux")]
 fn on_main_thread<R: Runtime, T: Send + 'static>(
     app: &AppHandle<R>,
@@ -236,20 +185,16 @@ fn gtk_clipboard_uris() -> Option<Vec<String>> {
     )
 }
 
-/// Everywhere else the clipboard is not asked. The GTK read above is the
-/// Linux answer to a paste the webview cannot see; Android has no such
-/// clipboard to reach for, and Windows and macOS hand the files to the
-/// webview in the first place, so the frontend already has them.
-/// Without it the crate does not compile off Linux at all, which is how the
-/// gap was found: the first Android build after it landed.
+/// Everywhere else the clipboard is not asked: Android has none to reach for,
+/// and Windows and macOS hand the files to the webview in the first place.
+/// Without this the crate does not compile off Linux.
 #[cfg(not(target_os = "linux"))]
 fn clipboard_uris<R: Runtime>(_app: &AppHandle<R>) -> Option<Vec<String>> {
     None
 }
 
-/// Where each file of the library is used, keyed by its address — so the
-/// Images screen can say which files are carrying their weight, and offer the
-/// way to what uses them (2026-08-19). A file nobody points at has no entry.
+/// Where each file of the library is used, keyed by its address — for the
+/// Images screen. A file nobody points at has no entry.
 #[tauri::command]
 pub fn asset_usage<R: Runtime>(
     state: State<'_, AppState>,
@@ -258,25 +203,11 @@ pub fn asset_usage<R: Runtime>(
     state.read(window.label(), |nb| nb.asset_usage())
 }
 
-/// The desktop's own icon for a kind of file, as a `data:` URL.
-///
-/// What it is for: a note can carry a video, a PDF, a spreadsheet, and the
-/// app draws one as a chip with its name (`services/embeds.js`). The chip
-/// reads better with the icon the person's file manager already uses for that
-/// type (user call, 2026-08-19).
-///
-/// `None` is an ordinary answer, not a failure: there is no icon theme on a
-/// phone, and a desktop may simply have no entry for that type. The chip
-/// keeps the extension it drew for itself.
-///
-/// `name` is a file NAME and never a path — the type is guessed from it and
-/// nothing is opened, so there is nothing here to escape from.
-///
-/// **Async on purpose.** The lookup has to happen on the GTK thread (GTK3 is
-/// not thread-safe, and an icon theme read from a worker is undefined
-/// behaviour), which means handing the work to the main thread and waiting
-/// for it. An async command never RUNS on the main thread, so that wait
-/// cannot be a deadlock; a sync one might.
+/// The desktop's own icon for a kind of file, as a `data:` URL, for the chip
+/// a note draws for a video or a PDF (`services/embeds.js`). `None` is an
+/// ordinary answer (no theme on a phone, no entry for the type). `name` is a
+/// file NAME, never a path: nothing is opened. Async on purpose: the lookup
+/// must run on the GTK thread, and an async command never runs there.
 #[tauri::command]
 pub async fn file_icon<R: Runtime>(app: AppHandle<R>, name: String) -> Option<String> {
     let png = system_icon(&app, &name)?;
@@ -311,11 +242,8 @@ const ICON_SIZE: i32 = 64;
 
 #[cfg(all(test, target_os = "linux"))]
 mod icon_tests {
-    //! The lookup itself, against the machine's real icon theme.
-    //!
-    //! Skipped where there is no display to init GTK against — a CI runner,
-    //! a tty. That is not a reason to leave the one interesting part of this
-    //! untested on the machine that has one.
+    //! The lookup itself, against the machine's real icon theme. Skipped where
+    //! there is no display to init GTK against (CI, a tty).
 
     #[test]
     fn the_system_draws_an_icon_for_a_kind_of_file() {

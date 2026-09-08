@@ -1,9 +1,6 @@
-//! A task list file (`jott.tasks/task-list.md` and friends).
-//!
-//! A list is read as a sequence of lines, not as a bag of tasks: anything that
-//! is not a task — headings, notes, blank lines — is kept verbatim and written
-//! back untouched. The file belongs to the user, and the app is only one of
-//! the tools that edit it.
+//! A task list file (`jott.tasks/task-list.md` and friends), read as a
+//! sequence of lines, not a bag of tasks: anything that is not a task is kept
+//! verbatim and written back untouched — the file belongs to the user.
 
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
@@ -12,12 +9,8 @@ use crate::error::{Error, Result};
 use crate::id;
 use crate::task::Task;
 
-/// One line of a list file.
-///
-/// A `Task` is far bigger than a `Raw`, so every line of a file costs what a
-/// task costs. Boxing it would save that, and is deliberately not done: a list
-/// is read to be shown, so most lines ARE tasks, and the pointer chase would be
-/// paid on the common case to save memory on the rare one.
+/// One line of a list file. `Task` is deliberately not boxed: most lines ARE
+/// tasks, and the pointer chase would be paid on the common case.
 #[allow(clippy::large_enum_variant)]
 #[derive(Debug, Clone, PartialEq)]
 pub enum Line {
@@ -97,7 +90,7 @@ impl TaskList {
     }
 
     /// Every task, to be changed in place — for a rewrite that touches all of
-    /// them rather than one by id (a renamed file, 2026-08-19).
+    /// them rather than one by id (a renamed file).
     pub fn tasks_mut(&mut self) -> impl Iterator<Item = &mut Task> {
         self.lines.iter_mut().filter_map(|line| match line {
             Line::Task(task) => Some(task),
@@ -123,17 +116,10 @@ impl TaskList {
         self.tasks().filter_map(|t| t.id.clone()).collect()
     }
 
-    /// Appends a task and returns its position among the tasks.
-    ///
-    /// **No id is assigned.** An id only appears when the task needs to be
-    /// addressed — see [`TaskList::ensure_id_at`] — so a plain checklist never
-    /// grows comments the user did not ask for.
-    ///
-    /// An incoming id that is already taken in this file gets **replaced**,
-    /// not dropped: ids are unique per file, not globally, so a task moving
-    /// between lists can collide with one already living there. A task that
-    /// already had an id was addressable, and must stay addressable —
-    /// otherwise completing it would quietly break its undo.
+    /// Appends a task and returns its position among the tasks. No id is
+    /// assigned ([`TaskList::ensure_id_at`] does, on demand). An incoming id
+    /// already taken in this file is REPLACED, not dropped: ids are unique
+    /// per file, and a task that had one must stay addressable.
     pub fn add(&mut self, task: Task) -> usize {
         self.insert_line_at(self.lines.len(), task);
         self.tasks().count() - 1
@@ -162,12 +148,9 @@ impl TaskList {
         }
     }
 
-    /// Puts a task back among the file's lines at `index`, counting lines and
-    /// not tasks — the index the trash recorded when the task was removed.
-    ///
-    /// Restoring is why this exists: a task deleted from the middle of a list
-    /// should come back where it was, not at the end. An index past the end
-    /// appends, which is what a shorter file (edited by hand meanwhile) means.
+    /// Puts a task back at line `index` (lines, not tasks — the index the
+    /// trash recorded), so a restored task lands where it was. An index past
+    /// the end appends.
     pub fn insert_line_at(&mut self, index: usize, mut task: Task) {
         // Same collision rule as `add`: ids are unique per file, and a task
         // coming back from the trash can land on one taken since.
@@ -180,9 +163,8 @@ impl TaskList {
         self.lines.insert(index.min(self.lines.len()), Line::Task(task));
     }
 
-    /// Puts a non-task line back at `index`, exactly as it was. The other half
-    /// of restoring: whatever the parser did not read as a task is still the
-    /// user's text, and dropping it would lose it.
+    /// Puts a non-task line back at `index`, exactly as it was — the other
+    /// half of restoring.
     pub fn insert_raw_at(&mut self, index: usize, line: String) {
         self.lines.insert(index.min(self.lines.len()), Line::Raw(line));
     }
@@ -192,11 +174,8 @@ impl TaskList {
         self.add(Task::new(text))
     }
 
-    /// Adds a task and gives it an id immediately, for callers that need to
-    /// reference it right away — a state entry, a move between lists.
-    ///
-    /// Prefer plain [`TaskList::add_text`] when the id is not needed: an
-    /// unreferenced task is better off without a comment on its line.
+    /// Adds a task and gives it an id immediately, for callers that reference
+    /// it right away. Prefer [`TaskList::add_text`] when the id is not needed.
     pub fn add_text_with_id(&mut self, text: impl Into<String>) -> String {
         let position = self.add_text(text);
         self.ensure_id_at(position)
@@ -213,12 +192,9 @@ impl TaskList {
             .map(|(index, _)| index)
     }
 
-    /// Gives the task at `position` an id, if it does not have one, and
-    /// returns it.
-    ///
-    /// This is the doorway to every operation that addresses a task: pulling
-    /// it into a period, completing it, referring to it from anywhere. Reading
-    /// a list never calls this, which is what keeps untouched files clean.
+    /// Gives the task at `position` an id, if it has none, and returns it.
+    /// The doorway to every operation that addresses a task; reading a list
+    /// never calls it, which keeps untouched files clean.
     pub fn ensure_id_at(&mut self, position: usize) -> Option<String> {
         let at = self.line_of_task(position)?;
         let taken = self.taken_ids();
@@ -258,10 +234,7 @@ impl TaskList {
     }
 
     /// Moves the task at `from` (counting tasks, not lines) to position `to`.
-    ///
-    /// The order of tasks in the file is the order the user sees, so dragging
-    /// a task in the app rewrites the file — there is no separate ordering to
-    /// keep in sync.
+    /// The file's order IS the order the user sees; there is no separate one.
     pub fn move_task_to(&mut self, from: usize, to: usize) -> Result<()> {
         let count = self.tasks().count();
         if from >= count || to >= count {
@@ -312,11 +285,9 @@ impl TaskList {
         }
     }
 
-    /// Repoints the `origin` of every task that came from `from` to `to`.
+    /// Repoints the `origin` of every task that came from `from` to `to` (a
+    /// renamed list: undo must not send a task back to a list that is gone).
     /// Returns how many changed, so the caller can skip a pointless write.
-    ///
-    /// Used when a list is renamed: without this, undoing a completed task
-    /// would try to send it back to a list that no longer exists.
     pub fn repoint_origin(&mut self, from: &str, to: &str) -> usize {
         let mut changed = 0;
         for line in &mut self.lines {
@@ -330,19 +301,10 @@ impl TaskList {
         changed
     }
 
-    /// Gives a fresh id to any task whose id repeats one already used earlier
-    /// in the file. Tasks without an id are left without one.
-    ///
-    /// Duplicated ids happen when a line is copy-pasted in an editor, comment
-    /// and all. They are worse than missing ids: `find`, `edit_text`, `remove`
-    /// and `set_done` all address the first match, so the second copy silently
-    /// cannot be edited or completed, and any reference to that id becomes
-    /// ambiguous.
-    ///
-    /// The first occurrence always keeps the id, so references already stored
-    /// in the day's state or the plan keep pointing at the same task.
-    ///
-    /// Returns how many lines changed, so the caller can skip a pointless save.
+    /// Gives a fresh id to any task repeating an id used earlier in the file
+    /// (a line copy-pasted with its comment); id-less tasks stay id-less.
+    /// The FIRST occurrence keeps the id, so stored references still point at
+    /// the same task. Returns how many lines changed.
     pub fn dedupe_ids(&mut self) -> usize {
         let mut seen: HashSet<String> = HashSet::new();
         let mut changed = 0;

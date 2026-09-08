@@ -1,26 +1,16 @@
-//! The notebook's side of the "last seen" index (`crate::seen`).
-//!
-//! The index is keyed by ROOT-relative address (`jott.notes/ideia.md`) while
-//! every note operation speaks in two halves — the space and the address
-//! inside it. Joining the two is this module's whole job, plus the three
-//! moments the index has to follow a note: it is opened, it moves, it goes.
-//!
-//! Every write in here is **best effort**. Losing a "seen" stamp costs the
-//! age of one note; refusing to rename a note because an index could not be
-//! written would cost the user their rename. So a failure to save is
-//! swallowed on purpose, and the invariant that matters — never leave a stale
-//! address behind — is upheld by the callers being few and named.
+//! The notebook's side of the "last seen" index (`crate::seen`): joins the
+//! space and the address inside it into the ROOT-relative key the index uses,
+//! and follows a note through the three moments the index must track (opened,
+//! moved, gone). Every write is BEST EFFORT — a failed save is swallowed, and
+//! "never leave a stale address behind" is upheld by the callers being few.
 
 use super::*;
 
 use crate::seen::Seen;
 
 /// The root-relative address of a note, from the two halves the app speaks in.
-///
-/// Either half may be empty — a note at a space's root, or the notebook root
-/// itself — and the join must not leave a stray separator behind: an address
-/// ending in `/` matches nothing, which is how a whole folder of stamps went
-/// missing the first time a folder was deleted.
+/// Either half may be empty, and the join must not leave a stray separator:
+/// an address ending in `/` matches nothing.
 pub(super) fn address_of(space: &str, relative: &str) -> String {
     match (space.is_empty(), relative.is_empty()) {
         (true, _) => relative.to_string(),
@@ -30,11 +20,9 @@ pub(super) fn address_of(space: &str, relative: &str) -> String {
 }
 
 impl Notebook {
-    /// The "last seen" index of this notebook.
-    ///
-    /// Read from disk on every call rather than cached: it is a small file,
-    /// two windows on the same notebook each hold their own `Notebook`, and a
-    /// cached copy would have them overwriting each other's stamps.
+    /// The "last seen" index, read from disk on every call: two windows on the
+    /// same notebook each hold a `Notebook`, and a cached copy would have them
+    /// overwriting each other's stamps.
     pub fn seen(&self) -> Seen {
         Seen::load(self.config_dir())
     }
@@ -79,13 +67,9 @@ impl Notebook {
         Ok(found)
     }
 
-    /// Drops index entries for notes that are no longer on disk, and answers
-    /// how many went.
-    ///
-    /// The named callers above keep the index in step with what the APP does;
-    /// this is what keeps it in step with what a text editor, a sync tool or
-    /// an older build did. Nothing is rewritten when nothing is stale, so a
-    /// notebook that is only ever touched through the app never pays for it.
+    /// Drops index entries for notes no longer on disk, and answers how many
+    /// went: keeps the index in step with what a text editor, a sync tool or
+    /// an older build did. Nothing is rewritten when nothing is stale.
     pub fn prune_seen(&self) -> Result<usize> {
         self.ensure_writable()?;
         let mut seen = self.seen();

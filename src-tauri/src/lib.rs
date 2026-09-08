@@ -19,21 +19,16 @@ pub const APP_ICON_NAME: &str = "jott";
 
 use state::AppState;
 
-/// Applies the app's configuration to a builder.
-///
-/// Split out so the integration tests drive the *same* set of commands the
-/// real app registers — a command that exists only in production is a
-/// command nothing tests.
+/// Applies the app's configuration to a builder. Split out so the integration
+/// tests drive the SAME set of commands the real app registers.
 pub fn configure<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builder<R> {
     builder
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_notification::init())
         .manage(AppState::default())
-        // A window that closes takes its notebook — and the watcher THREAD
-        // watching it — with it (2026-08-24). Without this the state map only
-        // ever grows, and every window the user ever opened leaves a thread
-        // polling a folder nobody is looking at.
+        // A closed window takes its notebook and its watcher THREAD with it;
+        // otherwise the map only grows, one polling thread per window ever opened.
         .on_window_event(|window, event| {
             use tauri::Manager;
             match event {
@@ -80,7 +75,7 @@ pub fn configure<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builde
             commands::spaces::set_space_sort,
             commands::spaces::set_space_note_layout,
             commands::spaces::set_space_order,
-            // groups (reestruturação 2026-07-30)
+            // groups
             commands::spaces::groups,
             commands::spaces::create_group,
             commands::spaces::rename_group,
@@ -109,7 +104,7 @@ pub fn configure<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builde
             commands::notebook::open_notebook,
             commands::notebook::current_notebook,
             commands::notebook::last_notebook,
-            // the picker (2026-08-24)
+            // the picker
             commands::notebook::recent_notebooks,
             commands::notebook::forget_notebook,
             commands::notebook::rename_notebook,
@@ -131,7 +126,7 @@ pub fn configure<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builde
             commands::settings::remember_panel_width,
             commands::settings::zoom,
             commands::settings::remember_zoom,
-            // update (2026-08-19)
+            // update
             commands::update::app_version,
             commands::update::check_for_update,
             commands::update::auto_update_check,
@@ -184,7 +179,7 @@ pub fn configure<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builde
             commands::notes::create_note_folder,
             commands::notes::rename_note_folder,
             commands::notes::delete_note_folder,
-            // assets (the notebook's image library, 2026-08-18)
+            // assets (the notebook's image library)
             commands::assets::assets,
             commands::assets::import_asset,
             commands::assets::import_asset_from_path,
@@ -195,7 +190,7 @@ pub fn configure<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builde
             commands::assets::open_asset,
             commands::assets::file_icon,
             commands::assets::asset_usage,
-            // the day, and the days ahead (2026-09-04)
+            // the day, and the days ahead
             commands::day::day_tasks,
             commands::day::grouped_suggestions,
             commands::day::day_clock,
@@ -203,7 +198,7 @@ pub fn configure<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builde
             commands::day::remove_from_day,
             commands::day::refresh_day,
             commands::tasks::all_tasks,
-            // reminders (2026-08-25)
+            // reminders
             commands::reminders::reminders,
             commands::reminders::reminded_until,
             commands::reminders::remember_reminded_until,
@@ -216,31 +211,23 @@ pub fn configure<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builde
         ])
 }
 
-/// Starts the app.
-///
-/// On desktop `main.rs` calls this. On mobile there is no `main`: Android
-/// loads this crate as a shared library and calls in through a symbol the
-/// `mobile_entry_point` macro exports. Without the attribute the library
-/// builds perfectly and then fails to be assembled into an APK with "does not
-/// include required runtime symbols" — the code is fine, nothing is there to
-/// call it.
+/// Starts the app. On desktop `main.rs` calls this; on Android the crate is a
+/// shared library called through the symbol `mobile_entry_point` exports —
+/// without the attribute the APK fails to assemble ("does not include
+/// required runtime symbols"). See docs/platform-gotchas.md#android
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let builder = configure(tauri::Builder::default());
-    // In-place updates only exist where the installed file can replace
-    // itself (the AppImage, the Windows build); the plugins are not even
-    // compiled on mobile — see Cargo.toml. Registered here and not in
-    // `configure` because the updater reads its pubkey and endpoint from
-    // tauri.conf.json, which the tests' mock context does not carry — there
-    // the registration itself would fail, taking every test with it.
-    // `process` is what relaunches the app after an update installs.
+    // Only where the installed file can replace itself; the plugins are not
+    // compiled on mobile (Cargo.toml). Registered here and NOT in `configure`:
+    // the updater reads its pubkey and endpoint from tauri.conf.json, which the
+    // tests' mock context lacks. `process` relaunches the app after an update.
     #[cfg(desktop)]
     let builder = builder
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
-        // Started by the session, the app comes up in the tray and not on
-        // the screen: `--hidden` is what the autostart entry passes, and the
-        // setup below honours it.
+        // `--hidden` is what the autostart entry passes: the app comes up in
+        // the tray, not on screen (the setup below honours it).
         .plugin(tauri_plugin_autostart::init(
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             Some(vec!["--hidden"]),

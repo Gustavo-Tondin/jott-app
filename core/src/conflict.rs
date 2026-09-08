@@ -1,13 +1,6 @@
-//! Sync conflicts left behind by Syncthing.
-//!
-//! When two devices edit the same file before syncing, Syncthing does not
-//! merge: it keeps one version and drops the other next to it, named
-//! `Inbox.sync-conflict-20260720-143000-K3F7NLM.md`.
-//!
-//! Until now the app ignored those files, which meant two bad things at once:
-//! the user only found out by opening the folder, and the leftover file showed
-//! up in the app as a list named `Inbox.sync-conflict-...`.
-//!
+//! Sync conflicts left behind by Syncthing. Two devices editing one file
+//! before syncing leave a copy named
+//! `Inbox.sync-conflict-20260720-143000-K3F7NLM.md` beside the original.
 //! Scope on purpose: **detect and report**. Comparing or merging the two
 //! versions is a separate problem, and guessing wrong there loses work.
 
@@ -29,15 +22,13 @@ pub struct Conflict {
     /// The file it conflicts with, if that file still exists.
     pub original: Option<PathBuf>,
     /// The copy's address, root-relative with `/` — what the interface hands
-    /// back to `folder_of` to reveal it (2026-08-24). `describe` does not
-    /// know the root; `Notebook::conflicts` fills it in.
+    /// back to `folder_of` to reveal it. `describe` does not know the root;
+    /// `Notebook::conflicts` fills it in.
     pub relative: Option<String>,
 }
 
-/// True when the file name looks like something a sync tool left behind.
-///
-/// Used to keep these files out of the list of lists — a conflict copy is not
-/// a list the user created.
+/// True when the file name is a sync-conflict copy — kept out of the list
+/// of lists, because it is not a list the user created.
 pub fn is_conflict_file(path: &Path) -> bool {
     crate::fsio::file_name_of(path).contains(MARKER)
 }

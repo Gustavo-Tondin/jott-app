@@ -1,26 +1,8 @@
 //! The plan — `.jott/plan.json`: tasks chosen for days that have not come.
-//!
-//! The calendar on the Home (2026-09-04) lets any day ahead be planned, and
-//! this is where those choices live. Like the day's state it holds
-//! **references** (list + id), never task text; unlike it, it holds them for
-//! many days at once, keyed by the day, each day in the order the user
-//! dragged.
-//!
-//! Nothing here reads the clock. When a planned day arrives, `Notebook::
-//! open_state` moves that day's references into the day's state — and a day
-//! that went by while the app was closed is moved the same way, into today:
-//! a task planned for a day that passed is still a task the user meant to
-//! face, and the only place left to face it is now.
-//!
-//! On disk:
-//!
-//! ```json
-//! { "days": { "2026-09-05": [ { "path": "jott.tasks/task-list.md", "id": "a1b2c3" } ] } }
-//! ```
-//!
-//! A day with nothing planned is not written. A missing or corrupt file reads
-//! as an empty plan, for the reason the day's state does: the plan is a
-//! convenience, and losing it must never block opening the notebook.
+//! References (list + id), never text, keyed by day, each day in the order
+//! the user dragged; a day with nothing planned is not written. Nothing here
+//! reads the clock: `Notebook::open_state` calls `take_due`, which also pours
+//! a day that went by while the app was closed into today.
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};

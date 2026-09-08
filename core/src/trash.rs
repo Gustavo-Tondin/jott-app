@@ -1,17 +1,8 @@
-//! The notebook's own trash, in `.jott/trash/` (reestruturação 2026-07-30).
-//!
-//! Deleting never destroys (principle 4): a note, list, space, group — or a
-//! single task line — is *moved* here, with a record of where it
-//! came from, so the user can bring it back (Ctrl+Z, or the Trash screen) until
-//! a retention window (default 30 days) elapses and the reaper clears it.
-//!
-//! This replaces the OS trash the app used before, which (a) does not exist on
-//! Android and (b) does not travel with a synced notebook. The trash living
-//! inside `.jott/` is portable and syncs with everything else.
-//!
-//! Everything here is pure with respect to the clock: `today` is passed in, so
-//! the deletion stamp and the reaper are testable. [`crate::notebook`] supplies
-//! it via [`crate::clock::civil_today`].
+//! The notebook's own trash, in `.jott/trash/`. Deleting never destroys: a
+//! note, list, space, group or a single task line is *moved* here with a
+//! record of where it came from, until the retention window elapses and
+//! `reap` clears it. Pure with respect to the clock: `today` is passed in
+//! ([`crate::notebook`] supplies it via [`crate::clock::civil_today`]).
 
 use std::path::{Path, PathBuf};
 
@@ -159,9 +150,7 @@ impl Trash {
     /// Permanently removes every entry whose retention window has elapsed.
     /// `retention_days` is the countdown length; `today` the current civil day.
     pub fn reap(&mut self, retention_days: i64, today: NaiveDate) -> Result<()> {
-        // One pass: split off the expired entries, delete their stored files,
-        // keep the rest. `is_expired` used to run twice over the whole index,
-        // with a full clone of every expired entry in between.
+        // One pass: split off the expired, delete their stored files, keep the rest.
         let (expired, kept): (Vec<TrashEntry>, Vec<TrashEntry>) = std::mem::take(&mut self.entries)
             .into_iter()
             .partition(|e| is_expired(e, retention_days, today));

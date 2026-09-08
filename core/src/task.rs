@@ -1,24 +1,8 @@
 //! The task: model, parser and writer.
 //!
-//! Format spec: `docs/project-strategy.md`, section 3.2. The rule that
-//! organises everything:
-//!
-//! > What the user writes stays visible. What the app controls goes in the
-//! > hidden comment.
-//!
-//! A task can span several lines:
-//!
-//! ```text
-//! - [ ] Comprar material da obra <!--id:g7h8i9-->
-//!   @2026-07-25 #casa #urgent !2
-//!   Falar com o Jorge antes, ele tem desconto.
-//!   repeat: every-week
-//!   - [ ] Cimento
-//! ```
-//!
-//! Everything indented under a task belongs to it. Which kind of line it is
-//! gets decided by shape, never by position, because the file is written by
-//! humans in whatever order they like.
+//! What the user writes stays visible; what the app controls goes in the
+//! trailing `<!--…-->` comment. Every indented line under a task belongs to
+//! it, and its kind is decided by shape, never by position.
 
 use chrono::{NaiveDate, NaiveDateTime};
 use serde::{Deserialize, Serialize};
@@ -108,23 +92,9 @@ pub struct Subtask {
     pub done: bool,
 }
 
-/// A file attached to a task.
-///
-/// On disk it is a plain Markdown link on a line of its own under the task
-/// (spec 3.2, 2026-08-18):
-///
-/// ```markdown
-/// - [ ] Enviar proposta <!--id:g7h8i9-->
-///   @2026-07-25 #cliente
-///   [nota-fiscal.pdf](assets/nota-fiscal.pdf)
-///   Falar com o Jorge antes.
-/// ```
-///
-/// Visible, and not a field in the hidden comment (user call): a link renders
-/// and is clickable in any Markdown editor, which is the same reason a note
-/// writes `![](assets/x.png)` for its images. The `label` is what the link
-/// shows — the file's name when the app writes it, whatever someone typed when
-/// they wrote it by hand, and either way it survives the rewrite.
+/// A file attached to a task: a plain Markdown link on a line of its own
+/// under the task, visible (never a hidden field) so it is clickable in any
+/// Markdown editor. `label` is what the link shows and survives the rewrite.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Attachment {
@@ -148,12 +118,9 @@ impl Attachment {
 }
 
 /// The attachment line: nothing but links, and every one of them into the
-/// notebook's own library.
-///
-/// Both halves matter. "Nothing but links" is the same rule the metadata line
-/// keeps (a loose word makes it a description), and "into the library" is what
-/// stops `[a documentação](https://exemplo.com)` written in a description from
-/// silently becoming an attachment the app then cannot open.
+/// notebook's own library. A loose word makes it a description (same rule as
+/// the metadata line); a link to anywhere else must not silently become an
+/// attachment the app cannot open.
 fn parse_attachments(line: &str) -> Option<Vec<Attachment>> {
     let mut found = Vec::new();
     let mut rest = line.trim();
@@ -185,29 +152,26 @@ pub struct Task {
     /// List the task came from. Only meaningful in the completed list, where
     /// it powers the undo.
     pub origin: Option<String>,
-    /// Date the task was written (stamped by the app on creation since
-    /// 2026-08-04 — the by-creation ordering reads it). Doubles as the
-    /// recurrence anchor when a repeating task has no due date.
+    /// Date the task was written, stamped by the app on creation — the
+    /// by-creation ordering reads it. Doubles as the recurrence anchor when a
+    /// repeating task has no due date.
     pub created: Option<NaiveDate>,
     /// Date the task was completed. Stamped on completion, cleared on undo —
     /// the by-completion ordering reads it.
     pub completed: Option<NaiveDate>,
     /// Id of the next occurrence this repeating task generated when it was
-    /// completed. The chain's memory: re-completing after an undo asks "does
-    /// that occurrence still exist?" instead of generating it again — which
-    /// used to duplicate the chain on every complete/undo cycle (2026-08-05).
+    /// completed. Re-completing after an undo asks "does that occurrence
+    /// still exist?" instead of generating it again — or the chain duplicates.
     pub spawned: Option<String>,
-    /// Kept at the top of its list by hand (the card's bookmark, 2026-08-05).
-    /// A hidden field rather than a tag: pinning is filing, not a label, and a
-    /// `#pinned` tag would show up as a coloured pill and in the tag manager.
-    /// A tag typed by hand still counts — see [`Task::is_pinned`].
+    /// Kept at the top of its list by hand. A hidden field rather than a tag:
+    /// a `#pinned` tag would show up as a coloured pill and in the tag
+    /// manager. A tag typed by hand still counts — see [`Task::is_pinned`].
     pub pinned: bool,
     pub due: Option<NaiveDate>,
-    /// When to remind about the task, as a wall-clock moment in the local
-    /// time zone (`remind: 2026-07-25T09:00`). Independent of `due`: a task
-    /// with no date can still ring, and a dated task rings only if asked —
-    /// the automatic reminder for dated tasks is a notebook setting and is
-    /// never written here.
+    /// When to remind, as a local wall-clock moment (`remind: 2026-07-25T09:00`).
+    /// Independent of `due`: an undated task can still ring, and a dated one
+    /// rings only if asked — the automatic reminder for dated tasks is a
+    /// notebook setting and is never written here.
     pub remind: Option<NaiveDateTime>,
     /// 1 (highest) to 3 (lowest).
     pub priority: Option<u8>,
@@ -224,15 +188,10 @@ pub struct Task {
     /// Metadata written by an older version of the app. Preserved verbatim so
     /// upgrading and downgrading does not destroy data.
     pub meta: Option<serde_json::Value>,
-    /// How old the task is — DERIVED, and the one field here that is not in
-    /// the file (2026-08-28). Nothing in a `.md` says how old a line is; the
-    /// notebook works it out from `created` as it hands the task out
-    /// (`crate::age`), so the card and the panel draw the same number as the
-    /// sort and, later, the sweep.
-    ///
-    /// `None` on a task nobody stamped — a parse, a write path, a test. It is
-    /// never read back in (`skip_deserializing`) and never rendered, so a
-    /// round trip through the file cannot invent one.
+    /// How old the task is — DERIVED from `created` by the notebook as it hands
+    /// the task out (`crate::age`), never in the file. `None` on a task nobody
+    /// stamped. Never read back in (`skip_deserializing`) and never rendered,
+    /// so a round trip through the file cannot invent one.
     #[serde(skip_deserializing, default)]
     pub age: Option<crate::age::Age>,
 }
@@ -450,11 +409,8 @@ struct Metadata {
 impl Metadata {
     /// Parses a line made **only** of metadata tokens. Any loose word makes it
     /// description instead — that is what lets a description start with `#`.
-    ///
-    /// The chain reads as the rule it implements: a token is a date, a tag, a
-    /// priority, or the line is not metadata. Clippy would fold the last arm
-    /// into a `?`, which hides the "or else this is not metadata" behind an
-    /// operator — the one thing this function exists to say.
+    /// The last `else` arm stays explicit (not folded into `?`, hence the
+    /// clippy allow): "or else this is not metadata" is the rule itself.
     #[allow(clippy::question_mark)]
     fn parse(line: &str) -> Option<Self> {
         let mut metadata = Self::default();
@@ -510,14 +466,9 @@ fn parse_field(body: &str) -> Option<(&str, &str)> {
 }
 
 /// Normalises a tag into a single `#`-less token, or `None` when nothing is
-/// left.
-///
-/// This is a **format rule, so it lives in the core**: a tag containing a
-/// space renders as `#casa nova`, the loose word stops the metadata line from
-/// being all-tokens, and on the next read the whole line silently degrades to
-/// description — taking the date and the priority down with it. Every writer
-/// (the app today, another frontend tomorrow) has to go through this; a UI
-/// may still clean tags earlier for nicer feedback, but the core is the wall.
+/// left. A format rule, so it lives in the core: a tag with a space renders
+/// as `#casa nova`, the loose word un-tokens the metadata line, and on the
+/// next read the whole line degrades to description, date and priority too.
 pub fn normalize_tag(text: &str) -> Option<String> {
     let cleaned = text
         .trim()
@@ -528,11 +479,9 @@ pub fn normalize_tag(text: &str) -> Option<String> {
     (!cleaned.is_empty()).then_some(cleaned)
 }
 
-/// Collapses a would-be single line into one: newlines become spaces.
-///
-/// A task name or subtask with a `\n` inside would render as two lines and
-/// re-read as something else entirely — same family of silent corruption as
-/// the spaced tag.
+/// Collapses a would-be single line into one: newlines become spaces. A `\n`
+/// inside a task name would render as two lines and re-read as something
+/// else — the same silent corruption as the spaced tag.
 pub fn single_line(text: &str) -> String {
     text.split_whitespace().collect::<Vec<_>>().join(" ")
 }
@@ -571,13 +520,10 @@ pub fn render_datetime(at: NaiveDateTime) -> String {
     at.format(DATETIME_FORMAT).to_string()
 }
 
-/// The editable fields of a task, all optional.
-///
-/// Absent means "leave alone"; present-but-null means "clear". Without that
-/// distinction there would be no way to remove a due date. Lives in the core
-/// (moved from the bridge, 2026-08-19): every rule below is a decision about
-/// the task format, and a second frontend would otherwise have to reinvent
-/// each one.
+/// The editable fields of a task, all optional. Absent means "leave alone";
+/// present-but-null means "clear" — without that distinction there would be
+/// no way to remove a due date. Lives in the core: every rule in `apply_to`
+/// is a decision about the task format.
 #[derive(Debug, Default, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
 pub struct TaskFields {
@@ -691,14 +637,10 @@ fn split_trailing_comment(body: &str) -> (&str, Option<String>) {
     (&trimmed[..open_at], Some(inner))
 }
 
-/// Wraps a comment value in quotes when it contains whitespace.
-///
-/// `origin:Meu Mercado` used to be read back as `Meu` — the reader stops at
-/// whitespace — so undoing a completed task **created a new list** with the
-/// truncated name. Spaced list names are a documented case (`Projeto Y.md` is
-/// the example in the spec), and phase 7 turns every origin into a relative
-/// path, where spaces are the norm. Quoting only when needed keeps every file
-/// already on disk byte-identical.
+/// Wraps a comment value in quotes when it contains whitespace: the reader
+/// stops at whitespace, so an unquoted `origin:Meu Mercado` reads back as
+/// `Meu`. Quoting only when needed keeps every file already on disk
+/// byte-identical.
 fn quote_if_spaced(value: &str) -> String {
     if value.chars().any(char::is_whitespace) {
         format!("\"{value}\"")

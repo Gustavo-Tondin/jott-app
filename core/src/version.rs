@@ -1,21 +1,12 @@
-//! Comparing the running app's version against a published one.
-//!
-//! The update check downloads a manifest that names the latest released
-//! version; this module answers the only two questions the app asks about it —
-//! which version it names, and whether that is newer than me. It lives in the
-//! core so both rules are testable without a network and shared by any
-//! frontend; fetching the bytes is the bridge's.
+//! Comparing the running app's version against a published one: which
+//! version the manifest names, and whether that is newer than me. In the core
+//! so both rules are testable without a network; fetching is the bridge's.
 
 use crate::error::{Error, Result};
 
-/// The version a release manifest names.
-///
-/// The manifest is `latest.json`, written by the release pipeline next to the
-/// installers, and it carries a good deal more than this — the download URLs
-/// and the signature the updater plugin verifies. This reads the ONE field the
-/// notice needs, and refuses anything else: a manifest that is not JSON, or
-/// that names no version, is not an update, and answering "" would be read as
-/// one version too many.
+/// The version a release manifest (`latest.json`) names. Reads the ONE field
+/// the notice needs and refuses the rest: a manifest that is not JSON, or that
+/// names no version, is not an update, and "" would read as one version too many.
 pub fn from_manifest(text: &str) -> Result<String> {
     let manifest: serde_json::Value = serde_json::from_str(text)
         .map_err(|e| Error::InvalidManifest(format!("that manifest is not JSON: {e}")))?;
@@ -26,13 +17,10 @@ pub fn from_manifest(text: &str) -> Result<String> {
         .ok_or_else(|| Error::InvalidManifest("that manifest names no version".to_string()))
 }
 
-/// Whether `candidate` names a strictly newer version than `current`.
-///
-/// Tolerant on purpose: a leading `v` is accepted (tags are written
-/// `v0.20.0`), and anything after a `-` or `+` is ignored — the app never
-/// publishes pre-releases, so `0.20.0-rc1` counting as `0.20.0` is fine.
-/// A version that cannot be parsed is never "newer": a broken manifest must
-/// not nag the user with a phantom update.
+/// Whether `candidate` names a strictly newer version than `current`. A
+/// leading `v` is accepted (tags are `v0.20.0`); anything after `-`/`+` is
+/// ignored (no pre-releases are published). Unparseable is never "newer":
+/// a broken manifest must not nag the user with a phantom update.
 pub fn is_newer(candidate: &str, current: &str) -> bool {
     match (parse(candidate), parse(current)) {
         (Some(new), Some(old)) => new > old,

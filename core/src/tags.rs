@@ -1,15 +1,8 @@
-//! The user's tag catalogue, in `.jott/tags.json` (reestruturação
-//! 2026-07-30).
-//!
-//! A tag on a task is just `#word` text in the file — the app never needs this
-//! catalogue to *read* a task. What lives here is the **vocabulary**: the
-//! names the picker offers, so a tag is spelled the same way every time. Until
-//! 2026-08-26 it also held a colour per tag; the colour grammar took that away
-//! (a tag is a subject — the one colour a card wears is its space's), and the
-//! interface no longer offers it. The field is still read and written back
-//! for a notebook that has it, under the same tolerant covenant as the other
-//! config files: a missing or malformed file falls back to empty, and an
-//! unknown key survives a rewrite.
+//! The user's tag catalogue, in `.jott/tags.json`: the **vocabulary** the
+//! picker offers, so a tag is spelled the same way every time. A tag on a
+//! task is just `#word` text — reading a task never needs this file. Same
+//! covenant as the other config files: missing or malformed reads as empty,
+//! and an unknown key survives a rewrite.
 
 use std::path::Path;
 
@@ -26,16 +19,14 @@ const SUPPORTED_TAGS_SCHEMA: u64 = 1;
 #[derive(Debug, Clone, PartialEq)]
 pub struct Tag {
     pub name: String,
-    /// A palette NAME (`"orange"`), kept for notebooks written before
-    /// 2026-08-26 and round-tripped; the interface neither shows nor offers
-    /// it any more. `None` for none.
+    /// A palette NAME (`"orange"`), read and written back for notebooks that
+    /// have it; the interface no longer shows or offers it.
     pub color: Option<String>,
 }
 
-/// How often a tag is used across the notebook's tasks, catalogued or not
-/// (Tags screen, 2026-08-24). `count` is tasks, open and completed alike:
-/// the question the screen answers is "is this word still in use?", and a
-/// tag that only survives in `completed.md` is still a word someone typed.
+/// How often a tag is used across the notebook's tasks, catalogued or not.
+/// `count` is tasks open and completed alike: a tag that only survives in
+/// `completed.md` is still a word someone typed.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TagUsage {

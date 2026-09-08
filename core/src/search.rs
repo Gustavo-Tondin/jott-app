@@ -1,22 +1,7 @@
 //! Searching the whole notebook — every tasks list and every notes folder in
-//! one answer.
-//!
-//! Notes could already be searched one folder at a time
-//! ([`crate::notefolder::NoteFolder::search`]); this is the notebook-wide
-//! question the user actually asks, and the only one that also covers tasks.
-//!
-//! Three rules shape it:
-//!
-//! * **Searching never writes.** It reads lists through `open_list`, not
-//!   `tasks_in` — the latter repairs duplicated ids and saves, and a search box
-//!   must never rewrite a file just by being typed into.
-//! * **An empty query finds nothing.** Per-folder search answers "everything"
-//!   for an empty query because it backs a browsing screen; a notebook-wide
-//!   search box that answered the whole notebook would just be a slow way to
-//!   show a list the user already has.
-//! * **Tasks and notes stay apart.** They are two answers, not one ranked
-//!   list: a single ordering would let a hundred matching tasks bury every
-//!   note, and the screen shows them in separate sections anyway.
+//! one answer. Searching never writes (lists go through `open_list`, never
+//! `tasks_in`, which repairs ids and saves). An empty query finds nothing.
+//! Tasks and notes stay two answers, never one ranked list.
 
 use serde::Serialize;
 
@@ -96,10 +81,8 @@ pub fn contains(text: &str, needle: &str) -> bool {
 }
 
 /// A window of `text` around the first occurrence of `needle`, with an ellipsis
-/// on whichever side was cut. Empty when the needle is not in there.
-///
-/// Cuts on character boundaries, never bytes: a notebook is written by hand, in
-/// Portuguese here, and slicing "não" mid-character would panic.
+/// on whichever side was cut. Empty when the needle is not in there. Cuts on
+/// character boundaries, never bytes: slicing "não" mid-character would panic.
 pub fn snippet_around(text: &str, needle: &str) -> String {
     let lowered = text.to_lowercase();
     let Some(byte_at) = lowered.find(needle) else {
@@ -127,11 +110,8 @@ pub fn snippet_around(text: &str, needle: &str) -> String {
 }
 
 /// Where a task matches, if it does: `Some("")` when the match is in the text
-/// the card already shows, `Some(snippet)` when it is in something the card
-/// does not show and the result has to prove it found.
-///
-/// Tags are searched with and without the `#`, because that is how people type
-/// them into a search box.
+/// the card already shows, `Some(snippet)` when it is somewhere the card does
+/// not show. Tags are searched with and without the `#`.
 pub fn task_match(task: &crate::task::Task, needle: &str) -> Option<String> {
     if contains(&task.text, needle) {
         return Some(String::new());

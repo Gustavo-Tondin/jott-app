@@ -1,13 +1,7 @@
-//! When a repeating task comes back.
-//!
-//! Two decisions from `docs/project-strategy.md` 3.2 shape everything here:
-//!
-//! - **The next date is anchored on the original date, never on when the task
-//!   was completed.** A monthly task due on the 1st, finished on the 10th,
-//!   comes back on the 1st — not the 10th. Paying rent should not drift later
-//!   every month just because you paid late once.
-//! - **Completing a repeating task writes a new line.** No scheduler, no
-//!   background state: the file stays the whole truth.
+//! When a repeating task comes back. The next date is anchored on the
+//! original date, never on when the task was completed (rent paid late once
+//! must not drift), and completing a repeating task writes a new line — no
+//! scheduler, the file stays the whole truth.
 
 use chrono::{Datelike, Duration, NaiveDate};
 
@@ -24,11 +18,8 @@ fn next_occurrence(repeat: Repeat, from: NaiveDate) -> Option<NaiveDate> {
     }
 }
 
-/// Adds whole months, clamping to the end of the target month.
-///
-/// The 31st has no counterpart in most months. Falling back to the last day
-/// keeps a "last day of the month" task on the last day, which is what someone
-/// who wrote 31 meant.
+/// Adds whole months, clamping to the end of the target month: someone who
+/// wrote 31 meant "the last day".
 fn add_months(date: NaiveDate, months: u32) -> Option<NaiveDate> {
     let zero_based = date.month0() + months;
     let year = date.year() + (zero_based / 12) as i32;
@@ -49,17 +40,10 @@ fn days_in_month(year: i32, month: u32) -> u32 {
     (first_of_next - Duration::days(1)).day()
 }
 
-/// Builds the next occurrence of a task that was just completed.
-///
-/// Returns `None` when the task does not repeat, or when it has no date to
-/// anchor on — a repeating task with neither `@date` nor `created` cannot say
-/// when it comes back, and inventing an anchor would be worse than doing
-/// nothing.
-///
-/// The new task is deliberately a *fresh* one: no id (it has never been
-/// referenced), not done, and no origin. Everything the user wrote — text,
-/// tags, priority, description, subtasks — comes along, with the subtasks
-/// unchecked again, because next month's chore starts from zero.
+/// Builds the next occurrence of a task that was just completed. `None` when
+/// it does not repeat or has no `@date`/`created` to anchor on — inventing an
+/// anchor would be worse than nothing. The new task is FRESH: no id, not done,
+/// no origin, subtasks unchecked; everything the user wrote comes along.
 pub fn respawn(task: &Task) -> Option<Task> {
     let repeat = task.repeat?;
     let anchor = task.due.or(task.created)?;

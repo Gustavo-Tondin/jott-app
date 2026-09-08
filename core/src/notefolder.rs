@@ -1,10 +1,8 @@
-//! A folder of notes — what a `notes` space owns.
-//!
-//! The counterpart of [`crate::folder::TaskFolder`], and deliberately not a
-//! generalisation of it: notes are whole documents in a free folder tree,
-//! lists are lines with state in a flat folder. Sharing a type would be the
-//! wrong abstraction (spec 5 — separate worlds); sharing the *infrastructure*
-//! — atomic writes, safe paths, the watcher — is the right one.
+//! A folder of notes — what a `notes` space owns. The counterpart of
+//! [`crate::folder::TaskFolder`], and deliberately not a generalisation of
+//! it: notes are whole documents in a free folder tree, lists are lines with
+//! state in a flat folder. Shared infrastructure (atomic writes, safe paths,
+//! the watcher), never a shared type.
 
 use std::path::{Path, PathBuf};
 
@@ -106,11 +104,9 @@ impl NoteFolder {
         Ok(found)
     }
 
-    /// Every note in the subtree, ready to list.
-    ///
-    /// Sorted the way a board reads: pinned first, then newest, then by
-    /// title. Reading **never writes** — a folder browsed is a folder
-    /// untouched, which is why `created` is adopted on save and not here.
+    /// Every note in the subtree, ready to list: pinned first, then newest,
+    /// then by title. Reading **never writes** — which is why `created` is
+    /// adopted on save and not here.
     pub fn notes(&self) -> Result<Vec<NoteEntry>> {
         let mut found: Vec<NoteEntry> = Vec::new();
         self.walk(&self.dir, &mut |path, relative| {
@@ -148,12 +144,9 @@ impl NoteFolder {
         Ok(found)
     }
 
-    /// How many notes live under `relative`, without reading a single one.
-    ///
-    /// The picker asks this of every notebook it lists
-    /// (`Notebook::summarize`), and `notes()` above answers by PARSING each
-    /// file on disk — the right price for a board that draws previews, and
-    /// the wrong one for a number on a card.
+    /// How many notes live under `relative`, without reading a single one —
+    /// the picker asks this of every notebook it lists (`Notebook::summarize`),
+    /// and `notes()` parses every file, the wrong price for a number on a card.
     pub fn count(&self, relative: &str) -> Result<usize> {
         let dir = self.folder_path(relative)?;
         let mut found = 0;
@@ -166,12 +159,9 @@ impl NoteFolder {
         Ok(found)
     }
 
-    /// Every note's address, without reading a single one.
-    ///
-    /// Between [`NoteFolder::notes`] and [`NoteFolder::count`]: the walk that
-    /// answers *which* notes exist, for the parts of the app that key on the
-    /// address alone (the "last seen" index, `crate::seen`) and would pay for
-    /// a parse of every file to learn nothing they use.
+    /// Every note's address, without reading a single one — for the parts of
+    /// the app that key on the address alone (the "last seen" index,
+    /// `crate::seen`) and would parse every file to learn nothing they use.
     pub fn note_paths(&self) -> Result<Vec<String>> {
         let mut found = Vec::new();
         self.walk(&self.dir, &mut |path, relative| {
@@ -206,13 +196,10 @@ impl NoteFolder {
         Ok(found)
     }
 
-    /// Notes created on `date` — what the Home screen shows.
-    ///
-    /// The Home has **no notes of its own** (spec 5): it is a view of the
-    /// inbox filtered by `created`, so nothing is ever moved on the turn of
-    /// the day. A note written by hand outside the app has no `created` and
-    /// therefore never shows up here — correct, since the app has no idea
-    /// when it was written and inventing a date would be worse.
+    /// Notes created on `date` — what the Home screen shows. The Home has no
+    /// notes of its own: it is a view filtered by `created`, so nothing moves
+    /// on the turn of the day. A note with no `created` (written outside the
+    /// app) never shows up here — inventing a date would be worse.
     pub fn created_on(&self, date: NaiveDate) -> Result<Vec<NoteEntry>> {
         Ok(self
             .notes()?
@@ -221,12 +208,8 @@ impl NoteFolder {
             .collect())
     }
 
-    /// Every note of the Inbox, whatever day it was written.
-    ///
-    /// The Home's other mode (user call, 2026-08-24): with
-    /// `homeShowsAllInboxNotes` on, the day's view widens to the whole Inbox
-    /// — the workflow where captures pile up there and the Home is where
-    /// they are read back. Still a VIEW: nothing is moved or written.
+    /// Every note of the Inbox, whatever day it was written — the Home's other
+    /// mode (`homeShowsAllInboxNotes`). Still a VIEW: nothing is moved or written.
     pub fn inbox_notes(&self) -> Result<Vec<NoteEntry>> {
         Ok(self
             .notes()?
@@ -291,12 +274,10 @@ impl NoteFolder {
         Ok(relative)
     }
 
-    // Deleting a note is **not** here on purpose. It goes through
-    // `Notebook::delete_note`, which files the note in the notebook's own
-    // trash (`.jott/trash/`) with a record of where it came from, so it can be
-    // restored. A `NoteFolder::delete` that reached the OS trash lived here
-    // until 2026-08-04: a second way out, with no restore, that Android does
-    // not have and a synced notebook cannot carry.
+    // Deleting a note is **not** here on purpose: `Notebook::delete_note`
+    // files it in `.jott/trash/` with a record of where it came from, so it
+    // can be restored. A door to the OS trash would be a second way out with
+    // no restore, one Android does not have and a synced notebook cannot carry.
 
     /// Renames a note inside its folder, returning the new address.
     pub fn rename(&self, relative: &str, title: &str) -> Result<String> {
@@ -343,14 +324,10 @@ impl NoteFolder {
         Ok(target_relative)
     }
 
-    /// Copies a note beside itself, returning the new address.
-    ///
-    /// The file is copied VERBATIM — frontmatter, banner and body. A duplicate
-    /// of a note is that note, including the day it says it was written on:
-    /// stamping today's date on it would make the copy claim to be something
-    /// it is not, and the one thing that has to differ (the name, which is the
-    /// title) is decided by `free_name` the same way every other collision in
-    /// the app is.
+    /// Copies a note beside itself, returning the new address. The file is
+    /// copied VERBATIM — frontmatter, banner and body: a duplicate claims the
+    /// day the original was written on, not today. Only the name differs,
+    /// decided by `free_name` like every other collision.
     pub fn duplicate(&self, relative: &str) -> Result<String> {
         let source = self.note_path(relative)?;
         let (folder, title) = split_relative(relative);
@@ -361,20 +338,16 @@ impl NoteFolder {
         Ok(crate::relpath::relative_slash(&self.dir, &target))
     }
 
-    /// Sets — or clears, with `None` — the note's banner.
-    ///
-    /// Reads, changes the one line, writes: everything else in the file,
-    /// frontmatter and body alike, is exactly what it was. The same shape as
-    /// `set_pinned`, and for the same reason: the file is the user's.
+    /// Sets — or clears, with `None` — the note's banner. Reads, changes the
+    /// one line, writes: everything else in the file is exactly what it was.
     pub fn set_banner(&self, relative: &str, banner: Option<crate::note::Banner>) -> Result<()> {
         self.edit(relative, |note| note.banner = banner)
     }
 
-    /// Reads a note, lets `change` mutate it, writes it back — the body
-    /// behind every setter that edits one field of an existing note. `write`
-    /// is deliberately not one of them: it tolerates a missing file and
-    /// adopts a creation date, which is right when a person edits a note and
-    /// wrong for the app's own bookkeeping.
+    /// Reads a note, lets `change` mutate it, writes it back — behind every
+    /// setter that edits one field. `write` is deliberately not one of them:
+    /// it tolerates a missing file and adopts a creation date, right for a
+    /// person's edit and wrong for the app's own bookkeeping.
     fn edit(&self, relative: &str, change: impl FnOnce(&mut Note)) -> Result<()> {
         let path = self.note_path(relative)?;
         let text = std::fs::read_to_string(&path).ctx(&path)?;
@@ -385,11 +358,8 @@ impl NoteFolder {
 
     /// Writes a body and/or a banner in one pass, leaving alone whatever is
     /// `None` — for a rewrite that follows a renamed file into every note
-    /// that mentions it (2026-08-19).
-    ///
-    /// Not `write`: that one adopts a creation date, which is right when a
-    /// person edits a note and wrong when the app is only repointing a link.
-    /// A note the app touched on its own account should look untouched.
+    /// that mentions it. Not `write`: that one adopts a creation date, and a
+    /// note the app touched on its own account should look untouched.
     pub fn rewrite(
         &self,
         relative: &str,
@@ -448,12 +418,9 @@ impl NoteFolder {
         Ok(target_relative)
     }
 
-    /// Deletes a folder, **moving what was inside up to its parent**.
-    ///
-    /// Deleting a folder is a filing decision, not a decision to throw notes
-    /// away — the same rule `delete_list` follows on the tasks side
-    /// (principle 2: the data is the user's). Subfolders move up whole, so
-    /// the structure below survives too. Returns how many entries moved.
+    /// Deletes a folder, **moving what was inside up to its parent**: a
+    /// filing decision, not a decision to throw notes away (same rule as
+    /// `delete_list`). Subfolders move up whole. Returns how many moved.
     pub fn delete_folder(&self, relative: &str) -> Result<usize> {
         self.refuse_if_protected(relative)?;
         let dir = self.folder_path(relative)?;
