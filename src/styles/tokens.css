@@ -177,6 +177,11 @@
     /* The smallest thing a finger may be asked to hit: Android's 48dp, the
        stricter of the two platforms. A minimum hit AREA, not a drawn size. */
     --app-touch-min: 3rem; /* 48px */
+    /* The Home's +, the one loud thing on the screen: one size on both shells,
+       because the finger needs at least what the pointer gets. Read by the
+       corner that holds it (home.css) and by what keeps clear of it (the
+       floating undo, shell.css). */
+    --app-fab: 4.5rem; /* 72px */
 
     /* ---------------------------------------------------------------------
        SAFE AREAS — the strips the system bars own, each the larger of two

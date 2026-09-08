@@ -481,7 +481,7 @@
   .shell__toast {
     position: absolute;
     inset-block-end: var(--app-space-24);
-    inset-inline: var(--app-space-24) calc(4.5rem + var(--app-space-24) * 2);
+    inset-inline: var(--app-space-24) calc(var(--app-fab) + var(--app-space-24) * 2);
     display: flex;
     justify-content: center;
     /* Over the task composer (sticky at 5 on the desktop, fixed at 20 on a
@@ -614,11 +614,11 @@
     scroll-padding-block-end: var(--app-format-strip);
   }
   /* The canvas scrolls here, so the toast is fixed above the safe area, clear
-     of the + (4rem). */
+     of the + (`--app-fab`). */
   .shell--compact .shell__toast {
     position: fixed;
     inset-block-end: calc(var(--app-space-24) + var(--app-safe-bottom));
-    inset-inline: var(--app-space-16) calc(4rem + var(--app-space-24) * 2 + var(--app-safe-right));
+    inset-inline: var(--app-space-16) calc(var(--app-fab) + var(--app-space-24) * 2 + var(--app-safe-right));
   }
 
   .shell--compact .shell__content {

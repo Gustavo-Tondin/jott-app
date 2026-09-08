@@ -61,8 +61,8 @@
     inset-block-end: var(--app-space-24);
     inset-inline-end: var(--app-space-24);
     z-index: 4;
-    inline-size: 4.5rem;
-    block-size: 4.5rem;
+    inline-size: var(--app-fab);
+    block-size: var(--app-fab);
   }
   /* The + itself, and the Task/Note buttons it opens, are CaptureFab
      (capture-fab.css) — this is only where it sits and how big. */
@@ -76,12 +76,10 @@
     gap: var(--app-space-24);
   }
   /* Clear of the gesture bar; the canvas grows with the page on the phone,
-     so the corner has to be the viewport's. */
+     so the corner has to be the viewport's. The size is the token's. */
   .shell--compact .home-fab {
     position: fixed;
     inset-block-end: calc(var(--app-space-24) + var(--app-safe-bottom));
     inset-inline-end: calc(var(--app-space-24) + var(--app-safe-right));
-    inline-size: 4rem;
-    block-size: 4rem;
   }
 }
