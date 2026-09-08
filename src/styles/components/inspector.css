@@ -179,11 +179,16 @@
   }
 
   /* ---- fields: icon · label · value, each a surface card ---- */
+  /* A container, so the rows can answer to the PANEL's width and not the
+     window's: the same panel is a 176px column on a desktop and a full-width
+     sheet on a phone (components/sheet.css). */
   .inspector__fields {
     display: flex;
     flex-direction: column;
     gap: var(--app-space-4);
     padding-inline: var(--app-space-8);
+    container-type: inline-size;
+    container-name: inspector-fields;
   }
   .inspector__field {
     display: flex;
@@ -213,6 +218,39 @@
     align-items: center;
     gap: var(--app-space-8);
     min-width: 0;
+    /* The label yields to the control, never the other way round: a date
+       pill or a select that shrinks is a value that cannot be read, while a
+       word can wrap — and below the width where it would, it goes (the
+       container query at the end of the block). */
+    flex: 1 1 auto;
+  }
+  .inspector__field-value,
+  .inspector__stepper,
+  .inspector__field > .theme-select {
+    flex: 0 0 auto;
+  }
+  /* Narrow panel: the icon alone names the row (user call, 2026-09-08:
+     "quando diminui o suficiente podia ficar só os ícones"). The word is
+     not removed — it is what a screen reader and the row's tooltip still
+     read — only taken off the screen. The width is the one at which
+     "Complete date" and its date pill stop sharing a line (measured
+     2026-09-08: the word broke in two from a 254px panel down, and the
+     panel's default is 240) — 15rem of content is a 256px panel. */
+  .inspector__field-word {
+    min-width: 0;
+  }
+  @container inspector-fields (max-width: 15rem) {
+    .inspector__field-word {
+      position: absolute;
+      inline-size: 0.0625rem;
+      block-size: 0.0625rem;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+    .inspector__field-label {
+      flex: 0 0 auto;
+    }
   }
   /* The flag and its word in the level's status colour — the same three
      the card's marks and the composer's flag read. */
@@ -229,20 +267,6 @@
     display: inline-flex;
     align-items: center;
     gap: var(--app-space-4);
-  }
-  /* The one field that is read and not set: when the task was written. No
-     control inside it, so the value sits where a control would and reads as
-     text — the muted ink says "this is a fact about the task", not "this is
-     something to press". */
-  .inspector__field--reading .inspector__field-value {
-    color: var(--app-ink-muted);
-  }
-  .inspector__age {
-    font-variant-numeric: tabular-nums;
-  }
-  .inspector__age--forgotten {
-    color: var(--app-warning);
-    font-weight: var(--app-weight-semibold);
   }
   .inspector__reminder {
     flex-wrap: wrap;
@@ -315,6 +339,26 @@
   }
   .inspector__add-file:hover {
     color: var(--app-ink);
+  }
+
+  /* ---- when the task was written: a fact, over the foot ----
+     Off the cards on purpose (user call, 2026-09-08): everything in the
+     scroll is something to set, and this is the one thing about the task
+     that is only read. Under the scroll, pinned like the foot, in the faint
+     ink; the warning ink is the "forgotten" band, the same the card wears. */
+  .inspector__created {
+    display: flex;
+    align-items: center;
+    gap: var(--app-space-4);
+    flex-shrink: 0;
+    margin: 0;
+    padding: var(--app-space-4) var(--app-space-16) var(--app-space-8);
+    color: var(--app-ink-faint);
+    font-size: var(--app-text-12);
+    font-variant-numeric: tabular-nums;
+  }
+  .inspector__created--forgotten {
+    color: var(--app-warning);
   }
 
   /* ---- footer (the pane foot): origin · trash. Pinned at the bottom, always

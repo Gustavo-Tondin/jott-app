@@ -582,7 +582,7 @@
       <div class="inspector__field" class:inspector__field--unset={!draft.due}>
         <span class="inspector__field-label">
           <Icon name="calendar-blank" size="1rem" />
-          {S.completeDateLabel}
+          <span class="inspector__field-word">{S.completeDateLabel}</span>
         </span>
         <span class="inspector__field-value">
           <!-- Our own calendar, not the native picker: it closes on an outside
@@ -615,7 +615,7 @@
       <div class="inspector__field" class:inspector__field--unset={!draft.priority}>
         <span class="inspector__field-label inspector__field-label--{priorityClass(draft.priority)}">
           <Icon name="flag" size="1rem" />
-          {S.priorityLabel}
+          <span class="inspector__field-word">{S.priorityLabel}</span>
         </span>
         <!-- The values are the file's own, from the shared table
              (services/taskFields.js): the draft holds the string a control
@@ -637,7 +637,7 @@
       <div class="inspector__field" class:inspector__field--unset={!draft.repeatUnit}>
         <span class="inspector__field-label">
           <Icon name="arrow-clockwise" size="1rem" />
-          {S.repeatLabel}
+          <span class="inspector__field-word">{S.repeatLabel}</span>
         </span>
         <span class="inspector__stepper">
           {#if draft.repeatUnit}
@@ -672,7 +672,7 @@
       <div class="inspector__field" class:inspector__field--unset={!draft.remind}>
         <span class="inspector__field-label">
           <Icon name="alarm" size="1rem" />
-          {S.remindLabel}
+          <span class="inspector__field-word">{S.remindLabel}</span>
         </span>
         <span class="inspector__field-value inspector__reminder">
           {#if pickingReminder}
@@ -720,27 +720,6 @@
       </div>
       {/if}
 
-      {#if age}
-      <!-- When the task was written, and how long ago that was (spec 3.6,
-           M7/M8). The one field here that is READ and not set: a creation
-           date the user could edit would be a creation date that means
-           nothing. The panel shows both halves because it has the room —
-           the card shows the number alone until it stops being useful. -->
-      <div class="inspector__field inspector__field--reading">
-        <span class="inspector__field-label">
-          <Icon name="clock" size="1rem" />
-          {S.createdLabel}
-        </span>
-        <span class="inspector__field-value">
-          {formatDate(task.created, dateFormat)}
-          <span
-            class="inspector__age"
-            class:inspector__age--forgotten={age.band === "forgotten"}
-            >{S.ageDays(age.days)}</span
-          >
-        </span>
-      </div>
-      {/if}
     </div>
 
     {#if f("description") || f("files")}
@@ -798,7 +777,7 @@
           <button class="inspector__field inspector__add-file" onclick={() => (picking = true)}>
             <span class="inspector__field-label">
               <Icon name="paperclip" size="1rem" />
-              {S.addFilesLabel}
+              <span class="inspector__field-word">{S.addFilesLabel}</span>
             </span>
           </button>
         {/if}
@@ -806,6 +785,24 @@
     </div>
     {/if}
   </div>
+
+  {#if age}
+    <!-- When the task was written (spec 3.6, M7/M8): a fact about the task,
+         not a field of it — a creation date the user could edit would mean
+         nothing — so it stands apart from the controls, just over the foot
+         (user call, 2026-09-08). The date alone: the word came off, and so
+         did the day count the card already shows. The clock says what the
+         date is; the warning ink still says "forgotten", the one thing the
+         count was for. -->
+    <p
+      class="inspector__created"
+      class:inspector__created--forgotten={age.band === "forgotten"}
+      title={S.createdLabel}
+    >
+      <Icon name="clock" size="0.75rem" />
+      <time datetime={task.created}>{formatDate(task.created, dateFormat)}</time>
+    </p>
+  {/if}
 
   <!-- Foot, pinned at the bottom and always visible: which list the task lives
        in (change it to move the task) and the trash. Shares the pane-foot chrome
