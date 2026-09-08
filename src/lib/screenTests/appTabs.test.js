@@ -7,7 +7,7 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/sve
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { bridge, invoke } from "../test/bridge.js";
-import { noop, noteFolder, resetScreens, task } from "../test/screens.js";
+import { CLOCK, ideia, noop, noteFolder, resetScreens, task } from "../test/screens.js";
 
 // The note editor's engine is stubbed by a textarea — `lib/test/screens.js`
 // says why. `vi.mock` is hoisted per file, so it cannot live there.
@@ -46,12 +46,7 @@ describe("App shell with tabs", () => {
       open_notebook: notebook,
       notebook_snapshot: {
         info: notebook,
-        clock: {
-          today: "2026-07-21",
-          weekStart: "2026-07-20",
-          nextDailyTurn: "2026-07-22T00:00:00Z",
-          nextWeeklyTurn: "2026-07-27T00:00:00Z",
-        },
+        clock: CLOCK,
         counts: {},
         conflicts: [],
         spaces: [],
@@ -317,12 +312,7 @@ describe("the compact shell", () => {
       open_notebook: notebook,
       notebook_snapshot: {
         info: notebook,
-        clock: {
-          today: "2026-07-21",
-          weekStart: "2026-07-20",
-          nextDailyTurn: "2026-07-22T00:00:00Z",
-          nextWeeklyTurn: "2026-07-27T00:00:00Z",
-        },
+        clock: CLOCK,
         counts: {},
         conflicts: [],
         spaces: [],
@@ -584,23 +574,8 @@ describe("the compact shell", () => {
     compactShell({
       platform: "android",
       note_folders: [noteFolder("Inbox")],
-      list_notes: [
-        {
-          path: "Inbox/Ideia.md",
-          title: "Ideia",
-          folder: "Inbox",
-          preview: "preview",
-          created: "2026-07-21",
-          pinned: false,
-        },
-      ],
-      read_note: {
-        path: "Inbox/Ideia.md",
-        title: "Ideia",
-        body: "Corpo.",
-        pinned: false,
-        created: "2026-07-21",
-      },
+      list_notes: [ideia().listed],
+      read_note: ideia().read,
       write_note: null,
       ...extra,
     });

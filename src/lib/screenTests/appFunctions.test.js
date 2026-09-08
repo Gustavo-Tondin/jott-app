@@ -7,7 +7,7 @@ import { render, screen, waitFor, within } from "@testing-library/svelte";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { bridge } from "../test/bridge.js";
-import { resetScreens, task } from "../test/screens.js";
+import { CLOCK, resetScreens, task } from "../test/screens.js";
 
 // The note editor's engine is stubbed by a textarea — `lib/test/screens.js`
 // says why. `vi.mock` is hoisted per file, so it cannot live there.
@@ -46,12 +46,7 @@ describe("App functions — switching a part of the app off", () => {
       open_notebook: notebook,
       notebook_snapshot: {
         info: notebook,
-        clock: {
-          today: "2026-07-21",
-          weekStart: "2026-07-20",
-          nextDailyTurn: "2026-07-22T00:00:00Z",
-          nextWeeklyTurn: "2026-07-27T00:00:00Z",
-        },
+        clock: CLOCK,
         counts: {},
         conflicts: [],
         spaces: [],
@@ -179,8 +174,7 @@ describe("App functions — switching a part of the app off", () => {
             dateDisplayFormat: "mm/dd/yyyy", closeInspectorOnClickAway: false,
             quickNoteFolder: "Inbox", features: { priority: false },
           } },
-        clock: { today: "2026-07-21", weekStart: "2026-07-20",
-          nextDailyTurn: "2026-07-22T00:00:00Z", nextWeeklyTurn: "2026-07-27T00:00:00Z" },
+        clock: CLOCK,
         counts: {}, conflicts: [], spaces: [], groups: [], tags: [], day: [],
       },
       screen_to_restore: "list:jott.tasks/task-list.md",

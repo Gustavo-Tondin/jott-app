@@ -113,6 +113,27 @@ export const task = (id, text, extra = {}) => ({
 
 export const noop = () => {};
 
+/// The clock every screen test runs under: a Tuesday, with the two turns ahead.
+export const CLOCK = {
+  today: "2026-07-21",
+  weekStart: "2026-07-20",
+  nextDailyTurn: "2026-07-22T00:00:00Z",
+  nextWeeklyTurn: "2026-07-27T00:00:00Z",
+};
+
+/// One note as `list_notes` lists it (`listed`) and as `read_note` reads it (`read`).
+export const noteFixture = (path, { body = "Corpo.", preview = "preview", pinned = false } = {}) => {
+  const folder = path.slice(0, path.lastIndexOf("/"));
+  const title = path.slice(folder.length + 1).replace(/\.md$/, "");
+  const created = CLOCK.today;
+  return {
+    listed: { path, title, folder, preview, created, pinned },
+    read: { path, title, body, pinned, created },
+  };
+};
+/// Fresh objects each call: the shell mutates what the bridge hands it.
+export const ideia = () => noteFixture("Inbox/Ideia.md");
+
 /// The board's ⋮ → Layout → Folders. The two view buttons that used to sit
 /// above the cards are menu items since the 2026-08-19 redraw, so every test
 /// that wants the tree view comes through here.

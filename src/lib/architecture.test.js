@@ -21,9 +21,19 @@ function walk(dir, ext) {
   });
 }
 
+// The trees the tests below walk, read once.
+const SVELTE = [join(src, "App.svelte"), ...walk(join(src, "lib"), ".svelte")];
+const LIB_JS = walk(join(src, "lib"), ".js");
+const SOURCES = [...SVELTE, ...LIB_JS.filter((f) => !f.endsWith(".test.js"))];
+const STYLES = walk(join(src, "styles"), ".css");
+const SHEETS = [
+  ...walk(join(src, "styles", "controls"), ".css"),
+  ...walk(join(src, "styles", "components"), ".css"),
+];
+
 describe("frontend architecture", () => {
   test("no component carries a <style> block — the visual layer lives in styles/", () => {
-    const offenders = [join(src, "App.svelte"), ...walk(join(src, "lib"), ".svelte")]
+    const offenders = SVELTE
       .filter((f) => readFileSync(f, "utf8").includes("<style"))
       .map((f) => basename(f));
     expect(offenders).toEqual([]);
@@ -38,7 +48,7 @@ describe("frontend architecture", () => {
     // logo had no height and nobody had ever seen it.
     // Comments stripped first: the file that caused this test explains the
     // mistake by name, and a rule about selectors must not fire on prose.
-    const offenders = [...walk(join(src, "styles"), ".css"), join(src, "app.css")]
+    const offenders = [...STYLES, join(src, "app.css")]
       .filter((f) =>
         readFileSync(f, "utf8").replace(/\/\*[\s\S]*?\*\//g, "").includes(":global("),
       )
@@ -52,7 +62,7 @@ describe("frontend architecture", () => {
     // bytes of CSS unless app.css imports it. The whole styles/ tree is the
     // unit — a sheet that exists but is not imported is a silent no-op.
     const app = readFileSync(join(src, "app.css"), "utf8");
-    const missing = walk(join(src, "styles"), ".css")
+    const missing = STYLES
       // The import in app.css is written with forward slashes; the path from
       // disk arrives with backslashes on Windows, where CI runs this too.
       .map((f) => f.slice(f.indexOf("styles")).replaceAll("\\", "/"))
@@ -81,7 +91,7 @@ describe("frontend architecture", () => {
       "modes/dark.css",
     ]);
     const offenders = [];
-    for (const f of walk(join(src, "styles"), ".css")) {
+    for (const f of STYLES) {
       // Separators normalised: on Windows `relative` answers with a
       // backslash, and the exemptions above are written with a slash — the
       // editor.css exemption missed, and the CI failed there only.
@@ -115,10 +125,7 @@ describe("frontend architecture", () => {
         .replace(/\/\*[\s\S]*?\*\//g, "")
         .replace(/url\([^)]*\)/g, "")
         .replace(/@media[^{]*\{/g, "");
-    for (const f of [
-      ...walk(join(src, "styles"), ".css"),
-      join(src, "app.css"),
-    ]) {
+    for (const f of [...STYLES, join(src, "app.css")]) {
       // `-?` and the leading-dot branch: `-2px` and `.5px` are lengths too,
       // and the old lookbehind quietly skipped both.
       for (const m of strip(readFileSync(f, "utf8")).matchAll(
@@ -128,7 +135,7 @@ describe("frontend architecture", () => {
       }
     }
     // An icon's `size` prop becomes a CSS length too (--icon-size).
-    for (const f of [join(src, "App.svelte"), ...walk(join(src, "lib"), ".svelte")]) {
+    for (const f of SVELTE) {
       for (const m of readFileSync(f, "utf8").matchAll(/size="[\d.]+px"/g)) {
         offenders.push(`${basename(f)}: ${m[0]}`);
       }
@@ -247,15 +254,10 @@ describe("frontend architecture", () => {
     // token the modes had a say about. Sheets, App.svelte and every module
     // under lib/ except the tests and the seed (whose job is the theme file).
     const files = [
-      ...walk(join(src, "styles", "controls"), ".css"),
+      ...SHEETS,
       join(src, "styles", "base.css"),
       join(src, "styles", "touch.css"),
-      ...walk(join(src, "styles", "components"), ".css"),
-      join(src, "App.svelte"),
-      ...walk(join(src, "lib"), ".svelte"),
-      ...walk(join(src, "lib"), ".js").filter(
-        (f) => !f.endsWith(".test.js") && !f.endsWith("themeSeed.js"),
-      ),
+      ...SOURCES.filter((f) => !f.endsWith("themeSeed.js")),
     ];
     const offenders = [];
     for (const f of files) {
@@ -318,12 +320,8 @@ describe("frontend architecture", () => {
     // `--app-warning`, `--app-success` (and their `-tint`). Spelling
     // `--app-red` in a sheet is the same value today and a different one
     // the day a theme moves its danger; the notice did exactly that.
-    const sheets = [
-      ...walk(join(src, "styles", "controls"), ".css"),
-      ...walk(join(src, "styles", "components"), ".css"),
-    ];
     const offenders = [];
-    for (const f of sheets) {
+    for (const f of SHEETS) {
       const css = readFileSync(f, "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
       for (const m of css.matchAll(/var\(\s*(--app-(?:red|yellow|green)[a-z0-9-]*)/g)) {
         offenders.push(`${relative(src, f)}: ${m[1]}`);
@@ -364,11 +362,7 @@ describe("frontend architecture", () => {
       for (const [, set] of perTheme) set.add(m[1]);
     }
     const missing = new Set();
-    const sheets = [
-      ...walk(join(src, "styles", "controls"), ".css"),
-      ...walk(join(src, "styles", "components"), ".css"),
-    ];
-    for (const f of sheets) {
+    for (const f of SHEETS) {
       const css = readFileSync(f, "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
       for (const m of css.matchAll(/var\(\s*(--app-[a-z0-9-]+)/g)) {
         for (const [theme, set] of perTheme) {
@@ -716,7 +710,7 @@ describe("frontend architecture", () => {
       return tags;
     };
     const offenders = [];
-    for (const file of [join(src, "App.svelte"), ...walk(join(src, "lib"), ".svelte")]) {
+    for (const file of SVELTE) {
       for (const tag of tagsOf(readFileSync(file, "utf8"))) {
         const classes = [
           ...[...tag.matchAll(/class="([^"]*)"/g)].flatMap((m) => m[1].split(/\s+/)),
@@ -745,10 +739,7 @@ describe("frontend architecture", () => {
     // @media/@container does not stop an element selector from applying
     // app-wide.
     const offenders = [];
-    for (const f of [
-      ...walk(join(src, "styles", "controls"), ".css"),
-      ...walk(join(src, "styles", "components"), ".css"),
-    ]) {
+    for (const f of SHEETS) {
       const css = readFileSync(f, "utf8")
         .replace(/\/\*[\s\S]*?\*\//g, "")
         .replace(/url\([^)]*\)/g, "");
@@ -795,7 +786,7 @@ describe("frontend architecture", () => {
     // (lib/test/bridge.js), aliased onto the real modules in vite.config.js;
     // a mock here is the start of the fifth shape.
     const faking = /vi\s*\.\s*mock\(\s*["'](?:@tauri-apps\/|[^"']*\/api\.js)/;
-    const offenders = walk(join(src, "lib"), ".test.js")
+    const offenders = LIB_JS.filter((f) => f.endsWith(".test.js"))
       .filter((f) => faking.test(readFileSync(f, "utf8")))
       .map((f) => basename(f));
     expect(offenders).toEqual([]);
@@ -804,8 +795,8 @@ describe("frontend architecture", () => {
   test("the bridge stub is reached by tests only", () => {
     // It imports vitest. Anything shipping to the app that pulled it in would
     // take the test runner along with it.
-    const offenders = [join(src, "App.svelte"), ...walk(join(src, "lib"), ".svelte"), ...walk(join(src, "lib"), ".js")]
-      .filter((f) => !f.endsWith(".test.js") && !f.endsWith(join("test", "bridge.js")))
+    const offenders = SOURCES
+      .filter((f) => !f.endsWith(join("test", "bridge.js")))
       .filter((f) => readFileSync(f, "utf8").includes("test/bridge.js"))
       .map((f) => basename(f));
     expect(offenders).toEqual([]);
@@ -937,8 +928,7 @@ describe("a question that can be switched off is wired end to end", () => {
   // forget: the question added tomorrow has to be found without anyone
   // remembering this file exists.
   const remembered = new Set(
-    [join(src, "App.svelte"), ...walk(join(src, "lib"), ".svelte"), ...walk(join(src, "lib"), ".js")]
-      .filter((f) => !f.endsWith(".test.js"))
+    SOURCES
       .flatMap((f) => [...readFileSync(f, "utf8").matchAll(/remember:\s*"(\w+)"/g)])
       .map((m) => m[1]),
   );

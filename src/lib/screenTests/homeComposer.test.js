@@ -10,7 +10,7 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/sve
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { bridge } from "../test/bridge.js";
-import { resetScreens } from "../test/screens.js";
+import { CLOCK, resetScreens } from "../test/screens.js";
 
 // The note editor's engine is stubbed by a textarea — `lib/test/screens.js`
 // says why. `vi.mock` is hoisted per file, so it cannot live there.
@@ -56,12 +56,7 @@ describe("Home's composing bar, the keyboard, and the way out", () => {
       open_notebook: notebook,
       notebook_snapshot: {
         info: notebook,
-        clock: {
-          today: "2026-07-21",
-          weekStart: "2026-07-20",
-          nextDailyTurn: "2026-07-22T00:00:00Z",
-          nextWeeklyTurn: "2026-07-27T00:00:00Z",
-        },
+        clock: CLOCK,
         counts: {},
         conflicts: [],
         spaces: [],

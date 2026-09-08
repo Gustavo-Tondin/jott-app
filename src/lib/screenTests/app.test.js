@@ -7,7 +7,7 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/sve
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { bridge, callsTo, invoke } from "../test/bridge.js";
-import { noteFolder, resetScreens, task } from "../test/screens.js";
+import { CLOCK, ideia, noteFolder, resetScreens, task } from "../test/screens.js";
 
 // The note editor's engine is stubbed by a textarea — `lib/test/screens.js`
 // says why. `vi.mock` is hoisted per file, so it cannot live there.
@@ -47,12 +47,7 @@ describe("App", () => {
 
   const snapshot = (spaces = [], groups = []) => ({
     info: notebook,
-    clock: {
-      today: "2026-07-21",
-      weekStart: "2026-07-20",
-      nextDailyTurn: "2026-07-22T00:00:00Z",
-      nextWeeklyTurn: "2026-07-27T00:00:00Z",
-    },
+    clock: CLOCK,
     counts: {},
     conflicts: [],
     spaces,
@@ -255,23 +250,8 @@ describe("App", () => {
     // aberta, ela deve fechar imediatamente". An inspector left standing over
     // a note describes something that is not on screen any more.
     shell({
-      list_notes: [
-        {
-          path: "Inbox/Ideia.md",
-          title: "Ideia",
-          folder: "Inbox",
-          preview: "preview",
-          created: "2026-07-21",
-          pinned: false,
-        },
-      ],
-      read_note: {
-        path: "Inbox/Ideia.md",
-        title: "Ideia",
-        body: "Corpo.",
-        pinned: false,
-        created: "2026-07-21",
-      },
+      list_notes: [ideia().listed],
+      read_note: ideia().read,
       write_note: null,
     });
     render(App);
@@ -289,23 +269,8 @@ describe("App", () => {
     // and the sidebar used to go dark the moment the board gave way to the
     // editor. The row keeps the same pill it had with the board open.
     shell({
-      list_notes: [
-        {
-          path: "Inbox/Ideia.md",
-          title: "Ideia",
-          folder: "Inbox",
-          preview: "preview",
-          created: "2026-07-21",
-          pinned: false,
-        },
-      ],
-      read_note: {
-        path: "Inbox/Ideia.md",
-        title: "Ideia",
-        body: "Corpo.",
-        pinned: false,
-        created: "2026-07-21",
-      },
+      list_notes: [ideia().listed],
+      read_note: ideia().read,
       write_note: null,
     });
     render(App);
@@ -328,24 +293,9 @@ describe("App", () => {
     // while the wireframe draws the same silhouette the inspector has — a way
     // to fold it away and a ⋮ above, where the note lives and a trash below.
     shell({
-      list_notes: [
-        {
-          path: "Inbox/Ideia.md",
-          title: "Ideia",
-          folder: "Inbox",
-          preview: "preview",
-          created: "2026-07-21",
-          pinned: false,
-        },
-      ],
+      list_notes: [ideia().listed],
       note_folders: [noteFolder("Inbox"), noteFolder("Clientes")],
-      read_note: {
-        path: "Inbox/Ideia.md",
-        title: "Ideia",
-        body: "Corpo.",
-        pinned: false,
-        created: "2026-07-21",
-      },
+      read_note: ideia().read,
       write_note: null,
       move_note_to_space: "Clientes/Ideia.md",
     });
@@ -376,23 +326,8 @@ describe("App", () => {
     // to `set_machine_display`, and this menu wrote it to the notebook instead
     // — the phone's pick would have travelled to the desktop.
     shell({
-      list_notes: [
-        {
-          path: "Inbox/Ideia.md",
-          title: "Ideia",
-          folder: "Inbox",
-          preview: "preview",
-          created: "2026-07-21",
-          pinned: false,
-        },
-      ],
-      read_note: {
-        path: "Inbox/Ideia.md",
-        title: "Ideia",
-        body: "Corpo.",
-        pinned: false,
-        created: "2026-07-21",
-      },
+      list_notes: [ideia().listed],
+      read_note: ideia().read,
       write_note: null,
       set_machine_display: null,
     });
@@ -417,24 +352,9 @@ describe("App", () => {
   // said the panel was still there to reopen.
   test("closing the formatting panel leaves a button that reopens it", async () => {
     shell({
-      list_notes: [
-        {
-          path: "Inbox/Ideia.md",
-          title: "Ideia",
-          folder: "Inbox",
-          preview: "preview",
-          created: "2026-07-21",
-          pinned: false,
-        },
-      ],
+      list_notes: [ideia().listed],
       note_folders: [noteFolder("Inbox")],
-      read_note: {
-        path: "Inbox/Ideia.md",
-        title: "Ideia",
-        body: "Corpo.",
-        pinned: false,
-        created: "2026-07-21",
-      },
+      read_note: ideia().read,
       write_note: null,
     });
     const { container } = render(App);
@@ -478,24 +398,9 @@ describe("App", () => {
   // fallbacks themselves are `services/formatBar.test.js`.
   const withNote = (extra = {}) =>
     shell({
-      list_notes: [
-        {
-          path: "Inbox/Ideia.md",
-          title: "Ideia",
-          folder: "Inbox",
-          preview: "preview",
-          created: "2026-07-21",
-          pinned: false,
-        },
-      ],
+      list_notes: [ideia().listed],
       note_folders: [noteFolder("Inbox")],
-      read_note: {
-        path: "Inbox/Ideia.md",
-        title: "Ideia",
-        body: "Corpo.",
-        pinned: false,
-        created: "2026-07-21",
-      },
+      read_note: ideia().read,
       write_note: null,
       ...extra,
     });
@@ -922,12 +827,7 @@ describe("App", () => {
       open_notebook: withLists,
       notebook_snapshot: {
         info: withLists,
-        clock: {
-          today: "2026-07-21",
-          weekStart: "2026-07-20",
-          nextDailyTurn: "2026-07-22T00:00:00Z",
-          nextWeeklyTurn: "2026-07-27T00:00:00Z",
-        },
+        clock: CLOCK,
         counts: {},
         conflicts: [],
         spaces: [],
