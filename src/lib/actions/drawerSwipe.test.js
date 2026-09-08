@@ -156,6 +156,17 @@ describe("whose gesture it is", () => {
     drag(node, document.querySelector(".card"), { dx: 200 });
     expect(calls.open).toBe(0);
   });
+
+  // A range's thumb is a sideways drag by definition; claiming it cancelled the
+  // browser's own drag and left the slider answering only to taps (user report
+  // on device, 2026-09-08).
+  it("leaves a range input alone on the finger path", () => {
+    document.querySelector(".empty").outerHTML = '<input class="theme-range" type="range" />';
+    mount();
+    const event = drag(node, document.querySelector(".theme-range"), { dx: 200 });
+    expect(calls.open).toBe(0);
+    expect(event?.defaultPrevented ?? false).toBe(false);
+  });
 });
 
 describe("the axis", () => {

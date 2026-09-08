@@ -6,11 +6,13 @@
 
 import { clamp } from "../services/num.js";
 
-/// What already owns a sideways drag: cards carrying actions/swipe.js, and the
-/// surfaces raised OVER the shell, whose own content may slide sideways.
+/// What already owns a sideways drag: cards carrying actions/swipe.js, the
+/// surfaces raised OVER the shell, whose own content may slide sideways, and a
+/// range input — its thumb IS a sideways drag, on a finger as much as a mouse
+/// (the `preventDefault` below is what stopped it moving on a phone).
 const CLAIMED =
   "[data-swipes], .sheet, .sheet-scrim, .theme-modal, .theme-modal-backdrop," +
-  " .theme-popover";
+  " .theme-popover, input[type=range]";
 /// …and what only a MOUSE claims: text, where dragging selects. A finger does
 /// not select by dragging, and the left edge is the system's back gesture on
 /// Android — so touch must open the drawer from over the content (an editor
