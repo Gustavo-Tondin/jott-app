@@ -27,15 +27,15 @@
   /// functions that are not a space type.
   const FUNCTION_ICONS = { ...TYPE_ICONS, time: "path" };
   import Icon from "../components/Icon.svelte";
-  import AboutSection from "./settings/AboutSection.svelte";
-  import DisplaySection from "./settings/DisplaySection.svelte";
-  import DatesSection from "./settings/DatesSection.svelte";
-  import ShortcutsSection from "./settings/ShortcutsSection.svelte";
-  import NotebookSection from "./settings/NotebookSection.svelte";
-  import NativeSection from "./settings/NativeSection.svelte";
-  import TasksPage from "./settings/TasksPage.svelte";
-  import TimePage from "./settings/TimePage.svelte";
-  import NotesPage from "./settings/NotesPage.svelte";
+  import AboutSection, { index as aboutIndex } from "./settings/AboutSection.svelte";
+  import DisplaySection, { index as displayIndex } from "./settings/DisplaySection.svelte";
+  import DatesSection, { index as datesIndex } from "./settings/DatesSection.svelte";
+  import ShortcutsSection, { index as shortcutsIndex } from "./settings/ShortcutsSection.svelte";
+  import NotebookSection, { index as notebookIndex } from "./settings/NotebookSection.svelte";
+  import NativeSection, { index as nativeIndex } from "./settings/NativeSection.svelte";
+  import TasksPage, { index as tasksIndex } from "./settings/TasksPage.svelte";
+  import TimePage, { index as timeIndex } from "./settings/TimePage.svelte";
+  import NotesPage, { index as notesIndex } from "./settings/NotesPage.svelte";
   import { onBack } from "../services/back.js";
   import { plain } from "../services/plain.js";
 
@@ -96,14 +96,15 @@
   /// a function for the same reason every other string is: it is read at
   /// render time, so translating later adds a file and not a second list.
   const SETUP = [
-    { key: "about", icon: "info", label: () => S.sectionAbout },
-    { key: "display", icon: "monitor", label: () => S.sectionDisplay },
-    { key: "dates", icon: "calendar-blank", label: () => S.sectionDates },
-    { key: "notebook", icon: "notebook", label: () => S.sectionNotebook },
+    { key: "about", icon: "info", label: () => S.sectionAbout, index: aboutIndex },
+    { key: "display", icon: "monitor", label: () => S.sectionDisplay, index: displayIndex },
+    { key: "dates", icon: "calendar-blank", label: () => S.sectionDates, index: datesIndex },
+    { key: "notebook", icon: "notebook", label: () => S.sectionNotebook, index: notebookIndex },
     {
       key: "shortcuts",
       icon: "keyboard",
       label: () => S.sectionShortcuts,
+      index: shortcutsIndex,
       // A chord is a keyboard's, and a phone has none to press one on (user
       // call, 2026-08-20): the section would be a table of rows nobody can
       // record. The bindings are untouched — they travel with the notebook
@@ -123,6 +124,14 @@
   /// `Expansions` — what the community writes — is the same shape and is not
   /// built yet; the block exists so it has somewhere to land.
   const NATIVE = { key: "native", label: () => S.sectionNative, group: true };
+
+  /// The pages of the functions, by key: the component, and the rows on it
+  /// that are NOT one of its switches (the switches the search derives).
+  const FUNCTION_PAGES = {
+    tasks: { page: TasksPage, index: tasksIndex },
+    time: { page: TimePage, index: timeIndex },
+    notes: { page: NotesPage, index: notesIndex },
+  };
 
   let functionPages = $derived(
     // An inline group (the fixed spaces) has children but no page: its rows
@@ -290,110 +299,22 @@
   //
   // The index has two halves, and the split is the whole point (2026-08-21):
   // what is already DATA is derived from its own table, and only what exists
-  // solely as markup is written out by hand. A hand-written row that names a
-  // switch would be the drift this guards against — the switch would then have
-  // two labels to keep in step, and `SETUP_INDEX` never mentions one.
-
-  /// The half the search can only know by being TOLD.
-  ///
-  /// These rows are markup — one `<label>` at a time inside the sections
-  /// below — and the search has to answer before any of them is rendered, so
-  /// there is nothing to read them off. Nothing derives them and nothing will:
-  /// the day a section is built from a table of its own, its entry here goes
-  /// the way the functions' did.
-  ///
-  /// A row missing here is invisible to the search and still perfectly
-  /// reachable — the failure is a search miss, never a broken screen.
-  const SETUP_INDEX = () => [
-    ["about", [S.updateVersion, S.updateAutoCheck, S.closeToTray, S.autostart, S.quitApp, S.updateCheckNow, S.yourFiles,
-      S.menuEntryLabel, S.reportIssue]],
-    [
-      "display",
-      [
-        S.mode,
-        S.theme,
-        S.accentColor,
-        S.headingColor,
-        S.interfaceZoom,
-        S.noteFontSizeLabel,
-        S.interfaceFontLabel,
-        S.noteFontLabel,
-        S.monoFontLabel,
-        S.formatBarLabel,
-        S.formatBarSideLabel,
-        S.showListCounts,
-        S.autoSpaceColors,
-        S.restoreLastScreen,
-        S.closeOnClickAway,
-        S.dateFormat,
-      ],
-    ],
-    [
-      "dates",
-      [
-        S.rolloverMode,
-        S.weekStartsOn,
-        S.datedTasksJoinPeriod,
-        // The page's OTHER name. It is titled "Date preferences" and what it
-        // decides is the day and the calendar, so both find it.
-        S.sectionDay,
-      ],
-    ],
-    [
-      "notebook",
-      [
-        S.notebookPath,
-        S.openNotebookFolder,
-        S.switchNotebook,
-        S.quickNoteFolder,
-        S.quickTasksGoTo,
-        S.confirmDeletes,
-        S.completedRetention,
-        S.trashRetention,
-      ],
-    ],
-    // The ~50 commands are deliberately NOT here: the Shortcuts page carries a
-    // filter of its own over `commands.js`, and pouring them into a search for
-    // settings would bury the eight pages under them. What is indexed is the
-    // door — the page, by both its names.
-    ["shortcuts", [S.sectionShortcuts, S.resetShortcuts]],
-  ];
-
-  /// The rows on a function's page that are NOT one of its switches.
-  ///
-  /// They are notebook settings that belong to a function rather than to a
-  /// section — where a dated task gets its colour is about Priority, and the
-  /// download prompt is about Notes — so they are drawn one page in, and the
-  /// search has to be told which page. Keyed by function so that a function
-  /// with none simply has no entry, instead of the `fn.key === "tasks" ? …`
-  /// chain this replaced.
-  const FUNCTION_EXTRAS = () => ({
-    tasks: [S.autoUrgentByDate, S.newTasksGoTo, S.autoRemind, S.reminderTime, S.tasksShowAll],
-    notes: [S.noteLayout, S.tableLayout, S.confirmImageDownloads],
-    time: [S.timelineGhostTitles],
-  });
+  // solely as markup is written out by hand — by each section, beside the
+  // markup it names (`index()`). A hand-written row that names a switch would
+  // be the drift this guards against — the switch would then have two labels
+  // to keep in step — and a test of the architecture refuses one.
 
   /// Every page the search can look up. The functions' half is DERIVED — the
   /// switches from `features.js`, whatever group each was filed under — so a
   /// switch added there is findable the same day, without a second line here.
   const INDEX = () => [
-    ...SETUP_INDEX(),
-    [
-      "native",
-      [
-        ...FUNCTIONS.map((fn) => fn.label()),
-        // An inline group's children live on THIS page, so the search sends
-        // the reader here and not to a page that does not exist.
-        ...FUNCTIONS.filter((fn) => fn.inline).flatMap((fn) =>
-          childrenOf(fn.key).map((c) => c.label()),
-        ),
-      ],
-    ],
+    ...SETUP.map((entry) => [entry.key, entry.index()]),
+    ["native", nativeIndex()],
     ...FUNCTIONS.filter((fn) => hasPage(fn.key) && !fn.inline).map((fn) => [
       `fn:${fn.key}`,
       [
         ...childrenOf(fn.key).map((c) => c.label()),
-        ...(FUNCTION_EXTRAS()[fn.key] ?? []),
+        ...(FUNCTION_PAGES[fn.key]?.index() ?? []),
       ],
     ]),
   ];
@@ -430,30 +351,6 @@
 </script>
 
 {#if settings && form}
-{#snippet resetFooter(section)}
-  <!-- Set apart and quiet on purpose: it is the one control on the page
-       that undoes the others, so it must not be where a finger lands. -->
-  <div class="settings__reset">
-    <button
-      type="button"
-      class="theme-btn theme-btn--outline theme-btn--xs settings__reset-btn"
-      disabled={section !== "display" && readOnly}
-      onclick={() => resetSection(section)}>{S.resetSection}</button
-    >
-  </div>
-{/snippet}
-
-{#snippet sectionTitle(text)}
-  <!-- The section's name, ONCE. Side by side it is the panel's own heading,
-       which is what says which of the menu's rows you are reading. On the
-       phone you went INTO the section and the header above already carries
-       its name (shell/PageHeader.svelte) — repeating it here would be the
-       "nome dito duas vezes" the space screens were fixed for. -->
-  {#if !compact}
-    <h2 class="settings__section-title">{text}</h2>
-  {/if}
-{/snippet}
-
 {#snippet menuRow(entry)}
   <li>
     <button
@@ -626,40 +523,20 @@
         />
       {/if}
 
-      {#if shows("fn:tasks")}
-        <TasksPage
-          bind:form
-          {put}
-          {features}
-          onSet={setFeature}
-          {compact}
-          {readOnly}
-          onReset={() => resetSection("tasks")}
-        />
-      {/if}
-
-      {#if shows("fn:time")}
-        <TimePage
-          bind:form
-          {put}
-          {features}
-          onSet={setFeature}
-          {compact}
-          {readOnly}
-          onReset={() => resetSection("time")}
-        />
-      {/if}
-
-      {#if shows("fn:notes")}
-        <NotesPage
-          bind:form
-          {put}
-          {features}
-          onSet={setFeature}
-          {compact}
-          {readOnly}
-          onReset={() => resetSection("notes")}
-        />
+      {#if section?.startsWith("fn:")}
+        {@const fn = section.slice(3)}
+        {@const Page = FUNCTION_PAGES[fn]?.page}
+        {#if Page}
+          <Page
+            bind:form
+            {put}
+            {features}
+            onSet={setFeature}
+            {compact}
+            {readOnly}
+            onReset={() => resetSection(fn)}
+          />
+        {/if}
       {/if}
 
       {#if shows("notebook")}

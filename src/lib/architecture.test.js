@@ -766,17 +766,19 @@ describe("frontend architecture", () => {
 
   test("the settings search never writes out a label it could derive", () => {
     // The index has two halves (2026-08-21): the functions' half is read from
-    // `features.js`, and `SETUP_INDEX` covers what exists only as markup. The
-    // moment the hand-written half repeats a label the table already carries,
-    // that switch has two names to keep in step and the drift is silent — so
-    // the split is read off the source rather than trusted.
-    const file = readFileSync(join(src, "lib", "screens", "SettingsView.svelte"), "utf8");
-    const manual = file.slice(
-      file.indexOf("const SETUP_INDEX"),
-      file.indexOf("const FUNCTION_EXTRAS"),
-    );
-    expect(manual.length).toBeGreaterThan(0);
-    expect(manual).not.toMatch(/S\.feature[A-Z]/);
+    // `features.js`, and each section's `index()` (its `<script module>`)
+    // covers what exists only as markup. The moment a hand-written half
+    // repeats a label the table already carries, that switch has two names to
+    // keep in step and the drift is silent — so the split is read off the
+    // source rather than trusted.
+    const sections = walk(join(src, "lib", "screens", "settings"), ".svelte")
+      .map((f) => [basename(f), readFileSync(f, "utf8")])
+      .filter(([, text]) => text.includes("export const index"));
+    expect(sections.length).toBeGreaterThan(0);
+    const offenders = sections
+      .filter(([, text]) => /S\.feature[A-Z]/.test(text.slice(0, text.indexOf("</script>"))))
+      .map(([name]) => name);
+    expect(offenders).toEqual([]);
   });
 
   test("no test fakes the Tauri bridge on its own", () => {
