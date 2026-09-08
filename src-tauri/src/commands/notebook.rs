@@ -48,6 +48,10 @@ pub struct NotebookLayout {
     /// `HH:MM` — the hour the inspector's reminder presets land on (the
     /// notebook's `reminderTime`).
     pub reminder_time: String,
+    /// Whether the day is announced once at the start of it, and at what
+    /// `HH:MM` — the shell keeps that timer, so it needs both on every open.
+    pub day_summary: bool,
+    pub day_summary_time: String,
     pub close_inspector_on_click_away: bool,
     pub quick_note_folder: String,
     /// The capture target — a path-like string the front resolves
@@ -89,10 +93,10 @@ pub struct NotebookLayout {
     /// reason: an attribute on the document root, wanted on the first paint.
     pub heading_color: String,
     pub note_font_size: String,
-    /// How tall a note card on the board may grow (`short` / `medium` /
-    /// `tall`); empty is the app's own. An attribute on the document root,
-    /// so it rides here for the reason the accent does.
-    pub card_height: String,
+    /// How many lines of a note a card on the board draws — a custom
+    /// property on the document root, so it rides here for the reason the
+    /// accent does.
+    pub card_lines: i64,
     /// The three faces the app is read in, by family name; empty is the one
     /// the app carries. Custom properties on the document root, so they ride
     /// here for the reason the accent does.
@@ -148,12 +152,14 @@ impl NotebookInfo {
                 notes_inbox: jott_core::notefolder::NOTES_INBOX.to_string(),
                 date_display_format: display.date_display_format,
                 reminder_time: notebook.config().reminder_time.render(),
+                day_summary: notebook.config().day_summary,
+                day_summary_time: notebook.config().day_summary_time.render(),
                 close_inspector_on_click_away: display.close_inspector_on_click_away,
                 quick_note_folder: notebook.config().quick_note_folder.clone(),
                 quick_task_list: notebook.config().quick_task_list.clone(),
                 tasks_show_all: notebook.config().tasks_show_all,
                 offer_task_fields: notebook.config().offer_task_fields,
-                note_layout: notebook.config().note_layout.clone(),
+                note_layout: display.note_layout.clone(),
                 table_layout: notebook.config().table_layout.clone(),
                 timeline_ghost_tasks: notebook.config().timeline_ghost_tasks,
                 timeline_ghost_notes: notebook.config().timeline_ghost_notes,
@@ -165,7 +171,7 @@ impl NotebookInfo {
                 theme: display.theme,
                 heading_color: display.heading_color,
                 note_font_size: display.note_font_size,
-                card_height: display.card_height,
+                card_lines: display.card_lines,
                 interface_font: display.interface_font,
                 note_font: display.note_font,
                 mono_font: display.mono_font,

@@ -10,6 +10,7 @@
     S.interfaceZoom,
     S.noteFontSizeLabel,
     S.cardHeightLabel,
+    S.noteLayout,
     S.interfaceFontLabel,
     S.noteFontLabel,
     S.monoFontLabel,
@@ -40,8 +41,8 @@
     DEFAULT_HEADING_COLOR,
     NOTE_FONT_SIZES,
     DEFAULT_NOTE_FONT_SIZE,
-    CARD_HEIGHTS,
-    DEFAULT_CARD_HEIGHT,
+    CARD_LINES,
+    cardLines,
   } from "../../services/themes.js";
   import {
     FORMAT_BAR_MODES,
@@ -92,6 +93,14 @@
     .systemFonts()
     .then((names) => (installedFonts = names ?? []))
     .catch(() => (installedFonts = []));
+
+  /// And the family the desktop draws itself in, so the "system-ui" row
+  /// PREVIEWS what it will actually give (services/fonts.js).
+  let systemUiFont = $state("");
+  api
+    .systemUiFont()
+    .then((name) => (systemUiFont = name ?? ""))
+    .catch(() => (systemUiFont = ""));
 
   /// The three rows of the Display page: a role of `services/fonts.js` plus
   /// what this screen calls it. A fourth face would be one line here.
@@ -170,6 +179,17 @@
     dragged = null;
     onZoom?.(ZOOM_STEPS[step]);
   }
+
+  // The card's ceiling, in lines. The number follows the finger; the choice
+  // is SENT when the drag ends — a bridge call per pixel would be a write
+  // per pixel. Nothing on this screen redraws with it, so nothing fights back.
+  let linesDrag = $state(null);
+  let lines = $derived(linesDrag ?? cardLines(form.cardLines));
+
+  function settleLines(next) {
+    linesDrag = null;
+    putDisplay({ cardLines: next });
+  }
 </script>
 
 <!-- A row whose control is a segmented group: one button per option, the
@@ -233,8 +253,8 @@
         <!-- The value the choice would write on the root, so the row previews
              it — the fallback included. `fontValue` keeps a generic family
              unquoted: `font-family: "serif"` names a font nobody has. -->
-        <option value={option.value} style={fontValue(row.role, option.value)
-            ? `font-family: ${fontValue(row.role, option.value)}`
+        <option value={option.value} style={fontValue(row.role, option.value, systemUiFont)
+            ? `font-family: ${fontValue(row.role, option.value, systemUiFont)}`
             : null}>{option.label}</option
         >
       {/each}
@@ -388,13 +408,46 @@
        answers to a SCREEN: what is a wall of cards on a monitor is one
        column on a phone. What it moves is the number of preview lines, so a
        card never ends mid-line (styles/components/note-preview.css). -->
-  {@render segmentedRow(
-    S.cardHeightLabel,
-    CARD_HEIGHTS,
-    form.cardHeight || DEFAULT_CARD_HEIGHT,
-    (key) => putDisplay({ cardHeight: key }),
-    S.cardHeightHint,
-  )}
+  <div class="settings__row">
+    <span class="settings__label">
+      {S.cardHeightLabel}
+      <HelpTip label={S.cardHeightLabel} text={S.cardHeightHint} />
+    </span>
+    <div class="settings__zoom">
+      <input
+        class="theme-range"
+        type="range"
+        min={CARD_LINES.min}
+        max={CARD_LINES.max}
+        step="1"
+        value={lines}
+        aria-label={S.cardHeightLabel}
+        oninput={(e) => (linesDrag = Number(e.currentTarget.value))}
+        onchange={(e) => settleLines(Number(e.currentTarget.value))}
+        onpointercancel={() => (linesDrag = null)}
+      />
+      <span class="settings__zoom-value">{S.cardLinesValue(lines)}</span>
+    </div>
+  </div>
+
+  <!-- How a notes space arranges its board until it chooses for itself. Here
+       and not on the Notes page: what a board looks like is a fact about this
+       SCREEN, and a space's own choice (its ⋮ → Layout) still wins. -->
+  <label class="settings__row">
+    <span class="settings__label">
+      {S.noteLayout}
+      <HelpTip label={S.noteLayout} text={S.noteLayoutHint} />
+    </span>
+    <select
+      class="theme-select"
+      value={form.noteLayout === "tree" ? "tree" : ""}
+      aria-label={S.noteLayout}
+      onchange={(e) => putDisplay({ noteLayout: e.currentTarget.value })}
+    >
+      <option value="">{S.gridView}</option>
+      <option value="tree">{S.treeView}</option>
+    </select>
+  </label>
 
   <label class="settings__row">
     <span class="settings__label">{S.showListCounts}</span>

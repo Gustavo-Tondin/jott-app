@@ -2,19 +2,24 @@
 //! original date, never on when the task was completed (rent paid late once
 //! must not drift), and completing a repeating task writes a new line — no
 //! scheduler, the file stays the whole truth.
+//!
+//! `freely` is the repetition with no period: the task comes back undated,
+//! the day it was recreated is the only mark it carries, and the list holds
+//! one of it at a time (`Notebook::complete_task`).
 
 use chrono::{Datelike, Duration, NaiveDate};
 
 use crate::task::{Repeat, RepeatUnit, Task};
 
 /// The date a repeating task should come back, given the date it was anchored
-/// on. `None` when the task does not repeat.
+/// on. `None` when the repetition has no period to add.
 fn next_occurrence(repeat: Repeat, from: NaiveDate) -> Option<NaiveDate> {
     let every = repeat.every.max(1) as i64;
     match repeat.unit {
         RepeatUnit::Day => Some(from + Duration::days(every)),
         RepeatUnit::Week => Some(from + Duration::weeks(every)),
         RepeatUnit::Month => add_months(from, every as u32),
+        RepeatUnit::Free => None,
     }
 }
 
@@ -42,12 +47,16 @@ fn days_in_month(year: i32, month: u32) -> u32 {
 
 /// Builds the next occurrence of a task that was just completed. `None` when
 /// it does not repeat or has no `@date`/`created` to anchor on — inventing an
-/// anchor would be worse than nothing. The new task is FRESH: no id, not done,
+/// anchor would be worse than nothing. A `freely` task needs no anchor: it
+/// always comes back, undated. The new task is FRESH: no id, not done,
 /// no origin, subtasks unchecked; everything the user wrote comes along.
 pub fn respawn(task: &Task) -> Option<Task> {
     let repeat = task.repeat?;
-    let anchor = task.due.or(task.created)?;
-    let next = next_occurrence(repeat, anchor)?;
+    let next = if repeat.is_free() {
+        None
+    } else {
+        Some(next_occurrence(repeat, task.due.or(task.created)?)?)
+    };
 
     let mut respawned = task.clone();
     respawned.id = None;
@@ -59,16 +68,21 @@ pub fn respawn(task: &Task) -> Option<Task> {
     // And it never spawned anyone either; it will earn its own pointer when
     // it is completed in turn.
     respawned.spawned = None;
-    respawned.due = Some(next);
+    respawned.due = next;
     // The reminder travels the same distance as the date: "ring the day
     // before, at 9" keeps meaning that for next week's occurrence. Without a
     // date to measure from, the reminder is a one-off and does not come back.
-    respawned.remind = match (task.due, task.remind) {
-        (Some(due), Some(at)) => Some(at + (next - due)),
+    respawned.remind = match (task.due, task.remind, next) {
+        (Some(due), Some(at), Some(next)) => Some(at + (next - due)),
         _ => None,
     };
-    // Only meaningful when there is no due date; now there is one.
-    respawned.created = task.due.is_none().then_some(next);
+    // Only meaningful when there is no due date; a dated one is its own
+    // anchor. A `freely` task has neither, and takes the day it is written
+    // (`Notebook::complete_task` stamps it) — the mark of when it came back.
+    respawned.created = match next {
+        Some(next) => task.due.is_none().then_some(next),
+        None => None,
+    };
     for subtask in &mut respawned.subtasks {
         subtask.done = false;
     }
@@ -237,6 +251,42 @@ mod tests {
         task.repeat = Some(repeat(1, RepeatUnit::Week));
 
         assert_eq!(respawn(&task), None);
+    }
+
+    #[test]
+    fn a_freely_task_comes_back_undated_and_unmarked() {
+        // No period, so no anchor and no date: the day it is written is the
+        // only mark it carries, and the notebook stamps that on the way in.
+        let mut task = Task::new("Trocar a água do filtro");
+        task.due = Some(ymd(2026, 7, 1));
+        task.remind = crate::task::parse_datetime("2026-07-01T09:00");
+        task.repeat = Some(Repeat::free());
+
+        let next = respawn(&task).unwrap();
+
+        assert_eq!(next.due, None);
+        assert_eq!(next.created, None, "the notebook stamps the day it lands");
+        assert_eq!(next.remind, None, "no date to measure the reminder from");
+        assert_eq!(next.repeat, Some(Repeat::free()), "it keeps repeating");
+        assert_eq!(next.text, "Trocar a água do filtro");
+    }
+
+    #[test]
+    fn a_freely_task_needs_no_anchor() {
+        // The one repetition that respawns with neither `@date` nor `created`.
+        let mut task = Task::new("Sem data");
+        task.repeat = Some(Repeat::free());
+
+        assert!(respawn(&task).is_some());
+    }
+
+    #[test]
+    fn freely_round_trips_through_the_file_value() {
+        assert_eq!(Repeat::free().render(), "freely");
+        assert_eq!(Repeat::parse("freely"), Some(Repeat::free()));
+        assert!(Repeat::free().is_free());
+        assert!(!repeat(1, RepeatUnit::Week).is_free());
+        assert_eq!(Repeat::parse("every-freely"), None);
     }
 
     #[test]

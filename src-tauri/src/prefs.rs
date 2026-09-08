@@ -77,6 +77,11 @@ struct MachinePrefs {
     /// missed while the app was closed ring ONCE when it comes back.
     #[serde(default)]
     reminded_until: std::collections::BTreeMap<PathBuf, String>,
+    /// The last day this machine announced a notebook's day summary, keyed
+    /// the same way. One announcement per day, and a launch after the hour
+    /// still makes today's.
+    #[serde(default)]
+    summarized_on: std::collections::BTreeMap<PathBuf, String>,
     /// When the last automatic check ran, as an ISO date-time the frontend
     /// owns. It is what keeps the check to once a day instead of once per
     /// launch.
@@ -174,6 +179,9 @@ pub fn notebook_moved<R: Runtime>(app: &AppHandle<R>, from: &Path, to: &Path) {
             if entry.path == from {
                 entry.path = to.to_path_buf();
             }
+        }
+        if let Some(day) = prefs.summarized_on.remove(from) {
+            prefs.summarized_on.insert(to.to_path_buf(), day);
         }
         if let Some(until) = prefs.reminded_until.remove(from) {
             prefs.reminded_until.insert(to.to_path_buf(), until);
@@ -303,6 +311,18 @@ pub fn reminded_until<R: Runtime>(app: &AppHandle<R>, notebook: &Path) -> Option
 pub fn remember_reminded_until<R: Runtime>(app: &AppHandle<R>, notebook: &Path, until: &str) {
     update(app, |prefs| {
         prefs.reminded_until.insert(notebook.to_path_buf(), until.to_string());
+    });
+}
+
+/// The last day `notebook`'s summary was announced on this machine
+/// (`2026-09-08`). `None` = never.
+pub fn summarized_on<R: Runtime>(app: &AppHandle<R>, notebook: &Path) -> Option<String> {
+    load(app).summarized_on.get(notebook).cloned()
+}
+
+pub fn remember_summarized_on<R: Runtime>(app: &AppHandle<R>, notebook: &Path, day: &str) {
+    update(app, |prefs| {
+        prefs.summarized_on.insert(notebook.to_path_buf(), day.to_string());
     });
 }
 

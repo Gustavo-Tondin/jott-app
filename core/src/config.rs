@@ -133,13 +133,14 @@ pub struct Config {
     /// Treat a task due today or overdue as urgent. Switchable; a hand-written
     /// `#urgent` tag always counts.
     pub auto_urgent_by_date: bool,
-    /// Ring for every dated task without being asked (`off` / `dayOf` /
-    /// `dayBefore` / `both`), at `reminder_time`. Computed, never written into the
-    /// task — see `reminders`.
-    pub auto_remind: crate::reminders::AutoRemind,
-    /// `HH:MM`: when the automatic reminder rings, and the hour the
-    /// inspector's presets land on.
+    /// `HH:MM`: the hour the inspector's reminder presets land on.
     pub reminder_time: crate::reminders::ReminderTime,
+    /// One notification at the start of the day, listing what the day holds.
+    /// The notebook's answer to "remind me of my dates" — a task rings only
+    /// if it asked (`remind:`), the day is announced once.
+    pub day_summary: bool,
+    /// `HH:MM`: when that announcement is made.
+    pub day_summary_time: crate::reminders::ReminderTime,
     /// Where a new task lands in its list: above the first (`true`) or below
     /// the last. `List::add_first` keeps whatever sits above the checklist there.
     pub new_tasks_on_top: bool,
@@ -215,11 +216,11 @@ pub struct Config {
     /// content width, cells wrapping); `scroll` lets it run wide. An unknown
     /// name round-trips.
     pub table_layout: String,
-    /// How tall a note card on the board may grow (`short` / `medium` /
-    /// `tall`); empty means the app's own. A Display choice, so this is the
-    /// notebook's answer for a machine that has none. Unpoliced, like the
-    /// looks above: the list of heights is the interface's.
-    pub card_height: String,
+    /// How many lines of a note a card on the board draws — its ceiling.
+    /// A Display choice, so this is the notebook's answer for a machine that
+    /// has none. The RANGE is the interface's; a number outside it is the
+    /// front's to clamp, not the core's to refuse.
+    pub card_lines: i64,
     /// Where "fresh", "stale" and "forgotten" begin, in days (`crate::age`).
     /// A notebook preference, not a machine one.
     pub age: crate::age::Thresholds,
@@ -266,8 +267,10 @@ impl Default for Config {
             timeline_ghost_tasks: false,
             timeline_ghost_notes: false,
             auto_urgent_by_date: true,
-            auto_remind: Default::default(),
             reminder_time: Default::default(),
+            day_summary: false,
+            day_summary_time: crate::reminders::ReminderTime::parse("08:00")
+                .expect("08:00 is a valid time"),
             new_tasks_on_top: true,
             auto_space_colors: false,
             date_display_format: DateFormat::default(),
@@ -289,7 +292,7 @@ impl Default for Config {
             offer_task_fields: true,
             note_layout: String::new(),
             table_layout: String::new(),
-            card_height: String::new(),
+            card_lines: 12,
             age: crate::age::Thresholds::default(),
             trash_retention_days: 30,
             completed_retention_days: 30,
@@ -460,14 +463,16 @@ impl Config {
             timeline_ghost_tasks: flag(&raw, "timelineGhostTasks", defaults.timeline_ghost_tasks),
             timeline_ghost_notes: flag(&raw, "timelineGhostNotes", defaults.timeline_ghost_notes),
             auto_urgent_by_date: flag(&raw, "autoUrgentByDate", defaults.auto_urgent_by_date),
-            auto_remind: string(&raw, "autoRemind")
-                .as_deref()
-                .map(crate::reminders::AutoRemind::parse_or_default)
-                .unwrap_or_default(),
             reminder_time: string(&raw, "reminderTime")
                 .as_deref()
                 .map(crate::reminders::ReminderTime::parse_or_default)
                 .unwrap_or_default(),
+            day_summary: flag(&raw, "daySummary", defaults.day_summary),
+            day_summary_time: string(&raw, "daySummaryTime")
+                .as_deref()
+                .map(crate::reminders::ReminderTime::parse)
+                .unwrap_or_default()
+                .unwrap_or(defaults.day_summary_time),
             new_tasks_on_top: flag(&raw, "newTasksOnTop", defaults.new_tasks_on_top),
             auto_space_colors: flag(&raw, "autoSpaceColors", defaults.auto_space_colors),
             date_display_format: string(&raw, "dateDisplayFormat")
@@ -496,7 +501,11 @@ impl Config {
             offer_task_fields: flag(&raw, "offerTaskFields", defaults.offer_task_fields),
             note_layout: string(&raw, "noteLayout").unwrap_or(defaults.note_layout),
             table_layout: string(&raw, "tableLayout").unwrap_or(defaults.table_layout),
-            card_height: string(&raw, "cardHeight").unwrap_or(defaults.card_height),
+            card_lines: raw
+                .get("cardLines")
+                .and_then(Value::as_i64)
+                .filter(|lines| *lines > 0)
+                .unwrap_or(defaults.card_lines),
             age: parse_age(raw.get("age"), defaults.age),
             trash_retention_days: raw
                 .get("trashRetentionDays")
@@ -570,8 +579,9 @@ impl Config {
             ("timelineGhostTasks", Value::from(self.timeline_ghost_tasks)),
             ("timelineGhostNotes", Value::from(self.timeline_ghost_notes)),
             ("autoUrgentByDate", Value::from(self.auto_urgent_by_date)),
-            ("autoRemind", Value::from(self.auto_remind.render())),
             ("reminderTime", Value::from(self.reminder_time.render())),
+            ("daySummary", Value::from(self.day_summary)),
+            ("daySummaryTime", Value::from(self.day_summary_time.render())),
             ("newTasksOnTop", Value::from(self.new_tasks_on_top)),
             ("autoSpaceColors", Value::from(self.auto_space_colors)),
             (
@@ -585,6 +595,7 @@ impl Config {
             ("quickNoteFolder", Value::from(self.quick_note_folder.clone())),
             ("quickTaskList", Value::from(self.quick_task_list.clone())),
             ("tasksShowAll", Value::from(self.tasks_show_all)),
+            ("cardLines", Value::from(self.card_lines)),
             ("offerTaskFields", Value::from(self.offer_task_fields)),
             ("trashRetentionDays", Value::from(self.trash_retention_days)),
             (
@@ -596,6 +607,10 @@ impl Config {
         // notebook stays free of empty keys — and going back to the default
         // must REMOVE the key, or a stale one in `raw` survives the rewrite.
         let mut cleared: Vec<&str> = Vec::new();
+        // A key this build no longer writes. It used to ring every dated task
+        // without being asked; the day summary replaced it, and a leftover
+        // value would say nothing to anyone.
+        cleared.push("autoRemind");
         let put_or_clear = crate::jsondoc::put_or_clear;
         // Absent means the dragged order, the default.
         put_or_clear(
@@ -618,7 +633,6 @@ impl Config {
             ("formatBarSide", &self.format_bar_side),
             ("noteLayout", &self.note_layout),
             ("tableLayout", &self.table_layout),
-            ("cardHeight", &self.card_height),
             ("daySort", &self.day_sort),
         ] {
             put_or_clear(

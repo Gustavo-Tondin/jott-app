@@ -22,6 +22,17 @@ describe("fontValue", () => {
 
   test("a generic family is not quoted — quoting it would name a font nobody has", () => {
     expect(fontValue("interface", "serif")).toBe("serif, \"Inter\", system-ui, sans-serif");
+
+    // `system-ui` is the one keyword that does not mean the same thing on
+    // every engine: WebKitGTK resolves it through fontconfig and never reads
+    // the desktop's own setting, so the family the bridge answers with goes
+    // in front of it — and the app's face is left OUT, or it would win the
+    // moment that family went missing and the choice would look ignored.
+    expect(fontValue("interface", "system-ui", "TRIAL Rooftop")).toBe(
+      '"TRIAL Rooftop", system-ui, sans-serif',
+    );
+    expect(fontValue("interface", "system-ui")).toBe("system-ui, sans-serif");
+    expect(fontValue("interface", "system-ui", 'Ev"il')).toBe("system-ui, sans-serif");
   });
 
   test("a name that could break out of the value is refused, not escaped", () => {

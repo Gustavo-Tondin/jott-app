@@ -24,10 +24,12 @@ pub struct DisplayPrefs {
     pub accent_color: Option<String>,
     pub heading_color: Option<String>,
     pub note_font_size: Option<String>,
-    /// How tall a note card on the board may grow (`short` / `medium` /
-    /// `tall`). Display, because it answers to a SCREEN: the same board is a
+    /// How many lines of a note a card on the board draws, and how a notes
+    /// space arranges that board (`grid` / `tree`) until it chooses for
+    /// itself. Display, because both answer to a SCREEN: the same board is a
     /// wall of cards on a monitor and a column on a phone.
-    pub card_height: Option<String>,
+    pub card_lines: Option<i64>,
+    pub note_layout: Option<String>,
     /// The three faces. Display, because which fonts exist is a fact about
     /// THIS machine and must not travel with the notebook. Absent is "this
     /// machine did not answer", and the notebook's own choice stands.
@@ -67,7 +69,8 @@ impl DisplayPrefs {
         take(&mut self.accent_color, patch.accent_color);
         take(&mut self.heading_color, patch.heading_color);
         take(&mut self.note_font_size, patch.note_font_size);
-        take(&mut self.card_height, patch.card_height);
+        take(&mut self.card_lines, patch.card_lines);
+        take(&mut self.note_layout, patch.note_layout);
         // A family name is written into a CSS declaration, so a name that
         // could end the declaration is dropped here rather than at every
         // reader. An empty name is how the app's own face is asked for.
@@ -138,7 +141,8 @@ pub struct Display {
     pub accent_color: String,
     pub heading_color: String,
     pub note_font_size: String,
-    pub card_height: String,
+    pub card_lines: i64,
+    pub note_layout: String,
     pub interface_font: String,
     pub note_font: String,
     pub mono_font: String,
@@ -171,10 +175,11 @@ impl Display {
                 .note_font_size
                 .clone()
                 .unwrap_or_else(|| config.note_font_size.clone()),
-            card_height: machine
-                .card_height
+            card_lines: machine.card_lines.unwrap_or(config.card_lines),
+            note_layout: machine
+                .note_layout
                 .clone()
-                .unwrap_or_else(|| config.card_height.clone()),
+                .unwrap_or_else(|| config.note_layout.clone()),
             interface_font: machine
                 .interface_font
                 .clone()
@@ -234,10 +239,12 @@ pub struct NotebookSettings {
     pub timeline_ghost_tasks: Option<bool>,
     pub timeline_ghost_notes: Option<bool>,
     pub auto_urgent_by_date: Option<bool>,
-    /// `off` / `dayOf` / `dayBefore` / `both` — see `reminders::AutoRemind`.
-    pub auto_remind: Option<String>,
-    /// `HH:MM`.
+    /// `HH:MM` — the hour the inspector's reminder presets land on.
     pub reminder_time: Option<String>,
+    /// One notification at the start of the day, listing what it holds, and
+    /// `HH:MM` for when it is made.
+    pub day_summary: Option<bool>,
+    pub day_summary_time: Option<String>,
     pub new_tasks_on_top: Option<bool>,
     pub auto_space_colors: Option<bool>,
     pub date_display_format: Option<String>,
@@ -250,9 +257,9 @@ pub struct NotebookSettings {
     /// `"ink"` draws headings in plain ink; empty (or anything else) accents.
     pub heading_color: Option<String>,
     pub note_font_size: Option<String>,
-    /// How tall a note card on the board may grow; empty goes back to the
-    /// app's own.
-    pub card_height: Option<String>,
+    /// How many lines of a note a card on the board draws; a number outside
+    /// the interface's range goes back to the app's own.
+    pub card_lines: Option<i64>,
     /// The three faces, by family name; empty goes back to the app's own. A
     /// name that could not be written into CSS is refused on the way IN — the
     /// one Display value that arrives from a machine's own font library
@@ -302,8 +309,9 @@ impl NotebookSettings {
             timeline_ghost_tasks: Some(config.timeline_ghost_tasks),
             timeline_ghost_notes: Some(config.timeline_ghost_notes),
             auto_urgent_by_date: Some(config.auto_urgent_by_date),
-            auto_remind: Some(config.auto_remind.render().to_string()),
             reminder_time: Some(config.reminder_time.render()),
+            day_summary: Some(config.day_summary),
+            day_summary_time: Some(config.day_summary_time.render()),
             new_tasks_on_top: Some(config.new_tasks_on_top),
             auto_space_colors: Some(display.auto_space_colors),
             date_display_format: Some(display.date_display_format.clone()),
@@ -312,7 +320,7 @@ impl NotebookSettings {
             theme: Some(display.theme.clone()),
             heading_color: Some(display.heading_color.clone()),
             note_font_size: Some(display.note_font_size.clone()),
-            card_height: Some(display.card_height.clone()),
+            card_lines: Some(display.card_lines),
             interface_font: Some(display.interface_font.clone()),
             note_font: Some(display.note_font.clone()),
             mono_font: Some(display.mono_font.clone()),
@@ -323,7 +331,7 @@ impl NotebookSettings {
             quick_task_list: Some(config.quick_task_list.clone()),
             tasks_show_all: Some(config.tasks_show_all),
             offer_task_fields: Some(config.offer_task_fields),
-            note_layout: Some(config.note_layout.clone()),
+            note_layout: Some(display.note_layout.clone()),
             table_layout: Some(config.table_layout.clone()),
             completed_retention_days: Some(config.completed_retention_days),
             trash_retention_days: Some(config.trash_retention_days),
@@ -366,11 +374,20 @@ impl NotebookSettings {
         if let Some(v) = self.auto_urgent_by_date {
             config.auto_urgent_by_date = v;
         }
-        if let Some(v) = &self.auto_remind {
-            config.auto_remind = crate::reminders::AutoRemind::parse_or_default(v);
-        }
         if let Some(v) = &self.reminder_time {
             config.reminder_time = crate::reminders::ReminderTime::parse_or_default(v);
+        }
+        if let Some(v) = self.day_summary {
+            config.day_summary = v;
+        }
+        // An unreadable hour keeps the stored one: the summary has no "off"
+        // hour to fall back to, and the switch above is how it is turned off.
+        if let Some(at) = self
+            .day_summary_time
+            .as_deref()
+            .and_then(crate::reminders::ReminderTime::parse)
+        {
+            config.day_summary_time = at;
         }
         if let Some(v) = self.new_tasks_on_top {
             config.new_tasks_on_top = v;
@@ -396,8 +413,10 @@ impl NotebookSettings {
         if let Some(v) = &self.note_font_size {
             config.note_font_size = v.trim().to_string();
         }
-        if let Some(v) = &self.card_height {
-            config.card_height = v.trim().to_string();
+        // A card of no lines is not a card; the range itself is the
+        // interface's, so nothing else is judged here.
+        if let Some(v) = self.card_lines.filter(|lines| *lines > 0) {
+            config.card_lines = v;
         }
         // The one Display value with a gate: a family name is written into a
         // CSS declaration, so a name that could end the declaration is not
@@ -490,8 +509,9 @@ pub fn reset_section(config: &mut Config, section: &str) -> bool {
             config.auto_urgent_by_date = d.auto_urgent_by_date;
             config.tasks_show_all = d.tasks_show_all;
             config.offer_task_fields = d.offer_task_fields;
-            config.auto_remind = d.auto_remind;
             config.reminder_time = d.reminder_time;
+            config.day_summary = d.day_summary;
+            config.day_summary_time = d.day_summary_time;
             config.new_tasks_on_top = d.new_tasks_on_top;
         }
         "time" => {
@@ -499,7 +519,6 @@ pub fn reset_section(config: &mut Config, section: &str) -> bool {
             config.timeline_ghost_notes = d.timeline_ghost_notes;
         }
         "notes" => {
-            config.note_layout = d.note_layout;
             config.table_layout = d.table_layout;
             config.confirm_image_downloads = d.confirm_image_downloads;
             config.format_bar = d.format_bar;

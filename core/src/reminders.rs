@@ -1,55 +1,18 @@
-//! Reminders: when a task should ring. Two sources, one list: the task's own
-//! `remind:` moment ([`crate::task::Task::remind`]) and the notebook's
-//! **automatic** rule for every dated task (day of, day before, or both, at
-//! the reminder time). The automatic one is computed here and never written
-//! to the task. Who rings is the shell; this module answers "what, and when".
+//! Reminders: when a task should ring. One source — the task's own `remind:`
+//! moment ([`crate::task::Task::remind`]), asked for task by task. Nothing
+//! rings a task that did not ask; what the notebook offers instead is the
+//! day summary (`Config::day_summary`), which is a notification about the
+//! DAY, not about a task. Who rings is the shell; this module answers
+//! "what, and when".
 
-use chrono::{Duration, NaiveDateTime, NaiveTime};
+use chrono::NaiveTime;
 use serde::{Deserialize, Serialize};
 
 use crate::task::{render_datetime, Task};
 
-/// Whether dated tasks ring without being asked, and when.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub enum AutoRemind {
-    #[default]
-    Off,
-    /// On the due day, at the reminder time.
-    DayOf,
-    /// The day before, at the reminder time.
-    DayBefore,
-    /// Both: the day before and the due day, two reminders.
-    Both,
-}
-
-impl AutoRemind {
-    pub fn parse(text: &str) -> Option<Self> {
-        match text.trim() {
-            "off" => Some(Self::Off),
-            "dayOf" => Some(Self::DayOf),
-            "dayBefore" => Some(Self::DayBefore),
-            "both" => Some(Self::Both),
-            _ => None,
-        }
-    }
-
-    /// Unknown falls back to the default, like every other config value.
-    pub fn parse_or_default(text: &str) -> Self {
-        Self::parse(text).unwrap_or_default()
-    }
-
-    pub fn render(self) -> &'static str {
-        match self {
-            Self::Off => "off",
-            Self::DayOf => "dayOf",
-            Self::DayBefore => "dayBefore",
-            Self::Both => "both",
-        }
-    }
-}
-
-/// The time of day an automatic reminder rings, and the hour the inspector's
-/// presets ("tomorrow morning", "on the due date") land on.
+/// A time of day the notebook holds: the hour the inspector's reminder
+/// presets ("tomorrow morning", "on the due date") land on, and the hour the
+/// day summary is announced at.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ReminderTime(NaiveTime);
 
@@ -93,68 +56,22 @@ pub struct Reminder {
     pub text: String,
     /// The moment, as the task file writes it (`2026-07-25T09:00`, local).
     pub at: String,
-    /// `true` when the notebook's automatic rule produced this, `false` when
-    /// the task asked for it. A task that asked keeps its own and does not
-    /// also get the automatic one.
-    pub auto: bool,
 }
 
-/// The reminders of one task under the notebook's rule: none, the task's
-/// own, or the automatic one (two under `Both`). A done task never rings,
-/// and a task's own `remind:` wins over the automatic one — it does not
-/// also get the automatic ring.
-pub fn reminders_of(
-    list: &str,
-    position: usize,
-    task: &Task,
-    auto: AutoRemind,
-    time: ReminderTime,
-) -> Vec<Reminder> {
+/// The reminder of one task: the moment it asked for, or nothing. A done
+/// task never rings, and a date alone never does — a task rings because
+/// someone set `remind:` on it.
+pub fn reminder_of(list: &str, position: usize, task: &Task) -> Option<Reminder> {
     if task.done {
-        return Vec::new();
+        return None;
     }
-    let moments: Vec<(NaiveDateTime, bool)> = match task.remind {
-        Some(at) => vec![(at, false)],
-        None => automatic_moments(task, auto, time)
-            .into_iter()
-            .map(|at| (at, true))
-            .collect(),
-    };
-    moments
-        .into_iter()
-        .map(|(at, is_auto)| Reminder {
-            list: list.to_string(),
-            id: task.id.clone(),
-            position,
-            text: task.text.clone(),
-            at: render_datetime(at),
-            auto: is_auto,
-        })
-        .collect()
-}
-
-/// The task's first reminder, for callers that want one. See `reminders_of`.
-pub fn reminder_of(
-    list: &str,
-    position: usize,
-    task: &Task,
-    auto: AutoRemind,
-    time: ReminderTime,
-) -> Option<Reminder> {
-    reminders_of(list, position, task, auto, time).into_iter().next()
-}
-
-fn automatic_moments(task: &Task, auto: AutoRemind, time: ReminderTime) -> Vec<NaiveDateTime> {
-    let Some(due) = task.due else {
-        return Vec::new();
-    };
-    let days = match auto {
-        AutoRemind::Off => return Vec::new(),
-        AutoRemind::DayOf => vec![due],
-        AutoRemind::DayBefore => vec![due - Duration::days(1)],
-        AutoRemind::Both => vec![due - Duration::days(1), due],
-    };
-    days.into_iter().map(|day| day.and_time(time.time())).collect()
+    task.remind.map(|at| Reminder {
+        list: list.to_string(),
+        id: task.id.clone(),
+        position,
+        text: task.text.clone(),
+        at: render_datetime(at),
+    })
 }
 
 /// Sorts soonest first; ties keep list order, which is the order they came in.
@@ -175,32 +92,19 @@ mod tests {
     }
 
     #[test]
-    fn a_task_with_its_own_reminder_rings_then_and_only_then() {
+    fn a_task_rings_at_the_moment_it_asked_for() {
         let mut task = dated("2026-07-25");
         task.remind = parse_datetime("2026-07-24T18:00");
-        let r = reminder_of("Tasks/task-list.md", 3, &task, AutoRemind::DayOf, ReminderTime::default())
-            .unwrap();
+        let r = reminder_of("Tasks/task-list.md", 3, &task).unwrap();
         assert_eq!(r.at, "2026-07-24T18:00");
-        assert!(!r.auto, "its own reminder, not the automatic one");
         assert_eq!(r.position, 3);
     }
 
     #[test]
-    fn the_automatic_rule_rings_dated_tasks_at_the_reminder_time() {
-        let task = dated("2026-07-25");
-        let at = |auto| {
-            reminder_of("L", 0, &task, auto, ReminderTime::parse("08:30").unwrap()).map(|r| r.at)
-        };
-        assert_eq!(at(AutoRemind::Off), None);
-        assert_eq!(at(AutoRemind::DayOf).as_deref(), Some("2026-07-25T08:30"));
-        assert_eq!(at(AutoRemind::DayBefore).as_deref(), Some("2026-07-24T08:30"));
-        assert!(reminder_of("L", 0, &task, AutoRemind::DayOf, ReminderTime::default()).unwrap().auto);
-    }
-
-    #[test]
-    fn an_undated_task_gets_no_automatic_reminder() {
-        let task = Task::new("Sem data");
-        assert_eq!(reminder_of("L", 0, &task, AutoRemind::DayOf, ReminderTime::default()), None);
+    fn a_date_alone_never_rings() {
+        // Dated tasks are announced by the day summary, one notification for
+        // the whole day — not by a bell each.
+        assert_eq!(reminder_of("L", 0, &dated("2026-07-25")), None);
     }
 
     #[test]
@@ -208,24 +112,11 @@ mod tests {
         let mut task = dated("2026-07-25");
         task.done = true;
         task.remind = parse_datetime("2026-07-24T18:00");
-        assert_eq!(reminder_of("L", 0, &task, AutoRemind::DayOf, ReminderTime::default()), None);
-    }
-
-    #[test]
-    fn the_day_before_crosses_a_month_boundary() {
-        let task = dated("2026-08-01");
-        let r = reminder_of("L", 0, &task, AutoRemind::DayBefore, ReminderTime::default()).unwrap();
-        assert_eq!(r.at, "2026-07-31T09:00");
+        assert_eq!(reminder_of("L", 0, &task), None);
     }
 
     #[test]
     fn config_values_round_trip_and_refuse_nonsense() {
-        for v in [AutoRemind::Off, AutoRemind::DayOf, AutoRemind::DayBefore, AutoRemind::Both] {
-            assert_eq!(AutoRemind::parse(v.render()), Some(v));
-        }
-        assert_eq!(AutoRemind::parse("sometimes"), None);
-        assert_eq!(AutoRemind::parse_or_default("sometimes"), AutoRemind::Off);
-
         assert_eq!(ReminderTime::parse("18:05").unwrap().render(), "18:05");
         assert_eq!(ReminderTime::parse("9:00").unwrap().render(), "09:00");
         assert_eq!(ReminderTime::parse("25:00"), None);
@@ -241,7 +132,6 @@ mod tests {
             position: 0,
             text: String::new(),
             at: at.into(),
-            auto: false,
         };
         let mut list = vec![mk("2026-07-25T09:00"), mk("2026-07-24T18:00"), mk("2026-07-25T08:00")];
         sort(&mut list);

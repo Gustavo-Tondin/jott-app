@@ -92,12 +92,16 @@ what the current version is.
 - Every task carries the day it entered the app — a line you typed by hand
   gets today's date the next time the notebook opens, and nothing else
   about it changes.
-- **Reminders**: a date and time on any task (presets or your own), or an
-  automatic one for every dated task — the day of, the day before, or both,
-  at an hour you choose. They ring through the system's notifications; on the
-  desktop Jott waits in the tray after the window closes (and can start with
-  the session), on Android the alarm is the system's and rings with the app
-  closed.
+- **Reminders**: a date and time on any task, from a preset or your own.
+- **Day summary**: one notification at the hour you choose, saying how many
+  tasks the day holds and naming them.
+  Both ring through the system's notifications; on the desktop Jott waits in
+  the tray after the window closes (and can start with the session), on
+  Android the alarm is the system's and rings with the app closed.
+- **Repetition**: every N days, weeks or months — the next occurrence is
+  counted from the original date, so finishing late does not push it — or
+  **freely**, which comes back undated the moment you tick it, one open copy
+  at a time.
 - At midnight, unfinished tasks either go back to being suggestions or
   stay pulled — your call.
 
@@ -159,8 +163,8 @@ what the current version is.
   The app writes the first one for you, out of the look already on screen
   ([how](documentation/theming.md)).
 - Three font choices (interface, note body, monospace) from the fonts your
-  machine has; interface zoom; note text size; how tall a note card on the
-  board may grow.
+  machine has; interface zoom; note text size; how the notes board is laid
+  out and how tall its cards may grow. All of it per machine.
 - Configurable keyboard shortcuts for ~50 commands.
 - One responsive shell: sidebar and panels on the desktop, drawer and bottom
   sheets on the phone, where the top bar floats over the page and its buttons
