@@ -1,26 +1,9 @@
 <script>
-  // The `notes` source: a board of note cards, or a folder tree.
-  //
-  // Same note in both views — the layout is a preference, never a change to
-  // the file (spec 5). Opening a note hands over to the editor; this screen
-  // only ever lists.
-  //
-  // Etapa 1 (2026-08-04): the source owns its arrangement — `sort` + `order`
-  // in its `.space.json`, chosen in the ⋮ menu or by dragging a card on the
-  // board (the same contract the tasks source keeps).
-  //
-  // The board redrawn (2026-08-18, wireframes "Notes screen - default",
-  // "Space Notes", "Notes Screen - mobile"): a card is its banner, its title on
-  // a chip over it and its first lines (components/NoteCard.svelte), and a
-  // FOLDER of notes is a card too — a coloured block with the notes it holds
-  // drawn small inside. Which is which is `services/noteBoard.js`, so the rule
-  // that the inbox is not a folder card is testable without a DOM.
-  //
-  // The bar above it redrawn (2026-08-19, wireframes "Grid"): the row of
-  // buttons is gone and what it did is in two places — the ⋮ (new note, new
-  // group, select, sort, layout) and the QUICK NOTE bar, which is the note
-  // itself being typed before it exists. A folder card no longer navigates the
-  // screen either: it opens over the board, as a popover of its own.
+  // The `notes` source: a board of note cards, or a folder tree. Same note in
+  // both views — the layout is a preference, never a change to the file.
+  // Opening a note hands over to the editor; this screen only ever lists.
+  // A FOLDER is a card too (services/noteBoard.js says which is which), and
+  // it opens over the board as a popover of its own.
   import { api } from "../services/api.js";
   import { S } from "../services/strings.js";
   import EmptyState from "../components/EmptyState.svelte";
@@ -53,11 +36,9 @@
     /// Every notes space of the notebook (`{ path, name }`), for "move to".
     /// Empty means the board offers moving inside this space only.
     noteSpaces = [],
-    /// Whether the titled row is drawn — the same pact the tasks screen keeps
-    /// (spaces/TasksSpace.svelte). The row itself is always there, because the
-    /// ⋮ belongs at the top right of every source; `header` only decides
-    /// whether the place is NAMED on it. Below 768px it is not: the shell's
-    /// header says the name right above (user report, 2026-08-18).
+    /// Whether the place is NAMED on the row (spaces/TasksSpace.svelte keeps
+    /// the same pact). The row itself is always there — the ⋮ belongs at the
+    /// top right of every source. Below 768px the shell's header says the name.
     header = true,
     /// The colour of the PLACE, as a name (services/accent.js) — the dot after
     /// the title. Left `undefined` there is no dot: only a place the user
@@ -72,19 +53,14 @@
     defaultLayout = "grid",
     onChanged,
     onError,
-    /// `(path, folder, { fresh, newTab })` — `fresh` is a note this screen has
-    /// just created empty, so the shell puts the cursor in its body rather than
-    /// leaving it in a document nobody has typed into yet. `newTab` is the
-    /// middle button and the right button's first row: a card is a link, and a
-    /// link opens beside what you are reading without taking it away.
+    /// `(path, folder, { fresh, newTab })` — `fresh` is a note just created
+    /// empty, so the shell puts the cursor in its body. `newTab` is the middle
+    /// button and the right button's first row: a card is a link.
     onOpenNote,
     reloadKey = 0,
-    /// Which parts of the app are on (`services/features.js`). Notes gained
-    /// sub-functions on 2026-08-20, the way tasks always had them: a board
-    /// with folders off is flat, one with pins off has no pin, and a note with
-    /// banners off is a title and its text. Nothing on disk changes either
-    /// way — a folder that exists still holds its notes, and its notes are
-    /// still listed.
+    /// Which parts of the app are on (`services/features.js`): folders off is
+    /// a flat board, pins off has no pin, banners off is a title and its text.
+    /// Nothing on disk changes either way.
     f = () => true,
     /// How a date is drawn — the notebook's `dateDisplayFormat`, which the
     /// age stamp falls back to once a card stops counting days.
@@ -101,17 +77,10 @@
 
   let notes = $state([]);
   let folders = $state([]);
-  /// `grid` (cards, Keep-like) or `tree` (by folder).
-  ///
-  /// The choice is the SPACE's (2026-08-21): it lives in its `.space.json`
-  /// next to `sort`, arrives through `source.noteLayout`, and a space that
-  /// never chose follows the notebook's default. It used to be session state
-  /// and was forgotten on every screen change (proposta §9-A).
-  ///
-  /// `chosenLayout` is the click before the refresh brings it back — and the
-  /// whole answer on a read-only notebook, where nothing can be written and
-  /// the choice is as session-local as it always was. It is dropped when the
-  /// source changes place: a choice made in one space is not the next one's.
+  /// `grid` (cards) or `tree` (by folder). The choice is the SPACE's — in its
+  /// `.space.json`, via `source.noteLayout`; unset follows the notebook's
+  /// default. `chosenLayout` is the click before the refresh brings it back,
+  /// and the whole answer on a read-only notebook; dropped on a change of place.
   let chosenLayout = $state(null);
   $effect(() => {
     void folder;
@@ -171,7 +140,7 @@
   let target = $derived(openFolder ?? notesInbox);
 
   // Naming goes through the app's own dialog — window.prompt is a no-op in
-  // WebKitGTK (the widget-creation bug of 2026-07-30).
+  // WebKitGTK.
   const create = () =>
     act(async () => {
       const title = await askName(S.promptNewNote, S.newNoteTitle, {
@@ -197,11 +166,9 @@
     onOpenNote?.(entry.path, folder, { newTab });
 
   // ---- the right button on a card ----
-  // One panel for the whole board, at the pointer — the same pact the sidebar
-  // keeps (shell/Sidebar.svelte): a card reports the gesture, the screen owns
-  // where the menu goes. It carries the card's own ⋮ items under the one row
-  // the right button exists for here, and it is offered on a read-only
-  // notebook too: opening a second tab writes nothing.
+  // One panel for the whole board, at the pointer (the sidebar keeps the same
+  // pact): a card reports the gesture, the screen owns the menu. Offered on a
+  // read-only notebook too: opening a second tab writes nothing.
   let cardMenuAt = $state(null);
   let cardMenuShown = $state([]);
 
@@ -241,28 +208,18 @@
       if (moved > 0) onError?.({ kind: "info", message: S.folderEmptied(moved, name) });
     });
 
-  // A folder of notes has a colour and a pin of its own since 2026-08-19, and
-  // both live in the SPACE's config — a folder is a plain directory and the
-  // app writes no marker inside the user's tree (core/src/space.rs).
+  // A folder's colour and pin live in the SPACE's config — a folder is a plain
+  // directory and the app writes no marker inside the user's tree (core/src/space.rs).
   const pinFolder = (group) =>
     act(() => api.setNoteFolderPinned(folder, group.path, !group.pinned));
 
   const colorFolder = (group, color) =>
     act(() => api.setNoteFolderColor(folder, group.path, color || null));
 
-  // ---- the quick note bar (2026-08-19) ----
-  //
-  // What is typed here is the note's own BODY, not its name: someone jotting
-  // something down types the thing, and the app names it (`New note`, and
-  // `New note 2` after that — `fsio::free_name`, the same suffix every
-  // collision in the notebook takes). Asking for a title first would ask for
-  // the one thing the writer does not know yet.
-  //
-  // Enter files it and leaves the field ready for the next one; Shift+Enter is
-  // a new line, which is why this is a textarea. And + on an EMPTY field means
-  // the other gesture entirely: make the note and open it, with the cursor in
-  // its body — nothing was typed here, so there is nothing to keep the writer
-  // in this screen for.
+  // ---- the quick note bar ----
+  // What is typed here is the note's BODY, not its name: the app names it
+  // (`fsio::free_name`). Enter files it and keeps the field; Shift+Enter is a
+  // new line (hence a textarea). + on an EMPTY field makes the note and opens it.
   let draft = $state("");
   let quick = $state(null);
 
@@ -286,13 +243,10 @@
     quickCreate();
   }
 
-  // ---- arrangement (Etapa 1) ----
-  //
+  // ---- arrangement ----
   // The same accessors answer for a FOLDER card, because the board arranges
-  // the two kinds together (see `laidOut`): a folder is titled by its `name`,
-  // and it has no date of its own — under `created` it lands with everything
-  // else that carries no stamp, at the end, which is the tolerance arrange()
-  // already keeps rather than a rule of its own.
+  // both kinds together (`laidOut`): a folder is titled by `name` and has no
+  // date, so under `created` it lands at the end with everything unstamped.
   const accessors = {
     nameOf: (n) => n.title ?? n.name,
     createdOf: (n) => n.created,
@@ -332,21 +286,10 @@
       : here.cards,
   );
 
-  /// **The board is ONE arrangement** (2026-08-19): the folder cards and the
-  /// notes, arranged and pinned together, in the order the space remembers.
-  ///
-  /// They used to be two blocks — every folder first, every note after — and
-  /// that is the whole reason a folder card could not be dragged at all (user
-  /// report): the drag was told to pick up `.notes-space__item` only, the
-  /// order it saved held note addresses only, and the folders never went
-  /// through `arrange()`, so an order that named one would have been thrown
-  /// away on the next read anyway. Now a folder is a card like the others:
-  /// dragged, it stays where it was dropped, and its address rides in the same
-  /// `order` (a folder's has no `.md`, so the two never collide).
-  ///
-  /// Untouched, the board still opens folders-first: that is the order
-  /// `board()` hands them over in, and the file order is what `sort: null`
-  /// means. Folder cards are the grid's own: the tree view has its chips.
+  /// **The board is ONE arrangement**: folder cards and notes arranged and
+  /// pinned together, in the order the space remembers — a folder's address
+  /// rides in the same `order` (no `.md`, so the two never collide). Untouched
+  /// it opens folders-first, `board()`'s order. The tree view has chips instead.
   let laidOut = $derived(laid(layout === "grid" ? [...here.groups, ...atHand] : atHand));
 
   /// Which cards are folders, and which are notes. A folder card carries the
@@ -354,9 +297,7 @@
   const isGroup = (card) => Array.isArray(card?.notes);
 
   // The same ⋮ every source carries (services/spaceMenu.js), minus the
-  // completion date: a note has none, so that sorting would be a dead entry.
-  // Creating lives here now: the wireframe's board has a name, a ⋮ and the
-  // quick-note bar, and nothing else above the cards.
+  // completion date: a note has none. Creating lives here too.
   let sortMenu = $derived(
     spaceMenu({
       lead: [
@@ -399,10 +340,8 @@
     }),
   );
 
-  /// A folder card's own ⋮ — the same shape a note card's has, because it is
-  /// the same gesture on the same board (user call, 2026-08-19). It replaced
-  /// the two underlined words that used to hang under the board, which were
-  /// reachable only once a folder was already open.
+  /// A folder card's own ⋮ — the same shape a note card's has: the same
+  /// gesture on the same board.
   const groupMenu = (group) =>
     readOnly
       ? []
@@ -519,14 +458,10 @@
     });
   };
 
-  // ---- the masonry (2026-08-19) ----
-  //
-  // The board measures itself and decides its own column count, then renders
-  // the cards column by column and tells the browser where to cut, so it
-  // reads by rows (services/noteColumns.js). The cards stay direct children
-  // of the board, which is what keeps the drag working — and reorder.js
-  // counts DOM slots, so its indices go through `columned.order` (or `shown`)
-  // before they mean a card. The tree view is one column: no cuts.
+  // ---- the masonry (services/noteColumns.js) ----
+  // The cards stay direct children of the board, which is what keeps the drag
+  // working — and reorder.js counts DOM slots, so its indices go through
+  // `columned.order` (or `shown`) before they mean a card. Tree view: one column.
   let boardWidth = $state(0);
   /// The board element, so the folder cards inside it can be offered as drop
   /// zones (a note dropped on a folder is filed into it).
@@ -536,29 +471,19 @@
   /// The cards in DOM order — what a reorder.js index points at.
   let shown = $derived(columned.order.map((i) => laidOut[i]));
 
-  // Dragging a card on the board saves what the user built as the custom
-  // order (of card addresses — a folder's among them since 2026-08-19). Only
-  // on the unfiltered board: reordering one folder of the tree would silently
-  // rewrite the rest.
+  // Dragging saves what the user built as the custom order. Only on the
+  // unfiltered board: reordering one folder of the tree would rewrite the rest.
   let canDrag = $derived(
     !readOnly && !picking && layout === "grid" && laidOut.length > 1,
   );
 
-  /// Files a note into a folder of this space — what dropping its card on a
-  /// folder card means (user call, 2026-08-19).
+  /// Files a note into a folder of this space — dropping its card on a folder card.
   const fileInto = (entry, path) =>
     act(() => api.moveNoteToSpace(folder, entry.path, folder, path));
 
-  /// Two NOTES dropped one on the other become a FOLDER holding both. The name
-  /// is asked for, because a folder made without one would have to be called
-  /// something the app invented — and the folder is the user's filing, not the
-  /// app's.
-  ///
-  /// Only two notes: a folder card dropped on anything is only ever being put
-  /// somewhere in the order (`canDropInto` below keeps the ring from lighting
-  /// up around a target that would do nothing). Nesting a folder inside
-  /// another is a MOVE, which the core does not offer for a folder of notes —
-  /// so it is not pretended here.
+  /// Two NOTES dropped one on the other become a FOLDER holding both; the name
+  /// is asked for. Only two notes: nesting a folder in another is a MOVE the
+  /// core does not offer for a folder of notes, so `canDropInto` refuses it.
   const groupNotes = (a, b) =>
     act(async () => {
       const name = await askName(S.promptNewNoteFolder, "", { confirm: S.create });
@@ -610,10 +535,7 @@
 <div class="notes-space">
   <!-- The place's own row: the name centred, the ⋮ at the far right, and an
        invisible twin of the ⋮ on the left so the name is centred on the PANEL
-       and not on what is left of the row — the same construction the tasks
-       screen uses (2026-08-06, wireframes "Notes screen" and "Space Notes").
-       The ⋮ used to sit at the end of the controls bar below, which made the
-       screen's own menu read as one more of the board's filters. -->
+       (the tasks screen uses the same construction). -->
   <header class="notes-space__head">
     <span class="theme-mirror notes-space__mirror" aria-hidden="true">
       <span class="theme-btn--icon">
@@ -745,8 +667,8 @@
           zone.dataset.spaceDrop != null
             ? moveCardTo(shown[from], zone.dataset.spaceDrop)
             : fileInto(shown[from], zone.dataset.folder),
-        // The free drag (Ctrl, 2026-08-26): a NOTE carried to a notepad in
-        // the sidebar goes into its Inbox folder. A folder card offers none.
+        // The free drag (Ctrl): a NOTE carried to a notepad in the sidebar
+        // goes into its Inbox folder. A folder card offers none.
         free: readOnly ? null : (e) => e.ctrlKey || e.metaKey,
         freeZones: (from) =>
           isGroup(shown[from])
@@ -763,17 +685,10 @@
         {@const card = laidOut[index]}
         {#if isGroup(card)}
           {@const group = card}
-          <!-- A folder, as the wireframes draw it: a tinted block with the notes
-               it holds shown small inside — titles only, and never a banner,
-               because a closed group says what is in it and not what it looks
-               like (user call, 2026-08-19). The tint is the PLACE's colour (the
-               space's, or the app's accent): a note folder carries no marker
-               file of its own, so there is no colour to store on it and none is
-               invented.
-
-               It OPENS OVER THE BOARD, in a popover of two columns that behaves
-               like the board itself. It used to replace the screen, which meant
-               going into a folder was a navigation with no visible way back. -->
+          <!-- A folder: a tinted block with the notes it holds shown small
+               inside — titles only, never a banner. The tint is the PLACE's
+               colour: a note folder carries no marker file, so none is stored.
+               It OPENS OVER THE BOARD, in a popover that behaves like the board. -->
           <li
             class="notes-space__group"
             data-folder={group.path}

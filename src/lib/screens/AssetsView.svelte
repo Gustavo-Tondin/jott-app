@@ -1,17 +1,9 @@
 <script>
-  // Files — the notebook's library, opened from the sidebar's hamburger,
-  // beside Completed, Tags and the Trash.
-  //
-  // Everything the app points at from a document comes from here: a note's
-  // banner (`<!--banner: assets/x.png-->`), a file inside one
-  // (`[[/x.png]]`, services/embeds.js) and a task's attachment
-  // (`[nota.pdf](assets/nota.pdf)`) all name a file of this folder. The address
-  // is relative to the notebook's root, so it is the same address from every
-  // note and every task — which is why this is one library and not a folder
-  // per space.
-  //
-  // ANY file lives here; only an image is drawn (2026-08-18). A thumbnail for
-  // what the app can show, a glyph for what it cannot.
+  // Files — the notebook's library. Everything a document points at names a
+  // file here: a banner (`<!--banner: assets/x.png-->`), an embed (`[[/x.png]]`,
+  // services/embeds.js), a task attachment (`[nota.pdf](assets/nota.pdf)`).
+  // The address is root-relative — the same from every note, so it is one
+  // library, not a folder per space. ANY file lives here; only images draw.
   import { api } from "../services/api.js";
   import { S } from "../services/strings.js";
   import EmptyState from "../components/EmptyState.svelte";
@@ -30,8 +22,7 @@
     onChanged,
     onError,
     /// `(path, folder) => void` and `(list, id) => void` — the way to what
-    /// uses a file. The same two doors the search box opens its hits with, so
-    /// there is one answer to "open this hit" in the app (2026-08-19).
+    /// uses a file; the same two doors the search box opens its hits with.
     onOpenNote,
     onOpenTask,
     /// `(url) => Promise<void>` — a picture that is only on the web. Asking
@@ -60,9 +51,6 @@
     load();
   });
 
-  // The one shape every screen in this app uses to change the notebook: do
-  // it, re-read, tell the shell, route a failure to the banner (`act.js`).
-  // Four handlers here were each carrying their own copy of it.
   const { load, act } = makeScreen({
     read: async () => ({
       assets: (await api.assets()) ?? [],
@@ -101,8 +89,7 @@
   }
 
   /// The middle button on a note that uses the file: it opens beside the
-  /// library instead of replacing it, the same gesture a card on the board
-  /// answers.
+  /// library instead of replacing it.
   function middleGo(event, place) {
     if (event.button !== 1 || place.kind !== "note") return;
     event.preventDefault();
@@ -117,8 +104,7 @@
   }
 
   /// A file handed to the library — chosen, dropped on it, or pasted anywhere
-  /// on the screen. This screen IS the library, so it is the most obvious
-  /// thing in the app to hand a file to (user call, 2026-08-19).
+  /// on the screen.
   function take(brought) {
     if (brought.files.length || brought.paths.length) {
       return working(() => importBrought(brought));
@@ -131,20 +117,17 @@
   }
 
   /// Renaming, which the core makes safe: every note and task pointing at the
-  /// file is repointed in the same breath (`Notebook::rename_asset`). Leaving
-  /// the extension off is allowed — the old one comes along, because a person
-  /// renaming `IMG_2049.jpg` to `férias` means `férias.jpg`.
+  /// file is repointed (`Notebook::rename_asset`). Leaving the extension off
+  /// is allowed — the old one comes along.
   async function rename(asset) {
     const next = await askName(S.promptRenameFile(asset.name), asset.name);
     if (next && next !== asset.name) act(() => api.renameAsset(asset.path, next));
   }
 
   async function remove(asset) {
-    // The one delete in this app whose consequence is somewhere else: the
-    // file goes to the trash, and every note and task pointing at it is left
-    // pointing at nothing. Saying how many, BEFORE rather than after (user
-    // call, 2026-08-19) — the screen already knows, and knowing and not
-    // saying is the worst of the three options.
+    // The one delete whose consequence is somewhere else: the file goes to
+    // the trash, and every note and task pointing at it is left pointing at
+    // nothing. Say how many BEFORE, not after.
     const places = placesFor(asset).length;
     const ok = await askConfirm(S.confirmDeleteAsset(asset.name), {
       ...DELETING,
@@ -153,11 +136,9 @@
     if (ok) act(() => api.deleteAsset(asset.path));
   }
 
-  /// What a note calls the file — `/foto.jpg`, the piece that goes between a
-  /// pair of brackets (user call, 2026-08-19). Not the machine path, which
-  /// would break the moment the notebook moved to another computer; and not
-  /// `assets/foto.jpg`, which is where the file LIVES and not how it is
-  /// named.
+  /// What a note calls the file — `/foto.jpg`, what goes between a pair of
+  /// brackets. Not the machine path (breaks when the notebook moves), not
+  /// `assets/foto.jpg` (where the file LIVES, not how it is named).
   async function copy(asset) {
     try {
       await navigator.clipboard.writeText(referenceName(asset.path));
@@ -175,9 +156,8 @@
   const open = (asset) => api.openAsset(asset.path).catch((e) => onError?.(e));
 </script>
 
-<!-- Paste is listened for on the DOCUMENT here: this screen has nothing to
-     type in, so a paste is delivered to `<body>` and would never reach the
-     section (measured 2026-08-19). -->
+<!-- Paste is listened for on the DOCUMENT: this screen has nothing to type
+     in, so a paste is delivered to `<body>` and never reaches the section. -->
 <section
   class="assets-view"
   class:assets-view--taking={dragging}
@@ -284,9 +264,8 @@
     </ul>
   {/if}
 
-  <!-- Adding lives at the BOTTOM of the screen (user call, 2026-08-24), the
-       same edge the tasks screens keep their composing bar on — the grid is
-       for looking, the bottom is where the hand goes. -->
+  <!-- Adding lives at the BOTTOM of the screen, the same edge the tasks
+       screens keep their composing bar on. -->
   {#if !readOnly}
     <footer class="assets-view__foot">
       <button

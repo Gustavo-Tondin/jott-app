@@ -1,11 +1,8 @@
 <script>
   // The space colour + icon popup, opened from the ⋮ menu (controlled by
-  // `open`). A preset palette and, since 2026-09-07, the WHOLE Phosphor set
-  // behind a search field — the ten this popup used to offer lead the grid,
-  // and the other 1500 are a word away. Picking calls onColor/onIcon with
-  // the value — an empty string clears it, back to the default. Stays open
-  // across picks so both can be set at once; closes on outside pointer or
-  // Escape (swallowed) via onClose.
+  // `open`): a preset palette and the WHOLE Phosphor set behind a search
+  // field. Picking calls onColor/onIcon; an empty string clears. Stays open
+  // across picks; closes on outside pointer or Escape (swallowed) via onClose.
   import Icon from "./Icon.svelte";
   import AccentPicker from "./AccentPicker.svelte";
   import { dismissable } from "../actions/dismissable.js";
@@ -21,20 +18,14 @@
     onIcon,
     onClose,
     /// A space inside a group picks its ICON but not its colour — the
-    /// colour is the group's, for the whole section (2026-08-04/08-06).
+    /// colour is the group's, for the whole section.
     colors = true,
   } = $props();
 
-  // The colour row is the shared AccentPicker — the same seven the tag manager
-  // and the settings screen offer (2026-08-13). The icons stay here: they are
-  // this popup's own vocabulary.
-  //
-  // The two type defaults lead the grid (services/spaceIcon.js), so the
-  // icon a list or a notepad already wears is also the one to pick again;
-  // the eight after them are the ones the popup offered before it had a
-  // search, kept in front so a hand that knows them finds them where they
-  // were. They are also what the grid shows while the library is still on
-  // its way — all ten are in the bundle, so the popup never opens empty.
+  // The colour row is the shared AccentPicker; the icons are this popup's
+  // own. The two type defaults lead the grid (services/spaceIcon.js), then
+  // the eight the popup offered before it had a search. All ten are in the
+  // bundle and show while the library loads, so the popup never opens empty.
   const LEAD = [
     "list-checks", "notepad", "folder", "house", "check-square", "note",
     "list-bullets", "flag", "sun", "sparkle",

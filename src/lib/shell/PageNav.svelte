@@ -1,18 +1,9 @@
 <script>
-  // Back and forward over the active tab's own history (tabs.js).
-  //
-  // Its own component because the two bars that can hold it are different
-  // components: the page header owns it on the desktop, and the compact top
-  // bar owns it below 768px, where the header has given its whole width to the
-  // screen's name. Two `<button>`s copied into both places would be two places
-  // to fix the day an arrow grows a shortcut or a long-press.
-  //
-  // The arrows are DRAWN, not typed (user report, 2026-08-18): they used to be
-  // the literal characters ← and →, which the interface font renders at its
-  // own weight and baseline — thin, small, and sitting differently from every
-  // other glyph in the bar, because they are text and everything around them
-  // is an icon. Phosphor's arrows are the same 1.5px stroke as the rest of the
-  // set, so the row finally reads as one family.
+  // Back and forward over the active tab's own history (tabs.js). Its own
+  // component because two bars hold it: the page header on the desktop, the
+  // compact top bar below 768px. The arrows are icons, not the ← → characters:
+  // typed arrows render at the text font's weight and baseline, off from
+  // every icon beside them.
   import { S } from "../services/strings.js";
   import Icon from "../components/Icon.svelte";
 

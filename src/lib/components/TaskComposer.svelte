@@ -1,38 +1,9 @@
 <script>
-  // The composing row of the wireframes ("New task popup", "Tasks screen -
-  // default", "New task mobile"):
-  //
-  //     ☐ │ Create a task…       │ [📁 Inbox] [📅] [🚩] [⏰] [🔁] │ [＋]
-  //
-  // The square on the LEFT is drawn, not offered: it is the same unticked box
-  // the cards above wear, on the same x, so the bar reads as the next task
-  // rather than as a toolbar. Nothing to tick until the task exists.
-  //
-  // The ＋ on the RIGHT is the submit, and it is the one filled-brand control
-  // on the screen (wireframe, 2026-08-20) — the bar is where the screen wants
-  // the hand to go, and the blue is what says so.
-  //
-  // One implementation, two places: the middle of the New task dialog, and the
-  // bar pinned to the bottom of the Tasks screen. Only the frame differs.
-  //
-  // FIVE controls (user call, 2026-08-06): the list it lands in, and the four
-  // fields that are one value each. Tags and subtasks were here briefly and
-  // came back out — a field with an open number of values needs room to be
-  // read back, and the panel is where that room is.
-  //
-  // In the BAR they appear once the row is engaged and go away when it is let
-  // go, so an untouched screen shows one quiet line. In the dialog there is no
-  // ambiguity about what the row is for, so they are there from the start.
-  //
-  // BELOW 768px the same markup wraps into two lines — the five controls on
-  // top, the square, the writing and the ＋ under them (user call, 2026-08-18:
-  // on one line at 360px the field was down to three characters and the icons
-  // had no room to be missed). It is a wrap, not a second row in the markup,
-  // so this stays one form with one tab order:
-  // styles/components/task-composer.css.
-  //
-  // It collects an INTENT and hands it over; writing it is `taskCompose`'s job,
-  // because the same three bridge calls serve every caller.
+  // The composing row: ☐ │ Create a task… │ [📁 Inbox] [📅] [🚩] [⏰] [🔁] │ [＋]
+  // The square is drawn, not offered (the row reads as the next task); the ＋
+  // is the submit. One implementation, two frames: the New task dialog and the
+  // bar of the Tasks screen. Below 768px the markup WRAPS (task-composer.css),
+  // one form, one tab order. It collects an INTENT; `taskCompose` writes it.
   import { S } from "../services/strings.js";
   import { listTitle, splitLabel } from "../services/paths.js";
   import { emptyIntent } from "../services/taskCompose.js";
@@ -58,10 +29,9 @@
     /// Given the intent. Returning a promise is fine — the row clears as soon
     /// as it is handed over, so typing can continue immediately.
     onSubmit,
-    /// The bar was OPENED and can be put away (the Home's, on a phone). With
-    /// it set the bar grows the panels' grab handle — pull down (or tap it)
-    /// to close — and a task created with the keyboard already closed calls
-    /// it too: the run of tasks is over (user call, 2026-08-24).
+    /// The bar was OPENED and can be put away (the Home's, on a phone): it
+    /// grows the panels' grab handle — pull down or tap to close — and a task
+    /// created with the keyboard already closed calls it too.
     onDismiss = null,
   } = $props();
 
@@ -141,12 +111,9 @@
     if (far) putAway();
   }
 
-  /// Escape puts the bar away when it has the focus (user call, 2026-09-07:
-  /// "no desktop gostaria que desse pra fechar apertando esc com ele
-  /// selecionado, ou arrastando pros lados"). Swallowed, so the shell's own
-  /// Escape does not also close what is behind it — a menu of a field is
-  /// open in front of the bar first, and the `dismissable` it wears already
-  /// took that press before it got here.
+  /// Escape puts the bar away when it has the focus. Swallowed, so the
+  /// shell's own Escape does not also close what is behind it — an open field
+  /// menu wears `dismissable` and already took the press before it got here.
   function onKey(event) {
     if (event.key !== "Escape" || !onDismiss) return;
     event.preventDefault();
@@ -155,10 +122,8 @@
   }
 
   /// A SIDEWAYS drag on the bar's own body puts it away too — the desktop's
-  /// gesture, where the handle is not drawn. The finger has the handle; the
-  /// mouse has the bar. It starts only on the bar itself (never on a field,
-  /// a button or the input, which own their own drags) and is decided by
-  /// direction: mostly horizontal and far enough, or nothing happened.
+  /// gesture, where the handle is not drawn. It starts only on the bar itself
+  /// (never on a field, a button or the input) and is decided by direction.
   let slid = $state(0);
   let slideFrom = null;
   const SLIDE_AWAY = 96;
@@ -190,9 +155,8 @@
     if (far) putAway();
   }
 
-  /// The bar leaves, and the keyboard leaves WITH it (user call, 2026-08-24):
-  /// pulled down with the keys still up, they were left standing over
-  /// nothing. Whatever of ours holds the focus lets go before the bar goes.
+  /// The bar leaves, and the keyboard leaves WITH it: whatever of ours holds
+  /// the focus lets go before the bar goes.
   function putAway() {
     const active = document.activeElement;
     if (active instanceof HTMLElement && (form?.contains(active) || active === field)) {
@@ -222,18 +186,9 @@
     intent = emptyIntent(null);
     repeating = false;
     // THE CURSOR GOES BACK when the keyboard was up, so the next task can be
-    // typed straight away (user call, 2026-08-21: "ao clicar ＋ eu gostaria
-    // que o teclado continuasse aberto, pra poder adicionar várias tasks
-    // seguidas"). Tapping the ＋ moves focus to the BUTTON, and on Android
-    // focus leaving the field is what dismisses the keyboard — which is also
-    // why "was the keyboard up?" is asked as "was the field focused a moment
-    // ago" (`typedUntil`).
-    //
-    // Created with the keyboard already CLOSED, the run is over: a bar that
-    // can be dismissed goes away with the task it just made (user call,
-    // 2026-08-24). The permanent bars have no `onDismiss` and keep the old
-    // answer. Not in the dialog: that one settles and closes on submit, so
-    // there is no field left to put the cursor in.
+    // typed at once; tapping ＋ focuses the BUTTON, and on Android that closes
+    // the keyboard — hence `typedUntil`. Keyboard already CLOSED: a dismissable
+    // bar goes away with the task it made. Not in the dialog: it closes on submit.
     if (variant === "dialog") return;
     const typing = document.activeElement === field || Date.now() < typedUntil;
     if (typing || !onDismiss) field?.focus();
@@ -370,11 +325,9 @@
           >
             <span class="task-composer__repeat-label">{S.repeatEvery}</span>
             {#if intent.repeatUnit}
-              <!-- Chosen, never typed (user call, 2026-08-18): on a phone a
-                   number field opens the keyboard over the panel it belongs
-                   to, and on the desktop it asks for a spinner two pixels
-                   tall. The list is `repeatCounts`, which carries whatever
-                   this task already says even when that is off the scale. -->
+              <!-- Chosen, never typed: on a phone a number field opens the
+                   keyboard over its own panel. `repeatCounts` carries whatever
+                   this task already says, even off the scale. -->
               <select
                 class="theme-select theme-select--sm task-composer__repeat-every"
                 bind:value={intent.repeatEvery}
@@ -401,10 +354,8 @@
     </div>
   {/if}
 
-  <!-- Solid whether or not anything is written (wireframe): the empty bar is
-       exactly where the blue is needed, and a washed-out plate would take the
-       accent out of the one place the screen is pointing at. `submit` is the
-       guard — an empty row hands nothing over. -->
+  <!-- Solid whether or not anything is written: the empty bar is where the
+       blue is needed. `submit` is the guard — an empty row hands nothing over. -->
   <button
     class="theme-btn theme-btn--primary task-composer__add"
     type="submit"

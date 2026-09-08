@@ -1,37 +1,17 @@
 <script>
-  // The ROWS of a menu — everything both menus of the app have in common.
-  //
-  // `Menu` opens a panel under a trigger and `ContextMenu` opens one at the
-  // pointer: that is the whole difference between them, and it lives in where
-  // the panel goes. What an item IS — a label, an optional `context` drawn
-  // ahead of it in grey, a `checked` mark for the chosen row of a choice
-  // group, a `disabled` state, a `run`, or an `items` array that makes it a
-  // submenu — was written out twice, forty lines each, and a change to one of
-  // them (the submenu's flip, the composite key) had to be remembered in the
-  // other.
-  //
-  // `checked` is tri-state on purpose: `true` draws the tick, `false` draws
-  // the empty slot that keeps siblings aligned, `undefined` means the row is
-  // not part of a choice group and gets no slot at all. Before it existed,
-  // four callers spelled the mark four ways — two of them through `context`,
-  // which renders with a trailing slash, so rows literally read "✓/Grid".
-  //
-  // It renders `<li>`s, not the list: the panel element is the host's, because
-  // it is the host that anchors and positions it (`use:keepOnScreen`).
-  //
-  // `openSub` is per-mount on purpose. Both hosts mount this inside the block
-  // that shows the panel, so reopening a menu always starts folded — no reset
-  // effect on either side.
+  // The ROWS of a menu, shared by `Menu` (under a trigger) and `ContextMenu`
+  // (at the pointer). An item: `{label, context?, checked?, disabled?, run?,
+  // swatch?, items?}` — `items` makes a submenu. `checked` is tri-state: true
+  // ticks, false keeps the empty slot so siblings align, undefined = no slot.
+  // Renders `<li>`s only — the panel is the host's; `openSub` is per-mount.
   import { keepOnScreen } from "../actions/keepOnScreen.js";
   import Icon from "./Icon.svelte";
 
   let {
     items = [],
     /// `(item, gesture) => void` — the host closes its panel and runs the
-    /// item. A disabled row never reaches it. `gesture` is `{newTab: true}`
-    /// when the row was pressed with the MIDDLE button (2026-09-07): a row
-    /// that opens a screen may open it in a new tab, the way every other
-    /// door of the app does, and a row that does something else ignores it.
+    /// item; a disabled row never reaches it. `gesture` is `{newTab: true}`
+    /// when the row was pressed with the MIDDLE button.
     onChoose,
   } = $props();
 

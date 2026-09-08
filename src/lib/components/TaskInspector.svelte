@@ -1,17 +1,8 @@
 <script>
-  // The right-hand panel: everything about one task that the row is too small
-  // to show. The row keeps quiet markers; this is where the fields are edited.
-  //
-  // Three rules shape this file:
-  //
-  // 1. Opening a task never writes. A task with no id only gets one when the
-  //    user actually changes something, so clicking around to look at things
-  //    leaves the `.md` byte for byte as it was.
-  // 2. There is no save button. An edit that the user has to remember to
-  //    confirm is an edit they will lose. Changes are written on their own,
-  //    shortly after the typing stops.
-  // 3. The task is saved whole, in one call. `set_task_fields` exists for
-  //    exactly this, because a half-applied edit is worse than none.
+  // The right-hand panel: the fields of one task, edited in place.
+  // Opening a task never writes (an id-less task earns its id on the first
+  // real change); there is no save button — edits are written shortly after
+  // typing stops; the task is saved whole, in one `set_task_fields` call.
   import { onDestroy } from "svelte";
   import { api } from "../services/api.js";
   import { autosave } from "../services/autosave.js";
@@ -66,35 +57,27 @@
     /// `HH:MM` — the notebook's reminder time, where the reminder presets
     /// land ("tomorrow" is tomorrow at this hour).
     reminderTime = "09:00",
-    /// This task is pulled into the Day: the sun lights up, and pressing it
-    /// takes it back out. A lit button that does nothing when pressed is a
-    /// button that reads as broken (user call, 2026-08-06).
+    /// Pulled into the Day: the sun is lit, and pressing it takes it back out.
     inDay = false,
-    /// The notebook's root, absolute — the file picker draws thumbnails of
-    /// what it can draw, and an address resolves against it
-    /// (services/assets.js).
+    /// The notebook's root, absolute — the file picker draws thumbnails and
+    /// an address resolves against it (services/assets.js).
     root = null,
     /// `(key) => boolean` — is this part of the app switched on? A field
     /// switched off leaves the PANEL only: the draft still carries it and
-    /// `set_task_fields` still writes it back, so nothing is lost while it is
-    /// away (2026-08-06).
+    /// `set_task_fields` still writes it back.
     f = () => true,
-    /// `(title) => void` — a `[[note]]` in the description was clicked.
-    /// Resolving a title to a note is a question about the whole notebook,
-    /// so the shell answers it — the same door the note editor knocks on.
+    /// `(title) => void` — a `[[note]]` in the description was clicked; the
+    /// shell resolves the title, as it does for the note editor.
     onOpenNote,
   } = $props();
 
   let draft = $state(fromTask(null));
   let newSubtask = $state("");
-  // The ⌄ chevron folds the SUBTASKS away (only them — the fields stay,
-  // user call 2026-08-04). Local to the panel; it writes nothing.
+  // The ⌄ chevron folds the SUBTASKS only. Local to the panel; writes nothing.
   let collapsed = $state(false);
 
-  // The debounced write with a captured target — the shared engine
-  // (services/autosave.js carries the why of each rule). The delay is
-  // captured once on purpose: it is a mount-time knob for tests, never
-  // changed while the panel lives.
+  // The debounced write (services/autosave.js). The delay is captured once
+  // on purpose: a mount-time knob for tests, never changed while the panel lives.
   // svelte-ignore state_referenced_locally
   const saver = autosave({
     delay: saveDelay,
@@ -107,30 +90,24 @@
     onError: (e) => onError?.(e),
   });
 
-  // A different task selected means a different draft. Without this, editing
-  // one task and clicking another would show the first one's typing.
-  // The panel's own Ctrl+Z (2026-08-24): the fields of THIS task, one step
-  // back per edit, apart from the note's history and the app's
-  // (services/draftHistory.js says why there are three). It follows the
-  // task, not the object: the shell hands a fresh `task` after every save,
-  // and that is the same task catching up, not a new one to forget for.
+  // A different task means a different draft. The panel's own Ctrl+Z steps
+  // THIS task's fields (services/draftHistory.js); it follows the task, not
+  // the object — the shell hands a fresh `task` after every save.
   const history = draftHistory();
   let openKey = null;
 
   $effect(() => {
     task;
     list;
-    // Stringify the plain object before it becomes the reactive draft.
-    // Reading `draft` here would make this effect depend on the state it
-    // assigns, and Svelte would loop until it gave up.
+    // Stringify the plain object before it becomes the reactive draft: reading
+    // `draft` here would make the effect depend on what it assigns, and loop.
     const fresh = fromTask(task);
     const snapshot = JSON.stringify(fresh);
     // `open` flushes what was typed into the previous task first, addressed
     // to that task, before the slot is replaced.
     saver.open({ list, task, id: task?.id ?? null }, snapshot);
     // A task without an id earns one on its first save; the target carries
-    // it before the next `task` does. Two id-less tasks are told apart by
-    // their text, which is all an id-less task has.
+    // it before the next `task` does. Id-less tasks are told apart by text.
     const id = task?.id ?? saver.target()?.id ?? null;
     const key = `${list}|${id ?? ""}|${id ? "" : (task?.text ?? "")}`;
     if (key === openKey) history.settle(snapshot);
@@ -141,11 +118,10 @@
     pickingReminder = false;
   });
 
-  // ---- the reminder (2026-08-25) ----
-  // A menu of presets (services/reminders.js resolves each to a moment) and,
-  // behind "Pick date and time…", the calendar plus a time field. The two
-  // controls write the draft the moment both have a value; there is no
-  // "done" — the autosave is the done.
+  // ---- the reminder ----
+  // Presets (services/reminders.js) and, behind "Pick date and time…", a
+  // calendar plus a time field that write the draft as soon as both have a
+  // value; the autosave is the "done".
   let pickingReminder = $state(false);
 
   const PRESET_LABELS = {
@@ -194,12 +170,10 @@
     saver.edit(fields(), snapshot);
   });
 
-  /// The panel answers Ctrl+Z / Ctrl+Shift+Z for its own fields — with the
-  /// user's chords for `app.undo`/`app.redo`, so a rebinding follows. The
-  /// description is a CodeMirror with a history of its own, and a press in
-  /// there is its. Answering (`preventDefault`) even with nothing to step
-  /// back keeps the panel's key from reaching the shell as an app undo: a
-  /// hand that is in the panel means the panel.
+  /// Ctrl+Z / Ctrl+Shift+Z for the panel's own fields, via the user's chords
+  /// for `app.undo`/`app.redo`. A press inside the CodeMirror description is
+  /// its own. `preventDefault` even with nothing to step back: the key must
+  /// not reach the shell as an app undo.
   function onKeydown(event) {
     if (event.target?.closest?.(".cm-editor")) return;
     const id = $ask(event, "global");
@@ -244,10 +218,9 @@
       text: t?.text ?? "",
       // `<input type="date">` speaks ISO, which is what the file stores too.
       due: t?.due ?? "",
-      // As the STRING the shared table offers (services/taskFields.js) — a
-      // `<select>` compares its options by string, so a numeric draft would
-      // never match its own value and the row would show blank on a task that
-      // has a priority. `fields()` sends the number.
+      // As the STRING of the shared table (services/taskFields.js): a `<select>`
+      // compares options by string, so a numeric draft would never match and
+      // show blank. `fields()` sends the number.
       priority: t?.priority ? String(t.priority) : "",
       tags: [...(t?.tags ?? [])],
       description: (t?.description ?? []).join("\n"),
@@ -261,11 +234,10 @@
     };
   }
 
-  // ---- attachments (2026-08-18) ----
-  // The task points at a file of the notebook's library; the library screen
-  // (and the picker) is where the file itself is managed. Attaching the same
-  // file twice is a no-op rather than a second chip: the address IS the
-  // attachment, and two links to one file say nothing new.
+  // ---- attachments ----
+  // The task points at a file of the library; the library screen and the
+  // picker manage the file itself. Attaching the same address twice is a
+  // no-op: the address IS the attachment.
   let picking = $state(false);
 
   function attach(address) {
@@ -278,9 +250,8 @@
   const detach = (address) =>
     (draft.files = draft.files.filter((f) => f.address !== address));
 
-  /// Opens it in whatever the system uses for that kind of file. Detaching is
-  /// the × beside it; the FILE is only ever deleted from the library screen,
-  /// where deleting is about the file and not about this task.
+  /// Opens it with the system handler. The × beside it detaches; the FILE is
+  /// only ever deleted from the library screen.
   const openFile = (address) => api.openAsset(address).catch((e) => onError?.(e));
 
   /// Removing a date needs its own control: the picker can set a day but has no
@@ -288,8 +259,6 @@
   function clearDate() {
     draft.due = "";
   }
-
-  // Name → colour, from the catalogue, so a pill shows the user's chosen colour.
 
   function addTagName(name) {
     const tag = cleanTagName(name);
@@ -326,16 +295,10 @@
     draft.subtasks = movedItem(draft.subtasks, from, to);
   }
 
-  /// The shape EVERY action of this panel takes, in the order that matters:
-  ///
-  ///   1. send whatever is being typed, addressed to the task it was typed
-  ///      into — completing or moving takes the task to another file, and a
-  ///      write still in flight would land in the old one;
-  ///   2. earn an id, since opening a task never hands one out;
-  ///   3. do the thing, and tell the shell.
-  ///
-  /// Five actions wrote those three steps out, and each copy had to remember
-  /// all three every time one of them changed.
+  /// The shape EVERY action of this panel takes, in order: flush what is
+  /// being typed, addressed to the task it was typed into (completing or
+  /// moving takes the task to another file, and an in-flight write would land
+  /// in the old one); earn an id; do the thing, and tell the shell.
   async function onTask(run, { close = false } = {}) {
     if (readOnly) return;
     await saver.flush();
@@ -352,7 +315,7 @@
     }
   }
 
-  /// The sun in the toolbar: into My Day, or back out of it (2026-08-06).
+  /// The sun in the toolbar: into My Day, or back out of it.
   const myDay = () =>
     onTask((task) =>
       inDay
@@ -379,8 +342,7 @@
   /// absent on a task written outside the app with no date in it.
   let age = $derived(f("time") && task?.created ? (task.age ?? null) : null);
 
-  // The ⋮ menu items. More (the global field-visibility preference) land here
-  // later; for now it is the one honest action.
+  // The ⋮ menu items.
   let optionsMenu = $derived([
     { label: S.duplicateTask, run: duplicate, disabled: readOnly },
   ]);
@@ -417,19 +379,13 @@
 
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 <aside class="inspector" onkeydown={onKeydown}>
-  <!-- Toolbar: fold the panel away, send to My Day, task options. Icon buttons
-       are the shared `.theme-btn--icon`. The options ⋮ carries `optionsMenu`
-       above (duplicate, for now); the trash lives in the footer. -->
+  <!-- Toolbar: fold the panel away, send to My Day, task options (`optionsMenu`);
+       the trash lives in the footer. -->
   <div class="inspector__toolbar theme-pane-head">
-    <!-- THE SHEET HAS NO CLOSE BUTTON (user call, 2026-08-18). On the desktop
-         the panel is a column that folds away to the side, and the sidebar
-         glyph draws exactly that. In the compact shell it is a sheet, and a
-         sheet is already dismissed two ways that cost no room — tapping the
-         page behind it, and pulling it down by its handle (BottomSheet) — so
-         an × here only spends the corner the sun wants.
-
-         What is left then is the sun and the ⋮, and they take an end each:
-         the gap moves BETWEEN them rather than sitting ahead of both. -->
+    <!-- The sheet has NO close button: in the compact shell it is dismissed by
+         tapping the page behind it or pulling it down by its handle
+         (BottomSheet); on the desktop the sidebar glyph folds the column away.
+         The sun and the ⋮ take an end each, with the gap BETWEEN them. -->
     {#if !compact}
       <button
         class="theme-btn theme-btn--icon"
@@ -450,8 +406,8 @@
       aria-label={inDay ? S.removeFromDay : S.myDay}
       title={inDay ? S.removeFromDay : S.myDay}
     >
-      <!-- The glyph says what the click DOES: the sun to bring it into the
-           day, the struck sun to take it out (2026-08-24). -->
+      <!-- The glyph says what the click DOES: sun to bring it into the day,
+           struck sun to take it out. -->
       <Icon name={inDay ? "sun-off" : "sun"} size="1.125rem" />
     </button>
     {/if}
@@ -472,8 +428,7 @@
 
   <!-- The scrolling middle, between the pinned head and foot. -->
   <div class="inspector__scroll">
-    <!-- Task header: complete, name, and the chevron that folds the detail.
-         The name is the shared input, plain variant (borderless, inherits). -->
+    <!-- Task header: complete, name, and the chevron that folds the subtasks. -->
     <header class="inspector__header">
     <input
       class="theme-checkbox"
@@ -502,11 +457,9 @@
   </header>
 
   {#if !collapsed && f("subtasks")}
-    <!-- Subtasks: indented under the task, each on its own surface card. The
-         header's chevron folds ONLY this block (user call, 2026-08-04) — the
-         rest of the panel stays. Drag by the grip to reorder (the shared
-         `reorderable` action); the add-form is excluded from the item set so
-         it never counts as a slot. -->
+    <!-- Subtasks. The header's chevron folds ONLY this block. Drag by the grip
+         to reorder (`reorderable`); the add-form is excluded from the item set
+         so it never counts as a slot. -->
     <div
       class="inspector__subtasks"
       use:reorderable={{
@@ -565,10 +518,9 @@
     {#if f("taskTags")}
     <hr class="theme-divider" />
 
-    <!-- Tags: neutral `#tag` badges (a tag is a subject, not a colour —
-         2026-08-26), plus a picker that adds an existing tag or creates one.
-         Not a free text field (reestruturação 2026-07-30): picking is what
-         keeps the catalogue and the card in step. -->
+    <!-- Tags: neutral `#tag` badges (a tag is a subject, not a colour), plus a
+         picker that adds an existing tag or creates one — never free text, so
+         the catalogue and the card stay in step. -->
     <div class="inspector__tags">
       {#each draft.tags as tag (tag)}
         <span class="theme-badge inspector__tag" style={badgeStyle(color)}>
@@ -605,9 +557,8 @@
           <span class="inspector__field-word">{S.completeDateLabel}</span>
         </span>
         <span class="inspector__field-value">
-          <!-- Our own calendar, not the native picker: it closes on an outside
-               click or Escape and pages months without dismissing. It sets a
-               whole date only, so there is no half-typed value to guard. -->
+          <!-- Our own calendar, not the native picker: closes on an outside click
+               or Escape, pages months without dismissing, sets a whole date only. -->
           <DatePicker
             value={draft.due}
             {dateFormat}
@@ -629,18 +580,13 @@
       {/if}
 
       {#if f("priority")}
-      <!-- Priority: the wireframe omits it, but it is a real field — kept so
-           the function is not lost. It can hide behind the global functions
-           preference later. -->
       <div class="inspector__field" class:inspector__field--unset={!draft.priority}>
         <span class="inspector__field-label inspector__field-label--{priorityClass(draft.priority)}">
           <Icon name="flag" size="1rem" />
           <span class="inspector__field-word">{S.priorityLabel}</span>
         </span>
-        <!-- The values are the file's own, from the shared table
-             (services/taskFields.js): the draft holds the string a control
-             gives, and `fields()` is what turns it into the number the bridge
-             takes. -->
+        <!-- The values are the file's own (services/taskFields.js): the draft
+             holds the control's string, `fields()` turns it into the number. -->
         <select
           class="theme-select theme-select--bare"
           bind:value={draft.priority}
@@ -661,9 +607,8 @@
         </span>
         <span class="inspector__stepper">
           {#if draft.repeatUnit}
-            <!-- Chosen, never typed — the same call as the composer's, and the
-                 same list, so the two rows cannot come to disagree about what
-                 "every N" may be. -->
+            <!-- Chosen, never typed — the same list as the composer's, so the two
+                 cannot disagree about what "every N" may be. -->
             <select
               class="theme-select theme-select--bare inspector__repeat-every"
               bind:value={draft.repeatEvery}
@@ -746,14 +691,11 @@
     <hr class="theme-divider" />
 
     <!-- Description + attachments. An attachment is a file of the library
-         (`assets/`), written as a line of links under the task (2026-08-18);
-         the picker and the chips below are the whole of its UI. -->
+         (`assets/`), written as a line of links under the task. -->
     <div class="inspector__description-block">
       {#if f("description")}
-        <!-- The plain editor rather than a textarea (2026-08-19): the same
-             `[[` language the notes speak — autocomplete while typing, and a
-             reference drawn as the thing it names — so a task can point at
-             the note that explains it. -->
+        <!-- The plain editor rather than a textarea: the same `[[` language the
+             notes speak, so a task can point at the note that explains it. -->
         <div class="inspector__description">
           <Editor
             plain
@@ -768,9 +710,8 @@
         </div>
       {/if}
       {#if f("files")}
-        <!-- Attachments. Each one is a plain Markdown link in the `.md`
-             (spec 3.2), so what is drawn here is what someone reading the file
-             in any editor sees — a name, and the file behind it. -->
+        <!-- Each attachment is a plain Markdown link in the `.md` (spec 3.2):
+             a name, and the file behind it. -->
         {#each draft.files as file (file.address)}
           <div class="inspector__field inspector__file">
             <button
@@ -806,9 +747,8 @@
     {/if}
 
     {#if offering}
-      <!-- The door to the rest: while a task field is off, the panel says
-           so once, at its end — the fields are the panel's subject, and
-           Settings › Tasks is where they are switched on. -->
+      <!-- While a task field is off, the panel says so once, at its end;
+           Settings › Tasks is where it is switched on. -->
       <Notice
         tone="info"
         icon="sliders-horizontal"
@@ -829,13 +769,9 @@
   </div>
 
   {#if age}
-    <!-- When the task was written (spec 3.6, M7/M8): a fact about the task,
-         not a field of it — a creation date the user could edit would mean
-         nothing — so it stands apart from the controls, just over the foot
-         (user call, 2026-09-08). The date alone: the word came off, and so
-         did the day count the card already shows. The clock says what the
-         date is; the warning ink still says "forgotten", the one thing the
-         count was for. -->
+    <!-- When the task was written (spec 3.6): a fact about the task, not a
+         field of it, so it stands apart from the controls, just over the foot.
+         The date alone; the warning ink still says "forgotten". -->
     <p
       class="inspector__created"
       class:inspector__created--forgotten={age.band === "forgotten"}
@@ -846,13 +782,11 @@
     </p>
   {/if}
 
-  <!-- Foot, pinned at the bottom and always visible: which list the task lives
-       in (change it to move the task) and the trash. Shares the pane-foot chrome
-       with the sidebar's last row. -->
+  <!-- Foot, pinned and always visible: the list the task lives in (change it
+       to move the task) and the trash. Shares the pane-foot chrome with the sidebar. -->
   <footer class="inspector__footer theme-pane-foot">
-    <!-- Where the task lives. A button on its own surface, not a bare select
-         (user call 2026-08-05): the footer says the list AND is the way to
-         change it, so the affordance has to look like something to press. -->
+    <!-- A button on its own surface, not a bare select: the footer says the
+         list AND is the way to change it. -->
     {#if readOnly || lists.length <= 1}
       <span class="inspector__origin">
         <Icon name="tray" size="1rem" />
@@ -896,10 +830,9 @@
   </footer>
 </aside>
 
-<!-- The library, as a question: which file? It is `position: fixed` over the
-     whole viewport (controls/overlays.css), so it opens out of the panel it was asked
-     from rather than inside it. `imagesOnly` is false here: a task attaches a
-     PDF as readily as a photo (2026-08-18). -->
+<!-- The library, as a question: which file? `position: fixed` over the whole
+     viewport (controls/overlays.css), so it opens out of the panel. `imagesOnly`
+     is false: a task attaches a PDF as readily as a photo. -->
 {#if picking}
   <AssetPicker
     {root}

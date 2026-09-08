@@ -1,11 +1,8 @@
 <script>
-  // A day gone by, on the Home (2026-09-04): what the log says happened —
-  // tasks created, tasks completed, notes written — as the same three
-  // foldable lines the Timeline draws for a month, over ONE day.
-  //
-  // Nothing here is planned or composed: a past day is a record. A living
-  // row still opens (the task in its list, the note in the editor), and
-  // "Remove from timeline" is the one write, the user's own.
+  // A day gone by, on the Home: what the log says happened — tasks created,
+  // completed, notes written — as the Timeline's three lines over ONE day.
+  // A past day is a record: a living row still opens, and "Remove from
+  // timeline" is the one write.
   import { api } from "../services/api.js";
   import { S } from "../services/strings.js";
   import { makeScreen } from "../services/act.js";

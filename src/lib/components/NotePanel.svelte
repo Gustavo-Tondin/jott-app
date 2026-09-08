@@ -1,16 +1,8 @@
 <script>
-  // The right panel while a note is open (wireframe "Editor screen scroll down
-  // - side panel").
-  //
-  // The formatting controls are the middle of it, not the whole of it: the
-  // wireframe draws the same head and foot the task inspector has — a way to
-  // fold the panel away and a ⋮ above, where the note lives and a trash below
-  // (user report, 2026-08-19: "faltam o header e o footer"). That is the shape
-  // every tenant of this panel keeps, and the note was the one breaking it.
-  //
-  // What goes IN the head and the foot is the shell's (App.svelte): the same
-  // actions the page's ••• offers, and the same move the board's cards make.
-  // This component only says where they sit.
+  // The right panel while a note is open. The formatting controls are the
+  // middle of it, not the whole: the same head (fold away, ⋮) and foot (where
+  // the note lives, trash) the task inspector has. What goes IN them is the
+  // shell's (App.svelte); this component only says where they sit.
   import Icon from "./Icon.svelte";
   import Menu from "./Menu.svelte";
   import FormatBar from "./FormatBar.svelte";

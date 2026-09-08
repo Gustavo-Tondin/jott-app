@@ -1,20 +1,9 @@
 <script>
-  // The strip above the page. Two shapes, because the mobile wireframes make
-  // it a different thing rather than a narrower one:
-  //
-  //   full     [← →]  ·  TASKS  ·  [⋮]            one quiet uppercase line
-  //   compact  Tasks ●                             the screen's name, big
-  //
-  // In the compact shell the arrows and the ⋮ are NOT here — they moved up
-  // into the top bar (shell/TopBar.svelte), which is why both are their own
-  // components now. What is left is the name of the place you are in, at the
-  // size the wireframe draws it, and it SCROLLS AWAY with the content: it is
-  // inside the scroller, not pinned above it, so the screen gets its full
-  // height back the moment you start reading (Home/Editor "scrolled down").
-  //
-  // The compact header sits on the CHROME ground, not the canvas: the
-  // wireframe rounds the canvas's top corners BELOW it, so the header belongs
-  // to the frame around the page rather than to the page.
+  // The strip above the page, in two shapes:
+  //   full     [← →]  ·  TASKS  ·  [⋮]     one quiet uppercase line
+  //   compact  Tasks ●                      the screen's name, big
+  // In the compact shell the arrows and the ⋮ live in the top bar; the name
+  // SCROLLS AWAY with the content, and sits on the CHROME ground, not the canvas.
   import { S } from "../services/strings.js";
   import { dotStyle as dotStyleOf } from "../services/accent.js";
   import PageMenu from "./PageMenu.svelte";
@@ -33,12 +22,9 @@
     /// bar can never disagree about which of them is holding the arrows.
     compact = false,
     /// The colour of the place, as a NAME (services/accent.js) — the dot after
-    /// the title. Only the compact header draws it: it is what tells a space
-    /// apart at a glance once the sidebar is behind a drawer. It is drawn on
-    /// EVERY screen, colour or not (user call, 2026-08-18): a fixed space
-    /// carries no colour of its own and falls back to the app's accent in CSS,
-    /// the same fallback the tab dot takes — a mark that comes and goes says
-    /// less than one that is always there to be read.
+    /// the title. Only the compact header draws it, and on EVERY screen, colour
+    /// or not: a fixed space falls back to the app's accent in CSS, like the
+    /// tab dot.
     dot = null,
   } = $props();
 
@@ -53,10 +39,8 @@
 
 {#if compact && !title}
   <!-- A screen that names ITSELF asks for no name here (the open note, whose
-       head carries the title on its banner — wireframes "Editor Screen mobile"
-       and "New note mobile - no banner"). Nothing is drawn at all rather than
-       an empty strip: the canvas has to start at the top of the screen for the
-       banner to bleed into it. -->
+       banner carries the title). Nothing is drawn rather than an empty strip:
+       the canvas has to start at the top for the banner to bleed into it. -->
 {:else if compact}
   <header class="page-header page-header--compact" data-region="chrome">
     <div class="page-header__place">

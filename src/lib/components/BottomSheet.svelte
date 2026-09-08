@@ -1,44 +1,17 @@
 <script>
-  // A panel that rises from the bottom of the screen (mobile wireframes,
-  // 2026-08-18) — what the right-hand panel and the tab strip become below
-  // 768px, where there is no room beside the content for either of them.
-  //
-  // It is Modal's contract with a different position, and it keeps the two
-  // rules that are easy to lose in a copy (see Modal.svelte):
-  //
-  //   - the scrim closes only on ITSELF, or a pointer-up inside the sheet
-  //     would dismiss it;
-  //   - Escape is SWALLOWED, so it does not also close whatever is behind.
-  //
-  // What it adds is the drag. The wireframe draws a grab handle at the top,
-  // and a handle that cannot be grabbed is a lie about how the panel works —
-  // so it is a real drag: pull it down past a third of its height and it goes,
-  // let go short of that and it springs back. Pointer events, so it answers a
-  // mouse on a narrow desktop window exactly as it answers a thumb.
-  //
-  // NOT a `<dialog>`: the sheet holds the task inspector, which stays usable
-  // while the list behind it is still being read, and a modal dialog would
-  // make everything behind it inert.
-  //
-  // It declares the CANVAS, the same call Modal makes and for the same reason:
-  // a sheet is CONTENT — a task being edited, a list of open documents —
-  // raised over the page, so it is made of the page's material rather than the
-  // frame's. The wireframes draw it light on the factory theme, which is what
-  // the canvas is.
-  //
-  // ON THE SCRIM, the outermost element, so it holds wherever the sheet is
-  // mounted. Declared on the inner panel instead, the sheets rendered outside
-  // `.window` (the tabs) sat in no region and `--app-scrim` resolved to
-  // nothing — the veil was invisible and the page behind stayed lit.
+  // A panel that rises from the bottom — what the right panel and the tab
+  // strip become below 768px. Modal's contract, repositioned: the scrim
+  // closes only on ITSELF, Escape is SWALLOWED, and the handle is a real drag
+  // (pointer events). NOT a `<dialog>`: the list behind stays usable. It
+  // declares the CANVAS on the SCRIM, so it holds when mounted outside `.window`.
   import { S } from "../services/strings.js";
   import { onBack } from "../services/back.js";
 
   let {
     /// What the sheet is called, for the screen reader.
     label = "",
-    /// How tall it may grow, as a share of the screen. The wireframe draws the
-    /// tab sheet short (it is a list of three) and the inspector tall (it is a
-    /// form), so the caller says which it is.
+    /// How tall it may grow, as a share of the screen: the tab sheet is short
+    /// (a list), the inspector tall (a form), so the caller says which.
     maxHeight = "72svh",
     /// The block hook of the caller, so a grep for the block finds markup and
     /// CSS together — the same pact Modal keeps.
@@ -53,9 +26,8 @@
   let sheet = $state();
   let from = 0;
 
-  /// Past this share of its own height, letting go closes it. A third is the
-  /// figure both platforms' own sheets use: far enough that a shaky grip does
-  /// not dismiss, near enough that the gesture does not feel like work.
+  /// Past this share of its own height, letting go closes it. A third is
+  /// the figure both platforms' own sheets use.
   const DISMISS_AT = 1 / 3;
 
   // The same call Modal makes, for the same reason: a sheet is the thing a

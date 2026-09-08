@@ -1,26 +1,9 @@
 <script>
-  // The Home's head — the screen of TIME (wireframes "Home Screen Desktop"
-  // and "Home Screen Mobile", 2026-09-04): the place's name, the month, a
-  // week of days with the chosen one lit, and one line saying how the day
-  // stands.
-  //
-  // Two shapes, one component. On the desktop it is a raised card at the top
-  // of the canvas, pinned there as the page scrolls. On a phone it IS the
-  // chrome above the rounded canvas: dark, the top bar floating over it, and
-  // the summary line folded behind a handle (wireframe "overview") because
-  // the phone has no room to say everything at once.
-  //
-  // It owns nothing but the week on show. Which day is chosen is the shell's
-  // (`day`), because the Home's body reads it too; the head only asks.
-  //
-  // THE STRIP IS A CARROUSEL (user call, 2026-09-04: "mais interativo,
-  // mostrando as datas seguintes, não pulando pra próxima sem animação").
-  // Three weeks are drawn side by side in a scroller that snaps a week at a
-  // time, with the week on show in the middle: a finger, a trackpad or a
-  // mouse drag (actions/dragScroll.js) pulls the next days into view, and
-  // when the scroller settles on a neighbour, that neighbour becomes the
-  // middle and the scroller is put back there without motion — the same
-  // days are under the eye, so nothing is seen to move.
+  // The Home's head, the screen of TIME: the place's name, the month, a week
+  // of days with the chosen one lit, and one line saying how the day stands.
+  // Desktop: a raised card pinned at the top of the canvas. Phone: the chrome
+  // above the canvas, the summary folded behind a handle. It owns only the
+  // week on show; the chosen day is the shell's (`day`), the head only asks.
   import { tick } from "svelte";
   import { S } from "../services/strings.js";
   import {
@@ -51,14 +34,13 @@
     dot = null,
     /// The narrow shell (shell/compact.js).
     compact = false,
-    /// On a phone: how much of the head is unfolded (2026-09-07). `0` is
-    /// one line — the name and the date; `1` adds the week; `2` adds the
-    /// day's summary (the "overview" wireframe). The desktop ignores it and
-    /// shows everything.
+    /// On a phone: how much of the head is unfolded. `0` is one line — the
+    /// name and the date; `1` adds the week; `2` adds the day's summary. The
+    /// desktop ignores it and shows everything.
     level = 1,
     /// `(iso) => void` — a day was tapped.
     onPick,
-    /// The name was tapped: back to today (user call, 2026-09-04).
+    /// The name was tapped: back to today.
     onHome,
     /// `(level) => void` — the head asks to be unfolded or folded: a drag
     /// down or up on it (actions/flick.js), or a tap on the grip.
@@ -72,9 +54,8 @@
   let kind = $derived(dayKind(selected, today));
 
   /// How many weeks the strip has been turned away from the chosen day.
-  /// Turning shows another week WITHOUT choosing a day in it (user call:
-  /// "rola por semana"); choosing a day, or going home, brings the strip
-  /// back to it.
+  /// Turning shows another week WITHOUT choosing a day in it; choosing a
+  /// day, or going home, brings the strip back to it.
   let turned = $state(0);
   $effect(() => {
     selected;
@@ -101,15 +82,10 @@
       scroller.scrollTo({ left: pageWidth(), behavior: "instant" });
     } else scroller.scrollLeft = pageWidth();
   }
-  // Every time the week on show changes — a turn settled, a day picked,
-  // home — the three pages are redrawn around it and the scroller goes back
-  // to the middle. After `tick`, so the new pages exist to scroll to.
-  //
-  // And every time the SCROLLER itself appears: on a phone the strip is
-  // unmounted while the head is folded (2026-09-07), and a scroller that
-  // comes back mounts at scrollLeft 0 — the week before, not the week on
-  // show (measured on device: unfolding showed Aug 30–Sep 5 under a chosen
-  // Sep 7). `shown` had not changed, so nothing else would re-centre it.
+  // Every time the week on show changes, the three pages are redrawn around
+  // it and the scroller goes back to the middle — after `tick`, so the new
+  // pages exist. And every time the SCROLLER itself appears: on a phone it is
+  // unmounted while folded, and comes back at scrollLeft 0 (the week before).
   $effect(() => {
     shown;
     scroller;
@@ -159,15 +135,10 @@
   const gripLabelOf = (lvl) => (lvl === 0 ? S.showWeek : lvl === 1 ? S.showOverview : S.hideOverview);
   let gripLabel = $derived(gripLabelOf(shownLevel));
 
-  // ---- the fold (2026-09-07) ----
-  // On a phone the week and the summary sit inside `.day-head__fold`, a box
-  // that is always mounted and only as tall as the level says: 0, the week,
-  // or the week and the summary. The heights are MEASURED off the content
-  // (`heightOf`), never restated, so a longer summary line or a bigger type
-  // size changes nothing here. A drag on the head moves that height under
-  // the finger (user call: "animado junto com o gesto do dedo, não pulando");
-  // letting go snaps it to a level, and the transition in day-head.css does
-  // the rest. The desktop never folds: `fold` stays `auto`.
+  // ---- the fold ----
+  // On a phone the week and the summary sit inside `.day-head__fold`, only as
+  // tall as the level says; heights are MEASURED off the content (`heightOf`).
+  // A drag moves that height under the finger; letting go snaps to a level.
   let foldEl = $state(null);
   let weekEl = $state(null);
   let summaryEl = $state(null);
@@ -228,47 +199,18 @@
     if (nearest !== shownLevel) onLevel?.(nearest);
   }
 
-  // ---- the row, and the sheet (2026-09-07) ----
-  // On a phone the top row — the name and the month, or the day — is STICKY
-  // at the top of the scroller, under the floating top bar, with no ground
-  // of its own; the fold and the handle stick under it. The canvas is a
-  // SHEET that rides up over all three (shell.css lifts it above them), in
-  // three acts, and none of them is driven by script: every piece is
-  // `position: sticky` and flow, and the one number the sheet needs from
-  // here is this row's height, written on the scroller as `--row-h` when
-  // it changes — never on scroll.
-  //
-  //   1. the sheet rides up over the fold and the handle, which stay put,
-  //      until its top edge meets this row;
-  //   2. the sheet's GROUND goes on rising behind the title and then behind
-  //      the buttons, while its CONTENT holds still (the cards are sticky at
-  //      `--row-h` below the top, shell.css). A second copy of this row
-  //      lives inside the sheet (App.svelte → DayTitle.svelte), pinned at
-  //      the same spot in the canvas's ink and clipped to the sheet's box:
-  //      the ground REVEALS it as it rises, pixel by pixel, and this one
-  //      disappears under the same edge — the title enters the canvas
-  //      (user call: "com eles entrando no canvas e mudando pra cor do ink
-  //      do canvas", and 2026-09-07: "pixel a pixel, na borda do chão");
-  //   3. the sheet has filled the screen: the copy is the top of its
-  //      content and leaves the screen with the cards (user call: "quero
-  //      que fique no começo do canvas, e ao rolar pra baixo, continue lá no
-  //      topo, desaparecendo da tela"). This row stays stuck underneath,
-  //      unseen.
-  //
-  // The first cut wrote a translate on the content and on this row at every
-  // scroll event, and it fought the finger: a scroll event lands a frame
-  // after the compositor has moved the page, and a padding that changed
-  // with it made Chromium re-snap the page mid-gesture ("re-snap after
-  // layout") — that was the chrome closing by itself (measured on device,
-  // 2026-09-07; docs/platform-gotchas.md).
+  // ---- the row, and the sheet ----
+  // On a phone the top row is STICKY under the floating top bar, and the
+  // canvas is a SHEET that rides up over it (shell.css); a copy of the row
+  // inside the sheet (DayTitle) is revealed as the sheet's ground rises. No
+  // script on scroll: the row's height goes on the scroller as `--row-h` only
+  // when it CHANGES. See docs/platform-gotchas.md#webview-e-gestos
   let topEl = $state(null);
   $effect(() => {
     if (!compact || !topEl || typeof ResizeObserver !== "function") return;
-    // The nearest ancestor that DECLARES a scroll, not `scrollableAround`:
-    // that one asks whether there is something to scroll yet, and at mount
-    // the page is often still shorter than the screen. Where no stylesheet
-    // says who scrolls (a test), it is the section's parent — the section
-    // has no box of its own (day-head.css), so that IS the scroller.
+    // The nearest ancestor that DECLARES a scroll, not `scrollableAround`
+    // (which asks whether there is something to scroll yet, and at mount there
+    // often is not). Where no stylesheet says (a test), the section's parent.
     let scroller = topEl.parentElement;
     while (scroller && !/auto|scroll/.test(getComputedStyle(scroller).overflowY)) {
       scroller = scroller.parentElement;
@@ -293,8 +235,7 @@
 
 <!-- On a phone the whole head answers a vertical drag (actions/flick.js):
      the fold follows the finger, and letting go lands on a level. The canvas
-     below it scrolls; the chrome above it does this instead — two surfaces,
-     two gestures (user call, 2026-09-07). -->
+     below it scrolls; the chrome above it does this instead. -->
 <section
   class="day-head"
   class:day-head--compact={compact}
@@ -374,9 +315,8 @@
   </div>
 
   {#if compact}
-    <!-- The handle that unfolds the head (wireframe "overview"): the same
-         grip the sheets wear, because it does the same thing. A tap is one
-         step; the drag on the whole head is the other way to do it. -->
+    <!-- The handle that unfolds the head: the same grip the sheets wear. A tap
+         is one step; the drag on the whole head is the other way to do it. -->
     <button
       class="day-head__handle"
       aria-expanded={shownLevel > 0}

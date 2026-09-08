@@ -1,30 +1,9 @@
 <script>
-  // The compact shell's top bar (mobile wireframes, 2026-08-18).
-  //
-  //   [ drawer ]        [ ← → tabs ]        [ ⋮ ]
-  //
-  // A SEPARATE COMPONENT FROM TitleBar, not the same bar restyled. The desktop
-  // bar holds the brand, the tab strip and the window buttons; this one holds
-  // none of the three and holds two things that bar never had — the drawer
-  // toggle and the page menu, which below 768px have nowhere else to live. One
-  // component trying to be both would branch in every slot it has.
-  //
-  // The three groups are laid out so the middle pill lands dead centre: the
-  // two end buttons are the same width, so `space-between` centres it by
-  // construction rather than by a magic number.
-  //
-  // ...WITH ONE EXCEPTION, and it is not a mobile one: on a DESKTOP window
-  // dragged below 768px this bar replaces the title bar, and the title bar is
-  // the only thing that can close a frameless window (user report,
-  // 2026-08-18 — "os botões de fechar o app estão sumindo"). So the window
-  // controls come along, on whichever side the system puts them, and the pill
-  // gives up dead centre for them. On Android there are none: the OS owns the
-  // window there, which is exactly what `mobile` answers (shell/platform.js).
-  //
-  // On Android the bar also clears the status bar, which the system draws over
-  // the app (every Android 15+ app is edge-to-edge whether it asks or not).
-  // The padding for it is in CSS, from `env(safe-area-inset-top)`, so a
-  // desktop window resolves it to zero and pays nothing.
+  // The compact shell's top bar: [ drawer ] [ ← → tabs ] [ ⋮ ]. A SEPARATE
+  // component from TitleBar: it holds the drawer toggle and the page menu,
+  // never brand or tab strip. The two end buttons are the same width, so
+  // `space-between` centres the pill. A desktop window below 768px also gets
+  // the window controls here — the only way to close a frameless window.
   import { S } from "../services/strings.js";
   import Icon from "../components/Icon.svelte";
   import PageMenu from "./PageMenu.svelte";
@@ -36,15 +15,11 @@
     canForward = false,
     onBack,
     onForward,
-    /// Opens the sidebar drawer. The drawer is the whole sidebar, unchanged —
-    /// it is only presented differently (user call: "o sidebar esquerdo fica
-    /// basicamente igual").
+    /// Opens the sidebar drawer — the whole sidebar, presented differently.
     onOpenDrawer,
     /// Whether that drawer is already open. Then the button is HIDDEN, not
-    /// removed (user call, 2026-08-18): the open drawer carries its own close
-    /// button, and two of them end up side by side — but a button that leaves
-    /// the row when it goes takes the pill's centring with it, and the whole
-    /// bar shifts as the drawer opens.
+    /// removed: a button that leaves the row takes the pill's centring with
+    /// it, and the whole bar shifts as the drawer opens.
     drawerOpen = false,
     /// Opens the tab sheet. Null while there is no notebook: with nothing open
     /// there are no tabs to show, and a button that opens an empty sheet is a
@@ -64,22 +39,14 @@
     /// the title bar takes (shell/windowButtons.js).
     buttons = { left: [], right: ["minimize", "maximize", "close"] },
     /// Over the page rather than above it: the bar is lifted out of the flow
-    /// and paints nothing, so the screen below scrolls UNDER it and leaves the
-    /// buttons floating on their own pills (wireframes "Editor screen",
-    /// 2026-08-19). It began as the note's alone, then the Home's (2026-09-04);
-    /// since 2026-09-07 EVERY screen asks (user call: "sem fundo em todas as
-    /// páginas, igual na home e no editor") — the page header of the other
-    /// screens reserves the bar's height itself (page-header.css).
+    /// and paints nothing, so the screen scrolls UNDER it and the buttons float
+    /// on their own pills. Every screen asks; the page header reserves the
+    /// bar's height itself (page-header.css).
     over = false,
-    /// Which ground the bar's buttons sit on, and it CHANGES under them
-    /// (user call, 2026-09-07: "se estão sob o canva, fundo claro e texto
-    /// escuro; sob o chrome, fundo escuro e texto claro"). The bar paints
-    /// nothing, so the buttons wear what is behind them: the chrome at rest
-    /// — every screen's page header, the Home's own head — and the canvas
-    /// once the page has risen all the way up under the bar (wireframe "Home
-    /// Screen Mobile - Scrolled Down"). The controls read the region's own
-    /// surface and ink, so the flip is one attribute; who watches for it is
-    /// the shell (App.svelte, actions/risen.js).
+    /// Which ground the bar's buttons sit on, and it CHANGES under them: the
+    /// bar paints nothing, so the buttons wear what is behind them — the
+    /// chrome at rest, the canvas once the page has risen under the bar. The
+    /// flip is one attribute; the shell watches for it (App.svelte, actions/risen.js).
     region = "chrome",
   } = $props();
 </script>
@@ -92,16 +59,9 @@
   data-region={region}
   data-tauri-drag-region
 >
-  <!-- THE WINDOW'S BUTTONS ARE NOT PART OF THE SPREAD (user call, 2026-08-18).
-       The app's three controls share the width between them — that is what
-       centres the pill — and the window's own buttons sit outside that
-       sharing, at the very edge, with the app's last control up against them.
-       Two containers, not one row of five: the app's controls keep their
-       raised squares, the window's keep their discs, and only the app's ones
-       move when the bar gets wider.
-
-       On Android neither of these renders and the spread is the whole bar,
-       exactly as the wireframe draws it. -->
+  <!-- THE WINDOW'S BUTTONS ARE NOT PART OF THE SPREAD: the app's three
+       controls share the width (that is what centres the pill); the window's
+       sit outside it, at the edge. On Android neither renders. -->
   {#if !mobile}
     <WindowControls buttons={buttons.left} />
   {/if}
@@ -117,10 +77,8 @@
       <Icon name="sidebar-simple" size="1.125rem" />
     </button>
 
-    <!-- One pill around the three travelling controls: back, forward, and the
-         tabs. They are grouped because they are all about WHICH PAGE you are
-         on, as against the drawer (where you go) and the ⋮ (what you do
-         here). -->
+    <!-- One pill around back, forward and the tabs: all about WHICH PAGE you
+         are on, as against the drawer (where you go) and the ⋮ (what you do). -->
     <div class="topbar__pill">
       <PageNav {canBack} {canForward} {onBack} {onForward} />
       {#if onOpenTabs}

@@ -1,9 +1,6 @@
 <script>
-  // The CodeMirror instance, wrapped so the rest of the app never imports it.
-  //
-  // Everything above this file talks in `value` and `onChange`, the way it
-  // did when this was a `<textarea>` — which is what let the note editor keep
-  // its auto-save untouched when the engine changed underneath.
+  // The CodeMirror instance, wrapped so the rest of the app never imports it:
+  // everything above talks in `value` and `onChange`, as with a `<textarea>`.
   import { onDestroy, onMount } from "svelte";
   import { Compartment, EditorState, Prec } from "@codemirror/state";
   import { EditorView, keymap, placeholder as placeholderExt, tooltips } from "@codemirror/view";
@@ -14,9 +11,7 @@
     insertNewline,
   } from "@codemirror/commands";
   import { codeFolding, foldGutter, indentUnit } from "@codemirror/language";
-  // Find and replace inside the open note (2026-08-17). CodeMirror's own
-  // panel: it is the same shape VSCode's is — a field, a replace field, and
-  // the match count — and reusing it means the app is not maintaining a
+  // Find and replace: CodeMirror's own panel, so the app is not maintaining a
   // second search engine for one screen.
   import { openSearchPanel, search, searchKeymap } from "@codemirror/search";
   import { REPLACE_FIELD, searchPanel } from "../services/searchPanel.js";
@@ -64,34 +59,24 @@
     /// component means one thing: the pictures may not be the pictures any
     /// more, so draw them again and ask for them again.
     version = 0,
-    /// A plain-text field rather than a note (the task description,
-    /// 2026-08-19): no Markdown, no search panel, no formatting chords — but
-    /// the SAME `[[` language, because a reference to a note or a file means
-    /// the same thing wherever it is written (principle 7). Only the brackets
-    /// auto-close here; the Markdown marks stay ordinary characters in a
-    /// field nothing renders.
+    /// A plain-text field rather than a note: no Markdown, no search panel, no
+    /// formatting chords — but the SAME `[[` language (principle 7). Only the
+    /// brackets auto-close; the Markdown marks stay ordinary characters.
     plain = false,
-    /// `(hasSelection) => void` — whether something is selected right now
-    /// (2026-08-21). What that is FOR is the shell's: the floating formatting
-    /// bar can be asked to show only while there is something to format. It
-    /// fires on every selection change, including the ones a keystroke makes,
-    /// and it is the editor that must report it — the selection is
-    /// CodeMirror's state, and `document.getSelection()` does not see it the
-    /// same way.
+    /// `(hasSelection) => void`, on the edges only. The editor must report it:
+    /// the selection is CodeMirror's state, and `document.getSelection()`
+    /// does not see it the same way.
     onSelection,
-    /// What this notebook draws inside a note (App Functions, 2026-08-20).
-    /// Both default to on: a component asked for nothing behaves the way the
-    /// app ships. They are read by the extensions through closures, so a
-    /// switch flipped in Settings reaches the open note on its next
-    /// transaction rather than needing the editor torn down.
+    /// What this notebook draws inside a note; both default to on. Read by the
+    /// extensions through closures, so a switch flipped in Settings reaches
+    /// the open note on its next transaction without tearing the editor down.
     wikiLinks = true,
     embeds = true,
-    /// Whether a table is drawn as a grid (App Functions, 2026-08-24). Off,
-    /// it stays the pipes it is in the file.
+    /// Whether a table is drawn as a grid. Off, it stays the pipes it is in
+    /// the file.
     tables = true,
-    /// How a table sits in the column (Settings → Notes, 2026-08-24):
-    /// `""` squeezed to the content width, `scroll` running wide with a
-    /// sideways scroll of its own.
+    /// How a table sits in the column: `""` squeezed to the content width,
+    /// `scroll` running wide with a sideways scroll of its own.
     tableLayout = "",
     /// `({header}) | null` — whether the person is in a table cell right now
     /// (header true in the header row), or in none. The formatting panel
@@ -102,23 +87,18 @@
 
   let host;
   let view = null;
-  /// Extensions are baked in when the state is created, so anything that
-  /// changes later needs a compartment to be reconfigurable.
-  ///
-  /// This is not a detail: without it the editor was created while the note
-  /// was still loading — `readOnly || loading` — and stayed read-only
-  /// forever. The file rendered beautifully and refused every keystroke.
+  /// Extensions are baked in at state creation; anything that changes later
+  /// needs a compartment. Without this one, an editor created while the note
+  /// was loading (`readOnly || loading`) stays read-only forever.
   const editable = new Compartment();
   /// The formatting keymap lives in a compartment because the chords are the
   /// user's to change: rebinding one in Settings reconfigures this without
   /// tearing the editor down and losing the cursor.
   const formatting = new Compartment();
 
-  /// Which editor command each id in the registry runs.
-  ///
-  /// The table itself is in `markdownCommands.js`, where the formatting panel
-  /// reads it too. Only `note.replace` is added here: it opens a panel, which
-  /// needs the view this component owns.
+  /// Which editor command each id runs. The table is `markdownCommands.js`'s;
+  /// only `note.replace` is added here, because it needs the view this
+  /// component owns.
   const EDITOR_COMMANDS = {
     ...md.EDITOR_COMMANDS,
     "note.replace": () => {
@@ -127,12 +107,9 @@
     },
   };
 
-  /// The registry's bindings, in CodeMirror's dialect.
-  ///
-  /// `preventDefault` on every one: these chords belong to the editor while
-  /// the cursor is in it, and the shell's own table stands down for anything
-  /// already answered (`shortcuts.js`). That is what lets Ctrl+K be a link
-  /// here and the search everywhere else.
+  /// The registry's bindings, in CodeMirror's dialect. `preventDefault` on
+  /// every one: these chords belong to the editor while the cursor is in it,
+  /// and the shell stands down for anything already answered (`shortcuts.js`).
   function formattingKeymap(bindings) {
     const keys = [];
     for (const [id, run] of Object.entries(EDITOR_COMMANDS)) {
@@ -163,52 +140,22 @@
         doc: value,
         extensions: [
           history(),
-          // Everything a NOTE is and a plain field is not: Markdown and its
-          // preview, the find/replace panel, the formatting chords, the list
-          // indentation. What stays below the split is the ground every text
-          // field shares — and the `[[` references, which mean the same thing
-          // wherever they are written.
+          // Everything a NOTE is and a plain field is not. Below the split is
+          // the ground every text field shares — including the `[[` references.
           ...(plain ? [] : [
           // The panel sits at the TOP, where the document's own header is —
           // at the bottom it lands on the window edge, under the status of
           // nothing.
           search({ top: true, createPanel: searchPanel }),
-          // NOT `highlightSelectionMatches` (user call, 2026-08-26). It is
-          // the VSCode behaviour of painting every other occurrence of the
-          // selected word, and a note is prose: selecting "token" lit up the
-          // whole document, and the marks even shifted the text around them.
-          // Find still highlights what was SEARCHED for — that is `search`
-          // above, and it is a different question from what is selected.
-          // `searchKeymap` before the rest so Ctrl+F inside the editor is the
-          // note's own search: the app-wide Ctrl+F (services/shortcuts.js)
-          // yields to whatever answered closer to the keyboard.
-          // Indentation, as the user asked for it (2026-08-18). Two spaces
-          // per level (`INDENT`, and the reason is written there), and Tab
-          // indents the LINE from wherever the cursor sits in it rather than
-          // inserting a tab character where it stands.
-          //
-          // The known cost of claiming Tab, and it is accepted knowingly: Tab
-          // no longer walks out of the editor. Every other way out — the
-          // shortcuts, the mouse, the page menu — still works, and an editor
-          // in which Tab cannot indent a list is the worse trade for a notes
-          // app.
+          // NOT `highlightSelectionMatches`: a note is prose, and painting every
+          // other occurrence of the selected word lit up the whole document.
+          // Tab indents the LINE (`md.INDENT` says why two spaces) and no longer
+          // walks out of the editor — the accepted cost for a notes app.
           indentUnit.of(md.INDENT),
-          // Before `defaultKeymap`, whose Shift+Enter inserts a blank line:
-          // the first keymap to answer wins.
-          //
-          // Enter and Backspace are `markdown()`'s own pair — carry the list
-          // marker on, take it back — bound HERE at the same high precedence
-          // instead of by `addKeymap` (2026-09-08), because the Enter is the
-          // app's own: CodeMirror's kept CommonMark's loose lists alive, and
-          // a list typed on a phone "skipped a line" (markdownCommands.js
-          // says how). Shift+Enter is the way OUT of both, and that one
-          // nobody had.
-          //
-          // Tab and Shift+Tab used to be here too. They moved into the
-          // registry (`md.indent` / `md.outdent`, 2026-08-19) the moment the
-          // formatting panel grew a button for them: a button, a chord and a
-          // settings row all describing one behaviour is exactly what the
-          // registry exists to keep from drifting.
+          // Before `defaultKeymap`, whose Shift+Enter inserts a blank line: the
+          // first keymap to answer wins. Enter and Backspace are `markdown()`'s
+          // own pair, bound HERE at high precedence instead of by `addKeymap`:
+          // the Enter is the app's own (markdownCommands.js says why).
           keymap.of([{ key: "Shift-Enter", run: insertNewline }]),
           Prec.high(
             keymap.of([
@@ -220,29 +167,24 @@
           // and the settings screen read (`services/commands.js`), so a
           // rebinding reaches the editor with nothing to keep in sync.
           formatting.of(formattingKeymap($bound)),
+          // Before `defaultKeymap`, so Ctrl+F inside the editor is the note's
+          // own search; the app-wide Ctrl+F yields to whatever answered closer.
           keymap.of([...searchKeymap]),
-          // `markdownLanguage` rather than the commonmark default: it is the
-          // one that understands task lists and strikethrough, which a note
-          // of the day uses constantly.
-          //
-          // No `codeLanguages`: highlighting a fenced block per language
-          // would drag in ~110 parsers for an app whose notes are the small
-          // ones of the day (spec 5, principle 4). A code block still reads
-          // as code — monospace, set apart — it just is not colourised.
+          // `markdownLanguage`, not the commonmark default: it understands task
+          // lists and strikethrough. No `codeLanguages`: per-language highlighting
+          // would drag in ~110 parsers (principle 4); a code block still reads
+          // as code, just not colourised.
           markdown({ base: markdownLanguage, addKeymap: false }),
           markdownPreview,
-          // Tables as grids (2026-08-24), edited in place. The field that
-          // says which cell is current comes first: the widget dispatches
-          // into it, the commands read it (services/tableEditing.js).
+          // Tables as grids, edited in place. The field that says which cell is
+          // current comes first: the widget dispatches into it, the commands
+          // read it (services/tableEditing.js).
           activeCell,
           noteTables({ shows: () => tables, layout: () => tableLayout }),
-          // Folding by SECTION, the way Obsidian reads a document (user
-          // call, 2026-08-24): the chevron beside a heading folds everything
-          // up to the next heading of the same or a higher level. The ranges
-          // are `markdown()`'s own fold service; these two only give them a
-          // gutter and a placeholder. The markers carry a class instead of
-          // CodeMirror's default glyphs so `editor.css` can draw and turn
-          // ONE chevron, the app's caret.
+          // Folding by SECTION: the chevron beside a heading folds up to the
+          // next heading of the same or higher level (the ranges are
+          // `markdown()`'s own). The markers carry a class instead of the
+          // default glyphs so `editor.css` can draw and turn ONE chevron.
           codeFolding({ placeholderText: "…" }),
           // What each foldable line IS, written on the gutter's own element
           // so the chevron can land on the item's first line whatever that
@@ -259,11 +201,10 @@
           }),
           ]),
           keymap.of([...defaultKeymap, ...historyKeymap]),
-          // The notebook's files, drawn in the note (2026-08-19). Built with
-          // its three answers rather than importing them, so the plugin is
-          // testable without a bridge and the editor keeps knowing only about
-          // text. The closures read the props on every call, which is what
-          // lets the notebook be reopened under a live editor.
+          // The notebook's files, drawn in the note. Built with its answers
+          // rather than importing them, so the plugin is testable without a
+          // bridge. The closures read the props on every call, which lets the
+          // notebook be reopened under a live editor.
           fileEmbeds({
             url: (address) => assetUrl(root, address, version),
             open: (address) => onOpenFile?.(address),
@@ -272,13 +213,9 @@
             icon: fileIcon,
             shows: (kind) => (kind === "note" ? wikiLinks : embeds),
           }),
-          // What `[[` offers while it is typed (2026-08-19). Its keymap is
-          // installed at high precedence by `autocompletion()` itself, which
-          // is what puts ArrowDown/Enter on the list while it is open and
-          // gives them straight back to the document when it is not.
-          // Only the halves that are switched on are offered: with WikiLinks
-          // off, `[[` has nothing to say about notes, and with both off it
-          // says nothing at all and the brackets are two characters.
+          // What `[[` offers while typed. `autocompletion()` installs its own
+          // keymap at high precedence. Only the halves switched on are offered:
+          // with both off, `[[` is two characters.
           autocompletion({
             override: [
               referenceCompletions({
@@ -287,63 +224,32 @@
               }),
             ],
           }),
-          // WHERE THAT PANEL IS ALLOWED TO BE, and it has to be told: the
-          // room CodeMirror works out for itself is
-          // `documentElement.clientHeight` (`windowSpace`), and on the
-          // Android WebView that is the whole window with the keyboard over
-          // the bottom third of it. So `[[` typed on the last visible line
-          // opened a panel placed — and sized — under the keys.
-          //
-          // `pageSpace` answers in the same coordinates a `position: fixed`
-          // panel is placed in and subtracts the one number the app already
-          // measures for exactly this (`--app-keyboard`, shell/keyboard.js).
-          // Told the truth, CodeMirror does the rest itself: it flips the
-          // panel ABOVE the caret when the room below has gone, and clamps
-          // its height when the room is only tight (editor.css lets that
-          // clamp reach the list instead of clipping it).
-          //
-          // On a desktop the token is unset and this is CodeMirror's own
-          // answer to the character.
+          // WHERE THE PANEL MAY BE, and it has to be told: CodeMirror's own
+          // answer is `documentElement.clientHeight`, which on Android includes
+          // the keyboard. `pageSpace` subtracts `--app-keyboard` in the
+          // coordinates a fixed panel is placed in. See docs/platform-gotchas.md#android
           tooltips({ tooltipSpace: () => pageSpace() }),
-          // Pairs that close themselves (2026-08-19). After the completion so
-          // its Backspace and its keymap are the ones already in place, and
-          // internally in front of CodeMirror's own bracket handler — the
-          // reason is written at the top of the module. A plain field gets
-          // the bracket half only (`plainAutoClose` carries the why).
+          // Pairs that close themselves. After the completion, so its Backspace
+          // and keymap are already in place, and in front of CodeMirror's own
+          // bracket handler (the module says why). A plain field gets the
+          // bracket half only.
           plain ? plainAutoClose : autoClose,
-          // The middle button pastes the desktop's primary selection into an
-          // editable element on Linux; here it means nothing (the reason is
-          // written in the module, 2026-09-07). Every field, plain or not.
+          // The middle button pastes the primary selection on Linux; here it
+          // means nothing (the module says why). Every field, plain or not.
           blockMiddlePaste,
-          // The keyboard's own help, switched back ON (2026-08-20).
-          // CodeMirror ships `spellcheck="false" autocorrect="off"
-          // autocapitalize="off"` on its content element — the right defaults
-          // for a code editor and the wrong ones for a notebook. On Android
-          // those three attributes are the whole conversation with Gboard:
-          // they decide whether a sentence is capitalised, whether a typo is
-          // fixed, and whether the suggestion strip appears at all. With them
-          // off, writing a note felt like nothing else on the phone (user
-          // report, 2026-08-20) — the keyboard was not misbehaving, it had
-          // been told to keep quiet.
-          //
-          // `spellcheck` is the one that carries the strip, which is why it is
-          // here even though no red underline is wanted for its own sake:
-          // Chrome turns a false spellcheck into the IME's no-suggestions
-          // flag, and that silences autocorrect as well, `autocorrect="on"`
-          // or not.
+          // The keyboard's own help, ON: CodeMirror ships spellcheck/autocorrect/
+          // autocapitalize off, the wrong defaults for a notebook. On Android
+          // they decide whether Gboard's suggestion strip appears at all, and a
+          // false `spellcheck` silences autocorrect too. See docs/platform-gotchas.md#android
           EditorView.contentAttributes.of({
             autocapitalize: "sentences",
             autocorrect: "on",
             spellcheck: "true",
           }),
           EditorView.lineWrapping,
-          // Air under the cursor when the editor scrolls to it (2026-08-20).
-          // Without it the line being typed lands flush against the bottom
-          // edge — which, on a phone, is flush against the top of the
-          // keyboard, with the next line already out of sight. A native
-          // editor always shows a little of what comes after the caret. In
-          // px because the facet is measured in them; roughly two lines at
-          // the default note size.
+          // Air under the cursor when the editor scrolls to it: on a phone the
+          // typed line would otherwise sit flush against the keyboard. In px
+          // because the facet is; roughly two lines at the default note size.
           EditorView.cursorScrollMargin.of({ x: 0, y: 40 }),
           // …and the scroll that margin is measured against, which the shell's
           // own layout keeps out of CodeMirror's reach (services/caretScroll.js).
@@ -395,31 +301,19 @@
 
   onDestroy(() => view?.destroy());
 
-  /// Opens the find/replace panel from outside — the page ⋮ and the canvas
-  /// menu ask for it by name (2026-08-17).
-  ///
-  /// There is one panel: the replace fields are part of it, and CodeMirror
-  /// shows them whenever the document is editable. So "Find" and "Replace" are
-  /// the same door, and a read-only note simply gets the find half.
+  /// Opens the find/replace panel from outside (the page ⋮, the canvas menu).
+  /// One panel: CodeMirror shows the replace fields whenever the document is
+  /// editable, so a read-only note simply gets the find half.
   export function openFind() {
     if (!view) return;
     view.focus();
     openSearchPanel(view);
   }
 
-  /// Runs a command by the id the registry knows it as — the door the
-  /// formatting panel comes through, while a chord comes through the keymap.
-  /// Both end at the same function, which is what keeps a button and its
-  /// tooltip from ever describing something the key does differently.
-  ///
-  /// Focus first: an editor command edits around the cursor, and clicking a
-  /// button took the focus away from it. Without this the selection is still
-  /// there but the caret is not, and the note would not scroll to what just
-  /// changed.
-  ///
-  /// …unless the focus is in a TABLE CELL (2026-08-24): a cell is the
-  /// editor's DOM but not its content element, and focusing the editor would
-  /// take the focus out of the very cell the command is about.
+  /// Runs a command by its registry id — the formatting panel's door; a chord
+  /// comes through the keymap to the same function. Focus first, or the note
+  /// would not scroll to what changed — unless the focus is in a TABLE CELL,
+  /// which is the editor's DOM but not its content element.
   export function run(id) {
     const command = EDITOR_COMMANDS[id];
     if (!view || !command) return false;
@@ -434,21 +328,15 @@
   }
 
   /// Writes text where the cursor is — how a picture chosen in the library
-  /// lands in the note (2026-08-18). The selection is replaced, which is what
-  /// every other editor does with a paste, and it is undoable like one.
+  /// lands. The selection is replaced, like a paste, and undoable like one.
   export function insert(text) {
     if (!view || !text) return;
     view.focus();
     view.dispatch(view.state.replaceSelection(text));
   }
 
-  /// Puts the cursor in the note's BODY, at the end of what is there.
-  ///
-  /// For a note that was just created (the compact shell's "new note", user
-  /// call 2026-08-18): the wireframe drew the caret in the title, and the
-  /// decision went the other way — a note is opened to WRITE in, and a title
-  /// is a name you give something once it exists. Naming first asks for the
-  /// one thing the writer does not know yet.
+  /// Puts the cursor in the note's BODY, at the end: a new note is opened to
+  /// WRITE in, and a title is a name you give something once it exists.
   export function focusBody() {
     if (!view) return;
     view.focus();

@@ -1,14 +1,8 @@
 <script>
-  // Tags management (reestruturação 2026-07-30): the user's tags and their
-  // colours, from `.jott/tags.json`. A tag's colour is what shows as a pill on
-  // a task card and colour+text in the inspector. Opened from the sidebar
-  // hamburger.
-  //
-  // Since 2026-08-24 the screen lists every `#word` IN USE, not only the
-  // catalogued ones: a tag typed into a task and never coloured is a row here
-  // too, with its count, so "which tags do I have?" has one answer. The
-  // counts come from `tag_usage` (it walks every list — asked when the screen
-  // opens, never per render); the catalogue rides in with the snapshot.
+  // Tags management: the user's tags from `.jott/tags.json`, opened from the
+  // sidebar hamburger. The screen lists every `#word` IN USE, not only the
+  // catalogued ones, with its count — from `tag_usage`, which walks every
+  // list (asked when the screen opens, never per render).
   import { api } from "../services/api.js";
   import { S } from "../services/strings.js";
   import { askConfirm, askName } from "../services/dialog.js";
@@ -19,8 +13,8 @@
   import Icon from "../components/Icon.svelte";
 
   /// `onSearch(name)`: the shell opens the notebook search on `#name` — the
-  /// core reads the prefix (core/search.rs), so this page is the door to
-  /// "where is this tag used?" and needs no screen of its own (2026-08-24).
+  /// core reads the prefix (core/search.rs), so this page needs no screen of
+  /// its own for "where is this tag used?".
   let { tags = [], onSearch, onChanged, onError, reloadKey = 0 } = $props();
 
   let usage = $state([]);
@@ -32,7 +26,6 @@
     load();
   });
 
-  // Callbacks wrapped — see services/act.js.
   const { load, act } = makeScreen({
     read: () => api.tagUsage(),
     apply: (read) => {
@@ -104,9 +97,7 @@
   {#if !loaded && rows.length === 0}
     <Loading label={S.tagsLoading} />
   {:else if rows.length === 0}
-    <!-- Outlined, not primary: the header already carries the same verb, and
-         two filled buttons saying the same thing on an otherwise blank screen
-         is one call to action too many. -->
+    <!-- Outlined, not primary: the header already carries the same verb. -->
     <EmptyState icon="tag" title={S.tagsEmpty} hint={S.tagsEmptyHint}>
       <button class="theme-btn theme-btn--outline theme-btn--sm" onclick={add}>{S.newTagName}</button>
     </EmptyState>
@@ -118,8 +109,7 @@
         <li class="theme-row tags-view__item" class:tags-view__item--uncatalogued={!tag.catalogued}>
           <span class="tags-view__name">
             <!-- The tag as the card draws it: a neutral badge. A tag has no
-                 colour of its own since 2026-08-26 — the colour a card wears
-                 is its space's. -->
+                 colour of its own — the colour a card wears is its space's. -->
             <Badge label={`#${tag.name}`} class="tags-view__badge" />
             <!-- The count is the second line's fact; "not in the picker" is
                  what a word typed into a task and never saved looks like. -->
@@ -136,11 +126,8 @@
           >
             <Icon name="magnifying-glass" size="1rem" />
           </button>
-          <!-- The same trash the inspector's footer wears (user call,
-               2026-08-13): one glyph for "throw this away", wherever the app
-               offers it. As a worded button it was the widest thing in the row
-               and read as the row's main action. An uncatalogued word has no
-               colour to forget, so it has no bin — the glyph would be a lie. -->
+          <!-- The same trash the inspector's footer wears. An uncatalogued
+               word has no colour to forget, so it has no bin. -->
           {#if tag.catalogued}
             <button
               class="theme-btn--icon tags-view__delete"

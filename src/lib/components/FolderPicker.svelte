@@ -1,18 +1,9 @@
 <script>
   // The app's own folder browser — Android's answer to "where does the
-  // notebook live?".
-  //
-  // The desktop never opens this: it has the system's picker, which knows
-  // about bookmarks, network mounts and typing a path, and reimplementing that
-  // would be worse at all three. Android has no picker to open at all
-  // (`pick_notebook_folder` answers null there — Tauri's dialog plugin has no
-  // `pick_folder` on that platform), and the platform's own answer, the
-  // Storage Access Framework, hands back a `content://` URI that the core
-  // cannot open. With the all-files permission granted, folders are folders
-  // again, and browsing them is a list.
-  //
-  // It only ever lists FOLDERS. The question is which one holds the notebook,
-  // and every photo on the phone in between would only be scrolled past.
+  // notebook live?". The desktop uses the system picker; Android has none
+  // (`pick_notebook_folder` answers null there), and the Storage Access
+  // Framework hands back a `content://` URI the core cannot open. It lists
+  // FOLDERS only. See docs/platform-gotchas.md#android
   import { api } from "../services/api.js";
   import { S } from "../services/strings.js";
   import { askName } from "../services/dialog.js";

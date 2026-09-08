@@ -1,14 +1,9 @@
 <script>
-  // A self-contained calendar, replacing the native `<input type="date">`.
-  //
-  // The WebKitGTK native picker misbehaved in two ways the user hit: it did not
-  // close when clicking elsewhere in the app, and paging the month dismissed it
-  // (so moving more than one month meant reopening). This owns its own popup, so
-  // it closes on an outside click or Escape, and paging months keeps it open.
-  //
-  // It speaks the same contract the field always spoke: `value` is an ISO string
-  // (or ""), and `onChange(iso)` fires when a day is chosen. Clearing stays the
-  // caller's job (the inspector keeps its own × for that).
+  // A self-contained calendar replacing the native `<input type="date">`:
+  // the WebKitGTK picker neither closed on an outside click nor survived
+  // paging the month (see docs/platform-gotchas.md#webview-e-gestos).
+  // `value` is an ISO string (or ""); `onChange(iso)` fires when a day is
+  // chosen. Clearing stays the caller's job.
   import { formatDate, toIso } from "../services/dates.js";
   import { S } from "../services/strings.js";
   import Icon from "./Icon.svelte";

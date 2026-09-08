@@ -1,18 +1,8 @@
 <script>
-  // Suggestions, in the right-hand panel — what could still be pulled into a
-  // day (today, or one ahead on the Home's calendar), grouped by why it is
-  // being offered.
-  //
-  // It was a popover hanging off the pill until 2026-08-06 (user call): a list
-  // this long, that you read through and act on several times in a row, wants
-  // the panel, not a floating card that covers the tasks you are comparing it
-  // against. It shares the panel with the task inspector — one right panel,
-  // one thing in it — and keeps the same chrome pact: a fixed head, a
-  // scrolling middle, and nothing else.
-  //
-  // It loads its own suggestions. The alternative was threading them down from
-  // whichever screen opened it, and the panel outlives that screen: picking
-  // another day underneath must not leave a stale list here.
+  // Suggestions, in the right-hand panel — what could still be pulled into
+  // a day, grouped by why it is offered. Same pact as the task inspector it
+  // shares the panel with: fixed head, scrolling middle. It loads its own
+  // list: the panel outlives the screen that opened it (a day picked underneath).
   import { api } from "../services/api.js";
   import { S } from "../services/strings.js";
   import { listName, listLabel } from "../services/paths.js";
@@ -33,10 +23,9 @@
     /// badge a card wears outside its space (services/origin.js). Null when
     /// the screen IS the space, and nothing is said.
     origin = null,
-    /// The narrow shell (shell/compact.js): the panel is a bottom sheet, which
-    /// is dismissed by tapping the page behind it or pulling it down by its
-    /// handle. Both are free, so the head drops its × and keeps the room for
-    /// the title (user call, 2026-08-18).
+    /// The narrow shell (shell/compact.js): the panel is a bottom sheet,
+    /// dismissed by tapping the page behind it or pulling it down by its
+    /// handle — so the head drops its ×.
     compact = false,
     onChanged,
     onError,
@@ -66,14 +55,12 @@
       await api.pullInto(day, list, id);
     });
 
-  // Why something is being offered — the core's own grouping. "From the lists"
-  // is NOT among them any more (user call, 2026-08-06): a single heading over
-  // every list said nothing, so each list gets its own instead.
+  // Why something is being offered — the core's own grouping. There is no
+  // "From the lists" heading: each list gets its own section (`byList`).
   const REASONS = [
     { key: "urgent", label: S.groupUrgent },
     { key: "soon", label: S.groupSoon },
-    // What was in today and left it (2026-08-17): a way back to an old
-    // decision.
+    // What was in today and left it: a way back to an old decision.
     { key: "recent", label: S.groupRecent },
   ];
 
@@ -95,11 +82,8 @@
     }
     return [...out].map(([path, items]) => {
       // The address the core hands over, never the folder or the file stem:
-      // the fixed spaces are filed as `jott.*` and read as Home, Tasks and
-      // Notes, and since 2026-08-13 every tasks list is called `task-list.md`,
-      // so the stem names nothing. The heading is the origin badge: the name
-      // in the space's colour (services/origin.js), once per section rather
-      // than on every row.
+      // fixed spaces are filed as `jott.*`, and every tasks list is
+      // `task-list.md`. The heading is the origin badge (services/origin.js).
       const first = items[0] ?? { path };
       const from = origin?.(first) ?? null;
       return {
@@ -111,9 +95,8 @@
     });
   });
 
-  // Folded shut by clicking the heading. Local to the panel, like the sidebar's
-  // groups: it is how the panel is being looked at right now, not something the
-  // notebook should carry to another machine.
+  // Folded shut by clicking the heading. Local to the panel, like the
+  // sidebar's groups: not something the notebook carries to another machine.
   let collapsed = $state(new Set());
   const isCollapsed = (key) => collapsed.has(key);
   function toggle(key) {
@@ -149,8 +132,7 @@
     {#if !isCollapsed(section.key)}
       <ul class="suggestions-pane__list">
         {#each section.items as entry, i (`${entry.path}/${entry.task.id ?? ""}#${i}`)}
-          <!-- The whole row is the pull (user call, 2026-08-04): a suggestion
-               exists to be pulled, so clicking it anywhere does exactly that. -->
+          <!-- The whole row is the pull: a suggestion exists to be pulled. -->
           <li>
             <button
               class="suggestions-pane__item"

@@ -1,14 +1,9 @@
 <script>
   // A list of task cards — the one implementation Home, a list screen and a
-  // tasks space draw their tasks through.
-  //
-  // The three of them had copied the same twenty lines of markup, and with it
-  // the rule that is easy to get subtly wrong: the hairline that separates the
-  // pinned cards from the rest is a list item of its own, but NOT a `.task-row`,
-  // so the reorder action never counts it as a slot (2026-08-05).
-  //
-  // The block hooks come in as classes rather than being built from a name, so
-  // a grep for `.tasks-space__list` still finds both the markup and the CSS.
+  // tasks space draw through. The hairline separating pinned cards is a list
+  // item of its own but NOT a `.task-row`, so the reorder action never counts
+  // it as a slot. Block hooks come in as classes, so a grep for
+  // `.tasks-space__list` still finds both the markup and the CSS.
   import TaskRow from "./TaskRow.svelte";
   import { reorderable } from "../actions/reorder.js";
   import { swipe } from "../actions/swipe.js";
@@ -25,7 +20,7 @@
     dividerClass = "",
     /// Drop handler, in SCREEN indices. Omitted, the list is not draggable.
     onReorder = null,
-    /// The selection, for the drag (actions/reorder.js, 2026-08-21):
+    /// The selection, for the drag (actions/reorder.js):
     /// `onHold(entry)` answers a press that rested — true to take it (enter
     /// selection mode); `carried(entry)` lists the entries that travel with
     /// one that is picked up; `onReorderMany(entries, to)` is the drop of
@@ -46,8 +41,7 @@
     /// the screen IS the space, and nothing is said.
     origin = null,
     /// `(entries, zone) => void` — cards dropped, by a FREE drag (Ctrl held),
-    /// on a space of tasks in the sidebar or on the Home (2026-08-26). Null
-    /// offers no free drag.
+    /// on a space of tasks in the sidebar or on the Home. Null: no free drag.
     onMoveTo = null,
     /// The colour of the space these cards are in (a name) — what a tag wears.
     color = null,
@@ -63,10 +57,8 @@
     /// `(entry) => void`; omitted, neither gesture gives.
     onDelete = null,
     /// What a rightward swipe means for one card: `(entry) => { adds, run }`,
-    /// or null where the gesture has no meaning here. `adds` decides which
-    /// square the swipe uncovers — the screen that owns the gesture is the one
-    /// that knows whether it is sending the task to the day or taking it out
-    /// (spaces/TasksSpace.svelte).
+    /// or null. `adds` decides which square the swipe uncovers — the owning
+    /// screen knows whether it sends to the day or takes out (spaces/TasksSpace.svelte).
     daySwipe = null,
     /// `(entry) => void` — make a copy of this task. Omitted, Ctrl+D does
     /// nothing rather than something surprising.
@@ -75,18 +67,10 @@
     actions,
   } = $props();
 
-  // ---- the keyboard (2026-08-18) ----
-  //
-  // The list answers its own keys, because it is the one that HAS the tasks
-  // and its focus is what says it is the list being talked to. The shell
-  // deliberately does not: with two lists on screen (a space draws its tasks
-  // and its completed ones), a shell-level handler would have to guess which
-  // one a press meant, and would sometimes fire both.
-  //
-  // Focus moves, selection does not follow it. Arrowing through ten cards
-  // would otherwise open — and reload — the inspector ten times; Enter is
-  // what opens one. This is also the roving-tabindex pattern, so a task card
-  // is finally reachable by Tab at all, which it was not before.
+  // ---- the keyboard ----
+  // The list answers its own keys: it HAS the tasks, and with two lists on
+  // screen a shell-level handler would have to guess which one a press meant.
+  // Focus moves, selection does not follow (Enter opens): roving tabindex.
   let focused = $state(0);
 
   /// The card the keys act on: the focused one, kept inside the list as items
@@ -159,20 +143,13 @@
 
 <!-- Drag anywhere on a card to reorder (no grip); a plain click still opens
      the inspector — the action tells them apart by distance. A selector that
-     matches nothing is how a non-reorderable list opts out entirely. -->
-<!-- Reordering is vertical, swiping is horizontal, and the first few pixels
-     decide which (2026-08-06). No waiting: a hold made the drag feel stuck, and
-     both actions ended up capturing the same pointer, which left the reorder
-     deaf to every move after the swipe grabbed it. -->
+     matches nothing is how a non-reorderable list opts out. Reordering is
+     vertical, swiping horizontal, and the first few pixels decide — no hold. -->
+
+<!-- `role="grid"` with one column: the cards are `row`s, focusable and
+     arrow-navigable while holding their own controls (TaskRow). The divider
+     keeps `aria-hidden`, so it is not a row. A `ul` with a role is valid ARIA. -->
 <!-- svelte-ignore a11y_no_noninteractive_element_to_interactive_role -->
-<!-- The rule reads the TAG and not the role: an interactive role on a `ul` is
-     valid ARIA (a role replaces the element's semantics, which is the point),
-     and a `div` here would cost the list semantics for nothing — the CSS,
-     the reorder action and the pin divider are all written against `ul`/`li`.
-     -->
-<!-- `role="grid"` with one column: the cards are `row`s, which is what makes
-     them focusable and arrow-navigable while still holding their own controls
-     (see TaskRow). The divider keeps `aria-hidden`, so it is not a row. -->
 <ul
   bind:this={list}
   class="theme-task-list {listClass}"
@@ -192,8 +169,7 @@
       ? (what, zone) => onMoveTo((Array.isArray(what) ? what : [what]).map((i) => items[i]), zone)
       : null,
     // Longer than the default rest: here the hold ENTERS SELECTION MODE, and
-    // at 400ms a slow scroll down the list kept marking cards by accident
-    // (user call, 2026-08-24: "aumentar bastantinho o tempo pra selecionar").
+    // a slow scroll down the list kept marking cards by accident.
     holdMs: 700,
     onReorder: onReorder ?? (() => {}),
     onHold: onHold ? (i) => onHold(items[i]) : null,

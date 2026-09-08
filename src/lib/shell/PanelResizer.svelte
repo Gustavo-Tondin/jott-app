@@ -1,17 +1,9 @@
 <script>
   // The draggable edge of a side panel — the sidebar's and the right panel's,
-  // written once (2026-08-17).
-  //
-  // The two differ in three things and nothing else: which limits apply, which
-  // neighbour is being measured, and which way the pointer's travel counts —
-  // the right panel's handle sits on the side its width grows AWAY from. All
-  // three follow from `sign`, so the caller only says which side it is on.
-  //
-  // A separator that can be MOVED is a widget, and ARIA has a name for it: a
-  // focusable separator, which takes a value and the arrow keys. The linter
-  // only knows the static kind, hence the two ignores below. Making it
-  // operable from the keyboard is not politeness — without it the width is a
-  // control only a mouse can reach.
+  // written once. They differ in the limits, in which neighbour is measured
+  // and in which way the pointer's travel counts; all three follow from `sign`.
+  // A separator that can be MOVED is a focusable separator with a value and
+  // the arrow keys; the linter only knows the static kind, hence the ignores.
   import { S } from "../services/strings.js";
   import { draggedWidth } from "./sidebarWidth.js";
 

@@ -1,15 +1,9 @@
 <script>
-  // A box the shell speaks through (Etapa 7, 2026-08-24): an error, a sync
-  // conflict, an update, the AppImage's menu offer. Four boxes wrote the same
-  // markup by hand in App.svelte; this is the one shape, and what differs is
-  // the `tone`, the glyph, and what goes inside.
-  //
-  // `title` is the one line that is read first; `children` is the body
-  // (optional — an error is often the title alone); `actions` is the row of
-  // buttons at the end. `onDismiss` draws the × — a notice without it stays
-  // until what it reports is gone. The colours are the fixed status ones
-  // (.theme-notice, controls/feedback.css): a box does not change meaning when the
-  // accent happens to be red or green.
+  // A box the shell speaks through: an error, a sync conflict, an update, a
+  // menu offer. One shape; what differs is `tone`, the glyph and the content.
+  // `title` is read first; `children` is the optional body; `actions` the row
+  // of buttons. `onDismiss` draws the × — without it the box stays until what
+  // it reports is gone. Colours are the fixed status ones (.theme-notice).
   import Icon from "./Icon.svelte";
 
   const GLYPH = { error: "warning-circle", warning: "warning", success: "sparkle", info: "info" };

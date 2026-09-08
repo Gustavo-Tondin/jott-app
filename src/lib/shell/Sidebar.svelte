@@ -1,10 +1,8 @@
 <script>
-  // The left panel: fixed spaces on top, the user's lists and spaces
-  // in their groups, notebook name and settings pinned to the bottom.
-  //
-  // Pure skeleton — every decision (what is open, what a click does) comes in
-  // as a prop from the shell, and everything visual lives in
-  // styles/components/shell.css under the `shell__*` hooks.
+  // The left panel: fixed spaces, the user's lists and spaces in their
+  // groups, notebook name and settings pinned to the bottom. Pure skeleton —
+  // every decision comes in as a prop from the shell, and everything visual
+  // lives in styles/components/shell.css under the `shell__*` hooks.
   import Icon from "../components/Icon.svelte";
   import Menu from "../components/Menu.svelte";
   import SpaceAppearance from "../components/SpaceAppearance.svelte";
@@ -23,28 +21,22 @@
 
   let {
     notebook,
-    /// `(key) => boolean` — is this part of the app switched on? (App
-    /// Functions, 2026-08-06.)
+    /// `(key) => boolean` — is this part of the app switched on?
     f = () => true,
     userLists,
     userSpaces,
     counts,
     isOpen,
-    /// `(view) => boolean` — does this place hold the open view without
-    /// being it? It wears the same pill: a note read from inside Notes is
-    /// still "in Notes" (user call, 2026-08-21).
+    /// `(view) => boolean` — does this place hold the open view without being
+    /// it? It wears the same pill: a note read from inside Notes is "in Notes".
     holds = () => false,
     onOpen,
     onOpenList,
-    /// `() => void` — the notebooks screen. It used to be the folder picker
-    /// straight away, which was the only way to change notebook there was;
-    /// now the same footer opens the screen that LISTS them (2026-08-24), and
-    /// the folder picker is one of its two doors.
+    /// `() => void` — the notebooks screen (the folder picker is one of its doors).
     onNotebooks,
-    /// `() => Promise<RecentNotebook[]>` — what the footer's menu lists
-    /// (2026-09-07): the notebooks this machine has opened. Asked when the
-    /// menu OPENS, never before — the bridge summarises every notebook to
-    /// answer it, which is a walk of every folder.
+    /// `() => Promise<RecentNotebook[]>` — what the footer's menu lists: the
+    /// notebooks this machine has opened. Asked when the menu OPENS, never
+    /// before — answering it is a walk of every folder.
     onListNotebooks = null,
     /// `(path, newWindow) => void` — a row of that menu: this window becomes
     /// that notebook, or (the middle button) a new window does.
@@ -68,7 +60,7 @@
     onRenameSpace,
     onSetSpaceAppearance,
     onDeleteSpace,
-    // Groups (reestruturação 2026-07-30): folders that hold spaces.
+    // Groups: folders that hold spaces.
     groups = [],
     onCreateGroup,
     onRenameGroup,
@@ -78,10 +70,8 @@
     // Collapsed to an icon rail? Owned by the shell, toggled by the button here.
     rail = false,
     onToggleRail,
-    /// The narrow shell (shell/compact.js): the same sidebar, presented as a
-    /// drawer that slides in over the page. Nothing about its CONTENT changes
-    /// — the four head controls the wireframe draws are the four it already
-    /// had — so this only says which way it is worn.
+    /// The narrow shell (shell/compact.js): the same sidebar, worn as a drawer
+    /// that slides in over the page. Nothing about its CONTENT changes.
     compact = false,
     /// Whether the drawer is showing. Ignored outside the compact shell, where
     /// the sidebar is a column and is always there.
@@ -105,9 +95,8 @@
   // from that space's ⋮ menu.
   let appearanceOpen = $state(null);
 
-  // Groups folded shut by clicking their name. Local to the sidebar, like the
-  // rail: it is how the panel is being looked at right now, not a property of
-  // the notebook the other machines should inherit.
+  // Groups folded shut by clicking their name. Local, like the rail: how the
+  // panel is being looked at, not a property of the notebook.
   let collapsed = $state(new Set());
   const isCollapsed = (folder) => collapsed.has(folder);
   function toggleGroup(folder) {
@@ -116,21 +105,19 @@
     collapsed = next;
   }
 
-  // Middle click opens in a fresh tab; a plain click navigates the current
-  // one, the way links do (same contract as onOpenList). `run` is what opening
-  // in a new tab IS for that row — `onOpen(view, true)` or `onOpenList(path,
-  // true)`.
+  // Middle click opens in a fresh tab, the way links do. `run` is what
+  // opening in a new tab IS for that row — `onOpen(view, true)` or
+  // `onOpenList(path, true)`.
   function middleOpen(event, run) {
     if (event.button !== 1) return;
     event.preventDefault();
     run();
   }
 
-  // ---- the footer's notebook menu (2026-09-07) ----
-  // "Menu flutuante pra trocar de caderno mais rápido": the name in the
-  // footer opens the list of notebooks this machine knows, the open one
-  // ticked, and the last row is the screen that manages them — which is
-  // where the name used to go straight away. The list is fetched on open.
+  // ---- the footer's notebook menu ----
+  // The name in the footer opens the list of notebooks this machine knows,
+  // the open one ticked; the last row is the screen that manages them. The
+  // list is fetched on open.
   let recentNotebooks = $state([]);
   function openNotebookMenu(toggle) {
     toggle();
@@ -144,11 +131,9 @@
   );
 
   // ---- one ordered column ----
-  // Groups and loose spaces used to be two `{#each}` blocks in two
-  // containers, which is why a group could not be dragged at all and a
-  // space could not be dragged past one (2026-08-06). What the merged
-  // order MEANS — and what a drop on another entry means — is decided in
-  // services/sidebarOrder.js, so it is testable without a DOM.
+  // Groups and loose spaces share ONE list, so a group drags between spaces
+  // and a space drags past a group. What the merged order MEANS, and what a
+  // drop on another entry means, is decided in services/sidebarOrder.js.
   let entries = $derived(sidebarEntries(userSpaces, groups));
 
   /// A drag inside one level rewrites only that level's run of names — the
@@ -157,8 +142,7 @@
     onReorderEntries?.(reorderedAt(entries, parent?.key ?? null, from, to));
 
   /// An entry dragged clear of its level leaves the group it was in, landing
-  /// in whatever holds that group. Joining by drag without a way back out
-  /// would be a one-way door (user call, 2026-08-06).
+  /// in whatever holds that group — joining by drag has a way back out.
   function leaveLevel(parent, index) {
     const child = parent.children[index];
     if (!child) return;
@@ -169,8 +153,7 @@
   }
 
   /// Dropped on a group's head, wherever that group is in the column: the
-  /// entry joins it. Moving a list from one group to another used to mean
-  /// dragging it out to the root and in again (user call, 2026-08-11).
+  /// entry joins it (one drag moves a list between two groups).
   function dropOnGroup(list, from, zone) {
     const entry = list[from];
     const folder = zone.dataset.groupDrop;
@@ -192,14 +175,11 @@
   }
 
   // ---- the right-click menu on empty space ----
-  // The two "+ New …" buttons used to sit at the bottom of the list, where they
-  // read as two more spaces. They live here now (user call, 2026-08-06).
   let menuAt = $state(null);
   let menuShown = $state([]);
 
-  /// A row's own menu, at the pointer. The ⋮ is gone from every row (user call,
-  /// 2026-08-06): it only appeared on hover, it stole the end of every name,
-  /// and it had nothing the right button could not carry.
+  /// A row's own menu, at the pointer. Rows carry no ⋮: the right button
+  /// carries everything it would.
   function openRowMenu(event, items) {
     if (notebook.readOnly) return;
     event.preventDefault();
@@ -210,20 +190,17 @@
 
   function openSidebarMenu(event) {
     if (notebook.readOnly) return;
-    // A row has its own ⋮; this menu is for the space between them.
+    // A row has its own menu; this one is for the space between them.
     if (event.target.closest(".shell__nav-item")) return;
     event.preventDefault();
     menuShown = sidebarMenu;
     menuAt = { x: event.clientX, y: event.clientY };
   }
 
-  /// The three things that can be made, in the sidebar's empty space
-  /// (`group: null`) or inside a group — where they are made INSIDE it.
-  ///
-  /// A space has one function, chosen at creation (spec 3.5), and the
-  /// menu says which by name: a tasks one is a **list**, a notes one is a
-  /// **notepad**. "New space" asked a second question nobody needed to be
-  /// asked (user call, 2026-08-11).
+  /// The three things that can be made, in the empty space (`group: null`)
+  /// or INSIDE a group. A space has one function, chosen at creation (spec
+  /// 3.5), and the menu names it: a tasks one is a **list**, a notes one a
+  /// **notepad**.
   const createMenu = (group = null) => [
     { label: S.newGroup, run: () => onCreateGroup?.(group) },
     { label: S.newList, run: () => onCreateSpace?.("tasks", group) },
@@ -254,12 +231,9 @@
     },
   ]);
 
-  // The ⋮ menu items for a space, including move-to/remove-from group.
-  // A grouped space has no appearance of its own (no icon, and it follows
-  // the group's colour — user call 2026-08-04), so the item only shows loose.
+  // The menu of a group's head.
   const groupMenu = (group) => [
-    // What is made here is made INSIDE this group — including another group
-    // (they nest since 2026-08-11).
+    // What is made here is made INSIDE this group — including another group.
     ...createMenu(group.folder),
     { label: S.renameGroup, run: () => onRenameGroup?.(group.folder, group.name) },
     {
@@ -306,11 +280,9 @@
   }
 </script>
 
-<!-- It DECLARES the chrome, rather than inheriting it. As a column inside the
-     window it would inherit it anyway; as a drawer it is rendered outside the
-     window (App.svelte), where it sits in no region at all and would get no
-     colour role — it came out white on the first build, pills and space
-     colours and all. Same trap the modals document, same answer. -->
+<!-- It DECLARES the chrome rather than inheriting it: as a drawer it is
+     rendered outside the window (App.svelte), in no region at all, and would
+     get no colour role — white, pills and space colours and all. -->
 <nav
   data-region="chrome"
   class="shell__sidebar"
@@ -328,16 +300,15 @@
       items={[
         // Each row is a screen, so each takes the middle button too: the
         // `gesture` a row is run with says whether to open in a new tab
-        // (components/MenuItems.svelte, 2026-09-07).
+        // (components/MenuItems.svelte).
         ...(f("tasks") && f("tasksSpace")
           ? [{ label: S.completed, run: (g) => onOpen?.({ kind: "completed" }, !!g?.newTab) }]
           : []),
         ...(f("taskTags")
           ? [{ label: S.tagsManagement, run: (g) => onOpen?.({ kind: "tags" }, !!g?.newTab) }]
           : []),
-        // The notebook's images (2026-08-18). Here, with the other three, for
-        // the same reason they are here: it belongs to the NOTEBOOK, not to
-        // any one space, so no space's ⋮ could own it.
+        // The notebook's images: they belong to the NOTEBOOK, not to any one
+        // space, so no space's menu could own them.
         ...(f("notes")
           ? [{ label: S.assetsTitle, run: (g) => onOpen?.({ kind: "assets" }, !!g?.newTab) }]
           : []),
@@ -355,9 +326,8 @@
         </button>
       {/snippet}
     </Menu>
-    <!-- The Timeline (2026-08-27): the one screen of the time axis, reached
-         from here and nowhere else — it is the notebook's, like the search
-         beside it, not any space's. -->
+    <!-- The Timeline: the one screen of the time axis, reached from here and
+         nowhere else — the notebook's, like the search beside it. -->
     {#if f("timeline")}
       <button
         class="theme-btn--icon shell__head-action"
@@ -370,11 +340,9 @@
         <Icon name="path" size="1.125rem" />
       </button>
     {/if}
-    <!-- Search and + (user call, 2026-08-17). Both were only reachable by
-         shortcut or by right-clicking the empty column — which is nowhere at
-         all once the column is full. They keep the hamburger's company on the
-         left and, like it, wait for the full sidebar: 3.5rem of rail holds one
-         glyph per row, and that row is the expand toggle. -->
+    <!-- Search and +: the right-click on the empty column is nowhere once the
+         column is full. Like the hamburger they wait for the full sidebar:
+         3.5rem of rail holds one glyph per row, and that row is the expand toggle. -->
     <button
       class="theme-btn--icon shell__head-action"
       onclick={() => onSearch?.()}
@@ -404,7 +372,7 @@
       title={compact ? S.closeSheet : rail ? S.expandSidebar : S.collapseSidebar}
     >
       <!-- Same rule as the inspector's: as a column it folds to the side, as a
-           drawer over the page it simply closes (user call, 2026-08-18). -->
+           drawer over the page it simply closes. -->
       <Icon name={compact ? "x" : "sidebar-simple"} size="1.125rem" />
     </button>
   </div>
@@ -415,15 +383,10 @@
     role="presentation"
     oncontextmenu={openSidebarMenu}
   >
-    <!-- Each group carries a 2px bar at the wall (design PDF). The fixed
-         group is neutral; user spaces will each set their own colour
-         via --group-color (Fase 13). -->
-    <!-- One fixed row: a view, its glyph, its label and — for the one that
-         holds tasks — how many are open. -->
-    <!-- `drop`: what a FREE drag (Ctrl) may land here — `data-space-drop` +
-         `data-space-kind` for a space (a task goes into its Inbox, a note
-         into its Inbox folder), `data-day-drop` for the Home, which pulls a
-         task into the day (2026-08-26; actions/reorder.js). -->
+    <!-- One fixed row: a view, glyph, label and — for the one holding tasks —
+         how many are open. `drop`: what a FREE drag (Ctrl) may land here —
+         `data-space-drop` + `data-space-kind` for a space (a task into its
+         Inbox, a note into its Inbox folder), `data-day-drop` for the Home. -->
     {#snippet fixedRow(view, icon, label, count = 0, drop = {})}
       <button
         class="shell__nav-item"
@@ -439,25 +402,19 @@
         {/if}
       </button>
     {/snippet}
-    <!-- With every fixed row hidden the whole group goes, divider included:
-         an empty group left a stray second line at the top of the column
-         (user report, 2026-08-24). -->
+    <!-- With every fixed row hidden the whole group goes, divider included —
+         an empty group would leave a stray second line at the top. -->
     {#if f("homeSpace") || (f("tasks") && f("tasksSpace")) || (f("notes") && f("notesSpace"))}
       <div class="shell__group">
-        <!-- One glyph, open or not (user call, 2026-08-13): Home was the only
-             entry that swapped to its filled variant when selected, so the
-             icon changed SHAPE under the pointer while every other row just
-             took the accent pill. The pill already says where you are. -->
-        <!-- Each fixed row also answers to its own switch (Fixed spaces,
-             2026-08-24): hiding one takes the shortcut and the screen, and
-             nothing else — the folders stay, and the function stays on. -->
+        <!-- One glyph, open or not: the pill already says where you are. Each
+             fixed row also answers to its own switch (Fixed spaces): hiding one
+             takes the shortcut and the screen — the folders and the function stay. -->
         {#if f("homeSpace")}
           {@render fixedRow({ kind: "home" }, "house", S.home, 0, { "data-day-drop": "" })}
         {/if}
         {#if f("tasks") && f("tasksSpace")}
-          <!-- The fixed screen's own number, which it never had: a row that
-               holds tasks says how many are open, and this one holds the
-               Inbox and every list beside it (user report, 2026-08-20). -->
+          <!-- A row that holds tasks says how many are open; this one holds the
+               Inbox and every list beside it. -->
           {@render fixedRow(
             { kind: "tasks" },
             "check-square",
@@ -477,10 +434,9 @@
       <hr class="theme-divider" />
     {/if}
 
-    <!-- The user's lists reorder by drag (the whole item, like the tabs); the
-         action skips the fixed Completed/new-list rows below by matching only
-         the --reorderable items. They are files of the fixed Tasks space, so
-         they go with it (2026-08-24). -->
+    <!-- The user's lists reorder by drag; the action matches only the
+         --reorderable items. They are files of the fixed Tasks space, so they
+         go with it. -->
     {#if f("tasks") && f("tasksSpace")}
     <div
       class="shell__group"
@@ -508,20 +464,16 @@
     </div>
     {/if}
 
-    <!-- Spaces. Each row's whole surface carries the hover and the
-         selected highlight (tinted with the space's own colour), with the
-         ⋮ inside it. Groups (reestruturação 2026-07-30) render as titled
-         sections that hold their member spaces; loose ones sit below. -->
+    <!-- Spaces. Each row's whole surface carries the hover and the selected
+         highlight (tinted with the space's colour). Groups render as titled
+         sections holding their members; loose ones sit below. -->
 
-    <!-- One space row: the same .shell__nav-item band the fixed entries
-         use, as a DIV so the ⋮ can sit inside the highlight. Grouped members
-         (2026-08-04) are the shorter, icon-less variant — they follow the
-         GROUP's colour and vanish in the rail. -->
+    <!-- One space row: the same .shell__nav-item band the fixed entries use,
+         as a DIV so a popup can sit inside the highlight. Grouped members are
+         the shorter variant — they follow the GROUP's colour and vanish in the rail. -->
     {#snippet spaceRow(sp, grouped)}
-      <!-- A space of tasks counts what is open in it, the same way the
-           fixed screen and the lists do. A notepad has nothing to count,
-           and a type this build has never heard of is not going to be
-           guessed at. -->
+      <!-- A space of tasks counts what is open in it. A notepad has nothing
+           to count, and an unknown type is not guessed at. -->
       {@const open = sp.kind === "tasks" ? openIn(counts, sp.path) : 0}
       <!-- svelte-ignore a11y_no_static_element_interactions -->
       <div
@@ -538,10 +490,9 @@
           onclick={() => onOpen({ kind: "space", sp: sp.path })}
           onauxclick={(e) => middleOpen(e, () => onOpen?.({ kind: "space", sp: sp.path }, true))}
         >
-          <!-- A member draws its icon too (user call, 2026-08-06), a size
-               down — it keeps the rail usable, where the label is gone and the
-               icon is all there is. Untinted: the colour belongs to the group,
-               for the whole section. -->
+          <!-- A member draws its icon too, a size down — it keeps the rail
+               usable, where the icon is all there is. Untinted: the colour
+               belongs to the group. -->
           <Icon name={spaceIcon(sp)} size={grouped ? "1rem" : "1.125rem"} />
           <span class="shell__nav-label">{sp.name}</span>
           {#if open}
@@ -566,14 +517,10 @@
       </div>
     {/snippet}
 
-    <!-- Groups and loose entries, in ONE ordered column so a group can be
-         dragged between two lists and a list dropped into a group. Dropping
-         something on the MIDDLE of another makes a group of the two (the
-         reorder action's `onDropInto`); between them, it just reorders.
-         Groups hold groups (2026-08-11), so the column is a TREE: one snippet
-         that renders itself, each level its own ordered list. That is what
-         makes a drag inside a group reorder that group, and a drag out of it
-         land one level up. -->
+    <!-- Groups and loose entries in ONE ordered column: a group drags between
+         two lists, a list drops into a group. A drop on the MIDDLE of another
+         entry makes a group of the two (`onDropInto`); between them, it reorders.
+         Groups nest, so the column is a TREE — one snippet rendering itself per level. -->
     {#snippet column(list, parent)}
       <div
         class="shell__spaces"
@@ -581,15 +528,12 @@
         use:reorderable={{
           axis: "y",
           item: ".shell__entry",
-          // By the NAME row only (user call, 2026-08-06): a group is grabbed
-          // by its head, and the colour popup inside the row is left alone.
-          // The INNERMOST list owns the gesture (see actions/reorder.js), so
-          // grabbing a member drags the member, not the group holding it.
+          // By the NAME row only: a group is grabbed by its head, and the colour
+          // popup inside the row is left alone. The INNERMOST list owns the
+          // gesture (actions/reorder.js), so grabbing a member drags the member.
           handle: ".shell__nav-open",
-          // The handle here is also the button that OPENS the space, so a
-          // finger on it proves nothing — scrolling the column kept picking
-          // spaces up. It rests first, like everywhere else (user call,
-          // 2026-08-24).
+          // The handle is also the button that OPENS the space, so a finger on
+          // it proves nothing — it rests first, like everywhere else.
           hold: true,
           onReorder: (from, to) => reorderAt(parent, from, to),
           onDropInto: (from, into) => dropAt(list, from, into),
@@ -623,9 +567,8 @@
                 >
                   <Icon name={entry.group.icon || "folders"} size="1.125rem" />
                   <span class="shell__nav-label">{entry.group.name}</span>
-                  <!-- The head is a toggle, and nothing said so: it looked like
-                       every other row and behaved differently (user call,
-                       2026-08-13). The caret points where the members are. -->
+                  <!-- The head is a toggle; the caret says so, and points where
+                       the members are. -->
                   <span class="shell__group-caret">
                     <Icon
                       name={isCollapsed(entry.group.folder) ? "caret-right" : "caret-down"}
@@ -654,8 +597,7 @@
             </div>
           {:else}
             <!-- A loose entry carries the section bar and its own colour; one
-                 inside a group has neither — the colour is the group's, for
-                 the whole section (user call, 2026-08-04). -->
+                 inside a group has neither — the colour is the group's. -->
             <div
               class="shell__entry"
               class:shell__group={!parent}
@@ -677,11 +619,8 @@
     {@render column(entries, null)}
 
     <!-- An empty column has nothing to right-click, so the first entries still
-         have buttons (user call, 2026-08-06). They say what they make: asking
-         for "a space" and quietly making a task list was the bug of
-         2026-08-11. They go away as soon as there is one entry — from then on
-         the menu is where new things are made, and permanent buttons at the
-         bottom of the list read as two more entries. -->
+         have buttons, saying what they make. They go away with the first entry:
+         permanent buttons at the bottom of the list read as two more entries. -->
     {#if !notebook.readOnly && entries.length === 0}
       <button
         class="shell__nav-item shell__nav-item--secondary"

@@ -1,16 +1,9 @@
 <script>
-  // The head of a note, drawn on its card (board of `spaces/NotesSpace.svelte`).
-  //
-  // Everything it knows about markdown it asks `services/notePreview.js` for;
-  // everything it knows about looks is a class in
-  // `styles/components/note-preview.css`. What is left here is the one thing a
-  // component owns: which element each block becomes.
-  //
-  // **Spans, not divs.** The whole card is a `<button>` (a card is a link to a
-  // document), and a button may only hold phrasing content — a `<p>` or an
-  // `<h2>` inside it is invalid HTML that browsers "fix" by closing the button
-  // early. The shape comes from `display: block` in the sheet, and the heading
-  // level travels as `data-level` for the styles to read.
+  // The head of a note, drawn on its card. Markdown comes from
+  // `services/notePreview.js`, looks from `note-preview.css`; this only maps
+  // block → element. SPANS, not divs: the whole card is a `<button>`, which
+  // may only hold phrasing content — a `<p>` inside it is invalid HTML the
+  // browser "fixes" by closing the button early. Level travels as `data-level`.
   import { previewBlocks } from "../services/notePreview.js";
   import Icon from "./Icon.svelte";
   import { measured } from "../actions/measure.js";
@@ -24,11 +17,10 @@
 
   let blocks = $derived(previewBlocks(markdown));
 
-  /// Whether the clamp actually cut something — the three dots under the
-  /// preview are only drawn when there IS more (user call, 2026-08-24).
-  /// Measured, because only the layout knows: the same markdown wraps into a
-  /// different number of lines at every card width, which is why `measured`
-  /// re-asks on resize and the effect re-asks when the note changes.
+  /// Whether the clamp actually cut something — the dots are only drawn when
+  /// there IS more. Measured, because only the layout knows: the same markdown
+  /// wraps differently at every card width, so `measured` re-asks on resize
+  /// and the effect re-asks when the note changes.
   let root = $state(null);
   let more = $state(false);
 

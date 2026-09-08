@@ -8,12 +8,9 @@
   import { S } from "../services/strings.js";
   import Icon from "./Icon.svelte";
 
-  // One task line, drawn as the wireframe's card: a rounded panel with the
-  // checkbox, the title (plus a bookmark), and a quiet meta row under it.
-  //
-  // Two gestures on the text, on purpose: a single click opens the task in the
-  // inspector (where the fields live), a double click renames it in place. The
-  // rename is the one edit frequent enough to deserve staying on the row.
+  // One task line, drawn as a card: checkbox, title (plus bookmark), and a
+  // quiet meta row. Two gestures on the text: a single click opens the task
+  // in the inspector, a double click renames it in place.
   let {
     task,
     list,
@@ -32,17 +29,13 @@
     // has no top to be at, so the bookmark is not drawn there at all.
     onPin,
     dateFormat = "mm/dd/yyyy",
-    /// This task is pulled into the Day. A quiet marker in the meta row, like
-    /// the date beside it — NOT a button (user call, 2026-08-06): the row is a
-    /// summary, and the whole card is already click-to-open plus a drag handle.
+    /// This task is pulled into the Day. A quiet marker in the meta row — NOT
+    /// a button: the row is a summary, and the card is already click-to-open.
     inDay = false,
     /// `(key) => boolean` — is this part of the app switched on? A field
-    /// switched off leaves the CARD, not the file: the `.md` keeps it and it
-    /// comes back untouched (2026-08-06).
+    /// switched off leaves the CARD, not the file.
     f = () => true,
     today = null,
-    // Name → colour, from the tag catalogue (`.jott/tags.json`). A tag on the
-    // card shows as a coloured pill (colour only); the inspector shows text too.
     /// The swipe action and its options, handed in by the list rather than
     /// imported here: the row does not decide what a swipe MEANS, and a row
     /// drawn somewhere without the gesture simply gets nothing.
@@ -50,8 +43,7 @@
     swipeOptions = {},
     /// Where this card sits in the list, and whether it is the one the list's
     /// keyboard is on. Together they are the roving tabindex: exactly one card
-    /// per list is reachable by Tab, and the arrows move which (2026-08-18).
-    /// Before this, a task card could not be reached by keyboard at all.
+    /// per list is reachable by Tab, and the arrows move which.
     index = 0,
     focusable = false,
     onFocused = null,
@@ -72,34 +64,18 @@
 
   // The user's click flips the DOM checkbox before the completion round-trips.
   // When the refresh hands this row a DIFFERENT task with the same `done`
-  // (positional {#each} keys reuse the node — it was how a repeat's fresh
-  // occurrence appeared born-checked), Svelte sees no change and never writes
-  // the property back, so the clicked state leaks into the new task. Re-assert
-  // it from state whenever the task changes.
+  // (positional keys reuse the node), Svelte sees no change and never writes
+  // the property back, so the clicked state leaks. Re-assert it from state.
   let check = $state(null);
   $effect(() => {
     const done = task.done;
     if (check && check.checked !== done) check.checked = done;
   });
 
-  // COMPLETING PLAYS BEFORE IT IS WRITTEN (user call, 2026-08-21). Ticking a
-  // task is the one gesture the whole app exists for, and until now the card
-  // simply vanished on the next frame — the list closed over the gap before
-  // the eye had registered the tick. Now the row is marked `--finishing`, the
-  // stylesheet plays the send-off (the tick pops, the title strikes through,
-  // the card tints and folds away — task-row.css), and the write goes out
-  // when that has played.
-  //
-  // The wait is the ANIMATION's, not a number copied from the stylesheet:
-  // the row asks the engine what is playing on it and waits for that to
-  // finish. Where nothing plays — jsdom, a reader who asked the system for
-  // less motion, a theme that dropped the keyframe — the write goes out at
-  // once, so no test and no setting ever waits on a duration it cannot see.
-  // A ceiling guards against an animation that never reports back (the row
-  // re-rendered under it mid-play): the task is completed either way.
-  //
-  // Ticking the box again while it plays is the undo: the send-off stops,
-  // nothing is written, the task is where it was.
+  // COMPLETING PLAYS BEFORE IT IS WRITTEN: the row is marked `--finishing`,
+  // the stylesheet plays the send-off (task-row.css), and the write waits on
+  // what the engine says is playing — nothing (jsdom, reduced motion) means
+  // at once; a ceiling guards a play that never reports. Ticking again undoes.
   let row = $state(null);
   let finishing = $state(false);
   // Above the send-off's ~1.23s (task-row.css), so the guard never cuts
@@ -110,8 +86,8 @@
   // Unticking still waits its whole play — it has no second act.
   const SEND_OFFS = new Set(["task-row-hold", "task-row-restore"]);
 
-  // Unticking a completed card plays the same way (user call, 2026-08-21):
-  // `--restoring` is the shorter cousin, and the write waits on it alike.
+  // Unticking a completed card plays the same way: `--restoring` is the
+  // shorter cousin, and the write waits on it alike.
   async function finish() {
     if (finishing) {
       finishing = false;
@@ -159,9 +135,8 @@
     !task.done && !!task.due && !!today && task.due < today,
   );
 
-  // How old the task is — the time axis on a card (spec 3.6, M7/M8). The
-  // number comes stamped from the core; what is decided here is only that it
-  // is drawn at all, and the whole of the axis rides on one switch.
+  // How old the task is (spec 3.6): stamped by the core; only whether it is
+  // drawn is decided here, on the time axis's one switch.
   let stamp = $derived(
     f("time")
       ? ageStamp(task.age, { since: task.created, dateFormat, title: S.createdOn })
@@ -182,25 +157,14 @@
   );
 </script>
 
-<!-- The whole card opens the task in the inspector; the interactive parts
-     inside (checkbox, bookmark, the slotted actions) stop the click so they do
-     their own thing instead. -->
-<!-- The whole card is also the drag handle when the list is reorderable
-     (hold and drag anywhere; the action tells a 5px drag from a click and
-     swallows the click a drag would otherwise fire). -->
+<!-- The whole card opens the task in the inspector; the controls inside stop
+     the click. It is also the drag handle when the list is reorderable (the
+     action tells a 5px drag from a click and swallows that click). -->
+
+<!-- `role="row"` in a `grid` (TaskCards): a card CONTAINS controls, which
+     rules out `button`/`option`; `row` is focusable, arrow-navigable and may
+     hold controls. The keyboard handler is on the LIST, which knows the order. -->
 <!-- svelte-ignore a11y_click_events_have_key_events -->
-<!-- The keyboard handler this rule asks for exists — it is on the LIST
-     (TaskCards), which is where it has to be, because navigating between
-     cards is a question only the list can answer. The rule only looks at
-     this element. -->
-<!-- `role="row"`, and the list around it is a `grid` (2026-08-18). A card is
-     a click target that CONTAINS controls — a checkbox, a bookmark, the
-     slotted buttons — which is exactly what rules out `button` and `option`:
-     neither may hold an interactive child. `row` is the one role that is
-     focusable, may be navigated with the arrows, and may contain controls,
-     and it is what every task-list widget with inline actions ends up being.
-     The keyboard itself lives in the list (TaskCards), because the list is
-     what knows the order. -->
 <li
   bind:this={row}
   class="task-row"
@@ -218,10 +182,8 @@
   use:gesture={swipeOptions}
 >
   {#if origin}<span class="theme-origin" style={dotStyle(origin.color)} aria-hidden="true"></span>{/if}
-  <!-- What a swipe uncovers: a square in the space the card leaves, at the end
-       it is leaving (wireframe `Delete task.pdf`). Real markup, not a
-       background image, so it draws the app's own Phosphor icons; which of the
-       two shows is the direction, and CSS reads that off the row. -->
+  <!-- What a swipe uncovers: a square in the space the card leaves. Real
+       markup, so it draws the app's own icons; CSS reads the direction off the row. -->
   {#if swipeOptions.onLeft}
     <span class="swipe__action swipe__action--delete" aria-hidden="true">
       <Icon name="trash" size="1.125rem" />
@@ -229,9 +191,8 @@
   {/if}
   {#if swipeOptions.onRight}
     <!-- The same square, two meanings: taking the task out of the day, or
-         sending it there (user call, 2026-08-20). The glyph is what says which
-         BEFORE the finger lifts, so the gesture is never a guess. Which of the
-         two it is belongs to the screen, not to the row (TaskCards.svelte). -->
+         sending it there. The glyph says which BEFORE the finger lifts; which
+         it is belongs to the screen, not the row (TaskCards.svelte). -->
     <span
       class="swipe__action swipe__action--unpull"
       class:swipe__action--pull={swipeOptions.rightAdds}
@@ -283,8 +244,7 @@
           aria-label={task.pinned ? S.unpinTask : S.pinTask}
           title={task.pinned ? S.unpinTask : S.pinTask}
         >
-          <!-- Pinned reads as the FILLED bookmark, not a colour: the shape
-               says "marked" on its own (user call 2026-08-05). -->
+          <!-- Pinned reads as the FILLED bookmark, not a colour. -->
           <Icon
             name={task.pinned ? "bookmark-simple-fill" : "bookmark-simple"}
             size="1rem"
@@ -319,10 +279,8 @@
             color={origin?.color ?? color}
             class="task-row__tag"
           />{/each}
-        <!-- The age sits at the card's outer edge, under the bookmark (user
-             call, 2026-08-28): it is about the card as a whole, not one more
-             field of the task, and against the right edge it reads as a
-             margin note instead of competing with the date and the tags. -->
+        <!-- The age sits at the card's outer edge, under the bookmark: about
+             the card as a whole, a margin note, not one more field. -->
         {#if stamp}<span
             class="task-row__field task-row__field--age"
             class:task-row__field--forgotten={stamp.band === "forgotten"}

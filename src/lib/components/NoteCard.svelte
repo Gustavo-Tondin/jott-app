@@ -1,21 +1,9 @@
 <script>
-  // One note on the board (wireframes "Notes screen - default", "Space Notes",
-  // "Notes Screen - mobile").
-  //
-  // A card is its banner, its title on a chip over the banner's bottom edge,
-  // and the first lines of its text — DRAWN as the markdown they are
-  // (components/NotePreview.svelte), which is what makes a card look like a
-  // small picture of the note instead of a paragraph of syntax. A note with no
-  // banner is the same card without the coloured block — the title reads as a
-  // title on its own, which is what "sem banner a nota fica só com título"
-  // means on the board too.
-  //
-  // The card only ever DRAWS. Opening, picking, pinning and the ⋮'s items are
-  // the board's business (spaces/NotesSpace.svelte), because they are the same
-  // gestures whether the card sits on a board or inside a folder card. The two
-  // gestures a card answers on its own — the middle button and the right one —
-  // are reported the same way: it says WHICH card was asked for, never what
-  // happens next.
+  // One note on the board: its banner, its title on a chip over the banner's
+  // bottom edge, and the first lines DRAWN as markdown (NotePreview). A note
+  // with no banner is the same card without the block. The card only ever
+  // DRAWS: opening, picking, pinning and the ⋮'s items are the board's; the
+  // middle and right buttons only report WHICH card was asked for.
   import { S } from "../services/strings.js";
   import { accentFill } from "../services/accent.js";
   import { assetUrl } from "../services/assets.js";
@@ -39,24 +27,19 @@
     /// Smaller, for the cards drawn INSIDE a folder card: title only, no
     /// banner, no menu.
     small = false,
-    /// `() => void` — pinning, beside the ⋮ (user call, 2026-08-19: "com a
-    /// mesma funcionalidade das tarefas"). It is a button of its own and not
-    /// only a menu item because a pin is a STATE: the card has to say whether
-    /// it is pinned without being asked, and the drawn pin is what says it.
-    /// Null draws none.
+    /// `() => void` — pinning, beside the ⋮. A button of its own and not only
+    /// a menu item because a pin is a STATE the card has to show without
+    /// being asked. Null draws none.
     onPin = null,
     /// `(entry, {newTab}) => void` — the click, and the MIDDLE click: a card
-    /// is a link to a document, and the middle button opens a link in a new
-    /// tab everywhere else in this app (shell/Sidebar.svelte) as well as
-    /// outside it.
+    /// is a link, and the middle button opens one in a new tab app-wide.
     onOpen,
     /// `(event, entry) => void` — the right button over the card. The panel
-    /// itself belongs to the screen (the same pact the sidebar keeps: one
-    /// `ContextMenu` per panel, at the pointer), so the card only reports the
-    /// gesture. Null leaves the right button alone.
+    /// belongs to the screen (one `ContextMenu` per panel, at the pointer);
+    /// the card only reports. Null leaves the right button alone.
     onContextMenu = null,
-    /// Whether this notebook draws banners at all (App Functions, 2026-08-20).
-    /// Defaults to on, like every other switch a component is not told about.
+    /// Whether this notebook draws banners at all (App Functions). Defaults
+    /// to on, like every other switch a component is not told about.
     banners = true,
     /// Whether the card draws the note's tags (App Functions, `noteTags`).
     noteTags = true,
@@ -78,18 +61,16 @@
     onOpen?.(entry, { newTab: true });
   }
 
-  /// A banner the notebook does not draw is not drawn here either (App
-  /// Functions, 2026-08-20) — and the card without one is the card this
-  /// component was already written for: title and preview.
+  /// A banner the notebook does not draw is not drawn here either: the card
+  /// without one is title and preview.
   let banner = $derived(banners ? (entry.banner ?? null) : null);
   let isImage = $derived(banner?.kind === "image");
   let src = $derived(isImage ? assetUrl(root, banner.value) : "");
   let tint = $derived(banner?.kind === "color" ? accentFill(banner.value) : null);
 
-  // The other half of the time axis: a note is old when nobody has OPENED it
-  // in a while, not when nobody has written it (spec 3.6b). The core stamps
-  // the entry; the card only says whether the number it is showing is a
-  // reading or a birth, which is what the eye and the clock are for.
+  // A note is old when nobody has OPENED it in a while, not when nobody has
+  // written it. The core stamps the entry; the card only says whether the
+  // number is a reading or a birth (the eye and the clock).
   let since = $derived(noteSince(entry));
   let age = $derived(
     showAge && !small
@@ -127,10 +108,8 @@
           {#if src}
             <img class="note-card__image" src={src} alt="" />
           {:else}
-            <!-- The address points at a picture that is not there any more (it
-                 was deleted, or the notebook travelled without it). The card
-                 says so with the placeholder the wireframe draws rather than
-                 collapsing, so the note is still recognisable. -->
+            <!-- The address points at a picture that is gone (deleted, or the
+                 notebook travelled without it): a placeholder, not a collapse. -->
             <span class="note-card__missing" title={S.missingImage}>
               <Icon name="image" size="1.5rem" />
             </span>
@@ -141,11 +120,9 @@
 
     <span class="note-card__title" class:note-card__title--chip={banner && !small}>
       {#if entry.pinned && !small}
-        <!-- The state, on a phone: the pin BUTTON is not drawn there (the
-             corner is the ⋮'s, note-card.css says why), so the filled mark
-             sits at the head of the title instead — the same glyph, in ink,
-             where the eye starts reading. Nothing on a desktop, which keeps
-             the button. -->
+        <!-- On a phone the pin BUTTON is not drawn (the corner is the ⋮'s,
+             note-card.css), so the filled mark sits at the head of the title
+             instead. Nothing on a desktop, which keeps the button. -->
         <span class="note-card__pinned" title={S.unpin}>
           <Icon name="bookmark-simple-fill" size="0.75rem" />
         </span>

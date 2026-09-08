@@ -1,15 +1,9 @@
 <script>
-  // A row of the eight colours — the ONE colour picker in the app
-  // (2026-08-13). The space/group popup, the tag manager and the settings
-  // screen all choose from the same eight, so they all draw this.
-  //
-  // What it emits is a NAME (`"orange"`), never a hex: each colour runs a
-  // seven-step tonal ramp, and which end shows is the ground's call, not the
-  // picker's (services/accent.js). The swatches preview the STEP the choice
-  // will paint with (`preview`): by default the region's own, so the sidebar
-  // shows the colours the sidebar will use — which is also what makes
-  // `neutral` legible here: on the sidebar it draws white — and `fill` for
-  // a banner, which is the same colour on every ground.
+  // A row of the eight colours — the ONE colour picker in the app. It emits a
+  // NAME (`"orange"`), never a hex: each colour is a tonal ramp, and which step
+  // shows is the ground's call (services/accent.js). The swatches preview the
+  // STEP the choice will paint with (`preview`): the region's own by default
+  // (which is what makes `neutral` legible here), `fill` for a banner.
   import { ACCENTS, swatchStyle } from "../services/accent.js";
   import { S } from "../services/strings.js";
 

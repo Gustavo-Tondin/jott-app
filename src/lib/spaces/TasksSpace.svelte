@@ -1,28 +1,9 @@
 <script>
-  // The `tasks` source — the one block of tasks this app draws, anywhere it
-  // draws tasks: inside a space, as the Home's "Today tasks" (and any day
-  // the calendar has open), and as the fixed Tasks screen.
-  //
-  // Three props are what let the fixed screens host it instead of copying it
-  // (2026-08-06):
-  //
-  //   • `day`     — the source. Without it the source shows its OWN folder's
-  //                 list (spec 3.5: a tasks source is one list). With it, the
-  //                 source is a DAY — today (`null`) or one ahead (an ISO
-  //                 day) — which spans lists, has no arrangement of its own,
-  //                 and offers suggestions. `all` is the third source: every
-  //                 open task of the notebook, for the fixed Tasks screen.
-  //   • `header`  — whether the titled row is drawn. The Tasks screen has the
-  //                 segmented strip above it already saying where you are.
-  //   • `compose` — where a new task comes from: the blue button (everywhere
-  //                 else) or the bar pinned to the bottom (the Tasks screen).
-  //
-  // What is NOT here, on purpose: the card list, the shared card actions, the
-  // ⋮'s shape, the reload-and-report loop and the composing row. Each is the
-  // same in more than one place, so each lives in components/ or services/.
-  // Suggestions are not here either — the pill only asks the shell to open the
-  // right-hand panel on them (2026-08-06), because that panel outlives this
-  // source and is where a list you act on repeatedly belongs.
+  // The `tasks` source — the one block of tasks the app draws anywhere: inside
+  // a space, as a DAY on the Home (`day`), and as every open task (`all`).
+  // `header` and `compose` are what let the fixed screens host it instead of
+  // copying it. The card list, the actions, the ⋮ and the composer live in
+  // components/ and services/; suggestions only ask the shell for its panel.
   import { api } from "../services/api.js";
   import { S } from "../services/strings.js";
   import { askConfirm, askTask, DELETING } from "../services/dialog.js";
@@ -63,31 +44,23 @@
     /// today, an ISO day is one ahead. Left `undefined`, the folder answers.
     day = undefined,
     /// Every open task of the notebook, arranged by space (the fixed Tasks
-    /// screen's `tasksShowAll`, 2026-09-04). Read-only as an arrangement:
-    /// nothing is dragged across lists, and the sort is the space's own.
+    /// screen's `tasksShowAll`). Nothing is dragged across lists.
     all = false,
     /// Whether to draw the titled header (title + New task + ⋮).
     header = true,
     /// Where the title sits on that row: `"start"` (a block inside a screen
-    /// that has other blocks) or `"center"` (the Home, 2026-08-13, and a
-    /// space — the block IS the screen there, and a centred heading over a
-    /// centred column reads as one thing instead of a label stuck to the left
-    /// of it).
+    /// with other blocks) or `"center"` (the Home and a space, where the block
+    /// IS the screen).
     align = "start",
-    /// The colour of the PLACE, as a name (services/accent.js) — the dot after
-    /// the title, the same mark the header and the Home card carry. Left
-    /// `undefined` there is no dot at all: a block ("Today tasks") is not a
-    /// place, and only a place has a colour. Passed as `null` by a space with
-    /// no colour of its own, which draws the dot in the app's accent.
+    /// The colour of the PLACE, as a name (services/accent.js). Left
+    /// `undefined` there is no dot: a block ("Today tasks") is not a place.
+    /// `null` is a space with no colour of its own: the app's accent.
     dot = undefined,
-    /// Controls the HOST wants on the source's top row, between the title and
-    /// the ⋮. They go in the row rather than above it so the ⋮ stays at the
-    /// far right of the same line (user call, 2026-08-06).
+    /// Controls the HOST wants on the top row, between the title and the ⋮ —
+    /// in the row so the ⋮ stays at the far right of the same line.
     toolbar,
     /// `"button"` (the blue New task), `"bar"` (the pinned composer) or
-    /// `"none"` — the Home, where the capture box above the block is where
-    /// everything is written and a second New task next to it was two ways to
-    /// do one thing (2026-08-13).
+    /// `"none"` (the Home, whose capture box is where everything is written).
     compose = "button",
     /// Put the cursor in the composer as soon as it appears. For the bar that
     /// opens on demand (Home's + on a phone): a composer that was ASKED for
@@ -105,9 +78,8 @@
     onSetOrder,
     /// Asks the shell to show this day's suggestions in the right panel.
     onSuggest,
-    /// `({open, done}) => void` — how many the source holds, each time it is
-    /// read. The Home's head counts the day off it (2026-09-04) instead of
-    /// reading the day a second time.
+    /// `({open, done}) => void` — how many the source holds, each read. The
+    /// Home's head counts the day off it instead of reading it a second time.
     onLoaded,
     onChanged,
     onError,
@@ -132,7 +104,7 @@
   let done = $state([]);
   let showCompleted = $state(false);
   /// A day's arrangement: it has no `.space.json`, so the notebook keeps it
-  /// (2026-08-06) and the source reads it with the tasks.
+  /// and the source reads it with the tasks.
   let daySort = $state(null);
 
   $effect(() => {
@@ -145,16 +117,16 @@
 
   const asEntry = (listed) => ({ task: listed.task, list: listed.path });
 
-  // The sun marks a card that is in today — but not on a screen that IS a
-  // day, where it would be true of everything (user call).
+  // The sun marks a card that is in today — not on a screen that IS a day,
+  // where it would be true of everything.
   const inDay = (entry) =>
     !isDay && !!entry.task.id && !!dayRefs?.has(`${entry.list}#${entry.task.id}`);
 
   async function read() {
     if (isDay) {
       // A completed task keeps its day reference and follows the task into
-      // the folder's Completed (2026-08-06), so one call answers both
-      // halves of the screen — split by the checkbox.
+      // the folder's Completed, so one call answers both halves — split by
+      // the checkbox.
       const [entries, chosen] = await Promise.all([api.dayTasks(day), api.daySort()]);
       return {
         open: (entries ?? []).filter((e) => !e.task.done).map(asEntry),
@@ -193,11 +165,10 @@
   });
   const { complete, edit, pin, remove, duplicate } = taskActions(act);
 
-  // ---- arrangement (Etapa 1) ----
+  // ---- arrangement ----
   // Same shape whatever the source; only where the preference is kept differs.
-  // A day's "file order" is the order things were pulled in — the day's
-  // file's own — and dragging rewrites exactly that, so a day never needs
-  // the `custom` ordering the folder source keeps in its `.space.json`.
+  // A day's "file order" is the day's file's own, and dragging rewrites exactly
+  // that, so a day never needs the folder source's `custom` ordering.
   const accessors = {
     nameOf: (entry) => entry.task.text,
     createdOf: (entry) => entry.task.created,
@@ -275,17 +246,10 @@
     picked = new Set();
   };
 
-  // THE LONG PRESS (user call, 2026-08-21, after the Things 3 preview). A
-  // press that rests on a card is the other door into selection mode: it
-  // marks the card and turns the screen over to picking, where a tap marks
-  // more. Resting on a card that is ALREADY picked is not answered — the
-  // reorder action then picks up the whole pile (`carried`), and the drop
-  // lands them together (`reorderMany`).
-  //
-  // By the TASK, never by the entry object: what the cards hand back is the
-  // list they were given, and that list is rebuilt on every arrangement —
-  // the entry under the finger and the one in `shown` are two objects for
-  // one task (the held card entered selection mode unmarked, 2026-08-21).
+  // THE LONG PRESS is the other door into selection mode: it marks the card
+  // and turns the screen over to picking. Resting on a card ALREADY picked is
+  // not answered — the reorder action then carries the whole pile. Matched by
+  // the TASK, never by the entry object: `shown` is rebuilt on every arrangement.
   const entryOf = (entry) => shown.find((candidate) => candidate.task === entry.task);
   function holdCard(held) {
     if (readOnly) return false;
@@ -434,33 +398,16 @@
   // trash — recoverable, never destroyed.
   const removeCompleted = (list, task) => act(() => api.deleteTask(list, task.id));
 
-  // ---- the swipes (2026-08-06) ----
-  // Left deletes; right takes the card out of the day, and only on a screen
-  // that IS one. No confirmation on the delete: it goes to the notebook's own
-  // trash, so it is recoverable — and a dialog on every swipe kills the
-  // gesture. The Delete key asks for the same thing (2026-08-18).
+  // ---- the swipes ----
+  // Left deletes (no confirmation: it goes to the trash, and a dialog on every
+  // swipe kills the gesture); right takes the card out of the day, only on a
+  // screen that IS one. The Delete key asks for the same thing.
   const deleteEntry = (entry) => remove(entry.list, entry.task);
 
-  /// What a rightward swipe means for one card: `{ adds, run }`.
-  ///
-  /// Derived, not computed once: the same component instance serves a day
-  /// and a plain list, and a screen that stops being a day has to lose the
-  /// meaning with it.
-  ///
-  /// IT GOES BOTH WAYS (user call, 2026-08-20). On a day the gesture takes
-  /// the card OUT — that is what the screen is, and there is nowhere to put it
-  /// that it is not already. Anywhere else it is a toggle: a task not in
-  /// today is sent to it, one already there is taken out. The gesture that
-  /// could only ever remove was half a gesture — the way INTO the day was a
-  /// menu.
-  ///
-  /// `adds` is what the revealed square draws, so the card says which of the
-  /// two it is about to do before the finger is lifted.
   /// Cards dropped by a FREE drag (Ctrl held) on a space of tasks in the
-  /// sidebar, or on the Home (2026-08-26). A space takes them into its
-  /// Inbox — the same move the inspector's "Move to" makes, so a task keeps
-  /// its id and Ctrl+Z brings it back; the Home pulls them into the day,
-  /// which is what the Home is.
+  /// sidebar, or on the Home: a space takes them into its Inbox (the same
+  /// move as "Move to", so the id survives and Ctrl+Z brings it back); the
+  /// Home pulls them into the day.
   const moveTo = $derived(
     readOnly
       ? null
@@ -481,6 +428,10 @@
           }),
   );
 
+  /// What a rightward swipe means for one card: `{ adds, run }`. Derived: the
+  /// same instance serves a day and a plain list. IT GOES BOTH WAYS — on a day
+  /// the card is taken OUT; anywhere else it is a toggle into/out of today.
+  /// `adds` is what the revealed square draws before the finger is lifted.
   const daySwipe = $derived(
     readOnly
       ? null
@@ -529,19 +480,15 @@
     <p class="tasks-space__note tasks-space__note--warn">{S.spaceNoLists}</p>
   {:else}
     <!-- The header row is ALWAYS drawn, because the ⋮ belongs in the top right
-         of every source (user call, 2026-08-06) — `header` only decides whether
-         the block is titled. On the Tasks screen the strip above already names
-         the place, so the row carries the ⋮ alone. -->
+         of every source — `header` only decides whether the block is titled. -->
       <header
         class="tasks-space__header"
         class:tasks-space__header--center={align === "center"}
       >
         {#if toolbar || align === "center"}
-          <!-- An invisible twin of the ⋮, so whatever is centred on this row —
-               the host's controls, or the title itself — is centred on the
-               PANEL and not on what is left of the row. A hidden copy rather
-               than a guessed width: whatever the tools grow into, the two
-               sides stay equal (user call, 2026-08-06). -->
+          <!-- An invisible twin of the ⋮, so whatever is centred on this row is
+               centred on the PANEL and not on what is left of it. A hidden copy
+               rather than a guessed width: the two sides stay equal. -->
           <span class="theme-mirror tasks-space__mirror" aria-hidden="true">
             <span class="theme-btn--icon">
               <Icon name="dots-three-vertical" size="1rem" />
@@ -558,9 +505,8 @@
         {/if}
         {#if toolbar}{@render toolbar()}{/if}
         <!-- Selection mode: the bulk actions float over the bottom of the
-             screen (components/BulkBar.svelte), not in this header — the
-             header is where the screen's name is, and a phone-width header
-             has no room for a picker and two buttons beside it. -->
+             screen (components/BulkBar.svelte), not in this header — a
+             phone-width header has no room for a picker and two buttons. -->
         {#if !picking}
           <div class="tasks-space__tools">
             {#if !readOnly && compose === "button"}
@@ -593,12 +539,8 @@
         {#if isDay && !readOnly}{@render suggestPill()}{/if}
       </div>
     {:else}
-      <!-- NO per-card × on a day (user call, 2026-08-20; the wireframes draw
-           the open cards clean, and the × only on a completed one). It stood
-           for "take this out of my day" and read as "delete" — the one glyph
-           on the screen that means destroy everywhere else, sitting on the
-           card that is merely borrowed. Taking a card out is the rightward
-           swipe (mouse and finger both) and the inspector's sun. -->
+      <!-- NO per-card × on a day: it read as "delete" on a card that is merely
+           borrowed. Taking a card out is the rightward swipe and the inspector's sun. -->
       <TaskCards
         items={shown}
         listClass="tasks-space__list"

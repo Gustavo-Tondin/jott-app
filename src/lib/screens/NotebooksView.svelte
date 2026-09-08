@@ -1,32 +1,9 @@
 <script>
-  // The notebooks screen: the door of the app (wireframes "Notebooks screen"
-  // and "Empity Notebooks screen", desktop and mobile, 2026-08-24).
-  //
-  // It replaced the onboarding paragraph that lived in App.svelte, which knew
-  // one thing about the machine — that a folder had never been picked — and
-  // said the same sentence forever after. Anyone with more than one notebook
-  // had to find the folder again, every time, in the system's picker.
-  //
-  // WHAT IT DRAWS, AND WHY IT IS NOT A LIST OF PATHS. A notebook is a folder,
-  // and a folder is a path — but nobody recognizes their own work by a path.
-  // So every card carries the three things that DO identify it: the colour
-  // chosen inside that notebook, what is still to do in there, and what came
-  // into the Inbox and has not been filed. The path is one row down, in the ⋮,
-  // where it settles the one question the card cannot: which of the two
-  // notebooks called "Work" this is.
-  //
-  // TWO STATES, ONE SCREEN. With nothing remembered it is the empty wireframe
-  // — the logo and the two choices, and no panel around an empty list. The
-  // moment there is one notebook to offer, the panel appears above them. Not
-  // two components: the difference is a list with nothing in it, and the app
-  // would otherwise have two screens to keep in step for a state that lasts
-  // one click.
-  //
-  // WHAT IT DOES NOT DO. It never opens a notebook to draw it — `recent_notebooks`
-  // answers from `Notebook::summarize`, which reads and does not write, for the
-  // reason that module's header gives. And it holds no notebook itself: every
-  // action is handed up to the shell, which is the one place that knows what
-  // having a notebook open means.
+  // The notebooks screen: the door of the app. A card carries what identifies
+  // a notebook — its colour, what is to do, what sits in the Inbox — and the
+  // path is in the ⋮. With nothing remembered it is the empty state (no panel
+  // around an empty list). It never opens a notebook to draw it
+  // (`recent_notebooks` reads via `Notebook::summarize`) and holds none itself.
   import { api } from "../services/api.js";
   import { S } from "../services/strings.js";
   import { accentSolid, DEFAULT_ACCENT } from "../services/accent.js";
@@ -34,9 +11,8 @@
   import { askConfirm, askName } from "../services/dialog.js";
   import Menu from "../components/Menu.svelte";
   import Icon from "../components/Icon.svelte";
-  // The drawn logo, not a letter in the UI font — the same file the title bar
-  // carries, authored white and rewritten to `fill: currentColor` so it takes
-  // the ink of whatever theme is on.
+  // The drawn logo, the same file the title bar carries, rewritten to
+  // `fill: currentColor` so it takes the theme's ink.
   import wordmark from "../../assets/brand/wordmark.svg?raw";
 
   let {
@@ -45,8 +21,7 @@
     version = "",
     /// `({ create }) => void` — one of the two doors at the bottom was used.
     /// Both ask the machine for a folder; `create` is what the folder is then
-    /// allowed to be. The shell owns the action, because it ends in a notebook
-    /// being open.
+    /// allowed to be. The shell owns the action.
     onChoose,
     /// `(path) => void` — a card was clicked.
     onOpen,
@@ -58,33 +33,24 @@
     /// Whether the shell is busy opening something, so the screen stops
     /// offering to open a second one.
     busy = false,
-    /// `(count) => void` — how many notebooks the screen is offering, told to
-    /// the shell after every read. The shell has one thing below this screen
-    /// that depends on it (Android's private-folder offer), and asking the
-    /// bridge a second time for the same list would be a second answer to keep
-    /// in step.
+    /// `(count) => void` — how many notebooks the screen offers, told after
+    /// every read: Android's private-folder offer depends on it, and asking
+    /// the bridge again would be a second answer to keep in step.
     onListed,
     /// `() => void` — dismiss the screen, back to the notebook underneath.
-    /// Null when there is nothing underneath, which is every window that
-    /// opened ON this screen: the desktop's picker is a window of its own and
-    /// is closed by closing it. Only the phone, which has one window and shows
-    /// this over the open notebook, passes one.
+    /// Null when there is nothing underneath (the desktop's picker is a window
+    /// of its own); only the phone, showing this over the open notebook, passes one.
     onClose = null,
-    /// The narrow shell (shell/compact.js). The phone drops the "42 min ago"
-    /// beside the name — there is no room for it next to a title, and the
-    /// mobile wireframe does not draw it.
+    /// The narrow shell (shell/compact.js): the phone drops the "42 min ago"
+    /// beside the name.
     compact = false,
     onError,
   } = $props();
 
   /// The two questions the screen's own ⋮ asks. Both are about WINDOWS —
   /// whether this one survives a choice, and which screen the app comes back
-  /// to — so they hang off the screen and not off any one card, and both are
-  /// machine preferences (`src-tauri/src/prefs.rs`).
-  ///
-  /// Read once on mount and kept here: a checkbox that has to re-read the
-  /// bridge to know it was ticked flickers, and nothing else on this machine
-  /// changes them while the screen is up.
+  /// to — so they hang off the screen, not a card; both are machine preferences
+  /// (`src-tauri/src/prefs.rs`). Read once on mount: nothing else changes them.
   let closesAfterOpening = $state(true);
   let opensHere = $state(false);
 
@@ -102,23 +68,20 @@
 
   async function load() {
     try {
-      // The preferences ride along with the list: both are the machine's, and
-      // the screen would otherwise paint its ⋮ from a default it has not
-      // checked. Neither is a reason to fail the screen — the two doors work
-      // without either — so a failure only reaches the banner.
+      // The preferences ride along with the list: both are the machine's.
+      // Neither is a reason to fail the screen — the two doors work without
+      // either — so a failure only reaches the banner.
       const [closes, here] = await Promise.all([api.pickerCloses(), api.opensOnPicker()]);
-      // `??`, not `||`: a bridge that answers nothing (an older build without
-      // these commands) must land on the DOCUMENTED defaults — the picker gets
-      // out of the way, and the app comes back to the work — and `false` is a
-      // real answer that must survive.
+      // `??`, not `||`: a bridge that answers nothing (an older build) must
+      // land on the DOCUMENTED defaults, and `false` is a real answer that
+      // must survive.
       closesAfterOpening = closes ?? true;
       opensHere = here ?? false;
       notebooks = (await api.recentNotebooks()) ?? [];
       onListed?.(notebooks.length);
     } catch (e) {
-      // A picker that cannot read its own list still opens notebooks: the two
-      // buttons are the part that never needed the list. So the failure is
-      // reported and the screen carries on, rather than becoming an error page.
+      // A picker that cannot read its list still opens notebooks (the two
+      // buttons never needed it): report, and carry on.
       onError?.(e);
     } finally {
       read = true;
@@ -162,11 +125,9 @@
     ...(onClose ? [{ label: S.closeNotebooks, run: () => onClose() }] : []),
   ]);
 
-  /// What the ⋮ of one card offers.
-  ///
-  /// The path leads, as a row that cannot be chosen: it is not an action, it
-  /// is the answer to "which one is this?" — and a card shows a folder's name,
-  /// which two folders may share.
+  /// What the ⋮ of one card offers. The path leads, as a row that cannot be
+  /// chosen: it is the answer to "which one is this?" — two folders may share
+  /// a name.
   const menuFor = (entry) => [
     { label: entry.path, disabled: true },
     {
@@ -192,10 +153,9 @@
       label: S.forgetNotebook,
       run: () =>
         act(async () => {
-          // Asked, and asked in full: "remove" beside a notebook has to be
-          // unambiguous about what it does NOT do. Not one of the questions
-          // `confirmDeletes` can switch off — that setting lives in a
-          // notebook, and this screen has none open to read it from.
+          // Asked in full: "remove" beside a notebook has to be unambiguous
+          // about what it does NOT do. Not one of the questions `confirmDeletes`
+          // can switch off — that setting lives in a notebook, and none is open here.
           const sure = await askConfirm(S.confirmForget(entry.name), {
             detail: S.confirmForgetDetail,
             code: entry.path,
@@ -209,16 +169,14 @@
 </script>
 
 <section class="notebooks" class:notebooks--empty={read && notebooks.length === 0}>
-  <!-- The logo is the screen's subject, so it is drawn here rather than in the
-       title bar: with no notebook open the bar carries nothing but the window
-       buttons, and the brand in two sizes at once read as a mistake. -->
+  <!-- The logo is the screen's subject, so it is drawn here, not in the title
+       bar: with no notebook open the bar carries only the window buttons. -->
   <header class="notebooks__brand">
     <span class="notebooks__wordmark" aria-hidden="true">{@html wordmark}</span>
     <p class="notebooks__version">{version}</p>
 
-    <!-- The screen's own ⋮, in the corner rather than beside the logo: what it
-         holds is about this WINDOW, and putting it next to the wordmark would
-         read as a menu about Jott. -->
+    <!-- The screen's own ⋮, in the corner: what it holds is about this WINDOW,
+         and beside the wordmark it would read as a menu about Jott. -->
     <div class="notebooks__screen-menu">
       <Menu items={screenMenu} align="end">
         {#snippet trigger({ toggle })}
@@ -241,15 +199,10 @@
       <ul class="notebooks__list">
         {#each notebooks as entry (entry.path)}
           {@const when = compact ? null : timeSince(entry.opened)}
-          <!-- The colour is written on the ROW, not on the button inside it:
-               the ⋮ sits on the same surface and has to read on it too, and a
-               colour set in two places is a colour that drifts.
-
-               A notebook that never chose one falls back HERE rather than in
-               the sheet, because the sheet's own fallback would have to be
-               `--app-brand` — the region's accent, which in the chrome is a
-               bright step meant to be read AS text, and white on it is not
-               readable. `DEFAULT_ACCENT` is what the app ships as, solid. -->
+          <!-- The colour is written on the ROW, not the button: the ⋮ sits on the
+               same surface and reads it too. A notebook that never chose one
+               falls back HERE, not in the sheet: the sheet's fallback would be
+               `--app-brand`, a bright step in the chrome that white cannot read on. -->
           <li
             class="notebooks__item"
             style="--notebook-color: {accentSolid(entry.accentColor || DEFAULT_ACCENT)}"
@@ -289,9 +242,8 @@
     </div>
   {/if}
 
-  <!-- The two ways in. Side by side once there is a list above them, stacked
-       when they are the whole screen — the wireframes draw both, and it is one
-       row that wraps rather than two markups (notebooks.css). -->
+  <!-- The two ways in: side by side once there is a list above them, stacked
+       when they are the whole screen — one row that wraps (notebooks.css). -->
   <div class="notebooks__actions">
     <button
       class="theme-btn theme-btn--primary notebooks__action"

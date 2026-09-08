@@ -1,18 +1,9 @@
 <script>
   // The screen the active tab shows, one branch per `view.kind`. All state
-  // stays in the shell — this hands each screen what it needs and reports
-  // what it says back; nothing here is decided.
-  //
-  // The screens are handed their props ONE AT A TIME, on purpose. TRIED AND
-  // REVERTED: gathering the five or six props they share into one `$derived`
-  // object and spreading it. It reads shorter and it is wrong — a spread
-  // makes every prop of the child a getter over ONE object, so a screen's
-  // `$effect(() => { list; reloadKey; load(); })` re-runs whenever anything
-  // else in that object changes. Selecting a task re-read the whole list from
-  // disk, and the fresh objects lost the identity the selection is matched
-  // by, so the card stopped being highlighted. The test "an opened task is
-  // highlighted even with no id yet" is what caught it; it is still the one
-  // that would catch it again (see docs/historico.md).
+  // stays in the shell; nothing here is decided. Props are handed ONE AT A
+  // TIME, on purpose: spreading one `$derived` object makes every prop a
+  // getter over that object, so a screen's `$effect(() => { list; reloadKey;
+  // load(); })` re-runs on any change in it. See docs/historico.md
   import HomeView from "../screens/HomeView.svelte";
   import TasksView from "../screens/TasksView.svelte";
   import ListView from "../screens/ListView.svelte";
@@ -184,11 +175,9 @@
     {f}
     dateFormat={layout.dateDisplayFormat}
     source={sourceOf(
-      // The arrangement comes from the space's own config — without
-      // it the ⋮ could not tick the sorting in force and dragging
-      // had nowhere to be saved. The folder falls back to the
-      // layout's answer so the screen still opens if the space list
-      // has not caught up.
+      // The arrangement comes from the space's own config — without it the
+      // ⋮ could not tick the sorting in force and dragging had nowhere to be
+      // saved. The folder falls back to the layout's, so the screen still opens.
       {
         kind: "notes",
         known: true,
@@ -197,12 +186,8 @@
         order: notesSpace?.order,
         noteLayout: notesSpace?.noteLayout,
       },
-      // The screen names itself, and what it is called is what the
-      // app calls this place everywhere else — the sidebar entry,
-      // the tab, the header. (The wireframe writes "Inbox" there,
-      // from a time when this screen was thought of as showing that
-      // one folder; the board shows the whole space, so the space's
-      // name is the honest label.)
+      // The screen names itself, and what it is called is what the app calls
+      // this place everywhere else — the sidebar entry, the tab, the header.
       { name: titleOf(view) },
     )}
     onSetSort={notesArrangement.setSort}
@@ -221,10 +206,8 @@
     {onOpenNote}
   />
 {:else if view.kind === "note"}
-  <!-- The note's head: its banner and its title, as the "Editor
-       screen" wireframes draw them. Without a banner the block has
-       no colour and no height, and the title stays exactly where it
-       was. -->
+  <!-- The note's head: its banner and its title. Without a banner the block
+       has no colour and no height, and the title stays where it was. -->
   <NoteBanner
     enabled={f("banners")}
     banner={openNote.banner}

@@ -1,29 +1,9 @@
 <script>
-  // The head of an open note: its banner, and its title.
-  //
-  // Wireframes: "Editor screen - maximized" (desktop) and "Editor Screen
-  // mobile". A banner is a wide block of colour or a picture with the note's
-  // title sitting on a chip inside it, and a ⋮ in its top right.
-  //
-  // **The title is drawn either way** (user call, 2026-08-19: "caso não tenha
-  // escolhido nada, a altura e o fundo do banner somem e o título continua ali
-  // na mesma posição"). So this is not "a banner, or a heading instead": it is
-  // one head whose block has a colour and a height only when the note asks for
-  // one. That is why the title lives in the same box in both cases and why the
-  // ⋮ is here in both cases — a note with no banner is exactly where one is
-  // chosen from.
-  //
-  // **The properties are BELOW the block, never on it** (user call,
-  // 2026-08-26). They started out inside it, under the title, and a banner can
-  // be any photograph at all — there is no ink colour that holds against every
-  // picture someone might choose. Out on the canvas they read against the
-  // ground the rest of the note reads against, and they land in the same place
-  // whether the note has a banner or not.
-  //
-  // The banner itself is one line of the note's own file (`<!--banner: …-->`,
-  // see `core/src/note.rs`), so what this component edits is the document, not
-  // a setting: it reads as part of the note in any other markdown editor, and
-  // it travels with the file.
+  // The head of an open note: its banner and its title. One head whose block
+  // has colour and height only when the note asks for it — title and ⋮ sit in
+  // the same box with or without a banner. The properties go BELOW the block,
+  // never on it: no ink colour holds against every picture. The banner is a
+  // line of the note's own file (`<!--banner: …-->`, core/src/note.rs).
   import { S } from "../services/strings.js";
   import { accentFill, badgeStyle } from "../services/accent.js";
   import { formatDate } from "../services/dates.js";
@@ -41,8 +21,8 @@
     /// The notebook's root — an image banner is an address, resolved against it.
     root = null,
     readOnly = false,
-    /// The narrow shell (shell/compact.js). The block goes flush with the
-    /// three edges of the screen there, as the mobile wireframe draws it.
+    /// The narrow shell (shell/compact.js): the block goes flush with the
+    /// three edges of the screen.
     compact = false,
     /// `(value) => void` — a colour name, an asset address, or null to take
     /// the banner off. The one channel: which of the two a value IS is decided
@@ -51,15 +31,11 @@
     /// Asks the shell to open the image picker; it calls `onSet` with what
     /// comes back.
     onChooseImage,
-    /// Renaming, from the title itself. Below 768px the bar above the page no
-    /// longer prints the note's name — this IS the name of the note on screen
-    /// (wireframe "New note mobile - no banner") — so the door to renaming has
-    /// to be here as well as in the page ⋮.
+    /// Renaming, from the title itself: below 768px the bar above the page no
+    /// longer prints the note's name, so this is the door to renaming there.
     onRename = null,
-    /// The note's PROPERTIES, drawn as a line under the title the way
-    /// Obsidian draws them (2026-08-26): when it was created, and its tags
-    /// — its subjects, picked from the same catalogue a task's tags come
-    /// from. `tags` is what the note has, `catalogue` what the picker offers.
+    /// The note's PROPERTIES, a line under the title: when it was created and
+    /// its tags. `tags` is what the note has, `catalogue` what the picker offers.
     created = null,
     tags = [],
     catalogue = [],
@@ -74,10 +50,9 @@
     tagsEnabled = true,
     /// The colour of the note's space (a name) — what its tags wear.
     color = null,
-    /// Whether this notebook has banners at all (App Functions, 2026-08-20).
-    /// Off, the head is the TITLE and nothing else — no band, no ⋮ to hang one
-    /// with — and the `<!--banner:-->` line already in a file stays exactly
-    /// where it is, the way a task keeps its `!2` while priority is off.
+    /// Whether this notebook has banners at all (App Functions). Off, the head
+    /// is the TITLE alone — no band, no ⋮ — and a `<!--banner:-->` line
+    /// already in the file stays where it is.
     enabled = true,
   } = $props();
 
@@ -162,8 +137,7 @@
     {/if}
 
     <!-- The title, in a box as wide as the note's own text: the chip's first
-         letter lands over the first letter of the first paragraph, which is
-         what the wireframe draws (a 720px column inside a 900px block). -->
+         letter lands over the first letter of the first paragraph. -->
     <div class="note-banner__line">
       <h1 class="note-banner__title">
         {#if onRename}

@@ -1,22 +1,12 @@
 <script>
-  // The custom title bar of a frameless window.
-  //
-  //   [ brand | tabs (children) | window controls ]
-  //
-  // The brand column is exactly as wide as the left sidebar below it — rail
-  // included — so the tab strip starts where the centre panel starts. The tabs
-  // then take everything up to the window controls (user call, 2026-08-06):
-  // they are the widest thing in the bar, and the space they used to leave on
-  // the right belonged to a panel that is often closed.
-  //
-  // The window is frameless (no OS decorations), so this bar is the ONLY way to
-  // move, maximize or close the window — it renders even before a notebook is
-  // open. Empty areas carry `data-tauri-drag-region`: the OS drags the window
-  // by them and double-click maximizes, exactly like a native title bar.
+  // The custom title bar of a frameless window: [ brand | tabs | controls ].
+  // The brand column is exactly as wide as the sidebar below it, rail
+  // included, so the tabs start where the centre panel starts and take all
+  // the room up to the window controls. This bar is the ONLY way to move or
+  // close the window (it renders before a notebook is open): `data-tauri-drag-region`.
   import WindowControls from "./WindowControls.svelte";
-  // The drawn logo, not a letter in the UI font (2026-08-14). Both files are
-  // authored white and rewritten to `fill: currentColor`, so the brand takes
-  // the ink of whatever theme is on instead of only reading on a black frame.
+  // The drawn logo. Both files are authored white and rewritten to
+  // `fill: currentColor`, so the brand takes the theme's ink.
   import mark from "../../assets/brand/mark.svg?raw";
   import wordmark from "../../assets/brand/wordmark.svg?raw";
 
@@ -28,13 +18,9 @@
     rail = false,
     /// Which window buttons go on each side, from the system.
     buttons = { left: [], right: ["minimize", "maximize", "close"] },
-    /// Whether the bar draws the logo at all (2026-08-24).
-    ///
-    /// Off on the notebooks screen, where the logo IS the screen: the wordmark
-    /// at two sizes at once, one of them in the corner, read as a mistake
-    /// rather than as branding. The column stays — it is as wide as the
-    /// sidebar and it is what the window is dragged by — it simply holds
-    /// nothing.
+    /// Whether the bar draws the logo at all. Off on the notebooks screen,
+    /// where the logo IS the screen; the column stays (it is as wide as the
+    /// sidebar, and the window is dragged by it), holding nothing.
     brand = true,
   } = $props();
 </script>

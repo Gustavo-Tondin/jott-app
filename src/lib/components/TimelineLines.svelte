@@ -1,17 +1,9 @@
 <script>
   // The three foldable lines of a stretch of the log — tasks created, tasks
-  // completed, notes created — and the rows each opens onto.
-  //
-  // Born inside TimelineView (2026-08-27) as one month's lines; the Home's
-  // recap of a day gone by (2026-09-04) draws exactly the same thing over
-  // ONE day, so the lines moved here and both screens read them. A living
-  // row opens (task → its list and inspector, note → the editor), a
-  // completed one is struck through, and a deleted one is only counted, per
-  // space, in the space's colour (`services/timeline.js` says why).
-  //
-  // The fold state is the HOST's (`open` + `onToggle`): the Timeline keeps
-  // one set across every month it draws, and the recap opens everything at
-  // once — neither is this component's call.
+  // completed, notes created — and the rows each opens onto. The Timeline
+  // draws them over a month, the Home's recap over one day. A living row
+  // opens, a completed one is struck through, a deleted one is only counted
+  // per space (`services/timeline.js`). The fold state is the HOST's.
   import { S } from "../services/strings.js";
   import { askConfirm } from "../services/dialog.js";
   import { dotStyle } from "../services/accent.js";
@@ -133,10 +125,9 @@
                 <button class="timeline-lines__row-open" disabled={!!row.deleted} onclick={() => openRow(row)}>
                   {rowTitle(row)}
                 </button>
-                <!-- A repeating task folded into one row (the same chore,
-                     written once per occurrence). The count sits beside the
-                     title and not inside the button: it is a fact about the
-                     row, not part of what is opened. -->
+                <!-- A repeating task folded into one row. The count sits beside
+                     the title, not inside the button: a fact about the row, not
+                     part of what is opened. -->
                 {#if row.count > 1}
                   <span class="timeline-lines__row-count" title={S.timelineOccurrences(row.count)}>
                     {S.timelineTimes(row.count)}

@@ -1,34 +1,9 @@
 <script>
-  // Home: the screen of TIME (wireframes "Home Screen Desktop" and "Home
-  // Screen Mobile", 2026-09-04). A week of days across the top with today
-  // lit, and below it whichever day is chosen:
-  //
-  //   today      "Today tasks" — the day's screen, Completed and Suggestions
-  //              included — and under a rule the notes written today;
-  //   a day      the tasks planned for it, and nothing else: a day ahead is
-  //   ahead      for tasks (user call — no notes are written for a day that
-  //              has not come);
-  //   a day      the log's record of it — tasks created, tasks completed,
-  //   gone by    notes written — as the Timeline's three lines over one day
-  //              (components/DayRecap.svelte). Read, not planned.
-  //
-  // It owns almost nothing. The tasks half is THE tasks screen, hosted over
-  // a day (`day`), so Home shows exactly what a space shows — same cards,
-  // same "Completed N" — plus the Suggestions pill it adds when its source
-  // is a day. Which day is chosen is the SHELL's (`day`, `onPickDay`): on a
-  // phone the head lives in the chrome above this canvas and the shell
-  // draws it there, so the choice has to sit above both.
-  //
-  // The notes are still a view of the notes space filtered by `created`
-  // (spec 5), drawn by the SAME card the notes board draws — banner, title
-  // on its chip, first lines — in the same measured masonry
-  // (services/noteColumns.js). Only the drawing is shared — there is no
-  // arrangement to drag here, because what is on this screen is a QUESTION
-  // (what did I write today?) and not a place with an order of its own.
-  //
-  // What LEFT with the calendar: the capture box (the + writes a task for
-  // the chosen day now, and the sidebar's + makes a note), and the two
-  // "Home shows" sources — the Home is the day, and hosts nothing else.
+  // Home: the screen of TIME. A week of days across the top, and below it
+  // the chosen day — today's tasks and notes, a day ahead's planned tasks,
+  // or a day gone by as the log's record (DayRecap). The tasks half IS the
+  // tasks screen hosted over a day; which day is chosen is the SHELL's
+  // (`day`, `onPickDay`), because on a phone the head sits in the chrome.
   import { api } from "../services/api.js";
   import { S } from "../services/strings.js";
   import { makeScreen } from "../services/act.js";
@@ -111,13 +86,12 @@
     /// (it sits on the chrome, above this canvas), and this screen draws only
     /// the bar that takes its place once it has scrolled away.
     compact = false,
-    /// The + asked for a task: the day's own composer bar opens, focused,
-    /// and rides above the keyboard. It is the SAME bar the tasks screens
-    /// carry — a task captured here still lands in the inbox and gets pulled
-    /// into the chosen day.
+    /// The + asked for a task: the day's composer bar opens, focused, above
+    /// the keyboard. It is the SAME bar the tasks screens carry — the task
+    /// lands in the inbox and is pulled into the chosen day.
     composing = false,
     /// The way the bar is put away — its pull-down handle, and a task created
-    /// with the keyboard already closed (TaskComposer.svelte, 2026-08-24).
+    /// with the keyboard already closed (TaskComposer.svelte).
     onCloseCompose = null,
   } = $props();
 
@@ -126,8 +100,7 @@
   let dotStyle = $derived(dotStyleOf(dot));
 
   /// The tasks block IS the tasks screen hosted over the day — no source
-  /// folder of its own, so no arrangement to persist. Named for the day:
-  /// "Today tasks", or "Sep 5 tasks".
+  /// folder of its own, so no arrangement to persist. Named for the day.
   let dayLabel = $derived(formatDayMonth(selected, dateFormat));
   let tasksSource = $derived({
     kind: "tasks",
@@ -150,11 +123,9 @@
   };
 
   let notes = $state([]);
-  /// Where the sidebar's + files a note. Null until the user picks it in
-  /// the notes ⋮: the destination comes from the notebook's
-  /// `quickNoteFolder`, and a state seeded from the prop would freeze on
-  /// whatever it was at first render. The value resolves against the
-  /// offered targets, so a stored choice that stopped existing falls back.
+  /// Where the sidebar's + files a note. Null until the user picks in the
+  /// notes ⋮ — a state seeded from `quickNoteFolder` would freeze at first
+  /// render. Resolved against the offered targets, so a stale choice falls back.
   let chosenTarget = $state(null);
   let captureTarget = $derived(
     quickNoteTarget(chosenTarget ?? quickNoteFolder, noteTargets),
@@ -183,11 +154,9 @@
     onError: (e) => onError?.(e),
   });
 
-  /// The + asked for a NOTE (user report, 2026-09-07: "O botão de + não dá a
-  /// opção de criar nota, só tarefa"). Same door as the board's empty quick
-  /// field and the sidebar's +: an untitled note in the capture target, opened
-  /// with the cursor in the body (`fresh`). The target is this screen's — the
-  /// one the notes block's ⋮ chose, else the notebook's `quickNoteFolder`.
+  /// The + asked for a NOTE: an untitled note in the capture target, opened
+  /// with the cursor in the body (`fresh`) — the same door as the board's
+  /// quick field and the sidebar's +.
   export function createNote() {
     const target = captureTarget;
     if (!target || readOnly) return;
@@ -197,21 +166,17 @@
     });
   }
 
-  /// Going to a note of the day. Home only ever LOOKS at the notes space, so
-  /// it names the space it was given rather than letting the shell guess one
-  /// — the address is the whole answer either way.
+  /// Home only ever LOOKS at the notes space, so it names the space it was
+  /// given rather than letting the shell guess one.
   const openNote = (note, { newTab = false } = {}) =>
     onOpenNote?.(note.path, notesFolder, { newTab });
 
-  /// What a card of the day offers (services/noteActions.js, 2026-08-25):
-  /// the board's rows, so the same card means the same thing on both
-  /// screens. Home only ever LOOKS at a notes space, so every action names
-  /// the space it was given rather than one of its own.
+  /// What a card of the day offers: the board's rows (services/noteActions.js),
+  /// so the same card means the same thing on both screens.
   const cards = noteActions(act);
 
-  /// Where a note of the day can be moved: the notebook's own list of places
-  /// a note belongs (services/noteTargets.js). One group, because from here
-  /// they are one list.
+  /// Where a note of the day can be moved (services/noteTargets.js). One
+  /// group, because from here they are one list.
   let moveTargets = $derived(
     noteTargets.length === 0
       ? []
@@ -271,9 +236,8 @@
 
 <div class="home" class:home--compact={compact}>
   {#if !compact}
-    <!-- The head, at the top of the page and scrolling away with it (user
-         call, 2026-09-07). The wrapper is all that is left of the band it
-         used to carry while it was pinned there — see home.css. -->
+    <!-- The head scrolls away with the page; the wrapper is what is left of
+         the band it carried while pinned — see home.css. -->
     <div class="home__head">
       <DayHead
         {today}
@@ -395,7 +359,7 @@
           <p class="theme-empty-card home__empty">{S.noNotesToday}</p>
         {:else}
           <!-- The board's card, drawn by the board's own component, with the
-               card's own actions (2026-08-25). -->
+               card's own actions. -->
           <ul
             class="theme-note-board home__notes"
             style="--columns: {columns}"

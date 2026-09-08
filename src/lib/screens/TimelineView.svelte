@@ -1,24 +1,9 @@
 <script>
   // The Timeline — the log of everything the notebook has held, drawn as
-  // MONTHS (wireframe "Timeline Screen", desktop + mobile, 2026-08-27).
-  //
-  // Each month is three foldable lines: tasks created, tasks completed,
-  // notes created. The line opens onto its items — a living one opens
-  // (task → its list and inspector, note → the editor), a completed one is
-  // struck through, and a deleted one is only counted, per space, in the
-  // space's colour (`services/timeline.js` says why). The current month
-  // starts open; the rest starts folded.
-  //
-  // One YEAR at a time (the log is one file per year): the current year is
-  // read on open, the previous one when the reader reaches the end of the
-  // column. The year pills stay pinned in the top corner and the active one
-  // follows the month under the reader's eye; clicking one scrolls to it,
-  // reading it first if it has not come yet.
-  //
-  // Motion: rows arrive as they scroll into view (`actions/reveal.js`), the
-  // month head is sticky, and a line folds open by height — all of it spelt
-  // in `--app-duration-*` in `timeline.css`, so reduced motion turns it off
-  // without this file knowing.
+  // MONTHS of three foldable lines (TimelineLines). One YEAR at a time: the
+  // current year is read on open, the previous when the reader reaches the
+  // end of the column; the year pills stay pinned and follow the month under
+  // the eye. Motion lives in `--app-duration-*` (timeline.css), not here.
   import { tick } from "svelte";
   import { api } from "../services/api.js";
   import { makeScreen } from "../services/act.js";
@@ -172,11 +157,9 @@
 
 <div class="timeline" bind:this={column}>
   {#if years.length > 0 && activeYear !== null}
-    <!-- The pills: one per year the log has, pinned at the canvas's own
-         corner — outside the centred column, so they sit at the edge of the
-         panel whatever its width (user call, 2026-08-27). Only the active
-         one shows, and the next covers it as the column scrolls on; each is
-         a real button, and a year not read yet is read on the way. -->
+    <!-- The pills: one per year, pinned at the canvas's own corner outside
+         the centred column. Only the active one shows; each is a real button,
+         and a year not read yet is read on the way. -->
     <nav class="timeline__years" aria-label={S.timeline}>
       {#each years as year (year)}
         <button

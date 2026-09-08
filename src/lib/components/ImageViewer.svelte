@@ -1,14 +1,8 @@
 <script>
-  // A picture, full screen, over everything (user call, 2026-08-19).
-  //
-  // The second half of the two clicks a photo in a note answers: the first
-  // reveals its link, the second brings it here. Not a `Modal`: a modal is a
-  // card with a question in it and a width to match, and this is one image
-  // asking for all the room there is.
-  //
-  // Mounted outside the window, like every other overlay in the app, so it
-  // sits in no region and would inherit no colour role — it declares its own
-  // ground, which for a picture is a dark one whatever the theme.
+  // A picture, full screen, over everything. Not a `Modal`: a modal is a card
+  // with a width to match, and this is one image asking for all the room.
+  // Mounted outside the window like every overlay, so it sits in no region:
+  // it declares its own ground, dark whatever the theme.
   import { S } from "../services/strings.js";
   import Icon from "./Icon.svelte";
 

@@ -1,15 +1,9 @@
 <script>
-  // RIGHT: one panel, one thing in it — the task inspector, the day's
-  // suggestions, or an open note's formatting. `tenant` says which
-  // (`"suggestions"` / `"task"` / `"format"` / null), decided by the shell
-  // once, so the handle, the column and the sheet never disagree about
-  // whether there is a panel. All state stays in the shell — this draws it
-  // and reports the clicks.
-  //
-  // The wrapper is a flex column whose width slides on open/close — the same
-  // width animation the left rail uses, so both side panels move the same way
-  // (no grid flicker, since the shell is flex). The inner panel keeps a fixed
-  // width so its content is clipped, not reflowed, while it slides.
+  // RIGHT: one panel, one tenant — the task inspector, the day's suggestions
+  // or an open note's formatting. `tenant` (`"suggestions"` / `"task"` /
+  // `"format"` / null) is the shell's call, made once, so handle, column and
+  // sheet never disagree. The wrapper's width slides like the left rail's;
+  // the inner panel keeps a fixed width so content is clipped, not reflowed.
   import { slide } from "svelte/transition";
   import PanelResizer from "./PanelResizer.svelte";
   import { PANEL } from "./sidebarWidth.js";
@@ -135,9 +129,8 @@
 
 {#if tenant}
   {#if compact}
-    <!-- 72% of the screen, from the wireframe: tall enough for the
-         inspector's form, short enough that the list it belongs to is
-         still visible behind it. -->
+    <!-- 72% of the screen: tall enough for the inspector's form, short
+         enough that the list behind it is still visible. -->
     <BottomSheet
       label={tenant === "suggestions" ? S.suggestionsTitle : S.taskName}
       onClose={tenant === "suggestions" ? onCloseSuggestions : onCloseTask}

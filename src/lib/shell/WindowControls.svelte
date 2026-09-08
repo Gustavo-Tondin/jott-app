@@ -1,14 +1,9 @@
 <script>
-  // The window's own minimize / maximize / close, drawn Adwaita-style: a filled
-  // grey disc with a dark glyph, darker on hover. The window is frameless, so
-  // these are the only ones there are.
-  //
-  // Which buttons, in what order, and on which side comes from the SYSTEM
-  // (`org.gnome.desktop.wm.preferences button-layout`, read once at boot) —
-  // plenty of people move them to the left or drop the maximize, and a shell
-  // that draws its own chrome has to respect that or it feels like a foreign
-  // app. Anything the setting does not name is simply not drawn; a name this
-  // build does not know is skipped rather than guessed at.
+  // The window's own minimize / maximize / close, Adwaita-style — the window
+  // is frameless, so these are the only ones. Which buttons, in what order,
+  // on which side comes from the SYSTEM (`org.gnome.desktop.wm.preferences
+  // button-layout`, read once at boot). A name the setting does not give is
+  // not drawn; a name this build does not know is skipped, not guessed.
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import { S } from "../services/strings.js";
 
