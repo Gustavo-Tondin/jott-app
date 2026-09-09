@@ -455,15 +455,15 @@ mod tests {
     #[test]
     fn the_factory_palette_is_written_once_and_never_over() {
         let dir = config_dir();
-        assert!(ensure_default(dir.path(), ":root { --theme-color-blue-500: #111; }").unwrap());
+        assert!(ensure_default(dir.path(), ":root { --theme-color-1-500: #111; }").unwrap());
         assert_eq!(
             css(dir.path(), "jott").unwrap().css,
-            ":root { --theme-color-blue-500: #111; }"
+            ":root { --theme-color-1-500: #111; }"
         );
 
         // The reader edits it: the next open leaves it alone.
-        write(dir.path(), "themes/jott.css", ":root { --theme-color-blue-500: #222; }");
-        assert!(!ensure_default(dir.path(), ":root { --theme-color-blue-500: #111; }").unwrap());
+        write(dir.path(), "themes/jott.css", ":root { --theme-color-1-500: #222; }");
+        assert!(!ensure_default(dir.path(), ":root { --theme-color-1-500: #111; }").unwrap());
         assert!(css(dir.path(), "jott").unwrap().css.contains("#222"));
 
         // The folder shape counts as present too.

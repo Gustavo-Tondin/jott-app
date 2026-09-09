@@ -141,7 +141,7 @@ describe("TasksView", () => {
     const bars = [...document.querySelectorAll(".task-row .theme-origin")].map((b) =>
       b.getAttribute("style"),
     );
-    expect(bars).toContain("--dot: var(--app-orange);");
+    expect(bars).toContain("--dot: var(--app-5);");
   });
 
   // A press that rests on a card enters selection mode WITH that card picked

@@ -41,7 +41,7 @@
       class="accent-picker__swatch"
       class:accent-picker__swatch--on={value === name}
       style={swatchStyle(name, preview)}
-      aria-label={name}
+      aria-label={S.colorName(name)}
       aria-pressed={value === name}
       {disabled}
       onclick={() => onPick?.(name)}

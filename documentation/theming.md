@@ -84,11 +84,11 @@ left alone — that is how a self-contained theme carries an image.
 Three layers, one hop between each:
 
 ```
-THEME   what you write            :root { --theme-color-blue-300: #66a3ff; … }
+THEME   what you write            :root { --theme-color-1-300: #66a3ff; … }
   │     a mode is the function between the two, per region
 MODE    what the app ships        [data-mode="dark"] [data-region="chrome"] {
                                     --app-bg: var(--theme-color-black);
-                                    --app-blue-3: var(--theme-color-blue-300); … }
+                                    --app-1-3: var(--theme-color-1-300); … }
   │
 APP     what a component reads    .theme-btn { background: var(--app-brand); }
 ```
@@ -128,7 +128,7 @@ is always loaded underneath.
 | Group | Tokens | How many |
 |---|---|---|
 | grounds | `--theme-color-white`, `-white-tint`, `-black`, `-black-tint`, `-gray` | 5 |
-| the eight | `--theme-color-<yellow \| orange \| pink \| green \| blue \| red \| purple \| neutral>-<100…700>` | 56 |
+| the eight | `--theme-color-<1 \| 2 \| 3 \| 4 \| 5 \| 6 \| 7 \| neutral>-<100…700>` | 56 |
 | status | `--theme-color-<danger \| warning \| success>-<100 300 500 700>` | 12 |
 | shape | `--theme-radius-<xs \| sm \| md \| lg \| xl \| pill>`, `--theme-space-<2 4 6 8 10 12 16 24 32 40 48 64>` | 18 |
 
@@ -142,8 +142,13 @@ Things worth knowing before you change them:
   floor: 200/600 at 7:1, 300/500 at 4.5:1 against their ground. (Tests
   measure the factory file; a notebook theme is yours, and nothing checks it
   but your eyes.)
-- **`neutral` is the eighth colour**, the white↔black family; the modes read
-  it one step further out because it runs on the same axis as the grounds.
+- **The seven hue slots are NUMBERED, not named.** Slot 1 is the app's own
+  and the rest walk the wheel; what each looks like is yours to decide, which
+  is the whole point — a palette that paints slot 6 lilac should not have to
+  keep calling it "yellow". The word a person reads in a menu is a label, not
+  the identity. `neutral` keeps its name because it is not a hue: it is the
+  white↔black family, and the modes read it one step further out because it
+  runs on the same axis as the grounds.
 - **Status is its own three families, and they run FOUR steps.** `danger`,
   `warning`, `success` are seeded from red, yellow and green, but they are
   separate tokens: make your `red` sea-green and the error notice stays red —
@@ -192,6 +197,26 @@ things to know:
   the mark and its `-ink`, `-line` and `-tint`, the status roles and their
   `-tint`, the hover veil and the popover shadow.
 
+### You do not have to write 91 tokens
+
+`src/styles/themes/make-theme.py` writes a whole theme from a handful of
+colours you like. It reads the HUE of each colour you give and rebuilds that
+family on the tone grid, so the tones and the contrast promises come out right
+even when your pick was a muddy screenshot swatch:
+
+```
+./make-theme.py --name midnight --ground "#16151a" \
+    --1 "#0076c3" --4 "#e5484d" --7 "#30a46c" -o midnight.css
+```
+
+Any slot you leave out keeps the factory hue. `--check <file>` re-measures an
+existing theme and names the steps that miss a floor, which is the same thing
+the app's own suite does. It needs only Python's standard library.
+
+Where a hue cannot be both dark and saturated, it says so rather than write a
+theme that fails quietly — yellow is the usual one, because no yellow is both
+readable on white and still yellow.
+
 ### If your theme ships with the app
 
 A palette is one file, `src/styles/themes/<name>.css`, plus the Settings
@@ -226,7 +251,7 @@ ON A DARK GROUND  → ink white; ladder 200→450, base 300, line 500 @45%, tint
 ON A LIGHT GROUND → ink black; ladder 600→350, base 500, line 300 @60%, tint 100
 ```
 
-**`neutral` is the eighth colour, and it reads one step further out.** It is
+**`neutral` is the eighth slot, and it reads one step further out.** It is
 the white↔black family, so its ramp runs along the same axis as the app's
 two grounds: taking the same steps as a hue would make its first rung a grey
 instead of white, and its tint the ground itself. Everything else about it is

@@ -14,12 +14,12 @@ const factory = readFileSync(
 
 describe("seedFrom", () => {
   test("the factory alone comes out as its own tokens, in one root rule", () => {
-    const seeded = seedFrom({ factory: ":root {\n  --theme-color-blue-500: #111;\n  --theme-radius-md: 0.5rem;\n}" });
+    const seeded = seedFrom({ factory: ":root {\n  --theme-color-1-500: #111;\n  --theme-radius-md: 0.5rem;\n}" });
     expect(seeded).toBe(
       "/* A Jott theme: the palette, the spacing and the radius the app draws\n" +
         "   with. Colours run seven steps (100 pale → 700 deep); the modes decide\n" +
         "   which step goes where. Edit and save — the app repaints. */\n" +
-        ":root {\n  --theme-color-blue-500: #111;\n  --theme-radius-md: 0.5rem;\n}\n",
+        ":root {\n  --theme-color-1-500: #111;\n  --theme-radius-md: 0.5rem;\n}\n",
     );
   });
 
@@ -28,11 +28,11 @@ describe("seedFrom", () => {
     // a PALETTE: what it said about `--theme-*`, over the factory, and none
     // of its `--app-*` or selectors.
     const worn =
-      '[data-region="canvas"] { --app-bg: #fdf6e3; --theme-color-blue-500: #222; }\n' +
-      "/* --theme-color-blue-500: #999; a comment does not count */";
-    const seeded = seedFrom({ factory: ":root { --theme-color-blue-500: #111; --theme-color-red-500: #a00; }", worn });
-    expect(seeded).toContain("--theme-color-blue-500: #222;");
-    expect(seeded).toContain("--theme-color-red-500: #a00;");
+      '[data-region="canvas"] { --app-bg: #fdf6e3; --theme-color-1-500: #222; }\n' +
+      "/* --theme-color-1-500: #999; a comment does not count */";
+    const seeded = seedFrom({ factory: ":root { --theme-color-1-500: #111; --theme-color-4-500: #a00; }", worn });
+    expect(seeded).toContain("--theme-color-1-500: #222;");
+    expect(seeded).toContain("--theme-color-4-500: #a00;");
     expect(seeded).not.toContain("--app-bg");
     expect(seeded).not.toContain("data-region");
     expect(themeTokens(null).size).toBe(0);
@@ -47,7 +47,7 @@ describe("seedFrom", () => {
     expect(tokens.size).toBe(5 + 8 * 7 + 3 * 4 + 12 + 6);
     expect(seeded).toMatch(/^\/\*[\s\S]*\*\/\n:root \{\n/);
     expect(seeded).not.toMatch(/data-(theme|mode|region)/);
-    expect(seeded).toContain("--theme-color-blue-500:");
+    expect(seeded).toContain("--theme-color-1-500:");
     expect(seeded).toContain("--theme-space-8:");
   });
 });

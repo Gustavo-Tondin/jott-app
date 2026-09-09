@@ -263,7 +263,7 @@ describe("HomeView", () => {
     const bars = document.querySelectorAll(".task-row .theme-origin");
     expect(bars).toHaveLength(2);
     const styles = [...bars].map((b) => b.getAttribute("style"));
-    expect(styles).toContain("--dot: var(--app-blue);");
+    expect(styles).toContain("--dot: var(--app-1);");
     // The fixed space: the app's accent, which is the bar's own default.
     expect(styles).toContain(null);
     expect(screen.queryByText(/jott\.tasks|Design\/Tasks/)).toBeNull();

@@ -51,16 +51,16 @@ describe("NoteBanner", () => {
 
   test("a colour banner is painted with the palette, never a hex", async () => {
     const { container } = render(NoteBanner, {
-      props: props({ banner: { kind: "color", value: "yellow" } }),
+      props: props({ banner: { kind: "color", value: "6" } }),
     });
 
     const banner = container.querySelector(".note-banner");
-    expect(banner.getAttribute("style")).toContain("var(--app-yellow-fill)");
+    expect(banner.getAttribute("style")).toContain("var(--app-6-fill)");
     // And the picker's swatch shows THAT step, not the region's base: the
     // colour chosen is the colour received (2026-08-26).
     await userEvent.click(screen.getByLabelText("banner options"));
-    expect(screen.getByRole("button", { name: "yellow" }).getAttribute("style")).toContain(
-      "--dot: var(--app-yellow-fill)",
+    expect(screen.getByRole("button", { name: "Yellow" }).getAttribute("style")).toContain(
+      "--dot: var(--app-6-fill)",
     );
     expect(container.querySelector(".note-banner__image")).toBeNull();
     // The title moves onto the chip over it — one title, in one place.
@@ -79,7 +79,7 @@ describe("NoteBanner", () => {
   test("the ⋮ takes the banner off, and a read-only note has no ⋮ at all", async () => {
     const set = [];
     render(NoteBanner, {
-      props: props({ banner: { kind: "color", value: "blue" }, onSet: (v) => set.push(v) }),
+      props: props({ banner: { kind: "color", value: "1" }, onSet: (v) => set.push(v) }),
     });
 
     await userEvent.click(screen.getByLabelText("banner options"));
@@ -88,7 +88,7 @@ describe("NoteBanner", () => {
 
     cleanup();
     render(NoteBanner, {
-      props: props({ banner: { kind: "color", value: "blue" }, readOnly: true }),
+      props: props({ banner: { kind: "color", value: "1" }, readOnly: true }),
     });
     expect(screen.queryByLabelText("banner options")).toBeNull();
   });

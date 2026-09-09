@@ -39,26 +39,26 @@
        stopped following the ground this is the SAME step `--app-<hue>` is, and
        the pair is kept apart only because a banner may yet want its own step.
        Eight lines because a custom property cannot compose another's name. */
-    --app-red-fill: var(--theme-color-red-300);
-    --app-orange-fill: var(--theme-color-orange-300);
-    --app-yellow-fill: var(--theme-color-yellow-300);
-    --app-green-fill: var(--theme-color-green-300);
-    --app-blue-fill: var(--theme-color-blue-300);
-    --app-purple-fill: var(--theme-color-purple-300);
-    --app-pink-fill: var(--theme-color-pink-300);
+    --app-4-fill: var(--theme-color-4-300);
+    --app-5-fill: var(--theme-color-5-300);
+    --app-6-fill: var(--theme-color-6-300);
+    --app-7-fill: var(--theme-color-7-300);
+    --app-1-fill: var(--theme-color-1-300);
+    --app-2-fill: var(--theme-color-2-300);
+    --app-3-fill: var(--theme-color-3-300);
     --app-neutral-fill: var(--theme-color-neutral-300);
 
     /* The fill that CARRIES text (a notebook's card). The same vivid step as
        every other fill: what makes it carry text is the ink over it, not a
        darker colour under it. Theme- and region-blind, like the fill above:
        a notebook's colour is what its owner knows it by. */
-    --app-red-solid: var(--theme-color-red-300);
-    --app-orange-solid: var(--theme-color-orange-300);
-    --app-yellow-solid: var(--theme-color-yellow-300);
-    --app-green-solid: var(--theme-color-green-300);
-    --app-blue-solid: var(--theme-color-blue-300);
-    --app-purple-solid: var(--theme-color-purple-300);
-    --app-pink-solid: var(--theme-color-pink-300);
+    --app-4-solid: var(--theme-color-4-300);
+    --app-5-solid: var(--theme-color-5-300);
+    --app-6-solid: var(--theme-color-6-300);
+    --app-7-solid: var(--theme-color-7-300);
+    --app-1-solid: var(--theme-color-1-300);
+    --app-2-solid: var(--theme-color-2-300);
+    --app-3-solid: var(--theme-color-3-300);
     --app-neutral-solid: var(--theme-color-neutral-300);
     /* The ink on any of them: the dark ground, which clears 7:1 on all eight
        because every fill is the same step and the step is pinned to a tone
@@ -77,100 +77,100 @@
      the name of another; a descendant selector so one attribute reaches both regions.
      --------------------------------------------------------------------------- */
   [data-region] {
-    --app-brand-1: var(--app-blue-1);
-    --app-brand-2: var(--app-blue-2);
-    --app-brand-3: var(--app-blue-3);
-    --app-brand-4: var(--app-blue-4);
-    --app-brand-5: var(--app-blue-5);
-    --app-brand-6: var(--app-blue-6);
-    --app-brand: var(--app-blue);
-    --app-brand-ink: var(--app-blue-ink);
-    --app-brand-weak: var(--app-blue-tint);
-    --app-brand-outline: var(--app-blue-line);
+    --app-brand-1: var(--app-1-1);
+    --app-brand-2: var(--app-1-2);
+    --app-brand-3: var(--app-1-3);
+    --app-brand-4: var(--app-1-4);
+    --app-brand-5: var(--app-1-5);
+    --app-brand-6: var(--app-1-6);
+    --app-brand: var(--app-1);
+    --app-brand-ink: var(--app-1-ink);
+    --app-brand-weak: var(--app-1-tint);
+    --app-brand-outline: var(--app-1-line);
   }
-  [data-accent="yellow"] [data-region] {
-    --app-brand-1: var(--app-yellow-1);
-    --app-brand-2: var(--app-yellow-2);
-    --app-brand-3: var(--app-yellow-3);
-    --app-brand-4: var(--app-yellow-4);
-    --app-brand-5: var(--app-yellow-5);
-    --app-brand-6: var(--app-yellow-6);
-    --app-brand: var(--app-yellow);
-    --app-brand-ink: var(--app-yellow-ink);
-    --app-brand-weak: var(--app-yellow-tint);
-    --app-brand-outline: var(--app-yellow-line);
+  [data-accent="6"] [data-region] {
+    --app-brand-1: var(--app-6-1);
+    --app-brand-2: var(--app-6-2);
+    --app-brand-3: var(--app-6-3);
+    --app-brand-4: var(--app-6-4);
+    --app-brand-5: var(--app-6-5);
+    --app-brand-6: var(--app-6-6);
+    --app-brand: var(--app-6);
+    --app-brand-ink: var(--app-6-ink);
+    --app-brand-weak: var(--app-6-tint);
+    --app-brand-outline: var(--app-6-line);
   }
-  [data-accent="orange"] [data-region] {
-    --app-brand-1: var(--app-orange-1);
-    --app-brand-2: var(--app-orange-2);
-    --app-brand-3: var(--app-orange-3);
-    --app-brand-4: var(--app-orange-4);
-    --app-brand-5: var(--app-orange-5);
-    --app-brand-6: var(--app-orange-6);
-    --app-brand: var(--app-orange);
-    --app-brand-ink: var(--app-orange-ink);
-    --app-brand-weak: var(--app-orange-tint);
-    --app-brand-outline: var(--app-orange-line);
+  [data-accent="5"] [data-region] {
+    --app-brand-1: var(--app-5-1);
+    --app-brand-2: var(--app-5-2);
+    --app-brand-3: var(--app-5-3);
+    --app-brand-4: var(--app-5-4);
+    --app-brand-5: var(--app-5-5);
+    --app-brand-6: var(--app-5-6);
+    --app-brand: var(--app-5);
+    --app-brand-ink: var(--app-5-ink);
+    --app-brand-weak: var(--app-5-tint);
+    --app-brand-outline: var(--app-5-line);
   }
-  [data-accent="pink"] [data-region] {
-    --app-brand-1: var(--app-pink-1);
-    --app-brand-2: var(--app-pink-2);
-    --app-brand-3: var(--app-pink-3);
-    --app-brand-4: var(--app-pink-4);
-    --app-brand-5: var(--app-pink-5);
-    --app-brand-6: var(--app-pink-6);
-    --app-brand: var(--app-pink);
-    --app-brand-ink: var(--app-pink-ink);
-    --app-brand-weak: var(--app-pink-tint);
-    --app-brand-outline: var(--app-pink-line);
+  [data-accent="3"] [data-region] {
+    --app-brand-1: var(--app-3-1);
+    --app-brand-2: var(--app-3-2);
+    --app-brand-3: var(--app-3-3);
+    --app-brand-4: var(--app-3-4);
+    --app-brand-5: var(--app-3-5);
+    --app-brand-6: var(--app-3-6);
+    --app-brand: var(--app-3);
+    --app-brand-ink: var(--app-3-ink);
+    --app-brand-weak: var(--app-3-tint);
+    --app-brand-outline: var(--app-3-line);
   }
-  [data-accent="green"] [data-region] {
-    --app-brand-1: var(--app-green-1);
-    --app-brand-2: var(--app-green-2);
-    --app-brand-3: var(--app-green-3);
-    --app-brand-4: var(--app-green-4);
-    --app-brand-5: var(--app-green-5);
-    --app-brand-6: var(--app-green-6);
-    --app-brand: var(--app-green);
-    --app-brand-ink: var(--app-green-ink);
-    --app-brand-weak: var(--app-green-tint);
-    --app-brand-outline: var(--app-green-line);
+  [data-accent="7"] [data-region] {
+    --app-brand-1: var(--app-7-1);
+    --app-brand-2: var(--app-7-2);
+    --app-brand-3: var(--app-7-3);
+    --app-brand-4: var(--app-7-4);
+    --app-brand-5: var(--app-7-5);
+    --app-brand-6: var(--app-7-6);
+    --app-brand: var(--app-7);
+    --app-brand-ink: var(--app-7-ink);
+    --app-brand-weak: var(--app-7-tint);
+    --app-brand-outline: var(--app-7-line);
   }
-  [data-accent="blue"] [data-region] {
-    --app-brand-1: var(--app-blue-1);
-    --app-brand-2: var(--app-blue-2);
-    --app-brand-3: var(--app-blue-3);
-    --app-brand-4: var(--app-blue-4);
-    --app-brand-5: var(--app-blue-5);
-    --app-brand-6: var(--app-blue-6);
-    --app-brand: var(--app-blue);
-    --app-brand-ink: var(--app-blue-ink);
-    --app-brand-weak: var(--app-blue-tint);
-    --app-brand-outline: var(--app-blue-line);
+  [data-accent="1"] [data-region] {
+    --app-brand-1: var(--app-1-1);
+    --app-brand-2: var(--app-1-2);
+    --app-brand-3: var(--app-1-3);
+    --app-brand-4: var(--app-1-4);
+    --app-brand-5: var(--app-1-5);
+    --app-brand-6: var(--app-1-6);
+    --app-brand: var(--app-1);
+    --app-brand-ink: var(--app-1-ink);
+    --app-brand-weak: var(--app-1-tint);
+    --app-brand-outline: var(--app-1-line);
   }
-  [data-accent="red"] [data-region] {
-    --app-brand-1: var(--app-red-1);
-    --app-brand-2: var(--app-red-2);
-    --app-brand-3: var(--app-red-3);
-    --app-brand-4: var(--app-red-4);
-    --app-brand-5: var(--app-red-5);
-    --app-brand-6: var(--app-red-6);
-    --app-brand: var(--app-red);
-    --app-brand-ink: var(--app-red-ink);
-    --app-brand-weak: var(--app-red-tint);
-    --app-brand-outline: var(--app-red-line);
+  [data-accent="4"] [data-region] {
+    --app-brand-1: var(--app-4-1);
+    --app-brand-2: var(--app-4-2);
+    --app-brand-3: var(--app-4-3);
+    --app-brand-4: var(--app-4-4);
+    --app-brand-5: var(--app-4-5);
+    --app-brand-6: var(--app-4-6);
+    --app-brand: var(--app-4);
+    --app-brand-ink: var(--app-4-ink);
+    --app-brand-weak: var(--app-4-tint);
+    --app-brand-outline: var(--app-4-line);
   }
-  [data-accent="purple"] [data-region] {
-    --app-brand-1: var(--app-purple-1);
-    --app-brand-2: var(--app-purple-2);
-    --app-brand-3: var(--app-purple-3);
-    --app-brand-4: var(--app-purple-4);
-    --app-brand-5: var(--app-purple-5);
-    --app-brand-6: var(--app-purple-6);
-    --app-brand: var(--app-purple);
-    --app-brand-ink: var(--app-purple-ink);
-    --app-brand-weak: var(--app-purple-tint);
-    --app-brand-outline: var(--app-purple-line);
+  [data-accent="2"] [data-region] {
+    --app-brand-1: var(--app-2-1);
+    --app-brand-2: var(--app-2-2);
+    --app-brand-3: var(--app-2-3);
+    --app-brand-4: var(--app-2-4);
+    --app-brand-5: var(--app-2-5);
+    --app-brand-6: var(--app-2-6);
+    --app-brand: var(--app-2);
+    --app-brand-ink: var(--app-2-ink);
+    --app-brand-weak: var(--app-2-tint);
+    --app-brand-outline: var(--app-2-line);
   }
   [data-accent="neutral"] [data-region] {
     --app-brand-1: var(--app-neutral-1);

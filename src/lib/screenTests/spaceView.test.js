@@ -67,7 +67,7 @@ describe("SpaceView", () => {
     expect(title.textContent).toContain("Project A");
     expect(title.getAttribute("style")).toBeNull();
     expect(title.querySelector(".theme-dot").getAttribute("style")).toContain(
-      "--dot: var(--app-orange)",
+      "--dot: var(--app-5)",
     );
     // And only one heading on the screen.
     expect(container.querySelectorAll("h1, h2, h3").length).toBe(1);

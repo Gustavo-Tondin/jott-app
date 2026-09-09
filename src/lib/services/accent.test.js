@@ -5,6 +5,7 @@ import {
   isAccent,
   accentColor,
   accentInk,
+  slotOf,
   accentRung,
   accentSolid,
   accentTint,
@@ -18,12 +19,31 @@ describe("the eight colours", () => {
     // This is the whole reason the app stores a name: the mark is one value
     // the modes may retheme, and the INK beside it still has a light half and
     // a dark half for the region to choose between. A hex could not.
-    expect(accentColor("orange")).toBe("var(--app-orange)");
-    expect(accentTint("orange")).toBe("var(--app-orange-tint)");
+    expect(accentColor("orange")).toBe("var(--app-5)");
+    expect(accentTint("orange")).toBe("var(--app-5-tint)");
     for (const name of ACCENTS) {
       expect(isAccent(name)).toBe(true);
       expect(accentColor(name)).toBe(`var(--app-${name})`);
     }
+  });
+
+  test("a notebook written before the slots were numbered keeps its colours", () => {
+    // The slots became numbers in 0.54. Every notebook on disk before that says
+    // `"color": "orange"`, and there is no migration pre-v1 — so the names are
+    // read forever, mapped to the slot the factory theme paints that way. The
+    // day this stops working is the day a rename empties someone's sidebar.
+    const wasCalled = { blue: "1", purple: "2", pink: "3", red: "4", orange: "5", yellow: "6", green: "7" };
+    for (const [old, slot] of Object.entries(wasCalled)) {
+      expect(isAccent(old), `${old} still reads`).toBe(true);
+      expect(accentColor(old)).toBe(`var(--app-${slot})`);
+      expect(accentInk(old)).toBe(`var(--app-${slot}-ink)`);
+      expect(accentTint(old)).toBe(`var(--app-${slot}-tint)`);
+      expect(slotOf(old)).toBe(slot);
+    }
+    // `neutral` was never renamed: it is not a hue slot.
+    expect(slotOf("neutral")).toBe("neutral");
+    // And the app WRITES slots — the old name is an input, never an output.
+    expect(ACCENTS).not.toContain("orange");
   });
 
   test("nothing chosen is null, so CSS falls back to the theme accent", () => {
@@ -50,7 +70,7 @@ describe("the eight colours", () => {
     // hairline, and the mark is one colour on both grounds — 2.2:1 on the
     // canvas, which no stroke and no word may sit at.
     expect(accentStyle("blue", { color: "--group-color", tint: "--group-tint" })).toBe(
-      "--group-color: var(--app-blue-ink); --group-tint: var(--app-blue-tint)",
+      "--group-color: var(--app-1-ink); --group-tint: var(--app-1-tint)",
     );
   });
 
@@ -91,7 +111,7 @@ describe("the eight colours", () => {
     // changed every OTHER level, which reads as an accident rather than a
     // hierarchy. Rung 1 is the strongest, 6 the faintest.
     for (let rung = 1; rung <= 6; rung++) {
-      expect(accentRung("blue", rung)).toBe(`var(--app-blue-${rung})`);
+      expect(accentRung("blue", rung)).toBe(`var(--app-1-${rung})`);
     }
   });
 
@@ -112,7 +132,7 @@ describe("the eight colours", () => {
     // a name and two counts is the ink over it, `--app-on-solid`, which is the
     // dark ground and clears 7:1 on all eight. `architecture.test.js` reads
     // that ink off the sheet rather than assuming which one it is.
-    expect(accentSolid("blue")).toBe("var(--app-blue-solid)");
+    expect(accentSolid("blue")).toBe("var(--app-1-solid)");
     for (const name of ACCENTS) {
       expect(accentSolid(name)).toBe(`var(--app-${name}-solid)`);
     }
@@ -124,7 +144,7 @@ describe("the eight colours", () => {
   });
 
   test("badgeStyle: rung 2 for the text, the line for the outline; nothing for no colour", () => {
-    expect(badgeStyle("blue")).toBe("--badge-color: var(--app-blue-2); --badge-line: var(--app-blue-line)");
+    expect(badgeStyle("blue")).toBe("--badge-color: var(--app-1-2); --badge-line: var(--app-1-line)");
     expect(badgeStyle("#123456")).toBe(
       "--badge-color: color-mix(in srgb, #123456 90%, transparent); --badge-line: color-mix(in srgb, #123456 45%, transparent)",
     );

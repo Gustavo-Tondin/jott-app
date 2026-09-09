@@ -1,33 +1,42 @@
-// The eight colours, and how a stored choice becomes CSS.
-// Stored is the NAME (`"orange"`), never a hex. A name resolves to
-// `var(--app-orange)` — ONE colour, the same on the dark chrome and the light
-// canvas, because a mark is not read and has no contrast to protect. What IS
-// read takes `accentInk`, which still answers from the region's end of the
-// ramp. A raw `#rrggbb` written by hand passes through untouched.
+// The eight colour SLOTS, and how a stored choice becomes CSS.
+// Stored is the slot (`"5"`), never a hex. A slot resolves to `var(--app-5)` —
+// ONE colour, the same on the dark chrome and the light canvas, because a mark
+// is not read and has no contrast to protect. What IS read takes `accentInk`,
+// which still answers from the region's end of the ramp. A raw `#rrggbb`
+// written by hand passes through untouched, and the names this app used before
+// the slots were numbered still resolve on the way in (`LEGACY`).
 
-/// The eight, in rainbow order from blue (the app's own), `neutral` closing
-/// the circle. This array IS the order every swatch row draws and the order
-/// the sidebar's rainbow deals (services/spaceColors.js).
-export const ACCENTS = [
-  "blue",
-  "purple",
-  "pink",
-  "red",
-  "orange",
-  "yellow",
-  "green",
-  "neutral",
-];
+/// The eight SLOTS, in the order every swatch row draws and the order the
+/// sidebar's rainbow deals (services/spaceColors.js): 1 is the app's own, and
+/// the six after it walk the wheel. They are NUMBERED, not named, because a
+/// theme owns what a slot looks like — a palette that paints 6 lilac should not
+/// have to keep calling it "yellow". The word a person reads is a label
+/// (`S.colorName`), not the identity. `neutral` keeps its name: it is not a
+/// hue slot but the grounds' own axis, and no theme repurposes it.
+export const ACCENTS = ["1", "2", "3", "4", "5", "6", "7", "neutral"];
 
-/// The seven hues — the eight without `neutral`.
+/// The seven hue slots — the eight without `neutral`.
 export const HUES = ACCENTS.filter((name) => name !== "neutral");
 
-/// What the app ships as, and what an unknown or missing name falls back to.
-export const DEFAULT_ACCENT = "blue";
+/// What the app ships as, and what an unknown or missing value falls back to.
+export const DEFAULT_ACCENT = "1";
 
-/// True for one of the eight.
+/// What this app wrote before the slots were numbered. A notebook from then
+/// still says `"orange"`, and letting a rename empty its spaces would be the
+/// app breaking the user's file over its own bookkeeping. Read, never written.
+const LEGACY = { blue: "1", purple: "2", pink: "3", red: "4", orange: "5", yellow: "6", green: "7" };
+
+/// The slot a stored value names, or `null` if it names none — a raw hex, a
+/// slot from a newer build, or nothing at all.
+export function slotOf(value) {
+  if (typeof value !== "string") return null;
+  if (ACCENTS.includes(value)) return value;
+  return LEGACY[value] ?? null;
+}
+
+/// True for one of the eight, an old name included.
 export function isAccent(value) {
-  return typeof value === "string" && ACCENTS.includes(value);
+  return slotOf(value) !== null;
 }
 
 /// The CSS value for a stored colour choice — the colour as a MARK: a dot, a
@@ -38,7 +47,8 @@ export function isAccent(value) {
 /// `var(…, fallback)` applies.
 export function accentColor(value) {
   if (!value) return null;
-  if (isAccent(value)) return `var(--app-${value})`;
+  const s = slotOf(value);
+  if (s) return `var(--app-${s})`;
   return value;
 }
 
@@ -49,7 +59,8 @@ export function accentColor(value) {
 /// A raw colour has no ink of its own and answers itself.
 export function accentInk(value) {
   if (!value) return null;
-  if (isAccent(value)) return `var(--app-${value}-ink)`;
+  const s = slotOf(value);
+  if (s) return `var(--app-${s}-ink)`;
   return value;
 }
 
@@ -58,7 +69,8 @@ export function accentInk(value) {
 /// no ladder: rung 1 is the colour itself, the rest fade toward the ground.
 export function accentRung(value, rung) {
   if (!value) return null;
-  if (isAccent(value)) return `var(--app-${value}-${rung})`;
+  const s = slotOf(value);
+  if (s) return `var(--app-${s}-${rung})`;
   const fade = [100, 90, 80, 68, 58, 48][rung - 1] ?? 100;
   return fade === 100 ? value : `color-mix(in srgb, ${value} ${fade}%, transparent)`;
 }
@@ -68,7 +80,8 @@ export function accentRung(value, rung) {
 /// contrast to protect (styles/roles.css).
 export function accentFill(value) {
   if (!value) return null;
-  if (isAccent(value)) return `var(--app-${value}-fill)`;
+  const s = slotOf(value);
+  if (s) return `var(--app-${s}-fill)`;
   return value;
 }
 
@@ -78,7 +91,8 @@ export function accentFill(value) {
 /// clears 7:1 on all eight (see `architecture.test.js`). Ground-blind.
 export function accentSolid(value) {
   if (!value) return null;
-  if (isAccent(value)) return `var(--app-${value}-solid)`;
+  const s = slotOf(value);
+  if (s) return `var(--app-${s}-solid)`;
   return value;
 }
 
@@ -86,7 +100,8 @@ export function accentSolid(value) {
 /// The ground's own tint step for one of the eight; a raw colour is mixed down.
 export function accentTint(value) {
   if (!value) return null;
-  if (isAccent(value)) return `var(--app-${value}-tint)`;
+  const s = slotOf(value);
+  if (s) return `var(--app-${s}-tint)`;
   return `color-mix(in srgb, ${value} 18%, transparent)`;
 }
 
@@ -95,7 +110,8 @@ export function accentTint(value) {
 /// colour is mixed down, like its tint.
 export function accentLine(value) {
   if (!value) return null;
-  if (isAccent(value)) return `var(--app-${value}-line)`;
+  const s = slotOf(value);
+  if (s) return `var(--app-${s}-line)`;
   return `color-mix(in srgb, ${value} 45%, transparent)`;
 }
 
@@ -118,7 +134,7 @@ export function dotStyle(value) {
 /// The inline `style` of a swatch that PREVIEWS a choice — the picker's
 /// buttons. `preview` names the step the choice will paint with, so the swatch
 /// is the colour the person gets: `"base"` for a dot or a badge, `"fill"` for
-/// a banner (step 300), `"solid"` for a card with text on it (step 500).
+/// a banner, `"solid"` for a card with text on it.
 export function swatchStyle(value, preview = "base") {
   const c =
     preview === "fill" ? accentFill(value) : preview === "solid" ? accentSolid(value) : accentColor(value);

@@ -242,7 +242,7 @@ describe("NotesSpace", () => {
 
   test("a note's banner is drawn on its card, in the colour it names", async () => {
     bridge({
-      list_notes: [entry("Ideia", { banner: { kind: "color", value: "yellow" } })],
+      list_notes: [entry("Ideia", { banner: { kind: "color", value: "6" } })],
       note_folders: [],
     });
 
@@ -252,7 +252,7 @@ describe("NotesSpace", () => {
     const banner = container.querySelector(".note-card__banner");
     // The NAME becomes a var() of the palette, never a hex: which end of the
     // ramp shows is the region's call (services/accent.js).
-    expect(banner.getAttribute("style")).toContain("var(--app-yellow-fill)");
+    expect(banner.getAttribute("style")).toContain("var(--app-6-fill)");
   });
 
   test("a note with no banner has no block above its title", async () => {
@@ -718,7 +718,7 @@ describe("NotesSpace folder management", () => {
       expect(invoke).toHaveBeenCalledWith("set_note_folder_color", {
         folder: "Notes",
         path: "Clientes",
-        color: "red",
+        color: "4",
       }),
     );
   });

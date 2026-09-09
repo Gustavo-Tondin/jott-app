@@ -50,9 +50,9 @@ describe("bannerMenuOf", () => {
     const bare = bannerMenuOf({ banner: null, setBanner, pickImage });
     expect(bare.label).toBe(S.banner);
     expect(labels(bare.items)).toEqual([...ACCENTS.map((n) => S.colorName(n)), S.bannerImage]);
-    const worn = bannerMenuOf({ banner: { value: "yellow" }, setBanner, pickImage });
+    const worn = bannerMenuOf({ banner: { value: "6" }, setBanner, pickImage });
     expect(labels(worn.items).at(-1)).toBe(S.removeBanner);
-    expect(worn.items.find((it) => it.label === S.colorName("yellow")).checked).toBe(true);
+    expect(worn.items.find((it) => it.label === S.colorName("6")).checked).toBe(true);
     worn.items.at(-1).run();
     expect(setBanner).toHaveBeenCalledWith(null);
     worn.items[0].run();

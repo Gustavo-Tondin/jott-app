@@ -1043,19 +1043,22 @@ export const S = {
   banner: "Banner",
   bannerOptions: "banner options",
   bannerColor: "Colour",
-  // The eight palette names, written out for a MENU — the picker shows
-  // swatches and needs none of these, but a row of a menu is a word.
-  colorName: (name) =>
+  // A LABEL for a slot, written out for a MENU — the picker shows swatches and
+  // needs none of these, but a row of a menu is a word. The slots are numbered
+  // (services/accent.js) precisely so this stays a label: these words describe
+  // what the FACTORY theme paints there, and a theme that repaints a slot is
+  // free to disagree without the stored value having to lie.
+  colorName: (slot) =>
     ({
-      yellow: "Yellow",
-      orange: "Orange",
-      pink: "Pink",
-      green: "Green",
-      blue: "Blue",
-      red: "Red",
-      purple: "Purple",
+      1: "Blue",
+      2: "Purple",
+      3: "Pink",
+      4: "Red",
+      5: "Orange",
+      6: "Yellow",
+      7: "Green",
       neutral: "Neutral",
-    })[name] ?? name,
+    })[slot] ?? slot,
   bannerImage: "Choose image…",
   removeBanner: "Remove banner",
   chooseImage: "Choose an image",

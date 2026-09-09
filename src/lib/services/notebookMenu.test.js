@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { notebookRows } from "./notebookMenu.js";
 
 const recent = [
-  { path: "/home/g/Work", name: "Work", accentColor: "orange" },
+  { path: "/home/g/Work", name: "Work", accentColor: "5" },
   { path: "/home/g/Personal", name: "Personal", accentColor: "" },
 ];
 
@@ -12,7 +12,7 @@ describe("the footer's notebook menu", () => {
     expect(rows.map((r) => r.label)).toEqual(["Work", "Personal", undefined, "Manage notebooks"]);
     // The dot IS the tick: painted on the open one, unpainted on the rest so
     // the names stay on one line.
-    expect(rows[0].swatch).toContain("orange");
+    expect(rows[0].swatch).toContain("--app-5");
     expect(rows[1].swatch).toBe("transparent");
     expect(rows.some((r) => r.checked !== undefined)).toBe(false);
   });

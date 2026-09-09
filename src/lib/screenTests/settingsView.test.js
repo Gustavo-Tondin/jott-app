@@ -383,10 +383,10 @@ describe("SettingsView", () => {
       }),
     );
 
-    await userEvent.click(screen.getByRole("button", { name: "orange" }));
+    await userEvent.click(screen.getByRole("button", { name: "Orange" }));
     await waitFor(() =>
       expect(invoke).toHaveBeenCalledWith("set_machine_display", {
-        display: { accentColor: "orange" },
+        display: { accentColor: "5" },
       }),
     );
     // Never the notebook's drawer, whatever else happened.
@@ -408,7 +408,7 @@ describe("SettingsView", () => {
 
     const dark = await screen.findByRole("button", { name: "Dark" });
     expect(dark.hasAttribute("disabled")).toBe(false);
-    expect(screen.getByRole("button", { name: "orange" }).hasAttribute("disabled")).toBe(
+    expect(screen.getByRole("button", { name: "Orange" }).hasAttribute("disabled")).toBe(
       false,
     );
 

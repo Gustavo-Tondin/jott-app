@@ -250,12 +250,12 @@ order you dragged things into.
 {
   "schemaVersion": 1,
   "type": "notes",
-  "color": "blue",
+  "color": "1",
   "icon": "notebook",
   "sort": "custom",
   "order": ["Ideas.md", "Trip.md"],
   "noteLayout": "grid",
-  "folders": { "Clients": { "color": "orange", "pinned": true } }
+  "folders": { "Clients": { "color": "5", "pinned": true } }
 }
 ```
 
@@ -263,7 +263,7 @@ order you dragged things into.
 |---|---|
 | `type` | `tasks`, `notes`, or `home` on the fixed Home. **Never cleared**: a type this build doesn't know is kept, and the space is shown as unsupported rather than repurposed |
 | `name` | display name — only the three `jott.*` spaces use it |
-| `color`, `icon` | a colour **name**, and a [Phosphor](https://phosphoricons.com) icon name |
+| `color`, `icon` | a colour **slot** (`"1"`…`"7"`, or `"neutral"`), and a [Phosphor](https://phosphoricons.com) icon name. The slots are numbered rather than named because the theme decides what each one looks like; the names this app wrote before (`"blue"`, `"orange"`, …) are still read. A `#rrggbb` written by hand is kept and used as-is. |
 | `sort` | `name`, `created`, `completed` or `custom` |
 | `order` | the hand-dragged arrangement, read when `sort` is `custom`. Task ids in a tasks space, note paths in a notes one — kept here and never in the `.md`, because the arrangement is the app's and the file is yours |
 | `noteLayout` | `grid` or `tree`; absent follows the notebook default |

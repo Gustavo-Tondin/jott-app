@@ -318,7 +318,7 @@ describe("frontend architecture", () => {
     // are STATUS — fixed, so they keep their meaning when the accent is red
     // or green — and a component sheet reaches them as `--app-danger`,
     // `--app-warning`, `--app-success` (and their `-tint`). Spelling
-    // `--app-red` in a sheet is the same value today and a different one
+    // `--app-4` in a sheet is the same value today and a different one
     // the day a theme moves its danger; the notice did exactly that.
     const offenders = [];
     for (const f of SHEETS) {
@@ -455,7 +455,8 @@ describe("frontend architecture", () => {
     );
   }
 
-  const HUES = ["yellow", "orange", "pink", "green", "blue", "red", "purple", "neutral"];
+  // The eight SLOTS: seven numbered hues plus `neutral` (services/accent.js).
+  const HUES = ["1", "2", "3", "4", "5", "6", "7", "neutral"];
   const palette = () => {
     const css = readFileSync(join(src, "styles", "themes", "jott.css"), "utf8");
     const steps = {};
@@ -464,7 +465,7 @@ describe("frontend architecture", () => {
     // skip such a colour and every test built on it would go green while
     // measuring nothing. That silent-skip shape already bit once (the ladder
     // test's first version); the count test below is the backstop.
-    for (const m of css.matchAll(/--theme-color-([a-z][a-z-]*?)-(\d00):\s*(#[0-9a-fA-F]{6})/g)) {
+    for (const m of css.matchAll(/--theme-color-([a-z0-9][a-z0-9-]*?)-(\d00):\s*(#[0-9a-fA-F]{6})/g)) {
       (steps[m[1]] ??= {})[m[2]] = m[3].toLowerCase();
     }
     return steps;
@@ -487,7 +488,7 @@ describe("frontend architecture", () => {
     // moves its red does not move the error notice with it.
     const families = palette();
     expect(Object.keys(families).sort()).toEqual(
-      ["blue", "danger", "green", "neutral", "orange", "pink", "purple", "red", "success", "warning", "yellow"],
+      ["1", "2", "3", "4", "5", "6", "7", "danger", "neutral", "success", "warning"],
     );
     for (const [name, steps] of Object.entries(families)) {
       expect(Object.keys(steps).map(Number).sort((a, b) => a - b), `${name}'s steps`).toEqual(
@@ -539,7 +540,7 @@ describe("frontend architecture", () => {
     expect(offenders).toEqual([]);
   });
 
-  test("the solid accent carries white text, for all eight", () => {
+  test("the solid accent carries its ink, for all eight", () => {
     // The promise `--app-*-solid` makes (styles/roles.css): a notebook's
     // card is that notebook's colour with its name written across it, the same
     // colour on every theme — so the ink over it is fixed, and the fill has to
@@ -549,7 +550,7 @@ describe("frontend architecture", () => {
     // moment someone moves it to 400 for a brighter card, this is what says
     // the text stopped being readable.
     const roles = readFileSync(join(src, "styles", "roles.css"), "utf8");
-    const ink = roles.match(/--app-on-solid:\s*var\((--theme-color-[a-z]+)\)/);
+    const ink = roles.match(/--app-on-solid:\s*var\((--theme-color-[a-z0-9-]+)\)/);
     expect(ink, "roles.css assigns --app-on-solid from the palette").toBeTruthy();
     const tokens = readFileSync(join(src, "styles", "themes", "jott.css"), "utf8");
     const inkHex = tokens
@@ -560,7 +561,7 @@ describe("frontend architecture", () => {
     const families = palette();
     const offenders = [];
     for (const m of roles.matchAll(
-      /--app-([a-z]+)-solid:\s*var\(--theme-color-\1-(\d00)\)/g,
+      /--app-([a-z0-9]+)-solid:\s*var\(--theme-color-\1-(\d00)\)/g,
     )) {
       const hex = families[m[1]]?.[m[2]];
       if (!hex) {
@@ -577,13 +578,13 @@ describe("frontend architecture", () => {
     // written IN, and counting it as a ninth colour is how this line first
     // went green against nine.
     expect(
-      [...roles.matchAll(/--app-(?!on-)[a-z]+-solid:/g)].length,
+      [...roles.matchAll(/--app-(?!on-)[a-z0-9]+-solid:/g)].length,
       "one solid rung per colour",
     ).toBe(HUES.length);
   });
 
   test("status roles read the status families, never a hue", () => {
-    // `--app-danger: var(--theme-color-red-300)` was the shape until
+    // `--app-danger: var(--theme-color-4-300)` was the shape until
     // 2026-08-26. A theme may make its red sea-green; the error stays red.
     const offenders = [];
     for (const [name, css] of themes()) {

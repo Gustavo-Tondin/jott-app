@@ -36,61 +36,61 @@
      both grounds; as INK it still has a light half and a dark half, and
      `neutral` runs on the grounds' own axis, one step further out. */
 
-  --theme-color-yellow-100: #efe8cf;
-  --theme-color-yellow-200: #d8c683;
-  --theme-color-yellow-300: #c9a915;
-  --theme-color-yellow-400: #a48903;
-  --theme-color-yellow-500: #877004;
-  --theme-color-yellow-600: #5f4f04;
-  --theme-color-yellow-700: #352b00;
+  --theme-color-6-100: #efe8cf;
+  --theme-color-6-200: #d8c683;
+  --theme-color-6-300: #c9a915;
+  --theme-color-6-400: #a48903;
+  --theme-color-6-500: #877004;
+  --theme-color-6-600: #5f4f04;
+  --theme-color-6-700: #352b00;
 
-  --theme-color-orange-100: #fce4d2;
-  --theme-color-orange-200: #f9b989;
-  --theme-color-orange-300: #f79237;
-  --theme-color-orange-400: #d37200;
-  --theme-color-orange-500: #ae5d00;
-  --theme-color-orange-600: #7c4100;
-  --theme-color-orange-700: #472200;
+  --theme-color-5-100: #fce4d2;
+  --theme-color-5-200: #f9b989;
+  --theme-color-5-300: #f79237;
+  --theme-color-5-400: #d37200;
+  --theme-color-5-500: #ae5d00;
+  --theme-color-5-600: #7c4100;
+  --theme-color-5-700: #472200;
 
-  --theme-color-pink-100: #fce1f2;
-  --theme-color-pink-200: #f5b2de;
-  --theme-color-pink-300: #f485d2;
-  --theme-color-pink-400: #d264b2;
-  --theme-color-pink-500: #b54996;
-  --theme-color-pink-600: #852e6d;
-  --theme-color-pink-700: #441f39;
+  --theme-color-3-100: #fce1f2;
+  --theme-color-3-200: #f5b2de;
+  --theme-color-3-300: #f485d2;
+  --theme-color-3-400: #d264b2;
+  --theme-color-3-500: #b54996;
+  --theme-color-3-600: #852e6d;
+  --theme-color-3-700: #441f39;
 
-  --theme-color-green-100: #d6eedf;
-  --theme-color-green-200: #8cd6ab;
-  --theme-color-green-300: #12c37c;
-  --theme-color-green-400: #00a063;
-  --theme-color-green-500: #008351;
-  --theme-color-green-600: #005c37;
-  --theme-color-green-700: #00341d;
+  --theme-color-7-100: #d6eedf;
+  --theme-color-7-200: #8cd6ab;
+  --theme-color-7-300: #12c37c;
+  --theme-color-7-400: #00a063;
+  --theme-color-7-500: #008351;
+  --theme-color-7-600: #005c37;
+  --theme-color-7-700: #00341d;
 
-  --theme-color-blue-100: #d8eafd;
-  --theme-color-blue-200: #9bcbfa;
-  --theme-color-blue-300: #62b1f9;
-  --theme-color-blue-400: #2d90e1;
-  --theme-color-blue-500: #0076c3;
-  --theme-color-blue-600: #00538c;
-  --theme-color-blue-700: #0d2e4a;
+  --theme-color-1-100: #d8eafd;
+  --theme-color-1-200: #9bcbfa;
+  --theme-color-1-300: #62b1f9;
+  --theme-color-1-400: #2d90e1;
+  --theme-color-1-500: #0076c3;
+  --theme-color-1-600: #00538c;
+  --theme-color-1-700: #0d2e4a;
 
-  --theme-color-red-100: #ffe2de;
-  --theme-color-red-200: #ffb3ad;
-  --theme-color-red-300: #ff8981;
-  --theme-color-red-400: #f84f4e;
-  --theme-color-red-500: #d73035;
-  --theme-color-red-600: #a0131e;
-  --theme-color-red-700: #511918;
+  --theme-color-4-100: #ffe2de;
+  --theme-color-4-200: #ffb3ad;
+  --theme-color-4-300: #ff8981;
+  --theme-color-4-400: #f84f4e;
+  --theme-color-4-500: #d73035;
+  --theme-color-4-600: #a0131e;
+  --theme-color-4-700: #511918;
 
-  --theme-color-purple-100: #ebe5fe;
-  --theme-color-purple-200: #d0bcff;
-  --theme-color-purple-300: #bb9aff;
-  --theme-color-purple-400: #a46cff;
-  --theme-color-purple-500: #8e4cea;
-  --theme-color-purple-600: #6532ac;
-  --theme-color-purple-700: #352255;
+  --theme-color-2-100: #ebe5fe;
+  --theme-color-2-200: #d0bcff;
+  --theme-color-2-300: #bb9aff;
+  --theme-color-2-400: #a46cff;
+  --theme-color-2-500: #8e4cea;
+  --theme-color-2-600: #6532ac;
+  --theme-color-2-700: #352255;
 
   --theme-color-neutral-100: #e8e8e8;
   --theme-color-neutral-200: #c6c6c6;
