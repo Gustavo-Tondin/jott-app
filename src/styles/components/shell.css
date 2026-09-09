@@ -343,18 +343,16 @@
   .shell__notebook:hover > .icon {
     color: inherit;
   }
-  /* A .theme-btn--icon; active adds the brand colour. */
   .shell__settings {
     flex-shrink: 0;
     padding: var(--app-space-4);
   }
-  .shell__settings--active {
-    color: var(--app-brand-ink);
-  }
-  /* The header's one screen door (the Timeline) lights up while its screen is
-     open: no pill, just the ink at full strength. */
+  /* A DOOR OUT OF THE SIDEBAR — Settings at the foot, the Timeline in the head
+     — lights up in the accent while its screen is open: no pill, just the ink,
+     so it reads as "you are here" without becoming a place in the list. */
+  .shell__settings--active,
   .shell__head-action--active {
-    color: var(--app-ink);
+    color: var(--app-brand-ink);
   }
   .shell__badge {
     color: var(--app-danger);
