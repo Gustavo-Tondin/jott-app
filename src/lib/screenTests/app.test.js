@@ -1145,8 +1145,11 @@ describe("App", () => {
     // version of this test clicked the page ⋮ by mistake, so it asserted that
     // a drawer nobody had opened was closed, and passed against the bug.
     await userEvent.click(await screen.findByRole("button", { name: "open sidebar" }));
-    await waitFor(() =>
-      expect(document.querySelector(".shell__sidebar--open")).not.toBeNull(),
+    // A generous window on purpose: the default second is not enough on a
+    // loaded CI runner, and this failing there says nothing about the app.
+    await waitFor(
+      () => expect(document.querySelector(".shell__sidebar--open")).not.toBeNull(),
+      { timeout: 5000 },
     );
 
     // The name opens the notebook menu (2026-09-07); its last row is the screen.

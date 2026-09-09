@@ -1109,10 +1109,11 @@ fn a_windows_own_save_is_its_own_the_moment_it_lands() {
         .expect("the write itself");
 
     // And the event the save produced never reaches the window that made it.
-    assert!(
-        rx.recv_timeout(std::time::Duration::from_millis(600)).is_err(),
-        "the window's own save must not come back as a change"
-    );
+    // The payload goes in the message: when this fails it is because SOME
+    // path was not recognised as ours, and which one is the whole diagnosis.
+    if let Ok(payload) = rx.recv_timeout(std::time::Duration::from_millis(600)) {
+        panic!("the window's own save must not come back as a change, but this did: {payload}");
+    }
 
     // Somebody else writing over it is theirs, stamp and all.
     std::thread::sleep(std::time::Duration::from_millis(20));
