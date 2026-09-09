@@ -1,0 +1,71 @@
+# Runs both suites on both platforms, on every push to main.
+#
+# WHY THIS EXISTS
+#
+# Windows used to be exercised only by `release.yml`, which runs on a tag. So
+# a commit that broke Windows was found at RELEASE time, and the price of
+# finding it was a whole cycle: retract the draft, delete the tag, fix, re-cut,
+# rebuild the APK, wait for the runner again. That happened on v0.54.0 and cost
+# more than the fix did.
+#
+# No Windows machine takes part in developing Jott, and wine can host neither
+# the watcher nor anything that needs a WebView2, so the local preflight cannot
+# answer for those. A runner is the only place that can — and it is far cheaper
+# to hear from it on the commit than on the tag.
+#
+# This workflow BUILDS NOTHING. Packaging stays in release.yml; here it is the
+# two suites and nothing else, so it finishes in minutes.
+name: test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  suites:
+    strategy:
+      # One platform failing must not cancel the other: knowing that Linux
+      # still passes is half of the diagnosis when Windows does not.
+      fail-fast: false
+      matrix:
+        platform: [ubuntu-22.04, windows-latest]
+
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # webkit2gtk is what Tauri draws the window with on Linux; the tests
+      # link against it even though they never open a window.
+      - name: Install Linux build dependencies
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          # The runner ships third-party apt lists we do not use, and one of
+          # them failing takes the whole `update` down with it (exit 100 on a
+          # Google Chrome "Hash Sum mismatch", 2026-09-09) — a release stopped
+          # for a repository none of these packages come from. Drop them.
+          sudo rm -f /etc/apt/sources.list.d/*google-chrome* /etc/apt/sources.list.d/*microsoft*
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+
+      - run: npm ci
+
+      # Rust first, for the same reason as in release.yml: it is the half only
+      # a real Windows can answer, and a frontend flake must not stand in
+      # front of it.
+      - run: cargo test --workspace
+      - run: npm test

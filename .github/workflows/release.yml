@@ -46,6 +46,11 @@ jobs:
       - name: Install Linux build dependencies
         if: matrix.platform == 'ubuntu-22.04'
         run: |
+          # The runner ships third-party apt lists we do not use, and one of
+          # them failing takes the whole `update` down with it (exit 100 on a
+          # Google Chrome "Hash Sum mismatch", 2026-09-09) — a release stopped
+          # for a repository none of these packages come from. Drop them.
+          sudo rm -f /etc/apt/sources.list.d/*google-chrome* /etc/apt/sources.list.d/*microsoft*
           sudo apt-get update
           sudo apt-get install -y \
             libwebkit2gtk-4.1-dev \
@@ -66,10 +71,15 @@ jobs:
 
       - run: npm ci
 
-      # The suites run here rather than in a separate workflow so that a tag
+      # The suites run here rather than only in `test.yml` so that a tag
       # cannot produce installers from a commit that does not pass its tests.
-      - run: npm test
+      #
+      # Rust FIRST, and on purpose: it is the suite that only a real Windows
+      # can host — wine cannot run the watcher or anything that needs a
+      # WebView2 — so when a leg fails it must be the one that failed, not a
+      # frontend flake standing in front of it. jsdom runs the same anywhere.
       - run: cargo test --workspace
+      - run: npm test
 
       # The notes are composed, not typed into this file.
       #
