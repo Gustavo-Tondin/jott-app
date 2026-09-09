@@ -19,8 +19,9 @@ const SUPPORTED_TAGS_SCHEMA: u64 = 1;
 #[derive(Debug, Clone, PartialEq)]
 pub struct Tag {
     pub name: String,
-    /// A palette NAME (`"orange"`), read and written back for notebooks that
-    /// have it; the interface no longer shows or offers it.
+    /// A palette SLOT (`"5"`), or a name an older build wrote — read and
+    /// written back for notebooks that have it; the interface no longer
+    /// shows or offers it.
     pub color: Option<String>,
 }
 

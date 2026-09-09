@@ -167,10 +167,11 @@ the first line of the body:
 
 Comment syntax because every Markdown renderer hides it, so the file stays
 normal everywhere else. **The value decides the type**: an image extension is
-an image, anything else is a colour — one of the eight names (`red`,
-`orange`, `yellow`, `green`, `blue`, `purple`, `pink`, `neutral`), never a
-hex. The banner is not body text; the app separates it and writes it back
-untouched.
+an image, anything else is a colour — one of the eight **slots** (`1`…`7`,
+or `neutral`), the same ones a space carries. The names this app wrote before
+the slots were numbered (`yellow`, `orange`, …) are still read, and a
+`#rrggbb` written by hand is kept and used as-is. The banner is not body
+text; the app separates it and writes it back untouched.
 
 ### References
 

@@ -96,9 +96,9 @@ pub struct SpaceConfig {
     pub kind: String,
     /// Display name. Falls back to the folder name when absent.
     pub name: Option<String>,
-    /// The space's colour — a palette NAME (`"orange"`), never a hex; the
-    /// interface owns the list, the core carries the string. Shown on its
-    /// sidebar bar and on the badge a card of this space wears outside it.
+    /// The space's colour — a palette SLOT (`"5"`), or a name an older build
+    /// wrote; the interface owns the list, the core carries the string. Shown
+    /// on its sidebar bar and on the badge a card of this space wears outside.
     /// Absent means the sidebar's default accent.
     pub color: Option<String>,
     /// The space's icon (a Phosphor icon name the frontend knows). Absent

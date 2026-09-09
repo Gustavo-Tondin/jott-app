@@ -81,11 +81,12 @@ NOTE BANNERS (the first line of a note)
 A note can carry a coloured or illustrated head. It is one comment, on the
 first line of the text:
 
-  <!--banner: yellow-->
+  <!--banner: 6-->
   <!--banner: assets/sunset.jpg-->
 
-A colour is one of Jott's eight names — red, orange, yellow, green, blue,
-purple, pink, neutral. An image is an address in the assets folder, below.
+A colour is one of Jott's eight slots — 1 to 7, or neutral; the theme
+decides what each one looks like. An image is an address in the assets
+folder, below.
 Every Markdown reader hides that comment, so the note stays a normal note
 everywhere else. No line, no banner: the note shows only its title, and
 that is the default.

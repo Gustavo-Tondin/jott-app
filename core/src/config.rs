@@ -151,9 +151,9 @@ pub struct Config {
     pub auto_space_colors: bool,
     /// How dates are shown. The file always stores ISO.
     pub date_display_format: DateFormat,
-    /// Which of the app's colours is the accent. A NAME (`"orange"`), never a
-    /// hex: each has a light and a dark half, and only the interface knows the
-    /// ground it lands on. Not policed here — a name from a newer build
+    /// Which of the app's colours is the accent. A SLOT (`"5"`), or a name an
+    /// older build wrote: only the interface knows what a slot looks like on
+    /// the ground it lands on. Not policed here — a value from a newer build
     /// round-trips. Empty means what the app ships as.
     pub accent_color: String,
     /// Which MODE is on (`jott`, `light`, `dark`). A NAME, not policed here;
