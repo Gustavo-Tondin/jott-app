@@ -73,7 +73,7 @@ Pre-1.0, and used daily. The [releases page](https://github.com/Gustavo-Tondin/j
 
 **Looks and input**
 - Three themes (default, light, dark) × eight accent colours, each with a six-rung ladder so headings and chrome agree with the theme.
-- **Themes you bring in yourself**: drop a `.css` file into your notebook's `.jott/themes/` and pick it in Settings — saving the file repaints the app. The app writes the first one for you, out of the look already on screen ([how](documentation/theming.md)).
+- **Themes you bring in yourself**: drop a `.css` file into your notebook's `.jott/themes/` and pick it in Settings — saving the file repaints the app. The app writes the first one for you, out of the look already on screen, and a script fills a whole palette in from a few colours you hand it ([how](documentation/theming.md)).
 - Three font choices (interface, note body, monospace) from the fonts your machine has; interface zoom; note text size; how the notes board is laid out and how tall its cards may grow. All of it per machine.
 - **Automatic hyphenation** of note text, off by default: a long word breaks at the end of a line instead of leaving a hole in the right edge. It happens on screen only — the `.md` file keeps every word whole — and it uses the hyphenation rules your system has installed.
 - Configurable keyboard shortcuts for ~50 commands.
@@ -128,7 +128,7 @@ One product decision remains, then it is proving things on hardware.
 - **Local version history for a note** (`.jott/history/`) — the trash protects a deleted file; nothing yet protects a paragraph you overwrote.
 - **Command palette** (Ctrl+P) — the command registry already exists; today a command without a key is unreachable from the keyboard.
 - **System-wide capture** (Ctrl+Alt+Space) — the one shortcut that matters most for an app whose thesis is "write it down before you forget it".
-- **Easier theme authoring** — the format is honest but verbose (~50 assignments per region). The app now writes the first file for you; making the file itself smaller is still open ([theming](documentation/theming.md)).
+- **Easier theme authoring** — the format is honest but verbose (~50 assignments per region). Nobody has to type it any more — the app writes the first file, and a script fills a palette in from a few colours — but making the format itself smaller is still open ([theming](documentation/theming.md)).
 - **Translations**, importers (Todoist, Microsoft To Do, Obsidian Tasks), CSV export/import, PDF export of a note, split view, time-of-day on tasks.
 
 **Later — optional paid services, never replacing a local feature**

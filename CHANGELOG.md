@@ -11,12 +11,12 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 ### New
 
 - **Write a theme from a few colours you like.** `make-theme.py` takes the colours you hand it and fills in the rest of the palette around them, keeping every shade readable on both the dark frame and the light page; it also checks a theme you already have and names what would be hard to read.
-
 - **An open note follows its file.** When the note on screen is changed by something else — a sync, another editor — the editor reloads it, cursor in place. If you were typing at that moment, what you typed stays on screen and the other version is kept beside the note as a conflict copy, listed in the app like a Syncthing conflict, so nothing is lost either way.
 - **Hyphenate note text** (Settings › Display › Text), off by default: a long word breaks across two lines instead of leaving a hole in the right edge. It is only ever drawn — the `.md` file keeps every word whole.
 
 ### Fixed
 
+- **The cursor stays in sight while you type.** The note now scrolls to follow the line you are writing instead of letting it slip behind the formatting strip or off the bottom edge.
 - **The Home's title enters the canvas again on a phone.** As the sheet rises through the title row, the canvas-coloured copy is revealed along the ground's edge, pixel by pixel; since v0.53.0 it stayed hidden until the sheet had reached the top and then dropped in late.
 - **The formatting strip's groups open on a phone.** Text style, Heading, List, Insert and the rest unfolded behind the note instead of over the strip; they also no longer float up to the top of the screen while the keyboard is open.
 - **The sliders in Settings answer to a finger drag** (interface zoom, note card height). A drag on the thumb was being read as the sidebar gesture, so only a tap moved them.
@@ -32,13 +32,9 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 ### Improved
 
 - **The eight colours are slots now, not fixed names.** A theme decides what each one looks like, so a palette that paints the sixth colour lilac no longer has to keep calling it yellow. Notebooks that already chose colours keep them.
-
 - **A theme file is twelve lines shorter.** The error, warning and success colours carried seven shades each and only ever used four, so writing a theme no longer means inventing shades nothing draws with.
-
 - **The Timeline lights up in the accent colour while it is open**, the way the Settings button already did.
-
 - **The eight colours are spread evenly around the wheel, and each one now reads the same on the sidebar as on the page.** Orange sat twelve degrees from red and was hard to tell apart, and yellow turned brown on its way to the white page; only coloured text still changes with the ground, so a word stays readable wherever it lands.
-
 - **The app's page now declares English**, so the editor's spell-check and the new hyphenation use English rules instead of Portuguese ones.
 - **The chosen day glides** on the Home's week, the way the pill of a segmented control moves, instead of jumping from one day to the next.
 - **The Home's + is bigger on a phone** — the same 72px it has on the desktop, up from 64px.
