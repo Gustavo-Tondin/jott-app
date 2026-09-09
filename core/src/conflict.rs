@@ -8,8 +8,9 @@ use std::path::{Path, PathBuf};
 
 use serde::Serialize;
 
-/// The marker Syncthing puts in the file name.
-const MARKER: &str = ".sync-conflict-";
+/// The marker Syncthing puts in the file name — and the app too, when it
+/// keeps a version it is about to write over (`NoteFolder::keep_conflict_copy`).
+pub const MARKER: &str = ".sync-conflict-";
 
 /// A conflicting copy of a file, and the file it belongs to.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]

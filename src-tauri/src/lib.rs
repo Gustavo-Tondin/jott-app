@@ -50,6 +50,7 @@ pub fn configure<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builde
             commands::shell::system_fonts,
             commands::shell::system_ui_font,
             commands::shell::perf_enabled,
+            commands::notes::keep_note_conflict_copy,
             commands::notebook::notebook_snapshot,
             commands::notebook::undo,
             commands::notebook::redo,

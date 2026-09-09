@@ -902,3 +902,54 @@ fn losing_the_index_loses_the_seen_and_nothing_else() {
     assert_eq!(notebook.seen().at(&format!("jott.notes/{path}")), None);
     assert_eq!(read(dir.path().join("jott.notes").join(&path)), before);
 }
+
+#[test]
+fn the_version_on_disk_is_kept_as_a_conflict_copy_and_the_app_lists_it() {
+    // The moment: somebody else's version of the OPEN note reached the disk
+    // while there was unsaved typing. The editor's next save would write
+    // over it — so first it is kept beside the note, under the name
+    // Syncthing uses, and the notebook's conflict list has to see it there
+    // (note folders nest, and the notes walk skips conflict copies).
+    let (dir, notebook) = init();
+    let path = notebook
+        .create_note("jott.notes", "Inbox", "Ideia")
+        .expect("a note to keep");
+    let file = dir.path().join("jott.notes").join(&path);
+    std::fs::write(&file, "---\ncreated: 2026-07-21\n---\n\nversão de outro aparelho\n").unwrap();
+
+    let copy = notebook
+        .keep_note_conflict_copy("jott.notes", &path)
+        .expect("the copy")
+        .expect("there was a file to keep");
+    assert!(copy.starts_with("jott.notes/Inbox/Ideia.sync-conflict-"), "{copy}");
+    assert!(copy.ends_with("-JOTTAPP.md"), "{copy}");
+    let copied = dir.path().join(&copy);
+    assert_eq!(read(&copied), read(&file), "byte for byte what was on disk");
+    assert!(jott_core::conflict::is_conflict_file(&copied));
+
+    // The original is untouched, and not a second note on the board.
+    assert_eq!(read(&file), "---\ncreated: 2026-07-21\n---\n\nversão de outro aparelho\n");
+    let listed: Vec<String> = notebook
+        .note_folder("jott.notes")
+        .unwrap()
+        .notes()
+        .unwrap()
+        .into_iter()
+        .map(|e| e.path)
+        .collect();
+    assert_eq!(listed, vec![path.clone()]);
+
+    // The conflict list reaches into note folders, and knows the original.
+    let conflicts = notebook.conflicts().unwrap();
+    assert_eq!(conflicts.len(), 1);
+    assert_eq!(conflicts[0].relative.as_deref(), Some(copy.as_str()));
+    assert_eq!(conflicts[0].original.as_deref(), Some(file.as_path()));
+
+    // Twice in the same second is two copies, not one written over.
+    let again = notebook.keep_note_conflict_copy("jott.notes", &path).unwrap().unwrap();
+    assert_ne!(again, copy);
+    assert_eq!(notebook.conflicts().unwrap().len(), 2);
+
+    // Nothing on disk: nothing to keep, and no error.
+    assert_eq!(notebook.keep_note_conflict_copy("jott.notes", "Inbox/Nada.md").unwrap(), None);
+}

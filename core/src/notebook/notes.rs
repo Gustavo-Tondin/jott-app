@@ -201,6 +201,17 @@ impl Notebook {
         Ok(())
     }
 
+    /// Keeps the note as it is on disk as a conflict copy beside it
+    /// (`NoteFolder::keep_conflict_copy`), before an editor writes over a
+    /// version somebody else left. Answers the copy's root-relative address.
+    pub fn keep_note_conflict_copy(&self, space: &str, path: &str) -> Result<Option<String>> {
+        self.ensure_writable()?;
+        let copy = self
+            .note_folder(space)?
+            .keep_conflict_copy(path, crate::clock::civil_now())?;
+        Ok(copy.map(|rel| format!("{space}/{rel}")))
+    }
+
     /// Creates a note and returns its address.
     pub fn create_note(&self, space: &str, in_folder: &str, title: &str) -> Result<String> {
         self.ensure_writable()?;

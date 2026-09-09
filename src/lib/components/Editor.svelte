@@ -34,6 +34,7 @@
   import { bound } from "../services/shortcuts.js";
   import { toCodeMirror } from "../services/keys.js";
   import { perf } from "../services/perf.js";
+  import { minimalReplacement } from "../services/textDiff.js";
 
   let {
     value = "",
@@ -396,10 +397,11 @@
   $effect(() => {
     const incoming = value;
     if (!view || incoming === lastEmitted) return;
-    if (incoming === view.state.doc.toString()) return;
-    view.dispatch({
-      changes: { from: 0, to: view.state.doc.length, insert: incoming },
-    });
+    const current = view.state.doc.toString();
+    if (incoming === current) return;
+    // Only the differing middle is replaced, so a cursor outside it stays
+    // where it was — a note reloaded from disk after someone else's edit.
+    view.dispatch({ changes: minimalReplacement(current, incoming) });
   });
 </script>
 

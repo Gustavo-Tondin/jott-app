@@ -121,6 +121,9 @@
   /// deleted elsewhere stops drawing; bumping it for anything else made every
   /// note refetch every picture on each save (2026-09-09).
   let libraryKey = $state(0);
+  /// Bumped when the OPEN note's own file was written by somebody else. The
+  /// editor decides what to do with it (components/NoteEditor.svelte).
+  let noteRevision = $state(0);
   let counts = $state({});
   let conflicts = $state([]);
   let spaces = $state([]);
@@ -1520,8 +1523,17 @@
     // A file inside the notebook that is not a `.md` is a file of the
     // library: the pictures an open note draws may no longer be there.
     if (kind === "other") libraryKey += 1;
+    if (kind === "list" && isOpenNoteFile(event.payload?.path)) noteRevision += 1;
     reload();
   });
+
+  /// Whether an absolute path the watcher reported is the open note's file.
+  /// A suffix match on `space/path`: the event speaks in the OS's separators
+  /// and the view in the notebook's.
+  function isOpenNoteFile(reported) {
+    if (view.kind !== "note" || typeof reported !== "string") return false;
+    return reported.replaceAll("\\", "/").endsWith(`/${view.folder}/${view.path}`);
+  }
 
   /// What THIS window was opened to do (shell/entry.js). Read once: an
   /// address does not change under a window.
@@ -2076,6 +2088,7 @@
             {f}
             {reloadKey}
             {libraryKey}
+            {noteRevision}
             {tags}
             {dayRefs}
             {spColors}

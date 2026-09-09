@@ -10,6 +10,7 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 
 ### New
 
+- **An open note follows its file.** When the note on screen is changed by something else — a sync, another editor — the editor reloads it, cursor in place. If you were typing at that moment, what you typed stays on screen and the other version is kept beside the note as a conflict copy, listed in the app like a Syncthing conflict, so nothing is lost either way.
 - **Hyphenate note text** (Settings › Display › Text), off by default: a long word breaks across two lines instead of leaving a hole in the right edge. It is only ever drawn — the `.md` file keeps every word whole.
 
 ### Fixed

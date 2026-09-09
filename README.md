@@ -65,7 +65,7 @@ Pre-1.0, and used daily. The [releases page](https://github.com/Gustavo-Tondin/j
 - **Global search** (Ctrl+F / Ctrl+K), or scoped to one space.
 - **A notebooks screen**: everything this machine has opened, with colours and counts read without opening anything; rename, move, reveal, forget. Two notebooks can be open side by side, one per window.
 - **Nothing is destroyed** — everything deleted goes to the notebook's trash and comes back exactly where it was. Undo/redo (Ctrl+Z) for app actions, separate from the editor's own — and a floating **Undo** right after a delete or after taking a task off the day.
-- **Outside changes are detected** — edit a file in another editor, or let Syncthing/Drive sync it, and the app follows.
+- **Outside changes are detected** — edit a file in another editor, or let Syncthing/Drive sync it, and the app follows, the open note included. Typing while the other version lands keeps both: yours on screen, theirs as a conflict copy beside the note.
 
 **The time axis**
 - **A Timeline** of everything the notebook has ever held, month by month: tasks created, tasks completed, notes created — each line folds open onto its items. A living one opens from there; a deleted one is only counted, in the colour of the space it was in (name it in Settings if you want), and "Remove from timeline" forgets it for good. It reads an append-only log in `.jott/timeline/`, one plain-text file a year, so a notebook older than the app arrives with its history ([the format](documentation/file-format.md)).

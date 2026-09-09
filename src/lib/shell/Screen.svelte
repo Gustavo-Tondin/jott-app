@@ -35,6 +35,8 @@
     /// Bumped only when the notebook's LIBRARY changed. The open note's
     /// pictures hang off it; `reloadKey` would refetch them on every save.
     libraryKey = 0,
+    /// Bumped when the open note's own file was written by somebody else.
+    noteRevision = 0,
     tags = [],
     dayRefs = new Set(),
     spColors = {},
@@ -246,6 +248,8 @@
     {onSelection}
     {onTable}
     version={libraryKey}
+    externalRevision={noteRevision}
+    onConflictKept={onChanged}
     wikiLinks={f("wikiLinks")}
     embeds={f("embeds")}
     tables={f("tables")}

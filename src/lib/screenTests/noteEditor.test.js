@@ -41,6 +41,58 @@ describe("NoteEditor", () => {
     write_note: null,
   });
 
+  // ---- the file changed under the editor (2026-09-09) ----
+  // The shell bumps `externalRevision` when THIS note's file was written by
+  // somebody else (a sync). Before this, the open note never re-read its
+  // file and the next keystroke wrote over the other version in silence.
+
+  test("a clean editor follows the file when it changes on disk", async () => {
+    bridge(loaded("Corpo.\n"));
+    const { rerender } = render(NoteEditor, { props: props() });
+    await screen.findByDisplayValue("Corpo.");
+
+    bridge(loaded("Corpo, de outro aparelho.\n"));
+    await rerender(props({ externalRevision: 1 }));
+
+    await screen.findByDisplayValue("Corpo, de outro aparelho.");
+    await new Promise((r) => setTimeout(r, 20));
+    expect(invoke).not.toHaveBeenCalledWith("write_note", expect.anything());
+    expect(invoke).not.toHaveBeenCalledWith("keep_note_conflict_copy", expect.anything());
+  });
+
+  test("with unsaved typing, the typing wins the screen and the other version is kept first", async () => {
+    const onConflictKept = vi.fn();
+    bridge({ ...loaded("Corpo.\n"), keep_note_conflict_copy: "Notes/Inbox/Ideia.sync-conflict-x.md" });
+    // A save slow enough that the other version lands first, for certain:
+    // typing a line takes jsdom well under the delay.
+    const { rerender } = render(NoteEditor, {
+      props: props({ saveDelay: 800, onConflictKept }),
+    });
+    const field = await screen.findByDisplayValue("Corpo.");
+
+    await userEvent.type(field, "minha linha");
+    await rerender(props({ saveDelay: 800, onConflictKept, externalRevision: 1 }));
+
+    await waitFor(() => expect(invoke).toHaveBeenCalledWith("write_note", expect.anything()), {
+      timeout: 3000,
+    });
+    const order = invoke.mock.calls.map(([cmd]) => cmd).filter((c) => c !== "read_note");
+    expect(order).toEqual(["keep_note_conflict_copy", "write_note"]);
+    expect(onConflictKept).toHaveBeenCalledTimes(1);
+    // What was typed is what was written; the disk's version is beside it.
+    const written = invoke.mock.calls.find(([cmd]) => cmd === "write_note")[1];
+    expect(written.body).toContain("minha linha");
+    expect(screen.getByDisplayValue(/minha linha/)).toBeTruthy();
+
+    // The next save is an ordinary one: the copy is kept once per revision.
+    await userEvent.type(screen.getByDisplayValue(/minha linha/), "!");
+    await waitFor(
+      () => expect(invoke.mock.calls.filter(([cmd]) => cmd === "write_note")).toHaveLength(2),
+      { timeout: 3000 },
+    );
+    expect(invoke.mock.calls.filter(([cmd]) => cmd === "keep_note_conflict_copy")).toHaveLength(1);
+  });
+
   test("opening a note writes nothing", async () => {
     // Same promise as the lazy task id: looking must not touch the file.
     bridge(loaded());

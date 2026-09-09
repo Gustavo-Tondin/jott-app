@@ -113,13 +113,19 @@ impl Notebook {
         for (_, folder) in self.task_folders()? {
             dirs.push(folder.dir().to_path_buf());
         }
+        // Notes nest in folders, and the walk of `NoteFolder` skips conflict
+        // copies on purpose (they are not notes) — so they are looked for here.
+        let mut files = Vec::new();
         for dir in dirs {
-            for path in crate::fsio::dir_paths(&dir)? {
-                if let Some(mut conflict) = crate::conflict::describe(&path) {
-                    conflict.relative =
-                        Some(crate::relpath::relative_slash(self.root(), &path));
-                    found.push(conflict);
-                }
+            files.extend(crate::fsio::dir_paths(&dir)?);
+        }
+        for (_, folder) in self.note_folders()? {
+            conflict_files_under(folder.dir(), &mut files)?;
+        }
+        for path in files {
+            if let Some(mut conflict) = crate::conflict::describe(&path) {
+                conflict.relative = Some(crate::relpath::relative_slash(self.root(), &path));
+                found.push(conflict);
             }
         }
         found.sort_by(|a, b| a.path.cmp(&b.path));
@@ -280,4 +286,19 @@ impl Notebook {
         self.update_states(|state| state.rename_path(path, &inbox_path))?;
         Ok(rescued)
     }
+}
+
+/// Every conflict copy under `dir`, at any depth, hidden folders left out.
+fn conflict_files_under(dir: &Path, out: &mut Vec<PathBuf>) -> Result<()> {
+    for path in crate::fsio::dir_paths(dir)? {
+        if crate::fsio::is_hidden(&path) {
+            continue;
+        }
+        if path.is_dir() {
+            conflict_files_under(&path, out)?;
+        } else if crate::conflict::is_conflict_file(&path) {
+            out.push(path);
+        }
+    }
+    Ok(())
 }

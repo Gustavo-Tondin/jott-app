@@ -160,6 +160,19 @@ pub async fn write_note<R: Runtime>(
     state.quiet(window.label(), |nb| nb.write_note(&folder, &path, &body))
 }
 
+/// Keeps the note as it is on disk as a conflict copy beside it: the editor
+/// is about to write over a version somebody else left while it was typing.
+/// Quiet, and `async` like every write (the phone's storage is slow).
+#[tauri::command]
+pub async fn keep_note_conflict_copy<R: Runtime>(
+    state: State<'_, AppState>,
+    window: tauri::Window<R>,
+    folder: String,
+    path: String,
+) -> CommandResult<Option<String>> {
+    state.quiet(window.label(), |nb| nb.keep_note_conflict_copy(&folder, &path))
+}
+
 /// Creates a note and returns its address.
 #[tauri::command]
 pub fn create_note<R: Runtime>(

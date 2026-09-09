@@ -5,7 +5,7 @@
   // when the Save button was removed: an edit you have to remember to confirm
   // is an edit you lose. The mechanics ARE the inspector's — the shared
   // engine in services/autosave.js, which carries the why of each rule.
-  import { onDestroy } from "svelte";
+  import { onDestroy, untrack } from "svelte";
   import { api } from "../services/api.js";
   import { autosave } from "../services/autosave.js";
   import { S } from "../services/strings.js";
@@ -31,6 +31,14 @@
     onSelection,
     root = null,
     version = 0,
+    /// Bumped by the shell when THIS note's file was written by somebody
+    /// else (a sync, another program). Clean, the editor follows the disk;
+    /// dirty, the typing wins the screen and the next save keeps the other
+    /// version as a conflict copy first — nothing is lost either way.
+    externalRevision = 0,
+    /// The other version was kept as a conflict copy: the shell re-reads
+    /// its list of conflicts.
+    onConflictKept,
     saveDelay = 500,
     /// What a note may hold in this notebook (App Functions, 2026-08-20).
     /// Passed straight through: this component owns the file, the editor owns
@@ -45,6 +53,10 @@
 
   let body = $state("");
   let loading = $state(true);
+  /// Somebody else's version reached the disk while there was unsaved
+  /// typing here: the next write keeps it beside the note first. Plain,
+  /// not state — read at write time, never drawn.
+  let keepTheirs = false;
 
   // The delay is captured once on purpose: a mount-time knob for tests,
   // never changed while the editor lives.
@@ -52,15 +64,25 @@
   const saver = autosave({
     delay: saveDelay,
     write: async (target, text) => {
+      if (keepTheirs) {
+        keepTheirs = false;
+        await api.keepNoteConflictCopy(target.folder, target.path);
+        onConflictKept?.();
+      }
       await api.writeNote(target.folder, target.path, text);
       onSaved?.();
     },
     onError: (e) => onError?.(e),
   });
 
+  /// The address last loaded, so a rerun with the same one (a props object
+  /// replaced whole, as a test harness does) is not a reload.
+  let opened = null;
+
   $effect(() => {
-    folder;
-    path;
+    const address = `${folder}\u0000${path}`;
+    if (address === opened) return;
+    opened = address;
     // Whatever was typed into the previous note goes out first, addressed to
     // that note, before this one replaces it.
     saver.flush();
@@ -70,7 +92,18 @@
     // "on selection" would still be up over a note nobody has touched.
     onSelection?.(false);
     onTable?.(null);
+    keepTheirs = false;
     load(folder, path);
+  });
+
+  // The file changed under the editor. Read untracked: this answers to the
+  // revision only, never to what is typed or to the address (above).
+  $effect(() => {
+    if (!externalRevision) return;
+    untrack(() => {
+      if (saver.dirty(body)) keepTheirs = true;
+      else load(folder, path);
+    });
   });
 
   onDestroy(() => saver.flush());
