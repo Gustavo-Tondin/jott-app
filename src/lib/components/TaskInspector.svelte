@@ -48,7 +48,14 @@
     lists = [],
     // The tag catalogue (name + colour), for the picker and the pill colours.
     tags = [],
+    /// An ACTION on the task (moved, completed, into the day, a tag made):
+    /// something outside this panel changed, and the shell refreshes it all.
     onSaved,
+    /// The auto-save landed a field of THIS task. Told `{ remind }` — whether
+    /// the reminder is what moved — so the shell refreshes only what a field
+    /// can change: the card on the open screen, and the reminder schedule.
+    /// Never the layout: a field changes no count, space, group or catalogue.
+    onEdited,
     onError,
     onClose,
     // Told the new list path after a move, so the shell can re-point at it.
@@ -93,7 +100,14 @@
       // The id is earned here, on a real change — never on opening the task.
       if (!target.id) target.id = await ensureTaskId(target.list, target.task);
       await api.setTaskFields(target.list, target.id, fields);
-      onSaved?.();
+      // The shell never hands a fresh task back, so the reminder last written
+      // rides on the target: the second pause of typing must not report the
+      // first pause's reminder again.
+      target.remind ??= normalizeAt(target.task?.remind ?? "");
+      const remind = fields.remind ?? "";
+      const remindChanged = remind !== target.remind;
+      target.remind = remind;
+      onEdited?.({ remind: remindChanged });
     },
     onError: (e) => onError?.(e),
   });

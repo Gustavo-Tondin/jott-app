@@ -22,6 +22,7 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 - The page no longer scrolls up into the status bar behind the floating buttons — the top bar paints the ground it is over, everywhere but an open note and the Home.
 - On Android the clock and the system icons follow the app's own colours instead of the phone's dark mode: no more white clock on a white bar.
 - **Typing in a note on Android no longer stalls after a pause.** The app's own auto-save was reloading every screen and refetching every picture in the note; it now recognises its own writes, and the save itself left the thread that draws.
+- **Typing in a task's fields is lighter too.** Each pause in the task panel was refreshing the whole window — sidebar, counts and all — for a field that changes none of them; now only the open screen redraws, and the reminder schedule when the reminder moved.
 
 ### Improved
 

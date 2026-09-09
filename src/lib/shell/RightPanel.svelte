@@ -29,6 +29,8 @@
     dateFormat,
     reloadKey = 0,
     onChanged,
+    // the inspector's auto-save (a field of the selected task landed)
+    onEdited,
     onError,
     onOpenNote,
     // suggestions
@@ -121,6 +123,7 @@
       inDay={!!selected.task?.id && dayRefs.has(`${selected.list}#${selected.task.id}`)}
       {f}
       onSaved={onChanged}
+      {onEdited}
       {onError}
       onClose={onCloseTask}
       onMoved={onMovedTask}

@@ -1189,6 +1189,13 @@
     refreshNotebook();
     reload();
   };
+  /// A field of the selected task was auto-saved (every pause in typing):
+  /// the card on the open screen changed, and the reminder schedule if the
+  /// reminder did. Nothing of the layout — see docs on the cost per pause.
+  const refreshAfterEdit = ({ remind = false } = {}) => {
+    reload();
+    if (remind) refreshReminders();
+  };
 
   // One round trip instead of four: the auto-save calls this on every pause
   // in typing, so the fan-out was the hottest path in the app.
@@ -2150,6 +2157,7 @@
         dateFormat={layout.dateDisplayFormat}
         {reloadKey}
         onChanged={refreshAll}
+        onEdited={refreshAfterEdit}
         onError={fail}
         onOpenNote={openNoteByTitle}
         {suggesting}

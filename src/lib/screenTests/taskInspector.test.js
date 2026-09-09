@@ -278,6 +278,36 @@ describe("TaskInspector", () => {
     await waitFor(() => expect(lastSave().fields.remind).toBe(null));
   });
 
+  test("a saved field says EDITED to the shell, never that an action happened", async () => {
+    // `onSaved` refreshes the whole layout — five bridge calls on every pause
+    // in typing. A field changes no count, space or catalogue, so the
+    // auto-save says `onEdited`, naming the reminder only when it moved.
+    bridge({ set_task_fields: null });
+    const onSaved = vi.fn();
+    const onEdited = vi.fn();
+    render(TaskInspector, {
+      props: props(task("a1", "Comprar leite", { remind: "2026-07-25T18:00:00" }), {
+        onSaved,
+        onEdited,
+      }),
+    });
+
+    await userEvent.type(await screen.findByDisplayValue("Comprar leite"), " hoje");
+    await waitFor(() => expect(onEdited).toHaveBeenCalled());
+    expect(onEdited).toHaveBeenLastCalledWith({ remind: false });
+    expect(onSaved).not.toHaveBeenCalled();
+
+    await userEvent.click(screen.getByLabelText("clear reminder"));
+    await waitFor(() => expect(onEdited).toHaveBeenLastCalledWith({ remind: true }));
+
+    // The next pause is about the text again: the cleared reminder is not
+    // reported a second time, though the shell never handed a fresh task.
+    await userEvent.type(screen.getByDisplayValue("Comprar leite hoje"), "!");
+    await waitFor(() => expect(lastSave().fields.text).toBe("Comprar leite hoje!"));
+    await waitFor(() => expect(onEdited).toHaveBeenLastCalledWith({ remind: false }));
+    expect(onEdited.mock.calls.filter(([what]) => what.remind)).toHaveLength(1);
+  });
+
   test("picking a date and time writes both", async () => {
     bridge({ set_task_fields: null });
     render(TaskInspector, {
