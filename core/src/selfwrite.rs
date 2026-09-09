@@ -6,7 +6,13 @@
 //! a file that no longer carries the stamp we left was written by someone
 //! after us, and must still be reported — missing that lets the next save
 //! overwrite an external edit in silence.
+//!
+//! WHO wrote is named per thread (`as_owner`) and stamped on the record the
+//! moment the file lands — so a watcher can recognise the write while the
+//! command that made it is still running. Attributing at the end of the
+//! command was a race on slow storage: see docs/platform-gotchas.md#android.
 
+use std::cell::RefCell;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::{Mutex, OnceLock};
@@ -36,17 +42,37 @@ impl Stamp {
 
 /// One recorded write: what it left behind, when, and the sequence number
 /// that lets a caller ask "what was written since I last looked?".
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 struct Record {
     stamp: Stamp,
     at: SystemTime,
-    seq: u64,
+    /// Who was writing on that thread, if anyone had said (`as_owner`).
+    owner: Option<String>,
 }
 
 #[derive(Default)]
 struct Log {
     writes: HashMap<PathBuf, Record>,
-    next: u64,
+}
+
+thread_local! {
+    static OWNER: RefCell<Option<String>> = const { RefCell::new(None) };
+}
+
+/// Restores the previous owner of the thread when dropped.
+pub struct Owner(Option<String>);
+
+impl Drop for Owner {
+    fn drop(&mut self) {
+        let previous = self.0.take();
+        OWNER.with(|owner| *owner.borrow_mut() = previous);
+    }
+}
+
+/// Names who is writing on THIS thread until the guard drops: every
+/// `remember` in between carries `owner`. Nested guards restore in order.
+pub fn as_owner(owner: &str) -> Owner {
+    Owner(OWNER.with(|current| current.replace(Some(owner.to_string()))))
 }
 
 fn log() -> &'static Mutex<Log> {
@@ -64,10 +90,6 @@ fn purge(log: &mut Log, now: SystemTime) {
     });
 }
 
-/// The current position in the log — hand it back to [since].
-pub fn mark() -> u64 {
-    log().lock().map(|log| log.next).unwrap_or(0)
-}
 
 /// Records that we just wrote `path`. A path whose stamp cannot be read (it
 /// was deleted again already) is not recorded: there is nothing to compare
@@ -81,32 +103,29 @@ pub fn remember(path: &Path) {
         return;
     };
     purge(&mut log, now);
-    let seq = log.next;
-    log.next += 1;
+    let owner = OWNER.with(|owner| owner.borrow().clone());
     log.writes.insert(
         path.to_path_buf(),
         Record {
             stamp,
             at: now,
-            seq,
+            owner,
         },
     );
 }
 
-/// Everything written since `mark`, as the paths and the stamps they were
-/// left carrying. The caller decides who those writes belong to — the log
-/// itself is process-wide, but a WINDOW is what a watcher answers to.
-pub fn since(mark: u64) -> Vec<(PathBuf, Stamp)> {
+/// The stamp `owner` left on `path` with its latest write — `None` if the
+/// last write there was somebody else's, or nobody's, or too old to matter.
+pub fn own(path: &Path, owner: &str) -> Option<Stamp> {
     let now = crate::clock::system_now();
     let Ok(mut log) = log().lock() else {
-        return Vec::new();
+        return None;
     };
     purge(&mut log, now);
     log.writes
-        .iter()
-        .filter(|(_, record)| record.seq >= mark)
-        .map(|(path, record)| (path.clone(), record.stamp))
-        .collect()
+        .get(path)
+        .filter(|record| record.owner.as_deref() == Some(owner))
+        .map(|record| record.stamp)
 }
 
 /// Does `path` still carry exactly `stamp`? True means the file on disk is
@@ -133,12 +152,11 @@ mod tests {
         let dir = temp_dir("basic");
         let path = dir.join("note.md");
 
-        let mark = mark();
+        let _me = as_owner("w1");
         std::fs::write(&path, b"first").unwrap();
         remember(&path);
 
-        let written: HashMap<_, _> = since(mark).into_iter().collect();
-        let stamp = written.get(&path).copied().expect("the write was recorded");
+        let stamp = own(&path, "w1").expect("the write was recorded as w1's");
         assert!(unchanged(&path, &stamp), "the file we just wrote is ours");
 
         // Somebody else writes over it: the stamp no longer matches, so the
@@ -160,19 +178,31 @@ mod tests {
     }
 
     #[test]
-    fn since_reports_only_writes_after_the_mark() {
-        let dir = temp_dir("mark");
-        let before = dir.join("before.md");
-        std::fs::write(&before, b"a").unwrap();
-        remember(&before);
+    fn a_write_belongs_to_whoever_named_the_thread_at_that_moment() {
+        // The owner rides on the record, not on a table filled when the
+        // command returns: on slow storage the watcher looks before that.
+        let dir = temp_dir("owner");
+        let mine = dir.join("mine.md");
+        let nobodys = dir.join("nobodys.md");
 
-        let mark = mark();
-        let after = dir.join("after.md");
-        std::fs::write(&after, b"b").unwrap();
-        remember(&after);
+        {
+            let _me = as_owner("w1");
+            std::fs::write(&mine, b"a").unwrap();
+            remember(&mine);
+            {
+                let _nested = as_owner("w2");
+                assert_eq!(OWNER.with(|o| o.borrow().clone()).as_deref(), Some("w2"));
+            }
+            assert_eq!(OWNER.with(|o| o.borrow().clone()).as_deref(), Some("w1"));
+        }
+        assert_eq!(OWNER.with(|o| o.borrow().clone()), None, "the guard restores");
 
-        let paths: Vec<_> = since(mark).into_iter().map(|(path, _)| path).collect();
-        assert!(paths.contains(&after));
-        assert!(!paths.contains(&before));
+        std::fs::write(&nobodys, b"b").unwrap();
+        remember(&nobodys);
+
+        assert!(own(&mine, "w1").is_some(), "w1 wrote it");
+        assert!(own(&mine, "w2").is_none(), "w2 did not — a second window must hear");
+        assert!(own(&nobodys, "w1").is_none(), "an unnamed write is nobody's");
     }
+
 }

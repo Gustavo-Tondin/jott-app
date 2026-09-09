@@ -1077,6 +1077,54 @@ fn external_changes_reach_the_frontend_as_events() {
 }
 
 #[test]
+fn a_windows_own_save_is_its_own_the_moment_it_lands() {
+    // The watcher looks 50 ms after the OS event. On the phone's storage the
+    // command that wrote is still running then, and a save attributed when
+    // the command RETURNED came back as somebody else's — the whole shell
+    // reloaded on every pause in typing (docs/platform-gotchas.md#android).
+    // So the question is asked from INSIDE the command, before it returns.
+    use tauri::Listener;
+
+    let (_lock, app, dir) = app_with_notebook();
+    let (tx, rx) = std::sync::mpsc::channel();
+    app.listen_any("notebook://changed", move |event| {
+        let _ = tx.send(event.payload().to_string());
+    });
+
+    let state = app.state::<jott_lib::state::AppState>();
+    let path = dir.path().join("jott.notes/Nota.md");
+    state
+        .quiet("main", |nb| {
+            nb.write_note("jott.notes", "Nota.md", "primeira linha\n")?;
+            assert!(
+                jott_lib::state::is_own_write(&path, "main"),
+                "recognised while the command is still running"
+            );
+            assert!(
+                !jott_lib::state::is_own_write(&path, "other"),
+                "a second window on the same notebook must still hear"
+            );
+            Ok(())
+        })
+        .expect("the write itself");
+
+    // And the event the save produced never reaches the window that made it.
+    assert!(
+        rx.recv_timeout(std::time::Duration::from_millis(600)).is_err(),
+        "the window's own save must not come back as a change"
+    );
+
+    // Somebody else writing over it is theirs, stamp and all.
+    std::thread::sleep(std::time::Duration::from_millis(20));
+    std::fs::write(&path, "escrita por outro app, mais longa\n").unwrap();
+    assert!(!jott_lib::state::is_own_write(&path, "main"));
+    let payload = rx
+        .recv_timeout(std::time::Duration::from_secs(10))
+        .expect("an external write is still reported");
+    assert!(payload.contains("Nota.md"));
+}
+
+#[test]
 fn opening_a_second_notebook_switches_only_the_asking_windows() {
     // Still a switch, and since 2026-08-24 a switch of one window's notebook
     // rather than of the app's: another window's stays exactly where it was

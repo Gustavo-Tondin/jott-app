@@ -63,11 +63,14 @@ window has to drop its watcher thread. There is a two-window test in
 `src-tauri/tests/bridge.rs`.
 
 A window's own writes do not come back to it as change events. Every write
-records the stamp it left behind (`core/src/selfwrite.rs`), the bridge
-attributes it to the window that made it, and that window's watcher drops the
-event while the file still carries the stamp — a file somebody else touched
-since no longer does, and is reported. A second window on the same notebook
-still hears the write, which is why the attribution is per window.
+records the stamp it left behind (`core/src/selfwrite.rs`) together with the
+window that is writing on that thread — named by the bridge around every
+command that writes — and that window's watcher drops the event while the
+file still carries the stamp. A file somebody else touched since no longer
+does, and is reported. A second window on the same notebook still hears the
+write, which is why the attribution is per window. The owner is written onto
+the record the moment the file lands, not when the command returns: on slow
+storage the watcher looks before the command is done.
 
 ## `src/` — the frontend
 
