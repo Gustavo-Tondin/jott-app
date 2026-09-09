@@ -11,7 +11,7 @@
      the markup; a wearer's sheet keeps only where it sits.
      --------------------------------------------------------------------------- */
   .theme-notice {
-    --notice-accent: var(--app-brand);
+    --notice-accent: var(--app-brand-ink);
     --notice-tint: var(--app-brand-weak);
     display: flex;
     align-items: flex-start;
@@ -255,7 +255,7 @@
   }
   .theme-loading__spinner {
     display: inline-flex;
-    color: var(--app-brand);
+    color: var(--app-brand-ink);
     animation: theme-spin 0.9s linear infinite;
   }
   @media (prefers-reduced-motion: reduce) {

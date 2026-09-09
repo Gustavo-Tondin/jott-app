@@ -57,7 +57,7 @@
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   outline: none;
-  caret-color: var(--app-brand);
+  caret-color: var(--app-brand-ink);
 }
 /* An empty contenteditable collapses; the zero-width space keeps the row
    clickable. */
@@ -69,7 +69,7 @@
   content: "\200B";
 }
 .editor .cm-md-table__cell:focus-visible {
-  box-shadow: inset 0 0 0 0.125rem var(--app-brand);
+  box-shadow: inset 0 0 0 0.125rem var(--app-brand-ink);
 }
 
 /* The handles, in the air the wrapper keeps. Shown on hover or while a cell
@@ -110,8 +110,8 @@
 }
 /* Where the dragged column or row would land. */
 .editor .cm-md-table--dragging .cm-md-table__target {
-  box-shadow: inset 0.125rem 0 0 var(--app-brand);
+  box-shadow: inset 0.125rem 0 0 var(--app-brand-ink);
 }
 .editor .cm-md-table--dragging tr.cm-md-table__target > td {
-  box-shadow: inset 0 0.125rem 0 var(--app-brand);
+  box-shadow: inset 0 0.125rem 0 var(--app-brand-ink);
 }

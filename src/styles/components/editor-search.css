@@ -46,7 +46,7 @@
   padding: 0;
 }
 .editor .editor-search__button.is-active {
-  color: var(--app-brand);
+  color: var(--app-brand-ink);
   background: var(--app-brand-weak);
 }
 /* The two buttons share a box exactly as wide as the four squares above, so

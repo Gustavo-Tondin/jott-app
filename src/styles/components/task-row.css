@@ -237,11 +237,11 @@
   @keyframes task-row-sun-pop {
     from {
       scale: 0.3;
-      color: var(--app-brand);
+      color: var(--app-brand-ink);
     }
     55% {
       scale: 1.2;
-      color: var(--app-brand);
+      color: var(--app-brand-ink);
     }
     to {
       scale: 1;

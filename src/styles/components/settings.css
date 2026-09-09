@@ -250,7 +250,7 @@
     color: var(--app-ink);
   }
   .settings__saved {
-    color: var(--app-brand);
+    color: var(--app-brand-ink);
     font-size: var(--app-text-13);
   }
 }
@@ -399,8 +399,8 @@
   /* Recording: the row is listening, and says so by the same accent the app
      uses for anything live. */
   .shortcut-row__recording {
-    border-color: var(--app-brand);
-    color: var(--app-brand);
+    border-color: var(--app-brand-ink);
+    color: var(--app-brand-ink);
     font-family: var(--app-font-sans);
   }
 
@@ -430,7 +430,7 @@
      an explanation about this very theme, and a filled row would read as a
      heading over it. */
   .settings__theme[aria-pressed="true"] {
-    border-color: var(--app-brand);
+    border-color: var(--app-brand-ink);
   }
 
   .settings__theme-name {

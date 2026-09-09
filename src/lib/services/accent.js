@@ -1,8 +1,9 @@
 // The eight colours, and how a stored choice becomes CSS.
-// Stored is the NAME (`"orange"`), never a hex: a name resolves to
-// `var(--app-orange)`, which each region answers from its own end of the ramp
-// (`neutral` is white on the sidebar, black on the canvas). A raw `#rrggbb`
-// written by hand passes through untouched, and cannot follow the ground.
+// Stored is the NAME (`"orange"`), never a hex. A name resolves to
+// `var(--app-orange)` — ONE colour, the same on the dark chrome and the light
+// canvas, because a mark is not read and has no contrast to protect. What IS
+// read takes `accentInk`, which still answers from the region's end of the
+// ramp. A raw `#rrggbb` written by hand passes through untouched.
 
 /// The eight, in rainbow order from blue (the app's own), `neutral` closing
 /// the circle. This array IS the order every swatch row draws and the order
@@ -29,13 +30,26 @@ export function isAccent(value) {
   return typeof value === "string" && ACCENTS.includes(value);
 }
 
-/// The CSS value for a stored colour choice: a ground-aware `var()` for one of
-/// the eight, the value itself for a raw colour, and `null` for "no colour of
-/// its own" — callers fall back to the theme accent, usually by leaving the
-/// custom property unset so its `var(…, fallback)` applies.
+/// The CSS value for a stored colour choice — the colour as a MARK: a dot, a
+/// pill, a bar, any surface with nothing written on it. One value for both
+/// grounds (the palette's vivid step 300), the value itself for a raw colour,
+/// and `null` for "no colour of its own" — callers fall back to the theme
+/// accent, usually by leaving the custom property unset so its
+/// `var(…, fallback)` applies.
 export function accentColor(value) {
   if (!value) return null;
   if (isAccent(value)) return `var(--app-${value})`;
+  return value;
+}
+
+/// The colour when it is READ — a letter, a hairline, a focus ring, a caret.
+/// This one still follows the ground (300 on a dark region, 500 on a light
+/// one), because `accentColor` no longer does: the vivid step is 2.2:1 against
+/// the white canvas, under the 3:1 a stroke needs and the 4.5:1 a word needs.
+/// A raw colour has no ink of its own and answers itself.
+export function accentInk(value) {
+  if (!value) return null;
+  if (isAccent(value)) return `var(--app-${value}-ink)`;
   return value;
 }
 
@@ -59,9 +73,9 @@ export function accentFill(value) {
 }
 
 /// The SOLID fill of a surface that carries text — the notebook card on the
-/// picker. Step 500 (pinned to 4.5:1, so white clears AA on all eight; see
-/// `architecture.test.js`), not `accentFill`'s 300, which cannot carry text.
-/// Does not follow the ground; the ink over it is `--app-on-solid`.
+/// picker. The same vivid step every other fill wears; what makes it carry
+/// text is the ink over it, `--app-on-solid`, which is the dark ground and
+/// clears 7:1 on all eight (see `architecture.test.js`). Ground-blind.
 export function accentSolid(value) {
   if (!value) return null;
   if (isAccent(value)) return `var(--app-${value}-solid)`;
@@ -115,7 +129,9 @@ export function swatchStyle(value, preview = "base") {
 /// colour. `undefined` when there is no choice (attribute left off, theme
 /// accent kept).
 export function accentStyle(value, { color = "--accent-color", tint = "--accent-tint-color" } = {}) {
-  const c = accentColor(value);
+  // The ink, not the mark: every reader of `--accent-color` draws a word or a
+  // hairline (the note group's title and rule, the sidebar section's bar).
+  const c = accentInk(value);
   if (!c) return undefined;
   // `tint: null` — the caller's element has no reader for a tint variable,
   // so writing one would be a value with no audience.

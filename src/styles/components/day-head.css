@@ -166,7 +166,7 @@
   /* Today, when it is not the chosen day, keeps a mark of its own: the
      number in the brand colour, so the eye can find the way back. */
   .day-head__day.is-today:not(.is-selected) .day-head__number {
-    color: var(--app-brand);
+    color: var(--app-brand-ink);
   }
   .day-head__day.is-selected {
     background: var(--app-brand);

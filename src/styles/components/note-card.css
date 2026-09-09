@@ -240,13 +240,13 @@
     gap: var(--app-space-6);
     padding: var(--app-space-2) var(--app-space-4);
     font: inherit;
-    color: var(--accent-color, var(--app-brand));
+    color: var(--accent-color, var(--app-brand-ink));
   }
   /* The pin and the ⋮ take the card's own colour here: on a tinted block the
      muted grey of an icon button reads as disabled. */
   .note-group__bar .note-card__pin,
   .note-group__bar .note-card__more {
-    color: var(--accent-color, var(--app-brand));
+    color: var(--accent-color, var(--app-brand-ink));
   }
   .note-group__name {
     flex: 1;

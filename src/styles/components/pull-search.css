@@ -53,7 +53,7 @@
   .shell__centre.is-pull-ready .pull-search__glass {
     background: var(--app-brand);
     color: var(--app-on-brand);
-    border-color: var(--app-brand);
+    border-color: var(--app-brand-ink);
     scale: 1.1;
   }
 }

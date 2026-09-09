@@ -35,10 +35,10 @@
     --app-shadow-drop: color-mix(in srgb, var(--theme-color-black) 22%, transparent);
     --app-shadow-float: 0 0.0625rem 0.1875rem var(--app-shadow-drop);
 
-    /* The fill of a coloured piece of paper (a note's banner): a surface with
-       nothing written ON it, so the one colour NOT pinned to its ground — the
-       same in every theme and region, at the palette's vivid step 300. Eight
-       lines because a custom property cannot compose another's name. */
+    /* The fill of a coloured piece of paper (a note's banner). Since the mark
+       stopped following the ground this is the SAME step `--app-<hue>` is, and
+       the pair is kept apart only because a banner may yet want its own step.
+       Eight lines because a custom property cannot compose another's name. */
     --app-red-fill: var(--theme-color-red-300);
     --app-orange-fill: var(--theme-color-orange-300);
     --app-yellow-fill: var(--theme-color-yellow-300);
@@ -48,10 +48,10 @@
     --app-pink-fill: var(--theme-color-pink-300);
     --app-neutral-fill: var(--theme-color-neutral-300);
 
-    /* The fill that CARRIES text (a notebook's card): step 500, which the
-       palette pins to 4.5:1 against the light ground, so white on it clears
-       AA for all eight (lib/architecture.test.js). Theme- and region-blind,
-       like the fill above: a notebook's colour is what its owner knows it by. */
+    /* The fill that CARRIES text (a notebook's card). The same vivid step as
+       every other fill: what makes it carry text is the ink over it, not a
+       darker colour under it. Theme- and region-blind, like the fill above:
+       a notebook's colour is what its owner knows it by. */
     --app-red-solid: var(--theme-color-red-300);
     --app-orange-solid: var(--theme-color-orange-300);
     --app-yellow-solid: var(--theme-color-yellow-300);
@@ -60,8 +60,9 @@
     --app-purple-solid: var(--theme-color-purple-300);
     --app-pink-solid: var(--theme-color-pink-300);
     --app-neutral-solid: var(--theme-color-neutral-300);
-    /* The ink on any of them. Not `--app-on-brand`: that is the REGION's
-       answer and flips to black where the region's accent is a bright step. */
+    /* The ink on any of them: the dark ground, which clears 7:1 on all eight
+       because every fill is the same step and the step is pinned to a tone
+       (lib/architecture.test.js reads this line rather than assuming it). */
     --app-on-solid: var(--theme-color-black);
 
     /* A region carries its own ink, so anything inside it starts readable —

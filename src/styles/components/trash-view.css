@@ -116,10 +116,10 @@
     margin-inline-start: var(--app-space-4);
   }
   .trash-view__restore {
-    color: var(--app-brand);
+    color: var(--app-brand-ink);
   }
   .trash-view__restore:hover:not(:disabled) {
-    color: var(--app-brand);
+    color: var(--app-brand-ink);
     background: var(--app-brand-weak);
   }
   .trash-view__purge {

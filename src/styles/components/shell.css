@@ -240,9 +240,9 @@
   .shell__nav-item:active {
     scale: 0.98;
   }
-  /* The open place is a SOLID accent pill; the label rides on --app-on-brand,
-     the region's own ground, so it reads whichever half of the accent the
-     ground picked. */
+  /* The open place is a SOLID accent pill. The fill is the vivid step in every
+     region, so the label rides on --app-on-brand, which is the dark ground
+     everywhere and clears 7:1 over all eight. */
   .shell__nav-item--active {
     background: var(--app-brand);
     color: var(--app-on-brand);
@@ -349,7 +349,7 @@
     padding: var(--app-space-4);
   }
   .shell__settings--active {
-    color: var(--app-brand);
+    color: var(--app-brand-ink);
   }
   /* The header's one screen door (the Timeline) lights up while its screen is
      open: no pill, just the ink at full strength. */
@@ -380,7 +380,7 @@
   }
   /* Keyboard focus still has to be visible. Never on hover. */
   .shell__resizer:focus-visible {
-    outline: 0.125rem solid var(--app-brand);
+    outline: 0.125rem solid var(--app-brand-ink);
     outline-offset: -0.125rem;
   }
 

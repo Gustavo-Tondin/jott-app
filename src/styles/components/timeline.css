@@ -84,7 +84,7 @@
     position: absolute;
     inset-inline-end: var(--app-space-12);
     inset-block-end: var(--app-space-12);
-    color: var(--app-brand);
+    color: var(--app-brand-ink);
   }
 
   /* ---- year pills, pinned in the corner ---- */

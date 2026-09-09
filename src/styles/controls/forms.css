@@ -30,7 +30,7 @@
   .theme-input:focus-visible,
   .theme-select:focus-visible {
     outline: none;
-    border-color: var(--app-brand);
+    border-color: var(--app-brand-ink);
     box-shadow: 0 0 0 0.1875rem var(--app-brand-weak);
   }
   .theme-input:disabled,
@@ -162,7 +162,7 @@
   }
   .theme-checkbox:checked {
     background: var(--app-brand);
-    border-color: var(--app-brand);
+    border-color: var(--app-brand-ink);
   }
   .theme-checkbox:checked::after {
     content: "";

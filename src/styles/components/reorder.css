@@ -43,7 +43,7 @@
   /* The item the drop goes INTO, rather than next to (`onDropInto`): a ring
      instead of a gap, because nothing is making room. */
   .reorder-item--into {
-    outline: 0.125rem solid var(--app-brand);
+    outline: 0.125rem solid var(--app-brand-ink);
     outline-offset: 0.0625rem;
     border-radius: var(--app-radius-md);
   }
@@ -59,7 +59,7 @@
   /* About to LEAVE its list (a space dragged out of a group). Dashed where
      `--into` is solid: one receives, the other is on its way out. */
   .reorder-item--leaving {
-    outline: 0.125rem dashed var(--app-brand);
+    outline: 0.125rem dashed var(--app-brand-ink);
     outline-offset: 0.125rem;
     border-radius: var(--app-radius-md);
     opacity: 0.75;

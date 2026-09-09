@@ -164,7 +164,7 @@ mean the same thing:
 |---|---|---|---|
 | **origin** | where did this come from? | a space (its group's colour wins) | the sidebar's bar, the tab's dot — and, outside the space, **colour alone**: a bar on the card's left edge (`.theme-origin`), strong, no word |
 | **subject** | what is it about? | a tag | a **badge** (`.theme-badge`): `#tag` with the text on rung 2 and a soft outline on `-line` — in the colour of the card's space, so it agrees with the bar; neutral where there is no place to take it from (the tag manager) |
-| **surface** | the face of a thing | a note's banner (`-fill`, step 300), a folder of notes (`-tint`), a notebook's card (`-solid`, step 500) | a fill; the picker previews the step it will paint with |
+| **surface** | the face of a thing | a note's banner (`-fill`), a folder of notes (`-tint`), a notebook's card (`-solid`) | a fill; the picker previews the step it will paint with |
 | **status** | urgent? wrong? | priority, an overdue date, a notice | `--app-danger` / `-warning` / `-success`, read from the theme's own status families — never one of the eight by name |
 
 The rule that holds it together: **a card carries at most one colour of the
@@ -177,8 +177,8 @@ A theme that wants the badge to look different restyles `.theme-badge`
 A theme file may also write `--app-*` roles, or restyle any `.theme-*`
 control or BEM block. It is injected at the end of `<head>` and outside every
 layer, so it wins over the modes and over `roles.css` — that is how a theme
-reaches `--app-<name>-fill`, the one role the modes keep the same on every
-ground. Two things to know:
+reaches the fill roles, which the modes keep the same on every ground. Two
+things to know:
 
 - A full theme keyed on its own name (`[data-theme="mine"] [data-region="chrome"] { … }`)
   is named on the root only after its stylesheet is in the document; a
@@ -186,8 +186,8 @@ ground. Two things to know:
 - **What a mode assigns** is listed at the top of `styles/modes/jott.css`,
   and it is the whole list: the two grounds and the ink, `--app-<name>-1…-6`
   per colour (a six-rung ladder, 1 strongest; H1–H6 stand on these rungs),
-  the base, `-line` and `-tint`, the status roles and their `-tint`, the
-  hover veil and the popover shadow.
+  the mark and its `-ink`, `-line` and `-tint`, the status roles and their
+  `-tint`, the hover veil and the popover shadow.
 
 ### If your theme ships with the app
 
@@ -229,9 +229,19 @@ two grounds: taking the same steps as a hue would make its first rung a grey
 instead of white, and its tint the ground itself. Everything else about it is
 ordinary.
 
-One role is the same in every mode and both regions: `--app-<name>-fill`
-(step 300). A banner is a surface with nothing written on it — a yellow note
-is yellow under any lamp.
+### A mark is one colour; only ink has two halves
+
+`--app-<name>` is the colour as a **mark** — a dot, a pill, a bar, a banner,
+a button's fill — and it is step 300 in every mode and both regions. Nothing
+is read off a mark, so it has no contrast to protect, and a yellow note is
+yellow under any lamp. The ink over any of them is `--app-on-brand`
+(`--app-on-solid` on a card), the dark ground, which clears 7:1 on all eight.
+
+`--app-<name>-ink` is the colour as something **read** — a word, a hairline, a
+focus ring, a caret — and that one still answers the region: the palette's
+step 300 on a dark ground, 500 on a light one. Assign both: a mode that writes
+only the mark leaves every accented word at the mark's contrast, which on a
+light ground is 2.2:1.
 
 ---
 

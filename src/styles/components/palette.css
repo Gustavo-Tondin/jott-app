@@ -73,8 +73,8 @@
     border-color: var(--app-line);
   }
   .palette__icon--on {
-    border-color: var(--app-brand);
-    color: var(--app-brand);
+    border-color: var(--app-brand-ink);
+    color: var(--app-brand-ink);
   }
   .palette__icon:focus-visible {
     outline: none;

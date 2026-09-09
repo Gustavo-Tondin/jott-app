@@ -121,7 +121,7 @@
     white-space: nowrap;
   }
   .assets-view__action:hover {
-    color: var(--app-brand);
+    color: var(--app-brand-ink);
   }
 
   /* Adding rides the bottom of the screen, the same edge the tasks screens
@@ -170,7 +170,7 @@
      place will take it — an outline rather than a fill, so nothing already
      drawn changes colour under the pointer. */
   .assets-view--taking {
-    outline: 0.125rem dashed var(--app-brand);
+    outline: 0.125rem dashed var(--app-brand-ink);
     outline-offset: var(--app-space-8);
     border-radius: var(--app-radius-md);
   }
@@ -187,7 +187,7 @@
   .assets-view__used {
     align-self: flex-start;
     padding: 0;
-    color: var(--app-brand);
+    color: var(--app-brand-ink);
     font: inherit;
     font-size: var(--app-text-12);
   }

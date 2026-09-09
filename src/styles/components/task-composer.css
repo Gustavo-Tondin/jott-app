@@ -175,7 +175,7 @@
     color: var(--app-ink-faint);
   }
   .task-composer__field--set {
-    color: var(--app-brand);
+    color: var(--app-brand-ink);
   }
   /* The flag wears the level's status colour once one is set — the same
      three the card's marks read (task-row.css). */

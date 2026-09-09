@@ -203,7 +203,7 @@
     text-align: start;
   }
   .note-banner__action:hover {
-    color: var(--app-brand);
+    color: var(--app-brand-ink);
   }
 }
 

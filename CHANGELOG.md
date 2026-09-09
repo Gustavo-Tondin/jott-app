@@ -29,6 +29,8 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 
 ### Improved
 
+- **The eight colours are spread evenly around the wheel, and each one now reads the same on the sidebar as on the page.** Orange sat twelve degrees from red and was hard to tell apart, and yellow turned brown on its way to the white page; only coloured text still changes with the ground, so a word stays readable wherever it lands.
+
 - **The app's page now declares English**, so the editor's spell-check and the new hyphenation use English rules instead of Portuguese ones.
 - **The chosen day glides** on the Home's week, the way the pill of a segmented control moves, instead of jumping from one day to the next.
 - **The Home's + is bigger on a phone** — the same 72px it has on the desktop, up from 64px.

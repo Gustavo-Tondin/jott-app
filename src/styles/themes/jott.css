@@ -9,15 +9,17 @@
    copy is injected plain, and this file stays byte-identical to it. */
 
 /* TONE GRID — every family runs the same seven steps (CIE L* targets):
-     100 → 92  pale ink, quiet fill on a LIGHT ground
-     200 → 80  emphasis on a DARK ground (H1, H2)
-     300 → 70  base on a DARK ground (H3, icons, fills)
-     400 → 58  the soft step, the only one both grounds share (H4–H6)
-     500 → 48  base on a LIGHT ground
-     600 → 34  emphasis on a LIGHT ground
-     700 → 18  deep fill, quiet fill on a DARK ground
-   Contrast floors, not tones: 200/600 at 7:1 and 300/500 at 4.5:1 against
-   their ground (lib/architecture.test.js measures this file only). */
+     100 → 92  quiet fill on a LIGHT ground
+     200 → 80  emphasis INK on a DARK ground (H1, H2)
+     300 → 70  EVERY FILL, on both grounds; and ink on a DARK one (H3, icons)
+     400 → 58  the soft step (H4–H6)
+     500 → 48  ink on a LIGHT ground
+     600 → 34  emphasis ink on a LIGHT ground
+     700 → 18  quiet fill on a DARK ground
+   A fill does not follow the ground — 300 everywhere, with the dark ground as
+   its ink at 7:1 — because nothing is read off a dot or a banner. Only INK
+   still has two halves. Contrast floors, not tones: 200/600 at 7:1 and 300/500
+   at 4.5:1 against their ground (lib/architecture.test.js measures this file). */
 :root {
   /* THE GROUNDS — the two neutrals a region is painted with; `-tint` is the
      step AWAY from the pure one (darker on light, lighter on dark). `gray`
@@ -29,10 +31,10 @@
   --theme-color-black-tint: #2b2b2b;
   --theme-color-gray: #a39f9b;
 
-  /* THE EIGHT — seven hues and `neutral` (the white↔black family, one colour
-     rather than two: on the dark chrome it reads light, on the white canvas
-     dark, exactly like blue). `neutral` runs on the same axis as the grounds,
-     which is why a mode reads it one step further out. */
+  /* THE EIGHT — seven hues and `neutral` (the white↔black family, one entry
+     rather than two, exactly like blue). As a MARK every family is step 300 on
+     both grounds; as INK it still has a light half and a dark half, and
+     `neutral` runs on the grounds' own axis, one step further out. */
 
   --theme-color-yellow-100: #efe8cf;
   --theme-color-yellow-200: #d8c683;

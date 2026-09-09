@@ -4,6 +4,7 @@ import {
   DEFAULT_ACCENT,
   isAccent,
   accentColor,
+  accentInk,
   accentRung,
   accentSolid,
   accentTint,
@@ -13,10 +14,10 @@ import {
 } from "./accent.js";
 
 describe("the eight colours", () => {
-  test("a stored NAME becomes a ground-aware var, never a fixed colour", () => {
-    // This is the whole reason the app stores a name: each of the seven has a
-    // light half and a dark half, and the region a colour lands in is what
-    // chooses between them (styles/grounds.css). A hex could not.
+  test("a stored NAME becomes a var, never a fixed colour", () => {
+    // This is the whole reason the app stores a name: the mark is one value
+    // the modes may retheme, and the INK beside it still has a light half and
+    // a dark half for the region to choose between. A hex could not.
     expect(accentColor("orange")).toBe("var(--app-orange)");
     expect(accentTint("orange")).toBe("var(--app-orange-tint)");
     for (const name of ACCENTS) {
@@ -45,9 +46,26 @@ describe("the eight colours", () => {
   });
 
   test("accentStyle writes the pair a coloured section needs", () => {
+    // The INK, not the mark: every reader of this pair draws a word or a
+    // hairline, and the mark is one colour on both grounds — 2.2:1 on the
+    // canvas, which no stroke and no word may sit at.
     expect(accentStyle("blue", { color: "--group-color", tint: "--group-tint" })).toBe(
-      "--group-color: var(--app-blue); --group-tint: var(--app-blue-tint)",
+      "--group-color: var(--app-blue-ink); --group-tint: var(--app-blue-tint)",
     );
+  });
+
+  test("the mark is one colour, the ink still answers the ground", () => {
+    // The split that ended the yellow reading gold on the sidebar and olive on
+    // the page: a dot, a pill and a banner take `accentColor` and never move;
+    // a letter, a rule and a focus ring take `accentInk`, which the region
+    // still resolves from its own end of the ramp.
+    for (const name of ACCENTS) {
+      expect(accentColor(name)).toBe(`var(--app-${name})`);
+      expect(accentInk(name)).toBe(`var(--app-${name}-ink)`);
+    }
+    // A raw colour has one value and no ramp, so both answer it.
+    expect(accentInk("#ff0000")).toBe("#ff0000");
+    for (const empty of [null, undefined, ""]) expect(accentInk(empty)).toBeNull();
   });
 
 
@@ -56,11 +74,12 @@ describe("the eight colours", () => {
     expect(ACCENTS).toHaveLength(8);
   });
 
-  test("white and black are ONE colour, and it follows the ground", () => {
+  test("white and black are ONE colour, one entry on one ramp", () => {
     // Not two entries (2026-08-17): white over black and black over white are
     // the two ends of one ramp, exactly like a light blue and a dark blue.
     // Two fixed entries could not both be visible — the app's two regions ARE
-    // white and black, so a fixed neutral vanishes in one of them.
+    // white and black, so a fixed neutral vanishes in one of them. As a MARK
+    // it is now the ramp's middle, which is visible against both.
     expect(isAccent("neutral")).toBe(true);
     expect(ACCENTS).not.toContain("white");
     expect(ACCENTS).not.toContain("black");
@@ -89,11 +108,10 @@ describe("the eight colours", () => {
   });
 
   test("the solid fill is the step that carries text, and it is theme-blind", () => {
-    // Its sibling `accentFill` is step 300 — a surface with nothing on it (a
-    // note's banner). A notebook card has a name and two counts written across
-    // it, and 300 is the step that reads AS text on a dark ground, not the
-    // step that carries text. 500 is; the palette pins it to 4.5:1 against the
-    // light ground, and `architecture.test.js` measures white on it.
+    // The same step its sibling `accentFill` wears: what makes this one carry
+    // a name and two counts is the ink over it, `--app-on-solid`, which is the
+    // dark ground and clears 7:1 on all eight. `architecture.test.js` reads
+    // that ink off the sheet rather than assuming which one it is.
     expect(accentSolid("blue")).toBe("var(--app-blue-solid)");
     for (const name of ACCENTS) {
       expect(accentSolid(name)).toBe(`var(--app-${name}-solid)`);

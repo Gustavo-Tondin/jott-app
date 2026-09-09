@@ -40,7 +40,7 @@
   /* Lit when the task is in today — the one coloured control in the toolbar,
      because it is the only one that carries state. */
   .inspector__myday--on {
-    color: var(--app-brand);
+    color: var(--app-brand-ink);
   }
 
   .inspector__gap {
@@ -59,7 +59,7 @@
     padding: var(--app-space-8) var(--app-space-10);
     background: color-mix(in oklab, var(--app-brand-weak) 80%, var(--app-brand));
     border-radius: var(--app-radius-md);
-    color: var(--app-brand);
+    color: var(--app-brand-ink);
   }
   .inspector__name {
     flex: 1;
@@ -291,7 +291,7 @@
     text-align: start;
   }
   .inspector__file-open:hover .inspector__file-name {
-    color: var(--app-brand);
+    color: var(--app-brand-ink);
   }
   .inspector__file-name {
     min-inline-size: 0;

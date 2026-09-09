@@ -62,7 +62,7 @@
      like creating one. */
   .folder-picker__badge {
     font-size: var(--app-text-12);
-    color: var(--app-brand);
+    color: var(--app-brand-ink);
   }
 
   .folder-picker__empty {
