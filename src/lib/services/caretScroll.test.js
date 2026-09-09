@@ -7,8 +7,10 @@
 // (the module's header says how). The scroll was proven by measuring the app
 // on the emulator.
 
-import { describe, expect, it } from "vitest";
-import { scrollNeeded, scrollableAround, visibleBox } from "./caretScroll.js";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { EditorState } from "@codemirror/state";
+import { EditorView } from "@codemirror/view";
+import { keepCaretInView, scrollNeeded, scrollableAround, visibleBox } from "./caretScroll.js";
 
 const box = { top: 100, bottom: 500 };
 
@@ -117,5 +119,93 @@ describe("where the visible part of a scroller ends", () => {
       top: 140,
       bottom: 500,
     });
+  });
+});
+
+// The one integration that could break, exercised on a real EditorView (a
+// handler nobody calls does not fail — only the keystroke finds it).
+describe("when CodeMirror itself asks for the scroll", () => {
+  // The measure phase has to RUN here, and jsdom's Range cannot be measured:
+  // stand in the two readers CodeMirror calls, answering "no rectangles".
+  const zero = { top: 0, bottom: 0, left: 0, right: 0, width: 0, height: 0 };
+  let saved;
+  beforeAll(() => {
+    saved = [Range.prototype.getClientRects, Range.prototype.getBoundingClientRect];
+    Range.prototype.getClientRects = () => [];
+    Range.prototype.getBoundingClientRect = () => zero;
+  });
+  afterAll(() => {
+    [Range.prototype.getClientRects, Range.prototype.getBoundingClientRect] = saved;
+  });
+
+  /// A scroller around the editor that jsdom would otherwise measure as
+  /// nothing, and a caret rectangle hanging below it.
+  function mount() {
+    const scroller = document.createElement("div");
+    scroller.style.overflowY = "auto";
+    Object.defineProperties(scroller, {
+      scrollHeight: { value: 1000, configurable: true },
+      clientHeight: { value: 100, configurable: true },
+    });
+    document.body.appendChild(scroller);
+    const caught = [];
+    const view = new EditorView({
+      parent: scroller,
+      state: EditorState.create({
+        doc: "one\ntwo\nthree",
+        extensions: [keepCaretInView, EditorView.exceptionSink.of((e) => caught.push(e))],
+      }),
+    });
+    // The real one answers nothing in jsdom; this one answers a rectangle and
+    // keeps the real one's rule — asked during an update, it throws.
+    view.coordsAtPos = () => {
+      view.readMeasured();
+      return { top: 500, bottom: 520, left: 0, right: 1 };
+    };
+    // An editor with no height never asks for a scroll: give CodeMirror's own
+    // scroller the size jsdom will not compute.
+    const size = { top: 0, left: 0, right: 300, bottom: 100, width: 300, height: 100 };
+    Object.defineProperties(view.scrollDOM, {
+      clientHeight: { value: 100, configurable: true },
+      clientWidth: { value: 300, configurable: true },
+      getBoundingClientRect: { value: () => size, configurable: true },
+    });
+    return { scroller, view, caught };
+  }
+
+  const frame = () => new Promise((r) => requestAnimationFrame(() => r()));
+
+  it("reads the layout in the measure phase, never inside the update", async () => {
+    // CodeMirror runs scroll handlers with the layout locked: a `coordsAtPos`
+    // there threw on every typed character, CodeMirror logged it, and the
+    // scroll never happened (seen on the phone with `?perf=1`, 2026-09-09).
+    const { scroller, view, caught } = mount();
+    try {
+      view.dispatch({ selection: { anchor: view.state.doc.length }, scrollIntoView: true });
+      await frame();
+      await frame();
+      expect(caught).toEqual([]);
+      expect(scroller.scrollTop).toBeGreaterThan(0);
+    } finally {
+      view.destroy();
+      scroller.remove();
+    }
+  });
+
+  it("leaves a deliberate `center`/`start`/`end` request alone", async () => {
+    const { scroller, view, caught } = mount();
+    try {
+      view.dispatch({
+        selection: { anchor: view.state.doc.length },
+        effects: EditorView.scrollIntoView(view.state.doc.length, { y: "center" }),
+      });
+      await frame();
+      await frame();
+      expect(caught).toEqual([]);
+      expect(scroller.scrollTop).toBe(0);
+    } finally {
+      view.destroy();
+      scroller.remove();
+    }
   });
 });

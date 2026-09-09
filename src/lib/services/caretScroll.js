@@ -73,7 +73,11 @@ export const keepCaretInView = [
     // asked for deliberately somewhere (a search hit, a restored position),
     // and guessing at those would fight whoever asked.
     if (options.y && options.y !== "nearest") return false;
-    follow(view, range.head, options.yMargin || 0);
+    // CodeMirror calls this INSIDE its update, with the layout locked: a
+    // `coordsAtPos` here throws ("isn't allowed during an update"), CodeMirror
+    // swallows it, and the scroll never happens. Read in the measure phase.
+    const margin = options.yMargin || 0;
+    view.requestMeasure({ read: (v) => follow(v, range.head, margin) });
     return false;
   }),
   // And when nothing asked at all: TYPING does not request a scroll —
