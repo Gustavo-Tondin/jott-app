@@ -29,6 +29,8 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 
 ### Improved
 
+- **A theme file is twelve lines shorter.** The error, warning and success colours carried seven shades each and only ever used four, so writing a theme no longer means inventing shades nothing draws with.
+
 - **The Timeline lights up in the accent colour while it is open**, the way the Settings button already did.
 
 - **The eight colours are spread evenly around the wheel, and each one now reads the same on the sidebar as on the page.** Orange sat twelve degrees from red and was hard to tell apart, and yellow turned brown on its way to the white page; only coloured text still changes with the ground, so a word stays readable wherever it lands.

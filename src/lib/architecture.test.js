@@ -470,7 +470,15 @@ describe("frontend architecture", () => {
     return steps;
   };
 
-  test("the palette is eight families of seven steps", () => {
+  const STATUS = ["danger", "warning", "success"];
+  /// What a family is REQUIRED to carry. The eight run the whole grid; status
+  /// runs the four a status colour is ever read at — the ink per ground and
+  /// the wash behind it (2026-09-09). A status colour is never a heading (no
+  /// ladder) and never a dot or a card (no fill), so 200/400/600 were nine
+  /// values nothing read.
+  const stepsFor = (name) => (STATUS.includes(name) ? [100, 300, 500, 700] : [100, 200, 300, 400, 500, 600, 700]);
+
+  test("the palette is eight families of seven steps, and three of four", () => {
     // The count is the parser's proof of coverage: a ninth colour, or a step
     // written in a shape the regex above cannot read, changes a number here
     // instead of silently dropping out of every measurement.
@@ -482,8 +490,31 @@ describe("frontend architecture", () => {
       ["blue", "danger", "green", "neutral", "orange", "pink", "purple", "red", "success", "warning", "yellow"],
     );
     for (const [name, steps] of Object.entries(families)) {
-      expect(Object.keys(steps).length, `${name} has seven steps`).toBe(7);
+      expect(Object.keys(steps).map(Number).sort((a, b) => a - b), `${name}'s steps`).toEqual(
+        stepsFor(name),
+      );
     }
+  });
+
+  test("nothing reads a status step the palette no longer carries", () => {
+    // The trim above is only safe while the modes ask for those four and no
+    // other. This is what catches a mode reaching for `--theme-color-danger-400`
+    // and getting an empty custom property, which paints nothing and says nothing.
+    const offenders = [];
+    for (const [file, css] of themes()) {
+      for (const m of css.matchAll(/--theme-color-(danger|warning|success)-(\d00)/g)) {
+        if (!stepsFor(m[1]).includes(Number(m[2]))) offenders.push(`${file}: ${m[0]}`);
+      }
+    }
+    for (const dir of ["modes", "components", "controls"]) {
+      for (const f of readdirSync(join(src, "styles", dir))) {
+        const css = readFileSync(join(src, "styles", dir, f), "utf8");
+        for (const m of css.matchAll(/--theme-color-(danger|warning|success)-(\d00)/g)) {
+          if (!stepsFor(m[1]).includes(Number(m[2]))) offenders.push(`${f}: ${m[0]}`);
+        }
+      }
+    }
+    expect(offenders).toEqual([]);
   });
 
   test("every colour hits the same tone at the same step", () => {
@@ -494,7 +525,8 @@ describe("frontend architecture", () => {
     // spend (styles/tokens.css).
     const offenders = [];
     for (const [name, steps] of Object.entries(palette())) {
-      for (const [step, target] of Object.entries(TARGET)) {
+      for (const step of stepsFor(name)) {
+        const target = TARGET[step];
         const hex = steps[step];
         if (!hex) {
           offenders.push(`${name}: no step ${step}`);
@@ -581,13 +613,20 @@ describe("frontend architecture", () => {
       [600, GROUND.light, 7],
     ];
     const offenders = [];
+    let measured = 0;
     for (const [name, steps] of Object.entries(palette())) {
-      for (const [step, ground, floor] of floors) {
+      // Only the steps the family carries: status has no 200/600, and asking
+      // for one reads `undefined` — which threw here rather than passing, but
+      // a silent skip is what a looser version of this loop would have done.
+      for (const [step, ground, floor] of floors.filter(([s]) => stepsFor(name).includes(s))) {
         const got = ratio(steps[step], ground);
+        measured += 1;
         if (got < floor) offenders.push(`${name}-${step}: ${got.toFixed(2)}:1 < ${floor}:1`);
       }
     }
     expect(offenders).toEqual([]);
+    // 8 families x 4 floors + 3 status x the two floors they carry.
+    expect(measured, "floors actually measured").toBe(8 * 4 + 3 * 2);
   });
 
   test("every emphasis ladder gets weaker one rung at a time", () => {

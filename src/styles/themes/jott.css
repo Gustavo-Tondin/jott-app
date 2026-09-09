@@ -8,7 +8,7 @@
    a notebook's theme leaves out still has a value. No `@layer`: the notebook
    copy is injected plain, and this file stays byte-identical to it. */
 
-/* TONE GRID — every family runs the same seven steps (CIE L* targets):
+/* TONE GRID — the eight run all seven steps, status runs four (CIE L* targets):
      100 → 92  quiet fill on a LIGHT ground
      200 → 80  emphasis INK on a DARK ground (H1, H2)
      300 → 70  EVERY FILL, on both grounds; and ink on a DARK one (H3, icons)
@@ -102,30 +102,25 @@
 
   /* STATUS — danger, warning, success: families of their OWN, seeded from
      red, yellow and green. A theme may make its `red` sea-green; the error
-     notice, the overdue date and the `!!!` must not follow it. */
+     notice, the overdue date and the `!!!` must not follow it.
+     FOUR steps, not seven: status is ink and the wash behind it, never a
+     heading (no ladder), never a dot or a card (no fill). 300/500 is the ink
+     per ground, 700/100 the wash. The other three steps were written and never
+     read (2026-09-09). */
 
   --theme-color-danger-100: #ffe2de;
-  --theme-color-danger-200: #ffb3ad;
   --theme-color-danger-300: #ff8981;
-  --theme-color-danger-400: #f84f4e;
   --theme-color-danger-500: #d73035;
-  --theme-color-danger-600: #a0131e;
   --theme-color-danger-700: #511918;
 
   --theme-color-warning-100: #efe8cf;
-  --theme-color-warning-200: #d8c683;
   --theme-color-warning-300: #c9a915;
-  --theme-color-warning-400: #a48903;
   --theme-color-warning-500: #877004;
-  --theme-color-warning-600: #5f4f04;
   --theme-color-warning-700: #352b00;
 
   --theme-color-success-100: #d6eedf;
-  --theme-color-success-200: #8cd6ab;
   --theme-color-success-300: #12c37c;
-  --theme-color-success-400: #00a063;
   --theme-color-success-500: #008351;
-  --theme-color-success-600: #005c37;
   --theme-color-success-700: #00341d;
 
   /* SHAPE — the spacing scale (named by the design's px, valued in rem) and

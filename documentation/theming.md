@@ -129,25 +129,28 @@ is always loaded underneath.
 |---|---|---|
 | grounds | `--theme-color-white`, `-white-tint`, `-black`, `-black-tint`, `-gray` | 5 |
 | the eight | `--theme-color-<yellow \| orange \| pink \| green \| blue \| red \| purple \| neutral>-<100…700>` | 56 |
-| status | `--theme-color-<danger \| warning \| success>-<100…700>` | 21 |
+| status | `--theme-color-<danger \| warning \| success>-<100 300 500 700>` | 12 |
 | shape | `--theme-radius-<xs \| sm \| md \| lg \| xl \| pill>`, `--theme-space-<2 4 6 8 10 12 16 24 32 40 48 64>` | 18 |
 
 Things worth knowing before you change them:
 
-- **Every colour family runs the same seven steps** (100 palest → 700
-  deepest) on one tone grid, and the modes read a *step* — 300 as the base
-  on a dark ground, 500 on a light one, 200/600 for emphasis, 100/700 for
-  the quiet fills. Keep the grid and the whole app follows; break it and a
+- **The eight run the same seven steps** (100 palest → 700 deepest) on one
+  tone grid, and the modes read a *step* — 300 for every fill and for ink on
+  a dark ground, 500 for ink on a light one, 200/600 for emphasis, 100/700
+  for the quiet fills. Keep the grid and the whole app follows; break it and a
   heading may stop clearing its ground. Four steps are pinned to a contrast
   floor: 200/600 at 7:1, 300/500 at 4.5:1 against their ground. (Tests
   measure the factory file; a notebook theme is yours, and nothing checks it
   but your eyes.)
 - **`neutral` is the eighth colour**, the white↔black family; the modes read
   it one step further out because it runs on the same axis as the grounds.
-- **Status is its own three families.** `danger`, `warning`, `success` are
-  seeded from red, yellow and green, but they are separate tokens: make your
-  `red` sea-green and the error notice stays red — unless you change
-  `danger` too.
+- **Status is its own three families, and they run FOUR steps.** `danger`,
+  `warning`, `success` are seeded from red, yellow and green, but they are
+  separate tokens: make your `red` sea-green and the error notice stays red —
+  unless you change `danger` too. They carry 100/300/500/700 and no more,
+  because a status colour is only ever ink (300 on a dark ground, 500 on a
+  light one) and the wash behind it (700/100). It is never a heading, so it
+  has no ladder, and never a dot or a card, so it has no fill.
 - **Which of the eight is the accent stays the reader's choice** (Settings →
   Display), never the theme's. A theme says what `blue` *looks like*; the
   person says whether the app wears blue.
@@ -249,8 +252,8 @@ light ground is 2.2:1.
 
 ```
 src/styles/
-├── themes/jott.css   THE THEME: the palette (8 + 3 status families × 7
-│                     steps, the grounds), the spacing and radius scales —
+├── themes/jott.css   THE THEME: the palette (8 families × 7 steps, 3 status
+│                     × 4, the grounds), the spacing and radius scales —
 │                     `--theme-*`, literals only. Written into notebooks.
 ├── modes/*.css       one file per MODE: `--app-*` per region, read from
 │                     the theme's tokens
