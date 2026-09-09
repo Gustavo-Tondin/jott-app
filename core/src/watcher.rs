@@ -41,6 +41,16 @@ impl Change {
             return None;
         }
 
+        // A DIRECTORY changing is the shadow of a file inside it changing, and
+        // that file has an event of its own. Windows reports the parent folder
+        // on every rename — which is how `fsio::write_atomically` lands every
+        // save — and nobody ever wrote the folder, so `is_own_write` answers
+        // false for it and a window's own save comes back as somebody else's.
+        // A path that is gone answers false here and is still reported.
+        if path.is_dir() {
+            return None;
+        }
+
         // Before anything else: a conflicting copy is never a list, a state or
         // a config, even though its name looks like one of them.
         if crate::conflict::is_conflict_file(&path) {
@@ -307,6 +317,29 @@ mod tests {
             serde_json::to_value(Change::Config).unwrap()["kind"],
             "config"
         );
+    }
+
+    #[test]
+    fn a_folder_is_not_a_change() {
+        // Windows reports the parent folder on every rename, which is how
+        // every save lands. Nobody wrote the folder, so it could not be
+        // recognised as the window's own and each save came back as an
+        // outside change. The file inside has its own event.
+        let dir = std::env::temp_dir().join(format!("jott-watcher-{}", std::process::id()));
+        let space = dir.join("jott.notes");
+        std::fs::create_dir_all(&space).unwrap();
+        let note = space.join("Nota.md");
+        std::fs::write(&note, b"x").unwrap();
+        let config_dir = config_dir(&dir);
+
+        assert_eq!(Change::classify(space.clone(), &config_dir), None);
+        assert!(
+            matches!(Change::classify(note, &config_dir), Some(Change::List { .. })),
+            "the file inside is still reported"
+        );
+        // A folder that is GONE cannot be stat'd, and its removal must show.
+        std::fs::remove_dir_all(&dir).unwrap();
+        assert!(Change::classify(space, &config_dir).is_some());
     }
 
     #[test]
