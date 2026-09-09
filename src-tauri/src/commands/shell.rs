@@ -125,6 +125,15 @@ fn path_without_bundle(path: &str, appdir: &str) -> String {
         .join(":")
 }
 
+/// Whether this machine asked for the front's instrumentation: `JOTT_PERF`
+/// set to anything but empty or `0` in the environment the app was started
+/// from. A phone has no environment to set; it flips the flag in the page
+/// (services/perf.js).
+#[tauri::command]
+pub fn perf_enabled() -> bool {
+    std::env::var_os("JOTT_PERF").is_some_and(|v| !v.is_empty() && v != "0")
+}
+
 /// Which machine this build runs on: `"android"`, `"windows"`, `"macos"` or
 /// `"linux"`. Resolved by `cfg!`; it decides AFFORDANCES (buttons, edges,
 /// system bars, the window's corner), never layout — width is the CSS's

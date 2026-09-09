@@ -5,6 +5,7 @@
   // what goes on the root (theme, accent, platform) goes through rootStyle.js.
   import { listen } from "@tauri-apps/api/event";
   import { api, describeError } from "./lib/services/api.js";
+  import { perf } from "./lib/services/perf.js";
   import { onOffer } from "./lib/services/undoOffer.js";
   import Notice from "./lib/components/Notice.svelte";
   import { askName, askTask, setConfirmPolicy } from "./lib/services/dialog.js";
@@ -258,6 +259,8 @@
     },
     () => {},
   );
+  // The instrumentation (services/perf.js): on only where this machine asked.
+  perf.boot(api.perfEnabled);
 
   /// What the open note reports about itself, for the page header and menu.
   let openNote = $state({ pinned: false, title: "", banner: null });

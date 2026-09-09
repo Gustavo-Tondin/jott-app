@@ -5,6 +5,7 @@
 
 import { invoke as callBridge } from "@tauri-apps/api/core";
 import { announce } from "./undoOffer.js";
+import { perf } from "./perf.js";
 
 /// The bridge, with the command's name attached to whatever comes back
 /// wrong. The value is annotated, never wrapped: `kind` is what the shell
@@ -12,11 +13,16 @@ import { announce } from "./undoOffer.js";
 /// second argument is a different call to anything watching the bridge.
 function invoke(...call) {
   const [command] = call;
+  // Timed whether it answers or fails (services/perf.js; free while off) —
+  // inside the two handlers, not in a `finally`, which would add a tick to
+  // every answer.
+  const started = perf.start();
   return Promise.resolve(callBridge(...call))
     // A command that answered is said by name (services/undoOffer.js): the
     // floating undo is offered from here, not from every screen that deletes.
-    .then((result) => (announce(command), result))
+    .then((result) => (perf.invoke(command, started), announce(command), result))
     .catch((cause) => {
+    perf.invoke(command, started);
     if (cause && typeof cause === "object") {
       try {
         cause.command = command;
@@ -116,6 +122,8 @@ export const api = {
   // The family the desktop draws ITSELF in — what CSS `system-ui` should
   // mean and does not, on every engine (services/fonts.js).
   systemUiFont: () => invoke("system_ui_font"),
+  // Whether this machine asked for the instrumentation (`JOTT_PERF=1`).
+  perfEnabled: () => invoke("perf_enabled"),
 
   // How wide the sidebar was dragged. A machine preference (the monitor
   // decides, not the notebook), so it lives beside the last notebook.

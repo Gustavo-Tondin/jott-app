@@ -33,6 +33,7 @@
   import * as md from "../services/markdownCommands.js";
   import { bound } from "../services/shortcuts.js";
   import { toCodeMirror } from "../services/keys.js";
+  import { perf } from "../services/perf.js";
 
   let {
     value = "",
@@ -137,6 +138,14 @@
   onMount(() => {
     view = new EditorView({
       parent: host,
+      // What the default does, timed: one keystroke is one dispatch, and a
+      // slow one is the editor's own cost, apart from anything the shell
+      // does with the change (services/perf.js; free while off).
+      dispatchTransactions(trs, v) {
+        const started = perf.start();
+        v.update(trs);
+        perf.editor(started, trs.some((tr) => tr.docChanged));
+      },
       state: EditorState.create({
         doc: value,
         extensions: [

@@ -89,6 +89,14 @@ frontend deliberately never calls goes on an explicit list, with its reason.
 which is what makes theming a matter of one file — see
 [`theming.md`](theming.md).
 
+**Measuring instead of guessing.** Start the app with `JOTT_PERF=1` in the
+environment (or, on a phone, load the page with `?perf=1` in its address from
+DevTools) and `services/perf.js` reports to the console, one `[perf]` line
+each: every bridge call with its duration, any editor update over 8 ms, and
+any gap between two animation frames over 32 ms. The auto-save fires half a
+second after the last keystroke, so what matters is the cost *after a pause*,
+not while typing continuously; on Android the lines show up in `adb logcat`.
+
 ---
 
 ## Tests
