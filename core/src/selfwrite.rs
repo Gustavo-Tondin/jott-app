@@ -75,6 +75,18 @@ pub fn as_owner(owner: &str) -> Owner {
     Owner(OWNER.with(|current| current.replace(Some(owner.to_string()))))
 }
 
+/// The key a path is remembered under. Canonical wherever the filesystem can
+/// answer, because the app and the watcher do not always spell the same file
+/// the same way: on Windows the watcher reports the long, verbatim form of a
+/// path the app may have opened through a short (8.3) one, and a notebook
+/// reached through a symlink has two names on any system. A raw `PathBuf`
+/// compare misses those, and the window's own save comes back as somebody
+/// else's. A path that cannot be canonicalised — it is already gone — keeps
+/// its own form; the stamp comparison answers false for it anyway.
+fn key(path: &Path) -> PathBuf {
+    std::fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf())
+}
+
 fn log() -> &'static Mutex<Log> {
     static LOG: OnceLock<Mutex<Log>> = OnceLock::new();
     LOG.get_or_init(Default::default)
@@ -105,7 +117,7 @@ pub fn remember(path: &Path) {
     purge(&mut log, now);
     let owner = OWNER.with(|owner| owner.borrow().clone());
     log.writes.insert(
-        path.to_path_buf(),
+        key(path),
         Record {
             stamp,
             at: now,
@@ -123,7 +135,7 @@ pub fn own(path: &Path, owner: &str) -> Option<Stamp> {
     };
     purge(&mut log, now);
     log.writes
-        .get(path)
+        .get(&key(path))
         .filter(|record| record.owner.as_deref() == Some(owner))
         .map(|record| record.stamp)
 }
@@ -164,6 +176,28 @@ mod tests {
         std::thread::sleep(Duration::from_millis(10));
         std::fs::write(&path, b"second, longer").unwrap();
         assert!(!unchanged(&path, &stamp), "a file changed after us is not ours");
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn the_same_file_under_another_name_is_still_ours() {
+        // The app and the watcher do not always spell a path the same way.
+        // A symlink is the spelling this platform can build; on Windows the
+        // pair is a short (8.3) name and the verbatim one the watcher reports.
+        let dir = temp_dir("spelling");
+        let real = dir.join("real");
+        std::fs::create_dir_all(&real).unwrap();
+        let link = dir.join("link");
+        std::os::unix::fs::symlink(&real, &link).unwrap();
+
+        let _me = as_owner("w1");
+        let written = link.join("note.md");
+        std::fs::write(&written, b"x").unwrap();
+        remember(&written);
+
+        let reported = real.join("note.md");
+        let stamp = own(&reported, "w1").expect("the other spelling names the same file");
+        assert!(unchanged(&reported, &stamp), "and it still carries our stamp");
     }
 
     #[test]
