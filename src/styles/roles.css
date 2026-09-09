@@ -52,17 +52,17 @@
        palette pins to 4.5:1 against the light ground, so white on it clears
        AA for all eight (lib/architecture.test.js). Theme- and region-blind,
        like the fill above: a notebook's colour is what its owner knows it by. */
-    --app-red-solid: var(--theme-color-red-500);
-    --app-orange-solid: var(--theme-color-orange-500);
-    --app-yellow-solid: var(--theme-color-yellow-500);
-    --app-green-solid: var(--theme-color-green-500);
-    --app-blue-solid: var(--theme-color-blue-500);
-    --app-purple-solid: var(--theme-color-purple-500);
-    --app-pink-solid: var(--theme-color-pink-500);
-    --app-neutral-solid: var(--theme-color-neutral-500);
+    --app-red-solid: var(--theme-color-red-300);
+    --app-orange-solid: var(--theme-color-orange-300);
+    --app-yellow-solid: var(--theme-color-yellow-300);
+    --app-green-solid: var(--theme-color-green-300);
+    --app-blue-solid: var(--theme-color-blue-300);
+    --app-purple-solid: var(--theme-color-purple-300);
+    --app-pink-solid: var(--theme-color-pink-300);
+    --app-neutral-solid: var(--theme-color-neutral-300);
     /* The ink on any of them. Not `--app-on-brand`: that is the REGION's
        answer and flips to black where the region's accent is a bright step. */
-    --app-on-solid: var(--theme-color-white);
+    --app-on-solid: var(--theme-color-black);
 
     /* A region carries its own ink, so anything inside it starts readable —
        including text a component forgot to colour. */
@@ -83,6 +83,7 @@
     --app-brand-5: var(--app-blue-5);
     --app-brand-6: var(--app-blue-6);
     --app-brand: var(--app-blue);
+    --app-brand-ink: var(--app-blue-ink);
     --app-brand-weak: var(--app-blue-tint);
     --app-brand-outline: var(--app-blue-line);
   }
@@ -94,6 +95,7 @@
     --app-brand-5: var(--app-yellow-5);
     --app-brand-6: var(--app-yellow-6);
     --app-brand: var(--app-yellow);
+    --app-brand-ink: var(--app-yellow-ink);
     --app-brand-weak: var(--app-yellow-tint);
     --app-brand-outline: var(--app-yellow-line);
   }
@@ -105,6 +107,7 @@
     --app-brand-5: var(--app-orange-5);
     --app-brand-6: var(--app-orange-6);
     --app-brand: var(--app-orange);
+    --app-brand-ink: var(--app-orange-ink);
     --app-brand-weak: var(--app-orange-tint);
     --app-brand-outline: var(--app-orange-line);
   }
@@ -116,6 +119,7 @@
     --app-brand-5: var(--app-pink-5);
     --app-brand-6: var(--app-pink-6);
     --app-brand: var(--app-pink);
+    --app-brand-ink: var(--app-pink-ink);
     --app-brand-weak: var(--app-pink-tint);
     --app-brand-outline: var(--app-pink-line);
   }
@@ -127,6 +131,7 @@
     --app-brand-5: var(--app-green-5);
     --app-brand-6: var(--app-green-6);
     --app-brand: var(--app-green);
+    --app-brand-ink: var(--app-green-ink);
     --app-brand-weak: var(--app-green-tint);
     --app-brand-outline: var(--app-green-line);
   }
@@ -138,6 +143,7 @@
     --app-brand-5: var(--app-blue-5);
     --app-brand-6: var(--app-blue-6);
     --app-brand: var(--app-blue);
+    --app-brand-ink: var(--app-blue-ink);
     --app-brand-weak: var(--app-blue-tint);
     --app-brand-outline: var(--app-blue-line);
   }
@@ -149,6 +155,7 @@
     --app-brand-5: var(--app-red-5);
     --app-brand-6: var(--app-red-6);
     --app-brand: var(--app-red);
+    --app-brand-ink: var(--app-red-ink);
     --app-brand-weak: var(--app-red-tint);
     --app-brand-outline: var(--app-red-line);
   }
@@ -160,6 +167,7 @@
     --app-brand-5: var(--app-purple-5);
     --app-brand-6: var(--app-purple-6);
     --app-brand: var(--app-purple);
+    --app-brand-ink: var(--app-purple-ink);
     --app-brand-weak: var(--app-purple-tint);
     --app-brand-outline: var(--app-purple-line);
   }
@@ -171,6 +179,7 @@
     --app-brand-5: var(--app-neutral-5);
     --app-brand-6: var(--app-neutral-6);
     --app-brand: var(--app-neutral);
+    --app-brand-ink: var(--app-neutral-ink);
     --app-brand-weak: var(--app-neutral-tint);
     --app-brand-outline: var(--app-neutral-line);
   }
