@@ -222,7 +222,19 @@ pub fn configure<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builde
 /// required runtime symbols"). See docs/platform-gotchas.md#android
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let builder = configure(tauri::Builder::default());
+    let builder = tauri::Builder::default();
+    // FIRST, before anything else has a chance to start: a launch from the
+    // desktop icon while the app is hidden in the tray must not become a
+    // second app. The running instance gets the argv and shows itself; this
+    // process exits. `--hidden` is the autostart entry, which asks for no
+    // window — the only launch that hands over without revealing.
+    #[cfg(desktop)]
+    let builder = builder.plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
+        if !args.iter().any(|arg| arg == "--hidden") {
+            tray::reveal(app);
+        }
+    }));
+    let builder = configure(builder);
     // Only where the installed file can replace itself; the plugins are not
     // compiled on mobile (Cargo.toml). Registered here and NOT in `configure`:
     // the updater reads its pubkey and endpoint from tauri.conf.json, which the

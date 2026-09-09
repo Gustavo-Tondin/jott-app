@@ -25,6 +25,7 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 - **Typing in a note on Android no longer stalls after a pause.** The app's own auto-save was reloading every screen and refetching every picture in the note; it now recognises its own writes, and the save itself left the thread that draws.
 - **Typing in a task's fields is lighter too.** Each pause in the task panel was refreshing the whole window — sidebar, counts and all — for a field that changes none of them; now only the open screen redraws, and the reminder schedule when the reminder moved.
 - **On a phone, the app's own save no longer comes back as an outside change.** Saving to the phone's storage takes long enough that the app was mistaking its own write for another program's and reloading every screen after each pause; it now recognises the write the moment it lands.
+- **Opening Jott from its icon no longer leaves a second tray icon behind.** With the window closed to the tray, launching the app again now brings that window back instead of starting a whole second copy of Jott.
 
 ### Improved
 

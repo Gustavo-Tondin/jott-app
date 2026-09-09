@@ -69,3 +69,7 @@ tauri-plugin-process = "2"
 # Start with the session, hidden in the tray, so reminders ring on a machine
 # that never opened the window that day (2026-08-25). A switch in Settings.
 tauri-plugin-autostart = "2"
+# One process per machine. Closing the window only HIDES it (`tray.rs`), so a
+# launch from the desktop icon would otherwise start a SECOND app — a second
+# tray icon, a second reminder timer. The second process hands over and dies.
+tauri-plugin-single-instance = "2"
