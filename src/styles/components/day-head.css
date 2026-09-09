@@ -117,17 +117,13 @@
     translate: var(--seg-x) var(--seg-y);
     border-radius: var(--app-radius-lg);
     background: var(--app-brand);
-    /* Spring on the travel only: an overshooting box would clip the number. */
+    /* No spring on the travel: the first and last day sit flush with the
+       scroller's box (three weeks side by side, one on show), so an
+       overshoot there is simply cut off — see docs/platform-gotchas.md. */
     transition:
-      translate var(--app-duration-medium) var(--app-ease-spring),
-      inline-size var(--app-duration-medium) var(--app-ease-out),
-      block-size var(--app-duration-medium) var(--app-ease-out);
-  }
-  /* THE FIRST AND LAST DAY have no room for the spring: they sit flush with
-     the scroller's box, which cuts the overshoot off. The state is written by
-     the action, which is the only one that has measured. */
-  .day-head__days--glides.is-at-edge::before {
-    transition-timing-function: var(--app-ease-out);
+      translate var(--app-transition-medium),
+      inline-size var(--app-transition-medium),
+      block-size var(--app-transition-medium);
   }
   .day-head__slot {
     display: flex;

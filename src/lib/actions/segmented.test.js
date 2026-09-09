@@ -18,12 +18,6 @@ function track({ measured = true } = {}) {
   return { node, a, b };
 }
 
-/// The track's own width, which jsdom does not have either: the pill's easing
-/// is decided against it.
-function wide(node, width) {
-  Object.defineProperty(node, "clientWidth", { value: width, configurable: true });
-}
-
 function lay(el, { left, width, top = 2, height = 28 }) {
   Object.defineProperties(el, {
     offsetLeft: { value: left, configurable: true },
@@ -168,52 +162,6 @@ describe("segmented", () => {
     lay(node.querySelector("button"), { left: 0, width: 84, top: 0, height: 84 });
     segmented(node, { active: ".day-head__day.is-selected", glides: "day-head__days--glides" });
     expect(node.classList.contains("day-head__days--glides")).toBe(false);
-  });
-
-  // A spring overshoots the arrival, and the Home's week is a track that
-  // SCROLLS: on the first and last day — flush with the box — the overshoot
-  // was simply cut off. The segmented control never gets here: its items sit
-  // inside the well's padding, so none of them is flush.
-  describe("the pill at the track's edge", () => {
-    function week(selected) {
-      document.body.innerHTML = `
-        <ol class="day-head__days">
-          <li><button class="day-head__day">8</button></li>
-          <li><button class="day-head__day">9</button></li>
-          <li><button class="day-head__day">10</button></li>
-        </ol>`;
-      const node = document.querySelector(".day-head__days");
-      const days = [...node.querySelectorAll("button")];
-      days.forEach((d, i) => lay(d, { left: i * 88, width: 84, top: 0, height: 84 }));
-      days[selected].classList.add("is-selected");
-      wide(node, 260);
-      segmented(node, { active: ".day-head__day.is-selected", glides: "day-head__days--glides" });
-      return node;
-    }
-
-    it("springs to a day the track has room around", () => {
-      expect(week(1).classList.contains("is-at-edge")).toBe(false);
-    });
-
-    it("does not spring to the first or the last day", () => {
-      expect(week(0).classList.contains("is-at-edge")).toBe(true);
-      expect(week(2).classList.contains("is-at-edge")).toBe(true);
-    });
-
-    it("lets go of the state on the way back to the middle", async () => {
-      const node = week(0);
-      const days = [...node.querySelectorAll("button")];
-      days[0].classList.remove("is-selected");
-      days[1].classList.add("is-selected");
-      await settle();
-      expect(node.classList.contains("is-at-edge")).toBe(false);
-    });
-
-    it("keeps the spring where the track measures nothing", () => {
-      const { node } = track();
-      segmented(node);
-      expect(node.classList.contains("is-at-edge")).toBe(false);
-    });
   });
 
   it("survives an engine with no ResizeObserver", () => {

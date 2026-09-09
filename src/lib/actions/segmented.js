@@ -9,17 +9,6 @@
 const ACTIVE = ".theme-segmented__item--active";
 const GLIDES = "theme-segmented--glides";
 
-/// The state that takes the SPRING off the travel: an item flush with the
-/// track's edge has no room for the overshoot, and on a track that scrolls
-/// (the Home's week) that overshoot is simply cut off. A track that measures
-/// nothing keeps the spring.
-const AT_EDGE = "is-at-edge";
-
-function atEdge(node, at) {
-  const room = node.clientWidth;
-  return !!room && (at.x <= 1 || at.x + at.w >= room - 1);
-}
-
 /// The four numbers the pill is drawn from, written onto the track.
 function paint(node, glides, at) {
   node.style.setProperty("--seg-x", `${at.x}px`);
@@ -43,14 +32,6 @@ export function segmented(node, options = {}) {
       return;
     }
     const at = { x: item.offsetLeft, y: item.offsetTop, w, h: item.offsetHeight };
-    // The curve is a CLASS and not a variable, and it settles one
-    // `offsetWidth` before the move: a `var()` inside `transition` does not
-    // reach the pseudo-element in time (docs/platform-gotchas.md).
-    const edge = atEdge(node, at);
-    if (edge !== node.classList.contains(AT_EDGE)) {
-      node.classList.toggle(AT_EDGE, edge);
-      void node.offsetWidth;
-    }
     // A rebuilt track starts where the old one ended, so the browser has a
     // value to transition FROM. Reading `offsetWidth` between the two paints
     // is what makes them two style resolutions rather than one — without it
