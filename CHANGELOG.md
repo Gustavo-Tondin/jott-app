@@ -16,6 +16,7 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 - **On a phone, one ⋮ per screen.** The menu that sat alone on the canvas of a list or notes space (and on the Home's blocks) is now part of the top bar's ⋮.
 - **The top bar's buttons float on every screen on a phone**, with no band painted behind them.
 - **Switches in Settings have white knobs again**, instead of black.
+- **A ticked task on the page is one clean colour**: no darker rim around the box, and a white tick.
 
 ### Improved
 

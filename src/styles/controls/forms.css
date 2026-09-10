@@ -160,9 +160,11 @@
   .theme-checkbox:active:not(:disabled) {
     scale: 0.88;
   }
+  /* Ticked, the box is ONE colour: the rim takes the fill's accent, not the
+     darker ink one, which drew a second outline on the light canvas. */
   .theme-checkbox:checked {
     background: var(--app-brand);
-    border-color: var(--app-brand-ink);
+    border-color: var(--app-brand);
   }
   .theme-checkbox:checked::after {
     content: "";
@@ -171,7 +173,7 @@
     top: 0.125rem;
     width: 0.3125rem;
     height: 0.5625rem;
-    border: solid var(--app-on-brand);
+    border: solid var(--app-on-check);
     border-width: 0 0.125rem 0.125rem 0;
     transform: rotate(45deg);
   }

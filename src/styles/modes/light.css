@@ -13,11 +13,14 @@
   --app-bg: var(--theme-color-white-tint);
   --app-surface: var(--theme-color-white);
   --app-surface-sunken: var(--theme-color-white);
+  /* The tick in a checked box: dark on the chrome, white on the canvas. */
+  --app-on-check: var(--theme-color-black);
 }
 [data-mode="light"] [data-region="canvas"] {
   --app-bg: var(--theme-color-white);
   --app-surface: var(--theme-color-white-tint);
   --app-surface-sunken: var(--theme-color-white-tint);
+  --app-on-check: var(--theme-color-white);
 }
 
 /* ---- everything a light ground shares ---------------------------------- */
