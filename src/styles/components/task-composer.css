@@ -4,18 +4,33 @@
  * it. Selectors are the stable BEM hooks a theme may restyle. */
 
 @layer components {
+  /* The quick note bar's plate (notes-space.css): the large corner, no
+     outline, raised. The ＋ sits 8 from three edges, so its corner is the
+     bar's less 8; the square keeps 12 on its own side. */
   .task-composer {
     display: flex;
     align-items: center;
     gap: var(--app-space-8);
-    padding: var(--app-space-8) var(--app-space-12);
+    padding: var(--app-space-8);
+    padding-inline-start: var(--app-space-12);
     background: var(--app-surface);
-    border: 0.0625rem solid var(--app-line);
-    border-radius: var(--app-radius-md);
+    border-radius: var(--app-radius-lg);
+    box-shadow: var(--app-shadow-raised);
+    transition: box-shadow var(--app-transition-fast);
+  }
+  /* The input inside is plain, so the bar says it has the focus. */
+  .task-composer:focus-within {
+    box-shadow:
+      var(--app-shadow-raised),
+      0 0 0 0.1875rem var(--app-brand-weak);
+  }
+  .task-composer .task-composer__input::placeholder {
+    color: var(--app-ink-muted);
   }
 
   /* The bar variant is pinned to the bottom of the scrolling content and the
-     cards pass UNDERNEATH it — hence the opaque surface and the shadow. */
+     cards pass UNDERNEATH it — hence the opaque surface, and the lift is what
+     sets it apart from the cards it covers. */
   .task-composer--bar {
     position: sticky;
     bottom: 0;
@@ -23,8 +38,6 @@
     /* `auto` pushes it to the bottom of the panel even when the list is
        short — the wireframe draws it there, not floating under two cards. */
     margin-block-start: auto;
-    /* Small on purpose: it says "the cards pass under this", not "lifted". */
-    box-shadow: 0 -0.0625rem 0.25rem color-mix(in srgb, var(--app-ink) 8%, transparent);
   }
 
   /* On a phone the bar rides the bottom of the VIEWPORT: a list shorter than
@@ -124,9 +137,10 @@
   }
 
   /* Inside the dialog the row is the whole point, so it sits flush. */
-  .task-composer--dialog {
+  .task-composer--dialog,
+  .task-composer--dialog:focus-within {
     background: var(--app-surface-sunken);
-    border-color: transparent;
+    box-shadow: none;
   }
 
   /* The card checkbox worn by something that is not a control: it keeps the
@@ -143,7 +157,7 @@
     inline-size: 2.25rem;
     block-size: 2.25rem;
     padding: 0;
-    border-radius: var(--app-radius-sm);
+    border-radius: calc(var(--app-radius-lg) - var(--app-space-8));
   }
 
   /* Plain input: the row already IS the box, so a second border inside it

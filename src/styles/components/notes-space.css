@@ -32,9 +32,11 @@
   }
 
   /* ---- the quick note bar ----
-     One field and one +, on the surface step. The field grows with what is
-     typed — `field-sizing` where it exists, a floor of one line everywhere. */
+     One field and one +, on the surface step, raised rather than outlined —
+     the task composer wears the same plate (task-composer.css). The field
+     grows with what is typed (NotesSpace.svelte), to eight lines. */
   .quick-note {
+    --quick-note-add: 2.5rem;
     display: flex;
     align-items: end;
     gap: var(--app-space-8);
@@ -42,12 +44,25 @@
     padding: var(--app-space-8);
     background: var(--app-surface);
     border-radius: var(--app-radius-lg);
+    box-shadow: var(--app-shadow-raised);
+    transition: box-shadow var(--app-transition-fast);
+  }
+  /* The field inside has no ring of its own, so the bar says it has the focus. */
+  .quick-note:focus-within {
+    box-shadow:
+      var(--app-shadow-raised),
+      0 0 0 0.1875rem var(--app-brand-weak);
   }
   .quick-note__field {
     flex: 1;
     min-inline-size: 0;
-    /* The bar IS the field: no second box inside a box. */
-    padding: var(--app-space-6) var(--app-space-8);
+    /* The bar IS the field: no second box inside a box. One line is exactly
+       the +'s height, so the text sits on its centre; more lines grow upward
+       and `align-items: end` keeps the + on the last. The first value of each
+       pair is for an engine without `lh`. */
+    padding-inline: var(--app-space-8);
+    padding-block: var(--app-space-10);
+    padding-block: calc((var(--quick-note-add) - 1lh) / 2);
     background: none;
     border: none;
     color: var(--app-ink);
@@ -56,26 +71,28 @@
     line-height: var(--app-leading-normal);
     resize: none;
     field-sizing: content;
+    /* Eight lines and the padding, then it scrolls. */
     max-block-size: 12rem;
+    max-block-size: calc(7lh + var(--quick-note-add));
     overflow-y: auto;
   }
   .quick-note__field:focus {
     outline: none;
   }
   .quick-note__field::placeholder {
-    color: var(--app-ink-faint);
+    color: var(--app-ink-muted);
   }
   /* The one filled button of the screen. Square, so it stays a target as the
-     field grows past one line. */
+     field grows past one line; its corner is the bar's less the 8 between. */
   .quick-note__add {
     flex: 0 0 auto;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    inline-size: 2.5rem;
-    block-size: 2.5rem;
+    inline-size: var(--quick-note-add);
+    block-size: var(--quick-note-add);
     padding: 0;
-    border-radius: var(--app-radius-md);
+    border-radius: calc(var(--app-radius-lg) - var(--app-space-8));
   }
 
   .notes-space__folders {

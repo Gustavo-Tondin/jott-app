@@ -188,20 +188,24 @@
     min-block-size: 0;
     background: var(--app-bg);
     border-radius: var(--app-radius-md);
-    box-shadow: var(--app-shadow-popover);
+    /* Not the popover's lift: this bar is on screen the whole time a note is. */
+    box-shadow: var(--app-shadow-raised);
   }
   /* The bar gives way when the canvas is short of room — it is the one that
      scrolls. The dock button is a single square with nothing to give. */
   .format-floats > .format-float:not(.format-float--dock) {
     flex: 0 1 auto;
   }
+  /* The bar's own padding and button, so the two pills are the same height
+     and their corners concentric: one more glyph of the bar, set apart. */
   .format-float--dock {
     flex: 0 0 auto;
+    padding: var(--app-space-2);
   }
   /* The sidebar's glyph, MIRRORED: the vendored icon draws the panel on the
      leading edge; flipping it keeps the two panels reading as one kind. */
   .format-float__dock {
-    padding: var(--app-space-8);
+    border-radius: var(--format-inner-radius);
   }
   .format-float__dock .theme-icon {
     scale: -1 1;

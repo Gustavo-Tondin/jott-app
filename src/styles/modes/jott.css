@@ -29,6 +29,10 @@
   --app-hover: color-mix(in srgb, var(--theme-color-white) 8%, transparent);
   --app-shadow-popover: 0 0.375rem 1.25rem
     color-mix(in srgb, var(--theme-color-white) 18%, transparent);
+  /* A bar that stays on screen (composers, the floating format bar): the
+     popover's lift, quieter, because it is always there. */
+  --app-shadow-raised: 0 0.125rem 0.5rem
+    color-mix(in srgb, var(--theme-color-white) 10%, transparent);
 
   --app-6-1: var(--theme-color-6-200);
   --app-6-2: color-mix(in oklab, var(--theme-color-6-200), var(--theme-color-6-300));
@@ -150,6 +154,10 @@
   --app-hover: color-mix(in srgb, var(--theme-color-black) 8%, transparent);
   --app-shadow-popover: 0 0.375rem 1.25rem
     color-mix(in srgb, var(--theme-color-black) 18%, transparent);
+  /* A bar that stays on screen (composers, the floating format bar): the
+     popover's lift, quieter, because it is always there. */
+  --app-shadow-raised: 0 0.125rem 0.5rem
+    color-mix(in srgb, var(--theme-color-black) 10%, transparent);
 
   --app-6-1: var(--theme-color-6-600);
   --app-6-2: color-mix(in oklab, var(--theme-color-6-600), var(--theme-color-6-500));
