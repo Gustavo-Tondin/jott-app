@@ -97,6 +97,21 @@ describe("swipe", () => {
     expect(el.style.getPropertyValue("--swipe-x")).toBe("");
   });
 
+  test("an action the list keeps sends the card straight back, its square gone", () => {
+    // Taking a task out of the day on a plain list: the card stays, and the
+    // list redraws its square as the opposite act's the moment it answers.
+    const el = card();
+    const fired = [];
+    swipe(el, { onRight: () => fired.push("right"), rightKeeps: true });
+
+    drag(el, 20, 150, { hold: true }); // 43%: past the end point
+    expect(travel(el)).toBe(WIDTH);
+    fire(el, "pointerup", { pointerId: 1, clientX: 150, clientY: 10 });
+    expect(fired).toEqual(["right"]);
+    expect(el.style.getPropertyValue("--swipe-x")).toBe("");
+    expect(el.hasAttribute("data-swipe")).toBe(false);
+  });
+
   test("armed at the end, the card leaves whole and the square takes the row", () => {
     const el = card();
     swipe(el, { onLeft: () => {} });

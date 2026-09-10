@@ -1,5 +1,5 @@
 // Swiping a card sideways. Used on the ITEM:
-//   <li use:swipe={{ onLeft, onRight, leftHalf, rightHalf, leftEnabled, rightEnabled }}>
+//   <li use:swipe={{ onLeft, onRight, leftHalf, rightHalf, leftKeeps, rightKeeps, … }}>
 // LEFT reveals the action on the right, RIGHT the one on the left; the reveal
 // is CSS (`data-swipe` + `--swipe-x`, swipe.css), committed only on release.
 // The direction decides in the first pixels — the reorder owns the vertical.
@@ -35,6 +35,10 @@ export function swipe(node, params) {
   const allowed = (dx) =>
     dx < 0 ? opts.leftEnabled !== false && !!opts.onLeft : opts.rightEnabled !== false && !!opts.onRight;
   const half = (dx) => (dx < 0 ? !!opts.leftHalf : !!opts.rightHalf);
+  /// Whether the list still holds the card after the action (`*Keeps`; a half
+  /// action always does). A kept card comes straight back; only one the list
+  /// drops waits out of sight.
+  const keeps = (dx) => (dx < 0 ? opts.leftKeeps : opts.rightKeeps) ?? half(dx);
 
   function paint(dx) {
     node.style.setProperty("--swipe-x", `${dx}px`);
@@ -58,13 +62,16 @@ export function swipe(node, params) {
     node.classList.remove("swipe--returning", "swipe--snap", "swipe--armed");
   }
 
-  function reset() {
+  function reset(fired = false) {
     const travelled = node.hasAttribute("data-swipe");
     clearTimeout(gone);
     clearTimeout(snapping);
     node.style.removeProperty("--swipe-x");
     node.classList.remove("swipe--dragging", "swipe--armed", "swipe--snap");
     if (!travelled) return;
+    // A card whose action fired loses its square at once: the list redraws it
+    // mid-return as the OPPOSITE act's square (the day toggles both ways).
+    if (fired) node.removeAttribute("data-swipe");
     // The glide home is a class ADDED for the return only: a standing
     // `transition: transform` would also catch the reorder's transform. The
     // direction stays until it lands, so the square shrinks with the card.
@@ -164,8 +171,8 @@ export function swipe(node, params) {
       return;
     }
     const run = dx < 0 ? opts.onLeft : opts.onRight;
-    if (half(dx)) {
-      reset();
+    if (keeps(dx)) {
+      reset(true);
     } else {
       // Gone: the square keeps the row until the list drops the card.
       node.classList.remove("swipe--dragging");

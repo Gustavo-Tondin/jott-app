@@ -482,10 +482,11 @@
           }),
   );
 
-  /// What a rightward swipe means for one card: `{ adds, run }`. Derived: the
-  /// same instance serves a day and a plain list. IT GOES BOTH WAYS — on a day
-  /// the card is taken OUT; anywhere else it is a toggle into/out of today.
-  /// `adds` is what the revealed square draws before the finger is lifted.
+  /// What a rightward swipe means for one card: `{ adds, leaves, run }`.
+  /// Derived: the same instance serves a day and a plain list. IT GOES BOTH
+  /// WAYS — on a day the card is taken OUT (and `leaves` the screen); anywhere
+  /// else it is a toggle into/out of today and stays put. `adds` is what the
+  /// revealed square draws before the finger is lifted.
   const daySwipe = $derived(
     readOnly
       ? null
@@ -493,6 +494,7 @@
           if (isDay) {
             return {
               adds: false,
+              leaves: true,
               run: () =>
                 act(async () => {
                   const id = await ensureTaskId(entry.list, entry.task);

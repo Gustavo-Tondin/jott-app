@@ -209,6 +209,8 @@
         // Sending a task to the day keeps the card, so it counts halfway;
         // taking it out, like deleting, is carried to the end.
         rightHalf: !!daySwipe?.(entry)?.adds,
+        // Only a day screen drops the card it takes out; a list keeps it.
+        rightKeeps: !daySwipe?.(entry)?.leaves,
       }}
       index={i}
       focusable={i === at}
