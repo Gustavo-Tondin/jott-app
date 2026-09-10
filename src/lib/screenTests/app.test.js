@@ -1122,10 +1122,7 @@ describe("App", () => {
     expect(screen.queryByLabelText("task name")).toBeNull();
   });
 
-  // Retried because it is flaky on the Windows runner and nowhere else: the
-  // drawer sometimes does not open at all, about one run in two, and what
-  // that measures is the runner, not the app. See docs/estado-atual.md.
-  test("on a phone the notebooks screen closes the drawer it was opened from", { retry: 2 }, async () => {
+  test("on a phone the notebooks screen closes the drawer it was opened from", async () => {
     // User report, 2026-08-24: tapping the notebook's name in the drawer's own
     // footer swapped the panel behind a drawer that stayed open over it. The
     // shell already had the rule — going anywhere closes it — but the picker is
@@ -1144,15 +1141,18 @@ describe("App", () => {
     shell({ platform: "android", recent_notebooks: [] });
     render(App);
 
+    // Opening a notebook ENDS by restoring the last screen, and going to a
+    // screen closes the drawer — a drawer opened before that lands is shut in
+    // the same tick, before anyone looks. The bar shows up earlier than that
+    // wherever a module loads slowly, so wait for the restored list first.
+    await screen.findByText("Comprar leite");
+
     // Open the drawer from the compact bar, and PROVE it opened — the first
     // version of this test clicked the page ⋮ by mistake, so it asserted that
     // a drawer nobody had opened was closed, and passed against the bug.
-    await userEvent.click(await screen.findByRole("button", { name: "open sidebar" }));
-    // A generous window on purpose: the default second is not enough on a
-    // loaded CI runner, and this failing there says nothing about the app.
-    await waitFor(
-      () => expect(document.querySelector(".shell__sidebar--open")).not.toBeNull(),
-      { timeout: 5000 },
+    await userEvent.click(screen.getByRole("button", { name: "open sidebar" }));
+    await waitFor(() =>
+      expect(document.querySelector(".shell__sidebar--open")).not.toBeNull(),
     );
 
     // The name opens the notebook menu (2026-09-07); its last row is the screen.
