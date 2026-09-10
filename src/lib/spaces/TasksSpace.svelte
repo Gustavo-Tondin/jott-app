@@ -26,6 +26,7 @@
   import BulkBar from "../components/BulkBar.svelte";
   import TaskCards from "../components/TaskCards.svelte";
   import TaskComposer from "../components/TaskComposer.svelte";
+  import CaptureFab from "../components/CaptureFab.svelte";
   import Menu from "../components/Menu.svelte";
   import Icon from "../components/Icon.svelte";
 
@@ -67,7 +68,8 @@
     /// Controls the HOST wants on the top row, between the title and the ⋮ —
     /// in the row so the ⋮ stays at the far right of the same line.
     toolbar,
-    /// `"button"` (the blue New task), `"bar"` (the pinned composer) or
+    /// `"button"` (the blue New task), `"bar"` (the pinned composer), `"fab"`
+    /// (the phone's: the Home's round +, which opens that bar focused) or
     /// `"none"` (the Home, whose capture box is where everything is written).
     compose = "button",
     /// Put the cursor in the composer as soon as it appears. For the bar that
@@ -272,6 +274,10 @@
   let joining = $derived(isDay ? { into: day } : {});
 
   const write = (intent) => act(() => composeTask(intent, joining));
+
+  /// `compose="fab"`: whether the + has opened the bar. Put away by the bar's
+  /// own handle, like the Home's.
+  let fabOpen = $state(false);
 
   const newTask = () =>
     act(async () => {
@@ -714,16 +720,20 @@
     {/if}
     <!-- The composing bar steps aside while the bulk bar is up: two bars on
          the same edge would sit on top of each other. -->
-    {#if !readOnly && compose === "bar" && !picking}
+    {#if !readOnly && !picking && (compose === "bar" || (compose === "fab" && fabOpen))}
       <TaskComposer
         lists={composeTargets}
         defaultList={composeList}
-        autofocus={composeAutofocus}
+        autofocus={composeAutofocus || compose === "fab"}
         {dateFormat}
         {f}
         onSubmit={write}
-        onDismiss={composeDismiss}
+        onDismiss={compose === "fab" ? () => (fabOpen = false) : composeDismiss}
       />
+    {:else if !readOnly && !picking && compose === "fab"}
+      <div class="space-fab">
+        <CaptureFab canNote={false} onPick={() => (fabOpen = true)} />
+      </div>
     {/if}
   {/if}
 </section>

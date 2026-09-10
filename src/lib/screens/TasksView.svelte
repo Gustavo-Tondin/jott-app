@@ -37,6 +37,8 @@
     /// these the drag plays out and the order is dropped on release.
     onSetSort,
     onSetOrder,
+    /// The narrow shell (shell/compact.js): the bar opens from a round +.
+    compact = false,
   } = $props();
 
   /// The folder holding the Inbox list — `jott.tasks/task-list.md` →
@@ -55,7 +57,7 @@
       all={showAll}
       origin={showAll ? origin : null}
       align="center"
-      compose="bar"
+      compose={compact ? "fab" : "bar"}
       {onSetSort}
       {onSetOrder}
       {lists}

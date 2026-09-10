@@ -3,7 +3,7 @@
 // Screen tests with the bridge mocked. What they catch, what they deliberately
 // do not, and the fakes they share: `lib/test/screens.js`.
 
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/svelte";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/svelte";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { bridge, invoke } from "../test/bridge.js";
@@ -101,6 +101,8 @@ describe("SpaceView", () => {
       if (!container.querySelector(".task-composer")) throw new Error("no bar");
     });
     expect(container.querySelector(".tasks-space__new")).toBeNull();
+    // Part of the screen, so nothing to put it away with.
+    expect(container.querySelector(".task-composer__handle")).toBeNull();
   });
 
   test("submitting from the ＋ leaves the cursor in the field, ready for the next task", async () => {
@@ -130,6 +132,76 @@ describe("SpaceView", () => {
       if (document.activeElement !== field) throw new Error("focus left the field");
     });
     expect(field.value).toBe("");
+  });
+
+  test("below 768px a tasks space has the round + instead of the bar; one tap opens it focused", async () => {
+    // The Home's + (user call, 2026-09-10), with one tap instead of two: a
+    // tasks space has only tasks to make.
+    bridge({ list_tasks: [] });
+    const { container } = render(SpaceView, {
+      props: { space, lists, counts: {}, compact: true, onSelectTask: noop },
+    });
+
+    const plus = await waitFor(() => {
+      const el = container.querySelector(".space-fab .capture-fab__toggle");
+      if (!el) throw new Error("no +");
+      return el;
+    });
+    expect(container.querySelector(".task-composer")).toBeNull();
+
+    await userEvent.click(plus);
+    const field = await waitFor(() => {
+      const el = container.querySelector(".task-composer__input");
+      if (!el) throw new Error("no bar");
+      return el;
+    });
+    await waitFor(() => expect(document.activeElement).toBe(field));
+    expect(container.querySelector(".space-fab")).toBeNull();
+
+    // The Home's bar's way out, and the + comes back.
+    await fireEvent.click(container.querySelector(".task-composer__handle"));
+    await waitFor(() => {
+      if (!container.querySelector(".space-fab")) throw new Error("no + again");
+    });
+  });
+
+  test("below 768px a notes space has the round + instead of the quick note bar", async () => {
+    // One tap: a blank note, opened with the cursor in its body (`fresh`).
+    bridge({ list_notes: [], note_folders: [], create_note: "Inbox/New note.md" });
+    const opened = [];
+    const notes = { ...space, kind: "notes" };
+    const { container } = render(SpaceView, {
+      props: {
+        space: notes,
+        compact: true,
+        notesInbox: "Inbox",
+        onOpenNote: (...args) => opened.push(args),
+      },
+    });
+
+    const plus = await waitFor(() => {
+      const el = container.querySelector(".space-fab .capture-fab__toggle");
+      if (!el) throw new Error("no +");
+      return el;
+    });
+    expect(container.querySelector(".quick-note")).toBeNull();
+
+    await userEvent.click(plus);
+    await waitFor(() => expect(opened).toHaveLength(1));
+    expect(opened[0][0]).toBe("Inbox/New note.md");
+    expect(opened[0][2]).toEqual({ fresh: true });
+    expect(invoke).toHaveBeenCalledWith(
+      "create_note",
+      expect.objectContaining({ inFolder: "Inbox", title: "New note" }),
+    );
+
+    // The desktop keeps the bar, and has no + to find.
+    cleanup();
+    const wide = render(SpaceView, { props: { space: notes, notesInbox: "Inbox" } });
+    await waitFor(() => {
+      if (!wide.container.querySelector(".quick-note")) throw new Error("no bar");
+    });
+    expect(wide.container.querySelector(".space-fab")).toBeNull();
   });
 
   test("below 768px the screen does not repeat the name the header already says", async () => {

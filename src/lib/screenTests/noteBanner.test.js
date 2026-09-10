@@ -33,12 +33,44 @@ describe("NoteBanner", () => {
     expect(container.querySelector(".note-banner--empty")).toBeTruthy();
   });
 
-  test("a note with no banner is where one is chosen from", () => {
-    // The ⋮ is on the head, not on the block: with no banner there would be
-    // nowhere to open one from at all, and "add a banner" would live only in
-    // the page menu two screens away.
-    render(NoteBanner, { props: props() });
-    expect(screen.getByLabelText("banner options")).toBeTruthy();
+  test("the title opens its name and the banner, in one popover", async () => {
+    // No ⋮ of its own any more (user call, 2026-09-10): the one ⋮ of a note
+    // is the page's, and the title is the door to both — with or without a
+    // banner there is always a title to click.
+    render(NoteBanner, { props: props({ onRename: noop }) });
+    expect(screen.queryByLabelText("banner options")).toBeNull();
+
+    await userEvent.click(screen.getByRole("button", { name: "Ideia" }));
+    expect(screen.getByRole("dialog", { name: "Title and banner" })).toBeTruthy();
+    expect(screen.getByLabelText("Title").value).toBe("Ideia");
+    expect(screen.getByText("Choose image…")).toBeTruthy();
+  });
+
+  test("the name renames on Enter and on leaving the popover; Escape drops it", async () => {
+    const renamed = [];
+    render(NoteBanner, { props: props({ onRename: (name) => renamed.push(name) }) });
+    const retitle = async (text) => {
+      await userEvent.click(screen.getByRole("button", { name: "Ideia" }));
+      const field = screen.getByLabelText("Title");
+      await userEvent.clear(field);
+      await userEvent.type(field, text);
+    };
+
+    await retitle("Ideia nova{Enter}");
+    expect(renamed).toEqual(["Ideia nova"]);
+    expect(screen.queryByRole("dialog")).toBeNull();
+
+    await retitle("Outra");
+    await userEvent.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(renamed).toEqual(["Ideia nova"]);
+
+    // Picking a colour leaves the popover open; clicking away keeps the name.
+    await retitle("Terceira");
+    await userEvent.click(screen.getByRole("button", { name: "Yellow" }));
+    expect(screen.getByRole("dialog")).toBeTruthy();
+    await userEvent.click(document.body);
+    expect(renamed).toEqual(["Ideia nova", "Terceira"]);
   });
 
   test("below 768px the title is still the note's own head", () => {
@@ -58,7 +90,7 @@ describe("NoteBanner", () => {
     expect(banner.getAttribute("style")).toContain("var(--app-6-fill)");
     // And the picker's swatch shows THAT step, not the region's base: the
     // colour chosen is the colour received (2026-08-26).
-    await userEvent.click(screen.getByLabelText("banner options"));
+    await userEvent.click(screen.getByRole("button", { name: "Ideia" }));
     expect(screen.getByRole("button", { name: "Yellow" }).getAttribute("style")).toContain(
       "--dot: var(--app-6-fill)",
     );
@@ -76,13 +108,13 @@ describe("NoteBanner", () => {
     expect(img.getAttribute("src")).toContain("Caderno");
   });
 
-  test("the ⋮ takes the banner off, and a read-only note has no ⋮ at all", async () => {
+  test("the popover takes the banner off, and a read-only title opens nothing", async () => {
     const set = [];
     render(NoteBanner, {
       props: props({ banner: { kind: "color", value: "1" }, onSet: (v) => set.push(v) }),
     });
 
-    await userEvent.click(screen.getByLabelText("banner options"));
+    await userEvent.click(screen.getByRole("button", { name: "Ideia" }));
     await userEvent.click(screen.getByText("Remove banner"));
     expect(set).toEqual([null]);
 
@@ -90,7 +122,8 @@ describe("NoteBanner", () => {
     render(NoteBanner, {
       props: props({ banner: { kind: "color", value: "1" }, readOnly: true }),
     });
-    expect(screen.queryByLabelText("banner options")).toBeNull();
+    expect(screen.getByText("Ideia")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Ideia" })).toBeNull();
   });
 
   test("the properties line: created and the tags, picked from the catalogue", async () => {

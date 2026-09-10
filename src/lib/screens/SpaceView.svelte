@@ -40,6 +40,8 @@
     /// The notebook's default board layout for a notes space that never
     /// chose (`layout.noteLayout`); a tasks screen ignores it.
     noteLayout = "grid",
+    /// `(done) => void` — the image picker, for a note card's banner.
+    onPickImage = null,
     onChanged,
     onError,
   } = $props();
@@ -84,7 +86,9 @@
       header={!compact}
       dot={color}
       align="center"
-      compose="bar"
+      compose={compact ? "fab" : "bar"}
+      {compact}
+      {onPickImage}
       readOnly={readOnly || space.readOnly}
       {reloadKey}
       {selectedTask}

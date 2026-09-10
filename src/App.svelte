@@ -1999,7 +1999,7 @@
                 <div class="format-float format-float--dock">
                   <button
                     type="button"
-                    class="theme-btn theme-btn--icon format-float__dock"
+                    class="theme-btn--icon format-float__dock"
                     title={S.formattingDock}
                     aria-label={S.formattingDock}
                     onclick={() => (formatting = true)}
@@ -2139,6 +2139,7 @@
             bind:noteEditor
             onSetBanner={setNoteBanner}
             onChooseImage={() => (pickingImage = "banner")}
+            onPickImage={(done) => (pickingImage = done)}
             onRenameNote={renameCurrentNote}
             onSetTags={setNoteTags}
             onCreateTag={createNoteTag}

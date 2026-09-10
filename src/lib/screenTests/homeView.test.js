@@ -380,8 +380,8 @@ describe("HomeView", () => {
     const rows = [...document.querySelectorAll(".menu__list > .menu__item > .menu__link")].map(
       (el) => el.textContent.trim(),
     );
-    // The same five the board offers, in the same order.
-    expect(rows).toEqual(["Pin", "Move to…", "Rename", "Duplicate", "Delete"]);
+    // The same rows the board offers, in the same order.
+    expect(rows).toEqual(["Pin", "Move to…", "Banner", "Rename", "Duplicate", "Delete"]);
 
     // The pin is a button of its own, because a pin is a STATE: the card has
     // to say whether it is pinned without being asked.

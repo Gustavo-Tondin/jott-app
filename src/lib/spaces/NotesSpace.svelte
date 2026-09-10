@@ -25,6 +25,7 @@
   import ContextMenu from "../components/ContextMenu.svelte";
   import Icon from "../components/Icon.svelte";
   import BulkBar from "../components/BulkBar.svelte";
+  import CaptureFab from "../components/CaptureFab.svelte";
   import NoteCard from "../components/NoteCard.svelte";
 
   let {
@@ -66,6 +67,12 @@
     /// How a date is drawn — the notebook's `dateDisplayFormat`, which the
     /// age stamp falls back to once a card stops counting days.
     dateFormat = "mm/dd/yyyy",
+    /// The narrow shell (shell/compact.js): no quick note bar, the Home's
+    /// round + instead — a note is written in the editor, not over the board.
+    compact = false,
+    /// `(done) => void` — opens the image picker for a card's banner and
+    /// hands `done` the address. Null: a card's banner is colours only.
+    onPickImage = null,
   } = $props();
 
 
@@ -224,18 +231,33 @@
   let draft = $state("");
   let quick = $state(null);
 
-  const quickCreate = () =>
+  /// An untitled note where this place files one, opened with the cursor in
+  /// its body — the + on an empty field, and the phone's round +.
+  const createFresh = () =>
     act(async () => {
-      const text = draft;
       const path = await api.createNote(folder, target, S.newNoteTitle);
-      if (text.trim()) {
-        await api.writeNote(folder, path, text.endsWith("\n") ? text : `${text}\n`);
-        draft = "";
-        quick?.focus();
-      } else {
-        onOpenNote?.(path, folder, { fresh: true });
-      }
+      onOpenNote?.(path, folder, { fresh: true });
     });
+
+  const quickCreate = () => {
+    const text = draft;
+    if (!text.trim()) return createFresh();
+    return act(async () => {
+      const path = await api.createNote(folder, target, S.newNoteTitle);
+      await api.writeNote(folder, path, text.endsWith("\n") ? text : `${text}\n`);
+      draft = "";
+      quick?.focus();
+    });
+  };
+
+  // The field grows with what is typed up to the stylesheet's cap, then
+  // scrolls. `field-sizing: content` says the same, but WebKitGTK ignores it.
+  $effect(() => {
+    void draft;
+    if (!quick) return;
+    quick.style.blockSize = "auto";
+    quick.style.blockSize = `${quick.scrollHeight}px`;
+  });
 
   function quickKey(event) {
     if (event.key !== "Enter" || event.shiftKey) return;
@@ -387,6 +409,8 @@
       moveTargets,
       readOnly,
       openInNewTab,
+      canBanner: f("banners"),
+      pickImage: onPickImage,
     });
 
   // ---- bulk selection (the ⋮'s "Select notes…") ----
@@ -609,7 +633,13 @@
     </BulkBar>
   {/if}
 
-  {#if !readOnly}
+  {#if !readOnly && compact && !picking}
+    <!-- The phone's way in: the Home's round +, one tap, straight into the
+         editor with the cursor in the body. -->
+    <div class="space-fab">
+      <CaptureFab canTask={false} onPick={createFresh} />
+    </div>
+  {:else if !readOnly && !compact}
     <!-- The quick note bar (wireframes "Grid"): the note is typed here and
          filed with +, and what was typed is its body. -->
     <div class="quick-note">

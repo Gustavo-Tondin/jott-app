@@ -194,9 +194,10 @@ describe("Home's composing bar, the keyboard, and the way out", () => {
     });
   });
 
-  test("the permanent bars have no handle to find", async () => {
-    // The handle belongs to the bar that can be put away; the tasks screens'
-    // bar is part of the screen, and stays.
+  test("on a phone the Tasks screen opens its bar from a + too, with one tap", async () => {
+    // The permanent bar is the desktop's (spaceView.test.js keeps it without a
+    // handle); on a phone every tasks screen has the Home's + instead (user
+    // call, 2026-09-10), and the bar it opens is one that can be put away.
     aNotebook();
     render(App);
     const sidebar = await waitFor(() => {
@@ -205,9 +206,17 @@ describe("Home's composing bar, the keyboard, and the way out", () => {
       return el;
     });
     await userEvent.click(within(sidebar).getByText("Tasks"));
-    await waitFor(() => {
-      if (!document.querySelector(".task-composer")) throw new Error("no bar");
+    const plus = await waitFor(() => {
+      const el = document.querySelector(".space-fab .capture-fab__toggle");
+      if (!el) throw new Error("no +");
+      return el;
     });
-    expect(document.querySelector(".task-composer__handle")).toBeNull();
+    expect(document.querySelector(".task-composer")).toBeNull();
+
+    await userEvent.click(plus);
+    await waitFor(() => {
+      if (!document.querySelector(".task-composer__handle")) throw new Error("no handle");
+    });
+    expect(screen.queryByText("Note")).toBeNull();
   });
 });

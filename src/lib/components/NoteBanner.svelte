@@ -1,7 +1,7 @@
 <script>
   // The head of an open note: its banner and its title. One head whose block
-  // has colour and height only when the note asks for it — title and ⋮ sit in
-  // the same box with or without a banner. The properties go BELOW the block,
+  // has colour and height only when the note asks for it; the TITLE opens one
+  // popover with its name and the banner. The properties go BELOW the block,
   // never on it: no ink colour holds against every picture. The banner is a
   // line of the note's own file (`<!--banner: …-->`, core/src/note.rs).
   import { S } from "../services/strings.js";
@@ -31,8 +31,8 @@
     /// Asks the shell to open the image picker; it calls `onSet` with what
     /// comes back.
     onChooseImage,
-    /// Renaming, from the title itself: below 768px the bar above the page no
-    /// longer prints the note's name, so this is the door to renaming there.
+    /// `(name) => void` — the name typed in the title's popover. Null: the
+    /// popover has no name field.
     onRename = null,
     /// The note's PROPERTIES, a line under the title: when it was created and
     /// its tags. `tags` is what the note has, `catalogue` what the picker offers.
@@ -51,12 +51,14 @@
     /// The colour of the note's space (a name) — what its tags wear.
     color = null,
     /// Whether this notebook has banners at all (App Functions). Off, the head
-    /// is the TITLE alone — no band, no ⋮ — and a `<!--banner:-->` line
-    /// already in the file stays where it is.
+    /// is the TITLE alone — no band, no banner rows — and a `<!--banner:-->`
+    /// line already in the file stays where it is.
     enabled = true,
   } = $props();
 
   let open = $state(false);
+  let draft = $state("");
+  let field = $state(null);
 
   /// Nothing is drawn from a banner the notebook does not draw. Folded in
   /// here, once, rather than at each of the four places that read it.
@@ -67,10 +69,37 @@
   /// through, the same tolerance every other colour in the app keeps.
   let tint = $derived(shown?.kind === "color" ? accentFill(shown.value) : null);
 
-  const set = (value) => {
+  /// The title is a door only where there is something behind it.
+  let editable = $derived(!readOnly && (!!onRename || enabled));
+
+  function toggle() {
+    if (open) return close();
+    draft = title;
+    open = true;
+    // On a phone the field would raise the keyboard over the colours nobody
+    // asked to type into; there it waits for a tap.
+    if (!compact) queueMicrotask(() => field?.select());
+  }
+
+  /// Leaving the popover keeps what was typed, like every field of the app;
+  /// Escape is the way out without it (see `forget`).
+  function close() {
+    if (!open) return;
     open = false;
-    onSet?.(value);
-  };
+    const next = draft.trim();
+    if (onRename && next && next !== title) onRename(next);
+  }
+
+  /// `dismissable` answers Escape in the DOCUMENT's capture phase and closes
+  /// through `close`, so the typing is dropped a step earlier — the window's.
+  function forget(event) {
+    if (open && event.key === "Escape") draft = title;
+  }
+
+  function chooseImage() {
+    close();
+    onChooseImage?.();
+  }
 
   let editsTags = $derived(tagsEnabled && !readOnly && !!onSetTags);
   /// The line is drawn when there is something on it: a date, a tag, or the
@@ -82,6 +111,8 @@
   const removeTag = (name) => onSetTags?.(tags.filter((t) => t !== name));
 </script>
 
+<svelte:window onkeydowncapture={forget} />
+
 <div
   class="note-banner"
   class:note-banner--empty={!shown}
@@ -89,43 +120,6 @@
   class:note-banner--compact={compact}
   style={tint ? `--banner: ${tint}` : ""}
 >
-  {#if !readOnly && enabled}
-    <div
-      class="note-banner__menu"
-      class:note-banner__menu--open={open}
-      use:dismissable={{ active: open, onDismiss: () => (open = false) }}
-    >
-      <button
-        class="theme-btn--icon note-banner__more"
-        class:note-banner__more--on-block={!!shown}
-        aria-label={S.bannerOptions}
-        title={S.bannerOptions}
-        onclick={() => (open = !open)}
-      >
-        <Icon name="dots-three" size="1rem" />
-      </button>
-      {#if open}
-        <div class="theme-popover theme-popover--end note-banner__panel" use:keepOnScreen>
-          <AccentPicker
-            value={shown?.kind === "color" ? shown.value : null}
-            preview="fill"
-            clearable={false}
-            label={S.bannerColor}
-            onPick={(name) => set(name)}
-          />
-          <button class="note-banner__action" onclick={() => { open = false; onChooseImage?.(); }}>
-            {S.bannerImage}
-          </button>
-          {#if shown}
-            <button class="note-banner__action" onclick={() => set(null)}>
-              {S.removeBanner}
-            </button>
-          {/if}
-        </div>
-      {/if}
-    </div>
-  {/if}
-
   <!-- The block: the colour or the picture, and the title standing on it.
        Everything with a background lives in here, so what is outside it is on
        the canvas's own ground. -->
@@ -139,19 +133,69 @@
     <!-- The title, in a box as wide as the note's own text: the chip's first
          letter lands over the first letter of the first paragraph. -->
     <div class="note-banner__line">
-      <h1 class="note-banner__title">
-        {#if onRename}
-          <button
-            class="note-banner__rename"
-            title={S.promptRenameNote(title)}
-            onclick={() => onRename()}
-          >
+      <!-- What the popover hangs from (`keepOnScreen` anchors to the parent):
+           as wide as the title, not as the line. -->
+      <div
+        class="note-banner__head"
+        use:dismissable={{ active: open, onDismiss: close }}
+      >
+        <h1 class="note-banner__title">
+          {#if editable}
+            <!-- No `title`: its tooltip would land on the name field below. -->
+            <button
+              class="note-banner__rename"
+              aria-haspopup="dialog"
+              aria-expanded={open}
+              onclick={toggle}
+            >
+              {title}
+            </button>
+          {:else}
             {title}
-          </button>
-        {:else}
-          {title}
+          {/if}
+        </h1>
+
+        {#if open}
+          <div
+            class="theme-popover theme-popover--start note-banner__panel"
+            role="dialog"
+            aria-label={S.noteHead}
+            use:keepOnScreen
+          >
+            {#if onRename}
+              <form onsubmit={(e) => (e.preventDefault(), close())}>
+                <input
+                  bind:this={field}
+                  class="theme-input note-banner__name"
+                  aria-label={S.noteTitleField}
+                  bind:value={draft}
+                />
+              </form>
+            {/if}
+            {#if enabled}
+              {#if onRename}
+                <span class="note-banner__rule" role="separator"></span>
+              {/if}
+              <span class="note-banner__panel-label">{S.banner}</span>
+              <AccentPicker
+                value={shown?.kind === "color" ? shown.value : null}
+                preview="fill"
+                clearable={false}
+                label={S.bannerColor}
+                onPick={(name) => onSet?.(name)}
+              />
+              <button class="note-banner__action" onclick={chooseImage}>
+                {S.bannerImage}
+              </button>
+              {#if shown}
+                <button class="note-banner__action" onclick={() => onSet?.(null)}>
+                  {S.removeBanner}
+                </button>
+              {/if}
+            {/if}
+          </div>
         {/if}
-      </h1>
+      </div>
     </div>
   </div>
 

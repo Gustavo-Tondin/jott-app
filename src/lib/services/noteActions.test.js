@@ -10,6 +10,7 @@ const actions = {
   rename: vi.fn(),
   duplicate: vi.fn(),
   remove: vi.fn(),
+  banner: vi.fn(),
 };
 const labels = (rows) => rows.map((row) => row.label);
 
@@ -105,6 +106,37 @@ describe("noteCardMenu", () => {
     ).toEqual(["Open in new tab"]);
     // And with no way to open in a tab either, an empty menu draws no ⋮.
     expect(noteCardMenu({ entry, actions, space: "x", readOnly: true })).toEqual([]);
+  });
+
+  test("a card changes its banner from its ⋮, as the open note does", () => {
+    // The grid's second door to a banner (user call, 2026-09-10): the same row
+    // the page ⋮ has, acting on the card's own note.
+    const off = noteCardMenu({ entry, actions, space: "x" });
+    expect(labels(off)).not.toContain("Banner");
+
+    const pick = vi.fn();
+    const rows = noteCardMenu({ entry, actions, space: "x", canBanner: true, pickImage: pick });
+    expect(labels(rows)).toEqual(["Pin", "Banner", "Rename", "Duplicate", "Delete"]);
+    const banner = rows.find((row) => row.label === "Banner");
+    expect(labels(banner.items).at(-1)).toBe("Choose image…");
+
+    banner.items[0].run();
+    expect(actions.banner).toHaveBeenCalledWith("x", entry, "1");
+    // The picker is handed the way back: what it chooses lands on THIS card.
+    banner.items.at(-1).run();
+    pick.mock.calls[0][0]("assets/foto.png");
+    expect(actions.banner).toHaveBeenLastCalledWith("x", entry, "assets/foto.png");
+  });
+
+  test("a card with a banner offers to take it off; with no picker, colours only", () => {
+    const worn = { ...entry, banner: { kind: "color", value: "6" } };
+    const rows = noteCardMenu({ entry: worn, actions, space: "x", canBanner: true });
+    const banner = rows.find((row) => row.label === "Banner");
+    expect(labels(banner.items)).not.toContain("Choose image…");
+    expect(banner.items.find((item) => item.label === "Yellow").checked).toBe(true);
+    banner.items.at(-1).run();
+    expect(labels(banner.items).at(-1)).toBe("Remove banner");
+    expect(actions.banner).toHaveBeenCalledWith("x", worn, null);
   });
 
   test("opening in a new tab leads, when it is offered at all", () => {

@@ -94,6 +94,8 @@
     /// The way the bar is put away — its pull-down handle, and a task created
     /// with the keyboard already closed (TaskComposer.svelte).
     onCloseCompose = null,
+    /// `(done) => void` — the image picker, for a card's banner.
+    onPickImage = null,
   } = $props();
 
   let selected = $derived(day ?? today ?? "");
@@ -205,6 +207,8 @@
       moveTargets,
       readOnly,
       openInNewTab,
+      canBanner: f("banners"),
+      pickImage: onPickImage,
     });
 
   /// Where the right button's panel opens is this screen's, the same pact the

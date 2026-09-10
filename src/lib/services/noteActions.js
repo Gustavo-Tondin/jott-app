@@ -17,11 +17,12 @@ export function bannerOf(value) {
   return { kind: isImage(value) ? "image" : "color", value };
 }
 
-/// The open note's banner, as one row with the eight colours folded under it.
-/// The palette is words here (with the fill each paints with as a dot) and
-/// swatches in the block's own popover; the VALUE is the same name either
-/// door, which is what keeps the file readable by hand.
-export function bannerMenuOf({ banner, setBanner, pickImage }) {
+/// A note's banner, as one row with the eight colours folded under it — the
+/// open note's and a card's. The palette is words here (with the fill each
+/// paints with as a dot) and swatches in the title's popover; the VALUE is the
+/// same name either door, which is what keeps the file readable by hand. No
+/// `pickImage`, no image row: nothing could answer it.
+export function bannerMenuOf({ banner, setBanner, pickImage = null }) {
   return {
     label: S.banner,
     items: [
@@ -31,7 +32,7 @@ export function bannerMenuOf({ banner, setBanner, pickImage }) {
         swatch: accentFill(name),
         run: () => setBanner(name),
       })),
-      { label: S.bannerImage, run: pickImage },
+      ...(pickImage ? [{ label: S.bannerImage, run: pickImage }] : []),
       ...(banner ? [{ label: S.removeBanner, run: () => setBanner(null) }] : []),
     ],
   };
@@ -54,6 +55,9 @@ export function noteActions(act) {
       }),
 
     duplicate: (space, entry) => act(() => api.duplicateNote(space, entry.path)),
+
+    /// A colour name, an asset address, or null to take the banner off.
+    banner: (space, entry, value) => act(() => api.setNoteBanner(space, entry.path, value)),
 
     /// To the trash, never destroyed — which is why `confirmDeletes` may be off.
     remove: (space, entry) =>
@@ -87,6 +91,11 @@ export function noteCardMenu({
   /// `() => void`, or null: a board's ⋮ does not carry it (the card is a
   /// click from opening); the right button does.
   openInNewTab = null,
+  /// Whether the notebook draws banners (App Functions): off, no row.
+  canBanner = false,
+  /// `(done) => void` — opens the image picker and hands `done` the address.
+  /// Null leaves the banner row to colours.
+  pickImage = null,
 }) {
   const rows = [];
 
@@ -109,6 +118,16 @@ export function noteCardMenu({
         })),
       ),
     });
+  }
+  if (canBanner) {
+    const setBanner = (value) => actions.banner(space, entry, value);
+    rows.push(
+      bannerMenuOf({
+        banner: entry.banner ?? null,
+        setBanner,
+        pickImage: pickImage ? () => pickImage(setBanner) : null,
+      }),
+    );
   }
   rows.push({ label: S.renameNote, run: () => actions.rename(space, entry) });
   rows.push({ label: S.duplicateNote, run: () => actions.duplicate(space, entry) });

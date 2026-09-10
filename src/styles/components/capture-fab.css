@@ -1,7 +1,7 @@
-/* capture-fab.css — the Home's + and the two buttons it opens.
- * Markup: src/lib/components/CaptureFab.svelte; where it sits is `.home-fab`
- * in home.css, which sizes the slot — this file is only the + itself and its
- * choices. Round, brand: the verb of the screen, the one loud thing on it. */
+/* capture-fab.css — the + that composes, and the two buttons it opens.
+ * Markup: src/lib/components/CaptureFab.svelte. The Home's slot is `.home-fab`
+ * (home.css); a space's, on a phone, is `.space-fab` at the end of this file.
+ * Round, brand: the verb of the screen, the one loud thing on it. */
 
 @layer components {
   .capture-fab {
@@ -84,5 +84,22 @@
   }
   .capture-fab__choice:active {
     scale: 0.96;
+  }
+
+  /* A space's + on a phone (TasksSpace, NotesSpace): the Home's corner and
+     size (`.shell--compact .home-fab`), fixed to the viewport the same way. */
+  .space-fab {
+    position: fixed;
+    inset-block-end: calc(var(--app-space-24) + var(--app-safe-bottom));
+    inset-inline-end: calc(var(--app-space-24) + var(--app-safe-right));
+    z-index: 4;
+    inline-size: var(--app-fab);
+    block-size: var(--app-fab);
+  }
+  /* …and the last card scrolls clear of it: the + and its margin twice. */
+  .shell--compact .shell__content:has(.space-fab) {
+    padding-block-end: calc(
+      var(--app-fab) + var(--app-space-24) * 2 + var(--app-safe-bottom)
+    );
   }
 }

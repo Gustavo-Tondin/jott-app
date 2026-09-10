@@ -100,11 +100,13 @@ export function makeNoteDocument({
   };
 
   /// What the image picker does with what was chosen, by what it was opened
-  /// for. Closing it is the same either way.
+  /// for. Closing it is the same either way. A FUNCTION is a caller outside
+  /// the open note (a card's banner) handed the address.
   function useImage(address) {
     const purpose = picking();
     pickImage(null);
-    if (purpose === "banner") setNoteBanner(address);
+    if (typeof purpose === "function") purpose(address);
+    else if (purpose === "banner") setNoteBanner(address);
     else editor()?.insert(embedMarkdown(address));
   }
 
@@ -174,10 +176,14 @@ export function makeNoteDocument({
     }
   }
 
-  const renameCurrentNote = () =>
+  /// `to` is the new name when the caller already has one (the title's own
+  /// field); without it the name is asked for. A menu row passes its gesture,
+  /// hence the type test.
+  const renameCurrentNote = (to) =>
     noteAction(async () => {
       const { title } = note();
-      const next = await askName(S.promptRenameNote(title), title);
+      const next =
+        typeof to === "string" ? to : await askName(S.promptRenameNote(title), title);
       if (!next || next.trim() === title) return;
       const { folder, path } = view();
       const moved = await api.renameNote(folder, path, next.trim());

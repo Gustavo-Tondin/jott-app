@@ -11,6 +11,8 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 ### New
 
 - **A list's file is its order.** Sorting by name, creation date or due date (with ↓ ↑ for the direction) rewrites the `.md` in that order, and dragging a card makes it your custom order, which Custom brings back; a list reordered in another editor switches to Custom and keeps what you did.
+- **On a phone, every space has the Home's +.** In a notes space it opens a blank note with the cursor in its body; in a list, one tap opens the task bar above the keyboard.
+- **Change a note's banner from its card.** The ⋮ of a note card, on the board and on the Home, now has the Banner row: the eight colours, a picture, or none.
 
 ### Fixed
 
@@ -27,6 +29,9 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 
 - **Swiping a task follows your finger all the way.** The coloured square grows with the card; sending a task to the day counts halfway, while deleting or taking it out of the day counts after a third of the card, where the card slides away and the colour fills the row.
 - **The warning looks yellow again on the light page.** Error, warning and success are now softer than the eight colours you pick from, so they never pass for one of them; a warning's block is a clear yellow, and its text stays close to what it was.
+- **A note's title opens its name and its banner together.** One popover renames the note and picks its banner; the banner's own ⋮ is gone, and the page's ⋮ keeps its Banner row.
+- **The quick note and task bars are easier to spot.** Both have the same rounded corners and a soft lift instead of an outline; the quick note grows to eight lines as you type, then scrolls, and its text sits level with the +.
+- **The floating formatting bar is quieter**: a softer shadow, and the button that docks it is the same size and shape as the others.
 - **The timeline's year sits beside the month, not over the cards.** On a small window the year no longer covers the month's numbers when the timeline opens: it starts on the first month's line, centred on its rule, and stays there as you scroll — so the month heading no longer repeats the year.
 
 ## v0.54.0

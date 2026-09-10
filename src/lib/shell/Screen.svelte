@@ -97,6 +97,8 @@
     onSwitchNotebook,
     onNewTheme,
     onSection,
+    /// `(done) => void` — the image picker, for a note card's banner.
+    onPickImage,
   } = $props();
 </script>
 
@@ -136,6 +138,7 @@
     day={homeDay}
     {onPickDay}
     {onSummary}
+    {onPickImage}
     {f}
   />
 {:else if view.kind === "tasks"}
@@ -158,6 +161,7 @@
     {dayRefs}
     onSetSort={tasksArrangement.setSort}
     onSetOrder={tasksArrangement.setOrder}
+    {compact}
     {f}
   />
 {:else if view.kind === "list"}
@@ -200,6 +204,8 @@
     onSetLayout={notesArrangement.setNoteLayout}
     defaultLayout={layout.noteLayout}
     header={!compact}
+    {compact}
+    {onPickImage}
     dot={colorOf(view)}
     readOnly={notebook.readOnly}
     notesInbox={layout.notesInbox}
@@ -281,6 +287,7 @@
   {#if current}
     <SpaceView
       {compact}
+      {onPickImage}
       space={current}
       color={spColors[current.path] ?? null}
       lists={notebook.lists}

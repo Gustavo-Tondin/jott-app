@@ -6,8 +6,7 @@
 
 @layer components {
   /* The head: the block, then the properties below it on the canvas. No
-     ground of its own: it anchors the ⋮, which hangs over the block's corner
-     and must not be clipped by it. */
+     ground of its own. */
   .note-banner {
     position: relative;
     margin-block-end: var(--app-space-24);
@@ -35,7 +34,7 @@
     padding-block: var(--app-space-64) 0;
     background: none;
     border-radius: 0;
-    /* Nothing is clipped here, and clipping would cut the ⋮'s panel off. */
+    /* Nothing to clip: no corner, no picture. */
     overflow: visible;
   }
 
@@ -90,9 +89,11 @@
     line-height: var(--app-leading-tight);
     overflow-wrap: anywhere;
   }
-  /* Pulled out by exactly its own padding, so the title's first LETTER lands
-     over the prose's. Without a banner there is no box and nothing to pull. */
-  .note-banner:not(.note-banner--empty) .note-banner__title {
+  /* Pulled out by exactly the chip's padding, so the title's first LETTER
+     lands over the prose's. Without a banner there is no box and nothing to
+     pull. The HEAD is pulled, not the title: a negative margin on the title
+     shrinks the head around it, and the title's 100% cap then wraps the name. */
+  .note-banner:not(.note-banner--empty) .note-banner__head {
     margin-inline-start: calc(var(--banner-inset) * -1);
   }
   .note-banner--empty .note-banner__title {
@@ -155,8 +156,9 @@
     padding: 0;
     color: inherit;
   }
-  /* Renaming, from the name itself. It is a button and it must not look like
-     one: the heading is the affordance, the pointer says the rest. */
+  /* The door to the name and the banner, from the name itself. It is a button
+     and it must not look like one: the heading is the affordance, the pointer
+     says the rest. */
   .note-banner__rename {
     padding: 0;
     color: inherit;
@@ -164,36 +166,33 @@
     text-align: start;
   }
 
-  .note-banner__menu {
-    position: absolute;
-    inset-block-start: var(--app-space-8);
-    inset-inline-end: var(--app-space-8);
-    z-index: 1;
+  /* What the popover hangs from: as wide as the title, so the panel opens
+     under the name and not at the far edge of the line. */
+  .note-banner__head {
+    display: inline-block;
+    max-inline-size: 100%;
+    vertical-align: top;
   }
-  /* Over a block it travels with its own ground; on the bare head it is a
-     plain icon button like every other. */
-  .note-banner__more {
-    color: var(--app-ink-muted);
-  }
-  /* On a banner it waits for the pointer: a chip parked on a picture someone
-     chose is the app signing it. On the bare head it stays — that head IS the
-     way in to choosing a banner. The veil is the shared icon-button hover; it
-     reads against a photograph because it only shows under the pointer. */
-  .note-banner__more--on-block {
-    background: var(--app-hover);
-    opacity: 0;
-    transition: opacity var(--app-transition-fast);
-  }
-  .note-banner:hover .note-banner__more--on-block,
-  .note-banner__more--on-block:focus-visible,
-  .note-banner__menu--open .note-banner__more--on-block {
-    opacity: 1;
-  }
+
+  /* The name, then the banner: one panel, the field on top because renaming
+     is what a click on a name means first. */
   .note-banner__panel {
     display: flex;
     flex-direction: column;
     gap: var(--app-space-8);
+    inline-size: min(18rem, calc(100vw - 2 * var(--app-space-16)));
     padding: var(--app-space-10);
+  }
+  .note-banner__name {
+    inline-size: 100%;
+  }
+  .note-banner__rule {
+    block-size: 0.0625rem;
+    background: var(--app-line);
+  }
+  .note-banner__panel-label {
+    color: var(--app-ink-muted);
+    font-size: var(--app-text-12);
   }
   .note-banner__action {
     padding: 0;
@@ -240,18 +239,15 @@
     max-inline-size: 100%;
     padding-inline: calc(var(--app-space-8) + var(--app-space-12));
   }
-  .note-banner--compact .note-banner__title {
+  .note-banner--compact .note-banner__head {
     margin-inline-start: 0;
+  }
+  .note-banner--compact .note-banner__title {
     font-size: var(--app-text-18);
   }
   /* No block, no 8 to pad back, no chip: the line carries the whole 20, so a
      bare note starts where a bannered one does. */
   .note-banner--compact.note-banner--empty .note-banner__block .note-banner__line {
     padding-inline: var(--app-space-12);
-  }
-  /* No ⋮ of its own below 768px: the banner's choices are in the top bar's
-     page menu, the only ⋮ a phone has for a note. */
-  .note-banner--compact .note-banner__menu {
-    display: none;
   }
 }

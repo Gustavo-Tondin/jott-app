@@ -1051,8 +1051,10 @@ export const S = {
   // The note's banner — a colour or a picture at the head of a note, on its
   // first line.
   banner: "Banner",
-  bannerOptions: "banner options",
   bannerColor: "Colour",
+  // The popover the note's title opens: its name and its banner, together.
+  noteHead: "Title and banner",
+  noteTitleField: "Title",
   // A LABEL for a slot, written out for a MENU — the picker shows swatches and
   // needs none of these, but a row of a menu is a word. The slots are numbered
   // (services/accent.js) precisely so this stays a label: these words describe

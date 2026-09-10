@@ -125,6 +125,12 @@ describe("the open note's document actions", () => {
     doc.useImage("assets/b.png");
     await tick();
     expect(callsTo("set_note_banner")[0].banner).toBe("assets/b.png");
+    // A card's banner hands the picker its own way back.
+    const done = vi.fn();
+    state.picking = done;
+    doc.useImage("assets/c.png");
+    expect(done).toHaveBeenCalledWith("assets/c.png");
+    expect(state.picking).toBeNull();
   });
 
   it("files brought in are imported and embedded one per line", async () => {
