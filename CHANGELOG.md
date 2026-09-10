@@ -97,10 +97,6 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 
 ## v0.52.1
 
-### Improved
-
-- The notes board reads by rows: the first three notes go across the top, the next three under them, and so on. It used to run down each column, which scrambled an order sorted by time.
-
 ### Fixed
 
 - Enter in a list no longer skips a line: the next bullet comes right under the last one, and Enter on an empty bullet ends the list. Shift+Enter is still the way to a blank line.
@@ -110,6 +106,7 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 
 ### Improved
 
+- The notes board reads by rows: the first three notes go across the top, the next three under them, and so on. It used to run down each column, which scrambled an order sorted by time.
 - The task panel's fields keep the icon alone when the panel is narrow and bring the words back as it widens — nothing wraps or overlaps any more.
 - In the task panel the date a task was written stands on a line of its own, just above the footer: the date alone, without the label or the day count.
 - A pinned note or folder wears a thin ring in the accent colour, so it stands out from the cards around it without a block of its own.

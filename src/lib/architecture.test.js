@@ -1016,3 +1016,36 @@ describe("a question that can be switched off is wired end to end", () => {
     ).toEqual([]);
   });
 });
+
+// Every branch writes to the changelog, and the release page is built from it:
+// a merge resolved badly leaves markers, or a second copy of a section that
+// the release reads only half of.
+describe("CHANGELOG.md", () => {
+  const lines = readFileSync(join(src, "..", "CHANGELOG.md"), "utf8").split("\n");
+
+  test("carries no conflict markers", () => {
+    expect(lines.filter((l) => /^(<<<<<<<|=======|>>>>>>>)( |$)/.test(l))).toEqual([]);
+  });
+
+  test("names each version once, and each heading once within it", () => {
+    const repeated = [];
+    const versions = new Set();
+    let headings = new Set();
+    for (const l of lines) {
+      if (l.startsWith("## ")) {
+        if (versions.has(l)) repeated.push(l);
+        versions.add(l);
+        headings = new Set();
+      } else if (l.startsWith("### ")) {
+        if (headings.has(l)) repeated.push(`${[...versions].at(-1)} › ${l}`);
+        headings.add(l);
+      }
+    }
+    expect(repeated).toEqual([]);
+  });
+
+  test("never lists the same bullet twice", () => {
+    const bullets = lines.filter((l) => l.startsWith("- "));
+    expect(bullets.filter((b, i) => bullets.indexOf(b) !== i)).toEqual([]);
+  });
+});
