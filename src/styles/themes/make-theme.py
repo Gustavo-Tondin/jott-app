@@ -113,8 +113,13 @@ def contrast(a, b):
 # --- the grid ---------------------------------------------------------------
 TARGET = {100: 92, 200: 80, 300: 70, 400: 58, 500: 48, 600: 34, 700: 18}
 HUE_STEPS = list(TARGET)
-STATUS_STEPS = [100, 300, 500, 700]
+STATUS_STEPS = [100, 200, 300, 500, 700]
 CHROMA = 0.92  # of the gamut edge; the factory theme sits about here
+# Status is quieter than the eight, so a warning never reads as a colour someone
+# picked: a softer chroma per step, and a fill a shade above the grid's 200 so a
+# yellow block still reads yellow (within the 4 L* the suite allows).
+STATUS_TARGET = {**TARGET, 200: 82}
+STATUS_CHROMA = {100: 0.3, 200: 0.64, 300: 0.8, 500: 0.85, 700: 0.55}
 
 
 def step(H, target, chroma=CHROMA):
@@ -135,6 +140,10 @@ def step(H, target, chroma=CHROMA):
 
 def family(H, steps=HUE_STEPS):
     return {s: step(H, TARGET[s]) for s in steps}
+
+
+def status_family(H):
+    return {s: step(H, STATUS_TARGET[s], chroma=STATUS_CHROMA[s]) for s in STATUS_STEPS}
 
 
 def grey(steps=HUE_STEPS):
@@ -169,7 +178,7 @@ def check(theme, paper, ground):
 def render(name, theme, paper, ground, paper_tint, ground_tint, gray):
     out = [f"/* {name} — a Jott theme. Written by src/styles/themes/make-theme.py.",
            "   Colours run seven steps (100 pale -> 700 deep) on one tone grid; the",
-           "   modes decide which step goes where. Status runs four. Edit and save —",
+           "   modes decide which step goes where. Status runs five. Edit and save —",
            "   the app repaints. */",
            ":root {",
            f"  --theme-color-white: {paper};",
@@ -234,7 +243,7 @@ def main():
     for status, seed in SEEDS.items():
         given = getattr(args, seed)
         H = hue_of(given) if given else FACTORY[seed]
-        theme[status] = family(H, STATUS_STEPS)
+        theme[status] = status_family(H)
 
     # A tint is the ground one step in, not a colour anyone should have to pick.
     paper_tint = args.paper_tint or _to_hex([c * 0.94 for c in _to_linear(args.paper)])

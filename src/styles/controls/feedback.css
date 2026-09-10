@@ -27,15 +27,15 @@
   /* Status reads the STATUS roles, never a colour of the eight by name: a
      theme that moves its danger moves the notice with it. */
   .theme-notice--error {
-    --notice-accent: var(--app-danger);
+    --notice-accent: var(--app-danger-on-tint);
     --notice-tint: var(--app-danger-tint);
   }
   .theme-notice--warning {
-    --notice-accent: var(--app-warning);
+    --notice-accent: var(--app-warning-on-tint);
     --notice-tint: var(--app-warning-tint);
   }
   .theme-notice--success {
-    --notice-accent: var(--app-success);
+    --notice-accent: var(--app-success-on-tint);
     --notice-tint: var(--app-success-tint);
   }
   /* The parts: a glyph in the notice's colour, the body, the × at the end.

@@ -473,13 +473,12 @@ describe("frontend architecture", () => {
 
   const STATUS = ["danger", "warning", "success"];
   /// What a family is REQUIRED to carry. The eight run the whole grid; status
-  /// runs the four a status colour is ever read at — the ink per ground and
-  /// the wash behind it (2026-09-09). A status colour is never a heading (no
-  /// ladder) and never a dot or a card (no fill), so 200/400/600 were nine
-  /// values nothing read.
-  const stepsFor = (name) => (STATUS.includes(name) ? [100, 300, 500, 700] : [100, 200, 300, 400, 500, 600, 700]);
+  /// runs the five a status colour is ever read at — the ink per ground (300,
+  /// 500), the wash behind it (700, 100) and the fill (200: a swipe's square,
+  /// a priority swatch). A status colour is never a heading, so no ladder.
+  const stepsFor = (name) => (STATUS.includes(name) ? [100, 200, 300, 500, 700] : [100, 200, 300, 400, 500, 600, 700]);
 
-  test("the palette is eight families of seven steps, and three of four", () => {
+  test("the palette is eight families of seven steps, and three of five", () => {
     // The count is the parser's proof of coverage: a ninth colour, or a step
     // written in a shape the regex above cannot read, changes a number here
     // instead of silently dropping out of every measurement.
@@ -588,9 +587,13 @@ describe("frontend architecture", () => {
     // 2026-08-26. A theme may make its red sea-green; the error stays red.
     const offenders = [];
     for (const [name, css] of themes()) {
-      for (const m of css.matchAll(/(--app-(danger|warning|success)(?:-tint)?)\s*:\s*([^;]+);/g)) {
-        if (!new RegExp(`^var\\(--theme-color-${m[2]}-\\d00\\)$`).test(m[3].trim())) {
-          offenders.push(`${name}: ${m[1]} reads ${m[3].trim()}`);
+      // A role may also mix two STATUS steps: the warning leans amber on its wash.
+      const status = String.raw`var\(--theme-color-(?:danger|warning|success)-\d00\)`;
+      const mixed = new RegExp(`^color-mix\\(in oklab, ${status}(?: \\d+%)?, ${status}(?: \\d+%)?\\)$`);
+      for (const m of css.matchAll(/(--app-(danger|warning|success)(?:-tint|-fill|-on-tint)?)\s*:\s*([^;]+);/g)) {
+        const value = m[3].trim();
+        if (!new RegExp(`^var\\(--theme-color-${m[2]}-\\d00\\)$`).test(value) && !mixed.test(value)) {
+          offenders.push(`${name}: ${m[1]} reads ${value}`);
         }
       }
       for (const m of css.matchAll(/--app-emphasis\s*:\s*([^;]+);/g)) {
@@ -616,7 +619,7 @@ describe("frontend architecture", () => {
     const offenders = [];
     let measured = 0;
     for (const [name, steps] of Object.entries(palette())) {
-      // Only the steps the family carries: status has no 200/600, and asking
+      // Only the steps the family carries: status has no 600, and asking
       // for one reads `undefined` — which threw here rather than passing, but
       // a silent skip is what a looser version of this loop would have done.
       for (const [step, ground, floor] of floors.filter(([s]) => stepsFor(name).includes(s))) {
@@ -626,8 +629,20 @@ describe("frontend architecture", () => {
       }
     }
     expect(offenders).toEqual([]);
-    // 8 families x 4 floors + 3 status x the two floors they carry.
-    expect(measured, "floors actually measured").toBe(8 * 4 + 3 * 2);
+    // 8 families x 4 floors + 3 status x the three floors they carry.
+    expect(measured, "floors actually measured").toBe(8 * 4 + 3 * 3);
+  });
+
+  test("a status fill carries the dark ink, on both grounds", () => {
+    // The swipe's square and the priority swatch are status-200 with the
+    // on-brand ink (black) drawn over them, whichever ground they sit on.
+    const black = readFileSync(join(src, "styles", "themes", "jott.css"), "utf8")
+      .match(/--theme-color-black:\s*(#[0-9a-fA-F]{6})/)[1];
+    const families = palette();
+    const offenders = STATUS.filter((name) => ratio(families[name][200], black) < 4.5).map(
+      (name) => `${name}-200: ${ratio(families[name][200], black).toFixed(2)}:1`,
+    );
+    expect(offenders).toEqual([]);
   });
 
   test("every emphasis ladder gets weaker one rung at a time", () => {

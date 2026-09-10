@@ -121,6 +121,12 @@
   --app-danger-tint: var(--theme-color-danger-700);
   --app-warning-tint: var(--theme-color-warning-700);
   --app-success-tint: var(--theme-color-success-700);
+  --app-danger-fill: var(--theme-color-danger-200);
+  --app-warning-fill: var(--theme-color-warning-200);
+  --app-success-fill: var(--theme-color-success-200);
+  --app-danger-on-tint: var(--theme-color-danger-300);
+  --app-warning-on-tint: var(--theme-color-warning-300);
+  --app-success-on-tint: var(--theme-color-success-300);
 
   /* Emphasis is the one Markdown mark with a colour of its own: a slant alone
      is easy to miss. Fixed like the status three — never the accent. */
@@ -235,6 +241,13 @@
   --app-danger-tint: var(--theme-color-danger-100);
   --app-warning-tint: var(--theme-color-warning-100);
   --app-success-tint: var(--theme-color-success-100);
+  --app-danger-fill: var(--theme-color-danger-200);
+  --app-warning-fill: var(--theme-color-warning-200);
+  --app-success-fill: var(--theme-color-success-200);
+  --app-danger-on-tint: var(--theme-color-danger-500);
+  /* On its yellow wash the warning leans amber; the yellow ink reads olive there. */
+  --app-warning-on-tint: color-mix(in oklab, var(--theme-color-warning-500), var(--theme-color-danger-500) 30%);
+  --app-success-on-tint: var(--theme-color-success-500);
 
   /* Emphasis is the one Markdown mark with a colour of its own: a slant alone
      is easy to miss. Fixed like the status three — never the accent. */

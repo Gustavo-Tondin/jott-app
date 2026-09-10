@@ -73,7 +73,7 @@
   .swipe[data-swipe="left"] .swipe__action--delete {
     display: flex;
     inset-inline-end: var(--swipe-x, 0);
-    background: var(--app-danger);
+    background: var(--app-danger-fill);
   }
 
   /* Swiping RIGHT uncovers the left-hand end: the day. */
@@ -82,7 +82,7 @@
     inset-inline-start: calc(-1 * var(--swipe-x, 0rem));
     /* Taking a task back OUT of the day: warning, the colour the sun already
        carries on a card that is in today. */
-    background: var(--app-warning);
+    background: var(--app-warning-fill);
   }
   /* The same square when the gesture PUTS the task in the day: the ACCENT,
      the colour of the act the gesture is for. The two stay different on

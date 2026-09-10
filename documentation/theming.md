@@ -129,7 +129,7 @@ is always loaded underneath.
 |---|---|---|
 | grounds | `--theme-color-white`, `-white-tint`, `-black`, `-black-tint`, `-gray` | 5 |
 | the eight | `--theme-color-<1 \| 2 \| 3 \| 4 \| 5 \| 6 \| 7 \| neutral>-<100…700>` | 56 |
-| status | `--theme-color-<danger \| warning \| success>-<100 300 500 700>` | 12 |
+| status | `--theme-color-<danger \| warning \| success>-<100 200 300 500 700>` | 15 |
 | shape | `--theme-radius-<xs \| sm \| md \| lg \| xl \| pill>`, `--theme-space-<2 4 6 8 10 12 16 24 32 40 48 64>` | 18 |
 
 Things worth knowing before you change them:
@@ -149,13 +149,16 @@ Things worth knowing before you change them:
   the identity. `neutral` keeps its name because it is not a hue: it is the
   white↔black family, and the modes read it one step further out because it
   runs on the same axis as the grounds.
-- **Status is its own three families, and they run FOUR steps.** `danger`,
+- **Status is its own three families, and they run FIVE steps.** `danger`,
   `warning`, `success` are seeded from red, yellow and green, but they are
   separate tokens: make your `red` sea-green and the error notice stays red —
-  unless you change `danger` too. They carry 100/300/500/700 and no more,
-  because a status colour is only ever ink (300 on a dark ground, 500 on a
-  light one) and the wash behind it (700/100). It is never a heading, so it
-  has no ladder, and never a dot or a card, so it has no fill.
+  unless you change `danger` too. They are softer than the eight (less
+  chroma), so a warning never passes for a colour someone picked. A status
+  colour is ink (300 on a dark ground, 500 on a light one), the wash behind
+  it (700/100), or a fill (200 on both grounds: a swipe's square, a priority
+  swatch); a notice's glyph on its wash reads `-on-tint`, which for the
+  warning leans amber on the light ground. It is never a heading, so it has
+  no ladder.
 - **Which of the eight is the accent stays the reader's choice** (Settings →
   Display), never the theme's. A theme says what `blue` *looks like*; the
   person says whether the app wears blue.
@@ -173,7 +176,7 @@ mean the same thing:
 | **origin** | where did this come from? | a space (its group's colour wins) | the sidebar's bar, the tab's dot — and, outside the space, **colour alone**: a bar on the card's left edge (`.theme-origin`), strong, no word |
 | **subject** | what is it about? | a tag | a **badge** (`.theme-badge`): `#tag` with the text on rung 2 and a soft outline on `-line` — in the colour of the card's space, so it agrees with the bar; neutral where there is no place to take it from (the tag manager) |
 | **surface** | the face of a thing | a note's banner (`-fill`), a folder of notes (`-tint`), a notebook's card (`-solid`) | a fill; the picker previews the step it will paint with |
-| **status** | urgent? wrong? | priority, an overdue date, a notice | `--app-danger` / `-warning` / `-success`, read from the theme's own status families — never one of the eight by name |
+| **status** | urgent? wrong? | priority, an overdue date, a notice, a swipe's square | `--app-danger` / `-warning` / `-success` for ink, plus `-fill`, `-tint` and `-on-tint`, read from the theme's own status families — never one of the eight by name |
 
 The rule that holds it together: **a card carries at most one colour of the
 palette, and it is its space's.** Everything else on it is neutral or status.
@@ -195,7 +198,7 @@ things to know:
   and it is the whole list: the two grounds and the ink, `--app-<name>-1…-6`
   per colour (a six-rung ladder, 1 strongest; H1–H6 stand on these rungs),
   the mark and its `-ink`, `-line` and `-tint`, the status roles and their
-  `-tint`, the hover veil and the popover shadow.
+  `-fill`, `-tint` and `-on-tint`, the hover veil and the popover shadow.
 
 ### You do not have to write 91 tokens
 

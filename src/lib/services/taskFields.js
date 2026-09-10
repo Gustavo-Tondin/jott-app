@@ -24,12 +24,12 @@ export function priorityClass(value) {
   return n >= 1 && n <= 3 ? `p${n}` : "";
 }
 
-/// The CSS value each level's swatch is painted with in a menu — the same
-/// three status roles the card reads. Keyed by `priorityClass`.
+/// The CSS value each level's swatch is painted with in a menu — the status
+/// FILLS, since a swatch is a block of colour, not ink. Keyed by `priorityClass`.
 export const PRIORITY_SWATCH = {
-  p1: "var(--app-danger)",
-  p2: "var(--app-warning)",
-  p3: "var(--app-success)",
+  p1: "var(--app-danger-fill)",
+  p2: "var(--app-warning-fill)",
+  p3: "var(--app-success-fill)",
 };
 
 /// How often a task repeats. The empty unit is "it does not"; `free` is the

@@ -20,6 +20,7 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 ### Improved
 
 - **Swiping a task follows your finger all the way.** The coloured square grows with the card; sending a task to the day counts halfway, while deleting or taking it out of the day counts after a third of the card, where the card slides away and the colour fills the row.
+- **The warning looks yellow again on the light page.** Error, warning and success are now softer than the eight colours you pick from, so they never pass for one of them; a warning's block is a clear yellow, and its text stays close to what it was.
 
 ## v0.54.0
 
