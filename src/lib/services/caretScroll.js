@@ -87,6 +87,10 @@ export const keepCaretInView = [
   EditorView.updateListener.of((update) => {
     if (!update.docChanged && !update.selectionSet) return;
     if (!update.view.hasFocus) return;
+    // A RANGE being made is the finger's business, and the platform scrolls
+    // for its own drag. Chasing the head made the page jump by a picture's
+    // height each time it crossed one.
+    if (!update.state.selection.main.empty) return;
     const head = update.state.selection.main.head;
     update.view.requestMeasure({ read: (view) => follow(view, head, marginOf(view)) });
   }),

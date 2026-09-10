@@ -192,6 +192,28 @@ describe("when CodeMirror itself asks for the scroll", () => {
     }
   });
 
+  it("follows the caret, but not the head of a range being selected", async () => {
+    // Dragging a selection across a picture moved its head past a line as
+    // tall as the picture, and chasing it made the page jump.
+    const { scroller, view, caught } = mount();
+    try {
+      view.focus();
+      view.dispatch({ selection: { anchor: 0, head: view.state.doc.length } });
+      await frame();
+      await frame();
+      expect(scroller.scrollTop).toBe(0);
+
+      view.dispatch({ selection: { anchor: view.state.doc.length } });
+      await frame();
+      await frame();
+      expect(caught).toEqual([]);
+      expect(scroller.scrollTop).toBeGreaterThan(0);
+    } finally {
+      view.destroy();
+      scroller.remove();
+    }
+  });
+
   it("leaves a deliberate `center`/`start`/`end` request alone", async () => {
     const { scroller, view, caught } = mount();
     try {
