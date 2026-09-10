@@ -56,15 +56,28 @@ describe("swipe", () => {
     expect(fired).toEqual(["left", "right"]);
   });
 
-  test("past halfway but short of the end, a delete does not count", () => {
+  test("short of the point, a delete does not count", () => {
     const el = card();
     const fired = [];
     swipe(el, { onLeft: () => fired.push("left") });
 
-    drag(el, 280, 100, { hold: true }); // 60% of the card
+    drag(el, 280, 190, { hold: true }); // 30% of the card
     expect(el.classList.contains("swipe--armed")).toBe(false);
-    fire(el, "pointerup", { pointerId: 1, clientX: 100, clientY: 10 });
+    fire(el, "pointerup", { pointerId: 1, clientX: 190, clientY: 10 });
     expect(fired).toEqual([]);
+  });
+
+  test("a delete arms from a press mid-card, well before the finger reaches the edge", () => {
+    const el = card();
+    const fired = [];
+    swipe(el, { onLeft: () => fired.push("left") });
+
+    drag(el, 150, 40, { hold: true }); // 37%, from the middle
+    expect(el.classList.contains("swipe--armed")).toBe(true);
+    // Armed, the card is drawn all the way out whatever the finger's travel.
+    expect(travel(el)).toBe(-WIDTH);
+    fire(el, "pointerup", { pointerId: 1, clientX: 40, clientY: 10 });
+    expect(fired).toEqual(["left"]);
   });
 
   test("a half action counts halfway, and the card springs back", () => {

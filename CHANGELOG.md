@@ -19,7 +19,7 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 
 ### Improved
 
-- **Swiping a task follows your finger all the way.** The coloured square grows with the card; sending a task to the day counts halfway, while deleting or taking it out of the day means dragging to the end, where the card slides away and the colour fills the row.
+- **Swiping a task follows your finger all the way.** The coloured square grows with the card; sending a task to the day counts halfway, while deleting or taking it out of the day counts after a third of the card, where the card slides away and the colour fills the row.
 
 ## v0.54.0
 

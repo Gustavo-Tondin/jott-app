@@ -8,9 +8,10 @@ import { clamp } from "../services/num.js";
 
 /// Where a release starts to count, as a share of the card's width. An action
 /// that keeps the card (`*Half`) arms halfway and the card springs back; one
-/// that takes it away arms near the end, and the card leaves with it.
+/// that takes it away arms sooner, reachable from a press mid-card, and from
+/// there the card is drawn all the way out and leaves with it.
 const HALF = 0.5;
-const END = 0.7;
+const END = 0.35;
 /// The first movement decides which gesture this is. Ahead of the axis lock the
 /// card does not move at all, so a vertical drag never nudges it sideways.
 const LOCK = 8;
