@@ -6,6 +6,17 @@ What changed in each release, written for the person using the app rather than f
 
 One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` and `### Improved` under it. `packaging/release.sh` refuses to tag a version that has no section here. Versions before v0.51.0 predate the file and live only in the commit history.
 
+## v0.55.0
+
+### Fixed
+
+- **A new list item starts with a capital letter on Android.** After Enter on a bullet, a task or a quote, the keyboard now capitalizes the first word, as it does at the start of a paragraph.
+- **Selecting text next to a picture no longer makes the note jump.** The page stopped chasing the end of the selection each time it crossed an image.
+- **New tasks go to the top on the Home too**, when Settings › Tasks says so — and in a list you have arranged by hand, where they used to land at the bottom.
+- **On a phone, one ⋮ per screen.** The menu that sat alone on the canvas of a list or notes space (and on the Home's blocks) is now part of the top bar's ⋮.
+- **The top bar's buttons float on every screen on a phone**, with no band painted behind them.
+- **Switches in Settings have white knobs again**, instead of black.
+
 ## v0.54.0
 
 ### New
