@@ -212,13 +212,16 @@ impl AppState {
     /// Shows `window`'s notebook the lists somebody else wrote: a sort those
     /// files no longer follow gives way to the file order
     /// (`Notebook::yield_to_file_order`). Attributed to the window, so its own
-    /// watcher drops the echo of the config this rewrites.
-    pub fn yield_to_file_order(&self, window: &str, lists: &[std::path::PathBuf]) {
-        if let Ok(guard) = self.lock() {
-            if let Some(open) = guard.get(window) {
-                let _ = attribute(window, || open.notebook.yield_to_file_order(Some(lists)));
-            }
-        }
+    /// watcher drops the echo of the config this rewrites. Answers whether a
+    /// space gave way.
+    pub fn yield_to_file_order(&self, window: &str, lists: &[std::path::PathBuf]) -> bool {
+        let Ok(guard) = self.lock() else {
+            return false;
+        };
+        guard.get(window).is_some_and(|open| {
+            attribute(window, || open.notebook.yield_to_file_order(Some(lists)))
+                .is_ok_and(|yielded| !yielded.is_empty())
+        })
     }
 
     fn lock(&self) -> CommandResult<std::sync::MutexGuard<'_, HashMap<String, OpenNotebook>>> {
@@ -254,7 +257,22 @@ impl WatcherHandle {
 
             // Polling with a timeout instead of blocking forever is what lets
             // the thread notice it should stop.
+            let mut arrivals = Arrivals::default();
             while !flag.load(Ordering::Relaxed) {
+                // Lists somebody else wrote are judged once their burst has
+                // settled (`Arrivals`). A space that gave way to its file
+                // order is announced as a change of a list, so the window
+                // re-reads the snapshot and its menu ticks Custom.
+                if let Some(lists) = arrivals.due(std::time::Instant::now()) {
+                    use tauri::Manager;
+                    if app.state::<AppState>().yield_to_file_order(&window, &lists) {
+                        let change = jott_core::watcher::Change::List { path: lists[0].clone() };
+                        if let Err(e) = app.emit_to(&window, NOTEBOOK_CHANGED_EVENT, &change) {
+                            eprintln!("[jott] could not emit change event: {e}");
+                        }
+                    }
+                }
+
                 let Some(first) = watcher.next_within(Duration::from_millis(250)) else {
                     continue;
                 };
@@ -276,21 +294,7 @@ impl WatcherHandle {
                     .into_iter()
                     .filter(|change| !change.path().is_some_and(|path| is_own_write(path, &window)))
                     .collect();
-
-                // A list somebody else reordered may have broken its space's
-                // sort. The notebook hears it BEFORE the window does, so the
-                // refresh the event causes already reads the custom order.
-                let lists: Vec<std::path::PathBuf> = changes
-                    .iter()
-                    .filter_map(|change| match change {
-                        jott_core::watcher::Change::List { path } => Some(path.clone()),
-                        _ => None,
-                    })
-                    .collect();
-                if !lists.is_empty() {
-                    use tauri::Manager;
-                    app.state::<AppState>().yield_to_file_order(&window, &lists);
-                }
+                arrivals.note(&changes, std::time::Instant::now());
 
                 for change in changes {
                     // A synced-in `config.json` must take effect: the notebook
@@ -316,5 +320,108 @@ impl WatcherHandle {
 impl Drop for WatcherHandle {
     fn drop(&mut self) {
         self.stop.store(true, std::sync::atomic::Ordering::Relaxed);
+    }
+}
+
+/// How long a burst from outside must stay quiet before its lists are judged.
+const SETTLE: std::time::Duration = std::time::Duration::from_secs(3);
+
+/// Lists somebody else wrote, held until the burst they came in has settled.
+/// A sync delivers a sort change as a `.space.json` AND the lists it rewrote,
+/// in no promised order: judged before its config lands, a new order reads as
+/// a hand edit. A space whose config came in the same burst is left alone —
+/// whoever changed it already said which sort it is.
+#[derive(Default)]
+struct Arrivals {
+    lists: Vec<std::path::PathBuf>,
+    /// Folders whose `.space.json` changed during the burst.
+    configs: std::collections::HashSet<std::path::PathBuf>,
+    last: Option<std::time::Instant>,
+}
+
+impl Arrivals {
+    fn note(&mut self, changes: &[jott_core::watcher::Change], now: std::time::Instant) {
+        use jott_core::watcher::Change;
+        for change in changes {
+            match change {
+                Change::List { path } => self.lists.push(path.clone()),
+                Change::Other { path }
+                    if path.file_name().is_some_and(|name| name == jott_core::space::SPACE_CONFIG_FILE) =>
+                {
+                    if let Some(dir) = path.parent() {
+                        self.configs.insert(dir.to_path_buf());
+                    }
+                }
+                _ => {}
+            }
+        }
+        // Anything still arriving pushes the judgement back.
+        if !changes.is_empty() && !(self.lists.is_empty() && self.configs.is_empty()) {
+            self.last = Some(now);
+        }
+    }
+
+    /// The lists to judge, once the burst has been quiet for [`SETTLE`];
+    /// each burst is judged once.
+    fn due(&mut self, now: std::time::Instant) -> Option<Vec<std::path::PathBuf>> {
+        if now.duration_since(self.last?) < SETTLE {
+            return None;
+        }
+        self.last = None;
+        let configs = std::mem::take(&mut self.configs);
+        let mut lists: Vec<_> = std::mem::take(&mut self.lists)
+            .into_iter()
+            .filter(|path| !path.parent().is_some_and(|dir| configs.contains(dir)))
+            .collect();
+        lists.dedup();
+        (!lists.is_empty()).then_some(lists)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use jott_core::watcher::Change;
+    use std::path::PathBuf;
+    use std::time::{Duration, Instant};
+
+    fn list(path: &str) -> Change {
+        Change::List { path: PathBuf::from(path) }
+    }
+
+    fn other(path: &str) -> Change {
+        Change::Other { path: PathBuf::from(path) }
+    }
+
+    #[test]
+    fn a_list_from_outside_waits_for_its_burst_to_settle() {
+        let start = Instant::now();
+        let at = |ms: u64| start + Duration::from_millis(ms);
+        let mut arrivals = Arrivals::default();
+        arrivals.note(&[list("/nb/Work/task-list.md")], at(0));
+        assert_eq!(arrivals.due(at(1000)), None);
+        // Something else of the same sync pushes the judgement back.
+        arrivals.note(&[other("/nb/assets/photo.jpg")], at(2000));
+        assert_eq!(arrivals.due(at(4000)), None);
+        assert_eq!(arrivals.due(at(5001)), Some(vec![PathBuf::from("/nb/Work/task-list.md")]));
+        assert_eq!(arrivals.due(at(9000)), None, "a burst is judged once");
+    }
+
+    #[test]
+    fn a_space_whose_config_came_with_its_lists_is_left_alone() {
+        // Desktop switched Work to `name`: the lists and the config travel
+        // together, the config LAST. Only the other space is judged.
+        let start = Instant::now();
+        let mut arrivals = Arrivals::default();
+        arrivals.note(&[list("/nb/Work/task-list.md"), list("/nb/Casa/task-list.md")], start);
+        arrivals.note(&[other("/nb/Work/.space.json")], start + Duration::from_secs(1));
+        assert_eq!(
+            arrivals.due(start + Duration::from_secs(5)),
+            Some(vec![PathBuf::from("/nb/Casa/task-list.md")])
+        );
+
+        // A config alone leaves nothing to judge.
+        arrivals.note(&[other("/nb/Work/.space.json")], start);
+        assert_eq!(arrivals.due(start + Duration::from_secs(9)), None);
     }
 }
