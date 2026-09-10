@@ -20,6 +20,13 @@ on:
   workflow_dispatch:
 
 jobs:
+  # The suites run BESIDE the build, not in front of it: in one job they were
+  # nine of the Windows leg's nineteen minutes. The installers still land on a
+  # DRAFT only, and `release.sh --publish` refuses to publish a tag whose run
+  # is not green — so a commit that fails its tests never reaches anyone.
+  suites:
+    uses: ./.github/workflows/test.yml
+
   package:
     permissions:
       contents: write
@@ -65,21 +72,14 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@stable
 
+      # The workspace is the repository root, so the build lands in ./target.
+      # A tag cannot reuse another tag's cache, but a re-run of THIS tag can.
       - uses: swatinem/rust-cache@v2
         with:
-          workspaces: './src-tauri -> target'
+          workspaces: '. -> target'
+          shared-key: package
 
       - run: npm ci
-
-      # The suites run here rather than only in `test.yml` so that a tag
-      # cannot produce installers from a commit that does not pass its tests.
-      #
-      # Rust FIRST, and on purpose: it is the suite that only a real Windows
-      # can host — wine cannot run the watcher or anything that needs a
-      # WebView2 — so when a leg fails it must be the one that failed, not a
-      # frontend flake standing in front of it. jsdom runs the same anywhere.
-      - run: cargo test --workspace
-      - run: npm test
 
       # The notes are composed, not typed into this file.
       #

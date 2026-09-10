@@ -14,7 +14,9 @@
 # to hear from it on the commit than on the tag.
 #
 # This workflow BUILDS NOTHING. Packaging stays in release.yml; here it is the
-# two suites and nothing else, so it finishes in minutes.
+# two suites and clippy, so it finishes in minutes. release.yml calls it on the
+# tag, and `release.sh` reads its verdict on HEAD instead of re-running the
+# suites locally.
 name: test
 
 on:
@@ -23,9 +25,24 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
+  workflow_call:
+
+# A newer push to the same branch makes the older run's answer moot. Every
+# other run (a tag's, a manual one, a PR) keeps a group of its own.
+concurrency:
+  group: >-
+    test-${{ github.workflow }}-${{ github.ref }}-${{
+    (github.event_name == 'push' && github.ref_type == 'branch') && 'push' || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'push' && github.ref_type == 'branch' }}
 
 jobs:
   suites:
+    # The release commit only bumps the version, and release.yml runs this
+    # same workflow on its tag — one run per SHA is enough.
+    if: >-
+      github.event_name != 'push' || github.ref_type != 'branch' ||
+      !startsWith(github.event.head_commit.message, 'chore(release)')
+
     strategy:
       # One platform failing must not cancel the other: knowing that Linux
       # still passes is half of the diagnosis when Windows does not.
@@ -43,10 +60,8 @@ jobs:
       - name: Install Linux build dependencies
         if: matrix.platform == 'ubuntu-22.04'
         run: |
-          # The runner ships third-party apt lists we do not use, and one of
-          # them failing takes the whole `update` down with it (exit 100 on a
-          # Google Chrome "Hash Sum mismatch", 2026-09-09) — a release stopped
-          # for a repository none of these packages come from. Drop them.
+          # Third-party apt lists we do not use can fail `update` on their own
+          # (a Chrome "Hash Sum mismatch" once did). Drop them.
           sudo rm -f /etc/apt/sources.list.d/*google-chrome* /etc/apt/sources.list.d/*microsoft*
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev
@@ -57,15 +72,26 @@ jobs:
           cache: npm
 
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
 
+      # The workspace is the repository root, so the build lands in ./target.
+      # One key per OS, shared with the tag run: a tag may restore a cache
+      # saved on main, never the other way round.
       - uses: swatinem/rust-cache@v2
         with:
-          workspaces: './src-tauri -> target'
+          workspaces: '. -> target'
+          shared-key: suites
 
       - run: npm ci
 
-      # Rust first, for the same reason as in release.yml: it is the half only
-      # a real Windows can answer, and a frontend flake must not stand in
-      # front of it.
+      # Rust first: it is the half only a real Windows can answer, and a
+      # frontend flake must not stand in front of it.
       - run: cargo test --workspace
       - run: npm test
+
+      # Once, on Linux: lints do not differ by platform, and the build above
+      # already compiled every dependency clippy needs.
+      - name: cargo clippy
+        if: matrix.platform == 'ubuntu-22.04'
+        run: cargo clippy --workspace --all-targets -- -D warnings
