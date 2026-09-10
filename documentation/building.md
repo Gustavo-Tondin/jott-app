@@ -66,6 +66,12 @@ npm run tauri android build -- --debug --target aarch64 --apk   # to try it
 npm run tauri android build -- --apk                            # release; needs a keystore
 ```
 
+`.cargo/config.toml` links the Android library with 16 KB page alignment
+(`-z max-page-size=16384`): devices on Android 15+ may boot with 16 KB pages,
+and a library aligned to 4 KB does not load there. NDK r28 and later do this
+by default; the flag keeps r27 builds right. Check a build with
+`readelf -lW libjott_lib.so | grep LOAD` — the last column should be `0x4000`.
+
 A release APK must be signed. Generate your own keystore locally — it is
 free, it never goes in the repository, and it is the one key you cannot lose:
 Android refuses to install an update signed by a different key, so a new APK

@@ -1,0 +1,8 @@
+# Android devices may boot with 16 KB memory pages (Android 15+); a native
+# library whose LOAD segments are aligned to 4 KB does not load there. NDK r28
+# aligns to 16 KB by default; r27 needs the linker told.
+[target.aarch64-linux-android]
+rustflags = ["-C", "link-arg=-Wl,-z,max-page-size=16384"]
+
+[target.x86_64-linux-android]
+rustflags = ["-C", "link-arg=-Wl,-z,max-page-size=16384"]

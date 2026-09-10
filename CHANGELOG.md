@@ -21,6 +21,7 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 - **The top bar's buttons float on every screen on a phone**, with no band painted behind them.
 - **Switches in Settings have white knobs again**, instead of black.
 - **A ticked task on the page is one clean colour**: no darker rim around the box, and a white tick.
+- **Jott opens on Android phones that use 16 KB memory pages**, which newer devices can boot with, instead of failing to load.
 
 ### Improved
 
