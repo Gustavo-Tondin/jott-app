@@ -104,19 +104,23 @@ pub struct SpaceConfig {
     /// The space's icon (a Phosphor icon name the frontend knows). Absent
     /// falls back to the generic folder icon.
     pub icon: Option<String>,
-    /// How the space arranges its items (`name`, `created`, `completed`,
-    /// `custom`). `None` — or a value this build has never heard of — reads
-    /// as the file order. A view preference, so the core stores it verbatim.
+    /// How the space arranges its items (`name`, `created`, `due`, `custom`;
+    /// a notes space also `completed`). `None` — or a value this build has
+    /// never heard of — reads as the file order. Stored verbatim; in a tasks
+    /// space the lists are REWRITTEN in it (`crate::arrange`).
     pub sort: Option<String>,
+    /// Which way a sort by field runs: `up` turns it over, anything else (or
+    /// nothing) is the default. Kept verbatim, like `sort`.
+    pub sort_direction: Option<String>,
     /// How a NOTES space draws its board: `grid` or `tree`. `None` means the
     /// notebook's default (`Config::note_layout`), so a space that never chose
     /// follows the setting; an unknown value is kept verbatim and read as the
     /// default, like `sort`. Meaningless on a tasks space, never written there.
     pub note_layout: Option<String>,
     /// The hand-dragged arrangement (task ids for a tasks space, note
-    /// paths for a notes one), read when `sort` is `custom`. Lives here and
-    /// never in the content files — the order is an app preference, the `.md`
-    /// is the user's.
+    /// paths for a notes one), read when `sort` is `custom`. In a tasks space
+    /// the `.md` holds the order itself; this is the one choosing Custom
+    /// puts back, after a sort by field rewrote the files.
     pub order: Vec<String>,
     /// What each FOLDER of notes inside this space carries (colour, pinned),
     /// keyed by the folder's address relative to the space (`Clientes/2026`).
@@ -136,6 +140,7 @@ impl Default for SpaceConfig {
             color: None,
             icon: None,
             sort: None,
+            sort_direction: None,
             note_layout: None,
             order: Vec::new(),
             folders: BTreeMap::new(),
@@ -186,6 +191,7 @@ impl SpaceConfig {
             color: jsondoc::string(&raw, "color"),
             icon: jsondoc::string(&raw, "icon"),
             sort: jsondoc::string(&raw, "sort"),
+            sort_direction: jsondoc::string(&raw, "sortDirection"),
             note_layout: jsondoc::string(&raw, "noteLayout"),
             // Malformed entries fall away one at a time, like every field.
             order: raw
@@ -238,6 +244,7 @@ impl SpaceConfig {
             ("color", &self.color),
             ("icon", &self.icon),
             ("sort", &self.sort),
+            ("sortDirection", &self.sort_direction),
             ("noteLayout", &self.note_layout),
         ] {
             crate::jsondoc::put_or_clear(

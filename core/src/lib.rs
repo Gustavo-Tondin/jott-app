@@ -4,6 +4,7 @@
 //! by calling into Tauri, it belongs in `src-tauri` instead.
 
 pub mod age;
+pub mod arrange;
 pub mod assets;
 pub mod browse;
 pub mod clock;

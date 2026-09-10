@@ -519,7 +519,7 @@ fn a_space_keeps_its_sort_and_dragged_order_in_its_own_config() {
             .unwrap()
     };
 
-    nb.set_space_sort("Space 1", Some("name")).unwrap();
+    nb.set_space_sort("Space 1", Some("name"), None).unwrap();
     assert_eq!(space(&nb).config.sort.as_deref(), Some("name"));
 
     // Dragging saves the arrangement and switches the space to it.
@@ -530,7 +530,7 @@ fn a_space_keeps_its_sort_and_dragged_order_in_its_own_config() {
     assert_eq!(config.order, vec!["b2".to_string(), "a1".to_string()]);
 
     // Clearing removes the keys from the file instead of leaving stale ones.
-    nb.set_space_sort("Space 1", None).unwrap();
+    nb.set_space_sort("Space 1", None, None).unwrap();
     nb.set_space_order("Space 1", Vec::new()).unwrap();
     let on_disk =
         std::fs::read_to_string(dir.path().join("Space 1/.space.json")).unwrap();
@@ -544,7 +544,7 @@ fn a_space_keeps_its_sort_and_dragged_order_in_its_own_config() {
     // A folder that is not a space is refused — writing a config there
     // would turn it into one.
     std::fs::create_dir(dir.path().join("Loose")).unwrap();
-    assert!(nb.set_space_sort("Loose", Some("name")).is_err());
+    assert!(nb.set_space_sort("Loose", Some("name"), None).is_err());
 }
 
 #[test]
@@ -566,7 +566,7 @@ fn a_notes_space_keeps_its_board_layout_in_its_own_config() {
     assert_eq!(space(&nb).config.note_layout.as_deref(), Some("tree"));
     // It travels with the space, not with the sort: changing one leaves the
     // other as it was.
-    nb.set_space_sort("Ideas", Some("name")).unwrap();
+    nb.set_space_sort("Ideas", Some("name"), None).unwrap();
     assert_eq!(space(&nb).config.note_layout.as_deref(), Some("tree"));
     assert_eq!(space(&nb).config.sort.as_deref(), Some("name"));
 

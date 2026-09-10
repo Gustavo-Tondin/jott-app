@@ -106,9 +106,9 @@ export function makeNotebookWrites({
   // read once: the space a screen shows is reactive, and the two writers are
   // handed down as props when the shell is built.
   const arrangementOf = (folder) => ({
-    setSort: (sort) => {
+    setSort: (sort, direction) => {
       const at = folder();
-      return at && change(() => api.setSpaceSort(at, sort));
+      return at && change(() => api.setSpaceSort(at, sort, direction));
     },
     setOrder: (order) => {
       const at = folder();

@@ -209,6 +209,18 @@ impl AppState {
         }
     }
 
+    /// Shows `window`'s notebook the lists somebody else wrote: a sort those
+    /// files no longer follow gives way to the file order
+    /// (`Notebook::yield_to_file_order`). Attributed to the window, so its own
+    /// watcher drops the echo of the config this rewrites.
+    pub fn yield_to_file_order(&self, window: &str, lists: &[std::path::PathBuf]) {
+        if let Ok(guard) = self.lock() {
+            if let Some(open) = guard.get(window) {
+                let _ = attribute(window, || open.notebook.yield_to_file_order(Some(lists)));
+            }
+        }
+    }
+
     fn lock(&self) -> CommandResult<std::sync::MutexGuard<'_, HashMap<String, OpenNotebook>>> {
         // A poisoned mutex means a command panicked while holding it. Failing
         // the call is better than papering over an unknown state.
@@ -264,6 +276,21 @@ impl WatcherHandle {
                     .into_iter()
                     .filter(|change| !change.path().is_some_and(|path| is_own_write(path, &window)))
                     .collect();
+
+                // A list somebody else reordered may have broken its space's
+                // sort. The notebook hears it BEFORE the window does, so the
+                // refresh the event causes already reads the custom order.
+                let lists: Vec<std::path::PathBuf> = changes
+                    .iter()
+                    .filter_map(|change| match change {
+                        jott_core::watcher::Change::List { path } => Some(path.clone()),
+                        _ => None,
+                    })
+                    .collect();
+                if !lists.is_empty() {
+                    use tauri::Manager;
+                    app.state::<AppState>().yield_to_file_order(&window, &lists);
+                }
 
                 for change in changes {
                     // A synced-in `config.json` must take effect: the notebook

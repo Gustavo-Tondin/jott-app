@@ -57,6 +57,25 @@
         <ul class="theme-popover menu__list menu__sub" use:keepOnScreen={{ side: "inline" }}>
           {#each item.items as sub (sub.label)}
             <li class="menu__item">
+              {#if sub.segments}
+                <!-- Choices side by side (a sort's direction): one track, the
+                     chosen one filled. `label` names the group. -->
+                <div class="theme-segmented menu__segments" role="group" aria-label={sub.label}>
+                  {#each sub.segments as seg (seg.icon)}
+                    <button
+                      class="theme-segmented__item menu__segment"
+                      class:theme-segmented__item--active={seg.checked}
+                      aria-pressed={seg.checked}
+                      aria-label={seg.label}
+                      title={seg.label}
+                      disabled={seg.disabled}
+                      onclick={() => choose(seg)}
+                    >
+                      <Icon name={seg.icon} size="0.875rem" />
+                    </button>
+                  {/each}
+                </div>
+              {:else}
               <button
                 class="menu__link"
                 disabled={sub.disabled}
@@ -69,6 +88,7 @@
                     style={`--dot: ${sub.swatch}`}
                   ></span>{/if}{sub.label}</button
               >
+              {/if}
             </li>
           {/each}
         </ul>

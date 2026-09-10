@@ -258,6 +258,10 @@ impl Notebook {
                     .config_dir()
                     .join(crate::state::LEGACY_WEEKLY_STATE_FILE),
             );
+            // A list reordered while the app was closed keeps its order: the
+            // sort it broke gives way BEFORE anything below saves — and so
+            // re-sorts — a list.
+            let _ = notebook.yield_to_file_order(None);
             // Every task gets a creation date and an id. Derived, like the
             // ones below: a failure must not keep the notebook from opening.
             let _ = notebook.adopt_task_identity();

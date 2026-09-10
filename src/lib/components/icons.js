@@ -47,6 +47,8 @@ import sidebarSimple from "../../assets/icons/phosphor/regular/sidebar-simple.sv
 import browser from "../../assets/icons/phosphor/regular/browser.svg?raw";
 import arrowLeft from "../../assets/icons/phosphor/regular/arrow-left.svg?raw";
 import arrowRight from "../../assets/icons/phosphor/regular/arrow-right.svg?raw";
+import arrowDown from "../../assets/icons/phosphor/regular/arrow-down.svg?raw";
+import arrowUp from "../../assets/icons/phosphor/regular/arrow-up.svg?raw";
 import flag from "../../assets/icons/phosphor/regular/flag.svg?raw";
 import dotsSixVertical from "../../assets/icons/phosphor/regular/dots-six-vertical.svg?raw";
 import list from "../../assets/icons/phosphor/regular/list.svg?raw";
@@ -155,6 +157,8 @@ export const ICONS = {
   "sidebar-simple": sidebarSimple,
   tabs: browser,
   "arrow-left": arrowLeft,
+  "arrow-down": arrowDown,
+  "arrow-up": arrowUp,
   "arrow-right": arrowRight,
   flag,
   "dots-six-vertical": dotsSixVertical,

@@ -42,4 +42,41 @@ describe("spaceMenu", () => {
     for (const item of items[0].items) item.run();
     expect(chosen).toEqual([null, "name", "created", "custom"]);
   });
+
+  test("a direction row leads the sortings, and turns the sort that is on", () => {
+    const chosen = [];
+    const menu = (sort, direction) =>
+      spaceMenu({
+        sorts: ["custom", "name", "created", "due"],
+        sort,
+        direction,
+        hasOrder: true,
+        onSetSort: (...args) => chosen.push(args),
+      }).at(-1).items;
+
+    const [row, ...sortings] = menu("name", "down");
+    expect(row.segments.map((s) => s.icon)).toEqual(["arrow-down", "arrow-up"]);
+    expect(row.segments.map((s) => s.checked)).toEqual([true, false]);
+    expect(row.segments.map((s) => s.label)).toEqual(["A to Z", "Z to A"]);
+    expect(labels(sortings)).toEqual([
+      "Custom order (dragged)",
+      "Sort by name",
+      "Sort by creation date",
+      "Sort by due date",
+    ]);
+    row.segments[1].run();
+    // A sorting keeps the direction the space has: it reports none.
+    sortings[3].run();
+    expect(chosen).toEqual([["name", "up"], ["due"]]);
+
+    // Custom has no direction: the row is dead, and still says which way.
+    const [dead] = menu("custom", "up");
+    expect(dead.segments.every((s) => s.disabled)).toBe(true);
+    expect(dead.segments.map((s) => s.checked)).toEqual([false, true]);
+  });
+
+  test("no direction given, no row: a notepad and a day go without", () => {
+    const items = spaceMenu({ sort: "name" }).at(-1).items;
+    expect(items.some((item) => item.segments)).toBe(false);
+  });
 });

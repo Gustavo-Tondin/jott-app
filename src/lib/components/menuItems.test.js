@@ -88,4 +88,38 @@ describe("MenuItems", () => {
     const marks = [...document.querySelectorAll(".menu__sub .menu__check")];
     expect(marks.map((m) => m.textContent)).toEqual(["", "✓"]);
   });
+
+  test("a row of segments sits side by side, the chosen one filled, each one pressable", async () => {
+    const runs = [];
+    const { container } = render(MenuItems, {
+      props: {
+        items: [
+          {
+            label: "Sort",
+            items: [
+              {
+                label: "Direction",
+                segments: [
+                  { icon: "arrow-down", label: "A to Z", checked: true, run() {} },
+                  { icon: "arrow-up", label: "Z to A", checked: false, run() {} },
+                ],
+              },
+              { label: "By name", checked: true, run() {} },
+            ],
+          },
+        ],
+        onChoose: (item) => runs.push(item.label),
+      },
+    });
+
+    await fireEvent.click(container.querySelector(".menu__link--sub"));
+    const group = document.querySelector(".menu__sub .menu__segments");
+    expect(group.getAttribute("aria-label")).toBe("Direction");
+    const segments = [...group.querySelectorAll(".menu__segment")];
+    expect(segments.map((b) => b.getAttribute("aria-label"))).toEqual(["A to Z", "Z to A"]);
+    expect(segments.map((b) => b.getAttribute("aria-pressed"))).toEqual(["true", "false"]);
+    expect(segments[0].classList.contains("theme-segmented__item--active")).toBe(true);
+    await fireEvent.click(segments[1]);
+    expect(runs).toEqual(["Z to A"]);
+  });
 });

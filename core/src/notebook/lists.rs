@@ -132,10 +132,16 @@ impl Notebook {
         Ok(found)
     }
 
-    /// Opens a list by its root-relative address (`Tasks/Compras.md`).
+    /// Opens a list by its root-relative address (`Tasks/Compras.md`). Every
+    /// list but Completed follows its space's arrangement on each save
+    /// (`crate::arrange`); Completed only grows, in the order things were ticked.
     pub fn open_list(&self, path: &str) -> Result<TaskList> {
         let (folder, name) = self.resolve_list(path)?;
-        folder.open_list(&name)
+        let list = folder.open_list(&name)?;
+        if name == COMPLETED_LIST {
+            return Ok(list);
+        }
+        Ok(list.arranged_by(folder.dir().join(crate::space::SPACE_CONFIG_FILE)))
     }
 
     /// Tasks of a list, ready to show. Reading does NOT hand out ids
@@ -267,9 +273,18 @@ impl Notebook {
         let rescued: Vec<Task> = list.tasks().cloned().collect();
 
         let main_list = folder.main_list_name();
-        let mut inbox = folder.open_list(main_list)?;
-        for task in &rescued {
-            inbox.add(task.clone());
+        let (dir, _) = split_list_path(path)?;
+        let inbox_path = format!("{dir}/{main_list}.md");
+        let mut inbox = self.open_list(&inbox_path)?;
+        let on_top = self.config.new_tasks_on_top;
+        // Each lands where the Inbox's arrangement puts it. One at a time on
+        // top would stack them upside down, so they go in from the last.
+        let mut arriving = rescued.clone();
+        if on_top {
+            arriving.reverse();
+        }
+        for task in arriving {
+            inbox.add_arriving(task, on_top);
         }
 
         // Inbox first, then the file goes away: a crash in between leaves a
@@ -279,8 +294,6 @@ impl Notebook {
         self.trash_path(&file)?;
         let rescued = rescued.len();
 
-        let (dir, _) = split_list_path(path)?;
-        let inbox_path = format!("{dir}/{main_list}.md");
         // References now point at the main-list copies, which carry the same
         // ids; repointing keeps a pulled task pulled.
         self.update_states(|state| state.rename_path(path, &inbox_path))?;

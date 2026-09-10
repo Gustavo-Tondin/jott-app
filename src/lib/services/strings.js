@@ -237,7 +237,16 @@ export const S = {
   searchTag: (name) => `Search #${name}`,
   sortByCreated: "Sort by creation date",
   sortByCompleted: "Sort by completion date",
+  sortByDue: "Sort by due date",
   sortCustom: "Custom order (dragged)",
+  // The ↓ ↑ above a space's sortings: ↓ runs from least to most.
+  sortDirection: "Direction",
+  sortDirectionOf: (sort, up) =>
+    ({
+      name: up ? "Z to A" : "A to Z",
+      created: up ? "Oldest first" : "Newest first",
+      due: up ? "Latest due first" : "Soonest due first",
+    })[sort] ?? (up ? "Up" : "Down"),
   // The composing row (the New task popup, and the bar on the Tasks screen).
   createTaskPlaceholder: "Create a task…",
   completedCount: (n) => `Completed ${n}`,

@@ -176,7 +176,9 @@ describe("SpaceView", () => {
     expect(sorts).toEqual(["name"]);
   });
 
-  test("the screen arranges its cards by the sort the config declares", async () => {
+  test("the screen draws its cards in the file's order, whatever the sort says", async () => {
+    // A sort REWRITES the list (core `arrange`): the file order is the sort,
+    // and a second copy of the rule on the screen would drift from it.
     bridge({
       list_tasks: (args) =>
         args.list.endsWith("completed.md")
@@ -196,7 +198,7 @@ describe("SpaceView", () => {
     const titles = [...document.querySelectorAll(".task-row__title")].map((el) =>
       el.textContent.trim(),
     );
-    expect(titles).toEqual(["Amora", "banana"]);
+    expect(titles).toEqual(["banana", "Amora"]);
   });
 
   test("the bookmark pins a task to the top, and completed cards have none", async () => {

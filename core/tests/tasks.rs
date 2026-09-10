@@ -1194,18 +1194,21 @@ fn a_day_puts_what_arrives_where_the_setting_says() {
 }
 
 #[test]
-fn a_space_arranged_by_hand_puts_the_new_task_first_in_its_order() {
-    // `custom` draws an id it does not know LAST, so on top has to reach the
-    // saved order as well as the file.
+fn a_space_arranged_by_hand_puts_the_new_task_first_in_its_file() {
+    // The `.md` is the order: on top means on top of the FILE, and the saved
+    // custom order is left as the last drag made it.
     let (dir, notebook, first) = notebook_with_task("Primeira");
     let inbox = "jott.tasks/task-list.md";
     notebook.set_space_order("jott.tasks", vec![first.clone()]).unwrap();
 
     let position = notebook.create_task(inbox, "Nova").unwrap();
-    let fresh = notebook.ensure_task_id(inbox, position).unwrap();
+    assert_eq!(position, 0);
+    let texts: Vec<String> = notebook.tasks_in(inbox).unwrap().into_iter().map(|t| t.text).collect();
+    assert_eq!(texts, vec!["Nova", "Primeira"]);
     let config = read(dir.path().join("jott.tasks/.space.json"));
-    let at = |id: &str| config.find(&format!("\"{id}\"")).expect(&config);
-    assert!(at(&fresh) < at(&first), "{config}");
+    let fresh = notebook.ensure_task_id(inbox, position).unwrap();
+    assert!(!config.contains(&fresh), "{config}");
+    assert!(config.contains(&first), "{config}");
 }
 
 // ------------------------------------------------------------ every list

@@ -223,29 +223,35 @@
     keyOf: (entry) => entry.task.id,
   };
   const isPinned = (entry) => !!entry.task.pinned;
+  /// What a space of tasks is arranged by, in the menu's order.
+  const TASK_SORTS = ["custom", "name", "created", "due"];
 
-  let sort = $derived(isDay ? daySort : (source.sort ?? null));
-  let order = $derived(isDay || all ? [] : (source.order ?? []));
+  // A space's lists are WRITTEN in its arrangement (core `arrange`), so the
+  // file order is the sort and only a day arranges here. Unknown or absent
+  // reads as `custom`, like the core reads it.
+  let sort = $derived(
+    isDay ? daySort : TASK_SORTS.includes(source.sort) ? source.sort : "custom",
+  );
+  let direction = $derived(source.sortDirection === "up" ? "up" : "down");
 
   // Pinning outranks the sort: whatever ordering is on, a pinned card is at
   // the top, with a divider under the last one.
-  let shown = $derived(pinnedFirst(arrange(open, sort, order, accessors), isPinned));
-  let shownCompleted = $derived(arrangeCompleted(done, sort, accessors));
+  let shown = $derived(pinnedFirst(isDay ? arrange(open, sort, [], accessors) : open, isPinned));
+  // The last one ticked on top: Completed only grows by appending.
+  let shownCompleted = $derived(
+    isDay ? arrangeCompleted(done, sort, accessors) : [...done].reverse(),
+  );
 
   // A day has no `.space.json` and no folder, so it offers neither an
   // arrangement nor a move — `spaceMenu` leaves out what it is not given.
   let sortMenu = $derived(
     spaceMenu({
       lead: [{ label: S.selectTasks, run: () => (picking = true), disabled: readOnly }],
-      // `custom` is the folder source's saved arrangement; a day has none,
-      // because dragging it rewrites the day's file itself — and "every
-      // list" has none either, since nothing is dragged across lists.
-      sorts:
-        isDay || all
-          ? [null, "name", "created", "completed"]
-          : [null, "name", "created", "completed", "custom"],
+      // A day keeps its own arrangement (the day's file), with no direction.
+      sorts: isDay ? [null, "name", "created", "completed"] : TASK_SORTS,
       sort,
-      hasOrder: order.length > 0,
+      direction: isDay ? undefined : direction,
+      hasOrder: true,
       onSetSort: setSort,
     }),
   );
@@ -352,7 +358,8 @@
     });
   };
 
-  const setSort = (next) => (isDay ? act(() => api.setDaySort(next)) : onSetSort?.(next));
+  const setSort = (next, way) =>
+    isDay ? act(() => api.setDaySort(next)) : onSetSort?.(next, way);
 
   // Dragging a day rewrites the day's file — the day IS that list, so there
   // is nothing to mirror and nothing to fall out of step. Whatever sort was on

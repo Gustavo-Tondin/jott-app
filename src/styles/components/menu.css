@@ -67,6 +67,27 @@
     color: var(--app-ink-faint);
     cursor: default;
   }
+  /* A row of choices side by side (a sort's direction): the shared segmented
+     track, stretched to the row, above the rows it governs. */
+  .menu__segments {
+    display: flex;
+    margin-block-end: var(--app-space-4);
+  }
+  .menu__segment {
+    flex: 1;
+    display: inline-flex;
+    justify-content: center;
+    padding-block: var(--app-space-4);
+  }
+  /* Dead while the sort has no direction: the chosen one stays marked, but
+     quietly, so the row still says which way the next sort will run. */
+  .menu__segment:disabled {
+    color: var(--app-ink-faint);
+    cursor: default;
+  }
+  .menu__segment:disabled.theme-segmented__item--active {
+    background: var(--app-surface-sunken);
+  }
 
   /* On a finger the list needs more than the 11rem the desktop gives it: the
      rows are 48px tall and their labels a step bigger (touch.css, tokens.css),

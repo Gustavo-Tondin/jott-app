@@ -14,6 +14,7 @@ const SORT_LABELS = {
   name: () => S.sortByName,
   created: () => S.sortByCreated,
   completed: () => S.sortByCompleted,
+  due: () => S.sortByDue,
   custom: () => S.sortCustom,
 };
 
@@ -24,12 +25,16 @@ const SORT_LABELS = {
 ///   date, so a notepad leaves that one out);
 /// - `sort` / `hasOrder`: what the space's `.space.json` currently
 ///   says — the active one is ticked, and "custom" is dead until something
-///   was dragged.
+///   was dragged;
+/// - `direction` (`down`/`up`): given, a ↓ ↑ row leads the sortings, dead on
+///   `custom` and `null`. Its buttons report `onSetSort(sort, direction)`; a
+///   sorting reports `onSetSort(value)` and keeps the direction.
 export function spaceMenu({
   lead = [],
   sorts = [null, "name", "created", "custom"],
   sort = null,
   hasOrder = false,
+  direction = undefined,
   onSetSort,
 } = {}) {
   const items = [...lead];
@@ -39,16 +44,35 @@ export function spaceMenu({
   // has no arrangement to set, so offering it would be a promise the screen
   // cannot keep (2026-08-06).
   if (sorts.length > 0) {
+    const byField = sort !== null && sort !== "custom";
+    const directions =
+      direction === undefined
+        ? []
+        : [
+            {
+              label: S.sortDirection,
+              segments: [false, true].map((up) => ({
+                icon: up ? "arrow-up" : "arrow-down",
+                label: S.sortDirectionOf(sort, up),
+                checked: (direction === "up") === up,
+                disabled: !byField,
+                run: () => onSetSort?.(sort, up ? "up" : "down"),
+              })),
+            },
+          ];
     items.push({
       label: S.sortTasks,
-      items: sorts.map((value) => ({
-        label: SORT_LABELS[String(value)](),
-        // The mark is the menu's (`MenuItems.svelte`), not a label prefix:
-        // a prefix was one of four hand-rolled spellings of "chosen".
-        checked: sort === value,
-        run: () => onSetSort?.(value),
-        disabled: value === "custom" && !hasOrder,
-      })),
+      items: [
+        ...directions,
+        ...sorts.map((value) => ({
+          label: SORT_LABELS[String(value)](),
+          // The mark is the menu's (`MenuItems.svelte`), not a label prefix:
+          // a prefix was one of four hand-rolled spellings of "chosen".
+          checked: sort === value,
+          run: () => onSetSort?.(value),
+          disabled: value === "custom" && !hasOrder,
+        })),
+      ],
     });
   }
   return items;

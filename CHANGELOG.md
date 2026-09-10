@@ -8,6 +8,10 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 
 ## v0.55.0
 
+### New
+
+- **A list's file is its order.** Sorting by name, creation date or due date (with ↓ ↑ for the direction) rewrites the `.md` in that order, and dragging a card makes it your custom order, which Custom brings back; a list reordered in another editor switches to Custom and keeps what you did.
+
 ### Fixed
 
 - **A new list item starts with a capital letter on Android.** After Enter on a bullet, a task or a quote, the keyboard now capitalizes the first word, as it does at the start of a paragraph.

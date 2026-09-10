@@ -186,9 +186,10 @@ export const api = {
     invoke("set_space_appearance", { folder, color, icon }),
   deleteSpace: (folder) => invoke("delete_space", { folder }),
   // A space's ordering preference lives in its own .space.json —
-  // `space` is the folder name (the identity).
-  setSpaceSort: (space, sort) =>
-    invoke("set_space_sort", { space, sort }),
+  // `space` is the folder name (the identity). `direction` (`down`/`up`)
+  // left out keeps the one the space has; a tasks space rewrites its lists.
+  setSpaceSort: (space, sort, direction) =>
+    invoke("set_space_sort", { space, sort, direction }),
   setSpaceOrder: (space, order) =>
     invoke("set_space_order", { space, order }),
   // How a notes space draws its board (`grid` / `tree`); null follows the

@@ -5,8 +5,10 @@
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
+use crate::arrange::Arrangement;
 use crate::error::{Error, Result};
 use crate::id;
+use crate::space::SpaceConfig;
 use crate::task::Task;
 
 /// One line of a list file. `Task` is deliberately not boxed: most lines ARE
@@ -27,6 +29,10 @@ pub struct TaskList {
     /// Whether the file ended with a newline, so saving does not silently
     /// change a byte the user did not ask us to change.
     trailing_newline: bool,
+    /// The `.space.json` whose arrangement this list follows: the `.md` IS
+    /// the order, so every save puts the tasks back in it. `None` is a list
+    /// that only grows by appending (Completed), or has no space behind it.
+    space_config: Option<PathBuf>,
 }
 
 impl TaskList {
@@ -79,7 +85,15 @@ impl TaskList {
             path,
             lines,
             trailing_newline,
+            space_config: None,
         }
+    }
+
+    /// Follows the arrangement of the space whose marker is `config` from now
+    /// on: every save rewrites the tasks in that order.
+    pub(crate) fn arranged_by(mut self, config: PathBuf) -> Self {
+        self.space_config = Some(config);
+        self
     }
 
     pub fn tasks(&self) -> impl Iterator<Item = &Task> {
@@ -146,6 +160,21 @@ impl TaskList {
         } else {
             self.add(task)
         }
+    }
+
+    /// Adds a task where the list's arrangement puts it and returns its final
+    /// position: the top or the bottom by `on_top` — which is also what breaks
+    /// a tie under a sort — then the sort itself. A list with no arrangement
+    /// (Completed) appends: it is the log of what was ticked, in that order.
+    pub fn add_arriving(&mut self, task: Task, on_top: bool) -> usize {
+        if self.space_config.is_none() {
+            return self.add(task);
+        }
+        let at = self.add_placed(task, on_top);
+        self.settle()
+            .iter()
+            .position(|&from| from == at)
+            .unwrap_or(at)
     }
 
     /// Puts a task back at line `index` (lines, not tasks — the index the
@@ -255,6 +284,65 @@ impl TaskList {
         Ok(())
     }
 
+    /// Puts the tasks in the order `positions` names — positions among the
+    /// tasks, each exactly once. Only the TASKS move: every other line (a
+    /// heading, a note above the checklist, a blank line) keeps its place, and
+    /// a task carries its own child lines along. Anything that is not such a
+    /// permutation is refused, and the list stays as it was.
+    pub fn reorder(&mut self, positions: &[usize]) {
+        let slots: Vec<usize> = self
+            .lines
+            .iter()
+            .enumerate()
+            .filter(|(_, line)| matches!(line, Line::Task(_)))
+            .map(|(index, _)| index)
+            .collect();
+        let mut named = vec![false; slots.len()];
+        let permutation = positions.len() == slots.len()
+            && positions
+                .iter()
+                .all(|&p| p < named.len() && !std::mem::replace(&mut named[p], true));
+        if !permutation || is_identity(positions) {
+            return;
+        }
+        let mut taken: Vec<Option<Line>> = slots
+            .iter()
+            .map(|&slot| Some(std::mem::replace(&mut self.lines[slot], Line::Raw(String::new()))))
+            .collect();
+        for (&slot, &from) in slots.iter().zip(positions) {
+            self.lines[slot] = taken[from].take().expect("a permutation names each task once");
+        }
+    }
+
+    /// Rewrites the list in `arrangement`; answers the positions applied.
+    pub fn arrange(&mut self, arrangement: &Arrangement) -> Vec<usize> {
+        let positions = arrangement.positions(&self.tasks().collect::<Vec<_>>());
+        self.reorder(&positions);
+        positions
+    }
+
+    /// Whether the tasks already stand in `arrangement` — false once someone
+    /// reordered the file outside the app.
+    pub fn is_arranged(&self, arrangement: &Arrangement) -> bool {
+        is_identity(&arrangement.positions(&self.tasks().collect::<Vec<_>>()))
+    }
+
+    /// Rewrites the list in a saved custom order (`arrange::by_saved_order`).
+    pub fn apply_order(&mut self, order: &[String]) {
+        let positions = crate::arrange::by_saved_order(&self.tasks().collect::<Vec<_>>(), order);
+        self.reorder(&positions);
+    }
+
+    /// Puts the tasks back in their space's arrangement, read from its
+    /// `.space.json` NOW — it may have changed since the list was opened.
+    /// Answers the positions applied (`0..n` when nothing moved).
+    pub fn settle(&mut self) -> Vec<usize> {
+        let Some(config) = self.space_config.clone() else {
+            return (0..self.tasks().count()).collect();
+        };
+        self.arrange(&Arrangement::of(&SpaceConfig::load(config)))
+    }
+
     /// Inserts a copy of a task right after it. The copy is **id-less** (it
     /// earns its own the first time it is addressed, like any new task) and
     /// **origin-less** (a fresh copy is not "from" anywhere). Errors if the id
@@ -341,7 +429,14 @@ impl TaskList {
 
     /// Writes the list to disk atomically: a half-written list would be a
     /// corrupted notebook, and sync tools may read the file at any moment.
-    pub fn save(&self) -> Result<()> {
+    /// A list that follows a space is settled first — the one place every
+    /// write passes, so no caller can leave the file out of its order.
+    pub fn save(&mut self) -> Result<()> {
+        self.settle();
         crate::fsio::write_atomically(&self.path, self.render().as_bytes())
     }
+}
+
+fn is_identity(positions: &[usize]) -> bool {
+    positions.iter().enumerate().all(|(i, &p)| i == p)
 }

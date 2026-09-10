@@ -28,6 +28,7 @@ export function sourceOf(space, { name = space.name ?? null } = {}) {
     folder: space.path,
     name,
     sort: space.sort ?? null,
+    sortDirection: space.sortDirection ?? null,
     order: space.order ?? [],
     // The board layout this notes space chose for itself; null follows the
     // notebook's default (`layout.noteLayout`).

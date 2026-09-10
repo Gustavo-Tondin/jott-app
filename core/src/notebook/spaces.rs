@@ -6,6 +6,7 @@
 
 use std::path::{Path, PathBuf};
 
+use crate::arrange::{Arrangement, CUSTOM_SORT, REVERSED};
 use crate::error::{Error, IoContext, Result};
 use crate::{COMPLETED_LIST, NOTES_DIR, TASKS_DIR};
 
@@ -250,12 +251,120 @@ impl Notebook {
         config.save(path)
     }
 
-    /// Persists how a space arranges its items (`name` / `created` /
-    /// `completed` / `custom`, `None` = file order) in its `.space.json`.
-    pub fn set_space_sort(&self, folder: &str, sort: Option<&str>) -> Result<()> {
+    /// Sets how a space arranges its items and, when `direction` is given,
+    /// which way (`up` turns it over; anything else is the default). A tasks
+    /// space then REWRITES its lists in that order — the `.md` is the order —
+    /// and `custom` (or nothing) puts back the saved one, `order`.
+    pub fn set_space_sort(
+        &self,
+        folder: &str,
+        sort: Option<&str>,
+        direction: Option<&str>,
+    ) -> Result<()> {
         self.with_space_config(folder, |config| {
             config.sort = sort.map(str::to_string);
-        })
+            if let Some(direction) = direction {
+                config.sort_direction = (direction == REVERSED).then(|| REVERSED.to_string());
+            }
+        })?;
+        self.rearrange_space(folder)
+    }
+
+    /// Rewrites every open list of a tasks space in its arrangement: the sort,
+    /// or the saved order when it is `custom`. A list already in order is not
+    /// written; a notes space has no file to rewrite.
+    fn rearrange_space(&self, folder: &str) -> Result<()> {
+        let space = self.open_space(folder)?;
+        if space.kind() != "tasks" {
+            return Ok(());
+        }
+        let custom = !Arrangement::of(&space.config).is_by_field();
+        for path in self.space_list_paths(folder)? {
+            let mut list = self.open_list(&path)?;
+            let before = list.render();
+            if custom {
+                list.apply_order(&space.config.order);
+            }
+            list.settle();
+            if list.render() != before {
+                list.save()?;
+            }
+        }
+        Ok(())
+    }
+
+    /// The open lists of a tasks space by address — every one but Completed.
+    fn space_list_paths(&self, folder: &str) -> Result<Vec<String>> {
+        let dir = self.resolve_space_path(folder)?;
+        Ok(crate::folder::TaskFolder::new(dir)
+            .list_names()?
+            .into_iter()
+            .filter(|name| name != COMPLETED_LIST)
+            .map(|name| format!("{folder}/{name}.md"))
+            .collect())
+    }
+
+    /// Gives a sort BY FIELD up when a space's lists no longer follow it —
+    /// someone reordered a file outside the app (an editor, a sync) — and the
+    /// file order becomes the space's custom order. Only the `.space.json` is
+    /// written. `changed` narrows the check to the spaces holding those files
+    /// (absolute paths, as the watcher reports them); `None` checks every
+    /// tasks space. Answers the spaces that gave way.
+    pub fn yield_to_file_order(&self, changed: Option<&[PathBuf]>) -> Result<Vec<String>> {
+        if self.is_read_only() {
+            return Ok(Vec::new());
+        }
+        let folders: Vec<String> = match changed {
+            None => self
+                .typed_space_dirs("tasks")?
+                .into_iter()
+                .map(|(folder, _)| folder)
+                .collect(),
+            Some(paths) => {
+                let mut found: Vec<String> = paths
+                    .iter()
+                    .filter_map(|path| {
+                        let dir = path.parent()?;
+                        let relative = dir.strip_prefix(&self.root).ok()?;
+                        let marked = dir.join(crate::space::SPACE_CONFIG_FILE).is_file();
+                        (marked && !relative.as_os_str().is_empty())
+                            .then(|| relative.to_string_lossy().replace('\\', "/"))
+                    })
+                    .collect();
+                found.sort();
+                found.dedup();
+                found
+            }
+        };
+
+        let mut yielded = Vec::new();
+        for folder in folders {
+            let Ok(space) = self.open_space(&folder) else {
+                continue;
+            };
+            let arrangement = Arrangement::of(&space.config);
+            if space.kind() != "tasks" || !arrangement.is_by_field() {
+                continue;
+            }
+            let lists = self
+                .space_list_paths(&folder)?
+                .iter()
+                .map(|path| self.open_list(path))
+                .collect::<Result<Vec<_>>>()?;
+            if lists.iter().all(|list| list.is_arranged(&arrangement)) {
+                continue;
+            }
+            let order = lists
+                .iter()
+                .flat_map(|list| list.tasks().filter_map(|task| task.id.clone()))
+                .collect();
+            self.with_space_config(&folder, |config| {
+                config.sort = Some(CUSTOM_SORT.to_string());
+                config.order = order;
+            })?;
+            yielded.push(folder);
+        }
+        Ok(yielded)
     }
 
     /// Persists how a notes space draws its board (`grid` / `tree`, `None` =
@@ -267,30 +376,15 @@ impl Notebook {
         })
     }
 
-    /// A task created ON TOP of a list whose space is arranged by hand leads
-    /// the saved order too: `custom` draws what it does not know last, which
-    /// would put the new task at the bottom against the setting. Any other
-    /// arrangement already draws it where the file has it.
-    pub(super) fn lead_custom_order(&self, list: &str, id: &str) -> Result<()> {
-        let (folder, _) = crate::relpath::split_parent(list);
-        let Ok(space) = self.open_space(folder) else {
-            return Ok(());
-        };
-        let config = &space.config;
-        if config.sort.as_deref() != Some("custom") || config.order.is_empty() {
-            return Ok(());
-        }
-        self.with_space_config(folder, |config| config.order.insert(0, id.to_string()))
-    }
-
-    /// Persists the hand-dragged arrangement (task ids / note paths) in the
-    /// space's `.space.json` and switches it to the custom ordering —
-    /// the order lives in the config, never in the content files.
+    /// Saves a hand-dragged arrangement (task ids / note paths) as the space's
+    /// custom order and switches it to `custom`, whatever sort was on. A tasks
+    /// space's lists are rewritten in it.
     pub fn set_space_order(&self, folder: &str, order: Vec<String>) -> Result<()> {
         self.with_space_config(folder, |config| {
-            config.sort = Some("custom".to_string());
+            config.sort = Some(CUSTOM_SORT.to_string());
             config.order = order;
-        })
+        })?;
+        self.rearrange_space(folder)
     }
 
     /// Opens a space by its **root-relative path** (`Mercado`,

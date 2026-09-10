@@ -38,6 +38,7 @@ Pre-1.0, and used daily. The [releases page](https://github.com/Gustavo-Tondin/j
 
 **Tasks**
 - Inbox and lists of your own, in as many task spaces as you want.
+- **The list file is the order you see.** Sort by name, creation date or due date — ↓ ↑ for the direction — and the `.md` is rewritten in that order; drag a card and that becomes your custom order. Reorder a list in another editor and the space switches to Custom, keeping what you did.
 - **Ctrl+drag** a task card onto a list in the sidebar to move it there, or onto Home to pull it into the day; the same gesture moves a note into another notepad.
 - **Middle-click** anything that opens a screen — a list, a note, a search hit, Settings, the Timeline, a row of the sidebar's menu — and it opens in a new tab *behind* the one you are reading, the way a browser does.
 - The notebook's name at the foot of the sidebar opens a menu of the notebooks this machine knows: pick one to switch in place, middle-click to open it in a new window, or go to the screen that manages them.

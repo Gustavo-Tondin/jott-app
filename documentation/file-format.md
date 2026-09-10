@@ -265,8 +265,9 @@ order you dragged things into.
 | `type` | `tasks`, `notes`, or `home` on the fixed Home. **Never cleared**: a type this build doesn't know is kept, and the space is shown as unsupported rather than repurposed |
 | `name` | display name — only the three `jott.*` spaces use it |
 | `color`, `icon` | a colour **slot** (`"1"`…`"7"`, or `"neutral"`), and a [Phosphor](https://phosphoricons.com) icon name. The slots are numbered rather than named because the theme decides what each one looks like; the names this app wrote before (`"blue"`, `"orange"`, …) are still read. A `#rrggbb` written by hand is kept and used as-is. |
-| `sort` | `name`, `created`, `completed` or `custom` |
-| `order` | the hand-dragged arrangement, read when `sort` is `custom`. Task ids in a tasks space, note paths in a notes one — kept here and never in the `.md`, because the arrangement is the app's and the file is yours |
+| `sort` | `custom` (the default, and what anything unknown reads as), `name`, `created` or `due`; a notes space also knows `completed`. In a **tasks** space the `.md` is always the order the app shows: choosing a sort rewrites every list of the space in it, and every later change keeps it, pinned tasks first. When a list stops following a sort by name or date — reordered by hand in another editor — the app switches the space to `custom` and keeps the file as you left it |
+| `sortDirection` | `up` turns a sort over: Z→A, oldest first, latest due first. Absent is the default: A→Z, newest first, soonest due first. Tasks without the date stay below the dated ones either way |
+| `order` | the custom order: task ids in a tasks space, note paths in a notes one. Written when you drag; choosing `custom` puts a tasks space's lists back in it, with the tasks it doesn't name (created since) on top |
 | `noteLayout` | `grid` or `tree`; absent follows the notebook default |
 | `folders` | colour and pin per note folder, keyed by its path inside the space. Here, and not as marker files scattered through your own tree |
 

@@ -38,9 +38,11 @@ pub struct SpaceInfo {
     pub color: Option<String>,
     /// The space's icon name, if it set one (`.space.json` `icon`).
     pub icon: Option<String>,
-    /// The ordering the space declares (`name` / `created` / `completed` /
-    /// `custom`), and the hand-dragged arrangement `custom` reads.
+    /// The ordering the space declares (`name` / `created` / `due` /
+    /// `custom`…), which way it runs (`up` turns it over), and the
+    /// hand-dragged arrangement `custom` puts back.
     pub sort: Option<String>,
+    pub sort_direction: Option<String>,
     pub order: Vec<String>,
     /// How a notes space draws its board (`grid` / `tree`); null follows
     /// the notebook's default (`NotebookLayout::note_layout`).
@@ -77,16 +79,19 @@ pub fn delete_space<R: Runtime>(state: State<'_, AppState>,
     state.record(window.label(), "delete_space", |nb| nb.delete_space(&folder))
 }
 
-/// Sets how a space orders its items (`name` / `created` / `completed` /
-/// `custom`; null = the file order).
+/// Sets how a space orders its items and, when `direction` is given, which
+/// way (`up` / `down`); a tasks space's lists are rewritten in that order.
 #[tauri::command]
 pub fn set_space_sort<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
     space: String,
     sort: Option<String>,
+    direction: Option<String>,
 ) -> CommandResult<()> {
-    state.record(window.label(), "set_space_sort", |nb| nb.set_space_sort(&space, sort.as_deref()))
+    state.record(window.label(), "set_space_sort", |nb| {
+        nb.set_space_sort(&space, sort.as_deref(), direction.as_deref())
+    })
 }
 
 /// Sets how a notes space draws its board (`grid` / `tree`; null = the
@@ -238,6 +243,7 @@ pub(crate) fn spaces_of(nb: &Notebook) -> CommandResult<Vec<SpaceInfo>> {
             color: space.config.color.clone(),
             icon: space.config.icon.clone(),
             sort: space.config.sort.clone(),
+            sort_direction: space.config.sort_direction.clone(),
             order: space.config.order.clone(),
             note_layout: space.config.note_layout.clone(),
         });

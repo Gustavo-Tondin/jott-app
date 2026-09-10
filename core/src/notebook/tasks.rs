@@ -63,9 +63,25 @@ impl Notebook {
         })
     }
 
-    /// Reorders a task inside its list. Positions count tasks, not lines.
+    /// Reorders a task inside its list. Positions count tasks, not lines. A
+    /// move by hand is a custom order whatever sort was on: the space switches
+    /// to it, saving the list's new order, BEFORE the save could sort the move
+    /// away.
     pub fn move_task_to(&self, path: &str, from: usize, to: usize) -> Result<()> {
-        self.with_list(path, |list| list.move_task_to(from, to))
+        self.ensure_writable()?;
+        let mut list = self.open_list(path)?;
+        list.move_task_to(from, to)?;
+        let (folder, _) = split_list_path(path)?;
+        if let Ok(space) = self.open_space(folder) {
+            if crate::arrange::Arrangement::of(&space.config).is_by_field() {
+                let order = list.tasks().filter_map(|task| task.id.clone()).collect();
+                self.with_space_config(folder, |config| {
+                    config.sort = Some(crate::arrange::CUSTOM_SORT.to_string());
+                    config.order = order;
+                })?;
+            }
+        }
+        list.save()
     }
 
     /// The move primitive. `done` optionally flips the checkbox in the same
@@ -99,7 +115,8 @@ impl Notebook {
         }
 
         let fallback = task.clone();
-        let position = target.add(task);
+        // Where the target's arrangement puts it; a Completed appends.
+        let position = target.add_arriving(task, self.config.new_tasks_on_top);
         // `add` re-issues an id that the destination already uses, so the task
         // may not have arrived under the name it left with.
         let moved = target.tasks().nth(position).cloned().unwrap_or(fallback);
@@ -130,19 +147,17 @@ impl Notebook {
         task
     }
 
-    /// Creates a task in `path` and returns its **position**. Born WITH an
-    /// id: the Timeline follows a task by its id, and it tracks everything.
+    /// Creates a task in `path` and returns its **position** — where the
+    /// list's arrangement put it. Born WITH an id: the Timeline follows a task
+    /// by its id, and it tracks everything.
     pub fn create_task(&self, path: &str, text: impl Into<String>) -> Result<usize> {
         let on_top = self.config.new_tasks_on_top;
         let (position, id, created) = self.with_list(path, |list| {
-            let position = list.add_placed(Self::stamped_task(text), on_top);
+            let position = list.add_arriving(Self::stamped_task(text), on_top);
             let id = list.ensure_id_at(position);
             let created = list.tasks().nth(position).and_then(|task| task.created);
             Ok((position, id, created))
         })?;
-        if let (true, Some(id)) = (on_top, &id) {
-            self.lead_custom_order(path, id)?;
-        }
         if let (Some(id), Some(created)) = (&id, created) {
             let text = self
                 .open_list(path)
@@ -195,7 +210,7 @@ impl Notebook {
                 }
                 // Schedule it, id first — the pointer needs a target.
                 None => {
-                    let position = source.add(next);
+                    let position = source.add_arriving(next, self.config.new_tasks_on_top);
                     let spawn_id = source.ensure_id_at(position);
                     if let Ok(t) = source.task_mut(id) {
                         t.spawned = spawn_id;
@@ -382,6 +397,16 @@ impl Notebook {
                     task,
                 });
             }
+        }
+        // The Tasks screen's sort reads over every list too: by field, the
+        // flat list is arranged as one; custom keeps each list's own order.
+        let arrangement = self
+            .open_space(crate::TASKS_DIR)
+            .map(|space| crate::arrange::Arrangement::of(&space.config))
+            .unwrap_or(crate::arrange::Arrangement::CUSTOM);
+        if arrangement.is_by_field() {
+            let positions = arrangement.positions(&out.iter().map(|listed| &listed.task).collect::<Vec<_>>());
+            out = positions.into_iter().map(|i| out[i].clone()).collect();
         }
         Ok(out)
     }
