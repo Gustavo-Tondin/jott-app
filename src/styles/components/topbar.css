@@ -29,28 +29,16 @@
   }
 
   /* Over the page below 768px, where every screen asks for it (shell.css and
-     page-header.css reserve this bar's height): paints NOTHING on its own, so
-     an open note's banner and the Home's rising sheet run under the floating
-     buttons. Next to the rule it overrides on purpose — same layer and
-     specificity, so bundle order would otherwise decide. UNDER the drawer
-     and the sheets. */
+     page-header.css reserve this bar's height): paints NOTHING, on every
+     screen, so the page runs under buttons that float on their own plates.
+     Next to the rule it overrides on purpose — same layer and specificity,
+     so bundle order would otherwise decide. UNDER the drawer and the sheets. */
   .topbar--over {
     position: absolute;
     inset-block-start: 0;
     inset-inline: 0;
     z-index: 20;
     background: none;
-  }
-
-  /* Over the page AND painting it, which every screen but the note and the
-     Home asks for: those two have something of their own to show under the
-     bar, and everywhere else the page passed into the STATUS BAR behind the
-     buttons. The ground is the REGION's, so the strip is the same colour as
-     whatever the bar is over — chrome at rest, canvas once the page has
-     risen — and it fades on the crossing exactly like the plates. */
-  .topbar--over.topbar--ground {
-    background: var(--app-bg);
-    transition: background var(--app-transition-fast);
   }
 
   /* Every control on this bar is the SAME square on the region's raised

@@ -1808,7 +1808,6 @@
       {mobile}
       buttons={windowButtons}
       over
-      ground={view.kind !== "note" && view.kind !== "home"}
       region={canvasRisen ? "canvas" : "chrome"}
     />
   {:else if !compact}
