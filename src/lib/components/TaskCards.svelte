@@ -206,6 +206,9 @@
         onLeft: onDelete && (() => onDelete(entry)),
         onRight: daySwipe?.(entry)?.run,
         rightAdds: !!daySwipe?.(entry)?.adds,
+        // Sending a task to the day keeps the card, so it counts halfway;
+        // taking it out, like deleting, is carried to the end.
+        rightHalf: !!daySwipe?.(entry)?.adds,
       }}
       index={i}
       focusable={i === at}

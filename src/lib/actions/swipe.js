@@ -1,29 +1,39 @@
 // Swiping a card sideways. Used on the ITEM:
-//   <li use:swipe={{ onLeft, onRight, leftEnabled, rightEnabled }}>
+//   <li use:swipe={{ onLeft, onRight, leftHalf, rightHalf, leftEnabled, rightEnabled }}>
 // LEFT reveals the action on the right, RIGHT the one on the left; the reveal
 // is CSS (`data-swipe` + `--swipe-x`, swipe.css), committed only on release.
 // The direction decides in the first pixels — the reorder owns the vertical.
 
 import { clamp } from "../services/num.js";
 
-/// How far the card must travel for the release to count. Just past the point
-/// where the action square is fully out, so committing and seeing it line up.
-const THRESHOLD = 60;
-/// And no further: past the reveal there is nothing left to show, and a card
-/// that kept sliding read as the action square fighting to grow.
-const MAX = 76;
+/// Where a release starts to count, as a share of the card's width. An action
+/// that keeps the card (`*Half`) arms halfway and the card springs back; one
+/// that takes it away arms near the end, and the card leaves with it.
+const HALF = 0.5;
+const END = 0.7;
 /// The first movement decides which gesture this is. Ahead of the axis lock the
 /// card does not move at all, so a vertical drag never nudges it sideways.
 const LOCK = 8;
-
-const held = (dx) => clamp(dx, -MAX, MAX);
+/// How far a direction with nothing behind it gives before it stops.
+const BAND = 40;
+/// A card sent away that is still here this long after (the action kept it, or
+/// failed) comes back.
+const GONE_MS = 700;
+/// Matches `--app-duration-fast`: the snap between armed and not.
+const SNAP_MS = 150;
+/// Matches `--app-duration-medium`: the glide home.
+const RETURN_MS = 260;
 
 export function swipe(node, params) {
   let opts = params ?? {};
   let drag = null;
+  let returning = null;
+  let snapping = null;
+  let gone = null;
 
   const allowed = (dx) =>
     dx < 0 ? opts.leftEnabled !== false && !!opts.onLeft : opts.rightEnabled !== false && !!opts.onRight;
+  const half = (dx) => (dx < 0 ? !!opts.leftHalf : !!opts.rightHalf);
 
   function paint(dx) {
     node.style.setProperty("--swipe-x", `${dx}px`);
@@ -31,19 +41,62 @@ export function swipe(node, params) {
     else node.setAttribute("data-swipe", dx < 0 ? "left" : "right");
   }
 
-  let returning = null;
+  /// A short transition for the jump between armed and not, so the card and
+  /// the square glide there instead of teleporting under the finger.
+  function snap() {
+    node.classList.add("swipe--snap");
+    clearTimeout(snapping);
+    snapping = setTimeout(() => node.classList.remove("swipe--snap"), SNAP_MS);
+  }
+
+  /// Cancels whatever the last gesture left running, before a new one starts.
+  function settle() {
+    clearTimeout(returning);
+    clearTimeout(snapping);
+    clearTimeout(gone);
+    node.classList.remove("swipe--returning", "swipe--snap", "swipe--armed");
+  }
 
   function reset() {
     const travelled = node.hasAttribute("data-swipe");
+    clearTimeout(gone);
+    clearTimeout(snapping);
     node.style.removeProperty("--swipe-x");
-    node.removeAttribute("data-swipe");
-    node.classList.remove("swipe--dragging");
+    node.classList.remove("swipe--dragging", "swipe--armed", "swipe--snap");
     if (!travelled) return;
     // The glide home is a class ADDED for the return only: a standing
-    // `transition: transform` would also catch the reorder's transform.
+    // `transition: transform` would also catch the reorder's transform. The
+    // direction stays until it lands, so the square shrinks with the card.
     node.classList.add("swipe--returning");
     clearTimeout(returning);
-    returning = setTimeout(() => node.classList.remove("swipe--returning"), 260);
+    returning = setTimeout(() => {
+      node.classList.remove("swipe--returning");
+      node.removeAttribute("data-swipe");
+    }, RETURN_MS);
+  }
+
+  /// Past the axis lock: the gesture is ours from here.
+  function lock() {
+    settle();
+    drag.width = node.offsetWidth;
+    drag.armed = false;
+    node.classList.add("swipe--dragging");
+  }
+
+  /// The card under the finger. A direction with nothing behind it gives, but
+  /// only a little — it rubber-bands instead of opening onto no action.
+  function carry(dx) {
+    const ok = allowed(dx);
+    const x = ok ? clamp(dx, -drag.width, drag.width) : clamp(dx / 6, -BAND, BAND);
+    drag.dx = x;
+    const armed = ok && drag.width > 0 && Math.abs(x) >= (half(x) ? HALF : END) * drag.width;
+    if (armed !== drag.armed) {
+      drag.armed = armed;
+      node.classList.toggle("swipe--armed", armed);
+      snap();
+    }
+    // Armed at the end, the card is already on its way out: the square takes the row.
+    paint(armed && !half(x) ? Math.sign(x) * drag.width : x);
   }
 
   function onPointerDown(e) {
@@ -73,18 +126,14 @@ export function swipe(node, params) {
         drag = null;
         return;
       }
-      node.classList.add("swipe--dragging");
+      lock();
       try {
         node.setPointerCapture(drag.id);
       } catch {
         // No pointer capture (jsdom): release still resolves the gesture.
       }
     }
-
-    // A direction with nothing behind it gives, but only a little — the card
-    // rubber-bands instead of sliding open onto an action that is not there.
-    drag.dx = held(allowed(dx) ? dx : dx / 6);
-    paint(drag.dx);
+    carry(dx);
   }
 
   function onPointerUp(e) {
@@ -109,10 +158,19 @@ export function swipe(node, params) {
       requestAnimationFrame(() => node.removeEventListener("click", swallow, true));
 
     const dx = d.dx ?? 0;
-    reset();
-    if (!allowed(dx) || Math.abs(dx) < THRESHOLD) return;
-    if (dx < 0) opts.onLeft?.();
-    else opts.onRight?.();
+    if (!d.armed) {
+      reset();
+      return;
+    }
+    const run = dx < 0 ? opts.onLeft : opts.onRight;
+    if (half(dx)) {
+      reset();
+    } else {
+      // Gone: the square keeps the row until the list drops the card.
+      node.classList.remove("swipe--dragging");
+      gone = setTimeout(reset, GONE_MS);
+    }
+    run?.();
   }
 
   function onPointerCancel() {
@@ -147,12 +205,11 @@ export function swipe(node, params) {
         drag = null;
         return;
       }
-      node.classList.add("swipe--dragging");
+      lock();
     }
     // Ours now: the list must not scroll under it.
     e.preventDefault();
-    drag.dx = held(allowed(dx) ? dx : dx / 6);
-    paint(drag.dx);
+    carry(dx);
   }
 
   function onTouchEnd() {
@@ -180,7 +237,6 @@ export function swipe(node, params) {
     },
     destroy() {
       delete node.dataset.swipes;
-      clearTimeout(returning);
       node.removeEventListener("pointerdown", onPointerDown);
       node.removeEventListener("pointermove", onPointerMove);
       node.removeEventListener("pointerup", onPointerUp);
@@ -189,6 +245,7 @@ export function swipe(node, params) {
       node.removeEventListener("touchend", onTouchEnd);
       node.removeEventListener("touchcancel", onTouchEnd);
       reset();
+      settle();
     },
   };
 }

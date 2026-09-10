@@ -17,6 +17,10 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 - **The top bar's buttons float on every screen on a phone**, with no band painted behind them.
 - **Switches in Settings have white knobs again**, instead of black.
 
+### Improved
+
+- **Swiping a task follows your finger all the way.** The coloured square grows with the card; sending a task to the day counts halfway, while deleting or taking it out of the day means dragging to the end, where the card slides away and the colour fills the row.
+
 ## v0.54.0
 
 ### New

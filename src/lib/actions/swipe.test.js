@@ -1,8 +1,11 @@
 // Swiping a card, tested on its own — the gesture has to be told apart from
 // reordering by direction alone, and it must never fire on a half-hearted drag.
 
-import { describe, expect, test, beforeEach } from "vitest";
+import { describe, expect, test, beforeEach, afterEach, vi } from "vitest";
 import { swipe } from "./swipe.js";
+
+/// jsdom lays nothing out; the gesture measures the card, so the card says.
+const WIDTH = 300;
 
 function card() {
   const li = document.createElement("li");
@@ -12,6 +15,7 @@ function card() {
     '<input class="check" type="checkbox">' +
     '<button class="title">task</button>' +
     '<button class="mark" data-no-swipe></button>';
+  Object.defineProperty(li, "offsetWidth", { value: WIDTH });
   document.body.append(li);
   return li;
 }
@@ -23,38 +27,111 @@ function fire(el, type, props) {
   return ev;
 }
 
+/// One pointer drag from `from` to `to`, released there unless `hold`.
+function drag(el, from, to, { id = 1, hold = false } = {}) {
+  fire(el, "pointerdown", { button: 0, pointerId: id, clientX: from, clientY: 10 });
+  fire(el, "pointermove", { pointerId: id, clientX: to, clientY: 10 });
+  if (!hold) fire(el, "pointerup", { pointerId: id, clientX: to, clientY: 10 });
+}
+
+const travel = (el) => parseFloat(el.style.getPropertyValue("--swipe-x"));
+
 describe("swipe", () => {
   beforeEach(() => {
     document.body.innerHTML = "";
   });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
 
-  test("far enough to the left deletes; the same distance right takes it out", () => {
+  test("carried to the end, left deletes and right takes it out", () => {
     const el = card();
     const fired = [];
     swipe(el, { onLeft: () => fired.push("left"), onRight: () => fired.push("right") });
 
-    fire(el, "pointerdown", { button: 0, pointerId: 1, clientX: 200, clientY: 10 });
-    fire(el, "pointermove", { pointerId: 1, clientX: 100, clientY: 10 });
-    fire(el, "pointerup", { pointerId: 1, clientX: 100, clientY: 10 });
+    drag(el, 280, 60);
     expect(fired).toEqual(["left"]);
 
-    fire(el, "pointerdown", { button: 0, pointerId: 2, clientX: 100, clientY: 10 });
-    fire(el, "pointermove", { pointerId: 2, clientX: 200, clientY: 10 });
-    fire(el, "pointerup", { pointerId: 2, clientX: 200, clientY: 10 });
+    drag(el, 20, 240, { id: 2 });
     expect(fired).toEqual(["left", "right"]);
   });
 
-  test("released short of the threshold, nothing happened", () => {
+  test("past halfway but short of the end, a delete does not count", () => {
     const el = card();
     const fired = [];
     swipe(el, { onLeft: () => fired.push("left") });
 
-    fire(el, "pointerdown", { button: 0, pointerId: 1, clientX: 200, clientY: 10 });
-    fire(el, "pointermove", { pointerId: 1, clientX: 170, clientY: 10 });
-    fire(el, "pointerup", { pointerId: 1, clientX: 170, clientY: 10 });
+    drag(el, 280, 100, { hold: true }); // 60% of the card
+    expect(el.classList.contains("swipe--armed")).toBe(false);
+    fire(el, "pointerup", { pointerId: 1, clientX: 100, clientY: 10 });
+    expect(fired).toEqual([]);
+  });
+
+  test("a half action counts halfway, and the card springs back", () => {
+    const el = card();
+    const fired = [];
+    swipe(el, { onRight: () => fired.push("right"), rightHalf: true });
+
+    drag(el, 20, 150); // 43%: not yet
+    expect(fired).toEqual([]);
+
+    drag(el, 20, 180, { id: 2, hold: true }); // 53%
+    expect(el.classList.contains("swipe--armed")).toBe(true);
+    // Armed halfway the card stays under the finger; it is not carried off.
+    expect(travel(el)).toBe(160);
+    fire(el, "pointerup", { pointerId: 2, clientX: 180, clientY: 10 });
+    expect(fired).toEqual(["right"]);
+    expect(el.style.getPropertyValue("--swipe-x")).toBe("");
+  });
+
+  test("armed at the end, the card leaves whole and the square takes the row", () => {
+    const el = card();
+    swipe(el, { onLeft: () => {} });
+
+    drag(el, 280, 60, { hold: true });
+    expect(el.classList.contains("swipe--armed")).toBe(true);
+    expect(travel(el)).toBe(-WIDTH);
+  });
+
+  test("dragged back below the point, it is not armed any more", () => {
+    const el = card();
+    const fired = [];
+    swipe(el, { onLeft: () => fired.push("left") });
+
+    drag(el, 280, 60, { hold: true });
+    fire(el, "pointermove", { pointerId: 1, clientX: 200, clientY: 10 });
+    expect(el.classList.contains("swipe--armed")).toBe(false);
+    expect(travel(el)).toBe(-80);
+    fire(el, "pointerup", { pointerId: 1, clientX: 200, clientY: 10 });
+    expect(fired).toEqual([]);
+  });
+
+  test("a card sent away stays out, and comes back if the list keeps it", () => {
+    vi.useFakeTimers();
+    const el = card();
+    swipe(el, { onLeft: () => {} });
+
+    drag(el, 280, 60);
+    expect(travel(el)).toBe(-WIDTH);
+    expect(el.getAttribute("data-swipe")).toBe("left");
+
+    vi.advanceTimersByTime(2000);
+    expect(el.style.getPropertyValue("--swipe-x")).toBe("");
+    expect(el.getAttribute("data-swipe")).toBeNull();
+  });
+
+  test("released short of the threshold, nothing happened", () => {
+    vi.useFakeTimers();
+    const el = card();
+    const fired = [];
+    swipe(el, { onLeft: () => fired.push("left") });
+
+    drag(el, 200, 170);
 
     expect(fired).toEqual([]);
-    // And the card is back where it was, with no band showing.
+    // The card heads home at once; the square goes with it, then the direction.
+    expect(el.style.getPropertyValue("--swipe-x")).toBe("");
+    vi.advanceTimersByTime(500);
     expect(el.getAttribute("data-swipe")).toBeNull();
   });
 
@@ -68,8 +145,8 @@ describe("swipe", () => {
     fire(el, "pointermove", { pointerId: 1, clientX: 195, clientY: 90 });
     expect(el.style.getPropertyValue("--swipe-x")).toBe("");
     // Even carrying on sideways afterwards: the axis was decided.
-    fire(el, "pointermove", { pointerId: 1, clientX: 60, clientY: 90 });
-    fire(el, "pointerup", { pointerId: 1, clientX: 60, clientY: 90 });
+    fire(el, "pointermove", { pointerId: 1, clientX: 0, clientY: 90 });
+    fire(el, "pointerup", { pointerId: 1, clientX: 0, clientY: 90 });
     expect(fired).toEqual([]);
   });
 
@@ -78,13 +155,11 @@ describe("swipe", () => {
     const fired = [];
     swipe(el, { onLeft: () => fired.push("left") }); // no onRight
 
-    fire(el, "pointerdown", { button: 0, pointerId: 1, clientX: 100, clientY: 10 });
-    fire(el, "pointermove", { pointerId: 1, clientX: 220, clientY: 10 });
+    drag(el, 20, 290, { hold: true });
     // It rubber-bands a fraction of the distance instead of sliding open.
-    const travelled = Math.abs(parseFloat(el.style.getPropertyValue("--swipe-x")));
-    expect(travelled).toBeGreaterThan(0);
-    expect(travelled).toBeLessThan(120);
-    fire(el, "pointerup", { pointerId: 1, clientX: 220, clientY: 10 });
+    expect(travel(el)).toBeGreaterThan(0);
+    expect(travel(el)).toBeLessThan(60);
+    fire(el, "pointerup", { pointerId: 1, clientX: 290, clientY: 10 });
     expect(fired).toEqual([]);
   });
 
@@ -99,11 +174,11 @@ describe("swipe", () => {
       fire(el.querySelector(control), "pointerdown", {
         button: 0,
         pointerId: 1,
-        clientX: 200,
+        clientX: 280,
         clientY: 10,
       });
-      fire(el, "pointermove", { pointerId: 1, clientX: 100, clientY: 10 });
-      fire(el, "pointerup", { pointerId: 1, clientX: 100, clientY: 10 });
+      fire(el, "pointermove", { pointerId: 1, clientX: 20, clientY: 10 });
+      fire(el, "pointerup", { pointerId: 1, clientX: 20, clientY: 10 });
       expect(fired, control).toEqual([]);
     }
   });
@@ -111,8 +186,7 @@ describe("swipe", () => {
   test("but the TITLE is the card, and swipes with it", () => {
     // The title is a <button> covering most of the card's width. Excluding
     // every button left the gesture startable only from the thin padding
-    // around it, which is why it looked broken everywhere (user report,
-    // 2026-08-06). Clicking the title does what clicking the card does.
+    // around it. Clicking the title does what clicking the card does.
     const el = card();
     const fired = [];
     swipe(el, { onLeft: () => fired.push("left") });
@@ -120,19 +194,18 @@ describe("swipe", () => {
     fire(el.querySelector(".title"), "pointerdown", {
       button: 0,
       pointerId: 1,
-      clientX: 200,
+      clientX: 280,
       clientY: 10,
     });
-    fire(el, "pointermove", { pointerId: 1, clientX: 100, clientY: 10 });
-    fire(el, "pointerup", { pointerId: 1, clientX: 100, clientY: 10 });
+    fire(el, "pointermove", { pointerId: 1, clientX: 20, clientY: 10 });
+    fire(el, "pointerup", { pointerId: 1, clientX: 20, clientY: 10 });
     expect(fired).toEqual(["left"]);
   });
 
-  // ---- a finger drives this by touch events (2026-08-19) ----
+  // ---- a finger drives this by touch events ----
   //
-  // Measured on the running app: a sideways drag over a list that scrolls
-  // vertically gets `pointerdown, pointermove, pointercancel` and nothing
-  // more, so the card never moved at all on a phone. The `touchmove`s keep
+  // A sideways drag over a list that scrolls vertically gets `pointerdown,
+  // pointermove, pointercancel` and nothing more; the `touchmove`s keep
   // coming, and preventing them is what takes the gesture back.
   const touch = (x, y = 10) => ({
     changedTouches: [{ identifier: 0, clientX: x, clientY: y }],
@@ -143,14 +216,14 @@ describe("swipe", () => {
     const fired = [];
     swipe(el, { onLeft: () => fired.push("left"), onRight: () => fired.push("right") });
 
-    fire(el, "pointerdown", { button: 0, pointerId: 1, clientX: 200, clientY: 10 });
-    fire(el, "touchmove", touch(180));
+    fire(el, "pointerdown", { button: 0, pointerId: 1, clientX: 280, clientY: 10 });
+    fire(el, "touchmove", touch(260));
     // The browser gives up on the pointer here; the touch path carries on.
     fire(el, "pointercancel", { pointerId: 1 });
-    fire(el, "touchmove", touch(120));
+    fire(el, "touchmove", touch(40));
     expect(el.getAttribute("data-swipe")).toBe("left");
 
-    fire(el, "touchend", touch(120));
+    fire(el, "touchend", touch(40));
     expect(fired).toEqual(["left"]);
   });
 
@@ -167,12 +240,11 @@ describe("swipe", () => {
     expect(el.hasAttribute("data-swipe")).toBe(false);
   });
 
-  test("it lets go when the card is already being CARRIED (2026-08-19)", () => {
+  test("it lets go when the card is already being CARRIED", () => {
     // The finger rested on the card long enough for the reorder to pick it up
     // (reorder.js, HOLD_MS), and the reorder holds the pointer. Taking the
     // gesture here would be the second `setPointerCapture` on one pointer,
-    // which leaves the first action deaf — the frozen drag of 2026-08-06, and
-    // the reason press-and-hold failed when it was first tried.
+    // which leaves the first action deaf.
     const list = document.createElement("ul");
     list.setAttribute("data-reordering", "");
     document.body.append(list);
@@ -182,9 +254,7 @@ describe("swipe", () => {
     const fired = [];
     swipe(el, { onLeft: () => fired.push("left"), onRight: () => fired.push("right") });
 
-    fire(el, "pointerdown", { button: 0, pointerId: 1, clientX: 200, clientY: 10 });
-    fire(el, "pointermove", { pointerId: 1, clientX: 100, clientY: 10 });
-    fire(el, "pointerup", { pointerId: 1, clientX: 100, clientY: 10 });
+    drag(el, 280, 20);
 
     expect(fired).toEqual([]);
     // And the card never moved: no `--swipe-x`, no direction attribute.
@@ -197,9 +267,7 @@ describe("swipe", () => {
     let opened = 0;
     el.addEventListener("click", () => (opened += 1));
 
-    fire(el, "pointerdown", { button: 0, pointerId: 1, clientX: 200, clientY: 10 });
-    fire(el, "pointermove", { pointerId: 1, clientX: 100, clientY: 10 });
-    fire(el, "pointerup", { pointerId: 1, clientX: 100, clientY: 10 });
+    drag(el, 200, 100);
     fire(el, "click", {});
 
     expect(opened).toBe(0);

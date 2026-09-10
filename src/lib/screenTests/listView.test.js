@@ -212,10 +212,12 @@ describe("ListView", () => {
 
     // The square only exists while the card is travelling.
     expect(row.querySelector(".swipe__action--delete")).not.toBeNull();
+    // jsdom lays nothing out; the gesture measures the card's width.
+    Object.defineProperty(row, "offsetWidth", { value: 300 });
     await fireEvent.pointerDown(row, { button: 0, pointerId: 1, clientX: 300, clientY: 20 });
-    await fireEvent.pointerMove(row, { pointerId: 1, clientX: 200, clientY: 22 });
+    await fireEvent.pointerMove(row, { pointerId: 1, clientX: 60, clientY: 22 });
     expect(row.getAttribute("data-swipe")).toBe("left");
-    await fireEvent.pointerUp(row, { pointerId: 1, clientX: 200, clientY: 22 });
+    await fireEvent.pointerUp(row, { pointerId: 1, clientX: 60, clientY: 22 });
 
     await waitFor(() =>
       expect(invoke).toHaveBeenCalledWith("delete_task", {
@@ -223,8 +225,8 @@ describe("ListView", () => {
         id: "a1",
       }),
     );
-    // And it settles back: the card is not left hanging off to one side.
-    expect(row.getAttribute("data-swipe")).toBeNull();
+    // And a card the list kept settles back: it is not left hanging off to one side.
+    await waitFor(() => expect(row.getAttribute("data-swipe")).toBeNull(), { timeout: 2000 });
   });
 
   test("checking a task completes it", async () => {

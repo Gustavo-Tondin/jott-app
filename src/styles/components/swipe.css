@@ -1,6 +1,6 @@
 /* swipe.css — the visual half of the `swipe` action (lib/actions/swipe.js).
- * The card slides aside and a coloured SQUARE appears in the gap it opens, at
- * the opposite end. The square sits OUTSIDE the row's box, never behind it:
+ * The card slides aside and a coloured SQUARE fills the gap it opens, at the
+ * opposite end. The square sits OUTSIDE the row's box, never behind it:
  * a transform makes the row a stacking context, so no descendant can sit
  * behind the row's own background. The square is markup (`.swipe__action`). */
 
@@ -15,9 +15,28 @@
      transform (higher specificity than `.reorder-item--carried`'s
      `transition: none`), and a vertical drag then lags the pointer.
      The SPRING, not the plain ease-out: the card overshoots its place and
-     settles — the elastic answer to a finger that let go. */
-  .swipe--returning {
+     settles — the elastic answer to a finger that let go. Two classes, so a
+     card's own `transition` (task-row.css, later in the cascade) cannot win. */
+  .swipe.swipe--returning {
     transition: transform var(--app-duration-medium) var(--app-ease-spring);
+  }
+  .swipe--returning .swipe__action {
+    transition:
+      inset-inline-start var(--app-duration-medium) var(--app-ease-spring),
+      inset-inline-end var(--app-duration-medium) var(--app-ease-spring),
+      inline-size var(--app-duration-medium) var(--app-ease-spring);
+  }
+
+  /* Crossing the point where the release counts: the card and the square
+     glide to their new place instead of jumping under the finger. */
+  .swipe.swipe--snap {
+    transition: transform var(--app-duration-fast) var(--app-ease-out);
+  }
+  .swipe--snap .swipe__action {
+    transition:
+      inset-inline-start var(--app-duration-fast) var(--app-ease-out),
+      inset-inline-end var(--app-duration-fast) var(--app-ease-out),
+      inline-size var(--app-duration-fast) var(--app-ease-out);
   }
 
   /* Hidden until a swipe is under way, and then only the one for the direction
@@ -28,18 +47,25 @@
     display: none;
     align-items: center;
     justify-content: center;
-    inline-size: 2.75rem;
-    /* Clipped to the gap so far, less the breathing space between card and
-       square. `--swipe-x` is signed, so its own negation is the travel; the
-       zeros are in `rem` for the app's invariant (`--swipe-x` itself arrives
-       in device pixels from the pointer, the documented exception). */
-    max-inline-size: max(
+    /* The whole gap so far, less the breathing space between card and square.
+       `--swipe-x` is signed, so its own negation is the travel; the zeros are
+       in `rem` for the app's invariant (`--swipe-x` itself arrives in device
+       pixels from the pointer, the documented exception). */
+    inline-size: max(
       0rem,
       max(var(--swipe-x, 0rem), -1 * var(--swipe-x, 0rem)) - var(--app-space-8)
     );
     overflow: hidden;
     border-radius: var(--app-radius-md);
     color: var(--app-on-brand);
+  }
+  /* The glyph answers the moment the release starts to count. */
+  .swipe__action > * {
+    flex: none;
+    transition: scale var(--app-duration-fast) var(--app-ease-spring);
+  }
+  .swipe--armed .swipe__action > * {
+    scale: 1.2;
   }
 
   /* Swiping LEFT uncovers the right-hand end: delete. The row moved by
