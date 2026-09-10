@@ -120,7 +120,9 @@ export function noteActionsOf({
 /// The page menu of the current screen — the `•••` of the wireframe: the
 /// note's own actions, a user list's rename/delete, then the screen's.
 /// The Inbox and Completed are recreated on every open, so they are never
-/// offered — the core refuses it anyway.
+/// offered — the core refuses it anyway. `spaceMenus` are the ⋮ of the
+/// spaces on screen, lifted in below 768px (shell/spaceMenus.js): each one
+/// its own run, a rule between runs.
 export function pageMenuOf({
   noteActions,
   screenActions,
@@ -130,10 +132,13 @@ export function pageMenuOf({
   completed,
   renameList,
   deleteList,
+  spaceMenus = [],
 }) {
   const own = [...noteActions];
   if (!readOnly && view.kind === "list" && view.list !== inbox && view.list !== completed) {
     own.push({ label: S.renameList, run: renameList }, { label: S.deleteList, run: deleteList });
   }
-  return [...own, ...screenActions];
+  if (spaceMenus.length === 0) return [...own, ...screenActions];
+  const runs = [own, ...spaceMenus, screenActions].filter((run) => run.length > 0);
+  return runs.flatMap((run, i) => (i === 0 ? run : [{ separator: true }, ...run]));
 }

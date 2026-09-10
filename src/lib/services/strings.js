@@ -835,6 +835,7 @@ export const S = {
   inboxNotes: "Inbox notes",
   inboxTasks: "Inbox tasks",
   quickNoteTo: "to",
+  quickNotesGoTo: "Quick notes go to",
   notesOptions: "notes options",
   noNotesToday: "No notes written today.",
   collapseSidebar: "collapse sidebar",

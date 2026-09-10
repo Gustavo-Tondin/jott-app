@@ -146,4 +146,20 @@ describe("pageMenuOf", () => {
     }
     expect(labels(pageMenuOf({ ...base, view: user, readOnly: true }))).toEqual(["n", "s"]);
   });
+
+  test("the spaces' lifted ⋮ go between, each its own run behind a rule", () => {
+    const menu = pageMenuOf({ ...base, spaceMenus: [[{ label: "t" }], [{ label: "q" }]] });
+    expect(menu.map((it) => (it.separator ? "—" : it.label))).toEqual([
+      "n",
+      "—",
+      "t",
+      "—",
+      "q",
+      "—",
+      "s",
+    ]);
+    // No rule opens the menu when the screen has nothing of its own first.
+    const bare = pageMenuOf({ ...base, noteActions: [], spaceMenus: [[{ label: "t" }]] });
+    expect(bare.map((it) => (it.separator ? "—" : it.label))).toEqual(["t", "—", "s"]);
+  });
 });

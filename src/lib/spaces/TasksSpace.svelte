@@ -14,6 +14,7 @@
   import { taskActions, isSelectedTask } from "../services/taskActions.js";
   import { dotStyle as dotStyleOf } from "../services/accent.js";
   import { spaceMenu } from "../services/spaceMenu.js";
+  import { liftSpaceMenu } from "../shell/spaceMenus.js";
   import { composeTask } from "../services/taskCompose.js";
   import {
     arrange,
@@ -248,6 +249,11 @@
       onSetSort: setSort,
     }),
   );
+
+  // Below 768px the ⋮ lives in the top bar's, not on the canvas.
+  const lift = liftSpaceMenu();
+  let lifted = $derived(lift.lifted());
+  $effect(() => lift.offer(sortMenu));
 
   // ---- composing ----
   // Every list a task may be written into. A source with a list of its own
@@ -527,13 +533,15 @@
   {#if !isDay && !all && !source.folder}
     <p class="tasks-space__note tasks-space__note--warn">{S.spaceNoLists}</p>
   {:else}
-    <!-- The header row is ALWAYS drawn, because the ⋮ belongs in the top right
-         of every source — `header` only decides whether the block is titled. -->
+    <!-- The header row is drawn whenever it holds something: the ⋮ belongs in
+         the top right of every source unless the shell lifted it into its own
+         (compact); `header` only decides whether the block is titled. -->
+    {#if !lifted || header || toolbar || (!readOnly && compose === "button")}
       <header
         class="tasks-space__header"
         class:tasks-space__header--center={align === "center"}
       >
-        {#if toolbar || align === "center"}
+        {#if !lifted && (toolbar || align === "center")}
           <!-- An invisible twin of the ⋮, so whatever is centred on this row is
                centred on the PANEL and not on what is left of it. A hidden copy
                rather than a guessed width: the two sides stay equal. -->
@@ -563,21 +571,24 @@
                 <Icon name="plus-bold" size="1rem" />
               </button>
             {/if}
-            <Menu items={sortMenu}>
-              {#snippet trigger({ toggle })}
-                <button
-                  class="theme-btn--icon tasks-space__more"
-                  onclick={toggle}
-                  aria-label={S.spaceOptions}
-                  title={S.spaceOptions}
-                >
-                  <Icon name="dots-three-vertical" size="1rem" />
-                </button>
-              {/snippet}
-            </Menu>
+            {#if !lifted}
+              <Menu items={sortMenu}>
+                {#snippet trigger({ toggle })}
+                  <button
+                    class="theme-btn--icon tasks-space__more"
+                    onclick={toggle}
+                    aria-label={S.spaceOptions}
+                    title={S.spaceOptions}
+                  >
+                    <Icon name="dots-three-vertical" size="1rem" />
+                  </button>
+                {/snippet}
+              </Menu>
+            {/if}
           </div>
         {/if}
       </header>
+    {/if}
 
     {#if shown.length === 0}
       <!-- The wireframe's empty card holds the Suggestions pill, so an empty

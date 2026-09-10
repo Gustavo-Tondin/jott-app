@@ -11,6 +11,7 @@
   import { noteActions, noteCardMenu } from "../services/noteActions.js";
   import { makeScreen } from "../services/act.js";
   import { spaceMenu } from "../services/spaceMenu.js";
+  import { liftSpaceMenu } from "../shell/spaceMenus.js";
   import { arrange, pinnedFirst, planReorder } from "../services/spaceOrder.js";
   import { ACCENTS, accentStyle, dotStyle as dotStyleOf, accentColor } from "../services/accent.js";
   import { board } from "../services/noteBoard.js";
@@ -340,6 +341,11 @@
     }),
   );
 
+  // Below 768px the ⋮ lives in the top bar's, not on the canvas.
+  const lift = liftSpaceMenu();
+  let lifted = $derived(lift.lifted());
+  $effect(() => lift.offer(sortMenu));
+
   /// A folder card's own ⋮ — the same shape a note card's has: the same
   /// gesture on the same board.
   const groupMenu = (group) =>
@@ -535,67 +541,73 @@
 <div class="notes-space">
   <!-- The place's own row: the name centred, the ⋮ at the far right, and an
        invisible twin of the ⋮ on the left so the name is centred on the PANEL
-       (the tasks screen uses the same construction). -->
-  <header class="notes-space__head">
-    <span class="theme-mirror notes-space__mirror" aria-hidden="true">
-      <span class="theme-btn--icon">
-        <Icon name="dots-three-vertical" size="1rem" />
-      </span>
-    </span>
-    {#if header && !picking}
-      <h3 class="theme-title notes-space__title">
-        {title}
-        {#if dot !== undefined}
-          <span class="theme-dot" style={dotStyle} aria-hidden="true"></span>
-        {/if}
-      </h3>
-    {/if}
+       (the tasks screen uses the same construction). With the ⋮ lifted into
+       the shell's (compact) and no name to show, there is no row at all. -->
+  {#if !lifted || (header && !picking)}
+    <header class="notes-space__head">
+      {#if !lifted}
+        <span class="theme-mirror notes-space__mirror" aria-hidden="true">
+          <span class="theme-btn--icon">
+            <Icon name="dots-three-vertical" size="1rem" />
+          </span>
+        </span>
+      {/if}
+      {#if header && !picking}
+        <h3 class="theme-title notes-space__title">
+          {title}
+          {#if dot !== undefined}
+            <span class="theme-dot" style={dotStyle} aria-hidden="true"></span>
+          {/if}
+        </h3>
+      {/if}
+      {#if !lifted}
+        <Menu items={sortMenu} align="end">
+          {#snippet trigger({ toggle })}
+            <button
+              class="theme-btn--icon notes-space__more"
+              onclick={toggle}
+              aria-label={S.spaceOptions}
+              title={S.spaceOptions}
+            >
+              <Icon name="dots-three-vertical" size="1rem" />
+            </button>
+          {/snippet}
+        </Menu>
+      {/if}
+    </header>
+  {/if}
 
-    {#if picking}
-      <!-- Selection mode: the bulk actions float over the bottom of the
-           screen (components/BulkBar.svelte), the same bar the tasks screen
-           raises. -->
-      <BulkBar count={picked.size} onClose={exitPicking}>
-        <select
-          class="theme-select theme-select--sm"
-          aria-label={S.moveNotesTo}
-          disabled={picked.size === 0}
-          onchange={(e) => {
-            const target = e.currentTarget.value;
-            e.currentTarget.value = "";
-            moveSelected(target);
-          }}
-        >
-          <option value="" disabled selected>{S.moveNotesTo}</option>
-          {#each moveTargets as group (group.label)}
-            <optgroup label={group.label}>
-              {#each group.options as option (option.value)}
-                <option value={option.value}>{option.label}</option>
-              {/each}
-            </optgroup>
-          {/each}
-        </select>
-        <button
-          class="theme-btn theme-btn--danger theme-btn--sm"
-          disabled={picked.size === 0}
-          onclick={deleteSelected}>{S.deleteSelected}</button
-        >
-      </BulkBar>
-    {/if}
-
-    <Menu items={sortMenu} align="end">
-      {#snippet trigger({ toggle })}
-        <button
-          class="theme-btn--icon notes-space__more"
-          onclick={toggle}
-          aria-label={S.spaceOptions}
-          title={S.spaceOptions}
-        >
-          <Icon name="dots-three-vertical" size="1rem" />
-        </button>
-      {/snippet}
-    </Menu>
-  </header>
+  {#if picking}
+    <!-- Selection mode: the bulk actions float over the bottom of the
+         screen (components/BulkBar.svelte), the same bar the tasks screen
+         raises. -->
+    <BulkBar count={picked.size} onClose={exitPicking}>
+      <select
+        class="theme-select theme-select--sm"
+        aria-label={S.moveNotesTo}
+        disabled={picked.size === 0}
+        onchange={(e) => {
+          const target = e.currentTarget.value;
+          e.currentTarget.value = "";
+          moveSelected(target);
+        }}
+      >
+        <option value="" disabled selected>{S.moveNotesTo}</option>
+        {#each moveTargets as group (group.label)}
+          <optgroup label={group.label}>
+            {#each group.options as option (option.value)}
+              <option value={option.value}>{option.label}</option>
+            {/each}
+          </optgroup>
+        {/each}
+      </select>
+      <button
+        class="theme-btn theme-btn--danger theme-btn--sm"
+        disabled={picked.size === 0}
+        onclick={deleteSelected}>{S.deleteSelected}</button
+      >
+    </BulkBar>
+  {/if}
 
   {#if !readOnly}
     <!-- The quick note bar (wireframes "Grid"): the note is typed here and

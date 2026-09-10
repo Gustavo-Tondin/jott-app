@@ -21,6 +21,7 @@
   import { columnCount, columnLayout } from "../services/noteColumns.js";
   import { quickNoteTarget } from "../services/noteTargets.js";
   import { noteActions, noteCardMenu } from "../services/noteActions.js";
+  import { liftSpaceMenu } from "../shell/spaceMenus.js";
 
   let {
     notesFolder,
@@ -236,6 +237,19 @@
         ],
   );
 
+  // Below 768px the notes block's ⋮ joins the top bar's, UNDER the tasks
+  // block's (rank 1): the order the two blocks are drawn in. Folded under a
+  // row that names it — "to" alone means nothing away from the block.
+  const liftNotes = liftSpaceMenu({ rank: 1 });
+  let notesLifted = $derived(liftNotes.lifted());
+  $effect(() =>
+    liftNotes.offer(
+      readOnly || notesMenu.length === 0
+        ? []
+        : [{ label: S.quickNotesGoTo, items: notesMenu.slice(1) }],
+    ),
+  );
+
 </script>
 
 <div class="home" class:home--compact={compact}>
@@ -337,7 +351,7 @@
             </span>
           </span>
           <h2 class="theme-title home__block-title">{S.todaysNotes}</h2>
-          {#if !readOnly && notesMenu.length > 0}
+          {#if !readOnly && notesMenu.length > 0 && !notesLifted}
             <Menu items={notesMenu}>
               {#snippet trigger({ toggle })}
                 <button

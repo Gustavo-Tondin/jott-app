@@ -94,6 +94,7 @@
   import { S } from "./lib/services/strings.js";
   import * as Tabs from "./lib/shell/tabs.js";
   import { bannerMenuOf, noteActionsOf, pageMenuOf, screenActionsOf } from "./lib/shell/menus.js";
+  import { provideSpaceMenus } from "./lib/shell/spaceMenus.js";
   import { makeNoteDocument } from "./lib/shell/noteDocument.js";
   import { makeNotebookWrites } from "./lib/shell/notebookWrites.js";
   import { makeRemindersHost } from "./lib/shell/remindersHost.js";
@@ -185,6 +186,11 @@
   /// the page header never disagree about who holds the back/forward arrows.
   let compact = $state(false);
   $effect(() => watchCompact((v) => (compact = v)));
+
+  /// The ⋮ of the spaces on screen, handed up to the top bar's while compact
+  /// (shell/spaceMenus.js) — one ⋮ on a phone, not one per block.
+  let spaceMenus = $state.raw([]);
+  provideSpaceMenus({ lifted: () => compact, onChange: (groups) => (spaceMenus = groups) });
 
   /// The compact shell's scroller, and whether the canvas has risen to the top
   /// of it (actions/risen.js): the floating top bar paints nothing, so its
@@ -1109,6 +1115,7 @@
       completed: layout.completed,
       renameList: renameCurrentList,
       deleteList: deleteCurrentList,
+      spaceMenus,
     }),
   );
 

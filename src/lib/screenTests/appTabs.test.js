@@ -369,13 +369,10 @@ describe("the compact shell", () => {
     expect(screen.queryByLabelText("close window")).toBeNull();
   });
 
-  test("the tasks block keeps its own ⋮, with the twin that centres the row", async () => {
-    // Both places were tried on the device (user calls, 2026-08-18). The ⋮
-    // moved up to the screen's black header and came straight back: one below
-    // the top bar's own ⋮, two of them stacked in the corner read as one
-    // control drawn twice. It belongs on the block's row — and the invisible
-    // twin opposite it is what keeps the row centred on the screen rather
-    // than pushed off by the width of a menu button.
+  test("the tasks block's ⋮ is the top bar's: one ⋮ on a phone", async () => {
+    // Not a second ⋮ stacked under the bar's: the block's items MERGE into the
+    // page menu (shell/spaceMenus.js), and the canvas draws neither the button
+    // nor the twin that balanced it.
     compactShell({
       platform: "android",
       screen_to_restore: "tasks",
@@ -387,11 +384,12 @@ describe("the compact shell", () => {
     // Waited on the screen's own cards, so this is not asserting on a shell
     // that has not drawn the tasks screen yet.
     await screen.findByText("Comprar leite");
-    expect(container.querySelector(".tasks-space__more")).toBeTruthy();
-    expect(container.querySelector(".tasks-space__mirror")).toBeTruthy();
-    // The screen's header holds the place's name and Home's +, never a block's
-    // menu.
+    expect(container.querySelector(".tasks-space__more")).toBeNull();
+    expect(container.querySelector(".tasks-space__mirror")).toBeNull();
     expect(container.querySelector(".page-header--compact .page-menu__toggle")).toBeNull();
+
+    await fireEvent.click(container.querySelector(".topbar .page-menu__toggle"));
+    expect(await screen.findByText("Select tasks…")).toBeTruthy();
   });
 
   test("the task sheet has no ×: the page behind it and the handle already close it", async () => {
