@@ -23,6 +23,7 @@
   import { blockMiddlePaste } from "../services/middlePaste.js";
   import { richPaste } from "../services/richPaste.js";
   import { keepCaretInView } from "../services/caretScroll.js";
+  import { capitalizeAfterMarkers } from "../services/imeCaps.js";
   import { fileEmbeds, refreshEmbeds } from "../services/embeds.js";
   import { noteTables, refreshTables } from "../services/tableWidget.js";
   import { activeCell, tableStatus } from "../services/tableEditing.js";
@@ -267,6 +268,9 @@
             autocorrect: "on",
             spellcheck: "true",
           }),
+          // …and the capital a new list item never got from it: the keyboard
+          // reads "- " as the middle of a sentence (services/imeCaps.js).
+          plain ? [] : capitalizeAfterMarkers,
           EditorView.lineWrapping,
           // Air under the cursor when the editor scrolls to it: on a phone the
           // typed line would otherwise sit flush against the keyboard. In px
