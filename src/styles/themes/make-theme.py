@@ -116,10 +116,16 @@ HUE_STEPS = list(TARGET)
 STATUS_STEPS = [100, 200, 300, 500, 700]
 CHROMA = 0.92  # of the gamut edge; the factory theme sits about here
 # Status is quieter than the eight, so a warning never reads as a colour someone
-# picked: a softer chroma per step, and a fill a shade above the grid's 200 so a
-# yellow block still reads yellow (within the 4 L* the suite allows).
+# picked. The inks (300/500) take a share of the gamut edge; the surfaces
+# (wash 100/700, fill 200) take the SAME absolute OKLCH chroma for all three, so
+# no status looks faded beside another. The fill sits a shade above the grid's
+# 200 so a yellow block still reads yellow (within the 4 L* the suite allows).
 STATUS_TARGET = {**TARGET, 200: 82}
-STATUS_CHROMA = {100: 0.3, 200: 0.64, 300: 0.8, 500: 0.85, 700: 0.55}
+STATUS_CHROMA = {300: 0.8, 500: 0.85}
+STATUS_SURFACE = {100: 0.034, 200: 0.111, 700: 0.034}
+# How far below the grid a surface may darken to reach its chroma: a pale red
+# cannot hold 0.111 at L*82, and gets there closer at L*78.
+SURFACE_SLACK = 2
 
 
 def step(H, target, chroma=CHROMA):
@@ -142,8 +148,47 @@ def family(H, steps=HUE_STEPS):
     return {s: step(H, TARGET[s]) for s in steps}
 
 
+def at_chroma(H, target, C):
+    """The colour at hue H and CIE L* `target` with absolute OKLCH chroma C,
+    or as close to C as the gamut allows there."""
+    lo, hi, best = 0.0, 1.0, None
+    for _ in range(60):
+        Lm = (lo + hi) / 2
+        best = _to_hex(_oklch_to_linear(Lm, min(C, _max_chroma(Lm, H) * 0.99), H))
+        if lstar(best) < target:
+            lo = Lm
+        else:
+            hi = Lm
+    return best
+
+
+def surface(H, s):
+    """A status surface: its chroma at its tone, or — when the hue cannot hold
+    it that light — one L* darker at a time, down to the slack."""
+    C = STATUS_SURFACE[s]
+    floor = TARGET[s] - SURFACE_SLACK
+    for tone in range(STATUS_TARGET[s], floor - 1, -1):
+        if _max_chroma(_bisect_tone(H, tone), H) * 0.99 >= C:
+            return at_chroma(H, tone, C)
+    return at_chroma(H, floor, C)
+
+
+def _bisect_tone(H, target):
+    """The OKLab lightness of the greyest colour at hue H with CIE L* `target`."""
+    lo, hi = 0.0, 1.0
+    for _ in range(40):
+        Lm = (lo + hi) / 2
+        if lstar(_to_hex(_oklch_to_linear(Lm, 0.0, H))) < target:
+            lo = Lm
+        else:
+            hi = Lm
+    return (lo + hi) / 2
+
+
 def status_family(H):
-    return {s: step(H, STATUS_TARGET[s], chroma=STATUS_CHROMA[s]) for s in STATUS_STEPS}
+    fam = {s: step(H, STATUS_TARGET[s], chroma=STATUS_CHROMA[s]) for s in STATUS_CHROMA}
+    fam.update({s: surface(H, s) for s in STATUS_SURFACE})
+    return {s: fam[s] for s in STATUS_STEPS}
 
 
 def grey(steps=HUE_STEPS):

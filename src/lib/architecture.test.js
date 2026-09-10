@@ -406,6 +406,27 @@ describe("frontend architecture", () => {
     return (hi + 0.05) / (lo + 0.05);
   }
 
+  /// OKLCH chroma of a hex: how coloured it is, whatever its hue.
+  function chroma(hex) {
+    const lin = [1, 3, 5].map((c) => {
+      const v = parseInt(hex.slice(c, c + 2), 16) / 255;
+      return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+    });
+    const M1 = [
+      [0.4122214708, 0.5363325363, 0.0514459929],
+      [0.2119034982, 0.6806995451, 0.1073969566],
+      [0.0883024619, 0.2817188376, 0.6299787005],
+    ];
+    const M2 = [
+      [0.2104542553, 0.793617785, -0.0040720468],
+      [1.9779984951, -2.428592205, 0.4505937099],
+      [0.0259040371, 0.7827717662, -0.808675766],
+    ];
+    const apply = (m, v) => m.map((row) => row.reduce((s, k, i) => s + k * v[i], 0));
+    const [, a, b] = apply(M2, apply(M1, lin).map(Math.cbrt));
+    return Math.hypot(a, b);
+  }
+
   /// The oklab midpoint of two hexes — what `color-mix(in oklab, a, b)` is,
   /// and what a half rung of the emphasis ladder resolves to.
   function midpoint(a, b) {
@@ -642,6 +663,24 @@ describe("frontend architecture", () => {
     const offenders = STATUS.filter((name) => ratio(families[name][200], black) < 4.5).map(
       (name) => `${name}-200: ${ratio(families[name][200], black).toFixed(2)}:1`,
     );
+    expect(offenders).toEqual([]);
+  });
+
+  test("status surfaces carry the same chroma, so none looks faded beside another", () => {
+    // The fill and the two washes of danger and success match the warning's
+    // absolute chroma. A hue the gamut cannot hold that light (a pale red)
+    // falls short only by what two L* darker could not win back.
+    const families = palette();
+    const offenders = [];
+    for (const step of [100, 200, 700]) {
+      const reference = chroma(families.warning[step]);
+      for (const name of ["danger", "success"]) {
+        const got = chroma(families[name][step]);
+        if (Math.abs(got - reference) > 0.015) {
+          offenders.push(`${name}-${step}: C ${got.toFixed(3)} vs warning ${reference.toFixed(3)}`);
+        }
+      }
+    }
     expect(offenders).toEqual([]);
   });
 

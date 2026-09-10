@@ -107,23 +107,23 @@
      a colour someone picked. FIVE steps: 300/500 the ink per ground,
      700/100 the wash, 200 the fill on both grounds. No ladder. */
 
-  --theme-color-danger-100: #efe6e5;
-  --theme-color-danger-200: #eec2bd;
+  --theme-color-danger-100: #fddedb;
+  --theme-color-danger-200: #feaba4;
   --theme-color-danger-300: #f19089;
   --theme-color-danger-500: #d53337;
-  --theme-color-danger-700: #4a1e1c;
+  --theme-color-danger-700: #3d2625;
 
-  --theme-color-warning-100: #efe9d0;
+  --theme-color-warning-100: #efe8cf;
   --theme-color-warning-200: #e2cb74;
   --theme-color-warning-300: #c3aa46;
   --theme-color-warning-500: #837125;
   --theme-color-warning-700: #312c18;
 
-  --theme-color-success-100: #d5eede;
-  --theme-color-success-200: #7bdfa8;
+  --theme-color-success-100: #d5efdf;
+  --theme-color-success-200: #86deac;
   --theme-color-success-300: #4cbf85;
   --theme-color-success-500: #298156;
-  --theme-color-success-700: #1a3024;
+  --theme-color-success-700: #1c3125;
 
   /* SHAPE — the spacing scale (named by the design's px, valued in rem) and
      the radius ladder (read by the SIZE of the object: the bigger the box,
