@@ -1,9 +1,11 @@
 // The shell's menus, as pure functions over what the shell knows. The
 // `$derived` in App.svelte calls these; nothing here reads state of its own,
 // which is what lets a menu be tested without a notebook open.
-import { ACCENTS, accentFill } from "../services/accent.js";
 import { NOTE_FONT_SIZES } from "../services/themes.js";
 import { S } from "../services/strings.js";
+
+// The banner row is a note card's too, so it lives with the card's actions.
+export { bannerMenuOf } from "../services/noteActions.js";
 
 /// What can be done to the SCREEN itself — written once and served twice,
 /// from the page ⋮ and from a right-click on the empty canvas. Which ones
@@ -42,26 +44,6 @@ export function screenActionsOf({
   // a document with a body to rewrite.
   if (isNote) items.push({ label: S.replaceInNote, run: openReplace });
   return items;
-}
-
-/// The open note's banner, as one row with the eight colours folded under it.
-/// The palette is words here (with the fill each paints with as a dot) and
-/// swatches in the block's own popover; the VALUE is the same name either
-/// door, which is what keeps the file readable by hand.
-export function bannerMenuOf({ banner, setBanner, pickImage }) {
-  return {
-    label: S.banner,
-    items: [
-      ...ACCENTS.map((name) => ({
-        label: S.colorName(name),
-        checked: banner?.value === name,
-        swatch: accentFill(name),
-        run: () => setBanner(name),
-      })),
-      { label: S.bannerImage, run: pickImage },
-      ...(banner ? [{ label: S.removeBanner, run: () => setBanner(null) }] : []),
-    ],
-  };
 }
 
 /// What an open NOTE can be asked to do — served by the page's ••• and by

@@ -4,6 +4,7 @@
 // the menu ROWS are a pure function, testable without rendering.
 
 import { api } from "./api.js";
+import { ACCENTS, accentFill } from "./accent.js";
 import { isImage } from "./assets.js";
 import { askConfirm, askName, DELETING } from "./dialog.js";
 import { S } from "./strings.js";
@@ -14,6 +15,26 @@ import { S } from "./strings.js";
 export function bannerOf(value) {
   if (!value) return null;
   return { kind: isImage(value) ? "image" : "color", value };
+}
+
+/// The open note's banner, as one row with the eight colours folded under it.
+/// The palette is words here (with the fill each paints with as a dot) and
+/// swatches in the block's own popover; the VALUE is the same name either
+/// door, which is what keeps the file readable by hand.
+export function bannerMenuOf({ banner, setBanner, pickImage }) {
+  return {
+    label: S.banner,
+    items: [
+      ...ACCENTS.map((name) => ({
+        label: S.colorName(name),
+        checked: banner?.value === name,
+        swatch: accentFill(name),
+        run: () => setBanner(name),
+      })),
+      { label: S.bannerImage, run: pickImage },
+      ...(banner ? [{ label: S.removeBanner, run: () => setBanner(null) }] : []),
+    ],
+  };
 }
 
 /// The card actions, bound to a screen's `act`. Every one takes the SPACE
