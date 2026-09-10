@@ -103,7 +103,11 @@ file would quietly win over the source. An architecture test rejects it.
 Cutting a release is one command (`packaging/release.sh <version>`), which
 bumps that one file, proves every derivation followed, runs both suites plus
 clippy, tags, and stops to ask before pushing — because a pushed tag writes a
-draft release on a public repository.
+draft release on a public repository. When the `test` workflow already passed
+on that commit — both suites on real Linux and real Windows, plus clippy — its
+verdict stands in for the local suites and the Windows preflight.
+`packaging/release.sh <version> --ship` runs the whole cycle unattended: cut,
+APK, push, wait for the workflow, publish, website.
 
 Versions move one minor at a time — 0.52, 0.53, 0.54 — with a patch always
 allowed on top of the newest tag and exactly one jump allowed, the one to 1.0.
@@ -111,7 +115,10 @@ The script refuses to tag anything else: a release holding a lot of work is
 still the next number.
 
 Publishing is the other half, and it is `packaging/release.sh --publish`. It
-attaches the APK (nothing in CI can build it), publishes the draft **and marks
+waits for the tag's workflow run and refuses unless it is green — the release
+workflow runs the suites beside the build, so a draft can exist for a tag whose
+tests failed. Then it attaches the APK (nothing in CI can build it), publishes
+the draft **and marks
 it Latest in the same call** — a release born as a draft does not take that
 alias on its own, and `releases/latest/...` would go on serving the previous
 version — then waits until `releases/latest/download/latest.json` really

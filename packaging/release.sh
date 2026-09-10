@@ -59,17 +59,24 @@
 #   packaging/release.sh 0.24.0 --dry-run   # print every command, change nothing
 #   packaging/release.sh --check            # only verify the derivations still work
 #   packaging/release.sh --collect          # only refresh packaging/releases/ from what is built
-#   packaging/release.sh --publish          # after the workflow: publish the draft,
-#                                           # make it Latest, and push the site
+#   packaging/release.sh --publish          # after the workflow: wait for it, publish the
+#                                           # draft, make it Latest, push the site, sync the vault
+#   packaging/release.sh 0.24.0 --ship      # all of it, unattended: cut, APK, push, wait,
+#                                           # publish, site, vault — one command, no questions
 #
 #   The release notes come from CHANGELOG.md — the `## vX.Y.Z` section for the
 #   version being cut. The script refuses to tag a version that has none.
 #
+#   When test.yml already passed on HEAD (real Linux + real Windows + clippy),
+#   that verdict replaces the local suites and the wine preflight.
+#
+#   --ship             --android --yes, then --publish; pushes HEAD first when
+#                      the CI has not seen it, so Windows answers before the tag
 #   --skip-tests       skip npm test / cargo test / clippy
 #   --skip-preflight   skip the Windows cross-check (packaging/windows/windows-preflight.sh)
 #   --android          also build and verify the APK (needs the Android SDK)
 #   --no-push          commit and tag, but never offer to push
-#   --yes              answer yes to the push gate (for a scripted rerun)
+#   --yes              answer yes to the push and publish gates (no terminal needed)
 #
 set -uo pipefail
 
@@ -660,6 +667,63 @@ release_id() {
     2>/dev/null | head -1
 }
 
+# ---------------------------------------------------------------------------
+# The CI's verdict, read instead of earned again. Each prints
+# "<run id> <status> <conclusion>" for the newest matching run, or nothing.
+# ---------------------------------------------------------------------------
+
+ci_run_for_commit() {
+  gh run list --workflow "$1" --commit "$2" --limit 1 \
+    --json databaseId,status,conclusion \
+    --jq '.[0] | select(.) | "\(.databaseId) \(.status) \(.conclusion)"' 2>/dev/null
+}
+
+# A tag's run is found by listing: its headBranch is the tag name.
+ci_run_for_tag() {
+  gh run list --workflow "$1" --limit 20 --json databaseId,status,conclusion,headBranch \
+    --jq ".[] | select(.headBranch == \"$2\") | \"\(.databaseId) \(.status) \(.conclusion)\"" \
+    2>/dev/null | head -1
+}
+
+# ci_settle <run id> <status> <conclusion> — waits quietly if the run is still
+# going, and prints its final conclusion.
+ci_settle() {
+  if [ "$2" = "completed" ]; then
+    printf '%s' "$3"
+    return 0
+  fi
+  log INFO "  waiting for $(gh run view "$1" --json url --jq .url 2>/dev/null)"
+  gh run watch "$1" --exit-status --interval 30 >>"$LOG" 2>&1
+  gh run view "$1" --json conclusion --jq .conclusion 2>/dev/null
+}
+
+# What failed, in a dozen lines — enough to act on without opening the page.
+ci_explain() {
+  gh run view "$1" --json jobs --jq '.jobs[] | select(.conclusion == "failure")
+    | "  failed: \(.name) — \([.steps[] | select(.conclusion == "failure") | .name] | join(", "))"' \
+    2>/dev/null | tee -a "$LOG" >&2
+  # GitHub keeps the colours as a literal "^[", not as ESC.
+  gh run view "$1" --log-failed 2>/dev/null \
+    | sed -e 's/\x1b\[[0-9;]*m//g' -e 's/\^\[\[[0-9;]*m//g' > "$WORK/ci-failed.log"
+  cut -f3- "$WORK/ci-failed.log" | sed 's/^[0-9T:.-]*Z //' \
+    | grep -E '(^|[[:space:]])(FAIL|×|##\[error\]|error(\[E[0-9]+\])?:|thread .* panicked)' \
+    | grep -v '✓' | cut -c1-200 | head -12 >&2
+  log INFO "  the failed steps' full log: $WORK/ci-failed.log"
+}
+
+readonly VAULT_SYNC="$HOME/Documentos/GitHub/jott-vault/sync.sh"
+
+# The keys' backup, owed after every release. Never fatal: the release is out.
+sync_vault() {
+  if [ ! -x "$VAULT_SYNC" ]; then
+    log WARN "  no $VAULT_SYNC — back up the keys by hand"
+  elif "$VAULT_SYNC" >>"$LOG" 2>&1; then
+    log INFO "  jott-vault synced"
+  else
+    log WARN "  jott-vault sync failed — read $LOG"
+  fi
+}
+
 # What the world's copy of latest.json says, right now: the same URL every
 # installed Jott checks once a day. The query string defeats the CDN cache;
 # without it this reads the answer from before the release was published.
@@ -679,6 +743,24 @@ publish_release() {
 
   repo="$(github_repo)"
   [ -n "$repo" ] || die "could not read the GitHub repository out of remote.origin.url"
+
+  # The suites run BESIDE the installers (release.yml), so a draft can exist
+  # for a tag whose tests failed. Only a green run is publishable.
+  local run run_id run_status run_conclusion n
+  for n in $(seq 1 12); do
+    run="$(ci_run_for_tag release.yml "$tag")"
+    [ -n "$run" ] && break
+    [ "$n" -eq 1 ] && log INFO "  looking for the release run of $tag"
+    sleep 10
+  done
+  [ -n "$run" ] || die "no release workflow run for $tag — was the tag pushed?"
+  read -r run_id run_status run_conclusion <<<"$run"
+  run_conclusion="$(ci_settle "$run_id" "$run_status" "$run_conclusion")"
+  if [ "$run_conclusion" != "success" ]; then
+    ci_explain "$run_id"
+    die "the release run for $tag ended '${run_conclusion:-unknown}' — nothing was published"
+  fi
+  log INFO "  release run $run_id passed: suites and installers"
 
   id="$(release_id "$repo" "$tag")"
   [ -n "$id" ] || die "$repo has no release for $tag. The workflow writes one about 12 minutes after the tag is pushed — watch it with: gh run watch"
@@ -726,6 +808,8 @@ publish_release() {
     [ "$draft" = "true" ]   && echo "      every installed Jott starts offering it within a day"
     if [ -n "$ASSUME_YES" ]; then
       answer="yes"
+    elif [ ! -t 0 ]; then
+      die "no terminal to ask on — run again with --yes to publish"
     else
       printf '  go ahead? '
       read -r answer
@@ -958,9 +1042,11 @@ SKIP_PREFLIGHT=""
 WITH_ANDROID=""
 NO_PUSH=""
 ASSUME_YES=""
+SHIP=""
 
 while [ $# -gt 0 ]; do
   case "$1" in
+    --ship)           SHIP=1; WITH_ANDROID=1; ASSUME_YES=1 ;;
     --dry-run)        DRY_RUN=1 ;;
     --check)          CHECK_ONLY=1 ;;
     --collect)        COLLECT_ONLY=1 ;;
@@ -1011,10 +1097,10 @@ if [ -n "$PUBLISH_ONLY" ]; then
   publish_release "$VERSION"
   publish_site "$VERSION"
   echo
-  log INFO "v$VERSION is out, in both places:"
+  sync_vault
+  log INFO "v$VERSION is out, in both places ($((SECONDS / 60)) min):"
   log INFO "  https://github.com/$(github_repo)/releases/tag/v$VERSION"
   log INFO "  the site's download and changelog pages"
-  log INFO "  back up the keys:  cd ~/Documentos/GitHub/jott-vault && ./sync.sh"
   log INFO "  full log: $LOG"
   exit 0
 fi
@@ -1096,10 +1182,71 @@ if command -v gh >/dev/null 2>&1; then
 fi
 
 # ---------------------------------------------------------------------------
-# Step 2 — bump
+# Step 2 — the suites, before anything is touched
+#
+# test.yml runs them on real Linux and real Windows, plus clippy, on every
+# push to main. When HEAD has that verdict it stands in for the local suites
+# AND the wine preflight (step 4), which answers less. Without it they run
+# here — or, with --ship, HEAD is pushed so the runners answer before the tag.
+# Before the bump, so a failure leaves the tree exactly as it was.
 # ---------------------------------------------------------------------------
 
-log INFO "step 2/8 — bumping to $VERSION"
+CI_GREEN=""
+head_sha="$(git rev-parse HEAD)"
+
+run_local_suites() {
+  log INFO "  npm test"
+  run npm test >>"$LOG" 2>&1 || { tail -40 "$LOG"; die "the frontend suite failed"; }
+  log INFO "  cargo test --workspace"
+  run cargo test --workspace >>"$LOG" 2>&1 || { tail -40 "$LOG"; die "the Rust suite failed"; }
+  log INFO "  cargo clippy"
+  run cargo clippy --workspace --all-targets -- -D warnings >>"$LOG" 2>&1 \
+    || { tail -40 "$LOG"; die "clippy found warnings"; }
+  log INFO "  local suites and clippy ok"
+}
+
+if [ -n "$SKIP_TESTS" ]; then
+  log WARN "step 2/8 — SKIPPED (--skip-tests). The CI will be the first to know."
+else
+  log INFO "step 2/8 — the suites"
+  verdict=""
+  command -v gh >/dev/null 2>&1 && verdict="$(ci_run_for_commit test.yml "$head_sha")"
+  if [ -z "$verdict" ] && [ -n "$SHIP" ] && [ -z "$DRY_RUN" ] \
+     && [ -n "$(git rev-list '@{u}..HEAD' 2>/dev/null)" ]; then
+    log INFO "  ${head_sha:0:7} is not on GitHub yet — pushing it so Linux and Windows answer"
+    git push >>"$LOG" 2>&1 || { tail -20 "$LOG"; die "the push failed"; }
+    for _ in $(seq 1 12); do
+      sleep 5
+      verdict="$(ci_run_for_commit test.yml "$head_sha")"
+      [ -n "$verdict" ] && break
+    done
+  fi
+
+  if [ -z "$verdict" ]; then
+    log INFO "  the CI has no run for ${head_sha:0:7} — running them here"
+    run_local_suites
+  else
+    read -r ci_id ci_status ci_conclusion <<<"$verdict"
+    ci_conclusion="$(ci_settle "$ci_id" "$ci_status" "$ci_conclusion")"
+    case "$ci_conclusion" in
+      success)
+        CI_GREEN=1
+        log INFO "  CI passed on ${head_sha:0:7} (Linux, Windows, clippy) — not repeated here" ;;
+      failure)
+        ci_explain "$ci_id"
+        die "the CI failed on ${head_sha:0:7} — fix it before cutting v$VERSION" ;;
+      *)
+        log INFO "  the CI run for ${head_sha:0:7} ended '$ci_conclusion' — running them here"
+        run_local_suites ;;
+    esac
+  fi
+fi
+
+# ---------------------------------------------------------------------------
+# Step 3 — bump
+# ---------------------------------------------------------------------------
+
+log INFO "step 3/8 — bumping to $VERSION"
 bump_source "$VERSION"
 
 # Cargo.lock carries the workspace's own version, so the bump changes it too —
@@ -1122,35 +1269,13 @@ log INFO "  derivations after the bump:"
 [ -n "$DRY_RUN" ] || check_versions
 
 # ---------------------------------------------------------------------------
-# Step 3 — the suites
-#
-# Before the tag, never after: the workflow runs them again on the runner, and
-# a tag that fails there costs twelve minutes and a deleted tag to find out.
-# ---------------------------------------------------------------------------
-
-if [ -n "$SKIP_TESTS" ]; then
-  log WARN "step 3/8 — SKIPPED (--skip-tests). The CI will be the first to know."
-else
-  log INFO "step 3/8 — npm test"
-  run npm test >>"$LOG" 2>&1 || { tail -40 "$LOG"; die "the frontend suite failed"; }
-  log INFO "  frontend suite ok"
-
-  log INFO "step 3/8 — cargo test --workspace"
-  run cargo test --workspace >>"$LOG" 2>&1 || { tail -40 "$LOG"; die "the Rust suite failed"; }
-  log INFO "  Rust suite ok"
-
-  log INFO "step 3/8 — cargo clippy"
-  run cargo clippy --workspace --all-targets -- -D warnings >>"$LOG" 2>&1 \
-    || { tail -40 "$LOG"; die "clippy found warnings"; }
-  log INFO "  clippy clean"
-fi
-
-# ---------------------------------------------------------------------------
 # Step 4 — Windows, here, before the tag
 # ---------------------------------------------------------------------------
 
 if [ -n "$SKIP_PREFLIGHT" ]; then
   log WARN "step 4/8 — SKIPPED (--skip-preflight)"
+elif [ -n "$CI_GREEN" ]; then
+  log INFO "step 4/8 — Windows preflight not needed: a real Windows passed ${head_sha:0:7}"
 elif [ ! -x packaging/windows/windows-preflight.sh ]; then
   log WARN "step 4/8 — packaging/windows/windows-preflight.sh not found or not executable"
 else
@@ -1226,6 +1351,8 @@ else
   answer="no"
   if [ -n "$ASSUME_YES" ]; then
     answer="yes"
+  elif [ ! -t 0 ]; then
+    log INFO "  no terminal to ask on, and no --yes: not pushing"
   else
     echo
     echo "  Pushing v$VERSION starts the release workflow and writes a DRAFT"
@@ -1236,7 +1363,7 @@ else
   if [ "$answer" = "yes" ] || [ "$answer" = "y" ]; then
     git push >>"$LOG" 2>&1 && git push origin "v$VERSION" >>"$LOG" 2>&1 \
       || { tail -20 "$LOG"; die "the push failed"; }
-    log INFO "  pushed. The workflow takes ~12 min and leaves a DRAFT release."
+    log INFO "  pushed. The workflow takes ~10 min and leaves a DRAFT release."
   else
     log INFO "  not pushed. The commit and the tag are local:"
     log INFO "    git push && git push origin v$VERSION"
@@ -1267,8 +1394,10 @@ else
   log INFO "  NDK_HOME=$NDK_HOME"
 
   apk="src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release.apk"
-  # The previous APK is the one collected into packaging/releases/ — the
-  # gradle output is build output and gets cleaned; that folder survives.
+  # The certificate is compared against the APK collected into
+  # packaging/releases/ — any version will do, the key never changes. The
+  # versionCode is NOT: that folder already holds this very version whenever a
+  # tag is re-cut. It is compared against the previous tag, further down.
   previous="$WORK/previous-release.apk"
   last_collected="$(ls -1t packaging/releases/*.apk 2>/dev/null | head -1)"
   if [ -n "$last_collected" ]; then
@@ -1308,13 +1437,16 @@ else
       # An APK whose versionCode does not GO UP does not install over the app
       # that is on the phone. Android refuses it outright, and the person on
       # the other end sees only that the install failed.
-      if [ -f "$previous" ]; then
-        read -r was_code was_name <<<"$(apk_version "$aapt" "$previous")"
-        if [ -n "$was_code" ] && [ "$apk_code" -le "$was_code" ]; then
-          log ERROR "  versionCode did not go up: $was_code ($was_name) -> $apk_code ($apk_name)"
-          die "Android would refuse to install this over the previous APK"
+      # Derived from the previous TAG the way the build derives it — what is
+      # on people's phones is what was published, not what was built here.
+      prev_tag="$(git tag --list 'v*' --sort=-v:refname | grep -vx "v$VERSION" | head -1)"
+      if [ -n "$prev_tag" ]; then
+        was_code="$(android_version_code "${prev_tag#v}")"
+        if [ "$apk_code" -le "$was_code" ]; then
+          log ERROR "  versionCode did not go up: $was_code ($prev_tag) -> $apk_code ($apk_name)"
+          die "Android would refuse to install this over $prev_tag"
         fi
-        [ -n "$was_code" ] && log INFO "  versionCode goes up: $was_code -> $apk_code"
+        log INFO "  versionCode goes up: $was_code ($prev_tag) -> $apk_code"
       fi
     else
       log WARN "  aapt2 not found under \$ANDROID_HOME/build-tools — the APK's own version went unchecked"
@@ -1360,12 +1492,21 @@ if [ -z "$DRY_RUN" ]; then
   collect_releases
 fi
 
+# --ship: the APK was built while the runners worked; now wait for them and
+# finish the job the way --publish would.
+if [ -n "$SHIP" ] && [ -z "$DRY_RUN" ] && [ -z "$NO_PUSH" ]; then
+  log INFO "shipping v$VERSION — the release run, then GitHub, the site and the vault"
+  publish_release "$VERSION"
+  publish_site "$VERSION"
+  sync_vault
+  log INFO "v$VERSION is out ($((SECONDS / 60)) min): https://github.com/$(github_repo)/releases/tag/v$VERSION"
+  log INFO "  full log: $LOG"
+  exit 0
+fi
+
 echo
-log INFO "v$VERSION is cut. The rest waits on the workflow:"
-log INFO "  1. watch it:  gh run watch          (~12 min, leaves a DRAFT release)"
-log INFO "  2. read the draft"
-log INFO "  3. publish it, and the site with it:  packaging/release.sh --publish $VERSION"
-log INFO "     (attaches the APK, sets Latest, waits for the alias to move, pushes the site)"
-log INFO "  4. back up the keys:  cd ~/Documentos/GitHub/jott-vault && ./sync.sh"
+log INFO "v$VERSION is cut ($((SECONDS / 60)) min). The rest waits on the workflow (~10 min):"
+log INFO "  packaging/release.sh --publish $VERSION"
+log INFO "  (waits for the run, attaches the APK, sets Latest, pushes the site, syncs the vault)"
 log INFO "  full log: $LOG"
 exit 0
