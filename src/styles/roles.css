@@ -28,6 +28,9 @@
        ground. Two roles so the component sheet reads no palette entry. */
     --app-scrim-deep: color-mix(in srgb, var(--theme-color-black) 88%, transparent);
     --app-on-scrim: var(--theme-color-white);
+    /* A switch's knob: white on either track, in every theme. Not the ink on
+       the brand — that one is dark, and the knob is not something read. */
+    --app-knob: var(--theme-color-white);
     /* The shadow a floating control drops — what keeps a plate from dissolving
        into the ground it wears (the compact top bar's buttons, topbar.css).
        Black at low alpha in EVERY theme: a pale shadow on a dark ground is a

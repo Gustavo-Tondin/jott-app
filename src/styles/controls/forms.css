@@ -233,7 +233,7 @@
     width: 1rem;
     height: 1rem;
     border-radius: var(--app-radius-pill);
-    background: var(--app-on-brand);
+    background: var(--app-knob);
     transition:
       transform var(--app-duration-medium) var(--app-ease-spring),
       width var(--app-transition-fast);
