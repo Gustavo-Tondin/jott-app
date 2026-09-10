@@ -156,25 +156,6 @@
 </script>
 
 <div class="timeline" bind:this={column}>
-  {#if years.length > 0 && activeYear !== null}
-    <!-- The pills: one per year, pinned at the canvas's own corner outside
-         the centred column. Only the active one shows; each is a real button,
-         and a year not read yet is read on the way. -->
-    <nav class="timeline__years" aria-label={S.timeline}>
-      {#each years as year (year)}
-        <button
-          class="timeline__year"
-          class:is-active={year === activeYear}
-          aria-current={year === activeYear ? "true" : undefined}
-          aria-label={S.goToYear(year)}
-          onclick={() => goToYear(year)}
-        >
-          {year}
-        </button>
-      {/each}
-    </nav>
-  {/if}
-  <div class="timeline__column">
   <header class="timeline__header">
     <div class="timeline__heading">
       <h2 class="theme-title timeline__title">
@@ -196,15 +177,41 @@
     </ul>
   </header>
 
+  <div class="timeline__body">
+  {#if years.length > 0 && activeYear !== null}
+    <!-- The pills: one per year, pinned at the canvas's own edge outside the
+         centred column, on the line of the month head — below the cards, so
+         they never cover them. Only the active one shows; each is a real
+         button, and a year not read yet is read on the way. -->
+    <nav class="timeline__years" aria-label={S.timeline}>
+      {#each years as year (year)}
+        <button
+          class="timeline__year"
+          class:is-active={year === activeYear}
+          aria-current={year === activeYear ? "true" : undefined}
+          aria-label={S.goToYear(year)}
+          onclick={() => goToYear(year)}
+        >
+          {year}
+        </button>
+      {/each}
+    </nav>
+  {/if}
+  <div class="timeline__column">
   {#if empty}
     <EmptyState icon="path" title={S.nothingInTimeline} hint={S.nothingInTimelineHint} />
   {:else}
     <ol class="timeline__months">
       {#each months as month (month.key)}
         <li class="timeline__month">
-          <h3 class="timeline__month-head" data-year={month.year} id={`timeline-${month.key}`}>
+          <!-- The year is the pill's to show; the head still names it aloud. -->
+          <h3
+            class="timeline__month-head"
+            data-year={month.year}
+            id={`timeline-${month.key}`}
+            aria-label={`${monthName(month.month)} ${month.year}`}
+          >
             <span class="timeline__month-name">{monthName(month.month)}</span>
-            <span class="timeline__month-year">{month.year}</span>
             <span class="timeline__month-rule" aria-hidden="true"></span>
           </h3>
           <TimelineLines
@@ -230,5 +237,6 @@
       {/if}
     </div>
   {/if}
+  </div>
   </div>
 </div>

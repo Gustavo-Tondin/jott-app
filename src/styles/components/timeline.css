@@ -1,22 +1,37 @@
 /* timeline.css — the visual layer of TimelineView.svelte.
  * Markup: src/lib/screens/TimelineView.svelte. Selectors are the stable BEM
  * hooks a theme may restyle. A heading with three stat cards, months down a
- * thin rule, a year pill pinned in the top corner. Every duration is a
+ * thin rule, a year pill pinned on the month head's line. Every duration is a
  * `--app-duration-*` token, so the reduced-motion block can still it. */
 
 @layer components {
   /* Full width (the pills need the canvas's own edge); the content is a
      centred column of the reading measure. The heading wraps its cards under
-     itself when they do not fit beside it. */
+     itself when they do not fit beside it. The pills live in `__body`, after
+     the heading, so they start on the first month's line, never on the cards.
+     Pill and month head share one line: `--timeline-head-pad` above it,
+     `--timeline-head-line` tall. */
   .timeline {
+    --timeline-head-pad: var(--app-space-8);
+    --timeline-head-line: 2.25rem;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: var(--app-space-32);
+  }
+  .timeline__header,
+  .timeline__column {
+    inline-size: 100%;
+    max-inline-size: var(--app-content-max);
+    margin-inline: auto;
+  }
+  .timeline__body {
     position: relative;
   }
   .timeline__column {
     display: flex;
     flex-direction: column;
     gap: var(--app-space-32);
-    max-inline-size: var(--app-content-max);
-    margin-inline: auto;
   }
 
   /* ---- heading + the three cards ---- */
@@ -87,7 +102,7 @@
     color: var(--app-brand-ink);
   }
 
-  /* ---- year pills, pinned in the corner ---- */
+  /* ---- year pills, pinned on the month head's line ---- */
   .timeline__years {
     position: sticky;
     inset-block-start: 0;
@@ -104,9 +119,16 @@
     overflow: visible;
     pointer-events: none;
   }
+  /* The month head's box, line for line: same pad above, same height, so the
+     pill's middle is the rule's. */
   .timeline__year {
     grid-area: 1 / 1;
-    padding: var(--app-space-4) var(--app-space-12);
+    display: inline-flex;
+    align-items: center;
+    block-size: var(--timeline-head-line);
+    margin-block-start: var(--timeline-head-pad);
+    padding: 0 var(--app-space-12);
+    line-height: 1;
     border-radius: var(--app-radius-sm);
     background: var(--app-surface-sunken);
     color: var(--app-ink-muted);
@@ -140,6 +162,10 @@
     translate: 0 0;
     pointer-events: auto;
   }
+  .timeline__years:hover .timeline__year ~ .timeline__year,
+  .timeline__years:focus-within .timeline__year ~ .timeline__year {
+    margin-block-start: 0;
+  }
   .timeline__years:hover,
   .timeline__years:focus-within {
     gap: var(--app-space-4);
@@ -164,20 +190,17 @@
     inset-block-start: calc(-1 * var(--timeline-head-reach));
     z-index: 1;
     display: flex;
-    align-items: baseline;
+    align-items: center;
     gap: var(--app-space-8);
     margin: calc(-1 * var(--timeline-head-reach)) 0 0;
-    padding-block: calc(var(--app-space-8) + var(--timeline-head-reach)) var(--app-space-8);
+    padding-block: calc(var(--timeline-head-pad) + var(--timeline-head-reach)) var(--timeline-head-pad);
     background: var(--app-bg);
     font-weight: var(--app-weight-regular);
   }
   .timeline__month-name {
     font-size: var(--app-text-24);
+    line-height: var(--timeline-head-line);
     color: var(--app-ink);
-  }
-  .timeline__month-year {
-    font-size: var(--app-text-12);
-    color: var(--app-ink-muted);
   }
   .timeline__month-rule {
     flex: 1;

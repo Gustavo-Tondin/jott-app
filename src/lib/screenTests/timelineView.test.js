@@ -74,11 +74,10 @@ describe("TimelineView", () => {
     // Only the year on screen — the previous one waits for the scroll.
     expect(callsTo("timeline")).toHaveLength(1);
 
+    // The head shows only the month (the pill shows the year) but names both.
     const months = screen.getAllByRole("heading", { level: 3 });
-    expect(months.map((h) => h.textContent.replace(/\s+/g, " ").trim())).toEqual([
-      "August 2026",
-      "July 2026",
-    ]);
+    expect(months.map((h) => h.textContent.trim())).toEqual(["August", "July"]);
+    expect(months.map((h) => h.getAttribute("aria-label"))).toEqual(["August 2026", "July 2026"]);
     // August: 5 tasks born (one ticked, three deleted), 1 ticked, 1 note.
     expect(screen.getByText("5 Tasks created")).toBeTruthy();
     expect(screen.getByText("1 Task completed")).toBeTruthy();

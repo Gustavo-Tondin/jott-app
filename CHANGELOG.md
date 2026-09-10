@@ -22,6 +22,7 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 
 - **Swiping a task follows your finger all the way.** The coloured square grows with the card; sending a task to the day counts halfway, while deleting or taking it out of the day counts after a third of the card, where the card slides away and the colour fills the row.
 - **The warning looks yellow again on the light page.** Error, warning and success are now softer than the eight colours you pick from, so they never pass for one of them; a warning's block is a clear yellow, and its text stays close to what it was.
+- **The timeline's year sits beside the month, not over the cards.** On a small window the year no longer covers the month's numbers when the timeline opens: it starts on the first month's line, centred on its rule, and stays there as you scroll — so the month heading no longer repeats the year.
 
 ## v0.54.0
 
