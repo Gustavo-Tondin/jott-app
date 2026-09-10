@@ -44,12 +44,27 @@ impl Plan {
     /// different days — two days are two choices. Returns whether anything
     /// changed.
     pub fn add(&mut self, day: NaiveDate, path: impl Into<String>, id: impl Into<String>) -> bool {
+        self.add_placed(day, path, id, false)
+    }
+
+    /// `add`, at the top of the day when `on_top` (`newTasksOnTop`).
+    pub fn add_placed(
+        &mut self,
+        day: NaiveDate,
+        path: impl Into<String>,
+        id: impl Into<String>,
+        on_top: bool,
+    ) -> bool {
         let reference = TaskRef::new(path, id);
         let items = self.days.entry(day).or_default();
         if items.contains(&reference) {
             return false;
         }
-        items.push(reference);
+        if on_top {
+            items.insert(0, reference);
+        } else {
+            items.push(reference);
+        }
         true
     }
 

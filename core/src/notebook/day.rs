@@ -129,10 +129,13 @@ impl Notebook {
             return Err(Error::TaskNotFound(id.to_string()));
         }
 
+        // A day is a list too: what arrives in it lands where the setting
+        // puts a new task.
+        let on_top = self.config.new_tasks_on_top;
         match day {
             Day::Today => {
                 let mut file = self.open_state()?;
-                if !file.state.add(path, id) {
+                if !file.state.add_placed(path, id, on_top) {
                     return Ok(false);
                 }
                 file.save()?;
@@ -140,7 +143,7 @@ impl Notebook {
             }
             Day::Ahead(date) => {
                 let mut file = self.open_plan()?;
-                if !file.plan.add(date, path, id) {
+                if !file.plan.add_placed(date, path, id, on_top) {
                     return Ok(false);
                 }
                 file.save()?;

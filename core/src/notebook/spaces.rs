@@ -267,6 +267,22 @@ impl Notebook {
         })
     }
 
+    /// A task created ON TOP of a list whose space is arranged by hand leads
+    /// the saved order too: `custom` draws what it does not know last, which
+    /// would put the new task at the bottom against the setting. Any other
+    /// arrangement already draws it where the file has it.
+    pub(super) fn lead_custom_order(&self, list: &str, id: &str) -> Result<()> {
+        let (folder, _) = crate::relpath::split_parent(list);
+        let Ok(space) = self.open_space(folder) else {
+            return Ok(());
+        };
+        let config = &space.config;
+        if config.sort.as_deref() != Some("custom") || config.order.is_empty() {
+            return Ok(());
+        }
+        self.with_space_config(folder, |config| config.order.insert(0, id.to_string()))
+    }
+
     /// Persists the hand-dragged arrangement (task ids / note paths) in the
     /// space's `.space.json` and switches it to the custom ordering —
     /// the order lives in the config, never in the content files.

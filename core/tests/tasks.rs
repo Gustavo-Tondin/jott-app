@@ -1164,6 +1164,50 @@ fn on_top_keeps_whatever_the_user_wrote_above_the_checklist() {
     assert!(text.starts_with("# Minhas tarefas\n\nUma nota antes.\n\n- [ ] Nova"), "{text}");
 }
 
+#[test]
+fn a_day_puts_what_arrives_where_the_setting_says() {
+    let (_dir, mut notebook) = init();
+    let tomorrow = ahead(&notebook, 1);
+    let inbox = "jott.tasks/task-list.md";
+    let day_texts = |notebook: &Notebook, day| -> Vec<String> {
+        notebook.day_tasks(day).unwrap().into_iter().map(|t| t.task.text).collect()
+    };
+    let pull = |notebook: &Notebook, day, text: &str| {
+        let position = notebook.create_task(inbox, text).unwrap();
+        let id = notebook.ensure_task_id(inbox, position).unwrap();
+        notebook.pull_into_day(day, inbox, &id).unwrap();
+    };
+
+    // The default is on top, for today and for a day ahead alike.
+    pull(&notebook, None, "Primeira");
+    pull(&notebook, None, "Segunda");
+    assert_eq!(day_texts(&notebook, None), vec!["Segunda", "Primeira"]);
+    pull(&notebook, tomorrow, "Amanhã 1");
+    pull(&notebook, tomorrow, "Amanhã 2");
+    assert_eq!(day_texts(&notebook, tomorrow), vec!["Amanhã 2", "Amanhã 1"]);
+
+    let mut config = notebook.config().clone();
+    config.new_tasks_on_top = false;
+    notebook.set_config(config).unwrap();
+    pull(&notebook, None, "Terceira");
+    assert_eq!(day_texts(&notebook, None), vec!["Segunda", "Primeira", "Terceira"]);
+}
+
+#[test]
+fn a_space_arranged_by_hand_puts_the_new_task_first_in_its_order() {
+    // `custom` draws an id it does not know LAST, so on top has to reach the
+    // saved order as well as the file.
+    let (dir, notebook, first) = notebook_with_task("Primeira");
+    let inbox = "jott.tasks/task-list.md";
+    notebook.set_space_order("jott.tasks", vec![first.clone()]).unwrap();
+
+    let position = notebook.create_task(inbox, "Nova").unwrap();
+    let fresh = notebook.ensure_task_id(inbox, position).unwrap();
+    let config = read(dir.path().join("jott.tasks/.space.json"));
+    let at = |id: &str| config.find(&format!("\"{id}\"")).expect(&config);
+    assert!(at(&fresh) < at(&first), "{config}");
+}
+
 // ------------------------------------------------------------ every list
 
 #[test]

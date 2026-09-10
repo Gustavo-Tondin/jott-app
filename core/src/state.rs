@@ -149,13 +149,23 @@ impl DayState {
     /// rather than a duplicate, since the UI can fire the same action twice.
     /// Returns whether anything changed.
     pub fn add(&mut self, path: impl Into<String>, id: impl Into<String>) -> bool {
+        self.add_placed(path, id, false)
+    }
+
+    /// `add`, at the top of the day when `on_top` — the `newTasksOnTop`
+    /// setting, which a day obeys like any list.
+    pub fn add_placed(&mut self, path: impl Into<String>, id: impl Into<String>, on_top: bool) -> bool {
         let reference = TaskRef::new(path, id);
         // Back in the period, it is no longer something that left it.
         self.recent.retain(|r| r != &reference);
         if self.items.contains(&reference) {
             return false;
         }
-        self.items.push(reference);
+        if on_top {
+            self.items.insert(0, reference);
+        } else {
+            self.items.push(reference);
+        }
         true
     }
 

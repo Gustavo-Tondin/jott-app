@@ -140,6 +140,9 @@ impl Notebook {
             let created = list.tasks().nth(position).and_then(|task| task.created);
             Ok((position, id, created))
         })?;
+        if let (true, Some(id)) = (on_top, &id) {
+            self.lead_custom_order(path, id)?;
+        }
         if let (Some(id), Some(created)) = (&id, created) {
             let text = self
                 .open_list(path)
