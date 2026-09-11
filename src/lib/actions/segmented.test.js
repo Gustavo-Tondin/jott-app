@@ -172,3 +172,26 @@ describe("segmented", () => {
     vi.stubGlobal("ResizeObserver", saved);
   });
 });
+
+describe("segmented, on a pill's first appearance", () => {
+  // WebKit transitions a new `::before` from the initial translate: without
+  // `place` every pill flies in from the track's corner.
+  it("finishes the pill's own transition once, and lets a later move glide", async () => {
+    const { node, a, b } = track();
+    const finish = vi.fn();
+    const others = vi.fn();
+    node.getAnimations = () => [
+      { effect: { target: node, pseudoElement: "::before" }, finish },
+      { effect: { target: a, pseudoElement: null }, finish: others },
+    ];
+    segmented(node);
+    expect(finish).toHaveBeenCalledTimes(1);
+
+    a.classList.remove("theme-segmented__item--active");
+    b.classList.add("theme-segmented__item--active");
+    await settle();
+    expect(node.style.getPropertyValue("--seg-x")).toBe("66px");
+    expect(finish).toHaveBeenCalledTimes(1);
+    expect(others).not.toHaveBeenCalled();
+  });
+});

@@ -26,6 +26,7 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 - **Ctrl+V pastes a screenshot on Linux.** A picture copied to the clipboard (the Print Screen tool, an image viewer) now goes into the note, with no need to find the file first.
 - **The checkboxes in a note card's preview are all the same square**, instead of some coming out a pixel taller or wider than the rest.
 - **Jott opens on Android phones that use 16 KB memory pages**, which newer devices can boot with, instead of failing to load.
+- **Settings opens at once the first time**, instead of freezing for a second or two, and its segmented buttons start on your choice rather than sliding there from a corner.
 
 ### Improved
 

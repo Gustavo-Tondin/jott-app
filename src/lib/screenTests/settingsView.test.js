@@ -1135,3 +1135,36 @@ describe("SettingsView — the three faces (2026-08-24)", () => {
     expect(labels.some((l) => l.includes("Monospace font"))).toBe(true);
   });
 });
+
+describe("SettingsView's first render", () => {
+  // A pill that slides from the default to the stored choice is a screen
+  // drawn before it had the answer: the form is filled with `settings`.
+  test("opens on the stored choices: no segmented item loses its press", async () => {
+    const lost = [];
+    const watch = new MutationObserver((records) => {
+      for (const r of records) {
+        const was = r.oldValue?.includes("theme-segmented__item--active");
+        const is = r.target.classList.contains("theme-segmented__item--active");
+        if (was && !is) lost.push(r.target.textContent.trim());
+      }
+    });
+    watch.observe(document.body, {
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["class"],
+      attributeOldValue: true,
+    });
+    bridge({
+      notebook_settings: { headingColor: "ink", noteFontSize: "large", formatBar: "floating" },
+    });
+    render(SettingsView, {
+      props: { notebook: { path: "/n", name: "n", readOnly: false }, onChanged: noop, onError: noop },
+    });
+
+    const ink = await screen.findByRole("button", { name: "Ink" });
+    expect(ink.getAttribute("aria-pressed")).toBe("true");
+    await new Promise((r) => setTimeout(r, 0));
+    watch.disconnect();
+    expect(lost).toEqual([]);
+  });
+});

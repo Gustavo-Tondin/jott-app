@@ -11,11 +11,24 @@ const GLIDES = "theme-segmented--glides";
 
 /// The four numbers the pill is drawn from, written onto the track.
 function paint(node, glides, at) {
+  const fresh = !node.classList.contains(glides);
   node.style.setProperty("--seg-x", `${at.x}px`);
   node.style.setProperty("--seg-y", `${at.y}px`);
   node.style.setProperty("--seg-w", `${at.w}px`);
   node.style.setProperty("--seg-h", `${at.h}px`);
   node.classList.add(glides);
+  if (fresh) place(node);
+}
+
+/// A pill that has just appeared is PLACED, not flown in: WebKit transitions
+/// a new `::before` from the initial `translate`, the track's corner. The
+/// layout read makes the transition exist so it can be finished.
+function place(node) {
+  if (typeof node.getAnimations !== "function") return;
+  void node.offsetWidth;
+  for (const anim of node.getAnimations({ subtree: true })) {
+    if (anim.effect?.target === node && anim.effect.pseudoElement === "::before") anim.finish();
+  }
 }
 
 const sameSpot = (a, b) =>

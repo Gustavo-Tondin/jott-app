@@ -181,16 +181,16 @@
     savedTimer = setTimeout(() => (saved = false), 1500);
   }
 
-  // Whatever the core says is what the controls show.
-  $effect(() => {
-    if (settings) form = { ...settings };
-  });
-
   // Re-read rather than trusting what was sent: the core may have normalised
-  // the value, and the screen should show what was stored.
+  // the value, and the screen should show what was stored. Whatever the core
+  // says is what the controls show — filled in the same step, so the first
+  // render already holds it and no pill glides there from a default.
   const { load, act } = makeScreen({
     read: () => api.notebookSettings(),
-    apply: (read) => (settings = read),
+    apply: (read) => {
+      settings = read;
+      form = { ...read };
+    },
     onChanged: () => onChanged?.(),
     onError: (e) => onError?.(e),
   });
