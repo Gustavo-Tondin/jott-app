@@ -24,6 +24,7 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 - **Switches in Settings have white knobs again**, instead of black.
 - **A ticked task on the page is one clean colour**: no darker rim around the box, and a white tick.
 - **Ctrl+V pastes a screenshot on Linux.** A picture copied to the clipboard (the Print Screen tool, an image viewer) now goes into the note, with no need to find the file first.
+- **The checkboxes in a note card's preview are all the same square**, instead of some coming out a pixel taller or wider than the rest.
 - **Jott opens on Android phones that use 16 KB memory pages**, which newer devices can boot with, instead of failing to load.
 
 ### Improved
