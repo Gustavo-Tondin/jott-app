@@ -14,6 +14,7 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 
 ### Fixed
 
+- **Starting a list from the formatting bar leaves the cursor after the `- `, `1. ` or `- [ ] `**, ready to type, instead of in front of it.
 - **On a phone, the app no longer files its own typing as a sync conflict.** A pause while typing on Android could leave a `sync-conflict` copy of the note's own earlier text beside it, and the banner on every device.
 - **Two devices on one synced notebook no longer produce conflict copies of `.jott/index/`.** Each device now keeps its own "last seen" file, and Jott reads them all together.
 

@@ -102,6 +102,24 @@ describe("inline marks", () => {
 });
 
 describe("line marks", () => {
+  it("leaves the cursor after the mark, ready to type", () => {
+    const after = (command, doc, from, to) => {
+      const view = editor(doc, from, to);
+      command(view);
+      return [view.state.doc.toString(), view.state.selection.main.head];
+    };
+    // A list started from an empty line: the cursor is past the marker.
+    expect(after(toggleBullet, "", 0)).toEqual(["- ", 2]);
+    expect(after(toggleOrdered, "", 0)).toEqual(["1. ", 3]);
+    expect(after(toggleTaskList, "", 0)).toEqual(["- [ ] ", 6]);
+    // A cursor at the start of the text, or on the old mark, moves past the new one.
+    expect(after(toggleBullet, "leite", 0)).toEqual(["- leite", 2]);
+    expect(after(toggleTaskList, "- leite", 0)).toEqual(["- [ ] leite", 6]);
+    // One inside the text stays on the same letter.
+    expect(after(toggleBullet, "leite", 3)).toEqual(["- leite", 5]);
+    expect(after(toggleBullet, "- leite", 5)).toEqual(["leite", 3]);
+  });
+
   it("makes a bullet, and takes it away again", () => {
     expect(run(toggleBullet, "leite", 0)).toBe("- leite");
     expect(run(toggleBullet, "- leite", 0)).toBe("leite");

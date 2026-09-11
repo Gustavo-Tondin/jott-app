@@ -251,31 +251,51 @@ export function markOf(text) {
 
 /// Replaces whatever mark the touched lines carry with the one `make` builds,
 /// or strips it when every line already has that mark — the toggle every one
-/// of these commands is.
+/// of these commands is. Only the mark is rewritten, and a cursor left on or
+/// before it lands after it: `- ` pressed on an empty line is ready to type.
 function setLineMark(kind, make) {
   return (view) => {
-    const changes = [];
+    const { state } = view;
+    const specs = [];
+    /// Line number → width of the mark it ends up with. No change here adds
+    /// or removes a line break, so the numbers hold in the new document.
+    const widths = new Map();
 
-    for (const range of view.state.selection.ranges) {
-      const lines = linesOf(view.state, range);
+    for (const range of state.selection.ranges) {
+      const lines = linesOf(state, range);
       const marks = lines.map((line) => markOf(line.text));
       // Off only when EVERY line is already this: with a mixed selection the
       // press means "make them all this", which is the more useful answer.
       const off = marks.every((mark) => kind(mark));
 
       lines.forEach((line, i) => {
+        // Two cursors on one line: the line is marked once.
+        if (widths.has(line.number)) return;
         const mark = marks[i];
         const body = line.text.slice(mark.length);
         // An empty line gets the mark anyway (that is how a list is started
         // from nothing), but is never stripped into nonsense.
-        const next = off ? `${mark.indent}${body}` : `${mark.indent}${make(body, i)}${body}`;
-        if (next !== line.text)
-          changes.push({ from: line.from, to: line.to, insert: next });
+        const next = off ? mark.indent : `${mark.indent}${make(body, i)}`;
+        widths.set(line.number, next.length);
+        if (next !== line.text.slice(0, mark.length))
+          specs.push({ from: line.from, to: line.from + mark.length, insert: next });
       });
     }
 
-    if (changes.length === 0) return false;
-    return edit(view, { changes });
+    if (specs.length === 0) return false;
+    const changes = state.changes(specs);
+    const doc = changes.apply(state.doc);
+    const past = (pos) => {
+      const line = doc.lineAt(pos);
+      const width = widths.get(line.number);
+      return width !== undefined && pos < line.from + width ? line.from + width : pos;
+    };
+    const mapped = state.selection.map(changes, 1);
+    const selection = EditorSelection.create(
+      mapped.ranges.map((range) => EditorSelection.range(past(range.anchor), past(range.head))),
+      mapped.mainIndex,
+    );
+    return edit(view, { changes, selection });
   };
 }
 
