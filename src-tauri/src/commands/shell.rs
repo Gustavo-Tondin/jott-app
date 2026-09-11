@@ -36,8 +36,9 @@ pub fn window_button_layout() -> ButtonLayout {
 /// CSS. Linux answers through fontconfig (`fc-list : family`, one line per
 /// FACE, folded into families by the core); elsewhere the answer is empty,
 /// never a guess. `host_command` so the AppImage answers for the machine.
+/// Async: a spawned process must not hold the thread that draws.
 #[tauri::command]
-pub fn system_fonts() -> Vec<String> {
+pub async fn system_fonts() -> Vec<String> {
     if !cfg!(target_os = "linux") {
         return Vec::new();
     }
@@ -58,8 +59,9 @@ pub fn system_fonts() -> Vec<String> {
 /// while Chrome and Firefox do. Empty when there is nothing to ask (every
 /// system but Linux, where `system-ui` already means the right thing).
 /// See docs/platform-gotchas.md#webview-e-gestos
+/// Async for the reason `system_fonts` is.
 #[tauri::command]
-pub fn system_ui_font() -> String {
+pub async fn system_ui_font() -> String {
     if !cfg!(target_os = "linux") {
         return String::new();
     }

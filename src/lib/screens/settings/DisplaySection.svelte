@@ -34,7 +34,7 @@
   import { api } from "../../services/api.js";
   import { askName } from "../../services/dialog.js";
   import { DEFAULT_ACCENT } from "../../services/accent.js";
-  import { FONT_ROLES, fontOptions, fontValue } from "../../services/fonts.js";
+  import { FONT_ROLES, fontOptions } from "../../services/fonts.js";
   import {
     MODES,
     DEFAULT_MODE,
@@ -94,14 +94,6 @@
     .systemFonts()
     .then((names) => (installedFonts = names ?? []))
     .catch(() => (installedFonts = []));
-
-  /// And the family the desktop draws itself in, so the "system-ui" row
-  /// PREVIEWS what it will actually give (services/fonts.js).
-  let systemUiFont = $state("");
-  api
-    .systemUiFont()
-    .then((name) => (systemUiFont = name ?? ""))
-    .catch(() => (systemUiFont = ""));
 
   /// The three rows of the Display page: a role of `services/fonts.js` plus
   /// what this screen calls it. A fourth face would be one line here.
@@ -233,9 +225,9 @@
 {/snippet}
 
 <!-- A font row: the app's own answer, the generic families, and what the
-     machine has installed; the empty value means "the app's own". Each
-     option previews itself — a <select>'s closed box draws in the control's
-     own font on every engine, so only the option can. -->
+     machine has installed; the empty value means "the app's own". No option
+     wears its own font: neither popup draws it, and resolving every family
+     stalls the first open. See docs/platform-gotchas.md#webview-e-gestos -->
 {#snippet fontRow(row)}
   {@const options = fontOptions(row.role, installedFonts, {
     default: row.fallback,
@@ -251,13 +243,7 @@
       onchange={(e) => putDisplay({ [row.key]: e.currentTarget.value })}
     >
       {#each options as option (option.value)}
-        <!-- The value the choice would write on the root, so the row previews
-             it — the fallback included. `fontValue` keeps a generic family
-             unquoted: `font-family: "serif"` names a font nobody has. -->
-        <option value={option.value} style={fontValue(row.role, option.value, systemUiFont)
-            ? `font-family: ${fontValue(row.role, option.value, systemUiFont)}`
-            : null}>{option.label}</option
-        >
+        <option value={option.value}>{option.label}</option>
       {/each}
     </select>
   </label>
