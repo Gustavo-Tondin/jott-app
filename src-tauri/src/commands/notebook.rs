@@ -137,6 +137,7 @@ impl NotebookInfo {
     /// same answer for its counters and must not read `machine-prefs.json`
     /// twice for it.
     fn of(notebook: &Notebook, display: Display) -> CommandResult<Self> {
+        let config = notebook.config();
         Ok(Self {
             path: notebook.root().to_path_buf(),
             name: jott_core::fsio::file_name_of(notebook.root()),
@@ -154,20 +155,20 @@ impl NotebookInfo {
                 // note the Home creates into the space's ROOT, not the Inbox.
                 notes_inbox: jott_core::notefolder::NOTES_INBOX.to_string(),
                 date_display_format: display.date_display_format,
-                reminder_time: notebook.config().reminder_time.render(),
-                day_summary: notebook.config().day_summary,
-                day_summary_time: notebook.config().day_summary_time.render(),
+                reminder_time: config.reminder_time.render(),
+                day_summary: config.day_summary,
+                day_summary_time: config.day_summary_time.render(),
                 close_inspector_on_click_away: display.close_inspector_on_click_away,
-                quick_note_folder: notebook.config().quick_note_folder.clone(),
-                quick_task_list: notebook.config().quick_task_list.clone(),
-                tasks_show_all: notebook.config().tasks_show_all,
-                offer_task_fields: notebook.config().offer_task_fields,
-                note_layout: display.note_layout.clone(),
-                table_layout: notebook.config().table_layout.clone(),
-                timeline_ghost_tasks: notebook.config().timeline_ghost_tasks,
-                timeline_ghost_notes: notebook.config().timeline_ghost_notes,
-                confirm_deletes: notebook.config().confirm_deletes,
-                confirm_image_downloads: notebook.config().confirm_image_downloads,
+                quick_note_folder: config.quick_note_folder.clone(),
+                quick_task_list: config.quick_task_list.clone(),
+                tasks_show_all: config.tasks_show_all,
+                offer_task_fields: config.offer_task_fields,
+                note_layout: display.note_layout,
+                table_layout: config.table_layout.clone(),
+                timeline_ghost_tasks: config.timeline_ghost_tasks,
+                timeline_ghost_notes: config.timeline_ghost_notes,
+                confirm_deletes: config.confirm_deletes,
+                confirm_image_downloads: config.confirm_image_downloads,
                 auto_space_colors: display.auto_space_colors,
                 accent_color: display.accent_color,
                 mode: display.mode,
@@ -181,8 +182,8 @@ impl NotebookInfo {
                 format_bar: display.format_bar,
                 format_bar_side: display.format_bar_side,
                 hyphenate_notes: display.hyphenate_notes,
-                shortcuts: notebook.config().shortcuts.clone(),
-                features: notebook.config().features.clone(),
+                shortcuts: config.shortcuts.clone(),
+                features: config.features.clone(),
             },
         })
     }
@@ -257,13 +258,13 @@ pub struct RecentNotebook {
 pub async fn recent_notebooks<R: Runtime>(app: AppHandle<R>) -> Vec<RecentNotebook> {
     crate::prefs::recent_notebooks(&app)
         .into_iter()
-        .filter_map(|entry| {
+        .filter_map(|(entry, display)| {
             let mut notebook = Notebook::summarize(&entry.path).ok()?;
             // The colour the card wears is the one this machine DRESSES the
             // notebook in (Display is per machine and per notebook), not only
             // the one written inside it. `summarize` answers what is IN the
             // notebook; the override is this side's, as in `display_of`.
-            if let Some(chosen) = crate::prefs::display(&app, &entry.path).accent_color {
+            if let Some(chosen) = display.accent_color {
                 notebook.accent_color = chosen;
             }
             Some(RecentNotebook {
@@ -406,8 +407,10 @@ pub struct TrashEntryInfo {
 }
 
 #[tauri::command]
-pub fn trash_entries<R: Runtime>(state: State<'_, AppState>,
-    window: tauri::Window<R>,) -> CommandResult<Vec<TrashEntryInfo>> {
+pub fn trash_entries<R: Runtime>(
+    state: State<'_, AppState>,
+    window: tauri::Window<R>,
+) -> CommandResult<Vec<TrashEntryInfo>> {
     state.with_notebook(window.label(), |nb| {
         Ok(nb
             .trash_entries()
@@ -460,20 +463,28 @@ pub fn undoable<R: Runtime>(
 }
 
 #[tauri::command]
-pub fn restore_from_trash<R: Runtime>(state: State<'_, AppState>,
-    window: tauri::Window<R>, id: String) -> CommandResult<()> {
+pub fn restore_from_trash<R: Runtime>(
+    state: State<'_, AppState>,
+    window: tauri::Window<R>,
+    id: String,
+) -> CommandResult<()> {
     state.record(window.label(), "restore_from_trash", |nb| nb.restore_from_trash(&id))
 }
 
 #[tauri::command]
-pub fn purge_from_trash<R: Runtime>(state: State<'_, AppState>,
-    window: tauri::Window<R>, id: String) -> CommandResult<()> {
+pub fn purge_from_trash<R: Runtime>(
+    state: State<'_, AppState>,
+    window: tauri::Window<R>,
+    id: String,
+) -> CommandResult<()> {
     state.record(window.label(), "purge_from_trash", |nb| nb.purge_from_trash(&id))
 }
 
 #[tauri::command]
-pub fn empty_trash<R: Runtime>(state: State<'_, AppState>,
-    window: tauri::Window<R>,) -> CommandResult<usize> {
+pub fn empty_trash<R: Runtime>(
+    state: State<'_, AppState>,
+    window: tauri::Window<R>,
+) -> CommandResult<usize> {
     state.record(window.label(), "empty_trash", |nb| nb.empty_trash())
 }
 
@@ -499,16 +510,20 @@ pub(crate) fn tags_of(nb: &Notebook) -> Vec<TagInfo> {
 }
 
 #[tauri::command]
-pub fn tags<R: Runtime>(state: State<'_, AppState>,
-    window: tauri::Window<R>,) -> CommandResult<Vec<TagInfo>> {
+pub fn tags<R: Runtime>(
+    state: State<'_, AppState>,
+    window: tauri::Window<R>,
+) -> CommandResult<Vec<TagInfo>> {
     state.with_notebook(window.label(), |nb| Ok(tags_of(nb)))
 }
 
 /// Every tag in use in the tasks, with its count — catalogued or not. Asked
 /// when the Tags screen opens (it walks every list), never on a render.
 #[tauri::command]
-pub fn tag_usage<R: Runtime>(state: State<'_, AppState>,
-    window: tauri::Window<R>,) -> CommandResult<Vec<jott_core::tags::TagUsage>> {
+pub fn tag_usage<R: Runtime>(
+    state: State<'_, AppState>,
+    window: tauri::Window<R>,
+) -> CommandResult<Vec<jott_core::tags::TagUsage>> {
     state.read(window.label(), |nb| nb.tag_usage())
 }
 
@@ -523,8 +538,11 @@ pub fn set_tag<R: Runtime>(
 }
 
 #[tauri::command]
-pub fn remove_tag<R: Runtime>(state: State<'_, AppState>,
-    window: tauri::Window<R>, name: String) -> CommandResult<()> {
+pub fn remove_tag<R: Runtime>(
+    state: State<'_, AppState>,
+    window: tauri::Window<R>,
+    name: String,
+) -> CommandResult<()> {
     state.record(window.label(), "remove_tag", |nb| nb.remove_tag(&name))
 }
 

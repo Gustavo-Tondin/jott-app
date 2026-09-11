@@ -4,11 +4,18 @@
 //! notebook's own lives in `.jott/config.json`.
 
 use std::path::{Path, PathBuf};
+use std::sync::Mutex;
 
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Manager, Runtime};
 
 const FILE_NAME: &str = "machine-prefs.json";
+
+/// One writer at a time. `update` is a read-modify-write of one file, and
+/// two of them at once — a second window, the reminder thread, any async
+/// command — would each write the file as they read it, minus the other's
+/// change.
+static WRITER: Mutex<()> = Mutex::new(());
 
 // What a machine may choose to look like, and how a patch is taken, are
 // `jott_core::settings`' — a rule about the product, not about where a file
@@ -97,6 +104,11 @@ struct MachinePrefs {
     /// has no second window at all.
     picker_closes: Option<bool>,
     opens_on_picker: Option<bool>,
+    /// Keys this build does not know — a newer version's. Kept, so that
+    /// opening the app once here does not strip what the other build wrote:
+    /// the pact every config file of the app makes (`jott_core::jsondoc`).
+    #[serde(flatten)]
+    unknown: serde_json::Map<String, serde_json::Value>,
 }
 
 /// Overrides where machine preferences are stored — a portable install, a
@@ -111,13 +123,34 @@ fn path_of<R: Runtime>(app: &AppHandle<R>) -> Option<PathBuf> {
     app.path().app_config_dir().ok().map(|d| d.join(FILE_NAME))
 }
 
+/// A file that is there and that this build could not read — told apart
+/// from a file that is not there yet, because the two deserve different
+/// answers on the way out (`update`).
+struct Unreadable;
+
+/// `Ok(None)` when there is no file yet.
+fn read(path: &Path) -> Result<Option<MachinePrefs>, Unreadable> {
+    let text = match std::fs::read_to_string(path) {
+        Ok(text) => text,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+        Err(e) => {
+            eprintln!("[jott] could not read {}: {e}", path.display());
+            return Err(Unreadable);
+        }
+    };
+    serde_json::from_str(&text).map(Some).map_err(|e| {
+        eprintln!("[jott] could not read {}: {e}", path.display());
+        Unreadable
+    })
+}
+
 fn load<R: Runtime>(app: &AppHandle<R>) -> MachinePrefs {
     // Losing this file costs the user one folder pick, so every failure path
     // degrades to the default instead of surfacing an error.
-    path_of(app)
-        .and_then(|p| std::fs::read_to_string(p).ok())
-        .and_then(|text| serde_json::from_str(&text).ok())
-        .unwrap_or_default()
+    match path_of(app).map(|path| read(&path)) {
+        Some(Ok(Some(prefs))) => prefs,
+        _ => MachinePrefs::default(),
+    }
 }
 
 /// The notebook open when the app was last closed, if it still exists.
@@ -153,9 +186,19 @@ pub fn remember_notebook<R: Runtime>(app: &AppHandle<R>, notebook: &Path) {
     });
 }
 
-/// Every notebook this machine has opened, newest first.
-pub fn recent_notebooks<R: Runtime>(app: &AppHandle<R>) -> Vec<Recent> {
-    load(app).recent_notebooks
+/// Every notebook this machine has opened, newest first, each with the looks
+/// this machine gave it — read in the one pass: the picker draws up to
+/// twenty cards, and asking `display` per card read the file twenty times.
+pub fn recent_notebooks<R: Runtime>(app: &AppHandle<R>) -> Vec<(Recent, DisplayPrefs)> {
+    let prefs = load(app);
+    prefs
+        .recent_notebooks
+        .iter()
+        .map(|entry| {
+            let display = display_in(&prefs, &entry.path);
+            (entry.clone(), display)
+        })
+        .collect()
 }
 
 /// Drops one from the list. The folder is not touched — this is the machine
@@ -246,14 +289,17 @@ pub fn remember_panel_width<R: Runtime>(app: &AppHandle<R>, width: f64) {
 /// until something is picked in Settings, and then the notebook's own value
 /// answers (`jott_core::settings::Display::resolve`).
 pub fn display<R: Runtime>(app: &AppHandle<R>, notebook: &Path) -> DisplayPrefs {
-    let prefs = load(app);
+    display_in(&load(app), notebook)
+}
+
+fn display_in(prefs: &MachinePrefs, notebook: &Path) -> DisplayPrefs {
     prefs
         .notebook_display
         .get(notebook)
-        .cloned()
         // No entry of its own: the choices this file held before they were
         // scoped, so nobody's theme is lost by the scoping.
-        .unwrap_or(prefs.display)
+        .unwrap_or(&prefs.display)
+        .clone()
 }
 
 /// Records one or more display choices for one notebook. Everything the patch
@@ -371,8 +417,21 @@ pub fn remember_opens_on_picker<R: Runtime>(app: &AppHandle<R>, on: bool) {
 /// interrupting them over.
 fn update<R: Runtime>(app: &AppHandle<R>, change: impl FnOnce(&mut MachinePrefs)) {
     let Some(path) = path_of(app) else { return };
+    // A poisoned lock means a change panicked mid-way; the file on disk is
+    // whole either way (`write_atomically`), so the next writer carries on.
+    let _one_writer = WRITER.lock().unwrap_or_else(|e| e.into_inner());
 
-    let mut prefs = load(app);
+    let mut prefs = match read(&path) {
+        Ok(prefs) => prefs.unwrap_or_default(),
+        // A file this build cannot read is still somebody's — every notebook
+        // this machine remembers, and how each one looks. Writing defaults
+        // over it would lose all of that for one preference; it is set
+        // aside instead, and the fresh file starts from nothing.
+        Err(Unreadable) => {
+            set_aside(&path);
+            MachinePrefs::default()
+        }
+    };
     change(&mut prefs);
 
     let Ok(text) = serde_json::to_string_pretty(&prefs) else {
@@ -380,5 +439,51 @@ fn update<R: Runtime>(app: &AppHandle<R>, change: impl FnOnce(&mut MachinePrefs)
     };
     if let Err(e) = jott_core::fsio::write_atomically(&path, text.as_bytes()) {
         eprintln!("[jott] could not save machine preferences: {e}");
+    }
+}
+
+/// Moves an unreadable preferences file beside itself, stamped with the
+/// moment, so a hand edit gone wrong can be recovered from. Best effort: a
+/// file that cannot be moved is overwritten, which is where every failure of
+/// this file ends up anyway.
+fn set_aside(path: &Path) {
+    let stamp = chrono::Local::now().format("%Y%m%d-%H%M%S");
+    let aside = path.with_file_name(format!("machine-prefs.broken-{stamp}.json"));
+    match std::fs::rename(path, &aside) {
+        Ok(()) => eprintln!("[jott] unreadable preferences kept as {}", aside.display()),
+        Err(e) => eprintln!("[jott] could not set {} aside: {e}", path.display()),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// `update` is one file read, changed and written back. Sixteen of them
+    /// at once — the second window, the reminder thread, any async command
+    /// — must all land; without the writer lock, each overwrote the file as
+    /// it had read it, minus the others' changes.
+    #[test]
+    fn writes_that_arrive_at_once_all_land() {
+        let dir = tempfile::tempdir().unwrap();
+        std::env::set_var(CONFIG_DIR_ENV, dir.path());
+        let app = tauri::test::mock_app();
+        let handle = app.handle().clone();
+
+        let writers: Vec<_> = (0..16)
+            .map(|i| {
+                let app = handle.clone();
+                std::thread::spawn(move || {
+                    let notebook = PathBuf::from(format!("/notebooks/{i}"));
+                    remember_reminded_until(&app, &notebook, "2026-09-11T09:00");
+                })
+            })
+            .collect();
+        for writer in writers {
+            writer.join().unwrap();
+        }
+
+        let prefs = load(&handle);
+        assert_eq!(prefs.reminded_until.len(), 16, "{:?}", prefs.reminded_until.keys());
     }
 }

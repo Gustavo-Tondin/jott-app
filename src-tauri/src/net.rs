@@ -44,6 +44,9 @@ pub fn get_bounded(url: &str, max_bytes: u64) -> CommandResult<Fetched> {
     let agent: ureq::Agent = ureq::Agent::config_builder()
         .timeout_connect(Some(Duration::from_secs(10)))
         .timeout_global(Some(Duration::from_secs(30)))
+        // A call that began on https stays there: redirects are followed,
+        // and one to plain http would step around `require_https`.
+        .https_only(url.starts_with("https://"))
         .build()
         .into();
 

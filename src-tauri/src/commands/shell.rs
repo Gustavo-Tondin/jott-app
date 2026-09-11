@@ -22,14 +22,28 @@ pub fn window_button_layout() -> ButtonLayout {
     if !cfg!(target_os = "linux") {
         return default_button_layout();
     }
-    host_command("gsettings")
-        .args(["get", "org.gnome.desktop.wm.preferences", "button-layout"])
+    host_stdout("gsettings", &["get", "org.gnome.desktop.wm.preferences", "button-layout"])
+        .map(|text| parse_button_layout(&text))
+        .unwrap_or_else(default_button_layout)
+}
+
+/// What a host program printed, or `None` when it could not run or failed.
+fn host_stdout(program: &str, args: &[&str]) -> Option<String> {
+    host_command(program)
+        .args(args)
         .output()
         .ok()
         .filter(|out| out.status.success())
         .and_then(|out| String::from_utf8(out.stdout).ok())
-        .map(|text| parse_button_layout(&text))
-        .unwrap_or_else(default_button_layout)
+}
+
+/// `host_stdout` off the async runtime's threads: waiting on a process would
+/// otherwise hold one of the few workers every async command shares.
+async fn host_stdout_blocking(program: &'static str, args: &'static [&'static str]) -> Option<String> {
+    tauri::async_runtime::spawn_blocking(move || host_stdout(program, args))
+        .await
+        .ok()
+        .flatten()
 }
 
 /// The font families this machine has installed, sorted and safe to name in
@@ -42,12 +56,8 @@ pub async fn system_fonts() -> Vec<String> {
     if !cfg!(target_os = "linux") {
         return Vec::new();
     }
-    host_command("fc-list")
-        .args([":", "family"])
-        .output()
-        .ok()
-        .filter(|out| out.status.success())
-        .and_then(|out| String::from_utf8(out.stdout).ok())
+    host_stdout_blocking("fc-list", &[":", "family"])
+        .await
         .map(|listing| jott_core::fonts::families(&listing))
         .unwrap_or_default()
 }
@@ -65,12 +75,8 @@ pub async fn system_ui_font() -> String {
     if !cfg!(target_os = "linux") {
         return String::new();
     }
-    host_command("gsettings")
-        .args(["get", "org.gnome.desktop.interface", "font-name"])
-        .output()
-        .ok()
-        .filter(|out| out.status.success())
-        .and_then(|out| String::from_utf8(out.stdout).ok())
+    host_stdout_blocking("gsettings", &["get", "org.gnome.desktop.interface", "font-name"])
+        .await
         .and_then(|text| jott_core::fonts::ui_family(&text))
         .unwrap_or_default()
 }
@@ -313,11 +319,12 @@ pub(crate) fn open_path(target: &Path) -> CommandResult<()> {
 pub fn open_window<R: Runtime>(
     app: AppHandle<R>,
     state: State<'_, AppState>,
+    window: tauri::Window<R>,
     notebook: Option<PathBuf>,
 ) -> CommandResult<String> {
     #[cfg(target_os = "android")]
     {
-        let _ = (app, state, notebook);
+        let _ = (app, state, window, notebook);
         Err(CommandError::new(
             "platform",
             "this platform has one window",
@@ -357,12 +364,11 @@ pub fn open_window<R: Runtime>(
         };
 
         // Same shape as the window in tauri.conf.json, sized like the window
-        // asking, so a resized window opens its sibling at that size.
-        let (width, height) = app
-            .webview_windows()
-            .values()
-            .next()
-            .and_then(|w| w.inner_size().ok().zip(w.scale_factor().ok()))
+        // ASKING, so a resized window opens its sibling at that size.
+        let (width, height) = window
+            .inner_size()
+            .ok()
+            .zip(window.scale_factor().ok())
             .map(|(size, scale)| {
                 let logical = size.to_logical::<f64>(scale);
                 (logical.width, logical.height)

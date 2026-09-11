@@ -90,7 +90,9 @@ pub async fn note_folders<R: Runtime>(
     state.read(window.label(), |nb| nb.note_folder_entries(&folder))
 }
 
-/// The colour of a folder of notes — a palette NAME, or null for none.
+/// The colour of a folder of notes — a palette NAME, or null for none. An
+/// action like the space's own appearance: recorded, and attributed, so the
+/// `.space.json` it rewrites does not echo back as somebody else's change.
 #[tauri::command]
 pub fn set_note_folder_color<R: Runtime>(
     state: State<'_, AppState>,
@@ -99,7 +101,9 @@ pub fn set_note_folder_color<R: Runtime>(
     path: String,
     color: Option<String>,
 ) -> CommandResult<()> {
-    state.read(window.label(), |nb| nb.set_note_folder(&folder, &path, |it| it.color = color))
+    state.record(window.label(), "set_note_folder_color", |nb| {
+        nb.set_note_folder(&folder, &path, |it| it.color = color)
+    })
 }
 
 /// Keeps a folder of notes at the top of the board, or stops.
@@ -111,7 +115,9 @@ pub fn set_note_folder_pinned<R: Runtime>(
     path: String,
     pinned: bool,
 ) -> CommandResult<()> {
-    state.read(window.label(), |nb| nb.set_note_folder(&folder, &path, |it| it.pinned = pinned))
+    state.record(window.label(), "set_note_folder_pinned", |nb| {
+        nb.set_note_folder(&folder, &path, |it| it.pinned = pinned)
+    })
 }
 
 #[tauri::command]

@@ -6,27 +6,14 @@
 //! act of the user, not of the history, for the reason `Notebook::
 //! forget_from_timeline` gives.
 
-use chrono::NaiveDate;
 use jott_core::timeline::Key;
 use jott_core::TimelineItem;
 use serde::Deserialize;
 use tauri::{Runtime, State};
 
+use super::day::iso_day as day;
 use crate::error::CommandResult;
 use crate::state::AppState;
-
-/// An ISO day (`2026-08-27`) from the front, or nothing. Anything else is
-/// refused rather than read as "no bound": a typo widening the window to
-/// the whole log would be a silent, expensive mistake.
-fn day(text: Option<String>) -> Result<Option<NaiveDate>, jott_core::Error> {
-    match text.filter(|s| !s.is_empty()) {
-        None => Ok(None),
-        Some(s) => s
-            .parse()
-            .map(Some)
-            .map_err(|_| jott_core::Error::InvalidNotePath(s)),
-    }
-}
 
 /// Everything the notebook held between two days — born in the window or
 /// ticked in it — newest first, each item told its space. Reads the whole

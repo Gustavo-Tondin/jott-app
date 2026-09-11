@@ -67,16 +67,10 @@ impl AppState {
         f(&open.notebook)
     }
 
-    /// Same, but for the operations that change the notebook itself (its
-    /// config), which need `&mut`.
-    pub fn with_notebook_mut<T>(
-        &self,
-        window: &str,
-        f: impl FnOnce(&mut Notebook) -> CommandResult<T>,
-    ) -> CommandResult<T> {
-        let mut guard = self.lock()?;
-        let open = guard.get_mut(window).ok_or_else(CommandError::no_notebook)?;
-        f(&mut open.notebook)
+    /// Where the window's notebook lives — the key every machine preference
+    /// about a notebook is filed under (`crate::prefs`).
+    pub fn root_of(&self, window: &str) -> CommandResult<std::path::PathBuf> {
+        self.with_notebook(window, |nb| Ok(nb.root().to_path_buf()))
     }
 
     /// `with_notebook` for the common case: a closure that is one core call,
@@ -123,12 +117,14 @@ impl AppState {
     }
 
     /// Takes back the window's last recorded action; answers its label, or
-    /// `None` when there was nothing to take back.
+    /// `None` when there was nothing to take back. Attributed like any other
+    /// write of the window: the front reloads itself after an undo, and the
+    /// echo of the files it put back must not make it reload twice.
     pub fn undo(&self, window: &str) -> CommandResult<Option<String>> {
         let mut guard = self.lock()?;
         let open = guard.get_mut(window).ok_or_else(CommandError::no_notebook)?;
         let OpenNotebook { notebook, history, .. } = open;
-        Ok(notebook.undo(history)?)
+        Ok(attribute(window, || notebook.undo(history))?)
     }
 
     /// Does the window's last undone action again; answers its label, or
@@ -137,7 +133,7 @@ impl AppState {
         let mut guard = self.lock()?;
         let open = guard.get_mut(window).ok_or_else(CommandError::no_notebook)?;
         let OpenNotebook { notebook, history, .. } = open;
-        Ok(notebook.redo(history)?)
+        Ok(attribute(window, || notebook.redo(history))?)
     }
 
     /// The label `undo` would answer with, without undoing anything.

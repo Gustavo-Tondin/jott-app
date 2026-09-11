@@ -617,7 +617,7 @@ fn a_day_ahead_is_planned_and_read_over_the_bridge() {
     assert_eq!(err["kind"], "dayGone");
     // And a day that is not a day is refused rather than read as today.
     let err = invoke(&app, "day_tasks", json!({ "day": "amanhã" })).unwrap_err();
-    assert_eq!(err["kind"], "invalidNotePath");
+    assert_eq!(err["kind"], "invalidDay");
 
     assert_eq!(
         ok(&app, "remove_from_day", json!({ "day": day(3), "list": list, "id": id })),
@@ -2488,4 +2488,120 @@ fn the_timeline_comes_over_the_bridge_one_year_at_a_time() {
         dir.path().join(".jott/timeline").join(format!("{year}.jsonl.bak")).is_file(),
         "with a backup beside the rewritten file"
     );
+}
+
+// ---- the machine's preferences file (2026-09-11) ----
+
+/// Where the suite's `machine-prefs.json` lives (`exclusive` points the app
+/// there).
+fn prefs_dir() -> std::path::PathBuf {
+    std::path::PathBuf::from(std::env::var_os("JOTT_CONFIG_DIR").expect("exclusive() sets it"))
+}
+
+#[test]
+fn a_preferences_file_this_build_cannot_read_is_set_aside_not_overwritten() {
+    // The file holds every notebook this machine remembers and how each one
+    // looks. A hand edit gone wrong used to be read as "no preferences", and
+    // the next click wrote defaults over all of it. Now the broken file is
+    // kept beside the fresh one.
+    let (_lock, app, _dir) = app_with_notebook();
+    let dir = prefs_dir();
+    for entry in std::fs::read_dir(&dir).unwrap().flatten() {
+        if entry.file_name().to_string_lossy().starts_with("machine-prefs.broken-") {
+            std::fs::remove_file(entry.path()).unwrap();
+        }
+    }
+    let file = dir.join("machine-prefs.json");
+    std::fs::write(&file, "{ \"recentNotebooks\": [ oops").unwrap();
+
+    ok(&app, "remember_zoom", json!({ "zoom": 1.25 }));
+
+    let fresh: Value = serde_json::from_str(&std::fs::read_to_string(&file).unwrap()).unwrap();
+    assert_eq!(fresh["zoom"], json!(1.25));
+    let kept: Vec<_> = std::fs::read_dir(&dir)
+        .unwrap()
+        .flatten()
+        .filter(|e| e.file_name().to_string_lossy().starts_with("machine-prefs.broken-"))
+        .collect();
+    assert_eq!(kept.len(), 1, "the unreadable file is kept once, beside the new one");
+    assert_eq!(
+        std::fs::read_to_string(kept[0].path()).unwrap(),
+        "{ \"recentNotebooks\": [ oops",
+        "byte for byte"
+    );
+}
+
+#[test]
+fn a_key_from_a_newer_build_survives_this_one_writing_the_file() {
+    // The pact every config file of the app makes, kept by this one too: a
+    // key this build does not know rides through untouched, so running an
+    // older Jott once does not strip what a newer one wrote.
+    let (_lock, app, _dir) = app_with_notebook();
+    let file = prefs_dir().join("machine-prefs.json");
+    std::fs::write(
+        &file,
+        r#"{ "zoom": 1.5, "fromTheFuture": { "kept": true }, "sidebarWidth": 200 }"#,
+    )
+    .unwrap();
+
+    ok(&app, "remember_sidebar_width", json!({ "width": 260.0 }));
+
+    let written: Value = serde_json::from_str(&std::fs::read_to_string(&file).unwrap()).unwrap();
+    assert_eq!(written["sidebarWidth"], json!(260.0));
+    assert_eq!(written["zoom"], json!(1.5), "what was mentioned by nobody stays");
+    assert_eq!(written["fromTheFuture"], json!({ "kept": true }));
+}
+
+#[test]
+fn pinning_a_folder_of_notes_is_an_action_of_the_window() {
+    // A folder's pin and colour live in the space's `.space.json`. Written
+    // outside `record`, the file came back through the window's own watcher
+    // as somebody else's change — a reload of every screen for a pin — and
+    // Ctrl+Z did not know the pin had happened.
+    let (_lock, app, dir) = app_with_notebook();
+    ok(&app, "create_note_folder", json!({ "folder": "jott.notes", "path": "Ideias" }));
+    let config = dir.path().join("jott.notes").join(".space.json");
+
+    ok(
+        &app,
+        "set_note_folder_pinned",
+        json!({ "folder": "jott.notes", "path": "Ideias", "pinned": true }),
+    );
+    assert!(jott_lib::state::is_own_write(&config, "main"), "the window's own write");
+    let folders = ok(&app, "note_folders", json!({ "folder": "jott.notes" }));
+    let ideias = folders.as_array().unwrap().iter().find(|f| f["path"] == "Ideias").unwrap();
+    assert_eq!(ideias["pinned"], json!(true));
+
+    // And it is an action: Ctrl+Z takes it back, and that write is the
+    // window's too — the front reloads itself after an undo, and the echo
+    // must not make it reload twice.
+    assert_eq!(ok(&app, "undo", json!({})), json!("set_note_folder_pinned"));
+    assert!(jott_lib::state::is_own_write(&config, "main"), "the undo is the window's write");
+    let folders = ok(&app, "note_folders", json!({ "folder": "jott.notes" }));
+    let ideias = folders.as_array().unwrap().iter().find(|f| f["path"] == "Ideias").unwrap();
+    assert_eq!(ideias["pinned"], json!(false));
+
+    ok(
+        &app,
+        "set_note_folder_color",
+        json!({ "folder": "jott.notes", "path": "Ideias", "color": "orange" }),
+    );
+    assert_eq!(ok(&app, "undoable", json!({})), json!("set_note_folder_color"));
+}
+
+#[test]
+fn a_day_that_is_not_a_day_is_refused_under_its_own_kind() {
+    // Both doors that take a day — the Home's and the timeline's — refuse a
+    // malformed one the same way, and say what was wrong rather than
+    // borrowing another error's name.
+    let (_lock, app, _dir) = app_with_notebook();
+    for (cmd, args) in [
+        ("day_tasks", json!({ "day": "amanhã" })),
+        ("timeline", json!({ "from": "2026-13-40" })),
+    ] {
+        let refused = invoke(&app, cmd, args).expect_err(cmd);
+        assert_eq!(refused["kind"], json!("invalidDay"), "{cmd}: {refused}");
+    }
+    // An empty string is "nothing", as null is.
+    ok(&app, "day_tasks", json!({ "day": "" }));
 }

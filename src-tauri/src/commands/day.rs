@@ -12,19 +12,20 @@ use jott_core::{ListedTask, Notebook};
 use serde::Serialize;
 use tauri::{Runtime, State};
 
-use crate::error::CommandResult;
+use crate::error::{CommandError, CommandResult};
 use crate::state::AppState;
 
-/// An ISO day (`2026-09-05`) from the front, or nothing for today. Anything
-/// else is refused rather than read as today: a typo planning the wrong
-/// day would be a silent mistake.
-fn day(text: Option<String>) -> Result<Option<NaiveDate>, jott_core::Error> {
+/// An ISO day (`2026-09-05`) from the front, or nothing — today here, "no
+/// bound" for the timeline. Anything else is refused rather than read as
+/// nothing: a typo planning the wrong day, or widening a window to the whole
+/// log, would be a silent mistake.
+pub(crate) fn iso_day(text: Option<String>) -> CommandResult<Option<NaiveDate>> {
     match text.filter(|s| !s.is_empty()) {
         None => Ok(None),
         Some(s) => s
             .parse()
             .map(Some)
-            .map_err(|_| jott_core::Error::InvalidNotePath(s)),
+            .map_err(|_| CommandError::new("invalidDay", format!("{s} is not a day"))),
     }
 }
 
@@ -36,7 +37,7 @@ pub fn pull_into_day<R: Runtime>(
     list: String,
     id: String,
 ) -> CommandResult<bool> {
-    let day = self::day(day)?;
+    let day = iso_day(day)?;
     state.record(window.label(), "pull_into", |nb| nb.pull_into_day(day, &list, &id))
 }
 
@@ -48,7 +49,7 @@ pub fn remove_from_day<R: Runtime>(
     list: String,
     id: String,
 ) -> CommandResult<bool> {
-    let day = self::day(day)?;
+    let day = iso_day(day)?;
     state.record(window.label(), "remove_from", |nb| nb.remove_from_day(day, &list, &id))
 }
 
@@ -82,7 +83,7 @@ pub fn set_day_order<R: Runtime>(
     day: Option<String>,
     refs: Vec<jott_core::state::TaskRef>,
 ) -> CommandResult<()> {
-    let day = self::day(day)?;
+    let day = iso_day(day)?;
     state.record(window.label(), "set_day_order", |nb| nb.set_day_order(day, &refs))
 }
 
@@ -94,7 +95,7 @@ pub fn day_tasks<R: Runtime>(
     window: tauri::Window<R>,
     day: Option<String>,
 ) -> CommandResult<Vec<ListedTask>> {
-    let day = self::day(day)?;
+    let day = iso_day(day)?;
     state.read(window.label(), |nb| nb.day_tasks(day))
 }
 
@@ -145,6 +146,6 @@ pub fn grouped_suggestions<R: Runtime>(
     window: tauri::Window<R>,
     day: Option<String>,
 ) -> CommandResult<Vec<jott_core::notebook::Suggestion>> {
-    let day = self::day(day)?;
+    let day = iso_day(day)?;
     state.read(window.label(), |nb| nb.grouped_suggestions(day))
 }

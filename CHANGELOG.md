@@ -16,6 +16,8 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 
 ### Fixed
 
+- **Pinning or colouring a folder of notes no longer reloads every screen**, and Ctrl+Z takes it back like any other action.
+- **A damaged preferences file is kept, not overwritten.** If `machine-prefs.json` cannot be read, it is set aside with a timestamp and a fresh one starts; and a key written by a newer Jott survives an older one saving the file.
 - **A new list item starts with a capital letter on Android.** After Enter on a bullet, a task or a quote, the keyboard now capitalizes the first word, as it does at the start of a paragraph.
 - **Selecting text next to a picture no longer makes the note jump.** The page stopped chasing the end of the selection each time it crossed an image.
 - **New tasks go to the top on the Home too**, when Settings › Tasks says so — and in a list you have arranged by hand, where they used to land at the bottom.

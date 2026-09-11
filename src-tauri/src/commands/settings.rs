@@ -127,7 +127,7 @@ pub fn reset_machine_display<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
 ) -> CommandResult<()> {
-    let root = state.with_notebook(window.label(), |nb| Ok(nb.root().to_path_buf()))?;
+    let root = state.root_of(window.label())?;
     crate::prefs::clear_display(&app, &root);
     Ok(())
 }
@@ -143,7 +143,7 @@ pub fn set_machine_display<R: Runtime>(
     window: tauri::Window<R>,
     display: crate::prefs::DisplayPrefs,
 ) -> CommandResult<()> {
-    let root = state.with_notebook(window.label(), |nb| Ok(nb.root().to_path_buf()))?;
+    let root = state.root_of(window.label())?;
     crate::prefs::set_display(&app, &root, display);
     Ok(())
 }

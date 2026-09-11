@@ -29,7 +29,7 @@ pub fn reminded_until<R: Runtime>(
     app: AppHandle<R>,
     window: tauri::Window<R>,
 ) -> CommandResult<Option<String>> {
-    let root = state.read(window.label(), |nb| Ok(nb.root().to_path_buf()))?;
+    let root = state.root_of(window.label())?;
     Ok(crate::prefs::reminded_until(&app, &root))
 }
 
@@ -40,7 +40,7 @@ pub fn remember_reminded_until<R: Runtime>(
     window: tauri::Window<R>,
     until: String,
 ) -> CommandResult<()> {
-    let root = state.read(window.label(), |nb| Ok(nb.root().to_path_buf()))?;
+    let root = state.root_of(window.label())?;
     crate::prefs::remember_reminded_until(&app, &root, &until);
     Ok(())
 }
@@ -53,7 +53,7 @@ pub fn day_summarized_on<R: Runtime>(
     app: AppHandle<R>,
     window: tauri::Window<R>,
 ) -> CommandResult<Option<String>> {
-    let root = state.read(window.label(), |nb| Ok(nb.root().to_path_buf()))?;
+    let root = state.root_of(window.label())?;
     Ok(crate::prefs::summarized_on(&app, &root))
 }
 
@@ -64,7 +64,7 @@ pub fn remember_day_summarized_on<R: Runtime>(
     window: tauri::Window<R>,
     day: String,
 ) -> CommandResult<()> {
-    let root = state.read(window.label(), |nb| Ok(nb.root().to_path_buf()))?;
+    let root = state.root_of(window.label())?;
     crate::prefs::remember_summarized_on(&app, &root, &day);
     Ok(())
 }
