@@ -1,24 +1,23 @@
 fn main() {
-    tauri_build::build();
-
-    // Tauri embeds its Windows application manifest — the Common Controls v6
-    // dependency its dialogs import — into the APP binary only
-    // (`rustc-link-arg-bins`). A test binary links the same code without the
-    // manifest, so on windows-msvc it loads Common Controls v5 and dies at
-    // startup with STATUS_ENTRYPOINT_NOT_FOUND before running a single test.
-    // Known upstream limitation (tauri-apps discussion #11179); this is the
-    // same workaround the Tauri workspace itself carries. Linux and the
-    // Android build never enter this branch.
+    // windows-msvc: the linker embeds the Common Controls v6 manifest into
+    // EVERY target (app, cdylib, lib and integration test binaries), not
+    // tauri-build, whose resource reaches the app binary only — a test binary
+    // without it dies with STATUS_ENTRYPOINT_NOT_FOUND. The tauri crate does
+    // the same for its own tests. See docs/platform-gotchas.md.
     let target_os = std::env::var("CARGO_CFG_TARGET_OS").unwrap_or_default();
     let target_env = std::env::var("CARGO_CFG_TARGET_ENV").unwrap_or_default();
-    if target_os == "windows" && target_env == "msvc" {
-        let manifest =
-            std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("windows-test-manifest.xml");
-        println!("cargo:rerun-if-changed={}", manifest.display());
-        println!("cargo:rustc-link-arg-tests=/MANIFEST:EMBED");
-        println!(
-            "cargo:rustc-link-arg-tests=/MANIFESTINPUT:{}",
-            manifest.display()
-        );
+    if target_os != "windows" || target_env != "msvc" {
+        tauri_build::build();
+        return;
     }
+
+    let manifest =
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("windows-app-manifest.xml");
+    println!("cargo:rerun-if-changed={}", manifest.display());
+    println!("cargo:rustc-link-arg=/MANIFEST:EMBED");
+    println!("cargo:rustc-link-arg=/MANIFESTINPUT:{}", manifest.display());
+
+    let windows = tauri_build::WindowsAttributes::new_without_app_manifest();
+    tauri_build::try_build(tauri_build::Attributes::new().windows_attributes(windows))
+        .expect("failed to run tauri-build");
 }

@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <!--
-  Embedded into TEST binaries on windows-msvc by build.rs. Mirrors the
-  Common Controls v6 dependency tauri-build embeds into the app binary;
-  without it, cargo test dies with STATUS_ENTRYPOINT_NOT_FOUND on Windows.
+  Embedded by build.rs into every windows-msvc binary, the app and the test
+  binaries alike, in place of tauri-build's default manifest (the same Common
+  Controls v6 dependency). Without it, cargo test dies with
+  STATUS_ENTRYPOINT_NOT_FOUND on Windows.
 -->
 <assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
   <dependency>
