@@ -66,7 +66,7 @@ describe("Home's composing bar, the keyboard, and the way out", () => {
       },
       screen_to_restore: "home",
       note_folders: [],
-      notes_created_today: [],
+      notes_of_today: [],
       day_tasks: [],
       day_sort: null,
       grouped_suggestions: [],

@@ -53,7 +53,7 @@ describe("App shell with tabs", () => {
       },
       screen_to_restore: null,
       note_folders: [noteFolder("Inbox")],
-      notes_created_today: [],
+      notes_of_today: [],
       day_tasks: [],
       grouped_suggestions: [],
       list_tasks: [],
@@ -148,7 +148,7 @@ describe("App shell with tabs", () => {
         pinned: false,
       },
     };
-    shell({ notes_created_today: [note] });
+    shell({ notes_of_today: [note] });
     render(App);
     await waitFor(() => expect(tabLabels()).toEqual(["Home"]));
 
@@ -325,7 +325,7 @@ describe("the compact shell", () => {
       screen_to_restore: "home",
       day_tasks: [],
       grouped_suggestions: [],
-      notes_created_today: [],
+      notes_of_today: [],
       window_button_layout: "appmenu:minimize,maximize,close",
       ...extra,
     });

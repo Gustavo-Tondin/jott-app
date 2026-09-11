@@ -326,7 +326,7 @@ fn the_notes_inbox_cannot_be_renamed_or_deleted() {
 }
 
 #[test]
-fn the_home_sees_notes_created_today_without_owning_any() {
+fn the_home_sees_notes_of_today_without_owning_any() {
     // Spec 5: the Home has no notes of its own — it is a view of the inbox
     // filtered by `created`, so nothing is moved on the turn of the day.
     let (dir, notes) = folder();
@@ -351,6 +351,29 @@ fn the_home_sees_notes_created_today_without_owning_any() {
 }
 
 #[test]
+fn the_day_takes_in_a_note_edited_today_but_not_one_only_opened() {
+    let (dir, notebook) = init();
+    let yesterday = notebook.today() - chrono::Duration::days(1);
+    let old = jott_core::NoteFolder::new(dir.path().join("jott.notes"));
+    let edited = old.create("Inbox", "editada", yesterday).unwrap();
+    let opened = old.create("Inbox", "só aberta", yesterday).unwrap();
+
+    notebook.write_note("jott.notes", &edited, "mudou").unwrap();
+    notebook.mark_note_seen("jott.notes", &opened).unwrap();
+
+    let day = notebook.notes_of_today().unwrap();
+    let titles: Vec<&str> = day.iter().map(|listed| listed.note.title.as_str()).collect();
+    assert!(titles.contains(&"editada"), "{titles:?}");
+    assert!(!titles.contains(&"só aberta"), "{titles:?}");
+    // Edited is not re-born: the card keeps the day it was written.
+    let card = day.iter().find(|listed| listed.note.title == "editada").unwrap();
+    assert_eq!(card.note.created, Some(yesterday));
+    // Only the editor's save stamps it, in its own index.
+    assert!(notebook.edited().at(&format!("jott.notes/{opened}")).is_none());
+    assert!(notebook.edited().at(&format!("jott.notes/{edited}")).is_some());
+}
+
+#[test]
 fn the_day_gathers_notes_from_every_space_not_just_the_fixed_one() {
     // The Home is the screen of TIME (user call, 2026-09-08): a note written
     // today was written today wherever it was filed. Each answer carries the
@@ -365,7 +388,7 @@ fn the_day_gathers_notes_from_every_space_not_just_the_fixed_one() {
     let old = jott_core::NoteFolder::new(_dir.path().join("Ideias"));
     old.create("Inbox", "de ontem", today - chrono::Duration::days(1)).unwrap();
 
-    let day = notebook.notes_created_today().unwrap();
+    let day = notebook.notes_of_today().unwrap();
     let mut seen: Vec<(String, String)> = day
         .into_iter()
         .map(|listed| (listed.folder, listed.note.title))

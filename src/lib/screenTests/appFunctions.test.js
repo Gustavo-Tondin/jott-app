@@ -56,7 +56,7 @@ describe("App functions — switching a part of the app off", () => {
       },
       screen_to_restore: "home",
       note_folders: [],
-      notes_created_today: [],
+      notes_of_today: [],
       day_tasks: [],
       day_sort: null,
       grouped_suggestions: [],

@@ -363,6 +363,10 @@ order you dragged things into.
   Jott reads every `seen*.json` in the folder — other devices', a `seen.json`
   from an older version, conflict copies — and keeps the latest stamp per
   note. Each file has a `.bak` beside it, read when that file does not parse.
+  Beside it, `edited.<device>.json` works the same way for the last time a
+  note was **written** in Jott's editor (opening does not count) — it is how
+  a note written before today still joins the Home's notes of the day when
+  you edit it today.
   It exists because
   "last seen" must not be written *into* a note — reading a note would then
   rewrite it. Everything here is rebuildable or simply losable: delete the

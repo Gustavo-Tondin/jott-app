@@ -151,7 +151,7 @@ pub fn configure<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builde
             // notes — notes and their folders
             commands::notes::list_notes,
             commands::notes::note_folders,
-            commands::notes::notes_created_today,
+            commands::notes::notes_of_today,
             commands::notes::inbox_notes,
             commands::notes::read_note,
             commands::notes::write_note,

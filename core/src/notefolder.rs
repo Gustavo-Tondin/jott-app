@@ -196,10 +196,10 @@ impl NoteFolder {
         Ok(found)
     }
 
-    /// Notes created on `date` — what the Home screen shows. The Home has no
-    /// notes of its own: it is a view filtered by `created`, so nothing moves
-    /// on the turn of the day. A note with no `created` (written outside the
-    /// app) never shows up here — inventing a date would be worse.
+    /// Notes created on `date` — half of what the Home's day shows (the other
+    /// half, notes edited that day, is the notebook's: it holds the index). A
+    /// note with no `created` (written outside the app) never shows up here —
+    /// inventing a date would be worse.
     pub fn created_on(&self, date: NaiveDate) -> Result<Vec<NoteEntry>> {
         Ok(self
             .notes()?

@@ -56,14 +56,25 @@ impl Notebook {
         Ok(entries)
     }
 
-    /// Every note of the notebook created on `date`, stamped, each with the
-    /// space holding it — the Home's day. **Every notes space answers**: a
-    /// note written today was written today wherever it was filed, and the
-    /// Home is the screen of TIME, not of one place.
-    pub fn notes_created_on(&self, date: chrono::NaiveDate) -> Result<Vec<ListedNote>> {
+    /// Every note of the notebook created OR edited on `date`, stamped, each
+    /// with the space holding it — the Home's day. **Every notes space
+    /// answers**: a note written today was written today wherever it was
+    /// filed, and the Home is the screen of TIME, not of one place. Edited
+    /// is the `edited` index, never the mtime: a copied notebook is not news.
+    pub fn notes_of_day(&self, date: chrono::NaiveDate) -> Result<Vec<ListedNote>> {
+        let edited = self.edited();
         let mut out = Vec::new();
         for (prefix, folder) in self.note_folders()? {
-            let mut entries = folder.created_on(date)?;
+            let mut entries: Vec<NoteEntry> = folder
+                .notes()?
+                .into_iter()
+                .filter(|note| {
+                    note.created == Some(date)
+                        || edited
+                            .at(&seen::address_of(&prefix, &note.path))
+                            .is_some_and(|at| at.date() == date)
+                })
+                .collect();
             self.stamp_notes(&prefix, &mut entries);
             out.extend(entries.into_iter().map(|note| ListedNote {
                 folder: prefix.clone(),
@@ -74,8 +85,8 @@ impl Notebook {
     }
 
     /// The same, for the notebook's own today — the clock lives here.
-    pub fn notes_created_today(&self) -> Result<Vec<ListedNote>> {
-        self.notes_created_on(self.today())
+    pub fn notes_of_today(&self) -> Result<Vec<ListedNote>> {
+        self.notes_of_day(self.today())
     }
 
     /// Every folder of a notes space, with what the space remembers about it
@@ -198,6 +209,7 @@ impl Notebook {
         // Editing is seeing. The other half — opening one — is the bridge's
         // call, since only it can tell reading-to-show from reading-to-scan.
         let _ = self.mark_note_seen(space, path);
+        let _ = self.mark_note_edited(space, path);
         Ok(())
     }
 

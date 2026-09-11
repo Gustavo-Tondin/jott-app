@@ -41,7 +41,7 @@ describe("HomeView", () => {
     ...extra,
   });
 
-  /// A row of `notes_created_today`: the note and the SPACE holding it
+  /// A row of `notes_of_today`: the note and the SPACE holding it
   /// (the core's `ListedNote`) — the day answers for every notes space.
   const aNote = (extra = {}, folder = "jott.notes") => ({
     folder,
@@ -60,7 +60,7 @@ describe("HomeView", () => {
     bridge({
       day_tasks: [{ path: "jott.tasks/Inbox.md", task: task("a1", "Arrumar site") }],
       day_sort: null,
-      notes_created_today: [aNote()],
+      notes_of_today: [aNote()],
     });
 
     render(HomeView, { props: props() });
@@ -71,13 +71,13 @@ describe("HomeView", () => {
     expect(screen.getByText("Today notes")).toBeTruthy();
     // The Home owns no notes: it asks for today's, it does not store them —
     // and it names no space, because every one of them answers.
-    expect(invoke).toHaveBeenCalledWith("notes_created_today");
+    expect(invoke).toHaveBeenCalledWith("notes_of_today");
     // And today is the day it asks for, said the short way.
     expect(invoke).toHaveBeenCalledWith("day_tasks", { day: null });
   });
 
   test("the head shows the week around today, with today lit", async () => {
-    bridge({ day_tasks: [], day_sort: null, notes_created_today: [] });
+    bridge({ day_tasks: [], day_sort: null, notes_of_today: [] });
     const { container } = render(HomeView, { props: props() });
     await screen.findByText("No tasks yet");
 
@@ -114,7 +114,7 @@ describe("HomeView", () => {
         { path: "jott.tasks/completed.md", task: task("b2", "Comprar leite", { done: true }) },
       ],
       day_sort: null,
-      notes_created_today: [],
+      notes_of_today: [],
     });
     const { container } = render(HomeView, { props: props() });
 
@@ -139,7 +139,7 @@ describe("HomeView", () => {
           ? [{ path: "jott.tasks/Inbox.md", task: task("c3", "Entregar logo") }]
           : [],
       day_sort: null,
-      notes_created_today: [],
+      notes_of_today: [],
     });
     const { container, rerender } = render(HomeView, {
       props: props({ onPickDay: (iso) => picked.push(iso) }),
@@ -172,7 +172,7 @@ describe("HomeView", () => {
     // jsdom lays nothing out, so the strip turns by state here; on a screen
     // the same call scrolls the carrousel to the neighbouring page and the
     // settle makes it the middle.
-    bridge({ day_tasks: [], day_sort: null, notes_created_today: [] });
+    bridge({ day_tasks: [], day_sort: null, notes_of_today: [] });
     const { container } = render(HomeView, { props: props() });
     await screen.findByText("No tasks yet");
 
@@ -200,7 +200,7 @@ describe("HomeView", () => {
     bridge({
       day_tasks: [],
       day_sort: null,
-      notes_created_today: [],
+      notes_of_today: [],
       timeline: (args) =>
         args.from === "2026-09-01" && args.to === "2026-09-01"
           ? [
@@ -250,7 +250,7 @@ describe("HomeView", () => {
         { path: "Design/Tasks/task-list.md", task: task("b2", "Logo do cliente") },
       ],
       day_sort: null,
-      notes_created_today: [],
+      notes_of_today: [],
     });
 
     render(HomeView, {
@@ -280,7 +280,7 @@ describe("HomeView", () => {
     bridge({
       day_tasks: [{ path: "jott.tasks/task-list.md", task: task("a1", "Comprar pão") }],
       day_sort: null,
-      notes_created_today: [],
+      notes_of_today: [],
       move_task: {},
       pull_into_day: {},
     });
@@ -314,7 +314,7 @@ describe("HomeView", () => {
     bridge({
       day_tasks: [],
       day_sort: null,
-      notes_created_today: [aNote({ banner: { kind: "color", value: "yellow" } })],
+      notes_of_today: [aNote({ banner: { kind: "color", value: "yellow" } })],
     });
 
     const { container } = render(HomeView, { props: props() });
@@ -334,7 +334,7 @@ describe("HomeView", () => {
       day_tasks: [],
       day_sort: null,
       set_note_pinned: null,
-      notes_created_today: [
+      notes_of_today: [
         aNote(),
         aNote({ path: "Inbox/viagem.md", title: "viagem" }, "Trip to Lisbon"),
       ],
@@ -371,7 +371,7 @@ describe("HomeView", () => {
   });
 
   test("a card of the day offers the same rows the board offers", async () => {
-    bridge({ day_tasks: [], day_sort: null, notes_created_today: [aNote()], set_note_pinned: null });
+    bridge({ day_tasks: [], day_sort: null, notes_of_today: [aNote()], set_note_pinned: null });
 
     const { container } = render(HomeView, { props: props() });
     await screen.findByText("ideia");
@@ -401,12 +401,12 @@ describe("HomeView", () => {
     // The shell's + menu calls this door (user report, 2026-09-07: the +
     // offered only a task). The target is the notes ⋮'s choice, else the
     // notebook's quickNoteFolder — here "Clientes".
-    bridge({ day_tasks: [], day_sort: null, notes_created_today: [], create_note: "Clientes/Untitled.md" });
+    bridge({ day_tasks: [], day_sort: null, notes_of_today: [], create_note: "Clientes/Untitled.md" });
     const opened = [];
     const view = render(HomeView, {
       props: props({ quickNoteFolder: "Clientes", onOpenNote: (...args) => opened.push(args) }),
     });
-    await waitFor(() => expect(invoke).toHaveBeenCalledWith("notes_created_today"));
+    await waitFor(() => expect(invoke).toHaveBeenCalledWith("notes_of_today"));
 
     view.component.createNote();
     await waitFor(() =>
@@ -423,7 +423,7 @@ describe("HomeView", () => {
 
   test("a read-only notebook still opens a card of the day in a new tab", async () => {
     // The one row that is not a write.
-    bridge({ day_tasks: [], day_sort: null, notes_created_today: [aNote()] });
+    bridge({ day_tasks: [], day_sort: null, notes_of_today: [aNote()] });
 
     const { container } = render(HomeView, { props: props({ readOnly: true }) });
     await screen.findByText("ideia");
@@ -437,7 +437,7 @@ describe("HomeView", () => {
   });
 
   test("the notes ⋮ says where a quick note is filed", async () => {
-    bridge({ day_tasks: [], day_sort: null, notes_created_today: [] });
+    bridge({ day_tasks: [], day_sort: null, notes_of_today: [] });
     render(HomeView, { props: props() });
 
     await userEvent.click(await screen.findByLabelText("notes options"));
@@ -452,7 +452,7 @@ describe("HomeView", () => {
     bridge({
       day_tasks: [],
       day_sort: null,
-      notes_created_today: [],
+      notes_of_today: [],
       create_task: 0,
       ensure_task_id: "novo",
       pull_into_day: true,
@@ -484,7 +484,7 @@ describe("HomeView", () => {
     bridge({
       day_tasks: [],
       day_sort: null,
-      notes_created_today: [],
+      notes_of_today: [],
       create_task: 0,
       ensure_task_id: "novo",
       pull_into_day: true,
@@ -509,7 +509,7 @@ describe("HomeView", () => {
   test("the day's block offers no second way to write", async () => {
     // The blue "New task" in the tasks header went with the capture box
     // (2026-08-13); the + that floats over the canvas is the shell's.
-    bridge({ day_tasks: [], day_sort: null, notes_created_today: [] });
+    bridge({ day_tasks: [], day_sort: null, notes_of_today: [] });
 
     render(HomeView, { props: props() });
 
@@ -532,7 +532,7 @@ describe("HomeView", () => {
         },
       ],
       day_sort: null,
-      notes_created_today: [],
+      notes_of_today: [],
     });
 
     const asked = [];
@@ -551,7 +551,7 @@ describe("HomeView", () => {
   });
 
   test("a day ahead offers its own suggestions", async () => {
-    bridge({ day_tasks: [], day_sort: null, notes_created_today: [] });
+    bridge({ day_tasks: [], day_sort: null, notes_of_today: [] });
     const asked = [];
     render(HomeView, { props: props({ day: "2026-09-05", onSuggest: (p) => asked.push(p) }) });
 
@@ -563,7 +563,7 @@ describe("HomeView", () => {
   test("the empty day still offers suggestions, inside its card", async () => {
     // Wireframe "Empity Home Screen": the pill lives IN the empty card, so an
     // empty day points somewhere instead of only saying it is empty.
-    bridge({ day_tasks: [], day_sort: null, notes_created_today: [] });
+    bridge({ day_tasks: [], day_sort: null, notes_of_today: [] });
 
     render(HomeView, { props: props() });
 
@@ -579,7 +579,7 @@ describe("HomeView", () => {
       day_tasks: [{ path: "jott.tasks/Inbox.md", task: task("a1", "Arrumar site") }],
       day_sort: null,
       set_day_sort: null,
-      notes_created_today: [],
+      notes_of_today: [],
     });
 
     render(HomeView, { props: props() });
@@ -606,7 +606,7 @@ describe("HomeView", () => {
     const day = (...tasks) => ({
       day_tasks: tasks.map((one) => ({ path: "jott.tasks/Inbox.md", task: one })),
       day_sort: null,
-      notes_created_today: [],
+      notes_of_today: [],
     });
 
     test("only the card that was not there before rises into place", async () => {
@@ -653,7 +653,7 @@ describe("HomeView", () => {
             ? [{ path: "jott.tasks/Inbox.md", task: task("c3", "Entregar logo") }]
             : [{ path: "jott.tasks/Inbox.md", task: task("a1", "Arrumar site") }],
         day_sort: null,
-        notes_created_today: [],
+        notes_of_today: [],
       });
       const { rerender } = render(HomeView, { props: props() });
       await screen.findByText("Arrumar site");
@@ -665,7 +665,7 @@ describe("HomeView", () => {
   });
 
   test("with tasks off, the Home is the notes written today", async () => {
-    bridge({ notes_created_today: [aNote()] });
+    bridge({ notes_of_today: [aNote()] });
 
     render(HomeView, { props: props({ f: (key) => key !== "tasks" }) });
 

@@ -529,7 +529,7 @@ describe("App with a user space", () => {
       },
       screen_to_restore: null,
       note_folders: [noteFolder("Inbox")],
-      notes_created_today: [],
+      notes_of_today: [],
       list_tasks: [],
       period_tasks: [],
       grouped_suggestions: [],

@@ -209,7 +209,7 @@ describe("the suggestions panel", () => {
       },
       screen_to_restore: "home",
       note_folders: [],
-      notes_created_today: [],
+      notes_of_today: [],
       list_tasks: [],
       day_sort: null,
       ...extra,

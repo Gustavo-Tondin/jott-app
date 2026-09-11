@@ -44,7 +44,7 @@ pub async fn list_notes<R: Runtime>(
 }
 
 /// Every note of the Inbox — the Home's widened view, behind the notebook's
-/// `homeShowsAllInboxNotes` (2026-08-24). A view like `notes_created_today`:
+/// `homeShowsAllInboxNotes` (2026-08-24). A view like `notes_of_today`:
 /// nothing is moved or written.
 #[tauri::command]
 pub async fn inbox_notes<R: Runtime>(
@@ -55,15 +55,15 @@ pub async fn inbox_notes<R: Runtime>(
     state.read(window.label(), |nb| nb.inbox_notes_in(&folder))
 }
 
-/// The notes created today — what the Home shows, from EVERY notes space
-/// (each answer says which one). The Home owns no notes of its own; this is
-/// a view filtered by `created` (spec 5), so nothing is moved or written.
+/// The notes created or edited today — what the Home shows, from EVERY notes
+/// space (each answer says which one). The Home owns no notes of its own;
+/// this is a view, so nothing is moved or written.
 #[tauri::command]
-pub async fn notes_created_today<R: Runtime>(
+pub async fn notes_of_today<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
 ) -> CommandResult<Vec<jott_core::ListedNote>> {
-    state.read(window.label(), |nb| nb.notes_created_today())
+    state.read(window.label(), |nb| nb.notes_of_today())
 }
 
 /// Writes a note from one blob of text — the Home's quick capture. The first

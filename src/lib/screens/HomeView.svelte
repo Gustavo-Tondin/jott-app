@@ -154,7 +154,7 @@
     // from the log (the recap), a day ahead has none yet. EVERY notes space
     // answers — a note written today was written today wherever it was
     // filed — so each row carries the space that holds it.
-    read: () => (kind === "today" ? api.notesCreatedToday() : []),
+    read: () => (kind === "today" ? api.notesOfToday() : []),
     // `?? []`: the bridge answering with nothing is not a list of notes.
     apply: (read) => (notes = read ?? []),
     onChanged: () => onChanged?.(),

@@ -1,8 +1,8 @@
 //! When each note was last looked at — `.jott/index/seen.<device>.json`, kept
-//! BESIDE the files because reading a note must never rewrite it. Notes only;
-//! written on open or edit, never when a board draws its cards; a regenerable
-//! INDEX, not a format. Each device writes only its OWN file, so a sync tool
-//! never sees two writers; reading is the union of every `seen*.json`.
+//! BESIDE the files because reading a note must never rewrite it — and, in
+//! `edited.<device>.json`, last WRITTEN. Notes only; a regenerable INDEX, not
+//! a format. Each device writes only its OWN file, so a sync tool never sees
+//! two writers; reading is the union of every `<index>.*json`.
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -19,6 +19,27 @@ pub const INDEX_DIR: &str = "index";
 /// The index file of a process that named no device (and of every build
 /// before the per-device files): read with the others, written only then.
 pub const SEEN_FILE: &str = "seen.json";
+
+/// Which of the two stamps an index holds — the name its files start with.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum Index {
+    /// Opened in the editor, or written to.
+    #[default]
+    Seen,
+    /// Written to — only the editor's save, never an open.
+    Edited,
+}
+
+impl Index {
+    pub const ALL: [Index; 2] = [Index::Seen, Index::Edited];
+
+    fn stem(self) -> &'static str {
+        match self {
+            Self::Seen => "seen",
+            Self::Edited => "edited",
+        }
+    }
+}
 
 static DEVICE: OnceLock<String> = OnceLock::new();
 
@@ -40,46 +61,52 @@ fn is_device_name(name: &str) -> bool {
         && name.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit())
 }
 
-/// The addresses of the notes that have been opened, and when. Keys are
-/// root-relative (`jott.notes/Inbox/ideia.md`); values are local wall-clock
-/// stamps to the minute (`crate::task::render_datetime`).
+/// The addresses of the notes that have been opened (or, as
+/// [`Index::Edited`], written), and when. Keys are root-relative
+/// (`jott.notes/Inbox/ideia.md`); values are local wall-clock stamps to the
+/// minute (`crate::task::render_datetime`).
 #[derive(Debug, Clone, Default)]
 pub struct Seen {
     entries: BTreeMap<String, NaiveDateTime>,
     /// Whether the OWN file was readable on load. False means running off
     /// the backup, and rewriting the backup would destroy the only good copy.
     intact: bool,
-    /// Whose file a save writes: `None` is [`SEEN_FILE`].
+    /// Whose file a save writes: `None` is the device-less `<index>.json`.
     device: Option<String>,
+    index: Index,
 }
 
-/// Where THIS process writes the index, for a notebook's `.jott/`.
+/// Where THIS process writes the "seen" index, for a notebook's `.jott/`.
 pub fn path_of(config_dir: impl AsRef<Path>) -> PathBuf {
-    path_for(config_dir.as_ref(), device())
+    path_for(config_dir.as_ref(), Index::Seen, device())
 }
 
-fn path_for(config_dir: &Path, device: Option<&str>) -> PathBuf {
+fn path_for(config_dir: &Path, index: Index, device: Option<&str>) -> PathBuf {
     let name = match device {
-        Some(device) => format!("seen.{device}.json"),
-        None => SEEN_FILE.to_string(),
+        Some(device) => format!("{}.{device}.json", index.stem()),
+        None => format!("{}.json", index.stem()),
     };
     config_dir.join(INDEX_DIR).join(name)
 }
 
-/// Every index file but `own`: the other devices', the pre-device
-/// [`SEEN_FILE`], and a sync tool's conflict copies of any of them. Backups
-/// are left out — each is read only in place of its own broken file.
-fn others(config_dir: &Path, own: &Path) -> Vec<PathBuf> {
+/// Every file of `index` but `own`: the other devices', the device-less
+/// one, and a sync tool's conflict copies of any of them. Backups are left
+/// out — each is read only in place of its own broken file.
+fn others(config_dir: &Path, index: Index, own: &Path) -> Vec<PathBuf> {
     let Ok(dir) = std::fs::read_dir(config_dir.join(INDEX_DIR)) else {
         return Vec::new();
     };
+    let stem = index.stem();
     dir.filter_map(|entry| Some(entry.ok()?.path()))
         .filter(|path| {
             path != own
                 && path
                     .file_name()
                     .and_then(|name| name.to_str())
-                    .is_some_and(|name| name.starts_with("seen") && name.ends_with(".json"))
+                    .is_some_and(|name| {
+                        name.strip_prefix(stem).is_some_and(|rest| rest.starts_with('.'))
+                            && name.ends_with(".json")
+                    })
         })
         .collect()
 }
@@ -124,16 +151,22 @@ impl Seen {
     /// Loads the index of the notebook whose `.jott/` is `config_dir`, as
     /// this process's device sees it.
     pub fn load(config_dir: impl AsRef<Path>) -> Self {
-        Self::load_as(config_dir.as_ref(), device())
+        Self::load_of(config_dir, Index::Seen)
     }
 
-    /// The union of every index file, the latest stamp winning. A missing
-    /// file is an empty index, not an error; an own file that does not parse
-    /// falls back to its `.bak`, another device's broken file is skipped.
-    fn load_as(config_dir: &Path, device: Option<&str>) -> Self {
-        let own = path_for(config_dir, device);
+    /// The same, for either index.
+    pub fn load_of(config_dir: impl AsRef<Path>, index: Index) -> Self {
+        Self::load_as(config_dir.as_ref(), index, device())
+    }
+
+    /// The union of every file of `index`, the latest stamp winning. A
+    /// missing file is an empty index, not an error; an own file that does
+    /// not parse falls back to its `.bak`, another device's broken file is
+    /// skipped.
+    fn load_as(config_dir: &Path, index: Index, device: Option<&str>) -> Self {
+        let own = path_for(config_dir, index, device);
         let (mut entries, intact) = read_own(&own);
-        for other in others(config_dir, &own) {
+        for other in others(config_dir, index, &own) {
             let text = std::fs::read_to_string(&other).ok();
             for (path, at) in text.as_deref().and_then(parse).unwrap_or_default() {
                 entries
@@ -146,13 +179,14 @@ impl Seen {
             entries,
             intact,
             device: device.map(str::to_string),
+            index,
         }
     }
 
     /// Writes the index back to this device's file, keeping a copy of the
     /// previous one beside it. The same bytes again are not written at all.
     pub fn save(&self, config_dir: impl AsRef<Path>) -> Result<()> {
-        let path = path_for(config_dir.as_ref(), self.device.as_deref());
+        let path = path_for(config_dir.as_ref(), self.index, self.device.as_deref());
         let text = crate::fsio::pretty_json(&self.render());
         let previous = std::fs::read(&path).ok();
         if previous.as_deref() == Some(text.as_bytes()) {
@@ -422,10 +456,10 @@ mod tests {
     fn a_device_writes_only_its_own_file() {
         let dir = temp();
         let dir = dir.path();
-        let mut seen = Seen::load_as(dir, Some("desk01"));
+        let mut seen = Seen::load_as(dir, Index::Seen, Some("desk01"));
         seen.mark("jott.notes/a.md", at(20, 9));
         seen.save(dir).unwrap();
-        assert!(path_for(dir, Some("desk01")).is_file());
+        assert!(path_for(dir, Index::Seen, Some("desk01")).is_file());
         assert!(!dir.join(INDEX_DIR).join(SEEN_FILE).exists());
     }
 
@@ -440,7 +474,7 @@ mod tests {
         write_index(dir, "seen.phone1.json", phone);
         write_index(dir, "seen.sync-conflict-20260911-150128-ABCDEFG.json", conflict);
 
-        let mut seen = Seen::load_as(dir, Some("desk01"));
+        let mut seen = Seen::load_as(dir, Index::Seen, Some("desk01"));
         assert_eq!(seen.at("a.md"), Some(at(22, 9)));
         assert_eq!(seen.at("b.md"), Some(at(20, 9)));
         assert_eq!(seen.at("c.md"), Some(at(21, 9)));
@@ -460,7 +494,7 @@ mod tests {
         let dir = dir.path();
         write_index(dir, "seen.desk01.json", r#"{"a.md":"2026-08-20T09:30"}"#);
         write_index(dir, "seen.phone1.json", "{ half a fi");
-        let seen = Seen::load_as(dir, Some("desk01"));
+        let seen = Seen::load_as(dir, Index::Seen, Some("desk01"));
         assert_eq!(seen.at("a.md"), Some(at(20, 9)));
         assert!(seen.intact, "only the OWN file decides the backup");
     }
@@ -469,11 +503,26 @@ mod tests {
     fn saving_what_is_already_there_writes_nothing() {
         let dir = temp();
         let dir = dir.path();
-        let mut seen = Seen::load_as(dir, Some("desk01"));
+        let mut seen = Seen::load_as(dir, Index::Seen, Some("desk01"));
         seen.mark("a.md", at(20, 9));
         seen.save(dir).unwrap();
-        Seen::load_as(dir, Some("desk01")).save(dir).unwrap();
-        assert!(!backup_of(&path_for(dir, Some("desk01"))).exists());
+        Seen::load_as(dir, Index::Seen, Some("desk01")).save(dir).unwrap();
+        assert!(!backup_of(&path_for(dir, Index::Seen, Some("desk01"))).exists());
+    }
+
+    #[test]
+    fn the_two_indexes_never_read_each_other() {
+        let dir = temp();
+        let dir = dir.path();
+        write_index(dir, "seen.phone1.json", r#"{"a.md":"2026-08-20T09:30"}"#);
+        let mut edited = Seen::load_as(dir, Index::Edited, Some("desk01"));
+        assert_eq!(edited.at("a.md"), None);
+
+        edited.mark("b.md", at(21, 9));
+        edited.save(dir).unwrap();
+        assert!(path_for(dir, Index::Edited, Some("desk01")).is_file());
+        assert_eq!(Seen::load_as(dir, Index::Seen, Some("desk01")).at("b.md"), None);
+        assert_eq!(Seen::load_as(dir, Index::Edited, Some("phone1")).at("b.md"), Some(at(21, 9)));
     }
 
     #[test]
