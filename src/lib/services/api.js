@@ -116,6 +116,11 @@ export const api = {
   // root-relative address (a space, a list, a note), empty for the root. What
   // opens is always the FOLDER around it, never the document.
   openInFileManager: (path = null) => invoke("open_in_file_manager", { path }),
+  // The two ways out of a sync conflict, both through the trash: drop the
+  // copy (root-relative address), or make the copy the file. Nothing is
+  // destroyed — the Trash screen gives either back.
+  discardConflict: (path) => invoke("discard_conflict", { path }),
+  adoptConflict: (path) => invoke("adopt_conflict", { path }),
   /// This machine's font families, sorted and safe to name in CSS. Empty off
   /// Linux (no fontconfig). Asked when the Display page opens, never per render.
   systemFonts: () => invoke("system_fonts"),

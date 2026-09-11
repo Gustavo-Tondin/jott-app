@@ -980,3 +980,46 @@ fn a_disk_that_reads_as_our_own_text_is_no_conflict() {
     let copy = notebook.keep_note_conflict_copy("jott.notes", &path, &ours).unwrap();
     assert!(copy.is_some());
 }
+
+#[test]
+fn a_conflict_copy_is_discarded_or_adopted_through_the_trash() {
+    let (dir, notebook) = init();
+    let path = notebook.create_note("jott.notes", "Inbox", "Ideia").unwrap();
+    notebook.write_note("jott.notes", &path, "a minha\n").unwrap();
+    let file = dir.path().join("jott.notes").join(&path);
+    let mine = read(&file);
+    let copy = notebook.keep_note_conflict_copy("jott.notes", &path, &[]).unwrap().unwrap();
+    std::fs::write(&file, "---\ncreated: 2026-07-21\n---\n\na do celular\n").unwrap();
+    let theirs = read(&file);
+
+    // Discard: the copy goes to the trash, the original is untouched.
+    notebook.discard_conflict(&copy).unwrap();
+    assert!(!dir.path().join(&copy).exists());
+    assert_eq!(read(&file), theirs);
+    assert!(notebook.conflicts().unwrap().is_empty());
+    let trashed = notebook.trash_entries();
+    assert_eq!(trashed.len(), 1);
+    assert_eq!(trashed[0].origin, copy);
+
+    // Adopt: the original goes to the trash and the copy takes its place.
+    let copy = notebook.keep_note_conflict_copy("jott.notes", &path, &[]).unwrap().unwrap();
+    std::fs::write(&file, mine.as_bytes()).unwrap();
+    notebook.adopt_conflict(&copy).unwrap();
+    assert!(!dir.path().join(&copy).exists());
+    assert_eq!(read(&file), theirs, "the copy is now the note");
+    assert!(notebook.conflicts().unwrap().is_empty());
+    let trashed = notebook.trash_entries();
+    assert_eq!(trashed.len(), 2);
+    assert_eq!(trashed[0].origin, format!("jott.notes/{path}"));
+
+    // Adopting a copy whose original is gone gives it the name back.
+    let copy = notebook.keep_note_conflict_copy("jott.notes", &path, &[]).unwrap().unwrap();
+    std::fs::remove_file(&file).unwrap();
+    notebook.adopt_conflict(&copy).unwrap();
+    assert_eq!(read(&file), theirs);
+
+    // Only a conflict copy passes through either door.
+    assert!(notebook.discard_conflict(&format!("jott.notes/{path}")).is_err());
+    assert!(notebook.adopt_conflict("../fora.md").is_err());
+    assert!(file.exists());
+}

@@ -211,6 +211,33 @@ describe("App", () => {
     expect(screen.queryByText("Choose notebook folder…")).toBeNull();
   });
 
+  test("a sync conflict is discarded or adopted from the banner, and the list refreshes", async () => {
+    const copy = {
+      path: "/n/jott.tasks/Inbox.sync-conflict-20260911-150002-JOTTAPP.md",
+      list: "Inbox",
+      original: "/n/jott.tasks/Inbox.md",
+      relative: "jott.tasks/Inbox.sync-conflict-20260911-150002-JOTTAPP.md",
+    };
+    shell({
+      notebook_snapshot: { ...snapshot(), conflicts: [copy] },
+      discard_conflict: null,
+      adopt_conflict: null,
+    });
+    render(App);
+    await screen.findByText("1 sync conflict in this notebook");
+
+    // Discarding needs no question: the copy lands in the Trash.
+    await fireEvent.click(screen.getByRole("button", { name: "Discard copy" }));
+    await waitFor(() => expect(invoke).toHaveBeenCalledWith("discard_conflict", { path: copy.relative }));
+    await waitFor(() => expect(callsTo("notebook_snapshot").length).toBeGreaterThan(1));
+
+    // Adopting replaces what is on screen, so it asks first.
+    await fireEvent.click(screen.getByRole("button", { name: "Keep this copy" }));
+    await screen.findByText(/Replace "Inbox" with this copy\?/);
+    await fireEvent.click(document.querySelector(".confirm-dialog__confirm"));
+    await waitFor(() => expect(invoke).toHaveBeenCalledWith("adopt_conflict", { path: copy.relative }));
+  });
+
   test("the sidebar counts the open tasks of a place, not only of a list", async () => {
     // It only ever counted a user's own lists (user report, 2026-08-20): the
     // fixed Tasks row and every tasks space had no number at all, so a

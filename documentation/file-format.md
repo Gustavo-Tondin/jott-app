@@ -226,9 +226,10 @@ before they met. Syncthing writes them, and so does Jott, with the tag
 `JOTTAPP`, in one situation: the note on screen was changed by something
 else while it had unsaved typing. The typing wins the file; the other
 version is kept as the copy, byte for byte. Jott lists every conflict copy
-it finds (inside note folders too) and never merges or deletes one on its
-own — a copy is never a note or a list on the board, and resolving it is the
-reader's call.
+it finds (inside note folders too) and never merges one — a copy is never a
+note or a list on the board, and resolving it is the reader's call. The two
+answers the app offers both go through `.jott/trash/`: discarding moves the
+copy there; keeping it moves the original there and gives the copy its name.
 
 ---
 

@@ -517,6 +517,11 @@
   .shell__conflict-gone {
     color: var(--app-ink-faint);
   }
+  .shell__conflict-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--app-space-4);
+  }
 }
 
 /* =============================================================================

@@ -132,6 +132,38 @@ impl Notebook {
         Ok(found)
     }
 
+    /// A conflict copy by its root-relative address, checked to be one: the
+    /// two doors below take user input and must not reach any other file.
+    fn conflict_file(&self, relative: &str) -> Result<PathBuf> {
+        let path = crate::relpath::safe_join(self.root(), relative)
+            .filter(|path| crate::conflict::is_conflict_file(path) && path.is_file())
+            .ok_or_else(|| Error::InvalidNotePath(relative.to_string()))?;
+        Ok(path)
+    }
+
+    /// Discards a conflict copy: it goes to the trash, the original stays.
+    /// For the person who knows the version on screen is the one to keep.
+    pub fn discard_conflict(&self, relative: &str) -> Result<()> {
+        self.ensure_writable()?;
+        let copy = self.conflict_file(relative)?;
+        self.trash_path(&copy)
+    }
+
+    /// Keeps a conflict copy INSTEAD of the original: the original goes to
+    /// the trash and the copy takes its name and place. An original already
+    /// gone is simply given back its name.
+    pub fn adopt_conflict(&self, relative: &str) -> Result<()> {
+        self.ensure_writable()?;
+        let copy = self.conflict_file(relative)?;
+        let original = crate::conflict::describe(&copy)
+            .and_then(|conflict| conflict.original.or_else(|| original_name_of(&copy)))
+            .ok_or_else(|| Error::InvalidNotePath(relative.to_string()))?;
+        if original.exists() {
+            self.trash_path(&original)?;
+        }
+        std::fs::rename(&copy, &original).ctx(&original)
+    }
+
     /// Opens a list by its root-relative address (`Tasks/Compras.md`). Every
     /// list but Completed follows its space's arrangement on each save
     /// (`crate::arrange`); Completed only grows, in the order things were ticked.
@@ -299,6 +331,18 @@ impl Notebook {
         self.update_states(|state| state.rename_path(path, &inbox_path))?;
         Ok(rescued)
     }
+}
+
+/// The name a conflict copy would have without the marker, beside itself —
+/// `describe` answers the original only while it exists.
+fn original_name_of(copy: &Path) -> Option<PathBuf> {
+    let name = crate::fsio::file_name_of(copy);
+    let (stem, _) = name.split_once(crate::conflict::MARKER)?;
+    let ext = copy
+        .extension()
+        .map(|ext| format!(".{}", ext.to_string_lossy()))
+        .unwrap_or_default();
+    Some(copy.with_file_name(format!("{stem}{ext}")))
 }
 
 /// Every conflict copy under `dir`, at any depth, hidden folders left out.

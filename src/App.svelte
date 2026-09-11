@@ -8,7 +8,7 @@
   import { perf } from "./lib/services/perf.js";
   import { onOffer } from "./lib/services/undoOffer.js";
   import Notice from "./lib/components/Notice.svelte";
-  import { askName, askTask, setConfirmPolicy } from "./lib/services/dialog.js";
+  import { askConfirm, askName, askTask, setConfirmPolicy } from "./lib/services/dialog.js";
   import { composeTask } from "./lib/services/taskCompose.js";
   import { makeAct } from "./lib/services/act.js";
   import { ask, typing, userBindings } from "./lib/services/shortcuts.js";
@@ -115,6 +115,28 @@
   let failedOpen = $state(null);
   let conflictsHidden = $state("");
   const conflictsKey = (list) => list.map((c) => c.path).join("\n");
+
+  /// The banner's ways out of a conflict, all through the trash. Adopting
+  /// replaces what is on screen, so it asks first; discarding does not —
+  /// the copy is in the Trash, and Ctrl+Z brings it back.
+  async function discardConflicts(paths) {
+    try {
+      for (const path of paths) await api.discardConflict(path);
+      await refreshNotebook();
+    } catch (e) {
+      fail(e);
+    }
+  }
+  async function adoptConflict(conflict) {
+    const name = conflict.list ?? leafOf(conflict.relative);
+    if (!(await askConfirm(S.confirmAdoptConflict(name), { danger: S.conflictAdopt }))) return;
+    try {
+      await api.adoptConflict(conflict.relative);
+      await refreshNotebook();
+    } catch (e) {
+      fail(e);
+    }
+  }
   let busy = $state(true);
   /// Bumped to tell the open screen to re-read from disk.
   let reloadKey = $state(0);
@@ -2090,6 +2112,9 @@
             onDismissUndo={() => (undoNotice = null)}
             conflicts={conflictsHidden === conflictsKey(conflicts) ? [] : conflicts}
             onHideConflicts={() => (conflictsHidden = conflictsKey(conflicts))}
+            onDiscardConflict={(path) => discardConflicts([path])}
+            onAdoptConflict={adoptConflict}
+            onDiscardAllConflicts={() => discardConflicts(conflicts.map((c) => c.relative))}
             {update}
             {installing}
             onInstall={installNow}

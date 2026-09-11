@@ -30,6 +30,26 @@ pub async fn list_conflicts<R: Runtime>(
     state.read(window.label(), |nb| nb.conflicts())
 }
 
+/// Sends a conflict copy to the trash; the original stays.
+#[tauri::command]
+pub async fn discard_conflict<R: Runtime>(
+    state: State<'_, AppState>,
+    window: tauri::Window<R>,
+    path: String,
+) -> CommandResult<()> {
+    state.record(window.label(), "discard_conflict", |nb| nb.discard_conflict(&path))
+}
+
+/// Keeps a conflict copy instead of the original, which goes to the trash.
+#[tauri::command]
+pub async fn adopt_conflict<R: Runtime>(
+    state: State<'_, AppState>,
+    window: tauri::Window<R>,
+    path: String,
+) -> CommandResult<()> {
+    state.record(window.label(), "adopt_conflict", |nb| nb.adopt_conflict(&path))
+}
+
 #[tauri::command]
 pub async fn list_tasks<R: Runtime>(
     state: State<'_, AppState>,

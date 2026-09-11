@@ -168,12 +168,18 @@ export const S = {
   conflictsTitle: (count) =>
     count === 1 ? "1 sync conflict in this notebook" : `${count} sync conflicts in this notebook`,
   conflictsBody:
-    "Another device edited the same files. Jott does not choose for you — " +
-    "open the folder and decide which version stays.",
-  // The row per conflict: its list, the copy the sync tool wrote, and the
-  // door to the folder it sits in.
+    "Another device edited the same files, and both versions were kept. " +
+    "Jott does not choose for you: discard the copy, or keep it instead. " +
+    "Whichever goes, goes to the Trash.",
+  // The row per conflict: its list, the copy the sync tool wrote, the two
+  // ways out, and the door to the folder it sits in.
   conflictReveal: "Show in folder",
   conflictOriginalGone: "the original is gone",
+  conflictDiscard: "Discard copy",
+  conflictAdopt: "Keep this copy",
+  conflictsDiscardAll: "Discard all copies",
+  confirmAdoptConflict: (name) =>
+    `Replace "${name}" with this copy? The current version goes to the Trash.`,
   conflictsHide: "Hide for now",
   dismissError: "ok",
   // The shell's states.

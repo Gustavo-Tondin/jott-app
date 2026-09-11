@@ -732,6 +732,26 @@ fn sync_conflicts_reach_the_frontend() {
 
     // And it must not have become a list in the sidebar.
     assert_eq!(ok(&app, "list_names", json!({})), json!([{"path": "jott.tasks/Compras.md", "name": "Compras", "space": "Tasks"}, {"path": "jott.tasks/completed.md", "name": "completed", "space": "Tasks"}, {"path": "jott.tasks/task-list.md", "name": "task-list", "space": "Tasks"}]));
+
+    // The banner's two buttons: discard the copy (to the trash), or adopt
+    // it in the original's place (the original to the trash). Both actions,
+    // so Ctrl+Z takes them back.
+    let copy = conflicts[0]["relative"].as_str().unwrap().to_string();
+    ok(&app, "discard_conflict", json!({ "path": copy }));
+    assert_eq!(ok(&app, "list_conflicts", json!({})), json!([]));
+    assert_eq!(ok(&app, "undo", json!({})), json!("discard_conflict"));
+    assert_eq!(ok(&app, "list_conflicts", json!({})).as_array().unwrap().len(), 1);
+
+    ok(&app, "adopt_conflict", json!({ "path": copy }));
+    assert_eq!(ok(&app, "list_conflicts", json!({})), json!([]));
+    assert_eq!(
+        std::fs::read_to_string(dir.path().join("jott.tasks/Compras.md")).unwrap(),
+        "- [ ] versão do celular\n"
+    );
+    assert_eq!(ok(&app, "undo", json!({})), json!("adopt_conflict"));
+    assert_eq!(ok(&app, "list_conflicts", json!({})).as_array().unwrap().len(), 1);
+    // Anything but a conflict copy is refused.
+    assert!(invoke(&app, "discard_conflict", json!({ "path": "jott.tasks/Compras.md" })).is_err());
 }
 
 #[test]

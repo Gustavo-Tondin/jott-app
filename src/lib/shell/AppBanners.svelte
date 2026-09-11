@@ -15,6 +15,10 @@
     onDismissUndo,
     conflicts = [],
     onHideConflicts,
+    /// Each takes the copy's root-relative address; the last takes none.
+    onDiscardConflict,
+    onAdoptConflict,
+    onDiscardAllConflicts,
     update = null,
     installing = false,
     onInstall,
@@ -53,10 +57,11 @@
 {#if conflicts.length > 0}
   <!-- The one case where the user can silently lose work: two devices edited
        the same file and the sync tool kept both. A row per copy, each with
-       the door to its folder (the core's `folder_of` turns the file into the
-       folder around it), and "hide for now" for the session — a NEW conflict
-       brings the box back, because the shell keys the hiding on the list of
-       paths. -->
+       the two ways out (discard the copy, or keep it in the original's
+       place — both through the trash, both undoable) and the door to its
+       folder (the core's `folder_of` turns the file into the folder around
+       it). "Hide for now" is for the session — a NEW conflict brings the box
+       back, because the shell keys the hiding on the list of paths. -->
   <Notice
     tone="warning"
     title={S.conflictsTitle(conflicts.length)}
@@ -74,15 +79,34 @@
             {#if !conflict.original}<span class="shell__conflict-gone">({S.conflictOriginalGone})</span>{/if}
           </span>
           {#if conflict.relative}
-            <button
-              class="theme-btn theme-btn--outline theme-btn--xs"
-              onclick={() => api.openInFileManager(conflict.relative).catch(onError)}
-              >{S.conflictReveal}</button
-            >
+            <span class="shell__conflict-actions">
+              <button
+                class="theme-btn theme-btn--primary theme-btn--xs"
+                onclick={() => onDiscardConflict?.(conflict.relative)}
+                >{S.conflictDiscard}</button
+              >
+              <button
+                class="theme-btn theme-btn--outline theme-btn--xs"
+                onclick={() => onAdoptConflict?.(conflict)}
+                >{S.conflictAdopt}</button
+              >
+              <button
+                class="theme-btn theme-btn--outline theme-btn--xs"
+                onclick={() => api.openInFileManager(conflict.relative).catch(onError)}
+                >{S.conflictReveal}</button
+              >
+            </span>
           {/if}
         </li>
       {/each}
     </ul>
+    {#snippet actions()}
+      {#if conflicts.length > 1}
+        <button class="theme-btn theme-btn--outline theme-btn--xs" onclick={onDiscardAllConflicts}
+          >{S.conflictsDiscardAll}</button
+        >
+      {/if}
+    {/snippet}
   </Notice>
 {/if}
 
