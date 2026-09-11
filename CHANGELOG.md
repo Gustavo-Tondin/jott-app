@@ -27,6 +27,7 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 - **The checkboxes in a note card's preview are all the same square**, instead of some coming out a pixel taller or wider than the rest.
 - **Jott opens on Android phones that use 16 KB memory pages**, which newer devices can boot with, instead of failing to load.
 - **Settings opens at once the first time**, instead of freezing for a second or two, and its segmented buttons start on your choice rather than sliding there from a corner.
+- **Jott opens straight into your notebook**, instead of flashing the notebooks screen first; the launch also reads the notebook without holding up the screen on Android.
 
 ### Improved
 

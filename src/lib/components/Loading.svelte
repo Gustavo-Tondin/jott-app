@@ -9,10 +9,12 @@
   // glyph stays: the word carries the meaning, the motion only the mood.
   import Icon from "./Icon.svelte";
 
-  let { label, screen = false } = $props();
+  // `patient` holds it back a moment, so a wait that ends quickly never
+  // flashes it.
+  let { label, screen = false, patient = false } = $props();
 </script>
 
-<div class="theme-loading" class:theme-loading--screen={screen} role="status" aria-live="polite">
+<div class="theme-loading" class:theme-loading--screen={screen} class:theme-loading--patient={patient} role="status" aria-live="polite">
   <span class="theme-loading__spinner" aria-hidden="true">
     <Icon name="circle-notch" size={screen ? "1.75rem" : "1rem"} />
   </span>

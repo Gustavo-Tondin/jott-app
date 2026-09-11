@@ -996,7 +996,11 @@ describe("App", () => {
   test("Mod+O opens it too, and works with no notebook open", async () => {
     // The one command reachable with nothing open: it is how a window with
     // nothing in it gets something.
-    shell({ last_notebook: null, open_window: "jott-abc" });
+    shell({
+      last_notebook: null,
+      notebook_snapshot: () => Promise.reject(new Error("no notebook is open")),
+      open_window: "jott-abc",
+    });
     render(App);
 
     await screen.findByText("Create a new notebook");
@@ -1056,6 +1060,24 @@ describe("App", () => {
       expect(invoke).toHaveBeenCalledWith("open_notebook", { path: "/n", create: false }),
     );
     expect(await screen.findByText("Comprar leite")).toBeTruthy();
+  });
+
+  test("reopening the last notebook never draws the picker on the way", async () => {
+    // The launch asks the machine which notebook before it has one; showing the
+    // notebooks screen meanwhile flashed it on every start of the phone.
+    let open;
+    shell({ open_notebook: () => new Promise((resolve) => (open = () => resolve(notebook))) });
+    render(App);
+
+    expect(screen.queryByText("Create a new notebook")).toBeNull();
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("open_notebook", { path: "/n", create: false }),
+    );
+    expect(screen.queryByText("Create a new notebook")).toBeNull();
+
+    open();
+    await screen.findByText("Comprar leite");
+    expect(screen.queryByText("Create a new notebook")).toBeNull();
   });
 
   test("told to open on the picker, it does not reopen the last notebook", async () => {

@@ -39,6 +39,7 @@
   import TabBar from "./lib/shell/TabBar.svelte";
   import AppBanners from "./lib/shell/AppBanners.svelte";
   import NotebookPicker from "./lib/shell/NotebookPicker.svelte";
+  import Loading from "./lib/components/Loading.svelte";
   import RightPanel from "./lib/shell/RightPanel.svelte";
   import Screen from "./lib/shell/Screen.svelte";
   import TitleBar from "./lib/shell/TitleBar.svelte";
@@ -227,6 +228,11 @@
   /// (one Activity, no second window); the desktop opens a window of its own
   /// (`showNotebooks`), which is what lets two notebooks be open at once.
   let showingPicker = $state(false);
+
+  /// True until the launch has decided what this window opens on. While it is,
+  /// the picker is not drawn: a window that reopens the last notebook must not
+  /// flash the notebooks screen while it asks which one.
+  let starting = $state(true);
 
   /// Whether this window is showing the notebooks screen rather than a
   /// notebook — read by the bar, the panel and the root styles, which must
@@ -1223,12 +1229,18 @@
       groups = snap.groups ?? [];
       tags = snap.tags ?? [];
       dayRefs = new Set((snap.day ?? []).map((ref) => `${ref.path}#${ref.id}`));
-      noteFolders = await api.noteFolders(snap.info.layout.notesFolder);
-      spacesSort = await api.spacesSort();
+      // In parallel: the commands are async, and each is a round trip.
+      const [folders, sort, themes] = await Promise.all([
+        api.noteFolders(snap.info.layout.notesFolder),
+        api.spacesSort(),
+        api.userThemes(),
+        refreshReminders(),
+      ]);
+      noteFolders = folders;
+      spacesSort = sort;
       // `?? []` because a bridge that does not answer this command is a
       // notebook with no themes, not a crash in the effect that reads them.
-      userThemes = (await api.userThemes()) ?? [];
-      await refreshReminders();
+      userThemes = themes ?? [];
     } catch {
       // No notebook open (or it just closed): back to onboarding.
       notebook = null;
@@ -1550,27 +1562,30 @@
   // machine: a window created by `open_window` carries its instruction in
   // its address.
   (async () => {
+    // Before the first await: a picker window has nothing to decide.
+    if (entry.kind === "picker") starting = false;
     try {
       // Kept for the picker's second choice on Android: a fallback, not a
       // default (androidStorage.js). `last_notebook` reopens it for anyone using it.
-      privateFolder = await api.defaultFolder();
+      const folder = api.defaultFolder().then((path) => (privateFolder = path));
 
-      if (entry.kind === "picker") return;
       if (entry.kind === "notebook") {
         await openAt(entry.path);
-        return;
+      } else if (entry.kind === "remembered") {
+        // The first window comes back to the WORK by default; the picker's ⋮ is
+        // where someone who keeps several notebooks says otherwise.
+        if (!(await api.opensOnPicker())) {
+          const last = await api.lastNotebook();
+          if (last) await openAt(last, { create: false });
+          else await refreshNotebook();
+        }
       }
-
-      // The first window comes back to the WORK by default; the picker's ⋮ is
-      // where someone who keeps several notebooks says otherwise.
-      if (await api.opensOnPicker()) return;
-      const last = await api.lastNotebook();
-      if (last) await openAt(last, { create: false });
-      else await refreshNotebook();
+      await folder;
     } catch (e) {
       fail(e);
     } finally {
       busy = false;
+      starting = false;
     }
   })();
 
@@ -1839,7 +1854,13 @@
        floor, so the main area becomes a column and hands it the height left.
        With a notebook open the shell inside lays itself out. -->
   <main class="shell__main" class:shell__main--picker={showsPicker}>
-    {#if showsPicker}
+    {#if starting && !notebook}
+      <!-- The launch is still deciding: an empty floor, and word of the
+           notebook only if opening it takes long enough to be noticed. -->
+      {#if opening}
+        <Loading screen patient label={S.openingNotebook(leafOf(opening))} />
+      {/if}
+    {:else if showsPicker}
       <NotebookPicker
         {opening}
         {version}

@@ -253,6 +253,11 @@
     min-block-size: 12rem;
     padding: var(--app-space-32);
   }
+  /* Shows only once the wait is long enough to be noticed. */
+  .theme-loading--patient {
+    animation-delay: calc(var(--app-duration-slow) + var(--app-duration-medium));
+    animation-fill-mode: both;
+  }
   .theme-loading__spinner {
     display: inline-flex;
     color: var(--app-brand-ink);
