@@ -918,7 +918,7 @@ fn the_version_on_disk_is_kept_as_a_conflict_copy_and_the_app_lists_it() {
     std::fs::write(&file, "---\ncreated: 2026-07-21\n---\n\nversão de outro aparelho\n").unwrap();
 
     let copy = notebook
-        .keep_note_conflict_copy("jott.notes", &path)
+        .keep_note_conflict_copy("jott.notes", &path, &[])
         .expect("the copy")
         .expect("there was a file to keep");
     assert!(copy.starts_with("jott.notes/Inbox/Ideia.sync-conflict-"), "{copy}");
@@ -946,10 +946,37 @@ fn the_version_on_disk_is_kept_as_a_conflict_copy_and_the_app_lists_it() {
     assert_eq!(conflicts[0].original.as_deref(), Some(file.as_path()));
 
     // Twice in the same second is two copies, not one written over.
-    let again = notebook.keep_note_conflict_copy("jott.notes", &path).unwrap().unwrap();
+    let again = notebook
+        .keep_note_conflict_copy("jott.notes", &path, &[])
+        .unwrap()
+        .unwrap();
     assert_ne!(again, copy);
     assert_eq!(notebook.conflicts().unwrap().len(), 2);
 
     // Nothing on disk: nothing to keep, and no error.
-    assert_eq!(notebook.keep_note_conflict_copy("jott.notes", "Inbox/Nada.md").unwrap(), None);
+    assert_eq!(
+        notebook.keep_note_conflict_copy("jott.notes", "Inbox/Nada.md", &[]).unwrap(),
+        None
+    );
+}
+
+#[test]
+fn a_disk_that_reads_as_our_own_text_is_no_conflict() {
+    // The editor asks for a copy whenever an "outside" change reached the
+    // disk while it was dirty — and on a phone's storage its own save can
+    // come back as that. What the editor itself wrote holds nobody else's
+    // work: no copy, or the app would file its own text as a conflict.
+    let (dir, notebook) = init();
+    let path = notebook.create_note("jott.notes", "Inbox", "Ideia").unwrap();
+    notebook.write_note("jott.notes", &path, "o que eu digitei\n").unwrap();
+
+    let ours = vec!["versão anterior\n".to_string(), "o que eu digitei\n".to_string()];
+    assert_eq!(notebook.keep_note_conflict_copy("jott.notes", &path, &ours).unwrap(), None);
+    assert!(notebook.conflicts().unwrap().is_empty());
+
+    // Somebody else's text is kept, as before.
+    let file = dir.path().join("jott.notes").join(&path);
+    std::fs::write(&file, "---\ncreated: 2026-07-21\n---\n\nde outro aparelho\n").unwrap();
+    let copy = notebook.keep_note_conflict_copy("jott.notes", &path, &ours).unwrap();
+    assert!(copy.is_some());
 }

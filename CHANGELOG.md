@@ -6,6 +6,12 @@ What changed in each release, written for the person using the app rather than f
 
 One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` and `### Improved` under it. `packaging/release.sh` refuses to tag a version that has no section here. Versions before v0.51.0 predate the file and live only in the commit history.
 
+## v0.56.0
+
+### Fixed
+
+- **On a phone, the app no longer files its own typing as a sync conflict.** A pause while typing on Android could leave a `sync-conflict` copy of the note's own earlier text beside it, and the banner on every device.
+
 ## v0.55.0
 
 ### New

@@ -57,6 +57,11 @@
   /// typing here: the next write keeps it beside the note first. Plain,
   /// not state — read at write time, never drawn.
   let keepTheirs = false;
+  /// The last text handed to the bridge, landed or not: with the baseline,
+  /// what THIS editor put on disk. A disk that reads as either holds nobody
+  /// else's work, and the core keeps no copy of it — on a phone's storage the
+  /// editor's own save can come back as an outside change.
+  let lastWritten = null;
 
   // The delay is captured once on purpose: a mount-time knob for tests,
   // never changed while the editor lives.
@@ -66,9 +71,11 @@
     write: async (target, text) => {
       if (keepTheirs) {
         keepTheirs = false;
-        await api.keepNoteConflictCopy(target.folder, target.path);
-        onConflictKept?.();
+        const ours = [...new Set([saver.baseline(), lastWritten].filter((t) => t != null))];
+        const kept = await api.keepNoteConflictCopy(target.folder, target.path, ours);
+        if (kept) onConflictKept?.();
       }
+      lastWritten = text;
       await api.writeNote(target.folder, target.path, text);
       onSaved?.();
     },
@@ -93,6 +100,7 @@
     onSelection?.(false);
     onTable?.(null);
     keepTheirs = false;
+    lastWritten = null;
     load(folder, path);
   });
 

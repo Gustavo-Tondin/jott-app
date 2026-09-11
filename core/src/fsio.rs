@@ -20,11 +20,12 @@ pub fn write_atomically(path: impl AsRef<Path>, bytes: &[u8]) -> Result<()> {
     let name = file_name_of(path);
     let tmp = path.with_file_name(format!("{name}.tmp"));
 
+    // What the app writes, the app's own watcher must not report back to it
+    // (`crate::selfwrite`): recorded BEFORE the rename lands, so an event
+    // that arrives the instant it does already finds the record.
+    crate::selfwrite::remember(path, bytes);
     std::fs::write(&tmp, bytes).ctx(&tmp)?;
     std::fs::rename(&tmp, path).ctx(path)?;
-    // What the app writes, the app's own watcher must not report back to it
-    // (`crate::selfwrite`); the stamp is read here, while it is still ours.
-    crate::selfwrite::remember(path);
     Ok(())
 }
 

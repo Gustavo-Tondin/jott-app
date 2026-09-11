@@ -204,11 +204,26 @@ impl Notebook {
     /// Keeps the note as it is on disk as a conflict copy beside it
     /// (`NoteFolder::keep_conflict_copy`), before an editor writes over a
     /// version somebody else left. Answers the copy's root-relative address.
-    pub fn keep_note_conflict_copy(&self, space: &str, path: &str) -> Result<Option<String>> {
+    /// `ours` is what the editor itself last wrote or loaded: a disk that
+    /// reads as one of those holds nobody else's work, and no copy is made —
+    /// the editor cannot tell its own echo from an outside change by itself.
+    pub fn keep_note_conflict_copy(
+        &self,
+        space: &str,
+        path: &str,
+        ours: &[String],
+    ) -> Result<Option<String>> {
         self.ensure_writable()?;
-        let copy = self
-            .note_folder(space)?
-            .keep_conflict_copy(path, crate::clock::civil_now())?;
+        let folder = self.note_folder(space)?;
+        match folder.read(path) {
+            Ok(note) if ours.contains(&note.body) => return Ok(None),
+            Ok(_) => {}
+            Err(Error::Io { source, .. }) if source.kind() == std::io::ErrorKind::NotFound => {
+                return Ok(None)
+            }
+            Err(e) => return Err(e),
+        }
+        let copy = folder.keep_conflict_copy(path, crate::clock::civil_now())?;
         Ok(copy.map(|rel| format!("{space}/{rel}")))
     }
 

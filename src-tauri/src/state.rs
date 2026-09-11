@@ -46,12 +46,13 @@ fn attribute<T>(window: &str, f: impl FnOnce() -> T) -> T {
     f()
 }
 
-/// Whether `path` still carries the stamp `window` left on it — the window's
-/// own save coming back as an event, which the front already acted on. The
-/// window's own watcher drops those: reloading on the echo cost a refresh of
-/// every screen and a refetch of every picture on every keystroke pause.
+/// Whether `path` reads as something `window` wrote in the last seconds —
+/// the window's own save coming back as an event, which the front already
+/// acted on. The window's own watcher drops those: reloading on the echo
+/// cost a refresh of every screen and a refetch of every picture on every
+/// keystroke pause, and, worse, a conflict copy of the window's own text.
 pub fn is_own_write(path: &Path, window: &str) -> bool {
-    selfwrite::own(path, window).is_some_and(|stamp| selfwrite::unchanged(path, &stamp))
+    selfwrite::is_own(path, window)
 }
 
 impl AppState {

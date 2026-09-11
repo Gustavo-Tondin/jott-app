@@ -286,7 +286,8 @@ export const api = {
   readNote: (folder, path) => invoke("read_note", { folder, path }),
   // The version on disk, kept beside the note under Syncthing's conflict
   // name, before the editor writes over what somebody else left there.
-  keepNoteConflictCopy: (folder, path) => invoke("keep_note_conflict_copy", { folder, path }),
+  keepNoteConflictCopy: (folder, path, ours) =>
+    invoke("keep_note_conflict_copy", { folder, path, ours }),
   writeNote: (folder, path, body) => invoke("write_note", { folder, path, body }),
   createNote: (folder, inFolder, title) =>
     invoke("create_note", { folder, inFolder, title }),

@@ -1,19 +1,25 @@
 //! What the app itself just wrote, so a watcher can tell its own writes from
 //! somebody else's. Every write goes through `fsio::write_atomically`, which
-//! records the path here with the stamp it ended up carrying.
+//! records the bytes about to land here, BEFORE the rename that lands them.
 //!
-//! A write is remembered by its RESULT (length + mtime), never by time alone:
-//! a file that no longer carries the stamp we left was written by someone
-//! after us, and must still be reported — missing that lets the next save
-//! overwrite an external edit in silence.
+//! A write is remembered by its CONTENT (length + hash), never by mtime or by
+//! time alone: a file that no longer reads as something we wrote was written
+//! by someone after us, and must still be reported — missing that lets the
+//! next save overwrite an external edit in silence. The mtime was the old
+//! stamp, and on Android's FUSE it is not the same number twice; see
+//! docs/platform-gotchas.md#android.
+//!
+//! The last few writes to a path are ALL kept, not just the latest: a save
+//! lands while the event of the previous one is still being judged, and the
+//! file must read as ours whichever of the two is on disk at that instant.
 //!
 //! WHO wrote is named per thread (`as_owner`) and stamped on the record the
-//! moment the file lands — so a watcher can recognise the write while the
-//! command that made it is still running. Attributing at the end of the
-//! command was a race on slow storage: see docs/platform-gotchas.md#android.
+//! moment it is made — so a watcher can recognise the write while the command
+//! that made it is still running.
 
 use std::cell::RefCell;
 use std::collections::HashMap;
+use std::hash::{DefaultHasher, Hash, Hasher};
 use std::path::{Path, PathBuf};
 use std::sync::{Mutex, OnceLock};
 use std::time::{Duration, SystemTime};
@@ -23,25 +29,25 @@ use std::time::{Duration, SystemTime};
 /// cannot mask a real change for long.
 const REMEMBER: Duration = Duration::from_secs(5);
 
-/// What a file looked like right after we wrote it.
+/// What we wrote: its length and a hash of its bytes.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Stamp {
     pub len: u64,
-    pub modified: Option<SystemTime>,
+    pub hash: u64,
 }
 
 impl Stamp {
-    fn of(path: &Path) -> Option<Self> {
-        let meta = std::fs::metadata(path).ok()?;
-        Some(Self {
-            len: meta.len(),
-            modified: meta.modified().ok(),
-        })
+    pub fn of_bytes(bytes: &[u8]) -> Self {
+        let mut hasher = DefaultHasher::new();
+        bytes.hash(&mut hasher);
+        Self {
+            len: bytes.len() as u64,
+            hash: hasher.finish(),
+        }
     }
 }
 
-/// One recorded write: what it left behind, when, and the sequence number
-/// that lets a caller ask "what was written since I last looked?".
+/// One recorded write: what it left behind, when, and who wrote it.
 #[derive(Clone, Debug)]
 struct Record {
     stamp: Stamp,
@@ -52,7 +58,7 @@ struct Record {
 
 #[derive(Default)]
 struct Log {
-    writes: HashMap<PathBuf, Record>,
+    writes: HashMap<PathBuf, Vec<Record>>,
 }
 
 thread_local! {
@@ -79,12 +85,15 @@ pub fn as_owner(owner: &str) -> Owner {
 /// answer, because the app and the watcher do not always spell the same file
 /// the same way: on Windows the watcher reports the long, verbatim form of a
 /// path the app may have opened through a short (8.3) one, and a notebook
-/// reached through a symlink has two names on any system. A raw `PathBuf`
-/// compare misses those, and the window's own save comes back as somebody
-/// else's. A path that cannot be canonicalised — it is already gone — keeps
-/// its own form; the stamp comparison answers false for it anyway.
+/// reached through a symlink has two names on any system. The FOLDER is what
+/// gets canonicalised — a record is made before the file exists.
 fn key(path: &Path) -> PathBuf {
-    std::fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf())
+    match (path.parent(), path.file_name()) {
+        (Some(dir), Some(name)) => std::fs::canonicalize(dir)
+            .map(|dir| dir.join(name))
+            .unwrap_or_else(|_| path.to_path_buf()),
+        _ => path.to_path_buf(),
+    }
 }
 
 fn log() -> &'static Mutex<Log> {
@@ -95,57 +104,68 @@ fn log() -> &'static Mutex<Log> {
 /// Drops records older than [REMEMBER]. Called on every touch of the log, so
 /// it never grows past the writes of the last few seconds.
 fn purge(log: &mut Log, now: SystemTime) {
-    log.writes.retain(|_, record| {
-        now.duration_since(record.at)
-            .map(|age| age < REMEMBER)
-            .unwrap_or(true)
+    log.writes.retain(|_, records| {
+        records.retain(|record| {
+            now.duration_since(record.at)
+                .map(|age| age < REMEMBER)
+                .unwrap_or(true)
+        });
+        !records.is_empty()
     });
 }
 
-
-/// Records that we just wrote `path`. A path whose stamp cannot be read (it
-/// was deleted again already) is not recorded: there is nothing to compare
-/// against later, and reporting the event is the safe answer.
-pub fn remember(path: &Path) {
-    let Some(stamp) = Stamp::of(path) else {
-        return;
-    };
+/// Records that we are writing `bytes` to `path` — called before the bytes
+/// land, so an event that arrives the instant they do finds the record.
+pub fn remember(path: &Path, bytes: &[u8]) {
     let now = crate::clock::system_now();
     let Ok(mut log) = log().lock() else {
         return;
     };
     purge(&mut log, now);
     let owner = OWNER.with(|owner| owner.borrow().clone());
-    log.writes.insert(
-        key(path),
-        Record {
-            stamp,
-            at: now,
-            owner,
-        },
-    );
+    log.writes.entry(key(path)).or_default().push(Record {
+        stamp: Stamp::of_bytes(bytes),
+        at: now,
+        owner,
+    });
 }
 
-/// The stamp `owner` left on `path` with its latest write — `None` if the
-/// last write there was somebody else's, or nobody's, or too old to matter.
-pub fn own(path: &Path, owner: &str) -> Option<Stamp> {
+/// Whether `path`, as it is on disk right now, is something `owner` wrote in
+/// the last few seconds — its own write coming back as an event. A file that
+/// reads as none of them, or is gone, answers false: somebody else touched
+/// it, and missing that lets the next save overwrite an external edit.
+pub fn is_own(path: &Path, owner: &str) -> bool {
     let now = crate::clock::system_now();
-    let Ok(mut log) = log().lock() else {
-        return None;
+    let stamps: Vec<Stamp> = {
+        let Ok(mut log) = log().lock() else {
+            return false;
+        };
+        purge(&mut log, now);
+        match log.writes.get(&key(path)) {
+            Some(records) => records
+                .iter()
+                .filter(|record| record.owner.as_deref() == Some(owner))
+                .map(|record| record.stamp)
+                .collect(),
+            None => return false,
+        }
     };
-    purge(&mut log, now);
-    log.writes
-        .get(&key(path))
-        .filter(|record| record.owner.as_deref() == Some(owner))
-        .map(|record| record.stamp)
-}
-
-/// Does `path` still carry exactly `stamp`? True means the file on disk is
-/// the one we left there, and an event about it is our own echo. A file that
-/// has since changed, or gone, answers false — somebody else touched it, and
-/// missing that lets the next save overwrite an external edit in silence.
-pub fn unchanged(path: &Path, stamp: &Stamp) -> bool {
-    Stamp::of(path).is_some_and(|actual| actual == *stamp)
+    if stamps.is_empty() {
+        return false;
+    }
+    // The length is a stat away; the bytes are only read when one of our
+    // writes had that length — an asset is not hashed for every event.
+    let Ok(len) = std::fs::metadata(path).map(|meta| meta.len()) else {
+        return false;
+    };
+    if !stamps.iter().any(|stamp| stamp.len == len) {
+        return false;
+    }
+    let Ok(bytes) = std::fs::read(path) else {
+        return false;
+    };
+    let actual = Stamp::of_bytes(&bytes);
+    stamps.contains(&actual)
 }
 
 #[cfg(test)]
@@ -165,17 +185,62 @@ mod tests {
         let path = dir.join("note.md");
 
         let _me = as_owner("w1");
+        remember(&path, b"first");
         std::fs::write(&path, b"first").unwrap();
-        remember(&path);
+        assert!(is_own(&path, "w1"), "the file we just wrote is ours");
 
-        let stamp = own(&path, "w1").expect("the write was recorded as w1's");
-        assert!(unchanged(&path, &stamp), "the file we just wrote is ours");
-
-        // Somebody else writes over it: the stamp no longer matches, so the
+        // Somebody else writes over it: the content is none we wrote, so the
         // change is theirs and has to be reported.
-        std::thread::sleep(Duration::from_millis(10));
         std::fs::write(&path, b"second, longer").unwrap();
-        assert!(!unchanged(&path, &stamp), "a file changed after us is not ours");
+        assert!(!is_own(&path, "w1"), "a file changed after us is not ours");
+    }
+
+    #[test]
+    fn a_rewrite_of_the_same_length_by_somebody_else_is_theirs() {
+        // Same length, same second: the old (length + mtime) stamp could not
+        // tell these apart on a coarse clock. The content can.
+        let dir = temp_dir("samelen");
+        let path = dir.join("note.md");
+        let _me = as_owner("w1");
+        remember(&path, b"ours");
+        std::fs::write(&path, b"ours").unwrap();
+        std::fs::write(&path, b"them").unwrap();
+        assert!(!is_own(&path, "w1"));
+    }
+
+    #[test]
+    fn the_mtime_does_not_matter() {
+        // Android's FUSE answers a different mtime for the same write a
+        // moment later; what we compare is what is in the file.
+        let dir = temp_dir("mtime");
+        let path = dir.join("note.md");
+        let _me = as_owner("w1");
+        remember(&path, b"x");
+        std::fs::write(&path, b"x").unwrap();
+        let later = std::fs::FileTimes::new().set_modified(SystemTime::UNIX_EPOCH);
+        std::fs::File::options()
+            .write(true)
+            .open(&path)
+            .unwrap()
+            .set_times(later)
+            .unwrap();
+        assert!(is_own(&path, "w1"));
+    }
+
+    #[test]
+    fn the_previous_save_still_reads_as_ours_while_the_next_one_lands() {
+        // Two saves 500 ms apart: the event of the first is judged while the
+        // second is already recorded, or the second landed while the event
+        // of the first is judged. Either way the file is ours.
+        let dir = temp_dir("burst");
+        let path = dir.join("note.md");
+        let _me = as_owner("w1");
+        remember(&path, b"first");
+        std::fs::write(&path, b"first").unwrap();
+        remember(&path, b"second");
+        assert!(is_own(&path, "w1"), "recorded the next, the previous is still on disk");
+        std::fs::write(&path, b"second").unwrap();
+        assert!(is_own(&path, "w1"), "and the next landed");
     }
 
     #[test]
@@ -192,23 +257,23 @@ mod tests {
 
         let _me = as_owner("w1");
         let written = link.join("note.md");
+        // Recorded before the file exists, as `write_atomically` does.
+        remember(&written, b"x");
         std::fs::write(&written, b"x").unwrap();
-        remember(&written);
 
         let reported = real.join("note.md");
-        let stamp = own(&reported, "w1").expect("the other spelling names the same file");
-        assert!(unchanged(&reported, &stamp), "and it still carries our stamp");
+        assert!(is_own(&reported, "w1"), "the other spelling names the same file");
     }
 
     #[test]
     fn a_file_that_went_away_is_not_ours() {
         let dir = temp_dir("gone");
         let path = dir.join("gone.md");
+        let _me = as_owner("w1");
+        remember(&path, b"x");
         std::fs::write(&path, b"x").unwrap();
-        remember(&path);
-        let stamp = Stamp::of(&path).unwrap();
         std::fs::remove_file(&path).unwrap();
-        assert!(!unchanged(&path, &stamp));
+        assert!(!is_own(&path, "w1"));
     }
 
     #[test]
@@ -221,8 +286,8 @@ mod tests {
 
         {
             let _me = as_owner("w1");
+            remember(&mine, b"a");
             std::fs::write(&mine, b"a").unwrap();
-            remember(&mine);
             {
                 let _nested = as_owner("w2");
                 assert_eq!(OWNER.with(|o| o.borrow().clone()).as_deref(), Some("w2"));
@@ -231,12 +296,11 @@ mod tests {
         }
         assert_eq!(OWNER.with(|o| o.borrow().clone()), None, "the guard restores");
 
+        remember(&nobodys, b"b");
         std::fs::write(&nobodys, b"b").unwrap();
-        remember(&nobodys);
 
-        assert!(own(&mine, "w1").is_some(), "w1 wrote it");
-        assert!(own(&mine, "w2").is_none(), "w2 did not — a second window must hear");
-        assert!(own(&nobodys, "w1").is_none(), "an unnamed write is nobody's");
+        assert!(is_own(&mine, "w1"), "w1 wrote it");
+        assert!(!is_own(&mine, "w2"), "w2 did not — a second window must hear");
+        assert!(!is_own(&nobodys, "w1"), "an unnamed write is nobody's");
     }
-
 }

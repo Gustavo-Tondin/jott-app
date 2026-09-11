@@ -51,6 +51,9 @@ export function autosave({ delay = 500, write, onError }) {
     /// Whether `snapshot` is a real edit, or just the document as it was
     /// loaded (the caller's effect fires for both).
     dirty: (snapshot) => snapshot !== baseline,
+    /// The document as last loaded or last written — what the caller may
+    /// assume is on disk.
+    baseline: () => baseline,
     /// Schedules a write of `value`; `snapshot` is what the document reads
     /// as WITH this value, and becomes the baseline once the write lands.
     edit(value, snapshot) {

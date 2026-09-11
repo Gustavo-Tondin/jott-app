@@ -79,6 +79,12 @@ describe("NoteEditor", () => {
     const order = invoke.mock.calls.map(([cmd]) => cmd).filter((c) => c !== "read_note");
     expect(order).toEqual(["keep_note_conflict_copy", "write_note"]);
     expect(onConflictKept).toHaveBeenCalledTimes(1);
+    // The core is told what this editor itself had on disk, so a disk that
+    // still reads as that (its own save echoed back) gets no copy.
+    expect(invoke).toHaveBeenCalledWith(
+      "keep_note_conflict_copy",
+      expect.objectContaining({ ours: ["Corpo.\n"] }),
+    );
     // What was typed is what was written; the disk's version is beside it.
     const written = invoke.mock.calls.find(([cmd]) => cmd === "write_note")[1];
     expect(written.body).toContain("minha linha");
@@ -91,6 +97,22 @@ describe("NoteEditor", () => {
       { timeout: 3000 },
     );
     expect(invoke.mock.calls.filter(([cmd]) => cmd === "keep_note_conflict_copy")).toHaveLength(1);
+  });
+
+  test("when the core keeps no copy, the shell is not told of one", async () => {
+    const onConflictKept = vi.fn();
+    bridge({ ...loaded("Corpo.\n"), keep_note_conflict_copy: null });
+    const { rerender } = render(NoteEditor, {
+      props: props({ saveDelay: 800, onConflictKept }),
+    });
+    const field = await screen.findByDisplayValue("Corpo.");
+    await userEvent.type(field, "minha linha");
+    await rerender(props({ saveDelay: 800, onConflictKept, externalRevision: 1 }));
+    await waitFor(() => expect(invoke).toHaveBeenCalledWith("write_note", expect.anything()), {
+      timeout: 3000,
+    });
+    expect(invoke).toHaveBeenCalledWith("keep_note_conflict_copy", expect.anything());
+    expect(onConflictKept).not.toHaveBeenCalled();
   });
 
   test("opening a note writes nothing", async () => {
