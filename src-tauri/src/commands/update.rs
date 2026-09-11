@@ -13,24 +13,24 @@ use crate::error::{CommandError, CommandResult};
 /// Whether the app may look for a new version by itself. The settings screen
 /// explains the connection this implies and offers this switch to refuse it.
 #[tauri::command]
-pub fn auto_update_check<R: Runtime>(app: AppHandle<R>) -> bool {
+pub async fn auto_update_check<R: Runtime>(app: AppHandle<R>) -> bool {
     crate::prefs::auto_update_check(&app)
 }
 
 #[tauri::command]
-pub fn remember_auto_update_check<R: Runtime>(app: AppHandle<R>, on: bool) {
+pub async fn remember_auto_update_check<R: Runtime>(app: AppHandle<R>, on: bool) {
     crate::prefs::remember_auto_update_check(&app, on);
 }
 
 /// When the last automatic check ran — an opaque timestamp the frontend
 /// owns, only there to keep the check to once a day.
 #[tauri::command]
-pub fn last_update_check<R: Runtime>(app: AppHandle<R>) -> Option<String> {
+pub async fn last_update_check<R: Runtime>(app: AppHandle<R>) -> Option<String> {
     crate::prefs::last_update_check(&app)
 }
 
 #[tauri::command]
-pub fn remember_last_update_check<R: Runtime>(app: AppHandle<R>, when: String) {
+pub async fn remember_last_update_check<R: Runtime>(app: AppHandle<R>, when: String) {
     crate::prefs::remember_last_update_check(&app, &when);
 }
 
@@ -163,7 +163,7 @@ fn data_dir() -> Option<PathBuf> {
 }
 
 #[tauri::command]
-pub fn desktop_entry_state<R: Runtime>(app: AppHandle<R>) -> DesktopEntryState {
+pub async fn desktop_entry_state<R: Runtime>(app: AppHandle<R>) -> DesktopEntryState {
     let here = appimage_path();
     let dir = data_dir();
     let status = match (&here, &dir) {
@@ -186,7 +186,7 @@ pub fn desktop_entry_state<R: Runtime>(app: AppHandle<R>) -> DesktopEntryState {
 /// Writes the entry, or takes it away again — reversible because it writes
 /// two files outside the notebook.
 #[tauri::command]
-pub fn set_desktop_entry(on: bool) -> CommandResult<()> {
+pub async fn set_desktop_entry(on: bool) -> CommandResult<()> {
     let dir = data_dir().ok_or_else(|| {
         CommandError::new("unsupported", "this system has no user data directory")
     })?;
@@ -204,7 +204,7 @@ pub fn set_desktop_entry(on: bool) -> CommandResult<()> {
 /// Remembers that the offer was refused, so it is made once and not at every
 /// launch.
 #[tauri::command]
-pub fn dismiss_desktop_entry<R: Runtime>(app: AppHandle<R>) {
+pub async fn dismiss_desktop_entry<R: Runtime>(app: AppHandle<R>) {
     crate::prefs::remember_desktop_entry_dismissed(&app, true);
 }
 

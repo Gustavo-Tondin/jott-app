@@ -51,7 +51,7 @@ pub struct SpaceInfo {
 
 /// Sets a space's display name (empty clears it, back to the folder name).
 #[tauri::command]
-pub fn rename_space<R: Runtime>(
+pub async fn rename_space<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
     folder: String,
@@ -62,7 +62,7 @@ pub fn rename_space<R: Runtime>(
 
 /// Sets a space's accent colour and icon (either empty clears it).
 #[tauri::command]
-pub fn set_space_appearance<R: Runtime>(
+pub async fn set_space_appearance<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
     folder: String,
@@ -74,7 +74,7 @@ pub fn set_space_appearance<R: Runtime>(
 
 /// Sends a user space to the trash (never a fixed one).
 #[tauri::command]
-pub fn delete_space<R: Runtime>(
+pub async fn delete_space<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
     folder: String,
@@ -85,7 +85,7 @@ pub fn delete_space<R: Runtime>(
 /// Sets how a space orders its items and, when `direction` is given, which
 /// way (`up` / `down`); a tasks space's lists are rewritten in that order.
 #[tauri::command]
-pub fn set_space_sort<R: Runtime>(
+pub async fn set_space_sort<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
     space: String,
@@ -100,7 +100,7 @@ pub fn set_space_sort<R: Runtime>(
 /// Sets how a notes space draws its board (`grid` / `tree`; null = the
 /// notebook's default).
 #[tauri::command]
-pub fn set_space_note_layout<R: Runtime>(
+pub async fn set_space_note_layout<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
     space: String,
@@ -112,7 +112,7 @@ pub fn set_space_note_layout<R: Runtime>(
 /// Saves the hand-dragged arrangement in the space's `.space.json`
 /// and switches it to the custom ordering.
 #[tauri::command]
-pub fn set_space_order<R: Runtime>(
+pub async fn set_space_order<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
     space: String,
@@ -157,7 +157,7 @@ pub(crate) fn groups_of(nb: &Notebook) -> CommandResult<Vec<GroupInfo>> {
 }
 
 #[tauri::command]
-pub fn groups<R: Runtime>(
+pub async fn groups<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
 ) -> CommandResult<Vec<GroupInfo>> {
@@ -166,7 +166,7 @@ pub fn groups<R: Runtime>(
 
 /// Creates a group at the root, or inside another group when `group` is given.
 #[tauri::command]
-pub fn create_group<R: Runtime>(
+pub async fn create_group<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
     name: String,
@@ -178,7 +178,7 @@ pub fn create_group<R: Runtime>(
 /// Moves a group — with everything under it — into another group, or back to
 /// the root when `into_group` is null.
 #[tauri::command]
-pub fn move_group<R: Runtime>(
+pub async fn move_group<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
     name: String,
@@ -188,7 +188,7 @@ pub fn move_group<R: Runtime>(
 }
 
 #[tauri::command]
-pub fn rename_group<R: Runtime>(
+pub async fn rename_group<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
     folder: String,
@@ -198,7 +198,7 @@ pub fn rename_group<R: Runtime>(
 }
 
 #[tauri::command]
-pub fn set_group_appearance<R: Runtime>(
+pub async fn set_group_appearance<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
     folder: String,
@@ -209,7 +209,7 @@ pub fn set_group_appearance<R: Runtime>(
 }
 
 #[tauri::command]
-pub fn delete_group<R: Runtime>(
+pub async fn delete_group<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
     folder: String,
@@ -218,7 +218,7 @@ pub fn delete_group<R: Runtime>(
 }
 
 #[tauri::command]
-pub fn move_space<R: Runtime>(
+pub async fn move_space<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
     name: String,
@@ -228,7 +228,7 @@ pub fn move_space<R: Runtime>(
 }
 
 #[tauri::command]
-pub fn create_space_in<R: Runtime>(
+pub async fn create_space_in<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
     name: String,

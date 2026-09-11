@@ -38,7 +38,7 @@ pub async fn screen_to_restore<R: Runtime>(
 /// Records the current screen. No-op when the notebook has the preference off,
 /// so turning it on later does not restore a screen from months ago.
 #[tauri::command]
-pub fn remember_screen<R: Runtime>(
+pub async fn remember_screen<R: Runtime>(
     app: AppHandle<R>,
     state: State<'_, AppState>,
     window: tauri::Window<R>,
@@ -55,44 +55,44 @@ pub fn remember_screen<R: Runtime>(
 /// How wide the sidebar was left last time, in CSS pixels — `None` when it was
 /// never dragged. It needs no notebook: the panel is drawn before one is open.
 #[tauri::command]
-pub fn sidebar_width<R: Runtime>(app: AppHandle<R>) -> Option<f64> {
+pub async fn sidebar_width<R: Runtime>(app: AppHandle<R>) -> Option<f64> {
     crate::prefs::sidebar_width(&app)
 }
 
 /// Remembers it, once per drag.
 #[tauri::command]
-pub fn remember_sidebar_width<R: Runtime>(app: AppHandle<R>, width: f64) {
+pub async fn remember_sidebar_width<R: Runtime>(app: AppHandle<R>, width: f64) {
     crate::prefs::remember_sidebar_width(&app, width);
 }
 
 /// The same pair for the right panel — the inspector and the suggestions
 /// share one width, because they share one panel.
 #[tauri::command]
-pub fn panel_width<R: Runtime>(app: AppHandle<R>) -> Option<f64> {
+pub async fn panel_width<R: Runtime>(app: AppHandle<R>) -> Option<f64> {
     crate::prefs::panel_width(&app)
 }
 
 #[tauri::command]
-pub fn remember_panel_width<R: Runtime>(app: AppHandle<R>, width: f64) {
+pub async fn remember_panel_width<R: Runtime>(app: AppHandle<R>, width: f64) {
     crate::prefs::remember_panel_width(&app, width);
 }
 
 /// How far the interface is zoomed. The frontend clamps whatever it reads —
 /// a value hand-edited to 40 must not make the app unusable with no way back.
 #[tauri::command]
-pub fn zoom<R: Runtime>(app: AppHandle<R>) -> Option<f64> {
+pub async fn zoom<R: Runtime>(app: AppHandle<R>) -> Option<f64> {
     crate::prefs::zoom(&app)
 }
 
 #[tauri::command]
-pub fn remember_zoom<R: Runtime>(app: AppHandle<R>, zoom: f64) {
+pub async fn remember_zoom<R: Runtime>(app: AppHandle<R>, zoom: f64) {
     crate::prefs::remember_zoom(&app, zoom);
 }
 
 /// Every notebook preference in force, for the settings screen to draw. The
 /// Display half comes back from the MACHINE — see the module header.
 #[tauri::command]
-pub fn notebook_settings<R: Runtime>(
+pub async fn notebook_settings<R: Runtime>(
     app: AppHandle<R>,
     state: State<'_, AppState>,
     window: tauri::Window<R>,
@@ -104,7 +104,7 @@ pub fn notebook_settings<R: Runtime>(
 /// holds; an unknown page is refused rather than quietly doing nothing, so a
 /// renamed section shows up as an error and not as a dead button.
 #[tauri::command]
-pub fn reset_settings<R: Runtime>(
+pub async fn reset_settings<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
     section: String,
@@ -122,7 +122,7 @@ pub fn reset_settings<R: Runtime>(
 /// "Reset this section" on Display: this machine stops answering for the
 /// notebook, and every Display value falls back to the notebook's own.
 #[tauri::command]
-pub fn reset_machine_display<R: Runtime>(
+pub async fn reset_machine_display<R: Runtime>(
     app: AppHandle<R>,
     state: State<'_, AppState>,
     window: tauri::Window<R>,
@@ -137,7 +137,7 @@ pub fn reset_machine_display<R: Runtime>(
 /// notebook does not stop it. Every field is optional: the screen sends the
 /// one key that changed.
 #[tauri::command]
-pub fn set_machine_display<R: Runtime>(
+pub async fn set_machine_display<R: Runtime>(
     app: AppHandle<R>,
     state: State<'_, AppState>,
     window: tauri::Window<R>,
@@ -153,7 +153,7 @@ pub fn set_machine_display<R: Runtime>(
 /// was — is `jott_core::settings::NotebookSettings::apply_to`, so a second
 /// frontend writes this file under the same rules.
 #[tauri::command]
-pub fn set_notebook_settings<R: Runtime>(
+pub async fn set_notebook_settings<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
     settings: NotebookSettings,
@@ -168,7 +168,7 @@ pub fn set_notebook_settings<R: Runtime>(
 /// Records a manual order for a namespace (`"spaces"`, `"lists:<folder>"`),
 /// written by dragging in the sidebar. An empty list clears it.
 #[tauri::command]
-pub fn set_order<R: Runtime>(
+pub async fn set_order<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
     namespace: String,
@@ -182,7 +182,7 @@ pub fn set_order<R: Runtime>(
 /// to its default, so the file only carries what differs from how the app
 /// ships. Nothing on disk changes: this is about what the interface offers.
 #[tauri::command]
-pub fn set_feature<R: Runtime>(
+pub async fn set_feature<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
     key: String,
@@ -196,7 +196,7 @@ pub fn set_feature<R: Runtime>(
 /// `services/keys.js` own them); a binding this build cannot honour is
 /// ignored on the way in rather than destroyed on the way out.
 #[tauri::command]
-pub fn set_shortcut<R: Runtime>(
+pub async fn set_shortcut<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
     id: String,
@@ -207,7 +207,7 @@ pub fn set_shortcut<R: Runtime>(
 
 /// Back to the table the app ships with.
 #[tauri::command]
-pub fn reset_shortcuts<R: Runtime>(state: State<'_, AppState>,
+pub async fn reset_shortcuts<R: Runtime>(state: State<'_, AppState>,
     window: tauri::Window<R>,) -> CommandResult<()> {
     state.record(window.label(), "reset_shortcuts", |nb| nb.reset_shortcuts())
 }
@@ -222,7 +222,7 @@ pub async fn spaces_sort<R: Runtime>(state: State<'_, AppState>,
 
 /// Sets it.
 #[tauri::command]
-pub fn set_spaces_sort<R: Runtime>(state: State<'_, AppState>,
+pub async fn set_spaces_sort<R: Runtime>(state: State<'_, AppState>,
     window: tauri::Window<R>, sort: String) -> CommandResult<()> {
     state.record(window.label(), "set_spaces_sort", |nb| nb.set_spaces_sort(&sort))
 }
@@ -244,7 +244,7 @@ pub async fn user_themes<R: Runtime>(
 /// cross the bridge rather than being loaded by the page: the core has already
 /// refused anything past the size cap and neutralised every outbound reference.
 #[tauri::command]
-pub fn user_theme_css<R: Runtime>(
+pub async fn user_theme_css<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
     name: String,
@@ -256,7 +256,7 @@ pub fn user_theme_css<R: Runtime>(
 /// frontend hands over — the one the app is wearing, which lives in the
 /// bundle (`src/styles/themes/*.css`) and not here.
 #[tauri::command]
-pub fn create_user_theme<R: Runtime>(
+pub async fn create_user_theme<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
     name: String,

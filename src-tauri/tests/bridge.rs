@@ -2605,3 +2605,53 @@ fn a_day_that_is_not_a_day_is_refused_under_its_own_kind() {
     // An empty string is "nothing", as null is.
     ok(&app, "day_tasks", json!({ "day": "" }));
 }
+
+/// The rule of `commands/mod.rs`: a sync command runs on the thread that
+/// draws, and on Android that thread and FUSE storage do not mix
+/// (docs/desempenho.md). Read from the sources like the dialog rule above,
+/// so a command added later is covered by it.
+#[test]
+fn every_command_that_touches_the_disk_is_async() {
+    const STAY_SYNC: &[&str] = &[
+        "platform",
+        "perf_enabled",
+        "app_version",
+        "undoable",
+        "quit_app",
+        "open_window",
+    ];
+    let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src/commands");
+    let mut seen = 0;
+    for entry in std::fs::read_dir(&dir).unwrap().flatten() {
+        let path = entry.path();
+        if path.extension().is_none_or(|ext| ext != "rs") {
+            continue;
+        }
+        let text = std::fs::read_to_string(&path).unwrap();
+        let lines: Vec<&str> = text.lines().collect();
+        for (i, line) in lines.iter().enumerate() {
+            if line.trim() != "#[tauri::command]" {
+                continue;
+            }
+            let signature = lines[i + 1];
+            let name = signature
+                .trim_start_matches("pub async fn ")
+                .trim_start_matches("pub fn ")
+                .split(['<', '('])
+                .next()
+                .unwrap();
+            seen += 1;
+            let is_async = signature.starts_with("pub async fn ");
+            let listed = STAY_SYNC.contains(&name);
+            assert!(
+                is_async != listed,
+                "{}:{}: `{name}` {}",
+                path.file_name().unwrap().to_string_lossy(),
+                i + 2,
+                if listed { "is listed as sync but is async — take it off the list" }
+                else { "touches the disk from the thread that draws — make it async, or list it" }
+            );
+        }
+    }
+    assert!(seen > 100, "only {seen} commands read — the scan is broken");
+}

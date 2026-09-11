@@ -30,7 +30,7 @@ pub(crate) fn iso_day(text: Option<String>) -> CommandResult<Option<NaiveDate>> 
 }
 
 #[tauri::command]
-pub fn pull_into_day<R: Runtime>(
+pub async fn pull_into_day<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
     day: Option<String>,
@@ -42,7 +42,7 @@ pub fn pull_into_day<R: Runtime>(
 }
 
 #[tauri::command]
-pub fn remove_from_day<R: Runtime>(
+pub async fn remove_from_day<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
     day: Option<String>,
@@ -56,7 +56,7 @@ pub fn remove_from_day<R: Runtime>(
 /// How the day is arranged (`name` / `created` / `completed`), or null for
 /// the order the tasks were pulled in. One answer for every day.
 #[tauri::command]
-pub fn day_sort<R: Runtime>(
+pub async fn day_sort<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
 ) -> CommandResult<Option<String>> {
@@ -66,7 +66,7 @@ pub fn day_sort<R: Runtime>(
 /// Sets that arrangement. A day has no `.space.json`, so it lives in the
 /// notebook config beside the manual `order`.
 #[tauri::command]
-pub fn set_day_sort<R: Runtime>(
+pub async fn set_day_sort<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
     sort: Option<String>,
@@ -77,7 +77,7 @@ pub fn set_day_sort<R: Runtime>(
 /// Rearranges a day to the order the user dragged. The file is the day's
 /// list, so the hand-made order goes straight into it.
 #[tauri::command]
-pub fn set_day_order<R: Runtime>(
+pub async fn set_day_order<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
     day: Option<String>,
@@ -90,7 +90,7 @@ pub fn set_day_order<R: Runtime>(
 /// The tasks a day holds, resolved to the real thing. Empty for a day gone
 /// by — the Home reads those from the timeline.
 #[tauri::command]
-pub fn day_tasks<R: Runtime>(
+pub async fn day_tasks<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
     day: Option<String>,
@@ -120,7 +120,7 @@ pub(crate) fn clock_of(nb: &Notebook) -> DayClock {
 }
 
 #[tauri::command]
-pub fn day_clock<R: Runtime>(
+pub async fn day_clock<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
 ) -> CommandResult<DayClock> {
@@ -131,7 +131,7 @@ pub fn day_clock<R: Runtime>(
 /// app was open — and pouring in whatever was planned for the day that just
 /// arrived. The frontend calls this when the scheduled turn arrives.
 #[tauri::command]
-pub fn refresh_day<R: Runtime>(
+pub async fn refresh_day<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
 ) -> CommandResult<DayState> {
@@ -141,7 +141,7 @@ pub fn refresh_day<R: Runtime>(
 /// Suggestions for a day with the reason each one is being offered, so the
 /// UI can group them without re-deriving the rule.
 #[tauri::command]
-pub fn grouped_suggestions<R: Runtime>(
+pub async fn grouped_suggestions<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
     day: Option<String>,

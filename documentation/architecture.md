@@ -51,6 +51,11 @@ a command, not about what the frontend sees.
 **A command longer than a handful of lines of invocation is the signal that a
 rule ended up in the wrong layer.**
 
+**Every command that touches the disk or waits on a process is `async`.** A
+sync command runs on the thread that draws — on Android, the only one, over
+FUSE storage. The few that stay sync read memory alone, and a test in
+`src-tauri/tests/bridge.rs` keeps the list.
+
 Two things live here legitimately, because they are the platform and not the
 domain: `net.rs` (the only outbound HTTP, HTTPS-only and size-bounded),
 `base64.rs`, `prefs.rs` (machine preferences, in the OS config folder), and

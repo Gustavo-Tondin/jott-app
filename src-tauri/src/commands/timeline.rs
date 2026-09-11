@@ -20,7 +20,7 @@ use crate::state::AppState;
 /// log and every list with a live task: ask when the screen opens (and per
 /// year as the reader scrolls), never per render.
 #[tauri::command]
-pub fn timeline<R: Runtime>(
+pub async fn timeline<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
     from: Option<String>,
@@ -32,7 +32,7 @@ pub fn timeline<R: Runtime>(
 
 /// The years the log has a file for, newest first.
 #[tauri::command]
-pub fn timeline_years<R: Runtime>(
+pub async fn timeline_years<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
 ) -> CommandResult<Vec<i32>> {
@@ -53,7 +53,7 @@ pub enum Target {
 /// an undo that put the lines back would defeat the confirmation the user
 /// just gave. Returns how many lines went.
 #[tauri::command]
-pub fn forget_from_timeline<R: Runtime>(
+pub async fn forget_from_timeline<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
     target: Target,

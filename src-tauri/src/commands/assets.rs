@@ -15,7 +15,7 @@ use super::shell::open_path;
 
 /// Every image in the notebook's library, newest first.
 #[tauri::command]
-pub fn assets<R: Runtime>(
+pub async fn assets<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
 ) -> CommandResult<Vec<jott_core::AssetEntry>> {
@@ -26,7 +26,7 @@ pub fn assets<R: Runtime>(
 /// Base64 because it is the one transport that works everywhere: the raw IPC
 /// body is unavailable on Android (`crate::base64` decodes).
 #[tauri::command]
-pub fn import_asset<R: Runtime>(
+pub async fn import_asset<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
     name: String,
@@ -42,7 +42,7 @@ pub fn import_asset<R: Runtime>(
 /// is chosen by the person dragging, the same trust the folder picker carries;
 /// all this can WRITE is a copy into `assets/`.
 #[tauri::command]
-pub fn import_asset_from_path<R: Runtime>(
+pub async fn import_asset_from_path<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
     path: PathBuf,
@@ -55,7 +55,7 @@ pub fn import_asset_from_path<R: Runtime>(
 
 /// Renames a file of the library, repointing every note and task that uses it.
 #[tauri::command]
-pub fn rename_asset<R: Runtime>(
+pub async fn rename_asset<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
     path: String,
@@ -67,7 +67,7 @@ pub fn rename_asset<R: Runtime>(
 /// Sends a file to the notebook's trash. Notes and tasks pointing at it keep
 /// their address — the file is what came back, if it comes back.
 #[tauri::command]
-pub fn delete_asset<R: Runtime>(
+pub async fn delete_asset<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
     path: String,
@@ -80,7 +80,7 @@ pub fn delete_asset<R: Runtime>(
 /// resolved by the library: only a direct child of `assets/` resolves at all,
 /// which keeps this from being "open any file on this machine".
 #[tauri::command]
-pub fn open_asset<R: Runtime>(
+pub async fn open_asset<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
     path: String,
@@ -249,7 +249,7 @@ fn clipboard_png<R: Runtime>(_app: &AppHandle<R>) -> Option<Vec<u8>> {
 /// Where each file of the library is used, keyed by its address — for the
 /// Images screen. A file nobody points at has no entry.
 #[tauri::command]
-pub fn asset_usage<R: Runtime>(
+pub async fn asset_usage<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
 ) -> CommandResult<std::collections::HashMap<String, Vec<jott_core::search::SearchHit>>> {

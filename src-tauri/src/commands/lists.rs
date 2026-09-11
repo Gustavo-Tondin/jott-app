@@ -11,7 +11,7 @@ use crate::error::CommandResult;
 use crate::state::AppState;
 
 #[tauri::command]
-pub fn list_names<R: Runtime>(
+pub async fn list_names<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
 ) -> CommandResult<Vec<jott_core::notebook::ListEntry>> {
@@ -23,7 +23,7 @@ pub fn list_names<R: Runtime>(
 /// The app reports them; resolving is the user's call, since guessing which
 /// side to keep is how work gets lost.
 #[tauri::command]
-pub fn list_conflicts<R: Runtime>(
+pub async fn list_conflicts<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
 ) -> CommandResult<Vec<Conflict>> {
@@ -31,7 +31,7 @@ pub fn list_conflicts<R: Runtime>(
 }
 
 #[tauri::command]
-pub fn list_tasks<R: Runtime>(
+pub async fn list_tasks<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
     list: String,
@@ -43,7 +43,7 @@ pub fn list_tasks<R: Runtime>(
 /// `Tasks` — the UI takes it from `layout.tasksFolder` until it is
 /// space-aware).
 #[tauri::command]
-pub fn create_list<R: Runtime>(
+pub async fn create_list<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
     folder: String,
@@ -56,7 +56,7 @@ pub fn create_list<R: Runtime>(
 }
 
 #[tauri::command]
-pub fn rename_list<R: Runtime>(
+pub async fn rename_list<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
     from: String,
@@ -67,7 +67,7 @@ pub fn rename_list<R: Runtime>(
 
 /// Deletes a list. Returns how many tasks were moved to the Inbox.
 #[tauri::command]
-pub fn delete_list<R: Runtime>(
+pub async fn delete_list<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
     name: String,
@@ -76,7 +76,7 @@ pub fn delete_list<R: Runtime>(
 }
 
 #[tauri::command]
-pub fn completed_tasks<R: Runtime>(
+pub async fn completed_tasks<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
 ) -> CommandResult<Vec<jott_core::notebook::ListedTask>> {

@@ -277,7 +277,7 @@ pub async fn recent_notebooks<R: Runtime>(app: AppHandle<R>) -> Vec<RecentNotebo
 
 /// Takes a notebook off the picker's list. Nothing on disk is touched.
 #[tauri::command]
-pub fn forget_notebook<R: Runtime>(app: AppHandle<R>, path: PathBuf) {
+pub async fn forget_notebook<R: Runtime>(app: AppHandle<R>, path: PathBuf) {
     crate::prefs::forget_notebook(&app, &path);
 }
 
@@ -285,7 +285,7 @@ pub fn forget_notebook<R: Runtime>(app: AppHandle<R>, path: PathBuf) {
 /// the refusals are the core's (`Notebook::rename_at`); this side guards and
 /// does the bookkeeping. Answers the new path, which the screen reloads around.
 #[tauri::command]
-pub fn rename_notebook<R: Runtime>(
+pub async fn rename_notebook<R: Runtime>(
     app: AppHandle<R>,
     state: State<'_, AppState>,
     path: PathBuf,
@@ -300,7 +300,7 @@ pub fn rename_notebook<R: Runtime>(
 /// Moves a notebook from the picker into another folder of the machine. Same
 /// shape as the rename above, and the same guard.
 #[tauri::command]
-pub fn move_notebook<R: Runtime>(
+pub async fn move_notebook<R: Runtime>(
     app: AppHandle<R>,
     state: State<'_, AppState>,
     path: PathBuf,
@@ -328,23 +328,24 @@ fn ensure_closed(state: &State<'_, AppState>, path: &std::path::Path) -> Command
 
 /// The notebook THIS window has open, if any.
 #[tauri::command]
-pub fn current_notebook<R: Runtime>(
+pub async fn current_notebook<R: Runtime>(
     app: AppHandle<R>,
     state: State<'_, AppState>,
     window: tauri::Window<R>,
-) -> Option<NotebookInfo> {
-    state
-        .with_notebook(window.label(), |nb| {
-            NotebookInfo::of(nb, display_of(&app, nb))
-        })
-        .ok()
+) -> CommandResult<Option<NotebookInfo>> {
+    // `Ok(None)` for a window on the picker: not a failure, the state every
+    // window starts in. (A `Result` because an async command with `State`
+    // must answer one.)
+    Ok(state
+        .with_notebook(window.label(), |nb| NotebookInfo::of(nb, display_of(&app, nb)))
+        .ok())
 }
 
 /// What the open notebook holds — notes, open tasks, files, bytes — for the
 /// line under Notebook → Keeping. Counted on demand: the screen asks when
 /// the section opens, not on every render.
 #[tauri::command]
-pub fn notebook_contents<R: Runtime>(
+pub async fn notebook_contents<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
 ) -> CommandResult<jott_core::NotebookContents> {
@@ -354,7 +355,7 @@ pub fn notebook_contents<R: Runtime>(
 /// Open task count per list, for the navigation. Empty when the user turned
 /// the counters off — the frontend does not need to know the rule.
 #[tauri::command]
-pub fn list_counts<R: Runtime>(
+pub async fn list_counts<R: Runtime>(
     app: AppHandle<R>,
     state: State<'_, AppState>,
     window: tauri::Window<R>,
@@ -380,7 +381,7 @@ pub(crate) fn counts_of(
 /// one space by its root-relative path (a screen's ⋮); absent or empty is the
 /// whole notebook (Ctrl+F).
 #[tauri::command]
-pub fn search<R: Runtime>(
+pub async fn search<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
     query: String,
@@ -407,7 +408,7 @@ pub struct TrashEntryInfo {
 }
 
 #[tauri::command]
-pub fn trash_entries<R: Runtime>(
+pub async fn trash_entries<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
 ) -> CommandResult<Vec<TrashEntryInfo>> {
@@ -435,7 +436,7 @@ pub fn trash_entries<R: Runtime>(
 /// nothing to undo. A `stale` error means the files moved on since (a sync,
 /// the other window) and the entry was dropped rather than written over them.
 #[tauri::command]
-pub fn undo<R: Runtime>(
+pub async fn undo<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
 ) -> CommandResult<Option<String>> {
@@ -444,7 +445,7 @@ pub fn undo<R: Runtime>(
 
 /// `Ctrl+Shift+Z` — does the last undone action again. Same answers as `undo`.
 #[tauri::command]
-pub fn redo<R: Runtime>(
+pub async fn redo<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
 ) -> CommandResult<Option<String>> {
@@ -463,7 +464,7 @@ pub fn undoable<R: Runtime>(
 }
 
 #[tauri::command]
-pub fn restore_from_trash<R: Runtime>(
+pub async fn restore_from_trash<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
     id: String,
@@ -472,7 +473,7 @@ pub fn restore_from_trash<R: Runtime>(
 }
 
 #[tauri::command]
-pub fn purge_from_trash<R: Runtime>(
+pub async fn purge_from_trash<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
     id: String,
@@ -481,7 +482,7 @@ pub fn purge_from_trash<R: Runtime>(
 }
 
 #[tauri::command]
-pub fn empty_trash<R: Runtime>(
+pub async fn empty_trash<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
 ) -> CommandResult<usize> {
@@ -510,7 +511,7 @@ pub(crate) fn tags_of(nb: &Notebook) -> Vec<TagInfo> {
 }
 
 #[tauri::command]
-pub fn tags<R: Runtime>(
+pub async fn tags<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
 ) -> CommandResult<Vec<TagInfo>> {
@@ -520,7 +521,7 @@ pub fn tags<R: Runtime>(
 /// Every tag in use in the tasks, with its count — catalogued or not. Asked
 /// when the Tags screen opens (it walks every list), never on a render.
 #[tauri::command]
-pub fn tag_usage<R: Runtime>(
+pub async fn tag_usage<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
 ) -> CommandResult<Vec<jott_core::tags::TagUsage>> {
@@ -528,7 +529,7 @@ pub fn tag_usage<R: Runtime>(
 }
 
 #[tauri::command]
-pub fn set_tag<R: Runtime>(
+pub async fn set_tag<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
     name: String,
@@ -538,7 +539,7 @@ pub fn set_tag<R: Runtime>(
 }
 
 #[tauri::command]
-pub fn remove_tag<R: Runtime>(
+pub async fn remove_tag<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
     name: String,

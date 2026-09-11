@@ -24,7 +24,7 @@ pub async fn reminders<R: Runtime>(
 /// Up to what moment this machine has rung the window's notebook. `None`
 /// means never — a first launch rings nothing from the past.
 #[tauri::command]
-pub fn reminded_until<R: Runtime>(
+pub async fn reminded_until<R: Runtime>(
     state: State<'_, AppState>,
     app: AppHandle<R>,
     window: tauri::Window<R>,
@@ -34,7 +34,7 @@ pub fn reminded_until<R: Runtime>(
 }
 
 #[tauri::command]
-pub fn remember_reminded_until<R: Runtime>(
+pub async fn remember_reminded_until<R: Runtime>(
     state: State<'_, AppState>,
     app: AppHandle<R>,
     window: tauri::Window<R>,
@@ -48,7 +48,7 @@ pub fn remember_reminded_until<R: Runtime>(
 /// The last day this machine announced the window's notebook summary
 /// (`2026-09-08`), or `None` when it never has.
 #[tauri::command]
-pub fn day_summarized_on<R: Runtime>(
+pub async fn day_summarized_on<R: Runtime>(
     state: State<'_, AppState>,
     app: AppHandle<R>,
     window: tauri::Window<R>,
@@ -58,7 +58,7 @@ pub fn day_summarized_on<R: Runtime>(
 }
 
 #[tauri::command]
-pub fn remember_day_summarized_on<R: Runtime>(
+pub async fn remember_day_summarized_on<R: Runtime>(
     state: State<'_, AppState>,
     app: AppHandle<R>,
     window: tauri::Window<R>,
@@ -87,7 +87,7 @@ pub const REMINDER_OPEN_EVENT: &str = "reminder://open";
 /// schedule to the notification plugin, which rings with the app dead. On
 /// desktop the shell keeps the timer and this is the bell.
 #[tauri::command]
-pub fn notify_reminder<R: Runtime>(
+pub async fn notify_reminder<R: Runtime>(
     app: AppHandle<R>,
     window: tauri::Window<R>,
     title: String,
@@ -95,7 +95,10 @@ pub fn notify_reminder<R: Runtime>(
     target: ReminderTarget,
 ) -> CommandResult<()> {
     let label = window.label().to_string();
-    show_notification(&app, &label, title, body, target)
+    // `show` is a D-Bus round trip on Linux: off the runtime's workers too.
+    tauri::async_runtime::spawn_blocking(move || show_notification(&app, &label, title, body, target))
+        .await
+        .map_err(|e| crate::error::CommandError::new("io", e.to_string()))?
 }
 
 /// Linux: D-Bus notifications can be clicked, and the click is what opens the
@@ -166,19 +169,19 @@ pub fn open_target<R: Runtime>(app: &AppHandle<R>, label: &str, target: &Reminde
 
 /// Whether closing the window keeps the app in the tray. On by default.
 #[tauri::command]
-pub fn close_to_tray<R: Runtime>(app: AppHandle<R>) -> bool {
+pub async fn close_to_tray<R: Runtime>(app: AppHandle<R>) -> bool {
     crate::prefs::close_to_tray(&app)
 }
 
 #[tauri::command]
-pub fn remember_close_to_tray<R: Runtime>(app: AppHandle<R>, on: bool) {
+pub async fn remember_close_to_tray<R: Runtime>(app: AppHandle<R>, on: bool) {
     crate::prefs::remember_close_to_tray(&app, on);
 }
 
 /// Whether the app starts with the session. Only the desktop plugin can
 /// answer; elsewhere it is simply "no".
 #[tauri::command]
-pub fn autostart<R: Runtime>(app: AppHandle<R>) -> bool {
+pub async fn autostart<R: Runtime>(app: AppHandle<R>) -> bool {
     #[cfg(desktop)]
     {
         use tauri_plugin_autostart::ManagerExt;
@@ -192,7 +195,7 @@ pub fn autostart<R: Runtime>(app: AppHandle<R>) -> bool {
 }
 
 #[tauri::command]
-pub fn set_autostart<R: Runtime>(app: AppHandle<R>, on: bool) -> CommandResult<()> {
+pub async fn set_autostart<R: Runtime>(app: AppHandle<R>, on: bool) -> CommandResult<()> {
     #[cfg(desktop)]
     {
         use tauri_plugin_autostart::ManagerExt;

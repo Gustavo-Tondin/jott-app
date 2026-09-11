@@ -32,7 +32,7 @@ pub struct NoteContent {
 /// Every note in a notes space, sorted for the board: pinned first, then
 /// newest. An empty `query` returns all of them.
 #[tauri::command]
-pub fn list_notes<R: Runtime>(
+pub async fn list_notes<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
     folder: String,
@@ -47,7 +47,7 @@ pub fn list_notes<R: Runtime>(
 /// `homeShowsAllInboxNotes` (2026-08-24). A view like `notes_created_today`:
 /// nothing is moved or written.
 #[tauri::command]
-pub fn inbox_notes<R: Runtime>(
+pub async fn inbox_notes<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
     folder: String,
@@ -59,7 +59,7 @@ pub fn inbox_notes<R: Runtime>(
 /// (each answer says which one). The Home owns no notes of its own; this is
 /// a view filtered by `created` (spec 5), so nothing is moved or written.
 #[tauri::command]
-pub fn notes_created_today<R: Runtime>(
+pub async fn notes_created_today<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
 ) -> CommandResult<Vec<jott_core::ListedNote>> {
@@ -69,7 +69,7 @@ pub fn notes_created_today<R: Runtime>(
 /// Writes a note from one blob of text — the Home's quick capture. The first
 /// line becomes the title.
 #[tauri::command]
-pub fn quick_capture_note<R: Runtime>(
+pub async fn quick_capture_note<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
     folder: String,
@@ -94,7 +94,7 @@ pub async fn note_folders<R: Runtime>(
 /// action like the space's own appearance: recorded, and attributed, so the
 /// `.space.json` it rewrites does not echo back as somebody else's change.
 #[tauri::command]
-pub fn set_note_folder_color<R: Runtime>(
+pub async fn set_note_folder_color<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
     folder: String,
@@ -108,7 +108,7 @@ pub fn set_note_folder_color<R: Runtime>(
 
 /// Keeps a folder of notes at the top of the board, or stops.
 #[tauri::command]
-pub fn set_note_folder_pinned<R: Runtime>(
+pub async fn set_note_folder_pinned<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
     folder: String,
@@ -121,7 +121,7 @@ pub fn set_note_folder_pinned<R: Runtime>(
 }
 
 #[tauri::command]
-pub fn read_note<R: Runtime>(
+pub async fn read_note<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
     folder: String,
@@ -181,7 +181,7 @@ pub async fn keep_note_conflict_copy<R: Runtime>(
 
 /// Creates a note and returns its address.
 #[tauri::command]
-pub fn create_note<R: Runtime>(
+pub async fn create_note<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
     folder: String,
@@ -192,7 +192,7 @@ pub fn create_note<R: Runtime>(
 }
 
 #[tauri::command]
-pub fn delete_note<R: Runtime>(
+pub async fn delete_note<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
     folder: String,
@@ -205,7 +205,7 @@ pub fn delete_note<R: Runtime>(
 
 /// Renames a note inside its folder. Returns the new address.
 #[tauri::command]
-pub fn rename_note<R: Runtime>(
+pub async fn rename_note<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
     folder: String,
@@ -219,7 +219,7 @@ pub fn rename_note<R: Runtime>(
 
 /// Moves a note to another folder inside the same space. Returns the new address.
 #[tauri::command]
-pub fn move_note<R: Runtime>(
+pub async fn move_note<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
     folder: String,
@@ -230,7 +230,7 @@ pub fn move_note<R: Runtime>(
 }
 
 #[tauri::command]
-pub fn set_note_pinned<R: Runtime>(
+pub async fn set_note_pinned<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
     folder: String,
@@ -244,7 +244,7 @@ pub fn set_note_pinned<R: Runtime>(
 /// are normalised in the core like a task's; an empty list takes the
 /// property out of the file.
 #[tauri::command]
-pub fn set_note_tags<R: Runtime>(
+pub async fn set_note_tags<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
     folder: String,
@@ -260,7 +260,7 @@ pub fn set_note_tags<R: Runtime>(
 /// address (`assets/sunset.jpg`). Which of the two it is comes from the value
 /// itself, in the core, so the interface never has to say.
 #[tauri::command]
-pub fn set_note_banner<R: Runtime>(
+pub async fn set_note_banner<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
     folder: String,
@@ -274,7 +274,7 @@ pub fn set_note_banner<R: Runtime>(
 /// Copies a note beside itself, returning the new address — the card's
 /// "Duplicate".
 #[tauri::command]
-pub fn duplicate_note<R: Runtime>(
+pub async fn duplicate_note<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
     folder: String,
@@ -286,7 +286,7 @@ pub fn duplicate_note<R: Runtime>(
 /// Moves a note to another notes space (the bulk "move to" of the board).
 /// Returns the new address, relative to the space it landed in.
 #[tauri::command]
-pub fn move_note_to_space<R: Runtime>(
+pub async fn move_note_to_space<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
     folder: String,
@@ -299,7 +299,7 @@ pub fn move_note_to_space<R: Runtime>(
 
 /// Renames a folder inside a notes space. Returns the new address.
 #[tauri::command]
-pub fn rename_note_folder<R: Runtime>(
+pub async fn rename_note_folder<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
     folder: String,
@@ -314,7 +314,7 @@ pub fn rename_note_folder<R: Runtime>(
 /// Deletes a folder, moving what was inside up to its parent. Returns how
 /// many entries moved — the UI tells the user, the way deleting a list does.
 #[tauri::command]
-pub fn delete_note_folder<R: Runtime>(
+pub async fn delete_note_folder<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
     folder: String,
@@ -324,7 +324,7 @@ pub fn delete_note_folder<R: Runtime>(
 }
 
 #[tauri::command]
-pub fn create_note_folder<R: Runtime>(
+pub async fn create_note_folder<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
     folder: String,

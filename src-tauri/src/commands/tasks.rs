@@ -16,7 +16,7 @@ use crate::state::AppState;
 /// address the task (see `ensure_task_id`), which is what keeps a plain
 /// checklist free of comments.
 #[tauri::command]
-pub fn create_task<R: Runtime>(
+pub async fn create_task<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
     list: String,
@@ -30,7 +30,7 @@ pub fn create_task<R: Runtime>(
 /// The UI works with positions; the moment the user acts on a task — pulls it
 /// into a day, completes it — it needs a name that survives reordering.
 #[tauri::command]
-pub fn ensure_task_id<R: Runtime>(
+pub async fn ensure_task_id<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
     list: String,
@@ -40,7 +40,7 @@ pub fn ensure_task_id<R: Runtime>(
 }
 
 #[tauri::command]
-pub fn edit_task_text<R: Runtime>(
+pub async fn edit_task_text<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
     list: String,
@@ -52,7 +52,7 @@ pub fn edit_task_text<R: Runtime>(
 
 /// Pins a task to the top of its list, or unpins it (the card's bookmark).
 #[tauri::command]
-pub fn set_task_pinned<R: Runtime>(
+pub async fn set_task_pinned<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
     list: String,
@@ -70,7 +70,7 @@ pub fn set_task_pinned<R: Runtime>(
 /// [`jott_core::task::TaskFields`]'s, in the core, where a second frontend
 /// can reach it.
 #[tauri::command]
-pub fn set_task_fields<R: Runtime>(
+pub async fn set_task_fields<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
     list: String,
@@ -82,7 +82,7 @@ pub fn set_task_fields<R: Runtime>(
 
 /// Reorders a task inside its list. Positions count tasks, not lines.
 #[tauri::command]
-pub fn move_task_to<R: Runtime>(
+pub async fn move_task_to<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
     list: String,
@@ -96,7 +96,7 @@ pub fn move_task_to<R: Runtime>(
 /// because the move makes the target its home (undoing a completion is a
 /// separate mechanism that does not go through here).
 #[tauri::command]
-pub fn move_task<R: Runtime>(
+pub async fn move_task<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
     from: String,
@@ -108,7 +108,7 @@ pub fn move_task<R: Runtime>(
 
 /// Inserts a copy of a task right after it, in the same list.
 #[tauri::command]
-pub fn duplicate_task<R: Runtime>(
+pub async fn duplicate_task<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
     list: String,
@@ -118,7 +118,7 @@ pub fn duplicate_task<R: Runtime>(
 }
 
 #[tauri::command]
-pub fn complete_task<R: Runtime>(
+pub async fn complete_task<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
     list: String,
@@ -131,7 +131,7 @@ pub fn complete_task<R: Runtime>(
 /// in — with one Completed per space, the id alone cannot say which folder
 /// to undo in.
 #[tauri::command]
-pub fn uncomplete_task<R: Runtime>(
+pub async fn uncomplete_task<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
     list: String,
@@ -142,7 +142,7 @@ pub fn uncomplete_task<R: Runtime>(
 
 /// Deletes a single task (sends it to the internal trash).
 #[tauri::command]
-pub fn delete_task<R: Runtime>(
+pub async fn delete_task<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
     list: String,
@@ -155,7 +155,7 @@ pub fn delete_task<R: Runtime>(
 /// screen's "every list" (2026-09-04). Walks every list: ask when the screen
 /// opens, never per render.
 #[tauri::command]
-pub fn all_tasks<R: Runtime>(
+pub async fn all_tasks<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
 ) -> CommandResult<Vec<ListedTask>> {

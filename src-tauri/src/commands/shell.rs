@@ -17,12 +17,14 @@ use crate::state::AppState;
 /// What the desktop says the window buttons should be — the window is
 /// frameless and draws them itself. Read once at boot. Asking `gsettings` is
 /// this side's; what its text MEANS is `jott_core::desktop`'s.
+/// Async like every command that waits on a process (see `commands`).
 #[tauri::command]
-pub fn window_button_layout() -> ButtonLayout {
+pub async fn window_button_layout() -> ButtonLayout {
     if !cfg!(target_os = "linux") {
         return default_button_layout();
     }
-    host_stdout("gsettings", &["get", "org.gnome.desktop.wm.preferences", "button-layout"])
+    host_stdout_blocking("gsettings", &["get", "org.gnome.desktop.wm.preferences", "button-layout"])
+        .await
         .map(|text| parse_button_layout(&text))
         .unwrap_or_else(default_button_layout)
 }
@@ -237,14 +239,14 @@ fn dirs_home() -> Option<PathBuf> {
 /// `None`. The rules a path from the UI makes necessary are the core's
 /// (`jott_core::browse`); which root they are bounded by is this side's.
 #[tauri::command]
-pub fn list_folders(path: Option<String>) -> CommandResult<jott_core::browse::FolderListing> {
+pub async fn list_folders(path: Option<String>) -> CommandResult<jott_core::browse::FolderListing> {
     Ok(jott_core::browse::listing(&browse_root(), path)?)
 }
 
 /// Creates a folder inside `parent`, so the notebook can be put somewhere that
 /// does not exist yet.
 #[tauri::command]
-pub fn create_folder(parent: String, name: String) -> CommandResult<String> {
+pub async fn create_folder(parent: String, name: String) -> CommandResult<String> {
     Ok(jott_core::browse::create_folder(&browse_root(), parent, &name)?)
 }
 
@@ -252,7 +254,7 @@ pub fn create_folder(parent: String, name: String) -> CommandResult<String> {
 /// root-relative; empty means the notebook root. Always a FOLDER, never a
 /// document: an address that names a file opens the directory around it.
 #[tauri::command]
-pub fn open_in_file_manager<R: Runtime>(
+pub async fn open_in_file_manager<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
     path: Option<String>,
@@ -265,7 +267,7 @@ pub fn open_in_file_manager<R: Runtime>(
 /// is no open notebook here, so the path is CHECKED (absolute, and a notebook)
 /// rather than resolved — never a door to any folder the webview names.
 #[tauri::command]
-pub fn reveal_notebook(path: PathBuf) -> CommandResult<()> {
+pub async fn reveal_notebook(path: PathBuf) -> CommandResult<()> {
     if !jott_core::Notebook::is_notebook(&path) {
         return Err(CommandError::new(
             "notebook",
@@ -415,7 +417,7 @@ pub async fn picker_closes<R: Runtime>(app: AppHandle<R>) -> bool {
 }
 
 #[tauri::command]
-pub fn remember_picker_closes<R: Runtime>(app: AppHandle<R>, closes: bool) {
+pub async fn remember_picker_closes<R: Runtime>(app: AppHandle<R>, closes: bool) {
     crate::prefs::remember_picker_closes(&app, closes);
 }
 
@@ -427,7 +429,7 @@ pub async fn opens_on_picker<R: Runtime>(app: AppHandle<R>) -> bool {
 }
 
 #[tauri::command]
-pub fn remember_opens_on_picker<R: Runtime>(app: AppHandle<R>, on: bool) {
+pub async fn remember_opens_on_picker<R: Runtime>(app: AppHandle<R>, on: bool) {
     crate::prefs::remember_opens_on_picker(&app, on);
 }
 
