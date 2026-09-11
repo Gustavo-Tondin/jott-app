@@ -132,6 +132,18 @@ pub async fn clipboard_files<R: Runtime>(app: AppHandle<R>) -> Vec<String> {
     clipboard_uris(&app).unwrap_or_default()
 }
 
+/// The picture sitting on the system clipboard, as base64 PNG, or `""`. A
+/// screenshot copied to the clipboard reaches WebKitGTK's paste with no type,
+/// no file and no item at all — only the system can hand the pixels over.
+/// See docs/platform-gotchas.md#webview-e-gestos
+#[tauri::command]
+pub async fn clipboard_image<R: Runtime>(app: AppHandle<R>) -> String {
+    clipboard_png(&app)
+        .filter(|png| !png.is_empty())
+        .map(|png| crate::base64::encode(&png))
+        .unwrap_or_default()
+}
+
 /// Runs `f` on the GTK main thread and waits — bounded — for its answer. GTK3
 /// is not thread-safe; the wait is bounded because both callers are niceties
 /// and must never hang a command.
@@ -185,11 +197,41 @@ fn gtk_clipboard_uris() -> Option<Vec<String>> {
     )
 }
 
+#[cfg(target_os = "linux")]
+fn clipboard_png<R: Runtime>(app: &AppHandle<R>) -> Option<Vec<u8>> {
+    on_main_thread(app, gtk_clipboard_png)?
+}
+
+/// PNG bytes as the owner wrote them when it offers `image/png` (GNOME's
+/// screenshot does); any other picture GTK can read is converted to PNG.
+#[cfg(target_os = "linux")]
+fn gtk_clipboard_png() -> Option<Vec<u8>> {
+    let display = gdk::Display::default()?;
+    let clipboard = gtk::Clipboard::default(&display)?;
+
+    let png = clipboard
+        .wait_for_contents(&gdk::Atom::intern("image/png"))
+        .map(|data| data.data())
+        .unwrap_or_default();
+    if !png.is_empty() {
+        return Some(png);
+    }
+    clipboard
+        .wait_for_image()?
+        .save_to_bufferv("png", &[])
+        .ok()
+}
+
 /// Everywhere else the clipboard is not asked: Android has none to reach for,
 /// and Windows and macOS hand the files to the webview in the first place.
 /// Without this the crate does not compile off Linux.
 #[cfg(not(target_os = "linux"))]
 fn clipboard_uris<R: Runtime>(_app: &AppHandle<R>) -> Option<Vec<String>> {
+    None
+}
+
+#[cfg(not(target_os = "linux"))]
+fn clipboard_png<R: Runtime>(_app: &AppHandle<R>) -> Option<Vec<u8>> {
     None
 }
 

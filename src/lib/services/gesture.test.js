@@ -13,12 +13,13 @@ import {
   pathOfFileUrl,
   readGesture,
   remoteImageIn,
+  saysNothing,
 } from "./gesture.js";
 
 beforeEach(() => {
   resetBridge();
   // What the system clipboard is holding, which for most of these is nothing.
-  bridge({ clipboard_files: [] });
+  bridge({ clipboard_files: [], clipboard_image: "" });
 });
 
 /// The `<a>` WebKit hands a dragged file over in — with the address as its
@@ -77,6 +78,26 @@ describe("reading one", () => {
     ]);
     // A drop has no such thing to ask, and does not.
     expect((await readGesture(transfer)).paths).toEqual([]);
+  });
+
+  it("hands over a picture only the system clipboard holds, as png bytes", async () => {
+    // A copied screenshot: WebKitGTK's paste carries no type, no file, no
+    // item. The pixels come from the bridge.
+    bridge({ clipboard_files: [], clipboard_image: btoa("\x89PNG") });
+    const blind = { types: [], files: [], getData: () => "", items: [] };
+
+    expect(saysNothing(blind)).toBe(true);
+    const brought = await readGesture(blind, { clipboard: true });
+    expect(brought.files).toHaveLength(1);
+    expect(brought.files[0].type).toBe("image/png");
+    expect(brought.files[0].size).toBe(4);
+  });
+
+  it("prefers a copied file over a picture of it", async () => {
+    bridge({ clipboard_files: ["file:///home/gus/foto.png"], clipboard_image: btoa("\x89PNG") });
+    const brought = await readGesture({ types: [], files: [] }, { clipboard: true });
+    expect(brought.paths).toEqual(["/home/gus/foto.png"]);
+    expect(brought.files).toEqual([]);
   });
 
   it("finds a picture that is only on the web", async () => {

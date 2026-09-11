@@ -4,7 +4,7 @@
 // event finishes dispatching, `services/gesture.js`); `dragover` must say yes
 // or no `drop` ever arrives.
 
-import { looksLikeFiles, readGesture } from "../services/gesture.js";
+import { looksLikeFiles, readGesture, saysNothing } from "../services/gesture.js";
 
 /// @param options `{ onFiles, disabled, paste, over }`
 ///   - `onFiles({files, paths, remote, types})` — what the gesture brought.
@@ -17,8 +17,13 @@ export function acceptsFiles(node, options = {}) {
 
   const take = (transfer, clipboard) => {
     if (current.disabled || !current.onFiles) return false;
-    if (!transfer?.files?.length && !looksLikeFiles(transfer)) return false;
-    readGesture(transfer, { clipboard }).then(current.onFiles);
+    // A paste the webview says nothing about is taken to ask the system, but
+    // only reported if the system held something — an empty clipboard is silent.
+    const blind = clipboard && saysNothing(transfer);
+    if (!blind && !transfer?.files?.length && !looksLikeFiles(transfer)) return false;
+    readGesture(transfer, { clipboard }).then((brought) => {
+      if (!blind || brought.files.length || brought.paths.length) current.onFiles(brought);
+    });
     return true;
   };
 

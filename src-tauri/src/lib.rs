@@ -187,6 +187,7 @@ pub fn configure<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builde
             commands::assets::import_asset,
             commands::assets::import_asset_from_path,
             commands::assets::clipboard_files,
+            commands::assets::clipboard_image,
             commands::assets::import_asset_from_url,
             commands::assets::rename_asset,
             commands::assets::delete_asset,

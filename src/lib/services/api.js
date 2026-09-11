@@ -327,6 +327,9 @@ export const api = {
   // The files on the SYSTEM clipboard, as `file://` addresses — the only door
   // when the webview's clipboard says nothing, which for a pasted file is always.
   clipboardFiles: () => invoke("clipboard_files"),
+  // The picture on the SYSTEM clipboard as base64 PNG, "" when none — a
+  // copied screenshot reaches the webview's paste with nothing in it.
+  clipboardImage: () => invoke("clipboard_image"),
   // Fetches a picture from the internet into the library. The one call in this
   // app that leaves the machine, and never made without being asked.
   importAssetFromUrl: (url) => invoke("import_asset_from_url", { url }),

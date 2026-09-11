@@ -216,6 +216,35 @@ describe("NoteEditor", () => {
     expect(brought.mock.calls[0][0].paths).toEqual(["/home/gus/nota.pdf"]);
   });
 
+  test("a picture on the system clipboard comes in through an empty paste", async () => {
+    // What a copied screenshot looks like to WebKitGTK: a paste with nothing in it.
+    bridge({ ...loaded(), clipboard_files: [], clipboard_image: btoa("\x89PNG") });
+    const brought = vi.fn();
+
+    const { container } = render(NoteEditor, { props: props({ onFiles: brought }) });
+    await screen.findByDisplayValue("Corpo.");
+    await fireEvent.paste(bodyOf(container), {
+      clipboardData: { files: [], types: [], getData: () => "", items: [] },
+    });
+
+    await waitFor(() => expect(brought).toHaveBeenCalledTimes(1));
+    expect(brought.mock.calls[0][0].files[0].type).toBe("image/png");
+  });
+
+  test("an empty paste with nothing on the system clipboard stays silent", async () => {
+    bridge({ ...loaded(), clipboard_files: [], clipboard_image: "" });
+    const brought = vi.fn();
+
+    const { container } = render(NoteEditor, { props: props({ onFiles: brought }) });
+    await screen.findByDisplayValue("Corpo.");
+    await fireEvent.paste(bodyOf(container), {
+      clipboardData: { files: [], types: [], getData: () => "", items: [] },
+    });
+
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(brought).not.toHaveBeenCalled();
+  });
+
   test("dropping a file on the note hands it over too", async () => {
     bridge(loaded());
     const brought = vi.fn();

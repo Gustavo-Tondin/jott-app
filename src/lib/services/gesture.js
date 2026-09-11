@@ -56,8 +56,18 @@ export function readGesture(transfer, { clipboard = false } = {}) {
     if (remote) return found({ remote });
 
     if (!clipboard) return found({});
-    return found({ paths: (await systemClipboard()).map(pathOfFileUrl).filter(Boolean) });
+    const copied = (await systemClipboard()).map(pathOfFileUrl).filter(Boolean);
+    if (copied.length) return found({ paths: copied });
+    const image = await systemImage();
+    return found(image ? { files: [image] } : {});
   });
+}
+
+/// A paste the webview could read nothing of — no type, no file. What
+/// WebKitGTK delivers for a picture on the clipboard (a screenshot): only the
+/// system can say what it was.
+export function saysNothing(transfer) {
+  return !transfer?.types?.length && !transfer?.files?.length;
 }
 
 function getData(transfer, type) {
@@ -88,6 +98,15 @@ function asString(item) {
 }
 
 const systemClipboard = () => api.clipboardFiles().then((uris) => uris ?? []).catch(() => []);
+const systemImage = () => api.clipboardImage().then(pngFile).catch(() => null);
+
+/// Base64 PNG as a nameless `File`, or `null` — `libraryName` calls it
+/// `pasted.png`, and it travels the same road as any pasted bytes.
+export function pngFile(base64) {
+  if (!base64) return null;
+  const bytes = Uint8Array.from(atob(base64), (char) => char.charCodeAt(0));
+  return new File([bytes], "", { type: "image/png" });
+}
 
 /// The path a `file://` address names on this machine, or `""`.
 ///
