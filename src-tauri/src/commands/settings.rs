@@ -22,7 +22,7 @@ pub(crate) fn display_of<R: Runtime>(app: &AppHandle<R>, notebook: &Notebook) ->
 /// left one, or `restoreLastScreen` is off. The value is machine-local; the
 /// preference to use it travels with the notebook.
 #[tauri::command]
-pub fn screen_to_restore<R: Runtime>(
+pub async fn screen_to_restore<R: Runtime>(
     app: AppHandle<R>,
     state: State<'_, AppState>,
     window: tauri::Window<R>,
@@ -215,7 +215,7 @@ pub fn reset_shortcuts<R: Runtime>(state: State<'_, AppState>,
 /// How the sidebar arranges the user's spaces: `name`, or the empty string
 /// for the hand-dragged order.
 #[tauri::command]
-pub fn spaces_sort<R: Runtime>(state: State<'_, AppState>,
+pub async fn spaces_sort<R: Runtime>(state: State<'_, AppState>,
     window: tauri::Window<R>,) -> CommandResult<String> {
     state.with_notebook(window.label(), |nb| Ok(nb.spaces_sort().to_string()))
 }
@@ -231,7 +231,7 @@ pub fn set_spaces_sort<R: Runtime>(state: State<'_, AppState>,
 /// never per render — it walks a folder. The app's version is handed to the
 /// core because `CARGO_PKG_VERSION` is a fact about the binary, not the library.
 #[tauri::command]
-pub fn user_themes<R: Runtime>(
+pub async fn user_themes<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
 ) -> CommandResult<Vec<jott_core::themes::UserTheme>> {

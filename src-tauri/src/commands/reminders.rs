@@ -14,7 +14,7 @@ use crate::state::AppState;
 /// included. Walks every list: asked when the notebook changed, not on a
 /// render.
 #[tauri::command]
-pub fn reminders<R: Runtime>(
+pub async fn reminders<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
 ) -> CommandResult<Vec<jott_core::reminders::Reminder>> {

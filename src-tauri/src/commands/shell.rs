@@ -187,7 +187,7 @@ pub async fn pick_notebook_folder<R: Runtime>(app: AppHandle<R>) -> Option<PathB
 /// reachable by any other app (`Android/data/<package>`, USB only). `None` on
 /// desktop. See docs/platform-gotchas.md#android
 #[tauri::command]
-pub fn default_notebook_folder<R: Runtime>(app: AppHandle<R>) -> Option<PathBuf> {
+pub async fn default_notebook_folder<R: Runtime>(app: AppHandle<R>) -> Option<PathBuf> {
     #[cfg(target_os = "android")]
     {
         use tauri::Manager;
@@ -404,7 +404,7 @@ fn encode_query(value: &str) -> String {
 /// Whether the picker's window closes once it has opened a notebook. A
 /// machine preference set in the picker's own ⋮; absent means it closes.
 #[tauri::command]
-pub fn picker_closes<R: Runtime>(app: AppHandle<R>) -> bool {
+pub async fn picker_closes<R: Runtime>(app: AppHandle<R>) -> bool {
     crate::prefs::picker_closes(&app)
 }
 
@@ -416,7 +416,7 @@ pub fn remember_picker_closes<R: Runtime>(app: AppHandle<R>, closes: bool) {
 /// Whether the app opens on the picker instead of on the last notebook. The
 /// other half of the same ⋮; absent means the last notebook.
 #[tauri::command]
-pub fn opens_on_picker<R: Runtime>(app: AppHandle<R>) -> bool {
+pub async fn opens_on_picker<R: Runtime>(app: AppHandle<R>) -> bool {
     crate::prefs::opens_on_picker(&app)
 }
 

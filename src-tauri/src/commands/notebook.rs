@@ -193,7 +193,7 @@ impl NotebookInfo {
 /// words otherwise); true is "Create", still `open_or_init`, since a folder
 /// that already holds a notebook is the same intention by the other road.
 #[tauri::command]
-pub fn open_notebook<R: Runtime>(
+pub async fn open_notebook<R: Runtime>(
     app: AppHandle<R>,
     state: State<'_, AppState>,
     window: tauri::Window<R>,
@@ -231,7 +231,7 @@ fn allow_assets<R: Runtime>(app: &AppHandle<R>, root: &std::path::Path) {
 /// it instead of asking for the folder every launch. `None` when there is
 /// none, or when the folder is gone.
 #[tauri::command]
-pub fn last_notebook<R: Runtime>(app: AppHandle<R>) -> Option<PathBuf> {
+pub async fn last_notebook<R: Runtime>(app: AppHandle<R>) -> Option<PathBuf> {
     crate::prefs::last_notebook(&app)
 }
 
@@ -254,7 +254,7 @@ pub struct RecentNotebook {
 /// whole screen, and it stays in prefs so the card returns with the drive.
 /// Reading only — `Notebook::open` would recreate spaces and reap trash.
 #[tauri::command]
-pub fn recent_notebooks<R: Runtime>(app: AppHandle<R>) -> Vec<RecentNotebook> {
+pub async fn recent_notebooks<R: Runtime>(app: AppHandle<R>) -> Vec<RecentNotebook> {
     crate::prefs::recent_notebooks(&app)
         .into_iter()
         .filter_map(|entry| {
@@ -551,7 +551,7 @@ pub struct NotebookSnapshot {
 }
 
 #[tauri::command]
-pub fn notebook_snapshot<R: Runtime>(
+pub async fn notebook_snapshot<R: Runtime>(
     app: AppHandle<R>,
     state: State<'_, AppState>,
     window: tauri::Window<R>,

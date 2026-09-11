@@ -82,7 +82,7 @@ pub fn quick_capture_note<R: Runtime>(
 /// The folders of a notes space, each with the colour and the pin the space
 /// remembers for it (2026-08-19).
 #[tauri::command]
-pub fn note_folders<R: Runtime>(
+pub async fn note_folders<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
     folder: String,
