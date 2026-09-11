@@ -356,9 +356,14 @@ order you dragged things into.
   0 means forever. The only destruction in Jott is you emptying the trash.
 
 - **`index/`** — bookkeeping Jott keeps for itself, **not a format and not
-  yours to edit**. Today it holds `seen.json`, a map of note address → the
-  local timestamp of the last time that note was opened, with a `seen.json.bak`
-  beside it that is read when the main file does not parse. It exists because
+  yours to edit**. Today it holds `seen.<device>.json`, a map of note address →
+  the local timestamp of the last time that note was opened. Each install of
+  Jott writes only its own file (the device name is made up once and kept on
+  that machine), so a sync tool never sees two devices editing the same one;
+  Jott reads every `seen*.json` in the folder — other devices', a `seen.json`
+  from an older version, conflict copies — and keeps the latest stamp per
+  note. Each file has a `.bak` beside it, read when that file does not parse.
+  It exists because
   "last seen" must not be written *into* a note — reading a note would then
   rewrite it. Everything here is rebuildable or simply losable: delete the
   folder and you lose the last-seen stamps and nothing else. A tool written

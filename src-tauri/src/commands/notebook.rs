@@ -201,6 +201,11 @@ pub async fn open_notebook<R: Runtime>(
     path: PathBuf,
     create: Option<bool>,
 ) -> CommandResult<NotebookInfo> {
+    // Before anything is stamped: from here on this process writes its own
+    // "seen" file, never the one another device writes.
+    if let Some(id) = crate::prefs::device_id(&app) {
+        jott_core::seen::claim_device(&id);
+    }
     let notebook = if create.unwrap_or(false) {
         Notebook::open_or_init(&path)?
     } else {

@@ -290,11 +290,11 @@ mod tests {
 
     #[test]
     fn the_apps_own_indexes_wake_nobody() {
-        // Opening a note stamps `index/seen.json`; announcing it would reload
+        // Opening a note stamps `index/seen*.json`; announcing it would reload
         // every screen for a derived file no screen reads.
         let root = PathBuf::from("/caderno");
         let config_dir = root.join(NOTEBOOK_CONFIG_DIR);
-        for name in [crate::seen::SEEN_FILE, "seen.json.bak"] {
+        for name in [crate::seen::SEEN_FILE, "seen.json.bak", "seen.a1b2c3.json"] {
             assert_eq!(
                 Change::classify(config_dir.join(crate::seen::INDEX_DIR).join(name), &config_dir),
                 None,

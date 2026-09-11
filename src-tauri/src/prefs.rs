@@ -104,6 +104,10 @@ struct MachinePrefs {
     /// has no second window at all.
     picker_closes: Option<bool>,
     opens_on_picker: Option<bool>,
+    /// This install's name in a notebook's per-device files
+    /// (`jott_core::seen`), made up once. Per install, like the files it
+    /// names: two devices writing one file is what a sync tool calls a conflict.
+    device_id: Option<String>,
     /// Keys this build does not know — a newer version's. Kept, so that
     /// opening the app once here does not strip what the other build wrote:
     /// the pact every config file of the app makes (`jott_core::jsondoc`).
@@ -272,6 +276,21 @@ pub fn zoom<R: Runtime>(app: &AppHandle<R>) -> Option<f64> {
 
 pub fn remember_zoom<R: Runtime>(app: &AppHandle<R>, zoom: f64) {
     update(app, |prefs| prefs.zoom = Some(zoom));
+}
+
+/// This install's device name, made up the first time it is asked for and
+/// kept. `None` only when there is no config folder to keep it in — a name
+/// that changed every launch would leave a new file behind each time.
+pub fn device_id<R: Runtime>(app: &AppHandle<R>) -> Option<String> {
+    path_of(app)?;
+    if let Some(id) = load(app).device_id {
+        return Some(id);
+    }
+    let mut kept = None;
+    update(app, |prefs| {
+        kept = Some(prefs.device_id.get_or_insert_with(jott_core::id::generate).clone());
+    });
+    kept
 }
 
 /// How wide the right panel was left, if it was ever dragged.

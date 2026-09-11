@@ -1441,6 +1441,32 @@ fn an_unknown_space_type_does_not_take_the_notebook_down() {
 }
 
 #[test]
+fn opening_a_note_stamps_this_devices_own_seen_file() {
+    // Two devices writing one `seen.json` is a sync conflict every time; each
+    // writes its own, named in the machine preferences.
+    let (_lock, app, dir) = app_with_notebook();
+    let device = jott_core::seen::device().expect("opening a notebook names the device");
+
+    let path = ok(
+        &app,
+        "create_note",
+        json!({ "folder": "jott.notes", "inFolder": "", "title": "Visto" }),
+    );
+    ok(&app, "read_note", json!({ "folder": "jott.notes", "path": path }));
+
+    let index = dir.path().join(".jott/index");
+    let own = std::fs::read_to_string(index.join(format!("seen.{device}.json"))).unwrap();
+    assert!(own.contains("jott.notes/Visto.md"), "{own}");
+    assert!(!index.join(jott_core::seen::SEEN_FILE).exists());
+
+    let prefs = std::fs::read_to_string(
+        std::path::Path::new(&std::env::var_os("JOTT_CONFIG_DIR").unwrap()).join("machine-prefs.json"),
+    )
+    .unwrap();
+    assert!(prefs.contains("\"deviceId\""), "{prefs}");
+}
+
+#[test]
 fn the_note_lifecycle_over_the_bridge() {
     // Phase 8's exit criterion, driven through the real IPC: jot it down,
     // find it by search, delete it — with the file readable outside the app.

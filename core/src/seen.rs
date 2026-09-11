@@ -1,11 +1,12 @@
-//! When each note was last looked at — `.jott/index/seen.json`, kept BESIDE
-//! the files because reading a note must never rewrite it. Notes only (a
-//! task shows its `created` age); written on open or edit, never when a
-//! board draws its cards; a regenerable INDEX, not a format. `seen.json.bak`
-//! is written before each rewrite and read when the main file does not parse.
+//! When each note was last looked at — `.jott/index/seen.<device>.json`, kept
+//! BESIDE the files because reading a note must never rewrite it. Notes only;
+//! written on open or edit, never when a board draws its cards; a regenerable
+//! INDEX, not a format. Each device writes only its OWN file, so a sync tool
+//! never sees two writers; reading is the union of every `seen*.json`.
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
+use std::sync::OnceLock;
 
 use chrono::NaiveDateTime;
 
@@ -15,8 +16,29 @@ use crate::error::Result;
 /// everything under it can be thrown away without losing anything written.
 pub const INDEX_DIR: &str = "index";
 
-/// The index file itself, inside [`INDEX_DIR`].
+/// The index file of a process that named no device (and of every build
+/// before the per-device files): read with the others, written only then.
 pub const SEEN_FILE: &str = "seen.json";
+
+static DEVICE: OnceLock<String> = OnceLock::new();
+
+/// Names this installation, once per process: from then on the index is
+/// written to `seen.<name>.json`. Refused (false) when the name is not a
+/// short lowercase alphanumeric word — it becomes part of a file name — or
+/// when a different name was already claimed.
+pub fn claim_device(name: &str) -> bool {
+    is_device_name(name) && DEVICE.get_or_init(|| name.to_string()) == name
+}
+
+/// The name claimed by this process, if any.
+pub fn device() -> Option<&'static str> {
+    DEVICE.get().map(String::as_str)
+}
+
+fn is_device_name(name: &str) -> bool {
+    (1..=32).contains(&name.len())
+        && name.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit())
+}
 
 /// The addresses of the notes that have been opened, and when. Keys are
 /// root-relative (`jott.notes/Inbox/ideia.md`); values are local wall-clock
@@ -24,14 +46,42 @@ pub const SEEN_FILE: &str = "seen.json";
 #[derive(Debug, Clone, Default)]
 pub struct Seen {
     entries: BTreeMap<String, NaiveDateTime>,
-    /// Whether the main file was readable on load. False means running off
+    /// Whether the OWN file was readable on load. False means running off
     /// the backup, and rewriting the backup would destroy the only good copy.
     intact: bool,
+    /// Whose file a save writes: `None` is [`SEEN_FILE`].
+    device: Option<String>,
 }
 
-/// Where the index lives for a notebook's `.jott/`.
+/// Where THIS process writes the index, for a notebook's `.jott/`.
 pub fn path_of(config_dir: impl AsRef<Path>) -> PathBuf {
-    config_dir.as_ref().join(INDEX_DIR).join(SEEN_FILE)
+    path_for(config_dir.as_ref(), device())
+}
+
+fn path_for(config_dir: &Path, device: Option<&str>) -> PathBuf {
+    let name = match device {
+        Some(device) => format!("seen.{device}.json"),
+        None => SEEN_FILE.to_string(),
+    };
+    config_dir.join(INDEX_DIR).join(name)
+}
+
+/// Every index file but `own`: the other devices', the pre-device
+/// [`SEEN_FILE`], and a sync tool's conflict copies of any of them. Backups
+/// are left out — each is read only in place of its own broken file.
+fn others(config_dir: &Path, own: &Path) -> Vec<PathBuf> {
+    let Ok(dir) = std::fs::read_dir(config_dir.join(INDEX_DIR)) else {
+        return Vec::new();
+    };
+    dir.filter_map(|entry| Some(entry.ok()?.path()))
+        .filter(|path| {
+            path != own
+                && path
+                    .file_name()
+                    .and_then(|name| name.to_str())
+                    .is_some_and(|name| name.starts_with("seen") && name.ends_with(".json"))
+        })
+        .collect()
 }
 
 fn backup_of(path: &Path) -> PathBuf {
@@ -56,49 +106,68 @@ fn parse(text: &str) -> Option<BTreeMap<String, NaiveDateTime>> {
     )
 }
 
+/// The own file's entries, and whether it was readable. "Intact" covers
+/// absence too: there is nothing to protect, so the next save may write the
+/// backup normally.
+fn read_own(path: &Path) -> (BTreeMap<String, NaiveDateTime>, bool) {
+    let Some(main) = std::fs::read_to_string(path).ok() else {
+        return (BTreeMap::new(), true);
+    };
+    if let Some(entries) = parse(&main) {
+        return (entries, true);
+    }
+    let backup = std::fs::read_to_string(backup_of(path)).ok();
+    (backup.as_deref().and_then(parse).unwrap_or_default(), false)
+}
+
 impl Seen {
-    /// Loads the index of the notebook whose `.jott/` is `config_dir`. A
-    /// missing file is an empty index, not an error; a main file that does
-    /// not parse falls back to `seen.json.bak`.
+    /// Loads the index of the notebook whose `.jott/` is `config_dir`, as
+    /// this process's device sees it.
     pub fn load(config_dir: impl AsRef<Path>) -> Self {
-        let path = path_of(config_dir);
-        let main = std::fs::read_to_string(&path).ok();
-        // "Intact" covers absence too: there is nothing to protect, so the
-        // next save may write the backup normally.
-        if main.is_none() {
-            return Self {
-                entries: BTreeMap::new(),
-                intact: true,
-            };
+        Self::load_as(config_dir.as_ref(), device())
+    }
+
+    /// The union of every index file, the latest stamp winning. A missing
+    /// file is an empty index, not an error; an own file that does not parse
+    /// falls back to its `.bak`, another device's broken file is skipped.
+    fn load_as(config_dir: &Path, device: Option<&str>) -> Self {
+        let own = path_for(config_dir, device);
+        let (mut entries, intact) = read_own(&own);
+        for other in others(config_dir, &own) {
+            let text = std::fs::read_to_string(&other).ok();
+            for (path, at) in text.as_deref().and_then(parse).unwrap_or_default() {
+                entries
+                    .entry(path)
+                    .and_modify(|kept| *kept = (*kept).max(at))
+                    .or_insert(at);
+            }
         }
-        if let Some(entries) = main.as_deref().and_then(parse) {
-            return Self {
-                entries,
-                intact: true,
-            };
-        }
-        let entries = std::fs::read_to_string(backup_of(&path))
-            .ok()
-            .as_deref()
-            .and_then(parse)
-            .unwrap_or_default();
         Self {
             entries,
-            intact: false,
+            intact,
+            device: device.map(str::to_string),
         }
     }
 
-    /// Writes the index back, keeping a copy of the previous one beside it.
+    /// Writes the index back to this device's file, keeping a copy of the
+    /// previous one beside it. The same bytes again are not written at all.
     pub fn save(&self, config_dir: impl AsRef<Path>) -> Result<()> {
-        let path = path_of(config_dir);
-        if self.intact {
+        let path = path_for(config_dir.as_ref(), self.device.as_deref());
+        let text = crate::fsio::pretty_json(&self.render());
+        let previous = std::fs::read(&path).ok();
+        if previous.as_deref() == Some(text.as_bytes()) {
+            return Ok(());
+        }
+        if let (true, Some(previous)) = (self.intact, previous) {
             // Best effort by design: a backup that could not be written is
             // not a reason to refuse the write that matters.
-            if let Ok(previous) = std::fs::read(&path) {
-                let _ = crate::fsio::write_atomically(backup_of(&path), &previous);
-            }
+            let _ = crate::fsio::write_atomically(backup_of(&path), &previous);
         }
-        let doc = serde_json::Value::Object(
+        crate::fsio::write_atomically(path, text.as_bytes())
+    }
+
+    fn render(&self) -> serde_json::Value {
+        serde_json::Value::Object(
             self.entries
                 .iter()
                 .map(|(path, at)| {
@@ -108,8 +177,7 @@ impl Seen {
                     )
                 })
                 .collect(),
-        );
-        crate::fsio::write_atomically(path, crate::fsio::pretty_json(&doc).as_bytes())
+        )
     }
 
     /// When a note was last opened, if ever.
@@ -343,5 +411,76 @@ mod tests {
         assert!(seen.keep_only(&alive));
         assert_eq!(seen.at("jott.notes/gone.md"), None);
         assert_eq!(seen.at("jott.notes/a.md"), Some(at(20, 9)));
+    }
+
+    fn write_index(dir: &Path, name: &str, text: &str) {
+        std::fs::create_dir_all(dir.join(INDEX_DIR)).unwrap();
+        std::fs::write(dir.join(INDEX_DIR).join(name), text).unwrap();
+    }
+
+    #[test]
+    fn a_device_writes_only_its_own_file() {
+        let dir = temp();
+        let dir = dir.path();
+        let mut seen = Seen::load_as(dir, Some("desk01"));
+        seen.mark("jott.notes/a.md", at(20, 9));
+        seen.save(dir).unwrap();
+        assert!(path_for(dir, Some("desk01")).is_file());
+        assert!(!dir.join(INDEX_DIR).join(SEEN_FILE).exists());
+    }
+
+    #[test]
+    fn every_devices_file_is_read_and_the_latest_stamp_wins() {
+        let dir = temp();
+        let dir = dir.path();
+        let legacy = r#"{"a.md":"2026-08-20T09:30","b.md":"2026-08-20T09:30"}"#;
+        let phone = r#"{"a.md":"2026-08-22T09:30"}"#;
+        let conflict = r#"{"c.md":"2026-08-21T09:30"}"#;
+        write_index(dir, SEEN_FILE, legacy);
+        write_index(dir, "seen.phone1.json", phone);
+        write_index(dir, "seen.sync-conflict-20260911-150128-ABCDEFG.json", conflict);
+
+        let mut seen = Seen::load_as(dir, Some("desk01"));
+        assert_eq!(seen.at("a.md"), Some(at(22, 9)));
+        assert_eq!(seen.at("b.md"), Some(at(20, 9)));
+        assert_eq!(seen.at("c.md"), Some(at(21, 9)));
+
+        // Writing leaves every other file exactly as the other writer left it.
+        seen.mark("d.md", at(23, 9));
+        seen.save(dir).unwrap();
+        let read = |name: &str| std::fs::read_to_string(dir.join(INDEX_DIR).join(name)).unwrap();
+        assert_eq!(read(SEEN_FILE), legacy);
+        assert_eq!(read("seen.phone1.json"), phone);
+        assert!(read("seen.desk01.json").contains("a.md"), "the union is carried along");
+    }
+
+    #[test]
+    fn another_devices_broken_file_takes_nothing_down() {
+        let dir = temp();
+        let dir = dir.path();
+        write_index(dir, "seen.desk01.json", r#"{"a.md":"2026-08-20T09:30"}"#);
+        write_index(dir, "seen.phone1.json", "{ half a fi");
+        let seen = Seen::load_as(dir, Some("desk01"));
+        assert_eq!(seen.at("a.md"), Some(at(20, 9)));
+        assert!(seen.intact, "only the OWN file decides the backup");
+    }
+
+    #[test]
+    fn saving_what_is_already_there_writes_nothing() {
+        let dir = temp();
+        let dir = dir.path();
+        let mut seen = Seen::load_as(dir, Some("desk01"));
+        seen.mark("a.md", at(20, 9));
+        seen.save(dir).unwrap();
+        Seen::load_as(dir, Some("desk01")).save(dir).unwrap();
+        assert!(!backup_of(&path_for(dir, Some("desk01"))).exists());
+    }
+
+    #[test]
+    fn a_device_name_is_a_plain_word() {
+        assert!(is_device_name("a1b2c3"));
+        for bad in ["", "../x", "A1", "a.b", "a b", &"a".repeat(33)] {
+            assert!(!is_device_name(bad), "{bad:?}");
+        }
     }
 }
