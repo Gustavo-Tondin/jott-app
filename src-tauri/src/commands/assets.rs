@@ -15,8 +15,10 @@ use super::shell::open_path;
 
 /// Every image in the notebook's library, newest first.
 #[tauri::command]
-pub fn assets<R: Runtime>(state: State<'_, AppState>,
-    window: tauri::Window<R>,) -> CommandResult<Vec<jott_core::AssetEntry>> {
+pub fn assets<R: Runtime>(
+    state: State<'_, AppState>,
+    window: tauri::Window<R>,
+) -> CommandResult<Vec<jott_core::AssetEntry>> {
     state.read(window.label(), |nb| nb.assets().list())
 }
 
@@ -40,8 +42,11 @@ pub fn import_asset<R: Runtime>(
 /// is chosen by the person dragging, the same trust the folder picker carries;
 /// all this can WRITE is a copy into `assets/`.
 #[tauri::command]
-pub fn import_asset_from_path<R: Runtime>(state: State<'_, AppState>,
-    window: tauri::Window<R>, path: PathBuf) -> CommandResult<String> {
+pub fn import_asset_from_path<R: Runtime>(
+    state: State<'_, AppState>,
+    window: tauri::Window<R>,
+    path: PathBuf,
+) -> CommandResult<String> {
     let name = jott_core::fsio::file_name_of(&path);
     let bytes = std::fs::read(&path)
         .map_err(|e| CommandError::new("io", format!("{}: {e}", path.display())))?;
@@ -62,8 +67,11 @@ pub fn rename_asset<R: Runtime>(
 /// Sends a file to the notebook's trash. Notes and tasks pointing at it keep
 /// their address — the file is what came back, if it comes back.
 #[tauri::command]
-pub fn delete_asset<R: Runtime>(state: State<'_, AppState>,
-    window: tauri::Window<R>, path: String) -> CommandResult<()> {
+pub fn delete_asset<R: Runtime>(
+    state: State<'_, AppState>,
+    window: tauri::Window<R>,
+    path: String,
+) -> CommandResult<()> {
     state.quiet(window.label(), |nb| nb.delete_asset(&path))
 }
 
@@ -72,8 +80,11 @@ pub fn delete_asset<R: Runtime>(state: State<'_, AppState>,
 /// resolved by the library: only a direct child of `assets/` resolves at all,
 /// which keeps this from being "open any file on this machine".
 #[tauri::command]
-pub fn open_asset<R: Runtime>(state: State<'_, AppState>,
-    window: tauri::Window<R>, path: String) -> CommandResult<()> {
+pub fn open_asset<R: Runtime>(
+    state: State<'_, AppState>,
+    window: tauri::Window<R>,
+    path: String,
+) -> CommandResult<()> {
     let file = state.read(window.label(), |nb| nb.asset_file(&path))?;
     if !file.is_file() {
         return Err(CommandError::new(

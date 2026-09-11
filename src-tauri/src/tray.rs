@@ -54,7 +54,7 @@ pub fn reveal<R: Runtime>(app: &AppHandle<R>) {
 /// What the close button does with the tray on: hide, and keep everything.
 /// Returns whether the close was taken over.
 pub fn intercept_close<R: Runtime>(window: &tauri::Window<R>) -> bool {
-    if !crate::prefs::close_to_tray(&window.app_handle().clone()) {
+    if !crate::prefs::close_to_tray(window.app_handle()) {
         return false;
     }
     window.hide().is_ok()

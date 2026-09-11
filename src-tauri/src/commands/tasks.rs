@@ -142,8 +142,12 @@ pub fn uncomplete_task<R: Runtime>(
 
 /// Deletes a single task (sends it to the internal trash).
 #[tauri::command]
-pub fn delete_task<R: Runtime>(state: State<'_, AppState>,
-    window: tauri::Window<R>, list: String, id: String) -> CommandResult<()> {
+pub fn delete_task<R: Runtime>(
+    state: State<'_, AppState>,
+    window: tauri::Window<R>,
+    list: String,
+    id: String,
+) -> CommandResult<()> {
     state.record(window.label(), "delete_task", |nb| nb.delete_task(&list, &id))
 }
 

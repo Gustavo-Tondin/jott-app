@@ -74,8 +74,11 @@ pub fn set_space_appearance<R: Runtime>(
 
 /// Sends a user space to the trash (never a fixed one).
 #[tauri::command]
-pub fn delete_space<R: Runtime>(state: State<'_, AppState>,
-    window: tauri::Window<R>, folder: String) -> CommandResult<()> {
+pub fn delete_space<R: Runtime>(
+    state: State<'_, AppState>,
+    window: tauri::Window<R>,
+    folder: String,
+) -> CommandResult<()> {
     state.record(window.label(), "delete_space", |nb| nb.delete_space(&folder))
 }
 
@@ -154,8 +157,10 @@ pub(crate) fn groups_of(nb: &Notebook) -> CommandResult<Vec<GroupInfo>> {
 }
 
 #[tauri::command]
-pub fn groups<R: Runtime>(state: State<'_, AppState>,
-    window: tauri::Window<R>,) -> CommandResult<Vec<GroupInfo>> {
+pub fn groups<R: Runtime>(
+    state: State<'_, AppState>,
+    window: tauri::Window<R>,
+) -> CommandResult<Vec<GroupInfo>> {
     state.with_notebook(window.label(), groups_of)
 }
 
@@ -183,8 +188,12 @@ pub fn move_group<R: Runtime>(
 }
 
 #[tauri::command]
-pub fn rename_group<R: Runtime>(state: State<'_, AppState>,
-    window: tauri::Window<R>, folder: String, name: String) -> CommandResult<()> {
+pub fn rename_group<R: Runtime>(
+    state: State<'_, AppState>,
+    window: tauri::Window<R>,
+    folder: String,
+    name: String,
+) -> CommandResult<()> {
     state.record(window.label(), "rename_group", |nb| nb.rename_group(&folder, &name))
 }
 
@@ -200,8 +209,11 @@ pub fn set_group_appearance<R: Runtime>(
 }
 
 #[tauri::command]
-pub fn delete_group<R: Runtime>(state: State<'_, AppState>,
-    window: tauri::Window<R>, folder: String) -> CommandResult<()> {
+pub fn delete_group<R: Runtime>(
+    state: State<'_, AppState>,
+    window: tauri::Window<R>,
+    folder: String,
+) -> CommandResult<()> {
     state.record(window.label(), "delete_group", |nb| nb.delete_group(&folder))
 }
 
