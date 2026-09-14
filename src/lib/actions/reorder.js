@@ -48,6 +48,12 @@ const SLACK = 8;
 /// see `slotAt`. Twelve per cent is enough for a resting hand and small
 /// enough that the swap still feels like it happens at the middle.
 const HYSTERESIS = 0.12;
+/// The band at each end of the scroller where a carried item makes the list
+/// move, and how fast it moves at the very edge (px per frame). The speed is
+/// PROPORTIONAL to how far into the band the pointer is: a fixed speed either
+/// crawls across a long list or shoots past the row being aimed at.
+const EDGE = 48;
+const EDGE_SPEED = 16;
 
 export function reorderable(node, params) {
   let opts = params ?? {};
@@ -154,9 +160,14 @@ export function reorderable(node, params) {
     const rects = list.map((c) => c.getBoundingClientRect());
     drag.rects = rects;
     drag.list = list;
+    // The scroller the list lives in, and where it stood when the rects were
+    // measured: they are viewport positions, and a list that scrolls under the
+    // gesture makes every one of them lie (see `scrolled`).
+    drag.scroller = scrollerOf(node);
+    drag.scroll0 = { x: drag.scroller?.scrollLeft ?? 0, y: drag.scroller?.scrollTop ?? 0 };
     // The box the carried item is kept inside (see `carry`): the scroller
     // around the list, which is exactly as far as this drag means anything.
-    drag.bounds = (scrollerOf(node) ?? node).getBoundingClientRect();
+    drag.bounds = (drag.scroller ?? node).getBoundingClientRect();
     lift(rects[drag.from]);
     // One slot's worth of movement = the carried item's own size plus the gap
     // to its neighbour — how far the others slide to open room for it.
@@ -205,6 +216,17 @@ export function reorderable(node, params) {
       if (/auto|scroll/.test(`${style.overflowY} ${style.overflowX}`)) return p;
     }
     return null;
+  }
+
+  /// HOW FAR THE LIST HAS SCROLLED since `begin()` measured it. Rather than
+  /// re-measure every rect, the POINTER is carried back into the frame they
+  /// were measured in — one reading of `scrollTop` per frame, and never inside
+  /// a loop (reading layout in one is the trap of docs/platform-gotchas.md).
+  /// Takes the gesture, because the release tidies up with `drag` already null.
+  function scrolled(d) {
+    const s = d?.scroller;
+    if (!s) return { x: 0, y: 0 };
+    return { x: s.scrollLeft - d.scroll0.x, y: s.scrollTop - d.scroll0.y };
   }
 
   /// Reduced motion: the flight is skipped, never the outcome.
@@ -267,9 +289,62 @@ export function reorderable(node, params) {
     latest = null;
   }
 
+  /// THE LIST COMES TO THE HAND. A carried item held near the end of the
+  /// scroller makes it move, so a task can reach a place off screen without
+  /// being let go of — and the deeper into the band the pointer is, the faster
+  /// it goes (the hand picks the speed). Zero anywhere else.
+  let steering = null;
+
+  function edgeSpeed(at) {
+    if (!drag.scroller || drag.free) return 0;
+    const b = drag.bounds;
+    const [near, far, pos] = horizontal()
+      ? [b.left, b.right, at.clientX]
+      : [b.top, b.bottom, at.clientY];
+    // A short list never gives more than a third of itself to the two bands,
+    // or the middle — where the drop actually happens — would be all edge.
+    const band = Math.min(EDGE, (far - near) / 3);
+    if (band <= 0) return 0;
+    if (pos < near + band) return -Math.min(1, (near + band - pos) / band) * EDGE_SPEED;
+    if (pos > far - band) return Math.min(1, (pos - (far - band)) / band) * EDGE_SPEED;
+    return 0;
+  }
+
+  function steer(at) {
+    const speed = edgeSpeed(at);
+    drag.speed = speed;
+    if (!speed) return stopSteer();
+    if (steering != null) return;
+    const view = node.ownerDocument.defaultView;
+    if (typeof view?.requestAnimationFrame !== "function") return;
+    steering = view.requestAnimationFrame(function tick() {
+      steering = null;
+      if (!drag?.moved || !drag.speed) return;
+      const s = drag.scroller;
+      const was = horizontal() ? s.scrollLeft : s.scrollTop;
+      if (horizontal()) s.scrollLeft = was + drag.speed;
+      else s.scrollTop = was + drag.speed;
+      // The end of the list: nothing more to come to the hand.
+      if ((horizontal() ? s.scrollLeft : s.scrollTop) === was) return;
+      // The hand has not moved, the list has — so the destination is read
+      // again from where the hand stands, and that reading steers the next
+      // frame.
+      applyMove(drag.at);
+    });
+  }
+
+  /// Stops the list wherever it got to. Whatever ends the gesture ends this.
+  function stopSteer() {
+    if (drag) drag.speed = 0;
+    if (steering != null) node.ownerDocument.defaultView?.cancelAnimationFrame?.(steering);
+    steering = null;
+  }
+
   function applyMove(e) {
     const dx = e.clientX - drag.originX;
     const dy = e.clientY - drag.originY;
+    // Raw, in viewport: the threshold, the axis lock and the slop all read it
+    // BEFORE `begin()`, when nothing has scrolled yet.
     const delta = coord(e) - drag.origin;
     // Still waiting for the finger to settle: any real movement means this was
     // a scroll (or a swipe) all along, and we let go rather than compete for
@@ -317,6 +392,19 @@ export function reorderable(node, params) {
       begin();
     }
 
+    // WHERE THE HAND IS, kept for the edge scroll: it moves the list with no
+    // new event to read, and then asks this same function again.
+    drag.at = { pointerId: drag.pointerId, clientX: e.clientX, clientY: e.clientY };
+    steer(drag.at);
+
+    // The pointer IN THE LIST'S OWN FRAME: `rects` were measured at `begin()`,
+    // and a scroller that has moved since puts everything it holds somewhere
+    // else. One reading for the whole frame — `dx`/`dy` stay raw, because the
+    // carried item is out in the drag layer, where the viewport is all there is.
+    const away = scrolled(drag);
+    const at = { x: e.clientX + away.x, y: e.clientY + away.y };
+    const reach = (horizontal() ? at.x : at.y) - drag.origin;
+
     if (grid()) {
       // 2D: the carried card follows the pointer on both axes, the target is
       // the slot whose centre is nearest, and everything between the two
@@ -335,8 +423,9 @@ export function reorderable(node, params) {
       // ...and the middle of another CARD is a target of its own, when the
       // caller has somewhere for it to go (`onDropInto` — two notes made into
       // a folder).
-      const into = zone ? null : intoAt(e);
-      const to = zone || into != null ? drag.to : nearestSlot(dx, dy);
+      const into = zone ? null : intoAt(at);
+      const to =
+        zone || into != null ? drag.to : nearestSlot(at.x - drag.originX, at.y - drag.originY);
       if (!reads(to, into, zone, false)) return;
 
       drag.list.forEach((el, i) => el.classList.toggle("reorder-item--into", i === into));
@@ -376,9 +465,9 @@ export function reorderable(node, params) {
     // within); the MIDDLE of another item (a target of its own, when the
     // caller has one — nothing slides, because nothing is making room); and
     // otherwise the slot the carried centre now sits over.
-    const to = zone ? drag.to : slotAt(delta);
+    const to = zone ? drag.to : slotAt(reach);
     const leaving = !zone && !!opts.onDragOut && outside(e);
-    const into = zone || leaving ? null : intoAt(e);
+    const into = zone || leaving ? null : intoAt(at);
     if (!reads(to, into, zone, leaving)) return;
 
     const list = drag.list;
@@ -468,28 +557,24 @@ export function reorderable(node, params) {
 
   /// The item whose MIDDLE the pointer is on, or null. The band is the item's
   /// own middle (both axes, on a grid), so aiming at one is a deliberate act
-  /// rather than a near miss.
-  function intoAt(e) {
+  /// rather than a near miss. `at` is the pointer in the frame the rects were
+  /// measured in — the scroll is already in it.
+  function intoAt(at) {
     if (!opts.onDropInto) return null;
     const rects = drag.rects;
-    const at = coord(e);
+    const along = horizontal() ? at.x : at.y;
     for (let i = 0; i < rects.length; i++) {
       if (i === drag.from || !accepts(i)) continue;
       const r = rects[i];
       if (grid()) {
         const mx = (r.width * (1 - INTO_BAND)) / 2;
         const my = (r.height * (1 - INTO_BAND)) / 2;
-        if (
-          e.clientX > r.left + mx &&
-          e.clientX < r.right - mx &&
-          e.clientY > r.top + my &&
-          e.clientY < r.bottom - my
-        )
+        if (at.x > r.left + mx && at.x < r.right - mx && at.y > r.top + my && at.y < r.bottom - my)
           return i;
         continue;
       }
       const margin = (size(r) * (1 - INTO_BAND)) / 2;
-      if (at > start(r) + margin && at < start(r) + size(r) - margin) return i;
+      if (along > start(r) + margin && along < start(r) + size(r) - margin) return i;
     }
     return null;
   }
@@ -516,6 +601,14 @@ export function reorderable(node, params) {
       drag.el.dataset.region = region;
       drag.regioned = true;
     }
+    // NO TOOLTIP OVER A CARD IN THE AIR. Resting the pointer is now something
+    // the gesture asks for — at the edge of a list it is how the list is made
+    // to scroll — and the system answered by popping the row's `title` over
+    // the very place the hand is aiming at (seen in the app, 2026-09-14).
+    drag.titled = [drag.el, ...drag.el.querySelectorAll("[title]")]
+      .filter((el) => el.hasAttribute("title"))
+      .map((el) => [el, el.getAttribute("title")]);
+    for (const [el] of drag.titled) el.removeAttribute("title");
     const inherited = node.ownerDocument.defaultView?.getComputedStyle?.(drag.el);
     if (inherited)
       for (const property of INHERITED)
@@ -574,6 +667,7 @@ export function reorderable(node, params) {
     else if (d.el.parentElement !== node) node.append(d.el);
     d.ghost?.remove();
     if (d.regioned) delete d.el.dataset.region;
+    for (const [el, title] of d.titled ?? []) el.setAttribute("title", title);
     for (const property of [
       "position",
       "inset-inline-start",
@@ -591,6 +685,7 @@ export function reorderable(node, params) {
   /// running now (there is none).
   function clear(d = drag) {
     unframe();
+    stopSteer();
     unlistenLoose();
     drop(d);
     node.removeAttribute("data-reordering");
@@ -632,6 +727,9 @@ export function reorderable(node, params) {
     if (!drag) return;
     const d = drag;
     clearTimeout(d.holdTimer);
+    // The list stops the moment the hand lets go — the flight home takes
+    // another 160 ms, and the list must not still be moving under it.
+    stopSteer();
     drag = null;
     try {
       d.el.releasePointerCapture(d.pointerId);
@@ -672,9 +770,18 @@ export function reorderable(node, params) {
   /// heights the slot is not `to * step` — it is the destination's own rect.
   function landing(d) {
     const r = d.rects;
-    if (grid()) return { x: r[d.to].left - r[d.from].left, y: r[d.to].top - r[d.from].top };
+    // The rects say where the slot was when the drag set off; the item flies in
+    // the viewport, where a list that scrolled since has carried the slot with
+    // it. Hence the subtraction — without it, a drag that scrolled lands the
+    // card as far from home as the list travelled.
+    const away = scrolled(d);
+    if (grid())
+      return {
+        x: r[d.to].left - r[d.from].left - away.x,
+        y: r[d.to].top - r[d.from].top - away.y,
+      };
     const at = d.to > d.from ? start(r[d.to]) + size(r[d.to]) - size(r[d.from]) : start(r[d.to]);
-    const px = at - start(r[d.from]);
+    const px = at - start(r[d.from]) - (horizontal() ? away.x : away.y);
     return horizontal() ? { x: px, y: 0 } : { x: 0, y: px };
   }
 
@@ -873,6 +980,7 @@ export function reorderable(node, params) {
     },
     destroy() {
       unframe();
+      stopSteer();
       unlistenLoose();
       node.removeAttribute("data-reorderable");
       node.removeEventListener("pointerdown", onPointerDown);

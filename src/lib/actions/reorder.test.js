@@ -733,6 +733,23 @@ describe("reorderable in the drag layer", () => {
     expect(row.style.transform).toBe("translateY(88px)");
   });
 
+  test("a card in the air carries no tooltip, and gets it back on landing", () => {
+    const ul = list();
+    layOut(ul);
+    bound(ul);
+    reorderable(ul, { axis: "y", item: ".row", onReorder: () => {} });
+
+    const row = ul.children[0];
+    const grip = row.querySelector(".grip");
+    grip.setAttribute("title", "click to open, double-click to rename");
+    fire(row, "pointerdown", { button: 0, pointerId: 1, clientY: 20 });
+    fire(row, "pointermove", { pointerId: 1, clientY: 60 });
+    expect(grip.hasAttribute("title")).toBe(false);
+
+    fire(row, "pointerup", { pointerId: 1, clientY: 60 });
+    expect(grip.getAttribute("title")).toBe("click to open, double-click to rename");
+  });
+
   test("a free drag is not contained — crossing is the whole point", () => {
     const ul = list();
     layOut(ul);
@@ -957,5 +974,116 @@ describe("reorderable, a frame at a time", () => {
     expect(ul.querySelector(".reorder-ghost")).toBeNull();
     fire(rows[0], "pointerup", { pointerId: 1, clientY: 110 });
     expect(moves).toEqual([]);
+  });
+});
+
+describe("reorderable in a scroller", () => {
+  beforeEach(() => {
+    document.body.innerHTML = "";
+  });
+
+  /// A list inside something that scrolls. jsdom has no layout, so the box's
+  /// rect is a stub and `scrollTop` is a plain number that stops at `max` —
+  /// which is all "the end of the list" means here.
+  function scroller(ul, max = 200) {
+    const box = document.createElement("div");
+    box.style.overflowY = "auto";
+    ul.before(box);
+    box.append(ul);
+    box.getBoundingClientRect = () => ({
+      left: 0, right: 200, width: 200, top: 0, bottom: 120, height: 120,
+      x: 0, y: 0, toJSON() {},
+    });
+    let top = 0;
+    Object.defineProperty(box, "scrollTop", {
+      get: () => top,
+      set: (v) => {
+        top = Math.max(0, Math.min(max, v));
+      },
+    });
+    return box;
+  }
+
+  const frames = async (n) => {
+    for (let i = 0; i < n; i++) await nextFrame();
+  };
+
+  test("the list scrolling under the drag moves the slot, not just the pixels", async () => {
+    // The rects were measured when the drag set off. Scroll the list and they
+    // all lie: the hand has not moved, but what is under it has. Rows are 40
+    // tall, so 40 of scroll is exactly one row's worth of slot.
+    const ul = list(4);
+    const box = scroller(ul);
+    layOut(ul);
+    const moves = [];
+    reorderable(ul, { axis: "y", item: ".row", onReorder: (f, t) => moves.push([f, t]) });
+
+    const row = ul.children[0];
+    fire(row, "pointerdown", { button: 0, pointerId: 1, clientY: 20 });
+    fire(row, "pointermove", { pointerId: 1, clientY: 45 });
+    await nextFrame();
+    // Short of row 1's middle: nothing has moved yet.
+    expect(ul.children[1].style.transform).toBe("");
+
+    box.scrollTop = 40;
+    fire(row, "pointermove", { pointerId: 1, clientY: 45 });
+    await nextFrame();
+    fire(row, "pointerup", { pointerId: 1, clientY: 45 });
+
+    expect(moves).toEqual([[0, 1]]);
+  });
+
+  test("carried into the bottom edge, the list comes to the hand", async () => {
+    const ul = list(4);
+    const box = scroller(ul);
+    layOut(ul);
+    reorderable(ul, { axis: "y", item: ".row", onReorder: () => {} });
+
+    const row = ul.children[0];
+    fire(row, "pointerdown", { button: 0, pointerId: 1, clientY: 20 });
+    // 110, inside the last 40 of a 120-tall box: three quarters of the way
+    // into the band, so it moves at three quarters of the speed.
+    fire(row, "pointermove", { pointerId: 1, clientY: 110 });
+    await frames(2);
+
+    const first = box.scrollTop;
+    expect(first).toBeGreaterThan(0);
+    await frames(2);
+    expect(box.scrollTop).toBeGreaterThan(first);
+
+    fire(row, "pointerup", { pointerId: 1, clientY: 110 });
+    const stopped = box.scrollTop;
+    await frames(3);
+    expect(box.scrollTop).toBe(stopped);
+  });
+
+  test("a hand in the middle of the list leaves it where it is", async () => {
+    const ul = list(4);
+    const box = scroller(ul);
+    layOut(ul);
+    reorderable(ul, { axis: "y", item: ".row", onReorder: () => {} });
+
+    const row = ul.children[0];
+    fire(row, "pointerdown", { button: 0, pointerId: 1, clientY: 20 });
+    fire(row, "pointermove", { pointerId: 1, clientY: 60 });
+    await frames(3);
+
+    expect(box.scrollTop).toBe(0);
+    fire(row, "pointerup", { pointerId: 1, clientY: 60 });
+  });
+
+  test("at the end of the list it stops asking for more", async () => {
+    const ul = list(4);
+    const box = scroller(ul, 20);
+    layOut(ul);
+    reorderable(ul, { axis: "y", item: ".row", onReorder: () => {} });
+
+    const row = ul.children[0];
+    fire(row, "pointerdown", { button: 0, pointerId: 1, clientY: 20 });
+    fire(row, "pointermove", { pointerId: 1, clientY: 118 });
+    await frames(5);
+
+    expect(box.scrollTop).toBe(20);
+    fire(row, "pointerup", { pointerId: 1, clientY: 118 });
   });
 });
