@@ -15,6 +15,10 @@
     background: var(--app-surface);
     border-radius: var(--app-radius-lg);
     padding: var(--note-card-pad);
+    /* Held to open its actions, never selected: the system's own text
+       selection is a hard rectangle over a rounded card. */
+    user-select: none;
+    -webkit-user-select: none;
     transition:
       opacity var(--app-transition-fast),
       scale var(--app-transition-fast);

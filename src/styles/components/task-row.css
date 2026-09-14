@@ -15,18 +15,19 @@
     border: none;
     border-radius: var(--app-radius-md);
     cursor: pointer;
-  }
-  /* Room for the origin bar (.theme-origin, controls/marks.css) on the start
-     side, only when there is one: inside its own space a card has no bar. */
-  .task-row--origin {
-    padding-inline-start: var(--app-space-16);
     /* The whole card is the drag handle: a drag must never start a text
-       selection along the way. */
+       selection along the way — and a finger resting on one to open its
+       actions must not raise the system's own selection over it. */
     user-select: none;
     -webkit-user-select: none;
     transition:
       background var(--app-transition-fast),
       scale var(--app-transition-fast);
+  }
+  /* Room for the origin bar (.theme-origin, controls/marks.css) on the start
+     side, only when there is one: inside its own space a card has no bar. */
+  .task-row--origin {
+    padding-inline-start: var(--app-space-16);
   }
   /* Pressed, the card gives by a hair. Not while carried: the reorder's own
      transform and a scale on top of it would wobble. */

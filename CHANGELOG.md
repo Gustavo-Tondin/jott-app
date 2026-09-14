@@ -8,6 +8,10 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 
 ## v0.57.0
 
+### Fixed
+
+- **Holding a card no longer raises the system's own text selection over it** — a hard grey rectangle across the rounded card, on the way to opening its actions.
+
 ### Improved
 
 - **The actions of a held card now stand in a column beside your finger**, as separate squares instead of circles scattered around it, and the one under your finger is lit and names itself. Sliding onto it and letting go is the same gesture as before, and letting go anywhere else still does nothing.
