@@ -110,7 +110,7 @@
     if (!externalRevision) return;
     untrack(() => {
       if (saver.dirty(body)) keepTheirs = true;
-      else load(folder, path);
+      else load(folder, path, true);
     });
   });
 
@@ -122,7 +122,11 @@
   /// answer nor the error is about the file this editor now shows.
   const movedOn = (atFolder, atPath) => atFolder !== folder || atPath !== path;
 
-  async function load(atFolder, atPath) {
+  /// `reload` is the disk answering back, not a person opening the note: the
+  /// file may be one the app ITSELF just deleted, and a read that fails there
+  /// is nothing for anyone to act on. Opening is the case that must still
+  /// report — there the note IS what was asked for.
+  async function load(atFolder, atPath, reload = false) {
     loading = true;
     try {
       const note = await api.readNote(atFolder, atPath);
@@ -142,7 +146,7 @@
         tags: note.tags ?? [],
       });
     } catch (e) {
-      if (movedOn(atFolder, atPath)) return;
+      if (reload || movedOn(atFolder, atPath)) return;
       onError?.(e);
     } finally {
       // The load that owns the screen is the one that owns this flag.

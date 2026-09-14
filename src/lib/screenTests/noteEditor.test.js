@@ -6,7 +6,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/svelte";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, test, vi } from "vitest";
-import { bridge, invoke } from "../test/bridge.js";
+import { bridge, fails, invoke } from "../test/bridge.js";
 import { noop, resetScreens } from "../test/screens.js";
 
 // The note editor's engine is stubbed by a textarea — `lib/test/screens.js`
@@ -89,6 +89,33 @@ describe("NoteEditor", () => {
 
     expect(onError).not.toHaveBeenCalled();
     expect(screen.getByDisplayValue("Corpo renomeado.")).toBeTruthy();
+  });
+
+  test("a re-read of a file that is gone says nothing", async () => {
+    // Deleting the open note is the app taking the file out from under its
+    // own editor: the watcher then asks for a re-read of an address that no
+    // longer exists, and the raw io error used to land on screen.
+    const onError = vi.fn();
+    bridge(loaded("Corpo.\n"));
+    const { rerender } = render(NoteEditor, { props: props({ onError }) });
+    await screen.findByDisplayValue("Corpo.");
+
+    bridge({ read_note: fails("io: No such file or directory (read_note)") });
+    await rerender(props({ onError, externalRevision: 1 }));
+    await new Promise((r) => setTimeout(r, 20));
+
+    expect(onError).not.toHaveBeenCalled();
+    expect(screen.getByDisplayValue("Corpo.")).toBeTruthy();
+  });
+
+  test("a note that cannot be opened still reports", async () => {
+    // The other half of the rule: opening IS the case where the person asked
+    // for this note, so a failure there is theirs to see.
+    const onError = vi.fn();
+    bridge({ read_note: fails("io: No such file or directory (read_note)") });
+    render(NoteEditor, { props: props({ onError }) });
+
+    await waitFor(() => expect(onError).toHaveBeenCalled());
   });
 
   test("with unsaved typing, the typing wins the screen and the other version is kept first", async () => {
