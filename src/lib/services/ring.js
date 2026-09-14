@@ -17,14 +17,18 @@ export const RING_MAX = 5;
 export const RING_ITEM = 44;
 export const RING_STEP = 52;
 
-/// How far the sheet stands off the finger, and the dead square around it.
-/// The sheet may not open UNDER the finger: the hold would already be resting
-/// on a row, and letting go there is what cancels.
+/// How far to the SIDE the column stands from the finger — far enough that
+/// the hand is not over it, which is the whole reason it is not ON the
+/// finger. It never stands off VERTICALLY: the column is centred on the
+/// finger, so the travel to the first square and to the last is the same.
+const REACH = 64;
+/// Opened by a CLICK the hand is not on the screen at all, so the column sits
+/// where the pointer is, the way every other menu in the app does.
+export const RING_CLICK_REACH = 12;
+/// The dead square around the finger: letting go inside it is letting go on
+/// the card, which cancels.
 const GAP = 24;
-/// Opened by a CLICK there is no finger over the card, so the sheet sits at
-/// the pointer the way every other menu in the app does.
-export const RING_CLICK_GAP = 4;
-/// The margin the sheet keeps off the window's edges.
+/// The margin the column keeps off the window's edges.
 const EDGE = 8;
 /// How far off the column the pointer may stray and still hold the square it
 /// left. Wider than it looks on purpose: a column of squares is a narrow
@@ -46,24 +50,22 @@ export function ringSize(count) {
   return { width: RING_ITEM, height: n * RING_STEP - (RING_STEP - RING_ITEM) };
 }
 
-/// WHERE THE COLUMN GOES, in client coordinates. Beside the finger, growing
-/// into the quarter with room; a side too tight for it flips to the other
-/// rather than draw off the screen, and whatever still hangs off is pulled in.
+/// WHERE THE COLUMN GOES, in client coordinates. To the SIDE of the finger —
+/// the side with room (`ringQuadrant`), flipping rather than drawing off the
+/// screen — and CENTRED on it, so neither end of the column is further from
+/// the thumb than the other. Whatever still hangs off the screen is pulled in.
 /// The NAME of an action is not in here: it is drawn beside the square the
 /// finger is on, outside the column, and nothing is aimed at it.
-export function ringBox(at, viewport, count, quadrant, gap = GAP) {
+export function ringBox(at, viewport, count, quadrant, reach = REACH) {
   const { width, height } = ringSize(count);
   const vw = viewport?.width ?? 0;
   const vh = viewport?.height ?? 0;
-  let x = quadrant.x === 1 ? at.x + gap : at.x - gap - width;
-  let y = quadrant.y === 1 ? at.y + gap : at.y - gap - height;
-  if (x + width > vw - EDGE) x = at.x - gap - width;
-  if (x < EDGE) x = at.x + gap;
-  if (y + height > vh - EDGE) y = at.y - gap - height;
-  if (y < EDGE) y = at.y + gap;
+  let x = quadrant.x === 1 ? at.x + reach : at.x - reach - width;
+  if (x + width > vw - EDGE) x = at.x - reach - width;
+  if (x < EDGE) x = at.x + reach;
   return {
     x: clamp(x, EDGE, Math.max(EDGE, vw - width - EDGE)),
-    y: clamp(y, EDGE, Math.max(EDGE, vh - height - EDGE)),
+    y: clamp(at.y - height / 2, EDGE, Math.max(EDGE, vh - height - EDGE)),
     width,
     height,
   };

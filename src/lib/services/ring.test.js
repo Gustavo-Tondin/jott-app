@@ -38,33 +38,31 @@ describe("how big the column is", () => {
 });
 
 describe("where the column goes", () => {
-  test("it stands off the finger, on the side the quarter points to", () => {
-    const at = { x: 60, y: 60 };
+  test("it stands to the SIDE of the finger and is centred on it", () => {
+    const at = { x: 60, y: 460 };
     const box = ringBox(at, phone, 5, down);
     expect(box.x).toBeGreaterThan(at.x);
-    expect(box.y).toBeGreaterThan(at.y);
-    // Never UNDER the finger: letting go where the card is has to cancel.
+    // Centred: as much of the column above the finger as below it.
+    expect(box.y + box.height / 2).toBeCloseTo(at.y, 0);
+    // Never under the finger: letting go where the card is has to cancel.
     expect(ringSlotAt(at, at, { count: 5, box })).toBeNull();
   });
 
-  test("a finger in the bottom right opens it up and to the left", () => {
-    const at = { x: 360, y: 820 };
+  test("a finger on the right half opens it to the left, still centred", () => {
+    const at = { x: 360, y: 460 };
     const box = ringBox(at, phone, 5, up);
     expect(box.x + box.width).toBeLessThan(at.x);
-    expect(box.y + box.height).toBeLessThan(at.y);
+    expect(box.y + box.height / 2).toBeCloseTo(at.y, 0);
   });
 
   test("a side with no room flips rather than draw off the screen", () => {
-    // Five squares and their gaps stand 252 tall: there is no room above a
-    // finger 120 down, so the column opens BELOW it even though the quarter
-    // points up.
-    const at = { x: 200, y: 120 };
+    // The quarter points left, but a finger 30 in has no 64 of room there.
+    const at = { x: 30, y: 460 };
     const box = ringBox(at, phone, 5, up);
-    expect(box.y).toBeGreaterThan(at.y);
-    expect(box.y + box.height).toBeLessThanOrEqual(phone.height);
+    expect(box.x).toBeGreaterThan(at.x);
   });
 
-  test("it is never drawn off the edge, however little room there is", () => {
+  test("it is centred UNLESS the screen runs out, and then it is pulled in", () => {
     for (const at of [
       { x: 2, y: 2 },
       { x: 410, y: 913 },
@@ -76,14 +74,19 @@ describe("where the column goes", () => {
       expect(box.x + box.width).toBeLessThanOrEqual(phone.width);
       expect(box.y + box.height).toBeLessThanOrEqual(phone.height);
     }
+    // At the top of the screen there is no room above: the column sits as
+    // high as it may and the finger is simply near its bottom.
+    const high = ringBox({ x: 200, y: 20 }, phone, 5, down);
+    expect(high.y).toBeGreaterThan(0);
+    expect(high.y + high.height / 2).toBeGreaterThan(20);
   });
 
   test("a click sits closer than a finger does — nothing is covering the card", () => {
-    const at = { x: 60, y: 60 };
+    const at = { x: 60, y: 460 };
     const held = ringBox(at, phone, 5, down);
-    const clicked = ringBox(at, phone, 5, down, 4);
+    const clicked = ringBox(at, phone, 5, down, 12);
     expect(clicked.x).toBeLessThan(held.x);
-    expect(clicked.y).toBeLessThan(held.y);
+    expect(clicked.y).toBe(held.y);
   });
 });
 

@@ -8,7 +8,7 @@
 // With nobody registered (a component mounted on its own, a test) every call
 // is a no-op: the gesture still resolves, it simply draws nothing.
 
-import { RING_CLICK_GAP, fitRing, ringBox, ringQuadrant } from "./ring.js";
+import { RING_CLICK_REACH, fitRing, ringBox, ringQuadrant } from "./ring.js";
 
 let host = null;
 
@@ -45,7 +45,7 @@ export function popRing({ actions, at }) {
     at,
     count: slices.length,
     quadrant,
-    box: ringBox(at, viewport, slices.length, quadrant, RING_CLICK_GAP),
+    box: ringBox(at, viewport, slices.length, quadrant, RING_CLICK_REACH),
     sticky: true,
   });
 }
