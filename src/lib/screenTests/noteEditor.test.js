@@ -60,6 +60,37 @@ describe("NoteEditor", () => {
     expect(invoke).not.toHaveBeenCalledWith("keep_note_conflict_copy", expect.anything());
   });
 
+  test("a read left behind by a rename says nothing", async () => {
+    // Renaming the open note points the tab at the new address while the read
+    // of the old one is still in flight — and that file is gone, so the read
+    // fails. It is not about the file on screen, so it is not shown.
+    const onError = vi.fn();
+    let refuseOld;
+    bridge({
+      read_note: ({ path }) =>
+        path === "Inbox/Ideia.md"
+          ? new Promise((_, reject) => (refuseOld = reject))
+          : {
+              path,
+              title: "Empire skyrim",
+              body: "Corpo renomeado.\n",
+              pinned: false,
+              created: "2026-09-12",
+            },
+      write_note: null,
+    });
+    const { rerender } = render(NoteEditor, { props: props({ onError }) });
+
+    await rerender(props({ onError, path: "Inbox/Empire skyrim.md" }));
+    await screen.findByDisplayValue("Corpo renomeado.");
+
+    refuseOld(new Error("io: No such file or directory (read_note)"));
+    await new Promise((r) => setTimeout(r, 20));
+
+    expect(onError).not.toHaveBeenCalled();
+    expect(screen.getByDisplayValue("Corpo renomeado.")).toBeTruthy();
+  });
+
   test("with unsaved typing, the typing wins the screen and the other version is kept first", async () => {
     const onConflictKept = vi.fn();
     bridge({ ...loaded("Corpo.\n"), keep_note_conflict_copy: "Notes/Inbox/Ideia.sync-conflict-x.md" });

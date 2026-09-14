@@ -345,7 +345,7 @@ impl Notebook {
         // A note of the same name already there is not overwritten — the same
         // free-name dance every other move in the app goes through.
         let target = crate::fsio::free_name(&dir, &name);
-        std::fs::rename(&source, &target).ctx(&target)?;
+        crate::fsio::rename_recorded(&source, &target)?;
         let landed = crate::relpath::relative_slash(target_space.dir(), &target);
         let (was, now) = (
             seen::address_of(from_space, relative),

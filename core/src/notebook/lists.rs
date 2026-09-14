@@ -6,7 +6,7 @@
 use std::collections::BTreeMap;
 
 use crate::conflict::Conflict;
-use crate::error::{Error, IoContext, Result};
+use crate::error::{Error, Result};
 use crate::list::TaskList;
 use crate::task::Task;
 use crate::{COMPLETED_LIST, TASKS_DIR};
@@ -124,12 +124,49 @@ impl Notebook {
         }
         for path in files {
             if let Some(mut conflict) = crate::conflict::describe(&path) {
+                if self.is_settled_bookkeeping(&conflict) {
+                    continue;
+                }
                 conflict.relative = Some(crate::relpath::relative_slash(self.root(), &path));
                 found.push(conflict);
             }
         }
         found.sort_by(|a, b| a.path.cmp(&b.path));
         Ok(found)
+    }
+
+    /// A conflicting copy of one of the app's OWN files (`.jott/`) holding
+    /// exactly what the original holds: both devices wrote the same bytes, so
+    /// there is nothing to decide between them. The USER's text is never
+    /// judged this way, however identical — which version stays is theirs.
+    fn is_settled_bookkeeping(&self, conflict: &Conflict) -> bool {
+        if !conflict.path.starts_with(self.config_dir()) {
+            return false;
+        }
+        let Some(original) = conflict.original.as_deref() else {
+            return false;
+        };
+        match (std::fs::read(&conflict.path), std::fs::read(original)) {
+            (Ok(copy), Ok(kept)) => copy == kept,
+            _ => false,
+        }
+    }
+
+    /// Sends those copies to the trash — nothing is destroyed, and the same
+    /// deletion reaches the other device through the sync tool, so the notice
+    /// goes away on both. Derived work, run on open.
+    pub(super) fn reap_settled_conflicts(&self) -> Result<usize> {
+        let mut gone = 0;
+        for path in crate::fsio::dir_paths(self.config_dir())? {
+            let Some(conflict) = crate::conflict::describe(&path) else {
+                continue;
+            };
+            if self.is_settled_bookkeeping(&conflict) {
+                self.trash_path(&path)?;
+                gone += 1;
+            }
+        }
+        Ok(gone)
     }
 
     /// A conflict copy by its root-relative address, checked to be one: the
@@ -161,7 +198,7 @@ impl Notebook {
         if original.exists() {
             self.trash_path(&original)?;
         }
-        std::fs::rename(&copy, &original).ctx(&original)
+        crate::fsio::rename_recorded(&copy, &original)
     }
 
     /// Opens a list by its root-relative address (`Tasks/Compras.md`). Every
@@ -270,7 +307,7 @@ impl Notebook {
             return Err(Error::InvalidListName(format!("{to_name} already exists")));
         }
 
-        std::fs::rename(&source, &target).ctx(&target)?;
+        crate::fsio::rename_recorded(&source, &target)?;
 
         // Origins live in the folder's own Completed and hold bare names,
         // relative to the space, so the folder stays portable.

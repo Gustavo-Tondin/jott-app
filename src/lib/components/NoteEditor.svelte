@@ -116,10 +116,17 @@
 
   onDestroy(() => saver.flush());
 
+  /// Whether the editor has moved on from the address a read was made for.
+  /// A rename puts the new address here while the read of the old one is
+  /// still in flight — and that file is gone, so the read fails. Neither the
+  /// answer nor the error is about the file this editor now shows.
+  const movedOn = (atFolder, atPath) => atFolder !== folder || atPath !== path;
+
   async function load(atFolder, atPath) {
     loading = true;
     try {
       const note = await api.readNote(atFolder, atPath);
+      if (movedOn(atFolder, atPath)) return;
       saver.open({ folder: atFolder, path: atPath }, note.body);
       body = note.body;
       // The shell owns the title and the document actions — they belong to
@@ -135,9 +142,11 @@
         tags: note.tags ?? [],
       });
     } catch (e) {
+      if (movedOn(atFolder, atPath)) return;
       onError?.(e);
     } finally {
-      loading = false;
+      // The load that owns the screen is the one that owns this flag.
+      if (!movedOn(atFolder, atPath)) loading = false;
     }
   }
 

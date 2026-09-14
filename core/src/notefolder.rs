@@ -347,7 +347,7 @@ impl NoteFolder {
         if target.exists() {
             return Err(taken());
         }
-        std::fs::rename(source, &target).ctx(&target)?;
+        crate::fsio::rename_recorded(source, &target)?;
         Ok(target_relative)
     }
 

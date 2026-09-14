@@ -869,6 +869,52 @@ fn a_conflict_on_a_state_file_is_reported_too() {
 }
 
 #[test]
+fn a_copy_of_the_apps_own_file_that_changed_nothing_is_settled_on_open() {
+    // Two devices out of contact both rewrote a DERIVED file with the same
+    // bytes, and the sync tool left a copy there is nothing to choose
+    // between. What the user wrote is never judged this way, however
+    // identical the two versions are.
+    let (dir, _) = init();
+    // Opening is what writes the derived index — what is copied below.
+    let notebook = jott_core::Notebook::open(dir.path()).unwrap();
+    let config = dir.path().join(".jott");
+    let stamp = "sync-conflict-20260913-191526-VXVGIUI";
+
+    // The app's own index, copied verbatim.
+    let noise = config.join(format!("completed.{stamp}.json"));
+    std::fs::copy(config.join("completed.json"), &noise).unwrap();
+    // The app's own file, but a copy that really differs: a decision.
+    let real = config.join(format!("config.{stamp}.json"));
+    std::fs::write(&real, "{\"accent\":\"amber\"}\n").unwrap();
+
+    // And the user's own text, identical to the list it sits beside.
+    notebook.create_list("jott.tasks", "Compras").unwrap();
+    let list = dir.path().join("jott.tasks/Compras.md");
+    let mine = dir.path().join(format!("jott.tasks/Compras.{stamp}.md"));
+    std::fs::copy(&list, &mine).unwrap();
+
+    let reopened = jott_core::Notebook::open(dir.path()).unwrap();
+
+    assert!(!noise.exists(), "a copy that decides nothing does not stay");
+    assert!(real.exists(), "a copy that differs is the user's call");
+    assert!(mine.exists(), "the user's own text is never judged identical");
+
+    let reported: Vec<String> = reopened
+        .conflicts()
+        .unwrap()
+        .into_iter()
+        .filter_map(|c| c.relative)
+        .collect();
+    assert_eq!(reported.len(), 2, "{reported:?}");
+    assert!(reported.iter().all(|r| !r.contains("completed.")), "{reported:?}");
+
+    // Nothing was destroyed: it went to the trash, like everything else.
+    let trashed = reopened.trash_entries();
+    assert_eq!(trashed.len(), 1);
+    assert!(trashed[0].origin.ends_with(&format!("completed.{stamp}.json")));
+}
+
+#[test]
 fn the_conflicting_copy_is_left_untouched() {
     // Detect and report — never resolve. Deleting the wrong side loses work.
     let (dir, notebook) = init();

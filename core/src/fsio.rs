@@ -13,6 +13,13 @@ use crate::error::{Error, IoContext, Result};
 /// the notebook watcher ignores; another would make every save look external.
 pub fn write_atomically(path: impl AsRef<Path>, bytes: &[u8]) -> Result<()> {
     let path = path.as_ref();
+    // The same bytes again are not a write. A no-op that still landed gave
+    // the file a new mtime, which a sync tool reads as a new version: two
+    // devices opening the notebook out of contact were enough to leave a
+    // conflict copy of a derived file NEITHER of them changed.
+    if already_holds(path, bytes) {
+        return Ok(());
+    }
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent).ctx(parent)?;
     }
@@ -26,6 +33,26 @@ pub fn write_atomically(path: impl AsRef<Path>, bytes: &[u8]) -> Result<()> {
     crate::selfwrite::remember(path, bytes);
     std::fs::write(&tmp, bytes).ctx(&tmp)?;
     std::fs::rename(&tmp, path).ctx(path)?;
+    Ok(())
+}
+
+/// Whether the file already holds exactly these bytes. The length is a stat
+/// away; the bytes are only read when it matches, so a picture is not read
+/// back on every import.
+fn already_holds(path: &Path, bytes: &[u8]) -> bool {
+    std::fs::metadata(path).is_ok_and(|meta| meta.len() == bytes.len() as u64)
+        && std::fs::read(path).is_ok_and(|current| current == bytes)
+}
+
+/// Moves a file the app owns, recorded as our own write (`crate::selfwrite`)
+/// so the watcher does not report the move back as somebody else's change.
+/// The bytes are read to be stamped: this is for the notebook's own TEXT —
+/// a picture in the library is moved with `fs::rename`, unread.
+pub fn rename_recorded(source: &Path, target: &Path) -> Result<()> {
+    if let Ok(bytes) = std::fs::read(source) {
+        crate::selfwrite::remember(target, &bytes);
+    }
+    std::fs::rename(source, target).ctx(target)?;
     Ok(())
 }
 
@@ -144,5 +171,52 @@ mod tests {
         let path = dir.path().join("Inbox.md");
         let tmp = path.with_file_name("Inbox.md.tmp");
         assert_eq!(tmp.extension().unwrap(), "tmp");
+    }
+
+    #[test]
+    fn the_same_bytes_again_do_not_land_at_all() {
+        // The mtime is what a sync tool compares. The stamp is forced to a
+        // known one rather than raced against the clock: what matters is that
+        // nothing touched the file, not how fast the test ran.
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join(".jott/completed.json");
+        write_atomically(&path, b"{}\n").unwrap();
+
+        let epoch = std::time::SystemTime::UNIX_EPOCH;
+        let times = std::fs::FileTimes::new().set_modified(epoch);
+        std::fs::File::options()
+            .write(true)
+            .open(&path)
+            .unwrap()
+            .set_times(times)
+            .unwrap();
+
+        write_atomically(&path, b"{}\n").unwrap();
+        assert_eq!(
+            std::fs::metadata(&path).unwrap().modified().unwrap(),
+            epoch,
+            "a derived file rewritten identically is what two devices turn \
+             into a conflict copy"
+        );
+
+        // A real change still lands, stamp and all.
+        write_atomically(&path, b"{\"a\":1}\n").unwrap();
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), "{\"a\":1}\n");
+        assert_ne!(std::fs::metadata(&path).unwrap().modified().unwrap(), epoch);
+    }
+
+    #[test]
+    fn a_recorded_move_reads_as_our_own_write() {
+        // Renaming a note is the app writing, and the watcher has to know:
+        // otherwise the window reloads the note it just moved.
+        let dir = tempfile::tempdir().unwrap();
+        let source = dir.path().join("New note.md");
+        let target = dir.path().join("Empire skyrim.md");
+        write_atomically(&source, b"corpo\n").unwrap();
+
+        let _me = crate::selfwrite::as_owner("main");
+        rename_recorded(&source, &target).unwrap();
+
+        assert!(crate::selfwrite::is_own(&target, "main"), "the app moved it");
     }
 }
