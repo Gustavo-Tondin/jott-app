@@ -1188,25 +1188,43 @@ fn a_change_carrying_content_the_window_has_does_not_wake_it() {
         let _ = tx.send(event.payload().to_string());
     });
 
-    let path = dir.path().join("jott.tasks/task-list.md");
+    let dir = dir.path().join("jott.tasks");
+    let path = dir.join("task-list.md");
     let arrived = "- [ ] do celular <!--id:c1-->\n";
-    std::fs::write(&path, arrived).unwrap();
+
+    // How a sync lands a file: a temporary beside it, renamed over the
+    // original, and the file's times set afterwards. That last touch used to
+    // arrive as a second event and cost a second full reload.
+    let land = |bytes: &str| {
+        let tmp = dir.join(".syncthing.task-list.md.tmp");
+        std::fs::write(&tmp, bytes).unwrap();
+        std::fs::rename(&tmp, &path).unwrap();
+        std::thread::sleep(std::time::Duration::from_millis(300));
+        std::fs::File::options()
+            .write(true)
+            .open(&path)
+            .unwrap()
+            .set_times(std::fs::FileTimes::new().set_modified(std::time::SystemTime::now()))
+            .unwrap();
+    };
+
+    land(arrived);
     let payload = rx
         .recv_timeout(std::time::Duration::from_secs(10))
-        .expect("a list written from outside reaches the window");
+        .expect("a list landing from outside reaches the window");
     assert!(payload.contains("task-list.md"), "{payload}");
-    // Whatever else that first write stirred up.
-    while rx.recv_timeout(std::time::Duration::from_millis(400)).is_ok() {}
+    // ONE reload for one arrival: the touch that follows the rename carries
+    // the content the window was just given.
+    let mut again = 0;
+    while let Ok(payload) = rx.recv_timeout(std::time::Duration::from_millis(800)) {
+        assert!(payload.contains("task-list.md"), "{payload}");
+        again += 1;
+    }
+    assert_eq!(again, 0, "one file arriving is one reload, not {}", again + 1);
 
-    // The same bytes again, with a brand new mtime.
-    std::fs::write(&path, arrived).unwrap();
-    std::fs::File::options()
-        .write(true)
-        .open(&path)
-        .unwrap()
-        .set_times(std::fs::FileTimes::new().set_modified(std::time::SystemTime::now()))
-        .unwrap();
-    if let Ok(payload) = rx.recv_timeout(std::time::Duration::from_millis(600)) {
+    // The same bytes landing all over again are still no news.
+    land(arrived);
+    if let Ok(payload) = rx.recv_timeout(std::time::Duration::from_millis(800)) {
         panic!("content the window already has must not wake it, but this did: {payload}");
     }
 
