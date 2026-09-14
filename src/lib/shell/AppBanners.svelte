@@ -5,6 +5,7 @@
   // shell — this only draws it and reports the clicks.
   import Notice from "../components/Notice.svelte";
   import { api } from "../services/api.js";
+  import { titleOfList } from "../services/paths.js";
   import { openReleasePage } from "../services/update.js";
   import { S } from "../services/strings.js";
 
@@ -29,6 +30,24 @@
     onDismissMenuOffer,
     onError,
   } = $props();
+
+  /// What a copy belongs to, as the user reads it: a list is named the way
+  /// every other screen names it (the main list of a space is Inbox, never
+  /// `task-list`); a note is its own title.
+  function nameOf(conflict) {
+    return conflict.kind === "list" ? titleOfList(conflict.list) : conflict.list;
+  }
+
+  /// What the two versions of a copy disagree about, in words. The core
+  /// looked and said which sentence with what number (`Difference`); the
+  /// wording is the interface's.
+  function differenceOf({ differs }) {
+    if (!differs) return null;
+    if (differs.kind === "lines") return S.conflictLinesDiffer(differs.count);
+    if (differs.kind === "tasks") return S.conflictTasksDiffer(differs.count, differs.first);
+    if (differs.kind === "unseen") return S.conflictUnseen;
+    return null;
+  }
 </script>
 
 {#if error}
@@ -55,13 +74,14 @@
 {/if}
 
 {#if conflicts.length > 0}
-  <!-- The one case where the user can silently lose work: two devices edited
-       the same file and the sync tool kept both. A row per copy, each with
-       the two ways out (discard the copy, or keep it in the original's
-       place — both through the trash, both undoable) and the door to its
-       folder (the core's `folder_of` turns the file into the folder around
-       it). "Hide for now" is for the session — a NEW conflict brings the box
-       back, because the shell keys the hiding on the list of paths. -->
+  <!-- What is left after the app merged everything it could: two devices
+       changed the same passage, or this one had never seen the file. A row
+       per copy, saying WHAT the two versions disagree about, with the two
+       ways out (keep this device's, or keep the other's — both through the
+       trash, both undoable) and the door to its folder (the core's
+       `folder_of` turns the file into the folder around it). "Hide for now"
+       is for the session — a NEW conflict brings the box back, because the
+       shell keys the hiding on the list of paths. -->
   <Notice
     tone="warning"
     title={S.conflictsTitle(conflicts.length)}
@@ -74,7 +94,8 @@
       {#each conflicts as conflict (conflict.path)}
         <li class="shell__conflict">
           <span class="shell__conflict-what">
-            {#if conflict.list}<strong>{conflict.list}</strong>{/if}
+            {#if conflict.list}<strong>{nameOf(conflict)}</strong>{/if}
+            {#if differenceOf(conflict)}<span>{differenceOf(conflict)}</span>{/if}
             <code class="shell__notice-path">{conflict.relative ?? conflict.path}</code>
             {#if !conflict.original}<span class="shell__conflict-gone">({S.conflictOriginalGone})</span>{/if}
           </span>

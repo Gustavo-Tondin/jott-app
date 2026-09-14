@@ -36,6 +36,10 @@ pub struct TaskList {
     /// What the file held when it was read, by content — the `If-Match` of
     /// the next save. `None` is a file that was not there.
     loaded: Option<crate::selfwrite::Stamp>,
+    /// Where the version the devices have in COMMON is kept, and under which
+    /// address ([`crate::base`]). Installed by the notebook; a list opened
+    /// without one simply keeps no base.
+    base: Option<(crate::base::Base, String)>,
 }
 
 impl TaskList {
@@ -92,7 +96,22 @@ impl TaskList {
             trailing_newline,
             space_config: None,
             loaded: None,
+            base: None,
         }
+    }
+
+    /// Keeps the common version of this file in `base`, under `relative`.
+    pub(crate) fn based_on(mut self, base: crate::base::Base, relative: String) -> Self {
+        self.base = Some((base, relative));
+        self
+    }
+
+    /// Puts a whole set of lines in place of the ones read — what a merge
+    /// leaves behind ([`crate::merge`]). The file, its arrangement and the
+    /// `If-Match` of the next save stay the list's own: this changes what is
+    /// written, never where or how.
+    pub fn replace_lines(&mut self, lines: Vec<Line>) {
+        self.lines = lines;
     }
 
     /// Follows the arrangement of the space whose marker is `config` from now
@@ -448,7 +467,51 @@ impl TaskList {
         self.keep_what_is_there(rendered.as_bytes())?;
         crate::fsio::write_atomically(&self.path, rendered.as_bytes())?;
         self.loaded = Some(crate::selfwrite::Stamp::of_bytes(rendered.as_bytes()));
+        self.record_arrivals(&rendered);
         Ok(())
+    }
+
+    /// Tells the common version about the tasks this save ADDS, and about
+    /// nothing else.
+    ///
+    /// A task's first appearance in this file is the only copy of it there
+    /// is, so whatever the other device may hold under that id can only have
+    /// come from here — which makes this content a true ancestor of both.
+    /// Every other change stays out: a base that followed our edits would
+    /// read as "this device changed nothing" and hand every field away
+    /// (`crate::base`). Same reason a file the base has never heard of is
+    /// recorded whole, and only then.
+    fn record_arrivals(&self, rendered: &str) {
+        let Some((base, relative)) = &self.base else {
+            return;
+        };
+        let Some(common) = base.of(relative) else {
+            // Born after this notebook was opened: nobody else can have it yet.
+            let _ = base.record_if_absent(relative, rendered.as_bytes());
+            return;
+        };
+        let Ok(text) = String::from_utf8(common) else {
+            return;
+        };
+        // The cheap question first — every save asks it, and almost every
+        // save is about a task the common version already knows. Only a NEW
+        // id is worth reading that file as a list.
+        let held = ids_written_in(&text);
+        let arrived: Vec<Line> = self
+            .lines
+            .iter()
+            .filter(|line| {
+                matches!(line, Line::Task(task)
+                    if task.id.as_deref().is_some_and(|id| !held.contains(id)))
+            })
+            .cloned()
+            .collect();
+        if arrived.is_empty() {
+            return;
+        }
+        let mut known = Self::from_text(&text);
+        known.lines.extend(arrived);
+        let _ = base.record(relative, known.render().as_bytes());
     }
 
     /// Files the version on disk as a conflict copy when it is not the one
@@ -468,6 +531,22 @@ impl TaskList {
         crate::conflict::keep_copy(&self.path, crate::clock::civil_now())?;
         Ok(())
     }
+}
+
+/// Every id spelled in a list's text, without parsing it. A word after
+/// `id:` is an id wherever it appears — a false reading costs a base entry
+/// that is already there, never a wrong merge.
+fn ids_written_in(text: &str) -> HashSet<&str> {
+    text.match_indices("id:")
+        .map(|(at, _)| {
+            let rest = &text[at + 3..];
+            let end = rest
+                .find(|c: char| !c.is_ascii_alphanumeric())
+                .unwrap_or(rest.len());
+            &rest[..end]
+        })
+        .filter(|id| !id.is_empty())
+        .collect()
 }
 
 fn is_identity(positions: &[usize]) -> bool {

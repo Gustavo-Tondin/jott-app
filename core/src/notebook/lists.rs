@@ -108,7 +108,10 @@ impl Notebook {
     /// (`crate::arrange`); Completed only grows, in the order things were ticked.
     pub fn open_list(&self, path: &str) -> Result<TaskList> {
         let (folder, name) = self.resolve_list(path)?;
-        let list = folder.open_list(&name)?;
+        let mut list = folder.open_list(&name)?;
+        if let Some(base) = self.base.clone() {
+            list = list.based_on(base, path.to_string());
+        }
         if name == COMPLETED_LIST {
             return Ok(list);
         }

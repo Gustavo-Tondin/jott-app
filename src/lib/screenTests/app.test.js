@@ -215,6 +215,8 @@ describe("App", () => {
     const copy = {
       path: "/n/jott.tasks/Inbox.sync-conflict-20260911-150002-JOTTAPP.md",
       list: "Inbox",
+      kind: "list",
+      differs: { kind: "tasks", count: 1, first: "Comprar pão" },
       original: "/n/jott.tasks/Inbox.md",
       relative: "jott.tasks/Inbox.sync-conflict-20260911-150002-JOTTAPP.md",
     };
@@ -225,17 +227,45 @@ describe("App", () => {
     });
     render(App);
     await screen.findByText("1 sync conflict in this notebook");
+    // The row says what the two versions disagree about — the one thing a
+    // file name cannot.
+    await screen.findByText('"Comprar pão" changed on both devices');
 
     // Discarding needs no question: the copy lands in the Trash.
-    await fireEvent.click(screen.getByRole("button", { name: "Discard copy" }));
+    await fireEvent.click(screen.getByRole("button", { name: "Keep this device's" }));
     await waitFor(() => expect(invoke).toHaveBeenCalledWith("discard_conflict", { path: copy.relative }));
     await waitFor(() => expect(callsTo("notebook_snapshot").length).toBeGreaterThan(1));
 
     // Adopting replaces what is on screen, so it asks first.
-    await fireEvent.click(screen.getByRole("button", { name: "Keep this copy" }));
-    await screen.findByText(/Replace "Inbox" with this copy\?/);
+    await fireEvent.click(screen.getByRole("button", { name: "Keep the other's" }));
+    await screen.findByText(/Keep the other device's "Inbox"\?/);
     await fireEvent.click(document.querySelector(".confirm-dialog__confirm"));
     await waitFor(() => expect(invoke).toHaveBeenCalledWith("adopt_conflict", { path: copy.relative }));
+  });
+
+  test("the banner names the main list of a space Inbox, never task-list", async () => {
+    // `task-list` is a file name, the same in every space: it says nothing
+    // about which list this is and never belongs on screen.
+    shell({
+      notebook_snapshot: {
+        ...snapshot(),
+        conflicts: [
+          {
+            path: "/n/jott.tasks/task-list.sync-conflict-20260914-132000-PHONE.md",
+            list: "task-list",
+            kind: "list",
+            differs: { kind: "unseen" },
+            original: "/n/jott.tasks/task-list.md",
+            relative: "jott.tasks/task-list.sync-conflict-20260914-132000-PHONE.md",
+          },
+        ],
+      },
+    });
+    render(App);
+
+    await screen.findByText("Inbox");
+    expect(screen.queryByText("task-list")).toBeNull();
+    await screen.findByText("this device had not seen this file before");
   });
 
   test("a conflict copy landing from another device brings the banner up on its own", async () => {
@@ -268,7 +298,9 @@ describe("App", () => {
     shell({
       merge_conflicts: () => {
         order.push("merge");
-        return Promise.resolve(1);
+        return Promise.resolve([
+          { path: ".jott/daily-state.json", name: "daily-state", kind: "state", changes: 1 },
+        ]);
       },
       notebook_snapshot: () => {
         order.push("snapshot");
@@ -286,6 +318,77 @@ describe("App", () => {
 
     expect(order[0]).toBe("merge");
     expect(order).toContain("snapshot");
+  });
+
+  test("a merged list says so, and the app's own files say nothing", async () => {
+    // The notice is the only trace a merge leaves on screen, and it is for
+    // the user's own files: the day's state being put together is the app
+    // talking to itself.
+    let merged = [
+      { path: ".jott/daily-state.json", name: "daily-state", kind: "state", changes: 2 },
+    ];
+    shell({ merge_conflicts: () => Promise.resolve(merged) });
+    render(App);
+    await waitFor(() => expect(callsTo("notebook_snapshot").length).toBeGreaterThan(0));
+
+    await sendWatcherEvent("notebook://changed", {
+      kind: "conflict",
+      path: "/n/.jott/daily-state.sync-conflict-20260914-132000-PHONE.json",
+    });
+    await waitFor(() => expect(callsTo("merge_conflicts").length).toBe(1));
+    expect(screen.queryByText(/Merged/)).toBeNull();
+
+    merged = [{ path: "jott.tasks/Compras.md", name: "Compras", kind: "list", changes: 2 }];
+    await sendWatcherEvent("notebook://changed", {
+      kind: "conflict",
+      path: "/n/jott.tasks/Compras.sync-conflict-20260914-132000-PHONE.md",
+    });
+
+    await screen.findByText("Merged 2 changes from another device into Compras");
+
+    // And the main list of a space is Inbox on screen, never `task-list`.
+    merged = [{ path: "jott.tasks/task-list.md", name: "task-list", kind: "list", changes: 1 }];
+    await sendWatcherEvent("notebook://changed", {
+      kind: "conflict",
+      path: "/n/jott.tasks/task-list.sync-conflict-20260914-132000-PHONE.md",
+    });
+    await screen.findByText("Merged 1 change from another device into Inbox");
+  });
+
+  test("taking a merge back stops the window merging on its own", async () => {
+    // Undo puts the copy back on disk, which the watcher reports at once —
+    // merging it again would make Ctrl+Z do nothing at all. Taking it back
+    // means "let me decide this one".
+    shell({
+      merge_conflicts: () =>
+        Promise.resolve([
+          { path: "jott.tasks/Compras.md", name: "Compras", kind: "list", changes: 1 },
+        ]),
+      undo: () => Promise.resolve("merge_conflicts"),
+      redo: () => Promise.resolve("merge_conflicts"),
+    });
+    render(App);
+    await waitFor(() => expect(callsTo("notebook_snapshot").length).toBeGreaterThan(0));
+
+    const land = () =>
+      sendWatcherEvent("notebook://changed", {
+        kind: "conflict",
+        path: "/n/jott.tasks/Compras.sync-conflict-20260914-132000-PHONE.md",
+      });
+
+    await land();
+    await waitFor(() => expect(callsTo("merge_conflicts").length).toBe(1));
+
+    await fireEvent.keyDown(window, { key: "z", ctrlKey: true });
+    await waitFor(() => expect(callsTo("undo").length).toBe(1));
+    await land();
+    expect(callsTo("merge_conflicts").length).toBe(1);
+
+    // Redoing it says the opposite, and the window settles copies again.
+    await fireEvent.keyDown(window, { key: "z", ctrlKey: true, shiftKey: true });
+    await waitFor(() => expect(callsTo("redo").length).toBe(1));
+    await land();
+    await waitFor(() => expect(callsTo("merge_conflicts").length).toBe(2));
   });
 
   test("the sidebar counts the open tasks of a place, not only of a list", async () => {

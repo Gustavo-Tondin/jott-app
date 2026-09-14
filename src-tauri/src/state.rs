@@ -286,7 +286,10 @@ impl WatcherHandle {
                     let state = app.state::<AppState>();
                     // The versions that arrived are what the devices now have
                     // in common — taken only now, with the whole burst on disk.
+                    // Lists and notes as much as the day's state: they are
+                    // merged too, and a merge without a base does nothing.
                     state.note_external_changes(&window, &settled.states);
+                    state.note_external_changes(&window, &settled.lists);
                     if !settled.lists.is_empty()
                         && state.yield_to_file_order(&window, &settled.lists)
                     {
@@ -422,10 +425,11 @@ const SETTLE: std::time::Duration = std::time::Duration::from_secs(3);
 struct Arrivals {
     lists: Vec<std::path::PathBuf>,
     /// The day's state and the plan, whose arriving version becomes the merge
-    /// base (`Notebook::note_external_change`) — held for the same reason the
-    /// lists are: a conflict copy landing beside one of them arrives in the
-    /// same burst, and a base taken before it would be one of the two versions
-    /// in conflict, never what the devices had in common.
+    /// base (`Notebook::note_external_change`), as every arriving list and
+    /// note does — held for the same reason the lists are: a conflict copy
+    /// landing beside one of them arrives in the same burst, and a base taken
+    /// before it would be one of the two versions in conflict, never what the
+    /// devices had in common.
     states: Vec<std::path::PathBuf>,
     /// Folders whose `.space.json` changed during the burst.
     configs: std::collections::HashSet<std::path::PathBuf>,

@@ -10,15 +10,6 @@ use jott_core::Notebook;
 mod common;
 use common::{init, read};
 
-/// A device that already has everything `origin` has: the folder copied at
-/// the moment the two were last in step.
-fn clone_notebook(origin: &Path) -> (tempfile::TempDir, Notebook) {
-    let dir = tempfile::tempdir().unwrap();
-    copy_tree(origin, dir.path());
-    let notebook = Notebook::open(dir.path()).unwrap();
-    (dir, notebook)
-}
-
 /// One device, complete: the notebook folder, the machine folder where its
 /// merge base lives (outside the notebook, as on a real install), and the
 /// open notebook. Every `Notebook::open` in a merge test goes through this,
@@ -199,30 +190,30 @@ fn a_list_saved_over_and_over_keeps_no_copy_of_itself() {
 // ------------------------------------------- the same task finished on both
 
 #[test]
-#[ignore = "passes once the merge of step 6 (docs/pendências/sync-proposta.md) is in"]
 fn a_freely_task_completed_on_both_devices_comes_back_once() {
     // `repeat: freely` keeps one open copy at a time. Completed on two
     // devices before they meet, each side spawns an occurrence of its own,
     // with an id of its own, and each files the completion. The merge has to
     // leave one open occurrence and one line per completion.
-    let (a_dir, a) = init();
-    let inbox = a_dir.path().join(INBOX);
+    let (a_device, _a) = Device::new();
+    let inbox = a_device.path().join(INBOX);
     std::fs::write(&inbox, "- [ ] Regar as plantas <!--id:r1-->\n  repeat: freely\n").unwrap();
 
-    let (b_dir, b) = clone_notebook(a_dir.path());
+    let a = a_device.open();
+    let (b_device, b) = Device::cloned_from(&a_device);
 
     a.complete_task(INBOX, "r1").unwrap();
     b.complete_task(INBOX, "r1").unwrap();
 
-    sync_folder(a_dir.path(), b_dir.path(), "jott.tasks");
+    sync_folder(a_device.path(), b_device.path(), "jott.tasks");
     assert_eq!(
-        conflict_copies(&a_dir.path().join("jott.tasks")),
+        conflict_copies(&a_device.path().join("jott.tasks")),
         2,
         "the sync left a copy of the list and one of Completed"
     );
 
     // Opening is where the app is handed the pair.
-    let a = Notebook::open(a_dir.path()).unwrap();
+    let a = a_device.open();
 
     let list = read(&inbox);
     assert_eq!(
@@ -230,7 +221,7 @@ fn a_freely_task_completed_on_both_devices_comes_back_once() {
         1,
         "one open occurrence, not two:\n{list}"
     );
-    let completed = read(a_dir.path().join("jott.tasks/completed.md"));
+    let completed = read(a_device.path().join("jott.tasks/completed.md"));
     assert_eq!(
         completed.matches("- [x] Regar as plantas").count(),
         1,
@@ -240,6 +231,139 @@ fn a_freely_task_completed_on_both_devices_comes_back_once() {
         a.conflicts().unwrap().is_empty(),
         "and the copies were settled, not left for the banner"
     );
+
+    // And the other device, handed the same pair, writes the same bytes.
+    let b = b_device.open();
+    assert_eq!(read(b_device.path().join(INBOX)), list);
+    assert!(b.conflicts().unwrap().is_empty());
+}
+
+// --------------------------------------- the same list edited on both sides
+
+#[test]
+fn each_device_editing_its_own_task_of_a_list_leaves_no_copy() {
+    // The conflict a list copy almost always is: two devices, two different
+    // tasks. Nobody has to be asked anything.
+    let (a_device, a) = Device::new();
+    a.create_task(INBOX, "Comprar pao").unwrap();
+    a.create_task(INBOX, "Ligar pro dentista").unwrap();
+    let a = a_device.open();
+    let ids: Vec<String> = a
+        .tasks_in(INBOX)
+        .unwrap()
+        .iter()
+        .filter_map(|task| task.id.clone())
+        .collect();
+
+    let (b_device, b) = Device::cloned_from(&a_device);
+    a.edit_task_text(INBOX, &ids[0], "Comprar pao integral".into()).unwrap();
+    b.edit_task_text(INBOX, &ids[1], "Ligar pro dentista hoje".into()).unwrap();
+
+    sync_folder(a_device.path(), b_device.path(), "jott.tasks");
+    assert_eq!(conflict_copies(&a_device.path().join("jott.tasks")), 1);
+
+    let a = a_device.open();
+    let list = read(a_device.path().join(INBOX));
+
+    assert!(list.contains("Comprar pao integral"), "{list}");
+    assert!(list.contains("Ligar pro dentista hoje"), "the other device's edit: {list}");
+    assert_eq!(conflict_copies(&a_device.path().join("jott.tasks")), 0);
+    assert!(a.conflicts().unwrap().is_empty(), "and the banner has nothing to ask");
+    assert_eq!(a.trash_entries().len(), 1, "the copy is in the trash, not gone");
+
+    // Both devices merge the same pair into the same bytes.
+    let b = b_device.open();
+    assert_eq!(read(b_device.path().join(INBOX)), list);
+    assert!(b.conflicts().unwrap().is_empty());
+}
+
+#[test]
+fn the_same_task_changed_on_both_devices_ends_up_side_by_side() {
+    // Here the app does not know, and does not guess: the other device's
+    // version lands under ours, marked, where deleting one is a tap.
+    let (a_device, a) = Device::new();
+    a.create_task(INBOX, "Comprar pao").unwrap();
+    let a = a_device.open();
+    let id = a.tasks_in(INBOX).unwrap()[0].id.clone().unwrap();
+
+    let (b_device, b) = Device::cloned_from(&a_device);
+    a.edit_task_text(INBOX, &id, "Comprar pao integral".into()).unwrap();
+    b.edit_task_text(INBOX, &id, "Comprar pao frances".into()).unwrap();
+
+    sync_folder(a_device.path(), b_device.path(), "jott.tasks");
+    let a = a_device.open();
+    let list = read(a_device.path().join(INBOX));
+
+    assert!(list.contains("Comprar pao integral"), "{list}");
+    assert!(list.contains("⚠ Comprar pao frances"), "{list}");
+    assert!(a.conflicts().unwrap().is_empty(), "the decision is in the list, not in a banner");
+    assert_eq!(a.tasks_in(INBOX).unwrap().len(), 2);
+}
+
+// ------------------------------------------ the same note edited on both sides
+
+#[test]
+fn each_device_writing_in_its_own_paragraph_of_a_note_leaves_no_copy() {
+    let (a_device, a) = Device::new();
+    let note = a.create_note("jott.notes", "Inbox", "Ideia").unwrap();
+    let path = a_device.path().join("jott.notes").join(&note);
+    std::fs::write(&path, "# Ideia\n\nPrimeiro.\n\nSegundo.\n").unwrap();
+
+    let _a = a_device.open();
+    let (b_device, _) = Device::cloned_from(&a_device);
+    std::fs::write(&path, "# Ideia\n\nPrimeiro, do desktop.\n\nSegundo.\n").unwrap();
+    std::fs::write(
+        b_device.path().join("jott.notes").join(&note),
+        "# Ideia\n\nPrimeiro.\n\nSegundo, do celular.\n",
+    )
+    .unwrap();
+
+    sync_folder(a_device.path(), b_device.path(), "jott.notes/Inbox");
+    assert_eq!(conflict_copies(&a_device.path().join("jott.notes/Inbox")), 1);
+
+    let a = a_device.open();
+    let text = read(&path);
+
+    assert!(text.contains("Primeiro, do desktop."), "{text}");
+    assert!(text.contains("Segundo, do celular."), "{text}");
+    assert_eq!(conflict_copies(&a_device.path().join("jott.notes/Inbox")), 0);
+    assert!(a.conflicts().unwrap().is_empty());
+
+    let b = b_device.open();
+    assert_eq!(read(b_device.path().join("jott.notes").join(&note)), text);
+    assert!(b.conflicts().unwrap().is_empty());
+}
+
+#[test]
+fn a_passage_rewritten_on_both_devices_stays_for_the_user_to_read() {
+    // Conflict markers written into somebody's note would be the app
+    // corrupting the file it was asked to protect. The copy stays, and the
+    // notice can say how many lines differ.
+    let (a_device, a) = Device::new();
+    let note = a.create_note("jott.notes", "Inbox", "Ideia").unwrap();
+    let path = a_device.path().join("jott.notes").join(&note);
+    std::fs::write(&path, "# Ideia\n\nUma frase.\n").unwrap();
+
+    let _a = a_device.open();
+    let (b_device, _) = Device::cloned_from(&a_device);
+    std::fs::write(&path, "# Ideia\n\nUma frase do desktop.\n").unwrap();
+    std::fs::write(
+        b_device.path().join("jott.notes").join(&note),
+        "# Ideia\n\nUma frase do celular.\n",
+    )
+    .unwrap();
+
+    sync_folder(a_device.path(), b_device.path(), "jott.notes/Inbox");
+    let a = a_device.open();
+
+    let conflicts = a.conflicts().unwrap();
+    assert_eq!(conflicts.len(), 1, "{conflicts:?}");
+    assert_eq!(
+        conflicts[0].differs,
+        Some(jott_core::conflict::Difference::Lines { count: 1 }),
+        "and the banner is told what differs"
+    );
+    assert!(read(&path).contains("do desktop"), "our version is untouched");
 }
 
 // ------------------------------------------- a copy that decides nothing

@@ -21,6 +21,7 @@ pub mod id;
 pub mod jsondoc;
 pub mod links;
 pub mod list;
+pub mod merge;
 pub mod note;
 pub mod notebook;
 pub mod notefolder;
@@ -37,6 +38,7 @@ pub mod space;
 pub mod state;
 pub mod tags;
 pub mod task;
+pub mod textmerge;
 pub mod themes;
 pub mod timeline;
 pub mod trash;
@@ -47,12 +49,12 @@ pub use age::{Age, Band, Thresholds};
 pub use assets::{AssetEntry, Assets, ASSETS_DIR};
 pub use clock::WeekStart;
 pub use config::{Config, Rollover, RolloverMode};
-pub use conflict::Conflict;
+pub use conflict::{Conflict, FileKind};
 pub use error::{Error, Result};
 pub use history::History;
 pub use list::{Line, TaskList};
 pub use notebook::{
-    ListedNote, ListedTask, NoteFolderEntry, Notebook, NotebookContents, NotebookSummary,
+    ListedNote, ListedTask, Merged, NoteFolderEntry, Notebook, NotebookContents, NotebookSummary,
     OriginAction,
 };
 pub use search::{HitKind, SearchHit, SearchResults};

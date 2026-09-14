@@ -822,7 +822,15 @@ fn a_mergeable_conflict_is_merged_and_the_copy_trashed() {
     .unwrap();
     assert_eq!(ok(&app, "list_conflicts", json!({})).as_array().unwrap().len(), 1);
 
-    assert_eq!(ok(&app, "merge_conflicts", json!({})), json!(1));
+    assert_eq!(
+        ok(&app, "merge_conflicts", json!({})),
+        json!([{
+            "path": ".jott/daily-state.json",
+            "name": "daily-state",
+            "kind": "state",
+            "changes": 1
+        }])
+    );
 
     assert_eq!(ok(&app, "list_conflicts", json!({})), json!([]));
     let today = ok(&app, "day_tasks", json!({ "day": null }));
@@ -842,18 +850,72 @@ fn a_mergeable_conflict_is_merged_and_the_copy_trashed() {
 
 #[test]
 fn a_conflict_the_app_cannot_merge_is_left_for_the_banner() {
-    // A list is step 6: the app keeps no base of one, so the copy stays and
-    // the banner asks — merging must never touch what it does not understand.
+    // A note both devices rewrote in the same place: the app has no version
+    // to choose and does not invent one — the copy stays, and the banner is
+    // told how many lines differ.
     let (_lock, app, dir) = app_with_notebook();
-    ok(&app, "create_list", json!({ "folder": "jott.tasks", "name": "Compras" }));
+    let note = ok(
+        &app,
+        "create_note",
+        json!({ "folder": "jott.notes", "inFolder": "Inbox", "title": "Ideia" }),
+    );
+    let note = note.as_str().unwrap().to_string();
+    let path = dir.path().join("jott.notes").join(&note);
+    std::fs::write(&path, "# Ideia\n\nUma frase.\n").unwrap();
+    // Opening is when the machine takes note of what it is holding.
+    ok(&app, "open_notebook", json!({ "path": dir.path(), "create": false }));
+    std::fs::write(&path, "# Ideia\n\nUma frase do desktop.\n").unwrap();
+    let copy = path.with_file_name(format!(
+        "{}.sync-conflict-20260720-143000-K3F7NLM.md",
+        path.file_stem().unwrap().to_string_lossy()
+    ));
+    std::fs::write(&copy, "# Ideia\n\nUma frase do celular.\n").unwrap();
+
+    assert_eq!(ok(&app, "merge_conflicts", json!({})), json!([]));
+    let conflicts = ok(&app, "list_conflicts", json!({}));
+    let conflicts = conflicts.as_array().unwrap();
+    assert_eq!(conflicts.len(), 1);
+    assert_eq!(conflicts[0]["differs"], json!({ "kind": "lines", "count": 1 }));
+    assert!(std::fs::read_to_string(&path).unwrap().contains("do desktop"));
+}
+
+#[test]
+fn a_list_each_device_edited_its_own_task_of_is_merged_through_the_bridge() {
+    // The everyday conflict, the way the front meets it: a copy lands, the
+    // window merges, and the banner has nothing to ask.
+    let (_lock, app, dir) = app_with_notebook();
+    let inbox = "jott.tasks/task-list.md";
+    let ours = task_with_id(&app, inbox, "Comprar pão");
+    let theirs = task_with_id(&app, inbox, "Ligar pro dentista");
+    let path = dir.path().join(inbox);
+
+    ok(&app, "open_notebook", json!({ "path": dir.path(), "create": false }));
+    let common = std::fs::read_to_string(&path).unwrap();
+    // The other device's version of the same list, with its own edit.
+    let from_the_phone = common.replace("Ligar pro dentista", "Ligar pro dentista hoje");
+    ok(
+        &app,
+        "edit_task_text",
+        json!({ "list": inbox, "id": ours, "text": "Comprar pão integral" }),
+    );
     std::fs::write(
-        dir.path()
-            .join("jott.tasks/Compras.sync-conflict-20260720-143000-K3F7NLM.md"),
-        "- [ ] versão do celular\n",
+        path.with_file_name("task-list.sync-conflict-20260914-120000-PHONE.md"),
+        &from_the_phone,
     )
     .unwrap();
 
-    assert_eq!(ok(&app, "merge_conflicts", json!({})), json!(0));
+    let merged = ok(&app, "merge_conflicts", json!({}));
+    assert_eq!(merged[0]["name"], json!("task-list"));
+    assert_eq!(merged[0]["kind"], json!("list"), "the interface names a list its own way");
+
+    assert_eq!(ok(&app, "list_conflicts", json!({})), json!([]));
+    let list = std::fs::read_to_string(&path).unwrap();
+    assert!(list.contains("Comprar pão integral"), "{list}");
+    assert!(list.contains("Ligar pro dentista hoje"), "{list}");
+    assert!(!list.contains("⚠"), "nothing was in dispute: {list}");
+    let _ = theirs;
+    // One action, and the pair comes back whole.
+    assert_eq!(ok(&app, "undo", json!({})), json!("merge_conflicts"));
     assert_eq!(ok(&app, "list_conflicts", json!({})).as_array().unwrap().len(), 1);
 }
 

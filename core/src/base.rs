@@ -41,6 +41,13 @@ impl Base {
         std::fs::read(self.file(relative)?).ok()
     }
 
+    /// Whether this device already knows a common version of `relative` —
+    /// asked before reading the file it would record, so an open after the
+    /// first one costs a `stat` per file and nothing more.
+    pub fn has(&self, relative: &str) -> bool {
+        self.file(relative).is_some_and(|path| path.exists())
+    }
+
     /// Records `bytes` as the new common content of `relative`.
     pub fn record(&self, relative: &str, bytes: &[u8]) -> Result<()> {
         match self.file(relative) {

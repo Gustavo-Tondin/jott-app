@@ -216,6 +216,7 @@ mod library;
 pub use library::{NotebookContents, NotebookSummary};
 mod lists;
 mod notes;
+pub use conflicts::Merged;
 pub use notes::NoteFolderEntry;
 mod day;
 pub use day::Day;

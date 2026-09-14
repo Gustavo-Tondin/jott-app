@@ -41,14 +41,7 @@ fn origin() -> u64 {
 /// any comes up twice — and the clock keeps them distinct across runs.
 pub fn generate() -> String {
     let seq = COUNTER.fetch_add(1, Ordering::Relaxed) % SPACE;
-    let mut value = (origin() + seq * STRIDE) % SPACE;
-
-    let mut id = String::with_capacity(ID_LEN);
-    for _ in 0..ID_LEN {
-        id.push(ALPHABET[(value % ALPHABET.len() as u64) as usize] as char);
-        value /= ALPHABET.len() as u64;
-    }
-    id
+    spell((origin() + seq * STRIDE) % SPACE)
 }
 
 /// Generates an id that does not collide with `taken`.
@@ -59,6 +52,44 @@ pub fn generate_unique(taken: &std::collections::HashSet<String>) -> String {
             return candidate;
         }
     }
+}
+
+/// An id DERIVED from `seed`, free of `taken` — for the ids a merge has to
+/// invent. Two devices merging the same pair must land on the same bytes, and
+/// a random id would have them handing each other a conflict for ever, so the
+/// seed (the content the id is for) is all this reads.
+///
+/// The hash is spelled out here, and stays spelled out: `DefaultHasher` is
+/// only promised to be stable within one build of the standard library, and
+/// two devices are two builds.
+pub fn derived(seed: &str, taken: &std::collections::HashSet<String>) -> String {
+    for attempt in 0..u32::MAX {
+        let candidate = spell(digest(&format!("{seed}#{attempt}")) % SPACE);
+        if !taken.contains(&candidate) {
+            return candidate;
+        }
+    }
+    generate_unique(taken)
+}
+
+/// FNV-1a, 64 bits: small, and the same number on every machine for ever.
+fn digest(text: &str) -> u64 {
+    let mut hash: u64 = 0xcbf2_9ce4_8422_2325;
+    for byte in text.as_bytes() {
+        hash ^= *byte as u64;
+        hash = hash.wrapping_mul(0x0000_0100_0000_01b3);
+    }
+    hash
+}
+
+/// A number as the `ID_LEN` base36 characters that spell it.
+fn spell(mut value: u64) -> String {
+    let mut id = String::with_capacity(ID_LEN);
+    for _ in 0..ID_LEN {
+        id.push(ALPHABET[(value % ALPHABET.len() as u64) as usize] as char);
+        value /= ALPHABET.len() as u64;
+    }
+    id
 }
 
 #[cfg(test)]
@@ -97,6 +128,28 @@ mod tests {
             .filter(|(a, b)| a == b)
             .count();
         assert!(same < ID_LEN - 1, "{first} and {second} look consecutive");
+    }
+
+    #[test]
+    fn a_derived_id_is_the_same_number_on_every_machine() {
+        // What keeps two devices from handing each other a conflict for ever.
+        // The value is pinned on purpose: a change of hash here is a change
+        // of behaviour between app versions, not a refactor.
+        let free = HashSet::new();
+        assert_eq!(derived("k9kdki:Comprar pao", &free), derived("k9kdki:Comprar pao", &free));
+        assert_ne!(derived("k9kdki:Comprar pao", &free), derived("k9kdki:Comprar cha", &free));
+        assert_eq!(derived("k9kdki:Comprar pao", &free), "bbcqk0");
+    }
+
+    #[test]
+    fn a_derived_id_steps_aside_from_what_is_taken() {
+        let mut taken = HashSet::new();
+        let first = derived("semente", &taken);
+        taken.insert(first.clone());
+        let second = derived("semente", &taken);
+        assert_ne!(second, first);
+        // And the step aside is itself the same on both devices.
+        assert_eq!(second, derived("semente", &taken));
     }
 
     #[test]

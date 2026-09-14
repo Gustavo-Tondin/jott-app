@@ -59,6 +59,33 @@ pub fn keep_copy(path: &Path, now: NaiveDateTime) -> Result<Option<PathBuf>> {
     Ok(Some(copy))
 }
 
+/// Which of the app's files a copy belongs to — what tells the interface to
+/// name a list its own way (every space's main list reads Inbox), and to say
+/// nothing at all about the app's own bookkeeping.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum FileKind {
+    /// The day's state or the plan.
+    State,
+    List,
+    Note,
+}
+
+/// What the two versions of a file disagree about, when the app read them
+/// both and could not settle it. The words are the interface's; this says
+/// which sentence and with what number.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(tag = "kind", rename_all = "camelCase")]
+pub enum Difference {
+    /// A note: how many lines the two versions write differently.
+    Lines { count: usize },
+    /// A list: tasks both devices changed, named by the first of them.
+    Tasks { count: usize, first: String },
+    /// This device has never seen the file before, so there is nothing to
+    /// measure from and nothing was compared.
+    Unseen,
+}
+
 /// A conflicting copy of a file, and the file it belongs to.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -73,6 +100,13 @@ pub struct Conflict {
     /// back to `folder_of` to reveal it. `describe` does not know the root;
     /// `Notebook::conflicts` fills it in.
     pub relative: Option<String>,
+    /// What the two versions disagree about, when the app could look. Filled
+    /// by `Notebook::conflicts`, which is the only reader that has the base.
+    pub differs: Option<Difference>,
+    /// Which of the app's files it is; `None` for one the app does not read.
+    /// Filled by `Notebook::conflicts`, which is the only reader that knows
+    /// the spaces.
+    pub kind: Option<FileKind>,
 }
 
 /// True when the file name is a sync-conflict copy — kept out of the list
@@ -113,6 +147,8 @@ pub fn describe(path: &Path) -> Option<Conflict> {
         list: is_markdown.then(|| original_stem.to_string()),
         original: original.filter(|p| p.exists()),
         relative: None,
+        differs: None,
+        kind: None,
         path: path.to_path_buf(),
     })
 }

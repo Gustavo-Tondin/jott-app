@@ -5,17 +5,62 @@
 //! common ([`crate::base`]) is merged, and the copy goes to the trash; the
 //! rest is reported, and the user decides.
 //!
-//! What is merged today is the day's state and the plan — sets of references,
-//! where there is no field to fight over. Lists and notes are step 6.
+//! What is merged: the day's state and the plan (sets of references, with no
+//! field to fight over), a task list (task by task, field by field —
+//! [`crate::merge`]) and a note (line by line — [`crate::textmerge`]). What
+//! is NOT merged is what both devices moved to different places: there the
+//! copy stays, and the notice says what differs.
 
 use std::path::{Path, PathBuf};
 
 use crate::base::Base;
-use crate::conflict::Conflict;
+use crate::conflict::{Conflict, Difference, FileKind};
 use crate::error::{Error, Result};
+use crate::merge::{self, Departed, Mode};
 use crate::plan::{Plan, PLAN_FILE};
 use crate::state::{DayState, StateFile, DAILY_STATE_FILE};
-use crate::NOTEBOOK_CONFIG_DIR;
+use crate::textmerge::{self, TextMerge};
+use crate::{COMPLETED_LIST, NOTEBOOK_CONFIG_DIR};
+
+/// One file a merge settled, as the interface reports it.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Merged {
+    /// The file that was merged, root-relative.
+    pub path: String,
+    /// The file's stem. What a note is called; a list is named by the
+    /// interface, which reads the main list of every space as Inbox.
+    pub name: String,
+    /// Which of the app's files it is — the interface says nothing about the
+    /// day's state being put together, and names a list its own way.
+    pub kind: FileKind,
+    /// How much of the other device's version had to be carried over.
+    pub changes: usize,
+}
+
+/// A file the app knows how to merge, and how. Everything else in the
+/// notebook is content the app does not read (an asset, a marker, a theme).
+enum Mergeable {
+    /// `.jott/daily-state.json`.
+    State,
+    /// `.jott/plan.json`.
+    Plan,
+    /// A task list, by its root-relative address.
+    List(String),
+    /// A note of a notes space.
+    Note,
+}
+
+/// The three versions a merge reads, and the file the result is written to.
+struct Versions {
+    /// What the two devices last had in common.
+    common: String,
+    /// What is on disk here — the version the sync tool left under the name.
+    ours: String,
+    /// The conflicting copy.
+    theirs: String,
+    original: std::path::PathBuf,
+}
 
 use super::*;
 
@@ -36,13 +81,73 @@ impl Notebook {
         self
     }
 
-    /// The files the app merges, root-relative — and so the only ones it
-    /// keeps a base of. Lists and notes join in step 6.
-    fn merged_files(&self) -> [String; 2] {
+    /// The two files the app merges that are not content: the day's state and
+    /// the plan, root-relative.
+    fn state_files(&self) -> [String; 2] {
         [
             format!("{NOTEBOOK_CONFIG_DIR}/{DAILY_STATE_FILE}"),
             format!("{NOTEBOOK_CONFIG_DIR}/{PLAN_FILE}"),
         ]
+    }
+
+    /// Whether the app keeps a base of `relative`. Cheap on purpose — this is
+    /// asked for every file that arrives from outside, and a walk of the
+    /// notebook to answer it would be paid on every sync.
+    fn keeps_base(&self, relative: &str) -> bool {
+        self.state_files().contains(&relative.to_string())
+            || (relative.ends_with(".md")
+                && !relative.starts_with(&format!("{NOTEBOOK_CONFIG_DIR}/")))
+    }
+
+    /// Every file the app keeps a base of, right now: the two above, every
+    /// list of every tasks space, and every note of every notes space.
+    fn base_files(&self) -> Vec<String> {
+        let mut files: Vec<String> = self.state_files().into();
+        if let Ok(lists) = self.list_paths() {
+            files.extend(lists.into_iter().map(|list| list.path));
+        }
+        for (prefix, folder) in self.note_folders().unwrap_or_default() {
+            if let Ok(paths) = folder.note_paths() {
+                files.extend(paths.into_iter().map(|note| format!("{prefix}/{note}")));
+            }
+        }
+        files
+    }
+
+    /// What kind of file `relative` is, for the merge. `None` for anything
+    /// the app does not read as content.
+    fn mergeable(&self, relative: &str) -> Option<Mergeable> {
+        let [state, plan] = self.state_files();
+        if relative == state {
+            return Some(Mergeable::State);
+        }
+        if relative == plan {
+            return Some(Mergeable::Plan);
+        }
+        if !self.keeps_base(relative) {
+            return None;
+        }
+        // The longest space folder the address sits in decides: spaces do not
+        // nest, but a group's name is a prefix of everything inside it.
+        let mut best: Option<Mergeable> = None;
+        let mut longest = 0;
+        for (prefix, _) in self.task_folders().unwrap_or_default() {
+            if let Some(rest) = under(relative, &prefix) {
+                // A list lives directly in its space; a `.md` deeper inside a
+                // tasks space is not one.
+                if !rest.contains('/') && prefix.len() > longest {
+                    longest = prefix.len();
+                    best = Some(Mergeable::List(relative.to_string()));
+                }
+            }
+        }
+        for (prefix, _) in self.note_folders().unwrap_or_default() {
+            if under(relative, &prefix).is_some() && prefix.len() > longest {
+                longest = prefix.len();
+                best = Some(Mergeable::Note);
+            }
+        }
+        best
     }
 
     /// Takes note of what this device has never seen, and forgets what the
@@ -54,7 +159,12 @@ impl Notebook {
             return;
         };
         base.prune(|relative| self.root().join(relative).exists());
-        for relative in self.merged_files() {
+        for relative in self.base_files() {
+            // Asking first is what keeps an open cheap: after the first one,
+            // nothing here is read and nothing is written.
+            if base.has(&relative) {
+                continue;
+            }
             let path = self.root().join(&relative);
             // A file with a copy beside it is in conflict, and neither of its
             // two versions is what the devices had in common.
@@ -88,7 +198,7 @@ impl Notebook {
             return;
         };
         let relative = crate::relpath::relative_slash(self.root(), path);
-        if !self.merged_files().contains(&relative) {
+        if !self.keeps_base(&relative) {
             return;
         }
         match std::fs::read(path) {
@@ -100,78 +210,211 @@ impl Notebook {
     }
 
     /// Merges every conflict copy the app knows how to merge, each merged
-    /// copy going to the trash. Answers how many were settled. What it cannot
-    /// merge is left exactly as it was, for the banner: a file the app keeps
-    /// no base of, one this device has never seen before, or a version that
-    /// will not parse. Deterministic on purpose — both devices merge the same
-    /// pair into the same bytes, so the result does not bounce between them.
-    pub fn merge_conflicts(&self) -> Result<usize> {
+    /// copy going to the trash. Answers what it settled. What it cannot merge
+    /// is left exactly as it was, for the banner: a file the app keeps no
+    /// base of, one this device has never seen before, a version that will
+    /// not parse, or a passage both devices rewrote. Deterministic on
+    /// purpose — both devices merge the same pair into the same bytes, so the
+    /// result does not bounce between them.
+    pub fn merge_conflicts(&self) -> Result<Vec<Merged>> {
         if self.base.is_none() || self.is_read_only() {
-            return Ok(0);
+            return Ok(Vec::new());
         }
-        let mut merged = 0;
+        let mut merged = Vec::new();
         for copy in self.conflict_paths()? {
-            if self.merge_conflict(&copy)? {
-                merged += 1;
+            if let Some(done) = self.merge_conflict(&copy)? {
+                merged.push(done);
             }
         }
         Ok(merged)
     }
 
-    /// One copy. `false` when the app cannot merge this one — it is then left
+    /// One copy. `None` when the app cannot merge this one — it is then left
     /// untouched, which is what every build before the merge did.
-    fn merge_conflict(&self, copy: &Path) -> Result<bool> {
-        let Some(base) = &self.base else {
-            return Ok(false);
+    fn merge_conflict(&self, copy: &Path) -> Result<Option<Merged>> {
+        let Some((relative, versions)) = self.versions_of(copy) else {
+            return Ok(None);
         };
-        let Some(original) = crate::conflict::describe(copy).and_then(|c| c.original) else {
-            return Ok(false);
+        let Some(kind) = self.mergeable(&relative) else {
+            return Ok(None);
         };
-        let relative = crate::relpath::relative_slash(self.root(), &original);
-        let Some(common) = base.of(&relative).and_then(|b| String::from_utf8(b).ok()) else {
-            return Ok(false);
+        let (kind, changes) = match kind {
+            Mergeable::State => (FileKind::State, self.merge_day_state(&versions)?),
+            Mergeable::Plan => (FileKind::State, self.merge_plan(&versions)?),
+            Mergeable::List(path) => (FileKind::List, self.merge_list(&path, &versions)?),
+            Mergeable::Note => (FileKind::Note, self.merge_note(&versions)?),
         };
-        let (Ok(ours), Ok(theirs)) = (
-            std::fs::read_to_string(&original),
-            std::fs::read_to_string(copy),
-        ) else {
-            return Ok(false);
+        let Some(changes) = changes else {
+            return Ok(None);
         };
-        let [state, plan] = self.merged_files();
-
-        if relative == state {
-            let (Some(common), Some(ours), Some(theirs)) = (
-                DayState::parse(&common),
-                DayState::parse(&ours),
-                DayState::parse(&theirs),
-            ) else {
-                return Ok(false);
-            };
-            let merged = DayState::merge(&common, &ours, &theirs);
-            // Through the file, so the merge and every other save spell the
-            // same JSON — two devices writing different bytes for one result
-            // would hand each other a conflict for ever.
-            let mut file = StateFile::load(&original, merged.date);
-            file.state = merged;
-            file.save()?;
-        } else if relative == plan {
-            let (Some(common), Some(ours), Some(theirs)) = (
-                Plan::parse(&common),
-                Plan::parse(&ours),
-                Plan::parse(&theirs),
-            ) else {
-                return Ok(false);
-            };
-            let mut file = crate::plan::PlanFile::load(&original);
-            file.plan = Plan::merge(&common, &ours, &theirs);
-            file.save()?;
-        } else {
-            return Ok(false);
-        }
-
         self.trash_path(copy)?;
-        self.advance_base(&original);
-        Ok(true)
+        // The base is NOT moved here. A merge is this device's own write, and
+        // the result is only common if the other device computed the same one
+        // — where it did not, a base taken from our own result has the two
+        // devices handing each other the file for ever (each reading the
+        // other's version as the change). Left where it is, the next round
+        // measures from the same place on both and converges.
+        let leaf = crate::relpath::leaf_of(&relative);
+        Ok(Some(Merged {
+            name: leaf.rsplit_once('.').map_or(leaf, |(stem, _)| stem).to_string(),
+            path: relative,
+            kind,
+            changes,
+        }))
+    }
+
+    /// The three versions a merge needs, for the file `copy` belongs to:
+    /// what the devices had in common, what is on disk here, and the copy.
+    /// `None` when any of them is missing — without the common one there is
+    /// nothing to measure from, and guessing is how work is lost.
+    fn versions_of(&self, copy: &Path) -> Option<(String, Versions)> {
+        let original = crate::conflict::describe(copy).and_then(|c| c.original)?;
+        let relative = crate::relpath::relative_slash(self.root(), &original);
+        let common = String::from_utf8(self.base.as_ref()?.of(&relative)?).ok()?;
+        Some((
+            relative,
+            Versions {
+                common,
+                ours: std::fs::read_to_string(&original).ok()?,
+                theirs: std::fs::read_to_string(copy).ok()?,
+                original,
+            },
+        ))
+    }
+
+    /// The day's state: sets of references, so there is no field to fight
+    /// over. Written through the file, so the merge and every other save
+    /// spell the same JSON — two devices writing different bytes for one
+    /// result would hand each other a conflict for ever.
+    fn merge_day_state(&self, versions: &Versions) -> Result<Option<usize>> {
+        let (Some(common), Some(ours), Some(theirs)) = (
+            DayState::parse(&versions.common),
+            DayState::parse(&versions.ours),
+            DayState::parse(&versions.theirs),
+        ) else {
+            return Ok(None);
+        };
+        let merged = DayState::merge(&common, &ours, &theirs);
+        let changes = merged.items.len().abs_diff(ours.items.len());
+        let mut file = StateFile::load(&versions.original, merged.date);
+        file.state = merged;
+        file.save()?;
+        Ok(Some(changes))
+    }
+
+    fn merge_plan(&self, versions: &Versions) -> Result<Option<usize>> {
+        let (Some(common), Some(ours), Some(theirs)) = (
+            Plan::parse(&versions.common),
+            Plan::parse(&versions.ours),
+            Plan::parse(&versions.theirs),
+        ) else {
+            return Ok(None);
+        };
+        let merged = Plan::merge(&common, &ours, &theirs);
+        let changes = usize::from(merged != ours);
+        let mut file = crate::plan::PlanFile::load(&versions.original);
+        file.plan = merged;
+        file.save()?;
+        Ok(Some(changes))
+    }
+
+    /// A task list, task by task. A disagreement is not a reason to leave the
+    /// copy: the other device's version of that one task lands right under
+    /// ours, marked, where the decision is a tap instead of a file name.
+    fn merge_list(&self, path: &str, versions: &Versions) -> Result<Option<usize>> {
+        let mut list = self.open_list(path)?;
+        let is_log = crate::relpath::leaf_of(path).trim_end_matches(".md") == COMPLETED_LIST;
+        let gone = if is_log {
+            Departed::default()
+        } else {
+            self.departed_from(path)
+        };
+        let merged = merge::merge_lists(
+            crate::list::TaskList::from_text(&versions.common).lines(),
+            crate::list::TaskList::from_text(&versions.ours).lines(),
+            crate::list::TaskList::from_text(&versions.theirs).lines(),
+            &gone,
+            if is_log { Mode::Log } else { Mode::List },
+        );
+        // An edit to a task this device already ticked belongs to the file
+        // the task is in now, not back in the list it left.
+        let mut carried = 0;
+        if !merged.completed_elsewhere.is_empty() {
+            carried = self.carry_into_completed(path, &merged.completed_elsewhere)?;
+        }
+        list.replace_lines(merged.lines);
+        list.save()?;
+        Ok(Some(merged.changes + carried))
+    }
+
+    /// What the notebook knows about tasks that left the list at `path`: the
+    /// ones ticked into the space's Completed, and the ones in the trash.
+    /// Both files travel with the notebook, so the other device reads the
+    /// same answer — which is what lets a merge remove a task at all.
+    fn departed_from(&self, path: &str) -> Departed {
+        let completed = Self::completed_path_of(path)
+            .ok()
+            .and_then(|completed| self.open_list(&completed).ok())
+            .map(|list| list.tasks().filter_map(|task| task.id.clone()).collect())
+            .unwrap_or_default();
+        let trashed = self
+            .trash()
+            .entries()
+            .iter()
+            .filter(|entry| entry.origin == path)
+            .filter_map(|entry| entry.content.as_ref()?.first().cloned())
+            .filter_map(|line| crate::task::Task::parse(&line)?.id)
+            .collect();
+        Departed { completed, trashed }
+    }
+
+    /// Applies what the other device changed about tasks this one completed,
+    /// where those tasks now live. Answers how many lines moved.
+    fn carry_into_completed(
+        &self,
+        path: &str,
+        edits: &[(crate::task::Task, crate::task::Task)],
+    ) -> Result<usize> {
+        let Ok(completed_path) = Self::completed_path_of(path) else {
+            return Ok(0);
+        };
+        let Ok(mut completed) = self.open_list(&completed_path) else {
+            return Ok(0);
+        };
+        let mut moved = 0;
+        for (common, theirs) in edits {
+            let Some(id) = theirs.id.as_deref() else { continue };
+            let Some(ours) = completed.find(id).cloned() else { continue };
+            // A task that was ticked here is done; only what the other device
+            // said ABOUT it is carried, and a disagreement keeps ours.
+            let Some(mut settled) = merge::merge_task(common, &ours, theirs) else {
+                continue;
+            };
+            settled.done = ours.done;
+            settled.completed = ours.completed;
+            settled.origin = ours.origin.clone();
+            if settled != ours {
+                *completed.task_mut(id)? = settled;
+                moved += 1;
+            }
+        }
+        if moved > 0 {
+            completed.save()?;
+        }
+        Ok(moved)
+    }
+
+    /// A note, line by line. A passage both devices rewrote is never settled
+    /// here: conflict markers written into somebody's note would be the app
+    /// corrupting the file it was asked to protect.
+    fn merge_note(&self, versions: &Versions) -> Result<Option<usize>> {
+        match textmerge::merge_text(&versions.common, &versions.ours, &versions.theirs) {
+            TextMerge::Clash { .. } => Ok(None),
+            TextMerge::Merged(text) => {
+                crate::fsio::write_atomically(&versions.original, text.as_bytes())?;
+                Ok(Some(textmerge::changed_lines(&versions.ours, &text)))
+            }
+        }
     }
 
     /// Every conflict copy sitting in the notebook, wherever it may be: the
@@ -210,11 +453,63 @@ impl Notebook {
                     continue;
                 }
                 conflict.relative = Some(crate::relpath::relative_slash(self.root(), &path));
+                conflict.differs = self.difference(&path);
+                conflict.kind = self.kind_of_copy(&path);
                 found.push(conflict);
             }
         }
         found.sort_by(|a, b| a.path.cmp(&b.path));
         Ok(found)
+    }
+
+    /// What the two versions of a copy still on the table disagree about —
+    /// the one thing the banner can say that a file name cannot. Read here
+    /// and not kept: a copy is rare, and an answer held would go stale the
+    /// moment either version is written.
+    fn difference(&self, copy: &Path) -> Option<Difference> {
+        let (relative, versions) = match self.versions_of(copy) {
+            Some(found) => found,
+            // No base: this device never saw the file before the copy landed.
+            None if self.base.is_some() => return Some(Difference::Unseen),
+            None => return None,
+        };
+        match self.mergeable(&relative)? {
+            Mergeable::Note => match textmerge::merge_text(
+                &versions.common,
+                &versions.ours,
+                &versions.theirs,
+            ) {
+                TextMerge::Clash { lines } => Some(Difference::Lines { count: lines }),
+                TextMerge::Merged(_) => None,
+            },
+            Mergeable::List(path) => {
+                let merged = merge::merge_lists(
+                    crate::list::TaskList::from_text(&versions.common).lines(),
+                    crate::list::TaskList::from_text(&versions.ours).lines(),
+                    crate::list::TaskList::from_text(&versions.theirs).lines(),
+                    &self.departed_from(&path),
+                    Mode::List,
+                );
+                let first = merged.clashes.first()?.clone();
+                Some(Difference::Tasks {
+                    count: merged.clashes.len(),
+                    first,
+                })
+            }
+            _ => None,
+        }
+    }
+
+    /// Which of the app's files a copy belongs to, by the file it is a copy
+    /// OF — a copy is never a list of its own.
+    fn kind_of_copy(&self, copy: &Path) -> Option<FileKind> {
+        let original = crate::conflict::describe(copy)?.original?;
+        let relative = crate::relpath::relative_slash(self.root(), &original);
+        Some(match self.mergeable(&relative)? {
+            Mergeable::State | Mergeable::Plan => FileKind::State,
+            Mergeable::List(_) => FileKind::List,
+            Mergeable::Note => FileKind::Note,
+        })
     }
 
     /// Sends those copies to the trash — nothing is destroyed, and the same
@@ -273,6 +568,13 @@ impl Notebook {
         self.advance_base(&original);
         Ok(())
     }
+}
+
+/// The rest of `relative` when it sits inside the folder `prefix`, `None`
+/// when it does not — the one place a space address is matched against a file
+/// address, so neither is ever split by hand.
+fn under<'a>(relative: &'a str, prefix: &str) -> Option<&'a str> {
+    relative.strip_prefix(prefix)?.strip_prefix('/')
 }
 
 /// A conflicting copy holding exactly what the original holds: both devices

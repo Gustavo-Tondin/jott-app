@@ -205,7 +205,21 @@ impl Notebook {
     /// it does not have one — the lazy frontmatter's one writing moment.
     pub fn write_note(&self, space: &str, path: &str, body: &str) -> Result<()> {
         self.ensure_writable()?;
-        self.note_folder(space)?.write(path, body, self.today())?;
+        let folder = self.note_folder(space)?;
+        // A note the common version has never heard of is one born here, and
+        // the other device can only get it from us — so this content is a
+        // true ancestor of whatever it ends up holding. A note it DOES know
+        // is left alone: a base that followed our edits would hand the whole
+        // file to the other device (`crate::base`).
+        if let Some(base) = &self.base {
+            let relative = format!("{space}/{path}");
+            if !base.has(&relative) {
+                if let Ok(bytes) = std::fs::read(folder.dir().join(path)) {
+                    let _ = base.record_if_absent(&relative, &bytes);
+                }
+            }
+        }
+        folder.write(path, body, self.today())?;
         // Editing is seeing. The other half — opening one — is the bridge's
         // call, since only it can tell reading-to-show from reading-to-scan.
         let _ = self.mark_note_seen(space, path);

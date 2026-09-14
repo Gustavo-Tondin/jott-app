@@ -168,19 +168,33 @@ export const S = {
   conflictsTitle: (count) =>
     count === 1 ? "1 sync conflict in this notebook" : `${count} sync conflicts in this notebook`,
   conflictsBody:
-    "Another device edited the same files, and both versions were kept. " +
-    "Jott does not choose for you: discard the copy, or keep it instead. " +
-    "Whichever goes, goes to the Trash.",
-  // The row per conflict: its list, the copy the sync tool wrote, the two
-  // ways out, and the door to the folder it sits in.
+    "Another device changed the same files, in the same places. " +
+    "What Jott could put together it already has; these are the ones where " +
+    "it would have to choose for you. Whichever version goes, goes to the Trash.",
+  // The row per conflict: what it belongs to, what the two versions disagree
+  // about, the two ways out, and the door to the folder it sits in.
   conflictReveal: "Show in folder",
   conflictOriginalGone: "the original is gone",
-  conflictDiscard: "Discard copy",
-  conflictAdopt: "Keep this copy",
-  conflictsDiscardAll: "Discard all copies",
+  conflictDiscard: "Keep this device's",
+  conflictAdopt: "Keep the other's",
+  conflictsDiscardAll: "Keep this device's everywhere",
   confirmAdoptConflict: (name) =>
-    `Replace "${name}" with this copy? The current version goes to the Trash.`,
+    `Keep the other device's "${name}"? This device's version goes to the Trash.`,
   conflictsHide: "Hide for now",
+  // What the two versions differ in — the one thing a file name cannot say.
+  conflictLinesDiffer: (count) =>
+    count === 1 ? "1 line differs" : `${count} lines differ`,
+  conflictTasksDiffer: (count, first) =>
+    count === 1
+      ? `"${first}" changed on both devices`
+      : `"${first}" and ${count - 1} more changed on both devices`,
+  conflictUnseen: "this device had not seen this file before",
+  // What a merge settled on its own, said once and gone.
+  merged: (count, name) =>
+    count === 1
+      ? `Merged 1 change from another device into ${name}`
+      : `Merged ${count} changes from another device into ${name}`,
+  mergedFiles: (count) => `Merged changes from another device into ${count} files`,
   dismissError: "ok",
   // The shell's states.
   errorTitle: "Something went wrong",

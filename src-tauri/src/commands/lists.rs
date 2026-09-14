@@ -4,7 +4,7 @@
 //! `completed.md` — and what tells two `Inbox`es apart is the FOLDER. So a
 //! list is addressed by its root-relative path, never by a bare name.
 
-use jott_core::{Conflict, Task};
+use jott_core::{Conflict, Merged, Task};
 use tauri::{Runtime, State};
 
 use crate::error::CommandResult;
@@ -31,16 +31,16 @@ pub async fn list_conflicts<R: Runtime>(
 }
 
 /// Merges the conflict copies the app knows how to merge, each merged copy
-/// going to the trash. Answers how many were settled, so the caller knows
-/// whether anything moved. What it cannot merge is left for the banner.
+/// going to the trash. Answers WHAT it settled, so the window can say so and
+/// reload the file it touched. What it cannot merge is left for the banner.
 ///
-/// Called when a copy lands, and once on open: two devices that turned the
-/// day at the same moment are not a decision anybody has to take.
+/// Called when a copy lands, and once on open: two devices that changed
+/// different tasks of one list are not a decision anybody has to take.
 #[tauri::command]
 pub async fn merge_conflicts<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
-) -> CommandResult<usize> {
+) -> CommandResult<Vec<Merged>> {
     state.record(window.label(), "merge_conflicts", |nb| nb.merge_conflicts())
 }
 

@@ -69,7 +69,7 @@
   import PanelResizer from "./lib/shell/PanelResizer.svelte";
   import Sidebar from "./lib/shell/Sidebar.svelte";
   import PageHeader from "./lib/shell/PageHeader.svelte";
-  import { folderOf, leafOf } from "./lib/services/paths.js";
+  import { folderOf, leafOf, listTitle } from "./lib/services/paths.js";
   import { groupColors, spaceColors } from "./lib/services/spaceColors.js";
   import { originOf } from "./lib/services/origin.js";
   import {
@@ -547,11 +547,20 @@
     undoNoticeTimer = setTimeout(() => (undoNotice = null), 4000);
   }
 
+  /// Whether this window still settles conflict copies by itself. True
+  /// until the user takes a merge back — see `takeBack`.
+  let merging = true;
+
   async function takeBack(kind) {
     if (notebook?.readOnly) return;
     dropOffer();
     try {
       const label = kind === "undo" ? await api.undo() : await api.redo();
+      // Taking a merge back puts the conflict copy on disk again, and the
+      // watcher would hand it straight back to the merge. Taking it back
+      // MEANT "let me decide this one", so this window stops merging on its
+      // own until the notebook is opened again (or the merge is redone).
+      if (label === "merge_conflicts") merging = kind !== "undo";
       await refreshNotebook();
       reload();
       if (label === null) sayUndo("info", kind === "undo" ? S.nothingToUndo : S.nothingToRedo);
@@ -1582,7 +1591,7 @@
     // A copy of something the app can merge is settled before anybody is
     // asked about it, so the merge runs BEFORE the snapshot that feeds the
     // banner. A failure here just leaves the copy for the banner.
-    if (kind === "conflict") await api.mergeConflicts().catch(() => {});
+    if (kind === "conflict" && merging) sayMerged(await api.mergeConflicts().catch(() => []));
     // A conflict copy landing is the one thing the banner exists to say, so
     // it refreshes the shell like a list does: the snapshot carries the list
     // of copies, and nothing else asks for it.
@@ -1593,6 +1602,31 @@
     if (kind === "list" && isOpenNoteFile(event.payload?.path)) noteRevision += 1;
     reload();
   });
+
+  /// What a merged file is CALLED on screen: a list goes through the same
+  /// naming as every other screen, so the main list of a space reads Inbox
+  /// and never `task-list`. A note is its title, which is its file name.
+  function nameOfMerged(file) {
+    return file.kind === "list" ? listTitle(file.path) : file.name;
+  }
+
+  /// Says what a merge settled, and reloads the file it touched. Only the
+  /// user's own files are announced: the day's state and the plan are the
+  /// app's bookkeeping, and nobody asked for them to be merged.
+  function sayMerged(merged) {
+    const files = (merged ?? []).filter((file) => file.kind !== "state");
+    if (files.length === 0) return;
+    // The open note is a buffer, not a view of the file: it has to be told.
+    if (view.kind === "note" && files.some((file) => file.path === `${view.folder}/${view.path}`)) {
+      noteRevision += 1;
+    }
+    sayUndo(
+      "success",
+      files.length === 1
+        ? S.merged(files[0].changes, nameOfMerged(files[0]))
+        : S.mergedFiles(files.length),
+    );
+  }
 
   /// Whether an absolute path the watcher reported is the open note's file.
   /// A suffix match on `space/path`: the event speaks in the OS's separators

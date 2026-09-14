@@ -44,7 +44,13 @@ export const MAIN_LIST = "task-list";
 /// **Inbox** — `task-list` is a file name, never meant to be read; a
 /// hand-made second list keeps its own name, the only case the stem informs.
 export function listTitle(path) {
-  const stem = listName(path);
+  return titleOfList(listName(path));
+}
+
+/// The same, for a caller that already has the stem and no path to take it
+/// from (the sync banner, which is handed the name of the file a copy
+/// belongs to).
+export function titleOfList(stem) {
   return stem === MAIN_LIST ? S.mainList : stem;
 }
 

@@ -11,7 +11,8 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 ### New
 
 - **Hold a card and its actions open around your finger** — tasks, notes and the spaces in the sidebar: drag to the one you want and let go, or let go anywhere else and nothing happens. On the computer the ⋮ on a note card opens the same ring.
-- **A sync conflict is settled from the banner.** Each copy now has "Discard copy" and "Keep this copy"; whichever version goes lands in the Trash, and Ctrl+Z takes it back. With several, "Discard all copies" clears them at once.
+- **A sync conflict is settled from the banner.** Each copy now says what the two versions disagree about and has "Keep this device's" and "Keep the other's"; whichever version goes lands in the Trash, and Ctrl+Z takes it back.
+- **Two devices that changed different tasks of the same list are merged on their own**, and so are two that wrote in different parts of the same note: the changes are put together, the copy goes to the Trash and a line says what was merged. A copy is left for you only where both devices changed the same thing — and there, in a list, the other device's version lands right under yours, marked, so you can delete one with a tap.
 - **The Home's notes of the day now include the notes you edited today**, not only the ones created today — from any notepad, and from any device on a synced notebook.
 - **Drag a card to the top or the bottom of a long list and the list scrolls with it**, faster the further into the edge you go, so a task can reach a place off the screen without being let go of.
 - **A screen reader now says where a task landed** when you move it, whether you dragged it or pressed Alt and an arrow.

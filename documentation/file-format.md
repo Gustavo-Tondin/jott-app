@@ -233,27 +233,41 @@ board. The two answers the app offers both go through `.jott/trash/`:
 discarding moves the copy there; keeping it moves the original there and
 gives the copy its name.
 
-Two cases are not asked about, because there is nothing to decide:
+A copy is only asked about where two devices changed the same thing.
+Everything else is put back together:
 
 - **A copy holding exactly what the original holds**, byte for byte. Both
   devices wrote the same thing, so either answer leaves the same file
   behind. Opening the notebook moves those copies to `.jott/trash/`, where
   they can be restored like anything else.
 - **A copy of `.jott/daily-state.json` or `.jott/plan.json`.** These hold
-  sets of references to tasks, so two devices that changed them apart are
-  merged rather than chosen between: a reference either side added is kept,
-  a reference either side took out is dropped, and when the two disagree
-  about which day it is, the later date wins outright. The merged version
-  takes the original's place and the copy goes to `.jott/trash/`. Both
-  devices are handed the same pair and merge it into the same bytes, so the
-  result does not bounce between them.
+  sets of references to tasks: a reference either side added is kept, a
+  reference either side took out is dropped, and when the two disagree about
+  which day it is, the later date wins outright.
+- **A task list**, task by task, named by its `id`. Two devices that changed
+  different tasks of one list are both right, and both changes are kept. A
+  task missing on one side is never read as a deletion by comparison: a task
+  leaves a list only because the notebook says so, through the space's
+  `completed.md` or `.jott/trash/`, both of which travel with it. Where both
+  devices changed the **same** task differently, this device's version stays
+  where it is and the other's lands right under it, its text prefixed with
+  `⚠ `, so the two can be read side by side and one deleted with a tap.
+  `completed.md` only ever grows, so it is a union: a completion recorded on
+  both devices is still one line.
+- **A note**, line by line. A passage only one device rewrote is that
+  device's. Where both rewrote the same passage, nothing is written — the app
+  will not put conflict markers inside a note — and the copy stays, with the
+  notice saying how many lines differ.
+
+A merged file takes the original's place and the copy goes to `.jott/trash/`.
+Both devices are handed the same pair and merge it into the same bytes, so
+the result does not bounce between them.
 
 Merging needs to know what the two devices last had in **common**, and each
 device keeps that privately, in its own application data folder — never
 inside the notebook, where a per-device memory would sync to no purpose. A
 device that has never seen the file before has nothing to measure from, and
-its first conflict there is reported like any other. Everything else — notes
-and task lists — is never merged.
+its first conflict there is reported like any other.
 
 ---
 
