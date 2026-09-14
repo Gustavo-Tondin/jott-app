@@ -9,6 +9,8 @@
   import { swipe } from "../actions/swipe.js";
   import { ask } from "../services/shortcuts.js";
   import { clamp } from "../services/num.js";
+  import { announce } from "../services/announce.js";
+  import { S } from "../services/strings.js";
 
   let {
     /// Each entry is a task and the list it lives in — Home draws tasks from
@@ -94,6 +96,36 @@
     queueMicrotask(() => list?.querySelector(`[data-card="${index}"]`)?.focus());
   }
 
+  /// THE MOVE THE FOCUS IS WAITING FOR — `{id, to}`. A move is written to disk
+  /// and the list comes back from the notebook, so the row that moved is a NEW
+  /// element: focusing it NOW lands on the card about to be replaced, and the
+  /// next key press has nowhere to go (measured in the app, 2026-09-14). The
+  /// wait ends when the list really shows that task in that place, and not on
+  /// the first redraw that happens to come along.
+  let following = $state(null);
+
+  $effect(() => {
+    if (!following) return;
+    const { id, to } = following;
+    if (items[to]?.task.id !== id) return;
+    following = null;
+    focusCard(to);
+  });
+
+  /// EVERY MOVE COMES THROUGH HERE, dragged or typed: the list redraws and a
+  /// reader who cannot see it is told nothing otherwise. Said after the call,
+  /// because the position announced is the one the task now holds.
+  function moved(from, to) {
+    // A list that only lends its cards to a free drag has no order of its own
+    // to report (`onMoveTo` without `onReorder`).
+    if (!onReorder) return;
+    onReorder(from, to);
+    const entry = items[from];
+    if (!entry) return;
+    announce(S.movedTo(entry.task.text, to + 1, items.length));
+    following = entry.task.id ? { id: entry.task.id, to } : null;
+  }
+
   function onKeydown(event) {
     const entry = items[at];
     if (!entry) return;
@@ -130,7 +162,7 @@
         if (!onReorder) return;
         const to = id === "task.moveUp" ? at - 1 : at + 1;
         if (to < 0 || to >= items.length) return;
-        onReorder(at, to);
+        moved(at, to);
         focusCard(to);
         break;
       }
@@ -179,7 +211,7 @@
     // Longer than the default rest: here the hold ENTERS SELECTION MODE, and
     // a slow scroll down the list kept marking cards by accident.
     holdMs: 700,
-    onReorder: onReorder ?? (() => {}),
+    onReorder: moved,
     onHold: onHold ? (i) => onHold(items[i]) : null,
     carried: carried
       ? (i) => {

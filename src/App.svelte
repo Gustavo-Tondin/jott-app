@@ -10,6 +10,7 @@
   import Notice from "./lib/components/Notice.svelte";
   import { askConfirm, askName, askTask, setConfirmPolicy } from "./lib/services/dialog.js";
   import { setDragLayer } from "./lib/services/dragLayer.js";
+  import { setLiveRegion } from "./lib/services/announce.js";
   import { composeTask } from "./lib/services/taskCompose.js";
   import { makeAct } from "./lib/services/act.js";
   import { ask, typing, userBindings } from "./lib/services/shortcuts.js";
@@ -228,6 +229,14 @@
   $effect(() => {
     setDragLayer(dragLayerNode);
     return () => setDragLayer(null);
+  });
+
+  /// The live region (services/announce.js): the app's one way of telling a
+  /// screen reader about something that leaves nothing new on the screen.
+  let liveNode = $state(null);
+  $effect(() => {
+    setLiveRegion(liveNode);
+    return () => setLiveRegion(null);
   });
 
   /// The three panels the compact shell cannot keep on screen at once, and so
@@ -2299,6 +2308,11 @@
        transform, an overflow or a container-type: any of them is the cage
        again (styles/components/reorder.css). -->
   <div class="drag-layer" bind:this={dragLayerNode}></div>
+
+  <!-- WHAT A SCREEN READER IS TOLD (services/announce.js). One for the whole
+       app, and empty until something is said. Visible to a reader and to
+       nobody else — `.theme-quiet-live`, in styles/controls/feedback.css. -->
+  <div class="theme-quiet-live" role="status" aria-live="polite" bind:this={liveNode}></div>
 </div>
 
 <!-- The formatting strip, below 768px: rides above the on-screen keyboard while

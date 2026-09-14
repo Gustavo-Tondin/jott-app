@@ -476,6 +476,10 @@ export const S = {
   cmdTaskMoveDown: "Move the task down",
   cmdTaskDelete: "Delete the task",
   cmdTaskDuplicate: "Duplicate the task",
+  /// Said out loud, never drawn: what a screen reader hears when a task moves
+  /// (services/announce.js). Positions are counted from one, the way they are
+  /// spoken.
+  movedTo: (name, at, of) => `${name} moved to position ${at} of ${of}`,
   cmdBold: "Bold",
   cmdItalic: "Italic",
   cmdStrike: "Strikethrough",

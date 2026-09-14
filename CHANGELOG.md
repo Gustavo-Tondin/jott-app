@@ -12,11 +12,17 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 
 - **A sync conflict is settled from the banner.** Each copy now has "Discard copy" and "Keep this copy"; whichever version goes lands in the Trash, and Ctrl+Z takes it back. With several, "Discard all copies" clears them at once.
 - **The Home's notes of the day now include the notes you edited today**, not only the ones created today — from any notepad, and from any device on a synced notebook.
+- **Drag a card to the top or the bottom of a long list and the list scrolls with it**, faster the further into the edge you go, so a task can reach a place off the screen without being let go of.
+- **A screen reader now says where a task landed** when you move it, whether you dragged it or pressed Alt and an arrow.
 
 ### Fixed
 
 - **Starting a list from the formatting bar leaves the cursor after the `- `, `1. ` or `- [ ] `**, ready to type, instead of in front of it.
 - **A reminder shown on one device no longer rings again on the next one to sync.** The notebook now remembers which reminders have been dealt with, alongside the rest of its bookkeeping.
+
+- **Moving a task with Alt and an arrow works press after press.** Only the first press used to land: the card lost the focus as soon as the list came back from disk.
+- **Scrolling in the middle of a drag no longer drops the card in the wrong place.** The list's positions now follow the scroll instead of staying where they were when you picked the card up.
+- **A card being dragged no longer pops its tooltip over the list** while your hand rests.
 
 - **On a phone, the app no longer files its own typing as a sync conflict.** A pause while typing on Android could leave a `sync-conflict` copy of the note's own earlier text beside it, and the banner on every device.
 - **Two devices on one synced notebook no longer produce conflict copies of `.jott/index/`.** Each device now keeps its own "last seen" file, and Jott reads them all together.

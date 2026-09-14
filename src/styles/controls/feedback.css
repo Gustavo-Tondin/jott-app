@@ -268,4 +268,23 @@
       animation: none;
     }
   }
+
+  /* ---------------------------------------------------------------------------
+     The live region — READ, never seen (services/announce.js). Neither
+     `display: none` nor `hidden`: a screen reader skips both, and then nothing
+     is announced. A box with no size is skipped too, hence the sliver — a rem
+     here is a pixel at the default root, and it grows with the reader's type
+     like everything else.
+     --------------------------------------------------------------------------- */
+  .theme-quiet-live {
+    position: absolute;
+    inline-size: 0.0625rem;
+    block-size: 0.0625rem;
+    margin: -0.0625rem;
+    padding: 0;
+    border: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    clip-path: inset(50%);
+  }
 }
