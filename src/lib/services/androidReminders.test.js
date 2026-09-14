@@ -33,7 +33,12 @@ describe("syncing the phone's reminders", () => {
     expect(callsTo("plugin:notification|cancel")).toEqual([{ notifications: [7] }]);
     const [batch] = callsTo("plugin:notification|batch");
     expect(batch.notifications.map((n) => n.id)).toEqual([reminderId(reminders[0])]);
-    expect(batch.notifications[0].extra).toEqual({ list: reminders[0].list, id: "abc123" });
+    // `at` rides along so a tap can acknowledge it with the app just woken.
+    expect(batch.notifications[0].extra).toEqual({
+      list: reminders[0].list,
+      id: "abc123",
+      at: reminders[0].at,
+    });
     // `schedule` is the plugin's own shape, built by its own helper.
     expect(batch.notifications[0].schedule.at.date).toEqual(new Date("2026-09-08T09:00"));
   });
@@ -57,7 +62,7 @@ describe("syncing the phone's reminders", () => {
     // 12:00 is past today's 08:00, so the alarm is tomorrow's.
     expect(summary.schedule.at.date).toEqual(new Date(2026, 8, 8, 8, 0));
     // Nothing to open: tapping it only brings the app back.
-    expect(summary.extra).toEqual({ list: "", id: "" });
+    expect(summary.extra).toEqual({ list: "", id: "", at: "" });
   });
 
   it("schedules the summary even on a day with no reminder at all", async () => {

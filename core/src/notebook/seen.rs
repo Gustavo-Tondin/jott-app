@@ -89,11 +89,15 @@ impl Notebook {
     /// Drops index entries for notes no longer on disk, and answers how many
     /// went: keeps the indexes in step with what a text editor, a sync tool
     /// or an older build did. Nothing is rewritten when nothing is stale.
+    ///
+    /// Only the two indexes keyed by a note's address (`Index::NOTES`) are
+    /// swept here: the acks are keyed by a task inside a list, and a sweep
+    /// against the notes would throw every one of them away.
     pub fn prune_seen(&self) -> Result<usize> {
         self.ensure_writable()?;
         let mut alive = None;
         let mut dropped = 0;
-        for index in Index::ALL {
+        for index in Index::NOTES {
             let mut stamps = Seen::load_of(self.config_dir(), index);
             let before = stamps.entries().len();
             // An index with nothing in it has nothing to prune, and the walk
@@ -109,6 +113,33 @@ impl Notebook {
                 stamps.save(self.config_dir())?;
             }
         }
-        Ok(dropped)
+        Ok(dropped + self.prune_acks()?)
+    }
+
+    /// Drops acknowledged reminders whose LIST is gone — a tasks space
+    /// deleted outside the app, or by a build that did not know to forget
+    /// it. What the list still holds is left alone: an ack outlives the task
+    /// it named, and it is one short line.
+    fn prune_acks(&self) -> Result<usize> {
+        let mut acks = Seen::load_of(self.config_dir(), Index::Acked);
+        if acks.entries().is_empty() {
+            return Ok(0);
+        }
+        let lists: std::collections::HashSet<String> =
+            self.list_paths()?.into_iter().map(|list| list.path).collect();
+        let stale: Vec<String> = acks
+            .entries()
+            .keys()
+            .filter(|key| !lists.contains(crate::relpath::split_parent(key).0))
+            .cloned()
+            .collect();
+        if stale.is_empty() {
+            return Ok(0);
+        }
+        for key in &stale {
+            acks.forget(key);
+        }
+        acks.save(self.config_dir())?;
+        Ok(stale.len())
     }
 }

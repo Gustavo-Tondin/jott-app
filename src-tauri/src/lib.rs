@@ -199,6 +199,7 @@ pub fn configure<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builde
             commands::timeline::forget_from_timeline,
             // reminders — reminders and the tray
             commands::reminders::reminders,
+            commands::reminders::ack_reminder,
             commands::reminders::reminded_until,
             commands::reminders::remember_reminded_until,
             commands::reminders::day_summarized_on,

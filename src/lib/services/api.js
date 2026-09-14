@@ -374,6 +374,9 @@ export const api = {
   // reminders: the core's sorted list, this machine's memory of what rang,
   // the desktop bell, and the tray the app waits in.
   reminders: () => invoke("reminders"),
+  // the notebook's own memory, shared between devices: a reminder shown and
+  // dealt with here is not offered again by `reminders()`, anywhere.
+  ackReminder: (list, id, at) => invoke("ack_reminder", { list, id, at }),
   remindedUntil: () => invoke("reminded_until"),
   rememberRemindedUntil: (until) => invoke("remember_reminded_until", { until }),
   // the day summary: the machine remembers the DAY it was announced on.

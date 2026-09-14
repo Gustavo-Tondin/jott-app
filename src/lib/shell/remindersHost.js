@@ -37,10 +37,21 @@ export function makeRemindersHost({ open, enabled, mobile, summary, openTask, fa
 
   const summaryOf = () => summary?.() ?? { on: false, time: "" };
 
+  /// Marks a reminder as dealt with in the NOTEBOOK, so the next device to
+  /// sync keeps quiet about it. Showing it is what counts: no desktop
+  /// notification system reports a dismissal, and `remindedUntil` has always
+  /// treated the bell as the mark — this one simply travels with the files.
+  /// A task with no id cannot be named on the other device.
+  async function ack(reminder) {
+    if (!reminder?.id || !reminder.at) return;
+    await api.ackReminder(reminder.list, reminder.id, reminder.at);
+  }
+
   async function ring(due, now) {
     for (const reminder of due) {
       const { title, body } = notice(reminder, S);
       await api.notifyReminder(title, body, { list: reminder.list, id: reminder.id ?? null });
+      await ack(reminder);
     }
     remindedUntil = now;
     await api.rememberRemindedUntil(now);
@@ -88,7 +99,12 @@ export function makeRemindersHost({ open, enabled, mobile, summary, openTask, fa
     if (mobile()) {
       if (!androidTapInstalled) {
         androidTapInstalled = true;
-        onAndroidReminderTap((target) => openTask(target.list, target.id)).catch(() => {});
+        // The tap is the only dismissal Android reports back, and the alarm
+        // carries the moment so the ack needs no lookup.
+        onAndroidReminderTap(async (target) => {
+          await ack(target).catch(fail);
+          openTask(target.list, target.id);
+        }).catch(() => {});
       }
       // A `pending()` that throws (the store of an older build) is worth a
       // line in the log and not a notice: the sync goes on without it.

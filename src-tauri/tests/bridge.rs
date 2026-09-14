@@ -279,6 +279,43 @@ fn reminders_cross_the_bridge_with_the_machine_memory_of_what_rang() {
 }
 
 #[test]
+fn a_reminder_acknowledged_here_is_not_offered_again() {
+    let (_lock, app, dir) = app_with_notebook();
+
+    let list = "jott.tasks/task-list.md";
+    let id = task_with_id(&app, list, "Ligar pro dentista");
+    ok(
+        &app,
+        "set_task_fields",
+        json!({ "list": list, "id": id, "fields": { "remind": "2026-07-24 18:00" } }),
+    );
+    assert_eq!(ok(&app, "reminders", json!({})).as_array().unwrap().len(), 1);
+
+    ok(&app, "ack_reminder", json!({ "list": list, "id": id, "at": "2026-07-24T18:00" }));
+    assert!(
+        ok(&app, "reminders", json!({})).as_array().unwrap().is_empty(),
+        "the ack is the notebook's, so the other device stays quiet too"
+    );
+    // It lands in the notebook, beside the other indexes — not in the
+    // machine's preferences, which no sync tool would carry. The file is
+    // this device's (`acks.<device>.json`): every device writes only its own.
+    let index = dir.path().join(".jott/index");
+    let written: Vec<String> = std::fs::read_dir(&index)
+        .unwrap()
+        .filter_map(|entry| {
+            let path = entry.ok()?.path();
+            let name = path.file_name()?.to_str()?.to_string();
+            name.starts_with("acks.").then(|| std::fs::read_to_string(path).ok())?
+        })
+        .collect();
+    assert_eq!(written.len(), 1, "one ack file, in {}", index.display());
+    assert!(written[0].contains(&format!("{list}/{id}")), "{}", written[0]);
+
+    // A moment the core cannot read is refused rather than filed wrong.
+    assert!(invoke(&app, "ack_reminder", json!({ "list": list, "id": id, "at": "whenever" })).is_err());
+}
+
+#[test]
 fn creating_a_task_from_today_writes_it_to_the_inbox() {
     let (_lock, app, dir) = app_with_notebook();
 

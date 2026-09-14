@@ -366,7 +366,10 @@ order you dragged things into.
   Beside it, `edited.<device>.json` works the same way for the last time a
   note was **written** in Jott's editor (opening does not count) — it is how
   a note written before today still joins the Home's notes of the day when
-  you edit it today.
+  you edit it today. A third, `acks.<device>.json`, maps
+  `<list address>/<task id>` to the reminder moment that has already been
+  shown and dealt with; it is read the same way, so a reminder you dismissed
+  on one device does not ring on the next one to sync.
   It exists because
   "last seen" must not be written *into* a note — reading a note would then
   rewrite it. Everything here is rebuildable or simply losable: delete the

@@ -2,7 +2,8 @@
 //!
 //! What rings and when is the core's (`jott_core::reminders`). This module
 //! carries the list across, keeps THIS MACHINE's memory of what has already
-//! rung, and owns the two things only a shell can do: show the system's
+//! rung (and the notebook's, shared between devices, through `ack_reminder`),
+//! and owns the two things only a shell can do: show the system's
 //! notification, and stay alive in the tray after the window closes.
 
 use tauri::{AppHandle, Manager, Runtime, State};
@@ -19,6 +20,25 @@ pub async fn reminders<R: Runtime>(
     window: tauri::Window<R>,
 ) -> CommandResult<Vec<jott_core::reminders::Reminder>> {
     state.read(window.label(), |nb| nb.reminders())
+}
+
+/// Records that a reminder was shown and dealt with HERE, so the next
+/// device to sync the notebook keeps quiet about it. `at` is the moment the
+/// task asked for, exactly as the core rendered it — never "now": see
+/// `Notebook::ack_reminder`. A task with no id cannot be named across
+/// devices and is not acknowledged at all.
+#[tauri::command]
+pub async fn ack_reminder<R: Runtime>(
+    state: State<'_, AppState>,
+    window: tauri::Window<R>,
+    list: String,
+    id: String,
+    at: String,
+) -> CommandResult<()> {
+    let at = jott_core::task::parse_datetime(&at).ok_or_else(|| {
+        crate::error::CommandError::new("invalid", format!("{at:?} is not a moment"))
+    })?;
+    state.quiet(window.label(), |nb| nb.ack_reminder(&list, &id, at))
 }
 
 /// Up to what moment this machine has rung the window's notebook. `None`

@@ -1,5 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { bridge, callsTo, commandsCalled, invoke, listen, resetBridge } from "../test/bridge.js";
+import {
+  bridge,
+  callsTo,
+  commandsCalled,
+  listen,
+  resetBridge,
+  sendPluginEvent,
+  tauriInternals,
+} from "../test/bridge.js";
 import { makeRemindersHost } from "./remindersHost.js";
 
 const at = (id, when) => ({ list: "jott.tasks/task-list.md", id, position: 0, text: id, at: when });
@@ -21,7 +29,7 @@ beforeEach(() => {
   resetBridge();
   // The notification plugin's own JS speaks to `__TAURI_INTERNALS__` and reads
   // `Notification.permission` first (services/androidReminders.test.js).
-  globalThis.__TAURI_INTERNALS__ = { invoke };
+  globalThis.__TAURI_INTERNALS__ = tauriInternals;
   globalThis.Notification = { permission: "default" };
   vi.useFakeTimers();
   vi.setSystemTime(new Date(2026, 8, 8, 10, 0));
@@ -46,6 +54,26 @@ describe("the reminders host", () => {
     expect(callsTo("notify_reminder")).toHaveLength(1);
     expect(callsTo("notify_reminder")[0].target).toEqual({ list: "jott.tasks/task-list.md", id: "soon" });
     expect(callsTo("remember_reminded_until").at(-1)).toEqual({ until: "2026-09-08T10:30" });
+  });
+
+  it("ringing acknowledges the reminder in the NOTEBOOK, so the phone stays quiet", async () => {
+    const { h } = host();
+    const nameless = { ...at("x", "2026-09-08T10:30"), id: null };
+    bridge({
+      reminders: [at("soon", "2026-09-08T10:30"), nameless],
+      reminded_until: "2026-09-08T09:00",
+      remember_reminded_until: null,
+      notify_reminder: null,
+      ack_reminder: null,
+    });
+    await h.refresh();
+    await vi.advanceTimersByTimeAsync(30 * 60 * 1000);
+
+    expect(callsTo("notify_reminder")).toHaveLength(2);
+    // Only the one with an id: the other cannot be named on another device.
+    expect(callsTo("ack_reminder")).toEqual([
+      { list: "jott.tasks/task-list.md", id: "soon", at: "2026-09-08T10:30" },
+    ]);
   });
 
   it("asks the machine's mark once, and re-arms the same loop on every refresh", async () => {
@@ -138,6 +166,34 @@ describe("the reminders host", () => {
     await vi.advanceTimersByTimeAsync(0);
     expect(callsTo("notify_reminder")).toEqual([]);
     expect(callsTo("remember_day_summarized_on")).toEqual([{ day: "2026-09-08" }]);
+  });
+
+  it("a tapped Android notification acknowledges the reminder it came from", async () => {
+    const { h, calls } = host({ mobile: true });
+    bridge({
+      reminders: [at("soon", "2026-09-08T10:30")],
+      reminded_until: "2026-09-08T09:00",
+      ack_reminder: null,
+      "plugin:notification|is_permission_granted": true,
+      "plugin:notification|get_pending": [],
+      "plugin:notification|batch": [1],
+      "plugin:notification|register_action_types": null,
+      "plugin:notification|registerActionTypes": null,
+    });
+    await h.refresh();
+    // The plugin's own door, opened by its real JS: the tap is the only
+    // dismissal Android reports, so the path is driven for real.
+    await vi.advanceTimersByTimeAsync(0);
+    await sendPluginEvent("notification", "actionPerformed", {
+      extra: { list: "jott.tasks/task-list.md", id: "soon", at: "2026-09-08T10:30" },
+    });
+    // The plugin hands the tap to a listener that does not wait on ours.
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(callsTo("ack_reminder")).toEqual([
+      { list: "jott.tasks/task-list.md", id: "soon", at: "2026-09-08T10:30" },
+    ]);
+    expect(calls.openTask).toHaveBeenCalledWith("jott.tasks/task-list.md", "soon");
   });
 
   it("a clicked notification opens its task", () => {

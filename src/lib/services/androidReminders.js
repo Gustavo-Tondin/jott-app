@@ -73,7 +73,9 @@ export async function syncAndroidReminders(
       schedule: plugin.Schedule.at(parseAt(reminder.at), false, true),
       // The summary is about the day, not about a task: tapping it only
       // opens the app, which is what an empty list means to `onAction`.
-      extra: { list: reminder.list, id: reminder.id ?? "" },
+      // `at` rides along so a tap can acknowledge the reminder without
+      // having to find it again — the app may have been dead until now.
+      extra: { list: reminder.list, id: reminder.id ?? "", at: reminder.at },
     };
     return { ...notification, sourceJson: JSON.stringify(notification) };
   });
@@ -83,7 +85,7 @@ export async function syncAndroidReminders(
       title: alarm.title,
       body: alarm.body,
       schedule: plugin.Schedule.at(alarm.at, false, true),
-      extra: { list: "", id: "" },
+      extra: { list: "", id: "", at: "" },
     };
     notifications.push({ ...notification, sourceJson: JSON.stringify(notification) });
   }
@@ -91,11 +93,12 @@ export async function syncAndroidReminders(
   return true;
 }
 
-/// Calls `open({list, id})` when a reminder's notification is tapped.
+/// Calls `open({list, id, at})` when a reminder's notification is tapped.
+/// `at` is the moment the task asked for, carried by the alarm itself.
 export async function onAndroidReminderTap(open) {
   const plugin = await import("@tauri-apps/plugin-notification");
   return plugin.onAction((n) => {
     const data = n?.data ?? n?.extra ?? {};
-    if (data.list) open({ list: data.list, id: data.id || null });
+    if (data.list) open({ list: data.list, id: data.id || null, at: data.at || "" });
   });
 }

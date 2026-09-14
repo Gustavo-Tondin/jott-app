@@ -74,6 +74,13 @@ pub fn reminder_of(list: &str, position: usize, task: &Task) -> Option<Reminder>
     })
 }
 
+/// Where a task's acknowledgement is filed in the `acks` index
+/// (`crate::seen::Index::Acked`): the list's root-relative address and the
+/// task's id, so a space that is renamed carries every ack under it along.
+pub fn ack_key(list: &str, id: &str) -> String {
+    format!("{list}/{id}")
+}
+
 /// Sorts soonest first; ties keep list order, which is the order they came in.
 pub fn sort(reminders: &mut [Reminder]) {
     reminders.sort_by(|a, b| a.at.cmp(&b.at));
@@ -122,6 +129,11 @@ mod tests {
         assert_eq!(ReminderTime::parse("25:00"), None);
         assert_eq!(ReminderTime::parse("nine"), None);
         assert_eq!(ReminderTime::parse_or_default("nine").render(), "09:00");
+    }
+
+    #[test]
+    fn an_ack_is_filed_under_the_task_inside_its_list() {
+        assert_eq!(ack_key("jott.tasks/task-list.md", "ab12cd"), "jott.tasks/task-list.md/ab12cd");
     }
 
     #[test]

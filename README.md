@@ -49,7 +49,7 @@ Pre-1.0, and used daily. The [releases page](https://github.com/Gustavo-Tondin/j
 - Due dates, priorities, tags, repetition, descriptions, subtasks and file attachments; completed tasks kept in their own file, restorable.
 - A task shown outside its space — on Today, in a search, in Completed — carries a bar of its space's colour on its edge; its `#tags` are small badges in that same colour. The one colour a card carries is its space's.
 - Every task carries the day it entered the app — a line you typed by hand gets today's date the next time the notebook opens, and nothing else about it changes.
-- **Reminders**: a date and time on any task, from a preset or your own.
+- **Reminders**: a date and time on any task, from a preset or your own. A reminder shown on one device does not ring again on another that syncs the same notebook.
 - **Day summary**: one notification at the hour you choose, saying how many tasks the day holds and naming them. Both ring through the system's notifications; on the desktop Jott waits in the tray after the window closes (and can start with the session), on Android the alarm is the system's and rings with the app closed.
 - **Repetition**: every N days, weeks or months — the next occurrence is counted from the original date, so finishing late does not push it — or **freely**, which comes back undated the moment you tick it, one open copy at a time.
 - At midnight, unfinished tasks either go back to being suggestions or stay pulled — your call.

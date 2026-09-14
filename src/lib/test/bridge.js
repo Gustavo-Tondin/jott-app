@@ -46,6 +46,7 @@ export function bridge(responses = {}, { fallback: otherwise } = {}) {
 export function resetBridge() {
   answers = {};
   fallback = null;
+  callbacks.clear();
   invoke.mockClear();
   listen.mockClear();
   for (const handle of Object.values(currentWindow)) handle.mockClear();
@@ -69,6 +70,33 @@ export function callsTo(command) {
 /// asset protocol in jsdom; the path is what matters here.
 export function convertFileSrc(path) {
   return `asset://localhost/${encodeURIComponent(path)}`;
+}
+
+/// What the real `@tauri-apps/api` reaches for on `window`. A TAURI PLUGIN
+/// needs it: a plugin resolves the api from `node_modules`, past the alias
+/// above, so its `Channel` is the real class and wants the callback store
+/// the app itself never touches. A test that drives a plugin installs this
+/// as `globalThis.__TAURI_INTERNALS__`.
+const callbacks = new Map();
+let lastCallback = 0;
+
+export const tauriInternals = {
+  invoke,
+  transformCallback: (callback) => {
+    callbacks.set((lastCallback += 1), callback);
+    return lastCallback;
+  },
+  unregisterCallback: (id) => callbacks.delete(id),
+};
+
+/// Delivers to a plugin's listener what the system would have sent it — the
+/// tapped notification an Android user is the only source of.
+export function sendPluginEvent(plugin, event, payload) {
+  const opened = callsTo(`plugin:${plugin}|register_listener`).findLast(
+    (args) => args.event === event,
+  );
+  if (!opened) throw new Error(`nothing is listening for ${plugin}:${event}`);
+  return opened.handler.onmessage(payload);
 }
 
 // --- @tauri-apps/api/event ------------------------------------------------
