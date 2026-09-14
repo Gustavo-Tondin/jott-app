@@ -204,9 +204,12 @@
   content: none;
 }
 
-/* ---- lists ---- */
+/* ---- lists ----
+   A marker is structure, not a word: it reads one step back from the text so
+   the eye tells the two apart down the margin. Muted ink, never the accent —
+   a list is not a coloured thing. */
 .editor .cm-md-bullet {
-  color: var(--app-ink);
+  color: var(--app-ink-muted);
   /* The bullet IS the marker column (services/listIndent.js): a box as wide
      as the column, so the text lands where a wrapped line will. */
   display: inline-block;
@@ -241,9 +244,12 @@
   text-indent: 0;
   white-space: pre;
 }
+/* The number of an ordered item, and the raw `- ` / `- [ ] ` of the line
+   being edited: the same muted ink the drawn bullet takes. */
 .editor .cm-md-marker {
   display: inline-block;
   min-inline-size: var(--editor-marker);
+  color: var(--app-ink-muted);
   text-indent: 0;
   white-space: pre;
 }
