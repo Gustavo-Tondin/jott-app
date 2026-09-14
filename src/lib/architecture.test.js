@@ -115,6 +115,20 @@ describe("frontend architecture", () => {
     expect(offenders).toEqual([]);
   });
 
+  test("the list hang is a margin, never text-indent", () => {
+    // WebKitGTK ignores a negative `text-indent` on a line whose text is a
+    // single character, and the `1. a` just typed sat a whole column to the
+    // right until the next key (docs/platform-gotchas.md#css-e-cascata). The
+    // hang is a negative margin on the line's first box, so nothing in the
+    // editor may indent text again — the guards the old mechanism needed
+    // (`text-indent: 0` on every marker span) went with it.
+    const css = readFileSync(join(src, "styles", "components", "editor.css"), "utf8").replace(
+      /\/\*[\s\S]*?\*\//g,
+      "",
+    );
+    expect(css).not.toMatch(/text-indent/);
+  });
+
   test("every length is in rem — px is only for a real device measurement", () => {
     // Decided 2026-08-06: a rigid px interface ignores the reader who raised
     // their font size. A media-query breakpoint is about the screen, not the

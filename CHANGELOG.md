@@ -18,6 +18,8 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 
 ### Fixed
 
+- **A numbered item is no longer pushed a step to the right while you type it.** The `1.` of an item with a single letter after it sat out of line with the bullets above until you typed the second letter.
+
 - **Starting a list from the formatting bar leaves the cursor after the `- `, `1. ` or `- [ ] `**, ready to type, instead of in front of it.
 - **A reminder shown on one device no longer rings again on the next one to sync.** The notebook now remembers which reminders have been dealt with, alongside the rest of its bookkeeping.
 
@@ -38,7 +40,7 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 
 ### Improved
 
-- **Bullets and numbers in a note now read one step back from the text.** A list marker is drawn in a lighter ink than the words it introduces, so the structure of a list is easy to run your eye down.
+- **Bullets and numbers in a note now read one step back from the text.** A list marker is drawn in a lighter ink than the words it introduces, and the bullet itself is a little bigger, so the structure of a list is easy to run your eye down.
 - **A change arriving from another device reloads the screen once, not twice.** A file landing again with exactly the content Jott already has is no longer treated as news.
 - **A card you drag is no longer cut off by the edge of the page.** It lifts as you pick it up, stops at the edge of the list instead of being clipped by it, and flies to its new place rather than appearing there.
 - **Dragging a card in a long list is smooth, and the order stops flickering when your hand rests on the line between two cards.** A drag now also lets go instead of guessing when the list changes underneath it — a task arriving from another device, say.

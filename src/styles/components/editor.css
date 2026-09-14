@@ -211,10 +211,14 @@
 .editor .cm-md-bullet {
   color: var(--app-ink-muted);
   /* The bullet IS the marker column (services/listIndent.js): a box as wide
-     as the column, so the text lands where a wrapped line will. */
+     as the column, so the text lands where a wrapped line will. The dot is
+     drawn bigger than the words and the box divides the same factor back out,
+     so the COLUMN stays one column of the note's size; `line-height: 0` keeps
+     the bigger glyph from raising the line it sits on. */
   display: inline-block;
-  inline-size: var(--editor-marker);
-  text-indent: 0;
+  font-size: 1.4em;
+  line-height: 0;
+  inline-size: calc(var(--editor-marker) / 1.4);
 }
 
 /* ---- indentation ----
@@ -235,13 +239,9 @@
      chevron sit differently from a bullet's. */
   --editor-heading-air: var(--app-space-12);
 }
-/* `text-indent: 0` ON THE SPANS IS LOAD-BEARING: it inherits, and an
-   inline-block applies it to ITS first line — the marker would be pulled a
-   whole hang out of the line's box. */
 .editor .cm-md-indent {
   display: inline-block;
   inline-size: var(--editor-indent);
-  text-indent: 0;
   white-space: pre;
 }
 /* The number of an ordered item, and the raw `- ` / `- [ ] ` of the line
@@ -250,7 +250,6 @@
   display: inline-block;
   min-inline-size: var(--editor-marker);
   color: var(--app-ink-muted);
-  text-indent: 0;
   white-space: pre;
 }
 .editor .cm-md-indented {
@@ -259,7 +258,15 @@
   );
   position: relative;
   padding-inline-start: calc(var(--app-space-4) + var(--cm-hang));
-  text-indent: calc(-1 * var(--cm-hang));
+}
+/* THE HANG IS A MARGIN, NEVER `text-indent`: the line reserves the whole
+   column as padding and its first box is pulled back out of it, which is what
+   makes a wrapped line start under the text. WebKitGTK ignores a negative
+   `text-indent` on a line whose text is a single character, and the `1. a`
+   just typed sat a column to the right until another key was pressed.
+   See docs/platform-gotchas.md#css-e-cascata */
+.editor .cm-md-indented > :first-child {
+  margin-inline-start: calc(-1 * var(--cm-hang));
 }
 /* The guides: one hairline per level, under the middle of the parent's
    marker column, the full height of the line (wrapped lines too). A
@@ -401,7 +408,6 @@
   display: inline-block;
   /* `TASK_COLUMNS` in services/listIndent.js — the same number the hang uses. */
   inline-size: calc(1.4 * var(--editor-marker));
-  text-indent: 0;
 }
 .editor .cm-md-done {
   color: var(--app-ink-muted);
