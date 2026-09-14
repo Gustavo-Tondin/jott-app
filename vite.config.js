@@ -33,6 +33,10 @@ export default defineConfig({
     include: ["src/**/*.test.js"],
     globals: true,
   },
+  // The app has ONE entry. Left to itself the scan takes every `*.html` under
+  // the repository, which after an Android or cross build means thousands of
+  // files under `target/` — and `tauri dev` dies before the window opens.
+  optimizeDeps: { entries: ["index.html"] },
   server: {
     port: 1420,
     strictPort: true,
