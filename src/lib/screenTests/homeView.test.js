@@ -10,6 +10,7 @@ import { beforeEach, describe, expect, test } from "vitest";
 import { bridge, invoke } from "../test/bridge.js";
 import { noop, resetScreens, task } from "../test/screens.js";
 import HomeView from "../screens/HomeView.svelte";
+import ActionRing from "../components/ActionRing.svelte";
 import { originOf } from "../services/origin.js";
 
 beforeEach(resetScreens);
@@ -372,18 +373,26 @@ describe("HomeView", () => {
     );
   });
 
-  test("a card of the day offers the same rows the board offers", async () => {
+  test("a card of the day offers the same actions the board offers", async () => {
     bridge({ day_tasks: [], day_sort: null, notes_of_today: [aNote()], set_note_pinned: null });
 
+    render(ActionRing);
     const { container } = render(HomeView, { props: props() });
     await screen.findByText("ideia");
 
+    // The ⋮ opens the RING (2026-09-14), the same five slices the board's
+    // cards carry, in the same order — and what did not fit is behind "More".
     await userEvent.click(container.querySelector(".note-card__more"));
+    const slices = [...document.querySelectorAll(".action-ring__pill")].map((el) =>
+      el.getAttribute("aria-label"),
+    );
+    expect(slices).toEqual(["Pin", "Edit", "Duplicate", "Delete", "More"]);
+
+    await userEvent.click(await screen.findByLabelText("More"));
     const rows = [...document.querySelectorAll(".menu__list > .menu__item > .menu__link")].map(
       (el) => el.textContent.trim(),
     );
-    // The same rows the board offers, in the same order.
-    expect(rows).toEqual(["Pin", "Move to…", "Banner", "Rename", "Duplicate", "Delete"]);
+    expect(rows).toEqual(["Open in new tab", "Move to…"]);
 
     // The pin is a button of its own, because a pin is a STATE: the card has
     // to say whether it is pinned without being asked.

@@ -174,36 +174,6 @@
     vertical-align: top;
   }
 
-  /* The name, then the banner: one panel, the field on top because renaming
-     is what a click on a name means first. */
-  .note-banner__panel {
-    display: flex;
-    flex-direction: column;
-    gap: var(--app-space-8);
-    inline-size: min(18rem, calc(100vw - 2 * var(--app-space-16)));
-    padding: var(--app-space-10);
-  }
-  .note-banner__name {
-    inline-size: 100%;
-  }
-  .note-banner__rule {
-    block-size: 0.0625rem;
-    background: var(--app-line);
-  }
-  .note-banner__panel-label {
-    color: var(--app-ink-muted);
-    font-size: var(--app-text-12);
-  }
-  .note-banner__action {
-    padding: 0;
-    color: var(--app-ink);
-    font: inherit;
-    font-size: var(--app-text-13);
-    text-align: start;
-  }
-  .note-banner__action:hover {
-    color: var(--app-brand-ink);
-  }
 }
 
 /* ---- THE COMPACT HEAD (below 768px) ---- */

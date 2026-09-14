@@ -10,6 +10,15 @@ import { nameRequest } from "../services/dialog.js";
 import { bridge, invoke } from "../test/bridge.js";
 import { answerConfirm, noop, noteFolder, place, resetScreens, showFolders } from "../test/screens.js";
 import NotesSpace from "../spaces/NotesSpace.svelte";
+import ActionRing from "../components/ActionRing.svelte";
+
+/// THE ⋮ OPENS THE RING (2026-09-14), and the ring is the window's, drawn by
+/// App.svelte — so a screen tested on its own has to mount it too. Clicking a
+/// slice is how a card's actions are reached from here on; what did not fit in
+/// the five is behind the "More" slice, in the board's own menu.
+const openRing = async (label = "note options") => {
+  await userEvent.click(await screen.findByLabelText(label));
+};
 
 beforeEach(resetScreens);
 
@@ -370,9 +379,10 @@ describe("NotesSpace", () => {
       duplicate_note: "Inbox/Ideia 2.md",
     });
 
+    render(ActionRing);
     render(NotesSpace, { props: props() });
-    await userEvent.click(await screen.findByLabelText("note options"));
-    await userEvent.click(await screen.findByText("Duplicate"));
+    await openRing();
+    await userEvent.click(await screen.findByLabelText("Duplicate"));
 
     await waitFor(() =>
       expect(invoke).toHaveBeenCalledWith("duplicate_note", {
@@ -389,8 +399,11 @@ describe("NotesSpace", () => {
       move_note_to_space: "Clientes/Ideia.md",
     });
 
+    render(ActionRing);
     render(NotesSpace, { props: props() });
-    await userEvent.click(await screen.findByLabelText("note options"));
+    await openRing();
+    // Moving is not one of the five: it is behind the ring's ⋮ slice.
+    await userEvent.click(await screen.findByLabelText("More"));
     await userEvent.click(await screen.findByText("Move to…"));
     // The menu row, not the folder CARD of the same name behind it.
     await userEvent.click(
@@ -646,12 +659,14 @@ describe("NotesSpace with a note sub-function switched off", () => {
     bridge({ list_notes: [filed[0]], note_folders: [noteFolder("Inbox")] });
     render(NotesSpace, { props: props({ f: off("pinNotes") }) });
 
+    render(ActionRing);
     expect(await screen.findByText("Solta")).toBeTruthy();
     expect(screen.queryByLabelText("Pin")).toBe(null);
-    await userEvent.click(screen.getByLabelText("note options"));
-    expect(screen.queryByText("Pin")).toBe(null);
-    // The rest of the menu is untouched — one switch, one thing.
-    expect(screen.getByText("Delete")).toBeTruthy();
+    await openRing();
+    // No pin slice either — and the rest of the ring is untouched: one
+    // switch, one thing.
+    expect(screen.queryByLabelText("Pin")).toBe(null);
+    expect(screen.getByLabelText("Delete")).toBeTruthy();
   });
 });
 

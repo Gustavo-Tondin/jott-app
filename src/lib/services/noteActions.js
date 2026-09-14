@@ -54,6 +54,15 @@ export function noteActions(act) {
         await api.renameNote(space, entry.path, next.trim());
       }),
 
+    /// The same move with the name ALREADY typed — the note's head panel asks
+    /// for it in a field of its own (components/NoteHeadPanel.svelte).
+    renameTo: (space, entry, name) =>
+      act(async () => {
+        const next = (name ?? "").trim();
+        if (!next || next === entry.title) return;
+        await api.renameNote(space, entry.path, next);
+      }),
+
     duplicate: (space, entry) => act(() => api.duplicateNote(space, entry.path)),
 
     /// A colour name, an asset address, or null to take the banner off.
@@ -76,6 +85,39 @@ export function noteActions(act) {
   };
 }
 
+/// THE FIVE SLICES A NOTE CARD'S RING CARRIES (components/ActionRing.svelte).
+/// Pure, like the menu below it, and the same pact: each slice INVERTS with
+/// the state of the card (a pinned note reads "Unpin" in the same place), and
+/// the last is always the ⋮ with what did not fit.
+///
+/// "Edit" is not the old rename prompt: it opens the note's HEAD — its name
+/// and its banner, the panel the open note's title carries
+/// (components/NoteHeadPanel.svelte) — over the card, with the note closed.
+export function noteRing({
+  pinned = false,
+  /// Each is `(from, at) => void`; a null one leaves its slice out.
+  onPin = null,
+  onEdit = null,
+  onDuplicate = null,
+  onDelete = null,
+  onMore = null,
+} = {}) {
+  const slices = [];
+  if (onPin)
+    slices.push({
+      id: "pin",
+      icon: pinned ? "bookmark-simple-fill" : "bookmark-simple",
+      label: pinned ? S.ringUnpin : S.ringPin,
+      run: onPin,
+    });
+  if (onEdit) slices.push({ id: "edit", icon: "pencil", label: S.ringEdit, run: onEdit });
+  if (onDuplicate)
+    slices.push({ id: "duplicate", icon: "copy", label: S.ringDuplicate, run: onDuplicate });
+  if (onDelete) slices.push({ id: "delete", icon: "trash", label: S.ringDelete, run: onDelete });
+  if (onMore) slices.push({ id: "more", icon: "dots-three", label: S.ringMore, run: onMore });
+  return slices;
+}
+
 /// The rows of a note card's ⋮ — pure, so a menu can be read in a test.
 /// `moveTargets` is a list of groups (`{label, options: [{value, label}]}`);
 /// empty means no "Move to" row at all.
@@ -96,12 +138,15 @@ export function noteCardMenu({
   /// `(done) => void` — opens the image picker and hands `done` the address.
   /// Null leaves the banner row to colours.
   pickImage = null,
+  /// The ⋮ OF A RING (`noteRing`): the rows the four slices already carry are
+  /// left out, so the menu is what did not fit rather than a second copy.
+  beyondRing = false,
 }) {
   const rows = [];
 
   if (openInNewTab) rows.push({ label: S.openInNewTabItem, run: openInNewTab });
   if (readOnly) return rows;
-  if (canPin) {
+  if (canPin && !beyondRing) {
     rows.push({
       label: entry.pinned ? S.unpin : S.pin,
       run: () => actions.pin(space, entry),
@@ -119,7 +164,8 @@ export function noteCardMenu({
       ),
     });
   }
-  if (canBanner) {
+  // The banner is the "Edit" slice's other half, so a ring's ⋮ leaves it out.
+  if (canBanner && !beyondRing) {
     const setBanner = (value) => actions.banner(space, entry, value);
     rows.push(
       bannerMenuOf({
@@ -129,6 +175,7 @@ export function noteCardMenu({
       }),
     );
   }
+  if (beyondRing) return rows;
   rows.push({ label: S.renameNote, run: () => actions.rename(space, entry) });
   rows.push({ label: S.duplicateNote, run: () => actions.duplicate(space, entry) });
   rows.push({ label: S.deleteNote, run: () => actions.remove(space, entry) });

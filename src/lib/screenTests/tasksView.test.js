@@ -9,6 +9,7 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
 import { bridge, invoke } from "../test/bridge.js";
 import { noop, resetScreens, task } from "../test/screens.js";
 import { originOf } from "../services/origin.js";
+import { RING_RADIUS } from "../services/ring.js";
 
 // The note editor's engine is stubbed by a textarea — `lib/test/screens.js`
 // says why. `vi.mock` is hoisted per file, so it cannot live there.
@@ -144,10 +145,25 @@ describe("TasksView", () => {
     expect(bars).toContain("--dot: var(--app-5);");
   });
 
-  // A press that rests on a card enters selection mode WITH that card picked
-  // (it came in unmarked once: the entry under the finger and the one in the
-  // host's list were two objects for one task, 2026-08-21).
-  test("holding a card selects it and raises the bulk bar", async () => {
+  // A press that rests on a card opens the ACTION RING around the finger
+  // (2026-09-14). It used to enter selection mode; selection is a row of the
+  // ring's ⋮ now, which is what the second half of this test walks.
+  const holdCard = async (card) => {
+    const down = new Event("pointerdown", { bubbles: true });
+    Object.assign(down, { button: 0, pointerId: 1, pointerType: "touch", isPrimary: true, clientX: 40, clientY: 40 });
+    card.dispatchEvent(down);
+    await new Promise((r) => setTimeout(r, 450));
+  };
+
+  /// Lets the finger go on the ring's LAST slice — the ⋮, on the vertical axis
+  /// of the quarter the ring opened into (services/ring.js).
+  const releaseOnLastSlice = (card, at = { x: 40, y: 40 }) => {
+    const up = new Event("pointerup", { bubbles: true });
+    Object.assign(up, { pointerId: 1, clientX: at.x, clientY: at.y + RING_RADIUS });
+    card.dispatchEvent(up);
+  };
+
+  test("holding a card lifts it and opens the ring instead of selecting", async () => {
     bridge({
       list_tasks: [task("a1", "Fix website"), task("a2", "Send invoice")],
       day_tasks: [],
@@ -155,14 +171,45 @@ describe("TasksView", () => {
     });
     const { container } = render(TasksView, { props: props({ compact: true }) });
     const card = await screen.findByText("Fix website");
-    const down = new Event("pointerdown", { bubbles: true });
-    Object.assign(down, { button: 0, pointerId: 1, pointerType: "touch", isPrimary: true, clientX: 40, clientY: 40 });
-    card.dispatchEvent(down);
-    await new Promise((r) => setTimeout(r, 450));
+    await holdCard(card);
+
+    const row = card.closest(".task-row");
+    await waitFor(() => expect(row.classList.contains("reorder-item--carried")).toBe(true));
+    // Nothing is picked, and the bulk bar never came up.
+    expect(row.classList.contains("task-row--selected")).toBe(false);
+    expect(container.querySelector(".bulkbar__count")).toBeNull();
+
+    // Let go on the card itself: the ring cancels and the card comes home —
+    // which is also what keeps it out of the drag layer for the next test.
+    const up = new Event("pointerup", { bubbles: true });
+    Object.assign(up, { pointerId: 1, clientX: 40, clientY: 40 });
+    card.dispatchEvent(up);
+    await waitFor(() => expect(row.classList.contains("reorder-item--carried")).toBe(false));
+  });
+
+  test("the ring's ⋮ still leads to selection", async () => {
+    bridge({
+      list_tasks: [task("a1", "Fix website"), task("a2", "Send invoice")],
+      day_tasks: [],
+      grouped_suggestions: [],
+    });
+    const { container } = render(TasksView, { props: props({ compact: true }) });
+    const card = await screen.findByText("Fix website");
+    await holdCard(card);
+    // The ⋮ is the last slice, and the last one always sits on the vertical
+    // axis of the quarter the ring opened into (services/ring.js).
+    const move = new Event("pointermove", { bubbles: true });
+    Object.assign(move, { pointerId: 1, clientX: 40, clientY: 40 + RING_RADIUS });
+    card.dispatchEvent(move);
+    releaseOnLastSlice(card);
+    // The menu the slice opens is drawn on the next tick, in a portal.
+    await new Promise((r) => setTimeout(r, 60));
+
+    const select = await screen.findByText("Select tasks…");
+    select.click();
     await waitFor(() =>
-      expect(card.closest(".task-row").classList.contains("task-row--selected")).toBe(true),
+      expect(container.querySelector(".bulkbar__count").textContent).toBe("1 selected"),
     );
-    expect(container.querySelector(".bulkbar__count").textContent).toBe("1 selected");
   });
 
 });

@@ -107,6 +107,15 @@ export function swipe(node, params) {
     paint(armed && !half(x) ? Math.sign(x) * drag.width : x);
   }
 
+  /// HAS THE REORDER TAKEN THIS CARD? Two signs, and the second is the one
+  /// that bites: a carried card LEAVES the container (it lives in the drag
+  /// layer while it is up), so asking its ancestors for `data-reordering`
+  /// answers no. It is the action ring that made this matter — there the
+  /// finger travels sideways with the card in the air, and the card used to
+  /// swipe under the ring (seen on Android, 2026-09-14).
+  const taken = () =>
+    !!node.closest("[data-reordering]") || node.classList.contains("reorder-item--carried");
+
   function onPointerDown(e) {
     if (e.button !== 0 || drag) return;
     // A real control owns its own press; anything else opts out with
@@ -123,7 +132,7 @@ export function swipe(node, params) {
     if (!drag.axis) {
       // A reorder already has this pointer (held long enough to be picked
       // up): a second `setPointerCapture` would leave the first action deaf.
-      if (node.closest("[data-reordering]")) {
+      if (taken()) {
         drag = null;
         return;
       }
@@ -203,7 +212,7 @@ export function swipe(node, params) {
     const dy = t.clientY - drag.y;
     if (!drag.axis) {
       // The reorder has the card: not ours.
-      if (node.closest("[data-reordering]")) {
+      if (taken()) {
         drag = null;
         return;
       }

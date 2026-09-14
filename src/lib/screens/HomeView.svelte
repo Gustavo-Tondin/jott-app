@@ -17,10 +17,12 @@
   import ContextMenu from "../components/ContextMenu.svelte";
   import Icon from "../components/Icon.svelte";
   import NoteCard from "../components/NoteCard.svelte";
+  import NoteHeadPanel from "../components/NoteHeadPanel.svelte";
   import { measured } from "../actions/measure.js";
   import { columnCount, columnLayout } from "../services/noteColumns.js";
   import { quickNoteTarget } from "../services/noteTargets.js";
-  import { noteActions, noteCardMenu } from "../services/noteActions.js";
+  import { bannerOf, noteActions, noteCardMenu, noteRing } from "../services/noteActions.js";
+  import { popRing } from "../services/actionRing.js";
   import { liftSpaceMenu } from "../shell/spaceMenus.js";
 
   let {
@@ -198,7 +200,7 @@
         ],
   );
 
-  const cardMenu = (row, { openInNewTab = null } = {}) =>
+  const cardMenu = (row, { openInNewTab = null, beyondRing = false } = {}) =>
     noteCardMenu({
       entry: row.note,
       actions: cards,
@@ -209,7 +211,35 @@
       openInNewTab,
       canBanner: f("banners"),
       pickImage: onPickImage,
+      beyondRing,
     });
+
+  // ---- the card's ⋮ is the ACTION RING (2026-09-14) ----
+  // The same five slices the board's cards carry, for the same reason the menu
+  // is shared: one card means one thing on both screens. There is no hold here
+  // — the day's notes are not dragged — so the ⋮ is the only door.
+  let editing = $state(null);
+
+  function openRingAt(event, row) {
+    event.preventDefault();
+    event.stopPropagation();
+    const at = { x: event.clientX, y: event.clientY };
+    const slices = noteRing({
+      pinned: !!row.note.pinned,
+      onPin: readOnly || !f("pinNotes") ? null : () => cards.pin(row.folder, row.note),
+      onEdit: readOnly ? null : (_, point) => (editing = { row, at: point ?? at }),
+      onDuplicate: readOnly ? null : () => cards.duplicate(row.folder, row.note),
+      onDelete: readOnly ? null : () => cards.remove(row.folder, row.note),
+      onMore: (_, point) => {
+        cardMenuShown = cardMenu(row, {
+          openInNewTab: () => openNote(row, { newTab: true }),
+          beyondRing: true,
+        });
+        cardMenuAt = point ?? at;
+      },
+    });
+    popRing({ actions: slices, at });
+  }
 
   /// Where the right button's panel opens is this screen's, the same pact the
   /// board and the sidebar keep: one `ContextMenu` per panel, at the pointer.
@@ -405,6 +435,7 @@
                   showAge={f("time")}
                   {dateFormat}
                   menu={cardMenu(row)}
+                  onOptions={(event) => openRingAt(event, row)}
                   onPin={readOnly || !f("pinNotes") ? null : () => cards.pin(row.folder, row.note)}
                   onOpen={(_, opts) => openNote(row, opts)}
                   onContextMenu={(event) => openCardMenu(event, row)}
@@ -421,3 +452,21 @@
      new tab — the one row that is not a write, so a read-only notebook keeps
      it (services/noteActions.js). -->
 <ContextMenu at={cardMenuAt} items={cardMenuShown} onClose={() => (cardMenuAt = null)} />
+
+<!-- The ring's "Edit": the note's name and banner over the card, without
+     opening it (components/NoteHeadPanel.svelte). -->
+{#if editing}
+  <NoteHeadPanel
+    title={editing.row.note.title}
+    banner={bannerOf(editing.row.note.banner)}
+    at={editing.at}
+    onRename={(name) => cards.renameTo(editing.row.folder, editing.row.note, name)}
+    onSet={f("banners")
+      ? (value) => cards.banner(editing.row.folder, editing.row.note, value)
+      : null}
+    onChooseImage={f("banners") && onPickImage
+      ? () => onPickImage((value) => cards.banner(editing.row.folder, editing.row.note, value))
+      : null}
+    onClose={() => (editing = null)}
+  />
+{/if}

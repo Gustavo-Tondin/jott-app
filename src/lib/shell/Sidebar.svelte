@@ -231,34 +231,43 @@
     },
   ]);
 
-  // The menu of a group's head.
-  const groupMenu = (group) => [
+  // The menu of a group's head. `beyondRing` is the ⋮ OF A RING: the three
+  // rows the slices already carry are left out, so the menu is what did not
+  // fit rather than a second copy of it.
+  const groupMenu = (group, { beyondRing = false } = {}) => [
     // What is made here is made INSIDE this group — including another group.
     ...createMenu(group.folder),
-    { label: S.renameGroup, run: () => onRenameGroup?.(group.folder, group.name) },
-    {
-      label: S.spaceAppearance,
-      run: () => (appearanceOpen = `group:${group.folder}`),
-    },
+    ...(beyondRing
+      ? []
+      : [
+          { label: S.renameGroup, run: () => onRenameGroup?.(group.folder, group.name) },
+          {
+            label: S.spaceAppearance,
+            run: () => (appearanceOpen = `group:${group.folder}`),
+          },
+        ]),
     ...(group.parent
       ? [{ label: S.removeFromGroup, run: () => onMoveGroup?.(group.folder, null) }]
       : []),
-    { label: S.deleteGroup, run: () => onDeleteGroup?.(group.folder, group.name) },
+    ...(beyondRing
+      ? []
+      : [{ label: S.deleteGroup, run: () => onDeleteGroup?.(group.folder, group.name) }]),
   ];
 
   /// The group holding a space, if one does.
   const groupOf = (name) => groups.find((group) => group.spaces.includes(name)) ?? null;
 
-  function spaceMenu(sp) {
+  function spaceMenu(sp, { beyondRing = false } = {}) {
     const holder = groupOf(sp.path);
-    const items = [
-      { label: S.renameSpace, run: () => onRenameSpace?.(sp.path, sp.name) },
-    ];
+    const items = beyondRing
+      ? []
+      : [{ label: S.renameSpace, run: () => onRenameSpace?.(sp.path, sp.name) }];
     // A member picks its ICON but not its colour: the colour is the group's.
-    items.push({
-      label: holder ? S.iconOnly : S.spaceAppearance,
-      run: () => (appearanceOpen = sp.path),
-    });
+    if (!beyondRing)
+      items.push({
+        label: holder ? S.iconOnly : S.spaceAppearance,
+        run: () => (appearanceOpen = sp.path),
+      });
     if (holder) {
       // Out to whatever holds the group — one level up, not all the way to the
       // root: with groups nesting, "out" means out of THIS one.
@@ -275,9 +284,58 @@
         });
       }
     }
-    items.push({ label: S.deleteSpace, run: () => onDeleteSpace?.(sp.path, sp.name) });
+    if (!beyondRing)
+      items.push({ label: S.deleteSpace, run: () => onDeleteSpace?.(sp.path, sp.name) });
     return items;
   }
+
+  // ---- the action ring (2026-09-14) ----
+  // A hold on a space or a group head opens the same three things its menu
+  // leads with, around the finger — plus the ⋮ with the rest. Four slices,
+  // not five: there is nothing else a place in the sidebar does often.
+  const entryRing = (entry) => {
+    if (!entry) return null;
+    const group = entry.kind === "group" ? entry.group : null;
+    const sp = group ? null : entry.sp;
+    if (!group && !sp) return null;
+    return [
+      {
+        id: "rename",
+        icon: "pencil",
+        label: S.ringRename,
+        run: () =>
+          group
+            ? onRenameGroup?.(group.folder, group.name)
+            : onRenameSpace?.(sp.path, sp.name),
+      },
+      {
+        id: "appearance",
+        icon: "palette",
+        label: S.ringAppearance,
+        run: () => (appearanceOpen = group ? `group:${group.folder}` : sp.path),
+      },
+      {
+        id: "delete",
+        icon: "trash",
+        label: S.ringDelete,
+        run: () =>
+          group
+            ? onDeleteGroup?.(group.folder, group.name)
+            : onDeleteSpace?.(sp.path, sp.name),
+      },
+      {
+        id: "more",
+        icon: "dots-three",
+        label: S.ringMore,
+        run: (_, at) => {
+          menuShown = group
+            ? groupMenu(group, { beyondRing: true })
+            : spaceMenu(sp, { beyondRing: true });
+          menuAt = at ?? { x: 0, y: 0 };
+        },
+      },
+    ];
+  };
 </script>
 
 <!-- It DECLARES the chrome rather than inheriting it: as a drawer it is
@@ -542,6 +600,7 @@
           // one drag enough to move between two groups.
           dropZones: () => document.querySelectorAll("[data-group-drop]"),
           onDropZone: (from, zone) => dropOnGroup(list, from, zone),
+          ring: (from) => entryRing(list[from]),
         }}
       >
         {#each list as entry (entry.key)}

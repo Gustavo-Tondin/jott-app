@@ -11,7 +11,7 @@
   import { listName, listLabel, taskSpacePaths } from "../services/paths.js";
   import { makeScreen } from "../services/act.js";
   import { tracker, HELD } from "../services/recent.js";
-  import { taskActions, isSelectedTask } from "../services/taskActions.js";
+  import { taskActions, isSelectedTask, taskCardMenu, taskRing } from "../services/taskActions.js";
   import { dotStyle as dotStyleOf } from "../services/accent.js";
   import { spaceMenu } from "../services/spaceMenu.js";
   import { liftSpaceMenu } from "../shell/spaceMenus.js";
@@ -28,6 +28,7 @@
   import TaskComposer from "../components/TaskComposer.svelte";
   import CaptureFab from "../components/CaptureFab.svelte";
   import Menu from "../components/Menu.svelte";
+  import ContextMenu from "../components/ContextMenu.svelte";
   import Icon from "../components/Icon.svelte";
 
   let {
@@ -332,6 +333,59 @@
     return picking && entry && picked.has(entry) ? [...picked] : [];
   };
 
+  // ---- the action ring (2026-09-14) ----
+  // Holding a card opens its actions around the finger (components/ActionRing).
+  // Two of the five slices open a panel of their own, and both use this one
+  // menu, at the point the ring opened on — the same pact the board and the
+  // sidebar keep.
+  let ringMenuAt = $state(null);
+  let ringMenuShown = $state([]);
+  const openRingMenu = (rows, at) => {
+    ringMenuShown = rows;
+    ringMenuAt = at ?? { x: 0, y: 0 };
+  };
+
+  const moveOne = (entry, target) =>
+    act(async () => {
+      const id = await ensureTaskId(entry.list, entry.task);
+      await api.moveTask(entry.list, id, target);
+    });
+
+  /// The slices of one card. Null while the screen is PICKING: there the bulk
+  /// bar is the way, and a ring over a selection would act on one of them.
+  const ringFor = (entry) => {
+    if (readOnly || picking) return null;
+    const day = daySwipe?.(entry);
+    return taskRing({
+      done: !!entry.task.done,
+      inDay: inDay(entry),
+      pinned: !!entry.task.pinned,
+      onComplete: () => complete(entry.list, entry.task),
+      onDay: day ? () => day.run() : null,
+      // A day screen has no pinned block to pin to.
+      onPin: isDay ? null : () => pin(entry.list, entry.task, !entry.task.pinned),
+      onMove: listTargets.length
+        ? (_, at) =>
+            openRingMenu(
+              listTargets.map((target) => ({
+                label: listLabel(target),
+                run: () => moveOne(entry, target.path),
+              })),
+              at,
+            )
+        : null,
+      onMore: (_, at) =>
+        openRingMenu(
+          taskCardMenu({
+            onDuplicate: () => duplicate(entry.list, entry.task),
+            onSelect: () => holdCard(entry),
+            onDelete: () => deleteEntry(entry),
+          }),
+          at,
+        ),
+    });
+  };
+
   // Where a picked task can move — any tasks list of the notebook except this
   // space's own and the Completed files.
   let listTargets = $derived(composeTargets.filter((entry) => entry.path !== paths.list));
@@ -632,6 +686,7 @@
         {daySwipe}
         onReorder={readOnly || all ? null : isDay ? reorderDay : reorderTasks}
         onHold={readOnly ? null : holdCard}
+        ring={ringFor}
         carried={carriedWith}
         onReorderMany={readOnly || all ? null : isDay ? reorderDayMany : reorderTasksMany}
         {isSelected}
@@ -737,3 +792,7 @@
     {/if}
   {/if}
 </section>
+
+<!-- Where the ring's "Move" and ⋮ open (see `openRingMenu`): one panel for the
+     screen, at the point the ring opened on. -->
+<ContextMenu at={ringMenuAt} items={ringMenuShown} onClose={() => (ringMenuAt = null)} />

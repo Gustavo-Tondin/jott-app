@@ -23,6 +23,10 @@
     /// chosen ones are tinted (the same pact the task cards keep).
     picking = false,
     selected = false,
+    /// `(event, entry) => void` — the ⋮ where a card has a RING: the same
+    /// actions the hold opens, opened by a click and pressed rather than
+    /// travelled to (services/actionRing.js). Null leaves the ⋮ to `menu`.
+    onOptions = null,
     /// The ⋮'s items, or an empty list for no ⋮ at all.
     menu = [],
     /// Smaller, for the cards drawn INSIDE a folder card: title only, no
@@ -204,7 +208,16 @@
           />
         </button>
       {/if}
-      {#if menu.length > 0}
+      {#if onOptions}
+        <button
+          class="theme-btn--icon note-card__more"
+          onclick={(event) => onOptions(event, entry)}
+          aria-label={S.noteOptions}
+          title={S.noteOptions}
+        >
+          <Icon name="dots-three" size="1rem" />
+        </button>
+      {:else if menu.length > 0}
         <Menu items={menu} align="end">
           {#snippet trigger({ toggle })}
             <button

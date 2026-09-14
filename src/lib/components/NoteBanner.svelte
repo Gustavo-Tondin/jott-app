@@ -11,7 +11,7 @@
   import { assetUrl } from "../services/assets.js";
   import { dismissable } from "../actions/dismissable.js";
   import { keepOnScreen } from "../actions/keepOnScreen.js";
-  import AccentPicker from "./AccentPicker.svelte";
+  import NoteHeadPanel from "./NoteHeadPanel.svelte";
   import Icon from "./Icon.svelte";
 
   let {
@@ -57,8 +57,6 @@
   } = $props();
 
   let open = $state(false);
-  let draft = $state("");
-  let field = $state(null);
 
   /// Nothing is drawn from a banner the notebook does not draw. Folded in
   /// here, once, rather than at each of the four places that read it.
@@ -72,34 +70,7 @@
   /// The title is a door only where there is something behind it.
   let editable = $derived(!readOnly && (!!onRename || enabled));
 
-  function toggle() {
-    if (open) return close();
-    draft = title;
-    open = true;
-    // On a phone the field would raise the keyboard over the colours nobody
-    // asked to type into; there it waits for a tap.
-    if (!compact) queueMicrotask(() => field?.select());
-  }
-
-  /// Leaving the popover keeps what was typed, like every field of the app;
-  /// Escape is the way out without it (see `forget`).
-  function close() {
-    if (!open) return;
-    open = false;
-    const next = draft.trim();
-    if (onRename && next && next !== title) onRename(next);
-  }
-
-  /// `dismissable` answers Escape in the DOCUMENT's capture phase and closes
-  /// through `close`, so the typing is dropped a step earlier — the window's.
-  function forget(event) {
-    if (open && event.key === "Escape") draft = title;
-  }
-
-  function chooseImage() {
-    close();
-    onChooseImage?.();
-  }
+  const toggle = () => (open = !open);
 
   let editsTags = $derived(tagsEnabled && !readOnly && !!onSetTags);
   /// The line is drawn when there is something on it: a date, a tag, or the
@@ -110,8 +81,6 @@
   };
   const removeTag = (name) => onSetTags?.(tags.filter((t) => t !== name));
 </script>
-
-<svelte:window onkeydowncapture={forget} />
 
 <div
   class="note-banner"
@@ -137,7 +106,7 @@
            as wide as the title, not as the line. -->
       <div
         class="note-banner__head"
-        use:dismissable={{ active: open, onDismiss: close }}
+        use:dismissable={{ active: open, onDismiss: () => (open = false) }}
       >
         <h1 class="note-banner__title">
           {#if editable}
@@ -156,44 +125,16 @@
         </h1>
 
         {#if open}
-          <div
-            class="theme-popover theme-popover--start note-banner__panel"
-            role="dialog"
-            aria-label={S.noteHead}
-            use:keepOnScreen
-          >
-            {#if onRename}
-              <form onsubmit={(e) => (e.preventDefault(), close())}>
-                <input
-                  bind:this={field}
-                  class="theme-input note-banner__name"
-                  aria-label={S.noteTitleField}
-                  bind:value={draft}
-                />
-              </form>
-            {/if}
-            {#if enabled}
-              {#if onRename}
-                <span class="note-banner__rule" role="separator"></span>
-              {/if}
-              <span class="note-banner__panel-label">{S.banner}</span>
-              <AccentPicker
-                value={shown?.kind === "color" ? shown.value : null}
-                preview="fill"
-                clearable={false}
-                label={S.bannerColor}
-                onPick={(name) => onSet?.(name)}
-              />
-              <button class="note-banner__action" onclick={chooseImage}>
-                {S.bannerImage}
-              </button>
-              {#if shown}
-                <button class="note-banner__action" onclick={() => onSet?.(null)}>
-                  {S.removeBanner}
-                </button>
-              {/if}
-            {/if}
-          </div>
+          <!-- The panel is the card's too (components/NoteHeadPanel.svelte):
+               the ring's "Edit" opens the very same one over a closed note. -->
+          <NoteHeadPanel
+            {title}
+            banner={shown}
+            {onRename}
+            onSet={enabled ? (value) => onSet?.(value) : null}
+            onChooseImage={enabled ? onChooseImage : null}
+            onClose={() => (open = false)}
+          />
         {/if}
       </div>
     </div>

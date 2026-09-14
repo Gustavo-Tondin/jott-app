@@ -8,10 +8,14 @@
 /// (an item's middle is a target); `dropZones(from) => elements` outside the
 /// list + `onDropZone(from, zone)`; `onDragOut(from)` (released clear of the
 /// container); `free(e)` + `freeZones` (no axis lock, no gap, zones only);
-/// `onHold(from)` (true = the caller took the rest); `carried(from)` +
-/// `onReorderMany(indices, to)` (a selection travels together); `holdMs`; `hold`.
+/// `onHold(from)` (true = the caller took the rest); `ring(from)` +
+/// `onRing(from, action)` (the hold opens the action ring instead, and the
+/// same finger picks a slice); `carried(from)` + `onReorderMany(indices, to)`
+/// (a selection travels together); `holdMs`; `hold`.
 
 import { dragLayer } from "../services/dragLayer.js";
+import { closeRing, hoverRing, openRing } from "../services/actionRing.js";
+import { fitRing, ringQuadrant, ringRadius, ringSlotAt } from "../services/ring.js";
 
 /// TOUCH ONLY: how long a finger rests on an item before it is carried. Drag
 /// and scroll share the vertical axis, so time tells them apart (rest to pick
@@ -130,6 +134,11 @@ export function reorderable(node, params) {
   function hold() {
     if (!drag) return;
     drag.holdTimer = null;
+    // THE RING FIRST, and never both: what used to be the hold (selection) is
+    // a slice of it now. Unlike `onHold` the pointer is NOT let go — the same
+    // finger picks a slice. TOUCH ONLY: with a cursor on the screen the same
+    // actions are one click away, on the card's ⋮ (`popRing`).
+    if (drag.touch && openRingFor()) return;
     // The caller may want the rest for itself (entering selection mode).
     if (opts.onHold?.(drag.from)) {
       const el = drag.el;
@@ -149,6 +158,45 @@ export function reorderable(node, params) {
     // cursor to change and no hover to light up. Optional everywhere: a
     // desktop has no vibrator and a phone may have it switched off.
     navigator.vibrate?.(8);
+  }
+
+  /// The hold opening the RING: the card is lifted exactly as a carried one
+  /// is (same layer, same shadow — it is the same gesture, so it reads the
+  /// same), the pills spread into the corner of the screen with room, and
+  /// every move from here picks a slice instead of moving the list.
+  /// Answers whether the ring took the gesture.
+  function openRingFor() {
+    const actions = fitRing(opts.ring?.(drag.from));
+    if (!actions.length) return false;
+    const view = node.ownerDocument.defaultView;
+    const at = { x: drag.originX, y: drag.originY };
+    const viewport = { width: view?.innerWidth ?? 0, height: view?.innerHeight ?? 0 };
+    const quadrant = ringQuadrant(at, viewport);
+    drag.ring = {
+      actions,
+      at,
+      count: actions.length,
+      quadrant,
+      radius: ringRadius(at, viewport, quadrant),
+      slot: null,
+    };
+    drag.moved = true;
+    begin();
+    navigator.vibrate?.(8);
+    openRing(drag.ring);
+    return true;
+  }
+
+  /// The finger travelling the ring. A slice only changes when it really
+  /// changes — the pills light up, and the little buzz says so without the
+  /// eye having to leave the card.
+  function ringMove(e) {
+    const slot = ringSlotAt(drag.ring.at, { x: e.clientX, y: e.clientY }, drag.ring);
+    if (slot === drag.ring.slot) return;
+    drag.ring.slot = slot;
+    if (slot != null) navigator.vibrate?.(4);
+    hoverRing(slot);
+    opts.onRingHover?.(slot);
   }
 
   function begin() {
@@ -341,6 +389,10 @@ export function reorderable(node, params) {
   }
 
   function applyMove(e) {
+    // The ring has the gesture: nothing below applies — not the axis lock,
+    // not the slots, not the edge scroll. The hold chose this path and the
+    // release is the only way out of it.
+    if (drag.ring) return ringMove(e);
     const dx = e.clientX - drag.originX;
     const dy = e.clientY - drag.originY;
     // Raw, in viewport: the threshold, the axis lock and the slop all read it
@@ -686,6 +738,7 @@ export function reorderable(node, params) {
   function clear(d = drag) {
     unframe();
     stopSteer();
+    if (d?.ring) closeRing();
     unlistenLoose();
     drop(d);
     node.removeAttribute("data-reordering");
@@ -739,6 +792,22 @@ export function reorderable(node, params) {
     if (!d.moved) return; // a plain click — let the item handle it
 
     swallowNextClick();
+
+    // THE RING: the slice the finger let go on, or nothing. Released in the
+    // hole around the finger (on the card itself) or clear of the pills, the
+    // gesture cancels — one rule, so nothing happens by accident. The card
+    // goes back into the list before the action runs: a rename dialog must
+    // not open over a card that is still in the air.
+    if (d.ring) {
+      const chosen = d.ring.slot == null ? null : (d.ring.actions[d.ring.slot] ?? null);
+      clear(d);
+      // The point the ring opened on travels with the choice: a slice that
+      // opens a panel of its own anchors it to the card, not to wherever the
+      // hand happened to stop.
+      if (opts.onRing) opts.onRing(d.from, chosen, d.ring.at);
+      else chosen?.run?.(d.from, d.ring.at);
+      return;
+    }
 
     d.zone?.classList.remove("reorder-item--into");
     // The item ARRIVES at its new place instead of appearing in it: it flies

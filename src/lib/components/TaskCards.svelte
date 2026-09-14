@@ -28,6 +28,10 @@
     /// one that is picked up; `onReorderMany(entries, to)` is the drop of
     /// that pile, `to` in screen indices like `onReorder`.
     onHold = null,
+    /// `ring(entry)` answers the slices a card's hold opens (services/ring.js),
+    /// or null for a card with no ring. Where there is one the hold goes to
+    /// the ring and never to `onHold` — selection is a row of the ⋮ slice now.
+    ring = null,
     carried = null,
     onReorderMany = null,
     /// Whether a pinned block floats on top, and so whether the divider is
@@ -208,10 +212,13 @@
     onDropZone: onMoveTo
       ? (what, zone) => onMoveTo((Array.isArray(what) ? what : [what]).map((i) => items[i]), zone)
       : null,
-    // Longer than the default rest: here the hold ENTERS SELECTION MODE, and
-    // a slow scroll down the list kept marking cards by accident.
-    holdMs: 700,
+    // Longer than the default rest ONLY where the hold still enters selection
+    // mode: a slow scroll down the list kept marking cards by accident. A ring
+    // that opens by mistake costs nothing — let go clear of it and it is gone
+    // — so there the rest is the action's own 400ms.
+    holdMs: ring ? undefined : 700,
     onReorder: moved,
+    ring: ring ? (i) => ring(items[i]) : null,
     onHold: onHold ? (i) => onHold(items[i]) : null,
     carried: carried
       ? (i) => {

@@ -114,6 +114,10 @@ import circleNotch from "../../assets/icons/phosphor/regular/circle-notch.svg?ra
 import warning from "../../assets/icons/phosphor/regular/warning.svg?raw";
 import warningCircle from "../../assets/icons/phosphor/regular/warning-circle.svg?raw";
 import file from "../../assets/icons/phosphor/regular/file.svg?raw";
+// The action ring's own two (components/ActionRing.svelte): every slice draws
+// the instant the finger rests, so they are bundled rather than read lazily.
+import copy from "../../assets/icons/phosphor/regular/copy.svg?raw";
+import palette from "../../assets/icons/phosphor/regular/palette.svg?raw";
 
 export const ICONS = {
   // weighted variants
@@ -151,6 +155,8 @@ export const ICONS = {
   paperclip,
   pencil,
   trash,
+  copy,
+  palette,
   tray,
   "dots-three-vertical": dotsThreeVertical,
   x,

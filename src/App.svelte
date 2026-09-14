@@ -10,6 +10,7 @@
   import Notice from "./lib/components/Notice.svelte";
   import { askConfirm, askName, askTask, setConfirmPolicy } from "./lib/services/dialog.js";
   import { setDragLayer } from "./lib/services/dragLayer.js";
+  import ActionRing from "./lib/components/ActionRing.svelte";
   import { setLiveRegion } from "./lib/services/announce.js";
   import { composeTask } from "./lib/services/taskCompose.js";
   import { makeAct } from "./lib/services/act.js";
@@ -2308,6 +2309,11 @@
        transform, an overflow or a container-type: any of them is the cage
        again (styles/components/reorder.css). -->
   <div class="drag-layer" bind:this={dragLayerNode}></div>
+
+  <!-- THE ACTIONS THAT OPEN AROUND A HELD CARD (services/actionRing.js). One
+       for the window, drawn by the gesture rather than by a screen; it
+       portals itself out of here and is nothing at all until a hold opens it. -->
+  <ActionRing />
 
   <!-- WHAT A SCREEN READER IS TOLD (services/announce.js). One for the whole
        app, and empty until something is said. Visible to a reader and to

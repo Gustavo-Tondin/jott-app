@@ -1087,3 +1087,151 @@ describe("reorderable in a scroller", () => {
     fire(row, "pointerup", { pointerId: 1, clientY: 118 });
   });
 });
+
+// ---- the action ring (2026-09-14) ----
+//
+// Holding a card opens the actions AROUND the finger: the same finger picks a
+// slice and lets go. Unlike the hold that enters selection, the gesture is not
+// handed back — the action keeps the pointer, so what is tested here is that
+// the ring takes the gesture whole and the list never moves under it.
+describe("reorderable with an action ring", () => {
+  beforeEach(() => {
+    document.body.innerHTML = "";
+    vi.useFakeTimers();
+    window.innerWidth = 400;
+    window.innerHeight = 800;
+  });
+  afterEach(() => vi.useRealTimers());
+
+  const setup = (extra = {}) => {
+    const ul = list(4);
+    layOut(ul);
+    const calls = { hovered: [], chosen: [], ran: [], one: [], holds: [] };
+    const actions = ["complete", "today", "pin", "move", "more"].map((id) => ({
+      id,
+      run: () => calls.ran.push(id),
+    }));
+    reorderable(ul, {
+      axis: "y",
+      item: ".row",
+      ring: () => actions,
+      onRingHover: (slot) => calls.hovered.push(slot),
+      onReorder: (f, t) => calls.one.push([f, t]),
+      ...extra,
+    });
+    return { ul, calls, actions };
+  };
+
+  /// The pointer on the slice at `angle`, with the ring opened at `at`. The
+  /// ring spreads down-right from a finger in the top-left quarter of a
+  /// 400×800 window, which is where these rows are.
+  const onSlice = (at, angle, reach = 104) => ({
+    clientX: at.x + reach * Math.cos((angle * Math.PI) / 180),
+    clientY: at.y + reach * Math.sin((angle * Math.PI) / 180),
+  });
+
+  const openAt = (ul, row = 1, at = { x: 60, y: 50 }) => {
+    const el = ul.children[row];
+    fire(el, "pointerdown", {
+      button: 0,
+      pointerId: 1,
+      pointerType: "touch",
+      clientX: at.x,
+      clientY: at.y,
+    });
+    vi.advanceTimersByTime(400);
+    return { el, at };
+  };
+
+  test("the hold opens the ring and KEEPS the finger", () => {
+    const { ul } = setup();
+    const { el } = openAt(ul);
+    // The card is in the air, exactly as a carried one is — same class, same
+    // layer — and the gesture is still live: releasing is what ends it.
+    expect(el.classList.contains("reorder-item--carried")).toBe(true);
+    expect(ul.hasAttribute("data-reordering")).toBe(true);
+  });
+
+  test("moving after the hold picks a slice and never moves the list", async () => {
+    const { ul, calls } = setup();
+    const { el, at } = openAt(ul);
+    const others = [...ul.children].filter((c) => c !== el && c.className === "row");
+
+    fire(el, "pointermove", { pointerId: 1, ...onSlice(at, 0) });
+    await nextFrame();
+    expect(calls.hovered).toEqual([0]);
+
+    fire(el, "pointermove", { pointerId: 1, ...onSlice(at, 90) });
+    await nextFrame();
+    expect(calls.hovered).toEqual([0, 4]);
+    // Not one neighbour opened a gap: the ring is not a drag.
+    expect(others.every((c) => !c.style.transform)).toBe(true);
+  });
+
+  test("the release runs the slice the finger let go on", () => {
+    const { ul, calls } = setup();
+    const { el, at } = openAt(ul);
+    fire(el, "pointermove", { pointerId: 1, ...onSlice(at, 45) });
+    fire(el, "pointerup", { pointerId: 1, ...onSlice(at, 45) });
+
+    expect(calls.ran).toEqual(["pin"]);
+    expect(calls.one).toEqual([]);
+    // And the card is back in the list, in its own place.
+    expect(el.parentElement).toBe(ul);
+    expect(el.style.position).toBe("");
+    expect(ul.hasAttribute("data-reordering")).toBe(false);
+  });
+
+  test("released clear of the pills, or on the card itself, nothing happens", () => {
+    const { ul, calls } = setup();
+    const first = openAt(ul);
+    // Out past the ring altogether.
+    fire(first.el, "pointermove", { pointerId: 1, ...onSlice(first.at, 45, 400) });
+    fire(first.el, "pointerup", { pointerId: 1, ...onSlice(first.at, 45, 400) });
+    expect(calls.ran).toEqual([]);
+
+    // And let go without moving at all: the finger is in the hole around
+    // itself, which is the card.
+    const second = openAt(ul, 2, { x: 60, y: 90 });
+    fire(second.el, "pointerup", { pointerId: 1, clientX: 60, clientY: 90 });
+    expect(calls.ran).toEqual([]);
+    expect(calls.one).toEqual([]);
+  });
+
+  test("`onRing` takes the release for itself when the caller wants it", () => {
+    const { ul, calls, actions } = setup({
+      onRing: (from, action) => calls.chosen.push([from, action?.id ?? null]),
+    });
+    const { el, at } = openAt(ul);
+    fire(el, "pointermove", { pointerId: 1, ...onSlice(at, 0) });
+    fire(el, "pointerup", { pointerId: 1, ...onSlice(at, 0) });
+
+    expect(calls.chosen).toEqual([[1, actions[0].id]]);
+    expect(calls.ran).toEqual([]);
+  });
+
+  test("an item with no ring holds the way it always did", () => {
+    const { ul, calls } = setup({
+      ring: () => [],
+      onHold: (i) => (calls.holds.push(i), true),
+    });
+    const { el } = openAt(ul);
+    expect(calls.holds).toEqual([1]);
+    expect(el.classList.contains("reorder-item--carried")).toBe(false);
+  });
+
+  test("more than five actions never reach the finger", () => {
+    const calls = [];
+    const ul = list(4);
+    layOut(ul);
+    const many = ["a", "b", "c", "d", "e", "f", "g"].map((id) => ({ id, run: () => calls.push(id) }));
+    reorderable(ul, { axis: "y", item: ".row", ring: () => many });
+
+    const { el, at } = openAt(ul);
+    // The ninety degrees are shared by five pills, never seven: the last
+    // angle is the fifth action, and `f`/`g` are only in the ⋮.
+    fire(el, "pointermove", { pointerId: 1, ...onSlice(at, 90) });
+    fire(el, "pointerup", { pointerId: 1, ...onSlice(at, 90) });
+    expect(calls).toEqual(["e"]);
+  });
+});

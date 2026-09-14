@@ -920,6 +920,26 @@ export const S = {
   nothingCompleted: "Nothing completed yet.",
   goesBackTo: (name) => `back to ${name}`,
 
+  // THE ACTION RING (components/ActionRing.svelte). One short word per slice:
+  // the label shows beside the pill the finger is on, and a phrase there would
+  // cover the list the ring opened over. A slice that inverts with the state
+  // of the card keeps both halves here, side by side.
+  ringComplete: "Complete",
+  ringReopen: "Reopen",
+  ringDay: "My Day",
+  ringDayOut: "Take out",
+  ringPin: "Pin",
+  ringUnpin: "Unpin",
+  ringMove: "Move",
+  ringMore: "More",
+  ringEdit: "Edit",
+  ringDuplicate: "Duplicate",
+  ringDelete: "Delete",
+  ringRename: "Rename",
+  ringAppearance: "Colour",
+  ringActions: "Card actions",
+  deleteTaskItem: "Delete task",
+
   // Task row and inspector
   complete: "complete",
   uncheck: "uncheck",

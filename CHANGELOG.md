@@ -10,6 +10,7 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 
 ### New
 
+- **Hold a card and its actions open around your finger** — tasks, notes and the spaces in the sidebar: drag to the one you want and let go, or let go anywhere else and nothing happens. On the computer the ⋮ on a note card opens the same ring.
 - **A sync conflict is settled from the banner.** Each copy now has "Discard copy" and "Keep this copy"; whichever version goes lands in the Trash, and Ctrl+Z takes it back. With several, "Discard all copies" clears them at once.
 - **The Home's notes of the day now include the notes you edited today**, not only the ones created today — from any notepad, and from any device on a synced notebook.
 - **Drag a card to the top or the bottom of a long list and the list scrolls with it**, faster the further into the edge you go, so a task can reach a place off the screen without being let go of.

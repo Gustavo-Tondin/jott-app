@@ -1,0 +1,47 @@
+/* note-head-panel.css — the note's name and banner as one panel.
+ * Markup: src/lib/components/NoteHeadPanel.svelte. Two doors open it and both
+ * mean the same thing: the title of an open note, and the "Edit" slice of a
+ * card's ring — which is why it is a block of its own rather than part of
+ * note-banner.css, where it was until 2026-09-14. */
+
+@layer components {
+  /* The name, then the banner: one panel, the field on top because renaming
+     is what a click on a name means first. */
+  .note-head-panel {
+    display: flex;
+    flex-direction: column;
+    gap: var(--app-space-8);
+    inline-size: min(18rem, calc(100vw - 2 * var(--app-space-16)));
+    padding: var(--app-space-10);
+  }
+
+  /* Floating at a point (the card it was opened on), with nothing to hang
+     from: the coordinates are written inline, the same way `ContextMenu`
+     places itself. Above the ring's own pills, which is where it comes from. */
+  .note-head-panel--loose {
+    position: fixed;
+    z-index: 200;
+  }
+
+  .note-head-panel__name {
+    inline-size: 100%;
+  }
+  .note-head-panel__rule {
+    block-size: 0.0625rem;
+    background: var(--app-line);
+  }
+  .note-head-panel__label {
+    color: var(--app-ink-muted);
+    font-size: var(--app-text-12);
+  }
+  .note-head-panel__action {
+    padding: 0;
+    color: var(--app-ink);
+    font: inherit;
+    font-size: var(--app-text-13);
+    text-align: start;
+  }
+  .note-head-panel__action:hover {
+    color: var(--app-brand-ink);
+  }
+}

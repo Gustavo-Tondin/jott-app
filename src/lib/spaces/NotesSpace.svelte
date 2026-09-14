@@ -8,7 +8,8 @@
   import { S } from "../services/strings.js";
   import EmptyState from "../components/EmptyState.svelte";
   import { askConfirm, askName, DELETING } from "../services/dialog.js";
-  import { noteActions, noteCardMenu } from "../services/noteActions.js";
+  import { bannerOf, noteActions, noteCardMenu, noteRing } from "../services/noteActions.js";
+  import { popRing } from "../services/actionRing.js";
   import { makeScreen } from "../services/act.js";
   import { spaceMenu } from "../services/spaceMenu.js";
   import { liftSpaceMenu } from "../shell/spaceMenus.js";
@@ -27,6 +28,7 @@
   import BulkBar from "../components/BulkBar.svelte";
   import CaptureFab from "../components/CaptureFab.svelte";
   import NoteCard from "../components/NoteCard.svelte";
+  import NoteHeadPanel from "../components/NoteHeadPanel.svelte";
 
   let {
     source,
@@ -400,7 +402,8 @@
         ];
 
   /// A card's own ⋮. Not built for a read-only notebook: every item writes.
-  const cardMenu = (entry, { openInNewTab = null } = {}) =>
+  /// `beyondRing` is the ⋮ OF A RING — what the four slices did not carry.
+  const cardMenu = (entry, { openInNewTab = null, beyondRing = false } = {}) =>
     noteCardMenu({
       entry,
       actions: cards,
@@ -411,7 +414,44 @@
       openInNewTab,
       canBanner: f("banners"),
       pickImage: onPickImage,
+      beyondRing,
     });
+
+  // ---- the action ring (2026-09-14) ----
+  // Holding a card opens its actions around the finger. Two slices open a
+  // panel of their own: "Edit" the note's head (name and banner, the panel the
+  // open note's title carries), and the ⋮ the rest of the menu — both at the
+  // point the ring opened on, both through the board's one menu.
+  let editing = $state(null);
+
+  /// The ⋮ ON THE DESKTOP, where nothing is held: the same five slices, opened
+  /// by a click at the button and pressed. The right button still opens the
+  /// list menu — two shapes, because a mouse reads a list faster than a ring.
+  function openRingAt(event, entry) {
+    event.preventDefault();
+    event.stopPropagation();
+    const at = { x: event.clientX, y: event.clientY };
+    const slices = ringFor(entry, at);
+    if (slices) popRing({ actions: slices, at });
+  }
+
+  const ringFor = (card, at) => {
+    if (readOnly || picking || isGroup(card)) return null;
+    return noteRing({
+      pinned: !!card.pinned,
+      onPin: f("pinNotes") ? () => togglePin(card) : null,
+      onEdit: (_, point) => (editing = { entry: card, at: point ?? at }),
+      onDuplicate: () => cards.duplicate(folder, card),
+      onDelete: () => cards.remove(folder, card),
+      onMore: (_, point) => {
+        cardMenuShown = cardMenu(card, {
+          openInNewTab: () => openNote(card, { newTab: true }),
+          beyondRing: true,
+        });
+        cardMenuAt = point ?? at;
+      },
+    });
+  };
 
   // ---- bulk selection (the ⋮'s "Select notes…") ----
   // Picked notes are held by ADDRESS, not by object identity: unlike a task,
@@ -554,6 +594,7 @@
     {picking}
     selected={picked.has(entry.path)}
     menu={cardMenu(entry)}
+    onOptions={readOnly || picking ? null : openRingAt}
     onPin={readOnly || !f("pinNotes") ? null : () => togglePin(entry)}
     onOpen={(_, opts) => (picking ? togglePick(entry) : openNote(entry, opts))}
     onContextMenu={openCardMenu}
@@ -718,6 +759,8 @@
             : [...document.querySelectorAll('[data-space-drop][data-space-kind="notes"]')],
         canDropInto: (from, to) => !isGroup(shown[from]) && !isGroup(shown[to]),
         onDropInto: (from, to) => groupNotes(shown[from], shown[to]),
+        // A folder card has no ring — what it offers is its own head's ⋮.
+        ring: (from) => ringFor(shown[from]),
       }}
     >
       <!-- ONE loop, because the board is one arrangement: a folder card and a
@@ -908,3 +951,19 @@
   items={cardMenuShown}
   onClose={() => (cardMenuAt = null)}
 />
+
+<!-- The ring's "Edit": the note's name and banner over the card, the very
+     panel the open note's title carries (components/NoteHeadPanel.svelte). -->
+{#if editing}
+  <NoteHeadPanel
+    title={editing.entry.title}
+    banner={bannerOf(editing.entry.banner)}
+    at={editing.at}
+    onRename={(name) => cards.renameTo(folder, editing.entry, name)}
+    onSet={f("banners") ? (value) => cards.banner(folder, editing.entry, value) : null}
+    onChooseImage={f("banners") && onPickImage
+      ? () => onPickImage((value) => cards.banner(folder, editing.entry, value))
+      : null}
+    onClose={() => (editing = null)}
+  />
+{/if}

@@ -29,6 +29,7 @@
 @import "./styles/components/shell.css";
 @import "./styles/components/pull-search.css";
 @import "./styles/components/reorder.css";
+@import "./styles/components/action-ring.css";
 @import "./styles/components/swipe.css";
 
 @import "./styles/components/titlebar.css";
@@ -43,6 +44,7 @@
 @import "./styles/components/editor-tables.css";
 @import "./styles/components/note-editor.css";
 @import "./styles/components/note-banner.css";
+@import "./styles/components/note-head-panel.css";
 @import "./styles/components/note-card.css";
 @import "./styles/components/note-preview.css";
 @import "./styles/components/assets-view.css";
