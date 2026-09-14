@@ -231,6 +231,11 @@ note or a list on the board, and resolving it is the reader's call. The two
 answers the app offers both go through `.jott/trash/`: discarding moves the
 copy there; keeping it moves the original there and gives the copy its name.
 
+One case is not asked about: a copy holding **exactly** what the original
+holds, byte for byte. Both devices wrote the same thing, so either answer
+leaves the same file behind. Opening the notebook moves those copies to
+`.jott/trash/`, where they can be restored like anything else.
+
 ---
 
 ## `assets/`

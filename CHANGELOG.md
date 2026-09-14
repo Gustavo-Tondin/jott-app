@@ -20,7 +20,8 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 
 - **On a phone, the app no longer files its own typing as a sync conflict.** A pause while typing on Android could leave a `sync-conflict` copy of the note's own earlier text beside it, and the banner on every device.
 - **Two devices on one synced notebook no longer produce conflict copies of `.jott/index/`.** Each device now keeps its own "last seen" file, and Jott reads them all together.
-- **No more conflict copies of files neither device changed.** Jott now writes a file only when its contents really differ, so opening the app on the phone and on the computer while they are out of contact stops leaving `sync-conflict` copies of its own bookkeeping — and a copy that holds exactly what the original holds is moved to the Trash when the notebook opens.
+- **A sync-conflict copy holding exactly what the original holds no longer asks you to choose.** Both devices wrote the same thing, so opening the notebook moves the copy to the Trash instead of leaving the banner up — for your own lists and notes too, not just Jott's own files.
+- **No more conflict copies of files neither device changed.** Jott now writes a file only when its contents really differ, so opening the app on the phone and on the computer while they are out of contact stops leaving `sync-conflict` copies of its own bookkeeping.
 - **Renaming the open note no longer flashes "No such file or directory".** The app now recognises its own rename instead of re-reading the name it just left behind.
 - **Deleting the open note no longer leaves an error on the screen.** The app used to re-read the file it had just deleted and show the raw "io error"; a re-read that comes from the disk changing is now quiet, and only opening a note reports when it cannot be read.
 

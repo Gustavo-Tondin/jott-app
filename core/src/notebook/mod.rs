@@ -275,10 +275,10 @@ impl Notebook {
             let _ = notebook.reap_trash();
             let _ = notebook.reap_completed();
             let _ = notebook.refresh_completed_index();
-            // A conflicting copy of one of the app's own files that holds
-            // what the original holds is noise two devices made out of
-            // contact, not a decision waiting for the user.
-            let _ = notebook.reap_settled_conflicts();
+            // A conflicting copy that holds what the original holds is noise
+            // two devices made out of contact, not a decision waiting for the
+            // user — whoever wrote the file.
+            let _ = notebook.reap_identical_conflicts();
         }
         Ok(notebook)
     }

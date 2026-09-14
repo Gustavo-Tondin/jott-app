@@ -962,19 +962,28 @@ fn the_version_on_disk_is_kept_as_a_conflict_copy_and_the_app_lists_it() {
         .collect();
     assert_eq!(listed, vec![path.clone()]);
 
-    // The conflict list reaches into note folders, and knows the original.
-    let conflicts = notebook.conflicts().unwrap();
-    assert_eq!(conflicts.len(), 1);
-    assert_eq!(conflicts[0].relative.as_deref(), Some(copy.as_str()));
-    assert_eq!(conflicts[0].original.as_deref(), Some(file.as_path()));
-
     // Twice in the same second is two copies, not one written over.
     let again = notebook
         .keep_note_conflict_copy("jott.notes", &path, &[])
         .unwrap()
         .unwrap();
     assert_ne!(again, copy);
-    assert_eq!(notebook.conflicts().unwrap().len(), 2);
+    assert!(dir.path().join(&again).is_file());
+
+    // Then the editor writes what was being typed — the write the copies were
+    // made for, and what makes them differ from the note. Until it lands they
+    // hold exactly what the note holds, which is no decision at all.
+    notebook
+        .write_note("jott.notes", &path, "o que eu estava digitando")
+        .unwrap();
+
+    // The conflict list reaches into note folders, and knows the original.
+    let conflicts = notebook.conflicts().unwrap();
+    assert_eq!(conflicts.len(), 2);
+    assert!(conflicts
+        .iter()
+        .any(|c| c.relative.as_deref() == Some(copy.as_str())
+            && c.original.as_deref() == Some(file.as_path())));
 
     // Nothing on disk: nothing to keep, and no error.
     assert_eq!(

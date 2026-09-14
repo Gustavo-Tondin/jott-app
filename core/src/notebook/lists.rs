@@ -104,27 +104,39 @@ impl Notebook {
         Ok(counts)
     }
 
-    /// Conflicting copies sitting in the notebook right now: the config
-    /// folder and every tasks space's folder. Reporting only — the user
-    /// decides what to keep.
-    pub fn conflicts(&self) -> Result<Vec<Conflict>> {
-        let mut found = Vec::new();
+    /// Every conflict copy sitting in the notebook, wherever it may be: the
+    /// config folder, every tasks space's folder, and every notes space at
+    /// any depth. The one walk behind [`Notebook::conflicts`] and the reaper,
+    /// so the two cannot disagree about which copies exist.
+    fn conflict_paths(&self) -> Result<Vec<PathBuf>> {
         let mut dirs = vec![self.config_dir()];
         for (_, folder) in self.task_folders()? {
             dirs.push(folder.dir().to_path_buf());
         }
-        // Notes nest in folders, and the walk of `NoteFolder` skips conflict
-        // copies on purpose (they are not notes) — so they are looked for here.
         let mut files = Vec::new();
         for dir in dirs {
-            files.extend(crate::fsio::dir_paths(&dir)?);
+            for path in crate::fsio::dir_paths(&dir)? {
+                if crate::conflict::is_conflict_file(&path) && path.is_file() {
+                    files.push(path);
+                }
+            }
         }
+        // Notes nest in folders, and the walk of `NoteFolder` skips conflict
+        // copies on purpose (they are not notes) — so they are looked for here.
         for (_, folder) in self.note_folders()? {
             conflict_files_under(folder.dir(), &mut files)?;
         }
-        for path in files {
+        Ok(files)
+    }
+
+    /// Conflicting copies waiting for a decision. Reporting only — the user
+    /// decides what to keep. A copy identical to its original is not one of
+    /// them: it holds no decision, and the open already trashed it.
+    pub fn conflicts(&self) -> Result<Vec<Conflict>> {
+        let mut found = Vec::new();
+        for path in self.conflict_paths()? {
             if let Some(mut conflict) = crate::conflict::describe(&path) {
-                if self.is_settled_bookkeeping(&conflict) {
+                if is_identical_copy(&conflict) {
                     continue;
                 }
                 conflict.relative = Some(crate::relpath::relative_slash(self.root(), &path));
@@ -135,33 +147,16 @@ impl Notebook {
         Ok(found)
     }
 
-    /// A conflicting copy of one of the app's OWN files (`.jott/`) holding
-    /// exactly what the original holds: both devices wrote the same bytes, so
-    /// there is nothing to decide between them. The USER's text is never
-    /// judged this way, however identical — which version stays is theirs.
-    fn is_settled_bookkeeping(&self, conflict: &Conflict) -> bool {
-        if !conflict.path.starts_with(self.config_dir()) {
-            return false;
-        }
-        let Some(original) = conflict.original.as_deref() else {
-            return false;
-        };
-        match (std::fs::read(&conflict.path), std::fs::read(original)) {
-            (Ok(copy), Ok(kept)) => copy == kept,
-            _ => false,
-        }
-    }
-
     /// Sends those copies to the trash — nothing is destroyed, and the same
     /// deletion reaches the other device through the sync tool, so the notice
     /// goes away on both. Derived work, run on open.
-    pub(super) fn reap_settled_conflicts(&self) -> Result<usize> {
+    pub(super) fn reap_identical_conflicts(&self) -> Result<usize> {
         let mut gone = 0;
-        for path in crate::fsio::dir_paths(self.config_dir())? {
+        for path in self.conflict_paths()? {
             let Some(conflict) = crate::conflict::describe(&path) else {
                 continue;
             };
-            if self.is_settled_bookkeeping(&conflict) {
+            if is_identical_copy(&conflict) {
                 self.trash_path(&path)?;
                 gone += 1;
             }
@@ -367,6 +362,20 @@ impl Notebook {
         // ids; repointing keeps a pulled task pulled.
         self.update_states(|state| state.rename_path(path, &inbox_path))?;
         Ok(rescued)
+    }
+}
+
+/// A conflicting copy holding exactly what the original holds: both devices
+/// wrote the same bytes, so there is no version to choose — whichever one is
+/// "kept" leaves the same file behind. True for the user's text as much as for
+/// the app's own files: identical is identical.
+fn is_identical_copy(conflict: &Conflict) -> bool {
+    let Some(original) = conflict.original.as_deref() else {
+        return false;
+    };
+    match (std::fs::read(&conflict.path), std::fs::read(original)) {
+        (Ok(copy), Ok(kept)) => copy == kept,
+        _ => false,
     }
 }
 

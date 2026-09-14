@@ -154,3 +154,58 @@ fn a_freely_task_completed_on_both_devices_comes_back_once() {
         "and the copies were settled, not left for the banner"
     );
 }
+
+// ------------------------------------------- a copy that decides nothing
+
+#[test]
+fn a_copy_identical_to_the_original_is_trashed_wherever_it_is() {
+    // Both devices wrote the same bytes: there is no version to choose, so
+    // the copy is noise — the user's text as much as the app's own files.
+    let (dir, notebook) = init();
+    notebook.create_task(INBOX, "Comprar pão").unwrap();
+    let note = notebook.create_note("jott.notes", "Inbox", "Ideia").unwrap();
+
+    let list = dir.path().join(INBOX);
+    let note_path = dir.path().join("jott.notes").join(&note);
+    for original in [&list, &note_path] {
+        let copy = original.with_file_name(format!(
+            "{}.sync-conflict-20260914-120000-PHONE.md",
+            original.file_stem().unwrap().to_string_lossy()
+        ));
+        std::fs::copy(original, copy).unwrap();
+    }
+    assert!(
+        notebook.conflicts().unwrap().is_empty(),
+        "an identical copy is not reported even before the reaper runs"
+    );
+
+    // Opening is where the derived work runs.
+    let notebook = Notebook::open(dir.path()).unwrap();
+
+    assert_eq!(conflict_copies(&dir.path().join("jott.tasks")), 0);
+    assert_eq!(conflict_copies(&dir.path().join("jott.notes/Inbox")), 0);
+    assert!(notebook.conflicts().unwrap().is_empty());
+    assert_eq!(
+        notebook.trash_entries().len(),
+        2,
+        "nothing was destroyed: both copies are in the trash"
+    );
+}
+
+#[test]
+fn a_copy_that_differs_is_left_for_the_user() {
+    let (dir, notebook) = init();
+    notebook.create_task(INBOX, "Comprar pão").unwrap();
+    let list = dir.path().join(INBOX);
+    let copy = list.with_file_name("task-list.sync-conflict-20260914-120000-PHONE.md");
+    std::fs::write(&copy, format!("{}- [ ] do celular\n", read(&list))).unwrap();
+
+    let notebook = Notebook::open(dir.path()).unwrap();
+
+    assert!(copy.is_file(), "the copy is still there");
+    assert_eq!(
+        notebook.conflicts().unwrap().len(),
+        1,
+        "and the banner still has something to ask"
+    );
+}

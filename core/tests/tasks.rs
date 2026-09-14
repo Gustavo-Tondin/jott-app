@@ -869,11 +869,10 @@ fn a_conflict_on_a_state_file_is_reported_too() {
 }
 
 #[test]
-fn a_copy_of_the_apps_own_file_that_changed_nothing_is_settled_on_open() {
-    // Two devices out of contact both rewrote a DERIVED file with the same
-    // bytes, and the sync tool left a copy there is nothing to choose
-    // between. What the user wrote is never judged this way, however
-    // identical the two versions are.
+fn a_copy_that_changed_nothing_is_settled_on_open() {
+    // Two devices out of contact wrote the same bytes, and the sync tool left
+    // a copy there is nothing to choose between. Whoever wrote the file: an
+    // identical copy of the user's own text holds no decision either.
     let (dir, _) = init();
     // Opening is what writes the derived index — what is copied below.
     let notebook = jott_core::Notebook::open(dir.path()).unwrap();
@@ -897,7 +896,7 @@ fn a_copy_of_the_apps_own_file_that_changed_nothing_is_settled_on_open() {
 
     assert!(!noise.exists(), "a copy that decides nothing does not stay");
     assert!(real.exists(), "a copy that differs is the user's call");
-    assert!(mine.exists(), "the user's own text is never judged identical");
+    assert!(!mine.exists(), "nor does an identical copy of a list");
 
     let reported: Vec<String> = reopened
         .conflicts()
@@ -905,13 +904,21 @@ fn a_copy_of_the_apps_own_file_that_changed_nothing_is_settled_on_open() {
         .into_iter()
         .filter_map(|c| c.relative)
         .collect();
-    assert_eq!(reported.len(), 2, "{reported:?}");
-    assert!(reported.iter().all(|r| !r.contains("completed.")), "{reported:?}");
+    assert_eq!(reported, vec![format!(".jott/config.{stamp}.json")]);
 
-    // Nothing was destroyed: it went to the trash, like everything else.
-    let trashed = reopened.trash_entries();
-    assert_eq!(trashed.len(), 1);
-    assert!(trashed[0].origin.ends_with(&format!("completed.{stamp}.json")));
+    // Nothing was destroyed: both went to the trash, like everything else.
+    let trashed: Vec<String> = reopened
+        .trash_entries()
+        .into_iter()
+        .map(|entry| entry.origin)
+        .collect();
+    assert_eq!(trashed.len(), 2, "{trashed:?}");
+    assert!(trashed
+        .iter()
+        .any(|origin| origin.ends_with(&format!("completed.{stamp}.json"))));
+    assert!(trashed
+        .iter()
+        .any(|origin| origin.ends_with(&format!("Compras.{stamp}.md"))));
 }
 
 #[test]

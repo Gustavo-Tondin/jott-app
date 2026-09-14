@@ -1,8 +1,10 @@
 //! Sync conflicts left behind by Syncthing. Two devices editing one file
 //! before syncing leave a copy named
 //! `Inbox.sync-conflict-20260720-143000-K3F7NLM.md` beside the original.
-//! Scope on purpose: **detect and report**. Comparing or merging the two
-//! versions is a separate problem, and guessing wrong there loses work.
+//! Scope on purpose: **detect and report**, plus the one comparison that
+//! decides nothing — a copy holding exactly what the original holds goes to
+//! the trash. Merging two versions that differ is a separate problem, and
+//! guessing wrong there loses work.
 
 use std::path::{Path, PathBuf};
 
