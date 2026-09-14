@@ -77,13 +77,24 @@ pub struct Conflict {
 
 /// True when the file name is a sync-conflict copy — kept out of the list
 /// of lists, because it is not a list the user created.
+///
+/// A HALF-WRITTEN one is not: while it is being fetched, Syncthing holds the
+/// copy as `.syncthing.<name>.tmp`, hidden and temporary, and the name still
+/// carries the marker. Counting it left the banner asking about a file that
+/// was about to have another name — and about one that may never arrive at
+/// all, since the app can send the copy to the trash mid-transfer. Nothing
+/// the app writes is hidden or `.tmp`.
 pub fn is_conflict_file(path: &Path) -> bool {
-    crate::fsio::file_name_of(path).contains(MARKER)
+    let name = crate::fsio::file_name_of(path);
+    name.contains(MARKER) && !name.starts_with('.') && !name.ends_with(".tmp")
 }
 
 /// Describes a conflict file: which list it belongs to and what it conflicts
 /// with. Returns `None` when the path is not a conflict file.
 pub fn describe(path: &Path) -> Option<Conflict> {
+    if !is_conflict_file(path) {
+        return None;
+    }
     let name = crate::fsio::file_name_of(path);
     let (original_stem, _) = name.split_once(MARKER)?;
 
@@ -133,6 +144,27 @@ mod tests {
         for name in ["Inbox.md", "Compras.md", "Projeto X.md", "Completed.md"] {
             assert!(!is_conflict_file(&p(name)), "{name} is a normal list");
         }
+    }
+
+    #[test]
+    fn a_copy_still_being_fetched_is_not_one_yet() {
+        // Measured on the real pair, 2026-09-14: the app merged the copy and
+        // trashed it while Syncthing was still sending it on, and the hidden
+        // temporary stayed behind — with no original, and asked about in the
+        // banner for ever.
+        assert!(!is_conflict_file(&PathBuf::from(
+            "/notebook/.jott/.syncthing.daily-state.sync-conflict-20260914-154931-VXVGIUI.json.tmp"
+        )));
+        assert_eq!(
+            describe(&PathBuf::from(
+                "/notebook/.jott/.syncthing.daily-state.sync-conflict-20260914-154931-VXVGIUI.json.tmp"
+            )),
+            None
+        );
+        // And the finished one, under its real name, still is.
+        assert!(is_conflict_file(&PathBuf::from(
+            "/notebook/.jott/daily-state.sync-conflict-20260914-154931-VXVGIUI.json"
+        )));
     }
 
     #[test]
