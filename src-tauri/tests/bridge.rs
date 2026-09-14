@@ -1146,6 +1146,35 @@ fn a_windows_own_save_is_its_own_the_moment_it_lands() {
 }
 
 #[test]
+fn two_windows_editing_one_list_keep_both_edits() {
+    // Every command re-reads its list from disk and the state's mutex lets
+    // only one through at a time, so neither window holds a stale copy
+    // across the other's save. A guard: the day a command caches a list
+    // between calls, one of these edits disappears.
+    let (_lock, app, dir) = app_with_notebook();
+    WebviewWindowBuilder::new(&app, "second", Default::default())
+        .build()
+        .expect("failed to build the second webview");
+    ok_from(&app, "second", "open_notebook", json!({ "path": dir.path() }));
+
+    let inbox = "jott.tasks/task-list.md";
+    let first = task_with_id(&app, inbox, "do desktop");
+
+    // One window edits a task while the other adds one to the same list.
+    ok_from(
+        &app,
+        "second",
+        "edit_task_text",
+        json!({ "list": inbox, "id": first, "text": "editada na outra janela" }),
+    );
+    ok(&app, "create_task", json!({ "list": inbox, "text": "criada aqui" }));
+
+    let text = std::fs::read_to_string(dir.path().join(inbox)).unwrap();
+    assert!(text.contains("editada na outra janela"), "the edit survives:\n{text}");
+    assert!(text.contains("criada aqui"), "and so does the new task:\n{text}");
+}
+
+#[test]
 fn opening_a_second_notebook_switches_only_the_asking_windows() {
     // Still a switch, and since 2026-08-24 a switch of one window's notebook
     // rather than of the app's: another window's stays exactly where it was
