@@ -9,6 +9,7 @@
   import { onOffer } from "./lib/services/undoOffer.js";
   import Notice from "./lib/components/Notice.svelte";
   import { askConfirm, askName, askTask, setConfirmPolicy } from "./lib/services/dialog.js";
+  import { setDragLayer } from "./lib/services/dragLayer.js";
   import { composeTask } from "./lib/services/taskCompose.js";
   import { makeAct } from "./lib/services/act.js";
   import { ask, typing, userBindings } from "./lib/services/shortcuts.js";
@@ -220,6 +221,14 @@
   /// buttons wear whichever ground is behind them (topbar.css reads it).
   let centre = $state(null);
   let canvasRisen = $state(false);
+
+  /// The drag layer (services/dragLayer.js): the node a carried item lives in
+  /// while it is in the air. Registered here because it is drawn here.
+  let dragLayerNode = $state(null);
+  $effect(() => {
+    setDragLayer(dragLayerNode);
+    return () => setDragLayer(null);
+  });
 
   /// The three panels the compact shell cannot keep on screen at once, and so
   /// opens on demand. All three are transient by nature, so none of them is
@@ -2281,6 +2290,15 @@
     {/if}
     {@render sidebar()}
   {/if}
+
+  <!-- WHERE A CARRIED ITEM FLIES (services/dragLayer.js). Empty unless a drag
+       is live. It is here, inside `.shell`, so an item keeps the look its
+       ancestry gives it (`.shell--compact`), and OUTSIDE every screen column,
+       whose `container-type` would be the containing block of the item's
+       `position: fixed` and cut it at the column's edge. Never give it a
+       transform, an overflow or a container-type: any of them is the cage
+       again (styles/components/reorder.css). -->
+  <div class="drag-layer" bind:this={dragLayerNode}></div>
 </div>
 
 <!-- The formatting strip, below 768px: rides above the on-screen keyboard while

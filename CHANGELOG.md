@@ -32,6 +32,7 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 ### Improved
 
 - **A change arriving from another device reloads the screen once, not twice.** A file landing again with exactly the content Jott already has is no longer treated as news.
+- **A card you drag is no longer cut off by the edge of the page.** It lifts as you pick it up, stops at the edge of the list instead of being clipped by it, and flies to its new place rather than appearing there.
 
 ## v0.55.0
 

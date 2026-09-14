@@ -221,6 +221,9 @@
          slow    something ENTERING the screen       — a sheet, a pane
          ease / ease-out   a colour or an opacity / anything that ARRIVES
          spring            a hair of overshoot: a knob, a check; never layout
+         settle            LAYOUT that accommodates: a gap opening, an item
+                           landing — a contained spring (~1% past), because
+                           this happens inside a scroller, which cuts the rest
        --------------------------------------------------------------------- */
     --app-duration-fast: 0.15s;
     --app-duration-medium: 0.25s;
@@ -228,10 +231,12 @@
     --app-ease: ease;
     --app-ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
     --app-ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+    --app-ease-settle: cubic-bezier(0.2, 1.05, 0.35, 1);
 
-    /* The two pairs component sheets read. */
+    /* The three pairs component sheets read. */
     --app-transition-fast: var(--app-duration-fast) var(--app-ease);
     --app-transition-medium: var(--app-duration-medium) var(--app-ease-out);
+    --app-transition-settle: var(--app-duration-fast) var(--app-ease-settle);
 
     /* ---------------------------------------------------------------------
        WINDOW — the frameless corner the app draws, copying the HOST: no

@@ -158,13 +158,15 @@ describe("reorderable", () => {
       onDropInto: (f, t) => intos.push([f, t]),
     });
 
+    // Held from BEFORE the drag: the carried item leaves a placeholder in its
+    // place (2026-08-19) and then the list altogether — it spends the gesture
+    // in the drag layer, so nothing found by searching the list is the row
+    // that was there.
+    const rows = [...ul.children];
     const row = ul.children[0];
     fire(row, "pointerdown", { button: 0, pointerId: 1, clientY: 20 });
     // Row 2 spans 80-120; its middle band is 90-110.
     fire(row, "pointermove", { pointerId: 1, clientY: 100 });
-    // By the ROWS, not by the raw children: the carried item leaves a
-    // placeholder of its own behind while it is out of flow (2026-08-19).
-    const rows = [...ul.querySelectorAll(".row")];
     expect(rows[2].classList.contains("reorder-item--into")).toBe(true);
     fire(row, "pointerup", { pointerId: 1, clientY: 100 });
 
@@ -189,11 +191,11 @@ describe("reorderable", () => {
       onDropInto: (f, t) => intos.push([f, t]),
     });
 
+    const rows = [...ul.children];
     const row = ul.children[0];
     fire(row, "pointerdown", { button: 0, pointerId: 1, clientY: 20 });
     // Right on row 2's middle band, which this list refuses.
     fire(row, "pointermove", { pointerId: 1, clientY: 100 });
-    const rows = [...ul.querySelectorAll(".row")];
     expect(rows[2].classList.contains("reorder-item--into")).toBe(false);
     fire(row, "pointerup", { pointerId: 1, clientY: 100 });
 
@@ -577,19 +579,22 @@ describe("reorderable with a selection", () => {
 
   test("told the item is part of a pile, it carries the pile and reports them all", () => {
     const { ul, calls } = setup({ onHold: () => false, carried: () => [1, 3] });
-    const row = ul.children[1];
+    // Held from before the lift: the carried row leaves a ghost in its place
+    // and then the list itself, so the rows are no longer where a search of
+    // the list would find them.
+    const rows = [...ul.children];
+    const row = rows[1];
     fire(row, "pointerdown", { button: 0, pointerId: 1, pointerType: "touch", clientY: 45, clientX: 5 });
     vi.advanceTimersByTime(400);
     expect(row.classList.contains("reorder-item--carried")).toBe(true);
     expect(row.getAttribute("data-carry")).toBe("2");
-    // Not `children[3]`: the lifted item leaves a ghost behind it in the DOM.
-    expect(ul.querySelectorAll(".row")[3].classList.contains("reorder-item--stacked")).toBe(true);
+    expect(rows[3].classList.contains("reorder-item--stacked")).toBe(true);
     fire(row, "pointermove", { pointerId: 1, clientY: -20, clientX: 5 });
     fire(row, "pointerup", { pointerId: 1, clientY: -20, clientX: 5 });
     expect(calls.many).toEqual([[[1, 3], 0]]);
     expect(calls.one).toEqual([]);
     expect(row.hasAttribute("data-carry")).toBe(false);
-    expect(ul.querySelectorAll(".row")[3].classList.contains("reorder-item--stacked")).toBe(false);
+    expect(rows[3].classList.contains("reorder-item--stacked")).toBe(false);
   });
 
   test("a free drag (Ctrl) leaves the list alone and lands only on a free zone", () => {
@@ -630,5 +635,194 @@ describe("reorderable with a selection", () => {
     expect(dropped).toHaveLength(1);
     expect(reordered).toEqual([]);
     zone.remove();
+  });
+});
+
+describe("reorderable in the drag layer", () => {
+  beforeEach(() => {
+    document.body.innerHTML = "";
+  });
+
+  const bound = (ul) => {
+    ul.getBoundingClientRect = () => ({
+      left: 0, right: 200, width: 200, top: 0, bottom: 120, height: 120,
+      x: 0, y: 0, toJSON() {},
+    });
+  };
+
+  test("the carried item leaves the list, and comes back where it left", () => {
+    // Why it leaves at all: `position: fixed` is relative to the viewport
+    // only while no ancestor makes a containing block, and every screen
+    // column makes one (`container-type` implies `contain: layout`) — so the
+    // item rode INSIDE the column and was cut by its overflow. This is the
+    // test that catches the expensive mistake: an item that does not come
+    // back is an item the user watched disappear.
+    const ul = list();
+    layOut(ul);
+    reorderable(ul, { axis: "y", item: ".row", onReorder: () => {} });
+
+    const rows = [...ul.children];
+    fire(rows[0], "pointerdown", { button: 0, pointerId: 1, clientY: 20 });
+    fire(rows[0], "pointermove", { pointerId: 1, clientY: 100 });
+
+    expect(rows[0].parentElement).not.toBe(ul);
+    expect(rows[0].parentElement.classList.contains("drag-layer")).toBe(true);
+    expect(ul.querySelector(".reorder-ghost")).toBeTruthy();
+
+    fire(rows[0], "pointerup", { pointerId: 1, clientY: 100 });
+    expect([...ul.children]).toEqual(rows);
+    expect(ul.querySelector(".reorder-ghost")).toBeNull();
+  });
+
+  test("...and comes back when the gesture is taken away, too", () => {
+    const ul = list();
+    layOut(ul);
+    reorderable(ul, { axis: "y", item: ".row", onReorder: () => {} });
+
+    const rows = [...ul.children];
+    fire(rows[1], "pointerdown", { button: 0, pointerId: 1, clientY: 45 });
+    fire(rows[1], "pointermove", { pointerId: 1, clientY: 100 });
+    fire(rows[1], "pointercancel", { pointerId: 1 });
+
+    expect([...ul.children]).toEqual(rows);
+    expect(rows[1].style.position).toBe("");
+  });
+
+  test("released on its own slot, it still comes home", () => {
+    const ul = list();
+    layOut(ul);
+    const moves = [];
+    reorderable(ul, { axis: "y", item: ".row", onReorder: (f, t) => moves.push([f, t]) });
+
+    const rows = [...ul.children];
+    fire(rows[1], "pointerdown", { button: 0, pointerId: 1, clientY: 45 });
+    fire(rows[1], "pointermove", { pointerId: 1, clientY: 55 });
+    fire(rows[1], "pointerup", { pointerId: 1, clientY: 55 });
+
+    expect([...ul.children]).toEqual(rows);
+    expect(moves).toEqual([]);
+  });
+
+  test("carried past the edge, it STOPS at the edge", () => {
+    // Out of the column it could float over the whole window. It does not:
+    // the limit is now a decision (the scroller's box, plus the slack the
+    // shadow needs) instead of a scroller's cut.
+    const ul = list();
+    layOut(ul);
+    bound(ul);
+    reorderable(ul, { axis: "y", item: ".row", onReorder: () => {} });
+
+    const row = ul.children[0];
+    fire(row, "pointerdown", { button: 0, pointerId: 1, clientY: 20 });
+    fire(row, "pointermove", { pointerId: 1, clientY: 900 });
+
+    // 120 (the list's bottom) + 8 of slack − 40 (the row's own height).
+    expect(row.style.transform).toBe("translateY(88px)");
+  });
+
+  test("a free drag is not contained — crossing is the whole point", () => {
+    const ul = list();
+    layOut(ul);
+    bound(ul);
+    reorderable(ul, {
+      axis: "y",
+      item: ".row",
+      free: () => true,
+      freeZones: () => [],
+      onReorder: () => {},
+    });
+
+    const row = ul.children[0];
+    fire(row, "pointerdown", { button: 0, pointerId: 1, clientX: 5, clientY: 20 });
+    fire(row, "pointermove", { pointerId: 1, clientX: 5, clientY: 900 });
+
+    expect(row.style.transform).toBe("translate(0px, 880px)");
+  });
+});
+
+describe("reorderable landing", () => {
+  beforeEach(() => {
+    document.body.innerHTML = "";
+  });
+
+  /// jsdom has no animations: this is the smallest thing the action can fly
+  /// with — every `animate()` call is kept, and the last one is the landing.
+  function flights(el) {
+    const made = [];
+    el.animate = (frames, options) => {
+      const flight = { frames, options, onfinish: null, oncancel: null, cancel() {} };
+      made.push(flight);
+      return flight;
+    };
+    return made;
+  }
+
+  test("the move commits when the item ARRIVES, not when the hand lets go", () => {
+    const ul = list();
+    layOut(ul);
+    const moves = [];
+    reorderable(ul, { axis: "y", item: ".row", onReorder: (f, t) => moves.push([f, t]) });
+
+    const row = ul.children[0];
+    const made = flights(row);
+    fire(row, "pointerdown", { button: 0, pointerId: 1, clientY: 20 });
+    fire(row, "pointermove", { pointerId: 1, clientY: 100 });
+    fire(row, "pointerup", { pointerId: 1, clientY: 100 });
+
+    // Still in the air: nothing committed, nothing settled.
+    expect(moves).toEqual([]);
+    expect(row.classList.contains("reorder-item--carried")).toBe(true);
+    expect(row.parentElement).not.toBe(ul);
+    // Row 1 spans 40-80 and the carried row is 40 tall: it lands on 40.
+    expect(made.at(-1).frames.at(-1).transform).toBe("translate(0px, 40px)");
+
+    made.at(-1).onfinish();
+    expect(moves).toEqual([[0, 1]]);
+    expect(row.classList.contains("reorder-item--carried")).toBe(false);
+    expect(row.parentElement).toBe(ul);
+  });
+
+  test("a second grab is refused while the first is still landing", () => {
+    const ul = list();
+    layOut(ul);
+    const moves = [];
+    reorderable(ul, { axis: "y", item: ".row", onReorder: (f, t) => moves.push([f, t]) });
+
+    const row = ul.children[0];
+    const made = flights(row);
+    fire(row, "pointerdown", { button: 0, pointerId: 1, clientY: 20 });
+    fire(row, "pointermove", { pointerId: 1, clientY: 100 });
+    fire(row, "pointerup", { pointerId: 1, clientY: 100 });
+
+    const other = ul.children[2];
+    fire(other, "pointerdown", { button: 0, pointerId: 2, clientY: 100 });
+    fire(other, "pointermove", { pointerId: 2, clientY: 20 });
+    fire(other, "pointerup", { pointerId: 2, clientY: 20 });
+    expect(moves).toEqual([]);
+
+    made.at(-1).onfinish();
+    expect(moves).toEqual([[0, 1]]);
+  });
+
+  test("with less motion asked for, it commits at once", () => {
+    const ul = list();
+    layOut(ul);
+    const moves = [];
+    reorderable(ul, { axis: "y", item: ".row", onReorder: (f, t) => moves.push([f, t]) });
+
+    const row = ul.children[0];
+    flights(row);
+    const before = window.matchMedia;
+    window.matchMedia = () => ({ matches: true });
+    try {
+      fire(row, "pointerdown", { button: 0, pointerId: 1, clientY: 20 });
+      fire(row, "pointermove", { pointerId: 1, clientY: 100 });
+      fire(row, "pointerup", { pointerId: 1, clientY: 100 });
+    } finally {
+      window.matchMedia = before;
+    }
+
+    expect(moves).toEqual([[0, 1]]);
+    expect(row.parentElement).toBe(ul);
   });
 });
