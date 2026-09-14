@@ -295,7 +295,9 @@ describe("HomeView", () => {
     await fireEvent.pointerDown(row, { button: 0, pointerId: 1, clientX: 10, clientY: 10, ctrlKey: true });
     await fireEvent.pointerMove(row, { pointerId: 1, clientX: 40, clientY: 200 });
     await fireEvent.pointerMove(row, { pointerId: 1, clientX: 50, clientY: 520 });
-    expect(zone.classList.contains("reorder-item--into")).toBe(true);
+    // A carried item is read once per frame (reorder.js), so the ring lights
+    // up on the next one, not on the event.
+    await waitFor(() => expect(zone.classList.contains("reorder-item--into")).toBe(true));
     await fireEvent.pointerUp(row, { pointerId: 1, clientX: 50, clientY: 520 });
     await waitFor(() =>
       expect(invoke).toHaveBeenCalledWith("move_task", {

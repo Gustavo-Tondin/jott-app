@@ -35,6 +35,17 @@ function layOut(ul) {
   });
 }
 
+/// Once the item is carried, the action reads at most one movement per FRAME
+/// (reorder.js): an assertion made BETWEEN two moves has to let the frame
+/// pass. A release needs none — it applies whatever is still in the air.
+async function nextFrame() {
+  if (vi.isFakeTimers()) {
+    vi.advanceTimersByTime(20);
+    return;
+  }
+  await new Promise((resolve) => requestAnimationFrame(() => resolve()));
+}
+
 function fire(el, type, props) {
   const ev = new Event(type, { bubbles: true, cancelable: true });
   Object.assign(ev, props);
@@ -242,7 +253,7 @@ describe("reorderable", () => {
     expect(moves).toEqual([[0, 1]]);
   });
 
-  test("carried clear of the list, it says it is leaving — and then leaves", () => {
+  test("carried clear of the list, it says it is leaving — and then leaves", async () => {
     // A space dragged out of a group: while it is out there the row is
     // marked, and nothing inside opens a gap for it (user report, 2026-08-06).
     const ul = list();
@@ -268,6 +279,7 @@ describe("reorderable", () => {
 
     // Well clear of the list.
     fire(row, "pointermove", { pointerId: 1, clientX: 400, clientY: 300 });
+    await nextFrame();
     expect(row.classList.contains("reorder-item--leaving")).toBe(true);
     fire(row, "pointerup", { pointerId: 1, clientX: 400, clientY: 300 });
 
@@ -597,7 +609,7 @@ describe("reorderable with a selection", () => {
     expect(rows[3].classList.contains("reorder-item--stacked")).toBe(false);
   });
 
-  test("a free drag (Ctrl) leaves the list alone and lands only on a free zone", () => {
+  test("a free drag (Ctrl) leaves the list alone and lands only on a free zone", async () => {
     // 2026-08-26: Ctrl held at pointerdown is the intent — no rest, no axis
     // lock, no gap — and the sidebar's spaces are the only places it can go.
     const ul = list(3);
@@ -622,6 +634,7 @@ describe("reorderable with a selection", () => {
     fire(row, "pointermove", { pointerId: 1, clientX: 60, clientY: 8 });
     expect(row.classList.contains("reorder-item--free")).toBe(true);
     fire(row, "pointermove", { pointerId: 1, clientX: 350, clientY: 20 });
+    await nextFrame();
     expect(zone.classList.contains("reorder-item--into")).toBe(true);
     fire(row, "pointerup", { pointerId: 1, clientX: 350, clientY: 20 });
     expect(dropped).toEqual([[0, "Mercado"]]);
@@ -824,5 +837,125 @@ describe("reorderable landing", () => {
 
     expect(moves).toEqual([[0, 1]]);
     expect(row.parentElement).toBe(ul);
+  });
+});
+
+// ---- one reading per frame, and a threshold that stands still (2026-09-14) ----
+describe("reorderable, a frame at a time", () => {
+  beforeEach(() => {
+    document.body.innerHTML = "";
+  });
+
+  /// The list's own box, so the containment of `carry` has something to clamp
+  /// against: without it every rect is jsdom's zero and the item is pinned.
+  const bound = (ul) => {
+    ul.getBoundingClientRect = () => ({
+      left: 0, right: 200, width: 200, top: 0, bottom: 120, height: 120,
+      x: 0, y: 0, toJSON() {},
+    });
+  };
+
+  test("many movements inside one frame are read once, as the last one", async () => {
+    // A 120 Hz pointer delivers twice the events the screen paints, and each
+    // one used to walk the whole list.
+    const ul = list();
+    layOut(ul);
+    bound(ul);
+    reorderable(ul, { axis: "y", item: ".row", onReorder: () => {} });
+
+    const row = ul.children[0];
+    fire(row, "pointerdown", { button: 0, pointerId: 1, clientY: 20 });
+    // The movement that STARTS the drag is read at once: it carries the
+    // direction the gesture set off in, which the axis lock needs.
+    fire(row, "pointermove", { pointerId: 1, clientY: 30 });
+    expect(row.style.transform).toBe("translateY(10px)");
+
+    fire(row, "pointermove", { pointerId: 1, clientY: 50 });
+    fire(row, "pointermove", { pointerId: 1, clientY: 70 });
+    expect(row.style.transform).toBe("translateY(10px)", "still the painted frame");
+
+    await nextFrame();
+    expect(row.style.transform).toBe("translateY(50px)");
+  });
+
+  test("the release reads the movement still in the air", async () => {
+    // Letting go in the same frame as the last movement: without the flush the
+    // item would be put down a slot behind the hand.
+    const ul = list();
+    layOut(ul);
+    bound(ul);
+    const moves = [];
+    reorderable(ul, { axis: "y", item: ".row", onReorder: (f, t) => moves.push([f, t]) });
+
+    const row = ul.children[0];
+    fire(row, "pointerdown", { button: 0, pointerId: 1, clientY: 20 });
+    fire(row, "pointermove", { pointerId: 1, clientY: 30 });
+    fire(row, "pointermove", { pointerId: 1, clientY: 110 });
+    fire(row, "pointerup", { pointerId: 1, clientY: 110 });
+
+    expect(moves).toEqual([[0, 2]]);
+  });
+
+  test("a hand resting on the boundary does not make the list flutter", async () => {
+    // The threshold is the neighbour's middle (60 here), and a hand holding
+    // still on it swapped the two rows many times a second. Taking the slot
+    // costs 12 % of a step past the middle; giving it back costs the same
+    // coming home (dnd-kit #1456).
+    const ul = list();
+    layOut(ul);
+    bound(ul);
+    const moves = [];
+    reorderable(ul, { axis: "y", item: ".row", onReorder: (f, t) => moves.push([f, t]) });
+
+    const row = ul.children[0];
+    const next = ul.children[1];
+    fire(row, "pointerdown", { button: 0, pointerId: 1, clientY: 20 });
+    // Exactly on the middle, and two pixels past it: not enough.
+    fire(row, "pointermove", { pointerId: 1, clientY: 60 });
+    await nextFrame();
+    expect(next.style.transform).toBe("");
+    fire(row, "pointermove", { pointerId: 1, clientY: 62 });
+    await nextFrame();
+    expect(next.style.transform).toBe("");
+
+    // Past the hysteresis, the neighbour opens the gap...
+    fire(row, "pointermove", { pointerId: 1, clientY: 66 });
+    await nextFrame();
+    expect(next.style.transform).toBe("translateY(-40px)");
+
+    // ...and a hand that wanders back to the middle keeps it there.
+    fire(row, "pointermove", { pointerId: 1, clientY: 58 });
+    await nextFrame();
+    expect(next.style.transform).toBe("translateY(-40px)");
+    fire(row, "pointerup", { pointerId: 1, clientY: 58 });
+    expect(moves).toEqual([[0, 1]]);
+  });
+
+  test("a list that changes under the drag gives the gesture up", async () => {
+    // The watcher brought a task from another device and Svelte redrew: every
+    // rect measured at the start is false, and what is at stake is a line in
+    // the user's file.
+    const ul = list();
+    layOut(ul);
+    bound(ul);
+    const moves = [];
+    reorderable(ul, { axis: "y", item: ".row", onReorder: (f, t) => moves.push([f, t]) });
+
+    const rows = [...ul.children];
+    fire(rows[0], "pointerdown", { button: 0, pointerId: 1, clientY: 20 });
+    fire(rows[0], "pointermove", { pointerId: 1, clientY: 40 });
+    expect(ul.hasAttribute("data-reordering")).toBe(true);
+
+    const arrived = document.createElement("li");
+    arrived.className = "row";
+    ul.append(arrived);
+    fire(rows[0], "pointermove", { pointerId: 1, clientY: 110 });
+    await nextFrame();
+
+    expect(ul.hasAttribute("data-reordering")).toBe(false);
+    expect(rows[0].parentElement).toBe(ul);
+    expect(ul.querySelector(".reorder-ghost")).toBeNull();
+    fire(rows[0], "pointerup", { pointerId: 1, clientY: 110 });
+    expect(moves).toEqual([]);
   });
 });

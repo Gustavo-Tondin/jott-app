@@ -44,6 +44,10 @@ const FLY = "cubic-bezier(0.2, 1.05, 0.35, 1)";
 /// How far past the scroller's edge the carried item may hang, so its shadow
 /// has room. It STOPS there rather than being cut by it.
 const SLACK = 8;
+/// How much of a step a slot is worth defending once it has been taken —
+/// see `slotAt`. Twelve per cent is enough for a resting hand and small
+/// enough that the swap still feels like it happens at the middle.
+const HYSTERESIS = 0.12;
 
 export function reorderable(node, params) {
   let opts = params ?? {};
@@ -164,6 +168,11 @@ export function reorderable(node, params) {
     }
     drag.step = size(r) + gap;
     drag.to = drag.from;
+    // How many children the container had with the carried item away and its
+    // ghost in place: the sentinel `applyMove` watches, and what the list is
+    // showing so far (nothing).
+    drag.children = node.children.length;
+    drag.applied = null;
     node.setAttribute("data-reordering", "");
     if (drag.free) drag.el.classList.add("reorder-item--free");
     // The pile: what else is picked travels with the carried item.
@@ -219,8 +228,46 @@ export function reorderable(node, params) {
       grid() || drag.free ? `translate(${dx}px, ${dy}px)` : shift(horizontal() ? dx : dy);
   }
 
+  /// ONE FRAME, ONE READING. A 120 Hz pointer delivers twice the events the
+  /// screen paints, and each one used to walk the whole list. Only the last
+  /// one before the next frame says where the hand is — but only once the
+  /// item is CARRIED: until then every event carries the direction the
+  /// gesture set off in (the axis lock, the threshold, the slop of the hold),
+  /// and two of them in one frame would lose the first.
+  let frame = null;
+  let latest = null;
+
   function onPointerMove(e) {
     if (!drag || e.pointerId !== drag.pointerId) return;
+    if (!drag.moved) return applyMove(e);
+    latest = { pointerId: e.pointerId, clientX: e.clientX, clientY: e.clientY };
+    const view = node.ownerDocument.defaultView;
+    if (typeof view?.requestAnimationFrame !== "function") return applyMove(latest);
+    if (frame != null) return;
+    frame = view.requestAnimationFrame(() => {
+      frame = null;
+      if (latest && drag) applyMove(latest);
+    });
+  }
+
+  /// The movement still waiting for a frame, applied NOW: the release reads
+  /// `to`, and a last movement left in the air would put the item down a slot
+  /// behind the hand.
+  function flush() {
+    if (frame == null) return;
+    node.ownerDocument.defaultView?.cancelAnimationFrame?.(frame);
+    frame = null;
+    if (latest && drag) applyMove(latest);
+  }
+
+  /// Drops it instead: the gesture is over, and nothing it read still holds.
+  function unframe() {
+    if (frame != null) node.ownerDocument.defaultView?.cancelAnimationFrame?.(frame);
+    frame = null;
+    latest = null;
+  }
+
+  function applyMove(e) {
     const dx = e.clientX - drag.originX;
     const dy = e.clientY - drag.originY;
     const delta = coord(e) - drag.origin;
@@ -235,6 +282,12 @@ export function reorderable(node, params) {
       clearTimeout(drag.holdTimer);
       drag.holdTimer = null;
     }
+    // THE LIST CHANGED UNDER THE GESTURE — the watcher brought a task from
+    // another device and Svelte redrew. Every rect was measured in `begin`
+    // and none of them is true any more; what is at stake is a line in the
+    // user's file, so the drag is given up rather than guessed at. Counting
+    // the children costs a read, not a walk.
+    if (drag.moved && node.children.length !== drag.children) return cancel();
     if (drag.free) {
       if (!drag.moved) {
         if (Math.hypot(dx, dy) < threshold()) return;
@@ -281,48 +334,17 @@ export function reorderable(node, params) {
       }
       // ...and the middle of another CARD is a target of its own, when the
       // caller has somewhere for it to go (`onDropInto` — two notes made into
-      // a folder). The band is the card's own middle in both axes, so aiming
-      // at a card is a deliberate act rather than a near miss.
-      drag.into = null;
-      if (!zone && opts.onDropInto) {
-        for (let i = 0; i < rects.length; i++) {
-          if (i === drag.from || !accepts(i)) continue;
-          const r = rects[i];
-          const mx = (r.width * (1 - INTO_BAND)) / 2;
-          const my = (r.height * (1 - INTO_BAND)) / 2;
-          if (
-            e.clientX > r.left + mx &&
-            e.clientX < r.right - mx &&
-            e.clientY > r.top + my &&
-            e.clientY < r.bottom - my
-          ) {
-            drag.into = i;
-            break;
-          }
-        }
-      }
-      if (zone || drag.into != null) {
+      // a folder).
+      const into = zone ? null : intoAt(e);
+      const to = zone || into != null ? drag.to : nearestSlot(dx, dy);
+      if (!reads(to, into, zone, false)) return;
+
+      drag.list.forEach((el, i) => el.classList.toggle("reorder-item--into", i === into));
+      if (zone || into != null) {
         // Nothing is making room: the drop goes INSIDE something.
-        drag.list.forEach((el, i) => {
-          el.classList.toggle("reorder-item--into", i === drag.into);
-          if (i !== drag.from) el.style.transform = "";
-        });
+        for (const el of drag.list) if (el !== drag.el) el.style.transform = "";
         return;
       }
-      for (const c of drag.list) c.classList.remove("reorder-item--into");
-      const origin = centreOf(rects[drag.from]);
-      const centre = { x: origin.x + dx, y: origin.y + dy };
-      let to = drag.from;
-      let best = Infinity;
-      rects.forEach((r, i) => {
-        const m = centreOf(r);
-        const d = (m.x - centre.x) ** 2 + (m.y - centre.y) ** 2;
-        if (d < best) {
-          best = d;
-          to = i;
-        }
-      });
-      drag.to = to;
       drag.list.forEach((el, i) => {
         if (i === drag.from) return;
         let slot = null;
@@ -348,65 +370,21 @@ export function reorderable(node, params) {
       zone?.classList.add("reorder-item--into");
       drag.zone = zone;
     }
-    if (zone) {
-      drag.leaving = false;
-      drag.el.classList.remove("reorder-item--leaving");
-      drag.into = null;
-      for (const c of drag.list) {
-        c.classList.remove("reorder-item--into");
-        if (c !== drag.el) c.style.transform = "";
-      }
-      return;
-    }
 
-    // Which slot its centre now sits over.
-    const rects = drag.rects;
-    const centre = mid(rects[drag.from]) + delta;
-    let to = drag.from;
-    if (delta > 0) {
-      for (let i = drag.from + 1; i < rects.length; i++)
-        if (mid(rects[i]) < centre) to = i;
-        else break;
-    } else {
-      for (let i = drag.from - 1; i >= 0; i--)
-        if (mid(rects[i]) > centre) to = i;
-        else break;
-    }
-    drag.to = to;
+    // WHAT THIS FRAME READS, in order of precedence: a zone under the pointer;
+    // the pointer clear of the container altogether (leaving, not moving
+    // within); the MIDDLE of another item (a target of its own, when the
+    // caller has one — nothing slides, because nothing is making room); and
+    // otherwise the slot the carried centre now sits over.
+    const to = zone ? drag.to : slotAt(delta);
+    const leaving = !zone && !!opts.onDragOut && outside(e);
+    const into = zone || leaving ? null : intoAt(e);
+    if (!reads(to, into, zone, leaving)) return;
 
     const list = drag.list;
-
-    // Out of the container altogether: leaving, not moving within — say so
-    // on the carried item and stop opening a gap.
-    drag.leaving = !!opts.onDragOut && outside(e);
-    drag.el.classList.toggle("reorder-item--leaving", drag.leaving);
-    if (drag.leaving) {
-      for (const c of list) {
-        c.classList.remove("reorder-item--into");
-        if (c !== drag.el) c.style.transform = "";
-      }
-      drag.into = null;
-      return;
-    }
-
-    // Is the pointer sitting on the MIDDLE of another item? Then the target is
-    // that item, not the gap next to it — and nothing slides, because nothing
-    // is making room. The ring says which one will receive the drop.
-    drag.into = null;
-    if (opts.onDropInto) {
-      const at = coord(e);
-      for (let i = 0; i < rects.length; i++) {
-        if (i === drag.from || !accepts(i)) continue;
-        const r = rects[i];
-        const margin = (size(r) * (1 - INTO_BAND)) / 2;
-        if (at > start(r) + margin && at < start(r) + size(r) - margin) {
-          drag.into = i;
-          break;
-        }
-      }
-    }
-    list.forEach((c, i) => c.classList.toggle("reorder-item--into", i === drag.into));
-    if (drag.into != null) {
+    drag.el.classList.toggle("reorder-item--leaving", leaving);
+    list.forEach((c, i) => c.classList.toggle("reorder-item--into", i === into));
+    if (zone || leaving || into != null) {
       for (const c of list) if (c !== drag.el) c.style.transform = "";
       return;
     }
@@ -420,6 +398,100 @@ export function reorderable(node, params) {
       else if (to < drag.from && i >= to && i < drag.from) d = drag.step;
       c.style.transform = d ? shift(d) : "";
     });
+  }
+
+  /// WHAT THE LIST IS ALREADY SHOWING. Rewriting the same transforms moves
+  /// nothing and invalidates the style of every item — the cost that is felt
+  /// as a sticky drag. Answers false when this frame reads the same as the
+  /// last one, and remembers the reading either way (the carried item is
+  /// moved before this, every frame: it is the hand).
+  function reads(to, into, zone, leaving) {
+    const was = drag.applied;
+    drag.to = to;
+    drag.into = into;
+    drag.leaving = leaving;
+    if (was && was.to === to && was.into === into && was.zone === zone && was.leaving === leaving)
+      return false;
+    drag.applied = { to, into, zone, leaving };
+    return true;
+  }
+
+  /// The slot the carried item's centre sits over, WITH HYSTERESIS: taking a
+  /// slot costs 12 % of a step past its middle, and giving it back costs the
+  /// same 12 % on the way home. On the exact middle a hand that only breathes
+  /// swapped the two rows many times a second — the Schmitt trigger is the
+  /// answer named in dnd-kit #1456.
+  function slotAt(delta) {
+    const rects = drag.rects;
+    const centre = mid(rects[drag.from]) + delta;
+    const bias = drag.step * HYSTERESIS;
+    let to = drag.from;
+    if (delta > 0) {
+      for (let i = drag.from + 1; i < rects.length; i++) {
+        // A slot already given up keeps the carried item until the pointer is
+        // back past its middle; one not yet taken asks for the extra.
+        if (mid(rects[i]) + (i <= drag.to ? -bias : bias) < centre) to = i;
+        else break;
+      }
+    } else {
+      for (let i = drag.from - 1; i >= 0; i--) {
+        if (mid(rects[i]) + (i >= drag.to ? bias : -bias) > centre) to = i;
+        else break;
+      }
+    }
+    return to;
+  }
+
+  /// The grid's slot: the one whose centre is nearest, and the same hysteresis
+  /// — the slot in play keeps the drag until another is 12 % closer. Distances
+  /// stay SQUARED (no square root per frame), so the margin is squared too.
+  function nearestSlot(dx, dy) {
+    const rects = drag.rects;
+    const origin = centreOf(rects[drag.from]);
+    const centre = { x: origin.x + dx, y: origin.y + dy };
+    const far = (r) => {
+      const m = centreOf(r);
+      return (m.x - centre.x) ** 2 + (m.y - centre.y) ** 2;
+    };
+    let winner = drag.to;
+    let best = Infinity;
+    rects.forEach((r, i) => {
+      const d = far(r);
+      if (d < best) {
+        best = d;
+        winner = i;
+      }
+    });
+    if (winner === drag.to) return winner;
+    return best < far(rects[drag.to]) * (1 - HYSTERESIS) ** 2 ? winner : drag.to;
+  }
+
+  /// The item whose MIDDLE the pointer is on, or null. The band is the item's
+  /// own middle (both axes, on a grid), so aiming at one is a deliberate act
+  /// rather than a near miss.
+  function intoAt(e) {
+    if (!opts.onDropInto) return null;
+    const rects = drag.rects;
+    const at = coord(e);
+    for (let i = 0; i < rects.length; i++) {
+      if (i === drag.from || !accepts(i)) continue;
+      const r = rects[i];
+      if (grid()) {
+        const mx = (r.width * (1 - INTO_BAND)) / 2;
+        const my = (r.height * (1 - INTO_BAND)) / 2;
+        if (
+          e.clientX > r.left + mx &&
+          e.clientX < r.right - mx &&
+          e.clientY > r.top + my &&
+          e.clientY < r.bottom - my
+        )
+          return i;
+        continue;
+      }
+      const margin = (size(r) * (1 - INTO_BAND)) / 2;
+      if (at > start(r) + margin && at < start(r) + size(r) - margin) return i;
+    }
+    return null;
   }
 
   /// Takes the carried item OUT OF FLOW (`position: fixed`) and out of the
@@ -518,6 +590,7 @@ export function reorderable(node, params) {
   /// what has to be put back is the gesture that just ended, not the one
   /// running now (there is none).
   function clear(d = drag) {
+    unframe();
     unlistenLoose();
     drop(d);
     node.removeAttribute("data-reordering");
@@ -552,6 +625,11 @@ export function reorderable(node, params) {
 
   function onPointerUp(e) {
     if (!drag || e.pointerId !== drag.pointerId) return;
+    // The hand let go where its last movement said, not where the last
+    // PAINTED frame did. That reading may also end the gesture (a list that
+    // changed under it), and then there is nothing left to release.
+    flush();
+    if (!drag) return;
     const d = drag;
     clearTimeout(d.holdTimer);
     drag = null;
@@ -794,6 +872,7 @@ export function reorderable(node, params) {
       opts = next ?? {};
     },
     destroy() {
+      unframe();
       unlistenLoose();
       node.removeAttribute("data-reorderable");
       node.removeEventListener("pointerdown", onPointerDown);
