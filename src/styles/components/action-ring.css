@@ -1,24 +1,28 @@
-/* action-ring.css — the actions that open around a held card.
- * Markup: src/lib/components/ActionRing.svelte; the angles are
+/* action-ring.css — the actions that open beside a held card.
+ * Markup: src/lib/components/ActionRing.svelte; where the column goes is
  * services/ring.js and the gesture is actions/reorder.js.
  *
- * The pills are PILLS, not the circles of the app this gesture comes from:
- * the app's language is straight, soft-cornered and never tilted, and the
- * card in the middle is the carried one of a drag — same lift, same shadow,
- * because it is the same gesture. */
+ * Each action is a SQUARE of its own, stacked with a gap: separate things a
+ * finger crosses one at a time, not a list with a single ground. The corner
+ * is the card's, softened — the app's language is straight, and a circle
+ * belongs to another app. Only the square under the finger is named, beside
+ * it, where the hand is not. */
 
 @layer components {
-  /* NOT a box: `display: contents` so the wash and the pills each take their
+  /* NOT a box: `display: contents` so the wash and the column each take their
      own place in the stack. A `position: fixed` wrapper would be a stacking
      context in WebKit even at `z-index: auto` (the same trap the drag layer
-     met, styles/components/reorder.css) and the pills could never rise above
+     met, styles/components/reorder.css) and the column could never rise above
      the carried card. */
   .action-ring {
     display: contents;
 
-    --ring-pill: 2.75rem;
-    --ring-icon: var(--app-surface);
-    /* Each pill arrives a beat after the one before it, so the eye READS the
+    /* MIRRORS services/ring.js: the square and the gap the geometry measures
+       with (RING_ITEM, RING_STEP − RING_ITEM). Drawn any other size, a square
+       lights up under a finger that is on its neighbour. */
+    --ring-item: 2.75rem;
+    --ring-gap: 0.5rem;
+    /* Each square arrives a beat after the one above it, so the eye READS the
        order of the actions instead of finding five things at once. */
     --ring-stagger: 24ms;
   }
@@ -33,71 +37,70 @@
     animation: theme-fade-in var(--app-duration-fast) var(--app-ease);
   }
 
-  /* One slice, placed by the angle `ringSlots` worked out: the finger's own
-     point plus the offset, with the pill centred on it. */
-  /* The slice IS the pill's box — exactly its size, centred on the angle's
-     point. The label hangs off it absolutely rather than sitting beside it:
-     laid out in flow it widened the box, and since the box is what is
-     centred, every pill JUMPED when its name appeared (seen on Android,
-     2026-09-14). */
-  .action-ring__slice {
+  /* Placed by the gesture, in client coordinates: `left`/`top` come inline
+     from the component, the way the right button's menu is placed
+     (components/ContextMenu.svelte). Over the carried card. */
+  .action-ring__column {
     position: fixed;
     z-index: 70;
-    inset-inline-start: calc(var(--ring-at-x) + var(--ring-x));
-    inset-block-start: calc(var(--ring-at-y) + var(--ring-y));
-    translate: -50% -50%;
-    inline-size: var(--ring-pill);
-    block-size: var(--ring-pill);
+    display: flex;
+    flex-direction: column;
+    gap: var(--ring-gap);
+    inline-size: var(--ring-item);
     pointer-events: none;
-    animation: action-ring-in var(--app-duration-medium) var(--app-ease-settle) backwards;
-    animation-delay: calc(var(--ring-step) * var(--ring-stagger));
   }
 
-  /* Opened by a click (`popRing`): the ring stays up, so the pills catch the
-     pointer and the wash is what closes it. A gesture ring catches nothing —
-     the finger is already captured. */
-  .action-ring--sticky .action-ring__slice,
+  /* Opened by a click (`popRing`): the column stays up, so the squares catch
+     the pointer and the wash is what closes it. A gesture column catches
+     nothing — the finger is already captured. */
+  .action-ring--sticky .action-ring__column,
   .action-ring--sticky .action-ring__wash {
     pointer-events: auto;
   }
   .action-ring--sticky .action-ring__pill {
     cursor: pointer;
-    border: none;
   }
 
   .action-ring__pill {
-    inline-size: var(--ring-pill);
-    block-size: var(--ring-pill);
+    position: relative;
+    flex: none;
+    inline-size: var(--ring-item);
+    block-size: var(--ring-item);
     display: grid;
     place-items: center;
-    border-radius: var(--app-radius-pill);
-    background: var(--ring-icon);
+    /* The card's corner, a step softer: this is a small square and the card's
+       own radius would read as a circle on it. */
+    border-radius: var(--app-radius-md);
+    background: var(--app-surface);
+    border: none;
     color: var(--app-ink);
     box-shadow: var(--app-shadow-popover);
     transition:
       background var(--app-transition-fast),
       color var(--app-transition-fast),
       scale var(--app-transition-settle);
+    animation: action-ring-in var(--app-duration-medium) var(--app-ease-settle) backwards;
+    animation-delay: calc(var(--ring-step) * var(--ring-stagger));
   }
 
   /* The one under the finger: the app's mark, and the ink over a mark is
      always the dark ground's (CLAUDE.md, colour and theme). */
-  .action-ring__slice--on .action-ring__pill {
+  .action-ring__pill--on {
     background: var(--app-brand);
     color: var(--app-on-brand);
-    scale: 1.12;
+    scale: 1.08;
   }
 
-  /* The name of the slice the finger is on, as a pill of text beside it —
-     never a balloon over the ring, and always on the side the ring opened
-     from, where the hand is not. */
+  /* The name of the square the finger is on, as a pill of text beside it —
+     never a balloon over the column, and always on the side the column opened
+     INTO, where the hand is not. */
   .action-ring__label {
     position: absolute;
     inset-block-start: 50%;
     inset-inline-start: calc(100% + var(--app-space-8));
     translate: 0 -50%;
     padding: var(--app-space-4) var(--app-space-10);
-    border-radius: var(--app-radius-pill);
+    border-radius: var(--app-radius-md);
     background: var(--app-surface);
     color: var(--app-ink);
     box-shadow: var(--app-shadow-popover);
@@ -106,8 +109,7 @@
     white-space: nowrap;
     animation: theme-fade-in var(--app-duration-fast) var(--app-ease);
   }
-  /* On the side the ring came from, which is the inside of the screen. */
-  .action-ring__label--end {
+  .action-ring__label--before {
     inset-inline-start: auto;
     inset-inline-end: calc(100% + var(--app-space-8));
   }
@@ -115,7 +117,7 @@
   @keyframes action-ring-in {
     from {
       opacity: 0;
-      scale: 0.6;
+      scale: 0.7;
     }
     to {
       opacity: 1;
@@ -125,7 +127,7 @@
 
   /* Reduced motion: the cascade is an appearance. The durations are already
      zeroed by the tokens, but a DELAY is not a duration — left alone, the
-     last pill would still arrive a tenth of a second late. */
+     last square would still arrive a tenth of a second late. */
   @media (prefers-reduced-motion: reduce) {
     .action-ring {
       --ring-stagger: 0ms;

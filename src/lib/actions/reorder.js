@@ -15,7 +15,7 @@
 
 import { dragLayer } from "../services/dragLayer.js";
 import { closeRing, hoverRing, openRing } from "../services/actionRing.js";
-import { fitRing, ringQuadrant, ringRadius, ringSlotAt } from "../services/ring.js";
+import { fitRing, ringBox, ringQuadrant, ringSlotAt } from "../services/ring.js";
 
 /// TOUCH ONLY: how long a finger rests on an item before it is carried. Drag
 /// and scroll share the vertical axis, so time tells them apart (rest to pick
@@ -160,11 +160,11 @@ export function reorderable(node, params) {
     navigator.vibrate?.(8);
   }
 
-  /// The hold opening the RING: the card is lifted exactly as a carried one
-  /// is (same layer, same shadow — it is the same gesture, so it reads the
-  /// same), the pills spread into the corner of the screen with room, and
-  /// every move from here picks a slice instead of moving the list.
-  /// Answers whether the ring took the gesture.
+  /// The hold opening the ACTIONS: the card is lifted exactly as a carried
+  /// one is (same layer, same shadow — it is the same gesture, so it reads
+  /// the same), the sheet opens in the corner of the screen with room, and
+  /// every move from here picks a row instead of moving the list.
+  /// Answers whether the sheet took the gesture.
   function openRingFor() {
     const actions = fitRing(opts.ring?.(drag.from));
     if (!actions.length) return false;
@@ -177,7 +177,7 @@ export function reorderable(node, params) {
       at,
       count: actions.length,
       quadrant,
-      radius: ringRadius(at, viewport, quadrant),
+      box: ringBox(at, viewport, actions.length, quadrant),
       slot: null,
     };
     drag.moved = true;
@@ -187,8 +187,8 @@ export function reorderable(node, params) {
     return true;
   }
 
-  /// The finger travelling the ring. A slice only changes when it really
-  /// changes — the pills light up, and the little buzz says so without the
+  /// The finger travelling the sheet. A row only changes when it really
+  /// changes — the row lights up, and the little buzz says so without the
   /// eye having to leave the card.
   function ringMove(e) {
     const slot = ringSlotAt(drag.ring.at, { x: e.clientX, y: e.clientY }, drag.ring);

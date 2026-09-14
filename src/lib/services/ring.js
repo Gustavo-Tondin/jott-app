@@ -1,87 +1,100 @@
-// THE GEOMETRY OF THE ACTION RING — where each slice sits around the finger,
-// and which one the finger is on. Pure: no DOM, no state, so the angles can be
-// read in a test. What draws them is `components/ActionRing.svelte`; what
+// WHERE A CARD'S ACTIONS SIT — the column of squares that opens beside the
+// finger, and which of them the finger is on. Pure: no DOM, no state, so the geometry
+// can be read in a test. What draws it is `components/ActionRing.svelte`; what
 // feeds the pointer in is `actions/reorder.js`.
 
-/// Five is the ceiling: past it the angular target is narrower than a thumb
-/// and the gesture becomes a lottery. What does not fit goes in the ⋮ slice.
-export const RING_MAX = 5;
-/// How far from the finger the pills sit, and the quarter they spread over.
-/// The radius is what keeps five 2.75rem pills APART: at 22.5° between them,
-/// the gap between two centres is 2·r·sin(11.25°), so anything under ~130
-/// overlaps them (seen in the app, 2026-09-14).
-export const RING_RADIUS = 148;
-/// As close as the pills may ever come, and how much screen is left beyond
-/// the outermost one.
-const RING_MIN = 96;
-const EDGE = 8;
-const SPAN = 90;
-/// The hole around the finger: releasing there is releasing on the card
-/// itself, which cancels. Anything past `FAR` is off the ring altogether.
-const DEAD = 0.45;
-const FAR = 2;
-/// How far outside the quarter a finger may stray and still be aiming at the
-/// end slice — a thumb travelling to the first pill overshoots the axis.
-const SLACK = 18;
+import { clamp } from "./num.js";
 
-/// The quarter the ring opens into, as the SIGN of each axis: away from the
-/// edges the finger is nearest, so the pills always land on screen. A ring
-/// opened at the bottom right of the phone spreads up and to the left.
+/// Five is the ceiling: past it the column is taller than a thumb travels
+/// comfortably, and it stops being a glance. What does not fit goes behind
+/// the last square, the ⋮, which opens the menu proper.
+export const RING_MAX = 5;
+
+/// The column in CSS pixels: the square of one action, and the step from one
+/// to the next — the square plus the gap that keeps them separate things.
+/// MIRRORED by styles/components/action-ring.css; drawn any other size, a
+/// square lights up under a finger that is on its neighbour.
+export const RING_ITEM = 44;
+export const RING_STEP = 52;
+
+/// How far the sheet stands off the finger, and the dead square around it.
+/// The sheet may not open UNDER the finger: the hold would already be resting
+/// on a row, and letting go there is what cancels.
+const GAP = 24;
+/// Opened by a CLICK there is no finger over the card, so the sheet sits at
+/// the pointer the way every other menu in the app does.
+export const RING_CLICK_GAP = 4;
+/// The margin the sheet keeps off the window's edges.
+const EDGE = 8;
+/// How far off the column the pointer may stray and still hold the square it
+/// left. Wider than it looks on purpose: a column of squares is a narrow
+/// thing, and a thumb sliding down it wanders sideways.
+const SLACK = 32;
+
+/// The quarter the sheet grows into, as the SIGN of each axis: away from the
+/// edges the finger is nearest, so it always lands on screen. A sheet opened
+/// at the bottom right of the phone grows up and to the left.
 export function ringQuadrant(at, viewport) {
   const w = viewport?.width ?? 0;
   const h = viewport?.height ?? 0;
   return { x: at.x > w / 2 ? -1 : 1, y: at.y > h / 2 ? -1 : 1 };
 }
 
-/// HOW FAR THE PILLS CAN SIT from this finger. The full radius wherever there
-/// is room for it; on a narrow phone, as much as the quarter has — a ring that
-/// opens 148 px from a finger 120 px from the edge draws its first pill off
-/// the screen. Never below `RING_MIN`, under which the slices stop being
-/// separate targets at all.
-export function ringRadius(at, viewport, quadrant, pill = 44) {
-  const acrossX = quadrant.x === 1 ? (viewport?.width ?? 0) - at.x : at.x;
-  const acrossY = quadrant.y === 1 ? (viewport?.height ?? 0) - at.y : at.y;
-  const room = Math.min(acrossX, acrossY) - pill / 2 - EDGE;
-  return Math.max(RING_MIN, Math.min(RING_RADIUS, room));
-}
-
-/// Where each pill goes, as an offset from the finger. The first sits on the
-/// horizontal axis of the quarter, the last on the vertical one; a lone slice
-/// sits on the diagonal.
-export function ringSlots(count, quadrant, radius = RING_RADIUS) {
+/// The size a column of `count` squares takes — the last one carries no gap.
+export function ringSize(count) {
   const n = Math.min(count, RING_MAX);
-  return Array.from({ length: n }, (_, i) => {
-    const angle = n === 1 ? SPAN / 2 : (i * SPAN) / (n - 1);
-    const rad = (angle * Math.PI) / 180;
-    return {
-      angle,
-      x: quadrant.x * radius * Math.cos(rad),
-      y: quadrant.y * radius * Math.sin(rad),
-    };
-  });
+  return { width: RING_ITEM, height: n * RING_STEP - (RING_STEP - RING_ITEM) };
 }
 
-/// The slice under the pointer, or null for none — which is what a release
-/// reads as "cancelled". Null covers the three ways of meaning nothing: too
-/// near the finger's own card, too far past the pills, and outside the
-/// quarter the ring opened into.
-export function ringSlotAt(at, pointer, { count, quadrant, radius = RING_RADIUS }) {
+/// WHERE THE COLUMN GOES, in client coordinates. Beside the finger, growing
+/// into the quarter with room; a side too tight for it flips to the other
+/// rather than draw off the screen, and whatever still hangs off is pulled in.
+/// The NAME of an action is not in here: it is drawn beside the square the
+/// finger is on, outside the column, and nothing is aimed at it.
+export function ringBox(at, viewport, count, quadrant, gap = GAP) {
+  const { width, height } = ringSize(count);
+  const vw = viewport?.width ?? 0;
+  const vh = viewport?.height ?? 0;
+  let x = quadrant.x === 1 ? at.x + gap : at.x - gap - width;
+  let y = quadrant.y === 1 ? at.y + gap : at.y - gap - height;
+  if (x + width > vw - EDGE) x = at.x - gap - width;
+  if (x < EDGE) x = at.x + gap;
+  if (y + height > vh - EDGE) y = at.y - gap - height;
+  if (y < EDGE) y = at.y + gap;
+  return {
+    x: clamp(x, EDGE, Math.max(EDGE, vw - width - EDGE)),
+    y: clamp(y, EDGE, Math.max(EDGE, vh - height - EDGE)),
+    width,
+    height,
+  };
+}
+
+/// The middle of a square — the inverse of `ringSlotAt`, and where the
+/// squares are aimed at from a test.
+export function ringRowCenter(box, index) {
+  return {
+    x: box.x + RING_ITEM / 2,
+    y: box.y + index * RING_STEP + RING_ITEM / 2,
+  };
+}
+
+/// The square under the pointer, or null for none — which is what a release
+/// reads as "cancelled". Null covers the two ways of meaning nothing: never
+/// having left the card the finger is on, and being off the column
+/// altogether. The gap between two squares belongs to the one ABOVE it: a
+/// thumb crossing it has not let go of anything.
+export function ringSlotAt(at, pointer, { count, box }) {
   const n = Math.min(count, RING_MAX);
-  if (n < 1) return null;
-  const x = (pointer.x - at.x) * quadrant.x;
-  const y = (pointer.y - at.y) * quadrant.y;
-  const reach = Math.hypot(x, y);
-  if (reach < radius * DEAD || reach > radius * FAR) return null;
-  const angle = (Math.atan2(y, x) * 180) / Math.PI;
-  if (angle < -SLACK || angle > SPAN + SLACK) return null;
-  if (n === 1) return 0;
-  const step = SPAN / (n - 1);
-  const on = Math.round(Math.min(SPAN, Math.max(0, angle)) / step);
-  return Math.min(n - 1, Math.max(0, on));
+  if (n < 1 || !box) return null;
+  if (Math.abs(pointer.x - at.x) <= GAP && Math.abs(pointer.y - at.y) <= GAP) return null;
+  const dx = Math.max(box.x - pointer.x, 0, pointer.x - (box.x + box.width));
+  const dy = Math.max(box.y - pointer.y, 0, pointer.y - (box.y + box.height));
+  if (Math.hypot(dx, dy) > SLACK) return null;
+  return clamp(Math.floor((pointer.y - box.y) / RING_STEP), 0, n - 1);
 }
 
-/// The actions a ring may carry: the first five, in the order given. The rest
-/// is the caller's business — in this app it is already behind the ⋮ slice.
+/// The actions a sheet may carry: the first five, in the order given. The
+/// rest is the caller's business — in this app it is already behind the ⋮.
 export function fitRing(actions) {
   return (actions ?? []).slice(0, RING_MAX);
 }

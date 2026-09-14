@@ -103,12 +103,13 @@ decision already taken. Without a base, nothing is merged.
 wrapper in `services/api.js`. An architecture test enforces it; a command the
 frontend deliberately never calls goes on an explicit list, with its reason.
 
-**One gesture, one owner.** Holding a card opens its actions around the
-finger. The geometry is pure (`services/ring.js`), the ring is drawn once for
-the window and reached through a service (`services/actionRing.js`, the same
-arrangement as the drag layer), and the gesture itself lives in the reorder
-action rather than in a second one — the hold, the slop and the Android touch
-path are already there, and a copy of them would drift.
+**One gesture, one owner.** Holding a card opens its actions beside the
+finger, as a column of squares. The geometry is pure (`services/ring.js`:
+where the column fits, and which square a point falls on), the column is drawn
+once for the window and reached through a service (`services/actionRing.js`,
+the same arrangement as the drag layer), and the gesture itself lives in the
+reorder action rather than in a second one — the hold, the slop and the
+Android touch path are already there, and a copy of them would drift.
 
 **There is no `<style>` block anywhere.** Every rule lives in `src/styles/`,
 which is what makes theming a matter of one file — see

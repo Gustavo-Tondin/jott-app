@@ -6,6 +6,12 @@ What changed in each release, written for the person using the app rather than f
 
 One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` and `### Improved` under it. `packaging/release.sh` refuses to tag a version that has no section here. Versions before v0.51.0 predate the file and live only in the commit history.
 
+## v0.57.0
+
+### Improved
+
+- **The actions of a held card now stand in a column beside your finger**, as separate squares instead of circles scattered around it, and the one under your finger is lit and names itself. Sliding onto it and letting go is the same gesture as before, and letting go anywhere else still does nothing.
+
 ## v0.56.0
 
 ### New

@@ -1,18 +1,19 @@
 <script>
-  // THE ACTION RING: hold a card and its actions open around the finger; drag
-  // to the one you want and let go. Drawn once for the window (App.svelte) and
-  // driven by the gesture through `services/actionRing.js` — this component
-  // never listens to a pointer, it only shows where the finger already is.
+  // THE CARD'S ACTIONS: hold a card and they open beside the finger as a
+  // column of squares; slide onto the one you want and let go. Drawn once for
+  // the window (App.svelte) and driven by the gesture through
+  // `services/actionRing.js` — this component never listens to a pointer, it
+  // only shows where the finger already is.
   //
-  // The geometry (which quarter, where each pill sits) is `services/ring.js`.
-  // The card itself is NOT drawn here: the gesture lifts the real one into the
-  // drag layer, so what the ring surrounds is the card the finger is on.
+  // Where the column goes and which square a point falls on is
+  // `services/ring.js`. The card itself is NOT drawn here: the gesture lifts
+  // the real one into the drag layer, so what the column stands beside is the
+  // card the finger is on.
   import Icon from "./Icon.svelte";
   import { portal } from "../actions/portal.js";
   import { setActionRing } from "../services/actionRing.js";
-  import { ringSlots } from "../services/ring.js";
 
-  /// The open ring, or null: `{ actions, at, quadrant, count, radius }` — the
+  /// The open column, or null: `{ actions, at, quadrant, count, box }` — the
   /// very object the gesture reads, handed over as it opens.
   let ring = $state.raw(null);
   let slot = $state(null);
@@ -34,11 +35,16 @@
     return () => setActionRing(null);
   });
 
-  let pills = $derived(ring ? ringSlots(ring.count, ring.quadrant, ring.radius) : []);
-  /// Opened by a CLICK (`popRing`), with no finger on it: the ring stays up
-  /// and each slice is pressed. Anywhere else closes it — which is the ring's
-  /// one rule either way.
+  /// Opened by a CLICK (`popRing`), with no finger on it: the column stays up
+  /// and each square is pressed. Anywhere else closes it — which is the
+  /// column's one rule either way.
   let sticky = $derived(!!ring?.sticky);
+
+  /// The name is written on the side the column OPENED INTO, away from the
+  /// finger: that is where the screen is, and it is the one side the hand is
+  /// not covering. Read off the box, not the quadrant, which a flip would
+  /// contradict.
+  let side = $derived(ring && ring.box.x < ring.at.x ? "before" : "after");
 
   function choose(action) {
     const at = ring?.at;
@@ -51,11 +57,6 @@
     ring = null;
     slot = null;
   }
-  /// The label sits on the side the ring came FROM — the inside of the
-  /// screen. A ring that opened rightwards puts its labels to the left of the
-  /// pills, or the first one is written off the edge of a phone (seen on
-  /// Android, 2026-09-14).
-  let side = $derived(ring?.quadrant.x === 1 ? "end" : "start");
 
   function onKey(event) {
     if (sticky && event.key === "Escape") dismiss();
@@ -72,40 +73,45 @@
   <div class="action-ring" class:action-ring--sticky={sticky} data-region="canvas" use:portal>
     <!-- svelte-ignore a11y_no_static_element_interactions, a11y_click_events_have_key_events -->
     <div class="action-ring__wash" onclick={sticky ? dismiss : null}></div>
-    {#each pills as pill, i (i)}
-      {@const action = ring.actions[i]}
-      <div
-        class="action-ring__slice"
-        class:action-ring__slice--on={slot === i}
-        style="--ring-x: {pill.x}px; --ring-y: {pill.y}px; --ring-at-x: {ring.at
-          .x}px; --ring-at-y: {ring.at.y}px; --ring-step: {i}"
-      >
+    <div
+      class="action-ring__column"
+      role="menu"
+      style="left: {ring.box.x}px; top: {ring.box.y}px"
+    >
+      {#each ring.actions as action, i (i)}
         {#if sticky}
-          <!-- Pressed, because nothing is holding the pointer: this ring was
-               opened by a click on the card's ⋮. NO `title`: the ring says the
-               name itself, beside the pill, and the system's tooltip landed on
-               top of that (seen in the app, 2026-09-14). -->
           <button
             class="action-ring__pill"
+            class:action-ring__pill--on={slot === i}
+            style="--ring-step: {i}"
             aria-label={action.label}
             onclick={() => choose(action)}
             onpointerenter={() => (slot = i)}
             onpointerleave={() => slot === i && (slot = null)}
           >
             <Icon name={action.icon} size="1.25rem" />
+            {#if slot === i}
+              <span class="action-ring__label action-ring__label--{side}">{action.label}</span>
+            {/if}
           </button>
         {:else}
           <!-- Not a button: the finger is already captured by the gesture, and
-               a second target here would only fight it. The ring is announced
-               as one menu, each slice a row of it. -->
-          <span class="action-ring__pill" role="menuitem" aria-label={action.label}>
+               a second target here would only fight it. The column is
+               announced as one menu, each square a row of it. -->
+          <span
+            class="action-ring__pill"
+            class:action-ring__pill--on={slot === i}
+            style="--ring-step: {i}"
+            role="menuitem"
+            aria-label={action.label}
+          >
             <Icon name={action.icon} size="1.25rem" />
+            {#if slot === i}
+              <span class="action-ring__label action-ring__label--{side}">{action.label}</span>
+            {/if}
           </span>
         {/if}
-        {#if slot === i}
-          <span class="action-ring__label action-ring__label--{side}">{action.label}</span>
-        {/if}
-      </div>
-    {/each}
+      {/each}
+    </div>
   </div>
 {/if}

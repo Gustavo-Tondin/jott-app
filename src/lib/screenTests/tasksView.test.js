@@ -9,7 +9,7 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
 import { bridge, invoke } from "../test/bridge.js";
 import { noop, resetScreens, task } from "../test/screens.js";
 import { originOf } from "../services/origin.js";
-import { RING_RADIUS } from "../services/ring.js";
+import { ringBox, ringQuadrant, ringRowCenter } from "../services/ring.js";
 
 // The note editor's engine is stubbed by a textarea — `lib/test/screens.js`
 // says why. `vi.mock` is hoisted per file, so it cannot live there.
@@ -155,11 +155,18 @@ describe("TasksView", () => {
     await new Promise((r) => setTimeout(r, 450));
   };
 
-  /// Lets the finger go on the ring's LAST slice — the ⋮, on the vertical axis
-  /// of the quarter the ring opened into (services/ring.js).
+  /// The point of the LAST square — the ⋮, at the bottom of the column the
+  /// hold opened (services/ring.js).
+  const lastRow = (at, count = 5) => {
+    const viewport = { width: window.innerWidth, height: window.innerHeight };
+    const box = ringBox(at, viewport, count, ringQuadrant(at, viewport));
+    return ringRowCenter(box, count - 1);
+  };
+
   const releaseOnLastSlice = (card, at = { x: 40, y: 40 }) => {
     const up = new Event("pointerup", { bubbles: true });
-    Object.assign(up, { pointerId: 1, clientX: at.x, clientY: at.y + RING_RADIUS });
+    const point = lastRow(at);
+    Object.assign(up, { pointerId: 1, clientX: point.x, clientY: point.y });
     card.dispatchEvent(up);
   };
 
@@ -196,10 +203,10 @@ describe("TasksView", () => {
     const { container } = render(TasksView, { props: props({ compact: true }) });
     const card = await screen.findByText("Fix website");
     await holdCard(card);
-    // The ⋮ is the last slice, and the last one always sits on the vertical
-    // axis of the quarter the ring opened into (services/ring.js).
+    // The ⋮ is the last square, at the bottom of the column (services/ring.js).
     const move = new Event("pointermove", { bubbles: true });
-    Object.assign(move, { pointerId: 1, clientX: 40, clientY: 40 + RING_RADIUS });
+    const point = lastRow({ x: 40, y: 40 });
+    Object.assign(move, { pointerId: 1, clientX: point.x, clientY: point.y });
     card.dispatchEvent(move);
     releaseOnLastSlice(card);
     // The menu the slice opens is drawn on the next tick, in a portal.

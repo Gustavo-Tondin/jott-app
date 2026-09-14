@@ -4,6 +4,7 @@
 // rect stacked top to bottom, and the pointer is moved to the slot to land in.
 import { describe, expect, test, beforeEach, afterEach, vi } from "vitest";
 import { reorderable } from "./reorder.js";
+import { ringBox, ringQuadrant, ringRowCenter } from "../services/ring.js";
 
 function list(rows = 3) {
   const ul = document.createElement("ul");
@@ -1090,10 +1091,10 @@ describe("reorderable in a scroller", () => {
 
 // ---- the action ring (2026-09-14) ----
 //
-// Holding a card opens the actions AROUND the finger: the same finger picks a
-// slice and lets go. Unlike the hold that enters selection, the gesture is not
-// handed back — the action keeps the pointer, so what is tested here is that
-// the ring takes the gesture whole and the list never moves under it.
+// Holding a card opens the actions BESIDE the finger: the same finger slides
+// onto one and lets go. Unlike the hold that enters selection, the gesture is
+// not handed back — the action keeps the pointer, so what is tested here is
+// that the column takes the gesture whole and the list never moves under it.
 describe("reorderable with an action ring", () => {
   beforeEach(() => {
     document.body.innerHTML = "";
@@ -1122,13 +1123,22 @@ describe("reorderable with an action ring", () => {
     return { ul, calls, actions };
   };
 
-  /// The pointer on the slice at `angle`, with the ring opened at `at`. The
-  /// ring spreads down-right from a finger in the top-left quarter of a
-  /// 400×800 window, which is where these rows are.
-  const onSlice = (at, angle, reach = 104) => ({
-    clientX: at.x + reach * Math.cos((angle * Math.PI) / 180),
-    clientY: at.y + reach * Math.sin((angle * Math.PI) / 180),
-  });
+  /// The pointer on square `i` of the column opened at `at`. The column grows
+  /// down-right from a finger in the top-left quarter of a 400×800 window,
+  /// which is where these rows are.
+  const onRow = (at, i, count = 5) => {
+    const viewport = { width: window.innerWidth, height: window.innerHeight };
+    const box = ringBox(at, viewport, count, ringQuadrant(at, viewport));
+    const { x, y } = ringRowCenter(box, i);
+    return { clientX: x, clientY: y };
+  };
+  /// Clear of the column altogether — below every square and every bit of
+  /// slack.
+  const offSheet = (at, count = 5) => {
+    const viewport = { width: window.innerWidth, height: window.innerHeight };
+    const box = ringBox(at, viewport, count, ringQuadrant(at, viewport));
+    return { clientX: box.x + box.width / 2, clientY: box.y + box.height + 120 };
+  };
 
   const openAt = (ul, row = 1, at = { x: 60, y: 50 }) => {
     const el = ul.children[row];
@@ -1152,27 +1162,27 @@ describe("reorderable with an action ring", () => {
     expect(ul.hasAttribute("data-reordering")).toBe(true);
   });
 
-  test("moving after the hold picks a slice and never moves the list", async () => {
+  test("moving after the hold picks a square and never moves the list", async () => {
     const { ul, calls } = setup();
     const { el, at } = openAt(ul);
     const others = [...ul.children].filter((c) => c !== el && c.className === "row");
 
-    fire(el, "pointermove", { pointerId: 1, ...onSlice(at, 0) });
+    fire(el, "pointermove", { pointerId: 1, ...onRow(at, 0) });
     await nextFrame();
     expect(calls.hovered).toEqual([0]);
 
-    fire(el, "pointermove", { pointerId: 1, ...onSlice(at, 90) });
+    fire(el, "pointermove", { pointerId: 1, ...onRow(at, 4) });
     await nextFrame();
     expect(calls.hovered).toEqual([0, 4]);
-    // Not one neighbour opened a gap: the ring is not a drag.
+    // Not one neighbour opened a gap: the column is not a drag.
     expect(others.every((c) => !c.style.transform)).toBe(true);
   });
 
-  test("the release runs the slice the finger let go on", () => {
+  test("the release runs the square the finger let go on", () => {
     const { ul, calls } = setup();
     const { el, at } = openAt(ul);
-    fire(el, "pointermove", { pointerId: 1, ...onSlice(at, 45) });
-    fire(el, "pointerup", { pointerId: 1, ...onSlice(at, 45) });
+    fire(el, "pointermove", { pointerId: 1, ...onRow(at, 2) });
+    fire(el, "pointerup", { pointerId: 1, ...onRow(at, 2) });
 
     expect(calls.ran).toEqual(["pin"]);
     expect(calls.one).toEqual([]);
@@ -1182,16 +1192,16 @@ describe("reorderable with an action ring", () => {
     expect(ul.hasAttribute("data-reordering")).toBe(false);
   });
 
-  test("released clear of the pills, or on the card itself, nothing happens", () => {
+  test("released clear of the column, or on the card itself, nothing happens", () => {
     const { ul, calls } = setup();
     const first = openAt(ul);
-    // Out past the ring altogether.
-    fire(first.el, "pointermove", { pointerId: 1, ...onSlice(first.at, 45, 400) });
-    fire(first.el, "pointerup", { pointerId: 1, ...onSlice(first.at, 45, 400) });
+    // Out past the column altogether.
+    fire(first.el, "pointermove", { pointerId: 1, ...offSheet(first.at) });
+    fire(first.el, "pointerup", { pointerId: 1, ...offSheet(first.at) });
     expect(calls.ran).toEqual([]);
 
-    // And let go without moving at all: the finger is in the hole around
-    // itself, which is the card.
+    // And let go without moving at all: the finger is in the dead square
+    // around itself, which is the card.
     const second = openAt(ul, 2, { x: 60, y: 90 });
     fire(second.el, "pointerup", { pointerId: 1, clientX: 60, clientY: 90 });
     expect(calls.ran).toEqual([]);
@@ -1203,14 +1213,14 @@ describe("reorderable with an action ring", () => {
       onRing: (from, action) => calls.chosen.push([from, action?.id ?? null]),
     });
     const { el, at } = openAt(ul);
-    fire(el, "pointermove", { pointerId: 1, ...onSlice(at, 0) });
-    fire(el, "pointerup", { pointerId: 1, ...onSlice(at, 0) });
+    fire(el, "pointermove", { pointerId: 1, ...onRow(at, 0) });
+    fire(el, "pointerup", { pointerId: 1, ...onRow(at, 0) });
 
     expect(calls.chosen).toEqual([[1, actions[0].id]]);
     expect(calls.ran).toEqual([]);
   });
 
-  test("an item with no ring holds the way it always did", () => {
+  test("an item with no actions holds the way it always did", () => {
     const { ul, calls } = setup({
       ring: () => [],
       onHold: (i) => (calls.holds.push(i), true),
@@ -1228,10 +1238,10 @@ describe("reorderable with an action ring", () => {
     reorderable(ul, { axis: "y", item: ".row", ring: () => many });
 
     const { el, at } = openAt(ul);
-    // The ninety degrees are shared by five pills, never seven: the last
-    // angle is the fifth action, and `f`/`g` are only in the ⋮.
-    fire(el, "pointermove", { pointerId: 1, ...onSlice(at, 90) });
-    fire(el, "pointerup", { pointerId: 1, ...onSlice(at, 90) });
+    // The column is five squares, never seven: the last one is the fifth
+    // action, and `f`/`g` are only in the ⋮.
+    fire(el, "pointermove", { pointerId: 1, ...onRow(at, 4) });
+    fire(el, "pointerup", { pointerId: 1, ...onRow(at, 4) });
     expect(calls).toEqual(["e"]);
   });
 });
