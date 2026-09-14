@@ -1560,9 +1560,10 @@
       themeRevision += 1;
       return;
     }
-    // A conflict copy landing is the one thing the banner exists to say, so
-    // it refreshes the shell like a list does: the snapshot carries the list
-    // of copies, and nothing else asks for it.
+    // A copy of something the app can merge is settled before anybody is
+    // asked about it, so the merge runs BEFORE the snapshot that feeds the
+    // banner. A failure here just leaves the copy for the banner.
+    if (kind === "conflict") await api.mergeConflicts().catch(() => {});
     // A conflict copy landing is the one thing the banner exists to say, so
     // it refreshes the shell like a list does: the snapshot carries the list
     // of copies, and nothing else asks for it.

@@ -5,7 +5,6 @@
 
 use std::collections::BTreeMap;
 
-use crate::conflict::Conflict;
 use crate::error::{Error, Result};
 use crate::list::TaskList;
 use crate::task::Task;
@@ -102,98 +101,6 @@ impl Notebook {
             }
         }
         Ok(counts)
-    }
-
-    /// Every conflict copy sitting in the notebook, wherever it may be: the
-    /// config folder, every tasks space's folder, and every notes space at
-    /// any depth. The one walk behind [`Notebook::conflicts`] and the reaper,
-    /// so the two cannot disagree about which copies exist.
-    fn conflict_paths(&self) -> Result<Vec<PathBuf>> {
-        let mut dirs = vec![self.config_dir()];
-        for (_, folder) in self.task_folders()? {
-            dirs.push(folder.dir().to_path_buf());
-        }
-        let mut files = Vec::new();
-        for dir in dirs {
-            for path in crate::fsio::dir_paths(&dir)? {
-                if crate::conflict::is_conflict_file(&path) && path.is_file() {
-                    files.push(path);
-                }
-            }
-        }
-        // Notes nest in folders, and the walk of `NoteFolder` skips conflict
-        // copies on purpose (they are not notes) — so they are looked for here.
-        for (_, folder) in self.note_folders()? {
-            conflict_files_under(folder.dir(), &mut files)?;
-        }
-        Ok(files)
-    }
-
-    /// Conflicting copies waiting for a decision. Reporting only — the user
-    /// decides what to keep. A copy identical to its original is not one of
-    /// them: it holds no decision, and the open already trashed it.
-    pub fn conflicts(&self) -> Result<Vec<Conflict>> {
-        let mut found = Vec::new();
-        for path in self.conflict_paths()? {
-            if let Some(mut conflict) = crate::conflict::describe(&path) {
-                if is_identical_copy(&conflict) {
-                    continue;
-                }
-                conflict.relative = Some(crate::relpath::relative_slash(self.root(), &path));
-                found.push(conflict);
-            }
-        }
-        found.sort_by(|a, b| a.path.cmp(&b.path));
-        Ok(found)
-    }
-
-    /// Sends those copies to the trash — nothing is destroyed, and the same
-    /// deletion reaches the other device through the sync tool, so the notice
-    /// goes away on both. Derived work, run on open.
-    pub(super) fn reap_identical_conflicts(&self) -> Result<usize> {
-        let mut gone = 0;
-        for path in self.conflict_paths()? {
-            let Some(conflict) = crate::conflict::describe(&path) else {
-                continue;
-            };
-            if is_identical_copy(&conflict) {
-                self.trash_path(&path)?;
-                gone += 1;
-            }
-        }
-        Ok(gone)
-    }
-
-    /// A conflict copy by its root-relative address, checked to be one: the
-    /// two doors below take user input and must not reach any other file.
-    fn conflict_file(&self, relative: &str) -> Result<PathBuf> {
-        let path = crate::relpath::safe_join(self.root(), relative)
-            .filter(|path| crate::conflict::is_conflict_file(path) && path.is_file())
-            .ok_or_else(|| Error::InvalidNotePath(relative.to_string()))?;
-        Ok(path)
-    }
-
-    /// Discards a conflict copy: it goes to the trash, the original stays.
-    /// For the person who knows the version on screen is the one to keep.
-    pub fn discard_conflict(&self, relative: &str) -> Result<()> {
-        self.ensure_writable()?;
-        let copy = self.conflict_file(relative)?;
-        self.trash_path(&copy)
-    }
-
-    /// Keeps a conflict copy INSTEAD of the original: the original goes to
-    /// the trash and the copy takes its name and place. An original already
-    /// gone is simply given back its name.
-    pub fn adopt_conflict(&self, relative: &str) -> Result<()> {
-        self.ensure_writable()?;
-        let copy = self.conflict_file(relative)?;
-        let original = crate::conflict::describe(&copy)
-            .and_then(|conflict| conflict.original.or_else(|| original_name_of(&copy)))
-            .ok_or_else(|| Error::InvalidNotePath(relative.to_string()))?;
-        if original.exists() {
-            self.trash_path(&original)?;
-        }
-        crate::fsio::rename_recorded(&copy, &original)
     }
 
     /// Opens a list by its root-relative address (`Tasks/Compras.md`). Every
@@ -363,45 +270,4 @@ impl Notebook {
         self.update_states(|state| state.rename_path(path, &inbox_path))?;
         Ok(rescued)
     }
-}
-
-/// A conflicting copy holding exactly what the original holds: both devices
-/// wrote the same bytes, so there is no version to choose — whichever one is
-/// "kept" leaves the same file behind. True for the user's text as much as for
-/// the app's own files: identical is identical.
-fn is_identical_copy(conflict: &Conflict) -> bool {
-    let Some(original) = conflict.original.as_deref() else {
-        return false;
-    };
-    match (std::fs::read(&conflict.path), std::fs::read(original)) {
-        (Ok(copy), Ok(kept)) => copy == kept,
-        _ => false,
-    }
-}
-
-/// The name a conflict copy would have without the marker, beside itself —
-/// `describe` answers the original only while it exists.
-fn original_name_of(copy: &Path) -> Option<PathBuf> {
-    let name = crate::fsio::file_name_of(copy);
-    let (stem, _) = name.split_once(crate::conflict::MARKER)?;
-    let ext = copy
-        .extension()
-        .map(|ext| format!(".{}", ext.to_string_lossy()))
-        .unwrap_or_default();
-    Some(copy.with_file_name(format!("{stem}{ext}")))
-}
-
-/// Every conflict copy under `dir`, at any depth, hidden folders left out.
-fn conflict_files_under(dir: &Path, out: &mut Vec<PathBuf>) -> Result<()> {
-    for path in crate::fsio::dir_paths(dir)? {
-        if crate::fsio::is_hidden(&path) {
-            continue;
-        }
-        if path.is_dir() {
-            conflict_files_under(&path, out)?;
-        } else if crate::conflict::is_conflict_file(&path) {
-            out.push(path);
-        }
-    }
-    Ok(())
 }

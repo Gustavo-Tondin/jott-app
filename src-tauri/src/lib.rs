@@ -128,6 +128,7 @@ pub fn configure<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builde
             // lists — lists
             commands::lists::list_names,
             commands::lists::list_conflicts,
+            commands::lists::merge_conflicts,
             commands::lists::discard_conflict,
             commands::lists::adopt_conflict,
             commands::lists::list_tasks,

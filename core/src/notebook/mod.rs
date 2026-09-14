@@ -197,6 +197,12 @@ impl Notebook {
 pub struct Notebook {
     root: PathBuf,
     config: Config,
+    /// What this device last knew the files it can merge to hold in COMMON
+    /// with the other devices ([`crate::base`]). `None` when the caller has
+    /// nowhere to keep it — the core knows no app folder, so the shell hands
+    /// one in ([`Notebook::with_base_dir`]) and the tests a tempdir. Without
+    /// it nothing is merged, which is the behaviour of every build before it.
+    base: Option<crate::base::Base>,
 }
 
 // One area of the notebook per module, all writing into the SAME
@@ -204,6 +210,7 @@ pub struct Notebook {
 // This file holds what every area needs (opening, config, guards). A method
 // one area needs from another is `pub(super)`; private stays private to its area.
 mod age;
+mod conflicts;
 mod groups;
 mod library;
 pub use library::{NotebookContents, NotebookSummary};
@@ -243,7 +250,7 @@ impl Notebook {
         }
 
         let config = Config::load(root.join(NOTEBOOK_CONFIG_DIR).join("config.json"));
-        let notebook = Self { root, config };
+        let notebook = Self { root, config, base: None };
 
         // A notebook written by a newer app is opened for reading only, so
         // nothing here may touch the disk.
@@ -296,6 +303,7 @@ impl Notebook {
         let notebook = Self {
             root,
             config: Config::default(),
+            base: None,
         };
         notebook.config.save(notebook.config_path())?;
         notebook.ensure_fixed_spaces()?;

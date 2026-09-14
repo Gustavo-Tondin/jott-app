@@ -211,6 +211,13 @@ pub async fn open_notebook<R: Runtime>(
     } else {
         Notebook::open(&path)?
     };
+    // Where this MACHINE keeps what it last knew the notebook's mergeable
+    // files to hold in common with the other devices. Handed in here because
+    // the core knows no app folder; without it nothing is merged.
+    let notebook = match crate::prefs::base_dir(&app) {
+        Some(dir) => notebook.with_base_dir(dir),
+        None => notebook,
+    };
     // The factory palette, written once into every notebook opened here:
     // derived, so failing to write it is not a failure to open.
     let _ = notebook.ensure_default_theme(FACTORY_THEME_CSS);

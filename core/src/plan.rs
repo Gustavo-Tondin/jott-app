@@ -105,6 +105,33 @@ impl Plan {
     fn prune(&mut self) {
         self.days.retain(|_, items| !items.is_empty());
     }
+
+    /// Reads a plan from JSON, or `None` when the text is not one — the
+    /// strict read a merge needs (see [`crate::state::DayState::parse`]).
+    pub fn parse(text: &str) -> Option<Self> {
+        serde_json::from_str(text).ok()
+    }
+
+    /// Merges two versions of the plan against the last content the devices
+    /// had in common: [`refs::merge`] day by day. A day one device poured
+    /// into today (`take_due`) is gone from its plan, and a removal wins —
+    /// which is right, since the other device pours the same day on its next
+    /// open.
+    pub fn merge(base: &Self, a: &Self, b: &Self) -> Self {
+        let mut days: BTreeMap<NaiveDate, Vec<TaskRef>> = BTreeMap::new();
+        let every_day = a.days.keys().chain(b.days.keys()).copied();
+        for day in every_day.collect::<std::collections::BTreeSet<_>>() {
+            let merged = refs::merge(
+                base.days.get(&day).map(Vec::as_slice).unwrap_or(&[]),
+                a.days.get(&day).map(Vec::as_slice).unwrap_or(&[]),
+                b.days.get(&day).map(Vec::as_slice).unwrap_or(&[]),
+            );
+            if !merged.is_empty() {
+                days.insert(day, merged);
+            }
+        }
+        Self { days }
+    }
 }
 
 impl TaskRefs for Plan {
@@ -157,7 +184,7 @@ impl PlanFile {
         let path = path.as_ref().to_path_buf();
         let plan = std::fs::read_to_string(&path)
             .ok()
-            .and_then(|text| serde_json::from_str::<Plan>(&text).ok())
+            .and_then(|text| Plan::parse(&text))
             .unwrap_or_default();
         Self { path, plan }
     }
@@ -247,6 +274,62 @@ mod tests {
         plan.set_order(ymd(2026, 9, 5), &[TaskRef::new("l.md", "c"), TaskRef::new("l.md", "a")]);
         let ids: Vec<&str> = plan.of(ymd(2026, 9, 5)).iter().map(|r| r.id.as_str()).collect();
         assert_eq!(ids, vec!["c", "a", "b"]);
+    }
+
+    /// One line of a merge table (see `state::tests`).
+    type Row<'a> = (&'a [&'a str], &'a [&'a str], &'a [&'a str], &'a [&'a str]);
+
+    fn planned(day: NaiveDate, ids: &[&str]) -> Plan {
+        let mut plan = Plan::default();
+        for id in ids {
+            plan.add(day, "jott.tasks/task-list.md", *id);
+        }
+        plan
+    }
+
+    #[test]
+    fn the_plan_merges_day_by_day_by_the_set_rule() {
+        let day = ymd(2026, 9, 20);
+        let table: &[Row] = &[
+            (&["a"], &["a"], &["a"], &["a"]),
+            (&[], &["a"], &["b"], &["a", "b"]),
+            (&["a"], &[], &["a"], &[]),
+            (&["a"], &["a", "b"], &[], &["b"]),
+        ];
+        for (base, a, b, expected) in table {
+            let merged = Plan::merge(&planned(day, base), &planned(day, a), &planned(day, b));
+            let ids: Vec<&str> = merged.of(day).iter().map(|r| r.id.as_str()).collect();
+            assert_eq!(ids, expected.to_vec(), "base {base:?}, A {a:?}, B {b:?}");
+            assert_eq!(
+                merged.days.contains_key(&day),
+                !expected.is_empty(),
+                "a day left with nothing is not written"
+            );
+        }
+    }
+
+    #[test]
+    fn a_day_one_device_already_poured_into_today_does_not_come_back() {
+        // `take_due` drains the day on whichever device opened first; the
+        // other still has it. The removal wins, and the tasks are in that
+        // device's day already.
+        let arrived = ymd(2026, 9, 14);
+        let ahead = ymd(2026, 9, 20);
+        let mut base = planned(arrived, &["a"]);
+        base.add(ahead, "jott.tasks/task-list.md", "b");
+        let opened = planned(ahead, &["b"]);
+        let closed = base.clone();
+
+        let merged = Plan::merge(&base, &opened, &closed);
+
+        assert!(!merged.days.contains_key(&arrived), "{:?}", merged.days);
+        assert_eq!(merged.of(ahead).len(), 1);
+    }
+
+    #[test]
+    fn a_corrupt_plan_is_not_read_as_an_empty_one() {
+        assert_eq!(Plan::parse("{ not json"), None);
+        assert!(Plan::parse("{}").unwrap().is_empty());
     }
 
     #[test]

@@ -6,6 +6,7 @@
 pub mod age;
 pub mod arrange;
 pub mod assets;
+pub mod base;
 pub mod browse;
 pub mod clock;
 pub mod conflict;

@@ -77,6 +77,16 @@ write, which is why the attribution is per window. The owner is written onto
 the record the moment the file lands, not when the command returns: on slow
 storage the watcher looks before the command is done.
 
+**The merge base is the machine's, not the notebook's.** To merge two
+versions of a file, Jott has to know what the devices last had in common;
+that content lives in the app's own data folder beside the machine
+preferences (`core/src/base.rs`, handed a folder by `prefs::base_dir`), never
+inside the notebook, which would sync a per-device memory to no purpose. It
+never follows the app's own writes — a base that did would be "my version",
+and the merge would hand every difference to the other device. It moves on
+what arrives from outside, once the arrival burst has settled, and on a
+decision already taken. Without a base, nothing is merged.
+
 ## `src/` — the frontend
 
 | Folder | What it holds |

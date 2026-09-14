@@ -19,6 +19,50 @@ fn clone_notebook(origin: &Path) -> (tempfile::TempDir, Notebook) {
     (dir, notebook)
 }
 
+/// One device, complete: the notebook folder, the machine folder where its
+/// merge base lives (outside the notebook, as on a real install), and the
+/// open notebook. Every `Notebook::open` in a merge test goes through this,
+/// since a notebook with no base merges nothing.
+struct Device {
+    notebook: tempfile::TempDir,
+    machine: tempfile::TempDir,
+}
+
+impl Device {
+    fn new() -> (Self, Notebook) {
+        let (notebook, _) = init();
+        let device = Self {
+            notebook,
+            machine: tempfile::tempdir().unwrap(),
+        };
+        let open = device.open();
+        (device, open)
+    }
+
+    /// The same device, holding a copy of what `origin` holds right now —
+    /// the moment the two were last in step, base included.
+    fn cloned_from(origin: &Device) -> (Self, Notebook) {
+        let notebook = tempfile::tempdir().unwrap();
+        copy_tree(origin.notebook.path(), notebook.path());
+        let device = Self {
+            notebook,
+            machine: tempfile::tempdir().unwrap(),
+        };
+        let open = device.open();
+        (device, open)
+    }
+
+    fn open(&self) -> Notebook {
+        Notebook::open(self.notebook.path())
+            .unwrap()
+            .with_base_dir(self.machine.path())
+    }
+
+    fn path(&self) -> &Path {
+        self.notebook.path()
+    }
+}
+
 fn copy_tree(from: &Path, to: &Path) {
     std::fs::create_dir_all(to).unwrap();
     for entry in std::fs::read_dir(from).unwrap() {
@@ -32,27 +76,39 @@ fn copy_tree(from: &Path, to: &Path) {
     }
 }
 
-/// Lands `b`'s version of everything under `dir` on `a`, the way the sync
-/// tool does when both sides changed the same file while apart: `a` keeps
-/// the name and `b`'s bytes arrive beside it as a conflict copy. Same bytes
-/// on both sides means nothing was in conflict, and nothing lands.
+/// Brings two folders into step the way the sync tool does. A file BOTH
+/// sides changed converges to the same pair on both of them: `a`'s bytes keep
+/// the name, `b`'s land beside them as a conflict copy — and the copy syncs
+/// too, so each device is handed the same decision to take. A file only one
+/// side has is simply copied over.
 fn sync_folder(a: &Path, b: &Path, dir: &str) {
-    for entry in std::fs::read_dir(b.join(dir)).unwrap() {
-        let entry = entry.unwrap();
-        if !entry.file_type().unwrap().is_file() {
-            continue;
-        }
-        let theirs = std::fs::read(entry.path()).unwrap();
-        let name = entry.file_name().to_string_lossy().into_owned();
+    let names = |root: &Path| -> Vec<String> {
+        std::fs::read_dir(root.join(dir))
+            .into_iter()
+            .flatten()
+            .flatten()
+            .filter(|entry| entry.file_type().unwrap().is_file())
+            .map(|entry| entry.file_name().to_string_lossy().into_owned())
+            .collect()
+    };
+    let every: std::collections::BTreeSet<String> =
+        names(a).into_iter().chain(names(b)).collect();
+
+    for name in every {
         let ours = a.join(dir).join(&name);
-        match std::fs::read(&ours) {
-            Ok(bytes) if bytes == theirs => {}
-            Ok(_) => {
+        let theirs = b.join(dir).join(&name);
+        match (std::fs::read(&ours), std::fs::read(&theirs)) {
+            (Ok(mine), Ok(yours)) if mine == yours => {}
+            (Ok(mine), Ok(yours)) => {
                 let (stem, ext) = name.rsplit_once('.').unwrap_or((name.as_str(), ""));
                 let copy = format!("{stem}.sync-conflict-20260914-120000-PHONE.{ext}");
-                std::fs::write(a.join(dir).join(copy), &theirs).unwrap();
+                std::fs::write(a.join(dir).join(&copy), &yours).unwrap();
+                std::fs::write(b.join(dir).join(&copy), &yours).unwrap();
+                std::fs::write(&theirs, &mine).unwrap();
             }
-            Err(_) => std::fs::write(&ours, &theirs).unwrap(),
+            (Ok(mine), Err(_)) => std::fs::write(&theirs, &mine).unwrap(),
+            (Err(_), Ok(yours)) => std::fs::write(&ours, &yours).unwrap(),
+            _ => {}
         }
     }
 }
@@ -239,4 +295,154 @@ fn a_copy_that_differs_is_left_for_the_user() {
         1,
         "and the banner still has something to ask"
     );
+}
+
+// ------------------------------------- two devices turning the day at once
+
+/// The ids in today, in order.
+fn today_ids(notebook: &Notebook) -> Vec<String> {
+    notebook
+        .open_state()
+        .unwrap()
+        .state
+        .items
+        .iter()
+        .map(|r| r.id.clone())
+        .collect()
+}
+
+/// Creates a task in the Inbox and gives it an id — the position `create_task`
+/// answers, never a guessed one: `newTasksOnTop` decides where it lands.
+fn task(notebook: &Notebook, text: &str) -> String {
+    let inbox = Notebook::inbox_path();
+    let position = notebook.create_task(&inbox, text).unwrap();
+    notebook.ensure_task_id(&inbox, position).unwrap()
+}
+
+#[test]
+fn each_device_pulling_its_own_task_into_today_leaves_no_copy() {
+    // `daily-state.json` is written by every device that opens in the
+    // morning, so it is the file the sync tool copies most. Two devices
+    // pulling DIFFERENT tasks is not a decision anybody has to take: against
+    // the content they last had in common, both halves are additions.
+    let inbox = Notebook::inbox_path();
+    let (a_device, a) = Device::new();
+    let common = task(&a, "Comum");
+    let desktop = task(&a, "Do desktop");
+    let phone = task(&a, "Do celular");
+    a.pull_into_day(None, &inbox, &common).unwrap();
+
+    // Opening is when a device takes note of what it is holding — from here
+    // the two are out of contact, each with the same base.
+    let a = a_device.open();
+    let (b_device, b) = Device::cloned_from(&a_device);
+    a.pull_into_day(None, &inbox, &desktop).unwrap();
+    b.pull_into_day(None, &inbox, &phone).unwrap();
+
+    sync_folder(a_device.path(), b_device.path(), ".jott");
+    assert_eq!(
+        conflict_copies(&a_device.path().join(".jott")),
+        1,
+        "the sync left a copy of the day's state"
+    );
+
+    let a = a_device.open();
+    let ids = today_ids(&a);
+    for (name, id) in [("comum", &common), ("do desktop", &desktop), ("do celular", &phone)] {
+        assert!(ids.contains(id), "{name} is not in the day: {ids:?}");
+    }
+    assert_eq!(ids.len(), 3);
+    assert_eq!(conflict_copies(&a_device.path().join(".jott")), 0);
+    assert!(a.conflicts().unwrap().is_empty(), "and the banner has nothing to ask");
+    assert_eq!(
+        a.trash_entries().len(),
+        1,
+        "nothing was destroyed: the copy is in the trash"
+    );
+
+    // The other device was handed the same pair, and merges it into the same
+    // bytes — otherwise the two would hand each other a conflict for ever.
+    let b = b_device.open();
+    assert_eq!(today_ids(&b), ids, "both devices land on the same day");
+    assert_eq!(conflict_copies(&b_device.path().join(".jott")), 0);
+}
+
+#[test]
+fn a_task_taken_out_of_the_day_on_one_device_stays_out() {
+    // Only one side made a decision about that reference, so there is nothing
+    // to weigh: taking it out wins over the other device leaving it alone.
+    let inbox = Notebook::inbox_path();
+    let (a_device, a) = Device::new();
+    let one = task(&a, "Uma");
+    let other = task(&a, "Outra");
+    a.pull_into_day(None, &inbox, &one).unwrap();
+    a.pull_into_day(None, &inbox, &other).unwrap();
+
+    let a = a_device.open();
+    let (b_device, b) = Device::cloned_from(&a_device);
+    a.remove_from_day(None, &inbox, &one).unwrap();
+    let third = task(&b, "Terceira");
+    b.pull_into_day(None, &inbox, &third).unwrap();
+
+    sync_folder(a_device.path(), b_device.path(), ".jott");
+    let a = a_device.open();
+
+    let ids = today_ids(&a);
+    assert!(!ids.contains(&one), "the one taken out is out: {ids:?}");
+    assert!(ids.contains(&other), "{ids:?}");
+    assert!(ids.contains(&third), "and the other device's is in: {ids:?}");
+    assert_eq!(ids.len(), 2);
+}
+
+#[test]
+fn without_a_base_the_copy_is_left_for_the_user() {
+    // A notebook this device has never opened before has nothing to measure
+    // from, and guessing is how work is lost: the banner asks, as it always did.
+    let inbox = Notebook::inbox_path();
+    let (a_device, a) = Device::new();
+    let id = task(&a, "Comum");
+    a.pull_into_day(None, &inbox, &id).unwrap();
+
+    let state = a_device.path().join(".jott/daily-state.json");
+    let copy = state.with_file_name("daily-state.sync-conflict-20260914-120000-PHONE.json");
+    std::fs::write(&copy, read(&state).replace(&id, "outra")).unwrap();
+
+    // A machine folder of its own: this device has never seen the file.
+    let fresh = tempfile::tempdir().unwrap();
+    let a = Notebook::open(a_device.path()).unwrap().with_base_dir(fresh.path());
+
+    assert!(copy.is_file(), "the copy is still there");
+    assert_eq!(a.conflicts().unwrap().len(), 1);
+}
+
+#[test]
+fn a_plan_day_one_device_already_poured_into_today_does_not_come_back() {
+    // Both devices had a task planned for a day that arrived. Whichever opens
+    // first drains the day; the other still has it in its plan. The removal
+    // wins, and the task is in today on the device that opened.
+    let inbox = Notebook::inbox_path();
+    let (a_device, a) = Device::new();
+    let planned = task(&a, "Do dia");
+    let near = a.today() + chrono::Duration::days(2);
+    let far = a.today() + chrono::Duration::days(9);
+    a.pull_into_day(Some(near), &inbox, &planned).unwrap();
+    a.pull_into_day(Some(far), &inbox, &planned).unwrap();
+
+    let a = a_device.open();
+    let (b_device, b) = Device::cloned_from(&a_device);
+    // A drops the near day (what `take_due` does the morning it arrives);
+    // B, still apart, plans one more task for the far one.
+    let mut plan = a.open_plan().unwrap();
+    plan.plan.remove_from(near, &inbox, &planned);
+    plan.save().unwrap();
+    let extra = task(&b, "Mais uma");
+    b.pull_into_day(Some(far), &inbox, &extra).unwrap();
+
+    sync_folder(a_device.path(), b_device.path(), ".jott");
+    let a = a_device.open();
+
+    let plan = a.open_plan().unwrap().plan;
+    assert!(plan.of(near).is_empty(), "the day A drained does not come back");
+    assert_eq!(plan.of(far).len(), 2, "and B's addition is there");
+    assert_eq!(conflict_copies(&a_device.path().join(".jott")), 0);
 }

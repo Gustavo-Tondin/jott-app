@@ -78,7 +78,7 @@ impl Notebook {
         // config is a plain read, and `jsondoc` answers a missing or broken
         // file with the defaults instead of writing one back.
         let config = Config::load(root.join(NOTEBOOK_CONFIG_DIR).join("config.json"));
-        let notebook = Self { root, config };
+        let notebook = Self { root, config, base: None };
 
         Ok(NotebookSummary {
             path: notebook.root.clone(),

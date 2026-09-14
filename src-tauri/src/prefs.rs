@@ -278,6 +278,14 @@ pub fn remember_zoom<R: Runtime>(app: &AppHandle<R>, zoom: f64) {
     update(app, |prefs| prefs.zoom = Some(zoom));
 }
 
+/// Where a notebook's merge base is kept (`jott_core::base`). Beside the
+/// machine's preferences, so it answers to the MACHINE and never travels: a
+/// base inside the notebook would sync, and a per-device memory that syncs is
+/// no base at all. `None` when there is no config folder.
+pub fn base_dir<R: Runtime>(app: &AppHandle<R>) -> Option<PathBuf> {
+    path_of(app)?.parent().map(|dir| dir.join("base"))
+}
+
 /// This install's device name, made up the first time it is asked for and
 /// kept. `None` only when there is no config folder to keep it in — a name
 /// that changed every launch would leave a new file behind each time.

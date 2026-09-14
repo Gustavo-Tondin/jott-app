@@ -228,15 +228,32 @@ the note on screen was changed by something else while it had unsaved
 typing, or another device's list landed in the moment between Jott reading
 the file and saving it. What was about to be written wins the file; the
 version found there is kept as the copy, byte for byte. Jott lists every conflict copy
-it finds (inside note folders too) and never merges one — a copy is never a
-note or a list on the board, and resolving it is the reader's call. The two
-answers the app offers both go through `.jott/trash/`: discarding moves the
-copy there; keeping it moves the original there and gives the copy its name.
+it finds, inside note folders too — a copy is never a note or a list on the
+board. The two answers the app offers both go through `.jott/trash/`:
+discarding moves the copy there; keeping it moves the original there and
+gives the copy its name.
 
-One case is not asked about: a copy holding **exactly** what the original
-holds, byte for byte. Both devices wrote the same thing, so either answer
-leaves the same file behind. Opening the notebook moves those copies to
-`.jott/trash/`, where they can be restored like anything else.
+Two cases are not asked about, because there is nothing to decide:
+
+- **A copy holding exactly what the original holds**, byte for byte. Both
+  devices wrote the same thing, so either answer leaves the same file
+  behind. Opening the notebook moves those copies to `.jott/trash/`, where
+  they can be restored like anything else.
+- **A copy of `.jott/daily-state.json` or `.jott/plan.json`.** These hold
+  sets of references to tasks, so two devices that changed them apart are
+  merged rather than chosen between: a reference either side added is kept,
+  a reference either side took out is dropped, and when the two disagree
+  about which day it is, the later date wins outright. The merged version
+  takes the original's place and the copy goes to `.jott/trash/`. Both
+  devices are handed the same pair and merge it into the same bytes, so the
+  result does not bounce between them.
+
+Merging needs to know what the two devices last had in **common**, and each
+device keeps that privately, in its own application data folder — never
+inside the notebook, where a per-device memory would sync to no purpose. A
+device that has never seen the file before has nothing to measure from, and
+its first conflict there is reported like any other. Everything else — notes
+and task lists — is never merged.
 
 ---
 

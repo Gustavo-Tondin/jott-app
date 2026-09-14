@@ -260,6 +260,34 @@ describe("App", () => {
     await screen.findByText("1 sync conflict in this notebook");
   });
 
+  test("a copy the app can merge is merged before the banner is asked about it", async () => {
+    // The day's state and the plan are merged on their own (sync-proposta 3.c).
+    // The order matters: the snapshot is what feeds the banner, so a merge
+    // that ran after it would flash a conflict the user never had to see.
+    const order = [];
+    shell({
+      merge_conflicts: () => {
+        order.push("merge");
+        return Promise.resolve(1);
+      },
+      notebook_snapshot: () => {
+        order.push("snapshot");
+        return Promise.resolve(snapshot());
+      },
+    });
+    render(App);
+    await waitFor(() => expect(order.length).toBeGreaterThan(0));
+    order.length = 0;
+
+    await sendWatcherEvent("notebook://changed", {
+      kind: "conflict",
+      path: "/n/.jott/daily-state.sync-conflict-20260914-132000-PHONE.json",
+    });
+
+    expect(order[0]).toBe("merge");
+    expect(order).toContain("snapshot");
+  });
+
   test("the sidebar counts the open tasks of a place, not only of a list", async () => {
     // It only ever counted a user's own lists (user report, 2026-08-20): the
     // fixed Tasks row and every tasks space had no number at all, so a

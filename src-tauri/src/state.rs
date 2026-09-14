@@ -221,6 +221,24 @@ impl AppState {
         })
     }
 
+    /// Tells `window`'s notebook that somebody else's version of each of
+    /// these files landed — the new content the devices have in common
+    /// (`Notebook::note_external_change`). Nothing is announced and nothing is
+    /// written into the notebook; this only moves the merge base.
+    pub fn note_external_changes(&self, window: &str, paths: &[std::path::PathBuf]) {
+        if paths.is_empty() {
+            return;
+        }
+        let Ok(guard) = self.lock() else {
+            return;
+        };
+        if let Some(open) = guard.get(window) {
+            for path in paths {
+                open.notebook.note_external_change(path);
+            }
+        }
+    }
+
     fn lock(&self) -> CommandResult<std::sync::MutexGuard<'_, HashMap<String, OpenNotebook>>> {
         // A poisoned mutex means a command panicked while holding it. Failing
         // the call is better than papering over an unknown state.
@@ -263,10 +281,18 @@ impl WatcherHandle {
                 // settled (`Arrivals`). A space that gave way to its file
                 // order is announced as a change of a list, so the window
                 // re-reads the snapshot and its menu ticks Custom.
-                if let Some(lists) = arrivals.due(std::time::Instant::now()) {
+                if let Some(settled) = arrivals.due(std::time::Instant::now()) {
                     use tauri::Manager;
-                    if app.state::<AppState>().yield_to_file_order(&window, &lists) {
-                        let change = jott_core::watcher::Change::List { path: lists[0].clone() };
+                    let state = app.state::<AppState>();
+                    // The versions that arrived are what the devices now have
+                    // in common — taken only now, with the whole burst on disk.
+                    state.note_external_changes(&window, &settled.states);
+                    if !settled.lists.is_empty()
+                        && state.yield_to_file_order(&window, &settled.lists)
+                    {
+                        let change = jott_core::watcher::Change::List {
+                            path: settled.lists[0].clone(),
+                        };
                         if let Err(e) = app.emit_to(&window, NOTEBOOK_CHANGED_EVENT, &change) {
                             eprintln!("[jott] could not emit change event: {e}");
                         }
@@ -395,9 +421,22 @@ const SETTLE: std::time::Duration = std::time::Duration::from_secs(3);
 #[derive(Default)]
 struct Arrivals {
     lists: Vec<std::path::PathBuf>,
+    /// The day's state and the plan, whose arriving version becomes the merge
+    /// base (`Notebook::note_external_change`) — held for the same reason the
+    /// lists are: a conflict copy landing beside one of them arrives in the
+    /// same burst, and a base taken before it would be one of the two versions
+    /// in conflict, never what the devices had in common.
+    states: Vec<std::path::PathBuf>,
     /// Folders whose `.space.json` changed during the burst.
     configs: std::collections::HashSet<std::path::PathBuf>,
     last: Option<std::time::Instant>,
+}
+
+/// What a settled burst leaves to judge.
+#[derive(Debug, Default, PartialEq, Eq)]
+struct Settled {
+    lists: Vec<std::path::PathBuf>,
+    states: Vec<std::path::PathBuf>,
 }
 
 impl Arrivals {
@@ -406,6 +445,7 @@ impl Arrivals {
         for change in changes {
             match change {
                 Change::List { path } => self.lists.push(path.clone()),
+                Change::State { path } => self.states.push(path.clone()),
                 Change::Other { path }
                     if path.file_name().is_some_and(|name| name == jott_core::space::SPACE_CONFIG_FILE) =>
                 {
@@ -417,14 +457,15 @@ impl Arrivals {
             }
         }
         // Anything still arriving pushes the judgement back.
-        if !changes.is_empty() && !(self.lists.is_empty() && self.configs.is_empty()) {
+        let nothing_held = self.lists.is_empty() && self.states.is_empty() && self.configs.is_empty();
+        if !changes.is_empty() && !nothing_held {
             self.last = Some(now);
         }
     }
 
-    /// The lists to judge, once the burst has been quiet for [`SETTLE`];
-    /// each burst is judged once.
-    fn due(&mut self, now: std::time::Instant) -> Option<Vec<std::path::PathBuf>> {
+    /// What to judge, once the burst has been quiet for [`SETTLE`]; each burst
+    /// is judged once.
+    fn due(&mut self, now: std::time::Instant) -> Option<Settled> {
         if now.duration_since(self.last?) < SETTLE {
             return None;
         }
@@ -435,7 +476,9 @@ impl Arrivals {
             .filter(|path| !path.parent().is_some_and(|dir| configs.contains(dir)))
             .collect();
         lists.dedup();
-        (!lists.is_empty()).then_some(lists)
+        let mut states = std::mem::take(&mut self.states);
+        states.dedup();
+        (!lists.is_empty() || !states.is_empty()).then_some(Settled { lists, states })
     }
 }
 
@@ -464,7 +507,31 @@ mod tests {
         // Something else of the same sync pushes the judgement back.
         arrivals.note(&[other("/nb/assets/photo.jpg")], at(2000));
         assert_eq!(arrivals.due(at(4000)), None);
-        assert_eq!(arrivals.due(at(5001)), Some(vec![PathBuf::from("/nb/Work/task-list.md")]));
+        assert_eq!(
+            arrivals.due(at(5001)),
+            Some(Settled {
+                lists: vec![PathBuf::from("/nb/Work/task-list.md")],
+                states: Vec::new(),
+            })
+        );
+        assert_eq!(arrivals.due(at(9000)), None, "a burst is judged once");
+    }
+
+    #[test]
+    fn the_days_state_waits_for_the_burst_too() {
+        // The version that arrived becomes the merge base, and a conflict copy
+        // landing beside it comes in the same burst: taken before the burst
+        // settles, the base would be one of the two versions in conflict.
+        let start = Instant::now();
+        let at = |ms: u64| start + Duration::from_millis(ms);
+        let state = PathBuf::from("/nb/.jott/daily-state.json");
+        let mut arrivals = Arrivals::default();
+        arrivals.note(&[Change::State { path: state.clone() }], at(0));
+        assert_eq!(arrivals.due(at(1000)), None);
+        assert_eq!(
+            arrivals.due(at(3001)),
+            Some(Settled { lists: Vec::new(), states: vec![state] })
+        );
         assert_eq!(arrivals.due(at(9000)), None, "a burst is judged once");
     }
 
@@ -527,7 +594,10 @@ mod tests {
         arrivals.note(&[other("/nb/Work/.space.json")], start + Duration::from_secs(1));
         assert_eq!(
             arrivals.due(start + Duration::from_secs(5)),
-            Some(vec![PathBuf::from("/nb/Casa/task-list.md")])
+            Some(Settled {
+                lists: vec![PathBuf::from("/nb/Casa/task-list.md")],
+                states: Vec::new(),
+            })
         );
 
         // A config alone leaves nothing to judge.

@@ -116,9 +116,14 @@ export const api = {
   // root-relative address (a space, a list, a note), empty for the root. What
   // opens is always the FOLDER around it, never the document.
   openInFileManager: (path = null) => invoke("open_in_file_manager", { path }),
-  // The two ways out of a sync conflict, both through the trash: drop the
-  // copy (root-relative address), or make the copy the file. Nothing is
-  // destroyed — the Trash screen gives either back.
+  // Merges the conflict copies the app knows how to merge, and answers how
+  // many it settled; the rest is left for the banner to ask about. Called
+  // whenever a copy lands, since two devices turning the day at the same
+  // moment is not a decision anybody has to take.
+  mergeConflicts: () => invoke("merge_conflicts"),
+  // The two ways out of a sync conflict the app cannot merge, both through
+  // the trash: drop the copy (root-relative address), or make the copy the
+  // file. Nothing is destroyed — the Trash screen gives either back.
   discardConflict: (path) => invoke("discard_conflict", { path }),
   adoptConflict: (path) => invoke("adopt_conflict", { path }),
   /// This machine's font families, sorted and safe to name in CSS. Empty off

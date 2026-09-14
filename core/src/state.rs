@@ -108,6 +108,34 @@ pub(crate) mod refs {
         }
         changed
     }
+
+    /// Three-way merge of one list of references — the rule both holders
+    /// share, and the only one either of them needs: these are SETS, so
+    /// there is no field to fight over. A reference is in the result when
+    /// both sides have it, or when one side has it and the base did not (an
+    /// addition); it is out when the base had it and a side dropped it (a
+    /// removal). Removal beats the other side keeping it: a task taken out
+    /// of the day on one device is a decision, and the task itself is
+    /// untouched in its `.md`.
+    ///
+    /// Order is A's, with B's additions after it: position is not worth a
+    /// conflict, and both devices merge the same pair the same way.
+    pub fn merge(base: &[TaskRef], a: &[TaskRef], b: &[TaskRef]) -> Vec<TaskRef> {
+        let has = |items: &[TaskRef], r: &TaskRef| items.contains(r);
+        let keep = |r: &TaskRef| {
+            matches!(
+                (has(base, r), has(a, r), has(b, r)),
+                (_, true, true) | (false, true, false) | (false, false, true)
+            )
+        };
+        let mut out: Vec<TaskRef> = a.iter().filter(|r| keep(r)).cloned().collect();
+        for reference in b {
+            if keep(reference) && !out.contains(reference) {
+                out.push(reference.clone());
+            }
+        }
+        out
+    }
 }
 
 /// The contents of the day's state file.
@@ -179,6 +207,44 @@ impl DayState {
         self.recent.truncate(RECENT_LIMIT);
     }
 
+    /// Reads a state from JSON, or `None` when the text is not one. Strict
+    /// where [`StateFile::load`] is forgiving: a merge reading a half-written
+    /// file as an empty day would call every reference a removal.
+    pub fn parse(text: &str) -> Option<Self> {
+        serde_json::from_str(text).ok()
+    }
+
+    /// Merges two versions of the day against the last content the devices
+    /// had in common. Whoever's day is NEWER wins outright: a state still on
+    /// yesterday never rolled over, and pouring it into today would bring
+    /// back a day that is done. On the same day it is [`refs::merge`], the
+    /// set rule, over what the day holds and over what left it.
+    pub fn merge(base: &Self, a: &Self, b: &Self) -> Self {
+        if a.date != b.date {
+            return if a.date > b.date { a.clone() } else { b.clone() };
+        }
+        // A base from another day says nothing about this one; without it
+        // every reference reads as an addition, which is the safe way round.
+        let empty = Vec::new();
+        let common = |pick: fn(&Self) -> &Vec<TaskRef>| -> &Vec<TaskRef> {
+            if base.date == a.date {
+                pick(base)
+            } else {
+                &empty
+            }
+        };
+
+        let items = refs::merge(common(|s| &s.items), &a.items, &b.items);
+        let mut recent = refs::merge(common(|s| &s.recent), &a.recent, &b.recent);
+        // What is back in the day is no longer something that left it.
+        recent.retain(|r| !items.contains(r));
+        recent.truncate(RECENT_LIMIT);
+        Self {
+            date: a.date,
+            items,
+            recent,
+        }
+    }
 }
 
 impl TaskRefs for DayState {
@@ -214,7 +280,7 @@ impl StateFile {
         let path = path.as_ref().to_path_buf();
         let state = std::fs::read_to_string(&path)
             .ok()
-            .and_then(|text| serde_json::from_str::<DayState>(&text).ok())
+            .and_then(|text| DayState::parse(&text))
             .unwrap_or_else(|| DayState::new(fallback_date));
         Self { path, state }
     }
@@ -378,6 +444,131 @@ mod tests {
                 "items": [{ "path": "Tasks/Compras.md", "id": "g7h8i9" }]
             })
         );
+    }
+
+    /// One line of a merge table: the ids in the base, in A, in B, and the
+    /// ids the merge has to leave.
+    type Row<'a> = (&'a [&'a str], &'a [&'a str], &'a [&'a str], &'a [&'a str]);
+
+    /// A day holding exactly these ids, all out of one list.
+    fn day(date: NaiveDate, ids: &[&str]) -> DayState {
+        let mut state = DayState::new(date);
+        for id in ids {
+            state.add("jott.tasks/task-list.md", *id);
+        }
+        state
+    }
+
+    fn ids_of(items: &[TaskRef]) -> Vec<&str> {
+        items.iter().map(|r| r.id.as_str()).collect()
+    }
+
+    #[test]
+    fn the_day_merges_by_the_set_rule_line_by_line() {
+        let today = ymd(2026, 9, 14);
+        // base | A | B | in the result?
+        let table: &[Row] = &[
+            // untouched on both sides
+            (&["a"], &["a"], &["a"], &["a"]),
+            // one side added
+            (&[], &["a"], &[], &["a"]),
+            (&[], &[], &["a"], &["a"]),
+            // both added the same task
+            (&[], &["a"], &["a"], &["a"]),
+            // one side took it out of the day
+            (&["a"], &[], &["a"], &[]),
+            (&["a"], &["a"], &[], &[]),
+            // taken out on both
+            (&["a"], &[], &[], &[]),
+            // each side pulled a different task in
+            (&[], &["a"], &["b"], &["a", "b"]),
+            // one pulled in while the other took another out
+            (&["x"], &["x", "a"], &[], &["a"]),
+        ];
+        for (base, a, b, expected) in table {
+            let merged = DayState::merge(&day(today, base), &day(today, a), &day(today, b));
+            assert_eq!(
+                ids_of(&merged.items),
+                expected.to_vec(),
+                "base {base:?}, A {a:?}, B {b:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn merging_the_day_is_the_same_whichever_side_is_asked_first() {
+        // Both devices merge the SAME pair, and the result has to be the same
+        // bytes on each — otherwise they write over each other for ever.
+        let today = ymd(2026, 9, 14);
+        let base = day(today, &["x"]);
+        let a = day(today, &["x", "a"]);
+        let b = day(today, &["b"]);
+
+        let one = DayState::merge(&base, &a, &b);
+        let other = DayState::merge(&base, &b, &a);
+
+        let sorted = |state: &DayState| {
+            let mut ids: Vec<String> = state.items.iter().map(|r| r.id.clone()).collect();
+            ids.sort();
+            ids
+        };
+        assert_eq!(sorted(&one), sorted(&other));
+        assert_eq!(sorted(&one), vec!["a".to_string(), "b".to_string()]);
+    }
+
+    #[test]
+    fn a_state_still_on_yesterday_does_not_pour_back_into_today() {
+        // The other device never rolled over. Its day is done, and merging it
+        // in would put yesterday's leftovers back on screen.
+        let base = day(ymd(2026, 9, 13), &["ontem"]);
+        let stale = day(ymd(2026, 9, 13), &["ontem", "outra"]);
+        let fresh = day(ymd(2026, 9, 14), &["hoje"]);
+
+        let merged = DayState::merge(&base, &stale, &fresh);
+        assert_eq!(merged.date, ymd(2026, 9, 14));
+        assert_eq!(ids_of(&merged.items), vec!["hoje"]);
+
+        // And the same the other way round.
+        let merged = DayState::merge(&base, &fresh, &stale);
+        assert_eq!(merged.date, ymd(2026, 9, 14));
+        assert_eq!(ids_of(&merged.items), vec!["hoje"]);
+    }
+
+    #[test]
+    fn a_base_from_another_day_is_no_base_at_all() {
+        // Same day on both sides, but the common content is older: every
+        // reference reads as an addition, so nothing is dropped.
+        let base = day(ymd(2026, 9, 13), &["velha"]);
+        let a = day(ymd(2026, 9, 14), &["a"]);
+        let b = day(ymd(2026, 9, 14), &["b"]);
+
+        let merged = DayState::merge(&base, &a, &b);
+        assert_eq!(ids_of(&merged.items), vec!["a", "b"]);
+    }
+
+    #[test]
+    fn what_left_the_day_merges_too_and_never_shadows_what_is_in_it() {
+        let today = ymd(2026, 9, 14);
+        let base = DayState::new(today);
+        let mut a = day(today, &["a"]);
+        a.recall([TaskRef::new("jott.tasks/task-list.md", "saiu")]);
+        let mut b = DayState::new(today);
+        b.recall([TaskRef::new("jott.tasks/task-list.md", "a")]);
+
+        let merged = DayState::merge(&base, &a, &b);
+
+        assert_eq!(ids_of(&merged.items), vec!["a"]);
+        assert_eq!(
+            ids_of(&merged.recent),
+            vec!["saiu"],
+            "the one the other device pulled back in is not listed as gone"
+        );
+    }
+
+    #[test]
+    fn a_corrupt_state_is_not_read_as_an_empty_day() {
+        assert_eq!(DayState::parse("{ not json"), None);
+        assert_eq!(DayState::parse("{\"date\":\"2026-09-14\"}").unwrap().date, ymd(2026, 9, 14));
     }
 
     #[test]

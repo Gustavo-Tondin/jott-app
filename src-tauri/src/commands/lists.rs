@@ -30,6 +30,20 @@ pub async fn list_conflicts<R: Runtime>(
     state.read(window.label(), |nb| nb.conflicts())
 }
 
+/// Merges the conflict copies the app knows how to merge, each merged copy
+/// going to the trash. Answers how many were settled, so the caller knows
+/// whether anything moved. What it cannot merge is left for the banner.
+///
+/// Called when a copy lands, and once on open: two devices that turned the
+/// day at the same moment are not a decision anybody has to take.
+#[tauri::command]
+pub async fn merge_conflicts<R: Runtime>(
+    state: State<'_, AppState>,
+    window: tauri::Window<R>,
+) -> CommandResult<usize> {
+    state.record(window.label(), "merge_conflicts", |nb| nb.merge_conflicts())
+}
+
 /// Sends a conflict copy to the trash; the original stays.
 #[tauri::command]
 pub async fn discard_conflict<R: Runtime>(

@@ -792,6 +792,72 @@ fn sync_conflicts_reach_the_frontend() {
 }
 
 #[test]
+fn a_mergeable_conflict_is_merged_and_the_copy_trashed() {
+    // Two devices pulled different tasks into today. Through the bridge, the
+    // way the front calls it when a copy lands: merge first, then ask for the
+    // snapshot that feeds the banner — and the banner has nothing to ask.
+    let (_lock, app, dir) = app_with_notebook();
+    let inbox = "jott.tasks/task-list.md";
+    let both = task_with_id(&app, inbox, "De ontem");
+    let ours = task_with_id(&app, inbox, "Do desktop");
+    let theirs = task_with_id(&app, inbox, "Do celular");
+    ok(&app, "pull_into_day", json!({ "list": inbox, "id": both }));
+
+    // Opening is when this machine takes note of what it is holding — the
+    // base every merge is measured against.
+    ok(&app, "open_notebook", json!({ "path": dir.path(), "create": false }));
+    let state = dir.path().join(".jott/daily-state.json");
+    let common = std::fs::read_to_string(&state).unwrap();
+
+    // The other device pulled a task of its own into the same day, and its
+    // version lands beside ours.
+    ok(&app, "pull_into_day", json!({ "list": inbox, "id": theirs }));
+    let from_the_phone = std::fs::read_to_string(&state).unwrap();
+    std::fs::write(&state, &common).unwrap();
+    ok(&app, "pull_into_day", json!({ "list": inbox, "id": ours }));
+    std::fs::write(
+        state.with_file_name("daily-state.sync-conflict-20260914-120000-PHONE.json"),
+        &from_the_phone,
+    )
+    .unwrap();
+    assert_eq!(ok(&app, "list_conflicts", json!({})).as_array().unwrap().len(), 1);
+
+    assert_eq!(ok(&app, "merge_conflicts", json!({})), json!(1));
+
+    assert_eq!(ok(&app, "list_conflicts", json!({})), json!([]));
+    let today = ok(&app, "day_tasks", json!({ "day": null }));
+    let ids: Vec<&str> = today
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|listed| listed["task"]["id"].as_str().unwrap())
+        .collect();
+    for id in [&both, &ours, &theirs] {
+        assert!(ids.contains(&id.as_str()), "{id} is not in the day: {ids:?}");
+    }
+    // Nothing destroyed, and the merge is one action.
+    assert_eq!(ok(&app, "trash_entries", json!({})).as_array().unwrap().len(), 1);
+    assert_eq!(ok(&app, "undo", json!({})), json!("merge_conflicts"));
+}
+
+#[test]
+fn a_conflict_the_app_cannot_merge_is_left_for_the_banner() {
+    // A list is step 6: the app keeps no base of one, so the copy stays and
+    // the banner asks — merging must never touch what it does not understand.
+    let (_lock, app, dir) = app_with_notebook();
+    ok(&app, "create_list", json!({ "folder": "jott.tasks", "name": "Compras" }));
+    std::fs::write(
+        dir.path()
+            .join("jott.tasks/Compras.sync-conflict-20260720-143000-K3F7NLM.md"),
+        "- [ ] versão do celular\n",
+    )
+    .unwrap();
+
+    assert_eq!(ok(&app, "merge_conflicts", json!({})), json!(0));
+    assert_eq!(ok(&app, "list_conflicts", json!({})).as_array().unwrap().len(), 1);
+}
+
+#[test]
 fn the_rich_fields_round_trip_through_the_bridge() {
     let (_lock, app, dir) = app_with_notebook();
     let id = task_with_id(&app, "jott.tasks/task-list.md", "Comprar material");
