@@ -105,6 +105,14 @@ export function sendPluginEvent(plugin, event, payload) {
 /// because the shell calls the answer on teardown.
 export const listen = vi.fn(() => Promise.resolve(() => {}));
 
+/// Delivers to the shell what the watcher thread would have emitted. Awaits
+/// the handler, so a test can assert on what it fetched.
+export async function sendWatcherEvent(event, payload) {
+  const opened = listen.mock.calls.filter(([name]) => name === event);
+  if (opened.length === 0) throw new Error(`nothing is listening for ${event}`);
+  for (const [, handler] of opened) await handler({ payload });
+}
+
 // --- @tauri-apps/api/window -----------------------------------------------
 
 /// The frameless window's handle. jsdom has no window to minimize, maximize or

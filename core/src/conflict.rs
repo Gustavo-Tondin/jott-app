@@ -8,11 +8,56 @@
 
 use std::path::{Path, PathBuf};
 
+use chrono::NaiveDateTime;
 use serde::Serialize;
 
+use crate::error::{Error, Result};
+
 /// The marker Syncthing puts in the file name — and the app too, when it
-/// keeps a version it is about to write over (`NoteFolder::keep_conflict_copy`).
+/// keeps a version it is about to write over ([`keep_copy`]).
 pub const MARKER: &str = ".sync-conflict-";
+
+/// The tag the app signs its own copies with, where Syncthing puts the name
+/// of the device the losing version came from.
+const TAG: &str = "JOTTAPP";
+
+/// The name a version the app is about to write over gets beside itself:
+/// the shape Syncthing writes, so the same conflict handling finds it, with
+/// our tag rather than a device's.
+pub fn copy_name(stem: &str, extension: &str, now: NaiveDateTime) -> String {
+    let dot = if extension.is_empty() { "" } else { "." };
+    format!(
+        "{stem}{MARKER}{}-{TAG}{dot}{extension}",
+        now.format("%Y%m%d-%H%M%S")
+    )
+}
+
+/// Keeps `path` AS IT IS ON DISK beside itself, under [`copy_name`] — for the
+/// moment the app is about to write over a version somebody else left there.
+/// Answers the copy's path; `None` when there is nothing on disk to keep.
+/// Twice in the same second is two copies (`fsio::free_name`), never one
+/// written over: each was somebody's work.
+pub fn keep_copy(path: &Path, now: NaiveDateTime) -> Result<Option<PathBuf>> {
+    let bytes = match std::fs::read(path) {
+        Ok(bytes) => bytes,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+        Err(e) => {
+            return Err(Error::Io {
+                path: path.to_path_buf(),
+                source: e,
+            })
+        }
+    };
+    let text = |part: Option<&std::ffi::OsStr>| {
+        part.map(|part| part.to_string_lossy().into_owned())
+            .unwrap_or_default()
+    };
+    let dir = path.parent().unwrap_or(Path::new("."));
+    let name = copy_name(&text(path.file_stem()), &text(path.extension()), now);
+    let copy = crate::fsio::free_name(dir, &name);
+    crate::fsio::write_atomically(&copy, &bytes)?;
+    Ok(Some(copy))
+}
 
 /// A conflicting copy of a file, and the file it belongs to.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -64,6 +109,13 @@ pub fn describe(path: &Path) -> Option<Conflict> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn at(hour: u32, minute: u32, second: u32) -> NaiveDateTime {
+        chrono::NaiveDate::from_ymd_opt(2026, 9, 14)
+            .unwrap()
+            .and_hms_opt(hour, minute, second)
+            .unwrap()
+    }
 
     fn p(name: &str) -> PathBuf {
         PathBuf::from("/notebook/Tasks").join(name)
@@ -134,5 +186,39 @@ mod tests {
         .unwrap();
 
         assert_eq!(conflict.original, Some(original));
+    }
+
+    #[test]
+    fn the_name_the_app_signs_its_own_copies_with() {
+        let name = copy_name("Ideia", "md", at(3, 14, 48));
+        assert_eq!(name, "Ideia.sync-conflict-20260914-031448-JOTTAPP.md");
+        assert!(is_conflict_file(&p(&name)), "and it reads back as one");
+        assert_eq!(describe(&p(&name)).unwrap().list.as_deref(), Some("Ideia"));
+        // A file with no extension is given none.
+        assert_eq!(
+            copy_name("LEIA", "", at(3, 14, 48)),
+            "LEIA.sync-conflict-20260914-031448-JOTTAPP"
+        );
+    }
+
+    #[test]
+    fn keeping_a_version_twice_in_one_second_is_two_copies() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("Compras.md");
+        std::fs::write(&path, "- [ ] do celular\n").unwrap();
+
+        let first = keep_copy(&path, at(3, 14, 48)).unwrap().unwrap();
+        let second = keep_copy(&path, at(3, 14, 48)).unwrap().unwrap();
+
+        assert_ne!(first, second, "each was somebody's work");
+        assert_eq!(std::fs::read_to_string(&first).unwrap(), "- [ ] do celular\n");
+        assert_eq!(std::fs::read_to_string(&second).unwrap(), "- [ ] do celular\n");
+        assert_eq!(
+            std::fs::read_to_string(&path).unwrap(),
+            "- [ ] do celular\n",
+            "the original is not touched"
+        );
+        // Nothing on disk: nothing to keep, and no error.
+        assert_eq!(keep_copy(&dir.path().join("Nada.md"), at(3, 14, 48)).unwrap(), None);
     }
 }

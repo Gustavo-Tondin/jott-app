@@ -223,9 +223,11 @@ inside somebody's note.
 A file named `<name>.sync-conflict-<date>-<time>-<tag>.md` beside a note or
 a list is a **conflict copy**: the same file was changed in two places
 before they met. Syncthing writes them, and so does Jott, with the tag
-`JOTTAPP`, in one situation: the note on screen was changed by something
-else while it had unsaved typing. The typing wins the file; the other
-version is kept as the copy, byte for byte. Jott lists every conflict copy
+`JOTTAPP`, whenever it is about to write over a version it did not read:
+the note on screen was changed by something else while it had unsaved
+typing, or another device's list landed in the moment between Jott reading
+the file and saving it. What was about to be written wins the file; the
+version found there is kept as the copy, byte for byte. Jott lists every conflict copy
 it finds (inside note folders too) and never merges one — a copy is never a
 note or a list on the board, and resolving it is the reader's call. The two
 answers the app offers both go through `.jott/trash/`: discarding moves the

@@ -6,7 +6,7 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/svelte";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, test, vi } from "vitest";
-import { bridge, callsTo, invoke } from "../test/bridge.js";
+import { bridge, callsTo, invoke, sendWatcherEvent } from "../test/bridge.js";
 import { CLOCK, ideia, noteFolder, resetScreens, task } from "../test/screens.js";
 
 // The note editor's engine is stubbed by a textarea — `lib/test/screens.js`
@@ -236,6 +236,28 @@ describe("App", () => {
     await screen.findByText(/Replace "Inbox" with this copy\?/);
     await fireEvent.click(document.querySelector(".confirm-dialog__confirm"));
     await waitFor(() => expect(invoke).toHaveBeenCalledWith("adopt_conflict", { path: copy.relative }));
+  });
+
+  test("a conflict copy landing from another device brings the banner up on its own", async () => {
+    // The copy arrives while the app is open, from the sync tool or from a
+    // save that found another version on disk. Nothing else asks the bridge
+    // for the list of copies, so the watcher's event has to.
+    const copy = {
+      path: "/n/jott.tasks/Inbox.sync-conflict-20260914-132000-PHONE.md",
+      list: "Inbox",
+      original: "/n/jott.tasks/Inbox.md",
+      relative: "jott.tasks/Inbox.sync-conflict-20260914-132000-PHONE.md",
+    };
+    let conflicts = [];
+    shell({ notebook_snapshot: () => Promise.resolve({ ...snapshot(), conflicts }) });
+    render(App);
+    await waitFor(() => expect(callsTo("notebook_snapshot").length).toBeGreaterThan(0));
+    expect(screen.queryByText("1 sync conflict in this notebook")).toBeNull();
+
+    conflicts = [copy];
+    await sendWatcherEvent("notebook://changed", { kind: "conflict", path: copy.path });
+
+    await screen.findByText("1 sync conflict in this notebook");
   });
 
   test("the sidebar counts the open tasks of a place, not only of a list", async () => {

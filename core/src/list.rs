@@ -33,6 +33,9 @@ pub struct TaskList {
     /// the order, so every save puts the tasks back in it. `None` is a list
     /// that only grows by appending (Completed), or has no space behind it.
     space_config: Option<PathBuf>,
+    /// What the file held when it was read, by content — the `If-Match` of
+    /// the next save. `None` is a file that was not there.
+    loaded: Option<crate::selfwrite::Stamp>,
 }
 
 impl TaskList {
@@ -40,12 +43,14 @@ impl TaskList {
     /// lists are recreated on demand.
     pub fn load(path: impl AsRef<Path>) -> Result<Self> {
         let path = path.as_ref().to_path_buf();
-        let content = match std::fs::read_to_string(&path) {
-            Ok(content) => content,
-            Err(e) if e.kind() == std::io::ErrorKind::NotFound => String::new(),
+        let found = match std::fs::read_to_string(&path) {
+            Ok(content) => Some(content),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => None,
             Err(e) => return Err(Error::Io { path, source: e }),
         };
-        Ok(Self::from_content(path, &content))
+        let mut list = Self::from_content(path, found.as_deref().unwrap_or_default());
+        list.loaded = found.map(|content| crate::selfwrite::Stamp::of_bytes(content.as_bytes()));
+        Ok(list)
     }
 
     /// Parses a list from text, with no file behind it. Saving one of these
@@ -86,6 +91,7 @@ impl TaskList {
             lines,
             trailing_newline,
             space_config: None,
+            loaded: None,
         }
     }
 
@@ -431,9 +437,36 @@ impl TaskList {
     /// corrupted notebook, and sync tools may read the file at any moment.
     /// A list that follows a space is settled first — the one place every
     /// write passes, so no caller can leave the file out of its order.
+    ///
+    /// And the disk is checked before it is written over: another device's
+    /// version can land in the moment between the read and this write, and
+    /// what is found there is kept beside itself rather than lost. Nothing
+    /// is decided — the copy goes to the banner, like Syncthing's own.
     pub fn save(&mut self) -> Result<()> {
         self.settle();
-        crate::fsio::write_atomically(&self.path, self.render().as_bytes())
+        let rendered = self.render();
+        self.keep_what_is_there(rendered.as_bytes())?;
+        crate::fsio::write_atomically(&self.path, rendered.as_bytes())?;
+        self.loaded = Some(crate::selfwrite::Stamp::of_bytes(rendered.as_bytes()));
+        Ok(())
+    }
+
+    /// Files the version on disk as a conflict copy when it is not the one
+    /// this list was read from. A version WE wrote is not somebody else's:
+    /// two handles on one file inside a single command write in sequence, and
+    /// bytes equal to what is about to land change nothing either way.
+    fn keep_what_is_there(&self, landing: &[u8]) -> Result<()> {
+        let Some(found) = crate::selfwrite::Stamp::of_file(&self.path) else {
+            return Ok(());
+        };
+        if Some(found) == self.loaded
+            || found == crate::selfwrite::Stamp::of_bytes(landing)
+            || crate::selfwrite::was_written(&self.path, found)
+        {
+            return Ok(());
+        }
+        crate::conflict::keep_copy(&self.path, crate::clock::civil_now())?;
+        Ok(())
     }
 }
 

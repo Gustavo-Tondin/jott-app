@@ -261,24 +261,8 @@ impl NoteFolder {
     /// the copy's address; `None` when there is nothing on disk to keep.
     pub fn keep_conflict_copy(&self, relative: &str, now: NaiveDateTime) -> Result<Option<String>> {
         let path = self.note_path(relative)?;
-        let bytes = match std::fs::read(&path) {
-            Ok(bytes) => bytes,
-            Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
-            Err(e) => return Err(Error::Io { path, source: e }),
-        };
-        let stem = path
-            .file_stem()
-            .map(|s| s.to_string_lossy().into_owned())
-            .unwrap_or_default();
-        let name = format!(
-            "{stem}{}{}-JOTTAPP.{EXTENSION}",
-            crate::conflict::MARKER,
-            now.format("%Y%m%d-%H%M%S")
-        );
-        let dir = path.parent().unwrap_or(&self.dir);
-        let copy = crate::fsio::free_name(dir, &name);
-        crate::fsio::write_atomically(&copy, &bytes)?;
-        Ok(Some(relpath::relative_slash(&self.dir, &copy)))
+        Ok(crate::conflict::keep_copy(&path, now)?
+            .map(|copy| relpath::relative_slash(&self.dir, &copy)))
     }
 
     /// Creates a note in `folder`, returning its address.

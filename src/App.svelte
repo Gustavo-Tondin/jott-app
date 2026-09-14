@@ -1560,7 +1560,13 @@
       themeRevision += 1;
       return;
     }
-    if (kind === "list" || kind === "config") await refreshNotebook();
+    // A conflict copy landing is the one thing the banner exists to say, so
+    // it refreshes the shell like a list does: the snapshot carries the list
+    // of copies, and nothing else asks for it.
+    // A conflict copy landing is the one thing the banner exists to say, so
+    // it refreshes the shell like a list does: the snapshot carries the list
+    // of copies, and nothing else asks for it.
+    if (kind === "list" || kind === "config" || kind === "conflict") await refreshNotebook();
     // A file inside the notebook that is not a `.md` is a file of the
     // library: the pictures an open note draws may no longer be there.
     if (kind === "other") libraryKey += 1;

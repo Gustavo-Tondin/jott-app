@@ -175,6 +175,24 @@ pub fn is_own(path: &Path, owner: &str) -> bool {
     stamps.contains(&actual)
 }
 
+/// Whether `path`, as it is on disk right now, holds bytes THIS PROCESS wrote
+/// in the last few seconds — whoever was writing. [`is_own`] asks the same of
+/// one owner, for a watcher deciding whose event it is; this one is for a
+/// writer about to overwrite the file, which only needs to know the version
+/// it found is not somebody else's. Two handles on one list inside a single
+/// command are the case: the second save must not file the first as a
+/// conflict.
+pub fn was_written(path: &Path, found: Stamp) -> bool {
+    let now = crate::clock::system_now();
+    let Ok(mut log) = log().lock() else {
+        return false;
+    };
+    purge(&mut log, now);
+    log.writes
+        .get(&key(path))
+        .is_some_and(|records| records.iter().any(|record| record.stamp == found))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -309,5 +327,26 @@ mod tests {
         assert!(is_own(&mine, "w1"), "w1 wrote it");
         assert!(!is_own(&mine, "w2"), "w2 did not — a second window must hear");
         assert!(!is_own(&nobodys, "w1"), "an unnamed write is nobody's");
+    }
+
+    #[test]
+    fn a_write_with_no_owner_named_is_still_ours() {
+        // What a writer about to overwrite the file asks: `is_own` filters by
+        // owner, and the core writes with nobody named.
+        let dir = temp_dir("was-written");
+        let path = dir.join("Compras.md");
+
+        remember(&path, b"first");
+        std::fs::write(&path, b"first").unwrap();
+        assert!(was_written(&path, Stamp::of_bytes(b"first")));
+        assert!(
+            !is_own(&path, "w1"),
+            "and it belongs to no window in particular"
+        );
+
+        assert!(
+            !was_written(&path, Stamp::of_bytes(b"somebody else")),
+            "bytes we never wrote are somebody else's"
+        );
     }
 }

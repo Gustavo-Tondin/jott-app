@@ -77,12 +77,11 @@ const INBOX: &str = "jott.tasks/task-list.md";
 // ------------------------------------------------- a version landing mid-save
 
 #[test]
-fn a_save_writes_over_a_version_that_landed_while_the_command_ran() {
+fn a_save_keeps_the_version_that_landed_while_the_command_ran() {
     // Every command re-reads its list from disk, so the window a sync can
-    // land in is the length of one command. Inside it, the save wins and the
-    // other device's line is gone with no copy of it kept. Step 4 of
-    // docs/pendências/sync-proposta.md turns this around: the version found
-    // on disk is kept as a conflict copy first.
+    // land in is the length of one command. Inside it the save still wins the
+    // file — but what it found there is kept beside it first, and the banner
+    // has it. Nothing decided, nothing lost.
     let (dir, notebook) = init();
     notebook.create_task(INBOX, "do desktop").unwrap();
     let path = dir.path().join(INBOX);
@@ -101,12 +100,44 @@ fn a_save_writes_over_a_version_that_landed_while_the_command_ran() {
     );
     assert!(
         !on_disk.contains("do celular"),
-        "TODAY the arriving line is written over:\n{on_disk}"
+        "the arriving line is not merged in — that is step 6:\n{on_disk}"
     );
-    assert!(
-        notebook.conflicts().unwrap().is_empty(),
-        "and nothing is kept of it — the race this documents"
+
+    let conflicts = notebook.conflicts().unwrap();
+    assert_eq!(conflicts.len(), 1, "{conflicts:?}");
+    let kept = read(&conflicts[0].path);
+    assert_eq!(kept, arriving, "byte for byte what was found on disk");
+    assert_eq!(
+        conflict_copies(&dir.path().join("jott.tasks")),
+        1,
+        "one copy, named the way Syncthing names them"
     );
+}
+
+#[test]
+fn a_list_saved_over_and_over_keeps_no_copy_of_itself() {
+    // The guard above must not fire on the app's own writing: every command
+    // that touches a list saves it, and a list open across two saves (or two
+    // handles on one file inside one command, as a move between lists is)
+    // finds its own bytes there.
+    let (dir, notebook) = init();
+    notebook.create_task(INBOX, "do desktop").unwrap();
+
+    let mut open = notebook.open_list(INBOX).unwrap();
+    open.add_text_with_id("mais uma");
+    open.save().unwrap();
+    open.add_text_with_id("e outra");
+    open.save().unwrap();
+
+    // And a fresh handle saving what another handle just wrote.
+    let mut again = notebook.open_list(INBOX).unwrap();
+    open.add_text_with_id("da primeira alça");
+    open.save().unwrap();
+    again.add_text_with_id("da segunda");
+    again.save().unwrap();
+
+    assert_eq!(conflict_copies(&dir.path().join("jott.tasks")), 0);
+    assert!(notebook.conflicts().unwrap().is_empty());
 }
 
 // ------------------------------------------- the same task finished on both
