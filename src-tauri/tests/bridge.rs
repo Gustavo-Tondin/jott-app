@@ -1175,6 +1175,50 @@ fn two_windows_editing_one_list_keep_both_edits() {
 }
 
 #[test]
+fn a_change_carrying_content_the_window_has_does_not_wake_it() {
+    // A sync landing one file arrives as several events, and each reload
+    // costs a refresh of the whole shell (docs/desempenho.md). What decides
+    // is the CONTENT: the same bytes again are no news, however new the
+    // file's mtime — on Android's FUSE it changes on its own.
+    use tauri::Listener;
+
+    let (_lock, app, dir) = app_with_notebook();
+    let (tx, rx) = std::sync::mpsc::channel();
+    app.listen_any("notebook://changed", move |event| {
+        let _ = tx.send(event.payload().to_string());
+    });
+
+    let path = dir.path().join("jott.tasks/task-list.md");
+    let arrived = "- [ ] do celular <!--id:c1-->\n";
+    std::fs::write(&path, arrived).unwrap();
+    let payload = rx
+        .recv_timeout(std::time::Duration::from_secs(10))
+        .expect("a list written from outside reaches the window");
+    assert!(payload.contains("task-list.md"), "{payload}");
+    // Whatever else that first write stirred up.
+    while rx.recv_timeout(std::time::Duration::from_millis(400)).is_ok() {}
+
+    // The same bytes again, with a brand new mtime.
+    std::fs::write(&path, arrived).unwrap();
+    std::fs::File::options()
+        .write(true)
+        .open(&path)
+        .unwrap()
+        .set_times(std::fs::FileTimes::new().set_modified(std::time::SystemTime::now()))
+        .unwrap();
+    if let Ok(payload) = rx.recv_timeout(std::time::Duration::from_millis(600)) {
+        panic!("content the window already has must not wake it, but this did: {payload}");
+    }
+
+    // Other bytes are a change like any other.
+    std::fs::write(&path, "- [ ] outra coisa <!--id:c2-->\n").unwrap();
+    let payload = rx
+        .recv_timeout(std::time::Duration::from_secs(10))
+        .expect("a real change is still reported");
+    assert!(payload.contains("task-list.md"), "{payload}");
+}
+
+#[test]
 fn opening_a_second_notebook_switches_only_the_asking_windows() {
     // Still a switch, and since 2026-08-24 a switch of one window's notebook
     // rather than of the app's: another window's stays exactly where it was

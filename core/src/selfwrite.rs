@@ -45,6 +45,13 @@ impl Stamp {
             hash: hasher.finish(),
         }
     }
+
+    /// What `path` holds right now; `None` when it cannot be read — gone,
+    /// or a folder. Reads the whole file, so it is for the small ones the
+    /// app compares by content, never for an asset.
+    pub fn of_file(path: &Path) -> Option<Self> {
+        std::fs::read(path).ok().map(|bytes| Self::of_bytes(&bytes))
+    }
 }
 
 /// One recorded write: what it left behind, when, and who wrote it.

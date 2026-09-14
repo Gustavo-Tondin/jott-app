@@ -23,6 +23,10 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 - **Renaming the open note no longer flashes "No such file or directory".** The app now recognises its own rename instead of re-reading the name it just left behind.
 - **Deleting the open note no longer leaves an error on the screen.** The app used to re-read the file it had just deleted and show the raw "io error"; a re-read that comes from the disk changing is now quiet, and only opening a note reports when it cannot be read.
 
+### Improved
+
+- **A change arriving from another device reloads the screen once, not twice.** A file landing again with exactly the content Jott already has is no longer treated as news.
+
 ## v0.55.0
 
 ### New

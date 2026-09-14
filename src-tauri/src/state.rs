@@ -244,6 +244,8 @@ impl WatcherHandle {
         // Captured by the thread: the event has to reach the window whose
         // notebook actually changed, and nobody else's.
         let window = window.to_string();
+        // The one change that names no file of its own (`Change::Config`).
+        let config_json = notebook.config_path();
         let watcher: NotebookWatcher = notebook.watch()?;
         let stop = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
         let flag = stop.clone();
@@ -255,6 +257,7 @@ impl WatcherHandle {
             // Polling with a timeout instead of blocking forever is what lets
             // the thread notice it should stop.
             let mut arrivals = Arrivals::default();
+            let mut announced = Announced::default();
             while !flag.load(Ordering::Relaxed) {
                 // Lists somebody else wrote are judged once their burst has
                 // settled (`Arrivals`). A space that gave way to its file
@@ -286,10 +289,24 @@ impl WatcherHandle {
 
                 // The window's own saves come back as events; the front
                 // already acted on them. Dropped by STAMP, so a file somebody
-                // else touched after us is still reported (`selfwrite`).
+                // else touched after us is still reported (`selfwrite`). What
+                // is left is weighed against what the window already knows the
+                // file to hold: the same content twice is no news.
                 let changes: Vec<_> = changes
                     .into_iter()
-                    .filter(|change| !change.path().is_some_and(|path| is_own_write(path, &window)))
+                    .filter(|change| {
+                        let watched = watched_path(change, &config_json);
+                        if change.path().is_some_and(|path| is_own_write(path, &window)) {
+                            if let Some(path) = watched {
+                                announced.record(path, selfwrite::Stamp::of_file(path));
+                            }
+                            return false;
+                        }
+                        match watched {
+                            Some(path) => announced.is_news(path, selfwrite::Stamp::of_file(path)),
+                            None => true,
+                        }
+                    })
                     .collect();
                 arrivals.note(&changes, std::time::Instant::now());
 
@@ -317,6 +334,53 @@ impl WatcherHandle {
 impl Drop for WatcherHandle {
     fn drop(&mut self) {
         self.stop.store(true, std::sync::atomic::Ordering::Relaxed);
+    }
+}
+
+/// The file a change is about, when the window reloads that file's CONTENT
+/// and the file is small enough to read on every event. An asset is left out
+/// on purpose: it can be megabytes, and the screen only drops its picture.
+fn watched_path<'a>(
+    change: &'a jott_core::watcher::Change,
+    config_json: &'a Path,
+) -> Option<&'a Path> {
+    use jott_core::watcher::Change;
+    match change {
+        // The one kind that names no path: it is always the same file.
+        Change::Config => Some(config_json),
+        Change::List { .. } | Change::State { .. } | Change::Conflict { .. } => change.path(),
+        Change::Theme { .. } | Change::Other { .. } => None,
+    }
+}
+
+/// What this window last knew each watched file to hold — announced to it,
+/// or written by it. An event carrying content the window already has is no
+/// news: a sync lands one file as several events, and every reload costs a
+/// refresh of the whole shell (docs/desempenho.md). A session thing, born
+/// with the watcher thread and dying with the window, like the history.
+#[derive(Default)]
+struct Announced {
+    known: HashMap<std::path::PathBuf, selfwrite::Stamp>,
+}
+
+impl Announced {
+    /// Whether `stamp` is news for `path`, remembering it when it is. A file
+    /// that cannot be read is always news: it went away, or it is being
+    /// written this instant, and either way the window has to look.
+    fn is_news(&mut self, path: &Path, stamp: Option<selfwrite::Stamp>) -> bool {
+        match stamp {
+            Some(stamp) => self.known.insert(path.to_path_buf(), stamp) != Some(stamp),
+            None => {
+                self.known.remove(path);
+                true
+            }
+        }
+    }
+
+    /// Takes note of what the window itself wrote, announcing nothing: what
+    /// comes back holding those bytes is the echo of this write.
+    fn record(&mut self, path: &Path, stamp: Option<selfwrite::Stamp>) {
+        let _ = self.is_news(path, stamp);
     }
 }
 
@@ -402,6 +466,55 @@ mod tests {
         assert_eq!(arrivals.due(at(4000)), None);
         assert_eq!(arrivals.due(at(5001)), Some(vec![PathBuf::from("/nb/Work/task-list.md")]));
         assert_eq!(arrivals.due(at(9000)), None, "a burst is judged once");
+    }
+
+    #[test]
+    fn a_file_arriving_with_the_content_the_window_has_is_not_news() {
+        let mut announced = Announced::default();
+        let path = PathBuf::from("/nb/Work/task-list.md");
+        let a = jott_core::selfwrite::Stamp::of_bytes(b"- [ ] a\n");
+        let b = jott_core::selfwrite::Stamp::of_bytes(b"- [ ] b\n");
+
+        assert!(announced.is_news(&path, Some(a)), "the first sight of a file is news");
+        assert!(!announced.is_news(&path, Some(a)), "the same bytes again are not");
+        assert!(announced.is_news(&path, Some(b)), "other bytes are");
+        assert!(announced.is_news(&path, None), "and a file it cannot read always is");
+        assert!(announced.is_news(&path, Some(b)), "which leaves nothing remembered");
+    }
+
+    #[test]
+    fn what_the_window_wrote_itself_is_what_it_knows() {
+        // The echo of an own save never reaches the front, so it is recorded
+        // rather than announced. What must still arrive is somebody putting
+        // the OLD content back: the screen holds the newer one.
+        let mut announced = Announced::default();
+        let path = PathBuf::from("/nb/Work/task-list.md");
+        let theirs = jott_core::selfwrite::Stamp::of_bytes(b"- [ ] theirs\n");
+        let ours = jott_core::selfwrite::Stamp::of_bytes(b"- [ ] ours\n");
+
+        assert!(announced.is_news(&path, Some(theirs)));
+        announced.record(&path, Some(ours));
+        assert!(
+            announced.is_news(&path, Some(theirs)),
+            "their version coming back is a change the window has to see"
+        );
+    }
+
+    #[test]
+    fn only_the_files_the_screen_re_reads_are_weighed() {
+        let config = PathBuf::from("/nb/.jott/config.json");
+        assert_eq!(
+            watched_path(&Change::Config, &config),
+            Some(config.as_path()),
+            "the one change that names no file is always the same file"
+        );
+        let list = list("/nb/Work/task-list.md");
+        assert_eq!(watched_path(&list, &config), list.path());
+        assert_eq!(
+            watched_path(&other("/nb/assets/photo.jpg"), &config),
+            None,
+            "an asset is not read on every event"
+        );
     }
 
     #[test]
