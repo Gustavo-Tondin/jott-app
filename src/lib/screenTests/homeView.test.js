@@ -380,9 +380,10 @@ describe("HomeView", () => {
     const { container } = render(HomeView, { props: props() });
     await screen.findByText("ideia");
 
-    // The ⋮ opens the actions (2026-09-14), the same five the board's cards
-    // carry, in order — what did not fit is behind "More".
-    await userEvent.click(container.querySelector(".note-card__more"));
+    // The right button opens the actions (2026-09-15), the same the board's
+    // cards carry, in order — what did not fit is behind "More". The ⋮ is
+    // the whole menu.
+    await fireEvent.contextMenu(container.querySelector(".note-card"));
     const slices = [...document.querySelectorAll(".action-ring__pill")].map((el) =>
       el.getAttribute("aria-label"),
     );

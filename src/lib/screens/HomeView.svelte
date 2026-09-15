@@ -226,6 +226,8 @@
   // — the day's notes are not dragged — so the ⋮ is the only door.
   let editing = $state(null);
 
+  /// The RIGHT BUTTON opens the ring at the pointer; the ⋮ is the whole
+  /// menu. A ring that would be the ⋮ alone (read-only) opens the menu.
   function openRingAt(event, row) {
     event.preventDefault();
     event.stopPropagation();
@@ -255,22 +257,15 @@
         cardMenuAt = point ?? at;
       },
     });
-    popRing({ actions: slices, at });
+    if (slices.length > 1) return popRing({ actions: slices, at });
+    cardMenuShown = cardMenu(row, { openInNewTab: () => openNote(row, { newTab: true }) });
+    cardMenuAt = at;
   }
 
   /// Where the right button's panel opens is this screen's, the same pact the
   /// board and the sidebar keep: one `ContextMenu` per panel, at the pointer.
   let cardMenuAt = $state(null);
   let cardMenuShown = $state([]);
-
-  function openCardMenu(event, row) {
-    event.preventDefault();
-    event.stopPropagation();
-    cardMenuShown = cardMenu(row, {
-      openInNewTab: () => openNote(row, { newTab: true }),
-    });
-    cardMenuAt = { x: event.clientX, y: event.clientY };
-  }
 
   /// The notes block's ⋮: where a quick note is filed. The rows are the same
   /// targets Settings offers — the fixed space's folders and the user's
@@ -452,10 +447,9 @@
                   showAge={f("time")}
                   {dateFormat}
                   menu={cardMenu(row)}
-                  onOptions={(event) => openRingAt(event, row)}
                   onPin={readOnly || !f("pinNotes") ? null : () => cards.pin(row.folder, row.note)}
                   onOpen={(_, opts) => openNote(row, opts)}
-                  onContextMenu={(event) => openCardMenu(event, row)}
+                  onContextMenu={(event) => openRingAt(event, row)}
                 />
               </li>
             {/each}

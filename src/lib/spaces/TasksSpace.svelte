@@ -10,6 +10,7 @@
   import { ensureTaskId } from "../services/taskId.js";
   import { listName, listLabel, taskSpacePaths } from "../services/paths.js";
   import { makeScreen } from "../services/act.js";
+  import { popRing } from "../services/actionRing.js";
   import { tracker, HELD } from "../services/recent.js";
   import { taskActions, isSelectedTask, taskCardMenu, taskRing } from "../services/taskActions.js";
   import { dotStyle as dotStyleOf } from "../services/accent.js";
@@ -359,6 +360,16 @@
       await api.editTaskText(entry.list, id, text);
     });
 
+  /// The RIGHT BUTTON opens the ring at the pointer (2026-09-15) — the same
+  /// five a finger's rest opens. Nothing while picking: there the bar is the way.
+  function openRingAt(event, entry) {
+    const slices = ringFor(entry);
+    if (!slices) return;
+    event.preventDefault();
+    event.stopPropagation();
+    popRing({ actions: slices, at: { x: event.clientX, y: event.clientY } });
+  }
+
   /// The slices of one card. Null while the screen is PICKING: there the bulk
   /// bar is the way, and a ring over a selection would act on one of them.
   const ringFor = (entry) => {
@@ -695,6 +706,8 @@
         carried={carriedWith}
         onReorderMany={readOnly || all ? null : isDay ? reorderDayMany : reorderTasksMany}
         {isSelected}
+        isPicked={picking ? isSelected : () => false}
+        onContextMenu={readOnly || picking ? null : openRingAt}
         onSelect={picking ? (_, task) => togglePick(task) : onSelectTask}
         onComplete={complete}
         onEdit={edit}

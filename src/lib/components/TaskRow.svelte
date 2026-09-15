@@ -23,9 +23,15 @@
     /// there is no origin to take it from (services/accent.js, a name).
     color = null,
     selected = false,
+    /// Marked in the list's picking mode: the tint of `selected` plus a dot
+    /// in the box, so a mark reads as a mark and not as "open in the inspector".
+    picked = false,
     onComplete,
     onEdit,
     onSelect,
+    /// `(event, list, task) => void` — the right button; null leaves it to
+    /// the browser.
+    onContextMenu = null,
     // The bookmark: pins the task to the top of its list. A completed task
     // has no top to be at, so the bookmark is not drawn there at all.
     onPin,
@@ -171,6 +177,7 @@
   role="row"
   class:swipe={gesture !== noAction}
   class:task-row--selected={selected}
+  class:task-row--picked={picked}
   class:task-row--done={task.done}
   class:task-row--arriving={arriving}
   class:task-row--joined={joined}
@@ -180,6 +187,7 @@
   data-card={index}
   tabindex={focusable ? 0 : -1}
   onclick={() => onSelect?.(list, task)}
+  oncontextmenu={onContextMenu ? (event) => onContextMenu(event, list, task) : null}
   onfocusin={() => onFocused?.()}
   use:gesture={swipeOptions}
 >

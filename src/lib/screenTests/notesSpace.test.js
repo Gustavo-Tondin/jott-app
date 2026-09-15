@@ -16,13 +16,19 @@ import ActionRing from "../components/ActionRing.svelte";
 /// App.svelte — so a screen tested on its own has to mount it too. Clicking a
 /// slice is how a card's actions are reached from here on; what did not fit in
 /// the five is behind the "More" slice, in the board's own menu.
-const openRing = async (label = "note options") => {
-  await userEvent.click(await screen.findByLabelText(label));
+/// The ring on a desktop opens on the RIGHT BUTTON (2026-09-15); the card's
+/// ⋮ is the whole menu.
+const openRing = async (title = "Ideia") => {
+  await fireEvent.contextMenu(await screen.findByText(title));
 };
 
 /// Into the board's REORDER mode (the ⋮'s "Reorder notes…"): the only place
 /// a note is carried, since 2026-09-15.
 const enterReorder = async () => {
+  // A drop in the test before swallows the click that follows it for one
+  // frame (reorder.js, `swallowNextClick`), and jsdom's document outlives
+  // the test: let that frame pass before the first click here.
+  await new Promise((r) => requestAnimationFrame(r));
   await userEvent.click(await screen.findByLabelText("space options"));
   await userEvent.click(await screen.findByText("Reorder notes…"));
 };
@@ -152,12 +158,14 @@ describe("NotesSpace", () => {
     const opened = [];
     bridge({ list_notes: [entry("Ideia")], note_folders: [] });
 
+    render(ActionRing);
     render(NotesSpace, {
       props: props({ onOpenNote: (path, folder, opts) => opened.push([path, folder, opts]) }),
     });
+    // The right button opens the ring (2026-09-15); the ⋮ slice is the rest,
+    // read from the top: opening in a new tab first.
     await fireEvent.contextMenu(await screen.findByText("Ideia"));
-
-    // First row, then everything the ⋮ carries — a menu is read from the top.
+    await userEvent.click(await screen.findByLabelText("More"));
     const rows = [...document.querySelectorAll(".context-menu button")].map((el) =>
       el.textContent.trim(),
     );
@@ -616,8 +624,7 @@ describe("NotesSpace", () => {
       props: props({ noteSpaces: [{ path: "Design/Ideias", name: "Ideias" }] }),
     });
 
-    await userEvent.click(await screen.findByLabelText("space options"));
-    await userEvent.click(await screen.findByText("Reorder notes…"));
+    await enterReorder();
     await userEvent.click(await screen.findByText("Ideia"));
     expect(screen.getByText("1 selected")).toBeTruthy();
 
@@ -640,8 +647,7 @@ describe("NotesSpace", () => {
     bridge({ list_notes: [entry("Ideia"), entry("Outra")], note_folders: [], delete_note: null });
 
     render(NotesSpace, { props: props() });
-    await userEvent.click(await screen.findByLabelText("space options"));
-    await userEvent.click(await screen.findByText("Reorder notes…"));
+    await enterReorder();
     await userEvent.click(await screen.findByText("Ideia"));
     await userEvent.click(await screen.findByText("Outra"));
     await userEvent.click(screen.getByText("Delete"));
@@ -722,7 +728,7 @@ describe("NotesSpace with a note sub-function switched off", () => {
     render(ActionRing);
     expect(await screen.findByText("Solta")).toBeTruthy();
     expect(screen.queryByLabelText("Pin")).toBe(null);
-    await openRing();
+    await openRing("Solta");
     // No pin slice either — and the rest of the ring is untouched: one
     // switch, one thing.
     expect(screen.queryByLabelText("Pin")).toBe(null);

@@ -38,6 +38,10 @@
     /// drawn. `pinnedFirst` is the host's call: a Completed list has no top.
     pinned = false,
     isSelected = () => false,
+    /// `(task) => boolean` — marked in picking mode (the dot in the box).
+    isPicked = () => false,
+    /// `(event, entry) => void` — the right button on a card, or null.
+    onContextMenu = null,
     onSelect,
     onComplete,
     onEdit,
@@ -264,6 +268,8 @@
       {f}
       {onSelect}
       selected={isSelected(entry.task)}
+      picked={isPicked(entry.task)}
+      onContextMenu={onContextMenu ? (event) => onContextMenu(event, entry) : null}
       {onComplete}
       {onEdit}
       {onPin}

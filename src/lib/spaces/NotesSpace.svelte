@@ -188,13 +188,19 @@
   let cardMenuAt = $state(null);
   let cardMenuShown = $state([]);
 
-  function openCardMenu(event, entry) {
+  /// The RIGHT BUTTON opens the ring at the pointer (2026-09-15) — the same
+  /// five a finger's rest opens; the card's ⋮ is the whole menu. Where the
+  /// ring would be the ⋮ alone (a read-only notebook), the menu opens instead.
+  function openRingAt(event, entry) {
     event.preventDefault();
     event.stopPropagation();
+    const at = { x: event.clientX, y: event.clientY };
+    const slices = ringFor(entry, at);
+    if (slices && slices.length > 1) return popRing({ actions: slices, at });
     cardMenuShown = cardMenu(entry, {
       openInNewTab: () => openNote(entry, { newTab: true }),
     });
-    cardMenuAt = { x: event.clientX, y: event.clientY };
+    cardMenuAt = at;
   }
 
   /// The four a card offers, shared with the Home (services/noteActions.js).
@@ -430,17 +436,6 @@
   // point the ring opened on, both through the board's one menu.
   let editing = $state(null);
 
-  /// The ⋮ ON THE DESKTOP, where nothing is held: the same five slices, opened
-  /// by a click at the button and pressed. The right button still opens the
-  /// list menu — two shapes, because a mouse reads a list faster than a ring.
-  function openRingAt(event, entry) {
-    event.preventDefault();
-    event.stopPropagation();
-    const at = { x: event.clientX, y: event.clientY };
-    const slices = ringFor(entry, at);
-    if (slices) popRing({ actions: slices, at });
-  }
-
   const ringFor = (card, at) => {
     if (readOnly || picking || isGroup(card)) return null;
     return noteRing({
@@ -643,11 +638,10 @@
     {dateFormat}
     {picking}
     selected={picked.has(entry.path)}
-    menu={compact ? [] : cardMenu(entry)}
-    onOptions={readOnly || picking || compact ? null : openRingAt}
+    menu={compact || picking ? [] : cardMenu(entry)}
     onPin={readOnly || !f("pinNotes") ? null : () => togglePin(entry)}
     onOpen={(_, opts) => (picking ? togglePick(entry) : openNote(entry, opts))}
-    onContextMenu={openCardMenu}
+    onContextMenu={openRingAt}
   />
 {/snippet}
 
@@ -905,7 +899,7 @@
                     banners={f("banners")}
                     small
                     onOpen={(_, opts) => openNote(entry, opts)}
-                    onContextMenu={openCardMenu}
+                    onContextMenu={openRingAt}
                   />
                 {/each}
               </div>

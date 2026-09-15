@@ -7,6 +7,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-li
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { bridge, invoke } from "../test/bridge.js";
+import ActionRing from "../components/ActionRing.svelte";
 import { CLOCK, answerConfirm, noop, noteFolder, resetScreens, task } from "../test/screens.js";
 
 // The note editor's engine is stubbed by a textarea — `lib/test/screens.js`
@@ -402,6 +403,42 @@ describe("SpaceView", () => {
     });
   });
 
+  test("the right button opens a card's ring; while picking, a mark wears a dot", async () => {
+    bridge({
+      list_tasks: (args) =>
+        args.list.endsWith("completed.md")
+          ? []
+          : [task("a1", "Primeira"), task("b2", "Segunda")],
+    });
+    render(ActionRing);
+    const { container } = render(SpaceView, {
+      props: { space, lists, counts: {}, onSelectTask: noop, onChanged: noop },
+    });
+    await screen.findByText("Primeira");
+
+    // The same squares a finger's rest opens, at the pointer (2026-09-15).
+    await fireEvent.contextMenu(screen.getByText("Primeira"));
+    await waitFor(() => expect(document.querySelector(".action-ring__pill")).toBeTruthy());
+    const labels = [...document.querySelectorAll(".action-ring__pill")].map((el) =>
+      el.getAttribute("aria-label"),
+    );
+    expect(labels[0]).toBe("Pin");
+    expect(labels).toContain("Reorder");
+    await userEvent.click(await screen.findByLabelText("Reorder"));
+
+    // Picking: the click marks, and the mark is the tint plus a dot in the box.
+    await waitFor(() => expect(container.querySelector(".bulkbar__count")).toBeTruthy());
+    await userEvent.click(screen.getByText("Segunda"));
+    const rows = [...container.querySelectorAll(".task-row")];
+    expect(rows[1].classList.contains("task-row--picked")).toBe(true);
+    expect(rows[1].classList.contains("task-row--selected")).toBe(true);
+    expect(rows[0].classList.contains("task-row--picked")).toBe(false);
+
+    // No ring over a selection: the bar is the way.
+    await fireEvent.contextMenu(screen.getByText("Primeira"));
+    expect(document.querySelector(".action-ring__pill")).toBeNull();
+  });
+
   test("the ⋮'s select mode moves several tasks at once", async () => {
     bridge({
       list_tasks: (args) =>
@@ -550,6 +587,19 @@ describe("App with a user space", () => {
 
     // Its lists are not flattened into the fixed sidebar.
     expect(screen.queryByRole("button", { name: /^Sprint/ })).toBeNull();
+  });
+
+  test("the right button on a space row opens its ring", async () => {
+    // The same four a finger's rest opens (2026-09-15); the ⋮ slice is the
+    // rest of the row's menu. The App mounts the ring itself.
+    shell();
+    render(App);
+    await fireEvent.contextMenu(await screen.findByText("Project A"));
+    await waitFor(() => expect(document.querySelector(".action-ring__pill")).toBeTruthy());
+    const labels = [...document.querySelectorAll(".action-ring__pill")].map((el) =>
+      el.getAttribute("aria-label"),
+    );
+    expect(labels).toEqual(["Rename", "Colour", "Delete", "More"]);
   });
 
   test("the page ⋮ acts on the screen: rename, folder, find", async () => {

@@ -163,9 +163,11 @@ describe("App shell with tabs", () => {
     // as well, and a bare text query would find two.
     await userEvent.click(screen.getAllByRole("tab")[0]);
     await waitFor(() => expect(document.querySelector(".home__notes")).toBeTruthy());
+    // The right button opens the ring; "Open in new tab" is a row of its ⋮.
     await fireEvent.contextMenu(
       within(document.querySelector(".home__notes")).getByText("Ideia"),
     );
+    await userEvent.click(await screen.findByLabelText("More"));
     await userEvent.click(await screen.findByText("Open in new tab"));
 
     // Already open: not duplicated — and NOT focused either (user call,

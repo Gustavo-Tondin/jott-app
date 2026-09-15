@@ -14,6 +14,7 @@
     dropMeaning,
   } from "../services/sidebarOrder.js";
   import { reorderable } from "../actions/reorder.js";
+  import { popRing } from "../services/actionRing.js";
   import { spaceIcon } from "../services/spaceIcon.js";
   import { accentStyle } from "../services/accent.js";
   import { openIn } from "../services/counts.js";
@@ -180,12 +181,15 @@
 
   /// A row's own menu, at the pointer. Rows carry no ⋮: the right button
   /// carries everything it would.
-  function openRowMenu(event, items) {
+  /// The RIGHT BUTTON on a row opens its ring at the pointer (2026-09-15),
+  /// the same four a finger's rest opens; the ⋮ slice is the rest.
+  function openRowRing(event, entry) {
     if (notebook.readOnly) return;
+    const slices = entryRing(entry);
+    if (!slices) return;
     event.preventDefault();
     event.stopPropagation();
-    menuShown = items;
-    menuAt = { x: event.clientX, y: event.clientY };
+    popRing({ actions: slices, at: { x: event.clientX, y: event.clientY } });
   }
 
   function openSidebarMenu(event) {
@@ -541,7 +545,7 @@
           holds({ kind: "space", sp: sp.path })}
         data-space-drop={sp.path}
         data-space-kind={sp.kind}
-        oncontextmenu={(e) => openRowMenu(e, spaceMenu(sp))}
+        oncontextmenu={(e) => openRowRing(e, { kind: "space", sp })}
       >
         <button
           class="shell__nav-open"
@@ -616,7 +620,7 @@
               <div
                 class="shell__nav-item shell__nav-item--row shell__nav-item--head"
                 data-group-drop={entry.group.folder}
-                oncontextmenu={(e) => openRowMenu(e, groupMenu(entry.group))}
+                oncontextmenu={(e) => openRowRing(e, { kind: "group", group: entry.group })}
               >
                 <button
                   class="shell__nav-open"
