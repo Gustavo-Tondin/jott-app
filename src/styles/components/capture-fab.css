@@ -95,8 +95,9 @@
     z-index: 4;
     inline-size: var(--app-fab);
     block-size: var(--app-fab);
-    /* Arrives last, after the cards — see `.task-composer__add`. Never on the
-       Home's slot: there the week and the day already choreograph the screen. */
+    /* Arrives last, after the cards — see `.task-composer--bar`, whose place
+       this takes on a phone. Never on the Home's slot: there the week and the
+       day already choreograph the screen. */
     animation: theme-rise var(--app-duration-medium) var(--app-ease-out) backwards;
     animation-delay: var(--app-duration-fast);
   }

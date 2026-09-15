@@ -23,7 +23,7 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 
 ### Improved
 
-- **The + that makes a task or a note is easier to find**: it is round now, a little bigger than the buttons beside it, stands clear of them, and arrives a moment after the rest of the screen — the same shape on the computer and on the phone.
+- **The + that makes a task or a note is easier to find**: it is round now, a little bigger than the buttons beside it and standing clear of them — the same shape on the computer and on the phone. The bar it closes arrives a moment after the rest of the screen, so the eye lands on it.
 - **A note card leads with the note's name**: the name sits on a chip the width of the card and is the one thing on it that steps up in size, so a heading inside the note no longer shouts louder than the note it belongs to.
 - **A note that opens with its own name as a heading draws it once**: the card leaves the repeated heading out of the text it shows.
 - **A banner reaches the card's edges**, a little taller than before, with the name straddling its lower edge.

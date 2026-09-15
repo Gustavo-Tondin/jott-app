@@ -30,8 +30,16 @@
 
   /* The bar variant is pinned to the bottom of the scrolling content and the
      cards pass UNDERNEATH it — hence the opaque surface, and the lift is what
-     sets it apart from the cards it covers. */
+     sets it apart from the cards it covers.
+     IT ARRIVES LAST, as one card, after the screen is drawn — the eye goes to
+     the last thing that moved. The delay is a duration token, so the one
+     reduced-motion query (tokens.css) stills this with everything else, and
+     the fill is `backwards`: it covers only the wait, leaving no animation
+     standing on the `translate` the drag writes below. The dialog variant is
+     left out — there the modal itself rises (controls/overlays.css). */
   .task-composer--bar {
+    animation: theme-rise var(--app-duration-medium) var(--app-ease-out) backwards;
+    animation-delay: var(--app-duration-fast);
     position: sticky;
     bottom: 0;
     z-index: 5;
@@ -163,12 +171,6 @@
     margin-inline-start: var(--app-space-4);
     padding: 0;
     border-radius: var(--app-radius-pill);
-    /* It ARRIVES LAST, after the screen is drawn — the eye goes to the last
-       thing that moved. The delay is a duration token, so the one
-       reduced-motion query (tokens.css) stills this with everything else;
-       `backwards` covers only the wait, leaving no fill behind. */
-    animation: theme-rise var(--app-duration-medium) var(--app-ease-out) backwards;
-    animation-delay: var(--app-duration-fast);
   }
 
   /* Plain input: the row already IS the box, so a second border inside it
