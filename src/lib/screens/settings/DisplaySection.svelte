@@ -18,7 +18,6 @@
     S.formatBarLabel,
     S.formatBarSideLabel,
     S.showListCounts,
-    S.autoSpaceColors,
     S.restoreLastScreen,
     S.closeOnClickAway,
     S.dateFormat,
@@ -461,20 +460,6 @@
       bind:checked={form.showListCounts}
       aria-label={S.showListCounts}
       onchange={(e) => putDisplay({ showListCounts: e.currentTarget.checked })}
-    />
-  </label>
-
-  <label class="settings__row">
-    <span class="settings__label">
-      {S.autoSpaceColors}
-      <HelpTip label={S.autoSpaceColors} text={S.autoSpaceColorsHint} />
-    </span>
-    <input
-      class="theme-checkbox"
-      type="checkbox"
-      bind:checked={form.autoSpaceColors}
-      aria-label={S.autoSpaceColors}
-      onchange={(e) => putDisplay({ autoSpaceColors: e.currentTarget.checked })}
     />
   </label>
 

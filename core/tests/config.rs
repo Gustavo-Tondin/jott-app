@@ -42,7 +42,7 @@ fn defaults_match_the_spec() {
     assert!(!config.restore_last_screen);
     assert!(config.show_list_counts);
     assert!(config.new_tasks_on_top);
-    assert!(!config.auto_space_colors);
+    assert!(config.rainbow_spaces);
     assert_eq!(config.rollover.daily.mode, RolloverMode::Reset);
     assert_eq!(config.week_starts_on, WeekStart::Monday);
     assert!(!config.tasks_show_all);
@@ -535,9 +535,14 @@ fn a_feature_records_an_opinion_and_forgets_it_when_asked_to() {
 #[test]
 fn the_rainbow_switch_round_trips_and_a_bad_value_falls_back() {
     let mut config = Config::default();
-    config.auto_space_colors = true;
-    assert!(Config::parse(&config.render()).auto_space_colors);
-    assert!(!Config::parse(r#"{"autoSpaceColors": "sim"}"#).auto_space_colors);
+    config.rainbow_spaces = false;
+    assert!(!Config::parse(&config.render()).rainbow_spaces);
+    assert!(Config::parse(r#"{"rainbowSpaces": "sim"}"#).rainbow_spaces);
+    // The Display switch it replaced is taken out of the file: it said the
+    // opposite of the default, and a stale one would read as an answer.
+    let old = Config::parse(r#"{"schemaVersion": 1, "autoSpaceColors": false}"#);
+    assert!(old.rainbow_spaces);
+    assert!(!old.render().contains("autoSpaceColors"));
 }
 
 #[test]

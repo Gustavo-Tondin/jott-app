@@ -28,6 +28,8 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 - **A note is only ever dragged in reorder mode** — on the computer too — so a slip of the mouse or the finger never rearranges the board.
 - **On the computer, the right button opens the column of actions** at the pointer — on a task, a note or a space in the sidebar — and a note card's ⋮ is the whole menu again.
 - **A task marked in reorder mode fills its box with the accent and a light dot**, the way a done box fills with a tick, so a mark is never mistaken for the task open in the inspector.
+- **The sidebar deals its own colours now**: each space and group takes the next of the seven, and moving one deals the column again. Choosing a colour by hand keeps the colours on screen — yours among them — and stops the dealing; what you make next still takes the colour after the last one.
+- **The rainbow switch left Settings**: it is a tick, "Auto-rainbow spaces", in the menu of the empty sidebar — the right button, or a hold on a phone.
 - **A week that holds two months says so**: a hairline stands in the gap where the month turns, so the 1st is never read as just another day.
 - **The ends of the week strip soften while you are moving it** — and stay soft while your finger rests mid-drag, since the strip is still open between two weeks. Once it lands on a week the ends are as solid as they ever were.
 - **The week at the top of Home answers a flick**: throw it and it glides on, slowing down, as far as two weeks; drag it slowly and it turns one. It always comes to rest on a whole week, never between two.

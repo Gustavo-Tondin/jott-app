@@ -19,7 +19,7 @@ async function confirm(ok) {
   await tick();
 }
 
-function shell(view = { kind: "home" }) {
+function shell(view = { kind: "home" }, rainbow = null) {
   const calls = {
     goTo: vi.fn(),
     openTab: vi.fn(),
@@ -36,6 +36,7 @@ function shell(view = { kind: "home" }) {
     change,
     view: () => view,
     inbox: () => "jott.tasks/task-list.md",
+    ...(rainbow ? { rainbow: () => rainbow } : {}),
     ...calls,
   });
   return { calls, writes };
@@ -128,7 +129,10 @@ describe("making a space or a group", () => {
     expect(get(nameRequest).title).toBe(S.promptNewNotepad);
     await name(" Notas ");
     await making;
-    expect(callsTo("create_space_in")).toEqual([{ name: "Notas", kind: "notes", group: "Work" }]);
+    expect(callsTo("create_space_in")).toEqual([
+      // Inside a group it is born wearing nothing: the colour is the group's.
+      { name: "Notas", kind: "notes", group: "Work", color: null },
+    ]);
     expect(calls.openTab).toHaveBeenCalledWith({ kind: "space", sp: "Work/Notas" });
   });
 
@@ -147,7 +151,7 @@ describe("making a space or a group", () => {
     const making = writes.createGroup("Work");
     await name("Sub");
     await making;
-    expect(callsTo("create_group")).toEqual([{ name: "Sub", group: "Work" }]);
+    expect(callsTo("create_group")).toEqual([{ name: "Sub", group: "Work", color: null }]);
   });
 });
 
@@ -209,5 +213,81 @@ describe("the open list", () => {
     await confirm(true);
     await deleting;
     expect(calls.setError).not.toHaveBeenCalled();
+  });
+});
+
+describe("the sidebar's rainbow", () => {
+  // What it was showing when the user reached for the picker: two loose
+  // spaces and a group, each wearing the colour the deal gave it.
+  const dealing = {
+    on: true,
+    deal: { spaces: { Mercado: "2", Casa: "3" }, groups: { Work: "4" } },
+    next: "5",
+  };
+
+  it("picking a colour leaves the rainbow keeping what it drew, the pick in it", async () => {
+    const { writes } = shell({ kind: "home" }, dealing);
+    await writes.pickSpaceColor("Casa", "7", "sun");
+    // One command, so one Ctrl+Z puts the whole column back — and the icon
+    // is not part of it.
+    expect(callsTo("set_rainbow_spaces")).toEqual([
+      {
+        on: false,
+        spaces: { Mercado: "2", Casa: "7" },
+        groups: { Work: "4" },
+      },
+    ]);
+    expect(commandsCalled()).toEqual(["set_rainbow_spaces"]);
+  });
+
+  it("a group's colour leaves it the same way", async () => {
+    const { writes } = shell({ kind: "home" }, dealing);
+    await writes.pickGroupColor("Work", "1", null);
+    expect(callsTo("set_rainbow_spaces")).toEqual([
+      { on: false, spaces: { Mercado: "2", Casa: "3" }, groups: { Work: "1" } },
+    ]);
+  });
+
+  it("with the rainbow already off a pick is the plain write", async () => {
+    const off = { ...dealing, on: false };
+    const { writes } = shell({ kind: "home" }, off);
+    await writes.pickSpaceColor("Casa", "7", "sun");
+    expect(callsTo("set_space_appearance")).toEqual([
+      { folder: "Casa", color: "7", icon: "sun" },
+    ]);
+  });
+
+  it("the tick deals again, and untick keeps the column as it is", async () => {
+    const { writes } = shell({ kind: "home" }, dealing);
+    await writes.setRainbow(false);
+    expect(callsTo("set_rainbow_spaces")).toEqual([
+      { on: false, spaces: { Mercado: "2", Casa: "3" }, groups: { Work: "4" } },
+    ]);
+  });
+
+  it("a new top-level entry is born wearing the next colour once the rainbow is off", async () => {
+    const off = { ...dealing, on: false };
+    const { writes } = shell({ kind: "home" }, off);
+    const making = writes.createSpace("tasks", null);
+    await name("Mercado");
+    await making;
+    expect(callsTo("create_space_in")).toEqual([
+      { name: "Mercado", kind: "tasks", group: null, color: "5" },
+    ]);
+
+    const group = writes.createGroup(null);
+    await name("Jobs");
+    await group;
+    expect(callsTo("create_group")).toEqual([{ name: "Jobs", group: null, color: "5" }]);
+  });
+
+  it("while the rainbow deals, nothing is born with a colour", async () => {
+    const { writes } = shell({ kind: "home" }, dealing);
+    const making = writes.createSpace("tasks", null);
+    await name("Mercado");
+    await making;
+    expect(callsTo("create_space_in")).toEqual([
+      { name: "Mercado", kind: "tasks", group: null, color: null },
+    ]);
   });
 });

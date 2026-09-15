@@ -233,7 +233,8 @@ export const api = {
   setSpacesSort: (sort) => invoke("set_spaces_sort", { sort }),
 
   // Groups: a folder that holds spaces and other groups (they nest).
-  createGroup: (name, group = null) => invoke("create_group", { name, group }),
+  createGroup: (name, group = null, color = null) =>
+    invoke("create_group", { name, group, color }),
   renameGroup: (folder, name) => invoke("rename_group", { folder, name }),
   setGroupAppearance: (folder, color, icon) =>
     invoke("set_group_appearance", { folder, color, icon }),
@@ -242,8 +243,16 @@ export const api = {
     invoke("move_space", { name, intoGroup }),
   // Moves a group — with everything under it — into another, or back out.
   moveGroup: (name, intoGroup) => invoke("move_group", { name, intoGroup }),
-  createSpaceIn: (name, kind, group) =>
-    invoke("create_space_in", { name, kind, group }),
+  // `color` is what the space is born wearing — null while the sidebar deals
+  // its own colours, the next of the seven once it has stopped
+  // (services/spaceColors.js).
+  createSpaceIn: (name, kind, group, color = null) =>
+    invoke("create_space_in", { name, kind, group, color }),
+  // The sidebar's rainbow. Turning it OFF hands in the deal the column was
+  // showing — `{path: slot}` for spaces, `{folder: slot}` for groups — and
+  // the core writes it down, so what was on screen is what it keeps.
+  setRainbowSpaces: (on, spaces = {}, groups = {}) =>
+    invoke("set_rainbow_spaces", { on, spaces, groups }),
 
   // Trash (`.jott/trash/`) — restore, let it expire, or delete for good.
   trashEntries: () => invoke("trash_entries"),

@@ -138,6 +138,40 @@ impl Notebook {
         })
     }
 
+    /// Whether the sidebar deals the colours itself — what the app does
+    /// unless told otherwise (`Config::rainbow_spaces`).
+    pub fn rainbow_spaces(&self) -> bool {
+        self.config.rainbow_spaces
+    }
+
+    /// Turns the rainbow on, or LEAVES IT WEARING WHAT IT DREW: the colours
+    /// the caller hands in — the deal, with the colour the user has just
+    /// picked already in it (services/spaceColors.js does the dealing) — are
+    /// written into the spaces and groups showing them, so the column keeps
+    /// what was on screen. Only the colour is touched, never the icon, and an
+    /// address that is no longer there is skipped rather than losing the rest.
+    pub fn set_rainbow_spaces(
+        &mut self,
+        on: bool,
+        spaces: &std::collections::BTreeMap<String, Option<String>>,
+        groups: &std::collections::BTreeMap<String, Option<String>>,
+    ) -> Result<()> {
+        self.ensure_writable()?;
+        if !on {
+            for (folder, color) in spaces {
+                if let Ok(space) = self.open_space(folder) {
+                    self.set_marked_color(space.config_path(), color.clone())?;
+                }
+            }
+            for (folder, color) in groups {
+                if let Ok(path) = self.group_config_path(folder) {
+                    self.set_marked_color(path, color.clone())?;
+                }
+            }
+        }
+        self.edit_config(|config| config.rainbow_spaces = on)
+    }
+
     /// The three spaces the app creates and recreates — never renamed,
     /// deleted, nor treated as user content. Public because the interface
     /// greys out what this refuses, from this rule and not a copy of it.
@@ -164,16 +198,19 @@ impl Notebook {
     /// with the chosen type (`tasks` or `notes`), born usable (`task-list.md`
     /// plus `completed.md`, or the Inbox folder). Returns the folder name.
     pub fn create_space(&self, name: &str, kind: &str) -> Result<String> {
-        self.create_space_in(name, kind, None)
+        self.create_space_in(name, kind, None, None)
     }
 
     /// Creates a space at the root or inside a group; returns its
-    /// root-relative path, the address it is opened by.
+    /// root-relative path, the address it is opened by. `color` is the colour
+    /// it is born wearing: the caller deals it (services/spaceColors.js) so
+    /// that a column that left the rainbow goes on around the wheel.
     pub fn create_space_in(
         &self,
         name: &str,
         kind: &str,
         into_group: Option<&str>,
+        color: Option<String>,
     ) -> Result<String> {
         self.ensure_writable()?;
         if !["tasks", "notes"].contains(&kind) {
@@ -185,7 +222,8 @@ impl Notebook {
             Some(group) => self.open_group(group)?.0,
             None => self.root.clone(),
         };
-        let config = crate::space::SpaceConfig::new(kind);
+        let mut config = crate::space::SpaceConfig::new(kind);
+        config.color = color;
         let folder = self.create_marked_folder(
             name,
             &parent,

@@ -79,8 +79,9 @@ pub struct NotebookLayout {
     pub confirm_image_downloads: bool,
     /// Whether the sidebar wears the rainbow — each entry the next of the
     /// seven from the accent on (services/spaceColors.js does the dealing).
-    /// Resolved like the accent: this machine's answer over the notebook's.
-    pub auto_space_colors: bool,
+    /// The notebook's own answer: leaving the rainbow writes colours into
+    /// its spaces, so the two machines cannot disagree about it.
+    pub rainbow_spaces: bool,
     /// Which of the seven the app is accented with, by name. Rides in the
     /// layout because the shell needs it on the FIRST paint (an attribute on
     /// the document root); a second round trip would flash the wrong colours.
@@ -169,7 +170,7 @@ impl NotebookInfo {
                 timeline_ghost_notes: config.timeline_ghost_notes,
                 confirm_deletes: config.confirm_deletes,
                 confirm_image_downloads: config.confirm_image_downloads,
-                auto_space_colors: display.auto_space_colors,
+                rainbow_spaces: config.rainbow_spaces,
                 accent_color: display.accent_color,
                 mode: display.mode,
                 theme: display.theme,

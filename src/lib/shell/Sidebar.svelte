@@ -56,16 +56,26 @@
     /// `""` (the dragged order) or `"name"`.
     spacesSort = "",
     onSetSpacesSort,
+    /// Whether the column deals its own colours — what a notebook does until
+    /// somebody picks one (services/spaceColors.js). Ticked in the menu of
+    /// the empty column, and nowhere else: it is an arrangement of the
+    /// sidebar, like the sort beside it.
+    rainbow = true,
+    onSetRainbow,
     // Space management (create / rename / appearance / delete).
     onCreateSpace,
     onRenameSpace,
     onSetSpaceAppearance,
+    /// A COLOUR chosen for a space or a group — not the same write as the
+    /// icon: picking a colour is what leaves the rainbow (shell/notebookWrites.js).
+    onPickSpaceColor,
     onDeleteSpace,
     // Groups: folders that hold spaces.
     groups = [],
     onCreateGroup,
     onRenameGroup,
     onSetGroupAppearance,
+    onPickGroupColor,
     onDeleteGroup,
     onMoveSpace,
     // Collapsed to an icon rail? Owned by the shell, toggled by the button here.
@@ -197,8 +207,43 @@
     // A row has its own menu; this one is for the space between them.
     if (event.target.closest(".shell__nav-item")) return;
     event.preventDefault();
+    pressOff();
     menuShown = sidebarMenu;
     menuAt = { x: event.clientX, y: event.clientY };
+  }
+
+  // ---- the same menu under a finger ----
+  // There is no right button on a phone, so a REST opens it — the wait and
+  // the slop a card's ring uses (actions/reorder.js), since it is the same
+  // gesture. Movement is the drawer being dragged or the column scrolled.
+  const HOLD_MS = 400;
+  const HOLD_SLOP = 8;
+  let press = null;
+
+  function pressOff() {
+    if (press) clearTimeout(press.timer);
+    press = null;
+  }
+
+  function pressStart(event) {
+    if (event.pointerType !== "touch") return;
+    pressOff();
+    if (notebook.readOnly || event.target.closest(".shell__nav-item")) return;
+    const at = { x: event.clientX, y: event.clientY };
+    press = {
+      at,
+      timer: setTimeout(() => {
+        press = null;
+        menuShown = sidebarMenu;
+        menuAt = at;
+      }, HOLD_MS),
+    };
+  }
+
+  function pressMoved(event) {
+    if (!press) return;
+    const moved = Math.hypot(event.clientX - press.at.x, event.clientY - press.at.y);
+    if (moved > HOLD_SLOP) pressOff();
   }
 
   /// The three things that can be made, in the empty space (`group: null`)
@@ -242,6 +287,11 @@
           run: () => onSetSpacesSort?.("type"),
         },
       ],
+    },
+    {
+      label: S.rainbowSpaces,
+      checked: rainbow,
+      run: () => onSetRainbow?.(!rainbow),
     },
   ]);
 
@@ -454,6 +504,10 @@
     class="shell__sidebar-scroll"
     role="presentation"
     oncontextmenu={openSidebarMenu}
+    onpointerdown={pressStart}
+    onpointermove={pressMoved}
+    onpointerup={pressOff}
+    onpointercancel={pressOff}
   >
     <!-- One fixed row: a view, glyph, label and — for the one holding tasks —
          how many are open. `drop`: what a FREE drag (Ctrl) may land here —
@@ -575,13 +629,16 @@
              the DOM while it is open, so nothing marks the row otherwise. -->
         {#if appearanceOpen === sp.path}
           <span class="shell__ws-tools shell__ws-tools--open">
+            <!-- The colour it is WEARING, which under the rainbow is not the
+                 one in its file; the icon write still carries the stored one,
+                 so changing an icon invents no colour. -->
             <SpaceAppearance
               open
               colors={!grouped}
-              color={sp.color}
+              color={spaceColor(sp.path)}
               icon={sp.icon}
               onClose={() => (appearanceOpen = null)}
-              onColor={(c) => onSetSpaceAppearance?.(sp.path, c, sp.icon)}
+              onColor={(c) => onPickSpaceColor?.(sp.path, c, sp.icon)}
               onIcon={(i) => onSetSpaceAppearance?.(sp.path, sp.color, i)}
             />
           </span>
@@ -653,11 +710,11 @@
                   <span class="shell__ws-tools shell__ws-tools--open">
                     <SpaceAppearance
                       open
-                      color={entry.group.color}
+                      color={groupColor(entry.group.folder)}
                       icon={entry.group.icon}
                       onClose={() => (appearanceOpen = null)}
                       onColor={(c) =>
-                        onSetGroupAppearance?.(entry.group.folder, c, entry.group.icon)}
+                        onPickGroupColor?.(entry.group.folder, c, entry.group.icon)}
                       onIcon={(i) =>
                         onSetGroupAppearance?.(entry.group.folder, entry.group.color, i)}
                     />

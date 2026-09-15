@@ -60,7 +60,7 @@ fn a_reorder_is_undone_and_the_config_in_memory_follows() {
 fn creating_a_space_is_undone_folder_and_all() {
     let (dir, mut nb, mut history) = notebook();
     let folder = nb
-        .record(&mut history, "create_space_in", |nb| nb.create_space_in("Work", "tasks", None))
+        .record(&mut history, "create_space_in", |nb| nb.create_space_in("Work", "tasks", None, None))
         .unwrap();
     assert!(dir.path().join(&folder).is_dir());
 

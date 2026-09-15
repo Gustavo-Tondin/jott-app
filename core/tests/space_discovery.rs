@@ -381,12 +381,12 @@ fn groups_hold_spaces_and_can_be_created_moved_and_deleted() {
     let (dir, mut nb) = notebook();
 
     // A group is a folder with a `.group.json`; it is not a space.
-    nb.create_group("Design", None).unwrap();
+    nb.create_group("Design", None, None).unwrap();
     assert!(dir.path().join("Design/.group.json").is_file());
 
     // A space created inside the group lives under it, addressed by its
     // root-relative PATH — and is born usable like any other.
-    nb.create_space_in("Clients", "tasks", Some("Design")).unwrap();
+    nb.create_space_in("Clients", "tasks", Some("Design"), None).unwrap();
     assert!(dir.path().join("Design/Clients/.space.json").is_file());
     assert!(dir.path().join("Design/Clients/task-list.md").is_file());
 
@@ -416,7 +416,7 @@ fn groups_hold_spaces_and_can_be_created_moved_and_deleted() {
     nb.create_space("Clients", "tasks").unwrap();
     assert!(dir.path().join("Clients/.space.json").is_file());
     // …but a second one beside the first is still a collision.
-    assert!(nb.create_space_in("Clients", "tasks", Some("Design")).is_err());
+    assert!(nb.create_space_in("Clients", "tasks", Some("Design"), None).is_err());
     nb.delete_space("Clients").unwrap();
 
     // Moving the space out to the root: its path changes with it.
@@ -425,7 +425,7 @@ fn groups_hold_spaces_and_can_be_created_moved_and_deleted() {
     assert!(!dir.path().join("Design/Clients").exists());
 
     // Deleting a group with members moves them to the root, never loses them.
-    nb.create_space_in("Reports", "notes", Some("Design")).unwrap();
+    nb.create_space_in("Reports", "notes", Some("Design"), None).unwrap();
     nb.delete_group("Design").unwrap();
     assert!(dir.path().join("Reports/.space.json").is_file());
     assert!(!dir.path().join("Design").exists());
@@ -474,8 +474,8 @@ fn a_group_renames_and_restyles_exactly_like_a_space() {
     // both go through the same read-edit-write. This test existed for the
     // space side only; the group side was the untested half of the copy.
     let (dir, mut nb) = notebook();
-    nb.create_group("Design", None).unwrap();
-    nb.create_space_in("Acme", "tasks", Some("Design")).unwrap();
+    nb.create_group("Design", None, None).unwrap();
+    nb.create_space_in("Acme", "tasks", Some("Design"), None).unwrap();
 
     // Renaming a GROUP renames its folder too (2026-08-13) — the name is the
     // folder, for a group exactly as for a space — and everything it
@@ -588,9 +588,9 @@ fn a_groups_members_come_back_in_the_order_the_user_dragged() {
     // dragged order was written and then thrown away on the next read — the
     // drag inside a group simply did nothing (user report, 2026-08-11).
     let (_dir, mut nb) = notebook();
-    nb.create_group("Design", None).unwrap();
+    nb.create_group("Design", None, None).unwrap();
     for name in ["Alpha", "Beta", "Gamma"] {
-        nb.create_space_in(name, "tasks", Some("Design")).unwrap();
+        nb.create_space_in(name, "tasks", Some("Design"), None).unwrap();
     }
 
     // Members come back as PATHS, and the stored order names them the same way.
@@ -615,13 +615,13 @@ fn a_groups_members_come_back_in_the_order_the_user_dragged() {
 #[test]
 fn groups_nest_and_a_group_can_be_created_inside_another() {
     let (dir, nb) = notebook();
-    nb.create_group("Design", None).unwrap();
-    nb.create_group("Clients", Some("Design")).unwrap();
+    nb.create_group("Design", None, None).unwrap();
+    nb.create_group("Clients", Some("Design"), None).unwrap();
     assert!(dir.path().join("Design/Clients/.group.json").is_file());
 
     // A space inside the nested group is discovered like any other, and
     // its list is addressed by the full path.
-    nb.create_space_in("Acme", "tasks", Some("Design/Clients")).unwrap();
+    nb.create_space_in("Acme", "tasks", Some("Design/Clients"), None).unwrap();
     assert!(dir.path().join("Design/Clients/Acme/task-list.md").is_file());
     assert!(nb
         .lists()
@@ -643,7 +643,7 @@ fn groups_nest_and_a_group_can_be_created_inside_another() {
 
     // A leaf may repeat at another depth — that is the point of paths, and it
     // is the arrangement a user builds on purpose (a `Tasks` in two groups).
-    nb.create_group("Acme", None).unwrap();
+    nb.create_group("Acme", None, None).unwrap();
     nb.create_space("Clients", "notes").unwrap();
     assert!(nb.groups().unwrap().iter().any(|g| g.folder == "Acme"));
 }
@@ -651,9 +651,9 @@ fn groups_nest_and_a_group_can_be_created_inside_another() {
 #[test]
 fn moving_a_group_carries_its_subtree_and_refuses_to_enter_itself() {
     let (dir, mut nb) = notebook();
-    nb.create_group("Design", None).unwrap();
-    nb.create_group("Clients", Some("Design")).unwrap();
-    nb.create_space_in("Acme", "tasks", Some("Design/Clients")).unwrap();
+    nb.create_group("Design", None, None).unwrap();
+    nb.create_group("Clients", Some("Design"), None).unwrap();
+    nb.create_space_in("Acme", "tasks", Some("Design/Clients"), None).unwrap();
 
     // Out to the root: everything under it travels.
     nb.move_group("Design/Clients", None).unwrap();
@@ -675,7 +675,7 @@ fn moving_a_space_between_groups_keeps_its_pulled_tasks() {
     // old widget move), which left a task pulled into today pointing at a path
     // that no longer existed — it just vanished from the screen.
     let (dir, mut nb) = notebook();
-    nb.create_group("Design", None).unwrap();
+    nb.create_group("Design", None, None).unwrap();
     nb.create_space("Acme", "tasks").unwrap();
 
     let list = "Acme/task-list.md";
@@ -701,10 +701,10 @@ fn two_spaces_may_share_a_leaf_name_and_are_two_different_places() {
     // first match. And it is not an exotic arrangement — it is what anyone
     // builds who wants a task list in each of two groups.
     let (dir, mut nb) = notebook();
-    nb.create_group("Design", None).unwrap();
-    nb.create_group("Personal", None).unwrap();
-    nb.create_space_in("Tasks", "tasks", Some("Design")).unwrap();
-    nb.create_space_in("Tasks", "tasks", Some("Personal")).unwrap();
+    nb.create_group("Design", None, None).unwrap();
+    nb.create_group("Personal", None, None).unwrap();
+    nb.create_space_in("Tasks", "tasks", Some("Design"), None).unwrap();
+    nb.create_space_in("Tasks", "tasks", Some("Personal"), None).unwrap();
 
     // Two folders, two markers, two lists.
     assert!(dir.path().join("Design/Tasks/task-list.md").is_file());
@@ -745,10 +745,10 @@ fn deleting_a_group_hands_what_it_held_to_its_own_parent() {
     // Not to the root: a nested group's members belong one level up, where the
     // user was looking. Nothing is deleted with the group.
     let (dir, mut nb) = notebook();
-    nb.create_group("Design", None).unwrap();
-    nb.create_group("Clients", Some("Design")).unwrap();
-    nb.create_space_in("Acme", "tasks", Some("Design/Clients")).unwrap();
-    nb.create_group("Archive", Some("Design/Clients")).unwrap();
+    nb.create_group("Design", None, None).unwrap();
+    nb.create_group("Clients", Some("Design"), None).unwrap();
+    nb.create_space_in("Acme", "tasks", Some("Design/Clients"), None).unwrap();
+    nb.create_group("Archive", Some("Design/Clients"), None).unwrap();
 
     nb.delete_group("Design/Clients").unwrap();
 
@@ -853,8 +853,8 @@ fn the_fixed_spaces_read_as_home_tasks_and_notes_however_they_are_filed() {
     // A space inside a group reads as the ADDRESS the user sees, group
     // first (user call, 2026-08-13): two spaces called Tasks in two
     // different groups were the same word twice in the same picker.
-    nb.create_group("Design", None).unwrap();
-    nb.create_space_in("Tarefas", "tasks", Some("Design")).unwrap();
+    nb.create_group("Design", None, None).unwrap();
+    nb.create_space_in("Tarefas", "tasks", Some("Design"), None).unwrap();
     let grouped = nb
         .lists()
         .unwrap()
@@ -876,5 +876,54 @@ fn the_fixed_spaces_read_as_home_tasks_and_notes_however_they_are_filed() {
             .unwrap()
             .display_name(),
         "My tasks"
+    );
+}
+
+#[test]
+fn leaving_the_rainbow_writes_down_what_it_drew() {
+    let (dir, mut nb) = notebook();
+    // The rainbow is what a notebook does unless it has been left.
+    assert!(nb.rainbow_spaces());
+
+    nb.create_group("Design", None, None).unwrap();
+    nb.create_space_in("Acme", "tasks", Some("Design"), None).unwrap();
+    // Born wearing the colour the caller dealt it.
+    nb.create_space_in("Mercado", "tasks", None, Some("5".into()))
+        .unwrap();
+    assert_eq!(
+        Space::open(dir.path().join("Mercado")).unwrap().config.color.as_deref(),
+        Some("5")
+    );
+
+    // A space with an icon of its own: freezing must not touch it.
+    nb.set_space_appearance("Mercado", None, Some("sun".into()))
+        .unwrap();
+
+    let spaces = [
+        ("Mercado".to_string(), Some("2".to_string())),
+        // An address that is gone is skipped, not a reason to lose the rest.
+        ("Gone".to_string(), Some("3".to_string())),
+    ]
+    .into_iter()
+    .collect();
+    let groups = [("Design".to_string(), Some("4".to_string()))]
+        .into_iter()
+        .collect();
+    nb.set_rainbow_spaces(false, &spaces, &groups).unwrap();
+
+    assert!(!nb.rainbow_spaces());
+    let mercado = Space::open(dir.path().join("Mercado")).unwrap();
+    assert_eq!(mercado.config.color.as_deref(), Some("2"));
+    assert_eq!(mercado.config.icon.as_deref(), Some("sun"), "the icon is not the rainbow's to clear");
+    let design = jott_core::space::SpaceConfig::load(dir.path().join("Design/.group.json"));
+    assert_eq!(design.color.as_deref(), Some("4"));
+
+    // Coming back only deals again — nothing on disk is rewritten.
+    nb.set_rainbow_spaces(true, &Default::default(), &Default::default())
+        .unwrap();
+    assert!(nb.rainbow_spaces());
+    assert_eq!(
+        Space::open(dir.path().join("Mercado")).unwrap().config.color.as_deref(),
+        Some("2")
     );
 }

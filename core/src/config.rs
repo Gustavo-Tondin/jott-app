@@ -144,11 +144,12 @@ pub struct Config {
     /// Where a new task lands in its list: above the first (`true`) or below
     /// the last. `List::add_first` keeps whatever sits above the checklist there.
     pub new_tasks_on_top: bool,
-    /// The sidebar's rainbow: every top-level entry takes the next of the
-    /// seven colours in sidebar order, starting from the accent. It IGNORES
-    /// the colour a space chose. A Display choice: the notebook's fallback
-    /// for a machine that never answered (`settings::Display::resolve`).
-    pub auto_space_colors: bool,
+    /// The sidebar's rainbow, and what the app DOES by default: every
+    /// top-level entry takes the next of the seven colours in sidebar order,
+    /// starting from the accent, and the colour a space chose waits. Leaving
+    /// it writes the dealt colours down (`Notebook::set_rainbow_spaces`), so
+    /// the column keeps what it was showing.
+    pub rainbow_spaces: bool,
     /// How dates are shown. The file always stores ISO.
     pub date_display_format: DateFormat,
     /// Which of the app's colours is the accent. A SLOT (`"5"`), or a name an
@@ -276,7 +277,7 @@ impl Default for Config {
             day_summary_time: crate::reminders::ReminderTime::parse("08:00")
                 .expect("08:00 is a valid time"),
             new_tasks_on_top: true,
-            auto_space_colors: false,
+            rainbow_spaces: true,
             date_display_format: DateFormat::default(),
             accent_color: String::new(),
             mode: String::new(),
@@ -479,7 +480,7 @@ impl Config {
                 .unwrap_or_default()
                 .unwrap_or(defaults.day_summary_time),
             new_tasks_on_top: flag(&raw, "newTasksOnTop", defaults.new_tasks_on_top),
-            auto_space_colors: flag(&raw, "autoSpaceColors", defaults.auto_space_colors),
+            rainbow_spaces: flag(&raw, "rainbowSpaces", defaults.rainbow_spaces),
             date_display_format: string(&raw, "dateDisplayFormat")
                 .as_deref()
                 .map(DateFormat::parse_or_default)
@@ -589,7 +590,7 @@ impl Config {
             ("daySummary", Value::from(self.day_summary)),
             ("daySummaryTime", Value::from(self.day_summary_time.render())),
             ("newTasksOnTop", Value::from(self.new_tasks_on_top)),
-            ("autoSpaceColors", Value::from(self.auto_space_colors)),
+            ("rainbowSpaces", Value::from(self.rainbow_spaces)),
             (
                 "dateDisplayFormat",
                 Value::from(self.date_display_format.render()),
@@ -618,6 +619,9 @@ impl Config {
         // without being asked; the day summary replaced it, and a leftover
         // value would say nothing to anyone.
         cleared.push("autoRemind");
+        // The rainbow used to be a Display choice, off unless asked for; it is
+        // what the sidebar does now, and the answer lives in `rainbowSpaces`.
+        cleared.push("autoSpaceColors");
         let put_or_clear = crate::jsondoc::put_or_clear;
         // Absent means the dragged order, the default.
         put_or_clear(

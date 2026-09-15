@@ -70,7 +70,7 @@
   import Sidebar from "./lib/shell/Sidebar.svelte";
   import PageHeader from "./lib/shell/PageHeader.svelte";
   import { folderOf, leafOf, listTitle } from "./lib/services/paths.js";
-  import { groupColors, spaceColors } from "./lib/services/spaceColors.js";
+  import { dealtColors, groupColors, nextRainbowColor, spaceColors } from "./lib/services/spaceColors.js";
   import { originOf } from "./lib/services/origin.js";
   import {
     noteFontSizeAttribute,
@@ -1007,9 +1007,10 @@
   // What colour each space reads as — a member of a group follows the group.
   // The rainbow is the notebook's call and travels in the layout; the dealing
   // is the service's, so sidebar, title and tab dot agree.
-  let autoColors = $derived({ auto: !!layout?.autoSpaceColors, accent: layout?.accentColor ?? null });
-  let spColors = $derived(spaceColors(spaces, groups, autoColors));
-  let grColors = $derived(groupColors(spaces, groups, autoColors));
+  let rainbowOn = $derived(layout?.rainbowSpaces !== false);
+  let colorRules = $derived({ rainbow: rainbowOn, accent: layout?.accentColor ?? null });
+  let spColors = $derived(spaceColors(spaces, groups, colorRules));
+  let grColors = $derived(groupColors(spaces, groups, colorRules));
 
   // Where the open task can move: ANY tasks list of the notebook, minus the
   // Completed files (moving into Completed is what completing does). The same
@@ -1512,14 +1513,17 @@
 
   // ---- what the shell writes to the notebook (shell/notebookWrites.js) ----
   const {
+    setRainbow,
     createSpace,
     renameSpaceTo,
     setSpaceAppearance,
+    pickSpaceColor,
     deleteSpaceAt,
     moveSpaceTo,
     createGroup,
     renameGroupTo,
     setGroupAppearanceAt,
+    pickGroupColor,
     deleteGroupAt,
     moveGroupTo,
     arrangementOf,
@@ -1527,6 +1531,12 @@
     deleteCurrentList,
   } = makeNotebookWrites({
     change,
+    // Asked at each write: the column, the accent and the switch all move.
+    rainbow: () => ({
+      on: rainbowOn,
+      deal: dealtColors(spaces, groups, colorRules),
+      next: nextRainbowColor(spaces, groups, layout?.accentColor ?? null),
+    }),
     view: () => view,
     goTo,
     openTab,
@@ -1851,14 +1861,18 @@
     onMoveGroup={moveGroupTo}
     {spacesSort}
     onSetSpacesSort={setSpacesSort}
+    rainbow={rainbowOn}
+    onSetRainbow={setRainbow}
     onCreateSpace={createSpace}
     onRenameSpace={renameSpaceTo}
     onSetSpaceAppearance={setSpaceAppearance}
+    onPickSpaceColor={pickSpaceColor}
     onDeleteSpace={deleteSpaceAt}
     {groups}
     onCreateGroup={createGroup}
     onRenameGroup={renameGroupTo}
     onSetGroupAppearance={setGroupAppearanceAt}
+    onPickGroupColor={pickGroupColor}
     onDeleteGroup={deleteGroupAt}
     onMoveSpace={moveSpaceTo}
     onSearch={() => {

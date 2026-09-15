@@ -29,6 +29,10 @@ const CONTAINERS = {
   },
 };
 
+/// - `rainbow()` — the sidebar's colours right now: `{ on, deal, next }`, the
+///   switch, the deal the column is showing (`services/spaceColors.js`) and
+///   the colour a new top-level entry is born wearing. Asked at each write,
+///   never read once: the column changes under it.
 /// - `change(run, then)` — the shell's recorded action (`services/act.js`).
 /// - `view()` — what the active tab shows; `goTo` / `openTab` /
 ///   `replaceTabView(from, to)` — where it goes after a write.
@@ -36,6 +40,7 @@ const CONTAINERS = {
 ///   `setError(text)` — the shell's banner, for what a delete rescued.
 export function makeNotebookWrites({
   change,
+  rainbow = () => ({ on: false, deal: { spaces: {}, groups: {} }, next: null }),
   view,
   goTo,
   openTab,
@@ -56,6 +61,17 @@ export function makeNotebookWrites({
       },
       setAppearance: (folder, color, icon) =>
         change(() => c.setAppearance(folder, color ?? null, icon ?? null)),
+      /// Picking a COLOUR is how the rainbow is left: the column keeps
+      /// exactly what it was showing, with this pick in it, and the notebook
+      /// stops dealing. One recorded action, so one Ctrl+Z puts it all back.
+      /// With the rainbow already off it is the plain write.
+      pickColor: (folder, color, icon) => {
+        const { on, deal } = rainbow();
+        if (!on) return change(() => c.setAppearance(folder, color ?? null, icon ?? null));
+        const frozen = { spaces: { ...deal.spaces }, groups: { ...deal.groups } };
+        frozen[kind === "group" ? "groups" : "spaces"][folder] = color ?? null;
+        return change(() => api.setRainbowSpaces(false, frozen.spaces, frozen.groups));
+      },
       remove: async (folder, name) => {
         if (!(await askConfirm(c.confirmDelete(name), DELETING))) return;
         change(
@@ -78,6 +94,15 @@ export function makeNotebookWrites({
   // The group is where the colour is chosen; a space inside one follows it.
   const group = crudFor("group");
 
+  /// The colour a new entry is born wearing: nothing while the rainbow deals
+  /// (it would be overruled anyway), nothing inside a group (the colour is
+  /// the group's), and the next of the seven at the top level of a column
+  /// that has left the rainbow — so what is made goes on around the wheel.
+  const bornWearing = (group) => {
+    const { on, next } = rainbow();
+    return on || group ? null : next;
+  };
+
   // A space has one function, chosen at creation (spec 3.5): the caller
   // says whether it is a list (tasks) or a notepad (notes), and — since
   // groups nest — which group it is being made inside.
@@ -89,7 +114,7 @@ export function makeNotebookWrites({
     );
     if (!name?.trim()) return;
     change(
-      () => api.createSpaceIn(name.trim(), kind, group),
+      () => api.createSpaceIn(name.trim(), kind, group, bornWearing(group)),
       (folder) => openTab({ kind: "space", sp: folder }),
     );
   }
@@ -97,7 +122,7 @@ export function makeNotebookWrites({
   async function createGroup(group = null) {
     const name = await askName(S.nameGroup, "", { confirm: S.create });
     if (!name) return;
-    change(() => api.createGroup(name, group));
+    change(() => api.createGroup(name, group, bornWearing(group)));
   }
 
   // A space's arrangement lives in its own .space.json. The refresh
@@ -154,15 +179,24 @@ export function makeNotebookWrites({
     );
   }
 
+  /// The menu's tick: on deals again, off keeps what the column was showing.
+  const setRainbow = (on) => {
+    const { deal } = rainbow();
+    return change(() => api.setRainbowSpaces(on, deal.spaces, deal.groups));
+  };
+
   return {
+    setRainbow,
     createSpace,
     renameSpaceTo: space.rename,
     setSpaceAppearance: space.setAppearance,
+    pickSpaceColor: space.pickColor,
     deleteSpaceAt: space.remove,
     moveSpaceTo: space.move,
     createGroup,
     renameGroupTo: group.rename,
     setGroupAppearanceAt: group.setAppearance,
+    pickGroupColor: group.pickColor,
     deleteGroupAt: group.remove,
     moveGroupTo: group.move,
     arrangementOf,

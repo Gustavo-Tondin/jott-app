@@ -48,7 +48,6 @@ pub struct DisplayPrefs {
     pub show_list_counts: Option<bool>,
     pub restore_last_screen: Option<bool>,
     pub close_inspector_on_click_away: Option<bool>,
-    pub auto_space_colors: Option<bool>,
 }
 
 /// A font choice on its way in: kept when it is a name that can be written
@@ -85,7 +84,6 @@ impl DisplayPrefs {
         take(&mut self.hyphenate_notes, patch.hyphenate_notes);
         take(&mut self.date_display_format, patch.date_display_format);
         take(&mut self.show_list_counts, patch.show_list_counts);
-        take(&mut self.auto_space_colors, patch.auto_space_colors);
         take(&mut self.restore_last_screen, patch.restore_last_screen);
         take(
             &mut self.close_inspector_on_click_away,
@@ -157,9 +155,6 @@ pub struct Display {
     pub show_list_counts: bool,
     pub restore_last_screen: bool,
     pub close_inspector_on_click_away: bool,
-    /// The sidebar's rainbow: every entry takes the next of the seven,
-    /// starting from the accent. This screen's, like the accent.
-    pub auto_space_colors: bool,
 }
 
 impl Display {
@@ -211,7 +206,6 @@ impl Display {
                 .clone()
                 .unwrap_or_else(|| config.date_display_format.render().to_string()),
             show_list_counts: machine.show_list_counts.unwrap_or(config.show_list_counts),
-            auto_space_colors: machine.auto_space_colors.unwrap_or(config.auto_space_colors),
             restore_last_screen: machine
                 .restore_last_screen
                 .unwrap_or(config.restore_last_screen),
@@ -252,7 +246,6 @@ pub struct NotebookSettings {
     pub day_summary: Option<bool>,
     pub day_summary_time: Option<String>,
     pub new_tasks_on_top: Option<bool>,
-    pub auto_space_colors: Option<bool>,
     pub date_display_format: Option<String>,
     /// One of the eight, by name; empty goes back to the app's own.
     pub accent_color: Option<String>,
@@ -321,7 +314,6 @@ impl NotebookSettings {
             day_summary: Some(config.day_summary),
             day_summary_time: Some(config.day_summary_time.render()),
             new_tasks_on_top: Some(config.new_tasks_on_top),
-            auto_space_colors: Some(display.auto_space_colors),
             date_display_format: Some(display.date_display_format.clone()),
             accent_color: Some(display.accent_color.clone()),
             mode: Some(display.mode.clone()),
@@ -400,9 +392,6 @@ impl NotebookSettings {
         }
         if let Some(v) = self.new_tasks_on_top {
             config.new_tasks_on_top = v;
-        }
-        if let Some(v) = self.auto_space_colors {
-            config.auto_space_colors = v;
         }
         if let Some(v) = &self.date_display_format {
             config.date_display_format = DateFormat::parse_or_default(v);

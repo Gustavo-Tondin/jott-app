@@ -1061,6 +1061,58 @@ describe("App", () => {
     );
   });
 
+  test("the same menu ticks the rainbow, and unticking keeps the colours on screen", async () => {
+    // The rainbow is what the app does (2026-09-15), so the row is ticked and
+    // leaving it hands the deal in: the column keeps what it was showing.
+    shell({
+      set_rainbow_spaces: null,
+      notebook_snapshot: snapshot([aSpace]),
+    });
+    render(App);
+    await screen.findByText("Comprar leite");
+
+    await fireEvent.contextMenu(document.querySelector(".shell__sidebar-scroll"));
+    const row = await screen.findByRole("button", { name: /Auto-rainbow spaces/ });
+    expect(row.textContent).toContain("✓");
+    await userEvent.click(row);
+
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("set_rainbow_spaces", {
+        on: false,
+        spaces: { Space: "2" },
+        groups: {},
+      }),
+    );
+  });
+
+  test("a finger resting on the empty column opens that menu too", async () => {
+    // There is no right button on a phone: the menu of the column is reached
+    // by holding, the same wait a card's ring uses.
+    shell({ notebook_snapshot: snapshot([aSpace]) });
+    render(App);
+    await screen.findByText("Comprar leite");
+
+    const column = document.querySelector(".shell__sidebar-scroll");
+    await fireEvent.pointerDown(column, {
+      pointerId: 1,
+      pointerType: "touch",
+      clientX: 40,
+      clientY: 400,
+    });
+    // A finger that MOVES is the drawer or the column being scrolled.
+    await fireEvent.pointerMove(column, { pointerId: 1, clientX: 40, clientY: 460 });
+    await new Promise((r) => setTimeout(r, 450));
+    expect(screen.queryByText("New list")).toBeNull();
+
+    await fireEvent.pointerDown(column, {
+      pointerId: 1,
+      pointerType: "touch",
+      clientX: 40,
+      clientY: 400,
+    });
+    expect(await screen.findByText("New list", {}, { timeout: 2000 })).toBeTruthy();
+  });
+
   test("an empty column offers both kinds by name", async () => {
     // Nothing to right-click is nothing to discover, so the first entries keep
     // their buttons (user call, 2026-08-06) — and each says what it makes: one
@@ -1151,6 +1203,8 @@ describe("App", () => {
         name: "My Project",
         kind: "tasks",
         group: null,
+        // The rainbow is dealing, so the space is born wearing nothing.
+        color: null,
       }),
     );
   });

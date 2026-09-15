@@ -12,19 +12,24 @@ use super::*;
 impl Notebook {
     /// Creates an empty group (a folder with a `.group.json`) at the root. The
     /// folder name is the identity — a safe single component, unique in the
-    /// notebook. Returns the folder name.
-    pub fn create_group(&self, name: &str, into_group: Option<&str>) -> Result<String> {
+    /// notebook. Returns the folder name. `color` is what it is born wearing,
+    /// dealt by the caller like a space's ([`Notebook::create_space_in`]).
+    pub fn create_group(
+        &self,
+        name: &str,
+        into_group: Option<&str>,
+        color: Option<String>,
+    ) -> Result<String> {
         self.ensure_writable()?;
         let parent = match into_group {
             Some(group) => self.open_group(group)?.0,
             None => self.root.clone(),
         };
-        self.create_marked_folder(
-            name,
-            &parent,
-            crate::space::GROUP_CONFIG_FILE,
-            "{\n  \"schemaVersion\": 1\n}\n",
-        )
+        // The same config a space carries, with no `type` to write: a group
+        // has no function of its own.
+        let mut config = crate::space::SpaceConfig::default();
+        config.color = color;
+        self.create_marked_folder(name, &parent, crate::space::GROUP_CONFIG_FILE, &config.render())
     }
 
     /// Renames a group by renaming its FOLDER — the same rule as a space.
@@ -53,7 +58,7 @@ impl Notebook {
     }
 
     /// Where a group's config lives.
-    fn group_config_path(&self, folder: &str) -> Result<PathBuf> {
+    pub(super) fn group_config_path(&self, folder: &str) -> Result<PathBuf> {
         Ok(self
             .open_group(folder)?
             .0

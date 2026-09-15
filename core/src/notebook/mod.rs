@@ -190,6 +190,15 @@ impl Notebook {
             config.icon = icon.as_deref().and_then(cleared_to_none);
         })
     }
+
+    /// Writes a marked folder's colour and NOTHING beside it — the icon and
+    /// every key a newer build left there stay as they are. What leaving the
+    /// rainbow does to a whole column ([`Notebook::set_rainbow_spaces`]).
+    pub(super) fn set_marked_color(&self, path: PathBuf, color: Option<String>) -> Result<()> {
+        edit_marked_config(path, |config| {
+            config.color = color.as_deref().and_then(cleared_to_none);
+        })
+    }
 }
 
 /// An open notebook.

@@ -114,6 +114,7 @@ pub fn configure<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builde
             commands::spaces::create_space_in,
             commands::spaces::rename_space,
             commands::spaces::set_space_appearance,
+            commands::spaces::set_rainbow_spaces,
             commands::spaces::set_space_sort,
             commands::spaces::set_space_note_layout,
             commands::spaces::set_space_order,

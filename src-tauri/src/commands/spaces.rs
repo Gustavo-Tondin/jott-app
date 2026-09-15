@@ -165,14 +165,16 @@ pub async fn groups<R: Runtime>(
 }
 
 /// Creates a group at the root, or inside another group when `group` is given.
+/// `color` is the one it is born wearing (see `create_space_in`).
 #[tauri::command]
 pub async fn create_group<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
     name: String,
     group: Option<String>,
+    color: Option<String>,
 ) -> CommandResult<String> {
-    state.record(window.label(), "create_group", |nb| nb.create_group(&name, group.as_deref()))
+    state.record(window.label(), "create_group", |nb| nb.create_group(&name, group.as_deref(), color))
 }
 
 /// Moves a group — with everything under it — into another group, or back to
@@ -227,6 +229,8 @@ pub async fn move_space<R: Runtime>(
     state.record(window.label(), "move_space", |nb| nb.move_space(&name, into_group.as_deref()))
 }
 
+/// `color` is the colour the new space is born wearing — null while the
+/// sidebar deals its own, the next of the seven once it has stopped.
 #[tauri::command]
 pub async fn create_space_in<R: Runtime>(
     state: State<'_, AppState>,
@@ -234,8 +238,25 @@ pub async fn create_space_in<R: Runtime>(
     name: String,
     kind: String,
     group: Option<String>,
+    color: Option<String>,
 ) -> CommandResult<String> {
-    state.record(window.label(), "create_space_in", |nb| nb.create_space_in(&name, &kind, group.as_deref()))
+    state.record(window.label(), "create_space_in", |nb| nb.create_space_in(&name, &kind, group.as_deref(), color))
+}
+
+/// Turns the sidebar's rainbow on, or leaves it wearing what it drew: the
+/// deal the caller hands in is written into the spaces and groups showing it
+/// (`Notebook::set_rainbow_spaces`).
+#[tauri::command]
+pub async fn set_rainbow_spaces<R: Runtime>(
+    state: State<'_, AppState>,
+    window: tauri::Window<R>,
+    on: bool,
+    spaces: std::collections::BTreeMap<String, Option<String>>,
+    groups: std::collections::BTreeMap<String, Option<String>>,
+) -> CommandResult<()> {
+    state.record(window.label(), "set_rainbow_spaces", |nb| {
+        nb.set_rainbow_spaces(on, &spaces, &groups)
+    })
 }
 
 pub(crate) fn spaces_of(nb: &Notebook) -> CommandResult<Vec<SpaceInfo>> {

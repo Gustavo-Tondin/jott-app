@@ -49,6 +49,7 @@ const ACTION_NAMES = {
   set_group_appearance: "Group colour and icon",
   set_order: "Reorder sidebar",
   set_spaces_sort: "Sort sidebar",
+  set_rainbow_spaces: "Sidebar colours",
   set_tag: "Save tag",
   remove_tag: "Remove tag",
   restore_from_trash: "Restore from trash",
@@ -278,6 +279,8 @@ export const S = {
   deleteGroup: "Delete group",
   collapseGroup: "collapse group",
   expandGroup: "expand group",
+  // The sidebar's own menu: the column deals its colours, or keeps them.
+  rainbowSpaces: "Auto-rainbow spaces",
   // The tasks screen's ⋮: the sortings open a submenu.
   sortTasks: "Sort",
   pinTask: "Pin to top",
@@ -662,9 +665,6 @@ export const S = {
   resetSectionTitle: "Reset this section?",
   resetSectionDetail: "Every option on this page goes back to what the app ships with.",
   resetSectionAction: "Reset",
-  autoSpaceColors: "Rainbow sidebar",
-  autoSpaceColorsHint:
-    "Each space and group takes the next of the seven colours, in sidebar order, starting from the accent. Colours chosen by hand are set aside while this is on.",
   subKeeping: "Keeping",
   notebookContents: "Notebook contents",
   notebookContentsLine: ({ notes, tasks, files, bytes }) => {
