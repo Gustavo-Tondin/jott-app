@@ -26,10 +26,11 @@
 
   /* Any item in a live reorder: its transform glides, so the others make room
      for the carried one like Chrome tabs. Only present during a drag.
-     `settle`, not `medium`: at 250ms the neighbours are always halfway to
-     somewhere while the hand moves, and the new order never reads. */
+     A QUARTER SECOND, and no overshoot: at 150ms on the settle curve a board
+     of cards read as pieces jumping rather than making room — the movement
+     here is a whole column of them, not a row sliding one notch. */
   .reorder-item {
-    transition: transform var(--app-transition-settle);
+    transition: transform var(--app-transition-medium);
     will-change: transform;
   }
 

@@ -45,6 +45,15 @@ const INHERITED = [
 const LIFT_MS = 140;
 const LAND_MS = 160;
 const FLY = "cubic-bezier(0.2, 1.05, 0.35, 1)";
+/// The settled list flowing into place after the drop (`flow`), on the curve
+/// of anything that ARRIVES (`--app-ease-out`): no overshoot, because a whole
+/// board moves here and a spring on it reads as a bounce.
+const FLOW_MS = 260;
+const FLOW = "cubic-bezier(0.2, 0.8, 0.2, 1)";
+/// How long `flow` waits for the redraw that a drop asked for. Long enough for
+/// a write to disk and the snapshot back; past it the list is not moving
+/// because of this drop, and a later redraw is somebody else's.
+const SETTLE_WAIT = 1000;
 /// How far past the scroller's edge the carried item may hang, so its shadow
 /// has room. It STOPS there rather than being cut by it.
 const SLACK = 8;
@@ -661,10 +670,21 @@ export function reorderable(node, params) {
       .filter((el) => el.hasAttribute("title"))
       .map((el) => [el, el.getAttribute("title")]);
     for (const [el] of drag.titled) el.removeAttribute("title");
-    const inherited = node.ownerDocument.defaultView?.getComputedStyle?.(drag.el);
+    const view = node.ownerDocument.defaultView;
+    const inherited = view?.getComputedStyle?.(drag.el);
     if (inherited)
       for (const property of INHERITED)
         drag.el.style.setProperty(property, inherited.getPropertyValue(property));
+    // THE LIFT'S SHADOW TAKES THE SHAPE OF WHAT IS CARRIED. What the list
+    // holds is often a wrapper with no corners of its own — the `li` of a
+    // board around a rounded card — and a `box-shadow` is drawn on the border
+    // box: the card came off the page inside a square halo. Borrow the
+    // child's radius for the flight; `drop` takes it off again.
+    if (!parseFloat(inherited?.borderTopLeftRadius ?? "0")) {
+      const shape = drag.el.firstElementChild;
+      const radius = shape && view?.getComputedStyle?.(shape)?.borderRadius;
+      if (radius && parseFloat(radius)) drag.el.style.borderRadius = radius;
+    }
     const layer = opts.layer?.() ?? dragLayer(node.ownerDocument);
     layer.append(drag.el);
     // The item keeps the size it had: out of flow it would otherwise shrink to
@@ -727,6 +747,7 @@ export function reorderable(node, params) {
       "inline-size",
       "block-size",
       "margin",
+      "border-radius",
       ...INHERITED,
     ])
       d.el.style.removeProperty(property);
@@ -815,23 +836,25 @@ export function reorderable(node, params) {
     // the flow and the move commit — otherwise the list reorders under
     // something still in the air. Then the settled order is painted in one
     // frame, as it always was.
-    land(d, () => {
-      clear(d);
-      const many = d.stack && d.stack.length > 1;
-      const what = many ? d.stack : d.from;
-      // A free drag goes to its zone or nowhere: the list was never in play.
-      if (d.free) {
+    land(d, () =>
+      flow(d, () => {
+        clear(d);
+        const many = d.stack && d.stack.length > 1;
+        const what = many ? d.stack : d.from;
+        // A free drag goes to its zone or nowhere: the list was never in play.
+        if (d.free) {
+          if (d.zone) opts.onDropZone?.(what, d.zone);
+          return;
+        }
+        // Released on a zone: it is going THERE, wherever it came from.
         if (d.zone) opts.onDropZone?.(what, d.zone);
-        return;
-      }
-      // Released on a zone: it is going THERE, wherever it came from.
-      if (d.zone) opts.onDropZone?.(what, d.zone);
-      // Released clear of the list: the item is leaving, not moving within.
-      else if (d.leaving) opts.onDragOut(what);
-      else if (d.into != null) opts.onDropInto?.(what, d.into);
-      else if (many) opts.onReorderMany?.(d.stack, d.to);
-      else if (d.to !== d.from) opts.onReorder?.(d.from, d.to);
-    });
+        // Released clear of the list: the item is leaving, not moving within.
+        else if (d.leaving) opts.onDragOut(what);
+        else if (d.into != null) opts.onDropInto?.(what, d.into);
+        else if (many) opts.onReorderMany?.(d.stack, d.to);
+        else if (d.to !== d.from) opts.onReorder?.(d.from, d.to);
+      }),
+    );
   }
 
   /// Where the carried item is going, as a shift from where it set off. The
@@ -854,6 +877,84 @@ export function reorderable(node, params) {
     return horizontal() ? { x: px, y: 0 } : { x: 0, y: px };
   }
 
+  /// THE SETTLED LIST ARRIVES, it does not appear. Committing redraws the
+  /// list, and on a board of columns every card after the moved one can change
+  /// column (services/noteColumns.js) — painted in one frame, the whole board
+  /// jumps. So each item is measured where it STANDS (the preview the drag
+  /// painted, transforms and all), the commit runs, and what moved is animated
+  /// from the old place to the new one: FLIP. The measuring happens before
+  /// `clear`, and the correcting inside a frame callback, which runs after the
+  /// redraw's microtask and before the paint — so nothing is ever seen in the
+  /// settled place it has not yet flown to.
+  function flow(d, commit) {
+    const view = node.ownerDocument.defaultView;
+    const Watcher = view?.MutationObserver;
+    if (still() || !Watcher) return commit();
+    // WHERE EVERYTHING STANDS, which is the preview the drag painted: the gap
+    // open, the neighbours shifted, and the carried one at the end of its
+    // flight home (`d.flew` — the only item not in the list to be measured).
+    const was = new Map();
+    const held = new Map();
+    for (const el of items()) {
+      was.set(el, el.getBoundingClientRect());
+      if (el.style.transform) held.set(el, el.style.transform);
+    }
+    if (d.flew) {
+      const r = d.rects[d.from];
+      was.set(d.el, { left: r.left + d.flew.x, top: r.top + d.flew.y });
+    }
+    commit();
+    // AND IT KEEPS STANDING THERE until the redraw comes. `clear` has just
+    // taken the preview off and put the carried item back in the flow, and
+    // between here and the new order there are frames — enough for the gap to
+    // shut and open again. Writing the same transforms back moves nothing on
+    // the screen (the transition went with the class) and the settling below
+    // takes them off for good.
+    for (const [el, transform] of held) el.style.transform = transform;
+    const end = was.get(d.el);
+    if (end && d.el.isConnected) {
+      const at = d.el.getBoundingClientRect();
+      held.set(d.el, "");
+      d.el.style.transform = `translate(${end.left - at.left}px, ${end.top - at.top}px)`;
+    }
+    let timer = null;
+    let flowed = false;
+    /// The redraw landed (or never came): the list drops the preview and
+    /// whatever moved is animated from where it stood to where it now is.
+    const settle = () => {
+      if (flowed) return;
+      flowed = true;
+      watcher.disconnect();
+      clearTimeout(timer);
+      for (const el of held.keys()) el.style.transform = "";
+      for (const el of items()) {
+        const from = was.get(el);
+        if (!from || typeof el.animate !== "function") continue;
+        const now = el.getBoundingClientRect();
+        const dx = from.left - now.left;
+        const dy = from.top - now.top;
+        if (!dx && !dy) continue;
+        el.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: "none" }], {
+          duration: FLOW_MS,
+          easing: FLOW,
+        });
+      }
+    };
+    // WHEN the redraw comes is the caller's business: `onReorder` may go to
+    // disk and come back with a snapshot, so the new order can arrive frames
+    // after the drop (measured on the notes board, 2026-09-15). The observer
+    // runs on the microtask that follows it, before the paint — the settled
+    // places are corrected in the very frame they are first laid out in.
+    // Watching starts AFTER the commit: putting the carried item back and
+    // taking the placeholder away are changes to this same list, and they are
+    // not the redraw being waited for.
+    const watcher = new Watcher(settle);
+    watcher.observe(node, { childList: true });
+    // A drop that moved nothing redraws nothing: the deadline settles the list
+    // anyway, so the preview is never left standing.
+    timer = setTimeout(settle, SETTLE_WAIT);
+  }
+
   /// Flies the carried item home and calls `commit` when it arrives. Without
   /// `element.animate` (jsdom), with reduced motion, or when the drop is not
   /// a place in this list (a zone, a drag out, a free drag), it commits at
@@ -863,6 +964,10 @@ export function reorderable(node, params) {
     const lands = !d.free && !d.zone && !d.leaving && !!d.rects?.[d.to];
     if (!lands || still() || typeof d.el.animate !== "function") return commit();
     const to = d.into != null ? null : landing(d);
+    // Where the flight ENDS, for the settling that follows it (`flow`): the
+    // carried item is the one thing on the screen whose place is not in the
+    // list to be measured.
+    d.flew = to;
     const now = view?.getComputedStyle?.(d.el);
     const from = {
       transform: d.el.style.transform || "none",

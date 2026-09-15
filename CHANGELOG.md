@@ -6,6 +6,12 @@ What changed in each release, written for the person using the app rather than f
 
 One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` and `### Improved` under it. `packaging/release.sh` refuses to tag a version that has no section here. Versions before v0.51.0 predate the file and live only in the commit history.
 
+## v0.56.2
+
+### Improved
+
+- **A card carried across the board reads as one movement now**: it lifts with its own rounded shadow instead of a square one, the cards making room for it glide rather than snap, and when you let go the board flows into its new arrangement instead of jumping into it.
+
 ## v0.56.1
 
 ### Fixed

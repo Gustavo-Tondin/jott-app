@@ -858,6 +858,89 @@ describe("reorderable landing", () => {
   });
 });
 
+// ---- the list SETTLES, it does not appear (2026-09-15) ----
+describe("reorderable settling", () => {
+  beforeEach(() => {
+    document.body.innerHTML = "";
+  });
+
+  /// Every row given something to fly with, and every flight kept per row.
+  function flightsAll(ul) {
+    const made = new Map();
+    for (const li of ul.children) {
+      const mine = [];
+      made.set(li, mine);
+      li.animate = (frames, options) => {
+        const flight = { frames, options, onfinish: null, oncancel: null, cancel() {} };
+        mine.push(flight);
+        return flight;
+      };
+    }
+    return made;
+  }
+
+  test("the redraw is flown into, however late it comes", async () => {
+    const ul = list(3);
+    layOut(ul);
+    const made = flightsAll(ul);
+    const rows = [...ul.children];
+    // A caller that goes to disk: the new order arrives a turn later, which is
+    // what the notes board does (onSetOrder → snapshot back).
+    reorderable(ul, {
+      axis: "y",
+      item: ".row",
+      onReorder: () => {
+        setTimeout(() => {
+          ul.append(ul.children[0]);
+          layOut(ul);
+        }, 0);
+      },
+    });
+
+    const row = rows[0];
+    fire(row, "pointerdown", { button: 0, pointerId: 1, clientY: 20 });
+    fire(row, "pointermove", { pointerId: 1, clientY: 100 });
+    fire(row, "pointerup", { pointerId: 1, clientY: 100 });
+    made.get(row).at(-1).onfinish();
+
+    // Until the redraw lands, the list stands exactly as the hand left it:
+    // row 1 is still holding the gap open.
+    expect(rows[1].style.transform).toBe("translateY(-40px)");
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    await Promise.resolve();
+
+    expect(rows[1].style.transform).toBe("");
+    // Row 1 moved from 40 up to 0 and flies the 40px back.
+    const settle = made.get(rows[1]).at(-1);
+    expect(settle.frames[0].transform).toBe("translate(0px, 40px)");
+    expect(settle.frames.at(-1).transform).toBe("none");
+  });
+
+  test("a drop that redraws nothing still puts the list down", async () => {
+    vi.useFakeTimers();
+    try {
+      const ul = list(3);
+      layOut(ul);
+      const made = flightsAll(ul);
+      const rows = [...ul.children];
+      reorderable(ul, { axis: "y", item: ".row", onReorder: () => {} });
+
+      const row = rows[0];
+      fire(row, "pointerdown", { button: 0, pointerId: 1, clientY: 20 });
+      fire(row, "pointermove", { pointerId: 1, clientY: 100 });
+      fire(row, "pointerup", { pointerId: 1, clientY: 100 });
+      made.get(row).at(-1).onfinish();
+      expect(rows[1].style.transform).toBe("translateY(-40px)");
+
+      vi.advanceTimersByTime(1200);
+      expect(rows[1].style.transform).toBe("");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
 // ---- one reading per frame, and a threshold that stands still (2026-09-14) ----
 describe("reorderable, a frame at a time", () => {
   beforeEach(() => {
