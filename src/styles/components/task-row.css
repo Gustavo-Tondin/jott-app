@@ -39,15 +39,20 @@
   .task-row--selected {
     background: var(--app-brand-weak);
   }
-  /* MARKED (picking mode): the tint above, and a dot in the box — the mark
-     says "counted", the tick still says "done". A done card that is marked
-     keeps its tick; the tint is enough there. */
+  /* MARKED (picking mode): the tint above, and the box FILLED with the
+     accent carrying a light dot — the same fill a done box wears, with a dot
+     where the tick would be, so "counted" reads like "done" without being it.
+     A done card that is marked keeps its tick; the tint is enough there. */
+  .task-row--picked .task-row__check:not(:checked) {
+    background: var(--app-brand);
+    border-color: var(--app-brand);
+  }
   .task-row--picked .task-row__check:not(:checked)::before {
     content: "";
     position: absolute;
-    inset: 0.3125rem;
+    inset: 0.375rem;
     border-radius: 50%;
-    background: var(--app-brand);
+    background: var(--app-on-check);
   }
 
   /* The box is the shared .theme-checkbox (--lg); a done card's box is just

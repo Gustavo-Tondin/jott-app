@@ -26,7 +26,7 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 - **A held card offers the same five actions whether it is a task or a note**, in the same order: Pin, Move, Edit, Reorder, and the ⋮ with the rest. Completing a task and pulling it into today are the swipes, as before; duplicating and deleting a note moved behind the ⋮.
 - **A note is only ever dragged in reorder mode** — on the computer too — so a slip of the mouse or the finger never rearranges the board.
 - **On the computer, the right button opens the column of actions** at the pointer — on a task, a note or a space in the sidebar — and a note card's ⋮ is the whole menu again.
-- **A task marked in reorder mode shows a dot in its box**, next to the tint, so a mark is never mistaken for the task open in the inspector.
+- **A task marked in reorder mode fills its box with the accent and a light dot**, the way a done box fills with a tick, so a mark is never mistaken for the task open in the inspector.
 - **Two notes are no longer made into a folder by accident on the way past**: the card has to rest on the middle of another for a moment before it is taken as "put these together", and the ring tells you when it has.
 
 ## v0.56.1
