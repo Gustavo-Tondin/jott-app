@@ -4,6 +4,17 @@
  * the chosen one an 84×84 pill. Phone: the card IS the chrome — no surface, no
  * radius, the top bar floating over it — 44px cells and a 44×70 pill. */
 
+/* The width of the fade at the strip's ends. REGISTERED, because a plain
+   custom property inside a gradient cannot be transitioned: the fade has to
+   grow as the strip starts moving and shrink as it lands, or the days at the
+   two ends blink from dim to solid. Declared outside every layer — `@property`
+   is not a style rule and takes no part in the cascade. */
+@property --day-fade {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0;
+}
+
 @layer components {
   .day-head {
     display: flex;
@@ -54,10 +65,14 @@
     align-items: center;
     gap: var(--app-space-4);
   }
-  /* The carrousel: three pages a week wide, snapping a page at a time, the
-     week on show in the middle. No scrollbar (arrows, swipe or drag), no
-     overscroll chaining. A finger scrolls it natively; a mouse through
-     actions/dragScroll.js. */
+  /* The carrousel: five pages a week wide, snapping a page at a time, the week
+     on show in the middle. No scrollbar (arrows, swipe or drag), no overscroll
+     chaining. Both hands go through actions/dragScroll.js, which also writes
+     `data-scrolling` while the strip travels.
+
+     THE ENDS FADE ONLY WHILE IT MOVES: a week at rest fills the box exactly,
+     so a standing fade would dim Monday and Sunday for nothing. `--day-fade`
+     is 0 at rest, which makes the gradient below solid from edge to edge. */
   .day-head__scroller {
     flex: 1;
     min-inline-size: 0;
@@ -68,6 +83,28 @@
     scrollbar-width: none;
     touch-action: pan-x pan-y;
     cursor: grab;
+    --day-fade: 0rem;
+    -webkit-mask-image: linear-gradient(
+      to right,
+      transparent 0,
+      #000 var(--day-fade),
+      #000 calc(100% - var(--day-fade)),
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      to right,
+      transparent 0,
+      #000 var(--day-fade),
+      #000 calc(100% - var(--day-fade)),
+      transparent 100%
+    );
+    transition: --day-fade var(--app-transition-medium);
+  }
+  /* As wide as a third of a cell: less and the fade falls in the gap between
+     two days, where there is nothing to soften — the number sits in the
+     middle of its cell and would cross the edge as hard as before. */
+  .day-head__scroller[data-scrolling] {
+    --day-fade: 2.5rem;
   }
   .day-head__scroller::-webkit-scrollbar {
     display: none;
@@ -128,6 +165,25 @@
   .day-head__slot {
     display: flex;
     justify-content: center;
+  }
+  /* THE MONTH'S SEAM: a hairline standing in the gap before the column the new
+     month starts in (`--turn-at`, written by DayHead). Drawn by the GRID and
+     placed by arithmetic rather than by a pseudo-element on the slot: a
+     positioned slot would become the `offsetParent` the pill is measured from,
+     and the pill would never leave the first column. */
+  .day-head__days--turns::after {
+    content: "";
+    position: absolute;
+    --day-col: calc((100% - 6 * var(--app-space-4)) / 7);
+    inset-block-start: 50%;
+    inset-inline-start: calc(
+      var(--turn-at) * (var(--day-col) + var(--app-space-4)) - var(--app-space-4) / 2
+    );
+    z-index: 0;
+    inline-size: 0.0625rem;
+    block-size: 2.25rem;
+    translate: -50% -50%;
+    background: var(--app-line);
   }
   /* A day: the weekday letter over the number, on a pill filled only for the
      chosen one. The whole column is the target. */
@@ -232,6 +288,11 @@
     flex: none;
     padding-inline-start: calc(var(--app-space-12) + var(--app-safe-left));
     padding-inline-end: calc(var(--app-space-12) + var(--app-safe-right));
+  }
+  /* A third of the phone's narrower cell (44px), so the fade softens the day
+     crossing the edge without swallowing it. */
+  .day-head--compact .day-head__scroller[data-scrolling] {
+    --day-fade: 1.5rem;
   }
   /* THE SHEET, IN THREE ACTS (DayHead.svelte). Everything here is `sticky`
      and flow — nothing is moved by script on scroll; see

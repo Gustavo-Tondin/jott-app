@@ -45,11 +45,18 @@ export function dragScroll(node, options = {}) {
     stopGlide();
     node.style.scrollSnapType = "none";
   }
+  /// The strip is on the move: what the fade at its edges reads. Written only
+  /// once the strip is actually travelling, so a press that picks a day never
+  /// dims the two at the ends.
+  function moving() {
+    node.dataset.scrolling = "";
+  }
   /// Snap back on: the strip is already square on a page, so this only hands
   /// the last word back to the browser. Nudge it, since a scroller that
   /// stopped moving does not re-snap until the next scroll.
   function release() {
     node.style.scrollSnapType = "";
+    delete node.dataset.scrolling;
     if (typeof node.scrollBy === "function") node.scrollBy({ left: 0, behavior: "smooth" });
   }
 
@@ -146,6 +153,7 @@ export function dragScroll(node, options = {}) {
     if (!drag.moved && Math.abs(dx) < threshold) return;
     if (!drag.moved) {
       drag.moved = true;
+      moving();
       node.setPointerCapture?.(drag.id);
     }
     event.preventDefault();
@@ -193,6 +201,7 @@ export function dragScroll(node, options = {}) {
       }
       touch.axis = "x";
       hold();
+      moving();
     }
     event.preventDefault();
     node.scrollLeft = touch.left - dx;

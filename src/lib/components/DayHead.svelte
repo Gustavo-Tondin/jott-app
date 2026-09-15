@@ -79,6 +79,14 @@
     PAGES.map((offset) => weekOf(addDays(shown, offset), weekStartsOn)),
   );
 
+  /// Where a week changes month, as the COLUMN the new month starts in —
+  /// never the first, which has no gap to its left and nothing on the page to
+  /// be separated from. `0` is "it does not". The line is drawn by the grid
+  /// itself (day-head.css): a positioned slot would take the pill's
+  /// `offsetParent` and strand it in the first column.
+  const turnOf = (week) =>
+    Math.max(0, week.findIndex((iso, i) => i > 0 && dayOfMonth(iso) === "1"));
+
   let scroller = $state(null);
   /// One page is the scroller's own width; zero where nothing is laid out
   /// (jsdom), and then the strip turns by state alone.
@@ -120,6 +128,10 @@
       turned += n;
       return;
     }
+    // The arrows move the strip without a hand on it, so the marker the fade
+    // reads (actions/dragScroll.js writes it for a gesture) is written here
+    // too, and `settle` takes it off wherever it came from.
+    scroller.dataset.scrolling = "";
     scroller.scrollBy({ left: n * pageWidth(), behavior: still() ? "instant" : "smooth" });
   }
 
@@ -132,7 +144,9 @@
     settling = setTimeout(settle, 120);
   }
   function settle() {
-    if (!scroller || !pageWidth()) return;
+    if (!scroller) return;
+    delete scroller.dataset.scrolling;
+    if (!pageWidth()) return;
     const page = Math.round(scroller.scrollLeft / pageWidth());
     if (page !== MIDDLE) turned += page - MIDDLE;
   }
@@ -286,7 +300,14 @@
         <ol class="day-head__track">
           {#each weeks as week, w (week[0] ?? w)}
             <li class="day-head__page" class:is-current={w === MIDDLE}>
-              <ol class="day-head__days" use:segmented={DAY_PILL}>
+              <!-- A hairline in the gap says the month turned here: the month
+                   at the top names only one, and a week can hold two. -->
+              <ol
+                class="day-head__days"
+                class:day-head__days--turns={turnOf(week) > 0}
+                style={turnOf(week) > 0 ? `--turn-at: ${turnOf(week)}` : undefined}
+                use:segmented={DAY_PILL}
+              >
                 {#each week as iso (iso)}
                   <li class="day-head__slot">
                     <button

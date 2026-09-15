@@ -108,6 +108,23 @@ describe("HomeView", () => {
     );
   });
 
+  test("a week holding two months wears a line where the month turns", async () => {
+    bridge({ day_tasks: [], day_sort: null, notes_of_today: [] });
+    const { container } = render(HomeView, { props: props() });
+    await screen.findByText("No tasks yet");
+
+    // Aug 31 – Sep 6: the seam stands before the 1st — column 1, counting the
+    // Monday as 0. A week inside one month carries no seam at all, and neither
+    // does one that BEGINS a month: there is no gap to the left of Monday.
+    const week = container.querySelector(".day-head__page.is-current .day-head__days");
+    expect(week.classList.contains("day-head__days--turns")).toBe(true);
+    expect(week.getAttribute("style")).toContain("--turn-at: 1");
+    const plain = [...container.querySelectorAll(".day-head__days")].filter(
+      (g) => !g.classList.contains("day-head__days--turns"),
+    );
+    expect(plain.length).toBeGreaterThan(0);
+  });
+
   test("the head says how the day stands, and the greeting follows the hour", async () => {
     bridge({
       day_tasks: [
