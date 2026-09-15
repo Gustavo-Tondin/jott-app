@@ -93,6 +93,31 @@ describe("the action ring", () => {
     expect(actions.every((a) => !a.run.mock.calls.length)).toBe(true);
   });
 
+  // 2026-09-15: a slice whose panel threw on the way up left the column
+  // standing over every screen (docs/historico.md) — closing and the panel
+  // were one redraw, so the panel took the closing down with it.
+  test("the column is already gone by the time a slice runs", async () => {
+    render(ActionRing);
+    let standing = "not run";
+    const actions = [
+      {
+        id: "edit",
+        icon: "pencil",
+        label: "edit",
+        // Whatever it does — open a panel, throw on the way up — the column
+        // is not on the screen any more to be left behind.
+        run: () => (standing = !!document.querySelector(".action-ring")),
+      },
+    ];
+    popRing({ actions, at: { x: 120, y: 90 } });
+    await tick();
+    await userEvent.click(screen.getByLabelText("edit"));
+    await tick();
+
+    expect(standing).toBe(false);
+    expect(document.querySelector(".action-ring")).toBeNull();
+  });
+
   test("more than five never reach the column", async () => {
     render(ActionRing);
     popRing({ actions: slices(["a", "b", "c", "d", "e", "f"]), at: { x: 40, y: 40 } });

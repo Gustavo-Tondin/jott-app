@@ -32,6 +32,16 @@ export function closeRing() {
   host?.close();
 }
 
+/// RUNS A SLICE ONE STEP AFTER THE COLUMN CLOSES. Closing is a state change,
+/// and so is the panel a slice like "Edit" opens: in the same pass, a panel
+/// that throws on the way up takes the column's removal down with it and the
+/// column stands over every screen, dismissable by nothing. The microtask
+/// queued here runs after the redraw that closing asked for.
+export function afterRingCloses(run) {
+  if (typeof queueMicrotask === "function") queueMicrotask(run);
+  else run();
+}
+
 /// THE SAME SHEET WITHOUT A FINGER: opened by a click (the card's ⋮ on the
 /// desktop, where nothing is held), so it stays up and the rows are pressed
 /// rather than slid onto. Clicking anywhere else closes it.

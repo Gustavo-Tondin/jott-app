@@ -11,7 +11,7 @@
   // card the finger is on.
   import Icon from "./Icon.svelte";
   import { portal } from "../actions/portal.js";
-  import { setActionRing } from "../services/actionRing.js";
+  import { afterRingCloses, setActionRing } from "../services/actionRing.js";
 
   /// The open column, or null: `{ actions, at, quadrant, count, box }` — the
   /// very object the gesture reads, handed over as it opens.
@@ -46,11 +46,16 @@
   /// contradict.
   let side = $derived(ring && ring.box.x < ring.at.x ? "before" : "after");
 
+  /// THE COLUMN COMES DOWN FIRST, and the action runs after it: a slice that
+  /// opens a panel of its own is drawn in the same pass that takes the column
+  /// away, and a panel that fails to mount would leave the column standing
+  /// over every screen with no way to dismiss it. A step apart, the column is
+  /// already gone whatever the action does. See docs/historico.md.
   function choose(action) {
     const at = ring?.at;
     ring = null;
     slot = null;
-    action.run?.(0, at);
+    afterRingCloses(() => action.run?.(0, at));
   }
 
   function dismiss() {

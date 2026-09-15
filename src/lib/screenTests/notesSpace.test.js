@@ -372,6 +372,18 @@ describe("NotesSpace", () => {
     expect(invoke.mock.calls.some(([cmd]) => cmd === "write_note")).toBe(false);
   });
 
+  // 2026-09-15: on a phone the ⋮ repeated what holding the card already does,
+  // and cost the card its corner. The hold is the one way in there.
+  test("on a phone a card has no ⋮ at all", async () => {
+    bridge({ list_notes: [entry("Ideia")], note_folders: [noteFolder("Inbox")] });
+
+    render(ActionRing);
+    render(NotesSpace, { props: props({ compact: true }) });
+
+    expect(await screen.findByText("Ideia")).toBeTruthy();
+    expect(screen.queryByLabelText("note options")).toBeNull();
+  });
+
   test("a card duplicates through the core", async () => {
     bridge({
       list_notes: [entry("Ideia")],

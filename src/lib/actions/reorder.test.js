@@ -1261,11 +1261,14 @@ describe("reorderable with an action ring", () => {
     expect(others.every((c) => !c.style.transform)).toBe(true);
   });
 
-  test("the release runs the square the finger let go on", () => {
+  test("the release runs the square the finger let go on", async () => {
     const { ul, calls } = setup();
     const { el, at } = openAt(ul);
     fire(el, "pointermove", { pointerId: 1, ...onRow(at, 2) });
     fire(el, "pointerup", { pointerId: 1, ...onRow(at, 2) });
+    // The slice runs a microtask AFTER the column closes
+    // (services/actionRing.js, `afterRingCloses`).
+    await Promise.resolve();
 
     expect(calls.ran).toEqual(["pin"]);
     expect(calls.one).toEqual([]);
@@ -1275,7 +1278,7 @@ describe("reorderable with an action ring", () => {
     expect(ul.hasAttribute("data-reordering")).toBe(false);
   });
 
-  test("released clear of the column, or on the card itself, nothing happens", () => {
+  test("released clear of the column, or on the card itself, nothing happens", async () => {
     const { ul, calls } = setup();
     const first = openAt(ul);
     // Out past the column altogether.
@@ -1287,17 +1290,23 @@ describe("reorderable with an action ring", () => {
     // around itself, which is the card.
     const second = openAt(ul, 2, { x: 60, y: 90 });
     fire(second.el, "pointerup", { pointerId: 1, clientX: 60, clientY: 90 });
+    // The slice runs a microtask AFTER the column closes
+    // (services/actionRing.js, `afterRingCloses`).
+    await Promise.resolve();
     expect(calls.ran).toEqual([]);
     expect(calls.one).toEqual([]);
   });
 
-  test("`onRing` takes the release for itself when the caller wants it", () => {
+  test("`onRing` takes the release for itself when the caller wants it", async () => {
     const { ul, calls, actions } = setup({
       onRing: (from, action) => calls.chosen.push([from, action?.id ?? null]),
     });
     const { el, at } = openAt(ul);
     fire(el, "pointermove", { pointerId: 1, ...onRow(at, 0) });
     fire(el, "pointerup", { pointerId: 1, ...onRow(at, 0) });
+    // The slice runs a microtask AFTER the column closes
+    // (services/actionRing.js, `afterRingCloses`).
+    await Promise.resolve();
 
     expect(calls.chosen).toEqual([[1, actions[0].id]]);
     expect(calls.ran).toEqual([]);
@@ -1313,7 +1322,7 @@ describe("reorderable with an action ring", () => {
     expect(el.classList.contains("reorder-item--carried")).toBe(false);
   });
 
-  test("more than five actions never reach the finger", () => {
+  test("more than five actions never reach the finger", async () => {
     const calls = [];
     const ul = list(4);
     layOut(ul);
@@ -1325,6 +1334,9 @@ describe("reorderable with an action ring", () => {
     // action, and `f`/`g` are only in the ⋮.
     fire(el, "pointermove", { pointerId: 1, ...onRow(at, 4) });
     fire(el, "pointerup", { pointerId: 1, ...onRow(at, 4) });
+    // The slice runs a microtask AFTER the column closes
+    // (services/actionRing.js, `afterRingCloses`).
+    await Promise.resolve();
     expect(calls).toEqual(["e"]);
   });
 });

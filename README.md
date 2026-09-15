@@ -59,7 +59,7 @@ Pre-1.0, and used daily. The [releases page](https://github.com/Gustavo-Tondin/j
 **Notes**
 - A masonry card board, with folders as cards; or a plain board with every note on screen.
 - Markdown editor with live preview (CodeMirror): headings, lists, quotes, code, tables as an editable grid, find & replace, a formatting panel you can dock to any edge or float. The raw syntax shows only for the piece the cursor or selection is inside — selecting a whole line, or the whole note, keeps everything formatted. Bold and italic stack (`***both***`), and nested lists draw a guide per level with wrapped lines hanging from the first letter. Find & replace is a field, two arrows and a gear.
-- `[[Note]]` links between notes and `[[/file.pdf]]` references to files, both with autocompletion; colour or image banners, set from the note's title or from its card; pinning; bulk select. A card's ⋮ renames the note without opening it, and a note you never named shows its text instead of the app's "New note".
+- `[[Note]]` links between notes and `[[/file.pdf]]` references to files, both with autocompletion; colour or image banners, set from the note's title or from its card; pinning; bulk select. A card's actions rename the note without opening it, and a note you never named shows its text instead of the app's "New note".
 - **Paste from anywhere keeps its formatting** — text copied out of Keep, Docs, Notion or a web page arrives as Markdown (bold, italic, links, lists, checklists, quotes, code, tables) rather than the stripped plain text. One Ctrl+Z gives back the plain paste.
 - **Note tags**, as properties under the title (`tags:` in the front matter, the way Obsidian writes it), picked from the same list as task tags and found by the same `#name` search.
 

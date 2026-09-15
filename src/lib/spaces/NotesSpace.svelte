@@ -581,7 +581,9 @@
 </script>
 
 <!-- One note on the board — the same card whether it sits loose in a column
-     or inside a folder's own pair of columns. While picking, a click picks. -->
+     or inside a folder's own pair of columns. While picking, a click picks.
+     NO ⋮ ON A PHONE: holding the card opens the very same actions, and a
+     button that only repeats a gesture costs the card a corner. -->
 {#snippet noteItem(entry)}
   <NoteCard
     {entry}
@@ -593,8 +595,8 @@
     {dateFormat}
     {picking}
     selected={picked.has(entry.path)}
-    menu={cardMenu(entry)}
-    onOptions={readOnly || picking ? null : openRingAt}
+    menu={compact ? [] : cardMenu(entry)}
+    onOptions={readOnly || picking || compact ? null : openRingAt}
     onPin={readOnly || !f("pinNotes") ? null : () => togglePin(entry)}
     onOpen={(_, opts) => (picking ? togglePick(entry) : openNote(entry, opts))}
     onContextMenu={openCardMenu}

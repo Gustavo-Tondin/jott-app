@@ -14,7 +14,7 @@
 /// (a selection travels together); `holdMs`; `hold`.
 
 import { dragLayer } from "../services/dragLayer.js";
-import { closeRing, hoverRing, openRing } from "../services/actionRing.js";
+import { afterRingCloses, closeRing, hoverRing, openRing } from "../services/actionRing.js";
 import { fitRing, ringBox, ringQuadrant, ringSlotAt } from "../services/ring.js";
 
 /// TOUCH ONLY: how long a finger rests on an item before it is carried. Drag
@@ -824,9 +824,13 @@ export function reorderable(node, params) {
       clear(d);
       // The point the ring opened on travels with the choice: a slice that
       // opens a panel of its own anchors it to the card, not to wherever the
-      // hand happened to stop.
-      if (opts.onRing) opts.onRing(d.from, chosen, d.ring.at);
-      else chosen?.run?.(d.from, d.ring.at);
+      // hand happened to stop. And it runs a step AFTER the column closes, so
+      // nothing the action does can leave the column standing
+      // (services/actionRing.js, `afterRingCloses`).
+      afterRingCloses(() => {
+        if (opts.onRing) opts.onRing(d.from, chosen, d.ring.at);
+        else chosen?.run?.(d.from, d.ring.at);
+      });
       return;
     }
 
