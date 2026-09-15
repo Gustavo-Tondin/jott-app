@@ -110,7 +110,7 @@ Not to be discouraging — to save you the work:
   anything that writes into the user's file what they didn't type
   ([why](plugins.md)).
 - A graph view, a whiteboard, mindmaps, dashboards, multi-widget spaces —
-  cut deliberately, listed in the README.
+  cut deliberately, and not coming back.
 - A dependency added for something small. The frontend has CodeMirror and
   Svelte; the core has few crates on purpose. "This is 8 lines of stdlib"
   wins here.
