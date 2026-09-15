@@ -128,10 +128,12 @@
       turned += n;
       return;
     }
-    // The arrows move the strip without a hand on it, so the marker the fade
-    // reads (actions/dragScroll.js writes it for a gesture) is written here
-    // too, and `settle` takes it off wherever it came from.
-    scroller.dataset.scrolling = "";
+    // The arrows move the strip with no hand on it: nobody will tell us when
+    // that movement ends, so this marker is ours and `settle` takes it off.
+    // A GESTURE's marker is `data-scrolling`, and it belongs to the hand —
+    // never to this timer, which fires while a still finger is still holding
+    // the strip (the fade used to vanish under it).
+    scroller.dataset.turning = "";
     scroller.scrollBy({ left: n * pageWidth(), behavior: still() ? "instant" : "smooth" });
   }
 
@@ -145,7 +147,7 @@
   }
   function settle() {
     if (!scroller) return;
-    delete scroller.dataset.scrolling;
+    delete scroller.dataset.turning;
     if (!pageWidth()) return;
     const page = Math.round(scroller.scrollLeft / pageWidth());
     if (page !== MIDDLE) turned += page - MIDDLE;

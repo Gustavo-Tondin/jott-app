@@ -61,6 +61,41 @@ describe("a finger on the strip", () => {
   });
 });
 
+describe("the fade's marker", () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  it("is on while the hand holds the strip, even standing still", () => {
+    const node = strip();
+    touch(node, "touchstart", 300, 100, 0);
+    touch(node, "touchmove", 240, 100, 100);
+    expect(node.dataset.scrolling).toBe("");
+    // The hand stops mid-drag and holds. Nothing else may take the mark off:
+    // the strip is still open between two weeks, which is what the fade is for.
+    vi.advanceTimersByTime(2000);
+    expect(node.dataset.scrolling).toBe("");
+  });
+
+  it("goes off only once the strip has landed", () => {
+    const node = strip();
+    touch(node, "touchstart", 300, 100, 0);
+    touch(node, "touchmove", 240, 100, 50);
+    touch(node, "touchend", 240, 100, 60);
+    // Still gliding.
+    vi.advanceTimersByTime(60);
+    expect(node.dataset.scrolling).toBe("");
+    glideOut();
+    expect(node.dataset.scrolling).toBeUndefined();
+  });
+
+  it("is never written by a press that only picks a day", () => {
+    const node = strip();
+    touch(node, "touchstart", 300, 100, 0);
+    touch(node, "touchend", 300, 100, 80);
+    expect(node.dataset.scrolling).toBeUndefined();
+  });
+});
+
 describe("letting go", () => {
   beforeEach(() => vi.useFakeTimers());
   afterEach(() => vi.useRealTimers());

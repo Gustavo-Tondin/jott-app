@@ -102,8 +102,13 @@
   }
   /* As wide as a third of a cell: less and the fade falls in the gap between
      two days, where there is nothing to soften — the number sits in the
-     middle of its cell and would cross the edge as hard as before. */
-  .day-head__scroller[data-scrolling] {
+     middle of its cell and would cross the edge as hard as before.
+
+     TWO MARKERS, TWO OWNERS: `data-scrolling` is the hand's, and it lasts as
+     long as the hand is on the strip — a finger resting mid-drag is still
+     holding it open. `data-turning` is the arrows', which no hand will end. */
+  .day-head__scroller[data-scrolling],
+  .day-head__scroller[data-turning] {
     --day-fade: 2.5rem;
   }
   .day-head__scroller::-webkit-scrollbar {
@@ -291,7 +296,8 @@
   }
   /* A third of the phone's narrower cell (44px), so the fade softens the day
      crossing the edge without swallowing it. */
-  .day-head--compact .day-head__scroller[data-scrolling] {
+  .day-head--compact .day-head__scroller[data-scrolling],
+  .day-head--compact .day-head__scroller[data-turning] {
     --day-fade: 1.5rem;
   }
   /* THE SHEET, IN THREE ACTS (DayHead.svelte). Everything here is `sticky`
