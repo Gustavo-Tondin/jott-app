@@ -1,0 +1,40 @@
+/* task-title-panel.css — a task's title in a small card of its own.
+ * Markup: src/lib/components/TaskTitlePanel.svelte. Opened by the "Edit"
+ * slice of a task card's ring; on a phone it sits over the keyboard. */
+
+@layer components {
+  .task-title-panel {
+    padding: var(--app-space-10);
+    inline-size: min(22rem, calc(100vw - 2 * var(--app-space-16)));
+  }
+
+  /* Floating at a point (the card it was opened on), like the note's head
+     panel: the coordinates are written inline. Above the ring's pills. */
+  .task-title-panel--loose {
+    position: fixed;
+    z-index: 200;
+  }
+
+  /* On a phone: a card over the keyboard, centred, clear of the gesture bar
+     — the same sum the bulk bar makes (bulkbar.css). */
+  .task-title-panel--sheet {
+    position: fixed;
+    z-index: 200;
+    inset-inline-start: 50%;
+    inset-block-end: calc(
+      var(--app-space-16) + max(var(--app-safe-bottom), var(--app-keyboard))
+    );
+    translate: -50% 0;
+    animation: task-title-rise var(--app-duration-medium) var(--app-ease-out);
+  }
+  @keyframes task-title-rise {
+    from {
+      opacity: 0;
+      translate: -50% var(--app-space-16);
+    }
+  }
+
+  .task-title-panel__field {
+    inline-size: 100%;
+  }
+}

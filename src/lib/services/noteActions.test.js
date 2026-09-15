@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
-import { bannerOf, noteCardMenu } from "./noteActions.js";
+import { bannerOf, noteCardMenu, noteMoveRows, noteRing } from "./noteActions.js";
 
 const entry = { path: "Inbox/ideia.md", title: "ideia", pinned: false };
 
@@ -34,6 +34,17 @@ describe("noteCardMenu", () => {
   test("the five a card offers, in the board's order", () => {
     const rows = noteCardMenu({ entry, actions, space: "jott.notes", moveTargets: targets });
     expect(labels(rows)).toEqual(["Pin", "Move to…", "Rename", "Duplicate", "Delete"]);
+  });
+
+  test("a ring's ⋮ carries only what the five slices did not: duplicating and deleting", () => {
+    const rows = noteCardMenu({
+      entry,
+      actions,
+      space: "jott.notes",
+      moveTargets: targets,
+      beyondRing: true,
+    });
+    expect(labels(rows)).toEqual(["Duplicate", "Delete"]);
   });
 
   test("renaming is offered on the card, not only on the open note", () => {
@@ -144,5 +155,44 @@ describe("noteCardMenu", () => {
     // already one click from opening.
     const rows = noteCardMenu({ entry, actions, space: "x", openInNewTab: vi.fn() });
     expect(labels(rows)[0]).toBe("Open in new tab");
+  });
+});
+
+describe("noteRing", () => {
+  const run = () => {};
+  test("the five, in the order a task's ring keeps too: Pin · Move · Edit · Reorder · ⋮", () => {
+    const slices = noteRing({
+      onPin: run,
+      onMove: run,
+      onEdit: run,
+      onReorder: run,
+      onMore: run,
+    });
+    expect(slices.map((s) => s.id)).toEqual(["pin", "move", "edit", "reorder", "more"]);
+  });
+
+  test("a null slice is left out, and the pin inverts with the card", () => {
+    const slices = noteRing({ pinned: true, onPin: run, onReorder: run, onMore: run });
+    expect(slices.map((s) => s.label)).toEqual(["Unpin", "Reorder", "More"]);
+  });
+
+  test("the move rows are one per target, each naming its group", () => {
+    const moved = [];
+    const rows = noteMoveRows({
+      entry: { path: "Inbox/a.md" },
+      actions: { moveTo: (space, entry, value) => moved.push([space, entry.path, value]) },
+      space: "jott.notes",
+      moveTargets: [
+        { label: "Notes", options: [{ value: "x", label: "Inbox" }, { value: "y", label: "Ideas" }] },
+        { label: "Work", options: [{ value: "z", label: "Work" }] },
+      ],
+    });
+    expect(rows.map((r) => [r.label, r.context])).toEqual([
+      ["Inbox", "Notes"],
+      ["Ideas", "Notes"],
+      ["Work", "Work"],
+    ]);
+    rows[1].run();
+    expect(moved).toEqual([["jott.notes", "Inbox/a.md", "y"]]);
   });
 });

@@ -20,6 +20,13 @@ const openRing = async (label = "note options") => {
   await userEvent.click(await screen.findByLabelText(label));
 };
 
+/// Into the board's REORDER mode (the ⋮'s "Reorder notes…"): the only place
+/// a note is carried, since 2026-09-15.
+const enterReorder = async () => {
+  await userEvent.click(await screen.findByLabelText("space options"));
+  await userEvent.click(await screen.findByText("Reorder notes…"));
+};
+
 beforeEach(resetScreens);
 
 describe("NotesSpace", () => {
@@ -394,7 +401,10 @@ describe("NotesSpace", () => {
     render(ActionRing);
     render(NotesSpace, { props: props() });
     await openRing();
-    await userEvent.click(await screen.findByLabelText("Duplicate"));
+    // Duplicating is behind the ring's ⋮ now: the five are Pin · Move · Edit
+    // · Reorder · More.
+    await userEvent.click(await screen.findByLabelText("More"));
+    await userEvent.click(await screen.findByText("Duplicate"));
 
     await waitFor(() =>
       expect(invoke).toHaveBeenCalledWith("duplicate_note", {
@@ -414,9 +424,8 @@ describe("NotesSpace", () => {
     render(ActionRing);
     render(NotesSpace, { props: props() });
     await openRing();
-    // Moving is not one of the five: it is behind the ring's ⋮ slice.
-    await userEvent.click(await screen.findByLabelText("More"));
-    await userEvent.click(await screen.findByText("Move to…"));
+    // Moving is a slice of its own, opening the targets at the card.
+    await userEvent.click(await screen.findByLabelText("Move"));
     // The menu row, not the folder CARD of the same name behind it.
     await userEvent.click(
       (await screen.findAllByText("Clientes")).find((el) =>
@@ -469,11 +478,47 @@ describe("NotesSpace", () => {
 
     const cards = [...container.querySelectorAll(".notes-space__item")];
     place(cards, 220);
+    // Outside reorder mode a mouse on a card is a click, never a carry
+    // (2026-09-15): the board saves nothing.
     fireEvent.pointerDown(cards[0], { button: 0, pointerId: 1, clientX: 110, clientY: 60 });
     fireEvent.pointerMove(cards[0], { pointerId: 1, clientX: 110, clientY: 300 });
     fireEvent.pointerUp(cards[0], { pointerId: 1, clientX: 110, clientY: 300 });
+    expect(saved).toEqual([]);
+
+    await enterReorder();
+    fireEvent.pointerDown(cards[0], { button: 0, pointerId: 2, clientX: 110, clientY: 60 });
+    fireEvent.pointerMove(cards[0], { pointerId: 2, clientX: 110, clientY: 300 });
+    fireEvent.pointerUp(cards[0], { pointerId: 2, clientX: 110, clientY: 300 });
 
     await waitFor(() => expect(saved).toEqual([["Inbox/Bbb.md", "Inbox/Aaa.md"]]));
+  });
+
+  test("picked notes travel together, in the order they stood", async () => {
+    // A pile: the held card is picked, so every picked card goes with it —
+    // and the arrangement saved is the pile put down whole.
+    const saved = [];
+    bridge({ list_notes: [entry("Aaa"), entry("Bbb"), entry("Ccc")], note_folders: [] });
+
+    const { container } = render(NotesSpace, {
+      props: props({ onSetOrder: (order) => saved.push(order) }),
+    });
+    await screen.findByText("Aaa");
+    await enterReorder();
+    await userEvent.click(screen.getByText("Aaa"));
+    await userEvent.click(screen.getByText("Bbb"));
+    expect(screen.getByText("2 selected")).toBeTruthy();
+
+    const cards = [...container.querySelectorAll(".notes-space__item")];
+    place(cards, 220);
+    // Aaa carried onto Ccc's slot: Aaa and Bbb land after Ccc, Aaa first.
+    fireEvent.pointerDown(cards[0], { button: 0, pointerId: 1, clientX: 110, clientY: 60 });
+    fireEvent.pointerMove(cards[0], { pointerId: 1, clientX: 110, clientY: 520 });
+    expect(cards[0].getAttribute("data-carry")).toBe("2");
+    fireEvent.pointerUp(cards[0], { pointerId: 1, clientX: 110, clientY: 520 });
+
+    await waitFor(() =>
+      expect(saved).toEqual([["Inbox/Ccc.md", "Inbox/Aaa.md", "Inbox/Bbb.md"]]),
+    );
   });
 
   test("a dragged FOLDER card saves the arrangement it landed in", async () => {
@@ -490,6 +535,7 @@ describe("NotesSpace", () => {
     });
     await screen.findByText("Aaa");
 
+    await enterReorder();
     const cards = [...container.querySelectorAll(".notes-space__group, .notes-space__item")];
     expect(cards[0].classList.contains("notes-space__group")).toBe(true);
     place(cards, 220);
@@ -516,6 +562,7 @@ describe("NotesSpace", () => {
     });
     await screen.findByText("Clientes");
 
+    await enterReorder();
     const cards = [...container.querySelectorAll(".notes-space__group")];
     place(cards, 220);
     fireEvent.pointerDown(cards[0], { button: 0, pointerId: 1, clientX: 110, clientY: 240 });
@@ -539,6 +586,7 @@ describe("NotesSpace", () => {
     const { container } = render(NotesSpace, { props: props() });
     await screen.findByText("Aaa");
 
+    await enterReorder();
     const group = container.querySelector(".notes-space__group");
     const cards = [...container.querySelectorAll(".notes-space__item")];
     place(cards, 220);
@@ -569,7 +617,7 @@ describe("NotesSpace", () => {
     });
 
     await userEvent.click(await screen.findByLabelText("space options"));
-    await userEvent.click(await screen.findByText("Select notes…"));
+    await userEvent.click(await screen.findByText("Reorder notes…"));
     await userEvent.click(await screen.findByText("Ideia"));
     expect(screen.getByText("1 selected")).toBeTruthy();
 
@@ -593,7 +641,7 @@ describe("NotesSpace", () => {
 
     render(NotesSpace, { props: props() });
     await userEvent.click(await screen.findByLabelText("space options"));
-    await userEvent.click(await screen.findByText("Select notes…"));
+    await userEvent.click(await screen.findByText("Reorder notes…"));
     await userEvent.click(await screen.findByText("Ideia"));
     await userEvent.click(await screen.findByText("Outra"));
     await userEvent.click(screen.getByText("Delete"));
@@ -678,7 +726,7 @@ describe("NotesSpace with a note sub-function switched off", () => {
     // No pin slice either — and the rest of the ring is untouched: one
     // switch, one thing.
     expect(screen.queryByLabelText("Pin")).toBe(null);
-    expect(screen.getByLabelText("Delete")).toBeTruthy();
+    expect(screen.getByLabelText("Reorder")).toBeTruthy();
   });
 });
 

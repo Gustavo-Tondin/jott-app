@@ -13,8 +13,10 @@
 /// same finger picks a slice); `carried(from)` + `onReorderMany(indices, to)`
 /// (a selection travels together); `project(from, to, rects) => places`
 /// (a grid's own answer to where every item stands once `from` is put down
-/// at `to` — the preview shows the drop, not a chain of swaps); `holdMs`;
-/// `hold`.
+/// at `to` — the preview shows the drop, not a chain of swaps);
+/// `canCarry(from)` (false: nothing is carried — a finger's rest still opens
+/// the ring, a mouse gets its click back; the notes board outside its
+/// reorder mode); `holdMs`; `hold`.
 
 import { dragLayer } from "../services/dragLayer.js";
 import { afterRingCloses, closeRing, hoverRing, openRing } from "../services/actionRing.js";
@@ -115,9 +117,14 @@ export function reorderable(node, params) {
     const list = items();
     const from = list.indexOf(el);
     if (from < 0) return;
+    // Not to be carried: only a finger resting for the ring is answered,
+    // and any movement of it is a scroll. A mouse has the ⋮ for the ring.
+    const carries = opts.canCarry?.(from) ?? true;
+    if (!carries && !(e.pointerType === "touch" && opts.ring)) return;
     drag = {
       from,
       el,
+      ringOnly: !carries,
       pointerId: e.pointerId,
       origin: coord(e),
       originX: e.clientX,
@@ -156,6 +163,7 @@ export function reorderable(node, params) {
     // finger picks a slice. TOUCH ONLY: with a cursor on the screen the same
     // actions are one click away, on the card's ⋮ (`popRing`).
     if (drag.touch && openRingFor()) return;
+    if (drag.ringOnly) return cancel();
     // The caller may want the rest for itself (entering selection mode).
     if (opts.onHold?.(drag.from)) {
       const el = drag.el;

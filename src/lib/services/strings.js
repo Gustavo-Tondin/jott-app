@@ -244,7 +244,7 @@ export const S = {
   noTasksYet: "No tasks yet",
   // The ⋮ of a space's own screen: arrangement and bulk selection.
   spaceOptions: "space options",
-  selectTasks: "Select tasks…",
+  selectTasks: "Reorder tasks…",
   selectedCount: (n) => `${n} selected`,
   moveTo: "Move to…",
   deleteSelected: "Delete",
@@ -947,6 +947,7 @@ export const S = {
   ringMove: "Move",
   ringMore: "More",
   ringEdit: "Edit",
+  ringReorder: "Reorder",
   ringDuplicate: "Duplicate",
   ringDelete: "Delete",
   ringRename: "Rename",
@@ -958,6 +959,9 @@ export const S = {
   complete: "complete",
   uncheck: "uncheck",
   taskRowHint: "click to open, double-click to rename",
+  // The ring's "Edit" on a task: its title, in a small card of its own.
+  taskTitlePanel: "Task title",
+  taskTitleField: "Title",
   taskName: "task name",
   closePanel: "close",
   collapsePanel: "collapse panel",
@@ -1152,7 +1156,7 @@ export const S = {
   assetGoTo: (title) => `Go to “${title}”`,
 
   // Picking notes on the board, the way tasks are picked.
-  selectNotes: "Select notes…",
+  selectNotes: "Reorder notes…",
   moveNotesTo: "Move to…",
   notesFolderCount: (n) => (n === 1 ? "1 note" : `${n} notes`),
   openFolder: (name) => `open ${name}`,

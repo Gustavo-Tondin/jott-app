@@ -59,39 +59,25 @@ export function taskActions(act) {
 /// THE FIVE SLICES A TASK'S RING CARRIES (components/ActionRing.svelte), in
 /// the order they open in. Pure, so the ring can be read without a pointer.
 ///
-/// Each slice INVERTS with the state of the card rather than moving: a done
-/// task reads "Reopen" where an open one reads "Complete", in the same place
-/// and with the same icon, so the muscle memory survives. The last is always
-/// the ⋮ — what did not fit is still one tap away, and nothing left the app.
+/// THE SAME FIVE AS A NOTE'S, in the same order (`noteRing`): Pin · Move ·
+/// Edit · Reorder · ⋮ — a card means one thing on both screens. Completing
+/// and the day are the swipes. A slice INVERTS with the state of the card
+/// rather than moving (a pinned task reads "Unpin" in the same place), so the
+/// muscle memory survives. The last is always the ⋮ — what did not fit is
+/// still one tap away, and nothing left the app.
 export function taskRing({
-  done = false,
-  inDay = false,
   pinned = false,
   /// Each is `(from, at) => void`, where `at` is the point the ring opened
   /// on — what a slice that opens a menu of its own anchors to. A null one
   /// leaves that slice out: a day screen has nowhere to pin to, a read-only
   /// notebook has nothing at all.
-  onComplete = null,
-  onDay = null,
   onPin = null,
   onMove = null,
+  onEdit = null,
+  onReorder = null,
   onMore = null,
 } = {}) {
   const slices = [];
-  if (onComplete)
-    slices.push({
-      id: "complete",
-      icon: done ? "arrow-clockwise" : "check-square",
-      label: done ? S.ringReopen : S.ringComplete,
-      run: onComplete,
-    });
-  if (onDay)
-    slices.push({
-      id: "day",
-      icon: "calendar-blank",
-      label: inDay ? S.ringDayOut : S.ringDay,
-      run: onDay,
-    });
   if (onPin)
     slices.push({
       id: "pin",
@@ -100,20 +86,23 @@ export function taskRing({
       run: onPin,
     });
   if (onMove) slices.push({ id: "move", icon: "arrow-right", label: S.ringMove, run: onMove });
+  if (onEdit) slices.push({ id: "edit", icon: "pencil", label: S.ringEdit, run: onEdit });
+  if (onReorder)
+    slices.push({
+      id: "reorder",
+      icon: "arrows-out-cardinal",
+      label: S.ringReorder,
+      run: onReorder,
+    });
   if (onMore) slices.push({ id: "more", icon: "dots-three", label: S.ringMore, run: onMore });
   return slices;
 }
 
 /// The ⋮ slice's rows: what a task can do that the four slices left out.
 /// Pure, like `noteCardMenu` — the doing is bound by the screen.
-export function taskCardMenu({
-  onDuplicate = null,
-  onDelete = null,
-  onSelect = null,
-} = {}) {
+export function taskCardMenu({ onDuplicate = null, onDelete = null } = {}) {
   const rows = [];
   if (onDuplicate) rows.push({ label: S.duplicateTask, run: onDuplicate });
-  if (onSelect) rows.push({ label: S.selectTasks, run: onSelect });
   if (onDelete) rows.push({ label: S.deleteTaskItem, run: onDelete });
   return rows;
 }

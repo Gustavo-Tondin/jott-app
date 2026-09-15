@@ -8,12 +8,18 @@
   import { S } from "../services/strings.js";
   import EmptyState from "../components/EmptyState.svelte";
   import { askConfirm, askName, DELETING } from "../services/dialog.js";
-  import { bannerOf, noteActions, noteCardMenu, noteRing } from "../services/noteActions.js";
+  import {
+    bannerOf,
+    noteActions,
+    noteCardMenu,
+    noteMoveRows,
+    noteRing,
+  } from "../services/noteActions.js";
   import { popRing } from "../services/actionRing.js";
   import { makeScreen } from "../services/act.js";
   import { spaceMenu } from "../services/spaceMenu.js";
   import { liftSpaceMenu } from "../shell/spaceMenus.js";
-  import { arrange, pinnedFirst, planReorder } from "../services/spaceOrder.js";
+  import { arrange, pinnedFirst, planReorder, planReorderMany } from "../services/spaceOrder.js";
   import { ACCENTS, accentStyle, dotStyle as dotStyleOf, accentColor } from "../services/accent.js";
   import { board } from "../services/noteBoard.js";
   import { leafOf, listName } from "../services/paths.js";
@@ -440,9 +446,15 @@
     return noteRing({
       pinned: !!card.pinned,
       onPin: f("pinNotes") ? () => togglePin(card) : null,
+      // The same targets the bulk bar offers, as a menu at the card.
+      onMove: (_, point) => {
+        cardMenuShown = noteMoveRows({ entry: card, actions: cards, space: folder, moveTargets });
+        cardMenuAt = point ?? at;
+      },
       onEdit: (_, point) => (editing = { entry: card, at: point ?? at }),
-      onDuplicate: () => cards.duplicate(folder, card),
-      onDelete: () => cards.remove(folder, card),
+      // Into picking with nothing picked yet: a click marks from here, and a
+      // hold carries — the only place a note is ever carried.
+      onReorder: () => (picking = true),
       onMore: (_, point) => {
         cardMenuShown = cardMenu(card, {
           openInNewTab: () => openNote(card, { newTab: true }),
@@ -499,13 +511,20 @@
       })),
   ]);
 
-  /// A note dropped, by a free drag, on another notepad in the sidebar: it
-  /// goes into that space's Inbox folder — the same move the picker makes.
-  const moveCardTo = (card, space) =>
+  /// Notes dropped, by a free drag, on another notepad in the sidebar: they
+  /// go into that space's Inbox folder — the same move the picker makes.
+  /// The pile leaves the board, so it leaves the selection too.
+  const moveCardsTo = (pile, space) =>
     act(async () => {
       if (!space || space === folder) return;
-      await api.moveNoteToSpace(folder, card.path, space, notesInbox);
+      for (const card of pile) await api.moveNoteToSpace(folder, card.path, space, notesInbox);
+      unpick(pile);
     });
+  const unpick = (pile) => {
+    const next = new Set(picked);
+    for (const card of pile) next.delete(card.path);
+    picked = next;
+  };
 
   const moveSelected = (target) =>
     act(async () => {
@@ -541,43 +560,72 @@
   /// The cards in DOM order — what a reorder.js index points at.
   let shown = $derived(columned.order.map((i) => laidOut[i]));
 
-  // Dragging saves what the user built as the custom order. Only on the
-  // unfiltered board: reordering one folder of the tree would rewrite the rest.
+  // A NOTE IS ONLY CARRIED WHILE PICKING (the ring's "Reorder"): outside it a
+  // hold opens the ring and a mouse opens the note, on a desktop too. Dragging
+  // saves what the user built as the custom order. Only on the unfiltered
+  // board: reordering one folder of the tree would rewrite the rest.
   let canDrag = $derived(
-    !readOnly && !picking && layout === "grid" && laidOut.length > 1,
+    !readOnly && picking && layout === "grid" && laidOut.length > 1,
   );
 
-  /// Files a note into a folder of this space — dropping its card on a folder card.
-  const fileInto = (entry, path) =>
-    act(() => api.moveNoteToSpace(folder, entry.path, folder, path));
+  /// THE PILE a DOM slot carries (actions/reorder.js, `carried`): every
+  /// picked card when the held one is picked, in the order they stand;
+  /// otherwise the held one alone.
+  const carriedWith = (from) => {
+    const card = shown[from];
+    if (!card || !picked.has(card.path)) return [from];
+    return shown.flatMap((c, i) => (picked.has(c.path) ? [i] : []));
+  };
+  /// The cards of what the action reports — one slot, or a pile of them.
+  const pileOf = (what) => (Array.isArray(what) ? what : [what]).map((i) => shown[i]);
 
-  /// Two NOTES dropped one on the other become a FOLDER holding both; the name
-  /// is asked for. Only two notes: nesting a folder in another is a MOVE the
+  /// Files notes into a folder of this space — their cards dropped on a
+  /// folder card. Filed away, they leave the selection.
+  const fileInto = (pile, path) =>
+    act(async () => {
+      for (const card of pile) await api.moveNoteToSpace(folder, card.path, folder, path);
+      unpick(pile);
+    });
+
+  /// NOTES dropped on another note become a FOLDER holding them all; the name
+  /// is asked for. Notes only: nesting a folder in another is a MOVE the
   /// core does not offer for a folder of notes, so `canDropInto` refuses it.
-  const groupNotes = (a, b) =>
+  const groupNotes = (pile, target) =>
     act(async () => {
       const name = await askName(S.promptNewNoteFolder, "", { confirm: S.create });
       if (!name?.trim()) return;
       const parent = openFolder ? `${openFolder}/` : "";
       const path = `${parent}${name.trim()}`;
       await api.createNoteFolder(folder, path);
-      // The one that was dropped ON first, so it keeps the top of the folder.
-      await api.moveNoteToSpace(folder, b.path, folder, path);
-      await api.moveNoteToSpace(folder, a.path, folder, path);
+      // The one that was dropped ON first, so it keeps the top of the folder;
+      // the pile follows in the order it stood.
+      await api.moveNoteToSpace(folder, target.path, folder, path);
+      for (const card of pile) await api.moveNoteToSpace(folder, card.path, folder, path);
+      unpick(pile);
     });
 
-  async function reorderCards(from, to) {
-    // A card is never pinned into a block of its own here, so only the new
-    // arrangement matters out of the plan.
-    const { next } = planReorder(laidOut, columned.order[from], columned.order[to], () => false);
+  /// The arrangement a drop asks for, saved as the custom order. A card is
+  /// never pinned into a block of its own here, so only the new arrangement
+  /// matters out of the plan; the shell persists and refreshes, and the new
+  /// order comes back with the snapshot.
+  const saveOrder = async (next) => {
     try {
-      // The shell persists and refreshes; the new order comes back with the
-      // snapshot.
       await onSetOrder?.(next.map((n) => n.path));
     } catch (e) {
       onError?.(e);
     }
-  }
+  };
+  const reorderCards = (from, to) =>
+    saveOrder(planReorder(laidOut, columned.order[from], columned.order[to], () => false).next);
+  const reorderPile = (froms, to) =>
+    saveOrder(
+      planReorderMany(
+        laidOut,
+        froms.map((i) => columned.order[i]),
+        columned.order[to],
+        () => false,
+      ).next,
+    );
 </script>
 
 <!-- One note on the board — the same card whether it sits loose in a column
@@ -740,32 +788,38 @@
         // half-drag animation on a filtered board). BOTH kinds of card match
         // it: the board is one arrangement, and a folder card is carried the
         // same way a note is (see `laidOut`).
-        item: canDrag ? ".notes-space__item, .notes-space__group" : ".notes-space__never",
+        item: readOnly ? ".notes-space__never" : ".notes-space__item, .notes-space__group",
+        // Carried only while picking; the rest of the time a finger's rest
+        // still opens the ring (`canCarry`).
+        canCarry: () => canDrag,
         onReorder: reorderCards,
+        carried: carriedWith,
+        onReorderMany: reorderPile,
         // The preview is the drop: the board re-read by rows, columns
         // restacked (services/noteColumns.js) — never a chain of cards each
         // taking a neighbour's slot, which on columns of unequal heights
         // reads as pieces jumping.
         project: (from, to, rects) => projectMove(rects, columned.order, columns, from, to),
-        // A folder card is where a NOTE is filed. Carrying a folder there is
-        // no zone at all: it is only being put somewhere in the order.
+        // A folder card is where NOTES are filed. A pile with a folder in it
+        // has no zone at all: a folder is only ever put somewhere in the order.
         dropZones: (from) =>
-          isGroup(shown[from])
+          pileOf(carriedWith(from)).some(isGroup)
             ? []
             : [...(boardEl?.querySelectorAll(".notes-space__group") ?? [])],
-        onDropZone: (from, zone) =>
+        onDropZone: (what, zone) =>
           zone.dataset.spaceDrop != null
-            ? moveCardTo(shown[from], zone.dataset.spaceDrop)
-            : fileInto(shown[from], zone.dataset.folder),
-        // The free drag (Ctrl): a NOTE carried to a notepad in the sidebar
-        // goes into its Inbox folder. A folder card offers none.
+            ? moveCardsTo(pileOf(what), zone.dataset.spaceDrop)
+            : fileInto(pileOf(what), zone.dataset.folder),
+        // The free drag (Ctrl): NOTES carried to a notepad in the sidebar go
+        // into its Inbox folder. A folder card offers none.
         free: readOnly ? null : (e) => e.ctrlKey || e.metaKey,
         freeZones: (from) =>
-          isGroup(shown[from])
+          pileOf(carriedWith(from)).some(isGroup)
             ? []
             : [...document.querySelectorAll('[data-space-drop][data-space-kind="notes"]')],
-        canDropInto: (from, to) => !isGroup(shown[from]) && !isGroup(shown[to]),
-        onDropInto: (from, to) => groupNotes(shown[from], shown[to]),
+        canDropInto: (from, to) =>
+          !pileOf(carriedWith(from)).some(isGroup) && !isGroup(shown[to]),
+        onDropInto: (what, to) => groupNotes(pileOf(what), shown[to]),
         // A folder card has no ring — what it offers is its own head's ⋮.
         ring: (from) => ringFor(shown[from]),
       }}

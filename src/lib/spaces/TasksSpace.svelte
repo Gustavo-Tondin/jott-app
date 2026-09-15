@@ -25,6 +25,7 @@
   } from "../services/spaceOrder.js";
   import BulkBar from "../components/BulkBar.svelte";
   import TaskCards from "../components/TaskCards.svelte";
+  import TaskTitlePanel from "../components/TaskTitlePanel.svelte";
   import TaskComposer from "../components/TaskComposer.svelte";
   import CaptureFab from "../components/CaptureFab.svelte";
   import Menu from "../components/Menu.svelte";
@@ -311,22 +312,20 @@
     picked = new Set();
   };
 
-  // THE LONG PRESS is the other door into selection mode: it marks the card
-  // and turns the screen over to picking. Resting on a card ALREADY picked is
-  // not answered — the reorder action then carries the whole pile. Matched by
-  // the TASK, never by the entry object: `shown` is rebuilt on every arrangement.
+  // THE LONG PRESS of a mouse is the other door into selection mode: it marks
+  // the card and turns the screen over to picking (a finger's rest opens the
+  // ring, whose "Reorder" slice is the door there). Once picking, a rest is
+  // not answered at all: a click marks, a hold carries — the card alone, or
+  // the whole pile when it is one of the picked. Matched by the TASK, never
+  // by the entry object: `shown` is rebuilt on every arrangement.
   const entryOf = (entry) => shown.find((candidate) => candidate.task === entry.task);
   function holdCard(held) {
-    if (readOnly) return false;
+    if (readOnly || picking) return false;
     const entry = entryOf(held);
     if (!entry) return false;
-    if (!picking) {
-      picking = true;
-      picked = new Set([entry]);
-      return true;
-    }
-    if (!picked.has(entry)) picked = new Set([...picked, entry]);
-    return false;
+    picking = true;
+    picked = new Set([entry]);
+    return true;
   }
   const carriedWith = (held) => {
     const entry = entryOf(held);
@@ -351,17 +350,21 @@
       await api.moveTask(entry.list, id, target);
     });
 
+  /// The ring's "Edit": the task's title in a small card of its own
+  /// (components/TaskTitlePanel.svelte), over the row, without the inspector.
+  let titling = $state(null);
+  const renameTask = (entry, text) =>
+    act(async () => {
+      const id = await ensureTaskId(entry.list, entry.task);
+      await api.editTaskText(entry.list, id, text);
+    });
+
   /// The slices of one card. Null while the screen is PICKING: there the bulk
   /// bar is the way, and a ring over a selection would act on one of them.
   const ringFor = (entry) => {
     if (readOnly || picking) return null;
-    const day = daySwipe?.(entry);
     return taskRing({
-      done: !!entry.task.done,
-      inDay: inDay(entry),
       pinned: !!entry.task.pinned,
-      onComplete: () => complete(entry.list, entry.task),
-      onDay: day ? () => day.run() : null,
       // A day screen has no pinned block to pin to.
       onPin: isDay ? null : () => pin(entry.list, entry.task, !entry.task.pinned),
       onMove: listTargets.length
@@ -374,11 +377,13 @@
               at,
             )
         : null,
+      onEdit: (_, at) => (titling = { entry, at }),
+      // Into picking with nothing picked yet: a click marks from here.
+      onReorder: () => (picking = true),
       onMore: (_, at) =>
         openRingMenu(
           taskCardMenu({
             onDuplicate: () => duplicate(entry.list, entry.task),
-            onSelect: () => holdCard(entry),
             onDelete: () => deleteEntry(entry),
           }),
           at,
@@ -796,3 +801,14 @@
 <!-- Where the ring's "Move" and ⋮ open (see `openRingMenu`): one panel for the
      screen, at the point the ring opened on. -->
 <ContextMenu at={ringMenuAt} items={ringMenuShown} onClose={() => (ringMenuAt = null)} />
+
+<!-- The ring's "Edit": the title in a small card, over the row on a desktop
+     and over the keyboard on a phone (components/TaskTitlePanel.svelte). -->
+{#if titling}
+  <TaskTitlePanel
+    title={titling.entry.task.text}
+    at={titling.at}
+    onRename={(text) => renameTask(titling.entry, text)}
+    onClose={() => (titling = null)}
+  />
+{/if}

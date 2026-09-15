@@ -10,6 +10,7 @@ import { bridge, invoke } from "../test/bridge.js";
 import { noop, resetScreens, task } from "../test/screens.js";
 import { originOf } from "../services/origin.js";
 import { ringBox, ringQuadrant, ringRowCenter } from "../services/ring.js";
+import ActionRing from "../components/ActionRing.svelte";
 
 // The note editor's engine is stubbed by a textarea — `lib/test/screens.js`
 // says why. `vi.mock` is hoisted per file, so it cannot live there.
@@ -194,26 +195,85 @@ describe("TasksView", () => {
     await waitFor(() => expect(row.classList.contains("reorder-item--carried")).toBe(false));
   });
 
-  test("the ring's ⋮ still leads to selection", async () => {
+  test("the ring's Edit opens the title in a small card, and Enter saves it", async () => {
+    bridge({
+      list_tasks: [task("a1", "Fix website"), task("a2", "Send invoice")],
+      day_tasks: [],
+      grouped_suggestions: [],
+      edit_task_text: null,
+    });
+    render(ActionRing);
+    render(TasksView, { props: props({ compact: true }) });
+    const card = await screen.findByText("Fix website");
+    await holdCard(card);
+    await waitFor(() => expect(document.querySelector(".action-ring__pill")).toBeTruthy());
+    const labels = [...document.querySelectorAll(".action-ring__pill")].map((el) =>
+      el.getAttribute("aria-label"),
+    );
+    const at = { x: 40, y: 40 };
+    const viewport = { width: window.innerWidth, height: window.innerHeight };
+    const box = ringBox(at, viewport, labels.length, ringQuadrant(at, viewport));
+    const point = ringRowCenter(box, labels.indexOf("Edit"));
+    const move = new Event("pointermove", { bubbles: true });
+    Object.assign(move, { pointerId: 1, clientX: point.x, clientY: point.y });
+    card.dispatchEvent(move);
+    const up = new Event("pointerup", { bubbles: true });
+    Object.assign(up, { pointerId: 1, clientX: point.x, clientY: point.y });
+    card.dispatchEvent(up);
+
+    const field = await screen.findByLabelText("Title");
+    expect(field.value).toBe("Fix website");
+    await userEvent.clear(field);
+    await userEvent.type(field, "Fix the website{Enter}");
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("edit_task_text", {
+        list: "jott.tasks/task-list.md",
+        id: "a1",
+        text: "Fix the website",
+      }),
+    );
+    expect(screen.queryByLabelText("Title")).toBe(null);
+  });
+
+  test("the ring's Reorder slice turns the screen over to picking, with nothing picked", async () => {
     bridge({
       list_tasks: [task("a1", "Fix website"), task("a2", "Send invoice")],
       day_tasks: [],
       grouped_suggestions: [],
     });
+    render(ActionRing);
     const { container } = render(TasksView, { props: props({ compact: true }) });
     const card = await screen.findByText("Fix website");
     await holdCard(card);
-    // The ⋮ is the last square, at the bottom of the column (services/ring.js).
+    // The same squares as a note's, in the same order — the ring is read off
+    // the screen, and the finger let go on the "Reorder" square (services/ring.js).
+    await waitFor(() => expect(document.querySelector(".action-ring__pill")).toBeTruthy());
+    const labels = [...document.querySelectorAll(".action-ring__pill")].map((el) =>
+      el.getAttribute("aria-label"),
+    );
+    expect(labels[0]).toBe("Pin");
+    expect(labels.at(-1)).toBe("More");
+    expect(labels.indexOf("Reorder")).toBe(labels.length - 2);
+    expect(labels).not.toContain("Complete");
+    const at = { x: 40, y: 40 };
+    const viewport = { width: window.innerWidth, height: window.innerHeight };
+    const box = ringBox(at, viewport, labels.length, ringQuadrant(at, viewport));
+    const point = ringRowCenter(box, labels.indexOf("Reorder"));
     const move = new Event("pointermove", { bubbles: true });
-    const point = lastRow({ x: 40, y: 40 });
     Object.assign(move, { pointerId: 1, clientX: point.x, clientY: point.y });
     card.dispatchEvent(move);
-    releaseOnLastSlice(card);
-    // The menu the slice opens is drawn on the next tick, in a portal.
-    await new Promise((r) => setTimeout(r, 60));
+    const up = new Event("pointerup", { bubbles: true });
+    Object.assign(up, { pointerId: 1, clientX: point.x, clientY: point.y });
+    card.dispatchEvent(up);
 
-    const select = await screen.findByText("Select tasks…");
-    select.click();
+    // Entered from the ring, nothing is marked yet: a click marks from here.
+    await waitFor(() =>
+      expect(container.querySelector(".bulkbar__count").textContent).toBe("0 selected"),
+    );
+    // The click that follows a release is the gesture's own and is swallowed
+    // for a frame (reorder.js); this one is a new click.
+    await new Promise((r) => setTimeout(r, 40));
+    await userEvent.click(screen.getByText("Send invoice"));
     await waitFor(() =>
       expect(container.querySelector(".bulkbar__count").textContent).toBe("1 selected"),
     );

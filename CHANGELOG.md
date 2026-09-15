@@ -8,6 +8,11 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 
 ## v0.56.2
 
+### New
+
+- **A reorder mode for notes**: pick "Reorder" on a card's ring (or "Reorder notes…" in the notepad's ⋮), tap the cards you mean, and hold one to carry them all together — onto a new place, into a folder, or onto another notepad in the sidebar. The bar at the foot moves or deletes what you marked. Tasks have the same mode, from the same slice.
+- **A task's title can be edited from its ring**: "Edit" opens the title in a small card — on a phone it sits over the keyboard, so you never lose sight of what you are typing.
+
 ### Fixed
 
 - **Editing a note's name from a held card no longer leaves the column of actions stuck on the screen**, standing over every screen you opened afterwards: the column comes down before the panel opens, so nothing the panel does can leave it behind.
@@ -18,6 +23,8 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 
 - **A card carried across the board reads as one movement now**: it lifts with its own rounded shadow instead of a square one, the cards making room for it glide rather than snap, and when you let go the board flows into its new arrangement instead of jumping into it.
 - **A note card on a phone no longer carries a ⋮**: holding the card opens the very same actions, and the corner it took back belongs to the note.
+- **A held card offers the same five actions whether it is a task or a note**, in the same order: Pin, Move, Edit, Reorder, and the ⋮ with the rest. Completing a task and pulling it into today are the swipes, as before; duplicating and deleting a note moved behind the ⋮.
+- **A note is only ever dragged in reorder mode** — on the computer too — so a slip of the mouse or the finger never rearranges the board.
 - **Two notes are no longer made into a folder by accident on the way past**: the card has to rest on the middle of another for a moment before it is taken as "put these together", and the ring tells you when it has.
 
 ## v0.56.1

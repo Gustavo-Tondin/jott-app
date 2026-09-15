@@ -386,13 +386,14 @@ describe("HomeView", () => {
     const slices = [...document.querySelectorAll(".action-ring__pill")].map((el) =>
       el.getAttribute("aria-label"),
     );
-    expect(slices).toEqual(["Pin", "Edit", "Duplicate", "Delete", "More"]);
+    // No "Reorder" here: the day is not a board, there is nothing to arrange.
+    expect(slices).toEqual(["Pin", "Move", "Edit", "More"]);
 
     await userEvent.click(await screen.findByLabelText("More"));
     const rows = [...document.querySelectorAll(".menu__list > .menu__item > .menu__link")].map(
       (el) => el.textContent.trim(),
     );
-    expect(rows).toEqual(["Open in new tab", "Move to…"]);
+    expect(rows).toEqual(["Open in new tab", "Duplicate", "Delete"]);
 
     // The pin is a button of its own, because a pin is a STATE: the card has
     // to say whether it is pinned without being asked.

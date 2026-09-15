@@ -422,7 +422,7 @@ describe("SpaceView", () => {
     await screen.findByText("Primeira");
 
     await userEvent.click(screen.getByLabelText("space options"));
-    await userEvent.click(await screen.findByText("Select tasks…"));
+    await userEvent.click(await screen.findByText("Reorder tasks…"));
 
     // Clicking a card now picks it instead of opening the inspector.
     await userEvent.click(screen.getByText("Primeira"));
@@ -464,7 +464,7 @@ describe("SpaceView", () => {
     await screen.findByText("Primeira");
 
     await userEvent.click(screen.getByLabelText("space options"));
-    await userEvent.click(await screen.findByText("Select tasks…"));
+    await userEvent.click(await screen.findByText("Reorder tasks…"));
     await userEvent.click(screen.getByText("Primeira"));
     await userEvent.click(screen.getByText("Segunda"));
     await userEvent.click(screen.getByText("Delete"));

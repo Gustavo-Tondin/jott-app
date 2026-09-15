@@ -21,7 +21,13 @@
   import { measured } from "../actions/measure.js";
   import { columnCount, columnLayout } from "../services/noteColumns.js";
   import { quickNoteTarget } from "../services/noteTargets.js";
-  import { bannerOf, noteActions, noteCardMenu, noteRing } from "../services/noteActions.js";
+  import {
+    bannerOf,
+    noteActions,
+    noteCardMenu,
+    noteMoveRows,
+    noteRing,
+  } from "../services/noteActions.js";
   import { popRing } from "../services/actionRing.js";
   import { liftSpaceMenu } from "../shell/spaceMenus.js";
 
@@ -224,12 +230,23 @@
     event.preventDefault();
     event.stopPropagation();
     const at = { x: event.clientX, y: event.clientY };
+    // No "Reorder" here: the day is not a board, there is nothing to arrange.
     const slices = noteRing({
       pinned: !!row.note.pinned,
       onPin: readOnly || !f("pinNotes") ? null : () => cards.pin(row.folder, row.note),
+      onMove:
+        readOnly || !moveTargets.length
+          ? null
+          : (_, point) => {
+              cardMenuShown = noteMoveRows({
+                entry: row.note,
+                actions: cards,
+                space: row.folder,
+                moveTargets,
+              });
+              cardMenuAt = point ?? at;
+            },
       onEdit: readOnly ? null : (_, point) => (editing = { row, at: point ?? at }),
-      onDuplicate: readOnly ? null : () => cards.duplicate(row.folder, row.note),
-      onDelete: readOnly ? null : () => cards.remove(row.folder, row.note),
       onMore: (_, point) => {
         cardMenuShown = cardMenu(row, {
           openInNewTab: () => openNote(row, { newTab: true }),

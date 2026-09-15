@@ -85,21 +85,24 @@ export function noteActions(act) {
   };
 }
 
-/// THE FIVE SLICES A NOTE CARD'S RING CARRIES (components/ActionRing.svelte).
-/// Pure, like the menu below it, and the same pact: each slice INVERTS with
-/// the state of the card (a pinned note reads "Unpin" in the same place), and
-/// the last is always the ⋮ with what did not fit.
+/// THE FIVE SLICES A NOTE CARD'S RING CARRIES (components/ActionRing.svelte),
+/// the same five as a task's and in the same order (`taskRing`): Pin · Move ·
+/// Edit · Reorder · ⋮. Pure, like the menu below it, and the same pact: each
+/// slice INVERTS with the state of the card (a pinned note reads "Unpin" in
+/// the same place), and the last is always the ⋮ with what did not fit.
 ///
 /// "Edit" is not the old rename prompt: it opens the note's HEAD — its name
 /// and its banner, the panel the open note's title carries
 /// (components/NoteHeadPanel.svelte) — over the card, with the note closed.
+/// "Reorder" turns the board over to picking: on it a note is only ever
+/// carried there, a click marks, and the bulk bar moves or deletes the marked.
 export function noteRing({
   pinned = false,
   /// Each is `(from, at) => void`; a null one leaves its slice out.
   onPin = null,
+  onMove = null,
   onEdit = null,
-  onDuplicate = null,
-  onDelete = null,
+  onReorder = null,
   onMore = null,
 } = {}) {
   const slices = [];
@@ -110,12 +113,30 @@ export function noteRing({
       label: pinned ? S.ringUnpin : S.ringPin,
       run: onPin,
     });
+  if (onMove) slices.push({ id: "move", icon: "arrow-right", label: S.ringMove, run: onMove });
   if (onEdit) slices.push({ id: "edit", icon: "pencil", label: S.ringEdit, run: onEdit });
-  if (onDuplicate)
-    slices.push({ id: "duplicate", icon: "copy", label: S.ringDuplicate, run: onDuplicate });
-  if (onDelete) slices.push({ id: "delete", icon: "trash", label: S.ringDelete, run: onDelete });
+  if (onReorder)
+    slices.push({
+      id: "reorder",
+      icon: "arrows-out-cardinal",
+      label: S.ringReorder,
+      run: onReorder,
+    });
   if (onMore) slices.push({ id: "more", icon: "dots-three", label: S.ringMore, run: onMore });
   return slices;
+}
+
+/// The rows of a "Move to": one per target, flat, each carrying its group's
+/// name as `context` (`ContextMenu` draws it in grey). What the ⋮'s "Move to"
+/// folds under one row and the ring's "Move" slice opens on its own.
+export function noteMoveRows({ entry, actions, space, moveTargets = [] }) {
+  return moveTargets.flatMap((group) =>
+    group.options.map((option) => ({
+      label: option.label,
+      context: group.label,
+      run: () => actions.moveTo(space, entry, option.value),
+    })),
+  );
 }
 
 /// The rows of a note card's ⋮ — pure, so a menu can be read in a test.
@@ -138,8 +159,9 @@ export function noteCardMenu({
   /// `(done) => void` — opens the image picker and hands `done` the address.
   /// Null leaves the banner row to colours.
   pickImage = null,
-  /// The ⋮ OF A RING (`noteRing`): the rows the four slices already carry are
-  /// left out, so the menu is what did not fit rather than a second copy.
+  /// The ⋮ OF A RING (`noteRing`): the rows the four slices already carry
+  /// (pin, move, the head) are left out, so the menu is what did not fit —
+  /// duplicating and deleting — rather than a second copy.
   beyondRing = false,
 }) {
   const rows = [];
@@ -152,16 +174,10 @@ export function noteCardMenu({
       run: () => actions.pin(space, entry),
     });
   }
-  if (moveTargets.length) {
+  if (moveTargets.length && !beyondRing) {
     rows.push({
       label: S.moveTo,
-      items: moveTargets.flatMap((group) =>
-        group.options.map((option) => ({
-          label: option.label,
-          context: group.label,
-          run: () => actions.moveTo(space, entry, option.value),
-        })),
-      ),
+      items: noteMoveRows({ entry, actions, space, moveTargets }),
     });
   }
   // The banner is the "Edit" slice's other half, so a ring's ⋮ leaves it out.
@@ -175,8 +191,7 @@ export function noteCardMenu({
       }),
     );
   }
-  if (beyondRing) return rows;
-  rows.push({ label: S.renameNote, run: () => actions.rename(space, entry) });
+  if (!beyondRing) rows.push({ label: S.renameNote, run: () => actions.rename(space, entry) });
   rows.push({ label: S.duplicateNote, run: () => actions.duplicate(space, entry) });
   rows.push({ label: S.deleteNote, run: () => actions.remove(space, entry) });
   return rows;

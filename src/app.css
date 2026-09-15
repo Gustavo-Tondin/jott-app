@@ -45,6 +45,7 @@
 @import "./styles/components/note-editor.css";
 @import "./styles/components/note-banner.css";
 @import "./styles/components/note-head-panel.css";
+@import "./styles/components/task-title-panel.css";
 @import "./styles/components/note-card.css";
 @import "./styles/components/note-preview.css";
 @import "./styles/components/assets-view.css";

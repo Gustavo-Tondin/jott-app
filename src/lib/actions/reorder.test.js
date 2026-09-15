@@ -387,6 +387,62 @@ describe("reorderable", () => {
   });
 });
 
+describe("reorderable that may not carry", () => {
+  beforeEach(() => {
+    document.body.innerHTML = "";
+  });
+
+  test("a mouse on an item that may not be carried is left to the click", () => {
+    const ul = list();
+    layOut(ul);
+    const moves = [];
+    reorderable(ul, {
+      axis: "y",
+      item: ".row",
+      canCarry: () => false,
+      onReorder: (f, t) => moves.push([f, t]),
+    });
+    const row = ul.children[0];
+    fire(row, "pointerdown", { button: 0, pointerId: 1, pointerType: "mouse", clientY: 20 });
+    fire(row, "pointermove", { pointerId: 1, pointerType: "mouse", clientY: 100 });
+    fire(row, "pointerup", { pointerId: 1, pointerType: "mouse", clientY: 100 });
+    expect(moves).toEqual([]);
+    expect(row.classList.contains("reorder-item--carried")).toBe(false);
+  });
+
+  test("a finger's rest still opens the ring, and with none to open it lets go", () => {
+    vi.useFakeTimers();
+    try {
+      const ul = list();
+      layOut(ul);
+      const rung = [];
+      reorderable(ul, {
+        axis: "y",
+        item: ".row",
+        canCarry: () => false,
+        ring: (i) => (i === 0 ? [{ id: "a", label: "a", run: () => rung.push("a") }] : []),
+        onReorder: () => {},
+      });
+      const first = ul.children[0];
+      fire(first, "pointerdown", { button: 0, pointerId: 1, pointerType: "touch", clientY: 20 });
+      vi.advanceTimersByTime(450);
+      expect(first.classList.contains("reorder-item--carried")).toBe(true, "lifted for the ring");
+      fire(first, "pointerup", { pointerId: 1, pointerType: "touch", clientY: 20 });
+      vi.runAllTimers();
+
+      const second = ul.children[1];
+      fire(second, "pointerdown", { button: 0, pointerId: 2, pointerType: "touch", clientY: 60 });
+      vi.advanceTimersByTime(450);
+      expect(second.classList.contains("reorder-item--carried")).toBe(false, "nothing to open");
+      fire(second, "pointermove", { pointerId: 2, pointerType: "touch", clientY: 100 });
+      fire(second, "pointerup", { pointerId: 2, pointerType: "touch", clientY: 100 });
+      expect(second.style.transform).toBe("");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
 describe("reorderable drop zones", () => {
   beforeEach(() => {
     document.body.innerHTML = "";

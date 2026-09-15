@@ -389,7 +389,7 @@ describe("the compact shell", () => {
     expect(container.querySelector(".page-header--compact .page-menu__toggle")).toBeNull();
 
     await fireEvent.click(container.querySelector(".topbar .page-menu__toggle"));
-    expect(await screen.findByText("Select tasks…")).toBeTruthy();
+    expect(await screen.findByText("Reorder tasks…")).toBeTruthy();
   });
 
   test("the task sheet has no ×: the page behind it and the handle already close it", async () => {
