@@ -5,8 +5,8 @@
 
 @layer components {
   /* The quick note bar's plate (notes-space.css): the large corner, no
-     outline, raised. The ＋ sits 8 from three edges, so its corner is the
-     bar's less 8; the square keeps 12 on its own side. */
+     outline, raised. The ＋ sits 8 from three edges and is round, so it has
+     no corner to match the bar's; the square keeps 12 on its own side. */
   .task-composer {
     display: flex;
     align-items: center;
@@ -72,7 +72,7 @@
   }
   /* The 48px touch minimum is kept in the inline axis only: a row of six with
      the full width, and the only thing above or below is the bar's other row.
-     (The ＋ states its own 36px square in both layouts.) */
+     (The ＋ states its own 40px circle in both layouts.) */
   .shell--compact .task-composer__fields .theme-btn--icon {
     min-block-size: 2.25rem;
     block-size: 2.25rem;
@@ -81,8 +81,8 @@
   /* …and the screen keeps its last card clear of it. Only where there IS one:
      a screen with no composer must not reserve room for one. */
   .shell--compact .shell__content:has(.task-composer--bar) {
-    /* Room for the bar's two rows. */
-    padding-block-end: calc(7.5rem + var(--app-safe-bottom));
+    /* Room for the bar's two rows — the ＋ sets the height of the lower one. */
+    padding-block-end: calc(7.75rem + var(--app-safe-bottom));
   }
 
   /* ---- the grab handle (the bar that can be put away) ----
@@ -151,13 +151,24 @@
   }
 
   /* The submit, the one filled-brand plate on a Tasks screen. The ＋ is the
-     whole label, so the box is stated instead of the button's padding. */
+     whole label, so the box is stated instead of the button's padding.
+     ROUND and a step taller than the icons beside it: the only circle of the
+     row and its largest target, which is the whole of the emphasis — no
+     second colour, no outline. The 4 on its own side is the rest of it: a
+     button with a neighbour reads as one more tool of the bar. */
   .task-composer__add {
     flex-shrink: 0;
-    inline-size: 2.25rem;
-    block-size: 2.25rem;
+    inline-size: 2.5rem;
+    block-size: 2.5rem;
+    margin-inline-start: var(--app-space-4);
     padding: 0;
-    border-radius: calc(var(--app-radius-lg) - var(--app-space-8));
+    border-radius: var(--app-radius-pill);
+    /* It ARRIVES LAST, after the screen is drawn — the eye goes to the last
+       thing that moved. The delay is a duration token, so the one
+       reduced-motion query (tokens.css) stills this with everything else;
+       `backwards` covers only the wait, leaving no fill behind. */
+    animation: theme-rise var(--app-duration-medium) var(--app-ease-out) backwards;
+    animation-delay: var(--app-duration-fast);
   }
 
   /* Plain input: the row already IS the box, so a second border inside it

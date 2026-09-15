@@ -105,12 +105,12 @@
       min-block-size: var(--app-touch-min);
     }
 
-    /* The composer's ＋ is a 36px square (components/task-composer.css), and
+    /* The composer's ＋ is a 40px circle (components/task-composer.css), and
        `min-block-size` beats `block-size`: the `.theme-btn` rule above would
-       stretch it to 36×48. The square is given back here, last in the
+       stretch it to 40×48. The circle is given back here, last in the
        cascade; the row it ends is itself 48 tall, so the target survives. */
     .task-composer__add {
-      min-block-size: 2.25rem;
+      min-block-size: 2.5rem;
     }
 
     /* Quiet sizes: clear iOS's 44pt, keep their density — each rides inside a
