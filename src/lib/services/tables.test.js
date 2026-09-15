@@ -3,17 +3,22 @@ import {
   addColumn,
   addRow,
   cellOf,
+  clearWidths,
   deleteColumn,
   deleteRow,
   emptyTable,
   escapeCell,
+  isColumnsLine,
   isDelimiterRow,
   isTableRow,
   moveColumn,
   moveRow,
+  normalizeWidths,
   parseTable,
   renderTable,
+  resizeColumn,
   setCell,
+  setWidths,
   splitRow,
 } from "./tables.js";
 
@@ -158,5 +163,118 @@ describe("editing a table", () => {
     expect(cellOf(base, 9, 0)).toBe("");
     expect(setCell(base, -1, 0, "A").header[0]).toBe("A");
     expect(setCell(base, 1, 1, "x").rows[1]).toEqual(["3", "x"]);
+  });
+});
+
+// The widths a person drags a column to. They are a share of the table, not
+// a measurement of the screen, so the same note reads right on a phone and on
+// a monitor — and they live in a comment because a table without one has to
+// stay a plain GFM table.
+describe("column widths", () => {
+  const plain = ["| a | b | c |", "| - | - | - |", "| 1 | 2 | 3 |"];
+  const sized = ["<!--cols: 20,50,30-->", ...plain];
+
+  it("knows the comment by its shape, whatever is inside it", () => {
+    expect(isColumnsLine("<!--cols: 20,50,30-->")).toBe(true);
+    expect(isColumnsLine("  <!--  COLS: 20 , 50%  -->  ")).toBe(true);
+    expect(isColumnsLine("<!--banner: yellow-->")).toBe(false);
+    expect(isColumnsLine("| a | b |")).toBe(false);
+  });
+
+  it("reads the comment and leaves the table itself untouched", () => {
+    const model = parseTable(sized);
+    expect(model.widths).toEqual([20, 50, 30]);
+    expect(model.header).toEqual(["a", "b", "c"]);
+    expect(model.rows).toEqual([["1", "2", "3"]]);
+  });
+
+  it("is a plain table without one", () => {
+    expect(parseTable(plain).widths).toBe(null);
+  });
+
+  it("writes the comment back above the table, and only when there is one", () => {
+    expect(renderTable(parseTable(sized)).split("\n")[0]).toBe("<!--cols: 20,50,30-->");
+    expect(renderTable(parseTable(plain)).startsWith("| a")).toBe(true);
+  });
+
+  it("round-trips", () => {
+    const text = renderTable(parseTable(sized));
+    expect(renderTable(parseTable(text))).toBe(text);
+  });
+
+  it("scales any set of numbers to a hundred", () => {
+    expect(normalizeWidths([1, 1], 2)).toEqual([50, 50]);
+    expect(normalizeWidths([2, 1, 1], 3)).toEqual([50, 25, 25]);
+    // Thirds do not round to a hundred; the drift goes on the widest column,
+    // where a tenth of a percent cannot be seen. (`toBeCloseTo` because
+    // adding tenths in binary floats is what drifts here, not the numbers.)
+    expect(normalizeWidths([1, 1, 1], 3)).toEqual([33.4, 33.3, 33.3]);
+    expect(normalizeWidths([1, 1, 1], 3).reduce((s, n) => s + n, 0)).toBeCloseTo(100, 6);
+  });
+
+  it("lifts a column off the floor at the expense of those above it", () => {
+    const out = normalizeWidths([1, 99], 2);
+    expect(out[0]).toBe(4);
+    expect(out[1]).toBe(96);
+  });
+
+  it("refuses what it cannot draw, which reads as no widths at all", () => {
+    expect(normalizeWidths([50, 50], 3)).toBe(null);
+    expect(normalizeWidths([50, 0], 2)).toBe(null);
+    expect(normalizeWidths([50, -10], 2)).toBe(null);
+    expect(normalizeWidths(["x", 50], 2)).toBe(null);
+    expect(normalizeWidths(null, 2)).toBe(null);
+    // A comment that does not add up is still ours; it is dropped, not drawn.
+    expect(parseTable(["<!--cols: 10,20-->", ...plain]).widths).toBe(null);
+    expect(parseTable(["<!--cols: -->", ...plain]).widths).toBe(null);
+  });
+
+  it("puts widths on and takes them off", () => {
+    const model = parseTable(plain);
+    expect(setWidths(model, [25, 25, 50]).widths).toEqual([25, 25, 50]);
+    expect(clearWidths(parseTable(sized)).widths).toBe(null);
+    expect(renderTable(clearWidths(parseTable(sized)))).toBe(renderTable(parseTable(plain)));
+  });
+
+  it("trades room between the dragged border's two columns and nobody else", () => {
+    const out = resizeColumn(parseTable(sized), 0, 35);
+    expect(out.widths).toEqual([35, 35, 30]);
+  });
+
+  it("stops a column at the floor instead of letting it vanish", () => {
+    expect(resizeColumn(parseTable(sized), 0, 0).widths).toEqual([4, 66, 30]);
+    expect(resizeColumn(parseTable(sized), 0, 100).widths).toEqual([66, 4, 30]);
+  });
+
+  it("starts from the widths the drag began with, not the ones now in force", () => {
+    // What the widget does: the pointer moved against the table as it was
+    // when the finger went down.
+    const model = setWidths(parseTable(plain), [20, 50, 30]);
+    expect(resizeColumn(model, 0, 35, [20, 50, 30]).widths).toEqual([35, 35, 30]);
+  });
+
+  it("has no border to drag past the last column", () => {
+    const model = parseTable(sized);
+    expect(resizeColumn(model, 2, 40)).toBe(model);
+    expect(resizeColumn(parseTable(plain), 0, 40)).toEqual(parseTable(plain));
+  });
+
+  it("keeps the total at a hundred through the structural edits", () => {
+    const sums = (model) => model.widths.reduce((s, n) => s + n, 0);
+    const model = parseTable(sized);
+    expect(sums(addColumn(model, 0))).toBeCloseTo(100, 6);
+    expect(addColumn(model, 0).widths.length).toBe(4);
+    expect(sums(deleteColumn(model, 1))).toBeCloseTo(100, 6);
+    expect(deleteColumn(model, 1).widths.length).toBe(2);
+    // A row changes nothing about the columns.
+    expect(addRow(model).widths).toEqual([20, 50, 30]);
+  });
+
+  it("moves a width with its column", () => {
+    expect(moveColumn(parseTable(sized), 0, 2).widths).toEqual([50, 30, 20]);
+  });
+
+  it("gives a fresh table none", () => {
+    expect(emptyTable().widths).toBe(null);
   });
 });

@@ -228,7 +228,7 @@ export const COMMANDS = [
   },
 
   // ---- a TABLE ----
-  // Five of the six only mean something inside a table, and the panel greys
+  // Six of the seven only mean something inside a table, and the panel greys
   // them outside one. No chord by default.
   { id: "table.insert", scope: "editor", group: "table", keys: null, icon: "table", label: () => S.cmdTableInsert },
   {
@@ -262,6 +262,14 @@ export const COMMANDS = [
     keys: null,
     icon: "table-row",
     label: () => S.cmdTableDeleteRow,
+  },
+  {
+    id: "table.resetWidths",
+    scope: "editor",
+    group: "table",
+    keys: null,
+    icon: "table-even-columns",
+    label: () => S.cmdTableResetWidths,
   },
   { id: "table.delete", scope: "editor", group: "table", keys: null, icon: "trash", label: () => S.cmdTableDelete },
 

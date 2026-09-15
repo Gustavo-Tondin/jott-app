@@ -255,7 +255,7 @@ describe("FormatBar and the focus", () => {
 // Flat in the column (there is room), folded and labelled in the narrow
 // bar, greyed by where the caret is.
 describe("FormatBar, table", () => {
-  it("draws the six flat in the column, greyed where they do not apply", () => {
+  it("draws the seven flat in the column, greyed where they do not apply", () => {
     render(FormatBar, { props: { onRun: () => {}, inactive: ["table.addRow"] } });
     expect(screen.getByTitle("Add row below").disabled).toBe(true);
     expect(screen.getByTitle("Insert table").disabled).toBe(false);
@@ -269,7 +269,7 @@ describe("FormatBar, table", () => {
     // `document`, not the container: `keepOnScreen` portals the panel to the body.
     const panel = document.querySelector(".format-bar__panel--labelled");
     expect(panel).not.toBe(null);
-    expect(panel.querySelectorAll(".format-bar__label").length).toBe(6);
+    expect(panel.querySelectorAll(".format-bar__label").length).toBe(7);
     expect(screen.getByTitle("Add row below").textContent).toContain("Add row below");
   });
 

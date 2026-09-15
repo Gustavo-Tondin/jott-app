@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { EditorSelection, EditorState } from "@codemirror/state";
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
+import { parseTable, renderTable } from "./tables.js";
 import {
   TABLE_COMMANDS,
   TABLE_FORMATS,
@@ -12,6 +13,7 @@ import {
   deleteRow,
   deleteTable,
   insertTable,
+  resetColumnWidths,
   setActiveCell,
   tableStatus,
   tablesIn,
@@ -127,5 +129,61 @@ describe("the commands", () => {
   it("names every command by the id the registry uses, and the list matches", () => {
     expect(Object.keys(TABLE_COMMANDS)).toEqual(TABLE_FORMATS);
     expect(TABLE_FORMATS).toContain("table.insert");
+  });
+});
+
+// The widths comment is the app's own marker, so the range that DRAWS the
+// table is the range that rewrites it — otherwise every edit would leave a
+// stale comment above a table that no longer matches it.
+describe("a table that carries column widths", () => {
+  const SIZED = `<!--cols: 30,70-->\n${TABLE}`;
+
+  it("takes the comment into the table's range", () => {
+    const view = editor(SIZED, 0);
+    const [table] = tablesIn(view.state);
+    expect(table.from).toBe(0);
+    expect(table.lead).toBe(1);
+    expect(table.model.widths).toEqual([30, 70]);
+  });
+
+  it("leaves a table without one alone", () => {
+    const [table] = tablesIn(editor(TABLE, 0).state);
+    expect(table.lead).toBe(0);
+    expect(table.model.widths).toBe(null);
+  });
+
+  it("reads the caret's row from the header, not from the comment", () => {
+    // The caret in the first body row: without the comment it is row 0, and
+    // the comment must not make it row -1.
+    const view = editor(SIZED, SIZED.indexOf("| 1 |") + 2);
+    expect(currentCell(view.state).row).toBe(0);
+  });
+
+  it("keeps the comment through an edit, matching the table's new shape", () => {
+    const view = editor(SIZED, SIZED.indexOf("| a |") + 2);
+    expect(addColumn(view)).toBe(true);
+    const lines = view.state.doc.toString().split("\n");
+    expect(lines[0]).toMatch(/^<!--cols: /);
+    expect(lines[0].split(",").length).toBe(3);
+    expect(lines[1]).toBe("| a   |     | b   |");
+  });
+
+  it("drops the comment when the widths are reset", () => {
+    const view = editor(SIZED, SIZED.indexOf("| a |") + 2);
+    expect(resetColumnWidths(view)).toBe(true);
+    // Padded, because that is the only spelling the app writes.
+    expect(view.state.doc.toString()).toBe(renderTable(parseTable(TABLE)));
+  });
+
+  it("has nothing to reset on a table that never had widths", () => {
+    const view = editor(TABLE, 2);
+    expect(resetColumnWidths(view)).toBe(false);
+    expect(resetColumnWidths(editor("nada", 2))).toBe(false);
+  });
+
+  it("takes the comment with the table when the table goes", () => {
+    const view = editor(`um\n\n${SIZED}\n\ndois`, 6);
+    expect(deleteTable(view)).toBe(true);
+    expect(view.state.doc.toString()).toBe("um\n\ndois");
   });
 });

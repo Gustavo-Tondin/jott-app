@@ -267,6 +267,13 @@ describe("what the editor actually paints", () => {
     "| - | - |",
     "| 1 | 2 |",
     "",
+    // A table the person has SIZED: the widths comment is what turns the
+    // `<colgroup>` on, and there is no other way to reach that dress.
+    "<!--cols: 30,70-->",
+    "| c | d |",
+    "| - | - |",
+    "| 3 | 4 |",
+    "",
   ].join("\n");
 
   /// Every `cm-md-*` class the editor puts in the DOM for `sample`, with the
@@ -307,6 +314,12 @@ describe("what the editor actually paints", () => {
       view.dom
         .querySelector(".cm-md-table__handle")
         ?.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, pointerId: 1 }));
+      // And a column border being dragged. Every grip, not the first: the
+      // one on a table with no widths of its own has nothing to measure in
+      // a view that was never laid out, and answers by doing nothing.
+      for (const grip of view.dom.querySelectorAll(".cm-md-table__grip")) {
+        grip.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, pointerId: 2 }));
+      }
       const html = view.dom.querySelector(".cm-content").innerHTML;
       view.destroy();
       for (const m of html.matchAll(/cm-md-[a-z0-9-]+/g)) shown.add(m[0]);

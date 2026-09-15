@@ -111,6 +111,22 @@ describe("what never reaches the card", () => {
     ]);
   });
 
+  it("drops a line that is nothing but an HTML comment", () => {
+    // The app writes two of them — a note's banner and a table's column
+    // widths — and no renderer draws either.
+    expect(previewBlocks("<!--cols: 30,70-->\n| a | b |\n| - | - |")).toEqual([
+      { kind: "table", spans: [{ text: "a  \u00b7  b" }] },
+    ]);
+    expect(previewBlocks("<!--banner: yellow-->\ntexto")).toEqual([
+      { kind: "paragraph", spans: [{ text: "texto" }] },
+    ]);
+    // Not a paragraph break either: a comment between two wrapped lines
+    // leaves the paragraph gathering.
+    expect(previewBlocks("uma\n<!--nota-->\noutra")).toEqual([
+      { kind: "paragraph", spans: [{ text: "uma outra" }] },
+    ]);
+  });
+
   it("has nothing to say about an empty head", () => {
     expect(previewBlocks("")).toEqual([]);
     expect(previewBlocks("   \n\n  ")).toEqual([]);

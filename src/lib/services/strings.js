@@ -548,12 +548,14 @@ export const S = {
   cmdTableAddRow: "Add row below",
   cmdTableDeleteColumn: "Delete column",
   cmdTableDeleteRow: "Delete row",
+  cmdTableResetWidths: "Reset column widths",
   cmdTableDelete: "Delete table",
   tableColumn: "Column",
   tableCell: "Table cell",
   tableHeaderCell: "Header cell",
   tableMoveColumn: "Move column",
   tableMoveRow: "Move row",
+  tableResizeColumn: "Drag to resize, double-click to reset",
 
   // Settings
   settings: "Settings",

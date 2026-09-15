@@ -51,6 +51,18 @@
   inline-size: max-content;
   min-inline-size: 50%;
 }
+/* Columns the person sized (`<!--cols:-->` in the note, painted as a
+   `<colgroup>` of percentages). `fixed` is what makes a `<col>` binding
+   rather than a suggestion; only the squeezing layout has it, because a
+   percentage of a table that is already as wide as its content says nothing. */
+.editor .cm-md-table--sized:not(.cm-md-table--scroll) .cm-md-table__grid {
+  table-layout: fixed;
+}
+/* A floor in `em` would fight the one in percent and win: with the columns
+   declared, the declaration is the whole truth. */
+.editor .cm-md-table--sized:not(.cm-md-table--scroll) .cm-md-table__cell {
+  min-inline-size: 0;
+}
 .editor .cm-md-table__cell {
   min-inline-size: 3em;
   padding: 0.3em 0.6em;
@@ -100,6 +112,50 @@
 .editor .cm-md-table--active .cm-md-table__handle,
 .editor .cm-md-table--dragging .cm-md-table__handle {
   opacity: 1;
+}
+
+/* The grip that sizes a column, standing ON the border it moves — one per
+   border, so the last column has none: a width is a share of the table, and
+   the last column is what the others leave. Shown on the same terms as the
+   drag handles. */
+.editor .cm-md-table__grip {
+  position: absolute;
+  z-index: 1;
+  inset-block: 0;
+  inset-inline-end: -0.0625rem;
+  inline-size: 0.125rem;
+  background: var(--app-line);
+  opacity: 0;
+  cursor: col-resize;
+  touch-action: none;
+  user-select: none;
+  transition: opacity var(--app-duration-fast) var(--app-ease);
+}
+/* The bar is what the eye needs; the finger needs half an em either side. */
+.editor .cm-md-table__grip::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inset-inline: -0.5em;
+}
+.editor .cm-md-table:hover .cm-md-table__grip,
+.editor .cm-md-table--active .cm-md-table__grip,
+.editor .cm-md-table--resizing .cm-md-table__grip {
+  opacity: 1;
+}
+.editor .cm-md-table__grip:hover,
+.editor .cm-md-table--resizing .cm-md-table__grip {
+  background: var(--app-brand);
+}
+/* Nothing to take a share of: `--scroll` is already as wide as its cells. */
+.editor .cm-md-table--scroll .cm-md-table__grip {
+  display: none;
+}
+/* While a border is being dragged the whole widget wears the cursor, and a
+   pointer crossing a cell must not start selecting its text. */
+.editor .cm-md-table--resizing {
+  cursor: col-resize;
+  user-select: none;
 }
 .editor .cm-md-table__handle:hover,
 .editor .cm-md-table--dragging .cm-md-table__handle {

@@ -97,12 +97,14 @@ import arrowArcRight from "../../assets/icons/phosphor/regular/arrow-arc-right.s
 import textH from "../../assets/icons/phosphor/regular/text-h.svg?raw";
 import textAUnderline from "../../assets/icons/phosphor/regular/text-a-underline.svg?raw";
 // Tables: the opener, the two that add, the two that name what a removal
-// takes (the panel writes the verb beside them).
+// takes (the panel writes the verb beside them), and the one that gives the
+// columns back to the browser.
 import table from "../../assets/icons/phosphor/regular/table.svg?raw";
 import columnsPlusRight from "../../assets/icons/phosphor/regular/columns-plus-right.svg?raw";
 import rowsPlusBottom from "../../assets/icons/phosphor/regular/rows-plus-bottom.svg?raw";
 import columns from "../../assets/icons/phosphor/regular/columns.svg?raw";
 import rows from "../../assets/icons/phosphor/regular/rows.svg?raw";
+import arrowsInLineHorizontal from "../../assets/icons/phosphor/regular/arrows-in-line-horizontal.svg?raw";
 
 // The narrow bar's other three openers, each named after what it holds. None
 // repeats a glyph a command already wears — it would read as the command itself.
@@ -218,4 +220,5 @@ export const ICONS = {
   "table-add-row": rowsPlusBottom,
   "table-column": columns,
   "table-row": rows,
+  "table-even-columns": arrowsInLineHorizontal,
 };

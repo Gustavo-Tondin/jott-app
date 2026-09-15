@@ -9,9 +9,11 @@ import { syntaxTree } from "@codemirror/language";
 import {
   addColumn as addColumnTo,
   addRow as addRowTo,
+  clearWidths,
   deleteColumn as deleteColumnOf,
   deleteRow as deleteRowOf,
   emptyTable,
+  isColumnsLine,
   parseTable,
   renderTable,
 } from "./tables.js";
@@ -39,17 +41,23 @@ export const activeCell = StateField.define({
   },
 });
 
-/// Every table of `state`, as `{from, to, text, model}` — `from` at the start
-/// of its first line, `to` at the end of its last.
+/// Every table of `state`, as `{from, to, text, lead, model}` — `from` at the
+/// start of its first line, `to` at the end of its last. A widths comment
+/// right above the pipes is PART of the table here (`lead` counts the lines
+/// it takes): it is the app's own marker, so the same range that draws the
+/// table is the one that rewrites it.
 export function tablesIn(state) {
   const out = [];
   syntaxTree(state).iterate({
     enter(node) {
       if (node.name !== "Table") return;
-      const from = state.doc.lineAt(node.from).from;
+      const head = state.doc.lineAt(node.from);
+      const above = head.number > 1 ? state.doc.line(head.number - 1) : null;
+      const lead = above && isColumnsLine(above.text) ? 1 : 0;
+      const from = lead ? above.from : head.from;
       const to = state.doc.lineAt(node.to).to;
       const text = state.doc.sliceString(from, to);
-      out.push({ from, to, text, model: parseTable(text) });
+      out.push({ from, to, text, lead, model: parseTable(text) });
       return false;
     },
   });
@@ -67,7 +75,9 @@ function tableAt(state, pos) {
 function cellUnderCaret(state, table) {
   const head = state.selection.main.head;
   const line = state.doc.lineAt(head);
-  const index = line.number - state.doc.lineAt(table.from).number;
+  // Counted from the header, so the widths comment above it does not shift
+  // every row by one.
+  const index = line.number - state.doc.lineAt(table.from).number - (table.lead ?? 0);
   const row = index <= 1 ? -1 : index - 2;
   const before = line.text.slice(0, head - line.from);
   const pipes = (before.match(/(^|[^\\])\|/g) ?? []).length;
@@ -191,6 +201,17 @@ export function deleteRow(view) {
   });
 }
 
+/// The columns back to the widths the browser picks. Refused on a table that
+/// never had any, so the button greys instead of writing the file for nothing.
+export function resetColumnWidths(view) {
+  const cell = currentCell(view.state);
+  if (!cell || !cell.table.model.widths) return false;
+  return applyTable(view, cell.table, clearWidths(cell.table.model), {
+    row: cell.row,
+    col: cell.col,
+  });
+}
+
 /// The whole table gone, and the blank line under it when there is one, so
 /// the paragraphs around close up. The caret lands where it stood.
 export function deleteTable(view) {
@@ -225,6 +246,7 @@ export const TABLE_COMMANDS = {
   "table.addRow": addRow,
   "table.deleteColumn": deleteColumn,
   "table.deleteRow": deleteRow,
+  "table.resetWidths": resetColumnWidths,
   "table.delete": deleteTable,
 };
 

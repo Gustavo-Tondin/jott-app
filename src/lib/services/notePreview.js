@@ -11,6 +11,10 @@ import { isDelimiterRow, isTableRow, splitRow } from "./tables.js";
 const FENCE = /^\s*(```|~~~)/;
 const RULE = /^\s*(?:\*\s*\*\s*\*[\s*]*|-\s*-\s*-[\s-]*|_\s*_\s*_[\s_]*)$/;
 const HEADING = /^\s{0,3}(#{1,6})\s+(.*)$/;
+/// A line that is nothing but an HTML comment. No renderer draws one, and
+/// the app writes two of them (a note's banner, a table's column widths) —
+/// so a card that drew it would be showing plumbing.
+const COMMENT = /^\s*<!--[^>]*-->\s*$/;
 const TASK = /^\s*[-*+]\s+\[([ xX])\]\s*(.*)$/;
 const BULLET = /^\s*[-*+]\s+(.*)$/;
 const ORDERED = /^\s*(\d{1,9})[.)]\s+(.*)$/;
@@ -89,6 +93,10 @@ export function previewBlocks(markdown, { title = null } = {}) {
       close();
       continue;
     }
+
+    // Plumbing, not content — and not a paragraph break either: a comment
+    // between two wrapped lines leaves the paragraph gathering.
+    if (COMMENT.test(line)) continue;
 
     if (RULE.test(line)) {
       close();

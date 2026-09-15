@@ -206,6 +206,26 @@ it byte for byte.
   Reading accepts the tight form and short or long rows. `\|` is a pipe
   inside a cell; a cell is one line. An alignment marker (`:--:`) already in
   the file is preserved — the app doesn't offer them, but doesn't strip them.
+- **Column widths** are a comment line directly above the table:
+
+  ```markdown
+  <!--cols: 24,52,24-->
+  | Item   | Description | Qty |
+  | ------ | ----------- | --- |
+  ```
+
+  One percentage per column, summing to 100 — a share of the table, not a
+  measurement, so the same note reads right on a phone and on a monitor. The
+  line is only there once somebody has dragged a column border; a table
+  without one is sized by whatever is reading it, and that is the default. A
+  comment is invisible in every Markdown renderer, so a table that carries
+  widths is still an ordinary GFM table everywhere else.
+
+  Jott rewrites the line whenever it rewrites the table, and drops it when
+  the numbers no longer describe the table (a column added by hand in a text
+  editor, say). Widths apply where the table is squeezed into the column;
+  where wide tables are set to scroll sideways, the table is as wide as its
+  cells and the line is kept but not used.
 - **Underline is `<u>text</u>`**, because `__text__` is *bold* in CommonMark
   and would make the file lie outside Jott.
 - **`==highlight==` is refused** on purpose: it isn't CommonMark, and

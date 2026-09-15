@@ -12,6 +12,7 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 
 - **A reorder mode for notes**: pick "Reorder" on a card's ring (or "Reorder notes…" in the notepad's ⋮), tap the cards you mean, and hold one to carry them all together — onto a new place, into a folder, or onto another notepad in the sidebar. The bar at the foot moves or deletes what you marked. Tasks have the same mode, from the same slice.
 - **A task's title can be edited from its ring**: "Edit" opens the title in a small card — on a phone it sits over the keyboard, so you never lose sight of what you are typing.
+- **The columns of a table can be resized**: drag the border between two of them, and double-click it to go back. The widths are kept as proportions in the note itself, so they hold on a phone and on a monitor alike, and they travel with the file.
 
 ### Fixed
 

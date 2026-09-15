@@ -6,7 +6,15 @@
 
 import { StateEffect, StateField } from "@codemirror/state";
 import { Decoration, EditorView, ViewPlugin, WidgetType } from "@codemirror/view";
-import { addRow as addRowTo, cellOf, moveColumn, moveRow, setCell } from "./tables.js";
+import {
+  addRow as addRowTo,
+  cellOf,
+  clearWidths,
+  moveColumn,
+  moveRow,
+  resizeColumn,
+  setCell,
+} from "./tables.js";
 import { applyTable, focusCell, setActiveCell, tablesIn } from "./tableEditing.js";
 import { S } from "./strings.js";
 
@@ -53,10 +61,18 @@ class TableWidget extends WidgetType {
     return other.table.text === this.table.text && other.layout === this.layout;
   }
 
+  /// The widths this drawing uses, or null. Only the squeezing layout has
+  /// them: `scroll` runs as wide as its cells, and a percentage of a width
+  /// that is itself the content's is a circle.
+  sizes() {
+    return this.layout === "scroll" ? null : (this.table.model.widths ?? null);
+  }
+
   /// The layout as a class on the wrapper — `scroll` runs wide, the default
-  /// squeezes to the column.
+  /// squeezes to the column — and whether the columns carry widths of their own.
   dress(dom) {
     dom.classList.toggle("cm-md-table--scroll", this.layout === "scroll");
+    dom.classList.toggle("cm-md-table--sized", Boolean(this.sizes()));
   }
 
   toDOM(view) {
@@ -95,6 +111,9 @@ class TableWidget extends WidgetType {
       this.fill(grid, dom);
       return true;
     }
+    // Same cells, possibly new widths: the `<col>`s are the only thing a
+    // resize changes, and rewriting them leaves the focus where it is.
+    this.size(grid);
     for (const cell of grid.querySelectorAll(".cm-md-table__cell")) {
       const row = Number(cell.dataset.row);
       const col = Number(cell.dataset.col);
@@ -104,19 +123,33 @@ class TableWidget extends WidgetType {
     return true;
   }
 
+  /// The `<colgroup>` the widths are drawn through — one `<col>` per column,
+  /// each a percentage of the table. Without widths there is no group at all
+  /// and the browser sizes the columns, which is the default a table has
+  /// until somebody drags a border.
+  size(grid) {
+    paintColumns(grid, this.sizes());
+  }
+
   /// The grid from the model. Header cells are `<th>`, body cells `<td>`;
   /// each holds one editable element and, where it applies, a drag handle.
   fill(grid, dom) {
     const { model } = dom.tableWidget.table;
     const mode = dom.tableWidget.mode;
     grid.textContent = "";
+    this.size(grid);
     const head = document.createElement("thead");
     const headRow = document.createElement("tr");
+    const last = model.header.length - 1;
     model.header.forEach((text, col) => {
       const th = document.createElement("th");
       th.className = "cm-md-table__head";
       th.appendChild(handle("col", col, S.tableMoveColumn));
       th.appendChild(editable(text, -1, col, mode));
+      // The grip sits ON the border it moves, so the last column has none:
+      // widths are a share of the table, and there is nothing to its right
+      // to trade with.
+      if (col < last) th.appendChild(grip(col, S.tableResizeColumn));
       headRow.appendChild(th);
     });
     head.appendChild(headRow);
@@ -221,6 +254,94 @@ class TableWidget extends WidgetType {
     });
 
     this.wireDrag(dom, view);
+    this.wireResize(dom, view);
+  }
+
+  /// Dragging the border between two columns. The pair trades room and the
+  /// table's total stays 100%, so the proportions hold at any window size —
+  /// which is the whole reason the widths are percentages and not pixels.
+  /// The drag paints the `<col>`s directly and only the drop writes the
+  /// document: one transaction, so one Ctrl+Z puts the border back.
+  wireResize(dom, view) {
+    let drag = null;
+    const gridOf = () => dom.querySelector(".cm-md-table__grid");
+
+    dom.addEventListener("pointerdown", (event) => {
+      const bar = event.target?.closest?.(".cm-md-table__grip");
+      // `--scroll` runs as wide as its cells: there is no width to take a
+      // share of, and the grips are hidden there.
+      if (!bar || !dom.contains(bar) || dom.classList.contains("cm-md-table--scroll")) return;
+      const grid = gridOf();
+      const base = dom.tableWidget.table.model.widths ?? measureColumns(grid);
+      if (!base) return;
+      event.preventDefault();
+      drag = {
+        index: Number(bar.dataset.grip),
+        pointer: event.pointerId,
+        x: event.clientX,
+        // The width the percentages are of. Zero where nothing is laid out
+        // (a test's detached view): the drag then moves the border nowhere,
+        // rather than dividing by it.
+        total: grid.getBoundingClientRect().width,
+        base,
+      };
+      bar.setPointerCapture?.(event.pointerId);
+      dom.classList.add("cm-md-table--resizing");
+      // From measured to declared without a flicker: the same widths the
+      // browser had chosen, now written down.
+      paintColumns(grid, base);
+      dom.classList.add("cm-md-table--sized");
+    });
+
+    /// Where the border stands for a pointer at `clientX`, as the pair of
+    /// percentages the two columns would have. Null while the pointer has
+    /// not moved off a floor it is already against.
+    const spread = (event) => {
+      const { index, base, total, x } = drag;
+      const floor = Math.min(4, 100 / base.length);
+      const pair = base[index] + base[index + 1];
+      const moved = total ? ((event.clientX - x) / total) * 100 : 0;
+      const wanted = base[index] + moved;
+      const left = Math.min(Math.max(wanted, floor), pair - floor);
+      const next = [...base];
+      next[index] = left;
+      next[index + 1] = pair - left;
+      return { next, left };
+    };
+
+    dom.addEventListener("pointermove", (event) => {
+      if (!drag || event.pointerId !== drag.pointer) return;
+      paintColumns(gridOf(), spread(event).next);
+    });
+
+    const finish = (event, commit) => {
+      if (!drag || event.pointerId !== drag.pointer) return;
+      const { index, base } = drag;
+      const landed = commit ? spread(event).left : null;
+      drag = null;
+      dom.classList.remove("cm-md-table--resizing");
+      const table = dom.tableWidget.table;
+      if (landed === null) {
+        // Cancelled: back to whatever the document says, which for a table
+        // with no widths of its own means no `<colgroup>` at all.
+        paintColumns(gridOf(), table.model.widths ?? null);
+        dom.classList.toggle("cm-md-table--sized", Boolean(table.model.widths));
+        return;
+      }
+      applyTable(view, table, resizeColumn(table.model, index, landed, base));
+    };
+    dom.addEventListener("pointerup", (event) => finish(event, true));
+    dom.addEventListener("pointercancel", (event) => finish(event, false));
+
+    // A double click on the border is the way back to columns the browser
+    // sizes — the same thing the panel's button does, where the hand already is.
+    dom.addEventListener("dblclick", (event) => {
+      const bar = event.target?.closest?.(".cm-md-table__grip");
+      if (!bar || !dom.contains(bar)) return;
+      event.preventDefault();
+      const table = dom.tableWidget.table;
+      if (table.model.widths) applyTable(view, table, clearWidths(table.model));
+    });
   }
 
   /// Dragging a column or a row by its handle, with pointer events (one path
@@ -315,6 +436,36 @@ class TableWidget extends WidgetType {
   }
 }
 
+/// The `<colgroup>` of `grid` set to `widths` (percentages), or taken away
+/// when there are none — with no group the browser sizes the columns, which
+/// is what a table does until somebody drags a border.
+function paintColumns(grid, widths) {
+  let group = grid.querySelector("colgroup");
+  if (!widths) {
+    group?.remove();
+    return;
+  }
+  if (!group) {
+    group = document.createElement("colgroup");
+    grid.prepend(group);
+  }
+  while (group.children.length > widths.length) group.lastElementChild.remove();
+  while (group.children.length < widths.length) group.appendChild(document.createElement("col"));
+  widths.forEach((percent, col) => {
+    group.children[col].style.inlineSize = `${percent}%`;
+  });
+}
+
+/// What each column takes of the grid RIGHT NOW, in percent — read off the
+/// screen, so the first drag of a table that never had widths starts from
+/// exactly what the person is looking at instead of jumping to even shares.
+function measureColumns(grid) {
+  const heads = [...grid.querySelectorAll("thead th")];
+  const total = heads.reduce((sum, th) => sum + th.getBoundingClientRect().width, 0);
+  if (!total) return null;
+  return heads.map((th) => (th.getBoundingClientRect().width / total) * 100);
+}
+
 /// One editable cell.
 function editable(text, row, col, mode) {
   const cell = document.createElement("div");
@@ -340,6 +491,20 @@ function handle(kind, index, label) {
   grip.setAttribute("title", label);
   grip.setAttribute("contenteditable", "false");
   return grip;
+}
+
+/// The grabber on the border between column `index` and the next.
+function grip(index, label) {
+  const bar = document.createElement("span");
+  bar.className = "cm-md-table__grip";
+  bar.dataset.grip = String(index);
+  bar.setAttribute("role", "separator");
+  bar.setAttribute("aria-orientation", "vertical");
+  bar.setAttribute("aria-label", label);
+  bar.setAttribute("title", label);
+  bar.setAttribute("contenteditable", "false");
+  bar.tabIndex = -1;
+  return bar;
 }
 
 /// Focuses cell (`row`, `col`) of the widget `dom`, caret at the end.

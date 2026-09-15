@@ -9,6 +9,70 @@
 /// delimiter wider than its cells, which reads as misaligned.
 const MIN_WIDTH = 3;
 
+/// On-screen column widths, as PERCENTAGES of the table — the one measure
+/// that survives a phone and a desktop being different sizes. They live in a
+/// comment line of their own right above the table, because a table without
+/// one is a plain GFM table and has to stay one.
+const COLUMNS_LINE = /^\s*<!--\s*cols:\s*([^>]*?)\s*-->\s*$/i;
+
+/// The narrowest a column may be dragged to, in percent. Capped by the even
+/// share, so a table of thirty columns can still hold a floor at all.
+const MIN_PERCENT = 4;
+
+const floorFor = (count) => Math.min(MIN_PERCENT, 100 / count);
+
+/// Whether `line` is the widths comment — ours to read, rewrite or drop, so
+/// the shape alone decides, not whether the numbers in it make sense.
+export function isColumnsLine(line) {
+  return COLUMNS_LINE.test(String(line ?? ""));
+}
+
+/// The numbers out of a widths comment, unvalidated (`normalizeWidths` is
+/// what judges them), or null when `line` is not one.
+function readColumnsLine(line) {
+  const match = COLUMNS_LINE.exec(String(line ?? ""));
+  if (!match) return null;
+  return match[1].split(",").map((part) => Number(part.replace("%", "").trim()));
+}
+
+/// Percentages the app is willing to draw and write: `count` of them, all
+/// finite and positive, none under the floor, summing to 100 at one decimal.
+/// Anything else is null — "this table has no widths", which is the default
+/// and not an error.
+export function normalizeWidths(widths, count) {
+  if (!Array.isArray(widths) || widths.length !== count || count === 0) return null;
+  const numbers = widths.map(Number);
+  if (numbers.some((n) => !Number.isFinite(n) || n <= 0)) return null;
+  const total = numbers.reduce((sum, n) => sum + n, 0);
+  const floor = floorFor(count);
+  const scaled = numbers.map((n) => (n / total) * 100);
+  // Every column under the floor is lifted to it, and the room comes from
+  // those above it, in proportion to how far above they are. One pass is
+  // enough: the shortfall can never exceed the surplus when the floor is the
+  // even share at worst.
+  const short = scaled.reduce((sum, n) => sum + Math.max(0, floor - n), 0);
+  const spare = scaled.reduce((sum, n) => sum + Math.max(0, n - floor), 0);
+  const take = short > 0 && spare > 0 ? Math.min(1, short / spare) : 0;
+  const lifted = scaled.map((n) => (n < floor ? floor : n - (n - floor) * take));
+  const rounded = lifted.map((n) => Math.round(n * 10) / 10);
+  // Rounding drifts; the widest column absorbs it, where a tenth is invisible.
+  const drift = Math.round((100 - rounded.reduce((sum, n) => sum + n, 0)) * 10) / 10;
+  if (drift !== 0) {
+    let widest = 0;
+    for (let i = 1; i < rounded.length; i += 1) if (rounded[i] > rounded[widest]) widest = i;
+    rounded[widest] = Math.round((rounded[widest] + drift) * 10) / 10;
+  }
+  return rounded;
+}
+
+/// The widths comment, or `null` for a table that has none. A whole number
+/// writes as one — `24`, not `24.0`.
+function renderColumnsLine(widths) {
+  if (!widths) return null;
+  const numbers = widths.map((n) => String(Math.round(n * 10) / 10));
+  return `<!--cols: ${numbers.join(",")}-->`;
+}
+
 /// A delimiter row: pipes, dashes, optional colons, nothing else.
 const DELIMITER = /^\s*\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)*\|?\s*$/;
 
@@ -79,7 +143,14 @@ export function escapeCell(text) {
 export function parseTable(lines) {
   const list = Array.isArray(lines) ? lines : String(lines ?? "").split("\n");
   const kept = list.filter((line) => line.trim() !== "");
-  if (kept.length === 0) return { header: [""], align: [null], rows: [] };
+  if (kept.length === 0) return { header: [""], align: [null], rows: [], widths: null };
+  // The widths comment, when it leads. Read before anything else and taken
+  // out of the way: to everything below, a table is still header + body.
+  let asked = null;
+  if (isColumnsLine(kept[0])) {
+    asked = readColumnsLine(kept.shift());
+    if (kept.length === 0) return { header: [""], align: [null], rows: [], widths: null };
+  }
   const header = splitRow(kept[0]);
   const width = header.length;
   let body = kept.slice(1);
@@ -90,7 +161,7 @@ export function parseTable(lines) {
     body = body.slice(1);
   }
   const rows = body.map((line) => fit(splitRow(line), width));
-  return { header, align, rows };
+  return { header, align, rows, widths: normalizeWidths(asked, width) };
 }
 
 /// `cells` cut or padded to `width`.
@@ -113,8 +184,9 @@ function columnWidths({ header, rows }) {
   );
 }
 
-/// The table written back, aligned. Every line begins and ends with a pipe,
-/// every cell is padded to its column and wrapped in one space — `| a   | b |`.
+/// The table written back, aligned, under its widths comment when it has
+/// one. Every line begins and ends with a pipe, every cell is padded to its
+/// column and wrapped in one space — `| a   | b |`.
 export function renderTable(model) {
   const widths = columnWidths(model);
   const pad = (text, width) => {
@@ -130,7 +202,13 @@ export function renderTable(model) {
     if (align === "left") return `:${"-".repeat(width - 1)}`;
     return "-".repeat(width);
   });
-  return [line(model.header), `| ${delimiter.join(" | ")} |`, ...model.rows.map(line)].join("\n");
+  const lead = renderColumnsLine(normalizeWidths(model.widths, model.header.length));
+  return [
+    ...(lead ? [lead] : []),
+    line(model.header),
+    `| ${delimiter.join(" | ")} |`,
+    ...model.rows.map(line),
+  ].join("\n");
 }
 
 /// A fresh table: `columns` headed "Column 1", "Column 2"…, and `rows` empty
@@ -141,6 +219,7 @@ export function emptyTable({ columns = 2, rows = 1, label = (n) => `Column ${n}`
     header,
     align: header.map(() => null),
     rows: Array.from({ length: rows }, () => header.map(() => "")),
+    widths: null,
   };
 }
 
@@ -153,15 +232,22 @@ const clone = (model) => ({
   header: [...model.header],
   align: [...(model.align ?? model.header.map(() => null))],
   rows: model.rows.map((row) => [...row]),
+  widths: model.widths ? [...model.widths] : null,
 });
 
 /// A new empty column after column `at` (or at the end when `at` is omitted).
+/// On a table with widths, it arrives at the even share and the others give
+/// up room in proportion — nobody is singled out to pay for it.
 export function addColumn(model, at = model.header.length - 1) {
   const next = clone(model);
   const index = Math.min(next.header.length, Math.max(0, at + 1));
   next.header.splice(index, 0, "");
   next.align.splice(index, 0, null);
   for (const row of next.rows) row.splice(index, 0, "");
+  if (next.widths) {
+    next.widths.splice(index, 0, 100 / model.header.length);
+    next.widths = normalizeWidths(next.widths, next.header.length);
+  }
   return next;
 }
 
@@ -182,6 +268,10 @@ export function deleteColumn(model, at) {
   next.header.splice(at, 1);
   next.align.splice(at, 1);
   for (const row of next.rows) row.splice(at, 1);
+  if (next.widths) {
+    next.widths.splice(at, 1);
+    next.widths = normalizeWidths(next.widths, next.header.length);
+  }
   return next;
 }
 
@@ -205,6 +295,7 @@ export function moveColumn(model, from, to) {
   };
   shift(next.header);
   shift(next.align);
+  if (next.widths) shift(next.widths);
   for (const row of next.rows) shift(row);
   return next;
 }
@@ -230,4 +321,41 @@ export function setCell(model, row, col, text) {
 /// The text of one cell, `""` when there is none. `row` is -1 for the header.
 export function cellOf(model, row, col) {
   return (row < 0 ? model.header[col] : model.rows[row]?.[col]) ?? "";
+}
+
+// ---- on-screen widths -----------------------------------------------------
+
+/// The model wearing `widths` (percentages, one per column). Anything the
+/// normaliser refuses clears them instead — a table always has a shape it
+/// can be drawn in.
+export function setWidths(model, widths) {
+  const next = clone(model);
+  next.widths = normalizeWidths(widths, next.header.length);
+  return next;
+}
+
+/// The model back to columns the browser sizes. The comment goes with it:
+/// "no widths" is spelled by the line not being there.
+export function clearWidths(model) {
+  const next = clone(model);
+  next.widths = null;
+  return next;
+}
+
+/// Column `index` dragged to `percent` of the table, against its right-hand
+/// neighbour: the two trade room and everything else stays put, which is
+/// what keeps the total at 100 without a second pass. `from` is where the
+/// widths were when the drag began — measured off the screen for a table
+/// that had none, so the first drag does not start by jumping.
+export function resizeColumn(model, index, percent, from = model.widths) {
+  const count = model.header.length;
+  const base = normalizeWidths(from, count);
+  if (!base || index < 0 || index >= count - 1) return model;
+  const floor = floorFor(count);
+  const pair = base[index] + base[index + 1];
+  const left = Math.min(Math.max(percent, floor), pair - floor);
+  const next = [...base];
+  next[index] = left;
+  next[index + 1] = pair - left;
+  return setWidths(model, next);
 }

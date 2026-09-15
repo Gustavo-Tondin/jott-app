@@ -216,3 +216,130 @@ describe("dragging", () => {
     expect(view.state.doc.toString().split("\n")[3]).toBe("| 1   | 2   |");
   });
 });
+
+// Sizing a column is the one gesture that writes a comment instead of a cell,
+// and the one whose arithmetic is in percentages of a width only the browser
+// knows — so it is driven through the real widget, with the geometry stubbed.
+describe("resizing a column", () => {
+  /// Two header cells of 100px in a grid of 200px. jsdom lays nothing out.
+  function measured(view) {
+    view.dom.querySelectorAll("thead th").forEach((th, i) => {
+      th.getBoundingClientRect = () => ({ left: i * 100, width: 100, top: 0, height: 20 });
+    });
+    view.dom.querySelector(".cm-md-table__grid").getBoundingClientRect = () => ({
+      left: 0,
+      width: 200,
+      top: 0,
+      height: 60,
+    });
+  }
+
+  const pointer = (target, type, init) =>
+    target.dispatchEvent(new PointerEvent(type, { bubbles: true, pointerId: 9, ...init }));
+
+  const grip = (view, index = 0) =>
+    view.dom.querySelector(`.cm-md-table__grip[data-grip="${index}"]`);
+
+  const first = (view) => view.state.doc.toString().split("\n")[0];
+
+  it("puts a grip on every border but the last column's", () => {
+    const view = mount("| a | b | c |\n| - | - | - |\n| 1 | 2 | 3 |");
+    expect(view.dom.querySelectorAll(".cm-md-table__grip").length).toBe(2);
+    expect(grip(view, 2)).toBe(null);
+  });
+
+  it("writes the widths the border was let go at", () => {
+    const view = mount(TABLE);
+    measured(view);
+    pointer(grip(view), "pointerdown", { clientX: 100 });
+    expect(view.dom.querySelector(".cm-md-table--resizing")).not.toBe(null);
+    // A fifth of the table to the right: 50/50 becomes 70/30.
+    pointer(grip(view), "pointermove", { clientX: 140 });
+    pointer(grip(view), "pointerup", { clientX: 140 });
+    expect(first(view)).toBe("<!--cols: 70,30-->");
+    expect(view.dom.querySelector(".cm-md-table--resizing")).toBe(null);
+  });
+
+  it("starts from what is on screen, so the first drag does not jump", () => {
+    const view = mount(TABLE);
+    // Lopsided columns: the drag has to begin from 25/75, not from even shares.
+    view.dom.querySelectorAll("thead th").forEach((th, i) => {
+      th.getBoundingClientRect = () => ({ left: i * 50, width: i ? 150 : 50, top: 0, height: 20 });
+    });
+    view.dom.querySelector(".cm-md-table__grid").getBoundingClientRect = () => ({
+      left: 0,
+      width: 200,
+      top: 0,
+      height: 60,
+    });
+    pointer(grip(view), "pointerdown", { clientX: 50 });
+    pointer(grip(view), "pointerup", { clientX: 50 });
+    expect(first(view)).toBe("<!--cols: 25,75-->");
+  });
+
+  it("stops at the floor instead of letting a column vanish", () => {
+    const view = mount(TABLE);
+    measured(view);
+    pointer(grip(view), "pointerdown", { clientX: 100 });
+    pointer(grip(view), "pointerup", { clientX: -500 });
+    expect(first(view)).toBe("<!--cols: 4,96-->");
+  });
+
+  it("a cancelled drag writes nothing", () => {
+    const view = mount(TABLE);
+    measured(view);
+    pointer(grip(view), "pointerdown", { clientX: 100 });
+    pointer(grip(view), "pointermove", { clientX: 160 });
+    pointer(grip(view), "pointercancel", { clientX: 160 });
+    expect(first(view)).toBe("| a | b |");
+    expect(view.dom.querySelector("colgroup")).toBe(null);
+  });
+
+  it("draws the widths it reads as a colgroup of percentages", () => {
+    const view = mount(`<!--cols: 30,70-->\n${TABLE}`);
+    const cols = [...view.dom.querySelectorAll("colgroup col")];
+    expect(cols.map((c) => c.style.inlineSize)).toEqual(["30%", "70%"]);
+    expect(view.dom.querySelector(".cm-md-table--sized")).not.toBe(null);
+    // And the comment is inside the widget, not a line of its own above it.
+    expect(view.dom.querySelectorAll(".cm-md-table").length).toBe(1);
+    expect(view.dom.textContent).not.toContain("cols:");
+  });
+
+  it("a second drag moves the border again, from where it now stands", () => {
+    const view = mount(`<!--cols: 30,70-->\n${TABLE}`);
+    measured(view);
+    pointer(grip(view), "pointerdown", { clientX: 60 });
+    pointer(grip(view), "pointerup", { clientX: 80 });
+    expect(first(view)).toBe("<!--cols: 40,60-->");
+  });
+
+  it("a double click on the border gives the columns back to the browser", () => {
+    const view = mount(`<!--cols: 30,70-->\n${TABLE}`);
+    grip(view).dispatchEvent(new MouseEvent("dblclick", { bubbles: true, cancelable: true }));
+    expect(first(view)).toBe("| a   | b   |");
+    expect(view.dom.querySelector("colgroup")).toBe(null);
+  });
+
+  it("does not size the layout that is already as wide as its cells", () => {
+    const parent = document.createElement("div");
+    document.body.appendChild(parent);
+    const view = new EditorView({
+      parent,
+      state: EditorState.create({
+        doc: `<!--cols: 30,70-->\n${TABLE}`,
+        extensions: [
+          markdown({ base: markdownLanguage }),
+          activeCell,
+          noteTables({ layout: () => "scroll" }),
+        ],
+      }),
+    });
+    views.push({ view, parent });
+    measured(view);
+    expect(view.dom.querySelector("colgroup")).toBe(null);
+    expect(view.dom.querySelector(".cm-md-table--sized")).toBe(null);
+    pointer(grip(view), "pointerdown", { clientX: 100 });
+    pointer(grip(view), "pointerup", { clientX: 140 });
+    expect(view.state.doc.toString().split("\n")[0]).toBe("<!--cols: 30,70-->");
+  });
+});
