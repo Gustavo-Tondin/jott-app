@@ -22,6 +22,10 @@
     inset: 0;
     z-index: 60;
     pointer-events: none;
+    /* A carried `li` is a list item with no list: `list-style` is inherited,
+       the reset takes it off the `ul`, and out here the initial `disc` comes
+       back as a black dot beside the card (seen on video, 2026-09-15). */
+    list-style: none;
   }
 
   /* Any item in a live reorder: its transform glides, so the others make room

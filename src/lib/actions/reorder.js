@@ -11,7 +11,10 @@
 /// `onHold(from)` (true = the caller took the rest); `ring(from)` +
 /// `onRing(from, action)` (the hold opens the action ring instead, and the
 /// same finger picks a slice); `carried(from)` + `onReorderMany(indices, to)`
-/// (a selection travels together); `holdMs`; `hold`.
+/// (a selection travels together); `project(from, to, rects) => places`
+/// (a grid's own answer to where every item stands once `from` is put down
+/// at `to` — the preview shows the drop, not a chain of swaps); `holdMs`;
+/// `hold`.
 
 import { dragLayer } from "../services/dragLayer.js";
 import { afterRingCloses, closeRing, hoverRing, openRing } from "../services/actionRing.js";
@@ -76,9 +79,11 @@ export function reorderable(node, params) {
   const grid = () => opts.axis === "grid";
   const threshold = () => opts.threshold ?? 5;
   /// How much of an item's middle counts as "drop INTO this one" rather than
-  /// "drop next to it". Half: enough to aim at without swallowing the
-  /// boundaries, which is what ordering needs.
-  const INTO_BAND = 0.5;
+  /// "drop next to it", and how long the hand RESTS there before it does.
+  /// Crossing a card on the way somewhere else passes through its middle;
+  /// only a hand that stops on it means it (the spring-loaded folder rule).
+  const INTO_BAND = 0.4;
+  const INTO_MS = 400;
 
   const items = () =>
     [...node.children].filter(
@@ -119,6 +124,9 @@ export function reorderable(node, params) {
       originY: e.clientY,
       moved: false,
       into: null,
+      intoCandidate: null,
+      intoSince: 0,
+      intoTimer: null,
       holdTimer: null,
       touch: e.pointerType === "touch",
       // Free of the list (see `free` at the top): only a free zone can take
@@ -484,26 +492,18 @@ export function reorderable(node, params) {
       // ...and the middle of another CARD is a target of its own, when the
       // caller has somewhere for it to go (`onDropInto` — two notes made into
       // a folder).
-      const into = zone ? null : intoAt(at);
+      const into = zone ? null : settled(intoAt(at));
       const to =
         zone || into != null ? drag.to : nearestSlot(at.x - drag.originX, at.y - drag.originY);
       if (!reads(to, into, zone, false)) return;
 
       drag.list.forEach((el, i) => el.classList.toggle("reorder-item--into", i === into));
-      if (zone || into != null) {
-        // Nothing is making room: the drop goes INSIDE something.
-        for (const el of drag.list) if (el !== drag.el) el.style.transform = "";
-        return;
-      }
-      drag.list.forEach((el, i) => {
-        if (i === drag.from) return;
-        let slot = null;
-        if (drag.from < to && i > drag.from && i <= to) slot = rects[i - 1];
-        else if (to < drag.from && i >= to && i < drag.from) slot = rects[i + 1];
-        el.style.transform = slot
-          ? `translate(${slot.left - rects[i].left}px, ${slot.top - rects[i].top}px)`
-          : "";
-      });
+      // A zone or a middle under the hand leaves the preview STANDING: the
+      // board was seen making room a moment ago, and taking that back for
+      // the time the hand crosses a card is the jump the eye reads as
+      // pieces shuffling. The ring says where the drop goes.
+      if (zone || into != null) return;
+      place(to);
       return;
     }
 
@@ -528,7 +528,7 @@ export function reorderable(node, params) {
     // otherwise the slot the carried centre now sits over.
     const to = zone ? drag.to : slotAt(reach);
     const leaving = !zone && !!opts.onDragOut && outside(e);
-    const into = zone || leaving ? null : intoAt(at);
+    const into = zone || leaving ? null : settled(intoAt(at));
     if (!reads(to, into, zone, leaving)) return;
 
     const list = drag.list;
@@ -548,6 +548,62 @@ export function reorderable(node, params) {
       else if (to < drag.from && i >= to && i < drag.from) d = drag.step;
       c.style.transform = d ? shift(d) : "";
     });
+  }
+
+  /// THE PREVIEW OF A GRID: every item shown where it will stand once the
+  /// carried one is put down at `to`. The caller's `project` knows its own
+  /// layout (a board of columns restacks every column, services/noteColumns.js);
+  /// without one, the items between the two slots each take their
+  /// neighbour's — right for a grid of equal cells, and all a plain grid has.
+  /// `drag.placed` keeps the answer, for the middle test and the landing.
+  function place(to) {
+    const rects = drag.rects;
+    const from = drag.from;
+    let placed = opts.project?.(drag.stack.length > 1 ? drag.stack : from, to, rects) ?? null;
+    if (!placed) {
+      placed = rects.map((r, i) => {
+        let slot = null;
+        if (i === from) slot = rects[to];
+        else if (from < to && i > from && i <= to) slot = rects[i - 1];
+        else if (to < from && i >= to && i < from) slot = rects[i + 1];
+        return slot ? { left: slot.left, top: slot.top, width: r.width, height: r.height } : r;
+      });
+    }
+    drag.placed = placed;
+    // The pile travels too: the ones picked with the carried item are shown
+    // (dimmed) gathering at the destination, which is where they will be.
+    drag.list.forEach((el, i) => {
+      if (i === from) return;
+      const dx = placed[i].left - rects[i].left;
+      const dy = placed[i].top - rects[i].top;
+      el.style.transform = dx || dy ? `translate(${dx}px, ${dy}px)` : "";
+    });
+  }
+
+  /// The middle the hand has RESTED on: `candidate` becomes the target only
+  /// after INTO_MS on the same item. The clock is asked to read the hand
+  /// again when it is up, because a hand that stops sends no more events.
+  function settled(candidate) {
+    if (candidate !== drag.intoCandidate) {
+      drag.intoCandidate = candidate;
+      drag.intoSince = now();
+      clearTimeout(drag.intoTimer);
+      drag.intoTimer = null;
+    }
+    if (candidate == null) return null;
+    const waited = now() - drag.intoSince;
+    if (waited >= INTO_MS) return candidate;
+    if (drag.intoTimer == null)
+      drag.intoTimer = setTimeout(() => {
+        if (!drag) return;
+        drag.intoTimer = null;
+        if (drag.at) applyMove(drag.at);
+      }, INTO_MS - waited);
+    return null;
+  }
+
+  function now() {
+    return Date.now();
   }
 
   /// WHAT THE LIST IS ALREADY SHOWING. Rewriting the same transforms moves
@@ -625,12 +681,16 @@ export function reorderable(node, params) {
     const rects = drag.rects;
     const along = horizontal() ? at.x : at.y;
     for (let i = 0; i < rects.length; i++) {
-      if (i === drag.from || !accepts(i)) continue;
-      const r = rects[i];
+      if (i === drag.from || drag.stack?.includes(i) || !accepts(i)) continue;
+      // On a grid the items have been shown MOVING (`place`): the middle is
+      // of the card the hand sees, not of the slot it set off from.
+      const r = (grid() && drag.placed?.[i]) || rects[i];
       if (grid()) {
+        const right = r.right ?? r.left + r.width;
+        const bottom = r.bottom ?? r.top + r.height;
         const mx = (r.width * (1 - INTO_BAND)) / 2;
         const my = (r.height * (1 - INTO_BAND)) / 2;
-        if (at.x > r.left + mx && at.x < r.right - mx && at.y > r.top + my && at.y < r.bottom - my)
+        if (at.x > r.left + mx && at.x < right - mx && at.y > r.top + my && at.y < bottom - my)
           return i;
         continue;
       }
@@ -787,6 +847,7 @@ export function reorderable(node, params) {
   function cancel() {
     if (!drag) return;
     clearTimeout(drag.holdTimer);
+    clearTimeout(drag.intoTimer);
     const d = drag;
     drag = null;
     clear(d);
@@ -801,6 +862,7 @@ export function reorderable(node, params) {
     if (!drag) return;
     const d = drag;
     clearTimeout(d.holdTimer);
+    clearTimeout(d.intoTimer);
     // The list stops the moment the hand lets go — the flight home takes
     // another 160 ms, and the list must not still be moving under it.
     stopSteer();
@@ -871,11 +933,13 @@ export function reorderable(node, params) {
     // it. Hence the subtraction — without it, a drag that scrolled lands the
     // card as far from home as the list travelled.
     const away = scrolled(d);
-    if (grid())
+    if (grid()) {
+      const end = d.placed?.[d.from] ?? r[d.to];
       return {
-        x: r[d.to].left - r[d.from].left - away.x,
-        y: r[d.to].top - r[d.from].top - away.y,
+        x: end.left - r[d.from].left - away.x,
+        y: end.top - r[d.from].top - away.y,
       };
+    }
     const at = d.to > d.from ? start(r[d.to]) + size(r[d.to]) - size(r[d.from]) : start(r[d.to]);
     const px = at - start(r[d.from]) - (horizontal() ? away.x : away.y);
     return horizontal() ? { x: px, y: 0 } : { x: 0, y: px };

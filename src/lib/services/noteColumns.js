@@ -5,6 +5,7 @@
 // sits in column `i % count`: the board reads by ROWS; heights unbalanced.
 
 import { clamp } from "./num.js";
+import { movedItems } from "./spaceOrder.js";
 
 /// The narrowest a card may be, in px, and the gap between columns. Both are
 /// the CSS values (controls/layout.css, `.theme-note-board`, `--app-space-12`); they are repeated
@@ -42,4 +43,49 @@ export function columnLayout(length, count) {
     if (column < used - 1) breaks.add(order[order.length - 1]);
   }
   return { order, breaks };
+}
+
+/// Where every card would STAND once DOM item(s) `from` are put down at DOM
+/// slot `to` — the board re-read by rows and each column stacked from the
+/// top, exactly as `columnLayout` will lay it out after the commit. `rects`
+/// are the cards' boxes in DOM order, as measured; the answer is in DOM order
+/// too, one `{left, top, width, height}` per card, the carried one(s)
+/// included (that is where they land). This is the drag's preview: a card is
+/// only ever shown where it will be, so nothing jumps on the drop.
+export function projectMove(rects, order, count, from, to) {
+  const length = rects.length;
+  if (!length) return [];
+  const used = Math.max(1, Math.min(count, length));
+  // DOM index of each model position, then the arrangement the drop makes.
+  const model = new Array(length);
+  order.forEach((m, dom) => (model[m] = dom));
+  const froms = (Array.isArray(from) ? from : [from]).map((dom) => order[dom]);
+  const next = movedItems(model, froms, order[to]);
+  // Column edges and the vertical gap, read off the board as it stands: the
+  // first card of each column, and the space between two neighbours in one.
+  const lefts = [];
+  let gap = 0;
+  let top = Infinity;
+  order.forEach((m, dom) => {
+    const column = m % used;
+    if (lefts[column] == null) lefts[column] = rects[dom].left;
+    top = Math.min(top, rects[dom].top);
+    const below = order[dom + 1];
+    if (below != null && below % used === column && !gap)
+      gap = Math.max(0, rects[dom + 1].top - rects[dom].bottom);
+  });
+  const tops = lefts.map(() => top);
+  const placed = new Array(length);
+  next.forEach((dom, m) => {
+    const column = m % used;
+    const r = rects[dom];
+    placed[dom] = {
+      left: lefts[column],
+      top: tops[column],
+      width: r.width,
+      height: r.height,
+    };
+    tops[column] += r.height + gap;
+  });
+  return placed;
 }

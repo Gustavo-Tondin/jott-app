@@ -131,6 +131,46 @@ describe("reorderable", () => {
     expect(moves).toEqual([[0, 3]]);
   });
 
+  test("a grid with a `project` shows every card where the drop will put it", () => {
+    // Four cards in a 2×2 grid. The caller's projection says what the board
+    // will look like with card 0 at slot 3: the others shift back one slot —
+    // a chain here, but the action does not know that; it only draws.
+    const ul = list(4);
+    const rect = (col, row) => ({
+      left: col * 100,
+      right: col * 100 + 100,
+      width: 100,
+      top: row * 40,
+      bottom: row * 40 + 40,
+      height: 40,
+    });
+    const cells = [rect(0, 0), rect(1, 0), rect(0, 1), rect(1, 1)];
+    [...ul.children].forEach((li, i) => {
+      li.getBoundingClientRect = () => ({ ...cells[i], x: cells[i].left, y: cells[i].top, toJSON() {} });
+    });
+    const asked = [];
+    reorderable(ul, {
+      axis: "grid",
+      item: ".row",
+      onReorder: () => {},
+      project: (from, to, rects) => {
+        asked.push([from, to, rects.length]);
+        if (to !== 3) return null;
+        return [cells[3], cells[0], cells[1], cells[2]];
+      },
+    });
+    const rows = [...ul.children];
+    const card = ul.children[0];
+    fire(card, "pointerdown", { button: 0, pointerId: 1, clientX: 10, clientY: 10 });
+    fire(card, "pointermove", { pointerId: 1, clientX: 150, clientY: 60 });
+    expect(asked).toContainEqual([0, 3, 4]);
+    // Card 1 (top right) is drawn where card 0 stood; card 3 where card 2 did.
+    expect(rows[1].style.transform).toBe("translate(-100px, 0px)");
+    expect(rows[2].style.transform).toBe("translate(100px, -40px)");
+    expect(rows[3].style.transform).toBe("translate(-100px, 0px)");
+    fire(card, "pointerup", { pointerId: 1, clientX: 150, clientY: 60 });
+  });
+
   test("a drag that sets off sideways is not ours", () => {
     // It is the card's swipe. Taking it would have both actions capturing the
     // same pointer, and the second capture leaves the first deaf — the frozen
@@ -176,14 +216,57 @@ describe("reorderable", () => {
     // that was there.
     const rows = [...ul.children];
     const row = ul.children[0];
-    fire(row, "pointerdown", { button: 0, pointerId: 1, clientY: 20 });
-    // Row 2 spans 80-120; its middle band is 90-110.
-    fire(row, "pointermove", { pointerId: 1, clientY: 100 });
-    expect(rows[2].classList.contains("reorder-item--into")).toBe(true);
-    fire(row, "pointerup", { pointerId: 1, clientY: 100 });
+    vi.useFakeTimers();
+    try {
+      fire(row, "pointerdown", { button: 0, pointerId: 1, clientY: 20 });
+      // Row 2 spans 80-120; its middle band is 92-108. Arriving there is not
+      // yet aiming at it: the hand has to REST on the middle (INTO_MS).
+      fire(row, "pointermove", { pointerId: 1, clientY: 100 });
+      expect(rows[2].classList.contains("reorder-item--into")).toBe(false);
+      vi.advanceTimersByTime(450);
+      expect(rows[2].classList.contains("reorder-item--into")).toBe(true);
+      fire(row, "pointerup", { pointerId: 1, clientY: 100 });
+    } finally {
+      vi.useRealTimers();
+    }
 
     expect(intos).toEqual([[0, 2]]);
     expect(moves).toEqual([], "a drop INTO is not also a reorder");
+  });
+
+  test("a hand that only CROSSES a middle on its way past never goes into it", () => {
+    // The notes board's accidental folders: dragging a card down the column
+    // passes through every middle on the way. None of them is meant.
+    const ul = list(4);
+    layOut(ul);
+    const moves = [];
+    const intos = [];
+    reorderable(ul, {
+      axis: "y",
+      item: ".row",
+      onReorder: (f, t) => moves.push([f, t]),
+      onDropInto: (f, t) => intos.push([f, t]),
+    });
+    const rows = [...ul.children];
+    const row = ul.children[0];
+    vi.useFakeTimers();
+    try {
+      fire(row, "pointerdown", { button: 0, pointerId: 1, clientY: 20 });
+      fire(row, "pointermove", { pointerId: 1, clientY: 60 }); // row 1's middle
+      vi.advanceTimersByTime(200);
+      fire(row, "pointermove", { pointerId: 1, clientY: 100 }); // row 2's middle
+      vi.advanceTimersByTime(200);
+      // Past row 3's middle band (128-152), on its lower edge: no candidate
+      // at all, and the clock starts over.
+      fire(row, "pointermove", { pointerId: 1, clientY: 155 });
+      vi.advanceTimersByTime(450);
+      expect(rows.some((r) => r.classList.contains("reorder-item--into"))).toBe(false);
+      fire(row, "pointerup", { pointerId: 1, clientY: 155 });
+    } finally {
+      vi.useRealTimers();
+    }
+    expect(intos).toEqual([]);
+    expect(moves).toEqual([[0, 3]]);
   });
 
   test("canDropInto narrows which items may receive a drop", () => {

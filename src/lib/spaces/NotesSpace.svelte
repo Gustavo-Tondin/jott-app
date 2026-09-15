@@ -19,7 +19,7 @@
   import { leafOf, listName } from "../services/paths.js";
   import { reorderable } from "../actions/reorder.js";
   import { measured } from "../actions/measure.js";
-  import { columnCount, columnLayout } from "../services/noteColumns.js";
+  import { columnCount, columnLayout, projectMove } from "../services/noteColumns.js";
   import { dismissable } from "../actions/dismissable.js";
   import { keepOnScreen } from "../actions/keepOnScreen.js";
   import Menu from "../components/Menu.svelte";
@@ -742,6 +742,11 @@
         // same way a note is (see `laidOut`).
         item: canDrag ? ".notes-space__item, .notes-space__group" : ".notes-space__never",
         onReorder: reorderCards,
+        // The preview is the drop: the board re-read by rows, columns
+        // restacked (services/noteColumns.js) — never a chain of cards each
+        // taking a neighbour's slot, which on columns of unequal heights
+        // reads as pieces jumping.
+        project: (from, to, rects) => projectMove(rects, columned.order, columns, from, to),
         // A folder card is where a NOTE is filed. Carrying a folder there is
         // no zone at all: it is only being put somewhere in the order.
         dropZones: (from) =>

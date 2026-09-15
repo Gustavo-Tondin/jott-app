@@ -11,11 +11,14 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 ### Fixed
 
 - **Editing a note's name from a held card no longer leaves the column of actions stuck on the screen**, standing over every screen you opened afterwards: the column comes down before the panel opens, so nothing the panel does can leave it behind.
+- **The cards on the notes board no longer shuffle and pile up while you carry one across them**: they move to where they will actually stand once you let go, so what you see during the drag is the arrangement you get.
+- **A carried card no longer has a black dot floating beside it.**
 
 ### Improved
 
 - **A card carried across the board reads as one movement now**: it lifts with its own rounded shadow instead of a square one, the cards making room for it glide rather than snap, and when you let go the board flows into its new arrangement instead of jumping into it.
 - **A note card on a phone no longer carries a ⋮**: holding the card opens the very same actions, and the corner it took back belongs to the note.
+- **Two notes are no longer made into a folder by accident on the way past**: the card has to rest on the middle of another for a moment before it is taken as "put these together", and the ring tells you when it has.
 
 ## v0.56.1
 
