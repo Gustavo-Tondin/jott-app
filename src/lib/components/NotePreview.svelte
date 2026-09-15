@@ -11,11 +11,14 @@
   let {
     /// The markdown the core sent (`NoteEntry.preview`).
     markdown = "",
+    /// The name the CARD is already showing, when it shows one: a first
+    /// heading that only repeats it is dropped (services/notePreview.js).
+    title = null,
     /// What to draw when there is none.
     empty = "",
   } = $props();
 
-  let blocks = $derived(previewBlocks(markdown));
+  let blocks = $derived(previewBlocks(markdown, { title }));
 
   /// Whether the clamp actually cut something — the dots are only drawn when
   /// there IS more. Measured, because only the layout knows: the same markdown

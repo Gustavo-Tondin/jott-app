@@ -38,11 +38,27 @@ const MARKS = [
   { style: "em", pattern: /_([^_\n]+)_/ },
 ];
 
+/// A heading and a note's name compared as the reader sees them: whitespace
+/// collapsed, case folded. Neither side is the truth — one came from a file
+/// name, the other from a line somebody typed.
+const folded = (text) =>
+  String(text ?? "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+
+/// The text of a block, as the card draws it — the marks already taken off.
+const textOf = (block) => (block.spans ?? []).map((run) => run.text).join("");
+
 /// The blocks of a piece of markdown. Each is `{kind, …}`: `heading` (with
 /// `level`), `paragraph`, `bullet`, `ordered` (with `marker`), `task` (with
 /// `done`), `quote`, `code` (with `text`), `rule` or `table` (its header's
 /// cells only — "there is a table here"). All but `code` and `rule` carry `spans`.
-export function previewBlocks(markdown) {
+///
+/// `title` is the name the CARD is already showing: a first heading that only
+/// repeats it is not drawn, because the two together read as a title with a
+/// title over it. Only the first block, only a heading, only an exact echo.
+export function previewBlocks(markdown, { title = null } = {}) {
   const lines = String(markdown ?? "").split("\n");
   const blocks = [];
   let open = null;
@@ -143,17 +159,20 @@ export function previewBlocks(markdown) {
   // The gathered blocks carry raw text; the spans are read once, at the end,
   // so a wrapped paragraph is parsed as the one line it means to be (a `**`
   // opened on one line and closed on the next is ordinary markdown).
-  return (
-    blocks
-      .map((block) =>
-        block.text !== undefined && block.kind !== "code"
-          ? { kind: block.kind, spans: spansOf(block.text) }
-          : block,
-      )
-      // A line that was nothing but a picture has nothing left in it, and an
-      // empty block would draw as a gap the note does not have.
-      .filter((block) => !block.spans || block.spans.length > 0)
-  );
+  const drawn = blocks
+    .map((block) =>
+      block.text !== undefined && block.kind !== "code"
+        ? { kind: block.kind, spans: spansOf(block.text) }
+        : block,
+    )
+    // A line that was nothing but a picture has nothing left in it, and an
+    // empty block would draw as a gap the note does not have.
+    .filter((block) => !block.spans || block.spans.length > 0);
+
+  const first = drawn[0];
+  const echoes =
+    title && first?.kind === "heading" && folded(textOf(first)) === folded(title);
+  return echoes ? drawn.slice(1) : drawn;
 }
 
 /// A line of markdown as styled runs — `[{text, strong, em, code, strike,

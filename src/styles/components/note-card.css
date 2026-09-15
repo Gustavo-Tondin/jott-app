@@ -1,17 +1,24 @@
 /* note-card.css — a note, and a folder of notes, as cards on the board.
  * Markup: components/NoteCard.svelte and the folder card in
  * spaces/NotesSpace.svelte; selectors are the BEM hooks a theme may restyle.
- * A card is a banner, the title on a chip straddling its bottom edge, and the
- * first lines of text. CARD is `--app-surface`, CHIP is `--app-bg`: no shadow. */
+ * A card is a bled banner, the note's name on a chip the width of the card,
+ * and the first lines of text. CARD is `--app-surface`, CHIP is `--app-bg`: no
+ * shadow. The pin and the ⋮ only exist under a pointer. */
 
 @layer components {
   .note-card {
-    /* The card's own padding, named once: the banner's corner and the small
-       card's are this subtracted from the card's (`interno = externo −
-       padding`), and the corner tools sit on it too. */
-    --note-card-pad: var(--app-space-12);
+    /* The card's own padding, named once: the banner gives it back as a
+       negative margin to reach the edges, the small card's corner is this
+       subtracted from the card's (`interno = externo − padding`), and the
+       corner tools sit on it. */
+    --note-card-pad: var(--app-space-10);
     position: relative;
     display: flex;
+    /* The banner bleeds to the edges, so the CARD is what rounds it off.
+       `clip`, never `hidden` — hidden would make a scroll container. Nothing
+       that opens is cut: the ⋮'s panel is portaled to the body
+       (actions/keepOnScreen.js). */
+    overflow: clip;
     background: var(--app-surface);
     border-radius: var(--app-radius-lg);
     padding: var(--note-card-pad);
@@ -23,8 +30,10 @@
       opacity var(--app-transition-fast),
       scale var(--app-transition-fast);
   }
+  /* The hover stopped DIMMING the note: what answers the pointer is the corner
+     of tools, not the card. */
   .note-card:hover {
-    opacity: 0.7;
+    opacity: 0.95;
   }
   .note-card:active {
     scale: 0.98;
@@ -34,9 +43,17 @@
     background: var(--app-brand-weak);
   }
   /* Pinned: a hairline ring in the accent — "kept", not the warning's
-     "careful" — inset, so a card pins without moving its neighbours. */
-  .note-card--pinned {
-    box-shadow: inset 0 0 0 0.0625rem var(--app-brand-outline);
+     "careful" — inside the card's own box, so a card pins without moving its
+     neighbours. A PSEUDO-ELEMENT and not an inset shadow: a shadow is painted
+     under the content, and the bled banner ate the ring. On a phone it is the
+     only sign, the corner being gone. */
+  .note-card--pinned::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border: 0.0625rem solid var(--app-brand-outline);
+    border-radius: inherit;
+    pointer-events: none;
   }
 
   .note-card__open {
@@ -54,10 +71,12 @@
      different lengths, and a ratio would make every card a different shape. */
   .note-card__banner {
     display: block;
-    block-size: 4.75rem;
-    /* The card's corner less the card's padding: the banner is flush against
-       three of its edges. */
-    border-radius: calc(var(--app-radius-lg) - var(--note-card-pad));
+    block-size: 5.25rem;
+    /* Bled: the card's padding is given back on three sides, and the card's
+       own corner does the rounding. */
+    margin-block-start: calc(var(--note-card-pad) * -1);
+    margin-inline: calc(var(--note-card-pad) * -1);
+    border-radius: 0;
     background: var(--banner, var(--app-brand));
     overflow: hidden;
   }
@@ -110,37 +129,62 @@
   .note-card__age--forgotten {
     color: var(--app-warning);
   }
+  /* The name, ALWAYS on a chip and always the width of the card — nothing
+     shares its line. With a banner it straddles the banner's bottom edge;
+     without one it is the card's first piece. A note nobody named draws no
+     chip at all (NoteCard.svelte).
+     NOT hyphenated, unlike the preview under it: a name is too short for a
+     break to save a line, and it is the most visible place for a wrong one. */
   .note-card__title {
+    align-self: stretch;
     min-inline-size: 0;
-    font-size: var(--app-text-14);
+    padding: var(--app-space-4) var(--app-space-8);
+    background: var(--app-bg);
+    border-radius: var(--app-radius-sm);
+    font-size: var(--app-text-16);
+    line-height: var(--app-leading-tight);
+    letter-spacing: var(--app-tracking-tight);
     font-weight: var(--app-weight-bold);
     color: var(--app-ink);
     overflow-wrap: anywhere;
   }
-  /* Over the banner's bottom edge, aligned to the start — the negative margin
-     is what makes it straddle rather than sit under. */
-  .note-card__title--chip {
-    align-self: start;
-    margin-block-start: -0.875rem;
-    margin-inline-start: var(--app-space-6);
-    max-inline-size: calc(100% - var(--app-space-12));
-    padding: var(--app-space-2) var(--app-space-8);
-    background: var(--app-bg);
-    border-radius: var(--app-radius-sm);
+  /* The straddle: the negative margin is what puts the chip ON the banner's
+     bottom edge instead of under it. */
+  .note-card__banner + .note-card__title {
+    margin-block-start: -1rem;
   }
 
   /* The preview text and its ceiling: styles/components/note-preview.css. */
 
   /* The pin and the ⋮, in the card's corner, over the banner when there is
      one. The ROW is what is placed: the ⋮'s panel is anchored to `.menu`
-     (menu.css), so moving the button alone leaves the dropdown hanging. */
+     (menu.css), so moving the button alone leaves the dropdown hanging.
+     The whole corner only exists UNDER A POINTER — at rest the card is the
+     note and nothing else. Without a pointer, touch.css keeps it lit.
+     THE ROW CARRIES ITS OWN GROUND, the same neutral the title's chip takes:
+     the two sit over a banner, a photo or the title itself, and a ground is
+     what lets them keep ordinary ink wherever they land. */
   .note-card__tools {
     position: absolute;
     inset-block-start: var(--note-card-pad);
     inset-inline-end: var(--note-card-pad);
     display: flex;
     align-items: center;
+    background: var(--app-bg);
+    border-radius: var(--app-radius-sm);
+    opacity: 0;
+    transition: opacity var(--app-transition-fast);
   }
+  /* `:has(:focus-visible)` and not `:focus-within`: a MOUSE click leaves the
+     button focused, and the corner would stay lit on a card the pointer has
+     already left. Keyboard focus is what has to reveal it. */
+  .note-card:hover .note-card__tools,
+  .note-card:has(:focus-visible) .note-card__tools {
+    opacity: 1;
+  }
+  /* The two are a pair: neither carries an opacity of its own any more, and
+     neither asks for the banner's colour — the row's ground is what they
+     stand on, whatever is beneath it. */
   .note-card__more,
   .note-card__pin {
     color: var(--app-ink-muted);
@@ -150,37 +194,25 @@
   .note-card__pin--on {
     color: var(--app-ink);
   }
-  /* Unpinned, the mark is an offer: it waits for the pointer. A touch screen
-     never hovers, so there it is always shown (styles/touch.css). */
-  .note-card__pin {
-    opacity: 0;
-  }
-  .note-card:hover .note-card__pin,
-  .note-card__pin:focus-visible,
-  .note-card__pin--on {
-    opacity: 1;
-  }
-  /* On a phone the OFFER is not drawn at all: the corner holds two buttons in
-     the width of one, over a banner, and Pin/Unpin is the ⋮'s first item. */
-  .shell--compact .note-card__pin {
+  /* On a phone there is NO corner at all: holding the card opens the very same
+     actions (services/actionRing.js), and the accent ring is what says
+     "pinned". Two buttons in the width of one, over a banner, were never a
+     target — they were a place the thumb could not miss. */
+  .shell--compact .note-card__tools {
     display: none;
   }
-  /* The PINNED state moves to the head of the title on a phone: a mark before
-     the title says the same as a second corner button and presses nothing.
-     Drawn ONLY here — on a desktop the corner button is the sign. */
-  .note-card__pinned {
-    display: none;
+
+  /* ---- on a phone ----
+     One rung BELOW the coarse ramp (tokens.css): inside a card that is one
+     column of a two-column board, the card is what pinches, not the screen. */
+  .shell--compact .note-card {
+    --note-card-pad: var(--app-space-8);
   }
-  .shell--compact .note-card__pinned {
-    display: inline-flex;
-    vertical-align: -0.0625rem;
-    margin-inline-end: var(--app-space-4);
-    color: var(--app-ink);
+  .shell--compact .note-card__title {
+    font-size: 0.9375rem;
   }
-  /* The corner is the ⋮'s alone on a phone, and the title keeps clear of it.
-     A chip title sits on the banner, below the tools, and needs no room. */
-  .shell--compact .note-card:not(.note-card--small) .note-card__title:not(.note-card__title--chip) {
-    padding-inline-end: var(--app-space-32);
+  .shell--compact .note-card__banner {
+    block-size: 4.5rem;
   }
 
   /* Where the note came from, on a screen showing more than one space (the
@@ -196,7 +228,7 @@
   /* Nothing above the text — no title, no banner — so the first lines lead
      the card and the corner tools sit over them. The first block keeps clear
      of the ⋮, the way a title does on a phone. */
-  .note-card--bare .note-preview > :first-child {
+  .shell:not(.shell--compact) .note-card--bare .note-preview > :first-child {
     padding-inline-end: var(--app-space-24);
   }
 
@@ -208,7 +240,11 @@
     /* The folder card's corner less the padding it sits in. */
     border-radius: calc(var(--app-radius-lg) - var(--app-space-8));
   }
+  /* No chip here: the small card IS a title, and a chip inside it would be a
+     block within a block. */
   .note-card--small .note-card__title {
+    padding: 0;
+    background: none;
     font-size: var(--app-text-13);
     display: -webkit-box;
     -webkit-line-clamp: 3;
@@ -324,6 +360,13 @@
      stands on the raised step. */
   .note-group__popover .note-card {
     background: var(--app-bg);
+  }
+  /* With the card on the lower neutral, the title's chip and the corner's
+     ground take the other one: painted `--app-bg` there they would vanish
+     into the card. */
+  .note-group__popover .note-card__title,
+  .note-group__popover .note-card__tools {
+    background: var(--app-surface);
   }
   .note-group__subfolders {
     display: flex;

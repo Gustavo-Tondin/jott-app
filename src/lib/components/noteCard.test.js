@@ -115,3 +115,18 @@ describe("NoteCard — a note nobody named", () => {
     expect(container.querySelector(".note-card__title").textContent.trim()).toBe("New note");
   });
 });
+
+describe("NoteCard — the name, drawn once", () => {
+  test("a note that opens with its own name as a heading draws it once", () => {
+    const { container } = card({ title: "Ideia", preview: "# Ideia\n\no corpo" });
+    expect(container.querySelector(".note-card__title").textContent.trim()).toBe("Ideia");
+    expect(container.querySelector(".note-preview__heading")).toBe(null);
+    expect(container.querySelector(".note-preview").textContent).toContain("o corpo");
+  });
+
+  test("a card drawing no name of its own keeps the heading — it is the only one", () => {
+    const { container } = card({ title: "New note", preview: "# Ideia\n\no corpo" });
+    expect(container.querySelector(".note-card__title")).toBe(null);
+    expect(container.querySelector(".note-preview__heading").textContent.trim()).toBe("Ideia");
+  });
+});

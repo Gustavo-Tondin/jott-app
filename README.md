@@ -59,7 +59,7 @@ Inbox, plus as many lists as you want. Due dates, priorities, tags, subtasks, at
 <!-- media 4/5 · placeholder — final: a note open on the phone, light theme -->
 ![A note in Jott](.github/media/notes.png)
 
-A board of cards, and a Markdown editor that shows the raw syntax only where your cursor is. `[[Note]]` links and file references autocomplete as you type; banners, pinning, folders, and tables you edit as a grid. Anything you paste from a browser, Docs or Notion arrives as Markdown, not as stripped plain text.
+A board of cards — each one its banner, the note's name, and the first lines of the note drawn as Markdown — and an editor that shows the raw syntax only where your cursor is. `[[Note]]` links and file references autocomplete as you type; banners, pinning, folders, and tables you edit as a grid. Anything you paste from a browser, Docs or Notion arrives as Markdown, not as stripped plain text.
 
 ## Yours, on disk
 

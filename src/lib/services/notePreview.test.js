@@ -118,3 +118,40 @@ describe("what never reaches the card", () => {
     expect(previewBlocks("![alt](assets/foto.png)")).toEqual([]);
   });
 });
+
+// The card already carries the note's NAME, on the chip above the text. A note
+// that opens with `# <the same name>` would draw it twice — a title with a
+// title over it.
+describe("the heading that only repeats the name", () => {
+  it("is dropped, however it was spaced or capitalised", () => {
+    const blocks = previewBlocks("# Ideia do mês\n\nprimeira linha", {
+      title: "  ideia   DO Mês ",
+    });
+    expect(blocks.map((b) => b.kind)).toEqual(["paragraph"]);
+    expect(textOf(blocks[0])).toBe("primeira linha");
+  });
+
+  it("is dropped with its marks taken off, at any level", () => {
+    expect(previewBlocks("### **Ideia**\n\ntexto", { title: "Ideia" })).toHaveLength(1);
+  });
+
+  it("stays when it says something else", () => {
+    const blocks = previewBlocks("# Outra coisa\n\ntexto", { title: "Ideia" });
+    expect(blocks.map((b) => b.kind)).toEqual(["heading", "paragraph"]);
+  });
+
+  it("stays when the card is drawing no name at all", () => {
+    expect(previewBlocks("# Ideia\n\ntexto")).toHaveLength(2);
+    expect(previewBlocks("# Ideia\n\ntexto", { title: null })).toHaveLength(2);
+  });
+
+  it("stays anywhere but the top — a section can share the note's name", () => {
+    const blocks = previewBlocks("uma abertura\n\n# Ideia\n\ntexto", { title: "Ideia" });
+    expect(blocks.map((b) => b.kind)).toEqual(["paragraph", "heading", "paragraph"]);
+  });
+
+  it("takes nothing else with it: a paragraph that repeats the name is text", () => {
+    const blocks = previewBlocks("Ideia\n\ntexto", { title: "Ideia" });
+    expect(blocks.map((b) => b.kind)).toEqual(["paragraph", "paragraph"]);
+  });
+});

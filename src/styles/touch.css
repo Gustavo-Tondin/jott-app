@@ -26,9 +26,9 @@
       opacity: 1;
     }
 
-    /* The pin on a note card, WIDE touch screens only: below 768px the pin is
-       not drawn at all (note-card.css). */
-    .shell:not(.shell--compact) .note-card__pin {
+    /* The note card's corner, WIDE touch screens only: below 768px there is no
+       corner and holding the card opens the same actions (note-card.css). */
+    .shell:not(.shell--compact) .note-card__tools {
       opacity: 1;
     }
 

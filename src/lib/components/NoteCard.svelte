@@ -139,7 +139,7 @@
     {/if}
 
     {#if head}
-      <span class="note-card__title" class:note-card__title--chip={banner && !small}>
+      <span class="note-card__title">
         <!-- Where the note came from, on a screen that shows more than one
              space: the space's colour as a dot, the same mark a place wears
              beside its own name (services/origin.js). -->
@@ -150,20 +150,16 @@
             title={origin.label}
           ></span>
         {/if}
-        {#if entry.pinned && !small}
-          <!-- On a phone the pin BUTTON is not drawn (the corner is the ⋮'s,
-               note-card.css), so the filled mark sits at the head of the title
-               instead. Nothing on a desktop, which keeps the button. -->
-          <span class="note-card__pinned" title={S.unpin}>
-            <Icon name="bookmark-simple-fill" size="0.75rem" />
-          </span>
-        {/if}
         {#if titled}{entry.title}{/if}
       </span>
     {/if}
 
     {#if !small}
-      <NotePreview markdown={entry.preview} empty={S.emptyNote} />
+      <NotePreview
+        markdown={entry.preview}
+        title={titled ? entry.title : null}
+        empty={S.emptyNote}
+      />
       <!-- The card's quiet last line: what the note is about on the left,
            when it was last opened on the right. One row, so a card with
            neither does not grow a strip of empty space. -->

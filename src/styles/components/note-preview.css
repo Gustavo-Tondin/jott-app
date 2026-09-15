@@ -1,8 +1,10 @@
 /* note-preview.css — the head of a note, drawn on its card.
  * Markup: src/lib/components/NotePreview.svelte; blocks come from
- * services/notePreview.js. ONE INK, the muted one: hierarchy is carried by
- * size, weight and shape only. Everything in `em`, so the preview follows the
- * card's font size. Every element is a `<span>`: the card is a `<button>`. */
+ * services/notePreview.js. NO SIZE anywhere: hierarchy is carried by weight,
+ * ink and shape — the muted ink for the text, the full one for a heading. The
+ * only thing that steps up on a card is the note's name, on the chip above.
+ * Everything in `em`, so the preview follows the card's font size. Every
+ * element is a `<span>`: the card is a `<button>`. */
 
 @layer components {
   .note-preview {
@@ -19,10 +21,12 @@
     max-block-size: calc(var(--note-preview-lines) * var(--app-leading-normal) * 1em);
     overflow: hidden;
     overflow-wrap: anywhere;
-    /* The same choice the note itself answers to (tokens.css): a card is a
-       narrow column, which is where a ragged edge shows most. */
-    hyphens: var(--app-hyphens);
-    hyphenate-limit-chars: 6 3 3;
+    /* ALWAYS, whatever the editor's own setting says (Display › Hyphenation):
+       a card's column is a different typographic problem from the open note,
+       narrow enough that a ragged edge shows in every card. The NAME above is
+       not hyphenated — see note-card.css. */
+    hyphens: auto;
+    hyphenate-limit-chars: 7 3 3;
   }
 
   /* The three quiet dots under a cut preview. Faint, not muted: a sign, not
@@ -34,6 +38,13 @@
     font-size: var(--app-text-13);
     line-height: 1;
     letter-spacing: 0.1em;
+  }
+
+  /* On a phone, one rung BELOW the coarse ramp (tokens.css): the card's column
+     is narrower than the screen that ramp was measured against. */
+  .shell--compact .note-preview,
+  .shell--compact .note-preview__more {
+    font-size: 0.8125rem;
   }
 
   .note-preview > * {
@@ -49,21 +60,15 @@
   }
 
   /* ---- headings ----
-     A title needs air above more than below. The two largest step up in
-     size; the rest say it with weight: at 13px a fourth size is noise. */
+     NO SIZE OF THEIR OWN, at any level: a heading says itself with weight and
+     full ink, and the one thing that steps up on a card is the note's NAME, on
+     the chip above. An H1 that outgrew the name read as the card's title. A
+     title still needs air above more than below. */
   .note-preview__heading {
     font-weight: var(--app-weight-bold);
     line-height: var(--app-leading-tight);
     letter-spacing: var(--app-tracking-tight);
-  }
-  .note-preview__heading[data-level="1"] {
-    font-size: 1.25em;
-  }
-  .note-preview__heading[data-level="2"] {
-    font-size: 1.1em;
-  }
-  .note-preview__heading[data-level="3"] {
-    font-size: 1.02em;
+    color: var(--app-ink);
   }
   .note-preview > * + .note-preview__heading {
     margin-block-start: 0.7em;
