@@ -18,6 +18,7 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 - **Editing a note's name from a held card no longer leaves the column of actions stuck on the screen**, standing over every screen you opened afterwards: the column comes down before the panel opens, so nothing the panel does can leave it behind.
 - **The cards on the notes board no longer shuffle and pile up while you carry one across them**: they move to where they will actually stand once you let go, so what you see during the drag is the arrangement you get.
 - **A carried card no longer has a black dot floating beside it.**
+- **The week at the top of Home can be dragged sideways with a finger again**: the drag used to be taken as "open the sidebar", so the strip stood still and the drawer slid in instead.
 
 ### Improved
 
@@ -27,6 +28,7 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 - **A note is only ever dragged in reorder mode** — on the computer too — so a slip of the mouse or the finger never rearranges the board.
 - **On the computer, the right button opens the column of actions** at the pointer — on a task, a note or a space in the sidebar — and a note card's ⋮ is the whole menu again.
 - **A task marked in reorder mode fills its box with the accent and a light dot**, the way a done box fills with a tick, so a mark is never mistaken for the task open in the inspector.
+- **New list, New notepad and New group wear the icon of the thing they make**, so the sidebar's menu can be read at a glance instead of word by word.
 - **Two notes are no longer made into a folder by accident on the way past**: the card has to rest on the middle of another for a moment before it is taken as "put these together", and the ring tells you when it has.
 
 ## v0.56.1

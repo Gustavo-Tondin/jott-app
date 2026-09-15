@@ -24,6 +24,15 @@ describe("MenuItems", () => {
     expect(tree.querySelector(".menu__check").textContent).toBe("");
   });
 
+  test("a row that makes something wears its icon, and the word stays the label", () => {
+    const { container } = render(MenuItems, {
+      props: { items: [{ label: "New list", icon: "list-checks", run() {} }] },
+    });
+    const row = container.querySelector(".menu__link");
+    expect(row.querySelector(".menu__icon svg")).toBeTruthy();
+    expect(row.textContent.trim()).toBe("New list");
+  });
+
   test("a separator is a rule, not a row: nothing to press", () => {
     const { container } = render(MenuItems, {
       props: {

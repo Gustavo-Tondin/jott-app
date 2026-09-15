@@ -15,7 +15,7 @@
   } from "../services/sidebarOrder.js";
   import { reorderable } from "../actions/reorder.js";
   import { popRing } from "../services/actionRing.js";
-  import { spaceIcon } from "../services/spaceIcon.js";
+  import { spaceIcon, TYPE_ICONS } from "../services/spaceIcon.js";
   import { accentStyle } from "../services/accent.js";
   import { openIn } from "../services/counts.js";
   import { notebookRows } from "../services/notebookMenu.js";
@@ -205,10 +205,20 @@
   /// or INSIDE a group. A space has one function, chosen at creation (spec
   /// 3.5), and the menu names it: a tasks one is a **list**, a notes one a
   /// **notepad**.
+  /// Each row wears the icon its entry will wear in the list (TYPE_ICONS, and
+  /// the group's `folders`): the word says the act, the glyph says the thing.
   const createMenu = (group = null) => [
-    { label: S.newGroup, run: () => onCreateGroup?.(group) },
-    { label: S.newList, run: () => onCreateSpace?.("tasks", group) },
-    { label: S.newNotepad, run: () => onCreateSpace?.("notes", group) },
+    { label: S.newGroup, icon: "folders", run: () => onCreateGroup?.(group) },
+    {
+      label: S.newList,
+      icon: TYPE_ICONS.tasks,
+      run: () => onCreateSpace?.("tasks", group),
+    },
+    {
+      label: S.newNotepad,
+      icon: TYPE_ICONS.notes,
+      run: () => onCreateSpace?.("notes", group),
+    },
   ];
 
   let sidebarMenu = $derived([

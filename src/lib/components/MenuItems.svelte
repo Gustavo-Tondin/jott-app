@@ -1,7 +1,8 @@
 <script>
   // The ROWS of a menu, shared by `Menu` (under a trigger) and `ContextMenu`
   // (at the pointer). An item: `{label, context?, checked?, disabled?, run?,
-  // swatch?, items?}` — `items` makes a submenu. `checked` is tri-state: true
+  // icon?, swatch?, items?}` — `items` makes a submenu. `icon` draws before
+  // the word what the row makes or leads to. `checked` is tri-state: true
   // ticks, false keeps the empty slot so siblings align, undefined = no slot.
   // `{separator: true}` is a rule between two runs of rows, nothing to press.
   // Renders `<li>`s only — the panel is the host's; `openSub` is per-mount.
@@ -101,6 +102,8 @@
         onauxclick={(e) => middle(e, item)}
       >
         {#if item.checked !== undefined}<span class="menu__check">{item.checked ? "✓" : ""}</span
+          >{/if}{#if item.icon}<span class="menu__icon"
+            ><Icon name={item.icon} size="0.875rem" /></span
           >{/if}{#if item.swatch}<span
             class="theme-dot menu__swatch"
             style={`--dot: ${item.swatch}`}

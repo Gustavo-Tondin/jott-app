@@ -31,6 +31,15 @@
     --dot-size: var(--app-space-10);
     margin-inline-end: var(--app-space-6);
   }
+  /* A row that says what it MAKES (the sidebar's New list / New notepad /
+     New group) wears that thing's icon before the word — the same glyph the
+     entry will have in the list. Inline, so the row stays one line of text. */
+  .menu__icon {
+    display: inline-flex;
+    vertical-align: -0.15em;
+    margin-inline-end: var(--app-space-6);
+    color: var(--app-ink-muted);
+  }
   /* A rule between two runs of rows (`{separator: true}`), inset by the list's
      own padding so it stops where the rows' hover ground does. */
   .menu__rule {
