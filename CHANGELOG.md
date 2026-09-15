@@ -28,6 +28,7 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 - **A note is only ever dragged in reorder mode** — on the computer too — so a slip of the mouse or the finger never rearranges the board.
 - **On the computer, the right button opens the column of actions** at the pointer — on a task, a note or a space in the sidebar — and a note card's ⋮ is the whole menu again.
 - **A task marked in reorder mode fills its box with the accent and a light dot**, the way a done box fills with a tick, so a mark is never mistaken for the task open in the inspector.
+- **The week at the top of Home answers a flick**: throw it and it glides on, slowing down, as far as two weeks; drag it slowly and it turns one. It always comes to rest on a whole week, never between two.
 - **New list, New notepad and New group wear the icon of the thing they make**, so the sidebar's menu can be read at a glance instead of word by word.
 - **Two notes are no longer made into a folder by accident on the way past**: the card has to rest on the middle of another for a moment before it is taken as "put these together", and the ring tells you when it has.
 

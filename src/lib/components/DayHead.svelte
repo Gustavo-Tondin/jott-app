@@ -69,10 +69,14 @@
     turned = 0;
   });
   let shown = $derived(addDays(selected, turned * 7));
-  /// The week before, the week on show, the week after — the three pages
-  /// of the carrousel.
+  /// The pages of the carrousel, as weeks away from the one on show — which
+  /// is the MIDDLE one. Two to each side rather than one, because a throw of
+  /// the strip (actions/dragScroll.js) can carry it past its neighbour, and a
+  /// page that is not there is a throw that stops short.
+  const PAGES = [-14, -7, 0, 7, 14];
+  const MIDDLE = 2;
   let weeks = $derived(
-    [-7, 0, 7].map((offset) => weekOf(addDays(shown, offset), weekStartsOn)),
+    PAGES.map((offset) => weekOf(addDays(shown, offset), weekStartsOn)),
   );
 
   let scroller = $state(null);
@@ -85,12 +89,13 @@
   /// Puts the week on show back in the middle, without motion.
   function centre() {
     if (!scroller || !pageWidth()) return;
+    const left = MIDDLE * pageWidth();
     if (typeof scroller.scrollTo === "function") {
-      scroller.scrollTo({ left: pageWidth(), behavior: "instant" });
-    } else scroller.scrollLeft = pageWidth();
+      scroller.scrollTo({ left, behavior: "instant" });
+    } else scroller.scrollLeft = left;
   }
-  // Every time the week on show changes, the three pages are redrawn around
-  // it and the scroller goes back to the middle — after `tick`, so the new
+  // Every time the week on show changes, the pages are redrawn around it and
+  // the scroller goes back to the middle — after `tick`, so the new
   // pages exist. And every time the SCROLLER itself appears: on a phone it is
   // unmounted while folded, and comes back at scrollLeft 0 (the week before).
   $effect(() => {
@@ -129,7 +134,7 @@
   function settle() {
     if (!scroller || !pageWidth()) return;
     const page = Math.round(scroller.scrollLeft / pageWidth());
-    if (page !== 1) turned += page - 1;
+    if (page !== MIDDLE) turned += page - MIDDLE;
   }
 
   let line = $derived(summary ? summaryOf({ kind, ...summary }) : "");
@@ -280,7 +285,7 @@
       <div class="day-head__scroller" bind:this={scroller} onscroll={scrolled} use:dragScroll>
         <ol class="day-head__track">
           {#each weeks as week, w (week[0] ?? w)}
-            <li class="day-head__page" class:is-current={w === 1}>
+            <li class="day-head__page" class:is-current={w === MIDDLE}>
               <ol class="day-head__days" use:segmented={DAY_PILL}>
                 {#each week as iso (iso)}
                   <li class="day-head__slot">

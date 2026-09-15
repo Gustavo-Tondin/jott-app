@@ -82,10 +82,10 @@ describe("HomeView", () => {
     const { container } = render(HomeView, { props: props() });
     await screen.findByText("No tasks yet");
 
-    // Three pages — the week before, the week on show, the week after — so
-    // a drag shows the days coming (user call, 2026-09-04); today's is the
-    // middle one.
-    expect(container.querySelectorAll(".day-head__page").length).toBe(3);
+    // Five pages — two weeks either side of the one on show — so a drag shows
+    // the days coming (user call, 2026-09-04) and a throw has somewhere to
+    // land (user call, 2026-09-15); today's is the middle one.
+    expect(container.querySelectorAll(".day-head__page").length).toBe(5);
     const days = [...container.querySelectorAll(".day-head__page.is-current .day-head__day")];
     expect(days.map((d) => d.getAttribute("aria-label"))).toEqual([
       "Monday 31",
