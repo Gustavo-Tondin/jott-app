@@ -2,7 +2,7 @@
  * the day's one line. Markup: src/lib/components/DayHead.svelte; selectors are
  * the BEM hooks a theme may restyle. Desktop: a 700px card, seven 84px cells,
  * the chosen one an 84×84 pill. Phone: the card IS the chrome — no surface, no
- * radius, the top bar floating over it — 44px cells and a 44×70 pill. */
+ * radius, the top bar floating over it — 44px cells and a 44×70 marker. */
 
 /* The width of the fade at the strip's ends. REGISTERED, because a plain
    custom property inside a gradient cannot be transitioned: the fade has to
@@ -426,15 +426,15 @@
   .day-head--compact .day-head__days {
     gap: 0;
   }
+  /* The phone's cell is 44 wide and 70 tall, and the ladder's `lg` is what
+     keeps it a rounded box: a radius near half its width leaves a flat of a
+     few pixels at the top and bottom of the curve, and a pill with a flat cap
+     reads as a pill that was cut off. The travelling one copies the cell —
+     both take the base rules' radius, so neither is restated here. */
   .day-head--compact .day-head__day {
     max-inline-size: 2.75rem;
     min-block-size: 4.375rem;
     gap: var(--app-space-8);
-    border-radius: var(--app-radius-xl);
-  }
-  /* The phone's cell is a taller, rounder pill: the travelling one copies it. */
-  .day-head--compact .day-head__days--glides::before {
-    border-radius: var(--app-radius-xl);
   }
   .day-head--compact .day-head__weekday {
     font-size: var(--app-text-14);
