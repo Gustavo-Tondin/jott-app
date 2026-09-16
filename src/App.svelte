@@ -2130,8 +2130,9 @@
 
           <!-- THE HOME'S +: for the day the calendar has open — today or one
                ahead, never one gone by. Opens the day's own composer bar
-               (HomeView → TasksSpace), floating in the canvas's corner. -->
-          {#if view.kind === "home" && !notebook.readOnly && homeKind !== "past" && (canCaptureTask || canCaptureNote)}
+               (HomeView → TasksSpace), floating in the canvas's corner. One or
+               the other: while that bar is open the + steps aside. -->
+          {#if view.kind === "home" && !notebook.readOnly && homeKind !== "past" && !composingTask && (canCaptureTask || canCaptureNote)}
             <div class="home-fab">
               <CaptureFab
                 canTask={canCaptureTask}

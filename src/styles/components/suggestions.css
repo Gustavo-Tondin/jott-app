@@ -21,6 +21,12 @@
     background: color-mix(in oklab, var(--app-brand-weak) 70%, var(--app-brand));
   }
 
+  /* On the empty card's sunken ground the wash all but vanishes: there the
+     pill takes a rim in its own ink. */
+  .theme-empty-card > .suggestions-pill {
+    border-color: var(--app-brand-ink);
+  }
+
   /* ---- the panel ----
      Keeps the pane pact of controls/layout.css (flex column, fixed head,
      scrolling middle): it shares the right panel with the inspector. */

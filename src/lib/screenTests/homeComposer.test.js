@@ -180,6 +180,20 @@ describe("Home's composing bar, the keyboard, and the way out", () => {
     });
   });
 
+  test("the + and the bar are one or the other: open, the + steps aside; closed, it is back", async () => {
+    aNotebook();
+    render(App);
+    await openBar();
+    expect(document.querySelector(".home-fab")).toBeNull();
+
+    await fireEvent.click(document.querySelector(".task-composer__handle"));
+
+    await waitFor(() => {
+      expect(document.querySelector(".task-composer")).toBeNull();
+      expect(document.querySelector(".home-fab")).not.toBeNull();
+    });
+  });
+
   test("the bar wears the panels' handle, and tapping it closes", async () => {
     aNotebook();
     render(App);
