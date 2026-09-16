@@ -107,8 +107,12 @@
 
 /* The word a notebook search opened the note on (services/foundMark.js): lit
    like the find panel's current match, then fading back into the text before
-   the mark is taken away (FOUND_MS — keep the two durations in step). */
+   the mark is taken away (FOUND_MS — keep the two durations in step). The
+   breathing room is padding given back by a negative margin, never a
+   box-shadow ring: WebKitGTK paints a grey seam where a ring meets the fill. */
 .editor .cm-found {
+  padding: 0.0625rem 0.1875rem;
+  margin-inline: -0.1875rem;
   border-radius: var(--app-radius-xs);
   animation: editor-found 2.8s ease-in both;
 }
@@ -117,10 +121,8 @@
   65% {
     background: var(--app-brand);
     color: var(--app-on-brand);
-    box-shadow: 0 0 0 0.1875rem var(--app-brand);
   }
   100% {
     background: transparent;
-    box-shadow: 0 0 0 0.1875rem transparent;
   }
 }
