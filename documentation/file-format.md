@@ -425,9 +425,11 @@ order you dragged things into.
   note was **written** in Jott's editor (opening does not count) — it is how
   a note written before today still joins the Home's notes of the day when
   you edit it today. A third, `acks.<device>.json`, maps
-  `<list address>/<task id>` to the reminder moment that has already been
-  shown and dealt with; it is read the same way, so a reminder you dismissed
-  on one device does not ring on the next one to sync.
+  `<list address>/<task id>@<moment>` to that same reminder moment
+  (`2026-07-24T18:00`, local) once it has been shown and dealt with; it is
+  read the same way, so a reminder you dismissed on one device does not ring
+  on the next one to sync. The moment is part of the key: move the reminder
+  to any other time and it is a new reminder, rung again.
   It exists because
   "last seen" must not be written *into* a note — reading a note would then
   rewrite it. Everything here is rebuildable or simply losable: delete the

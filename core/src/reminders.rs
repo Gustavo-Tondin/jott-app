@@ -8,6 +8,8 @@
 use chrono::NaiveTime;
 use serde::{Deserialize, Serialize};
 
+use chrono::NaiveDateTime;
+
 use crate::task::{render_datetime, Task};
 
 /// A time of day the notebook holds: the hour the inspector's reminder
@@ -75,10 +77,12 @@ pub fn reminder_of(list: &str, position: usize, task: &Task) -> Option<Reminder>
 }
 
 /// Where a task's acknowledgement is filed in the `acks` index
-/// (`crate::seen::Index::Acked`): the list's root-relative address and the
-/// task's id, so a space that is renamed carries every ack under it along.
-pub fn ack_key(list: &str, id: &str) -> String {
-    format!("{list}/{id}")
+/// (`crate::seen::Index::Acked`): the list's root-relative address, the
+/// task's id and the moment it asked for, so a space that is renamed carries
+/// every ack under it along, and a `remind:` moved to ANY other moment is a
+/// new reminder — one an old ack never silences.
+pub fn ack_key(list: &str, id: &str, at: NaiveDateTime) -> String {
+    format!("{list}/{id}@{}", render_datetime(at))
 }
 
 /// Sorts soonest first; ties keep list order, which is the order they came in.
@@ -132,8 +136,12 @@ mod tests {
     }
 
     #[test]
-    fn an_ack_is_filed_under_the_task_inside_its_list() {
-        assert_eq!(ack_key("jott.tasks/task-list.md", "ab12cd"), "jott.tasks/task-list.md/ab12cd");
+    fn an_ack_is_filed_under_the_task_inside_its_list_at_its_moment() {
+        let at = parse_datetime("2026-07-24T18:00").unwrap();
+        assert_eq!(
+            ack_key("jott.tasks/task-list.md", "ab12cd", at),
+            "jott.tasks/task-list.md/ab12cd@2026-07-24T18:00"
+        );
     }
 
     #[test]

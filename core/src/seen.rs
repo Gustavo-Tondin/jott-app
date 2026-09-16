@@ -30,8 +30,9 @@ pub enum Index {
     Seen,
     /// Written to — only the editor's save, never an open.
     Edited,
-    /// A task's reminder, shown and dealt with: the key is the task, the
-    /// stamp the moment it asked for. See [`crate::reminders::ack_key`].
+    /// A task's reminder, shown and dealt with: the key is the task AND the
+    /// moment it asked for, the stamp that same moment. See
+    /// [`crate::reminders::ack_key`].
     Acked,
 }
 
@@ -75,7 +76,7 @@ fn is_device_name(name: &str) -> bool {
 /// The addresses of the notes that have been opened (or, as
 /// [`Index::Edited`], written), and when. Keys are root-relative
 /// (`jott.notes/Inbox/ideia.md`) — for [`Index::Acked`], the task's address
-/// inside its list; values are local wall-clock stamps to the minute
+/// inside its list plus `@moment`; values are local wall-clock stamps to the minute
 /// (`crate::task::render_datetime`).
 #[derive(Debug, Clone, Default)]
 pub struct Seen {
@@ -246,17 +247,6 @@ impl Seen {
         true
     }
 
-    /// Records a stamp only when it is LATER than the one already there.
-    /// What an ack index holds must never go backwards: a device that wrote
-    /// an older moment would ring again for what another already dealt with.
-    pub fn advance(&mut self, key: &str, at: NaiveDateTime) -> bool {
-        if self.entries.get(key).is_some_and(|kept| *kept >= at) {
-            return false;
-        }
-        self.entries.insert(key.to_string(), at);
-        true
-    }
-
     /// Drops what the index knew about an address and everything under it.
     /// One method: an address is a file or a folder, never both.
     pub fn forget(&mut self, path: &str) -> bool {
@@ -420,23 +410,13 @@ mod tests {
     }
 
     #[test]
-    fn advancing_only_ever_moves_forward() {
-        let mut acks = Seen::default();
-        assert!(acks.advance("L.md/a1", at(20, 9)));
-        assert!(!acks.advance("L.md/a1", at(20, 9)), "the same moment is not news");
-        assert!(!acks.advance("L.md/a1", at(19, 9)), "an older one must not undo it");
-        assert_eq!(acks.at("L.md/a1"), Some(at(20, 9)));
-        assert!(acks.advance("L.md/a1", at(21, 9)));
-    }
-
-    #[test]
     fn the_acks_are_a_file_of_their_own() {
         let dir = temp();
         let dir = dir.path();
         write_index(dir, "seen.desk01.json", r#"{"a.md":"2026-08-20T09:30"}"#);
         let mut acks = Seen::load_as(dir, Index::Acked, Some("desk01"));
         assert!(acks.entries().is_empty(), "an ack index never reads the seen one");
-        acks.advance("jott.tasks/task-list.md/ab12cd", at(21, 9));
+        acks.mark("jott.tasks/task-list.md/ab12cd@2026-08-21T09:30", at(21, 9));
         acks.save(dir).unwrap();
         assert!(dir.join(INDEX_DIR).join("acks.desk01.json").is_file());
     }

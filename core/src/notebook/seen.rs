@@ -90,9 +90,9 @@ impl Notebook {
     /// went: keeps the indexes in step with what a text editor, a sync tool
     /// or an older build did. Nothing is rewritten when nothing is stale.
     ///
-    /// Only the two indexes keyed by a note's address (`Index::NOTES`) are
-    /// swept here: the acks are keyed by a task inside a list, and a sweep
-    /// against the notes would throw every one of them away.
+    /// The two indexes keyed by a note's address (`Index::NOTES`) are swept
+    /// against the notes; the acks, keyed by a task's reminder, against the
+    /// reminders still asked for (`prune_acks`).
     pub fn prune_seen(&self) -> Result<usize> {
         self.ensure_writable()?;
         let mut alive = None;
@@ -116,30 +116,31 @@ impl Notebook {
         Ok(dropped + self.prune_acks()?)
     }
 
-    /// Drops acknowledged reminders whose LIST is gone — a tasks space
-    /// deleted outside the app, or by a build that did not know to forget
-    /// it. What the list still holds is left alone: an ack outlives the task
-    /// it named, and it is one short line.
+    /// Drops every ack that no open task's `remind:` asks for any more: the
+    /// list is gone, the task was completed or deleted, the reminder moved,
+    /// or the key is in the shape an older build wrote. What is left is
+    /// exactly what `Notebook::reminders` would otherwise offer again.
     fn prune_acks(&self) -> Result<usize> {
         let mut acks = Seen::load_of(self.config_dir(), Index::Acked);
-        if acks.entries().is_empty() {
+        let before = acks.entries().len();
+        if before == 0 {
             return Ok(0);
         }
-        let lists: std::collections::HashSet<String> =
-            self.list_paths()?.into_iter().map(|list| list.path).collect();
-        let stale: Vec<String> = acks
-            .entries()
-            .keys()
-            .filter(|key| !lists.contains(crate::relpath::split_parent(key).0))
-            .cloned()
-            .collect();
-        if stale.is_empty() {
-            return Ok(0);
+        let mut alive = std::collections::HashSet::new();
+        for list in self.list_paths()? {
+            if list.name == crate::COMPLETED_LIST {
+                continue;
+            }
+            for task in self.open_list(&list.path)?.tasks() {
+                if let (false, Some(at), Some(id)) = (task.done, task.remind, task.id.as_deref()) {
+                    alive.insert(crate::reminders::ack_key(&list.path, id, at));
+                }
+            }
         }
-        for key in &stale {
-            acks.forget(key);
+        if !acks.keep_only(&alive) {
+            return Ok(0);
         }
         acks.save(self.config_dir())?;
-        Ok(stale.len())
+        Ok(before - acks.entries().len())
     }
 }

@@ -42,26 +42,27 @@ impl Notebook {
         Seen::load_of(self.config_dir(), Index::Acked)
     }
 
-    /// Records that a task's reminder was shown and dealt with here. The
-    /// stamp is the moment the task ASKED for, never "when it was dismissed":
-    /// only that is monotonic, and a `remind:` moved later reads as the new
-    /// reminder it is. A task without an id cannot be named across devices,
-    /// so the caller has none to hand over.
+    /// Records that a task's reminder was shown and dealt with here. `at` is
+    /// the moment the task ASKED for, never "when it was dismissed": it is
+    /// part of the key, so a `remind:` moved to any other moment — earlier
+    /// included — reads as the new reminder it is. A task without an id
+    /// cannot be named across devices, so the caller has none to hand over.
     pub fn ack_reminder(&self, list: &str, id: &str, at: NaiveDateTime) -> Result<()> {
         self.ensure_writable()?;
         let mut acks = self.acks();
-        if acks.advance(&reminders::ack_key(list, id), at) {
+        if acks.mark(&reminders::ack_key(list, id, at), at) {
             acks.save(self.config_dir())?;
         }
         Ok(())
     }
 }
 
-/// Whether the moment this task asks for has already been acknowledged.
+/// Whether the moment this task asks for has already been acknowledged. An
+/// ack in the shape an older build wrote (`<list>/<id>`, no moment) names no
+/// key here and is ignored — pre-v1, nothing migrates it.
 fn acked_already(acks: &Seen, list: &str, task: &crate::task::Task) -> bool {
     let (Some(at), Some(id)) = (task.remind, task.id.as_deref()) else {
         return false;
     };
-    acks.at(&reminders::ack_key(list, id))
-        .is_some_and(|acked| acked >= at)
+    acks.at(&reminders::ack_key(list, id, at)).is_some()
 }

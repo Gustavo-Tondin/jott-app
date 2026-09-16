@@ -7,6 +7,7 @@ mod common;
 use std::path::Path;
 
 use jott_core::seen::{Index, Seen};
+use jott_core::task::parse_datetime;
 use jott_core::{reminders, Notebook};
 
 /// A notebook with one Inbox task asking to be rung at `at`.
@@ -65,7 +66,10 @@ fn an_ack_left_by_another_device_silences_this_one() {
     write_acks(
         &notebook.config_dir(),
         "acks.phone1.json",
-        &[(&reminders::ack_key(&list, &id), "2026-07-24T18:00")],
+        &[(
+            &reminders::ack_key(&list, &id, parse_datetime("2026-07-24T18:00").unwrap()),
+            "2026-07-24T18:00",
+        )],
     );
     assert!(ringing(&notebook).is_empty(), "the phone already rang it");
 }
@@ -91,17 +95,53 @@ fn a_reminder_moved_later_is_a_new_one() {
 }
 
 #[test]
-fn an_ack_never_goes_backwards() {
+fn a_reminder_moved_earlier_rings_again() {
     let (_dir, notebook, list, id) = notebook_ringing_at("2026-07-25T09:00");
-    let key = reminders::ack_key(&list, &id);
-    let at = |text: &str| jott_core::task::parse_datetime(text).unwrap();
+    notebook
+        .ack_reminder(&list, &id, parse_datetime("2026-07-25T09:00").unwrap())
+        .unwrap();
+    assert!(ringing(&notebook).is_empty());
 
-    notebook.ack_reminder(&list, &id, at("2026-07-25T09:00")).unwrap();
-    // An older moment — a device coming back from a stale copy — must not
-    // undo what is already acknowledged.
-    notebook.ack_reminder(&list, &id, at("2026-07-24T18:00")).unwrap();
+    notebook
+        .set_task_fields(
+            &list,
+            &id,
+            jott_core::task::TaskFields {
+                remind: Some(Some("2026-07-24T18:00".into())),
+                ..Default::default()
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        ringing(&notebook),
+        ["2026-07-24T18:00"],
+        "moved to any other moment, the reminder is a new one"
+    );
+}
+
+#[test]
+fn an_ack_names_the_moment_it_acknowledged() {
+    let (_dir, notebook, list, id) = notebook_ringing_at("2026-07-24T18:00");
+    let at = parse_datetime("2026-07-24T18:00").unwrap();
+    notebook.ack_reminder(&list, &id, at).unwrap();
+
     let acks = Seen::load_of(notebook.config_dir(), Index::Acked);
-    assert_eq!(acks.at(&key), Some(at("2026-07-25T09:00")));
+    let keys: Vec<&String> = acks.entries().keys().collect();
+    assert_eq!(keys, [&format!("{list}/{id}@2026-07-24T18:00")]);
+    assert_eq!(acks.at(keys[0]), Some(at));
+}
+
+#[test]
+fn an_ack_in_the_old_shape_is_ignored() {
+    // What a build before the moment joined the key left behind: it names
+    // no reminder any more, and nothing migrates it.
+    let (_dir, notebook, list, id) = notebook_ringing_at("2026-07-24T18:00");
+    write_acks(
+        &notebook.config_dir(),
+        "acks.phone1.json",
+        &[(&format!("{list}/{id}"), "2026-07-24T18:00")],
+    );
+    assert_eq!(ringing(&notebook), ["2026-07-24T18:00"]);
 }
 
 #[test]
@@ -137,13 +177,13 @@ fn renaming_the_space_carries_the_ack_along() {
 #[test]
 fn a_sweep_drops_the_acks_of_a_list_that_is_gone() {
     let (_dir, notebook, list, id) = notebook_ringing_at("2026-07-24T18:00");
-    let alive = reminders::ack_key(&list, &id);
+    let alive = reminders::ack_key(&list, &id, parse_datetime("2026-07-24T18:00").unwrap());
     write_acks(
         &notebook.config_dir(),
         "acks.json",
         &[
             (&alive, "2026-07-24T18:00"),
-            ("Gone/task-list.md/zz99", "2026-07-24T18:00"),
+            ("Gone/task-list.md/zz99@2026-07-24T18:00", "2026-07-24T18:00"),
         ],
     );
 
@@ -151,4 +191,47 @@ fn a_sweep_drops_the_acks_of_a_list_that_is_gone() {
     let acks = Seen::load_of(notebook.config_dir(), Index::Acked);
     assert_eq!(acks.entries().len(), 1);
     assert!(acks.at(&alive).is_some());
+}
+
+#[test]
+fn pruning_drops_the_acks_of_tasks_that_are_gone() {
+    let (_dir, notebook, list, id) = notebook_ringing_at("2026-07-24T18:00");
+    let at = parse_datetime("2026-07-24T18:00").unwrap();
+    notebook.ack_reminder(&list, &id, at).unwrap();
+    assert_eq!(notebook.prune_seen().unwrap(), 0, "the task is still open and asking");
+
+    notebook.complete_task(&list, &id).unwrap();
+    assert_eq!(notebook.prune_seen().unwrap(), 1, "a completed task rings no more");
+    let acks = Seen::load_of(notebook.config_dir(), Index::Acked);
+    assert!(acks.entries().is_empty());
+}
+
+#[test]
+fn pruning_drops_the_ack_of_a_reminder_that_moved_and_the_old_shape() {
+    let (_dir, notebook, list, id) = notebook_ringing_at("2026-07-24T18:00");
+    let at = |text: &str| parse_datetime(text).unwrap();
+    notebook.ack_reminder(&list, &id, at("2026-07-24T18:00")).unwrap();
+    write_acks(
+        &notebook.config_dir(),
+        "acks.phone1.json",
+        &[(&format!("{list}/{id}"), "2026-07-24T18:00")],
+    );
+    notebook
+        .set_task_fields(
+            &list,
+            &id,
+            jott_core::task::TaskFields {
+                remind: Some(Some("2026-07-25T09:00".into())),
+                ..Default::default()
+            },
+        )
+        .unwrap();
+
+    assert_eq!(notebook.prune_seen().unwrap(), 2, "the moved moment and the old shape");
+    // Each device sweeps only its own file: the phone's line stays in the
+    // phone's file until the phone sweeps, and names no reminder meanwhile.
+    let acks = Seen::load_of(notebook.config_dir(), Index::Acked);
+    let keys: Vec<&String> = acks.entries().keys().collect();
+    assert_eq!(keys, [&format!("{list}/{id}")]);
+    assert_eq!(ringing(&notebook), ["2026-07-25T09:00"]);
 }

@@ -16,6 +16,7 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 
 ### Fixed
 
+- **A reminder moved to an earlier time rings again**: it used to stay silent for good once the later time had been acknowledged.
 - **Editing a note's name from a held card no longer leaves the column of actions stuck on the screen**, standing over every screen you opened afterwards: the column comes down before the panel opens, so nothing the panel does can leave it behind.
 - **The cards on the notes board no longer shuffle and pile up while you carry one across them**: they move to where they will actually stand once you let go, so what you see during the drag is the arrangement you get.
 - **A carried card no longer has a black dot floating beside it.**
