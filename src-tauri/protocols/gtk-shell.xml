@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The one request of GTK's private gtk_shell1 protocol this app sends
+     (src/startup.rs). Opcodes are positional, so the requests before it keep
+     their place, with the arguments this app never sends left out. Upstream:
+     gtk-3-24, gdk/wayland/protocol/gtk-shell.xml. -->
+<protocol name="gtk">
+  <interface name="gtk_shell1" version="1">
+    <event name="capabilities">
+      <arg name="capabilities" type="uint"/>
+    </event>
+
+    <!-- Opcode 0 upstream: get_gtk_surface. Never sent. -->
+    <request name="unused_get_gtk_surface"/>
+
+    <request name="set_startup_id">
+      <arg name="startup_id" type="string" allow-null="true"/>
+    </request>
+  </interface>
+</protocol>

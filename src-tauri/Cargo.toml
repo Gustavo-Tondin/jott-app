@@ -54,10 +54,15 @@ ureq = { version = "3", default-features = false, features = ["rustls", "platfor
 gtk = "0.18"
 gio = "0.18"
 gdk = "0.18"
-# The notification plugin shows and forgets; on Linux the D-Bus notification
-# can also be CLICKED, and that is how a reminder opens its task. Same crate
-# and version the plugin links, so the binary carries one.
-notify-rust = "4.11"
+# The notification plugin shows and forgets; on Linux the reminder speaks
+# D-Bus itself (`ringer.rs`), because the answers a button brings back include
+# GNOME's activation token, which no notification crate hands over. Same zbus
+# the plugin links, so the binary carries one.
+zbus = { version = "5.19", default-features = false, features = ["blocking-api", "async-io"] }
+# To end the startup sequence a notification button opened (`startup.rs`).
+wayland-client = "0.31"
+wayland-backend = "0.3"
+wayland-scanner = "0.31"
 
 # In-place updates exist only where a file can replace itself: the AppImage
 # and the Windows installer. A .deb/.rpm/pacman install belongs to a package

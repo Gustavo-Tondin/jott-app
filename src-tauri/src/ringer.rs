@@ -575,9 +575,31 @@ fn show<R: Runtime>(app: &AppHandle<R>, root: &Path, rung: Rung) -> Result<(), S
 /// GNOME, KDE, XFCE, dunst and mako each answer differently, and a hint a
 /// server does not know is at best ignored. See docs/platform-gotchas.md#ambiente
 #[cfg(target_os = "linux")]
-fn capabilities() -> &'static [String] {
+fn capabilities(connection: &zbus::blocking::Connection) -> &'static [String] {
     static CAPABILITIES: std::sync::OnceLock<Vec<String>> = std::sync::OnceLock::new();
-    CAPABILITIES.get_or_init(|| notify_rust::get_capabilities().unwrap_or_default())
+    CAPABILITIES.get_or_init(|| {
+        connection
+            .call_method(Some(NOTIFICATIONS), NOTIFICATIONS_PATH, Some(NOTIFICATIONS), "GetCapabilities", &())
+            .and_then(|reply| reply.body().deserialize::<Vec<String>>())
+            .unwrap_or_default()
+    })
+}
+
+#[cfg(target_os = "linux")]
+const NOTIFICATIONS: &str = "org.freedesktop.Notifications";
+#[cfg(target_os = "linux")]
+const NOTIFICATIONS_PATH: &str = "/org/freedesktop/Notifications";
+
+/// What a `NotificationClosed` reason says someone did: only 2 is a person
+/// dismissing it; 1 (expired), 3 (closed by the app) and anything unknown
+/// are not an answer.
+#[cfg(target_os = "linux")]
+pub fn closed_answer(reason: u32) -> Answer {
+    if reason == 2 {
+        Answer::Dismissed
+    } else {
+        Answer::Unseen
+    }
 }
 
 /// The app's icon as a FILE, written once into the app's data folder: every
@@ -598,35 +620,84 @@ fn icon<R: Runtime>(app: &AppHandle<R>) -> String {
 }
 
 /// Linux: plain text (a server without markup shows the tags), with the
-/// actions the server draws. The answer may never come — GNOME keeps an
-/// expired banner in its tray and says nothing — so it waits on its own thread.
+/// actions the server draws, spoken over D-Bus directly: the answer includes
+/// the activation token GNOME opens for a button (`startup.rs`). The answer
+/// may never come — GNOME keeps an expired banner in its tray and says
+/// nothing — so it waits on its own thread.
 #[cfg(target_os = "linux")]
 fn show_notification<R: Runtime>(app: &AppHandle<R>, root: &Path, rung: Rung) -> Result<(), String> {
-    use notify_rust::{CloseReason, Hint, NotificationResponse, Urgency};
-    let mut notification = notify_rust::Notification::new();
-    notification
-        .appname("Jott")
-        .summary(&rung.title)
-        .body(&rung.body)
-        .icon(&icon(app))
-        .hint(Hint::DesktopEntry(crate::APP_ICON_NAME.to_string()))
-        .urgency(if rung.covered.is_empty() { Urgency::Low } else { Urgency::Normal });
-    for (name, label) in actions_for(&rung, capabilities()) {
-        notification.action(name, label);
-    }
-    let handle = notification.show().map_err(|e| e.to_string())?;
+    use zbus::zvariant::Value;
+    let connection = zbus::blocking::Connection::session().map_err(|e| e.to_string())?;
+    // Subscribed before the notification exists, so no answer can slip by.
+    let rule = zbus::MatchRule::builder()
+        .msg_type(zbus::message::Type::Signal)
+        .interface(NOTIFICATIONS)
+        .and_then(|rule| rule.path(NOTIFICATIONS_PATH))
+        .map_err(|e| e.to_string())?
+        .build();
+    let messages = zbus::blocking::MessageIterator::for_match_rule(rule, &connection, None).map_err(|e| e.to_string())?;
+    let actions: Vec<&str> = actions_for(&rung, capabilities(&connection))
+        .into_iter()
+        .flat_map(|(name, label)| [name, label])
+        .collect();
+    let icon = icon(app);
+    let urgency: u8 = if rung.covered.is_empty() { 0 } else { 1 };
+    let hints = HashMap::from([
+        ("desktop-entry", Value::from(crate::APP_ICON_NAME)),
+        ("urgency", Value::from(urgency)),
+    ]);
+    let id: u32 = connection
+        .call_method(
+            Some(NOTIFICATIONS),
+            NOTIFICATIONS_PATH,
+            Some(NOTIFICATIONS),
+            "Notify",
+            &("Jott", 0u32, icon.as_str(), rung.title.as_str(), rung.body.as_str(), actions, hints, -1i32),
+        )
+        .and_then(|reply| reply.body().deserialize())
+        .map_err(|e| e.to_string())?;
     let app = app.clone();
     let root = root.to_path_buf();
     std::thread::spawn(move || {
-        let _ = handle.wait_for_response(|response: &NotificationResponse| {
-            let answer = match response {
-                NotificationResponse::Default => Answer::Clicked("default".into()),
-                NotificationResponse::Action(name) => Answer::Clicked(name.clone()),
-                NotificationResponse::Closed(CloseReason::Dismissed) => Answer::Dismissed,
-                _ => Answer::Unseen,
-            };
-            respond(&app, &root, &rung, answer);
-        });
+        // The connection is what the server answers to; it lives as long as this.
+        let _connection = connection;
+        let mut token = None;
+        for message in messages {
+            let Ok(message) = message else { break };
+            let header = message.header();
+            let body = message.body();
+            match header.member().map(|m| m.as_str()) {
+                Some("ActivationToken") => {
+                    if let Ok((of, given)) = body.deserialize::<(u32, String)>() {
+                        if of == id {
+                            token = Some(given);
+                        }
+                    }
+                }
+                Some("ActionInvoked") => {
+                    if let Ok((of, action)) = body.deserialize::<(u32, String)>() {
+                        if of == id {
+                            if let Some(token) = token.take() {
+                                if let Err(e) = crate::startup::complete(&token) {
+                                    eprintln!("[jott] startup sequence not ended: {e}");
+                                }
+                            }
+                            respond(&app, &root, &rung, Answer::Clicked(action));
+                            return;
+                        }
+                    }
+                }
+                Some("NotificationClosed") => {
+                    if let Ok((of, reason)) = body.deserialize::<(u32, u32)>() {
+                        if of == id {
+                            respond(&app, &root, &rung, closed_answer(reason));
+                            return;
+                        }
+                    }
+                }
+                _ => {}
+            }
+        }
     });
     Ok(())
 }
@@ -700,6 +771,15 @@ mod tests {
         assert_eq!((title.as_str(), body.as_str()), ("Pagar aluguel", "Casa"));
         let (_, body) = reminder_notice(&reminder("Pagar aluguel", Some("2026-07-25")), DateFormat::DayMonthYear);
         assert_eq!(body, "Casa · due 25/07/2026");
+    }
+
+    #[test]
+    #[cfg(target_os = "linux")]
+    fn only_a_person_dismissing_is_an_answer() {
+        assert_eq!(closed_answer(2), Answer::Dismissed);
+        for reason in [1, 3, 4, 0] {
+            assert_eq!(closed_answer(reason), Answer::Unseen);
+        }
     }
 
     #[test]

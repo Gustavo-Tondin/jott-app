@@ -12,6 +12,8 @@ pub mod prefs;
 pub mod reminder_actions;
 pub mod ringer;
 pub mod state;
+#[cfg(target_os = "linux")]
+pub mod startup;
 #[cfg(desktop)]
 pub mod tray;
 
