@@ -21,6 +21,7 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 ### Fixed
 
 - **On GNOME, answering a reminder notification no longer leaves the mouse cursor spinning** for fifteen seconds after Done, Later or Tomorrow.
+- **On GNOME, opening Jott from its icon while it is already running no longer leaves the mouse cursor spinning** for fifteen seconds: the window that comes forward takes the launch.
 - **The date, reminder and repeat fields of a task's panel no longer spill out of a narrow panel**: once chosen, their controls fill a line of their own under the name and the ×, at the same height.
 - **A reminder that appeared on one device while you were away still rings on the other**: only clicking, answering or dismissing the notification counts as seen, not the banner timing out.
 - **On Android, updating Jott no longer crashes it in the background** over reminders an older version had scheduled.

@@ -234,6 +234,11 @@ pub fn configure<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builde
 /// required runtime symbols"). See docs/platform-gotchas.md#android
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    let context = tauri::generate_context!();
+    // Before the single-instance plugin: a desktop launch's token must reach
+    // the running instance, or GNOME spins the cursor for 15 s.
+    #[cfg(target_os = "linux")]
+    startup::hand_over_launch(&context.config().identifier);
     let builder = tauri::Builder::default();
     // FIRST, before anything else has a chance to start: a launch from the
     // desktop icon while the app is hidden in the tray must not become a
@@ -244,6 +249,10 @@ pub fn run() {
     let builder = builder.plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
         if !args.iter().any(|arg| arg == "--hidden") {
             tray::reveal(app);
+        }
+        #[cfg(target_os = "linux")]
+        if let Some(token) = startup::token_in(&args) {
+            startup::activate(app, token);
         }
     }));
     let builder = configure(builder);
@@ -274,6 +283,6 @@ pub fn run() {
             Ok(())
         });
     builder
-        .run(tauri::generate_context!())
+        .run(context)
         .expect("error while running Jott");
 }
