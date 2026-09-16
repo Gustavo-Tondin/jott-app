@@ -81,6 +81,10 @@
     onDuplicate = null,
     /// Per-card actions, rendered in the row's action slot.
     actions,
+    /// `(entry) => snippet` — one small control for the card's CORNER, the
+    /// slot the bookmark takes (the × on a completed card). The bookmark wins
+    /// where there is one, so the two never stand in each other's way.
+    corner = null,
   } = $props();
 
   // ---- the keyboard ----
@@ -235,6 +239,7 @@
        duplicate key, and Svelte aborts rendering the whole list. A read-only
        notebook never gets its ids de-duplicated, so this can still happen. -->
   {#each items as entry, i (`${entry.list}/${entry.task.id ?? ""}#${i}`)}
+    {#snippet rowCorner()}{@render corner(entry)}{/snippet}
     <TaskRow
       swipeAction={swipe}
       swipeOptions={{
@@ -262,6 +267,7 @@
       selected={isSelected(entry.task)}
       picked={isPicked(entry.task)}
       onContextMenu={onContextMenu ? (event) => onContextMenu(event, entry) : null}
+      corner={corner ? rowCorner : null}
       {onComplete}
       {onEdit}
       {onPin}

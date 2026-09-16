@@ -64,6 +64,8 @@
     index = 0,
     focusable = false,
     onFocused = null,
+    /// The snippet for the corner slot when there is no bookmark to put there.
+    corner = null,
     children,
   } = $props();
 
@@ -89,24 +91,24 @@
     if (check && check.checked !== done) check.checked = done;
   });
 
-  // COMPLETING PLAYS BEFORE IT IS WRITTEN: the row is marked `--finishing`,
-  // the stylesheet plays the send-off (task-row.css), and the write waits on
-  // what the engine says is playing — nothing (jsdom, reduced motion) means
-  // at once; a ceiling guards a play that never reports. Ticking again undoes.
+  // COMPLETING PLAYS WHAT HAPPENS, in three acts (task-row.css):
+  //  1. the HOLD — the box shrinks while the tick can still be taken back;
+  //     ticking again undoes, and nothing has been written;
+  //  2. the POP — the write is sent: from here the card is deaf, so a late
+  //     tap can never send the same task twice (taskNotFound);
+  //  3. the LEAVE — the arrival run backwards. The row hands the list its
+  //     end (`gone`), and the list re-reads only once the write answered AND
+  //     the card is gone, so nothing jumps. A failed write hands it back.
+  // Nothing playing (jsdom, reduced motion) resolves at once; a ceiling
+  // guards a play that never reports.
   let row = $state(null);
   let finishing = $state(false);
-  // The FINISHING row waits on the HOLD, not the fold: the fold plays while
-  // the write and the re-read already run underneath (task-row.css says why).
-  // Unticking still waits its whole play — it has no second act.
-  const SEND_OFFS = new Set(["task-row-hold", "task-row-restore"]);
-
-  // Unticking a completed card plays the same way: `--restoring` is the
-  // shorter cousin, and the write waits on it alike.
-  //
-  // Once the hold is over the write is COMMITTED: the card stays folded and
-  // deaf until the write answers — the re-read usually replaces it first. A
-  // tap in that window would send the same task a second time (taskNotFound).
   let committed = $state(false);
+  const HOLDS = new Set(["task-row-hold"]);
+  const LEAVES = new Set(["task-row-leave"]);
+
+  // Unticking a completed card plays the same acts: `--restoring` is the
+  // shorter hold.
   async function finish() {
     if (committed) return;
     if (finishing) {
@@ -115,11 +117,15 @@
     }
     finishing = true;
     await tick();
-    await played(row, SEND_OFFS, CEILING);
+    await played(row, HOLDS, CEILING);
     if (!finishing) return;
+    // The leave closes exactly the card's own height, measured now.
+    row?.style.setProperty("--task-row-height", `${row.offsetHeight}px`);
     committed = true;
+    await tick();
+    const gone = played(row, LEAVES, CEILING);
     try {
-      await onComplete(list, task);
+      await onComplete(list, task, gone);
     } finally {
       // Still here: the write failed, or the node now draws another task.
       committed = false;
@@ -162,18 +168,21 @@
       : null,
   );
 
+  // The meta row carries the task's fields only: the age and the bookmark
+  // live in the column at the card's end (`task-row__aside`).
   let hasMeta = $derived(
     !!(
       (task.due && f("dueDate")) ||
       (task.repeat && f("repeat")) ||
+      (task.remind && f("remind")) ||
       (task.priority && f("priority")) ||
       (task.subtasks?.length && f("subtasks")) ||
       (task.tags?.length && f("taskTags")) ||
-      stamp ||
-      inDay ||
-      origin
+      inDay
     ),
   );
+
+  let pinnable = $derived(!!onPin && !task.done);
 </script>
 
 <!-- The whole card opens the task in the inspector; the controls inside stop
@@ -186,7 +195,7 @@
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <li
   bind:this={row}
-  class="task-row"
+  class="task-row theme-press"
   role="row"
   class:swipe={gesture !== noAction}
   class:task-row--selected={selected}
@@ -196,6 +205,7 @@
   class:task-row--joined={joined}
   class:task-row--finishing={finishing && !task.done}
   class:task-row--restoring={finishing && task.done}
+  class:task-row--leaving={committed}
   class:task-row--origin={!!origin}
   data-card={index}
   tabindex={focusable ? 0 : -1}
@@ -256,25 +266,6 @@
           {task.text}
         </button>
       {/if}
-      {#if onPin && !task.done}
-        <button
-          data-no-swipe
-          class="theme-btn--icon task-row__bookmark"
-          class:task-row__bookmark--on={task.pinned}
-          onclick={(e) => {
-            e.stopPropagation();
-            onPin(list, task, !task.pinned);
-          }}
-          aria-label={task.pinned ? S.unpinTask : S.pinTask}
-          title={task.pinned ? S.unpinTask : S.pinTask}
-        >
-          <!-- Pinned reads as the FILLED bookmark, not a colour. -->
-          <Icon
-            name={task.pinned ? "bookmark-simple-fill" : "bookmark-simple"}
-            size="1rem"
-          />
-        </button>
-      {/if}
     </div>
 
     {#if hasMeta}
@@ -305,19 +296,48 @@
             color={origin?.color ?? color}
             class="task-row__tag"
           />{/each}
-        <!-- The age sits at the card's outer edge, under the bookmark: about
-             the card as a whole, a margin note, not one more field. -->
-        {#if stamp}<span
-            class="task-row__field task-row__field--age"
-            class:task-row__field--forgotten={stamp.band === "forgotten"}
-            title={stamp.title}>{stamp.text}</span
-          >{/if}
       </div>
     {/if}
 
     <!-- The description is deliberately NOT shown here: the row is a summary,
          and the full description lives in the inspector (sidebar) only. -->
   </div>
+
+  <!-- The card's end: the bookmark on top, the age below — about the card as
+       a whole, so they stand apart from the title and its fields, and the
+       title keeps the middle whether or not there are fields. -->
+  {#if pinnable || corner || stamp}
+    <div class="task-row__aside">
+      <span class="task-row__aside-top">
+        {#if pinnable}
+          <button
+            data-no-swipe
+            class="theme-btn--icon task-row__bookmark"
+            class:task-row__bookmark--on={task.pinned}
+            onclick={(e) => {
+              e.stopPropagation();
+              onPin(list, task, !task.pinned);
+            }}
+            aria-label={task.pinned ? S.unpinTask : S.pinTask}
+            title={task.pinned ? S.unpinTask : S.pinTask}
+          >
+            <!-- Pinned reads as the FILLED bookmark, not a colour. -->
+            <Icon
+              name={task.pinned ? "bookmark-simple-fill" : "bookmark-simple"}
+              size="1rem"
+            />
+          </button>
+        {:else if corner}
+          {@render corner()}
+        {/if}
+      </span>
+      {#if stamp}<span
+          class="task-row__field task-row__field--age"
+          class:task-row__field--forgotten={stamp.band === "forgotten"}
+          title={stamp.title}>{stamp.text}</span
+        >{/if}
+    </div>
+  {/if}
 
   {#if children}
     <!-- svelte-ignore a11y_click_events_have_key_events -->

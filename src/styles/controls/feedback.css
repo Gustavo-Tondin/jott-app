@@ -1,10 +1,23 @@
-/* controls/feedback.css — the notice, the filter, the empty state and the loading arc.
+/* controls/feedback.css — the notice, the filter, the empty state, the loading arc and the press.
  * `.theme-*` are the app's STABLE HOOKS: a component wears them instead of
  * restyling each control, a theme restyles them in one place, and they read
  * only `--app-*` tokens. A class earns its place by being worn in more than
  * one component; when the last wearer goes, the class goes with it. */
 
 @layer components {
+  /* ---------------------------------------------------------------------------
+     Press — a card answering the finger: a wash of the accent laid over its
+     ground (plain or selected) and under its content, inside its own corners.
+     It stands in for the system's tap highlight, zeroed in base.css. Not on a
+     card being carried: the finger is still down for the whole drag.
+     --------------------------------------------------------------------------- */
+  .theme-press {
+    --press-wash: color-mix(in oklab, var(--app-brand) 14%, transparent);
+  }
+  .theme-press:active:not(.reorder-item--carried) {
+    background-image: linear-gradient(var(--press-wash), var(--press-wash));
+  }
+
   /* ---------------------------------------------------------------------------
      Notice — the state box above the content: a tinted fill, the colour as
      the hairline, the region's ink for the text. components/Notice.svelte is

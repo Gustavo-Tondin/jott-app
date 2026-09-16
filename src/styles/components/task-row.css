@@ -155,63 +155,70 @@
     }
   }
 
-  /* THE SEND-OFF. TaskRow.svelte waits on the animation BY NAME: renaming it
-     here is renaming it there. Strike, hold about a second, fold FAST;
-     `forwards` keeps it folded until the list is redrawn. The height closes
-     through `max-block-size`, the one way to animate an unknown height. */
-  .task-row--finishing {
-    overflow: hidden;
-    /* TWO animations: the HOLD is the clock the row waits on (time to read, and
-       to tick again on a slip); the FOLD, delayed past it, is what the eye
-       sees while the write already runs underneath. Committing at the fold's
-       START is what closes the blank moment before Completed arrives. */
-    animation:
-      task-row-hold calc(var(--app-duration-slow) * 3) var(--app-ease-out),
-      task-row-finish calc(var(--app-duration-slow) * 0.6) var(--app-ease-out)
-        calc(var(--app-duration-slow) * 3) forwards;
+  /* THE SEND-OFF, in the three acts TaskRow.svelte waits on BY NAME
+     (`task-row-hold`, `task-row-leave`): renaming one here is renaming it
+     there. What the card shows is what the app is doing.
+
+     1. HOLD — the box shrinks, a countdown: the tick can still be taken back
+        and nothing is written yet. `forwards` keeps it small for the pop. */
+  .task-row--finishing .task-row__check,
+  .task-row--restoring .task-row__check {
+    animation: task-row-hold calc(var(--app-duration-slow) * 3) linear forwards;
   }
-  /* Unticking, from the Completed list: the same fold, shorter, no tint.
-     The strike fades out with it (`--done` stays on until the write). */
-  .task-row--restoring {
-    overflow: hidden;
-    animation: task-row-restore calc(var(--app-duration-slow) * 2) var(--app-ease-out) forwards;
+  /* Unticking is the shorter hold: a second thought is quicker than a first. */
+  .task-row--restoring .task-row__check {
+    animation-duration: calc(var(--app-duration-slow) * 2);
   }
   .task-row--restoring .task-row__title {
     text-decoration-color: transparent;
     color: var(--app-ink);
   }
-  @keyframes task-row-restore {
-    0%,
-    35% {
-      opacity: 1;
-      scale: 1;
-      max-block-size: 8rem;
-    }
-    100% {
-      opacity: 0;
-      scale: 0.96;
-      max-block-size: 0;
-      padding-block: 0;
-    }
-  }
-  /* The hold draws nothing: it is time made visible to the ROW (which waits
-     on it by name), not to the eye. */
   @keyframes task-row-hold {
-    from {
-      opacity: 1;
+    to {
+      scale: 0.7;
     }
   }
-  @keyframes task-row-finish {
+  /* 2. POP — the write is sent, and the box answers it. It is disabled from
+     here on, but not dimmed: deaf is not faded. */
+  .task-row--leaving .task-row__check:disabled {
+    opacity: 1;
+  }
+  .task-row--leaving .task-row__check {
+    animation: task-row-pop var(--app-duration-medium) var(--app-ease-spring) forwards;
+  }
+  @keyframes task-row-pop {
+    from {
+      scale: 0.7;
+    }
+    45% {
+      scale: 1.25;
+    }
+    to {
+      scale: 1;
+    }
+  }
+  /* 3. LEAVE — the arrival run backwards, once the pop has been seen: the card
+     sinks the step it climbed and the room it took closes, down to the list's
+     gap (a negative margin eats it), so the cards below glide up instead of
+     jumping when the list is redrawn. The height is the card's own, measured
+     by the row; `forwards` keeps it closed until that redraw. */
+  .task-row--leaving {
+    overflow: hidden;
+    animation: task-row-leave var(--app-duration-slow) var(--app-ease)
+      var(--app-duration-medium) forwards;
+  }
+  @keyframes task-row-leave {
     from {
       opacity: 1;
-      scale: 1;
-      max-block-size: 8rem;
+      max-block-size: var(--task-row-height);
+      translate: 0 0;
     }
     to {
       opacity: 0;
-      scale: 0.96;
       max-block-size: 0;
       padding-block: 0;
+      margin-block-end: calc(-1 * var(--task-list-gap));
+      translate: 0 var(--app-space-16);
     }
   }
   .task-row__edit {
@@ -219,6 +226,25 @@
     min-width: 0;
     font: inherit;
     font-size: var(--app-text-16);
+  }
+  /* THE CARD'S END: bookmark on top, age at the foot, as tall as the card.
+     The top slot is one title line tall even without a bookmark (a day has
+     nowhere to pin to), so the age sits where a meta row would, and a card
+     with no fields is as tall as one with them. */
+  .task-row__aside {
+    flex-shrink: 0;
+    align-self: stretch;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: var(--app-space-4);
+  }
+  .task-row__aside-top {
+    display: flex;
+    align-items: center;
+    font-size: var(--app-text-16);
+    min-block-size: 1lh;
   }
   /* The bookmark pins the task to the top of its list. Quiet until it is on:
      an unpinned card should read as a card, not as a row of controls. */
@@ -287,9 +313,6 @@
   /* Task age (spec 3.6): quiet until the notebook calls it forgotten, then
      the same warning ink an overdue date takes. */
   .task-row__field--age {
-    /* Pushed to the right edge with `auto`, not `space-between` on the row:
-       the fields before it stay grouped at the start. */
-    margin-inline-start: auto;
     flex-shrink: 0;
     font-variant-numeric: tabular-nums;
   }

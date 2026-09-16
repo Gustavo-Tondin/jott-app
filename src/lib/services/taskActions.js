@@ -4,8 +4,8 @@
 //
 //  1. the id is LAZY, so every action resolves one first (`ensureTaskId`) —
 //     a hand-written task, or one just respawned by a repetition, has none;
-//  2. completing waits a beat before the reload, so the tick is seen before
-//     the list rearranges under the pointer.
+//  2. completing re-reads only once the card is gone (`gone`, handed by the
+//     row), so the list never rearranges under a card still leaving.
 
 import { api } from "./api.js";
 import { ensureTaskId } from "./taskId.js";
@@ -14,15 +14,15 @@ import { S } from "./strings.js";
 
 /// The shared card actions, bound to a screen's `act` (services/act.js).
 ///
-/// The signatures are the ones `TaskRow` calls with: `(list, task)` for the
-/// checkbox and the bookmark, `(list, id, text)` for the inline rename.
+/// The signatures are the ones `TaskRow` calls with: `(list, task, gone)` for
+/// the checkbox (`gone` resolves when the card has left), `(list, task)` for
+/// the bookmark, `(list, id, text)` for the inline rename.
 export function taskActions(act) {
   return {
-    complete: (list, task) =>
+    complete: (list, task, gone) =>
       act(async () => {
         const id = await ensureTaskId(list, task);
-        await api.completeTask(list, id);
-        // Let the tick be seen before the list rearranges.
+        await Promise.all([api.completeTask(list, id), gone]);
         await completionBeat();
       }),
 

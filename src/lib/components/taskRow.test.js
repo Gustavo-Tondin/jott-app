@@ -74,6 +74,24 @@ describe("TaskRow — completing", () => {
     expect(box.checked).toBe(false);
   });
 
+  test("the list is handed the card's leave, and hears it end", async () => {
+    let gone;
+    const { box, card } = row({ onComplete: (list, task, leave) => (gone = leave) });
+    const endHold = playing(card);
+    await fireEvent.click(box);
+    let endLeave;
+    const leaving = new Promise((r) => (endLeave = r));
+    card.getAnimations = () => [{ animationName: "task-row-leave", finished: leaving }];
+    endHold();
+    await waitFor(() => expect(card.classList.contains("task-row--leaving")).toBe(true));
+    let heard = false;
+    gone.then(() => (heard = true));
+    await new Promise((r) => setTimeout(r, 0));
+    expect(heard).toBe(false);
+    endLeave();
+    await waitFor(() => expect(heard).toBe(true));
+  });
+
   test("ticking again while it plays is the undo: nothing is written", async () => {
     const { box, done, card } = row();
     const end = playing(card);
@@ -99,7 +117,7 @@ describe("TaskRow — completing", () => {
     const { box, done, card } = row({
       task: { id: "a1", text: "Fix website", done: true, tags: [], subtasks: [] },
     });
-    const end = playing(card, "task-row-restore");
+    const end = playing(card);
     await fireEvent.click(box);
     await waitFor(() => expect(card.classList.contains("task-row--restoring")).toBe(true));
     expect(card.classList.contains("task-row--finishing")).toBe(false);

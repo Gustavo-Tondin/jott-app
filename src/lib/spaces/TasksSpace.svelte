@@ -529,7 +529,8 @@
       : (task) => isSelectedTask(task, selectedTask?.id ?? null, selectedTask),
   );
 
-  const uncomplete = (list, task) => act(() => api.uncompleteTask(list, task.id));
+  const uncomplete = (list, task, gone) =>
+    act(() => Promise.all([api.uncompleteTask(list, task.id), gone]));
 
   // The × on a completed card (wireframe): the task leaves for the notebook's
   // trash — recoverable, never destroyed.
@@ -741,13 +742,13 @@
         {f}
         {isSelected}
         onSelect={onSelectTask}
-        onComplete={(list, task) => uncomplete(list, task)}
+        onComplete={uncomplete}
         onEdit={edit}
         onDelete={readOnly ? null : (entry) => removeCompleted(entry.list, entry.task)}
         {dateFormat}
         {today}
       >
-        {#snippet actions(entry)}
+        {#snippet corner(entry)}
           {#if !readOnly && entry.task.id}
             <button
               class="theme-btn--icon tasks-space__remove"

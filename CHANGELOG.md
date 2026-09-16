@@ -54,6 +54,9 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 - **New list, New notepad and New group wear the icon of the thing they make**, so the sidebar's menu can be read at a glance instead of word by word.
 - **Two notes are no longer made into a folder by accident on the way past**: the card has to rest on the middle of another for a moment before it is taken as "put these together", and the ring tells you when it has.
 - **The day you are on wears a slightly less rounded marker**: it stopped a hair short of a pill, and the small flat at the top and bottom of the curve made the shape look cut off.
+- **Ticking a task off plays out before the list moves**: the card leaves, closing its own gap, and only then do the others slide up — nothing jumps under your finger. Unticking a completed one plays the same way.
+- **A card answers a tap with a soft wash of the accent** inside its own rounded corners, instead of the square grey flash of the system.
+- **A task card keeps its bookmark and its age together at its end**, so the title sits in the middle whether or not the task has fields; the × on a completed card takes the bookmark's place.
 - **Opening a task from the search lands on its own list**, the screen you always read it on, with the task open in the panel and brought to the middle; a completed one unfolds the Completed run. Home, the timeline and a reminder open tasks the same way.
 - **Opening a note from the search lights the word you looked for**: the first place it appears is centred on screen and highlighted for a moment.
 - **The search box is simpler**: the magnifier sits inside the field, a small × inside it clears what you typed, and the results say only which space a hit is from — and "completed" for a done task — instead of repeating the list or the Inbox folder on every row. The Completed screen no longer says every task goes back to the main list.

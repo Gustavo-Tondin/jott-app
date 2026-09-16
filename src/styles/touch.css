@@ -185,7 +185,7 @@
     /* A control at the END of a card gives its grown box back to the card's
        padding: the glyph is centred in the box, so pulled out by exactly the
        padding the box's edge meets the card's and the glyph stays put. */
-    .task-row__bookmark {
+    .task-row__aside-top .theme-btn--icon {
       margin-inline-end: calc(-1 * var(--app-space-12));
     }
 

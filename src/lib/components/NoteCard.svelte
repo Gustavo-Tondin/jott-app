@@ -103,7 +103,7 @@
 </script>
 
 <article
-  class="note-card"
+  class="note-card theme-press"
   class:note-card--small={small}
   class:note-card--bare={!head && !banner}
   class:note-card--picked={selected}

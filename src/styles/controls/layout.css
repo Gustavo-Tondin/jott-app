@@ -25,7 +25,9 @@
     padding: 0;
     display: flex;
     flex-direction: column;
-    gap: var(--app-space-4);
+    /* Named, so a card leaving the column can close the gap it leaves too. */
+    --task-list-gap: var(--app-space-4);
+    gap: var(--task-list-gap);
   }
 
   /* The hairline under the pinned cards: a list item of its own, so it rides

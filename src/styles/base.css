@@ -2,13 +2,19 @@
    before any component class touches it. */
 
 @layer base {
+  /* The system's tap highlight is a square with no corners over whatever
+     was touched, on every WebView. Inherited, so zeroed once here; what a
+     press looks like is each piece's own (`.theme-press`, the `:active`s). */
+  :root {
+    -webkit-tap-highlight-color: transparent;
+  }
+
   /* A control is grabbed and clicked, never selected: dragging a selection over
      a button, tab or nav item leaves an ugly highlight box. Content text
      (task/note bodies) stays selectable because only controls are covered. */
   button,
   [role="tab"],
   summary {
-    -webkit-tap-highlight-color: transparent;
     user-select: none;
     -webkit-user-select: none;
   }
