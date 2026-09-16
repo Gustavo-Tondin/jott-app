@@ -1045,15 +1045,14 @@ export const S = {
   // the notes board's own box.
   findTitle: "Search",
   findPlaceholder: "Search tasks and notes…",
-  findHint: "Type to search the whole notebook.",
   findNothing: (query) => `Nothing found for “${query}”.`,
   findTasks: "Tasks",
   findNotes: "Notes",
   findMore: "Showing the first matches only — narrow the search to see the rest.",
   findDone: "completed",
+  findClear: "clear search",
   // The same box, narrowed to one space. It says which one.
   findIn: (place) => `Search in ${place}…`,
-  findHintIn: (place) => `Type to search ${place}.`,
   findNothingIn: (query, place) => `Nothing found for “${query}” in ${place}.`,
 
   // The page ⋮ and the canvas right-click menu: what can be done to the

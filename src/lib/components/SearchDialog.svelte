@@ -13,6 +13,7 @@
   import Icon from "./Icon.svelte";
   import Modal from "./Modal.svelte";
   import { dotStyle } from "../services/accent.js";
+  import { listLabel } from "../services/paths.js";
 
   let {
     /// What to start looking for. Empty is the ordinary case (Ctrl+F asks a
@@ -34,7 +35,8 @@
     onClose,
     /// Takes a task hit's list address and its id, when it has one.
     onOpenList,
-    /// Takes a note hit's `(path, folder)`.
+    /// Takes a note hit's `(path, folder, {newTab, find})` — `find` is what
+    /// was typed, for the note to show where it is.
     onOpenNote,
     onError,
   } = $props();
@@ -133,7 +135,7 @@
   });
 
   function open(hit, { newTab = false } = {}) {
-    if (hit.kind === "note") onOpenNote?.(hit.path, hit.folder, { newTab });
+    if (hit.kind === "note") onOpenNote?.(hit.path, hit.folder, { newTab, find: query.trim() });
     else onOpenList?.(hit.path, hit.id);
     onClose?.();
   }
@@ -149,9 +151,15 @@
 
   /// Where a hit lives: a bar in the space's colour on the row's edge
   /// (outside a scope — inside one every hit is from the same place) and
-  /// the readable line, `Tasks · Inbox`.
+  /// the space's readable name. The list and the folder are not said: nearly
+  /// every task is in the main list and every note in the Inbox folder, so the
+  /// line would repeat itself. Only a hand-made list is named (`listLabel`).
+  const place = (hit) =>
+    hit.kind === "note" || isCompletedList(hit.container)
+      ? hit.space
+      : listLabel({ space: hit.space, name: hit.container, path: hit.path });
+  const isCompletedList = (name) => name?.toLowerCase() === "completed";
   const from = (hit) => (scope ? null : (origin?.(hit) ?? null));
-  const place = (hit) => [hit.space, hit.container].filter(Boolean).join(" · ");
 </script>
 
 <Modal
@@ -161,12 +169,15 @@
   panelClass="search"
   onClose={() => onClose?.()}
 >
-  <div class="search__field">
+  <!-- The glass sits INSIDE the field; the dialog closes on Escape, on the
+       backdrop and on back, so the row spends no width on a close button. The
+       × inside only clears what was typed. -->
+  <div class="theme-filter search__field">
     <Icon name="magnifying-glass" size="1rem" />
     <!-- svelte-ignore a11y_autofocus -->
     <input
-      class="theme-input search__input"
-      type="text"
+      class="theme-filter__field search__input"
+      type="search"
       autofocus
       bind:this={input}
       bind:value={query}
@@ -174,15 +185,26 @@
       placeholder={scopeName ? S.findIn(scopeName) : S.findPlaceholder}
       aria-label={scopeName ? S.findIn(scopeName) : S.findTitle}
     />
-    <button class="theme-btn--icon" aria-label={S.cancel} title={S.cancel} onclick={() => onClose?.()}>
-      <Icon name="x" size="1rem" />
-    </button>
+    {#if query}
+      <button
+        class="theme-btn--icon search__clear"
+        aria-label={S.findClear}
+        title={S.findClear}
+        onclick={() => {
+          query = "";
+          input?.focus();
+        }}
+      >
+        <Icon name="x" size="0.875rem" />
+      </button>
+    {/if}
   </div>
 
+  <!-- No results area before a word is typed: the placeholder already says
+       what the box searches, and an empty area would still take its gap. -->
+  {#if query.trim()}
   <div class="search__results">
-    {#if !query.trim()}
-      <p class="search__hint">{scopeName ? S.findHintIn(scopeName) : S.findHint}</p>
-    {:else if empty}
+    {#if empty}
       <p class="search__hint">
         {scopeName
           ? S.findNothingIn(query.trim(), scopeName)
@@ -211,7 +233,7 @@
                 {/if}
               </span>
               <span class="search__hit-place">
-                {place(hit)}{#if hit.done}&nbsp;· {S.findDone}{/if}
+                {[scope ? "" : place(hit), hit.done ? S.findDone : ""].filter(Boolean).join(" · ")}
               </span>
             </button>
           {/each}
@@ -222,4 +244,5 @@
       {/if}
     {/if}
   </div>
+  {/if}
 </Modal>

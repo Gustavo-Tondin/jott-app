@@ -8,6 +8,7 @@
   import { S } from "../services/strings.js";
   import EmptyState from "../components/EmptyState.svelte";
   import { dotStyle } from "../services/accent.js";
+  import { MAIN_LIST } from "../services/paths.js";
 
   let { readOnly, onChanged, onError, reloadKey, origin = null } = $props();
 
@@ -53,10 +54,12 @@
         />
         <span class="completed-view__text">{item.task.text}</span>
         <!-- Where the task lives: the origin badge (the space's readable name,
-             in its colour — services/origin.js), never the folder. -->
+             in its colour — services/origin.js), never the folder. The list
+             it goes back to is said only when it is not the main one, which
+             every space has and so tells nothing. -->
         <small class="completed-view__origin">
           {#if from}<span>{from.label}</span>{/if}
-          {#if item.task.origin}<span>· {S.goesBackTo(item.task.origin)}</span>{/if}
+          {#if item.task.origin && item.task.origin !== MAIN_LIST}<span>· {S.goesBackTo(item.task.origin)}</span>{/if}
         </small>
       </li>
     {/each}

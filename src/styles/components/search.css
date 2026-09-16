@@ -19,17 +19,33 @@
     gap: var(--app-space-12);
   }
 
+  /* The field is the shared .theme-filter (glass inside, well behind); here
+     only its height, so the × appearing with the first letter does not make
+     the row grow. */
   .search__field {
-    display: flex;
-    align-items: center;
-    gap: var(--app-space-8);
-    color: var(--app-ink-muted);
+    min-block-size: 2.5rem;
+    padding-block: 0;
   }
 
   .search__input {
-    flex: 1;
-    min-inline-size: 0;
-    font-size: var(--app-text-14);
+    align-self: stretch;
+  }
+
+  /* Clears the text, not the dialog. Smaller than a toolbar button: it sits
+     inside the field, and its own well would read as a second field. */
+  .search__clear {
+    padding: var(--app-space-4);
+  }
+  /* A thumb's × is 48px (touch.css): the field starts that tall, so the first
+     letter does not push it, and the × reaches the field's edge instead of
+     sitting in the middle of its own box. */
+  @media (pointer: coarse) {
+    .search__field {
+      min-block-size: var(--app-touch-min);
+    }
+    .search__clear {
+      margin-inline-end: calc(-1 * var(--app-space-8));
+    }
   }
 
   .search__results {
