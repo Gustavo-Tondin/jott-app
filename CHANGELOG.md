@@ -38,6 +38,7 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 - **The pin and the ⋮ only appear when the pointer is on the card**, on a small ground of their own — the one the name sits on — so they read over a banner as clearly as over the name itself; hovering no longer fades the whole card, and on a phone a pinned note is said by the ring around it.
 - **A card carried across the board reads as one movement now**: it lifts with its own rounded shadow instead of a square one, the cards making room for it glide rather than snap, and when you let go the board flows into its new arrangement instead of jumping into it.
 - **A note card on a phone no longer carries a ⋮**: holding the card opens the very same actions, and the corner it took back belongs to the note.
+- **The Suggestions button is quieter**: a soft wash of the accent instead of a solid one, so it no longer passes for the + beside it.
 - **A held card offers the same five actions whether it is a task or a note**, in the same order: Pin, Move, Edit, Reorder, and the ⋮ with the rest. Completing a task and pulling it into today are the swipes, as before; duplicating and deleting a note moved behind the ⋮.
 - **Settings opens on About**, where the version and the update check are, instead of on Display.
 - **A note is only ever dragged in reorder mode** — on the computer too — so a slip of the mouse or the finger never rearranges the board.

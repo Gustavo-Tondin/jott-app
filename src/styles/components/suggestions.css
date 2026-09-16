@@ -7,17 +7,18 @@
 @layer components {
   /* ---- the pill that opens it ----
      It IS the shared chip (`theme-chip suggestions-pill`); the one difference
-     is here: SOLID accent, not a tint with an outline — as a tinted outline it
-     reads as a disabled control next to the "Completed" chip. */
+     is here: an accent WASH with accent ink. Not solid — solid accent is the
+     round ＋ that often sits beside it. Not an outline — beside "Completed"
+     that reads as a disabled control. */
   .suggestions-pill {
-    background: var(--app-brand);
-    color: var(--app-on-brand);
+    background: var(--app-brand-weak);
+    color: var(--app-brand-ink);
   }
-  /* Brightness rather than the chip's ink lift: it paints its own ground, so
-     there is no muted text here to lift. */
+  /* The wash deepens toward the brand rather than the chip's ink lift: the
+     ink is already the accent's. */
   .suggestions-pill:hover {
-    color: var(--app-on-brand);
-    filter: brightness(1.06);
+    color: var(--app-brand-ink);
+    background: color-mix(in oklab, var(--app-brand-weak) 70%, var(--app-brand));
   }
 
   /* ---- the panel ----
