@@ -1022,11 +1022,15 @@ export const S = {
   remindLaterToday: "Later today",
   remindTomorrow: "Tomorrow",
   remindNextWeek: "Next week",
+  remindDayBefore: "The day before",
   remindOnDue: "On the due date",
   remindPick: "Pick date and time…",
   remindTimeLabel: "reminder time",
   remindDateLabel: "reminder date",
-  reminderTitle: "Reminder",
+  /// A reminder's notification body, after where the task lives.
+  reminderDue: (date) => `due ${date}`,
+  /// The card's reminder chip, on hover: the whole moment.
+  reminderAt: (moment) => `Reminder: ${moment}`,
   /// The in-app fallback when the system would not show a reminder.
   reminderNotShown: (texts) =>
     `${texts.length === 1 ? "A reminder" : `${texts.length} reminders`} could not be shown as a notification: ${texts.join(" · ")}`,
@@ -1034,6 +1038,10 @@ export const S = {
   /// — that one is the Home's recap of a day gone by.
   dayNoticeTitle: (n) => (n === 1 ? "You have 1 task today" : `You have ${n} tasks today`),
   dayNoticeMore: (n) => (n === 1 ? "…and 1 more" : `…and ${n} more`),
+  /// The phone's summary, counted the evening before: the plan for the day.
+  dayNoticePlanned: (n) =>
+    n === 1 ? "You have 1 task planned for today" : `You have ${n} tasks planned for today`,
+  dayNoticeFirstReminder: (time) => `First reminder at ${time}`,
   repeatEvery: "every",
   noRepeat: "never",
   /// No period: back the moment it is ticked, one open at a time.

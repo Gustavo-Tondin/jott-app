@@ -31,18 +31,32 @@ export function nextSummaryAt({ now = new Date(), time = "08:00", shownOn = null
   return next;
 }
 
+/// The hour of the first reminder on the day of `at` still ahead of it
+/// (`HH:MM`), or null. `reminders` is sorted soonest first, as the core
+/// hands it.
+export function firstReminderOn(reminders, at) {
+  const day = toIso(at);
+  const from = `${day}T${String(at.getHours()).padStart(2, "0")}:${String(at.getMinutes()).padStart(2, "0")}`;
+  const first = (reminders ?? []).find((r) => r.at.startsWith(day) && r.at.slice(0, 16) >= from);
+  return first ? first.at.slice(11, 16) : null;
+}
+
 /// What the notification says about `tasks` — the day's open tasks, as
 /// `day_tasks` hands them ({task: {text, done}}). `null` when there is
 /// nothing to announce: a day with no task is not worth a notification.
-export function summaryNotice(tasks, strings) {
+/// `planned`: the count was read before the day began (a phone's alarm set
+/// the evening before), so it is the plan, not what the day will roll into.
+/// `firstReminder` (`HH:MM`) adds the day's first bell as a last line.
+export function summaryNotice(tasks, strings, { planned = false, firstReminder = null } = {}) {
   const open = (tasks ?? [])
     .map((row) => row?.task ?? row)
     .filter((task) => task && !task.done);
   if (open.length === 0) return null;
   const named = open.slice(0, NAMED).map((task) => `• ${task.text}`);
   if (open.length > named.length) named.push(strings.dayNoticeMore(open.length - named.length));
+  if (firstReminder) named.push(strings.dayNoticeFirstReminder(firstReminder));
   return {
-    title: strings.dayNoticeTitle(open.length),
+    title: planned ? strings.dayNoticePlanned(open.length) : strings.dayNoticeTitle(open.length),
     body: named.join("\n"),
   };
 }

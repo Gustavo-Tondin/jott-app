@@ -40,7 +40,7 @@ function summaryAlarm(summary) {
 
 export async function syncAndroidReminders(
   reminders,
-  { now = new Date(), strings, summary = null, onError } = {},
+  { now = new Date(), strings, dateFormat, summary = null, onError } = {},
 ) {
   const plugin = await import("@tauri-apps/plugin-notification");
   if (!(await plugin.isPermissionGranted())) {
@@ -59,7 +59,7 @@ export async function syncAndroidReminders(
   const alarm = summaryAlarm(summary);
   if (upcoming.length === 0 && !alarm) return true;
   const notifications = upcoming.map((reminder) => {
-    const { title, body } = notice(reminder, strings);
+    const { title, body } = notice(reminder, strings, dateFormat);
     const notification = {
       id: reminderId(reminder),
       title,

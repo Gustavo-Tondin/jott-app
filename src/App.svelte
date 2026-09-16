@@ -1590,6 +1590,7 @@
     // The day summary is the notebook's, not the Remind field's: it says
     // what the day holds, and a task rings only if it asked.
     summary: () => ({ on: !!layout.daySummary, time: layout.daySummaryTime || "08:00" }),
+    dateFormat: () => layout.dateDisplayFormat,
     openTask: showFoundTask,
     fail,
   });

@@ -5,7 +5,7 @@
 // reads changed. On Android both are handed to the system's alarm service.
 import { listen } from "@tauri-apps/api/event";
 import { api } from "../services/api.js";
-import { nextSummaryAt, summaryNotice } from "../services/daySummary.js";
+import { firstReminderOn, nextSummaryAt, summaryNotice } from "../services/daySummary.js";
 import { toIso } from "../services/dates.js";
 import { onAndroidReminderTap, syncAndroidReminders } from "../services/androidReminders.js";
 import { S } from "../services/strings.js";
@@ -13,10 +13,11 @@ import { S } from "../services/strings.js";
 /// - `open()` — whether a notebook is open; `enabled()` — the Reminders
 ///   function's switch; `mobile()` — answered by the bridge after mount.
 /// - `summary()` — `{on, time}`, the notebook's day-summary setting.
+/// - `dateFormat()` — how the notebook draws dates, for the phone's texts.
 /// - `openTask(list, id)` — a clicked notification names its task; the list
 ///   opens and the panel with it, exactly as a search hit does.
 /// - `fail` — the shell's error.
-export function makeRemindersHost({ open, enabled, mobile, summary, openTask, fail }) {
+export function makeRemindersHost({ open, enabled, mobile, summary, dateFormat, openTask, fail }) {
   // Installed on the first refresh rather than up front: `mobile` is answered
   // by the bridge after mount, and at mount it still says desktop.
   let androidTapInstalled = false;
@@ -47,13 +48,22 @@ export function makeRemindersHost({ open, enabled, mobile, summary, openTask, fa
         openTask(target.list, target.id);
       }).catch(() => {});
     }
-    // The summary is about the day the alarm lands on, read at sync time.
-    const summaryAt = summaryOn ? nextSummaryAt({ time: summaryTime }) : null;
-    const notice = summaryAt ? summaryNotice(await api.dayTasks(toIso(summaryAt)), S) : null;
+    // The summary is about the day the alarm lands on, read at sync time —
+    // a day not begun yet is counted as planned.
+    const now = new Date();
+    const summaryAt = summaryOn ? nextSummaryAt({ now, time: summaryTime }) : null;
+    const notice = summaryAt
+      ? summaryNotice(await api.dayTasks(toIso(summaryAt)), S, {
+          planned: toIso(summaryAt) !== toIso(now),
+          firstReminder: firstReminderOn(reminders, summaryAt),
+        })
+      : null;
     // A `pending()` that throws (the store of an older build) is worth a
     // line in the log and not a notice: the sync goes on without it.
     await syncAndroidReminders(reminders, {
+      now,
       strings: S,
+      dateFormat: dateFormat?.(),
       summary: summaryAt ? { at: summaryAt, notice } : null,
       onError: (error) => console.warn("reminders: pending() failed", error),
     }).catch(fail);

@@ -12,6 +12,7 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 
 - **A reorder mode for notes**: pick "Reorder" on a card's ring (or "Reorder notes…" in the notepad's ⋮), tap the cards you mean, and hold one to carry them all together — onto a new place, into a folder, or onto another notepad in the sidebar. The bar at the foot moves or deletes what you marked. Tasks have the same mode, from the same slice.
 - **Tasks can be pinned on the Home for today**: the pin brings a task to the top of the day without touching its list, and it clears when the day turns.
+- **A "The day before" reminder for dated tasks**: the reminder menu is now grouped — from now, from the due date, pick — with an icon per option, and picking a date starts from the reminder already chosen (or tomorrow).
 - **A task's title can be edited from its ring**: "Edit" opens the title in a small card — on a phone it sits over the keyboard, so you never lose sight of what you are typing.
 - **The columns of a table can be resized**: drag the border between two of them, and double-click it to go back. The widths are kept as proportions in the note itself, so they hold on a phone and on a monitor alike, and they travel with the file.
 
@@ -31,6 +32,8 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 
 ### Improved
 
+- **A task card shows the hour of today's reminder**, or its date on another day, and a reminder that rang and was not dealt with reads as overdue.
+- **A reminder notification leads with the task** and says which list it is in and when it is due; reminders missed while Jott was closed arrive as one notification, and the day summary names the day's first reminder.
 - **Holding a card with the mouse no longer turns the screen over to selecting tasks**: the right button opens the same ring of actions, and its “Reorder” slice is the way into picking.
 - **The + that makes a task or a note is easier to find**: it is round now, a little bigger than the buttons beside it and standing clear of them — the same shape on the computer and on the phone. The bar it closes arrives a moment after the rest of the screen, so the eye lands on it.
 - **A note card leads with the note's name**: the name sits on a chip the width of the card and is the one thing on it that steps up in size, so a heading inside the note no longer shouts louder than the note it belongs to.

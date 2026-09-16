@@ -349,11 +349,58 @@ fn two_windows_on_one_notebook_ring_a_reminder_once() {
     jott_lib::ringer::ring_at(handle, &root, moment("2099-01-01T09:11"));
     let rung = state.ringers().rung();
     assert_eq!(rung.len(), 1, "{rung:?}");
-    assert_eq!(rung[0].body, "Ligar pro dentista");
+    assert_eq!(rung[0].title, "Ligar pro dentista", "the task leads");
+    assert_eq!(rung[0].body, "Tasks", "and the body says where it lives");
     assert_eq!(rung[0].target.id.as_deref(), Some(id.as_str()));
     assert_eq!(wait, std::time::Duration::from_secs(60 * 60), "nothing ahead: the long wait");
     // Rung here is acknowledged in the notebook: the phone stays quiet.
     assert!(ok(&app, "reminders", json!({})).as_array().unwrap().is_empty());
+}
+
+#[test]
+fn four_missed_reminders_arrive_as_one_notice_and_all_are_acknowledged() {
+    let (_lock, app, dir) = app_with_notebook();
+    let state = app.state::<jott_lib::state::AppState>();
+    let root = dir.path().to_path_buf();
+    state.ringers().capture();
+    ok(&app, "nudge_reminders", json!({ "reminders": true }));
+    for (text, at) in [("A", "2099-01-01T09:01"), ("B", "2099-01-01T09:02"), ("C", "2099-01-01T09:03"), ("D", "2099-01-01T09:04")] {
+        ringing_task(&app, text, at);
+    }
+
+    let handle = app.handle();
+    jott_lib::ringer::ring_at(handle, &root, moment("2099-01-01T09:00"));
+    // A day away: the machine wakes with all four behind it.
+    jott_lib::ringer::ring_at(handle, &root, moment("2099-01-02T09:00"));
+    let rung = state.ringers().rung();
+    assert_eq!(rung.len(), 1, "{rung:?}");
+    assert_eq!(rung[0].title, "4 reminders while you were away");
+    assert_eq!(rung[0].body, "• A\n• B\n• C\n• D");
+    assert_eq!(rung[0].target.list, "jott.tasks/task-list.md");
+    assert!(ok(&app, "reminders", json!({})).as_array().unwrap().is_empty(), "each one is acknowledged");
+}
+
+#[test]
+fn nothing_rings_before_a_window_says_the_remind_switch() {
+    let (_lock, app, dir) = app_with_notebook();
+    let state = app.state::<jott_lib::state::AppState>();
+    let root = dir.path().to_path_buf();
+    state.ringers().capture();
+    let today = ok(&app, "day_clock", json!({}))["today"].clone();
+    let rent = task_with_id(&app, "jott.tasks/task-list.md", "Aluguel");
+    ok(&app, "set_task_fields", json!({ "list": "jott.tasks/task-list.md", "id": rent, "fields": { "due": today } }));
+    ok(&app, "set_notebook_settings", json!({ "settings": { "daySummary": true, "daySummaryTime": "08:00" } }));
+    ringing_task(&app, "Ligar pro dentista", "2099-01-01T18:30");
+
+    let handle = app.handle();
+    jott_lib::ringer::ring_at(handle, &root, moment("2099-01-01T09:00"));
+    assert!(state.ringers().rung().is_empty(), "the summary would not know the first reminder yet");
+
+    ok(&app, "nudge_reminders", json!({ "reminders": true }));
+    jott_lib::ringer::ring_at(handle, &root, moment("2099-01-01T09:00"));
+    let rung = state.ringers().rung();
+    assert_eq!(rung.len(), 1, "{rung:?}");
+    assert_eq!(rung[0].body, "• Aluguel\nFirst reminder at 18:30");
 }
 
 #[test]

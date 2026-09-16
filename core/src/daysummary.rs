@@ -5,9 +5,9 @@
 
 use std::time::Duration;
 
-use chrono::{NaiveDate, NaiveDateTime};
+use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
 
-use crate::reminders::{bounded_wait, ReminderTime};
+use crate::reminders::{bounded_wait, Reminder, ReminderTime};
 use crate::task::Task;
 
 /// How many task titles the notification lists before it stops naming them.
@@ -69,6 +69,17 @@ pub fn summary_of<'a>(tasks: impl IntoIterator<Item = &'a Task>) -> Option<DaySu
     })
 }
 
+/// The hour of the first reminder still to ring on `now`'s day — what the
+/// summary adds to the count, so the day's first bell is not a surprise.
+/// `reminders` is sorted soonest first, as `Notebook::reminders` hands it.
+pub fn first_reminder_of_day(reminders: &[Reminder], now: NaiveDateTime) -> Option<NaiveTime> {
+    reminders
+        .iter()
+        .filter_map(|reminder| crate::task::parse_datetime(&reminder.at))
+        .find(|at| at.date() == now.date() && *at >= now)
+        .map(|at| at.time())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -123,6 +134,30 @@ mod tests {
             next_summary_at(moment("2026-09-08T07:30"), time("08:00"), Some(day("2026-09-08"))),
             moment("2026-09-09T08:00")
         );
+    }
+
+    fn reminder(at: &str) -> Reminder {
+        Reminder {
+            list: "L".into(),
+            id: None,
+            position: 0,
+            place: "L".into(),
+            text: String::new(),
+            due: None,
+            at: at.into(),
+        }
+    }
+
+    #[test]
+    fn the_first_reminder_is_the_first_still_ahead_today() {
+        let list = [
+            reminder("2026-09-08T07:00"),
+            reminder("2026-09-08T18:30"),
+            reminder("2026-09-09T08:00"),
+        ];
+        let first = first_reminder_of_day(&list, moment("2026-09-08T08:00"));
+        assert_eq!(first.map(|t| t.format("%H:%M").to_string()).as_deref(), Some("18:30"));
+        assert_eq!(first_reminder_of_day(&list, moment("2026-09-08T19:00")), None, "tomorrow's is not today's");
     }
 
     fn tasks(texts: &[&str]) -> Vec<Task> {

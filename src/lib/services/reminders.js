@@ -1,5 +1,5 @@
 // Reminders on the front. The core decides WHAT rings and hands a sorted
-// list of `{list, id, position, text, at, auto}`; this module knows the
+// list of `{list, id, position, place, text, due, at}`; this module knows the
 // shape of `at` (`2026-07-25T09:00`, local, minute precision — sortable as a
 // string, so comparisons below are string comparisons) and the presets. What
 // is due and when is the process's on desktop (`src-tauri/src/ringer.rs`).
@@ -59,29 +59,55 @@ function atTime(date, time) {
   return out;
 }
 
-/// The presets the inspector offers, each resolved to a moment: laterToday
-/// (three hours from now, on the hour), tomorrow and nextWeek (next Monday)
-/// at `time` (the notebook's `HH:MM`), onDue (the due day at `time`, dated
-/// tasks only). Only moments still ahead: a preset that rings at once is a trap.
+/// Tomorrow at `time` — where a reminder with nothing chosen yet starts.
+export function tomorrowAt(time = "09:00", now = new Date()) {
+  const tomorrow = new Date(now);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  return toAt(atTime(tomorrow, time));
+}
+
+/// The presets the inspector offers, each resolved to a moment and in a
+/// `group`: from NOW — laterToday (three hours on, on the hour), tomorrow and
+/// nextWeek (next Monday) at `time` (the notebook's `HH:MM`) — and from the
+/// DUE date, dated tasks only — dayBefore and onDue, at `time`. Only moments
+/// still ahead: a preset that rings at once is a trap.
 export function presets({ now = new Date(), due = "", time = "09:00" } = {}) {
   const out = [];
   const later = new Date(now);
   later.setHours(later.getHours() + 3, 0, 0, 0);
-  if (later.getDate() === now.getDate()) out.push({ id: "laterToday", at: toAt(later) });
+  if (later.getDate() === now.getDate()) out.push({ id: "laterToday", at: toAt(later), group: "now" });
 
-  const tomorrow = new Date(now);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  out.push({ id: "tomorrow", at: toAt(atTime(tomorrow, time)) });
-  out.push({ id: "nextWeek", at: toAt(atTime(nextMonday(now), time)) });
+  out.push({ id: "tomorrow", at: tomorrowAt(time, now), group: "now" });
+  out.push({ id: "nextWeek", at: toAt(atTime(nextMonday(now), time)), group: "now" });
 
   if (due) {
-    const at = toAt(atTime(parseAt(due), time));
-    if (at > toAt(now)) out.push({ id: "onDue", at });
+    const dueAt = atTime(parseAt(due), time);
+    const eve = new Date(dueAt);
+    eve.setDate(eve.getDate() - 1);
+    const ahead = toAt(now);
+    if (toAt(eve) > ahead) out.push({ id: "dayBefore", at: toAt(eve), group: "due" });
+    if (toAt(dueAt) > ahead) out.push({ id: "onDue", at: toAt(dueAt), group: "due" });
   }
   return out;
 }
 
-/// What the notification says: the task that asked to be reminded.
-export function notice(reminder, strings) {
-  return { title: strings.reminderTitle, body: reminder.text };
+/// What a card draws for its reminder: the hour when it is `today`, else the
+/// date as the notebook draws dates; `passed` once its minute has come on a
+/// task still open — it rang and was not dealt with. Null without one.
+export function reminderChip(at, { today = "", now = new Date(), dateFormat = "mm/dd/yyyy" } = {}) {
+  const { date, time } = splitAt(at);
+  if (!date) return null;
+  return {
+    text: date === (today || toIso(now)) ? time : formatDate(date, dateFormat),
+    passed: normalizeAt(at) <= toAt(now),
+  };
+}
+
+/// What the notification says: the task leads, and the body says where it
+/// lives and, when it has one, its date. The desktop's twin is in
+/// `src-tauri/src/ringer.rs`.
+export function notice(reminder, strings, dateFormat = "mm/dd/yyyy") {
+  const place = reminder.place ?? "";
+  const due = reminder.due ? strings.reminderDue(formatDate(reminder.due, dateFormat)) : "";
+  return { title: reminder.text, body: [place, due].filter(Boolean).join(" · ") };
 }

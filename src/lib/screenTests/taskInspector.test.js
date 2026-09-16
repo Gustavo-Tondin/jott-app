@@ -311,13 +311,13 @@ describe("TaskInspector", () => {
   test("picking a date and time writes both", async () => {
     bridge({ set_task_fields: null });
     render(TaskInspector, {
-      props: props(task("a1", "Comprar leite", { due: "2026-08-15" })),
+      props: props(task("a1", "Comprar leite", { due: "2026-08-15", remind: "2026-08-14T09:00:00" })),
     });
 
     await userEvent.click(await screen.findByLabelText("Remind me"));
     await userEvent.click(screen.getByRole("button", { name: "Pick date and time…" }));
-    // Seeded with the due date at the reminder time, before any click.
-    await waitFor(() => expect(lastSave().fields.remind).toBe("2026-08-15T09:00"));
+    // The calendar opens on the reminder already chosen, not the due date.
+    expect(screen.getByLabelText("reminder time").value).toBe("09:00");
 
     await userEvent.click(screen.getByLabelText("reminder date"));
     await userEvent.click(screen.getByRole("button", { name: "1" }));
@@ -327,6 +327,41 @@ describe("TaskInspector", () => {
     await fireEvent.input(time, { target: { value: "18:30" } });
     await fireEvent.change(time, { target: { value: "18:30" } });
     await waitFor(() => expect(lastSave().fields.remind).toBe("2026-08-01T18:30"));
+  });
+
+  test("pick starts from tomorrow when there is no reminder", async () => {
+    bridge({ set_task_fields: null });
+    render(TaskInspector, {
+      props: props(task("a1", "Comprar leite", { due: "2026-08-15" }), { reminderTime: "07:30" }),
+    });
+    await userEvent.click(await screen.findByLabelText("Remind me"));
+    await userEvent.click(screen.getByRole("button", { name: "Pick date and time…" }));
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const day = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, "0")}-${String(tomorrow.getDate()).padStart(2, "0")}`;
+    await waitFor(() => expect(lastSave().fields.remind).toBe(`${day}T07:30`));
+  });
+
+  test("the reminder menu is grouped: a task with no date shows two groups", async () => {
+    render(TaskInspector, { props: props(task("a1", "Comprar leite")) });
+    await userEvent.click(await screen.findByLabelText("Remind me"));
+    const menu = screen.getByRole("button", { name: "Pick date and time…" }).closest("ul");
+    expect(menu.querySelectorAll(".menu__rule")).toHaveLength(1);
+    expect(screen.queryByRole("button", { name: "The day before" })).toBeNull();
+    // Every row carries its glyph.
+    const rows = [...menu.querySelectorAll(".menu__link")];
+    expect(rows.every((r) => r.querySelector(".menu__icon svg"))).toBe(true);
+  });
+
+  test("a dated task far ahead offers the day before in a group of its own", async () => {
+    const ahead = new Date();
+    ahead.setDate(ahead.getDate() + 10);
+    const due = `${ahead.getFullYear()}-${String(ahead.getMonth() + 1).padStart(2, "0")}-${String(ahead.getDate()).padStart(2, "0")}`;
+    render(TaskInspector, { props: props(task("a1", "Comprar leite", { due })) });
+    await userEvent.click(await screen.findByLabelText("Remind me"));
+    const eve = screen.getByRole("button", { name: "The day before" });
+    expect(eve.closest("ul").querySelectorAll(".menu__rule")).toHaveLength(2);
+    expect(screen.getByRole("button", { name: "On the due date" })).toBeTruthy();
   });
 
   test("with Remind me switched off the field is not drawn", async () => {

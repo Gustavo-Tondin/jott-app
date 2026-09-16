@@ -34,6 +34,9 @@ import tag from "../../assets/icons/phosphor/regular/tag.svg?raw";
 // day. Not Phosphor.
 import sunOff from "../../assets/icons/jott/sun-off.svg?raw";
 import calendarBlank from "../../assets/icons/phosphor/regular/calendar-blank.svg?raw";
+import calendar from "../../assets/icons/phosphor/regular/calendar.svg?raw";
+import sunHorizon from "../../assets/icons/phosphor/regular/sun-horizon.svg?raw";
+import arrowUUpLeft from "../../assets/icons/phosphor/regular/arrow-u-up-left.svg?raw";
 import clock from "../../assets/icons/phosphor/regular/clock.svg?raw";
 import eye from "../../assets/icons/phosphor/regular/eye.svg?raw";
 import alarm from "../../assets/icons/phosphor/regular/alarm.svg?raw";
@@ -152,6 +155,9 @@ export const ICONS = {
   "sun-off": sunOff,
   tag,
   "calendar-blank": calendarBlank,
+  calendar,
+  "sun-horizon": sunHorizon,
+  "arrow-u-up-left": arrowUUpLeft,
   alarm,
   clock,
   eye,

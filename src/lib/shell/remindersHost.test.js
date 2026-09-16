@@ -105,6 +105,27 @@ describe("the reminders host", () => {
     const summary = batch.notifications.at(-1);
     expect(summary.schedule.at.date).toEqual(new Date(2026, 8, 9, 8, 0));
     expect(summary.body).toBe("• Amanhã");
+    // Counted the day before: what it reads is the plan.
+    expect(summary.title).toBe("You have 1 task planned for today");
+  });
+
+  it("the phone's summary names the first reminder of its day, and a reminder leads with its task", async () => {
+    const { h } = host({ mobile: true, summary: { on: true, time: "08:00" } });
+    bridge({
+      reminders: [
+        { ...at("hoje", "2026-09-08T18:00"), text: "Hoje", place: "Casa", due: "2026-09-10" },
+        { ...at("amanha", "2026-09-09T12:30"), text: "Amanhã", place: "Casa" },
+      ],
+      day_tasks: [{ task: { text: "Amanhã", done: false } }],
+      "plugin:notification|is_permission_granted": true,
+      "plugin:notification|get_pending": [],
+      "plugin:notification|batch": [1],
+    });
+    await h.refresh();
+    const [batch] = callsTo("plugin:notification|batch");
+    expect(batch.notifications.at(-1).body).toBe("• Amanhã\nFirst reminder at 12:30");
+    expect(batch.notifications[0].title).toBe("Hoje");
+    expect(batch.notifications[0].body).toBe("Casa · due 09/10/2026");
   });
 
   it("a tapped Android notification acknowledges the reminder it came from", async () => {

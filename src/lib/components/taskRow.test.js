@@ -205,3 +205,35 @@ describe("TaskRow — arriving", () => {
     expect(row({ arriving: true }).card.classList.contains("task-row--arriving")).toBe(true);
   });
 });
+
+describe("TaskRow — the reminder", () => {
+  const remindRow = (remind, extra = {}) =>
+    row({
+      task: { id: "a1", text: "Fix website", done: false, tags: [], subtasks: [], remind },
+      today: "2026-07-22",
+      ...extra,
+    }).container.querySelector(".task-row__field--remind");
+
+  test("a reminder of today shows its hour", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 6, 22, 10, 0));
+    const chip = remindRow("2026-07-22T18:00:00");
+    expect(chip.textContent.trim()).toBe("18:00");
+    expect(chip.classList.contains("task-row__field--overdue")).toBe(false);
+  });
+
+  test("a reminder that passed reads as overdue, and turns so when it rings", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 6, 22, 10, 0));
+    expect(remindRow("2026-07-22T09:00:00").classList.contains("task-row__field--overdue")).toBe(true);
+    const ahead = remindRow("2026-07-22T10:05:00");
+    expect(ahead.classList.contains("task-row__field--overdue")).toBe(false);
+    await vi.advanceTimersByTimeAsync(6 * 60 * 1000);
+    expect(ahead.classList.contains("task-row__field--overdue")).toBe(true);
+  });
+
+  test("switched off, the card draws no reminder", () => {
+    expect(remindRow("2026-07-22T18:00:00", { f: (key) => key !== "remind" })).toBeNull();
+  });
+});
+

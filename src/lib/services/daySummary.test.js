@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 import {
   NAMED,
+  firstReminderOn,
   nextSummaryAt,
   summaryAt,
   summaryNotice,
@@ -40,6 +41,24 @@ describe("what it says", () => {
   test("a completed task is not part of the day's load", () => {
     const day = [...rows("Aberta"), { task: { text: "Feita", done: true } }];
     expect(summaryNotice(day, S).title).toBe("You have 1 task today");
+  });
+
+  test("the summary names the first reminder of the day", () => {
+    const said = summaryNotice(rows("Aluguel"), S, { firstReminder: "18:30" });
+    expect(said.body).toBe("• Aluguel\nFirst reminder at 18:30");
+    expect(summaryNotice(rows("Aluguel"), S, { planned: true }).title).toBe(
+      "You have 1 task planned for today",
+    );
+  });
+
+  test("the first reminder is the first on the summary's day still ahead of it", () => {
+    const list = [
+      { at: "2026-09-08T07:00" },
+      { at: "2026-09-09T07:00" },
+      { at: "2026-09-09T12:30" },
+    ];
+    expect(firstReminderOn(list, new Date(2026, 8, 9, 8, 0))).toBe("12:30");
+    expect(firstReminderOn(list, new Date(2026, 8, 10, 8, 0))).toBe(null);
   });
 
   test("an empty day is worth no notification", () => {

@@ -26,8 +26,8 @@
   import { movedItem } from "../services/spaceOrder.js";
   import { reorderable } from "../actions/reorder.js";
   import Menu from "./Menu.svelte";
-  import { formatAt, joinAt, normalizeAt, presets, splitAt } from "../services/reminders.js";
-  import { formatDate, toIso } from "../services/dates.js";
+  import { formatAt, joinAt, normalizeAt, presets, splitAt, tomorrowAt } from "../services/reminders.js";
+  import { formatDate } from "../services/dates.js";
   import Icon from "./Icon.svelte";
   import Notice from "./Notice.svelte";
   import DatePicker from "./DatePicker.svelte";
@@ -146,30 +146,40 @@
   // value; the autosave is the "done".
   let pickingReminder = $state(false);
 
-  const PRESET_LABELS = {
-    laterToday: () => S.remindLaterToday,
-    tomorrow: () => S.remindTomorrow,
-    nextWeek: () => S.remindNextWeek,
-    onDue: () => S.remindOnDue,
+  const PRESET_ROWS = {
+    laterToday: { label: () => S.remindLaterToday, icon: "clock" },
+    tomorrow: { label: () => S.remindTomorrow, icon: "sun-horizon" },
+    nextWeek: { label: () => S.remindNextWeek, icon: "calendar" },
+    dayBefore: { label: () => S.remindDayBefore, icon: "arrow-u-up-left" },
+    onDue: { label: () => S.remindOnDue, icon: "calendar-blank" },
   };
 
-  let reminderMenu = $derived([
-    ...presets({ due: draft.due, time: reminderTime }).map((p) => ({
-      label: PRESET_LABELS[p.id](),
+  // Three runs — from now, from the due date, pick — with a rule between the
+  // runs that have rows; the presets say their own group.
+  let reminderMenu = $derived.by(() => {
+    const offered = presets({ due: draft.due, time: reminderTime });
+    const row = (p) => ({
+      label: PRESET_ROWS[p.id].label(),
+      icon: PRESET_ROWS[p.id].icon,
       run: () => {
         pickingReminder = false;
         draft.remind = p.at;
       },
-    })),
-    { label: S.remindPick, run: startPickingReminder },
-  ]);
+    });
+    const runs = [
+      offered.filter((p) => p.group === "now").map(row),
+      offered.filter((p) => p.group === "due").map(row),
+      [{ label: S.remindPick, icon: "pencil", run: startPickingReminder }],
+    ];
+    return runs.filter((run) => run.length).flatMap((run, i) => (i ? [{ separator: true }, ...run] : run));
+  });
 
-  /// Opens the two controls, seeded with what the field has — or the due
-  /// date (else today) at the reminder time, so the field is never blank
-  /// while the calendar waits for a click.
+  /// Opens the two controls on the reminder already chosen — or, with none,
+  /// tomorrow at the reminder time, so the field is never blank while the
+  /// calendar waits for a click.
   function startPickingReminder() {
     const { date, time } = splitAt(draft.remind);
-    draft.remind = joinAt(date || draft.due || toIso(new Date()), time || reminderTime);
+    draft.remind = date ? joinAt(date, time || reminderTime) : tomorrowAt(reminderTime);
     pickingReminder = true;
   }
 

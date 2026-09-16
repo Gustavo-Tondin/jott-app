@@ -61,6 +61,26 @@ fn a_task_rings_until_some_device_acknowledges_it() {
 }
 
 #[test]
+fn a_reminder_says_where_its_task_lives_and_when_it_is_due() {
+    let (_dir, notebook, list, id) = notebook_ringing_at("2026-07-24T18:00");
+    let reminder = &notebook.reminders().unwrap()[0];
+    assert_eq!(reminder.place, "Tasks", "the main list reads as its space");
+    assert_eq!(reminder.due, None);
+
+    notebook
+        .set_task_fields(
+            &list,
+            &id,
+            jott_core::task::TaskFields {
+                due: Some(Some("2026-07-25".to_string())),
+                ..Default::default()
+            },
+        )
+        .unwrap();
+    assert_eq!(notebook.reminders().unwrap()[0].due.as_deref(), Some("2026-07-25"));
+}
+
+#[test]
 fn an_ack_left_by_another_device_silences_this_one() {
     let (_dir, notebook, list, id) = notebook_ringing_at("2026-07-24T18:00");
     write_acks(

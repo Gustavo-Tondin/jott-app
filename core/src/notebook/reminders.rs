@@ -6,7 +6,7 @@ use chrono::NaiveDateTime;
 use crate::error::Result;
 use crate::reminders::{self, Reminder};
 use crate::seen::{Index, Seen};
-use crate::COMPLETED_LIST;
+use crate::{COMPLETED_LIST, MAIN_LIST};
 
 use super::*;
 
@@ -20,16 +20,18 @@ impl Notebook {
     /// changed (the watcher says so), never on a render.
     pub fn reminders(&self) -> Result<Vec<Reminder>> {
         let acked = self.acks();
+        let labels = self.space_labels()?;
         let mut out = Vec::new();
         for list in self.list_paths()? {
             if list.name == COMPLETED_LIST {
                 continue;
             }
+            let place = place_of(&space_label_of(&labels, &list.prefix), &list.name);
             for (position, task) in self.open_list(&list.path)?.tasks().enumerate() {
                 if acked_already(&acked, &list.path, task) {
                     continue;
                 }
-                out.extend(reminders::reminder_of(&list.path, position, task));
+                out.extend(reminders::reminder_of(&list.path, &place, position, task));
             }
         }
         reminders::sort(&mut out);
@@ -54,6 +56,16 @@ impl Notebook {
             acks.save(self.config_dir())?;
         }
         Ok(())
+    }
+}
+
+/// A list's readable address: the space's, plus the list's own name only for
+/// an extra list — the main one IS the space to whoever reads it.
+fn place_of(space: &str, list: &str) -> String {
+    if list == MAIN_LIST {
+        space.to_string()
+    } else {
+        format!("{space}/{list}")
     }
 }
 

@@ -1,10 +1,13 @@
 import { describe, expect, test } from "vitest";
+import { S } from "./strings.js";
 import {
   formatAt,
   joinAt,
   normalizeAt,
+  notice,
   parseAt,
   presets,
+  reminderChip,
   splitAt,
   toAt,
 } from "./reminders.js";
@@ -57,5 +60,55 @@ describe("presets", () => {
     );
     expect(presets({ now, due: "" }).map((p) => p.id)).not.toContain("onDue");
     expect(presets({ now, due: "2026-07-01" }).map((p) => p.id)).not.toContain("onDue");
+  });
+});
+
+describe("presets from the due date", () => {
+  const now = new Date(2026, 6, 22, 10, 20);
+
+  test("the day before is offered only while it is ahead", () => {
+    const eve = presets({ now, due: "2026-08-01", time: "18:00" }).find((p) => p.id === "dayBefore");
+    expect(eve.at).toBe("2026-07-31T18:00");
+    // Due tomorrow at 09:00: the eve is today at 09:00, already gone.
+    expect(presets({ now, due: "2026-07-23" }).map((p) => p.id)).not.toContain("dayBefore");
+  });
+
+  test("each preset says its group", () => {
+    const groups = Object.fromEntries(presets({ now, due: "2026-08-01" }).map((p) => [p.id, p.group]));
+    expect(groups).toEqual({
+      laterToday: "now",
+      tomorrow: "now",
+      nextWeek: "now",
+      dayBefore: "due",
+      onDue: "due",
+    });
+  });
+});
+
+describe("the card's chip", () => {
+  const now = new Date(2026, 6, 22, 10, 20);
+
+  test("a reminder of today shows its hour, another day its date", () => {
+    expect(reminderChip("2026-07-22T18:00", { today: "2026-07-22", now })).toEqual({
+      text: "18:00",
+      passed: false,
+    });
+    expect(reminderChip("2026-07-25T18:00", { today: "2026-07-22", now, dateFormat: "dd/mm/yyyy" }).text).toBe(
+      "25/07/2026",
+    );
+    expect(reminderChip("", { now })).toBe(null);
+  });
+
+  test("a reminder that passed reads as overdue, from its own minute on", () => {
+    expect(reminderChip("2026-07-22T10:20", { today: "2026-07-22", now }).passed).toBe(true);
+    expect(reminderChip("2026-07-22T10:21", { today: "2026-07-22", now }).passed).toBe(false);
+  });
+});
+
+describe("the notice", () => {
+  test("leads with the task and says where it lives", () => {
+    const reminder = { list: "Casa/task-list.md", text: "Pagar aluguel", place: "Casa", at: "2026-07-24T18:00" };
+    expect(notice(reminder, S)).toEqual({ title: "Pagar aluguel", body: "Casa" });
+    expect(notice({ ...reminder, due: "2026-07-25" }, S, "dd/mm/yyyy").body).toBe("Casa · due 25/07/2026");
   });
 });

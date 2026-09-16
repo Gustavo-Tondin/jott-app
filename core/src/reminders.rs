@@ -55,7 +55,12 @@ pub struct Reminder {
     /// The task's position in its list — the address a task without an id
     /// still has, and what `ensure_task_id` takes.
     pub position: usize,
+    /// Where the list is, as a person reads it: the space's readable address
+    /// (`Design/Tasks`), plus the list's own name for an extra list.
+    pub place: String,
     pub text: String,
+    /// The task's due date (`yyyy-mm-dd`), when it has one.
+    pub due: Option<String>,
     /// The moment, as the task file writes it (`2026-07-25T09:00`, local).
     pub at: String,
 }
@@ -63,7 +68,7 @@ pub struct Reminder {
 /// The reminder of one task: the moment it asked for, or nothing. A done
 /// task never rings, and a date alone never does — a task rings because
 /// someone set `remind:` on it.
-pub fn reminder_of(list: &str, position: usize, task: &Task) -> Option<Reminder> {
+pub fn reminder_of(list: &str, place: &str, position: usize, task: &Task) -> Option<Reminder> {
     if task.done {
         return None;
     }
@@ -71,7 +76,9 @@ pub fn reminder_of(list: &str, position: usize, task: &Task) -> Option<Reminder>
         list: list.to_string(),
         id: task.id.clone(),
         position,
+        place: place.to_string(),
         text: task.text.clone(),
+        due: task.due.map(|day| day.to_string()),
         at: render_datetime(at),
     })
 }
@@ -84,6 +91,10 @@ pub fn reminder_of(list: &str, position: usize, task: &Task) -> Option<Reminder>
 pub fn ack_key(list: &str, id: &str, at: NaiveDateTime) -> String {
     format!("{list}/{id}@{}", render_datetime(at))
 }
+
+/// How many reminders due at once still ring one notification each. Past
+/// this — a machine back from a day away — they arrive as one.
+pub const RING_APART: usize = 3;
 
 /// Sorts soonest first; ties keep list order, which is the order they came in.
 pub fn sort(reminders: &mut [Reminder]) {
@@ -154,16 +165,18 @@ mod tests {
     fn a_task_rings_at_the_moment_it_asked_for() {
         let mut task = dated("2026-07-25");
         task.remind = parse_datetime("2026-07-24T18:00");
-        let r = reminder_of("Tasks/task-list.md", 3, &task).unwrap();
+        let r = reminder_of("Tasks/task-list.md", "Tasks", 3, &task).unwrap();
         assert_eq!(r.at, "2026-07-24T18:00");
         assert_eq!(r.position, 3);
+        assert_eq!(r.place, "Tasks");
+        assert_eq!(r.due.as_deref(), Some("2026-07-25"));
     }
 
     #[test]
     fn a_date_alone_never_rings() {
         // Dated tasks are announced by the day summary, one notification for
         // the whole day — not by a bell each.
-        assert_eq!(reminder_of("L", 0, &dated("2026-07-25")), None);
+        assert_eq!(reminder_of("L", "L", 0, &dated("2026-07-25")), None);
     }
 
     #[test]
@@ -171,7 +184,7 @@ mod tests {
         let mut task = dated("2026-07-25");
         task.done = true;
         task.remind = parse_datetime("2026-07-24T18:00");
-        assert_eq!(reminder_of("L", 0, &task), None);
+        assert_eq!(reminder_of("L", "L", 0, &task), None);
     }
 
     #[test]
@@ -198,7 +211,9 @@ mod tests {
             list: "L".into(),
             id: None,
             position: 0,
+            place: "L".into(),
             text: String::new(),
+            due: None,
             at: at.into(),
         };
         let mut list = vec![mk("2026-07-25T09:00"), mk("2026-07-24T18:00"), mk("2026-07-25T08:00")];
@@ -212,7 +227,9 @@ mod tests {
             list: "L".into(),
             id: Some(id.into()),
             position: 0,
+            place: "L".into(),
             text: String::new(),
+            due: None,
             at: when.into(),
         }
     }

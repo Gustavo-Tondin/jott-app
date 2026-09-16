@@ -4,6 +4,8 @@
   import { dotStyle } from "../services/accent.js";
   import { priorityClass } from "../services/taskFields.js";
   import { formatDate } from "../services/dates.js";
+  import { formatAt, parseAt, reminderChip } from "../services/reminders.js";
+  import { boundedWait } from "../services/wait.js";
   import { ageStamp } from "../services/age.js";
   import { S } from "../services/strings.js";
   import { played, CEILING } from "../services/motion.js";
@@ -160,6 +162,20 @@
     !task.done && !!task.due && !!today && task.due < today,
   );
 
+  // The minute the reminder chip is read against. Only a card whose reminder
+  // is still ahead keeps a timer: the chip turns overdue when it rings.
+  let now = $state(new Date());
+  $effect(() => {
+    if (!task.remind || task.done || !f("remind")) return;
+    const wait = parseAt(task.remind).getTime() - now.getTime();
+    if (wait < 0) return;
+    const timer = setTimeout(() => (now = new Date()), boundedWait(wait + 1000));
+    return () => clearTimeout(timer);
+  });
+  let remindChip = $derived(
+    task.remind && f("remind") ? reminderChip(task.remind, { today, now, dateFormat }) : null,
+  );
+
   // How old the task is (spec 3.6): stamped by the core; only whether it is
   // drawn is decided here, on the time axis's one switch.
   let stamp = $derived(
@@ -281,7 +297,12 @@
             ><Icon name="sun" size="0.875rem" /></span
           >{/if}
         {#if task.repeat && f("repeat")}<Icon name="arrow-clockwise" size="0.875rem" />{/if}
-        {#if task.remind && f("remind")}<Icon name="alarm" size="0.875rem" />{/if}
+        {#if remindChip}<span
+            class="task-row__field task-row__field--remind"
+            class:task-row__field--overdue={remindChip.passed && !task.done}
+            title={S.reminderAt(formatAt(task.remind, dateFormat))}
+            ><Icon name="alarm" size="0.875rem" />{remindChip.text}</span
+          >{/if}
         {#if task.due && f("dueDate")}<span
             class="task-row__field"
             class:task-row__field--overdue={overdue}

@@ -319,7 +319,14 @@
   .task-row__field--forgotten {
     color: var(--app-warning);
   }
-  /* An overdue due date reads as a warning, not a quiet note. */
+  /* The reminder: its glyph, then the hour (today) or the date. */
+  .task-row__field--remind {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--app-space-2);
+  }
+  /* An overdue due date — or a reminder that rang and was not dealt with —
+     reads as a warning, not a quiet note. */
   .task-row__field--overdue {
     color: var(--app-danger);
     font-weight: var(--app-weight-semibold);
