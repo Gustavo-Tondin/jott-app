@@ -253,7 +253,7 @@
   /* A chosen date, a reminder, or a repeat with a count gets two lines, at
      every width: the label and the × above, the value alone below, filling
      the line — so neither squeezes the other. Unset, the row is one line like
-     the rest. On a panel narrower still, the second control wraps. */
+     the rest. Two controls stay side by side, narrowing together. */
   .inspector__field--stacked {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
@@ -271,9 +271,13 @@
   .inspector__field--stacked .inspector__field-value,
   .inspector__field--stacked .inspector__stepper {
     grid-area: value;
-    flex-wrap: wrap;
     align-items: stretch;
     gap: var(--app-space-4);
+    min-inline-size: 0;
+  }
+  /* Side by side, never wrapped: the two controls give way together. */
+  .inspector__field--stacked .inspector__field-value > *,
+  .inspector__field--stacked .inspector__stepper > * {
     min-inline-size: 0;
   }
   .inspector__field--stacked .inspector__field-value > .date-picker,
