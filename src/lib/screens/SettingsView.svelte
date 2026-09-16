@@ -121,9 +121,8 @@
     if (open) chosen = open;
   });
 
-  /// What opens beside the menu before a choice: Display, not the first
-  /// row — nobody opens Settings to read a version number.
-  const LANDING = "display";
+  /// What opens beside the menu before a choice: About, the first row.
+  const LANDING = "about";
 
   /// Which section is DRAWN. Derived, so a choice invalidated by a resize
   /// (side by side something is always open; on the phone nothing is) or by

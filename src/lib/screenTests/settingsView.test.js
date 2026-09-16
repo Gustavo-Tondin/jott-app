@@ -59,6 +59,7 @@ describe("SettingsView", () => {
     // the notebook is the same notebook.
     bridge({ notebook_settings: settings, set_machine_display: null });
     render(SettingsView, { props: props() });
+    await openSection("Display");
 
     await userEvent.click(await screen.findByRole("button", { name: "Large" }));
     await waitFor(() =>
@@ -73,6 +74,7 @@ describe("SettingsView", () => {
     // so it belongs with the rest of how a note reads on this screen.
     bridge({ notebook_settings: settings, set_machine_display: null });
     render(SettingsView, { props: props() });
+    await openSection("Display");
 
     await userEvent.click(await screen.findByRole("checkbox", { name: "Hyphenate note text" }));
     await waitFor(() =>
@@ -87,6 +89,7 @@ describe("SettingsView", () => {
     // is a fact about this screen, not about the notebook (core/settings.rs).
     bridge({ notebook_settings: settings, set_machine_display: null });
     render(SettingsView, { props: props() });
+    await openSection("Display");
 
     await userEvent.click(await screen.findByRole("button", { name: "Floating" }));
     await waitFor(() =>
@@ -367,6 +370,7 @@ describe("SettingsView", () => {
     // the notebook having to say so.
     bridge({ notebook_settings: settings, set_machine_display: null });
     render(SettingsView, { props: props() });
+    await openSection("Display");
 
     // The MODE's Jott (the segmented group), not the theme row's.
     const jott = (await screen.findAllByRole("button", { name: "Jott" })).find((b) =>
@@ -405,6 +409,7 @@ describe("SettingsView", () => {
     render(SettingsView, {
       props: props({ notebook: { ...notebook, readOnly: true } }),
     });
+    await openSection("Display");
 
     const dark = await screen.findByRole("button", { name: "Dark" });
     expect(dark.hasAttribute("disabled")).toBe(false);
@@ -423,6 +428,7 @@ describe("SettingsView", () => {
   test("shows every documented key with its stored value", async () => {
     bridge({ notebook_settings: settings });
     render(SettingsView, { props: props() });
+    await openSection("Display");
 
     expect(await screen.findByLabelText("Date format")).toBeTruthy();
     expect(screen.getByLabelText("Show task counts in the sidebar").checked).toBe(true);
@@ -445,6 +451,7 @@ describe("SettingsView", () => {
       set_machine_display: null,
     });
     render(SettingsView, { props: props() });
+    await openSection("Display");
 
     await userEvent.click(
       await screen.findByLabelText("Show task counts in the sidebar"),
@@ -485,6 +492,7 @@ describe("SettingsView", () => {
       },
     });
     render(SettingsView, { props: props() });
+    await openSection("Display");
 
     const field = await screen.findByLabelText("Date format");
     await userEvent.selectOptions(field, "yyyy/mm/dd");
@@ -501,6 +509,7 @@ describe("SettingsView", () => {
     expect(await screen.findByText(/newer version of Jott/)).toBeTruthy();
     // What the NOTEBOOK owns is what goes dead. Display is this device's and
     // stays live — the test above says so.
+    await openSection("Display");
     expect(screen.getByLabelText("Date format").disabled).toBe(false);
 
     await openSection("Date preferences");
@@ -706,7 +715,11 @@ describe("SettingsView", () => {
       expect(await screen.findByRole("button", { name })).toBeTruthy();
     }
 
-    // Display leads, and only Display is drawn.
+    // About leads, and only About is drawn.
+    expect(screen.getByLabelText("Check for updates automatically")).toBeTruthy();
+    expect(screen.queryByLabelText("Date format")).toBe(null);
+
+    await openSection("Display");
     expect(screen.getByLabelText("Date format")).toBeTruthy();
     expect(screen.queryByLabelText("Week starts on")).toBe(null);
 
@@ -864,6 +877,7 @@ describe("SettingsView", () => {
     // choice still wins over the layout; the notebook keeps the fallback.
     bridge({ notebook_settings: settings, set_machine_display: null });
     render(SettingsView, { props: props() });
+    await openSection("Display");
 
     const pick = await screen.findByLabelText("Notes board layout");
     await userEvent.selectOptions(pick, "tree");
@@ -1019,6 +1033,7 @@ describe("SettingsView", () => {
     const asked = [];
     bridge({ notebook_settings: settings });
     render(SettingsView, { props: props({ zoom: 1, onZoom: (z) => asked.push(z) }) });
+    await openSection("Display");
 
     const slider = await screen.findByLabelText("Interface zoom");
     await fireEvent.input(slider, { target: { value: "4" } });
@@ -1160,6 +1175,8 @@ describe("SettingsView's first render", () => {
     render(SettingsView, {
       props: { notebook: { path: "/n", name: "n", readOnly: false }, onChanged: noop, onError: noop },
     });
+    // Display is where these live, and Settings opens on About.
+    await userEvent.click(await screen.findByRole("button", { name: "Display" }));
 
     const ink = await screen.findByRole("button", { name: "Ink" });
     expect(ink.getAttribute("aria-pressed")).toBe("true");
