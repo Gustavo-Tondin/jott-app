@@ -422,6 +422,40 @@ describe("the compact shell", () => {
     expect(order[1]).toContain("inspector__gap");
   });
 
+  test("tapping the page behind the task sheet closes it, and selects nothing", async () => {
+    // Closing on the PRESS unmounted the scrim under the finger, and the click
+    // of that same tap reached the row behind — the sheet reopened on another
+    // task. It closes on the click, and only on a tap that began on the scrim.
+    compactShell({
+      platform: "android",
+      screen_to_restore: "tasks",
+      list_tasks: [task("a1", "Comprar leite"), task("a2", "Pagar conta")],
+    });
+
+    const { container } = render(App);
+
+    await userEvent.click(await screen.findByText("Comprar leite"));
+    const scrim = await waitFor(() => {
+      const el = container.querySelector(".sheet-scrim");
+      if (!el) throw new Error("no sheet");
+      return el;
+    });
+
+    // A press that starts inside the sheet and ends on the scrim is not a tap
+    // outside (a text selection dragged past the edge).
+    await fireEvent.pointerDown(container.querySelector(".sheet__body"));
+    await fireEvent.click(scrim);
+    expect(container.querySelector(".sheet-scrim")).toBeTruthy();
+
+    await fireEvent.pointerDown(scrim);
+    expect(container.querySelector(".sheet-scrim")).toBeTruthy();
+    await fireEvent.click(scrim);
+    await waitFor(() => {
+      if (container.querySelector(".sheet-scrim")) throw new Error("still open");
+    });
+    expect(container.querySelector(".inspector__toolbar")).toBeNull();
+  });
+
   test("the desktop panel keeps the button that folds it away", async () => {
     // The other half of the same rule: a column has nowhere to be pulled down
     // to, so it still needs a control.

@@ -25,6 +25,10 @@
   let pulled = $state(0);
   let sheet = $state();
   let from = 0;
+  /// Whether the press began on the scrim. The sheet closes on the CLICK, not
+  /// the press: closing on the press unmounts the scrim under the finger, and
+  /// the click of that same tap lands on the row behind and selects it.
+  let downOnScrim = false;
 
   /// Past this share of its own height, letting go closes it. A third is
   /// the figure both platforms' own sheets use.
@@ -73,7 +77,11 @@
   class="sheet-scrim"
   data-region="canvas"
   role="presentation"
-  onpointerdown={(e) => e.target === e.currentTarget && onClose?.()}
+  onpointerdown={(e) => (downOnScrim = e.target === e.currentTarget)}
+  onclick={(e) => {
+    if (downOnScrim && e.target === e.currentTarget) onClose?.();
+    downOnScrim = false;
+  }}
   onkeydown={onKey}
 >
   <div

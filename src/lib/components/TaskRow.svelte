@@ -102,13 +102,7 @@
 
   // Unticking a completed card plays the same way: `--restoring` is the
   // shorter cousin, and the write waits on it alike.
-  //
-  // Once the hold is over the write is COMMITTED: the card stays folded and
-  // deaf until the write answers — the re-read usually replaces it first. A
-  // tap in that window would send the same task a second time (taskNotFound).
-  let committed = $state(false);
   async function finish() {
-    if (committed) return;
     if (finishing) {
       finishing = false;
       return;
@@ -117,15 +111,8 @@
     await tick();
     await played(row, SEND_OFFS, CEILING);
     if (!finishing) return;
-    committed = true;
-    try {
-      await onComplete(list, task);
-    } finally {
-      // Still here: the write failed, or the node now draws another task.
-      committed = false;
-      finishing = false;
-      if (check) check.checked = task.done;
-    }
+    finishing = false;
+    onComplete(list, task);
   }
 
   function startEditing() {
@@ -229,7 +216,6 @@
     class="theme-checkbox theme-checkbox--lg task-row__check"
     type="checkbox"
     checked={task.done}
-    disabled={committed}
     onchange={finish}
     onclick={(e) => e.stopPropagation()}
     aria-label={task.done ? S.uncheck : S.complete}

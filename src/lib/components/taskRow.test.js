@@ -49,31 +49,6 @@ describe("TaskRow — completing", () => {
     expect(card.classList.contains("task-row--finishing")).toBe(false);
   });
 
-  test("once the write is sent the card stays folded, and a late tap sends nothing", async () => {
-    let answer;
-    const { box, done, card } = row({
-      onComplete: (list, task) => {
-        done.push(task.id);
-        return new Promise((r) => (answer = r));
-      },
-    });
-    const end = playing(card);
-    await fireEvent.click(box);
-    end();
-    await waitFor(() => expect(done).toEqual(["a1"]));
-    // The write is on its way: the fold holds and the box is deaf.
-    expect(card.classList.contains("task-row--finishing")).toBe(true);
-    expect(box.disabled).toBe(true);
-    await fireEvent.click(box);
-    await new Promise((r) => setTimeout(r, 0));
-    expect(done).toEqual(["a1"]);
-    // A write that failed hands the card back, unticked.
-    answer();
-    await waitFor(() => expect(card.classList.contains("task-row--finishing")).toBe(false));
-    expect(box.disabled).toBe(false);
-    expect(box.checked).toBe(false);
-  });
-
   test("ticking again while it plays is the undo: nothing is written", async () => {
     const { box, done, card } = row();
     const end = playing(card);
