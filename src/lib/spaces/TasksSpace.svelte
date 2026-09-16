@@ -313,21 +313,12 @@
     picked = new Set();
   };
 
-  // THE LONG PRESS of a mouse is the other door into selection mode: it marks
-  // the card and turns the screen over to picking (a finger's rest opens the
-  // ring, whose "Reorder" slice is the door there). Once picking, a rest is
-  // not answered at all: a click marks, a hold carries — the card alone, or
-  // the whole pile when it is one of the picked. Matched by the TASK, never
-  // by the entry object: `shown` is rebuilt on every arrangement.
+  // THE DOORS into selection mode are the ring's "Reorder" slice and the ⋮'s
+  // "Select tasks…" — a hold never selects (2026-09-16). Once picking, a
+  // click marks and a drag carries — the card alone, or the whole pile when
+  // it is one of the picked. Matched by the TASK, never by the entry object:
+  // `shown` is rebuilt on every arrangement.
   const entryOf = (entry) => shown.find((candidate) => candidate.task === entry.task);
-  function holdCard(held) {
-    if (readOnly || picking) return false;
-    const entry = entryOf(held);
-    if (!entry) return false;
-    picking = true;
-    picked = new Set([entry]);
-    return true;
-  }
   const carriedWith = (held) => {
     const entry = entryOf(held);
     return picking && entry && picked.has(entry) ? [...picked] : [];
@@ -701,7 +692,6 @@
         onDuplicate={readOnly ? null : (entry) => duplicate(entry.list, entry.task)}
         {daySwipe}
         onReorder={readOnly || all ? null : isDay ? reorderDay : reorderTasks}
-        onHold={readOnly ? null : holdCard}
         ring={ringFor}
         carried={carriedWith}
         onReorderMany={readOnly || all ? null : isDay ? reorderDayMany : reorderTasksMany}

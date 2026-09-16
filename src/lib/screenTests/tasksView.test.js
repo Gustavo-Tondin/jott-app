@@ -195,6 +195,34 @@ describe("TasksView", () => {
     await waitFor(() => expect(row.classList.contains("reorder-item--carried")).toBe(false));
   });
 
+  test("a mouse resting on a card does nothing: the hold no longer selects", async () => {
+    // 2026-09-16: the long press of a mouse used to mark the card and turn
+    // the screen over to picking. The ring took that job (right button on a
+    // desktop), so a cursor held still is just a cursor held still.
+    bridge({
+      list_tasks: [task("a1", "Fix website"), task("a2", "Send invoice")],
+      day_tasks: [],
+      grouped_suggestions: [],
+    });
+    const { container } = render(TasksView, { props: props({ compact: true }) });
+    const card = await screen.findByText("Fix website");
+    const down = new Event("pointerdown", { bubbles: true });
+    Object.assign(down, { button: 0, pointerId: 1, pointerType: "mouse", isPrimary: true, clientX: 40, clientY: 40 });
+    card.dispatchEvent(down);
+    // Longer than either rest the action ever waited (400ms, and the 700ms
+    // this screen used to ask for).
+    await new Promise((r) => setTimeout(r, 750));
+
+    const row = card.closest(".task-row");
+    expect(row.classList.contains("task-row--picked")).toBe(false);
+    expect(row.classList.contains("reorder-item--carried")).toBe(false);
+    expect(container.querySelector(".bulkbar__count")).toBeNull();
+
+    const up = new Event("pointerup", { bubbles: true });
+    Object.assign(up, { pointerId: 1, clientX: 40, clientY: 40 });
+    card.dispatchEvent(up);
+  });
+
   test("the ring's Edit opens the title in a small card, and Enter saves it", async () => {
     bridge({
       list_tasks: [task("a1", "Fix website"), task("a2", "Send invoice")],

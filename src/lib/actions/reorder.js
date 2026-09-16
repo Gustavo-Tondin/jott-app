@@ -8,9 +8,9 @@
 /// (an item's middle is a target); `dropZones(from) => elements` outside the
 /// list + `onDropZone(from, zone)`; `onDragOut(from)` (released clear of the
 /// container); `free(e)` + `freeZones` (no axis lock, no gap, zones only);
-/// `onHold(from)` (true = the caller took the rest); `ring(from)` +
-/// `onRing(from, action)` (the hold opens the action ring instead, and the
-/// same finger picks a slice); `carried(from)` + `onReorderMany(indices, to)`
+/// `ring(from)` + `onRing(from, action)` (a finger's rest opens the action
+/// ring, and the same finger picks a slice); `carried(from)` +
+/// `onReorderMany(indices, to)`
 /// (a selection travels together); `project(from, to, rects) => places`
 /// (a grid's own answer to where every item stands once `from` is put down
 /// at `to` — the preview shows the drop, not a chain of swaps);
@@ -143,10 +143,10 @@ export function reorderable(node, params) {
     if (drag.free) return;
     // A finger on an item dragged by itself rests first (HOLD_MS). With a
     // `handle` the grip is the intent — unless `hold: true` says the handle
-    // is also the row's button. A mouse on a handle is always immediate.
+    // is also the row's button. A mouse never rests: it drags at once.
     const rests = opts.handle
       ? opts.hold && e.pointerType === "touch"
-      : e.pointerType === "touch" || opts.onHold;
+      : e.pointerType === "touch";
     if (rests) {
       drag.holdTimer = setTimeout(hold, opts.holdMs ?? HOLD_MS);
     }
@@ -158,25 +158,12 @@ export function reorderable(node, params) {
   function hold() {
     if (!drag) return;
     drag.holdTimer = null;
-    // THE RING FIRST, and never both: what used to be the hold (selection) is
-    // a slice of it now. Unlike `onHold` the pointer is NOT let go — the same
-    // finger picks a slice. TOUCH ONLY: with a cursor on the screen the same
-    // actions are one click away, on the card's ⋮ (`popRing`).
+    // THE RING FIRST: what used to be the hold (entering selection) is a
+    // slice of it now, and the pointer is NOT let go — the same finger picks
+    // a slice. TOUCH ONLY: with a cursor on the screen the same actions are
+    // one click away, on the card's ⋮ (`popRing`).
     if (drag.touch && openRingFor()) return;
     if (drag.ringOnly) return cancel();
-    // The caller may want the rest for itself (entering selection mode).
-    if (opts.onHold?.(drag.from)) {
-      const el = drag.el;
-      try {
-        el.releasePointerCapture?.(drag.pointerId);
-      } catch {
-        // ignore
-      }
-      drag = null;
-      navigator.vibrate?.(8);
-      swallowNextClick();
-      return;
-    }
     drag.moved = true;
     begin();
     // The one moment the app can say "you have it now" on a screen with no
@@ -428,8 +415,8 @@ export function reorderable(node, params) {
     // it. Nothing was captured yet, so the scroller keeps the gesture whole.
     if (drag.holdTimer) {
       if (Math.hypot(dx, dy) <= HOLD_SLOP) return;
-      // A finger that moved was scrolling. A MOUSE that moved (it only waits
-      // when there is an `onHold` to ask) was dragging, as it always did.
+      // A finger that moved was scrolling. Only a finger ever waits, so
+      // anything else that moved here was dragging.
       if (drag.touch) return cancel();
       clearTimeout(drag.holdTimer);
       drag.holdTimer = null;
