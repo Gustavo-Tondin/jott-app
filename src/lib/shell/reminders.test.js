@@ -62,6 +62,34 @@ describe("scheduleReminders", () => {
     expect(asked).toBe(2);
   });
 
+  test("a rearm during a ring does not ring twice", async () => {
+    // A sync lands while the bell is still being shown: the second pass must
+    // wait for the first, or it reads the old `until` and rings again.
+    let until = "2026-07-22T09:00";
+    const rung = [];
+    let release;
+    const s = scheduleReminders({
+      list: () => [at("a", "2026-07-22T09:30")],
+      until: () => until,
+      ring: async (due, now) => {
+        rung.push(...due.map((r) => r.id));
+        await new Promise((resolve) => (release = resolve));
+        until = now;
+      },
+    });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(rung).toEqual(["a"]);
+    s.rearm();
+    s.rearm();
+    release();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(rung).toEqual(["a"]);
+    // And the loop is still alive afterwards.
+    await vi.advanceTimersByTimeAsync(MAX_WAIT);
+    expect(rung).toEqual(["a"]);
+    s.stop();
+  });
+
   test("a ring that throws is reported and the loop goes on", async () => {
     const errors = [];
     const s = scheduleReminders({

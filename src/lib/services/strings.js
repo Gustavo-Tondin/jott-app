@@ -1026,6 +1026,9 @@ export const S = {
   remindTimeLabel: "reminder time",
   remindDateLabel: "reminder date",
   reminderTitle: "Reminder",
+  /// The in-app fallback when the system would not show a reminder.
+  reminderNotShown: (texts) =>
+    `${texts.length === 1 ? "A reminder" : `${texts.length} reminders`} could not be shown as a notification: ${texts.join(" · ")}`,
   /// The day summary notification, at the start of the day. Not `daySummary`
   /// — that one is the Home's recap of a day gone by.
   dayNoticeTitle: (n) => (n === 1 ? "You have 1 task today" : `You have ${n} tasks today`),

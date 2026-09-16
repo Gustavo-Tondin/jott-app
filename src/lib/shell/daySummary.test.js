@@ -43,6 +43,29 @@ describe("scheduleDaySummary", () => {
     expect(days).toEqual([8]);
   });
 
+  test("a rearm during an announcement does not announce twice", async () => {
+    vi.setSystemTime(new Date(2026, 8, 8, 8, 30));
+    let shownOn = null;
+    let announced = 0;
+    let release;
+    const s = scheduleDaySummary({
+      time: () => "08:00",
+      shownOn: () => shownOn,
+      announce: async () => {
+        announced += 1;
+        await new Promise((resolve) => (release = resolve));
+        shownOn = "2026-09-08";
+      },
+    });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(announced).toBe(1);
+    s.rearm();
+    release();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(announced).toBe(1);
+    s.stop();
+  });
+
   test("a failed announcement is reported and the next one is still armed", async () => {
     const onError = vi.fn();
     scheduleDaySummary({

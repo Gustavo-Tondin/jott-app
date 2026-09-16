@@ -18,8 +18,17 @@ import { MAX_WAIT, summaryDue, waitUntilSummary } from "../services/daySummary.j
 export function scheduleDaySummary({ time, shownOn, announce, onError }) {
   let timer = null;
   let stopped = false;
+  // One pass at a time, as in `reminders.js`: a rearm while `announce` is
+  // still in flight would read the old `shownOn()` and announce twice.
+  let running = false;
+  let dirty = false;
 
   const arm = async () => {
+    if (running) {
+      dirty = true;
+      return;
+    }
+    running = true;
     if (timer) clearTimeout(timer);
     timer = null;
     if (stopped) return;
@@ -34,6 +43,11 @@ export function scheduleDaySummary({ time, shownOn, announce, onError }) {
         onError?.(e);
       }
       if (stopped) return;
+    }
+    running = false;
+    if (dirty) {
+      dirty = false;
+      return arm();
     }
     // Wake at the next one — or in an hour regardless, so a clock jump or a
     // long sleep never leaves the day unannounced.

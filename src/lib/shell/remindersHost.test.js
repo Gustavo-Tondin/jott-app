@@ -3,6 +3,7 @@ import {
   bridge,
   callsTo,
   commandsCalled,
+  fails,
   listen,
   resetBridge,
   sendPluginEvent,
@@ -74,6 +75,33 @@ describe("the reminders host", () => {
     expect(callsTo("ack_reminder")).toEqual([
       { list: "jott.tasks/task-list.md", id: "soon", at: "2026-09-08T10:30" },
     ]);
+  });
+
+  it("a notification that fails is said once and does not come back every hour", async () => {
+    const { h, calls } = host();
+    bridge({
+      reminders: [at("soon", "2026-09-08T10:30"), at("other", "2026-09-08T10:30")],
+      reminded_until: "2026-09-08T09:00",
+      remember_reminded_until: null,
+      notify_reminder: fails("no notification daemon"),
+      ack_reminder: null,
+    });
+    await h.refresh();
+    await vi.advanceTimersByTimeAsync(30 * 60 * 1000);
+
+    expect(callsTo("notify_reminder")).toHaveLength(2);
+    // Said once inside the app, with the tasks named; not acknowledged in
+    // the notebook — nobody saw them, the phone may still ring them.
+    expect(calls.fail).toHaveBeenCalledTimes(1);
+    expect(calls.fail.mock.calls[0][0]).toContain("soon");
+    expect(calls.fail.mock.calls[0][0]).toContain("other");
+    expect(callsTo("ack_reminder")).toEqual([]);
+    // The machine's mark still moved past them, so the hourly wake-up does
+    // not try — and fail — again.
+    expect(callsTo("remember_reminded_until").at(-1)).toEqual({ until: "2026-09-08T10:30" });
+    await vi.advanceTimersByTimeAsync(2 * 60 * 60 * 1000);
+    expect(callsTo("notify_reminder")).toHaveLength(2);
+    expect(calls.fail).toHaveBeenCalledTimes(1);
   });
 
   it("asks the machine's mark once, and re-arms the same loop on every refresh", async () => {

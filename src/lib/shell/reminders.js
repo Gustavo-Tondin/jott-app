@@ -18,8 +18,18 @@ import { dueNow, MAX_WAIT, nextAfter, toAt, waitUntil } from "../services/remind
 export function scheduleReminders({ list, until, ring, onError }) {
   let timer = null;
   let stopped = false;
+  // One pass at a time: a rearm while `ring` is still awaiting the bell would
+  // read the old `until()` and ring the same reminders again. It is noted
+  // and the pass runs again once this one is through.
+  let running = false;
+  let dirty = false;
 
   const arm = async () => {
+    if (running) {
+      dirty = true;
+      return;
+    }
+    running = true;
     if (timer) clearTimeout(timer);
     timer = null;
     if (stopped) return;
@@ -33,6 +43,11 @@ export function scheduleReminders({ list, until, ring, onError }) {
         onError?.(e);
       }
       if (stopped) return;
+    }
+    running = false;
+    if (dirty) {
+      dirty = false;
+      return arm();
     }
     // Wake at the next one — or in an hour regardless, so a clock jump or a
     // long sleep never leaves a reminder unrung until something else moves.

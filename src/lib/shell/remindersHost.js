@@ -47,14 +47,27 @@ export function makeRemindersHost({ open, enabled, mobile, summary, openTask, fa
     await api.ackReminder(reminder.list, reminder.id, reminder.at);
   }
 
+  /// Shows what came due and moves the machine's mark past it — whether or
+  /// not the bell worked. A notification that could not be shown (no
+  /// notification daemon, say) is said ONCE inside the app and not
+  /// acknowledged in the notebook (nobody saw it); without the mark moving
+  /// the hourly wake-up would throw the same error for good.
   async function ring(due, now) {
+    const unshown = [];
     for (const reminder of due) {
       const { title, body } = notice(reminder, S);
-      await api.notifyReminder(title, body, { list: reminder.list, id: reminder.id ?? null });
+      try {
+        await api.notifyReminder(title, body, { list: reminder.list, id: reminder.id ?? null });
+      } catch (e) {
+        console.error("[jott] reminder not shown", e);
+        unshown.push(reminder.text);
+        continue;
+      }
       await ack(reminder);
     }
     remindedUntil = now;
     await api.rememberRemindedUntil(now);
+    if (unshown.length) fail(S.reminderNotShown(unshown));
   }
 
   /// What the summary of `day` says (`null` = today), or null when the day
