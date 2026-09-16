@@ -21,4 +21,5 @@ pub mod assets;
 pub mod day;
 pub mod timeline;
 pub mod reminders;
+pub mod tray;
 pub mod update;

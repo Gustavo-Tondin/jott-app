@@ -199,7 +199,7 @@ pub fn configure<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builde
             commands::timeline::timeline,
             commands::timeline::timeline_years,
             commands::timeline::forget_from_timeline,
-            // reminders — reminders and the tray
+            // reminders — what rings, and the ringing
             commands::reminders::reminders,
             commands::reminders::ack_reminder,
             commands::reminders::reminded_until,
@@ -207,11 +207,12 @@ pub fn configure<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builde
             commands::reminders::day_summarized_on,
             commands::reminders::remember_day_summarized_on,
             commands::reminders::notify_reminder,
-            commands::reminders::close_to_tray,
-            commands::reminders::remember_close_to_tray,
-            commands::reminders::autostart,
-            commands::reminders::set_autostart,
-            commands::reminders::quit_app,
+            // tray — closing to the tray, the session, quitting
+            commands::tray::close_to_tray,
+            commands::tray::remember_close_to_tray,
+            commands::tray::autostart,
+            commands::tray::set_autostart,
+            commands::tray::quit_app,
             // update — this install
             commands::update::app_version,
             commands::update::check_for_update,
