@@ -6,7 +6,7 @@ What changed in each release, written for the person using the app rather than f
 
 One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` and `### Improved` under it. `packaging/release.sh` refuses to tag a version that has no section here. Versions before v0.51.0 predate the file and live only in the commit history.
 
-## v0.56.2
+## v0.57.0
 
 ### New
 
