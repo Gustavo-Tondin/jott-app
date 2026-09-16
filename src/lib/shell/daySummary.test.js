@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { scheduleDaySummary } from "./daySummary.js";
-import { MAX_WAIT } from "../services/daySummary.js";
+import { MAX_WAIT } from "../services/wait.js";
 
 describe("scheduleDaySummary", () => {
   beforeEach(() => {

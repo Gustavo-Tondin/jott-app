@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { scheduleReminders } from "./reminders.js";
-import { MAX_WAIT } from "../services/reminders.js";
+import { MAX_WAIT } from "../services/wait.js";
 
 const at = (id, when) => ({ list: "L", id, position: 0, text: id, at: when, auto: false });
 

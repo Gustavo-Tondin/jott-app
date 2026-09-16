@@ -4,14 +4,8 @@
 // when it is due, what it says, and when the next one is. Scheduling is
 // `shell/daySummary.js`; nothing here reads a clock of its own.
 
-import { clamp } from "./num.js";
 import { toIso } from "./dates.js";
-
-/// The same two bounds as the reminder timer's (services/reminders.js): a
-/// moment already past still waits a beat, and a long sleep must not leave
-/// the summary unannounced for a day.
-export const MIN_WAIT = 1000;
-export const MAX_WAIT = 60 * 60 * 1000;
+import { boundedWait } from "./wait.js";
 
 /// How many task titles the notification lists before it stops naming them.
 /// A system notification is a few lines tall; past this the count says it.
@@ -51,7 +45,7 @@ export function nextSummaryAt({ now = new Date(), time = "08:00", shownOn = null
 /// How long until the next summary, held within the two bounds.
 export function waitUntilSummary(opts = {}) {
   const now = opts.now ?? new Date();
-  return clamp(nextSummaryAt({ ...opts, now }).getTime() - now.getTime(), MIN_WAIT, MAX_WAIT);
+  return boundedWait(nextSummaryAt({ ...opts, now }).getTime() - now.getTime());
 }
 
 /// What the notification says about `tasks` — the day's open tasks, as

@@ -3,19 +3,12 @@
 // schedules the wake-up, and reschedules it from whatever clock the wake-up
 // brought back.
 
-import { clamp } from "../services/num.js";
-
-/// The shortest wait the timer accepts: a turn already in the past still
-/// waits a beat, so a clock that keeps answering "now" cannot spin.
-export const MIN_WAIT = 1000;
-/// And the longest. Cap the wait: a long sleep or a clock jump would otherwise
-/// leave the screen showing yesterday until something else refreshed it.
-export const MAX_WAIT = 60 * 60 * 1000;
+import { boundedWait } from "../services/wait.js";
 
 /// How long until the turn, held within the two bounds.
 export function waitUntilTurn(clock, now = Date.now()) {
   const next = new Date(clock.nextDailyTurn).getTime();
-  return clamp(next - now, MIN_WAIT, MAX_WAIT);
+  return boundedWait(next - now);
 }
 
 /// Keeps waking up at each turn. `clock()` answers the CURRENT day clock

@@ -10,9 +10,8 @@ import {
   splitAt,
   toAt,
   waitUntil,
-  MAX_WAIT,
-  MIN_WAIT,
 } from "./reminders.js";
+import { MAX_WAIT, MIN_WAIT } from "./wait.js";
 
 const at = (list, id, when) => ({ list, id, position: 0, text: id, at: when, auto: false });
 

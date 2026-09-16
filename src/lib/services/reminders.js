@@ -4,14 +4,8 @@
 // string, so comparisons below are string comparisons), the presets, and
 // which are due. Scheduling is `shell/reminders.js`; no timer or bridge here.
 
-import { clamp } from "./num.js";
 import { formatDate, toIso } from "./dates.js";
-
-/// The shortest and longest waits the timer accepts — same reasons as the
-/// turn scheduler's (shell/turn.js): a moment already past still waits a
-/// beat, and a long sleep must not leave a reminder unrung for a day.
-export const MIN_WAIT = 1000;
-export const MAX_WAIT = 60 * 60 * 1000;
+import { boundedWait } from "./wait.js";
 
 const two = (n) => String(n).padStart(2, "0");
 
@@ -104,7 +98,7 @@ export function nextAfter(reminders, now = new Date()) {
 
 /// How long until `at`, held within the two bounds.
 export function waitUntil(at, now = new Date()) {
-  return clamp(parseAt(at).getTime() - now.getTime(), MIN_WAIT, MAX_WAIT);
+  return boundedWait(parseAt(at).getTime() - now.getTime());
 }
 
 /// What the notification says: the task that asked to be reminded.

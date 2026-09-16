@@ -8,7 +8,9 @@
 // (services/androidReminders.js) — a timer in a WebView the OS may kill is
 // not a reminder.
 
-import { dueNow, MAX_WAIT, nextAfter, toAt, waitUntil } from "../services/reminders.js";
+import { dueNow, nextAfter, toAt, waitUntil } from "../services/reminders.js";
+import { MAX_WAIT } from "../services/wait.js";
+import { wakeLoop } from "./wakeLoop.js";
 
 /// `list()` answers the CURRENT reminders (they change with every edit, so
 /// they are asked, not passed); `until()` the moment already rung up to;
@@ -16,55 +18,20 @@ import { dueNow, MAX_WAIT, nextAfter, toAt, waitUntil } from "../services/remind
 /// `ring` throws. Returns `{rearm, stop}`: `rearm` after the list changed,
 /// `stop` when the window goes.
 export function scheduleReminders({ list, until, ring, onError }) {
-  let timer = null;
-  let stopped = false;
-  // One pass at a time: a rearm while `ring` is still awaiting the bell would
-  // read the old `until()` and ring the same reminders again. It is noted
-  // and the pass runs again once this one is through.
-  let running = false;
-  let dirty = false;
-
-  const arm = async () => {
-    if (running) {
-      dirty = true;
-      return;
-    }
-    running = true;
-    if (timer) clearTimeout(timer);
-    timer = null;
-    if (stopped) return;
-    const now = new Date();
-    const reminders = list() ?? [];
-    const due = dueNow(reminders, { now, until: until() });
-    if (due.length) {
-      try {
-        await ring(due, toAt(now));
-      } catch (e) {
-        onError?.(e);
-      }
-      if (stopped) return;
-    }
-    running = false;
-    if (dirty) {
-      dirty = false;
-      return arm();
-    }
+  // Read once per pass: the wait is measured on the list that was rung.
+  let reminders = [];
+  return wakeLoop({
+    due: (now) => {
+      reminders = list() ?? [];
+      return dueNow(reminders, { now, until: until() });
+    },
+    fire: (due, now) => ring(due, toAt(now)),
     // Wake at the next one — or in an hour regardless, so a clock jump or a
     // long sleep never leaves a reminder unrung until something else moves.
-    const next = nextAfter(reminders, now);
-    const wait = next ? waitUntil(next.at, now) : MAX_WAIT;
-    timer = setTimeout(arm, wait);
-  };
-
-  arm();
-  return {
-    rearm: () => {
-      arm();
+    waitAfter: (now) => {
+      const next = nextAfter(reminders, now);
+      return next ? waitUntil(next.at, now) : MAX_WAIT;
     },
-    stop: () => {
-      stopped = true;
-      if (timer) clearTimeout(timer);
-      timer = null;
-    },
-  };
+    onError,
+  });
 }

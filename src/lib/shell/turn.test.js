@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { MAX_WAIT, MIN_WAIT, scheduleTurns, waitUntilTurn } from "./turn.js";
+import { scheduleTurns, waitUntilTurn } from "./turn.js";
+import { MAX_WAIT, MIN_WAIT } from "../services/wait.js";
 
 const clock = (daily) => ({ nextDailyTurn: daily });
 

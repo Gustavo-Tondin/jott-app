@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import {
-  MAX_WAIT,
   NAMED,
   nextSummaryAt,
   summaryAt,
@@ -9,6 +8,7 @@ import {
   waitUntilSummary,
 } from "./daySummary.js";
 import { S } from "./strings.js";
+import { MAX_WAIT } from "./wait.js";
 
 const rows = (...texts) => texts.map((text) => ({ task: { text, done: false } }));
 
