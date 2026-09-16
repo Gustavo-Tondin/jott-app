@@ -591,7 +591,11 @@
     <!-- Fields: icon · label · value, each on its own surface card. -->
     <div class="inspector__fields">
       {#if f("dueDate")}
-      <div class="inspector__field" class:inspector__field--unset={!draft.due}>
+      <div
+        class="inspector__field"
+        class:inspector__field--unset={!draft.due}
+        class:inspector__field--stacked={!!draft.due}
+      >
         <span class="inspector__field-label">
           <Icon name="calendar-blank" size="1rem" />
           <span class="inspector__field-word">{S.completeDateLabel}</span>
@@ -605,17 +609,17 @@
             disabled={readOnly}
             onChange={(iso) => (draft.due = iso)}
           />
-          {#if !readOnly && draft.due}
-            <button
-              class="inspector__tag-remove"
-              onclick={clearDate}
-              aria-label={S.clearDate}
-              title={S.clearDateHint}
-            >
-              <Icon name="x" size="0.625rem" />
-            </button>
-          {/if}
         </span>
+        {#if !readOnly && draft.due}
+          <button
+            class="inspector__tag-remove inspector__field-clear"
+            onclick={clearDate}
+            aria-label={S.clearDate}
+            title={S.clearDateHint}
+          >
+            <Icon name="x" size="0.625rem" />
+          </button>
+        {/if}
       </div>
       {/if}
 
@@ -640,7 +644,11 @@
       {/if}
 
       {#if f("repeat")}
-      <div class="inspector__field" class:inspector__field--unset={!draft.repeatUnit}>
+      <div
+        class="inspector__field"
+        class:inspector__field--unset={!draft.repeatUnit}
+        class:inspector__field--stacked={repeatCounted(draft.repeatUnit)}
+      >
         <span class="inspector__field-label">
           <Icon name="arrow-clockwise" size="1rem" />
           <span class="inspector__field-word">{S.repeatLabel}</span>
@@ -675,14 +683,15 @@
 
       {#if f("remind")}
       <div
-        class="inspector__field inspector__field--reminder"
+        class="inspector__field"
         class:inspector__field--unset={!draft.remind}
+        class:inspector__field--stacked={!!draft.remind}
       >
         <span class="inspector__field-label">
           <Icon name="alarm" size="1rem" />
           <span class="inspector__field-word">{S.remindLabel}</span>
         </span>
-        <span class="inspector__field-value inspector__reminder">
+        <span class="inspector__field-value">
           {#if pickingReminder}
             <DatePicker
               value={splitAt(draft.remind).date}
@@ -717,7 +726,7 @@
         </span>
         {#if !readOnly && draft.remind}
           <button
-            class="inspector__tag-remove inspector__reminder-clear"
+            class="inspector__tag-remove inspector__field-clear"
             onclick={clearReminder}
             aria-label={S.clearReminder}
             title={S.clearReminderHint}

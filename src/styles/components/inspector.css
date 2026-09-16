@@ -224,8 +224,8 @@
     .inspector__field-label {
       flex: 0 0 auto;
     }
-    /* The reminder's label has a line of its own, so its word stays. */
-    .inspector__field--reminder .inspector__field-word {
+    /* A stacked row's label has a line of its own, so its word stays. */
+    .inspector__field--stacked .inspector__field-word {
       position: static;
       inline-size: auto;
       block-size: auto;
@@ -250,10 +250,11 @@
     align-items: center;
     gap: var(--app-space-4);
   }
-  /* The one row with two controls gets two lines, at every width: the label
-     and the × above, the date and the hour alone below — so neither squeezes
-     the other. On a panel narrower still, the hour goes under the date. */
-  .inspector__field--reminder {
+  /* A chosen date, a reminder, or a repeat with a count gets two lines, at
+     every width: the label and the × above, the value alone below, filling
+     the line — so neither squeezes the other. Unset, the row is one line like
+     the rest. On a panel narrower still, the second control wraps. */
+  .inspector__field--stacked {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     grid-template-areas:
@@ -261,19 +262,46 @@
       "value value";
     row-gap: var(--app-space-4);
   }
-  .inspector__field--reminder .inspector__field-label {
+  .inspector__field--stacked .inspector__field-label {
     grid-area: label;
   }
-  .inspector__reminder-clear {
+  .inspector__field--stacked .inspector__field-clear {
     grid-area: clear;
   }
-  .inspector__reminder {
+  .inspector__field--stacked .inspector__field-value,
+  .inspector__field--stacked .inspector__stepper {
     grid-area: value;
-    justify-self: end;
     flex-wrap: wrap;
-    justify-content: flex-end;
+    align-items: stretch;
+    gap: var(--app-space-4);
     min-inline-size: 0;
-    max-inline-size: 100%;
+  }
+  .inspector__field--stacked .inspector__field-value > .date-picker,
+  .inspector__field--stacked .inspector__field-value > .menu {
+    flex: 2 1 6rem;
+  }
+  .inspector__field--stacked .inspector__stepper > .theme-select {
+    flex: 2 1 6rem;
+    text-align: center;
+    text-align-last: center;
+  }
+  .inspector__field--stacked .inspector__stepper > .inspector__repeat-every,
+  .inspector__field--stacked .inspector__time {
+    flex: 1 1 4rem;
+    text-align: center;
+  }
+  /* WebKit lays a time field out in its own box, deaf to text-align. */
+  .inspector__time::-webkit-datetime-edit {
+    display: flex;
+    justify-content: center;
+    inline-size: 100%;
+  }
+  /* A time field and a button of the same class are not the same height:
+     both stretch to the taller one. */
+  .inspector__field--stacked .date-picker__value,
+  .inspector__field--stacked .inspector__reminder-value {
+    inline-size: 100%;
+    block-size: 100%;
   }
   .inspector__time {
     inline-size: auto;

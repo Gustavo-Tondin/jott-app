@@ -7,7 +7,6 @@ import {
   notice,
   parseAt,
   presets,
-  reminderChip,
   splitAt,
   toAt,
 } from "./reminders.js";
@@ -82,26 +81,6 @@ describe("presets from the due date", () => {
       dayBefore: "due",
       onDue: "due",
     });
-  });
-});
-
-describe("the card's chip", () => {
-  const now = new Date(2026, 6, 22, 10, 20);
-
-  test("a reminder of today shows its hour, another day its date", () => {
-    expect(reminderChip("2026-07-22T18:00", { today: "2026-07-22", now })).toEqual({
-      text: "18:00",
-      passed: false,
-    });
-    expect(reminderChip("2026-07-25T18:00", { today: "2026-07-22", now, dateFormat: "dd/mm/yyyy" }).text).toBe(
-      "25/07/2026",
-    );
-    expect(reminderChip("", { now })).toBe(null);
-  });
-
-  test("a reminder that passed reads as overdue, from its own minute on", () => {
-    expect(reminderChip("2026-07-22T10:20", { today: "2026-07-22", now }).passed).toBe(true);
-    expect(reminderChip("2026-07-22T10:21", { today: "2026-07-22", now }).passed).toBe(false);
   });
 });
 

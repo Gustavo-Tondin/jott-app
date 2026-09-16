@@ -20,7 +20,7 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 
 ### Fixed
 
-- **The reminder field of a task's panel no longer spills out of a narrow panel**: its date and hour sit on their own line, under the name and the ×.
+- **The date, reminder and repeat fields of a task's panel no longer spill out of a narrow panel**: once chosen, their controls fill a line of their own under the name and the ×, at the same height.
 - **A reminder that appeared on one device while you were away still rings on the other**: only clicking, answering or dismissing the notification counts as seen, not the banner timing out.
 - **On Android, updating Jott no longer crashes it in the background** over reminders an older version had scheduled.
 - **Ticking a task off can no longer send it twice**: once the card has left, a late tap does nothing, instead of showing "no task with id" while the task was already completed.
@@ -37,7 +37,7 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 
 ### Improved
 
-- **A task card shows the hour of today's reminder**, or its date on another day, and a reminder that rang and was not dealt with reads as overdue.
+- **A task card marks a reminder with a small clock**, the moment in its tooltip; the date on the card stays the task's own.
 - **A reminder notification leads with the task** and says which list it is in and when it is due; reminders missed while Jott was closed arrive as one notification, and the day summary names the day's first reminder.
 - **Holding a card with the mouse no longer turns the screen over to selecting tasks**: the right button opens the same ring of actions, and its “Reorder” slice is the way into picking.
 - **The + that makes a task or a note is easier to find**: it is round now, a little bigger than the buttons beside it and standing clear of them — the same shape on the computer and on the phone. The bar it closes arrives a moment after the rest of the screen, so the eye lands on it.

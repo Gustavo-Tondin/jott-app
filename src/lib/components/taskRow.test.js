@@ -214,22 +214,17 @@ describe("TaskRow — the reminder", () => {
       ...extra,
     }).container.querySelector(".task-row__field--remind");
 
-  test("a reminder of today shows its hour", () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date(2026, 6, 22, 10, 0));
-    const chip = remindRow("2026-07-22T18:00:00");
-    expect(chip.textContent.trim()).toBe("18:00");
-    expect(chip.classList.contains("task-row__field--overdue")).toBe(false);
-  });
-
-  test("a reminder that passed reads as overdue, and turns so when it rings", async () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date(2026, 6, 22, 10, 0));
-    expect(remindRow("2026-07-22T09:00:00").classList.contains("task-row__field--overdue")).toBe(true);
-    const ahead = remindRow("2026-07-22T10:05:00");
-    expect(ahead.classList.contains("task-row__field--overdue")).toBe(false);
-    await vi.advanceTimersByTimeAsync(6 * 60 * 1000);
-    expect(ahead.classList.contains("task-row__field--overdue")).toBe(true);
+  test("a reminder is a glyph alone, the moment in its tooltip, open or done", () => {
+    for (const done of [false, true]) {
+      const chip = row({
+        task: { id: "a1", text: "Fix website", done, tags: [], subtasks: [], remind: "2026-07-22T18:00:00" },
+        today: "2026-07-22",
+      }).container.querySelector(".task-row__field--remind");
+      expect(chip.textContent.trim()).toBe("");
+      expect(chip.querySelector("svg")).not.toBeNull();
+      expect(chip.getAttribute("title")).toContain("18:00");
+      expect(chip.classList.contains("task-row__field--overdue")).toBe(false);
+    }
   });
 
   test("switched off, the card draws no reminder", () => {

@@ -91,18 +91,6 @@ export function presets({ now = new Date(), due = "", time = "09:00" } = {}) {
   return out;
 }
 
-/// What a card draws for its reminder: the hour when it is `today`, else the
-/// date as the notebook draws dates; `passed` once its minute has come on a
-/// task still open — it rang and was not dealt with. Null without one.
-export function reminderChip(at, { today = "", now = new Date(), dateFormat = "mm/dd/yyyy" } = {}) {
-  const { date, time } = splitAt(at);
-  if (!date) return null;
-  return {
-    text: date === (today || toIso(now)) ? time : formatDate(date, dateFormat),
-    passed: normalizeAt(at) <= toAt(now),
-  };
-}
-
 /// What the notification says: the task leads, and the body says where it
 /// lives and, when it has one, its date. The desktop's twin is in
 /// `src-tauri/src/ringer.rs`.
