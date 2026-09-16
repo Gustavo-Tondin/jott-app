@@ -11,6 +11,7 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 ### New
 
 - **Reminder notifications have Done, Later and Tomorrow buttons** on Linux and Android: Later rings again in an hour, Tomorrow at your reminder time, and none of them opens the app.
+- **Settings › Tasks on Android says whether Jott may notify and ring alarms on the minute**, with a button to the system screen that allows it when it may not.
 - **A reorder mode for notes**: pick "Reorder" on a card's ring (or "Reorder notes…" in the notepad's ⋮), tap the cards you mean, and hold one to carry them all together — onto a new place, into a folder, or onto another notepad in the sidebar. The bar at the foot moves or deletes what you marked. Tasks have the same mode, from the same slice.
 - **Tasks can be pinned on the Home for today**: the pin brings a task to the top of the day without touching its list, and it clears when the day turns.
 - **A "The day before" reminder for dated tasks**: the reminder menu is now grouped — from now, from the due date, pick — with an icon per option, and picking a date starts from the reminder already chosen (or tomorrow).

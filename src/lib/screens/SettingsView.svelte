@@ -445,6 +445,7 @@
             {features}
             onSet={setFeature}
             {compact}
+            {mobile}
             {readOnly}
             onReset={() => resetSection(fn)}
           />

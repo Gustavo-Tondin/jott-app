@@ -108,7 +108,10 @@ JNI (`reminder_actions.rs`: one function, JSON in and JSON out, over
 notification plugin is kept only to ask for the permission: every button of
 its notifications starts the activity, which is exactly what these buttons
 exist to avoid. Tapping the body does open the app, and `MainActivity` hands
-the task to the page.
+the task to the page. Whether a reminder can ring at all — notifications
+allowed, exact alarms allowed — is asked of `JottAndroid.reminderAccess`, not
+of the plugin, whose answer is cached in the page and goes stale when the
+permission changes on the system screen.
 
 ## `src/` — the frontend
 

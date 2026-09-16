@@ -1,6 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { bridge, callsTo, invoke, resetBridge } from "../test/bridge.js";
-import { onAndroidReminderTap, reminderId, syncAndroidReminders } from "./androidReminders.js";
+import {
+  onAndroidReminderTap,
+  reminderAccess,
+  reminderId,
+  syncAndroidReminders,
+} from "./androidReminders.js";
 import { S } from "./strings.js";
 
 // The plugin's own JS does not import `@tauri-apps/api/core` — it calls
@@ -108,5 +113,18 @@ describe("a tapped notification", () => {
     expect(open).toHaveBeenCalledWith({ list: "jott.tasks/task-list.md", id: "abc123", at: "2026-09-08T09:00" });
     window.__jottOpenReminder({ list: "", id: "", at: "" });
     expect(open).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("what stands between a reminder and the ring", () => {
+  it("is read from the bridge, and is nothing where the bridge cannot say", () => {
+    window.JottAndroid.reminderAccess = () => '{"notifications":false,"exact":true}';
+    expect(reminderAccess()).toEqual({ notifications: false, exact: true });
+    window.JottAndroid.reminderAccess = () => {
+      throw new Error("gone");
+    };
+    expect(reminderAccess()).toBeNull();
+    delete window.JottAndroid;
+    expect(reminderAccess()).toBeNull();
   });
 });

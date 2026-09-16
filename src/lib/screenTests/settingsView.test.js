@@ -584,6 +584,48 @@ describe("SettingsView", () => {
     );
   });
 
+  test("a phone says whether a reminder can ring, and a blocked one opens its screen", async () => {
+    let answer = { notifications: true, exact: false };
+    const opened = [];
+    window.JottAndroid = {
+      reminderAccess: () => JSON.stringify(answer),
+      openReminderAccess: (which) => opened.push(which),
+    };
+    try {
+      bridge({ notebook_settings: { ...settings, reminderTime: "09:00" } });
+      render(SettingsView, {
+        props: props({ mobile: true, notebook: { ...notebook, layout: { features: { remind: true } } } }),
+      });
+      await openSection("Tasks");
+
+      const notifications = await screen.findByText("Allowed");
+      expect(notifications.dataset.access).toBe("notifications");
+      expect(document.querySelector('[data-access="exact"]').textContent.trim()).toBe("Blocked");
+      await userEvent.click(screen.getByRole("button", { name: "Allow" }));
+      expect(opened).toEqual(["exact"]);
+
+      // Back from the system screen, allowed: the row reads it.
+      answer = { notifications: true, exact: true };
+      document.dispatchEvent(new CustomEvent("android-reminder-access-changed"));
+      await waitFor(() =>
+        expect(document.querySelector('[data-access="exact"]').textContent.trim()).toBe("Allowed"),
+      );
+      expect(screen.queryByRole("button", { name: "Allow" })).toBeNull();
+    } finally {
+      delete window.JottAndroid;
+    }
+  });
+
+  test("a desktop has no permission rows", async () => {
+    bridge({ notebook_settings: settings });
+    render(SettingsView, {
+      props: props({ notebook: { ...notebook, layout: { features: { remind: true } } } }),
+    });
+    await openSection("Tasks");
+    await screen.findByLabelText("Reminder time");
+    expect(document.querySelector("[data-access]")).toBeNull();
+  });
+
   test("the tray and the session start are this install's, and not on a phone", async () => {
     bridge({
       notebook_settings: settings,

@@ -6,6 +6,8 @@
   export const index = () => [
     S.autoUrgentByDate,
     S.reminderTime,
+    S.reminderNotifications,
+    S.reminderExactAlarms,
     S.dayNotice,
     S.dayNoticeTime,
     S.newTasksGoTo,
@@ -16,7 +18,13 @@
 <script>
   // The Tasks function's page: its screens and fields, each with its
   // switch, and the notebook rules that hang off them.
+  import { untrack } from "svelte";
   import { childrenIn, on } from "../../services/features.js";
+  import {
+    openReminderAccess,
+    reminderAccess,
+    watchReminderAccess,
+  } from "../../services/androidReminders.js";
   import FeatureRow from "./FeatureRow.svelte";
   import HelpTip from "./HelpTip.svelte";
   import SettingsSection from "./SettingsSection.svelte";
@@ -28,8 +36,23 @@
     onSet,
     compact = false,
     readOnly = false,
+    /// Android (shell/platform.js): the rows that say whether a reminder can ring.
+    mobile = false,
     onReset,
   } = $props();
+
+  // The phone's permissions, read on open and again whenever the app comes
+  // back from the system screen that changes them. Null off Android.
+  let access = $state(untrack(() => mobile) ? reminderAccess() : null);
+  $effect(() => {
+    if (!mobile) return;
+    return watchReminderAccess((answer) => (access = answer));
+  });
+
+  const accessRows = [
+    { key: "notifications", label: () => S.reminderNotifications, hint: () => S.reminderNotificationsHint },
+    { key: "exact", label: () => S.reminderExactAlarms, hint: () => S.reminderExactAlarmsHint },
+  ];
 </script>
 
 <SettingsSection title={S.featureTasks} {compact} features {onReset} resetDisabled={readOnly}>
@@ -77,6 +100,29 @@
           onchange={(e) => put({ reminderTime: e.currentTarget.value })}
         />
       </label>
+      <!-- A machine's answer, not the notebook's: never readOnly. -->
+      {#if access}
+        {#each accessRows as row (row.key)}
+          <div class="settings__row settings__row--sub">
+            <span class="settings__label">
+              {row.label()}
+              <HelpTip label={row.label()} text={row.hint()} />
+            </span>
+            <span class="settings__row-end">
+              <span class="settings__value" data-access={row.key}>
+                {access[row.key] ? S.reminderAccessAllowed : S.reminderAccessBlocked}
+              </span>
+              {#if !access[row.key]}
+                <button
+                  type="button"
+                  class="theme-btn theme-btn--outline theme-btn--xs"
+                  onclick={() => openReminderAccess(row.key)}>{S.reminderAccessAllow}</button
+                >
+              {/if}
+            </span>
+          </div>
+        {/each}
+      {/if}
     {/if}
   {/each}
 

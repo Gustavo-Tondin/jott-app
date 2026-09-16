@@ -7,7 +7,12 @@ import { listen } from "@tauri-apps/api/event";
 import { api } from "../services/api.js";
 import { firstReminderOn, nextSummaryAt, summaryNotice } from "../services/daySummary.js";
 import { toIso } from "../services/dates.js";
-import { onAndroidReminderTap, syncAndroidReminders } from "../services/androidReminders.js";
+import {
+  onAndroidReminderTap,
+  reminderAccess,
+  syncAndroidReminders,
+  watchReminderAccess,
+} from "../services/androidReminders.js";
 import { S } from "../services/strings.js";
 
 /// - `open()` — whether a notebook is open; `enabled()` — the Reminders
@@ -47,6 +52,16 @@ export function makeRemindersHost({ open, enabled, mobile, summary, dateFormat, 
       onAndroidReminderTap(async (target) => {
         await ack(target).catch(fail);
         openTask(target.list, target.id);
+      });
+      // Back from the system screen that allows notifications or exact
+      // alarms: what was not scheduled then is scheduled now. Only a CHANGE
+      // resyncs — the event fires on every return to the app.
+      let seen = JSON.stringify(reminderAccess());
+      watchReminderAccess((access) => {
+        const now = JSON.stringify(access);
+        if (now === seen) return;
+        seen = now;
+        refresh();
       });
     }
     const scope = (await api.reminderScope().catch(() => null)) ?? {};

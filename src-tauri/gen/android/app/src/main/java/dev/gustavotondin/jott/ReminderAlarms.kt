@@ -203,12 +203,18 @@ object ReminderAlarms {
   }
 }
 
-/** Fires a stored alarm, and sets them all again after a reboot or an update. */
+/**
+ * Fires a stored alarm, and sets them all again after a reboot, an update, or
+ * the exact-alarm permission being granted (the inexact ones become exact).
+ */
 class ReminderAlarmReceiver : BroadcastReceiver() {
   override fun onReceive(context: Context, intent: Intent) {
     when (intent.action) {
       ReminderAlarms.RING -> ReminderAlarms.fire(context, intent.getIntExtra("key", 0))
-      Intent.ACTION_BOOT_COMPLETED, Intent.ACTION_MY_PACKAGE_REPLACED -> ReminderAlarms.rearm(context)
+      Intent.ACTION_BOOT_COMPLETED,
+      Intent.ACTION_MY_PACKAGE_REPLACED,
+      AlarmManager.ACTION_SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED,
+      -> ReminderAlarms.rearm(context)
     }
   }
 }

@@ -38,8 +38,12 @@ export async function syncAndroidReminders(
   reminders,
   { now = new Date(), strings, dateFormat, summary = null, scope = {} } = {},
 ) {
+  // The system is asked through the bridge first: the plugin caches its
+  // answer in the page, so a permission granted on the system screen stayed
+  // "denied" until the app restarted.
   const plugin = await import("@tauri-apps/plugin-notification");
-  if (!(await plugin.isPermissionGranted())) {
+  const allowed = reminderAccess()?.notifications ?? (await plugin.isPermissionGranted());
+  if (!allowed) {
     if ((await plugin.requestPermission()) !== "granted") return false;
   }
 
@@ -95,4 +99,33 @@ export function onAndroidReminderTap(open) {
   window.__jottOpenReminder = (detail) => {
     if (detail?.list) open({ list: detail.list, id: detail.id || null, at: detail.at || "" });
   };
+}
+
+/// `{notifications, exact}` — whether the phone may post a reminder and ring
+/// it on the minute — or null where there is no alarm bridge (the desktop, or
+/// a bridge that cannot answer).
+export function reminderAccess() {
+  const bridge = native();
+  if (!bridge?.reminderAccess) return null;
+  try {
+    const { notifications, exact } = JSON.parse(bridge.reminderAccess());
+    return { notifications: !!notifications, exact: !!exact };
+  } catch {
+    return null;
+  }
+}
+
+/// Opens the system screen that allows `which` (`"notifications"` or
+/// `"exact"`). The answer arrives through `watchReminderAccess`.
+export function openReminderAccess(which) {
+  native()?.openReminderAccess?.(which);
+}
+
+/// Calls `fn(reminderAccess())` whenever the app comes back to the front,
+/// which is how a system screen hands the answer back. Returns the unsubscribe.
+export function watchReminderAccess(fn) {
+  if (typeof document === "undefined") return () => {};
+  const listener = () => fn(reminderAccess());
+  document.addEventListener("android-reminder-access-changed", listener);
+  return () => document.removeEventListener("android-reminder-access-changed", listener);
 }

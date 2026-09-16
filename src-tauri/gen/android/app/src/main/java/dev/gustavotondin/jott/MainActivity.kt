@@ -401,9 +401,11 @@ class MainActivity : TauriActivity() {
       darkBars?.let { paintBars(it.first, it.second) }
       webView?.let { ViewCompat.requestApplyInsets(it) }
       // Coming back from the system Settings screen is how the file permission
-      // is granted, and nothing else tells the page that it changed.
+      // is granted, and nothing else tells the page that it changed. The same
+      // holds for notifications and exact alarms.
       webView?.evaluateJavascript(
-        "document.dispatchEvent(new CustomEvent('android-storage-changed'))",
+        "document.dispatchEvent(new CustomEvent('android-storage-changed'));" +
+          "document.dispatchEvent(new CustomEvent('android-reminder-access-changed'))",
         null,
       )
     }
@@ -482,6 +484,41 @@ class MainActivity : TauriActivity() {
       runCatching { ReminderAlarms.schedule(applicationContext, payload) }
         .onFailure { android.util.Log.e(ReminderAlarms.TAG, "reminders: not scheduled", it) }
         .isSuccess
+
+    /**
+     * What stands between a reminder and the phone ringing it, as JSON:
+     * `{notifications, exact}` — whether the app may post, and whether its
+     * alarms land on the minute rather than when Doze allows.
+     */
+    @JavascriptInterface
+    fun reminderAccess(): String {
+      val alarms = getSystemService(android.app.AlarmManager::class.java)
+      val exact = Build.VERSION.SDK_INT < Build.VERSION_CODES.S || alarms?.canScheduleExactAlarms() == true
+      return JSONObject()
+        .put("notifications", androidx.core.app.NotificationManagerCompat.from(this@MainActivity).areNotificationsEnabled())
+        .put("exact", exact)
+        .toString()
+    }
+
+    /**
+     * Opens the system screen where `which` (`"notifications"` or `"exact"`) is
+     * allowed, falling back to the app's own info screen. The answer comes back
+     * through [onWindowFocusChanged], like the storage permission's.
+     */
+    @JavascriptInterface
+    fun openReminderAccess(which: String) {
+      runOnUiThread {
+        val screen = when {
+          which == "exact" && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ->
+            Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, Uri.fromParts("package", packageName, null))
+          which == "notifications" && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O ->
+            Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
+          else -> null
+        }
+        val info = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", packageName, null))
+        runCatching { startActivity(screen ?: info) }.recoverCatching { startActivity(info) }
+      }
+    }
 
     @JavascriptInterface
     fun pickFolder() {

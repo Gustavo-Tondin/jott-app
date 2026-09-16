@@ -648,6 +648,16 @@ export const S = {
     "A task only rings on its own if you gave it a reminder.",
   reminderTime: "Reminder time",
   reminderTimeHint: "The hour the task panel's reminder presets land on.",
+  /// The phone's rows under it: what stands between a reminder and the ring.
+  reminderNotifications: "Notifications",
+  reminderNotificationsHint:
+    "Reminders and the day summary are notifications. Blocked, nothing rings.",
+  reminderExactAlarms: "Exact alarms",
+  reminderExactAlarmsHint:
+    "Without them Android rings a reminder when it saves the battery best, minutes late.",
+  reminderAccessAllowed: "Allowed",
+  reminderAccessBlocked: "Blocked",
+  reminderAccessAllow: "Allow",
   closeToTray: "Keep Jott running in the tray when the window closes",
   closeToTrayHint:
     "Reminders ring while Jott waits in the tray. On GNOME the tray icon needs the AppIndicator extension.",
