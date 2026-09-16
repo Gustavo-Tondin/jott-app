@@ -5,8 +5,6 @@
 
 import { invoke } from "@tauri-apps/api/core";
 import { notice, parseAt } from "./reminders.js";
-import { summaryAt } from "./daySummary.js";
-import { toIso } from "./dates.js";
 
 /// How many upcoming reminders the system holds at once. Android caps
 /// pending alarms per app (500), and every open re-syncs.
@@ -30,18 +28,14 @@ export function reminderId(reminder) {
 /// `batch` by name (`sendNotification()` sets the alarm but never stores it,
 /// so `pending()` and the reboot re-registration miss it); `sourceJson` is
 /// set here because the plugin reads it back and never writes it. See docs/platform-gotchas.md#android
-/// The day summary as an alarm, or null when there is nothing to announce:
-/// the next `time` still ahead, carrying the text the day reads RIGHT NOW.
-/// Android holds no timer of ours, so the count is the one the last sync saw
-/// — every open and every notebook change re-syncs it.
-function summaryAlarm(summary, now) {
-  if (!summary?.notice || !summary.time) return null;
-  let at = summaryAt(toIso(now), summary.time);
-  if (at <= now) {
-    at = new Date(at);
-    at.setDate(at.getDate() + 1);
-  }
-  return { at, ...summary.notice };
+/// The day summary as an alarm, or null when there is nothing to announce.
+/// `summary` is `{at, notice}`: the moment the host chose (`nextSummaryAt`)
+/// and what THAT day reads at sync time. Android holds no timer of ours, so
+/// the count is the one the last sync saw — every open and every notebook
+/// change re-syncs it.
+function summaryAlarm(summary) {
+  if (!summary?.notice || !(summary.at instanceof Date)) return null;
+  return { at: summary.at, ...summary.notice };
 }
 
 export async function syncAndroidReminders(
@@ -62,7 +56,7 @@ export async function syncAndroidReminders(
   }
   if (pending.length) await plugin.cancel(pending.map((n) => n.id));
   const upcoming = reminders.filter((r) => parseAt(r.at) > now).slice(0, SCHEDULED_AHEAD);
-  const alarm = summaryAlarm(summary, now);
+  const alarm = summaryAlarm(summary);
   if (upcoming.length === 0 && !alarm) return true;
   const notifications = upcoming.map((reminder) => {
     const { title, body } = notice(reminder, strings);

@@ -34,16 +34,24 @@ export function summaryDue({ now = new Date(), time = "08:00", shownOn = null } 
   return now >= summaryAt(today, time);
 }
 
-/// How long until the next summary — today's if its hour is still ahead and
-/// it has not been shown, else tomorrow's — held within the two bounds.
-export function waitUntilSummary({ now = new Date(), time = "08:00", shownOn = null } = {}) {
+/// The next moment a summary falls on: today's hour while it is still ahead
+/// (and, given `shownOn`, not announced yet), else tomorrow's. The DAY of
+/// that moment is the day the summary is about — Android reads it at sync
+/// time, so an alarm landing tomorrow must carry tomorrow's tasks.
+export function nextSummaryAt({ now = new Date(), time = "08:00", shownOn = null } = {}) {
   const today = toIso(now);
   let next = summaryAt(today, time);
   if (next <= now || shownOn === today) {
     next = new Date(next);
     next.setDate(next.getDate() + 1);
   }
-  return clamp(next.getTime() - now.getTime(), MIN_WAIT, MAX_WAIT);
+  return next;
+}
+
+/// How long until the next summary, held within the two bounds.
+export function waitUntilSummary(opts = {}) {
+  const now = opts.now ?? new Date();
+  return clamp(nextSummaryAt({ ...opts, now }).getTime() - now.getTime(), MIN_WAIT, MAX_WAIT);
 }
 
 /// What the notification says about `tasks` — the day's open tasks, as

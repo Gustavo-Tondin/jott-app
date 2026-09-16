@@ -113,6 +113,27 @@ describe("the reminders host", () => {
     expect(callsTo("notify_reminder")).toEqual([]);
   });
 
+  it("an alarm that lands tomorrow carries tomorrow's tasks", async () => {
+    // 10:00 is past 08:00: the phone's summary rings tomorrow, so it is
+    // tomorrow's tasks it asks for — not today's, which it used to list.
+    const { h } = host({ mobile: true, summary: { on: true, time: "08:00" } });
+    bridge({
+      reminders: [],
+      reminded_until: "2026-09-08T09:00",
+      day_summarized_on: null,
+      day_tasks: [{ task: { text: "Amanhã", done: false } }],
+      "plugin:notification|is_permission_granted": true,
+      "plugin:notification|get_pending": [],
+      "plugin:notification|batch": [1],
+    });
+    await h.refresh();
+    expect(callsTo("day_tasks")).toEqual([{ day: "2026-09-09" }]);
+    const [batch] = callsTo("plugin:notification|batch");
+    const summary = batch.notifications.at(-1);
+    expect(summary.schedule.at.date).toEqual(new Date(2026, 8, 9, 8, 0));
+    expect(summary.body).toBe("• Amanhã");
+  });
+
   it("announces the day summary at its hour, once, and remembers the day", async () => {
     const { h } = host({ summary: { on: true, time: "11:00" } });
     bridge({

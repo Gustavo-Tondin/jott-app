@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import {
   MAX_WAIT,
   NAMED,
+  nextSummaryAt,
   summaryAt,
   summaryDue,
   summaryNotice,
@@ -44,6 +45,13 @@ describe("when it wakes up next", () => {
     // Tomorrow is more than an hour away: the cap keeps a clock jump or a
     // long sleep from swallowing the day.
     expect(waitUntilSummary({ now, time: "08:00", shownOn: "2026-09-08" })).toBe(MAX_WAIT);
+  });
+
+  test("the next summary is today's while its hour is ahead, else tomorrow's", () => {
+    expect(nextSummaryAt({ now: new Date(2026, 8, 8, 7, 30), time: "08:00" })).toEqual(new Date(2026, 8, 8, 8, 0));
+    // Past the hour, the day the alarm is about is tomorrow — the day the
+    // phone's summary has to list.
+    expect(nextSummaryAt({ now: new Date(2026, 8, 8, 10, 0), time: "08:00" })).toEqual(new Date(2026, 8, 9, 8, 0));
   });
 
   test("tomorrow's once today's was announced", () => {

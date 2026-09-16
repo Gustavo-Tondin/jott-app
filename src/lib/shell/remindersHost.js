@@ -8,7 +8,7 @@
 import { listen } from "@tauri-apps/api/event";
 import { api } from "../services/api.js";
 import { notice, toAt } from "../services/reminders.js";
-import { summaryNotice } from "../services/daySummary.js";
+import { nextSummaryAt, summaryNotice } from "../services/daySummary.js";
 import { toIso } from "../services/dates.js";
 import { onAndroidReminderTap, syncAndroidReminders } from "../services/androidReminders.js";
 import { scheduleReminders } from "./reminders.js";
@@ -57,10 +57,11 @@ export function makeRemindersHost({ open, enabled, mobile, summary, openTask, fa
     await api.rememberRemindedUntil(now);
   }
 
-  /// What the summary says right now, or null when the day holds nothing —
-  /// asked at announcement time on desktop, and at sync time on Android.
-  async function currentSummary() {
-    return summaryNotice(await api.dayTasks(null), S);
+  /// What the summary of `day` says (`null` = today), or null when the day
+  /// holds nothing — asked at announcement time on desktop, and at sync time
+  /// on Android, for the day the alarm will land on.
+  async function currentSummary(day = null) {
+    return summaryNotice(await api.dayTasks(day), S);
   }
 
   async function announce(now) {
@@ -108,9 +109,10 @@ export function makeRemindersHost({ open, enabled, mobile, summary, openTask, fa
       }
       // A `pending()` that throws (the store of an older build) is worth a
       // line in the log and not a notice: the sync goes on without it.
+      const summaryAt = summaryOn ? nextSummaryAt({ time: summaryTime }) : null;
       await syncAndroidReminders(reminders, {
         strings: S,
-        summary: summaryOn ? { time: summaryTime, notice: await currentSummary() } : null,
+        summary: summaryAt ? { at: summaryAt, notice: await currentSummary(toIso(summaryAt)) } : null,
         onError: (error) => console.warn("reminders: pending() failed", error),
       }).catch(fail);
       return;
