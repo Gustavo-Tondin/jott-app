@@ -57,6 +57,25 @@
        and the 48px minimum above deliberately does not reach them. The rule
        is stated in topbar.css, where the length lives. */
 
+    /* AND THE FORMATTING BAR IS THE SECOND, for the opposite reason: it stands
+       over the keyboard, so every pixel of its height is a pixel of the note
+       the writer cannot see. Its glyphs take the top bar's own length — the
+       two floating bars are then one family — and the bar is the target. */
+    .format-strip .theme-btn--icon,
+    .format-float .theme-btn--icon,
+    .format-bar__panel .theme-btn--icon {
+      block-size: var(--app-topbar-control);
+      min-block-size: 0;
+    }
+    /* Not the labelled row of the table panel: it is a word beside the glyph
+       and states its own width (components/format-bar.css). */
+    .format-strip .theme-btn--icon,
+    .format-float .theme-btn--icon,
+    .format-bar__panel .theme-btn--icon:not(.format-bar__button--labelled) {
+      inline-size: var(--app-topbar-control);
+      min-inline-size: 0;
+    }
+
     /* A task row. The 20px checkbox must NOT grow — it is the shape that says
        "task" — so the row takes the minimum; the whole card opens the task. */
     .task-row {
@@ -199,6 +218,15 @@
     /* The one `--xs` that keeps its density (32px), so it keeps a small corner. */
     .list-view__action {
       border-radius: var(--app-radius-sm);
+    }
+    /* The formatting bar's floating pieces, the strip's twins: the corner is
+       the glyph's plus the 2px that frames it, so the fold's panel and the bar
+       it opens from carry the same one. The strip states it in its own sheet;
+       these two are `md` on a desktop, where the glyph is smaller. */
+    .format-float,
+    .format-bar__panel {
+      --format-inner-radius: calc(var(--app-radius-lg) - var(--app-space-2));
+      border-radius: var(--app-radius-lg);
     }
     /* The segmented control is the one nesting here whose child sits FLUSH, so
        the two move together and the corner stays concentric: the track is the
