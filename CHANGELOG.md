@@ -58,6 +58,7 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 - **A card answers a tap with a soft wash of the accent** inside its own rounded corners, instead of the square grey flash of the system.
 - **A task card keeps its bookmark and its age together at its end**, so the title sits in the middle whether or not the task has fields; the × on a completed card takes the bookmark's place.
 - **Opening a task from the search lands on its own list**, the screen you always read it on, with the task open in the panel and brought to the middle; a completed one unfolds the Completed run. Home, the timeline and a reminder open tasks the same way.
+- **Two search shortcuts, as in a browser**: Ctrl+F finds on the screen you are on — inside the open note, or in the space on screen — and Ctrl+Space searches the whole notebook from anywhere, a note included.
 - **Opening a note from the search lights the word you looked for**: the first place it appears is centred on screen and highlighted for a moment.
 - **The search box is simpler**: the magnifier sits inside the field, a small × inside it clears what you typed, and the results say only which space a hit is from — and "completed" for a done task — instead of repeating the list or the Inbox folder on every row. The Completed screen no longer says every task goes back to the main list.
 

@@ -17,7 +17,7 @@
   import { REPLACE_FIELD, searchPanel } from "../services/searchPanel.js";
   import { deleteMarkupBackward, markdown, markdownLanguage } from "@codemirror/lang-markdown";
   import { markdownPreview } from "../services/markdown.js";
-  import { autocompletion } from "@codemirror/autocomplete";
+  import { autocompletion, completionKeymap } from "@codemirror/autocomplete";
   import { autoClose, plainAutoClose } from "../services/autoClose.js";
   import { foldLineClasses, foldsContainersOnly } from "../services/foldLines.js";
   import { blockMiddlePaste } from "../services/middlePaste.js";
@@ -233,10 +233,12 @@
             icon: fileIcon,
             shows: (kind) => (kind === "note" ? wikiLinks : embeds),
           }),
-          // What `[[` offers while typed. `autocompletion()` installs its own
-          // keymap at high precedence. Only the halves switched on are offered:
-          // with both off, `[[` is two characters.
+          // What `[[` offers while typed. Only the halves switched on are
+          // offered: with both off, `[[` is two characters. Its keymap goes in
+          // below WITHOUT Ctrl-Space — that chord is the app's notebook search,
+          // and `[[` opens the list on its own.
           autocompletion({
+            defaultKeymap: false,
             override: [
               referenceCompletions({
                 notes: (query) => (wikiLinks ? references.notes?.(query) : []),
@@ -244,6 +246,7 @@
               }),
             ],
           }),
+          Prec.highest(keymap.of(completionKeymap.filter((b) => b.key !== "Ctrl-Space"))),
           // WHERE THE PANEL MAY BE, and it has to be told: CodeMirror's own
           // answer is `documentElement.clientHeight`, which on Android includes
           // the keyboard. `pageSpace` subtracts `--app-keyboard` in the

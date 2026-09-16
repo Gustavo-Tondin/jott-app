@@ -47,15 +47,17 @@ describe("keyboard shortcuts", () => {
   it("answers Shift and Alt now that commands ask for them", () => {
     // The old table refused both outright. It could, with six shortcuts; the
     // tab and history commands need them.
-    expect(ask(press("F", { ctrlKey: true, shiftKey: true }))).toBe(
-      "search.notebook.global",
-    );
     expect(ask(press("ArrowLeft", { ctrlKey: true, altKey: true }))).toBe("nav.back");
     expect(ask(press("Tab", { ctrlKey: true, shiftKey: true }))).toBe("tab.previous");
   });
 
   it("yields to whoever answered closer to the keyboard", () => {
     expect(ask(press("f", { ctrlKey: true, defaultPrevented: true }))).toBe(null);
+  });
+
+  it("gives Ctrl+F to the screen and Ctrl+Space to the whole notebook", () => {
+    expect(ask(press("f", { ctrlKey: true }))).toBe("search.here");
+    expect(ask(press(" ", { ctrlKey: true }))).toBe("search.notebook");
   });
 
   it("gives a focused task list the bare keys, and never inside a field", () => {

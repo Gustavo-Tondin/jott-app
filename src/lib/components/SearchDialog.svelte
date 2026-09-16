@@ -2,8 +2,9 @@
   // Searching the whole notebook, over whatever screen is open.
   //
   // A dialog rather than a screen: a search is a question you ask in passing,
-  // and answering it should not cost the place you were in. Ctrl+F (or Ctrl+K)
-  // opens it, Escape closes it, and picking a hit closes it and goes there.
+  // and answering it should not cost the place you were in. Ctrl+Space (or
+  // Ctrl+F, narrowed to the space on screen) opens it, Escape closes it, and
+  // picking a hit closes it and goes there.
   //
   // It decides nothing about what matches — `search` in the core does, and
   // hands back two answers plus everything needed to open each hit, so no path
@@ -16,12 +17,12 @@
   import { listLabel } from "../services/paths.js";
 
   let {
-    /// What to start looking for. Empty is the ordinary case (Ctrl+F asks a
+    /// What to start looking for. Empty is the ordinary case (Ctrl+Space asks a
     /// blank box); a value means something else asked the question on the
     /// user's behalf — an ambiguous `[[link]]`, so far (2026-08-19).
     query: initial = "",
     /// Narrow the question to one space, by its root-relative path — what the
-    /// page ⋮ asks (2026-08-17). Null is the whole notebook, which is Ctrl+F.
+    /// page ⋮ asks (2026-08-17). Null is the whole notebook, which is Ctrl+Space.
     scope = null,
     /// How that space is called on screen, for the box to say where it is
     /// looking. The shell knows the readable name; this dialog never derives
@@ -94,7 +95,7 @@
   );
 
   // The box is where the answer is typed, so it has the focus from the
-  // first frame — whether the dialog came from Ctrl+F or from a click on a
+  // first frame — whether the dialog came from a shortcut or from a click on a
   // tag's magnifier (2026-08-24). `autofocus` alone lost to the click that
   // opened it. The caret goes to the END: a seeded `#tag` is a beginning to
   // type after, not a word to replace.

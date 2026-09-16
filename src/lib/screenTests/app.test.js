@@ -679,7 +679,7 @@ describe("App", () => {
     expect(made.getByText("New group")).toBeTruthy();
 
     await userEvent.click(screen.getByLabelText("search"));
-    // The whole notebook, the same box Ctrl+F opens.
+    // The whole notebook, the same box Ctrl+Space opens.
     expect(await screen.findByPlaceholderText("Search tasks and notes…")).toBeTruthy();
   });
 
@@ -794,7 +794,7 @@ describe("App", () => {
     await waitFor(() => expect(screen.queryByPlaceholderText("Create a task…")).toBeNull());
   });
 
-  test("Ctrl+F searches the whole notebook and opens what was picked", async () => {
+  test("Ctrl+Space searches the whole notebook and opens what was picked", async () => {
     shell({
       search: {
         tasks: [
@@ -817,7 +817,7 @@ describe("App", () => {
     render(App);
 
     await screen.findByText("Comprar leite");
-    await userEvent.keyboard("{Control>}f{/Control}");
+    await userEvent.keyboard("{Control>}[Space]{/Control}");
     await userEvent.type(await screen.findByPlaceholderText("Search tasks and notes…"), "cimento");
 
     // The core decides what matches; the dialog only asks and draws.
@@ -838,7 +838,7 @@ describe("App", () => {
     );
 
     // Picking a hit with the pointer goes there and closes the dialog too.
-    await userEvent.keyboard("{Control>}f{/Control}");
+    await userEvent.keyboard("{Control>}[Space]{/Control}");
     await userEvent.type(await screen.findByPlaceholderText("Search tasks and notes…"), "cimento");
     await userEvent.click(await screen.findByText("Comprar cimento"));
     await waitFor(() =>
@@ -847,6 +847,18 @@ describe("App", () => {
     expect(invoke).toHaveBeenCalledWith("list_tasks", { list: "jott.tasks/Compras.md" });
     // And the TASK opens, not just the list it happens to live in.
     expect(await screen.findByLabelText("task name")).toBeTruthy();
+  });
+
+  test("Ctrl+F finds on the screen that is open, like a browser", async () => {
+    shell();
+    render(App);
+    await screen.findByText("Comprar leite");
+
+    // On a space, the box is narrowed to it and says so.
+    await userEvent.click(screen.getByRole("button", { name: /^Tasks/ }));
+    await userEvent.keyboard("{Control>}f{/Control}");
+    expect(await screen.findByPlaceholderText(/^Search in /)).toBeTruthy();
+    expect(screen.queryByPlaceholderText("Search tasks and notes…")).toBeNull();
   });
 
   test("Ctrl+N asks for a note title and opens what it created", async () => {

@@ -19,16 +19,11 @@ export const COMMANDS = [
   // ---- global ----------------------------------------------------------
   { id: "task.new", scope: "global", keys: "Mod+T", label: () => S.cmdNewTask },
   { id: "note.new", scope: "global", keys: "Mod+N", label: () => S.cmdNewNote },
-  { id: "search.notebook", scope: "global", keys: "Mod+F", label: () => S.cmdSearch },
-  // The second door to search, and the reason it exists: Mod+F belongs to the
-  // note while the cursor is in one, so without this there is no chord that
-  // reaches the whole notebook from inside a document (§7.2 of the proposal).
-  {
-    id: "search.notebook.global",
-    scope: "global",
-    keys: "Mod+Shift+F",
-    label: () => S.cmdSearchEverywhere,
-  },
+  // Two searches, as a browser has them: Mod+F finds on the screen that is
+  // open (the note's own panel, or the box narrowed to this space), and
+  // Mod+Space asks the whole notebook from anywhere, a note included.
+  { id: "search.here", scope: "global", keys: "Mod+F", label: () => S.cmdFindHere },
+  { id: "search.notebook", scope: "global", keys: "Mod+Space", label: () => S.cmdSearch },
   // Mod+O is the app's "open": on the desktop it opens a WINDOW of its own.
   // `twin` says the clash of the app's undo with the editor's is the point:
   // the editor claims the press first; what reaches the shell is the same

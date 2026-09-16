@@ -467,8 +467,8 @@ export const S = {
   // table and the panel's tooltips — the imperative the user would say.
   cmdNewTask: "New task",
   cmdNewNote: "New note",
-  cmdSearch: "Search",
-  cmdSearchEverywhere: "Search the whole notebook",
+  cmdSearch: "Search the whole notebook",
+  cmdFindHere: "Find on this screen",
   cmdNotebooks: "Notebooks",
   cmdSettings: "Settings",
   cmdFullscreen: "Fullscreen",

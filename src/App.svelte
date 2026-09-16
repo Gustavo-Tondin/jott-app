@@ -437,8 +437,8 @@
   const RUNS = {
     "task.new": () => notebook && quickTask(),
     "note.new": () => notebook && f("notes") && quickNote(),
+    "search.here": () => notebook && findHere(),
     "search.notebook": () => notebook && openSearch(),
-    "search.notebook.global": () => notebook && openSearch(),
     // Reachable with no notebook open too — unlike every other command here,
     // it is how a window with nothing in it gets something.
     "app.notebooks": () => showNotebooks(),
@@ -624,7 +624,8 @@
   /// The search dialog is open over whatever screen is showing.
   let searching = $state(false);
   /// Which space that search is narrowed to, or null for the whole notebook:
-  /// Ctrl+F and the sidebar ask the notebook; a screen's own menu asks the screen.
+  /// Ctrl+Space and the sidebar ask the notebook; Ctrl+F and a screen's own
+  /// menu ask the screen.
   let searchScope = $state(null);
   /// What the search box opens with. Set when something else asks the question
   /// on the user's behalf — an ambiguous `[[link]]`, so far.
@@ -1101,7 +1102,7 @@
 
   /// Search, narrowed to where the user is. In a note that is the note itself
   /// — the editor's own panel, which is also where replacing lives; anywhere
-  /// else it is the space, asked of the same box Ctrl+F opens.
+  /// else it is the space, asked of the same box Ctrl+Space opens.
   function findHere() {
     if (view.kind === "note") {
       noteEditor?.openFind();
@@ -2500,7 +2501,7 @@
   />
 {/if}
 
-<!-- Ctrl+F / Ctrl+K, over whatever screen is open. -->
+<!-- Ctrl+Space (or Ctrl+F, narrowed to a space), over whatever screen is open. -->
 {#if searching}
   <SearchDialog
     query={searchQuery}
