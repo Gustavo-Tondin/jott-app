@@ -191,6 +191,7 @@ pub fn configure<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builde
             commands::day::grouped_suggestions,
             commands::day::pull_into_day,
             commands::day::remove_from_day,
+            commands::day::set_day_pinned,
             commands::day::day_sort,
             commands::day::set_day_sort,
             commands::day::set_day_order,

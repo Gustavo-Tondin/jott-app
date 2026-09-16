@@ -53,6 +53,19 @@ pub async fn remove_from_day<R: Runtime>(
     state.record(window.label(), "remove_from", |nb| nb.remove_from_day(day, &list, &id))
 }
 
+/// Pins a task to the top of today, or unpins it — the day's pin, cleared
+/// when the day turns. Only today: a pin is for the day it is made on.
+#[tauri::command]
+pub async fn set_day_pinned<R: Runtime>(
+    state: State<'_, AppState>,
+    window: tauri::Window<R>,
+    list: String,
+    id: String,
+    pinned: bool,
+) -> CommandResult<bool> {
+    state.record(window.label(), "set_day_pinned", |nb| nb.set_day_pinned(&list, &id, pinned))
+}
+
 /// How the day is arranged (`name` / `created` / `completed`), or null for
 /// the order the tasks were pulled in. One answer for every day.
 #[tauri::command]

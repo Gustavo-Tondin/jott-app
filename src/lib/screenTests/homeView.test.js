@@ -427,6 +427,45 @@ describe("HomeView", () => {
     );
   });
 
+  test("today pins a task for the day, not in its list, and a day ahead does not pin", async () => {
+    // The day's pin lives in `.jott/daily-state.json` (`dayPinned`); the
+    // task's own pin (`task.pinned`) means nothing on the Home.
+    bridge({
+      day_tasks: (args) =>
+        args.day
+          ? [{ path: "jott.tasks/task-list.md", task: task("c", "Planejada") }]
+          : [
+              { path: "jott.tasks/task-list.md", task: { ...task("a", "Amora"), pinned: true } },
+              { path: "jott.tasks/task-list.md", task: task("b", "banana"), dayPinned: true },
+            ],
+      day_sort: null,
+      notes_of_today: [],
+      set_day_pinned: true,
+    });
+    const { rerender } = render(HomeView, { props: props() });
+    await screen.findByText("Amora");
+
+    const titles = () =>
+      [...document.querySelectorAll(".task-row__title")].map((el) => el.textContent.trim());
+    expect(titles()).toEqual(["banana", "Amora"]);
+    expect(document.querySelector(".tasks-space__pin-divider")).toBeTruthy();
+
+    await userEvent.click(screen.getByLabelText("Pin to top"));
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("set_day_pinned", {
+        list: "jott.tasks/task-list.md",
+        id: "a",
+        pinned: true,
+      }),
+    );
+    expect(invoke).not.toHaveBeenCalledWith("set_task_pinned", expect.anything());
+
+    // A day ahead is a plan: no bookmark to press.
+    await rerender(props({ day: "2026-09-05" }));
+    await screen.findByText("Planejada");
+    expect(screen.queryByLabelText("Pin to top")).toBeNull();
+  });
+
   test("the + can create a note: untitled, in the capture target, opened fresh", async () => {
     // The shell's + menu calls this door (user report, 2026-09-07: the +
     // offered only a task). The target is the notes ⋮'s choice, else the

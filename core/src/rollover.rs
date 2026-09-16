@@ -80,6 +80,12 @@ pub fn apply(state: &mut DayState, current: NaiveDate, mode: RolloverMode) -> Ro
         }
     };
 
+    // A pin is for the day it was made on, whatever the mode carries. A
+    // clock moving backwards is not a day gone by, so the pins stay.
+    if !went_backwards {
+        state.pinned.clear();
+    }
+
     state.date = current;
     Rolled::Turned {
         from,
@@ -129,6 +135,22 @@ mod tests {
         );
         assert!(state.is_empty());
         assert_eq!(state.date, ymd(2026, 7, 21));
+    }
+
+    #[test]
+    fn the_turn_of_the_day_clears_its_pins_in_either_mode() {
+        for mode in [RolloverMode::Carry, RolloverMode::Reset] {
+            let mut state = state_with(ymd(2026, 9, 16), &[("Inbox", "a")]);
+            state.set_pinned("Inbox", "a", true);
+            apply(&mut state, ymd(2026, 9, 17), mode);
+            assert!(state.pinned.is_empty(), "{mode:?}");
+        }
+
+        // The clock went backwards: no day passed, so the pin stays.
+        let mut state = state_with(ymd(2026, 9, 16), &[("Inbox", "a")]);
+        state.set_pinned("Inbox", "a", true);
+        apply(&mut state, ymd(2026, 9, 15), RolloverMode::Reset);
+        assert!(state.is_pinned("Inbox", "a"));
     }
 
     #[test]

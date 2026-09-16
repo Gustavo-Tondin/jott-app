@@ -377,6 +377,9 @@ export const api = {
   groupedSuggestions: (day = null) => invoke("grouped_suggestions", { day }),
   pullInto: (day, list, id) => invoke("pull_into_day", { day, list, id }),
   removeFrom: (day, list, id) => invoke("remove_from_day", { day, list, id }),
+  // The day's own pin (today only), cleared when the day turns — not the
+  // task's, which lives in its `.md` (`setTaskPinned`).
+  setDayPinned: (list, id, pinned) => invoke("set_day_pinned", { list, id, pinned }),
   // A day has no `.space.json`: how it is arranged lives in the notebook
   // config (one choice for every day), and the hand-dragged order goes
   // straight into the day's file.

@@ -34,6 +34,14 @@ export function taskActions(act) {
         await api.setTaskPinned(list, id, pinned);
       }),
 
+    /// Today's pin (`.jott/daily-state.json`), not the task's: the day screen
+    /// pins to the top of the day, and the turn of the day clears it.
+    pinToday: (list, task, pinned) =>
+      act(async () => {
+        const id = await ensureTaskId(list, task);
+        await api.setDayPinned(list, id, pinned);
+      }),
+
     pull: (day, list, task) =>
       act(async () => {
         const id = await ensureTaskId(list, task);
@@ -69,7 +77,7 @@ export function taskRing({
   pinned = false,
   /// Each is `(from, at) => void`, where `at` is the point the ring opened
   /// on — what a slice that opens a menu of its own anchors to. A null one
-  /// leaves that slice out: a day screen has nowhere to pin to, a read-only
+  /// leaves that slice out: a day ahead has nowhere to pin to, a read-only
   /// notebook has nothing at all.
   onPin = null,
   onMove = null,

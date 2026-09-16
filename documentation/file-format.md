@@ -363,7 +363,9 @@ order you dragged things into.
   **references** (`{ "path": "jott.tasks/task-list.md", "id": "g7h8i9" }`),
   never task text: a task pulled into today exists in exactly one place, its
   list. `daily-state.json` is today (`{ "date": "2026-09-04", "items":
-  [...] }`), and rolls over at the hour `config.json` names; `plan.json` is
+  [...] }`), and rolls over at the hour `config.json` names; its optional
+  `pinned` holds the tasks pinned to the top of today — a pin of the day, not
+  of the task, cleared when the day turns; `plan.json` is
   the days ahead, keyed by day (`{ "days": { "2026-09-05": [...] } }`) — the
   calendar on the Home writes it, and when a planned day arrives its
   references are poured into today and the day leaves the plan. A task with

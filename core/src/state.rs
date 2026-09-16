@@ -150,6 +150,12 @@ pub struct DayState {
     /// stale entry matches nothing. Skipped when empty.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub recent: Vec<TaskRef>,
+    /// Tasks pinned to the top of TODAY — a pin of the day, not of the task:
+    /// the list's own pin lives in the `.md`. Independent of `items`, so a
+    /// task that joined the day by its date pins too; the turn of the day
+    /// clears it ([`crate::rollover`]). Skipped when empty.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub pinned: Vec<TaskRef>,
 }
 
 impl DayState {
@@ -158,6 +164,7 @@ impl DayState {
             date,
             items: Vec::new(),
             recent: Vec::new(),
+            pinned: Vec::new(),
         }
     }
 
@@ -193,6 +200,26 @@ impl DayState {
             self.items.insert(0, reference);
         } else {
             self.items.push(reference);
+        }
+        true
+    }
+
+    pub fn is_pinned(&self, path: &str, id: &str) -> bool {
+        self.pinned.iter().any(|r| r.path == path && r.id == id)
+    }
+
+    /// Pins or unpins a task for the day. Idempotent, like `add`. Returns
+    /// whether anything changed.
+    pub fn set_pinned(&mut self, path: impl Into<String>, id: impl Into<String>, pinned: bool) -> bool {
+        let reference = TaskRef::new(path, id);
+        let there = self.pinned.contains(&reference);
+        if pinned == there {
+            return false;
+        }
+        if pinned {
+            self.pinned.push(reference);
+        } else {
+            self.pinned.retain(|r| r != &reference);
         }
         true
     }
@@ -239,29 +266,36 @@ impl DayState {
         // What is back in the day is no longer something that left it.
         recent.retain(|r| !items.contains(r));
         recent.truncate(RECENT_LIMIT);
+        let pinned = refs::merge(common(|s| &s.pinned), &a.pinned, &b.pinned);
         Self {
             date: a.date,
             items,
             recent,
+            pinned,
         }
     }
 }
 
+// The day's pins follow a task exactly as its reference does: a pin left
+// behind on a moved task would be a stale one, and one on a deleted task
+// would come back pinned with it. Non-short-circuiting `|`: both must run.
 impl TaskRefs for DayState {
     fn remove(&mut self, path: &str, id: &str) -> bool {
-        refs::remove(&mut self.items, path, id)
+        refs::remove(&mut self.items, path, id) | refs::remove(&mut self.pinned, path, id)
     }
 
     fn repoint(&mut self, from: &str, id: &str, to: &str, to_id: &str) -> bool {
         refs::repoint(&mut self.items, from, id, to, to_id)
+            | refs::repoint(&mut self.pinned, from, id, to, to_id)
     }
 
     fn rename_path(&mut self, from: &str, to: &str) -> bool {
-        refs::rename_path(&mut self.items, from, to)
+        refs::rename_path(&mut self.items, from, to) | refs::rename_path(&mut self.pinned, from, to)
     }
 
     fn rename_prefix(&mut self, from: &str, to: &str) -> bool {
         refs::rename_prefix(&mut self.items, from, to)
+            | refs::rename_prefix(&mut self.pinned, from, to)
     }
 }
 
@@ -416,6 +450,42 @@ mod tests {
     }
 
     #[test]
+    fn a_pin_of_the_day_is_idempotent_and_follows_the_task() {
+        let mut state = DayState::new(ymd(2026, 9, 16));
+        assert!(state.set_pinned("jott.tasks/task-list.md", "a", true));
+        assert!(!state.set_pinned("jott.tasks/task-list.md", "a", true));
+        assert!(state.is_pinned("jott.tasks/task-list.md", "a"));
+
+        // Ticked: the reference moves into Completed, and the pin with it.
+        assert!(state.repoint("jott.tasks/task-list.md", "a", "jott.tasks/completed.md", "a"));
+        assert!(state.is_pinned("jott.tasks/completed.md", "a"));
+
+        // Removed from the notebook: no pin is left behind for it.
+        assert!(state.remove("jott.tasks/completed.md", "a"));
+        assert!(state.pinned.is_empty());
+
+        state.set_pinned("Casa/task-list.md", "b", true);
+        assert!(state.rename_prefix("Casa", "Lar"));
+        assert!(state.is_pinned("Lar/task-list.md", "b"));
+        assert!(state.set_pinned("Lar/task-list.md", "b", false));
+        assert!(!state.set_pinned("Lar/task-list.md", "b", false));
+    }
+
+    #[test]
+    fn pins_of_the_day_merge_by_the_set_rule() {
+        let today = ymd(2026, 9, 16);
+        let pin = |ids: &[&str]| {
+            let mut state = DayState::new(today);
+            for id in ids {
+                state.set_pinned("jott.tasks/task-list.md", *id, true);
+            }
+            state
+        };
+        let merged = DayState::merge(&pin(&["x"]), &pin(&["x", "a"]), &pin(&["b"]));
+        assert_eq!(ids_of(&merged.pinned), vec!["a", "b"]);
+    }
+
+    #[test]
     fn round_trips_through_disk() {
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join(DAILY_STATE_FILE);
@@ -427,6 +497,14 @@ mod tests {
         let reloaded = StateFile::load(&path, ymd(1970, 1, 1));
         assert_eq!(reloaded.state.date, ymd(2026, 7, 20));
         assert_eq!(reloaded.state.items, vec![TaskRef::new("Tasks/Compras.md", "g7h8i9")]);
+
+        let mut file = reloaded;
+        file.state.set_pinned("Tasks/Compras.md", "g7h8i9", true);
+        file.save().unwrap();
+        let text = std::fs::read_to_string(&path).unwrap();
+        let json: serde_json::Value = serde_json::from_str(&text).unwrap();
+        assert_eq!(json["pinned"], serde_json::json!([{ "path": "Tasks/Compras.md", "id": "g7h8i9" }]));
+        assert!(StateFile::load(&path, ymd(1970, 1, 1)).state.is_pinned("Tasks/Compras.md", "g7h8i9"));
     }
 
     #[test]

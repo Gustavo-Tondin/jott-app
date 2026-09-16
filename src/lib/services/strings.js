@@ -19,6 +19,7 @@ const ACTION_NAMES = {
   pull_into: "Add to a day",
   remove_from: "Remove from a day",
   set_day_order: "Reorder the day",
+  set_day_pinned: "Pin for today",
   set_day_sort: "Sort the day",
   quick_capture_note: "Quick note",
   create_note: "New note",

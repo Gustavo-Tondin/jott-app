@@ -357,6 +357,7 @@ impl Notebook {
                     out.push(ListedTask {
                         path: path.clone(),
                         task: task.clone(),
+                        day_pinned: false,
                     });
                 }
             }
@@ -395,6 +396,7 @@ impl Notebook {
                 out.push(ListedTask {
                     path: entry.path.clone(),
                     task,
+                    day_pinned: false,
                 });
             }
         }

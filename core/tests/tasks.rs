@@ -313,6 +313,34 @@ fn completing_keeps_the_task_in_today_and_in_the_plan_pointing_at_completed() {
 }
 
 #[test]
+fn a_pin_of_the_day_is_today_s_and_leaves_the_task_alone() {
+    let (_dir, notebook, id) = notebook_with_task("Pagar o aluguel");
+    let list = "jott.tasks/task-list.md";
+    notebook.pull_into_day(None, list, &id).unwrap();
+
+    assert!(notebook.set_day_pinned(list, &id, true).unwrap());
+    assert!(!notebook.set_day_pinned(list, &id, true).unwrap(), "pinning twice is a no-op");
+
+    let listed = notebook.day_tasks(None).unwrap();
+    assert!(listed[0].day_pinned);
+    // The day's pin is not the list's.
+    assert!(!listed[0].task.pinned);
+    assert!(!notebook.open_list(list).unwrap().find(&id).unwrap().pinned);
+
+    // Only today answers it; a day ahead holding the same task does not.
+    let tomorrow = ahead(&notebook, 1);
+    notebook.pull_into_day(tomorrow, list, &id).unwrap();
+    assert!(!notebook.day_tasks(tomorrow).unwrap()[0].day_pinned);
+
+    // Taken out of the day, the pin goes with it.
+    notebook.remove_from_day(None, list, &id).unwrap();
+    assert!(notebook.open_state().unwrap().state.pinned.is_empty());
+
+    // A task that is not there cannot be pinned.
+    assert!(notebook.set_day_pinned(list, "nope", true).is_err());
+}
+
+#[test]
 fn moving_a_task_to_another_list_takes_its_period_references_along() {
     // Same primitive, same rule: the inspector's "move to list" used to leave
     // the Day pointing at the old file, where the task no longer was — a

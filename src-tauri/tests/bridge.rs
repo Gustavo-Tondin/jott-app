@@ -558,6 +558,16 @@ fn a_day_can_be_sorted_and_dragged_over_the_bridge() {
     let pulled = ok(&app, "day_tasks", json!({ "day": null }));
     assert_eq!(pulled[0]["task"]["text"], "dois");
     assert_eq!(pulled[1]["task"]["text"], "um");
+
+    // The day's pin: answered on the day's read, never on the task itself.
+    assert_eq!(pulled[0].get("dayPinned"), None);
+    assert_eq!(
+        ok(&app, "set_day_pinned", json!({ "list": list, "id": a, "pinned": true })),
+        true
+    );
+    let pulled = ok(&app, "day_tasks", json!({ "day": null }));
+    assert_eq!(pulled[1]["dayPinned"], true);
+    assert_eq!(pulled[1]["task"]["pinned"], false);
 }
 
 #[test]

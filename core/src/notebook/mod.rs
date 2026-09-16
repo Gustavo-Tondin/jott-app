@@ -31,6 +31,10 @@ pub enum OriginAction {
 pub struct ListedTask {
     pub path: String,
     pub task: Task,
+    /// Pinned to the top of TODAY (`DayState::pinned`) — only `day_tasks`
+    /// answers it; the task's own pin is `task.pinned`.
+    #[serde(rename = "dayPinned", skip_serializing_if = "std::ops::Not::not")]
+    pub day_pinned: bool,
 }
 
 /// A note together with the notes SPACE it lives in — `folder` is the

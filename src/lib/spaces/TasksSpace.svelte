@@ -138,6 +138,17 @@
   });
 
   const asEntry = (listed) => ({ task: listed.task, list: listed.path });
+  /// On a day, `pinned` is the DAY's pin (`dayPinned`), never the list's:
+  /// every card, divider and drag below reads `task.pinned`, and on a day it
+  /// has to mean "kept at the top of this day".
+  const asDayEntry = (listed) => ({
+    task: { ...listed.task, pinned: !!listed.dayPinned },
+    list: listed.path,
+  });
+
+  /// Only TODAY pins: a pin is for the day it is made on (cleared when the
+  /// day turns), and a day ahead is still a plan.
+  let pinsDay = $derived(isDay && day === null);
 
   // The sun marks a card that is in today — not on a screen that IS a day,
   // where it would be true of everything.
@@ -151,8 +162,8 @@
       // the checkbox.
       const [entries, chosen] = await Promise.all([api.dayTasks(day), api.daySort()]);
       return {
-        open: (entries ?? []).filter((e) => !e.task.done).map(asEntry),
-        done: (entries ?? []).filter((e) => e.task.done).map(asEntry),
+        open: (entries ?? []).filter((e) => !e.task.done).map(asDayEntry),
+        done: (entries ?? []).filter((e) => e.task.done).map(asDayEntry),
         sort: chosen ?? null,
       };
     }
@@ -224,7 +235,10 @@
     onChanged: () => onChanged?.(),
     onError: (e) => onError?.(e),
   });
-  const { complete, edit, pin, remove, duplicate } = taskActions(act);
+  const { complete, edit, pin, pinToday, remove, duplicate } = taskActions(act);
+  /// The bookmark's action here: the day's pin on today, the list's
+  /// anywhere else, and none on a day ahead.
+  let pinHere = $derived(isDay ? (pinsDay ? pinToday : null) : pin);
 
   // ---- arrangement ----
   // Same shape whatever the source; only where the preference is kept differs.
@@ -376,8 +390,7 @@
     if (readOnly || picking) return null;
     return taskRing({
       pinned: !!entry.task.pinned,
-      // A day screen has no pinned block to pin to.
-      onPin: isDay ? null : () => pin(entry.list, entry.task, !entry.task.pinned),
+      onPin: pinHere ? () => pinHere(entry.list, entry.task, !entry.task.pinned) : null,
       onMove: listTargets.length
         ? (_, at) =>
             openRingMenu(
@@ -441,8 +454,13 @@
   // is nothing to mirror and nothing to fall out of step. Whatever sort was on
   // goes back to the pulled order, because that order is now what was built.
   function reorderDay(from, to) {
-    const { next } = planReorder(shown, from, to, isPinned);
+    const { next, moved, pinned, pinChanged } = planReorder(shown, from, to, isPinned);
     return act(async () => {
+      // Crossing the divider pins and unpins for today, as on a list.
+      if (pinChanged && pinsDay) {
+        const id = await ensureTaskId(moved.list, moved.task);
+        await api.setDayPinned(moved.list, id, pinned);
+      }
       const refs = next
         .filter((entry) => entry.task.id)
         .map((entry) => ({ path: entry.list, id: entry.task.id }));
@@ -458,8 +476,14 @@
 
   /// The pile dropped: the same two writes `reorderTasks` makes, for a block.
   function reorderDayMany(froms, to) {
-    const { next } = planReorderMany(shown, froms, to, isPinned);
+    const { next, pinned, pinChanged } = planReorderMany(shown, froms, to, isPinned);
     return act(async () => {
+      if (pinsDay) {
+        for (const entry of pinChanged) {
+          const id = await ensureTaskId(entry.list, entry.task);
+          await api.setDayPinned(entry.list, id, pinned);
+        }
+      }
       const refs = next
         .filter((entry) => entry.task.id)
         .map((entry) => ({ path: entry.list, id: entry.task.id }));
@@ -690,7 +714,7 @@
         items={shown}
         listClass="tasks-space__list"
         dividerClass="tasks-space__pin-divider"
-        pinned={!isDay}
+        pinned={!isDay || pinsDay}
         origin={isDay || all ? origin : null}
         color={dot}
         onMoveTo={moveTo}
@@ -711,7 +735,7 @@
         onSelect={picking ? (_, task) => togglePick(task) : onSelectTask}
         onComplete={complete}
         onEdit={edit}
-        onPin={readOnly || isDay ? undefined : pin}
+        onPin={readOnly || !pinHere ? undefined : pinHere}
         {dateFormat}
         {today}
       />

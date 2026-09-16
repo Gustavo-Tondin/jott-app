@@ -153,6 +153,24 @@ impl Notebook {
         }
     }
 
+    /// Pins a task to the top of TODAY, or unpins it — the day's pin, which
+    /// the turn of the day clears; the task's `.md` is untouched. Any other
+    /// day is refused: a day ahead is a plan, and a pin is for the day it is
+    /// made on. Returns whether anything changed.
+    pub fn set_day_pinned(&self, path: &str, id: &str, pinned: bool) -> Result<bool> {
+        self.ensure_writable()?;
+        // A pin on a task that is not there would be a ghost, like a pull.
+        if pinned && self.open_list(path)?.find(id).is_none() {
+            return Err(Error::TaskNotFound(id.to_string()));
+        }
+        let mut file = self.open_state()?;
+        if !file.state.set_pinned(path, id, pinned) {
+            return Ok(false);
+        }
+        file.save()?;
+        Ok(true)
+    }
+
     /// Removes a task from a day; the task itself is untouched. Leaving today
     /// is remembered (`recall`) so it comes back as its own group of
     /// suggestions; leaving a day ahead is not — that is a plan changing.
@@ -186,9 +204,13 @@ impl Notebook {
     /// reference is a normal state in a shared folder.
     pub fn day_tasks(&self, day: Option<NaiveDate>) -> Result<Vec<ListedTask>> {
         let day = self.day_of(day);
-        let refs: Vec<TaskRef> = match day {
-            Day::Today => self.open_state()?.state.items,
-            Day::Ahead(date) => self.open_plan()?.plan.of(date).to_vec(),
+        // Only today has pins: a pin is for the day it is made on.
+        let (refs, pins): (Vec<TaskRef>, Vec<TaskRef>) = match day {
+            Day::Today => {
+                let state = self.open_state()?.state;
+                (state.items, state.pinned)
+            }
+            Day::Ahead(date) => (self.open_plan()?.plan.of(date).to_vec(), Vec::new()),
             Day::Gone(_) => return Ok(Vec::new()),
         };
         let mut out = Vec::new();
@@ -206,6 +228,7 @@ impl Notebook {
                 out.push(ListedTask {
                     path: reference.path.clone(),
                     task: task.clone(),
+                    day_pinned: false,
                 });
             }
         }
@@ -218,6 +241,13 @@ impl Notebook {
                 if !out.iter().any(|listed| is_same_task(listed, &candidate)) {
                     out.push(candidate);
                 }
+            }
+        }
+
+        // Both halves: a task that joined by its date pins too.
+        for listed in &mut out {
+            if let Some(id) = &listed.task.id {
+                listed.day_pinned = pins.iter().any(|r| r.path == listed.path && &r.id == id);
             }
         }
 
