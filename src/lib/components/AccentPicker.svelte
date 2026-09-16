@@ -5,6 +5,8 @@
   // STEP the choice will paint with (`preview`): the region's own by default
   // (which is what makes `neutral` legible here), `fill` for a banner.
   import { ACCENTS, swatchStyle } from "../services/accent.js";
+  import { dismissable } from "../actions/dismissable.js";
+  import { keepOnScreen } from "../actions/keepOnScreen.js";
   import { S } from "../services/strings.js";
 
   let {
@@ -22,10 +24,22 @@
     /// the buttons, not just guarded in the handler: a swatch that looks
     /// pressable and does nothing reads as broken.
     disabled = false,
+    /// Fold the row behind ONE swatch that opens the rest. For a place where
+    /// the eight have to share their line with a label — the phone's settings
+    /// row. Where the picker has the width to itself, the row is the better
+    /// control: every colour is one tap away.
+    folds = false,
   } = $props();
+
+  let open = $state(false);
+
+  function pick(name) {
+    open = false;
+    onPick?.(name);
+  }
 </script>
 
-<div class="accent-picker" role="group" aria-label={label}>
+{#snippet swatches()}
   {#if clearable}
     <button
       class="accent-picker__swatch accent-picker__swatch--clear"
@@ -33,7 +47,7 @@
       aria-label={S.defaultAppearance}
       aria-pressed={!value}
       {disabled}
-      onclick={() => onPick?.("")}
+      onclick={() => pick("")}
     ></button>
   {/if}
   {#each ACCENTS as name (name)}
@@ -44,7 +58,41 @@
       aria-label={S.colorName(name)}
       aria-pressed={value === name}
       {disabled}
-      onclick={() => onPick?.(name)}
+      onclick={() => pick(name)}
     ></button>
   {/each}
-</div>
+{/snippet}
+
+{#if folds}
+  <div
+    class="accent-picker__fold"
+    use:dismissable={{ active: open, onDismiss: () => (open = false) }}
+  >
+    <!-- A rounded SQUARE, not a ninth dot: it is a control that opens
+         something, and what it opens is the dots. -->
+    <button
+      type="button"
+      class="accent-picker__trigger"
+      class:accent-picker__trigger--clear={!value}
+      style={swatchStyle(value, preview)}
+      aria-label={label}
+      aria-expanded={open}
+      {disabled}
+      onclick={() => (open = !open)}
+    ></button>
+    {#if open}
+      <div
+        class="theme-popover theme-popover--end accent-picker__panel"
+        role="group"
+        aria-label={label}
+        use:keepOnScreen
+      >
+        {@render swatches()}
+      </div>
+    {/if}
+  </div>
+{:else}
+  <div class="accent-picker" role="group" aria-label={label}>
+    {@render swatches()}
+  </div>
+{/if}

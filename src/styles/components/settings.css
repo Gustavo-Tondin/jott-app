@@ -211,6 +211,37 @@
     width: auto;
     min-width: 12rem;
   }
+  /* ---- THE PHONE'S ROW — the label is what gives way, so give it room ----
+     At 360px a 12rem control leaves a label three words tall. The control
+     stops at a share of the line instead, and the two gaps that frame the
+     label close up; the ? shrinks with them. */
+  .settings--compact .settings__row {
+    gap: var(--app-space-8);
+  }
+  .settings--compact .settings__label {
+    gap: var(--app-space-2);
+  }
+  .settings--compact .settings__row .theme-input,
+  .settings--compact .settings__row .theme-select {
+    min-width: 0;
+    max-inline-size: 58%;
+  }
+  /* The slider gives width back the same way: its track is a fixed length,
+     and on a phone the label beside it is what has to wrap instead. */
+  .settings--compact .settings__zoom .theme-range {
+    inline-size: 7rem;
+  }
+  /* THE THIRD EXEMPTION from the 48px touch minimum (the top bar and the
+     formatting strip are the others): the ? lives INSIDE the label, so its
+     box is taken out of the words it explains. Nothing is lost by missing
+     it, and the row around it is nearly all label. */
+  .settings--compact .settings__help-btn {
+    inline-size: 2rem;
+    block-size: 2rem;
+    min-inline-size: 0;
+    min-block-size: 0;
+    padding: var(--app-space-4);
+  }
   .settings__hint {
     margin: 0 0 var(--app-space-10);
     font-size: var(--app-text-13);

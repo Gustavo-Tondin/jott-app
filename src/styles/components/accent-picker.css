@@ -38,6 +38,41 @@
     box-shadow: 0 0 0 0.1875rem var(--app-brand-weak);
   }
 
+  /* ---- FOLDED — one swatch standing for the eight ----
+     Where the row would have to share its line with a label (the phone's
+     settings row): the trigger is a rounded SQUARE, so it reads as a control
+     that opens something rather than as a ninth colour. */
+  .accent-picker__fold {
+    position: relative;
+    display: inline-flex;
+    flex: none;
+  }
+  .accent-picker__trigger {
+    inline-size: 2rem;
+    block-size: 2rem;
+    padding: 0;
+    border: 0.0625rem solid var(--app-line);
+    border-radius: var(--app-radius-sm);
+    background: var(--dot, var(--app-surface));
+    cursor: pointer;
+  }
+  .accent-picker__trigger:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  .accent-picker__trigger:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 0.1875rem var(--app-brand-weak);
+  }
+  /* Two rows of four, not one of eight: opened from the end of a row, a line
+     of eight would reach back across the label it belongs to. */
+  .accent-picker__panel {
+    display: grid;
+    grid-template-columns: repeat(4, auto);
+    gap: var(--app-space-10);
+    padding: var(--app-space-10);
+  }
+
   /* On a finger the swatch itself grows: it is the drawing and the target
      both, so the app's usual invisible 48px box (styles/touch.css) would
      overlap its neighbours or space the row out. Eight of these plus gaps
@@ -49,6 +84,13 @@
     .accent-picker__swatch {
       inline-size: 2rem;
       block-size: 2rem;
+    }
+    /* The trigger is the row's target, so it takes the fields' own corner at
+       its own size — 40px is `md` on the ladder. */
+    .accent-picker__trigger {
+      inline-size: 2.5rem;
+      block-size: 2.5rem;
+      border-radius: var(--app-radius-md);
     }
   }
 }

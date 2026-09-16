@@ -302,6 +302,7 @@
       value={form.accentColor || DEFAULT_ACCENT}
       clearable={false}
       label={S.accentColor}
+      folds={compact}
       onPick={(c) => putDisplay({ accentColor: c })}
     />
   </div>
