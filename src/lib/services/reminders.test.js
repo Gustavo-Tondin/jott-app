@@ -1,17 +1,13 @@
 import { describe, expect, test } from "vitest";
 import {
-  dueNow,
   formatAt,
   joinAt,
-  nextAfter,
   normalizeAt,
   parseAt,
   presets,
   splitAt,
   toAt,
-  waitUntil,
 } from "./reminders.js";
-import { MAX_WAIT, MIN_WAIT } from "./wait.js";
 
 const at = (list, id, when) => ({ list, id, position: 0, text: id, at: when, auto: false });
 
@@ -61,35 +57,5 @@ describe("presets", () => {
     );
     expect(presets({ now, due: "" }).map((p) => p.id)).not.toContain("onDue");
     expect(presets({ now, due: "2026-07-01" }).map((p) => p.id)).not.toContain("onDue");
-  });
-});
-
-describe("what is due", () => {
-  const list = [
-    at("L", "a", "2026-07-22T08:00"),
-    at("L", "b", "2026-07-22T10:00"),
-    at("L", "c", "2026-07-22T10:20"),
-    at("L", "d", "2026-07-22T11:00"),
-  ];
-  const now = new Date(2026, 6, 22, 10, 20);
-
-  test("nothing from the past rings on a machine that never rang", () => {
-    expect(dueNow(list, { now, until: null })).toEqual([]);
-  });
-
-  test("everything between the last ring and now rings once", () => {
-    const due = dueNow(list, { now, until: "2026-07-22T08:00" });
-    expect(due.map((r) => r.id)).toEqual(["b", "c"]);
-  });
-
-  test("the next one is the first still ahead", () => {
-    expect(nextAfter(list, now).id).toBe("d");
-    expect(nextAfter(list, new Date(2026, 6, 22, 12, 0))).toBeNull();
-  });
-
-  test("the wait is bounded on both sides", () => {
-    expect(waitUntil("2026-07-22T10:21", now)).toBe(60 * 1000);
-    expect(waitUntil("2026-07-22T10:00", now)).toBe(MIN_WAIT);
-    expect(waitUntil("2026-08-22T10:00", now)).toBe(MAX_WAIT);
   });
 });

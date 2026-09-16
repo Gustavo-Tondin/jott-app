@@ -23,6 +23,9 @@ pub struct AppState {
     /// no entry is a window showing the picker, which is not a failure: it is
     /// the state every window starts in.
     inner: Mutex<HashMap<String, OpenNotebook>>,
+    /// What rings on desktop: one thread per open notebook, shared by every
+    /// window working in it (`crate::ringer`).
+    ringers: crate::ringer::Ringers,
 }
 
 struct OpenNotebook {
@@ -164,15 +167,20 @@ impl AppState {
         notebook: Notebook,
     ) -> CommandResult<()> {
         let watcher = WatcherHandle::start(app.clone(), window, &notebook)?;
-        let mut guard = self.lock()?;
-        guard.insert(
-            window.to_string(),
-            OpenNotebook {
-                notebook,
-                history: History::new(),
-                _watcher: watcher,
-            },
-        );
+        let root = notebook.root().to_path_buf();
+        {
+            let mut guard = self.lock()?;
+            guard.insert(
+                window.to_string(),
+                OpenNotebook {
+                    notebook,
+                    history: History::new(),
+                    _watcher: watcher,
+                },
+            );
+        }
+        // Outside the state's lock: the ringer's thread reads through it.
+        self.ringers.attach(app, window, &root);
         Ok(())
     }
 
@@ -192,6 +200,21 @@ impl AppState {
     pub fn close(&self, window: &str) {
         if let Ok(mut guard) = self.lock() {
             guard.remove(window);
+        }
+        self.ringers.detach(window);
+    }
+
+    /// Every ringer of the process (`crate::ringer`).
+    pub fn ringers(&self) -> &crate::ringer::Ringers {
+        &self.ringers
+    }
+
+    /// Wakes the ringer of `window`'s notebook to look again; `reminders_on`
+    /// is the Remind function's switch when the window says it. A window with
+    /// no notebook has nothing to ring.
+    pub fn nudge_ringer(&self, window: &str, reminders_on: Option<bool>) {
+        if let Ok(root) = self.root_of(window) {
+            self.ringers.nudge(&root, reminders_on);
         }
     }
 
@@ -339,6 +362,12 @@ impl WatcherHandle {
                     .collect();
                 arrivals.note(&changes, std::time::Instant::now());
 
+                // What rings may have changed with the files: the ringer looks
+                // again without waiting on the window, which may be hidden.
+                if !changes.is_empty() {
+                    use tauri::Manager;
+                    app.state::<AppState>().nudge_ringer(&window, None);
+                }
                 for change in changes {
                     // A synced-in `config.json` must take effect: the notebook
                     // caches its Config by value and only reads it on open.

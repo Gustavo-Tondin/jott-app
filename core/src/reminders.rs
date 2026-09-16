@@ -5,10 +5,10 @@
 //! DAY, not about a task. Who rings is the shell; this module answers
 //! "what, and when".
 
-use chrono::NaiveTime;
-use serde::{Deserialize, Serialize};
+use std::time::Duration;
 
-use chrono::NaiveDateTime;
+use chrono::{NaiveDateTime, NaiveTime, Timelike};
+use serde::{Deserialize, Serialize};
 
 use crate::task::{render_datetime, Task};
 
@@ -90,6 +90,54 @@ pub fn sort(reminders: &mut [Reminder]) {
     reminders.sort_by(|a, b| a.at.cmp(&b.at));
 }
 
+/// The shortest wait a wake-up accepts: a moment already past still waits a
+/// beat, so a clock that keeps answering "now" cannot spin.
+pub const MIN_WAIT: Duration = Duration::from_secs(1);
+/// And the longest: a long sleep or a clock jump is caught up within an hour.
+pub const MAX_WAIT: Duration = Duration::from_secs(60 * 60);
+
+/// How long from `now` until `at`, held within [`MIN_WAIT`] and [`MAX_WAIT`].
+pub fn bounded_wait(at: NaiveDateTime, now: NaiveDateTime) -> Duration {
+    (at - now)
+        .to_std()
+        .unwrap_or(Duration::ZERO)
+        .clamp(MIN_WAIT, MAX_WAIT)
+}
+
+/// `now` to the minute — the precision `remind:` and the machine's mark hold.
+pub fn to_minute(now: NaiveDateTime) -> NaiveDateTime {
+    now.with_second(0)
+        .and_then(|at| at.with_nanosecond(0))
+        .unwrap_or(now)
+}
+
+fn moment_of(reminder: &Reminder) -> Option<NaiveDateTime> {
+    crate::task::parse_datetime(&reminder.at)
+}
+
+/// The reminders that should ring NOW: at or before `now` (to the minute) and
+/// after `until`, the moment up to which this machine already rang. `None` =
+/// never, and then nothing from the past rings — a first launch is not an
+/// avalanche.
+pub fn due_now(reminders: &[Reminder], now: NaiveDateTime, until: Option<NaiveDateTime>) -> Vec<Reminder> {
+    let Some(until) = until else {
+        return Vec::new();
+    };
+    let limit = to_minute(now);
+    reminders
+        .iter()
+        .filter(|r| moment_of(r).is_some_and(|at| at <= limit && at > until))
+        .cloned()
+        .collect()
+}
+
+/// The first reminder still ahead of `now` (to the minute), or `None`.
+/// `reminders` is sorted soonest first, as `Notebook::reminders` hands it.
+pub fn next_after(reminders: &[Reminder], now: NaiveDateTime) -> Option<NaiveDateTime> {
+    let limit = to_minute(now);
+    reminders.iter().filter_map(moment_of).find(|at| *at > limit)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -157,5 +205,56 @@ mod tests {
         sort(&mut list);
         let ats: Vec<_> = list.iter().map(|r| r.at.as_str()).collect();
         assert_eq!(ats, ["2026-07-24T18:00", "2026-07-25T08:00", "2026-07-25T09:00"]);
+    }
+
+    fn at(id: &str, when: &str) -> Reminder {
+        Reminder {
+            list: "L".into(),
+            id: Some(id.into()),
+            position: 0,
+            text: String::new(),
+            at: when.into(),
+        }
+    }
+
+    fn moment(text: &str) -> NaiveDateTime {
+        parse_datetime(text).unwrap()
+    }
+
+    fn due_list() -> Vec<Reminder> {
+        vec![
+            at("a", "2026-07-22T08:00"),
+            at("b", "2026-07-22T10:00"),
+            at("c", "2026-07-22T10:20"),
+            at("d", "2026-07-22T11:00"),
+        ]
+    }
+
+    #[test]
+    fn nothing_from_the_past_rings_on_a_machine_that_never_rang() {
+        assert!(due_now(&due_list(), moment("2026-07-22T10:20"), None).is_empty());
+    }
+
+    #[test]
+    fn everything_between_the_last_ring_and_now_rings_once() {
+        // Seconds into the minute still count the minute's reminder as due.
+        let now = moment("2026-07-22T10:20:45");
+        let due = due_now(&due_list(), now, Some(moment("2026-07-22T08:00")));
+        let ids: Vec<_> = due.iter().map(|r| r.id.as_deref().unwrap()).collect();
+        assert_eq!(ids, ["b", "c"]);
+    }
+
+    #[test]
+    fn the_next_one_is_the_first_still_ahead() {
+        assert_eq!(next_after(&due_list(), moment("2026-07-22T10:20")), Some(moment("2026-07-22T11:00")));
+        assert_eq!(next_after(&due_list(), moment("2026-07-22T12:00")), None);
+    }
+
+    #[test]
+    fn the_wait_is_bounded_on_both_sides() {
+        let now = moment("2026-07-22T10:20");
+        assert_eq!(bounded_wait(moment("2026-07-22T10:21"), now), Duration::from_secs(60));
+        assert_eq!(bounded_wait(moment("2026-07-22T10:00"), now), MIN_WAIT);
+        assert_eq!(bounded_wait(moment("2026-08-22T10:00"), now), MAX_WAIT);
     }
 }

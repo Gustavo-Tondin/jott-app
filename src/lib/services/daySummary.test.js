@@ -1,52 +1,15 @@
-import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { describe, expect, test } from "vitest";
 import {
   NAMED,
   nextSummaryAt,
   summaryAt,
-  summaryDue,
   summaryNotice,
-  waitUntilSummary,
 } from "./daySummary.js";
 import { S } from "./strings.js";
-import { MAX_WAIT } from "./wait.js";
 
 const rows = (...texts) => texts.map((text) => ({ task: { text, done: false } }));
 
-describe("when the summary is due", () => {
-  const now = new Date(2026, 8, 8, 9, 0); // 2026-09-08, 09:00
-
-  test("after the hour, once a day", () => {
-    expect(summaryDue({ now, time: "08:00", shownOn: null })).toBe(true);
-    expect(summaryDue({ now, time: "08:00", shownOn: "2026-09-08" })).toBe(false);
-    // Yesterday's mark says nothing about today.
-    expect(summaryDue({ now, time: "08:00", shownOn: "2026-09-07" })).toBe(true);
-  });
-
-  test("never before the hour", () => {
-    expect(summaryDue({ now, time: "10:00", shownOn: null })).toBe(false);
-  });
-
-  test("a launch after the hour still gets today's", () => {
-    // The summary is about a DAY: unlike a reminder it cannot be "missed" by
-    // an hour, so opening the app at 23:00 still announces today.
-    expect(summaryDue({ now: new Date(2026, 8, 8, 23, 0), time: "08:00", shownOn: null })).toBe(
-      true,
-    );
-  });
-});
-
-describe("when it wakes up next", () => {
-  beforeEach(() => vi.useFakeTimers());
-  afterEach(() => vi.useRealTimers());
-
-  test("today's hour while it is still ahead, and never longer than the cap", () => {
-    const now = new Date(2026, 8, 8, 7, 30);
-    expect(waitUntilSummary({ now, time: "08:00", shownOn: null })).toBe(30 * 60 * 1000);
-    // Tomorrow is more than an hour away: the cap keeps a clock jump or a
-    // long sleep from swallowing the day.
-    expect(waitUntilSummary({ now, time: "08:00", shownOn: "2026-09-08" })).toBe(MAX_WAIT);
-  });
-
+describe("when it lands next", () => {
   test("the next summary is today's while its hour is ahead, else tomorrow's", () => {
     expect(nextSummaryAt({ now: new Date(2026, 8, 8, 7, 30), time: "08:00" })).toEqual(new Date(2026, 8, 8, 8, 0));
     // Past the hour, the day the alarm is about is tomorrow — the day the
@@ -55,9 +18,8 @@ describe("when it wakes up next", () => {
   });
 
   test("tomorrow's once today's was announced", () => {
-    const now = new Date(2026, 8, 8, 23, 30);
-    const wait = waitUntilSummary({ now, time: "08:00", shownOn: "2026-09-08" });
-    expect(new Date(now.getTime() + wait).getDate()).toBe(9);
+    const now = new Date(2026, 8, 8, 7, 30);
+    expect(nextSummaryAt({ now, time: "08:00", shownOn: "2026-09-08" })).toEqual(new Date(2026, 8, 9, 8, 0));
     expect(summaryAt("2026-09-09", "08:00").getHours()).toBe(8);
   });
 });

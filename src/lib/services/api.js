@@ -388,19 +388,15 @@ export const api = {
   setDayOrder: (day, refs) => invoke("set_day_order", { day, refs }),
   dayClock: () => invoke("day_clock"),
   refreshDay: () => invoke("refresh_day"),
-  // reminders: the core's sorted list, this machine's memory of what rang,
-  // the desktop bell, and the tray the app waits in.
+  // reminders: the core's sorted list (the phone's alarms), and the tray the
+  // app waits in.
   reminders: () => invoke("reminders"),
   // the notebook's own memory, shared between devices: a reminder shown and
   // dealt with here is not offered again by `reminders()`, anywhere.
   ackReminder: (list, id, at) => invoke("ack_reminder", { list, id, at }),
-  remindedUntil: () => invoke("reminded_until"),
-  rememberRemindedUntil: (until) => invoke("remember_reminded_until", { until }),
-  // the day summary: the machine remembers the DAY it was announced on.
-  daySummarizedOn: () => invoke("day_summarized_on"),
-  rememberDaySummarizedOn: (day) => invoke("remember_day_summarized_on", { day }),
-  notifyReminder: (title, body, target) =>
-    invoke("notify_reminder", { title, body, target }),
+  // desktop: the process rings; the window only says "look again", and
+  // whether the Remind function is on.
+  nudgeReminders: (reminders) => invoke("nudge_reminders", { reminders }),
   closeToTray: () => invoke("close_to_tray"),
   rememberCloseToTray: (on) => invoke("remember_close_to_tray", { on }),
   autostart: () => invoke("autostart"),

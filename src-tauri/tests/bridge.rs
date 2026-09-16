@@ -227,7 +227,7 @@ fn the_full_task_lifecycle_over_the_bridge() {
 }
 
 #[test]
-fn reminders_cross_the_bridge_with_the_machine_memory_of_what_rang() {
+fn reminders_and_the_day_summary_settings_cross_the_bridge() {
     let (_lock, app, dir) = app_with_notebook();
 
     let id = task_with_id(&app, "jott.tasks/task-list.md", "Ligar pro dentista");
@@ -252,17 +252,7 @@ fn reminders_cross_the_bridge_with_the_machine_memory_of_what_rang() {
     let ats: Vec<_> = reminders.as_array().unwrap().iter().map(|r| r["at"].as_str().unwrap().to_string()).collect();
     assert_eq!(ats, ["2026-07-24T18:00"], "only the task that asked");
 
-    // The machine's memory of what rang: per notebook, never by default.
-    assert_eq!(ok(&app, "reminded_until", json!({})), Value::Null);
-    ok(&app, "remember_reminded_until", json!({ "until": "2026-07-24T18:00" }));
-    assert_eq!(ok(&app, "reminded_until", json!({})), json!("2026-07-24T18:00"));
-
-    // The same memory for the day summary, a day rather than a moment, and
-    // the two settings the shell schedules it from.
-    assert_eq!(ok(&app, "day_summarized_on", json!({})), Value::Null);
-    ok(&app, "remember_day_summarized_on", json!({ "day": "2026-07-24" }));
-    assert_eq!(ok(&app, "day_summarized_on", json!({})), json!("2026-07-24"));
-
+    // The settings the ringer announces the day summary from.
     ok(
         &app,
         "set_notebook_settings",
@@ -272,7 +262,7 @@ fn reminders_cross_the_bridge_with_the_machine_memory_of_what_rang() {
     assert_eq!(settings["daySummary"], json!(true));
     assert_eq!(settings["daySummaryTime"], json!("07:30"));
     assert_eq!(settings["reminderTime"], json!("10:00"));
-    // And the layout carries them, because the shell arms the timer on open.
+    // And the layout carries them, for the phone's alarms.
     let layout = ok(&app, "notebook_snapshot", json!({}))["info"]["layout"].clone();
     assert_eq!(layout["daySummary"], json!(true));
     assert_eq!(layout["daySummaryTime"], json!("07:30"));
@@ -313,6 +303,107 @@ fn a_reminder_acknowledged_here_is_not_offered_again() {
 
     // A moment the core cannot read is refused rather than filed wrong.
     assert!(invoke(&app, "ack_reminder", json!({ "list": list, "id": id, "at": "whenever" })).is_err());
+}
+
+/// A task in the Inbox asking to ring at `at`, with the ringer of the
+/// notebook told the Remind function is on.
+fn ringing_task(app: &MockApp, text: &str, at: &str) -> String {
+    let list = "jott.tasks/task-list.md";
+    let id = task_with_id(app, list, text);
+    ok(app, "set_task_fields", json!({ "list": list, "id": id, "fields": { "remind": at } }));
+    id
+}
+
+fn moment(text: &str) -> chrono::NaiveDateTime {
+    jott_core::task::parse_datetime(text).unwrap()
+}
+
+// Moments far past the real clock: the ringer's own thread runs beside the
+// test with the real "now", and must find none of them due.
+
+#[test]
+fn two_windows_on_one_notebook_ring_a_reminder_once() {
+    let (_lock, app, dir) = app_with_notebook();
+    WebviewWindowBuilder::new(&app, "second", Default::default())
+        .build()
+        .expect("failed to build the second webview");
+    ok_from(&app, "second", "open_notebook", json!({ "path": dir.path() }));
+
+    let state = app.state::<jott_lib::state::AppState>();
+    let root = dir.path().to_path_buf();
+    assert_eq!(state.ringers().count(), 1, "one ringer per notebook, not per window");
+    assert_eq!(state.ringers().windows_of(&root), ["main", "second"]);
+    state.ringers().capture();
+
+    ok(&app, "nudge_reminders", json!({ "reminders": true }));
+    ok_from(&app, "second", "nudge_reminders", json!({ "reminders": true }));
+    let id = ringing_task(&app, "Ligar pro dentista", "2099-01-01T09:05");
+
+    let handle = app.handle();
+    // The first pass of a machine that never rang this notebook only sets
+    // the mark (or finds the thread's): nothing old rings.
+    jott_lib::ringer::ring_at(handle, &root, moment("2099-01-01T09:00"));
+    assert!(state.ringers().rung().is_empty());
+
+    let wait = jott_lib::ringer::ring_at(handle, &root, moment("2099-01-01T09:10"));
+    jott_lib::ringer::ring_at(handle, &root, moment("2099-01-01T09:11"));
+    let rung = state.ringers().rung();
+    assert_eq!(rung.len(), 1, "{rung:?}");
+    assert_eq!(rung[0].body, "Ligar pro dentista");
+    assert_eq!(rung[0].target.id.as_deref(), Some(id.as_str()));
+    assert_eq!(wait, std::time::Duration::from_secs(60 * 60), "nothing ahead: the long wait");
+    // Rung here is acknowledged in the notebook: the phone stays quiet.
+    assert!(ok(&app, "reminders", json!({})).as_array().unwrap().is_empty());
+}
+
+#[test]
+fn the_remind_switch_off_rings_nothing_and_the_summary_is_the_notebooks() {
+    let (_lock, app, dir) = app_with_notebook();
+    let state = app.state::<jott_lib::state::AppState>();
+    let root = dir.path().to_path_buf();
+    state.ringers().capture();
+    ok(&app, "nudge_reminders", json!({ "reminders": false }));
+    ringing_task(&app, "Ligar pro dentista", "2099-01-01T09:05");
+    // The summary is about the notebook's day, which the real clock names.
+    let today = ok(&app, "day_clock", json!({}))["today"].clone();
+    let rent = task_with_id(&app, "jott.tasks/task-list.md", "Aluguel");
+    ok(&app, "set_task_fields", json!({ "list": "jott.tasks/task-list.md", "id": rent, "fields": { "due": today } }));
+
+    let handle = app.handle();
+    jott_lib::ringer::ring_at(handle, &root, moment("2099-01-01T09:00"));
+    jott_lib::ringer::ring_at(handle, &root, moment("2099-01-01T09:10"));
+    assert!(state.ringers().rung().is_empty(), "the switch is off and so is the summary");
+
+    ok(&app, "set_notebook_settings", json!({ "settings": { "daySummary": true, "daySummaryTime": "08:00" } }));
+    jott_lib::ringer::ring_at(handle, &root, moment("2099-01-01T09:20"));
+    jott_lib::ringer::ring_at(handle, &root, moment("2099-01-01T09:30"));
+    let rung = state.ringers().rung();
+    assert_eq!(rung.len(), 1, "announced once a day: {rung:?}");
+    assert_eq!(rung[0].title, "You have 1 task today");
+    assert_eq!(rung[0].body, "• Aluguel");
+    assert_eq!(rung[0].target.list, "", "a summary opens no task");
+}
+
+#[test]
+fn the_last_window_to_leave_a_notebook_stops_its_ringer() {
+    let (_lock, app, dir) = app_with_notebook();
+    WebviewWindowBuilder::new(&app, "second", Default::default())
+        .build()
+        .expect("failed to build the second webview");
+    ok_from(&app, "second", "open_notebook", json!({ "path": dir.path() }));
+    let state = app.state::<jott_lib::state::AppState>();
+    let root = dir.path().to_path_buf();
+    assert_eq!(state.ringers().count(), 1);
+
+    // A window that opens another notebook leaves this one's ringer.
+    let other = tempfile::tempdir().unwrap();
+    ok_from(&app, "second", "open_notebook", json!({ "path": other.path(), "create": true }));
+    assert_eq!(state.ringers().windows_of(&root), ["main"]);
+    assert_eq!(state.ringers().count(), 2);
+
+    state.close("second");
+    state.close("main");
+    assert_eq!(state.ringers().count(), 0);
 }
 
 #[test]

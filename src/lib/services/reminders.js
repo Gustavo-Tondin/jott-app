@@ -1,11 +1,10 @@
 // Reminders on the front. The core decides WHAT rings and hands a sorted
 // list of `{list, id, position, text, at, auto}`; this module knows the
 // shape of `at` (`2026-07-25T09:00`, local, minute precision — sortable as a
-// string, so comparisons below are string comparisons), the presets, and
-// which are due. Scheduling is `shell/reminders.js`; no timer or bridge here.
+// string, so comparisons below are string comparisons) and the presets. What
+// is due and when is the process's on desktop (`src-tauri/src/ringer.rs`).
 
 import { formatDate, toIso } from "./dates.js";
-import { boundedWait } from "./wait.js";
 
 const two = (n) => String(n).padStart(2, "0");
 
@@ -80,25 +79,6 @@ export function presets({ now = new Date(), due = "", time = "09:00" } = {}) {
     if (at > toAt(now)) out.push({ id: "onDue", at });
   }
   return out;
-}
-
-/// The reminders that should ring NOW: at or before `now` and after `until`,
-/// the moment up to which this machine already rang (null = never, and then
-/// nothing from the past rings — a first launch is not an avalanche).
-export function dueNow(reminders, { now = new Date(), until = null } = {}) {
-  const limit = toAt(now);
-  return reminders.filter((r) => r.at <= limit && until !== null && r.at > until);
-}
-
-/// The first reminder still ahead of `now`, or null.
-export function nextAfter(reminders, now = new Date()) {
-  const limit = toAt(now);
-  return reminders.find((r) => r.at > limit) ?? null;
-}
-
-/// How long until `at`, held within the two bounds.
-export function waitUntil(at, now = new Date()) {
-  return boundedWait(parseAt(at).getTime() - now.getTime());
 }
 
 /// What the notification says: the task that asked to be reminded.

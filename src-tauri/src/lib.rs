@@ -9,6 +9,7 @@ pub mod commands;
 pub mod error;
 pub mod net;
 pub mod prefs;
+pub mod ringer;
 pub mod state;
 #[cfg(desktop)]
 pub mod tray;
@@ -203,11 +204,7 @@ pub fn configure<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builde
             // reminders — what rings, and the ringing
             commands::reminders::reminders,
             commands::reminders::ack_reminder,
-            commands::reminders::reminded_until,
-            commands::reminders::remember_reminded_until,
-            commands::reminders::day_summarized_on,
-            commands::reminders::remember_day_summarized_on,
-            commands::reminders::notify_reminder,
+            commands::reminders::nudge_reminders,
             // tray — closing to the tray, the session, quitting
             commands::tray::close_to_tray,
             commands::tray::remember_close_to_tray,

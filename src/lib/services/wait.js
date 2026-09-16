@@ -1,5 +1,5 @@
-// The bounds every wake-up timer holds its wait within — the day's turn, the
-// reminders, the day summary. A moment already past still waits a beat, so a
+// The bounds a wake-up timer holds its wait within — the day's turn (the
+// reminders' twin lives in `jott_core::reminders`). A moment already past still waits a beat, so a
 // clock that keeps answering "now" cannot spin; and no wait is longer than an
 // hour, so a long sleep or a clock jump is caught up within one.
 

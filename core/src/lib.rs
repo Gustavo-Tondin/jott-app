@@ -11,6 +11,7 @@ pub mod browse;
 pub mod clock;
 pub mod conflict;
 pub mod config;
+pub mod daysummary;
 pub mod desktop;
 pub mod error;
 pub mod folder;
