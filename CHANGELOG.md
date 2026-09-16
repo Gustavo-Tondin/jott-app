@@ -28,6 +28,7 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 - **A note card leads with the note's name**: the name sits on a chip the width of the card and is the one thing on it that steps up in size, so a heading inside the note no longer shouts louder than the note it belongs to.
 - **A note that opens with its own name as a heading draws it once**: the card leaves the repeated heading out of the text it shows.
 - **A banner reaches the card's edges**, a little taller than before, with the name straddling its lower edge.
+- **The buttons and fields on a phone are rounder**: a control a thumb makes bigger now takes a corner to match, and the bars that float over the screen — the top bar and the formatting strip — are rounded like the cards they sit above.
 - **The pin and the ⋮ only appear when the pointer is on the card**, on a small ground of their own — the one the name sits on — so they read over a banner as clearly as over the name itself; hovering no longer fades the whole card, and on a phone a pinned note is said by the ring around it.
 - **A card carried across the board reads as one movement now**: it lifts with its own rounded shadow instead of a square one, the cards making room for it glide rather than snap, and when you let go the board flows into its new arrangement instead of jumping into it.
 - **A note card on a phone no longer carries a ⋮**: holding the card opens the very same actions, and the corner it took back belongs to the note.

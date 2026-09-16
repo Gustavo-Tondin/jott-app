@@ -169,5 +169,47 @@
     .task-row__bookmark {
       margin-inline-end: calc(-1 * var(--app-space-12));
     }
+
+    /* ---- SHAPE — the corner follows the box that grew ----
+       The ladder is read by the SIZE of the object (styles/tokens.css), and
+       everything above is a bigger object here than on a desktop: kept at the
+       desktop's rung, a 48px control reads square next to the app's rounded
+       cards. Each moves exactly one rung, no control gains a corner of its own. */
+
+    /* `.theme-btn--icon` is deliberately NOT here: it paints nothing at rest,
+       only a hover plate no finger ever asks for, and raising it would break
+       the concentric corner every bar computes for the glyph it holds. */
+
+    /* The worded button and the fields, all at the 48px minimum. */
+    .theme-btn,
+    .theme-input,
+    .theme-select {
+      border-radius: var(--app-radius-lg);
+    }
+    /* The quiet sizes, raised to 44px above. */
+    .theme-btn--sm,
+    .theme-btn--xs,
+    .theme-chip,
+    .theme-input--sm,
+    .theme-select--sm,
+    .theme-select--bare,
+    .theme-input--filled {
+      border-radius: var(--app-radius-md);
+    }
+    /* The one `--xs` that keeps its density (32px), so it keeps a small corner. */
+    .list-view__action {
+      border-radius: var(--app-radius-sm);
+    }
+    /* The segmented control is the one nesting here whose child sits FLUSH, so
+       the two move together and the corner stays concentric: the track is the
+       pill plus the 2px of well it sits in. Raised with the fields it shares a
+       Settings column with, not with its own height. */
+    .theme-segmented {
+      border-radius: var(--app-radius-lg);
+    }
+    .theme-segmented__item,
+    .theme-segmented--glides::before {
+      border-radius: calc(var(--app-radius-lg) - var(--app-space-2));
+    }
   }
 }

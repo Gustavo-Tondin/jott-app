@@ -215,7 +215,7 @@
      the viewport and drawn outside `.window` (App.svelte says why), so it needs
      its own ground and its own top hairline — it is not sitting on any panel. */
   .format-strip {
-    --format-inner-radius: calc(var(--app-radius-md) - var(--app-space-2));
+    --format-inner-radius: calc(var(--app-radius-lg) - var(--app-space-2));
     position: fixed;
     /* A pill with air on both sides: the insets bound it, `fit-content` takes
        only what the row needs, the auto margins centre the rest. The ceiling
@@ -231,7 +231,9 @@
     inset-block-end: max(var(--app-safe-bottom), var(--app-keyboard));
     z-index: 40;
     background: var(--app-bg);
-    border-radius: var(--app-radius-md);
+    /* A card's corner, not a popover's: it is the one floating surface a thumb
+       rests on, beside the composer and the sheets, which are `lg` too. */
+    border-radius: var(--app-radius-lg);
     margin-block-end: var(--app-space-8);
   }
 }
