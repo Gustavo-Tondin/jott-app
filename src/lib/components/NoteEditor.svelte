@@ -5,7 +5,7 @@
   // when the Save button was removed: an edit you have to remember to confirm
   // is an edit you lose. The mechanics ARE the inspector's — the shared
   // engine in services/autosave.js, which carries the why of each rule.
-  import { onDestroy, untrack } from "svelte";
+  import { onDestroy, tick, untrack } from "svelte";
   import { api } from "../services/api.js";
   import { autosave } from "../services/autosave.js";
   import { S } from "../services/strings.js";
@@ -172,6 +172,12 @@
   export const openFind = () => editor?.openFind();
   export const openReplace = () => editor?.openReplace();
   export const focusBody = () => editor?.focusBody();
+  /// Marks where the notebook search's words are. After a tick: called as the
+  /// note loads, before the body has reached the editor.
+  export const showFound = async (query) => {
+    await tick();
+    return editor?.showFound(query) ?? false;
+  };
   /// Writes text at the cursor — the image picker's way in (2026-08-18).
   export const insert = (text) => editor?.insert(text);
   /// The formatting panel's door into the editor: same commands, same ids as

@@ -2,7 +2,7 @@
 // inside App.svelte, reachable only by mounting the whole app.
 
 import { describe, expect, test } from "vitest";
-import { landing, reachable, spaceOfView, titleOf, viewFromId } from "./views.js";
+import { landing, reachable, screenOfList, spaceOfView, titleOf, viewFromId } from "./views.js";
 import { viewId } from "./tabs.js";
 
 describe("viewFromId", () => {
@@ -149,5 +149,36 @@ describe("spaceOfView", () => {
     expect(spaceOfView({ kind: "home" }, layout)).toBeNull();
     expect(spaceOfView({ kind: "trash" }, layout)).toBeNull();
     expect(spaceOfView(null, layout)).toBeNull();
+  });
+});
+
+describe("screenOfList", () => {
+  const layout = { tasksFolder: "jott.tasks", completedName: "completed" };
+  const lists = [
+    { path: "jott.tasks/task-list.md", name: "task-list" },
+    { path: "jott.tasks/completed.md", name: "completed" },
+    { path: "Design/Tasks/task-list.md", name: "task-list" },
+    { path: "Design/Tasks/completed.md", name: "completed" },
+  ];
+  const spaces = [{ path: "Design/Tasks" }];
+  const ask = (list, f) => screenOfList(list, { layout, lists, spaces, f });
+
+  test("a task of the Inbox, open or done, opens on the Tasks screen", () => {
+    expect(ask("jott.tasks/task-list.md")).toEqual({ kind: "tasks" });
+    expect(ask("jott.tasks/completed.md")).toEqual({ kind: "tasks" });
+  });
+
+  test("a task of a user space opens on that space, not on a bare list", () => {
+    expect(ask("Design/Tasks/task-list.md")).toEqual({ kind: "space", sp: "Design/Tasks" });
+    expect(ask("Design/Tasks/completed.md")).toEqual({ kind: "space", sp: "Design/Tasks" });
+  });
+
+  test("a list no space draws falls back to the list itself", () => {
+    expect(ask("Loose/errands.md")).toEqual({ kind: "list", list: "Loose/errands.md" });
+    const hidden = (key) => key !== "tasksSpace";
+    expect(ask("jott.tasks/task-list.md", hidden)).toEqual({
+      kind: "list",
+      list: "jott.tasks/task-list.md",
+    });
   });
 });

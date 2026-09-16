@@ -102,7 +102,15 @@
   import { makeNoteDocument } from "./lib/shell/noteDocument.js";
   import { makeNotebookWrites } from "./lib/shell/notebookWrites.js";
   import { makeRemindersHost } from "./lib/shell/remindersHost.js";
-  import { landing, reachable, spaceOfView, titleOf, viewFromId } from "./lib/shell/views.js";
+  import {
+    landing,
+    reachable,
+    screenOfList,
+    spaceOfView,
+    titleOf,
+    viewFromId,
+  } from "./lib/shell/views.js";
+  import { centreWhenDrawn } from "./lib/services/centreWhenDrawn.js";
   import { noteTargets } from "./lib/services/noteTargets.js";
   import { quickTaskTarget, taskTargets } from "./lib/services/taskTargets.js";
   import { watchWindowState, toggleFullscreen } from "./lib/shell/windowState.js";
@@ -622,18 +630,36 @@
   /// on the user's behalf — an ambiguous `[[link]]`, so far.
   let searchQuery = $state("");
 
-  /// Goes to a task found by the search: its list opens, and the task itself
-  /// opens in the panel. A task with no id cannot be addressed, so that one
-  /// just opens its list; same if the read fails.
+  /// Goes to a task found elsewhere (search, Home, a reminder): the screen
+  /// its space is always read on opens, the task opens in the panel, and its
+  /// card is brought to the middle of the canvas. A task with no id cannot be
+  /// addressed, so that one just opens the screen; same if the read fails.
   async function showFoundTask(path, id) {
-    showList(path);
+    openIn(screenOfList(path, { layout, lists: notebook?.lists ?? [], spaces: userSpaces, f }));
     if (!id) return;
     try {
       const found = (await api.listTasks(path))?.find((task) => task.id === id);
-      if (found) select(path, found);
+      if (!found) return;
+      select(path, found);
+      centreWhenDrawn(".shell__centre .task-row--selected");
     } catch {
-      // The list is open; that is the part that mattered.
+      // The screen is open; that is the part that mattered.
     }
+  }
+
+  /// `{path, find}`: what the search typed, waiting for the note it opened to load — then
+  /// the note marks where those words are (NoteEditor.showFound).
+  let findInNote = null;
+
+  /// Goes to a note found by the search, marking the words that found it. A
+  /// note already on screen loads nothing, so it is marked straight away; one
+  /// opened in a background tab is not on screen to mark.
+  function showFoundNote(path, folder, { newTab = false, find = "" } = {}) {
+    const here = view.kind === "note" && view.path === path && view.folder === folder;
+    showNote(path, folder, newTab);
+    if (newTab || !find) return;
+    if (here) noteEditor?.showFound(find);
+    else findInNote = { path, find };
   }
 
   // ---- the two capture shortcuts (Ctrl+T / Ctrl+N) ----
@@ -2276,6 +2302,10 @@
                 focusNewNote = false;
                 noteEditor?.focusBody();
               }
+              if (findInNote) {
+                if (findInNote.path === view.path) noteEditor?.showFound(findInNote.find);
+                findInNote = null;
+              }
             }}
             onRemoteImage={(url) => fetchRemoteImage(url)}
             onZoom={setZoom}
@@ -2483,7 +2513,7 @@
       searchQuery = "";
     }}
     onOpenList={showFoundTask}
-    onOpenNote={(path, folder, opts) => showNote(path, folder, opts?.newTab)}
+    onOpenNote={showFoundNote}
     onError={fail}
   />
 {/if}

@@ -116,6 +116,15 @@
   let open = $state([]);
   let done = $state([]);
   let showCompleted = $state(false);
+  /// A completed task chosen from outside (search, the Home) unfolds the
+  /// Completed run, once per task — folding it again afterwards stays folded.
+  let unfoldedFor = null;
+  $effect(() => {
+    const id = selectedTask?.id;
+    if (!id || id === unfoldedFor || !done.some((entry) => entry.task.id === id)) return;
+    unfoldedFor = id;
+    showCompleted = true;
+  });
   /// A day's arrangement: it has no `.space.json`, so the notebook keeps it
   /// and the source reads it with the tasks.
   let daySort = $state(null);

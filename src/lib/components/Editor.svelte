@@ -36,6 +36,7 @@
   import { toCodeMirror } from "../services/keys.js";
   import { perf } from "../services/perf.js";
   import { minimalReplacement } from "../services/textDiff.js";
+  import { foundMark, markFound } from "../services/foundMark.js";
 
   let {
     value = "",
@@ -159,6 +160,8 @@
           // at the bottom it lands on the window edge, under the status of
           // nothing.
           search({ top: true, createPanel: searchPanel }),
+          // The notebook search's mark, for the note it opened.
+          foundMark,
           // NOT `highlightSelectionMatches`: a note is prose, and painting every
           // other occurrence of the selected word lit up the whole document.
           // Tab indents the LINE (`md.INDENT` says why two spaces) and no longer
@@ -324,7 +327,22 @@
     if (!plain) view?.dispatch({ effects: refreshTables.of(null) });
   });
 
-  onDestroy(() => view?.destroy());
+  /// Takes the search's mark away early; null while none is lit.
+  let dropFound = null;
+  onDestroy(() => {
+    dropFound?.();
+    view?.destroy();
+  });
+
+  /// Lights the first occurrence of `query` and brings it to the middle —
+  /// the note was opened by a search for it. False when the words are not in
+  /// the body (the title or a tag matched).
+  export function showFound(query) {
+    if (!view || plain) return false;
+    dropFound?.();
+    dropFound = markFound(view, query);
+    return !!dropFound;
+  }
 
   /// Opens the find/replace panel from outside (the page ⋮, the canvas menu).
   /// One panel: CodeMirror shows the replace fields whenever the document is

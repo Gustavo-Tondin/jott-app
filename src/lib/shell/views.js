@@ -5,7 +5,7 @@
 // the app goes, and which view a remembered screen id means.
 
 import { S } from "../services/strings.js";
-import { folderOf, listName, listTitle } from "../services/paths.js";
+import { folderOf, listName, listTitle, taskSpacePaths } from "../services/paths.js";
 
 /// The view a remembered screen id means, or null when it means nothing here.
 /// The inverse of `tabs.viewId` — keep the two in step.
@@ -123,4 +123,21 @@ export function spaceOfView(view, layout = {}) {
     default:
       return null;
   }
+}
+
+/// The screen a task of `list` is shown on: the space that draws that list —
+/// the fixed Tasks screen for its own folder, a user space for its — so a task
+/// opened from elsewhere (search, Home, a reminder) lands where it always
+/// lives. The bare list view answers only a list no space draws (a second
+/// hand-made list, a hidden Tasks screen). `spaces` are the user spaces.
+export function screenOfList(list, { layout = {}, lists = [], spaces = [], f = () => true } = {}) {
+  const folder = folderOf(list);
+  const completedName = layout.completedName ?? "completed";
+  const paths = taskSpacePaths({ folder }, lists, completedName);
+  const drawn = list === paths.list || list === paths.completed;
+  if (drawn && folder === layout.tasksFolder && reachable({ kind: "tasks" }, f, layout)) {
+    return { kind: "tasks" };
+  }
+  if (drawn && spaces.some((sp) => sp.path === folder)) return { kind: "space", sp: folder };
+  return { kind: "list", list };
 }
