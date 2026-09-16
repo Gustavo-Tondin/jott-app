@@ -20,6 +20,7 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 
 ### Fixed
 
+- **The reminder field of a task's panel no longer spills out of a narrow panel**: its date and hour sit on their own line, under the name and the ×.
 - **A reminder that appeared on one device while you were away still rings on the other**: only clicking, answering or dismissing the notification counts as seen, not the banner timing out.
 - **On Android, updating Jott no longer crashes it in the background** over reminders an older version had scheduled.
 - **Ticking a task off can no longer send it twice**: once the card has left, a late tap does nothing, instead of showing "no task with id" while the task was already completed.

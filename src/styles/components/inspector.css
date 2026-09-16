@@ -224,6 +224,15 @@
     .inspector__field-label {
       flex: 0 0 auto;
     }
+    /* The reminder's label has a line of its own, so its word stays. */
+    .inspector__field--reminder .inspector__field-word {
+      position: static;
+      inline-size: auto;
+      block-size: auto;
+      overflow: visible;
+      clip-path: none;
+      white-space: normal;
+    }
   }
   /* The flag and its word in the level's status colour — the same three
      the card's marks and the composer's flag read. */
@@ -241,9 +250,30 @@
     align-items: center;
     gap: var(--app-space-4);
   }
+  /* The one row with two controls gets two lines, at every width: the label
+     and the × above, the date and the hour alone below — so neither squeezes
+     the other. On a panel narrower still, the hour goes under the date. */
+  .inspector__field--reminder {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "label clear"
+      "value value";
+    row-gap: var(--app-space-4);
+  }
+  .inspector__field--reminder .inspector__field-label {
+    grid-area: label;
+  }
+  .inspector__reminder-clear {
+    grid-area: clear;
+  }
   .inspector__reminder {
+    grid-area: value;
+    justify-self: end;
     flex-wrap: wrap;
     justify-content: flex-end;
+    min-inline-size: 0;
+    max-inline-size: 100%;
   }
   .inspector__time {
     inline-size: auto;

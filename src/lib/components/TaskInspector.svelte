@@ -674,7 +674,10 @@
       {/if}
 
       {#if f("remind")}
-      <div class="inspector__field" class:inspector__field--unset={!draft.remind}>
+      <div
+        class="inspector__field inspector__field--reminder"
+        class:inspector__field--unset={!draft.remind}
+      >
         <span class="inspector__field-label">
           <Icon name="alarm" size="1rem" />
           <span class="inspector__field-word">{S.remindLabel}</span>
@@ -711,17 +714,17 @@
               {/snippet}
             </Menu>
           {/if}
-          {#if !readOnly && draft.remind}
-            <button
-              class="inspector__tag-remove"
-              onclick={clearReminder}
-              aria-label={S.clearReminder}
-              title={S.clearReminderHint}
-            >
-              <Icon name="x" size="0.625rem" />
-            </button>
-          {/if}
         </span>
+        {#if !readOnly && draft.remind}
+          <button
+            class="inspector__tag-remove inspector__reminder-clear"
+            onclick={clearReminder}
+            aria-label={S.clearReminder}
+            title={S.clearReminderHint}
+          >
+            <Icon name="x" size="0.625rem" />
+          </button>
+        {/if}
       </div>
       {/if}
 
