@@ -255,3 +255,60 @@ fn pruning_drops_the_ack_of_a_reminder_that_moved_and_the_old_shape() {
     assert_eq!(keys, [&format!("{list}/{id}")]);
     assert_eq!(ringing(&notebook), ["2026-07-25T09:00"]);
 }
+
+fn acted(notebook: &Notebook, list: &str, id: &str, action: reminders::ReminderAction, now: &str) -> Option<String> {
+    notebook
+        .act_on_reminder(list, id, parse_datetime("2026-07-24T18:00").unwrap(), action, parse_datetime(now).unwrap())
+        .unwrap()
+        .map(jott_core::task::render_datetime)
+}
+
+#[test]
+fn done_from_a_notification_completes_the_task_and_silences_every_device() {
+    let (dir, notebook, list, id) = notebook_ringing_at("2026-07-24T18:00");
+    assert_eq!(acted(&notebook, &list, &id, reminders::ReminderAction::Done, "2026-07-24T18:02"), None);
+    assert!(ringing(&notebook).is_empty());
+    assert!(notebook.inbox().unwrap().find(&id).is_none(), "the task left the list");
+    let completed = common::read(dir.path().join("jott.tasks/completed.md"));
+    assert!(completed.contains("Ligar pro dentista"), "{completed}");
+}
+
+#[test]
+fn later_moves_the_reminder_an_hour_on_and_acknowledges_the_old_moment() {
+    let (_dir, notebook, list, id) = notebook_ringing_at("2026-07-24T18:00");
+    let moved = acted(&notebook, &list, &id, reminders::ReminderAction::Later, "2026-07-24T18:02");
+    assert_eq!(moved.as_deref(), Some("2026-07-24T19:05"));
+    assert_eq!(ringing(&notebook), ["2026-07-24T19:05"], "the new moment is a new reminder");
+}
+
+#[test]
+fn tomorrow_moves_the_reminder_to_the_notebooks_hour() {
+    let (_dir, notebook, list, id) = notebook_ringing_at("2026-07-24T18:00");
+    let moved = acted(&notebook, &list, &id, reminders::ReminderAction::Tomorrow, "2026-07-24T18:02");
+    assert_eq!(moved.as_deref(), Some("2026-07-25T09:00"));
+}
+
+#[test]
+fn a_reminder_changed_meanwhile_is_not_moved_by_an_old_notification() {
+    let (_dir, notebook, list, id) = notebook_ringing_at("2026-07-24T18:00");
+    notebook
+        .set_task_fields(
+            &list,
+            &id,
+            jott_core::task::TaskFields {
+                remind: Some(Some("2026-07-30T08:00".into())),
+                ..Default::default()
+            },
+        )
+        .unwrap();
+    assert_eq!(acted(&notebook, &list, &id, reminders::ReminderAction::Later, "2026-07-24T18:02"), None);
+    assert_eq!(ringing(&notebook), ["2026-07-30T08:00"]);
+}
+
+#[test]
+fn a_dismissed_notification_only_acknowledges() {
+    let (_dir, notebook, list, id) = notebook_ringing_at("2026-07-24T18:00");
+    assert_eq!(acted(&notebook, &list, &id, reminders::ReminderAction::Dismiss, "2026-07-24T18:02"), None);
+    assert!(ringing(&notebook).is_empty());
+    assert!(notebook.inbox().unwrap().find(&id).is_some(), "the task stays open");
+}

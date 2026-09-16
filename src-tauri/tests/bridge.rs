@@ -353,8 +353,98 @@ fn two_windows_on_one_notebook_ring_a_reminder_once() {
     assert_eq!(rung[0].body, "Tasks", "and the body says where it lives");
     assert_eq!(rung[0].target.id.as_deref(), Some(id.as_str()));
     assert_eq!(wait, std::time::Duration::from_secs(60 * 60), "nothing ahead: the long wait");
-    // Rung here is acknowledged in the notebook: the phone stays quiet.
+    // Shown is not dealt with: until someone acts on it, the phone still rings.
+    assert_eq!(ok(&app, "reminders", json!({})).as_array().unwrap().len(), 1);
+    jott_lib::ringer::respond(handle, &root, &rung[0], jott_lib::ringer::Answer::Dismissed);
     assert!(ok(&app, "reminders", json!({})).as_array().unwrap().is_empty());
+}
+
+/// Rings the one task asking for `2099-01-01T09:05` and hands back what rang.
+fn rung_once(app: &MockApp, root: &std::path::Path) -> jott_lib::ringer::Rung {
+    let handle = app.handle();
+    let state = app.state::<jott_lib::state::AppState>();
+    jott_lib::ringer::ring_at(handle, root, moment("2099-01-01T09:00"));
+    jott_lib::ringer::ring_at(handle, root, moment("2099-01-01T09:10"));
+    let rung = state.ringers().rung();
+    assert_eq!(rung.len(), 1, "{rung:?}");
+    rung[0].clone()
+}
+
+fn opened_events(app: &MockApp) -> std::sync::Arc<std::sync::atomic::AtomicUsize> {
+    use tauri::Listener;
+    let opened = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+    let count = opened.clone();
+    app.listen_any(jott_lib::ringer::REMINDER_OPEN_EVENT, move |_| {
+        count.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+    });
+    opened
+}
+
+#[test]
+fn an_expired_notification_is_not_acknowledged() {
+    let (_lock, app, dir) = app_with_notebook();
+    let root = dir.path().to_path_buf();
+    app.state::<jott_lib::state::AppState>().ringers().capture();
+    ok(&app, "nudge_reminders", json!({ "reminders": true }));
+    ringing_task(&app, "Ligar pro dentista", "2099-01-01T09:05");
+    let rung = rung_once(&app, &root);
+    assert!(rung.buttons, "one task's reminder offers the buttons");
+
+    jott_lib::ringer::respond(app.handle(), &root, &rung, jott_lib::ringer::Answer::Unseen);
+    assert_eq!(ok(&app, "reminders", json!({})).as_array().unwrap().len(), 1, "another device still rings");
+    jott_lib::ringer::respond(app.handle(), &root, &rung, jott_lib::ringer::Answer::Clicked("__closed".into()));
+    assert_eq!(ok(&app, "reminders", json!({})).as_array().unwrap().len(), 1, "a name nobody knows is nothing");
+}
+
+#[test]
+fn later_writes_a_new_remind_an_hour_ahead_and_acknowledges_the_old_one() {
+    let (_lock, app, dir) = app_with_notebook();
+    let root = dir.path().to_path_buf();
+    app.state::<jott_lib::state::AppState>().ringers().capture();
+    ok(&app, "nudge_reminders", json!({ "reminders": true }));
+    let id = ringing_task(&app, "Ligar pro dentista", "2099-01-01T09:05");
+    let rung = rung_once(&app, &root);
+
+    let before = jott_core::reminders::later_from(jott_core::clock::civil_now());
+    jott_lib::ringer::respond(app.handle(), &root, &rung, jott_lib::ringer::Answer::Clicked("later".into()));
+    let after = jott_core::reminders::later_from(jott_core::clock::civil_now());
+    let reminders = ok(&app, "reminders", json!({}));
+    let list = reminders.as_array().unwrap();
+    assert_eq!(list.len(), 1, "{list:?}");
+    assert_eq!(list[0]["id"], json!(id));
+    let at = list[0]["at"].as_str().unwrap();
+    assert!(
+        [before, after].iter().any(|moment| jott_core::task::render_datetime(*moment) == at),
+        "{at} is an hour on, up to five minutes"
+    );
+    let file = std::fs::read_to_string(dir.path().join("jott.tasks/task-list.md")).unwrap();
+    assert!(file.contains(&format!("remind: {at}")), "written in the file: {file}");
+}
+
+#[test]
+fn done_from_a_notification_completes_the_task_and_does_not_bring_the_window() {
+    let (_lock, app, dir) = app_with_notebook();
+    let root = dir.path().to_path_buf();
+    app.state::<jott_lib::state::AppState>().ringers().capture();
+    ok(&app, "nudge_reminders", json!({ "reminders": true }));
+    ringing_task(&app, "Ligar pro dentista", "2099-01-01T09:05");
+    let rung = rung_once(&app, &root);
+    let opened = opened_events(&app);
+
+    jott_lib::ringer::respond(app.handle(), &root, &rung, jott_lib::ringer::Answer::Clicked("done".into()));
+    let completed = std::fs::read_to_string(dir.path().join("jott.tasks/completed.md")).unwrap();
+    assert!(completed.contains("Ligar pro dentista"), "{completed}");
+    assert!(ok(&app, "reminders", json!({})).as_array().unwrap().is_empty());
+    assert_eq!(opened.load(std::sync::atomic::Ordering::SeqCst), 0, "Done opens nothing");
+
+    // The click on the body is the one answer that opens.
+    ringing_task(&app, "Pagar aluguel", "2099-01-01T09:15");
+    let handle = app.handle();
+    jott_lib::ringer::ring_at(handle, &root, moment("2099-01-01T09:20"));
+    let rung = app.state::<jott_lib::state::AppState>().ringers().rung().pop().unwrap();
+    jott_lib::ringer::respond(handle, &root, &rung, jott_lib::ringer::Answer::Clicked("default".into()));
+    assert_eq!(opened.load(std::sync::atomic::Ordering::SeqCst), 1);
+    assert!(ok(&app, "reminders", json!({})).as_array().unwrap().is_empty(), "opened is acknowledged");
 }
 
 #[test]
@@ -377,6 +467,7 @@ fn four_missed_reminders_arrive_as_one_notice_and_all_are_acknowledged() {
     assert_eq!(rung[0].title, "4 reminders while you were away");
     assert_eq!(rung[0].body, "• A\n• B\n• C\n• D");
     assert_eq!(rung[0].target.list, "jott.tasks/task-list.md");
+    jott_lib::ringer::respond(handle, &root, &rung[0], jott_lib::ringer::Answer::Clicked("default".into()));
     assert!(ok(&app, "reminders", json!({})).as_array().unwrap().is_empty(), "each one is acknowledged");
 }
 

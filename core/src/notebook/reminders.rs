@@ -4,7 +4,7 @@
 use chrono::NaiveDateTime;
 
 use crate::error::Result;
-use crate::reminders::{self, Reminder};
+use crate::reminders::{self, Reminder, ReminderAction};
 use crate::seen::{Index, Seen};
 use crate::{COMPLETED_LIST, MAIN_LIST};
 
@@ -56,6 +56,40 @@ impl Notebook {
             acks.save(self.config_dir())?;
         }
         Ok(())
+    }
+
+    /// Does what someone did with a reminder's notification, desktop or phone.
+    /// `at` is acknowledged first, whatever follows. Done completes the task;
+    /// Later and Tomorrow write and answer a new `remind:`, but only while the
+    /// task still asks for `at` — a reminder changed meanwhile is the newer word.
+    pub fn act_on_reminder(
+        &self,
+        list: &str,
+        id: &str,
+        at: NaiveDateTime,
+        action: ReminderAction,
+        now: NaiveDateTime,
+    ) -> Result<Option<NaiveDateTime>> {
+        self.ack_reminder(list, id, at)?;
+        let moved = match action {
+            ReminderAction::Open | ReminderAction::Dismiss => return Ok(None),
+            ReminderAction::Done => {
+                self.complete_task(list, id)?;
+                return Ok(None);
+            }
+            ReminderAction::Later => reminders::later_from(now),
+            ReminderAction::Tomorrow => reminders::tomorrow_at(now, self.config.reminder_time),
+        };
+        let asks = self.open_list(list)?.find(id).and_then(|task| task.remind);
+        if asks != Some(at) {
+            return Ok(None);
+        }
+        let fields = crate::task::TaskFields {
+            remind: Some(Some(crate::task::render_datetime(moved))),
+            ..Default::default()
+        };
+        self.set_task_fields(list, id, fields)?;
+        Ok(Some(moved))
     }
 }
 

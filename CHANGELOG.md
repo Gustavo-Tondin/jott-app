@@ -10,6 +10,7 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 
 ### New
 
+- **Reminder notifications have Done, Later and Tomorrow buttons** on Linux and Android: Later rings again in an hour, Tomorrow at your reminder time, and none of them opens the app.
 - **A reorder mode for notes**: pick "Reorder" on a card's ring (or "Reorder notes…" in the notepad's ⋮), tap the cards you mean, and hold one to carry them all together — onto a new place, into a folder, or onto another notepad in the sidebar. The bar at the foot moves or deletes what you marked. Tasks have the same mode, from the same slice.
 - **Tasks can be pinned on the Home for today**: the pin brings a task to the top of the day without touching its list, and it clears when the day turns.
 - **A "The day before" reminder for dated tasks**: the reminder menu is now grouped — from now, from the due date, pick — with an icon per option, and picking a date starts from the reminder already chosen (or tomorrow).
@@ -18,6 +19,8 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 
 ### Fixed
 
+- **A reminder that appeared on one device while you were away still rings on the other**: only clicking, answering or dismissing the notification counts as seen, not the banner timing out.
+- **On Android, updating Jott no longer crashes it in the background** over reminders an older version had scheduled.
 - **Ticking a task off can no longer send it twice**: once the card has left, a late tap does nothing, instead of showing "no task with id" while the task was already completed.
 - **On the Home of a phone, the + no longer stands over the bar it opened**: while you write a task the + steps aside, and comes back when the bar is put away.
 - **On Android, the day summary lists the day it is announced on**: synced after the summary's hour, it used to carry today's tasks into tomorrow morning's notification.

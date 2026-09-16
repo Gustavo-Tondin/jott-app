@@ -92,6 +92,54 @@ pub fn ack_key(list: &str, id: &str, at: NaiveDateTime) -> String {
     format!("{list}/{id}@{}", render_datetime(at))
 }
 
+/// What someone did with a reminder's notification. Every one of them
+/// acknowledges the moment in the notebook — a notification that only
+/// EXPIRED is none of these, and leaves the other devices ringing.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ReminderAction {
+    /// The body was clicked or tapped: the shell opens the task.
+    Open,
+    /// Swiped or closed by hand.
+    Dismiss,
+    /// Completes the task.
+    Done,
+    /// Rings again an hour from now ([`later_from`]).
+    Later,
+    /// Rings again tomorrow at the notebook's reminder time ([`tomorrow_at`]).
+    Tomorrow,
+}
+
+impl ReminderAction {
+    /// The name a notification carries (`default` is the freedesktop click).
+    pub fn parse(name: &str) -> Option<Self> {
+        match name {
+            "default" | "open" => Some(Self::Open),
+            "dismiss" => Some(Self::Dismiss),
+            "done" => Some(Self::Done),
+            "later" => Some(Self::Later),
+            "tomorrow" => Some(Self::Tomorrow),
+            _ => None,
+        }
+    }
+}
+
+/// Where "Later" moves a reminder: an hour from `now`, up to the next five
+/// minutes, so the moment reads as one a person would pick.
+pub fn later_from(now: NaiveDateTime) -> NaiveDateTime {
+    let hour_on = to_minute(now) + chrono::Duration::hours(1);
+    let past_five = i64::from(hour_on.minute() % 5);
+    if past_five == 0 {
+        hour_on
+    } else {
+        hour_on + chrono::Duration::minutes(5 - past_five)
+    }
+}
+
+/// Where "Tomorrow" moves a reminder: the day after `now`, at `time`.
+pub fn tomorrow_at(now: NaiveDateTime, time: ReminderTime) -> NaiveDateTime {
+    (now.date() + chrono::Duration::days(1)).and_time(time.time())
+}
+
 /// How many reminders due at once still ring one notification each. Past
 /// this — a machine back from a day away — they arrive as one.
 pub const RING_APART: usize = 3;
@@ -203,6 +251,26 @@ mod tests {
             ack_key("jott.tasks/task-list.md", "ab12cd", at),
             "jott.tasks/task-list.md/ab12cd@2026-07-24T18:00"
         );
+    }
+
+    #[test]
+    fn later_is_an_hour_on_up_to_the_next_five_minutes() {
+        assert_eq!(later_from(parse_datetime("2026-07-24T13:17:42").unwrap()), parse_datetime("2026-07-24T14:20").unwrap());
+        assert_eq!(later_from(parse_datetime("2026-07-24T13:20").unwrap()), parse_datetime("2026-07-24T14:20").unwrap());
+        assert_eq!(later_from(parse_datetime("2026-07-24T23:58").unwrap()), parse_datetime("2026-07-25T01:00").unwrap());
+    }
+
+    #[test]
+    fn tomorrow_is_the_next_day_at_the_notebooks_time() {
+        let time = ReminderTime::parse("09:00").unwrap();
+        assert_eq!(tomorrow_at(parse_datetime("2026-07-31T23:30").unwrap(), time), parse_datetime("2026-08-01T09:00").unwrap());
+    }
+
+    #[test]
+    fn an_action_is_named_as_a_notification_carries_it() {
+        assert_eq!(ReminderAction::parse("default"), Some(ReminderAction::Open));
+        assert_eq!(ReminderAction::parse("later"), Some(ReminderAction::Later));
+        assert_eq!(ReminderAction::parse("__closed"), None);
     }
 
     #[test]

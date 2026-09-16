@@ -397,6 +397,9 @@ export const api = {
   // desktop: the process rings; the window only says "look again", and
   // whether the Remind function is on.
   nudgeReminders: (reminders) => invoke("nudge_reminders", { reminders }),
+  // the notebook's folder and this device's name, for the phone's alarms: a
+  // notification button acts on the notebook with the app closed.
+  reminderScope: () => invoke("reminder_scope"),
   closeToTray: () => invoke("close_to_tray"),
   rememberCloseToTray: (on) => invoke("remember_close_to_tray", { on }),
   autostart: () => invoke("autostart"),

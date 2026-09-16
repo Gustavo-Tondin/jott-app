@@ -53,3 +53,25 @@ pub async fn nudge_reminders<R: Runtime>(
     state.nudge_ringer(window.label(), Some(reminders));
     Ok(())
 }
+
+/// What the phone's notification buttons need to act with the app closed:
+/// the notebook's folder and this device's name, carried by every alarm
+/// (`crate::reminder_actions`).
+#[derive(Debug, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ReminderScope {
+    pub root: std::path::PathBuf,
+    pub device: Option<String>,
+}
+
+#[tauri::command]
+pub async fn reminder_scope<R: Runtime>(
+    app: tauri::AppHandle<R>,
+    state: State<'_, AppState>,
+    window: tauri::Window<R>,
+) -> CommandResult<ReminderScope> {
+    Ok(ReminderScope {
+        root: state.root_of(window.label())?,
+        device: crate::prefs::device_id(&app),
+    })
+}

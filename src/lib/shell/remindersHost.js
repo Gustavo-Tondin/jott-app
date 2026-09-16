@@ -41,13 +41,15 @@ export function makeRemindersHost({ open, enabled, mobile, summary, dateFormat, 
     const reminders = enabled() ? ((await api.reminders()) ?? []) : [];
     if (!androidTapInstalled) {
       androidTapInstalled = true;
-      // The tap is the only dismissal Android reports back, and the alarm
-      // carries the moment so the ack needs no lookup.
+      // The tap on the body opens the app; the buttons and the swipe are
+      // answered natively, without it. The alarm carries the moment, so the
+      // ack needs no lookup.
       onAndroidReminderTap(async (target) => {
         await ack(target).catch(fail);
         openTask(target.list, target.id);
-      }).catch(() => {});
+      });
     }
+    const scope = (await api.reminderScope().catch(() => null)) ?? {};
     // The summary is about the day the alarm lands on, read at sync time —
     // a day not begun yet is counted as planned.
     const now = new Date();
@@ -58,14 +60,12 @@ export function makeRemindersHost({ open, enabled, mobile, summary, dateFormat, 
           firstReminder: firstReminderOn(reminders, summaryAt),
         })
       : null;
-    // A `pending()` that throws (the store of an older build) is worth a
-    // line in the log and not a notice: the sync goes on without it.
     await syncAndroidReminders(reminders, {
       now,
       strings: S,
       dateFormat: dateFormat?.(),
       summary: summaryAt ? { at: summaryAt, notice } : null,
-      onError: (error) => console.warn("reminders: pending() failed", error),
+      scope,
     }).catch(fail);
   }
 

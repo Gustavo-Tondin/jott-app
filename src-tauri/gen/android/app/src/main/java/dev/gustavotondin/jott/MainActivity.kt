@@ -150,6 +150,7 @@ class MainActivity : TauriActivity() {
     this.webView = webView
     webView.addJavascriptInterface(Storage(), "JottAndroid")
     takeBackNavigation()
+    deliverReminder(intent)
 
     // On the DECOR view, not the WebView: the WebView is not necessarily in
     // the hierarchy when this runs, and the decor view is the one the window
@@ -198,6 +199,37 @@ class MainActivity : TauriActivity() {
         }
       },
     )
+  }
+
+  override fun onNewIntent(intent: Intent) {
+    super.onNewIntent(intent)
+    setIntent(intent)
+    deliverReminder(intent)
+  }
+
+  /**
+   * A tapped reminder: hands the task to `window.__jottOpenReminder` once the
+   * page installs it (a cold start takes seconds, so it retries like
+   * [publish]), then spends the intent so a recreated activity does not repeat.
+   */
+  private fun deliverReminder(intent: Intent?, tries: Int = REMINDER_RETRIES) {
+    if (intent?.action != ReminderAlarms.OPEN) return
+    val view = webView ?: return
+    val detail = JSONObject()
+      .put("list", intent.getStringExtra("list") ?: "")
+      .put("id", intent.getStringExtra("id") ?: "")
+      .put("at", intent.getStringExtra("at") ?: "")
+      .toString()
+    view.evaluateJavascript(
+      "(function(){if(!window.__jottOpenReminder)return false;" +
+        "window.__jottOpenReminder(JSON.parse(${JSONObject.quote(detail)}));return true})()",
+    ) { taken ->
+      if (taken == "true") {
+        intent.action = null
+      } else if (tries > 0) {
+        view.postDelayed({ deliverReminder(intent, tries - 1) }, RETRY_MS)
+      }
+    }
   }
 
   /**
@@ -440,6 +472,17 @@ class MainActivity : TauriActivity() {
      * message this class sends. `runOnUiThread` because a JavascriptInterface
      * method runs on the WebView's thread and launching is the UI thread's.
      */
+    /**
+     * Hands the phone's reminders over to the system's alarms
+     * ([ReminderAlarms.schedule]); `payload` is the JSON the page built.
+     * Answers whether they were taken.
+     */
+    @JavascriptInterface
+    fun scheduleReminders(payload: String): Boolean =
+      runCatching { ReminderAlarms.schedule(applicationContext, payload) }
+        .onFailure { android.util.Log.e(ReminderAlarms.TAG, "reminders: not scheduled", it) }
+        .isSuccess
+
     @JavascriptInterface
     fun pickFolder() {
       runOnUiThread { runCatching { folderPicker.launch(null) } }
@@ -478,6 +521,8 @@ class MainActivity : TauriActivity() {
     /// emulator and still bounded.
     const val RETRIES = 20
     const val RETRY_MS = 400L
+    /// ~24 seconds: a cold start on a slow phone opens the notebook late.
+    const val REMINDER_RETRIES = 60
 
     /// Only used before Android 11, where storage is a runtime permission.
     const val STORAGE_REQUEST = 4201

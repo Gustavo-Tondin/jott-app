@@ -87,6 +87,29 @@ and the merge would hand every difference to the other device. It moves on
 what arrives from outside, once the arrival burst has settled, and on a
 decision already taken. Without a base, nothing is merged.
 
+**Reminders ring from the process, and a notification is dealt with only
+when someone acts on it.** On desktop one thread per open notebook
+(`ringer.rs`) decides what is due and shows it; clicking the notification,
+pressing one of its buttons (Done, Later, Tomorrow) or closing it by hand
+acknowledges the reminder in the notebook, so other devices keep quiet. A
+banner that times out acknowledges nothing, and another device still rings.
+On Linux the notification goes through the freedesktop D-Bus spec, and the
+buttons are offered only when the server reports the `actions` capability.
+What each answer does to the notebook is one core function,
+`Notebook::act_on_reminder`.
+
+**Android: reminders without the WebView.** The page decides what should
+ring and hands the whole set to `ReminderAlarms.kt` through
+`window.JottAndroid.scheduleReminders`; from there the alarms, the
+notification and the reboot are Kotlin's. The buttons are broadcasts
+answered by `ReminderActionReceiver.kt`, which calls the core in Rust through
+JNI (`reminder_actions.rs`: one function, JSON in and JSON out, over
+`act_on_reminder`) — with the app closed, and without opening it. The
+notification plugin is kept only to ask for the permission: every button of
+its notifications starts the activity, which is exactly what these buttons
+exist to avoid. Tapping the body does open the app, and `MainActivity` hands
+the task to the page.
+
 ## `src/` — the frontend
 
 | Folder | What it holds |

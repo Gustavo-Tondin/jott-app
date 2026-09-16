@@ -7,6 +7,10 @@
          falls back to inexact where it is refused. -->
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <!-- The reminders are our own alarms (ReminderAlarms.kt): they are set
+         again after a reboot, and they post the notification themselves. -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <!-- The notebook is a folder of .md files the user picks and a sync client
          (Syncthing, Obsidian) reads. That is only possible with broad file
@@ -63,6 +67,17 @@
                 <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- A reminder's alarm, and its buttons: broadcasts, so answering a
+             notification never opens a window. Not exported; the boot and
+             update broadcasts come from the system, which reaches them anyway. -->
+        <receiver android:name=".ReminderAlarmReceiver" android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+        <receiver android:name=".ReminderActionReceiver" android:exported="false" />
 
         <provider
           android:name="androidx.core.content.FileProvider"

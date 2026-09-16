@@ -1950,6 +1950,7 @@ dependencies = [
  "gdk",
  "gio",
  "gtk",
+ "jni 0.21.1",
  "jott-core",
  "notify-rust",
  "serde",

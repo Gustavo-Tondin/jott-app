@@ -16,11 +16,11 @@ use std::time::Duration;
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
 use jott_core::config::DateFormat;
 use jott_core::daysummary::{self, DaySummary, NAMED};
-use jott_core::reminders::{self, Reminder, MAX_WAIT, RING_APART};
+use jott_core::reminders::{self, Reminder, ReminderAction, MAX_WAIT, RING_APART};
 use jott_core::task::{parse_datetime, render_datetime};
 use tauri::{AppHandle, Emitter, Manager, Runtime};
 
-use crate::state::AppState;
+use crate::state::{AppState, NOTEBOOK_CHANGED_EVENT};
 
 /// What a notification carries back when it is clicked: enough to open the
 /// task. Emitted to the window as `reminder://open`; an empty `list` only
@@ -45,6 +45,44 @@ pub struct Rung {
     pub title: String,
     pub body: String,
     pub target: ReminderTarget,
+    /// The reminders it stands for — acknowledged when someone acts on it,
+    /// never when it is merely shown. Empty for the day summary.
+    pub covered: Vec<Covered>,
+    /// Whether it offers Done, Later and Tomorrow: one task's reminder does;
+    /// the summary and a pile of missed ones only open.
+    pub buttons: bool,
+}
+
+/// A reminder a notification stands for, as the notebook names it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Covered {
+    pub list: String,
+    pub id: String,
+    pub at: NaiveDateTime,
+}
+
+impl Covered {
+    /// A reminder with no id cannot be named on another device, and so is
+    /// neither acknowledged nor acted on.
+    fn of(reminder: &Reminder) -> Option<Self> {
+        Some(Self {
+            list: reminder.list.clone(),
+            id: reminder.id.clone()?,
+            at: parse_datetime(&reminder.at)?,
+        })
+    }
+}
+
+/// What became of a notification, as the server reported it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Answer {
+    /// The body (`default`) or a button, by the action's name.
+    Clicked(String),
+    /// Closed by hand.
+    Dismissed,
+    /// Timed out, closed by the app, or a reason this build does not know —
+    /// nobody is known to have seen it, so another device still rings.
+    Unseen,
 }
 
 /// The words of the notifications. The second place with strings in Rust,
@@ -69,6 +107,11 @@ mod words {
             format!("You have {count} tasks today")
         }
     }
+
+    pub const OPEN: &str = "Open";
+    pub const DONE: &str = "Done";
+    pub const LATER: &str = "Later";
+    pub const TOMORROW: &str = "Tomorrow";
 
     pub fn day_more(count: usize) -> String {
         if count == 1 {
@@ -124,7 +167,13 @@ fn rungs_of(due: &[Reminder], dates: DateFormat) -> Vec<(Rung, Vec<&Reminder>)> 
             list: due[0].list.clone(),
             id: None,
         };
-        let rung = Rung { title: words::missed_title(due.len()), body, target };
+        let rung = Rung {
+            title: words::missed_title(due.len()),
+            body,
+            target,
+            covered: due.iter().filter_map(Covered::of).collect(),
+            buttons: false,
+        };
         return vec![(rung, due.iter().collect())];
     }
     due.iter()
@@ -134,9 +183,78 @@ fn rungs_of(due: &[Reminder], dates: DateFormat) -> Vec<(Rung, Vec<&Reminder>)> 
                 list: reminder.list.clone(),
                 id: reminder.id.clone(),
             };
-            (Rung { title, body, target }, vec![reminder])
+            let covered: Vec<Covered> = Covered::of(reminder).into_iter().collect();
+            let buttons = !covered.is_empty();
+            (Rung { title, body, target, covered, buttons }, vec![reminder])
         })
         .collect()
+}
+
+/// The actions a notification carries, as `(name, label)`: none where the
+/// server draws no actions (the card's overdue mark is then what is left),
+/// else the click, plus the three buttons on one task's reminder.
+pub fn actions_for(rung: &Rung, capabilities: &[String]) -> Vec<(&'static str, &'static str)> {
+    if !capabilities.iter().any(|c| c == "actions") {
+        return Vec::new();
+    }
+    let mut out = vec![("default", words::OPEN)];
+    if rung.buttons {
+        out.extend([("done", words::DONE), ("later", words::LATER), ("tomorrow", words::TOMORROW)]);
+    }
+    out
+}
+
+/// Does what someone did with a notification of the notebook at `root`, each
+/// answer acknowledging every reminder it stands for; `Unseen` changes nothing.
+/// Only the click brings the window: a button tells the notebook's windows a
+/// list changed, as if someone else had written it.
+pub fn respond<R: Runtime>(app: &AppHandle<R>, root: &Path, rung: &Rung, answer: Answer) {
+    let action = match &answer {
+        Answer::Clicked(name) => ReminderAction::parse(name),
+        Answer::Dismissed => Some(ReminderAction::Dismiss),
+        Answer::Unseen => None,
+    };
+    let Some(action) = action else {
+        return;
+    };
+    let state = app.state::<AppState>();
+    let windows = state.ringers().windows_of(root);
+    let Some(owner) = windows.first() else {
+        eprintln!("[jott] a reminder was answered with no window on its notebook");
+        return;
+    };
+    let now = jott_core::clock::civil_now();
+    let mut changed = Vec::new();
+    for covered in &rung.covered {
+        let act = |nb: &jott_core::Notebook| nb.act_on_reminder(&covered.list, &covered.id, covered.at, action, now);
+        let result = match action {
+            ReminderAction::Done => state.record(owner, "complete_task", |nb| act(nb)),
+            _ => state.quiet(owner, act),
+        };
+        match result {
+            Ok(_) if !matches!(action, ReminderAction::Open | ReminderAction::Dismiss) => {
+                changed.push(covered.list.clone())
+            }
+            Ok(_) => {}
+            Err(e) => eprintln!("[jott] reminder not acted on: {}", e.message),
+        }
+    }
+    if action == ReminderAction::Open {
+        open_target(app, owner, &rung.target);
+    }
+    if changed.is_empty() {
+        return;
+    }
+    // The owner's watcher drops its own write, so every window is told.
+    for list in changed {
+        let change = jott_core::watcher::Change::List { path: root.join(&list) };
+        for window in &windows {
+            if let Err(e) = app.emit_to(window.as_str(), NOTEBOOK_CHANGED_EVENT, &change) {
+                eprintln!("[jott] could not emit change event: {e}");
+            }
+        }
+    }
+    state.ringers().nudge(root, None);
 }
 
 /// Every ringer of the process, by notebook root.
@@ -380,10 +498,10 @@ fn ring_pass<R: Runtime>(app: &AppHandle<R>, root: &Path, shared: &Shared, now: 
     wait
 }
 
-/// Rings what came due since this machine's mark, acknowledges it in the
-/// notebook, and moves the mark past it — whether or not the bell worked. A
-/// notification that could not be shown is said ONCE in the app and not
-/// acknowledged (nobody saw it). Answers the wait until the next reminder.
+/// Rings what came due since this machine's mark and moves the mark past it,
+/// bell or no bell. Shown is not dealt with: the ack waits for [`respond`], so
+/// an unseen banner leaves the phone ringing. What could not be shown is said
+/// once in the app. Answers the wait until the next reminder.
 fn ring_reminders<R: Runtime>(
     app: &AppHandle<R>,
     owner: &str,
@@ -409,18 +527,9 @@ fn ring_reminders<R: Runtime>(
             .unwrap_or_default();
         let mut unshown = Vec::new();
         for (rung, covered) in rungs_of(&due, dates) {
-            if let Err(e) = show(app, owner, rung) {
+            if let Err(e) = show(app, root, rung) {
                 eprintln!("[jott] reminder not shown: {e}");
                 unshown.extend(covered.iter().map(|reminder| reminder.text.clone()));
-                continue;
-            }
-            for reminder in covered {
-                let (Some(id), Some(at)) = (reminder.id.as_deref(), parse_datetime(&reminder.at)) else {
-                    continue;
-                };
-                if let Err(e) = state.quiet(owner, |nb| nb.ack_reminder(&reminder.list, id, at)) {
-                    eprintln!("[jott] reminder not acknowledged: {}", e.message);
-                }
             }
         }
         crate::prefs::remember_reminded_until(app, root, &render_datetime(minute));
@@ -447,48 +556,85 @@ fn announce<R: Runtime>(app: &AppHandle<R>, owner: &str, root: &Path, reminders:
         let first = daysummary::first_reminder_of_day(reminders, now);
         let (title, body) = summary_notice(&summary, first);
         let target = ReminderTarget { list: String::new(), id: None };
-        if let Err(e) = show(app, owner, Rung { title, body, target }) {
+        let rung = Rung { title, body, target, covered: Vec::new(), buttons: false };
+        if let Err(e) = show(app, root, rung) {
             eprintln!("[jott] day summary not shown: {e}");
         }
     }
     crate::prefs::remember_summarized_on(app, root, &now.date().to_string());
 }
 
-fn show<R: Runtime>(app: &AppHandle<R>, owner: &str, rung: Rung) -> Result<(), String> {
+fn show<R: Runtime>(app: &AppHandle<R>, root: &Path, rung: Rung) -> Result<(), String> {
     if app.state::<AppState>().ringers().keep(&rung) {
         return Ok(());
     }
-    show_notification(app, owner, rung)
+    show_notification(app, root, rung)
 }
 
-/// Linux: D-Bus notifications can be clicked, and the click is what opens the
-/// task. `wait_for_action` blocks until the notification is acted on or goes
-/// away, so it waits on its own thread.
+/// What the notification server says it can do, asked once per process —
+/// GNOME, KDE, XFCE, dunst and mako each answer differently, and a hint a
+/// server does not know is at best ignored. See docs/platform-gotchas.md#ambiente
 #[cfg(target_os = "linux")]
-fn show_notification<R: Runtime>(app: &AppHandle<R>, label: &str, rung: Rung) -> Result<(), String> {
-    let handle = notify_rust::Notification::new()
+fn capabilities() -> &'static [String] {
+    static CAPABILITIES: std::sync::OnceLock<Vec<String>> = std::sync::OnceLock::new();
+    CAPABILITIES.get_or_init(|| notify_rust::get_capabilities().unwrap_or_default())
+}
+
+/// The app's icon as a FILE, written once into the app's data folder: every
+/// server reads a path, while the bare name `jott` is only found in the icon
+/// theme of an installed app. Falls back to the name.
+#[cfg(target_os = "linux")]
+fn icon<R: Runtime>(app: &AppHandle<R>) -> String {
+    static ICON: std::sync::OnceLock<Option<String>> = std::sync::OnceLock::new();
+    ICON.get_or_init(|| {
+        let path = app.path().app_data_dir().ok()?.join("notification-icon.png");
+        jott_core::fsio::write_atomically(&path, crate::commands::update::ICON_PNG)
+            .map_err(|e| eprintln!("[jott] notification icon not written: {e}"))
+            .ok()?;
+        Some(path.to_string_lossy().into_owned())
+    })
+    .clone()
+    .unwrap_or_else(|| crate::APP_ICON_NAME.to_string())
+}
+
+/// Linux: plain text (a server without markup shows the tags), with the
+/// actions the server draws. The answer may never come — GNOME keeps an
+/// expired banner in its tray and says nothing — so it waits on its own thread.
+#[cfg(target_os = "linux")]
+fn show_notification<R: Runtime>(app: &AppHandle<R>, root: &Path, rung: Rung) -> Result<(), String> {
+    use notify_rust::{CloseReason, Hint, NotificationResponse, Urgency};
+    let mut notification = notify_rust::Notification::new();
+    notification
         .appname("Jott")
         .summary(&rung.title)
         .body(&rung.body)
-        .icon(crate::APP_ICON_NAME)
-        .action("default", "Open")
-        .show()
-        .map_err(|e| e.to_string())?;
+        .icon(&icon(app))
+        .hint(Hint::DesktopEntry(crate::APP_ICON_NAME.to_string()))
+        .urgency(if rung.covered.is_empty() { Urgency::Low } else { Urgency::Normal });
+    for (name, label) in actions_for(&rung, capabilities()) {
+        notification.action(name, label);
+    }
+    let handle = notification.show().map_err(|e| e.to_string())?;
     let app = app.clone();
-    let label = label.to_string();
+    let root = root.to_path_buf();
     std::thread::spawn(move || {
-        handle.wait_for_action(|action| {
-            if action == "default" {
-                open_target(&app, &label, &rung.target);
-            }
+        let _ = handle.wait_for_response(|response: &NotificationResponse| {
+            let answer = match response {
+                NotificationResponse::Default => Answer::Clicked("default".into()),
+                NotificationResponse::Action(name) => Answer::Clicked(name.clone()),
+                NotificationResponse::Closed(CloseReason::Dismissed) => Answer::Dismissed,
+                _ => Answer::Unseen,
+            };
+            respond(&app, &root, &rung, answer);
         });
     });
     Ok(())
 }
 
-/// Everywhere else the plugin shows it; a click is the system's business.
+/// Everywhere else the plugin shows it, with no actions (the plugin has none
+/// on desktop); a click is the system's business.
 #[cfg(not(target_os = "linux"))]
-fn show_notification<R: Runtime>(app: &AppHandle<R>, _label: &str, rung: Rung) -> Result<(), String> {
+fn show_notification<R: Runtime>(app: &AppHandle<R>, _root: &Path, rung: Rung) -> Result<(), String> {
     use tauri_plugin_notification::NotificationExt;
     app.notification()
         .builder()
@@ -557,6 +703,15 @@ mod tests {
     }
 
     #[test]
+    fn a_server_without_actions_gets_a_plain_notification() {
+        let due = [reminder("Pagar aluguel", None)];
+        let one = &rungs_of(&due, DateFormat::default())[0].0;
+        assert!(actions_for(one, &["body".into(), "persistence".into()]).is_empty());
+        let names: Vec<_> = actions_for(one, &["actions".into()]).iter().map(|(name, _)| *name).collect();
+        assert_eq!(names, ["default", "done", "later", "tomorrow"]);
+    }
+
+    #[test]
     fn a_few_ring_apart_and_more_arrive_as_one() {
         let three: Vec<_> = ["A", "B", "C"].iter().map(|t| reminder(t, None)).collect();
         assert_eq!(rungs_of(&three, DateFormat::default()).len(), 3);
@@ -568,6 +723,9 @@ mod tests {
         assert_eq!(rung.title, "7 reminders while you were away");
         assert_eq!(rung.body, "• A\n• B\n• C\n• D\n• E\n…and 2 more");
         assert_eq!(rung.target, ReminderTarget { list: "Casa/task-list.md".into(), id: None });
-        assert_eq!(covered.len(), 7, "every one of them is acknowledged");
+        assert_eq!(covered.len(), 7);
+        assert_eq!(rung.covered.len(), 7, "an answer acknowledges every one of them");
+        let names: Vec<_> = actions_for(rung, &["actions".into()]).iter().map(|(name, _)| *name).collect();
+        assert_eq!(names, ["default"], "a pile only opens");
     }
 }

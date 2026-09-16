@@ -6,7 +6,6 @@ import {
   fails,
   listen,
   resetBridge,
-  sendPluginEvent,
   tauriInternals,
 } from "../test/bridge.js";
 import { makeRemindersHost } from "./remindersHost.js";
@@ -26,8 +25,11 @@ function host({ open = true, enabled = true, mobile = false, summary = null } = 
   return { h, flags, calls };
 }
 
+let scheduled;
 beforeEach(() => {
   resetBridge();
+  scheduled = [];
+  window.JottAndroid = { scheduleReminders: (payload) => scheduled.push(JSON.parse(payload)) > 0 };
   // The notification plugin's own JS speaks to `__TAURI_INTERNALS__` and reads
   // `Notification.permission` first (services/androidReminders.test.js).
   globalThis.__TAURI_INTERNALS__ = tauriInternals;
@@ -35,7 +37,11 @@ beforeEach(() => {
   vi.useFakeTimers();
   vi.setSystemTime(new Date(2026, 8, 8, 10, 0));
 });
-afterEach(() => vi.useRealTimers());
+afterEach(() => {
+  vi.useRealTimers();
+  delete window.JottAndroid;
+  delete window.__jottOpenReminder;
+});
 
 describe("the reminders host", () => {
   it("on desktop it only nudges the process's ringer, with the Remind switch", async () => {
@@ -79,12 +85,12 @@ describe("the reminders host", () => {
     bridge({
       reminders: [at("soon", "2026-09-08T10:30")],
       "plugin:notification|is_permission_granted": true,
-      "plugin:notification|get_pending": [],
-      "plugin:notification|batch": [1],
+      reminder_scope: { root: "/sdcard/Jott", device: "phone1" },
     });
     await h.refresh();
     expect(calls.fail).not.toHaveBeenCalled();
-    expect(callsTo("plugin:notification|batch")).toHaveLength(1);
+    expect(scheduled).toHaveLength(1);
+    expect(scheduled[0].items[0].root).toBe("/sdcard/Jott");
     expect(callsTo("nudge_reminders")).toEqual([]);
   });
 
@@ -96,14 +102,12 @@ describe("the reminders host", () => {
       reminders: [],
       day_tasks: [{ task: { text: "Amanhã", done: false } }],
       "plugin:notification|is_permission_granted": true,
-      "plugin:notification|get_pending": [],
-      "plugin:notification|batch": [1],
+      reminder_scope: { root: "/sdcard/Jott", device: "phone1" },
     });
     await h.refresh();
     expect(callsTo("day_tasks")).toEqual([{ day: "2026-09-09" }]);
-    const [batch] = callsTo("plugin:notification|batch");
-    const summary = batch.notifications.at(-1);
-    expect(summary.schedule.at.date).toEqual(new Date(2026, 8, 9, 8, 0));
+    const summary = scheduled[0].items.at(-1);
+    expect(summary.at).toEqual(new Date(2026, 8, 9, 8, 0).getTime());
     expect(summary.body).toBe("• Amanhã");
     // Counted the day before: what it reads is the plan.
     expect(summary.title).toBe("You have 1 task planned for today");
@@ -118,14 +122,13 @@ describe("the reminders host", () => {
       ],
       day_tasks: [{ task: { text: "Amanhã", done: false } }],
       "plugin:notification|is_permission_granted": true,
-      "plugin:notification|get_pending": [],
-      "plugin:notification|batch": [1],
+      reminder_scope: { root: "/sdcard/Jott", device: "phone1" },
     });
     await h.refresh();
-    const [batch] = callsTo("plugin:notification|batch");
-    expect(batch.notifications.at(-1).body).toBe("• Amanhã\nFirst reminder at 12:30");
-    expect(batch.notifications[0].title).toBe("Hoje");
-    expect(batch.notifications[0].body).toBe("Casa · due 09/10/2026");
+    const { items } = scheduled[0];
+    expect(items.at(-1).body).toBe("• Amanhã\nFirst reminder at 12:30");
+    expect(items[0].title).toBe("Hoje");
+    expect(items[0].body).toBe("Casa · due 09/10/2026");
   });
 
   it("a tapped Android notification acknowledges the reminder it came from", async () => {
@@ -133,20 +136,12 @@ describe("the reminders host", () => {
     bridge({
       reminders: [at("soon", "2026-09-08T10:30")],
       ack_reminder: null,
+      reminder_scope: { root: "/sdcard/Jott", device: "phone1" },
       "plugin:notification|is_permission_granted": true,
-      "plugin:notification|get_pending": [],
-      "plugin:notification|batch": [1],
-      "plugin:notification|register_action_types": null,
-      "plugin:notification|registerActionTypes": null,
     });
     await h.refresh();
-    // The plugin's own door, opened by its real JS: the tap is the only
-    // dismissal Android reports, so the path is driven for real.
-    await vi.advanceTimersByTimeAsync(0);
-    await sendPluginEvent("notification", "actionPerformed", {
-      extra: { list: "jott.tasks/task-list.md", id: "soon", at: "2026-09-08T10:30" },
-    });
-    // The plugin hands the tap to a listener that does not wait on ours.
+    // What MainActivity calls once the page listens.
+    window.__jottOpenReminder({ list: "jott.tasks/task-list.md", id: "soon", at: "2026-09-08T10:30" });
     await vi.advanceTimersByTimeAsync(0);
 
     expect(callsTo("ack_reminder")).toEqual([

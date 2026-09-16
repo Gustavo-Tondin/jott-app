@@ -1,134 +1,94 @@
-import { beforeEach, describe, expect, it } from "vitest";
-import { bridge, callsTo, fails, invoke, resetBridge } from "../test/bridge.js";
-import { reminderId, syncAndroidReminders } from "./androidReminders.js";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { bridge, callsTo, invoke, resetBridge } from "../test/bridge.js";
+import { onAndroidReminderTap, reminderId, syncAndroidReminders } from "./androidReminders.js";
 import { S } from "./strings.js";
 
 // The plugin's own JS does not import `@tauri-apps/api/core` — it calls
 // `window.__TAURI_INTERNALS__.invoke` itself — so the stand-in for the bridge
-// is put there too, and answers it by command name; nothing here mocks the
-// plugin module. It also reads `window.Notification.permission` first (jsdom
-// has no Notification): "default" is what sends it on to the bridge.
+// is put there too; it is only asked for the permission.
+// What schedules is `window.JottAndroid.scheduleReminders` (MainActivity).
+let scheduled;
 beforeEach(() => {
   resetBridge();
   globalThis.__TAURI_INTERNALS__ = { invoke };
   globalThis.Notification = { permission: "default" };
+  scheduled = [];
+  window.JottAndroid = { scheduleReminders: vi.fn((payload) => scheduled.push(JSON.parse(payload)) > 0) };
+});
+afterEach(() => {
+  delete window.JottAndroid;
+  delete window.__jottOpenReminder;
 });
 
 const reminders = [
-  { list: "jott.tasks/task-list.md", id: "abc123", at: "2026-09-08T09:00", title: "Alugar moto" },
-  { list: "jott.tasks/task-list.md", id: "def456", at: "2026-09-01T09:00", title: "passou" },
+  { list: "jott.tasks/task-list.md", id: "abc123", at: "2026-09-08T09:00", text: "Alugar moto", place: "Tasks" },
+  { list: "jott.tasks/task-list.md", id: "def456", at: "2026-09-01T09:00", text: "passou", place: "Tasks" },
+  { list: "jott.tasks/task-list.md", id: null, position: 4, at: "2026-09-09T09:00", text: "sem id", place: "Tasks" },
 ];
+const granted = () => bridge({ "plugin:notification|is_permission_granted": true });
+const scope = { root: "/sdcard/Jott", device: "phone1" };
 
 describe("syncing the phone's reminders", () => {
-  it("cancels what is pending BY ID and schedules the upcoming ones through `batch`", async () => {
-    bridge({
-      "plugin:notification|is_permission_granted": true,
-      "plugin:notification|get_pending": [{ id: 7, title: "old" }],
-      "plugin:notification|cancel": null,
-      "plugin:notification|batch": [1],
-    });
-    const ok = await syncAndroidReminders(reminders, { now: new Date("2026-09-07T12:00"), strings: S });
+  it("reminders are scheduled through the native bridge, never the plugin's batch", async () => {
+    granted();
+    const ok = await syncAndroidReminders(reminders, { now: new Date(2026, 8, 7, 12, 0), strings: S, scope });
     expect(ok).toBe(true);
-    // Never the bare `cancel` — that is the call the Android half throws on.
-    expect(callsTo("plugin:notification|cancel")).toEqual([{ notifications: [7] }]);
-    const [batch] = callsTo("plugin:notification|batch");
-    expect(batch.notifications.map((n) => n.id)).toEqual([reminderId(reminders[0])]);
-    // `at` rides along so a tap can acknowledge it with the app just woken.
-    expect(batch.notifications[0].extra).toEqual({
-      list: reminders[0].list,
+    expect(callsTo("plugin:notification|batch")).toEqual([]);
+    expect(callsTo("plugin:notification|get_pending")).toEqual([]);
+    const [{ items, channels }] = scheduled;
+    expect(channels).toEqual({ reminders: "Reminders", summary: "Day summary" });
+    expect(items.map((i) => i.key)).toEqual([reminderId(reminders[0]), reminderId(reminders[2])]);
+    expect(items[0]).toEqual({
+      key: reminderId(reminders[0]),
+      at: new Date(2026, 8, 8, 9, 0).getTime(),
+      kind: "reminder",
+      title: "Alugar moto",
+      body: "Tasks",
+      list: "jott.tasks/task-list.md",
       id: "abc123",
-      at: reminders[0].at,
+      moment: "2026-09-08T09:00",
+      root: "/sdcard/Jott",
+      device: "phone1",
+      buttons: { done: "Done", later: "Later", tomorrow: "Tomorrow" },
     });
-    // `schedule` is the plugin's own shape, built by its own helper.
-    expect(batch.notifications[0].schedule.at.date).toEqual(new Date("2026-09-08T09:00"));
+    // A task with no id cannot be named by the core: no buttons, only the tap.
+    expect(items[1].buttons).toBeUndefined();
   });
 
-  it("carries the day summary as one alarm, at the moment the host chose", async () => {
-    // Android holds no timer of ours: the summary is an alarm like the rest,
-    // with the count the last sync saw (docs/roadmap — every open re-syncs).
-    bridge({
-      "plugin:notification|is_permission_granted": true,
-      "plugin:notification|get_pending": [],
-      "plugin:notification|batch": [1],
-    });
-    await syncAndroidReminders(reminders, {
-      now: new Date(2026, 8, 7, 12, 0),
-      strings: S,
-      summary: { at: new Date(2026, 8, 8, 8, 0), notice: { title: "You have 2 tasks today", body: "• a\n• b" } },
-    });
-    const [batch] = callsTo("plugin:notification|batch");
-    const summary = batch.notifications.at(-1);
-    expect(summary.title).toBe("You have 2 tasks today");
-    expect(summary.schedule.at.date).toEqual(new Date(2026, 8, 8, 8, 0));
-    // Nothing to open: tapping it only brings the app back.
-    expect(summary.extra).toEqual({ list: "", id: "", at: "" });
-  });
-
-  it("schedules the summary even on a day with no reminder at all", async () => {
-    bridge({
-      "plugin:notification|is_permission_granted": true,
-      "plugin:notification|get_pending": [],
-      "plugin:notification|batch": [1],
-    });
+  it("the summary goes the same way, at the moment the host chose", async () => {
+    granted();
     await syncAndroidReminders([], {
       now: new Date(2026, 8, 7, 6, 0),
       strings: S,
       summary: { at: new Date(2026, 8, 7, 8, 0), notice: { title: "You have 1 task today", body: "• a" } },
     });
-    const [batch] = callsTo("plugin:notification|batch");
-    expect(batch.notifications).toHaveLength(1);
-    expect(batch.notifications[0].schedule.at.date).toEqual(new Date(2026, 8, 7, 8, 0));
+    const [{ items }] = scheduled;
+    expect(items).toEqual([
+      {
+        key: 1,
+        at: new Date(2026, 8, 7, 8, 0).getTime(),
+        kind: "summary",
+        title: "You have 1 task today",
+        body: "• a",
+        list: "",
+        id: "",
+        moment: "",
+      },
+    ]);
   });
 
-  // The store keeps the text of `sourceJson`, and the plugin never writes
-  // it: without this the store held `"null"` and `pending()` blew up on the
-  // next sync. It is the notification itself, so what is read back is what
-  // was scheduled — the schedule's date included, as the ISO string the
-  // Android half parses.
-  it("sends each notification its own JSON, for the store the plugin reads back", async () => {
-    bridge({
-      "plugin:notification|is_permission_granted": true,
-      "plugin:notification|get_pending": [],
-      "plugin:notification|batch": [1],
-    });
-    await syncAndroidReminders(reminders, { now: new Date("2026-09-07T12:00"), strings: S });
-    const [sent] = callsTo("plugin:notification|batch")[0].notifications;
-    const stored = JSON.parse(sent.sourceJson);
-    expect(stored.id).toBe(sent.id);
-    expect(stored.title).toBe(sent.title);
-    expect(stored.extra).toEqual(sent.extra);
-    expect(stored.schedule.at.date).toBe(new Date("2026-09-08T09:00").toISOString());
-    expect(stored.sourceJson).toBeUndefined();
+  it("an empty sync still replaces what was scheduled", async () => {
+    granted();
+    await syncAndroidReminders([], { strings: S });
+    expect(scheduled).toEqual([{ channels: expect.any(Object), items: [] }]);
   });
 
-  // A phone whose store already holds the nulls of an older build: the
-  // sync must not stop at the question it cannot answer.
-  it("goes on scheduling when `pending()` throws, and says so", async () => {
-    bridge({
-      "plugin:notification|is_permission_granted": true,
-      "plugin:notification|get_pending": fails("Attempt to invoke virtual method 'int getId()' on a null object reference"),
-      "plugin:notification|batch": [1],
-    });
-    const errors = [];
-    const ok = await syncAndroidReminders(reminders, {
-      now: new Date("2026-09-07T12:00"),
-      strings: S,
-      onError: (e) => errors.push(e.message),
-    });
-    expect(ok).toBe(true);
-    expect(callsTo("plugin:notification|cancel")).toEqual([]);
-    expect(callsTo("plugin:notification|batch")).toHaveLength(1);
-    expect(errors).toHaveLength(1);
-  });
-
-  it("with nothing pending, nothing is cancelled", async () => {
-    bridge({
-      "plugin:notification|is_permission_granted": true,
-      "plugin:notification|get_pending": [],
-      "plugin:notification|batch": [1],
-    });
-    await syncAndroidReminders(reminders, { now: new Date("2026-09-07T12:00"), strings: S });
-    expect(callsTo("plugin:notification|cancel")).toEqual([]);
+  it("a missing or refusing native bridge is an error, not silence", async () => {
+    granted();
+    window.JottAndroid.scheduleReminders = () => false;
+    await expect(syncAndroidReminders(reminders, { strings: S })).rejects.toThrow("not scheduled");
+    delete window.JottAndroid;
+    await expect(syncAndroidReminders(reminders, { strings: S })).rejects.toThrow("bridge is missing");
   });
 
   it("stops at a refused permission", async () => {
@@ -136,6 +96,17 @@ describe("syncing the phone's reminders", () => {
     // The plugin asks the window, not the bridge, for this one.
     globalThis.Notification.requestPermission = async () => "denied";
     expect(await syncAndroidReminders(reminders, { strings: S })).toBe(false);
-    expect(callsTo("plugin:notification|get_pending")).toEqual([]);
+    expect(scheduled).toEqual([]);
+  });
+});
+
+describe("a tapped notification", () => {
+  it("is handed to the page by MainActivity, naming the task and its moment", () => {
+    const open = vi.fn();
+    onAndroidReminderTap(open);
+    window.__jottOpenReminder({ list: "jott.tasks/task-list.md", id: "abc123", at: "2026-09-08T09:00" });
+    expect(open).toHaveBeenCalledWith({ list: "jott.tasks/task-list.md", id: "abc123", at: "2026-09-08T09:00" });
+    window.__jottOpenReminder({ list: "", id: "", at: "" });
+    expect(open).toHaveBeenCalledTimes(1);
   });
 });

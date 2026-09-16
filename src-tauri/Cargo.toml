@@ -63,6 +63,11 @@ notify-rust = "4.11"
 # and the Windows installer. A .deb/.rpm/pacman install belongs to a package
 # manager and an APK to Android's installer, so the plugins are not even
 # compiled there — the notice falls back to opening the release page.
+# A reminder's notification button calls the core from Kotlin with the app
+# closed (`reminder_actions.rs`). Same version the window stack links.
+[target.'cfg(target_os = "android")'.dependencies]
+jni = "0.21"
+
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 tauri-plugin-updater = "2"
 tauri-plugin-process = "2"

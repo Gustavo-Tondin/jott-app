@@ -1042,6 +1042,12 @@ export const S = {
   dayNoticePlanned: (n) =>
     n === 1 ? "You have 1 task planned for today" : `You have ${n} tasks planned for today`,
   dayNoticeFirstReminder: (time) => `First reminder at ${time}`,
+  /// The phone's notification buttons, and its notification channels.
+  notifyDone: "Done",
+  notifyLater: "Later",
+  notifyTomorrow: "Tomorrow",
+  notifyChannelReminders: "Reminders",
+  notifyChannelSummary: "Day summary",
   repeatEvery: "every",
   noRepeat: "never",
   /// No period: back the moment it is ticked, one open at a time.

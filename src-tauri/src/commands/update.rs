@@ -117,7 +117,7 @@ fn fetch_latest_version(url: &str, overridden: bool) -> CommandResult<String> {
 /// The icon the entry points at, carried in the binary: the AppImage ships
 /// `jott.png` too, but reaching it means asking it to extract itself. Same
 /// file the PKGBUILD installs.
-const ICON_PNG: &[u8] = include_bytes!("../../icons/128x128@2x.png");
+pub(crate) const ICON_PNG: &[u8] = include_bytes!("../../icons/128x128@2x.png");
 
 /// The entry text, from the file the PKGBUILD installs — one template, two
 /// installs; editing `packaging/linux/jott.desktop` moves both.
