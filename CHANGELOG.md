@@ -16,6 +16,7 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 
 ### Fixed
 
+- **Ticking a task off can no longer send it twice**: once the card has left, a late tap does nothing, instead of showing "no task with id" while the task was already completed.
 - **On the Home of a phone, the + no longer stands over the bar it opened**: while you write a task the + steps aside, and comes back when the bar is put away.
 - **On Android, the day summary lists the day it is announced on**: synced after the summary's hour, it used to carry today's tasks into tomorrow morning's notification.
 - **A reminder that could not be shown is said once inside the app** instead of erroring every hour, and a change that lands while a reminder is being shown no longer rings it a second time.
