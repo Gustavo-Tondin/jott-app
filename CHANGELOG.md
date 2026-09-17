@@ -22,7 +22,7 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 
 ### Improved
 
-- **Code reads heavier and has more room**: medium weight, and more padding in a block.
+- **Code reads heavier and has more room**: medium weight and more padding in a block, and inline code has a warm color of its own.
 - **The font pickers name the family each generic resolves to on this machine** ("system-ui (Cantarell)", "monospace (Noto Sans Mono)"), on Linux.
 - **A note card with more text than fits fades out at the bottom** instead of cutting a line in half.
 - **Task cards on phones are shorter, with a bigger checkbox**, and a task's pin and age now sit on one axis on every platform.

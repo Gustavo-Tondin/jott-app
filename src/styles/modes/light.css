@@ -142,6 +142,13 @@
   /* Emphasis is the one Markdown mark with a colour of its own: a slant alone
      is easy to miss. Fixed like the status three — never the accent. */
   --app-emphasis: var(--theme-color-success-500);
+  /* Inline code is the other: a chip alone reads as a stain, not as code. Fixed
+     too — the two warm status families, halfway, so it is neither of them. */
+  --app-code-ink: color-mix(
+    in oklab,
+    var(--theme-color-warning-500),
+    var(--theme-color-danger-500) 50%
+  );
 }
 
 /* ---- a sheet: the canvas's two neutrals, the other way round --------------

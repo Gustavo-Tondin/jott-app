@@ -145,6 +145,7 @@
   /* A mono face draws thinner than the text face beside it; one step up
      evens the colour of the line. A family without the weight stays regular. */
   font-weight: var(--app-weight-medium);
+  color: var(--app-code-ink);
 }
 .editor .cm-md-strong.cm-md-mono {
   font-weight: var(--app-weight-bold);
@@ -153,6 +154,7 @@
   padding: 0;
   background: none;
   font-size: inherit;
+  color: inherit;
 }
 .editor .cm-md-code {
   background-color: var(--app-surface);
