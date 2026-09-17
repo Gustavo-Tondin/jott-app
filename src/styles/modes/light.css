@@ -143,12 +143,10 @@
      is easy to miss. Fixed like the status three — never the accent. */
   --app-emphasis: var(--theme-color-success-500);
   /* Inline code is the other: a chip alone reads as a stain, not as code. Fixed
-     too — the two warm status families, halfway, so it is neither of them. */
-  --app-code-ink: color-mix(
-    in oklab,
-    var(--theme-color-warning-500),
-    var(--theme-color-danger-500) 50%
-  );
+     too, never the accent: the danger ink with its HUE turned toward orange —
+     tone and chroma kept, which a mix with `warning` loses (it goes brown).
+     An engine without relative colours drops it and the code reads in ink. */
+  --app-code-ink: oklch(from var(--theme-color-danger-500) l c calc(h + 15));
 }
 
 /* ---- a sheet: the canvas's two neutrals, the other way round --------------

@@ -160,7 +160,8 @@ Things worth knowing before you change them:
   warning leans amber on the light ground. It is never a heading, so it has
   no ladder. Two marks of a note read these families too, so they never
   follow the accent: italic text is `success` ink, and inline code is
-  `warning` and `danger` ink mixed halfway.
+  `danger` ink with its hue turned 15° toward orange (same tone and chroma),
+  so changing `danger` moves it too.
 - **Which of the eight is the accent stays the reader's choice** (Settings →
   Display), never the theme's. A theme says what `blue` *looks like*; the
   person says whether the app wears blue.
