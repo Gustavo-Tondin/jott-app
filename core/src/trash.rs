@@ -11,6 +11,10 @@ use serde_json::{Map, Value};
 
 use crate::error::{IoContext, Result};
 
+/// The trash's folder inside `.jott/`, and its index inside that.
+pub const TRASH_DIR: &str = "trash";
+pub const INDEX_FILE: &str = "trash.json";
+
 /// What a trashed item is, so restore knows how to bring it back.
 #[derive(Debug, Clone, PartialEq)]
 pub enum TrashKind {
@@ -51,7 +55,7 @@ impl Trash {
     /// Opens (or prepares) the trash rooted at `dir` (`.jott/trash`).
     pub fn open(dir: impl Into<PathBuf>) -> Self {
         let dir = dir.into();
-        let entries = read_index(&dir.join("trash.json"));
+        let entries = read_index(&dir.join(INDEX_FILE));
         Self { dir, entries }
     }
 
@@ -60,7 +64,7 @@ impl Trash {
     }
 
     fn index_path(&self) -> PathBuf {
-        self.dir.join("trash.json")
+        self.dir.join(INDEX_FILE)
     }
 
     pub fn entries(&self) -> &[TrashEntry] {
@@ -252,6 +256,38 @@ fn parse_entry(value: &Value) -> Option<TrashEntry> {
     })
 }
 
+/// Merges two versions of the index against what the devices last had in
+/// common, entry by entry, by `id`: an entry either side added is kept, one
+/// either side took out (restored, purged, reaped) stays out. Answers the
+/// merged index and how many entries it took from `theirs`; `None` when any
+/// version is not an index, so nothing is guessed. Ours keep their order and
+/// theirs follow, so both devices merge the same pair into the same bytes.
+pub fn merge_indexes(common: &str, ours: &str, theirs: &str) -> Option<(String, usize)> {
+    let strict = |text: &str| -> Option<Vec<TrashEntry>> {
+        let value: Value = serde_json::from_str(text).ok()?;
+        let items = value.as_object()?.get("items")?.as_array()?;
+        Some(items.iter().filter_map(parse_entry).collect())
+    };
+    let (common, ours, theirs) = (strict(common)?, strict(ours)?, strict(theirs)?);
+    let ids = |entries: &[TrashEntry]| -> std::collections::HashSet<String> {
+        entries.iter().map(|e| e.id.clone()).collect()
+    };
+    let (in_common, in_ours, in_theirs) = (ids(&common), ids(&ours), ids(&theirs));
+    let before = ours.len();
+    let mut merged: Vec<TrashEntry> = ours
+        .into_iter()
+        .filter(|e| !in_common.contains(&e.id) || in_theirs.contains(&e.id))
+        .collect();
+    let taken_out = before - merged.len();
+    let arrived: Vec<TrashEntry> = theirs
+        .into_iter()
+        .filter(|e| !in_ours.contains(&e.id) && !in_common.contains(&e.id))
+        .collect();
+    let changes = taken_out + arrived.len();
+    merged.extend(arrived);
+    Some((render_index(&merged), changes))
+}
+
 fn render_index(entries: &[TrashEntry]) -> String {
     let items: Vec<Value> = entries
         .iter()
@@ -302,6 +338,46 @@ mod tests {
 
     fn day(s: &str) -> NaiveDate {
         s.parse().unwrap()
+    }
+
+    fn index_of(ids: &[&str]) -> String {
+        let entries: Vec<TrashEntry> = ids
+            .iter()
+            .map(|id| TrashEntry { id: (*id).into(), ..entry("2026-09-16") })
+            .collect();
+        render_index(&entries)
+    }
+
+    fn ids_in(text: &str) -> Vec<String> {
+        read_entries(text).into_iter().map(|e| e.id).collect()
+    }
+
+    fn read_entries(text: &str) -> Vec<TrashEntry> {
+        let value: Value = serde_json::from_str(text).unwrap();
+        value["items"].as_array().unwrap().iter().filter_map(parse_entry).collect()
+    }
+
+    #[test]
+    fn two_devices_trashing_different_things_keep_both() {
+        let (merged, changes) =
+            merge_indexes(&index_of(&["a"]), &index_of(&["a", "mine"]), &index_of(&["a", "yours"]))
+                .unwrap();
+        assert_eq!(ids_in(&merged), ["a", "mine", "yours"]);
+        assert_eq!(changes, 1);
+    }
+
+    #[test]
+    fn an_entry_restored_on_one_device_stays_out() {
+        // Restored on the other device: gone from theirs, still in ours.
+        let (merged, _) =
+            merge_indexes(&index_of(&["a", "b"]), &index_of(&["a", "b", "c"]), &index_of(&["b"]))
+                .unwrap();
+        assert_eq!(ids_in(&merged), ["b", "c"]);
+    }
+
+    #[test]
+    fn a_version_that_is_not_an_index_merges_nothing() {
+        assert_eq!(merge_indexes(&index_of(&[]), "{ half", &index_of(&["a"])), None);
     }
 
     #[test]

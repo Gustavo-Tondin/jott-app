@@ -570,3 +570,128 @@ fn a_plan_day_one_device_already_poured_into_today_does_not_come_back() {
     assert_eq!(plan.of(far).len(), 2, "and B's addition is there");
     assert_eq!(conflict_copies(&a_device.path().join(".jott")), 0);
 }
+
+// ------------------------------------------- copies inside the config folder
+
+#[test]
+fn a_copy_of_the_completed_index_goes_to_the_trash_unasked() {
+    // The index is rebuilt from the `completed.md` files on every open, so
+    // both devices rewrite it all the time and a copy holds no decision.
+    let (dir, _) = init();
+    let copy = dir
+        .path()
+        .join(".jott/completed.sync-conflict-20260916-213612-PHONE.json");
+    std::fs::write(&copy, "{\"schemaVersion\":1,\"items\":[{\"list\":\"x\",\"id\":\"y\"}]}").unwrap();
+
+    let notebook = Notebook::open(dir.path()).unwrap();
+
+    assert!(!copy.exists(), "the copy left the config folder");
+    assert!(notebook.conflicts().unwrap().is_empty(), "and nothing is asked");
+    assert_eq!(notebook.trash_entries().len(), 1, "it is in the trash");
+}
+
+#[test]
+fn a_copy_of_the_log_is_folded_into_its_year() {
+    let (dir, notebook) = init();
+    notebook.create_task(INBOX, "Uma").unwrap();
+    let log_dir = dir.path().join(".jott/timeline");
+    let year = std::fs::read_dir(&log_dir)
+        .unwrap()
+        .flatten()
+        .map(|entry| entry.path())
+        .find(|path| path.extension().is_some_and(|ext| ext == "jsonl"))
+        .expect("creating a task writes the log");
+    let first = read(&year).lines().next().unwrap().to_string();
+    let other = first.replacen("\"Uma\"", "\"Outra\"", 1).replacen("jott.tasks", "jott.tasks/x", 1);
+    assert_ne!(first, other);
+    let copy = year.with_file_name(format!(
+        "{}.sync-conflict-20260916-213612-PHONE.jsonl",
+        year.file_stem().unwrap().to_string_lossy()
+    ));
+    std::fs::write(&copy, format!("{first}\n{other}\n")).unwrap();
+    let before = jott_core::timeline::read(dir.path().join(".jott")).len();
+
+    let _ = Notebook::open(dir.path()).unwrap();
+
+    assert!(!copy.exists(), "the copy is gone");
+    assert!(read(&year).contains(&other), "its new line is in the year's file");
+    assert_eq!(
+        read(&year).matches(&first).count(),
+        1,
+        "a line both had is not written twice"
+    );
+    assert!(
+        jott_core::timeline::read(dir.path().join(".jott")).len() >= before,
+        "the Timeline lost nothing"
+    );
+}
+
+#[test]
+fn a_copy_in_the_config_folder_can_be_kept_or_discarded() {
+    // The settings are not merged, so the user decides — and the two answers
+    // have to reach a copy inside the hidden `.jott/`.
+    let (dir, _) = init();
+    let settings = dir.path().join(".jott/config.json");
+    let copy = settings.with_file_name("config.sync-conflict-20260916-213612-PHONE.json");
+    std::fs::write(&copy, "{\"schemaVersion\":1,\"from\":\"phone\"}").unwrap();
+
+    let notebook = Notebook::open(dir.path()).unwrap();
+    let conflicts = notebook.conflicts().unwrap();
+    assert_eq!(conflicts.len(), 1, "{conflicts:?}");
+    let conflict = &conflicts[0];
+    assert_eq!(conflict.kind, Some(jott_core::conflict::FileKind::Settings));
+    let relative = conflict.relative.clone().unwrap();
+    assert_eq!(relative, ".jott/config.sync-conflict-20260916-213612-PHONE.json");
+    let copy_version = conflict.copy.as_ref().expect("the copy is measured");
+    assert_eq!(copy_version.bytes, read(&copy).len() as u64);
+    assert!(copy_version.modified.is_some());
+    assert!(conflict.kept.is_some(), "and so is the version in use");
+
+    notebook.adopt_conflict(&relative).unwrap();
+    assert!(!copy.exists());
+    assert!(read(&settings).contains("phone"), "the copy took the name");
+
+    std::fs::write(&copy, "{\"schemaVersion\":1,\"from\":\"again\"}").unwrap();
+    notebook.discard_conflict(&relative).unwrap();
+    assert!(!copy.exists());
+    assert!(read(&settings).contains("phone"), "the version in use stayed");
+}
+
+#[test]
+fn only_a_listed_copy_can_be_decided_about() {
+    let (dir, notebook) = init();
+    std::fs::write(dir.path().join(".jott/tags.json"), "{}").unwrap();
+    for address in [".jott/tags.json", "../x.sync-conflict-1-A.md", ".jott/index/seen.json"] {
+        assert!(notebook.discard_conflict(address).is_err(), "{address}");
+        assert!(notebook.adopt_conflict(address).is_err(), "{address}");
+    }
+}
+
+#[test]
+fn two_devices_trashing_different_things_keep_both_in_the_trash() {
+    // The trash's index is a set of entries: a restore is a removal, a delete
+    // an addition, and without the merge one device's deletions would lose
+    // their way back.
+    let inbox = Notebook::inbox_path();
+    let (a_device, a) = Device::new();
+    let mine = task(&a, "Do desktop");
+    let yours = task(&a, "Do celular");
+    // The trash already exists when the two lose contact, as it does on any
+    // notebook in use: the base is taken from it.
+    let old = task(&a, "Antiga");
+    a.delete_task(&inbox, &old).unwrap();
+    let a = a_device.open();
+    let (b_device, b) = Device::cloned_from(&a_device);
+    a.delete_task(&inbox, &mine).unwrap();
+    b.delete_task(&inbox, &yours).unwrap();
+
+    sync_folder(a_device.path(), b_device.path(), ".jott/trash");
+    assert_eq!(conflict_copies(&a_device.path().join(".jott/trash")), 1);
+
+    let a = a_device.open();
+    let labels: Vec<String> = a.trash_entries().into_iter().map(|e| e.label).collect();
+    assert!(labels.contains(&"Do desktop".to_string()), "{labels:?}");
+    assert!(labels.contains(&"Do celular".to_string()), "{labels:?}");
+    assert_eq!(conflict_copies(&a_device.path().join(".jott/trash")), 0);
+    assert!(a.conflicts().unwrap().is_empty());
+}

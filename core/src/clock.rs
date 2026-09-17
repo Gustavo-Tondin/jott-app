@@ -51,6 +51,11 @@ pub fn civil_date_of(time: std::time::SystemTime) -> NaiveDate {
     DateTime::<Local>::from(time).date_naive()
 }
 
+/// The local wall-clock time an instant fell on — a file's mtime, shown.
+pub fn civil_time_of(time: std::time::SystemTime) -> NaiveDateTime {
+    DateTime::<Local>::from(time).naive_local()
+}
+
 /// When the next day turns — the coming midnight — from the system clock.
 /// The `_at` variant takes the instant for the tests; this one keeps
 /// `Local::now()` out of every caller (see `core/tests/invariants.rs`).

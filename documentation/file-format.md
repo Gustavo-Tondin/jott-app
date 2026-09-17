@@ -251,7 +251,8 @@ version found there is kept as the copy, byte for byte. Jott lists every conflic
 it finds, inside note folders too — a copy is never a note or a list on the
 board. The two answers the app offers both go through `.jott/trash/`:
 discarding moves the copy there; keeping it moves the original there and
-gives the copy its name.
+gives the copy its name. Each version is shown with when it was last written
+and its size.
 
 A copy is only asked about where two devices changed the same thing.
 Everything else is put back together:
@@ -264,6 +265,14 @@ Everything else is put back together:
   sets of references to tasks: a reference either side added is kept, a
   reference either side took out is dropped, and when the two disagree about
   which day it is, the later date wins outright.
+- **A copy of `.jott/trash/trash.json`**, entry by entry, by `id`: an item
+  either device deleted stays in the Trash, one either device restored or
+  emptied stays out.
+- **A copy of `.jott/completed.json`.** It is an index Jott rebuilds from the
+  `completed.md` files every time the notebook opens, so the copy holds
+  nothing to choose and goes to `.jott/trash/` as it is.
+- **A copy of a year of the log** (`.jott/timeline/<year>.jsonl`). The lines
+  the original lacks are appended to it, and the copy goes to `.jott/trash/`.
 - **A task list**, task by task, named by its `id`. Two devices that changed
   different tasks of one list are both right, and both changes are kept. A
   task missing on one side is never read as a deletion by comparison: a task

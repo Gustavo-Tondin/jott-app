@@ -14,12 +14,13 @@
 use std::path::{Path, PathBuf};
 
 use crate::base::Base;
-use crate::conflict::{Conflict, Difference, FileKind};
+use crate::conflict::{Conflict, Difference, FileKind, Version};
 use crate::error::{Error, Result};
 use crate::merge::{self, Departed, Mode};
 use crate::plan::{Plan, PLAN_FILE};
 use crate::state::{DayState, StateFile, DAILY_STATE_FILE};
 use crate::textmerge::{self, TextMerge};
+use crate::trash::TRASH_DIR;
 use crate::{COMPLETED_LIST, NOTEBOOK_CONFIG_DIR};
 
 /// One file a merge settled, as the interface reports it.
@@ -49,7 +50,14 @@ enum Mergeable {
     List(String),
     /// A note of a notes space.
     Note,
+    /// `.jott/trash/trash.json`, entry by entry.
+    Trash,
 }
+
+/// The index the Completed screen reads (`refresh_completed_index`): rebuilt
+/// from the `completed.md` files on every open, so a copy of it holds no
+/// decision — it goes to the trash unasked.
+const COMPLETED_INDEX: &str = "completed.json";
 
 /// The three versions a merge reads, and the file the result is written to.
 struct Versions {
@@ -81,12 +89,13 @@ impl Notebook {
         self
     }
 
-    /// The two files the app merges that are not content: the day's state and
-    /// the plan, root-relative.
-    fn state_files(&self) -> [String; 2] {
+    /// The files the app merges that are not content: the day's state, the
+    /// plan and the trash's index, root-relative.
+    fn state_files(&self) -> [String; 3] {
         [
             format!("{NOTEBOOK_CONFIG_DIR}/{DAILY_STATE_FILE}"),
             format!("{NOTEBOOK_CONFIG_DIR}/{PLAN_FILE}"),
+            format!("{NOTEBOOK_CONFIG_DIR}/{TRASH_DIR}/{}", crate::trash::INDEX_FILE),
         ]
     }
 
@@ -117,12 +126,15 @@ impl Notebook {
     /// What kind of file `relative` is, for the merge. `None` for anything
     /// the app does not read as content.
     fn mergeable(&self, relative: &str) -> Option<Mergeable> {
-        let [state, plan] = self.state_files();
+        let [state, plan, trash] = self.state_files();
         if relative == state {
             return Some(Mergeable::State);
         }
         if relative == plan {
             return Some(Mergeable::Plan);
+        }
+        if relative == trash {
+            return Some(Mergeable::Trash);
         }
         if !self.keeps_base(relative) {
             return None;
@@ -217,7 +229,12 @@ impl Notebook {
     /// purpose — both devices merge the same pair into the same bytes, so the
     /// result does not bounce between them.
     pub fn merge_conflicts(&self) -> Result<Vec<Merged>> {
-        if self.base.is_none() || self.is_read_only() {
+        if self.is_read_only() {
+            return Ok(Vec::new());
+        }
+        // Needs no base: a copy of what the app rebuilds is never a merge.
+        self.reap_derived_conflicts()?;
+        if self.base.is_none() {
             return Ok(Vec::new());
         }
         let mut merged = Vec::new();
@@ -243,6 +260,7 @@ impl Notebook {
             Mergeable::Plan => (FileKind::State, self.merge_plan(&versions)?),
             Mergeable::List(path) => (FileKind::List, self.merge_list(&path, &versions)?),
             Mergeable::Note => (FileKind::Note, self.merge_note(&versions)?),
+            Mergeable::Trash => (FileKind::State, self.merge_trash(&versions)?),
         };
         let Some(changes) = changes else {
             return Ok(None);
@@ -404,6 +422,17 @@ impl Notebook {
         Ok(moved)
     }
 
+    /// The trash's index, entry by entry ([`crate::trash::merge_indexes`]).
+    fn merge_trash(&self, versions: &Versions) -> Result<Option<usize>> {
+        let Some((text, changes)) =
+            crate::trash::merge_indexes(&versions.common, &versions.ours, &versions.theirs)
+        else {
+            return Ok(None);
+        };
+        crate::fsio::write_atomically(&versions.original, text.as_bytes())?;
+        Ok(Some(changes))
+    }
+
     /// A note, line by line. A passage both devices rewrote is never settled
     /// here: conflict markers written into somebody's note would be the app
     /// corrupting the file it was asked to protect.
@@ -422,7 +451,7 @@ impl Notebook {
     /// any depth. The one walk behind [`Notebook::conflicts`] and the reaper,
     /// so the two cannot disagree about which copies exist.
     fn conflict_paths(&self) -> Result<Vec<PathBuf>> {
-        let mut dirs = vec![self.config_dir()];
+        let mut dirs = vec![self.config_dir(), self.config_dir().join(TRASH_DIR)];
         for (_, folder) in self.task_folders()? {
             dirs.push(folder.dir().to_path_buf());
         }
@@ -449,9 +478,11 @@ impl Notebook {
         let mut found = Vec::new();
         for path in self.conflict_paths()? {
             if let Some(mut conflict) = crate::conflict::describe(&path) {
-                if is_identical_copy(&conflict) {
+                if is_identical_copy(&conflict) || self.is_derived_copy(&path) {
                     continue;
                 }
+                conflict.kept = conflict.original.as_deref().and_then(Version::of);
+                conflict.copy = Version::of(&path);
                 conflict.relative = Some(crate::relpath::relative_slash(self.root(), &path));
                 conflict.differs = self.difference(&path);
                 conflict.kind = self.kind_of_copy(&path);
@@ -505,8 +536,17 @@ impl Notebook {
     fn kind_of_copy(&self, copy: &Path) -> Option<FileKind> {
         let original = crate::conflict::describe(copy)?.original?;
         let relative = crate::relpath::relative_slash(self.root(), &original);
+        let settings = format!("{NOTEBOOK_CONFIG_DIR}/config.json");
+        let tags = format!("{NOTEBOOK_CONFIG_DIR}/tags.json");
+        if relative == settings {
+            return Some(FileKind::Settings);
+        }
+        if relative == tags {
+            return Some(FileKind::Tags);
+        }
         Some(match self.mergeable(&relative)? {
             Mergeable::State | Mergeable::Plan => FileKind::State,
+            Mergeable::Trash => FileKind::Trash,
             Mergeable::List(_) => FileKind::List,
             Mergeable::Note => FileKind::Note,
         })
@@ -516,7 +556,7 @@ impl Notebook {
     /// deletion reaches the other device through the sync tool, so the notice
     /// goes away on both. Derived work, run on open.
     pub(super) fn reap_identical_conflicts(&self) -> Result<usize> {
-        let mut gone = 0;
+        let mut gone = self.reap_derived_conflicts()?;
         for path in self.conflict_paths()? {
             let Some(conflict) = crate::conflict::describe(&path) else {
                 continue;
@@ -529,13 +569,41 @@ impl Notebook {
         Ok(gone)
     }
 
-    /// A conflict copy by its root-relative address, checked to be one: the
-    /// two doors below take user input and must not reach any other file.
+    /// Whether `copy` is a copy of a file the app rebuilds on its own, so
+    /// there is nothing in it to choose.
+    fn is_derived_copy(&self, copy: &Path) -> bool {
+        crate::conflict::describe(copy)
+            .and_then(|conflict| conflict.original.or_else(|| original_name_of(copy)))
+            .is_some_and(|original| original == self.config_dir().join(COMPLETED_INDEX))
+    }
+
+    /// The copies no one has to decide about and no merge needs a base for:
+    /// the Completed index's, and the log's (folded into the year's file by
+    /// [`crate::timeline::fold_conflict_copies`]). All go to the trash.
+    fn reap_derived_conflicts(&self) -> Result<usize> {
+        let mut gone = 0;
+        for path in self.conflict_paths()? {
+            if self.is_derived_copy(&path) {
+                self.trash_path(&path)?;
+                gone += 1;
+            }
+        }
+        for copy in crate::timeline::fold_conflict_copies(self.config_dir())? {
+            self.trash_path(&copy)?;
+            gone += 1;
+        }
+        Ok(gone)
+    }
+
+    /// A conflict copy by its root-relative address, checked to be one the
+    /// notebook lists: the two doors below take user input and must not reach
+    /// any other file. Matched against the walk rather than `safe_join`, which
+    /// refuses the hidden `.jott/` where half of the copies live.
     fn conflict_file(&self, relative: &str) -> Result<PathBuf> {
-        let path = crate::relpath::safe_join(self.root(), relative)
-            .filter(|path| crate::conflict::is_conflict_file(path) && path.is_file())
-            .ok_or_else(|| Error::InvalidNotePath(relative.to_string()))?;
-        Ok(path)
+        self.conflict_paths()?
+            .into_iter()
+            .find(|path| crate::relpath::relative_slash(self.root(), path) == relative)
+            .ok_or_else(|| Error::InvalidNotePath(relative.to_string()))
     }
 
     /// Discards a conflict copy: it goes to the trash, the original stays.

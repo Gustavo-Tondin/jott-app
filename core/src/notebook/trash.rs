@@ -13,7 +13,7 @@ impl Notebook {
 
     /// The notebook's own trash, rooted at `.jott/trash/`.
     pub(super) fn trash(&self) -> crate::trash::Trash {
-        crate::trash::Trash::open(self.config_dir().join("trash"))
+        crate::trash::Trash::open(self.config_dir().join(crate::trash::TRASH_DIR))
     }
 
     /// Moves a file or folder into the notebook's trash, recording its origin.

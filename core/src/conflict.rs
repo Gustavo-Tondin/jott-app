@@ -65,10 +65,41 @@ pub fn keep_copy(path: &Path, now: NaiveDateTime) -> Result<Option<PathBuf>> {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub enum FileKind {
-    /// The day's state or the plan.
+    /// The day's state, the plan, or the trash's index — merged in silence.
     State,
     List,
     Note,
+    /// `.jott/config.json`: the notebook's settings.
+    Settings,
+    /// `.jott/tags.json`: the colours of the tags.
+    Tags,
+    /// `.jott/trash/trash.json`, when it could not be merged.
+    Trash,
+}
+
+/// One of the two versions on the table, as the banner shows it to someone
+/// choosing between them: when it was last written, and how big it is.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Version {
+    /// Last written, local wall clock (`2026-09-17T09:12:05`); `None` when the
+    /// file system would not say.
+    pub modified: Option<String>,
+    pub bytes: u64,
+}
+
+impl Version {
+    pub fn of(path: &Path) -> Option<Self> {
+        let meta = std::fs::metadata(path).ok()?;
+        Some(Self {
+            modified: meta.modified().ok().map(|time| {
+                crate::clock::civil_time_of(time)
+                    .format("%Y-%m-%dT%H:%M:%S")
+                    .to_string()
+            }),
+            bytes: meta.len(),
+        })
+    }
 }
 
 /// What the two versions of a file disagree about, when the app read them
@@ -107,6 +138,11 @@ pub struct Conflict {
     /// Filled by `Notebook::conflicts`, which is the only reader that knows
     /// the spaces.
     pub kind: Option<FileKind>,
+    /// The version under the file's own name — the one in use. Filled by
+    /// `Notebook::conflicts`.
+    pub kept: Option<Version>,
+    /// The conflicting copy. Filled by `Notebook::conflicts`.
+    pub copy: Option<Version>,
 }
 
 /// True when the file name is a sync-conflict copy — kept out of the list
@@ -149,6 +185,8 @@ pub fn describe(path: &Path) -> Option<Conflict> {
         relative: None,
         differs: None,
         kind: None,
+        kept: None,
+        copy: None,
         path: path.to_path_buf(),
     })
 }

@@ -468,6 +468,56 @@ pub fn remove(config_dir: impl AsRef<Path>, key: &Key) -> Result<usize> {
     Ok(removed)
 }
 
+/// Folds every conflict copy of the log into the file it is a copy of: the
+/// lines the original lacks are appended, and the copies are answered for the
+/// caller to trash. `read` already unions the two, so nothing the Timeline
+/// shows changes — the copies just stop piling up. A copy whose original is
+/// gone is left alone (it is still read).
+pub fn fold_conflict_copies(config_dir: impl AsRef<Path>) -> Result<Vec<PathBuf>> {
+    let dir = dir_of(config_dir);
+    let Ok(paths) = crate::fsio::dir_paths(&dir) else {
+        return Ok(Vec::new());
+    };
+    let mut folded = Vec::new();
+    for copy in paths {
+        if copy.extension().is_none_or(|ext| ext != "jsonl") {
+            continue;
+        }
+        let Some(original) = crate::conflict::describe(&copy).and_then(|c| c.original) else {
+            continue;
+        };
+        let (Ok(theirs), Ok(ours)) = (
+            std::fs::read_to_string(&copy),
+            std::fs::read_to_string(&original),
+        ) else {
+            continue;
+        };
+        let known: BTreeSet<Record> = ours.lines().filter_map(Record::parse).collect();
+        let raw: BTreeSet<&str> = ours.lines().collect();
+        let missing: Vec<&str> = theirs
+            .lines()
+            .filter(|line| !line.trim().is_empty())
+            .filter(|line| match Record::parse(line) {
+                Some(record) => !known.contains(&record),
+                None => !raw.contains(line),
+            })
+            .collect();
+        if !missing.is_empty() {
+            let mut text = ours;
+            if !text.is_empty() && !text.ends_with('\n') {
+                text.push('\n');
+            }
+            for line in missing {
+                text.push_str(line);
+                text.push('\n');
+            }
+            crate::fsio::write_atomically(&original, text.as_bytes())?;
+        }
+        folded.push(copy);
+    }
+    Ok(folded)
+}
+
 /// `resolve`, also saying which item each line ended up belonging to
 /// (`None` for a line about nothing — never born, or born twice).
 fn resolve_indexed(records: &[Record]) -> (Vec<Item>, Vec<Option<usize>>) {
