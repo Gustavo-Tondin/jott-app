@@ -468,6 +468,14 @@ describe("the suggestions panel", () => {
     expect(at("Pulled recently")).toBeGreaterThan(at("Urgent"));
     // And before the plain lists, which are the last thing offered.
     expect(at("Pulled recently")).toBeLessThan(at("Tasks/Compras"));
+
+    // The space's colour is on every ROW, whatever the group, and on no
+    // heading: under "Pulled recently" a heading could not say it.
+    expect(pane.querySelector(".suggestions-pane__group-title .theme-dot")).toBeNull();
+    for (const text of ["Vencida", "Tirei do dia ontem", "Tranquila"]) {
+      const row = within(pane).getByText(text).closest(".suggestions-pane__item");
+      expect(row.querySelector(".suggestions-pane__dot")).toBeTruthy();
+    }
   });
 
   test("opening a task takes the panel back, and Escape closes it", async () => {

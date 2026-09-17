@@ -113,7 +113,6 @@
       return {
         key: `list:${path}`,
         label: from?.label ?? listLabel(first),
-        color: from?.color ?? null,
         items,
       };
     });
@@ -146,9 +145,6 @@
         name={isCollapsed(section.key) ? "caret-right" : "caret-down"}
         size="0.75rem"
       />
-      {#if section.color !== undefined}
-        <span class="theme-dot suggestions-pane__dot" style={dotStyle(section.color)} aria-hidden="true"></span>
-      {/if}
       <span>{section.label}</span>
       <small class="suggestions-pane__count">{section.items.length}</small>
     </button>
@@ -157,6 +153,7 @@
       <ul class="suggestions-pane__list">
         {#each section.items as entry, i (`${entry.path}/${entry.task.id ?? ""}#${i}`)}
           {@const key = `${section.key}:${i}`}
+          {@const from = origin?.(entry) ?? null}
           <!-- The whole row is the pull: a suggestion exists to be pulled. -->
           <li
             class="suggestions-pane__row"
@@ -167,6 +164,16 @@
               onclick={(event) => take(event, entry, key)}
               title={S.pull}
             >
+              <!-- The space it comes from, on the ROW: a heading's colour
+                   says nothing under Urgent or Pulled recently. -->
+              {#if from}
+                <span
+                  class="theme-dot suggestions-pane__dot"
+                  style={dotStyle(from.color)}
+                  title={from.label}
+                  aria-hidden="true"
+                ></span>
+              {/if}
               <span class="suggestions-pane__text">{entry.task.text}</span>
               {#if entry.task.due && f("dueDate")}
                 <span class="suggestions-pane__meta">

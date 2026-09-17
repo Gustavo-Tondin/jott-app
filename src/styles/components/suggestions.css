@@ -84,10 +84,6 @@
     background: var(--app-hover);
     color: var(--app-ink);
   }
-  /* The space's colour before its name (services/origin.js), small. */
-  .suggestions-pane__dot {
-    --dot-size: var(--app-space-8);
-  }
   .suggestions-pane__count {
     margin-inline-start: auto;
     font-weight: var(--app-weight-regular);
@@ -130,8 +126,8 @@
     }
   }
 
-  /* One row: the task, and its date at the end (the list it comes from is
-     the heading above). */
+  /* One row: the colour of the space it comes from, the task, and its date
+     at the end. */
   .suggestions-pane__item {
     inline-size: 100%;
     display: flex;
@@ -145,12 +141,21 @@
   .suggestions-pane__item:hover {
     background: var(--app-hover);
   }
+  /* The space's colour (services/origin.js), small. Centred on the row, not
+     on the baseline the text sits on: an empty box would rest on it. */
+  .suggestions-pane__dot {
+    --dot-size: var(--app-space-8);
+    align-self: center;
+  }
 
   /* ---- in the sheet (below 768px) ----
      Same panel, other ground: a sheet swaps the region's two neutrals
      (themes/*.css), and transparent rows on it are a flat wash. So the rows
      become cards here, at a thumb's target. */
+  /* Centred, not on the baseline: the card is taller than its line, and a
+     baseline row rests the text on the card's top edge, away from its dot. */
   .suggestions-pane--compact .suggestions-pane__item {
+    align-items: center;
     min-block-size: var(--app-touch-min);
     padding: var(--app-space-8) var(--app-space-12);
     border-radius: var(--app-radius-md);
