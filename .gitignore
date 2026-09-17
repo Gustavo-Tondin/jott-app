@@ -59,6 +59,7 @@ packaging/*.log
 .DS_Store
 .idea/
 .vscode/
+.claude/
 *.swp
 
 # --- Latest built installers, kept locally for convenience (binaries) ---
