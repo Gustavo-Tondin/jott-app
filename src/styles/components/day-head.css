@@ -99,6 +99,12 @@
       transparent 100%
     );
     transition: --day-fade var(--app-transition-medium);
+    /* A scroller clips on both axes, and the pill fills its day to the edge:
+       any fraction of layout (a root font that is not 16px, a screen's odd
+       width) would shave the curve off. The clip box grows by a margin the
+       layout never sees — padding out, the same margin back in. */
+    padding-block: var(--app-space-4);
+    margin-block: calc(-1 * var(--app-space-4));
   }
   /* As wide as a third of a cell: less and the fade falls in the gap between
      two days, where there is nothing to soften — the number sits in the

@@ -173,12 +173,16 @@
   let dragging = $state(false);
   let dragHeight = $state(null);
 
-  /// The fold's height at `lvl`, read off the boxes inside it.
+  /// The fold's height at `lvl`, read off the boxes inside it — in FRACTIONS:
+  /// `offset*` round, and a height rounded down clips the week's last half
+  /// pixel whenever the root font is not 16px. jsdom has no boxes: offsets.
   function heightOf(lvl) {
     if (lvl <= 0 || !weekEl) return 0;
-    const weekBottom = weekEl.offsetTop + weekEl.offsetHeight;
-    if (lvl === 1 || !summaryEl) return weekBottom;
-    return summaryEl.offsetTop + summaryEl.offsetHeight;
+    const last = lvl === 1 || !summaryEl ? weekEl : summaryEl;
+    const top = foldEl?.getBoundingClientRect().top;
+    const bottom = last.getBoundingClientRect().bottom;
+    if (foldEl && bottom) return bottom - top - foldEl.clientTop;
+    return last.offsetTop + last.offsetHeight;
   }
   /// The height the fold is drawn at right now: the finger's while dragging,
   /// the level's otherwise. `null` on the desktop — the stylesheet reads it

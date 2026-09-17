@@ -173,6 +173,44 @@ describe("segmented", () => {
   });
 });
 
+describe("segmented, where layout is fractional", () => {
+  const rect = (left, top, width, height) => () => ({
+    left,
+    top,
+    width,
+    height,
+    right: left + width,
+    bottom: top + height,
+  });
+
+  // A root font that is not 16px makes an item 80.5px tall: `offsetHeight`
+  // says 81 and the pill overhangs a clipping track by half a pixel.
+  it("keeps the fractions offset* would round away", () => {
+    const { node, a } = track();
+    node.getBoundingClientRect = rect(10, 100, 300, 80.5);
+    a.getBoundingClientRect = rect(12.25, 100, 60.5, 80.5);
+    vi.spyOn(window, "getComputedStyle").mockReturnValue({ width: "60.5px", height: "80.5px" });
+    segmented(node);
+    expect(node.style.getPropertyValue("--seg-x")).toBe("2.25px");
+    expect(node.style.getPropertyValue("--seg-h")).toBe("80.5px");
+    vi.restoreAllMocks();
+  });
+
+  // Measured mid-press, the item's box is scaled; the pill takes its real size.
+  it("ignores a pressed item's scale", () => {
+    const { node, a } = track();
+    node.getBoundingClientRect = rect(0, 0, 300, 32);
+    // 60x28 at (2,2), scaled to 0.75 about its centre (32, 16).
+    a.getBoundingClientRect = rect(9.5, 5.5, 45, 21);
+    vi.spyOn(window, "getComputedStyle").mockReturnValue({ width: "60px", height: "28px" });
+    segmented(node);
+    expect(node.style.getPropertyValue("--seg-x")).toBe("2px");
+    expect(node.style.getPropertyValue("--seg-y")).toBe("2px");
+    expect(node.style.getPropertyValue("--seg-w")).toBe("60px");
+    vi.restoreAllMocks();
+  });
+});
+
 describe("segmented, on a pill's first appearance", () => {
   // WebKit transitions a new `::before` from the initial translate: without
   // `place` every pill flies in from the track's corner.

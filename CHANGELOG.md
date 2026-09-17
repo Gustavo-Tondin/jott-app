@@ -10,6 +10,7 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 
 ### Fixed
 
+- **The chosen day on the Home calendar is no longer cut off at the bottom** when the system font size is not the default.
 - **"Keep" works on sync conflicts of Jott's own files** (settings, tag colors, the Trash list): it used to fail with "invalid note path".
 - **On Android, "Show in folder" opens the folder in the Files app** instead of failing; where no app can open it, the path is copied.
 
