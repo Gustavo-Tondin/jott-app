@@ -18,6 +18,7 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 
 ### Improved
 
+- **Code reads heavier and has more room**: medium weight, more padding, and a hairline around the block.
 - **The font pickers name the family each generic resolves to on this machine** ("system-ui (Cantarell)", "monospace (Noto Sans Mono)"), on Linux.
 - **Task cards on phones are shorter, with a bigger checkbox**, and a task's pin and age now sit on one axis on every platform.
 - **Every suggestion wears the color of its space**, under Urgent and Pulled recently too; the list headings drop their dot.

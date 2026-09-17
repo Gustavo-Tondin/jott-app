@@ -142,17 +142,27 @@
   background: var(--app-surface);
   font-family: var(--app-font-mono);
   font-size: 0.9em;
+  /* A mono face draws thinner than the text face beside it; one step up
+     evens the colour of the line. A family without the weight stays regular. */
+  font-weight: var(--app-weight-medium);
+}
+.editor .cm-md-strong.cm-md-mono {
+  font-weight: var(--app-weight-bold);
 }
 .editor .cm-md-code .cm-md-mono {
   padding: 0;
   background: none;
   font-size: inherit;
 }
+/* The box is drawn line by line: every line carries the two sides of the
+   hairline, and the two ends close it (`.cm-md-open` / `.cm-md-close`). */
 .editor .cm-md-code {
   background-color: var(--app-surface);
-  padding-inline: var(--app-space-10);
+  border-inline: 0.0625rem solid var(--app-line);
+  padding-inline: var(--app-space-16);
   font-family: var(--app-font-mono);
   font-size: 0.9em;
+  font-weight: var(--app-weight-medium);
 }
 
 /* ---- quote ---- a box with a bar; the words keep the note's ink. */
@@ -178,6 +188,14 @@
 .editor .cm-md-quote.cm-md-close {
   border-start-start-radius: 0;
   border-end-start-radius: 0;
+}
+.editor .cm-md-code.cm-md-open {
+  border-block-start: 0.0625rem solid var(--app-line);
+  padding-block-start: var(--app-space-10);
+}
+.editor .cm-md-code.cm-md-close {
+  border-block-end: 0.0625rem solid var(--app-line);
+  padding-block-end: var(--app-space-10);
 }
 /* The band shares the line's box with the ground, so its radius would bite
    the ground's corners too. Inside a box the band runs square, edge to edge;
