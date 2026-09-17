@@ -179,6 +179,28 @@
   border-start-start-radius: 0;
   border-end-start-radius: 0;
 }
+/* The band shares the line's box with the ground, so its radius would bite
+   the ground's corners too. Inside a box the band runs square, edge to edge;
+   the two ends keep the BOX's corners, restated because the shorthand zeroes
+   them. */
+.editor .cm-md-code.cm-md-editing,
+.editor .cm-md-quote.cm-md-editing {
+  border-radius: 0;
+}
+.editor .cm-md-code.cm-md-editing.cm-md-open {
+  border-start-start-radius: var(--app-radius-xs);
+}
+.editor .cm-md-code.cm-md-editing.cm-md-open,
+.editor .cm-md-quote.cm-md-editing.cm-md-open {
+  border-start-end-radius: var(--app-radius-xs);
+}
+.editor .cm-md-code.cm-md-editing.cm-md-close {
+  border-end-start-radius: var(--app-radius-xs);
+}
+.editor .cm-md-code.cm-md-editing.cm-md-close,
+.editor .cm-md-quote.cm-md-editing.cm-md-close {
+  border-end-end-radius: var(--app-radius-xs);
+}
 
 /* ---- horizontal rule ---- the dashes go transparent and a pseudo-element
    draws the hairline: no height added, so the line measures as CodeMirror
