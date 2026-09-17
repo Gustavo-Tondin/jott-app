@@ -77,6 +77,28 @@ pub fn ui_family(description: &str) -> Option<String> {
     is_safe_family(&family).then_some(family)
 }
 
+/// The family this machine answers each CSS keyword with; an empty field is
+/// "could not ask", and the keyword then stands on its own. `ui` and `mono`
+/// are the DESKTOP's own faces (`system-ui` in a text role, in the monospace
+/// role); the other three are what fontconfig resolves the generic to.
+#[derive(Debug, Default, PartialEq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SystemFaces {
+    pub ui: String,
+    pub mono: String,
+    pub sans_serif: String,
+    pub serif: String,
+    pub monospace: String,
+}
+
+/// The family fontconfig answers a generic with — what `fc-match serif family`
+/// prints. A line may carry several comma-separated names; the FIRST is the
+/// one to show. `None` when nothing safe is left.
+pub fn matched_family(answer: &str) -> Option<String> {
+    let name = answer.lines().next()?.split(',').next()?.trim();
+    is_safe_family(name).then(|| name.to_string())
+}
+
 /// The families in a `fc-list : family` listing, ready to show. One line per
 /// face; a line may carry several comma-separated names, and the FIRST is the
 /// one fontconfig answers to. Unsafe names are dropped, not escaped. The list is
@@ -134,6 +156,27 @@ mod tests {
         assert_eq!(ui_family("Cantarell Bold 11").as_deref(), Some("Cantarell"));
         assert_eq!(ui_family("\"Noto Sans\"").as_deref(), Some("Noto Sans"));
         assert_eq!(ui_family("Inter Semi-Bold Italic 12.5").as_deref(), Some("Inter"));
+    }
+
+    #[test]
+    fn the_desktops_monospace_name_keeps_its_mono() {
+        // `monospace-font-name`: "Mono" is part of the family, not a style.
+        assert_eq!(
+            ui_family("'TRIAL Rooftop Mono 11'\n").as_deref(),
+            Some("TRIAL Rooftop Mono")
+        );
+        assert_eq!(ui_family("'Adwaita Mono 11'").as_deref(), Some("Adwaita Mono"));
+    }
+
+    #[test]
+    fn a_generic_is_answered_with_one_family() {
+        assert_eq!(matched_family("Noto Sans\n").as_deref(), Some("Noto Sans"));
+        assert_eq!(
+            matched_family("Noto Sans Mono,Noto Sans Mono Regular\n").as_deref(),
+            Some("Noto Sans Mono")
+        );
+        assert_eq!(matched_family(""), None);
+        assert_eq!(matched_family("Ev'il; }\n"), None);
     }
 
     #[test]

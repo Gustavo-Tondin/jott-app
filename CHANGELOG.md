@@ -11,12 +11,14 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 ### Fixed
 
 - **The highlight of the line being edited no longer bites the corners off a code block or a quote**: inside a box it runs edge to edge.
+- **Choosing "system-ui" as the monospace font uses the desktop's monospace font**, not its interface font.
 - **The chosen day on the Home calendar is no longer cut off at the bottom** when the system font size is not the default.
 - **"Keep" works on sync conflicts of Jott's own files** (settings, tag colors, the Trash list): it used to fail with "invalid note path".
 - **On Android, "Show in folder" opens the folder in the Files app** instead of failing; where no app can open it, the path is copied.
 
 ### Improved
 
+- **The font pickers name the family each generic resolves to on this machine** ("system-ui (Cantarell)", "monospace (Noto Sans Mono)"), on Linux.
 - **Task cards on phones are shorter, with a bigger checkbox**, and a task's pin and age now sit on one axis on every platform.
 - **Every suggestion wears the color of its space**, under Urgent and Pulled recently too; the list headings drop their dot.
 - **The sync conflict notice says when each version was last edited and how big it is**, marks the newer one, and puts a Keep button beside each.

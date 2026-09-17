@@ -131,9 +131,9 @@ export const api = {
   /// This machine's font families, sorted and safe to name in CSS. Empty off
   /// Linux (no fontconfig). Asked when the Display page opens, never per render.
   systemFonts: () => invoke("system_fonts"),
-  // The family the desktop draws ITSELF in — what CSS `system-ui` should
-  // mean and does not, on every engine (services/fonts.js).
-  systemUiFont: () => invoke("system_ui_font"),
+  // The family this machine answers each font keyword with: `{ ui, mono,
+  // sansSerif, serif, monospace }`, all empty off Linux (services/fonts.js).
+  systemFaces: () => invoke("system_faces"),
   // Whether this machine asked for the instrumentation (`JOTT_PERF=1`).
   perfEnabled: () => invoke("perf_enabled"),
 

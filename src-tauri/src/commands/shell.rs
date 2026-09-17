@@ -5,6 +5,7 @@
 use std::path::{Path, PathBuf};
 
 use jott_core::desktop::{default_button_layout, parse_button_layout, ButtonLayout};
+use jott_core::fonts::{matched_family, ui_family, SystemFaces};
 use tauri::{AppHandle, Runtime, State};
 // Desktop-only: the trait brings in the folder picker, which Android does not
 // have — see `pick_notebook_folder`.
@@ -64,23 +65,38 @@ pub async fn system_fonts() -> Vec<String> {
         .unwrap_or_default()
 }
 
-/// The family this desktop draws its own interface in — what the CSS
-/// `system-ui` is SUPPOSED to mean. It is asked because it is not what
-/// `system-ui` answers with here: WebKitGTK resolves it through fontconfig
-/// (Adwaita Sans on this machine) and never looks at the desktop's setting,
-/// while Chrome and Firefox do. Empty when there is nothing to ask (every
-/// system but Linux, where `system-ui` already means the right thing).
-/// See docs/platform-gotchas.md#webview-e-gestos
+/// The family this machine answers each font keyword with. Asked because
+/// WebKitGTK resolves `system-ui` through fontconfig and never reads the
+/// desktop's setting, and because no keyword means "the desktop's MONOSPACE
+/// face" at all. All empty off Linux, where the keywords already mean the
+/// right thing. See docs/platform-gotchas.md#webview-e-gestos
 /// Async for the reason `system_fonts` is.
 #[tauri::command]
-pub async fn system_ui_font() -> String {
+pub async fn system_faces() -> SystemFaces {
     if !cfg!(target_os = "linux") {
-        return String::new();
+        return SystemFaces::default();
     }
-    host_stdout_blocking("gsettings", &["get", "org.gnome.desktop.interface", "font-name"])
-        .await
-        .and_then(|text| jott_core::fonts::ui_family(&text))
-        .unwrap_or_default()
+    tauri::async_runtime::spawn_blocking(|| {
+        let desktop = |key| {
+            host_stdout("gsettings", &["get", "org.gnome.desktop.interface", key])
+                .and_then(|text| ui_family(&text))
+                .unwrap_or_default()
+        };
+        let generic = |name| {
+            host_stdout("fc-match", &[name, "family"])
+                .and_then(|text| matched_family(&text))
+                .unwrap_or_default()
+        };
+        SystemFaces {
+            ui: desktop("font-name"),
+            mono: desktop("monospace-font-name"),
+            sans_serif: generic("sans-serif"),
+            serif: generic("serif"),
+            monospace: generic("monospace"),
+        }
+    })
+    .await
+    .unwrap_or_default()
 }
 
 /// The bundle's environment, wiped off a child that answers for the HOST:

@@ -55,7 +55,7 @@ pub fn configure<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builde
             commands::shell::platform,
             commands::shell::window_button_layout,
             commands::shell::system_fonts,
-            commands::shell::system_ui_font,
+            commands::shell::system_faces,
             commands::shell::perf_enabled,
             commands::shell::pick_notebook_folder,
             commands::shell::default_notebook_folder,

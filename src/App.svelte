@@ -935,20 +935,21 @@
     };
   });
 
-  /// The family this desktop draws its own interface in, asked once: the CSS
-  /// `system-ui` does not answer with it on every engine (services/fonts.js).
-  /// Empty where there is nothing to ask, and the keyword stands alone.
-  let systemUiFont = $state("");
+  /// The families this machine answers the font keywords with, asked once:
+  /// `system-ui` does not answer with the desktop's on every engine, and no
+  /// keyword names its monospace face (services/fonts.js). Empty where there
+  /// is nothing to ask, and the keywords stand alone.
+  let systemFaces = $state({});
   api
-    .systemUiFont()
-    .then((name) => (systemUiFont = name ?? ""))
-    .catch(() => (systemUiFont = ""));
+    .systemFaces()
+    .then((faces) => (systemFaces = faces ?? {}))
+    .catch(() => (systemFaces = {}));
 
   // The three faces ride on the root as custom properties, reaching both
   // regions at once; the editor inherits its family from the box around it.
   // A null REMOVES the property — that is how "the app's own face" is spelled.
   $effect(() => {
-    const vars = fontVars(showsPicker ? {} : layout, systemUiFont);
+    const vars = fontVars(showsPicker ? {} : layout, systemFaces);
     for (const [name, value] of Object.entries(vars)) setRootVar(name, value);
   });
 

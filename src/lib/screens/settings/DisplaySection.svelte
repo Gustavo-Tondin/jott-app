@@ -95,6 +95,14 @@
     .then((names) => (installedFonts = names ?? []))
     .catch(() => (installedFonts = []));
 
+  /// What this machine answers each generic with — the name a generic row
+  /// wears in parentheses. Empty off Linux, and the row is the bare keyword.
+  let systemFaces = $state({});
+  api
+    .systemFaces()
+    .then((faces) => (systemFaces = faces ?? {}))
+    .catch(() => (systemFaces = {}));
+
   /// The three rows of the Display page: a role of `services/fonts.js` plus
   /// what this screen calls it. A fourth face would be one line here.
   const FONT_ROWS = () => [
@@ -229,11 +237,12 @@
      wears its own font: neither popup draws it, and resolving every family
      stalls the first open. See docs/platform-gotchas.md#webview-e-gestos -->
 {#snippet fontRow(row)}
-  {@const options = fontOptions(row.role, installedFonts, {
-    default: row.fallback,
-    generic: S.fontGeneric,
-    installed: S.fontInstalled,
-  })}
+  {@const options = fontOptions(
+    row.role,
+    installedFonts,
+    { default: row.fallback, generic: S.fontGeneric, installed: S.fontInstalled },
+    systemFaces,
+  )}
   <label class="settings__row">
     <span class="settings__label">{row.label}</span>
     <select

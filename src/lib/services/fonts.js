@@ -2,7 +2,7 @@
 // A choice is a family NAME, never a stack: the app puts it in FRONT of the
 // stylesheet's own stack, so an uninstalled font is harmless. Nothing here
 // reads the DOM — the shell writes the values on the root (shell/rootStyle.js);
-// the machine's families come from the bridge (`system_fonts`).
+// the machine's families come from the bridge (`system_fonts`, `system_faces`).
 
 /// `token` is the custom property the stylesheet reads; `fallback` repeats
 /// the sheet's own stack on purpose — the inline property REPLACES the
@@ -54,27 +54,40 @@ export function isSafeFamily(name) {
   );
 }
 
+/// The family `faces` (the bridge's `system_faces`) answers a generic with
+/// in this role, or "" when the machine could not be asked. `system-ui` is
+/// the DESKTOP's face, and in the monospace role that is its monospace one.
+export function resolvedFamily(role, generic, faces = {}) {
+  const key =
+    generic === "system-ui"
+      ? role === "mono"
+        ? "mono"
+        : "ui"
+      : { "sans-serif": "sansSerif", serif: "serif", monospace: "monospace" }[generic];
+  const name = (faces?.[key] ?? "").trim();
+  return isSafeFamily(name) ? name : "";
+}
+
 /// The `font-family` value for a role, or null — which REMOVES the property
 /// and leaves the stylesheet in charge. A generic family goes in unquoted
 /// (quoting `sans-serif` names a font nobody has); anything else is quoted.
 ///
-/// `systemFamily` is the family this desktop draws its own interface in, as
-/// the bridge answers it (`system_ui_font`). It goes in FRONT of `system-ui`
-/// because the keyword does not mean the same thing everywhere: WebKitGTK
-/// resolves it through fontconfig and never reads the desktop's setting, so
-/// picking "system-ui" changed nothing visible on Linux. With no answer the
-/// keyword stands on its own, which is right on Windows and Android.
-export function fontValue(role, family, systemFamily = "") {
+/// `system-ui` gets the desktop's own family in FRONT of the keyword: WebKitGTK
+/// resolves the keyword through fontconfig and never reads the desktop's
+/// setting. In the monospace role it means the desktop's MONOSPACE face, and
+/// the keywords behind it are the monospace ones. With no answer the keywords
+/// stand on their own, which is right on Windows and Android.
+export function fontValue(role, family, faces = {}) {
   const spec = FONT_ROLES[role];
   if (!spec) return null;
   const name = (family ?? "").trim();
   if (!name || !isSafeFamily(name)) return null;
   if (name === "system-ui") {
-    const desktop = (systemFamily ?? "").trim();
-    const chain = isSafeFamily(desktop) ? [`"${desktop}"`, "system-ui"] : ["system-ui"];
+    const desktop = resolvedFamily(role, name, faces);
+    const keywords = role === "mono" ? ["ui-monospace", "monospace"] : ["system-ui", "sans-serif"];
     // The app's own face is NOT in this chain: it would win the moment the
     // desktop's family went missing, and the choice would look ignored.
-    return [...chain, "sans-serif"].join(", ");
+    return [...(desktop ? [`"${desktop}"`] : []), ...keywords].join(", ");
   }
   const first = GENERIC_FAMILIES.includes(name) ? name : `"${name}"`;
   return [first, ...spec.fallback].join(", ");
@@ -82,23 +95,27 @@ export function fontValue(role, family, systemFamily = "") {
 
 /// What the shell writes on the root for all three, ready for `setRootVar`:
 /// `{ "--app-font-sans": … | null }`.
-export function fontVars({ interfaceFont, noteFont, monoFont } = {}, systemFamily = "") {
+export function fontVars({ interfaceFont, noteFont, monoFont } = {}, faces = {}) {
   return {
-    [FONT_ROLES.interface.token]: fontValue("interface", interfaceFont, systemFamily),
-    [FONT_ROLES.note.token]: fontValue("note", noteFont, systemFamily),
-    [FONT_ROLES.mono.token]: fontValue("mono", monoFont, systemFamily),
+    [FONT_ROLES.interface.token]: fontValue("interface", interfaceFont, faces),
+    [FONT_ROLES.note.token]: fontValue("note", noteFont, faces),
+    [FONT_ROLES.mono.token]: fontValue("mono", monoFont, faces),
   };
 }
 
 /// The rows a font picker offers: the app's own answer first (empty value —
-/// absent means default), then the generics, then `installed` minus what is
-/// already the app's own or a generic.
-export function fontOptions(role, installed = [], labels = {}) {
+/// absent means default), then the generics — each naming the family this
+/// machine answers it with, when `faces` knows — then `installed` minus what
+/// is already the app's own or a generic.
+export function fontOptions(role, installed = [], labels = {}, faces = {}) {
   const spec = FONT_ROLES[role];
   const seen = new Set(GENERIC_FAMILIES.map((name) => name.toLowerCase()));
   const rows = [
     { value: "", label: labels.default ?? "Default", group: null },
-    ...GENERIC_FAMILIES.map((name) => ({ value: name, label: name, group: labels.generic })),
+    ...GENERIC_FAMILIES.map((name) => {
+      const family = resolvedFamily(role, name, faces);
+      return { value: name, label: family ? `${name} (${family})` : name, group: labels.generic };
+    }),
   ];
   if (spec?.shipped) seen.add(spec.shipped.toLowerCase());
   for (const name of installed) {

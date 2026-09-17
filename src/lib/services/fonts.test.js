@@ -28,11 +28,24 @@ describe("fontValue", () => {
     // the desktop's own setting, so the family the bridge answers with goes
     // in front of it — and the app's face is left OUT, or it would win the
     // moment that family went missing and the choice would look ignored.
-    expect(fontValue("interface", "system-ui", "TRIAL Rooftop")).toBe(
+    expect(fontValue("interface", "system-ui", { ui: "TRIAL Rooftop" })).toBe(
       '"TRIAL Rooftop", system-ui, sans-serif',
     );
     expect(fontValue("interface", "system-ui")).toBe("system-ui, sans-serif");
-    expect(fontValue("interface", "system-ui", 'Ev"il')).toBe("system-ui, sans-serif");
+    expect(fontValue("interface", "system-ui", { ui: 'Ev"il' })).toBe("system-ui, sans-serif");
+  });
+
+  test("system-ui in the monospace role is the desktop's MONOSPACE face", () => {
+    const faces = { ui: "TRIAL Rooftop", mono: "TRIAL Rooftop Mono" };
+    expect(fontValue("mono", "system-ui", faces)).toBe(
+      '"TRIAL Rooftop Mono", ui-monospace, monospace',
+    );
+    // Never the interface face, and never a sans keyword — with or without
+    // an answer from the desktop.
+    expect(fontValue("mono", "system-ui", { ui: "TRIAL Rooftop" })).toBe(
+      "ui-monospace, monospace",
+    );
+    expect(fontValue("mono", "system-ui")).toBe("ui-monospace, monospace");
   });
 
   test("a name that could break out of the value is refused, not escaped", () => {
@@ -74,6 +87,25 @@ describe("fontOptions", () => {
     const values = rows.map((r) => r.value);
     expect(values).toContain("system-ui");
     expect(values.slice(-2)).toEqual(["Fira Sans", "Noto Serif"]);
+  });
+
+  test("a generic names the family this machine answers it with", () => {
+    const faces = {
+      ui: "TRIAL Rooftop",
+      mono: "TRIAL Rooftop Mono",
+      sansSerif: "Noto Sans",
+      serif: "",
+      monospace: 'Ev"il',
+    };
+    const label = (role, value) =>
+      fontOptions(role, [], {}, faces).find((r) => r.value === value).label;
+    expect(label("interface", "system-ui")).toBe("system-ui (TRIAL Rooftop)");
+    expect(label("mono", "system-ui")).toBe("system-ui (TRIAL Rooftop Mono)");
+    expect(label("note", "sans-serif")).toBe("sans-serif (Noto Sans)");
+    // Unknown or unsafe: the bare keyword, never a guess.
+    expect(label("note", "serif")).toBe("serif");
+    expect(label("note", "monospace")).toBe("monospace");
+    expect(fontOptions("note", []).find((r) => r.value === "serif").label).toBe("serif");
   });
 
   test("what the app carries and the generics are never listed twice", () => {
