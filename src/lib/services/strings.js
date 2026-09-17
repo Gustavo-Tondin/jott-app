@@ -575,6 +575,9 @@ export const S = {
   tableMoveColumn: "Move column",
   tableMoveRow: "Move row",
   tableResizeColumn: "Drag to resize, double-click to reset",
+  // The button in the corner of a code block (services/codeCopy.js).
+  copyCode: "Copy code",
+  codeCopied: "Copied",
 
   // Settings
   settings: "Settings",

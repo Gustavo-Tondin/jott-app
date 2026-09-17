@@ -8,6 +8,10 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 
 ## v0.57.1
 
+### New
+
+- **Code blocks have a Copy button** in their corner; it copies the code without the fences.
+
 ### Fixed
 
 - **The highlight of the line being edited no longer bites the corners off a code block or a quote**: inside a box it runs edge to edge.

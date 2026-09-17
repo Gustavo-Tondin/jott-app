@@ -197,6 +197,28 @@
   border-block-end: 0.0625rem solid var(--app-line);
   padding-block-end: var(--app-space-10);
 }
+/* Copy, in the box's corner (services/codeCopy.js). Interface, so `rem`;
+   the first line of a fenced block is the fence itself, so nothing is read
+   under it. Quiet until pointed at; a finger has no hover and sees it as is. */
+.editor .cm-md-code.cm-md-open {
+  position: relative;
+}
+.editor .cm-code-copy {
+  position: absolute;
+  inset-block-start: var(--app-space-6);
+  inset-inline-end: var(--app-space-6);
+  color: var(--app-ink-faint);
+  font-size: var(--app-text-16);
+  line-height: 0;
+}
+.editor .cm-code-copy svg {
+  inline-size: 1em;
+  block-size: 1em;
+}
+.editor .cm-code-copy--done,
+.editor .cm-code-copy--done:hover:not(:disabled) {
+  color: var(--app-success);
+}
 /* The band shares the line's box with the ground, so its radius would bite
    the ground's corners too. Inside a box the band runs square, edge to edge;
    the two ends keep the BOX's corners, restated because the shorthand zeroes

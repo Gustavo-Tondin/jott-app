@@ -123,6 +123,7 @@ import file from "../../assets/icons/phosphor/regular/file.svg?raw";
 // The action ring's own two (components/ActionRing.svelte): every slice draws
 // the instant the finger rests, so they are bundled rather than read lazily.
 import copy from "../../assets/icons/phosphor/regular/copy.svg?raw";
+import check from "../../assets/icons/phosphor/regular/check.svg?raw";
 import palette from "../../assets/icons/phosphor/regular/palette.svg?raw";
 
 export const ICONS = {
@@ -165,6 +166,7 @@ export const ICONS = {
   pencil,
   trash,
   copy,
+  check,
   palette,
   tray,
   "dots-three-vertical": dotsThreeVertical,

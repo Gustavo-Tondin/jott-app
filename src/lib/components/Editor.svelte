@@ -25,6 +25,8 @@
   import { keepCaretInView } from "../services/caretScroll.js";
   import { capitalizeAfterMarkers } from "../services/imeCaps.js";
   import { fileEmbeds, refreshEmbeds } from "../services/embeds.js";
+  import { codeCopy } from "../services/codeCopy.js";
+  import { ICONS } from "./icons.js";
   import { noteTables, refreshTables } from "../services/tableWidget.js";
   import { activeCell, tableStatus } from "../services/tableEditing.js";
   import { fromNotebook, referenceCompletions } from "../services/linkComplete.js";
@@ -233,6 +235,8 @@
             icon: fileIcon,
             shows: (kind) => (kind === "note" ? wikiLinks : embeds),
           }),
+          // The Copy button in the corner of a fenced code block.
+          codeCopy({ icon: ICONS.copy, doneIcon: ICONS.check }),
           // What `[[` offers while typed. Only the halves switched on are
           // offered: with both off, `[[` is two characters. Its keymap goes in
           // below WITHOUT Ctrl-Space — that chord is the app's notebook search,
