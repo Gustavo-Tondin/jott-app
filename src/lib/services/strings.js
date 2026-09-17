@@ -170,19 +170,35 @@ export const S = {
   conflictsTitle: (count) =>
     count === 1 ? "1 sync conflict in this notebook" : `${count} sync conflicts in this notebook`,
   conflictsBody:
-    "Another device changed the same files, in the same places. " +
-    "What Jott could put together it already has; these are the ones where " +
-    "it would have to choose for you. Whichever version goes, goes to the Trash.",
+    "The same file was changed on two devices before they could sync, and " +
+    "Jott could not combine the two versions. Pick the one to keep — if in " +
+    "doubt, the newer one. The other goes to the Trash, so nothing is lost.",
   // The row per conflict: what it belongs to, what the two versions disagree
-  // about, the two ways out, and the door to the folder it sits in.
+  // about, each version with when it was written and how big it is, and the
+  // door to the folder it sits in.
   conflictReveal: "Show in folder",
-  conflictOriginalGone: "the original is gone",
-  conflictDiscard: "Keep this device's",
-  conflictAdopt: "Keep the other's",
-  conflictsDiscardAll: "Keep this device's everywhere",
+  conflictSettings: "Notebook settings",
+  conflictTags: "Tag colors",
+  conflictTrash: "Trash list",
+  conflictInUse: "Version in use",
+  conflictOther: "Other version",
+  conflictNewer: "newer",
+  conflictVersionFacts: (when, size) => (when ? `Edited ${when} \u00b7 ${size}` : size),
+  conflictInUseGone: "Deleted on this device",
+  conflictKeep: "Keep",
+  conflictKeepInUse: (name) => `Keep the version in use of ${name}`,
+  conflictKeepOther: (name) => `Keep the other version of ${name}`,
+  conflictsDiscardAll: "Keep every version in use",
   confirmAdoptConflict: (name) =>
-    `Keep the other device's "${name}"? This device's version goes to the Trash.`,
+    `Replace "${name}" with the other version? The version in use goes to the Trash.`,
+  conflictAdopt: "Replace",
   conflictsHide: "Hide for now",
+  fileSize: (bytes) =>
+    bytes < 1024
+      ? `${bytes} B`
+      : bytes < 1024 * 1024
+        ? `${(bytes / 1024).toFixed(1)} KB`
+        : `${(bytes / (1024 * 1024)).toFixed(1)} MB`,
   // What the two versions differ in — the one thing a file name cannot say.
   conflictLinesDiffer: (count) =>
     count === 1 ? "1 line differs" : `${count} lines differ`,
@@ -190,7 +206,9 @@ export const S = {
     count === 1
       ? `"${first}" changed on both devices`
       : `"${first}" and ${count - 1} more changed on both devices`,
-  conflictUnseen: "this device had not seen this file before",
+  conflictUnseen: "no earlier copy on this device to compare with",
+  revealHiddenHint: 'In Files, turn on "Show hidden files" in the \u22ee menu to see this folder.',
+  pathCopied: "No app could open the folder — its path was copied",
   // What a merge settled on its own, said once and gone.
   merged: (count, name) =>
     count === 1

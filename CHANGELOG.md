@@ -6,6 +6,18 @@ What changed in each release, written for the person using the app rather than f
 
 One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` and `### Improved` under it. `packaging/release.sh` refuses to tag a version that has no section here. Versions before v0.51.0 predate the file and live only in the commit history.
 
+## v0.57.1
+
+### Fixed
+
+- **"Keep" works on sync conflicts of Jott's own files** (settings, tag colors, the Trash list): it used to fail with "invalid note path".
+- **On Android, "Show in folder" opens the folder in the Files app** instead of failing; where no app can open it, the path is copied.
+
+### Improved
+
+- **The sync conflict notice says when each version was last edited and how big it is**, marks the newer one, and puts a Keep button beside each.
+- **Fewer sync conflicts to answer**: copies of the completed-tasks index and of the timeline are settled on their own, and two devices deleting different things keep both in the Trash.
+
 ## v0.57.0
 
 ### New

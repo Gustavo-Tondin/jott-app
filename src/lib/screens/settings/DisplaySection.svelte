@@ -31,6 +31,7 @@
   // decide what this screen looks like.
   import { segmented } from "../../actions/segmented.js";
   import { api } from "../../services/api.js";
+  import { revealFolder } from "../../services/reveal.js";
   import { askName } from "../../services/dialog.js";
   import { DEFAULT_ACCENT } from "../../services/accent.js";
   import { FONT_ROLES, fontOptions } from "../../services/fonts.js";
@@ -129,7 +130,7 @@
     try {
       const made = await onNewTheme(name);
       putDisplay({ theme: made.name });
-      await api.openInFileManager(`.jott/themes/${made.name}/theme.css`);
+      await revealFolder(`.jott/themes/${made.name}/theme.css`);
     } catch (e) {
       onError?.(e);
     }

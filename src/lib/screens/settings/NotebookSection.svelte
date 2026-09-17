@@ -18,6 +18,7 @@
   // Notebook: where it is, where the two quick captures land, and what it
   // keeps. Every choice is the notebook's own (`put`).
   import { api } from "../../services/api.js";
+  import { revealFolder } from "../../services/reveal.js";
   import HelpTip from "./HelpTip.svelte";
   import SettingsSection from "./SettingsSection.svelte";
 
@@ -80,7 +81,7 @@
     <button
       type="button"
       class="theme-btn theme-btn--outline theme-btn--xs"
-      onclick={() => api.openInFileManager().catch(onError)}
+      onclick={() => revealFolder().catch(onError)}
       >{S.openNotebookFolderAction}</button
     >
   </div>

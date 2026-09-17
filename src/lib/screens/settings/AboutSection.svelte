@@ -21,6 +21,7 @@
   // notebook ones — none of it goes through the notebook or minds `readOnly`.
   import { untrack } from "svelte";
   import { api } from "../../services/api.js";
+  import { revealFolder } from "../../services/reveal.js";
   import { openExternal, ISSUES_URL } from "../../services/external.js";
   import { installUpdate, manualCheck, openReleasePage } from "../../services/update.js";
   import { addToMenu, removeFromMenu } from "../../services/desktopEntry.js";
@@ -121,7 +122,7 @@
   /// The `.jott` folder, where the notebook documents its own format: the
   /// command opens the FOLDER around an address (`commands::folder_to_open`).
   const openFormatDoc = () =>
-    api.openInFileManager(".jott/_FORMAT.txt").catch(onError);
+    revealFolder(".jott/_FORMAT.txt").catch(onError);
 </script>
 
 <SettingsSection title={S.sectionAbout} {compact}>

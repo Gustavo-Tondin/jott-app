@@ -111,6 +111,7 @@
     viewFromId,
   } from "./lib/shell/views.js";
   import { centreWhenDrawn } from "./lib/services/centreWhenDrawn.js";
+  import { revealFolder, revealed } from "./lib/services/reveal.js";
   import { noteTargets } from "./lib/services/noteTargets.js";
   import { quickTaskTarget, taskTargets } from "./lib/services/taskTargets.js";
   import { watchWindowState, toggleFullscreen } from "./lib/shell/windowState.js";
@@ -138,8 +139,8 @@
       fail(e);
     }
   }
-  async function adoptConflict(conflict) {
-    const name = conflict.list ?? leafOf(conflict.relative);
+  async function adoptConflict(conflict, shown) {
+    const name = shown ?? conflict.list ?? leafOf(conflict.relative);
     if (!(await askConfirm(S.confirmAdoptConflict(name), { danger: S.conflictAdopt }))) return;
     try {
       await api.adoptConflict(conflict.relative);
@@ -554,6 +555,13 @@
     undoNotice = { tone, text };
     undoNoticeTimer = setTimeout(() => (undoNotice = null), 4000);
   }
+
+  /// A folder no app on the phone would open: its path went to the clipboard.
+  $effect(() =>
+    revealed.subscribe((folder) => {
+      if (folder) sayUndo("success", S.pathCopied);
+    }),
+  );
 
   /// Whether this window still settles conflict copies by itself. True
   /// until the user takes a merge back — see `takeBack`.
@@ -1097,8 +1105,7 @@
         : currentSpace,
   );
 
-  const revealHere = () =>
-    api.openInFileManager(hereAddress || null).catch(fail);
+  const revealHere = () => revealFolder(hereAddress || null).catch(fail);
 
   /// Search, narrowed to where the user is. In a note that is the note itself
   /// — the editor's own panel, which is also where replacing lives; anywhere
@@ -2227,6 +2234,7 @@
             onAddToMenu={addToMenuNow}
             onDismissMenuOffer={dismissMenuOffer}
             onError={fail}
+            dateFormat={layout.dateDisplayFormat}
           />
 
           <!-- Keyed on the view: a new screen is a NEW element, so the

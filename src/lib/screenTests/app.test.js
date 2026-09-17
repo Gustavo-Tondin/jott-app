@@ -219,6 +219,8 @@ describe("App", () => {
       differs: { kind: "tasks", count: 1, first: "Comprar pão" },
       original: "/n/jott.tasks/Inbox.md",
       relative: "jott.tasks/Inbox.sync-conflict-20260911-150002-JOTTAPP.md",
+      kept: { modified: "2026-09-17T09:12:05", bytes: 4404 },
+      copy: { modified: "2026-09-16T16:24:00", bytes: 4254 },
     };
     shell({
       notebook_snapshot: { ...snapshot(), conflicts: [copy] },
@@ -230,15 +232,22 @@ describe("App", () => {
     // The row says what the two versions disagree about — the one thing a
     // file name cannot.
     await screen.findByText('"Comprar pão" changed on both devices');
+    // And each version says when it was written and how big it is, the newer
+    // one marked — what there is to choose by.
+    await screen.findByText("Edited 09/17/2026 09:12 \u00b7 4.3 KB");
+    await screen.findByText("Edited 09/16/2026 16:24 \u00b7 4.2 KB");
+    expect(screen.getByText("newer").closest(".shell__conflict-version").textContent).toContain(
+      "Version in use",
+    );
 
     // Discarding needs no question: the copy lands in the Trash.
-    await fireEvent.click(screen.getByRole("button", { name: "Keep this device's" }));
+    await fireEvent.click(screen.getByRole("button", { name: "Keep the version in use of Inbox" }));
     await waitFor(() => expect(invoke).toHaveBeenCalledWith("discard_conflict", { path: copy.relative }));
     await waitFor(() => expect(callsTo("notebook_snapshot").length).toBeGreaterThan(1));
 
     // Adopting replaces what is on screen, so it asks first.
-    await fireEvent.click(screen.getByRole("button", { name: "Keep the other's" }));
-    await screen.findByText(/Keep the other device's "Inbox"\?/);
+    await fireEvent.click(screen.getByRole("button", { name: "Keep the other version of Inbox" }));
+    await screen.findByText(/Replace "Inbox" with the other version\?/);
     await fireEvent.click(document.querySelector(".confirm-dialog__confirm"));
     await waitFor(() => expect(invoke).toHaveBeenCalledWith("adopt_conflict", { path: copy.relative }));
   });
@@ -265,7 +274,37 @@ describe("App", () => {
 
     await screen.findByText("Inbox");
     expect(screen.queryByText("task-list")).toBeNull();
-    await screen.findByText("this device had not seen this file before");
+    await screen.findByText("no earlier copy on this device to compare with");
+  });
+
+  test("a copy of an app file is named for what it holds, and its folder can be shown", async () => {
+    const copy = {
+      path: "/n/.jott/config.sync-conflict-20260916-213612-PHONE.json",
+      list: null,
+      kind: "settings",
+      original: "/n/.jott/config.json",
+      relative: ".jott/config.sync-conflict-20260916-213612-PHONE.json",
+      kept: { modified: "2026-09-16T14:45:00", bytes: 1459 },
+      copy: { modified: "2026-09-16T21:36:12", bytes: 1500 },
+    };
+    shell({ notebook_snapshot: { ...snapshot(), conflicts: [copy] }, open_in_file_manager: null });
+    render(App);
+
+    await screen.findByText("Notebook settings");
+    expect(screen.getByText("newer").closest(".shell__conflict-version").textContent).toContain(
+      "Other version",
+    );
+    // The question names it the same way, never by its file name.
+    await fireEvent.click(
+      screen.getByRole("button", { name: "Keep the other version of Notebook settings" }),
+    );
+    await screen.findByText(/Replace "Notebook settings" with the other version\?/);
+    await fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+    await fireEvent.click(screen.getByRole("button", { name: "Show in folder" }));
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("open_in_file_manager", { path: copy.relative }),
+    );
   });
 
   test("a conflict copy landing from another device brings the banner up on its own", async () => {

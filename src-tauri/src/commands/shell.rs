@@ -263,6 +263,19 @@ pub async fn open_in_file_manager<R: Runtime>(
     open_path(&target)
 }
 
+/// The absolute folder `open_in_file_manager` would open. Android has no
+/// program to spawn: the page hands this to the system's Files app through
+/// the Activity (`services/reveal.js`).
+#[tauri::command]
+pub async fn folder_path<R: Runtime>(
+    state: State<'_, AppState>,
+    window: tauri::Window<R>,
+    path: Option<String>,
+) -> CommandResult<String> {
+    let target = state.read(window.label(), |nb| nb.folder_of(path.as_deref()))?;
+    Ok(target.to_string_lossy().into_owned())
+}
+
 /// Opens a notebook's own folder in the file manager, from the picker. There
 /// is no open notebook here, so the path is CHECKED (absolute, and a notebook)
 /// rather than resolved — never a door to any folder the webview names.

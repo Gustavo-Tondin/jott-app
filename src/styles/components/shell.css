@@ -498,14 +498,12 @@
     padding: 0;
     display: flex;
     flex-direction: column;
-    gap: var(--app-space-4);
+    gap: var(--app-space-12);
   }
   .shell__conflict {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--app-space-8);
-    flex-wrap: wrap;
+    flex-direction: column;
+    gap: var(--app-space-6);
   }
   .shell__conflict-what {
     display: flex;
@@ -514,13 +512,39 @@
     gap: var(--app-space-6);
     min-inline-size: 0;
   }
-  .shell__conflict-gone {
+  /* Each version on one row: what it is and its facts on the left, its own
+     Keep on the right — the choice sits beside what it is chosen by. */
+  .shell__conflict-versions {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: var(--app-space-6);
+  }
+  .shell__conflict-version {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: var(--app-space-8);
+    align-items: center;
+  }
+  .shell__conflict-version > .theme-btn {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+  }
+  .shell__conflict-label {
+    display: flex;
+    align-items: center;
+    gap: var(--app-space-4);
+  }
+  .shell__conflict-facts {
     color: var(--app-ink-faint);
   }
-  .shell__conflict-actions {
+  .shell__conflict-where {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--app-space-4);
+    align-items: center;
+    gap: var(--app-space-6);
+    min-inline-size: 0;
   }
 }
 

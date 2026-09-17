@@ -4,8 +4,9 @@
   // offer to put itself in the applications menu. All state stays in the
   // shell — this only draws it and reports the clicks.
   import Notice from "../components/Notice.svelte";
-  import { api } from "../services/api.js";
-  import { titleOfList } from "../services/paths.js";
+  import { formatDate } from "../services/dates.js";
+  import { leafOf, titleOfList } from "../services/paths.js";
+  import { opensInFilesApp, revealFolder } from "../services/reveal.js";
   import { openReleasePage } from "../services/update.js";
   import { S } from "../services/strings.js";
 
@@ -29,13 +30,33 @@
     onAddToMenu,
     onDismissMenuOffer,
     onError,
+    dateFormat = "mm/dd/yyyy",
   } = $props();
 
   /// What a copy belongs to, as the user reads it: a list is named the way
   /// every other screen names it (the main list of a space is Inbox, never
   /// `task-list`); a note is its own title.
   function nameOf(conflict) {
-    return conflict.kind === "list" ? titleOfList(conflict.list) : conflict.list;
+    if (conflict.kind === "list") return titleOfList(conflict.list);
+    if (conflict.kind === "settings") return S.conflictSettings;
+    if (conflict.kind === "tags") return S.conflictTags;
+    if (conflict.kind === "trash") return S.conflictTrash;
+    return conflict.list ?? leafOf(conflict.relative ?? conflict.path);
+  }
+
+  /// One version as the person choosing reads it: when, and how big.
+  function factsOf(version) {
+    const when = version.modified
+      ? `${formatDate(version.modified.slice(0, 10), dateFormat)} ${version.modified.slice(11, 16)}`
+      : null;
+    return S.conflictVersionFacts(when, S.fileSize(version.bytes));
+  }
+
+  /// Which of the two was written last — `"kept"`, `"copy"`, or null when
+  /// either date is unknown or they tie.
+  function newerOf({ kept, copy }) {
+    if (!kept?.modified || !copy?.modified || kept.modified === copy.modified) return null;
+    return kept.modified > copy.modified ? "kept" : "copy";
   }
 
   /// What the two versions of a copy disagree about, in words. The core
@@ -76,10 +97,10 @@
 {#if conflicts.length > 0}
   <!-- What is left after the app merged everything it could: two devices
        changed the same passage, or this one had never seen the file. A row
-       per copy, saying WHAT the two versions disagree about, with the two
-       ways out (keep this device's, or keep the other's — both through the
-       trash, both undoable) and the door to its folder (the core's
-       `folder_of` turns the file into the folder around it). "Hide for now"
+       per copy, saying WHAT the two versions disagree about, and each
+       version with when it was written and its size — the facts to choose
+       by — beside its own Keep (both through the trash, both undoable), and
+       the door to its folder. "Hide for now"
        is for the session — a NEW conflict brings the box back, because the
        shell keys the hiding on the list of paths. -->
   <Notice
@@ -92,31 +113,57 @@
     <p>{S.conflictsBody}</p>
     <ul class="shell__conflict-list">
       {#each conflicts as conflict (conflict.path)}
+        {@const name = nameOf(conflict)}
+        {@const newer = newerOf(conflict)}
         <li class="shell__conflict">
           <span class="shell__conflict-what">
-            {#if conflict.list}<strong>{nameOf(conflict)}</strong>{/if}
+            <strong>{name}</strong>
             {#if differenceOf(conflict)}<span>{differenceOf(conflict)}</span>{/if}
-            <code class="shell__notice-path">{conflict.relative ?? conflict.path}</code>
-            {#if !conflict.original}<span class="shell__conflict-gone">({S.conflictOriginalGone})</span>{/if}
           </span>
           {#if conflict.relative}
-            <span class="shell__conflict-actions">
-              <button
-                class="theme-btn theme-btn--primary theme-btn--xs"
-                onclick={() => onDiscardConflict?.(conflict.relative)}
-                >{S.conflictDiscard}</button
-              >
+            <ul class="shell__conflict-versions">
+              <li class="shell__conflict-version">
+                <span class="shell__conflict-label">
+                  {S.conflictInUse}
+                  {#if newer === "kept"}<span class="theme-badge">{S.conflictNewer}</span>{/if}
+                </span>
+                <span class="shell__conflict-facts"
+                  >{conflict.kept ? factsOf(conflict.kept) : S.conflictInUseGone}</span
+                >
+                <button
+                  class="theme-btn theme-btn--primary theme-btn--xs"
+                  aria-label={S.conflictKeepInUse(name)}
+                  onclick={() => onDiscardConflict?.(conflict.relative)}>{S.conflictKeep}</button
+                >
+              </li>
+              <li class="shell__conflict-version">
+                <span class="shell__conflict-label">
+                  {S.conflictOther}
+                  {#if newer === "copy"}<span class="theme-badge">{S.conflictNewer}</span>{/if}
+                </span>
+                {#if conflict.copy}
+                  <span class="shell__conflict-facts">{factsOf(conflict.copy)}</span>
+                {/if}
+                <button
+                  class="theme-btn theme-btn--outline theme-btn--xs"
+                  aria-label={S.conflictKeepOther(name)}
+                  onclick={() => onAdoptConflict?.(conflict, name)}>{S.conflictKeep}</button
+                >
+              </li>
+            </ul>
+            <span class="shell__conflict-where">
+              <code class="shell__notice-path">{conflict.relative}</code>
               <button
                 class="theme-btn theme-btn--outline theme-btn--xs"
-                onclick={() => onAdoptConflict?.(conflict)}
-                >{S.conflictAdopt}</button
-              >
-              <button
-                class="theme-btn theme-btn--outline theme-btn--xs"
-                onclick={() => api.openInFileManager(conflict.relative).catch(onError)}
+                onclick={() => revealFolder(conflict.relative).catch(onError)}
                 >{S.conflictReveal}</button
               >
+              {#if opensInFilesApp() && conflict.relative.startsWith(".")}
+                <span class="shell__conflict-facts">{S.revealHiddenHint}</span>
+              {/if}
             </span>
+          {:else}
+            <code class="shell__notice-path">{conflict.path}</code>
           {/if}
         </li>
       {/each}

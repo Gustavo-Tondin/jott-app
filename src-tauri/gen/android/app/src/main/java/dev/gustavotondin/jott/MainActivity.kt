@@ -145,6 +145,25 @@ class MainActivity : TauriActivity() {
     }
   }
 
+  /**
+   * The external-storage document a real folder is: `primary:<relative>` on
+   * the built-in storage, `<volume>:<relative>` under /storage. Null for a
+   * folder outside both (the app's private data), which no Files app shows.
+   */
+  private fun documentUri(folder: File): Uri? {
+    val real = runCatching { folder.canonicalFile }.getOrNull() ?: return null
+    val primary = runCatching { Environment.getExternalStorageDirectory().canonicalFile }.getOrNull()
+    val id =
+      if (primary != null && real.startsWith(primary)) {
+        "primary:" + real.relativeTo(primary).invariantSeparatorsPath
+      } else {
+        val parts = real.invariantSeparatorsPath.removePrefix("/storage/").split("/", limit = 2)
+        if (!real.path.startsWith("/storage/") || parts[0].isEmpty()) return null
+        parts[0] + ":" + parts.getOrElse(1) { "" }
+      }
+    return DocumentsContract.buildDocumentUri(EXTERNAL_STORAGE, id)
+  }
+
   override fun onWebViewCreate(webView: WebView) {
     super.onWebViewCreate(webView)
     this.webView = webView
@@ -520,6 +539,23 @@ class MainActivity : TauriActivity() {
       }
     }
 
+    /**
+     * Opens `path`, a folder, in the system's Files app — the phone's "show in
+     * folder". The path becomes the external-storage document it is, the
+     * inverse of [realPath], and is VIEWed as a directory. Answers whether an
+     * app took it; false sends the page to copying the path instead.
+     */
+    @JavascriptInterface
+    fun openFolder(path: String): Boolean {
+      val uri = documentUri(File(path)) ?: return false
+      val view = Intent(Intent.ACTION_VIEW)
+        .setDataAndType(uri, DocumentsContract.Document.MIME_TYPE_DIR)
+        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+      return runCatching { startActivity(view) }
+        .onFailure { android.util.Log.w("jott", "reveal: no app opens $uri", it) }
+        .isSuccess
+    }
+
     @JavascriptInterface
     fun pickFolder() {
       runOnUiThread { runCatching { folderPicker.launch(null) } }
@@ -563,5 +599,7 @@ class MainActivity : TauriActivity() {
 
     /// Only used before Android 11, where storage is a runtime permission.
     const val STORAGE_REQUEST = 4201
+    /// The system provider behind shared storage and SD cards.
+    const val EXTERNAL_STORAGE = "com.android.externalstorage.documents"
   }
 }

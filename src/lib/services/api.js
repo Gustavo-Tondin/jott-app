@@ -116,6 +116,8 @@ export const api = {
   // root-relative address (a space, a list, a note), empty for the root. What
   // opens is always the FOLDER around it, never the document.
   openInFileManager: (path = null) => invoke("open_in_file_manager", { path }),
+  // The absolute folder the line above would open, for the phone to open itself.
+  folderPath: (path = null) => invoke("folder_path", { path }),
   // Merges the conflict copies the app knows how to merge, and answers how
   // many it settled; the rest is left for the banner to ask about. Called
   // whenever a copy lands, since two devices turning the day at the same
