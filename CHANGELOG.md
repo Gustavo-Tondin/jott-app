@@ -15,6 +15,7 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 
 ### Improved
 
+- **Task cards on phones are shorter, with a bigger checkbox**, and a task's pin and age now sit on one axis on every platform.
 - **The sync conflict notice says when each version was last edited and how big it is**, marks the newer one, and puts a Keep button beside each.
 - **Fewer sync conflicts to answer**: copies of the completed-tasks index and of the timeline are settled on their own, and two devices deleting different things keep both in the Trash.
 

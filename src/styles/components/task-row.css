@@ -230,13 +230,15 @@
   /* THE CARD'S END: bookmark on top, age at the foot, as tall as the card.
      The top slot is one title line tall even without a bookmark (a day has
      nowhere to pin to), so the age sits where a meta row would, and a card
-     with no fields is as tall as one with them. */
+     with no fields is as tall as one with them. The two share ONE axis:
+     centred, because a glyph's box is padded and a word's is not — aligned
+     by their ends, the bookmark would stand a few pixels in from the age. */
   .task-row__aside {
     flex-shrink: 0;
     align-self: stretch;
     display: flex;
     flex-direction: column;
-    align-items: flex-end;
+    align-items: center;
     justify-content: space-between;
     gap: var(--app-space-4);
   }

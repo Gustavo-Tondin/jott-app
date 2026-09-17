@@ -76,10 +76,24 @@
       min-inline-size: 0;
     }
 
-    /* A task row. The 20px checkbox must NOT grow — it is the shape that says
-       "task" — so the row takes the minimum; the whole card opens the task. */
+    /* A task row takes the minimum; the whole card opens the task. Its box
+       is the one DRAWING that grows under a finger: at 20px the shape that
+       says "task" read small beside a 16px title on a phone. */
     .task-row {
       min-block-size: var(--app-touch-min);
+    }
+    .task-row__check.theme-checkbox--lg {
+      width: 1.5rem;
+      height: 1.5rem;
+    }
+    .task-row__check.theme-checkbox--lg:checked::after {
+      left: 0.46875rem;
+      top: 0.1875rem;
+      width: 0.375rem;
+      height: 0.75rem;
+    }
+    .task-row--picked .task-row__check:not(:checked)::before {
+      inset: 0.4375rem;
     }
 
     /* The checkbox inside a note has no row to hand the target to: the span
@@ -182,11 +196,23 @@
       transform: translateX(1.125rem);
     }
 
-    /* A control at the END of a card gives its grown box back to the card's
-       padding: the glyph is centred in the box, so pulled out by exactly the
-       padding the box's edge meets the card's and the glyph stays put. */
+    /* A control at the END of a card keeps its drawn box: a 48px box there
+       would be the tallest thing in the card and stretch every card by it.
+       The target is an invisible 48px square centred on the glyph instead,
+       spilling over the card's padding (the card opens the task anyway). */
     .task-row__aside-top .theme-btn--icon {
-      margin-inline-end: calc(-1 * var(--app-space-12));
+      position: relative;
+      min-inline-size: 0;
+      min-block-size: 0;
+    }
+    .task-row__aside-top .theme-btn--icon::before {
+      content: "";
+      position: absolute;
+      inset-block-start: 50%;
+      inset-inline-start: 50%;
+      inline-size: var(--app-touch-min);
+      block-size: var(--app-touch-min);
+      translate: -50% -50%;
     }
 
     /* ---- SHAPE — the corner follows the box that grew ----
