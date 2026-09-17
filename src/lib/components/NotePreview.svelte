@@ -20,8 +20,8 @@
 
   let blocks = $derived(previewBlocks(markdown, { title }));
 
-  /// Whether the clamp actually cut something — the dots are only drawn when
-  /// there IS more. Measured, because only the layout knows: the same markdown
+  /// Whether the clamp actually cut something — the fade and the dots are only
+  /// drawn when there IS more. Measured, because only the layout knows: the same markdown
   /// wraps differently at every card width, so `measured` re-asks on resize
   /// and the effect re-asks when the note changes.
   let root = $state(null);
@@ -39,7 +39,7 @@
 </script>
 
 {#if blocks.length > 0}
-  <span class="note-preview" bind:this={root} use:measured={check}>
+  <span class="note-preview" class:note-preview--cut={more} bind:this={root} use:measured={check}>
     {#each blocks as block}
       {#if block.kind === "rule"}
         <span class="note-preview__rule"></span>

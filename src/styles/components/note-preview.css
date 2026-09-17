@@ -8,11 +8,11 @@
 
 @layer components {
   .note-preview {
-    /* The clamp is a LINE COUNT, not a height: the cut lands between lines.
-       A clean cut, no fade; "there is more" is the three dots the component
-       appends only when the clamp cut something — an ellipsis IN the text
-       has nowhere to sit (the last line may be a heading or a bullet). The
-       count is the reader's: Settings › Display › Note card height. */
+    /* The clamp is a LINE COUNT, not a height. "There is more" is the fade
+       below plus the three dots the component appends, both only when the
+       clamp cut something — an ellipsis IN the text has nowhere to sit (the
+       last line may be a heading or a bullet). The count is the reader's:
+       Settings › Display › Note card height. */
     --note-preview-lines: var(--app-card-lines);
     display: block;
     color: var(--app-ink-muted);
@@ -27,6 +27,23 @@
        not hyphenated — see note-card.css. */
     hyphens: auto;
     hyphenate-limit-chars: 7 3 3;
+  }
+
+  /* A cut preview fades out over its last two lines: blocks are not all one
+     line tall (a chip, a checkbox), so the cut can land mid-word. A MASK, not
+     a gradient of the ground: the card's ground changes (hover, picked). */
+  .note-preview--cut {
+    --note-preview-fade: calc(2 * var(--app-leading-normal) * 1em);
+    -webkit-mask-image: linear-gradient(
+      to bottom,
+      #000 calc(100% - var(--note-preview-fade)),
+      transparent
+    );
+    mask-image: linear-gradient(
+      to bottom,
+      #000 calc(100% - var(--note-preview-fade)),
+      transparent
+    );
   }
 
   /* The three quiet dots under a cut preview. Faint, not muted: a sign, not
