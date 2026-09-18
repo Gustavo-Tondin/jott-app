@@ -1,0 +1,14 @@
+labels: [question]
+body:
+  - type: textarea
+    id: question
+    attributes:
+      label: Your question
+    validations:
+      required: true
+  - type: input
+    id: setup
+    attributes:
+      label: Version and platform
+      description: Settings → About, and where you run it.
+      placeholder: "0.58.0 · Android 16"

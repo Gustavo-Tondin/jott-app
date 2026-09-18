@@ -9,8 +9,13 @@ because a chunk of the design is already decided (see
 [the roadmap](../README.md#roadmap) and [`plugins.md`](plugins.md)) and it
 would be a waste of your evening to find that out in review.
 
-Bug reports are always welcome. Include your version, your platform, and what
-you expected — **not your notebook**: those are your files, and a
+Loose ideas and questions go to
+[Discussions](https://github.com/Gustavo-Tondin/jott-app/discussions) first.
+
+Bug reports are always welcome through the
+[issue form](https://github.com/Gustavo-Tondin/jott-app/issues/new/choose),
+which asks for your version, your platform, and what you expected. Leave out
+**your notebook**: those are your files, and a
 reproduction folder with two fake tasks tells us more than your real one.
 
 ## Getting set up

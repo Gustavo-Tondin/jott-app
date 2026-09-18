@@ -1,0 +1,67 @@
+name: Bug report
+description: Something doesn't work the way it should.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. **Please don't attach your notebook** — those are your files.
+        A throwaway folder with two fake tasks or notes reproduces a bug just as well.
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Settings → About → Version.
+      placeholder: "0.58.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - Linux — AppImage
+        - Linux — .deb
+        - Linux — .rpm
+        - Linux — Arch (PKGBUILD)
+        - Linux — built from source
+        - Android
+        - Windows
+    validations:
+      required: true
+  - type: input
+    id: system
+    attributes:
+      label: System
+      description: Distro and desktop, or phone model and Android version.
+      placeholder: "Fedora 43, GNOME · Pixel 8, Android 16"
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: And what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open a list
+        2. …
+    validations:
+      required: true
+  - type: dropdown
+    id: sync
+    attributes:
+      label: Is the notebook synced?
+      description: Many file-level problems only happen when another device writes to the same folder.
+      options:
+        - "No"
+        - Syncthing
+        - Another sync tool (say which below)
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else
+      description: Screenshots, terminal output, the sync tool you use.

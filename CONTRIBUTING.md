@@ -7,13 +7,17 @@ is.
 
 The short version:
 
-- **Bugs**: open an issue with your version and platform. Don't attach your
-  notebook — those are your files.
-- **Features**: open an issue before writing. Part of the design is already
-  decided ([roadmap](README.md#roadmap), [extending
+- **Questions**: ask in [Q&A](https://github.com/Gustavo-Tondin/jott-app/discussions/categories/q-a).
+- **Bugs**: open an [issue](https://github.com/Gustavo-Tondin/jott-app/issues/new/choose)
+  — the form asks for your version and platform. Don't attach your notebook —
+  those are your files.
+- **Ideas**: talk them over in [Ideas](https://github.com/Gustavo-Tondin/jott-app/discussions/categories/ideas);
+  a concrete proposal becomes an issue before anyone writes code. Part of the
+  design is already decided ([roadmap](README.md#roadmap), [extending
   Jott](documentation/plugins.md)).
 - **Themes** are the easiest useful contribution — one CSS file, no Rust:
-  [`documentation/theming.md`](documentation/theming.md).
+  [`documentation/theming.md`](documentation/theming.md). Share yours in
+  [Show and tell](https://github.com/Gustavo-Tondin/jott-app/discussions/categories/show-and-tell).
 - Before pushing: `cargo test`, `npm test`, and
   `cargo clippy --workspace --all-targets`, all green.
 

@@ -100,7 +100,7 @@ Jott is pre-1.0 and used daily. The [releases page](https://github.com/Gustavo-T
 
 ## Contributing
 
-Issues and pull requests are welcome. Start with [`CONTRIBUTING.md`](CONTRIBUTING.md) — setup, the two test suites, and the handful of rules that keep this codebase the way it is.
+Questions and ideas go to [Discussions](https://github.com/Gustavo-Tondin/jott-app/discussions); bugs to [Issues](https://github.com/Gustavo-Tondin/jott-app/issues/new/choose). Pull requests are welcome: start with [`CONTRIBUTING.md`](CONTRIBUTING.md) — setup, the two test suites, and the handful of rules that keep this codebase the way it is.
 
 Writing a **theme** is the smallest useful contribution and needs no Rust: [`documentation/theming.md`](documentation/theming.md).
 

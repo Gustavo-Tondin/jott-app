@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Question or help
+    url: https://github.com/Gustavo-Tondin/jott-app/discussions/categories/q-a
+    about: How do I…, is this expected, setup and sync questions.
+  - name: Idea or suggestion
+    url: https://github.com/Gustavo-Tondin/jott-app/discussions/categories/ideas
+    about: Not sure it fits Jott yet? Talk it over here first.
