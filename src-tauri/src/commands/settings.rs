@@ -111,6 +111,10 @@ pub async fn language<R: Runtime>(app: AppHandle<R>) -> LanguageInfo {
 #[tauri::command]
 pub async fn set_language<R: Runtime>(app: AppHandle<R>, tag: String) {
     crate::prefs::remember_language(&app, &tag);
+    #[cfg(desktop)]
+    if let Err(e) = crate::tray::relabel(&app, crate::prefs::lang(&app)) {
+        eprintln!("[jott] tray kept its words: {e}");
+    }
 }
 
 /// Every notebook preference in force, for the settings screen to draw. The

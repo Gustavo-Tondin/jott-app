@@ -7,9 +7,32 @@ import {
   listName,
   listTitle,
   listLabel,
+  spaceLabel,
   splitLabel,
   taskSpacePaths,
 } from "./paths.js";
+import { S } from "./strings.js";
+
+describe("spaceLabel", () => {
+  test("a fixed space still under its default name reads in the language", () => {
+    const saved = S.tasks;
+    S.tasks = "Tarefas";
+    try {
+      expect(spaceLabel("Tasks", "jott.tasks")).toBe("Tarefas");
+      expect(spaceLabel("Tasks/Compras", "jott.tasks/Compras.md")).toBe("Tarefas/Compras");
+      expect(listLabel({ space: "Tasks", name: "task-list", path: "jott.tasks/task-list.md" })).toBe(
+        "Tarefas",
+      );
+      // A name the user gave, or a space of theirs called Tasks, is theirs.
+      expect(spaceLabel("Work", "jott.tasks")).toBe("Work");
+      expect(spaceLabel("Tasks", "Tasks/task-list.md")).toBe("Tasks");
+      expect(spaceLabel("Tasksy", "jott.tasks")).toBe("Tasksy");
+      expect(spaceLabel("", "jott.tasks")).toBe("");
+    } finally {
+      S.tasks = saved;
+    }
+  });
+});
 
 describe("taskSpacePaths", () => {
   const lists = [

@@ -18,8 +18,10 @@ beforeEach(resetBridge);
 describe("describeError", () => {
   it("reads the core's own shape", () => {
     expect(describeError({ kind: "io", message: "/x: permission denied" })).toBe(
-      "io: /x: permission denied",
+      "A file could not be read or written (/x: permission denied)",
     );
+    // A kind with no sentence yet still says itself.
+    expect(describeError({ kind: "brandNew", message: "m" })).toBe("brandNew (m)");
   });
 
   it("reads anything that can say what it is", () => {
@@ -52,7 +54,7 @@ describe("a failing command", () => {
       command: "notebook_snapshot",
     });
     const caught = await api.notebookSnapshot().catch((e) => e);
-    expect(describeError(caught)).toBe("io: gone (notebook_snapshot)");
+    expect(describeError(caught)).toBe("A file could not be read or written (gone · notebook_snapshot)");
   });
 
   it("names the command even when the failure has no shape of its own", async () => {

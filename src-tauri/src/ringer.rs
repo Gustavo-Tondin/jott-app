@@ -16,6 +16,7 @@ use std::time::Duration;
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
 use jott_core::config::DateFormat;
 use jott_core::daysummary::{self, DaySummary, NAMED};
+use jott_core::lang::Lang;
 use jott_core::reminders::{self, Reminder, ReminderAction, MAX_WAIT, RING_APART};
 use jott_core::task::{parse_datetime, render_datetime};
 use tauri::{AppHandle, Emitter, Manager, Runtime};
@@ -86,89 +87,117 @@ pub enum Answer {
 }
 
 /// The words of the notifications. The second place with strings in Rust,
-/// after the tray menu — i18n has to count on both.
+/// after the tray menu. Open/Done/Later/Tomorrow also live in `strings.js`
+/// (`notify*`, Android's buttons): a translation changes both.
 mod words {
-    pub fn due_on(date: &str) -> String {
-        format!("due {date}")
-    }
+    use jott_core::lang::Lang::{self, En, PtBr};
 
-    pub fn missed_title(count: usize) -> String {
-        format!("{count} reminders while you were away")
-    }
-
-    pub fn first_reminder_at(time: &str) -> String {
-        format!("First reminder at {time}")
-    }
-
-    pub fn day_title(count: usize) -> String {
-        if count == 1 {
-            "You have 1 task today".to_string()
-        } else {
-            format!("You have {count} tasks today")
+    pub fn due_on(lang: Lang, date: &str) -> String {
+        match lang {
+            En => format!("due {date}"),
+            PtBr => format!("para {date}"),
         }
     }
 
-    pub const OPEN: &str = "Open";
-    pub const DONE: &str = "Done";
-    pub const LATER: &str = "Later";
-    pub const TOMORROW: &str = "Tomorrow";
+    pub fn missed_title(lang: Lang, count: usize) -> String {
+        match lang {
+            En => format!("{count} reminders while you were away"),
+            PtBr => format!("{count} lembretes enquanto você esteve fora"),
+        }
+    }
 
-    pub fn day_more(count: usize) -> String {
-        if count == 1 {
-            "…and 1 more".to_string()
-        } else {
-            format!("…and {count} more")
+    pub fn first_reminder_at(lang: Lang, time: &str) -> String {
+        match lang {
+            En => format!("First reminder at {time}"),
+            PtBr => format!("Primeiro lembrete às {time}"),
+        }
+    }
+
+    pub fn day_title(lang: Lang, count: usize) -> String {
+        match (lang, count) {
+            (En, 1) => "You have 1 task today".to_string(),
+            (En, _) => format!("You have {count} tasks today"),
+            (PtBr, 1) => "Você tem 1 tarefa hoje".to_string(),
+            (PtBr, _) => format!("Você tem {count} tarefas hoje"),
+        }
+    }
+
+    /// Open, Done, Later, Tomorrow.
+    pub fn buttons(lang: Lang) -> [&'static str; 4] {
+        match lang {
+            En => ["Open", "Done", "Later", "Tomorrow"],
+            PtBr => ["Abrir", "Concluir", "Depois", "Amanhã"],
+        }
+    }
+
+    /// Where a reminder's task lives. The fixed Tasks space keeps "Tasks" on
+    /// disk and reads in the language — the twin of `spaceLabel` (paths.js).
+    pub fn place(lang: Lang, list: &str, place: &str) -> String {
+        let fixed = list.starts_with(&format!("{}/", jott_core::TASKS_DIR));
+        match (lang, place.strip_prefix("Tasks")) {
+            (PtBr, Some(rest)) if fixed && (rest.is_empty() || rest.starts_with('/')) => format!("Tarefas{rest}"),
+            _ => place.to_string(),
+        }
+    }
+
+    pub fn day_more(lang: Lang, count: usize) -> String {
+        match (lang, count) {
+            (En, 1) => "…and 1 more".to_string(),
+            (En, _) => format!("…and {count} more"),
+            (PtBr, 1) => "…e mais 1".to_string(),
+            (PtBr, _) => format!("…e mais {count}"),
         }
     }
 }
 
 /// A handful of lines by name, then how many more.
-fn named_lines<'a>(texts: impl ExactSizeIterator<Item = &'a str>) -> Vec<String> {
+fn named_lines<'a>(lang: Lang, texts: impl ExactSizeIterator<Item = &'a str>) -> Vec<String> {
     let count = texts.len();
     let mut lines: Vec<String> = texts.take(NAMED).map(|text| format!("• {text}")).collect();
     if count > lines.len() {
-        lines.push(words::day_more(count - lines.len()));
+        lines.push(words::day_more(lang, count - lines.len()));
     }
     lines
 }
 
-fn summary_notice(summary: &DaySummary, first_reminder: Option<NaiveTime>) -> (String, String) {
+fn summary_notice(lang: Lang, summary: &DaySummary, first_reminder: Option<NaiveTime>) -> (String, String) {
     let mut lines: Vec<String> = summary.named.iter().map(|text| format!("• {text}")).collect();
     if summary.more > 0 {
-        lines.push(words::day_more(summary.more));
+        lines.push(words::day_more(lang, summary.more));
     }
     if let Some(time) = first_reminder {
-        lines.push(words::first_reminder_at(&time.format("%H:%M").to_string()));
+        lines.push(words::first_reminder_at(lang, &time.format("%H:%M").to_string()));
     }
-    (words::day_title(summary.count), lines.join("\n"))
+    (words::day_title(lang, summary.count), lines.join("\n"))
 }
 
 /// One reminder's notification: the task leads, and the body says where it
 /// lives and, when it has one, its date.
-fn reminder_notice(reminder: &Reminder, dates: DateFormat) -> (String, String) {
+fn reminder_notice(lang: Lang, reminder: &Reminder, dates: DateFormat) -> (String, String) {
     let due = reminder
         .due
         .as_deref()
         .and_then(|day| day.parse::<NaiveDate>().ok())
-        .map(|day| words::due_on(&dates.format(day)));
+        .map(|day| words::due_on(lang, &dates.format(day)));
+    let place = words::place(lang, &reminder.list, &reminder.place);
     let body = match due {
-        Some(due) => format!("{} · {due}", reminder.place),
-        None => reminder.place.clone(),
+        Some(due) => format!("{place} · {due}"),
+        None => place,
     };
     (reminder.text.clone(), body)
 }
 
 /// What rings for `due`: one notification each, or — past [`RING_APART`] —
 /// one for them all, whose click opens the first one's list.
-fn rungs_of(due: &[Reminder], dates: DateFormat) -> Vec<(Rung, Vec<&Reminder>)> {
+fn rungs_of(lang: Lang, due: &[Reminder], dates: DateFormat) -> Vec<(Rung, Vec<&Reminder>)> {
     if due.len() > RING_APART {
-        let body = named_lines(due.iter().map(|r| r.text.as_str())).join("\n");
+        let body = named_lines(lang, due.iter().map(|r| r.text.as_str())).join("\n");
         let target = ReminderTarget {
             list: due[0].list.clone(),
             id: None,
         };
         let rung = Rung {
-            title: words::missed_title(due.len()),
+            title: words::missed_title(lang, due.len()),
             body,
             target,
             covered: due.iter().filter_map(Covered::of).collect(),
@@ -178,7 +207,7 @@ fn rungs_of(due: &[Reminder], dates: DateFormat) -> Vec<(Rung, Vec<&Reminder>)> 
     }
     due.iter()
         .map(|reminder| {
-            let (title, body) = reminder_notice(reminder, dates);
+            let (title, body) = reminder_notice(lang, reminder, dates);
             let target = ReminderTarget {
                 list: reminder.list.clone(),
                 id: reminder.id.clone(),
@@ -193,13 +222,14 @@ fn rungs_of(due: &[Reminder], dates: DateFormat) -> Vec<(Rung, Vec<&Reminder>)> 
 /// The actions a notification carries, as `(name, label)`: none where the
 /// server draws no actions (the card's overdue mark is then what is left),
 /// else the click, plus the three buttons on one task's reminder.
-pub fn actions_for(rung: &Rung, capabilities: &[String]) -> Vec<(&'static str, &'static str)> {
+pub fn actions_for(lang: Lang, rung: &Rung, capabilities: &[String]) -> Vec<(&'static str, &'static str)> {
     if !capabilities.iter().any(|c| c == "actions") {
         return Vec::new();
     }
-    let mut out = vec![("default", words::OPEN)];
+    let [open, done, later, tomorrow] = words::buttons(lang);
+    let mut out = vec![("default", open)];
     if rung.buttons {
-        out.extend([("done", words::DONE), ("later", words::LATER), ("tomorrow", words::TOMORROW)]);
+        out.extend([("done", done), ("later", later), ("tomorrow", tomorrow)]);
     }
     out
 }
@@ -469,13 +499,14 @@ fn ring_pass<R: Runtime>(app: &AppHandle<R>, root: &Path, shared: &Shared, now: 
     let Some(reminders_on) = shared.reminders_on() else {
         return MAX_WAIT;
     };
+    let lang = crate::prefs::lang(app);
     let mut wait = MAX_WAIT;
 
     let mut list = Vec::new();
     if reminders_on {
         match state.read(&owner, |nb| nb.reminders()) {
             Ok(read) => {
-                wait = wait.min(ring_reminders(app, &owner, root, &read, now));
+                wait = wait.min(ring_reminders(app, lang, &owner, root, &read, now));
                 list = read;
             }
             Err(e) => eprintln!("[jott] reminders not read: {}", e.message),
@@ -489,7 +520,7 @@ fn ring_pass<R: Runtime>(app: &AppHandle<R>, root: &Path, shared: &Shared, now: 
     if let Ok((true, time)) = summary {
         let shown_on = crate::prefs::summarized_on(app, root).and_then(|day| day.parse::<NaiveDate>().ok());
         if daysummary::summary_due(now, time, shown_on) {
-            announce(app, &owner, root, &list, now);
+            announce(app, lang, &owner, root, &list, now);
             wait = wait.min(daysummary::wait_until_summary(now, time, Some(now.date())));
         } else {
             wait = wait.min(daysummary::wait_until_summary(now, time, shown_on));
@@ -504,6 +535,7 @@ fn ring_pass<R: Runtime>(app: &AppHandle<R>, root: &Path, shared: &Shared, now: 
 /// once in the app. Answers the wait until the next reminder.
 fn ring_reminders<R: Runtime>(
     app: &AppHandle<R>,
+    lang: Lang,
     owner: &str,
     root: &Path,
     list: &[Reminder],
@@ -526,7 +558,7 @@ fn ring_reminders<R: Runtime>(
             })
             .unwrap_or_default();
         let mut unshown = Vec::new();
-        for (rung, covered) in rungs_of(&due, dates) {
+        for (rung, covered) in rungs_of(lang, &due, dates) {
             if let Err(e) = show(app, root, rung) {
                 eprintln!("[jott] reminder not shown: {e}");
                 unshown.extend(covered.iter().map(|reminder| reminder.text.clone()));
@@ -549,12 +581,19 @@ fn next_wait(list: &[Reminder], now: NaiveDateTime) -> Duration {
 /// Announces the day, and marks it announced whether or not there was
 /// anything to say or the bell worked: an empty day must not announce the
 /// moment a task is added, and a broken bell must not retry every hour.
-fn announce<R: Runtime>(app: &AppHandle<R>, owner: &str, root: &Path, reminders: &[Reminder], now: NaiveDateTime) {
+fn announce<R: Runtime>(
+    app: &AppHandle<R>,
+    lang: Lang,
+    owner: &str,
+    root: &Path,
+    reminders: &[Reminder],
+    now: NaiveDateTime,
+) {
     let state = app.state::<AppState>();
     let tasks = state.read(owner, |nb| nb.day_tasks(None)).unwrap_or_default();
     if let Some(summary) = daysummary::summary_of(tasks.iter().map(|listed| &listed.task)) {
         let first = daysummary::first_reminder_of_day(reminders, now);
-        let (title, body) = summary_notice(&summary, first);
+        let (title, body) = summary_notice(lang, &summary, first);
         let target = ReminderTarget { list: String::new(), id: None };
         let rung = Rung { title, body, target, covered: Vec::new(), buttons: false };
         if let Err(e) = show(app, root, rung) {
@@ -636,7 +675,7 @@ fn show_notification<R: Runtime>(app: &AppHandle<R>, root: &Path, rung: Rung) ->
         .map_err(|e| e.to_string())?
         .build();
     let messages = zbus::blocking::MessageIterator::for_match_rule(rule, &connection, None).map_err(|e| e.to_string())?;
-    let actions: Vec<&str> = actions_for(&rung, capabilities(&connection))
+    let actions: Vec<&str> = actions_for(crate::prefs::lang(app), &rung, capabilities(&connection))
         .into_iter()
         .flat_map(|(name, label)| [name, label])
         .collect();
@@ -739,18 +778,18 @@ mod tests {
             named: vec!["Pagar aluguel".into(), "Ligar".into()],
             more: 5,
         };
-        let (title, body) = summary_notice(&summary, None);
+        let (title, body) = summary_notice(Lang::En, &summary, None);
         assert_eq!(title, "You have 7 tasks today");
         assert_eq!(body, "• Pagar aluguel\n• Ligar\n…and 5 more");
         let one = DaySummary { count: 1, named: vec!["Só".into()], more: 0 };
-        assert_eq!(summary_notice(&one, None), ("You have 1 task today".into(), "• Só".into()));
+        assert_eq!(summary_notice(Lang::En, &one, None), ("You have 1 task today".into(), "• Só".into()));
     }
 
     #[test]
     fn the_summary_names_the_first_reminder_of_the_day() {
         let one = DaySummary { count: 1, named: vec!["Só".into()], more: 0 };
         let first = NaiveTime::from_hms_opt(18, 30, 0);
-        assert_eq!(summary_notice(&one, first).1, "• Só\nFirst reminder at 18:30");
+        assert_eq!(summary_notice(Lang::En, &one, first).1, "• Só\nFirst reminder at 18:30");
     }
 
     fn reminder(text: &str, due: Option<&str>) -> Reminder {
@@ -767,9 +806,9 @@ mod tests {
 
     #[test]
     fn the_notice_leads_with_the_task() {
-        let (title, body) = reminder_notice(&reminder("Pagar aluguel", None), DateFormat::default());
+        let (title, body) = reminder_notice(Lang::En, &reminder("Pagar aluguel", None), DateFormat::default());
         assert_eq!((title.as_str(), body.as_str()), ("Pagar aluguel", "Casa"));
-        let (_, body) = reminder_notice(&reminder("Pagar aluguel", Some("2026-07-25")), DateFormat::DayMonthYear);
+        let (_, body) = reminder_notice(Lang::En, &reminder("Pagar aluguel", Some("2026-07-25")), DateFormat::DayMonthYear);
         assert_eq!(body, "Casa · due 25/07/2026");
     }
 
@@ -785,19 +824,19 @@ mod tests {
     #[test]
     fn a_server_without_actions_gets_a_plain_notification() {
         let due = [reminder("Pagar aluguel", None)];
-        let one = &rungs_of(&due, DateFormat::default())[0].0;
-        assert!(actions_for(one, &["body".into(), "persistence".into()]).is_empty());
-        let names: Vec<_> = actions_for(one, &["actions".into()]).iter().map(|(name, _)| *name).collect();
+        let one = &rungs_of(Lang::En, &due, DateFormat::default())[0].0;
+        assert!(actions_for(Lang::En, one, &["body".into(), "persistence".into()]).is_empty());
+        let names: Vec<_> = actions_for(Lang::En, one, &["actions".into()]).iter().map(|(name, _)| *name).collect();
         assert_eq!(names, ["default", "done", "later", "tomorrow"]);
     }
 
     #[test]
     fn a_few_ring_apart_and_more_arrive_as_one() {
         let three: Vec<_> = ["A", "B", "C"].iter().map(|t| reminder(t, None)).collect();
-        assert_eq!(rungs_of(&three, DateFormat::default()).len(), 3);
+        assert_eq!(rungs_of(Lang::En, &three, DateFormat::default()).len(), 3);
 
         let seven: Vec<_> = ["A", "B", "C", "D", "E", "F", "G"].iter().map(|t| reminder(t, None)).collect();
-        let rungs = rungs_of(&seven, DateFormat::default());
+        let rungs = rungs_of(Lang::En, &seven, DateFormat::default());
         assert_eq!(rungs.len(), 1);
         let (rung, covered) = &rungs[0];
         assert_eq!(rung.title, "7 reminders while you were away");
@@ -805,7 +844,33 @@ mod tests {
         assert_eq!(rung.target, ReminderTarget { list: "Casa/task-list.md".into(), id: None });
         assert_eq!(covered.len(), 7);
         assert_eq!(rung.covered.len(), 7, "an answer acknowledges every one of them");
-        let names: Vec<_> = actions_for(rung, &["actions".into()]).iter().map(|(name, _)| *name).collect();
+        let names: Vec<_> = actions_for(Lang::En, rung, &["actions".into()]).iter().map(|(name, _)| *name).collect();
         assert_eq!(names, ["default"], "a pile only opens");
+    }
+
+    #[test]
+    fn the_notifications_speak_portuguese() {
+        let pt = Lang::PtBr;
+        let seven = DaySummary { count: 7, named: vec!["Ligar".into()], more: 6 };
+        let first = NaiveTime::from_hms_opt(18, 30, 0);
+        assert_eq!(
+            summary_notice(pt, &seven, first),
+            ("Você tem 7 tarefas hoje".into(), "• Ligar\n…e mais 6\nPrimeiro lembrete às 18:30".into())
+        );
+        let one = DaySummary { count: 1, named: vec!["Só".into()], more: 0 };
+        assert_eq!(summary_notice(pt, &one, None).0, "Você tem 1 tarefa hoje");
+        let (_, body) = reminder_notice(pt, &reminder("Pagar", Some("2026-07-25")), DateFormat::DayMonthYear);
+        assert_eq!(body, "Casa · para 25/07/2026");
+        let inbox = Reminder { list: "jott.tasks/task-list.md".into(), place: "Tasks".into(), ..reminder("P", None) };
+        assert_eq!(reminder_notice(pt, &inbox, DateFormat::default()).1, "Tarefas");
+        assert_eq!(reminder_notice(Lang::En, &inbox, DateFormat::default()).1, "Tasks");
+        let own = Reminder { list: "Tasks/task-list.md".into(), place: "Tasks".into(), ..reminder("P", None) };
+        assert_eq!(reminder_notice(pt, &own, DateFormat::default()).1, "Tasks", "a space the user named");
+        let due = [reminder("Pagar", None)];
+        let labels: Vec<_> = actions_for(pt, &rungs_of(pt, &due, DateFormat::default())[0].0, &["actions".into()])
+            .iter()
+            .map(|(_, label)| *label)
+            .collect();
+        assert_eq!(labels, ["Abrir", "Concluir", "Depois", "Amanhã"]);
     }
 }

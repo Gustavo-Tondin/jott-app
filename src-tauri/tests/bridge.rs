@@ -139,6 +139,8 @@ fn exclusive() -> std::sync::MutexGuard<'static, ()> {
     let dir = DIR.get_or_init(|| tempfile::tempdir().unwrap());
     std::env::set_var("JOTT_CONFIG_DIR", dir.path());
     let _ = std::fs::remove_file(dir.path().join("machine-prefs.json"));
+    // The language follows the system when unchosen; the asserts are English.
+    std::env::set_var("LC_ALL", "en_US.UTF-8");
 
     guard
 }

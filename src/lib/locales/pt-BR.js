@@ -111,6 +111,13 @@ export default {
   mode: ["Mode", "Modo"],
   theme: ["Theme", "Tema"],
 
+  // Shell
+  home: ["Home", "Início"],
+  tasks: ["Tasks", "Tarefas"],
+
+  // Notes
+  notes: ["Notes", "Notas"],
+
   // Calendar
   months: [
     [
@@ -176,5 +183,67 @@ export default {
         7: "Verde",
         neutral: "Neutro",
       })[slot] ?? slot,
+  ],
+
+  // Errors
+  errorKind: [
+    (kind) =>
+      ({
+        io: "A file could not be read or written",
+        notANotebook: "That folder is not a Jott notebook",
+        notebook: "That is not a notebook",
+        notASpace: "That folder is not a space",
+        legacyNotebook: "That notebook is from an older Jott",
+        alreadyANotebook: "That folder already holds a notebook",
+        taskNotFound: "That task is no longer there",
+        dayGone: "That day has passed",
+        invalidDay: "That is not a day",
+        invalidListName: "That name can't be used for a list",
+        invalidSpaceName: "That name can't be used for a space",
+        invalidName: "That name can't be used for a folder",
+        invalidNotePath: "That name can't be used for a note",
+        invalidAssetPath: "That is not a file of this notebook",
+        readOnlyNotebook: "This notebook was written by a newer Jott and opens read-only",
+        invalid: "That answer could not be used",
+        protected: "The app creates that one; it can't be renamed or deleted",
+        watch: "Jott stopped following changes to the notebook",
+        theme: "That theme can't be used",
+        stale: "That can't be undone: the files changed since",
+        noNotebook: "No notebook is open",
+        settings: "That setting can't be reset",
+        platform: "This system can't do that",
+        unsupported: "This system can't do that",
+        window: "The window could not be opened",
+        poisoned: "Something went wrong; reopen the notebook",
+      })[kind] ?? kind,
+    (kind) =>
+      ({
+        io: "Não foi possível ler ou gravar um arquivo",
+        notANotebook: "Essa pasta não é um caderno do Jott",
+        notebook: "Isso não é um caderno",
+        notASpace: "Essa pasta não é um space",
+        legacyNotebook: "Esse caderno é de um Jott antigo",
+        alreadyANotebook: "Essa pasta já tem um caderno",
+        taskNotFound: "Essa tarefa não está mais lá",
+        dayGone: "Esse dia já passou",
+        invalidDay: "Isso não é um dia",
+        invalidListName: "Esse nome não serve para uma lista",
+        invalidSpaceName: "Esse nome não serve para um space",
+        invalidName: "Esse nome não serve para uma pasta",
+        invalidNotePath: "Esse nome não serve para uma nota",
+        invalidAssetPath: "Isso não é um arquivo deste caderno",
+        readOnlyNotebook: "Este caderno foi gravado por um Jott mais novo e abre somente para leitura",
+        invalid: "Não foi possível usar essa resposta",
+        protected: "O app cria esse; ele não pode ser renomeado nem excluído",
+        watch: "O Jott parou de acompanhar as mudanças do caderno",
+        theme: "Não é possível usar esse tema",
+        stale: "Não dá para desfazer: os arquivos mudaram desde então",
+        noNotebook: "Nenhum caderno está aberto",
+        settings: "Não é possível redefinir essa configuração",
+        platform: "Este sistema não faz isso",
+        unsupported: "Este sistema não faz isso",
+        window: "Não foi possível abrir a janela",
+        poisoned: "Algo deu errado; abra o caderno de novo",
+      })[kind] ?? kind,
   ],
 };

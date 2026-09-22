@@ -5,6 +5,7 @@
 // is due and when is the process's on desktop (`src-tauri/src/ringer.rs`).
 
 import { formatDate, toIso } from "./dates.js";
+import { spaceLabel } from "./paths.js";
 
 const two = (n) => String(n).padStart(2, "0");
 
@@ -95,7 +96,7 @@ export function presets({ now = new Date(), due = "", time = "09:00" } = {}) {
 /// lives and, when it has one, its date. The desktop's twin is in
 /// `src-tauri/src/ringer.rs`.
 export function notice(reminder, strings, dateFormat = "mm/dd/yyyy") {
-  const place = reminder.place ?? "";
+  const place = spaceLabel(reminder.place ?? "", reminder.list);
   const due = reminder.due ? strings.reminderDue(formatDate(reminder.due, dateFormat)) : "";
   return { title: reminder.text, body: [place, due].filter(Boolean).join(" · ") };
 }

@@ -14,7 +14,7 @@
   import Icon from "./Icon.svelte";
   import Modal from "./Modal.svelte";
   import { dotStyle } from "../services/accent.js";
-  import { listLabel } from "../services/paths.js";
+  import { listLabel, spaceLabel } from "../services/paths.js";
 
   let {
     /// What to start looking for. Empty is the ordinary case (Ctrl+Space asks a
@@ -157,7 +157,7 @@
   /// line would repeat itself. Only a hand-made list is named (`listLabel`).
   const place = (hit) =>
     hit.kind === "note" || isCompletedList(hit.container)
-      ? hit.space
+      ? spaceLabel(hit.space, hit.folder || hit.path)
       : listLabel({ space: hit.space, name: hit.container, path: hit.path });
   const isCompletedList = (name) => name?.toLowerCase() === "completed";
   const from = (hit) => (scope ? null : (origin?.(hit) ?? null));

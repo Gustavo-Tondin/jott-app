@@ -2,11 +2,14 @@
 Type=Application
 Name=Jott
 GenericName=Tasks and notes
+GenericName[pt_BR]=Tarefas e notas
 Comment=Local-first tasks and notes in plain Markdown files
+Comment[pt_BR]=Tarefas e notas locais em arquivos Markdown simples
 Exec=jott
 Icon=jott
 Terminal=false
 Categories=Utility;Office;ProjectManagement;
 Keywords=tasks;todo;notes;markdown;
+Keywords[pt_BR]=tarefas;afazeres;notas;markdown;
 StartupWMClass=jott
 StartupNotify=true

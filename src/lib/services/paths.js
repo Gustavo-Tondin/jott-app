@@ -39,6 +39,22 @@ export function extensionOf(name) {
 /// list this is and never belongs on screen.
 export const MAIN_LIST = "task-list";
 
+/// The fixed spaces keep their English name on disk (`.space.json`); while it
+/// is still that name it reads in the app's language. `address` is anything
+/// inside the space: the FOLDER says a space is fixed, never the name, so a
+/// space the user called "Tasks" stays theirs. `Tasks/Compras` works too.
+const FIXED = {
+  "jott.home": ["Home", () => S.home],
+  "jott.tasks": ["Tasks", () => S.tasks],
+  "jott.notes": ["Notes", () => S.notes],
+};
+export function spaceLabel(label, address) {
+  const [stored, read] = FIXED[address?.split("/")[0]] ?? [];
+  if (!stored || !label) return label;
+  if (label === stored) return read();
+  return label.startsWith(`${stored}/`) ? read() + label.slice(stored.length) : label;
+}
+
 /// What the user reads where a list's own name is shown: the card's "which
 /// list", the composer's chip, the inspector's footer. The main list is
 /// **Inbox** — `task-list` is a file name, never meant to be read; a
@@ -59,7 +75,7 @@ export function titleOfList(stem) {
 /// stem is appended only for an extra hand-made list, the one case it tells
 /// two lists apart.
 export function listLabel(entry) {
-  const where = entry?.space ?? "";
+  const where = spaceLabel(entry?.space ?? "", entry?.path);
   const stem = entry?.name ?? listName(entry?.path);
   // Loose enough to have no space at all (a hand-made address): then the
   // stem is all there is, and it is READ, so it goes through listTitle.

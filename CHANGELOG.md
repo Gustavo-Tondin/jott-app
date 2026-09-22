@@ -12,6 +12,11 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 
 - **Jott can speak more than one language**: pick it under Settings → Display, or let it follow the system. Portuguese (Brazil) starts here; the full translation lands over the next releases.
 
+### Improved
+
+- **Errors read as a sentence, not a code**, with the technical detail after it.
+- **Notifications, the tray menu and the names of Home, Tasks and Notes follow the app's language.**
+
 ## v0.58.0
 
 ### New

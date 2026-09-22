@@ -69,7 +69,7 @@
   import PanelResizer from "./lib/shell/PanelResizer.svelte";
   import Sidebar from "./lib/shell/Sidebar.svelte";
   import PageHeader from "./lib/shell/PageHeader.svelte";
-  import { folderOf, leafOf, listTitle } from "./lib/services/paths.js";
+  import { folderOf, leafOf, listTitle, spaceLabel } from "./lib/services/paths.js";
   import { dealtColors, groupColors, nextRainbowColor, spaceColors } from "./lib/services/spaceColors.js";
   import { originOf } from "./lib/services/origin.js";
   import {
@@ -1311,7 +1311,7 @@
       clock = snap.clock;
       counts = snap.counts;
       conflicts = snap.conflicts;
-      spaces = snap.spaces ?? [];
+      spaces = (snap.spaces ?? []).map((sp) => ({ ...sp, name: spaceLabel(sp.name, sp.path) }));
       groups = snap.groups ?? [];
       tags = snap.tags ?? [];
       dayRefs = new Set((snap.day ?? []).map((ref) => `${ref.path}#${ref.id}`));

@@ -4,7 +4,7 @@
 // Timeline) the badge says it: the space's readable NAME, from the core,
 // never from the path. An address nothing answers for gets no badge.
 
-import { folderOf, listLabel, MAIN_LIST, listName } from "./paths.js";
+import { folderOf, listLabel, MAIN_LIST, listName, spaceLabel } from "./paths.js";
 
 /// `{label, color}` for the badge, or `null`: the item is inside `here`, or
 /// no name is known. `item` is any shape the screens hold (`{list, task}`, a
@@ -23,6 +23,7 @@ export function originOf(item, { lists = [], spaces = [], colors = {}, here = nu
     label = sibling?.space ?? spaces.find((sp) => sp.path === space)?.name ?? null;
   }
   if (!label) return null;
+  label = spaceLabel(label, space);
 
   // A hand-made list beside the Inbox is the one case where the file name
   // tells lists apart — the same rule listLabel() keeps for the picker.

@@ -1215,4 +1215,36 @@ export const S = {
   openFolder: (name) => `open ${name}`,
   backToBoard: "Back",
   noteOptions: "note options",
+
+  // Errors: one sentence per `kind` the bridge sends (src-tauri/src/error.rs
+  // and the commands' own). The technical message follows in parentheses.
+  errorKind: (kind) =>
+    ({
+      io: "A file could not be read or written",
+      notANotebook: "That folder is not a Jott notebook",
+      notebook: "That is not a notebook",
+      notASpace: "That folder is not a space",
+      legacyNotebook: "That notebook is from an older Jott",
+      alreadyANotebook: "That folder already holds a notebook",
+      taskNotFound: "That task is no longer there",
+      dayGone: "That day has passed",
+      invalidDay: "That is not a day",
+      invalidListName: "That name can't be used for a list",
+      invalidSpaceName: "That name can't be used for a space",
+      invalidName: "That name can't be used for a folder",
+      invalidNotePath: "That name can't be used for a note",
+      invalidAssetPath: "That is not a file of this notebook",
+      readOnlyNotebook: "This notebook was written by a newer Jott and opens read-only",
+      invalid: "That answer could not be used",
+      protected: "The app creates that one; it can't be renamed or deleted",
+      watch: "Jott stopped following changes to the notebook",
+      theme: "That theme can't be used",
+      stale: "That can't be undone: the files changed since",
+      noNotebook: "No notebook is open",
+      settings: "That setting can't be reset",
+      platform: "This system can't do that",
+      unsupported: "This system can't do that",
+      window: "The window could not be opened",
+      poisoned: "Something went wrong; reopen the notebook",
+    })[kind] ?? kind,
 };

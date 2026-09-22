@@ -6,6 +6,7 @@
 import { invoke as callBridge } from "@tauri-apps/api/core";
 import { announce } from "./undoOffer.js";
 import { perf } from "./perf.js";
+import { S } from "./strings.js";
 
 /// The bridge, with the command's name attached to whatever comes back
 /// wrong. The value is annotated, never wrapped: `kind` is what the shell
@@ -416,12 +417,16 @@ export const api = {
 
 /// Errors cross the bridge as `{kind, message}`; anything else is a bug the
 /// reader must still be told about, and `[object Object]` must never reach
-/// them. In order: the core's own shape; anything with a real `toString`;
-/// a plain object's `message`, else the object itself as JSON.
+/// them. In order: the core's own shape (a sentence per `kind`, the message
+/// behind it); anything with a real `toString`; a plain object's `message`,
+/// else the object itself as JSON.
 export function describeError(error) {
   const where = error?.command ? ` (${error.command})` : "";
   if (error && typeof error === "object") {
-    if ("kind" in error) return `${error.kind}: ${error.message ?? ""}${where}`;
+    if ("kind" in error) {
+      const tail = [error.message, error.command].filter(Boolean).join(" · ");
+      return tail ? `${S.errorKind(error.kind)} (${tail})` : S.errorKind(error.kind);
+    }
     const said = String(error);
     if (said !== "[object Object]") return said + where;
     if (typeof error.message === "string" && error.message) return error.message + where;

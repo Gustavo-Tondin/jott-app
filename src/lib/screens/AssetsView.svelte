@@ -13,6 +13,7 @@
   import { filesFromInput } from "../services/gesture.js";
   import { makeScreen } from "../services/act.js";
   import { referenceName } from "../services/embeds.js";
+  import { spaceLabel } from "../services/paths.js";
   import Icon from "../components/Icon.svelte";
 
   let {
@@ -224,7 +225,7 @@
                         size="0.875rem"
                       />
                       <span class="assets-view__place-name">{place.title}</span>
-                      <span class="assets-view__place-where">{place.space}</span>
+                      <span class="assets-view__place-where">{spaceLabel(place.space, place.folder || place.path)}</span>
                     </button>
                   </li>
                 {/each}

@@ -6,6 +6,7 @@
 
 import { api } from "./api.js";
 import { embedMarkdown, noteMarkdown } from "./embeds.js";
+import { spaceLabel } from "./paths.js";
 
 /// How many suggestions are worth showing. Past this the list stops being a
 /// list and starts being a screen — and the search box is the screen.
@@ -81,7 +82,7 @@ async function noteOptions(notes, typed) {
   const found = (await notes?.(typed)) ?? [];
   return found.slice(0, LIMIT).map((note) => ({
     label: note.title,
-    detail: note.space || undefined,
+    detail: spaceLabel(note.space, note.folder) || undefined,
     type: "text",
     apply: writes(noteMarkdown(note.title)),
   }));
