@@ -6,6 +6,7 @@
 import { EditorSelection } from "@codemirror/state";
 import { indentLess, indentMore, redo, undo } from "@codemirror/commands";
 import { insertNewlineContinueMarkupCommand } from "@codemirror/lang-markdown";
+import { syntaxTree } from "@codemirror/language";
 import { TABLE_COMMANDS } from "./tableEditing.js";
 
 /// One level of indentation, as SPACES. Four: an ORDERED item needs at least
@@ -174,6 +175,9 @@ const toggleInlineCode = toggleRun("`", 1);
 /// `<u>` is valid CommonMark and renders in Obsidian, VS Code and GitHub.
 /// `__text__` would be bold in CommonMark and collide with the B button.
 const toggleUnderline = toggleWrap("<u>", "</u>");
+/// Straight quotes on both sides at once — what a dead-key layout cannot
+/// type over a selection. Straight, not curly: the file is plain text.
+const toggleQuotes = toggleWrap('"');
 
 /// A link around the selection: `[text](url)`, cursor left in the url, where
 /// the next thing to type is. With nothing selected the cursor goes to the
@@ -207,6 +211,60 @@ function insertRule(view) {
   return edit(view, {
     changes: { from: line.to, insert },
     selection: EditorSelection.cursor(line.to + insert.length),
+  });
+}
+
+/// A fence line: three or more backticks or tildes, with an optional info string.
+const FENCE = /^\s*(`{3,}|~{3,})/;
+
+/// The fenced block holding all of `from…to`, as its two fence lines, or null
+/// — an unclosed block has no second fence to take off.
+function fencedBlockAround(state, from, to) {
+  for (let node = syntaxTree(state).resolveInner(from, 1); node; node = node.parent) {
+    if (node.name !== "FencedCode" || node.from > from || node.to < to) continue;
+    const open = state.doc.lineAt(node.from);
+    const close = state.doc.lineAt(node.to);
+    return close.number > open.number && FENCE.test(close.text) ? { open, close } : null;
+  }
+  return null;
+}
+
+/// Fence the lines the selection touches in ``` — or, when the selection is
+/// inside a fenced block (a fence line included) or holds both fences, take
+/// the fences off. On an empty line: an empty block with the cursor inside.
+function toggleCodeBlock(view) {
+  const { state } = view;
+  const range = state.selection.main;
+  const first = state.doc.lineAt(range.from);
+  const last = state.doc.lineAt(range.to);
+  // Each fence goes with the line break between it and the body; an empty
+  // block (the fences touching) leaves one empty line.
+  const drop = ({ open, close }) =>
+    edit(view, {
+      changes:
+        close.number === open.number + 1
+          ? { from: open.from, to: close.to }
+          : [
+              { from: open.from, to: open.to + 1 },
+              { from: close.from - 1, to: close.to },
+            ],
+    });
+
+  const block = fencedBlockAround(state, range.from, range.to);
+  if (block) return drop(block);
+
+  if (first.number === last.number && !first.text.trim()) {
+    return edit(view, {
+      changes: { from: first.from, to: first.to, insert: "```\n\n```" },
+      selection: EditorSelection.cursor(first.from + 4),
+    });
+  }
+  return edit(view, {
+    changes: [
+      { from: first.from, insert: "```\n" },
+      { from: last.to, insert: "\n```" },
+    ],
+    selection: EditorSelection.range(range.anchor + 4, range.head + 4),
   });
 }
 
@@ -460,6 +518,8 @@ export const EDITOR_COMMANDS = {
   "md.italic": toggleItalic,
   "md.strike": toggleStrike,
   "md.code": toggleInlineCode,
+  "md.codeBlock": toggleCodeBlock,
+  "md.quotes": toggleQuotes,
   "md.link": insertLink,
   "md.bullet": toggleBullet,
   "md.ordered": toggleOrdered,

@@ -128,23 +128,21 @@ export const COMMANDS = [
   },
 
   // ---- shaping a BLOCK ----
-  // Tab and Shift+Tab are declared HERE and nowhere else, so rebinding them
-  // in Settings reaches the editor like every other chord.
   {
-    id: "md.indent",
+    id: "md.quote",
     scope: "editor",
     group: "block",
-    keys: "Tab",
-    icon: "indent",
-    label: () => S.cmdIndent,
+    keys: "Mod+Shift+.",
+    icon: "quote",
+    label: () => S.cmdQuote,
   },
   {
-    id: "md.outdent",
+    id: "md.quotes",
     scope: "editor",
     group: "block",
-    keys: "Shift+Tab",
-    icon: "outdent",
-    label: () => S.cmdOutdent,
+    keys: "Mod+'",
+    icon: "quotes",
+    label: () => S.cmdQuotationMarks,
   },
   {
     id: "md.code",
@@ -155,14 +153,34 @@ export const COMMANDS = [
     label: () => S.cmdInlineCode,
   },
   {
-    id: "md.quote",
+    id: "md.codeBlock",
     scope: "editor",
     group: "block",
-    keys: "Mod+Shift+.",
-    icon: "quote",
-    label: () => S.cmdQuote,
+    keys: "Mod+Shift+E",
+    icon: "code-block",
+    label: () => S.cmdCodeBlock,
   },
-  { id: "md.rule", scope: "editor", group: "block", keys: null, icon: "rule", label: () => S.cmdRule },
+
+  // ---- moving a line, or drawing between them ----
+  // Tab and Shift+Tab are declared HERE and nowhere else, so rebinding them
+  // in Settings reaches the editor like every other chord.
+  {
+    id: "md.indent",
+    scope: "editor",
+    group: "layout",
+    keys: "Tab",
+    icon: "indent",
+    label: () => S.cmdIndent,
+  },
+  {
+    id: "md.outdent",
+    scope: "editor",
+    group: "layout",
+    keys: "Shift+Tab",
+    icon: "outdent",
+    label: () => S.cmdOutdent,
+  },
+  { id: "md.rule", scope: "editor", group: "layout", keys: null, icon: "rule", label: () => S.cmdRule },
 
   // ---- naming a LINE ----
   ...Array.from({ length: 6 }, (_, i) => ({

@@ -528,6 +528,8 @@ export const S = {
   cmdOrderedList: "Numbered list",
   cmdTaskList: "Checkbox",
   cmdQuote: "Quote",
+  cmdQuotationMarks: "Quotation marks",
+  cmdCodeBlock: "Code block",
   cmdRule: "Horizontal rule",
   cmdReplace: "Find and replace",
   // The panel's second row and its last two.
@@ -559,6 +561,7 @@ export const S = {
   formatMarks: "Text style",
   formatHeadings: "Heading",
   formatBlocks: "Block",
+  formatLayout: "Layout",
   formatLists: "List",
   formatInsert: "Insert",
   // Tables.

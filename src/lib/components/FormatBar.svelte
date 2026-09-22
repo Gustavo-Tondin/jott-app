@@ -52,6 +52,7 @@
     mark: { icon: "marks", label: () => S.formatMarks },
     heading: { icon: "headings", label: () => S.formatHeadings },
     block: { icon: "blocks", label: () => S.formatBlocks },
+    layout: { icon: "layout-lines", label: () => S.formatLayout },
     list: { icon: "lists", label: () => S.formatLists },
     insert: { icon: "inserts", label: () => S.formatInsert },
     table: { icon: "table", label: () => S.formatTable, labelled: true },

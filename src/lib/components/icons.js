@@ -33,6 +33,7 @@ import tag from "../../assets/icons/phosphor/regular/tag.svg?raw";
 // The app's own glyph: the sun with a stroke through it — a task leaving the
 // day. Not Phosphor.
 import sunOff from "../../assets/icons/jott/sun-off.svg?raw";
+import blockquote from "../../assets/icons/jott/blockquote.svg?raw";
 import calendarBlank from "../../assets/icons/phosphor/regular/calendar-blank.svg?raw";
 import calendar from "../../assets/icons/phosphor/regular/calendar.svg?raw";
 import sunHorizon from "../../assets/icons/phosphor/regular/sun-horizon.svg?raw";
@@ -77,6 +78,7 @@ import textB from "../../assets/icons/phosphor/regular/text-b.svg?raw";
 import textItalic from "../../assets/icons/phosphor/regular/text-italic.svg?raw";
 import textStrikethrough from "../../assets/icons/phosphor/regular/text-strikethrough.svg?raw";
 import code from "../../assets/icons/phosphor/regular/code.svg?raw";
+import codeBlock from "../../assets/icons/phosphor/regular/code-block.svg?raw";
 import link from "../../assets/icons/phosphor/regular/link.svg?raw";
 import listNumbers from "../../assets/icons/phosphor/regular/list-numbers.svg?raw";
 import quotes from "../../assets/icons/phosphor/regular/quotes.svg?raw";
@@ -109,9 +111,10 @@ import columns from "../../assets/icons/phosphor/regular/columns.svg?raw";
 import rows from "../../assets/icons/phosphor/regular/rows.svg?raw";
 import arrowsInLineHorizontal from "../../assets/icons/phosphor/regular/arrows-in-line-horizontal.svg?raw";
 
-// The narrow bar's other three openers, each named after what it holds. None
+// The narrow bar's other four openers, each named after what it holds. None
 // repeats a glyph a command already wears — it would read as the command itself.
 import paragraph from "../../assets/icons/phosphor/regular/paragraph.svg?raw";
+import alignLeft from "../../assets/icons/phosphor/regular/align-left.svg?raw";
 import listDashes from "../../assets/icons/phosphor/regular/list-dashes.svg?raw";
 import plusCircle from "../../assets/icons/phosphor/regular/plus-circle.svg?raw";
 // The shell's states: still reading, error, conflict, and the file a trashed
@@ -203,7 +206,9 @@ export const ICONS = {
   bullet: listBullets,
   ordered: listNumbers,
   task: listChecks,
-  quote: quotes,
+  quote: blockquote,
+  quotes,
+  "code-block": codeBlock,
   rule: minus,
   h1: textHOne,
   h2: textHTwo,
@@ -221,6 +226,7 @@ export const ICONS = {
   headings: textH,
   marks: textAUnderline,
   blocks: paragraph,
+  "layout-lines": alignLeft,
   lists: listDashes,
   inserts: plusCircle,
   table,

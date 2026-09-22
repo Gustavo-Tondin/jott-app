@@ -1194,6 +1194,7 @@
       f,
       pinned: openNote.pinned,
       togglePin: toggleNotePin,
+      moveRows: noteMoveTargets,
       rename: renameCurrentNote,
       remove: deleteCurrentNote,
       bannerMenu,

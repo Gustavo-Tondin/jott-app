@@ -12,6 +12,8 @@ const {
   "md.bold": toggleBold,
   "md.bullet": toggleBullet,
   "md.code": toggleInlineCode,
+  "md.codeBlock": toggleCodeBlock,
+  "md.quotes": toggleQuotes,
   "md.italic": toggleItalic,
   "md.ordered": toggleOrdered,
   "md.quote": toggleQuote,
@@ -184,6 +186,46 @@ describe("line marks", () => {
     expect(run(toggleUnderline, "leite", 2)).toBe("<u>leite</u>");
     expect(run(toggleUnderline, "<u>leite</u>", 3, 8)).toBe("leite");
     expect(run(toggleUnderline, "<u>leite</u>", 0, 12)).toBe("leite");
+  });
+
+  it("puts straight quotes around a selection, and takes them off again", () => {
+    expect(run(toggleQuotes, "leite frio", 0, 5)).toBe('"leite" frio');
+    expect(run(toggleQuotes, '"leite" frio', 1, 6)).toBe("leite frio");
+    expect(run(toggleQuotes, '"leite" frio', 0, 7)).toBe("leite frio");
+    expect(run(toggleQuotes, "", 0)).toBe('""');
+  });
+
+  it("fences the lines a selection touches, and unfences them again", () => {
+    // The block is read from the Markdown tree, so these states carry the language.
+    const md = (doc, from, to = from) => {
+      const view = editor(doc, from, to);
+      view.state = EditorState.create({
+        doc,
+        selection: EditorSelection.single(from, to),
+        extensions: [markdown({ base: markdownLanguage })],
+      });
+      return view;
+    };
+    const press = (doc, from, to) => {
+      const view = md(doc, from, to);
+      toggleCodeBlock(view);
+      return view.state.doc.toString();
+    };
+    expect(press("a\nlet x\nb", 3, 5)).toBe("a\n```\nlet x\n```\nb");
+    // Inside a block the caret alone is enough — on a fence line too.
+    const fenced = "a\n```js\nlet x\nlet y\n```\nb";
+    expect(press(fenced, 10)).toBe("a\nlet x\nlet y\nb");
+    expect(press(fenced, 3)).toBe("a\nlet x\nlet y\nb");
+    expect(press(fenced, fenced.length - 3)).toBe("a\nlet x\nlet y\nb");
+    // The fences themselves inside the selection.
+    expect(press("```js\nlet x\n```", 0, 15)).toBe("let x");
+    // An empty line: an empty block, cursor inside it; a second press takes it away.
+    const view = md("a\n\nb", 2);
+    toggleCodeBlock(view);
+    expect(view.state.doc.toString()).toBe("a\n```\n\n```\nb");
+    expect(view.state.selection.main.head).toBe(6);
+    toggleCodeBlock(view);
+    expect(view.state.doc.toString()).toBe("a\n\nb");
   });
 
   it("writes a note reference the autocomplete can finish", () => {

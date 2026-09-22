@@ -12,9 +12,14 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 
 - **Jott speaks Portuguese (Brazil).** Pick the language under Settings → Display, or let it follow the system.
 - **Tell Jott which languages you write in** (Settings → Notes → Writing) and each note is hyphenated in its own language — chosen from the note's menu, or read from the text when you write in more than one. On Linux the spell check now works, and checks every language on the list at once.
+- **Two new formatting buttons: code block (Ctrl+Shift+E) and quotation marks (Ctrl+')**, which wraps the selection in quotes where a dead-key keyboard can't.
+- **"Move to…" in the open note's menu**, to file the note in another folder or notes space without leaving it.
 
 ### Improved
 
+- **The formatting bar is regrouped**: quote, quotation marks and code under Block; indent, outdent and the horizontal rule in a group of their own. The quote button has a new icon.
+- **Selected text is one even band per line** instead of a patchwork around bold, code and headings, and it now shows inside quotes and code blocks.
+- **The highlight of the line being edited is softer.**
 - **Errors read as a sentence, not a code**, with the technical detail after it.
 - **Notifications, the tray menu and the names of Home, Tasks and Notes follow the app's language.**
 

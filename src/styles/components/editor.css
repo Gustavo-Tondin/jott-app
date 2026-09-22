@@ -47,10 +47,16 @@
 .editor .cm-placeholder {
   color: var(--app-ink-faint);
 }
-/* Not inherited either. */
-.editor .cm-selectionBackground,
+/* Not inherited either. A note draws its selection (`drawSelection`), a
+   plain field keeps the engine's; the drawn one is named as long as the
+   library's focused rule, plus `.editor`, to win. */
+.editor .cm-editor .cm-selectionLayer .cm-selectionBackground,
+.editor .cm-editor.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground,
 .editor .cm-editor ::selection {
   background: var(--app-brand-weak);
+}
+.editor .cm-editor .cm-cursor {
+  border-inline-start-color: var(--app-ink);
 }
 
 /* =========================================================================
@@ -64,8 +70,8 @@
    ground the line has (quote, code) and the selection still reads on top. */
 .editor .cm-md-editing {
   background-image: linear-gradient(
-    color-mix(in srgb, var(--app-brand-weak) 75%, transparent),
-    color-mix(in srgb, var(--app-brand-weak) 75%, transparent)
+    color-mix(in srgb, var(--app-brand-weak) 40%, transparent),
+    color-mix(in srgb, var(--app-brand-weak) 40%, transparent)
   );
   border-radius: var(--app-radius-xs);
 }
@@ -139,7 +145,10 @@
 .editor .cm-md-mono {
   padding: 0.05em 0.3em;
   border-radius: var(--app-radius-xs);
-  background: var(--app-surface);
+  /* A veil of ink, not the surface: an inline ground covers the drawn
+     selection, and a chip that wraps cannot carry a pseudo-element. 7% of
+     the ink over the canvas is the surface's grey in both modes. */
+  background: color-mix(in srgb, var(--app-ink) 7%, transparent);
   font-family: var(--app-font-mono);
   font-size: 0.9em;
   /* A mono face draws thinner than the text face beside it; one step up
@@ -157,7 +166,6 @@
   color: inherit;
 }
 .editor .cm-md-code {
-  background-color: var(--app-surface);
   padding-inline: var(--app-space-10);
   font-family: var(--app-font-mono);
   font-size: 0.9em;
@@ -166,11 +174,27 @@
 
 /* ---- quote ---- a box with a bar; the words keep the note's ink. */
 .editor .cm-md-quote {
-  background-color: var(--app-surface);
   border-inline-start: 0.125rem solid var(--app-brand-ink);
   padding-inline: var(--app-space-10) var(--app-space-8);
 }
 
+/* The ground of a box is painted UNDER the drawn selection, not by the
+   line: a line's own background covers the selection layer, a negative-z
+   pseudo-element sits beneath it. */
+.editor .cm-md-code,
+.editor .cm-md-quote {
+  position: relative;
+}
+.editor .cm-md-code::before,
+.editor .cm-md-quote::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -10;
+  border-radius: inherit;
+  background: var(--app-surface);
+  pointer-events: none;
+}
 /* Only the two ends of a box round a corner; the side the bar is on stays
    square. */
 .editor .cm-md-open {

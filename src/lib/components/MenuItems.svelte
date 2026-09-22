@@ -56,7 +56,7 @@
       </button>
       {#if openSub === item.label}
         <ul class="theme-popover menu__list menu__sub" use:keepOnScreen={{ side: "inline" }}>
-          {#each item.items as sub (sub.label)}
+          {#each item.items as sub, j (`${j}/${sub.context ?? ""}/${sub.label ?? ""}`)}
             <li class="menu__item">
               {#if sub.segments}
                 <!-- Choices side by side (a sort's direction): one track, the
@@ -87,7 +87,8 @@
                   >{/if}{#if sub.swatch}<span
                     class="theme-dot menu__swatch"
                     style={`--dot: ${sub.swatch}`}
-                  ></span>{/if}{sub.label}</button
+                  ></span>{/if}{#if sub.context}<span class="menu__context">{sub.context}/</span
+                  >{/if}{sub.label}</button
               >
               {/if}
             </li>

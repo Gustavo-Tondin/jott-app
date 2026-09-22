@@ -134,6 +134,16 @@ describe("noteActionsOf", () => {
     expect(base.setFormatting).toHaveBeenCalledWith(false);
   });
 
+  test("Move to folds the targets it is given, and is absent without any", () => {
+    const run = vi.fn();
+    const moveRows = [{ label: "Work", context: "Notes", run }];
+    const menu = noteActionsOf({ ...base, moveRows });
+    expect(labels(menu).slice(0, 3)).toEqual([S.pin, S.moveTo, S.renameNote]);
+    menu[1].items[0].run();
+    expect(run).toHaveBeenCalled();
+    expect(labels(noteActionsOf(base))).not.toContain(S.moveTo);
+  });
+
   test("a pinned note offers to unpin", () => {
     expect(labels(noteActionsOf({ ...base, pinned: true }))[0]).toBe(S.unpin);
   });

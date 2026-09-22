@@ -3,7 +3,13 @@
   // everything above talks in `value` and `onChange`, as with a `<textarea>`.
   import { onDestroy, onMount } from "svelte";
   import { Compartment, EditorState, Prec } from "@codemirror/state";
-  import { EditorView, keymap, placeholder as placeholderExt, tooltips } from "@codemirror/view";
+  import {
+    drawSelection,
+    EditorView,
+    keymap,
+    placeholder as placeholderExt,
+    tooltips,
+  } from "@codemirror/view";
   import {
     defaultKeymap,
     history,
@@ -290,6 +296,9 @@
           // …and the capital a new list item never got from it: the keyboard
           // reads "- " as the middle of a sentence (services/imeCaps.js).
           plain ? [] : capitalizeAfterMarkers,
+          // One rectangle per line instead of the engine's box per inline
+          // run: a chip, a heading or a blank line no longer bends it.
+          plain ? [] : drawSelection(),
           EditorView.lineWrapping,
           // Air under the cursor when the editor scrolls to it: on a phone the
           // typed line would otherwise sit flush against the keyboard. In px

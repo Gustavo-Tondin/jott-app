@@ -57,6 +57,8 @@ export function noteActionsOf({
   f,
   pinned,
   togglePin,
+  /// The rows of "Move to" (App.svelte's `noteMoveTargets`); empty, no row.
+  moveRows = [],
   rename,
   remove,
   bannerMenu,
@@ -74,6 +76,7 @@ export function noteActionsOf({
   if (readOnly || !isNote) return [];
   const own = [
     ...(f("pinNotes") ? [{ label: pinned ? S.unpin : S.pin, run: togglePin }] : []),
+    ...(moveRows.length ? [{ label: S.moveTo, items: moveRows }] : []),
     { label: S.renameNote, run: rename },
     { label: S.deleteNote, run: remove },
     ...(f("banners") ? [bannerMenu] : []),
