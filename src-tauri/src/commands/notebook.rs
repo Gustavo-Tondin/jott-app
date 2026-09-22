@@ -109,9 +109,12 @@ pub struct NotebookLayout {
     /// a note opens.
     pub format_bar: String,
     pub format_bar_side: String,
-    /// Whether note text is hyphenated as it is drawn. An attribute on the
-    /// document root, so it rides here for the reason the accent does.
+    /// Whether note text is hyphenated as it is drawn, the languages notes
+    /// are written in (the first is a note's default `lang`), and whether the
+    /// editor checks spelling. The notebook's: a fact about the content.
     pub hyphenate_notes: bool,
+    pub languages: Vec<String>,
+    pub check_spelling: bool,
     pub shortcuts: serde_json::Map<String, serde_json::Value>,
     /// Which parts of the app are switched on. Only what was switched OFF is
     /// listed; the frontend's `services/features.js` reads a missing key as
@@ -182,7 +185,9 @@ impl NotebookInfo {
                 mono_font: display.mono_font,
                 format_bar: display.format_bar,
                 format_bar_side: display.format_bar_side,
-                hyphenate_notes: display.hyphenate_notes,
+                hyphenate_notes: config.hyphenate_notes,
+                languages: config.languages.clone(),
+                check_spelling: config.check_spelling,
                 shortcuts: config.shortcuts.clone(),
                 features: config.features.clone(),
             },

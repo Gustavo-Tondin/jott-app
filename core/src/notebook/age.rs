@@ -48,6 +48,8 @@ impl Notebook {
         let folder = self.note_folder(space).ok();
 
         for entry in entries.iter_mut() {
+            // The card's language, from the same head the card draws.
+            entry.lang = crate::writing::drawn(entry.lang.take(), &entry.preview, &self.config.languages);
             entry.seen = seen.at(&super::seen::address_of(space, &entry.path));
             let Some(created) = entry.created else {
                 // No creation date and no way to guess one: a note written by

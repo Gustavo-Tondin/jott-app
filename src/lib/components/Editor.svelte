@@ -90,6 +90,11 @@
     /// greys its table buttons by it. Reported only on the edges, the way
     /// `onSelection` is.
     onTable,
+    /// The language the text is drawn in (`lang` on the content — the
+    /// hyphenation rules follow it; null inherits the page's), and whether
+    /// words are checked. Reconfigured in place, like `readOnly`.
+    lang = null,
+    spellcheck = true,
   } = $props();
 
   let host;
@@ -102,6 +107,10 @@
   /// user's to change: rebinding one in Settings reconfigures this without
   /// tearing the editor down and losing the cursor.
   const formatting = new Compartment();
+  /// `lang` and `spellcheck` on the content element.
+  const writing = new Compartment();
+  const writingAttributes = (tag, check) =>
+    EditorView.contentAttributes.of({ spellcheck: String(check), ...(tag ? { lang: tag } : {}) });
 
   /// Which editor command each id runs. The table is `markdownCommands.js`'s;
   /// only `note.replace` is added here, because it needs the view this
@@ -276,8 +285,8 @@
           EditorView.contentAttributes.of({
             autocapitalize: "sentences",
             autocorrect: "on",
-            spellcheck: "true",
           }),
+          writing.of(writingAttributes(lang, spellcheck)),
           // …and the capital a new list item never got from it: the keyboard
           // reads "- " as the middle of a sentence (services/imeCaps.js).
           plain ? [] : capitalizeAfterMarkers,
@@ -410,6 +419,11 @@
   $effect(() => {
     const keys = formattingKeymap($bound);
     if (!plain) view?.dispatch({ effects: formatting.reconfigure(keys) });
+  });
+
+  $effect(() => {
+    const attrs = writingAttributes(lang, spellcheck);
+    view?.dispatch({ effects: writing.reconfigure(attrs) });
   });
 
   // Read-only follows the prop, which flips as soon as the note has loaded.

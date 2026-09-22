@@ -69,19 +69,42 @@ describe("SettingsView", () => {
     );
   });
 
-  test("hyphenation is offered beside the note's size, and answers to the machine", async () => {
-    // It is DRAWN and never written — the .md file keeps every word whole —
-    // so it belongs with the rest of how a note reads on this screen.
-    bridge({ notebook_settings: settings, set_machine_display: null });
+  test("the languages notes are written in, and what reads them, are the notebook's", async () => {
+    // A fact about the content, so it travels (core/settings.rs): the list in
+    // order, hyphenation and the spell check under it, and a line for each
+    // dictionary this machine lacks.
+    bridge({
+      notebook_settings: { ...settings, languages: ["pt-BR"], hyphenateNotes: true, checkSpelling: true },
+      set_notebook_settings: null,
+      writing_dictionaries: [{ tag: "pt-BR", hyphenation: false, spelling: true }],
+    });
     render(SettingsView, { props: props() });
-    await openSection("Display");
+    await openSection("Notes");
 
-    await userEvent.click(await screen.findByRole("checkbox", { name: "Hyphenate note text" }));
+    expect(
+      await screen.findByText("No hyphenation dictionary for Brazilian Portuguese on this computer"),
+    ).toBeTruthy();
+    expect(screen.queryByText(/No spelling dictionary/)).toBe(null);
+
+    await userEvent.selectOptions(screen.getByLabelText("Add a language…"), "es");
     await waitFor(() =>
-      expect(invoke).toHaveBeenCalledWith("set_machine_display", {
-        display: { hyphenateNotes: true },
+      expect(invoke).toHaveBeenCalledWith("set_notebook_settings", {
+        settings: { languages: ["pt-BR", "es"] },
       }),
     );
+    await userEvent.click(screen.getByRole("button", { name: "Remove Brazilian Portuguese" }));
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("set_notebook_settings", { settings: { languages: [] } }),
+    );
+    await userEvent.click(screen.getByRole("checkbox", { name: "Check spelling" }));
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("set_notebook_settings", {
+        settings: { checkSpelling: false },
+      }),
+    );
+    // No longer beside the note's size: Display is this machine's.
+    await openSection("Display");
+    expect(screen.queryByRole("checkbox", { name: "Hyphenate note text" })).toBe(null);
   });
 
   test("the floating formatting bar's mode and side are this machine's too", async () => {

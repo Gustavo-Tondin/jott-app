@@ -292,6 +292,12 @@ impl Notebook {
         self.note_folder(space)?.set_tags(path, tags)
     }
 
+    /// Sets — or clears, with `None` — the language a note declares.
+    pub fn set_note_lang(&self, space: &str, path: &str, lang: Option<String>) -> Result<()> {
+        self.ensure_writable()?;
+        self.note_folder(space)?.set_lang(path, lang)
+    }
+
     /// Sets — or clears, with `None` — a note's banner.
     pub fn set_note_banner(
         &self,

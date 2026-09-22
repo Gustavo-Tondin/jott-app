@@ -159,6 +159,7 @@
         markdown={entry.preview}
         title={titled ? entry.title : null}
         empty={S.emptyNote}
+        lang={entry.lang}
       />
       <!-- The card's quiet last line: what the note is about on the left,
            when it was last opened on the right. One row, so a card with

@@ -46,6 +46,7 @@ pub mod timeline;
 pub mod trash;
 pub mod version;
 pub mod watcher;
+pub mod writing;
 
 pub use age::{Age, Band, Thresholds};
 pub use assets::{AssetEntry, Assets, ASSETS_DIR};

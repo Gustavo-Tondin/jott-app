@@ -37,6 +37,9 @@ pub struct NoteEntry {
     /// draws it; a note without one is a card with a title and nothing above
     /// it, which is the default.
     pub banner: Option<crate::note::Banner>,
+    /// The language the card is drawn in: what the note declares, until the
+    /// notebook stamps it with what it reads as (`crate::writing::drawn`).
+    pub lang: Option<String>,
     /// When a person last had this note open (`crate::seen`), or `None` for a
     /// note this build has never seen opened. Filled by the notebook, which
     /// is the only thing that holds the index — a folder on its own knows
@@ -126,6 +129,7 @@ impl NoteFolder {
                 pinned: note.pinned,
                 tags: note.tags,
                 banner: note.banner,
+                lang: note.lang,
                 // Stamped by the notebook on the way out (`notebook::age`):
                 // reading a folder answers what is in it, and how old that is
                 // is a question about the notebook around it.
@@ -392,6 +396,11 @@ impl NoteFolder {
 
     pub fn set_pinned(&self, relative: &str, pinned: bool) -> Result<()> {
         self.edit(relative, |note| note.pinned = pinned)
+    }
+
+    /// Sets — or clears, with `None` — the language a note declares (`lang:`).
+    pub fn set_lang(&self, relative: &str, lang: Option<String>) -> Result<()> {
+        self.edit(relative, |note| note.lang = lang.filter(|l| !l.trim().is_empty()))
     }
 
     /// Replaces a note's tags (its `tags:` property); an empty list takes

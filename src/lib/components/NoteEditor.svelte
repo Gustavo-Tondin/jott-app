@@ -49,7 +49,18 @@
     tableLayout = "",
     /// `({header}) | null`, passed straight through (2026-08-24).
     onTable,
+    /// The language the note is drawn in and whether the editor checks
+    /// spelling — passed through. `languages` are the notebook's: with two or
+    /// more, a note too short to read on opening is read again after a save,
+    /// until it tells, and `onDetected(tag)` reports it.
+    lang = null,
+    spellcheck = true,
+    languages = [],
+    onDetected,
   } = $props();
+
+  /// Whether the open note still needs its language read from the text.
+  let undecided = false;
 
   let body = $state("");
   let loading = $state(true);
@@ -78,6 +89,13 @@
       lastWritten = text;
       await api.writeNote(target.folder, target.path, text);
       onSaved?.();
+      if (undecided && languages.length > 1) {
+        const tag = await api.detectLanguage(text);
+        if (tag && undecided && !movedOn(target.folder, target.path)) {
+          undecided = false;
+          onDetected?.(tag);
+        }
+      }
     },
     onError: (e) => onError?.(e),
   });
@@ -133,6 +151,7 @@
       if (movedOn(atFolder, atPath)) return;
       saver.open({ folder: atFolder, path: atPath }, note.body);
       body = note.body;
+      undecided = !note.lang && !note.detected;
       // The shell owns the title and the document actions — they belong to
       // the page header, above the tabs, not to a second bar inside the page.
       // The banner travels with the note but is NOT part of the body: it is
@@ -144,6 +163,8 @@
         banner: note.banner ?? null,
         created: note.created ?? null,
         tags: note.tags ?? [],
+        lang: note.lang ?? null,
+        detected: note.detected ?? null,
       });
     } catch (e) {
       if (reload || movedOn(atFolder, atPath)) return;
@@ -211,5 +232,7 @@
     {tables}
     {tableLayout}
     {onTable}
+    {lang}
+    {spellcheck}
   />
 </div>

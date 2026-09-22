@@ -31,6 +31,7 @@ export const S = {
     move_note_to_space: "Move note",
     set_note_pinned: "Pin note",
     set_note_banner: "Note banner",
+    set_note_lang: "Note language",
     duplicate_note: "Duplicate note",
     create_note_folder: "New folder",
     rename_note_folder: "Rename folder",
@@ -462,9 +463,9 @@ export const S = {
   hyphenateNotesLabel: "Hyphenate note text",
   hyphenateNotesHint:
     "Breaks a long word across two lines so the right edge stops jumping. " +
-    "It only happens on screen: the .md file keeps every word whole. Needs " +
-    "the system's hyphenation rules for the app's language — where they are " +
-    "missing, nothing changes.",
+    "It only happens on screen: the .md file keeps every word whole. Follows " +
+    "each note's language, and needs the system's hyphenation rules for it — " +
+    "where they are missing, nothing changes.",
 
   // The floating formatting bar of an open note. Display, so it answers to
   // this screen. On a phone there is no floating bar: the controls ride
@@ -734,6 +735,26 @@ export const S = {
   tableLayout: "Wide tables",
   tableLayoutFit: "Fit the content width",
   tableLayoutScroll: "Scroll sideways",
+  // The languages notes are WRITTEN in (Notes › Writing) — not the
+  // interface's. Their names come from the platform (services/languages.js).
+  subWriting: "Writing",
+  writingLanguages: "Languages I write in",
+  writingLanguagesHint:
+    "The first is every note's language until a note says otherwise, from " +
+    "its ⋮ → Language. With two or more, a note that doesn't say is read to " +
+    "tell which. Hyphenation follows one language per note; the spell check " +
+    "takes them all.",
+  addWritingLanguage: "Add a language…",
+  removeWritingLanguage: (name) => `Remove ${name}`,
+  checkSpelling: "Check spelling",
+  checkSpellingHint:
+    "Underlines the words no dictionary knows. On Linux it checks against " +
+    "every language above; on Android and Windows the keyboard or the system " +
+    "picks the languages.",
+  noHyphenationDictionary: (name) => `No hyphenation dictionary for ${name} on this computer`,
+  noSpellingDictionary: (name) => `No spelling dictionary for ${name} on this computer`,
+  noteLanguage: "Language",
+  noteLanguageAuto: (name) => `Auto (${name})`,
   noteLayoutHint:
     "How a notes space draws its board until it chooses for itself — each " +
     "space keeps its own choice, from its ⋮ → Layout.",

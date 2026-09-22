@@ -847,6 +847,8 @@
       confirmDeletes: true,
       confirmImageDownloads: true,
       hyphenateNotes: false,
+      languages: [],
+      checkSpelling: true,
       accentColor: "",
       theme: "",
       headingColor: "",
@@ -887,6 +889,15 @@
       showsPicker || !canvasRisen ? "chrome" : "canvas",
       showsPicker ? "chrome" : "canvas",
     );
+  });
+
+  // The spell checker's languages are the webview's, not an attribute: handed
+  // over whenever the notebook's list or switch changes, from anywhere.
+  $effect(() => {
+    if (!notebook) return;
+    void layout.languages?.join();
+    void layout.checkSpelling;
+    api.applySpelling().catch(() => {});
   });
 
   // How many lines of a note a card shows: a NUMBER, so it is a custom
@@ -1193,6 +1204,9 @@
       formatting,
       setFormatting: (on) => (formatting = on),
       formatBarMode,
+      languages: layout.languages ?? [],
+      noteLang: openNote,
+      setNoteLang,
     }),
   );
 
@@ -1235,6 +1249,7 @@
     setNoteTags,
     createNoteTag,
     setNoteBanner,
+    setNoteLang,
     runFormat,
     useImage,
     addFilesToNote,
@@ -2318,6 +2333,7 @@
                 findInNote = null;
               }
             }}
+            onNoteDetected={(detected) => (openNote = { ...openNote, detected })}
             onRemoteImage={(url) => fetchRemoteImage(url)}
             onZoom={setZoom}
             onSwitchNotebook={chooseFolder}

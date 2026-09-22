@@ -294,6 +294,15 @@
     color: var(--app-ink-muted);
   }
 
+  /* The writing languages, in the order chosen — the first is the default.
+     Each chip takes itself off; indented with the options that read them. */
+  .settings__languages {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--app-space-6);
+    padding: var(--app-space-4) 0 var(--app-space-6) var(--app-space-24);
+  }
+
   /* A hairline between rows, so the eye can tell which switch belongs to
      which name — the faintest line the theme has: a reading aid, not a division. */
   .settings__section--features .settings__row + .settings__row {

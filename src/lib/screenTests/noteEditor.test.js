@@ -445,7 +445,15 @@ describe("NoteEditor", () => {
 
     await waitFor(() => expect(seen.length).toBe(1));
     // …and its properties, which the head draws under the title (2026-08-26).
-    expect(seen[0]).toEqual({ pinned: false, title: "Ideia", banner: null, created: "2026-07-21", tags: [] });
+    expect(seen[0]).toEqual({
+      pinned: false,
+      title: "Ideia",
+      banner: null,
+      created: "2026-07-21",
+      tags: [],
+      lang: null,
+      detected: null,
+    });
     // And it draws no header of its own.
     expect(screen.queryByText("← notes")).toBeNull();
     expect(screen.queryByText("Delete")).toBeNull();

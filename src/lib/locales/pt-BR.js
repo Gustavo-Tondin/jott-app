@@ -31,6 +31,7 @@ export default {
       move_note_to_space: "Move note",
       set_note_pinned: "Pin note",
       set_note_banner: "Note banner",
+      set_note_lang: "Note language",
       duplicate_note: "Duplicate note",
       create_note_folder: "New folder",
       rename_note_folder: "Rename folder",
@@ -90,6 +91,7 @@ export default {
       move_note_to_space: "Mover nota",
       set_note_pinned: "Fixar nota",
       set_note_banner: "Banner da nota",
+      set_note_lang: "Idioma da nota",
       duplicate_note: "Duplicar nota",
       create_note_folder: "Nova pasta",
       rename_note_folder: "Renomear pasta",
@@ -699,13 +701,13 @@ export default {
   hyphenateNotesLabel: ["Hyphenate note text", "Hifenizar o texto das notas"],
   hyphenateNotesHint: [
     "Breaks a long word across two lines so the right edge stops jumping. " +
-      "It only happens on screen: the .md file keeps every word whole. Needs " +
-      "the system's hyphenation rules for the app's language — where they are " +
-      "missing, nothing changes.",
+      "It only happens on screen: the .md file keeps every word whole. Follows " +
+      "each note's language, and needs the system's hyphenation rules for it — " +
+      "where they are missing, nothing changes.",
     "Quebra uma palavra longa em duas linhas para a margem direita parar de " +
       "pular. Só acontece na tela: o arquivo .md guarda cada palavra inteira. " +
-      "Precisa das regras de hifenização do sistema para o idioma do app — onde " +
-      "elas faltam, nada muda.",
+      "Segue o idioma de cada nota e precisa das regras de hifenização do " +
+      "sistema para ele — onde elas faltam, nada muda.",
   ],
 
   // The floating formatting bar of an open note
@@ -1030,6 +1032,38 @@ export default {
   tableLayout: ["Wide tables", "Tabelas largas"],
   tableLayoutFit: ["Fit the content width", "Caber na largura do conteúdo"],
   tableLayoutScroll: ["Scroll sideways", "Rolar para o lado"],
+  subWriting: ["Writing", "Escrita"],
+  writingLanguages: ["Languages I write in", "Idiomas em que escrevo"],
+  writingLanguagesHint: [
+    "The first is every note's language until a note says otherwise, from " +
+      "its ⋮ → Language. With two or more, a note that doesn't say is read to " +
+      "tell which. Hyphenation follows one language per note; the spell check " +
+      "takes them all.",
+    "O primeiro é o idioma de toda nota até que ela diga outro, pelo ⋮ → " +
+      "Idioma. Com dois ou mais, a nota que não diz é lida para saber qual é. " +
+      "A hifenização segue um idioma por nota; o corretor usa todos.",
+  ],
+  addWritingLanguage: ["Add a language…", "Adicionar idioma…"],
+  removeWritingLanguage: [(name) => `Remove ${name}`, (name) => `Remover ${name}`],
+  checkSpelling: ["Check spelling", "Verificar ortografia"],
+  checkSpellingHint: [
+    "Underlines the words no dictionary knows. On Linux it checks against " +
+      "every language above; on Android and Windows the keyboard or the system " +
+      "picks the languages.",
+    "Sublinha as palavras que nenhum dicionário conhece. No Linux, confere " +
+      "com todos os idiomas acima; no Android e no Windows, quem escolhe os " +
+      "idiomas é o teclado ou o sistema.",
+  ],
+  noHyphenationDictionary: [
+    (name) => `No hyphenation dictionary for ${name} on this computer`,
+    (name) => `Sem dicionário de hifenização para ${name} neste computador`,
+  ],
+  noSpellingDictionary: [
+    (name) => `No spelling dictionary for ${name} on this computer`,
+    (name) => `Sem dicionário ortográfico para ${name} neste computador`,
+  ],
+  noteLanguage: ["Language", "Idioma"],
+  noteLanguageAuto: [(name) => `Auto (${name})`, (name) => `Automático (${name})`],
   noteLayoutHint: [
     "How a notes space draws its board until it chooses for itself — each " +
       "space keeps its own choice, from its ⋮ → Layout.",

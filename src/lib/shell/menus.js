@@ -3,6 +3,7 @@
 // which is what lets a menu be tested without a notebook open.
 import { NOTE_FONT_SIZES } from "../services/themes.js";
 import { S } from "../services/strings.js";
+import { languageName } from "../services/languages.js";
 
 // The banner row is a note card's too, so it lives with the card's actions.
 export { bannerMenuOf } from "../services/noteActions.js";
@@ -66,6 +67,9 @@ export function noteActionsOf({
   formatting,
   setFormatting,
   formatBarMode,
+  languages = [],
+  noteLang = {},
+  setNoteLang,
 }) {
   if (readOnly || !isNote) return [];
   const own = [
@@ -94,6 +98,26 @@ export function noteActionsOf({
       items: [
         { label: S.formattingDocked, checked: formatting, run: () => setFormatting(true) },
         { label: S.formattingFloating, checked: !formatting, run: () => setFormatting(false) },
+      ],
+    });
+  // Only the notebook's languages, and only when there is a choice: "Auto"
+  // names what the text reads as, and picking one writes `lang:`.
+  const declared = noteLang.lang ?? null;
+  const offered = declared && !languages.includes(declared) ? [...languages, declared] : languages;
+  if (offered.length > 1)
+    own.push({
+      label: S.noteLanguage,
+      items: [
+        {
+          label: S.noteLanguageAuto(languageName(noteLang.detected || languages[0])),
+          checked: !declared,
+          run: () => setNoteLang(null),
+        },
+        ...offered.map((tag) => ({
+          label: languageName(tag),
+          checked: declared === tag,
+          run: () => setNoteLang(tag),
+        })),
       ],
     });
   return own;

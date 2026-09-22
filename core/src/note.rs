@@ -10,13 +10,14 @@ const FENCE: &str = "---";
 
 /// Keys this build owns. Everything else in the block is carried through
 /// untouched.
-const KNOWN_KEYS: [&str; 3] = ["created", "pinned", "tags"];
+const KNOWN_KEYS: [&str; 4] = ["created", "pinned", "tags", "lang"];
 
 /// The property Obsidian writes tags to. Read tolerantly — block form
 /// (`- name` lines), flow form `[a, b]`, bare `a, b` — and written back in
 /// block form, so a vault and a Jott notebook read each other's notes. Tags
 /// live here, never as `#word` in the prose; names go through `normalize_tag`.
 const TAGS_KEY: &str = "tags";
+const LANG_KEY: &str = "lang";
 
 /// How much of the body a card shows: enough to FILL the tallest card the
 /// board draws, because the cut is the card's (note-card.css), which puts the
@@ -75,6 +76,9 @@ pub struct Note {
     pub tags: Vec<String>,
     /// The head of the note, from the first line of the body.
     pub banner: Option<Banner>,
+    /// The language the note says it is written in (`lang: es`), a BCP 47
+    /// tag the app wrote from its own list. Only drawn (`crate::writing`).
+    pub lang: Option<String>,
     /// Frontmatter lines this build does not own, exactly as read.
     pub extra: Vec<String>,
     /// Everything after the frontmatter, verbatim.
@@ -122,6 +126,9 @@ impl Note {
             match parse_entry(line) {
                 Some(("created", value)) => note.created = crate::task::parse_date(value),
                 Some(("pinned", value)) => note.pinned = value.trim() == "true",
+                Some((LANG_KEY, value)) if !value.trim().is_empty() => {
+                    note.lang = Some(value.trim().to_string())
+                }
                 Some((TAGS_KEY, value)) => {
                     in_tags = true;
                     // `[a, b]` or `a, b` on the same line; empty opens a block.
@@ -147,6 +154,9 @@ impl Note {
         }
         if self.pinned {
             fields.push("pinned: true".to_string());
+        }
+        if let Some(lang) = &self.lang {
+            fields.push(format!("{LANG_KEY}: {lang}"));
         }
         if !self.tags.is_empty() {
             fields.push(format!("{TAGS_KEY}:"));
@@ -452,6 +462,16 @@ mod tests {
         let mut note = Note::parse("---\npinned: true\n---\n\nCorpo.\n");
         note.pinned = false;
         assert!(!note.render().contains("pinned"));
+    }
+
+    #[test]
+    fn the_language_round_trips_and_clearing_removes_the_line() {
+        let mut note = Note::parse("---\nlang: es\ncustom: x\n---\n\nHola.\n");
+        assert_eq!(note.lang.as_deref(), Some("es"));
+        assert_eq!(note.render(), "---\nlang: es\ncustom: x\n---\n\nHola.\n");
+        note.lang = None;
+        assert_eq!(note.render(), "---\ncustom: x\n---\n\nHola.\n");
+        assert_eq!(Note::parse("---\nlang:\n---\n\nx").lang, None);
     }
 
     #[test]

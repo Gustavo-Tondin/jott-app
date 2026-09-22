@@ -55,6 +55,9 @@ sys-locale = "0.3"
 # GTK and not two.
 [target.'cfg(target_os = "linux")'.dependencies]
 gtk = "0.18"
+# The spell checker's languages (`commands::notes::apply_spelling`): only the
+# WebKitGTK context takes a list. The version Tauri's webview already links.
+webkit2gtk = "=2.0.2"
 gio = "0.18"
 gdk = "0.18"
 # The notification plugin shows and forgets; on Linux the reminder speaks

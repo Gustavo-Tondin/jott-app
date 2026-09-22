@@ -27,6 +27,11 @@ pub struct NoteContent {
     /// The note's subjects — the `tags:` property (2026-08-26).
     pub tags: Vec<String>,
     pub banner: Option<jott_core::Banner>,
+    /// The language the note declares (`lang:`), and the one its text reads
+    /// as among the notebook's (`jott_core::writing::detect`; `None` is
+    /// undecided). Neither is ever written by opening.
+    pub lang: Option<String>,
+    pub detected: Option<String>,
 }
 
 /// Every note in a notes space, sorted for the board: pinned first, then
@@ -135,6 +140,10 @@ pub async fn read_note<R: Runtime>(
         // this is the ONE command the editor uses to open one. Best effort:
         // an index that could not be written must not keep the note shut.
         let _ = nb.mark_note_seen(&folder, &path);
+        let detected = match note.lang {
+            Some(_) => None,
+            None => jott_core::writing::detect(&note.body, &nb.config().languages),
+        };
         Ok(NoteContent {
             // The core's rule, not a second one: `trim_end_matches(".md")`
             // here used to strip REPEATED suffixes, so a note titled
@@ -146,8 +155,33 @@ pub async fn read_note<R: Runtime>(
             created: note.created.map(|d| d.to_string()),
             tags: note.tags,
             banner: note.banner,
+            lang: note.lang,
+            detected,
         })
     })
+}
+
+/// Which of the notebook's languages a text reads as — asked again after a
+/// save while an open note was too short to tell. `None` is undecided.
+#[tauri::command]
+pub async fn detect_language<R: Runtime>(
+    state: State<'_, AppState>,
+    window: tauri::Window<R>,
+    text: String,
+) -> CommandResult<Option<String>> {
+    state.with_notebook(window.label(), |nb| Ok(jott_core::writing::detect(&text, &nb.config().languages)))
+}
+
+/// Declares — or, with `None`, clears — the language a note is written in.
+#[tauri::command]
+pub async fn set_note_lang<R: Runtime>(
+    state: State<'_, AppState>,
+    window: tauri::Window<R>,
+    folder: String,
+    path: String,
+    lang: Option<String>,
+) -> CommandResult<()> {
+    state.record(window.label(), "set_note_lang", |nb| nb.set_note_lang(&folder, &path, lang))
 }
 
 /// Replaces a note's body. The core adopts today as its creation date if it
@@ -333,4 +367,97 @@ pub async fn create_note_folder<R: Runtime>(
     path: String,
 ) -> CommandResult<()> {
     state.record(window.label(), "create_note_folder", |nb| nb.create_note_folder(&folder, &path))
+}
+
+/// Whether this machine has what the engines need for one writing language.
+/// `None` where the platform gives the app nothing to look at.
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Dictionaries {
+    pub tag: String,
+    pub hyphenation: Option<bool>,
+    pub spelling: Option<bool>,
+}
+
+/// Where WebKitGTK reads hyphenation rules (fixed in the binary) and where
+/// its spell checker (enchant's hunspell) finds dictionaries.
+#[cfg(target_os = "linux")]
+fn dictionary_dirs() -> (Vec<std::path::PathBuf>, Vec<std::path::PathBuf>) {
+    let config = std::env::var_os("XDG_CONFIG_HOME")
+        .map(std::path::PathBuf::from)
+        .or_else(|| std::env::var_os("HOME").map(|h| std::path::Path::new(&h).join(".config")));
+    let mut spelling: Vec<std::path::PathBuf> =
+        ["/usr/share/hunspell", "/usr/share/myspell", "/usr/share/myspell/dicts"]
+            .map(Into::into)
+            .into();
+    spelling.extend(config.map(|c| c.join("enchant/hunspell")));
+    (vec!["/usr/share/hyphen".into()], spelling)
+}
+
+/// For each of the notebook's writing languages, whether its dictionaries
+/// are on this machine — the one way a person learns why nothing changed.
+#[tauri::command]
+pub async fn writing_dictionaries<R: Runtime>(
+    state: State<'_, AppState>,
+    window: tauri::Window<R>,
+) -> CommandResult<Vec<Dictionaries>> {
+    state.with_notebook(window.label(), |nb| {
+        let tags = nb.config().languages.clone();
+        #[cfg(target_os = "linux")]
+        {
+            use jott_core::writing::{has_hyphenation, spelling_dictionary};
+            let (hyphen, spell) = dictionary_dirs();
+            let hyphen: Vec<&std::path::Path> = hyphen.iter().map(|p| p.as_path()).collect();
+            let spell: Vec<&std::path::Path> = spell.iter().map(|p| p.as_path()).collect();
+            Ok(tags
+                .into_iter()
+                .map(|tag| Dictionaries {
+                    hyphenation: Some(has_hyphenation(&hyphen, &tag)),
+                    spelling: Some(spelling_dictionary(&spell, &tag).is_some()),
+                    tag,
+                })
+                .collect())
+        }
+        #[cfg(not(target_os = "linux"))]
+        Ok(tags.into_iter().map(|tag| Dictionaries { tag, hyphenation: None, spelling: None }).collect())
+    })
+}
+
+/// Hands the notebook's writing languages to the webview's spell checker.
+/// Only WebKitGTK takes a list, and it starts with checking OFF; elsewhere the
+/// editor's `spellcheck` attribute is the whole switch. The context is the
+/// app's, so two windows on two notebooks share the last one applied.
+#[tauri::command]
+pub async fn apply_spelling<R: Runtime>(
+    state: State<'_, AppState>,
+    window: tauri::WebviewWindow<R>,
+) -> CommandResult<()> {
+    let (on, tags) = state.with_notebook(window.label(), |nb| {
+        Ok((nb.config().check_spelling, nb.config().languages.clone()))
+    })?;
+    #[cfg(target_os = "linux")]
+    {
+        let (_, spell) = dictionary_dirs();
+        let spell: Vec<&std::path::Path> = spell.iter().map(|p| p.as_path()).collect();
+        let names: Vec<String> = tags
+            .iter()
+            .map(|tag| {
+                jott_core::writing::spelling_dictionary(&spell, tag)
+                    .unwrap_or_else(|| jott_core::writing::dictionary_name(tag))
+            })
+            .collect();
+        window
+            .with_webview(move |webview| {
+                use webkit2gtk::{WebContextExt, WebViewExt};
+                if let Some(context) = webview.inner().context() {
+                    let names: Vec<&str> = names.iter().map(String::as_str).collect();
+                    context.set_spell_checking_languages(&names);
+                    context.set_spell_checking_enabled(on);
+                }
+            })
+            .map_err(|e| crate::error::CommandError::new("platform", e.to_string()))?;
+    }
+    #[cfg(not(target_os = "linux"))]
+    let _ = (on, tags);
+    Ok(())
 }

@@ -612,3 +612,26 @@ fn hyphenation_is_off_by_default_and_round_trips() {
     // notebook from opening.
     assert!(!Config::parse(r#"{ "schemaVersion": 1, "hyphenateNotes": "yes" }"#).hyphenate_notes);
 }
+
+#[test]
+fn writing_languages_round_trip_and_the_default_writes_nothing() {
+    let mut config = Config::default();
+    assert!(config.languages.is_empty());
+    assert!(config.check_spelling, "on by default: the editor always asked for it");
+    assert!(!config.render().contains("\"languages\""), "no language chosen, no key");
+
+    config.languages = vec!["pt-BR".into(), "es".into()];
+    config.check_spelling = false;
+    let back = Config::parse(&config.render());
+    assert_eq!(back.languages, ["pt-BR", "es"]);
+    assert!(!back.check_spelling);
+
+    // Emptied again, the key goes — it does not survive from the file read.
+    let mut emptied = back.clone();
+    emptied.languages.clear();
+    assert!(!emptied.render().contains("\"languages\""));
+
+    // A tag this build does not list round-trips; junk in the array does not.
+    let odd = Config::parse(r#"{ "schemaVersion": 1, "languages": ["tlh", 3, "tlh", " "] }"#);
+    assert_eq!(odd.languages, ["tlh"]);
+}

@@ -16,6 +16,9 @@
     title = null,
     /// What to draw when there is none.
     empty = "",
+    /// The language the note is written in (`NoteEntry.lang`): the preview
+    /// is always hyphenated, and the rules follow it.
+    lang = null,
   } = $props();
 
   let blocks = $derived(previewBlocks(markdown, { title }));
@@ -39,7 +42,13 @@
 </script>
 
 {#if blocks.length > 0}
-  <span class="note-preview" class:note-preview--cut={more} bind:this={root} use:measured={check}>
+  <span
+    class="note-preview"
+    class:note-preview--cut={more}
+    lang={lang || undefined}
+    bind:this={root}
+    use:measured={check}
+  >
     {#each blocks as block}
       {#if block.kind === "rule"}
         <span class="note-preview__rule"></span>

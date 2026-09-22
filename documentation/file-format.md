@@ -135,6 +135,7 @@ One note is one `.md` file. Optional YAML front matter at the very top:
 ---
 created: 2026-07-21
 pinned: true
+lang: es
 tags:
   - briefing
   - client
@@ -154,6 +155,13 @@ or a hashtag you wrote, not a tag. Jott reads the block form above (what
 Obsidian writes), `tags: [a, b]` and `tags: a, b`, and always writes the
 block form back. Names are normalised like a task's (spaces become hyphens,
 a leading `#` is dropped); an empty list takes the key out of the file.
+
+`lang:` is the language the note is written in, a BCP 47 tag (`pt-BR`,
+`es`), and it is only there when you chose one from the note's menu. Without
+it, the note reads as the notebook's first writing language (`languages` in
+`config.json`), or — with two or more — as whichever of them its text looks
+like. Either way it only decides how the text is *drawn*: hyphenation and
+the spell check. Nothing in the file changes with it.
 
 ### Banners
 
@@ -348,9 +356,11 @@ order you dragged things into.
   prompts, feature switches, shortcut bindings, quick-capture destinations,
   sort orders, the fallback appearance, the task panel's offer of the
   fields that are off (`offerTaskFields`), the hour the reminder presets
-  land on (`reminderTime`, `HH:MM`) and the day summary (`daySummary`, a
-  flag, at `daySummaryTime`, `HH:MM`). Written in camelCase, guarded by
-  `schemaVersion`.
+  land on (`reminderTime`, `HH:MM`), the day summary (`daySummary`, a
+  flag, at `daySummaryTime`, `HH:MM`), and the languages the notes are
+  written in (`languages`, BCP 47 tags in the order chosen — the first is
+  every note's default — with `hyphenateNotes` and `checkSpelling` for what
+  reads them). Written in camelCase, guarded by `schemaVersion`.
 
   **`age`** holds where the three ages begin, in days —
   `{ "fresh": 7, "stale": 30, "inboxStale": 7 }`: below `fresh` something is

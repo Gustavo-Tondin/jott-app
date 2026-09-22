@@ -84,6 +84,28 @@ describe("noteActionsOf", () => {
     expect(noteActionsOf({ ...base, readOnly: true })).toEqual([]);
   });
 
+  test("Language offers only the notebook's languages, and only with a choice", () => {
+    const setNoteLang = vi.fn();
+    const withLangs = (languages, noteLang = {}) =>
+      noteActionsOf({ ...base, languages, noteLang, setNoteLang }).find(
+        (item) => item.label === S.noteLanguage,
+      );
+    expect(withLangs([])).toBeUndefined();
+    expect(withLangs(["pt-BR"])).toBeUndefined();
+
+    const menu = withLangs(["pt-BR", "es"], { lang: null, detected: "es" });
+    expect(menu.items.map((i) => i.checked)).toEqual([true, false, false]);
+    expect(menu.items[0].label).toMatch(/^Auto \(/);
+    menu.items[2].run();
+    expect(setNoteLang).toHaveBeenLastCalledWith("es");
+    menu.items[0].run();
+    expect(setNoteLang).toHaveBeenLastCalledWith(null);
+
+    // A language the note declares stays on offer, checked, even off the list.
+    const odd = withLangs(["pt-BR"], { lang: "fr" });
+    expect(odd.items.map((i) => i.checked)).toEqual([false, false, true]);
+  });
+
   test("every feature-gated item goes with its switch", () => {
     const all = labels(noteActionsOf(base));
     expect(all).toEqual([

@@ -90,6 +90,14 @@ export function makeNoteDocument({
       setNote({ ...note(), banner: bannerOf(value) });
     });
 
+  /// Declares the open note's language (`lang:`), or with null goes back to
+  /// the one its text reads as.
+  const setNoteLang = (lang) =>
+    noteAction(async () => {
+      await api.setNoteLang(view().folder, view().path, lang);
+      setNote({ ...note(), lang });
+    });
+
   /// What a formatting button asks for. All but one go straight to the editor,
   /// which owns the cursor; the paperclip asks the SHELL for a file, because
   /// the library is the notebook's and the editor only ever speaks text — the
@@ -212,6 +220,7 @@ export function makeNoteDocument({
     setNoteTags,
     createNoteTag,
     setNoteBanner,
+    setNoteLang,
     runFormat,
     useImage,
     addFilesToNote,

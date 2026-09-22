@@ -331,6 +331,14 @@ export const api = {
   // off. Which of the two a value IS is decided in the core.
   setNoteBanner: (folder, path, banner) =>
     invoke("set_note_banner", { folder, path, banner }),
+  // The language a note declares (`lang:` in its properties), or null to
+  // clear it; which of the notebook's languages a text reads as (null is
+  // undecided); whether this machine has each one's dictionaries; and the
+  // spell checker handed the notebook's list (only WebKitGTK takes one).
+  setNoteLang: (folder, path, lang) => invoke("set_note_lang", { folder, path, lang }),
+  detectLanguage: (text) => invoke("detect_language", { text }),
+  writingDictionaries: () => invoke("writing_dictionaries"),
+  applySpelling: () => invoke("apply_spelling"),
   // Copies a note beside itself, under a free name — the card's "Duplicate".
   duplicateNote: (folder, path) => invoke("duplicate_note", { folder, path }),
   // Moves a note to ANOTHER notes space (the board's bulk "move to"); `moveNote`

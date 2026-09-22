@@ -21,6 +21,7 @@
   import EmptyState from "../components/EmptyState.svelte";
   import { api } from "../services/api.js";
   import { S } from "../services/strings.js";
+  import { noteLangOf } from "../services/languages.js";
 
   let {
     // what the shell holds
@@ -91,6 +92,8 @@
     onSelection,
     onTable,
     onNoteLoaded,
+    /// `(tag) => void` — a note too short to read on opening now reads as `tag`.
+    onNoteDetected,
     onRemoteImage,
     // Settings
     onZoom,
@@ -262,6 +265,10 @@
     tableLayout={layout.tableLayout}
     root={notebook.path}
     onLoaded={onNoteLoaded}
+    onDetected={onNoteDetected}
+    lang={noteLangOf(openNote, layout.languages)}
+    languages={layout.languages ?? []}
+    spellcheck={layout.checkSpelling ?? true}
   />
 {:else if view.kind === "settings"}
   <SettingsView

@@ -1055,3 +1055,32 @@ fn a_conflict_copy_is_discarded_or_adopted_through_the_trash() {
     assert!(notebook.adopt_conflict("../fora.md").is_err());
     assert!(file.exists());
 }
+
+#[test]
+fn a_card_is_drawn_in_the_language_its_note_declares_or_reads_as() {
+    let (dir, mut notebook) = init();
+    let mut config = notebook.config().clone();
+    config.languages = vec!["es".into(), "pt-BR".into()];
+    notebook.set_config(config).unwrap();
+    let notes = dir.path().join("jott.notes/Inbox");
+    let pt = "Não sei se vou ao mercado com a minha irmã, mas é muito provável que sim, \
+        porque também preciso de pão para o café da manhã.";
+    std::fs::write(notes.join("feira.md"), pt).unwrap();
+    std::fs::write(notes.join("curta.md"), "Hola").unwrap();
+    std::fs::write(notes.join("declarada.md"), format!("---\nlang: fr\n---\n\n{pt}")).unwrap();
+
+    let lang_of = |title: &str| {
+        let entries = notebook.notes_in("jott.notes", "").unwrap();
+        entries.into_iter().find(|e| e.title == title).unwrap().lang
+    };
+    assert_eq!(lang_of("feira").as_deref(), Some("pt-BR"), "read from the text");
+    assert_eq!(lang_of("curta").as_deref(), Some("es"), "too short: the first language");
+    assert_eq!(lang_of("declarada").as_deref(), Some("fr"), "what the note says wins");
+
+    // Declaring and clearing touches one line of the file.
+    notebook.set_note_lang("jott.notes", "Inbox/feira.md", Some("es".into())).unwrap();
+    assert!(read(notes.join("feira.md")).starts_with("---\nlang: es\n---\n"));
+    assert_eq!(lang_of("feira").as_deref(), Some("es"));
+    notebook.set_note_lang("jott.notes", "Inbox/feira.md", None).unwrap();
+    assert_eq!(read(notes.join("feira.md")), pt);
+}

@@ -191,6 +191,13 @@ pub struct Config {
     /// the end of a line instead of leaving a ragged hole. Never written: the
     /// file keeps every word whole (the frontend asks the engine, `hyphens`).
     pub hyphenate_notes: bool,
+    /// The languages the notebook is WRITTEN in, BCP 47 tags in the user's
+    /// order — the first is a note's default. A fact about the content, so it
+    /// travels. Not policed: a tag this build does not list round-trips.
+    pub languages: Vec<String>,
+    /// Whether the note editor underlines misspelt words — against every
+    /// language in `languages` where the platform lets the app choose.
+    pub check_spelling: bool,
     /// The user's keyboard bindings, `command id → chord`. Opaque to the
     /// core: kept and handed back untouched, so bindings from a newer build
     /// survive; the frontend ignores what it cannot honour
@@ -290,6 +297,8 @@ impl Default for Config {
             format_bar: String::new(),
             format_bar_side: String::new(),
             hyphenate_notes: false,
+            languages: Vec::new(),
+            check_spelling: true,
             shortcuts: Map::new(),
             close_inspector_on_click_away: false,
             quick_note_folder: crate::notefolder::NOTES_INBOX.to_string(),
@@ -496,6 +505,12 @@ impl Config {
             format_bar: string(&raw, "formatBar").unwrap_or(defaults.format_bar),
             format_bar_side: string(&raw, "formatBarSide").unwrap_or(defaults.format_bar_side),
             hyphenate_notes: flag(&raw, "hyphenateNotes", defaults.hyphenate_notes),
+            languages: raw
+                .get("languages")
+                .and_then(Value::as_array)
+                .map(|tags| crate::writing::tidy(tags.iter().filter_map(Value::as_str)))
+                .unwrap_or_default(),
+            check_spelling: flag(&raw, "checkSpelling", defaults.check_spelling),
             close_inspector_on_click_away: flag(
                 &raw,
                 "closeInspectorOnClickAway",
@@ -600,6 +615,7 @@ impl Config {
                 Value::from(self.close_inspector_on_click_away),
             ),
             ("hyphenateNotes", Value::from(self.hyphenate_notes)),
+            ("checkSpelling", Value::from(self.check_spelling)),
             ("quickNoteFolder", Value::from(self.quick_note_folder.clone())),
             ("quickTaskList", Value::from(self.quick_task_list.clone())),
             ("tasksShowAll", Value::from(self.tasks_show_all)),
@@ -653,6 +669,13 @@ impl Config {
                 (!value.is_empty()).then(|| Value::from(value.clone())),
             );
         }
+        // No language chosen is the default, and writes nothing.
+        put_or_clear(
+            &mut owned,
+            &mut cleared,
+            "languages",
+            (!self.languages.is_empty()).then(|| Value::from(self.languages.clone())),
+        );
         // The maps this build owns WHOLE are cleared first, content or not,
         // so the map that goes in is the map that comes out: merged into what
         // the file had, a REMOVAL (a feature back to default, an unbound

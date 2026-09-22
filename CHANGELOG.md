@@ -11,6 +11,7 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 ### New
 
 - **Jott speaks Portuguese (Brazil).** Pick the language under Settings → Display, or let it follow the system.
+- **Tell Jott which languages you write in** (Settings → Notes → Writing) and each note is hyphenated in its own language — chosen from the note's menu, or read from the text when you write in more than one. On Linux the spell check now works, and checks every language on the list at once.
 
 ### Improved
 
