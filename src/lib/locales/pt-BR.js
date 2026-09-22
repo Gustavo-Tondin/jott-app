@@ -1605,7 +1605,7 @@ export default {
   dontAskAgain: ["Don’t ask again", "Não perguntar de novo"],
   goesToTrash: [
     "It goes to the trash, and can be restored from there.",
-    "Vai para a lixeira, e pode ser restaurado de lá.",
+    "Vai para a lixeira, e pode ser restaurado.",
   ],
   assetInUseWarning: [
     (n) =>
