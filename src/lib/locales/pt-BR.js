@@ -798,17 +798,465 @@ export default {
   formatBlocks: ["Block", "Bloco"],
   formatLists: ["List", "Lista"],
   formatInsert: ["Insert", "Inserir"],
+  formatTable: ["Table", "Tabela"],
+  cmdTableInsert: ["Insert table", "Inserir tabela"],
+  cmdTableAddColumn: ["Add column to the right", "Adicionar coluna à direita"],
+  cmdTableAddRow: ["Add row below", "Adicionar linha abaixo"],
+  cmdTableDeleteColumn: ["Delete column", "Excluir coluna"],
+  cmdTableDeleteRow: ["Delete row", "Excluir linha"],
+  cmdTableResetWidths: ["Reset column widths", "Redefinir larguras das colunas"],
+  cmdTableDelete: ["Delete table", "Excluir tabela"],
+  tableColumn: ["Column", "Coluna"],
+  tableCell: ["Table cell", "Célula da tabela"],
+  tableHeaderCell: ["Header cell", "Célula de cabeçalho"],
+  tableMoveColumn: ["Move column", "Mover coluna"],
+  tableMoveRow: ["Move row", "Mover linha"],
+  tableResizeColumn: [
+    "Drag to resize, double-click to reset",
+    "Arraste para redimensionar, clique duas vezes para redefinir",
+  ],
+  copyCode: ["Copy code", "Copiar código"],
+  codeCopied: ["Copied", "Copiado"],
 
   // Settings
+  settings: ["Settings", "Configurações"],
+  settingsSaved: ["Saved.", "Salvo."],
+  settingsSections: ["Settings", "Configurações"],
+  settingsFunctions: ["App functions", "Funções do app"],
+  sectionNative: ["Native Functions", "Funções nativas"],
+  sectionNativeHint: [
+    "Everything Jott can do. Switching one off takes it out of the whole " +
+      "interface — sidebar, tabs, buttons — and touches nothing on disk: your " +
+      "files keep every field, and it all comes back when you switch it on.",
+    "Tudo o que o Jott sabe fazer. Desligar uma função a tira da interface " +
+      "inteira — barra lateral, abas, botões — e não toca em nada no disco: seus " +
+      "arquivos guardam cada campo, e tudo volta quando você a liga de novo.",
+  ],
+  openFunction: [(name) => `${name} options`, (name) => `Opções de ${name}`],
+  sectionDates: ["Date preferences", "Preferências de data"],
+  sectionDay: ["Day and calendar", "Dia e calendário"],
+  sectionDisplay: ["Display", "Exibição"],
+  sectionDisplayHint: [
+    "These answer for this device, not for the notebook — a phone can be dark " +
+      "while the desktop stays in Jott's own. Until one is chosen here, the " +
+      "notebook's own choice is what shows.",
+    "Estas respondem por este aparelho, não pelo caderno — um celular pode " +
+      "ficar escuro enquanto o computador fica no modo do Jott. Até uma ser " +
+      "escolhida aqui, vale a escolha do caderno.",
+  ],
+  sectionNotebook: ["Notebook", "Caderno"],
+  rolloverMode: ["At midnight, unfinished tasks", "À meia-noite, as tarefas não terminadas"],
+  rolloverModeReset: ["go back to suggestions", "voltam para as sugestões"],
+  rolloverModeCarry: ["stay pulled", "continuam no dia"],
+  weekStartsOn: ["Week starts on", "A semana começa em"],
+  subCalendar: ["Calendar", "Calendário"],
+  datedTasksJoinPeriod: [
+    "A task with a date joins its day",
+    "Uma tarefa com data entra no seu dia",
+  ],
+  datedTasksJoinPeriodHint: [
+    "On by default: a task dated for the 5th shows up on the 5th on its own, " +
+      "and one that is overdue shows up today. Nothing is written to the " +
+      "notebook — take the date away and it leaves. Off, a day is a 100% " +
+      "deliberate choice and a date only ranks the suggestions.",
+    "Ligado por padrão: uma tarefa com data para o dia 5 aparece sozinha no " +
+      "dia 5, e uma atrasada aparece hoje. Nada é escrito no caderno — tire a " +
+      "data e ela sai. Desligado, um dia é 100% escolha sua e a data só ordena " +
+      "as sugestões.",
+  ],
+  monday: ["Monday", "Segunda-feira"],
+  sunday: ["Sunday", "Domingo"],
   dateFormat: ["Date format", "Formato de data"],
   language: ["Language", "Idioma"],
   languageSystem: ["System", "Sistema"],
   mode: ["Mode", "Modo"],
+  modeJott: ["Jott", "Jott"],
+  modeJottHint: ["Black frame, white page.", "Moldura preta, página branca."],
+  modeLight: ["Light", "Claro"],
+  modeLightHint: ["Light throughout.", "Claro em tudo."],
+  modeDark: ["Dark", "Escuro"],
+  modeDarkHint: ["Dark throughout.", "Escuro em tudo."],
   theme: ["Theme", "Tema"],
+  themeJott: ["Jott", "Jott"],
+  themeJottMeta: ["the app's own", "o do próprio app"],
+  themesFromNotebookHint: [
+    "A theme is a .css file — or a folder with theme.css inside — in " +
+      ".jott/themes/. It sets the colours, spacing and radius, and wears any " +
+      "mode. Saving the file repaints the app.",
+    "Um tema é um arquivo .css — ou uma pasta com theme.css dentro — em " +
+      ".jott/themes/. Ele define as cores, o espaçamento e o raio, e veste " +
+      "qualquer modo. Salvar o arquivo repinta o app.",
+  ],
+  themeBy: [(author) => `by ${author}`, (author) => `por ${author}`],
+  themeNeedsNewerApp: [
+    (version) =>
+      `Made for Jott ${version} or newer — parts of the app may go unpainted.`,
+    (version) =>
+      `Feito para o Jott ${version} ou mais novo — partes do app podem ficar sem pintura.`,
+  ],
+  themeUnreadable: [
+    "This one could not be read. The app is wearing its own.",
+    "Não foi possível ler este. O app está usando o próprio.",
+  ],
+  newThemeAction: ["New theme from this one", "Novo tema a partir deste"],
+  themeBlockedRefs: [
+    (n) =>
+      n === 1
+        ? "1 address pointing off this machine was blocked."
+        : `${n} addresses pointing off this machine were blocked.`,
+    (n) =>
+      n === 1
+        ? "1 endereço apontando para fora desta máquina foi bloqueado."
+        : `${n} endereços apontando para fora desta máquina foram bloqueados.`,
+  ],
+  accentColor: ["Accent colour", "Cor de destaque"],
+  headingColor: ["Headings", "Títulos"],
+  headingColorAccent: ["Accent", "Destaque"],
+  headingColorAccentHint: [
+    "Titles take the colour of the place they live in.",
+    "Os títulos ganham a cor do lugar onde moram.",
+  ],
+  headingColorInk: ["Ink", "Tinta"],
+  headingColorInkHint: [
+    "Titles in plain text colour, like a document.",
+    "Títulos na cor do texto, como num documento.",
+  ],
+  restoreLastScreen: ["Reopen on the last screen", "Reabrir na última tela"],
+  showListCounts: [
+    "Show task counts in the sidebar",
+    "Mostrar a contagem de tarefas na barra lateral",
+  ],
+  autoUrgentByDate: ["Treat overdue tasks as urgent", "Tratar tarefas atrasadas como urgentes"],
+  newTasksGoTo: ["New tasks go to", "Tarefas novas vão para"],
+  newTasksTop: ["Top of the list", "O topo da lista"],
+  newTasksBottom: ["Bottom of the list", "O fim da lista"],
+  autoUrgentByDateHint: [
+    "The #urgent tag written by hand always counts, either way.",
+    "A tag #urgent escrita à mão sempre conta, de um jeito ou de outro.",
+  ],
+  dayNotice: ["Day summary", "Resumo do dia"],
+  dayNoticeTime: ["Summary time", "Horário do resumo"],
+  dayNoticeHint: [
+    "One notification at the start of the day, listing the tasks the day holds. " +
+      "A task only rings on its own if you gave it a reminder.",
+    "Uma notificação no começo do dia, listando as tarefas que o dia tem. " +
+      "Uma tarefa só toca sozinha se você deu um lembrete a ela.",
+  ],
+  reminderTime: ["Reminder time", "Horário do lembrete"],
+  reminderTimeHint: [
+    "The hour the task panel's reminder presets land on.",
+    "O horário em que caem os lembretes prontos do painel da tarefa.",
+  ],
+  reminderNotifications: ["Notifications", "Notificações"],
+  reminderNotificationsHint: [
+    "Reminders and the day summary are notifications. Blocked, nothing rings.",
+    "Lembretes e o resumo do dia são notificações. Bloqueadas, nada toca.",
+  ],
+  reminderExactAlarms: ["Exact alarms", "Alarmes exatos"],
+  reminderExactAlarmsHint: [
+    "Without them Android rings a reminder when it saves the battery best, minutes late.",
+    "Sem eles o Android toca o lembrete quando for melhor para a bateria, minutos depois.",
+  ],
+  reminderAccessAllowed: ["Allowed", "Permitido"],
+  reminderAccessBlocked: ["Blocked", "Bloqueado"],
+  reminderAccessAllow: ["Allow", "Permitir"],
+  closeToTray: [
+    "Keep Jott running in the tray when the window closes",
+    "Manter o Jott na bandeja quando a janela fechar",
+  ],
+  closeToTrayHint: [
+    "Reminders ring while Jott waits in the tray. On GNOME the tray icon needs the AppIndicator extension.",
+    "Os lembretes tocam enquanto o Jott espera na bandeja. No GNOME, o ícone da bandeja precisa da extensão AppIndicator.",
+  ],
+  autostart: ["Start Jott with the system", "Iniciar o Jott com o sistema"],
+  autostartHint: ["Opens hidden in the tray.", "Abre escondido na bandeja."],
+  quitApp: ["Quit Jott", "Sair do Jott"],
+  closeOnClickAway: [
+    "Close the task panel when clicking outside",
+    "Fechar o painel da tarefa ao clicar fora",
+  ],
+  quickNoteFolder: ["Quick note goes to", "A nota rápida vai para"],
+
+  // The function pages
+  subColours: ["Colours", "Cores"],
+  subText: ["Text", "Texto"],
+  subEditor: ["Editor", "Editor"],
+  subInterface: ["Interface", "Interface"],
+  subLocation: ["Location", "Local"],
+  subSafety: ["Safety", "Segurança"],
+  resetSection: ["Reset this section", "Redefinir esta seção"],
+  resetSectionTitle: ["Reset this section?", "Redefinir esta seção?"],
+  resetSectionDetail: [
+    "Every option on this page goes back to what the app ships with.",
+    "Todas as opções desta página voltam ao que o app traz.",
+  ],
+  resetSectionAction: ["Reset", "Redefinir"],
+  subKeeping: ["Keeping", "Retenção"],
+  notebookContents: ["Notebook contents", "Conteúdo do caderno"],
+  notebookContentsLine: [
+    ({ notes, tasks, files, bytes }) => {
+      const n = (count, one, many) => `${count} ${count === 1 ? one : many}`;
+      const mb = bytes / (1024 * 1024);
+      const size = mb < 0.1 ? `${Math.ceil(bytes / 1024)} KB` : `${mb.toFixed(1)} MB`;
+      return `${n(notes, "note", "notes")} \u00b7 ${n(tasks, "task", "tasks")} \u00b7 ${n(files, "file", "files")} \u00b7 ${size}`;
+    },
+    ({ notes, tasks, files, bytes }) => {
+      const n = (count, one, many) => `${count} ${count === 1 ? one : many}`;
+      const mb = bytes / (1024 * 1024);
+      const size = mb < 0.1 ? `${Math.ceil(bytes / 1024)} KB` : `${mb.toFixed(1).replace(".", ",")} MB`;
+      return `${n(notes, "nota", "notas")} · ${n(tasks, "tarefa", "tarefas")} · ${n(files, "arquivo", "arquivos")} · ${size}`;
+    },
+  ],
+  shortcutFilter: ["Filter commands", "Filtrar comandos"],
+  subScreens: ["Screens", "Telas"],
+  subBehaviour: ["Behaviour", "Comportamento"],
+  subFields: ["Fields", "Campos"],
+  subNoteHas: ["What a note can have", "O que uma nota pode ter"],
+  noteLayout: ["Notes board layout", "Layout do quadro de notas"],
+  subTasksScreen: ["Tasks screen", "Tela de tarefas"],
+  allListsTitle: ["All lists", "Todas as listas"],
+  tasksShowAll: ["Tasks screen shows", "A tela de tarefas mostra"],
+  tasksShowAllInbox: ["the Inbox only", "só a Inbox"],
+  tasksShowAllEvery: ["every list, arranged by space", "todas as listas, arrumadas por space"],
+  moreFieldsTitle: ["Tasks can do more", "Tarefas podem fazer mais"],
+  moreFieldsBody: [
+    (names) => `Switched off right now: ${names}.`,
+    (names) => `Desligados agora: ${names}.`,
+  ],
+  moreFieldsOpen: ["Add functions", "Adicionar funções"],
+  moreFieldsDismiss: ["Not now", "Agora não"],
+  quickTasksGoTo: ["Quick tasks go to", "Tarefas rápidas vão para"],
+  subTables: ["Tables", "Tabelas"],
+  tableLayout: ["Wide tables", "Tabelas largas"],
+  tableLayoutFit: ["Fit the content width", "Caber na largura do conteúdo"],
+  tableLayoutScroll: ["Scroll sideways", "Rolar para o lado"],
+  noteLayoutHint: [
+    "How a notes space draws its board until it chooses for itself — each " +
+      "space keeps its own choice, from its ⋮ → Layout.",
+    "Como um space de notas desenha o quadro até escolher por conta própria — " +
+      "cada space guarda a sua escolha, no ⋮ → Layout.",
+  ],
+  subImages: ["Images", "Imagens"],
+  featureBannersHint: [
+    "The colour or picture at the head of a note. Off, the editor draws no " +
+      "band and the card is title and preview — the <!--banner:--> line in the " +
+      "file stays exactly where it is.",
+    "A cor ou a imagem no topo de uma nota. Desligado, o editor não desenha " +
+      "a faixa e o cartão é título e prévia — a linha <!--banner:--> no " +
+      "arquivo fica exatamente onde está.",
+  ],
+  confirmDeletes: ["Ask before deleting", "Perguntar antes de excluir"],
+  confirmDeletesHint: [
+    "Nothing is destroyed either way: a deleted note, list, space or file " +
+      "goes to .jott/trash/ and comes back to where it was.",
+    "Nada é destruído de um jeito ou de outro: uma nota, lista, space ou " +
+      "arquivo excluído vai para .jott/trash/ e volta para onde estava.",
+  ],
+  confirmImageDownloads: [
+    "Ask before downloading an image",
+    "Perguntar antes de baixar uma imagem",
+  ],
+  confirmImageDownloadsHint: [
+    "Pasting a picture copied from a web page hands Jott an address, not a " +
+      "file, so drawing it means fetching it. The question says which site is " +
+      "being contacted.",
+    "Colar uma imagem copiada de uma página da web entrega ao Jott um " +
+      "endereço, não um arquivo, então desenhá-la significa buscá-la. A " +
+      "pergunta diz qual site está sendo contatado.",
+  ],
+
+  // Notebook / Location
+  openNotebookFolder: ["Open notebook folder", "Abrir a pasta do caderno"],
+  openNotebookFolderAction: ["Open", "Abrir"],
+  switchNotebook: ["Switch notebook", "Trocar de caderno"],
+  switchNotebookAction: ["Choose…", "Escolher…"],
+
+  // Display / Text
+  interfaceZoom: ["Interface zoom", "Zoom da interface"],
+  interfaceZoomHint: ["The same thing Ctrl + and Ctrl − do.", "O mesmo que Ctrl + e Ctrl − fazem."],
+
+  // Display / Interface
+  cardHeightLabel: ["Note card height", "Altura do cartão de nota"],
+  cardHeightHint: [
+    "How much of a note a card on the board shows before it stops. The rest " +
+      "of the note is always there — the card ends with an ellipsis.",
+    "Quanto de uma nota um cartão do quadro mostra antes de parar. O resto " +
+      "da nota continua lá — o cartão termina em reticências.",
+  ],
+  cardLinesValue: [(lines) => `${lines} lines`, (lines) => `${lines} linhas`],
+
+  // The search over every row of every page
+  settingsSearch: ["Search settings", "Buscar nas configurações"],
+  settingsSearchEmpty: ["Nothing here matches that.", "Nada aqui corresponde a isso."],
+  interfaceFontLabel: ["Interface font", "Fonte da interface"],
+  noteFontLabel: ["Note font", "Fonte das notas"],
+  monoFontLabel: ["Monospace font", "Fonte monoespaçada"],
+  fontDefault: [(name) => `Default (${name})`, (name) => `Padrão (${name})`],
+  fontDefaultNote: ["Same as the interface", "A mesma da interface"],
+  fontGeneric: ["This system", "Deste sistema"],
+  fontInstalled: ["Installed", "Instaladas"],
+  fontsNotListed: [
+    "Installed fonts are only listed on Linux.",
+    "As fontes instaladas só são listadas no Linux.",
+  ],
+  settingsSearchIn: [(section) => `in ${section}`, (section) => `em ${section}`],
+  completedRetention: ["Clear completed after (days)", "Limpar concluídas depois de (dias)"],
+  completedRetentionHint: [
+    "A finished task leaves its Completed list after this many days and waits " +
+      "in the trash, so it is still recoverable. 0 keeps it forever.",
+    "Uma tarefa terminada sai da lista de Concluídas depois de tantos dias e " +
+      "espera na lixeira, então ainda dá para recuperá-la. 0 guarda para sempre.",
+  ],
+  trashRetentionHint: [
+    "0 keeps deleted items until you clear them yourself.",
+    "0 guarda os itens excluídos até você mesmo limpá-los.",
+  ],
+  trashRetention: ["Empty the trash after (days)", "Esvaziar a lixeira depois de (dias)"],
+  notebookPath: ["Folder", "Pasta"],
+  readOnlyNotice: [
+    "This notebook was written by a newer version of Jott and is open for reading only.",
+    "Este caderno foi escrito por uma versão mais nova do Jott e está aberto somente para leitura.",
+  ],
+
+  // About
+  sectionAbout: ["About", "Sobre"],
+  subVersion: ["Version", "Versão"],
+  subSystem: ["System", "Sistema"],
+  subHelp: ["Help", "Ajuda"],
+  yourFiles: ["Your files", "Seus arquivos"],
+  yourFilesHint: [
+    "Every notebook documents its own format, in plain text, inside " +
+      ".jott/_FORMAT.txt — so your notes stay readable without Jott.",
+    "Todo caderno documenta o próprio formato, em texto puro, dentro de " +
+      ".jott/_FORMAT.txt — assim suas notas continuam legíveis sem o Jott.",
+  ],
+  yourFilesAction: ["Open the folder", "Abrir a pasta"],
+  reportIssue: ["Report an issue", "Relatar um problema"],
+  reportIssueAction: ["Open GitHub", "Abrir o GitHub"],
+  updateVersion: ["Version", "Versão"],
+  updateAutoCheck: ["Check for updates automatically", "Procurar atualizações automaticamente"],
+  updateAutoCheckHint: [
+    "Once a day, Jott asks github.com for the number of the latest release — the only connection the app ever makes, and nothing about you or your notebook travels with it. Off means checking stays yours, with the button below.",
+    "Uma vez por dia, o Jott pergunta ao github.com o número da versão mais recente — a única conexão que o app faz, e nada sobre você ou seu caderno vai junto. Desligado, procurar fica por sua conta, com o botão abaixo.",
+  ],
+  updateCheckNow: ["Check now", "Procurar agora"],
+  updateChecking: ["Checking…", "Procurando…"],
+  updateUpToDate: ["You have the latest version.", "Você tem a versão mais recente."],
+  updateAvailable: [
+    (version) => `Version ${version} is available.`,
+    (version) => `A versão ${version} está disponível.`,
+  ],
+  updateBanner: [
+    (version) => `A new version of Jott is out: ${version}.`,
+    (version) => `Saiu uma versão nova do Jott: ${version}.`,
+  ],
+  updateInstall: ["Update and restart", "Atualizar e reiniciar"],
+  updateInstalling: ["Updating…", "Atualizando…"],
+  updateDownload: ["Download", "Baixar"],
+  updateDismiss: ["Later", "Depois"],
+
+  // The application menu
+  menuEntryBanner: [
+    "Jott is running as a single file, so it is not in your applications menu yet.",
+    "O Jott está rodando como um arquivo só, então ainda não está no seu menu de aplicativos.",
+  ],
+  menuEntryAdd: ["Add to menu", "Adicionar ao menu"],
+  menuEntryAdding: ["Adding…", "Adicionando…"],
+  menuEntryDismiss: ["No thanks", "Não, obrigado"],
+  menuEntryLabel: ["Show in applications menu", "Mostrar no menu de aplicativos"],
+  menuEntryHint: [
+    "Writes a launcher and an icon into your home folder (~/.local/share) so Jott shows up in the applications list and in search, the way an installed app does. It points at this file where it is now — move the file and switch this off and on again. Nothing outside your home folder is touched.",
+    "Grava um atalho e um ícone na sua pasta pessoal (~/.local/share) para o Jott aparecer na lista de aplicativos e na busca, como um app instalado. Ele aponta para este arquivo onde ele está agora — se mover o arquivo, desligue e ligue isto de novo. Nada fora da sua pasta pessoal é tocado.",
+  ],
 
   // Shell
   home: ["Home", "Início"],
   tasks: ["Tasks", "Tarefas"],
+  inboxTab: ["Inbox", "Inbox"],
+  openInNewTab: ["open in new tab", "abrir em nova aba"],
+  openInNewTabItem: ["Open in new tab", "Abrir em nova aba"],
+  closeTab: ["close tab", "fechar aba"],
+  newTab: ["new tab", "nova aba"],
+
+  // Title bar window controls (frameless window)
+  minimizeWindow: ["minimize", "minimizar"],
+  maximizeWindow: ["maximize", "maximizar"],
+  closeWindow: ["close window", "fechar janela"],
+  goBack: ["back", "voltar"],
+  goForward: ["forward", "avançar"],
+  pageMenu: ["page menu", "menu da página"],
+
+  // The compact shell (below 768px)
+  openTabs: [
+    (count) => (count === 1 ? "1 open tab" : `${count} open tabs`),
+    (count) => (count === 1 ? "1 aba aberta" : `${count} abas abertas`),
+  ],
+  openSidebar: ["open sidebar", "abrir barra lateral"],
+  closeSheet: ["close", "fechar"],
+  closeComposer: ["close the new task bar", "fechar a barra de nova tarefa"],
+  noteFindPlaceholder: ["Find", "Buscar"],
+  noteReplacePlaceholder: ["Replace with", "Substituir por"],
+  findNext: ["next match", "próxima ocorrência"],
+  findPrevious: ["previous match", "ocorrência anterior"],
+  findOptions: ["search options", "opções de busca"],
+  findMatchCase: ["Match case", "Diferenciar maiúsculas"],
+  findByWord: ["Whole words", "Palavras inteiras"],
+  findRegexp: ["Regular expression", "Expressão regular"],
+  findClose: ["close search", "fechar busca"],
+  replaceOne: ["Replace", "Substituir"],
+  replaceAll: ["All", "Todas"],
+  capture: ["new", "novo"],
+  task: ["Task", "Tarefa"],
+  note: ["Note", "Nota"],
+  todaysTasks: ["Today tasks", "Tarefas de hoje"],
+  todaysNotes: ["Today notes", "Notas de hoje"],
+  dayTasks: [(day) => `${day} tasks`, (day) => `Tarefas de ${day}`],
+  shortDay: [
+    (month, day) => `${month.slice(0, 3)} ${day}`,
+    (month, day) => `${day} ${month.slice(0, 3).toLowerCase()}`,
+  ],
+  backToToday: ["back to today", "voltar para hoje"],
+  previousWeek: ["previous week", "semana anterior"],
+  nextWeek: ["next week", "próxima semana"],
+  showOverview: ["show the day's summary", "mostrar o resumo do dia"],
+  hideOverview: ["hide the day's summary", "esconder o resumo do dia"],
+  showWeek: ["show the week", "mostrar a semana"],
+  hideWeek: ["show less", "mostrar menos"],
+  goodMorning: ["Good morning", "Bom dia"],
+  goodAfternoon: ["Good afternoon", "Boa tarde"],
+  goodEvening: ["Good evening", "Boa noite"],
+  tasksDone: [
+    (done, total) => `${done} of ${total} ${total === 1 ? "task" : "tasks"} done today.`,
+    (done, total) => `${done} de ${total} ${total === 1 ? "tarefa concluída" : "tarefas concluídas"} hoje.`,
+  ],
+  daySummary: [
+    ({ done, created, notes }) =>
+      [
+        `${done} ${done === 1 ? "task" : "tasks"} completed`,
+        `${created} ${created === 1 ? "task" : "tasks"} created`,
+        `${notes} ${notes === 1 ? "note" : "notes"} created`,
+      ].join(", ") + ".",
+    ({ done, created, notes }) =>
+      [
+        `${done} ${done === 1 ? "tarefa concluída" : "tarefas concluídas"}`,
+        `${created} ${created === 1 ? "tarefa criada" : "tarefas criadas"}`,
+        `${notes} ${notes === 1 ? "nota criada" : "notas criadas"}`,
+      ].join(", ") + ".",
+  ],
+  tasksPlanned: [
+    (n) => `${n} ${n === 1 ? "task" : "tasks"} planned.`,
+    (n) => `${n} ${n === 1 ? "tarefa planejada" : "tarefas planejadas"}.`,
+  ],
+  nothingThatDay: ["Nothing happened that day.", "Nada aconteceu neste dia."],
+  inboxNotes: ["Inbox notes", "Notas da Inbox"],
+  inboxTasks: ["Inbox tasks", "Tarefas da Inbox"],
+  quickNoteTo: ["to", "Salvar em"],
+  quickNotesGoTo: ["Quick notes go to", "Notas rápidas vão para"],
+  notesOptions: ["notes options", "opções das notas"],
+  noNotesToday: ["No notes written today.", "Nenhuma nota escrita hoje."],
+  collapseSidebar: ["collapse sidebar", "recolher barra lateral"],
+  expandSidebar: ["expand sidebar", "expandir barra lateral"],
+  untitled: ["Untitled", "Sem título"],
 
   // Notes
   notes: ["Notes", "Notas"],
