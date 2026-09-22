@@ -1260,8 +1260,124 @@ export default {
 
   // Notes
   notes: ["Notes", "Notas"],
+  newNote: ["New note", "Nova nota"],
+  newNoteTitle: ["New note", "Nova nota"],
+  promptNewNote: ["Title of the new note:", "Título da nova nota:"],
+  promptRenameNote: [
+    (title) => `New title for "${title}":`,
+    (title) => `Novo título para “${title}”:`,
+  ],
+  promptNewNoteFolder: ["Name of the new folder:", "Nome da nova pasta:"],
+  newNoteFolder: ["New group", "Novo grupo"],
+  folderOptions: ["folder options", "opções da pasta"],
+  renameFolder: ["Rename", "Renomear"],
+  deleteFolder: ["Delete", "Excluir"],
+  promptRenameFolder: [(name) => `New name for "${name}":`, (name) => `Novo nome para “${name}”:`],
+  confirmDeleteFolder: [
+    (name) =>
+      `Delete the folder "${name}"? Its notes and subfolders move up one level — nothing is deleted.`,
+    (name) =>
+      `Excluir a pasta “${name}”? As notas e subpastas dela sobem um nível — nada é excluído.`,
+  ],
+  folderEmptied: [
+    (count, name) =>
+      `${count} item(s) from "${name}" moved up one level.`,
+    (count, name) =>
+      `${count} item(ns) de “${name}” subiram um nível.`,
+  ],
+  confirmDeleteNote: [
+    (title) => `Delete "${title}"? This cannot be undone.`,
+    (title) => `Excluir “${title}”? Isso não pode ser desfeito.`,
+  ],
+  noNotes: ["No notes yet.", "Nenhuma nota ainda."],
+  allNotes: ["All notes", "Todas as notas"],
+  emptyNote: ["Empty note", "Nota vazia"],
+  pin: ["Pin", "Fixar"],
+  unpin: ["Unpin", "Desafixar"],
+  deleteNote: ["Delete", "Excluir"],
+  renameNote: ["Rename", "Renomear"],
+  noteBodyPlaceholder: ["Write here…", "Escreva aqui…"],
+  layout: ["Layout", "Layout"],
+  gridView: ["Grid", "Grade"],
+  treeView: ["Folders", "Pastas"],
+  quickNote: ["Quick note…", "Nota rápida…"],
+  addNote: ["Create the note", "Criar a nota"],
+  duplicateNote: ["Duplicate", "Duplicar"],
+
+  // Lists
+  newTaskPlaceholder: ["New task…", "Nova tarefa…"],
+  addTask: ["Add", "Adicionar"],
+  emptyList: ["No tasks in this list.", "Nenhuma tarefa nesta lista."],
+  pullToToday: ["→ Today", "→ Hoje"],
+
+  // The day
+  suggestionsTitle: ["Suggestions", "Sugestões"],
+  suggestionsForDay: ["Suggestions for today", "Sugestões para hoje"],
+  suggestionsFor: [(day) => `Suggestions for ${day}`, (day) => `Sugestões para ${day}`],
+  noSuggestions: ["No tasks available.", "Nenhuma tarefa disponível."],
+  groupUrgent: ["Urgent", "Urgente"],
+  groupSoon: ["Soon", "Em breve"],
+  groupRecent: ["Pulled recently", "Puxadas recentemente"],
+  pull: ["pull", "puxar"],
+
+  // Completed
+  nothingCompleted: ["Nothing completed yet.", "Nada concluído ainda."],
+  goesBackTo: [(name) => `back to ${name}`, (name) => `volta para ${name}`],
+
+  // THE ACTION RING (components/ActionRing
+  ringComplete: ["Complete", "Concluir"],
+  ringReopen: ["Reopen", "Reabrir"],
+  ringDay: ["My Day", "Meu dia"],
+  ringDayOut: ["Take out", "Tirar"],
+  ringPin: ["Pin", "Fixar"],
+  ringUnpin: ["Unpin", "Desafixar"],
+  ringMove: ["Move", "Mover"],
+  ringMore: ["More", "Mais"],
+  ringEdit: ["Edit", "Editar"],
+  ringReorder: ["Reorder", "Reordenar"],
+  ringDuplicate: ["Duplicate", "Duplicar"],
+  ringDelete: ["Delete", "Excluir"],
+  ringRename: ["Rename", "Renomear"],
+  ringAppearance: ["Colour", "Cor"],
+  ringActions: ["Card actions", "Ações do cartão"],
+  deleteTaskItem: ["Delete task", "Excluir tarefa"],
 
   // Task row and inspector
+  complete: ["complete", "concluir"],
+  uncheck: ["uncheck", "desmarcar"],
+  taskRowHint: [
+    "click to open, double-click to rename",
+    "clique para abrir, clique duas vezes para renomear",
+  ],
+  taskTitlePanel: ["Task title", "Título da tarefa"],
+  taskTitleField: ["Title", "Título"],
+  taskName: ["task name", "nome da tarefa"],
+  closePanel: ["close", "fechar"],
+  collapsePanel: ["collapse panel", "recolher painel"],
+  collapseSubtasks: ["hide subtasks", "ocultar subtarefas"],
+  expandSubtasks: ["show subtasks", "mostrar subtarefas"],
+  myDay: ["Send to My Day", "Enviar para Meu dia"],
+  removeFromDay: ["Take out of My Day", "Tirar de Meu dia"],
+  taskOptions: ["task options", "opções da tarefa"],
+  duplicateTask: ["Duplicate task", "Duplicar tarefa"],
+  addTag: ["add tag", "adicionar tag"],
+  completeDateLabel: ["Complete date", "Prazo"],
+  addFilesLabel: ["Add files", "Adicionar arquivos"],
+  deleteTask: ["delete task", "excluir tarefa"],
+  moveToList: ["move to list", "mover para a lista"],
+  subtaskLabel: [(text) => `subtask: ${text}`, (text) => `subtarefa: ${text}`],
+  newSubtaskPlaceholder: ["New subtask…", "Nova subtarefa…"],
+  removeSubtask: ["remove subtask", "remover subtarefa"],
+  tagsTitle: ["Tags", "Tags"],
+  removeTag: [(tag) => `remove #${tag}`, (tag) => `remover #${tag}`],
+  descriptionTitle: ["Description", "Descrição"],
+  dueDateLabel: ["Due date", "Prazo"],
+  clearDate: ["clear date", "limpar data"],
+  clearDateHint: ["clear", "limpar"],
+  pickDate: ["pick date", "escolher data"],
+  prevMonth: ["previous month", "mês anterior"],
+  nextMonth: ["next month", "próximo mês"],
+  closeDatePicker: ["close calendar", "fechar calendário"],
   months: [
     [
       "January",
@@ -1301,8 +1417,150 @@ export default {
     ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
     ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"],
   ],
+  priorityLabel: ["Priority", "Prioridade"],
+  priorityNone: ["none", "nenhuma"],
+  priorityHigh: ["high", "alta"],
+  priorityMedium: ["medium", "média"],
+  priorityLow: ["low", "baixa"],
+  repeatLabel: ["Repeat", "Repetir"],
+  remindLabel: ["Remind me", "Lembrar"],
+  addReminder: ["add reminder", "adicionar lembrete"],
+  clearReminder: ["clear reminder", "limpar lembrete"],
+  clearReminderHint: ["clear", "limpar"],
+  remindLaterToday: ["Later today", "Mais tarde hoje"],
+  remindTomorrow: ["Tomorrow", "Amanhã"],
+  remindNextWeek: ["Next week", "Semana que vem"],
+  remindDayBefore: ["The day before", "Na véspera"],
+  remindOnDue: ["On the due date", "No dia do prazo"],
+  remindPick: ["Pick date and time…", "Escolher data e hora…"],
+  remindTimeLabel: ["reminder time", "hora do lembrete"],
+  remindDateLabel: ["reminder date", "data do lembrete"],
+  reminderDue: [(date) => `due ${date}`, (date) => `para ${date}`],
+  reminderAt: [(moment) => `Reminder: ${moment}`, (moment) => `Lembrete: ${moment}`],
+  reminderNotShown: [
+    (texts) =>
+      `${texts.length === 1 ? "A reminder" : `${texts.length} reminders`} could not be shown as a notification: ${texts.join(" · ")}`,
+    (texts) =>
+      `${texts.length === 1 ? "Um lembrete não pôde" : `${texts.length} lembretes não puderam`} ser mostrado${texts.length === 1 ? "" : "s"} como notificação: ${texts.join(" · ")}`,
+  ],
+  dayNoticeTitle: [
+    (n) => (n === 1 ? "You have 1 task today" : `You have ${n} tasks today`),
+    (n) => (n === 1 ? "Você tem 1 tarefa hoje" : `Você tem ${n} tarefas hoje`),
+  ],
+  dayNoticeMore: [
+    (n) => (n === 1 ? "…and 1 more" : `…and ${n} more`),
+    (n) => (n === 1 ? "…e mais 1" : `…e mais ${n}`),
+  ],
+  dayNoticePlanned: [
+    (n) =>
+      n === 1 ? "You have 1 task planned for today" : `You have ${n} tasks planned for today`,
+    (n) =>
+      n === 1 ? "Você tem 1 tarefa planejada para hoje" : `Você tem ${n} tarefas planejadas para hoje`,
+  ],
+  dayNoticeFirstReminder: [
+    (time) => `First reminder at ${time}`,
+    (time) => `Primeiro lembrete às ${time}`,
+  ],
+  notifyDone: ["Done", "Concluir"],
+  notifyLater: ["Later", "Depois"],
+  notifyTomorrow: ["Tomorrow", "Amanhã"],
+  notifyChannelReminders: ["Reminders", "Lembretes"],
+  notifyChannelSummary: ["Day summary", "Resumo do dia"],
+  repeatEvery: ["every", "a cada"],
+  noRepeat: ["never", "nunca"],
+  repeatFreely: ["freely", "livremente"],
+  repeatDays: ["day", "dia"],
+  repeatWeeks: ["week", "semana"],
+  repeatMonths: ["month", "mês"],
+
+  // Notebook-wide search
+  findTitle: ["Search", "Buscar"],
+  findPlaceholder: ["Search tasks and notes…", "Buscar tarefas e notas…"],
+  findNothing: [
+    (query) => `Nothing found for “${query}”.`,
+    (query) => `Nada encontrado para “${query}”.`,
+  ],
+  findTasks: ["Tasks", "Tarefas"],
+  findNotes: ["Notes", "Notas"],
+  findMore: [
+    "Showing the first matches only — narrow the search to see the rest.",
+    "Mostrando só os primeiros resultados — refine a busca para ver o resto.",
+  ],
+  findDone: ["completed", "concluída"],
+  findClear: ["clear search", "limpar busca"],
+  findIn: [(place) => `Search in ${place}…`, (place) => `Buscar em ${place}…`],
+  findNothingIn: [
+    (query, place) => `Nothing found for “${query}” in ${place}.`,
+    (query, place) => `Nada encontrado para “${query}” em ${place}.`,
+  ],
+
+  // The page ⋮ and the canvas right-click menu
+  renameThisSpace: ["Rename space", "Renomear space"],
+  openInFileManager: ["Open in file manager", "Abrir no gerenciador de arquivos"],
+  findInPlace: [(place) => `Find in ${place}`, (place) => `Buscar em ${place}`],
+  findInNote: ["Find in note", "Buscar na nota"],
+  replaceInNote: ["Replace in note", "Substituir na nota"],
+  thisNotebook: ["this notebook", "este caderno"],
+
+  // The sidebar head
+  search: ["search", "buscar"],
+  newEntry: ["new list, notepad or group", "nova lista, bloco de notas ou grupo"],
+  resizeSidebar: ["resize sidebar", "redimensionar barra lateral"],
+  resizePanel: ["resize panel", "redimensionar painel"],
+  sidebarWidthValue: [
+    (px) => `sidebar width: ${px} pixels`,
+    (px) => `largura da barra lateral: ${px} pixels`,
+  ],
+
+  // The file library
+  assetsTitle: ["Files", "Arquivos"],
+  assetsHint: [
+    "Every file you add lives in the notebook's assets folder. Notes and tasks " +
+      "point at it by address, so moving them never breaks a link.",
+    "Todo arquivo que você adiciona fica na pasta assets do caderno. Notas e tarefas " +
+      "apontam para ele pelo endereço, então movê-las nunca quebra um link.",
+  ],
+  assetsEmpty: ["No files yet.", "Nenhum arquivo ainda."],
+  addImages: ["Add files", "Adicionar arquivos"],
+  addingImages: ["Adding…", "Adicionando…"],
+  copyAddress: ["Copy address", "Copiar endereço"],
+  addressCopied: ["Address copied", "Endereço copiado"],
+  deleteImage: ["Delete file", "Excluir arquivo"],
+  confirmDeleteAsset: [
+    (name) =>
+      `Delete "${name}"? It goes to the trash, and whatever points at it will point at nothing.`,
+    (name) =>
+      `Excluir “${name}”? Ele vai para a lixeira, e o que aponta para ele vai apontar para o nada.`,
+  ],
+  imageCount: [
+    (n) => (n === 1 ? "1 file" : `${n} files`),
+    (n) => (n === 1 ? "1 arquivo" : `${n} arquivos`),
+  ],
+  imageSize: [
+    (kb) => (kb < 1024 ? `${kb} KB` : `${(kb / 1024).toFixed(1)} MB`),
+    (kb) => (kb < 1024 ? `${kb} KB` : `${(kb / 1024).toFixed(1).replace(".", ",")} MB`),
+  ],
+  missingImage: ["image not found", "imagem não encontrada"],
+  ageDays: [
+    (days) => (days === 0 ? "today" : `${days}d`),
+    (days) => (days === 0 ? "hoje" : `${days}d`),
+  ],
+  lastSeenOn: [(date) => `Last opened ${date}`, (date) => `Aberta pela última vez em ${date}`],
+  createdLabel: ["Created", "Criada"],
+  neverOpened: ["Never opened in Jott", "Nunca aberta no Jott"],
+  createdOn: [(date) => `Created ${date}`, (date) => `Criada em ${date}`],
+  chooseImageOnly: [
+    "Only an image can be a banner or go inside a note.",
+    "Só uma imagem pode ser banner ou ir dentro de uma nota.",
+  ],
+  openFile: ["Open file", "Abrir arquivo"],
+  removeAttachment: ["Remove attachment", "Remover anexo"],
 
   // The note's banner
+  banner: ["Banner", "Banner"],
+  bannerColor: ["Colour", "Cor"],
+  noteHead: ["Title and banner", "Título e banner"],
+  noteTitleField: ["Title", "Título"],
   colorName: [
     (slot) =>
       ({
@@ -1327,6 +1585,68 @@ export default {
         neutral: "Neutro",
       })[slot] ?? slot,
   ],
+  bannerImage: ["Choose image…", "Escolher imagem…"],
+  removeBanner: ["Remove banner", "Remover banner"],
+  chooseImage: ["Choose an image", "Escolha uma imagem"],
+  chooseFile: ["Choose a file", "Escolha um arquivo"],
+  insertImage: ["Insert image…", "Inserir imagem…"],
+  noteNotFound: [
+    (title) => `No note called “${title}”.`,
+    (title) => `Nenhuma nota chamada “${title}”.`,
+  ],
+
+  // A drag or a paste that declared a file and carried none
+  noFileInGesture: [
+    (types) =>
+      `Nothing could be read from that${types.length ? ` (${types.join(", ")})` : ""}.`,
+    (types) =>
+      `Nada pôde ser lido disso${types.length ? ` (${types.join(", ")})` : ""}.`,
+  ],
+
+  // Deleting, in the app's own dialog
+  deleteAction: ["Delete", "Excluir"],
+  dontAskAgain: ["Don’t ask again", "Não perguntar de novo"],
+  goesToTrash: [
+    "It goes to the trash, and can be restored from there.",
+    "Vai para a lixeira, e pode ser restaurado de lá.",
+  ],
+  assetInUseWarning: [
+    (n) =>
+      n === 1
+        ? "One note or task is showing this file. That link will stop working."
+        : `${n} notes and tasks are showing this file. Those links will stop working.`,
+    (n) =>
+      n === 1
+        ? "Uma nota ou tarefa mostra este arquivo. Esse link vai parar de funcionar."
+        : `${n} notas e tarefas mostram este arquivo. Esses links vão parar de funcionar.`,
+  ],
+
+  // Fetching a picture from the internet
+  downloadImageTitle: ["Download this picture?", "Baixar esta imagem?"],
+  downloadImageBody: [
+    "This picture is not on your computer. To put it in the note, Jott has to fetch it from:",
+    "Esta imagem não está no seu computador. Para colocá-la na nota, o Jott precisa buscá-la em:",
+  ],
+  downloadImageConfirm: ["Download", "Baixar"],
+  renameFile: ["Rename", "Renomear"],
+  promptRenameFile: [(name) => `Rename “${name}”`, (name) => `Renomear “${name}”`],
+  assetUnused: ["Not used", "Não usado"],
+  assetUsedIn: [
+    (n) => (n === 1 ? "Used in 1 place" : `Used in ${n} places`),
+    (n) => (n === 1 ? "Usado em 1 lugar" : `Usado em ${n} lugares`),
+  ],
+  assetGoTo: [(title) => `Go to “${title}”`, (title) => `Ir para “${title}”`],
+
+  // Picking notes on the board, the way tasks are picked
+  selectNotes: ["Reorder notes…", "Reordenar notas…"],
+  moveNotesTo: ["Move to…", "Mover para…"],
+  notesFolderCount: [
+    (n) => (n === 1 ? "1 note" : `${n} notes`),
+    (n) => (n === 1 ? "1 nota" : `${n} notas`),
+  ],
+  openFolder: [(name) => `open ${name}`, (name) => `abrir ${name}`],
+  backToBoard: ["Back", "Voltar"],
+  noteOptions: ["note options", "opções da nota"],
 
   // Errors
   errorKind: [
