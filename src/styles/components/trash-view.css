@@ -137,11 +137,11 @@
   /* Narrow, the row is two lines (user report, 2026-09-08: the columns were
      cut off on the phone, and on a desktop window made small). The two fixed
      columns and the two buttons are 25rem before a single letter of the name,
-     so under 36rem the date and the countdown go under the name, aligned to
+     so under 576px the date and the countdown go under the name, aligned to
      it, one at each end of the line — still a column each, so the countdown
      can be read down the list. The name keeps its ellipsis; the segmented
      filter and the head wrap on their own. */
-  @container trash (max-width: 36rem) {
+  @container trash (max-width: 576px) {
     .trash-view__item {
       display: grid;
       grid-template-columns: auto minmax(0, 1fr) auto;

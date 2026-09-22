@@ -52,7 +52,7 @@ impl Notebook {
     /// Deletes one trashed item for good (user's call, 2026-08-21).
     pub fn purge_from_trash(&self, id: &str) -> Result<()> {
         self.ensure_writable()?;
-        match self.trash().purge(id) {
+        match self.trash().purge(id)? {
             Some(_) => Ok(()),
             None => Err(Error::TaskNotFound(id.to_string())),
         }
@@ -69,7 +69,7 @@ impl Notebook {
     pub fn restore_from_trash(&self, id: &str) -> Result<()> {
         self.ensure_writable()?;
         let mut trash = self.trash();
-        let Some(entry) = trash.take(id) else {
+        let Some(entry) = trash.take(id)? else {
             return Err(Error::TaskNotFound(id.to_string()));
         };
         match entry.kind {

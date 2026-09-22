@@ -207,12 +207,12 @@
   }
   /* Narrow panel: the icon alone names the row. The word is only taken off
      the screen (a screen reader and the tooltip still read it), and only near
-     the panel's 176px minimum — 11rem of content is a 192px panel; at the
+     the panel's 176px minimum — 176px of content is a 192px panel; at the
      default width the word stays, wrapping if it must. */
   .inspector__field-word {
     min-width: 0;
   }
-  @container inspector-fields (max-width: 11rem) {
+  @container inspector-fields (max-width: 176px) {
     .inspector__field-word {
       position: absolute;
       inline-size: 0.0625rem;

@@ -23,7 +23,7 @@
     --app-well: color-mix(in srgb, var(--theme-color-gray) 30%, transparent);
     /* The veil a drawer or sheet lays over the page: black at low alpha in
        EVERY theme, the dark one included — a light veil pushes nothing back. */
-    --app-scrim: color-mix(in srgb, #0d0d0d 20%, transparent);
+    --app-scrim: color-mix(in srgb, var(--theme-color-black) 20%, transparent);
     /* The image viewer's scrim and the ink on it — a lightbox is dark on every
        ground. Two roles so the component sheet reads no palette entry. */
     --app-scrim-deep: color-mix(in srgb, var(--theme-color-black) 88%, transparent);

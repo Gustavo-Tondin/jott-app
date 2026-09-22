@@ -31,17 +31,18 @@
 
   /* A cut preview fades out over its last two lines: blocks are not all one
      line tall (a chip, a checkbox), so the cut can land mid-word. A MASK, not
-     a gradient of the ground: the card's ground changes (hover, picked). */
+     a gradient of the ground: the card's ground changes (hover, picked). A
+     mask reads only alpha, so the opaque stop is any opaque colour. */
   .note-preview--cut {
     --note-preview-fade: calc(2 * var(--app-leading-normal) * 1em);
     -webkit-mask-image: linear-gradient(
       to bottom,
-      #000 calc(100% - var(--note-preview-fade)),
+      black calc(100% - var(--note-preview-fade)),
       transparent
     );
     mask-image: linear-gradient(
       to bottom,
-      #000 calc(100% - var(--note-preview-fade)),
+      black calc(100% - var(--note-preview-fade)),
       transparent
     );
   }

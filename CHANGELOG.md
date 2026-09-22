@@ -21,6 +21,7 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 ### Fixed
 
 - **Deleting a note no longer warns that it can't be undone** — it goes to the trash, as the dialog already said.
+- **The image viewer shows the keyboard focus** as a ring around the picture, and restoring or purging a trashed item reports it when the trash index could not be saved.
 
 ## v0.58.0
 

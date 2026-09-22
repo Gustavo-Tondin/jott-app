@@ -64,7 +64,7 @@ export function installKeyboard({ root = document.documentElement, win = window 
   update();
   document.addEventListener("android-insets", update);
   win.addEventListener("resize", update);
-  win.visualViewport?.addEventListener("scroll", straighten);
+  win.visualViewport?.addEventListener("scroll", straighten, { passive: true });
   return () => {
     document.removeEventListener("android-insets", update);
     win.removeEventListener("resize", update);

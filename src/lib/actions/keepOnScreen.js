@@ -122,7 +122,7 @@ export function keepOnScreen(node, params) {
   window.addEventListener("resize", schedule);
   // The anchor moves when anything scrolls (the sidebar, the content pane);
   // capture phase sees every scroll container.
-  window.addEventListener("scroll", schedule, true);
+  window.addEventListener("scroll", schedule, { capture: true, passive: true });
   // …and it moves when the KEYBOARD arrives, which fires no event: the one
   // signal is `--app-keyboard` being written on the root's style attribute.
   const roots =
@@ -136,7 +136,7 @@ export function keepOnScreen(node, params) {
       observer?.disconnect();
       roots?.disconnect();
       window.removeEventListener("resize", schedule);
-      window.removeEventListener("scroll", schedule, true);
+      window.removeEventListener("scroll", schedule, { capture: true });
       if (raf != null && typeof cancelAnimationFrame === "function")
         cancelAnimationFrame(raf);
       // The portal orphaned the node from the subtree Svelte tears down —

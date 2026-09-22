@@ -139,11 +139,13 @@ impl Trash {
     /// Takes an entry out of the index and returns it, so the caller can put it
     /// back where it belongs. The stored file, if any, is left in `items/` for
     /// the caller to move.
-    pub fn take(&mut self, id: &str) -> Option<TrashEntry> {
-        let pos = self.entries.iter().position(|e| e.id == id)?;
+    pub fn take(&mut self, id: &str) -> Result<Option<TrashEntry>> {
+        let Some(pos) = self.entries.iter().position(|e| e.id == id) else {
+            return Ok(None);
+        };
         let entry = self.entries.remove(pos);
-        let _ = self.save();
-        Some(entry)
+        self.save()?;
+        Ok(Some(entry))
     }
 
     /// The absolute path of a stored file inside `items/`.
@@ -168,12 +170,14 @@ impl Trash {
 
     /// Permanently removes one entry, the user's call — the only door besides
     /// the reaper through which something leaves the notebook for good.
-    pub fn purge(&mut self, id: &str) -> Option<TrashEntry> {
-        let pos = self.entries.iter().position(|e| e.id == id)?;
+    pub fn purge(&mut self, id: &str) -> Result<Option<TrashEntry>> {
+        let Some(pos) = self.entries.iter().position(|e| e.id == id) else {
+            return Ok(None);
+        };
         let entry = self.entries.remove(pos);
         self.remove_stored(std::slice::from_ref(&entry));
-        let _ = self.save();
-        Some(entry)
+        self.save()?;
+        Ok(Some(entry))
     }
 
     /// Permanently removes every entry. Returns how many went.

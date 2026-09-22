@@ -16,8 +16,14 @@
     padding: var(--app-space-24);
     background: var(--app-scrim-deep);
   }
+  /* The viewer fills the viewport, so a ring on it would hug the screen's
+     edge and read as nothing; the keyboard focus is drawn on the picture. */
   .image-viewer:focus-visible {
     outline: none;
+  }
+  .image-viewer:focus-visible .image-viewer__picture {
+    outline: 0.125rem solid var(--app-on-scrim);
+    outline-offset: 0.25rem;
   }
   .image-viewer__picture {
     max-inline-size: 100%;

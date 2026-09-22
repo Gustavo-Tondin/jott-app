@@ -132,13 +132,15 @@ describe("frontend architecture", () => {
   test("every length is in rem — px is only for a real device measurement", () => {
     // Decided 2026-08-06: a rigid px interface ignores the reader who raised
     // their font size. A media-query breakpoint is about the screen, not the
-    // type, so it stays in px; comments and data: URIs are not lengths.
+    // type, so it stays in px, and so does a container query's (2026-09-22:
+    // the same measure, of the box instead of the screen); comments and
+    // data: URIs are not lengths.
     const offenders = [];
     const strip = (css) =>
       css
         .replace(/\/\*[\s\S]*?\*\//g, "")
         .replace(/url\([^)]*\)/g, "")
-        .replace(/@media[^{]*\{/g, "");
+        .replace(/@(?:media|container)[^{]*\{/g, "");
     for (const f of [...STYLES, join(src, "app.css")]) {
       // `-?` and the leading-dot branch: `-2px` and `.5px` are lengths too,
       // and the old lookbehind quietly skipped both.
