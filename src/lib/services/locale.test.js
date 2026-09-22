@@ -1,4 +1,4 @@
-import { describe, expect, test } from "vitest";
+import { afterEach, beforeEach, describe, expect, test } from "vitest";
 
 import { S } from "./strings.js";
 import { apply } from "./locale.js";
@@ -27,25 +27,33 @@ describe.each(Object.entries(LANGUAGES).filter(([, l]) => l.load))(
 );
 
 describe("apply", () => {
+  // `apply` rewrites the shared table; each test starts from the English.
+  let english;
+  beforeEach(() => (english = { ...S }));
+  afterEach(() => Object.assign(S, english));
+
   test("lays a dictionary over S, by every shape a string takes", async () => {
-    apply((await LANGUAGES["pt-BR"].load()).default);
+    const { trash, ...dict } = (await LANGUAGES["pt-BR"].load()).default;
+    apply(dict);
     expect(S.today).toBe("Hoje");
     expect(S.confirmDeleteTasks(2)).toBe("Excluir 2 tarefas?");
     expect(S.ago({ unit: "hour", count: 3 })).toBe("há 3 horas");
     expect(S.months[0]).toBe("Janeiro");
     expect(S.shortcutScope("editor")).toBe("Escrevendo uma nota");
+    expect(S.fileSize(1536)).toBe("1,5 KB");
+    expect(S.actionName("delete_task")).toBe("Excluir tarefa");
     // A key the dictionary does not name stays English.
-    expect(S.completed).toBe("Completed");
+    expect(S.trash).toBe("Trash");
   });
 
   test("a pair whose English is not the source's is left alone", () => {
     apply({
-      completed: ["Finished", "Concluídas"],
+      trash: ["Bin", "Lixeira"],
       actionNames: [{ create_task: "Add task" }, { create_task: "Adicionar tarefa" }],
       notAKeyOfS: ["Anything", "Qualquer coisa"],
       menu: "not a pair",
     });
-    expect(S.completed).toBe("Completed");
+    expect(S.trash).toBe("Trash");
     expect(S.actionNames.create_task).toBe("New task");
     expect("notAKeyOfS" in S).toBe(false);
     expect(S.menu).toBe("menu");
