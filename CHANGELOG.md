@@ -20,7 +20,7 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 ### Improved
 
 - **The formatting bar is regrouped**: quote, quotation marks and code under Block; indent, outdent and the horizontal rule in a group of their own. The quote button has a new icon.
-- **Selected text is one even band per line** instead of a patchwork around bold, code and headings, and it now shows inside quotes and code blocks.
+- **Selected text is one even band per line** instead of a patchwork around bold, code and headings, and it now shows inside quotes and code blocks and across the whole note on Select all.
 - **The highlight of the line being edited is softer.**
 - **Errors read as a sentence, not a code**, with the technical detail after it.
 - **Notifications, the tray menu and the names of Home, Tasks and Notes follow the app's language.**
@@ -30,7 +30,6 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 
 - **Deleting a note no longer warns that it can't be undone** — it goes to the trash, as the dialog already said.
 - **The image viewer shows the keyboard focus** as a ring around the picture, and restoring or purging a trashed item reports it when the trash index could not be saved.
-- **Select all highlights the whole note**, not only the part that was on screen.
 - **Suggestions follow the day picked in the calendar**, so a pulled task lands on that day and stays on offer for the others.
 - **Undo no longer empties a note you just opened** — opening a note is not an undo step, and Ctrl+Z never replays the previous note's edits.
 
