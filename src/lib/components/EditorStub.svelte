@@ -28,6 +28,9 @@
     onChange?.(`${field?.value ?? value}${text}`);
   }
 
+  /// A textarea keeps no history of its own worth forgetting.
+  export function forgetHistory() {}
+
 </script>
 
 <textarea

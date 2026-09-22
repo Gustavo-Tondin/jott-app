@@ -32,6 +32,7 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 - **The image viewer shows the keyboard focus** as a ring around the picture, and restoring or purging a trashed item reports it when the trash index could not be saved.
 - **Select all highlights the whole note**, not only the part that was on screen.
 - **Suggestions follow the day picked in the calendar**, so a pulled task lands on that day and stays on offer for the others.
+- **Undo no longer empties a note you just opened** — opening a note is not an undo step, and Ctrl+Z never replays the previous note's edits.
 
 ## v0.58.0
 

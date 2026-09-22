@@ -120,6 +120,7 @@
     onSelection?.(false);
     onTable?.(null);
     onFormats?.([]);
+    editor?.forgetHistory();
     keepTheirs = false;
     lastWritten = null;
     load(folder, path);

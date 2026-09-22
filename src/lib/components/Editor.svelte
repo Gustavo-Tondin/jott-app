@@ -2,7 +2,7 @@
   // The CodeMirror instance, wrapped so the rest of the app never imports it:
   // everything above talks in `value` and `onChange`, as with a `<textarea>`.
   import { onDestroy, onMount } from "svelte";
-  import { Compartment, EditorState, Prec } from "@codemirror/state";
+  import { Compartment, EditorState, Prec, Transaction } from "@codemirror/state";
   import {
     drawSelection,
     EditorView,
@@ -118,6 +118,9 @@
   const formatting = new Compartment();
   /// `lang` and `spellcheck` on the content element.
   const writing = new Compartment();
+  /// The undo history, in a compartment so another note can start without
+  /// the last one's (`forgetHistory`).
+  const undoable = new Compartment();
   const writingAttributes = (tag, check) =>
     EditorView.contentAttributes.of({ spellcheck: String(check), ...(tag ? { lang: tag } : {}) });
 
@@ -174,7 +177,7 @@
       state: EditorState.create({
         doc: value,
         extensions: [
-          history(),
+          undoable.of(history()),
           // Everything a NOTE is and a plain field is not. Below the split is
           // the ground every text field shares — including the `[[` references.
           ...(plain ? [] : [
@@ -407,6 +410,14 @@
     return !!active?.closest?.(".cm-md-table") && view.dom.contains(active);
   }
 
+  /// Starts the undo history over — another note is opening, and Ctrl+Z must
+  /// not replay the last one's edits onto it. Taking the extension out drops
+  /// its state; putting it back starts empty.
+  export function forgetHistory() {
+    view?.dispatch({ effects: undoable.reconfigure([]) });
+    view?.dispatch({ effects: undoable.reconfigure(history()) });
+  }
+
   /// Writes text where the cursor is — how a picture chosen in the library
   /// lands. The selection is replaced, like a paste, and undoable like one.
   export function insert(text) {
@@ -465,7 +476,11 @@
     if (incoming === current) return;
     // Only the differing middle is replaced, so a cursor outside it stays
     // where it was — a note reloaded from disk after someone else's edit.
-    view.dispatch({ changes: minimalReplacement(current, incoming) });
+    // Never an undo step: loading is not something the person did.
+    view.dispatch({
+      changes: minimalReplacement(current, incoming),
+      annotations: Transaction.addToHistory.of(false),
+    });
   });
 </script>
 
