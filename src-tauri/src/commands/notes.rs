@@ -5,6 +5,9 @@
 //! because the space owns its subtree and the user organises freely inside
 //! it.
 
+use std::path::PathBuf;
+
+use jott_core::writing::{detect, has_hyphenation, spelling_dictionary};
 use serde::Serialize;
 use tauri::{Runtime, State};
 
@@ -140,10 +143,7 @@ pub async fn read_note<R: Runtime>(
         // this is the ONE command the editor uses to open one. Best effort:
         // an index that could not be written must not keep the note shut.
         let _ = nb.mark_note_seen(&folder, &path);
-        let detected = match note.lang {
-            Some(_) => None,
-            None => jott_core::writing::detect(&note.body, &nb.config().languages),
-        };
+        let detected = note.lang.is_none().then(|| detect(&note.body, &nb.config().languages)).flatten();
         Ok(NoteContent {
             // The core's rule, not a second one: `trim_end_matches(".md")`
             // here used to strip REPEATED suffixes, so a note titled
@@ -169,7 +169,7 @@ pub async fn detect_language<R: Runtime>(
     window: tauri::Window<R>,
     text: String,
 ) -> CommandResult<Option<String>> {
-    state.with_notebook(window.label(), |nb| Ok(jott_core::writing::detect(&text, &nb.config().languages)))
+    state.with_notebook(window.label(), |nb| Ok(detect(&text, &nb.config().languages)))
 }
 
 /// Declares — or, with `None`, clears — the language a note is written in.
@@ -380,18 +380,19 @@ pub struct Dictionaries {
 }
 
 /// Where WebKitGTK reads hyphenation rules (fixed in the binary) and where
-/// its spell checker (enchant's hunspell) finds dictionaries.
-#[cfg(target_os = "linux")]
-fn dictionary_dirs() -> (Vec<std::path::PathBuf>, Vec<std::path::PathBuf>) {
+/// its spell checker (enchant's hunspell) finds dictionaries. `None` where
+/// the platform gives the app nothing to look at.
+fn dictionary_dirs() -> Option<(Vec<PathBuf>, Vec<PathBuf>)> {
+    if !cfg!(target_os = "linux") {
+        return None;
+    }
     let config = std::env::var_os("XDG_CONFIG_HOME")
-        .map(std::path::PathBuf::from)
-        .or_else(|| std::env::var_os("HOME").map(|h| std::path::Path::new(&h).join(".config")));
-    let mut spelling: Vec<std::path::PathBuf> =
-        ["/usr/share/hunspell", "/usr/share/myspell", "/usr/share/myspell/dicts"]
-            .map(Into::into)
-            .into();
+        .map(PathBuf::from)
+        .or_else(|| std::env::var_os("HOME").map(|h| PathBuf::from(h).join(".config")));
+    let mut spelling: Vec<PathBuf> =
+        ["/usr/share/hunspell", "/usr/share/myspell", "/usr/share/myspell/dicts"].map(Into::into).into();
     spelling.extend(config.map(|c| c.join("enchant/hunspell")));
-    (vec!["/usr/share/hyphen".into()], spelling)
+    Some((vec!["/usr/share/hyphen".into()], spelling))
 }
 
 /// For each of the notebook's writing languages, whether its dictionaries
@@ -401,25 +402,18 @@ pub async fn writing_dictionaries<R: Runtime>(
     state: State<'_, AppState>,
     window: tauri::Window<R>,
 ) -> CommandResult<Vec<Dictionaries>> {
+    let dirs = dictionary_dirs();
     state.with_notebook(window.label(), |nb| {
-        let tags = nb.config().languages.clone();
-        #[cfg(target_os = "linux")]
-        {
-            use jott_core::writing::{has_hyphenation, spelling_dictionary};
-            let (hyphen, spell) = dictionary_dirs();
-            let hyphen: Vec<&std::path::Path> = hyphen.iter().map(|p| p.as_path()).collect();
-            let spell: Vec<&std::path::Path> = spell.iter().map(|p| p.as_path()).collect();
-            Ok(tags
-                .into_iter()
-                .map(|tag| Dictionaries {
-                    hyphenation: Some(has_hyphenation(&hyphen, &tag)),
-                    spelling: Some(spelling_dictionary(&spell, &tag).is_some()),
-                    tag,
-                })
-                .collect())
-        }
-        #[cfg(not(target_os = "linux"))]
-        Ok(tags.into_iter().map(|tag| Dictionaries { tag, hyphenation: None, spelling: None }).collect())
+        Ok(nb
+            .config()
+            .languages
+            .iter()
+            .map(|tag| Dictionaries {
+                tag: tag.clone(),
+                hyphenation: dirs.as_ref().map(|(hyphen, _)| has_hyphenation(hyphen, tag)),
+                spelling: dirs.as_ref().map(|(_, spell)| spelling_dictionary(spell, tag).is_some()),
+            })
+            .collect())
     })
 }
 
@@ -437,14 +431,10 @@ pub async fn apply_spelling<R: Runtime>(
     })?;
     #[cfg(target_os = "linux")]
     {
-        let (_, spell) = dictionary_dirs();
-        let spell: Vec<&std::path::Path> = spell.iter().map(|p| p.as_path()).collect();
+        let (_, spell) = dictionary_dirs().unwrap_or_default();
         let names: Vec<String> = tags
             .iter()
-            .map(|tag| {
-                jott_core::writing::spelling_dictionary(&spell, tag)
-                    .unwrap_or_else(|| jott_core::writing::dictionary_name(tag))
-            })
+            .map(|tag| spelling_dictionary(&spell, tag).unwrap_or_else(|| jott_core::writing::dictionary_name(tag)))
             .collect();
         window
             .with_webview(move |webview| {

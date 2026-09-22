@@ -296,7 +296,7 @@ pub fn remember_language<R: Runtime>(app: &AppHandle<R>, tag: &str) {
 /// The language in force on this machine — the ONE resolver. The frontend,
 /// the tray and the reminder thread all read this, so they cannot disagree.
 pub fn lang<R: Runtime>(app: &AppHandle<R>) -> jott_core::lang::Lang {
-    jott_core::lang::Lang::resolve(Some(&language(app)), sys_locale::get_locale().as_deref())
+    jott_core::lang::Lang::resolve(&language(app), sys_locale::get_locale().as_deref())
 }
 
 /// Where a notebook's merge base is kept (`jott_core::base`). Beside the

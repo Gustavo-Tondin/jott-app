@@ -13,10 +13,9 @@ export const LANGUAGES = {
 /// compares as source with the whitespace squeezed out (a reflow is not a
 /// change); anything else compares as data.
 export function same(en, source) {
-  if (typeof en === "function" || typeof source === "function") {
-    return typeof en === typeof source && squeeze(en) === squeeze(source);
-  }
-  return JSON.stringify(en) === JSON.stringify(source);
+  const fn = typeof en === "function";
+  if (fn !== (typeof source === "function")) return false;
+  return fn ? squeeze(en) === squeeze(source) : JSON.stringify(en) === JSON.stringify(source);
 }
 
 const squeeze = (fn) => String(fn).replace(/\s+/g, "");
@@ -42,11 +41,11 @@ export function audit(source, dict) {
       orphans.push(key);
       continue;
     }
-    if (!Array.isArray(pair) || pair.length !== 2 || !sameShape(pair[0], source[key])) {
-      malformed.push(key);
-      continue;
-    }
-    if (!sameShape(pair[1], source[key])) {
+    if (
+      !Array.isArray(pair) ||
+      pair.length !== 2 ||
+      !pair.every((half) => sameShape(half, source[key]))
+    ) {
       malformed.push(key);
       continue;
     }

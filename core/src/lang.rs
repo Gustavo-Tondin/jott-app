@@ -13,14 +13,11 @@ pub enum Lang {
 }
 
 impl Lang {
-    /// `pref` is what the user chose (`system`, a tag, or nothing); `system`
-    /// is the OS locale as it comes (`pt_BR.UTF-8`, `pt-PT`, `en-US`…).
-    /// Any Portuguese is Brazilian for now; anything unknown is English.
-    pub fn resolve(pref: Option<&str>, system: Option<&str>) -> Lang {
-        let tag = match pref {
-            Some(SYSTEM) | None => system.unwrap_or(""),
-            Some(tag) => tag,
-        };
+    /// `pref` is what the user chose (`system` or a tag); `system` is the OS
+    /// locale as it comes (`pt_BR.UTF-8`, `pt-PT`, `en-US`…). Any Portuguese
+    /// is Brazilian for now; anything unknown is English.
+    pub fn resolve(pref: &str, system: Option<&str>) -> Lang {
+        let tag = if pref == SYSTEM { system.unwrap_or("") } else { pref };
         let lower = tag.to_ascii_lowercase();
         if lower == "pt" || lower.starts_with("pt-") || lower.starts_with("pt_") {
             Lang::PtBr
@@ -44,27 +41,26 @@ mod tests {
 
     #[test]
     fn follows_the_system_when_nothing_was_chosen() {
-        assert_eq!(Lang::resolve(None, Some("pt_BR.UTF-8")), Lang::PtBr);
-        assert_eq!(Lang::resolve(Some("system"), Some("pt_BR.UTF-8")), Lang::PtBr);
-        assert_eq!(Lang::resolve(None, Some("pt-PT")), Lang::PtBr);
-        assert_eq!(Lang::resolve(None, Some("pt")), Lang::PtBr);
-        assert_eq!(Lang::resolve(None, Some("es-ES")), Lang::En);
-        assert_eq!(Lang::resolve(None, Some("en-US")), Lang::En);
-        assert_eq!(Lang::resolve(None, None), Lang::En);
+        assert_eq!(Lang::resolve(SYSTEM, Some("pt_BR.UTF-8")), Lang::PtBr);
+        assert_eq!(Lang::resolve(SYSTEM, Some("pt-PT")), Lang::PtBr);
+        assert_eq!(Lang::resolve(SYSTEM, Some("pt")), Lang::PtBr);
+        assert_eq!(Lang::resolve(SYSTEM, Some("es-ES")), Lang::En);
+        assert_eq!(Lang::resolve(SYSTEM, Some("en-US")), Lang::En);
+        assert_eq!(Lang::resolve(SYSTEM, None), Lang::En);
     }
 
     #[test]
     fn a_choice_beats_the_system() {
-        assert_eq!(Lang::resolve(Some("en"), Some("pt_BR.UTF-8")), Lang::En);
-        assert_eq!(Lang::resolve(Some("pt-BR"), Some("en_US.UTF-8")), Lang::PtBr);
+        assert_eq!(Lang::resolve("en", Some("pt_BR.UTF-8")), Lang::En);
+        assert_eq!(Lang::resolve("pt-BR", Some("en_US.UTF-8")), Lang::PtBr);
         // A tag this build does not know reads as English, not as an error.
-        assert_eq!(Lang::resolve(Some("klingon"), Some("pt_BR")), Lang::En);
+        assert_eq!(Lang::resolve("klingon", Some("pt_BR")), Lang::En);
     }
 
     #[test]
     fn the_tag_round_trips() {
         for lang in [Lang::En, Lang::PtBr] {
-            assert_eq!(Lang::resolve(Some(lang.tag()), None), lang);
+            assert_eq!(Lang::resolve(lang.tag(), None), lang);
         }
     }
 }

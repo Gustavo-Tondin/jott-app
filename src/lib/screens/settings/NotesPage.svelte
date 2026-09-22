@@ -40,20 +40,37 @@
   /// list changes. Where the platform says nothing (`null`), nothing is shown.
   let dictionaries = $state([]);
   $effect(() => {
-    void languages.join();
+    void languages;
     api.writingDictionaries().then((d) => (dictionaries = d ?? []), () => (dictionaries = []));
   });
   let missing = $derived(
-    dictionaries.flatMap((d) => [
-      ...(form.hyphenateNotes && d.hyphenation === false
-        ? [S.noHyphenationDictionary(languageName(d.tag))]
-        : []),
-      ...(form.checkSpelling && d.spelling === false
-        ? [S.noSpellingDictionary(languageName(d.tag))]
-        : []),
-    ]),
+    dictionaries.flatMap(({ tag, hyphenation, spelling }) => {
+      const name = languageName(tag);
+      return [
+        form.hyphenateNotes && hyphenation === false && S.noHyphenationDictionary(name),
+        form.checkSpelling && spelling === false && S.noSpellingDictionary(name),
+      ].filter(Boolean);
+    }),
   );
 </script>
+
+<!-- One notebook switch: label, its `?`, and the checkbox that sends the key. -->
+{#snippet checkRow(label, key, hint, sub = false)}
+  <label class="settings__row" class:settings__row--sub={sub}>
+    <span class="settings__label">
+      {label}
+      <HelpTip {label} text={hint} />
+    </span>
+    <input
+      class="theme-checkbox"
+      type="checkbox"
+      bind:checked={form[key]}
+      disabled={readOnly}
+      aria-label={label}
+      onchange={(e) => put({ [key]: e.currentTarget.checked })}
+    />
+  </label>
+{/snippet}
 
 <SettingsSection title={S.featureNotes} {compact} features {onReset} resetDisabled={readOnly}>
   <h3 class="settings__subtitle">{S.subNoteHas}</h3>
@@ -106,34 +123,8 @@
   {/if}
 
   <!-- Both only change how the text is DRAWN; the .md keeps every word. -->
-  <label class="settings__row settings__row--sub">
-    <span class="settings__label">
-      {S.hyphenateNotesLabel}
-      <HelpTip label={S.hyphenateNotesLabel} text={S.hyphenateNotesHint} />
-    </span>
-    <input
-      class="theme-checkbox"
-      type="checkbox"
-      bind:checked={form.hyphenateNotes}
-      disabled={readOnly}
-      aria-label={S.hyphenateNotesLabel}
-      onchange={(e) => put({ hyphenateNotes: e.currentTarget.checked })}
-    />
-  </label>
-  <label class="settings__row settings__row--sub">
-    <span class="settings__label">
-      {S.checkSpelling}
-      <HelpTip label={S.checkSpelling} text={S.checkSpellingHint} />
-    </span>
-    <input
-      class="theme-checkbox"
-      type="checkbox"
-      bind:checked={form.checkSpelling}
-      disabled={readOnly}
-      aria-label={S.checkSpelling}
-      onchange={(e) => put({ checkSpelling: e.currentTarget.checked })}
-    />
-  </label>
+  {@render checkRow(S.hyphenateNotesLabel, "hyphenateNotes", S.hyphenateNotesHint, true)}
+  {@render checkRow(S.checkSpelling, "checkSpelling", S.checkSpellingHint, true)}
   {#each missing as line (line)}
     <p class="settings__hint settings__row--sub">{line}</p>
   {/each}
@@ -162,18 +153,5 @@
   <!-- Rescued: the dialog's own "don't ask again" wrote it and nothing
        offered the way back. Principle 9 is why it exists — one of the two
        connections the app makes. -->
-  <label class="settings__row">
-    <span class="settings__label">
-      {S.confirmImageDownloads}
-      <HelpTip label={S.confirmImageDownloads} text={S.confirmImageDownloadsHint} />
-    </span>
-    <input
-      class="theme-checkbox"
-      type="checkbox"
-      bind:checked={form.confirmImageDownloads}
-      disabled={readOnly}
-      aria-label={S.confirmImageDownloads}
-      onchange={(e) => put({ confirmImageDownloads: e.currentTarget.checked })}
-    />
-  </label>
+  {@render checkRow(S.confirmImageDownloads, "confirmImageDownloads", S.confirmImageDownloadsHint)}
 </SettingsSection>

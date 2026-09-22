@@ -895,7 +895,7 @@
   // over whenever the notebook's list or switch changes, from anywhere.
   $effect(() => {
     if (!notebook) return;
-    void layout.languages?.join();
+    void layout.languages;
     void layout.checkSpelling;
     api.applySpelling().catch(() => {});
   });
@@ -1204,7 +1204,7 @@
       formatting,
       setFormatting: (on) => (formatting = on),
       formatBarMode,
-      languages: layout.languages ?? [],
+      languages: layout.languages,
       noteLang: openNote,
       setNoteLang,
     }),

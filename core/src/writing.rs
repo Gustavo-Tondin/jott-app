@@ -117,44 +117,36 @@ pub fn dictionary_name(tag: &str) -> String {
 /// The `.dic` in `dirs` that serves `tag`, by its stem after `prefix`
 /// (`hyph_` for hyphenation, empty for spelling): the exact name first,
 /// then the bare language (`pt`), then — for a tag with no region of its
-/// own — any region of it (`es_ES` for `es`).
-fn find_dictionary(dirs: &[&Path], prefix: &str, tag: &str) -> Option<String> {
-    let exact = dictionary_name(tag);
+/// own — the first region of it (`es_AR` for `es`).
+fn find_dictionary(dirs: &[impl AsRef<Path>], prefix: &str, tag: &str) -> Option<String> {
+    let exact = dictionary_name(tag).to_ascii_lowercase();
     let bare = primary(tag);
-    let mut stems: Vec<String> = Vec::new();
-    for dir in dirs {
-        let Ok(read) = std::fs::read_dir(dir) else { continue };
-        stems.extend(read.flatten().filter_map(|e| {
+    let region = format!("{bare}_");
+    let mut stems: Vec<String> = dirs
+        .iter()
+        .filter_map(|dir| std::fs::read_dir(dir).ok())
+        .flatten()
+        .flatten()
+        .filter_map(|e| {
             let name = e.file_name().into_string().ok()?;
             Some(name.strip_suffix(".dic")?.strip_prefix(prefix)?.to_string())
-        }));
-    }
-    let lower = |s: &String| s.to_ascii_lowercase();
-    stems
-        .iter()
-        .find(|s| lower(s) == exact.to_ascii_lowercase())
-        .or_else(|| stems.iter().find(|s| lower(s) == bare))
-        .or_else(|| {
-            if !exact.eq_ignore_ascii_case(&bare) {
-                return None;
-            }
-            let region = format!("{bare}_");
-            let mut regional: Vec<&String> =
-                stems.iter().filter(|s| lower(s).starts_with(&region)).collect();
-            regional.sort();
-            regional.into_iter().next()
         })
-        .cloned()
+        .collect();
+    stems.sort();
+    let first = |wanted: &dyn Fn(&str) -> bool| stems.iter().find(|s| wanted(&s.to_ascii_lowercase())).cloned();
+    first(&|s| s == exact)
+        .or_else(|| first(&|s| s == bare))
+        .or_else(|| (exact == bare).then(|| first(&|s| s.starts_with(&region))).flatten())
 }
 
 /// Whether the hyphenation rules for `tag` are in `dirs` (`hyph_*.dic`).
-pub fn has_hyphenation(dirs: &[&Path], tag: &str) -> bool {
+pub fn has_hyphenation(dirs: &[impl AsRef<Path>], tag: &str) -> bool {
     find_dictionary(dirs, "hyph_", tag).is_some()
 }
 
 /// The spelling dictionary in `dirs` that serves `tag` — the name to hand
-/// the spell checker, which may be a region of it (`es_ES` for `es`).
-pub fn spelling_dictionary(dirs: &[&Path], tag: &str) -> Option<String> {
+/// the spell checker, which may be a region of it (`es_AR` for `es`).
+pub fn spelling_dictionary(dirs: &[impl AsRef<Path>], tag: &str) -> Option<String> {
     find_dictionary(dirs, "", tag)
 }
 

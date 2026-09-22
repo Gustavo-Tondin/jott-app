@@ -267,8 +267,8 @@
     onLoaded={onNoteLoaded}
     onDetected={onNoteDetected}
     lang={noteLangOf(openNote, layout.languages)}
-    languages={layout.languages ?? []}
-    spellcheck={layout.checkSpelling ?? true}
+    languages={layout.languages}
+    spellcheck={layout.checkSpelling}
   />
 {:else if view.kind === "settings"}
   <SettingsView

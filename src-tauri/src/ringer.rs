@@ -134,8 +134,14 @@ mod words {
     /// disk and reads in the language — the twin of `spaceLabel` (paths.js).
     pub fn place(lang: Lang, list: &str, place: &str) -> String {
         let fixed = list.starts_with(&format!("{}/", jott_core::TASKS_DIR));
-        match (lang, place.strip_prefix("Tasks")) {
-            (PtBr, Some(rest)) if fixed && (rest.is_empty() || rest.starts_with('/')) => format!("Tarefas{rest}"),
+        match place.strip_prefix("Tasks") {
+            Some(rest) if fixed && (rest.is_empty() || rest.starts_with('/')) => {
+                let name = match lang {
+                    En => "Tasks",
+                    PtBr => "Tarefas",
+                };
+                format!("{name}{rest}")
+            }
             _ => place.to_string(),
         }
     }

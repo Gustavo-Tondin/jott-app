@@ -139,9 +139,7 @@ The interface is written in English, in one table
 3. **One case in `Lang`** (`core/src/lang.rs`): how a system locale maps to
    it, and its tag. The compiler then points at the few strings Rust draws
    itself — the tray menu (`src-tauri/src/tray.rs`) and the desktop
-   notifications (`src-tauri/src/ringer.rs`, where `words::place`, the name
-   of the fixed Tasks space, falls through a wildcard and needs its case by
-   hand) — and the launcher entry takes
+   notifications (`src-tauri/src/ringer.rs`) — and the launcher entry takes
    `GenericName`, `Comment` and `Keywords` lines with `[<locale>]` in
    `packaging/linux/jott.desktop`.
 
