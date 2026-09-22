@@ -32,6 +32,9 @@
     /// outside a table. Greyed rather than hidden: a button that comes and
     /// goes reads as a bar losing buttons.
     inactive = [],
+    /// Command ids whose mark the selection already carries — drawn in the
+    /// accent, and a folded opener with any of them lights too.
+    active = [],
   } = $props();
 
   /// The commands the panel draws, in registry order — the ones that named an
@@ -132,6 +135,7 @@
           class="theme-btn--icon format-bar__button"
           onmousedown={keepFocus}
           class:format-bar__button--on={openFold === item.fold}
+          class:format-bar__button--active={inGroup(item.fold).some((command) => active.includes(command.id))}
           title={opener.label()}
           aria-label={opener.label()}
           aria-expanded={openFold === item.fold}
@@ -162,6 +166,7 @@
                 type="button"
                 class="theme-btn--icon format-bar__button"
                 class:format-bar__button--labelled={opener.labelled}
+                class:format-bar__button--active={active.includes(command.id)}
                 onmousedown={keepFocus}
                 title={hint(command)}
                 aria-label={hint(command)}
@@ -182,6 +187,7 @@
       <button
         type="button"
         class="theme-btn--icon format-bar__button"
+        class:format-bar__button--active={active.includes(item.id)}
         onmousedown={keepFocus}
         title={hint(item)}
         aria-label={hint(item)}

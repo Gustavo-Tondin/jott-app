@@ -75,6 +75,13 @@
   .format-bar__button--on {
     background: var(--app-well);
   }
+  /* What the selection already IS (bold, a heading, a list): the glyph in the
+     accent's ink, hover included — pressing it takes the mark off. An opener
+     wears it when any command it folds does. */
+  .format-bar__button--active,
+  .format-bar__button--active:hover:not(:disabled) {
+    color: var(--app-brand-ink);
+  }
   /* The panel: a bar of its own beside the bar — twins, so the float's plate
      exactly (ground, corner and lift), and only the position is its own. The
      insets are the fallback until `keepOnScreen` (FormatBar.svelte) has

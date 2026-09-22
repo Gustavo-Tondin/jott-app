@@ -11,7 +11,7 @@
 // left in charge: `**` gave `**|`, and `*` at the end of `**text|**` gave
 // `**text*|***`.
 
-import { afterEach, describe, it, expect } from "vitest";
+import { afterEach, describe, it, expect, vi } from "vitest";
 import { EditorState } from "@codemirror/state";
 import { EditorView, keymap } from "@codemirror/view";
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
@@ -270,5 +270,59 @@ describe("the plain field's pairs (the task description)", () => {
   it("parentheses and quotes still pair, as in any field", () => {
     expect(type(plainEditor(), "(")).toBe("(|)");
     expect(type(plainEditor(), '"')).toBe('"|"');
+  });
+});
+
+describe("a dead key wraps the selection too", () => {
+  /// What a dead key does to a selection: a composition whose preedit
+  /// replaces it, then a commit to `char`.
+  // Only `setTimeout` is faked: a real wait lets jsdom run CodeMirror's
+  // measuring frame, which it cannot do.
+  async function dead(char, doc, from, to, commit = char) {
+    vi.useFakeTimers({ toFake: ["setTimeout"] });
+    const view = editor(doc, 0);
+    view.dispatch({ selection: { anchor: from, head: to } });
+    view.contentDOM.dispatchEvent(new CompositionEvent("compositionstart"));
+    view.dispatch({
+      changes: { from, to, insert: commit },
+      selection: { anchor: from + 1 },
+      userEvent: "input.type.compose",
+    });
+    view.contentDOM.dispatchEvent(new CompositionEvent("compositionend", { data: char }));
+    await Promise.resolve();
+    vi.advanceTimersByTime(80);
+    vi.useRealTimers();
+    const { anchor, head } = view.state.selection.main;
+    return [view.state.doc.toString(), view.state.sliceDoc(anchor, head)];
+  }
+
+  it("`\"`, `` ` `` and `~` put the text back between two of them, still selected", async () => {
+    expect(await dead('"', "say hi now", 4, 6)).toEqual(['say "hi" now', "hi"]);
+    expect(await dead("`", "run ls", 4, 6)).toEqual(["run `ls`", "ls"]);
+    expect(await dead("~", "old", 0, 3)).toEqual(["~old~", "old"]);
+  });
+
+  it("also when the commit came in as a keystroke an auto-close paired", async () => {
+    // WebKitGTK: the dead key's `"` reaches the input handlers, which pair it.
+    expect(await dead('"', "say hi now", 4, 6, '""')).toEqual(['say "hi" now', "hi"]);
+  });
+
+  it("in WebKit's order: the key deletes the selection before composing", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout"] });
+    const view = editor("run ls now", 0);
+    view.dispatch({ selection: { anchor: 4, head: 6 } });
+    view.contentDOM.dispatchEvent(new KeyboardEvent("keydown", { key: "Dead" }));
+    view.dispatch({ changes: { from: 4, to: 6 }, userEvent: "input.type" });
+    view.contentDOM.dispatchEvent(new CompositionEvent("compositionstart"));
+    view.dispatch({ changes: { from: 4, insert: "`" }, selection: { anchor: 5 }, userEvent: "input.type.compose" });
+    view.contentDOM.dispatchEvent(new CompositionEvent("compositionend", { data: "`" }));
+    await Promise.resolve();
+    vi.advanceTimersByTime(80);
+    vi.useRealTimers();
+    expect(view.state.doc.toString()).toBe("run `ls` now");
+  });
+
+  it("an accented letter replaces the selection, as typed", async () => {
+    expect(await dead("é", "cafe", 3, 4)).toEqual(["café", ""]);
   });
 });

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { EditorSelection, EditorState } from "@codemirror/state";
-import { EDITOR_COMMANDS, INDENT, markOf, newlineInMarkup } from "./markdownCommands.js";
+import { EDITOR_COMMANDS, INDENT, activeFormats, markOf, newlineInMarkup } from "./markdownCommands.js";
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 
 // Reached through the table, the way the panel and the shortcuts reach them.
@@ -44,6 +44,74 @@ const run = (command, doc, from, to) => {
   command(view);
   return view.state.doc.toString();
 };
+
+/// The same, with the Markdown tree the real editor has.
+function parsed(doc, from = 0, to = from) {
+  const view = {
+    state: EditorState.create({
+      doc,
+      selection: EditorSelection.single(from, to),
+      extensions: [markdown({ base: markdownLanguage })],
+    }),
+    dispatch(tr) {
+      view.state = tr.state;
+    },
+  };
+  return view;
+}
+
+const runParsed = (command, doc, from, to) => {
+  const view = parsed(doc, from, to);
+  command(view);
+  const { anchor, head } = view.state.selection.main;
+  return [view.state.doc.toString(), anchor, head];
+};
+
+describe("a mark the selection is inside comes off whole", () => {
+  it("part of a bold word unbolds all of it", () => {
+    // `ol` of `**bold**`: never `**b**ol**d**`.
+    expect(runParsed(toggleBold, "a **bold** b", 5, 7)).toEqual(["a bold b", 3, 5]);
+    // Missing a letter at either end is still the same word.
+    expect(runParsed(toggleBold, "a **bold** b", 4, 8)).toEqual(["a bold b", 2, 6]);
+  });
+
+  it("a caret anywhere in a marked run takes the whole run", () => {
+    expect(runParsed(toggleBold, "**two words**", 3)[0]).toBe("two words");
+    expect(runParsed(toggleStrike, "x ~~gone now~~", 9)[0]).toBe("x gone now");
+    expect(runParsed(toggleInlineCode, "`a b`", 2)[0]).toBe("a b");
+  });
+
+  it("the other mark of a stacked pair stays", () => {
+    expect(runParsed(toggleItalic, "***leite***", 4, 6)[0]).toBe("**leite**");
+    expect(runParsed(toggleBold, "***leite***", 4, 6)[0]).toBe("*leite*");
+    // Italic pressed inside bold adds, it does not strip the bold.
+    expect(runParsed(toggleItalic, "**leite**", 3, 5)[0]).toBe("**l*ei*te**");
+  });
+});
+
+describe("activeFormats", () => {
+  const active = (doc, from, to = from) => activeFormats(parsed(doc, from, to).state).sort();
+
+  it("names the marks around the selection", () => {
+    expect(active("a **bold** b", 5, 7)).toEqual(["md.bold"]);
+    expect(active("***both***", 5)).toEqual(["md.bold", "md.italic"]);
+    expect(active("`x` and ~~y~~", 10)).toEqual(["md.strike"]);
+    expect(active("see [site](u)", 6)).toEqual(["md.link"]);
+    expect(active("plain", 2)).toEqual([]);
+  });
+
+  it("names what the line is", () => {
+    expect(active("## Title", 4)).toEqual(["md.h2"]);
+    expect(active("- item", 3)).toEqual(["md.bullet"]);
+    expect(active("- [ ] **do**", 8)).toEqual(["md.bold", "md.task"]);
+    expect(active("> said", 3)).toEqual(["md.quote"]);
+  });
+
+  it("underline by its tags", () => {
+    expect(active("a <u>under</u> b", 7)).toEqual(["md.underline"]);
+    expect(active("<u>a</u> b <u>c</u>", 9)).toEqual([]);
+  });
+});
 
 describe("inline marks", () => {
   it("wraps a selection and unwraps it again", () => {

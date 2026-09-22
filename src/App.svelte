@@ -1020,6 +1020,17 @@
   /// What the chosen day is against today — the + composes for today and a
   /// day ahead, never for a day gone by.
   let homeKind = $derived(dayKind(homeDay ?? clock?.today, clock?.today));
+  /// Open suggestions follow the day the calendar picks underneath: a pull
+  /// lands in the day on screen, never in the one the panel was opened on.
+  /// A day gone by takes nothing, so the panel closes.
+  $effect(() => {
+    const day = homeKind === "today" ? null : homeDay;
+    const past = homeKind === "past";
+    untrack(() => {
+      if (!suggesting || view.kind !== "home" || suggesting.day === day) return;
+      suggesting = past ? null : { day };
+    });
+  });
 
   let userLists = $derived(
     (notebook?.lists ?? []).filter(
@@ -1166,6 +1177,10 @@
   /// Where the person is in a table — `{header}` or null — as the editor
   /// last reported it.
   let noteTable = $state(null);
+
+  /// The formatting buttons whose mark the selection already carries, as
+  /// the editor last reported them — lit in the accent.
+  let activeFormats = $state([]);
 
   /// The table buttons that mean nothing where the caret is: outside a
   /// table everything but Insert, inside one Insert (a table does not nest)
@@ -2157,6 +2172,7 @@
                   region="canvas"
                   hidden={hiddenFormats}
                   inactive={inactiveFormats}
+                  active={activeFormats}
                   onRun={runFormat}
                 />
               </div>
@@ -2321,6 +2337,7 @@
             onOpenNoteByTitle={openNoteByTitle}
             onZoomImage={(address) => (zoomedImage = address)}
             onTable={(status) => (noteTable = status)}
+            onFormats={(ids) => (activeFormats = ids)}
             onNoteLoaded={(state) => {
               openNote = state;
               // Consumed here, not in the editor: only the shell knows this
@@ -2368,6 +2385,7 @@
         onRun={runFormat}
         {hiddenFormats}
         {inactiveFormats}
+        {activeFormats}
         noteMenu={noteActions}
         noteFolder={openNoteFolder}
         noteSpace={openNoteSpace}
@@ -2439,6 +2457,7 @@
       region="chrome"
       hidden={hiddenFormats}
       inactive={inactiveFormats}
+      active={activeFormats}
       onRun={runFormat}
     />
   </div>

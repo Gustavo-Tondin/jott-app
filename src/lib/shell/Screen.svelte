@@ -91,6 +91,7 @@
     onZoomImage,
     onSelection,
     onTable,
+    onFormats,
     onNoteLoaded,
     /// `(tag) => void` — a note too short to read on opening now reads as `tag`.
     onNoteDetected,
@@ -256,6 +257,7 @@
     {onZoomImage}
     {onSelection}
     {onTable}
+    {onFormats}
     version={libraryKey}
     externalRevision={noteRevision}
     onConflictKept={onChanged}

@@ -96,6 +96,9 @@
     /// greys its table buttons by it. Reported only on the edges, the way
     /// `onSelection` is.
     onTable,
+    /// `(ids) => void` — the command ids whose mark the selection sits in
+    /// (`activeFormats`), which the formatting bar lights. Edges only.
+    onFormats,
     /// The language the text is drawn in (`lang` on the content — the
     /// hyphenation rules follow it; null inherits the page's), and whether
     /// words are checked. Reconfigured in place, like `readOnly`.
@@ -149,6 +152,8 @@
   /// What was last said through `onTable`, as `header|null|undefined`, so the
   /// shell hears the edges only.
   let lastTable;
+  /// What was last said through `onFormats`, joined.
+  let lastFormats = "";
 
   /// Whether something was selected the last time we said so. The listener
   /// fires on every cursor move; only the EDGES are worth reporting, or the
@@ -326,6 +331,13 @@
               if (key !== lastTable) {
                 lastTable = key;
                 onTable?.(status);
+              }
+              if (onFormats) {
+                const ids = md.activeFormats(update.state);
+                if (ids.join() !== lastFormats) {
+                  lastFormats = ids.join();
+                  onFormats(ids);
+                }
               }
             }
             if (!update.docChanged) return;

@@ -5,7 +5,7 @@
 // forgets a closer once anything is typed against it. See docs/platform-gotchas.md#codemirror
 
 import { EditorSelection, EditorState, Prec } from "@codemirror/state";
-import { EditorView, keymap } from "@codemirror/view";
+import { EditorView, ViewPlugin, keymap } from "@codemirror/view";
 import { closeBrackets, closeBracketsKeymap } from "@codemirror/autocomplete";
 import { markdownLanguage } from "@codemirror/lang-markdown";
 
@@ -142,6 +142,76 @@ const markHandler = EditorView.inputHandler.of((view, from, to, insert) => {
   return true;
 });
 
+/// What a DEAD KEY may leave that wraps a selection like the key itself would
+/// (`"` on US-intl, `` ` `` and `~` on ABNT2 and Spanish layouts).
+const DEAD = ['"', "`", "~"];
+
+/// A dead key never reaches `markHandler`: WebKit deletes the selection on
+/// the key itself, then composes, and the character is known only at the
+/// commit. So the selection is remembered on the dead key (or when a
+/// composition starts over one) and, once the commit leaves one of `DEAD` —
+/// alone, or paired by an auto-close — where it was, the text comes back
+/// between two of it.
+const deadKeyWrap = ViewPlugin.fromClass(
+  class {
+    constructor(view) {
+      this.view = view;
+      /// `{from, text, length}` — the selection the dead key replaced.
+      this.pending = null;
+    }
+
+    remember() {
+      const { state } = this.view;
+      const sel = state.selection.main;
+      if (sel.empty || state.readOnly) return;
+      this.pending = { from: sel.from, text: state.sliceDoc(sel.from, sel.to), length: state.doc.length };
+    }
+
+    update(update) {
+      if (this.pending && update.docChanged) queueMicrotask(() => this.settle(false));
+    }
+
+    /// Wraps once the document has the committed shape; `last` (the
+    /// composition is over) forgets the selection either way.
+    settle(last) {
+      const { view, pending } = this;
+      if (!pending || view.compositionStarted) return;
+      const { state } = view;
+      const char = state.sliceDoc(pending.from, pending.from + 1);
+      const sel = state.selection.main;
+      const written = state.doc.length - (pending.length - pending.text.length);
+      const pair = written === 2 && state.sliceDoc(pending.from + 1, pending.from + 2) === char;
+      const committed =
+        DEAD.includes(char) && (written === 1 || pair) && sel.empty && sel.head === pending.from + 1;
+      if (last || committed) this.pending = null;
+      if (!committed) return;
+      view.dispatch({
+        changes: { from: pending.from, to: pending.from + written, insert: char + pending.text + char },
+        selection: EditorSelection.range(pending.from + 1, pending.from + 1 + pending.text.length),
+        scrollIntoView: true,
+        userEvent: "input.type",
+      });
+    }
+  },
+  {
+    eventHandlers: {
+      // `Dead` in Chromium and Firefox; WebKitGTK reports any key its input
+      // method takes as `Unidentified` (keyCode 229).
+      keydown(event) {
+        if (event.key === "Dead" || event.keyCode === 229) this.remember();
+      },
+      compositionstart() {
+        this.remember();
+      },
+      // The commit may reach the document after the event, or change
+      // nothing the DOM reports: the last look waits for CodeMirror's flush.
+      compositionend() {
+        setTimeout(() => this.settle(true), 50);
+      },
+    },
+  },
+);
+
 /// Everything the editor needs for pairs to close themselves. The marks are
 /// declared to `closeBrackets` too: its input handler never sees them (the one
 /// above answers first), but its Backspace reads the list, so `*|*` takes both.
@@ -150,6 +220,7 @@ export const autoClose = [
     closeBrackets: { brackets: [...BRACKETS, ...MARKS] },
   }),
   Prec.high(markHandler),
+  deadKeyWrap,
   closeBrackets(),
   Prec.high(keymap.of(closeBracketsKeymap)),
 ];

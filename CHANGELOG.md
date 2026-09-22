@@ -14,6 +14,8 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 - **Tell Jott which languages you write in** (Settings → Notes → Writing) and each note is hyphenated in its own language — chosen from the note's menu, or read from the text when you write in more than one. On Linux the spell check now works, and checks every language on the list at once.
 - **Two new formatting buttons: code block (Ctrl+Shift+E) and quotation marks (Ctrl+')**, which wraps the selection in quotes where a dead-key keyboard can't.
 - **"Move to…" in the open note's menu**, to file the note in another folder or notes space without leaving it.
+- **The formatting bar shows what the selection already is** — bold, a heading, a list light up in the accent color.
+- **Dead keys wrap a selection too:** `"` and `` ` `` typed on US-International, Spanish or ABNT2 layouts wrap the selected text, like `*` and `(` do.
 
 ### Improved
 
@@ -22,11 +24,14 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 - **The highlight of the line being edited is softer.**
 - **Errors read as a sentence, not a code**, with the technical detail after it.
 - **Notifications, the tray menu and the names of Home, Tasks and Notes follow the app's language.**
+- **Taking off bold, italic, strikethrough or code removes the whole mark**, even with only part of the word selected.
 
 ### Fixed
 
 - **Deleting a note no longer warns that it can't be undone** — it goes to the trash, as the dialog already said.
 - **The image viewer shows the keyboard focus** as a ring around the picture, and restoring or purging a trashed item reports it when the trash index could not be saved.
+- **Select all highlights the whole note**, not only the part that was on screen.
+- **Suggestions follow the day picked in the calendar**, so a pulled task lands on that day and stays on offer for the others.
 
 ## v0.58.0
 

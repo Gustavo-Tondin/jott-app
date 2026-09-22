@@ -49,6 +49,8 @@
     tableLayout = "",
     /// `({header}) | null`, passed straight through (2026-08-24).
     onTable,
+    /// `(ids) => void` — the marks the selection sits in, passed through.
+    onFormats,
     /// The language the note is drawn in and whether the editor checks
     /// spelling — passed through. `languages` are the notebook's: with two or
     /// more, a note too short to read on opening is read again after a save,
@@ -117,6 +119,7 @@
     // "on selection" would still be up over a note nobody has touched.
     onSelection?.(false);
     onTable?.(null);
+    onFormats?.([]);
     keepTheirs = false;
     lastWritten = null;
     load(folder, path);
@@ -232,6 +235,7 @@
     {tables}
     {tableLayout}
     {onTable}
+    {onFormats}
     {lang}
     {spellcheck}
   />

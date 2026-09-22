@@ -98,17 +98,41 @@ function runAfter(doc, pos, char) {
   return n;
 }
 
+/// The innermost `name` node of the Markdown tree holding all of `from…to`,
+/// or null. What makes a mark "the one the selection is in", whatever part of
+/// it is selected.
+function enclosing(state, from, to, name) {
+  for (let node = syntaxTree(state).resolveInner(from, 1); node; node = node.parent) {
+    if (node.name === name && node.from <= from && node.to >= to) return node;
+  }
+  return null;
+}
+
 /// A mark written as ONE CHARACTER REPEATED. Matching text fails: `**word**`
 /// with `word` selected and Ctrl+I saw `*` on each side and UNBOLDED it. So
 /// the rule counts HOW MANY of the character stand around the span (`***x***`
 /// is both): a one-char mark is on when the run is odd, a two-char when ≥ 2.
-function toggleRun(char, width) {
+/// First, though, the tree: a caret or a selection anywhere inside a marked
+/// run (`node`) takes the WHOLE mark off — `ol` of `**bold**` included, so a
+/// sloppy selection never leaves a letter bold at either end.
+function toggleRun(char, width, node) {
   return (view) => {
     const state = view.state;
     const changes = [];
     const ranges = [];
 
     for (const range of state.selection.ranges) {
+      const marked = enclosing(state, range.from, range.to, node);
+      const open = marked?.firstChild;
+      const close = marked?.lastChild;
+      if (open && close && open !== close && open.name.endsWith("Mark") && close.name.endsWith("Mark")) {
+        const inner = (pos) => Math.min(Math.max(pos, open.to), close.from) - (open.to - open.from);
+        changes.push({ from: open.from, to: open.to, insert: "" });
+        changes.push({ from: close.from, to: close.to, insert: "" });
+        ranges.push(EditorSelection.range(inner(range.anchor), inner(range.head)));
+        continue;
+      }
+
       const span = range.empty ? wordAt(state, range.head) : range;
       // Marks caught INSIDE the selection count as marks AROUND it: selecting
       // `**bold**` whole and pressing Ctrl+B means the word, not the
@@ -167,10 +191,10 @@ function wordAt(state, pos) {
   return { from: line.from + from, to: line.from + to };
 }
 
-const toggleBold = toggleRun("*", 2);
-const toggleItalic = toggleRun("*", 1);
-const toggleStrike = toggleRun("~", 2);
-const toggleInlineCode = toggleRun("`", 1);
+const toggleBold = toggleRun("*", 2, "StrongEmphasis");
+const toggleItalic = toggleRun("*", 1, "Emphasis");
+const toggleStrike = toggleRun("~", 2, "Strikethrough");
+const toggleInlineCode = toggleRun("`", 1, "InlineCode");
 /// Underline, which Markdown does not have, written as the HTML it is:
 /// `<u>` is valid CommonMark and renders in Obsidian, VS Code and GitHub.
 /// `__text__` would be bold in CommonMark and collide with the B button.
@@ -220,13 +244,11 @@ const FENCE = /^\s*(`{3,}|~{3,})/;
 /// The fenced block holding all of `from…to`, as its two fence lines, or null
 /// — an unclosed block has no second fence to take off.
 function fencedBlockAround(state, from, to) {
-  for (let node = syntaxTree(state).resolveInner(from, 1); node; node = node.parent) {
-    if (node.name !== "FencedCode" || node.from > from || node.to < to) continue;
-    const open = state.doc.lineAt(node.from);
-    const close = state.doc.lineAt(node.to);
-    return close.number > open.number && FENCE.test(close.text) ? { open, close } : null;
-  }
-  return null;
+  const node = enclosing(state, from, to, "FencedCode");
+  if (!node) return null;
+  const open = state.doc.lineAt(node.from);
+  const close = state.doc.lineAt(node.to);
+  return close.number > open.number && FENCE.test(close.text) ? { open, close } : null;
 }
 
 /// Fence the lines the selection touches in ``` — or, when the selection is
@@ -401,6 +423,37 @@ function clearHeading(view) {
   }
   if (changes.length === 0) return false;
   return edit(view, { changes });
+}
+
+// ---- what the selection already is ---------------------------------------
+
+/// Tree node → the command that writes it.
+const INLINE = {
+  "md.bold": "StrongEmphasis",
+  "md.italic": "Emphasis",
+  "md.strike": "Strikethrough",
+  "md.code": "InlineCode",
+  "md.link": "Link",
+};
+const LINE = { bullet: "md.bullet", ordered: "md.ordered", task: "md.task", quote: "md.quote" };
+
+/// The command ids whose mark the main selection sits in — what the
+/// formatting bar lights. Inline marks by the tree; line marks by the first
+/// line touched; underline, which the tree reads as two loose tags, by the
+/// nearest `<u>`/`</u>` on either side within the line.
+export function activeFormats(state) {
+  const { from, to } = state.selection.main;
+  const ids = Object.keys(INLINE).filter((id) => enclosing(state, from, to, INLINE[id]));
+  const line = state.doc.lineAt(from);
+  const mark = markOf(line.text);
+  if (mark.kind === "heading") ids.push(`md.h${mark.match[2].length}`);
+  else if (LINE[mark.kind]) ids.push(LINE[mark.kind]);
+  const before = line.text.slice(0, from - line.from);
+  const after = state.doc.lineAt(to).number === line.number ? line.text.slice(to - line.from) : "";
+  if (before.lastIndexOf("<u>") > before.lastIndexOf("</u>") && after.indexOf("</u>") >= 0 &&
+      (after.indexOf("<u>") < 0 || after.indexOf("</u>") < after.indexOf("<u>")))
+    ids.push("md.underline");
+  return ids;
 }
 
 // ---- ordered lists keep counting right ------------------------------------

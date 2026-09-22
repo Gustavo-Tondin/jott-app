@@ -41,6 +41,7 @@
     onRun,
     hiddenFormats = [],
     inactiveFormats = [],
+    activeFormats = [],
     noteMenu = [],
     // where the open note is filed: the space it lives in, and the folder
     // inside it (`""` at the space's root)
@@ -101,6 +102,7 @@
       {onRun}
       hidden={hiddenFormats}
       inactive={inactiveFormats}
+      active={activeFormats}
       menu={noteMenu}
       where={[noteSpace, leafOf(noteFolder)].filter(Boolean).join("/") || S.allNotes}
       targets={noteTargets}
