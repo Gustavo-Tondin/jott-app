@@ -71,6 +71,10 @@ struct MachinePrefs {
     /// machine preference (a monitor and a pair of eyes); the NOTE's font size
     /// is reading taste and travels with the notebook.
     zoom: Option<f64>,
+    /// The interface language: a tag the frontend ships a dictionary for, or
+    /// `system`. Absent means `system`. A machine preference: the same
+    /// notebook can be read in two languages by two people.
+    language: Option<String>,
     /// Whether the app may look for a new version by itself. Answers for this
     /// INSTALL: the same notebook on a phone and a desktop is served by two
     /// binaries. Absent means on — the check is explained in Settings.
@@ -276,6 +280,23 @@ pub fn zoom<R: Runtime>(app: &AppHandle<R>) -> Option<f64> {
 
 pub fn remember_zoom<R: Runtime>(app: &AppHandle<R>, zoom: f64) {
     update(app, |prefs| prefs.zoom = Some(zoom));
+}
+
+/// What the user chose for the interface language — `system` when nothing
+/// was ever picked. Not validated: an unknown tag reads as English
+/// (`Lang::resolve`) and comes back here unchanged.
+pub fn language<R: Runtime>(app: &AppHandle<R>) -> String {
+    load(app).language.unwrap_or_else(|| jott_core::lang::SYSTEM.to_string())
+}
+
+pub fn remember_language<R: Runtime>(app: &AppHandle<R>, tag: &str) {
+    update(app, |prefs| prefs.language = Some(tag.to_string()));
+}
+
+/// The language in force on this machine — the ONE resolver. The frontend,
+/// the tray and the reminder thread all read this, so they cannot disagree.
+pub fn lang<R: Runtime>(app: &AppHandle<R>) -> jott_core::lang::Lang {
+    jott_core::lang::Lang::resolve(Some(&language(app)), sys_locale::get_locale().as_deref())
 }
 
 /// Where a notebook's merge base is kept (`jott_core::base`). Beside the

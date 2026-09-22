@@ -45,6 +45,9 @@ serde_json.workspace = true
 # and this is not a date on the calendar, it is a stamp on a machine preference.
 chrono.workspace = true
 ureq = { version = "3", default-features = false, features = ["rustls", "platform-verifier", "gzip"] }
+# The system's locale, for the interface language when the user never chose
+# one (`prefs::lang`). `LANG` does not exist on Windows; this asks each OS.
+sys-locale = "0.3"
 
 # The desktop's own icon for a kind of file, for the chip a non-drawable file
 # gets inside a note (`commands::file_icon`, 2026-08-19). Pinned to the exact

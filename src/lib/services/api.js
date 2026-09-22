@@ -150,6 +150,11 @@ export const api = {
   // own font size is the opposite case and lives in the notebook.
   zoom: () => invoke("zoom"),
   rememberZoom: (zoom) => invoke("remember_zoom", { zoom }),
+  // The interface language: `{ chosen, effective }` — what was picked
+  // (`system` or a tag) and the tag in force. Asked before the first paint
+  // (services/locale.js); setting it is followed by a reload of the window.
+  language: () => invoke("language"),
+  setLanguage: (tag) => invoke("set_language", { tag }),
 
   // update. The check itself is Rust's — the webview's CSP does not reach
   // github.com. The two prefs answer for this INSTALL, a machine matter.

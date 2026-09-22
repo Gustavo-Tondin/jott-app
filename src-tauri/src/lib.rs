@@ -115,6 +115,8 @@ pub fn configure<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builde
             commands::settings::remember_panel_width,
             commands::settings::zoom,
             commands::settings::remember_zoom,
+            commands::settings::language,
+            commands::settings::set_language,
             // spaces — spaces and groups
             commands::spaces::create_space_in,
             commands::spaces::rename_space,

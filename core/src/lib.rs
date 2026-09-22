@@ -20,6 +20,7 @@ pub mod fsio;
 pub mod history;
 pub mod id;
 pub mod jsondoc;
+pub mod lang;
 pub mod links;
 pub mod list;
 pub mod merge;

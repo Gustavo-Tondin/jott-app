@@ -52,8 +52,14 @@ export function askConfirm(title, { detail = "", code = "", danger = "OK", remem
 /// What every delete in this app says, because it is true of all of them:
 /// nothing is destroyed.
 export const DELETING = {
-  detail: S.goesToTrash,
-  danger: S.deleteAction,
+  // Getters, not values: the module is evaluated before the language is
+  // laid over S (services/locale.js), and a spread reads them at the call.
+  get detail() {
+    return S.goesToTrash;
+  },
+  get danger() {
+    return S.deleteAction;
+  },
   remember: "confirmDeletes",
 };
 

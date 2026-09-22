@@ -20,6 +20,7 @@
     S.showListCounts,
     S.restoreLastScreen,
     S.closeOnClickAway,
+    S.language,
     S.dateFormat,
   ];
 </script>
@@ -31,6 +32,7 @@
   // decide what this screen looks like.
   import { segmented } from "../../actions/segmented.js";
   import { api } from "../../services/api.js";
+  import { LANGUAGES, chosen as chosenLanguage, reloadIn } from "../../services/locale.js";
   import { revealFolder } from "../../services/reveal.js";
   import { askName } from "../../services/dialog.js";
   import { DEFAULT_ACCENT } from "../../services/accent.js";
@@ -79,12 +81,23 @@
     blockedInTheme = 0,
     /// Writes a new theme seeded with the look in use (App.svelte → newThemeFrom).
     onNewTheme,
+    /// The open notebook — where the window comes back after a language change.
+    notebook = null,
     onReset,
     onError,
   } = $props();
 
   // Slash-only, and month-first is the default.
   const DATE_SHAPES = ["mm/dd/yyyy", "dd/mm/yyyy", "yyyy/mm/dd"];
+
+  /// `system`, then each language named in itself — the one row that is not
+  /// translated. Choosing reloads the window: the strings are read once.
+  const LANGUAGE_OPTIONS = [
+    ["system", S.languageSystem],
+    ...Object.entries(LANGUAGES).map(([tag, { name }]) => [tag, name]),
+  ];
+  const chooseLanguage = (tag) =>
+    api.setLanguage(tag).then(() => reloadIn(notebook?.path), (e) => onError?.(e));
 
   /// What this machine has installed, asked when the page opens. Empty off
   /// Linux — the pickers then offer the app's faces plus the generics, so
@@ -500,6 +513,20 @@
       />
     </label>
   {/if}
+
+  <label class="settings__row">
+    <span class="settings__label">{S.language}</span>
+    <select
+      class="theme-select"
+      value={chosenLanguage}
+      aria-label={S.language}
+      onchange={(e) => chooseLanguage(e.currentTarget.value)}
+    >
+      {#each LANGUAGE_OPTIONS as [tag, name] (tag)}
+        <option value={tag}>{name}</option>
+      {/each}
+    </select>
+  </label>
 
   <label class="settings__row">
     <span class="settings__label">{S.dateFormat}</span>

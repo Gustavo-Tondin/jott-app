@@ -8,6 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
+    "i18n": "node src/lib/test/i18n-report.js",
     "tauri": "tauri",
     "package": "NO_STRIP=1 tauri build",
     "release": "packaging/release.sh"

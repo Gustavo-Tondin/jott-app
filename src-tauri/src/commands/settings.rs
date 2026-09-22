@@ -89,6 +89,30 @@ pub async fn remember_zoom<R: Runtime>(app: AppHandle<R>, zoom: f64) {
     crate::prefs::remember_zoom(&app, zoom);
 }
 
+/// The interface language: what was chosen (`system` or a tag) and what
+/// that resolves to on this machine. Asked before the first paint, with no
+/// notebook open — a machine preference.
+#[derive(serde::Serialize)]
+pub struct LanguageInfo {
+    pub chosen: String,
+    pub effective: &'static str,
+}
+
+#[tauri::command]
+pub async fn language<R: Runtime>(app: AppHandle<R>) -> LanguageInfo {
+    LanguageInfo {
+        chosen: crate::prefs::language(&app),
+        effective: crate::prefs::lang(&app).tag(),
+    }
+}
+
+/// Remembers the choice. The window reloads itself afterwards: nothing here
+/// re-renders 800 strings in place.
+#[tauri::command]
+pub async fn set_language<R: Runtime>(app: AppHandle<R>, tag: String) {
+    crate::prefs::remember_language(&app, &tag);
+}
+
 /// Every notebook preference in force, for the settings screen to draw. The
 /// Display half comes back from the MACHINE — see the module header.
 #[tauri::command]

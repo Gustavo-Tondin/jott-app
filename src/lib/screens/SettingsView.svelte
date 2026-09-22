@@ -401,6 +401,7 @@
           {wornTheme}
           {blockedInTheme}
           {onNewTheme}
+          {notebook}
           onReset={() => resetSection("display")}
           {onError}
         />

@@ -1,84 +1,84 @@
-// Every string the user reads, in one place. English until i18n lands after
-// v1; translating later means adding a file here, not hunting text through
-// components. Functions take the variable parts.
-
-/// The actions the app records, in words — keyed by the bridge command.
-const ACTION_NAMES = {
-  create_task: "New task",
-  edit_task_text: "Rename task",
-  set_task_pinned: "Pin task",
-  move_task_to: "Reorder tasks",
-  move_task: "Move task",
-  duplicate_task: "Duplicate task",
-  complete_task: "Complete task",
-  uncomplete_task: "Reopen task",
-  delete_task: "Delete task",
-  create_list: "New list",
-  rename_list: "Rename list",
-  delete_list: "Delete list",
-  pull_into: "Add to a day",
-  remove_from: "Remove from a day",
-  set_day_order: "Reorder the day",
-  set_day_pinned: "Pin for today",
-  set_day_sort: "Sort the day",
-  quick_capture_note: "Quick note",
-  create_note: "New note",
-  delete_note: "Delete note",
-  rename_note: "Rename note",
-  move_note: "Move note",
-  move_note_to_space: "Move note",
-  set_note_pinned: "Pin note",
-  set_note_banner: "Note banner",
-  duplicate_note: "Duplicate note",
-  create_note_folder: "New folder",
-  rename_note_folder: "Rename folder",
-  delete_note_folder: "Delete folder",
-  set_note_folder_color: "Folder colour",
-  set_note_folder_pinned: "Pin folder",
-  create_space_in: "New space",
-  rename_space: "Rename space",
-  delete_space: "Delete space",
-  move_space: "Move space",
-  set_space_appearance: "Space colour and icon",
-  set_space_sort: "Sort space",
-  set_space_order: "Reorder space",
-  set_space_note_layout: "Board layout",
-  create_group: "New group",
-  rename_group: "Rename group",
-  delete_group: "Delete group",
-  move_group: "Move group",
-  set_group_appearance: "Group colour and icon",
-  set_order: "Reorder sidebar",
-  set_spaces_sort: "Sort sidebar",
-  set_rainbow_spaces: "Sidebar colours",
-  set_tag: "Save tag",
-  remove_tag: "Remove tag",
-  restore_from_trash: "Restore from trash",
-  purge_from_trash: "Delete for good",
-  empty_trash: "Empty trash",
-  set_notebook_settings: "Change a setting",
-  reset_settings: "Reset a settings section",
-  set_feature: "Switch a function",
-  set_shortcut: "Change a shortcut",
-  reset_shortcuts: "Reset shortcuts",
-};
-
-/// What the floating undo says an action did: the thing that vanished, past
-/// tense. A command not named here reads as its action.
-const UNDO_OFFERS = {
-  delete_task: "Task deleted",
-  delete_note: "Note deleted",
-  delete_list: "List deleted",
-  delete_space: "Space deleted",
-  delete_group: "Group deleted",
-  delete_note_folder: "Folder deleted",
-  remove_from: "Removed from the day",
-  move_task: "Task moved",
-  move_note: "Note moved",
-  move_note_to_space: "Note moved",
-};
+// Every string the user reads, in one place, in English: the source a
+// language is translated FROM (src/lib/locales/<tag>.js holds the pairs, and
+// services/locale.js lays them over this table before the first paint).
+// Functions take the variable parts.
 
 export const S = {
+  /// The actions the app records, in words — keyed by the bridge command.
+  actionNames: {
+    create_task: "New task",
+    edit_task_text: "Rename task",
+    set_task_pinned: "Pin task",
+    move_task_to: "Reorder tasks",
+    move_task: "Move task",
+    duplicate_task: "Duplicate task",
+    complete_task: "Complete task",
+    uncomplete_task: "Reopen task",
+    delete_task: "Delete task",
+    create_list: "New list",
+    rename_list: "Rename list",
+    delete_list: "Delete list",
+    pull_into: "Add to a day",
+    remove_from: "Remove from a day",
+    set_day_order: "Reorder the day",
+    set_day_pinned: "Pin for today",
+    set_day_sort: "Sort the day",
+    quick_capture_note: "Quick note",
+    create_note: "New note",
+    delete_note: "Delete note",
+    rename_note: "Rename note",
+    move_note: "Move note",
+    move_note_to_space: "Move note",
+    set_note_pinned: "Pin note",
+    set_note_banner: "Note banner",
+    duplicate_note: "Duplicate note",
+    create_note_folder: "New folder",
+    rename_note_folder: "Rename folder",
+    delete_note_folder: "Delete folder",
+    set_note_folder_color: "Folder colour",
+    set_note_folder_pinned: "Pin folder",
+    create_space_in: "New space",
+    rename_space: "Rename space",
+    delete_space: "Delete space",
+    move_space: "Move space",
+    set_space_appearance: "Space colour and icon",
+    set_space_sort: "Sort space",
+    set_space_order: "Reorder space",
+    set_space_note_layout: "Board layout",
+    create_group: "New group",
+    rename_group: "Rename group",
+    delete_group: "Delete group",
+    move_group: "Move group",
+    set_group_appearance: "Group colour and icon",
+    set_order: "Reorder sidebar",
+    set_spaces_sort: "Sort sidebar",
+    set_rainbow_spaces: "Sidebar colours",
+    set_tag: "Save tag",
+    remove_tag: "Remove tag",
+    restore_from_trash: "Restore from trash",
+    purge_from_trash: "Delete for good",
+    empty_trash: "Empty trash",
+    set_notebook_settings: "Change a setting",
+    reset_settings: "Reset a settings section",
+    set_feature: "Switch a function",
+    set_shortcut: "Change a shortcut",
+    reset_shortcuts: "Reset shortcuts",
+  },
+  /// What the floating undo says an action did: the thing that vanished, past
+  /// tense. A command not named here reads as its action.
+  undoOffers: {
+    delete_task: "Task deleted",
+    delete_note: "Note deleted",
+    delete_list: "List deleted",
+    delete_space: "Space deleted",
+    delete_group: "Group deleted",
+    delete_note_folder: "Folder deleted",
+    remove_from: "Removed from the day",
+    move_task: "Task moved",
+    move_note: "Note moved",
+    move_note_to_space: "Note moved",
+  },
+
   // App shell
   // Android only: the notebook lives wherever the user says, and that needs
   // the all-files permission — see services/androidStorage.js.
@@ -463,8 +463,8 @@ export const S = {
   hyphenateNotesHint:
     "Breaks a long word across two lines so the right edge stops jumping. " +
     "It only happens on screen: the .md file keeps every word whole. Needs " +
-    "the system's English hyphenation rules — where they are missing, " +
-    "nothing changes.",
+    "the system's hyphenation rules for the app's language — where they are " +
+    "missing, nothing changes.",
 
   // The floating formatting bar of an open note. Display, so it answers to
   // this screen. On a phone there is no floating bar: the controls ride
@@ -549,10 +549,10 @@ export const S = {
   nothingToRedo: "Nothing to redo",
   undoStale: "That can't be undone: the files changed since (a sync, another window).",
   // The floating offer (services/undoOffer.js): one line, one button.
-  undoOfferText: (command) => UNDO_OFFERS[command] ?? S.actionName(command),
+  undoOfferText: (command) => S.undoOffers[command] ?? S.actionName(command),
   undoOfferAction: "Undo",
   undoOfferGone: "Something else changed since, so nothing was undone. Ctrl+Z steps back through it all.",
-  actionName: (command) => ACTION_NAMES[command] ?? command.replaceAll("_", " "),
+  actionName: (command) => S.actionNames[command] ?? command.replaceAll("_", " "),
   // What the openers of the narrow bar say. They open nothing but more
   // buttons, so they are named after what is INSIDE them.
   formatMarks: "Text style",
@@ -623,6 +623,9 @@ export const S = {
   monday: "Monday",
   sunday: "Sunday",
   dateFormat: "Date format",
+  // The interface language. Each language is named in itself (services/locale.js).
+  language: "Language",
+  languageSystem: "System",
   mode: "Mode",
   modeJott: "Jott",
   modeJottHint: "Black frame, white page.",

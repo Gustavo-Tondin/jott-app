@@ -6,6 +6,12 @@ What changed in each release, written for the person using the app rather than f
 
 One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` and `### Improved` under it. `packaging/release.sh` refuses to tag a version that has no section here. Versions before v0.51.0 predate the file and live only in the commit history.
 
+## v0.59.0
+
+### New
+
+- **Jott can speak more than one language**: pick it under Settings → Display, or let it follow the system. Portuguese (Brazil) starts here; the full translation lands over the next releases.
+
 ## v0.58.0
 
 ### New
