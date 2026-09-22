@@ -17,6 +17,10 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 - **Errors read as a sentence, not a code**, with the technical detail after it.
 - **Notifications, the tray menu and the names of Home, Tasks and Notes follow the app's language.**
 
+### Fixed
+
+- **Deleting a note no longer warns that it can't be undone** — it goes to the trash, as the dialog already said.
+
 ## v0.58.0
 
 ### New

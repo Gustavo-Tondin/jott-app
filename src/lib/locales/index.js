@@ -21,13 +21,17 @@ export function same(en, source) {
 
 const squeeze = (fn) => String(fn).replace(/\s+/g, "");
 
+/// Source keys with nothing to translate: they only look up other keys
+/// (`actionNames`, `undoOffers`), which a dictionary translates instead.
+export const DERIVED = new Set(["undoOfferText", "actionName"]);
+
 /// What a dictionary gets wrong against the source, worst first:
 /// `orphans` — keys the source no longer has (a rename left them behind);
 /// `malformed` — not a `[en, translation]` pair, or a shape the source key
 /// does not have; `broken` — a function or table whose English moved on,
 /// which the runtime cannot fall back from (it trusts functions);
 /// `stale` — a string whose English moved on, shown in English by itself;
-/// `missing` — source keys the dictionary does not cover yet.
+/// `missing` — source keys the dictionary does not cover yet (never DERIVED).
 export function audit(source, dict) {
   const orphans = [];
   const malformed = [];
@@ -49,8 +53,9 @@ export function audit(source, dict) {
     if (same(pair[0], source[key])) continue;
     (typeof pair[0] === "string" ? stale : broken).push(key);
   }
-  const missing = Object.keys(source).filter((key) => !(key in dict));
-  const total = Object.keys(source).length;
+  const keys = Object.keys(source).filter((key) => !DERIVED.has(key));
+  const missing = keys.filter((key) => !(key in dict));
+  const total = keys.length;
   return { orphans, malformed, broken, stale, missing, covered: total - missing.length, total };
 }
 

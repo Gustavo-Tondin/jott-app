@@ -931,7 +931,7 @@ export const S = {
     `Delete the folder "${name}"? Its notes and subfolders move up one level — nothing is deleted.`,
   folderEmptied: (count, name) =>
     `${count} item(s) from "${name}" moved up one level.`,
-  confirmDeleteNote: (title) => `Delete "${title}"? This cannot be undone.`,
+  confirmDeleteNote: (title) => `Delete "${title}"?`,
   noNotes: "No notes yet.",
   allNotes: "All notes",
   emptyNote: "Empty note",

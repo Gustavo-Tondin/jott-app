@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, test } from "vitest";
 
 import { S } from "./strings.js";
 import { apply } from "./locale.js";
-import { LANGUAGES, audit } from "../locales/index.js";
+import { DERIVED, LANGUAGES, audit } from "../locales/index.js";
 
 // Every shipped dictionary against the source table. The hard cases fail:
 // an orphan is a rename that forgot the dictionary; a malformed entry never
@@ -25,6 +25,12 @@ describe.each(Object.entries(LANGUAGES).filter(([, l]) => l.load))(
     });
   },
 );
+
+// A key left out of the count must still be a lookup in the source: a
+// rename or a new literal would otherwise hide from the translator.
+test("DERIVED names only functions the source still has", () => {
+  for (const key of DERIVED) expect(typeof S[key]).toBe("function");
+});
 
 describe("apply", () => {
   // `apply` rewrites the shared table; each test starts from the English.

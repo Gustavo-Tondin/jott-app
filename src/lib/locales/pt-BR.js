@@ -1283,12 +1283,9 @@ export default {
     (count, name) =>
       `${count} item(s) from "${name}" moved up one level.`,
     (count, name) =>
-      `${count} item(ns) de “${name}” subiram um nível.`,
+      `${count} item(s) de “${name}” subiram um nível.`,
   ],
-  confirmDeleteNote: [
-    (title) => `Delete "${title}"? This cannot be undone.`,
-    (title) => `Excluir “${title}”? Isso não pode ser desfeito.`,
-  ],
+  confirmDeleteNote: [(title) => `Delete "${title}"?`, (title) => `Excluir “${title}”?`],
   noNotes: ["No notes yet.", "Nenhuma nota ainda."],
   allNotes: ["All notes", "Todas as notas"],
   emptyNote: ["Empty note", "Nota vazia"],
