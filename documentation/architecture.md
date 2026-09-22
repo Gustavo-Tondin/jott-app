@@ -137,6 +137,15 @@ the same arrangement as the drag layer), and the gesture itself lives in the
 reorder action rather than in a second one — the hold, the slop and the
 Android touch path are already there, and a copy of them would drift.
 
+**Every visible word goes through one table.** `services/strings.js` holds
+the English; a language is a dictionary of `[english, translation]` pairs in
+`locales/<tag>.js`, laid over that table by `services/locale.js` before the
+app mounts — which is why no module may read a string at load time. Which
+language to use is the core's call (`Lang::resolve`: the user's choice, else
+the system locale), so the tray and the notifications Rust draws answer the
+same way. Changing it reloads the window. See
+[`contributing.md`](contributing.md#adding-a-language).
+
 **There is no `<style>` block anywhere.** Every rule lives in `src/styles/`,
 which is what makes theming a matter of one file — see
 [`theming.md`](theming.md).

@@ -18,6 +18,7 @@ npm install
 npm run tauri dev    # the app, with hot reload on the frontend
 cargo test           # the rules
 npm test             # the frontend
+npm run i18n         # what each translation is missing
 ```
 
 ## Linux packages

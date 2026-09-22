@@ -10,7 +10,7 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 
 ### New
 
-- **Jott can speak more than one language**: pick it under Settings → Display, or let it follow the system. Portuguese (Brazil) starts here; the full translation lands over the next releases.
+- **Jott speaks Portuguese (Brazil).** Pick the language under Settings → Display, or let it follow the system.
 
 ### Improved
 

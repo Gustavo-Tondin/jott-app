@@ -17,7 +17,7 @@ Jott is a place to write things down before you forget them — a task, a though
 
 What makes it different is underneath. There is no account, no server and no database — your notebook is **a folder of `.md` files you chose**, and every task is a checklist line you could have typed yourself. Open them in Obsidian, grep them, sync them with Syncthing, put them in git. If you stop using Jott tomorrow, nothing has to be exported: it's all already there, readable.
 
-It runs on **Linux, Windows and Android** from one codebase, with a native interface rather than a packaged website, and it's **MIT-licensed** and free.
+It runs on **Linux, Windows and Android** from one codebase, in English and Portuguese (Brazil), with a native interface rather than a packaged website, and it's **MIT-licensed** and free.
 
 ## Install
 
@@ -94,7 +94,7 @@ Jott is pre-1.0 and used daily. The [releases page](https://github.com/Gustavo-T
 
 **Now — before v1.** Finishing the time axis (sorting by age, then a weekly sweep of what you haven't looked at), Android on real hardware, and clicking through what so far only tests have seen.
 
-**Next — after v1.** Table and kanban views of the list you already have; local version history for a note; a command palette; system-wide capture; a smaller theme format; translations, importers (Todoist, Microsoft To Do, Obsidian Tasks) and PDF export.
+**Next — after v1.** Table and kanban views of the list you already have; local version history for a note; a command palette; system-wide capture; a smaller theme format; more languages, importers (Todoist, Microsoft To Do, Obsidian Tasks) and PDF export.
 
 **Later — optional paid services**, never replacing a local feature: end-to-end encrypted sync, cloud backup, sharing. Syncing today is already free and works — point Syncthing, Drive or git at the notebook folder.
 

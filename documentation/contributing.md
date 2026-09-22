@@ -122,14 +122,46 @@ Not to be discouraging — to save you the work:
 - A refactor of code you aren't otherwise touching, or a reformat of a file.
   Diffs are read one change at a time.
 
-## Translations
+## Adding a language
 
-The interface is English, and every string lives in one table
-(`src/lib/services/strings.js`). There is **no i18n layer yet** — translation
-is on the roadmap, and the single table is the preparation for it. If you
-want to work on that, open an issue first: the shape of the mechanism matters
-more than any one language, and getting it wrong would cost every translator
-afterwards.
+The interface is written in English, in one table
+(`src/lib/services/strings.js`). A language is a dictionary beside it:
+
+1. **`src/lib/locales/<tag>.js`**, named by its BCP 47 tag (`pt-BR`, `es`).
+   Each key mirrors `strings.js` and holds a pair: the English it was
+   translated *from*, then the translation —
+   `today: ["Today", "Hoje"]`. A key whose text takes values is a function
+   in both halves; copy the English one byte for byte and translate the
+   second. Keep the order and section comments of `strings.js`, so the two
+   files diff alike. `pt-BR.js` is the worked example.
+2. **One line in `LANGUAGES`** (`src/lib/locales/index.js`), with the
+   language's name written in that language.
+3. **One case in `Lang`** (`core/src/lang.rs`): how a system locale maps to
+   it, and its tag. The compiler then points at the few strings Rust draws
+   itself — the tray menu (`src-tauri/src/tray.rs`) and the desktop
+   notifications (`src-tauri/src/ringer.rs`, where `words::place`, the name
+   of the fixed Tasks space, falls through a wildcard and needs its case by
+   hand) — and the launcher entry takes
+   `GenericName`, `Comment` and `Keywords` lines with `[<locale>]` in
+   `packaging/linux/jott.desktop`.
+
+`npm run i18n` shows what is left: the share translated, and each key that
+is missing, stale, orphaned or malformed. `npm test` runs the same audit; a
+missing key or a stale sentence only reports, everything else fails.
+
+**Why the English sits next to each translation.** Text changes. When a
+sentence in `strings.js` is reworded, its pair no longer matches, and the
+app shows the new English there instead of a translation of the old one —
+nobody reads a stale sentence, and `npm run i18n` lists the key as *stale*
+until someone updates it. A missing key falls back to English the same
+way, so a language can land half done. A function or a list whose English
+changed is different: the app cannot fall back on part of it, so the test
+fails until the pair is brought up to date.
+
+What is never translated is what lands on disk: the names of Jott's own
+files and folders, and the keys and values of the file format
+([`file-format.md`](file-format.md)). A notebook written in one language
+opens unchanged in another.
 
 ## Licence
 
