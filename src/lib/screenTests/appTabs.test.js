@@ -394,6 +394,62 @@ describe("the compact shell", () => {
     expect(await screen.findByText("Reorder tasks…")).toBeTruthy();
   });
 
+  describe("with the top bar hidden (Display › Hide the top bar)", () => {
+    const bare = { ...notebook, layout: { ...notebook.layout, hideTopBar: true } };
+    const bareShell = (extra = {}) =>
+      compactShell({
+        platform: "android",
+        open_notebook: bare,
+        notebook_snapshot: {
+          info: bare,
+          clock: CLOCK,
+          counts: {},
+          conflicts: [],
+          spaces: [],
+          groups: [],
+        },
+        ...extra,
+      });
+
+    test("a space's name opens the sidebar and its row holds the ⋮", async () => {
+      bareShell({ screen_to_restore: "tasks", list_tasks: [task("a1", "Comprar leite")] });
+
+      const { container } = render(App);
+
+      await screen.findByText("Comprar leite");
+      expect(container.querySelector(".topbar")).toBeNull();
+      await fireEvent.click(container.querySelector(".page-header__name--nav"));
+      expect(container.querySelector(".window--pushed")).toBeTruthy();
+
+      await fireEvent.click(container.querySelector(".page-header--compact .page-menu__toggle"));
+      expect(await screen.findByText("Reorder tasks…")).toBeTruthy();
+      expect(screen.getByText("Forward").closest("button").disabled).toBe(true);
+      expect(screen.getByText("Tabs (1)")).toBeTruthy();
+    });
+
+    test("the Home's name opens the sidebar instead of going back to today", async () => {
+      bareShell();
+      const { container } = render(App);
+
+      const title = await waitFor(() => {
+        const el = container.querySelector(".day-head--compact .day-head__title");
+        if (!el) throw new Error("no head");
+        return el;
+      });
+      expect(container.querySelector(".topbar")).toBeNull();
+      expect(container.querySelector(".day-head--compact .page-menu__toggle")).toBeTruthy();
+      await fireEvent.click(title);
+      expect(container.querySelector(".window--pushed")).toBeTruthy();
+    });
+
+    test("a narrow desktop window keeps the bar, where its window buttons live", async () => {
+      bareShell({ platform: "desktop" });
+      const { container } = render(App);
+      await screen.findByLabelText("close window");
+      expect(container.querySelector(".topbar")).toBeTruthy();
+    });
+  });
+
   test("the task sheet has no ×: the page behind it and the handle already close it", async () => {
     // A sheet is dismissed two ways that cost no room — tapping the page it is
     // raised over, and pulling it down by its handle (BottomSheet.svelte) — so

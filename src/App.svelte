@@ -1224,6 +1224,14 @@
     }),
   );
 
+  /// The phone's top bar, hidden by choice (Display › Hide the top bar): the
+  /// screen's NAME carries its buttons instead (PageHeader, DayTitle). An open
+  /// note has no such name, so it keeps the bar.
+  let bare = $derived(mobile && compact && !!layout.hideTopBar && view.kind !== "note");
+  let nameNav = $derived(
+    bare ? { onName: () => (drawerOpen = true), onHoldName: () => (tabsOpen = true) } : {},
+  );
+
   /// The page menu of the current screen — the `•••` of the wireframe.
   let pageMenu = $derived(
     pageMenuOf({
@@ -1237,6 +1245,18 @@
       deleteList: deleteCurrentList,
       spaceMenus,
     }),
+  );
+  /// With the bar gone the ⋮ also holds what had no gesture: forward, and the
+  /// tabs for whoever cannot hold the name.
+  let namedMenu = $derived(
+    bare
+      ? [
+          ...pageMenu,
+          ...(pageMenu.length ? [{ separator: true }] : []),
+          { label: S.forwardItem, disabled: !canForward, run: goForward },
+          { label: S.tabsItem(tabs.length), run: () => (tabsOpen = true) },
+        ]
+      : pageMenu,
   );
 
   // ---- the canvas's own right-click menu ----
@@ -1954,6 +1974,7 @@
   class:window--flush={flush || mobile}
   class:window--resizing={resizing}
   class:window--compact={compact}
+  class:window--bare={bare}
   class:window--pushed={compact && drawerOpen}
   class:window--sliding={drawerAt !== null}
   style={[
@@ -1978,7 +1999,7 @@
        the notebooks screen: the compact bar's controls belong INSIDE a
        notebook; the desktop keeps its title bar, stripped to the window
        buttons — the frameless window has no other handle. -->
-  {#if compact && !showsPicker}
+  {#if compact && !showsPicker && !bare}
     <TopBar
       {canBack}
       {canForward}
@@ -2107,6 +2128,8 @@
             level={homeLevel}
             onPick={(iso) => (homeDay = iso)}
             onHome={() => (homeDay = null)}
+            {...nameNav}
+            menu={namedMenu}
             onLevel={(next) => (homeLevel = next)}
           />
         {:else}
@@ -2129,8 +2152,9 @@
           onRenameTitle={view.kind === "note" && !notebook.readOnly
             ? renameCurrentNote
             : null}
-          menu={pageMenu}
+          menu={namedMenu}
           dot={colorOf(view)}
+          {...nameNav}
         />
         {/if}
 
@@ -2239,6 +2263,8 @@
                 month={homeDay ?? clock?.today ?? ""}
                 selected={homeDay ?? clock?.today ?? ""}
                 onHome={() => (homeDay = null)}
+                {...nameNav}
+                menu={namedMenu}
               />
             </div>
           {/if}

@@ -206,6 +206,10 @@ pub struct Config {
     /// Close the task panel when clicking outside it. Off by default: it
     /// fires too easily and loses a half-typed task; kept for muscle memory.
     pub close_inspector_on_click_away: bool,
+    /// Phone only: no top bar over the pages — a screen's name opens the
+    /// sidebar (held: the tabs) and back is the system's gesture. Off by
+    /// default: nothing on screen says the name does that.
+    pub hide_top_bar: bool,
     /// Where the Home's quick capture writes, relative to the notes space.
     pub quick_note_folder: String,
     /// Where the Home's quick capture writes a TASK: empty is the fixed
@@ -301,6 +305,7 @@ impl Default for Config {
             check_spelling: true,
             shortcuts: Map::new(),
             close_inspector_on_click_away: false,
+            hide_top_bar: false,
             quick_note_folder: crate::notefolder::NOTES_INBOX.to_string(),
             quick_task_list: String::new(),
             tasks_show_all: false,
@@ -516,6 +521,7 @@ impl Config {
                 "closeInspectorOnClickAway",
                 defaults.close_inspector_on_click_away,
             ),
+            hide_top_bar: flag(&raw, "hideTopBar", defaults.hide_top_bar),
             quick_note_folder: string(&raw, "quickNoteFolder")
                 .unwrap_or(defaults.quick_note_folder),
             quick_task_list: string(&raw, "quickTaskList").unwrap_or(defaults.quick_task_list),
@@ -614,6 +620,7 @@ impl Config {
                 "closeInspectorOnClickAway",
                 Value::from(self.close_inspector_on_click_away),
             ),
+            ("hideTopBar", Value::from(self.hide_top_bar)),
             ("hyphenateNotes", Value::from(self.hyphenate_notes)),
             ("checkSpelling", Value::from(self.check_spelling)),
             ("quickNoteFolder", Value::from(self.quick_note_folder.clone())),

@@ -15,6 +15,8 @@
     /// the menu, which closes it. Keyed here rather than inside Menu itself,
     /// because the app's other menus have no page to change under them.
     pageKey = "",
+    /// -1 for a copy the keyboard must skip (the Home's title in the sheet).
+    tabindex = undefined,
   } = $props();
 </script>
 
@@ -29,6 +31,7 @@
         <button
           class="theme-btn theme-btn--icon page-menu__toggle"
           aria-label={S.pageMenu}
+          {tabindex}
           onclick={toggle}
         >
           <Icon name="dots-three" size="1.125rem" />
@@ -40,6 +43,7 @@
   <button
     class="theme-btn theme-btn--icon page-menu__toggle"
     aria-label={S.pageMenu}
+    {tabindex}
     disabled
   >
     <Icon name="dots-three" size="1.125rem" />

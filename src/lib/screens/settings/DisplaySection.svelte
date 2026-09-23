@@ -19,6 +19,7 @@
     S.showListCounts,
     S.restoreLastScreen,
     S.closeOnClickAway,
+    S.hideTopBar,
     S.language,
     S.dateFormat,
   ];
@@ -492,6 +493,22 @@
         aria-label={S.closeOnClickAway}
         onchange={(e) =>
           putDisplay({ closeInspectorOnClickAway: e.currentTarget.checked })}
+      />
+    </label>
+  {:else}
+    <!-- Phone only: a desktop window this narrow keeps the bar, which is
+         where its window buttons live. -->
+    <label class="settings__row">
+      <span class="settings__label">
+        {S.hideTopBar}
+        <HelpTip label={S.hideTopBar} text={S.hideTopBarHint} />
+      </span>
+      <input
+        class="theme-checkbox"
+        type="checkbox"
+        bind:checked={form.hideTopBar}
+        aria-label={S.hideTopBar}
+        onchange={(e) => putDisplay({ hideTopBar: e.currentTarget.checked })}
       />
     </label>
   {/if}

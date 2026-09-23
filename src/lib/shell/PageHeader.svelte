@@ -8,6 +8,7 @@
   import { dotStyle as dotStyleOf } from "../services/accent.js";
   import PageMenu from "./PageMenu.svelte";
   import PageNav from "./PageNav.svelte";
+  import { hold } from "../actions/hold.js";
 
   let {
     title,
@@ -26,6 +27,11 @@
     /// or not: a fixed space falls back to the app's accent in CSS, like the
     /// tab dot.
     dot = null,
+    /// The phone's top bar is hidden (Display › Hide the top bar): the name
+    /// takes its buttons — a tap opens the sidebar, a held finger the tabs —
+    /// and the ⋮ comes down to the name's row.
+    onName = null,
+    onHoldName = null,
   } = $props();
 
   /// The stored choice as CSS — a name becomes the ground-aware `var()`, a raw
@@ -45,7 +51,16 @@
   <header class="page-header page-header--compact" data-region="chrome">
     <div class="page-header__place">
       <h1 class="page-header__name-large">
-        {#if onRenameTitle}
+        {#if onName}
+          <button
+            class="page-header__name page-header__name--nav"
+            title={S.openSidebar}
+            onclick={() => onName()}
+            use:hold={{ onHold: onHoldName }}
+          >
+            {title}
+          </button>
+        {:else if onRenameTitle}
           <button
             class="page-header__name"
             title={S.promptRenameNote(title)}
@@ -62,6 +77,9 @@
         <span class="theme-dot" style={dotStyle} aria-hidden="true"></span>
       </h1>
     </div>
+    {#if onName}
+      <PageMenu items={menu} {pageKey} />
+    {/if}
   </header>
 {:else}
   <header class="page-header">

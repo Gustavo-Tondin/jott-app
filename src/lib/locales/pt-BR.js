@@ -980,6 +980,11 @@ export default {
     "Close the task panel when clicking outside",
     "Fechar o painel da tarefa ao clicar fora",
   ],
+  hideTopBar: ["Hide the top bar", "Esconder a barra superior"],
+  hideTopBarHint: [
+    "Tap a screen's name to open the sidebar, hold it for the tabs; back is the phone's gesture. An open note keeps its buttons.",
+    "Toque no nome da tela para abrir a barra lateral e segure para ver as abas; voltar é o gesto do celular. A nota aberta mantém os botões.",
+  ],
   quickNoteFolder: ["Quick note goes to", "A nota rápida vai para"],
 
   // The function pages
@@ -1234,6 +1239,8 @@ export default {
     (count) => (count === 1 ? "1 aba aberta" : `${count} abas abertas`),
   ],
   openSidebar: ["open sidebar", "abrir barra lateral"],
+  forwardItem: ["Forward", "Avançar"],
+  tabsItem: [(count) => `Tabs (${count})`, (count) => `Abas (${count})`],
   closeSheet: ["close", "fechar"],
   closeComposer: ["close the new task bar", "fechar a barra de nova tarefa"],
   noteFindPlaceholder: ["Find", "Buscar"],

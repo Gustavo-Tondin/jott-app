@@ -124,6 +124,12 @@
   .window--compact {
     --app-drawer-width: 17rem;
   }
+  /* The top bar hidden by choice (App.svelte `bare`): every reservation made
+     for it shrinks to the system's strip and a little air, so the name sits
+     just under the status bar. */
+  .window--bare {
+    --app-topbar-height: calc(var(--app-topbar-pad-block-start) + var(--app-space-6));
+  }
   .window--compact .window__page {
     transition: translate var(--app-transition-medium);
   }

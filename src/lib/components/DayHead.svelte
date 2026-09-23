@@ -43,6 +43,10 @@
     onPick,
     /// The name was tapped: back to today.
     onHome,
+    /// The top bar is hidden: what the name does instead (DayTitle.svelte).
+    onName = null,
+    onHoldName = null,
+    menu = [],
     /// `(level) => void` — the head asks to be unfolded or folded: a drag
     /// down or up on it (actions/flick.js), or a tap on the grip.
     onLevel,
@@ -284,7 +288,7 @@
          along, and the page would chase it). -->
     <div class="day-head__anchor" aria-hidden="true"></div>
   {/if}
-  <DayTitle bind:el={topEl} {dot} month={shown} {selected} {compact} {showsDate} {onHome} />
+  <DayTitle bind:el={topEl} {dot} month={shown} {selected} {compact} {showsDate} {onHome} {onName} {onHoldName} {menu} />
 
   <!-- The fold: the week and the summary, clipped to the level's height on a
        phone (`--fold-h`), the whole of it on the desktop. `inert` while

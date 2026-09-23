@@ -45,6 +45,7 @@ pub struct DisplayPrefs {
     pub show_list_counts: Option<bool>,
     pub restore_last_screen: Option<bool>,
     pub close_inspector_on_click_away: Option<bool>,
+    pub hide_top_bar: Option<bool>,
 }
 
 /// A font choice on its way in: kept when it is a name that can be written
@@ -85,6 +86,7 @@ impl DisplayPrefs {
             &mut self.close_inspector_on_click_away,
             patch.close_inspector_on_click_away,
         );
+        take(&mut self.hide_top_bar, patch.hide_top_bar);
     }
 }
 
@@ -150,6 +152,7 @@ pub struct Display {
     pub show_list_counts: bool,
     pub restore_last_screen: bool,
     pub close_inspector_on_click_away: bool,
+    pub hide_top_bar: bool,
 }
 
 impl Display {
@@ -206,6 +209,7 @@ impl Display {
             close_inspector_on_click_away: machine
                 .close_inspector_on_click_away
                 .unwrap_or(config.close_inspector_on_click_away),
+            hide_top_bar: machine.hide_top_bar.unwrap_or(config.hide_top_bar),
         }
     }
 }
@@ -265,6 +269,7 @@ pub struct NotebookSettings {
     pub format_bar: Option<String>,
     pub format_bar_side: Option<String>,
     pub close_inspector_on_click_away: Option<bool>,
+    pub hide_top_bar: Option<bool>,
     /// The languages notes are written in, in order (`Config::languages`),
     /// and the two things that read them: hyphenation and the spell check.
     pub languages: Option<Vec<String>>,
@@ -324,6 +329,7 @@ impl NotebookSettings {
             format_bar: Some(display.format_bar.clone()),
             format_bar_side: Some(display.format_bar_side.clone()),
             close_inspector_on_click_away: Some(display.close_inspector_on_click_away),
+            hide_top_bar: Some(display.hide_top_bar),
             languages: Some(config.languages.clone()),
             hyphenate_notes: Some(config.hyphenate_notes),
             check_spelling: Some(config.check_spelling),
@@ -442,6 +448,9 @@ impl NotebookSettings {
         }
         if let Some(v) = self.close_inspector_on_click_away {
             config.close_inspector_on_click_away = v;
+        }
+        if let Some(v) = self.hide_top_bar {
+            config.hide_top_bar = v;
         }
         if let Some(v) = &self.languages {
             config.languages = crate::writing::tidy(v.iter().map(String::as_str));

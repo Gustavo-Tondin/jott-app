@@ -57,6 +57,24 @@
     font-size: var(--app-text-20);
     color: var(--app-ink);
   }
+  /* The top bar hidden (DayTitle `onName`): the page's ⋮ ends the row after
+     the month, its target overhanging the row, and the name — now the bar's
+     buttons — is not selected by a held finger. */
+  .day-head__aside {
+    margin-inline-start: auto;
+  }
+  /* Top-aligned, its glyph centres on the month's line; the bottom
+     overhangs so the 48px target does not heighten the row. */
+  .day-head__menu {
+    align-self: flex-start;
+    margin-block-end: calc(-1 * var(--app-space-12));
+    /* The end matches the space header's (page-header.css): one ⋮ column. */
+    margin-inline: calc(-1 * var(--app-space-8)) calc(-1 * var(--app-space-8));
+  }
+  .day-head__title {
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
 
   /* ---- the week ---- */
   .day-head__week {

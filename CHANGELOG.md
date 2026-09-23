@@ -8,6 +8,10 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 
 ## v0.59.1
 
+### New
+
+- **A cleaner phone screen, if you want it:** Settings → Display → "Hide the top bar". Tap a screen's name to open the sidebar, hold it for your tabs, and use the phone's back gesture; the ⋮ moves next to the name.
+
 ### Fixed
 
 - **Tapping in a note on the phone puts the cursor where you tapped** again — the text no longer shifts under the finger.

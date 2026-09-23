@@ -693,6 +693,9 @@ export const S = {
   autostartHint: "Opens hidden in the tray.",
   quitApp: "Quit Jott",
   closeOnClickAway: "Close the task panel when clicking outside",
+  hideTopBar: "Hide the top bar",
+  hideTopBarHint:
+    "Tap a screen's name to open the sidebar, hold it for the tabs; back is the phone's gesture. An open note keeps its buttons.",
   quickNoteFolder: "Quick note goes to",
 
   // The function pages. One subtitle per group of rows.
@@ -880,6 +883,9 @@ export const S = {
   // has to SAY how many tabs are behind it.
   openTabs: (count) => (count === 1 ? "1 open tab" : `${count} open tabs`),
   openSidebar: "open sidebar",
+  // The same two, as items of the page's ⋮ once the top bar is hidden.
+  forwardItem: "Forward",
+  tabsItem: (count) => `Tabs (${count})`,
   closeSheet: "close",
   closeComposer: "close the new task bar",
   // The note's find & replace panel (services/searchPanel.js).

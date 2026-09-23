@@ -79,6 +79,19 @@
     min-width: 0;
   }
 
+  /* The top bar hidden (PageHeader `onName`): the name is its buttons, so a
+     held finger must not select it, and the ⋮ comes down to its row —
+     centred on the name, its 48px target overhanging instead of growing it. */
+  .page-header__name--nav {
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+  .page-header--compact > .menu {
+    align-self: center;
+    margin-block: calc(-1 * var(--app-space-8));
+    margin-inline-end: calc(-1 * var(--app-space-12));
+  }
+
   /* The screen's name at the size the wireframe draws it — the top of the
      type scale, which is named "space title" for exactly this. */
   .page-header__name-large {
