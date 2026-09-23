@@ -129,6 +129,28 @@ describe("live preview", () => {
     parent.remove();
   });
 
+  test("a press alone moves nothing — the text stays where the finger landed", () => {
+    // A tap on the phone is a synthetic mousedown, and the WebView places
+    // the caret AFTER it: re-hiding the caret's syntax on the press shifted
+    // the text under the finger and the caret landed elsewhere.
+    const doc = "# Um\n# Dois\n";
+    const parent = document.createElement("div");
+    document.body.append(parent);
+    const view = new EditorView({
+      parent,
+      state: EditorState.create({ doc, extensions: [markdown({ base: markdownLanguage }), markdownPreview] }),
+    });
+    const text = () => view.contentDOM.textContent;
+    expect(text()).toBe("# UmDois");
+    view.contentDOM.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, button: 0, detail: 1 }));
+    expect(text()).toBe("# UmDois");
+    view.dispatch({ selection: { anchor: 7 } });
+    window.dispatchEvent(new MouseEvent("mouseup"));
+    expect(text()).toBe("Um# Dois");
+    view.destroy();
+    parent.remove();
+  });
+
   test("a drag that stops against hidden syntax takes it on release", () => {
     // Drawn from the heading's first letter, the selection starts after the
     // hidden `# `; revealed on release, the mark belongs to what was selected.

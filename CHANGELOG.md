@@ -6,6 +6,13 @@ What changed in each release, written for the person using the app rather than f
 
 One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` and `### Improved` under it. `packaging/release.sh` refuses to tag a version that has no section here. Versions before v0.51.0 predate the file and live only in the commit history.
 
+## v0.59.1
+
+### Fixed
+
+- **Tapping in a note on the phone puts the cursor where you tapped** again — the text no longer shifts under the finger.
+- **The task panel on the phone stays on screen when the keyboard opens**, scrolling inside instead of rising past the top.
+
 ## v0.59.0
 
 ### New

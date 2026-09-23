@@ -23,7 +23,13 @@
     flex-direction: column;
     min-height: 0;
     inline-size: 100%;
-    max-block-size: var(--sheet-max, 72svh);
+    /* Never taller than the room left above the keyboard: `svh` ignores it
+       in the WebView, and the margin below would push the top off-screen. */
+    max-block-size: min(
+      var(--sheet-max, 72svh),
+      100% - var(--app-safe-top) - 2 * var(--app-sheet-inset) -
+        max(var(--app-safe-bottom), var(--app-keyboard))
+    );
     margin: var(--app-sheet-inset);
     /* Clear of the keyboard when one is up, of the gesture bar when not. */
     margin-block-end: calc(

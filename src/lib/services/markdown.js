@@ -5,7 +5,7 @@
 // by `caretLines`. Nothing here changes the file: hiding is a decoration.
 
 import { HighlightStyle, syntaxHighlighting, syntaxTree } from "@codemirror/language";
-import { EditorSelection, RangeSetBuilder, StateEffect, StateField } from "@codemirror/state";
+import { EditorSelection, EditorState, RangeSetBuilder, StateEffect, StateField } from "@codemirror/state";
 import { Decoration, EditorView, ViewPlugin, WidgetType } from "@codemirror/view";
 import { tags } from "@lezer/highlight";
 import { listIndent } from "./listIndent.js";
@@ -113,18 +113,27 @@ class BulletWidget extends WidgetType {
 /// The three marks a bullet list can be written with.
 const BULLETS = new Set(["-", "*", "+"]);
 
-/// Is the mouse drawing a selection? From the press to the release nothing is
-/// revealed: syntax appearing mid-drag moves the very text being selected.
+/// Is the mouse drawing a selection? `"pressed"` from the press, `"drawing"`
+/// once the selection opens, until the release: nothing is revealed while
+/// drawing — syntax appearing mid-drag moves the very text being selected. A
+/// press alone changes nothing on screen (a phone places the caret after it).
 const setDrawing = StateEffect.define();
 const drawing = StateField.define({
   create: () => false,
   update: (value, tr) =>
     tr.effects.reduce((held, effect) => (effect.is(setDrawing) ? effect.value : held), value),
 });
+const isDrawing = (state) => state.field(drawing, false) === "drawing";
 
-/// Did this update (or transaction) press or release the mouse? Redraw then.
-export const drawingChanged = (update) =>
-  update.startState.field(drawing, false) !== update.state.field(drawing, false);
+/// The transaction that opens a selection under a press starts the drawing.
+const drawingStarts = EditorState.transactionExtender.of((tr) =>
+  tr.startState.field(drawing, false) === "pressed" && tr.selection && !tr.selection.main.empty
+    ? { effects: setDrawing.of("drawing") }
+    : null,
+);
+
+/// Did this update (or transaction) start or end a drawing? Redraw then.
+export const drawingChanged = (update) => isDrawing(update.startState) !== isDrawing(update.state);
 
 /// The hidden spans on the line of `pos`, in order.
 function hiddenAround(state, pos) {
@@ -156,17 +165,18 @@ export function widenedOverHidden(state) {
 /// A double or triple click selects by word or line, and is left as it is.
 const drawingTracker = [
   drawing,
+  drawingStarts,
   EditorView.domEventHandlers({
     mousedown(event, view) {
       if (event.button !== 0) return false;
       const drag = event.detail === 1;
-      view.dispatch({ effects: setDrawing.of(true) });
+      view.dispatch({ effects: setDrawing.of("pressed") });
       window.addEventListener(
         "mouseup",
         () =>
           view.state.field(drawing, false) &&
           view.dispatch({
-            ...(drag && { selection: widenedOverHidden(view.state) }),
+            ...(drag && isDrawing(view.state) && { selection: widenedOverHidden(view.state) }),
             effects: setDrawing.of(false),
           }),
         { once: true },
@@ -181,7 +191,7 @@ const drawingTracker = [
 /// selection shows the text it will copy. Never while the mouse is still
 /// drawing. `services/embeds.js` reuses it so the answers never differ.
 export function revealedBy(state) {
-  if (state.field(drawing, false)) return () => false;
+  if (isDrawing(state)) return () => false;
   const ranges = state.selection.ranges;
   return (from, to) => ranges.some((range) => range.from <= to && range.to >= from);
 }
