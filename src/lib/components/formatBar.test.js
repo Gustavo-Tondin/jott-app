@@ -269,7 +269,9 @@ describe("FormatBar, table", () => {
     // `document`, not the container: `keepOnScreen` portals the panel to the body.
     const panel = document.querySelector(".format-bar__panel--labelled");
     expect(panel).not.toBe(null);
-    expect(panel.querySelectorAll(".format-bar__label").length).toBe(7);
+    // Six: deleting the whole table has no button (user call, 2026-09-23).
+    expect(panel.querySelectorAll(".format-bar__label").length).toBe(6);
+    expect(screen.queryByTitle("Delete table")).toBe(null);
     expect(screen.getByTitle("Add row below").textContent).toContain("Add row below");
   });
 

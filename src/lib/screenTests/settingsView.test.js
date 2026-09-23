@@ -395,8 +395,9 @@ describe("SettingsView", () => {
     render(SettingsView, { props: props() });
     await openSection("Display");
 
-    // The MODE's Jott (the segmented group), not the theme row's.
-    const jott = (await screen.findAllByRole("button", { name: "Jott" })).find((b) =>
+    // The MODE is read "Contrast" (2026-09-23): "Jott" is the theme's name,
+    // and one word for two rows read as one thing.
+    const jott = (await screen.findAllByRole("button", { name: "Contrast" })).find((b) =>
       b.className.includes("theme-segmented__item"),
     );
     expect(jott.getAttribute("aria-pressed")).toBe("true");
@@ -799,7 +800,7 @@ describe("SettingsView", () => {
     // is why the screen reports it instead of drawing it twice.
     bridge({ notebook_settings: settings });
     const said = [];
-    render(SettingsView, {
+    const { rerender } = render(SettingsView, {
       props: props({ compact: true, onSection: (label) => said.push(label) }),
     });
 
@@ -813,9 +814,12 @@ describe("SettingsView", () => {
     expect(said.at(-1)).toBe("Display");
 
     // No "back" of its own (2026-09-08): the app's one gesture — the header's
-    // arrow, the phone's swipe, the mouse's button — is what returns.
+    // arrow, the phone's swipe, the mouse's button — is what returns, and it
+    // is the SHELL's history it walks (2026-09-23): the screen answers no
+    // press; told `open: null` it is the menu again.
     expect(screen.queryByRole("button", { name: /All settings/ })).toBe(null);
-    expect(back()).toBe(true);
+    expect(back()).toBe(false);
+    await rerender(props({ compact: true, onSection: (label) => said.push(label), open: null }));
     expect(await screen.findByRole("button", { name: "Notebook" })).toBeTruthy();
     expect(screen.queryByLabelText("Date format")).toBe(null);
     expect(said.at(-1)).toBe("");
@@ -877,20 +881,30 @@ describe("SettingsView", () => {
     expect(version.textContent).toContain("Check now");
   });
 
-  test("the phone's back gesture returns to the menu before leaving Settings", async () => {
-    // Registered while a section is open, so the shell's own handler — which
-    // would walk the tab's history out of Settings — is not the one asked
-    // (services/back.js).
+  test("a section is a step of the shell's history, on every shape", async () => {
+    // Opening a row REPORTS it (`onOpen`) and the shell records an entry, so
+    // back and forward — the phone's gesture, the mouse's button, Alt+← on
+    // the desktop — walk the sections before they leave Settings
+    // (2026-09-23). The screen keeps no back of its own: `back()` finds no
+    // handler here, and `open` is what moves it.
     bridge({ notebook_settings: settings });
-    render(SettingsView, { props: props({ compact: true }) });
+    const opened = [];
+    const { rerender } = render(SettingsView, {
+      props: props({ compact: true, onOpen: (key) => opened.push(key) }),
+    });
 
     await openSection("Display");
     expect(await screen.findByLabelText("Date format")).toBeTruthy();
-
-    expect(back()).toBe(true);
-    expect(await screen.findByRole("button", { name: "Notebook" })).toBeTruthy();
-    // And once the menu is what is on screen, back is the shell's again.
+    expect(opened).toEqual(["display"]);
     expect(back()).toBe(false);
+
+    await rerender(props({ compact: true, onOpen: (key) => opened.push(key), open: null }));
+    expect(await screen.findByRole("button", { name: "Notebook" })).toBeTruthy();
+    expect(screen.queryByLabelText("Date format")).toBe(null);
+    // Forward: the shell hands the section back, and nothing is reported.
+    await rerender(props({ compact: true, onOpen: (key) => opened.push(key), open: "display" }));
+    expect(await screen.findByLabelText("Date format")).toBeTruthy();
+    expect(opened).toEqual(["display"]);
   });
 
   test("a phone is not offered the shortcuts", async () => {

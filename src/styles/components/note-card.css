@@ -153,6 +153,18 @@
   .note-card__banner + .note-card__title {
     margin-block-start: -1rem;
   }
+  /* No name, only where the note came from: the dot alone, no chip and no
+     straddle — a chip with nothing written on it read as a missing title. */
+  .note-card__title--dot {
+    display: flex;
+    align-items: center;
+    padding: 0;
+    background: none;
+    line-height: 1;
+  }
+  .note-card__banner + .note-card__title--dot {
+    margin-block-start: 0;
+  }
 
   /* The preview text and its ceiling: styles/components/note-preview.css. */
 

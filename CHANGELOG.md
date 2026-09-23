@@ -25,8 +25,17 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 - **Errors read as a sentence, not a code**, with the technical detail after it.
 - **Notifications, the tray menu and the names of Home, Tasks and Notes follow the app's language.**
 - **Taking off bold, italic, strikethrough or code removes the whole mark**, even with only part of the word selected.
+- **A note without a name shows only its space's colour dot on Home**, instead of an empty title bar.
+- **The note's "Move to" lists the notes spaces the way tasks list their lists**: the space's name, with its group in grey before it.
+- **The "Jott" display mode is now called "Contrast"**, so it no longer shares a name with the Jott theme; Settings → Notebook says "Notebook location" instead of "Folder".
+- **The formatting bar's table panel no longer has a Delete table button** — its trash icon beside "Delete row" and "Delete column" read as one more way to lose a row.
+- **On a phone the new-task bar's grab handle sits closer to its row.**
 
 ### Fixed
+
+- **Selecting across a list, a heading or an image no longer makes the text jump under the pointer**: the syntax shows only on the line the selection started on, not under its far end.
+- **In the collapsed sidebar the whole row opens a space or group**, not just its icon.
+- **Back and forward walk the Settings sections on the desktop** — the mouse's back button and Alt+←/→ return to the section before instead of leaving Settings at once.
 
 - **Deleting a note no longer warns that it can't be undone** — it goes to the trash, as the dialog already said.
 - **The image viewer shows the keyboard focus** as a ring around the picture, and restoring or purging a trashed item reports it when the trash index could not be saved.

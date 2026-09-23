@@ -42,12 +42,18 @@ export function open(tabs, active, view, { focus = true } = {}) {
 export function navigate(tabs, active, view) {
   const tab = tabs[active];
   if (!tab) return open(tabs, active, view);
-  // The same screen told something new (Settings, with a section): the
-  // entry is refreshed in place, never repeated.
-  if (viewId(currentView(tab)) === viewId(view)) {
-    if (currentView(tab) === view) return { tabs, active };
-    const views = tab.views.map((v, i) => (i === tab.at ? view : v));
-    return { tabs: tabs.map((t, i) => (i === active ? { ...t, views } : t)), active };
+  // The same screen, told something new. A SECTION (Settings) is a step of
+  // its own and gets an entry, so back walks the sections before it leaves
+  // the screen; told no section, the screen keeps the one it is on; anything
+  // else is refreshed in place, never repeated.
+  const current = currentView(tab);
+  if (viewId(current) === viewId(view)) {
+    const step = view.section ?? null;
+    if (current === view || (step === null && current.section != null)) return { tabs, active };
+    if (step === null || step === (current.section ?? null)) {
+      const views = tab.views.map((v, i) => (i === tab.at ? view : v));
+      return { tabs: tabs.map((t, i) => (i === active ? { ...t, views } : t)), active };
+    }
   }
 
   const views = [...tab.views.slice(0, tab.at + 1), view];

@@ -7,8 +7,8 @@ needs no Rust at all.
 Since 2026-08-26 there are two separate questions, and a theme answers only
 one of them:
 
-- **Mode** — *jott* (black frame, white page), *light*, *dark*. The app's
-  own three; a setting, per machine.
+- **Mode** — *jott* (black frame, white page; Settings calls it
+  **Contrast**), *light*, *dark*. The app's own three; a setting, per machine.
 - **Theme** — the palette: the colours, the spacing scale, the radius
   ladder. The app ships one (`jott`), and **a theme wears any mode**: write
   the colours once and they work light, dark and jott.

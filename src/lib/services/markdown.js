@@ -113,17 +113,19 @@ class BulletWidget extends WidgetType {
 /// The three marks a bullet list can be written with.
 const BULLETS = new Set(["-", "*", "+"]);
 
-/// Does the selection ask to see the syntax of the span `from`…`to`? TOUCHING
-/// without COVERING: a caret inside, or a selection starting or ending inside,
-/// is editing it; a selection that swallows it whole is moving text, and the
-/// marks stay hidden. `services/embeds.js` reuses it so the answers never differ.
+/// Does the selection ask to see the syntax of the span `from`…`to`? The
+/// ANCHOR inside without the selection COVERING it: a caret there, or a
+/// selection that started there, is editing it; one that swallows it whole is
+/// moving text, and the marks stay hidden. The HEAD never reveals: it is
+/// where the drag is, and syntax appearing under it moves the very text being
+/// selected. `services/embeds.js` reuses it so the answers never differ.
 export function revealedBy(state) {
   const ranges = state.selection.ranges;
   return (from, to) =>
     ranges.some(
       (range) =>
-        range.from <= to &&
-        range.to >= from &&
+        range.anchor >= from &&
+        range.anchor <= to &&
         !(range.from <= from && range.to >= to),
     );
 }

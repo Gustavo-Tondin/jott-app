@@ -84,7 +84,7 @@
   let titled = $derived(small || !isUntitled(entry.title));
   /// Whether the card draws its title row at all — the origin dot lives in
   /// it, so a card with no title still has one when it has somewhere to
-  /// have come from.
+  /// have come from; that row is the dot alone, with no chip around it.
   let head = $derived(titled || !!origin);
 
   // A note is old when nobody has OPENED it in a while, not when nobody has
@@ -139,7 +139,7 @@
     {/if}
 
     {#if head}
-      <span class="note-card__title">
+      <span class="note-card__title" class:note-card__title--dot={!titled}>
         <!-- Where the note came from, on a screen that shows more than one
              space: the space's colour as a dot, the same mark a place wears
              beside its own name (services/origin.js). -->

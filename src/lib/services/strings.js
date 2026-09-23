@@ -631,7 +631,7 @@ export const S = {
   language: "Language",
   languageSystem: "System",
   mode: "Mode",
-  modeJott: "Jott",
+  modeJott: "Contrast",
   modeJottHint: "Black frame, white page.",
   modeLight: "Light",
   modeLightHint: "Light throughout.",
@@ -814,7 +814,7 @@ export const S = {
     "in the trash, so it is still recoverable. 0 keeps it forever.",
   trashRetentionHint: "0 keeps deleted items until you clear them yourself.",
   trashRetention: "Empty the trash after (days)",
-  notebookPath: "Folder",
+  notebookPath: "Notebook location",
   readOnlyNotice:
     "This notebook was written by a newer version of Jott and is open for reading only.",
 

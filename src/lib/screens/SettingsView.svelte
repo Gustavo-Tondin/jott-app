@@ -29,14 +29,16 @@
   import TasksPage, { index as tasksIndex } from "./settings/TasksPage.svelte";
   import TimePage, { index as timeIndex } from "./settings/TimePage.svelte";
   import NotesPage, { index as notesIndex } from "./settings/NotesPage.svelte";
-  import { onBack } from "../services/back.js";
   import { plain } from "../services/plain.js";
 
   let {
     notebook,
-    /// A section to land on, by menu key (`"fn:tasks"`): the door a card
-    /// elsewhere opens. Applied when it changes; the menu stays the user's.
+    /// The section open, by menu key (`"fn:tasks"`), or null for the menu
+    /// (a phone) / the landing page. The SHELL's: a choice made here is
+    /// reported through `onOpen` and comes back as a history entry, so the
+    /// back and forward gestures walk the sections.
     open = null,
+    onOpen,
     /// Where a quick note can go — `{label, value}` rows for the picker
     /// (services/noteTargets.js). Empty means nowhere: the row hides.
     noteTargets = [],
@@ -114,12 +116,19 @@
   let setup = $derived(SETUP.filter((entry) => !(compact && entry.desktopOnly)));
   let menu = $derived([...setup, NATIVE, ...functionPages]);
 
-  /// What the user last opened, and `null` for the menu itself.
+  /// What is open, and `null` for the menu itself. Written by a click and
+  /// by the shell alike — the click for the screen to answer at once, the
+  /// shell (`open`) when history walks it somewhere else.
   let chosen = $state(null);
 
   $effect(() => {
-    if (open) chosen = open;
+    chosen = open;
   });
+
+  const choose = (key) => {
+    chosen = key;
+    onOpen?.(key);
+  };
 
   /// What opens beside the menu before a choice: About, the first row.
   const LANDING = "about";
@@ -142,14 +151,6 @@
   $effect(() => {
     onSection?.(compact && section ? sectionLabel : "");
     return () => onSection?.("");
-  });
-
-  // "Back" (services/back.js) — the header's arrow, the phone's gesture and
-  // the mouse's button alike — returns to the menu before it leaves Settings.
-  // Only on the narrow shell, where a section is a screen.
-  $effect(() => {
-    if (!compact || !section) return;
-    return onBack(() => ((chosen = null), true));
   });
 
   /// Whether a section is drawn: side by side the one the menu selected;
@@ -274,7 +275,7 @@
   /// Opens a page from a search hit, and clears the query — the page is the
   /// answer, and a full field would show results for a page already open.
   function goTo(key) {
-    chosen = key;
+    choose(key);
     query = "";
   }
 
@@ -290,7 +291,7 @@
       class:settings__nav-item--group={!!entry.group}
       class:settings__nav-item--active={!compact && shows(entry.key)}
       aria-current={!compact && shows(entry.key) ? "page" : null}
-      onclick={() => (chosen = entry.key)}
+      onclick={() => choose(entry.key)}
     >
       {#if entry.icon}
         <Icon name={entry.icon} size="1.125rem" />
@@ -430,7 +431,7 @@
         <NativeSection
           {features}
           onSet={setFeature}
-          onOpen={(key) => (chosen = key)}
+          onOpen={choose}
           {compact}
           {readOnly}
         />

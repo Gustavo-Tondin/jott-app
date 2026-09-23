@@ -284,7 +284,9 @@ export const COMMANDS = [
     icon: "table-even-columns",
     label: () => S.cmdTableResetWidths,
   },
-  { id: "table.delete", scope: "editor", group: "table", keys: null, icon: "trash", label: () => S.cmdTableDelete },
+  // No icon: deleting the table is the note menu's, not a button beside
+  // "delete row" — one trash glyph in the strip already reads as "delete".
+  { id: "table.delete", scope: "editor", group: "table", keys: null, icon: null, label: () => S.cmdTableDelete },
 
   // ---- undoing ----
   {

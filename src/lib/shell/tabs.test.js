@@ -153,13 +153,21 @@ describe("tabs", () => {
   });
 
 
-  test("the same screen told something new is refreshed in place", () => {
-    // Settings asked for a section while Settings is already open: not a
-    // second entry, and not ignored either.
+  test("a section of the same screen is a step back can walk", () => {
+    // Settings asked for a section while Settings is already open: an entry
+    // of its own, so the mouse's back button and Alt+← return to the section
+    // before, not to the screen before Settings (user call, 2026-09-23).
     const { tabs, active } = bar({ kind: "settings" });
     const told = navigate(tabs, active, { kind: "settings", section: "fn:tasks" });
-    expect(told.tabs[0].views.length).toBe(1);
+    expect(told.tabs[0].views.length).toBe(2);
     expect(currentView(told.tabs[told.active]).section).toBe("fn:tasks");
+    const again = navigate(told.tabs, told.active, { kind: "settings", section: "display" });
+    expect(again.tabs[0].views.map((v) => v.section ?? null)).toEqual([null, "fn:tasks", "display"]);
+    const backed = back(again.tabs, again.active);
+    expect(currentView(backed.tabs[0]).section).toBe("fn:tasks");
+    // The same section again, and Settings asked for with no section at all
+    // (the gear, Ctrl+,): the screen stays where it is.
     expect(navigate(told.tabs, told.active, currentView(told.tabs[0])).tabs).toBe(told.tabs);
+    expect(navigate(told.tabs, told.active, { kind: "settings" }).tabs).toBe(told.tabs);
   });
 });

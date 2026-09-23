@@ -67,9 +67,9 @@
     gap: var(--app-space-2);
     padding: var(--app-space-8) var(--app-space-12);
   }
-  /* ---- rail: the collapsed sidebar. Only the labels go away; every icon
-     keeps its x, so collapsing reads as the panel narrowing over one column
-     of icons. ---- */
+  /* ---- rail: the collapsed sidebar. Only the labels go away and the icons
+     centre in the column, so collapsing reads as the panel narrowing over
+     one column of icons. ---- */
   .shell__sidebar--rail {
     flex-basis: var(--app-sidebar-rail);
   }
@@ -106,13 +106,22 @@
     display: none;
   }
 
+  /* The icon sits in the MIDDLE of its pill: the pill has the section bar's
+     gap on its left and the wall's on its right, so a fixed inset left the
+     glyph a step off centre. */
   .shell__sidebar--rail .shell__nav-item {
-    padding: var(--app-space-12);
+    justify-content: center;
+    padding: var(--app-space-12) 0;
   }
   /* A space/group row is a DIV with the opening BUTTON inside it: in the rail
-     the row already spaces the icon, so the button adds nothing. */
+     the BUTTON fills the row, so the whole 42px band opens the space — with
+     the padding on the row, the click was the icon's 18px alone. */
+  .shell__sidebar--rail .shell__nav-item--row {
+    padding: 0;
+  }
   .shell__sidebar--rail .shell__nav-open {
-    padding-inline: 0;
+    justify-content: center;
+    padding: var(--app-space-12) 0;
   }
   /* Every section of the sidebar is marked by a 2px bar in the wall gap. */
   .shell__group {

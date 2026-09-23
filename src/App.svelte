@@ -387,9 +387,7 @@
   /// The Settings section open on the phone (screens/SettingsView.svelte):
   /// empty while the menu is on screen, and always empty side by side.
   let settingsSub = $state("");
-  // Or Settings has a section open over its menu: the arrow has somewhere
-  // to go even with no tab history behind it.
-  let canBack = $derived(Tabs.canGoBack(tabs[active]) || settingsSub !== "");
+  let canBack = $derived(Tabs.canGoBack(tabs[active]));
   let canForward = $derived(Tabs.canGoForward(tabs[active]));
   $effect(() =>
     installBack({
@@ -1852,11 +1850,13 @@
         run: () => moveOpenNote(here, it.path),
       }))
       .concat(
+        // The other note spaces the way the task inspector lists lists: the
+        // space in ink, the group it sits in (if any) in grey before it.
         noteSpaces
           .filter((sp) => sp.path !== here)
           .map((sp) => ({
             label: sp.name,
-            context: S.notes,
+            context: folderOf(sp.path),
             run: () => moveOpenNote(sp.path, layout.notesInbox),
           })),
       );
@@ -2298,6 +2298,7 @@
             {userThemes}
             {wornTheme}
             {wornThemeBlocked}
+            onNavigate={goTo}
             {zoom}
             {openNote}
             {selected}

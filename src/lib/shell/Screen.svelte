@@ -98,6 +98,9 @@
     onRemoteImage,
     // Settings
     onZoom,
+    /// `(view) => void` — the shell walks the active tab there (Settings'
+    /// sections are steps of its history).
+    onNavigate,
     onSwitchNotebook,
     onNewTheme,
     onSection,
@@ -275,6 +278,7 @@
 {:else if view.kind === "settings"}
   <SettingsView
     open={view.section ?? null}
+    onOpen={(section) => onNavigate({ kind: "settings", section })}
     {compact}
     {mobile}
     {notebook}

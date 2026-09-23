@@ -112,6 +112,24 @@ describe("live preview", () => {
     expect(hidden(doc, { anchor: from, head: from + 5 })).toEqual(["# ", "*", "*"]);
   });
 
+  test("a selection being drawn reveals nothing under its head", () => {
+    // Dragging from one line into the next used to show the next line's
+    // syntax while the head was in it and hide it again once it was swallowed
+    // — the text shifting under the pointer mid-selection. Only the ANCHOR
+    // reveals: the line the drag started on, and no other, whichever way it
+    // goes.
+    const doc = "- um\n- [ ] dois\n# três\n";
+    const two = lineStart(doc, 2);
+    const three = lineStart(doc, 3);
+    // (A task line hides in two pieces: the `- ` and the box.)
+    // Down: anchor mid line 1, head inside line 2 — line 2 stays formatted.
+    expect(hidden(doc, { anchor: 3, head: two + 3 })).toEqual(["- ", "[ ] ", "# "]);
+    // Up: anchor mid line 3, head back into line 2 — line 3 shows its `# `.
+    expect(hidden(doc, { anchor: three + 3, head: two + 3 })).toEqual(["- ", "- ", "[ ] "]);
+    // Dragging over the mark itself, from the line's start, keeps it shown.
+    expect(hidden(doc, { anchor: two, head: two + 3 })).toEqual(["- ", "# "]);
+  });
+
   test("plain text has nothing to hide", () => {
     const doc = "apenas texto\n";
     expect(hidden(doc, doc.length)).toEqual([]);
