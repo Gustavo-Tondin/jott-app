@@ -129,6 +129,36 @@ describe("live preview", () => {
     parent.remove();
   });
 
+  test("a drag that stops against hidden syntax takes it on release", () => {
+    // Drawn from the heading's first letter, the selection starts after the
+    // hidden `# `; revealed on release, the mark belongs to what was selected.
+    const doc = "# Título\n- [ ] tarefa **forte** e *leve*\nfim\n";
+    const two = lineStart(doc, 2);
+    const drag = (anchor, head, detail = 1) => {
+      const parent = document.createElement("div");
+      document.body.append(parent);
+      const view = new EditorView({
+        parent,
+        state: EditorState.create({ doc, extensions: [markdown({ base: markdownLanguage }), markdownPreview] }),
+      });
+      view.contentDOM.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, button: 0, detail }));
+      view.dispatch({ selection: { anchor, head } });
+      window.dispatchEvent(new MouseEvent("mouseup"));
+      const { anchor: a, head: h } = view.state.selection.main;
+      view.destroy();
+      parent.remove();
+      return doc.slice(Math.min(a, h), Math.max(a, h)) + (a > h ? " ←" : "");
+    };
+    const at = (text) => doc.indexOf(text);
+    expect(drag(2, 5)).toBe("# Tít");
+    expect(drag(two + 6, two + 12)).toBe("- [ ] tarefa");
+    expect(drag(at("forte"), at("forte") + 5)).toBe("**forte**");
+    expect(drag(at("leve") + 4, at("forte"))).toBe("**forte** e *leve* ←");
+    // Away from any mark, and on a double click, the selection is left alone.
+    expect(drag(4, 7)).toBe("tul");
+    expect(drag(2, 8, 2)).toBe("Título");
+  });
+
   test("plain text has nothing to hide", () => {
     const doc = "apenas texto\n";
     expect(hidden(doc, doc.length)).toEqual([]);

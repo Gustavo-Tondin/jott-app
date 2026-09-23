@@ -5,7 +5,7 @@
 // by `caretLines`. Nothing here changes the file: hiding is a decoration.
 
 import { HighlightStyle, syntaxHighlighting, syntaxTree } from "@codemirror/language";
-import { RangeSetBuilder, StateEffect, StateField } from "@codemirror/state";
+import { EditorSelection, RangeSetBuilder, StateEffect, StateField } from "@codemirror/state";
 import { Decoration, EditorView, ViewPlugin, WidgetType } from "@codemirror/view";
 import { tags } from "@lezer/highlight";
 import { listIndent } from "./listIndent.js";
@@ -126,16 +126,49 @@ const drawing = StateField.define({
 export const drawingChanged = (update) =>
   update.startState.field(drawing, false) !== update.state.field(drawing, false);
 
+/// The hidden spans on the line of `pos`, in order.
+function hiddenAround(state, pos) {
+  const line = state.doc.lineAt(pos);
+  const spans = [];
+  decorationsFor(state, [line]).between(line.from, line.to, (from, to) => {
+    spans.push([from, to]);
+  });
+  return spans;
+}
+
+/// A drawn range whose edge stopped against hidden syntax takes it along: the
+/// `# ` before a heading selected from its first letter was inside what the
+/// screen showed selected, and is revealed on release.
+export function widenedOverHidden(state) {
+  const ranges = state.selection.ranges.map((range) => {
+    if (range.empty) return range;
+    let { from, to } = range;
+    for (const [a, b] of hiddenAround(state, from).reverse()) if (b === from) from = a;
+    for (const [a, b] of hiddenAround(state, to)) if (a === to) to = b;
+    return range.anchor < range.head
+      ? EditorSelection.range(from, to)
+      : EditorSelection.range(to, from);
+  });
+  return EditorSelection.create(ranges, state.selection.mainIndex);
+}
+
 /// Pressed on the text, released anywhere: the drag may end outside the window.
+/// A double or triple click selects by word or line, and is left as it is.
 const drawingTracker = [
   drawing,
   EditorView.domEventHandlers({
     mousedown(event, view) {
       if (event.button !== 0) return false;
+      const drag = event.detail === 1;
       view.dispatch({ effects: setDrawing.of(true) });
       window.addEventListener(
         "mouseup",
-        () => view.state.field(drawing, false) && view.dispatch({ effects: setDrawing.of(false) }),
+        () =>
+          view.state.field(drawing, false) &&
+          view.dispatch({
+            ...(drag && { selection: widenedOverHidden(view.state) }),
+            effects: setDrawing.of(false),
+          }),
         { once: true },
       );
       return false;
