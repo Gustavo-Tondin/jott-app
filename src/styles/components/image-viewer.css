@@ -12,6 +12,9 @@
     inset: 0;
     z-index: 200;
     display: grid;
+    /* Tracks the size of the screen, not of the picture: an `auto` track
+       grows to the image and its `100%` caps then cap nothing. */
+    grid-template: minmax(0, 1fr) / minmax(0, 1fr);
     place-items: center;
     padding: var(--app-space-24);
     background: var(--app-scrim-deep);

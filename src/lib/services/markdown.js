@@ -5,7 +5,7 @@
 // by `caretLines`. Nothing here changes the file: hiding is a decoration.
 
 import { HighlightStyle, syntaxHighlighting, syntaxTree } from "@codemirror/language";
-import { RangeSetBuilder } from "@codemirror/state";
+import { RangeSetBuilder, StateEffect, StateField } from "@codemirror/state";
 import { Decoration, EditorView, ViewPlugin, WidgetType } from "@codemirror/view";
 import { tags } from "@lezer/highlight";
 import { listIndent } from "./listIndent.js";
@@ -113,21 +113,44 @@ class BulletWidget extends WidgetType {
 /// The three marks a bullet list can be written with.
 const BULLETS = new Set(["-", "*", "+"]);
 
-/// Does the selection ask to see the syntax of the span `from`…`to`? The
-/// ANCHOR inside without the selection COVERING it: a caret there, or a
-/// selection that started there, is editing it; one that swallows it whole is
-/// moving text, and the marks stay hidden. The HEAD never reveals: it is
-/// where the drag is, and syntax appearing under it moves the very text being
-/// selected. `services/embeds.js` reuses it so the answers never differ.
+/// Is the mouse drawing a selection? From the press to the release nothing is
+/// revealed: syntax appearing mid-drag moves the very text being selected.
+const setDrawing = StateEffect.define();
+const drawing = StateField.define({
+  create: () => false,
+  update: (value, tr) =>
+    tr.effects.reduce((held, effect) => (effect.is(setDrawing) ? effect.value : held), value),
+});
+
+/// Did this update (or transaction) press or release the mouse? Redraw then.
+export const drawingChanged = (update) =>
+  update.startState.field(drawing, false) !== update.state.field(drawing, false);
+
+/// Pressed on the text, released anywhere: the drag may end outside the window.
+const drawingTracker = [
+  drawing,
+  EditorView.domEventHandlers({
+    mousedown(event, view) {
+      if (event.button !== 0) return false;
+      view.dispatch({ effects: setDrawing.of(true) });
+      window.addEventListener(
+        "mouseup",
+        () => view.state.field(drawing, false) && view.dispatch({ effects: setDrawing.of(false) }),
+        { once: true },
+      );
+      return false;
+    },
+  }),
+];
+
+/// Does the selection ask to see the syntax of the span `from`…`to`? Any
+/// range TOUCHING it, a caret or a finished selection, covering it or not: a
+/// selection shows the text it will copy. Never while the mouse is still
+/// drawing. `services/embeds.js` reuses it so the answers never differ.
 export function revealedBy(state) {
+  if (state.field(drawing, false)) return () => false;
   const ranges = state.selection.ranges;
-  return (from, to) =>
-    ranges.some(
-      (range) =>
-        range.anchor >= from &&
-        range.anchor <= to &&
-        !(range.from <= from && range.to >= to),
-    );
+  return (from, to) => ranges.some((range) => range.from <= to && range.to >= from);
 }
 
 /// Marks whose span is the LINE they sit on, not the node they belong to: a
@@ -263,7 +286,7 @@ const livePreview = ViewPlugin.fromClass(
     update(update) {
       // The selection matters as much as the document: moving the cursor to
       // another line is what reveals and re-hides syntax.
-      if (update.docChanged || update.selectionSet || update.viewportChanged) {
+      if (update.docChanged || update.selectionSet || update.viewportChanged || drawingChanged(update)) {
         this.decorations = decorationsFor(
           update.view.state,
           update.view.visibleRanges,
@@ -404,6 +427,7 @@ const markdownLook = HighlightStyle.define([
 /// Everything the note editor needs to render Markdown live.
 export const markdownPreview = [
   syntaxHighlighting(markdownLook),
+  drawingTracker,
   livePreview,
   blockLook,
   listIndent,

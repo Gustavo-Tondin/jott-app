@@ -89,18 +89,14 @@ describe("live preview", () => {
     expect(marks).not.toContain("http://y.dev");
   });
 
-  test("a selection that COVERS a line leaves it formatted", () => {
-    // The rule turned over (user call, 2026-09-07): a selection swallowing a
-    // line whole is someone taking the text somewhere, not writing it — so
-    // both `# ` stay hidden and the page does not jump into asterisks.
-    const doc = "# Um\n# Dois\n";
-    const state = EditorState.create({
-      doc,
-      selection: { anchor: 0, head: doc.length },
-      extensions: [markdown({ base: markdownLanguage })],
-    });
-    const set = decorationsFor(state, [{ from: 0, to: doc.length }]);
-    expect(set.size).toBe(2);
+  test("a finished selection shows the syntax of everything it touches", () => {
+    // What is selected is what will be copied, so it reads as the raw text —
+    // covered whole or only reached, whichever way the selection was drawn.
+    const doc = "- um\n- [ ] dois\n# três\n";
+    const two = lineStart(doc, 2);
+    expect(hidden(doc, { anchor: 0, head: doc.length })).toEqual([]);
+    expect(hidden(doc, { anchor: 3, head: two + 3 })).toEqual(["# "]);
+    expect(hidden(doc, { anchor: two + 3, head: 3 })).toEqual(["# "]);
   });
 
   test("a selection INSIDE a mark shows it, on that mark alone", () => {
@@ -112,22 +108,25 @@ describe("live preview", () => {
     expect(hidden(doc, { anchor: from, head: from + 5 })).toEqual(["# ", "*", "*"]);
   });
 
-  test("a selection being drawn reveals nothing under its head", () => {
-    // Dragging from one line into the next used to show the next line's
-    // syntax while the head was in it and hide it again once it was swallowed
-    // — the text shifting under the pointer mid-selection. Only the ANCHOR
-    // reveals: the line the drag started on, and no other, whichever way it
-    // goes.
-    const doc = "- um\n- [ ] dois\n# três\n";
-    const two = lineStart(doc, 2);
-    const three = lineStart(doc, 3);
-    // (A task line hides in two pieces: the `- ` and the box.)
-    // Down: anchor mid line 1, head inside line 2 — line 2 stays formatted.
-    expect(hidden(doc, { anchor: 3, head: two + 3 })).toEqual(["- ", "[ ] ", "# "]);
-    // Up: anchor mid line 3, head back into line 2 — line 3 shows its `# `.
-    expect(hidden(doc, { anchor: three + 3, head: two + 3 })).toEqual(["- ", "- ", "[ ] "]);
-    // Dragging over the mark itself, from the line's start, keeps it shown.
-    expect(hidden(doc, { anchor: two, head: two + 3 })).toEqual(["- ", "# "]);
+  test("while the mouse draws a selection nothing is revealed", () => {
+    // Syntax appearing under a drag moves the text being selected: the
+    // editor stays formatted from the press to the release, and the release
+    // reveals what the selection touches.
+    const doc = "# Um\n# Dois\n";
+    const parent = document.createElement("div");
+    document.body.append(parent);
+    const view = new EditorView({
+      parent,
+      state: EditorState.create({ doc, extensions: [markdown({ base: markdownLanguage }), markdownPreview] }),
+    });
+    const marks = () => view.dom.querySelectorAll(".cm-line").length && view.contentDOM.textContent;
+    view.contentDOM.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, button: 0 }));
+    view.dispatch({ selection: { anchor: 0, head: doc.length } });
+    expect(marks()).toBe("UmDois");
+    window.dispatchEvent(new MouseEvent("mouseup"));
+    expect(marks()).toBe("# Um# Dois");
+    view.destroy();
+    parent.remove();
   });
 
   test("plain text has nothing to hide", () => {
@@ -187,13 +186,12 @@ describe("the shape of a block", () => {
     expect(lines.has(4)).toBe(false);
   });
 
-  test("and a selection over the whole note shows no syntax either", () => {
-    // Both questions answer "nothing" here, for two different reasons: the
-    // band is about the caret (there is none), and the marks are about what
-    // the selection is INSIDE (it is outside all of them, covering).
+  test("and a selection over the whole note shows its syntax, without the band", () => {
+    // Two questions, two answers: the band is about the caret (there is none),
+    // and the marks are about what the selection touches (all of them).
     const doc = "# Título\n**forte**\n";
     const range = { anchor: 0, head: doc.length };
-    expect(hidden(doc, range)).toEqual(["# ", "**", "**"]);
+    expect(hidden(doc, range)).toEqual([]);
     const lines = dressed(doc, range);
     expect([...lines.values()].flat()).not.toContain("cm-md-editing");
   });

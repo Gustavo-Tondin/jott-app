@@ -33,7 +33,8 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 
 ### Fixed
 
-- **Selecting across a list, a heading or an image no longer makes the text jump under the pointer**: the syntax shows only on the line the selection started on, not under its far end.
+- **Selecting across a list, a heading or an image no longer makes the text jump under the pointer**: the note stays formatted while you drag, and the syntax of everything selected shows when you let go — so you see exactly what will be copied.
+- **A picture opened from a note fills the screen, centered and on a dark ground**, instead of opening halfway down the window at full size.
 - **In the collapsed sidebar the whole row opens a space or group**, not just its icon.
 - **Back and forward walk the Settings sections on the desktop** — the mouse's back button and Alt+←/→ return to the section before instead of leaving Settings at once.
 

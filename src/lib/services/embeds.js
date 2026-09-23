@@ -8,7 +8,7 @@ import { RangeSetBuilder, StateEffect, StateField } from "@codemirror/state";
 import { Decoration, EditorView, WidgetType } from "@codemirror/view";
 import { ASSETS_DIR, isImage } from "./assets.js";
 import { leafOf } from "./paths.js";
-import { revealedBy } from "./markdown.js";
+import { drawingChanged, revealedBy } from "./markdown.js";
 
 /// Anything in double brackets. Which of the two it is, is the slash.
 const REFERENCE = /\[\[([^[\]\n]+)\]\]/g;
@@ -244,7 +244,7 @@ export function fileEmbeds(ctx = {}) {
       // The selection matters as much as the document: moving the cursor onto
       // the line is what turns the picture back into its text.
       if (tr.effects.some((effect) => effect.is(refreshEmbeds))) return whole(tr.state);
-      return tr.docChanged || tr.selection ? whole(tr.state) : value;
+      return tr.docChanged || tr.selection || drawingChanged(tr) ? whole(tr.state) : value;
     },
     provide: (field) => [
       EditorView.decorations.from(field),
