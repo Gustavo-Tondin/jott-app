@@ -643,7 +643,7 @@ collect_releases() {
 # Where the site is checked out. Not everyone who clones this repository has
 # it; if the path is not there the release still finishes, the site half is
 # skipped, and the log says so.
-readonly SITE_DIR="${JOTT_SITE_DIR:-$HOME/Documentos/GitHub/Jott-web}"
+readonly SITE_DIR="${JOTT_SITE_DIR:-$HOME/Documentos/GitHub/jott-web}"
 
 # The five names the workflow's `assets` job renames the uploaded artifacts
 # to. The download page links to all five, so a missing one is a dead button
