@@ -22,6 +22,7 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 - **The formatting bar is regrouped**: quote, quotation marks and code under Block; indent, outdent and the horizontal rule in a group of their own. The quote button has a new icon.
 - **Selected text is one even band per line** instead of a patchwork around bold, code and headings, and it now shows inside quotes and code blocks and across the whole note on Select all.
 - **The highlight of the line being edited is softer.**
+- **The Home's + shows an icon beside Task and Note.**
 - **Errors read as a sentence, not a code**, with the technical detail after it.
 - **Notifications, the tray menu and the names of Home, Tasks and Notes follow the app's language.**
 - **Taking off bold, italic, strikethrough or code removes the whole mark**, even with only part of the word selected.

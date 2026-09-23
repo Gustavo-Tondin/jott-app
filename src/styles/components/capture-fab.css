@@ -62,6 +62,9 @@
   }
 
   .capture-fab__choice {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--app-space-8);
     min-inline-size: 7rem;
     /* The finger minimum, stated: these two are the smallest controls in the
        whole capture path and the only ones that appear and vanish. */

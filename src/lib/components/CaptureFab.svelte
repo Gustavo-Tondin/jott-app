@@ -42,10 +42,12 @@
   {#if both && open}
     <div class="capture-fab__choices">
       <button class="capture-fab__choice" onclick={() => pick("note")}>
-        {S.note}
+        <Icon name="notepad" size="1.25rem" />
+        <span>{S.note}</span>
       </button>
       <button class="capture-fab__choice" onclick={() => pick("task")}>
-        {S.task}
+        <Icon name="check-square" size="1.25rem" />
+        <span>{S.task}</span>
       </button>
     </div>
   {/if}
