@@ -28,6 +28,14 @@
     outline: 0.125rem solid var(--app-on-scrim);
     outline-offset: 0.25rem;
   }
+  /* WebKit paints overlay scrollbars in a last pass, above every layer —
+     z-index included — so the scrollers under the viewer go without. */
+  :root:has(.image-viewer) .window * {
+    scrollbar-width: none;
+  }
+  :root:has(.image-viewer) .window ::-webkit-scrollbar {
+    display: none;
+  }
   .image-viewer__picture {
     max-inline-size: 100%;
     max-block-size: 100%;
