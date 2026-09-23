@@ -1,7 +1,7 @@
-import { beforeEach, describe, expect, test } from "vitest";
+import { afterEach, beforeEach, describe, expect, test } from "vitest";
 
 import { bridge, commandsCalled, fails, invoke, resetBridge } from "../test/bridge.js";
-import { isDue, autoCheck } from "./update.js";
+import { isDue, autoCheck, installUpdate } from "./update.js";
 
 const NOW = new Date("2026-08-19T12:00:00Z");
 const newer = {
@@ -71,5 +71,56 @@ describe("autoCheck", () => {
     expect(invoke).toHaveBeenCalledWith("remember_last_update_check", {
       when: NOW.toISOString(),
     });
+  });
+});
+
+describe("installUpdate on Android", () => {
+  const found = { ...newer, canInstall: true, apk: "https://example.com/jott-android.apk" };
+  const say = (name, detail) => document.dispatchEvent(new CustomEvent(name, { detail }));
+  /// The MainActivity bridge, with `allowed` as the "install unknown apps" switch.
+  const phone = (allowed) => {
+    const calls = [];
+    window.JottAndroid = {
+      installAllowed: () => allowed.on,
+      allowInstalls: () => calls.push(["allow"]),
+      installUpdate: (url, labels) => calls.push(["install", url, JSON.parse(labels)]),
+    };
+    return calls;
+  };
+  afterEach(() => delete window.JottAndroid);
+
+  test("with installs allowed, the APK beside the manifest is handed over with the notice's words", () => {
+    const calls = phone({ on: true });
+    installUpdate(found);
+    expect(calls).toEqual([["install", found.apk, { channel: "Updates", title: expect.stringContaining("0.21.0") }]]);
+  });
+
+  test("the switch is asked for first, and coming back with it on carries on", () => {
+    const allowed = { on: false };
+    const calls = phone(allowed);
+    installUpdate(found);
+    expect(calls).toEqual([["allow"]]);
+    allowed.on = true;
+    say("android-install-access-changed");
+    expect(calls.map((c) => c[0])).toEqual(["allow", "install"]);
+  });
+
+  test("coming back without it installs nothing", async () => {
+    const calls = phone({ on: false });
+    const done = installUpdate(found);
+    say("android-install-access-changed");
+    expect(await done).toBe(false);
+    expect(calls).toEqual([["allow"]]);
+  });
+
+  test("a cancelled confirmation is quiet, a failure is an error", async () => {
+    phone({ on: true });
+    const cancelled = installUpdate(found);
+    say("android-update", { status: "cancelled", message: "" });
+    expect(await cancelled).toBe(false);
+
+    const failed = installUpdate(found);
+    say("android-update", { status: "failed", message: "INSTALL_FAILED_UPDATE_INCOMPATIBLE" });
+    await expect(failed).rejects.toThrow("INSTALL_FAILED_UPDATE_INCOMPATIBLE");
   });
 });

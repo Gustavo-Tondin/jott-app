@@ -1191,6 +1191,11 @@ export default {
   updateInstalling: ["Updating…", "Atualizando…"],
   updateDownload: ["Download", "Baixar"],
   updateDismiss: ["Later", "Depois"],
+  updateChannel: ["Updates", "Atualizações"],
+  updateInstalled: [
+    (version) => `Jott was updated to ${version}. Tap to open it.`,
+    (version) => `O Jott foi atualizado para a ${version}. Toque para abrir.`,
+  ],
 
   // The application menu
   menuEntryBanner: [

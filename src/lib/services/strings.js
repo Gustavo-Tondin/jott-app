@@ -843,6 +843,9 @@ export const S = {
   updateInstalling: "Updating…",
   updateDownload: "Download",
   updateDismiss: "Later",
+  // The Android notice the updated app posts; the channel names it in the system settings.
+  updateChannel: "Updates",
+  updateInstalled: (version) => `Jott was updated to ${version}. Tap to open it.`,
 
   // The application menu. Only an AppImage sees these: a deb/rpm/pacman Jott
   // was put in the menu by its package manager.

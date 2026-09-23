@@ -64,7 +64,7 @@ Needs JDK 17+, the Android SDK and NDK, with `JAVA_HOME`, `ANDROID_HOME` and
 
 ```bash
 npm run tauri android build -- --debug --target aarch64 --apk   # to try it
-npm run tauri android build -- --apk                            # release; needs a keystore
+npm run tauri android build -- --apk --target aarch64          # release; needs a keystore
 ```
 
 `.cargo/config.toml` links the Android library with 16 KB page alignment

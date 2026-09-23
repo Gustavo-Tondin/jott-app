@@ -11,6 +11,11 @@
          again after a reboot, and they post the notification themselves. -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- The APK updates itself (SelfUpdate.kt): installing needs the per-app
+         "install unknown apps" switch, and on Android 12+ the second lets an
+         update of this same app go through without a confirmation. -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <uses-permission android:name="android.permission.UPDATE_PACKAGES_WITHOUT_USER_ACTION" />
 
     <!-- The notebook is a folder of .md files the user picks and a sync client
          (Syncthing, Obsidian) reads. That is only possible with broad file
@@ -79,6 +84,7 @@
             </intent-filter>
         </receiver>
         <receiver android:name=".ReminderActionReceiver" android:exported="false" />
+        <receiver android:name=".SelfUpdateReceiver" android:exported="false" />
 
         <provider
           android:name="androidx.core.content.FileProvider"

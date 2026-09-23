@@ -6,6 +6,7 @@
 
 import { api } from "./api.js";
 import { openExternal } from "./external.js";
+import { S } from "./strings.js";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -47,7 +48,10 @@ export function manualCheck() {
 /// Downloads and installs in place, then relaunches. Only meaningful where
 /// the bridge said `canInstall`; the plugins are imported lazily so the
 /// mobile bundle never touches commands that were not compiled into it.
-export async function installUpdate() {
+/// On Android the APK installs itself (`found` is the check's answer).
+export async function installUpdate(found) {
+  const android = window.JottAndroid;
+  if (android?.installUpdate) return installApk(android, found);
   const { check } = await import("@tauri-apps/plugin-updater");
   const { relaunch } = await import("@tauri-apps/plugin-process");
 
@@ -58,6 +62,30 @@ export async function installUpdate() {
   await update.downloadAndInstall();
   await relaunch();
   return true;
+}
+
+/// The APK over itself (`SelfUpdate.kt`). The first time, Android's "install
+/// unknown apps" switch is asked for, and coming back with it on carries on.
+/// Resolves `false` when refused or cancelled; success never resolves — the
+/// system replaces the app, and the new one posts "updated".
+function installApk(android, found) {
+  const labels = JSON.stringify({ channel: S.updateChannel, title: S.updateInstalled(found.latest) });
+  return new Promise((resolve, reject) => {
+    const start = () => {
+      document.addEventListener("android-update", function answer({ detail }) {
+        document.removeEventListener("android-update", answer);
+        if (detail.status === "cancelled") resolve(false);
+        else reject(new Error(detail.message || "update failed"));
+      });
+      android.installUpdate(found.apk, labels);
+    };
+    if (android.installAllowed()) return start();
+    document.addEventListener("android-install-access-changed", function back() {
+      document.removeEventListener("android-install-access-changed", back);
+      android.installAllowed() ? start() : resolve(false);
+    });
+    android.allowInstalls();
+  });
 }
 
 /// The other ending: the release page in the system browser, through the

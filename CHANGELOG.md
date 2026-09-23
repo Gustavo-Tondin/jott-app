@@ -15,6 +15,7 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 - **Two new formatting buttons: code block (Ctrl+Shift+E) and quotation marks (Ctrl+')**, which wraps the selection in quotes where a dead-key keyboard can't.
 - **"Move to…" in the open note's menu**, to file the note in another folder or notes space without leaving it.
 - **The formatting bar shows what the selection already is** — bold, a heading, a list light up in the accent color.
+- **The Android app updates itself**, like the AppImage — the first time, Android asks you to allow Jott to install apps. The APK is now arm64 only, and much smaller to download.
 - **Dead keys wrap a selection too:** `"` and `` ` `` typed on US-International, Spanish or ABNT2 layouts wrap the selected text, like `*` and `(` do.
 
 ### Improved

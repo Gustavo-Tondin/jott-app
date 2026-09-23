@@ -168,6 +168,7 @@ class MainActivity : TauriActivity() {
     super.onWebViewCreate(webView)
     this.webView = webView
     webView.addJavascriptInterface(Storage(), "JottAndroid")
+    SelfUpdate.page = java.lang.ref.WeakReference(webView)
     takeBackNavigation()
     deliverReminder(intent)
 
@@ -424,7 +425,8 @@ class MainActivity : TauriActivity() {
       // holds for notifications and exact alarms.
       webView?.evaluateJavascript(
         "document.dispatchEvent(new CustomEvent('android-storage-changed'));" +
-          "document.dispatchEvent(new CustomEvent('android-reminder-access-changed'))",
+          "document.dispatchEvent(new CustomEvent('android-reminder-access-changed'));" +
+          "document.dispatchEvent(new CustomEvent('android-install-access-changed'))",
         null,
       )
     }
@@ -554,6 +556,27 @@ class MainActivity : TauriActivity() {
       return runCatching { startActivity(view) }
         .onFailure { android.util.Log.w("jott", "reveal: no app opens $uri", it) }
         .isSuccess
+    }
+
+    /** Whether this app may install APKs ("install unknown apps"), which a self-update needs. */
+    @JavascriptInterface
+    fun installAllowed(): Boolean =
+      Build.VERSION.SDK_INT < Build.VERSION_CODES.O || packageManager.canRequestPackageInstalls()
+
+    /** Opens the per-app "install unknown apps" switch; the answer comes back through [onWindowFocusChanged]. */
+    @JavascriptInterface
+    fun allowInstalls() {
+      if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+      runOnUiThread {
+        val perApp = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.fromParts("package", packageName, null))
+        runCatching { startActivity(perApp) }
+      }
+    }
+
+    /** Downloads the APK at `url` and installs it over this app ([SelfUpdate]). */
+    @JavascriptInterface
+    fun installUpdate(url: String, labels: String) {
+      Thread { SelfUpdate.install(applicationContext, url, labels) }.start()
     }
 
     @JavascriptInterface

@@ -1766,7 +1766,7 @@
   async function installNow() {
     installing = true;
     try {
-      await installUpdate();
+      await installUpdate(update);
     } catch (e) {
       fail(e);
     } finally {

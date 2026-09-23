@@ -111,7 +111,7 @@
   async function installNow() {
     installing = true;
     try {
-      await installUpdate();
+      await installUpdate(checked);
     } catch (e) {
       onError?.(e);
     } finally {

@@ -32,7 +32,7 @@ Grab the file for your platform from the [**latest release**](https://github.com
 | **Arch** | — | Build from source: `cd packaging/linux && makepkg -sid` |
 | **Android** | `jott-android.apk` | Open the release page **on the phone**, download and tap the file. Android asks once to allow installs from your browser. |
 
-**Updates.** Jott checks GitHub once a day for a new version (you can turn this off in Settings — it is the only connection the app ever makes, and it sends nothing about you or your notebook). The AppImage and the Windows build update themselves in place; package-manager installs and the APK get a button that opens the download page. A newer APK installs over the old one and keeps your data.
+**Updates.** Jott checks GitHub once a day for a new version (you can turn this off in Settings — it is the only connection the app ever makes, and it sends nothing about you or your notebook). The AppImage, the Windows build and the APK update themselves in place (on Android, the first update asks you to allow Jott to install apps); package-manager installs get a button that opens the download page. A newer APK installs over the old one and keeps your data.
 
 > **Windows warning on first run.** Jott isn't code-signed: Windows shows *"Windows protected your PC"* — click **More info**, then **Run anyway**. Once, per version.
 

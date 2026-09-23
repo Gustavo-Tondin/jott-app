@@ -49,6 +49,9 @@ const UPDATE_MANIFEST_URL: &str =
     "https://github.com/Gustavo-Tondin/jott-app/releases/latest/download/latest.json";
 /// The page the notice's button opens where the app cannot replace itself.
 const RELEASE_PAGE_URL: &str = "https://github.com/Gustavo-Tondin/jott-app/releases/latest";
+/// The APK, published beside the manifest: the Android build downloads and
+/// installs it itself (`SelfUpdate.kt`).
+const APK_NAME: &str = "jott-android.apk";
 /// Points the check somewhere else — a local server in a test, a manifest of
 /// lies while developing the notice. The one door through which the https
 /// fence below is not enforced.
@@ -67,11 +70,13 @@ pub struct UpdateCheck {
     /// Whether `latest` is strictly newer — the only bit the notice needs.
     pub newer: bool,
     /// Whether THIS install can replace itself (the AppImage, the Windows
-    /// build). A .deb/.rpm/pacman install belongs to the package manager and
-    /// an APK to Android's installer — there the notice offers `url` instead.
+    /// build, the APK). A .deb/.rpm/pacman install belongs to the package
+    /// manager — there the notice offers `url` instead.
     pub can_install: bool,
     /// The release page, for the installs that cannot.
     pub url: String,
+    /// The APK the Android build installs, beside the manifest it was told of.
+    pub apk: String,
 }
 
 /// Asks the release feed for the newest published version. Fenced by
@@ -83,6 +88,7 @@ pub async fn check_for_update() -> CommandResult<UpdateCheck> {
         Ok(url) if !url.trim().is_empty() => (url, true),
         _ => (UPDATE_MANIFEST_URL.to_string(), false),
     };
+    let apk = sibling(&url, APK_NAME);
     let latest =
         tauri::async_runtime::spawn_blocking(move || fetch_latest_version(&url, overridden))
             .await
@@ -93,9 +99,17 @@ pub async fn check_for_update() -> CommandResult<UpdateCheck> {
         current: current.to_string(),
         newer: jott_core::version::is_newer(&latest, current),
         latest,
-        can_install: cfg!(windows) || std::env::var_os("APPIMAGE").is_some(),
+        can_install: cfg!(any(windows, target_os = "android"))
+            || std::env::var_os("APPIMAGE").is_some(),
         url: RELEASE_PAGE_URL.to_string(),
+        apk,
     })
+}
+
+/// `name` in the same folder as the file `url` points at.
+fn sibling(url: &str, name: &str) -> String {
+    let folder = url.rsplit_once('/').map_or(url, |(folder, _)| folder);
+    format!("{folder}/{name}")
 }
 
 fn fetch_latest_version(url: &str, overridden: bool) -> CommandResult<String> {
@@ -345,6 +359,12 @@ mod tests {
         assert_eq!(fetch_latest_version(&url, true).unwrap_err().kind, "invalid");
         let url = serve(r#"{"notes": "no version here"}"#);
         assert_eq!(fetch_latest_version(&url, true).unwrap_err().kind, "invalid");
+
+        // The APK is looked for beside the manifest, wherever that is.
+        assert_eq!(
+            sibling(UPDATE_MANIFEST_URL, APK_NAME),
+            "https://github.com/Gustavo-Tondin/jott-app/releases/latest/download/jott-android.apk"
+        );
 
         // Off the override door, plain http is refused before any request.
         assert_eq!(

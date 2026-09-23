@@ -1411,10 +1411,12 @@ else
   # when it is left alone.
   write_android_properties "$VERSION"
 
+  # arm64 only: every phone Jott runs on is, and the self-update downloads
+  # far less than a four-ABI APK. Gradle still names it universal.
   if [ -n "$DRY_RUN" ]; then
-    log DRY  "npm run tauri android build -- --apk"
+    log DRY  "npm run tauri android build -- --apk --target aarch64"
   else
-    npm run tauri android build -- --apk >>"$LOG" 2>&1 \
+    npm run tauri android build -- --apk --target aarch64 >>"$LOG" 2>&1 \
       || { tail -40 "$LOG"; die "the Android build failed — read $LOG"; }
     [ -f "$apk" ] || die "the build reported success but $apk is not there"
     log INFO "  built $apk"

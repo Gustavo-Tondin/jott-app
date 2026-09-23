@@ -211,8 +211,11 @@ class ReminderAlarmReceiver : BroadcastReceiver() {
   override fun onReceive(context: Context, intent: Intent) {
     when (intent.action) {
       ReminderAlarms.RING -> ReminderAlarms.fire(context, intent.getIntExtra("key", 0))
+      Intent.ACTION_MY_PACKAGE_REPLACED -> {
+        ReminderAlarms.rearm(context)
+        SelfUpdate.announce(context)
+      }
       Intent.ACTION_BOOT_COMPLETED,
-      Intent.ACTION_MY_PACKAGE_REPLACED,
       AlarmManager.ACTION_SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED,
       -> ReminderAlarms.rearm(context)
     }
