@@ -2,7 +2,7 @@
 
 What changed in each release, written for the person using the app rather than for the person who wrote it.
 
-**The GitHub release page is built from this file.** The section matching a tag becomes the "What changed" half of the release notes; the install instructions are the other half and live in `.github/workflows/release.yml`. So a bullet here is read by strangers: keep it short, in plain language, and about something a person can now see or do. **One or two sentences each, and never more** — a bullet that needs a paragraph is either two bullets or a detail nobody outside the repository needs. **And no hard line breaks:** a bullet is one line in this file, however long, because GitHub turns every newline of a release note into a break and a wrapped bullet arrives on the page in pieces.
+**The GitHub release page is built from this file.** The section matching a tag becomes the "What changed" half of the release notes; the install instructions are the other half and live in `.github/workflows/release.yml`. So a bullet here is read by strangers: keep it short, in plain language, and about something a person can now see or do. **One sentence per bullet**, a second only when there is truly no other way, and no em dash. **And no hard line breaks:** a bullet is one line in this file, however long, because GitHub turns every newline of a release note into a break and a wrapped bullet arrives on the page in pieces.
 
 One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` and `### Improved` under it. `packaging/release.sh` refuses to tag a version that has no section here. Versions before v0.51.0 predate the file and live only in the commit history.
 
@@ -10,14 +10,13 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 
 ### Improved
 
-- **Notes live directly in their space's folder.** New notes, quick notes and moved notes no longer go into an `Inbox/` subfolder; a folder is only what you make yourself.
-- **With the phone's top bar hidden, the Home's ⋮ sits on "Today tasks" and "Today notes"**, each with its own options first; the month is back alone at the end of the name's row.
+- Notes now live directly in their space's folder and no longer go into an `Inbox/` subfolder.
+- With the phone's top bar hidden, the Home's ⋮ now sits on "Today tasks" and "Today notes".
 
 ### Fixed
 
-- **The new-task bar names the space the task goes to** — it read "Inbox" in every space.
-- **The sync banners name a list by its space too**, instead of "Inbox".
-- **A task card's age lines up at the card's end again**, centred under the bookmark when it is short, so "today" and "5d" no longer sit on different axes.
+- The new-task bar and the sync banners now name the space instead of "Inbox".
+- A task card's age lines up with the card's end again.
 
 ## v0.59.1
 
