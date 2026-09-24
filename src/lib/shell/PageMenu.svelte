@@ -34,7 +34,7 @@
           {tabindex}
           onclick={toggle}
         >
-          <Icon name="dots-three" size="1.125rem" />
+          <Icon name="dots-three-bold" size="1.125rem" />
         </button>
       {/snippet}
     </Menu>
@@ -46,6 +46,6 @@
     {tabindex}
     disabled
   >
-    <Icon name="dots-three" size="1.125rem" />
+    <Icon name="dots-three-bold" size="1.125rem" />
   </button>
 {/if}

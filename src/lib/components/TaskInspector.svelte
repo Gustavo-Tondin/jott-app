@@ -456,7 +456,7 @@
           aria-label={S.taskOptions}
           title={S.taskOptions}
         >
-          <Icon name="dots-three-vertical" size="1.125rem" />
+          <Icon name="dots-three-vertical-bold" size="1.125rem" />
         </button>
       {/snippet}
     </Menu>
@@ -487,7 +487,7 @@
       aria-label={collapsed ? S.expandSubtasks : S.collapseSubtasks}
       title={collapsed ? S.expandSubtasks : S.collapseSubtasks}
     >
-      <Icon name={collapsed ? "caret-down" : "caret-up"} size="0.875rem" />
+      <Icon name={collapsed ? "caret-down-bold" : "caret-up-bold"} size="0.875rem" />
     </button>
     {/if}
   </header>

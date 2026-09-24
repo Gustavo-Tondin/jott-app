@@ -52,7 +52,7 @@
             aria-label={S.noteOptions}
             title={S.noteOptions}
           >
-            <Icon name="dots-three-vertical" size="1.125rem" />
+            <Icon name="dots-three-vertical-bold" size="1.125rem" />
           </button>
         {/snippet}
       </Menu>

@@ -186,7 +186,7 @@
             aria-label={S.notebooksOptions}
             title={S.notebooksOptions}
           >
-            <Icon name="dots-three-vertical" size="1rem" />
+            <Icon name="dots-three-vertical-bold" size="1rem" />
           </button>
         {/snippet}
       </Menu>
@@ -232,7 +232,7 @@
                   aria-label={S.notebookOptions}
                   title={S.notebookOptions}
                 >
-                  <Icon name="dots-three-vertical" size="1rem" />
+                  <Icon name="dots-three-vertical-bold" size="1rem" />
                 </button>
               {/snippet}
             </Menu>

@@ -6,25 +6,27 @@
 
 import xBold from "../../assets/icons/phosphor/bold/x.svg?raw";
 import plusBold from "../../assets/icons/phosphor/bold/plus.svg?raw";
+import dotsThreeBold from "../../assets/icons/phosphor/bold/dots-three.svg?raw";
+import dotsThreeVerticalBold from "../../assets/icons/phosphor/bold/dots-three-vertical.svg?raw";
+import caretUpBold from "../../assets/icons/phosphor/bold/caret-up.svg?raw";
+import caretDownBold from "../../assets/icons/phosphor/bold/caret-down.svg?raw";
+import caretRightBold from "../../assets/icons/phosphor/bold/caret-right.svg?raw";
 
 import bookmarkSimpleFill from "../../assets/icons/phosphor/fill/bookmark-simple.svg?raw";
 
 import plus from "../../assets/icons/phosphor/regular/plus.svg?raw";
-import house from "../../assets/icons/phosphor/regular/house.svg?raw";
+import houseSimple from "../../assets/icons/phosphor/regular/house-simple.svg?raw";
 import checkSquare from "../../assets/icons/phosphor/regular/check-square.svg?raw";
 import note from "../../assets/icons/phosphor/regular/note.svg?raw";
 import folder from "../../assets/icons/phosphor/regular/folder.svg?raw";
 import folders from "../../assets/icons/phosphor/regular/folders.svg?raw";
 import folderPlus from "../../assets/icons/phosphor/regular/folder-plus.svg?raw";
-import gear from "../../assets/icons/phosphor/regular/gear.svg?raw";
+import gearSix from "../../assets/icons/phosphor/regular/gear-six.svg?raw";
 import bookmarkSimple from "../../assets/icons/phosphor/regular/bookmark-simple.svg?raw";
 import arrowClockwise from "../../assets/icons/phosphor/regular/arrow-clockwise.svg?raw";
 import sparkle from "../../assets/icons/phosphor/regular/sparkle.svg?raw";
-import dotsThree from "../../assets/icons/phosphor/regular/dots-three.svg?raw";
-import caretDown from "../../assets/icons/phosphor/regular/caret-down.svg?raw";
 import caretLeft from "../../assets/icons/phosphor/regular/caret-left.svg?raw";
 import caretRight from "../../assets/icons/phosphor/regular/caret-right.svg?raw";
-import caretUp from "../../assets/icons/phosphor/regular/caret-up.svg?raw";
 import listBullets from "../../assets/icons/phosphor/regular/list-bullets.svg?raw";
 import listChecks from "../../assets/icons/phosphor/regular/list-checks.svg?raw";
 import notepad from "../../assets/icons/phosphor/regular/notepad.svg?raw";
@@ -45,7 +47,6 @@ import paperclip from "../../assets/icons/phosphor/regular/paperclip.svg?raw";
 import pencil from "../../assets/icons/phosphor/regular/pencil-simple.svg?raw";
 import trash from "../../assets/icons/phosphor/regular/trash.svg?raw";
 import tray from "../../assets/icons/phosphor/regular/tray.svg?raw";
-import dotsThreeVertical from "../../assets/icons/phosphor/regular/dots-three-vertical.svg?raw";
 import x from "../../assets/icons/phosphor/regular/x.svg?raw";
 import sidebarSimple from "../../assets/icons/phosphor/regular/sidebar-simple.svg?raw";
 import browser from "../../assets/icons/phosphor/regular/browser.svg?raw";
@@ -133,24 +134,26 @@ export const ICONS = {
   // weighted variants
   "x-bold": xBold,
   "plus-bold": plusBold,
+  "dots-three-bold": dotsThreeBold,
+  "dots-three-vertical-bold": dotsThreeVerticalBold,
+  "caret-up-bold": caretUpBold,
+  "caret-down-bold": caretDownBold,
+  "caret-right-bold": caretRightBold,
   "bookmark-simple-fill": bookmarkSimpleFill,
   // regular
   plus,
-  house,
+  "house-simple": houseSimple,
   "check-square": checkSquare,
   note,
   folder,
   folders,
   "folder-plus": folderPlus,
-  gear,
+  "gear-six": gearSix,
   "bookmark-simple": bookmarkSimple,
   "arrow-clockwise": arrowClockwise,
   sparkle,
-  "dots-three": dotsThree,
-  "caret-down": caretDown,
   "caret-left": caretLeft,
   "caret-right": caretRight,
-  "caret-up": caretUp,
   "list-bullets": listBullets,
   "list-checks": listChecks,
   notepad,
@@ -172,7 +175,6 @@ export const ICONS = {
   check,
   palette,
   tray,
-  "dots-three-vertical": dotsThreeVertical,
   x,
   "sidebar-simple": sidebarSimple,
   tabs: browser,

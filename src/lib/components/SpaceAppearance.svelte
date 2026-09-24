@@ -28,7 +28,7 @@
   // the eight the popup offered before it had a search. All ten are in the
   // bundle and show while the library loads, so the popup never opens empty.
   const LEAD = [
-    "list-checks", "notepad", "folder", "house", "check-square", "note",
+    "list-checks", "notepad", "folder", "house-simple", "check-square", "note",
     "list-bullets", "flag", "sun", "sparkle",
   ];
 

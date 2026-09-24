@@ -212,7 +212,7 @@
           aria-label={S.noteOptions}
           title={S.noteOptions}
         >
-          <Icon name="dots-three" size="1rem" />
+          <Icon name="dots-three-bold" size="1rem" />
         </button>
       {:else if menu.length > 0}
         <Menu items={menu} align="end">
@@ -223,7 +223,7 @@
               aria-label={S.noteOptions}
               title={S.noteOptions}
             >
-              <Icon name="dots-three" size="1rem" />
+              <Icon name="dots-three-bold" size="1rem" />
             </button>
           {/snippet}
         </Menu>

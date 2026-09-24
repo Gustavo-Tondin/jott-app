@@ -655,7 +655,7 @@
       {#if !lifted}
         <span class="theme-mirror notes-space__mirror" aria-hidden="true">
           <span class="theme-btn--icon">
-            <Icon name="dots-three-vertical" size="1rem" />
+            <Icon name="dots-three-vertical-bold" size="1rem" />
           </span>
         </span>
       {/if}
@@ -676,7 +676,7 @@
               aria-label={S.spaceOptions}
               title={S.spaceOptions}
             >
-              <Icon name="dots-three-vertical" size="1rem" />
+              <Icon name="dots-three-vertical-bold" size="1rem" />
             </button>
           {/snippet}
         </Menu>
@@ -883,7 +883,7 @@
                         aria-label={S.folderOptions}
                         title={S.folderOptions}
                       >
-                        <Icon name="dots-three" size="1rem" />
+                        <Icon name="dots-three-bold" size="1rem" />
                       </button>
                     {/snippet}
                   </Menu>
@@ -933,7 +933,7 @@
                             aria-label={S.folderOptions}
                             title={S.folderOptions}
                           >
-                            <Icon name="dots-three" size="1rem" />
+                            <Icon name="dots-three-bold" size="1rem" />
                           </button>
                         {/snippet}
                       </Menu>

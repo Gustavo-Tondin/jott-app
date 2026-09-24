@@ -317,7 +317,7 @@
   <Menu {items}>
     {#snippet trigger({ toggle })}
       <button class="theme-btn--icon" onclick={toggle} aria-label={label} title={label}>
-        <Icon name="dots-three-vertical" size="1rem" />
+        <Icon name="dots-three-vertical-bold" size="1rem" />
       </button>
     {/snippet}
   </Menu>
@@ -349,7 +349,7 @@
       <header class="home__block-header">
         <span class="theme-mirror home__mirror" aria-hidden="true">
           <span class="theme-btn--icon">
-            <Icon name="dots-three-vertical" size="1rem" />
+            <Icon name="dots-three-vertical-bold" size="1rem" />
           </span>
         </span>
         <h2 class="theme-title home__block-title">{S.dayTasks(dayLabel)}</h2>
@@ -358,7 +358,7 @@
         {:else}
           <span class="theme-mirror home__mirror" aria-hidden="true">
             <span class="theme-btn--icon">
-              <Icon name="dots-three-vertical" size="1rem" />
+              <Icon name="dots-three-vertical-bold" size="1rem" />
             </span>
           </span>
         {/if}
@@ -423,7 +423,7 @@
                trick the tasks block uses (spaces/TasksSpace.svelte). -->
           <span class="theme-mirror home__mirror" aria-hidden="true">
             <span class="theme-btn--icon">
-              <Icon name="dots-three-vertical" size="1rem" />
+              <Icon name="dots-three-vertical-bold" size="1rem" />
             </span>
           </span>
           <h2 class="theme-title home__block-title">{S.todaysNotes}</h2>
@@ -432,7 +432,7 @@
           {:else}
             <span class="theme-mirror home__mirror" aria-hidden="true">
               <span class="theme-btn--icon">
-                <Icon name="dots-three-vertical" size="1rem" />
+                <Icon name="dots-three-vertical-bold" size="1rem" />
               </span>
             </span>
           {/if}

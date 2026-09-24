@@ -389,7 +389,7 @@
       },
       {
         id: "more",
-        icon: "dots-three",
+        icon: "dots-three-bold",
         label: S.ringMore,
         run: (_, at) => {
           menuShown = group
@@ -536,7 +536,7 @@
              fixed row also answers to its own switch (Fixed spaces): hiding one
              takes the shortcut and the screen — the folders and the function stay. -->
         {#if f("homeSpace")}
-          {@render fixedRow({ kind: "home" }, "house", S.home, 0, { "data-day-drop": "" })}
+          {@render fixedRow({ kind: "home" }, "house-simple", S.home, 0, { "data-day-drop": "" })}
         {/if}
         {#if f("tasks") && f("tasksSpace")}
           <!-- A row that holds tasks says how many are open; this one holds the
@@ -701,7 +701,7 @@
                        the members are. -->
                   <span class="shell__group-caret">
                     <Icon
-                      name={isCollapsed(entry.group.folder) ? "caret-right" : "caret-down"}
+                      name={isCollapsed(entry.group.folder) ? "caret-right-bold" : "caret-down-bold"}
                       size="0.875rem"
                     />
                   </span>
@@ -782,7 +782,7 @@
         >
           <span class="shell__notebook-name">{notebook.name}</span>
           {#if notebook.readOnly}<span class="shell__badge">{S.readOnly}</span>{/if}
-          <Icon name="caret-up" size="0.75rem" />
+          <Icon name="caret-up-bold" size="0.75rem" />
         </button>
       {/snippet}
     </Menu>
@@ -794,7 +794,7 @@
       aria-label={S.settings}
       title={S.settings}
     >
-      <Icon name="gear" size="1.125rem" />
+      <Icon name="gear-six" size="1.125rem" />
     </button>
   </div>
 </nav>

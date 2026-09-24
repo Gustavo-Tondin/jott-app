@@ -122,7 +122,7 @@ export function noteRing({
       label: S.ringReorder,
       run: onReorder,
     });
-  if (onMore) slices.push({ id: "more", icon: "dots-three", label: S.ringMore, run: onMore });
+  if (onMore) slices.push({ id: "more", icon: "dots-three-bold", label: S.ringMore, run: onMore });
   return slices;
 }
 

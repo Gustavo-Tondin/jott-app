@@ -9,7 +9,7 @@
 export const TYPE_ICONS = {
   tasks: "list-checks",
   notes: "notepad",
-  home: "house",
+  home: "house-simple",
 };
 
 /// The fallback for a type this build has never heard of: a plain folder says

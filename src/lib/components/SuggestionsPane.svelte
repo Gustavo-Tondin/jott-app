@@ -142,7 +142,7 @@
       onclick={() => toggle(section.key)}
     >
       <Icon
-        name={isCollapsed(section.key) ? "caret-right" : "caret-down"}
+        name={isCollapsed(section.key) ? "caret-right-bold" : "caret-down-bold"}
         size="0.75rem"
       />
       <span>{section.label}</span>

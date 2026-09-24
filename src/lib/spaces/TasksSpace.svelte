@@ -663,7 +663,7 @@
                rather than a guessed width: the two sides stay equal. -->
           <span class="theme-mirror tasks-space__mirror" aria-hidden="true">
             <span class="theme-btn--icon">
-              <Icon name="dots-three-vertical" size="1rem" />
+              <Icon name="dots-three-vertical-bold" size="1rem" />
             </span>
           </span>
         {/if}
@@ -696,7 +696,7 @@
                     aria-label={S.spaceOptions}
                     title={S.spaceOptions}
                   >
-                    <Icon name="dots-three-vertical" size="1rem" />
+                    <Icon name="dots-three-vertical-bold" size="1rem" />
                   </button>
                 {/snippet}
               </Menu>
@@ -754,7 +754,7 @@
             class="theme-chip tasks-space__completed-toggle"
             onclick={() => (showCompleted = !showCompleted)}
           >
-            <Icon name={showCompleted ? "caret-down" : "caret-right"} size="0.875rem" />
+            <Icon name={showCompleted ? "caret-down-bold" : "caret-right-bold"} size="0.875rem" />
             <span>{S.completedCount(done.length)}</span>
           </button>
         {/if}

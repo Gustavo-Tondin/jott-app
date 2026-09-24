@@ -142,7 +142,7 @@
                         aria-label={S.timelineOptions}
                         title={S.timelineOptions}
                       >
-                        <Icon name="dots-three" size="1rem" />
+                        <Icon name="dots-three-bold" size="1rem" />
                       </button>
                     {/snippet}
                   </Menu>
