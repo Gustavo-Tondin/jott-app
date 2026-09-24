@@ -42,16 +42,9 @@ impl Notebook {
 
     /// The notes of a space, as a board lists them (optionally filtered by
     /// `query`), stamped with when each was last seen and how old that makes
-    /// it. The board, the Home's inbox and the Home's day all come through here.
+    /// it. The board and the Home's day both come through here.
     pub fn notes_in(&self, space: &str, query: &str) -> Result<Vec<NoteEntry>> {
         let mut entries = self.note_folder(space)?.search(query)?;
-        self.stamp_notes(space, &mut entries);
-        Ok(entries)
-    }
-
-    /// Every note of a space's Inbox, stamped (the Home's widened view).
-    pub fn inbox_notes_in(&self, space: &str) -> Result<Vec<NoteEntry>> {
-        let mut entries = self.note_folder(space)?.inbox_notes()?;
         self.stamp_notes(space, &mut entries);
         Ok(entries)
     }

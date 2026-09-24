@@ -69,7 +69,7 @@
   import PanelResizer from "./lib/shell/PanelResizer.svelte";
   import Sidebar from "./lib/shell/Sidebar.svelte";
   import PageHeader from "./lib/shell/PageHeader.svelte";
-  import { folderOf, leafOf, listTitle, spaceLabel } from "./lib/services/paths.js";
+  import { folderOf, leafOf, listNameIn, spaceLabel } from "./lib/services/paths.js";
   import { dealtColors, groupColors, nextRainbowColor, spaceColors } from "./lib/services/spaceColors.js";
   import { originOf } from "./lib/services/origin.js";
   import {
@@ -692,7 +692,7 @@
     const title = await askName(S.promptNewNote, S.newNoteTitle, { confirm: S.create });
     if (!title) return;
     change(
-      () => api.createNote(layout.notesFolder, layout.notesInbox, title.trim()),
+      () => api.createNote(layout.notesFolder, "", title.trim()),
       (path) => {
         reload();
         showNote(path);
@@ -837,10 +837,9 @@
       tasksFolder: "jott.tasks",
       completedName: "completed",
       notesFolder: "jott.notes",
-      notesInbox: "Inbox",
       dateDisplayFormat: "mm/dd/yyyy",
       closeInspectorOnClickAway: false,
-      quickNoteFolder: "Inbox",
+      quickNoteFolder: "",
       noteLayout: "",
       tableLayout: "",
       cardLines: 12,
@@ -979,7 +978,6 @@
   let quickTargets = $derived(
     noteTargets({
       notesFolder: layout.notesFolder,
-      notesInbox: layout.notesInbox,
       folders: noteFolders,
       spaces,
       fixedShown: f("notesSpace"),
@@ -1702,11 +1700,11 @@
     reload();
   });
 
-  /// What a merged file is CALLED on screen: a list goes through the same
-  /// naming as every other screen, so the main list of a space reads Inbox
-  /// and never `task-list`. A note is its title, which is its file name.
+  /// What a merged file is CALLED on screen: a list by its space, as every
+  /// other screen names it (`listNameIn`), never `task-list`. A note is its
+  /// title, which is its file name.
   function nameOfMerged(file) {
-    return file.kind === "list" ? listTitle(file.path) : file.name;
+    return file.kind === "list" ? listNameIn(file.path, notebook?.lists ?? []) : file.name;
   }
 
   /// Says what a merge settled, and reloads the file it touched. Only the
@@ -1881,7 +1879,7 @@
           .map((sp) => ({
             label: sp.name,
             context: folderOf(sp.path),
-            run: () => moveOpenNote(sp.path, layout.notesInbox),
+            run: () => moveOpenNote(sp.path, ""),
           })),
       );
   });
@@ -2282,6 +2280,7 @@
             {undoNotice}
             onDismissUndo={() => (undoNotice = null)}
             conflicts={conflictsHidden === conflictsKey(conflicts) ? [] : conflicts}
+            lists={notebook?.lists ?? []}
             onHideConflicts={() => (conflictsHidden = conflictsKey(conflicts))}
             onDiscardConflict={(path) => discardConflicts([path])}
             onAdoptConflict={adoptConflict}

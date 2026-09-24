@@ -39,7 +39,6 @@
   let {
     source,
     readOnly = false,
-    notesInbox = "Inbox",
     /// The notebook's root, absolute — an image banner is an address, and this
     /// is what it resolves against (services/assets.js).
     root = null,
@@ -151,9 +150,8 @@
   });
 
   /// Where a note made right now belongs: the folder being looked at, or the
-  /// space's inbox on the board itself (the spec's "loose notes go to
-  /// Notes/Inbox").
-  let target = $derived(openFolder ?? notesInbox);
+  /// space's root on the board itself — loose notes live there.
+  let target = $derived(openFolder ?? "");
 
   // Naming goes through the app's own dialog — window.prompt is a no-op in
   // WebKitGTK.
@@ -298,11 +296,11 @@
   /// draw as cards of their own. In the tree view the folder chips already say
   /// where you are, so only the notes of the open folder are drawn.
   let here = $derived(
-    board(notes, folders, "", notesInbox, { flat: !f("noteFolders") }),
+    board(notes, folders, "", { flat: !f("noteFolders") }),
   );
 
   /// The same question asked of the open folder card — what the popover holds.
-  let inside = $derived(board(notes, folders, openFolder ?? "", notesInbox));
+  let inside = $derived(board(notes, folders, openFolder ?? ""));
 
   /// The folder the popover is SHOWING, as an entry. Not always the card the
   /// panel hangs off: going into a subfolder changes what is shown without
@@ -502,17 +500,17 @@
       .filter((sp) => sp.path !== folder)
       .map((sp) => ({
         label: sp.name,
-        options: [{ value: JSON.stringify([sp.path, notesInbox]), label: sp.name }],
+        options: [{ value: JSON.stringify([sp.path, ""]), label: sp.name }],
       })),
   ]);
 
   /// Notes dropped, by a free drag, on another notepad in the sidebar: they
-  /// go into that space's Inbox folder — the same move the picker makes.
+  /// go to that space's root — the same move the picker makes.
   /// The pile leaves the board, so it leaves the selection too.
   const moveCardsTo = (pile, space) =>
     act(async () => {
       if (!space || space === folder) return;
-      for (const card of pile) await api.moveNoteToSpace(folder, card.path, space, notesInbox);
+      for (const card of pile) await api.moveNoteToSpace(folder, card.path, space, "");
       unpick(pile);
     });
   const unpick = (pile) => {

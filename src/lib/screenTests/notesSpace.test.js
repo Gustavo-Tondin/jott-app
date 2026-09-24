@@ -39,9 +39,9 @@ describe("NotesSpace", () => {
   const source = { kind: "notes", folder: "Notes", invalidFolder: false };
 
   const entry = (title, extra = {}) => ({
-    path: `Inbox/${title}.md`,
+    path: `${title}.md`,
     title,
-    folder: "Inbox",
+    folder: "",
     preview: `preview of ${title}`,
     created: "2026-07-21",
     pinned: false,
@@ -51,7 +51,6 @@ describe("NotesSpace", () => {
   const props = (extra = {}) => ({
     source,
     readOnly: false,
-    notesInbox: "Inbox",
     onChanged: noop,
     onError: noop,
     reloadKey: 0,
@@ -59,7 +58,7 @@ describe("NotesSpace", () => {
   });
 
   test("lists the notes of its own folder", async () => {
-    bridge({ list_notes: [entry("Ideia")], note_folders: [noteFolder("Inbox")] });
+    bridge({ list_notes: [entry("Ideia")], note_folders: [] });
 
     render(NotesSpace, { props: props() });
 
@@ -79,7 +78,7 @@ describe("NotesSpace", () => {
       list_notes: [
         entry("Receita", { preview: "## Ingredientes\n\n- **duas** xícaras" }),
       ],
-      note_folders: [noteFolder("Inbox")],
+      note_folders: [],
     });
 
     render(NotesSpace, { props: props() });
@@ -115,7 +114,7 @@ describe("NotesSpace", () => {
     await waitFor(() =>
       expect(invoke).toHaveBeenCalledWith("set_note_pinned", {
         folder: "Notes",
-        path: "Inbox/Ideia.md",
+        path: "Ideia.md",
         pinned: true,
       }),
     );
@@ -132,7 +131,7 @@ describe("NotesSpace", () => {
     });
     await userEvent.click(await screen.findByText("Ideia"));
 
-    expect(opened).toEqual([["Inbox/Ideia.md", "Notes"]]);
+    expect(opened).toEqual([["Ideia.md", "Notes"]]);
     expect(invoke.mock.calls.some(([cmd]) => cmd === "read_note")).toBe(false);
   });
 
@@ -151,7 +150,7 @@ describe("NotesSpace", () => {
       new MouseEvent("auxclick", { button: 1, bubbles: true, cancelable: true }),
     );
 
-    expect(opened).toEqual([["Inbox/Ideia.md", "Notes", { newTab: true }]]);
+    expect(opened).toEqual([["Ideia.md", "Notes", { newTab: true }]]);
   });
 
   test("the right button offers the same door, above the card's own items", async () => {
@@ -173,7 +172,7 @@ describe("NotesSpace", () => {
     expect(rows).toContain("Delete");
 
     await userEvent.click(screen.getByText("Open in new tab"));
-    expect(opened).toEqual([["Inbox/Ideia.md", "Notes", { newTab: true }]]);
+    expect(opened).toEqual([["Ideia.md", "Notes", { newTab: true }]]);
   });
 
   test("a read-only notebook still opens a note in a new tab", async () => {
@@ -196,7 +195,7 @@ describe("NotesSpace", () => {
         entry("Solta"),
         entry("Briefing", { path: "Clientes/Briefing.md", folder: "Clientes" }),
       ],
-      note_folders: [noteFolder("Clientes"), noteFolder("Inbox")],
+      note_folders: [noteFolder("Clientes")],
     });
 
     render(NotesSpace, { props: props() });
@@ -214,7 +213,7 @@ describe("NotesSpace", () => {
     // `.space.json` and read back through the source.
     bridge({
       list_notes: [entry("Solta")],
-      note_folders: [noteFolder("Inbox")],
+      note_folders: [],
     });
     const onSetLayout = vi.fn();
 
@@ -223,7 +222,7 @@ describe("NotesSpace", () => {
     await showFolders();
     expect(onSetLayout).toHaveBeenCalledWith("tree");
     // The click shows at once, before any refresh brings it back.
-    expect(await screen.findByRole("button", { name: "Inbox" })).toBeTruthy();
+    expect(await screen.findByRole("button", { name: "All notes" })).toBeTruthy();
 
     cleanup();
     // A space that saved `tree` opens in the tree, no click needed; the
@@ -231,11 +230,11 @@ describe("NotesSpace", () => {
     render(NotesSpace, {
       props: props({ source: { ...source, noteLayout: "tree" }, defaultLayout: "grid" }),
     });
-    expect(await screen.findByRole("button", { name: "Inbox" })).toBeTruthy();
+    expect(await screen.findByRole("button", { name: "All notes" })).toBeTruthy();
 
     cleanup();
     render(NotesSpace, { props: props({ defaultLayout: "tree" }) });
-    expect(await screen.findByRole("button", { name: "Inbox" })).toBeTruthy();
+    expect(await screen.findByRole("button", { name: "All notes" })).toBeTruthy();
 
     cleanup();
     // A read-only notebook still switches — for the session, nothing saved.
@@ -243,7 +242,7 @@ describe("NotesSpace", () => {
     render(NotesSpace, { props: props({ readOnly: true, onSetLayout: untouched }) });
     await screen.findByText("Solta");
     await showFolders();
-    expect(await screen.findByRole("button", { name: "Inbox" })).toBeTruthy();
+    expect(await screen.findByRole("button", { name: "All notes" })).toBeTruthy();
     expect(untouched).not.toHaveBeenCalled();
   });
 
@@ -293,17 +292,16 @@ describe("NotesSpace", () => {
         entry("Solta"),
         entry("Briefing", { path: "Clientes/Briefing.md", folder: "Clientes" }),
       ],
-      note_folders: [noteFolder("Clientes"), noteFolder("Inbox")],
+      note_folders: [noteFolder("Clientes")],
     });
 
     render(NotesSpace, { props: props() });
 
     // On the board: the loose note as a card, the folder as a card of its own
-    // — and the INBOX is not one of them (services/noteBoard.js).
+    // (services/noteBoard.js).
     expect(await screen.findByText("Solta")).toBeTruthy();
     expect(screen.getByText("Clientes")).toBeTruthy();
     expect(screen.getByText("1 note")).toBeTruthy();
-    expect(screen.queryByText("Inbox")).toBeNull();
 
     // Opening it does NOT leave the board (user call, 2026-08-19): the folder
     // unfolds over it, so what is behind is still there to go back to.
@@ -324,7 +322,7 @@ describe("NotesSpace", () => {
     bridge({
       list_notes: [],
       note_folders: [],
-      create_note: "Inbox/New note.md",
+      create_note: "New note.md",
       write_note: null,
     });
 
@@ -335,13 +333,13 @@ describe("NotesSpace", () => {
     await waitFor(() =>
       expect(invoke).toHaveBeenCalledWith("create_note", {
         folder: "Notes",
-        inFolder: "Inbox",
+        inFolder: "",
         title: "New note",
       }),
     );
     expect(invoke).toHaveBeenCalledWith("write_note", {
       folder: "Notes",
-      path: "Inbox/New note.md",
+      path: "New note.md",
       body: "comprar cimento\n",
     });
   });
@@ -350,7 +348,7 @@ describe("NotesSpace", () => {
     bridge({
       list_notes: [],
       note_folders: [],
-      create_note: "Inbox/New note.md",
+      create_note: "New note.md",
       write_note: null,
     });
 
@@ -363,7 +361,7 @@ describe("NotesSpace", () => {
     await waitFor(() =>
       expect(invoke).toHaveBeenCalledWith("write_note", {
         folder: "Notes",
-        path: "Inbox/New note.md",
+        path: "New note.md",
         body: "uma linha\noutra\n",
       }),
     );
@@ -374,7 +372,7 @@ describe("NotesSpace", () => {
     // keeping the writer on this screen — the note opens with the cursor in
     // its body.
     const opened = [];
-    bridge({ list_notes: [], note_folders: [], create_note: "Inbox/New note.md" });
+    bridge({ list_notes: [], note_folders: [], create_note: "New note.md" });
 
     render(NotesSpace, {
       props: props({ onOpenNote: (path, folder, opts) => opened.push([path, folder, opts]) }),
@@ -382,7 +380,7 @@ describe("NotesSpace", () => {
     await userEvent.click(await screen.findByLabelText("Create the note"));
 
     await waitFor(() =>
-      expect(opened).toEqual([["Inbox/New note.md", "Notes", { fresh: true }]]),
+      expect(opened).toEqual([["New note.md", "Notes", { fresh: true }]]),
     );
     expect(invoke.mock.calls.some(([cmd]) => cmd === "write_note")).toBe(false);
   });
@@ -390,7 +388,7 @@ describe("NotesSpace", () => {
   // 2026-09-15: on a phone the ⋮ repeated what holding the card already does,
   // and cost the card its corner. The hold is the one way in there.
   test("on a phone a card has no ⋮ at all", async () => {
-    bridge({ list_notes: [entry("Ideia")], note_folders: [noteFolder("Inbox")] });
+    bridge({ list_notes: [entry("Ideia")], note_folders: [] });
 
     render(ActionRing);
     render(NotesSpace, { props: props({ compact: true }) });
@@ -403,7 +401,7 @@ describe("NotesSpace", () => {
     bridge({
       list_notes: [entry("Ideia")],
       note_folders: [],
-      duplicate_note: "Inbox/Ideia 2.md",
+      duplicate_note: "Ideia 2.md",
     });
 
     render(ActionRing);
@@ -417,7 +415,7 @@ describe("NotesSpace", () => {
     await waitFor(() =>
       expect(invoke).toHaveBeenCalledWith("duplicate_note", {
         folder: "Notes",
-        path: "Inbox/Ideia.md",
+        path: "Ideia.md",
       }),
     );
   });
@@ -425,7 +423,7 @@ describe("NotesSpace", () => {
   test("a card moves to another place from its own ⋮", async () => {
     bridge({
       list_notes: [entry("Ideia")],
-      note_folders: [noteFolder("Clientes"), noteFolder("Inbox")],
+      note_folders: [noteFolder("Clientes")],
       move_note_to_space: "Clientes/Ideia.md",
     });
 
@@ -444,7 +442,7 @@ describe("NotesSpace", () => {
     await waitFor(() =>
       expect(invoke).toHaveBeenCalledWith("move_note_to_space", {
         folder: "Notes",
-        path: "Inbox/Ideia.md",
+        path: "Ideia.md",
         toSpace: "Notes",
         toFolder: "Clientes",
       }),
@@ -498,7 +496,7 @@ describe("NotesSpace", () => {
     fireEvent.pointerMove(cards[0], { pointerId: 2, clientX: 110, clientY: 300 });
     fireEvent.pointerUp(cards[0], { pointerId: 2, clientX: 110, clientY: 300 });
 
-    await waitFor(() => expect(saved).toEqual([["Inbox/Bbb.md", "Inbox/Aaa.md"]]));
+    await waitFor(() => expect(saved).toEqual([["Bbb.md", "Aaa.md"]]));
   });
 
   test("picked notes travel together, in the order they stood", async () => {
@@ -525,7 +523,7 @@ describe("NotesSpace", () => {
     fireEvent.pointerUp(cards[0], { pointerId: 1, clientX: 110, clientY: 520 });
 
     await waitFor(() =>
-      expect(saved).toEqual([["Inbox/Ccc.md", "Inbox/Aaa.md", "Inbox/Bbb.md"]]),
+      expect(saved).toEqual([["Ccc.md", "Aaa.md", "Bbb.md"]]),
     );
   });
 
@@ -551,7 +549,7 @@ describe("NotesSpace", () => {
     fireEvent.pointerMove(cards[0], { pointerId: 1, clientX: 110, clientY: 470 });
     fireEvent.pointerUp(cards[0], { pointerId: 1, clientX: 110, clientY: 470 });
 
-    await waitFor(() => expect(saved).toEqual([["Inbox/Aaa.md", "Clientes"]]));
+    await waitFor(() => expect(saved).toEqual([["Aaa.md", "Clientes"]]));
   });
 
   test("a folder dropped on a folder is put in the order, not filed into it", async () => {
@@ -587,7 +585,7 @@ describe("NotesSpace", () => {
     // note goes in there instead of next to it.
     bridge({
       list_notes: [entry("Aaa"), entry("Bbb")],
-      note_folders: [noteFolder("Clientes"), noteFolder("Inbox")],
+      note_folders: [noteFolder("Clientes")],
       move_note_to_space: "Clientes/Aaa.md",
     });
 
@@ -606,7 +604,7 @@ describe("NotesSpace", () => {
     await waitFor(() =>
       expect(invoke).toHaveBeenCalledWith("move_note_to_space", {
         folder: "Notes",
-        path: "Inbox/Aaa.md",
+        path: "Aaa.md",
         toSpace: "Notes",
         toFolder: "Clientes",
       }),
@@ -616,7 +614,7 @@ describe("NotesSpace", () => {
   test("picked notes move to another space", async () => {
     bridge({
       list_notes: [entry("Ideia")],
-      note_folders: [noteFolder("Inbox")],
+      note_folders: [],
       move_note_to_space: "Ideia.md",
     });
 
@@ -630,15 +628,15 @@ describe("NotesSpace", () => {
 
     await userEvent.selectOptions(
       screen.getByLabelText("Move to…"),
-      JSON.stringify(["Design/Ideias", "Inbox"]),
+      JSON.stringify(["Design/Ideias", ""]),
     );
 
     await waitFor(() =>
       expect(invoke).toHaveBeenCalledWith("move_note_to_space", {
         folder: "Notes",
-        path: "Inbox/Ideia.md",
+        path: "Ideia.md",
         toSpace: "Design/Ideias",
-        toFolder: "Inbox",
+        toFolder: "",
       }),
     );
   });
@@ -660,12 +658,12 @@ describe("NotesSpace", () => {
     await waitFor(() =>
       expect(invoke).toHaveBeenCalledWith("delete_note", {
         folder: "Notes",
-        path: "Inbox/Outra.md",
+        path: "Outra.md",
       }),
     );
     expect(invoke).toHaveBeenCalledWith("delete_note", {
       folder: "Notes",
-      path: "Inbox/Ideia.md",
+      path: "Ideia.md",
     });
   });
 });
@@ -679,7 +677,6 @@ describe("NotesSpace with a note sub-function switched off", () => {
   const props = (extra = {}) => ({
     source,
     readOnly: false,
-    notesInbox: "Inbox",
     onChanged: noop,
     onError: noop,
     reloadKey: 0,
@@ -688,7 +685,7 @@ describe("NotesSpace with a note sub-function switched off", () => {
   const off = (key) => (k) => k !== key;
 
   const filed = [
-    { path: "Inbox/Solta.md", title: "Solta", folder: "Inbox", preview: "", pinned: false },
+    { path: "Solta.md", title: "Solta", folder: "", preview: "", pinned: false },
     {
       path: "Clientes/Guardada.md",
       title: "Guardada",
@@ -701,7 +698,7 @@ describe("NotesSpace with a note sub-function switched off", () => {
   test("folders off: no folder card, and the notes inside are still there", async () => {
     bridge({
       list_notes: filed,
-      note_folders: [noteFolder("Clientes"), noteFolder("Inbox")],
+      note_folders: [noteFolder("Clientes")],
     });
     render(NotesSpace, { props: props({ f: off("noteFolders") }) });
 
@@ -722,7 +719,7 @@ describe("NotesSpace with a note sub-function switched off", () => {
   });
 
   test("pins off: no pin on a card, and none in its menu", async () => {
-    bridge({ list_notes: [filed[0]], note_folders: [noteFolder("Inbox")] });
+    bridge({ list_notes: [filed[0]], note_folders: [] });
     render(NotesSpace, { props: props({ f: off("pinNotes") }) });
 
     render(ActionRing);
@@ -742,7 +739,6 @@ describe("NotesSpace folder management", () => {
   const props = (extra = {}) => ({
     source,
     readOnly: false,
-    notesInbox: "Inbox",
     onChanged: noop,
     onError: noop,
     reloadKey: 0,
@@ -752,7 +748,7 @@ describe("NotesSpace folder management", () => {
   const withFolders = (extra = {}) =>
     bridge({
       list_notes: [],
-      note_folders: [noteFolder("Clientes"), noteFolder("Inbox")],
+      note_folders: [noteFolder("Clientes")],
       rename_note_folder: "Contas",
       delete_note_folder: 2,
       ...extra,

@@ -5,8 +5,8 @@ const note = (path, folder = "") => ({ path, folder, title: path, preview: "" })
 
 const NOTES = [
   note("solta.md", ""),
-  note("Inbox/ideia.md", "Inbox"),
-  note("Inbox/outra.md", "Inbox"),
+  note("ideia.md", ""),
+  note("outra.md", ""),
   note("Clientes/acme.md", "Clientes"),
   note("Clientes/bosch.md", "Clientes"),
   note("Clientes/2026/contrato.md", "Clientes/2026"),
@@ -18,21 +18,14 @@ const folder = (path, extra = {}) => ({ path, color: null, pinned: false, ...ext
 const FOLDERS = [
   folder("Clientes"),
   folder("Clientes/2026"),
-  folder("Inbox"),
   folder("Receitas"),
 ];
 
 describe("the board at the root", () => {
-  const { cards, groups, parent } = board(NOTES, FOLDERS, "", "Inbox");
+  const { cards, groups, parent } = board(NOTES, FOLDERS, "");
 
-  it("draws the loose notes and the inbox's as the same cards", () => {
-    // Every note the app files goes to Inbox/. A card for that folder would be
-    // one card holding the whole board.
-    expect(cards.map((n) => n.path)).toEqual([
-      "solta.md",
-      "Inbox/ideia.md",
-      "Inbox/outra.md",
-    ]);
+  it("draws the loose notes as cards — the root is the space's inbox", () => {
+    expect(cards.map((n) => n.path)).toEqual(["solta.md", "ideia.md", "outra.md"]);
   });
 
   it("draws a card for every other top-level folder", () => {
@@ -55,7 +48,7 @@ describe("the board at the root", () => {
 });
 
 describe("the board inside a folder", () => {
-  const { cards, groups, parent } = board(NOTES, FOLDERS, "Clientes", "Inbox");
+  const { cards, groups, parent } = board(NOTES, FOLDERS, "Clientes");
 
   it("draws that folder's notes and its subfolders", () => {
     expect(cards.map((n) => n.path)).toEqual(["Clientes/acme.md", "Clientes/bosch.md"]);
@@ -76,10 +69,10 @@ describe("edge cases the disk actually produces", () => {
     expect(group.count).toBe(9);
   });
 
-  it("survives a space with no inbox at all", () => {
-    // A user space starts empty: no Inbox folder, notes written at its root.
+  it("survives a space with no folder at all", () => {
+    // A user space starts empty: notes written at its root, nothing else.
     const own = [note("uma.md", "")];
-    const { cards, groups } = board(own, [], "", "Inbox");
+    const { cards, groups } = board(own, [], "");
     expect(cards).toHaveLength(1);
     expect(groups).toHaveLength(0);
   });
@@ -98,13 +91,12 @@ describe("a pinned folder", () => {
       NOTES,
       [folder("Clientes"), folder("Receitas", { pinned: true })],
       "",
-      "Inbox",
     );
     expect(groups.map((g) => g.name)).toEqual(["Receitas", "Clientes"]);
   });
 
   it("carries its colour to the card", () => {
-    const { groups } = board(NOTES, [folder("Clientes", { color: "red" })], "", "Inbox");
+    const { groups } = board(NOTES, [folder("Clientes", { color: "red" })], "");
     expect(groups[0].color).toBe("red");
   });
 });
@@ -115,20 +107,20 @@ describe("with note folders switched off", () => {
   // so a flat board still shows every note, wherever it is filed.
   test("every note is a card, and no folder is", () => {
     const notes = [
-      { path: "Inbox/a.md", title: "a", folder: "Inbox" },
+      { path: "a.md", title: "a", folder: "" },
       { path: "Clientes/b.md", title: "b", folder: "Clientes" },
       { path: "Clientes/Sub/c.md", title: "c", folder: "Clientes/Sub" },
     ];
-    const folders = [{ path: "Inbox" }, { path: "Clientes" }, { path: "Clientes/Sub" }];
+    const folders = [{ path: "Clientes" }, { path: "Clientes/Sub" }];
 
-    const flat = board(notes, folders, "", "Inbox", { flat: true });
+    const flat = board(notes, folders, "", { flat: true });
     expect(flat.groups).toEqual([]);
     expect(flat.cards.map((n) => n.title)).toEqual(["a", "b", "c"]);
     expect(flat.parent).toBe(null);
 
     // And with folders on, the same call is the board it always was: the two
     // notes filed away are inside their card, not loose.
-    const deep = board(notes, folders, "", "Inbox");
+    const deep = board(notes, folders, "");
     expect(deep.cards.map((n) => n.title)).toEqual(["a"]);
     expect(deep.groups.map((g) => g.name)).toEqual(["Clientes"]);
   });

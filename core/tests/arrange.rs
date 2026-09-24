@@ -329,7 +329,7 @@ fn every_list_on_the_tasks_screen_reads_in_the_tasks_sort() {
 fn a_notes_space_sort_rewrites_no_file() {
     let (dir, notebook) = init();
     notebook.create_space("Ideias", "notes").unwrap();
-    let note = dir.path().join("Ideias/Inbox/b.md");
+    let note = dir.path().join("Ideias/b.md");
     std::fs::write(&note, "b").unwrap();
     notebook.set_space_sort("Ideias", Some("name"), Some("up")).unwrap();
     assert_eq!(read(&note), "b");

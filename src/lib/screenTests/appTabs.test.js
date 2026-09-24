@@ -33,10 +33,9 @@ describe("App shell with tabs", () => {
       tasksFolder: "jott.tasks",
       completedName: "completed",
       notesFolder: "jott.notes",
-      notesInbox: "Inbox",
       dateDisplayFormat: "mm/dd/yyyy",
       closeInspectorOnClickAway: false,
-      quickNoteFolder: "Inbox",
+      quickNoteFolder: "",
     },
   };
 
@@ -307,7 +306,6 @@ describe("the compact shell", () => {
       tasksFolder: "jott.tasks",
       completedName: "completed",
       notesFolder: "jott.notes",
-      notesInbox: "Inbox",
       dateDisplayFormat: "mm/dd/yyyy",
     },
   };

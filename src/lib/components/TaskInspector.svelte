@@ -11,7 +11,7 @@
   import { ensureTaskId } from "../services/taskId.js";
   import { completionBeat } from "../services/pace.js";
   import { S } from "../services/strings.js";
-  import { leafOf, listTitle, splitLabel } from "../services/paths.js";
+  import { leafOf, listNameIn, splitLabel } from "../services/paths.js";
   import {
     PRIORITIES,
     REPEAT_UNITS,
@@ -356,12 +356,8 @@
     );
 
   /// Where the task lives, as the FOOT says it: the name the picker gives the
-  /// same list — the space, since every space's main list is called Inbox and
-  /// "Inbox" alone never says which one. Falls back to the file's own title
-  /// while the list of targets has not arrived.
-  let here = $derived(
-    splitLabel(lists.find((l) => l.path === list) ?? {}).name || listTitle(list),
-  );
+  /// same list (`listNameIn`).
+  let here = $derived(listNameIn(list, lists));
 
   /// The footer's list picker: move this task to another list. On success the
   /// shell re-points at the new list.

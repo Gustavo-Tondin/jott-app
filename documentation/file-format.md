@@ -25,6 +25,9 @@ MyNotebook/
 │   ├── completed.md
 │   └── .space.json
 ├── jott.notes/          ← the fixed Notes space
+│   ├── An idea.md       ← notes sit at the root of their space
+│   ├── Clients/         ← a folder is optional filing, and nests
+│   └── .space.json
 ├── assets/              ← every file the notebook uses, one library
 ├── Groceries/           ← a tasks space you made
 ├── Work/                ← a group: it gathers spaces, holds no content
@@ -147,6 +150,12 @@ Text of the note.
 The block is optional — a plain `.md` you wrote by hand is a perfectly good
 note. Keys Jott doesn't know are left untouched. A checklist typed inside a
 note stays text: notes and tasks never mix.
+
+**A note lives directly in its space's folder.** New notes, quick notes and
+notes moved from another space all land there; a subfolder is filing you
+chose to do, and Jott never creates one on its own. The root is what the app
+calls the space's inbox: it counts what waits there, and a note left there
+is read as forgotten sooner than one you filed (`age.inboxStale`).
 
 `tags:` are the note's **subjects** — the same words a task's `#tag` uses,
 picked from the same list, and what a `#name` search answers with. They live

@@ -9,7 +9,7 @@ use super::*;
 use chrono::NaiveDate;
 
 use crate::age::{Age, Thresholds};
-use crate::notefolder::{NoteEntry, NOTES_INBOX};
+use crate::notefolder::NoteEntry;
 
 impl Notebook {
     /// The notebook's age thresholds — `config.age`, and the only door to it.
@@ -36,8 +36,9 @@ impl Notebook {
 
     /// Stamps a listing of notes from ONE notes space: last seen, and the age
     /// that follows. `space` is the root-relative address the index is keyed
-    /// by; the entries' own paths are relative to it. The Inbox reads against
-    /// its own shorter deadline: things pass through an inbox.
+    /// by; the entries' own paths are relative to it. A loose note — at the
+    /// space's root, its inbox — reads against the shorter deadline: things
+    /// pass through an inbox.
     pub(super) fn stamp_notes(&self, space: &str, entries: &mut [NoteEntry]) {
         if entries.is_empty() {
             return;
@@ -67,7 +68,7 @@ impl Notebook {
                     .and_then(|path| modified_on(&path)),
                 _ => None,
             };
-            let thresholds = if in_inbox(&entry.folder) {
+            let thresholds = if entry.folder.is_empty() {
                 thresholds.in_inbox()
             } else {
                 thresholds
@@ -75,11 +76,6 @@ impl Notebook {
             entry.age = Some(Age::of(today, created, entry.seen, modified, thresholds));
         }
     }
-}
-
-/// Whether a note's folder inside its space IS the Inbox, or lives under it.
-fn in_inbox(folder: &str) -> bool {
-    folder == NOTES_INBOX || folder.starts_with(&format!("{NOTES_INBOX}/"))
 }
 
 /// The day a file was last written, as the local calendar reads it. `None`

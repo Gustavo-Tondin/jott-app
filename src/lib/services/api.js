@@ -307,7 +307,6 @@ export const api = {
   // Every notes space answers, so no space is named: each row is
   // `{folder, note}` (the core's `ListedNote`).
   notesOfToday: () => invoke("notes_of_today"),
-  inboxNotes: (folder) => invoke("inbox_notes", { folder }),
   quickCaptureNote: (folder, inFolder, text) =>
     invoke("quick_capture_note", { folder, inFolder, text }),
   readNote: (folder, path) => invoke("read_note", { folder, path }),

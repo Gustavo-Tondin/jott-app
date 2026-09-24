@@ -5,7 +5,7 @@
   // shell — this only draws it and reports the clicks.
   import Notice from "../components/Notice.svelte";
   import { formatDate } from "../services/dates.js";
-  import { leafOf, titleOfList } from "../services/paths.js";
+  import { folderOf, leafOf, listNameIn } from "../services/paths.js";
   import { opensInFilesApp, revealFolder } from "../services/reveal.js";
   import { openReleasePage } from "../services/update.js";
   import { S } from "../services/strings.js";
@@ -16,6 +16,8 @@
     undoNotice = null,
     onDismissUndo,
     conflicts = [],
+    /// The notebook's lists, to name a list's copy by its space.
+    lists = [],
     onHideConflicts,
     /// Each takes the copy's root-relative address; the last takes none.
     onDiscardConflict,
@@ -34,10 +36,12 @@
   } = $props();
 
   /// What a copy belongs to, as the user reads it: a list is named the way
-  /// every other screen names it (the main list of a space is Inbox, never
-  /// `task-list`); a note is its own title.
+  /// every other screen names it — by its space (`listNameIn`), never
+  /// `task-list`; a note is its own title.
   function nameOf(conflict) {
-    if (conflict.kind === "list") return titleOfList(conflict.list);
+    if (conflict.kind === "list") {
+      return listNameIn(`${folderOf(conflict.relative ?? "")}/${conflict.list}.md`, lists);
+    }
     if (conflict.kind === "settings") return S.conflictSettings;
     if (conflict.kind === "tags") return S.conflictTags;
     if (conflict.kind === "trash") return S.conflictTrash;

@@ -188,14 +188,13 @@ describe("SpaceView", () => {
 
   test("below 768px a notes space has the round + instead of the quick note bar", async () => {
     // One tap: a blank note, opened with the cursor in its body (`fresh`).
-    bridge({ list_notes: [], note_folders: [], create_note: "Inbox/New note.md" });
+    bridge({ list_notes: [], note_folders: [], create_note: "New note.md" });
     const opened = [];
     const notes = { ...space, kind: "notes" };
     const { container } = render(SpaceView, {
       props: {
         space: notes,
         compact: true,
-        notesInbox: "Inbox",
         onOpenNote: (...args) => opened.push(args),
       },
     });
@@ -209,16 +208,16 @@ describe("SpaceView", () => {
 
     await userEvent.click(plus);
     await waitFor(() => expect(opened).toHaveLength(1));
-    expect(opened[0][0]).toBe("Inbox/New note.md");
+    expect(opened[0][0]).toBe("New note.md");
     expect(opened[0][2]).toEqual({ fresh: true });
     expect(invoke).toHaveBeenCalledWith(
       "create_note",
-      expect.objectContaining({ inFolder: "Inbox", title: "New note" }),
+      expect.objectContaining({ inFolder: "", title: "New note" }),
     );
 
     // The desktop keeps the bar, and has no + to find.
     cleanup();
-    const wide = render(SpaceView, { props: { space: notes, notesInbox: "Inbox" } });
+    const wide = render(SpaceView, { props: { space: notes } });
     await waitFor(() => {
       if (!wide.container.querySelector(".quick-note")) throw new Error("no bar");
     });
@@ -553,10 +552,9 @@ describe("App with a user space", () => {
       tasksFolder: "jott.tasks",
       completedName: "completed",
       notesFolder: "jott.notes",
-      notesInbox: "Inbox",
       dateDisplayFormat: "mm/dd/yyyy",
       closeInspectorOnClickAway: false,
-      quickNoteFolder: "Inbox",
+      quickNoteFolder: "",
     },
   };
 

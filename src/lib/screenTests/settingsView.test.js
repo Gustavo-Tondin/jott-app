@@ -24,7 +24,7 @@ describe("SettingsView", () => {
     newTasksOnTop: false,
     dateDisplayFormat: "mm/dd/yyyy",
     closeInspectorOnClickAway: false,
-    quickNoteFolder: "Inbox",
+    quickNoteFolder: "",
     confirmDeletes: true,
     confirmImageDownloads: true,
     accentColor: "",

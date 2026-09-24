@@ -219,7 +219,6 @@
     {onPickImage}
     dot={colorOf(view)}
     readOnly={notebook.readOnly}
-    notesInbox={layout.notesInbox}
     root={notebook.path}
     {noteSpaces}
     {reloadKey}
@@ -310,8 +309,7 @@
       lists={notebook.lists}
       {tags}
       completedName={layout.completedName}
-      notesInbox={layout.notesInbox}
-      root={notebook.path}
+        root={notebook.path}
       {noteSpaces}
       today={clock?.today}
       dateFormat={layout.dateDisplayFormat}

@@ -327,10 +327,9 @@ describe("the suggestions panel", () => {
       tasksFolder: "jott.tasks",
       completedName: "completed",
       notesFolder: "jott.notes",
-      notesInbox: "",
       dateDisplayFormat: "mm/dd/yyyy",
       closeInspectorOnClickAway: false,
-      quickNoteFolder: "Inbox",
+      quickNoteFolder: "",
     },
   };
 

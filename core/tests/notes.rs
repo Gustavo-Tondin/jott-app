@@ -16,26 +16,34 @@ fn today() -> NaiveDate {
 fn folder() -> (tempfile::TempDir, NoteFolder) {
     let (dir, _) = init();
     let notes = NoteFolder::new(dir.path().join("jott.notes"));
-    notes.ensure_default_folders().unwrap();
     (dir, notes)
 }
 
 #[test]
-fn the_inbox_folder_comes_back_on_open_and_is_born_with_a_user_space() {
-    // The Inbox is protected from rename and delete BECAUSE it is recreated —
-    // a protection without the recreation would guard something the app does
-    // not maintain. (It never ran before 2026-08-19: `ensure_default_folders`
-    // existed, documented as running on every open, and had no caller.)
+fn a_notes_space_is_its_folder_and_nothing_is_created_inside_it() {
+    // The root of a notes space is where loose notes live — its inbox. No
+    // `Inbox/` folder is made on open or on creation (user call, 2026-09-24):
+    // with nowhere else to file to, the folder only added a level.
     let (dir, _) = init();
-    assert!(dir.path().join("jott.notes/Inbox").is_dir());
+    assert!(dir.path().join("jott.notes").is_dir());
+    assert!(!dir.path().join("jott.notes/Inbox").exists());
 
-    std::fs::remove_dir(dir.path().join("jott.notes/Inbox")).unwrap();
     let notebook = Notebook::open(dir.path()).unwrap();
-    assert!(dir.path().join("jott.notes/Inbox").is_dir());
+    assert!(!dir.path().join("jott.notes/Inbox").exists());
 
-    // A notes space of the user's is born usable the same way.
     notebook.create_space("Ideias", "notes").unwrap();
-    assert!(dir.path().join("Ideias/Inbox").is_dir());
+    let entries: Vec<_> = std::fs::read_dir(dir.path().join("Ideias"))
+        .unwrap()
+        .map(|it| it.unwrap().file_name().to_string_lossy().into_owned())
+        .collect();
+    assert_eq!(entries, vec![".space.json"], "only the marker");
+
+    let path = notebook
+        .note_folder("Ideias")
+        .unwrap()
+        .create("", "Primeira", today())
+        .unwrap();
+    assert_eq!(path, "Primeira.md", "a new note lands at the root");
 }
 
 #[test]
@@ -73,7 +81,7 @@ fn a_note_written_by_hand_is_adopted_without_being_rewritten_on_read() {
     // Someone wrote it in Obsidian. Reading must not touch the file — the
     // same courtesy the lazy task id gets.
     let (dir, notes) = folder();
-    let path = dir.path().join("jott.notes/Inbox/solta.md");
+    let path = dir.path().join("jott.notes/solta.md");
     let original = "Uma ideia escrita fora do app.\n";
     std::fs::write(&path, original).unwrap();
 
@@ -84,7 +92,7 @@ fn a_note_written_by_hand_is_adopted_without_being_rewritten_on_read() {
     assert_eq!(read(&path), original, "reading rewrote the file");
 
     // The first save by the app is what adopts `created`.
-    notes.write("Inbox/solta.md", "Editada.\n", today()).unwrap();
+    notes.write("solta.md", "Editada.\n", today()).unwrap();
     assert_eq!(read(&path), "---\ncreated: 2026-07-21\n---\n\nEditada.\n");
 }
 
@@ -209,14 +217,14 @@ fn note_addresses_that_could_escape_the_folder_are_refused() {
 #[test]
 fn hidden_files_and_sync_conflicts_are_not_notes() {
     let (dir, notes) = folder();
-    std::fs::write(dir.path().join("jott.notes/Inbox/.oculta.md"), "x\n").unwrap();
+    std::fs::write(dir.path().join("jott.notes/.oculta.md"), "x\n").unwrap();
     std::fs::write(
         dir.path()
-            .join("jott.notes/Inbox/nota.sync-conflict-20260721-090000-ABC.md"),
+            .join("jott.notes/nota.sync-conflict-20260721-090000-ABC.md"),
         "versão do celular\n",
     )
     .unwrap();
-    std::fs::write(dir.path().join("jott.notes/Inbox/nota.md"), "a boa\n").unwrap();
+    std::fs::write(dir.path().join("jott.notes/nota.md"), "a boa\n").unwrap();
 
     let listed = notes.notes().unwrap();
     assert_eq!(listed.len(), 1);
@@ -312,17 +320,12 @@ fn folders_can_be_renamed_and_the_notes_come_along() {
 }
 
 #[test]
-fn the_notes_inbox_cannot_be_renamed_or_deleted() {
-    // It is recreated on every open, so allowing either would just confuse.
+fn the_root_of_a_notes_space_cannot_be_renamed_or_deleted_as_a_folder() {
+    // The root is the space itself: renaming it is the space's business, and
+    // deleting it would delete the space.
     let (_dir, notes) = folder();
-    assert!(matches!(
-        notes.delete_folder("Inbox"),
-        Err(jott_core::Error::Protected(_))
-    ));
-    assert!(matches!(
-        notes.rename_folder("Inbox", "Outra"),
-        Err(jott_core::Error::Protected(_))
-    ));
+    assert!(notes.delete_folder("").is_err());
+    assert!(notes.rename_folder("", "Outra").is_err());
 }
 
 #[test]
@@ -747,7 +750,6 @@ fn a_folder_of_notes_carries_a_colour_and_a_pin_in_the_space() {
     // the space's own `.space.json` (user call, 2026-08-19).
     let (dir, _) = init();
     let notes = NoteFolder::new(dir.path().join("jott.notes"));
-    notes.ensure_default_folders().unwrap();
     notes.create_folder("Clientes").unwrap();
     notes.create_folder("Clientes/2026").unwrap();
 
@@ -767,8 +769,11 @@ fn a_folder_of_notes_carries_a_colour_and_a_pin_in_the_space() {
     assert_eq!(of("Clientes").color.as_deref(), Some("red"));
     assert!(of("Clientes").pinned);
     // A folder nobody chose anything for has no entry, and reads as nothing.
-    assert_eq!(of("Inbox").color, None);
-    assert!(!of("Inbox").pinned);
+    notes.create_folder("Outra").unwrap();
+    let entries = notebook.note_folder_entries("jott.notes").unwrap();
+    let of = |path: &str| entries.iter().find(|e| e.path == path).cloned().unwrap();
+    assert_eq!(of("Outra").color, None);
+    assert!(!of("Outra").pinned);
 
     // Renaming carries the folder's own settings AND its children's.
     let moved = notebook
@@ -1062,7 +1067,7 @@ fn a_card_is_drawn_in_the_language_its_note_declares_or_reads_as() {
     let mut config = notebook.config().clone();
     config.languages = vec!["es".into(), "pt-BR".into()];
     notebook.set_config(config).unwrap();
-    let notes = dir.path().join("jott.notes/Inbox");
+    let notes = dir.path().join("jott.notes");
     let pt = "Não sei se vou ao mercado com a minha irmã, mas é muito provável que sim, \
         porque também preciso de pão para o café da manhã.";
     std::fs::write(notes.join("feira.md"), pt).unwrap();
@@ -1078,9 +1083,9 @@ fn a_card_is_drawn_in_the_language_its_note_declares_or_reads_as() {
     assert_eq!(lang_of("declarada").as_deref(), Some("fr"), "what the note says wins");
 
     // Declaring and clearing touches one line of the file.
-    notebook.set_note_lang("jott.notes", "Inbox/feira.md", Some("es".into())).unwrap();
+    notebook.set_note_lang("jott.notes", "feira.md", Some("es".into())).unwrap();
     assert!(read(notes.join("feira.md")).starts_with("---\nlang: es\n---\n"));
     assert_eq!(lang_of("feira").as_deref(), Some("es"));
-    notebook.set_note_lang("jott.notes", "Inbox/feira.md", None).unwrap();
+    notebook.set_note_lang("jott.notes", "feira.md", None).unwrap();
     assert_eq!(read(notes.join("feira.md")), pt);
 }

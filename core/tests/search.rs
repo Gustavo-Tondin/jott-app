@@ -20,9 +20,7 @@ fn notebook() -> (tempfile::TempDir, Notebook) {
 }
 
 fn notes_of(dir: &tempfile::TempDir) -> NoteFolder {
-    let notes = NoteFolder::new(dir.path().join("jott.notes"));
-    notes.ensure_default_folders().unwrap();
-    notes
+    NoteFolder::new(dir.path().join("jott.notes"))
 }
 
 #[test]

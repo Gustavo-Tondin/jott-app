@@ -196,7 +196,8 @@ impl Notebook {
 
     /// Creates a user space at the root: a folder carrying a `.space.json`
     /// with the chosen type (`tasks` or `notes`), born usable (`task-list.md`
-    /// plus `completed.md`, or the Inbox folder). Returns the folder name.
+    /// plus `completed.md` for tasks; notes need only the folder). Returns
+    /// the folder name.
     pub fn create_space(&self, name: &str, kind: &str) -> Result<String> {
         self.create_space_in(name, kind, None, None)
     }
@@ -231,12 +232,10 @@ impl Notebook {
             &config.render(),
         )?;
         // Born usable: a tasks space gets its list and Completed; a notes
-        // space gets its Inbox folder.
-        let dir = self.resolve_space_path(&folder)?;
+        // space is its folder, notes go straight into it.
         if kind == "tasks" {
+            let dir = self.resolve_space_path(&folder)?;
             crate::folder::TaskFolder::new(dir).ensure_default_lists()?;
-        } else {
-            crate::notefolder::NoteFolder::new(dir).ensure_default_folders()?;
         }
         Ok(folder)
     }

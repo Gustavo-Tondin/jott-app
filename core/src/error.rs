@@ -67,9 +67,9 @@ pub enum Error {
     #[error("notebook uses schema version {found}, this build supports {supported}")]
     ReadOnlyNotebook { found: u64, supported: u64 },
 
-    /// A default the app recreates on every open — `Inbox`, `Completed`, the
-    /// notes `Inbox` folder. Renaming or deleting one would only confuse the
-    /// user, since it comes straight back.
+    /// A default the app recreates on every open — a tasks space's list and
+    /// `Completed`. Renaming or deleting one would only confuse the user,
+    /// since it comes straight back.
     #[error("{0} is created by the app and cannot be renamed or deleted")]
     Protected(String),
 

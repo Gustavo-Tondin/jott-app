@@ -12,9 +12,6 @@ use crate::error::{Error, IoContext, Result};
 use crate::note::Note;
 use crate::relpath;
 
-/// Default folder for loose notes (spec 5).
-pub const NOTES_INBOX: &str = "Inbox";
-
 const EXTENSION: &str = "md";
 
 /// A note as a listing shows it: address, title, and enough to draw a card.
@@ -83,15 +80,6 @@ impl NoteFolder {
         }
         relpath::safe_join(&self.dir, relative)
             .ok_or_else(|| Error::InvalidNotePath(relative.to_string()))
-    }
-
-    /// Recreates the default `Inbox` folder when missing, the same courtesy
-    /// the two fixed files of a tasks space get. Called on every open (for
-    /// the fixed Notes space) and when a notes space is created.
-    pub fn ensure_default_folders(&self) -> Result<()> {
-        let inbox = self.dir.join(NOTES_INBOX);
-        std::fs::create_dir_all(&inbox).ctx(&inbox)?;
-        Ok(())
     }
 
     /// Every folder in the subtree, relative to this one, alphabetically.
@@ -212,14 +200,19 @@ impl NoteFolder {
             .collect())
     }
 
-    /// Every note of the Inbox, whatever day it was written — the Home's other
-    /// mode (`homeShowsAllInboxNotes`). Still a VIEW: nothing is moved or written.
-    pub fn inbox_notes(&self) -> Result<Vec<NoteEntry>> {
-        Ok(self
-            .notes()?
-            .into_iter()
-            .filter(|note| note.folder == NOTES_INBOX)
-            .collect())
+    /// How many notes sit at the ROOT of the space — its inbox: what came in
+    /// and was not filed into a folder. Reads only the root's listing, never
+    /// a note.
+    pub fn loose_count(&self) -> Result<usize> {
+        Ok(crate::fsio::dir_paths(&self.dir)?
+            .iter()
+            .map(PathBuf::as_path)
+            .filter(|path| {
+                is_note_file(path)
+                    && !crate::fsio::is_hidden(path)
+                    && !crate::conflict::is_conflict_file(path)
+            })
+            .count())
     }
 
     /// Writes a note from a single blob of text — the Home's quick capture.
@@ -418,10 +411,10 @@ impl NoteFolder {
     /// Renames a folder in place, keeping its parent. Returns the new
     /// address.
     pub fn rename_folder(&self, relative: &str, name: &str) -> Result<String> {
-        self.refuse_if_protected(relative)?;
         let name = sanitize_title(name)?;
         let source = self.folder_path(relative)?;
-        if !source.is_dir() {
+        // The root is the space itself: renaming it is the space's business.
+        if relative.is_empty() || !source.is_dir() {
             return Err(Error::InvalidNotePath(relative.to_string()));
         }
 
@@ -442,7 +435,6 @@ impl NoteFolder {
     /// filing decision, not a decision to throw notes away (same rule as
     /// `delete_list`). Subfolders move up whole. Returns how many moved.
     pub fn delete_folder(&self, relative: &str) -> Result<usize> {
-        self.refuse_if_protected(relative)?;
         let dir = self.folder_path(relative)?;
         if !dir.is_dir() || relative.is_empty() {
             return Err(Error::InvalidNotePath(relative.to_string()));
@@ -466,15 +458,6 @@ impl NoteFolder {
         // wrong above and erasing it would be the worst possible recovery.
         std::fs::remove_dir(&dir).ctx(&dir)?;
         Ok(moved)
-    }
-
-    /// The space's `Inbox` is recreated on every open, so renaming or
-    /// deleting it would only confuse the user.
-    fn refuse_if_protected(&self, relative: &str) -> Result<()> {
-        if relative == NOTES_INBOX {
-            return Err(Error::Protected(relative.to_string()));
-        }
-        Ok(())
     }
 
     /// Walks the subtree, skipping hidden entries and sync conflicts.

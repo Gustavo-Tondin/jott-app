@@ -38,9 +38,8 @@ pub struct NotebookLayout {
     /// The per-folder completed list's NAME (`Completed`) — every tasks
     /// space has one, and the UI must not hard-code it.
     pub completed_name: String,
-    /// The fixed Notes space's folder, and the folder loose notes land in.
+    /// The fixed Notes space's folder; loose notes land at its root.
     pub notes_folder: String,
-    pub notes_inbox: String,
     /// Preferences the screens need on every render, so they do not each ask
     /// for the settings separately: how to draw a date, whether clicking away
     /// closes the task panel, and where the quick capture writes.
@@ -156,9 +155,6 @@ impl NotebookInfo {
                 tasks_folder: jott_core::TASKS_DIR.to_string(),
                 completed_name: jott_core::COMPLETED_LIST.to_string(),
                 notes_folder: jott_core::NOTES_DIR.to_string(),
-                // The core's name, never a mirror of it: a "" here sends every
-                // note the Home creates into the space's ROOT, not the Inbox.
-                notes_inbox: jott_core::notefolder::NOTES_INBOX.to_string(),
                 date_display_format: display.date_display_format,
                 reminder_time: config.reminder_time.render(),
                 day_summary: config.day_summary,

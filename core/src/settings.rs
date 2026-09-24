@@ -462,9 +462,7 @@ impl NotebookSettings {
             config.check_spelling = v;
         }
         if let Some(v) = &self.quick_note_folder {
-            if !v.trim().is_empty() {
-                config.quick_note_folder = v.clone();
-            }
+            config.quick_note_folder = v.trim().to_string();
         }
         // Path-like strings, not validated (the front resolves them against
         // what exists and falls back): empty is each one's default reading.

@@ -13,12 +13,7 @@ use jott_core::Notebook;
 
 /// A notebook with something in it, and the paths its two counts read.
 fn notebook(dir: &Path) -> Notebook {
-    let nb = Notebook::init(dir).unwrap();
-    nb.note_folder("jott.notes")
-        .unwrap()
-        .ensure_default_folders()
-        .unwrap();
-    nb
+    Notebook::init(dir).unwrap()
 }
 
 fn today() -> chrono::NaiveDate {
@@ -26,7 +21,7 @@ fn today() -> chrono::NaiveDate {
 }
 
 #[test]
-fn a_summary_counts_the_open_tasks_and_the_notes_waiting_in_the_inbox() {
+fn a_summary_counts_the_open_tasks_and_the_notes_waiting_at_the_root() {
     let dir = tempfile::tempdir().unwrap();
     let nb = notebook(dir.path());
     let list = Notebook::inbox_path();
@@ -38,16 +33,16 @@ fn a_summary_counts_the_open_tasks_and_the_notes_waiting_in_the_inbox() {
     nb.complete_task(&list, &id).unwrap();
 
     let notes = nb.note_folder("jott.notes").unwrap();
-    notes.quick_capture("Inbox", "uma ideia", today()).unwrap();
-    notes.quick_capture("Inbox", "outra ideia", today()).unwrap();
-    // Filed away, so it is no longer waiting — the card promises the Inbox.
+    notes.quick_capture("", "uma ideia", today()).unwrap();
+    notes.quick_capture("", "outra ideia", today()).unwrap();
+    // Filed away, so it is no longer waiting — the card promises the loose ones.
     notes.create_folder("Clientes").unwrap();
     notes.create("Clientes", "Proposta", today()).unwrap();
 
     let summary = Notebook::summarize(dir.path()).unwrap();
     assert_eq!(summary.name, dir.path().file_name().unwrap().to_str().unwrap());
     assert_eq!(summary.tasks, 2, "the completed one is not still to do");
-    assert_eq!(summary.notes, 2, "only what sits in the Inbox");
+    assert_eq!(summary.notes, 2, "only what sits loose at the root");
     assert!(!summary.read_only);
 }
 

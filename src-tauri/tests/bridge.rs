@@ -1699,9 +1699,8 @@ fn the_snapshot_answers_everything_in_one_call() {
     assert_eq!(snap["info"]["lists"], json!([{"path": "jott.tasks/Compras.md", "name": "Compras", "space": "Tasks"}, {"path": "jott.tasks/completed.md", "name": "completed", "space": "Tasks"}, {"path": "jott.tasks/task-list.md", "name": "task-list", "space": "Tasks"}]));
     assert_eq!(snap["info"]["layout"]["inbox"], "jott.tasks/task-list.md");
     assert_eq!(snap["info"]["layout"]["completed"], "jott.tasks/completed.md");
-    // The core's folder name, never "" — an empty one sent every note the
-    // Home created into the space's root instead of the Inbox.
-    assert_eq!(snap["info"]["layout"]["notesInbox"], "Inbox");
+    // Loose notes live at the space's root: the layout names no inbox folder.
+    assert!(snap["info"]["layout"].get("notesInbox").is_none());
     assert_eq!(snap["counts"]["jott.tasks/Compras.md"], json!(1));
     assert_eq!(snap["conflicts"].as_array().unwrap().len(), 1);
     assert_eq!(snap["clock"]["today"].as_str().unwrap().len(), 10);
@@ -2168,7 +2167,7 @@ fn the_phase_nine_settings_round_trip_and_reach_the_layout() {
     let defaults = ok(&app, "notebook_settings", json!({}));
     assert_eq!(defaults["dateDisplayFormat"], "mm/dd/yyyy");
     assert_eq!(defaults["closeInspectorOnClickAway"], json!(false));
-    assert_eq!(defaults["quickNoteFolder"], "Inbox");
+    assert_eq!(defaults["quickNoteFolder"], "", "the space's root");
 
     ok(
         &app,
@@ -2239,7 +2238,7 @@ fn a_nonsense_display_setting_is_normalized_instead_of_stored_wrong() {
 
     let saved = ok(&app, "notebook_settings", json!({}));
     assert_eq!(saved["dateDisplayFormat"], "mm/dd/yyyy");
-    assert_eq!(saved["quickNoteFolder"], "Inbox", "an empty folder is no folder");
+    assert_eq!(saved["quickNoteFolder"], "", "blank is the root, trimmed");
 }
 
 #[test]

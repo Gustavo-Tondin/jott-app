@@ -23,8 +23,8 @@ pub struct NotebookSummary {
     pub accent_color: String,
     /// Open tasks across every tasks space — what is still to do in there.
     pub tasks: usize,
-    /// Notes sitting in the Inbox of every notes space — what arrived and has
-    /// not been filed.
+    /// Notes sitting loose at the root of every notes space — what arrived
+    /// and has not been filed into a folder.
     pub notes: usize,
     /// Written by a newer build: it can be opened, but only for reading.
     pub read_only: bool,
@@ -90,13 +90,13 @@ impl Notebook {
         })
     }
 
-    /// How many notes sit in the Inbox of every notes space — what came in
-    /// and has not been put away. A space whose Inbox the user deleted counts
-    /// zero rather than failing (a missing directory is an empty one, `fsio::dir_paths`).
+    /// How many notes sit loose at the root of every notes space — what came
+    /// in and has not been put away. A space whose folder is gone counts zero
+    /// rather than failing (a missing directory is an empty one, `fsio::dir_paths`).
     fn notes_waiting(&self) -> Result<usize> {
         let mut waiting = 0;
         for (_, folder) in self.note_folders()? {
-            waiting += folder.count(crate::notefolder::NOTES_INBOX)?;
+            waiting += folder.loose_count()?;
         }
         Ok(waiting)
     }

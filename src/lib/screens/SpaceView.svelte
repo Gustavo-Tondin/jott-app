@@ -13,7 +13,6 @@
     lists = [],
     tags = [],
     completedName = "completed",
-    notesInbox = "Inbox",
     /// The notebook's root, and every notes space of it — what a notes screen
     /// needs and a tasks screen ignores: an image address resolves against the
     /// root (services/assets.js), and "move notes to" needs somewhere to go.
@@ -76,7 +75,6 @@
       {lists}
       {tags}
       {completedName}
-      {notesInbox}
       {root}
       {noteSpaces}
       {today}

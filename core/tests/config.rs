@@ -219,7 +219,7 @@ fn the_phase_nine_keys_round_trip_and_tolerate_garbage() {
     let mut config = Config::default();
     assert_eq!(config.date_display_format, DateFormat::MonthDayYear);
     assert!(!config.close_inspector_on_click_away, "off by default");
-    assert_eq!(config.quick_note_folder, "Inbox");
+    assert_eq!(config.quick_note_folder, "");
 
     config.date_display_format = DateFormat::YearMonthDay;
     config.close_inspector_on_click_away = true;
@@ -237,7 +237,7 @@ fn the_phase_nine_keys_round_trip_and_tolerate_garbage() {
              "quickNoteFolder": "  ", "closeInspectorOnClickAway": 7 }"#,
     );
     assert_eq!(broken.date_display_format, DateFormat::MonthDayYear);
-    assert_eq!(broken.quick_note_folder, "Inbox");
+    assert_eq!(broken.quick_note_folder, "");
     assert!(!broken.close_inspector_on_click_away);
 }
 

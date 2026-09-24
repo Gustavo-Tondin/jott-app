@@ -210,7 +210,8 @@ pub struct Config {
     /// sidebar (held: the tabs) and back is the system's gesture. Off by
     /// default: nothing on screen says the name does that.
     pub hide_top_bar: bool,
-    /// Where the Home's quick capture writes, relative to the notes space.
+    /// Where the Home's quick capture writes, relative to the notes space;
+    /// empty is the space's root, where loose notes live.
     pub quick_note_folder: String,
     /// Where the Home's quick capture writes a TASK: empty is the fixed
     /// space's Inbox; a list's name is a list of the fixed space; a
@@ -306,7 +307,7 @@ impl Default for Config {
             shortcuts: Map::new(),
             close_inspector_on_click_away: false,
             hide_top_bar: false,
-            quick_note_folder: crate::notefolder::NOTES_INBOX.to_string(),
+            quick_note_folder: String::new(),
             quick_task_list: String::new(),
             tasks_show_all: false,
             offer_task_fields: true,

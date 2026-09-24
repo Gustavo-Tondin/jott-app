@@ -7,11 +7,7 @@ import { noteTargets, quickNoteTarget } from "./noteTargets.js";
 
 const SETUP = {
   notesFolder: "jott.notes",
-  notesInbox: "Inbox",
-  folders: [
-    { path: "Inbox", color: null, pinned: false },
-    { path: "Ideas", color: "yellow", pinned: false },
-  ],
+  folders: [{ path: "Ideas", color: "yellow", pinned: false }],
   spaces: [
     // The fixed space itself rides in the snapshot's list — it must not
     // become a duplicate row.
@@ -22,15 +18,17 @@ const SETUP = {
 };
 
 describe("noteTargets", () => {
-  test("offers the fixed Inbox, its folders, then the user's note spaces", () => {
+  test("offers the fixed space's root, its folders, then the user's note spaces", () => {
     // Folder ENTRIES, not names: the select drew `[object Object]` when the
     // 2026-08-19 shape change was missed (screenshot, 2026-08-24).
     const targets = noteTargets(SETUP);
     expect(targets.map((t) => t.label)).toEqual(["Inbox notes", "Ideas", "Design Notes"]);
-    expect(targets.map((t) => t.value)).toEqual(["Inbox", "Ideas", "Design Notes"]);
-    // What the capture call takes: the space, and a folder inside it.
+    expect(targets.map((t) => t.value)).toEqual(["", "Ideas", "Design Notes"]);
+    // What the capture call takes: the space, and a folder inside it — the
+    // root ("") for the loose notes of the fixed space and of a user's.
+    expect(targets[0]).toMatchObject({ space: "jott.notes", folder: "" });
     expect(targets[1]).toMatchObject({ space: "jott.notes", folder: "Ideas" });
-    expect(targets[2]).toMatchObject({ space: "Design Notes", folder: "Inbox" });
+    expect(targets[2]).toMatchObject({ space: "Design Notes", folder: "" });
   });
 
   test("with the fixed space hidden, only the user's note spaces remain", () => {
@@ -48,12 +46,13 @@ describe("quickNoteTarget", () => {
   test("answers the stored choice, and falls back to the first offered", () => {
     const targets = noteTargets(SETUP);
     expect(quickNoteTarget("Design Notes", targets)?.space).toBe("Design Notes");
-    // A folder that was deleted (or a value from another notebook): the
-    // fixed Inbox takes it, never a crash.
-    expect(quickNoteTarget("gone", targets)?.value).toBe("Inbox");
+    // A folder that was deleted (or a value from another notebook, or the
+    // `Inbox` an older build wrote): the fixed space's root takes it.
+    expect(quickNoteTarget("gone", targets)?.value).toBe("");
+    expect(quickNoteTarget("Inbox", targets)?.value).toBe("");
   });
 
   test("with nowhere to go it says so, and the capture is the one to close", () => {
-    expect(quickNoteTarget("Inbox", [])).toBeNull();
+    expect(quickNoteTarget("", [])).toBeNull();
   });
 });

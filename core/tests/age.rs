@@ -131,19 +131,21 @@ fn a_note_nobody_opened_ages_from_its_own_dates() {
 }
 
 #[test]
-fn the_inbox_goes_forgotten_sooner_than_a_space_someone_built() {
+fn a_loose_note_goes_forgotten_sooner_than_one_filed_in_a_folder() {
+    // The root of a notes space is its inbox: what sits there was never put
+    // away, so it reads against the shorter deadline.
     let (dir, notebook) = notebook();
     let today = notebook.today();
     let born = today - Duration::days(10);
     let note = format!("---\ncreated: {born}\n---\n\nTexto\n");
-    std::fs::write(dir.path().join("jott.notes/Inbox/Passando.md"), &note).unwrap();
+    std::fs::write(dir.path().join("jott.notes/Passando.md"), &note).unwrap();
     std::fs::create_dir_all(dir.path().join("jott.notes/Ideias")).unwrap();
     std::fs::write(dir.path().join("jott.notes/Ideias/Guardada.md"), &note).unwrap();
     // Both were seen ten days ago, so the mtime of the file just written does
     // not answer for either.
     let stamp = (born).and_hms_opt(9, 0, 0).unwrap();
     let mut seen = notebook.seen();
-    seen.mark("jott.notes/Inbox/Passando.md", stamp);
+    seen.mark("jott.notes/Passando.md", stamp);
     seen.mark("jott.notes/Ideias/Guardada.md", stamp);
     seen.save(dir.path().join(".jott")).unwrap();
 

@@ -83,6 +83,14 @@ export function listLabel(entry) {
   return stem === MAIN_LIST ? where : `${where}/${stem}`;
 }
 
+/// The name a list is READ by wherever it stands alone — the composer's chip,
+/// the task panel's foot, a banner: the space, since every space's main list
+/// is `task-list` and its title, Inbox, never says which one. Falls back to
+/// the file's own title while the list of entries has not arrived.
+export function listNameIn(path, lists = []) {
+  return splitLabel(lists.find((entry) => entry.path === path) ?? {}).name || listTitle(path);
+}
+
 /// The same label, split for the places that draw the two halves in different
 /// greys (the suggestions headings, the composer's chip): `name` is the last
 /// segment — the list you are looking at — and `context` is everything above

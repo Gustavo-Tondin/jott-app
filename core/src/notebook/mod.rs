@@ -376,12 +376,10 @@ impl Notebook {
         ] {
             let dir = self.root.join(folder);
             ensure_marker(&dir, kind, label)?;
+            // A notes space needs nothing beyond its marker: its notes live
+            // at its root, and any folder is the user's own filing.
             if kind == "tasks" {
-                crate::folder::TaskFolder::new(dir.clone()).ensure_default_lists()?;
-            } else {
-                // The Inbox folder is protected from rename and delete
-                // BECAUSE it comes back on every open.
-                crate::notefolder::NoteFolder::new(dir).ensure_default_folders()?;
+                crate::folder::TaskFolder::new(dir).ensure_default_lists()?;
             }
         }
         Ok(())

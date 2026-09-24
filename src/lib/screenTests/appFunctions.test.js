@@ -34,10 +34,9 @@ describe("App functions — switching a part of the app off", () => {
         tasksFolder: "jott.tasks",
         completedName: "completed",
         notesFolder: "jott.notes",
-        notesInbox: "",
         dateDisplayFormat: "mm/dd/yyyy",
         closeInspectorOnClickAway: false,
-        quickNoteFolder: "Inbox",
+        quickNoteFolder: "",
         features,
       },
     };
@@ -160,8 +159,8 @@ describe("App functions — switching a part of the app off", () => {
       open_notebook: { path: "/n", name: "n", readOnly: false, lists: [], layout: {
         inbox: "jott.tasks/task-list.md", completed: "jott.tasks/completed.md",
         tasksFolder: "jott.tasks", completedName: "completed",
-        notesFolder: "jott.notes", notesInbox: "", dateDisplayFormat: "mm/dd/yyyy",
-        closeInspectorOnClickAway: false, quickNoteFolder: "Inbox",
+        notesFolder: "jott.notes", dateDisplayFormat: "mm/dd/yyyy",
+        closeInspectorOnClickAway: false, quickNoteFolder: "",
         features: { priority: false },
       }},
       notebook_snapshot: {
@@ -170,9 +169,9 @@ describe("App functions — switching a part of the app off", () => {
           layout: {
             inbox: "jott.tasks/task-list.md", completed: "jott.tasks/completed.md",
             tasksFolder: "jott.tasks", completedName: "completed",
-            notesFolder: "jott.notes", notesInbox: "",
+            notesFolder: "jott.notes",
             dateDisplayFormat: "mm/dd/yyyy", closeInspectorOnClickAway: false,
-            quickNoteFolder: "Inbox", features: { priority: false },
+            quickNoteFolder: "", features: { priority: false },
           } },
         clock: CLOCK,
         counts: {}, conflicts: [], spaces: [], groups: [], tags: [], day: [],

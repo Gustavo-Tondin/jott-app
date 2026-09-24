@@ -5,7 +5,7 @@
   // bar of the Tasks screen. Below 768px the markup WRAPS (task-composer.css),
   // one form, one tab order. It collects an INTENT; `taskCompose` writes it.
   import { S } from "../services/strings.js";
-  import { splitLabel } from "../services/paths.js";
+  import { listNameIn, splitLabel } from "../services/paths.js";
   import { emptyIntent } from "../services/taskCompose.js";
   import {
     PRIORITIES,
@@ -49,11 +49,8 @@
   /// that a default arriving later does not overwrite the user's pick.
   let target = $derived(intent.list ?? defaultList ?? lists[0]?.path ?? null);
 
-  /// The chip reads the SPACE, as the menu does: every tasks space's list is
-  /// the same `task-list`, so the list's own title would say Inbox for all.
-  let targetName = $derived(
-    target ? splitLabel(lists.find((entry) => entry.path === target) ?? { path: target }).name : "—",
-  );
+  /// The chip reads the SPACE, as the menu does (`listNameIn`).
+  let targetName = $derived(target ? listNameIn(target, lists) : "—");
 
   // The group in grey, the space in ink: `Design/`**Tasks**. The bare
   // name would not tell two "Tasks" apart, and the whole address reads as a

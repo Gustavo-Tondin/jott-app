@@ -8,9 +8,14 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 
 ## v0.59.2
 
+### Improved
+
+- **Notes live directly in their space's folder.** New notes, quick notes and moved notes no longer go into an `Inbox/` subfolder; a folder is only what you make yourself.
+
 ### Fixed
 
 - **The new-task bar names the space the task goes to** — it read "Inbox" in every space.
+- **The sync banners name a list by its space too**, instead of "Inbox".
 
 ### Improved
 
