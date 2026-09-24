@@ -475,12 +475,18 @@
     line-height: 1.2;
   }
   /* The right side of the row, at the two-line date's height whether it holds
-     the date or the month, so the row never changes height (DayHead.svelte). */
+     the date or the month, so the row never changes height (DayHead.svelte).
+     On a phone it CENTRES on the name, and either content centres in it — on
+     the baseline the two-line date hung below the name. */
+  .day-head--compact .day-head__top,
+  .day-head__top--sheet {
+    align-items: center;
+  }
   .day-head--compact .day-head__aside,
   .day-head__top--sheet .day-head__aside {
     display: grid;
     justify-items: end;
-    align-items: start;
+    align-items: center;
   }
   .day-head--compact .day-head__aside > *,
   .day-head__top--sheet .day-head__aside > * {
