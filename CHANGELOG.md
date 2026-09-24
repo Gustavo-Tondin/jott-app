@@ -11,15 +11,13 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 ### Improved
 
 - **Notes live directly in their space's folder.** New notes, quick notes and moved notes no longer go into an `Inbox/` subfolder; a folder is only what you make yourself.
+- **With the phone's top bar hidden, the Home's ⋮ sits on "Today tasks" and "Today notes"**, each with its own options first; the month is back alone at the end of the name's row.
 
 ### Fixed
 
 - **The new-task bar names the space the task goes to** — it read "Inbox" in every space.
 - **The sync banners name a list by its space too**, instead of "Inbox".
-
-### Improved
-
-- **With the phone's top bar hidden, the Home's ⋮ sits on "Today tasks" and "Today notes"**, each with its own options first; the month is back alone at the end of the name's row.
+- **A task card's age lines up at the card's end again**, centred under the bookmark when it is short, so "today" and "5d" no longer sit on different axes.
 
 ## v0.59.1
 
