@@ -106,6 +106,26 @@ describe("SpaceView", () => {
     expect(container.querySelector(".task-composer__handle")).toBeNull();
   });
 
+  test("the composer's chip names the space it writes to, not Inbox", async () => {
+    bridge({ list_tasks: [] });
+    const { container } = render(SpaceView, {
+      props: { space, lists, counts: {}, onSelectTask: noop },
+    });
+
+    const field = await waitFor(() => {
+      const el = container.querySelector(".task-composer__input");
+      if (!el) throw new Error("no field");
+      return el;
+    });
+    field.focus();
+    const chip = await waitFor(() => {
+      const el = container.querySelector(".task-composer__list");
+      if (!el) throw new Error("no chip");
+      return el;
+    });
+    expect(chip.textContent.trim()).toBe("Project A");
+  });
+
   test("submitting from the ＋ leaves the cursor in the field, ready for the next task", async () => {
     // On Android the keyboard is up because the FIELD has focus, so focus
     // moving to the button is the keyboard going away — one task per keyboard,

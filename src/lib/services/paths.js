@@ -56,7 +56,7 @@ export function spaceLabel(label, address) {
 }
 
 /// What the user reads where a list's own name is shown: the card's "which
-/// list", the composer's chip, the inspector's footer. The main list is
+/// list", the inspector's footer. The main list is
 /// **Inbox** — `task-list` is a file name, never meant to be read; a
 /// hand-made second list keeps its own name, the only case the stem informs.
 export function listTitle(path) {
