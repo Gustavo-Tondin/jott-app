@@ -60,6 +60,9 @@
     all = false,
     /// Whether to draw the titled header (title + New task + ⋮).
     header = true,
+    /// Rows the ⋮ ends with, after a rule: the page's own, when no bar
+    /// holds them (the Home with the top bar hidden).
+    menuTail = [],
     /// Where the title sits on that row: `"start"` (a block inside a screen
     /// with other blocks) or `"center"` (the Home and a space, where the block
     /// IS the screen).
@@ -288,6 +291,9 @@
   const lift = liftSpaceMenu();
   let lifted = $derived(lift.lifted());
   $effect(() => lift.offer(sortMenu));
+  let ownMenu = $derived(
+    menuTail.length ? [...sortMenu, { separator: true }, ...menuTail] : sortMenu,
+  );
 
   // ---- composing ----
   // Every list a task may be written into. A source with a list of its own
@@ -682,7 +688,7 @@
               </button>
             {/if}
             {#if !lifted}
-              <Menu items={sortMenu}>
+              <Menu items={ownMenu}>
                 {#snippet trigger({ toggle })}
                   <button
                     class="theme-btn--icon tasks-space__more"

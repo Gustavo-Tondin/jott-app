@@ -106,6 +106,9 @@
     onSection,
     /// `(done) => void` — the image picker, for a note card's banner.
     onPickImage,
+    /// The page's ⋮ when no bar holds it (App.svelte `bare`): the Home's
+    /// blocks carry it after their own rows.
+    blockMenu = [],
   } = $props();
 </script>
 
@@ -146,6 +149,7 @@
     {onPickDay}
     {onSummary}
     {onPickImage}
+    pageMenu={blockMenu}
     {f}
   />
 {:else if view.kind === "tasks"}

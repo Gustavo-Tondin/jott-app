@@ -223,9 +223,13 @@
   $effect(() => watchCompact((v) => (compact = v)));
 
   /// The ⋮ of the spaces on screen, handed up to the top bar's while compact
-  /// (shell/spaceMenus.js) — one ⋮ on a phone, not one per block.
+  /// (shell/spaceMenus.js) — one ⋮ on a phone, not one per block. The Home
+  /// with no bar keeps them: each block's ⋮ carries the page's items instead.
   let spaceMenus = $state.raw([]);
-  provideSpaceMenus({ lifted: () => compact, onChange: (groups) => (spaceMenus = groups) });
+  provideSpaceMenus({
+    lifted: () => compact && !(bare && view.kind === "home"),
+    onChange: (groups) => (spaceMenus = groups),
+  });
 
   /// The compact shell's scroller, and whether the canvas has risen to the top
   /// of it (actions/risen.js): the floating top bar paints nothing, so its
@@ -2129,7 +2133,6 @@
             onPick={(iso) => (homeDay = iso)}
             onHome={() => (homeDay = null)}
             {...nameNav}
-            menu={namedMenu}
             onLevel={(next) => (homeLevel = next)}
           />
         {:else}
@@ -2264,7 +2267,6 @@
                 selected={homeDay ?? clock?.today ?? ""}
                 onHome={() => (homeDay = null)}
                 {...nameNav}
-                menu={namedMenu}
               />
             </div>
           {/if}
@@ -2307,6 +2309,7 @@
             {clock}
             {compact}
             {mobile}
+            blockMenu={bare && view.kind === "home" ? namedMenu : []}
             {f}
             {reloadKey}
             {libraryKey}

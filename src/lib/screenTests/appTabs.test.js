@@ -437,9 +437,29 @@ describe("the compact shell", () => {
         return el;
       });
       expect(container.querySelector(".topbar")).toBeNull();
-      expect(container.querySelector(".day-head--compact .page-menu__toggle")).toBeTruthy();
       await fireEvent.click(title);
       expect(container.querySelector(".window--pushed")).toBeTruthy();
+    });
+
+    test("the Home's ⋮ is in each block's title, never in the name's row", async () => {
+      bareShell();
+      const { container } = render(App);
+
+      const tasksMenu = await screen.findByLabelText("space options");
+      expect(container.querySelector(".day-head__top .page-menu__toggle")).toBeNull();
+      expect(container.querySelector(".day-head__top .theme-btn--icon")).toBeNull();
+
+      // The tasks block: its own rows, then the page's.
+      await fireEvent.click(tasksMenu);
+      expect(await screen.findByText("Reorder tasks…")).toBeTruthy();
+      expect(screen.getByText("Forward").closest("button").disabled).toBe(true);
+      expect(screen.getByText("Tabs (1)")).toBeTruthy();
+      await fireEvent.keyDown(document, { key: "Escape" });
+
+      // The notes block: where quick notes go, then the same page rows.
+      await fireEvent.click(screen.getByLabelText("notes options"));
+      expect(await screen.findByText("Quick notes go to")).toBeTruthy();
+      expect(screen.getByText("Tabs (1)")).toBeTruthy();
     });
 
     test("a narrow desktop window keeps the bar, where its window buttons live", async () => {

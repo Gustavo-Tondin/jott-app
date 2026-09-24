@@ -104,6 +104,9 @@
     onCloseCompose = null,
     /// `(done) => void` — the image picker, for a card's banner.
     onPickImage = null,
+    /// The page's ⋮ when no bar holds it (the phone's top bar hidden): every
+    /// block's ⋮ ends with it, after the block's own rows.
+    pageMenu = [],
   } = $props();
 
   let selected = $derived(day ?? today ?? "");
@@ -283,6 +286,18 @@
         ],
   );
 
+  /// What the notes block's ⋮ shows. Carrying the page's rows too, the
+  /// targets fold under a row that names them, as they do in the top bar's.
+  let notesItems = $derived.by(() => {
+    if (pageMenu.length === 0) return readOnly ? [] : notesMenu;
+    if (readOnly || notesMenu.length === 0) return pageMenu;
+    return [
+      { label: S.quickNotesGoTo, items: notesMenu.slice(1) },
+      { separator: true },
+      ...pageMenu,
+    ];
+  });
+
   // Below 768px the notes block's ⋮ joins the top bar's, UNDER the tasks
   // block's (rank 1): the order the two blocks are drawn in. Folded under a
   // row that names it — "to" alone means nothing away from the block.
@@ -297,6 +312,16 @@
   );
 
 </script>
+
+{#snippet blockMenu(items, label)}
+  <Menu {items}>
+    {#snippet trigger({ toggle })}
+      <button class="theme-btn--icon" onclick={toggle} aria-label={label} title={label}>
+        <Icon name="dots-three-vertical" size="1rem" />
+      </button>
+    {/snippet}
+  </Menu>
+{/snippet}
 
 <div class="home" class:home--compact={compact}>
   {#if !compact}
@@ -328,11 +353,15 @@
           </span>
         </span>
         <h2 class="theme-title home__block-title">{S.dayTasks(dayLabel)}</h2>
-        <span class="theme-mirror home__mirror" aria-hidden="true">
-          <span class="theme-btn--icon">
-            <Icon name="dots-three-vertical" size="1rem" />
+        {#if pageMenu.length > 0}
+          {@render blockMenu(pageMenu, S.pageMenu)}
+        {:else}
+          <span class="theme-mirror home__mirror" aria-hidden="true">
+            <span class="theme-btn--icon">
+              <Icon name="dots-three-vertical" size="1rem" />
+            </span>
           </span>
-        </span>
+        {/if}
       </header>
       <DayRecap
         day={selected}
@@ -372,6 +401,7 @@
         {selectedTask}
         {onSelectTask}
         {onSuggest}
+        menuTail={pageMenu}
         onLoaded={({ open, done }) => counted({ done, total: open + done })}
         {f}
         {onChanged}
@@ -397,19 +427,8 @@
             </span>
           </span>
           <h2 class="theme-title home__block-title">{S.todaysNotes}</h2>
-          {#if !readOnly && notesMenu.length > 0 && !notesLifted}
-            <Menu items={notesMenu}>
-              {#snippet trigger({ toggle })}
-                <button
-                  class="theme-btn--icon"
-                  onclick={toggle}
-                  aria-label={S.notesOptions}
-                  title={S.notesOptions}
-                >
-                  <Icon name="dots-three-vertical" size="1rem" />
-                </button>
-              {/snippet}
-            </Menu>
+          {#if notesItems.length > 0 && !notesLifted}
+            {@render blockMenu(notesItems, S.notesOptions)}
           {:else}
             <span class="theme-mirror home__mirror" aria-hidden="true">
               <span class="theme-btn--icon">

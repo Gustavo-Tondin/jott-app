@@ -9,7 +9,6 @@
   import { dotStyle as dotStyleOf } from "../services/accent.js";
   import { dayOfMonth, monthOf, weekdayName } from "../services/calendar.js";
   import { hold } from "../actions/hold.js";
-  import PageMenu from "../shell/PageMenu.svelte";
 
   let {
     /// The colour of the place, as a name (services/accent.js).
@@ -30,10 +29,10 @@
     /// The name was tapped: back to today.
     onHome,
     /// The phone's top bar is hidden: the name opens the sidebar instead (a
-    /// held finger, the tabs) and the page's ⋮ ends the row (PageHeader.svelte).
+    /// held finger, the tabs). The page's ⋮ goes to the day's blocks
+    /// (HomeView.svelte), never to this row.
     onName = null,
     onHoldName = null,
-    menu = [],
     /// The row's element, for the head to measure (`bind:el`).
     el = $bindable(null),
   } = $props();
@@ -79,9 +78,4 @@
       <span class="day-head__month">{monthOf(month)}</span>
     {/if}
   </span>
-  {#if onName}
-    <span class="day-head__menu">
-      <PageMenu items={menu} pageKey={S.home} tabindex={sheet ? -1 : undefined} />
-    </span>
-  {/if}
 </div>
