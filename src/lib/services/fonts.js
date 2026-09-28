@@ -10,9 +10,9 @@
 export const FONT_ROLES = {
   interface: {
     token: "--app-font-sans",
-    fallback: ['"Inter"', "system-ui", "sans-serif"],
+    fallback: ['"Geist"', "system-ui", "sans-serif"],
     /// The face the app carries for this role.
-    shipped: "Inter",
+    shipped: "Geist",
   },
   note: {
     token: "--app-font-note",
@@ -24,7 +24,7 @@ export const FONT_ROLES = {
   mono: {
     token: "--app-font-mono",
     fallback: [
-      '"DM Mono"',
+      '"Geist Mono"',
       "ui-monospace",
       "SFMono-Regular",
       '"SF Mono"',
@@ -32,7 +32,7 @@ export const FONT_ROLES = {
       '"Liberation Mono"',
       "monospace",
     ],
-    shipped: "DM Mono",
+    shipped: "Geist Mono",
   },
 };
 

@@ -5,9 +5,9 @@ describe("fontValue", () => {
   test("a chosen family goes in front of the stack the sheet declares", () => {
     // The inline property REPLACES the declaration, so what the app carries
     // has to be written into the value or an uninstalled font falls to the
-    // browser's default instead of Inter.
-    expect(fontValue("interface", "Fira Sans")).toBe('"Fira Sans", "Inter", system-ui, sans-serif');
-    expect(fontValue("mono", "Fira Code")).toContain('"Fira Code", "DM Mono"');
+    // browser's default instead of Geist.
+    expect(fontValue("interface", "Fira Sans")).toBe('"Fira Sans", "Geist", system-ui, sans-serif');
+    expect(fontValue("mono", "Fira Code")).toContain('"Fira Code", "Geist Mono"');
   });
 
   test("the note's fallback is the interface's face, whatever that resolved to", () => {
@@ -21,7 +21,7 @@ describe("fontValue", () => {
   });
 
   test("a generic family is not quoted — quoting it would name a font nobody has", () => {
-    expect(fontValue("interface", "serif")).toBe("serif, \"Inter\", system-ui, sans-serif");
+    expect(fontValue("interface", "serif")).toBe("serif, \"Geist\", system-ui, sans-serif");
 
     // `system-ui` is the one keyword that does not mean the same thing on
     // every engine: WebKitGTK resolves it through fontconfig and never reads
@@ -51,20 +51,20 @@ describe("fontValue", () => {
   test("a name that could break out of the value is refused, not escaped", () => {
     expect(fontValue("interface", 'Evil"; color: red')).toBeNull();
     expect(fontValue("mono", "Evil}")).toBeNull();
-    expect(isSafeFamily("DM Mono")).toBe(true);
+    expect(isSafeFamily("Geist Mono")).toBe(true);
     expect(isSafeFamily("Ébano")).toBe(true);
     expect(isSafeFamily("a".repeat(65))).toBe(false);
   });
 
   test("an unknown role has no property to write", () => {
-    expect(fontValue("banner", "Inter")).toBeNull();
+    expect(fontValue("banner", "Geist")).toBeNull();
   });
 });
 
 describe("fontVars", () => {
   test("all three at once, and an unanswered one is null", () => {
     expect(fontVars({ interfaceFont: "Fira Sans", monoFont: "" })).toEqual({
-      "--app-font-sans": '"Fira Sans", "Inter", system-ui, sans-serif',
+      "--app-font-sans": '"Fira Sans", "Geist", system-ui, sans-serif',
       "--app-font-note": null,
       "--app-font-mono": null,
     });
@@ -78,8 +78,8 @@ describe("fontVars", () => {
 
 describe("fontOptions", () => {
   test("the app's own answer first, with the empty value every Display key uses", () => {
-    const rows = fontOptions("mono", [], { default: "Default (DM Mono)" });
-    expect(rows[0]).toEqual({ value: "", label: "Default (DM Mono)", group: null });
+    const rows = fontOptions("mono", [], { default: "Default (Geist Mono)" });
+    expect(rows[0]).toEqual({ value: "", label: "Default (Geist Mono)", group: null });
   });
 
   test("the generics are offered, and the machine's list under them", () => {
@@ -109,8 +109,8 @@ describe("fontOptions", () => {
   });
 
   test("what the app carries and the generics are never listed twice", () => {
-    const rows = fontOptions("mono", ["DM Mono", "monospace", "Fira Code"]);
-    expect(rows.filter((r) => r.value === "DM Mono")).toHaveLength(0);
+    const rows = fontOptions("mono", ["Geist Mono", "monospace", "Fira Code"]);
+    expect(rows.filter((r) => r.value === "Geist Mono")).toHaveLength(0);
     expect(rows.filter((r) => r.value === "monospace")).toHaveLength(1);
     expect(rows.filter((r) => r.value === "Fira Code")).toHaveLength(1);
   });

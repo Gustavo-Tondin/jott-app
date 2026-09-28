@@ -1173,14 +1173,14 @@ describe("SettingsView — the three faces (2026-08-24)", () => {
 
     const picker = await screen.findByRole("combobox", { name: "Interface font" });
     const labels = [...picker.options].map((o) => o.textContent);
-    expect(labels[0]).toBe("Default (Inter)");
+    expect(labels[0]).toBe("Default (Geist)");
     expect(labels).toContain("system-ui");
     expect(labels).toContain("Fira Sans");
     // The note's default is not a face's name — it is the interface's answer.
     const note = screen.getByRole("combobox", { name: "Note font" });
     expect(note.options[0].textContent).toBe("Same as the interface");
     expect(screen.getByRole("combobox", { name: "Monospace font" }).options[0].textContent).toBe(
-      "Default (DM Mono)",
+      "Default (Geist Mono)",
     );
   });
 

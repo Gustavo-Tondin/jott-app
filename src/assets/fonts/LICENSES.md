@@ -3,25 +3,27 @@
 Both faces are bundled rather than fetched: the app is local-first and asks
 no font CDN at runtime (styles/tokens.css).
 
-## Inter — `Inter-latin-wght-normal.woff2`
+## Geist — `Geist-Variable.woff2`
 
-The interface face, and the default for the body of a note. Variable weight,
-latin subset. SIL Open Font License 1.1 — <https://github.com/rsms/inter>.
+The interface face, and the default for the body of a note. Variable weight
+(100 to 900), upright only. Version 1.800, SIL Open Font License 1.1 —
+<https://github.com/vercel/geist-font>.
 
-## DM Mono — `DM_Mono-Regular.woff2`, `DM_Mono-Medium.woff2`
+## Geist Mono — `GeistMono-Variable.woff2`
 
-The monospace of code and paths (default since 2026-08-24). Two weights, 400
-and 500; italic is not carried — nothing in the app writes code in italic.
-Converted from the Google Fonts TTFs with `woff2_compress`. The license text
-below is the project's own `OFL.txt`.
+The monospace: code and paths, and the small facts of the interface (a
+card's meta line, an age, a count). Variable weight, upright only — nothing
+in the app writes code in italic. Version 1.700, same licence and source.
+
+Both files are the ones the `geist` package (1.7.2) ships, byte for byte.
+The licence text below is the project's own `LICENSE.txt`.
 
 ```
-Copyright 2020 The DM Mono Project Authors (https://www.github.com/googlefonts/dm-mono)
+Copyright (c) 2023 Vercel, in collaboration with basement.studio
 
 This Font Software is licensed under the SIL Open Font License, Version 1.1.
 This license is copied below, and is also available with a FAQ at:
 http://scripts.sil.org/OFL
-
 
 -----------------------------------------------------------
 SIL OPEN FONT LICENSE Version 1.1 - 26 February 2007
@@ -36,7 +38,7 @@ with others.
 
 The OFL allows the licensed fonts to be used, studied, modified and
 redistributed freely as long as they are not sold by themselves. The
-fonts, including any derivative works, can be bundled, embedded, 
+fonts, including any derivative works, can be bundled, embedded,
 redistributed and/or sold with any software provided that any reserved
 names are not used by derivative works. The fonts and derivatives,
 however, cannot be released under any other type of license. The
@@ -62,7 +64,7 @@ new environment.
 "Author" refers to any designer, engineer, programmer, technical
 writer or other person who contributed to the Font Software.
 
-PERMISSION & CONDITIONS
+PERMISSION AND CONDITIONS
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of the Font Software, to use, study, copy, merge, embed, modify,
 redistribute, and sell modified and unmodified copies of the Font

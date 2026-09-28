@@ -13,6 +13,7 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 - New colours: a warmer paper and ink, quieter colours for spaces, and a red, an orange and a yellow that read as themselves.
 - The app now has one colour of its own, blue, and the seven you pick are for spaces, groups, banners and notebooks; "Accent colour" became "Notebook colour".
 - Secondary text is a little darker and easier to read.
+- The interface is now set in Geist, and code and small details in Geist Mono.
 - A notebook keeps its own copy of the palette, so delete `.jott/themes/jott.css` in an existing notebook to get the new colours.
 - Notes now live directly in their space's folder and no longer go into an `Inbox/` subfolder.
 - With the phone's top bar hidden, the Home's ⋮ now sits on "Today tasks" and "Today notes".
