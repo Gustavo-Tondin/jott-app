@@ -4,11 +4,13 @@
   //   compact  Tasks ●                      the screen's name, big
   // In the compact shell the arrows and the ⋮ live in the top bar; the name
   // SCROLLS AWAY with the content, and sits on the CHROME ground, not the canvas.
+  // Where the window has no tab strip the NAME opens the tabs, and the full
+  // header is the window's own bar: what the window is dragged by.
   import { S } from "../services/strings.js";
   import { dotStyle as dotStyleOf } from "../services/accent.js";
+  import { dismissable } from "../actions/dismissable.js";
   import PageMenu from "./PageMenu.svelte";
   import PageNav from "./PageNav.svelte";
-  import { hold } from "../actions/hold.js";
 
   let {
     title,
@@ -27,11 +29,20 @@
     /// or not: a fixed space falls back to the app's accent in CSS, like the
     /// tab dot.
     dot = null,
-    /// The phone's top bar is hidden (Display › Hide the top bar): the name
-    /// takes its buttons — a tap opens the sidebar, a held finger the tabs —
-    /// and the ⋮ comes down to the name's row.
-    onName = null,
-    onHoldName = null,
+    /// `() => void` — the name was pressed where it opens the tabs. Null
+    /// leaves the name to `onRenameTitle`, or as plain text.
+    onOpenTabs = null,
+    /// The tabs panel is open under the name (the desktop, no strip).
+    tabsOpen = false,
+    onCloseTabs = null,
+    tabCount = 0,
+    /// That panel, drawn under the name while `tabsOpen`.
+    tabsPanel = null,
+    /// The header is the window's bar: it drags the window.
+    bar = false,
+    /// The window's buttons sit over the header's end: the ⋮ stops before
+    /// them, and the name stays centred on the page.
+    reserve = false,
   } = $props();
 
   /// The stored choice as CSS — a name becomes the ground-aware `var()`, a raw
@@ -51,12 +62,11 @@
   <header class="page-header page-header--compact" data-region="chrome">
     <div class="page-header__place">
       <h1 class="page-header__name-large">
-        {#if onName}
+        {#if onOpenTabs}
           <button
             class="page-header__name page-header__name--nav"
-            title={S.openSidebar}
-            onclick={() => onName()}
-            use:hold={{ onHold: onHoldName }}
+            title={S.openTabs(tabCount)}
+            onclick={() => onOpenTabs()}
           >
             {title}
           </button>
@@ -77,16 +87,36 @@
         <span class="theme-dot" style={dotStyle} aria-hidden="true"></span>
       </h1>
     </div>
-    {#if onName}
-      <PageMenu items={menu} {pageKey} />
-    {/if}
   </header>
 {:else}
-  <header class="page-header">
+  <header
+    class="page-header"
+    class:page-header--bar={bar}
+    class:page-header--reserve={reserve}
+    data-tauri-drag-region={bar ? "" : undefined}
+  >
     <PageNav {canBack} {canForward} {onBack} {onForward} />
 
-    <h1 class="page-header__heading">
-      {#if onRenameTitle}
+    <h1 class="page-header__heading" data-tauri-drag-region={bar ? "" : undefined}>
+      {#if onOpenTabs}
+        <!-- The name and the panel it opens share one root, so a click on
+             the name while the panel is open closes it instead of reopening. -->
+        <span
+          class="page-header__tabs"
+          use:dismissable={{ active: tabsOpen, onDismiss: () => onCloseTabs?.() }}
+        >
+          <button
+            class="page-header__name"
+            aria-haspopup="dialog"
+            aria-expanded={tabsOpen}
+            title={tabsOpen ? undefined : S.openTabs(tabCount)}
+            onclick={() => onOpenTabs()}
+          >
+            {title}
+          </button>
+          {#if tabsOpen}{@render tabsPanel?.()}{/if}
+        </span>
+      {:else if onRenameTitle}
         <button
           class="page-header__name"
           title={S.promptRenameNote(title)}

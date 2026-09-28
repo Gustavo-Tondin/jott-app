@@ -36,6 +36,8 @@ describe("App shell with tabs", () => {
       dateDisplayFormat: "mm/dd/yyyy",
       closeInspectorOnClickAway: false,
       quickNoteFolder: "",
+      // The strip is an option, off until asked for (Display).
+      tabStrip: true,
     },
   };
 
@@ -284,6 +286,93 @@ describe("App shell with tabs", () => {
     expect(screen.queryByRole("button", { name: "Week" })).toBeNull();
     expect(tabLabels()).toEqual(["Tasks"]);
   });
+
+  describe("without the tab strip (the window as it opens)", () => {
+    const plain = { ...notebook, layout: { ...notebook.layout, tabStrip: false } };
+    const plainShell = (extra = {}) =>
+      shell({
+        open_notebook: plain,
+        notebook_snapshot: {
+          info: plain,
+          clock: CLOCK,
+          counts: {},
+          conflicts: [],
+          spaces: [],
+        },
+        window_button_layout: "appmenu:minimize,maximize,close",
+        ...extra,
+      });
+
+    test("the page header is the window's bar, and the window keeps its buttons", async () => {
+      plainShell();
+      const { container } = render(App);
+
+      // The title bar holds the window until the notebook is read.
+      await waitFor(() => expect(container.querySelector(".page-header--bar")).toBeTruthy());
+      expect(screen.getByLabelText("close window")).toBeTruthy();
+      expect(container.querySelector(".titlebar")).toBeNull();
+      expect(screen.queryAllByRole("tab")).toEqual([]);
+      const header = container.querySelector(".page-header--bar");
+      expect(header.hasAttribute("data-tauri-drag-region")).toBe(true);
+      // No panel on the right: the ⋮ stops before the window's buttons.
+      expect(header.classList.contains("page-header--reserve")).toBe(true);
+      expect(container.querySelector(".window__controls--end .window-controls")).toBeTruthy();
+    });
+
+    test("the name opens the tabs under it; the ×, Escape and the name close them", async () => {
+      plainShell();
+      const { container } = render(App);
+
+      const name = await waitFor(() => {
+        const el = container.querySelector(".page-header__name");
+        if (!el) throw new Error("no header");
+        return el;
+      });
+      await fireEvent.click(name);
+      const panel = await screen.findByRole("dialog", { name: "1 open tab" });
+      expect(panel.classList.contains("tabs-popover")).toBe(true);
+      expect(within(panel).getAllByRole("tab").map((el) => el.textContent.trim())).toEqual(["Home"]);
+
+      await fireEvent.click(within(panel).getByLabelText("close"));
+      expect(container.querySelector(".tabs-popover")).toBeNull();
+
+      await fireEvent.click(name);
+      expect(container.querySelector(".tabs-popover")).toBeTruthy();
+      await fireEvent.click(name);
+      expect(container.querySelector(".tabs-popover")).toBeNull();
+
+      await fireEvent.click(name);
+      await fireEvent.keyDown(document, { key: "Escape" });
+      await waitFor(() => expect(container.querySelector(".tabs-popover")).toBeNull());
+    });
+
+    test("a new tab from the panel opens and closes it", async () => {
+      plainShell();
+      const { container } = render(App);
+
+      const name = await waitFor(() => {
+        const el = container.querySelector(".page-header__name");
+        if (!el) throw new Error("no header");
+        return el;
+      });
+      await fireEvent.click(name);
+      const panel = await screen.findByRole("dialog", { name: "1 open tab" });
+      await fireEvent.click(within(panel).getByLabelText("new tab"));
+
+      expect(container.querySelector(".tabs-popover")).toBeNull();
+      await fireEvent.click(container.querySelector(".page-header__name"));
+      expect(await screen.findByRole("dialog", { name: "2 open tabs" })).toBeTruthy();
+    });
+
+    test("with a task open the panel's head leaves the buttons their room", async () => {
+      plainShell({ screen_to_restore: "tasks", list_tasks: [task("a1", "Comprar leite")] });
+      const { container } = render(App);
+
+      await userEvent.click(await screen.findByText("Comprar leite"));
+      await screen.findByLabelText("collapse panel");
+      expect(container.querySelector(".page-header--reserve")).toBeNull();
+    });
+  });
 });
 
 describe("the compact shell", () => {
@@ -392,80 +481,44 @@ describe("the compact shell", () => {
     expect(await screen.findByText("Reorder tasks…")).toBeTruthy();
   });
 
-  describe("with the top bar hidden (Display › Hide the top bar)", () => {
-    const bare = { ...notebook, layout: { ...notebook.layout, hideTopBar: true } };
-    const bareShell = (extra = {}) =>
-      compactShell({
-        platform: "android",
-        open_notebook: bare,
-        notebook_snapshot: {
-          info: bare,
-          clock: CLOCK,
-          counts: {},
-          conflicts: [],
-          spaces: [],
-          groups: [],
-        },
-        ...extra,
-      });
-
-    test("a space's name opens the sidebar and its row holds the ⋮", async () => {
-      bareShell({ screen_to_restore: "tasks", list_tasks: [task("a1", "Comprar leite")] });
-
-      const { container } = render(App);
-
-      await screen.findByText("Comprar leite");
-      expect(container.querySelector(".topbar")).toBeNull();
-      await fireEvent.click(container.querySelector(".page-header__name--nav"));
-      expect(container.querySelector(".window--pushed")).toBeTruthy();
-
-      await fireEvent.click(container.querySelector(".page-header--compact .page-menu__toggle"));
-      expect(await screen.findByText("Reorder tasks…")).toBeTruthy();
-      expect(screen.getByText("Forward").closest("button").disabled).toBe(true);
-      expect(screen.getByText("Tabs (1)")).toBeTruthy();
+  test("a space's name opens the tabs, on a phone", async () => {
+    compactShell({
+      platform: "android",
+      screen_to_restore: "tasks",
+      list_tasks: [task("a1", "Comprar leite")],
     });
 
-    test("the Home's name opens the sidebar instead of going back to today", async () => {
-      bareShell();
-      const { container } = render(App);
+    const { container } = render(App);
 
-      const title = await waitFor(() => {
-        const el = container.querySelector(".day-head--compact .day-head__title");
-        if (!el) throw new Error("no head");
-        return el;
-      });
-      expect(container.querySelector(".topbar")).toBeNull();
-      await fireEvent.click(title);
-      expect(container.querySelector(".window--pushed")).toBeTruthy();
+    await screen.findByText("Comprar leite");
+    await fireEvent.click(container.querySelector(".page-header__name--nav"));
+    expect(await screen.findByRole("dialog", { name: "1 open tab" })).toBeTruthy();
+    expect(container.querySelector(".window--pushed")).toBeNull();
+  });
+
+  test("the Home's name opens the tabs instead of going back to today", async () => {
+    compactShell({ platform: "android" });
+    const { container } = render(App);
+
+    const title = await waitFor(() => {
+      const el = container.querySelector(".day-head--compact .day-head__title");
+      if (!el) throw new Error("no head");
+      return el;
     });
+    await fireEvent.click(title);
+    expect(await screen.findByRole("dialog", { name: "1 open tab" })).toBeTruthy();
+  });
 
-    test("the Home's ⋮ is in each block's title, never in the name's row", async () => {
-      bareShell();
-      const { container } = render(App);
+  test("a phone has back and no forward; a narrow desktop window keeps both", async () => {
+    compactShell({ platform: "android" });
+    const phone = render(App);
+    await screen.findByLabelText("back");
+    expect(screen.queryByLabelText("forward")).toBeNull();
+    phone.unmount();
 
-      const tasksMenu = await screen.findByLabelText("space options");
-      expect(container.querySelector(".day-head__top .page-menu__toggle")).toBeNull();
-      expect(container.querySelector(".day-head__top .theme-btn--icon")).toBeNull();
-
-      // The tasks block: its own rows, then the page's.
-      await fireEvent.click(tasksMenu);
-      expect(await screen.findByText("Reorder tasks…")).toBeTruthy();
-      expect(screen.getByText("Forward").closest("button").disabled).toBe(true);
-      expect(screen.getByText("Tabs (1)")).toBeTruthy();
-      await fireEvent.keyDown(document, { key: "Escape" });
-
-      // The notes block: where quick notes go, then the same page rows.
-      await fireEvent.click(screen.getByLabelText("notes options"));
-      expect(await screen.findByText("Quick notes go to")).toBeTruthy();
-      expect(screen.getByText("Tabs (1)")).toBeTruthy();
-    });
-
-    test("a narrow desktop window keeps the bar, where its window buttons live", async () => {
-      bareShell({ platform: "desktop" });
-      const { container } = render(App);
-      await screen.findByLabelText("close window");
-      expect(container.querySelector(".topbar")).toBeTruthy();
-    });
+    compactShell({ platform: "desktop" });
+    render(App);
+    expect(await screen.findByLabelText("forward")).toBeTruthy();
   });
 
   test("the task sheet has no ×: the page behind it and the handle already close it", async () => {

@@ -472,7 +472,7 @@ describe("TaskInspector", () => {
       ),
     });
     await userEvent.type(
-      await screen.findByPlaceholderText("New subtask…"),
+      await screen.findByPlaceholderText("Add subtask"),
       "Areia{enter}",
     );
 

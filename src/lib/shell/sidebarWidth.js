@@ -12,7 +12,7 @@ export const SIDEBAR = { min: 176, max: 480, default: 220 };
 /// The right panel (task inspector / suggestions). The floor protects the
 /// inspector's fields, not the formatting bar (which wraps at any width);
 /// default is `--app-sidebar-right`.
-export const PANEL = { min: 176, max: 560, default: 240 };
+export const PANEL = { min: 240, max: 560, default: 280 };
 
 // Kept as named exports because they read better in the tests that guard the
 // range.

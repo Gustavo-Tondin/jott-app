@@ -19,7 +19,7 @@
     S.showListCounts,
     S.restoreLastScreen,
     S.closeOnClickAway,
-    S.hideTopBar,
+    S.tabStrip,
     S.language,
     S.dateFormat,
   ];
@@ -495,20 +495,19 @@
           putDisplay({ closeInspectorOnClickAway: e.currentTarget.checked })}
       />
     </label>
-  {:else}
-    <!-- Phone only: a desktop window this narrow keeps the bar, which is
-         where its window buttons live. -->
+    <!-- Desktop only: a phone has no strip to show, its tabs open from the
+         page's name. -->
     <label class="settings__row">
       <span class="settings__label">
-        {S.hideTopBar}
-        <HelpTip label={S.hideTopBar} text={S.hideTopBarHint} />
+        {S.tabStrip}
+        <HelpTip label={S.tabStrip} text={S.tabStripHint} />
       </span>
       <input
         class="theme-checkbox"
         type="checkbox"
-        bind:checked={form.hideTopBar}
-        aria-label={S.hideTopBar}
-        onchange={(e) => putDisplay({ hideTopBar: e.currentTarget.checked })}
+        bind:checked={form.tabStrip}
+        aria-label={S.tabStrip}
+        onchange={(e) => putDisplay({ tabStrip: e.currentTarget.checked })}
       />
     </label>
   {/if}

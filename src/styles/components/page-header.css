@@ -39,8 +39,34 @@
     text-transform: inherit;
   }
   .page-header__name:hover {
-    background: var(--app-surface-sunken);
+    background: var(--app-hover);
     color: var(--app-ink);
+  }
+
+  /* ---- THE HEADER AS THE WINDOW'S BAR (no tab strip) ----
+     Three columns, the outer two equal, so the name stays on the page's
+     centre line whatever the ends hold. */
+  .page-header--bar {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    /* The bar is a drag surface; text selection while dragging looks broken. */
+    user-select: none;
+  }
+  .page-header--bar > .page-nav {
+    justify-self: start;
+  }
+  .page-header--bar > .menu {
+    justify-self: end;
+  }
+  /* The window's buttons stand over the header's end: the ⋮ stops before
+     them, inside its own column, so nothing else moves. */
+  .page-header--reserve > .menu {
+    margin-inline-end: calc(var(--controls-room-end) - var(--app-space-12));
+  }
+  /* The name and the panel it opens. */
+  .page-header__tabs {
+    position: relative;
+    display: inline-flex;
   }
 
   .page-nav {
@@ -79,17 +105,11 @@
     min-width: 0;
   }
 
-  /* The top bar hidden (PageHeader `onName`): the name is its buttons, so a
-     held finger must not select it, and the ⋮ comes down to its row —
-     centred on the name, its 48px target overhanging instead of growing it. */
+  /* The name is a button (it opens the tabs), so a finger resting on it must
+     not select it. */
   .page-header__name--nav {
     user-select: none;
     -webkit-touch-callout: none;
-  }
-  .page-header--compact > .menu {
-    align-self: center;
-    margin-block: calc(-1 * var(--app-space-8));
-    margin-inline-end: calc(-1 * var(--app-space-12));
   }
 
   /* The screen's name at the size the wireframe draws it — the top of the

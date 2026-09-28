@@ -288,7 +288,7 @@
         {/if}
         {#each (f("taskTags") ? (task.tags ?? []) : []) as tag}<Badge
             label={`#${tag}`}
-            color={origin?.color ?? color}
+            tag
             class="task-row__tag"
           />{/each}
         {#if task.due && f("dueDate")}<span

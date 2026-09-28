@@ -40,6 +40,11 @@
     overflow: hidden;
     text-overflow: ellipsis;
   }
+  /* A `#tag` on what carries it: the brand's ink, never the place's. */
+  .theme-badge--tag {
+    --badge-color: var(--app-brand-ink);
+    --badge-line: var(--app-brand-outline);
+  }
 
   /* ---- Title ----
      What names a block or a screen. Ink, not the brand: the brand marks
@@ -77,5 +82,9 @@
     margin: 0;
     border: none;
     border-top: 0.0625rem solid var(--app-line);
+  }
+  /* Between the sections of a panel, where the hairline parts the rows. */
+  .theme-divider--strong {
+    border-top-color: var(--app-ink-muted);
   }
 }

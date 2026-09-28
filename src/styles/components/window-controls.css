@@ -1,10 +1,8 @@
 /* window-controls.css — the visual layer of WindowControls.svelte.
  * Markup: src/lib/shell/WindowControls.svelte.
  *
- * Adwaita's shape (2026-08-06): a filled grey disc with a dark glyph, darker
- * on hover, darker still while pressed — not the outlined circles this app
- * drew before, which matched nothing on the desktop. Only `close` breaks the
- * greyscale, and only on hover, which is GNOME's own rule.
+ * A glyph on nothing at rest, a disc under the pointer, darker while pressed.
+ * Only `close` takes a colour, and only on hover, which is GNOME's own rule.
  * Selectors are the stable BEM hooks a theme may restyle. */
 
 @layer components {
@@ -22,7 +20,7 @@
     inline-size: 1.5rem;
     block-size: 1.5rem;
     padding: 0;
-    background: var(--app-surface-sunken);
+    background: none;
     border-radius: var(--app-radius-pill);
     color: var(--app-ink);
     transition:
@@ -38,15 +36,6 @@
   /* The one coloured state on the whole bar, and only under the pointer. */
   .window-controls__button--close:hover {
     background: var(--app-danger);
-    color: var(--app-on-brand);
-  }
-
-  .window-controls__glyph {
-    inline-size: 1rem;
-    block-size: 1rem;
-    fill: none;
-    stroke: currentColor;
-    stroke-width: 1.4;
-    stroke-linecap: round;
+    color: var(--app-bg);
   }
 }

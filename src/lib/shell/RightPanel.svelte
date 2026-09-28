@@ -12,7 +12,7 @@
   import SuggestionsPane from "../components/SuggestionsPane.svelte";
   import NotePanel from "../components/NotePanel.svelte";
   import TaskInspector from "../components/TaskInspector.svelte";
-  import { folderOf, leafOf } from "../services/paths.js";
+  import { leafOf } from "../services/paths.js";
   import { api } from "../services/api.js";
   import { S } from "../services/strings.js";
 
@@ -52,7 +52,6 @@
     onUndock,
     // the task inspector
     selected = null,
-    spColors = {},
     moveTargets = [],
     tags = [],
     root = "",
@@ -114,7 +113,6 @@
     <TaskInspector
       task={selected.task}
       list={selected.list}
-      color={spColors[folderOf(selected.list)] ?? null}
       lists={moveTargets}
       {tags}
       {compact}
@@ -156,6 +154,7 @@
          CSS token. -->
     <div
       class="shell__panel"
+      data-region="canvas"
       transition:slide|global={{ axis: "x", duration: 250, easing: cubicOut }}
     >
       {@render content()}

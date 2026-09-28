@@ -1,5 +1,6 @@
 <script>
-  // The compact shell's top bar: [ drawer ] [ ← → tabs ] [ ⋮ ]. A SEPARATE
+  // The compact shell's top bar: [ drawer ] [ ← tabs ] [ ⋮ ], with the way
+  // forward only where there is a pointer to press it. A SEPARATE
   // component from TitleBar: it holds the drawer toggle and the page menu,
   // never brand or tab strip. The two end buttons are the same width, so
   // `space-between` centres the pill. A desktop window below 768px also gets
@@ -80,7 +81,7 @@
     <!-- One pill around back, forward and the tabs: all about WHICH PAGE you
          are on, as against the drawer (where you go) and the ⋮ (what you do). -->
     <div class="topbar__pill">
-      <PageNav {canBack} {canForward} {onBack} {onForward} />
+      <PageNav {canBack} {canForward} {onBack} {onForward} forward={!mobile} />
       {#if onOpenTabs}
         <button
           class="theme-btn theme-btn--icon topbar__button"

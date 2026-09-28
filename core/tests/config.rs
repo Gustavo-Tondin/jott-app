@@ -242,13 +242,13 @@ fn the_phase_nine_keys_round_trip_and_tolerate_garbage() {
 }
 
 #[test]
-fn the_top_bar_is_shown_until_hidden_and_the_choice_round_trips() {
+fn the_tab_strip_is_off_until_asked_for_and_the_choice_round_trips() {
     let mut config = Config::default();
-    assert!(!config.hide_top_bar, "shown by default");
-    config.hide_top_bar = true;
-    assert!(Config::parse(&config.render()).hide_top_bar);
-    let broken = Config::parse(r#"{ "schemaVersion": 1, "hideTopBar": "yes" }"#);
-    assert!(!broken.hide_top_bar);
+    assert!(!config.tab_strip, "no strip by default");
+    config.tab_strip = true;
+    assert!(Config::parse(&config.render()).tab_strip);
+    let broken = Config::parse(r#"{ "schemaVersion": 1, "tabStrip": "yes" }"#);
+    assert!(!broken.tab_strip);
 }
 
 #[test]

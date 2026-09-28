@@ -1229,6 +1229,49 @@ describe("App", () => {
     await waitFor(() => expect(screen.getAllByText("Acme").length).toBeGreaterThan(1));
   });
 
+  test("on the rail a group folds by its bar and opens again by its caret", async () => {
+    // The rail draws no group head, so a folded group used to leave nothing
+    // behind to open it with.
+    const member = {
+      folderName: "Briefs",
+      path: "Work/Briefs",
+      name: "Briefs",
+      kind: "notes",
+      known: true,
+      fixed: false,
+      readOnly: false,
+      sort: null,
+      order: [],
+    };
+    shell({
+      notebook_snapshot: snapshot(
+        [member],
+        [{ folder: "Work", parent: null, name: "Work", spaces: ["Work/Briefs"] }],
+      ),
+    });
+    const { container } = render(App);
+    await screen.findByText("Briefs");
+
+    // Full width: the head is the toggle, and there is no button on the bar.
+    expect(container.querySelector(".shell__group-fold")).toBeNull();
+
+    await userEvent.click(screen.getByLabelText("collapse sidebar"));
+    await userEvent.click(screen.getByRole("button", { name: "collapse group: Work" }));
+
+    expect(screen.queryByText("Briefs")).toBeNull();
+    expect(container.querySelector(".shell__group-fold")).toBeNull();
+    const group = container.querySelector(".shell__group--folded");
+    expect(group).toBeTruthy();
+
+    // The caret names the group it opens, since the rail shows no name.
+    const caret = within(group).getByRole("button", { name: "Work" });
+    expect(caret.getAttribute("aria-expanded")).toBe("false");
+    await userEvent.click(caret);
+
+    expect(await screen.findByText("Briefs")).toBeTruthy();
+    expect(container.querySelector(".shell__group--folded")).toBeNull();
+  });
+
   test("creating a list from the sidebar's right-click menu", async () => {
     // window.prompt is broken in WebKitGTK, so naming goes through the app's
     // own NameDialog (reestruturação 2026-07-30). Creating itself lives in the

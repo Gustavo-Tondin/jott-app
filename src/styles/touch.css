@@ -22,7 +22,8 @@
 
     /* The × that takes a tag off a task (a subtask's grip is the shared
        `.reorder-grip` above). */
-    .inspector__tag-remove {
+    .inspector__tag-remove,
+    .inspector__field-clear {
       opacity: 1;
     }
 

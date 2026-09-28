@@ -148,30 +148,32 @@
   .tabs--compact .tabs__item + .tabs__item::before {
     content: none;
   }
+  /* A row, not a chip: full width, a veil and a hairline, the same in the
+     sheet and in the panel. */
   .tabs--compact .tabs__item {
     inline-size: auto;
     max-inline-size: none;
-    min-block-size: var(--app-touch-min);
-    gap: var(--app-space-12);
-    padding-inline: var(--app-space-12);
+    block-size: auto;
+    min-block-size: 2.625rem;
+    gap: var(--app-space-8);
+    padding: var(--app-space-6) var(--app-space-10);
+    border: 0.0625rem solid var(--app-line);
     border-radius: var(--app-radius-md);
-    /* The sheet's RAISED step, not its ground: a sheet swaps the region's two
-       neutrals (themes/*.css), and a row painted `--app-bg` in here is
-       painted the sheet itself. */
-    background: var(--app-surface);
+    background: var(--app-hover);
+  }
+  .tabs--compact .tabs__item--active {
+    background: var(--app-hover);
+    font-weight: var(--app-weight-medium);
+  }
+  .tabs--compact .tabs__dot {
+    --dot-size: var(--app-space-10);
   }
   .tabs--compact .tabs__label {
     flex: 1;
     text-align: start;
     font-size: var(--app-text-16);
   }
-  /* The × is its own target here, not a 12px glyph tucked into a chip: a
-     mis-hit closes the wrong document. */
   .tabs--compact .tabs__close {
-    inline-size: var(--app-touch-min);
-    block-size: var(--app-touch-min);
-    /* Pull the visual back to the row's edge; only the hit area is this wide. */
-    margin-inline-end: calc(var(--app-space-12) * -1);
     opacity: 1;
   }
 
@@ -183,7 +185,8 @@
     justify-content: center;
     gap: var(--app-space-8);
     inline-size: 100%;
-    min-block-size: var(--app-touch-min);
+    block-size: auto;
+    min-block-size: 2.625rem;
     border-radius: var(--app-radius-md);
     /* SOLID ink, the one filled thing in the sheet: it is the sheet's only
        verb, and as another pale row it reads as a fourth tab. */
@@ -192,9 +195,43 @@
     font-size: var(--app-text-16);
     font-weight: var(--app-weight-medium);
   }
+  /* ---- THE TABS PANEL (the desktop without the strip) ----
+     Hangs under the page's name, centred on it. No scrim: it is a menu of
+     places, and the page behind stays what it is. */
+  .tabs-popover {
+    position: absolute;
+    inset-block-start: calc(100% + var(--app-space-4));
+    inset-inline-start: 50%;
+    translate: -50% 0;
+    inline-size: 22.75rem;
+    max-inline-size: 88vw;
+    padding-block: var(--app-space-8);
+    border-radius: var(--app-radius-xxl);
+    /* The header's own type is small caps in a muted ink: none of it is the
+       panel's. */
+    font-size: var(--app-text-14);
+    font-weight: var(--app-weight-regular);
+    letter-spacing: 0;
+    text-transform: none;
+    text-align: start;
+    color: var(--app-ink);
+  }
+  .tabs-popover__bar {
+    display: flex;
+    justify-content: flex-end;
+    padding-inline: var(--app-space-8);
+  }
+  .tabs-popover .tabs--compact {
+    padding: var(--app-space-8) var(--app-space-32);
+    gap: var(--app-space-16);
+  }
+
+  /* The strings are lowercase everywhere ("new tab"); this is the one place
+     one is read as a button's name rather than as a label. */
   .tabs__add-label {
-    /* The strings are lowercase everywhere ("new tab"); this is the one place
-       one is read as a button's name rather than as a label. */
-    text-transform: capitalize;
+    display: inline-block;
+  }
+  .tabs__add-label::first-letter {
+    text-transform: uppercase;
   }
 }

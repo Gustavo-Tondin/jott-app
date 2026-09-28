@@ -78,6 +78,7 @@
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 <div
   class="shell__resizer"
+  class:shell__resizer--panel={sign < 0}
   role="separator"
   aria-orientation="vertical"
   aria-label={label}

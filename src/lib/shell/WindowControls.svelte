@@ -1,11 +1,12 @@
 <script>
-  // The window's own minimize / maximize / close, Adwaita-style — the window
-  // is frameless, so these are the only ones. Which buttons, in what order,
+  // The window's own minimize / maximize / close — the window is frameless,
+  // so these are the only ones. Which buttons, in what order,
   // on which side comes from the SYSTEM (`org.gnome.desktop.wm.preferences
   // button-layout`, read once at boot). A name the setting does not give is
   // not drawn; a name this build does not know is skipped, not guessed.
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import { S } from "../services/strings.js";
+  import Icon from "../components/Icon.svelte";
 
   let {
     /// The button names for this side, in order — `["minimize","close"]`.
@@ -15,9 +16,9 @@
   const win = getCurrentWindow();
 
   const ACTIONS = {
-    minimize: { label: () => S.minimizeWindow, run: () => win.minimize() },
-    maximize: { label: () => S.maximizeWindow, run: () => win.toggleMaximize() },
-    close: { label: () => S.closeWindow, run: () => win.close() },
+    minimize: { icon: "minus", label: () => S.minimizeWindow, run: () => win.minimize() },
+    maximize: { icon: "square", label: () => S.maximizeWindow, run: () => win.toggleMaximize() },
+    close: { icon: "x", label: () => S.closeWindow, run: () => win.close() },
   };
 
   // Guarded: this bar is the only way to close a frameless window, so a caller
@@ -35,16 +36,7 @@
         title={ACTIONS[name].label()}
         onclick={ACTIONS[name].run}
       >
-        <svg viewBox="0 0 16 16" class="window-controls__glyph" aria-hidden="true">
-          {#if name === "minimize"}
-            <line x1="4.5" y1="8" x2="11.5" y2="8" />
-          {:else if name === "maximize"}
-            <rect x="4.5" y="4.5" width="7" height="7" rx="1.5" />
-          {:else}
-            <line x1="4.8" y1="4.8" x2="11.2" y2="11.2" />
-            <line x1="11.2" y1="4.8" x2="4.8" y2="11.2" />
-          {/if}
-        </svg>
+        <Icon name={ACTIONS[name].icon} size="0.875rem" />
       </button>
     {/each}
   </div>

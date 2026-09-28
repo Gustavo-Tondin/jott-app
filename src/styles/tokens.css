@@ -108,7 +108,7 @@
        --------------------------------------------------------------------- */
     --app-sidebar-left: 13.75rem;
     --app-sidebar-rail: 3.5rem; /* the left sidebar collapsed to an icon rail */
-    --app-sidebar-right: 15rem;
+    --app-sidebar-right: 17.5rem;
     --app-titlebar-height: 2.375rem;
     /* The compact top bar in three parts: an open note scrolls its canvas
        UNDER the bar, so the canvas must start exactly where the bar ends —

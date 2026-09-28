@@ -124,11 +124,36 @@
   .window--compact {
     --app-drawer-width: 17rem;
   }
-  /* The top bar hidden by choice (App.svelte `bare`): every reservation made
-     for it shrinks to the system's strip and a little air, so the name sits
-     just under the status bar. */
-  .window--bare {
-    --app-topbar-height: calc(var(--app-topbar-pad-block-start) + var(--app-space-6));
+  /* ---- THE WINDOW WITHOUT THE TAB STRIP (App.svelte `stripped`) ----
+     No title bar: the shell reaches the top, the page header is the bar and
+     the window's buttons float over the two top corners. `--controls-start`
+     and `--controls-end` are how many buttons each side holds; the room a
+     side takes is 32px a button less the last gap, plus its 12px from the
+     wall. */
+  .window--stripped {
+    --controls-room-start: calc(var(--controls-start, 0) * 2rem + 0.5rem);
+    --controls-room-end: calc(var(--controls-end, 0) * 2rem + 0.5rem);
+  }
+  .window--stripped .shell {
+    padding-block-start: var(--app-space-4);
+  }
+  .window__controls {
+    position: absolute;
+    inset-block-start: 0;
+    z-index: 30;
+    display: flex;
+    align-items: center;
+    block-size: 3rem;
+  }
+  .window__controls--start {
+    inset-inline-start: 0;
+  }
+  .window__controls--end {
+    inset-inline-end: 0;
+  }
+  /* Whatever heads the right panel stops before the buttons standing over it. */
+  .window--stripped .shell__panel .theme-pane-head {
+    padding-inline-end: calc(var(--controls-room-end) - var(--app-space-4));
   }
   .window--compact .window__page {
     transition: translate var(--app-transition-medium);

@@ -100,8 +100,8 @@ regions, modes or roles. A **mode** reads the theme's tokens and decides
 what goes where, for the app's two regions:
 
 ```
-[data-region="chrome"]   title bar · tab strip · sidebar · right panel
-[data-region="canvas"]   the content panel in the middle
+[data-region="chrome"]   title bar · tab strip · sidebar
+[data-region="canvas"]   the content panel in the middle · right panel
 ```
 
 The jott mode is a black chrome around a paper canvas, and that contrast is

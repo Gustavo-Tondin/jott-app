@@ -1400,17 +1400,17 @@ fn a_display_payload_keeps_the_choices_it_did_not_mention() {
 }
 
 #[test]
-fn hiding_the_top_bar_answers_to_the_machine_and_reaches_the_layout() {
+fn the_tab_strip_answers_to_the_machine_and_reaches_the_layout() {
     let (_lock, app, dir) = app_with_notebook();
-    assert_eq!(ok(&app, "notebook_settings", json!({}))["hideTopBar"], json!(false));
+    assert_eq!(ok(&app, "notebook_settings", json!({}))["tabStrip"], json!(false));
 
-    ok(&app, "set_machine_display", json!({ "display": { "hideTopBar": true } }));
+    ok(&app, "set_machine_display", json!({ "display": { "tabStrip": true } }));
 
-    assert_eq!(ok(&app, "notebook_settings", json!({}))["hideTopBar"], json!(true));
+    assert_eq!(ok(&app, "notebook_settings", json!({}))["tabStrip"], json!(true));
     let snap = ok(&app, "notebook_snapshot", json!({}));
-    assert_eq!(snap["info"]["layout"]["hideTopBar"], json!(true));
+    assert_eq!(snap["info"]["layout"]["tabStrip"], json!(true));
     let config = std::fs::read_to_string(dir.path().join(".jott/config.json")).unwrap_or_default();
-    assert!(!config.contains("\"hideTopBar\": true"), "the notebook is not told: {config}");
+    assert!(!config.contains("\"tabStrip\": true"), "the notebook is not told: {config}");
 }
 
 #[test]

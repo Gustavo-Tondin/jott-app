@@ -52,7 +52,7 @@ pub struct NotebookLayout {
     pub day_summary: bool,
     pub day_summary_time: String,
     pub close_inspector_on_click_away: bool,
-    pub hide_top_bar: bool,
+    pub tab_strip: bool,
     pub quick_note_folder: String,
     /// The capture target — a path-like string the front resolves
     /// (services/noteTargets.js and its tasks mirror); empty is the default.
@@ -160,7 +160,7 @@ impl NotebookInfo {
                 day_summary: config.day_summary,
                 day_summary_time: config.day_summary_time.render(),
                 close_inspector_on_click_away: display.close_inspector_on_click_away,
-                hide_top_bar: display.hide_top_bar,
+                tab_strip: display.tab_strip,
                 quick_note_folder: config.quick_note_folder.clone(),
                 quick_task_list: config.quick_task_list.clone(),
                 tasks_show_all: config.tasks_show_all,

@@ -7,7 +7,15 @@
   import { S } from "../services/strings.js";
   import Icon from "../components/Icon.svelte";
 
-  let { canBack = false, canForward = false, onBack, onForward } = $props();
+  let {
+    canBack = false,
+    canForward = false,
+    onBack,
+    onForward,
+    /// A phone has no forward: back is the system's gesture, and there is
+    /// none for the way back from it.
+    forward = true,
+  } = $props();
 </script>
 
 <div class="page-nav">
@@ -19,12 +27,14 @@
   >
     <Icon name="arrow-left" size="1.125rem" />
   </button>
-  <button
-    class="theme-btn theme-btn--icon page-nav__arrow"
-    disabled={!canForward}
-    aria-label={S.goForward}
-    onclick={() => onForward?.()}
-  >
-    <Icon name="arrow-right" size="1.125rem" />
-  </button>
+  {#if forward}
+    <button
+      class="theme-btn theme-btn--icon page-nav__arrow"
+      disabled={!canForward}
+      aria-label={S.goForward}
+      onclick={() => onForward?.()}
+    >
+      <Icon name="arrow-right" size="1.125rem" />
+    </button>
+  {/if}
 </div>

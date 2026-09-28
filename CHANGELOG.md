@@ -21,7 +21,11 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 - The sidebar shows Home, Tasks and Notes as three tiles, a space wears its colour on its icon only, and a group is a name with a coloured bar.
 - A notebook whose copy of the palette (`.jott/themes/jott.css`) was never edited gets the new colours by itself; an edited copy is left as it is.
 - Notes now live directly in their space's folder and no longer go into an `Inbox/` subfolder.
-- With the phone's top bar hidden, the Home's ⋮ now sits on "Today tasks" and "Today notes".
+- The desktop window opens without the tab strip: the page's name opens your tabs in a panel, and Settings → Display → "Show the tab strip" brings the strip back.
+- On the phone, tapping a screen's name opens your tabs; "Hide the top bar" is gone, and the top bar no longer has a forward arrow.
+- The task panel is part of the page, with a larger title that wraps, subtasks as lines and each field on one line; "Complete date" is now "Due".
+- Tags are drawn in the app's blue on cards, in the task panel and in a note's head.
+- On the narrow sidebar a folded group stays as a short bar with an arrow that opens it, and an open group folds by its bar.
 - A few icons were refreshed: a simpler house for Home, a new settings gear, and bolder ⋯, ⋮ and folding arrows.
 
 ### Fixed

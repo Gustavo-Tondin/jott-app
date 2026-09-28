@@ -46,6 +46,8 @@
   import RightPanel from "./lib/shell/RightPanel.svelte";
   import Screen from "./lib/shell/Screen.svelte";
   import TitleBar from "./lib/shell/TitleBar.svelte";
+  import TabsPopover from "./lib/shell/TabsPopover.svelte";
+  import WindowControls from "./lib/shell/WindowControls.svelte";
   import { buttonLayout } from "./lib/shell/windowButtons.js";
   import { isMobile, osAttribute, platformAttribute } from "./lib/shell/platform.js";
   import { installKeyboard } from "./lib/shell/keyboard.js";
@@ -223,11 +225,10 @@
   $effect(() => watchCompact((v) => (compact = v)));
 
   /// The ⋮ of the spaces on screen, handed up to the top bar's while compact
-  /// (shell/spaceMenus.js) — one ⋮ on a phone, not one per block. The Home
-  /// with no bar keeps them: each block's ⋮ carries the page's items instead.
+  /// (shell/spaceMenus.js) — one ⋮ on a phone, not one per block.
   let spaceMenus = $state.raw([]);
   provideSpaceMenus({
-    lifted: () => compact && !(bare && view.kind === "home"),
+    lifted: () => compact,
     onChange: (groups) => (spaceMenus = groups),
   });
 
@@ -1224,13 +1225,14 @@
     }),
   );
 
-  /// The phone's top bar, hidden by choice (Display › Hide the top bar): the
-  /// screen's NAME carries its buttons instead (PageHeader, DayTitle). An open
-  /// note has no such name, so it keeps the bar.
-  let bare = $derived(mobile && compact && !!layout.hideTopBar && view.kind !== "note");
-  let nameNav = $derived(
-    bare ? { onName: () => (drawerOpen = true), onHoldName: () => (tabsOpen = true) } : {},
-  );
+  /// The desktop window WITHOUT the tab strip — what the app ships as
+  /// (Display › Show the tab strip brings it back). No title bar: the page
+  /// header is the window's bar, the brand sits on the sidebar and the
+  /// window's buttons float over the end of the canvas. The notebooks screen
+  /// keeps the title bar: it has no page header to be dragged by.
+  let stripped = $derived(!compact && !!notebook && !showsPicker && !layout.tabStrip);
+  /// Wherever the strip is not on screen, the page's NAME opens the tabs.
+  let nameOpensTabs = $derived(!!notebook && (compact || stripped));
 
   /// The page menu of the current screen — the `•••` of the wireframe.
   let pageMenu = $derived(
@@ -1245,18 +1247,6 @@
       deleteList: deleteCurrentList,
       spaceMenus,
     }),
-  );
-  /// With the bar gone the ⋮ also holds what had no gesture: forward, and the
-  /// tabs for whoever cannot hold the name.
-  let namedMenu = $derived(
-    bare
-      ? [
-          ...pageMenu,
-          ...(pageMenu.length ? [{ separator: true }] : []),
-          { label: S.forwardItem, disabled: !canForward, run: goForward },
-          { label: S.tabsItem(tabs.length), run: () => (tabsOpen = true) },
-        ]
-      : pageMenu,
   );
 
   // ---- the canvas's own right-click menu ----
@@ -1932,6 +1922,7 @@
     {holds}
     rail={railed && !compact}
     {compact}
+    brand={stripped}
     open={drawerOpen}
     sliding={drawerAt !== null}
     onToggleRail={() =>
@@ -1974,12 +1965,14 @@
   class:window--flush={flush || mobile}
   class:window--resizing={resizing}
   class:window--compact={compact}
-  class:window--bare={bare}
+  class:window--stripped={stripped}
   class:window--pushed={compact && drawerOpen}
   class:window--sliding={drawerAt !== null}
   style={[
     sidebarWidth ? `--app-sidebar-left: ${sidebarWidth}px` : "",
     panelWidth ? `--app-sidebar-right: ${panelWidth}px` : "",
+    stripped ? `--controls-start: ${windowButtons.left.length}` : "",
+    stripped ? `--controls-end: ${windowButtons.right.length}` : "",
   ]
     .filter(Boolean)
     .join("; ") || undefined}
@@ -1999,7 +1992,7 @@
        the notebooks screen: the compact bar's controls belong INSIDE a
        notebook; the desktop keeps its title bar, stripped to the window
        buttons — the frameless window has no other handle. -->
-  {#if compact && !showsPicker && !bare}
+  {#if compact && !showsPicker}
     <TopBar
       {canBack}
       {canForward}
@@ -2016,6 +2009,15 @@
       over
       region={canvasRisen ? "canvas" : "chrome"}
     />
+  {:else if stripped}
+    <!-- The window's own buttons, over the two top corners: the page header
+         and the panel's head leave them room (window.css). -->
+    <div class="window__controls window__controls--start">
+      <WindowControls buttons={windowButtons.left} />
+    </div>
+    <div class="window__controls window__controls--end" data-region="canvas">
+      <WindowControls buttons={windowButtons.right} />
+    </div>
   {:else if !compact}
     <TitleBar rail={railed} buttons={windowButtons} brand={!!notebook}>
       {#if notebook}
@@ -2128,7 +2130,7 @@
             level={homeLevel}
             onPick={(iso) => (homeDay = iso)}
             onHome={() => (homeDay = null)}
-            {...nameNav}
+            onName={nameOpensTabs ? () => (tabsOpen = true) : null}
             onLevel={(next) => (homeLevel = next)}
           />
         {:else}
@@ -2148,13 +2150,24 @@
           {canForward}
           onBack={goBackAnywhere}
           onForward={goForward}
-          onRenameTitle={view.kind === "note" && !notebook.readOnly
+          onRenameTitle={view.kind === "note" && !notebook.readOnly && !nameOpensTabs
             ? renameCurrentNote
             : null}
-          menu={namedMenu}
+          menu={pageMenu}
           dot={colorOf(view)}
-          {...nameNav}
-        />
+          bar={stripped}
+          reserve={stripped && !panelTenant}
+          onOpenTabs={nameOpensTabs ? () => (tabsOpen = !tabsOpen) : null}
+          tabsOpen={stripped && tabsOpen}
+          onCloseTabs={() => (tabsOpen = false)}
+          tabCount={tabs.length}
+        >
+          {#snippet tabsPanel()}
+            <TabsPopover label={S.openTabs(tabs.length)} onClose={() => (tabsOpen = false)}>
+              {@render tabList()}
+            </TabsPopover>
+          {/snippet}
+        </PageHeader>
         {/if}
 
         <!-- CANVAS: what the screen is drawn on, and the box the floating
@@ -2262,7 +2275,7 @@
                 month={homeDay ?? clock?.today ?? ""}
                 selected={homeDay ?? clock?.today ?? ""}
                 onHome={() => (homeDay = null)}
-                {...nameNav}
+                onName={nameOpensTabs ? () => (tabsOpen = true) : null}
               />
             </div>
           {/if}
@@ -2306,7 +2319,6 @@
             {clock}
             {compact}
             {mobile}
-            blockMenu={bare && view.kind === "home" ? namedMenu : []}
             {f}
             {reloadKey}
             {libraryKey}
@@ -2420,7 +2432,6 @@
         onDeleteNote={deleteCurrentNote}
         onUndock={() => (formatting = false)}
         {selected}
-        {spColors}
         {moveTargets}
         {tags}
         root={notebook.path}
@@ -2492,6 +2503,27 @@
 
 <!-- The tab strip, below 768px: a sheet pulled up, not a row across the top.
      Same TabBar, same props — the sheet is the only new thing. -->
+{#snippet tabList()}
+  <TabBar
+    compact
+    {tabs}
+    {active}
+    titleOf={title}
+    {colorOf}
+    onSelect={(i) => {
+      active = i;
+      tabsOpen = false;
+    }}
+    onClose={closeTab}
+    onOpenNew={() => {
+      openNewTab();
+      tabsOpen = false;
+    }}
+    onMove={(from, to) =>
+      ({ tabs, active } = Tabs.move(tabs, active, from, to))}
+  />
+{/snippet}
+
 {#if compact && tabsOpen && notebook}
   <BottomSheet
     label={S.openTabs(tabs.length)}
@@ -2499,24 +2531,7 @@
     sheetClass="tabs-sheet"
     onClose={() => (tabsOpen = false)}
   >
-    <TabBar
-      compact
-      {tabs}
-      {active}
-      titleOf={title}
-      {colorOf}
-      onSelect={(i) => {
-        active = i;
-        tabsOpen = false;
-      }}
-      onClose={closeTab}
-      onOpenNew={() => {
-        openNewTab();
-        tabsOpen = false;
-      }}
-      onMove={(from, to) =>
-        ({ tabs, active } = Tabs.move(tabs, active, from, to))}
-    />
+    {@render tabList()}
   </BottomSheet>
 {/if}
 

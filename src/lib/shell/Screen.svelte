@@ -244,7 +244,6 @@
     catalogue={tags}
     dateFormat={layout.dateDisplayFormat}
     tagsEnabled={f("noteTags")}
-    color={colorOf(view)}
     {onSetTags}
     {onCreateTag}
   />

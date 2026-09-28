@@ -1,7 +1,7 @@
-/* inspector.css — the layout of TaskInspector.svelte. The panel itself is
- * transparent: the CARDS inside (subtasks, fields, description) sit on the
- * canvas. Controls are the shared `.theme-*` classes; only what is specific
- * to this panel lives here. */
+/* inspector.css — the layout of TaskInspector.svelte. The panel is one
+ * surface inside the canvas: sections are parted by rules, not cards.
+ * Controls are the shared `.theme-*` classes; only what is specific to this
+ * panel lives here. */
 
 @layer components {
   /* The pane: pinned head, scrolling middle, pinned foot (the pact of
@@ -11,31 +11,37 @@
     flex-direction: column;
     min-height: 0;
     overflow: hidden;
+    padding: var(--app-space-12);
     color: var(--app-ink);
-    font-size: var(--app-text-12);
+    font-size: var(--app-text-13);
   }
 
   /* The scrolling middle, scrollbar HIDDEN: a GTK scrollbar ate into the
-     dividers on a panel this narrow. One even gap between blocks; the block
-     padding keeps the first/last off the head/foot borders. */
+     rules on a panel this narrow. One even gap between sections. */
   .inspector__scroll {
     flex: 1;
     min-height: 0;
     display: flex;
     flex-direction: column;
-    gap: var(--app-space-8);
+    gap: var(--app-space-16);
     overflow-y: auto;
     scrollbar-width: none;
-    padding-block: var(--app-space-10);
+    padding-block: var(--app-space-16);
   }
   .inspector__scroll::-webkit-scrollbar {
     width: 0;
     height: 0;
   }
+  .inspector__scroll > * {
+    flex-shrink: 0;
+  }
 
-  /* ---- toolbar (the pane head) ---- */
+  /* ---- toolbar (the pane head): no rule of its own, the title follows ---- */
   .inspector__toolbar {
     gap: var(--app-space-4);
+    padding: 0;
+    border-block-end: none;
+    color: var(--app-ink-muted);
   }
   /* Lit when the task is in today — the one coloured control in the toolbar,
      because it is the only one that carries state. */
@@ -46,56 +52,80 @@
   .inspector__gap {
     flex: 1;
   }
+  /* The window's buttons stand over the head's end (no tab strip): the three
+     gather at the start. */
+  .window--stripped .shell__panel .inspector__gap {
+    display: none;
+  }
 
-  /* ---- task header: a brand pill, one step up from the weak tint ----
-     NOT `--app-brand-weak` alone: that wash is shared (selection, focus ring,
-     pinned card) and must stay faint. Mixed at the point of use rather than a
-     new role, so it follows accent and theme the way the tint does. */
+  /* ---- task header: the tick, the name as a title, the fold ---- */
   .inspector__header {
     display: flex;
     align-items: center;
-    gap: var(--app-space-8);
-    margin-inline: var(--app-space-8);
-    padding: var(--app-space-8) var(--app-space-10);
-    background: color-mix(in oklab, var(--app-brand-weak) 80%, var(--app-brand));
-    border-radius: var(--app-radius-md);
-    color: var(--app-brand-ink);
+    gap: var(--app-space-10);
   }
-  .inspector__name {
+  .inspector__header > .theme-checkbox {
+    inline-size: 1.375rem;
+    block-size: 1.375rem;
+  }
+  /* The name's text drawn twice in one cell: the hidden copy gives the
+     height, the textarea fills it. WebKitGTK ignores `field-sizing`. */
+  .inspector__name-box {
     flex: 1;
     min-width: 0;
-    font-weight: var(--app-weight-semibold);
+    display: grid;
+    font-size: var(--app-text-20);
+    font-weight: var(--app-weight-medium);
+    line-height: 1.2;
     color: var(--app-ink);
   }
+  .inspector__name-box::after {
+    content: attr(data-text) " ";
+    grid-area: 1 / 1;
+    visibility: hidden;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+  .inspector__name {
+    grid-area: 1 / 1;
+    inline-size: 100%;
+    min-width: 0;
+    padding: 0;
+    border: none;
+    resize: none;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+  }
+  .inspector__fold {
+    color: var(--app-ink-faint);
+  }
+  /* The title, the rule under it and the checklist are one section. */
+  .inspector__header,
+  .inspector__header + .theme-divider {
+    margin-block-end: calc(var(--app-space-8) - var(--app-space-16));
+  }
 
-  /* ---- subtasks: ONE surface card for the whole checklist ----
-     The rows are separated by a hairline, and the card's corner is the list's. */
+  /* ---- subtasks: lines under the title, stepped in ---- */
   .inspector__subtasks {
     display: flex;
     flex-direction: column;
-    padding-inline: var(--app-space-16) var(--app-space-8);
+    padding-inline-start: var(--app-space-16);
   }
   .inspector__subtask {
     position: relative;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: var(--app-space-6);
-    /* Left inset reserves the gutter the drag grip sits in (absolute), so
-       revealing it on hover never shifts the row. */
-    padding: var(--app-space-6) var(--app-space-10) var(--app-space-6)
-      var(--app-space-24);
-    background: var(--app-surface);
+    gap: var(--app-space-8);
+    padding-block: var(--app-space-6);
     border-block-end: 0.0625rem solid var(--app-line);
   }
   .inspector__subtask:first-child {
-    border-start-start-radius: var(--app-radius-md);
-    border-start-end-radius: var(--app-radius-md);
+    padding-block-start: 0;
   }
   .inspector__subtask:last-child {
+    padding-block-end: 0;
     border-block-end: none;
-    border-end-start-radius: var(--app-radius-md);
-    border-end-end-radius: var(--app-radius-md);
   }
   .inspector__subtask-main {
     display: flex;
@@ -104,11 +134,12 @@
     flex: 1;
     min-width: 0;
   }
+  /* The grip stands in the step the checklist is set in by. */
   .inspector__subtask .reorder-grip {
     position: absolute;
-    inset-inline-start: var(--app-space-4);
-    top: 50%;
-    transform: translateY(-50%);
+    inset-inline-start: calc(-1 * var(--app-space-16));
+    inset-block-start: 50%;
+    translate: 0 -50%;
   }
   /* Reveal the drag grip when the row is hovered (the shared grip hides itself
      until then). */
@@ -118,6 +149,8 @@
   .inspector__subtask-input {
     flex: 1;
     min-width: 0;
+    padding: 0;
+    line-height: 1.2;
     /* The strike is always drawn, in transparent, so ticking the row fades
        it in — the same send-off the task card gives its title. */
     text-decoration: line-through transparent;
@@ -126,26 +159,69 @@
       text-decoration-color var(--app-transition-medium);
   }
   .inspector__subtask--done .inspector__subtask-input {
-    color: var(--app-ink-faint);
+    color: var(--app-ink-muted);
     text-decoration-color: currentColor;
   }
   .inspector__subtask--add {
-    opacity: 0.85;
+    justify-content: flex-start;
+    color: var(--app-ink-faint);
+  }
+  .inspector__subtask--add .inspector__subtask-input {
+    color: var(--app-ink);
   }
 
-  /* ---- tags: coloured pills + inline add ---- */
+  /* The × of a value waits for the pointer; a finger has none, so there it
+     stays (touch.css). */
+  .inspector__field-clear {
+    opacity: 0;
+  }
+  .inspector__field:hover .inspector__field-clear,
+  .inspector__field:focus-within .inspector__field-clear {
+    opacity: 1;
+  }
+
+  /* The small × that takes a line off: a subtask, an attachment, a value. */
+  .inspector__remove,
+  .inspector__field-clear {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    padding: 0;
+    color: var(--app-ink-faint);
+    transition:
+      color var(--app-transition-fast),
+      opacity var(--app-transition-fast);
+  }
+  .inspector__remove:hover,
+  .inspector__field-clear:hover {
+    color: var(--app-ink);
+  }
+
+  /* ---- tags: pills + inline add ---- */
   .inspector__tags {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: var(--app-space-6);
-    padding-inline: var(--app-space-8);
+    gap: var(--app-space-8);
+  }
+  /* The picker's panel hangs from the ROW, as wide as the panel's content:
+     hung from the button it would run past the panel's edge and be cut. */
+  .inspector__tags {
+    position: relative;
+  }
+  .inspector__tags > .tag-picker {
+    position: static;
+  }
+  .inspector__tags .tag-picker__panel {
+    inset-inline: 0;
+    min-inline-size: 0;
   }
   /* A tag is the shared .theme-badge; the hook stays for the × after the name. */
   .inspector__tag {
     padding-inline-end: var(--app-space-2);
   }
-  /* Small × inside a pill or a value — takes the colour of what holds it. */
+  /* Small × inside a pill — takes the colour of what holds it. */
   .inspector__tag-remove {
     display: inline-flex;
     align-items: center;
@@ -158,109 +234,146 @@
     opacity: 1;
   }
 
-  /* ---- fields: icon · label · value, each a surface card ----
-     A container, so the rows answer to the PANEL's width: a 176px column on a
-     desktop, a full-width sheet on a phone (components/sheet.css). */
+  /* ---- fields: icon · label on one end, the value in its box on the
+     other, a hairline between the rows ---- */
   .inspector__fields {
     display: flex;
     flex-direction: column;
-    gap: var(--app-space-4);
-    padding-inline: var(--app-space-8);
-    container-type: inline-size;
-    container-name: inspector-fields;
   }
   .inspector__field {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: var(--app-space-8);
-    min-height: 2.375rem;
-    padding: var(--app-space-6) var(--app-space-10);
-    background: var(--app-surface);
-    border-radius: var(--app-radius-md);
+    min-block-size: 1.375rem;
+    padding-block: var(--app-space-6);
     color: var(--app-ink);
   }
-  /* A field the task does not use reads faded, label, icon and control alike;
-     the controls set their own colour, so they inherit here. */
-  .inspector__field--unset {
-    color: var(--app-ink-faint);
+  .inspector__fields > .inspector__field + .inspector__field {
+    border-block-start: 0.0625rem solid var(--app-line);
   }
-  .inspector__field--unset .theme-select,
-  .inspector__field--unset .theme-input,
-  .inspector__field--unset .theme-btn {
-    color: inherit;
+  .inspector__fields > .inspector__field:first-child {
+    padding-block-start: 0;
+  }
+  .inspector__fields > .inspector__field:last-child {
+    padding-block-end: 0;
   }
   .inspector__field-label {
     display: inline-flex;
     align-items: center;
     gap: var(--app-space-8);
     min-width: 0;
-    /* The label yields to the control, never the other way round: a shrunk
-       value cannot be read, a word can wrap — and below the width where it
-       would, it goes (the container query below). */
+    /* The label yields to the control, never the other way round. */
     flex: 1 1 auto;
+    color: var(--app-ink-muted);
+  }
+  .inspector__field-word {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  /* The flag in the level's own ink: only the highest takes a colour. */
+  .inspector__field-label--p1 {
+    color: var(--app-danger);
+  }
+  /* The × stands before the value, so every value ends on the same edge. */
+  .inspector__field-clear {
+    order: 1;
   }
   .inspector__field-value,
   .inspector__stepper,
   .inspector__field > .theme-select {
+    order: 2;
     flex: 0 0 auto;
-  }
-  /* Narrow panel: the icon alone names the row. The word is only taken off
-     the screen (a screen reader and the tooltip still read it), and only near
-     the panel's 176px minimum — 176px of content is a 192px panel; at the
-     default width the word stays, wrapping if it must. */
-  .inspector__field-word {
-    min-width: 0;
-  }
-  @container inspector-fields (max-width: 176px) {
-    .inspector__field-word {
-      position: absolute;
-      inline-size: 0.0625rem;
-      block-size: 0.0625rem;
-      overflow: hidden;
-      clip-path: inset(50%);
-      white-space: nowrap;
-    }
-    .inspector__field-label {
-      flex: 0 0 auto;
-    }
-    /* A stacked row's label has a line of its own, so its word stays. */
-    .inspector__field--stacked .inspector__field-word {
-      position: static;
-      inline-size: auto;
-      block-size: auto;
-      overflow: visible;
-      clip-path: none;
-      white-space: normal;
-    }
-  }
-  /* The flag and its word in the level's status colour — the same three
-     the card's marks and the composer's flag read. */
-  .inspector__field-label--p1 {
-    color: var(--app-danger);
-  }
-  .inspector__field-label--p2 {
-    color: var(--app-warning);
-  }
-  .inspector__field-label--p3 {
-    color: var(--app-success);
   }
   .inspector__field-value {
     display: inline-flex;
     align-items: center;
     gap: var(--app-space-4);
   }
-  /* A chosen date, a reminder, or a repeat with a count gets two lines, at
-     every width: the label and the × above, the value alone below, filling
-     the line — so neither squeezes the other. Unset, the row is one line like
-     the rest. Two controls stay side by side, narrowing together. */
+
+  /* The value's box: the same 120 by 22 whatever it holds. */
+  .inspector__field .theme-input--filled,
+  .inspector__field .theme-select--bare,
+  .inspector__stepper--counted {
+    min-inline-size: 7.5rem;
+    min-block-size: 1.375rem;
+    background: var(--app-bg);
+    border: 0.0625rem solid var(--app-line);
+    border-radius: var(--app-radius-sm);
+  }
+  .inspector__field .theme-input--filled,
+  .inspector__field .theme-select--bare {
+    padding: var(--app-space-2) var(--app-space-8);
+    font-size: var(--app-text-13);
+    font-weight: var(--app-weight-medium);
+    line-height: 1.2;
+    color: var(--app-ink);
+    text-align: center;
+    text-align-last: center;
+  }
+  .inspector__field .theme-input--filled:hover:not(:disabled),
+  .inspector__field .theme-select--bare:hover:not(:disabled),
+  .inspector__stepper--counted:hover {
+    border-color: var(--app-ink-faint);
+  }
+  /* The values are written in lower case for the composer's chips; here
+     each stands alone in its box, as a name. */
+  .inspector__field > .theme-select--bare,
+  .inspector__stepper:not(.inspector__stepper--counted) > .theme-select--bare {
+    text-transform: capitalize;
+  }
+  .inspector__reminder-value::first-letter {
+    text-transform: uppercase;
+  }
+  /* A field the task does not use says so in the faint ink. */
+  .inspector__field--unset .theme-input--filled,
+  .inspector__field--unset .theme-select--bare {
+    color: var(--app-ink-faint);
+  }
+
+  /* A repeat with a count is ONE box: Every · count | unit. */
+  .inspector__stepper {
+    display: inline-flex;
+    align-items: center;
+  }
+  .inspector__stepper--counted {
+    justify-content: space-between;
+    gap: var(--app-space-6);
+    padding-inline: var(--app-space-8) 0;
+  }
+  .inspector__stepper--counted > .theme-select--bare {
+    min-inline-size: 0;
+    min-block-size: 0;
+    padding-inline: var(--app-space-2);
+    background: none;
+    border: none;
+    border-radius: 0;
+  }
+  .inspector__stepper--counted > .theme-select--bare:last-child {
+    padding-inline: var(--app-space-6) var(--app-space-8);
+    border-inline-start: 0.0625rem solid var(--app-line);
+  }
+  .inspector__every {
+    margin-inline-end: auto;
+    color: var(--app-ink-faint);
+    font-size: var(--app-text-10);
+    font-weight: var(--app-weight-medium);
+  }
+  .inspector__every::first-letter {
+    text-transform: uppercase;
+  }
+
+  /* A reminder being set by hand takes a line of its own: the label above,
+     the date and the hour below, side by side. */
   .inspector__field--stacked {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     grid-template-areas:
       "label clear"
       "value value";
-    row-gap: var(--app-space-4);
+    row-gap: var(--app-space-6);
   }
   .inspector__field--stacked .inspector__field-label {
     grid-area: label;
@@ -268,31 +381,20 @@
   .inspector__field--stacked .inspector__field-clear {
     grid-area: clear;
   }
-  .inspector__field--stacked .inspector__field-value,
-  .inspector__field--stacked .inspector__stepper {
+  .inspector__field--stacked .inspector__field-value {
     grid-area: value;
     align-items: stretch;
-    gap: var(--app-space-4);
     min-inline-size: 0;
   }
-  /* Side by side, never wrapped: the two controls give way together. */
-  .inspector__field--stacked .inspector__field-value > *,
-  .inspector__field--stacked .inspector__stepper > * {
+  .inspector__field--stacked .inspector__field-value > * {
     min-inline-size: 0;
   }
-  .inspector__field--stacked .inspector__field-value > .date-picker,
-  .inspector__field--stacked .inspector__field-value > .menu {
+  .inspector__field--stacked .inspector__field-value > .date-picker {
     flex: 2 1 6rem;
   }
-  .inspector__field--stacked .inspector__stepper > .theme-select {
-    flex: 2 1 6rem;
-    text-align: center;
-    text-align-last: center;
-  }
-  .inspector__field--stacked .inspector__stepper > .inspector__repeat-every,
   .inspector__field--stacked .inspector__time {
     flex: 1 1 4rem;
-    text-align: center;
+    min-inline-size: 0;
   }
   /* WebKit lays a time field out in its own box, deaf to text-align. */
   .inspector__time::-webkit-datetime-edit {
@@ -300,46 +402,36 @@
     justify-content: center;
     inline-size: 100%;
   }
-  /* A time field and a button of the same class are not the same height:
-     both stretch to the taller one. */
-  .inspector__field--stacked .date-picker__value,
-  .inspector__field--stacked .inspector__reminder-value {
+  .inspector__field--stacked .date-picker__value {
     inline-size: 100%;
     block-size: 100%;
-  }
-  .inspector__time {
-    inline-size: auto;
     min-inline-size: 0;
-  }
-  .inspector__stepper {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--app-space-2);
-  }
-  /* A `<select>` sizes itself to its widest option; a tight box, so it does
-     not reserve room for "30" plus a caret beside the unit. */
-  .inspector__repeat-every {
-    min-inline-size: 2.75rem;
-    text-align: center;
   }
 
   /* ---- description + attachments ---- */
   .inspector__description-block {
     display: flex;
     flex-direction: column;
-    gap: var(--app-space-4);
-    padding-inline: var(--app-space-8);
+    gap: var(--app-space-12);
   }
   /* A wrapper around the plain editor (`.editor--plain`, editor.css), which
      lets a description carry `[[note]]` references. The grid stretches the
      editor's box to this minimum height. */
   .inspector__description {
-    min-height: 7rem;
+    min-height: 6.375rem;
     display: grid;
+    border: 0.0625rem solid var(--app-line);
+    border-radius: var(--app-radius-md);
+    overflow: clip;
   }
 
   /* One attachment: the name opens it, the × takes it off the task. Deleting
      the FILE is the library screen's job — here the two would be a click apart. */
+  .inspector__file {
+    border-block-end: 0.0625rem solid var(--app-line);
+    padding-block: 0 var(--app-space-6);
+    margin-block-end: calc(var(--app-space-6) - var(--app-space-12));
+  }
   .inspector__file-open {
     display: inline-flex;
     align-items: center;
@@ -349,7 +441,6 @@
     padding: 0;
     color: inherit;
     font: inherit;
-    font-size: var(--app-text-13);
     text-align: start;
   }
   .inspector__file-open:hover .inspector__file-name {
@@ -361,15 +452,17 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  /* "Add files" is a whole row that presses, like the fields above it. */
+  /* "Add files" is a whole row that presses. */
   .inspector__add-file {
     inline-size: 100%;
-    color: var(--app-ink-muted);
+    padding-block: 0;
     font: inherit;
-    font-size: var(--app-text-13);
     text-align: start;
   }
-  .inspector__add-file:hover {
+  .inspector__add-file .inspector__field-label {
+    color: var(--app-ink-faint);
+  }
+  .inspector__add-file:hover .inspector__field-label {
     color: var(--app-ink);
   }
 
@@ -378,20 +471,20 @@
      once closed (Settings › Tasks brings it back) and with every field on. */
   .inspector__offer {
     flex-shrink: 0;
-    margin-inline: var(--app-space-8);
   }
 
   /* ---- when the task was written: a fact, over the foot ----
-     Off the cards: everything in the scroll is set, this is only read. Pinned
-     like the foot, in the faint ink; the warning ink is the "forgotten" band. */
+     Everything in the scroll is set, this is only read. Pinned like the
+     foot, in the faint ink; the warning ink is the "forgotten" band. */
   .inspector__created {
     display: flex;
     align-items: center;
     gap: var(--app-space-4);
     flex-shrink: 0;
     margin: 0;
-    padding: var(--app-space-4) var(--app-space-16) var(--app-space-8);
+    padding-block: var(--app-space-8) var(--app-space-6);
     color: var(--app-ink-faint);
+    font-family: var(--app-font-mono);
     font-size: var(--app-text-12);
     font-variant-numeric: tabular-nums;
   }
@@ -399,26 +492,33 @@
     color: var(--app-warning);
   }
 
-  /* ---- footer (the pane foot): origin · trash. Pinned at the bottom, always
-     visible; the top-border divider comes from .theme-pane-foot. ---- */
+  /* ---- footer (the pane foot): the place · the trash, under a rule ---- */
   .inspector__footer {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: var(--app-space-8);
+    gap: var(--app-space-10);
+    padding-block-start: var(--app-space-8);
+    border-block-start-color: var(--app-ink-muted);
   }
+  /* The place, as a chip: pressed, it moves the task. */
   .inspector__origin {
     display: inline-flex;
     align-items: center;
-    gap: var(--app-space-6);
+    min-inline-size: 0;
+    max-inline-size: 100%;
+    padding: var(--app-space-4) var(--app-space-10);
+    background: var(--app-bg);
+    border: 0.0625rem solid var(--app-line);
+    border-radius: var(--app-radius-sm);
     color: var(--app-ink-muted);
-    font-size: var(--app-text-13);
+    font-family: var(--app-font-mono);
+    font-size: var(--app-text-12);
+    line-height: 1.2;
   }
-  /* As a button it stands on the panel's own surface — the footer sits on the
-     canvas, so a card is what makes it read as pressable. */
-  .inspector__origin--button {
-    max-width: 100%;
-    background: var(--app-surface);
+  .inspector__origin--button:hover {
+    border-color: var(--app-ink-faint);
+    color: var(--app-ink);
   }
   .inspector__origin-name {
     min-width: 0;

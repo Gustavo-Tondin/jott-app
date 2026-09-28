@@ -84,6 +84,7 @@ import link from "../../assets/icons/phosphor/regular/link.svg?raw";
 import listNumbers from "../../assets/icons/phosphor/regular/list-numbers.svg?raw";
 import quotes from "../../assets/icons/phosphor/regular/quotes.svg?raw";
 import minus from "../../assets/icons/phosphor/regular/minus.svg?raw";
+import square from "../../assets/icons/phosphor/regular/square.svg?raw";
 import textHOne from "../../assets/icons/phosphor/regular/text-h-one.svg?raw";
 import textHTwo from "../../assets/icons/phosphor/regular/text-h-two.svg?raw";
 import textHThree from "../../assets/icons/phosphor/regular/text-h-three.svg?raw";
@@ -212,6 +213,8 @@ export const ICONS = {
   quotes,
   "code-block": codeBlock,
   rule: minus,
+  minus,
+  square,
   h1: textHOne,
   h2: textHTwo,
   h3: textHThree,

@@ -17,6 +17,9 @@
   import { popRing } from "../services/actionRing.js";
   import { spaceIcon, TYPE_ICONS } from "../services/spaceIcon.js";
   import { accentColor, accentInk } from "../services/accent.js";
+  // Both files are authored white and rewritten to `fill: currentColor`.
+  import mark from "../../assets/brand/mark.svg?raw";
+  import wordmark from "../../assets/brand/wordmark.svg?raw";
   import { openIn } from "../services/counts.js";
   import { notebookRows } from "../services/notebookMenu.js";
 
@@ -80,6 +83,9 @@
     onMoveSpace,
     // Collapsed to an icon rail? Owned by the shell, toggled by the button here.
     rail = false,
+    /// The window has no title bar: the sidebar carries the brand at its
+    /// top, and that row is one of the places the window is dragged by.
+    brand = false,
     onToggleRail,
     /// The narrow shell (shell/compact.js): the same sidebar, worn as a drawer
     /// that slides in over the page. Nothing about its CONTENT changes.
@@ -420,6 +426,11 @@
   class:is-sliding={compact && sliding}
   inert={compact && !open && !sliding}
 >
+  {#if brand}
+    <div class="shell__brand" data-tauri-drag-region aria-label="Jott">
+      <span class="shell__brand-mark" aria-hidden="true">{@html rail ? mark : wordmark}</span>
+    </div>
+  {/if}
   <!-- Head: the hamburger to the lesser pages (Completed, Tags, Trash) on the
        left, the rail collapse toggle on the right. -->
   <div class="shell__sidebar-head theme-pane-head">
@@ -684,8 +695,19 @@
           {#if entry.kind === "group"}
             <div
               class="shell__entry shell__group shell__group--space shell__group--bar"
+              class:shell__group--folded={isCollapsed(entry.group.folder)}
               style={placeStyle(groupColor(entry.group.folder))}
             >
+              <!-- The rail draws no head for an open group: its bar is what
+                   folds it. Folded, the head comes back as a caret. -->
+              {#if rail && !isCollapsed(entry.group.folder)}
+                <button
+                  class="shell__group-fold"
+                  onclick={() => toggleGroup(entry.group.folder)}
+                  aria-label={`${S.collapseGroup}: ${entry.group.name}`}
+                  title={`${S.collapseGroup}: ${entry.group.name}`}
+                ></button>
+              {/if}
               <!-- svelte-ignore a11y_no_static_element_interactions -->
               <div
                 class="shell__nav-item shell__nav-item--row shell__nav-item--head"
@@ -696,7 +718,12 @@
                   class="shell__nav-open"
                   onclick={() => toggleGroup(entry.group.folder)}
                   aria-expanded={!isCollapsed(entry.group.folder)}
-                  title={isCollapsed(entry.group.folder) ? S.expandGroup : S.collapseGroup}
+                  aria-label={rail ? entry.group.name : undefined}
+                  title={rail
+                    ? `${S.expandGroup}: ${entry.group.name}`
+                    : isCollapsed(entry.group.folder)
+                      ? S.expandGroup
+                      : S.collapseGroup}
                 >
                   <!-- A name and a caret, nothing else: the colour is the
                        bar's and the caret's, and the head is a toggle. -->

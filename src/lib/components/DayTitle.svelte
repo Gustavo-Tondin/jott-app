@@ -10,7 +10,6 @@
   import { S } from "../services/strings.js";
   import { dotStyle as dotStyleOf } from "../services/accent.js";
   import { dayOfMonth, monthOf, weekdayName } from "../services/calendar.js";
-  import { hold } from "../actions/hold.js";
 
   let {
     /// The colour of the place, as a name (services/accent.js).
@@ -30,11 +29,8 @@
     sheet = false,
     /// The name was tapped: back to today.
     onHome,
-    /// The phone's top bar is hidden: the name opens the sidebar instead (a
-    /// held finger, the tabs). The page's ⋮ goes to the day's blocks
-    /// (HomeView.svelte), never to this row.
+    /// `() => void` — on a phone the name opens the tabs, like every page's.
     onName = null,
-    onHoldName = null,
     /// The row's element, for the head to measure (`bind:el`).
     el = $bindable(null),
   } = $props();
@@ -58,8 +54,7 @@
   <button
     class="day-head__title"
     onclick={() => (onName ? onName() : onHome?.())}
-    use:hold={{ onHold: onHoldName }}
-    title={onName ? S.openSidebar : S.backToToday}
+    title={onName ? S.showTabs : S.backToToday}
     tabindex={sheet ? -1 : undefined}
   >
     <span class="day-head__name">{S.home}</span>

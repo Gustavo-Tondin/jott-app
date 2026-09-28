@@ -21,7 +21,6 @@
     repeatCounts,
     repeatText,
   } from "../services/taskFields.js";
-  import { badgeStyle } from "../services/accent.js";
   import { childrenIn } from "../services/features.js";
   import { movedItem } from "../services/spaceOrder.js";
   import { reorderable } from "../actions/reorder.js";
@@ -38,8 +37,6 @@
   let {
     task,
     list,
-    /// The colour of the task's space (a name) — what its tags wear.
-    color = null,
     readOnly = false,
     /// The narrow shell (shell/compact.js): this panel is a bottom sheet
     /// rather than a column, and a sheet closes by itself — see the toolbar.
@@ -474,15 +471,22 @@
       onchange={complete}
       aria-label={S.complete}
     />
-    <input
-      class="theme-input theme-input--plain inspector__name"
-      bind:value={draft.text}
-      disabled={readOnly}
-      aria-label={S.taskName}
-    />
+    <!-- A textarea so a long title wraps, sized by the copy of its text
+         the wrapper draws (inspector.css). Enter ends the edit: a task's
+         text is one line of the file. -->
+    <span class="inspector__name-box" data-text={draft.text}>
+      <textarea
+        class="theme-input theme-input--plain inspector__name"
+        rows="1"
+        bind:value={draft.text}
+        disabled={readOnly}
+        aria-label={S.taskName}
+        onkeydown={(e) => e.key === "Enter" && (e.preventDefault(), e.currentTarget.blur())}
+      ></textarea>
+    </span>
     {#if f("subtasks")}
     <button
-      class="theme-btn theme-btn--icon"
+      class="theme-btn theme-btn--icon inspector__fold"
       onclick={() => (collapsed = !collapsed)}
       aria-label={collapsed ? S.expandSubtasks : S.collapseSubtasks}
       title={collapsed ? S.expandSubtasks : S.collapseSubtasks}
@@ -493,6 +497,7 @@
   </header>
 
   {#if !collapsed && f("subtasks")}
+    <hr class="theme-divider" />
     <!-- Subtasks. The header's chevron folds ONLY this block. Drag by the grip
          to reorder (`reorderable`); the add-form is excluded from the item set
          so it never counts as a slot. -->
@@ -528,11 +533,11 @@
           </span>
           {#if !readOnly}
             <button
-              class="theme-btn theme-btn--icon"
+              class="inspector__remove"
               onclick={() => removeSubtask(i)}
               aria-label={S.removeSubtask}
             >
-              <Icon name="x" size="0.75rem" />
+              <Icon name="x-bold" size="0.75rem" />
             </button>
           {/if}
         </div>
@@ -542,9 +547,11 @@
           class="inspector__subtask inspector__subtask--add"
           onsubmit={(e) => (e.preventDefault(), addSubtask())}
         >
+          <Icon name="plus" size="0.875rem" />
           <input
             class="theme-input theme-input--plain inspector__subtask-input"
             placeholder={S.newSubtaskPlaceholder}
+            aria-label={S.newSubtaskPlaceholder}
             bind:value={newSubtask}
           />
         </form>
@@ -552,14 +559,14 @@
     </div>
     {/if}
     {#if f("taskTags")}
-    <hr class="theme-divider" />
+    <hr class="theme-divider theme-divider--strong" />
 
     <!-- Tags: neutral `#tag` badges (a tag is a subject, not a colour), plus a
          picker that adds an existing tag or creates one — never free text, so
          the catalogue and the card stay in step. -->
     <div class="inspector__tags">
       {#each draft.tags as tag (tag)}
-        <span class="theme-badge inspector__tag" style={badgeStyle(color)}>
+        <span class="theme-badge theme-badge--tag inspector__tag">
           #{tag}
           {#if !readOnly}
             <button
@@ -582,15 +589,14 @@
       {/if}
     </div>
     {/if}
-    <hr class="theme-divider" />
+    <hr class="theme-divider theme-divider--strong" />
 
-    <!-- Fields: icon · label · value, each on its own surface card. -->
+    <!-- Fields: icon · label · value, a line each. -->
     <div class="inspector__fields">
       {#if f("dueDate")}
       <div
         class="inspector__field"
         class:inspector__field--unset={!draft.due}
-        class:inspector__field--stacked={!!draft.due}
       >
         <span class="inspector__field-label">
           <Icon name="calendar-blank" size="1rem" />
@@ -608,34 +614,14 @@
         </span>
         {#if !readOnly && draft.due}
           <button
-            class="inspector__tag-remove inspector__field-clear"
+            class="inspector__field-clear"
             onclick={clearDate}
             aria-label={S.clearDate}
             title={S.clearDateHint}
           >
-            <Icon name="x" size="0.625rem" />
+            <Icon name="x-bold" size="0.75rem" />
           </button>
         {/if}
-      </div>
-      {/if}
-
-      {#if f("priority")}
-      <div class="inspector__field" class:inspector__field--unset={!draft.priority}>
-        <span class="inspector__field-label inspector__field-label--{priorityClass(draft.priority)}">
-          <Icon name="flag" size="1rem" />
-          <span class="inspector__field-word">{S.priorityLabel}</span>
-        </span>
-        <!-- The values are the file's own (services/taskFields.js): the draft
-             holds the control's string, `fields()` turns it into the number. -->
-        <select
-          class="theme-select theme-select--bare"
-          bind:value={draft.priority}
-          disabled={readOnly}
-        >
-          {#each PRIORITIES as option (option.value)}
-            <option value={option.value}>{option.label()}</option>
-          {/each}
-        </select>
       </div>
       {/if}
 
@@ -643,14 +629,14 @@
       <div
         class="inspector__field"
         class:inspector__field--unset={!draft.repeatUnit}
-        class:inspector__field--stacked={repeatCounted(draft.repeatUnit)}
       >
         <span class="inspector__field-label">
           <Icon name="arrow-clockwise" size="1rem" />
           <span class="inspector__field-word">{S.repeatLabel}</span>
         </span>
-        <span class="inspector__stepper">
+        <span class="inspector__stepper" class:inspector__stepper--counted={repeatCounted(draft.repeatUnit)}>
           {#if repeatCounted(draft.repeatUnit)}
+            <span class="inspector__every" aria-hidden="true">{S.repeatEvery}</span>
             <!-- Chosen, never typed — the same list as the composer's, so the two
                  cannot disagree about what "every N" may be. -->
             <select
@@ -681,7 +667,7 @@
       <div
         class="inspector__field"
         class:inspector__field--unset={!draft.remind}
-        class:inspector__field--stacked={!!draft.remind}
+        class:inspector__field--stacked={pickingReminder}
       >
         <span class="inspector__field-label">
           <Icon name="alarm" size="1rem" />
@@ -722,21 +708,41 @@
         </span>
         {#if !readOnly && draft.remind}
           <button
-            class="inspector__tag-remove inspector__field-clear"
+            class="inspector__field-clear"
             onclick={clearReminder}
             aria-label={S.clearReminder}
             title={S.clearReminderHint}
           >
-            <Icon name="x" size="0.625rem" />
+            <Icon name="x-bold" size="0.75rem" />
           </button>
         {/if}
+      </div>
+      {/if}
+
+      {#if f("priority")}
+      <div class="inspector__field" class:inspector__field--unset={!draft.priority}>
+        <span class="inspector__field-label inspector__field-label--{priorityClass(draft.priority)}">
+          <Icon name="flag" size="1rem" />
+          <span class="inspector__field-word">{S.priorityLabel}</span>
+        </span>
+        <!-- The values are the file's own (services/taskFields.js): the draft
+             holds the control's string, `fields()` turns it into the number. -->
+        <select
+          class="theme-select theme-select--bare"
+          bind:value={draft.priority}
+          disabled={readOnly}
+        >
+          {#each PRIORITIES as option (option.value)}
+            <option value={option.value}>{option.label()}</option>
+          {/each}
+        </select>
       </div>
       {/if}
 
     </div>
 
     {#if f("description") || f("files")}
-    <hr class="theme-divider" />
+    <hr class="theme-divider theme-divider--strong" />
 
     <!-- Description + attachments. An attachment is a file of the library
          (`assets/`), written as a line of links under the task. -->
@@ -767,17 +773,17 @@
               onclick={() => openFile(file.address)}
               title={S.openFile}
             >
-              <Icon name="paperclip" size="1rem" />
+              <Icon name="paperclip" size="0.875rem" />
               <span class="inspector__file-name">{file.label}</span>
             </button>
             {#if !readOnly}
               <button
-                class="theme-btn--icon"
+                class="inspector__remove"
                 onclick={() => detach(file.address)}
                 aria-label={S.removeAttachment}
                 title={S.removeAttachment}
               >
-                <Icon name="x" size="0.875rem" />
+                <Icon name="x-bold" size="0.75rem" />
               </button>
             {/if}
           </div>
@@ -785,7 +791,7 @@
         {#if !readOnly}
           <button class="inspector__field inspector__add-file" onclick={() => (picking = true)}>
             <span class="inspector__field-label">
-              <Icon name="paperclip" size="1rem" />
+              <Icon name="plus" size="0.875rem" />
               <span class="inspector__field-word">{S.addFilesLabel}</span>
             </span>
           </button>
@@ -836,10 +842,7 @@
     <!-- A button on its own surface, not a bare select: the footer says the
          list AND is the way to change it. -->
     {#if readOnly || lists.length <= 1}
-      <span class="inspector__origin">
-        <Icon name="tray" size="1rem" />
-        {here}
-      </span>
+      <span class="inspector__origin">{here}</span>
     {:else}
       <Menu
         align="start"
@@ -855,12 +858,11 @@
       >
         {#snippet trigger({ toggle })}
           <button
-            class="theme-btn theme-btn--sm inspector__origin inspector__origin--button"
+            class="inspector__origin inspector__origin--button"
             onclick={toggle}
             aria-label={S.moveToList}
             title={S.moveToList}
           >
-            <Icon name="tray" size="1rem" />
             <span class="inspector__origin-name">{here}</span>
           </button>
         {/snippet}
@@ -873,7 +875,7 @@
       aria-label={S.deleteTask}
       title={S.deleteTask}
     >
-      <Icon name="trash" size="1.125rem" />
+      <Icon name="trash" size="1.25rem" />
     </button>
   </footer>
 </aside>

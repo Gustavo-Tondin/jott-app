@@ -206,10 +206,9 @@ pub struct Config {
     /// Close the task panel when clicking outside it. Off by default: it
     /// fires too easily and loses a half-typed task; kept for muscle memory.
     pub close_inspector_on_click_away: bool,
-    /// Phone only: no top bar over the pages — a screen's name opens the
-    /// sidebar (held: the tabs) and back is the system's gesture. Off by
-    /// default: nothing on screen says the name does that.
-    pub hide_top_bar: bool,
+    /// Desktop only: the tab strip over the window. Off by default: the page
+    /// header is the window's bar, and the page's name opens the tabs.
+    pub tab_strip: bool,
     /// Where the Home's quick capture writes, relative to the notes space;
     /// empty is the space's root, where loose notes live.
     pub quick_note_folder: String,
@@ -306,7 +305,7 @@ impl Default for Config {
             check_spelling: true,
             shortcuts: Map::new(),
             close_inspector_on_click_away: false,
-            hide_top_bar: false,
+            tab_strip: false,
             quick_note_folder: String::new(),
             quick_task_list: String::new(),
             tasks_show_all: false,
@@ -522,7 +521,7 @@ impl Config {
                 "closeInspectorOnClickAway",
                 defaults.close_inspector_on_click_away,
             ),
-            hide_top_bar: flag(&raw, "hideTopBar", defaults.hide_top_bar),
+            tab_strip: flag(&raw, "tabStrip", defaults.tab_strip),
             quick_note_folder: string(&raw, "quickNoteFolder")
                 .unwrap_or(defaults.quick_note_folder),
             quick_task_list: string(&raw, "quickTaskList").unwrap_or(defaults.quick_task_list),
@@ -621,7 +620,7 @@ impl Config {
                 "closeInspectorOnClickAway",
                 Value::from(self.close_inspector_on_click_away),
             ),
-            ("hideTopBar", Value::from(self.hide_top_bar)),
+            ("tabStrip", Value::from(self.tab_strip)),
             ("hyphenateNotes", Value::from(self.hyphenate_notes)),
             ("checkSpelling", Value::from(self.check_spelling)),
             ("quickNoteFolder", Value::from(self.quick_note_folder.clone())),

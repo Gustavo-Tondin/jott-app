@@ -5,7 +5,7 @@
   // never on it: no ink colour holds against every picture. The banner is a
   // line of the note's own file (`<!--banner: …-->`, core/src/note.rs).
   import { S } from "../services/strings.js";
-  import { accentFill, badgeStyle } from "../services/accent.js";
+  import { accentFill } from "../services/accent.js";
   import { formatDate } from "../services/dates.js";
   import TagPicker from "./TagPicker.svelte";
   import { assetUrl } from "../services/assets.js";
@@ -48,8 +48,6 @@
     /// Whether this notebook shows note tags at all (App Functions). Off, the
     /// properties line is not drawn — the `tags:` stays in the file.
     tagsEnabled = true,
-    /// The colour of the note's space (a name) — what its tags wear.
-    color = null,
     /// Whether this notebook has banners at all (App Functions). Off, the head
     /// is the TITLE alone — no band, no banner rows — and a `<!--banner:-->`
     /// line already in the file stays where it is.
@@ -161,7 +159,7 @@
           </dt>
           <dd class="note-banner__prop-value note-banner__tags">
             {#each tags as tag (tag)}
-              <span class="theme-badge note-banner__tag" style={badgeStyle(color)}>
+              <span class="theme-badge theme-badge--tag note-banner__tag">
                 #{tag}
                 {#if editsTags}
                   <button

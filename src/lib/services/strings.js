@@ -693,9 +693,9 @@ export const S = {
   autostartHint: "Opens hidden in the tray.",
   quitApp: "Quit Jott",
   closeOnClickAway: "Close the task panel when clicking outside",
-  hideTopBar: "Hide the top bar",
-  hideTopBarHint:
-    "Tap a screen's name to open the sidebar, hold it for the tabs; back is the phone's gesture. An open note keeps its buttons.",
+  tabStrip: "Show the tab strip",
+  tabStripHint:
+    "A row of tabs over the window. Without it, click a page's name to see your tabs.",
   quickNoteFolder: "Quick note goes to",
 
   // The function pages. One subtitle per group of rows.
@@ -884,8 +884,7 @@ export const S = {
   openTabs: (count) => (count === 1 ? "1 open tab" : `${count} open tabs`),
   openSidebar: "open sidebar",
   // The same two, as items of the page's ⋮ once the top bar is hidden.
-  forwardItem: "Forward",
-  tabsItem: (count) => `Tabs (${count})`,
+  showTabs: "show the tabs",
   closeSheet: "close",
   closeComposer: "close the new task bar",
   // The note's find & replace panel (services/searchPanel.js).
@@ -1042,12 +1041,12 @@ export const S = {
   taskOptions: "task options",
   duplicateTask: "Duplicate task",
   addTag: "add tag",
-  completeDateLabel: "Complete date",
+  completeDateLabel: "Due",
   addFilesLabel: "Add files",
   deleteTask: "delete task",
   moveToList: "move to list",
   subtaskLabel: (text) => `subtask: ${text}`,
-  newSubtaskPlaceholder: "New subtask…",
+  newSubtaskPlaceholder: "Add subtask",
   removeSubtask: "remove subtask",
   tagsTitle: "Tags",
   removeTag: (tag) => `remove #${tag}`,

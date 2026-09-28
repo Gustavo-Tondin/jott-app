@@ -60,6 +60,32 @@
     transition: flex-basis var(--app-transition-medium);
   }
 
+  /* ---- the brand, on top of the sidebar when the window has no title bar:
+     centred, and one of the places the window is dragged by ---- */
+  .shell__brand {
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--app-space-8) var(--app-space-12) var(--app-space-2);
+    user-select: none;
+  }
+  /* Clicks fall through to the row, which is the drag region. */
+  .shell__brand-mark {
+    display: flex;
+    pointer-events: none;
+    color: var(--app-ink);
+  }
+  .shell__brand-mark svg {
+    display: block;
+    block-size: 0.875rem;
+    inline-size: auto;
+  }
+  /* The window's buttons on the START side stand over this row. */
+  .window--stripped .shell__brand {
+    padding-inline-start: max(var(--app-space-12), var(--controls-room-start, 0rem));
+  }
+
   /* ---- head: hamburger · search · + · collapse, evenly spread, the first
      and the last on the walls ---- */
   .shell__sidebar-head {
@@ -244,9 +270,48 @@
     margin-inline-start: auto;
     display: inline-flex;
   }
-  /* The rail has no names: a group is its bar and its members. */
+  /* The rail has no names: an open group is its bar and its members, and
+     the bar is what folds it; a folded one is a short bar and the caret that
+     opens it again. */
   .shell__sidebar--rail .shell__nav-item--head {
     display: none;
+  }
+  .shell__sidebar--rail .shell__group--folded > .shell__nav-item--head {
+    display: flex;
+  }
+  .shell__sidebar--rail .shell__group--folded > .shell__nav-item--head > .shell__nav-open {
+    padding-block: var(--app-space-6);
+  }
+  .shell__sidebar--rail .shell__group-caret {
+    margin-inline-start: 0;
+  }
+  .shell__sidebar--rail .shell__group--folded.shell__group--bar::before {
+    inset-block: var(--app-space-6);
+  }
+  /* The bar as a button: a finger's width over the 2px line, which grows
+     under the pointer to say it can be pressed. */
+  .shell__group-fold {
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: 0;
+    z-index: 1;
+    inline-size: var(--app-space-10);
+    padding: 0;
+    cursor: pointer;
+  }
+  .shell__group-fold::before {
+    content: "";
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: 0;
+    inline-size: 0.125rem;
+    border-radius: var(--app-radius-pill);
+    background: var(--gc-mark);
+    transition: inline-size var(--app-transition-fast);
+  }
+  .shell__group-fold:hover::before,
+  .shell__group-fold:focus-visible::before {
+    inline-size: 0.25rem;
   }
   /* Where the colour/icon popup hangs; only in the DOM while it is open. */
   .shell__ws-tools {
@@ -432,6 +497,19 @@
     outline: 0.125rem solid var(--app-brand-ink);
     outline-offset: -0.125rem;
   }
+  /* The right panel's edge is a hairline inside the canvas: the handle takes
+     no room of its own and is reached over the line. */
+  .shell__resizer--panel {
+    flex-basis: 0;
+    position: relative;
+    z-index: 2;
+  }
+  .shell__resizer--panel::before {
+    content: "";
+    position: absolute;
+    inset-block: 0;
+    inset-inline: calc(-1 * var(--app-space-4));
+  }
 
   /* ---- centre panel: whatever the two side panels leave. It is the CANVAS
      region (data-region in App.svelte), so it paints its own ground. ---- */
@@ -447,6 +525,12 @@
        concentric from system to system without either being restated. */
     border-radius: calc(var(--app-window-radius) - var(--app-space-4));
     overflow: hidden;
+  }
+  /* With the right panel open the canvas runs on into it: the corners on
+     that side are the panel's. */
+  .shell__centre:has(~ .shell__panel) {
+    border-start-end-radius: 0;
+    border-end-end-radius: 0;
   }
 
   /* The screen below the page header, and the containing block of what floats
@@ -467,6 +551,17 @@
     display: flex;
     min-height: 0;
     overflow: hidden;
+    /* A surface of the canvas (`data-region` in RightPanel.svelte), parted
+       from the page by a hairline and raised over it: positioned, or the
+       centre (which is) would paint over the shadow. */
+    position: relative;
+    z-index: 1;
+    box-shadow: var(--app-shadow-raised);
+    background: var(--app-surface);
+    color: var(--app-ink);
+    border-inline-start: 0.0625rem solid var(--app-line);
+    border-start-end-radius: calc(var(--app-window-radius) - var(--app-space-4));
+    border-end-end-radius: calc(var(--app-window-radius) - var(--app-space-4));
   }
   /* EVERY thing the panel can hold has to be in this list: the panel is sized
      BY its child, and a child with no width of its own takes half the row. */
