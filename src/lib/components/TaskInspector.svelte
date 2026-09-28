@@ -439,9 +439,9 @@
       aria-label={inDay ? S.removeFromDay : S.myDay}
       title={inDay ? S.removeFromDay : S.myDay}
     >
-      <!-- The glyph says what the click DOES: sun to bring it into the day,
-           struck sun to take it out. -->
-      <Icon name={inDay ? "sun-off" : "sun"} size="1.125rem" />
+      <!-- The glyph says the STATE: lit (brand ink) when the task is in the
+           day; the label says what the click does. -->
+      <Icon name="sun" size="1.125rem" />
     </button>
     {/if}
     {#if compact}<span class="inspector__gap"></span>{/if}

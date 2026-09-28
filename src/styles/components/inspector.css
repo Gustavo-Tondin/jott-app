@@ -44,8 +44,9 @@
     color: var(--app-ink-muted);
   }
   /* Lit when the task is in today — the one coloured control in the toolbar,
-     because it is the only one that carries state. */
-  .inspector__myday--on {
+     because it is the only one that carries state; the hover keeps it. */
+  .inspector__myday--on,
+  .inspector__myday--on:hover:not(:disabled) {
     color: var(--app-brand-ink);
   }
 
@@ -235,10 +236,37 @@
   }
 
   /* ---- fields: icon · label on one end, the value in its box on the
-     other, a hairline between the rows ---- */
+     other, a hairline between the rows. The rows share ONE grid (label ·
+     × · value), so every value box is as wide as the widest of them. ---- */
   .inspector__fields {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    column-gap: var(--app-space-8);
+  }
+  .inspector__fields > .inspector__field {
+    grid-column: 1 / -1;
+  }
+  /* A reminder set by hand keeps its own two-line grid (--stacked, below). */
+  .inspector__fields > .inspector__field:not(.inspector__field--stacked) {
+    display: grid;
+    grid-template-columns: subgrid;
+  }
+  .inspector__field:not(.inspector__field--stacked) > .inspector__field-label {
+    grid-column: 1;
+  }
+  .inspector__field:not(.inspector__field--stacked) > .inspector__field-clear {
+    grid-column: 2;
+  }
+  .inspector__field:not(.inspector__field--stacked) > .inspector__field-value,
+  .inspector__field:not(.inspector__field--stacked) > .inspector__stepper,
+  .inspector__field:not(.inspector__field--stacked) > .theme-select {
+    grid-column: 3;
+  }
+  /* The box fills its column, whatever wraps it. */
+  .inspector__fields .inspector__field-value > *,
+  .inspector__fields .inspector__field-value > * > .theme-input--filled,
+  .inspector__stepper:not(.inspector__stepper--counted) > .theme-select {
+    flex: 1 1 auto;
   }
   .inspector__field {
     display: flex;
@@ -293,12 +321,14 @@
     gap: var(--app-space-4);
   }
 
-  /* The value's box: the same 120 by 22 whatever it holds. */
+  /* The value's box: at least 120 by 22, one line. Never wrapping also
+     keeps the grid from sizing a row by a two-line guess of it. */
   .inspector__field .theme-input--filled,
   .inspector__field .theme-select--bare,
   .inspector__stepper--counted {
     min-inline-size: 7.5rem;
     min-block-size: 1.375rem;
+    white-space: nowrap;
     background: var(--app-bg);
     border: 0.0625rem solid var(--app-line);
     border-radius: var(--app-radius-sm);
