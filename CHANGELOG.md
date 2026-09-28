@@ -15,6 +15,7 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 - Secondary text is a little darker and easier to read.
 - The interface is now set in Geist, and code and small details in Geist Mono.
 - Task cards say where they came from with a dot and the space's name, show their facts on one quiet line, and mark priority with a flag.
+- Task cards are shorter: the pin (or the × of a completed task) and the age sit close together and line up on one axis at the card's end.
 - Note cards show the name on its own line and, at the foot, the space and the age; tags no longer appear on the card.
 - The Home's head shows the month, and each day is a number on a disc, blue for the chosen one.
 - Checkboxes are round, and what is ticked, active or primary is drawn in ink instead of a colour.

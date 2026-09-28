@@ -223,33 +223,36 @@
     font-weight: var(--app-weight-medium);
     line-height: 1.2;
   }
-  /* THE CARD'S END: bookmark on top, age at the foot, as tall as the card.
-     The top slot is one title line tall even without a bookmark (a day has
-     nowhere to pin to), so the age sits where a meta row would, and a card
-     with no fields is as tall as one with them. Both hug the card's end;
-     the bookmark gives its padding back so its GLYPH ends where the age
-     does, and an age narrower than the glyph centres under it. */
+  /* THE CARD'S END: the glyph (bookmark or ×) over the age, a pair centred
+     in the card. Both take the same least width (`--aside-slot`, three mono
+     characters) and centre in it, so they share ONE axis on every card; a
+     longer age (a date) keeps the card's end and grows inward. The top slot
+     is one glyph tall even when empty, so the age never climbs. */
   .task-row__aside {
+    --aside-slot: var(--app-space-24);
     flex-shrink: 0;
-    align-self: stretch;
     display: flex;
     flex-direction: column;
     align-items: flex-end;
-    justify-content: space-between;
-    gap: var(--app-space-12);
+    gap: var(--app-space-4);
   }
   .task-row__aside-top {
     display: flex;
     align-items: center;
-    font-size: var(--app-text-16);
-    min-block-size: 1lh;
+    justify-content: center;
+    min-inline-size: var(--aside-slot);
+    min-block-size: var(--app-space-16);
+  }
+  /* Whatever button sits there takes the room of its glyph alone: the
+     padding it keeps for the hover is given back to the column. */
+  .task-row__aside-top .theme-btn--icon {
+    flex-shrink: 0;
+    padding: var(--app-space-2);
+    margin-block: calc(-1 * var(--app-space-2));
   }
   /* The bookmark pins the task to the top of its list. Quiet until it is on:
      an unpinned card should read as a card, not as a row of controls. */
   .task-row__bookmark {
-    flex-shrink: 0;
-    padding: var(--app-space-2);
-    margin-inline-end: calc(-1 * var(--app-space-2));
     color: var(--app-ink-faint);
   }
   /* Pinned is the filled glyph, in the card's own ink — the shape carries the
@@ -324,7 +327,7 @@
      the same warning ink an overdue date takes. */
   .task-row__field--age {
     flex-shrink: 0;
-    min-inline-size: 1rem;
+    min-inline-size: var(--aside-slot);
     justify-content: center;
     color: var(--app-ink-faint);
     font-variant-numeric: tabular-nums;
