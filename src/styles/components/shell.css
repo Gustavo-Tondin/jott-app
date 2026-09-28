@@ -93,9 +93,9 @@
     overflow-x: hidden;
     display: flex;
     flex-direction: column;
-    gap: var(--app-space-8);
+    gap: var(--app-space-16);
     /* Block padding keeps the groups off the head/footer borders. */
-    padding: var(--app-space-12) 0;
+    padding: var(--app-space-16) 0;
   }
   /* Rail: the right-hand padding gives way so the 56px column fits the icon
      band; the LEFT paddings stay, so every icon keeps its x. */
@@ -103,6 +103,63 @@
     padding-inline-end: 0;
   }
   .shell__sidebar--rail .shell__nav-item--secondary {
+    display: none;
+  }
+
+  /* ---- the three fixed spaces, as TILES in one row: the glyph over the
+     name. Ink for the open one, never a colour — these are the app's own
+     places. On the rail they stack, a square each. ---- */
+  .shell__tiles {
+    display: flex;
+    gap: var(--app-space-4);
+    padding-inline: var(--app-space-4);
+  }
+  .shell__tile {
+    flex: 1 1 0;
+    min-inline-size: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--app-space-6);
+    padding: var(--app-space-10) var(--app-space-4);
+    border-radius: var(--app-radius-md);
+    color: var(--app-ink-muted);
+    font: inherit;
+    font-size: var(--app-text-12);
+    font-weight: var(--app-weight-medium);
+    transition:
+      background var(--app-transition-fast),
+      color var(--app-transition-fast),
+      scale var(--app-transition-fast);
+  }
+  .shell__tile:hover {
+    background: var(--app-hover);
+  }
+  .shell__tile:active {
+    scale: 0.97;
+  }
+  .shell__tile--active {
+    background: var(--app-hover);
+    color: var(--app-ink);
+  }
+  /* The open tile's glyph is the one mark of the brand in the column. */
+  .shell__tile--active .theme-icon {
+    color: var(--app-brand-5);
+  }
+  .shell__tile-label {
+    max-inline-size: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .shell__sidebar--rail .shell__tiles {
+    flex-direction: column;
+  }
+  .shell__sidebar--rail .shell__tile {
+    flex: none;
+    padding: var(--app-space-12) 0;
+  }
+  .shell__sidebar--rail .shell__tile-label {
     display: none;
   }
 
@@ -123,16 +180,28 @@
     justify-content: center;
     padding: var(--app-space-12) 0;
   }
-  /* Every section of the sidebar is marked by a 2px bar in the wall gap. */
+  /* A section of the sidebar: a loose space, a list, or a group. */
   .shell__group {
-    /* --gc-strong is the section's colour, declared HERE so every section has
-       it, the fixed entries included: no colour of its own IS the accent. */
-    --gc-strong: var(--app-brand);
+    /* What is READ in the section's colour (the icon, the caret) and what
+       MARKS it (a group's bar), declared HERE so every section has them: no
+       colour of its own is the brand. */
+    --gc-strong: var(--app-brand-ink);
+    --gc-mark: var(--app-brand);
+    position: relative;
     display: flex;
     flex-direction: column;
     gap: var(--app-space-2);
-    border-left: 0.125rem solid var(--gc-strong);
     padding-inline: var(--app-space-4);
+  }
+  /* A GROUP, and only a group, runs a 2px bar down the wall in its colour. */
+  .shell__group--bar::before {
+    content: "";
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: 0;
+    inline-size: 0.125rem;
+    border-radius: var(--app-radius-pill);
+    background: var(--gc-mark);
   }
   /* The wrapper the spaces reorder within. */
   .shell__spaces {
@@ -144,7 +213,7 @@
   /* A level inside a group. The indent is the CONTAINER's, not the row's, so
      it compounds with depth and a row never knows how deep it is. */
   .shell__spaces--nested {
-    padding-inline-start: var(--app-space-12);
+    padding-inline-start: var(--app-space-16);
   }
   /* The rail is 56px of icon column: every icon keeps its x, at any depth. */
   .shell__sidebar--rail .shell__spaces--nested {
@@ -155,29 +224,17 @@
      already follows the region's ground (services/accent.js). Unset means no
      colour of its own, and the fallback is the accent. ---- */
   .shell__group--space {
-    --gc-strong: var(--group-color, var(--app-brand));
+    --gc-strong: var(--group-color, var(--app-brand-ink));
+    --gc-mark: var(--group-mark, var(--app-brand));
   }
 
-  /* Selected: the solid pill in whatever colour the section carries — one
-     shape for "this is the open place", no outline. */
-  .shell__group .shell__nav-item--active {
-    background: var(--gc-strong);
-    color: var(--app-on-brand);
-  }
-
-  /* How far the colour reaches: the ICON always wears it, at every level; the
-     LABEL only on a group HEAD. */
+  /* How far the colour reaches: the ICON wears it, at every level, open or
+     not. The name never does. */
   .shell__group .theme-icon {
     color: var(--gc-strong);
   }
-  .shell__nav-item--head > .shell__nav-open > .shell__nav-label {
-    color: var(--gc-strong);
-  }
-  /* On the open row the pill IS the colour, so both go back to the ink that
-     reads on it. */
-  .shell__group .shell__nav-item--active > .shell__nav-open > .shell__nav-label,
-  .shell__group .shell__nav-item--active .theme-icon {
-    color: var(--app-on-brand);
+  .shell__nav-item--head {
+    font-weight: var(--app-weight-medium);
   }
 
   /* The caret at the end of a group head: the one affordance saying the head
@@ -185,10 +242,10 @@
   .shell__group-caret {
     flex-shrink: 0;
     margin-inline-start: auto;
-    opacity: 0.7;
+    display: inline-flex;
   }
-  /* Not on the rail: a second glyph in a column that holds one. */
-  .shell__sidebar--rail .shell__group-caret {
+  /* The rail has no names: a group is its bar and its members. */
+  .shell__sidebar--rail .shell__nav-item--head {
     display: none;
   }
   /* Where the colour/icon popup hangs; only in the DOM while it is open. */
@@ -218,21 +275,21 @@
     background: var(--app-surface);
     border-radius: var(--app-radius-md);
   }
-  /* ---- the sidebar row: one 42px band, icon and label, whether a fixed
-     entry (a button) or a space/group row (`--row`, a div whose inner
+  /* ---- the sidebar row: one band, icon and label, whether a list (a
+     button) or a space/group row (`--row`, a div whose inner
      `.shell__nav-open` opens so the ⋮ sits INSIDE the highlight). ---- */
   .shell__nav-item {
     display: flex;
     align-items: center;
     gap: var(--app-space-8);
-    height: 2.625rem;
-    padding: var(--app-space-12) var(--app-space-8);
+    height: 2.0625rem;
+    padding: var(--app-space-8) var(--app-space-10);
     background: none;
     border: none;
-    border-radius: var(--app-radius-md);
+    border-radius: var(--app-radius-sm);
     color: var(--app-ink-muted);
     font: inherit;
-    font-size: var(--app-text-16);
+    font-size: var(--app-text-14);
     text-align: left;
     cursor: pointer;
     transition:
@@ -249,24 +306,13 @@
   .shell__nav-item:active {
     scale: 0.98;
   }
-  /* The open place is a SOLID accent pill. The fill is the vivid step in every
-     region, so the label rides on --app-on-brand, which is the dark ground
-     everywhere and clears 7:1 over all eight. */
-  .shell__nav-item--active {
-    background: var(--app-brand);
-    color: var(--app-on-brand);
-    font-weight: var(--app-weight-semibold);
-  }
-  /* Hovering the open row DIMS it, it does not veil: the base `:hover`'s
-     translucent grey wins on specificity and smudges the pill. Both selectors
-     are needed — a space row repaints the background with its own colour. */
+  /* The open place: the raised step and the full ink. No colour — the
+     colour of a place lives in its icon. */
+  .shell__nav-item--active,
   .shell__nav-item--active:hover {
-    background: var(--app-brand);
-    opacity: 0.7;
-  }
-  .shell__group .shell__nav-item--active:hover {
-    background: var(--gc-strong);
-    opacity: 0.7;
+    background: var(--app-surface);
+    color: var(--app-ink);
+    font-weight: var(--app-weight-medium);
   }
   .shell__nav-label {
     flex: 1;
@@ -297,16 +343,13 @@
     gap: var(--app-space-8);
     height: 100%;
     padding-block: 0;
-    padding-inline: var(--app-space-8);
+    padding-inline: var(--app-space-10);
     color: inherit;
     font: inherit;
     text-align: left;
   }
-  /* The indent belongs to the level's container (`--nested`), not here. */
-  .shell__nav-item--member {
-    height: 1.875rem;
-    font-size: var(--app-text-14);
-  }
+  /* A member is a row like any other; the indent belongs to the level's
+     container (`--nested`), not here. */
   /* The rail keeps the members: its `.shell__nav-item` padding wins over the
      member's (two classes to one), so their icons land in the same column. */
   /* The pane foot; its top hairline is .theme-pane-foot's. */
@@ -315,7 +358,7 @@
     align-items: center;
     justify-content: space-between;
     gap: var(--app-space-8);
-    padding: var(--app-space-10) var(--app-space-12);
+    padding: var(--app-space-8) var(--app-space-12);
   }
   /* The name is the trigger of a menu: the wrapper `Menu` draws takes the
      row's flexible half, and the button fills it. */
@@ -329,9 +372,8 @@
     display: flex;
     align-items: center;
     gap: var(--app-space-6);
-    font: inherit;
+    font-family: var(--app-font-mono);
     font-size: var(--app-text-14);
-    font-weight: var(--app-weight-semibold);
     color: var(--app-ink-muted);
     text-align: left;
   }
@@ -354,7 +396,6 @@
   }
   .shell__settings {
     flex-shrink: 0;
-    padding: var(--app-space-4);
   }
   /* A DOOR OUT OF THE SIDEBAR — Settings at the foot, the Timeline in the head
      — lights up in the accent while its screen is open: no pill, just the ink,
@@ -370,6 +411,7 @@
   .shell__count {
     flex-shrink: 0;
     color: var(--app-ink-faint);
+    font-family: var(--app-font-mono);
     font-size: var(--app-text-12);
     font-weight: var(--app-weight-regular);
   }

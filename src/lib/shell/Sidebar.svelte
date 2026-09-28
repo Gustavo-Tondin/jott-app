@@ -16,7 +16,7 @@
   import { reorderable } from "../actions/reorder.js";
   import { popRing } from "../services/actionRing.js";
   import { spaceIcon, TYPE_ICONS } from "../services/spaceIcon.js";
-  import { accentStyle } from "../services/accent.js";
+  import { accentColor, accentInk } from "../services/accent.js";
   import { openIn } from "../services/counts.js";
   import { notebookRows } from "../services/notebookMenu.js";
 
@@ -400,6 +400,12 @@
       },
     ];
   };
+
+  /// The colour of a place, as the two custom properties its section reads:
+  /// the ink (the icon, the caret) and the mark (the bar at the wall).
+  /// `undefined` for no colour of its own, so the brand answers.
+  const placeStyle = (color) =>
+    color ? `--group-color: ${accentInk(color)}; --group-mark: ${accentColor(color)}` : undefined;
 </script>
 
 <!-- It DECLARES the chrome rather than inheriting it: as a drawer it is
@@ -514,24 +520,24 @@
          `data-space-drop` + `data-space-kind` for a space (a task into its
          Inbox, a note into its Inbox folder), `data-day-drop` for the Home. -->
     {#snippet fixedRow(view, icon, label, count = 0, drop = {})}
+      <!-- A TILE: the glyph over the name. The count is said, not drawn:
+           three tiles in a row have no room for a number. -->
       <button
-        class="shell__nav-item"
-        class:shell__nav-item--active={isOpen(view) || holds(view)}
+        class="shell__tile"
+        class:shell__tile--active={isOpen(view) || holds(view)}
         {...drop}
+        aria-label={count ? `${label} (${count})` : label}
         onclick={() => onOpen(view)}
         onauxclick={(e) => middleOpen(e, () => onOpen?.(view, true))}
       >
-        <Icon name={icon} size="1.125rem" />
-        <span class="shell__nav-label">{label}</span>
-        {#if count}
-          <span class="shell__count">{count}</span>
-        {/if}
+        <Icon name={icon} size="1.25rem" />
+        <span class="shell__tile-label">{label}</span>
       </button>
     {/snippet}
     <!-- With every fixed row hidden the whole group goes, divider included —
          an empty group would leave a stray second line at the top. -->
     {#if f("homeSpace") || (f("tasks") && f("tasksSpace")) || (f("notes") && f("notesSpace"))}
-      <div class="shell__group">
+      <div class="shell__tiles">
         <!-- One glyph, open or not: the pill already says where you are. Each
              fixed row also answers to its own switch (Fixed spaces): hiding one
              takes the shortcut and the screen — the folders and the function stay. -->
@@ -580,7 +586,7 @@
           onauxclick={(e) => middleOpen(e, () => onOpenList(entry.path, true))}
           title={S.openInNewTab}
         >
-          <Icon name="list-bullets" size="1.125rem" />
+          <Icon name="list-checks" size="1rem" />
           <span class="shell__nav-label">{entry.name}</span>
           {#if counts[entry.path]}<span class="shell__count"
               >{counts[entry.path]}</span
@@ -619,7 +625,7 @@
           <!-- A member draws its icon too, a size down — it keeps the rail
                usable, where the icon is all there is. Untinted: the colour
                belongs to the group. -->
-          <Icon name={spaceIcon(sp)} size={grouped ? "1rem" : "1.125rem"} />
+          <Icon name={spaceIcon(sp)} size="1rem" />
           <span class="shell__nav-label">{sp.name}</span>
           {#if open}
             <span class="shell__count">{open}</span>
@@ -677,11 +683,8 @@
         {#each list as entry (entry.key)}
           {#if entry.kind === "group"}
             <div
-              class="shell__entry shell__group shell__group--space"
-              style={accentStyle(groupColor(entry.group.folder), {
-                color: "--group-color",
-                tint: null,
-              })}
+              class="shell__entry shell__group shell__group--space shell__group--bar"
+              style={placeStyle(groupColor(entry.group.folder))}
             >
               <!-- svelte-ignore a11y_no_static_element_interactions -->
               <div
@@ -695,14 +698,13 @@
                   aria-expanded={!isCollapsed(entry.group.folder)}
                   title={isCollapsed(entry.group.folder) ? S.expandGroup : S.collapseGroup}
                 >
-                  <Icon name={entry.group.icon || "folders"} size="1.125rem" />
+                  <!-- A name and a caret, nothing else: the colour is the
+                       bar's and the caret's, and the head is a toggle. -->
                   <span class="shell__nav-label">{entry.group.name}</span>
-                  <!-- The head is a toggle; the caret says so, and points where
-                       the members are. -->
                   <span class="shell__group-caret">
                     <Icon
                       name={isCollapsed(entry.group.folder) ? "caret-right-bold" : "caret-down-bold"}
-                      size="0.875rem"
+                      size="0.75rem"
                     />
                   </span>
                 </button>
@@ -732,12 +734,7 @@
               class="shell__entry"
               class:shell__group={!parent}
               class:shell__group--space={!parent}
-              style={!parent
-                ? accentStyle(spaceColor(entry.sp.path), {
-                    color: "--group-color",
-                    tint: null,
-                  })
-                : undefined}
+              style={!parent ? placeStyle(spaceColor(entry.sp.path)) : undefined}
             >
               {@render spaceRow(entry.sp, !!parent)}
             </div>
@@ -782,7 +779,7 @@
         >
           <span class="shell__notebook-name">{notebook.name}</span>
           {#if notebook.readOnly}<span class="shell__badge">{S.readOnly}</span>{/if}
-          <Icon name="caret-up-bold" size="0.75rem" />
+          <Icon name="caret-up-bold" size="0.875rem" />
         </button>
       {/snippet}
     </Menu>
