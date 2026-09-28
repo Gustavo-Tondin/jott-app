@@ -1,8 +1,8 @@
-/* day-head.css — the Home's head: the place, the month, a week of days and
- * the day's one line. Markup: src/lib/components/DayHead.svelte; selectors are
- * the BEM hooks a theme may restyle. Desktop: a 700px card, seven 84px cells,
- * the chosen one an 84×84 pill. Phone: the card IS the chrome — no surface, no
- * radius, the top bar floating over it — 44px cells and a 44×70 marker. */
+/* day-head.css — the Home's head: the month, a week of days and the day's one
+ * line. Markup: src/lib/components/DayHead.svelte; selectors are the BEM hooks
+ * a theme may restyle. A day is a letter over a 36px disc, and the chosen
+ * one's disc is the brand's solid blue. Desktop: a card. Phone: the card IS
+ * the chrome — no surface, no radius, the top bar floating over it. */
 
 /* The width of the fade at the strip's ends. REGISTERED, because a plain
    custom property inside a gradient cannot be transitioned: the fade has to
@@ -21,9 +21,13 @@
     flex-direction: column;
     gap: var(--app-space-16);
     padding: var(--app-space-24) var(--app-space-32);
-    border-radius: var(--app-radius-xl);
+    border-radius: var(--app-radius-xxl);
     background: var(--app-surface);
     color: var(--app-ink);
+    /* The disc a day's number stands on, and the room the week keeps from
+       the ends of its row. */
+    --day-disc: 2.25rem;
+    --day-inset: var(--app-space-8);
   }
 
   /* ---- the top row: name and month on one baseline ---- */
@@ -45,6 +49,13 @@
     letter-spacing: var(--app-tracking-tight);
     border-radius: var(--app-radius-xs);
   }
+  /* The desktop's title: the month, a size up, and nothing beside it. */
+  .day-head__title--month {
+    font-size: var(--app-text-32);
+    letter-spacing: 0;
+    line-height: 1.3;
+  }
+  .day-head__title--month:hover,
   .day-head__title:hover .day-head__name {
     text-decoration: underline;
     text-decoration-thickness: 0.0625rem;
@@ -140,12 +151,14 @@
     scroll-snap-align: start;
     scroll-snap-stop: always;
   }
+  /* Seven discs spread over the row: the room between two is what is left,
+     so the first and the last sit at the row's ends. */
   .day-head__days {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: var(--app-space-4);
+    --day-gap: calc((100% - 2 * var(--day-inset) - 7 * var(--day-disc)) / 6);
+    display: flex;
+    justify-content: space-between;
     margin: 0;
-    padding: 0;
+    padding: 0 var(--day-inset);
     /* The pill below is placed from a day's `offsetLeft`, which answers to
        the nearest POSITIONED ancestor — without this it would measure
        against `.day-head__week` and land a whole arrow to the left. */
@@ -166,20 +179,21 @@
     inset-block-start: 0;
     inset-inline-start: 0;
     z-index: 0;
-    inline-size: var(--seg-w);
-    block-size: var(--seg-h);
-    translate: var(--seg-x) var(--seg-y);
-    border-radius: var(--app-radius-lg);
-    background: var(--app-brand);
+    /* The disc, not the day's whole box: it sits at the foot of the column,
+       under the number, centred on it. */
+    inline-size: var(--day-disc);
+    block-size: var(--day-disc);
+    translate: calc(var(--seg-x) + (var(--seg-w) - var(--day-disc)) / 2)
+      calc(var(--seg-y) + var(--seg-h) - var(--day-disc));
+    border-radius: var(--app-radius-pill);
+    background: var(--app-brand-solid);
     /* No spring on the travel: the first and last day sit flush with the
        scroller's box (three weeks side by side, one on show), so an
        overshoot there is simply cut off — see docs/platform-gotchas.md. */
-    transition:
-      translate var(--app-transition-medium),
-      inline-size var(--app-transition-medium),
-      block-size var(--app-transition-medium);
+    transition: translate var(--app-transition-medium);
   }
   .day-head__slot {
+    flex: 0 0 var(--day-disc);
     display: flex;
     justify-content: center;
   }
@@ -191,10 +205,9 @@
   .day-head__days--turns::after {
     content: "";
     position: absolute;
-    --day-col: calc((100% - 6 * var(--app-space-4)) / 7);
     inset-block-start: 50%;
     inset-inline-start: calc(
-      var(--turn-at) * (var(--day-col) + var(--app-space-4)) - var(--app-space-4) / 2
+      var(--day-inset) + var(--turn-at) * (var(--day-disc) + var(--day-gap)) - var(--day-gap) / 2
     );
     z-index: 0;
     inline-size: 0.0625rem;
@@ -202,54 +215,61 @@
     translate: -50% -50%;
     background: var(--app-line);
   }
-  /* A day: the weekday letter over the number, on a pill filled only for the
-     chosen one. The whole column is the target. */
+  /* A day: the weekday letter over the number, the number on a disc filled
+     only for the chosen one. The whole column is the target. */
   .day-head__day {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     gap: var(--app-space-10);
-    /* Above the pill. */
+    /* Above the disc. */
     position: relative;
     z-index: 1;
-    inline-size: 100%;
-    max-inline-size: 5.25rem;
-    min-block-size: 5.25rem;
-    padding: var(--app-space-8) 0;
+    inline-size: var(--day-disc);
+    padding: 0;
     border-radius: var(--app-radius-lg);
     color: var(--app-ink);
     font: inherit;
+  }
+  .day-head__weekday {
+    font-family: var(--app-font-mono);
+    font-size: var(--app-text-16);
+    line-height: 1.5;
+    color: var(--app-ink-muted);
+  }
+  .day-head__number {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    inline-size: var(--day-disc);
+    block-size: var(--day-disc);
+    border-radius: var(--app-radius-pill);
+    font-size: var(--app-text-20);
+    font-weight: var(--app-weight-medium);
+    font-variant-numeric: tabular-nums;
     transition:
       background var(--app-transition-fast),
       color var(--app-transition-fast);
   }
-  .day-head__day:hover {
+  .day-head__day:hover:not(.is-selected) .day-head__number {
     background: var(--app-hover);
-  }
-  .day-head__weekday {
-    font-size: var(--app-text-16);
-    color: var(--app-ink-muted);
-  }
-  .day-head__number {
-    font-size: var(--app-text-20);
-    font-weight: var(--app-weight-medium);
-    font-variant-numeric: tabular-nums;
   }
   /* Today, when it is not the chosen day, keeps a mark of its own: the
      number in the brand colour, so the eye can find the way back. */
   .day-head__day.is-today:not(.is-selected) .day-head__number {
     color: var(--app-brand-ink);
   }
-  .day-head__day.is-selected {
-    background: var(--app-brand);
-    color: var(--app-on-brand);
+  /* THE CHOSEN DAY: the one place the brand is a solid fill in this card. */
+  .day-head__day.is-selected .day-head__number {
+    background: var(--app-brand-solid);
+    color: var(--app-brand-on-solid);
   }
   .day-head__day.is-selected .day-head__weekday {
-    color: var(--app-on-brand);
+    color: var(--app-ink);
   }
-  /* Once the track's pill carries the colour, the day lets go of it. */
-  .day-head__days--glides .day-head__day.is-selected {
+  /* Once the track's disc carries the colour, the number lets go of it. */
+  .day-head__days--glides .day-head__day.is-selected .day-head__number {
     background: transparent;
   }
 
@@ -272,7 +292,6 @@
     flex-wrap: wrap;
     gap: var(--app-space-8);
     margin: 0;
-    padding-inline: var(--app-space-24);
     font-size: var(--app-text-20);
     color: var(--app-ink);
   }
@@ -435,17 +454,12 @@
   .day-head--compact .day-head__turn {
     display: none;
   }
-  .day-head--compact .day-head__days {
-    gap: 0;
+  /* The phone keeps the same disc, the week a little tighter to its ends. */
+  .day-head--compact {
+    --day-disc: 2.25rem;
+    --day-inset: 0rem;
   }
-  /* The phone's cell is 44 wide and 70 tall, and the ladder's `lg` is what
-     keeps it a rounded box: a radius near half its width leaves a flat of a
-     few pixels at the top and bottom of the curve, and a pill with a flat cap
-     reads as a pill that was cut off. The travelling one copies the cell —
-     both take the base rules' radius, so neither is restated here. */
   .day-head--compact .day-head__day {
-    max-inline-size: 2.75rem;
-    min-block-size: 4.375rem;
     gap: var(--app-space-8);
   }
   .day-head--compact .day-head__weekday {

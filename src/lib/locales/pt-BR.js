@@ -1257,8 +1257,8 @@ export default {
   capture: ["new", "novo"],
   task: ["Task", "Tarefa"],
   note: ["Note", "Nota"],
-  todaysTasks: ["Today tasks", "Tarefas de hoje"],
-  todaysNotes: ["Today notes", "Notas de hoje"],
+  todaysTasks: ["Tasks", "Tarefas"],
+  todaysNotes: ["Notes", "Notas"],
   dayTasks: [(day) => `${day} tasks`, (day) => `Tarefas de ${day}`],
   shortDay: [
     (month, day) => `${month.slice(0, 3)} ${day}`,

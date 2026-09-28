@@ -28,7 +28,7 @@
 
     /* The note card's corner, WIDE touch screens only: below 768px there is no
        corner and holding the card opens the same actions (note-card.css). */
-    .shell:not(.shell--compact) .note-card__tools {
+    .shell:not(.shell--compact) .note-card__pin {
       opacity: 1;
     }
 
@@ -90,7 +90,7 @@
       left: 0.46875rem;
       top: 0.1875rem;
       width: 0.375rem;
-      height: 0.75rem;
+      height: 0.6875rem;
     }
     .task-row--picked .task-row__check:not(:checked)::before {
       inset: 0.4375rem;
@@ -228,13 +228,13 @@
     /* The worded button and the fields, all at the 48px minimum. */
     .theme-btn,
     .theme-input,
-    .theme-select {
+    .theme-select,
+    .theme-chip {
       border-radius: var(--app-radius-lg);
     }
     /* The quiet sizes, raised to 44px above. */
     .theme-btn--sm,
     .theme-btn--xs,
-    .theme-chip,
     .theme-input--sm,
     .theme-select--sm,
     .theme-select--bare,

@@ -630,8 +630,6 @@
     {entry}
     {root}
     banners={f("banners")}
-    noteTags={f("noteTags")}
-    tagColor={dot}
     showAge={f("time")}
     {dateFormat}
     {picking}

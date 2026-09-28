@@ -140,10 +140,10 @@ describe("TasksView", () => {
     expect(screen.getByText("Da obra")).toBeTruthy();
     expect(invoke).not.toHaveBeenCalledWith("list_tasks", expect.anything());
     expect(screen.queryByText(/Completed/)).toBeNull();
-    const bars = [...document.querySelectorAll(".task-row .theme-origin")].map((b) =>
-      b.getAttribute("style"),
-    );
-    expect(bars).toContain("--dot: var(--app-5);");
+    const dots = [
+      ...document.querySelectorAll(".task-row .task-row__field--origin .theme-dot"),
+    ].map((b) => b.getAttribute("style"));
+    expect(dots).toContain("--dot: var(--app-5);");
   });
 
   // A press that rests on a card opens the ACTION RING around the finger

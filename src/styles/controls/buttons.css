@@ -12,12 +12,12 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: var(--app-space-8);
-    padding: var(--app-space-8) var(--app-space-16);
+    gap: var(--app-space-4);
+    padding: var(--app-space-6) var(--app-space-12);
     border: 0.0625rem solid transparent;
-    border-radius: var(--app-radius-md);
+    border-radius: var(--app-radius-sm);
     color: var(--app-ink);
-    font-size: var(--app-text-13);
+    font-size: var(--app-text-12);
     font-weight: var(--app-weight-medium);
     font-family: inherit;
     white-space: nowrap;
@@ -41,27 +41,28 @@
     opacity: 0.5;
     cursor: not-allowed;
   }
+  /* The one verb of its group wears INK: what is primary is a state of the
+     page, not a colour. */
   .theme-btn--primary {
-    background: var(--app-brand);
-    color: var(--app-on-brand);
+    background: var(--app-ink);
+    color: var(--app-bg);
   }
   .theme-btn--primary:hover:not(:disabled) {
-    filter: brightness(1.06);
+    background: color-mix(in srgb, var(--app-ink) 86%, var(--app-bg));
   }
   .theme-btn--outline {
-    border-color: var(--app-line);
-    color: var(--app-ink-muted);
-  }
-  /* Hovers to the RAISED surface, not the sunken one: an outline button is a
-     quiet action sitting on sunken ground (a task card, a suggestion row), so
-     lifting is what reads as hover there. */
-  .theme-btn--outline:hover:not(:disabled) {
     background: var(--app-surface);
+    border-color: var(--app-line);
     color: var(--app-ink);
   }
+  .theme-btn--outline:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--app-ink) 6%, var(--app-surface));
+  }
+  /* The ink over it is the region's ground: light on the dark red of a light
+     ground, dark on the pale red of a dark one. */
   .theme-btn--danger {
     background: var(--app-danger);
-    color: var(--app-on-brand);
+    color: var(--app-bg);
   }
   .theme-btn--danger:hover:not(:disabled) {
     filter: brightness(1.06);
@@ -118,13 +119,14 @@
     align-items: center;
     gap: var(--app-space-6);
     padding: var(--app-space-6) var(--app-space-10);
-    background: var(--app-surface-sunken);
-    border: 0.0625rem solid transparent;
-    border-radius: var(--app-radius-sm);
+    /* An outline, never a fill: a chip is a quiet control on a quiet ground. */
+    background: none;
+    border: 0.0625rem solid var(--app-line);
+    border-radius: var(--app-radius-md);
     color: var(--app-ink-muted);
     /* A <button> does not inherit the page font, and every wearer is one. */
     font-family: inherit;
-    font-size: var(--app-text-12);
+    font-size: var(--app-text-14);
     cursor: pointer;
   }
   /* Ink on hover belongs to the shape: the chip is a control everywhere it
@@ -166,7 +168,7 @@
     block-size: var(--seg-h);
     translate: var(--seg-x) var(--seg-y);
     border-radius: calc(var(--app-radius-md) - var(--app-space-2));
-    background: var(--app-brand);
+    background: var(--app-ink);
     transition:
       translate var(--app-duration-medium) var(--app-ease-spring),
       inline-size var(--app-duration-medium) var(--app-ease-out),
@@ -195,11 +197,11 @@
   .theme-segmented__item:active {
     scale: 0.96;
   }
-  /* A SOLID accent pill, not a tint with an outline: at this size neither
-     quiet signal carried across the black chrome and the white canvas. */
+  /* A SOLID ink pill, not a tint with an outline: at this size neither quiet
+     signal carried across the dark chrome and the light canvas. */
   .theme-segmented__item--active {
-    background: var(--app-brand);
-    color: var(--app-on-brand);
+    background: var(--app-ink);
+    color: var(--app-bg);
     font-weight: var(--app-weight-semibold);
   }
   /* Once the track's pill has the colour, the item lets go of it. */

@@ -76,8 +76,8 @@ describe("App functions — switching a part of the app off", () => {
     await within(sidebar).findByText("Home");
     expect(within(sidebar).queryByText("Tasks")).toBeNull();
     // The Home keeps its notes half, and loses the day.
-    expect(screen.queryByText("Today tasks")).toBeNull();
-    expect(screen.getByText("Today notes")).toBeTruthy();
+    expect(screen.queryByRole("heading", { name: "Tasks" })).toBeNull();
+    expect(screen.getByRole("heading", { name: "Notes" })).toBeTruthy();
     // Completed and Tags belong to tasks; the trash does not.
     await userEvent.click(screen.getByLabelText("menu"));
     expect(screen.queryByText("Completed")).toBeNull();
@@ -100,8 +100,8 @@ describe("App functions — switching a part of the app off", () => {
     });
     await within(sidebar).findByText("Home");
     expect(within(sidebar).queryByText("Tasks")).toBeNull();
-    expect(await screen.findByText("Today notes")).toBeTruthy();
-    expect(screen.getByText("Today tasks")).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: "Notes" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Tasks" })).toBeTruthy();
     await userEvent.click(screen.getByLabelText("menu"));
     expect(screen.queryByText("Completed")).toBeNull();
     expect(screen.getByText("Trash")).toBeTruthy();
@@ -145,8 +145,8 @@ describe("App functions — switching a part of the app off", () => {
     withFeatures({ notes: false });
     render(App);
 
-    await screen.findByText("Today tasks");
-    expect(screen.queryByText("Today notes")).toBeNull();
+    await screen.findByRole("heading", { name: "Tasks" });
+    expect(screen.queryByRole("heading", { name: "Notes" })).toBeNull();
     expect(screen.queryByLabelText("Quick note…")).toBeNull();
   });
 

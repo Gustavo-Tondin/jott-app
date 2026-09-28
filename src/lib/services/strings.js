@@ -905,8 +905,8 @@ export const S = {
   // The two choices the + opens (components/CaptureFab.svelte).
   task: "Task",
   note: "Note",
-  todaysTasks: "Today tasks",
-  todaysNotes: "Today notes",
+  todaysTasks: "Tasks",
+  todaysNotes: "Notes",
   /// The blocks of a day that is not today, named by the day: "Sep 5 tasks".
   dayTasks: (day) => `${day} tasks`,
   /// The strip's head: the month beside the title, and the day's own line

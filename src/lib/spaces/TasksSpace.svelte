@@ -786,7 +786,7 @@
               title={S.deleteTask}
               onclick={() => removeCompleted(entry.list, entry.task)}
             >
-              <Icon name="x" size="0.875rem" />
+              <Icon name="x-bold" size="1rem" />
             </button>
           {/if}
         {/snippet}

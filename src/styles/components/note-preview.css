@@ -29,6 +29,11 @@
     hyphenate-limit-chars: 7 3 3;
   }
 
+  /* Nothing written yet: the placeholder is fainter than any text. */
+  .note-preview--empty {
+    color: var(--app-ink-faint);
+  }
+
   /* A cut preview fades out over its last two lines: blocks are not all one
      line tall (a chip, a checkbox), so the cut can land mid-word. A MASK, not
      a gradient of the ground: the card's ground changes (hover, picked). A

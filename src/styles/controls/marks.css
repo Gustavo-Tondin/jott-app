@@ -8,7 +8,7 @@
   /* ---- Origin ----
      WHERE a card came from, as colour alone: a bar on its left edge. The
      parent is `position: relative` and adds `--origin-room` to its padding.
-     `--dot` is the colour (dotStyle()); unset, the app's accent. */
+     `--dot` is the colour (dotStyle()); unset, the brand. */
   .theme-origin {
     position: absolute;
     inset-block: var(--app-space-8);
@@ -32,22 +32,22 @@
     border: 0.0625rem solid var(--badge-line, var(--app-line));
     border-radius: var(--app-radius-pill);
     color: var(--badge-color, var(--app-ink-muted));
-    font-size: var(--app-text-10);
-    font-weight: 500;
-    line-height: 1.6;
+    font-family: var(--app-font-mono);
+    font-size: var(--app-text-12);
+    font-weight: var(--app-weight-regular);
+    line-height: 1.2;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
 
   /* ---- Title ----
-     What names a block or a screen. Ink, not the accent: the accent marks
+     What names a block or a screen. Ink, not the brand: the brand marks
      what you can act on; a title is read, not clicked. */
   .theme-title {
     margin: 0;
     font-size: var(--app-text-24);
-    font-weight: var(--app-weight-bold);
-    letter-spacing: var(--app-tracking-wide);
+    font-weight: var(--app-weight-medium);
     color: var(--app-ink);
   }
   /* A block's own heading, one step down from the screen it sits in. */
@@ -56,7 +56,7 @@
   }
   /* ---- Dot ----
      The colour of a place, beside its name. `--dot` is the instance's colour;
-     unset, the app's accent (a FIXED space). */
+     unset, the brand (a FIXED space). */
   .theme-dot {
     /* Inline-block so it also answers outside a flex row (a title that is
        plain text with the dot after it). */

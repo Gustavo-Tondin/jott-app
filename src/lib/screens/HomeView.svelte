@@ -460,8 +460,6 @@
                   entry={row.note}
                   {root}
                   banners={f("banners")}
-                  noteTags={f("noteTags")}
-                  tagColor={colors[row.folder] ?? notesColor}
                   origin={origin?.({ kind: "note", folder: row.folder, path: row.note.path })}
                   showAge={f("time")}
                   {dateFormat}

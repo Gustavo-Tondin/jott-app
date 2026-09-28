@@ -35,12 +35,13 @@
   .theme-pin-divider {
     height: 0.0625rem;
     margin-block: var(--app-space-4);
-    background: var(--app-line);
+    /* Stronger than a hairline: it closes the pinned cards. */
+    background: var(--app-ink-muted);
   }
   /* During a drag the line is the boundary being aimed at — dropping above it
      pins the card, below it unpins — so it steps forward. */
   .theme-task-list[data-reordering] > .theme-pin-divider {
-    background: var(--app-brand);
+    background: var(--app-brand-ink);
   }
 
   /* ---- Empty card ----
@@ -53,9 +54,10 @@
     align-items: center;
     gap: var(--app-space-8);
     margin: 0;
-    padding: var(--app-space-8) var(--app-space-16);
-    background: var(--app-surface-sunken);
-    border-radius: var(--app-radius-lg);
+    padding: var(--app-space-10) var(--app-space-16);
+    background: var(--app-surface);
+    border: 0.0625rem solid var(--app-line);
+    border-radius: var(--app-radius-md);
     color: var(--app-ink-muted);
     font-size: var(--app-text-14);
   }

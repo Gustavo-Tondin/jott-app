@@ -15,6 +15,10 @@
     gap: var(--app-space-8);
     min-block-size: 2rem;
   }
+  /* The Home's block header: the same room the notes block keeps (home.css). */
+  .tasks-space__header--center {
+    padding: var(--app-space-6) var(--app-space-12) var(--app-space-10);
+  }
   /* Centred header (the Home): the title takes the whole row, the mirrored ⋮
      balancing the real one at the other end. */
   .tasks-space__header--center .tasks-space__title {

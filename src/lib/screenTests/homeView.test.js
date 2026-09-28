@@ -68,8 +68,8 @@ describe("HomeView", () => {
 
     expect(await screen.findByText("Arrumar site")).toBeTruthy();
     expect(screen.getByText("ideia")).toBeTruthy();
-    expect(screen.getByText("Today tasks")).toBeTruthy();
-    expect(screen.getByText("Today notes")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Tasks" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Notes" })).toBeTruthy();
     // The Home owns no notes: it asks for today's, it does not store them —
     // and it names no space, because every one of them answers.
     expect(invoke).toHaveBeenCalledWith("notes_of_today");
@@ -98,7 +98,7 @@ describe("HomeView", () => {
     ]);
     expect(days[3].classList.contains("is-selected")).toBe(true);
     expect(days[3].getAttribute("aria-pressed")).toBe("true");
-    expect(container.querySelector(".day-head__month").textContent).toBe("September");
+    expect(container.querySelector(".day-head__title--month").textContent.trim()).toBe("September");
     // The notebook's first day of the week, not the machine's.
     const { container: sunday } = render(HomeView, { props: props({ weekStartsOn: "sunday" }) });
     await waitFor(() =>
@@ -171,7 +171,7 @@ describe("HomeView", () => {
     expect(await screen.findByText("Entregar logo")).toBeTruthy();
     await waitFor(() => expect(invoke).toHaveBeenCalledWith("day_tasks", { day: "2026-09-05" }));
     expect(screen.getByText("09/05 tasks")).toBeTruthy();
-    expect(screen.queryByText("Today notes")).toBeNull();
+    expect(screen.queryByRole("heading", { name: "Notes" })).toBeNull();
     expect(container.querySelector(".day-head__day.is-selected").getAttribute("aria-label")).toBe(
       "Saturday 5",
     );
@@ -200,15 +200,15 @@ describe("HomeView", () => {
         d.getAttribute("aria-label"),
       );
     await waitFor(() => expect(current()[0]).toBe("Monday 7"));
-    expect(container.querySelector(".day-head__month").textContent).toBe("September");
+    expect(container.querySelector(".day-head__title--month").textContent.trim()).toBe("September");
     // Still today's block below: turning shows, it does not choose.
-    expect(screen.getByText("Today tasks")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Tasks" })).toBeTruthy();
     expect(container.querySelector(".day-head__page.is-current .day-head__day.is-selected")).toBeNull();
 
     await userEvent.click(screen.getByLabelText("previous week"));
     await userEvent.click(screen.getByLabelText("previous week"));
     await waitFor(() => expect(current()[0]).toBe("Monday 24"));
-    expect(container.querySelector(".day-head__month").textContent).toBe("August");
+    expect(container.querySelector(".day-head__title--month").textContent.trim()).toBe("August");
   });
 
   test("a day gone by is the log's record: the three lines, read", async () => {
@@ -276,15 +276,18 @@ describe("HomeView", () => {
     });
 
     expect(await screen.findByText("Logo do cliente")).toBeTruthy();
-    // Colour alone, as a bar on the card's edge (wireframe "Home Screen -
-    // mobile", 2026-08-26): the name would compete with the task.
-    const bars = document.querySelectorAll(".task-row .theme-origin");
-    expect(bars).toHaveLength(2);
-    const styles = [...bars].map((b) => b.getAttribute("style"));
+    // The first fact of the meta row: a dot of the space's colour and the
+    // space's own name, the groups above it left to the tooltip.
+    const dots = document.querySelectorAll(".task-row .task-row__field--origin .theme-dot");
+    expect(dots).toHaveLength(2);
+    const styles = [...dots].map((b) => b.getAttribute("style"));
     expect(styles).toContain("--dot: var(--app-1);");
-    // The fixed space: the app's accent, which is the bar's own default.
+    // The fixed space: the brand, which is the dot's own default.
     expect(styles).toContain(null);
+    expect(screen.getAllByText("Tasks").length).toBeGreaterThan(0);
+    expect(screen.getByTitle("Design/Tasks")).toBeTruthy();
     expect(screen.queryByText(/jott\.tasks|Design\/Tasks/)).toBeNull();
+    expect(document.querySelector(".task-row .theme-origin")).toBeNull();
   });
 
   test("a card dragged with Ctrl onto a space in the sidebar moves into its Inbox", async () => {
@@ -739,7 +742,7 @@ describe("HomeView", () => {
     render(HomeView, { props: props({ f: (key) => key !== "tasks" }) });
 
     expect(await screen.findByText("ideia")).toBeTruthy();
-    expect(screen.queryByText("Today tasks")).toBeNull();
+    expect(screen.queryByRole("heading", { name: "Tasks" })).toBeNull();
     expect(invoke).not.toHaveBeenCalledWith("day_tasks", expect.anything());
   });
 });

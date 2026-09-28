@@ -88,7 +88,7 @@
     <span class="note-preview__more" aria-hidden="true">…</span>
   {/if}
 {:else if empty}
-  <span class="note-preview note-preview__line">{empty}</span>
+  <span class="note-preview note-preview--empty note-preview__line">{empty}</span>
 {/if}
 
 {#snippet spans(runs)}

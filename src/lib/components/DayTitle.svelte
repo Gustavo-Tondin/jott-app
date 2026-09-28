@@ -1,6 +1,8 @@
 <script>
-  // The Home's title row — "Home •" on the left, the month or the chosen day
-  // on the right — drawn TWICE on a phone (2026-09-07): once on the chrome,
+  // The Home's title row. On the desktop it is the MONTH alone, which goes
+  // back to today: the place is named by the page header. On a phone it is
+  // "Home •" on the left and the month or the chosen day on the right,
+  // drawn TWICE (2026-09-07): once on the chrome,
   // by DayHead.svelte, and once inside the sheet, by App.svelte. The two
   // are pixel for pixel the same box in the same place, and it is the
   // sheet's ground rising between them that swaps one ink for the other
@@ -40,6 +42,13 @@
   let dotStyle = $derived(dotStyleOf(dot));
 </script>
 
+{#if !compact && !sheet}
+  <div class="day-head__top" bind:this={el}>
+    <button class="day-head__title day-head__title--month" onclick={() => onHome?.()} title={S.backToToday}>
+      {monthOf(month)}
+    </button>
+  </div>
+{:else}
 <div
   class="day-head__top"
   class:day-head__top--sheet={sheet}
@@ -79,3 +88,4 @@
     {/if}
   </span>
 </div>
+{/if}

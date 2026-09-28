@@ -1,18 +1,18 @@
 <script>
-  // One note on the board: its banner, its title on a chip over the banner's
-  // bottom edge, and the first lines DRAWN as markdown (NotePreview). A note
-  // with no banner is the same card without the block. The card only ever
+  // One note on the board: its banner, its name, the first lines DRAWN as
+  // markdown (NotePreview), and a foot that says where it came from and how
+  // old it is. A note with no banner is the same card without the block. The card only ever
   // DRAWS: opening, picking, pinning and the ⋮'s items are the board's; the
   // middle and right buttons only report WHICH card was asked for.
   import { S } from "../services/strings.js";
   import { accentFill, dotStyle } from "../services/accent.js";
+  import { leafOf } from "../services/paths.js";
   import { assetUrl } from "../services/assets.js";
   import { ageStamp, noteSince } from "../services/age.js";
   import { isUntitled } from "../services/noteTitle.js";
   import Menu from "./Menu.svelte";
   import Icon from "./Icon.svelte";
   import NotePreview from "./NotePreview.svelte";
-  import Badge from "./Badge.svelte";
 
   let {
     /// A `NoteEntry` from the bridge.
@@ -46,10 +46,6 @@
     /// Whether this notebook draws banners at all (App Functions). Defaults
     /// to on, like every other switch a component is not told about.
     banners = true,
-    /// Whether the card draws the note's tags (App Functions, `noteTags`).
-    noteTags = true,
-    /// The colour of the space the card is in (a name) — what its tags wear.
-    tagColor = null,
     /// Whether the card says when the note was last opened (the time axis,
     /// `Native Functions › Time`). The stamp itself comes with the entry.
     showAge = true,
@@ -57,8 +53,7 @@
     dateFormat = "mm/dd/yyyy",
     /// `{label, color}` or null — where the note came from, on a screen that
     /// shows more than one space (the Home's day): a dot in the space's
-    /// colour before the title (services/origin.js). Quieter than the bar a
-    /// task row wears, because a card is already a block of its own.
+    /// colour and its name, at the card's foot (services/origin.js).
     origin = null,
   } = $props();
 
@@ -82,10 +77,6 @@
   /// of those says nothing: the card draws its text instead. The small card
   /// inside a folder keeps it — the title is all it has.
   let titled = $derived(small || !isUntitled(entry.title));
-  /// Whether the card draws its title row at all — the origin dot lives in
-  /// it, so a card with no title still has one when it has somewhere to
-  /// have come from; that row is the dot alone, with no chip around it.
-  let head = $derived(titled || !!origin);
 
   // A note is old when nobody has OPENED it in a while, not when nobody has
   // written it. The core stamps the entry; the card only says whether the
@@ -105,7 +96,8 @@
 <article
   class="note-card theme-press"
   class:note-card--small={small}
-  class:note-card--bare={!head && !banner}
+  class:note-card--bare={!titled}
+  class:note-card--banner={!!banner && !small}
   class:note-card--picked={selected}
   class:note-card--pinned={entry.pinned}
   oncontextmenu={onContextMenu && !picking
@@ -138,51 +130,38 @@
       </span>
     {/if}
 
-    {#if head}
-      <span class="note-card__title" class:note-card__title--dot={!titled}>
-        <!-- Where the note came from, on a screen that shows more than one
-             space: the space's colour as a dot, the same mark a place wears
-             beside its own name (services/origin.js). -->
-        {#if origin}
-          <span
-            class="theme-dot note-card__origin"
-            style={dotStyle(origin.color)}
-            title={origin.label}
-          ></span>
-        {/if}
-        {#if titled}{entry.title}{/if}
-      </span>
-    {/if}
-
-    {#if !small}
-      <NotePreview
-        markdown={entry.preview}
-        title={titled ? entry.title : null}
-        empty={S.emptyNote}
-        lang={entry.lang}
-      />
-      <!-- The card's quiet last line: what the note is about on the left,
-           when it was last opened on the right. One row, so a card with
-           neither does not grow a strip of empty space. -->
-      {#if (noteTags && entry.tags?.length) || age}
-        <span class="note-card__meta">
-          {#if noteTags && entry.tags?.length}
-            <span class="note-card__tags">
-              {#each entry.tags as tag (tag)}<Badge label={`#${tag}`} color={tagColor} />{/each}
-            </span>
-          {/if}
-          {#if age}
-            <span
-              class="note-card__age"
-              class:note-card__age--forgotten={age.band === "forgotten"}
-              title={age.title ?? S.neverOpened}
-            >
-              <Icon name={entry.seen ? "eye" : "clock"} size="0.75rem" />
-              {age.text}
-            </span>
-          {/if}
-        </span>
+    <span class="note-card__body">
+      {#if titled}<span class="note-card__title">{entry.title}</span>{/if}
+      {#if !small}
+        <NotePreview
+          markdown={entry.preview}
+          title={titled ? entry.title : null}
+          empty={S.emptyNote}
+          lang={entry.lang}
+        />
       {/if}
+    </span>
+
+    <!-- The card's foot: where the note came from on the left, how long since
+         it was opened on the right. One row, and none when there is neither. -->
+    {#if !small && (origin || age)}
+      <span class="note-card__meta">
+        {#if origin}
+          <span class="note-card__origin" title={origin.label}>
+            <span class="theme-dot note-card__dot" style={dotStyle(origin.color)} aria-hidden="true"
+            ></span>{leafOf(origin.label)}
+          </span>
+        {/if}
+        {#if age}
+          <span
+            class="note-card__age"
+            class:note-card__age--forgotten={age.band === "forgotten"}
+            title={age.title ?? S.neverOpened}
+          >
+            {age.text}
+          </span>
+        {/if}
+      </span>
     {/if}
   </button>
 
@@ -212,7 +191,7 @@
           aria-label={S.noteOptions}
           title={S.noteOptions}
         >
-          <Icon name="dots-three-bold" size="1rem" />
+          <Icon name="dots-three-vertical-bold" size="0.875rem" />
         </button>
       {:else if menu.length > 0}
         <Menu items={menu} align="end">
@@ -223,7 +202,7 @@
               aria-label={S.noteOptions}
               title={S.noteOptions}
             >
-              <Icon name="dots-three-bold" size="1rem" />
+              <Icon name="dots-three-vertical-bold" size="0.875rem" />
             </button>
           {/snippet}
         </Menu>

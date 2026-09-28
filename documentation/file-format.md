@@ -411,8 +411,9 @@ order you dragged things into.
 - **`themes/`** — the palettes this notebook carries, each either a
   `<name>.css` or a `<name>/` holding `theme.css` and an optional
   `manifest.json`. **`jott.css` is the app's own palette**, written here the
-  first time the notebook opens and never overwritten: edit it and the app
-  follows, delete it and the factory one comes back. The others are yours;
+  first time the notebook opens and never overwritten once you edit it (an
+  untouched copy follows the app's palette): edit it and the app follows,
+  delete it and the factory one comes back. The others are yours;
   the app only reads them, except for the one button that writes a starting
   point. Written in full in [`theming.md`](theming.md).
 

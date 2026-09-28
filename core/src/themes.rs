@@ -29,6 +29,35 @@ pub const RESERVED: [&str; 4] = ["jott", "default", "light", "dark"];
 /// The app's own theme, as it is called on disk: `.jott/themes/jott.css`.
 pub const FACTORY_NAME: &str = "jott";
 
+/// The factory palette this build ships, by the FNV-1a of its bytes
+/// (`src/styles/themes/jott.css`). A test reads the file: changing the
+/// palette means moving this number into `RETIRED_FACTORY` and writing the
+/// new one here.
+#[cfg(test)]
+const CURRENT_FACTORY: u64 = 0x707a_8975_fd5c_ec7c;
+
+/// Every factory palette an older build wrote into a notebook. A copy that is
+/// still one of these, byte for byte, was never edited: it is a stale default,
+/// not the reader's work, and `ensure_default` replaces it.
+const RETIRED_FACTORY: [u64; 8] = [
+    0x3d65_c241_7128_3432,
+    0x1c21_638d_a443_ad61,
+    0xa6a8_78e9_de12_8f84,
+    0xe139_24d0_18a2_80f2,
+    0xc709_965d_c2ae_5fa5,
+    0x0bf7_119f_46de_f942,
+    0x81d7_74f5_b6d1_55f9,
+    0x6537_5cfb_a2bc_abf4,
+];
+
+/// FNV-1a, 64 bits: a fingerprint that is the same on every machine and in
+/// every Rust release, which `DefaultHasher` does not promise.
+fn fingerprint(bytes: &[u8]) -> u64 {
+    bytes.iter().fold(0xcbf2_9ce4_8422_2325, |hash, byte| {
+        (hash ^ u64::from(*byte)).wrapping_mul(0x0100_0000_01b3)
+    })
+}
+
 /// The most stylesheet the app will inject, in bytes. Generous on purpose:
 /// Obsidian's Blue Topaz is 1.3 MB of CSS, and a theme of that shape should
 /// load rather than be told it is too big.
@@ -139,17 +168,23 @@ fn is_usable_name(name: &str) -> bool {
 }
 
 /// Writes the app's own palette into the notebook as `themes/jott.css` if it
-/// is not there — and only then; `true` when it wrote. The file is the
-/// reader's from then on: editing it re-tunes the factory palette, deleting it
-/// gets the factory back on the next open. `css` comes from the bridge.
+/// is not there, or if what is there is an older build's palette nobody
+/// touched (`RETIRED_FACTORY`); `true` when it wrote. An EDITED file is the
+/// reader's: editing it re-tunes the factory palette, deleting it gets the
+/// factory back on the next open. `css` comes from the bridge.
 pub fn ensure_default(config_dir: impl AsRef<Path>, css: &str) -> Result<bool> {
     let folder = dir(&config_dir);
-    if folder.join(FACTORY_NAME).join(CSS_FILE).is_file()
-        || folder.join(format!("{FACTORY_NAME}.css")).is_file()
-    {
+    if folder.join(FACTORY_NAME).join(CSS_FILE).is_file() {
         return Ok(false);
     }
-    fsio::write_atomically(folder.join(format!("{FACTORY_NAME}.css")), css.as_bytes())?;
+    let file = folder.join(format!("{FACTORY_NAME}.css"));
+    if file.is_file() {
+        let worn = std::fs::read(&file).ctx(&file)?;
+        if !RETIRED_FACTORY.contains(&fingerprint(&worn)) {
+            return Ok(false);
+        }
+    }
+    fsio::write_atomically(file, css.as_bytes())?;
     Ok(true)
 }
 
@@ -471,6 +506,45 @@ mod tests {
         write(dir.path(), "themes/jott/theme.css", ":root {}");
         assert!(!ensure_default(dir.path(), "x").unwrap());
         assert!(!dir.path().join("themes/jott.css").exists());
+    }
+
+    #[test]
+    fn a_stale_factory_palette_is_replaced_and_an_edited_one_is_not() {
+        // What an older build wrote, untouched: found by its fingerprint.
+        let stale = b"an older build's palette";
+        let dir = config_dir();
+        write(dir.path(), "themes/jott.css", std::str::from_utf8(stale).unwrap());
+        assert!(!RETIRED_FACTORY.contains(&fingerprint(stale)));
+        assert!(!ensure_default(dir.path(), "new").unwrap(), "unknown bytes are the reader's");
+
+        // The real thing: the palette this repository shipped on 2026-09-10,
+        // as every notebook opened by then still carries it.
+        let shipped = include_str!("../tests/fixtures/factory-2026-09-10.css");
+        assert!(RETIRED_FACTORY.contains(&fingerprint(shipped.as_bytes())));
+        let dir = config_dir();
+        write(dir.path(), "themes/jott.css", shipped);
+        assert!(ensure_default(dir.path(), "new").unwrap());
+        assert_eq!(css(dir.path(), "jott").unwrap().css, "new");
+
+        // One byte changed by the reader, and it is theirs again.
+        let dir = config_dir();
+        write(dir.path(), "themes/jott.css", &shipped.replace("#fbfbfb", "#fafafa"));
+        assert!(!ensure_default(dir.path(), "new").unwrap());
+    }
+
+    #[test]
+    fn the_palette_this_build_ships_is_the_one_on_record() {
+        // Changing `src/styles/themes/jott.css` strands every notebook on the
+        // old one unless its fingerprint is retired. This is what says so.
+        let factory = include_bytes!("../../src/styles/themes/jott.css");
+        assert_eq!(
+            fingerprint(factory),
+            CURRENT_FACTORY,
+            "the factory palette changed: move CURRENT_FACTORY into \
+             RETIRED_FACTORY and write {:#018x} in its place",
+            fingerprint(factory),
+        );
+        assert!(!RETIRED_FACTORY.contains(&CURRENT_FACTORY));
     }
 
     #[test]

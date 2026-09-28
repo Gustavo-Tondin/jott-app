@@ -14,7 +14,11 @@ One `## vX.Y.Z` per version, newest first, with any of `### New`, `### Fixed` an
 - The app now has one colour of its own, blue, and the seven you pick are for spaces, groups, banners and notebooks; "Accent colour" became "Notebook colour".
 - Secondary text is a little darker and easier to read.
 - The interface is now set in Geist, and code and small details in Geist Mono.
-- A notebook keeps its own copy of the palette, so delete `.jott/themes/jott.css` in an existing notebook to get the new colours.
+- Task cards say where they came from with a dot and the space's name, show their facts on one quiet line, and mark priority with a flag.
+- Note cards show the name on its own line and, at the foot, the space and the age; tags no longer appear on the card.
+- The Home's head shows the month, and each day is a number on a disc, blue for the chosen one.
+- Checkboxes are round, and what is ticked, active or primary is drawn in ink instead of a colour.
+- A notebook whose copy of the palette (`.jott/themes/jott.css`) was never edited gets the new colours by itself; an edited copy is left as it is.
 - Notes now live directly in their space's folder and no longer go into an `Inbox/` subfolder.
 - With the phone's top bar hidden, the Home's ⋮ now sits on "Today tasks" and "Today notes".
 - A few icons were refreshed: a simpler house for Home, a new settings gear, and bolder ⋯, ⋮ and folding arrows.

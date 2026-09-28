@@ -2,6 +2,7 @@
   import { tick } from "svelte";
   import Badge from "./Badge.svelte";
   import { dotStyle } from "../services/accent.js";
+  import { leafOf } from "../services/paths.js";
   import { priorityClass } from "../services/taskFields.js";
   import { formatDate } from "../services/dates.js";
   import { formatAt } from "../services/reminders.js";
@@ -17,8 +18,8 @@
     task,
     list,
     /// `{label, color}` — the space this card came from, when the card is
-    /// shown OUTSIDE it (the day, the week): drawn as a bar of its colour on
-    /// the card's left edge. Null inside its own space.
+    /// shown OUTSIDE it (the day, the week): the first fact of the meta row,
+    /// a dot of its colour and its name. Null inside its own space.
     origin = null,
     /// The colour of the space the card is IN — what its tags wear when
     /// there is no origin to take it from (services/accent.js, a name).
@@ -179,7 +180,8 @@
       (task.priority && f("priority")) ||
       (task.subtasks?.length && f("subtasks")) ||
       (task.tags?.length && f("taskTags")) ||
-      inDay
+      inDay ||
+      origin
     ),
   );
 
@@ -207,7 +209,6 @@
   class:task-row--finishing={finishing && !task.done}
   class:task-row--restoring={finishing && task.done}
   class:task-row--leaving={committed}
-  class:task-row--origin={!!origin}
   data-card={index}
   tabindex={focusable ? 0 : -1}
   onclick={() => onSelect?.(list, task)}
@@ -215,7 +216,6 @@
   onfocusin={() => onFocused?.()}
   use:gesture={swipeOptions}
 >
-  {#if origin}<span class="theme-origin" style={dotStyle(origin.color)} aria-hidden="true"></span>{/if}
   <!-- What a swipe uncovers: a square in the space the card leaves. Real
        markup, so it draws the app's own icons; CSS reads the direction off the row. -->
   {#if swipeOptions.onLeft}
@@ -273,35 +273,46 @@
       <!-- Quiet by default: a field is a note about the task, not a competing
            headline. -->
       <div class="task-row__meta">
-        {#if task.subtasks?.length && f("subtasks")}
-          <!-- The subtask count as plain text. No coloured pill: pills are
-               reserved for tags. -->
-          <span class="task-row__field">{doneSubtasks}/{task.subtasks.length}</span>
+        {#if origin}
+          <!-- WHERE the card came from, said first: a dot and the name. -->
+          <!-- The space's own name; the groups above it stay in the tooltip. -->
+          <span class="task-row__field task-row__field--origin" title={origin.label}
+            ><span class="theme-dot task-row__dot" style={dotStyle(origin.color)} aria-hidden="true"
+            ></span>{leafOf(origin.label)}</span
+          >
         {/if}
-        {#if inDay}<span class="task-row__sun" class:task-row__sun--lit={joined}
-            ><Icon name="sun" size="0.875rem" /></span
-          >{/if}
-        {#if task.repeat && f("repeat")}<Icon name="arrow-clockwise" size="0.875rem" />{/if}
-        {#if task.remind && f("remind")}<!-- The glyph alone: the date on the card
-               is the task's, and the moment is in the tooltip. --><span
-            class="task-row__field task-row__field--remind"
-            title={S.reminderAt(formatAt(task.remind, dateFormat))}
-            ><Icon name="alarm" size="0.875rem" /></span
-          >{/if}
-        {#if task.due && f("dueDate")}<span
-            class="task-row__field"
-            class:task-row__field--overdue={overdue}
-            >{formatDate(task.due, dateFormat)}</span
-          >{/if}
-        {#if task.priority && f("priority")}<span
-            class="task-row__field task-row__field--priority task-row__field--{priorityClass(task.priority)}"
-            >{"!".repeat(Math.max(1, 4 - task.priority))}</span
-          >{/if}
+        {#if task.subtasks?.length && f("subtasks")}
+          <span class="task-row__field"
+            ><Icon name="list-checks" size="0.75rem" />{doneSubtasks}/{task.subtasks.length}</span
+          >
+        {/if}
         {#each (f("taskTags") ? (task.tags ?? []) : []) as tag}<Badge
             label={`#${tag}`}
             color={origin?.color ?? color}
             class="task-row__tag"
           />{/each}
+        {#if task.due && f("dueDate")}<span
+            class="task-row__field"
+            class:task-row__field--overdue={overdue}
+            ><Icon name="calendar-blank" size="0.75rem" />{formatDate(task.due, dateFormat)}</span
+          >{/if}
+        {#if task.repeat && f("repeat")}<span class="task-row__field"
+            ><Icon name="arrow-clockwise" size="0.75rem" /></span
+          >{/if}
+        {#if task.remind && f("remind")}<!-- The glyph alone: the date on the card
+               is the task's, and the moment is in the tooltip. --><span
+            class="task-row__field task-row__field--remind"
+            title={S.reminderAt(formatAt(task.remind, dateFormat))}
+            ><Icon name="alarm" size="0.75rem" /></span
+          >{/if}
+        {#if inDay}<span class="task-row__field task-row__sun" class:task-row__sun--lit={joined}
+            ><Icon name="sun" size="0.75rem" /></span
+          >{/if}
+        {#if task.priority && f("priority")}<span
+            class="task-row__field task-row__field--priority task-row__field--{priorityClass(task.priority)}"
+            title={`${S.priorityLabel}: ${[S.priorityHigh, S.priorityMedium, S.priorityLow][task.priority - 1] ?? task.priority}`}
+            ><Icon name="flag" size="0.75rem" /></span
+          >{/if}
       </div>
     {/if}
 

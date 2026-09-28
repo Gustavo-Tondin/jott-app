@@ -29,7 +29,7 @@ const card = (entry = {}, props = {}) =>
   });
 
 describe("NoteCard — last opened", () => {
-  test("a note opened three days ago wears the eye", () => {
+  test("a note opened three days ago says so, and the tooltip says which date", () => {
     const { container } = card({
       seen: "2026-08-25T18:40:00",
       age: { days: 3, band: "fresh" },
@@ -37,7 +37,9 @@ describe("NoteCard — last opened", () => {
     const stamp = container.querySelector(".note-card__age");
     expect(stamp.textContent.trim()).toBe("3d");
     expect(stamp.getAttribute("title")).toBe("Last opened 08/25/2026");
-    expect(stamp.querySelector(".theme-icon svg")).not.toBe(null);
+    // The number alone: whether it counts from a reading or a birth is the
+    // tooltip's to say.
+    expect(stamp.querySelector(".theme-icon")).toBe(null);
   });
 
   test("a note nobody ever opened counts from its birth", () => {
@@ -57,15 +59,21 @@ describe("NoteCard — last opened", () => {
     expect(container.querySelector(".note-card__meta")).toBe(null);
   });
 
-  test("tags and the stamp share one row", () => {
-    const { container } = card({
-      tags: ["ideias"],
-      seen: "2026-08-25T18:40:00",
-      age: { days: 3, band: "fresh" },
-    });
+  test("the foot says where the note came from and how old it is, never its tags", () => {
+    const { container } = card(
+      {
+        tags: ["ideias"],
+        seen: "2026-08-25T18:40:00",
+        age: { days: 3, band: "fresh" },
+      },
+      { origin: { label: "Personal/Journal", color: "4" } },
+    );
     const meta = container.querySelector(".note-card__meta");
-    expect(meta.querySelector(".note-card__tags")).not.toBe(null);
+    expect(meta.querySelector(".note-card__origin").textContent.trim()).toBe("Journal");
+    expect(meta.querySelector(".note-card__origin").getAttribute("title")).toBe("Personal/Journal");
+    expect(meta.querySelector(".theme-dot").getAttribute("style")).toBe("--dot: var(--app-4);");
     expect(meta.querySelector(".note-card__age")).not.toBe(null);
+    expect(container.querySelector(".theme-badge")).toBe(null);
   });
 
   test("a small card — the one inside a folder — carries no stamp", () => {
@@ -96,17 +104,18 @@ describe("NoteCard — a note nobody named", () => {
     ).not.toBe(null);
   });
 
-  test("with nothing above it, the text keeps clear of the corner tools", () => {
-    // `note-card--bare`: no title AND no banner, so the first block of the
-    // preview is what the ⋮ would sit on (styles/components/note-card.css).
+  test("with no name, the text keeps clear of the corner tools", () => {
+    // `note-card--bare`: no name, so the first block of the preview is what
+    // shares its line with the ⋮ (styles/components/note-card.css).
     const bare = card({ title: "New note" }).container.querySelector(".note-card");
     expect(bare.classList.contains("note-card--bare")).toBe(true);
-    // A banner already carries the tools, so the text is left alone.
+    // The tools stand UNDER a banner, so a banner changes nothing.
     const bannered = card({
       title: "New note",
       banner: { kind: "color", value: "yellow" },
     }).container.querySelector(".note-card");
-    expect(bannered.classList.contains("note-card--bare")).toBe(false);
+    expect(bannered.classList.contains("note-card--bare")).toBe(true);
+    expect(bannered.classList.contains("note-card--banner")).toBe(true);
     expect(card().container.querySelector(".note-card--bare")).toBe(null);
   });
 

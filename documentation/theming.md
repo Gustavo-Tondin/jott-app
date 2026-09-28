@@ -24,7 +24,9 @@ There are two places a theme can live, and the file is the same either way:
 
 Every notebook carries the app's own palette as a file: **`.jott/themes/jott.css`**.
 The app writes it the first time it opens the notebook and never overwrites
-it. Open it, change a colour, save — **the app repaints**. Delete it and the
+what you changed in it: only a copy nobody touched is brought up to date when
+the app's palette changes. Open it, change a colour, save — **the app
+repaints**. Delete it and the
 next open brings the factory one back. That file is the whole contract: about
 a hundred `--theme-*` tokens in one `:root { … }`.
 
@@ -121,7 +123,9 @@ so a mistake fails `npm test` rather than being found later.
 ## What a theme declares
 
 The contract is the factory file, `styles/themes/jott.css` in the repository
-and `.jott/themes/jott.css` in your notebook. A theme declares what it wants;
+and `.jott/themes/jott.css` in your notebook. The app writes that copy once
+and never over your edits: only a copy that is still, byte for byte, the
+palette of an older build is replaced by the current one. A theme declares what it wants;
 whatever it leaves out keeps the factory value, because the factory palette
 is always loaded underneath.
 

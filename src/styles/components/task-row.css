@@ -8,12 +8,10 @@
     display: flex;
     align-items: center;
     gap: var(--app-space-12);
-    padding: var(--app-space-10) var(--app-space-12);
-    background: var(--app-surface-sunken);
-    /* No border: the card already differs from the panel by a whole ground
-       step, and a hairline on top turns a column into a grid. */
-    border: none;
-    border-radius: var(--app-radius-md);
+    padding: var(--app-space-12);
+    background: var(--app-surface);
+    border: 0.0625rem solid var(--app-line);
+    border-radius: var(--app-radius-lg);
     cursor: pointer;
     /* The whole card is the drag handle: a drag must never start a text
        selection along the way — and a finger resting on one to open its
@@ -22,37 +20,34 @@
     -webkit-user-select: none;
     transition:
       background var(--app-transition-fast),
+      border-color var(--app-transition-fast),
       scale var(--app-transition-fast);
-  }
-  /* Room for the origin bar (.theme-origin, controls/marks.css) on the start
-     side, only when there is one: inside its own space a card has no bar. */
-  .task-row--origin {
-    padding-inline-start: var(--app-space-16);
   }
   /* Pressed, the card gives by a hair. Not while carried: the reorder's own
      transform and a scale on top of it would wobble. */
   .task-row:active:not(.reorder-item--carried) {
     scale: 0.99;
   }
-  /* Selected: the accent tint alone carries it — no outline, for the same
-     reason the card has no border. */
+  /* Selected: the hairline takes the brand; the ground stays the card's. */
   .task-row--selected {
-    background: var(--app-brand-weak);
+    border-color: var(--app-brand-outline);
   }
-  /* MARKED (picking mode): the tint above, and the box FILLED with the
-     accent carrying a light dot — the same fill a done box wears, with a dot
-     where the tick would be, so "counted" reads like "done" without being it.
-     A done card that is marked keeps its tick; the tint is enough there. */
+  /* MARKED (picking mode): the box FILLED with ink carrying a light dot —
+     the same fill a done box wears, with a dot where the tick would be, so
+     "counted" reads like "done" without being it. */
+  .task-row--picked {
+    border-color: var(--app-ink-muted);
+  }
   .task-row--picked .task-row__check:not(:checked) {
-    background: var(--app-brand);
-    border-color: var(--app-brand);
+    background: var(--app-ink);
+    border-color: var(--app-ink);
   }
   .task-row--picked .task-row__check:not(:checked)::before {
     content: "";
     position: absolute;
-    inset: 0.375rem;
+    inset: 0.4375rem;
     border-radius: 50%;
-    background: var(--app-on-check);
+    background: var(--app-bg);
   }
 
   /* The box is the shared .theme-checkbox (--lg); a done card's box is just
@@ -63,7 +58,7 @@
     min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: var(--app-space-4);
+    gap: var(--app-space-6);
   }
   .task-row__top {
     display: flex;
@@ -77,7 +72,9 @@
     text-align: left;
     padding: 0;
     font: inherit;
-    font-size: var(--app-text-16);
+    font-size: var(--app-text-20);
+    font-weight: var(--app-weight-medium);
+    line-height: 1.2;
     color: var(--app-ink);
     white-space: nowrap;
     overflow: hidden;
@@ -93,9 +90,6 @@
      card stays calm (the rename input is borderless too, via --plain). */
   .task-row__title:hover:not(:disabled) {
     color: var(--app-ink-muted);
-  }
-  .task-row--selected .task-row__title {
-    font-weight: var(--app-weight-semibold);
   }
   .task-row--done .task-row__title {
     color: var(--app-ink-muted);
@@ -136,7 +130,7 @@
     to {
       opacity: 1;
       max-block-size: 8rem;
-      padding-block: var(--app-space-10);
+      padding-block: var(--app-space-12);
       translate: 0 0;
     }
   }
@@ -225,7 +219,9 @@
     flex: 1;
     min-width: 0;
     font: inherit;
-    font-size: var(--app-text-16);
+    font-size: var(--app-text-20);
+    font-weight: var(--app-weight-medium);
+    line-height: 1.2;
   }
   /* THE CARD'S END: bookmark on top, age at the foot, as tall as the card.
      The top slot is one title line tall even without a bookmark (a day has
@@ -240,7 +236,7 @@
     flex-direction: column;
     align-items: flex-end;
     justify-content: space-between;
-    gap: var(--app-space-4);
+    gap: var(--app-space-12);
   }
   .task-row__aside-top {
     display: flex;
@@ -262,10 +258,14 @@
     color: var(--app-ink);
   }
 
+  /* The facts of the card, one line of quiet mono: where it came from
+     first, then what it carries. */
   .task-row__meta {
     display: flex;
     align-items: center;
     gap: var(--app-space-12);
+    min-inline-size: 0;
+    overflow: hidden;
     color: var(--app-ink-muted);
   }
   /* The sun marks a card that is in a day, and LIGHTS UP the moment it joins
@@ -294,31 +294,39 @@
     }
   }
   .task-row__field {
-    font-size: var(--app-text-10);
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--app-space-4);
+    font-family: var(--app-font-mono);
+    font-size: var(--app-text-12);
+    line-height: 1.2;
     color: var(--app-ink-muted);
     white-space: nowrap;
   }
-  /* Priority marks are coloured by level: ! low (green), !! medium (amber),
-     !!! high (red). The base falls back to red for any out-of-range value. */
-  .task-row__field--priority {
-    color: var(--app-danger);
-    font-weight: var(--app-weight-semibold);
+  /* The origin may give: it is the one fact with a name of any length. */
+  .task-row__field--origin {
+    flex-shrink: 1;
+    min-inline-size: 0;
+    gap: var(--app-space-6);
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
+  .task-row__dot {
+    --dot-size: var(--app-space-6);
+  }
+  /* The flag is quiet unless the priority is the highest: alert is one
+     colour, and it is spent on what cannot wait. */
   .task-row__field--p1 {
     color: var(--app-danger);
-  }
-  .task-row__field--p2 {
-    color: var(--app-warning);
-  }
-  .task-row__field--p3 {
-    color: var(--app-success);
   }
   /* Task age (spec 3.6): quiet until the notebook calls it forgotten, then
      the same warning ink an overdue date takes. */
   .task-row__field--age {
     flex-shrink: 0;
     min-inline-size: 1rem;
-    text-align: center;
+    justify-content: center;
+    color: var(--app-ink-faint);
     font-variant-numeric: tabular-nums;
   }
   .task-row__field--forgotten {
@@ -333,7 +341,6 @@
   /* An overdue due date reads as a warning, not a quiet note. */
   .task-row__field--overdue {
     color: var(--app-danger);
-    font-weight: var(--app-weight-semibold);
   }
   /* A tag is the shared .theme-badge (controls/marks.css); the `task-row__tag`
      hook stays on the markup, ruleless, for a theme to single it out. */
